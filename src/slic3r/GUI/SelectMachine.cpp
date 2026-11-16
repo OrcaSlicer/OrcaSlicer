@@ -303,7 +303,6 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     auto m_model_title = new StaticLine(m_basic_panel, false, _L("Model Information"));
     m_model_title->SetFont(::Label::Head_14);
     m_model_title->SetForegroundColour(0x363636);
-    m_model_title->SetBackgroundColour(*wxWHITE);
 
     /*rename*/
     auto sizer_rename = new wxBoxSizer(wxHORIZONTAL);
@@ -633,12 +632,9 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     m_warn_when_drying_sizer->Add(m_txt_warn_when_drying, 0, wxTOP, FromDIP(2));
 
     /*Advanced Options*/
-    wxBoxSizer* sizer_split_options = new wxBoxSizer(wxHORIZONTAL);
     auto m_settings_title = new StaticLine(m_scroll_area, false, _L("Settings"));
     m_settings_title->SetFont(::Label::Head_14);
     m_settings_title->SetForegroundColour(0x363636);
-    sizer_split_options->Add(0, 0, 0, wxEXPAND, 0);
-    sizer_split_options->Add(m_settings_title, 1, wxALIGN_CENTER, 0);
 
     m_options_other = new wxPanel(m_scroll_area);
     m_options_other->SetBackgroundColour(*wxWHITE);
@@ -865,9 +861,6 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
 
     m_scroll_sizer->Add(m_line_top, 0, wxEXPAND, 0);
     m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
-    //m_sizer_main->Add(m_sizer_mode_switch, 0, wxALIGN_CENTER, 0);
-    //m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
-    //m_scroll_sizer->AddStretchSpacer();
     m_scroll_sizer->Add(m_basic_panel, 0, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(15));
     m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(14));
     m_scroll_sizer->Add(sizer_split_filament, 1, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(15));
@@ -878,11 +871,11 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(10));
     m_scroll_sizer->Add(m_mapping_sugs_sizer, 0, wxLEFT|wxRIGHT, FromDIP(15));
     m_scroll_sizer->Add(m_change_filament_times_sizer, 0,wxLEFT|wxRIGHT, FromDIP(15));
-    // m_scroll_sizer->Add(m_link_edit_nozzle, 0, wxLEFT|wxRIGHT, FromDIP(15));
     m_scroll_sizer->Add(suggestion_sizer, 0, wxLEFT|wxRIGHT|wxEXPAND, FromDIP(15));
     m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(10));
     m_scroll_sizer->Add(m_warn_when_drying_sizer, 0, wxLEFT|wxRIGHT, FromDIP(15));
-    m_scroll_sizer->Add(sizer_split_options, 1, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(15));
+    m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(5));
+    m_scroll_sizer->Add(m_settings_title, 0, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(15));
     m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(5));
     m_scroll_sizer->Add(m_options_other, 0, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(15));
     m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(30));
@@ -6573,7 +6566,7 @@ void SelectMachineDialog::UpdateStatusCheckWarning_ExtensionTool(MachineObject* 
      m_printoption_item = new PrintOptionItem(this, m_ops, param);
      m_printoption_item->SetFont(Label::Body_13);
 
-     sizer->Add(m_printoption_tips, 0, wxALIGN_LEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+     sizer->Add(m_printoption_tips, 0, wxALIGN_LEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL | wxRESERVE_SPACE_EVEN_IF_HIDDEN, FromDIP(10)); // ORCA keep label position same even tooltip icon hidden
      sizer->Add(m_printoption_title, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 0);
      sizer->AddStretchSpacer();
      sizer->Add(m_printoption_item, 0, wxALIGN_RIGHT | wxALIGN_CENTER_VERTICAL, 0);
@@ -6714,13 +6707,14 @@ void PrintOption::msw_rescale()
 
 void PrintOption::insert_extra_widget(wxWindow* widget)
 {
-    // insert after title (index 0), before tips (index 1)
-    // sizer layout: [title][tips][stretch][item]
-    // after insert:  [title][widget][tips][stretch][item]
+    // ORCA Show widgets after label. only used for timelapse > folder icon
+    // insert before tip icon (index 0), before title (index 1), after title (index 1)
+    // sizer layout: [tips][title][stretch][item]
+    // after insert: [tips][title][widget][stretch][item]
     wxSizer* sizer = GetSizer();
     if (!sizer || !widget) return;
     widget->Reparent(this);
-    sizer->Insert(2, widget, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8)); // ORCA Show widgets after label. only used for timelapse > folder icon
+    sizer->Insert(2, widget, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
     Layout();
 }
 
@@ -6732,8 +6726,7 @@ PrintOptionItem::PrintOptionItem(wxWindow* parent, std::vector<POItem> ops, std:
 #endif //__WINDOWS__
 
     m_param = param;
-    if(parent)
-        SetBackgroundColour(parent->GetBackgroundColour());
+    SetBackgroundColour(parent->GetBackgroundColour());
 
     Bind(wxEVT_PAINT, &PrintOptionItem::OnPaint, this);
     Bind(wxEVT_ENTER_WINDOW, [this](auto& e) { SetCursor(wxCURSOR_HAND); });
@@ -6830,10 +6823,10 @@ void PrintOptionItem::doRender(wxDC& dc)
     /*selected*/
     auto selected_left = selected * PRINT_OPT_WIDTH + FromDIP(4);
     if (m_enable) {
-        const ScalableBitmap bmp = wxGetApp().dark_mode() ? m_selected_bk_dark : m_selected_bk;
+        const ScalableBitmap& bmp = wxGetApp().dark_mode() ? m_selected_bk_dark : m_selected_bk;
         dc.DrawBitmap(bmp.bmp(), selected_left, (size.y - bmp.GetBmpHeight()) / 2);
     } else {
-        const ScalableBitmap bmp = wxGetApp().dark_mode() ? m_selected_disabled_bk_dark : m_selected_disabled_bk;
+        const ScalableBitmap& bmp = wxGetApp().dark_mode() ? m_selected_disabled_bk_dark : m_selected_disabled_bk;
         dc.DrawBitmap(bmp.bmp(), selected_left, (size.y - bmp.GetBmpHeight()) / 2);
     }
 

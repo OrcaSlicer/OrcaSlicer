@@ -72,7 +72,7 @@ BBLStatusBarSend::BBLStatusBarSend(wxWindow *parent, int id)
     });
 
     m_stext_percent = new wxStaticText(m_self, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, 0);
-    m_stext_percent->SetForegroundColour(wxColour(107, 107, 107));
+    m_stext_percent->SetForegroundColour(wxColour("#363636"));
     m_stext_percent->SetFont(::Label::Body_13);
     m_stext_percent->Wrap(-1);
 
@@ -330,7 +330,7 @@ void BBLStatusBarSend::set_status_text(const char *txt)
 
 void BBLStatusBarSend::msw_rescale() {
     //set_prog_block();
-    m_cancelbutton->SetMinSize(wxSize(m_self->FromDIP(56), m_self->FromDIP(24)));
+    m_cancelbutton->Rescale(); // ORCA rescale applies style
 }
 
 wxString BBLStatusBarSend::get_status_text() const

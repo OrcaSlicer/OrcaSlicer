@@ -365,8 +365,7 @@ void BBLStatusBarPrint::set_status_text(const char *txt)
 
 void BBLStatusBarPrint::msw_rescale() {
     //set_prog_block();
-    //m_cancelbutton->SetMinSize(wxSize(m_self->FromDIP(56), m_self->FromDIP(24)));
-    m_cancelbutton->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
+    m_cancelbutton->Rescale(); // ORCA rescale applies style
 }
 
 wxString BBLStatusBarPrint::get_status_text() const
