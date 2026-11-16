@@ -51,6 +51,7 @@ add_executable(${_TEST_NAME}_tests
     test_fill_plane_path.cpp
     test_adaptive_infill_field.cpp
     test_geometry.cpp
+    test_measure.cpp
     test_kdtree.cpp
     test_lightning.cpp
     test_imex_arrange.cpp
