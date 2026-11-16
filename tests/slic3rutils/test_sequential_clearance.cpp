@@ -1,3 +1,4 @@
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -162,4 +163,35 @@ TEST_CASE("Sequential clearance keeps object order when sorting copies", "[Seque
     CHECK(instances[1].instance_id == ObjectID(4));
     CHECK(instances[2].instance_id == ObjectID(1));
     CHECK(instances[3].instance_id == ObjectID(2));
+}
+
+TEST_CASE("Sequential clearance keeps the instances of a group together", "[SequentialClearance]")
+{
+    // The group is printed where its first instance is, as print validation orders it.
+    std::vector<SequentialClearanceInstance> instances{instance(0, 0, 5.), instance(20, 0, 5.), instance(40, 0, 5.)};
+    for (size_t i = 0; i < instances.size(); ++i)
+        instances[i].instance_id = ObjectID(i + 1);
+    instances[0].group = instances[2].group = 7;
+    gather_sequential_clearance_groups(instances);
+    CHECK(instances[0].instance_id == ObjectID(1));
+    CHECK(instances[1].instance_id == ObjectID(3));
+    CHECK(instances[2].instance_id == ObjectID(2));
+}
+
+TEST_CASE("Sequential clearance lets the last group reach the printable height", "[SequentialClearance]")
+{
+    // A short object, then two tall ones in one Y band. Printed one after the other, the first tall one is in the
+    // rod's way while the last one prints; printed together as the last group, neither is.
+    const bool grouped = GENERATE(false, true);
+    CAPTURE(grouped);
+    std::vector<SequentialClearanceInstance> instances{instance(0, 0, 5.), instance(20, 0, 50.), instance(40, 0, 50.)};
+    if (grouped)
+        instances[1].group = instances[2].group = 0;
+    const auto warnings = sequential_clearance_height_polygons(instances, 200., 30., 10.);
+    if (grouped) {
+        CHECK(warnings.empty());
+    } else {
+        REQUIRE(warnings.size() == 1);
+        CHECK(warnings.front().first == instances[1].hull_polygon);
+    }
 }
