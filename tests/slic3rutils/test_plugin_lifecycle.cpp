@@ -17,6 +17,10 @@
 #include "plugin_test_utils.hpp"
 #include "test_utils.hpp"
 
+#ifdef SLIC3R_CAD
+#include "slic3r/plugin/host/PluginHostCad.hpp"
+#endif
+
 #include <boost/filesystem.hpp>
 #include <pybind11/cast.h>
 #include <pybind11/eval.h>
@@ -29,6 +33,7 @@
 #include <condition_variable>
 #include <fstream>
 #include <mutex>
+#include <optional>
 #include "slic3r/plugin/PythonPluginInterface.hpp"
 #include <string>
 #include <thread>
@@ -224,6 +229,27 @@ PluginDescriptor descriptor_of(PluginManager& manager, const std::string& plugin
 }
 
 } // namespace
+
+#ifdef SLIC3R_CAD
+TEST_CASE("Unloaded CAD plugin entries survive process finalization", "[PluginLifecycle][CadFaceSelection][Regression]")
+{
+    ScopedPluginManager guard;
+    if (!guard.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    PluginManager& manager = PluginManager::instance();
+    write_plugin(guard.python_data_dir, "Cad_Exit", ECHO_PLUGIN_SOURCE);
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    PluginDescriptor descriptor;
+    REQUIRE(manager.try_get_valid_plugin_descriptor("Cad_Exit", descriptor));
+
+    // No inspector needs to run: a native selection or plugin unload can create the caches.
+    // The manager retains discovered entries after shutdown. CTest runs this case in its own
+    // process, so it also checks that their destructors can safely repeat CAD cleanup at exit.
+    PluginHostCad::selection_changed(std::nullopt);
+    manager.shutdown();
+    REQUIRE(manager.try_get_valid_plugin_descriptor("Cad_Exit", descriptor));
+}
+#endif
 
 TEST_CASE("Lifecycle hook shutdown drains concurrent dispatch", "[PluginLifecycle][LifecycleEvents]")
 {

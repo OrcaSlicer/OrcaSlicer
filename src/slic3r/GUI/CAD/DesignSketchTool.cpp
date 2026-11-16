@@ -1,4 +1,7 @@
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
+#include "slic3r/GUI/CAD/CadFaceSelection.hpp"
+#include "slic3r/GUI/CAD/CadShapeSelection.hpp"
+#include "libslic3r/CAD/CadShape.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
@@ -24,6 +27,17 @@
 #include "libslic3r/CAD/GeometryEngine.hpp"
 
 #include <BRepBndLib.hxx>
+#include <BRep_Tool.hxx>
+#include <TopAbs_ShapeEnum.hxx>
+#include <TopExp.hxx>
+#include <TopoDS.hxx>
+#include <TopoDS_Vertex.hxx>
+#include <NCollection_IndexedMap.hxx>
+#include <TopTools_ShapeMapHasher.hxx>
+#include <gp_Pnt.hxx>
+#include <memory>
+#include <exception>
+#include <boost/log/trivial.hpp>
 #include <BRep_Builder.hxx>
 #include <Bnd_Box.hxx>
 #include <Standard_Failure.hxx>
@@ -51,6 +65,7 @@
 #include <climits>
 #include <limits>
 #include <array>
+#include <optional>
 #include <cmath>
 #include <cstdio>
 #include <cstdarg>
@@ -3773,6 +3788,92 @@ void DesignSketchTool::clear_solid_selection()
     // rebuilt, so it expires with the selection it was a promise about. Left behind it would keep
     // glowing on whatever now sits at those indices — a real entity, but not the one meant.
     m_pre = SolidPick{};
+    notify_cad_selection_changed();
+}
+
+std::optional<CadShapeSelection> DesignSketchTool::selected_shape() const
+{
+    if (m_solid_sel == SolidSel::None || m_sel_shape.IsNull())
+        return std::nullopt;
+    CadShapeSelection result;
+    result.body_index = m_sel_body;
+    if (m_solid_xform != nullptr && m_sel_body >= 0 && m_sel_body < int(m_solid_xform->size()))
+        for (int row = 0; row < 4; ++row)
+            for (int col = 0; col < 4; ++col)
+                result.body_to_design[row][col] = (*m_solid_xform)[m_sel_body].matrix()(row, col);
+    TopoDS_Shape picked;
+    if (m_solid_sel == SolidSel::Face) {
+        result.kind = "face";
+        result.face_index = m_sel_face;
+        picked = GeometryEngine::face_by_index(m_sel_shape, m_sel_face);
+    } else if (m_solid_sel == SolidSel::Edge) {
+        result.kind = "edge";
+        result.edge_index = m_sel_edge;
+        result.edge_indices = selected_edges();
+        picked = GeometryEngine::edge_by_index(m_sel_shape, m_sel_edge);
+    } else if (m_solid_sel == SolidSel::Vertex) {
+        result.kind = "vertex";
+        // Native picking stores a displayed edge endpoint. Resolve it to an actual OCCT
+        // vertex, including the pending body transform; never invent topology from that point.
+        NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> vertices;
+        TopExp::MapShapes(m_sel_shape, TopAbs_VERTEX, vertices);
+        double nearest = std::numeric_limits<double>::max();
+        double scale = 1.0;
+        if (m_solid_xform != nullptr && m_sel_body >= 0 && m_sel_body < int(m_solid_xform->size()))
+            scale = (*m_solid_xform)[m_sel_body].linear().norm();
+        for (int i = 1; i <= vertices.Extent(); ++i) {
+            const TopoDS_Vertex vertex = TopoDS::Vertex(vertices(i));
+            const gp_Pnt p = BRep_Tool::Pnt(vertex);
+            const double distance = (body_xform_pt(m_sel_body, Vec3d(p.X(), p.Y(), p.Z())) - m_sel_vertex_pt).norm();
+            if (distance < nearest && distance <= scale * std::max(1e-6, BRep_Tool::Tolerance(vertex))) {
+                nearest = distance;
+                picked = vertex;
+                result.vertex_index = i - 1;
+            }
+        }
+    } else {
+        result.kind = "body";
+        picked = m_sel_shape;
+    }
+    if (picked.IsNull()) return std::nullopt;
+    result.shape = CadShape::copy_of(picked);
+    if (m_solid_sel == SolidSel::Face) {
+        CadFaceSelection face;
+        face.body_index = result.body_index;
+        face.face_index = result.face_index;
+        face.body_to_design = result.body_to_design;
+        face.shape = result.shape;
+        face.centroid = face.shape->face_centroid();
+        face.area = face.shape->area();
+        face.is_planar = face.shape->surface_type() == "plane";
+        // A valid spline can lack a derivative at the UV midpoint. Keep the pick and
+        // its topology available even when that optional normal cannot be evaluated.
+        try {
+            if (const auto frame = face.shape->local_frame()) face.normal = frame->normal;
+        } catch (const Standard_Failure&) {}
+        result.face = std::move(face);
+    }
+    return result;
+}
+
+std::optional<CadFaceSelection> DesignSketchTool::selected_face() const
+{
+    const auto selection = selected_shape();
+    return selection ? selection->face : std::nullopt;
+}
+
+void DesignSketchTool::notify_cad_selection_changed() const
+{
+    if (!on_cad_selection_changed) return;
+    try {
+        on_cad_selection_changed(selected_shape());
+    } catch (const Standard_Failure& error) {
+        BOOST_LOG_TRIVIAL(warning) << "Could not describe selected CAD shape: " << error.GetMessageString();
+        on_cad_selection_changed(std::nullopt);
+    } catch (const std::exception& error) {
+        BOOST_LOG_TRIVIAL(warning) << "Could not describe selected CAD shape: " << error.what();
+        on_cad_selection_changed(std::nullopt);
+    }
 }
 
 std::vector<int> DesignSketchTool::selected_edges() const
@@ -3799,6 +3900,7 @@ void DesignSketchTool::select_body(int body)
     m_sel_edges_more.clear();
     m_sel_edges_more_pts.clear();
     m_solid_sel = SolidSel::Whole;   // the canvas fills just this body, render_solid_highlight outlines it
+    notify_cad_selection_changed();
 }
 
 void DesignSketchTool::set_highlight_faces(const std::vector<std::pair<int, int>>& faces)
@@ -4218,6 +4320,11 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
     if (!resolve_solid_pick(canvas, evt.GetX(), evt.GetY(), p))
         return false;   // missed the solid, or no solid data — same two exits as before
 
+    return apply_solid_pick(std::move(p), evt.ShiftDown() || evt.ControlDown() || evt.CmdDown());
+}
+
+bool DesignSketchTool::apply_solid_pick(SolidPick p, bool extend)
+{
     // What was selected BEFORE this pick — the escalation below is the only thing that reads
     // it, and everything from here on overwrites it.
     const SolidSel prev_kind = m_solid_sel;
@@ -4229,7 +4336,6 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
     // set spanning two could not be applied. An edge already in the set leaves it; the last one
     // leaving clears the selection. No escalation to the whole body here — a modified click is
     // always about the set.
-    const bool extend = evt.ShiftDown() || evt.ControlDown() || evt.CmdDown();
     if (extend && p.kind == SolidSel::Edge && prev_kind == SolidSel::Edge && p.body == prev_body) {
         auto more = std::find(m_sel_edges_more.begin(), m_sel_edges_more.end(), p.edge);
         if (p.edge == prev_edge) {
@@ -4253,6 +4359,7 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
             m_sel_face     = p.face;
         }
         dp_pick_trace("edge set -> %zu edge(s), current %d", selected_edges().size(), m_sel_edge);
+        notify_cad_selection_changed();
         if (on_solid_selection_changed)
             on_solid_selection_changed(int(m_solid_sel), m_sel_body, m_sel_face, m_sel_edge);
         return true;
@@ -4302,6 +4409,7 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
     }
     dp_pick_trace("pick -> sel=%d body=%d face=%d edge=%d",
                   int(m_solid_sel), m_sel_body, m_sel_face, m_sel_edge);
+    notify_cad_selection_changed();
     if (on_solid_selection_changed)
         on_solid_selection_changed(int(m_solid_sel), m_sel_body, m_sel_face, m_sel_edge);
     return true;

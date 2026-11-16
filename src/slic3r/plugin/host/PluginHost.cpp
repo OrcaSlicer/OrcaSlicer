@@ -1,6 +1,9 @@
 #include "PluginHost.hpp"
 #include "PluginHostBindings.hpp"
 #include "PluginHostUi.hpp"
+#ifdef SLIC3R_CAD
+#include "PluginHostCad.hpp"
+#endif
 #include <pybind11/pybind11.h>
 #include <slic3r/plugin/PluginAuditManager.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
@@ -44,6 +47,9 @@ void PluginHost::RegisterBindings(pybind11::module_& module)
 
     // UI: native dialogs and interactive HTML windows for plugins.
     PluginHostUi::RegisterBindings(host);
+#ifdef SLIC3R_CAD
+    PluginHostCad::RegisterBindings(host);
+#endif
 
     // Slicing print-graph data model (Print, Layer, Surface, ...).
     host_bindings::register_slicing(host);
