@@ -1293,6 +1293,14 @@ void Selection::move_to_center(const Vec3d& displacement, bool local)
             }
         }
     }
+
+#if !DISABLE_INSTANCES_SYNCH
+    // A part is shared by every instance of its object, but only the selected copy was moved. Bring the other
+    // copies along as translate() does, otherwise do_move() writes a stale copy's old offset back to the model.
+    if (translation_type == Volume)
+        synchronize_unselected_volumes();
+#endif // !DISABLE_INSTANCES_SYNCH
+
     this->set_bounding_boxes_dirty();
 }
 
