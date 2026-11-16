@@ -71,7 +71,10 @@ and to top surfaces on a layer where their region is not ironed.
 
 `GCode::volumetric_speed_limit` returns the flow limit of a path's role, and
 `_extrude` uses it everywhere the filament limit used to cap a speed, including
-the resonance-avoidance re-cap and the overhang reference speed. Whether a top
+the resonance-avoidance re-cap and the overhang reference speed. Resonance
+avoidance moves an outer wall in the upper half of its band up to the band's top;
+when the limit keeps the wall below that top, the wall drops to the band's bottom
+instead, so the boost never exceeds the limit. Whether a top
 surface is ironed follows `Layer::choose_ironing_extruder`, the rule the ironing
 generator uses, so an ironed top surface keeps the higher limit. Calibration prints
 ignore the option, as they do volumetric speeds. A volumetric speed in percent is

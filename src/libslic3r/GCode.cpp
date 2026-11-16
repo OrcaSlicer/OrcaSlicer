@@ -9768,7 +9768,10 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
             // - speeds in lower half of range: clamp down to "min"
             // - speeds in upper half of range: boost up to "max"
         if (m_resonance_avoidance && speed < m_config.max_resonance_avoidance_speed.value) {
-            if (speed < m_config.min_resonance_avoidance_speed.value +
+            // ORCA: a wall the volumetric limit keeps below "max" cannot be boosted, so it clamps down to "min".
+            const bool can_boost = max_volumetric_speed <= 0 ||
+                                   m_config.max_resonance_avoidance_speed.value <= max_volumetric_speed / _mm3_per_mm;
+            if (!can_boost || speed < m_config.min_resonance_avoidance_speed.value +
                             ((m_config.max_resonance_avoidance_speed.value - m_config.min_resonance_avoidance_speed.value) / 2)) {
                 speed = std::min(speed, m_config.min_resonance_avoidance_speed.value);
             } else {

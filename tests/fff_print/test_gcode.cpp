@@ -928,3 +928,31 @@ TEST_CASE("The max external volumetric speed limits top surfaces only when they 
             CHECK(extruded_flow > 2. * max_external);
     }
 }
+
+// Resonance avoidance moves an outer wall in the upper half of its band up to the band's top. When the
+// volumetric limit keeps the wall below that top, the boost would exceed the limit, so the wall drops to
+// the band's bottom instead.
+TEST_CASE("Resonance avoidance keeps outer walls within their volumetric speed limit", "[GCode]")
+{
+    static constexpr double min_avoided = 40., max_avoided = 90.;
+    const auto [limit_key, limit, outer_wall_speed, expected_speed] = GENERATE(table<std::string, double, double, double>({
+        // 6 mm3/s caps a 0.2 mm wall at about 75-80 mm/s, in the upper half of the band.
+        {"filament_max_external_volumetric_speed", 6., 200., min_avoided},
+        {"filament_max_volumetric_speed", 6., 200., min_avoided},
+        // 10 mm3/s allows the top of the band, so a 75 mm/s wall is still boosted to it.
+        {"filament_max_external_volumetric_speed", 10., 75., max_avoided},
+    }));
+    INFO(limit_key << " = " << limit << ", outer wall " << outer_wall_speed << " mm/s");
+    const auto moves = role_speeds_and_flows(volumetric_speed_gcode(false, {{limit_key, limit},
+                                                                            {"outer_wall_speed", outer_wall_speed},
+                                                                            {"resonance_avoidance", "1"},
+                                                                            {"min_resonance_avoidance_speed", min_avoided},
+                                                                            {"max_resonance_avoidance_speed", max_avoided}}),
+                                             "Outer wall");
+
+    REQUIRE_FALSE(moves.empty());
+    for (const auto &[speed, extruded_flow] : moves) {
+        CHECK(extruded_flow <= limit * 1.01);
+        CHECK_THAT(speed, Catch::Matchers::WithinAbs(expected_speed, 0.5));
+    }
+}
