@@ -76,7 +76,8 @@ jobs:
             Push-Location $e.directory
             # A batch file keeps cmd from stripping the quotes around the compiler path.
             $bat = "$env:RUNNER_TEMP\compile.bat"
-            Set-Content $bat "@$($e.command) /P /Fi`"$out\$f.i`""
+            # Extra flags go before "-c --": clang-cl reads everything after "--" as a source file.
+            Set-Content $bat ("@" + $e.command.Replace(' -c -- ', " /P /Fi`"$out\$f.i`" -c -- "))
             cmd /c $bat *> "$out\$f.preprocess.log"
             $cells = @()
             foreach ($k in $variants.Keys) {
@@ -86,7 +87,7 @@ jobs:
                 $cmdline = $cmdline.Replace($variants[$k][0], $variants[$k][1])
               }
               $extra = if ($k -eq 'base') { " /FA /Fa`"$out\$f.s`"" } else { '' }
-              Set-Content $bat "@$cmdline$extra /Fo`"$env:RUNNER_TEMP\$f.$k.obj`""
+              Set-Content $bat ("@" + $cmdline.Replace(' -c -- ', "$extra /Fo`"$env:RUNNER_TEMP\$f.$k.obj`" -c -- "))
               cmd /c $bat *> "$out\$f.$k.log"
               $cells += if ($LASTEXITCODE) { 'FAIL' } else { 'ok' }
             }
