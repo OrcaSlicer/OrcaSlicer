@@ -30,6 +30,7 @@
 #include <slic3r/GUI/BindDialog.hpp>
 #include <slic3r/GUI/GUI_App.hpp>
 #include <slic3r/GUI/MsgDialog.hpp>
+#include <slic3r/GUI/format.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <string>
@@ -2105,10 +2106,82 @@ PermissionMessage formatted_audit_message(AuditEventCategory category, const wxS
     return message;
 }
 
+// A runtime create/delete prompt shows both the path that triggered it and the folder a Yes
+// saves, so the user can see why the plugin was stopped and what the persistent grant covers.
+// The declaration prompt keeps showing only the requested folder scope.
+PermissionMessage formatted_create_delete_message(AuditEventCategory category, const wxString& plugin_name,
+                                                 const std::vector<PluginAuditManager::PermissionPromptEntry>& entries)
+{
+    // TRN %1% is the path the plugin tried to create or delete; %2% is the folder saved as a
+    // grant if the user approves.
+    const wxString entry_format = _L("Target: %1%\nSaved folder: %2%");
+    wxString       target_list;
+    for (const auto& entry : entries) {
+        if (!target_list.IsEmpty())
+            target_list += "\n";
+        target_list += GUI::format_wxstr(entry_format, entry.target, entry.grant_folder);
+    }
+
+    wxString marker = "__ORCA_PERMISSION_TARGETS__";
+    while (plugin_name.Contains(marker) || target_list.Contains(marker))
+        marker += "_";
+
+    wxString text;
+    switch (category) {
+    case AuditEventCategory::FsCreate:
+        // TRN %1% is the plugin name; %2% is the list of targets, each with the folder saved as a
+        // grant.
+        text = GUI::format_wxstr(
+            _L_PLURAL("Plugin \"%1%\" is requesting to create the following entry:\n%2%\n\n"
+                      "If you approve, the folder shown with this target is saved as a grant for future "
+                      "operations. The grant covers creating entries directly inside that folder. It does not "
+                      "cover the subfolders inside that folder.",
+                      "Plugin \"%1%\" is requesting to create the following entries:\n%2%\n\n"
+                      "If you approve, the folder shown with each target is saved as a grant for future "
+                      "operations. Each grant covers creating entries directly inside its folder. It does not "
+                      "cover the subfolders inside that folder.",
+                      entries.size()),
+            plugin_name, marker);
+        break;
+    case AuditEventCategory::FsDelete:
+        // TRN %1% is the plugin name; %2% is the list of targets, each with the folder saved as a
+        // grant.
+        text = GUI::format_wxstr(
+            _L_PLURAL("Plugin \"%1%\" is requesting to delete the following entry:\n%2%\n\n"
+                      "If you approve, the folder shown with this target is saved as a grant for future "
+                      "operations. The grant covers deleting entries directly inside that folder. It does not "
+                      "cover the subfolders inside that folder.",
+                      "Plugin \"%1%\" is requesting to delete the following entries:\n%2%\n\n"
+                      "If you approve, the folder shown with each target is saved as a grant for future "
+                      "operations. Each grant covers deleting entries directly inside its folder. It does not "
+                      "cover the subfolders inside that folder.",
+                      entries.size()),
+            plugin_name, marker);
+        break;
+    default:
+        return {};
+    }
+
+    PermissionMessage message{text, {}};
+    const size_t pos = message.text.find(marker);
+    if (pos != wxString::npos) {
+        message.text.replace(pos, marker.length(), target_list);
+        message.targets.emplace_back(pos, target_list.length());
+    }
+    return message;
+}
+
 // Builds and shows the modal permission prompt. Must run on the GUI thread.
 bool prompt_for_targets(AuditEventCategory category, const std::string& plugin_name, const std::string& event_name,
-                        const std::vector<std::string>& unresolved)
+                        const std::vector<std::string>& unresolved,
+                        const std::vector<PluginAuditManager::PermissionPromptEntry>& entries)
 {
+    if (is_create_delete_category(category) && !entries.empty()) {
+        PermissionMessage message =
+            formatted_create_delete_message(category, wxString::FromUTF8(plugin_name.c_str()), entries);
+        return show_permission_dialog(message, _L("Plugin permission request"));
+    }
+
     wxString target_list;
     for (const auto& target : unresolved)
         target_list += wxString::FromUTF8(target.c_str()) + "\n";
@@ -2174,7 +2247,9 @@ static const char* audit_category_name(AuditEventCategory category)
 // Asks the user to grant an audited event, returning true when they approve an inline prompt.
 // `keys` are what a Yes saves and, for a targeted event, what the prompt shows. For a targetless
 // event (by_event) the prompt shows no target and `keys` holds the event-grant key. Create/delete
-// pass the canonical parent folder of each target, so the prompt shows exactly what is stored.
+// pass the canonical parent folder of each target in `keys`, and `entries` additionally pairs
+// every triggering target with that folder, so the prompt shows both the reason for the prompt
+// and exactly what it saves.
 //
 // An audited event can fire on a thread the UI thread may itself be blocked waiting on: the
 // SlicingPipeline hook runs on the slicing worker thread (see PluginHooks.cpp), and
@@ -2191,7 +2266,8 @@ static const char* audit_category_name(AuditEventCategory category)
 // prompt is posted and the current operation is denied, so the plugin has to retry it after the
 // approval has stored the folder.
 bool request_permission(AuditEventCategory category, const std::string& plugin_key, const std::string& plugin_name,
-                        const std::string& event_name, bool by_event, const std::vector<std::string>& keys)
+                        const std::string& event_name, bool by_event, const std::vector<std::string>& keys,
+                        const std::vector<PluginAuditManager::PermissionPromptEntry>& entries = {})
 {
     const std::vector<std::string> shown = by_event ? std::vector<std::string>{} : keys;
     std::string targets_text = by_event ? "<none>" : "";
@@ -2206,18 +2282,18 @@ bool request_permission(AuditEventCategory category, const std::string& plugin_k
                             << (by_event && !keys.empty() ? " grant=" + keys.front() : std::string{});
 
     if (s_permission_prompt_for_testing)
-        return s_permission_prompt_for_testing(event_name, shown);
+        return s_permission_prompt_for_testing(event_name, shown, entries);
 
     if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
         return false;
 
     if (wxIsMainThread())
-        return prompt_for_targets(category, plugin_name, event_name, shown);
+        return prompt_for_targets(category, plugin_name, event_name, shown, entries);
 
-    GUI::wxGetApp().CallAfter([category, plugin_key, plugin_name, event_name, by_event, keys, shown]() {
+    GUI::wxGetApp().CallAfter([category, plugin_key, plugin_name, event_name, by_event, keys, shown, entries]() {
         if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
             return;
-        if (prompt_for_targets(category, plugin_name, event_name, shown))
+        if (prompt_for_targets(category, plugin_name, event_name, shown, entries))
             persist_grant(plugin_key, category, by_event, keys);
     });
     return false;
@@ -2249,11 +2325,12 @@ int decide_audited_event(PluginAuditManager&             mgr,
     std::vector<std::string>*      permission_list = permission_list_for(category, by_event, state.permissions);
 
     // Create/delete grants name folders: an approval saves the folder that directly contains
-    // each unresolved target, and the prompt shows those canonical folders -- including the
-    // absolute form of relative targets and the resolved form of symlinked parents -- so the user
-    // approves exactly the scope that will be stored. Every target has to be covered, and a
-    // target whose folder cannot be resolved fails closed.
+    // each unresolved target, and the prompt shows both the triggering target and that canonical
+    // folder -- including the absolute form of relative targets and the resolved form of
+    // symlinked parents -- so the user approves exactly the scope that will be stored. Every
+    // target has to be covered, and a target whose folder cannot be resolved fails closed.
     std::vector<std::string> unresolved;
+    std::vector<PluginAuditManager::PermissionPromptEntry> prompt_entries;
     if (threading_category) {
         // Threading is a boolean grant rather than a target list. The event still reports the
         // fixed sentinel target so it is not treated as a targetless event grant.
@@ -2271,6 +2348,9 @@ int decide_audited_event(PluginAuditManager&             mgr,
             // the sidecar would read it as a tree grant over a broader scope. Fail closed.
             if (create_delete_folder_has_wildcard(folder))
                 return report_denied(mgr, event_name, {false, "target folder contains a wildcard"}, target);
+            // Show every triggering target, even when several targets resolve to the same folder;
+            // the folder list stays deduplicated because a Yes saves each folder once.
+            prompt_entries.push_back({target, grant});
             if (std::find(unresolved.begin(), unresolved.end(), grant) != unresolved.end())
                 continue; // another target in this folder already requires the same approval
             unresolved.push_back(grant);
@@ -2296,7 +2376,7 @@ int decide_audited_event(PluginAuditManager&             mgr,
     if (mgr.releasing_frames())
         return report_denied(mgr, event_name, {false, "audit permission required"});
 
-    if (!request_permission(category, plugin_key, plugin_name, event_name, by_event, unresolved))
+    if (!request_permission(category, plugin_key, plugin_name, event_name, by_event, unresolved, prompt_entries))
         return report_denied(mgr, event_name, {false, "audit permission required"});
 
     if (threading_category || permission_list) {
@@ -2799,6 +2879,13 @@ void PluginAuditManager::release_frames(std::vector<RootFrame>& frames)
 void PluginAuditManager::set_permission_prompt_for_testing(PermissionPrompt prompt)
 {
     PluginAuditDetail::s_permission_prompt_for_testing = std::move(prompt);
+}
+
+std::string PluginAuditManager::format_create_delete_permission_prompt_for_testing(
+    AuditEventCategory category, const std::string& plugin_name, const std::vector<PermissionPromptEntry>& entries)
+{
+    return PluginAuditDetail::formatted_create_delete_message(category, wxString::FromUTF8(plugin_name.c_str()), entries)
+        .text.utf8_string();
 }
 
 void PluginAuditManager::set_permission_message_prompt_for_testing(PermissionMessagePrompt prompt)

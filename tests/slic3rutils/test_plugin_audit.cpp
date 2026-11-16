@@ -782,9 +782,10 @@ class TrackedRequest(urllib.request.Request):
 
 struct Prompt
 {
-    std::string              plugin;
-    std::string              event;
-    std::vector<std::string> targets;
+    std::string                                            plugin;
+    std::string                                            event;
+    std::vector<std::string>                               targets;
+    std::vector<PluginAuditManager::PermissionPromptEntry> entries;
 };
 
 // One line per prompt, "event: target ...", so a failed check shows every prompt.
@@ -824,8 +825,9 @@ struct AuditHarness
         audit.clear_audit_denial();
         audit.clear_last_violation();
         PluginAuditManager::set_permission_prompt_for_testing(
-            [this](const std::string& event, const std::vector<std::string>& targets) {
-                prompts.push_back({PluginAuditManager::instance().current_plugin(), event, targets});
+            [this](const std::string& event, const std::vector<std::string>& targets,
+                   const std::vector<PluginAuditManager::PermissionPromptEntry>& entries) {
+                prompts.push_back({PluginAuditManager::instance().current_plugin(), event, targets, entries});
                 return approve(prompts.back());
             });
     }
@@ -2935,6 +2937,11 @@ CROSS_CREATE = os.path.join(DELETE_ROOT, "cross")
 
     CHECK(python.str("first_create_outcome") == "ok");
     CHECK(describe(harness.prompts) == "os.mkdir: " + python.str("CREATE_ROOT") + "\n");
+    REQUIRE(harness.prompts.size() == 1);
+    // The prompt shows the triggering path, not only the folder the approval saves.
+    CHECK(harness.prompts.front().entries ==
+          std::vector<PluginAuditManager::PermissionPromptEntry>{
+              {python.str("FIRST_CREATE"), python.str("CREATE_ROOT")}});
     PluginPermissions after_create = harness.saved_permissions(PLUGIN);
     // The prompt approval is saved as the folder containing the target, not the target itself.
     REQUIRE(after_create.fs_create.size() == 1);
@@ -2952,6 +2959,10 @@ CROSS_CREATE = os.path.join(DELETE_ROOT, "cross")
     python.run_as(PLUGIN, "nested_create_outcome = attempt(lambda: os.mkdir(NESTED_CREATE))");
     CHECK(python.str("nested_create_outcome") == "denied");
     CHECK(describe(harness.prompts) == "os.mkdir: " + python.str("NESTED_FOLDER") + "\n");
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().entries ==
+          std::vector<PluginAuditManager::PermissionPromptEntry>{
+              {python.str("NESTED_CREATE"), python.str("NESTED_FOLDER")}});
     const PluginPermissions after_denial = harness.saved_permissions(PLUGIN);
     REQUIRE(after_denial.fs_create.size() == 1);
     CHECK(fs::equivalent(fs::path(after_denial.fs_create.front()), fs::path(python.str("CREATE_ROOT"))));
@@ -2962,6 +2973,10 @@ CROSS_CREATE = os.path.join(DELETE_ROOT, "cross")
     python.run_as(PLUGIN, "first_delete_outcome = attempt(lambda: os.remove(FIRST_DELETE))");
     CHECK(python.str("first_delete_outcome") == "ok");
     CHECK(describe(harness.prompts) == "os.remove: " + python.str("DELETE_ROOT") + "\n");
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().entries ==
+          std::vector<PluginAuditManager::PermissionPromptEntry>{
+              {python.str("FIRST_DELETE"), python.str("DELETE_ROOT")}});
     PluginPermissions after_delete = harness.saved_permissions(PLUGIN);
     REQUIRE(after_delete.fs_delete.size() == 1);
     CHECK(fs::equivalent(fs::path(after_delete.fs_delete.front()), fs::path(python.str("DELETE_ROOT"))));
@@ -2978,9 +2993,50 @@ CROSS_CREATE = os.path.join(DELETE_ROOT, "cross")
     python.run_as(PLUGIN, "cross_create_outcome = attempt(lambda: os.mkdir(CROSS_CREATE))");
     CHECK(python.str("cross_create_outcome") == "denied");
     CHECK(describe(harness.prompts) == "os.mkdir: " + python.str("DELETE_ROOT") + "\n");
+    REQUIRE(harness.prompts.size() == 1);
+    // A delete grant in this folder does not cover the create target, so the prompt still shows
+    // the target and the folder a create grant would save.
+    CHECK(harness.prompts.front().entries ==
+          std::vector<PluginAuditManager::PermissionPromptEntry>{
+              {python.str("CROSS_CREATE"), python.str("DELETE_ROOT")}});
 }
 
-TEST_CASE("A create prompt discloses the canonical folder the approval will grant", "[audit][Python]")
+TEST_CASE("A create prompt lists each target with its saved folder and states the exact grant scope", "[audit]")
+{
+    const std::string text = PluginAuditManager::format_create_delete_permission_prompt_for_testing(
+        AuditEventCategory::FsCreate, "PromptPlugin",
+        {{"/work/first.txt", "/work"}, {"/work/second.txt", "/work"}, {"/other/third.txt", "/other"}});
+
+    const std::string expected =
+        "Plugin \"PromptPlugin\" is requesting to create the following entries:\n"
+        "Target: /work/first.txt\n"
+        "Saved folder: /work\n"
+        "Target: /work/second.txt\n"
+        "Saved folder: /work\n"
+        "Target: /other/third.txt\n"
+        "Saved folder: /other\n"
+        "\n"
+        "If you approve, the folder shown with each target is saved as a grant for future operations. "
+        "Each grant covers creating entries directly inside its folder. It does not cover the subfolders inside that folder.";
+    CHECK(text == expected);
+}
+
+TEST_CASE("A delete prompt names the target and the folder saved as its exact grant", "[audit]")
+{
+    const std::string text = PluginAuditManager::format_create_delete_permission_prompt_for_testing(
+        AuditEventCategory::FsDelete, "PromptPlugin", {{"/work/old.txt", "/work"}});
+
+    const std::string expected =
+        "Plugin \"PromptPlugin\" is requesting to delete the following entry:\n"
+        "Target: /work/old.txt\n"
+        "Saved folder: /work\n"
+        "\n"
+        "If you approve, the folder shown with this target is saved as a grant for future operations. "
+        "The grant covers deleting entries directly inside that folder. It does not cover the subfolders inside that folder.";
+    CHECK(text == expected);
+}
+
+TEST_CASE("A create prompt shows the target and the canonical folder the approval will grant", "[audit][Python]")
 {
     AuditHarness harness;
     if (!harness.initialized)
@@ -3008,10 +3064,13 @@ except (OSError, NotImplementedError):
     python.run_as(PLUGIN, "outcome = attempt(lambda: os.mkdir(RAW_CREATE))");
 
     CHECK(python.str("outcome") == "ok");
-    // The user approved creating inside the symlink's target. Showing the raw path would hide
-    // which folder is actually stored and granted.
+    // The user approved creating inside the symlink's target. Showing only the raw path would hide
+    // which folder is actually stored and granted, so the prompt shows both.
     REQUIRE(harness.prompts.size() == 1);
     CHECK(harness.prompts.front().targets == std::vector<std::string>{python.str("REAL_FOLDER")});
+    CHECK(harness.prompts.front().entries ==
+          std::vector<PluginAuditManager::PermissionPromptEntry>{
+              {python.str("RAW_CREATE"), python.str("REAL_FOLDER")}});
     CHECK(harness.saved_permissions(PLUGIN).fs_create == std::vector<std::string>{python.str("REAL_FOLDER")});
     CHECK(fs::is_directory(fs::path(python.str("CREATED"))));
 }
@@ -3045,10 +3104,12 @@ finally:
 )PY");
 
     CHECK(python.str("first_outcome") == "ok");
-    // A relative target is resolved when the event is judged, and the prompt shows the absolute
-    // folder whose grant the approval will store.
+    // A relative target is resolved when the event is judged, and the prompt shows both the
+    // relative spelling that triggered it and the absolute folder whose grant the approval stores.
     REQUIRE(harness.prompts.size() == 1);
     CHECK(harness.prompts.front().targets == std::vector<std::string>{python.str("RELATIVE_ROOT")});
+    CHECK(harness.prompts.front().entries ==
+          std::vector<PluginAuditManager::PermissionPromptEntry>{{"direct", python.str("RELATIVE_ROOT")}});
     CHECK(harness.saved_permissions(PLUGIN).fs_create == std::vector<std::string>{python.str("RELATIVE_ROOT")});
 
     // The saved absolute folder covers another relative operation in the same directory.
@@ -3080,6 +3141,8 @@ finally:
     CHECK(python.str("third_outcome") == "denied");
     REQUIRE(harness.prompts.size() == 1);
     CHECK(harness.prompts.front().targets == std::vector<std::string>{python.str("RELATIVE_ROOT")});
+    CHECK(harness.prompts.front().entries ==
+          std::vector<PluginAuditManager::PermissionPromptEntry>{{"third", python.str("RELATIVE_ROOT")}});
 
     // Delete targets resolve the same way. A relative removal inside the granted folder is
     // allowed without a prompt.
@@ -3111,6 +3174,8 @@ finally:
     CHECK(python.str("relative_delete_denied") == "denied");
     REQUIRE(harness.prompts.size() == 1);
     CHECK(harness.prompts.front().targets == std::vector<std::string>{python.str("RELATIVE_ROOT")});
+    CHECK(harness.prompts.front().entries ==
+          std::vector<PluginAuditManager::PermissionPromptEntry>{{"victim2.txt", python.str("RELATIVE_ROOT")}});
 }
 
 TEST_CASE("A link create grant covers only the destination folder", "[audit][Python]")
@@ -3163,6 +3228,12 @@ hardlink_outcome = attempt(lambda: os.link(SOURCE_FILE, HARDLINK_DEST))
 
     CHECK(python.str("symlink_outcome") == "ok");
     CHECK(python.str("hardlink_outcome") == "ok");
+    // The source a link points at is not a create target, so the prompt shows only the new entry
+    // and the folder the approval saves.
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().entries ==
+          std::vector<PluginAuditManager::PermissionPromptEntry>{
+              {python.str("SYMLINK_DEST"), python.str("DEST_FOLDER")}});
     const PluginPermissions after_links = harness.saved_permissions(PLUGIN);
     REQUIRE(after_links.fs_create.size() == 1);
     CHECK(fs::equivalent(fs::path(after_links.fs_create.front()), fs::path(python.str("DEST_FOLDER"))));

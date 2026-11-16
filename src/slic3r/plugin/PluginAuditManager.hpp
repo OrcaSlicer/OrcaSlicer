@@ -249,9 +249,30 @@ public:
     // stdlib: the only code a root frame's coverage passes through. Valid after install_hook().
     static bool is_stdlib_file(const std::string& filename);
 
-    // Answers permission prompts in place of the dialog, for tests. Production never sets it.
-    using PermissionPrompt = std::function<bool(const std::string& event_name, const std::vector<std::string>& targets)>;
+    // One target a runtime permission prompt covers: the path that triggered the prompt and, for
+    // create and delete, the folder a Yes saves as the persistent grant.
+    struct PermissionPromptEntry {
+        std::string target;
+        std::string grant_folder;
+
+        bool operator==(const PermissionPromptEntry& other) const
+        {
+            return target == other.target && grant_folder == other.grant_folder;
+        }
+    };
+
+    // Answers permission prompts in place of the dialog, for tests. `targets` are the persisted
+    // grants; `entries` pairs each runtime create/delete target with the folder a Yes saves.
+    // Production never sets it.
+    using PermissionPrompt = std::function<bool(const std::string& event_name, const std::vector<std::string>& targets,
+                                                const std::vector<PermissionPromptEntry>& entries)>;
     static void set_permission_prompt_for_testing(PermissionPrompt prompt);
+
+    // Returns the runtime create/delete prompt exactly as the dialog receives it, for tests.
+    // `entries` pairs each triggering target with the folder a Yes saves.
+    static std::string format_create_delete_permission_prompt_for_testing(
+        AuditEventCategory category, const std::string& plugin_name,
+        const std::vector<PermissionPromptEntry>& entries);
 
     // Answers the combined permission-request prompt in place of the dialog, receiving the message
     // it would show. Tests run without a wxApp, so this seam also stands in for the app check.
