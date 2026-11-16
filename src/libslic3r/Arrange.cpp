@@ -1446,5 +1446,32 @@ void unpack_print_groups(ArrangePolygons &selected, std::vector<ArrangePolygons>
     groups.clear();
 }
 
+bool update_print_group_fill_inflation(ArrangePolygons &selected, ArrangePolygons &unselected, const DynamicPrintConfig *print_cfg, ArrangeParams &params)
+{
+    if (!params.is_seq_print || selected.empty())
+        return false;
+    const int print_group = selected.front().print_group;
+    if (print_group < 0 || std::any_of(selected.begin(), selected.end(), [print_group](const ArrangePolygon &ap) { return ap.print_group != print_group; }))
+        return false;
+
+    // The distance printing by object, kept from the other groups.
+    ArrangeParams seq_params = params;
+    update_selected_items_inflation(selected, print_cfg, seq_params);
+    const coord_t clearance = seq_params.min_obj_distance;
+
+    // In the group, the room of a print by layer, the user's distance being the one between groups.
+    ArrangeParams group_params    = params;
+    group_params.is_seq_print     = false;
+    group_params.min_obj_distance = 0;
+    update_selected_items_inflation(selected, print_cfg, group_params);
+    update_unselected_items_inflation(unselected, print_cfg, group_params);
+    for (ArrangePolygon &fixed : unselected)
+        if (!fixed.is_virt_object && !fixed.is_wipe_tower && fixed.print_group != print_group)
+            fixed.inflation = std::max(fixed.inflation, clearance - selected.front().inflation);
+    params.bed_shrink_x = group_params.bed_shrink_x;
+    params.bed_shrink_y = group_params.bed_shrink_y;
+    return true;
+}
+
 } // namespace arr
 } // namespace Slic3r

@@ -114,6 +114,10 @@ double bed_stride_y(const Plater* plater);
 
 arrangement::ArrangeParams init_arrange_params(Plater *p);
 
+// Orca: printing by object with the objects grouped by filament, the filament the instance prints with alone
+// (see ArrangePolygon::print_group), or -1.
+int print_group_of(const ModelInstance &instance, const arrangement::ArrangePolygon &polygon, const DynamicPrintConfig &config);
+
 }} // namespace Slic3r::GUI
 
 #endif // ARRANGEJOB_HPP

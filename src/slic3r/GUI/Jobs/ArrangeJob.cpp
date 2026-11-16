@@ -247,9 +247,7 @@ void ArrangeJob::clear_input()
     current_plate_index = 0;
 }
 
-// Orca: printing by object with the objects grouped by filament, the filament the instance prints with alone
-// (see ArrangePolygon::print_group).
-static int print_group_of(const ModelInstance &instance, const ArrangePolygon &polygon, const DynamicPrintConfig &config)
+int print_group_of(const ModelInstance &instance, const ArrangePolygon &polygon, const DynamicPrintConfig &config)
 {
     if (!config.opt_bool("group_objects_by_filament"))
         return -1;

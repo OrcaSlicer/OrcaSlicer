@@ -224,6 +224,11 @@ void update_selected_items_axis_align(ArrangePolygons& selected, const DynamicPr
 std::vector<ArrangePolygons> pack_print_groups(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
 // Moves the items of each group as the arrange moved the item that stood for them, and puts them back in selected.
 void unpack_print_groups(ArrangePolygons& selected, std::vector<ArrangePolygons>& groups);
+// Orca: for Fill bed, when every item of selected is in one group, the items print with the fixed items of that group,
+// so they keep the room of a print by layer from them and from each other, and the extruder clearance from the other
+// fixed objects only. Then inflates the items as update_selected_items_inflation() and update_unselected_items_inflation()
+// do and returns true. Otherwise returns false and changes nothing.
+bool update_print_group_fill_inflation(ArrangePolygons& selected, ArrangePolygons& unselected, const DynamicPrintConfig* print_cfg, ArrangeParams& params);
 
 bool has_bed_exclusion_regions(const ArrangePolygons& polygons);
 bool bed_exclusion_applies(const ArrangePolygon& item, const ArrangePolygon& fixed_item);

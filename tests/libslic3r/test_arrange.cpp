@@ -635,6 +635,62 @@ TEST_CASE("Unpacking a group moves its objects as the arrange moved the group", 
     CHECK((hull_bb.max - group_bb.max).cast<double>().norm() < scaled(0.01));
 }
 
+TEST_CASE("Filling the bed with the copies of a group keeps the clearance from the other groups only", "[Arrange]")
+{
+    DynamicPrintConfig cfg    = bed_config();
+    ArrangeParams      p      = seq_print_params(0);
+    p.bed_shrink_x            = BED_SHRINK_SEQ_PRINT;
+    p.bed_shrink_y            = BED_SHRINK_SEQ_PRINT;
+    p.clearance_height_to_rod = float(NOZZLE_HEIGHT_MM * 10);
+    p.clearance_height_to_lid = float(NOZZLE_HEIGHT_MM * 40);
+
+    // An object and its copies, taller than the nozzle, and on the bed an object of their filament and one of another.
+    ArrangePolygons items = squares(6, 20., NOZZLE_HEIGHT_MM * 2);
+    ArrangePolygons fixed = squares(2, 20., NOZZLE_HEIGHT_MM * 2);
+    for (ArrangePolygon &ap : items) {
+        ap.brim_width  = 1.;
+        ap.print_group = 0;
+        ap.extrude_ids = {1}; // the sequential sort reads extrude_ids.front()
+    }
+    for (ArrangePolygon &ap : fixed) {
+        ap.brim_width  = 1.;
+        ap.extrude_ids = {1};
+    }
+    fixed[0].print_group = 0;
+    fixed[0].translation = Vec2crd(scaled(30.), scaled(90.));
+    fixed[1].print_group = 1;
+    fixed[1].translation = Vec2crd(scaled(150.), scaled(90.));
+    update_arrange_params(p, &cfg, items);
+
+    SECTION("copies of objects of more than one group are no group") {
+        items.back().print_group = 1;
+        const ArrangeParams before = p;
+        CHECK_FALSE(update_print_group_fill_inflation(items, fixed, &cfg, p));
+        for (const ArrangePolygon &ap : items)
+            CHECK(ap.inflation == 0);
+        CHECK(p.bed_shrink_x == before.bed_shrink_x);
+    }
+    SECTION("copies of one group") {
+        REQUIRE(update_print_group_fill_inflation(items, fixed, &cfg, p));
+        arrange(items, fixed, get_shrink_bedpts(&cfg, p), p);
+
+        size_t close_pairs = 0;
+        for (size_t i = 0; i < items.size(); ++i) {
+            CAPTURE(i);
+            REQUIRE(items[i].bed_idx == 0);
+            CHECK(bed(200, 200).contains(items[i].transformed_poly().contour.bounding_box()));
+            CHECK_FALSE(closer_than(items[i], fixed[0], 2. - 0.01));
+            CHECK_FALSE(closer_than(items[i], fixed[1], CLEARANCE_MM - 0.01));
+            for (size_t j = i + 1; j < items.size(); ++j) {
+                CHECK_FALSE(closer_than(items[i], items[j], 2. - 0.01));
+                close_pairs += closer_than(items[i], items[j], CLEARANCE_MM);
+            }
+        }
+        // Packed as when printing by layer.
+        CHECK(close_pairs > 0);
+    }
+}
+
 TEST_CASE("Layered printing does not floor the object distance", "[Arrange]")
 {
     ArrangePolygons    items = squares_of_heights({NOZZLE_HEIGHT_MM * 2, NOZZLE_HEIGHT_MM * 2});

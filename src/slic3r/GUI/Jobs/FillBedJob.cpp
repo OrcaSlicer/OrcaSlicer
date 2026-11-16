@@ -80,6 +80,8 @@ void FillBedJob::prepare()
 
             ArrangePolygon ap = get_instance_arrange_poly(mo->instances[inst_idx], global_config);
             set_arrange_polygon_bed_exclusion_extruders(ap, *mo, *plate, global_config);
+            if (params.is_seq_print)
+                ap.print_group = print_group_of(*mo->instances[inst_idx], ap, global_config);
             BoundingBox ap_bb = ap.transformed_poly().contour.bounding_box();
             ap.name = mo->name;
 
@@ -197,6 +199,8 @@ void FillBedJob::prepare()
     ModelInstance *mi = model_object->instances[sel_id];
     ArrangePolygon template_ap = get_instance_arrange_poly(mi, global_config);
     set_arrange_polygon_bed_exclusion_extruders(template_ap, *model_object, *plate, global_config);
+    if (params.is_seq_print)
+        template_ap.print_group = print_group_of(*mi, template_ap, global_config);
 
     for (int i = 0; i < needed_items; ++i) {
         ArrangePolygon ap = template_ap;
@@ -249,8 +253,11 @@ void FillBedJob::process(Ctl &ctl)
     if (is_bbl && params.avoid_extrusion_cali_region && global_config.opt_bool("scan_first_layer"))
         partplate_list.preprocess_nonprefered_areas(m_unselected, MAX_NUM_PLATES);
 
-    update_selected_items_inflation(m_selected, m_plater->config(), params);
-    update_unselected_items_inflation(m_unselected, m_plater->config(), params);
+    // Orca: the copies of an object of one filament, grouped by it, print with the objects of that filament.
+    if (!arrangement::update_print_group_fill_inflation(m_selected, m_unselected, m_plater->config(), params)) {
+        update_selected_items_inflation(m_selected, m_plater->config(), params);
+        update_unselected_items_inflation(m_unselected, m_plater->config(), params);
+    }
     // After the inflation, which may give back part of the bed margin.
     m_bedpts = get_shrink_bedpts(m_plater->config(), params);
 
