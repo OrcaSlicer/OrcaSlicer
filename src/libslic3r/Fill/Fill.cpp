@@ -78,6 +78,7 @@ inline Vec2d rotate_point_CW(double angle, Vec2d p)
 
 inline double get_layer_z(const PrintObject* object, int layer_id)
 {
+    layer_id      = std::max(layer_id, 0);
     int m_layer   = object->layers().size() - 1;
     int idx       = std::min(layer_id, m_layer);
     int sdx       = std::max(layer_id - m_layer, 0);
@@ -117,7 +118,7 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
     static const std::string replace12       = "$1$2"; 
     static const std::regex  del("[\\s,]+");
     static const std::regex  hex("(^|\\D)0+([xX])");
-    static const std::regex  metalang_sign("[+\\-%AXYxyDd_*@&BbTt\'\"cm\\" + search_string + "]");
+    static const std::regex  metalang_sign("[+\\-%AXYxyDd_*BbTt@&\'\"cm\\" + search_string + "]");
     static const std::regex  semicolon(";");
 
     std::string template_string2 = std::regex_replace(template_string, semicolon, std::string()); // remove the easy-reading separators
@@ -430,12 +431,12 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
                                 repeats = object->print()->default_region_config().bottom_shell_layers.value;
                                 cyclic_repeats = true;
                                 cs++;
+                            } else if (cs[0] == 'b') {
+                                divider_steps = object->print()->default_region_config().bottom_shell_layers.value;
+                                cs++;
                             } else if (cs[0] == 'T') {
                                 repeats = object->print()->default_region_config().top_shell_layers.value;
                                 cyclic_repeats = true;
-                                cs++;
-                            } else if (cs[0] == 'b') {
-                                divider_steps = object->print()->default_region_config().bottom_shell_layers.value;
                                 cs++;
                             } else if (cs[0] == 't') {
                                 divider_steps = object->print()->default_region_config().top_shell_layers.value;
@@ -455,42 +456,69 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
                                         height_frac = 1.;
                                     height_value /= height_frac;
                                 }
-                                if (height_value && cs[0] != '\0' && cs[0] != '!') {
-                                    if (cs[0] == '%') { // value in the percents of fill_z
-                                        limit_fill_z = height_value * (object->height() - print_z_offset) * 1e-8;
-                                        cs++;
-                                    } else if (cs[0] == '#') { // value in the feet
-                                        limit_fill_z = height_value * object->config().layer_height;
-                                        cs++;
-                                    } else if (cs[0] == '\'') { // value in the feet
-                                        limit_fill_z = height_value * 12 * 25.4;
-                                        cs++;
-                                    } else if (cs[0] == '\"') { // value in the inches
-                                        limit_fill_z = height_value * 25.4;
-                                        cs++;
-                                    } else if (cs[0] == '&') { // value in numerical width of standard lines
-                                        limit_fill_z = height_value * line_width;
-                                        cs++;
+                                if (cs[0] != '\0' && cs[0] != '!') {
+                                    if (!height_value) {
+                                        if (cs[0] == 'B') {
+                                            cs++; 
+                                            if (cs[0] == '#') {
+                                                limit_fill_z = std::max(limit_fill_z, start_fill_z + std::max(object->print()->default_region_config().bottom_shell_layers.value, 0) * object->config().layer_height);
+                                                cs++;
+                                            } else if (cs[0] == '-') {
+                                                limit_fill_z = std::max(limit_fill_z,  get_layer_z(object, object->print()->default_region_config().bottom_shell_layers.value));
+                                                cs++;
+                                            } else
+                                                limit_fill_z = get_layer_z(object, i + object->print()->default_region_config().bottom_shell_layers.value);
+
+                                        } else if (cs[0] == 'T') {
+                                            cs++; 
+                                            if (cs[0] == '#') {
+                                                limit_fill_z = std::max(limit_fill_z, start_fill_z + std::max(object->print()->default_region_config().top_shell_layers.value, 0) * object->config().layer_height);
+                                                cs++;
+                                            } else if (cs[0] == '-') {
+                                                limit_fill_z = std::max(limit_fill_z,  get_layer_z(object, object->layers().size() + 1 - object->print()->default_region_config().top_shell_layers.value));
+                                                cs++;
+                                            } else if (cs[0] == '_') {
+                                                limit_fill_z = std::max(limit_fill_z,  get_layer_z(object, object->layers().size() - object->print()->default_region_config().top_shell_layers.value));
+                                                cs++;
+                                            } else
+                                                limit_fill_z = get_layer_z(object, i + object->print()->default_region_config().top_shell_layers.value);
+                                        } else
+                                            divider_steps = std::max(round(height_value), 1.); //  divider_steps > 0 : count by layers
+                                    } else {
+                                        if (cs[0] == '%') { // value in the percents of fill_z
+                                            limit_fill_z = start_fill_z + height_value * (object->height() - print_z_offset) * 1e-8;
+                                            cs++;
+                                        } else if (cs[0] == '#') { // value in the feet
+                                            limit_fill_z = start_fill_z + height_value * object->config().layer_height;
+                                            cs++;
+                                        } else if (cs[0] == '\'') { // value in the feet
+                                            limit_fill_z = start_fill_z + height_value * 12 * 25.4;
+                                            cs++;
+                                        } else if (cs[0] == '\"') { // value in the inches
+                                            limit_fill_z = start_fill_z + height_value * 25.4;
+                                            cs++;
+                                        } else if (cs[0] == '&') { // value in numerical width of standard lines
+                                            limit_fill_z = start_fill_z + height_value * line_width;
+                                            cs++;
                                         } else if (cs[0] == '@') { // value in number of standard lines counted with infill density
-                                        limit_fill_z = height_value * line_width / density_start - line_width * (1 - 1 / multiline_start);
-                                        cs++;
-                                    } else if (cs[0] == 'c') { // value in centimeters
-                                        limit_fill_z = height_value * 10.;
-                                        cs++;
-                                        if (cs[0] == 'm') // finish centimeters
+                                            limit_fill_z = start_fill_z + height_value * line_width / density_start - line_width * (1 - 1 / multiline_start);
                                             cs++;
-                                    } else if (cs[0] == 'm') {
-                                        cs++;
-                                        if (cs[0] == 'm') { // value in the millimeters
-                                            limit_fill_z = height_value * 1.;
+                                        } else if (cs[0] == 'c') { // value in centimeters
+                                            limit_fill_z = start_fill_z + height_value * 10.;
                                             cs++;
-                                        } else {
-                                            limit_fill_z = height_value * 1000.;
-                                        }
-                                    } else
-                                        divider_steps = std::max(round(height_value), 1.); //  divider_steps > 0 : count by layers
-                                    
-                                    limit_fill_z += start_fill_z;
+                                            if (cs[0] == 'm') // finish centimeters
+                                                cs++;
+                                        } else if (cs[0] == 'm') {
+                                            cs++;
+                                            if (cs[0] == 'm') { // value in the millimeters
+                                                limit_fill_z = start_fill_z + height_value * 1.;
+                                                cs++;
+                                            } else {
+                                                limit_fill_z = start_fill_z + height_value * 1000.;
+                                            }
+                                        } else 
+                                            divider_steps = std::max(round(height_value), 1.); //  divider_steps > 0 : count by layers
+                                    } 
                                 } else
                                     divider_steps = std::max(round(height_value), 1.);
                             }

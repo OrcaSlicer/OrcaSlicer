@@ -19,7 +19,7 @@
 #include "FillPlanePath.hpp"
 #include "libslic3r/Config.hpp"
 
-//#define DEBUG_PATH
+#define DEBUG_PATH
 
 namespace Slic3r {
 
@@ -166,7 +166,8 @@ void FillPlanePath::_fill_surface_single(
 
     shift += bounding_box.center();
     expolygon.translate(-shift);
-    bounding_box = get_extents(expolygon);
+    if (!(is_internal && params.pattern == InfillPattern::ipHilbertCurve && params.pattern_mode == 0))
+        bounding_box = get_extents(expolygon);
     
     // Expand the bounding box to avoid artifacts at the edges
     bounding_box.offset(SCALED_EPSILON);
