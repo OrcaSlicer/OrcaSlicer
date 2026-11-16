@@ -103,6 +103,7 @@
 #include <boost/nowide/iostream.hpp>
 #include <boost/nowide/cstdio.hpp>
 #include <boost/nowide/cstdlib.hpp>
+#include <boost/format.hpp>
 
 #include "SVG.hpp"
 
