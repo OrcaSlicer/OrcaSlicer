@@ -735,9 +735,13 @@ wxBoxSizer* MixedFilamentDialog::create_preview_panel()
     sizer->Add(label, 0, wxALIGN_CENTER | wxTOP, FromDIP(4));
 
     // The color of the mix, as in the Decompose Color dialog. Empty text keeps the line's height.
-    m_preview_rgb = new wxStaticText(this, wxID_ANY, " ");
+    // It is as wide as the preview and keeps its size when the text changes, so a longer value is centered under the
+    // preview instead of growing the column or being clipped, with no layout needed.
+    m_preview_rgb = new wxStaticText(this, wxID_ANY, " ", wxDefaultPosition, wxSize(FromDIP(129), -1),
+                                     wxALIGN_CENTRE_HORIZONTAL | wxST_NO_AUTORESIZE);
     m_preview_rgb->SetForegroundColour(StateColor::darkModeColorFor(COLOR_LABEL_MUTED));
     m_preview_rgb->SetFont(::Label::Body_12);
+    m_preview_rgb->SetMinSize(wxSize(FromDIP(129), m_preview_rgb->GetBestSize().y));
     sizer->Add(m_preview_rgb, 0, wxALIGN_CENTER | wxTOP, FromDIP(2));
 
     return sizer;
@@ -1376,6 +1380,8 @@ void MixedFilamentDialog::on_gradient_toggled()
 {
 
     m_result.gradient_enabled = m_chk_gradient->GetValue();
+    // The RGB value under the preview is shown for the plain mix only.
+    update_preview();
 
     if (m_ratio_sizer)
         m_ratio_sizer->ShowItems(!m_result.gradient_enabled && num_components() == 2);
