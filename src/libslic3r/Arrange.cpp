@@ -250,8 +250,10 @@ void update_unselected_items_inflation(ArrangePolygons& unselected, const Dynami
     // 屏蔽区域只需要膨胀brim宽度，防止brim长过去；挤出标定区域不需要膨胀，brim可以长过去。
     // 以前我们认为还需要膨胀clearance_radius/2，这其实是不需要的，因为这些区域并不会真的摆放物体，
     // 其他物体的膨胀轮廓是可以跟它们重叠的。
+    // Orca: a fixed object keeps the room a selected one keeps. With tree support, brim_width is the branch
+    // diameter, and the object needs its radius, as update_selected_items_inflation() counts it.
     std::for_each(unselected.begin(), unselected.end(),
-        [&](auto& ap) { ap.inflation = !ap.is_virt_object ? (params.min_obj_distance == 0 ? scaled(ap.brim_width) : params.min_obj_distance / 2)
+        [&](auto& ap) { ap.inflation = !ap.is_virt_object ? (params.min_obj_distance == 0 ? scaled(ap.has_tree_support ? ap.brim_width / 2 : ap.brim_width) : params.min_obj_distance / 2)
         : (ap.is_extrusion_cali_object ? 0 : scale_(exclusion_gap)); });
 }
 

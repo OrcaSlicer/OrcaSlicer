@@ -272,6 +272,27 @@ TEST_CASE("Fill bed counts a copy with the room the arrange keeps around it", "[
     REQUIRE_THAT(unscaled(get_selected_item_inflation(item, &cfg, params)), WithinAbs(r.per_side_mm, 1e-2));
 }
 
+TEST_CASE("Arrange keeps the same room around an object it leaves in place", "[Arrange]")
+{
+    // With Spacing 0, an object the arrange leaves in place keeps the auto spacing an object it moves keeps:
+    // half the tree support's reach with tree support, else the brim width.
+    struct Room { bool tree_support; double brim_mm; double per_side_mm; };
+    const Room r = GENERATE(values<Room>({{true, 24., 12.}, {false, 6., 6.}}));
+
+    DynamicPrintConfig cfg   = bed_config();
+    ArrangePolygons    fixed = squares(1, 20.);
+    fixed.front().has_tree_support = r.tree_support;
+    fixed.front().brim_width       = r.brim_mm;
+    ArrangePolygons moved          = fixed;
+    ArrangeParams   params         = quiet_params(0);
+
+    update_selected_items_inflation(moved, &cfg, params);
+    update_unselected_items_inflation(fixed, &cfg, quiet_params(0));
+
+    REQUIRE_THAT(unscaled(fixed.front().inflation), WithinAbs(r.per_side_mm, 1e-2));
+    REQUIRE(fixed.front().inflation == moved.front().inflation);
+}
+
 TEST_CASE("An item larger than the bed cannot be placed", "[Arrange]")
 {
     ArrangePolygons items;
