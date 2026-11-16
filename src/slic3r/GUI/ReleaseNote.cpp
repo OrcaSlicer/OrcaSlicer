@@ -24,7 +24,7 @@
 #include <exception>
 #include <boost/log/trivial.hpp>
 #include "slic3r/GUI/Widgets/HyperLink.hpp"
-#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/Widgets/LabeledCheckBox.hpp"
 #include <sstream>
 #include <ios>
 #include <iomanip>
@@ -55,7 +55,6 @@
 #include <wx/simplebook.h>
 #include <wx/webview.h>
 #include <wx/utils.h>
-#include <wx/tglbtn.h>
 #include <wx/webrequest.h>
 #include <wx/timer.h>
 #include "Plater.hpp"
@@ -616,8 +615,8 @@ SecondaryCheckDialog::SecondaryCheckDialog(wxWindow* parent, wxWindowID id, cons
 
     if (not_show_again_check) {
         auto checkbox_sizer = new wxBoxSizer(wxHORIZONTAL);
-        m_show_again_checkbox = new wxCheckBox(this, wxID_ANY, _L("Don't show again"), wxDefaultPosition, wxDefaultSize, 0);
-        m_show_again_checkbox->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, [this](wxCommandEvent& e) {
+        m_show_again_checkbox = new LabeledCheckBox(this, _L("Don't show again"));
+        m_show_again_checkbox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
             not_show_again = !not_show_again;
             m_show_again_checkbox->SetValue(not_show_again);
         });
@@ -1200,8 +1199,8 @@ ConfirmBeforeSendDialog::ConfirmBeforeSendDialog(wxWindow* parent, wxWindowID id
 
     if (not_show_again_check) {
         auto checkbox_sizer = new wxBoxSizer(wxHORIZONTAL);
-        m_show_again_checkbox = new wxCheckBox(this, wxID_ANY, _L("Don't show again"), wxDefaultPosition, wxDefaultSize, 0);
-        m_show_again_checkbox->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, [this](wxCommandEvent& e) {
+        m_show_again_checkbox = new LabeledCheckBox(this, _L("Don't show again"));
+        m_show_again_checkbox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
             not_show_again = !not_show_again;
             m_show_again_checkbox->SetValue(not_show_again);
         });
