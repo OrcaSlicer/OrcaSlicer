@@ -17811,14 +17811,12 @@ void Plater::calib_first_layer_flow() {
                 label_name.c_str(), "", flf::to_orca_mesh(geometry, -0.12f));
             label_object->add_instance(*object->instances.front());
             label_object->config.set_key_value("print_flow_ratio",
-                new ConfigOptionFloat(plan[i].multiplier));
+                new ConfigOptionFloat(1.0));
         }
         // This clones the temporary objects into the live model and registers
         // them with the Objects panel, unlike model().add_object() alone.
         p->load_model_objects(label_model.objects, false, false, false);
         update();
-        wxMessageBox("First-layer flow geometry loaded. Inspect labels and per-object flow before printing.",
-                     "1st Layer Flow — Development", wxOK | wxICON_INFORMATION);
     } catch (const std::exception& e) {
         wxMessageBox(wxString::FromUTF8(e.what()), "1st Layer Flow", wxOK | wxICON_ERROR);
     }
