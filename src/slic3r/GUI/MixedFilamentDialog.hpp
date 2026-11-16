@@ -135,6 +135,7 @@ private:
     wxPanel*                    m_preview_canvas{nullptr};
     wxStaticText*               m_preview_rgb{nullptr};
     wxStaticText*               m_preview_hex{nullptr};
+    wxStaticText*               m_preview_rgb_end{nullptr};
     wxPanel*                    m_summary_panel{nullptr};
     std::vector<ComboBox*>      m_combo_filaments;
     wxBoxSizer*                 m_material_rows_sizer{nullptr};
