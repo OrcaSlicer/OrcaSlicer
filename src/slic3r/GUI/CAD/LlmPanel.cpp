@@ -1,3 +1,4 @@
+#include <wx/menu.h>
 #include "slic3r/GUI/CAD/LlmPanel.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -173,14 +174,17 @@ LlmPanel::LlmPanel(wxWindow* parent, std::function<size_t()> undo_depth, std::fu
     m_web = WebView::CreateWebView(this, "");
     if (m_web) {
         m_log->Hide();
+        m_web->EnableContextMenu(false);   // not the browser's Back / Forward / Reload: the chat has its own (show_chat_menu)
         m_web->SetMinSize(wxSize(FromDIP(100), FromDIP(80)));   // a webview ignores a short slot and paints over its neighbours
         col->Add(m_web, 1, wxEXPAND | wxALL, FromDIP(6));
         // Links in a reply open in the browser, never inside the pane.
-        m_web->Bind(wxEVT_WEBVIEW_NAVIGATING, [](wxWebViewEvent& e) {
+        m_web->Bind(wxEVT_WEBVIEW_NAVIGATING, [this](wxWebViewEvent& e) {
             const wxString u = e.GetURL();
             if (u.StartsWith("http://") || u.StartsWith("https://")) { e.Veto(); wxLaunchDefaultBrowser(u); }
+            else if (u.StartsWith("orcacad-menu:")) { e.Veto(); CallAfter([this] { show_chat_menu(); }); }   // the page's own right-click (see render())
         });
     }
+    m_log->Bind(wxEVT_CONTEXT_MENU, [this](wxContextMenuEvent& e) { show_chat_menu(); });   // the plain log: the same menu as the web view
     col->Add(m_log, m_web ? 0 : 1, wxEXPAND | wxALL, m_web ? 0 : FromDIP(6));
     col->Add(m_result, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(6));
     col->Add(m_input_box, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(6));
@@ -202,7 +206,9 @@ LlmPanel::LlmPanel(wxWindow* parent, std::function<size_t()> undo_depth, std::fu
     });
     Bind(wxEVT_SHOW, [this](wxShowEvent& e) { if (e.IsShown()) refresh_header(); e.Skip(); });
     refresh_header();
+    render();   // a first page, so the chat's right-click script is there before the first message
     m_files_lbl->Bind(wxEVT_LEFT_UP, [this](wxMouseEvent&) { m_files.clear(); refresh_attachments(); });
+    m_files_lbl->Bind(wxEVT_RIGHT_UP, [this](wxMouseEvent& e) { show_files_menu(); });
     m_attach->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         wxFileDialog dlg(this, _L("Attach files"), wxEmptyString, wxEmptyString, _L("All files") + "|*",
                          wxFD_OPEN | wxFD_MULTIPLE | wxFD_FILE_MUST_EXIST);
@@ -386,7 +392,7 @@ void LlmPanel::render()
         }
         const std::string bg = StateColor::darkModeColorFor(wxColour("#FFFFFF")).GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
         const std::string fg = StateColor::darkModeColorFor(wxColour("#262E30")).GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
-        std::string h = "<html><head><meta charset=\"utf-8\"><style>body{color:" + fg + ";background-color:" + bg + ";font-family:sans-serif;font-size:13px;margin:6px}"
+        std::string h = "<html oncontextmenu=\"location.href='orcacad-menu:go';return false\"><head><meta charset=\"utf-8\"><style>body{color:" + fg + ";background-color:" + bg + ";font-family:sans-serif;font-size:13px;margin:6px}"
                         "a{color:#009688} p{margin:4px 0} ul,ol{padding-inline-start:20px;margin:4px 0}"
                         "table{border-collapse:collapse;margin:4px 0} th,td{border:1px solid #888;padding:2px 6px} th{background:rgba(128,128,128,.2)}"
                         "pre{background:rgba(128,128,128,.15);padding:4px;overflow-x:auto} code{font-family:monospace}"
@@ -461,7 +467,7 @@ void LlmPanel::refresh_attachments()
     wxString s;
     for (const std::string& f : m_files) s += (s.empty() ? "" : ", ") + wxString::FromUTF8(boost::filesystem::path(f).filename().string());
     m_files_lbl->SetLabel(s.empty() ? wxString() : s + "  (click to remove)");
-    m_files_lbl->SetToolTip(_L("Click to remove the attachments"));
+    m_files_lbl->SetToolTip(_L("Click to remove the attachments, right-click to remove one"));
     Layout();
 }
 
@@ -571,6 +577,46 @@ void LlmPanel::new_chat()
     save_chat();
 }
 
+// Right-click on the chat. A verb that can never apply is absent (Stop outside a turn); one that applies but cannot run now is greyed.
+void LlmPanel::show_chat_menu()
+{
+    wxMenu menu;
+    const int id_copy = wxWindow::NewControlId(), id_all = wxWindow::NewControlId(), id_retry = wxWindow::NewControlId(),
+              id_stop = wxWindow::NewControlId(), id_clear = wxWindow::NewControlId();
+    const bool can_copy = m_web ? m_web->CanCopy() : m_log->CanCopy();
+    menu.Append(id_copy, _L("Copy"))->Enable(can_copy);
+    menu.Append(id_all, _L("Select all"));
+    menu.AppendSeparator();
+    if (m_busy) menu.Append(id_stop, _L("Stop"));
+    else menu.Append(id_retry, _L("Retry last prompt"))->Enable(!m_last_prompt.IsEmpty());
+    menu.Append(id_clear, _L("Clear chat"))->Enable(!m_busy && !m_hist.empty());
+    menu.Bind(wxEVT_MENU, [this](wxCommandEvent& e) { if (m_web) m_web->Copy(); else m_log->Copy(); }, id_copy);
+    menu.Bind(wxEVT_MENU, [this](wxCommandEvent& e) { if (m_web) m_web->SelectAll(); else m_log->SelectAll(); }, id_all);
+    menu.Bind(wxEVT_MENU, [this](wxCommandEvent& e) { stop(); }, id_stop);
+    menu.Bind(wxEVT_MENU, [this](wxCommandEvent& e) { m_input->SetValue(m_last_prompt); send(); }, id_retry);
+    menu.Bind(wxEVT_MENU, [this](wxCommandEvent& e) { new_chat(); }, id_clear);
+    PopupMenu(&menu);
+}
+
+// Right-click on the attachment line: take one file off, or all of them. Nothing to offer when nothing is attached.
+void LlmPanel::show_files_menu()
+{
+    if (m_files.empty() || m_busy) return;
+    wxMenu menu;
+    std::vector<int> ids;
+    for (const std::string& f : m_files) {
+        ids.push_back(wxWindow::NewControlId());
+        menu.Append(ids.back(), wxString::Format(_L("Remove %s"), wxString::FromUTF8(boost::filesystem::path(f).filename().string())));
+    }
+    menu.AppendSeparator();
+    const int id_all = wxWindow::NewControlId();
+    menu.Append(id_all, _L("Remove all"));
+    for (size_t i = 0; i < ids.size(); ++i)
+        menu.Bind(wxEVT_MENU, [this, i](wxCommandEvent& e) { if (i < m_files.size()) { m_files.erase(m_files.begin() + long(i)); refresh_attachments(); } }, ids[i]);
+    menu.Bind(wxEVT_MENU, [this](wxCommandEvent& e) { m_files.clear(); refresh_attachments(); }, id_all);
+    PopupMenu(&menu);
+}
+
 void LlmPanel::stop()
 {
     if (m_run) m_run->cancel();
@@ -581,6 +627,7 @@ void LlmPanel::send()
     if (m_busy) return;
     const wxString text = m_input->GetValue().Trim().Trim(false);
     if (text.IsEmpty()) return;
+    m_last_prompt = text;
     m_input->Clear();
     append(_L("You") + ": ", wxColour(0, 122, 116), true);
     append(text + "\n", m_fg);

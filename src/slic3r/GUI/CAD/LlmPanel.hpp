@@ -57,6 +57,8 @@ private:
     void on_tool(const std::string& raw);
     void save_chat();
     void render();           // redraw the chat (web view, or the plain log when there is none)
+    void show_chat_menu();   // right-click on the chat: what applies to it right now
+    void show_files_menu();  // right-click on the attachments: remove one, or all
 
     wxTextCtrl*   m_log    = nullptr;   // fallback when the platform has no web view
     wxWebView*    m_web    = nullptr;
@@ -70,6 +72,7 @@ private:
     CheckBox*     m_view   = nullptr;
     wxStaticText* m_files_lbl = nullptr;
     std::vector<std::string> m_files;   // attached files for the next message
+    wxString      m_last_prompt;        // what Retry sends again
     wxStaticText* m_status = nullptr;
     wxStaticText* m_agent_lbl = nullptr;   // header: "opencode · model"
     wxStaticText* m_setup_lbl = nullptr;   // header: why the agent is not ready
