@@ -19,7 +19,7 @@
 #include "FillPlanePath.hpp"
 #include "libslic3r/Config.hpp"
 
-#define DEBUG_PATH
+//#define DEBUG_PATH
 
 namespace Slic3r {
 
