@@ -240,6 +240,12 @@ public:
     bool wait_for_plugin_load(const std::string& plugin_key, std::chrono::milliseconds timeout, std::string& error) const;
     bool cancel_plugin_load(const std::string& plugin_key);
     std::string get_plugin_load_error(const std::string& plugin_key) const;
+    // True when a discovered plugin's most recent load attempt failed for an ordinary reason.
+    // Cancelling the load, starting another one, unloading the plugin, installing it again, or
+    // removing its package clears it. A discovery rescan leaves it alone, because a rescan does
+    // not prove the executable package changed. A queued runtime prompt stays actionable in this
+    // state, because approving it saves the grant that lets the retry load succeed.
+    bool is_plugin_load_failed(const std::string& plugin_key) const;
 
     void set_capability_enabled(const PluginCapabilityId& id, bool enabled);
 
@@ -374,6 +380,9 @@ private:
     // wait_for_all_plugin_loads() return early, after which shutdown() unloads everything and
     // GUI_App finalizes the interpreter — leaving the live worker to run Python against it.
     std::unordered_set<std::string> m_cancelled;
+    // Keys whose most recent load attempt failed without being cancelled. Kept separately from
+    // m_load_errors so clearing it never changes the error a load waiter reads.
+    std::unordered_set<std::string> m_failed_loads;
     std::map<std::string, std::string> m_load_errors;
     mutable std::condition_variable m_load_cv;
 

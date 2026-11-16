@@ -1880,22 +1880,29 @@ void drain_runtime_prompts()
     // code can run before the manager commits it as loaded. A cancelled load keeps its in-progress
     // slot until its worker unwinds, but an observed cancellation makes it ineligible for a new
     // prompt or a grant that has not begun committing; the queue cancels a dialog already up.
+    // An ordinary load failure is different: its queued runtime prompt survives so the user can
+    // approve the event whose denial aborted the load and then retry with the saved grant.
     PluginManager& manager = PluginManager::instance();
-    const auto plugin_alive = [&manager](const std::string& key) {
-        return manager.is_plugin_loaded(key) ||
-               (manager.is_plugin_load_in_progress(key) && !manager.is_plugin_load_cancelled(key));
+    const auto plugin_available = [&manager](const AuditPromptRequest& prompt) {
+        AuditPromptPluginState state;
+        state.loaded           = manager.is_plugin_loaded(prompt.plugin_key);
+        state.load_in_progress = manager.is_plugin_load_in_progress(prompt.plugin_key);
+        state.load_cancelled   = manager.is_plugin_load_cancelled(prompt.plugin_key);
+        state.load_failed      = manager.is_plugin_load_failed(prompt.plugin_key);
+        state.shutting_down    = manager.is_shutting_down();
+        return prompt_plugin_is_available(state, prompt.kind);
     };
 
     bool satisfied = false;
     try {
-        const bool alive   = plugin_alive(request->plugin_key);
+        const bool alive   = plugin_available(*request);
         const bool granted = alive && show_queued_prompt(*request);
 
         // Decide under the still-active queue entry so a shutdown/unload that arrives before the
         // sidecar write cancels this request. begin_commit() makes an accepted answer atomic
         // against cancellation: if cancel wins, nothing is persisted; if commit wins, the answer is
         // valid and complete() cannot report it as cancelled afterwards.
-        const bool alive_after_prompt = plugin_alive(request->plugin_key);
+        const bool alive_after_prompt = plugin_available(*request);
         satisfied = granted && alive_after_prompt && !PluginManager::instance().is_shutting_down() &&
                     runtime_audit_prompts().begin_commit();
 
@@ -2171,6 +2178,22 @@ int audit_plugin_event(PluginAuditManager& mgr, const std::string& event_name, A
 }
 
 } // namespace PluginAuditDetail
+
+AuditPromptQueue& runtime_prompt_queue_for_testing() { return PluginAuditDetail::runtime_audit_prompts(); }
+
+bool prompt_plugin_is_available(const AuditPromptPluginState& state, AuditPromptKind kind)
+{
+    if (state.shutting_down || state.load_cancelled)
+        return false;
+
+    if (state.loaded || state.load_in_progress)
+        return true;
+
+    // No worker is left to answer a load-time declaration after its load failed, and an
+    // informational denial was never an approval request. A runtime event has no worker: its
+    // denial may be what aborted the load, so an ordinary failure keeps it actionable.
+    return kind == AuditPromptKind::RuntimeEvent && state.load_failed;
+}
 
 bool AuditPromptBucket::operator==(const AuditPromptBucket& other) const
 {

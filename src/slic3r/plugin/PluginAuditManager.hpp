@@ -310,6 +310,24 @@ enum class AuditPromptKind {
     DeniedOperation,
 };
 
+// The plugin lifecycle facts the prompt drain consults. Plain data so the lifetime decision is
+// testable without a GUI or a live plugin system.
+struct AuditPromptPluginState
+{
+    bool loaded           = false;
+    bool load_in_progress = false;
+    bool load_cancelled   = false;
+    bool load_failed      = false;
+    bool shutting_down    = false;
+};
+
+// True when a queued prompt may still be shown and its answer persisted. An ordinary load
+// failure leaves a runtime prompt actionable: the event that was denied is what the user can
+// approve now, and the saved grant lets a retry load succeed. Explicit cancellation and unload,
+// as well as application shutdown, make a prompt ineligible; those paths also discard its queue
+// entries.
+bool prompt_plugin_is_available(const AuditPromptPluginState& state, AuditPromptKind kind);
+
 // One permission bucket of a load-time declaration. Kept plain (no wx types) so the queue can be
 // owned by production code that outlives static destruction.
 struct AuditPromptBucket
@@ -436,6 +454,11 @@ private:
     bool                              m_active_cancelled = false;
     bool                              m_active_committing = false;
 };
+
+// The process-wide queue the drain and the explicit discard calls use. Exposed so a test can put
+// a request behind an active prompt and then exercise PluginManager's unload/cancel wiring
+// against the real queue. Production reaches it only through PluginAuditManager.
+AuditPromptQueue& runtime_prompt_queue_for_testing();
 
 } // namespace Slic3r
 

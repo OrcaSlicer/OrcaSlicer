@@ -148,6 +148,29 @@ bool settled(std::future<bool>& future)
     return future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready;
 }
 
+// The drain and the unload/cancel wiring use a process-wide queue. A test that enqueues into it
+// directly must leave it empty even when an assertion aborts the case.
+struct ScopedRuntimePromptQueue
+{
+    AuditPromptQueue& queue = runtime_prompt_queue_for_testing();
+
+    ScopedRuntimePromptQueue() { queue.discard_all(); }
+    ~ScopedRuntimePromptQueue() { queue.discard_all(); }
+};
+
+// The same snapshot drain_runtime_prompts() builds for the availability check.
+AuditPromptPluginState prompt_plugin_state(const std::string& plugin_key)
+{
+    PluginManager& manager = PluginManager::instance();
+    AuditPromptPluginState state;
+    state.loaded           = manager.is_plugin_loaded(plugin_key);
+    state.load_in_progress = manager.is_plugin_load_in_progress(plugin_key);
+    state.load_cancelled   = manager.is_plugin_load_cancelled(plugin_key);
+    state.load_failed      = manager.is_plugin_load_failed(plugin_key);
+    state.shutting_down    = manager.is_shutting_down();
+    return state;
+}
+
 } // namespace
 
 TEST_CASE("A runtime audit prompt is queued while another one is active", "[audit][Python]")
@@ -560,6 +583,42 @@ TEST_CASE("Unloading a plugin cancels its active prompt but leaves it on screen"
     CHECK(next->plugin_key == "kept");
     queue.complete();
     CHECK(queue.idle());
+}
+
+TEST_CASE("A queued runtime prompt survives an ordinary load failure", "[audit]")
+{
+    // The load failed after its plugin code raised the event: the event's denial may be why it
+    // failed, and approving the saved grant is what lets the user retry the load.
+    AuditPromptPluginState failed;
+    failed.load_failed = true;
+    CHECK(prompt_plugin_is_available(failed, AuditPromptKind::RuntimeEvent));
+
+    // A declaration is answered by the load worker that is loading; once no load is in progress,
+    // nothing waits on it. An informational denial was never an approval request.
+    CHECK_FALSE(prompt_plugin_is_available(failed, AuditPromptKind::DeclaredPermissions));
+    CHECK_FALSE(prompt_plugin_is_available(failed, AuditPromptKind::DeniedOperation));
+
+    // Explicit cancellation and unload discard the prompt instead: the queue removes its entry
+    // and a request admitted after that discard must not become a stale dialog.
+    AuditPromptPluginState cancelled = failed;
+    cancelled.load_cancelled         = true;
+    CHECK_FALSE(prompt_plugin_is_available(cancelled, AuditPromptKind::RuntimeEvent));
+
+    AuditPromptPluginState unloaded = failed;
+    unloaded.load_failed            = false;
+    CHECK_FALSE(prompt_plugin_is_available(unloaded, AuditPromptKind::RuntimeEvent));
+
+    AuditPromptPluginState shutting_down = failed;
+    shutting_down.shutting_down          = true;
+    CHECK_FALSE(prompt_plugin_is_available(shutting_down, AuditPromptKind::RuntimeEvent));
+
+    // The normal paths still decide prompts for a live plugin.
+    AuditPromptPluginState loaded;
+    loaded.loaded = true;
+    CHECK(prompt_plugin_is_available(loaded, AuditPromptKind::DeclaredPermissions));
+    AuditPromptPluginState loading;
+    loading.load_in_progress = true;
+    CHECK(prompt_plugin_is_available(loading, AuditPromptKind::RuntimeEvent));
 }
 
 TEST_CASE("Plugin audit denies host-managed filenames anywhere", "[audit]")
@@ -1138,6 +1197,26 @@ const char* const AUDIT_PLUGIN_SOURCE = R"PY(# /// script
 # ///
 )PY";
 
+// A plugin whose registration fails after the module has imported. Its queued runtime prompt is
+// the one an ordinary load failure must keep actionable for approval and retry.
+const char* const BROKEN_AUDIT_PLUGIN_SOURCE = R"PY(# /// script
+# requires-python = ">=3.12"
+#
+# [tool.orcaslicer.plugin]
+# name = "Broken Audit Plugin"
+# description = "Plugin audit load-failure fixture"
+# author = "OrcaSlicer"
+# version = "1.0"
+# type = "script"
+# ///
+import orca
+
+@orca.plugin
+class BrokenAuditPackage(orca.base):
+    def register_capabilities(self):
+        raise RuntimeError("registration failed")
+)PY";
+
 // A third-party library, installed outside the stdlib and outside the plugin.
 const char* const LIBRARY_SOURCE = R"PY(
 import socket
@@ -1319,11 +1398,11 @@ struct AuditHarness
     }
 
     // Call before taking the GIL: discovery is not Python work.
-    void add_plugin(const std::string& key)
+    void add_plugin(const std::string& key, const char* source = AUDIT_PLUGIN_SOURCE)
     {
         const fs::path root = data.plugins_dir() / key;
         fs::create_directories(root);
-        std::ofstream((root / (key + ".py")).string(), std::ios::binary) << AUDIT_PLUGIN_SOURCE;
+        std::ofstream((root / (key + ".py")).string(), std::ios::binary) << source;
         save_permissions(key, {});
         PluginManager::instance().discover_plugins(/*async=*/false, /*clear=*/true);
     }
@@ -1409,6 +1488,48 @@ PluginPermissions http_grants(std::vector<std::string> urls)
 const char* const PLUGIN = "AuditPlugin";
 
 } // namespace
+
+TEST_CASE("A queued runtime prompt survives its plugin's failed load until unload", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedRuntimePromptQueue runtime_queue;
+    harness.add_plugin("Broken_Plugin", BROKEN_AUDIT_PLUGIN_SOURCE);
+
+    // A prompt for another plugin is on screen when the failing plugin raises its event.
+    CHECK(runtime_queue.queue.admit(prompt_request("active", AuditEventCategory::FsRead, {"/active"}),
+                                    /*may_show_now=*/true) == AuditPromptQueue::Admission::ShowNow);
+    CHECK(runtime_queue.queue.admit(prompt_request("Broken_Plugin", AuditEventCategory::FsRead, {"/queued"}),
+                                    /*may_show_now=*/false) == AuditPromptQueue::Admission::Queued);
+    CHECK(runtime_queue.queue.pending_count() == 1);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.load_plugin("Broken_Plugin", /*skip_deps=*/true);
+    std::string error;
+    CHECK_FALSE(manager.wait_for_plugin_load("Broken_Plugin", std::chrono::seconds(120), error));
+    INFO("load error: " << error);
+    CHECK(manager.is_plugin_load_failed("Broken_Plugin"));
+    CHECK(runtime_queue.queue.pending_count() == 1);
+
+    // The active prompt closes; the queued runtime prompt is next and still actionable even
+    // though its load has already failed and released the slot.
+    runtime_queue.queue.complete();
+    std::optional<AuditPromptRequest> next = runtime_queue.queue.take_next();
+    REQUIRE(next.has_value());
+    CHECK(next->plugin_key == "Broken_Plugin");
+    CHECK(prompt_plugin_is_available(prompt_plugin_state(next->plugin_key), next->kind));
+    runtime_queue.queue.complete();
+
+    // Unloading the plugin runs the production discard against this same queue.
+    CHECK(runtime_queue.queue.admit(prompt_request("Broken_Plugin", AuditEventCategory::FsRead, {"/queued"}),
+                                    /*may_show_now=*/false) == AuditPromptQueue::Admission::Queued);
+    REQUIRE(manager.unload_plugin("Broken_Plugin"));
+    CHECK(runtime_queue.queue.pending_count() == 0);
+    CHECK(runtime_queue.queue.idle());
+    CHECK_FALSE(prompt_plugin_is_available(prompt_plugin_state("Broken_Plugin"), AuditPromptKind::RuntimeEvent));
+}
 
 TEST_CASE("A saved request grant covers the request's own connection in a later session", "[audit][Python]")
 {

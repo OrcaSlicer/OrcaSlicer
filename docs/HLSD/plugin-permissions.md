@@ -160,7 +160,9 @@ has not begun committing, releasing waiting workers with a denial. An admission 
 that cancellation is discarded as soon as it becomes visible. A cancelled load stops being
 treated as a live plugin even while its worker is still unwinding. A cancellation observed before
 display suppresses the prompt; a dialog racing with cancellation may still appear or remain on
-screen, but its answer is ignored unless committing won the race.
+screen, but its answer is ignored unless committing won the race. An ordinary load failure is not
+a cancellation: its queued runtime prompt stays actionable, so the user can approve the event
+whose denial aborted the load and then retry with the saved grant.
 
 Runtime approvals store the target observed by the audit hook. A URL with a path, port or
 query is therefore an exact grant; a bare host remains usable for raw sockets. The

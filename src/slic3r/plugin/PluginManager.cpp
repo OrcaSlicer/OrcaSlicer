@@ -457,6 +457,12 @@ void PluginManager::unload_and_erase_if(const std::function<bool(const Plugin&)>
             if (loaded_entry_found)
                 continue;
 
+            // A removed package can no longer retry the load a queued prompt was waiting for.
+            // Loaded entries were unloaded above; not-loaded ones are erased here.
+            for (const Plugin& plugin : m_plugins)
+                if (should_remove(plugin))
+                    m_failed_loads.erase(plugin.descriptor.plugin_key);
+
             m_plugins.erase(std::remove_if(m_plugins.begin(), m_plugins.end(), should_remove), m_plugins.end());
             if (after_erase_locked)
                 after_erase_locked();
@@ -758,6 +764,12 @@ std::string PluginManager::get_plugin_load_error(const std::string& plugin_key) 
     return it == m_load_errors.end() ? std::string{} : it->second;
 }
 
+bool PluginManager::is_plugin_load_failed(const std::string& plugin_key) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return find_plugin_locked(plugin_key) != nullptr && m_failed_loads.count(plugin_key) > 0;
+}
+
 bool PluginManager::cancel_plugin_load(const std::string& plugin_key)
 {
     bool cancelled = false;
@@ -784,6 +796,7 @@ bool PluginManager::cancel_plugin_load_locked(const std::string& plugin_key)
 
     m_cancelled.insert(plugin_key);
     m_load_errors.erase(plugin_key);
+    m_failed_loads.erase(plugin_key);
     return true;
 }
 
@@ -801,7 +814,17 @@ void PluginManager::release_load_slot(const std::string& plugin_key)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         changed = m_load_in_progress.erase(plugin_key) > 0;
-        m_cancelled.erase(plugin_key);
+
+        const bool cancelled = m_cancelled.erase(plugin_key) > 0;
+        const Plugin* plugin = find_plugin_locked(plugin_key);
+        const bool loaded    = plugin != nullptr && plugin->is_loaded();
+        // Record an ordinary failure, but never a cancelled or successful load, and never one for
+        // a package that was removed while the worker unwound. Only the ordinary failure leaves
+        // its queued runtime prompts actionable for approval and retry.
+        if (cancelled || loaded || plugin == nullptr || m_load_errors.count(plugin_key) == 0)
+            m_failed_loads.erase(plugin_key);
+        else
+            m_failed_loads.insert(plugin_key);
     }
     notify_plugin_load_state_changed(changed);
 }
@@ -908,6 +931,7 @@ void PluginManager::load_plugin(const std::string& plugin_key, bool skip_deps, s
         if (exists && !invalid && !already_loaded && !load_in_progress && !shutting_down) {
             m_load_in_progress.insert(plugin_id);
             m_load_errors.erase(plugin_id);
+            m_failed_loads.erase(plugin_id);
             load_slot_claimed = true;
         }
     }
@@ -1111,6 +1135,9 @@ bool PluginManager::unload_plugin(const std::string& plugin_key)
 
         // Cancel any in-progress load for this plugin so its worker discards the result.
         cancelled = cancel_plugin_load_locked(plugin_key);
+        // An explicit unload also revokes the "ordinary failure" state, so a prompt admitted
+        // after the queue discard below can never be shown for the unloaded plugin.
+        m_failed_loads.erase(plugin_key);
 
         Plugin* plugin = find_plugin_locked(plugin_key);
         if (plugin != nullptr && plugin->is_loaded()) {
@@ -1604,8 +1631,14 @@ bool PluginManager::install_plugin(const boost::filesystem::path& filepath, Plug
 
     // Every successful install may have replaced executable plugin code. Revoke any permissions
     // associated with the previous package so the newly installed version must request them again.
-    if (!plugin_descriptor.plugin_key.empty())
+    if (!plugin_descriptor.plugin_key.empty()) {
         revoke_plugin_permissions(plugin_descriptor.plugin_key);
+
+        // A prompt queued by the replaced code must not grant a permission the new code never
+        // requested: an installed package starts its lifecycle from a clean failure state.
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_failed_loads.erase(plugin_descriptor.plugin_key);
+    }
 
     if (!plugin_descriptor.plugin_key.empty())
         clear_plugin_error(plugin_descriptor.plugin_key);
@@ -2155,6 +2188,9 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
         entry->descriptor.plugin_key = new_key;
         entry->descriptor.cloud.reset();
         entry->descriptor.clear_error();
+        // The package identity changed, so neither key may keep an old failure's prompt alive.
+        m_failed_loads.erase(old_key);
+        m_failed_loads.erase(new_key);
 
         for (const auto& capability : entry->capabilities) {
             if (capability)
@@ -2199,6 +2235,7 @@ bool PluginManager::finalize_cloud_plugin_removal(const PluginDescriptor& plugin
 
     {
         std::lock_guard<std::mutex> lock(m_mutex);
+        m_failed_loads.erase(plugin.plugin_key);
         m_plugins.erase(std::remove_if(m_plugins.begin(), m_plugins.end(),
                                        [&plugin](const Plugin& entry) { return entry.descriptor.plugin_key == plugin.plugin_key; }),
                         m_plugins.end());
