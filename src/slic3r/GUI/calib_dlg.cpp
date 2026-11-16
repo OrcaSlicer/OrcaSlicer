@@ -32,6 +32,7 @@
 #include "PresetComboBoxes.hpp"
 #include "Tab.hpp"
 #include "Widgets/DialogButtons.hpp"
+#include <memory>
 #include <string>
 #include <vector>
 #include <cmath>
