@@ -233,6 +233,12 @@ Option SettingsIndex::get_option(const std::string &opt_key, const wxString &lab
     return create_option(opt_key, label, type, gc);
 }
 
+GroupAndCategory SettingsIndex::get_group_and_category(const std::string &opt_key, Preset::Type type) const
+{
+    auto it = m_groups_and_categories.find(get_key(opt_key, type));
+    return it == m_groups_and_categories.end() ? GroupAndCategory{} : it->second;
+}
+
 void SettingsIndex::add_key(const std::string &opt_key, Preset::Type type, const wxString &group, const wxString &category, const wxString &icon)
 {
     // Update fields in place so a page rebuild (get_option after set_path) doesn't drop the

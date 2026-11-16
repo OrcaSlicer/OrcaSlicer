@@ -261,6 +261,32 @@ bool load(const PluginDescriptor&                          descriptor,
     static std::mutex           load_serializer;
     std::lock_guard<std::mutex> load_lock(load_serializer);
 
+    // A sidecar whose contents do not parse (cut short by a crash, or broken by a hand edit) would
+    // make every writer refuse it, so a plugin that declares permissions could never load and no
+    // grant or capability choice could be saved. Set it aside before any plugin code runs, so this
+    // load treats the plugin as having no sidecar: request_permissions asks again and the on-load
+    // writer creates a fresh one, as for a new plugin. The old bytes stay beside it for manual
+    // recovery, and the denied-filename prefix keeps the backup out of the plugin's reach too.
+    // Anything else at the sidecar path (a link, a directory, a file that cannot be opened or read
+    // in full) is left alone, so its writers keep refusing.
+    if (!descriptor.plugin_root.empty()) {
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        const boost::filesystem::path plugin_root(descriptor.plugin_root);
+        PluginInstallState            unused_state;
+        bool                          malformed = false;
+        if (read_install_state_status(plugin_root, unused_state, &malformed) == InstallStateReadStatus::Unreadable &&
+            malformed) {
+            const std::string sidecar = (plugin_root / INSTALL_STATE_FILE).string();
+            const std::string backup  = sidecar + ".corrupt";
+            if (const std::error_code ec = rename_file(sidecar, backup))
+                BOOST_LOG_TRIVIAL(warning) << "[plugin_loader::load] Cannot set aside unparsable " << sidecar << ": "
+                                           << ec.message();
+            else
+                BOOST_LOG_TRIVIAL(warning) << "[plugin_loader::load] Install state of " << descriptor.plugin_key
+                                           << " could not be parsed; moved it to " << backup << " and starting fresh";
+        }
+    }
+
     Plugin plugin;
     plugin.descriptor  = descriptor;
     plugin.module_name = plugin_module_name(descriptor);
@@ -317,8 +343,12 @@ bool load(const PluginDescriptor&                          descriptor,
     // The user's per-capability enable choices live in the sidecar — the only durable record, since
     // a capability has no state (and no existence) while the package is not loaded.
     PluginInstallState install_state;
-    const bool         have_install_state = !descriptor.plugin_root.empty() &&
-                                    read_install_state(boost::filesystem::path(descriptor.plugin_root), install_state);
+    bool have_install_state = false;
+    {
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        have_install_state = !descriptor.plugin_root.empty() &&
+                             read_install_state(boost::filesystem::path(descriptor.plugin_root), install_state);
+    }
 
     // get_name()/get_type() are read exactly once — here, under the GIL this block already holds —
     // and cached on the capability, which is the only place capability state lives.
@@ -743,9 +773,11 @@ bool install_plugin(const boost::filesystem::path& filepath,
     plugin_descriptor.set_metadata_valid(true);
     plugin_descriptor.clear_error();
 
-    // Write install state sidecar before removing the backup.
+    // Write install state sidecar before removing the backup. The write takes the shared
+    // install-state mutex so it cannot interleave with an in-process read-modify-write writer.
     {
-        PluginDescriptor installed_entry = plugin_descriptor;
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        PluginDescriptor            installed_entry = plugin_descriptor;
         if (is_cloud_install)
             installed_entry.cloud = CloudPluginState{cloud_uuid, true, false, false, plugin_descriptor.cloud->is_mine};
         if (!write_install_state(final_dir, installed_entry)) {

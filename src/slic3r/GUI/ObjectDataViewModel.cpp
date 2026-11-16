@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <algorithm>
+#include <limits>
 #include "slic3r/GUI/GUI_ObjectSettings.hpp"
 #include <tuple>
 #include <wx/bmpcbox.h>
@@ -62,6 +63,13 @@ static constexpr char LayerIcon[]       = "height_range_layer";
 static constexpr char WarningIcon[]     = "obj_warning";
 static constexpr char WarningManifoldIcon[] = "obj_warning";
 static constexpr char LockIcon[]            = "cut_";
+
+// Volumes printed with a filament of their own choice.
+static bool volume_shows_extruder(Slic3r::ModelVolumeType type)
+{
+    return type == Slic3r::ModelVolumeType::MODEL_PART || type == Slic3r::ModelVolumeType::PARAMETER_MODIFIER ||
+           type == Slic3r::ModelVolumeType::PAINTED_MODIFIER;
+}
 
 ObjectDataViewModelNode::ObjectDataViewModelNode(PartPlate* part_plate, wxString name) :
     m_parent(nullptr),
@@ -108,7 +116,7 @@ ObjectDataViewModelNode::ObjectDataViewModelNode(ObjectDataViewModelNode*   pare
     m_is_text_volume(is_text_volume),
     m_is_svg_volume(is_svg_volume),
     m_idx(idx),
-    m_extruder(type == Slic3r::ModelVolumeType::MODEL_PART || type == Slic3r::ModelVolumeType::PARAMETER_MODIFIER ? extruder : "")
+    m_extruder(volume_shows_extruder(type) ? extruder : "")
 {
     set_icons();
     init_container();
@@ -213,7 +221,7 @@ void ObjectDataViewModelNode::set_icons()
 void ObjectDataViewModelNode::set_extruder_icon()
 {
     if (m_type & (itInstance | itInstanceRoot | itLayerRoot) ||
-        ((m_type & itVolume) && m_volume_type != Slic3r::ModelVolumeType::MODEL_PART && m_volume_type != Slic3r::ModelVolumeType::PARAMETER_MODIFIER))
+        ((m_type & itVolume) && ! volume_shows_extruder(m_volume_type)))
         return; // don't set colored bitmap for Instance
 
     UpdateExtruderAndColorIcon();
@@ -414,7 +422,7 @@ void ObjectDataViewModelNode::SetPlateIdx(const int& idx)
 
 void ObjectDataViewModelNode::UpdateExtruderAndColorIcon(wxString extruder /*= ""*/)
 {
-    if (m_type == itVolume && m_volume_type != ModelVolumeType::MODEL_PART && m_volume_type != ModelVolumeType::PARAMETER_MODIFIER)
+    if (m_type == itVolume && ! volume_shows_extruder(m_volume_type))
         return;
     if (extruder.empty())
         extruder = m_extruder;
@@ -429,7 +437,7 @@ void ObjectDataViewModelNode::UpdateExtruderAndColorIcon(wxString extruder /*= "
             extruder_idx = atoi(m_parent->GetExtruder().c_str());
         }
         // BBS
-        else if (m_type & itVolume && m_volume_type == ModelVolumeType::PARAMETER_MODIFIER) {
+        else if (m_type & itVolume && (m_volume_type == ModelVolumeType::PARAMETER_MODIFIER || m_volume_type == ModelVolumeType::PAINTED_MODIFIER)) {
             m_extruder_bmp = *get_default_extruder_color_icon();
             return;
         }
@@ -567,7 +575,7 @@ void ObjectDataViewModel::UpdateBitmapForNode(ObjectDataViewModelNode *node)
     bool is_volume_node = node->GetType() & itVolume;
     int  vol_type       = static_cast<int>(node->GetVolumeType());
     // Extended range to include Precise Seam modifier types
-    is_volume_node &= (vol_type >= int(ModelVolumeType::MODEL_PART) && vol_type <= int(ModelVolumeType::PRECISE_SEAM_NEUTRAL));
+    is_volume_node &= (vol_type >= int(ModelVolumeType::MODEL_PART) && vol_type <= int(ModelVolumeType::PAINTED_MODIFIER));
 
     if (!node->has_warning_icon() && !node->has_lock()) {
         node->SetBitmap(is_volume_node ? (
@@ -697,7 +705,7 @@ wxDataViewItem ObjectDataViewModel::AddVolumeChild( const wxDataViewItem &parent
     // BBS
     wxString extruder_str;
     if (extruder == 0) {
-        if (volume_type == ModelVolumeType::PARAMETER_MODIFIER)
+        if (volume_type == ModelVolumeType::PARAMETER_MODIFIER || volume_type == ModelVolumeType::PAINTED_MODIFIER)
             extruder_str = _L("default");
         else
             extruder_str = root->m_extruder;
@@ -1298,7 +1306,9 @@ void ObjectDataViewModel::DeleteVolumeChildren(wxDataViewItem& parent)
 
     // set m_containet to FALSE if parent has no child
 #ifndef __WXGTK__
-    root->m_container = false;
+    // Instances, settings and other rows may remain after the volumes are gone.
+    if (root->GetChildCount() == 0)
+        root->m_container = false;
 #endif //__WXGTK__
 }
 
@@ -2105,12 +2115,44 @@ unsigned int ObjectDataViewModel::GetChildren(const wxDataViewItem &parent, wxDa
 		return 0;
 	}
 
-    unsigned int count = node->GetChildren().GetCount();
-    for (unsigned int pos = 0; pos < count; pos++)
-    {
-        ObjectDataViewModelNode* child = node->GetChildren().Item(pos);
-        array.Add(wxDataViewItem((void*)child));
+    std::vector<ObjectDataViewModelNode*> children;
+    for (auto* child : node->GetChildren())
+        children.push_back(child);
+    if (node->m_type == itObject && node->m_model_object != nullptr) {
+        const ModelObject& object = *node->m_model_object;
+        if (std::any_of(object.volumes.begin(), object.volumes.end(), [](const ModelVolume* volume) {
+                return volume->import_display_order >= 0;
+            })) {
+            // Node indices count visible volumes; cut connectors do not create tree nodes.
+            std::vector<const ModelVolume*> visible_parts;
+            for (const ModelVolume* part : object.volumes)
+                if (!(object.is_cut() && part->is_cut_connector()))
+                    visible_parts.push_back(part);
+            std::vector<size_t> slots;
+            std::vector<ObjectDataViewModelNode*> parts;
+            for (size_t i = 0; i < children.size(); ++i)
+                if (children[i]->GetType() == itVolume) {
+                    slots.push_back(i);
+                    parts.push_back(children[i]);
+                }
+            auto rank = [&](const ObjectDataViewModelNode* part) {
+                const int index = part->GetIdx();
+                if (index >= 0 && size_t(index) < visible_parts.size() &&
+                    visible_parts[size_t(index)]->import_display_order >= 0)
+                    return size_t(visible_parts[size_t(index)]->import_display_order);
+                return std::numeric_limits<size_t>::max();
+            };
+            std::stable_sort(parts.begin(), parts.end(), [&](const auto* a, const auto* b) {
+                return rank(a) < rank(b);
+            });
+            // Keep settings/layers/instances in their existing slots and never alter m_idx.
+            for (size_t i = 0; i < slots.size(); ++i)
+                children[slots[i]] = parts[i];
+        }
     }
+    const auto count = static_cast<unsigned int>(children.size());
+    for (auto* child : children)
+        array.Add(wxDataViewItem((void*)child));
 
     return count;
 }

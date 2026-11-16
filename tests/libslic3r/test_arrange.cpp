@@ -289,6 +289,33 @@ TEST_CASE("An item filling the printable area is arranged", "[Arrange]")
     REQUIRE(large.front().bed_idx == UNARRANGED);
 }
 
+TEST_CASE("Arranging uses the whole bed when the extruders share no printable area", "[Arrange]")
+{
+    // Two half-bed areas that only touch. An item wider than either half still fits the bed.
+    DynamicPrintConfig cfg = bed_config(); // 200 x 200
+    cfg.set_key_value("extruder_printable_area", new ConfigOptionPointsGroups{
+        { { 0., 0. }, { 100., 0. }, { 100., 200. }, { 0., 200. } },
+        { { 100., 0. }, { 200., 0. }, { 200., 200. }, { 100., 200. } } });
+    ArrangeParams p = quiet_params();
+
+    ArrangePolygons items = squares(1, 150.);
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    const Points bedpts = get_shrink_bedpts(&cfg, p);
+    // The arrange jobs read the four corners.
+    REQUIRE(bedpts.size() == 4);
+    arrange(items, bedpts, p);
+    CHECK(items.front().bed_idx == 0);
+
+    // The bed still bounds the arrangement.
+    ArrangeParams   p_large = quiet_params();
+    ArrangePolygons large   = squares(1, 201.);
+    update_arrange_params(p_large, &cfg, large);
+    update_selected_items_inflation(large, &cfg, p_large);
+    arrange(large, get_shrink_bedpts(&cfg, p_large), p_large);
+    CHECK(large.front().bed_idx == UNARRANGED);
+}
+
 TEST_CASE("Items overflowing one bed spill onto virtual beds", "[Arrange]")
 {
     ArrangePolygons items = squares(8, 90.); // eight 90mm squares cannot share a 200x200 bed

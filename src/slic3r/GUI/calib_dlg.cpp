@@ -1199,7 +1199,7 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
             firmware_note = _L("Klipper version => 0.9.0");
             break;
         case GCodeFlavor::gcfRepRapFirmware:
-            firmware_note = _L("RepRap firmware version => 3.4.0\nCheck your firmware documentation for supported shaper types.");
+            firmware_note = _L("RepRapFirmware version => 3.4.0\nCheck your firmware documentation for supported shaper types.");
             break;
         default:
             break;
@@ -1259,8 +1259,8 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
         m_tiFreqEndY->Hide();
         settings_sizer->Hide(y_freq_sizer);
         start_x_text->SetLabel(_L("Frequency (Start / End): "));
-        m_tiFreqStartX->GetTextCtrl()->SetToolTip(_L("RepRap firmware uses the same frequency range for both axes."));
-        m_tiFreqEndX->GetTextCtrl()->SetToolTip(_L("RepRap firmware uses the same frequency range for both axes."));
+        m_tiFreqStartX->GetTextCtrl()->SetToolTip(_L("RepRapFirmware uses the same frequency range for both axes."));
+        m_tiFreqEndX->GetTextCtrl()->SetToolTip(_L("RepRapFirmware uses the same frequency range for both axes."));
     }
 
     // Damping Factor
@@ -1424,7 +1424,7 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
             firmware_note = _L("Klipper version => 0.9.0");
             break;
         case GCodeFlavor::gcfRepRapFirmware:
-            firmware_note = _L("RepRap firmware version => 3.4.0\nCheck your firmware documentation for supported shaper types.");
+            firmware_note = _L("RepRapFirmware version => 3.4.0\nCheck your firmware documentation for supported shaper types.");
             break;
         default:
             break;
@@ -1465,7 +1465,7 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
         m_tiFreqY->GetTextCtrl()->SetValue(m_tiFreqX->GetTextCtrl()->GetValue());
         m_tiFreqY->Hide();
         freq_text->SetLabel(freq_str);
-        m_tiFreqX->GetTextCtrl()->SetToolTip(_L("RepRap firmware uses the same frequency for both axes."));
+        m_tiFreqX->GetTextCtrl()->SetToolTip(_L("RepRapFirmware uses the same frequency for both axes."));
     }
 
     // Damping Factor Start and End

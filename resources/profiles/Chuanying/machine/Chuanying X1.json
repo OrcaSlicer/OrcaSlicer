@@ -5,8 +5,8 @@
 	"nozzle_diameter": "0.25;0.4;0.6;0.8",
 	"machine_tech": "FFF",
 	"family": "Chuanying",
-	"bed_model": "chuanying_x1_buildplate_model.STL",
+	"bed_model": "chuanying_x1_buildplate_model.stl",
 	"bed_texture": "chuanying_x1_buildplate_texture.svg",
-	"hotend_model": "chuanying_x1_hotend.STL",
+	"hotend_model": "chuanying_x1_hotend.stl",
 	"default_materials": "Generic PETG @Chuanying;Generic PLA @Chuanying;Generic PLA @Chuanying X1 0.25 Nozzle"
 }
