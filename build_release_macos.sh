@@ -372,6 +372,11 @@ function build_slicer() {
             resources_path=$(readlink ./OrcaSlicer.app/Contents/Resources)
             rm ./OrcaSlicer.app/Contents/Resources
             cp -R "$resources_path" ./OrcaSlicer.app/Contents/Resources
+            gpu_shaders="$PROJECT_BUILD_DIR/src/libslic3r/resources/vulkan"
+            if [ -d "$gpu_shaders" ]; then
+                mkdir -p ./OrcaSlicer.app/Contents/Resources/vulkan
+                cp "$gpu_shaders/"*.spv ./OrcaSlicer.app/Contents/Resources/vulkan/
+            fi
             relocate_python_runtime ./OrcaSlicer.app
             # delete .DS_Store file
             find ./OrcaSlicer.app/ -name '.DS_Store' -delete
