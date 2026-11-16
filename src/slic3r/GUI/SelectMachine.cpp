@@ -12,7 +12,7 @@
 #include "Widgets/ProgressDialog.hpp"
 #include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/StaticBox.hpp"
-#include "Widgets/CheckBox.hpp"
+#include "Widgets/LabeledCheckBox.hpp"
 #include "Widgets/Label.hpp"
 #include "Widgets/RadioBox.hpp"
 #include "ConnectPrinter.hpp"
@@ -131,6 +131,7 @@
 #include "slic3r/GUI/Tabbook.hpp"
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include <slic3r/GUI/Widgets/StaticLine.hpp>
 #include "slic3r/Utils/IPrinterAgent.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
@@ -299,6 +300,10 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     /*basic info right*/
     auto  sizer_basic_right_info = new wxBoxSizer(wxVERTICAL);
 
+    auto m_model_title = new StaticLine(m_basic_panel, false, _L("Model Information"));
+    m_model_title->SetFont(::Label::Head_14);
+    m_model_title->SetForegroundColour(0x363636);
+
     /*rename*/
     auto sizer_rename = new wxBoxSizer(wxHORIZONTAL);
 
@@ -438,10 +443,12 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     m_saveTimeText->Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent&) { m_saveTimeText->SetCursor(wxCURSOR_DEFAULT); });
     Bind(wxEVT_REFRESH_DATA, &SelectMachineDialog::update_best_pos_dialog, this);
 
+    sizer_basic_right_info->Add(m_model_title, 0, wxEXPAND, 0);
+    sizer_basic_right_info->Add(0, 0, 0, wxTOP, FromDIP(10));
     sizer_basic_right_info->Add(sizer_rename, 0, wxTOP, 0);
     sizer_basic_right_info->Add(0, 0, 0, wxTOP, FromDIP(5));
     sizer_basic_right_info->Add(m_sizer_basic_weight_time, 0, wxTOP, 0);
-    sizer_basic_right_info->Add(0, 0, 0, wxTOP, FromDIP(10));
+    sizer_basic_right_info->Add(0, 0, 0, wxTOP, FromDIP(5));
     sizer_basic_right_info->Add(m_printer_box, 0, wxTOP, 0);
     sizer_basic_right_info->Add(0, 0, 0, wxTOP, FromDIP(4));
     sizer_basic_right_info->Add(m_text_printer_msg, 0, wxLEFT, 0);
@@ -452,7 +459,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
 
     m_basicl_sizer->Add(m_sizer_thumbnail_area, 0, wxLEFT, 0);
     m_basicl_sizer->Add(0, 0, 0, wxLEFT, FromDIP(8));
-    m_basicl_sizer->Add(sizer_basic_right_info, 0, wxLEFT, 0);
+    m_basicl_sizer->Add(sizer_basic_right_info, 1, wxLEFT, 0);
 
     m_basic_panel->SetSizer(m_basicl_sizer);
     m_basic_panel->Layout();
@@ -564,14 +571,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
 
     /*ams mapping suggestions*/
 
-    m_link_edit_nozzle = new Label(m_scroll_area, wxEmptyString);
-    m_link_edit_nozzle->SetFont(::Label::Body_13);
-    m_link_edit_nozzle->SetForegroundColour("#009688");
-    m_link_edit_nozzle->SetBackgroundColour(*wxWHITE);
-    m_link_edit_nozzle->Bind(wxEVT_ENTER_WINDOW, [this](auto &e) { SetCursor(wxCURSOR_HAND); });
-    m_link_edit_nozzle->Bind(wxEVT_LEAVE_WINDOW, [this](auto &e) { SetCursor(wxCURSOR_ARROW); });
-    m_link_edit_nozzle->SetLabel(_L("Not satisfied with the grouping of filaments? Regroup and slice ->"));
-
+    m_link_edit_nozzle = new HyperLink(m_scroll_area, _L("Not satisfied with the grouping of filaments? Regroup and slice ->"));
     m_link_edit_nozzle->Bind(wxEVT_LEFT_DOWN, [this](auto &e) {
 
         if (m_is_in_sending_mode) {
@@ -589,24 +589,16 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
         wxPostEvent(plater, evt);
     });
 
-    m_check_ext_change_assist = new CheckBox(m_scroll_area, wxID_ANY);
+    m_check_ext_change_assist = new LabeledCheckBox(m_scroll_area, _L("Multi-color with external"));
     m_check_ext_change_assist->SetValue(false);
-    m_check_ext_change_assist->SetBackgroundColour(*wxWHITE);
     m_check_ext_change_assist->SetToolTip(_L("Manually change external spool during printing for multi-color printing"));
+    m_check_ext_change_assist->Wrap(FromDIP(200));
     m_check_ext_change_assist->Hide();
-    m_label_ext_change_assist = new Label(m_scroll_area, _L("Multi-color with external"));
-    m_label_ext_change_assist->Wrap(-1);
-    m_label_ext_change_assist->Hide();
-    m_label_ext_change_assist->SetMaxSize(wxSize(FromDIP(200), -1));
-    m_label_ext_change_assist->SetFont(::Label::Body_13);
-    m_label_ext_change_assist->SetBackgroundColour(*wxWHITE);
-    m_label_ext_change_assist->SetToolTip(_L("Manually change external spool during printing for multi-color printing"));
 
     wxSizer* suggestion_sizer = new wxBoxSizer(wxHORIZONTAL);
-    suggestion_sizer->Add(m_link_edit_nozzle, 0, wxLEFT, 0);
+    suggestion_sizer->Add(m_link_edit_nozzle, 0, wxALIGN_CENTER_VERTICAL);
     suggestion_sizer->Add(0, 0, 1, wxEXPAND, 0);
-    suggestion_sizer->Add(m_check_ext_change_assist, 0, wxRIGHT, FromDIP(10));
-    suggestion_sizer->Add(m_label_ext_change_assist, 0, wxRIGHT, 0);
+    suggestion_sizer->Add(m_check_ext_change_assist, 0, wxALIGN_CENTER_VERTICAL);
 
     m_mapping_sugs_sizer = new wxBoxSizer(wxHORIZONTAL);
     //auto m_img_mapping_sugs = new wxStaticBitmap(this, wxID_ANY, create_scaled_bitmap("warning", this, 16), wxDefaultPosition, wxSize(FromDIP(16), FromDIP(16)));
@@ -872,10 +864,10 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     sizer_print_failed_info->Add(sizer_extra_info, 0, wxLEFT, 5);
 
     m_scroll_sizer->Add(m_line_top, 0, wxEXPAND, 0);
-    m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(11));
+    m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
     //m_sizer_main->Add(m_sizer_mode_switch, 0, wxALIGN_CENTER, 0);
     //m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
-    m_scroll_sizer->AddStretchSpacer();
+    //m_scroll_sizer->AddStretchSpacer();
     m_scroll_sizer->Add(m_basic_panel, 0, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(15));
     m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(14));
     m_scroll_sizer->Add(sizer_split_filament, 1, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(15));
@@ -904,7 +896,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     sizer_main->Add(m_simplebook, 0, wxALIGN_CENTER, 0);
     sizer_main->Add(0, 0, 0, wxTOP, FromDIP(10));
     sizer_main->Add(m_sw_print_failed_info, 0, wxALIGN_CENTER, 0);
-    sizer_main->Add(0, 0, 0, wxTOP, FromDIP(18));
+    sizer_main->Add(0, 0, 0, wxTOP, FromDIP(15));
 
     SetSizer(sizer_main);
     Layout();
@@ -4847,10 +4839,8 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
     bool is_support_mutile_color = obj_->is_support_ext_change_assist_old || obj_->is_support_ext_change_assist;
     if (is_support_mutile_color && !m_check_ext_change_assist->IsShown()) {
         m_check_ext_change_assist->Show(true);
-        m_label_ext_change_assist->Show(true);
     } else if (!is_support_mutile_color && m_check_ext_change_assist->IsShown()) {
         m_check_ext_change_assist->Hide();
-        m_label_ext_change_assist->Hide();
     }
     /*check external change assist*/
     if(!m_ams_mapping_result.empty() && is_enable_external_change_assist(m_ams_mapping_result)){
