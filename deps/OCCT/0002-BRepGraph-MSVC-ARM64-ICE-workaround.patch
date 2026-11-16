@@ -1,0 +1,25 @@
+diff --git a/src/ModelingData/TKBRep/BRepGraph/BRepGraph_LayerTopoSupplement.cxx b/src/ModelingData/TKBRep/BRepGraph/BRepGraph_LayerTopoSupplement.cxx
+index 44e59b0..8833fed 100644
+--- a/src/ModelingData/TKBRep/BRepGraph/BRepGraph_LayerTopoSupplement.cxx
++++ b/src/ModelingData/TKBRep/BRepGraph/BRepGraph_LayerTopoSupplement.cxx
+@@ -21,6 +21,12 @@
+ #include <Standard_ProgramError.hxx>
+ #include <TCollection_AsciiString.hxx>
+ 
++// MSVC 14.52 for ARM64 crashes with an internal compiler error (C1001) while
++// optimizing this file, so it is compiled without optimization there.
++#if defined(_MSC_VER) && !defined(__clang__) && defined(_M_ARM64)
++  #pragma optimize("", off)
++#endif
++
+ IMPLEMENT_STANDARD_RTTIEXT(BRepGraph_LayerTopoSupplement, BRepGraph_Layer)
+ 
+ namespace
+@@ -384,3 +390,7 @@ void BRepGraph_LayerTopoSupplement::removeOwner(const BRepGraph_NodeId theOwner)
+   myOwnerToUids.UnBind(theOwner);
+   touch();
+ }
++
++#if defined(_MSC_VER) && !defined(__clang__) && defined(_M_ARM64)
++  #pragma optimize("", on)
++#endif

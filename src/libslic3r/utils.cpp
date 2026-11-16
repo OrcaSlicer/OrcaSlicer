@@ -43,6 +43,7 @@
 #include <stdio.h>
 #include <cstdlib>
 #ifndef _WIN32
+#include <fcntl.h>
 #include <pwd.h>
 #include <unistd.h>
 #endif
@@ -397,6 +398,33 @@ std::string xdg_config_dir(const std::string &app_name)
         base = std::string(home != nullptr ? home : "") + "/.config";
     }
     return base + "/" + app_name;
+}
+
+bool is_running_in_flatpak()
+{
+    // Only the sandbox has this file, while a host process started from a Flatpak can inherit FLATPAK_ID.
+    return ::access("/.flatpak-info", F_OK) == 0;
+}
+
+bool wayland_socket_available()
+{
+    if (const char *socket_fd = ::getenv("WAYLAND_SOCKET")) {
+        char *end = nullptr;
+        errno = 0;
+        const long fd = std::strtol(socket_fd, &end, 10);
+        return errno == 0 && end != socket_fd && *end == '\0' && ::fcntl(static_cast<int>(fd), F_GETFD) != -1;
+    }
+    const char *name = ::getenv("WAYLAND_DISPLAY");
+    if (name == nullptr)
+        name = "wayland-0";
+    // libwayland uses an empty WAYLAND_DISPLAY as given, and connecting to it fails.
+    if (*name == '\0')
+        return false;
+    if (name[0] == '/')
+        return ::access(name, F_OK) == 0;
+    const char *runtime_dir = ::getenv("XDG_RUNTIME_DIR");
+    return runtime_dir != nullptr && runtime_dir[0] == '/' &&
+           ::access((std::string(runtime_dir) + "/" + name).c_str(), F_OK) == 0;
 }
 #endif
 
