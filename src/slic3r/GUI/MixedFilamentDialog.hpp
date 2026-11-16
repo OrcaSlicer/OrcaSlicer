@@ -18,6 +18,7 @@
 
 #include "GUI_Utils.hpp"
 #include "libslic3r/FilamentMixer.hpp"
+#include "wxExtensions.hpp"
 
 class Button;
 class CheckBox;
@@ -151,8 +152,8 @@ private:
     CheckBox*                   m_chk_per_part_gradient{nullptr};
     wxStaticText*               m_label_per_part_gradient{nullptr};
     wxBoxSizer*                 m_per_part_gradient_sizer{nullptr};
-    Button*                     m_btn_add_material{nullptr};
-    Button*                     m_btn_remove_material{nullptr};
+    ScalableButton*             m_btn_add_material{nullptr};
+    ScalableButton*             m_btn_remove_material{nullptr};
     Button*                     m_btn_ok{nullptr};
     Button*                     m_btn_cancel{nullptr};
     wxBoxSizer*                 m_warning_sizer{nullptr};
