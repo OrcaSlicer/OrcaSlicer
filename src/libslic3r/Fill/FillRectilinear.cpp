@@ -2964,41 +2964,37 @@ void make_fill_lines(const ExPolygonWithOffset &poly_with_offset, Point refpt, d
         }
 }
 
-     // Remove lines that are too close to each other.
-static inline void remove_overlapped(Polylines& polylines, coord_t line_width){
-    const coord_t tolerance = coord_t(0.75 * line_width);
-    Polylines cleaned;
-    cleaned.reserve(polylines.size());
-
-    auto midpoint = [](const Polyline& line) -> Point {
-        const Point& p1 = line.first_point();
-        const Point& p2 = line.last_point();
-        return Point((p1.x() + p2.x()) / 2, (p1.y() + p2.y()) / 2);
-    };
-
-    for (const Polyline& line : polylines) {
-        Point mp1 = midpoint(line);
-        bool overlapped = false;
-
-        for (const Polyline& existing : cleaned) {
-            Point mp2 = midpoint(existing);
-
-            // Early skip: if they're far apart on one axis, skip
-            if (std::abs(mp1.y() - mp2.y()) > tolerance &&
-                std::abs(mp1.x() - mp2.x()) > tolerance)
-                continue;
-
-            if (mp1.distance_to(mp2) < tolerance) {
-                overlapped = true;
-                break;
-            }
-        }
-
-        if (!overlapped)
-            cleaned.push_back(line);
+// Shifts for make_fill_lines() of the lines of multiline walls of one direction, centered on the given shifts and repeating
+// every period. Walls that overlap print as one wall, of as many lines spacing apart as fill it, centered on it: dropping
+// single lines of one would leave gaps, and keeping them all would overlap the lines.
+static std::vector<coord_t> multiline_wall_shifts(const std::vector<coord_t> &centers, int lines, coord_t spacing, coord_t period)
+{
+    std::vector<std::pair<double, double>> walls;
+    for (const coord_t center : centers) {
+        const double c = double((center % period + period) % period);
+        walls.emplace_back(c - 0.5 * lines * spacing, c + 0.5 * lines * spacing);
+    }
+    std::sort(walls.begin(), walls.end());
+    std::vector<std::pair<double, double>> merged;
+    for (const auto &wall : walls)
+        if (! merged.empty() && wall.first < merged.back().second)
+            merged.back().second = std::max(merged.back().second, wall.second);
+        else
+            merged.push_back(wall);
+    // The last wall may overlap the first one of the next period. The walls together are at most a period wide.
+    if (merged.size() > 1 && merged.back().second > merged.front().first + period) {
+        merged.front().first  = merged.back().first - period;
+        merged.front().second = std::max(merged.front().second, merged.back().second - period);
+        merged.pop_back();
     }
 
-    polylines = std::move(cleaned);
+    std::vector<coord_t> shifts;
+    for (const auto &[low, high] : merged) {
+        const int n = std::max(1, int(std::lround((high - low) / spacing)));
+        for (int i = 0; i < n; ++ i)
+            shifts.push_back(coord_t(std::lround(0.5 * (low + high) + (i - 0.5 * (n - 1)) * spacing)));
+    }
+    return shifts;
 }
 
 bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillParams params, const std::initializer_list<SweepParams> &sweep_params, Polylines &polylines_out)
@@ -3008,40 +3004,42 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
     params.density /= double(sweep_params.size());
     assert(params.density > 0.0001f && params.density <= 1.f);
 
-    ExPolygonWithOffset poly_with_offset_base(surface->expolygon, 0, float(scale_(this->overlap + 0.5 * params.multiline * this->spacing)));//increase offset to crop infill lines when using multiline infill
+    // Contracted by half a line width, so the lines stop at the inner edge of the perimeter.
+    ExPolygonWithOffset poly_with_offset_base(surface->expolygon, 0, float(scale_(this->overlap - 0.5 * this->spacing)));
     if (poly_with_offset_base.n_contours == 0)
         // Not a single infill line fits.
         return true;
 
     Polylines fill_lines;
-    coord_t line_width   = coord_t(scale_(this->spacing));
-    coord_t line_spacing = coord_t(scale_(this->spacing) * params.multiline / params.density);
+    const coord_t line_width   = coord_t(scale_(this->spacing));
+    const coord_t line_spacing = coord_t(scale_(this->spacing) * params.multiline / params.density);
     std::pair<float, Point> rotate_vector = this->_infill_direction(surface);
-    for (const SweepParams &sweep : sweep_params) {
+    // Only the walls of the lateral patterns overlap: their two families run in one direction and slide over each other with z.
+    const bool merge_walls = params.multiline > 1 && (params.pattern == ipLateralLattice || params.pattern == ipLateralHoneycomb);
+    for (auto sweep = sweep_params.begin(); sweep != sweep_params.end(); ++ sweep) {
+        const auto same_direction = [sweep](const SweepParams &other) { return other.angle_base == sweep->angle_base; };
+        // The lines of one direction never cross, so the lines of a multiline wall are parallel copies of its centerline,
+        // spacing apart, each clipped to the region on its own. The walls of the lateral patterns are laid out together for
+        // each direction, so that the ones that overlap print as one. The patterns whose lines cross take other paths, see
+        // docs/HLSD/multiline-infill.md.
+        if (merge_walls && std::any_of(sweep_params.begin(), sweep, same_direction))
+            continue;
+        std::vector<coord_t> shifts;
+        if (merge_walls) {
+            for (auto other = sweep; other != sweep_params.end(); ++ other)
+                if (same_direction(*other))
+                    shifts.push_back(coord_t(scale_(other->pattern_shift)));
+            shifts = multiline_wall_shifts(shifts, params.multiline, line_width, line_spacing);
+        } else
+            for (int i = 0; i < params.multiline; ++ i)
+                shifts.push_back(coord_t(scale_(sweep->pattern_shift)) + coord_t(std::lround((i - 0.5 * (params.multiline - 1)) * line_width)));
         // Rotate polygons so that we can work with vertical lines here
-        float angle = rotate_vector.first + sweep.angle_base;
-
-        make_fill_lines(ExPolygonWithOffset(poly_with_offset_base, -angle), rotate_vector.second.rotated(-angle), angle,
-                        line_width + coord_t(SCALED_EPSILON), line_spacing, coord_t(scale_(sweep.pattern_shift)), fill_lines);
+        const float               angle = rotate_vector.first + sweep->angle_base;
+        const ExPolygonWithOffset poly_with_offset(poly_with_offset_base, -angle);
+        for (const coord_t shift : shifts)
+            make_fill_lines(poly_with_offset, rotate_vector.second.rotated(-angle), angle, line_width + coord_t(SCALED_EPSILON), line_spacing,
+                            shift, fill_lines);
     }
-        
-    // Apply multiline offset if needed
-    multiline_fill(fill_lines, params, spacing);
- 
-    // Contract surface polygon by half line width to avoid excesive overlap with perimeter
-    const ExPolygons contracted = offset_ex(surface->expolygon, -float(scale_(0.5 * this->spacing)));
-
-    // if contraction results in empty ExPolygons, use original surface
-    const ExPolygons& intersection_surface = contracted.empty() ? ExPolygons{surface->expolygon} : contracted;
-
-    // Intersect polylines with perimeter
-    fill_lines = intersection_pl(std::move(fill_lines), intersection_surface);
-
-    if ((params.pattern == ipLateralLattice || params.pattern == ipLateralHoneycomb) && params.multiline > 1)
-        remove_overlapped(fill_lines, line_width);
-
-    // After remove_overlapped(), which would not recognize a line joined with its duplicate.
-    join_cut_outlines(fill_lines, params);
 
     if (!fill_lines.empty()) {
         if (params.dont_connect()) {
@@ -3049,7 +3047,7 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
                 fill_lines = chain_polylines(std::move(fill_lines));
             append(polylines_out, std::move(fill_lines));
         } else
-            connect_infill(std::move(fill_lines), to_polygons(intersection_surface), get_extents(surface->expolygon.contour), polylines_out,
+            connect_infill(std::move(fill_lines), poly_with_offset_base.polygons_outer, get_extents(surface->expolygon.contour), polylines_out,
                            this->spacing, params);
     }
 

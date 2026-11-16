@@ -874,6 +874,11 @@ void PrintObject::ironing()
     }
 }
 
+bool PrintObject::precise_z_height() const
+{
+    return m_config.precise_z_height.value && !m_print->precise_z_height_overridden();
+}
+
 bool PrintObject::need_z_contouring() const
 {
     size_t num_regions = this->num_printing_regions();
@@ -1866,6 +1871,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "scarf_joint_flow_ratio"
             || opt_key == "wipe_inward"
             || opt_key == "wipe_inward_distance"
+            || opt_key == "retract_after_outer_wall"
             || opt_key == "spiral_starting_flow_ratio"
             || opt_key == "spiral_finishing_flow_ratio") {
             invalidated |= m_print->invalidate_step(psGCodeExport);

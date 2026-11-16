@@ -11,7 +11,7 @@
 #include <utility>
 #include "slic3r/GUI/Widgets/RadioGroup.hpp"
 #include "libslic3r/Config.hpp"
-#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/Widgets/LabeledCheckBox.hpp"
 #include <cstring>
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
@@ -143,21 +143,9 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
         const std::string parent_name = sel_preset.is_system ? sel_preset.name : sel_preset.inherits();
         const bool        has_parent  = !parent_name.empty();
 
-        wxBoxSizer *detach_sizer = new wxBoxSizer(wxHORIZONTAL);
-
-        auto detach_tooltip  = _L("Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported.");
-
-        auto detach_checkbox = new ::CheckBox(parent);
-        detach_checkbox->SetToolTip(detach_tooltip);
-
-        auto detach_label    = new wxStaticText(parent, wxID_ANY, has_parent ? _L("Detach from parent") : _L("Save without parent"));
-        detach_label->SetFont(::Label::Body_14);
-        detach_label->SetForegroundColour(wxColour("#363636"));
-        detach_label->SetToolTip(detach_tooltip);
-
-        detach_sizer->Add(detach_checkbox, 0, wxALIGN_LEFT | wxLEFT, BORDER_W);
-        detach_sizer->Add(detach_label   , 0, wxALIGN_CENTRE_VERTICAL | wxLEFT, FromDIP(5));
-        sizer->Add(detach_sizer, 0, wxEXPAND | wxTOP, BORDER_W);
+        auto detach_checkbox = new LabeledCheckBox(parent, has_parent ? _L("Detach from parent") : _L("Save without parent"));
+        detach_checkbox->SetToolTip(_L("Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."));
+        sizer->Add(detach_checkbox, 0, wxTOP | wxLEFT, BORDER_W);
         sizer->AddSpacer(FromDIP(5));
 
         const wxString parent_text = has_parent ? from_u8(parent_name) : _L("Unique preset");
@@ -172,19 +160,10 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
         // Set initial state (unchecked by default)
         detach_checkbox->SetValue(m_detach);
         // Bind the checkbox event to update the detach state for this item
-        detach_checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, detach_checkbox](wxCommandEvent& event) {
-            m_detach = detach_checkbox->GetValue();
-            event.Skip(); // Let CheckBox update its bitmap for the new state.
+        detach_checkbox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& event) {
+            m_detach = event.IsChecked();
+            event.Skip();
         });
-
-        auto on_toggle = [detach_checkbox]() {
-            detach_checkbox->SetValue(!detach_checkbox->GetValue());
-            wxCommandEvent ev(wxEVT_TOGGLEBUTTON, detach_checkbox->GetId());
-            ev.SetEventObject(detach_checkbox);
-            detach_checkbox->GetEventHandler()->ProcessEvent(ev);
-        };
-        detach_label->Bind(wxEVT_LEFT_DOWN,   [on_toggle](wxMouseEvent& e) {if(!e.LeftDClick()) on_toggle();});
-        detach_label->Bind(wxEVT_LEFT_DCLICK, [on_toggle](wxMouseEvent& e) {on_toggle();});
     }
     
     m_radio_group->Bind(wxEVT_COMMAND_RADIOBOX_SELECTED, [this](wxCommandEvent &e) {
