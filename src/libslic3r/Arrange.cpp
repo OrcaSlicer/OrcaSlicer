@@ -1433,7 +1433,8 @@ void unpack_print_groups(ArrangePolygons &selected, std::vector<ArrangePolygons>
         for (ArrangePolygon &ap : groups[idx]) {
             Point offset(ap.translation);
             offset.rotate(group.rotation);
-            ap.translation = group.translation + offset;
+            ap.translation = group.translation;
+            ap.translation += offset;
             ap.rotation += group.rotation;
             ap.bed_idx = group.bed_idx;
             ap.itemid  = group.itemid;
