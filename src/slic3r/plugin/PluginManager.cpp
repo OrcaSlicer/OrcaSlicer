@@ -5,6 +5,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <exception>
 #include <functional>
+#include "libslic3r/Config.hpp"
 #include "libslic3r/LifecycleEvents.hpp"
 #include <memory>
 #include <optional>
@@ -135,25 +136,6 @@ bool PluginManager::initialize()
     // Install the libslic3r hooks (capability resolver, slicing-pipeline dispatcher).
     // Uninstalled in shutdown() before the interpreter finalizes.
     plugin_hooks::install();
-
-    // Persist auto-load / capability state to each plugin's .install_state.json sidecar.
-    // On load: write enabled=true plus the current capability flags. On unload: flip enabled=false.
-    // The on-unload callback is skipped during shutdown, so app exit does not wipe the auto-load list.
-    subscribe_on_load_callback([this](const std::string& key) { write_loaded_plugin_install_state(key); });
-    subscribe_on_unload_callback([this](const std::string& key) {
-        if (m_shutting_down.load(std::memory_order_acquire))
-            return;
-        std::lock_guard<std::mutex> state_lock(install_state_mutex());
-        PluginDescriptor descriptor;
-        if (!try_get_plugin_descriptor(key, descriptor) || descriptor.plugin_root.empty())
-            return;
-        const boost::filesystem::path root(descriptor.plugin_root);
-        PluginInstallState state;
-        if (read_install_state(root, state)) {
-            state.enabled = false;
-            write_install_state(root, state);
-        }
-    });
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Plugin manager initialized";
 
@@ -582,6 +564,24 @@ bool PluginManager::try_get_plugin_descriptor_for_capability(const std::string& 
     }
 
     return false;
+}
+
+std::optional<PluginCapabilityRef> PluginManager::resolve_capability_ref(const std::string& capability_name,
+                                                                         PluginCapabilityType type) const
+{
+    // only_enabled = false: a stored reference must stay resolvable whether or not the user
+    // currently has the capability enabled; the dispatchers report "disabled" separately.
+    if (!get_plugin_capability(capability_name, type, /*only_enabled=*/false))
+        return std::nullopt;
+
+    PluginDescriptor descriptor;
+    if (!try_get_plugin_descriptor_for_capability(capability_name, type, descriptor))
+        return std::nullopt;
+
+    // Cloud plugins are resolved at runtime via the UUID, so the name field keeps the friendly
+    // display name. Local plugins are looked up by plugin_key with an empty UUID.
+    const std::string identity = descriptor.is_cloud_plugin() ? descriptor.name : descriptor.plugin_key;
+    return PluginCapabilityRef{identity, capability_name, descriptor.cloud_uuid()};
 }
 
 std::string PluginManager::get_storage_dir(const std::string& plugin_key) const
@@ -1111,6 +1111,11 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
 
     clear_plugin_error(plugin_key);
 
+    // Persist only after the plugin is committed as loaded. Lifecycle callbacks are dispatched
+    // asynchronously from worker threads and must not own sidecar persistence.
+    if (!m_shutting_down.load(std::memory_order_acquire))
+        write_loaded_plugin_install_state(plugin_key);
+
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_load_errors.erase(plugin_key);
@@ -1172,8 +1177,10 @@ bool PluginManager::unload_plugin(const std::string& plugin_key)
     // Teardown runs outside m_mutex: it calls into Python and must not hold the registry lock.
     plugin_loader::unload(removed);
 
-    // The .install_state.json sidecar is flipped to enabled=false by the on-unload callback
-    // (skipped during shutdown), so the auto-load list survives app exit.
+    // Persist before returning: callers may delete or replace the plugin directory next.
+    if (!m_shutting_down.load(std::memory_order_acquire))
+        mark_plugin_install_state_disabled(plugin_key);
+
     BOOST_LOG_TRIVIAL(info) << "Unloaded plugin: " << plugin_key;
 
     return true;

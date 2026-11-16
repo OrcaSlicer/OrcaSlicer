@@ -209,6 +209,11 @@ const std::string& data_dir();
 // The per-user configuration directory an application gets when no --datadir is given:
 // $XDG_CONFIG_HOME/<app_name>, or ~/.config/<app_name> when XDG_CONFIG_HOME is unset or empty.
 std::string xdg_config_dir(const std::string &app_name);
+// True when this process runs inside a Flatpak sandbox.
+bool is_running_in_flatpak();
+// True when the socket wl_display_connect(NULL) would open exists, which is the connection GTK's
+// Wayland backend tries before X11.
+bool wayland_socket_available();
 #endif
 #ifdef __linux__
 // The data directory a start without --datadir uses: a data_dir folder next to the executable
