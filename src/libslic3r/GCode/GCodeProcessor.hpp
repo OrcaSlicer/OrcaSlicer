@@ -665,6 +665,10 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         static int get_gcode_last_filament(const std::string &gcode_str);
         static bool get_last_z_from_gcode(const std::string& gcode_str, double& z);
         static bool get_last_position_from_gcode(const std::string &gcode_str, Vec3f &pos);
+        // Does the g-code move the toolhead? Custom g-code is often inert (a timelapse block
+        // compiled out by its template conditionals, a progress marker), and such a block
+        // cannot invalidate the last commanded position.
+        static bool gcode_moves_toolhead(const std::string &gcode_str);
 
         static const float Wipe_Width;
         static const float Wipe_Height;

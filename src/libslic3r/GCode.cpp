@@ -6525,7 +6525,13 @@ std::string GCode::generate_timelapse_gcode(const Print &print, coordf_t print_z
     }
 
     if (!timelapse_gcode.empty()) {
-        m_writer.set_current_position_clear(false);
+        //BBS: custom g-code can move the toolhead, and only its Z is tracked here, so the writer
+        //must not assume the position it holds. A block that carries no motion (a timelapse block
+        //whose template conditionals are compiled out, a progress marker) cannot move the toolhead,
+        //and clearing the position on it also disables the travel planning of the first travel move
+        //of the layer, "avoid crossing walls" among them.
+        if (GCodeProcessor::gcode_moves_toolhead(timelapse_gcode))
+            m_writer.set_current_position_clear(false);
 
         double temp_z_after_tool_change;
         if (GCodeProcessor::get_last_z_from_gcode(timelapse_gcode, temp_z_after_tool_change)) {
@@ -7453,7 +7459,10 @@ LayerResult GCode::process_layer(
             config.set_key_value("curr_physical_extruder_id", new ConfigOptionInt(m_config.physical_extruder_map.get_at(m_writer.filament()->extruder_id())));
             wrapping_gcode = this->placeholder_parser_process("wrapping_detection_gcode", print.config().wrapping_detection_gcode.value, m_writer.filament()->id(), &config) +"\n";
         }
-        m_writer.set_current_position_clear(false);
+        // Same as for the timelapse g-code: only g-code that moves the toolhead makes the last
+        // commanded position unusable.
+        if (GCodeProcessor::gcode_moves_toolhead(wrapping_gcode))
+            m_writer.set_current_position_clear(false);
 
         double temp_z_after_tool_change;
         if (GCodeProcessor::get_last_z_from_gcode(wrapping_gcode, temp_z_after_tool_change)) {

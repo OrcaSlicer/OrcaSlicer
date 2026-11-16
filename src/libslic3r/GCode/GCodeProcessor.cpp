@@ -4346,6 +4346,50 @@ bool GCodeProcessor::get_last_z_from_gcode(const std::string& gcode_str, double&
     return is_z_changed;
 }
 
+//BBS: does the g-code move the toolhead?
+// Custom g-code inserted by a profile often carries no motion at all: a timelapse block whose
+// template conditionals are compiled out, a layer progress marker, a label id block. Motion is
+// recognised line by line, the way the position trackers above read the same blocks.
+bool GCodeProcessor::gcode_moves_toolhead(const std::string& gcode_str)
+{
+    // A G0 to G3 word carrying an axis word moves the toolhead. An arc moves in XY through its
+    // center offsets, so I/J/K count as motion even without X/Y. G10 (a polyline) is not a G1.
+    auto line_moves = [](std::string_view line) {
+        size_t first = line.find_first_not_of(" \t");
+        if (first == std::string_view::npos)
+            return false;
+        line.remove_prefix(first);
+        if (size_t comment = line.find(';'); comment != std::string_view::npos)
+            line.remove_suffix(line.size() - comment);
+        if (line.size() < 4 || line[0] != 'G' || line[1] < '0' || line[1] > '3' || (line[2] != ' ' && line[2] != '\t'))
+            return false;
+        // the axis words are space separated; the word right after the G word follows the
+        // separator that made this a G word at all, so the scan starts at it
+        for (size_t i = 2; i + 1 < line.size(); ++i) {
+            if (line[i] != ' ' && line[i] != '\t')
+                continue;
+            switch (line[i + 1]) {
+            case 'X': case 'Y': case 'Z': case 'I': case 'J': case 'K':
+                return true;
+            default:
+                break;
+            }
+        }
+        return false;
+    };
+
+    size_t start = 0;
+    while (start <= gcode_str.size()) {
+        size_t end = gcode_str.find('\n', start);
+        if (end == std::string::npos)
+            end = gcode_str.size();
+        if (line_moves(std::string_view(gcode_str).substr(start, end - start)))
+            return true;
+        start = end + 1;
+    }
+    return false;
+}
+
 bool GCodeProcessor::get_last_position_from_gcode(const std::string &gcode_str, Vec3f &pos)
 {
     int  str_size     = gcode_str.size();
