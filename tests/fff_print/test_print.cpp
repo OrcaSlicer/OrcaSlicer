@@ -38,6 +38,7 @@
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Polyline.hpp"
 #include <limits>
+#include <cctype>
 #include <cmath>
 #include <map>
 #include "libslic3r/Polygon.hpp"
@@ -62,6 +63,7 @@
 #include <ios>
 #include <memory>
 #include <string_view>
+#include <tuple>
 #include <utility>
 #include <vector>
 #include "libslic3r/ObjectID.hpp"
@@ -1927,6 +1929,133 @@ TEST_CASE("Sequential printing counts a raft toward whether an object is short",
         CHECK(error.find("too close to others") != std::string::npos);
     else
         CHECK(error.empty());
+}
+
+namespace {
+
+// A row of 10 mm cubes along X, `gap` mm apart edge to edge, printed by object with two filaments. `overrides[i]`
+// sets the filaments of cube i. The toolhead radius of 20 mm needs a gap of about 20 mm between cubes printed apart.
+void place_cubes_by_filament(const std::vector<std::vector<ConfigBase::SetDeserializeItem>> &overrides, double gap, bool group,
+                             Print &print, Model &model, double height = 10.)
+{
+    std::vector<TriangleMesh> meshes;
+    for (size_t i = 0; i < overrides.size(); ++i) {
+        TriangleMesh box = make_cube(10, 10, height);
+        box.translate(float(20. + double(i) * (10. + gap)), 100.f, 0.f);
+        meshes.push_back(std::move(box));
+    }
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "print_sequence",                   "by object" },
+        { "group_objects_by_filament",        group },
+        { "printable_area",                   "0x0,250x0,250x250,0x250" },
+        { "printable_height",                 100 },
+        { "extruder_clearance_radius",        20 },
+        { "extruder_clearance_height_to_rod", 25 },
+        { "extruder_clearance_height_to_lid", 25 },
+        { "skirt_loops",                      0 },
+        { "brim_type",                        "no_brim" },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    init_print(std::move(meshes), print, model, config, &overrides, /*arrange=*/false);
+}
+
+// How many times the nozzle drops back down by more than half a 10 mm cube: once before each object, or group of
+// objects, printed after the first.
+size_t returns_to_bed(const std::string &gcode)
+{
+    size_t drops = 0;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&drops](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.has_z() && line.z() < self.z() - 5.f)
+            ++drops;
+    });
+    return drops;
+}
+
+// The tools in the order they print, consecutive repeats collapsed.
+std::vector<int> tool_runs(const std::string &gcode)
+{
+    std::vector<int> runs;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&runs](GCodeReader &, const GCodeReader::GCodeLine &line) {
+        const std::string_view cmd = line.cmd();
+        if (cmd.size() >= 2 && cmd[0] == 'T' && std::isdigit((unsigned char)cmd[1])) {
+            const int tool = std::stoi(std::string(cmd.substr(1)));
+            if (runs.empty() || runs.back() != tool)
+                runs.push_back(tool);
+        }
+    });
+    return runs;
+}
+
+} // namespace
+
+TEST_CASE("Sequential printing prints the objects of one filament together when grouped by filament", "[Print]")
+{
+    // Cubes 1 and 3 print with filament 1, cubes 2 and 4 with filament 2. Apart, the four cubes print one after the
+    // other in list order; grouped, each filament prints its two cubes layer by layer, with one filament change.
+    const bool group = GENERATE(false, true);
+    CAPTURE(group);
+    Print print;
+    Model model;
+    place_cubes_by_filament({ { { "extruder", 1 } }, { { "extruder", 2 } }, { { "extruder", 1 } }, { { "extruder", 2 } } },
+                            30., group, print, model);
+    const std::string error = print.validate().string;
+    INFO(error);
+    REQUIRE(error.empty());
+
+    const std::string gcode = Test::gcode(print);
+    CHECK(returns_to_bed(gcode) == (group ? 1 : 3));
+    CHECK(tool_runs(gcode) == (group ? std::vector<int>{ 0, 1 } : std::vector<int>{ 0, 1, 0, 1 }));
+}
+
+TEST_CASE("Sequential printing prints an object of several filaments on its own when grouped by filament", "[Print]")
+{
+    // The middle cube prints its outer wall with filament 2, so it does not join the other two cubes of filament 1.
+    Print print;
+    Model model;
+    place_cubes_by_filament({ { { "extruder", 1 } }, { { "extruder", 1 }, { "outer_wall_filament_id", 2 } }, { { "extruder", 1 } } },
+                            30., /*group=*/true, print, model);
+    const std::string error = print.validate().string;
+    INFO(error);
+    REQUIRE(error.empty());
+
+    // The first and the last cube print together, then the middle one.
+    CHECK(returns_to_bed(Test::gcode(print)) == 1);
+}
+
+TEST_CASE("Sequential printing needs toolhead clearance only between groups when grouped by filament", "[Print]")
+{
+    // Two cubes 5 mm apart, inside the 20 mm toolhead radius. Printed one after the other they are too close; printed
+    // together as one group, layer by layer, they are not.
+    using Row = std::tuple<bool, int, bool>;
+    const auto [group, second_filament, too_close] = GENERATE(table<bool, int, bool>({
+        Row{ false, 1, true },
+        Row{ true,  1, false },
+        Row{ true,  2, true },
+    }));
+    CAPTURE(group, second_filament);
+    Print print;
+    Model model;
+    place_cubes_by_filament({ { { "extruder", 1 } }, { { "extruder", second_filament } } }, 5., group, print, model);
+    const std::string error = print.validate().string;
+    INFO(error);
+    CHECK((error.find("too close to others") != std::string::npos) == too_close);
+}
+
+TEST_CASE("Sequential printing lets the last group reach above the rod when grouped by filament", "[Print]")
+{
+    // Two 30 mm cubes side by side in X, so they share a Y band, with the rod and the lid at 25 mm. Printed one after
+    // the other, the first one is in the rod's way while the second prints. Printed together as the last group, both
+    // may reach the printable height.
+    const bool group = GENERATE(false, true);
+    CAPTURE(group);
+    Print print;
+    Model model;
+    place_cubes_by_filament({ { { "extruder", 1 } }, { { "extruder", 1 } } }, 30., group, print, model, /*height=*/30.);
+    const std::string error = print.validate().string;
+    INFO(error);
+    CHECK((error.find("too tall") != std::string::npos) == ! group);
 }
 
 TEST_CASE("Sequential printing measures objects on a belt printer by the model's top", "[Print][belt]")

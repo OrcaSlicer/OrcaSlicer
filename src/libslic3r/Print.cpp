@@ -507,6 +507,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             osteps.emplace_back(posSupportMaterial);
         } else if (
                opt_key == "print_sequence"
+            || opt_key == "group_objects_by_filament"
             || opt_key == "filament_type"
             || opt_key == "chamber_temperature"
             || opt_key == "nozzle_temperature_initial_layer"
@@ -892,6 +893,25 @@ std::vector<size_t> Print::layers_sorted_for_object(float start, float end, std:
     return idx_of_object_sorted;
 };
 
+std::vector<std::vector<const PrintInstance*>> Print::sequential_print_groups(const std::vector<const PrintInstance*> &ordering) const
+{
+    std::vector<std::vector<const PrintInstance*>> groups;
+    std::map<unsigned int, size_t>                 group_of_filament;
+    for (const PrintInstance *instance : ordering) {
+        const std::vector<unsigned int> filaments = m_config.group_objects_by_filament ? instance->print_object->printing_extruders() :
+                                                                                         std::vector<unsigned int>();
+        if (filaments.size() != 1) {
+            groups.push_back({ instance });
+            continue;
+        }
+        const auto [it, added] = group_of_filament.try_emplace(filaments.front(), groups.size());
+        if (added)
+            groups.emplace_back();
+        groups[it->second].push_back(instance);
+    }
+    return groups;
+}
+
 StringObjectException Print::sequential_print_clearance_valid(const Print &print, Polygons *polygons, std::vector<std::pair<Polygon, float>>* height_polygons, StringObjectException *warning)
 {
     StringObjectException single_object_exception;
@@ -987,6 +1007,21 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
 
     auto [object_skirt_offset, _] = print.object_skirt_offset();
     std::vector<struct print_instance_info> print_instance_with_bounding_box;
+    // Orca: the instances of a group print together, layer by layer, so they only need clearance from the other groups.
+    std::map<const PrintInstance*, size_t> group_of_instance;
+    bool                                   has_print_groups = false;
+    {
+        std::vector<const PrintInstance*> instances;
+        for (const PrintObject *print_object : print.objects())
+            for (const PrintInstance &instance : print_object->instances())
+                instances.emplace_back(&instance);
+        const std::vector<std::vector<const PrintInstance*>> groups = print.sequential_print_groups(instances);
+        for (size_t group_idx = 0; group_idx < groups.size(); ++group_idx) {
+            has_print_groups |= groups[group_idx].size() > 1;
+            for (const PrintInstance *instance : groups[group_idx])
+                group_of_instance[instance] = group_idx;
+        }
+    }
     {
         // sequential_print_horizontal_clearance_valid
         Polygons convex_hulls_other;
@@ -1040,6 +1075,8 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
 
                 // if output needed, collect indices (inside convex_hulls_other) of intersecting hulls
                 for (size_t i = 0; i < convex_hulls_other.size(); ++i) {
+                    if (group_of_instance.at(print_instance_with_bounding_box[i].print_instance) == group_of_instance.at(&instance))
+                        continue;
                     if (! intersection(convex_hulls_other[i], convex_hull).empty()) {
                         bool has_exception = false;
                         if (single_object_exception.string.empty()) {
@@ -1144,7 +1181,8 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         bool solved = false;
         std::vector<size_t> solved_order;
 
-        if (must_be_last.size() <= 1) {
+        // Orca: the reordering below works on single instances. A group prints as one, so with groups the list order is kept.
+        if (!has_print_groups && must_be_last.size() <= 1) {
             size_t last_idx = must_be_last.empty() ? size_t(-1) : must_be_last.front();
 
             // Edge b -> a means "b must be scheduled before a".
@@ -1224,6 +1262,16 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
             warning->is_warning = true;
         }
 
+        if (has_print_groups) {
+            // Orca: keep the instances of a group together, where the first of them is in the list.
+            std::map<size_t, size_t> group_first;
+            for (size_t k = 0; k < n; ++k)
+                group_first.try_emplace(group_of_instance.at(print_instance_with_bounding_box[fallback_order[k]].print_instance), k);
+            std::stable_sort(fallback_order.begin(), fallback_order.end(), [&](size_t l, size_t r) {
+                return group_first.at(group_of_instance.at(print_instance_with_bounding_box[l].print_instance)) <
+                       group_first.at(group_of_instance.at(print_instance_with_bounding_box[r].print_instance));
+            });
+        }
         {
             std::vector<print_instance_info> reordered;
             reordered.reserve(n);
@@ -1254,11 +1302,15 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
             const coord_t iy1 = info_k.rod_min_y;
             const coord_t iy2 = info_k.rod_max_y;
             (const_cast<ModelInstance*>(inst->model_instance))->arrange_order = k+1;
-            double height = (k == (print_instance_count - 1))?printable_height:hc1;
+            // Orca: the last group may reach the printable height, as the last instance does.
+            const size_t group_k = group_of_instance.at(inst);
+            double height = group_k == group_of_instance.at(print_instance_with_bounding_box.back().print_instance) ? printable_height : hc1;
 
             for (int i = k+1; i < print_instance_count; i++)
             {
                 auto& p = print_instance_with_bounding_box[i].print_instance;
+                if (group_of_instance.at(p) == group_k)
+                    continue; // printed together
                 auto bbox2 = print_instance_with_bounding_box[i].bounding_box;
                 auto py1 = bbox2.min.y();
                 auto py2 = bbox2.max.y();

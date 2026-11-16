@@ -450,7 +450,8 @@ protected:
     void            _do_export(Print &print, GCodeOutputStream &file, ThumbnailsGeneratorCallback thumbnail_cb);
 
     static std::vector<LayerToPrint>        		                   collect_layers_to_print(const PrintObject &object, bool skip_empty_first_layer = false);
-    static std::vector<std::pair<coordf_t, std::vector<LayerToPrint>>> collect_layers_to_print(const Print &print);
+    // Orca: `objects`, when given, limits the layers to those objects (a group of a sequential print).
+    static std::vector<std::pair<coordf_t, std::vector<LayerToPrint>>> collect_layers_to_print(const Print &print, const std::vector<const PrintObject*> *objects = nullptr);
 
     std::string generate_skirt(const Print &print,
         const ExtrusionEntityCollection &skirt,
@@ -522,7 +523,9 @@ protected:
         const ToolOrdering                                                  &tool_ordering,
         const std::vector<const PrintInstance*>                             &print_object_instances_ordering,
         const std::vector<std::pair<coordf_t, std::vector<LayerToPrint>>>   &layers_to_print,
-        GCodeOutputStream                                                   &output_stream);
+        GCodeOutputStream                                                   &output_stream,
+        // Orca: a group of a sequential print primes the extruder like a single object does.
+        const bool                                                           prime_extruder = false);
     // Process all layers of a single object instance (sequential mode) with a parallel pipeline:
     // Generate G-code, run the filters (vase mode, cooling buffer), run the G-code analyser
     // and export G-code into file.
