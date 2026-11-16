@@ -74,6 +74,13 @@ std::string get_orca_plugins_dir();
 
 boost::filesystem::path resolve_plugin_root_from_descriptor(const PluginDescriptor& descriptor);
 
+// True when `root` is a filesystem root: POSIX "/", a Windows drive root such as "C:\", or a
+// UNC/network share root such as "\\server\share\" (including the extended-length forms
+// "\\?\C:\" and "\\?\UNC\server\share\"). A tree grant rooted here covers the whole filesystem,
+// volume, or network share, not one folder, so the permission prompt must say so instead of
+// presenting it as an ordinary nested folder.
+bool is_filesystem_root(const boost::filesystem::path& root);
+
 bool is_plugin_root_allowed(const boost::filesystem::path& candidate_root,
                             const std::vector<std::string>& allowed_dirs);
 

@@ -266,6 +266,16 @@ private:
 
     PluginAuditManager() = default;
 
+    // A stdlib frame that raised an operation's own root event. The vector that holds these owns
+    // one strong reference per frame. delete_root marks a frame recorded for a delete root: such
+    // a frame does not cover a nested delete (see covered_by_root_frame), and the mark is sticky
+    // once set, even if the same frame later raises another root event.
+    struct RootFrame
+    {
+        PyObject* frame;       // strong reference
+        bool      delete_root;
+    };
+
     static int audit_hook(const char* event, PyObject* args, void* user_data);
 
     // True for paths inside the interpreter's stdlib, excluding site-packages. Unlike
@@ -274,15 +284,12 @@ private:
     static bool is_stdlib_path(const boost::filesystem::path& path);
 
     // Drops the references in `frames`, keeping the caller's error and denial state intact.
-    void release_frames(std::vector<PyObject*>& frames);
+    void release_frames(std::vector<RootFrame>& frames);
 
     static thread_local std::string                   m_current_plugin_key;
     static thread_local std::string                   m_current_capability_name;
     static thread_local std::vector<AllowedRoot>       m_scoped_allowed_roots;
-    static thread_local std::vector<PyObject*>         m_root_frames; // strong references
-    // Subset of m_root_frames recorded for a delete root. Non-owning: m_root_frames holds the
-    // reference. A delete event is not covered by one of these (see covered_by_root_frame).
-    static thread_local std::vector<PyObject*>         m_delete_root_frames;
+    static thread_local std::vector<RootFrame>         m_root_frames;
     static thread_local int                            m_releasing_frames;
     static thread_local bool                           m_audit_denial_pending;
     static thread_local bool                           m_has_last_violation;
@@ -316,13 +323,12 @@ public:
     ScopedPluginAuditContext& operator=(const ScopedPluginAuditContext&) = delete;
 
 private:
-    std::string                   m_plugin_key;
-    std::string                   m_capability;
-    std::string                   m_previous_id;
-    std::string                   m_previous_capability;
-    std::vector<AllowedRoot>      m_previous_scoped_roots;
-    std::vector<PyObject*>        m_previous_root_frames;
-    std::vector<PyObject*>        m_previous_delete_root_frames;
+    std::string                                m_plugin_key;
+    std::string                                m_capability;
+    std::string                                m_previous_id;
+    std::string                                m_previous_capability;
+    std::vector<AllowedRoot>                   m_previous_scoped_roots;
+    std::vector<PluginAuditManager::RootFrame> m_previous_root_frames;
 };
 
 } // namespace Slic3r

@@ -69,46 +69,13 @@ bool is_root_tree_permission(const std::string& permission)
     if (permission.empty() || permission.back() != '*')
         return false;
 
-    const auto is_root = [](const std::string& path) {
-        const auto separator = [](char c) {
-#ifdef _WIN32
-            return c == '/' || c == '\\';
-#else
-            return c == '/';
-#endif
-        };
-        std::vector<std::string> components;
-        for (size_t start = 0; start < path.size();) {
-            while (start < path.size() && separator(path[start]))
-                ++start;
-            size_t end = start;
-            while (end < path.size() && !separator(path[end]))
-                ++end;
-            if (end > start && path.substr(start, end - start) != ".")
-                components.push_back(path.substr(start, end - start));
-            start = end;
-        }
-#ifdef _WIN32
-        if (path.size() >= 2 && separator(path[0]) && separator(path[1])) {
-            if (components.size() == 4 && components[0] == "?" && components[1].size() == 3 &&
-                std::tolower(static_cast<unsigned char>(components[1][0])) == 'u' &&
-                std::tolower(static_cast<unsigned char>(components[1][1])) == 'n' &&
-                std::tolower(static_cast<unsigned char>(components[1][2])) == 'c')
-                return true; // Extended UNC server and share
-            return components.size() == 2; // UNC server and share, or extended drive root
-        }
-        return components.size() == 1 && components[0].size() == 2 && components[0][1] == ':';
-#else
-        return !path.empty() && separator(path[0]) && components.empty();
-#endif
-    };
-
     const std::string folder = permission.substr(0, permission.size() - 1);
-    if (is_root(folder))
+    if (is_filesystem_root(boost::filesystem::path(folder)))
         return true;
+
     boost::system::error_code ec;
     const boost::filesystem::path resolved = boost::filesystem::weakly_canonical(boost::filesystem::path(folder), ec);
-    return !ec && is_root(resolved.string());
+    return !ec && is_filesystem_root(resolved);
 }
 
 struct PluginContextAction

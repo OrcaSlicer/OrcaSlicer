@@ -608,8 +608,7 @@ bool is_inside_allowed_root(const boost::filesystem::path& candidate, const boos
 thread_local std::string PluginAuditManager::m_current_plugin_key = "";
 thread_local std::string PluginAuditManager::m_current_capability_name = "";
 thread_local std::vector<AllowedRoot> PluginAuditManager::m_scoped_allowed_roots;
-thread_local std::vector<PyObject*> PluginAuditManager::m_root_frames;
-thread_local std::vector<PyObject*> PluginAuditManager::m_delete_root_frames;
+thread_local std::vector<PluginAuditManager::RootFrame> PluginAuditManager::m_root_frames;
 thread_local int PluginAuditManager::m_releasing_frames = 0;
 thread_local bool PluginAuditManager::m_audit_denial_pending = false;
 thread_local bool PluginAuditManager::m_has_last_violation = false;
@@ -623,13 +622,11 @@ ScopedPluginAuditContext::ScopedPluginAuditContext(const std::string& plugin_key
     , m_previous_capability(PluginAuditManager::instance().current_capability())
     , m_previous_scoped_roots(PluginAuditManager::m_scoped_allowed_roots)
     , m_previous_root_frames(std::move(PluginAuditManager::m_root_frames))
-    , m_previous_delete_root_frames(std::move(PluginAuditManager::m_delete_root_frames))
 {
     PluginAuditManager::instance().set_current_plugin(plugin_key);
     PluginAuditManager::instance().set_current_capability(capability_name);
     PluginAuditManager::m_scoped_allowed_roots.clear();
     PluginAuditManager::m_root_frames.clear();
-    PluginAuditManager::m_delete_root_frames.clear();
 }
 
 ScopedPluginAuditContext::~ScopedPluginAuditContext()
@@ -645,18 +642,16 @@ ScopedPluginAuditContext::~ScopedPluginAuditContext()
         mgr.set_current_plugin(m_plugin_key);
         mgr.set_current_capability(m_capability);
         while (!PluginAuditManager::m_root_frames.empty()) {
-            std::vector<PyObject*> frames = std::move(PluginAuditManager::m_root_frames);
+            std::vector<PluginAuditManager::RootFrame> frames = std::move(PluginAuditManager::m_root_frames);
             PluginAuditManager::m_root_frames.clear();
             mgr.release_frames(frames);
         }
-        PluginAuditManager::m_delete_root_frames.clear();
     }
 
     mgr.set_current_plugin(m_previous_id);
     mgr.set_current_capability(m_previous_capability);
     PluginAuditManager::m_scoped_allowed_roots = std::move(m_previous_scoped_roots);
     PluginAuditManager::m_root_frames          = std::move(m_previous_root_frames);
-    PluginAuditManager::m_delete_root_frames   = std::move(m_previous_delete_root_frames);
 }
 
 // ---------------------------------------------------------------------------
@@ -1157,13 +1152,15 @@ std::vector<PyObject*> stack_frames()
 // Moves the held root frames whose operation has returned from `held` to `dropped`. A suspended
 // generator's frame (os.walk between two items) is off the stack, but its operation resumes, so
 // it stays held until the scope ends.
-void take_returned_frames(std::vector<PyObject*>& held, std::vector<PyObject*>& dropped)
+template<typename Record>
+void take_returned_frames(std::vector<Record>& held, std::vector<Record>& dropped)
 {
     if (held.empty())
         return;
 
     const std::vector<PyObject*> stack = stack_frames();
-    const auto running = [&stack](PyObject* frame) {
+    const auto running = [&stack](const Record& record) {
+        PyObject* frame = record.frame;
         if (std::find(stack.begin(), stack.end(), frame) != stack.end())
             return true;
         // NULL once the generator has finished or been deleted: its frame then owns its own data.
@@ -1407,11 +1404,11 @@ std::string event_grant_key(AuditEventCategory category, const std::string& even
     return std::string(category_name(category)) + ":" + event_name;
 }
 
-// The directory named by a directory-tree grant, i.e. "<dir>/*". "*" is the only wildcard, and
-// only as the grant's final path component; any other "*" is an ordinary character, so a grant
-// can never widen into a pattern the plugin did not spell out. Returns false for a grant that is
-// not a tree grant.
-bool tree_grant_root(const std::string& grant, boost::filesystem::path& root)
+// The folder named by a tree grant, i.e. "<dir>/*", exactly as spelled. "*" is the only wildcard,
+// and only as the grant's final path component; any other "*" is an ordinary character, so a
+// grant can never widen into a pattern the plugin did not spell out. Returns false for a grant
+// that is not a tree grant.
+bool tree_grant_parent(const std::string& grant, boost::filesystem::path& parent)
 {
     if (grant.size() < 2 || grant.back() != '*' || grant.find('*') != grant.size() - 1)
         return false;
@@ -1420,12 +1417,24 @@ bool tree_grant_root(const std::string& grant, boost::filesystem::path& root)
     if (path.filename() != "*")
         return false;
 
-    const boost::filesystem::path parent = path.parent_path();
-    if (parent.empty())
+    const boost::filesystem::path root = path.parent_path();
+    if (root.empty())
         return false;
 
-    // Never resolve ".." here: a grant shown to the user as "/a/../*" must not silently become
-    // the root or another ancestor. Without a wildcard the string still matches verbatim.
+    parent = root;
+    return true;
+}
+
+// The directory named by a directory-tree grant, i.e. "<dir>/*". Unlike tree_grant_parent this is
+// applied to a stored grant, so ".." is rejected rather than resolved: a grant shown to the user
+// as "/a/../*" must not silently become the root or another ancestor. Without a wildcard the
+// string still matches verbatim. Returns false for a grant that is not a tree grant.
+bool tree_grant_root(const std::string& grant, boost::filesystem::path& root)
+{
+    boost::filesystem::path parent;
+    if (!tree_grant_parent(grant, parent))
+        return false;
+
     for (const boost::filesystem::path& component : parent) {
         if (component == "..")
             return false;
@@ -1440,44 +1449,6 @@ bool tree_grant_root(const std::string& grant, boost::filesystem::path& root)
     }
     root = std::move(normalized);
     return !root.empty();
-}
-
-// True when `root` is a filesystem root: POSIX "/", a Windows drive root such as "C:\", or a
-// UNC/network share root such as "\\server\share\" (including the extended-length forms
-// "\\?\C:\" and "\\?\UNC\server\share\"). A tree grant rooted here covers the whole filesystem,
-// volume, or network share, not one folder, so the declaration prompt must say so instead of
-// presenting it as an ordinary nested folder.
-bool is_filesystem_root(const boost::filesystem::path& root)
-{
-    if (!root.is_absolute())
-        return false;
-
-#ifdef _WIN32
-    const auto is_separator = [](char c) { return c == '/' || c == '\\'; };
-    const std::string path = root.string();
-
-    std::vector<std::string> components;
-    for (size_t start = 0; start < path.size();) {
-        while (start < path.size() && is_separator(path[start]))
-            ++start;
-        size_t end = start;
-        while (end < path.size() && !is_separator(path[end]))
-            ++end;
-        if (end > start && path.compare(start, end - start, ".") != 0)
-            components.emplace_back(path.substr(start, end - start));
-        start = end;
-    }
-
-    if (path.size() >= 2 && is_separator(path[0]) && is_separator(path[1])) {
-        if (components.size() == 4 && components[0] == "?" &&
-            boost::algorithm::iequals(components[1], std::string("UNC")))
-            return true; // \\?\UNC\server\share
-        return components.size() == 2; // \\server\share or an extended drive root \\?\C:
-    }
-    return components.size() == 1 && components[0].size() == 2 && components[0][1] == ':';
-#else
-    return root == root.root_path();
-#endif
 }
 
 // The grant to display and store for a permission request: a recognized tree grant is resolved
@@ -1788,23 +1759,11 @@ bool absolute_create_delete_folder(const std::string& requested, std::string& fo
 
 // Splits a requested create/delete tree grant into its root. Unlike tree_grant_root, this is
 // applied to a declaration, not to a stored grant: "." and ".." are allowed because the root is
-// canonicalized and shown to the user before it is stored. "*" must be the only wildcard and the
-// final path component. Returns false for every other shape.
+// canonicalized and shown to the user before it is stored. Returns false for every shape
+// tree_grant_parent rejects.
 bool requested_tree_grant_root(const std::string& requested, boost::filesystem::path& root)
 {
-    if (requested.size() < 2 || requested.back() != '*' || requested.find('*') != requested.size() - 1)
-        return false;
-
-    const boost::filesystem::path path(requested);
-    if (path.filename() != "*")
-        return false;
-
-    const boost::filesystem::path parent = path.parent_path();
-    if (parent.empty())
-        return false;
-
-    root = parent;
-    return true;
+    return tree_grant_parent(requested, root);
 }
 
 // Resolves one entry from a create/delete declaration to the string stored for it. An exact
@@ -2626,7 +2585,7 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
                 tree_scope && std::any_of(bucket.targets.begin(), bucket.targets.end(), [](const std::string& target) {
                     boost::filesystem::path root;
                     return PluginAuditDetail::tree_grant_root(target, root) &&
-                           PluginAuditDetail::is_filesystem_root(root);
+                           is_filesystem_root(root);
                 });
             wxString targets;
             if (!full_fs_scope)
@@ -2737,15 +2696,19 @@ void PluginAuditManager::record_root_frame(AuditEventCategory category)
     PyObject* frame = reinterpret_cast<PyObject*>(PyEval_GetFrame()); // borrowed reference
     if (!frame || !PluginAuditDetail::is_stdlib_frame(frame))
         return;
-    if (std::find(m_root_frames.begin(), m_root_frames.end(), frame) == m_root_frames.end()) {
+
+    const bool delete_root = category == AuditEventCategory::FsDelete;
+    auto       it          = std::find_if(m_root_frames.begin(), m_root_frames.end(),
+                                          [frame](const RootFrame& record) { return record.frame == frame; });
+    if (it == m_root_frames.end()) {
         Py_INCREF(frame);
-        m_root_frames.push_back(frame);
+        m_root_frames.push_back({frame, delete_root});
+        return;
     }
-    // Remember a frame recorded for a delete root. The list is non-owning; m_root_frames owns the
-    // reference, and both lists are purged together when the frame is released.
-    if (category == AuditEventCategory::FsDelete &&
-        std::find(m_delete_root_frames.begin(), m_delete_root_frames.end(), frame) == m_delete_root_frames.end())
-        m_delete_root_frames.push_back(frame);
+    // The record owns the one reference; the mark is sticky, so a frame first recorded as a
+    // read/write root still stops covering nested deletes once it is also a delete root.
+    if (delete_root)
+        it->delete_root = true;
 }
 
 bool PluginAuditManager::covered_by_root_frame(bool allow_delete_roots) const
@@ -2756,13 +2719,13 @@ bool PluginAuditManager::covered_by_root_frame(bool allow_delete_roots) const
     // Only stdlib frames may sit between the event and the operation: plugin or library code
     // the operation calls back into (an os.walk onerror, a urllib handler) acts on its own.
     for (PyObject* frame : PluginAuditDetail::stack_frames()) {
-        if (std::find(m_root_frames.begin(), m_root_frames.end(), frame) != m_root_frames.end()) {
+        const auto root = std::find_if(m_root_frames.begin(), m_root_frames.end(),
+                                       [frame](const RootFrame& record) { return record.frame == frame; });
+        if (root != m_root_frames.end()) {
             // A delete root does not cover a nested delete: an exact folder grant covers direct
             // entries only, while an outer read/write root may still cover the same operation,
             // and a tree grant may allow it when the event is judged.
-            const bool delete_root =
-                std::find(m_delete_root_frames.begin(), m_delete_root_frames.end(), frame) != m_delete_root_frames.end();
-            if (!delete_root || allow_delete_roots)
+            if (!root->delete_root || allow_delete_roots)
                 return true;
             continue;
         }
@@ -2808,7 +2771,7 @@ bool PluginAuditManager::is_stdlib_path(const boost::filesystem::path& path)
     return inside_any(PluginAuditDetail::s_stdlib_dirs) && !inside_any(PluginAuditDetail::s_site_package_dirs);
 }
 
-void PluginAuditManager::release_frames(std::vector<PyObject*>& frames)
+void PluginAuditManager::release_frames(std::vector<RootFrame>& frames)
 {
     if (frames.empty())
         return;
@@ -2820,14 +2783,11 @@ void PluginAuditManager::release_frames(std::vector<PyObject*>& frames)
     const bool           has_violation  = m_has_last_violation;
     const AuditViolation violation      = m_last_violation;
 
-    std::vector<PyObject*> released;
+    std::vector<RootFrame> released;
     released.swap(frames);
-    for (PyObject* frame : released)
-        m_delete_root_frames.erase(std::remove(m_delete_root_frames.begin(), m_delete_root_frames.end(), frame),
-                                   m_delete_root_frames.end());
     ++m_releasing_frames;
-    for (PyObject* frame : released)
-        Py_DECREF(frame);
+    for (const RootFrame& record : released)
+        Py_DECREF(record.frame);
     --m_releasing_frames;
 
     m_audit_denial_pending = denial_pending;
@@ -2875,7 +2835,7 @@ int PluginAuditManager::audit_hook(const char* event, PyObject* args, void* user
 
     // Root frames whose operation has returned are let go once this event is decided, so that a
     // finalizer they run re-enters a hook whose held frames are already consistent.
-    std::vector<PyObject*> returned_frames;
+    std::vector<RootFrame> returned_frames;
     PluginAuditDetail::take_returned_frames(m_root_frames, returned_frames);
     int result = -1;
     // A C++ exception must not unwind through the interpreter that raised the event, so a check

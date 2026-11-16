@@ -11,6 +11,7 @@
 #include <boost/system/error_code.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/nowide/cstdio.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <ios>
@@ -80,6 +81,39 @@ boost::filesystem::path resolve_plugin_root_from_descriptor(const PluginDescript
     if (!descriptor.entry_path.empty())
         return fs::path(descriptor.entry_path).parent_path();
     return {};
+}
+
+bool is_filesystem_root(const boost::filesystem::path& root)
+{
+    if (!root.is_absolute())
+        return false;
+
+#ifdef _WIN32
+    const auto is_separator = [](char c) { return c == '/' || c == '\\'; };
+    const std::string path = root.string();
+
+    std::vector<std::string> components;
+    for (size_t start = 0; start < path.size();) {
+        while (start < path.size() && is_separator(path[start]))
+            ++start;
+        size_t end = start;
+        while (end < path.size() && !is_separator(path[end]))
+            ++end;
+        if (end > start && path.compare(start, end - start, ".") != 0)
+            components.emplace_back(path.substr(start, end - start));
+        start = end;
+    }
+
+    if (path.size() >= 2 && is_separator(path[0]) && is_separator(path[1])) {
+        if (components.size() == 4 && components[0] == "?" &&
+            boost::algorithm::iequals(components[1], std::string("UNC")))
+            return true; // \\?\UNC\server\share
+        return components.size() == 2; // \\server\share or an extended drive root \\?\C:
+    }
+    return components.size() == 1 && components[0].size() == 2 && components[0][1] == ':';
+#else
+    return root == root.root_path();
+#endif
 }
 
 bool is_plugin_root_allowed(const boost::filesystem::path& candidate_root, const std::vector<std::string>& allowed_dirs)
