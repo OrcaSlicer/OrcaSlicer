@@ -692,9 +692,8 @@ void AMSMaterialsSetting::on_select_reset(wxCommandEvent& event) {
 
         // set k / n value
         if (obj->cali_version <= -1 && obj->get_printer_series() == PrinterSeries::SERIES_P1P) {
-            // set extrusion cali ratio. Bambu firmware expects the raw four-slot formula here, even
-            // for a virtual tray, so keep it verbatim; a generic device addresses the resolved lane.
-            int cali_tray_id = is_bbl_vendor_printer() ? ams_id * 4 + slot_id : get_tray_id_by_ams_slot(obj, ams_id, slot_id);
+            // set extrusion cali ratio
+            int cali_tray_id = ams_id * 4 + slot_id;
 
             double k = 0.0;
             try {
@@ -715,9 +714,12 @@ void AMSMaterialsSetting::on_select_reset(wxCommandEvent& event) {
         }
         else {
             PACalibIndexInfo select_index_info;
-            int tray_id = get_tray_id_by_ams_slot(obj, ams_id, slot_id);
-            if (is_virtual_tray() && is_bbl_vendor_printer() && !obj->is_enable_np) {
-                tray_id = VIRTUAL_TRAY_DEPUTY_ID;
+            int tray_id = ams_id * 4 + slot_id;
+            if (is_virtual_tray()) {
+                tray_id = ams_id;
+                if (is_bbl_vendor_printer() && !obj->is_enable_np) {
+                    tray_id = VIRTUAL_TRAY_DEPUTY_ID;
+                }
             }
             select_index_info.tray_id = tray_id;
             select_index_info.ams_id = ams_id;
@@ -978,7 +980,7 @@ void AMSMaterialsSetting::on_select_ok(wxCommandEvent &event)
         }
     }
     else {
-        int cali_tray_id = get_tray_id_by_ams_slot(obj, ams_id, slot_id);
+        int cali_tray_id = ams_id * 4 + slot_id;
         double k = 0.0;
         try {
             k_text.ToDouble(&k);

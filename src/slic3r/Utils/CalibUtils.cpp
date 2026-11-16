@@ -19,7 +19,6 @@
 
 #include "../GUI/DeviceCore/DevConfig.h"
 #include "../GUI/DeviceCore/DevExtruderSystem.h"
-#include "../GUI/DeviceCore/DevFilaSystem.h"
 #include "../GUI/DeviceCore/DevManager.h"
 #include "../GUI/Plater.hpp"
 #include <memory>
@@ -36,7 +35,6 @@
 #include <algorithm>
 #include <cassert>
 #include "libslic3r/calib.hpp"
-#include <wx/app.h>
 #include <wx/string.h>
 #include "libslic3r/CommonDefs.hpp"
 #include <cstdlib>
@@ -230,70 +228,17 @@ static int get_physical_extruder_idx(std::vector<int> physical_extruder_maps, in
     return extruder_id;
 }
 
-static bool is_bbl_vendor_printer()
-{
-    return wxTheApp != nullptr && wxGetApp().preset_bundle != nullptr && wxGetApp().preset_bundle->is_bbl_vendor();
-}
-
-// Generic devices index a lane by counting the trays of every preceding unit (DevFilaSystem::
-// GetTrayIndexMap), so the identity of a lane depends on the sizes of the units before it, not on a
-// fixed four-slot stride.
-static bool find_generic_tray_slot(MachineObject* obj, int tray_id, int &ams_id, int &slot_id)
-{
-    if (!obj || !obj->GetFilaSystem())
-        return false;
-
-    const auto tray_index_map = obj->GetFilaSystem()->GetTrayIndexMap();
-    auto       it             = tray_index_map.find(tray_id);
-    if (it == tray_index_map.end())
-        return false;
-
-    ams_id  = it->second.first;
-    slot_id = it->second.second;
-    return true;
-}
-
-int get_tray_id_by_ams_slot(MachineObject* obj, int ams_id, int slot_id)
-{
-    if (devPrinterUtil::IsVirtualSlot(ams_id))
-        return ams_id;
-
-    if (!is_bbl_vendor_printer() && obj && obj->GetFilaSystem()) {
-        const auto tray_index_map = obj->GetFilaSystem()->GetTrayIndexMap();
-        for (const auto &entry : tray_index_map) {
-            if (entry.second.first == ams_id && entry.second.second == slot_id)
-                return entry.first;
-        }
-        // The lane is not reported (for example a slot the unit has not described yet). Keep the
-        // generic cumulative numbering by counting the trays of the preceding units.
-        int base = 0;
-        for (const auto &unit : obj->GetFilaSystem()->GetAmsList()) {
-            if (std::atoi(unit.first.c_str()) < ams_id)
-                base += static_cast<int>(unit.second->GetTrays().size());
-        }
-        return base + slot_id;
-    }
-
-    return ams_id * 4 + slot_id;
-}
-
 void get_tray_ams_and_slot_id(MachineObject* obj, int in_tray_id, int &ams_id, int &slot_id, int &tray_id)
 {
     assert(obj);
     if (!obj)
         return;
 
-    // A generic cumulative lane can reach the 255-down external-spool range on a device with many
-    // lanes, so prefer the device's own identity and only fall back to the virtual-slot rule.
-    if (!is_bbl_vendor_printer() && find_generic_tray_slot(obj, in_tray_id, ams_id, slot_id)) {
-        tray_id = in_tray_id;
-    } else if (devPrinterUtil::IsVirtualSlot(in_tray_id)) {
+    if (in_tray_id == VIRTUAL_TRAY_MAIN_ID || in_tray_id == VIRTUAL_TRAY_DEPUTY_ID) {
         ams_id  = in_tray_id;
         slot_id = 0;
         tray_id = ams_id;
-        // Bambu firmware that reports no nozzle-present information addresses its single external
-        // spool as the deputy id. A generic device keeps the reported virtual slot id.
-        if (is_bbl_vendor_printer() && !obj->is_enable_np)
+        if (!obj->is_enable_np)
             tray_id = VIRTUAL_TRAY_DEPUTY_ID;
     } else {
         ams_id  = in_tray_id / 4;

@@ -36,7 +36,7 @@
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include "slic3r/GUI/Widgets/CheckBox.hpp"
 #include <wx/tglbtn.h>
-#include "slic3r/GUI/DeviceCore/DevManager.h"
+
 
 namespace Slic3r { namespace GUI {
 
@@ -92,28 +92,23 @@ static wxString get_default_name(wxString filament_name, CalibMode mode){
     return filament_name;
 }
 
-static wxString get_tray_name_by_tray_id(int tray_id, MachineObject* obj)
+static wxString get_tray_name_by_tray_id(int tray_id)
 {
     wxString tray_name;
-    int      ams_id = -1, slot_id = 0, resolved_tray_id = tray_id;
-    if (obj)
-        get_tray_ams_and_slot_id(obj, tray_id, ams_id, slot_id, resolved_tray_id);
-    else if (!devPrinterUtil::IsVirtualSlot(tray_id)) {
-        ams_id  = tray_id / 4;
-        slot_id = tray_id % 4;
-    }
-
-    if (ams_id < 0 || devPrinterUtil::IsVirtualSlot(ams_id)) {
+    if (tray_id == VIRTUAL_TRAY_MAIN_ID || tray_id == VIRTUAL_TRAY_DEPUTY_ID) {
         tray_name = _L("Ext");
     }
-    else if (ams_id < 26) {
-        char prefix = 'A' + ams_id;
-        // A generic unit can report more than nine lanes, so format the lane number instead of
-        // assuming a single digit.
-        tray_name = std::string(1, prefix) + std::to_string(slot_id + 1);
-    } else if (ams_id >= 128 && ams_id < 153) {
-        char prefix = 'A' + ams_id - 128;
-        tray_name   = std::string(1, prefix);
+    else {
+        int  ams_id = tray_id / 4;
+        int slot_id = tray_id % 4;
+        if (ams_id >= 0 && ams_id < 26) {
+            char prefix = 'A' + ams_id;
+            char suffix = '0' + 1 + slot_id;
+            tray_name = std::string(1, prefix) + std::string(1, suffix);
+        } else if (ams_id >= 128 && ams_id < 153) {
+            char prefix = 'A' + ams_id - 128;
+            tray_name   = std::string(1, prefix);
+        }
     }
     return tray_name;
 }
@@ -325,7 +320,7 @@ void CaliPASaveAutoPanel::sync_cali_result(const std::vector<PACalibResult>& cal
         wxBoxSizer* column_data_sizer = new wxBoxSizer(wxVERTICAL);
         auto tray_title = new Label(m_grid_panel, "");
         tray_title->SetFont(Label::Head_14);
-        wxString tray_name = get_tray_name_by_tray_id(item.tray_id, m_obj);
+        wxString tray_name = get_tray_name_by_tray_id(item.tray_id);
         tray_title->SetLabel(tray_name);
 
         auto k_value = new GridTextInput(m_grid_panel, "", "", CALIBRATION_SAVE_INPUT_SIZE, item.tray_id, GridTextInputType::K, item.extruder_id);
@@ -531,7 +526,10 @@ void CaliPASaveAutoPanel::sync_cali_result_for_multi_extruder(const std::vector<
     for (auto &item : cali_result) {
         if (item.confidence == 0) {
             PACalibResult result = item;
-            result.tray_id = get_tray_id_by_ams_slot(m_obj, item.ams_id, item.slot_id);
+            result.tray_id = 4 * item.ams_id + item.slot_id;
+            if (item.ams_id == VIRTUAL_TRAY_MAIN_ID || item.ams_id == VIRTUAL_TRAY_DEPUTY_ID) {
+                result.tray_id = item.ams_id;
+            }
             m_calib_results.push_back(result);
         }
     }
@@ -607,8 +605,7 @@ void CaliPASaveAutoPanel::sync_cali_result_for_multi_extruder(const std::vector<
         } else if (info.tray_id == VIRTUAL_TRAY_DEPUTY_ID) {
             extruder_id = 1;
         } else {
-            int ams_id = -1, slot_id = 0, resolved_tray_id = info.tray_id;
-            get_tray_ams_and_slot_id(m_obj, info.tray_id, ams_id, slot_id, resolved_tray_id);
+            int ams_id  = info.tray_id / 4;
             extruder_id = m_obj->get_extruder_id_by_ams_id(std::to_string(ams_id));
         }
         {
@@ -658,7 +655,11 @@ void CaliPASaveAutoPanel::sync_cali_result_for_multi_extruder(const std::vector<
     std::vector<PACalibResult> sorted_cali_result   = cali_result;
     if (m_obj && m_obj->is_support_new_auto_cali_method) {
         for (auto &res : sorted_cali_result) {
-            res.tray_id = get_tray_id_by_ams_slot(m_obj, res.ams_id, res.slot_id);
+            if (res.ams_id == VIRTUAL_TRAY_MAIN_ID || res.ams_id == VIRTUAL_TRAY_DEPUTY_ID) {
+                res.tray_id = res.ams_id;
+            } else {
+                res.tray_id = res.ams_id * 4 + res.slot_id;
+            }
         }
     }
 
@@ -674,7 +675,7 @@ void CaliPASaveAutoPanel::sync_cali_result_for_multi_extruder(const std::vector<
             m_is_all_failed = false;
         }
 
-        wxString tray_name = get_tray_name_by_tray_id(item.tray_id, m_obj);
+        wxString tray_name = get_tray_name_by_tray_id(item.tray_id);
         wxButton *tray_title = new wxButton(m_multi_extruder_grid_panel, wxID_ANY, {}, wxDefaultPosition, wxSize(FromDIP(20), FromDIP(20)), wxBU_EXACTFIT | wxBU_AUTODRAW | wxBORDER_NONE);
         tray_title->SetBackgroundColour(*wxWHITE);
         tray_title->SetBitmap(*get_extruder_color_icon(full_filament_ams_list[item.tray_id].opt_string("filament_colour", 0u), tray_name.ToStdString(), FromDIP(20), FromDIP(20)));
@@ -1017,8 +1018,7 @@ bool CaliPASaveManualPanel::Show(bool show) {
                         } else if (info.tray_id == VIRTUAL_TRAY_DEPUTY_ID) {
                             extruder_id = 1;
                         } else {
-                            int ams_id = -1, slot_id = 0, resolved_tray_id = info.tray_id;
-                            get_tray_ams_and_slot_id(m_obj, info.tray_id, ams_id, slot_id, resolved_tray_id);
+                            int ams_id  = info.tray_id / 4;
                             extruder_id = m_obj->get_extruder_id_by_ams_id(std::to_string(ams_id));
                         }
 
@@ -1484,8 +1484,7 @@ void CalibrationFlowX1SavePage::sync_cali_result(const std::vector<FlowRatioCali
         wxBoxSizer* column_data_sizer = new wxBoxSizer(wxVERTICAL);
         auto tray_title = new Label(m_grid_panel, "");
         tray_title->SetFont(Label::Head_14);
-        MachineObject* machine = wxGetApp().getDeviceManager() ? wxGetApp().getDeviceManager()->get_selected_machine() : nullptr;
-        wxString tray_name = get_tray_name_by_tray_id(item.tray_id, machine);
+        wxString tray_name = get_tray_name_by_tray_id(item.tray_id);
         tray_title->SetLabel(tray_name);
 
         auto flow_ratio_value = new GridTextInput(m_grid_panel, "", "", CALIBRATION_SAVE_INPUT_SIZE, item.tray_id, GridTextInputType::FlowRatio);

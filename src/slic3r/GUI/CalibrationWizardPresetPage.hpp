@@ -259,9 +259,6 @@ public:
 protected:
     void create_selection_panel(wxWindow* parent);
     void create_filament_list_panel(wxWindow* parent);
-    void ensure_filament_controls(FilamentComboBoxList& controls, wxWindow* parent, wxSizer* sizer, int count, int index_offset);
-    void update_slot_limit(FilamentComboBox* control);
-    void relayout_filament_controls();
     wxBoxSizer* create_ams_items_sizer(MachineObject* obj, wxPanel* ams_preview_panel, std::vector<AMSPreview*> &ams_preview_list, std::vector<AMSinfo> &ams_info, int nozzle_id);
 
     void init_selection_values();
@@ -367,7 +364,6 @@ protected:
 
     ScalableButton*      m_ams_sync_button;
     FilamentComboBoxList m_filament_comboBox_list;
-    wxFlexGridSizer*     m_filament_grid_sizer{nullptr};
 
 
     std::vector<AMSPreview*> m_ams_preview_list;

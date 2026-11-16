@@ -31,7 +31,6 @@
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/DeviceCore/DevMapping.h"
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
-#include "slic3r/Utils/CalibUtils.hpp"
 
 #include <nlohmann/json.hpp>
 #include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
@@ -251,57 +250,6 @@ TEST_CASE("Generic tray index map handles unequal per-unit slot counts", "[DevMa
     CHECK(tray_index_map.at(4).second == 0);
     CHECK(tray_index_map.at(15).first == 1);
     CHECK(tray_index_map.at(15).second == 11);
-}
-
-TEST_CASE("Calibration lane ids follow the generic cumulative numbering across unequal units", "[DevMapping]")
-{
-    MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
-
-    // Unit 0 has six lanes and unit 1 has two, so unit 1's first lane is global lane 6 rather than
-    // the fixed four-slot stride's lane 4. "external" must accompany "units" so vt_slot is reset
-    // and no default virtual tray inflates the map (see the cumulative test above).
-    json filament = { {"units", json::array()}, {"external", json::array()} };
-    const std::vector<int> slot_counts = {6, 2};
-    for (int ams_id = 0; ams_id < static_cast<int>(slot_counts.size()); ++ams_id) {
-        json unit = { {"id", std::to_string(ams_id)}, {"extruder", ams_id}, {"slots", json::array()} };
-        for (int slot_id = 0; slot_id < slot_counts[ams_id]; ++slot_id)
-            unit["slots"].push_back({{"index", slot_id}, {"loaded", false}});
-        filament["units"].push_back(std::move(unit));
-    }
-
-    DevFilaSystemParser::ParseAgentFilament(filament, &obj, obj.GetFilaSystem().get());
-
-    const auto tray_index_map = obj.GetFilaSystem()->GetTrayIndexMap();
-    REQUIRE(tray_index_map.size() == 8);
-    REQUIRE(tray_index_map.at(5).first == 0);
-    REQUIRE(tray_index_map.at(5).second == 5);
-    REQUIRE(tray_index_map.at(6).first == 1);
-    REQUIRE(tray_index_map.at(6).second == 0);
-
-    // Forward mapping: unit/lane -> calibration tray id, including the exact unit boundary.
-    CHECK(Slic3r::GUI::get_tray_id_by_ams_slot(&obj, 0, 0) == 0);
-    CHECK(Slic3r::GUI::get_tray_id_by_ams_slot(&obj, 0, 5) == 5);
-    CHECK(Slic3r::GUI::get_tray_id_by_ams_slot(&obj, 1, 0) == 6);
-    CHECK(Slic3r::GUI::get_tray_id_by_ams_slot(&obj, 1, 1) == 7);
-
-    // Reverse mapping: every reported calibration tray id resolves back to its own unit and lane.
-    for (int lane = 0; lane < 8; ++lane) {
-        const int expected_ams  = lane < 6 ? 0 : 1;
-        const int expected_slot = lane < 6 ? lane : lane - 6;
-
-        int ams_id = -1;
-        int slot_id = -1;
-        int tray_id = -1;
-        Slic3r::GUI::get_tray_ams_and_slot_id(&obj, lane, ams_id, slot_id, tray_id);
-        INFO("lane " << lane);
-        CHECK(ams_id == expected_ams);
-        CHECK(slot_id == expected_slot);
-        CHECK(tray_id == lane);
-    }
-
-    // A lane the unit has not described still uses the preceding units' reported tray count:
-    // six lanes before unit 1, so its slot 5 is global lane 11, not 1 * 4 + 5 = 9.
-    CHECK(Slic3r::GUI::get_tray_id_by_ams_slot(&obj, 1, 5) == 11);
 }
 
 TEST_CASE("A generic AMS unit reports its reported tray count", "[DevFilaSystem]")
