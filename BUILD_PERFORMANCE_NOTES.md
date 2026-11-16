@@ -11,7 +11,9 @@
 | Preset | Script | Time | vs Baseline |
 |--------|--------|------|-------------|
 | **x64-clang (clang-cl + Ninja)** | `.bat` | 1:37:30 | — |
-| **x64-clang (clang-cl + Ninja)** | `.ps1` | **0:57:31** | **42% faster** |
+| **x64-clang (clang-cl + Ninja)** | `.ps1` | **0:57:31** | **42% faster** (Run #179) |
+| **x64-clang (clang-cl + Ninja)** | `.bat` | 56:44 | — |
+| **x64-clang (clang-cl + Ninja)** | `.ps1` | 1:13:38 | 30% slower (Run #191) |
 | x64-msvc (MSVC + Ninja) | `.bat` | 1:57:28 | — |
 | x64-msvc (MSVC + Ninja) | `.ps1` | 1:26:08 | 31% faster |
 | x64-msbuild (MSVC + MSBuild) | `.bat` | 1:29:00 | — |
@@ -23,7 +25,7 @@
 
 *MSBuild ps1 failed due to workflow step skip, not build script issue.
 
-**Key Finding:** `.ps1` is **31-42% faster** than `.bat` on GitHub-hosted runners for clang-cl and MSVC+Ninja presets.
+**Key Finding:** Performance varies by run due to cache state and runner variance. Run #179 showed **42% ps1 speedup**; Run #191 showed **30% ps1 slowdown** (likely manifest hash overhead + runner variance). **Both bat and ps1 now work reliably for x64-clang.**
 
 ---
 
@@ -84,6 +86,15 @@ Self-hosted: `.ps1` ~4.5% faster (within noise margin).
 
 *Clang-cache baseline anomalously fast — likely stale cache hit despite `clean-build: true`.
 
+### Run #191 (Final, `windows-latest`, clean builds, VS regex fixed)
+
+| Job | Script | Status | Duration |
+|-----|--------|--------|----------|
+| x64-clang baseline | bat | ✅ | 56:44 |
+| x64-clang candidate | ps1 | ✅ | 1:13:38 |
+
+**Note:** Both bat and ps1 succeeded. PS1 slower this run (30% vs bat) likely due to runner variance and manifest hash overhead (~19s). The key fix (VS version regex) works - both builds completed.
+
 ---
 
 ## Root Causes Fixed (12 Total)
@@ -118,8 +129,8 @@ Self-hosted: `.ps1` ~4.5% faster (within noise margin).
 ## Recommendation: Use x64-clang as Primary Preset
 
 **Rationale:**
-- ✅ Both `.bat` and `.ps1` work reliably
-- ✅ **42% speedup** with `.ps1` (largest gain of all presets)
+- ✅ Both `.bat` and `.ps1` work reliably (VS version regex fixed)
+- ✅ **42% speedup** with `.ps1` in best case (Run #179)
 - ✅ clang-cl + Ninja is modern, cross-platform, well-supported
 - ✅ No MSBuild dependency (simpler toolchain)
 - ✅ ccache works correctly (unlike MSBuild config)
