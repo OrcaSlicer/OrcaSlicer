@@ -372,6 +372,8 @@ function build_slicer() {
             resources_path=$(readlink ./OrcaSlicer.app/Contents/Resources)
             rm ./OrcaSlicer.app/Contents/Resources
             cp -R "$resources_path" ./OrcaSlicer.app/Contents/Resources
+            # Orca: ship the HMS catalogs zipped; HMSQuery extracts the one a Bambu Lab printer needs
+            cmake -DHMS_DIR="$PWD/OrcaSlicer.app/Contents/Resources/hms" -P "$PROJECT_DIR/cmake/modules/PackHmsResources.cmake"
             relocate_python_runtime ./OrcaSlicer.app
             # delete .DS_Store file
             find ./OrcaSlicer.app/ -name '.DS_Store' -delete

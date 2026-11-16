@@ -14,6 +14,7 @@
 #include <mutex>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <wx/string.h>
 #include <wx/image.h>
@@ -37,6 +38,8 @@ protected:
     mutable std::mutex m_hms_mutex;
 
     std::unordered_map<std::string, std::time_t> m_cloud_hms_last_update_time;
+    // Orca: models showing the bundled English catalog until the server answers for the user's language
+    std::unordered_set<std::string> m_hms_english_fallback;
 
 public:
     HMSQuery() { }
@@ -61,11 +64,16 @@ public:
 public:
     static std::string hms_language_code();
     static std::string build_query_params(std::string& lang);
+    // Orca: remove cached catalogs the install can regenerate
+    static void remove_bundled_cache();
 
 private:
     // load hms
     void init_hms_info(const std::string& dev_type_id);
-    void copy_from_data_dir_to_local();
+    // Orca: copy a single bundled HMS file into data_dir/hms instead of the whole folder
+    bool copy_bundled_file_to_local(const std::string& filename);
+    // Orca: load a bundled HMS file straight from resources_dir/hms (no copy, no version)
+    int  load_bundled(const std::string& hms_type, const std::string& dev_id_type, const std::string& lang, nlohmann::json* receive_json);
     int  download_hms_related(const std::string& hms_type, const std::string& dev_id_type, nlohmann::json* receive_json);
     int  load_from_local(const std::string& hms_type, const std::string& dev_id_type, nlohmann::json* receive_json, std::string& version_info);
     int  save_to_local(std::string lang, std::string hms_type, std::string dev_id_type, nlohmann::json save_json);
