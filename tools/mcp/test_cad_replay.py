@@ -6,13 +6,14 @@
 
 Records a session of Design command calls made through call_tool (replay steps are not journaled) on the
 paths a replay breaks on: a sketch on a base plane, which passes through modeling_origin as every plane does; an
-empty sketch commit, which fails and must keep the sketch open for the next call; a command
-failing as an error (a hole that misses), which export_replay must leave out; one that reports a
-rejected rebuild in its reply (ok false), which stays in and replays the same rejection; and face
-and edge ids passed with the generation they were read at, which the journal drops, since the
-replay reaches other generation numbers. The thread rebuilds behind the progress dialog. The
-exported replay is replayed into a new project in the same instance, whose generation count has
-moved on, and the body's mass properties and the feature list must match. Exits 0 when all hold.
+empty sketch commit, which fails and must keep the sketch open for the next call; commands
+failing as an error (a hole that misses, a fillet the kernel refuses), which export_replay must
+leave out; a shell thicker than the plate, which reports the rejected rebuild in its reply (ok
+false) and stays in to replay the same rejection; and face and edge ids passed with the generation
+they were read at, which the journal drops, since the replay reaches other generation numbers. The
+thread rebuilds behind the progress dialog. The exported replay is replayed into a new project in
+the same instance, whose generation count has moved on, and the body's mass properties and the
+feature list must match. Exits 0 when all hold.
 """
 
 import json
@@ -43,25 +44,27 @@ def record(client):
     client.call("export_replay", clear=True)
     client.call("new_project", discard_changes=True)
     cad(client, "new_design", discard_changes=True)
-    frame = cad(client, "sketch_begin", plane="XY")["frame"]
-    empty_commit = refused(client, "sketch_commit")
+    frame = cad(client, "sketch_create", plane="XY")["frame"]
+    empty_commit = refused(client, "sketch_finish")
     # A 40 x 30 plate with an M5 tap-drill bore (minor diameter 4.134), 12 thick.
-    cad(client, "sketch_add", rect=[-20, -15, 20, 15])
-    cad(client, "sketch_add", entities=[{"type": "circle", "center": [0, 0], "radius": 2.067}])
-    cad(client, "sketch_commit")
+    cad(client, "sketch_draw", type="rectangle_2_point", p0=[-20, -15], p1=[20, 15])
+    cad(client, "sketch_draw", entities=[{"type": "circle_center", "center": [0, 0], "radius": 2.067}])
+    cad(client, "sketch_finish")
     cad(client, "extrude", sketch=0, distance=12)
     missed_hole = refused(client, "hole", x=500, through=True)
-    corners = cad(client, "query_topology", body=0, edge_kinds=["line"], direction=[0, 0, 1], convex=True)
-    cad(client, "fillet", edge=[e["id"] for e in corners["edges"]], radius=3, body=0,
+    corners = cad(client, "body_describe", body=0, edge_kinds=["line"], direction=[0, 0, 1], convex=True)
+    cad(client, "fillet", edges=[e["id"] for e in corners["edges"]], radius=3, body=0,
         generation=corners["generation"])
-    refused_fillet = cad(client, "fillet", edge=corners["edges"][0]["id"], radius=50, body=0)
-    bores = cad(client, "query_topology", body=0, kinds=["cylindrical"])
+    refused_fillet = refused(client, "fillet", edges=corners["edges"][0]["id"], radius=50, body=0)
+    # No wall 20 thick fits in the 12 mm plate, so the kernel makes no shell.
+    rejected_shell = cad(client, "shell", thickness=20, body=0)
+    bores = cad(client, "body_describe", body=0, kinds=["cylindrical"])
     bore = next(f["id"] for f in bores["faces"] if f.get("internal"))
     thread = client.await_job(client.call("call_tool", _timeout=300, tool="thread",
                                           args={"body": 0, "face": bore, "generation": bores["generation"]}))
-    return {"mass": cad(client, "mass_props", body=0), "scene": cad(client, "describe_scene"),
+    return {"mass": cad(client, "body_mass_properties", body=0), "scene": cad(client, "describe_design"),
             "frame": frame, "empty_commit": empty_commit, "missed_hole": missed_hole, "refused_fillet": refused_fillet,
-            "thread": thread.get("result", {})}
+            "rejected_shell": rejected_shell, "thread": thread.get("result", {})}
 
 
 def same(a, b, rel=1e-6):
@@ -83,8 +86,8 @@ def main():
 
     client.call("new_project", discard_changes=True)
     replay = client.await_job(client.call("run_replay", path=path, out_dir=out_dir), timeout=900)
-    mass = cad(client, "mass_props", body=0)
-    scene = cad(client, "describe_scene")
+    mass = cad(client, "body_mass_properties", body=0)
+    scene = cad(client, "describe_design")
     kinds = lambda s: [f["type"] for f in s["features"]]  # noqa: E731 (names count on across projects)
 
     origin = live["scene"]["modeling_origin"]
@@ -92,13 +95,16 @@ def main():
         ("a sketch on XY and the plate are centred on modeling_origin",
          live["frame"]["origin"] == origin and all(same(a, b) for a, b in zip(live["mass"]["center_of_mass"][:2], origin[:2])),
          (live["frame"]["origin"], live["mass"]["center_of_mass"], origin)),
-        ("an empty sketch_commit fails", bool(live["empty_commit"]), live["empty_commit"]),
+        ("an empty sketch_finish fails", bool(live["empty_commit"]), live["empty_commit"]),
         ("a hole that misses fails as an error", bool(live["missed_hole"]), live["missed_hole"]),
-        ("a fillet the kernel refuses reports the rejected rebuild in its reply (ok false)",
-         live["refused_fillet"].get("ok") is False, live["refused_fillet"]),
+        ("a fillet the kernel refuses fails as an error with the kernel's reason",
+         bool(live["refused_fillet"]) and "Invalid arguments" not in live["refused_fillet"], live["refused_fillet"]),
+        ("a shell thicker than the plate reports the rejected rebuild in its reply (ok false)",
+         live["rejected_shell"].get("ok") is False, live["rejected_shell"]),
         ("the thread is M5, inferred from the bore", live["thread"].get("designation") == "M5", live["thread"]),
-        ("the export leaves out the failed calls", tools.count("sketch_commit") == 1 and "hole" not in tools, tools),
-        ("the export keeps the fillet that reported a rejected rebuild in its reply", tools.count("fillet") == 2, tools),
+        ("the export leaves out the failed calls", tools.count("sketch_finish") == 1 and "hole" not in tools, tools),
+        ("the export leaves out the refused fillet and keeps the one that ran", tools.count("fillet") == 1, tools),
+        ("the export keeps the shell that reported a rejected rebuild in its reply", tools.count("shell") == 1, tools),
         ("the export records no generation", all("generation" not in c.get("args", {}) for c in calls), calls),
         ("the exported session replays", replay.get("passed") is True,
          [s for s in replay.get("steps", []) if not s.get("ok")][:1]),

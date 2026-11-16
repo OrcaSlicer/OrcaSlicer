@@ -52,14 +52,14 @@ try:
     call("sketch_cancel")
 except Exception:
     pass
-call("sketch_begin", plane="XY")
-call("sketch_add", rect=[0, 0, 80, 50])
+call("sketch_create", plane="XY")
+call("sketch_draw", type="rectangle_2_point", p0=[0, 0], p1=[80, 50])
 r = call("sketch_describe")
 check(r["buildable"], "buildable")
 check(areas(r) == [4000.0], f"one loop of 4000 mm^2 (got {areas(r)})")
 
 print("2. a circle inside it is a VOID, not a second profile")
-call("sketch_add", type="circle", center=[40, 25], radius=10)
+call("sketch_draw", type="circle_center", center=[40, 25], radius=10)
 r = call("sketch_describe")
 outer = [l for l in r["closed_loops"] if near(l["area"], 4000.0)][0]
 check(len(outer["holes"]) == 1, "the rectangle encloses exactly one void")
@@ -76,8 +76,8 @@ check(any(near(l["area"], 70 * 40) for l in r["closed_loops"]),
 
 print("4. a gap is REPORTED with its coordinates, then healed into a constraint")
 call("sketch_cancel")
-call("sketch_begin", plane="XY")
-call("sketch_add", entities=[
+call("sketch_create", plane="XY")
+call("sketch_draw", entities=[
     {"type": "line", "p0": [0, 0], "p1": [60, 0]},
     {"type": "line", "p0": [60, 0], "p1": [60, 40]},
     {"type": "line", "p0": [60, 40], "p1": [0, 40]},
@@ -87,7 +87,7 @@ r = call("sketch_validate", tolerance=1.0)
 check(not r["buildable"], "a 0.4 mm gap makes the profile unbuildable")
 check(len(r["open_ends"]) == 2, f"both free ends are named (got {r['open_ends']})")
 dof_before = r["dof"]
-r = call("sketch_heal", tolerance=1.0)
+r = call("sketch_repair", tolerance=1.0)
 check(r["welded"] == 1, f"one pair welded (got {r['welded']})")
 check(r["buildable"] and r["open_ends"] == [], "healed profile is buildable")
 check(areas(r) == [2400.0], f"healed loop is 60x40 (got {areas(r)})")
@@ -96,17 +96,17 @@ check(r["dof"] < dof_before,
 
 print("5. construction geometry is excluded from the profile")
 call("sketch_select", entities=[0])
-call("sketch_construction")
+call("sketch_toggle_construction", silent=True)
 r = call("sketch_describe")
 check(not r["buildable"], "turning one side into a guide opens the profile again")
-call("sketch_construction")
+call("sketch_toggle_construction", silent=True)
 r = call("sketch_describe")
 check(r["buildable"], "turning it back closes it again")
 
 print("6. re-dimensioning one side keeps the rectangle a single closed loop")
 call("sketch_cancel")
-call("sketch_begin", plane="XY")
-call("sketch_add", rect=[0, 0, 60, 40])
+call("sketch_create", plane="XY")
+call("sketch_draw", type="rectangle_2_point", p0=[0, 0], p1=[60, 40])
 r = call("sketch_describe")
 check(areas(r) == [2400.0], f"one loop of 2400 mm^2 (got {areas(r)})")
 call("sketch_select", entities=[0])   # the bottom edge, y=0, from x=0 to x=60

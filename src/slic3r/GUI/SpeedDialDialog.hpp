@@ -32,6 +32,8 @@ public:
     explicit SpeedDialWebDialog(wxWindow* parent);
     ~SpeedDialWebDialog() override;
     void request_show();
+    // Every hide, whatever ends the open, tells the page the open is over, and the page empties its search field.
+    bool Show(bool show = true) override;
 
 private:
     nlohmann::json localized_strings() const override;

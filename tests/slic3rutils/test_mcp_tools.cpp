@@ -38,6 +38,7 @@
 #include <wx/gdicmn.h>
 #include <wx/types.h>
 
+#include <algorithm>
 #include <map>
 #include <memory>
 #include <regex>
@@ -198,8 +199,19 @@ TEST_CASE("run_action says where an action it cannot find is", "[Mcp][SpeedDial]
                                   "--cad");
             }
         }
+        // A folded row's tile names the call of its command that runs it; with the feature off at startup, there is
+        // neither, as for any other tile.
+        const std::string folded = "orca_command:sk_array:orca";
+        INFO(folded << (cad ? ", the CAD feature on" : ", the CAD feature off"));
+        if (cad)
+            CHECK_THAT(unknown_action(folded, catalog),
+                       Catch::Matchers::ContainsSubstring("call_tool {\"tool\": \"sketch_pattern\", \"args\": {\"type\": \"linear\"}}"));
+        else
+            CHECK(unknown_action(folded, catalog) == folded + " is a Design tab tile, and the CAD feature was off when OrcaSlicer "
+                                                              "started: a person turns it on in Preferences > Features and restarts "
+                                                              "OrcaSlicer, or starts it with --cad");
         // A Design command without a tile is any unknown action.
-        CHECK_THAT(unknown_action("orca_command:describe_scene:orca", catalog), Catch::Matchers::ContainsSubstring("search_actions"));
+        CHECK_THAT(unknown_action("orca_command:describe_design:orca", catalog), Catch::Matchers::ContainsSubstring("search_actions"));
     }
 #endif
 }
@@ -375,6 +387,20 @@ TEST_CASE("search_tools reads one inventory", "[Mcp]")
     }
 }
 
+TEST_CASE("search_tools finds a Design command by the name of a row folded into it", "[Mcp][CAD]")
+{
+    CommandCatalog catalog;
+    NativeCommands::register_all_commands(catalog, {true});
+    catalog.seal();
+    for (const auto& [query, command] : {std::pair<const char*, const char*>{"rounded rectangle", "sketch_draw"},
+                                         std::pair<const char*, const char*>{"polar array", "sketch_pattern"}}) {
+        INFO(query);
+        const json found = search_commands(catalog, {{"query", query}});
+        REQUIRE_FALSE(found["items"].empty());
+        CHECK(found["items"][0]["name"] == command);
+    }
+}
+
 TEST_CASE("set_window refuses a request the window can't take, before changing anything", "[Mcp]")
 {
     WindowAbilities main;   main.main = true;
@@ -512,6 +538,27 @@ TEST_CASE("camera_state reads the camera set_view leaves", "[Mcp]")
     camera.look_at(Vec3d(10, -480, 0), Vec3d(10, 20, 0), Vec3d::UnitZ()); // from the front
     CHECK(camera_state(camera, 1.0)["elevation"] == 0);
     CHECK(camera_state(camera, 1.0)["azimuth"] == -90);
+}
+
+TEST_CASE("set_view takes the Design tab's camera, section view and switches", "[Mcp]")
+{
+    const NativeCommand* set_view = NativeCommands::find("set_view");
+    REQUIRE(set_view != nullptr);
+    const json& properties = set_view->input_schema.at("properties");
+    for (const char* name : {"section", "origin_planes", "world_axes", "origin", "bed"}) {
+        INFO(name);
+        CHECK(properties.contains(name));
+    }
+    const json& cameras = properties.at("camera").at("enum");
+    CHECK(std::find(cameras.begin(), cameras.end(), json("sketch_normal")) != cameras.end());
+
+    json section{{"tab", "design"}, {"section", {{"on", true}, {"z", 2}, {"keep", "upper"}}}, {"origin", true}};
+    CHECK(argument_error(*set_view, section).empty());
+    // The section view is read whole: a key it has no use for, and a half it does not keep, are refused.
+    json unknown{{"tab", "design"}, {"section", {{"on", true}, {"height", 2}}}};
+    CHECK_THAT(argument_error(*set_view, unknown), Catch::Matchers::ContainsSubstring("section.height"));
+    json left{{"tab", "design"}, {"section", {{"on", true}, {"keep", "left"}}}};
+    CHECK_THAT(argument_error(*set_view, left), Catch::Matchers::ContainsSubstring("section.keep"));
 }
 
 TEST_CASE("a call naming an object's id is refused once its index names another object", "[Mcp]")

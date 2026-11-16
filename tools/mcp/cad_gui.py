@@ -2,7 +2,7 @@
 
 Every action goes through the MCP server's UI tools (set_view, click, mouse_gesture, press_keys,
 set_widget_value, answer_dialog); the Design commands are used only to read results back (sketch_describe,
-describe_scene, describe_feature), and the right-click menu's layout is read from the Design table's source,
+describe_design, feature_describe), and the right-click menu's layout is read from the Design table's source,
 scripts/CAD/tool_atlas.json, as the app's own table is generated from it. Nothing here knows a pixel: buttons and rows are
 found by label, and canvas positions come from a calibration that maps the open sketch's plane
 (millimetres) to canvas pixels, so the tests run at any window size, screen scaling and theme. Labels, menu paths and verb names are
@@ -338,22 +338,32 @@ class CadGui:
         raise RuntimeError("dialogs keep opening")
 
     def _cancel_modeless(self):
-        """Press Cancel in each shown dialog that is not modal. answer_dialog and get_app_state's
-        dialogs know only modal ones, so these are found among list_windows' windows and their
-        Cancel is clicked by label, as a person would close them."""
+        """Close each shown dialog that is not modal as a person would: with its own Cancel, or with
+        Escape in it when it has none, as the Speed Dial has none. answer_dialog and get_app_state's
+        dialogs know only modal ones, so these are found among list_windows' windows. The Cancel is
+        looked for among that window's own widgets: within an empty title, as the Speed Dial's is,
+        matches every window, so a click by label could press another's, such as the Design tab's."""
         for _ in range(5):
-            shown = self.modeless()
+            shown = self._modeless_windows()
             if not shown:
                 return
-            self.press("Cancel", within=shown[0])
-            until(lambda: shown[0] not in self.modeless(), timeout=2.0)
+            _, texts = self.client.call_with_text("list_widgets", target=shown[0]["ref"], max_nodes=5000,
+                                                  max_web_nodes=5000)
+            own = parse_widgets(texts[0] if texts else "")
+            cancel = next((w for w in own if w.kind == "button" and w.label == "Cancel"), None)
+            if cancel is not None:
+                self.client.call("click", target=cancel.ref)
+            else:
+                page = next((w for w in own if w.kind == "webview"), None)
+                self.keys("Escape", target=page.ref if page is not None else shown[0]["ref"])
+            until(lambda: len(self.modeless()) < len(shown), timeout=2.0)
         raise RuntimeError(f"modeless dialogs stay open: {self.modeless()}")
 
     # ------------------------------------------------------------ reading
 
-    def cad(self, tool, **args):
-        """A Design command's result. The tests read with it and change nothing, save one bulk add whose
-        call says why."""
+    def cad(self, tool, /, **args):
+        """A Design command's result. The command's name is positional-only, so an argument named tool
+        (boolean's) goes to the command."""
         return self.client.call_command(tool, **args)["result"]
 
     def sketch(self):
@@ -381,10 +391,14 @@ class CadGui:
         return parse_widgets(text)
 
     def modeless(self):
-        """The titles of the shown dialogs that are not modal, from list_windows, leaving out the person's
-        own (hidden), such as Action Replay, which no tool reaches."""
+        """The titles of the shown dialogs that are not modal."""
+        return [w["title"] for w in self._modeless_windows()]
+
+    def _modeless_windows(self):
+        """list_windows' shown dialogs that are not modal, leaving out the person's own (hidden), such
+        as Action Replay, which no tool reaches."""
         items = self.client.call("list_windows").get("items", [])
-        return [w["title"] for w in items if w.get("kind") == "dialog" and not w.get("modal") and not w.get("hidden")]
+        return [w for w in items if w.get("kind") == "dialog" and not w.get("modal") and not w.get("hidden")]
 
     @staticmethod
     def _canvas(ws):
@@ -533,7 +547,7 @@ class CadGui:
 
     def reset_view(self):
         """Put the Design camera in one view, whatever an earlier test, rung or project open left:
-        the top camera at RESET_ZOOM, centred on describe_scene's modeling_origin, the sketch planes'
+        the top camera at RESET_ZOOM, centred on describe_design's modeling_origin, the sketch planes'
         origin, and squared to the sketch's plane when a sketch is open.
 
         set_view's look_at is in the Design view's world coordinates, where modeling_origin is not
@@ -544,7 +558,7 @@ class CadGui:
         on this view, so the camera set_view reports is checked. Its camera_state gives the canvas's
         GL pixels per click pixel, and the view is set again when they differ from the ones the zoom
         assumed."""
-        origin = self.cad("describe_scene")["modeling_origin"]
+        origin = self.cad("describe_design")["modeling_origin"]
 
         def aim():
             return self.client.call("set_view", tab="design", camera="top", look_at=origin,
@@ -567,7 +581,7 @@ class CadGui:
     def new_design(self):
         """Clear the feature tree with the ribbon's New Design, confirming when it asks."""
         self._answer(self.press(NEW_DESIGN), "New Design")
-        features = self.cad("describe_scene")["features"]
+        features = self.cad("describe_design")["features"]
         if features:
             raise RuntimeError(f"New Design left {len(features)} feature(s)")
 
@@ -637,11 +651,11 @@ class CadGui:
         """Open a committed sketch again from its Feature tree row and calibrate on it; returns
         sketch_describe.
 
-        `row` names the row. None takes the newest sketch feature describe_scene lists: New Design
+        `row` names the row. None takes the newest sketch feature describe_design lists: New Design
         keeps counting features, so the first sketch of a design is "Sketch 1" only in a session
         that has committed none before it."""
         if row is None:
-            sketches = [f["name"] for f in self.cad("describe_scene")["features"] if f.get("type") == "Sketch"]
+            sketches = [f["name"] for f in self.cad("describe_design")["features"] if f.get("type") == "Sketch"]
             if not sketches:
                 raise RuntimeError("no sketch feature to reopen")
             row = sketches[-1]
@@ -913,7 +927,7 @@ class CadGui:
 
     def verbs(self, sketch_mode=True):
         """The verbs of the right-click menu, in the Design table's order, for the selection it would be built
-        for now (describe_scene's selection): those of the sketch vocabulary, or with sketch_mode False of the
+        for now (describe_design's selection): those of the sketch vocabulary, or with sketch_mode False of the
         model one, or with None both. Each has id, name, row, row_name, family (its submenu within the row,
         or None), key, action, sketch_mode, applies (it accepts the selection), modal and hint, as the table
         has them; entries with no menu row (commands only) are left out."""
@@ -921,7 +935,7 @@ class CadGui:
             atlas = json.load(f)
         slots = atlas["slots"]
         rows = [s["id"] for s in slots]
-        selection = self.cad("describe_scene")["selection"]["id"]
+        selection = self.cad("describe_design")["selection"]["id"]
         out = []
         for v in atlas["verbs"]:
             if v["slot"] is None:

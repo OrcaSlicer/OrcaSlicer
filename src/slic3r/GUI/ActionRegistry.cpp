@@ -1017,7 +1017,7 @@ void ActionRegistry::materialize_design_actions()
     // The tiles act on the Design tab a person is looking at, so they are there only while it is shown, and
     // only those of the mode it is in, the tools its right-click menu offers there; none while the CAD feature
     // is off, though the tab stays until a restart (Mcp::design_tiles()). The catalog holds the Design commands
-    // only when the CAD feature was on at startup.
+    // only when the CAD feature was on at startup. A folded row's tile runs its command with the row's arguments.
     const MainFrame*   frame = wxTheApp ? wxGetApp().mainframe : nullptr;
     const DesignPanel* panel = frame != nullptr ? frame->shown_design_panel() : nullptr;
     std::unordered_set<std::string> seen;
@@ -1025,9 +1025,10 @@ void ActionRegistry::materialize_design_actions()
         nlohmann::json           stats;
         std::vector<std::string> favs;
         load_persisted(stats, favs);
-        for (const NativeCommand* command :
+        for (const Mcp::DesignTile& tile :
              Mcp::design_tiles(NativeCommands::instance(), panel->mcp_sketch_map_applies(), wxGetApp().is_enable_cad_feature())) {
-            std::unique_ptr<AppAction> action = NativeCommands::make_action(*command);
+            std::unique_ptr<AppAction> action = tile.tile != nullptr ? NativeCommands::make_action(*tile.command, *tile.tile) :
+                                                                       NativeCommands::make_action(*tile.command);
             const std::string          id     = action->id();
             seed_from(stats, favs, id, *action);
             seen.insert(id);

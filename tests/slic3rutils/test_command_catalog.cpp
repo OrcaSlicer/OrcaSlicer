@@ -381,7 +381,7 @@ TEST_CASE("a command the catalog leaves out is unknown with the reason", "[Comma
     NativeCommands::register_all_commands(no_cad, {false});
     no_cad.seal();
 #ifdef SLIC3R_CAD
-    for (const std::string key : {"extrude", "hole", "describe_scene"}) {
+    for (const std::string key : {"extrude", "hole", "describe_design"}) {
         INFO(key);
         CHECK(no_cad.unknown_command(key, /*suggest=*/true) ==
               "Unknown tool: " + key + "; the CAD feature was off when OrcaSlicer started: a person turns it on in "

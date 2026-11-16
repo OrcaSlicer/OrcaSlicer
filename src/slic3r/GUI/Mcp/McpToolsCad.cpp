@@ -1,9 +1,10 @@
 // The Design tab's commands. The Design table (kDesignTools, generated from scripts/CAD/tool_atlas.json)
-// declares every one, its menu row, action, access and tool block; kSilentForms binds a block to the function
-// that runs it. register_cad_commands() makes a command of each entry: with no arguments one that has an
-// action does what its menu row does (open_tool()), and otherwise run_cad_tool() runs its silent form on the
-// UI thread, through the GUI's own CadDocument and DesignPanel's mcp_* hooks, behind the Design tab's busy and
-// stale-id checks (cad_gate()).
+// declares every one, its menu row, action, access, tool block and the rows folded into it; kSilentForms binds a
+// block to the function that runs it. register_cad_commands() makes a command of each entry that is one
+// (is_design_command()): a call with the arguments that choose one of its rows does what that menu row does
+// (opened_row(), open_tool()), and any other has run_cad_tool() run its silent form on the UI thread, through the
+// GUI's own CadDocument and DesignPanel's mcp_* hooks, behind the Design tab's busy and stale-id checks
+// (cad_gate()).
 
 #include "McpToolsCad.hpp"
 #include "libslic3r/Point.hpp"
@@ -24,9 +25,11 @@
 #include <utility>
 #include <cctype>
 #include <functional>
+#include <initializer_list>
 #include <iterator>
 #include <map>
 #include <optional>
+#include <set>
 #include <tuple>
 
 #include <nlohmann/json.hpp>
@@ -58,6 +61,7 @@
 #include "libslic3r/CAD/SketchEngine.hpp"
 #include "libslic3r/CAD/SketchSolver.hpp"
 #include "libslic3r/CAD/GeometryEngine.hpp"
+#include "libslic3r/CAD/SketchImport.hpp"   // svg_to_regions, transform_regions
 #include "libslic3r/CAD/ThreadStandards.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Model.hpp"
@@ -73,8 +77,11 @@
 
 #include <gp_Pln.hxx>
 #include <BRepAlgoAPI_Section.hxx>
+#include <TopExp.hxx>
 #include <TopExp_Explorer.hxx>
+#include <TopTools_IndexedMapOfShape.hxx>
 #include <TopoDS.hxx>
+#include <TopoDS_Vertex.hxx>
 #include <TopoDS_Edge.hxx>
 #include <TopoDS_Compound.hxx>
 #include <BRep_Builder.hxx>
@@ -149,7 +156,7 @@ const char* feature_type_name(CadFeatureType t)
 // The `generation` property of every Design command with a silent form: how face and edge ids expire, and
 // how a call keeps from acting on a stale one.
 const char* const kGenerationNote =
-    "The generation (describe_scene, query_topology) the face and edge ids this call passes were read at. Ids "
+    "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids "
     "expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the "
     "generation, a call whose ids were read before the model changed is refused.";
 
@@ -163,19 +170,23 @@ const char* const kOpensToolNote =
     "a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the "
     "tab's status line shows then.";
 
-// The `silent` property of a command whose entry has both forms, before mode_note().
+// The `silent` property of a command whose call with no arguments opens a tool, before mode_note() of that tool's
+// row.
 const char* const kSilentNote =
     "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design "
     "tab's menu row does, as a person's pick does.";
 
 // The mode an entry with an action runs in, as the Design tab's right-click menu offers it (offered_in_mode()).
-// A sketch being constrained counts as open, and refuses sketch_commit and sketch_cancel: the tab's own Confirm
-// and Cancel buttons end it.
-const char* mode_note(const DesignTool& t)
+// A sketch being constrained counts as open, and refuses sketch_finish and sketch_cancel: the tab's own Confirm
+// and Cancel buttons end it. A call that takes no arguments runs only there; `no_arguments` words it for the call
+// with no arguments of a command that also runs from arguments, whose argument form may run in the other mode
+// (sketch_text, sketch_project).
+std::string mode_note(const DesignTool& t, bool no_arguments = false)
 {
-    return t.sketch_mode ? "It runs only in an open sketch (sketch_begin opens one)."
-                         : "It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab "
-                           "constrains a sketch, its Confirm or Cancel button ends that).";
+    return std::string(no_arguments ? "Called with no arguments, it runs only " : "It runs only ") +
+           (t.sketch_mode ? "in an open sketch (sketch_create opens one)."
+                          : "outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, "
+                            "its Confirm or Cancel button ends that).");
 }
 
 // cad_note()'s text, given while the feature is off and while it is on but was off at startup. The
@@ -191,15 +202,51 @@ const char* const kCadOffNote = "call_tool runs no Design command now: they need
 const char* const kCadOffAtStartup = "the CAD feature was off when OrcaSlicer started: a person turns it on in "
                                      "Preferences > Features and restarts OrcaSlicer, or starts it with --cad";
 
-json describe_scene(DesignPanel* panel)
+// What describe_design and select_geometry say is selected. The selection: what the right-click menu would be built
+// for, its kind (an OfferSel) and its id in the atlas, which the entries' accepts name.
+json selection_json(const DesignPanel& panel)
+{
+    const int kind = panel.mcp_offer_selection_kind();
+    return json{{"kind", kind}, {"id", kDesignSelectionIds[kind]}};
+}
+
+// The reference plane picked in the view, which the next Sketch opens on: "XY", "XZ", "YZ" or null.
+json picked_plane_json(const DesignPanel& panel)
+{
+    static const char* const names[] = {"XY", "XZ", "YZ"};
+    const int plane = panel.mcp_picked_plane();
+    return plane >= 0 ? json(names[plane]) : json();
+}
+
+// The selected row of the Feature list, a feature index, which the rows that act on it take while nothing is picked
+// in the view; or null.
+json feature_row_json(const DesignPanel& panel)
+{
+    const int row = panel.mcp_feature_row();
+    return row >= 0 ? json(row) : json();
+}
+
+// Where body `b` stands for Commit to Plate and Export STEP (body_place, the Move gizmo, Place on Face): null where the
+// model has it, else three rows of four numbers, the rotation and the translation in mm, in the world frame.
+json placement_json(const DesignPanel& panel, int b)
+{
+    const Transform3d t = panel.mcp_body_placement(b);
+    if (t.isApprox(Transform3d::Identity())) return json();
+    json rows = json::array();
+    for (int r = 0; r < 3; ++r)
+        rows.push_back(json::array({t(r, 0), t(r, 1), t(r, 2), t(r, 3)}));
+    return rows;
+}
+
+json describe_design(DesignPanel* panel)
 {
     CadDocument& doc = panel->mcp_doc();
 
     json features = json::array();
     for (size_t i = 0; i < doc.features.size(); ++i) {
         const CadFeature& f = doc.features[i];
-        json jf{{"index", int(i)}, {"type", feature_type_name(f.type)}, {"name", f.name}, {"enabled", f.enabled}};
-        // The fields an expression drives: set_feature refuses them, describe_feature has the expressions.
+        json jf{{"index", int(i)}, {"type", feature_type_name(f.type)}, {"name", f.name}, {"suppressed", !f.enabled}};
+        // The fields an expression drives: feature_edit refuses them, feature_describe has the expressions.
         if (!f.expr.empty()) {
             json bound = json::array();
             for (const auto& kv : f.expr) bound.push_back(kv.first);
@@ -228,8 +275,10 @@ json describe_scene(DesignPanel* panel)
                {"has_color", doc.bodies[i].has_color},
                {"source_feature", doc.bodies[i].source_feature},
                {"visible", panel->mcp_body_shown(int(i))},
-               // The Move gizmo's placement, which bbox (the recipe's body) does not include.
-               {"moved", panel->mcp_body_moved(int(i))}};
+               // Where it stands (body_place, the Move gizmo, Place on Face), which bbox, the recipe's body, does not
+               // include.
+               {"moved", panel->mcp_body_moved(int(i))},
+               {"placement", placement_json(*panel, int(i))}};
         // The colour the canvas draws: the override when has_color, else the automatic one.
         if (vp != nullptr) b["color"] = encode_color(vp->body_color(int(i)));
         // Per-body bbox/centre from the already-tessellated display meshes.
@@ -255,19 +304,21 @@ json describe_scene(DesignPanel* panel)
         {"undo_depth", doc.undo_depth()},
         {"redo_depth", doc.redo_depth()},
         // Whether sketch endpoints that nearly meet are welded: the document's rule, which changes
-        // the loops sketch_add's entities make.
+        // the loops sketch_draw's entities make.
         {"auto_close_loops", doc.auto_close_loops},
     };
-    // What the right-click menu would be built for: the selection's kind (an OfferSel) and its id in the
-    // atlas, which the entries' accepts name.
-    const int kind = panel->mcp_offer_selection_kind();
-    out["selection"] = {{"kind", kind}, {"id", kDesignSelectionIds[kind]}};
+    out["selection"]    = selection_json(*panel);
+    out["picked_plane"] = picked_plane_json(*panel);
+    out["feature_row"]  = feature_row_json(*panel);
+    // The Commit button's mode, which commit_to_plate uses when given none.
+    out["commit_mode"] = panel->commit_mode() == DesignPanel::CommitMode::Bodies ? "bodies" : "assembly";
     if (!var_error.empty()) out["variables_error"] = var_error;
+    // The aligns (Mate features) that cannot hold with those before them.
     if (!doc.mate_conflicts.empty()) {
         json conflicts = json::array();
         for (const auto& [feature, reason] : doc.mate_conflicts)
             conflicts.push_back(json{{"feature", feature}, {"reason", reason}});
-        out["mate_conflicts"] = std::move(conflicts);
+        out["align_conflicts"] = std::move(conflicts);
     }
     return out;
 }
@@ -277,7 +328,7 @@ inline json vec3(const Vec3d& v) { return json::array({v.x(), v.y(), v.z()}); }
 
 // Shared Build helpers.
 
-// The kinds query_topology gives faces, in GeomAbs_SurfaceType order, and edges.
+// The kinds body_describe gives faces, in GeomAbs_SurfaceType order, and edges.
 const char* const kFaceKinds[] = {"planar",     "cylindrical", "conical", "spherical", "toroidal", "bezier",
                                   "bspline",    "revolution",  "extrusion", "offset",  "other"};
 static_assert(std::size(kFaceKinds) == size_t(GeomAbs_OtherSurface) + 1, "every surface type needs a kind");
@@ -362,13 +413,36 @@ json add_feature(DesignPanel* panel, const char* index_key, const std::function<
     panel->mcp_after_change();
     return json{{"ok", true}, {index_key, idx}, {"bodies", int(doc.bodies.size())}};
 }
-BooleanMode bool_from(const std::string& s)
+
+// What a feature's result does to the bodies already there, in BooleanMode order: the commands' `operation`, in the
+// words of Fusion's dialogs and the Extrude card.
+const char* const kOperations[] = {"new_body", "join", "cut", "intersect"};
+
+// The operations each command takes (operation_arg()): extrude's, auto among them; revolve's, sweep's and loft's;
+// boolean's, which combines two bodies there and makes none; mirror's, which keeps its image apart or joins it.
+const std::vector<std::string> kExtrudeOperations = {"auto", "new_body", "join", "cut", "intersect"};
+const std::vector<std::string> kSolidOperations   = {"new_body", "join", "cut", "intersect"};
+const std::vector<std::string> kBooleanOperations = {"join", "cut", "intersect"};
+const std::vector<std::string> kMirrorOperations  = {"new_body", "join"};
+
+// The `operation` argument: one of the words `takes` lists, "auto" coming back empty; `def` when the call leaves it
+// out or gives null, and with no `def` the call must give one.
+std::optional<BooleanMode> operation_arg(const json& params, const char* def, const std::vector<std::string>& takes)
 {
-    if (s == "union" || s == "add")       return BooleanMode::Add;
-    if (s == "subtract" || s == "cut")    return BooleanMode::Cut;
-    if (s == "intersect" || s == "common")return BooleanMode::Intersect;
-    return BooleanMode::New;
+    json v = params.value("operation", json());
+    if (v.is_null() && def != nullptr) v = def;
+    const std::string word = v.is_string() ? v.get<std::string>() : std::string();
+    if (std::find(takes.begin(), takes.end(), word) != takes.end()) {
+        if (word == "auto") return std::nullopt;
+        for (size_t i = 0; i < std::size(kOperations); ++i)
+            if (word == kOperations[i]) return BooleanMode(i);
+    }
+    std::string list;
+    for (size_t i = 0; i < takes.size(); ++i)
+        list += (i == 0 ? "" : i + 1 == takes.size() ? " or " : ", ") + takes[i];
+    throw std::runtime_error("operation must be " + list);
 }
+
 // Optional explicit closed profile: params["profile"] = [[x,y],...] in plane mm.
 // This is the Measure->Build bridge — feed a measured contour straight back.
 // An empty array is the row's default and means no profile.
@@ -393,11 +467,11 @@ const TopoDS_Shape& body_shape(const CadDocument& doc, const json& params)
     return doc.bodies[idx].shape;
 }
 
-json query_topology(DesignPanel* panel, const json& params) { return cad_query_topology(panel->mcp_doc(), params); }
+json body_describe(DesignPanel* panel, const json& params) { return cad_body_describe(panel->mcp_doc(), params); }
 
 json measure(DesignPanel* panel, const json& params) { return cad_measure(panel->mcp_doc(), params); }
 
-json mass_properties(DesignPanel* panel, const json& params)
+json body_mass_properties(DesignPanel* panel, const json& params)
 {
     const TopoDS_Shape& shape = body_shape(panel->mcp_doc(), params);
     auto mp = GeometryEngine::mass_properties(shape);
@@ -458,7 +532,7 @@ chain_segments(std::vector<std::vector<Vec3d>> segs, double tol)
 }
 
 // sections-as-evidence: cross-section of a body by a named base plane at an offset.
-json slice_body(DesignPanel* panel, const json& params)
+json body_section(DesignPanel* panel, const json& params)
 {
     const TopoDS_Shape& shape = body_shape(panel->mcp_doc(), params);
     const std::string plane_name = params.value("plane", std::string("XY"));
@@ -597,10 +671,10 @@ ShapeMetrics shape_metrics(const TopoDS_Shape& s)
     return {vp.Mass(), Vec3d(c.X(), c.Y(), c.Z()), Vec3d(x0, y0, z0), Vec3d(x1, y1, z1)};
 }
 
-json validate_against(DesignPanel* panel, const json& params)
+json body_compare(DesignPanel* panel, const json& params)
 {
     const TopoDS_Shape& cand = body_shape(panel->mcp_doc(), params);   // candidate = the reconstruction
-    if (!params.contains("reference")) throw std::runtime_error("validate_against needs 'reference' {step|body}");
+    if (!params.contains("reference")) throw std::runtime_error("body_compare needs 'reference' {step|body}");
     const json& r = params["reference"];
 
     TopoDS_Shape ref;
@@ -649,134 +723,49 @@ int target_body_arg(const json& params, const CadDocument& doc)
     return bi;   // <0 -> kernel uses the last body
 }
 
-// `edge` is one id or an array of ids; an array becomes ONE feature, every id resolved
+// `edges` is one id or an array of ids; an array becomes ONE feature, every id resolved
 // against the same body (a chain of single-edge features would see the ids drift).
 std::vector<int> edge_ids_arg(const json& params, const char* verb)
 {
-    if (!params.contains("edge"))
-        throw std::runtime_error(std::string(verb) + " needs 'edge' (id or array of ids from query_topology)");
-    const json& e = params["edge"];
+    if (!params.contains("edges"))
+        throw std::runtime_error(std::string(verb) + " needs 'edges' (an id or array of ids from body_describe)");
+    const json& e = params["edges"];
     std::vector<int> ids;
     if (e.is_array()) for (const json& v : e) ids.push_back(v.get<int>());
     else              ids.push_back(e.get<int>());
-    if (ids.empty()) throw std::runtime_error(std::string(verb) + ": 'edge' is an empty array");
+    if (ids.empty()) throw std::runtime_error(std::string(verb) + ": 'edges' is an empty array");
     return ids;
 }
 
-json action_fillet(DesignPanel* panel, const json& params)
+// fillet and chamfer: the Fillet and Chamfer cards' Confirm on picked edges.
+json action_dressup(DesignPanel* panel, const json& params, bool chamfer)
 {
-    const std::vector<int> edges = edge_ids_arg(params, "fillet");
-    const double radius = params.value("radius", 1.0);
-    if (radius <= 0) throw std::runtime_error("radius must be > 0");
     CadDocument& doc = panel->mcp_doc();
-    if (doc.bodies.empty()) throw std::runtime_error("no body to fillet");
-    int bi = target_body_arg(params, doc);
-    doc.checkpoint();
-    int f = doc.add_fillet(radius, edges, panel->mcp_feature_name(_L("Fillet")));
-    if (bi >= 0) doc.features[f].target_body = bi;   // edge id resolved against THIS body's shape
-    bool ok = doc.recompute();
-    if (!ok) { const std::string why = doc.error; doc.rollback(); doc.error = why; }
-    panel->mcp_after_change(ok);
-    return json{{"ok", ok}, {"fillet_index", f}, {"body", bi < 0 ? int(doc.bodies.size()) - 1 : bi},
-                {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
-}
-
-json action_chamfer(DesignPanel* panel, const json& params)
-{
-    const std::vector<int> edges = edge_ids_arg(params, "chamfer");
-    const double dist = params.value("distance", 1.0);
-    if (dist <= 0) throw std::runtime_error("distance must be > 0");
-    CadDocument& doc = panel->mcp_doc();
-    if (doc.bodies.empty()) throw std::runtime_error("no body to chamfer");
-    int bi = target_body_arg(params, doc);
-    doc.checkpoint();
-    int c = doc.add_chamfer(dist, edges, panel->mcp_feature_name(_L("Chamfer")));
-    if (bi >= 0) doc.features[c].target_body = bi;   // edge id resolved against THIS body's shape
-    bool ok = doc.recompute();
-    if (!ok) { const std::string why = doc.error; doc.rollback(); doc.error = why; }
-    panel->mcp_after_change(ok);
-    return json{{"ok", ok}, {"chamfer_index", c}, {"body", bi < 0 ? int(doc.bodies.size()) - 1 : bi},
-                {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
-}
-
-// A hole command's reply: the feature, where it went (cad_hole_placement) and the frame of its plane.
-json hole_reply(json r, const json& placement, const SketchPlane& pl)
-{
-    r.update(placement);
-    r["frame"] = frame_json(pl);
+    const auto   add = cad_dressup(doc, params, chamfer);
+    const char*  key = chamfer ? "chamfer_index" : "fillet_index";
+    json r = add_feature(panel, key, [&] { return add(panel->mcp_feature_name(chamfer ? _L("Chamfer") : _L("Fillet"))); });
+    const int target = doc.features[r.at(key).get<int>()].target_body;
+    r["body"] = target >= 0 ? target : int(doc.bodies.size()) - 1;
     return r;
 }
 
+json action_fillet(DesignPanel* panel, const json& params) { return action_dressup(panel, params, false); }
+json action_chamfer(DesignPanel* panel, const json& params) { return action_dressup(panel, params, true); }
+
+// The Hole card's Confirm; the reply says where the hole went (cad_hole_placement) and the frame of its plane.
 json action_hole(DesignPanel* panel, const json& params)
 {
-    const double dia   = params.value("diameter", 5.0);
-    const double depth = params.value("depth", 10.0);
-    const bool   thru  = params.value("through", false);
-    if (dia <= 0) throw std::runtime_error("diameter must be > 0");
     CadDocument& doc = panel->mcp_doc();
-    SketchPlane  pl;
-    int          body = -1;
-    const json   at   = cad_hole_placement(doc, params, pl, body);
-    const double x = at.at("x").get<double>(), y = at.at("y").get<double>();
-    return hole_reply(add_feature(panel, "hole_index", [&] {
-        const int h = doc.add_hole(dia, depth, thru, x, y, pl, panel->mcp_feature_name(_L_CONTEXT("Hole", "Design")));
-        doc.features[h].target_body = body;
-        return h;
-    }), at, pl);
-}
-
-json action_hole_styled(DesignPanel* panel, const json& params)
-{
-    const double dia   = params.value("diameter", 5.0);
-    const double depth = params.value("depth", 10.0);
-    const bool   thru  = params.value("through", true);
-    const int    style          = params.value("style", 0);
-    const double cbore_diameter = params.value("cbore_diameter", 0.0);
-    const double cbore_depth    = params.value("cbore_depth", 0.0);
-    const double csink_diameter = params.value("csink_diameter", 0.0);
-    const double csink_angle    = params.value("csink_angle", 90.0);
-    const std::string standard  = params.value("standard", std::string(""));
-    if (dia <= 0) throw std::runtime_error("diameter must be > 0");
-    CadDocument& doc = panel->mcp_doc();
-    SketchPlane  pl;
-    int          body = -1;
-    const json   at   = cad_hole_placement(doc, params, pl, body);
-    const double x = at.at("x").get<double>(), y = at.at("y").get<double>();
-    return hole_reply(add_feature(panel, "hole_index", [&] {
-        const int h = doc.add_hole_styled(dia, depth, thru, x, y, pl, style,
-                                          cbore_diameter, cbore_depth,
-                                          csink_diameter, csink_angle, standard,
-                                          panel->mcp_feature_name(_L_CONTEXT("Hole", "Design")));
-        doc.features[h].target_body = body;
-        return h;
-    }), at, pl);
-}
-
-json action_hole_standard(DesignPanel* panel, const json& params)
-{
-    const std::string desig = params.value("designation", std::string(""));
-    if (desig.empty()) throw std::runtime_error("designation is required");
-    const int    style  = params.value("style", 0);
-    const bool   thru   = params.value("through", true);
-    const double depth  = params.value("depth", 10.0);
-    CadDocument& doc = panel->mcp_doc();
-    SketchPlane  pl;
-    int          body = -1;
-    const json   at   = cad_hole_placement(doc, params, pl, body);
-    const double x = at.at("x").get<double>(), y = at.at("y").get<double>();
-    // add_hole_standard throws on an unknown designation; add_feature rolls that back too.
-    return hole_reply(add_feature(panel, "hole_index", [&] {
-        const int h = doc.add_hole_standard(desig, style, thru, depth, x, y, pl,
-                                            panel->mcp_feature_name(_L_CONTEXT("Hole", "Design")));
-        doc.features[h].target_body = body;
-        return h;
-    }), at, pl);
+    json         resolved;
+    const auto   add = cad_hole(doc, params, resolved);
+    json r = add_feature(panel, "hole_index", [&] { return add(panel->mcp_feature_name(_L_CONTEXT("Hole", "Design"))); });
+    r.update(resolved);
+    return r;
 }
 
 json action_boolean(DesignPanel* panel, const json& params)
 {
-    BooleanMode m = bool_from(params.value("op", std::string("subtract")));
-    if (m == BooleanMode::New) throw std::runtime_error("op must be union | subtract | intersect");
+    const BooleanMode m = *operation_arg(params, nullptr, kBooleanOperations);
     const int target = params.value("target", 0);
     const int tool   = params.value("tool", 1);
     const bool keep  = params.value("keep_tool", false);
@@ -794,45 +783,15 @@ json action_boolean(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"boolean_index", b}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+// The Pattern card's Confirm: a linear or circular pattern replies with the frame of its plane.
 json action_pattern(DesignPanel* panel, const json& params)
 {
-    const bool   circular = params.value("circular", false);
-    const int    count    = params.value("count", 3);
-    const double spacing  = params.value("spacing", 10.0);   // linear step (mm)
-    const int    dir      = params.value("dir", 0);          // 0 = plane X, 1 = plane Y
-    const double angle    = params.value("angle", 360.0);    // circular total sweep (deg)
-    if (count < 1) throw std::runtime_error("count must be >= 1");
     CadDocument& doc = panel->mcp_doc();
-    if (doc.bodies.empty()) throw std::runtime_error("no body to pattern");
-    int bi = target_body_arg(params, doc);
-    const SketchPlane pl = cad_resolve_plane(params.value("plane", json("XY")), doc, false);
-    doc.checkpoint();
-    int p = doc.add_pattern(circular, count, spacing, dir, angle, bi, panel->mcp_feature_name(_L_CONTEXT("Pattern", "Design")));
-    doc.features[p].plane = pl;   // axis (circular) / step dirs (linear)
-    bool ok = doc.recompute();
-    if (!ok) { const std::string why = doc.error; doc.rollback(); doc.error = why; }
-    panel->mcp_after_change(ok);
-    return json{{"ok", ok}, {"pattern_index", p}, {"bodies", int(doc.bodies.size())}, {"error", doc.error},
-                {"frame", frame_json(pl)}};
-}
-
-json action_pattern_on_curve(DesignPanel* panel, const json& params)
-{
-    const int count  = params.value("count", 3);
-    if (count < 1) throw std::runtime_error("count must be >= 1");
-    if (!params.contains("sketch")) throw std::runtime_error("pat_curve needs 'sketch' (feature index)");
-    if (!params.contains("entity")) throw std::runtime_error("pat_curve needs 'entity' (entity index)");
-    const int sketch = params["sketch"].get<int>();
-    const int entity = params["entity"].get<int>();
-    CadDocument& doc = panel->mcp_doc();
-    if (doc.bodies.empty()) throw std::runtime_error("no body to pattern");
-    int bi = target_body_arg(params, doc);
-    doc.checkpoint();
-    int p = doc.add_pattern_on_curve(count, sketch, entity, bi, panel->mcp_feature_name(_L_CONTEXT("Pattern", "Design")));
-    bool ok = doc.recompute();
-    if (!ok) { const std::string why = doc.error; doc.rollback(); doc.error = why; }
-    panel->mcp_after_change(ok);
-    return json{{"ok", ok}, {"pattern_index", p}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+    const auto   add = cad_pattern(doc, params);
+    json r = add_feature(panel, "pattern_index", [&] { return add(panel->mcp_feature_name(_L_CONTEXT("Pattern", "Design"))); });
+    const CadFeature& f = doc.features[r.at("pattern_index").get<int>()];
+    if (f.pattern_curve_sketch < 0) r["frame"] = frame_json(f.plane);
+    return r;
 }
 
 json action_shell(DesignPanel* panel, const json& params)
@@ -872,7 +831,7 @@ json action_rib(DesignPanel* panel, const json& params)
 
 json action_surface_extrude(DesignPanel* panel, const json& params)
 {
-    if (!params.contains("sketch")) throw std::runtime_error("surf_extrude needs 'sketch' (feature index)");
+    if (!params.contains("sketch")) throw std::runtime_error("surface_extrude needs 'sketch' (feature index)");
     CadDocument& doc = panel->mcp_doc();
     int sketch = params["sketch"].get<int>();
     double distance = params.value("distance", 10.0);
@@ -886,28 +845,10 @@ json action_surface_extrude(DesignPanel* panel, const json& params)
 
 json action_surface_revolve(DesignPanel* panel, const json& params)
 {
-    if (!params.contains("sketch")) throw std::runtime_error("surf_revolve needs 'sketch' (feature index)");
     CadDocument& doc = panel->mcp_doc();
-    int sketch = params["sketch"].get<int>();
-    double angle = params.value("angle", 360.0);
-    int axis = params.value("axis", 0);
+    const auto   add = cad_surface_revolve(doc, params);
     doc.checkpoint();
-    int idx = doc.add_surface_revolve(sketch, angle, axis, panel->mcp_feature_name(_L("Surface Revolve")));
-    bool ok = doc.recompute();
-    if (!ok) { const std::string why = doc.error; doc.rollback(); doc.error = why; }
-    panel->mcp_after_change(ok);
-    return json{{"ok", ok}, {"feature_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
-}
-
-json action_thicken_surface(DesignPanel* panel, const json& params)
-{
-    CadDocument& doc = panel->mcp_doc();
-    if (doc.bodies.empty()) throw std::runtime_error("no sheet body to thicken");
-    int bi = target_body_arg(params, doc);
-    double thickness = params.value("thickness", 2.0);
-    bool flip = params.value("flip", false);
-    doc.checkpoint();
-    int idx = doc.add_thicken_surface(bi, thickness, flip, panel->mcp_feature_name(_L("Thicken Surface")));
+    int idx = add(panel->mcp_feature_name(_L("Surface Revolve")));
     bool ok = doc.recompute();
     if (!ok) { const std::string why = doc.error; doc.rollback(); doc.error = why; }
     panel->mcp_after_change(ok);
@@ -931,7 +872,7 @@ json action_surface_offset(DesignPanel* panel, const json& params)
 json action_surface_loft(DesignPanel* panel, const json& params)
 {
     if (!params.contains("profiles") || !params["profiles"].is_array())
-        throw std::runtime_error("surf_loft needs 'profiles' (array of int feature indices)");
+        throw std::runtime_error("surface_loft needs 'profiles' (array of int feature indices)");
     CadDocument& doc = panel->mcp_doc();
     std::vector<int> profiles;
     for (const json& j : params["profiles"]) profiles.push_back(j.get<int>());
@@ -944,9 +885,9 @@ json action_surface_loft(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"feature_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
-json action_surface_fill(DesignPanel* panel, const json& params)
+json action_surface_patch(DesignPanel* panel, const json& params)
 {
-    if (!params.contains("sketch")) throw std::runtime_error("surf_fill needs 'sketch' (feature index)");
+    if (!params.contains("sketch")) throw std::runtime_error("surface_patch needs 'sketch' (feature index)");
     CadDocument& doc = panel->mcp_doc();
     int sketch = params["sketch"].get<int>();
     doc.checkpoint();
@@ -959,7 +900,7 @@ json action_surface_fill(DesignPanel* panel, const json& params)
 
 json action_draft(DesignPanel* panel, const json& params)
 {
-    if (!params.contains("face")) throw std::runtime_error("draft needs 'face' (id from query_topology)");
+    if (!params.contains("face")) throw std::runtime_error("draft needs 'face' (id from body_describe)");
     const double angle = params.value("angle", 5.0);
     CadDocument& doc = panel->mcp_doc();
     if (doc.bodies.empty()) throw std::runtime_error("no body to draft");
@@ -986,7 +927,7 @@ json action_draft(DesignPanel* panel, const json& params)
 //     plane coordinates where a chain is still open.
 //   * VALIDATE, THEN FIX. FreeCAD's ValidateSketch finds vertices that overlap within a
 //     tolerance but carry no coincidence, and adds the missing ones. `sketch_validate` reports
-//     them, `sketch_heal` welds and constrains them. That is what turns a loop that is closed by
+//     them, `sketch_repair` welds and constrains them. That is what turns a loop that is closed by
 //     floating-point luck into one that is closed by construction and stays closed through
 //     every later solve.
 //
@@ -999,7 +940,7 @@ DesignSketchTool& mcp_sketch(DesignPanel* panel)
     DesignCanvas* vp = panel->mcp_viewport();
     if (vp == nullptr) throw std::runtime_error("no viewport");
     if (!vp->is_sketching())
-        throw std::runtime_error("no sketch is open — call sketch_begin first");
+        throw std::runtime_error("no sketch is open — call sketch_create first");
     return vp->mcp_sketch_tool();
 }
 
@@ -1045,13 +986,10 @@ SketchEntity sketch_entity_from(const json& j)
     // incomplete, not a request for a circle at the origin. Defaulting it silently put geometry
     // somewhere the caller never asked for and then reported perfectly consistent loops, areas
     // and hole attribution ABOUT THAT WRONG GEOMETRY — which is far more expensive to disbelieve
-    // than an error would have been. `p0` is accepted as an alias because that is exactly what a
-    // circle stores internally (e.p0 = e.center below), so a caller who writes p0 means centre.
+    // than an error would have been. A point is its position, for the same reason.
     auto centre_of = [&](const char* what) {
         if (j.contains("center")) return p("center", 0, 0);
-        if (j.contains("centre")) return p("centre", 0, 0);
-        if (j.contains("p0"))     return p("p0", 0, 0);
-        throw std::runtime_error(std::string(what) + " needs a 'center' (or 'p0')");
+        throw std::runtime_error(std::string(what) + " needs a 'center'");
     };
     if (t == "line") {
         // Its two ends are the line, so one left out is a mistake (often the key spelled another
@@ -1060,26 +998,26 @@ SketchEntity sketch_entity_from(const json& j)
             throw std::runtime_error("line needs 'p0' and 'p1' as [x, y]");
         e.type = SketchEntity::Type::Line;
         e.p0 = p("p0", 0, 0); e.p1 = p("p1", 0, 0);
-    } else if (t == "circle") {
+    } else if (t == "circle_center") {
         e.type   = SketchEntity::Type::Circle;
-        e.center = centre_of("circle");
+        e.center = centre_of("circle_center");
         e.radius = j.value("radius", 0.0);
         e.p0     = e.center;
-        if (e.radius <= 0.0) throw std::runtime_error("circle needs a positive 'radius'");
-    } else if (t == "arc") {
+        if (e.radius <= 0.0) throw std::runtime_error("circle_center needs a positive 'radius'");
+    } else if (t == "arc_center") {
         e.type        = SketchEntity::Type::Arc;
-        e.center      = centre_of("arc");
+        e.center      = centre_of("arc_center");
         e.radius      = j.value("radius", 0.0);
         e.start_angle = angle_arg(j, "start_angle", 0.0);
         e.end_angle   = angle_arg(j, "end_angle", 0.0);
-        if (e.radius <= 0.0) throw std::runtime_error("arc needs a positive 'radius'");
+        if (e.radius <= 0.0) throw std::runtime_error("arc_center needs a positive 'radius'");
         e.p0 = e.center + e.radius * Vec2d(std::cos(e.start_angle), std::sin(e.start_angle));
         e.p1 = e.center + e.radius * Vec2d(std::cos(e.end_angle),   std::sin(e.end_angle));
     } else if (t == "point") {
         e.type = SketchEntity::Type::Point;
-        e.p0   = p("p", 0, 0);
+        e.p0   = point_arg(j, "p");
     } else {
-        throw std::runtime_error("unknown entity type '" + t + "' (line, arc, circle, point, polygon, slot, ellipse, ellipse_arc, spline)");
+        throw std::logic_error("sketch_entity_from takes a line, circle_center, arc_center or point, not " + t);
     }
     return e;
 }
@@ -1148,16 +1086,18 @@ json sketch_entity_to(const SketchEntity& e, int index)
     return j;
 }
 
-// --- A feature as its card shows it: describe_feature and set_feature ------------------------
+// --- A feature as its card shows it: feature_describe and feature_edit ------------------------
 
-// Names in the Design commands' vocabulary, in enum order.
-const char* const kModes[]          = {"new", "union", "subtract", "intersect"};   // BooleanMode
+// Names in the Design commands' vocabulary, in enum order (BooleanMode's are kOperations).
 const char* const kShapes[]         = {"rectangle", "circle"};                     // SketchShape
 const char* const kExtrudeEnds[]    = {"blind", "symmetric", "two_sided", "through_all", "up_to_face", "up_to_vertex"};
 const char* const kFaceGroups[]     = {"top", "bottom", "lateral", "all"};
 const char* const kPlaneTypes[]     = {"offset", "angle", "midplane", "tangent", "two_edges", "coincident"};
 const char* const kAxisTypes[]      = {"two_points", "face_normal", "cylinder", "plane_intersection", "along_edge"};
 const char* const kCoordSysTypes[]  = {"point_world", "face_and_direction"};
+const char* const kHoleTypes[]      = {"simple", "counterbore", "countersink"};    // CadFeature::hole_style
+const char* const kAlignTypes[]     = {"fastened", "planar", "revolute", "slider", "cylindrical"};   // CadFeature::mate_kind
+const char* const kPatternTypes[]   = {"linear", "circular", "curve"};             // a Pattern's layout
 const char* const kPointRoles[]     = {"p0", "p1", "center"};                      // SketchPointRole
 // SketchConstraintType is append-only (recipes store it by position), and so is this list.
 const char* const kConstraintTypes[] = {
@@ -1182,6 +1122,15 @@ template<size_t N> int enum_index(const std::string& key, const json& v, const c
     for (const char* n : names) list += (list.empty() ? "" : ", ") + std::string(n);
     throw std::runtime_error(key + " must be one of " + list);
 }
+
+// The edge group a word names, the Fillet and Chamfer cards' Edges choice, or nothing for any other value.
+std::optional<FaceGroup> face_group_named(const json& v)
+{
+    for (size_t i = 0; i < std::size(kFaceGroups); ++i)
+        if (v.is_string() && v.get<std::string>() == kFaceGroups[i]) return FaceGroup(i);
+    return std::nullopt;
+}
+const std::string kFaceGroupWords = "top, bottom, lateral or all";
 
 // A constraint's value as the Design commands state it: an angle in degrees (the recipe holds radians), a
 // length in mm. Null for the types that carry none.
@@ -1247,10 +1196,13 @@ json profile_constraint_json(const SketchConstraintDef& c, int index)
 }
 
 // A feature's card as data. `params` is what the card shows; `editable` the fields its Confirm
-// writes, named as the CadFeature members (the names edit_feature binds); `ranges` the limits
-// its spin controls set on the numeric ones; `refs` the structure the card keeps as it is (feature
-// and body indices, face and edge ids, which expire with every rebuild); `expr` the bindings.
-// describe_feature shows it and set_feature checks against it, so the two cannot disagree.
+// writes, named as the CadFeature members (the names feature_set_expression binds), but for the
+// members that hold a variant, read and written under their command's argument in its words: mode
+// as `operation` (kOperations), and hole_style, mate_kind and pattern_circular as `type`; `ranges` the limits
+// its spin controls set on the numeric ones; `refs` what it refers to (feature and body indices, face
+// and edge ids, read in the model before it but for a datum's), which feature_edit's refs re-points
+// (cad_apply_feature_refs()); `expr` the bindings.
+// feature_describe shows it and feature_edit checks against it, so the two cannot disagree.
 json feature_card(const CadFeature& f)
 {
     json params = json::object(), ranges = json::object(), refs = json::object(), editable = json::array();
@@ -1262,11 +1214,12 @@ json feature_card(const CadFeature& f)
     switch (f.type) {
     case T::Sketch:
         if (!f.imported_regions.empty()) {
-            // Text or SVG art, vectorised once: only its placement edits without the Text dialog.
+            // Text or SVG art, vectorised once: its placement edits, and a Text feature's words, font and height,
+            // which feature_edit outlines again.
             if (f.is_text()) {
-                show("text_string", f.text_string);
-                show("text_font", f.text_font);
-                show("text_height", f.text_height);
+                edit("text_string", f.text_string);
+                edit("text_font", f.text_font);
+                edit("text_height", f.text_height);
             }
             show("regions", int(f.imported_regions.size()));
             // Per region, its closed loops and the area it fills as placed, in mm². A region keeps its
@@ -1292,7 +1245,7 @@ json feature_card(const CadFeature& f)
             }
             show("region_loops", std::move(loops));
             show("region_areas", std::move(areas));
-            show("import_offset", json::array({f.import_offset.x(), f.import_offset.y()}));
+            edit("import_offset", json::array({f.import_offset.x(), f.import_offset.y()}));
             num("import_scale_x", f.import_scale_x, 0.001, 1000);
             num("import_scale_y", f.import_scale_y, 0.001, 1000);
             if (f.import_on_face) ref("import_face_body", f.import_face_body);
@@ -1309,7 +1262,7 @@ json feature_card(const CadFeature& f)
         num("taper_deg", f.taper_deg, -89, 89);
         edit("extrude_end", enum_name(kExtrudeEnds, int(f.extrude_end)));
         edit("flip", f.flip);
-        edit("mode", enum_name(kModes, int(f.mode)));
+        edit("operation", enum_name(kOperations, int(f.mode)));
         ref("sketch_ref", f.sketch_ref);
         ref("target_body", f.target_body);
         ref("up_to_face", f.up_to_face);
@@ -1319,19 +1272,19 @@ json feature_card(const CadFeature& f)
         num("revolve_angle", f.revolve_angle, 1, 360);
         edit("revolve_axis", f.revolve_axis);
         edit("flip", f.flip);
-        edit("mode", enum_name(kModes, int(f.mode)));
+        edit("operation", enum_name(kOperations, int(f.mode)));
         ref("sketch_ref", f.sketch_ref);
         ref("revolve_axis_entity", f.revolve_axis_entity);
         ref("target_body", f.target_body);
         break;
     case T::Sweep:
-        edit("mode", enum_name(kModes, int(f.mode)));
+        edit("operation", enum_name(kOperations, int(f.mode)));
         ref("sketch_ref", f.sketch_ref);
         ref("sweep_path_ref", f.sweep_path_ref);
         ref("target_body", f.target_body);
         break;
     case T::Loft:
-        edit("mode", enum_name(kModes, int(f.mode)));
+        edit("operation", enum_name(kOperations, int(f.mode)));
         edit("loft_ruled", f.loft_ruled);
         ref("loft_profile_refs", f.loft_profile_refs);
         ref("target_body", f.target_body);
@@ -1349,8 +1302,8 @@ json feature_card(const CadFeature& f)
         edit("hole_through", f.hole_through);
         num("hole_x", f.hole_x, -1000, 1000);
         num("hole_y", f.hole_y, -1000, 1000);
-        // The seat is not on the card; hole_styled and hole_standard set it. 0 = simple.
-        edit("hole_style", f.hole_style);
+        // The seat, which the card does not show; hole's type and designation set it.
+        edit("type", enum_name(kHoleTypes, f.hole_style));
         num("hole_cbore_diameter", f.hole_cbore_diameter, 0, 1000);
         num("hole_cbore_depth", f.hole_cbore_depth, 0, 1000);
         num("hole_csink_diameter", f.hole_csink_diameter, 0, 1000);
@@ -1392,7 +1345,11 @@ json feature_card(const CadFeature& f)
         ref("target_body", f.target_body);
         break;
     case T::Pattern:
-        edit("pattern_circular", f.pattern_circular);
+        // A pattern along a curve follows its sketch's entity, which no field changes.
+        if (f.pattern_curve_sketch >= 0)
+            show("type", enum_name(kPatternTypes, 2));
+        else
+            edit("type", enum_name(kPatternTypes, f.pattern_circular ? 1 : 0));
         num("pattern_count", f.pattern_count, 1, 999);
         num("pattern_spacing", f.pattern_spacing, 0.01, 100000);
         edit("pattern_dir", f.pattern_dir);
@@ -1402,7 +1359,7 @@ json feature_card(const CadFeature& f)
         ref("target_body", f.target_body);
         break;
     case T::Boolean:
-        edit("mode", enum_name(kModes, int(f.mode)));
+        edit("operation", enum_name(kOperations, int(f.mode)));
         edit("bool_keep_tool", f.bool_keep_tool);
         num("bool_tolerance", f.bool_tolerance, 0, 100);
         ref("target_body", f.target_body);
@@ -1421,7 +1378,7 @@ json feature_card(const CadFeature& f)
         break;
     case T::Mirror:
         edit("mirror_keep_original", f.mirror_keep_original);
-        edit("mode", enum_name(kModes, int(f.mode)));
+        edit("operation", enum_name(kOperations, int(f.mode)));
         ref("target_body", f.target_body);
         break;
     case T::Transform:
@@ -1469,8 +1426,8 @@ json feature_card(const CadFeature& f)
         break;
     case T::SurfaceRevolve:
         num("revolve_angle", f.revolve_angle, 1, 360);
-        show("revolve_axis", f.revolve_axis);
-        show("flip", f.flip);
+        edit("revolve_axis", f.revolve_axis);
+        edit("flip", f.flip);
         ref("sketch_ref", f.sketch_ref);
         ref("revolve_axis_entity", f.revolve_axis_entity);
         break;
@@ -1479,7 +1436,7 @@ json feature_card(const CadFeature& f)
         ref("target_body", f.target_body);
         break;
     case T::Mate:
-        edit("mate_kind", f.mate_kind);
+        edit("type", enum_name(kAlignTypes, f.mate_kind));
         num("mate_offset", f.mate_offset, -100000, 100000);
         num("mate_angle", f.mate_angle, -360, 360);
         edit("mate_flip", f.mate_flip);
@@ -1554,7 +1511,6 @@ void set_card_choice(CadFeature& f, const std::string& k, const json& v)
     if (k == "flip")                 return flag(f.flip);
     if (k == "hole_through")         return flag(f.hole_through);
     if (k == "thread_internal")      return flag(f.thread_internal);
-    if (k == "pattern_circular")     return flag(f.pattern_circular);
     if (k == "loft_ruled")           return flag(f.loft_ruled);
     if (k == "bool_keep_tool")       return flag(f.bool_keep_tool);
     if (k == "cut_flip")             return flag(f.cut_flip);
@@ -1565,9 +1521,7 @@ void set_card_choice(CadFeature& f, const std::string& k, const json& v)
     if (k == "helix_left_handed")    return flag(f.helix_left_handed);
     if (k == "xf_copy")              return flag(f.xf_copy);
     if (k == "mate_flip")            return flag(f.mate_flip);
-    if (k == "hole_style")           return choice(f.hole_style, 2);
     if (k == "pattern_dir")          return choice(f.pattern_dir, 1);
-    if (k == "mate_kind")            return choice(f.mate_kind, 4);
     if (k == "revolve_axis") {
         // Choosing the plane's X or Y axis on the card drops a sketch line chosen as the axis.
         choice(f.revolve_axis, 1);
@@ -1577,23 +1531,68 @@ void set_card_choice(CadFeature& f, const std::string& k, const json& v)
     if (k == "xf_translate") return point3(f.xf_translate, false);
     if (k == "xf_pivot")     return point3(f.xf_pivot, false);
     if (k == "xf_axis")      return point3(f.xf_axis, true);
+    if (k == "import_offset") {
+        if (!v.is_array() || v.size() != 2 || !v[0].is_number() || !v[1].is_number())
+            throw std::runtime_error(k + " must be [x, y]");
+        const Vec2d p(v[0].get<double>(), v[1].get<double>());
+        if (!(p.cwiseAbs().maxCoeff() <= 100000)) throw std::runtime_error(k + " must be between -100000 and 100000 on each axis");
+        f.import_offset = p;
+        return;
+    }
+    // A Text feature's words, height and font, as sketch_text takes them. Written here only: the outline is the
+    // panel's (DesignPanel::mcp_outline_text()), which feature_edit runs on them.
+    if (k == "text_string") {
+        if (!v.is_string() || v.get<std::string>().empty()) throw std::runtime_error("text_string must be the words to outline");
+        f.text_string = v.get<std::string>();
+        return;
+    }
+    if (k == "text_height") {
+        if (!v.is_number() || !(v.get<double>() >= 0.5 && v.get<double>() <= 500.0))
+            throw std::runtime_error("text_height must be 0.5 to 500 mm");
+        f.text_height = v.get<double>();
+        return;
+    }
+    if (k == "text_font") {
+        if (!v.is_string() || v.get<std::string>().empty())
+            throw std::runtime_error("text_font must be a font's face name, or the stored value feature_describe reports");
+        f.text_font = v.get<std::string>();
+        return;
+    }
     if (k == "shape") {
         f.shape = SketchShape(enum_index(k, v, kShapes));
         return;
     }
-    if (k == "mode") {
-        // A Boolean combines two bodies, so it makes no new one; a Mirror adds its mirrored body
-        // or fuses it back.
-        const BooleanMode m = BooleanMode(enum_index(k, v, kModes));
+    if (k == "type") {
+        // A hole's seat, an align's kind and a pattern's layout, in their command's words.
+        if (f.type == CadFeatureType::Hole) {
+            f.hole_style = enum_index(k, v, kHoleTypes);
+            return;
+        }
+        if (f.type == CadFeatureType::Mate) {
+            f.mate_kind = enum_index(k, v, kAlignTypes);
+            return;
+        }
+        if (f.type == CadFeatureType::Pattern) {
+            const int layout = enum_index(k, v, kPatternTypes);
+            if (layout == 2)
+                throw std::runtime_error("a pattern's type is linear or circular; a curve pattern is made with pattern {type: \"curve\"}");
+            f.pattern_circular = layout == 1;
+            return;
+        }
+    }
+    if (k == "operation") {
+        // The member mode, in the words the feature's card offers: a Boolean combines two bodies, so it makes no new
+        // one; a Mirror adds its mirrored body or joins it back.
+        const BooleanMode m = BooleanMode(enum_index(k, v, kOperations));
         if (f.type == CadFeatureType::Boolean && m == BooleanMode::New)
-            throw std::runtime_error("a Boolean's mode is union, subtract or intersect");
+            throw std::runtime_error("a Boolean's operation is join, cut or intersect");
         if (f.type == CadFeatureType::Mirror && m != BooleanMode::New && m != BooleanMode::Add)
-            throw std::runtime_error("a Mirror's mode is new or union");
+            throw std::runtime_error("a Mirror's operation is new_body or join");
         f.mode = m;
         return;
     }
     if (k == "extrude_end") {
-        // The face or vertex an end goes up to is picked on the canvas; set_feature keeps the
+        // The face or vertex an end goes up to is picked on the canvas; feature_edit keeps the
         // feature's own pick and cannot make one.
         const ExtrudeEnd e = ExtrudeEnd(enum_index(k, v, kExtrudeEnds));
         if (e == ExtrudeEnd::UpToFace && f.up_to_face < 0)
@@ -1613,33 +1612,62 @@ void check_feature_index(int fi, const CadDocument& doc)
                                  std::to_string(doc.features.size()) + " features");
 }
 
-// The `feature` param (or `index`, as agents often call it): an index into describe_scene's features.
+// The `feature` param (or `index`, as agents often call it): an index into describe_design's features.
 int feature_arg(const json& params, const CadDocument& doc)
 {
     const json v = !params.is_object() ? json() : params.contains("feature") ? params["feature"] : params.value("index", json());
-    if (!v.is_number_integer()) throw std::runtime_error("feature must be a feature index (describe_scene's features[].index)");
+    if (!v.is_number_integer()) throw std::runtime_error("feature must be a feature index (describe_design's features[].index)");
     check_feature_index(v.get<int>(), doc);
     return v.get<int>();
 }
 
-json action_describe_feature(DesignPanel* panel, const json& params)
+json action_feature_describe(DesignPanel* panel, const json& params)
 {
     const CadDocument& doc = panel->mcp_doc();
     return cad_feature_json(doc, feature_arg(params, doc));
 }
 
-// A card's Confirm in edit mode (DesignPanel::confirm_tool): one undo step, then replace_feature(),
-// which rebuilds and puts the old features back if the rebuild fails.
-json action_set_feature(DesignPanel* panel, const json& params)
+// A card's Confirm in edit mode (DesignPanel::confirm_tool): `fields`, then `refs`, written to a copy of the feature,
+// a Text feature outlined again when its words, height or font change, then one undo step and replace_feature(),
+// which rebuilds and puts the old features back if the rebuild fails. Every argument is checked before anything
+// changes.
+json action_feature_edit(DesignPanel* panel, const json& params)
 {
     CadDocument& doc = panel->mcp_doc();
     const int    fi  = feature_arg(params, doc);
     // The card's values go in fields; params and values are what agents often call them.
-    const char* key = params.contains("fields") ? "fields" : params.contains("params") ? "params" : params.contains("values") ? "values" : nullptr;
-    if (key == nullptr) throw std::runtime_error("set_feature needs 'fields', as {\"distance\": 15}");
-    CadFeature edited = doc.features[fi];
-    cad_apply_feature_fields(edited, params[key]);
-    const json before = feature_card(doc.features[fi])["params"];
+    const char* key    = params.contains("fields") ? "fields" : params.contains("params") ? "params" : params.contains("values") ? "values" : nullptr;
+    json        fields = key != nullptr ? params[key] : json::object();
+    const json  refs   = params.value("refs", json::object());
+    if (!fields.is_object()) throw std::runtime_error("fields must be an object, as {\"distance\": 15}");
+    if (!refs.is_object()) throw std::runtime_error("refs must be an object, as {\"sweep_path_ref\": 2}");
+    if (fields.empty() && refs.empty())
+        throw std::runtime_error("feature_edit needs fields or refs, as {\"fields\": {\"distance\": 15}} or {\"refs\": {\"sweep_path_ref\": 2}}");
+    const CadFeature was    = doc.features[fi];
+    CadFeature       edited = was;
+    // A Text feature's Bold and Italic go with a face name in text_font, as the Text dialog's boxes go with its Font
+    // list: they are no field of the feature, whose stored font holds them.
+    bool bold = false, italic = false, styled = false;
+    if (was.is_text())
+        for (const auto& [k, flag] : {std::pair<const char*, bool*>{"text_bold", &bold}, {"text_italic", &italic}}) {
+            if (!fields.contains(k)) continue;
+            if (!fields[k].is_boolean()) throw std::runtime_error(std::string(k) + " must be true or false");
+            *flag  = fields[k].get<bool>();
+            styled = true;
+            fields.erase(k);
+        }
+    if (!fields.empty()) cad_apply_feature_fields(edited, fields);
+    if (was.is_text() && (styled || fields.contains("text_string") || fields.contains("text_height") || fields.contains("text_font"))) {
+        // A text_font that is the stored value keeps the feature's font; any other names a face.
+        const std::string face = fields.contains("text_font") && edited.text_font != was.text_font ? edited.text_font : std::string();
+        if (styled && face.empty()) throw std::runtime_error("text_bold and text_italic go with text_font given as a face name");
+        edited.text_font = was.text_font;
+        std::string why;
+        if (!panel->mcp_outline_text(edited, edited.text_string, face, bold, italic, edited.text_height, why))
+            throw std::runtime_error(why);
+    }
+    if (!refs.empty()) cad_apply_feature_refs(edited, refs, cad_document_before(doc, fi), doc, fi);
+    const json described = cad_feature_json(doc, fi);
     doc.checkpoint();
     if (!doc.replace_feature(fi, edited)) {
         // The features are back already; rollback() also takes back the undo step and restores
@@ -1651,14 +1679,12 @@ json action_set_feature(DesignPanel* panel, const json& params)
         throw ToolFailure(why, {{"code", -32000}});
     }
     panel->mcp_after_change();
-    const json after   = feature_card(doc.features[fi])["params"];
-    json       changed = json::object();
-    for (const auto& [k, v] : after.items()) {
-        const json old = before.value(k, json());
-        if (old != v) changed[k] = json::array({old, v});
-    }
-    return json{{"ok", true}, {"feature", fi}, {"changed", std::move(changed)}, {"bodies", int(doc.bodies.size())},
-                {"generation", doc.topo_generation}, {"error", doc.error}};
+    return json{{"ok", true},
+                {"feature", fi},
+                {"changed", cad_feature_changes(described, cad_feature_json(doc, fi))},
+                {"bodies", int(doc.bodies.size())},
+                {"generation", doc.topo_generation},
+                {"error", doc.error}};
 }
 
 // Which entities a verb acts on in the open sketch (sketch_target_indices()).
@@ -1701,7 +1727,7 @@ json sketch_report(const DesignSketchTool::LoopReport& rep)
 // The session starts as a plane or face pick starts it, so the panel enters Sketch mode with the
 // tool: key dispatch reads the panel's mode while the menu reads the viewport's, and a session the
 // panel did not know of would leave every sketch key dead.
-json action_sketch_begin(DesignPanel* panel, const json& params)
+json action_sketch_create(DesignPanel* panel, const json& params)
 {
     DesignCanvas* vp = panel->mcp_viewport();
     if (vp == nullptr) throw std::runtime_error("no viewport");
@@ -1718,26 +1744,31 @@ json action_sketch_begin(DesignPanel* panel, const json& params)
     return json{{"ok", true}, {"plane", pl}, {"frame", frame_json(plane)}};
 }
 
-// The sketch's Confirm. An empty sketch is refused before anything changes, where the GUI's commit
-// drops it with a status line: a failed call is left out of an exported replay, so the session
-// must still be open when the replay's next sketch call runs.
-json action_sketch_commit(DesignPanel* panel, const json& params)
+// The sketch's Confirm. A failed call is left out of an exported replay, so a call that fails must
+// leave the session as it was: a new empty sketch is refused before anything changes (where the
+// GUI's commit drops it with a status line), and the session stays open for the replay's next
+// sketch call. A re-opened sketch is committed as its Confirm commits it, which replaces it in
+// place; a replace the rebuild refuses, or a re-opened sketch left empty, ends the edit with the
+// design as it was. That changes the session, so it is a reply, ok false with the reason, which
+// the replay keeps and runs to end the edit where the live run ended it.
+json action_sketch_finish(DesignPanel* panel, const json& params)
 {
     (void)params;
-    DesignSketchTool& t = mcp_sketch(panel);
-    if (t.entities().empty()) throw std::runtime_error("the sketch is empty; add entities or call sketch_cancel");
-    CadDocument&  doc    = panel->mcp_doc();
-    const size_t  before = doc.features.size();
-    DesignCanvas* vp     = panel->mcp_viewport();
-    vp->sketch_confirm_pending();   // a ready edit-op or chain is kept, as the ✓ keeps it
-    vp->finish_sketch();            // the commit handler checkpoints, names, solves and rebuilds
-    panel->mcp_set_sketch_mode(false);
+    DesignSketchTool& t      = mcp_sketch(panel);
+    const int         edited = panel->mcp_edited_sketch();
+    if (edited < 0 && t.entities().empty()) throw std::runtime_error("the sketch is empty; add entities or call sketch_cancel");
+    const DesignPanel::SketchFinish done = panel->mcp_finish_sketch();
+    if (!done.committed && edited >= 0)
+        return json{{"ok", false}, {"replaced", false}, {"sketch_index", edited},
+                    {"error", "the sketch was not replaced: " + done.error}};
+    if (!done.committed) throw std::runtime_error("the sketch was not committed");
     panel->mcp_after_change();
-    if (doc.features.size() <= before) throw std::runtime_error("the sketch was not committed");
     // Read back from the committed feature: solving its dimensions can move geometry, and extrude
     // takes `loop` against these entities.
-    const CadFeature& f = doc.features[before];
-    json out{{"ok", true}, {"sketch_index", int(before)}, {"name", f.name}, {"features", int(doc.features.size())}};
+    const CadDocument& doc = panel->mcp_doc();
+    const CadFeature&  f   = doc.features[done.index];
+    json out{{"ok", true}, {"sketch_index", done.index}, {"name", f.name}, {"features", int(doc.features.size())}};
+    if (done.replaced) out["replaced"] = true;
     out.update(sketch_report(t.loop_report(f.entities)));
     return out;
 }
@@ -1747,9 +1778,26 @@ json action_sketch_cancel(DesignPanel* panel, const json& params)
     (void)params;
     DesignCanvas* vp = panel->mcp_viewport();
     if (vp == nullptr || !vp->is_sketching()) throw std::runtime_error("no sketch is open");
-    vp->cancel_sketch();
-    panel->mcp_set_sketch_mode(false);
+    panel->mcp_cancel_sketch();
     return json{{"ok", true}};
+}
+
+// Edit on a committed sketch's Feature tree row, for a sketch drawn from entities: the sketch
+// commands then act on it, and sketch_finish puts it back in its place.
+json action_sketch_edit(DesignPanel* panel, const json& params)
+{
+    const json v = params.is_object() ? params.value("sketch", json()) : json();
+    if (!v.is_number_integer()) throw std::runtime_error("sketch must be a feature index (describe_design's features[].index)");
+    const int   si = v.get<int>();
+    std::string why;
+    if (!panel->mcp_edit_sketch(si, why)) throw std::runtime_error(why);
+    const DesignSketchTool& t   = mcp_sketch(panel);
+    const CadDocument&      doc = panel->mcp_doc();
+    return json{{"ok", true},
+                {"sketch", si},
+                {"entities", int(t.entities().size())},
+                {"constraints", int(t.constraints().size())},
+                {"plane", plane_json(doc.features[si].plane, doc.modeling_origin)}};
 }
 
 json action_sketch_select(DesignPanel* panel, const json& params)
@@ -1776,7 +1824,7 @@ json action_sketch_delete(DesignPanel* panel, const json& params)
                 {"entities", int(t.entities().size())}};
 }
 
-json action_sketch_construction(DesignPanel* panel, const json& params)
+json action_sketch_toggle_construction(DesignPanel* panel, const json& params)
 {
     DesignSketchTool& t = mcp_sketch(panel);
     const std::vector<int> tgt = sketch_targets(params, t, false);
@@ -1787,49 +1835,11 @@ json action_sketch_construction(DesignPanel* panel, const json& params)
     return json{{"ok", n > 0}, {"changed", n}};
 }
 
-json action_sketch_offset(DesignPanel* panel, const json& params)
-{
-    if (!params.contains("distance")) throw std::runtime_error("sketch_offset needs 'distance'");
-    DesignSketchTool& t = mcp_sketch(panel);
-    const double d = params.at("distance").get<double>();
-    const std::vector<int> tgt = sketch_targets(params, t, true);
-    std::vector<SketchEntity> src;
-    for (int i : tgt)
-        if (i >= 0 && i < int(t.entities().size())) src.push_back(t.entities()[i]);
-    if (src.empty()) throw std::runtime_error("nothing to offset");
-    const auto out = SketchEngine::offset_entities(src, d);
-    if (out.empty()) throw std::runtime_error("offset produced nothing (ellipses and splines are not offset)");
-    const int base = t.add_entities_scripted(out);
-    panel->mcp_viewport()->request_repaint();
-    return json{{"ok", true}, {"first_index", base}, {"added", int(out.size())}, {"dof", sketch_dof(t)}};
-}
-
-json action_sketch_mirror(DesignPanel* panel, const json& params)
-{
-    DesignSketchTool& t = mcp_sketch(panel);
-    auto pt = [&](const char* k, double dx, double dy) {
-        if (!params.contains(k)) return Vec2d(dx, dy);
-        const json& a = params.at(k);
-        if (!a.is_array() || a.size() < 2) throw std::runtime_error(std::string(k) + " must be [x, y]");
-        return Vec2d(a[0].get<double>(), a[1].get<double>());
-    };
-    const Vec2d a = pt("axis_a", 0, 0), b = pt("axis_b", 0, 1);
-    const std::vector<int> tgt = sketch_targets(params, t, true);
-    std::vector<SketchEntity> src;
-    for (int i : tgt)
-        if (i >= 0 && i < int(t.entities().size())) src.push_back(t.entities()[i]);
-    if (src.empty()) throw std::runtime_error("nothing to mirror");
-    const auto out = SketchEngine::mirror_entities(src, a, b);
-    const int base = t.add_entities_scripted(out);
-    panel->mcp_viewport()->request_repaint();
-    return json{{"ok", true}, {"first_index", base}, {"added", int(out.size())}, {"dof", sketch_dof(t)}};
-}
-
 // The `sketch` a Design command reads or builds from: a Sketch feature, or a Project feature, whose
 // entities the kernel builds as a sketch's.
 int sketch_arg(const json& v, const CadDocument& doc)
 {
-    if (!v.is_number_integer()) throw std::runtime_error("sketch must be a feature index (describe_scene's features[].index)");
+    if (!v.is_number_integer()) throw std::runtime_error("sketch must be a feature index (describe_design's features[].index)");
     const int si = v.get<int>();
     check_feature_index(si, doc);
     const CadFeature& f = doc.features[si];
@@ -1890,7 +1900,7 @@ json action_sketch_validate(DesignPanel* panel, const json& params)
     return out;
 }
 
-json action_sketch_heal(DesignPanel* panel, const json& params)
+json action_sketch_repair(DesignPanel* panel, const json& params)
 {
     DesignSketchTool& t = mcp_sketch(panel);
     const double tol = params.value("tolerance", 1e-3);
@@ -1964,27 +1974,11 @@ json action_sketch_set_value(DesignPanel* panel, const json& params)
 // With `sketch` they are the Extrude and Revolve cards' Confirm on a committed sketch (or one loop
 // of it); without, they draw their own sketch first, a `profile` or a rectangle on `plane`.
 
-// The card's mode choice. "auto" (where allowed) comes back empty. bool_from, which boolean's op
-// reads, makes a new body of a word it does not know; here that is an error.
-std::optional<BooleanMode> boolean_arg(const json& params, const char* def, bool allow_auto)
-{
-    json v = params.value("boolean", json());
-    if (v.is_null()) v = def;
-    if (v.is_string()) {
-        const std::string b = v.get<std::string>();
-        if (allow_auto && b == "auto") return std::nullopt;
-        for (size_t i = 0; i < std::size(kModes); ++i)
-            if (b == kModes[i]) return BooleanMode(i);
-    }
-    throw std::runtime_error(allow_auto ? "boolean must be auto, new, union, subtract or intersect"
-                                        : "boolean must be new, union, subtract or intersect");
-}
-
 // A join or cut needs something to work on, as the Revolve card says.
 void check_has_body(BooleanMode mode, const CadDocument& doc)
 {
     if (mode != BooleanMode::New && doc.bodies.empty())
-        throw std::runtime_error("boolean " + std::string(kModes[int(mode)]) + " needs a body; add or import one first");
+        throw std::runtime_error("operation " + std::string(kOperations[int(mode)]) + " needs a body; add or import one first");
 }
 
 double distance_arg(const json& params)
@@ -2020,6 +2014,24 @@ int revolve_axis_arg(const json& params)
     const int axis = params.value("axis", 0);
     if (axis != 0 && axis != 1) throw std::runtime_error("axis must be 0 (plane X) or 1 (plane Y)");
     return axis;
+}
+
+// Whether entity `e` of `ents`, a sketch's entities, is a line: what a revolve turns about and a rib grows from.
+bool revolve_line(const std::vector<SketchEntity>& ents, int e)
+{
+    return e >= 0 && e < int(ents.size()) && ents[size_t(e)].type == SketchEntity::Type::Line;
+}
+
+// The line of sketch `si` a revolve of it turns about, or -1 for the plane axis: params.axis_entity; without one, the
+// sketch's only centerline, as a fresh card offers it, unless the caller chose a plane axis.
+int revolve_axis_entity_arg(const json& params, const CadDocument& doc, int si)
+{
+    const json ae = params.value("axis_entity", json());
+    if (ae.is_null()) return params.contains("axis") ? -1 : DesignPanel::default_revolve_axis_entity(doc.features[si].entities);
+    if (!ae.is_number_integer()) throw std::runtime_error("axis_entity must be an entity index of the sketch, or -1 for the plane axis");
+    if (ae.get<int>() != -1 && !revolve_line(doc.features[si].entities, ae.get<int>()))
+        throw std::runtime_error("axis_entity " + std::to_string(ae.get<int>()) + " is not a line of sketch " + std::to_string(si));
+    return ae.get<int>();
 }
 
 // The sketch is the profile and fixes its plane, so these would be ignored; refusing them shows the
@@ -2071,12 +2083,12 @@ int result_body(const CadDocument& doc, int feature)
     return t >= 0 ? t : int(doc.bodies.size()) - 1;
 }
 
-// The boolean a solid feature was built with and the body it went into, as the defaults resolved.
+// The operation a solid feature was built with and the body it went into, as the defaults resolved.
 json body_reply(json r, const CadDocument& doc, const char* index_key)
 {
-    const int f  = r.at(index_key).get<int>();
-    r["boolean"] = kModes[int(doc.features[f].mode)];
-    r["body"]    = result_body(doc, f);
+    const int f    = r.at(index_key).get<int>();
+    r["operation"] = kOperations[int(doc.features[f].mode)];
+    r["body"]      = result_body(doc, f);
     return r;
 }
 
@@ -2134,7 +2146,7 @@ json action_extrude(DesignPanel* panel, const json& params)
 
     const double      d    = distance_arg(params);
     const SketchPlane pl   = cad_resolve_plane(params.value("plane", json("XY")), doc, false);
-    const auto        mode = boolean_arg(params, "new", true);
+    const auto        mode = operation_arg(params, "new_body", kExtrudeOperations);
     const int         body = std::max(-1, target_body_arg(params, doc));
     if (mode) check_has_body(*mode, doc);
     SketchProfile prof;
@@ -2182,7 +2194,7 @@ json action_revolve(DesignPanel* panel, const json& params)
     const int         axis  = revolve_axis_arg(params);
     const bool        flip  = params.value("flip", false);
     const SketchPlane pl    = cad_resolve_plane(params.value("plane", json("XY")), doc, false);
-    const BooleanMode mode  = *boolean_arg(params, "new", false);
+    const BooleanMode mode  = *operation_arg(params, "new_body", kSolidOperations);
     const int         body  = std::max(-1, target_body_arg(params, doc));
     check_has_body(mode, doc);
     const SketchProfile prof = cad_revolve_profile(params);
@@ -2200,8 +2212,7 @@ json action_revolve(DesignPanel* panel, const json& params)
 
 json action_mirror(DesignPanel* panel, const json& params)
 {
-    std::string m_str = params.value("mode", std::string("new"));
-    BooleanMode m = (m_str == "add") ? BooleanMode::Add : BooleanMode::New;
+    const BooleanMode m = *operation_arg(params, "new_body", kMirrorOperations);
     CadDocument& doc = panel->mcp_doc();
     if (doc.bodies.empty()) throw std::runtime_error("no body to mirror");
     int bi = target_body_arg(params, doc);
@@ -2235,21 +2246,20 @@ json action_transform(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"transform_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+// Whether a thicken call thickens a whole sheet body (type surface, or no type and no face) rather than a face.
+bool thickens_surface(const json& params)
+{
+    const json type = params.value("type", json());
+    return type.is_null() ? params.value("face", json()).is_null() : type == "surface";
+}
+
+// The Thicken and Thicken Surface cards' Confirm, each feature named as its card names it.
 json action_thicken(DesignPanel* panel, const json& params)
 {
-    if (!params.contains("face")) throw std::runtime_error("thicken needs 'face' (id from query_topology)");
-    CadDocument& doc = panel->mcp_doc();
-    if (doc.bodies.empty()) throw std::runtime_error("no body to thicken");
-    int bi = target_body_arg(params, doc);
-    int face = params["face"].get<int>();
-    double thickness = params.value("thickness", 2.0);
-    bool flip = params.value("flip", false);
-    doc.checkpoint();
-    int idx = doc.add_thicken(bi, face, thickness, flip, panel->mcp_feature_name(_L("Thicken")));
-    bool ok = doc.recompute();
-    if (!ok) { const std::string why = doc.error; doc.rollback(); doc.error = why; }
-    panel->mcp_after_change(ok);
-    return json{{"ok", ok}, {"thicken_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+    CadDocument&   doc  = panel->mcp_doc();
+    const auto     add  = cad_thicken(doc, params);
+    const wxString name = thickens_surface(params) ? _L("Thicken Surface") : _L("Thicken");
+    return add_feature(panel, "thicken_index", [&] { return add(panel->mcp_feature_name(name)); });
 }
 
 // With a plane, the Cut card's Confirm (on_add_cut); with a face, a split along that face's plane.
@@ -2266,8 +2276,15 @@ json action_split(DesignPanel* panel, const json& params)
     return r;
 }
 
-json action_project(DesignPanel* panel, const json& params)
+// With a sketch open, new or re-opened, the edges go into it (cad_sketch_project()). Otherwise the Project card's
+// Confirm: a new sketch on `plane`, XY when it is left out or null, whose entities follow the body.
+json action_sketch_project(DesignPanel* panel, const json& params)
 {
+    if (DesignCanvas* vp = panel->mcp_viewport(); vp != nullptr && vp->is_sketching()) {
+        json r = cad_sketch_project(panel->mcp_doc(), vp->mcp_sketch_tool(), params);
+        vp->request_repaint();
+        return r;
+    }
     CadDocument& doc = panel->mcp_doc();
     if (doc.bodies.empty()) throw std::runtime_error("no source body to project from");
     int source_body = params.value("source_body", -1);
@@ -2275,14 +2292,15 @@ json action_project(DesignPanel* panel, const json& params)
     std::vector<int> edges;
     if (params.contains("edges") && params["edges"].is_array())
         for (const auto& v : params["edges"]) edges.push_back(v.get<int>());
-    const SketchPlane pl = cad_resolve_plane(params.value("plane", json("XY")), doc, false);
+    const json        plane = params.value("plane", json());
+    const SketchPlane pl    = cad_resolve_plane(plane.is_null() ? json("XY") : plane, doc, false);
     doc.checkpoint();
     int idx = doc.add_project_edges(source_body, edges, face, pl, panel->mcp_feature_name(_L_CONTEXT("Project", "Design")));
     bool ok = doc.recompute();
     if (!ok) { const std::string why = doc.error; doc.rollback(); doc.error = why; }
     panel->mcp_after_change(ok);
-    return json{{"ok", ok}, {"project_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error},
-                {"frame", frame_json(pl)}};
+    return json{{"ok", ok}, {"scope", "feature"}, {"project_index", idx}, {"bodies", int(doc.bodies.size())},
+                {"error", doc.error}, {"frame", frame_json(pl)}};
 }
 
 json action_delete_face(DesignPanel* panel, const json& params)
@@ -2302,11 +2320,11 @@ json action_delete_face(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"feature_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
-json action_bridge(DesignPanel* panel, const json& params)
+json action_sketch_blend_curve(DesignPanel* panel, const json& params)
 {
-    if (!params.contains("sketch")) throw std::runtime_error("bridge needs 'sketch' (feature index)");
-    if (!params.contains("ent_a"))  throw std::runtime_error("bridge needs 'ent_a' (entity index)");
-    if (!params.contains("ent_b"))  throw std::runtime_error("bridge needs 'ent_b' (entity index)");
+    if (!params.contains("sketch")) throw std::runtime_error("sketch_blend_curve needs 'sketch' (feature index)");
+    if (!params.contains("ent_a"))  throw std::runtime_error("sketch_blend_curve needs 'ent_a' (entity index)");
+    if (!params.contains("ent_b"))  throw std::runtime_error("sketch_blend_curve needs 'ent_b' (entity index)");
     int sketch = params["sketch"].get<int>();
     int ent_a  = params["ent_a"].get<int>();
     int ent_b  = params["ent_b"].get<int>();
@@ -2322,7 +2340,7 @@ json action_bridge(DesignPanel* panel, const json& params)
                 {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
-json action_axis(DesignPanel* panel, const json& params)
+json action_construct_axis(DesignPanel* panel, const json& params)
 {
     CadDocument& doc = panel->mcp_doc();
     std::string t = params.value("type", std::string("two_points"));
@@ -2353,7 +2371,7 @@ json action_axis(DesignPanel* panel, const json& params)
     return json{{"ok", true}, {"axis_index", idx}, {"error", err}};
 }
 
-json action_coordsys(DesignPanel* panel, const json& params)
+json action_construct_coordinate_system(DesignPanel* panel, const json& params)
 {
     CadDocument& doc = panel->mcp_doc();
     std::string t = params.value("type", std::string("point_world"));
@@ -2380,7 +2398,7 @@ json action_coordsys(DesignPanel* panel, const json& params)
 }
 
 // The Plane card's Confirm (on_add_plane): one undo step, after the card's checks.
-json action_plane(DesignPanel* panel, const json& params)
+json action_construct_plane(DesignPanel* panel, const json& params)
 {
     CadDocument& doc = panel->mcp_doc();
     const auto   add = cad_datum_plane(doc, params);
@@ -2447,24 +2465,15 @@ json action_loft(DesignPanel* panel, const json& params)
     return body_reply(std::move(r), doc, "loft_index");
 }
 
-json action_mate(DesignPanel* panel, const json& params)
+// The Mate card's Confirm: the feature keeps the history's name for it, Mate.
+json action_align(DesignPanel* panel, const json& params)
 {
-    if (!params.contains("cs_a")) throw std::runtime_error("mate needs 'cs_a' (CoordSys feature index)");
-    if (!params.contains("cs_b")) throw std::runtime_error("mate needs 'cs_b' (CoordSys feature index)");
-    const int kind      = params.value("kind", 0);
-    const int cs_a      = params["cs_a"].get<int>();
-    const int cs_b      = params["cs_b"].get<int>();
-    const double offset = params.value("offset", 0.0);
-    const double angle  = params.value("angle", 0.0);
-    const bool flip     = params.value("flip", false);
     CadDocument& doc = panel->mcp_doc();
-    doc.checkpoint();
-    int idx = doc.add_mate(kind, cs_a, cs_b, offset, angle, flip, panel->mcp_feature_name(_L("Mate")));
-    bool ok = doc.recompute();
-    if (!ok) { const std::string why = doc.error; doc.rollback(); doc.error = why; }
-    panel->mcp_after_change(ok);
-    return json{{"ok", ok}, {"mate_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+    const auto   add = cad_align(doc, params);
+    return add_feature(panel, "align_index", [&] { return add(panel->mcp_feature_name(_L("Mate"))); });
 }
+
+json action_list_align_types(DesignPanel* panel, const json& params) { return cad_align_types(panel->mcp_doc(), params); }
 
 json action_check_interference(DesignPanel* panel, const json& params)
 {
@@ -2514,12 +2523,12 @@ json action_set_variable(DesignPanel* panel, const json& params)
     return r;
 }
 
-json action_set_feature_expr(DesignPanel* panel, const json& params)
+json action_feature_set_expression(DesignPanel* panel, const json& params)
 {
     CadDocument& doc = panel->mcp_doc();
     const int    fi  = feature_arg(params, doc);
-    if (!params.contains("field")) throw std::runtime_error("edit_feature needs 'field' name");
-    if (!params.contains("expr"))  throw std::runtime_error("edit_feature needs 'expr' string");
+    if (!params.contains("field")) throw std::runtime_error("feature_set_expression needs 'field' name");
+    if (!params.contains("expr"))  throw std::runtime_error("feature_set_expression needs 'expr' string");
     const std::string field = params["field"].get<std::string>();
     const std::string expr  = params["expr"].get<std::string>();
     // A name the evaluator does not know would fail every later rebuild; the binding row refuses it too.
@@ -2603,11 +2612,11 @@ std::string name_arg(const json& params)
     return name;
 }
 
-// The `body` param: an index into describe_scene's bodies.
+// The `body` param: an index into describe_design's bodies.
 int body_arg(const json& params, const CadDocument& doc)
 {
     const json v = param(params, "body");
-    if (!v.is_number_integer()) throw std::runtime_error("body must be a body index (describe_scene's bodies[].index)");
+    if (!v.is_number_integer()) throw std::runtime_error("body must be a body index (describe_design's bodies[].index)");
     const int b = v.get<int>();
     if (b < 0 || b >= int(doc.bodies.size()))
         throw std::runtime_error("body " + std::to_string(b) + " is out of range; the design has " +
@@ -2638,15 +2647,17 @@ json action_feature_move(DesignPanel* panel, const json& params)
     return tree_edit_reply(doc, {{"feature", to}, {"from", fi}});
 }
 
-json action_feature_set_enabled(DesignPanel* panel, const json& params)
+// The row's eye: it shows a feature that is not suppressed and hides one that is.
+json action_feature_suppress(DesignPanel* panel, const json& params)
 {
-    const CadDocument& doc     = panel->mcp_doc();
-    const int          fi      = feature_arg(params, doc);
-    const json         enabled = param(params, "enabled");
-    if (!enabled.is_boolean()) throw std::runtime_error("enabled must be true or false");
-    const bool changed = doc.features[fi].enabled != enabled.get<bool>();
-    if (!panel->show_feature(fi, enabled.get<bool>())) tree_edit_refused(doc);
-    return tree_edit_reply(doc, {{"feature", fi}, {"enabled", enabled}, {"changed", changed}});
+    const CadDocument& doc        = panel->mcp_doc();
+    const int          fi         = feature_arg(params, doc);
+    const json         suppressed = param(params, "suppressed");
+    if (!suppressed.is_boolean()) throw std::runtime_error("suppressed must be true or false");
+    const bool shown   = !suppressed.get<bool>();
+    const bool changed = doc.features[fi].enabled != shown;
+    if (!panel->show_feature(fi, shown)) tree_edit_refused(doc);
+    return tree_edit_reply(doc, {{"feature", fi}, {"suppressed", suppressed}, {"changed", changed}});
 }
 
 json action_feature_rename(DesignPanel* panel, const json& params)
@@ -2707,12 +2718,57 @@ json action_body_delete(DesignPanel* panel, const json& params)
     return tree_edit_reply(doc, {{"deleted_feature", deleted}, {"removed", before - doc.features.size()}});
 }
 
+// The Bodies row's Move and Place on Face from arguments: where a body stands, outside the history. Every argument is
+// read before the body moves.
+json action_body_place(DesignPanel* panel, const json& params)
+{
+    const int  b      = body_arg(params, panel->mcp_doc());
+    const json move   = param(params, "move");
+    const json rotate = param(params, "rotate");
+    const json face   = param(params, "face");
+    const json reset  = param(params, "reset");
+    if (!reset.is_null() && !reset.is_boolean()) throw std::runtime_error("reset must be true or false");
+    const bool resets = reset.is_boolean() && reset.get<bool>();
+    const int  forms  = int(!move.is_null() || !rotate.is_null()) + int(!face.is_null()) + int(resets);
+    if (forms == 0) throw std::runtime_error("body_place takes move and rotate, face, or reset: true");
+    if (forms > 1) throw std::runtime_error("move and rotate, face and reset are three forms: give one of them");
+
+    std::string why;
+    if (!face.is_null()) {
+        if (!face.is_number_integer() || face.get<int>() < 0) throw std::runtime_error("face must be a face id (body_describe)");
+        if (!panel->mcp_place_body_on_face(b, face.get<int>(), why)) throw std::runtime_error(why);
+    } else if (resets) {
+        panel->mcp_reset_body_placement(b);
+    } else {
+        Vec3d d = Vec3d::Zero();
+        if (!move.is_null()) {
+            if (!move.is_array() || move.size() != 3 || !std::all_of(move.begin(), move.end(), [](const json& v) { return v.is_number(); }))
+                throw std::runtime_error("move must be [dx, dy, dz] in mm");
+            d = Vec3d(move[0].get<double>(), move[1].get<double>(), move[2].get<double>());
+        }
+        int    axis  = -1;
+        double angle = 0.0;
+        if (!rotate.is_null()) {
+            static const std::map<std::string, int> axes{{"x", 0}, {"y", 1}, {"z", 2}};
+            const json a = param(rotate, "axis");
+            const json g = param(rotate, "angle");
+            const auto named = a.is_string() ? axes.find(a.get<std::string>()) : axes.end();
+            if (!rotate.is_object() || named == axes.end() || !g.is_number() || rotate.size() != 2)
+                throw std::runtime_error("rotate must be {\"axis\": \"x\", \"y\" or \"z\", \"angle\": degrees}");
+            axis  = named->second;
+            angle = g.get<double>();
+        }
+        if (!panel->mcp_place_body(b, d, axis, angle, why)) throw std::runtime_error(why);
+    }
+    return json{{"ok", true}, {"body", b}, {"moved", panel->mcp_body_moved(b)}, {"placement", placement_json(*panel, b)}};
+}
+
 // --- Hand-off: Commit to Plate, New Design, Export STEP ----------------------------------
 
 // Commit to Plate as the split button does, in `mode` (by default the button's, which this leaves
 // alone), then delete the `replace` objects. With `replace` the deletions and the commit are one
 // Prepare undo step: the commit's own snapshot is suppressed under the outer one.
-json action_commit(DesignPanel* panel, const json& params)
+json action_commit_to_plate(DesignPanel* panel, const json& params)
 {
     using Mode = DesignPanel::CommitMode;
     Mode mode = panel->commit_mode();
@@ -2725,7 +2781,7 @@ json action_commit(DesignPanel* panel, const json& params)
     ObjectList* obj_list = wxGetApp().obj_list();
     if (plater == nullptr || obj_list == nullptr) throw std::runtime_error("Prepare is not ready");
     Model& model = plater->model();
-    const std::vector<int> replace = cad_commit_replace(params.value("replace", json::array()), model);
+    const std::vector<int> replace = cad_commit_to_plate_replace(params.value("replace", json::array()), model);
     // The Delete key does not pull an object from under an open gizmo either.
     if (!replace.empty())
         for (GLCanvas3D* canvas : {plater->get_view3D_canvas3D(), plater->get_assmeble_canvas3D()})
@@ -2813,7 +2869,8 @@ json action_export_step(DesignPanel* panel, const json& params)
 // --- The open sketch: shapes, edit ops and constraints (cad_sketch_call) -----------------------
 //
 // Each runs the sketch tool's own step for its button or gesture (DesignSketchTool's *_scripted
-// entry points), checks every argument first and throws, leaving the sketch as it was.
+// entry points), checks every argument first and throws, leaving the sketch as it was. sketch_draw,
+// whose tools can still refuse an item while drawing it, puts the sketch back as it was before the call when one does.
 
 // SketchEntity::Type's names, as sketch_describe writes them.
 const char* const kEntityTypes[] = {"line", "arc", "circle", "point", "ellipse", "ellipse_arc", "spline"};
@@ -2872,25 +2929,80 @@ json solve_state(const DesignSketchTool& t)
                 {"dof", sketch_dof(t)}, {"solve_ok", t.solve_ok()}};
 }
 
-// One item of sketch_add: entities added as given (`tool` Select), or a shape a drawing tool builds
+// One item of sketch_draw: entities added as given (`tool` Select), or a shape a drawing tool builds
 // from its clicks.
-struct SketchAddItem
+struct SketchDrawItem
 {
     std::vector<SketchEntity> ents;
     DesignSketchTool::Mode    tool{DesignSketchTool::Mode::Select};
-    std::vector<Vec2d>        clicks;
+    std::vector<Vec2d>        clicks;   // the tool's; a tangent arc's end only, its start being the end of what it leaves
     int                       sides{0};
     bool                      circumscribed{false};
     bool                      construction{false};
+    int                       from{-1};   // the entity a tangent arc leaves; -1 the one added last
 };
 
-// A sketch_add item: a shape's fields turned into the clicks its tool takes, or plain entities.
-// Every check is made here, so adding a list of items cannot stop half way.
-SketchAddItem sketch_add_item(const json& j)
+// sketch_draw's types, in the order its schema lists them, each with the fields it takes beside `type` and
+// `construction`.
+struct ShapeType
+{
+    const char*              name;
+    std::vector<std::string> fields;
+};
+const ShapeType kShapeTypes[] = {
+    {"line", {"p0", "p1"}},
+    {"polyline", {"points"}},
+    {"rectangle_2_point", {"p0", "p1"}},
+    {"rectangle_center", {"center", "corner"}},
+    {"rectangle_3_point", {"p0", "p1", "width"}},
+    {"rectangle_rounded", {"p0", "p1", "radius"}},
+    {"circle_center", {"center", "radius"}},
+    {"circle_2_point", {"p0", "p1"}},
+    {"circle_3_point", {"p0", "p1", "p2"}},
+    {"arc_3_point", {"p0", "p1", "on_arc"}},
+    {"arc_center", {"center", "radius", "start_angle", "start_angle_deg", "end_angle", "end_angle_deg"}},
+    {"arc_tangent", {"end", "entity"}},
+    {"slot", {"c0", "c1", "width"}},
+    {"slot_arc", {"center", "start", "end", "width"}},
+    {"ellipse", {"center", "radius", "rminor", "rotation", "rotation_deg"}},
+    {"ellipse_arc",
+     {"center", "radius", "rminor", "rotation", "rotation_deg", "start_angle", "start_angle_deg", "end_angle", "end_angle_deg"}},
+    {"spline", {"ctrl"}},
+    {"polygon", {"center", "sides", "radius", "across_flats", "angle", "angle_deg"}},
+    {"point", {"p"}},
+};
+
+// Whether a, b and c lie on one line, so that no circle runs through them.
+bool on_one_line(const Vec2d& a, const Vec2d& b, const Vec2d& c)
+{
+    const Vec2d u = b - a, v = c - a;
+    return std::abs(u.x() * v.y() - u.y() * v.x()) < 1e-9;
+}
+
+// A sketch_draw item: a shape's fields turned into the clicks its tool takes, or plain entities. A field given as
+// null is left out, as the schema's null defaults say, and a field its type does not take is refused. Every check
+// is made here, or for a tangent arc's entity in sketch_draw() before anything is drawn. Whether an arc fits a
+// tangent arc is known once the items before it are drawn, since its start is the end of what it leaves; when none
+// does, sketch_draw() puts the sketch back as it was before the call.
+SketchDrawItem sketch_draw_item(const json& given)
 {
     using Mode = DesignSketchTool::Mode;
-    SketchAddItem it;
-    const std::string t = j.value("type", std::string());
+    using ET   = SketchEntity::Type;
+    if (!given.is_object()) throw std::runtime_error("each shape is an object with a type and its fields");
+    json j = json::object();
+    for (const auto& [key, value] : given.items())
+        if (!value.is_null()) j[key] = value;
+    SketchDrawItem    it;
+    const std::string t    = j.value("type", std::string());
+    const auto        type = std::find_if(std::begin(kShapeTypes), std::end(kShapeTypes), [&t](const ShapeType& s) { return t == s.name; });
+    if (type == std::end(kShapeTypes)) {
+        std::string types;
+        for (const ShapeType& s : kShapeTypes) types += (types.empty() ? "" : ", ") + std::string(s.name);
+        throw std::runtime_error("unknown type '" + t + "': sketch_draw draws " + types);
+    }
+    for (const auto& [key, value] : j.items())
+        if (key != "type" && key != "construction" && std::find(type->fields.begin(), type->fields.end(), key) == type->fields.end())
+            throw std::runtime_error(t + " takes no " + key);
     it.construction = j.value("construction", false);
     // Smaller than the weld tolerance is no shape: its points would merge.
     auto size_arg = [&](const char* key) {
@@ -2898,7 +3010,95 @@ SketchAddItem sketch_add_item(const json& j)
         if (!(v >= kSketchJoinTol)) throw std::runtime_error(t + " " + key + " must be at least 0.001 mm");
         return v;
     };
-    if (t == "polygon") {
+    // Two corners of a box, which must differ in x and in y.
+    auto box_corners = [&](const char* a_key, const char* b_key) {
+        const Vec2d a = point_arg(j, a_key), b = point_arg(j, b_key);
+        if (std::abs(b.x() - a.x()) < kSketchJoinTol || std::abs(b.y() - a.y()) < kSketchJoinTol)
+            throw std::runtime_error(t + " " + a_key + " and " + b_key + " must differ in x and in y");
+        return std::make_pair(a, b);
+    };
+    if (t == "polyline") {
+        const json points = j.value("points", json());
+        if (!points.is_array() || points.size() < 2) throw std::runtime_error("polyline needs points, 2 or more [[x, y], ...]");
+        for (size_t i = 0; i < points.size(); ++i) {
+            const Vec2d p = point_of(points[i], "points[" + std::to_string(i) + "]");
+            if (i > 0 && (p - it.clicks.back()).norm() < kSketchJoinTol)
+                throw std::runtime_error("polyline points " + std::to_string(i - 1) + " and " + std::to_string(i) + " coincide");
+            it.clicks.push_back(p);
+        }
+        // The last point on the first closes the loop, as a click on the chain's start does.
+        if (it.clicks.size() >= 3 && (it.clicks.back() - it.clicks.front()).norm() < kSketchJoinTol) {
+            if (it.clicks.size() < 4) throw std::runtime_error("a closed polyline needs three points before the one that closes it");
+            it.clicks.back() = it.clicks.front();
+        }
+        it.tool = Mode::Polyline;
+    } else if (t == "rectangle_2_point") {
+        // The Corner rectangle tool's two clicks, on opposite corners.
+        const auto [a, b] = box_corners("p0", "p1");
+        it.tool   = Mode::CornerRect;
+        it.clicks = {a, b};
+    } else if (t == "rectangle_center") {
+        const auto [c, corner] = box_corners("center", "corner");
+        it.tool   = Mode::CenterRect;
+        it.clicks = {c, corner};
+    } else if (t == "rectangle_3_point") {
+        // One side, then the Oblique rectangle tool's third click, the width off it to the left of p0 to p1.
+        const Vec2d  a = point_arg(j, "p0"), b = point_arg(j, "p1");
+        const double w = number_arg(j, "width");
+        if ((b - a).norm() < kSketchJoinTol) throw std::runtime_error("rectangle_3_point p0 and p1 must be apart");
+        if (std::abs(w) < kSketchJoinTol) throw std::runtime_error("rectangle_3_point width must be at least 0.001 mm either way");
+        const Vec2d u = (b - a).normalized();
+        it.tool   = Mode::ObliqueRect;
+        it.clicks = {a, b, a + w * Vec2d(-u.y(), u.x())};
+    } else if (t == "rectangle_rounded") {
+        const auto [a, b] = box_corners("p0", "p1");
+        const double r    = size_arg("radius");
+        const double half = 0.5 * std::min(std::abs(b.x() - a.x()), std::abs(b.y() - a.y()));
+        if (!(r < half))
+            throw std::runtime_error("rectangle_rounded radius must be less than half its shorter side, " + json(half).dump() + " mm");
+        // The Rounded rectangle tool's third click sets the corner radius by its distance to the nearest corner.
+        it.tool   = Mode::RoundedRect;
+        it.clicks = {a, b, Vec2d(std::min(a.x(), b.x()) + r, std::min(a.y(), b.y()))};
+    } else if (t == "circle_2_point") {
+        const Vec2d a = point_arg(j, "p0"), b = point_arg(j, "p1");
+        if ((b - a).norm() < 2.0 * kSketchJoinTol)
+            throw std::runtime_error("circle_2_point p0 and p1, the ends of a diameter, must be at least 0.002 mm apart");
+        it.tool   = Mode::TwoPointCircle;
+        it.clicks = {a, b};
+    } else if (t == "circle_3_point") {
+        const Vec2d a = point_arg(j, "p0"), b = point_arg(j, "p1"), c = point_arg(j, "p2");
+        if (on_one_line(a, b, c)) throw std::runtime_error("circle_3_point p0, p1 and p2 must not lie on one line");
+        it.tool   = Mode::ThreePointCircle;
+        it.clicks = {a, b, c};
+    } else if (t == "arc_3_point") {
+        const Vec2d a = point_arg(j, "p0"), b = point_arg(j, "p1"), m = point_arg(j, "on_arc");
+        if (on_one_line(a, b, m)) throw std::runtime_error("arc_3_point p0, p1 and on_arc must not lie on one line");
+        it.tool   = Mode::ThreePointArc;
+        it.clicks = {a, b, m};
+    } else if (t == "arc_tangent") {
+        if (j.contains("entity")) {
+            const json e = j.at("entity");
+            if (!e.is_number_integer() || e.get<int>() < 0)
+                throw std::runtime_error("arc_tangent entity must be the index of the line or arc it leaves");
+            it.from = e.get<int>();
+        }
+        it.tool   = Mode::TangentArc;
+        it.clicks = {point_arg(j, "end")};
+    } else if (t == "slot_arc") {
+        const Vec2d  c = point_arg(j, "center"), s = point_arg(j, "start"), e = point_arg(j, "end");
+        const double w = size_arg("width");
+        const double rc = (s - c).norm();
+        if (rc < kSketchJoinTol) throw std::runtime_error("slot_arc start must be apart from center");
+        if ((e - c).norm() < kSketchJoinTol) throw std::runtime_error("slot_arc end must be apart from center");
+        const Vec2d ds = (s - c) / rc, de = (e - c).normalized();
+        if (std::abs(ds.x() * de.y() - ds.y() * de.x()) < 1e-9 && ds.dot(de) > 0.0)
+            throw std::runtime_error("slot_arc end must lie in another direction from center than start");
+        if (!(0.5 * w < rc)) throw std::runtime_error("slot_arc width must be less than twice the distance from center to start");
+        // The Arc slot tool's clicks: the centre, the centreline's start, its end's direction, and the width's half off
+        // the centreline circle.
+        it.tool   = Mode::ArcSlot;
+        it.clicks = {c, s, e, c + (rc + 0.5 * w) * ds};
+    } else if (t == "polygon") {
         const Vec2d c     = point_arg(j, "center");
         const json  sides = j.value("sides", json());
         if (!sides.is_number_integer() || sides.get<int>() < 3 || sides.get<int>() > 1000)
@@ -2952,56 +3152,89 @@ SketchAddItem sketch_add_item(const json& j)
         }
         it.tool = Mode::BSpline;
     } else {
-        it.ents.push_back(sketch_entity_from(j));
+        it.ents.push_back(sketch_entity_from(j));   // line, circle_center, arc_center, point
     }
     return it;
 }
 
-json sketch_add(DesignSketchTool& t, const json& params)
+json sketch_draw(DesignSketchTool& t, const json& params)
 {
-    std::vector<SketchAddItem> items;
-    const json list = param(params, "entities"), type = param(params, "type"), rect = param(params, "rect");
-    if (list.is_array() && !list.empty()) {
-        for (const json& j : list) items.push_back(sketch_add_item(j));
+    using Mode = DesignSketchTool::Mode;
+    std::vector<SketchDrawItem> items;
+    const json list = param(params, "entities"), type = param(params, "type");
+    if (!list.is_null()) {
+        // An entities given is the list form, an empty one included. Each item holds its shape's fields, so one beside
+        // the list would draw nothing, and is refused. construction is no shape's field: beside the list it is each
+        // item's that gives none of its own.
+        for (const auto& [key, value] : params.items())
+            if (key != "entities" && key != "construction" && key != "generation" && !value.is_null())
+                throw std::runtime_error(key + " belongs in an item of entities, not beside the list");
+        if (!list.is_array()) throw std::runtime_error("entities must be a list of shapes, each an object with a type and its fields");
+        if (list.empty()) throw std::runtime_error("entities is empty: give it the shapes to draw, or a single type and its fields");
+        const json construction = param(params, "construction");
+        for (json j : list) {
+            if (j.is_object() && !construction.is_null() && j.value("construction", json()).is_null()) j["construction"] = construction;
+            items.push_back(sketch_draw_item(j));
+        }
     } else if (type.is_string() && !type.get<std::string>().empty()) {
-        items.push_back(sketch_add_item(params));   // one item, its fields beside `type`
-    } else if (rect.is_array() && !rect.empty()) {
-        // Corner rectangle as four shared-endpoint lines, so it arrives as ONE closed loop
-        // rather than four segments that happen to touch.
-        if (rect.size() < 4) throw std::runtime_error("rect must be [x0, y0, x1, y1]");
-        const double x0 = rect[0].get<double>(), y0 = rect[1].get<double>();
-        const double x1 = rect[2].get<double>(), y1 = rect[3].get<double>();
-        const bool c = params.value("construction", false);
-        auto seg = [&](Vec2d a, Vec2d b) { SketchEntity e; e.type = SketchEntity::Type::Line;
-                                           e.p0 = a; e.p1 = b; e.construction = c; return e; };
-        items.push_back(SketchAddItem{{seg({x0, y0}, {x1, y0}), seg({x1, y0}, {x1, y1}), seg({x1, y1}, {x0, y1}), seg({x0, y1}, {x0, y0})}});
+        // One item, its fields beside `type`.
+        json one = params;
+        one.erase("entities");
+        one.erase("generation");
+        items.push_back(sketch_draw_item(one));
     } else {
-        throw std::runtime_error("sketch_add needs 'entities', a single 'type', or 'rect'");
+        throw std::runtime_error("sketch_draw needs 'entities' or a single 'type'");
     }
-    if (std::any_of(items.begin(), items.end(), [](const SketchAddItem& it) { return it.tool != DesignSketchTool::Mode::Select; }))
+    if (std::any_of(items.begin(), items.end(), [](const SketchDrawItem& it) { return it.tool != Mode::Select; }))
         check_sketch_idle(t);
 
     const int before = int(t.entities().size());
     json shapes = json::array();
-    for (size_t i = 0; i < items.size();) {
-        if (items[i].tool == DesignSketchTool::Mode::Select) {
-            // Entities next to each other are added in one batch, so their constraints are inferred
-            // together, as a list of entities always was.
-            std::vector<SketchEntity> run;
-            size_t end = i;
-            for (; end < items.size() && items[end].tool == DesignSketchTool::Mode::Select; ++end)
-                run.insert(run.end(), items[end].ents.begin(), items[end].ents.end());
-            int at = t.add_entities_scripted(run);
-            for (; i < end; ++i) {
-                shapes.push_back(json{{"first", at}, {"count", int(items[i].ents.size())}});
-                at += int(items[i].ents.size());
+    // An item refused while drawing puts the sketch back as it was before the call, the items before it taken off.
+    const DesignSketchTool::DrawnState kept = t.drawn_state();
+    try {
+        for (size_t i = 0; i < items.size();) {
+            if (items[i].tool == DesignSketchTool::Mode::Select) {
+                // Entities next to each other are added in one batch, so their constraints are inferred
+                // together, as a list of entities always was.
+                std::vector<SketchEntity> run;
+                size_t end = i;
+                for (; end < items.size() && items[end].tool == DesignSketchTool::Mode::Select; ++end)
+                    run.insert(run.end(), items[end].ents.begin(), items[end].ents.end());
+                int at = t.add_entities_scripted(run);
+                for (; i < end; ++i) {
+                    shapes.push_back(json{{"first", at}, {"count", int(items[i].ents.size())}});
+                    at += int(items[i].ents.size());
+                }
+            } else {
+                const SketchDrawItem& it     = items[i++];
+                std::vector<Vec2d>    clicks = it.clicks;
+                if (it.tool == Mode::TangentArc) {
+                    // It leaves a line or an arc: the entity it names, one the sketch has or one an item before it
+                    // added, else the entity added last. Its start is that entity's end, as the tool's first click
+                    // snaps onto it.
+                    const auto& ents = t.entities();
+                    if (it.from >= int(ents.size()))
+                        throw std::runtime_error("arc_tangent entity " + std::to_string(it.from) + " does not exist; the sketch has " +
+                                                 std::to_string(ents.size()) + " entities with the items before it");
+                    if (ents.empty()) throw std::runtime_error("arc_tangent needs a line or an arc to leave, and the sketch has none");
+                    const int from = it.from >= 0 ? it.from : int(ents.size()) - 1;
+                    if (ents[from].type != SketchEntity::Type::Line && ents[from].type != SketchEntity::Type::Arc)
+                        throw std::runtime_error("arc_tangent leaves a line or an arc, and " + entity_label(ents, from) + " is neither");
+                    clicks.insert(clicks.begin(), ents[from].p1);
+                }
+                const int at = t.add_shape_scripted(it.tool, clicks, it.sides, it.circumscribed, it.construction, it.from);
+                if (at < 0 && it.tool == Mode::TangentArc)
+                    throw std::runtime_error("arc_tangent from item " + std::to_string(i - 1) +
+                                             " makes no arc: its end must be apart from its start, " +
+                                             json::array({clicks[0].x(), clicks[0].y()}).dump() + ", and off the line it leaves along");
+                if (at < 0) throw std::runtime_error("the sketch tool built nothing from item " + std::to_string(i - 1));
+                shapes.push_back(json{{"first", at}, {"count", int(t.entities().size()) - at}});
             }
-        } else {
-            const SketchAddItem& it = items[i++];
-            const int at = t.add_shape_scripted(it.tool, it.clicks, it.sides, it.circumscribed, it.construction);
-            if (at < 0) throw std::runtime_error("the sketch tool built nothing from item " + std::to_string(i - 1));
-            shapes.push_back(json{{"first", at}, {"count", int(t.entities().size()) - at}});
         }
+    } catch (...) {
+        t.restore_drawn_state(kept);
+        throw;
     }
     return json{{"ok", true}, {"first_index", before}, {"added", int(t.entities().size()) - before},
                 {"shapes", std::move(shapes)}, {"entities", int(t.entities().size())}, {"dof", sketch_dof(t)}};
@@ -3039,12 +3272,107 @@ json sketch_corner(DesignSketchTool& t, const json& params, bool chamfer)
     return r;
 }
 
-// sketch_trim: a Trim (or Extend) click at `at`.
-json sketch_trim(DesignSketchTool& t, const json& params)
+// What sketch_offset and sketch_mirror copy: `entities`, else the selection, else every entity. A listed index the
+// sketch does not have is refused, and so is one listed twice.
+std::vector<int> copy_sources(const json& params, const DesignSketchTool& t, bool& listed)
 {
-    const Vec2d  at     = point_arg(params, "at");
-    const bool   extend = params.value("extend", false);
-    const double tol    = params.contains("tolerance") ? number_arg(params, "tolerance") : 0.05;
+    const json given = param(params, "entities");
+    listed           = !given.is_null() && !(given.is_array() && given.empty());
+    const std::vector<int> out = listed ? entity_indices(given, t.entities())
+                                        : sketch_target_indices(params, t.selection(), int(t.entities().size()), true);
+    for (size_t i = 0; i < out.size(); ++i)
+        if (std::find(out.begin(), out.begin() + i, out[i]) != out.begin() + i)
+            throw std::runtime_error("entity " + std::to_string(out[i]) + " is listed twice");
+    return out;
+}
+
+// The constraints `indices` of the open sketch, as sketch_list_constraints writes them.
+json constraints_at(const DesignSketchTool& t, const std::vector<int>& indices)
+{
+    json out = json::array();
+    for (int c : indices) out.push_back(entity_constraint_json(t.constraints()[c], c));
+    return out;
+}
+
+// sketch_offset: offset copies. The copy of one entity alone is the Offset tool's Confirm, which adds it with no
+// constraint inferred and binds it to its source, Parallel for a line and Concentric for an arc or a circle: inferred
+// first, the copy of a horizontal or vertical line would be held so, and the solver refuses the redundant Parallel.
+// Several entities' copies are added as drawn entities are, bound to nothing.
+json sketch_offset(DesignSketchTool& t, const json& params)
+{
+    if (!params.contains("distance")) throw std::runtime_error("sketch_offset needs 'distance'");
+    const double           d       = number_arg(params, "distance");
+    bool                   listed  = false;
+    const std::vector<int> sources = copy_sources(params, t, listed);
+    std::vector<SketchEntity> src;
+    for (int i : sources) src.push_back(t.entities()[i]);
+    if (src.empty()) throw std::runtime_error("nothing to offset");
+    const auto out = SketchEngine::offset_entities(src, d);
+    if (out.empty()) throw std::runtime_error("offset produced nothing (ellipses and splines are not offset)");
+    const int        base = int(t.entities().size());
+    std::vector<int> bound;
+    if (sources.size() == 1) {
+        check_sketch_idle(t);
+        if (!t.offset_scripted(sources.front(), d, bound)) throw std::runtime_error("the Offset tool refused the offset");
+    } else {
+        t.add_entities_scripted(out);
+    }
+    return json{{"ok", true}, {"first_index", base}, {"added", int(t.entities().size()) - base},
+                {"constraints_added", constraints_at(t, bound)}, {"dof", sketch_dof(t)}};
+}
+
+// sketch_mirror: about `axis`, a line of the sketch or one of its axes, the Mirror tool's Confirm, which binds each
+// copy Symmetric to its source; or across the line through axis_a and axis_b, two free points, copies bound to nothing.
+json sketch_mirror(DesignSketchTool& t, const json& params)
+{
+    const auto&            ents    = t.entities();
+    const json             axis_v  = param(params, "axis");
+    bool                   listed  = false;
+    std::vector<int>       targets = copy_sources(params, t, listed);
+    if (axis_v.is_null()) {
+        const Vec2d a = params.contains("axis_a") ? point_arg(params, "axis_a") : Vec2d(0, 0);
+        const Vec2d b = params.contains("axis_b") ? point_arg(params, "axis_b") : Vec2d(0, 1);
+        if (targets.empty()) throw std::runtime_error("nothing to mirror");
+        std::vector<SketchEntity> src;
+        for (int i : targets) src.push_back(ents[i]);
+        const auto out  = SketchEngine::mirror_entities(src, a, b);
+        const int  base = t.add_entities_scripted(out);
+        return json{{"ok", true}, {"first_index", base}, {"added", int(out.size())},
+                    {"constraints_added", json::array()}, {"dof", sketch_dof(t)}};
+    }
+    if (params.contains("axis_a") || params.contains("axis_b"))
+        throw std::runtime_error("give axis, or axis_a and axis_b, not both");
+    int axis = -1;
+    if (axis_v == "x_axis")
+        axis = kSketchRefAxisX;
+    else if (axis_v == "y_axis")
+        axis = kSketchRefAxisY;
+    else if (axis_v.is_number_integer())
+        axis = entity_indices(json::array({axis_v}), ents).front();
+    else
+        throw std::runtime_error("axis must be a line's entity index, \"x_axis\" or \"y_axis\"");
+    if (axis >= 0 && ents[axis].type != SketchEntity::Type::Line)
+        throw std::runtime_error("axis must be a line of the sketch, \"x_axis\" or \"y_axis\"; " + entity_label(ents, axis) +
+                                 " is not a line");
+    // The tool takes no pick of its axis as something to mirror.
+    if (const auto it = std::find(targets.begin(), targets.end(), axis); it != targets.end()) {
+        if (listed) throw std::runtime_error("entity " + std::to_string(axis) + " is the axis; it is not mirrored about itself");
+        targets.erase(it);
+    }
+    if (targets.empty()) throw std::runtime_error("nothing to mirror");
+    check_sketch_idle(t);
+    const int        base = int(ents.size());
+    std::vector<int> kept;
+    if (!t.mirror_scripted(targets, axis, kept)) throw std::runtime_error("the Mirror tool refused the mirror");
+    return json{{"ok", true}, {"first_index", base}, {"added", int(ents.size()) - base},
+                {"constraints_added", constraints_at(t, kept)}, {"dof", sketch_dof(t)}};
+}
+
+// sketch_trim: a Trim click at `at`; sketch_extend (extend): an Extend click there.
+json sketch_trim_or_extend(DesignSketchTool& t, const json& params, bool extend)
+{
+    const Vec2d  at  = point_arg(params, "at");
+    const double tol = params.contains("tolerance") ? number_arg(params, "tolerance") : 0.05;
     if (!(tol > 0.0)) throw std::runtime_error("tolerance must be > 0");
     check_sketch_idle(t);
     const int  cons_before = int(t.constraints().size());
@@ -3064,32 +3392,34 @@ json sketch_trim(DesignSketchTool& t, const json& params)
                                         : "trim: nothing to cut on " + entity_label(ents, picked) + " at " + where +
                                               ": no other entity crosses it beyond that point (a circle needs two crossings)");
     }
-    json r{{"ok", true}, {"entity", picked}, {"extend", extend}, {"geometry", sketch_entity_to(t.entities()[picked], picked)},
+    json r{{"ok", true}, {"entity", picked}, {"geometry", sketch_entity_to(t.entities()[picked], picked)},
            {"released_constraints", cons_before - int(t.constraints().size())}};
     r.update(solve_state(t));
     return r;
 }
 
-// sketch_transform: the Move, Rotate, Scale, Array and Polar array tools' Confirm.
-json sketch_transform(DesignSketchTool& t, const json& params)
+// sketch_transform: the Move, Rotate and Scale tools' Confirm, by params.type. sketch_pattern
+// (pattern): the Linear and Polar array tools' Confirm, type linear or circular.
+json sketch_transform(DesignSketchTool& t, const json& params, bool pattern)
 {
     using Mode = DesignSketchTool::Mode;
-    static const std::pair<const char*, Mode> kOps[] = {
-        {"move", Mode::Move}, {"rotate", Mode::Rotate}, {"scale", Mode::Scale}, {"array", Mode::Array}, {"polar_array", Mode::PolarArray}};
-    const json  opv = param(params, "op");
-    const char* op  = nullptr;
-    Mode        mode = Mode::Move;
-    for (const auto& [name, m] : kOps)
-        if (opv.is_string() && opv.get<std::string>() == name) { op = name; mode = m; }
-    if (op == nullptr) throw std::runtime_error("op must be move, rotate, scale, array or polar_array");
+    using Types = std::vector<std::pair<const char*, Mode>>;
+    static const Types kTransforms = {{"move", Mode::Move}, {"rotate", Mode::Rotate}, {"scale", Mode::Scale}};
+    static const Types kPatterns   = {{"linear", Mode::Array}, {"circular", Mode::PolarArray}};
+    const json  typev = param(params, "type");
+    const char* type  = nullptr;
+    Mode        mode  = Mode::Move;
+    for (const auto& [name, m] : pattern ? kPatterns : kTransforms)
+        if (typev.is_string() && typev.get<std::string>() == name) { type = name; mode = m; }
+    if (type == nullptr) throw std::runtime_error(pattern ? "type must be linear or circular" : "type must be move, rotate or scale");
 
-    // What each op reads; anything else would be ignored, so it is refused.
+    // What each type reads; anything else would be ignored, so it is refused.
     const bool shifts = mode == Mode::Move || mode == Mode::Array, turns = mode == Mode::Rotate || mode == Mode::PolarArray;
     const bool counts = mode == Mode::Array || mode == Mode::PolarArray, pivots = mode != Mode::Move && mode != Mode::Array;
     const std::pair<const char*, bool> takes[] = {{"dx", shifts},  {"dy", shifts},     {"angle", turns}, {"angle_deg", turns},
                                                   {"scale", mode == Mode::Scale}, {"count", counts}, {"pivot", pivots}};
     for (const auto& [key, read] : takes)
-        if (!read && params.contains(key)) throw std::runtime_error(std::string(op) + " takes no " + key);
+        if (!read && params.contains(key)) throw std::runtime_error(std::string(type) + " takes no " + key);
 
     const std::vector<int> targets = entity_picks(params, t);
     if (targets.empty()) throw std::runtime_error("nothing selected and no 'entities' given");
@@ -3103,24 +3433,24 @@ json sketch_transform(DesignSketchTool& t, const json& params)
     if (counts) {
         const json c = param(params, "count");
         if (!c.is_number_integer() || c.get<int>() < 2 || c.get<int>() > 1000)
-            throw std::runtime_error(std::string(op) + " needs count, 2 to 1000 instances counting the original");
+            throw std::runtime_error(std::string(type) + " needs count, 2 to 1000 instances counting the original");
         count = c.get<int>();
     }
     std::optional<Vec2d> pivot;
     if (params.contains("pivot")) pivot = point_arg(params, "pivot");
     // A transform that moves nothing would still drop the constraints it invalidates.
-    if (shifts && delta.norm() < 1e-9) throw std::runtime_error(std::string(op) + " needs a non-zero dx or dy");
+    if (shifts && delta.norm() < 1e-9) throw std::runtime_error(std::string(type) + " needs a non-zero dx or dy");
     if (mode == Mode::Rotate && std::abs(angle) < 1e-12) throw std::runtime_error("rotate needs a non-zero angle (or angle_deg)");
     if (mode == Mode::Scale && (!(scale > 0.0) || std::abs(scale - 1.0) < 1e-12))
         throw std::runtime_error("scale needs a positive factor other than 1");
-    if (mode == Mode::PolarArray && !pivot) throw std::runtime_error("polar_array needs pivot, the centre to array about");
-    if (mode == Mode::PolarArray && std::abs(angle) < 1e-12) throw std::runtime_error("polar_array needs a non-zero angle");
+    if (mode == Mode::PolarArray && !pivot) throw std::runtime_error("circular needs pivot, the centre to array about");
+    if (mode == Mode::PolarArray && std::abs(angle) < 1e-12) throw std::runtime_error("circular needs a non-zero angle");
 
     check_sketch_idle(t);
     const int  ents_before = int(t.entities().size()), cons_before = int(t.constraints().size());
     const auto used        = t.transform_scripted(mode, targets, delta, angle, scale, count, pivot);
     if (!used) throw std::runtime_error("the sketch tool refused the transform");
-    json r{{"ok", true}, {"op", op}};
+    json r{{"ok", true}, {"type", type}};
     if (counts) {
         r["first_index"] = ents_before;
         r["added"]       = int(t.entities().size()) - ents_before;
@@ -3139,7 +3469,8 @@ json sketch_transform(DesignSketchTool& t, const json& params)
 SketchConstraintType constraint_type_arg(const json& v)
 {
     if (!v.is_string())
-        throw std::runtime_error("type must be a constraint type, such as \"parallel\" (search_tools {tool: \"sketch_constrain\"} lists them)");
+        throw std::runtime_error("type must be a constraint type, such as \"parallel\" (search_tools {tool: \"sketch_constrain\"} lists "
+                                 "them, and {tool: \"sketch_dimension\"} the dimensions)");
     const std::string s = v.get<std::string>();
     if (s == "equal") return SketchConstraintType::EqualLength;
     for (size_t i = 0; i < std::size(kConstraintTypes); ++i)
@@ -3149,7 +3480,7 @@ SketchConstraintType constraint_type_arg(const json& v)
         if (edit_distance(boost::algorithm::to_lower_copy(s), n) <= 2 + s.size() / 4)
             close += std::string(close.empty() ? "" : ", ") + "\"" + n + "\"";
     throw std::runtime_error("unknown constraint type \"" + s + "\"" + (close.empty() ? "" : "; did you mean " + close) +
-                             " (search_tools {tool: \"sketch_constrain\"} lists them)");
+                             " (search_tools {tool: \"sketch_constrain\"} lists them, and {tool: \"sketch_dimension\"} the dimensions)");
 }
 
 // Why the CONSTRAIN bar refuses a pick, in ConstraintReject order: a code an agent can test and the
@@ -3303,9 +3634,23 @@ json constraint_items(const std::vector<SketchEntityConstraintDef>& cons)
     return items;
 }
 
-// sketch_constrain: a CONSTRAIN bar button on the picks, or a constraint on named points.
-json sketch_constrain(DesignSketchTool& t, const json& params)
+// Whether `type` is a dimension, which holds a measured value; the other types are geometric.
+bool is_dimension(SketchConstraintType type)
 {
+    using T = SketchConstraintType;
+    return type == T::Distance || type == T::DistanceX || type == T::DistanceY || type == T::Angle || type == T::Radius ||
+           type == T::Diameter;
+}
+
+// sketch_constrain: a geometric constraint; sketch_dimension (dimension): a dimension. Each is a
+// CONSTRAIN bar button on the picks, or a constraint on named points, and refuses the other's types.
+json sketch_constrain(DesignSketchTool& t, const json& params, bool dimension)
+{
+    if (is_dimension(constraint_type_arg(param(params, "type"))) != dimension) {
+        const std::string type = params.at("type").get<std::string>();
+        throw std::runtime_error(dimension ? type + " is a geometric constraint, which sketch_constrain adds"
+                                           : type + " is a dimension, which sketch_dimension adds");
+    }
     const std::vector<SketchEntityConstraintDef> defs  = cad_constraint_defs(params, t.entities(), t.selection());
     const int                                    first = t.constrain_scripted(defs);
     if (first < 0)
@@ -3321,18 +3666,18 @@ json sketch_constrain(DesignSketchTool& t, const json& params)
     return r;
 }
 
-json sketch_constraints(DesignSketchTool& t, const json&)
+json sketch_list_constraints(DesignSketchTool& t, const json&)
 {
     json r{{"ok", true}, {"scope", "live"}, {"items", constraint_items(t.constraints())}};
     r.update(solve_state(t));
     return r;
 }
 
-// sketch_unconstrain: a constraint row's delete button in a sketch session.
-json sketch_unconstrain(DesignSketchTool& t, const json& params)
+// sketch_delete_constraint: a constraint row's delete button in a sketch session.
+json sketch_delete_constraint(DesignSketchTool& t, const json& params)
 {
     const json v = param(params, "index");
-    if (!v.is_number_integer()) throw std::runtime_error("index must be a constraint index (sketch_constraints' items[].index)");
+    if (!v.is_number_integer()) throw std::runtime_error("index must be a constraint index (sketch_list_constraints' items[].index)");
     const int i = v.get<int>();
     if (i < 0 || i >= int(t.constraints().size()))
         throw std::runtime_error("constraint " + std::to_string(i) + " is out of range; the sketch has " +
@@ -3352,18 +3697,177 @@ json on_open_sketch(DesignPanel* panel, const char* name, const json& params)
     return r;
 }
 
-json action_sketch_constraints(DesignPanel* panel, const json& params)
+json action_sketch_list_constraints(DesignPanel* panel, const json& params)
 {
     const json sketch = param(params, "sketch");
-    if (sketch.is_null()) return cad_sketch_call(mcp_sketch(panel), "sketch_constraints", params);
+    if (sketch.is_null()) return cad_sketch_call(mcp_sketch(panel), "sketch_list_constraints", params);
     // A committed sketch's are read from the document, so no session is needed, nor disturbed.
     const CadDocument& doc = panel->mcp_doc();
     const int          si  = sketch_arg(sketch, doc);
     const CadFeature&  f   = doc.features[si];
     if (f.entities.empty())
-        throw std::runtime_error("sketch " + std::to_string(si) + " is not drawn from entities; describe_feature reads its constraints");
+        throw std::runtime_error("sketch " + std::to_string(si) + " is not drawn from entities; feature_describe reads its constraints");
     return json{{"ok", true}, {"scope", "committed"}, {"sketch", si}, {"items", constraint_items(f.entity_constraints)},
                 {"constraints", int(f.entity_constraints.size())}};
+}
+
+// --- Text and SVG art ------------------------------------------------------------------
+
+// The `position` param: [x, y] in the plane, where the text's or the art's centre goes; the origin when left out.
+Vec2d position_arg(const json& params)
+{
+    const json v = param(params, "position");
+    return v.is_null() ? Vec2d::Zero() : point_of(v, "position");
+}
+
+// sketch_insert_svg's outlines: the filled shapes of the SVG file params.path, centred on the origin and scaled by
+// params.scale, as Insert SVG reads them (svg_to_regions()). Throws std::runtime_error for a file that is not there
+// and one that gives no outline.
+ImportRegions svg_regions(const json& params)
+{
+    const std::string path  = input_path(param(params, "path"), "path");
+    const json        s     = param(params, "scale");
+    const double      scale = s.is_null() ? 1.0 : s.is_number() ? s.get<double>() : 0.0;
+    if (!(scale > 0.0) || !std::isfinite(scale)) throw std::runtime_error("scale must be a number above 0");
+    ImportRegions regions = svg_to_regions(path, scale);
+    if (regions.empty()) throw std::runtime_error("the SVG file gives no outline: it has no filled shape, or it is not SVG");
+    return regions;
+}
+
+// sketch_insert_svg with a sketch open: the outlines moved by params.position, added as Insert SVG adds them there,
+// as lines (DesignSketchTool::add_imported_regions()).
+json sketch_insert_svg(DesignSketchTool& t, const json& params)
+{
+    if (!param(params, "plane").is_null()) throw std::runtime_error("plane is the open sketch's: leave it out");
+    const ImportRegions regions = transform_regions(svg_regions(params), position_arg(params), 1.0, 1.0);
+    const std::size_t   before  = t.entities().size();
+    if (!t.add_imported_regions(regions)) throw std::runtime_error("the SVG file's outlines give no lines");
+    return json{{"ok", true}, {"scope", "sketch"}, {"added", int(t.entities().size() - before)},
+                {"entities", int(t.entities().size())}};
+}
+
+// With a sketch open, the outlines go into it (sketch_insert_svg()). Otherwise Insert SVG's art feature on `plane`, XY
+// when it is left out or null, in one undo step, with no file dialog and no placement step.
+json action_sketch_insert_svg(DesignPanel* panel, const json& params)
+{
+    if (const DesignCanvas* vp = panel->mcp_viewport(); vp != nullptr && vp->is_sketching())
+        return on_open_sketch(panel, "sketch_insert_svg", params);
+    const ImportRegions regions   = svg_regions(params);
+    const json          plane     = param(params, "plane");
+    int                 face_body = -1;
+    const SketchPlane   pl        = cad_resolve_plane(plane.is_null() ? json("XY") : plane, panel->mcp_doc(), false, &face_body);
+    const Vec2d         at        = position_arg(params);
+    json r = add_feature(panel, "art_index", [&] { return panel->mcp_push_art(regions, _L("SVG"), pl, face_body, at); });
+    r["frame"] = frame_json(pl);
+    return r;
+}
+
+// The Text dialog's Text feature from arguments (DesignPanel::mcp_push_text()), in one undo step, with no dialog and
+// no placement step. Every refusal comes before anything changes: the font and the outline are checked first.
+json action_sketch_text(DesignPanel* panel, const json& params)
+{
+    const json text = param(params, "text");
+    if (!text.is_string()) throw std::runtime_error("text must be the words to outline");
+    const json height = param(params, "height");
+    if (!height.is_null() && !(height.is_number() && height.get<double>() >= 0.5 && height.get<double>() <= 500.0))
+        throw std::runtime_error("height must be 0.5 to 500 mm");
+    const std::string words  = text.get<std::string>();
+    const std::string font   = params.value("font", std::string());
+    const bool        bold   = params.value("bold", false);
+    const bool        italic = params.value("italic", false);
+    const double      mm     = height.is_null() ? 0.0 : height.get<double>();
+    int               face_body = -1;
+    const SketchPlane pl        = cad_resolve_plane(params.value("plane", json("XY")), panel->mcp_doc(), false, &face_body);
+    const Vec2d       at        = position_arg(params);
+    std::string       why;
+    if (CadFeature outlined; !panel->mcp_outline_text(outlined, words, font, bold, italic, mm, why))
+        throw std::runtime_error(why);
+    json r = add_feature(panel, "text_index", [&] {
+        const int index = panel->mcp_push_text(words, font, bold, italic, mm, pl, face_body, at, why);
+        if (index < 0) throw std::runtime_error(why);
+        return index;
+    });
+    r["frame"] = frame_json(pl);
+    return r;
+}
+
+// select_geometry: what a click selects in the model at rest, by id (DesignPanel::mcp_select()). An argument given as
+// null is left out, as its null default says. The reply is what describe_design reports of the selection.
+json action_select_geometry(DesignPanel* panel, const json& params)
+{
+    using Kind = DesignSelection::Kind;
+    std::set<std::string> named;
+    for (const char* key : {"body", "face", "edges", "vertex", "plane", "sketch", "loop", "feature"})
+        if (!param(params, key).is_null()) named.insert(key);
+    const auto is_form = [&named](std::initializer_list<const char*> form) {
+        return named == std::set<std::string>(form.begin(), form.end());
+    };
+    const auto index = [&params](const char* key) { return params.at(key).get<int>(); };
+    DesignSelection s;
+    if (named.empty()) {
+        s.kind = Kind::None;
+    } else if (is_form({"body"})) {
+        s.kind = Kind::Body;
+    } else if (is_form({"body", "face"})) {
+        s.kind = Kind::Face;
+        s.face = index("face");
+    } else if (is_form({"body", "edges"})) {
+        s.kind = Kind::Edges;
+        for (const json& e : params.at("edges")) {
+            if (!e.is_number_integer()) throw std::runtime_error("edges is a list of edge ids");
+            s.edges.push_back(e.get<int>());
+        }
+    } else if (is_form({"body", "vertex"})) {
+        s.kind   = Kind::Vertex;
+        s.vertex = index("vertex");
+    } else if (is_form({"plane"})) {
+        const std::string plane = params.at("plane").get<std::string>();
+        s.kind                  = Kind::Plane;
+        s.plane                 = plane == "XY" ? 0 : plane == "XZ" ? 1 : plane == "YZ" ? 2 : -1;
+    } else if (is_form({"sketch", "loop"})) {
+        s.kind   = Kind::Loop;
+        s.sketch = index("sketch");
+        s.loop   = index("loop");
+    } else if (is_form({"feature"})) {
+        s.kind    = Kind::Feature;
+        s.feature = index("feature");
+    } else {
+        throw std::runtime_error("select_geometry takes one of: body; body with face, edges or vertex; plane; sketch with "
+                                 "loop; feature; or nothing, which clears the selection");
+    }
+    if (named.count("body") != 0) s.body = index("body");
+    std::string why;
+    if (!panel->mcp_select(s, why)) throw std::runtime_error(why);
+    json r{{"ok", true},
+           {"selection", selection_json(*panel)},
+           {"plane", picked_plane_json(*panel)},
+           {"feature", feature_row_json(*panel)}};
+    if (s.kind == Kind::Vertex) {
+        r["point"]        = vec3(cad_body_vertices(panel->mcp_doc(), s.body).at(size_t(s.vertex)));
+        r["placed_point"] = vec3(panel->mcp_viewport()->selected_vertex_point());
+    }
+    return r;
+}
+
+// The tab's Confirm on what is open, as Enter presses it, or the Text dialog's OK.
+json action_confirm_tool(DesignPanel* panel, const json&)
+{
+    DesignPanel::ConfirmOutcome out;
+    std::string                 why;
+    if (!panel->mcp_confirm_tool(out, why)) throw std::runtime_error(why);
+    return json{{"was", out.was},
+                {"ok", out.ok},
+                {"feature", out.feature >= 0 ? json(out.feature) : json()},
+                {"open", out.open.empty() ? json() : json(out.open)},
+                {"status", into_u8(panel->mcp_status())}};
+}
+
+// The tab's Cancel on what is open, with no dialog, or the Text dialog's Cancel.
+json action_cancel_tool(DesignPanel* panel, const json&)
+{
+    std::string was, why;
+    if (!panel->mcp_cancel_tool(was, why)) throw std::runtime_error(why);
+    return json{{"was", was}, {"status", into_u8(panel->mcp_status())}};
 }
 
 // --- dispatcher ---------------------------------------------------------------------
@@ -3373,82 +3877,89 @@ json action_sketch_constraints(DesignPanel* panel, const json& params)
 // Every silent form, by the id of the Design table's entry whose tool block describes it: run_cad_tool() and
 // register_cad_commands() read this, and the block gives its access.
 const std::pair<const char*, CadRun> kSilentForms[] = {
-    {"describe_scene",      [](DesignPanel* panel, const json&) { return describe_scene(panel); }},
-    {"describe_feature",    action_describe_feature},
-    {"query_topology",      query_topology},
-    {"measure",             measure},
-    {"mass_props",          mass_properties},
-    {"slice_body",          slice_body},
-    {"validate_against",    validate_against},
-    {"interference",        action_check_interference},
-    {"sketch_describe",     action_sketch_describe},
-    {"sketch_validate",     action_sketch_validate},
-    {"sketch_constraints",  action_sketch_constraints},
-    {"import_step",         import_step},
-    {"import_mesh",         import_mesh},
-    {"extrude",             action_extrude},
-    {"revolve",             action_revolve},
-    {"fillet",              action_fillet},
-    {"chamfer",             action_chamfer},
-    {"hole",                action_hole},
-    {"hole_styled",         action_hole_styled},
-    {"hole_standard",       action_hole_standard},
-    {"boolean",             action_boolean},
-    {"pattern",             action_pattern},
-    {"pat_curve",           action_pattern_on_curve},
-    {"shell",               action_shell},
-    {"rib",                 action_rib},
-    {"draft",               action_draft},
-    {"mirror",              action_mirror},
-    {"body_transform",      action_transform},
-    {"thicken",             action_thicken},
-    {"split",               action_split},
-    {"thread",              action_thread},
-    {"sweep",               action_sweep},
-    {"loft",                action_loft},
-    {"project",             action_project},
-    {"delete_face",         action_delete_face},
-    {"bridge",              action_bridge},
-    {"axis",                action_axis},
-    {"coordsys_v",          action_coordsys},
-    {"plane",               action_plane},
-    {"helix",               action_helix},
-    {"mate",                action_mate},
-    {"set_variable",        action_set_variable},
-    {"edit_feature",        action_set_feature_expr},
-    {"set_feature",         action_set_feature},
-    {"feature_delete",      action_feature_delete},
-    {"feature_move",        action_feature_move},
-    {"feature_set_enabled", action_feature_set_enabled},
-    {"feature_rename",      action_feature_rename},
-    {"body_set",            action_body_set},
-    {"body_delete",         action_body_delete},
-    {"commit",              action_commit},
-    {"new_design",          action_new_design},
-    {"export_step",         action_export_step},
-    {"surf_extrude",        action_surface_extrude},
-    {"surf_revolve",        action_surface_revolve},
-    {"surf_loft",           action_surface_loft},
-    {"surf_fill",           action_surface_fill},
-    {"surf_offset",         action_surface_offset},
-    {"thicken_surf",        action_thicken_surface},
-    {"sketch_begin",        action_sketch_begin},
-    {"sketch_commit",       action_sketch_commit},
-    {"sketch_cancel",       action_sketch_cancel},
-    {"sketch_add",          [](DesignPanel* p, const json& a) { return on_open_sketch(p, "sketch_add", a); }},
-    {"sketch_select",       action_sketch_select},
-    {"sketch_delete",       action_sketch_delete},
-    {"sketch_construction", action_sketch_construction},
-    {"sketch_offset",       action_sketch_offset},
-    {"sketch_mirror",       action_sketch_mirror},
-    {"sketch_heal",         action_sketch_heal},
-    {"sketch_set_value",    action_sketch_set_value},
-    {"sketch_fillet",       [](DesignPanel* p, const json& a) { return on_open_sketch(p, "sketch_fillet", a); }},
-    {"sketch_chamfer",      [](DesignPanel* p, const json& a) { return on_open_sketch(p, "sketch_chamfer", a); }},
-    {"sketch_trim",         [](DesignPanel* p, const json& a) { return on_open_sketch(p, "sketch_trim", a); }},
-    {"sketch_transform",    [](DesignPanel* p, const json& a) { return on_open_sketch(p, "sketch_transform", a); }},
-    {"sketch_constrain",    [](DesignPanel* p, const json& a) { return on_open_sketch(p, "sketch_constrain", a); }},
-    {"sketch_unconstrain",  [](DesignPanel* p, const json& a) { return on_open_sketch(p, "sketch_unconstrain", a); }},
+    {"describe_design",              [](DesignPanel* panel, const json&) { return describe_design(panel); }},
+    {"select_geometry",              action_select_geometry},
+    {"confirm_tool",                 action_confirm_tool},
+    {"cancel_tool",                  action_cancel_tool},
+    {"feature_describe",             action_feature_describe},
+    {"body_describe",                body_describe},
+    {"measure",                      measure},
+    {"body_mass_properties",         body_mass_properties},
+    {"body_section",                 body_section},
+    {"body_compare",                 body_compare},
+    {"interference",                 action_check_interference},
+    {"sketch_describe",              action_sketch_describe},
+    {"sketch_validate",              action_sketch_validate},
+    {"sketch_list_constraints",      action_sketch_list_constraints},
+    {"import_step",                  import_step},
+    {"import_mesh",                  import_mesh},
+    {"extrude",                      action_extrude},
+    {"revolve",                      action_revolve},
+    {"fillet",                       action_fillet},
+    {"chamfer",                      action_chamfer},
+    {"hole",                         action_hole},
+    {"boolean",                      action_boolean},
+    {"pattern",                      action_pattern},
+    {"shell",                        action_shell},
+    {"rib",                          action_rib},
+    {"draft",                        action_draft},
+    {"mirror",                       action_mirror},
+    {"body_transform",               action_transform},
+    {"thicken",                      action_thicken},
+    {"split",                        action_split},
+    {"thread",                       action_thread},
+    {"sweep",                        action_sweep},
+    {"loft",                         action_loft},
+    {"sketch_project",               action_sketch_project},
+    {"sketch_text",                  action_sketch_text},
+    {"sketch_insert_svg",            action_sketch_insert_svg},
+    {"delete_face",                  action_delete_face},
+    {"sketch_blend_curve",           action_sketch_blend_curve},
+    {"construct_axis",               action_construct_axis},
+    {"construct_coordinate_system",  action_construct_coordinate_system},
+    {"construct_plane",              action_construct_plane},
+    {"helix",                        action_helix},
+    {"align",                        action_align},
+    {"list_align_types",             action_list_align_types},
+    {"set_variable",                 action_set_variable},
+    {"feature_set_expression",       action_feature_set_expression},
+    {"feature_edit",                 action_feature_edit},
+    {"feature_delete",               action_feature_delete},
+    {"feature_move",                 action_feature_move},
+    {"feature_suppress",             action_feature_suppress},
+    {"feature_rename",               action_feature_rename},
+    {"body_set",                     action_body_set},
+    {"body_delete",                  action_body_delete},
+    {"body_place",                   action_body_place},
+    {"commit_to_plate",              action_commit_to_plate},
+    {"new_design",                   action_new_design},
+    {"export_step",                  action_export_step},
+    {"surface_extrude",              action_surface_extrude},
+    {"surface_revolve",              action_surface_revolve},
+    {"surface_loft",                 action_surface_loft},
+    {"surface_patch",                action_surface_patch},
+    {"surface_offset",               action_surface_offset},
+    {"sketch_create",                action_sketch_create},
+    {"sketch_finish",                action_sketch_finish},
+    {"sketch_cancel",                action_sketch_cancel},
+    {"sketch_edit",                  action_sketch_edit},
+    {"sketch_draw",                  [](DesignPanel* p, const json& a) { return on_open_sketch(p, "sketch_draw", a); }},
+    {"sketch_select",                action_sketch_select},
+    {"sketch_delete",                action_sketch_delete},
+    {"sketch_toggle_construction",   action_sketch_toggle_construction},
+    {"sketch_offset",                [](DesignPanel* p, const json& a) { return on_open_sketch(p, "sketch_offset", a); }},
+    {"sketch_mirror",                [](DesignPanel* p, const json& a) { return on_open_sketch(p, "sketch_mirror", a); }},
+    {"sketch_repair",                action_sketch_repair},
+    {"sketch_set_value",             action_sketch_set_value},
+    {"sketch_fillet",                [](DesignPanel* p, const json& a) { return on_open_sketch(p, "sketch_fillet", a); }},
+    {"sketch_chamfer",               [](DesignPanel* p, const json& a) { return on_open_sketch(p, "sketch_chamfer", a); }},
+    {"sketch_trim",                  [](DesignPanel* p, const json& a) { return on_open_sketch(p, "sketch_trim", a); }},
+    {"sketch_extend",                [](DesignPanel* p, const json& a) { return on_open_sketch(p, "sketch_extend", a); }},
+    {"sketch_transform",             [](DesignPanel* p, const json& a) { return on_open_sketch(p, "sketch_transform", a); }},
+    {"sketch_pattern",               [](DesignPanel* p, const json& a) { return on_open_sketch(p, "sketch_pattern", a); }},
+    {"sketch_constrain",             [](DesignPanel* p, const json& a) { return on_open_sketch(p, "sketch_constrain", a); }},
+    {"sketch_dimension",             [](DesignPanel* p, const json& a) { return on_open_sketch(p, "sketch_dimension", a); }},
+    {"sketch_delete_constraint",     [](DesignPanel* p, const json& a) { return on_open_sketch(p, "sketch_delete_constraint", a); }},
 };
 const std::size_t kSilentFormCount = std::size(kSilentForms);
 
@@ -3487,30 +3998,53 @@ const char* const kSketchTool = L("This tool works in a sketch: open a sketch fi
 // TRN Refusal of a Design tab tool picked while a sketch is open, when it works on the model (Extrude, Shell).
 const char* const kModelTool = L("This tool works on the model: finish or cancel the sketch first");
 
-// Entry `t`'s action, as a person's pick of its menu row or tile runs it: past cad_gate() with no access of its
-// own, so that only a rebuild refuses it, as the Design tab's keys and menu are refused by nothing; each tool
-// decides for itself what an open card means to it. The action runs in place, so a modal dialog it opens holds
-// the call, which the core reports as blocked by that dialog. It is refused, as open_refusal() says, in the mode
-// its row does not belong to, where the right-click menu does not offer it, and for a btn: or fly: action a
-// selection the menu greys its row for. The reply claims nothing about what the action did, which may be to open
-// a card, start a sketch tool, act at once or tell the person why it cannot: it says what the tab shows after it,
-// its busy reason (a card, a dialog or a sketch now open) and its status line.
-json open_tool(const DesignTool& t, const json& args)
+// The selection kinds the Design tab reports as what is selected (DesignPanel::offer_selection_kind()), as OfferSel
+// bits: in a sketch, what is picked there; on the model, nothing, a face, an edge, a vertex, a body or a committed
+// sketch's loop. Rows accept other kinds too (two bodies, a datum, art, a sketch line on the model), which the tab
+// never reports, so no selection can be one of them.
+uint32_t reported_kinds(bool sketching)
 {
-    DesignPanel* panel = cad_gate(CadAccess::None, args);
-    const int    kind  = panel->mcp_offer_selection_kind();
-    const bool applies = (t.accepts & offer_bit(OfferSel(kind))) != 0;
-    if (std::optional<ToolFailure> refused = open_refusal(t, panel->mcp_sketch_map_applies(), kind))
+    using S = OfferSel;
+    static const S in_sketch[] = {S::SkNone, S::SkLine, S::SkArc, S::SkPoint, S::Sk2Ent};
+    static const S on_model[]  = {S::None,     S::FacePlanar, S::FaceCyl,   S::FaceOther, S::EdgeStr,
+                                  S::EdgeCirc, S::Vertex,     S::BodySolid, S::BodySheet, S::SkLoop};
+    uint32_t bits = 0;
+    if (sketching)
+        for (const S kind : in_sketch) bits |= offer_bit(kind);
+    else
+        for (const S kind : on_model) bits |= offer_bit(kind);
+    return bits;
+}
+
+// Row `row`'s action, for a call of `command` that opens it (opened_row()), as a person's pick of the row or its
+// tile runs it: past cad_gate() with no access of its own, so that only a rebuild refuses it, as the Design tab's
+// keys and menu are refused by nothing; each tool decides for itself what an open card means to it. The action
+// runs in place, so a modal dialog it opens holds the call, which the core reports as blocked by that dialog. It
+// is refused, as open_refusal() says, in the mode the row does not belong to, where the right-click menu does not
+// offer it, and for a btn: or fly: action a selection the menu greys the row for. The reply claims nothing about
+// what the action did, which may be to open a card, start a sketch tool, act at once or tell the person why it
+// cannot: it says what the tab shows after it, its busy reason (a card, a dialog or a sketch now open) and its
+// status line. Its `tool` is the command called. A call that is not a person's pick, made while a row of the Feature
+// list is selected and nothing is picked in the view, targets that row: a row whose action acts on it (feature_row)
+// is not refused for the selection then, and applies. A person's pick keeps the menu's rule, which greys the row.
+json open_tool(const DesignTool& row, const char* command, const json& args, bool person)
+{
+    DesignPanel* panel      = cad_gate(CadAccess::None, args);
+    const int    kind       = panel->mcp_offer_selection_kind();
+    const bool   row_target = !person && panel->mcp_feature_row() >= 0 && kind == int(OfferSel::None) &&
+                            panel->mcp_picked_plane() < 0;
+    const bool applies = (row_target && row.feature_row) || (row.accepts & offer_bit(OfferSel(kind))) != 0;
+    if (std::optional<ToolFailure> refused = open_refusal(row, panel->mcp_sketch_map_applies(), kind, row_target))
         throw *refused;
     const bool text_was_open = panel->mcp_text_dialog_open();
-    panel->mcp_run_verb(t.id);
+    panel->mcp_run_verb(row.id);
     // A dialog the action opened held the call until it was answered, unless the action opened the Text dialog,
     // which is modeless: the call returns with it open. A Text dialog open before the action is not its dialog.
-    const bool modal = t.modal && !(panel->mcp_text_dialog_open() && !text_was_open);
+    const bool modal = row.modal && !(panel->mcp_text_dialog_open() && !text_was_open);
     std::string why;
     const bool  busy = panel->mcp_busy(false, false, why);
     return json{{"interactive", true},
-                {"tool", t.id},
+                {"tool", command},
                 {"applies", applies},
                 {"modal", modal},
                 {"selection_kind", kind},
@@ -3518,7 +4052,37 @@ json open_tool(const DesignTool& t, const json& args)
                 {"status", into_u8(panel->mcp_status())}};
 }
 
-// The command of the Design table's entry `t`, which has an action, a tool block or both.
+// The end of the description of entry `t`'s command: the argument sets that name a row, its own args and those of
+// the rows folded into it, each once with the names of the rows it opens (rows folded in with one set are one tool
+// under several labels, as the value rows are with {}), so that a search for a row's name finds the command; empty
+// when there are none.
+std::string opening_calls(const DesignTool& t)
+{
+    std::vector<std::pair<std::string, std::string>> sets;   // an argument set as JSON text, and its rows' names
+    const auto add = [&sets](const DesignTool& row) {
+        const std::string args = json::parse(row.args).dump();
+        const auto same = std::find_if(sets.begin(), sets.end(), [&args](const auto& set) { return set.first == args; });
+        if (same == sets.end())
+            sets.emplace_back(args, row.name);
+        else
+            same->second += std::string(", ") + row.name;
+    };
+    if (t.action != nullptr && t.args != nullptr)
+        add(t);
+    for (const DesignTool& row : kDesignTools)
+        if (row.fold_into != nullptr && std::strcmp(row.fold_into, t.id) == 0)
+            add(row);
+    if (sets.empty())
+        return {};
+    std::string calls;
+    for (const auto& [args, names] : sets)
+        calls += (calls.empty() ? "" : ", ") + args + " (" + names + ")";
+    return " Called with exactly one of these argument sets and nothing else, it opens that row's tool of the Design "
+           "tab for a person, as the menu row does: " +
+           calls + ".";
+}
+
+// The command of the Design table's entry `t`, which has an action, a tool block or both, and is no folded row.
 NativeCommand design_command(const DesignTool& t)
 {
     const json doc = t.doc != nullptr ? json::parse(t.doc) : json();
@@ -3527,21 +4091,34 @@ NativeCommand design_command(const DesignTool& t)
         schema = {{"type", "object"}, {"properties", json::object()}, {"additionalProperties", false}};
     else
         schema = cad_input_schema(doc);
-    // The person's form is the call with no arguments, which requires nothing (with_silent()), and runs in the
-    // entry's mode only.
-    if (t.action != nullptr && !doc.is_null()) {
+    // The person's form is the call with no arguments where that opens a row's tool, the entry's own or one folded
+    // into it: it requires nothing (with_silent()), and runs in that row's mode only.
+    const DesignTool* person_row = opened_row(t, json::object());
+    if (person_row != nullptr && !doc.is_null()) {
         schema = with_silent(std::move(schema));
-        schema["properties"]["silent"]["description"] = std::string(kSilentNote) + " " + mode_note(t);
+        schema["properties"]["silent"]["description"] = std::string(kSilentNote) + " " + mode_note(*person_row, true);
     }
 
     const DesignTool* entry = &t;
-    NativeCommand     c     = cad_command(t.id, t.name, std::move(schema), [entry](const json& args) {
-        if (entry->action != nullptr && (entry->doc == nullptr || person_form(args)))
-            return open_tool(*entry, args);
-        return run_cad_tool(entry->id, silent_args(args));
-    });
+    NativeCommand     c     = cad_command(
+        t.id, t.name, std::move(schema),
+        [entry](const json& args, bool person) {
+            if (const DesignTool* row = opened_row(*entry, args))
+                return open_tool(*row, entry->id, args, person);
+            return run_cad_tool(entry->id, silent_args(args));
+        },
+        [entry](const json& args) { return opened_row(*entry, args) != nullptr; });
     c.in_palette = t.action != nullptr;
     c.icon       = t.icon != nullptr ? t.icon : "";
+    // The rows folded into the command keep their tiles, each a call of the command with the row's arguments, and
+    // say what a pick does as a command with an action only does.
+    for (const DesignTool& row : kDesignTools)
+        if (row.fold_into != nullptr && std::strcmp(row.fold_into, t.id) == 0)
+            c.tiles.push_back({{"key", row.id},
+                               {"title", row.name},
+                               {"icon", row.icon != nullptr ? row.icon : ""},
+                               {"description", std::string(row.hint) + ". " + kOpensToolNote + " " + mode_note(row)},
+                               {"args", json::parse(row.args)}});
     if (doc.is_null()) {
         c.description = std::string(t.hint) + ". " + kOpensToolNote + " " + mode_note(t);
         return c;
@@ -3552,6 +4129,7 @@ NativeCommand design_command(const DesignTool& t)
     if (const std::string details = doc.at("details").get<std::string>(); !details.empty())
         description += ' ' + details;
     if (t.ok_false) description += std::string(" ") + kFailureNote;
+    description += opening_calls(t);
     c.read_only   = t.access == CadAccess::Read;
     // A read answers the same however often it is asked, as the listed read-only tools say of themselves.
     c.idempotent  = c.read_only;
@@ -3569,28 +4147,50 @@ const DesignTool* find_design_tool(const std::string& id)
     return nullptr;
 }
 
+bool is_design_command(const DesignTool& t) { return (t.action != nullptr || t.doc != nullptr) && t.fold_into == nullptr; }
+
+const DesignTool* opened_row(const DesignTool& entry, const json& args)
+{
+    // A call with no arguments gives none, null as {}.
+    const json given = person_form(args) ? json::object() : args;
+    if (entry.action != nullptr && (given.empty() || (entry.args != nullptr && json::parse(entry.args) == given)))
+        return &entry;
+    for (const DesignTool& row : kDesignTools)
+        if (row.fold_into != nullptr && std::strcmp(row.fold_into, entry.id) == 0 && row.args != nullptr &&
+            json::parse(row.args) == given)
+            return &row;
+    return nullptr;
+}
+
 bool offered_in_mode(const DesignTool& t, bool sketching) { return t.sketch_mode == sketching; }
 
-std::vector<const NativeCommand*> design_tiles(const CommandCatalog& catalog, bool sketching, bool cad_on)
+std::vector<DesignTile> design_tiles(const CommandCatalog& catalog, bool sketching, bool cad_on)
 {
-    std::vector<const NativeCommand*> tiles;
+    std::vector<DesignTile> tiles;
     if (!cad_on) return tiles;
-    for (const NativeCommand& command : catalog.commands()) {
-        if (command.group != kDesignGroup || !command.in_palette) continue;
-        const DesignTool* entry = find_design_tool(command.key);
-        if (entry != nullptr && offered_in_mode(*entry, sketching)) tiles.push_back(&command);
+    for (const DesignTool& t : kDesignTools) {
+        if (t.action == nullptr || !offered_in_mode(t, sketching)) continue;
+        const auto [command, tile] = find_tile(catalog, t.id);
+        if (command != nullptr && command->group == kDesignGroup) tiles.push_back({command, tile});
     }
     return tiles;
 }
 
-std::optional<ToolFailure> open_refusal(const DesignTool& t, bool sketching, int kind)
+std::optional<ToolFailure> open_refusal(const DesignTool& t, bool sketching, int kind, bool row_target)
 {
     if (!offered_in_mode(t, sketching))
         return ToolFailure(t.sketch_mode ? kSketchTool : kModelTool,
                            {{"code", -32000}, {"mode", t.sketch_mode ? "sketch" : "model"}});
+    // The row's action acts on the Feature list's selected row, and says itself what it cannot do with it.
+    if (row_target && t.feature_row)
+        return std::nullopt;
     const std::string action(t.action);
     const bool applies = (t.accepts & offer_bit(OfferSel(kind))) != 0;
-    if (applies || (action.rfind("btn:", 0) != 0 && action.rfind("fly:", 0) != 0))
+    // Only a row that accepts a kind the tab can report in its mode is greyed for the others; one that accepts none
+    // (Boolean's rows take two bodies, Rib a sketch line) opens as its toolbar button does, whatever is selected.
+    const bool greyable = (action.rfind("btn:", 0) == 0 || action.rfind("fly:", 0) == 0) &&
+                          (t.accepts & reported_kinds(t.sketch_mode)) != 0;
+    if (applies || !greyable)
         return std::nullopt;
     // The row's own refusal is about the document (no body, no second sketch), which the menu shows only for
     // a row that takes the selection; here the selection is the obstacle, so the reply names what to pick.
@@ -3621,11 +4221,12 @@ DesignPanel* cad_gate(CadAccess access, const json& args)
                           "OrcaSlicer (turning the CAD feature on takes effect after a restart)",
                           {{"code", -32001}});
 
-    // Only Read commands, and the opening of a tool, may run under a GUI editor or a sketch session they do
-    // not own. None may run during a rebuild, not even these: the rebuild's busy loop runs this call while
-    // the GUI's worker thread holds the document. Checked before hydrating, which writes it.
+    // Only Read commands, the opening of a tool and the Ui commands, which act on what is open, may run under a GUI
+    // editor or a sketch session they do not own. None may run during a rebuild, not even these: the rebuild's busy
+    // loop runs this call while the GUI's worker thread holds the document. Checked before hydrating, which writes it.
     std::string why;
-    if (panel->mcp_busy(access == CadAccess::Read || access == CadAccess::None, access == CadAccess::Sketch, why))
+    const bool  under_open = access == CadAccess::Read || access == CadAccess::None || access == CadAccess::Ui;
+    if (panel->mcp_busy(under_open, access == CadAccess::Sketch, why))
         throw ToolFailure("Design tab busy: " + why, {{"code", -32002}});
 
     // A project opened without ever showing the Design tab has its recipe only in the Model;
@@ -3642,7 +4243,7 @@ DesignPanel* cad_gate(CadAccess access, const json& args)
     // captured up front remove 0.400/0.008/0.397/0.280. Neither run errors, because a stale id
     // still resolves to a real edge — just not the one that was asked for.
     //
-    // So a caller may pass back the "generation" it got from describe_scene or query_topology,
+    // So a caller may pass back the "generation" it got from describe_design or body_describe,
     // and a mismatch is refused instead of silently obeyed. Optional by design: a call without it
     // is not checked, and supplying it is what buys the guarantee. One check here rather than one
     // per handler, so a command added later cannot forget it.
@@ -3658,7 +4259,7 @@ DesignPanel* cad_gate(CadAccess access, const json& args)
         if (want != have)
             throw ToolFailure("stale face/edge ids: they were read at generation " + std::to_string(want)
                                   + " but the model is now at " + std::to_string(have)
-                                  + ". Re-read query_topology and use the new ids — the old ones still name real "
+                                  + ". Re-read body_describe and use the new ids — the old ones still name real "
                                     "edges, just not the ones you measured.",
                               {{"code", -32010}});
     }
@@ -3689,10 +4290,17 @@ json cad_input_schema(const json& block)
         const std::string name = param.at("name").get<std::string>();
         const std::string type = param.at("type").get<std::string>();
         json              property;
-        if (const std::size_t bar = type.find('|'); bar != std::string::npos)
-            property["type"] = json::array({type.substr(0, bar), type.substr(bar + 1)});
-        else
+        if (type.find('|') != std::string::npos) {
+            property["type"] = json::array();
+            for (std::size_t from = 0;;) {
+                const std::size_t bar = type.find('|', from);
+                property["type"].push_back(type.substr(from, bar == std::string::npos ? std::string::npos : bar - from));
+                if (bar == std::string::npos) break;
+                from = bar + 1;
+            }
+        } else {
             property["type"] = type;
+        }
         if (param.contains("min")) property["minimum"] = param["min"];
         if (param.contains("exclusive_min")) property["exclusiveMinimum"] = param["exclusive_min"];
         if (param.contains("max")) property["maximum"] = param["max"];
@@ -3716,23 +4324,22 @@ json cad_input_schema(const json& block)
     properties["generation"] = {{"type", "integer"}, {"minimum", 0}, {"description", kGenerationNote}};
     json schema{{"type", "object"}, {"properties", std::move(properties)}};
     if (!required.empty()) schema["required"] = std::move(required);
+    if (block.value("closed", false)) schema["additionalProperties"] = false;
     return schema;
 }
 
-NativeCommand cad_command(std::string key, std::string title, json schema, std::function<json(const json& args)> fn)
+NativeCommand cad_command(std::string key, std::string title, json schema,
+                          std::function<json(const json& args, bool person)> fn, std::function<bool(const json& args)> opens)
 {
     NativeCommand c;
     c.key          = std::move(key);
     c.title        = std::move(title);
     c.group        = kDesignGroup;
     c.input_schema = std::move(schema);
-    // A call with arguments that leaves only its generation out of the journal would replay with none, which
-    // for a command that also has a person's form opens the tool instead of running the silent form.
-    const bool takes_silent = c.input_schema.contains("properties") && c.input_schema["properties"].contains("silent");
-    c.run = [fn = std::move(fn), takes_silent](const json& args, ToolContext& ctx) {
+    c.run = [fn = std::move(fn), opens = std::move(opens)](const json& args, ToolContext& ctx) {
         if (ctx.person()) {
             try {
-                return ToolResult::ok({{"result", fn(args)}});
+                return ToolResult::ok({{"result", fn(args, true)}});
             } catch (const ToolFailure& refused) {
                 // What the person reads, in the UI's language where the text is a msgid (an entry's refusal). Looked
                 // up in the application's catalogue only, as the right-click menu's rows are (show_offer_menu()), so
@@ -3745,10 +4352,12 @@ NativeCommand cad_command(std::string key, std::string title, json schema, std::
         // Journal the call without it.
         json recorded = args;
         if (recorded.is_object()) recorded.erase("generation");
-        if (takes_silent && recorded.is_object() && recorded.empty() && !person_form(args))
+        // A call that ran may be recorded, without its generation, as one that opens a tool (one with no arguments):
+        // with silent, its replay runs too.
+        if (opens && recorded.is_object() && !opens(args) && opens(recorded))
             recorded["silent"] = true;
         ctx.set_journal_args(std::move(recorded));
-        json result = ctx.run_ui([&] { return fn(args); });
+        json result = ctx.run_ui([&] { return fn(args, false); });
         settle(ctx);
         return ToolResult::ok({{"result", std::move(result)}});
     };
@@ -3758,12 +4367,13 @@ NativeCommand cad_command(std::string key, std::string title, json schema, std::
 void register_cad_commands(CommandCatalog& catalog)
 {
     for (const DesignTool& t : kDesignTools)
-        if (t.action != nullptr || t.doc != nullptr)
+        if (is_design_command(t))
             catalog.add(design_command(t));
 }
 
 void leave_out_cad_commands(CommandCatalog& catalog)
 {
+    // A folded row's id too, which is no command but names a tile.
     for (const DesignTool& t : kDesignTools)
         if (t.action != nullptr || t.doc != nullptr)
             catalog.leave_out(t.id, kCadOffAtStartup);
@@ -3786,18 +4396,20 @@ std::vector<int> sketch_target_indices(const json& params, const std::vector<int
 
 std::string design_command_index()
 {
-    std::string from_arguments, menu_row;
-    for (const DesignTool& t : kDesignTools) {
-        if (t.action == nullptr && t.doc == nullptr)
-            continue;
-        std::string& list = t.doc != nullptr ? from_arguments : menu_row;
-        list += (list.empty() ? "" : ", ") + std::string(t.id);
+    std::string index = " The Design tab's CAD commands follow by heading (sketches, solid and surface features, bodies, "
+                        "measurements); look one up with tool before calling it. A command whose schema has silent does what "
+                        "its menu row does when called with no arguments, unless silent is true.";
+    for (const char* section : kDesignSections) {
+        std::string names;
+        for (const DesignTool& t : kDesignTools)
+            if (t.section != nullptr && std::strcmp(t.section, section) == 0)
+                names += (names.empty() ? "" : ", ") + std::string(t.id);
+        index += std::string(" ") + section;
+        if (std::strcmp(section, "Menu rows") == 0)
+            index += ", which take no arguments and do what their row of the right-click menu does";
+        index += ": " + names + ".";
     }
-    return " The Design tab's CAD commands follow (sketches, solid and surface features, bodies, measurements); look one "
-           "up with tool before calling it. These run from their arguments, and one that has a menu row as well runs that "
-           "row when called with no arguments, unless silent is true: " +
-           from_arguments + ". These take no arguments and act as their row of the Design tab's right-click menu does: " +
-           menu_row + ".";
+    return index;
 }
 
 json cad_note(const CommandCatalog& catalog)
@@ -3870,10 +4482,10 @@ json cad_feature_json(const CadDocument& doc, int index)
     check_feature_index(index, doc);
     const CadFeature& f = doc.features[index];
     json j = feature_card(f);
-    j["index"]   = index;
-    j["type"]    = feature_type_name(f.type);
-    j["name"]    = f.name;
-    j["enabled"] = f.enabled;
+    j["index"]      = index;
+    j["type"]       = feature_type_name(f.type);
+    j["name"]       = f.name;
+    j["suppressed"] = !f.enabled;
 
     // The plane the recipe builds on: a datum's resolved frame, or the plane the feature holds.
     using T = CadFeatureType;
@@ -3921,7 +4533,39 @@ json cad_feature_json(const CadDocument& doc, int index)
     j["bodies_made"] = std::move(made);
     for (const auto& [mate, reason] : doc.mate_conflicts)
         if (mate == index) j["conflict"] = reason;
+
+    // The model its body indices and face and edge ids are read in: the one just before it, which feature_edit's
+    // refs take, but for a datum, which the engine resolves against the finished model (for_each_body_ref()).
+    j["ids_of"] = f.type == T::Plane || f.type == T::Axis || f.type == T::CoordSys ? "finished" : "before";
+    // As the last rebuild recorded them, named as the bodies they became are; null where that rebuild did not reach.
+    json before = nullptr;
+    if (size_t(index) < doc.bodies_before.size() && doc.bodies_before[size_t(index)]) {
+        before = json::array();
+        const std::vector<CadDocument::BodyBefore>& was = *doc.bodies_before[size_t(index)];
+        for (size_t b = 0; b < was.size(); ++b) {
+            const int      now  = doc.body_index(was[b].id);
+            const CadBody* body = now >= 0 ? &doc.bodies[size_t(now)] : nullptr;
+            before.push_back(json{{"index", int(b)}, {"name", body != nullptr && body->has_user_name ? body->user_name : was[b].name}});
+        }
+    }
+    j["bodies_before"] = std::move(before);
     return j;
+}
+
+json cad_feature_changes(const json& was, const json& now)
+{
+    json changed = json::object();
+    for (const char* part : {"params", "refs"}) {
+        const json before = was.value(part, json::object()), after = now.value(part, json::object());
+        for (const auto& [k, v] : after.items()) {
+            const json old = before.value(k, json());
+            if (old != v) changed[k] = json::array({old, v});
+        }
+    }
+    // The plane a Mirror, a Helix or a Cut builds on is reported beside them, and a re-point of it is a change too.
+    const json old_plane = was.value("plane", json()), new_plane = now.value("plane", json());
+    if (old_plane != new_plane) changed["plane"] = json::array({old_plane, new_plane});
+    return changed;
 }
 
 void cad_apply_feature_fields(CadFeature& f, const json& fields)
@@ -3933,7 +4577,7 @@ void cad_apply_feature_fields(CadFeature& f, const json& fields)
     const json& ranges   = card["ranges"];
     const std::string type = feature_type_name(f.type);
     if (editable.empty())
-        throw std::runtime_error(type + ": no field set_feature can change; its inputs are geometry or picks");
+        throw std::runtime_error(type + ": no field feature_edit can change; its inputs are geometry or picks");
     if (fields.contains("thread_diameter") && fields.contains("thread_radius"))
         throw std::runtime_error("give thread_diameter or thread_radius, not both");
     // The two are one value, so a binding on either drives both.
@@ -3953,7 +4597,7 @@ void cad_apply_feature_fields(CadFeature& f, const json& fields)
         for (const auto& [bound, e] : f.expr)
             if (same_value(bound, key))
                 throw std::runtime_error(key + " is driven by the expression '" + e + "'; change it with set_variable, or "
-                                         "remove the binding with edit_feature {field: '" + bound + "', expr: ''}");
+                                         "remove the binding with feature_set_expression {field: '" + bound + "', expr: ''}");
         const auto range = ranges.find(key);
         if (range == ranges.end()) {
             set_card_choice(edited, key, v);
@@ -3968,7 +4612,373 @@ void cad_apply_feature_fields(CadFeature& f, const json& fields)
     f = std::move(edited);
 }
 
-std::vector<int> cad_commit_replace(const json& replace, const Model& model)
+CadDocument cad_document_before(const CadDocument& doc, int feature)
+{
+    check_feature_index(feature, doc);
+    CadDocument before = doc.history_before(feature);
+    if (!before.recompute())
+        throw std::runtime_error("the model before feature " + std::to_string(feature) + " (" + doc.features[size_t(feature)].name +
+                                 ") does not rebuild: " + (before.error.empty() ? std::string("no reason given") : before.error));
+    return before;
+}
+
+std::vector<Vec3d> cad_body_vertices(const CadDocument& doc, int body)
+{
+    TopTools_IndexedMapOfShape map;
+    TopExp::MapShapes(body_shape(doc, json{{"body", body}}), TopAbs_VERTEX, map);
+    std::vector<Vec3d> out;
+    out.reserve(size_t(map.Extent()));
+    for (int i = 1; i <= map.Extent(); ++i) {
+        const gp_Pnt p = BRep_Tool::Pnt(TopoDS::Vertex(map(i)));
+        out.emplace_back(p.X(), p.Y(), p.Z());
+    }
+    return out;
+}
+
+namespace {
+
+// "feature 5 (Sweep 6)": the feature whose refs feature_edit writes, as its refusals name it.
+std::string feature_label(const CadDocument& doc, int index)
+{
+    return "feature " + std::to_string(index) + " (" + doc.features[size_t(index)].name + ")";
+}
+
+// The names feature_edit's refs takes for a feature of type `t`: those of feature_describe's refs that its card can
+// pick again when it edits. Empty for a type whose card picks nothing again, and for an Extrude, whose profile and
+// target are fixed.
+std::vector<std::string> ref_names(CadFeatureType t)
+{
+    using T = CadFeatureType;
+    switch (t) {
+    case T::Revolve:        return {"revolve_axis_entity", "target_body"};
+    case T::SurfaceRevolve: return {"revolve_axis_entity"};
+    case T::Sweep:          return {"sweep_path_ref", "target_body"};
+    case T::Loft:           return {"loft_profile_refs", "target_body"};
+    case T::SurfaceLoft:    return {"loft_profile_refs"};
+    case T::Boolean:        return {"target_body", "bool_tool_body"};
+    case T::Mirror:
+    case T::Cut:
+    case T::Hole:
+    case T::Thread:         return {"plane", "target_body"};
+    case T::Helix:          return {"plane"};
+    case T::Rib:            return {"rib_sketch_ref", "rib_entity", "target_body"};
+    case T::Mate:           return {"mate_cs_a", "mate_cs_b"};
+    case T::Fillet:
+    case T::Chamfer:        return {"edges", "face_group", "target_body"};
+    case T::Shell:          return {"shell_face", "target_body"};
+    case T::Draft:          return {"draft_face", "target_body"};
+    case T::Thicken:        return {"thicken_face", "target_body"};
+    case T::DeleteFace:     return {"delete_faces", "target_body"};
+    case T::Plane:
+        return {"plane_type", "plane_base", "plane_axis", "plane_face_body", "plane_face", "plane_face2_body", "plane_face2",
+                "plane_edge_body", "plane_edge", "plane_edge2_body", "plane_edge2"};
+    case T::Axis:
+        return {"axis_type", "axis_p1", "axis_p2", "axis_body", "axis_face", "axis_edge", "axis_plane_a", "axis_plane_b"};
+    case T::CoordSys:
+        return {"coordsys_type", "coordsys_point", "coordsys_body", "coordsys_face", "coordsys_edge", "coordsys_x_hint"};
+    case T::Pattern:
+    case T::Transform:
+    case T::ThickenSurface:
+    case T::SurfaceOffset:  return {"target_body"};
+    default:                return {};
+    }
+}
+
+// Reads the values of feature_edit's refs for features[index] of `doc`, whose body indices and face and edge ids
+// name those of `ids`: the model before the feature, or for a datum the finished model, `doc` itself.
+struct RefReader
+{
+    const CadDocument& ids;
+    const CadDocument& doc;
+    int                index;
+    bool               finished;   // `ids` is the finished model, a datum's
+    std::string        at;         // feature_label() of the feature
+
+    // Where `ids` stands, as a refusal says it.
+    std::string where() const { return finished ? "in the finished model" : "before " + at; }
+
+    int integer(const std::string& name, const json& v, const char* what) const
+    {
+        if (!v.is_number_integer()) throw std::runtime_error(name + " must be " + what);
+        return v.get<int>();
+    }
+
+    // A feature before the one edited, of one of `types`, which `kinds` names.
+    int earlier(const std::string& name, const json& v, std::initializer_list<CadFeatureType> types, const char* kinds) const
+    {
+        const int fi = integer(name, v, "a feature index (describe_design's features[].index)");
+        if (fi < 0 || fi >= index)
+            throw std::runtime_error(name + " " + std::to_string(fi) + " is not an earlier feature: it must come before " + at);
+        const CadFeatureType t = doc.features[size_t(fi)].type;
+        if (std::find(types.begin(), types.end(), t) == types.end())
+            throw std::runtime_error(name + " " + std::to_string(fi) + " (" + feature_type_name(t) + ") is not " + kinds);
+        return fi;
+    }
+
+    // A body of `ids`, or -1 where `unset` names what -1 stands for.
+    int body(const std::string& name, const json& v, const char* unset) const
+    {
+        const int b = integer(name, v, unset != nullptr ? "a body index, or -1" : "a body index");
+        if (unset != nullptr && b == -1) return b;
+        const int n = int(ids.bodies.size());
+        if (b < 0 || b >= n)
+            throw std::runtime_error(name + " " + std::to_string(b) + " is not a body " + where() + ": there " +
+                                     (finished ? (n == 1 ? "is 1 body" : "are " + std::to_string(n) + " bodies")
+                                               : (n == 1 ? "was 1 body" : "were " + std::to_string(n) + " bodies")));
+        return b;
+    }
+
+    // The body a feature's target_body names in `ids`: -1 is the last one.
+    int target(int b) const
+    {
+        if (b >= 0) return b;
+        if (ids.bodies.empty()) throw std::runtime_error("there is no body " + where());
+        return int(ids.bodies.size()) - 1;
+    }
+
+    // Face (`edges` false) or edge ids, each of body `b` of `ids`.
+    void on_body(const std::vector<int>& list, int b, bool edges) const
+    {
+        const TopoDS_Shape& shape = ids.bodies[size_t(b)].shape;
+        const int           n     = edges ? GeometryEngine::edge_count(shape) : GeometryEngine::face_count(shape);
+        const char*         kind  = edges ? "edge" : "face";
+        for (const int id : list)
+            if (id < 0 || id >= n)
+                throw std::runtime_error(std::string(kind) + " " + std::to_string(id) + " of body " + std::to_string(b) + " does not exist " +
+                                         where() + ": the body " + (finished ? "has " : "had ") + std::to_string(n) + " " + kind + "s" +
+                                         (finished ? "" : " there"));
+    }
+
+    // One id, or for `many` a list of distinct ids.
+    std::vector<int> id_list(const std::string& name, const json& v, bool many) const
+    {
+        std::vector<int> out;
+        if (many && v.is_array()) {
+            for (const json& e : v) {
+                if (!e.is_number_integer()) throw std::runtime_error(name + " must be ids from body_describe");
+                if (std::find(out.begin(), out.end(), e.get<int>()) != out.end())
+                    throw std::runtime_error(name + ": " + std::to_string(e.get<int>()) + " is listed twice");
+                out.push_back(e.get<int>());
+            }
+            if (out.empty()) throw std::runtime_error(name + " is an empty list");
+            return out;
+        }
+        out.push_back(integer(name, v, many ? "an id or a list of ids from body_describe" : "an id from body_describe"));
+        return out;
+    }
+
+    // A datum-plane reference: 0, 1 or 2 for XY, XZ or YZ, or 3 + N for the Nth shown Plane feature, which must come
+    // before the feature edited; -1 where `unset` allows it.
+    int datum(const std::string& name, const json& v, bool unset) const
+    {
+        const int d = integer(name, v, "0, 1 or 2 (XY, XZ or YZ), or 3 + N for the Nth shown datum plane");
+        if ((unset && d == -1) || (d >= 0 && d < 3)) return d;
+        int seen = 0;
+        for (int i = 0; d >= 3 && i < index; ++i)
+            if (doc.features[size_t(i)].type == CadFeatureType::Plane && doc.features[size_t(i)].enabled && seen++ == d - 3)
+                return d;
+        throw std::runtime_error(name + " " + std::to_string(d) + " names no datum plane before " + at);
+    }
+};
+
+// A point or direction [x, y, z] of a datum's refs.
+Vec3d vec3_ref(const std::string& name, const json& v, bool direction)
+{
+    if (!v.is_array() || v.size() != 3 || !v[0].is_number() || !v[1].is_number() || !v[2].is_number())
+        throw std::runtime_error(name + " must be [x, y, z]");
+    const Vec3d p(v[0].get<double>(), v[1].get<double>(), v[2].get<double>());
+    if (direction && !(p.norm() > 1e-9)) throw std::runtime_error(name + " must not be zero");
+    return p;
+}
+
+// The refs of a Plane, an Axis and a CoordSys: their types, points and datum references, and bodies, faces and edges
+// of the finished model.
+void apply_datum_refs(CadFeature& g, const json& refs, const RefReader& r)
+{
+    using T = CadFeatureType;
+    const auto given = [&](const char* k) { return refs.contains(k); };
+    const auto body  = [&](const char* k, int& field) { if (given(k)) field = r.body(k, refs[k], "unset"); };
+    const auto id    = [&](const char* k, int& field) { if (given(k)) field = r.integer(k, refs[k], "an id from body_describe, or -1"); };
+    // A face or an edge set on a body: one of that body's, in the finished model.
+    const auto check = [&](int b, int ref, bool edges, const char* k) {
+        if (ref < 0) return;
+        if (b < 0) throw std::runtime_error(std::string(k) + " " + std::to_string(ref) + " is on no body: give its body too");
+        r.on_body({ref}, b, edges);
+    };
+    if (g.type == T::Plane) {
+        if (given("plane_type")) g.plane_type = PlaneType(enum_index("plane_type", refs["plane_type"], kPlaneTypes));
+        if (given("plane_base")) g.plane_base = r.datum("plane_base", refs["plane_base"], false);
+        if (given("plane_axis")) {
+            g.plane_axis = r.integer("plane_axis", refs["plane_axis"], "0 (the base's X) or 1 (its Y)");
+            if (g.plane_axis != 0 && g.plane_axis != 1) throw std::runtime_error("plane_axis must be 0 (the base's X) or 1 (its Y)");
+        }
+        body("plane_face_body", g.plane_face_body);
+        id("plane_face", g.plane_face);
+        body("plane_face2_body", g.plane_face2_body);
+        id("plane_face2", g.plane_face2);
+        body("plane_edge_body", g.plane_edge_body);
+        id("plane_edge", g.plane_edge);
+        body("plane_edge2_body", g.plane_edge2_body);
+        id("plane_edge2", g.plane_edge2);
+        check(g.plane_face_body, g.plane_face, false, "plane_face");
+        check(g.plane_face2_body, g.plane_face2, false, "plane_face2");
+        check(g.plane_edge_body, g.plane_edge, true, "plane_edge");
+        check(g.plane_edge2_body, g.plane_edge2, true, "plane_edge2");
+        // What the Plane card's Confirm refuses, which the rebuild would not: an unresolved plane falls back silently.
+        if (const std::string why = r.doc.datum_plane_refusal(g); !why.empty()) throw std::runtime_error(why);
+    } else if (g.type == T::Axis) {
+        if (given("axis_type")) g.axis_type = AxisType(enum_index("axis_type", refs["axis_type"], kAxisTypes));
+        if (given("axis_p1")) g.axis_p1 = vec3_ref("axis_p1", refs["axis_p1"], false);
+        if (given("axis_p2")) g.axis_p2 = vec3_ref("axis_p2", refs["axis_p2"], false);
+        body("axis_body", g.axis_body);
+        id("axis_face", g.axis_face);
+        id("axis_edge", g.axis_edge);
+        if (given("axis_plane_a")) g.axis_plane_a = r.datum("axis_plane_a", refs["axis_plane_a"], true);
+        if (given("axis_plane_b")) g.axis_plane_b = r.datum("axis_plane_b", refs["axis_plane_b"], true);
+        check(g.axis_body, g.axis_face, false, "axis_face");
+        check(g.axis_body, g.axis_edge, true, "axis_edge");
+    } else {
+        if (given("coordsys_type")) g.coordsys_type = CoordSysType(enum_index("coordsys_type", refs["coordsys_type"], kCoordSysTypes));
+        if (given("coordsys_point")) g.coordsys_point = vec3_ref("coordsys_point", refs["coordsys_point"], false);
+        if (given("coordsys_x_hint")) g.coordsys_x_hint = vec3_ref("coordsys_x_hint", refs["coordsys_x_hint"], true);
+        body("coordsys_body", g.coordsys_body);
+        id("coordsys_face", g.coordsys_face);
+        id("coordsys_edge", g.coordsys_edge);
+        check(g.coordsys_body, g.coordsys_face, false, "coordsys_face");
+        check(g.coordsys_body, g.coordsys_edge, true, "coordsys_edge");
+    }
+}
+
+// The refs of every other type, read in the model before the feature (`r.ids`).
+void apply_model_refs(CadFeature& g, const json& refs, const RefReader& r)
+{
+    using T             = CadFeatureType;
+    const auto given    = [&](const char* k) { return refs.contains(k); };
+    const CadDocument& doc = r.doc;
+    if (given("target_body")) g.target_body = r.body("target_body", refs["target_body"], g.type == T::Boolean ? nullptr : "the last body");
+
+    if (given("revolve_axis_entity")) {
+        // A line of the sketch the revolve turns, or of the profile it carries itself.
+        const int  e     = r.integer("revolve_axis_entity", refs["revolve_axis_entity"], "a line of the feature's sketch (entity index), or -1 for the plane axis");
+        const bool own   = g.sketch_ref < 0 || g.sketch_ref >= int(doc.features.size());
+        if (e != -1 && !revolve_line(own ? g.entities : doc.features[size_t(g.sketch_ref)].entities, e))
+            throw std::runtime_error("revolve_axis_entity " + std::to_string(e) + " is not a line of " +
+                                     (own ? std::string("its profile") : "sketch " + std::to_string(g.sketch_ref)));
+        g.revolve_axis_entity = e;
+    }
+    if (given("sweep_path_ref")) {
+        g.sweep_path_ref = r.earlier("sweep_path_ref", refs["sweep_path_ref"], {T::Sketch, T::Helix}, "a Sketch or a Helix");
+        if (g.sweep_path_ref == g.sketch_ref) throw std::runtime_error("sweep_path_ref cannot be the profile sketch itself");
+    }
+    if (given("loft_profile_refs")) {
+        const json& v = refs["loft_profile_refs"];
+        if (!v.is_array() || v.size() < 2) throw std::runtime_error("loft_profile_refs must be two or more sketch feature indices, in loft order");
+        std::vector<int> profiles;
+        for (const json& p : v) {
+            const int s = r.earlier("loft_profile_refs", p, {T::Sketch, T::Project}, "a Sketch");
+            if (std::find(profiles.begin(), profiles.end(), s) != profiles.end())
+                throw std::runtime_error("loft_profile_refs: sketch " + std::to_string(s) + " is listed twice");
+            profiles.push_back(s);
+        }
+        g.loft_profile_refs = std::move(profiles);
+    }
+    if (given("bool_tool_body")) g.bool_tool_body = r.body("bool_tool_body", refs["bool_tool_body"], nullptr);
+    // A Boolean's two operands; for every other type bool_tool_body is unused, and target_body -1 is the last body.
+    if (g.type == T::Boolean && (given("target_body") || given("bool_tool_body")) && g.target_body == g.bool_tool_body)
+        throw std::runtime_error("target_body and bool_tool_body must be two different bodies");
+
+    if (given("plane")) {
+        // A face is one of the model before the feature; a datum's frame is the finished model's, as a card's plane
+        // list resolves it. A hole or a thread drills the face's own body, as on its card.
+        const json& v     = refs["plane"];
+        const bool  drill = g.type == T::Hole || g.type == T::Thread;
+        int         face_body = -1;
+        if (v.is_object() && v.contains("datum")) {
+            if (const json d = v["datum"]; d.is_number_integer() && (d.get<int>() < 0 || d.get<int>() >= r.index))
+                throw std::runtime_error("plane's datum " + std::to_string(d.get<int>()) + " is not an earlier feature: it must come before " + r.at);
+            g.plane = cad_resolve_plane(v, doc, drill);
+        } else {
+            g.plane = cad_resolve_plane(v, r.ids, drill, &face_body);
+        }
+        if (g.type == T::Cut) g.cut_face = g.cut_face_body = -1;   // a split along the plane, not along a face
+        if (drill && face_body >= 0) {
+            if (given("target_body") && g.target_body != face_body)
+                throw std::runtime_error("the plane is a face of body " + std::to_string(face_body) + ", so that body is drilled, not body " +
+                                         std::to_string(g.target_body));
+            g.target_body = face_body;
+        }
+    }
+    if (given("rib_sketch_ref")) g.rib_sketch_ref = r.earlier("rib_sketch_ref", refs["rib_sketch_ref"], {T::Sketch}, "a Sketch");
+    if (given("rib_entity")) g.rib_entity = r.integer("rib_entity", refs["rib_entity"], "a line of the rib's sketch (entity index)");
+    if ((given("rib_sketch_ref") || given("rib_entity")) &&
+        !(g.rib_sketch_ref >= 0 && g.rib_sketch_ref < int(doc.features.size()) &&
+          revolve_line(doc.features[size_t(g.rib_sketch_ref)].entities, g.rib_entity)))
+        throw std::runtime_error("rib_entity " + std::to_string(g.rib_entity) + " is not a line of sketch " + std::to_string(g.rib_sketch_ref));
+    if (given("mate_cs_a")) g.mate_cs_a = r.earlier("mate_cs_a", refs["mate_cs_a"], {T::CoordSys}, "a CoordSys");
+    if (given("mate_cs_b")) g.mate_cs_b = r.earlier("mate_cs_b", refs["mate_cs_b"], {T::CoordSys}, "a CoordSys");
+    if ((given("mate_cs_a") || given("mate_cs_b")) && g.mate_cs_a == g.mate_cs_b)
+        throw std::runtime_error("mate_cs_a and mate_cs_b must be two different coordinate systems");
+
+    if (given("edges") && given("face_group")) throw std::runtime_error("give edges or face_group, not both");
+    if (given("edges")) {
+        const std::vector<int> edges = r.id_list("edges", refs["edges"], true);
+        g.dressup_edge  = edges.front();
+        g.dressup_edges = edges.size() > 1 ? edges : std::vector<int>();
+    }
+    if (given("face_group")) {
+        const std::optional<FaceGroup> group = face_group_named(refs["face_group"]);
+        if (!group) throw std::runtime_error("face_group must be " + kFaceGroupWords);
+        g.face_group    = *group;
+        g.dressup_edge  = -1;
+        g.dressup_edges.clear();
+    }
+    if (given("shell_face")) {
+        g.shell_face = r.integer("shell_face", refs["shell_face"], "a face id from body_describe, or -1 for a closed hollow");
+        if (g.shell_face < -1) throw std::runtime_error("shell_face must be a face id from body_describe, or -1 for a closed hollow");
+    }
+    if (given("draft_face")) g.draft_face = r.id_list("draft_face", refs["draft_face"], false).front();
+    if (given("thicken_face")) g.thicken_face = r.id_list("thicken_face", refs["thicken_face"], false).front();
+    if (given("delete_faces")) {
+        if (!refs["delete_faces"].is_array()) throw std::runtime_error("delete_faces must be a list of face ids from body_describe");
+        g.delete_faces = r.id_list("delete_faces", refs["delete_faces"], true);
+    }
+
+    // The faces and edges the feature works on, of its target body as it stood before the feature, whichever of the
+    // two changed.
+    const bool retarget = given("target_body");
+    const int  shown    = g.target_body;
+    if ((g.type == T::Fillet || g.type == T::Chamfer) && (retarget || given("edges")) && !g.dressup_edge_ids().empty())
+        r.on_body(g.dressup_edge_ids(), r.target(shown), true);
+    if (g.type == T::Shell && (retarget || given("shell_face")) && g.shell_face >= 0) r.on_body({g.shell_face}, r.target(shown), false);
+    if (g.type == T::Draft && (retarget || given("draft_face"))) r.on_body({g.draft_face}, r.target(shown), false);
+    if (g.type == T::Thicken && (retarget || given("thicken_face"))) r.on_body({g.thicken_face}, r.target(shown), false);
+    if (g.type == T::DeleteFace && (retarget || given("delete_faces"))) r.on_body(g.delete_faces, r.target(shown), false);
+}
+
+} // namespace
+
+void cad_apply_feature_refs(CadFeature& f, const json& refs, const CadDocument& before, const CadDocument& doc, int index)
+{
+    using T                = CadFeatureType;
+    const std::string type = feature_type_name(f.type);
+    if (f.type == T::Extrude) throw std::runtime_error("Extrude: its profile and its target are fixed");
+    if (!refs.is_object() || refs.empty()) throw std::runtime_error("refs must name the references to change, as {\"sweep_path_ref\": 2}");
+    const std::vector<std::string> names = ref_names(f.type);
+    std::string                    list;
+    for (const std::string& n : names) list += (list.empty() ? "" : ", ") + n;
+    for (const auto& [name, v] : refs.items())
+        if (std::find(names.begin(), names.end(), name) == names.end())
+            throw std::runtime_error(names.empty() ? type + ": its card picks nothing again, so refs takes no name; '" + name + "' is not one"
+                                                   : type + " takes " + list + " in refs, not '" + name + "'");
+    const bool      datum = f.type == T::Plane || f.type == T::Axis || f.type == T::CoordSys;
+    const RefReader r{datum ? doc : before, doc, index, datum, feature_label(doc, index)};
+    CadFeature      g = f;
+    if (datum) apply_datum_refs(g, refs, r);
+    else       apply_model_refs(g, refs, r);
+    f = std::move(g);
+}
+
+std::vector<int> cad_commit_to_plate_replace(const json& replace, const Model& model)
 {
     if (!replace.is_array()) throw std::runtime_error("replace takes a list of object indices (list_objects)");
     const int count = int(model.objects.size());
@@ -3997,7 +5007,7 @@ json cad_sketch_describe(const CadDocument& doc, const DesignSketchTool& tool, i
     const CadFeature& f = doc.features[sketch];
     if (f.entities.empty())
         throw std::runtime_error("sketch " + std::to_string(sketch) +
-                                 " is not drawn from entities (a rectangle, circle, profile or imported art); describe_feature reads it");
+                                 " is not drawn from entities (a rectangle, circle, profile or imported art); feature_describe reads it");
     json ents = json::array();
     for (size_t i = 0; i < f.entities.size(); ++i) ents.push_back(sketch_entity_to(f.entities[i], int(i)));
     json out{{"ok", true},
@@ -4013,15 +5023,43 @@ json cad_sketch_describe(const CadDocument& doc, const DesignSketchTool& tool, i
 json cad_sketch_call(DesignSketchTool& tool, const std::string& name, const json& params)
 {
     const json p = params.is_object() ? params : json::object();
-    if (name == "sketch_add")         return sketch_add(tool, p);
-    if (name == "sketch_fillet")      return sketch_corner(tool, p, false);
-    if (name == "sketch_chamfer")     return sketch_corner(tool, p, true);
-    if (name == "sketch_trim")        return sketch_trim(tool, p);
-    if (name == "sketch_transform")   return sketch_transform(tool, p);
-    if (name == "sketch_constrain")   return sketch_constrain(tool, p);
-    if (name == "sketch_constraints") return sketch_constraints(tool, p);
-    if (name == "sketch_unconstrain") return sketch_unconstrain(tool, p);
+    if (name == "sketch_draw")              return sketch_draw(tool, p);
+    if (name == "sketch_fillet")            return sketch_corner(tool, p, false);
+    if (name == "sketch_chamfer")           return sketch_corner(tool, p, true);
+    if (name == "sketch_trim")              return sketch_trim_or_extend(tool, p, false);
+    if (name == "sketch_extend")            return sketch_trim_or_extend(tool, p, true);
+    if (name == "sketch_offset")            return sketch_offset(tool, p);
+    if (name == "sketch_mirror")            return sketch_mirror(tool, p);
+    if (name == "sketch_transform")         return sketch_transform(tool, p, false);
+    if (name == "sketch_pattern")           return sketch_transform(tool, p, true);
+    if (name == "sketch_constrain")         return sketch_constrain(tool, p, false);
+    if (name == "sketch_dimension")         return sketch_constrain(tool, p, true);
+    if (name == "sketch_list_constraints")  return sketch_list_constraints(tool, p);
+    if (name == "sketch_delete_constraint") return sketch_delete_constraint(tool, p);
+    if (name == "sketch_insert_svg")        return sketch_insert_svg(tool, p);
     throw std::runtime_error(name + " is not a Design command of the open sketch");
+}
+
+json cad_sketch_project(const CadDocument& doc, DesignSketchTool& tool, const json& params)
+{
+    if (!param(params, "plane").is_null()) throw std::runtime_error("plane is the open sketch's: leave it out");
+    if (doc.bodies.empty()) throw std::runtime_error("no source body to project from");
+    const json body = param(params, "source_body");
+    if (!body.is_null() && !body.is_number_integer()) throw std::runtime_error("source_body must be a body index, or -1 for the last body");
+    const int source = body.is_null() || body.get<int>() == -1 ? int(doc.bodies.size()) - 1 : body.get<int>();
+    std::vector<int> edges;
+    for (const json& v : param(params, "edges")) {
+        if (!v.is_number_integer()) throw std::runtime_error("edges must be edge ids (body_describe)");
+        edges.push_back(v.get<int>());
+    }
+    const json face = param(params, "face");
+    if (!face.is_null() && !face.is_number_integer()) throw std::runtime_error("face must be a face id (body_describe), or -1");
+    std::string error;
+    const std::vector<SketchEntity> ents = doc.project_edges_on(tool.plane(), source, edges, face.is_null() ? -1 : face.get<int>(), error);
+    if (ents.empty()) throw std::runtime_error(error);
+    const int first = tool.add_entities_scripted(ents);
+    return json{{"ok", true}, {"scope", "sketch"}, {"first_index", first}, {"added", int(ents.size())},
+                {"entities", int(tool.entities().size())}};
 }
 
 std::vector<SketchEntityConstraintDef> cad_constraint_defs(const json& params, const std::vector<SketchEntity>& ents,
@@ -4082,7 +5120,7 @@ std::function<int(const std::string&)> cad_sketch_extrude(CadDocument& doc, cons
     const int        si   = sketch_arg(params.value("sketch", json()), doc);
     const double     d    = distance_arg(params);
     const ExtrudeEnd end  = extrude_end_arg(params);
-    const auto       mode = boolean_arg(params, "auto", true);
+    const auto       mode = operation_arg(params, "auto", kExtrudeOperations);
     int              body = std::max(-1, target_body_arg(params, doc));
     if (mode) check_has_body(*mode, doc);
     const json loop = params.value("loop", json());
@@ -4109,28 +5147,44 @@ std::function<int(const std::string&)> cad_sketch_revolve(CadDocument& doc, cons
     const double      angle = params.value("angle", 360.0);
     const int         axis  = revolve_axis_arg(params);
     const bool        flip  = params.value("flip", false);
-    const BooleanMode mode  = *boolean_arg(params, "new", false);
+    const BooleanMode mode  = *operation_arg(params, "new_body", kSolidOperations);
     const int         body  = std::max(-1, target_body_arg(params, doc));
     check_has_body(mode, doc);
-    // An entity axis is a line of this sketch; without one, a fresh card offers the sketch's only
-    // centerline, unless the caller chose a plane axis.
-    const std::vector<SketchEntity>& ents = doc.features[si].entities;
-    int axis_entity = -1;
-    const json ae = params.value("axis_entity", json());
-    if (!ae.is_null()) {
-        if (!ae.is_number_integer()) throw std::runtime_error("axis_entity must be an entity index of the sketch, or -1 for the plane axis");
-        axis_entity = ae.get<int>();
-        if (axis_entity != -1 && (axis_entity < 0 || axis_entity >= int(ents.size()) || ents[axis_entity].type != SketchEntity::Type::Line))
-            throw std::runtime_error("axis_entity " + std::to_string(axis_entity) + " is not a line of sketch " + std::to_string(si));
-    } else if (!params.contains("axis")) {
-        axis_entity = DesignPanel::default_revolve_axis_entity(ents);
-    }
+    const int axis_entity = revolve_axis_entity_arg(params, doc, si);
     return [&doc, si, angle, axis, flip, mode, body, axis_entity](const std::string& name) {
         const int r = doc.add_revolve(si, angle, axis, flip, mode, name);
         doc.features[r].revolve_axis_entity = axis_entity;
         doc.features[r].target_body         = body;
         return r;
     };
+}
+
+std::function<int(const std::string&)> cad_surface_revolve(CadDocument& doc, const json& params)
+{
+    const int    si          = sketch_arg(params.value("sketch", json()), doc);
+    const double angle       = params.value("angle", 360.0);
+    const int    axis        = revolve_axis_arg(params);
+    const bool   flip        = params.value("flip", false);
+    const int    axis_entity = revolve_axis_entity_arg(params, doc, si);
+    return [&doc, si, angle, axis, flip, axis_entity](const std::string& name) {
+        const int r = doc.add_surface_revolve(si, angle, axis, name);
+        doc.features[r].flip                = flip;
+        doc.features[r].revolve_axis_entity = axis_entity;
+        return r;
+    };
+}
+
+json cad_align_types(const CadDocument& doc, const json& params)
+{
+    for (const char* k : {"cs_a", "cs_b"})
+        if (!params.value(k, json()).is_number_integer())
+            throw std::runtime_error(std::string("list_align_types needs '") + k + "' (CoordSys feature index)");
+    const int cs_a  = params.at("cs_a").get<int>();
+    const int cs_b  = params.at("cs_b").get<int>();
+    json      types = json::array();
+    for (const CadDocument::MateOption& o : doc.mate_options(cs_a, cs_b))
+        types.push_back(json{{"type", enum_name(kAlignTypes, o.kind)}, {"fits", o.viable}, {"reason", o.viable ? json() : json(o.reason)}});
+    return json{{"ok", true}, {"cs_a", cs_a}, {"cs_b", cs_b}, {"types", std::move(types)}};
 }
 
 SketchProfile cad_revolve_profile(const json& params)
@@ -4154,7 +5208,7 @@ std::function<int(const std::string& name)> cad_face_extrude(CadDocument& doc, c
         if (params.contains(k) && !params.at(k).is_null() && !(params.at(k).is_array() && params.at(k).empty()))
             throw std::runtime_error(std::string(k) + " cannot be given with face: the face is the profile and fixes its plane");
     const json fv = params.at("face");
-    if (!fv.is_number_integer()) throw std::runtime_error("face must be a face id (query_topology)");
+    if (!fv.is_number_integer()) throw std::runtime_error("face must be a face id (body_describe)");
     if (doc.bodies.empty()) throw std::runtime_error("a face push/pull needs a body");
     const int asked = target_body_arg(params, doc);
     const int b     = asked >= 0 ? asked : int(doc.bodies.size()) - 1;
@@ -4174,7 +5228,7 @@ std::function<int(const std::string& name)> cad_face_extrude(CadDocument& doc, c
     const double      d    = distance_arg(params);
     const bool        flip = params.value("flip", false);
     // The card joins a picked face's own body by default.
-    const BooleanMode mode = boolean_arg(params, "auto", true).value_or(BooleanMode::Add);
+    const BooleanMode mode = operation_arg(params, "auto", kExtrudeOperations).value_or(BooleanMode::Add);
     return [&doc, fi, d, mode, end, flip, b](const std::string& name) {
         const int e = doc.add_extrude_face(fi, d, false, mode, name);
         doc.features[e].extrude_end = end;
@@ -4184,8 +5238,21 @@ std::function<int(const std::string& name)> cad_face_extrude(CadDocument& doc, c
     };
 }
 
-json cad_query_topology(const CadDocument& doc, const json& params)
+json cad_body_describe(const CadDocument& doc, const json& params)
 {
+    if (const json before = params.value("before", json()); !before.is_null()) {
+        if (!before.is_number_integer()) throw std::runtime_error("before must be a feature index (describe_design's features[].index)");
+        json as_of = params;
+        as_of.erase("before");
+        json out      = cad_body_describe(cad_document_before(doc, before.get<int>()), as_of);
+        out["before"] = before;
+        // The ids are the model's before that feature, read at the live document's generation, which a call passing
+        // them is checked against.
+        out["generation"] = doc.topo_generation;
+        return out;
+    }
+    const json vertices = params.value("vertices", json(false));
+    if (!vertices.is_boolean()) throw std::runtime_error("vertices must be true or false");
     const TopoDS_Shape& shape = body_shape(doc, params);
 
     // Filters. Each narrows the list it applies to; direction applies to both.
@@ -4361,6 +5428,12 @@ json cad_query_topology(const CadDocument& doc, const json& params)
              // this back as "generation" on the calls that consume them.
              {"generation", doc.topo_generation}};
     if (first + count < std::max(face_ids.size(), edge_ids.size())) out["next_offset"] = first + count;
+    if (vertices.get<bool>()) {
+        json                     jvertices = json::array();
+        const std::vector<Vec3d> points    = cad_body_vertices(doc, params.value("body", 0));
+        for (size_t v = 0; v < points.size(); ++v) jvertices.push_back(json{{"id", int(v)}, {"p", vec3(points[v])}});
+        out["vertices"] = std::move(jvertices);
+    }
     return out;
 }
 
@@ -4644,7 +5717,7 @@ std::function<int(const std::string& name)> cad_thread(CadDocument& doc, const j
         for (const char* k : {"plane", "x", "y", "at"})
             if (given(k)) throw std::runtime_error(std::string(k) + " cannot be given with " + kind + ": the thread runs on its axis");
         if (doc.bodies.empty()) throw std::runtime_error("no body to thread");
-        if (!params.at(kind).is_number_integer()) throw std::runtime_error(kind + " must be an id from query_topology");
+        if (!params.at(kind).is_number_integer()) throw std::runtime_error(kind + " must be an id from body_describe");
         target = target_body_arg(params, doc);
         if (target < 0) target = int(doc.bodies.size()) - 1;
         const int           id    = params.at(kind).get<int>();
@@ -4743,14 +5816,14 @@ std::function<int(const std::string& name)> cad_sweep(CadDocument& doc, const js
 {
     const int  si = sketch_arg(params.value("sketch", json()), doc);
     const json pv = params.value("path", json());
-    if (!pv.is_number_integer()) throw std::runtime_error("path must be the feature index of a sketch or a helix (describe_scene)");
+    if (!pv.is_number_integer()) throw std::runtime_error("path must be the feature index of a sketch or a helix (describe_design)");
     const int pi = pv.get<int>();
     check_feature_index(pi, doc);
     const CadFeatureType pt = doc.features[pi].type;
     if (pt != CadFeatureType::Sketch && pt != CadFeatureType::Helix)
         throw std::runtime_error("path " + std::to_string(pi) + " (" + feature_type_name(pt) + ") is not a sketch or a helix");
     if (pi == si) throw std::runtime_error("the path cannot be the profile sketch itself");
-    const BooleanMode mode = *boolean_arg(params, "new", false);
+    const BooleanMode mode = *operation_arg(params, "new_body", kSolidOperations);
     const int         body = std::max(-1, target_body_arg(params, doc));
     check_has_body(mode, doc);
     return [&doc, si, pi, mode, body](const std::string& name) {
@@ -4767,7 +5840,7 @@ std::function<int(const std::string& name)> cad_loft(CadDocument& doc, const jso
     if (pv.size() < 2) throw std::runtime_error("loft needs 2 or more sketches in profiles");
     std::vector<int> refs;
     for (const json& v : pv) {
-        if (!v.is_number_integer()) throw std::runtime_error("profiles must hold sketch feature indices (describe_scene)");
+        if (!v.is_number_integer()) throw std::runtime_error("profiles must hold sketch feature indices (describe_design)");
         const int si = sketch_arg(v, doc);
         if (std::find(refs.begin(), refs.end(), si) != refs.end())
             throw std::runtime_error("sketch " + std::to_string(si) + " is listed twice in profiles");
@@ -4775,12 +5848,160 @@ std::function<int(const std::string& name)> cad_loft(CadDocument& doc, const jso
     }
     const json ruled = params.value("ruled", json(false));
     if (!ruled.is_boolean()) throw std::runtime_error("ruled must be true or false");
-    const BooleanMode mode = *boolean_arg(params, "new", false);
+    const BooleanMode mode = *operation_arg(params, "new_body", kSolidOperations);
     const int         body = std::max(-1, target_body_arg(params, doc));
     check_has_body(mode, doc);
     return [&doc, refs, ruled = ruled.get<bool>(), mode, body](const std::string& name) {
         const int i = doc.add_loft(refs, ruled, mode, name);
         doc.features[i].target_body = body;
+        return i;
+    };
+}
+
+std::function<int(const std::string& name)> cad_hole(CadDocument& doc, const json& params, json& resolved)
+{
+    const int  style    = enum_index("type", params.value("type", json("simple")), kHoleTypes);
+    // A seat's sizes are its type's: beside another type they would size nothing, so they are refused. A null is the
+    // argument left out.
+    static const std::pair<const char*, int> kSeatOf[] = {{"cbore_diameter", 1}, {"cbore_depth", 1}, {"csink_diameter", 2}, {"csink_angle", 2}};
+    for (const auto& [key, seat] : kSeatOf)
+        if (seat != style && params.contains(key) && !params.at(key).is_null())
+            throw std::runtime_error(std::string(key) + " goes with type " + kHoleTypes[seat] + ", not " + kHoleTypes[style]);
+    const json named    = params.value("designation", json());
+    const bool standard = !named.is_null();
+    if (standard) {
+        if (params.contains("diameter")) throw std::runtime_error("give diameter or designation, not both");
+        // The standard sizes the seat too (CadDocument::add_hole_standard), so these would be replaced.
+        for (const char* k : {"cbore_diameter", "cbore_depth", "csink_diameter", "csink_angle", "standard"})
+            if (params.contains(k))
+                throw std::runtime_error(std::string(k) + " cannot be given with designation: the standard sizes the hole and its seat");
+        if (!named.is_string() || named.get<std::string>().empty())
+            throw std::runtime_error("designation must be a standard size such as \"M6\" or \"1/4-20\"");
+    }
+    const double diameter = params.value("diameter", 5.0);
+    if (diameter <= 0) throw std::runtime_error("diameter must be > 0");
+    const double      depth          = params.value("depth", 10.0);
+    const bool        through        = params.value("through", false);
+    const double      cbore_diameter = params.value("cbore_diameter", 0.0);
+    const double      cbore_depth    = params.value("cbore_depth", 0.0);
+    const double      csink_diameter = params.value("csink_diameter", 0.0);
+    const double      csink_angle    = params.value("csink_angle", 90.0);
+    const std::string provenance     = params.value("standard", std::string());
+    const std::string designation    = standard ? named.get<std::string>() : std::string();
+    SketchPlane plane;
+    int         body = -1;
+    resolved          = cad_hole_placement(doc, params, plane, body);
+    resolved["frame"] = frame_json(plane);
+    const double x = resolved.at("x").get<double>(), y = resolved.at("y").get<double>();
+    // add_hole_standard throws on a designation it does not know, which the caller's add_feature rolls back.
+    return [&doc, style, standard, designation, diameter, depth, through, cbore_diameter, cbore_depth, csink_diameter,
+            csink_angle, provenance, x, y, plane, body](const std::string& name) {
+        const int h = standard ? doc.add_hole_standard(designation, style, through, depth, x, y, plane, name)
+                               : doc.add_hole_styled(diameter, depth, through, x, y, plane, style, cbore_diameter, cbore_depth,
+                                                     csink_diameter, csink_angle, provenance, name);
+        doc.features[h].target_body = body;
+        return h;
+    };
+}
+
+std::function<int(const std::string& name)> cad_thicken(CadDocument& doc, const json& params)
+{
+    const json type = params.value("type", json());
+    if (!type.is_null() && type != "face" && type != "surface") throw std::runtime_error("type must be face or surface");
+    const bool surface = thickens_surface(params);
+    const json face    = params.value("face", json());
+    if (surface && !face.is_null())
+        throw std::runtime_error("type surface thickens a whole sheet body and takes no face; type face thickens a face");
+    if (!surface && face.is_null()) throw std::runtime_error("type face needs face, a face id (body_describe)");
+    if (!surface && !face.is_number_integer()) throw std::runtime_error("face must be a face id (body_describe)");
+    if (doc.bodies.empty()) throw std::runtime_error(surface ? "no sheet body to thicken" : "no body to thicken");
+    const int    body      = target_body_arg(params, doc);
+    const double thickness = params.value("thickness", 2.0);
+    const bool   flip      = params.value("flip", false);
+    if (surface)
+        return [&doc, body, thickness, flip](const std::string& name) { return doc.add_thicken_surface(body, thickness, flip, name); };
+    return [&doc, body, fi = face.get<int>(), thickness, flip](const std::string& name) {
+        return doc.add_thicken(body, fi, thickness, flip, name);
+    };
+}
+
+std::function<int(const std::string& name)> cad_pattern(CadDocument& doc, const json& params)
+{
+    const int  layout = enum_index("type", params.value("type", json("linear")), kPatternTypes);
+    const bool curve  = layout == 2;
+    // What each layout reads beside count and body, by layout (linear, circular, curve): beside another it would place
+    // nothing, so it is refused. A null is the argument left out.
+    struct Takes
+    {
+        const char* key;
+        const char* types;
+        bool        by[3];
+    };
+    static const Takes kTakes[] = {{"spacing", "linear", {true, false, false}}, {"dir", "linear", {true, false, false}},
+                                   {"angle", "circular", {false, true, false}}, {"plane", "linear or circular", {true, true, false}},
+                                   {"sketch", "curve", {false, false, true}},   {"entity", "curve", {false, false, true}}};
+    for (const Takes& t : kTakes)
+        if (!t.by[layout] && params.contains(t.key) && !params.at(t.key).is_null())
+            throw std::runtime_error(std::string(t.key) + " goes with type " + t.types + ", not " + kPatternTypes[layout]);
+    // The curve the copies follow, which a curve pattern needs.
+    if (curve)
+        for (const char* k : {"sketch", "entity"})
+            if (!params.value(k, json()).is_number_integer())
+                throw std::runtime_error(std::string("a curve pattern needs ") + k +
+                                         (std::string(k) == "sketch" ? ", the feature index of the sketch holding the guide curve"
+                                                                     : ", the guide curve's entity index within that sketch"));
+    const int count = params.value("count", 3);
+    if (count < 1) throw std::runtime_error("count must be >= 1");
+    if (doc.bodies.empty()) throw std::runtime_error("no body to pattern");
+    const int body = target_body_arg(params, doc);
+    if (curve)
+        return [&doc, count, sketch = params.at("sketch").get<int>(), entity = params.at("entity").get<int>(), body](const std::string& name) {
+            return doc.add_pattern_on_curve(count, sketch, entity, body, name);
+        };
+    const double      spacing = params.value("spacing", 10.0);   // linear step (mm)
+    const int         dir     = params.value("dir", 0);          // 0 = plane X, 1 = plane Y
+    const double      angle   = params.value("angle", 360.0);    // circular total sweep (deg)
+    const SketchPlane plane   = cad_resolve_plane(params.value("plane", json("XY")), doc, false);
+    return [&doc, circular = layout == 1, count, spacing, dir, angle, body, plane](const std::string& name) {
+        const int p = doc.add_pattern(circular, count, spacing, dir, angle, body, name);
+        doc.features[p].plane = plane;   // the circular pattern's axis, the linear one's step directions
+        return p;
+    };
+}
+
+std::function<int(const std::string& name)> cad_align(CadDocument& doc, const json& params)
+{
+    for (const char* k : {"cs_a", "cs_b"})
+        if (!params.value(k, json()).is_number_integer())
+            throw std::runtime_error(std::string("align needs '") + k + "' (CoordSys feature index)");
+    const int    kind   = enum_index("type", params.value("type", json("fastened")), kAlignTypes);
+    const int    cs_a   = params.at("cs_a").get<int>();
+    const int    cs_b   = params.at("cs_b").get<int>();
+    const double offset = params.value("offset", 0.0);
+    const double angle  = params.value("angle", 0.0);
+    const bool   flip   = params.value("flip", false);
+    return [&doc, kind, cs_a, cs_b, offset, angle, flip](const std::string& name) {
+        return doc.add_mate(kind, cs_a, cs_b, offset, angle, flip, name);
+    };
+}
+
+std::function<int(const std::string& name)> cad_dressup(CadDocument& doc, const json& params, bool chamfer)
+{
+    const char*                    verb  = chamfer ? "chamfer" : "fillet";
+    const json                     given = params.value("edges", json());
+    // A word names the card's Edges choice, an edge group; anything else is ids.
+    const std::optional<FaceGroup> group = face_group_named(given);
+    if (given.is_string() && !group) throw std::runtime_error("edges must be an edge id, a list of them, or " + kFaceGroupWords);
+    const std::vector<int>         edges = group ? std::vector<int>() : edge_ids_arg(params, verb);
+    const char*                    key   = chamfer ? "distance" : "radius";
+    const double                   size  = params.value(key, 1.0);
+    if (size <= 0) throw std::runtime_error(std::string(key) + " must be > 0");
+    if (doc.bodies.empty()) throw std::runtime_error(std::string("no body to ") + verb);
+    const int body = target_body_arg(params, doc);
+    return [&doc, chamfer, group, edges, size, body](const std::string& name) {
+        const int i = group ? (chamfer ? doc.add_chamfer(size, *group, name) : doc.add_fillet(size, *group, name))
+                            : (chamfer ? doc.add_chamfer(size, edges, name) : doc.add_fillet(size, edges, name));
+        if (body >= 0) doc.features[i].target_body = body;   // the edge ids are resolved against this body's shape
         return i;
     };
 }
@@ -4811,7 +6032,7 @@ std::function<int(const std::string& name)> cad_split(CadDocument& doc, const js
         for (const char* k : {"offset", "flip"})
             if (given(k))
                 throw std::runtime_error(std::string(k) + " goes with plane; to split along a face at an offset, give plane {\"body\": b, \"face\": f}");
-        if (!params.at("face").is_number_integer()) throw std::runtime_error("face must be a face id (query_topology)");
+        if (!params.at("face").is_number_integer()) throw std::runtime_error("face must be a face id (body_describe)");
         const int  face = params.at("face").get<int>();
         const json fbv  = params.value("face_body", json(-1));
         if (!fbv.is_number_integer() || fbv.get<int>() < -1 || fbv.get<int>() >= int(doc.bodies.size()))

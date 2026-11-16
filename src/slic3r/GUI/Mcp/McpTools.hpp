@@ -173,14 +173,14 @@ nlohmann::json search_commands(const CommandCatalog& catalog, const nlohmann::js
 nlohmann::json rank_actions(const nlohmann::json& listed, const std::vector<std::string>& words);
 
 // Why run_action refuses `args` for `action`, or empty when it does not: a command's tile takes its command's
-// arguments, which the command checks, and every other action (a plugin's script or page, a plate's, a setting's
-// or a recent project's) takes none.
+// arguments, which the command checks, a tile with a preset (a folded row's) takes none or exactly its preset, and
+// every other action (a plugin's script or page, a plate's, a setting's or a recent project's) takes none.
 std::string action_args_error(const AppAction& action, const nlohmann::json& args);
 
 // What run_action answers for `id`, an action id or the name inside one, that no action of the app's state has:
-// for a Design tab tile's, when that tile is there and that call_tool runs its command from any tab, or, when
-// `catalog` leaves the tile's command out (CommandCatalog::leave_out()), why; for any other, where an action or a
-// command is found.
+// for a Design tab tile's, when that tile is there and the call_tool that runs it from any tab (its command, with
+// the row's arguments for a folded row's tile), or, when `catalog` leaves the tile's command out
+// (CommandCatalog::leave_out()), why; for any other, where an action or a command is found.
 std::string unknown_action(const std::string& id, const CommandCatalog& catalog);
 
 // A setting value from JSON in the serialized form set_deserialize accepts: "3", "0.2", "1"/"0"

@@ -57,6 +57,7 @@
 #include <cstdlib>
 #include <iterator>
 #include <optional>
+#include <set>
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Color.hpp"
 #include "slic3r/GUI/GLSelectionRectangle.hpp"
@@ -3161,13 +3162,14 @@ std::vector<SketchEntity> DesignSketchTool::make_three_point_arc(const Vec2d& st
     return { make_arc_through(center, radius, start, end, on_arc, m_construction) };
 }
 
-std::vector<SketchEntity> DesignSketchTool::make_tangent_arc(const Vec2d& start, const Vec2d& end) const
+std::vector<SketchEntity> DesignSketchTool::make_tangent_arc(const Vec2d& start, const Vec2d& end, int from) const
 {
-    // Tangent direction at `start` = exit direction of the previous entity.
+    // Tangent direction at `start` = exit direction of the entity it leaves.
     Vec2d t(1, 0);
     bool have_t = false;
-    if (!m_entities.empty()) {
-        const SketchEntity& prev = m_entities.back();
+    if (from < 0) from = int(m_entities.size()) - 1;
+    if (from >= 0 && from < int(m_entities.size())) {
+        const SketchEntity& prev = m_entities[from];
         if (prev.type == SketchEntity::Type::Line) {
             t = prev.p1 - prev.p0; have_t = (t.squaredNorm() > 1e-12);
         } else if (prev.type == SketchEntity::Type::Arc) {
@@ -3581,6 +3583,34 @@ std::vector<SketchEntity> DesignSketchTool::selected_loop_entities() const
     return {};
 }
 
+int DesignSketchTool::display_region_of(int feature, const std::vector<SketchEntity>& loop) const
+{
+    for (const DisplaySketch& d : m_display_sketches) {
+        if (d.feature != feature) continue;
+        const std::vector<RegionLoop> loops = region_loops(d.entities);
+        for (int r = 0; r < int(loops.size()); ++r) {
+            std::vector<SketchEntity> own;
+            for (int ei : loops[r].ents)
+                if (ei >= 0 && ei < int(d.entities.size())) own.push_back(d.entities[ei]);
+            if (same_entities(own, loop)) return r;
+        }
+        return -1;
+    }
+    return -1;
+}
+
+bool DesignSketchTool::same_entities(const std::vector<SketchEntity>& a, const std::vector<SketchEntity>& b)
+{
+    if (a.size() != b.size() || a.empty()) return false;
+    auto eq = [](const Vec2d& u, const Vec2d& v) { return (u - v).squaredNorm() < 1e-10; };
+    for (size_t k = 0; k < a.size(); ++k) {
+        const SketchEntity& x = a[k]; const SketchEntity& y = b[k];
+        if (x.type != y.type || !eq(x.p0, y.p0) || !eq(x.p1, y.p1) ||
+            !eq(x.center, y.center) || std::abs(x.radius - y.radius) > 1e-7) return false;
+    }
+    return true;
+}
+
 // ---- Solid topology selection (whole -> face -> edge cycle) ----
 
 void DesignSketchTool::set_solid_pick(const std::vector<CadBody>* bodies, const TriangleMesh* mesh,
@@ -3799,6 +3829,76 @@ void DesignSketchTool::select_body(int body)
     m_sel_edges_more.clear();
     m_sel_edges_more_pts.clear();
     m_solid_sel = SolidSel::Whole;   // the canvas fills just this body, render_solid_highlight outlines it
+}
+
+bool DesignSketchTool::can_select_solid(SolidSel kind, int body, int face, const std::vector<int>& edges,
+                                        std::string* why) const
+{
+    const auto refuse = [why](std::string reason) {
+        if (why != nullptr) *why = std::move(reason);
+        return false;
+    };
+    const TopoDS_Shape* shape = body_shape(body);
+    if (shape == nullptr)
+        return refuse("body " + std::to_string(body) + " has no shape in the view to pick from");
+    if (!body_pickable(body))
+        return refuse("body " + std::to_string(body) + " takes no click in the view: it is hidden, or another body is the only one picked");
+    switch (kind) {
+    case SolidSel::Face: {
+        const int count = GeometryEngine::face_count(*shape);
+        if (face < 0 || face >= count)
+            return refuse("face " + std::to_string(face) + " is not one of body " + std::to_string(body) + ", which has " +
+                          std::to_string(count));
+        return true;
+    }
+    case SolidSel::Edge: {
+        if (edges.empty())
+            return refuse("edges names no edge");
+        std::set<int> seen;
+        for (const int id : edges) {
+            if (id < 0 || GeometryEngine::edge_by_index(*shape, id).IsNull())
+                return refuse("edge " + std::to_string(id) + " is not one of body " + std::to_string(body) + ", which has " +
+                              std::to_string(GeometryEngine::edge_count(*shape)));
+            if (!seen.insert(id).second)
+                return refuse("edges lists edge " + std::to_string(id) + " twice");
+        }
+        return true;
+    }
+    case SolidSel::Vertex: return true;
+    default: return refuse("only a face, edges or a vertex is picked by id");
+    }
+}
+
+bool DesignSketchTool::select_solid(SolidSel kind, int body, int face, const std::vector<int>& edges, const Vec3d& vertex_pt)
+{
+    if (!can_select_solid(kind, body, face, edges))
+        return false;
+    const TopoDS_Shape& shape = *body_shape(body);
+    // The edges' polylines, moved with the body, which the highlight is drawn from.
+    std::vector<std::vector<Vec3d>> edge_pts;
+    if (kind == SolidSel::Edge)
+        for (const int id : edges) {
+            std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(GeometryEngine::edge_by_index(shape, id));
+            for (Vec3d& q : pts) q = body_xform_pt(body, q);
+            edge_pts.push_back(std::move(pts));
+        }
+    m_sel_body      = body;
+    m_sel_shape     = shape;
+    m_solid_sel     = kind;
+    m_sel_face      = kind == SolidSel::Face ? face : -1;
+    m_sel_edge      = kind == SolidSel::Edge ? edges.back() : -1;
+    m_sel_edge_pts  = kind == SolidSel::Edge ? std::move(edge_pts.back()) : std::vector<Vec3d>();
+    m_sel_vertex_pt = kind == SolidSel::Vertex ? body_xform_pt(body, vertex_pt) : Vec3d::Zero();
+    m_sel_edges_more.clear();
+    m_sel_edges_more_pts.clear();
+    if (kind == SolidSel::Edge)
+        for (size_t i = 0; i + 1 < edges.size(); ++i) {
+            m_sel_edges_more.push_back(edges[i]);
+            m_sel_edges_more_pts.push_back(std::move(edge_pts[i]));
+        }
+    if (on_solid_selection_changed)
+        on_solid_selection_changed(int(m_solid_sel), m_sel_body, m_sel_face, m_sel_edge);
+    return true;
 }
 
 void DesignSketchTool::set_highlight_faces(const std::vector<std::pair<int, int>>& faces)
@@ -8820,7 +8920,9 @@ bool DesignSketchTool::op_ready() const
     case Mode::Fillet:
     case Mode::Chamfer: return m_op_a >= 0 && m_op_b >= 0;
     case Mode::Offset:  return m_op_a >= 0;
-    case Mode::Mirror:  return m_op_a >= 0 && !m_mirror_targets.empty();
+    // The axis may also be the sketch's X or Y axis, which only mirror_scripted() names.
+    case Mode::Mirror:
+        return (m_op_a >= 0 || m_op_a == kSketchRefAxisX || m_op_a == kSketchRefAxisY) && !m_mirror_targets.empty();
     default: return false;
     }
 }
@@ -9098,14 +9200,19 @@ bool DesignSketchTool::confirm_op()
         const R ra = role_near(m_entities[a], extra.p0);
         const R rb = role_near(m_entities[b], extra.p1);
         // Drop the now-stale corner Coincident + each line's own length Distance (the op
-        // trimmed both legs back), then bind the new entity onto the trimmed endpoints.
+        // trimmed both legs back), then bind the new entity onto the trimmed endpoints. A
+        // Symmetric constraint on a trimmed end (a mirror's, binding the end to its copy's)
+        // goes too: kept, it would pull the copy's end along and have the solve meet it halfway,
+        // shrinking the radius or setback asked for. The copy keeps its end where it was, and
+        // the lines' far ends keep their Symmetric constraints.
         auto refs = [](const SketchEntityConstraintDef& d, int e, R r) {
             return (d.ea == e && d.ra == r) || (d.eb == e && d.rb == r); };
         auto self_len = [](const SketchEntityConstraintDef& d, int e) {
             return d.type == CT::Distance && d.ea == e && d.eb == e; };
         const int released = erase_constraints([&](int, const SketchEntityConstraintDef& d) {
             return (d.type == CT::Coincident && refs(d, a, ra) && refs(d, b, rb))
-                || self_len(d, a) || self_len(d, b);
+                || self_len(d, a) || self_len(d, b)
+                || (d.type == CT::Symmetric && (refs(d, a, ra) || refs(d, b, rb)));
         });
         if (released > 0)
             notify(format(into_u8(_L_PLURAL("%1% constraint the fillet/chamfer invalidated was removed",
@@ -9145,7 +9252,16 @@ bool DesignSketchTool::confirm_op()
         else                                                                  emit = false;
         if (emit) try_add_constraints({ d });
     } else if (m_mode == Mode::Mirror) {
-        const SketchEntity axis = m_entities[m_op_a];   // by value (m_entities grows below)
+        // By value (m_entities grows below). The sketch's own X or Y axis is a line through the origin, which the
+        // Symmetric constraints below name by its reference (ec) as they name a line by its index.
+        SketchEntity axis;
+        if (m_op_a == kSketchRefAxisX || m_op_a == kSketchRefAxisY) {
+            axis.type = SketchEntity::Type::Line;
+            axis.p0   = Vec2d::Zero();
+            axis.p1   = m_op_a == kSketchRefAxisX ? Vec2d(1.0, 0.0) : Vec2d(0.0, 1.0);
+        } else {
+            axis = m_entities[m_op_a];
+        }
         // The sources as they stand BEFORE any of this op's constraints exist. Two jobs: every
         // copy is reflected from the untouched original (so a batch that moves the sketch cannot
         // feed a later copy moved geometry), and the invariant at the bottom has something to
@@ -9162,9 +9278,12 @@ bool DesignSketchTool::confirm_op()
             SketchEntityConstraintDef d; d.type = CT::Symmetric; d.ea = ti; d.eb = mi; d.ec = m_op_a;
             const SketchEntity::Type st = before[ti].type;
             std::vector<std::vector<SketchEntityConstraintDef>> ladder;
+            // mirror_entities() hands a line or an arc back run the other way, so that a mirrored chain continues
+            // head to tail: the reflection of the source's p0 is the copy's p1. Pairing p0 with p0 would ask the
+            // solver to turn the copy round, and the check below would then drop every binding of the batch.
             if (st == SketchEntity::Type::Line) {
-                d.ra = R::P0; d.rb = R::P0; auto p0 = d;
-                d.ra = R::P1; d.rb = R::P1; auto p1 = d;
+                d.ra = R::P0; d.rb = R::P1; auto p0 = d;
+                d.ra = R::P1; d.rb = R::P0; auto p1 = d;
                 ladder = { { p0, p1 }, { p0 } };
             } else if (st == SketchEntity::Type::Arc) {
                 // BOTH ENDS AND THE CENTRE. Binding only the centre — which is all this did —
@@ -9176,8 +9295,8 @@ bool DesignSketchTool::confirm_op()
                 // endpoints to leave free, which is why the bug reads as "circles fine, rounded
                 // rectangles and slots destroyed".
                 d.ra = R::Center; d.rb = R::Center; auto ct = d;
-                d.ra = R::P0;     d.rb = R::P0;     auto p0 = d;
-                d.ra = R::P1;     d.rb = R::P1;     auto p1 = d;
+                d.ra = R::P0;     d.rb = R::P1;     auto p0 = d;
+                d.ra = R::P1;     d.rb = R::P0;     auto p1 = d;
                 // Endpoints BEFORE centre: an arc is five DoF, so {centre, p0, p1} is six
                 // equations and is refused; {p0, p1} is four and pins the sweep, which is the
                 // half that was going wild. The postcondition below is what makes the ladder
@@ -10609,7 +10728,7 @@ int DesignSketchTool::add_entities_scripted(const std::vector<SketchEntity>& ent
     // so a bulk load made while a creation tool is armed selected the last scripted entity and
     // opened that tool's value field — which freezes the canvas (on_mouse_impl returns early
     // while m_awaiting_length) and swallows every letter (in_text includes inline_busy()). The
-    // symptom was that the first key and click after sketch_add did nothing until one Escape had
+    // symptom was that the first key and click after sketch_draw did nothing until one Escape had
     // dismissed the field. Resyncing the baseline here leaves an ALREADY open field alone; it
     // only stops this add from being read as something the user just drew. j7gc.
     m_autoedit_seen = int(m_entities.size());
@@ -10641,6 +10760,49 @@ bool DesignSketchTool::fillet_scripted(int a, int b, double value, bool chamfer)
     const bool ok = confirm_op();
     m_mode = armed;
     m_autoedit_seen = int(m_entities.size());
+    return ok;
+}
+
+bool DesignSketchTool::mirror_scripted(const std::vector<int>& targets, int axis, std::vector<int>& added)
+{
+    added.clear();
+    const int  n       = int(m_entities.size());
+    const bool axis_ok = axis == kSketchRefAxisX || axis == kSketchRefAxisY ||
+                         (axis >= 0 && axis < n && m_entities[axis].type == SketchEntity::Type::Line);
+    if (gesture_pending() || value_field_open() || !axis_ok || targets.empty())
+        return false;
+    for (size_t i = 0; i < targets.size(); ++i)
+        if (targets[i] < 0 || targets[i] >= n || targets[i] == axis ||
+            std::find(targets.begin(), targets.begin() + i, targets[i]) != targets.begin() + i)
+            return false;
+    const Mode armed = m_mode;
+    const int  first = int(m_constraints.size());
+    m_mode           = Mode::Mirror;
+    m_op_a           = axis;
+    m_mirror_targets = targets;
+    const bool ok    = confirm_op();
+    m_mode = armed;
+    m_autoedit_seen = int(m_entities.size());
+    for (int c = first; c < int(m_constraints.size()); ++c) added.push_back(c);
+    return ok;
+}
+
+bool DesignSketchTool::offset_scripted(int entity, double distance, std::vector<int>& added)
+{
+    added.clear();
+    if (gesture_pending() || value_field_open() || entity < 0 || entity >= int(m_entities.size()) ||
+        SketchEngine::offset_entities({m_entities[entity]}, distance).empty())
+        return false;
+    const Mode armed = m_mode;
+    const int  first = int(m_constraints.size());
+    m_mode     = Mode::Offset;
+    m_op_a     = entity;
+    m_op_chain = {entity};
+    m_op_value = distance;
+    const bool ok = confirm_op();
+    m_mode = armed;
+    m_autoedit_seen = int(m_entities.size());
+    for (int c = first; c < int(m_constraints.size()); ++c) added.push_back(c);
     return ok;
 }
 
@@ -10678,7 +10840,7 @@ std::optional<Vec2d> DesignSketchTool::transform_scripted(Mode mode, const std::
 }
 
 int DesignSketchTool::add_shape_scripted(Mode mode, const std::vector<Vec2d>& clicks, int sides, bool circumscribed,
-                                         bool construction)
+                                         bool construction, int from_entity)
 {
     if (gesture_pending() || value_field_open()) return -1;
     const bool was_construction = m_construction, was_circumscribed = m_polygon_circumscribed;
@@ -10686,8 +10848,82 @@ int DesignSketchTool::add_shape_scripted(Mode mode, const std::vector<Vec2d>& cl
     m_polygon_circumscribed = circumscribed;
     const int    base = int(m_entities.size());
     const size_t n    = clicks.size();
-    // The same builders and grouping as the gestures' last click (on_mouse_impl).
+    const int    from = from_entity >= 0 ? from_entity : base - 1;   // what a tangent arc leaves
+    // The same builders and grouping as the gestures' last click (on_mouse_impl), and for a polyline as the
+    // click on its start that closes it or the end of the chain (end_chain), neither of which groups it.
     switch (mode) {
+    case Mode::Polyline:
+        if (n >= 4 && clicks.back() == clicks.front())
+            push_closed_lines(std::vector<Vec2d>(clicks.begin(), clicks.end() - 1));
+        else if (n >= 2)
+            push_open_chain(clicks);
+        break;
+    case Mode::CornerRect:
+        if (n == 2) {
+            const Vec2d A = clicks[0], B = clicks[1];
+            begin_feature(FeatureKind::CornerRect);
+            push_closed_lines({A, Vec2d(B.x(), A.y()), B, Vec2d(A.x(), B.y())});
+            end_feature(A, B);
+        }
+        break;
+    case Mode::CenterRect:
+        if (n == 2) {
+            const Vec2d  C  = clicks[0];
+            const double hx = std::abs(clicks[1].x() - C.x()), hy = std::abs(clicks[1].y() - C.y());
+            begin_feature(FeatureKind::CenterRect);
+            push_closed_lines({Vec2d(C.x() - hx, C.y() - hy), Vec2d(C.x() + hx, C.y() - hy), Vec2d(C.x() + hx, C.y() + hy),
+                               Vec2d(C.x() - hx, C.y() + hy)});
+            end_feature(Vec2d(C.x() - hx, C.y() - hy), Vec2d(C.x() + hx, C.y() + hy));
+        }
+        break;
+    case Mode::ObliqueRect:
+        if (n == 3 && (clicks[1] - clicks[0]).squaredNorm() > 1e-12) {
+            const Vec2d  A = clicks[0], B = clicks[1];
+            const Vec2d  u = (B - A).normalized(), nrm(-u.y(), u.x());
+            const double w = nrm.dot(clicks[2] - A);   // signed perpendicular width
+            begin_feature(FeatureKind::CornerRect);
+            push_closed_lines({A, B, B + nrm * w, A + nrm * w});
+            end_feature(A, B + nrm * w);
+        }
+        break;
+    case Mode::RoundedRect:
+        if (n == 3) {
+            const size_t first = m_entities.size();
+            begin_feature(FeatureKind::RoundedRect);
+            append_entities(make_rounded_rect(clicks[0], clicks[1], clicks[2]));
+            // Grouped with its box and the corner radius make_rounded_rect settled on, its arcs'.
+            const double r = m_entities.size() == first + 8 ? m_entities[first + 1].radius : 0.0;
+            end_feature(clicks[0].cwiseMin(clicks[1]), clicks[0].cwiseMax(clicks[1]), r);
+        }
+        break;
+    case Mode::TwoPointCircle:
+        if (n == 2) push_circle((clicks[0] + clicks[1]) * 0.5, (clicks[1] - clicks[0]).norm() * 0.5);
+        break;
+    case Mode::ThreePointCircle:
+        if (n == 3) append_entities(make_three_point_circle(clicks[0], clicks[1], clicks[2]));
+        break;
+    case Mode::ThreePointArc:
+        if (n == 3) append_entities(make_three_point_arc(clicks[0], clicks[1], clicks[2]));
+        break;
+    case Mode::TangentArc: {
+        // It leaves a line or an arc. Where no arc fits, with no chord or the end on the tangent, make_tangent_arc
+        // gives a line, as the gesture draws it; called for an arc, that builds nothing.
+        if (n == 2 && from >= 0 && from < base &&
+            (m_entities[from].type == SketchEntity::Type::Line || m_entities[from].type == SketchEntity::Type::Arc)) {
+            const std::vector<SketchEntity> arc = make_tangent_arc(clicks[0], clicks[1], from);
+            if (arc.size() == 1 && arc[0].type == SketchEntity::Type::Arc) append_entities(arc);
+        }
+        break;
+    }
+    case Mode::ArcSlot:
+        if (n == 4) {
+            const double Rc = (clicks[1] - clicks[0]).norm();
+            const double w  = std::abs((clicks[3] - clicks[0]).norm() - Rc);
+            begin_feature(FeatureKind::ArcSlot);
+            append_entities(make_arc_slot(clicks[0], clicks[1], clicks[2], w));
+            end_feature(clicks[0], clicks[1], w);
+        }
+        break;
     case Mode::Polygon:
         if (n == 2) {
             begin_feature(FeatureKind::Polygon);
@@ -10720,9 +10956,115 @@ int DesignSketchTool::add_shape_scripted(Mode mode, const std::vector<Vec2d>& cl
     m_polygon_circumscribed = was_circumscribed;
     if (int(m_entities.size()) == base) return -1;
     infer_auto_constraints(base, 0.0, 0.0);   // exact, as add_entities_scripted infers (8xg1)
+    // Exact inference records a relation only where rounding leaves it exact, so at a slant, or where the solve moves a
+    // point a rounding step, it can leave out what the gesture's inference, within its tolerances, always binds inside
+    // the shape: an oblique rectangle's or a square's right angles, a tangent arc's tangency to the line it leaves, a
+    // slot's tangencies and equal ends, an arc slot's equal ends, and a rounded rectangle's level and upright sides,
+    // tangencies and equal corners. All hold by construction, so adding them moves nothing, and each batch below is
+    // tried as one and then one at a time, so that one the solver refuses as redundant is left out, save the
+    // relations of a slot, an arc slot and a rounded rectangle, which go as one batch only, as the gesture's relational
+    // rule adds them: on the axes the solver refuses a slot's beside its level sides, as it refuses the Slot tool's,
+    // and one at a time would keep three the tool's slot does not carry. A square's right angles go one at a time
+    // too, because on the axes its sides lie a rounding step off them, so exact inference levels only some, where the
+    // Polygon tool's levels all four and they hold the right angles.
+    using T = SketchConstraintType;
+    std::vector<SketchEntityConstraintDef> defining, pins, together;
+    const auto binds = [this](int a, int b, std::initializer_list<SketchConstraintType> types) {
+        return std::any_of(m_constraints.begin(), m_constraints.end(), [&](const SketchEntityConstraintDef& c) {
+            return std::find(types.begin(), types.end(), c.type) != types.end() && ((c.ea == a && c.eb == b) || (c.ea == b && c.eb == a));
+        });
+    };
+    const auto relation = [](SketchConstraintType type, int a, int b) {
+        SketchEntityConstraintDef c;
+        c.type = type;
+        c.ea   = a;
+        c.eb   = b;
+        return c;
+    };
+    // Binds entity b to a, as the gesture's rule for `type` binds b to the first entity before it that the rule holds
+    // for, unless inference already bound b by that rule to one before it, as each rule binds a new entity once.
+    const auto bind = [&](T type, int a, int b) {
+        const bool bound = std::any_of(m_constraints.begin(), m_constraints.end(), [&](const SketchEntityConstraintDef& c) {
+            return c.type == type && ((c.eb == b && c.ea < b) || (c.ea == b && c.eb < b));
+        });
+        if (!bound) together.push_back(relation(type, a, b));
+    };
+    // Line i level or upright, as the gesture's rule for the axes pins a line from its P0 to its P1.
+    const auto pin = [&](T type, int i) {
+        const bool pinned = std::any_of(m_constraints.begin(), m_constraints.end(), [&](const SketchEntityConstraintDef& c) {
+            return (c.type == T::Horizontal || c.type == T::Vertical) && c.ea == i && c.eb == i;
+        });
+        if (pinned) return;
+        SketchEntityConstraintDef c = relation(type, i, i);
+        c.ra                        = SketchPointRole::P0;
+        c.rb                        = SketchPointRole::P1;
+        pins.push_back(c);
+    };
+    const int added = int(m_entities.size()) - base;
+    if ((mode == Mode::ObliqueRect || mode == Mode::Polygon) && added == 4) {
+        // One right angle at each corner after the first side, as each side's inference binds it to a side it meets;
+        // the fourth would be implied. A side that inference already bound to one before it is left as it is. A
+        // polygon of any other number of sides has no right angle or parallel sides that meet.
+        for (int k = 1; k < 4; ++k) {
+            const int side = base + k;
+            bool      bound = false;
+            for (int j = base; j < side && !bound; ++j) bound = binds(j, side, {T::Perpendicular, T::Parallel});
+            if (!bound) defining.push_back(relation(T::Perpendicular, side - 1, side));
+        }
+    } else if (mode == Mode::TangentArc && added == 1 && m_entities[from].type == SketchEntity::Type::Line &&
+               !binds(from, base, {T::Tangent})) {
+        defining.push_back(relation(T::Tangent, from, base));
+    } else if (mode == Mode::Slot && added == 4) {
+        // Its first side, first end, second side and second end: the first end tangent to both sides, the second end
+        // to the first side, and the two ends of one radius.
+        bind(T::Tangent, base, base + 1);
+        bind(T::Tangent, base + 1, base + 2);
+        bind(T::Tangent, base, base + 3);
+        bind(T::EqualRadius, base + 1, base + 3);
+    } else if (mode == Mode::ArcSlot && added == 4) {
+        bind(T::EqualRadius, base + 1, base + 3);   // its two ends, between the outer and the inner arc
+    } else if (mode == Mode::RoundedRect && added == 8) {
+        // Sides and corners in turn from the bottom side: the sides level and upright, each corner and side tangent to
+        // the one before it and the last corner to the bottom side, and every corner of the first one's radius.
+        for (int k = 0; k < 8; k += 2) pin(k % 4 == 0 ? T::Horizontal : T::Vertical, base + k);
+        for (int k = 1; k < 7; ++k) bind(T::Tangent, base + k - 1, base + k);
+        bind(T::Tangent, base, base + 7);
+        for (int k = 3; k < 8; k += 2) bind(T::EqualRadius, base + 1, base + k);
+    }
+    for (const std::vector<SketchEntityConstraintDef>* batch : {&pins, &defining})
+        if (!batch->empty() && !try_add_constraints(*batch))
+            for (const SketchEntityConstraintDef& c : *batch) try_add_constraints({c});
+    if (!together.empty()) try_add_constraints(together);
     resolve_live();
     m_autoedit_seen = int(m_entities.size());
     return base;
+}
+
+DesignSketchTool::DrawnState DesignSketchTool::drawn_state() const
+{
+    return DrawnState{m_entities, m_constraints,     m_features,      m_dimensions,   m_dof,
+                      m_solve_ok, m_entity_conflict, m_bad_dims,      m_autoedit_seen, m_skipped_last,
+                      m_loop_defect_shown};
+}
+
+// Put back with no solve, so that the geometry and the solve's readout are the kept state's own, and the panel is
+// told of the constraints and the solve state again, as after an add.
+void DesignSketchTool::restore_drawn_state(const DrawnState& state)
+{
+    m_entities          = state.entities;
+    m_constraints       = state.constraints;
+    m_features          = state.features;
+    m_dimensions        = state.dimensions;
+    m_dof               = state.dof;
+    m_solve_ok          = state.solve_ok;
+    m_entity_conflict   = state.entity_conflict;
+    m_bad_dims          = state.bad_dims;
+    m_autoedit_seen     = state.autoedit_seen;
+    m_skipped_last      = state.skipped_last;
+    m_loop_defect_shown = state.loop_defect_shown;
+    m_open_feature      = -1;
+    if (on_constraints_changed) on_constraints_changed();
+    if (on_solve_state) on_solve_state(m_dof, m_solve_ok, !m_constraints.empty());
 }
 
 bool DesignSketchTool::select_indices(const std::vector<int>& idx)

@@ -62,7 +62,7 @@
      "expect": {"/opened": {"eq": "project"}, "/objects": {"eq": 0}}},
     {"tool": "get_app_state", "expect": {"/project/dirty": {"eq": false}, "/project/name": {"eq": "design_only"},
                                      "/project/path": {"regex": "design_only\\.3mf$"}, "/dialogs": {"empty": true}}},
-    {"tool": "call_tool", "args": {"tool": "describe_scene"},
+    {"tool": "call_tool", "args": {"tool": "describe_design"},
      "expect": {"/result/variables": {"empty": true}, "/result/bodies/1": {"exists": true}}}
   ]
 }

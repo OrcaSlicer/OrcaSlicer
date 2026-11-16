@@ -25,6 +25,8 @@
 #include <limits>
 #include <optional>
 #include <random>
+#include <string>
+#include <utility>
 #include <vector>
 #include <cstddef>
 #include <math.h>
@@ -344,6 +346,58 @@ TEST_CASE("A face's box comes from the pick mesh, on a hidden body too", "[Desig
     REQUIRE(both.defined);
     CHECK_THAT(both.min.x(), WithinAbs(0., 1e-6));
     CHECK_THAT(both.max.x(), WithinAbs(110., 1e-6));
+}
+
+TEST_CASE("A face, edges or a vertex is selected by id only where a click could pick it", "[DesignSketchTool]")
+{
+    // Two 40 x 20 x 10 boxes, the second 100 mm along X.
+    CadDocument doc;
+    doc.add_extrude(doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 40, 20, 0, "Sketch"), 10.0, false,
+                    BooleanMode::New, "Extrude");
+    SketchPlane beside = SketchPlane::XY();
+    beside.origin += Vec3d(100., 0., 0.);
+    doc.add_extrude(doc.add_sketch(SketchShape::Rectangle, beside, 40, 20, 0, "Sketch"), 10.0, false, BooleanMode::New,
+                    "Extrude");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+    using Sel = DesignSketchTool::SolidSel;
+    DesignSketchTool tool;
+    int              fired = 0;
+    tool.on_solid_selection_changed = [&fired](int, int, int, int) { ++fired; };
+
+    // With no pick shapes there is nothing a click picks: the check says why, and selecting changes nothing.
+    std::string why;
+    CHECK_FALSE(tool.can_select_solid(Sel::Face, 0, 0, {}, &why));
+    CHECK_FALSE(why.empty());
+    CHECK_FALSE(tool.select_solid(Sel::Face, 0, 0, {}, Vec3d::Zero()));
+    CHECK_FALSE(tool.has_solid_selection());
+
+    std::vector<bool> visible{true, true};
+    tool.set_solid_pick(&doc.bodies, &doc.display_mesh, &doc.display_tri_face, &doc.display_tri_body, &visible);
+    REQUIRE(tool.select_solid(Sel::Face, 0, 0, {}, Vec3d::Zero()));
+    CHECK(fired == 1);
+    // Each refusal is decided by the check select_solid() makes, and leaves the face selected and nothing fired.
+    const auto refused = [&](Sel kind, int body, int face, const std::vector<int>& edges) {
+        std::string reason;
+        CHECK_FALSE(tool.can_select_solid(kind, body, face, edges, &reason));
+        CHECK_FALSE(reason.empty());
+        CHECK_FALSE(tool.select_solid(kind, body, face, edges, Vec3d::Zero()));
+        CHECK(tool.selected_faces() == std::vector<std::pair<int, int>>{{0, 0}});
+        CHECK(fired == 1);
+    };
+    refused(Sel::Face, 0, 99, {});
+    refused(Sel::Edge, 0, -1, {});
+    refused(Sel::Edge, 0, -1, {1, 1});
+    refused(Sel::Edge, 0, -1, {999});
+    refused(Sel::Face, 2, 0, {});
+    // A hidden body takes no click, nor does one a pick is held off (a card's focus on another body).
+    visible[1] = false;
+    refused(Sel::Vertex, 1, -1, {});
+    visible[1] = true;
+    tool.set_pick_only_body(0);
+    refused(Sel::Face, 1, 0, {});
+    tool.set_pick_only_body(-1);
+    CHECK(tool.can_select_solid(Sel::Edge, 1, -1, {0, 1}));
 }
 
 TEST_CASE("Padding a box to frame gives every axis a small extent and leaves a long one alone", "[DesignSketchTool]")

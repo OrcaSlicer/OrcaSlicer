@@ -13,6 +13,7 @@
 #include <Standard_TypeDef.hxx>
 #include <TopAbs_State.hxx>
 #include <array>
+#include <atomic>
 
 #include <Standard_Failure.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
@@ -89,6 +90,7 @@
 #include <math.h>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <stdexcept>
 #include <algorithm>
@@ -1396,35 +1398,63 @@ int CadDocument::add_project_edges(int source_body, const std::vector<int>& edge
     return int(features.size()) - 1;
 }
 
+std::vector<SketchEntity> CadDocument::project_edges_on(const SketchPlane& plane, int source_body,
+                                                        const std::vector<int>& edge_ids, int face,
+                                                        std::string& error) const
+{
+    error.clear();
+    const int nb = int(bodies.size());
+    const std::string body = "body " + std::to_string(source_body);
+    if (source_body < 0 || source_body >= nb) {
+        error = body + " does not exist; the model has " + std::to_string(nb) + (nb == 1 ? " body" : " bodies");
+        return {};
+    }
+    const TopoDS_Shape& shape = bodies[source_body].shape;
+    if (shape.IsNull()) {
+        error = body + " has no shape";
+        return {};
+    }
+
+    std::vector<TopoDS_Edge> edges;
+    if (!edge_ids.empty()) {
+        for (int id : edge_ids) {
+            TopoDS_Edge e = GeometryEngine::edge_by_index(shape, id);
+            if (e.IsNull()) {
+                error = "edge " + std::to_string(id) + " of " + body + " does not exist (it has " +
+                        std::to_string(GeometryEngine::edge_count(shape)) + " edges)";
+                return {};
+            }
+            edges.push_back(e);
+        }
+    } else if (face >= 0) {
+        TopoDS_Face fc = GeometryEngine::face_by_index(shape, face);
+        if (fc.IsNull()) {
+            error = "face " + std::to_string(face) + " of " + body + " does not exist (it has " +
+                    std::to_string(GeometryEngine::face_count(shape)) + " faces)";
+            return {};
+        }
+        edges = GeometryEngine::edges_of_face(fc);
+    } else {
+        edges = GeometryEngine::edges_of(shape);
+    }
+
+    std::vector<SketchEntity> out;
+    project_edges_to_entities(edges, plane, /*construction=*/true, out);
+    if (out.empty()) error = "the edges project to a point on the plane: each is perpendicular to it";
+    return out;
+}
+
 int CadDocument::project_edges_into_sketch(int sketch_feature, int source_body,
                                            const std::vector<int>& edge_ids, int face)
 {
     if (sketch_feature < 0 || sketch_feature >= int(features.size())) return -1;
     CadFeature& sk = features[sketch_feature];
     if (sk.type != CadFeatureType::Sketch && sk.type != CadFeatureType::Project) return -1;
-    if (source_body < 0 || source_body >= int(bodies.size())
-        || bodies[source_body].shape.IsNull()) return -1;
-    const TopoDS_Shape& shape = bodies[source_body].shape;
-
-    std::vector<TopoDS_Edge> edges;
-    if (!edge_ids.empty()) {
-        for (int id : edge_ids) {
-            TopoDS_Edge e = GeometryEngine::edge_by_index(shape, id);
-            if (e.IsNull()) return -1;
-            edges.push_back(e);
-        }
-    } else if (face >= 0) {
-        TopoDS_Face fc = GeometryEngine::face_by_index(shape, face);
-        if (fc.IsNull()) return -1;
-        edges = GeometryEngine::edges_of_face(fc);
-    } else {
-        edges = GeometryEngine::edges_of(shape);
-    }
-    if (edges.empty()) return -1;
-
-    const size_t before = sk.entities.size();
-    project_edges_to_entities(edges, sk.plane, /*construction=*/true, sk.entities);
-    return int(sk.entities.size() - before);
+    std::string error;
+    const std::vector<SketchEntity> ents = project_edges_on(sk.plane, source_body, edge_ids, face, error);
+    if (ents.empty()) return -1;
+    sk.entities.insert(sk.entities.end(), ents.begin(), ents.end());
+    return int(ents.size());
 }
 
 int CadDocument::add_bridge(int sketch_ref, int ent_a, int end_a, int ent_b, int end_b,
@@ -2125,6 +2155,7 @@ void CadDocument::clear()
     variables.clear();
     error.clear();
     mate_conflicts.clear();
+    bodies_before.clear();
     ++topo_generation;       // every face/edge id handed out before this is stale now
     // A cleared document is a fresh start with no history.
     m_undo.clear();
@@ -2245,6 +2276,25 @@ static int find_body(const std::vector<CadBody>& v, const CadFeature::BodyId& id
     for (int i = 0; i < int(v.size()); ++i)
         if (v[i].source_feature == id.src && ord++ == id.ord) return i;
     return -1;
+}
+
+CadFeature::BodyId CadDocument::body_id(int body) const { return body_id_of(bodies, body); }
+
+int CadDocument::body_index(const CadFeature::BodyId& id) const { return find_body(bodies, id); }
+
+CadDocument CadDocument::history_before(int f) const
+{
+    CadDocument out;
+    out.features.assign(features.begin(), features.begin() + std::clamp(f, 0, int(features.size())));
+    out.variables          = variables;
+    out.bodies             = bodies;
+    out.modeling_origin    = modeling_origin;
+    out.origin_from_recipe = origin_from_recipe;
+    out.auto_close_loops   = auto_close_loops;
+    out.linear_deflection  = linear_deflection;
+    out.angular_deflection = angular_deflection;
+    out.topo_generation    = topo_generation;
+    return out;
 }
 
 // Re-point `f`'s body fields of one kind (`running`) from the identities recorded last time,
@@ -2481,10 +2531,11 @@ bool CadDocument::replace_feature(int index, const CadFeature& edited)
 
     std::vector<CadFeature> snapshot = features;
 
-    // Preserve identity (name) and the structural link (sketch_ref) from the
+    // Preserve identity (name and uid) and the structural link (sketch_ref) from the
     // original; only the user-editable parameters come from `edited`.
     CadFeature f      = edited;
     f.name            = features[index].name;
+    f.uid             = features[index].uid;
     f.type            = features[index].type;
     if (f.type == CadFeatureType::Extrude)
         f.sketch_ref  = features[index].sketch_ref;
@@ -4122,6 +4173,14 @@ void CadDocument::bind_expressions()
             set_numeric_field(f, field, eval_expr(e, varvals));
 }
 
+// The next CadFeature::uid. One count for the whole process, so that a copy of a document (a card's preview, the history
+// before a feature) never hands its new features a number the document it was copied from gives one of its own.
+static uint64_t next_feature_uid()
+{
+    static std::atomic<uint64_t> next{1};
+    return next.fetch_add(1, std::memory_order_relaxed);
+}
+
 void CadDocument::replay_feature(size_t fi, std::vector<CadBody>& built)
 {
     CadFeature& f = features[fi];
@@ -4150,9 +4209,13 @@ void CadDocument::replay_feature(size_t fi, std::vector<CadBody>& built)
 bool CadDocument::recompute()
 {
     error.clear();
+    // A feature added since the last rebuild, or read from a project, gets its identity.
+    for (CadFeature& f : features)
+        if (f.uid == 0) f.uid = next_feature_uid();
     set_sketch_auto_close(auto_close_loops);   // this document's weld rule, not the last one's
     detect_mate_conflicts();
     std::vector<CadBody> built;
+    bodies_before.assign(features.size(), std::nullopt);
     // Did any feature in this document even ASK for a solid? A document made only of sketches
     // and datums has nothing to build, and that is a legitimate state — it is every document
     // between drawing the first profile and extruding it. Reporting it as a failure is what
@@ -4165,8 +4228,12 @@ bool CadDocument::recompute()
     });
     try {
         bind_expressions();
-        for (size_t fi = 0; fi < features.size(); ++fi)
+        for (size_t fi = 0; fi < features.size(); ++fi) {
+            // The bodies the feature starts from, which feature_describe lists.
+            std::vector<BodyBefore>& was = bodies_before[fi].emplace();
+            for (int b = 0; b < int(built.size()); ++b) was.push_back({built[size_t(b)].name, body_id_of(built, b)});
             replay_feature(fi, built);
+        }
     } catch (const std::exception& e) {
         error = *e.what() ? e.what() : _u8L("OCCT operation failed");
         return false;
@@ -4177,8 +4244,8 @@ bool CadDocument::recompute()
     if (built.empty() && any_solid_feature) { error = _u8L("no solid-producing features"); return false; }
 
     // A feature that leaves a body with a null shape fails the rebuild loudly. Were recompute() to
-    // return true, the document would go on listing the body: describe_scene would count it, error
-    // would be empty, and only mass_props on that body would show anything was wrong. Returning
+    // return true, the document would go on listing the body: describe_design would count it, error
+    // would be empty, and only body_mass_properties on that body would show anything was wrong. Returning
     // false hands the caller its normal rollback path, so the operation that destroyed the body is
     // undone rather than committed.
     for (size_t i = 0; i < built.size(); ++i) {

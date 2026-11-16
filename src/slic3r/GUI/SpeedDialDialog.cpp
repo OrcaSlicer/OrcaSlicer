@@ -301,6 +301,17 @@ void SpeedDialWebDialog::request_show()
     });
 }
 
+bool SpeedDialWebDialog::Show(bool show)
+{
+    // The page keeps a query typed before an open's list arrives, which can be after the dial shows, so it is told
+    // where each open ends and empties its field then: what the field holds when the list arrives is that open's.
+    // It cannot tell on its own: the dismissal when the focus leaves the dial is made here, and the page's focus
+    // also bounces as the dial opens.
+    if (!show && IsShown() && m_page_ready)
+        call_web_handler({{"command", "closed"}});
+    return WebViewHostDialog::Show(show);
+}
+
 void SpeedDialWebDialog::on_script_message(const nlohmann::json& payload)
 {
     if (handle_common_script_command(payload))

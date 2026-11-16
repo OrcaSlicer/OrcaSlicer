@@ -25,7 +25,9 @@ using Flags = std::vector<std::string>;
 const Flags kEveryFlag{"writes_file", "changes_presets", "replaces_project", "sends_to_printer"};
 
 // The commands the cases call by their key, each with a tile and no place in the tool list, as the app's catalog
-// has them. Every other tool the cases name is a typed tool, which the summary describes by its name.
+// has them: three with a tile of their own; export_drawing with one of its own and one that runs it with
+// {"format": "pdf"}; and calib_sample, whose only tile runs it with no arguments, as a Design command's folded rows
+// do. Every other tool the cases name is a typed tool, which the summary describes by its name.
 CommandCatalog tile_catalog()
 {
     CommandCatalog catalog;
@@ -36,6 +38,18 @@ CommandCatalog tile_catalog()
         command.listed     = false;
         catalog.add(std::move(command));
     }
+    const auto tile = [](const char* key, const char* title, json args) {
+        return json{{"key", key}, {"title", title}, {"icon", ""}, {"description", ""}, {"args", std::move(args)}};
+    };
+    NativeCommand drawing;
+    drawing.key        = "export_drawing";
+    drawing.in_palette = true;
+    drawing.tiles      = json::array({tile("export_drawing_pdf", "Export as PDF", {{"format", "pdf"}})});
+    catalog.add(std::move(drawing));
+    NativeCommand sample;
+    sample.key   = "calib_sample";
+    sample.tiles = json::array({tile("calib_sample_cube", "Sample cube", json::object())});
+    catalog.add(std::move(sample));
     catalog.seal();
     return catalog;
 }
@@ -139,6 +153,38 @@ TEST_CASE("a command called by name is described as its tile is", "[Mcp]")
     CHECK(by_name.replace == tile.replace);
     CHECK(by_name.what == tile.what);
     CHECK(describe_call(tile_catalog(), key, args) == tile.what);
+}
+
+TEST_CASE("a tile that runs its command with arguments is described as that call is", "[Mcp]")
+{
+    const auto [key, tile, args, flags] = GENERATE_COPY(table<std::string, std::string, json, Flags>({
+        {"export_drawing", "export_drawing_pdf", {{"format", "pdf"}}, {"writes_file"}},
+        {"calib_sample", "calib_sample_cube", json::object(), {"changes_presets", "replaces_project"}},
+    }));
+    INFO(key << " " << args.dump());
+    const json        what{{"kind", "command"}, {"key", key}, {"tile", tile}};
+    const std::string id = "orca_command:" + tile + ":orca";
+    // The tile's action with no arguments and with its own, and the call of its command with them.
+    const StepDescription picked = describe(action(id));
+    const StepDescription given  = describe(action(id, args));
+    const StepDescription called = describe(json{{"tool", key}, {"args", args}}.dump());
+    for (const StepDescription* d : {&picked, &given, &called}) {
+        CHECK(d->what == what);
+        CHECK(flags_of(*d) == flags);
+        CHECK(d->replace == picked.replace);
+    }
+    CHECK(describe_call(tile_catalog(), key, args) == what);
+    CHECK(describe_call(tile_catalog(), "run_action", {{"id", id}}) == what);
+}
+
+TEST_CASE("a call with other arguments than a tile's is described by its arguments", "[Mcp]")
+{
+    const json what{{"kind", "command"}, {"key", "export_drawing"}, {"args", {"format: svg"}}};
+    CHECK(describe(R"({"tool": "export_drawing", "args": {"format": "svg"}})").what == what);
+    CHECK(describe(action("orca_command:export_drawing:orca", {{"format", "svg"}})).what == what);
+    // The command's own tile with the other tile's arguments is that tile.
+    CHECK(describe(action("orca_command:export_drawing:orca", {{"format", "pdf"}})).what ==
+          json{{"kind", "command"}, {"key", "export_drawing"}, {"tile", "export_drawing_pdf"}});
 }
 
 TEST_CASE("a step that calls a tile's command by its key is described from the catalog it is given", "[Mcp]")

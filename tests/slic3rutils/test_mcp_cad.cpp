@@ -32,6 +32,7 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
 #include "slic3r/GUI/ActionRegistry.hpp"
+#include "slic3r/GUI/ActionReplayDialog.hpp"
 #include "slic3r/GUI/CAD/DesignOffer.hpp"
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
@@ -40,26 +41,39 @@
 #include "slic3r/GUI/Mcp/McpTools.hpp"
 #include "slic3r/GUI/Mcp/McpToolsCad.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
+#include "test_utils.hpp"
 
+#include <BRepAdaptor_Surface.hxx>
+#include <BRep_Tool.hxx>
+#include <GeomAbs_SurfaceType.hxx>
+#include <TopAbs_ShapeEnum.hxx>
+#include <TopExp.hxx>
+#include <TopTools_IndexedMapOfShape.hxx>
+#include <TopoDS.hxx>
 #include <TopoDS_Edge.hxx>
 #include <TopoDS_Face.hxx>
 #include <TopoDS_Shape.hxx>
+#include <gp_Pnt.hxx>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <nlohmann/json.hpp>
 #include <wx/string.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
+#include <fstream>
 #include <functional>
 #include <iterator>
 #include <map>
 #include <memory>
 #include <optional>
+#include <ratio>
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -214,6 +228,23 @@ const GUI::DesignTool& design_row(const std::string& id)
     throw std::logic_error("unreachable");
 }
 
+// The selection kinds the Design tab reports as what is selected (DesignPanel::offer_selection_kind()): in a sketch,
+// what is picked there; on the model, nothing, a face, an edge, a vertex, a body or a committed sketch's loop.
+std::vector<GUI::OfferSel> reported_kinds(bool sketching)
+{
+    using S = GUI::OfferSel;
+    if (sketching)
+        return {S::SkNone, S::SkLine, S::SkArc, S::SkPoint, S::Sk2Ent};
+    return {S::None, S::FacePlanar, S::FaceCyl, S::FaceOther, S::EdgeStr, S::EdgeCirc, S::Vertex, S::BodySolid, S::BodySheet, S::SkLoop};
+}
+
+// The id of the row a call of `entry`'s command with `args` opens, or "" when the call runs.
+std::string opened_id(const GUI::DesignTool& entry, const json& args)
+{
+    const GUI::DesignTool* row = GUI::Mcp::opened_row(entry, args);
+    return row != nullptr ? row->id : "";
+}
+
 // Whether a param by this name takes face or edge ids.
 bool is_id_param(const std::string& name)
 {
@@ -242,9 +273,51 @@ struct JournalContext final : GUI::ToolContext
     json        journaled; // null until the call journals its arguments
 };
 
+// An id of the Design commands' old vocabulary, which names no command, and whether its entry stays in the
+// Design table as a menu row.
+struct Retired
+{
+    const char* id;
+    bool        row;
+};
+
+// Ids of the old vocabulary: entries renamed, rows merged with the argument command for their job, the entry that
+// did two jobs, and rows folded into their command.
+const Retired kRetired[] = {
+    // Renamed.
+    {"describe_scene", false}, {"describe_feature", false}, {"query_topology", false}, {"slice_body", false},
+    {"validate_against", false}, {"mass_props", false}, {"sketch_constraints", false}, {"sketch_unconstrain", false},
+    {"sketch_heal", false}, {"sketch_add", false}, {"sketch_commit", false}, {"bridge", false}, {"project", false},
+    {"commit", false}, {"feature_set_enabled", false}, {"surf_extrude", false}, {"surf_revolve", false},
+    {"surf_loft", false}, {"surf_fill", false}, {"surf_offset", false}, {"plane", false}, {"axis", false},
+    {"coordsys_v", false}, {"rename", false}, {"zoom_to", false}, {"constrain", false}, {"sk_poly_inscribed", false},
+    {"sk_poly_circumscribed", false}, {"sk_text", false}, {"sk_svg", false}, {"sk_dimension", false},
+    {"sk_extend", false}, {"mate", false},
+    // A row and its argument command, merged.
+    {"sketch", false}, {"sketch_begin", false}, {"cut", false}, {"delete", false}, {"delete_body", false},
+    {"sk_offset", false}, {"sk_trim", false}, {"sk_fillet", false}, {"sk_chamfer", false}, {"sk_mirror", false},
+    {"sk_construct", false}, {"sketch_construction", false}, {"sk_delete", false}, {"sk_constrain", false},
+    // Split into feature_edit and feature_set_expression.
+    {"edit_feature", false}, {"set_feature", false},
+    // Merged into hole, as its type and designation.
+    {"hole_styled", false}, {"hole_standard", false},
+    // Folded into the command for their job: body_set, sketch_set_value, boolean, thicken, pattern, sketch_pattern,
+    // sketch_transform, sketch_draw.
+    {"colour", true}, {"sk_length", true}, {"sk_radius", true}, {"sk_angdist", true}, {"bool_subtract", true},
+    {"bool_intersect", true}, {"thicken_surf", true}, {"pattern_circular", true}, {"sk_array", true},
+    {"sk_array_polar", true}, {"sk_move", true}, {"sk_rotate", true}, {"sk_scale", true}, {"sk_line_t", true},
+    {"sk_rect", true}, {"sk_circle", true}, {"sk_arc_center", true}, {"sk_slot", true}, {"sk_ellipse", true},
+    {"sk_ellipse_arc", true}, {"sk_spline", true}, {"sk_point_t", true}, {"sk_poly_3", true}, {"sk_poly_4", true},
+    {"sk_poly_5", true}, {"sk_polygon", true}, {"sk_poly_8", true}, {"sk_poly_12", true}, {"sk_polyline", true},
+    {"sk_rect_center", true}, {"sk_rect_oblique", true}, {"sk_rect_rounded", true}, {"sk_circle_2pt", true},
+    {"sk_circle_3pt", true}, {"sk_arc_t", true}, {"sk_arc_tangent", true}, {"sk_slot_arc", true},
+    // pattern's type curve: the row stays, greyed.
+    {"pat_curve", true},
+};
+
 } // namespace
 
-TEST_CASE("the CAD commands are the Design table's rows less align", "[Mcp][CAD]")
+TEST_CASE("the CAD commands are the Design table's entries but its greyed and folded rows", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
     std::set<std::string>     keys;
@@ -256,23 +329,97 @@ TEST_CASE("the CAD commands are the Design table's rows less align", "[Mcp][CAD]
         // Its title is the row's name, the one the right-click menu and its tile show.
         CHECK(c.title == design_row(c.key).name);
     }
-    CHECK(keys.size() == 133);
+    CHECK(keys.size() == 88);
+    for (int i = 0; i < GUI::kDesignToolCount; ++i) {
+        INFO(GUI::kDesignTools[i].id);
+        CHECK(keys.count(GUI::kDesignTools[i].id) == (GUI::Mcp::is_design_command(GUI::kDesignTools[i]) ? 1u : 0u));
+    }
     // The body's move is named apart from the Prepare tool transform; undo and redo are the shared commands.
     CHECK(keys.count("body_transform") == 1);
-    for (const char* gone : {"transform", "undo", "redo", "align"}) {
+    for (const char* gone : {"transform", "undo", "redo", "align_to", "colour", "sk_length"}) {
         INFO(gone);
         CHECK(keys.count(gone) == 0);
     }
 }
 
-TEST_CASE("the Design table has a form for every row but align", "[Mcp][CAD]")
+TEST_CASE("a name of the old vocabulary is no command", "[Mcp][CAD]")
 {
-    REQUIRE(GUI::kDesignToolCount == 134);
+    const GUI::CommandCatalog catalog = catalog_with_cad();
+    std::set<std::string>     listed;
+    for (const Retired& retired : kRetired) {
+        INFO(retired.id);
+        CHECK(listed.insert(retired.id).second);
+        CHECK(catalog.find(retired.id) == nullptr);
+        const GUI::DesignTool* entry = GUI::Mcp::find_design_tool(retired.id);
+        if (!retired.row) {
+            CHECK(entry == nullptr);
+            continue;
+        }
+        // A row that stays keeps its entry and its place in the menu, and is no command.
+        REQUIRE(entry != nullptr);
+        CHECK(entry->row != -1);
+    }
+    // 89 of the 133 names the Design commands had are gone.
+    CHECK(std::size(kRetired) == 89);
+}
+
+TEST_CASE("a menu row and the command that runs its job are one command", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog catalog = cad_catalog();
+    for (const char* key : {"sketch_create", "split", "feature_delete", "body_delete", "sketch_offset", "sketch_trim",
+                            "sketch_fillet", "sketch_chamfer", "sketch_mirror", "sketch_toggle_construction", "sketch_delete",
+                            "sketch_constrain", "feature_edit"}) {
+        INFO(key);
+        const GUI::NativeCommand& command = command_of(catalog, key);
+        CHECK(command.in_palette);
+        CHECK(two_forms(command));
+        const GUI::DesignTool* entry = GUI::Mcp::find_design_tool(key);
+        REQUIRE(entry != nullptr);
+        CHECK(entry->action != nullptr);
+        CHECK(entry->doc != nullptr);
+    }
+}
+
+TEST_CASE("a renamed entry keeps its row", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog catalog = cad_catalog();
+    const GUI::DesignTool&    plane   = design_row("construct_plane");
+    REQUIRE(plane.key != nullptr);
+    CHECK(std::string(plane.key) == "Shift+P");
+    CHECK(std::string(plane.action) == "key:S+P");
+    // The mate command takes the id align; the unbuilt Align to row stays, greyed, as align_to.
+    const GUI::DesignTool& align = design_row("align");
+    REQUIRE(align.action != nullptr);
+    CHECK(std::string(align.action) == "fly:placement#2");
+    CHECK(align.doc != nullptr);
+    const GUI::DesignTool& align_to = design_row("align_to");
+    CHECK(align_to.row != -1);
+    CHECK(align_to.action == nullptr);
+    CHECK(align_to.doc == nullptr);
+    CHECK(catalog.find("align_to") == nullptr);
+    // split takes the Cut card as its row, and the greyed Split row goes.
+    const GUI::DesignTool& split = design_row("split");
+    REQUIRE(split.action != nullptr);
+    CHECK(std::string(split.action) == "key:S+X");
+    CHECK(std::string(split.name) == "Cut");
+    const GUI::DesignTool& expression = design_row("feature_set_expression");
+    CHECK(expression.row == -1);
+    CHECK(expression.doc != nullptr);
+    for (int i = 0; i < GUI::kDesignToolCount; ++i) {
+        INFO(GUI::kDesignTools[i].id);
+        CHECK(std::string(GUI::kDesignTools[i].name) != "Split");
+    }
+}
+
+TEST_CASE("the Design table has a form for every row but its greyed align_to and pat_curve", "[Mcp][CAD]")
+{
+    REQUIRE(GUI::kDesignToolCount == 127);
+    const std::set<std::string> greyed = {"align_to", "pat_curve"};
     for (int i = 0; i < GUI::kDesignToolCount; ++i) {
         const GUI::DesignTool& t = GUI::kDesignTools[i];
         INFO(t.id);
         const bool has_form = t.action != nullptr || t.doc != nullptr;
-        CHECK(has_form == (std::string(t.id) != "align"));
+        CHECK(has_form == (greyed.count(t.id) == 0));
         // A row's access is its silent form's, and one with no silent form has none.
         CHECK((t.doc == nullptr) == (t.access == GUI::CadAccess::None));
         if (t.doc != nullptr) {
@@ -287,7 +434,7 @@ TEST_CASE("the Design table has a form for every row but align", "[Mcp][CAD]")
     for (int i = 0; i < GUI::kDesignToolCount; ++i) {
         const std::string id = GUI::kDesignTools[i].id;
         INFO(id);
-        CHECK(GUI::kDesignTools[i].modal == (id == "sk_text" || id == "sk_svg" || id == "colour"));
+        CHECK(GUI::kDesignTools[i].modal == (id == "sketch_text" || id == "sketch_insert_svg" || id == "colour"));
     }
 }
 
@@ -302,7 +449,7 @@ TEST_CASE("every block has a silent function and every silent function a block",
         CHECK(functions.insert(GUI::Mcp::kSilentForms[i].first).second);
         CHECK(GUI::Mcp::kSilentForms[i].second != nullptr);
     }
-    CHECK(blocks.size() == 76);
+    CHECK(blocks.size() == 83);
     CHECK(blocks == functions);
 }
 
@@ -320,7 +467,7 @@ TEST_CASE("a row with no slot is in no menu row", "[Mcp][CAD]")
         CHECK(t.action == nullptr);
         CHECK(t.doc != nullptr);
     }
-    CHECK(commands_only == 41);
+    CHECK(commands_only == 35);
 }
 
 TEST_CASE("the Design table names the row and the family submenu each verb sits in", "[Mcp][CAD]")
@@ -334,40 +481,172 @@ TEST_CASE("the Design table names the row and the family submenu each verb sits 
     CHECK((rect.accepts & GUI::offer_bit(GUI::OfferSel::SkNone)) != 0);
     CHECK(std::string(design_row("sk_rect_center").family) == "Rectangle");
     CHECK(design_row("sk_spline").family == nullptr);   // directly in Create
-    CHECK((design_row("sk_offset").accepts & GUI::offer_bit(GUI::OfferSel::SkNone)) == 0);   // it needs a picked line, curve or pair
-    const GUI::DesignTool& sketch = design_row("sketch");
+    CHECK((design_row("sketch_offset").accepts & GUI::offer_bit(GUI::OfferSel::SkNone)) == 0);   // it needs a picked line, curve or pair
+    const GUI::DesignTool& sketch = design_row("sketch_create");
     CHECK(std::string(GUI::kOfferRowNames[sketch.row]) == "Create");
     CHECK(sketch.family == nullptr);   // the feature-mode Sketch sits directly in Create
     CHECK_FALSE(sketch.sketch_mode);
-    // describe_scene names the selection by the atlas's ids, in OfferSel's order.
+    // describe_design names the selection by the atlas's ids, in OfferSel's order.
     REQUIRE(std::size(GUI::kDesignSelectionIds) == std::size_t(GUI::OfferSel::Count));
     CHECK(std::string(GUI::kDesignSelectionIds[int(GUI::OfferSel::None)]) == "none");
     CHECK(std::string(GUI::kDesignSelectionIds[int(GUI::OfferSel::FacePlanar)]) == "face_planar");
     CHECK(std::string(GUI::kDesignSelectionIds[int(GUI::OfferSel::Sk2Ent)]) == "sk_2ent");
 }
 
-TEST_CASE("a verb with both forms accepts silent, a verb with one does not", "[Mcp][CAD]")
+TEST_CASE("a command has silent when a call with no arguments opens a tool", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
-    CHECK(two_forms(command_of(catalog, "shell")));
-    CHECK_FALSE(two_forms(command_of(catalog, "describe_scene")));
-    CHECK_FALSE(two_forms(command_of(catalog, "sk_rect")));
-    // A command with only a person's form takes no arguments at all.
-    json silent{{"silent", true}};
-    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "sk_rect"), silent), ContainsSubstring("silent"));
-    json none = json::object();
-    CHECK(GUI::Mcp::argument_error(command_of(catalog, "sk_rect"), none).empty());
-    // A command that has a tile is the one whose row has an action, and it carries the row's icon.
     for (const GUI::NativeCommand& c : catalog.commands()) {
         INFO(c.key);
-        const GUI::DesignTool& row = design_row(c.key);
-        CHECK(c.in_palette == (row.action != nullptr));
-        CHECK(c.icon == (row.icon != nullptr ? row.icon : ""));
-        CHECK(two_forms(c) == (row.action != nullptr && row.doc != nullptr));
+        const GUI::DesignTool& entry = design_row(c.key);
+        if (entry.doc != nullptr)
+            CHECK(two_forms(c) == (GUI::Mcp::opened_row(entry, json::object()) != nullptr));
+        // A command that has a tile is the one whose entry has an action, and it carries the row's icon.
+        CHECK(c.in_palette == (entry.action != nullptr));
+        CHECK(c.icon == (entry.icon != nullptr ? entry.icon : ""));
         // A tile with no icon would be a blank square in the Speed Dial.
         if (c.in_palette)
             CHECK_FALSE(c.icon.empty());
     }
+    // Their rows are folded into them, and their tiles are the rows'.
+    for (const char* key : {"body_set", "sketch_set_value"}) {
+        INFO(key);
+        CHECK(two_forms(command_of(catalog, key)));
+        CHECK_FALSE(command_of(catalog, key).in_palette);
+    }
+    CHECK(two_forms(command_of(catalog, "shell")));
+    CHECK_FALSE(two_forms(command_of(catalog, "describe_design")));
+    // A command with only a person's form takes no arguments at all.
+    json silent{{"silent", true}};
+    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "sketch_polygon_inscribed"), silent), ContainsSubstring("silent"));
+    json none = json::object();
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "sketch_polygon_inscribed"), none).empty());
+}
+
+TEST_CASE("a folded row is no command, and its command opens it", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog catalog = cad_catalog();
+    std::size_t               folded = 0;
+    std::set<std::string>     commands;
+    for (int i = 0; i < GUI::kDesignToolCount; ++i) {
+        const GUI::DesignTool& row = GUI::kDesignTools[i];
+        if (row.fold_into == nullptr)
+            continue;
+        INFO(row.id);
+        ++folded;
+        commands.insert(row.fold_into);
+        CHECK(catalog.find(row.id) == nullptr);
+        CHECK_FALSE(GUI::Mcp::is_design_command(row));
+        const GUI::NativeCommand& command = command_of(catalog, row.fold_into);
+        CHECK_THAT(command.description, ContainsSubstring(row.name));
+        // The call with the row's arguments is one its command takes, and it opens the row's tool.
+        REQUIRE(row.args != nullptr);
+        json args = json::parse(row.args);
+        CHECK(GUI::Mcp::argument_error(command, args).empty());
+        const GUI::DesignTool* entry = GUI::Mcp::find_design_tool(row.fold_into);
+        REQUIRE(entry != nullptr);
+        const GUI::DesignTool* opened = GUI::Mcp::opened_row(*entry, args);
+        REQUIRE(opened != nullptr);
+        REQUIRE(opened->action != nullptr);
+        CHECK(std::string(opened->action) == row.action);
+    }
+    // The Color row, into body_set; the three value rows, into sketch_set_value; Subtract and Intersect, into
+    // boolean; Thicken Surface, into thicken; Circular pattern, into pattern; the two arrays, into sketch_pattern;
+    // Move, Rotate and Scale, into sketch_transform; the twenty-four drawing rows, into sketch_draw.
+    CHECK(folded == 37);
+    CHECK(commands.size() == 8);
+}
+
+TEST_CASE("a call opens a tool only with the arguments that choose it", "[Mcp][CAD]")
+{
+    // body_set's Color row opens with no arguments, and any argument runs the command.
+    const GUI::DesignTool& body_set = design_row("body_set");
+    const GUI::DesignTool* colour   = GUI::Mcp::opened_row(body_set, json::object());
+    REQUIRE(colour != nullptr);
+    CHECK(std::string(colour->id) == "colour");
+    CHECK(GUI::Mcp::opened_row(body_set, json()) == colour);
+    for (const json& runs : {json{{"body", 0}}, json{{"silent", true}}, json{{"generation", 1}}}) {
+        INFO(runs.dump());
+        CHECK(GUI::Mcp::opened_row(body_set, runs) == nullptr);
+    }
+    // sketch_set_value's three value rows are one action.
+    const GUI::DesignTool* value = GUI::Mcp::opened_row(design_row("sketch_set_value"), json::object());
+    REQUIRE(value != nullptr);
+    REQUIRE(value->action != nullptr);
+    CHECK(std::string(value->action) == "key:V");
+    // A command with a row of its own opens it; one with no row and none folded into it opens nothing.
+    const GUI::DesignTool& trim = design_row("sketch_trim");
+    CHECK(GUI::Mcp::opened_row(trim, json::object()) == &trim);
+    CHECK(GUI::Mcp::opened_row(design_row("sketch_draw"), json::object()) == nullptr);
+    // boolean's own row, Join, opens with no arguments and with its own; each operation opens the row that does it,
+    // and anything beside the operation runs the command.
+    const GUI::DesignTool& boolean = design_row("boolean");
+    CHECK(opened_id(boolean, json::object()) == "boolean");
+    CHECK(opened_id(boolean, {{"operation", "join"}}) == "boolean");
+    CHECK(opened_id(boolean, {{"operation", "cut"}}) == "bool_subtract");
+    CHECK(opened_id(boolean, {{"operation", "intersect"}}) == "bool_intersect");
+    CHECK(opened_id(boolean, {{"operation", "cut"}, {"target", 0}}).empty());
+    CHECK(opened_id(boolean, {{"operation", "cut"}, {"silent", true}}).empty());
+    // pattern's own row is the linear one and Circular pattern is folded into it; a curve pattern has no row.
+    const GUI::DesignTool& pattern = design_row("pattern");
+    CHECK(opened_id(pattern, json::object()) == "pattern");
+    CHECK(opened_id(pattern, {{"type", "linear"}}) == "pattern");
+    CHECK(opened_id(pattern, {{"type", "circular"}}) == "pattern_circular");
+    CHECK(opened_id(pattern, {{"type", "curve"}}).empty());
+    CHECK(opened_id(design_row("thicken"), {{"type", "surface"}}) == "thicken_surf");
+    // A sketch command with no row of its own opens a folded row only with its type, and nothing with no arguments.
+    const GUI::DesignTool& sketch_pattern = design_row("sketch_pattern");
+    CHECK(opened_id(sketch_pattern, {{"type", "linear"}}) == "sk_array");
+    CHECK(opened_id(sketch_pattern, {{"type", "circular"}}) == "sk_array_polar");
+    CHECK(opened_id(sketch_pattern, {{"type", "linear"}, {"count", 3}}).empty());
+    CHECK(opened_id(sketch_pattern, json::object()).empty());
+    const GUI::DesignTool& sketch_transform = design_row("sketch_transform");
+    CHECK(opened_id(sketch_transform, {{"type", "scale"}}) == "sk_scale");
+    CHECK(opened_id(sketch_transform, json::object()).empty());
+    // sketch_draw opens a drawing row with the row's type alone, a polygon row with its sides too; a type with its
+    // shape's fields draws it.
+    const GUI::DesignTool& sketch_draw = design_row("sketch_draw");
+    CHECK(opened_id(sketch_draw, {{"type", "circle_center"}}) == "sk_circle");
+    CHECK(opened_id(sketch_draw, {{"type", "polygon"}, {"sides", 6}}) == "sk_polygon");
+    CHECK(opened_id(sketch_draw, {{"type", "polygon"}}).empty());
+    CHECK(opened_id(sketch_draw, {{"type", "circle_center"}, {"center", {0, 0}}, {"radius", 1}}).empty());
+    CHECK(opened_id(sketch_draw, {{"type", "rectangle_rounded"}}) == "sk_rect_rounded");
+    CHECK(opened_id(sketch_draw, {{"type", "arc_3_point"}}) == "sk_arc_t");
+    // The Extend and Dimension rows are their commands' own.
+    CHECK(opened_id(design_row("sketch_extend"), json::object()) == "sketch_extend");
+    CHECK(opened_id(design_row("sketch_dimension"), json::object()) == "sketch_dimension");
+}
+
+TEST_CASE("a folded row opens only in its own mode", "[Mcp][CAD]")
+{
+    const GUI::DesignTool&                colour    = design_row("colour");
+    const std::optional<GUI::ToolFailure> in_sketch = GUI::Mcp::open_refusal(colour, true, int(GUI::OfferSel::SkNone));
+    REQUIRE(in_sketch.has_value());
+    CHECK(std::string(in_sketch->what()) == "This tool works on the model: finish or cancel the sketch first");
+    CHECK_FALSE(GUI::Mcp::open_refusal(colour, false, int(GUI::OfferSel::BodySolid)).has_value());
+    // Its action is a btn: one, which the menu greys for a selection it does not take.
+    const std::optional<GUI::ToolFailure> nothing = GUI::Mcp::open_refusal(colour, false, int(GUI::OfferSel::None));
+    REQUIRE(nothing.has_value());
+    CHECK(std::string(nothing->what()) == "This tool does not apply to what is selected");
+    // The command's silent says the mode of the row a call with no arguments opens.
+    const GUI::CommandCatalog catalog = cad_catalog();
+    CHECK_THAT(property_of(command_of(catalog, "sketch_set_value"), "silent").value("description", std::string()),
+               ContainsSubstring("Called with no arguments, it runs only in an open sketch"));
+    CHECK_THAT(property_of(command_of(catalog, "body_set"), "silent").value("description", std::string()),
+               ContainsSubstring("Called with no arguments, it runs only outside a sketch"));
+}
+
+TEST_CASE("a closed block refuses an argument it does not name", "[Mcp][CAD]")
+{
+    const json open{{"params", json::array({{{"name", "radius"}, {"type", "number"}, {"default", 1}}})}};
+    json       closed = open;
+    closed["closed"]  = true;
+    const json schema = GUI::Mcp::cad_input_schema(closed);
+    CHECK(schema.at("additionalProperties") == false);
+    CHECK_FALSE(GUI::Mcp::cad_input_schema(open).contains("additionalProperties"));
+    CHECK_THAT(GUI::Mcp::validate_arguments(schema, {{"radius", 2}, {"edge", 3}}), ContainsSubstring("unknown argument edge"));
+    // What it names, the generation among them, it takes.
+    CHECK(GUI::Mcp::validate_arguments(schema, {{"radius", 2}, {"generation", 4}}).empty());
 }
 
 TEST_CASE("a two-form CAD command publishes what its silent form requires", "[Mcp][CAD]")
@@ -376,27 +655,27 @@ TEST_CASE("a two-form CAD command publishes what its silent form requires", "[Mc
     const GUI::NativeCommand& fillet  = command_of(catalog, "fillet");
     CHECK_FALSE(fillet.input_schema.contains("required"));
     CHECK(fillet.input_schema.at("if") == json{{"minProperties", 1}});
-    CHECK(fillet.input_schema.at("then").at("required") == json::array({"edge"}));
+    CHECK(fillet.input_schema.at("then").at("required") == json::array({"edges"}));
     // No arguments is the person's form, which opens the Fillet tool and requires nothing.
     json person = json::object();
     CHECK(GUI::Mcp::argument_error(fillet, person).empty());
     json radius{{"radius", 2}};
-    CHECK_THAT(GUI::Mcp::argument_error(fillet, radius), ContainsSubstring("edge"));
+    CHECK_THAT(GUI::Mcp::argument_error(fillet, radius), ContainsSubstring("edges is required"));
     json silent{{"silent", true}};
-    CHECK_THAT(GUI::Mcp::argument_error(fillet, silent), ContainsSubstring("edge"));
+    CHECK_THAT(GUI::Mcp::argument_error(fillet, silent), ContainsSubstring("edges is required"));
 }
 
 TEST_CASE("a Design command is named by its verb's id", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
-    for (const char* key : {"surf_extrude", "surf_revolve", "surf_loft", "surf_fill", "thicken_surf", "surf_offset", "pat_curve",
-                            "coordsys_v", "mass_props", "interference", "edit_feature", "body_transform"}) {
+    for (const char* key : {"surface_extrude", "surface_revolve", "surface_loft", "surface_patch", "surface_offset",
+                            "construct_coordinate_system", "body_mass_properties", "interference",
+                            "feature_set_expression", "body_transform"}) {
         INFO(key);
         CHECK(catalog.find(key) != nullptr);
     }
-    const std::set<std::string> old = {"surface_extrude", "surface_revolve", "surface_loft",  "surface_fill",
-                                       "thicken_surface", "surface_offset",  "pattern_on_curve", "coordsys",
-                                       "mass_properties", "check_interference", "set_feature_expr", "transform"};
+    const std::set<std::string> old = {"surface_fill", "thicken_surface", "pattern_on_curve", "coordsys", "mass_properties",
+                                       "check_interference", "set_feature_expr", "transform"};
     for (const std::string& key : old) {
         INFO(key);
         CHECK(catalog.find(key) == nullptr);
@@ -409,10 +688,10 @@ TEST_CASE("a Design command is named by its verb's id", "[Mcp][CAD]")
                 INFO(c.key << " / " << example.value("title", ""));
                 CHECK(old.count(call.at("tool").get<std::string>()) == 0);
             }
-    // Nor does a description: the names that are no English word.
+    // Nor does a description: the names that are no English word, nor part of a command's key (body_mass_properties).
     for (const GUI::NativeCommand& c : with_cad.commands())
         for (const std::string& name : old)
-            if (name != "transform" && name != "coordsys") {
+            if (name != "transform" && name != "coordsys" && name != "mass_properties") {
                 INFO(c.key << " / " << name);
                 CHECK(c.description.find(name) == std::string::npos);
                 CHECK(c.input_schema.dump().find(name) == std::string::npos);
@@ -422,18 +701,18 @@ TEST_CASE("a Design command is named by its verb's id", "[Mcp][CAD]")
 TEST_CASE("a Design command carries its row's icon", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
-    CHECK(command_of(catalog, "sketch").icon == "design_sketch");
+    CHECK(command_of(catalog, "sketch_create").icon == "design_sketch");
     CHECK(command_of(catalog, "body_transform").icon == "design_move");
     // Its tile, titled as the right-click menu names its entry, in the tests' English UI.
-    const std::unique_ptr<GUI::AppAction> tile = GUI::NativeCommands::make_action(command_of(catalog, "sketch"));
+    const std::unique_ptr<GUI::AppAction> tile = GUI::NativeCommands::make_action(command_of(catalog, "sketch_create"));
     REQUIRE(tile != nullptr);
-    CHECK(tile->id() == "orca_command:sketch:orca");
+    CHECK(tile->id() == "orca_command:sketch_create:orca");
     CHECK(tile->group == "Design");
     CHECK(tile->title() == "Sketch");
-    CHECK(GUI::NativeCommands::tile_title(command_of(catalog, "sketch")) == "Sketch");
-    CHECK(std::string(GUI::title_context(command_of(catalog, "sketch"))) == "Design");
+    CHECK(GUI::NativeCommands::tile_title(command_of(catalog, "sketch_create")) == "Sketch");
+    CHECK(std::string(GUI::title_context(command_of(catalog, "sketch_create"))) == "Design");
     CHECK(tile->icon == "design_sketch");
-    CHECK(tile->command == "sketch");
+    CHECK(tile->command == "sketch_create");
 }
 
 TEST_CASE("the Design tiles' icons resolve to shipped SVGs", "[Mcp][CAD][SpeedDial]")
@@ -443,12 +722,24 @@ TEST_CASE("the Design tiles' icons resolve to shipped SVGs", "[Mcp][CAD][SpeedDi
     const GUI::CommandCatalog     catalog = catalog_with_cad();
     std::size_t                   tiles   = 0;
     for (const GUI::NativeCommand& c : catalog.commands()) {
-        if (c.group != "Design" || c.icon.empty())
+        if (c.group != "Design")
             continue;
-        INFO(c.key << " -> " << c.icon);
-        CHECK(boost::filesystem::exists(images / (c.icon + ".svg")));
-        tiles += c.in_palette ? 1 : 0;
+        if (!c.icon.empty()) {
+            INFO(c.key << " -> " << c.icon);
+            CHECK(boost::filesystem::exists(images / (c.icon + ".svg")));
+            tiles += c.in_palette ? 1 : 0;
+        }
+        if (!c.tiles.is_array())
+            continue;
+        for (const json& tile : c.tiles) {
+            const std::string icon = tile.at("icon").get<std::string>();
+            INFO(c.key << " / " << tile.at("key") << " -> " << icon);
+            CHECK_FALSE(icon.empty());
+            CHECK(boost::filesystem::exists(images / (icon + ".svg")));
+            ++tiles;
+        }
     }
+    // One per entry with an action: the 52 commands' own and the 37 folded rows'.
     CHECK(tiles == 89);
 }
 
@@ -466,23 +757,76 @@ TEST_CASE("a tool refused for the selection says it does not apply and what it t
     CHECK(refused->details.at("selection") == "none");
     CHECK(refused->details.at("accepts") == json::array({"face_planar", "face_cyl", "face_other"}));
     CHECK_FALSE(GUI::Mcp::open_refusal(delete_face, false, int(GUI::OfferSel::FacePlanar)).has_value());
-    // Every row only the menu reaches says the same for a selection it does not take, in its own mode.
+    // Every row only the menu reaches says the same for a selection the tab reports in the row's mode and the row
+    // does not take. A row that takes none of those is never greyed for the selection there, and opens whatever is
+    // selected.
+    std::size_t greyed = 0, never_greyed = 0;
     for (int i = 0; i < GUI::kDesignToolCount; ++i) {
         const GUI::DesignTool& t = GUI::kDesignTools[i];
         if (t.action == nullptr || std::string(t.action).rfind("key:", 0) == 0)
             continue;
         INFO(t.id);
-        int miss = 0;
-        while (miss < int(GUI::OfferSel::Count) && (t.accepts & GUI::offer_bit(GUI::OfferSel(miss))) != 0)
-            ++miss;
-        REQUIRE(miss < int(GUI::OfferSel::Count));
-        const std::optional<GUI::ToolFailure> missed = GUI::Mcp::open_refusal(t, t.sketch_mode, miss);
-        REQUIRE(missed.has_value());
-        CHECK(std::string(missed->what()) == "This tool does not apply to what is selected");
-        CHECK(missed->details.at("selection") == GUI::kDesignSelectionIds[miss]);
+        const std::vector<GUI::OfferSel> kinds = reported_kinds(t.sketch_mode);
+        const auto takes     = [&t](GUI::OfferSel s) { return (t.accepts & GUI::offer_bit(s)) != 0; };
+        const bool takes_any = std::any_of(kinds.begin(), kinds.end(), takes);
+        ++(takes_any ? greyed : never_greyed);
+        for (const GUI::OfferSel kind : kinds) {
+            INFO(GUI::kDesignSelectionIds[int(kind)]);
+            const std::optional<GUI::ToolFailure> refused_here = GUI::Mcp::open_refusal(t, t.sketch_mode, int(kind));
+            if (takes(kind) || !takes_any) {
+                CHECK_FALSE(refused_here.has_value());
+                continue;
+            }
+            REQUIRE(refused_here.has_value());
+            CHECK(std::string(refused_here->what()) == "This tool does not apply to what is selected");
+            CHECK(refused_here->details.at("selection") == GUI::kDesignSelectionIds[int(kind)]);
+        }
     }
+    CHECK(greyed > 0);
+    CHECK(never_greyed > 0);
     // A key: action runs whatever is selected, as its key does.
     CHECK_FALSE(GUI::Mcp::open_refusal(design_row("shell"), false, int(GUI::OfferSel::None)).has_value());
+}
+
+TEST_CASE("a row for a selection the tab never reports opens as its button does", "[Mcp][CAD]")
+{
+    // Boolean's three rows take two bodies and Rib a sketch line, which the model never reports as the selection:
+    // their toolbar buttons open the card with nothing selected, and so do the rows.
+    for (const char* id : {"boolean", "bool_subtract", "bool_intersect", "rib"}) {
+        INFO(id);
+        CHECK_FALSE(GUI::Mcp::open_refusal(design_row(id), false, int(GUI::OfferSel::None)).has_value());
+    }
+    // Constrain sketch takes a sketch loop, which the model reports, so a face is refused.
+    const std::optional<GUI::ToolFailure> refused =
+        GUI::Mcp::open_refusal(design_row("sketch_constrain_selected"), false, int(GUI::OfferSel::FacePlanar));
+    REQUIRE(refused.has_value());
+    CHECK(std::string(refused->what()) == "This tool does not apply to what is selected");
+}
+
+TEST_CASE("the rows that act on the Feature list's row are not refused for the selection when a call targets that row", "[Mcp][CAD]")
+{
+    const std::set<std::string> feature_rows = {"feature_edit", "rename_selected", "feature_delete", "sketch_constrain_selected"};
+    for (int i = 0; i < GUI::kDesignToolCount; ++i) {
+        INFO(GUI::kDesignTools[i].id);
+        CHECK(GUI::kDesignTools[i].feature_row == (feature_rows.count(GUI::kDesignTools[i].id) == 1));
+    }
+    // With nothing picked in the view: refused for the selection as the menu greys them, and nothing when a call
+    // targets the selected row of the Feature list, whose action says itself what it cannot do.
+    const int none = int(GUI::OfferSel::None);
+    for (const std::string& id : feature_rows) {
+        INFO(id);
+        const std::optional<GUI::ToolFailure> refused = GUI::Mcp::open_refusal(design_row(id), false, none);
+        REQUIRE(refused.has_value());
+        CHECK(std::string(refused->what()) == "This tool does not apply to what is selected");
+        CHECK_FALSE(GUI::Mcp::open_refusal(design_row(id), false, none, true).has_value());
+        // Still only in the mode its row belongs to.
+        CHECK(GUI::Mcp::open_refusal(design_row(id), true, int(GUI::OfferSel::SkNone), true).has_value());
+    }
+    // Zoom to selection frames what is picked in the view, so a Feature list row is nothing to it.
+    CHECK(GUI::Mcp::open_refusal(design_row("zoom_to_selection"), false, none).has_value());
+    CHECK(GUI::Mcp::open_refusal(design_row("zoom_to_selection"), false, none, true).has_value());
+    // A pick in the view, a card's included, is checked against the row's accepts.
+    CHECK(GUI::Mcp::open_refusal(design_row("rename_selected"), false, int(GUI::OfferSel::FacePlanar)).has_value());
 }
 
 TEST_CASE("a Design tool opens only in the mode its row belongs to", "[Mcp][CAD]")
@@ -520,19 +864,24 @@ TEST_CASE("a pinned Design tile stays pinned while its tile is not shown", "[Mcp
 {
     CHECK(GUI::is_design_tile_id("orca_command:shell:orca"));
     CHECK(GUI::is_design_tile_id("orca_command:sk_rect:orca"));
-    CHECK_FALSE(GUI::is_design_tile_id("orca_command:describe_scene:orca"));   // a Design command with no tile
-    CHECK_FALSE(GUI::is_design_tile_id("orca_command:align:orca"));            // an entry with no command
+    CHECK(GUI::is_design_tile_id("orca_command:sk_array:orca"));                // a folded row's, which runs sketch_pattern
+    CHECK_FALSE(GUI::is_design_tile_id("orca_command:describe_design:orca"));   // a Design command with no tile
+    CHECK_FALSE(GUI::is_design_tile_id("orca_command:align_to:orca"));          // an entry with no command
+    CHECK_FALSE(GUI::is_design_tile_id("orca_command:sk_trim:orca"));           // no entry's: the Trim row is sketch_trim's
     CHECK_FALSE(GUI::is_design_tile_id("orca_command:save_project:orca"));
     CHECK_FALSE(GUI::is_design_tile_id("orca_plate_goto:shell:orca"));
     CHECK_FALSE(GUI::is_design_tile_id("shell"));
-    // On the Prepare tab no Design tile is live, and the third plate is gone.
+    // On the Prepare tab no Design tile is live, and the third plate is gone. A pin under an id no entry has, as
+    // the Trim row's tile had before it took sketch_trim's key, has no live action either: it is dropped, and the
+    // pins on either side of it stay.
     const std::string           shell = "orca_command:shell:orca", rect = "orca_command:sk_rect:orca";
+    const std::string           array = "orca_command:sk_array:orca", trim = "orca_command:sk_trim:orca";
     const std::string           save = "orca_command:save_project:orca", plate = "orca_plate_goto:2:orca";
     const std::set<std::string> live = {save};
     std::vector<std::string>    stored, shown;
     const auto                  is_live = [&](const std::string& id) { return live.count(id) != 0; };
-    GUI::prune_favourites({shell, plate, save, rect}, is_live, stored, shown);
-    CHECK(stored == std::vector<std::string>{shell, save, rect});
+    GUI::prune_favourites({shell, plate, save, trim, array, rect}, is_live, stored, shown);
+    CHECK(stored == std::vector<std::string>{shell, save, array, rect});
     CHECK(shown == std::vector<std::string>{save});
 }
 
@@ -563,42 +912,249 @@ TEST_CASE("the Design tab's tiles are its mode's tools, and none with the CAD fe
     const GUI::CommandCatalog catalog = cad_catalog();
     for (const bool sketching : {false, true}) {
         INFO("sketching " << sketching);
-        std::set<std::string> tiles;
-        for (const GUI::NativeCommand* command : GUI::Mcp::design_tiles(catalog, sketching, /*cad_on=*/true))
-            tiles.insert(command->key);
-        for (const GUI::NativeCommand& command : catalog.commands()) {
-            INFO(command.key);
-            const GUI::DesignTool* entry = GUI::Mcp::find_design_tool(command.key);
-            REQUIRE(entry != nullptr);
-            CHECK(tiles.count(command.key) == (command.in_palette && entry->sketch_mode == sketching ? 1u : 0u));
+        // The entry of each tile, in the order design_tiles() gives them.
+        std::vector<std::string> ids;
+        for (const GUI::Mcp::DesignTile& tile : GUI::Mcp::design_tiles(catalog, sketching, /*cad_on=*/true)) {
+            REQUIRE(tile.command != nullptr);
+            const std::string id = tile.tile != nullptr ? tile.tile->at("key").get<std::string>() : tile.command->key;
+            INFO(id);
+            const GUI::DesignTool& entry = design_row(id);
+            if (entry.fold_into != nullptr) {
+                // A folded row's tile runs the command it is folded into with the row's arguments.
+                REQUIRE(tile.tile != nullptr);
+                CHECK(tile.command->key == entry.fold_into);
+                CHECK(tile.tile->at("args") == json::parse(entry.args));
+            } else {
+                CHECK(tile.tile == nullptr);
+                CHECK(tile.command->in_palette);
+            }
+            ids.push_back(id);
         }
-        CHECK(tiles.count(sketching ? "sk_rect" : "shell") == 1);
+        // Every entry with an action has its tile in its own mode and none in the other, in the table's order.
+        std::vector<std::string> offered;
+        for (int i = 0; i < GUI::kDesignToolCount; ++i)
+            if (GUI::kDesignTools[i].action != nullptr && GUI::kDesignTools[i].sketch_mode == sketching)
+                offered.push_back(GUI::kDesignTools[i].id);
+        CHECK(ids == offered);
+        for (const char* id : sketching ? std::vector<const char*>{"sketch_trim", "sk_array"} : std::vector<const char*>{"shell", "colour"}) {
+            INFO(id);
+            CHECK(std::count(ids.begin(), ids.end(), id) == 1);
+        }
         // Turned off while the app runs, the tab stays until a restart, and has no tile.
         CHECK(GUI::Mcp::design_tiles(catalog, sketching, /*cad_on=*/false).empty());
+    }
+}
+
+TEST_CASE("a folded row's tile runs its command with the row's arguments", "[Mcp][CAD][SpeedDial]")
+{
+    const GUI::CommandCatalog catalog        = cad_catalog();
+    const GUI::NativeCommand& sketch_pattern = command_of(catalog, "sketch_pattern");
+    const auto [pattern_owner, array]        = GUI::find_tile(catalog, "sk_array");
+    REQUIRE(pattern_owner == &sketch_pattern);
+    REQUIRE(array != nullptr);
+    // The Linear array row's tile, under the id it has had, titled and pictured as the row, in the tests' English UI.
+    const std::unique_ptr<GUI::AppAction> action = GUI::NativeCommands::make_action(sketch_pattern, *array);
+    REQUIRE(action != nullptr);
+    CHECK(action->id() == "orca_command:sk_array:orca");
+    CHECK(action->title_en == "Linear array");
+    CHECK(action->title() == "Linear array");
+    CHECK(action->group_en == "Design");
+    CHECK(action->icon == "design_array");
+    CHECK(action->command == "sketch_pattern");
+    CHECK(action->preset == json{{"type", "linear"}});
+    CHECK(action->input_schema.at("properties").empty());
+    CHECK_THAT(action->automation_description, ContainsSubstring("Pick entities, drag the spacing handle"));
+    CHECK_THAT(action->automation_description, ContainsSubstring("It runs only in an open sketch"));
+    // An agent runs it with no arguments, or with exactly the row's.
+    CHECK(GUI::Mcp::action_args_error(*action, json::object()).empty());
+    CHECK(GUI::Mcp::action_args_error(*action, {{"type", "linear"}}).empty());
+    CHECK_FALSE(GUI::Mcp::action_args_error(*action, {{"count", 3}}).empty());
+    CHECK_FALSE(GUI::Mcp::action_args_error(*action, {{"type", "circular"}}).empty());
+    // A call of the command with the row's arguments is titled as the row's tile; with any other, as the command.
+    CHECK(GUI::call_title(sketch_pattern, {{"type", "linear"}}) == "Linear array");
+    CHECK(GUI::call_title(sketch_pattern, {{"type", "linear"}, {"count", 3}}) == sketch_pattern.title);
+
+    // The Color row runs body_set with no arguments: its preset is an empty object, not null.
+    const GUI::NativeCommand& body_set     = command_of(catalog, "body_set");
+    const auto [colour_owner, colour_tile] = GUI::find_tile(catalog, "colour");
+    REQUIRE(colour_owner == &body_set);
+    REQUIRE(colour_tile != nullptr);
+    const std::unique_ptr<GUI::AppAction> colour = GUI::NativeCommands::make_action(body_set, *colour_tile);
+    REQUIRE(colour != nullptr);
+    CHECK(colour->preset.is_object());
+    CHECK(colour->preset.empty());
+    CHECK(GUI::call_title(body_set, json::object()) == "Color");
+    // The three value rows are one action under three labels, all with no arguments: a call with none is titled as
+    // the first of them.
+    CHECK(GUI::call_title(command_of(catalog, "sketch_set_value"), json::object()) == "Length\xE2\x80\xA6");
+
+    // A command's own tile is found under its key, with no tile of the command's tiles; an id no entry has is none.
+    const auto [trim, trim_tile] = GUI::find_tile(catalog, "sketch_trim");
+    CHECK(trim == &command_of(catalog, "sketch_trim"));
+    CHECK(trim_tile == nullptr);
+    const auto [none, none_tile] = GUI::find_tile(catalog, "sk_trim");
+    CHECK(none == nullptr);
+    CHECK(none_tile == nullptr);
+
+    // Every tile's arguments are a call its command takes, and that call opens the tile's row.
+    std::size_t tiles = 0;
+    for (const GUI::NativeCommand& c : catalog.commands()) {
+        if (c.tiles.is_null())
+            continue;
+        const GUI::DesignTool* entry = GUI::Mcp::find_design_tool(c.key);
+        REQUIRE(entry != nullptr);
+        for (const json& tile : c.tiles) {
+            INFO(c.key << " / " << tile.at("key"));
+            json args = tile.at("args");
+            CHECK(GUI::Mcp::argument_error(c, args).empty());
+            const GUI::DesignTool* row = GUI::Mcp::opened_row(*entry, tile.at("args"));
+            REQUIRE(row != nullptr);
+            CHECK(std::string(row->action) == design_row(tile.at("key").get<std::string>()).action);
+            ++tiles;
+        }
+    }
+    CHECK(tiles == 37);   // one per folded row
+}
+
+TEST_CASE("the Action Replay window titles a step that calls a folded row's tile as that row", "[Mcp][CAD][SpeedDial]")
+{
+    const GUI::CommandCatalog catalog = cad_catalog();
+    const std::string         pattern = command_of(catalog, "sketch_pattern").title;
+    const json                step{{"kind", "command"}, {"key", "sketch_pattern"}};
+    // describe_step()'s `what` for a call of sketch_pattern with the Linear array row's arguments names the row's tile:
+    // the window shows that tile's title, in the tests' English UI.
+    json tiled    = step;
+    tiled["tile"] = "sk_array";
+    CHECK(GUI::replay_what_text(tiled, catalog).first == "Linear array");
+    // With no tile, or a tile that is not the command's (body_set's Color, or none at all), the command's own title.
+    CHECK(GUI::replay_what_text(step, catalog).first == pattern);
+    for (const char* other : {"colour", "sk_none"}) {
+        INFO(other);
+        json given    = step;
+        given["tile"] = other;
+        CHECK(GUI::replay_what_text(given, catalog).first == pattern);
     }
 }
 
 TEST_CASE("a Design command with a read block is read-only", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
-    CHECK(command_of(catalog, "describe_scene").read_only);
-    CHECK(command_of(catalog, "query_topology").read_only);
+    CHECK(command_of(catalog, "describe_design").read_only);
+    CHECK(command_of(catalog, "body_describe").read_only);
     CHECK_FALSE(command_of(catalog, "extrude").read_only);
-    CHECK_FALSE(command_of(catalog, "sketch_add").read_only);
+    CHECK_FALSE(command_of(catalog, "sketch_draw").read_only);
+}
+
+TEST_CASE("select_geometry selects in the model at rest, as a command that changes it", "[Mcp][CAD]")
+{
+    // A command with no row of its own, under Document, with the access of one that edits, so that it is refused
+    // where a click means something else: under a card, a sketch, Constrain mode, a body Move or the Text dialog.
+    const GUI::DesignTool& entry = design_row("select_geometry");
+    CHECK(entry.access == GUI::CadAccess::Change);
+    CHECK(entry.row == -1);
+    CHECK(entry.action == nullptr);
+    REQUIRE(entry.section != nullptr);
+    CHECK(std::string(entry.section) == "Document");
+    CHECK_FALSE(entry.feature_row);
+
+    const GUI::CommandCatalog catalog = cad_catalog();
+    const GUI::NativeCommand& command = command_of(catalog, "select_geometry");
+    CHECK_FALSE(command.read_only);
+    CHECK_FALSE(two_forms(command));
+    const json& properties = command.input_schema.at("properties");
+    CHECK(properties.size() == 9);
+    for (const char* name : {"body", "face", "edges", "vertex", "plane", "sketch", "loop", "feature", "generation"}) {
+        INFO(name);
+        CHECK(properties.contains(name));
+    }
+    CHECK(property_of(command, "plane").at("enum") == json::array({"XY", "XZ", "YZ", nullptr}));
+    // Nothing is required: a call with none clears the selection. A name it does not take is refused.
+    CHECK_FALSE(command.input_schema.contains("required"));
+    json none = json::object();
+    CHECK(GUI::Mcp::argument_error(command, none).empty());
+    json faces{{"body", 0}, {"faces", json::array({3})}};
+    CHECK_THAT(GUI::Mcp::argument_error(command, faces), ContainsSubstring("unknown argument faces"));
+    // zoom_to_selection frames what is picked in the view, which a Feature list row is not.
+    CHECK_THAT(command.description, ContainsSubstring("zoom_to_selection acts on what is picked in the view"));
+}
+
+TEST_CASE("confirm_tool and cancel_tool act on what the tab has open, which only a rebuild refuses", "[Mcp][CAD]")
+{
+    // Commands with no row of their own, under Document, with the access ui: what is open in the tab (a card, a
+    // sketch, a Move) refuses a command that changes the document, but these act on it. They commit or discard it, so
+    // neither is read-only.
+    const GUI::CommandCatalog catalog = cad_catalog();
+    for (const char* key : {"confirm_tool", "cancel_tool"}) {
+        INFO(key);
+        const GUI::DesignTool& entry = design_row(key);
+        CHECK(entry.access == GUI::CadAccess::Ui);
+        CHECK(entry.row == -1);
+        CHECK(entry.action == nullptr);
+        REQUIRE(entry.section != nullptr);
+        CHECK(std::string(entry.section) == "Document");
+        const GUI::NativeCommand& command = command_of(catalog, key);
+        CHECK_FALSE(command.read_only);
+        CHECK_FALSE(command.idempotent);
+        CHECK_FALSE(two_forms(command));
+        // No argument of their own, and a name they do not take is refused.
+        CHECK(command.input_schema.at("properties").size() == 1);
+        CHECK(command.input_schema.at("properties").contains("generation"));
+        json feature{{"feature", 0}};
+        CHECK_THAT(GUI::Mcp::argument_error(command, feature), ContainsSubstring("unknown argument feature"));
+    }
+    // A Confirm the open card refuses, or whose rebuild fails, replies ok false, and the card stays open. The reply
+    // has no error, so the note of a silent form that reports a rejected rebuild with ok false or an error is not
+    // carried.
+    for (const char* key : {"confirm_tool", "cancel_tool"}) {
+        INFO(key);
+        CHECK_FALSE(design_row(key).ok_false);
+        CHECK_THAT(command_of(catalog, key).description, !ContainsSubstring("error is not empty"));
+    }
+    CHECK_THAT(command_of(catalog, "confirm_tool").description,
+               ContainsSubstring("an add the card refuses, or whose rebuild fails, leaves no feature and no undo step and "
+                                 "keeps the card open"));
+    CHECK_THAT(command_of(catalog, "confirm_tool").description, ContainsSubstring("replies ok false"));
+}
+
+TEST_CASE("body_place places a body outside the history, under Bodies", "[Mcp][CAD]")
+{
+    // A command with no row of its own, with the access of one that edits: where a body stands is refused under what a
+    // click would feed, as the Move it does from arguments is.
+    const GUI::DesignTool& entry = design_row("body_place");
+    CHECK(entry.access == GUI::CadAccess::Change);
+    CHECK(entry.row == -1);
+    CHECK(entry.action == nullptr);
+    REQUIRE(entry.section != nullptr);
+    CHECK(std::string(entry.section) == "Bodies");
+
+    const GUI::CommandCatalog catalog = cad_catalog();
+    const GUI::NativeCommand& command = command_of(catalog, "body_place");
+    CHECK_FALSE(command.read_only);
+    CHECK_FALSE(two_forms(command));
+    CHECK(required_of(command) == std::vector<std::string>{"body"});
+    for (const char* name : {"move", "rotate", "face", "reset"}) {
+        INFO(name);
+        CHECK(command.input_schema.at("properties").contains(name));
+    }
+    CHECK(property_of(command, "reset").at("default") == false);
+    json moves{{"body", 0}, {"moves", json::array({1, 0, 0})}};
+    CHECK_THAT(GUI::Mcp::argument_error(command, moves), ContainsSubstring("unknown argument moves"));
+    // Neither undo nor the project keeps it.
+    CHECK_THAT(command.description, ContainsSubstring("no undo step, and the project file does not keep it"));
 }
 
 TEST_CASE("a CAD command's schema says what its row says", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog  catalog = cad_catalog();
     const GUI::NativeCommand&  fillet  = command_of(catalog, "fillet");
-    CHECK(required_of(fillet) == std::vector<std::string>{"edge"});
+    CHECK(required_of(fillet) == std::vector<std::string>{"edges"});
     const json radius = property_of(fillet, "radius");
     CHECK(radius.at("type") == "number");
     CHECK(radius.at("default") == 1);
     CHECK(radius.at("exclusiveMinimum") == 0);
     CHECK_FALSE(radius.contains("minimum"));
     CHECK_THAT(radius.at("description").get<std::string>(), ContainsSubstring("mm"));
-    CHECK(property_of(fillet, "edge").at("type") == json::array({"integer", "array"}));
+    CHECK(property_of(fillet, "edges").at("type") == json::array({"integer", "array", "string"}));
     CHECK(property_of(fillet, "body").at("default") == -1);
     // Every command with a silent form takes the generation its face and edge ids were read at, and none
     // requires it; one with only a person's form takes no argument.
@@ -621,13 +1177,17 @@ TEST_CASE("a CAD command's schema says what its row says", "[Mcp][CAD]")
             const bool is_required = std::find(required.begin(), required.end(), name) != required.end();
             CHECK(is_required == (name != "generation" && name != "silent" && !prop.contains("default")));
         }
-        // An argument the row does not name is not refused: the function reads the names it knows.
-        CHECK(c.input_schema.value("additionalProperties", true) == true);
+        // An argument the row does not name is refused by a command whose block is closed; any other lets it
+        // through, and its function reads the names it knows.
+        if (json::parse(design_row(c.key).doc).value("closed", false))
+            CHECK(c.input_schema.at("additionalProperties") == false);
+        else
+            CHECK_FALSE(c.input_schema.contains("additionalProperties"));
     }
     // A type of two kinds, a limit, an enum and a default carry over.
-    CHECK(property_of(command_of(catalog, "sketch_begin"), "plane").at("type") == json::array({"string", "object"}));
-    CHECK(property_of(command_of(catalog, "plane"), "type").at("enum").size() == 6);
-    const json count = property_of(command_of(catalog, "sketch_transform"), "count");
+    CHECK(property_of(command_of(catalog, "sketch_create"), "plane").at("type") == json::array({"string", "object"}));
+    CHECK(property_of(command_of(catalog, "construct_plane"), "type").at("enum").size() == 6);
+    const json count = property_of(command_of(catalog, "sketch_pattern"), "count");
     CHECK(count.at("minimum") == 2);
     CHECK(count.at("maximum") == 1000);
     // export_step's path has no default, so it is required; sketch_transform's angle defaults to null.
@@ -640,11 +1200,11 @@ TEST_CASE("a CAD command's limit is the one its function applies", "[Mcp][CAD]")
     const GUI::CommandCatalog catalog = cad_catalog();
     // A negative distance grows the surface against the sketch plane's normal.
     json backwards{{"sketch", 0}, {"distance", -5}};
-    CHECK(GUI::Mcp::argument_error(command_of(catalog, "surf_extrude"), backwards).empty());
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "surface_extrude"), backwards).empty());
     // A fillet's radius is refused at zero, as its function refuses it, and a small one is not.
-    json flat{{"edge", 0}, {"radius", 0}};
+    json flat{{"edges", 0}, {"radius", 0}};
     CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "fillet"), flat), ContainsSubstring("radius"));
-    json small{{"edge", 0}, {"radius", 0.005}};
+    json small{{"edges", 0}, {"radius", 0.005}};
     CHECK(GUI::Mcp::argument_error(command_of(catalog, "fillet"), small).empty());
 }
 
@@ -653,10 +1213,10 @@ TEST_CASE("a CAD param whose default is null takes null, which its function read
     const GUI::CommandCatalog catalog = cad_catalog();
     // No limit; the open sketch's constraints; an extrude that joins the body its profile touches.
     json no_limit{{"limit", nullptr}};
-    CHECK(GUI::Mcp::argument_error(command_of(catalog, "query_topology"), no_limit).empty());
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "body_describe"), no_limit).empty());
     json open_sketch{{"sketch", nullptr}};
-    CHECK(GUI::Mcp::argument_error(command_of(catalog, "sketch_constraints"), open_sketch).empty());
-    json auto_mode{{"boolean", nullptr}};
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "sketch_list_constraints"), open_sketch).empty());
+    json auto_mode{{"operation", nullptr}};
     CHECK(GUI::Mcp::argument_error(command_of(catalog, "extrude"), auto_mode).empty());
     // A two-form command given only a null runs its silent form, the default rectangle: the argument stays, so the
     // call is not the person's, which would open the Extrude card.
@@ -667,18 +1227,20 @@ TEST_CASE("a CAD param whose default is null takes null, which its function read
     // A param whose default is a value refuses null, as does one whose function would read a null as given.
     json no_distance{{"distance", nullptr}};
     CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "extrude"), no_distance), ContainsSubstring("distance"));
-    json no_angle{{"op", "rotate"}, {"angle", nullptr}};
+    json no_angle{{"type", "rotate"}, {"angle", nullptr}};
     CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "sketch_transform"), no_angle), ContainsSubstring("angle"));
     // One kind still stands for the list of it.
     json one_kind{{"kinds", "planar"}};
-    CHECK(GUI::Mcp::argument_error(command_of(catalog, "query_topology"), one_kind).empty());
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "body_describe"), one_kind).empty());
     CHECK(one_kind == json{{"kinds", {"planar"}}});
 
     // Every param whose default is null admits null, but these, whose functions read a null as given: thread on a
-    // plane resolves `plane` as the plane named, and sketch_transform tells an op's own params by their presence.
+    // plane resolves `plane` as the plane named, and sketch_transform and sketch_pattern tell a type's own params by
+    // their presence.
     const std::set<std::pair<std::string, std::string>> as_given{
-        {"thread", "plane"}, {"sketch_transform", "angle"}, {"sketch_transform", "scale"},
-        {"sketch_transform", "count"}, {"sketch_transform", "pivot"}};
+        {"thread", "plane"},          {"sketch_transform", "angle"}, {"sketch_transform", "angle_deg"},
+        {"sketch_transform", "scale"}, {"sketch_transform", "pivot"}, {"sketch_pattern", "angle"},
+        {"sketch_pattern", "angle_deg"}, {"sketch_pattern", "count"}, {"sketch_pattern", "pivot"}};
     int admitting = 0;
     for (const GUI::NativeCommand& c : catalog.commands())
         for (const auto& [name, prop] : c.input_schema.at("properties").items()) {
@@ -692,27 +1254,284 @@ TEST_CASE("a CAD param whose default is null takes null, which its function read
                 CHECK((std::find(prop.at("enum").begin(), prop.at("enum").end(), nullptr) != prop.at("enum").end()) == admits);
             admitting += admits;
         }
-    CHECK(admitting == 36);
+    // The params with a null default that admit null, sketch_draw's twenty-seven fields of its shapes, sketch_mirror's
+    // axis, sketch_project's and sketch_insert_svg's plane, sketch_text's height, select_geometry's eight and body_place's
+    // move, rotate and face among them.
+    CHECK(admitting == 84);
 }
 
 TEST_CASE("a CAD command takes the names its function also reads", "[Mcp][CAD]")
 {
-    // describe_feature and the tree edits read `index` as `feature`, and set_feature `params` or `values` as
+    // feature_describe and the tree edits read `index` as `feature`, and feature_edit `params` or `values` as
     // `fields`: what agents often call them. The call is read as the schema names them.
     const GUI::CommandCatalog catalog = cad_catalog();
     json                      set{{"index", 0}, {"params", {{"width", 20}}}};
-    CHECK(GUI::Mcp::argument_error(command_of(catalog, "set_feature"), set).empty());
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "feature_edit"), set).empty());
     CHECK(set == json{{"feature", 0}, {"fields", {{"width", 20}}}});
     json values{{"feature", 0}, {"values", {{"width", 30}}}};
-    CHECK(GUI::Mcp::argument_error(command_of(catalog, "set_feature"), values).empty());
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "feature_edit"), values).empty());
     CHECK(values == json{{"feature", 0}, {"fields", {{"width", 30}}}});
     json describe{{"index", 1}};
-    CHECK(GUI::Mcp::argument_error(command_of(catalog, "describe_feature"), describe).empty());
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "feature_describe"), describe).empty());
     CHECK(describe == json{{"feature", 1}});
     // A command that takes `index` itself keeps it.
     json unconstrain{{"index", 4}};
-    CHECK(GUI::Mcp::argument_error(command_of(catalog, "sketch_unconstrain"), unconstrain).empty());
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "sketch_delete_constraint"), unconstrain).empty());
     CHECK(unconstrain == json{{"index", 4}});
+}
+
+TEST_CASE("operation takes Fusion's four words", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog catalog = cad_catalog();
+    auto operation = [&](const char* key) {
+        INFO(key);
+        const json p = property_of(command_of(catalog, key), "operation");
+        REQUIRE(p.is_object());
+        return p;
+    };
+    // boolean names what it does to the target and has no default: a call that gives any argument names it.
+    CHECK(operation("boolean").at("enum") == json::array({"join", "cut", "intersect"}));
+    CHECK_FALSE(operation("boolean").contains("default"));
+    CHECK(required_of(command_of(catalog, "boolean")) == std::vector<std::string>{"operation"});
+    json target{{"target", 0}};
+    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "boolean"), target), ContainsSubstring("operation"));
+    // extrude's auto joins the body the profile touches, and is what a sketch or a face takes when it is left out.
+    CHECK(operation("extrude").at("enum") == json::array({"auto", "new_body", "join", "cut", "intersect", nullptr}));
+    CHECK(operation("extrude").at("default").is_null());
+    for (const char* key : {"revolve", "sweep", "loft"}) {
+        CHECK(operation(key).at("enum") == json::array({"new_body", "join", "cut", "intersect"}));
+        CHECK(operation(key).at("default") == "new_body");
+    }
+    CHECK(operation("mirror").at("enum") == json::array({"new_body", "join"}));
+    CHECK(operation("mirror").at("default") == "new_body");
+
+    // A committed sketch extruded with cut into the body under it takes its volume away: a 10 x 10 square at the
+    // box's bottom, 4 mm up into the 40 x 20 x 10 box.
+    CadDocument doc;
+    add_box(doc);
+    GUI::DesignSketchTool tool;
+    const int sk  = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Sketch");
+    const int cut = GUI::Mcp::cad_sketch_extrude(doc, tool, {{"sketch", sk}, {"distance", 4}, {"operation", "cut"}})("Extrude");
+    CHECK(doc.features[cut].mode == BooleanMode::Cut);
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+    CHECK_THAT(GeometryEngine::mass_properties(doc.bodies.at(0).shape).volume, WithinAbs(40.0 * 20.0 * 10.0 - 10.0 * 10.0 * 4.0, 1e-6));
+}
+
+TEST_CASE("an old argument is refused, not ignored", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog catalog = cad_catalog();
+    // Each is refused as an argument its command does not take, named, so that the call does not run without it.
+    const std::vector<std::tuple<const char*, json, const char*>> old = {
+        {"extrude", {{"sketch", 0}, {"boolean", "subtract"}}, "boolean"},
+        {"revolve", {{"sketch", 0}, {"boolean", "new"}}, "boolean"},
+        {"boolean", {{"op", "subtract"}}, "op"},
+        {"mirror", {{"plane", "XZ"}, {"mode", "add"}}, "mode"},
+        // revolve's angle is in degrees and never read angle_deg, which would have left a full turn.
+        {"revolve", {{"sketch", 0}, {"angle_deg", 90}}, "angle_deg"},
+        {"hole", {{"style", 1}}, "style"},
+        {"pattern", {{"circular", true}}, "circular"},
+        {"align", {{"kind", 2}, {"cs_a", 0}, {"cs_b", 1}}, "kind"},
+        {"feature_suppress", {{"feature", 0}, {"enabled", false}}, "enabled"},
+        {"fillet", {{"edge", 3}}, "edge"},
+        {"sketch_trim", {{"at", {5, 0}}, {"extend", true}}, "extend"},
+        {"sketch_transform", {{"op", "move"}}, "op"},
+        {"sketch_transform", {{"type", "move"}, {"count", 3}}, "count"},
+    };
+    for (const auto& [key, given, name] : old) {
+        json args = given;
+        INFO(key << " " << args.dump());
+        CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, key), args), ContainsSubstring(std::string("unknown argument ") + name));
+    }
+}
+
+TEST_CASE("a guessed type is read as operation, and operation as type", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog catalog = cad_catalog();
+    json boolean{{"type", "cut"}, {"target", 0}, {"tool", 1}};
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "boolean"), boolean).empty());
+    CHECK(boolean == json{{"operation", "cut"}, {"target", 0}, {"tool", 1}});
+    json extrude{{"sketch", 0}, {"type", "cut"}};
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "extrude"), extrude).empty());
+    CHECK(extrude == json{{"sketch", 0}, {"operation", "cut"}});
+    json plane{{"operation", "offset"}};
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "construct_plane"), plane).empty());
+    CHECK(plane == json{{"type", "offset"}});
+    json hole{{"operation", "counterbore"}};
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "hole"), hole).empty());
+    CHECK(hole == json{{"type", "counterbore"}});
+    // Only a value the other takes is moved: one it does not take stays, and is refused under the name given.
+    json sideways{{"type", "sideways"}};
+    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "boolean"), sideways), ContainsSubstring("unknown argument type"));
+    CHECK(sideways == json{{"type", "sideways"}});
+}
+
+TEST_CASE("type names a model command's variant", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog catalog = cad_catalog();
+    auto prop = [&](const char* key, const char* name) { return property_of(command_of(catalog, key), name); };
+    CHECK(prop("hole", "type").at("enum") == json::array({"simple", "counterbore", "countersink"}));
+    CHECK(prop("hole", "type").at("default") == "simple");
+    // thicken's type left out follows from whether a face is given.
+    CHECK(prop("thicken", "type").at("enum") == json::array({"face", "surface", nullptr}));
+    CHECK(prop("thicken", "type").at("default").is_null());
+    CHECK(prop("pattern", "type").at("enum") == json::array({"linear", "circular", "curve"}));
+    CHECK(prop("pattern", "type").at("default") == "linear");
+    CHECK(prop("align", "type").at("enum") == json::array({"fastened", "planar", "revolute", "slider", "cylindrical"}));
+    CHECK(prop("align", "type").at("default") == "fastened");
+    // What the type replaced, and the arguments renamed beside it, are no arguments.
+    CHECK(prop("hole", "designation").is_object());
+    CHECK(prop("hole", "style").is_null());
+    CHECK(prop("pattern", "circular").is_null());
+    CHECK(prop("align", "kind").is_null());
+    CHECK(prop("feature_suppress", "suppressed").is_object());
+    CHECK(prop("feature_suppress", "enabled").is_null());
+    for (const char* key : {"fillet", "chamfer"}) {
+        INFO(key);
+        CHECK(prop(key, "edges").is_object());
+        CHECK(prop(key, "edge").is_null());
+    }
+}
+
+TEST_CASE("one hole command drills what three drilled", "[Mcp][CAD]")
+{
+    // A 20 x 20 x 10 box on the XY plane, z 0..10, drilled from the centre of its top face: the feature added and the
+    // volume it takes out.
+    const double box   = 20.0 * 20.0 * 10.0;
+    auto         drill = [&](json params) {
+        CadDocument doc;
+        doc.add_extrude(doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Sketch"), 10.0, false,
+                        BooleanMode::New, "Extrude");
+        REQUIRE(doc.recompute());
+        params["plane"] = {{"body", 0}, {"face", face_facing(doc, Vec3d(0, 0, 1))}};
+        json      resolved;
+        const int h = GUI::Mcp::cad_hole(doc, params, resolved)("Hole");
+        CHECK(resolved.at("body") == 0);
+        REQUIRE(doc.recompute());
+        return std::make_pair(doc.features.at(h), box - GeometryEngine::mass_properties(doc.bodies.at(0).shape).volume);
+    };
+    const double disc = PI * 2.5 * 2.5;
+    // A blind hole when through is left out, and a through one.
+    const auto blind = drill({{"diameter", 5}, {"depth", 4}});
+    CHECK_FALSE(blind.first.hole_through);
+    CHECK(blind.first.hole_style == 0);
+    CHECK_THAT(blind.second, WithinAbs(disc * 4.0, 1e-3));
+    CHECK_THAT(drill({{"diameter", 5}, {"depth", 4}, {"through", true}}).second, WithinAbs(disc * 10.0, 1e-3));
+    // A counterbore seat of the diameter given.
+    const CadFeature cbore = drill({{"type", "counterbore"}, {"cbore_diameter", 9}, {"cbore_depth", 3}}).first;
+    CHECK(cbore.hole_style == 1);
+    CHECK_THAT(cbore.hole_cbore_diameter, WithinAbs(9.0, 1e-12));
+    // The M6 clearance diameter, from the designation.
+    const CadFeature m6 = drill({{"designation", "M6"}}).first;
+    CHECK_THAT(m6.hole_diameter, WithinAbs(6.6, 1e-6));
+    CHECK(m6.hole_standard == "M6");
+
+    CadDocument doc;
+    add_box(doc);
+    json resolved;
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_hole(doc, {{"designation", "M6"}, {"diameter", 5}}, resolved); }),
+               ContainsSubstring("give diameter or designation, not both"));
+}
+
+TEST_CASE("thicken, pattern and align read their type", "[Mcp][CAD]")
+{
+    CadDocument doc;
+    add_box(doc);
+    const int top = face_facing(doc, Vec3d(0, 0, 1));
+
+    // A face given is a face thickened; a type that contradicts the face is refused.
+    const int t = GUI::Mcp::cad_thicken(doc, {{"body", 0}, {"face", top}, {"thickness", 1}})("Thicken");
+    CHECK(doc.features[t].type == CadFeatureType::Thicken);
+    CHECK(doc.features[t].thicken_face == top);
+    CHECK(doc.features[t].target_body == 0);
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_thicken(doc, {{"type", "surface"}, {"face", top}}); }), ContainsSubstring("takes no face"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_thicken(doc, {{"type", "face"}}); }), ContainsSubstring("needs face"));
+    // With no face, the whole sheet body is thickened.
+    CHECK(doc.features[GUI::Mcp::cad_thicken(doc, {{"thickness", 1}})("Thicken")].type == CadFeatureType::ThickenSurface);
+
+    // Only a curve pattern takes a curve, and it needs one.
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_pattern(doc, {{"type", "curve"}}); }), ContainsSubstring("a curve pattern needs sketch"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_pattern(doc, {{"type", "linear"}, {"sketch", 0}}); }),
+               ContainsSubstring("sketch goes with type curve"));
+    CHECK(doc.features[GUI::Mcp::cad_pattern(doc, {{"type", "circular"}, {"count", 4}})("Pattern")].pattern_circular);
+    const int curve = GUI::Mcp::cad_pattern(doc, {{"type", "curve"}, {"sketch", 0}, {"entity", 1}})("Pattern");
+    CHECK(doc.features[curve].pattern_curve_sketch == 0);
+    CHECK(doc.features[curve].pattern_curve_entity == 1);
+
+    // An align of a type is a Mate of that kind: a block 50 mm beside the box, its coordinate system onto the box's.
+    CadDocument two;
+    add_box(two);
+    SketchPlane beside = SketchPlane::XY();
+    beside.origin      = Vec3d(50, 0, 0);
+    two.add_extrude(two.add_sketch(SketchShape::Rectangle, beside, 10, 10, 0, "Sketch"), 5.0, false, BooleanMode::New, "Extrude");
+    const int a = two.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 10), "CS A");
+    two.features[a].coordsys_body = 0;
+    const int b = two.add_coordsys(CoordSysType::PointWorld, Vec3d(50, 0, 0), "CS B");
+    two.features[b].coordsys_body = 1;
+    REQUIRE(two.recompute());
+    REQUIRE(two.bodies.size() == 2);
+    const int m = GUI::Mcp::cad_align(two, {{"type", "revolute"}, {"cs_a", a}, {"cs_b", b}})("Align");
+    CHECK(two.features[m].type == CadFeatureType::Mate);
+    CHECK(two.features[m].mate_kind == 2);
+    REQUIRE(two.recompute());
+
+    // edges takes one edge id or a list of them, as one fillet or chamfer.
+    for (const json& edges : {json::array({0}), json(0)}) {
+        INFO(edges.dump());
+        CadDocument box;
+        add_box(box);
+        const int f = GUI::Mcp::cad_dressup(box, {{"edges", edges}, {"radius", 1}}, false)("Fillet");
+        CHECK(box.features[f].type == CadFeatureType::Fillet);
+        CHECK(box.features[f].dressup_edge_ids() == std::vector<int>{0});
+        const int c = GUI::Mcp::cad_dressup(box, {{"edges", edges}, {"distance", 0.5}}, true)("Chamfer");
+        CHECK(box.features[c].type == CadFeatureType::Chamfer);
+        REQUIRE(box.recompute());
+    }
+}
+
+TEST_CASE("hole and pattern refuse an argument the type they are given does not take", "[Mcp][CAD]")
+{
+    CadDocument doc;
+    add_box(doc);
+    const std::size_t features = doc.features.size();
+    json              resolved;
+    // A hole's seat sizes belong to its type: given without it, they are refused, naming the type that takes them.
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_hole(doc, {{"cbore_diameter", 9}, {"cbore_depth", 3}, {"through", true}}, resolved); }),
+               ContainsSubstring("cbore_diameter goes with type counterbore, not simple"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_hole(doc, {{"type", "counterbore"}, {"csink_angle", 82}}, resolved); }),
+               ContainsSubstring("csink_angle goes with type countersink, not counterbore"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_hole(doc, {{"type", "countersink"}, {"csink_diameter", 9}, {"cbore_depth", 3}}, resolved); }),
+               ContainsSubstring("cbore_depth goes with type counterbore, not countersink"));
+    // Each type of pattern refuses what only another reads.
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_pattern(doc, {{"angle", 90}}); }), ContainsSubstring("angle goes with type circular, not linear"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_pattern(doc, {{"type", "circular"}, {"spacing", 20}}); }),
+               ContainsSubstring("spacing goes with type linear, not circular"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_pattern(doc, {{"type", "circular"}, {"dir", 1}}); }),
+               ContainsSubstring("dir goes with type linear, not circular"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_pattern(doc, {{"type", "curve"}, {"sketch", 0}, {"entity", 1}, {"plane", "XZ"}}); }),
+               ContainsSubstring("plane goes with type linear or circular, not curve"));
+    CHECK(doc.features.size() == features);
+    // What the call gives is checked, not what the schema defaults: a hole or a pattern given its own type's
+    // arguments, and a null where the default is null, runs.
+    const int h = GUI::Mcp::cad_hole(doc, {{"type", "countersink"}, {"csink_diameter", 9}, {"csink_angle", 82}}, resolved)("Hole");
+    CHECK(doc.features[h].hole_style == 2);
+    const int p = GUI::Mcp::cad_pattern(doc, {{"type", "linear"}, {"spacing", 30}, {"dir", 1}, {"plane", "XZ"}, {"sketch", nullptr}})("Pattern");
+    CHECK_THAT(doc.features[p].pattern_spacing, WithinAbs(30.0, 1e-12));
+    CHECK(doc.features[p].pattern_dir == 1);
+}
+
+TEST_CASE("a command's description gives each argument set that opens a tool once, with its rows' names", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog catalog = cad_catalog();
+    // The three value rows are one tool under three names, opened with no arguments.
+    const std::string& value = command_of(catalog, "sketch_set_value").description;
+    CHECK_THAT(value, ContainsSubstring(std::string(": {} (") + design_row("sk_length").name + ", " + design_row("sk_radius").name +
+                                        ", " + design_row("sk_angdist").name + ")."));
+    CHECK(value.find("{}") == value.rfind("{}"));
+    // boolean's own row and the two folded into it, one argument set each.
+    CHECK_THAT(command_of(catalog, "boolean").description,
+               ContainsSubstring(": {\"operation\":\"join\"} (Join), {\"operation\":\"cut\"} (Subtract), "
+                                 "{\"operation\":\"intersect\"} (Intersect)."));
 }
 
 TEST_CASE("a CAD command's summary is one sentence of at most 120 characters", "[Mcp][CAD]")
@@ -726,17 +1545,17 @@ TEST_CASE("a CAD command's summary is one sentence of at most 120 characters", "
         CHECK(summary.back() == '.');
     }
     // The description goes on with the row's details, and with how a rejected rebuild shows when the reply says it.
-    CHECK_THAT(command_of(catalog, "sketch_transform").description, ContainsSubstring("polar"));
-    CHECK_THAT(command_of(catalog, "fillet").description, ContainsSubstring("ok is false"));
+    CHECK_THAT(command_of(catalog, "sketch_transform").description, ContainsSubstring("pivot"));
+    CHECK_THAT(command_of(catalog, "shell").description, ContainsSubstring("ok is false"));
     CHECK_THAT(command_of(catalog, "extrude").description, !ContainsSubstring("ok is false"));
-    // One with an action only does what its row does, which for Delete Body is to delete it at once.
-    CHECK_THAT(command_of(catalog, "delete_body").description, ContainsSubstring("act at once"));
-    CHECK_THAT(command_of(catalog, "delete_body").description, !ContainsSubstring("opens the tool"));
+    // One with an action only does what its row does, which for Zoom to selection is to act at once.
+    CHECK_THAT(command_of(catalog, "zoom_to_selection").description, ContainsSubstring("act at once"));
+    CHECK_THAT(command_of(catalog, "zoom_to_selection").description, !ContainsSubstring("opens the tool"));
 }
 
 TEST_CASE("a Design command with a person's form says which mode it runs in", "[Mcp][CAD]")
 {
-    const std::string   in_sketch = "It runs only in an open sketch", outside = "It runs only outside a sketch";
+    const std::string in_sketch = "runs only in an open sketch", outside = "runs only outside a sketch";
     const GUI::CommandCatalog catalog = cad_catalog();
     std::size_t               told    = 0;
     for (const GUI::NativeCommand& c : catalog.commands()) {
@@ -744,19 +1563,28 @@ TEST_CASE("a Design command with a person's form says which mode it runs in", "[
         if (row.action == nullptr)
             continue;
         INFO(c.key);
-        // An action only: its description says it. Both forms: the `silent` property, which says what the call
-        // with no arguments does, as the description is the silent form's.
-        const std::string text = row.doc == nullptr ? c.description
-                                                    : property_of(c, "silent").value("description", std::string());
-        CHECK_THAT(text, ContainsSubstring(row.sketch_mode ? in_sketch : outside));
+        // An action only: its description says it of the command, which takes no arguments. Both forms: the `silent`
+        // property says it of the call with no arguments, whose row's mode the argument form need not share.
+        const bool        both = row.doc != nullptr;
+        const std::string text = both ? property_of(c, "silent").value("description", std::string()) : c.description;
+        const std::string lead = both ? "Called with no arguments, it " : "It ";
+        CHECK_THAT(text, ContainsSubstring(lead + (row.sketch_mode ? in_sketch : outside)));
         CHECK_THAT(text, !ContainsSubstring(row.sketch_mode ? outside : in_sketch));
+        if (both)
+            CHECK_THAT(text, !ContainsSubstring("It runs only"));
         ++told;
     }
-    CHECK(told == 89);
-    CHECK_THAT(command_of(catalog, "sk_rect").description, ContainsSubstring(in_sketch));
-    CHECK_THAT(command_of(catalog, "delete_body").description, ContainsSubstring(outside));
+    CHECK(told == 52);   // the commands whose entry has an action
+    CHECK_THAT(command_of(catalog, "sketch_polygon_inscribed").description, ContainsSubstring("It " + in_sketch));
+    CHECK_THAT(command_of(catalog, "zoom_to_selection").description, ContainsSubstring("It " + outside));
     CHECK_THAT(property_of(command_of(catalog, "shell"), "silent").value("description", std::string()),
                ContainsSubstring("opens nothing"));
+    // The argument forms of these run where their row does not: the note says which call it is about.
+    for (const char* key : {"sketch_text", "sketch_insert_svg", "sketch_project", "body_mass_properties", "interference"}) {
+        INFO(key);
+        CHECK_THAT(property_of(command_of(catalog, key), "silent").value("description", std::string()),
+                   ContainsSubstring("Called with no arguments, it runs only"));
+    }
 }
 
 TEST_CASE("an empty entities list names the selection, as leaving it out does", "[Mcp][CAD]")
@@ -765,7 +1593,7 @@ TEST_CASE("an empty entities list names the selection, as leaving it out does", 
     const std::vector<int> selection{2, 4};
     const std::vector<int> none, listed{1, 3}, every{0, 1, 2};
     const json             left_out = json::object(), empty{{"entities", json::array()}}, list{{"entities", {1, 3}}};
-    // all_if_empty is what sketch_offset and sketch_mirror pass, and sketch_delete and sketch_construction do not.
+    // all_if_empty is what sketch_offset and sketch_mirror pass, and sketch_delete and sketch_toggle_construction do not.
     const bool all_if_empty = GENERATE(false, true);
     CAPTURE(all_if_empty);
 
@@ -799,7 +1627,7 @@ TEST_CASE("a sketch command that rebuilds nothing promises no rejected rebuild",
 {
     const GUI::CommandCatalog catalog = catalog_with_cad();
     // It toggles flags on the open sketch's entities: its reply says how many changed, and has no error.
-    const std::string& description = command_of(catalog, "sketch_construction").description;
+    const std::string& description = command_of(catalog, "sketch_toggle_construction").description;
     CHECK_THAT(description, !ContainsSubstring("rebuild"));
     CHECK_THAT(description, ContainsSubstring("changed"));
 }
@@ -816,10 +1644,62 @@ TEST_CASE("no CAD command exists with the feature off", "[Mcp][CAD]")
         return count;
     };
     CHECK(design_commands(false) == 0);
-    CHECK(design_commands(true) == 133);
+    CHECK(design_commands(true) == 88);
 }
 
-TEST_CASE("the search_tools description names every Design command by how a call runs it", "[Mcp][CAD]")
+TEST_CASE("the Design commands are the design's 88, under its headings", "[Mcp][CAD]")
+{
+    // The design's command set, heading by heading.
+    const std::map<std::string, std::set<std::string>> design = {
+        {"Document",
+         {"new_design", "describe_design", "import_step", "import_mesh", "export_step", "commit_to_plate", "set_variable",
+          "select_geometry", "confirm_tool", "cancel_tool"}},
+        {"Sketch",
+         {"sketch_create", "sketch_finish", "sketch_cancel", "sketch_describe", "sketch_validate", "sketch_select", "sketch_edit", "sketch_draw",
+          "sketch_text", "sketch_insert_svg", "sketch_mirror", "sketch_pattern", "sketch_project", "sketch_dimension",
+          "sketch_set_value", "sketch_fillet", "sketch_chamfer", "sketch_trim", "sketch_extend", "sketch_offset",
+          "sketch_transform", "sketch_blend_curve", "sketch_toggle_construction", "sketch_delete", "sketch_repair",
+          "sketch_constrain", "sketch_list_constraints", "sketch_delete_constraint"}},
+        {"Solid",
+         {"extrude", "revolve", "sweep", "loft", "rib", "hole", "thread", "thicken", "pattern", "mirror", "fillet", "chamfer",
+          "shell", "draft", "delete_face", "boolean", "split", "align", "list_align_types"}},
+        {"Surface", {"surface_extrude", "surface_revolve", "surface_loft", "surface_patch", "surface_offset"}},
+        {"Construct", {"construct_plane", "construct_axis", "construct_coordinate_system", "helix"}},
+        {"Inspect", {"measure", "interference", "body_describe", "body_mass_properties", "body_section", "body_compare"}},
+        {"Bodies", {"body_transform", "body_set", "body_delete", "body_place"}},
+        {"History",
+         {"feature_describe", "feature_edit", "feature_set_expression", "feature_suppress", "feature_move", "feature_rename",
+          "feature_delete"}},
+        {"Menu rows",
+         {"rename_selected", "zoom_to_selection", "sketch_polygon_inscribed", "sketch_polygon_circumscribed",
+          "sketch_constrain_selected"}},
+    };
+    std::map<std::string, std::set<std::string>> table;
+    std::size_t                                  commands = 0;
+    for (int i = 0; i < GUI::kDesignToolCount; ++i) {
+        const GUI::DesignTool& t = GUI::kDesignTools[i];
+        const std::string      id = t.id;
+        INFO(id);
+        if (!GUI::Mcp::is_design_command(t)) {
+            CHECK(t.section == nullptr);
+            continue;
+        }
+        REQUIRE(t.section != nullptr);
+        table[t.section].insert(id);
+        ++commands;
+        // A command that only does what its menu row does is one of the menu rows.
+        const bool row_only = t.action != nullptr && t.doc == nullptr;
+        CHECK(row_only == (std::string(t.section) == "Menu rows"));
+    }
+    CHECK(table == design);
+    CHECK(commands == 88);
+    // The headings, in the order the index gives them.
+    CHECK(std::vector<std::string>(std::begin(GUI::kDesignSections), std::end(GUI::kDesignSections)) ==
+          std::vector<std::string>{"Document", "Sketch", "Solid", "Surface", "Construct", "Inspect", "Bodies", "History",
+                                   "Menu rows"});
+}
+
+TEST_CASE("the search_tools description names every Design command under its heading", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog with = catalog_with_cad();
     GUI::CommandCatalog       without;
@@ -836,41 +1716,52 @@ TEST_CASE("the search_tools description names every Design command by how a call
     const std::string index = told.substr(plain.size());
     CHECK_THAT(index, ContainsSubstring("CAD"));
     CHECK_THAT(index, ContainsSubstring("look one up with tool"));
-    // A command with both forms runs its menu row when it is given no arguments.
-    CHECK_THAT(index, ContainsSubstring("called with no arguments"));
-    CHECK_THAT(index, ContainsSubstring("silent"));
+    // A command with silent does what its menu row does when it is given no arguments.
+    CHECK_THAT(index, ContainsSubstring("silent does what its menu row does when called with no arguments, unless silent is true"));
 
-    // The index has two lists, each from a colon to the next full stop, its names apart by ", ".
-    std::vector<std::vector<std::string>> lists;
-    for (std::size_t colon = index.find(": "); colon != std::string::npos; colon = index.find(": ", colon + 2)) {
-        const std::size_t stop = index.find('.', colon);
+    // Each heading starts a sentence once, in the design's order, and its names follow its colon to the full stop,
+    // apart by ", ", in the table's order.
+    std::size_t at    = 0;
+    std::size_t named = 0;
+    for (const char* heading : GUI::kDesignSections) {
+        INFO(heading);
+        const std::string start = std::string(". ") + heading;
+        const std::size_t head  = index.find(start, at);
+        REQUIRE(head != std::string::npos);
+        CHECK(index.find(start, head + 1) == std::string::npos);
+        const std::size_t colon = index.find(": ", head);
+        const std::size_t stop  = index.find('.', head + 2);
+        REQUIRE(colon != std::string::npos);
         REQUIRE(stop != std::string::npos);
+        REQUIRE(colon < stop);
         std::vector<std::string> names;
-        for (std::size_t at = colon + 2; at < stop;) {
-            const std::size_t comma = std::min(index.find(", ", at), stop);
-            names.push_back(index.substr(at, comma - at));
-            at = comma + 2;
+        for (std::size_t from = colon + 2; from < stop;) {
+            const std::size_t comma = std::min(index.find(", ", from), stop);
+            names.push_back(index.substr(from, comma - from));
+            from = comma + 2;
         }
-        lists.push_back(std::move(names));
+        std::vector<std::string> in_table;
+        for (int i = 0; i < GUI::kDesignToolCount; ++i)
+            if (GUI::kDesignTools[i].section != nullptr && std::string(GUI::kDesignTools[i].section) == heading)
+                in_table.push_back(GUI::kDesignTools[i].id);
+        CHECK(names == in_table);
+        for (const std::string& name : names) {
+            INFO(name);
+            CHECK(name.rfind("sk_", 0) == std::string::npos);
+        }
+        named += names.size();
+        at = stop;
     }
-    REQUIRE(lists.size() == 2);
-
-    // A command that runs from arguments has properties; one that only acts as its menu row has none.
-    std::vector<std::string> from_arguments, menu_row;
-    for (const GUI::NativeCommand& c : with.commands())
-        if (c.group == "Design")
-            (c.input_schema.at("properties").empty() ? menu_row : from_arguments).push_back(c.key);
-    CHECK_FALSE(from_arguments.empty());
-    CHECK_FALSE(menu_row.empty());
-    CHECK(lists[0] == from_arguments);
-    CHECK(lists[1] == menu_row);
+    CHECK(named == 88);
+    // The menu rows' heading says they take no arguments.
+    CHECK_THAT(index, ContainsSubstring(". Menu rows, which take no arguments"));
 }
 
 TEST_CASE("a CAD call is journaled without its generation and with its silent", "[Mcp][CAD]")
 {
     json                     seen;
     const GUI::NativeCommand fillet = GUI::Mcp::cad_command("fillet", "Fillet", json{{"type", "object"}, {"properties", json::object()}},
-                                                            [&seen](const json& args) {
+                                                            [&seen](const json& args, bool) {
                                                                 seen = args;
                                                                 return json{{"ok", true}};
                                                             });
@@ -890,25 +1781,52 @@ TEST_CASE("a CAD call is journaled without its generation and with its silent", 
     CHECK(fillet.run(json::object(), person).data == json{{"result", {{"ok", true}}}});
     CHECK(person.journaled.is_null());
 
-    // A silent call of a command that also has a person's form, which gives nothing but its generation, is
-    // journaled silent: with no arguments, its replay would open the tool.
+    // A call that ran and gave nothing but its generation is journaled silent when a call with no arguments
+    // opens a tool: its replay, given none, would open the tool.
     const GUI::NativeCommand shell = GUI::Mcp::cad_command(
         "shell", "Shell", GUI::Mcp::with_silent(json{{"type", "object"}, {"properties", json::object()}}),
-        [](const json&) { return json{{"ok", true}}; });
+        [](const json&, bool) { return json{{"ok", true}}; }, [](const json& args) { return GUI::Mcp::person_form(args); });
     JournalContext generation_only;
     shell.run({{"generation", 4}}, generation_only);
     CHECK(generation_only.journaled == json{{"silent", true}});
-    // One with a silent form only has no `silent` to journal.
+    // One for which nothing opens a tool has no `silent` to journal.
     JournalContext read;
     fillet.run({{"generation", 4}}, read);
     CHECK(read.journaled == json::object());
+    // body_set's Color row opens with no arguments. The call is journaled before it runs, and it fails here, where
+    // there is no Design tab.
+    const GUI::CommandCatalog catalog = cad_catalog();
+    JournalContext            body;
+    CHECK_THROWS_AS(command_of(catalog, "body_set").run({{"generation", 1}}, body), GUI::ToolFailure);
+    CHECK(body.journaled == json{{"silent", true}});
+    // boolean's operation alone opens the row that does it, so a cut given its generation is replayed as a cut.
+    JournalContext cut;
+    CHECK_THROWS_AS(command_of(catalog, "boolean").run({{"operation", "cut"}, {"generation", 1}}, cut), GUI::ToolFailure);
+    CHECK(cut.journaled == json{{"operation", "cut"}, {"silent", true}});
 
     // A failure is the call's error.
     const GUI::NativeCommand refused = GUI::Mcp::cad_command("hole", "Hole", json{{"type", "object"}, {"properties", json::object()}},
-                                                             [](const json&) -> json {
+                                                             [](const json&, bool) -> json {
                                                                  throw GUI::ToolFailure("removed no material", {{"code", -32000}});
                                                              });
     CHECK_THROWS_AS(refused.run(json::object(), agent), GUI::ToolFailure);
+}
+
+TEST_CASE("a CAD command tells its function a person's pick from a call", "[Mcp][CAD]")
+{
+    // The four rows that act on the Feature list's row are not refused for the selection on a call, and a person's
+    // pick keeps the menu's rule: the function is told which it runs for.
+    std::vector<bool>        told;
+    const GUI::NativeCommand rename = GUI::Mcp::cad_command("rename_selected", "Rename", json{{"type", "object"}, {"properties", json::object()}},
+                                                            [&told](const json&, bool person) {
+                                                                told.push_back(person);
+                                                                return json{{"ok", true}};
+                                                            });
+    JournalContext person(/*person=*/true);
+    rename.run(json::object(), person);
+    JournalContext agent;
+    rename.run(json::object(), agent);
+    CHECK(told == std::vector<bool>{true, false});
 }
 
 TEST_CASE("an unknown command is answered with close names only", "[Mcp][CAD]")
@@ -1013,8 +1931,8 @@ TEST_CASE("every example passes its command's schema", "[Mcp][CAD]")
             CHECK(calls.back().at("tool") == c.key);
         }
     }
-    // The 76 Design commands with a silent form, undo and redo.
-    CHECK(described == 78);
+    // The 83 Design commands with a silent form, undo and redo.
+    CHECK(described == 85);
 }
 
 TEST_CASE("an example's argument goes by a name its command takes", "[Mcp][CAD]")
@@ -1028,7 +1946,7 @@ TEST_CASE("an example's argument goes by a name its command takes", "[Mcp][CAD]"
 }
 
 // A stale id still names a real face or edge, so an example that passes ids shows the safe pattern:
-// read them with query_topology and pass that reply's generation with the call.
+// read them with body_describe and pass that reply's generation with the call.
 TEST_CASE("every example that passes a face or edge id passes the generation it was read at", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
@@ -1049,7 +1967,7 @@ TEST_CASE("every example that passes a face or edge id passes the generation it 
                     CHECK(from >= 0);
                     CHECK(from < int(i));
                     if (from < 0 || from >= int(i)) continue;
-                    CHECK(calls[size_t(from)].at("tool") == "query_topology");
+                    CHECK(calls[size_t(from)].at("tool") == "body_describe");
                 }
             }
         }
@@ -1201,7 +2119,7 @@ TEST_CASE("plane refuses what is not a plane, naming why", "[Mcp][CAD]")
     CHECK_THAT(error_of({{"body", 0}, {"face", side}}, cyl, true), ContainsSubstring("is cylindrical"));
 }
 
-TEST_CASE("describe_feature reads a sketch and the extrude bound to a variable", "[Mcp][CAD]")
+TEST_CASE("feature_describe reads a sketch and the extrude bound to a variable", "[Mcp][CAD]")
 {
     CadDocument doc;
     add_bound_block(doc);
@@ -1209,8 +2127,11 @@ TEST_CASE("describe_feature reads a sketch and the extrude bound to a variable",
     const json sketch = GUI::Mcp::cad_feature_json(doc, 0);
     CHECK(sketch.at("type") == "Sketch");
     CHECK(sketch.at("name") == "Sketch 1");
+    // Whether it is left out of the rebuild, as feature_suppress says it.
+    CHECK(sketch.at("suppressed") == false);
+    CHECK_FALSE(sketch.contains("enabled"));
     CHECK(sketch.at("plane").at("base") == "XY");
-    CHECK(sketch.at("editable").empty());   // the sketch session edits entities, not set_feature
+    CHECK(sketch.at("editable").empty());   // the sketch session edits entities, not feature_edit
     REQUIRE(sketch.at("entities").size() == 4);
     CHECK(sketch.at("entities")[0].at("type") == "line");
     const json& cons = sketch.at("constraints");
@@ -1226,7 +2147,8 @@ TEST_CASE("describe_feature reads a sketch and the extrude bound to a variable",
     CHECK(extrude.at("type") == "Extrude");
     CHECK_THAT(extrude.at("params").at("distance").get<double>(), WithinAbs(12.0, 1e-9));   // the variable's value
     CHECK(extrude.at("expr").at("distance") == "h");
-    CHECK(extrude.at("params").at("mode") == "new");
+    CHECK(extrude.at("params").at("operation") == "new_body");
+    CHECK_FALSE(extrude.at("params").contains("mode"));
     CHECK(extrude.at("params").at("extrude_end") == "blind");
     CHECK(extrude.at("refs").at("sketch_ref") == 0);
     CHECK(extrude.at("ranges").at("distance") == json::array({-1000.0, 1000.0}));
@@ -1241,7 +2163,7 @@ TEST_CASE("describe_feature reads a sketch and the extrude bound to a variable",
     CHECK_THAT(failure([&] { GUI::Mcp::cad_feature_json(doc, 3); }), ContainsSubstring("feature 3 is out of range"));
 }
 
-TEST_CASE("describe_feature names constraint references as the solver reads them", "[Mcp][CAD]")
+TEST_CASE("feature_describe names constraint references as the solver reads them", "[Mcp][CAD]")
 {
     using T = SketchConstraintType;
     using R = SketchPointRole;
@@ -1264,7 +2186,7 @@ TEST_CASE("describe_feature names constraint references as the solver reads them
     CHECK(c[3].at("refs") == json::array({json{{"entity", 1}, {"role", "p1"}}, json{{"entity", 0}}}));
 }
 
-TEST_CASE("describe_feature lists the features built on a datum plane", "[Mcp][CAD]")
+TEST_CASE("feature_describe lists the features built on a datum plane", "[Mcp][CAD]")
 {
     CadDocument doc;
     doc.modeling_origin = Vec3d(100, 50, 0);
@@ -1279,7 +2201,7 @@ TEST_CASE("describe_feature lists the features built on a datum plane", "[Mcp][C
     CHECK_THAT(GUI::Mcp::cad_feature_json(doc, second).at("plane").at("origin")[2].get<double>(), WithinAbs(40.0, 1e-9));
 }
 
-TEST_CASE("describe_feature gives each imported region's loops and filled area as placed", "[Mcp][CAD]")
+TEST_CASE("feature_describe gives each imported region's loops and filled area as placed", "[Mcp][CAD]")
 {
     // Imported art keeps each region as its outer loop followed by its holes. A 10 x 4 outline with
     // a 2 x 2 hole is 2 loops filling 40 - 4 = 36 mm²; a right triangle with legs 6 and 4, wound
@@ -1308,14 +2230,43 @@ TEST_CASE("describe_feature gives each imported region's loops and filled area a
 
 TEST_CASE("every editable field of every feature type takes back its own value", "[Mcp][CAD]")
 {
+    std::vector<CadFeature> features;
     for (int t = 0; t <= int(CadFeatureType::Mate); ++t) {
-        CadDocument doc;
-        CadFeature  f;
+        CadFeature f;
         f.type = CadFeatureType(t);
         if (f.type == CadFeatureType::Boolean) f.mode = BooleanMode::Cut;   // a Boolean never makes a new body
+        features.push_back(f);
+    }
+    // Imported art, whose placement edits, and a Text feature, whose words, font and height edit too.
+    CadFeature art;
+    art.imported_regions = {{{Vec2d(0, 0), Vec2d(4, 0), Vec2d(0, 3)}}};
+    art.import_offset    = Vec2d(5, -2);
+    features.push_back(art);
+    CadFeature text  = art;
+    text.text_string = "A";
+    text.text_font   = "a stored font";
+    text.text_height = 12;
+    features.push_back(text);
+    for (const CadFeature& f : features) {
+        CadDocument doc;
         doc.features.push_back(f);
         const json card = GUI::Mcp::cad_feature_json(doc, 0);
-        INFO(card.at("type").get<std::string>());
+        INFO(card.at("type").get<std::string>() << (f.is_text() ? " (text)" : !f.imported_regions.empty() ? " (art)" : ""));
+        if (!f.imported_regions.empty()) {
+            const json& editable = card.at("editable");
+            for (const char* key : {"import_offset", "import_scale_x", "import_scale_y"})
+                CHECK(std::find(editable.begin(), editable.end(), json(key)) != editable.end());
+            for (const char* key : {"text_string", "text_font", "text_height"})
+                CHECK((std::find(editable.begin(), editable.end(), json(key)) != editable.end()) == f.is_text());
+        }
+        // What the result does to the bodies is read under the commands' word for it, operation, in their words.
+        using T = CadFeatureType;
+        const bool operates = f.type == T::Extrude || f.type == T::Revolve || f.type == T::Sweep || f.type == T::Loft ||
+                              f.type == T::Boolean || f.type == T::Mirror;
+        CHECK(card.at("params").contains("operation") == operates);
+        CHECK_FALSE(card.at("params").contains("mode"));
+        if (operates)
+            CHECK(card.at("params").at("operation") == (f.type == T::Boolean ? "cut" : "new_body"));
 
         // A numeric field with a range is one an expression can drive too, and the card edits it.
         for (const auto& [key, range] : card.at("ranges").items()) {
@@ -1337,15 +2288,39 @@ TEST_CASE("every editable field of every feature type takes back its own value",
     }
 }
 
-TEST_CASE("set_feature writes literal fields and the card's choices", "[Mcp][CAD]")
+TEST_CASE("feature_edit writes literal fields and the card's choices", "[Mcp][CAD]")
 {
     CadFeature ex;
     ex.type = CadFeatureType::Extrude;
-    GUI::Mcp::cad_apply_feature_fields(ex, {{"distance", 15}, {"mode", "subtract"}, {"flip", true}, {"extrude_end", "symmetric"}});
+    GUI::Mcp::cad_apply_feature_fields(ex, {{"distance", 15}, {"operation", "cut"}, {"flip", true}, {"extrude_end", "symmetric"}});
     CHECK(ex.distance == 15.0);
     CHECK(ex.mode == BooleanMode::Cut);
     CHECK(ex.flip);
     CHECK(ex.extrude_end == ExtrudeEnd::Symmetric);
+
+    // A Boolean's and a Mirror's operation, in the words their cards offer.
+    CadFeature boolean;
+    boolean.type = CadFeatureType::Boolean;
+    GUI::Mcp::cad_apply_feature_fields(boolean, {{"operation", "intersect"}});
+    CHECK(boolean.mode == BooleanMode::Intersect);
+    CadFeature mirror;
+    mirror.type = CadFeatureType::Mirror;
+    GUI::Mcp::cad_apply_feature_fields(mirror, {{"operation", "join"}});
+    CHECK(mirror.mode == BooleanMode::Add);
+
+    // A hole's seat, an align's kind and a pattern's layout are its type, in the words its command takes.
+    CadFeature hole;
+    hole.type = CadFeatureType::Hole;
+    GUI::Mcp::cad_apply_feature_fields(hole, {{"type", "countersink"}});
+    CHECK(hole.hole_style == 2);
+    CadFeature mate;
+    mate.type = CadFeatureType::Mate;
+    GUI::Mcp::cad_apply_feature_fields(mate, {{"type", "revolute"}});
+    CHECK(mate.mate_kind == 2);
+    CadFeature pattern;
+    pattern.type = CadFeatureType::Pattern;
+    GUI::Mcp::cad_apply_feature_fields(pattern, {{"type", "circular"}});
+    CHECK(pattern.pattern_circular);
 
     CadFeature th;
     th.type = CadFeatureType::Thread;
@@ -1363,9 +2338,29 @@ TEST_CASE("set_feature writes literal fields and the card's choices", "[Mcp][CAD
     GUI::Mcp::cad_apply_feature_fields(sk, {{"shape", "circle"}, {"radius", 7.5}});
     CHECK(sk.shape == SketchShape::Circle);
     CHECK(sk.radius == 7.5);
+
+    // Imported art moves by its placement; a Text feature takes its words, font and height, which feature_edit then
+    // outlines again in the panel.
+    CadFeature art;
+    art.imported_regions = {{{Vec2d(0, 0), Vec2d(4, 0), Vec2d(0, 3)}}};
+    GUI::Mcp::cad_apply_feature_fields(art, {{"import_offset", {12.5, -3}}});
+    CHECK((art.import_offset - Vec2d(12.5, -3)).norm() < 1e-12);
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(art, {{"import_offset", {1}}}); }), ContainsSubstring("import_offset must be [x, y]"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(art, {{"text_string", "B"}}); }),
+               ContainsSubstring("'text_string' is not an editable field"));
+    CadFeature text  = art;
+    text.text_string = "A";
+    text.text_height = 10;
+    GUI::Mcp::cad_apply_feature_fields(text, {{"text_string", "AB"}, {"text_height", 20}, {"text_font", "Arial"}});
+    CHECK(text.text_string == "AB");
+    CHECK_THAT(text.text_height, WithinAbs(20.0, 1e-12));
+    CHECK(text.text_font == "Arial");
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(text, {{"text_height", 0.1}}); }), ContainsSubstring("text_height must be 0.5 to 500 mm"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(text, {{"text_string", ""}}); }), ContainsSubstring("text_string must be the words"));
+    CHECK(text.text_string == "AB");
 }
 
-TEST_CASE("set_feature refuses what the card would not produce, changing nothing", "[Mcp][CAD]")
+TEST_CASE("feature_edit refuses what the card would not produce, changing nothing", "[Mcp][CAD]")
 {
     CadDocument doc;
     add_bound_block(doc);
@@ -1375,26 +2370,61 @@ TEST_CASE("set_feature refuses what the card would not produce, changing nothing
     CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(doc.features[1], {{"distance", 15}}); }),
                ContainsSubstring("driven by the expression 'h'"));
     CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(doc.features[1], {{"distance", 15}}); }),
-               ContainsSubstring("remove the binding with edit_feature {field: 'distance', expr: ''}"));
+               ContainsSubstring("remove the binding with feature_set_expression {field: 'distance', expr: ''}"));
     CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(ex, {{"depth", 1}}); }),
-               ContainsSubstring("editable: distance, distance2, taper_deg, extrude_end, flip, mode"));
+               ContainsSubstring("editable: distance, distance2, taper_deg, extrude_end, flip, operation"));
+    // The member's own name is no field: the card's choice goes by the commands' word.
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(ex, {{"mode", "cut"}}); }),
+               ContainsSubstring("'mode' is not an editable field"));
     CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(ex, {{"sketch_ref", 2}}); }),
                ContainsSubstring("'sketch_ref' is not an editable field"));
     CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(doc.features[0], {{"width", 30}}); }),
-               ContainsSubstring("no field set_feature can change"));   // an entity sketch
+               ContainsSubstring("no field feature_edit can change"));   // an entity sketch
     CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(ex, {{"distance", 2000}}); }),
                ContainsSubstring("distance must be between -1000 and 1000"));
     CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(ex, {{"distance", "15"}}); }), ContainsSubstring("must be a number"));
-    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(ex, {{"mode", "add"}}); }),
-               ContainsSubstring("mode must be one of new, union, subtract, intersect"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(ex, {{"operation", "add"}}); }),
+               ContainsSubstring("operation must be one of new_body, join, cut, intersect"));
     CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(ex, {{"extrude_end", "up_to_face"}}); }),
                ContainsSubstring("needs a target face"));
     CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(ex, json::object()); }), ContainsSubstring("fields must name"));
 
     CadFeature boolean;
     boolean.type = CadFeatureType::Boolean;
-    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(boolean, {{"mode", "new"}}); }),
-               ContainsSubstring("union, subtract or intersect"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(boolean, {{"operation", "new_body"}}); }),
+               ContainsSubstring("join, cut or intersect"));
+    CadFeature mirror;
+    mirror.type = CadFeatureType::Mirror;
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(mirror, {{"operation", "cut"}}); }),
+               ContainsSubstring("new_body or join"));
+    // The members that hold a variant are no fields: their command's type is.
+    const std::vector<std::pair<CadFeatureType, const char*>> members = {
+        {CadFeatureType::Hole, "hole_style"}, {CadFeatureType::Mate, "mate_kind"}, {CadFeatureType::Pattern, "pattern_circular"}};
+    for (const auto& member : members) {
+        const std::string name = member.second;
+        INFO(name);
+        CadFeature f;
+        f.type = member.first;
+        CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(f, {{name, 1}}); }),
+                   ContainsSubstring("'" + name + "' is not an editable field"));
+    }
+    CadFeature hole;
+    hole.type = CadFeatureType::Hole;
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(hole, {{"type", "tapped"}}); }),
+               ContainsSubstring("type must be one of simple, counterbore, countersink"));
+    // A curve pattern's layout is the curve it follows, which no field changes; a row or a circle is no curve.
+    CadFeature on_curve;
+    on_curve.type                 = CadFeatureType::Pattern;
+    on_curve.pattern_curve_sketch = 0;
+    CadDocument curve_doc;
+    curve_doc.features.push_back(on_curve);
+    CHECK(GUI::Mcp::cad_feature_json(curve_doc, 0).at("params").at("type") == "curve");
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(on_curve, {{"type", "linear"}}); }),
+               ContainsSubstring("'type' is not an editable field"));
+    CadFeature linear;
+    linear.type = CadFeatureType::Pattern;
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(linear, {{"type", "curve"}}); }),
+               ContainsSubstring("linear or circular"));
     CadFeature thread;
     thread.type = CadFeatureType::Thread;
     thread.expr["thread_diameter"] = "d";
@@ -1443,7 +2473,7 @@ TEST_CASE("a refused literal edit leaves the history as it found it", "[Mcp][CAD
     REQUIRE(doc.undo());
     const size_t depth = doc.undo_depth();
 
-    // set_feature's sequence for an edit the kernel refuses: a hole that misses the body.
+    // feature_edit's sequence for an edit the kernel refuses: a hole that misses the body.
     CadFeature edited = doc.features[hole];
     GUI::Mcp::cad_apply_feature_fields(edited, {{"hole_x", 500}});
     doc.checkpoint();
@@ -1484,10 +2514,10 @@ TEST_CASE("literal edits and bindings reach the same numeric fields", "[Mcp][CAD
     CHECK_FALSE(CadDocument::is_bindable_field("sketch_ref"));
 }
 
-TEST_CASE("commit, new_design and export_step change the design or the plate, and fail as errors", "[Mcp][CAD]")
+TEST_CASE("commit_to_plate, new_design and export_step change the design or the plate, and fail as errors", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
-    for (const char* key : {"commit", "new_design", "export_step"}) {
+    for (const char* key : {"commit_to_plate", "new_design", "export_step"}) {
         INFO(key);
         const GUI::NativeCommand& c = command_of(catalog, key);
         CHECK_FALSE(c.read_only);
@@ -1498,16 +2528,16 @@ TEST_CASE("commit, new_design and export_step change the design or the plate, an
     CHECK(required_of(command_of(catalog, "export_step")) == std::vector<std::string>{"path"});
 }
 
-TEST_CASE("commit's replace takes distinct object indices that are not part of a cut", "[Mcp][CAD]")
+TEST_CASE("commit_to_plate's replace takes distinct object indices that are not part of a cut", "[Mcp][CAD]")
 {
     Model model;
     for (int i = 0; i < 3; ++i) model.add_object()->name = "object " + std::to_string(i);
     model.objects[2]->cut_id.init();
 
-    CHECK(GUI::Mcp::cad_commit_replace(json::array(), model).empty());
-    CHECK(GUI::Mcp::cad_commit_replace({1, 0}, model) == std::vector<int>{0, 1});
+    CHECK(GUI::Mcp::cad_commit_to_plate_replace(json::array(), model).empty());
+    CHECK(GUI::Mcp::cad_commit_to_plate_replace({1, 0}, model) == std::vector<int>{0, 1});
 
-    auto refusal = [&](const json& replace) { return failure([&] { GUI::Mcp::cad_commit_replace(replace, model); }); };
+    auto refusal = [&](const json& replace) { return failure([&] { GUI::Mcp::cad_commit_to_plate_replace(replace, model); }); };
     CHECK_THAT(refusal(0), ContainsSubstring("list of object indices"));
     CHECK_THAT(refusal({3}), ContainsSubstring("the project has 3 objects"));
     CHECK_THAT(refusal({-1}), ContainsSubstring("out of range"));
@@ -1549,7 +2579,7 @@ TEST_CASE("export_step's STEP file reads back with each body where the Move gizm
 TEST_CASE("the tree and body edits change the design, fail as errors and require what they edit", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
-    for (const char* key : {"feature_delete", "feature_move", "feature_set_enabled", "feature_rename", "body_set", "body_delete"}) {
+    for (const char* key : {"feature_delete", "feature_move", "feature_suppress", "feature_rename", "body_set", "body_delete"}) {
         INFO(key);
         CHECK_FALSE(command_of(catalog, key).read_only);
         CHECK_THAT(command_of(catalog, key).description, !ContainsSubstring("ok is false"));
@@ -1557,7 +2587,7 @@ TEST_CASE("the tree and body edits change the design, fail as errors and require
     // The params each one requires.
     CHECK(required_of(command_of(catalog, "feature_delete")) == std::vector<std::string>{"feature"});
     CHECK(required_of(command_of(catalog, "feature_move")) == std::vector<std::string>{"feature", "delta"});
-    CHECK(required_of(command_of(catalog, "feature_set_enabled")) == std::vector<std::string>{"feature", "enabled"});
+    CHECK(required_of(command_of(catalog, "feature_suppress")) == std::vector<std::string>{"feature", "suppressed"});
     CHECK(required_of(command_of(catalog, "feature_rename")) == std::vector<std::string>{"feature", "name"});
     CHECK(required_of(command_of(catalog, "body_set")) == std::vector<std::string>{"body"});
     CHECK(required_of(command_of(catalog, "body_delete")) == std::vector<std::string>{"body"});
@@ -1741,7 +2771,7 @@ TEST_CASE("extrude takes a committed sketch whole, or one loop with the loops in
     {
         GUI::Mcp::cad_sketch_extrude(doc, tool, {{"sketch", sk}, {"loop", plate}, {"distance", 8}})("Extrude 2");
         const int disc = plate == 0 ? 1 : 0;
-        const json disc_only = {{"sketch", sk}, {"loop", disc}, {"distance", 8}, {"boolean", "new"}};
+        const json disc_only = {{"sketch", sk}, {"loop", disc}, {"distance", 8}, {"operation", "new_body"}};
         const int  e         = GUI::Mcp::cad_sketch_extrude(doc, tool, disc_only)("Extrude 3");
         CHECK(doc.features[e].sketch_ref == -1);   // the loop travels with the feature
         CHECK(doc.features[e].entities.size() == 1);
@@ -1777,7 +2807,7 @@ TEST_CASE("extrude's auto boolean joins the body the sketch touches, as the card
     above.origin.z()  = 50;
     const int loose   = doc.add_sketch(SketchShape::Rectangle, above, 10, 10, 0, "Sketch 5");
     CHECK(doc.features[GUI::Mcp::cad_sketch_extrude(doc, tool, {{"sketch", loose}})("Extrude 6")].mode == BooleanMode::New);
-    const int cut = GUI::Mcp::cad_sketch_extrude(doc, tool, {{"sketch", lip}, {"boolean", "subtract"}, {"distance", 2}})("Extrude 7");
+    const int cut = GUI::Mcp::cad_sketch_extrude(doc, tool, {{"sketch", lip}, {"operation", "cut"}, {"distance", 2}})("Extrude 7");
     CHECK(doc.features[cut].mode == BooleanMode::Cut);
     CHECK(doc.features[cut].target_body == 0);
 }
@@ -1804,7 +2834,7 @@ TEST_CASE("extrude refuses what the sketch fixes and what is not one of its loop
     CHECK_THAT(refusal({{"sketch", sk}, {"loop", 6}}), ContainsSubstring("loop 6 does not exist; sketch 0 has 6 closed loops"));
     CHECK_THAT(refusal({{"sketch", sk}, {"loop", -1}}), ContainsSubstring("does not exist"));
     CHECK_THAT(refusal({{"sketch", box}, {"loop", 0}}), ContainsSubstring("not drawn from entities"));
-    CHECK_THAT(refusal({{"sketch", sk}, {"boolean", "atuo"}}), ContainsSubstring("boolean must be auto, new"));
+    CHECK_THAT(refusal({{"sketch", sk}, {"operation", "atuo"}}), ContainsSubstring("operation must be auto, new_body"));
     CHECK_THAT(refusal({{"sketch", sk}, {"body", 3}}), ContainsSubstring("out of range"));
     CHECK_THAT(refusal({{"sketch", sk}, {"distance", 0}}), ContainsSubstring("distance must be > 0"));
     CHECK_THAT(refusal({{"sketch", sk}, {"end", "up_to_vertex"}}), ContainsSubstring("end must be"));
@@ -1859,7 +2889,7 @@ TEST_CASE("revolve takes a line of the sketch, or its only centerline, as the ax
         const size_t features = doc.features.size();
         CHECK_THAT(failure([&] { revolve({{"axis_entity", 9}}); }), ContainsSubstring("axis_entity 9 is not a line of sketch 0"));
         CHECK_THAT(failure([&] { revolve({{"axis", 2}}); }), ContainsSubstring("axis must be 0"));
-        CHECK_THAT(failure([&] { revolve({{"boolean", "union"}}); }), ContainsSubstring("needs a body"));
+        CHECK_THAT(failure([&] { revolve({{"operation", "join"}}); }), ContainsSubstring("needs a body"));
         CHECK_THAT(failure([&] { revolve({{"plane", "XY"}}); }), ContainsSubstring("cannot be given with sketch"));
         CHECK(doc.features.size() == features);
     }
@@ -1895,15 +2925,15 @@ TEST_CASE("revolve without a sketch turns a width by height rectangle lying besi
                ContainsSubstring("width and height must be > 0"));
 }
 
-TEST_CASE("the sketch-to-solid rows take a sketch, and sketch_begin takes every plane form", "[Mcp][CAD]")
+TEST_CASE("the sketch-to-solid rows take a sketch, and sketch_create takes every plane form", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
-    for (const char* key : {"sketch_begin", "sketch_describe", "extrude", "revolve"}) {
+    for (const char* key : {"sketch_create", "sketch_describe", "extrude", "revolve"}) {
         INFO(key);
         CHECK_THAT(command_of(catalog, key).description, !ContainsSubstring("ok is false"));
     }
     CHECK(command_of(catalog, "sketch_describe").read_only);   // reads, so it also answers under an open card
-    CHECK(property_of(command_of(catalog, "sketch_begin"), "plane").at("type") == json::array({"string", "object"}));
+    CHECK(property_of(command_of(catalog, "sketch_create"), "plane").at("type") == json::array({"string", "object"}));
     // Optional everywhere: none of these is required.
     CHECK(required_of(command_of(catalog, "sketch_describe")).empty());
     CHECK(required_of(command_of(catalog, "extrude")).empty());
@@ -1916,6 +2946,41 @@ TEST_CASE("the sketch-to-solid rows take a sketch, and sketch_begin takes every 
         INFO(key);
         CHECK(property_of(command_of(catalog, "revolve"), key).is_object());
     }
+}
+
+TEST_CASE("sketch_edit re-opens a committed sketch by its index, as a sketch command", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog catalog = cad_catalog();
+    const GUI::NativeCommand& command = command_of(catalog, "sketch_edit");
+    const GUI::DesignTool&    entry   = design_row("sketch_edit");
+    // A command with no row of its own: no menu row, no tile and no person's form.
+    CHECK(entry.row == -1);
+    CHECK(entry.action == nullptr);
+    CHECK_FALSE(command.in_palette);
+    CHECK_FALSE(two_forms(command));
+    REQUIRE(entry.section != nullptr);
+    CHECK(std::string(entry.section) == "Sketch");
+    // Sketch access: it passes the gate while a sketch session is open, which it refuses itself, and it changes the
+    // Design tab's state.
+    CHECK(entry.access == GUI::CadAccess::Sketch);
+    CHECK_FALSE(command.read_only);
+    // The sketch, a feature index, is all it takes and is required.
+    CHECK(required_of(command) == std::vector<std::string>{"sketch"});
+    CHECK(property_of(command, "sketch").at("type") == "integer");
+    json none = json::object();
+    CHECK_THAT(GUI::Mcp::argument_error(command, none), ContainsSubstring("sketch is required"));
+    json named = {{"sketch", "Sketch 1"}};
+    CHECK_THAT(GUI::Mcp::argument_error(command, named), ContainsSubstring("sketch must be of type"));
+    json index = {{"sketch", 0}};
+    CHECK(GUI::Mcp::argument_error(command, index).empty());
+    // What an agent must know before it edits: a one-loop extrude does not follow, and sketch_finish says it replaced.
+    CHECK_THAT(command.description, ContainsSubstring("An extrude of one loop keeps its own copy of that loop and does not follow the edit"));
+    CHECK_THAT(command_of(catalog, "sketch_finish").description, ContainsSubstring("replaced: true"));
+    // A re-opened sketch whose replace the rebuild refuses ends its edit, which a replay must repeat, so sketch_finish
+    // reports it in the reply rather than failing.
+    CHECK(design_row("sketch_finish").ok_false);
+    CHECK_THAT(command_of(catalog, "sketch_finish").description, ContainsSubstring("ok is false"));
+    CHECK_THAT(command_of(catalog, "sketch_finish").description, ContainsSubstring("replies ok false, replaced false"));
 }
 
 namespace {
@@ -1969,7 +3034,515 @@ double vec_dist(const json& a, const Vec3d& b) { return (Vec3d(a[0].get<double>(
 
 } // namespace
 
-TEST_CASE("query_topology names a chamfer's cone and a fillet's torus, with their radii and areas", "[Mcp][CAD]")
+TEST_CASE("fillet and chamfer take an edge group by name", "[Mcp][CAD]")
+{
+    // A group is the card's Edges choice: the feature keeps it as its face_group, picks no edge, and builds the body
+    // the engine's own face-group overload builds.
+    for (const bool chamfer : {false, true}) {
+        const char* size = chamfer ? "distance" : "radius";
+        for (const auto& [word, group] : {std::pair<const char*, FaceGroup>{"top", FaceGroup::Top}, {"all", FaceGroup::All}}) {
+            INFO((chamfer ? "chamfer " : "fillet ") << word);
+            CadDocument doc;
+            add_box(doc);
+            const int f = GUI::Mcp::cad_dressup(doc, {{"edges", word}, {size, 1}}, chamfer)("Dress-up");
+            CHECK(doc.features[f].type == (chamfer ? CadFeatureType::Chamfer : CadFeatureType::Fillet));
+            CHECK(doc.features[f].face_group == group);
+            CHECK(doc.features[f].dressup_edge_ids().empty());
+            CHECK(GUI::Mcp::cad_feature_json(doc, f).at("refs").at("face_group") == word);
+            REQUIRE(doc.recompute());
+            CadDocument engine;
+            add_box(engine);
+            if (chamfer) engine.add_chamfer(1, group, "Chamfer");
+            else         engine.add_fillet(1, group, "Fillet");
+            REQUIRE(engine.recompute());
+            CHECK(body_volume(doc, 0) < 40.0 * 20.0 * 10.0 - 1.0);   // the corners are taken off
+            CHECK_THAT(body_volume(doc, 0), WithinAbs(body_volume(engine, 0), 1e-6));
+        }
+        // Any other word is refused, naming the four, before anything is added.
+        CadDocument doc;
+        add_box(doc);
+        const std::size_t features = doc.features.size();
+        CHECK_THAT(failure([&] { GUI::Mcp::cad_dressup(doc, {{"edges", "sideways"}, {size, 1}}, chamfer); }),
+                   ContainsSubstring("edges must be an edge id, a list of them, or top, bottom, lateral or all"));
+        CHECK(doc.features.size() == features);
+    }
+}
+
+TEST_CASE("surface_revolve takes a line of the sketch as its axis, and flip", "[Mcp][CAD]")
+{
+    // On XZ: a profile line 10 mm out from a construction line along the plane's y axis (world Z), and in a sketch of
+    // its own an arc.
+    CadDocument  doc;
+    SketchEntity axis_line = line(0, 0, 0, 30);
+    axis_line.construction = true;
+    const int    sk        = doc.add_sketch_entities({line(10, 0, 10, 20), axis_line}, SketchPlane::XZ(), "Sketch 1");
+    SketchEntity arc;
+    arc.type        = SketchEntity::Type::Arc;
+    arc.center      = Vec2d(0, 0);
+    arc.radius      = 5;
+    arc.start_angle = 0;
+    arc.end_angle   = PI / 2;
+    arc.p0          = Vec2d(5, 0);
+    arc.p1          = Vec2d(0, 5);
+    const int arcs  = doc.add_sketch_entities({arc}, SketchPlane::XZ(), "Sketch 2");
+    REQUIRE(doc.recompute());
+
+    // The sketch's only centerline is the axis by default, as revolve's; flip turns the other way.
+    const int f = GUI::Mcp::cad_surface_revolve(doc, {{"sketch", sk}, {"angle", 90}, {"flip", true}})("Surface Revolve");
+    CHECK(doc.features[f].type == CadFeatureType::SurfaceRevolve);
+    CHECK(doc.features[f].flip);
+    CHECK(doc.features[f].revolve_axis_entity == 1);
+    CHECK_THAT(doc.features[f].revolve_angle, WithinAbs(90.0, 1e-12));
+    REQUIRE(doc.recompute());
+    // A quarter of a cylinder's wall of radius 10 and height 20.
+    CHECK_THAT(GeometryEngine::mass_properties(doc.bodies.at(0).shape).surface_area, WithinAbs(2 * PI * 10.0 * 20.0 / 4, 1e-3));
+    // A plane axis asked for, or -1 for one, leaves the line.
+    CHECK(doc.features[GUI::Mcp::cad_surface_revolve(doc, {{"sketch", sk}, {"axis", 1}})("Surface Revolve")].revolve_axis_entity == -1);
+    CHECK(doc.features[GUI::Mcp::cad_surface_revolve(doc, {{"sketch", sk}, {"axis_entity", -1}})("Surface Revolve")]
+              .revolve_axis_entity == -1);
+
+    // Refused as revolve refuses them, before anything is added.
+    const std::size_t features = doc.features.size();
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_surface_revolve(doc, {{"sketch", arcs}, {"axis_entity", 0}}); }),
+               ContainsSubstring("axis_entity 0 is not a line of sketch 1"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_surface_revolve(doc, {{"sketch", sk}, {"axis", 2}}); }), ContainsSubstring("axis must be 0"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_surface_revolve(doc, {{"sketch", f}}); }), ContainsSubstring("is not a sketch"));
+    CHECK(doc.features.size() == features);
+
+    // feature_edit sets its flip and its plane axis, which drops a line chosen as the axis, as the card does.
+    CadFeature edited = doc.features[f];
+    GUI::Mcp::cad_apply_feature_fields(edited, {{"flip", false}, {"revolve_axis", 1}});
+    CHECK_FALSE(edited.flip);
+    CHECK(edited.revolve_axis == 1);
+    CHECK(edited.revolve_axis_entity == -1);
+}
+
+TEST_CASE("list_align_types says which types fit a pair", "[Mcp][CAD]")
+{
+    // A coordinate system on the top face of the box and one on the top face of a block 50 mm beside it.
+    CadDocument doc;
+    add_box(doc);
+    SketchPlane beside = SketchPlane::XY();
+    beside.origin      = Vec3d(50, 0, 0);
+    doc.add_extrude(doc.add_sketch(SketchShape::Rectangle, beside, 10, 10, 0, "Sketch"), 5.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+    auto on_top = [&](int body, const char* name) {
+        const int cs                   = doc.add_coordsys(CoordSysType::FaceAndDirection, Vec3d::Zero(), name);
+        doc.features[cs].coordsys_body = body;
+        doc.features[cs].coordsys_face = face_facing_on(doc, body, Vec3d(0, 0, 1));
+        return cs;
+    };
+    const int a = on_top(0, "CS A");
+    const int b = on_top(1, "CS B");
+    REQUIRE(doc.recompute());
+
+    const json r = GUI::Mcp::cad_align_types(doc, {{"cs_a", a}, {"cs_b", b}});
+    CHECK(r.at("ok") == true);
+    CHECK(r.at("cs_a") == a);
+    CHECK(r.at("cs_b") == b);
+    const json& types = r.at("types");
+    REQUIRE(types.size() == 5);
+    const std::vector<std::string> words = {"fastened", "planar", "revolute", "slider", "cylindrical"};
+    for (std::size_t k = 0; k < words.size(); ++k) {
+        INFO(words[k]);
+        CHECK(types[k].at("type") == words[k]);
+        // Two flat faces take any type but those that turn about a cylinder's axis.
+        const bool turns = words[k] == "revolute" || words[k] == "cylindrical";
+        CHECK(types[k].at("fits") == !turns);
+        if (turns)
+            CHECK_THAT(types[k].at("reason").get<std::string>(), ContainsSubstring("cylindrical face"));
+        else
+            CHECK(types[k].at("reason").is_null());
+    }
+    // A coordinate system aligned to itself fits none.
+    for (const json& t : GUI::Mcp::cad_align_types(doc, {{"cs_a", a}, {"cs_b", a}}).at("types")) {
+        INFO(t.at("type"));
+        CHECK(t.at("fits") == false);
+        CHECK(t.at("reason").is_string());
+    }
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_align_types(doc, {{"cs_a", a}}); }), ContainsSubstring("cs_b"));
+}
+
+namespace {
+
+// The ids of body 0's upright edges, those whose ends lie one above the other.
+std::vector<int> upright_edges(const CadDocument& doc)
+{
+    std::vector<int>               ids;
+    const std::vector<TopoDS_Edge> edges = GeometryEngine::edges_of(doc.bodies.at(0).shape);
+    for (int i = 0; i < int(edges.size()); ++i) {
+        const std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(edges[i]);
+        if (pts.size() >= 2 && (pts.front() - pts.back()).head<2>().norm() < 1e-6 && std::abs(pts.front().z() - pts.back().z()) > 1.0)
+            ids.push_back(i);
+    }
+    return ids;
+}
+
+// The add_box() box with one upright edge rounded 2 mm (the Fillet, feature 2), then shelled 1 mm open at the bottom
+// (feature 3), which renumbers its faces and edges; `rounded` is the edge's id on the box.
+CadDocument filleted_shelled_box(int& rounded)
+{
+    CadDocument doc;
+    add_box(doc);
+    rounded = upright_edges(doc).at(0);
+    doc.add_fillet(2.0, rounded, "Fillet");
+    REQUIRE(doc.recompute());
+    doc.add_shell(1.0, face_facing(doc, Vec3d(0, 0, -1)), 0, "Shell");
+    REQUIRE(doc.recompute());
+    return doc;
+}
+
+} // namespace
+
+TEST_CASE("feature_edit re-points what a feature refers to", "[Mcp][CAD]")
+{
+    // The box (features 0 and 1), a circle to sweep, upright paths 10 and 20 mm long, a Sweep of the circle along the
+    // first (feature 5) and a sketch after it.
+    CadDocument doc;
+    add_box(doc);
+    const int profile    = doc.add_sketch_entities({circle(0, 0, 2)}, SketchPlane::XY(), "Profile");
+    const int short_path = doc.add_sketch_entities({line(0, 0, 0, 10)}, SketchPlane::YZ(), "Path 10");
+    const int long_path  = doc.add_sketch_entities({line(0, 0, 0, 20)}, SketchPlane::YZ(), "Path 20");
+    const int sweep      = doc.add_sweep(profile, short_path, BooleanMode::New, "Sweep");
+    const int later      = doc.add_sketch_entities({line(0, 0, 0, 5)}, SketchPlane::YZ(), "Later");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+    const CadDocument before = GUI::Mcp::cad_document_before(doc, sweep);
+    auto refused = [&](const json& refs) {
+        CadFeature f = doc.features[sweep];
+        const std::string why = failure([&] { GUI::Mcp::cad_apply_feature_refs(f, refs, before, doc, sweep); });
+        CHECK(f.sweep_path_ref == short_path);   // as it was
+        return why;
+    };
+
+    // Re-pointed at the longer path, the sweep is twice as long.
+    CadFeature along = doc.features[sweep];
+    GUI::Mcp::cad_apply_feature_refs(along, {{"sweep_path_ref", long_path}}, before, doc, sweep);
+    CHECK(along.sweep_path_ref == long_path);
+    CHECK(along.sketch_ref == profile);
+
+    // A path must come before the sweep and be a sketch or a helix; a name it does not take is listed with those it does.
+    CHECK_THAT(refused({{"sweep_path_ref", sweep}}), ContainsSubstring("is not an earlier feature"));
+    CHECK_THAT(refused({{"sweep_path_ref", later}}), ContainsSubstring("is not an earlier feature"));
+    CHECK_THAT(refused({{"sweep_path_ref", 1}}), ContainsSubstring("sweep_path_ref 1 (Extrude) is not a Sketch or a Helix"));
+    CHECK_THAT(refused({{"edges", {0}}}), ContainsSubstring("Sweep takes sweep_path_ref, target_body"));
+    CHECK_THAT(refused({{"sweep_path_ref", "2"}}), ContainsSubstring("sweep_path_ref must be a feature index"));
+    REQUIRE(doc.replace_feature(sweep, along));
+    CHECK_THAT(body_volume(doc, 1), WithinAbs(PI * 4.0 * 20.0, 1e-3));
+
+    // An Extrude keeps its profile and its target, as its card does.
+    CadFeature extrude = doc.features[1];
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_refs(extrude, {{"target_body", 0}}, GUI::Mcp::cad_document_before(doc, 1), doc, 1); }),
+               ContainsSubstring("Extrude: its profile and its target are fixed"));
+}
+
+TEST_CASE("feature_edit's changed names a plane re-pointed", "[Mcp][CAD]")
+{
+    // The box (features 0 and 1) mirrored about YZ as a new body (feature 2): feature_describe reports the plane it
+    // builds on at the top level, beside its params and refs.
+    CadDocument doc;
+    add_box(doc);
+    const int mirror = doc.add_mirror(SketchPlane::YZ(), 0, BooleanMode::New, "Mirror");
+    REQUIRE(doc.recompute());
+    const json was = GUI::Mcp::cad_feature_json(doc, mirror);
+    REQUIRE(was.at("plane").at("base") == "YZ");
+    CHECK(GUI::Mcp::cad_feature_changes(was, was).empty());
+
+    // Re-pointed at XZ and made a join, the changes are the plane's, from YZ to XZ, and the operation's, each with its
+    // old and new value.
+    CadFeature f = doc.features[mirror];
+    GUI::Mcp::cad_apply_feature_refs(f, {{"plane", "XZ"}}, GUI::Mcp::cad_document_before(doc, mirror), doc, mirror);
+    GUI::Mcp::cad_apply_feature_fields(f, {{"operation", "join"}});
+    REQUIRE(doc.replace_feature(mirror, f));
+    const json changed = GUI::Mcp::cad_feature_changes(was, GUI::Mcp::cad_feature_json(doc, mirror));
+    REQUIRE(changed.contains("plane"));
+    CHECK(changed.at("plane").at(0).at("base") == "YZ");
+    CHECK(changed.at("plane").at(1).at("base") == "XZ");
+    CHECK(changed.value("operation", json()) == json::array({"new_body", "join"}));
+    CHECK(changed.size() == 2);
+}
+
+TEST_CASE("feature_edit's refs takes what each card can pick again", "[Mcp][CAD]")
+{
+    // The box (features 0 and 1, body 0), a profile of a line and an arc on XZ (2), a sketch of one line on XY (3), a
+    // coordinate system (4) and a datum plane 5 mm above XY (5). Each feature edited is added after them, as feature 6.
+    CadDocument  doc;
+    add_box(doc);
+    SketchEntity arc;
+    arc.type        = SketchEntity::Type::Arc;
+    arc.center      = Vec2d(15, 0);
+    arc.radius      = 5;
+    arc.start_angle = 0;
+    arc.end_angle   = PI;
+    arc.p0          = Vec2d(20, 0);
+    arc.p1          = Vec2d(10, 0);
+    const int profile = doc.add_sketch_entities({line(10, 0, 20, 0), arc}, SketchPlane::XZ(), "Profile");
+    const int other   = doc.add_sketch_entities({line(0, 0, 10, 0)}, SketchPlane::XY(), "Other");
+    const int cs      = doc.add_coordsys(CoordSysType::PointWorld, Vec3d::Zero(), "CS");
+    const int datum   = doc.add_plane(0, 5.0, 0.0, 0, "Plane");
+    REQUIRE(doc.recompute());
+    const int top = face_facing(doc, Vec3d(0, 0, 1));
+    // The feature of type `t` (`seed` sets what it holds) with `refs` applied, and why they were refused, if they were.
+    auto apply = [&](CadFeatureType t, const json& refs, const std::function<void(CadFeature&)>& seed = {}) {
+        CadFeature f;
+        f.type = t;
+        f.name = "Edited";
+        if (seed) seed(f);
+        doc.features.push_back(f);
+        const int   i = int(doc.features.size()) - 1;
+        std::string why;
+        try {
+            GUI::Mcp::cad_apply_feature_refs(f, refs, GUI::Mcp::cad_document_before(doc, i), doc, i);
+        } catch (const std::runtime_error& e) {
+            why = e.what();
+        }
+        doc.features.pop_back();
+        return std::make_pair(f, why);
+    };
+    // The feature as apply() leaves it, which must not have been refused.
+    auto applied = [&](CadFeatureType t, const json& refs, const std::function<void(CadFeature&)>& seed = {}) {
+        const auto [f, why] = apply(t, refs, seed);
+        CHECK(why == "");
+        return f;
+    };
+    using T = CadFeatureType;
+
+    // A revolve turns about a line of its own sketch.
+    const auto on_profile = [&](CadFeature& f) { f.sketch_ref = profile; };
+    CHECK(applied(T::Revolve, {{"revolve_axis_entity", 0}}, on_profile).revolve_axis_entity == 0);
+    CHECK_THAT(apply(T::SurfaceRevolve, {{"revolve_axis_entity", 1}}, on_profile).second, ContainsSubstring("revolve_axis_entity 1 is not a line of sketch 2"));
+    // A loft goes through two or more earlier sketches.
+    CHECK(applied(T::Loft, {{"loft_profile_refs", {profile, other}}}).loft_profile_refs == std::vector<int>({profile, other}));
+    CHECK_THAT(apply(T::SurfaceLoft, {{"loft_profile_refs", {profile}}}).second, ContainsSubstring("two or more"));
+    CHECK_THAT(apply(T::Loft, {{"loft_profile_refs", {profile, 1}}}).second, ContainsSubstring("loft_profile_refs 1 (Extrude) is not a Sketch"));
+    // A plane is a base plane, an earlier datum or a face of the model before; a hole drills the face's body.
+    CHECK((applied(T::Mirror, {{"plane", "XZ"}}).plane.normal - Vec3d(0, 1, 0)).norm() < 1e-9);
+    CHECK_THAT(applied(T::Helix, {{"plane", {{"datum", datum}}}}).plane.origin.z(), WithinAbs(5.0, 1e-9));
+    const CadFeature cut = applied(T::Cut, {{"plane", {{"body", 0}, {"face", top}}}}, [](CadFeature& f) { f.cut_face = 3; });
+    CHECK(cut.cut_face == -1);
+    CHECK_THAT(cut.plane.origin.z(), WithinAbs(10.0, 1e-6));
+    const CadFeature hole = applied(T::Hole, {{"plane", {{"body", 0}, {"face", top}}}});
+    CHECK(hole.target_body == 0);
+    CHECK((hole.plane.normal - Vec3d(0, 0, -1)).norm() < 1e-9);   // the Hole card's plane points into the body
+    CHECK_THAT(apply(T::Thread, {{"plane", {{"body", 0}, {"face", top}}}, {"target_body", 1}}).second,
+               ContainsSubstring("target_body 1 is not a body before feature 6 (Edited): there was 1 body"));
+    CHECK_THAT(apply(T::Mirror, {{"plane", {{"datum", 7}}}}).second, ContainsSubstring("is not an earlier feature"));
+    // A rib grows from a line of an earlier sketch.
+    const auto on_other = [&](CadFeature& f) { f.rib_sketch_ref = other; };
+    CHECK(applied(T::Rib, {{"rib_entity", 0}}, on_other).rib_entity == 0);
+    CHECK_THAT(apply(T::Rib, {{"rib_sketch_ref", profile}, {"rib_entity", 1}}, on_other).second, ContainsSubstring("rib_entity 1 is not a line of sketch 2"));
+    // An align joins two different coordinate systems.
+    const auto from_cs = [&](CadFeature& f) { f.mate_cs_a = cs; };
+    CHECK_THAT(apply(T::Mate, {{"mate_cs_b", cs}}, from_cs).second, ContainsSubstring("two different coordinate systems"));
+    CHECK_THAT(apply(T::Mate, {{"mate_cs_b", datum}}, from_cs).second, ContainsSubstring("mate_cs_b 5 (Plane) is not a CoordSys"));
+    // Faces of the target body before the feature; a shell may be closed.
+    CHECK(applied(T::Shell, {{"shell_face", top}}).shell_face == top);
+    CHECK(applied(T::Shell, {{"shell_face", -1}}).shell_face == -1);
+    CHECK_THAT(apply(T::Draft, {{"draft_face", 6}}).second, ContainsSubstring("face 6 of body 0 does not exist before feature 6 (Edited): the body had 6 faces there"));
+    CHECK_THAT(apply(T::DeleteFace, {{"delete_faces", {top, top}}}).second, ContainsSubstring("listed twice"));
+    // A fillet moved to another body keeps edges only that body has.
+    CHECK(apply(T::Fillet, {{"target_body", 0}}, [](CadFeature& f) { f.dressup_edge = 11; }).second.empty());
+    // -1, the last body, is any type's but a Boolean's, whose bool_tool_body is -1 too.
+    CHECK(applied(T::Pattern, {{"target_body", -1}}).target_body == -1);
+    CHECK(applied(T::Shell, {{"target_body", -1}}).target_body == -1);
+    // A datum's references are the finished model's, and its datum planes earlier ones.
+    const CadFeature axis = applied(T::Axis, {{"axis_body", 0}, {"axis_face", top}, {"axis_plane_a", 3}});
+    CHECK(axis.axis_face == top);
+    CHECK(axis.axis_plane_a == 3);
+    CHECK_THAT(apply(T::Axis, {{"axis_plane_a", 4}}).second, ContainsSubstring("axis_plane_a 4 names no datum plane before feature 6"));
+    CHECK_THAT(apply(T::CoordSys, {{"coordsys_face", top}}).second, ContainsSubstring("is on no body"));
+    // A card that picks nothing again takes no refs.
+    CHECK_THAT(apply(T::SurfaceExtrude, {{"target_body", 0}}).second, ContainsSubstring("SurfaceExtrude: its card picks nothing again"));
+}
+
+TEST_CASE("ids in refs are those of the model before the feature", "[Mcp][CAD]")
+{
+    int               rounded = -1;
+    CadDocument       doc     = filleted_shelled_box(rounded);
+    const int         fillet  = 2;
+    const int         edges   = GeometryEngine::edge_count(doc.bodies.at(0).shape);
+    const CadDocument before  = GUI::Mcp::cad_document_before(doc, fillet);
+    REQUIRE(before.bodies.size() == 1);
+    CHECK(GeometryEngine::edge_count(before.bodies[0].shape) == 12);
+    CHECK(edges > 12);
+
+    // Another upright edge of the box, by its id there: the rebuilt Fillet rounds that corner.
+    const std::vector<int> upright = upright_edges(before);
+    REQUIRE(upright.size() == 4);
+    const int  other  = upright.back();
+    const auto corner = GeometryEngine::sample_edge_world(GeometryEngine::edge_by_index(before.bodies[0].shape, other)).front();
+    CadFeature f      = doc.features[fillet];
+    GUI::Mcp::cad_apply_feature_refs(f, {{"edges", {other}}}, before, doc, fillet);
+    CHECK(f.dressup_edge_ids() == std::vector<int>{other});
+    REQUIRE(doc.replace_feature(fillet, f));
+    const CadDocument filleted = GUI::Mcp::cad_document_before(doc, fillet + 1);
+    int               rounds   = 0;
+    for (const TopoDS_Face& face : GeometryEngine::faces_of(filleted.bodies.at(0).shape))
+        if (const GeometryEngine::CylinderFace c = GeometryEngine::cylinder_of_face(face); c.ok) {
+            ++rounds;
+            // The round's axis stands 2 mm in from both sides of that corner.
+            CHECK_THAT((c.base - corner).head<2>().norm(), WithinAbs(2.0 * std::sqrt(2.0), 1e-6));
+        }
+    CHECK(rounds == 1);
+
+    // An id of the finished model that the box does not have names the body, the feature and the edges it had.
+    CadFeature g = doc.features[fillet];
+    const std::string why = failure([&] { GUI::Mcp::cad_apply_feature_refs(g, {{"edges", {edges - 1}}}, before, doc, fillet); });
+    CHECK_THAT(why, ContainsSubstring("edge " + std::to_string(edges - 1) + " of body 0 does not exist before feature 2 (Fillet)"));
+    CHECK_THAT(why, ContainsSubstring("the body had 12 edges there"));
+    CHECK(g.dressup_edge_ids() == std::vector<int>{other});
+    // An edge group in place of the edges, but not both.
+    GUI::Mcp::cad_apply_feature_refs(g, {{"face_group", "top"}}, before, doc, fillet);
+    CHECK(g.face_group == FaceGroup::Top);
+    CHECK(g.dressup_edge_ids().empty());
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_refs(g, {{"edges", {other}}, {"face_group", "top"}}, before, doc, fillet); }),
+               ContainsSubstring("give edges or face_group, not both"));
+
+    // A Boolean's bodies are those of the model before it: the box and a block that cuts its corner, two bodies there
+    // and one after the cut.
+    CadDocument two;
+    add_box(two);
+    SketchPlane corner_plane = SketchPlane::XY();
+    corner_plane.origin      = Vec3d(20, 10, 0);
+    two.add_extrude(two.add_sketch(SketchShape::Rectangle, corner_plane, 10, 10, 0, "Sketch"), 5.0, false, BooleanMode::New, "Extrude");
+    const int boolean = two.add_boolean(BooleanMode::Cut, 0, 1, false, 0.0, -1, -1, "Boolean");
+    REQUIRE(two.recompute());
+    REQUIRE(two.bodies.size() == 1);
+    const CadDocument two_before = GUI::Mcp::cad_document_before(two, boolean);
+    REQUIRE(two_before.bodies.size() == 2);
+    CadFeature b = two.features[boolean];
+    GUI::Mcp::cad_apply_feature_refs(b, {{"target_body", 1}, {"bool_tool_body", 0}}, two_before, two, boolean);
+    CHECK(b.target_body == 1);
+    CHECK(b.bool_tool_body == 0);
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_refs(b, {{"bool_tool_body", 2}}, two_before, two, boolean); }),
+               ContainsSubstring("bool_tool_body 2 is not a body before feature 4 (Boolean): there were 2 bodies"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_refs(b, {{"bool_tool_body", 1}}, two_before, two, boolean); }),
+               ContainsSubstring("two different bodies"));
+}
+
+TEST_CASE("body_describe reads a body as it stood before a feature", "[Mcp][CAD]")
+{
+    int         rounded = -1;
+    CadDocument doc     = filleted_shelled_box(rounded);
+    const int   fillet  = 2;
+
+    const json r = GUI::Mcp::cad_body_describe(doc, {{"body", 0}, {"before", fillet}});
+    CHECK(r.at("edge_count") == 12);
+    CHECK(r.at("face_count") == 6);
+    CHECK(r.at("before") == fillet);
+    // The live document's generation, which a call that passes these ids is checked against.
+    CHECK(r.at("generation") == doc.topo_generation);
+    CHECK_FALSE(r.contains("vertices"));
+    CHECK(GUI::Mcp::cad_body_describe(doc, {{"body", 0}}).at("edge_count").get<int>() > 12);
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_body_describe(doc, {{"body", 0}, {"before", 9}}); }), ContainsSubstring("feature 9 is out of range"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_body_describe(doc, {{"body", 0}, {"before", "2"}}); }), ContainsSubstring("before must be a feature index"));
+
+    // The box's eight corners, each by its place in TopExp::MapShapes' order, as a face's and an edge's id is.
+    const json v = GUI::Mcp::cad_body_describe(doc, {{"body", 0}, {"before", fillet}, {"vertices", true}}).at("vertices");
+    REQUIRE(v.size() == 8);
+    const CadDocument          before = GUI::Mcp::cad_document_before(doc, fillet);
+    TopTools_IndexedMapOfShape map;
+    TopExp::MapShapes(before.bodies.at(0).shape, TopAbs_VERTEX, map);
+    REQUIRE(map.Extent() == 8);
+    std::set<std::tuple<int, int, int>> corners;
+    for (int k = 0; k < 8; ++k) {
+        INFO(v[k].dump());
+        CHECK(v[k].at("id") == k);
+        const gp_Pnt p = BRep_Tool::Pnt(TopoDS::Vertex(map(k + 1)));
+        CHECK(vec_dist(v[k].at("p"), Vec3d(p.X(), p.Y(), p.Z())) < 1e-9);
+        corners.insert({int(std::lround(p.X())), int(std::lround(p.Y())), int(std::lround(p.Z()))});
+    }
+    CHECK(corners == std::set<std::tuple<int, int, int>>{{-20, -10, 0}, {-20, -10, 10}, {-20, 10, 0}, {-20, 10, 10},
+                                                         {20, -10, 0},  {20, -10, 10},  {20, 10, 0},  {20, 10, 10}});
+    CHECK(GUI::Mcp::cad_body_vertices(before, 0).size() == 8);
+}
+
+TEST_CASE("a datum's ids are the finished model's", "[Mcp][CAD]")
+{
+    // The box (features 0 and 1), a Plane on it (feature 2), a Shell open at the bottom (feature 3), and a Fillet of
+    // an upright outside edge, which adds faces. The Plane reads its face in the finished model, as the engine does.
+    CadDocument doc;
+    add_box(doc);
+    const int plane = doc.add_plane(0, 0.0, 0.0, 0, "Plane");
+    const int shell = doc.add_shell(1.0, face_facing(doc, Vec3d(0, 0, -1)), 0, "Shell");
+    REQUIRE(doc.recompute());
+    doc.add_fillet(0.5, upright_edges(doc).at(0), "Fillet");
+    REQUIRE(doc.recompute());
+    doc.features[plane].plane_type      = PlaneType::Coincident;
+    doc.features[plane].plane_face_body = 0;
+    doc.features[plane].plane_face      = face_facing(doc, Vec3d(0, 0, 1));
+    REQUIRE(doc.recompute());
+
+    // A flat face that only the finished model has: the box has six.
+    const std::vector<TopoDS_Face> faces = GeometryEngine::faces_of(doc.bodies.at(0).shape);
+    int                            only  = -1;
+    for (int i = 6; i < int(faces.size()) && only < 0; ++i)
+        if (BRepAdaptor_Surface(faces[i]).GetType() == GeomAbs_Plane) only = i;
+    REQUIRE(only >= 0);
+
+    CadFeature p = doc.features[plane];
+    GUI::Mcp::cad_apply_feature_refs(p, {{"plane_face", only}}, GUI::Mcp::cad_document_before(doc, plane), doc, plane);
+    CHECK(p.plane_face == only);
+    CadFeature s = doc.features[shell];
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_refs(s, {{"shell_face", only}}, GUI::Mcp::cad_document_before(doc, shell), doc, shell); }),
+               ContainsSubstring("face " + std::to_string(only) + " of body 0 does not exist before feature 3 (Shell): the body had 6 faces there"));
+
+    // feature_describe says which model a feature's ids are read in, and lists the bodies before it.
+    const json datum = GUI::Mcp::cad_feature_json(doc, plane);
+    CHECK(datum.at("ids_of") == "finished");
+    const json shelled = GUI::Mcp::cad_feature_json(doc, shell);
+    CHECK(shelled.at("ids_of") == "before");
+    REQUIRE(shelled.at("bodies_before").size() == 1);
+    CHECK(shelled.at("bodies_before")[0].at("index") == 0);
+    CHECK(shelled.at("bodies_before")[0].at("name").is_string());
+    CHECK(GUI::Mcp::cad_feature_json(doc, 0).at("bodies_before").empty());
+}
+
+TEST_CASE("feature_describe lists the bodies before each feature of a history of thirty holes", "[Mcp][CAD]")
+{
+    CadDocument doc;
+    add_box(doc);
+    SketchPlane top;
+    REQUIRE(doc.inward_plane_of_face(0, face_facing(doc, Vec3d(0, 0, 1)), top));
+    for (int i = 0; i < 6; ++i)
+        for (int j = 0; j < 5; ++j)
+            doc.add_hole(1.0, 2.0, false, -15.0 + 6.0 * i, -6.0 + 3.0 * j, top, "Hole");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.features.size() == 32);
+
+    // The time is printed, not pinned: it says what a reply costs on a long history.
+    const auto start = std::chrono::steady_clock::now();
+    for (int f = 0; f < int(doc.features.size()); ++f)
+        CHECK(GUI::Mcp::cad_feature_json(doc, f).at("bodies_before").size() == (f < 2 ? 0u : 1u));
+    const double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+    WARN("feature_describe of each of the " << doc.features.size() << " features: " << ms << " ms");
+}
+
+TEST_CASE("bodies_before is known up to the feature a rebuild stops at, and null after it", "[Mcp][CAD]")
+{
+    CadDocument doc;
+    add_box(doc);
+    const int fillet = doc.add_fillet(1.0, upright_edges(doc).at(0), "Fillet");
+    REQUIRE(doc.recompute());
+    doc.features[fillet].enabled = false;
+    REQUIRE(doc.recompute());
+    // A suppressed feature lists the bodies it would start from, named as the bodies are now.
+    doc.bodies.at(0).has_user_name = true;
+    doc.bodies.at(0).user_name     = "Plate";
+    const json suppressed = GUI::Mcp::cad_feature_json(doc, fillet).at("bodies_before");
+    REQUIRE(suppressed.size() == 1);
+    CHECK(suppressed[0].at("name") == "Plate");
+
+    // A hole off the box removes nothing, so the rebuild stops there: the Shell after it is not reached.
+    const int miss  = doc.add_hole(1.0, 2.0, false, 100.0, 100.0, SketchPlane::XY(), "Hole");
+    const int shell = doc.add_shell(1.0, -1, 0, "Shell");
+    REQUIRE_FALSE(doc.recompute());
+    CHECK(GUI::Mcp::cad_feature_json(doc, miss).at("bodies_before").size() == 1);
+    CHECK(GUI::Mcp::cad_feature_json(doc, shell).at("bodies_before").is_null());
+}
+
+TEST_CASE("body_describe names a chamfer's cone and a fillet's torus, with their radii and areas", "[Mcp][CAD]")
 {
     CadDocument doc;
     add_cylinder(doc);
@@ -1981,7 +3554,7 @@ TEST_CASE("query_topology names a chamfer's cone and a fillet's torus, with thei
     doc.add_chamfer(1.0, circle_at(doc, 0), "Chamfer");
     REQUIRE(doc.recompute());
 
-    const json reply = GUI::Mcp::cad_query_topology(doc, {{"kinds", {"conical", "toroidal"}}});
+    const json reply = GUI::Mcp::cad_body_describe(doc, {{"kinds", {"conical", "toroidal"}}});
     CHECK(reply.at("faces_total") == 2);
     CHECK(reply.at("edges").empty());   // no edge filter, no adjacency
     CHECK(reply.at("face_count").get<int>() > 2);
@@ -2003,13 +3576,13 @@ TEST_CASE("query_topology names a chamfer's cone and a fillet's torus, with thei
     CHECK_THAT(torus.at("center")[2].get<double>(), WithinAbs(19.0, 1e-6));
 
     // A chamfered cylinder's side is still a cylinder.
-    const json sides = GUI::Mcp::cad_query_topology(doc, {{"kinds", {"cylindrical"}}});
+    const json sides = GUI::Mcp::cad_body_describe(doc, {{"kinds", {"cylindrical"}}});
     REQUIRE(sides.at("faces_total") == 1);
     CHECK_THAT(sides.at("faces")[0].at("radius").get<double>(), WithinAbs(10.0, 1e-9));
     CHECK_THAT(sides.at("faces")[0].at("area").get<double>(), WithinAbs(2 * PI * 10.0 * 18.0, 1e-3));
 }
 
-TEST_CASE("query_topology reads a revolved half disc as a sphere", "[Mcp][CAD]")
+TEST_CASE("body_describe reads a revolved half disc as a sphere", "[Mcp][CAD]")
 {
     CadDocument  doc;
     SketchEntity arc;
@@ -2024,7 +3597,7 @@ TEST_CASE("query_topology reads a revolved half disc as a sphere", "[Mcp][CAD]")
     doc.add_revolve(sk, 360.0, 1, false, BooleanMode::New, "Revolve");
     REQUIRE(doc.recompute());
 
-    const json reply = GUI::Mcp::cad_query_topology(doc, {{"kinds", {"spherical"}}});
+    const json reply = GUI::Mcp::cad_body_describe(doc, {{"kinds", {"spherical"}}});
     REQUIRE(reply.at("faces_total").get<int>() >= 1);
     double area = 0;
     for (const json& f : reply.at("faces")) {
@@ -2036,13 +3609,13 @@ TEST_CASE("query_topology reads a revolved half disc as a sphere", "[Mcp][CAD]")
     CHECK_THAT(area, WithinAbs(4 * PI * 100.0, 1e-2));
 }
 
-TEST_CASE("query_topology's adjacency gives each edge its faces and says which corners are inside", "[Mcp][CAD]")
+TEST_CASE("body_describe's adjacency gives each edge its faces and says which corners are inside", "[Mcp][CAD]")
 {
     SECTION("a box: every edge between two faces, every face four edges, every corner outside")
     {
         CadDocument doc;
         add_box(doc);
-        const json reply = GUI::Mcp::cad_query_topology(doc, {{"adjacency", true}});
+        const json reply = GUI::Mcp::cad_body_describe(doc, {{"adjacency", true}});
         REQUIRE(reply.at("faces").size() == 6);
         REQUIRE(reply.at("edges").size() == 12);
         for (const json& f : reply.at("faces")) CHECK(f.at("edges").size() == 4);
@@ -2059,7 +3632,7 @@ TEST_CASE("query_topology's adjacency gives each edge its faces and says which c
                                 SketchPlane::XY(), "Sketch");
         doc.add_extrude(0, 20.0, false, BooleanMode::New, "Extrude");
         REQUIRE(doc.recompute());
-        const json concave = GUI::Mcp::cad_query_topology(doc, {{"convex", false}});
+        const json concave = GUI::Mcp::cad_body_describe(doc, {{"convex", false}});
         REQUIRE(concave.at("edges_total") == 1);
         const json& edge = concave.at("edges")[0];
         CHECK(edge.at("kind") == "line");
@@ -2069,13 +3642,13 @@ TEST_CASE("query_topology's adjacency gives each edge its faces and says which c
         // Without a face filter, the faces listed are the edge's two neighbours.
         CHECK(concave.at("faces_total") == 2);
         CHECK(concave.at("faces").size() == 2);
-        CHECK(GUI::Mcp::cad_query_topology(doc, {{"convex", true}}).at("edges_total") == 17);
+        CHECK(GUI::Mcp::cad_body_describe(doc, {{"convex", true}}).at("edges_total") == 17);
     }
     SECTION("a cylinder: its seam has one face, and the rims meet the caps in outside corners")
     {
         CadDocument doc;
         add_cylinder(doc);
-        const json reply = GUI::Mcp::cad_query_topology(doc, {{"adjacency", true}});
+        const json reply = GUI::Mcp::cad_body_describe(doc, {{"adjacency", true}});
         int seams = 0;
         for (const json& e : reply.at("edges")) {
             if (e.at("faces").size() == 1) {
@@ -2094,7 +3667,7 @@ TEST_CASE("query_topology's adjacency gives each edge its faces and says which c
         add_cylinder(doc);
         doc.add_fillet(1.0, circle_at(doc, 20), "Fillet");
         REQUIRE(doc.recompute());
-        const json torus = GUI::Mcp::cad_query_topology(doc, {{"kinds", {"toroidal"}}, {"adjacency", true}});
+        const json torus = GUI::Mcp::cad_body_describe(doc, {{"kinds", {"toroidal"}}, {"adjacency", true}});
         REQUIRE(torus.at("faces_total") == 1);
         int tangent = 0;
         for (const json& e : torus.at("edges"))   // the torus's own edges, as neighbours
@@ -2103,53 +3676,53 @@ TEST_CASE("query_topology's adjacency gives each edge its faces and says which c
     }
 }
 
-TEST_CASE("query_topology filters by direction, extreme and kind, and pages both lists", "[Mcp][CAD]")
+TEST_CASE("body_describe filters by direction, extreme and kind, and pages both lists", "[Mcp][CAD]")
 {
     CadDocument doc;
     add_box(doc);
     const int top = face_facing(doc, Vec3d(0, 0, 1));
 
-    const json up = GUI::Mcp::cad_query_topology(doc, {{"direction", {0, 0, 2}}});
+    const json up = GUI::Mcp::cad_body_describe(doc, {{"direction", {0, 0, 2}}});
     REQUIRE(up.at("faces_total") == 1);
     CHECK(up.at("faces")[0].at("id") == top);
     CHECK(up.at("edges_total") == 4);   // the vertical edges, whichever way they run
     for (const json& e : up.at("edges")) CHECK_THAT(e.at("length").get<double>(), WithinAbs(10.0, 1e-6));
 
-    const json high = GUI::Mcp::cad_query_topology(doc, {{"at_extreme", "+z"}});
+    const json high = GUI::Mcp::cad_body_describe(doc, {{"at_extreme", "+z"}});
     REQUIRE(high.at("faces_total") == 1);
     CHECK(high.at("faces")[0].at("id") == top);
     CHECK(high.at("edges").empty());
-    CHECK(GUI::Mcp::cad_query_topology(doc, {{"at_extreme", "-x"}}).at("faces")[0].at("id") == face_facing(doc, Vec3d(-1, 0, 0)));
+    CHECK(GUI::Mcp::cad_body_describe(doc, {{"at_extreme", "-x"}}).at("faces")[0].at("id") == face_facing(doc, Vec3d(-1, 0, 0)));
 
-    const json top_edges = GUI::Mcp::cad_query_topology(doc, {{"at_extreme", "+z"}, {"adjacency", true}});
+    const json top_edges = GUI::Mcp::cad_body_describe(doc, {{"at_extreme", "+z"}, {"adjacency", true}});
     CHECK(top_edges.at("edges_total") == 4);
-    CHECK(GUI::Mcp::cad_query_topology(doc, {{"kinds", {"planar"}}, {"adjacency", true}}).at("edges_total") == 12);
-    CHECK(GUI::Mcp::cad_query_topology(doc, {{"edge_kinds", {"circle"}}}).at("faces").empty());
+    CHECK(GUI::Mcp::cad_body_describe(doc, {{"kinds", {"planar"}}, {"adjacency", true}}).at("edges_total") == 12);
+    CHECK(GUI::Mcp::cad_body_describe(doc, {{"edge_kinds", {"circle"}}}).at("faces").empty());
 
-    const json first = GUI::Mcp::cad_query_topology(doc, {{"limit", 2}});
+    const json first = GUI::Mcp::cad_body_describe(doc, {{"limit", 2}});
     CHECK(first.at("faces").size() == 2);
     CHECK(first.at("edges").size() == 2);
     CHECK(first.at("faces_total") == 6);
     CHECK(first.at("edges_total") == 12);
     CHECK(first.at("next_offset") == 2);
-    const json last = GUI::Mcp::cad_query_topology(doc, {{"limit", 2}, {"offset", 10}});
+    const json last = GUI::Mcp::cad_body_describe(doc, {{"limit", 2}, {"offset", 10}});
     CHECK(last.at("faces").empty());
     CHECK(last.at("edges").size() == 2);
     CHECK(last.at("edges")[0].at("id") == 10);
     CHECK_FALSE(last.contains("next_offset"));
 
     // A face kind may be named by its surface's noun.
-    CHECK(GUI::Mcp::cad_query_topology(doc, {{"kinds", {"plane"}}}).at("faces_total") ==
-          GUI::Mcp::cad_query_topology(doc, {{"kinds", {"planar"}}}).at("faces_total"));
-    CHECK_THAT(failure([&] { GUI::Mcp::cad_query_topology(doc, {{"kinds", {"face"}}}); }), ContainsSubstring("kinds must be one of planar"));
-    CHECK_THAT(failure([&] { GUI::Mcp::cad_query_topology(doc, {{"edge_kinds", "line"}}); }), ContainsSubstring("must be a list"));
-    CHECK_THAT(failure([&] { GUI::Mcp::cad_query_topology(doc, {{"direction", {0, 0, 0}}}); }), ContainsSubstring("must not be zero"));
-    CHECK_THAT(failure([&] { GUI::Mcp::cad_query_topology(doc, {{"direction", {0, 1}}}); }), ContainsSubstring("[x, y, z]"));
-    CHECK_THAT(failure([&] { GUI::Mcp::cad_query_topology(doc, {{"convex", "yes"}}); }), ContainsSubstring("convex must be"));
-    CHECK_THAT(failure([&] { GUI::Mcp::cad_query_topology(doc, {{"at_extreme", "top"}}); }), ContainsSubstring("at_extreme must be one of"));
-    CHECK_THAT(failure([&] { GUI::Mcp::cad_query_topology(doc, {{"limit", 0}}); }), ContainsSubstring("limit must be"));
-    CHECK_THAT(failure([&] { GUI::Mcp::cad_query_topology(doc, {{"offset", -1}}); }), ContainsSubstring("offset must be"));
-    CHECK_THAT(failure([&] { GUI::Mcp::cad_query_topology(doc, {{"body", 3}}); }), ContainsSubstring("out of range"));
+    CHECK(GUI::Mcp::cad_body_describe(doc, {{"kinds", {"plane"}}}).at("faces_total") ==
+          GUI::Mcp::cad_body_describe(doc, {{"kinds", {"planar"}}}).at("faces_total"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_body_describe(doc, {{"kinds", {"face"}}}); }), ContainsSubstring("kinds must be one of planar"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_body_describe(doc, {{"edge_kinds", "line"}}); }), ContainsSubstring("must be a list"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_body_describe(doc, {{"direction", {0, 0, 0}}}); }), ContainsSubstring("must not be zero"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_body_describe(doc, {{"direction", {0, 1}}}); }), ContainsSubstring("[x, y, z]"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_body_describe(doc, {{"convex", "yes"}}); }), ContainsSubstring("convex must be"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_body_describe(doc, {{"at_extreme", "top"}}); }), ContainsSubstring("at_extreme must be one of"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_body_describe(doc, {{"limit", 0}}); }), ContainsSubstring("limit must be"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_body_describe(doc, {{"offset", -1}}); }), ContainsSubstring("offset must be"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_body_describe(doc, {{"body", 3}}); }), ContainsSubstring("out of range"));
 }
 
 TEST_CASE("measure keeps the centroid distance and adds the minimum distance, across bodies", "[Mcp][CAD]")
@@ -2178,7 +3751,7 @@ TEST_CASE("measure keeps the centroid distance and adds the minimum distance, ac
     CHECK_FALSE(drop.contains("parallel_gap"));
 
     // Two edges of one face meet at a corner.
-    const json edges = GUI::Mcp::cad_query_topology(doc, {{"at_extreme", "+z"}, {"adjacency", true}});
+    const json edges = GUI::Mcp::cad_body_describe(doc, {{"at_extreme", "+z"}, {"adjacency", true}});
     const json& e0 = edges.at("edges")[0];
     int corner = -1;
     for (const json& e : edges.at("edges"))
@@ -2256,7 +3829,7 @@ TEST_CASE("a hole drills a face's body at a world point or on a round reference'
         REQUIRE(doc.recompute());
         CHECK_THAT(before - body_volume(doc, 0), WithinAbs(PI * (9.0 - 2.25) * 2.0, 1e-3));
         // Its rim, a circular edge, names the same axis.
-        const json rim = GUI::Mcp::cad_query_topology(doc, {{"edge_kinds", {"circle"}}});
+        const json rim = GUI::Mcp::cad_body_describe(doc, {{"edge_kinds", {"circle"}}});
         int        e   = -1;
         for (const json& c : rim.at("edges"))
             if (std::abs(c.at("radius").get<double>() - 3.0) < 1e-6) e = c.at("id");
@@ -2275,7 +3848,7 @@ TEST_CASE("a hole drills a face's body at a world point or on a round reference'
         // A 4 mm bore through 20 mm, and a 90 degree seat 2 mm deep from 8 mm to 4 mm.
         const double removed = PI * 4.0 * 20.0 + PI * 2.0 / 3.0 * (16.0 + 8.0 + 4.0) - PI * 4.0 * 2.0;
         CHECK_THAT(body_volume(doc, 0), WithinAbs(8000.0 - removed, 1e-2));
-        const json cones = GUI::Mcp::cad_query_topology(doc, {{"kinds", {"conical"}}});
+        const json cones = GUI::Mcp::cad_body_describe(doc, {{"kinds", {"conical"}}});
         REQUIRE(cones.at("faces_total") == 1);
         const json& cone = cones.at("faces")[0];
         CHECK(cone.at("internal") == true);
@@ -2324,7 +3897,7 @@ TEST_CASE("extrude pushes or pulls a planar face of a body", "[Mcp][CAD]")
 
     // Inward and cutting: 3 mm off the new top.
     const int roof = face_facing(doc, Vec3d(0, 0, 1));
-    GUI::Mcp::cad_face_extrude(doc, {{"face", roof}, {"distance", 3}, {"flip", true}, {"boolean", "subtract"}}, frame)("Extrude");
+    GUI::Mcp::cad_face_extrude(doc, {{"face", roof}, {"distance", 3}, {"flip", true}, {"operation", "cut"}}, frame)("Extrude");
     REQUIRE(doc.recompute());
     CHECK_THAT(body_volume(doc, 0), WithinAbs(40.0 * 20.0 * 12.0, 1e-6));
 
@@ -2339,7 +3912,7 @@ TEST_CASE("extrude pushes or pulls a planar face of a body", "[Mcp][CAD]")
     CHECK_THAT(refusal({{"taper", 5}}), ContainsSubstring("taper does not apply"));
     CHECK_THAT(refusal({{"face", 99}}), ContainsSubstring("face 99 of body 0 does not exist"));
     CHECK_THAT(refusal({{"face", "2"}}), ContainsSubstring("face must be a face id"));
-    CHECK_THAT(refusal({{"boolean", "atuo"}}), ContainsSubstring("boolean must be"));
+    CHECK_THAT(refusal({{"operation", "atuo"}}), ContainsSubstring("operation must be"));
     CHECK(doc.features.size() == features);
 
     CadDocument cyl;
@@ -2348,7 +3921,7 @@ TEST_CASE("extrude pushes or pulls a planar face of a body", "[Mcp][CAD]")
                ContainsSubstring("is cylindrical; a push/pull needs a planar face"));
 }
 
-TEST_CASE("plane adds the datum plane each construction gives, as the Plane card does", "[Mcp][CAD]")
+TEST_CASE("construct_plane adds the datum plane each construction gives, as the Plane card does", "[Mcp][CAD]")
 {
     CadDocument doc;
     doc.modeling_origin = Vec3d(100, 50, 0);
@@ -2384,7 +3957,7 @@ TEST_CASE("plane adds the datum plane each construction gives, as the Plane card
     CHECK((xz.normal - Vec3d(0, 1, 0)).norm() < 1e-9);
     CHECK_THAT(xz.origin.y(), WithinAbs(50.0, 1e-9));
 
-    const json top_edges = GUI::Mcp::cad_query_topology(doc, {{"at_extreme", "+z"}, {"adjacency", true}});
+    const json top_edges = GUI::Mcp::cad_body_describe(doc, {{"at_extreme", "+z"}, {"adjacency", true}});
     const int  ea = top_edges.at("edges")[0].at("id"), eb = top_edges.at("edges")[1].at("id");
     const auto [p2, two] = add_plane({{"type", "two_edges"}, {"edge_a", {{"body", 0}, {"edge", ea}}}, {"edge_b", {{"body", 0}, {"edge", eb}}}});
     CHECK_THAT(two.origin.z(), WithinAbs(10.0, 1e-9));
@@ -2405,7 +3978,7 @@ TEST_CASE("plane adds the datum plane each construction gives, as the Plane card
     CHECK(std::abs(touch.normal.z()) < 1e-9);
 }
 
-TEST_CASE("plane refuses what the card refuses, and what a construction would not use", "[Mcp][CAD]")
+TEST_CASE("construct_plane refuses what the card refuses, and what a construction would not use", "[Mcp][CAD]")
 {
     CadDocument doc;
     add_box(doc);
@@ -2449,7 +4022,7 @@ TEST_CASE("plane refuses what the card refuses, and what a construction would no
     CHECK_THAT(doc.datum_plane_refusal(stale), ContainsSubstring("no longer on the model"));
 }
 
-TEST_CASE("the rows for topology, measure, holes, push/pull and plane", "[Mcp][CAD]")
+TEST_CASE("the rows for topology, measure, holes, push/pull and construct_plane", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
     // The property `name` of command `key`, which the test needs it to have.
@@ -2463,30 +4036,28 @@ TEST_CASE("the rows for topology, measure, holes, push/pull and plane", "[Mcp][C
         const std::vector<std::string> req = required_of(command_of(catalog, key));
         return std::find(req.begin(), req.end(), name) != req.end();
     };
-    CHECK_FALSE(command_of(catalog, "plane").read_only);
-    CHECK(command_of(catalog, "query_topology").read_only);
+    CHECK_FALSE(command_of(catalog, "construct_plane").read_only);
+    CHECK(command_of(catalog, "body_describe").read_only);
     CHECK(command_of(catalog, "measure").read_only);
-    for (const char* t : {"hole", "hole_styled", "hole_standard", "extrude", "plane"}) {
+    for (const char* t : {"hole", "extrude", "construct_plane"}) {
         INFO(t);
         CHECK_THAT(command_of(catalog, t).description, !ContainsSubstring("ok is false"));
     }
     // Optional everywhere: none of these is required.
     for (const char* k : {"kinds", "edge_kinds", "direction", "at_extreme", "convex", "limit"}) {
-        param("query_topology", k);
-        CHECK_FALSE(required("query_topology", k));
+        param("body_describe", k);
+        CHECK_FALSE(required("body_describe", k));
     }
-    for (const char* hole : {"hole", "hole_styled", "hole_standard"}) {
-        param(hole, "at");
-        CHECK_FALSE(required(hole, "at"));
-        CHECK(param(hole, "body").at("default") == -1);
-    }
+    param("hole", "at");
+    CHECK_FALSE(required("hole", "at"));
+    CHECK(param("hole", "body").at("default") == -1);
     param("extrude", "face");
     CHECK_FALSE(required("extrude", "face"));
     for (const char* k : {"face_a", "face_b", "edge_a", "edge_b"}) {
-        param("plane", k);
-        CHECK_FALSE(required("plane", k));
+        param("construct_plane", k);
+        CHECK_FALSE(required("construct_plane", k));
     }
-    CHECK(param("plane", "type").at("enum").size() == 6);
+    CHECK(param("construct_plane", "type").at("enum").size() == 6);
 }
 
 namespace {
@@ -2506,14 +4077,14 @@ void add_standoff(CadDocument& doc)
 // The first circular edge of body 0 of radius r.
 int circle_edge(const CadDocument& doc, double r)
 {
-    const json rims = GUI::Mcp::cad_query_topology(doc, {{"edge_kinds", {"circle"}}});
+    const json rims = GUI::Mcp::cad_body_describe(doc, {{"edge_kinds", {"circle"}}});
     for (const json& e : rims.at("edges"))
         if (std::abs(e.at("radius").get<double>() - r) < 1e-6) return e.at("id").get<int>();
     return -1;
 }
 
 // The first straight edge of body 0.
-int line_edge(const CadDocument& doc) { return GUI::Mcp::cad_query_topology(doc, {{"edge_kinds", {"line"}}}).at("edges").at(0).at("id").get<int>(); }
+int line_edge(const CadDocument& doc) { return GUI::Mcp::cad_body_describe(doc, {{"edge_kinds", {"line"}}}).at("edges").at(0).at("id").get<int>(); }
 
 BoundingBoxf3 body_box(const CadDocument& doc, size_t body) { return doc.display_body_meshes.at(body).bounding_box(); }
 
@@ -2680,7 +4251,7 @@ TEST_CASE("a sweep along a helix keeps its profile at the same angle to the heli
     {
         const int s = doc.add_sketch_entities({line(9, -1, 11, -1), line(11, -1, 11, 1), line(11, 1, 9, 1), line(9, 1, 9, -1)},
                                               SketchPlane::XZ(), "Sketch");
-        GUI::Mcp::cad_sweep(doc, {{"sketch", s}, {"path", helix}, {"boolean", "new"}})("Sweep");
+        GUI::Mcp::cad_sweep(doc, {{"sketch", s}, {"path", helix}, {"operation", "new_body"}})("Sweep");
         REQUIRE(doc.recompute());
         REQUIRE(doc.bodies.size() == 1);
         CHECK_THAT(body_volume(doc, 0), Catch::Matchers::WithinRel(4.0 * across * length, 0.01));
@@ -2706,8 +4277,8 @@ TEST_CASE("sweep takes a sketch or a helix as its path and refuses anything else
     CHECK_THAT(refusal({{"sketch", s}, {"path", s}}), ContainsSubstring("cannot be the profile sketch"));
     CHECK_THAT(refusal({{"sketch", s}, {"path", 9}}), ContainsSubstring("out of range"));
     CHECK_THAT(refusal({{"sketch", helix}, {"path", spine}}), ContainsSubstring("is not a sketch"));
-    CHECK_THAT(refusal({{"sketch", s}, {"path", helix}, {"boolean", "union"}}), ContainsSubstring("needs a body"));
-    CHECK_THAT(refusal({{"sketch", s}, {"path", helix}, {"boolean", "join"}}), ContainsSubstring("boolean must be"));
+    CHECK_THAT(refusal({{"sketch", s}, {"path", helix}, {"operation", "join"}}), ContainsSubstring("needs a body"));
+    CHECK_THAT(refusal({{"sketch", s}, {"path", helix}, {"operation", "union"}}), ContainsSubstring("operation must be"));
     add_box(doc);
     const int ex = int(doc.features.size()) - 1;
     CHECK_THAT(refusal({{"sketch", s}, {"path", ex}}), ContainsSubstring("(Extrude) is not a sketch or a helix"));
@@ -2730,7 +4301,7 @@ TEST_CASE("loft skins sketches on two planes in order, and refuses what is not a
     CHECK_THAT(refusal({{"profiles", {base, "1"}}}), ContainsSubstring("profiles must hold sketch feature indices"));
     CHECK_THAT(refusal({{"profiles", {base, 7}}}), ContainsSubstring("out of range"));
     CHECK_THAT(refusal({{"profiles", {base, top}}, {"ruled", "yes"}}), ContainsSubstring("ruled must be true or false"));
-    CHECK_THAT(refusal({{"profiles", {base, top}}, {"boolean", "subtract"}}), ContainsSubstring("needs a body"));
+    CHECK_THAT(refusal({{"profiles", {base, top}}, {"operation", "cut"}}), ContainsSubstring("needs a body"));
     CHECK(doc.features.size() == n);
 
     const int l = GUI::Mcp::cad_loft(doc, {{"profiles", {base, top}}})("Loft");
@@ -2843,7 +4414,7 @@ TEST_CASE("the rows for thread, sweep, loft, split and helix", "[Mcp][CAD]")
 
 namespace {
 
-// A fresh sketch session on XY, as sketch_begin leaves it: the Select tool armed.
+// A fresh sketch session on XY, as sketch_create leaves it: the Select tool armed.
 void begin_sketch(GUI::DesignSketchTool& tool) { tool.begin(SketchPlane::XY(), GUI::DesignSketchTool::Mode::Select); }
 
 json sketch(GUI::DesignSketchTool& tool, const char* name, const json& params)
@@ -2884,14 +4455,14 @@ BoundingBoxf entities_box(const std::vector<SketchEntity>& ents, size_t first, s
 
 } // namespace
 
-TEST_CASE("sketch_add draws polygons, slots, ellipses and splines as their tools do", "[Mcp][CAD]")
+TEST_CASE("sketch_draw draws polygons, slots, ellipses and splines as their tools do", "[Mcp][CAD]")
 {
     GUI::DesignSketchTool tool;
     begin_sketch(tool);
     using ET = SketchEntity::Type;
 
     // A hexagon 8 across the flats: six lines, the first edge's midpoint on +x at the apothem.
-    json r = sketch(tool, "sketch_add", {{"type", "polygon"}, {"center", {0, 0}}, {"sides", 6}, {"across_flats", 8}});
+    json r = sketch(tool, "sketch_draw", {{"type", "polygon"}, {"center", {0, 0}}, {"sides", 6}, {"across_flats", 8}});
     CHECK(r.at("first_index") == 0);
     CHECK(r.at("added") == 6);
     CHECK(r.at("shapes") == json::array({{{"first", 0}, {"count", 6}}}));
@@ -2907,14 +4478,14 @@ TEST_CASE("sketch_add draws polygons, slots, ellipses and splines as their tools
     CHECK(only_loop_area(tool) > 0);
 
     // The inscribed form puts its first vertex at the radius, turned by angle_deg.
-    r = sketch(tool, "sketch_add", {{"type", "polygon"}, {"center", {50, 0}}, {"sides", 4}, {"radius", 5}, {"angle_deg", 90}});
+    r = sketch(tool, "sketch_draw", {{"type", "polygon"}, {"center", {50, 0}}, {"sides", 4}, {"radius", 5}, {"angle_deg", 90}});
     CHECK_THAT(ents[6].p0.x(), WithinAbs(50.0, 1e-9));
     CHECK_THAT(ents[6].p0.y(), WithinAbs(5.0, 1e-9));
 
     // A slot, an ellipse and its arc, and a spline in one list, with a line between them.
     tool.cancel();
     begin_sketch(tool);
-    r = sketch(tool, "sketch_add",
+    r = sketch(tool, "sketch_draw",
                {{"entities",
                  {{{"type", "slot"}, {"c0", {0, 0}}, {"c1", {20, 0}}, {"width", 5}},
                   {{"type", "line"}, {"p0", {0, -20}}, {"p1", {10, -20}}},
@@ -2950,18 +4521,18 @@ TEST_CASE("sketch_add draws polygons, slots, ellipses and splines as their tools
     // Construction comes from the item, whatever the tool's sticky setting says.
     tool.set_construction(true);
     tool.set_polygon_circumscribed(true);
-    sketch(tool, "sketch_add", {{"type", "polygon"}, {"center", {0, 60}}, {"sides", 3}, {"radius", 5}});
+    sketch(tool, "sketch_draw", {{"type", "polygon"}, {"center", {0, 60}}, {"sides", 3}, {"radius", 5}});
     CHECK_FALSE(ents.back().construction);
     CHECK_THAT((ents[8].p0 - Vec2d(5, 60)).norm(), WithinAbs(0.0, 1e-9));   // inscribed: a vertex at the radius
     tool.set_tool(GUI::DesignSketchTool::Mode::Polygon);
-    sketch(tool, "sketch_add", {{"type", "slot"}, {"c0", {0, 80}}, {"c1", {10, 80}}, {"width", 2}, {"construction", true}});
+    sketch(tool, "sketch_draw", {{"type", "slot"}, {"c0", {0, 80}}, {"c1", {10, 80}}, {"width", 2}, {"construction", true}});
     CHECK(ents.back().construction);
     CHECK(tool.mode() == GUI::DesignSketchTool::Mode::Polygon);   // the armed tool is left as it was
     CHECK(tool.pending_points() == 0);
 
     // Refusals change nothing, even when only a later item of a list is wrong.
     const size_t n = ents.size();
-    auto refused = [&](const json& params) { return failure([&] { sketch(tool, "sketch_add", params); }); };
+    auto refused = [&](const json& params) { return failure([&] { sketch(tool, "sketch_draw", params); }); };
     CHECK_THAT(refused({{"type", "polygon"}, {"center", {0, 0}}, {"sides", 2}, {"radius", 5}}), ContainsSubstring("3 to 1000"));
     CHECK_THAT(refused({{"type", "polygon"}, {"center", {0, 0}}, {"sides", 6}, {"radius", 5}, {"across_flats", 8}}),
                ContainsSubstring("one of them"));
@@ -2973,18 +4544,708 @@ TEST_CASE("sketch_add draws polygons, slots, ellipses and splines as their tools
                ContainsSubstring("end_angle"));
     CHECK_THAT(refused({{"type", "ellipse_arc"}, {"center", {0, 0}}, {"radius", 5}, {"rminor", 3}, {"start_angle", 0}, {"end_angle", 2 * PI}}),
                ContainsSubstring("whole turn"));
-    CHECK_THAT(refused({{"type", "arc"}, {"center", {0, 0}}, {"radius", 5}, {"start_angle", 0}, {"start_angle_deg", 0}}),
+    CHECK_THAT(refused({{"type", "arc_center"}, {"center", {0, 0}}, {"radius", 5}, {"start_angle", 0}, {"start_angle_deg", 0}}),
                ContainsSubstring("not both"));
     CHECK_THAT(refused({{"type", "spline"}, {"ctrl", {{0, 0}}}}), ContainsSubstring("2 or more poles"));
     CHECK_THAT(refused({{"type", "spline"}, {"ctrl", {{0, 0}, {0, 0}}}}), ContainsSubstring("coincide"));
     CHECK_THAT(refused({{"entities", {{{"type", "line"}, {"p0", {0, 0}}, {"p1", {1, 0}}}, {{"type", "gear"}}}}}),
-               ContainsSubstring("unknown entity type"));
+               ContainsSubstring("unknown type 'gear'"));
     CHECK_THAT(refused(json::object()), ContainsSubstring("needs"));
     CHECK(ents.size() == n);
 
     // An arc's angles may be given in degrees too.
-    sketch(tool, "sketch_add", {{"type", "arc"}, {"center", {0, 0}}, {"radius", 5}, {"start_angle_deg", 0}, {"end_angle_deg", 90}});
+    sketch(tool, "sketch_draw", {{"type", "arc_center"}, {"center", {0, 0}}, {"radius", 5}, {"start_angle_deg", 0}, {"end_angle_deg", 90}});
     CHECK_THAT(ents.back().end_angle, WithinAbs(PI / 2, 1e-12));
+}
+
+TEST_CASE("a rectangle is a type, drawn as the Corner rectangle tool draws it", "[Mcp][CAD]")
+{
+    using T = SketchConstraintType;
+    GUI::DesignSketchTool tool;
+    begin_sketch(tool);
+    const json r = sketch(tool, "sketch_draw", {{"type", "rectangle_2_point"}, {"p0", {-15, -10}}, {"p1", {15, 10}}});
+    CHECK(r.at("added") == 4);
+    CHECK(r.at("shapes") == json::array({{{"first", 0}, {"count", 4}}}));
+    const auto& ents = tool.entities();
+    REQUIRE(ents.size() == 4);
+    // Four lines from p0 round to p1 and back, one closed loop of 30 x 20.
+    const std::vector<Vec2d> corners = {{-15, -10}, {15, -10}, {15, 10}, {-15, 10}};
+    for (size_t i = 0; i < 4; ++i) {
+        INFO(i);
+        CHECK(ents[i].type == SketchEntity::Type::Line);
+        CHECK_THAT((ents[i].p0 - corners[i]).norm(), WithinAbs(0.0, 1e-12));
+        CHECK_THAT((ents[i].p1 - corners[(i + 1) % 4]).norm(), WithinAbs(0.0, 1e-12));
+    }
+    CHECK_THAT(only_loop_area(tool), WithinAbs(600.0, 1e-9));
+    // Its corners are joined and its sides kept horizontal and vertical: of the sixteen degrees of freedom of four
+    // free lines, its position, width and height are left.
+    auto count = [&](T type) {
+        return std::count_if(tool.constraints().begin(), tool.constraints().end(),
+                             [type](const SketchEntityConstraintDef& c) { return c.type == type; });
+    };
+    CHECK(count(T::Coincident) == 4);
+    CHECK(count(T::Horizontal) == 2);
+    CHECK(count(T::Vertical) == 2);
+    CHECK(r.at("dof").get<int>() < 16);
+    CHECK(r.at("dof") == 4);
+    // One undo of the sketch takes the four lines off together: they are one shape.
+    REQUIRE(tool.undo_last_entity());
+    CHECK(tool.entities().empty());
+
+    // Corners on one line make no rectangle, and nothing is drawn.
+    CHECK_THAT(failure([&] { sketch(tool, "sketch_draw", {{"type", "rectangle_2_point"}, {"p0", {0, 0}}, {"p1", {5, 0}}}); }),
+               ContainsSubstring("must differ in x and in y"));
+    CHECK(tool.entities().empty());
+
+    // rect is no argument: the schema refuses it as unknown. The block declares each field of its shapes, none
+    // required, and names in the field's description the types that take it.
+    const GUI::CommandCatalog catalog = cad_catalog();
+    const GUI::NativeCommand& draw    = command_of(catalog, "sketch_draw");
+    CHECK(property_of(draw, "rect").is_null());
+    json rect{{"rect", {0, 0, 1, 1}}};
+    CHECK_THAT(GUI::Mcp::argument_error(draw, rect), ContainsSubstring("unknown argument rect"));
+    const json types = property_of(draw, "type").at("enum");
+    for (const char* t : {"rectangle_2_point", "circle_center", "arc_center"}) {
+        INFO(t);
+        CHECK(std::find(types.begin(), types.end(), json(t)) != types.end());
+    }
+    for (const char* t : {"rect", "circle", "arc"}) {
+        INFO(t);
+        CHECK(std::find(types.begin(), types.end(), json(t)) == types.end());
+    }
+    CHECK(required_of(draw).empty());
+    const std::vector<const char*> two_points = {"line",           "rectangle_2_point", "rectangle_3_point", "rectangle_rounded",
+                                                 "circle_2_point", "circle_3_point",    "arc_3_point"};
+    const std::vector<std::pair<const char*, std::vector<const char*>>> fields = {
+        {"p0", two_points},
+        {"p1", two_points},
+        {"points", {"polyline"}},
+        {"corner", {"rectangle_center"}},
+        {"p2", {"circle_3_point"}},
+        {"on_arc", {"arc_3_point"}},
+        {"end", {"arc_tangent", "slot_arc"}},
+        {"entity", {"arc_tangent"}},
+        {"start", {"slot_arc"}},
+        {"center", {"rectangle_center", "circle_center", "arc_center", "slot_arc", "ellipse", "ellipse_arc", "polygon"}},
+        {"radius", {"rectangle_rounded", "circle_center", "arc_center", "ellipse", "ellipse_arc", "polygon"}},
+        {"start_angle", {"arc_center", "ellipse_arc"}},
+        {"start_angle_deg", {"arc_center", "ellipse_arc"}},
+        {"end_angle", {"arc_center", "ellipse_arc"}},
+        {"end_angle_deg", {"arc_center", "ellipse_arc"}},
+        {"c0", {"slot"}},
+        {"c1", {"slot"}},
+        {"width", {"rectangle_3_point", "slot", "slot_arc"}},
+        {"rminor", {"ellipse", "ellipse_arc"}},
+        {"rotation", {"ellipse", "ellipse_arc"}},
+        {"rotation_deg", {"ellipse", "ellipse_arc"}},
+        {"ctrl", {"spline"}},
+        {"sides", {"polygon"}},
+        {"across_flats", {"polygon"}},
+        {"angle", {"polygon"}},
+        {"angle_deg", {"polygon"}},
+        {"p", {"point"}},
+    };
+    for (const auto& [field, takers] : fields) {
+        INFO(field);
+        const json p = property_of(draw, field);
+        REQUIRE(p.is_object());
+        CHECK(p.contains("default"));
+        for (const char* t : takers)
+            CHECK_THAT(p.value("description", std::string()), ContainsSubstring(t));
+    }
+}
+
+TEST_CASE("every drawing tool's shape is drawn from arguments", "[Mcp][CAD]")
+{
+    using ET = SketchEntity::Type;
+    using T  = SketchConstraintType;
+    GUI::DesignSketchTool tool;
+    begin_sketch(tool);
+    const auto& ents    = tool.entities();
+    auto        draw    = [&](const json& params) { return sketch(tool, "sketch_draw", params); };
+    auto        refused = [&](const json& params) { return failure([&] { draw(params); }); };
+    auto        dist    = [](const Vec2d& a, const Vec2d& b) { return (a - b).norm(); };
+    auto        of_type = [&](ET type) {
+        return std::count_if(ents.begin(), ents.end(), [type](const SketchEntity& e) { return e.type == type; });
+    };
+    // How many constraints of `type` bind entities a and b to each other.
+    auto binding = [&](T type, int a, int b) {
+        return std::count_if(tool.constraints().begin(), tool.constraints().end(), [&](const SketchEntityConstraintDef& c) {
+            return c.type == type && ((c.ea == a && c.eb == b) || (c.ea == b && c.eb == a));
+        });
+    };
+    // A rectangle's four lines, from its first corner round: each starts where `corners` says.
+    auto check_corners = [&](size_t first, const std::vector<Vec2d>& corners) {
+        REQUIRE(ents.size() >= first + 4);
+        for (size_t i = 0; i < 4; ++i) {
+            INFO("corner " << i);
+            CHECK(ents[first + i].type == ET::Line);
+            CHECK_THAT(dist(ents[first + i].p0, corners[i]), WithinAbs(0.0, 1e-12));
+            CHECK_THAT(dist(ents[first + i].p1, corners[(i + 1) % 4]), WithinAbs(0.0, 1e-12));
+        }
+    };
+
+    SECTION("polyline")
+    {
+        // Two lines sharing an end, open.
+        json r = draw({{"type", "polyline"}, {"points", {{0, 0}, {10, 0}, {10, 5}}}});
+        CHECK(r.at("shapes") == json::array({{{"first", 0}, {"count", 2}}}));
+        REQUIRE(ents.size() == 2);
+        CHECK(of_type(ET::Line) == 2);
+        CHECK_THAT(dist(ents[0].p1, ents[1].p0), WithinAbs(0.0, 0.0));
+        CHECK(binding(T::Coincident, 0, 1) == 1);
+        CHECK(tool.loop_report().loops.empty());
+        // With a fourth point on the first, three lines in one closed loop.
+        tool.cancel();
+        begin_sketch(tool);
+        r = draw({{"type", "polyline"}, {"points", {{0, 0}, {10, 0}, {10, 5}, {0, 0}}}});
+        REQUIRE(ents.size() == 3);
+        CHECK(of_type(ET::Line) == 3);
+        const GUI::DesignSketchTool::LoopReport rep = tool.loop_report();
+        REQUIRE(rep.loops.size() == 1);
+        CHECK(rep.loops[0].ents.size() == 3);
+        CHECK(rep.open_ends.empty());
+        CHECK_THAT(std::abs(rep.loops[0].area), WithinAbs(25.0, 1e-9));
+    }
+    SECTION("rectangle_center")
+    {
+        const json r = draw({{"type", "rectangle_center"}, {"center", {0, 0}}, {"corner", {6, 4}}});
+        CHECK(r.at("shapes") == json::array({{{"first", 0}, {"count", 4}}}));
+        CHECK(ents.size() == 4);
+        check_corners(0, {{-6, -4}, {6, -4}, {6, 4}, {-6, 4}});
+    }
+    SECTION("rectangle_3_point")
+    {
+        draw({{"type", "rectangle_3_point"}, {"p0", {0, 0}}, {"p1", {10, 0}}, {"width", 4}});
+        CHECK(ents.size() == 4);
+        check_corners(0, {{0, 0}, {10, 0}, {10, 4}, {0, 4}});
+        // A negative width puts the far side to the right of p0 to p1.
+        tool.cancel();
+        begin_sketch(tool);
+        draw({{"type", "rectangle_3_point"}, {"p0", {0, 0}}, {"p1", {10, 0}}, {"width", -4}});
+        check_corners(0, {{0, 0}, {10, 0}, {10, -4}, {0, -4}});
+    }
+    SECTION("rectangle_rounded")
+    {
+        draw({{"type", "rectangle_rounded"}, {"p0", {0, 0}}, {"p1", {20, 10}}, {"radius", 2}});
+        CHECK(ents.size() == 8);
+        CHECK(of_type(ET::Line) == 4);
+        CHECK(of_type(ET::Arc) == 4);
+        for (const SketchEntity& e : ents)
+            if (e.type == ET::Arc)
+                CHECK_THAT(e.radius, WithinAbs(2.0, 1e-12));
+        // The 20 x 10 box less its four corner squares, plus their quarter discs.
+        CHECK_THAT(std::abs(only_loop_area(tool)), WithinAbs(200.0 - 4.0 * (4.0 - PI), 1e-9));
+    }
+    SECTION("circle_2_point")
+    {
+        draw({{"type", "circle_2_point"}, {"p0", {0, 0}}, {"p1", {10, 0}}});
+        REQUIRE(ents.size() == 1);
+        CHECK(ents[0].type == ET::Circle);
+        CHECK_THAT(dist(ents[0].center, Vec2d(5, 0)), WithinAbs(0.0, 1e-12));
+        CHECK_THAT(ents[0].radius, WithinAbs(5.0, 1e-12));
+    }
+    SECTION("circle_3_point")
+    {
+        draw({{"type", "circle_3_point"}, {"p0", {5, 0}}, {"p1", {0, 5}}, {"p2", {-5, 0}}});
+        REQUIRE(ents.size() == 1);
+        CHECK(ents[0].type == ET::Circle);
+        CHECK_THAT(dist(ents[0].center, Vec2d(0, 0)), WithinAbs(0.0, 1e-12));
+        CHECK_THAT(ents[0].radius, WithinAbs(5.0, 1e-12));
+    }
+    SECTION("arc_3_point")
+    {
+        draw({{"type", "arc_3_point"}, {"p0", {5, 0}}, {"p1", {-5, 0}}, {"on_arc", {0, 5}}});
+        REQUIRE(ents.size() == 1);
+        const SketchEntity& a = ents[0];
+        CHECK(a.type == ET::Arc);
+        CHECK_THAT(dist(a.center, Vec2d(0, 0)), WithinAbs(0.0, 1e-12));
+        CHECK_THAT(a.radius, WithinAbs(5.0, 1e-12));
+        CHECK_THAT(dist(a.p0, Vec2d(5, 0)), WithinAbs(0.0, 1e-12));
+        CHECK_THAT(dist(a.p1, Vec2d(-5, 0)), WithinAbs(0.0, 1e-12));
+        // It runs through on_arc: the point half way along its sweep.
+        const double mid = 0.5 * (a.start_angle + a.end_angle);
+        CHECK_THAT(dist(a.center + a.radius * Vec2d(std::cos(mid), std::sin(mid)), Vec2d(0, 5)), WithinAbs(0.0, 1e-12));
+    }
+    SECTION("arc_tangent")
+    {
+        draw({{"type", "line"}, {"p0", {0, 0}}, {"p1", {10, 0}}});
+        json r = draw({{"type", "arc_tangent"}, {"end", {15, 5}}});
+        CHECK(r.at("shapes") == json::array({{{"first", 1}, {"count", 1}}}));
+        REQUIRE(ents.size() == 2);
+        const SketchEntity& a = ents[1];
+        CHECK(a.type == ET::Arc);
+        CHECK_THAT(dist(a.p0, Vec2d(10, 0)), WithinAbs(0.0, 1e-12));
+        CHECK_THAT(dist(a.p1, Vec2d(15, 5)), WithinAbs(0.0, 1e-12));
+        // It leaves the line's end along +x: square to its radius there, in the way it sweeps.
+        const Vec2d  radial = a.p0 - a.center;
+        const Vec2d  along  = (a.end_angle > a.start_angle ? Vec2d(-radial.y(), radial.x()) : Vec2d(radial.y(), -radial.x())).normalized();
+        CHECK_THAT(dist(along, Vec2d(1, 0)), WithinAbs(0.0, 1e-12));
+        CHECK(binding(T::Coincident, 0, 1) == 1);
+        CHECK(binding(T::Tangent, 0, 1) == 1);
+        // After another line, entity names the line it leaves: it starts at the first line's end.
+        draw({{"type", "line"}, {"p0", {0, 20}}, {"p1", {10, 20}}});
+        draw({{"type", "arc_tangent"}, {"end", {15, 5}}, {"entity", 0}});
+        REQUIRE(ents.size() == 4);
+        CHECK_THAT(dist(ents[3].p0, Vec2d(10, 0)), WithinAbs(0.0, 1e-12));
+
+        // It needs a line or an arc to leave: none in an empty sketch, and a circle is neither.
+        tool.cancel();
+        begin_sketch(tool);
+        CHECK_THAT(refused({{"type", "arc_tangent"}, {"end", {5, 5}}}), ContainsSubstring("needs a line or an arc to leave"));
+        draw({{"type", "circle_center"}, {"center", {0, 0}}, {"radius", 3}});
+        CHECK_THAT(refused({{"type", "arc_tangent"}, {"end", {5, 5}}, {"entity", 0}}), ContainsSubstring("circle 0 is neither"));
+        CHECK_THAT(refused({{"type", "arc_tangent"}, {"end", {5, 5}}}), ContainsSubstring("is neither"));
+        CHECK_THAT(refused({{"type", "arc_tangent"}, {"end", {5, 5}}, {"entity", 4}}), ContainsSubstring("entity 4 does not exist"));
+        // Its end on its start is no arc, and a list whose arc_tangent follows a circle draws nothing.
+        draw({{"type", "line"}, {"p0", {10, 10}}, {"p1", {20, 10}}});
+        CHECK_THAT(refused({{"type", "arc_tangent"}, {"end", {20, 10}}}), ContainsSubstring("apart from its start"));
+        CHECK_THAT(refused({{"entities",
+                             {{{"type", "line"}, {"p0", {0, 30}}, {"p1", {10, 30}}},
+                              {{"type", "circle_2_point"}, {"p0", {20, 30}}, {"p1", {30, 30}}},
+                              {{"type", "arc_tangent"}, {"end", {40, 40}}}}}}),
+                   ContainsSubstring("is neither"));
+        CHECK(ents.size() == 2);
+    }
+    SECTION("slot_arc")
+    {
+        const json r = draw({{"type", "slot_arc"}, {"center", {0, 0}}, {"start", {10, 0}}, {"end", {0, 10}}, {"width", 2}});
+        CHECK(r.at("shapes") == json::array({{{"first", 0}, {"count", 4}}}));
+        REQUIRE(ents.size() == 4);
+        CHECK(of_type(ET::Arc) == 4);
+        // Rails of 11 and 9 about the centre, and caps of 1 about the centreline's ends at (0, 10) and (10, 0).
+        CHECK_THAT(dist(ents[0].center, Vec2d(0, 0)), WithinAbs(0.0, 1e-12));
+        CHECK_THAT(ents[0].radius, WithinAbs(11.0, 1e-12));
+        CHECK_THAT(dist(ents[1].center, Vec2d(0, 10)), WithinAbs(0.0, 1e-12));
+        CHECK_THAT(ents[1].radius, WithinAbs(1.0, 1e-12));
+        CHECK_THAT(dist(ents[2].center, Vec2d(0, 0)), WithinAbs(0.0, 1e-12));
+        CHECK_THAT(ents[2].radius, WithinAbs(9.0, 1e-12));
+        CHECK_THAT(dist(ents[3].center, Vec2d(10, 0)), WithinAbs(0.0, 1e-12));
+        CHECK_THAT(ents[3].radius, WithinAbs(1.0, 1e-12));
+        // A quarter of the annulus between the rails, and the two half discs of the caps.
+        CHECK_THAT(std::abs(only_loop_area(tool)), WithinAbs(PI / 4.0 * (11.0 * 11.0 - 9.0 * 9.0) + PI, 1e-9));
+    }
+    SECTION("a type takes its own fields")
+    {
+        CHECK_THAT(refused({{"type", "circle_3_point"}, {"p0", {5, 0}}, {"p1", {0, 5}}}), ContainsSubstring("p2"));
+        CHECK_THAT(refused({{"type", "circle_center"}, {"center", {0, 0}}, {"radius", 1}, {"p2", {1, 1}}}),
+                   ContainsSubstring("circle_center takes no p2"));
+        CHECK_THAT(refused({{"entities", {{{"type", "line"}, {"p0", {0, 0}}, {"p1", {1, 0}}}, {{"type", "point"}, {"p", {2, 2}}, {"radius", 1}}}}}),
+                   ContainsSubstring("point takes no radius"));
+        const std::string unknown = refused({{"type", "gear"}});
+        for (const char* t : {"line", "polyline", "rectangle_2_point", "rectangle_center", "rectangle_3_point", "rectangle_rounded",
+                              "circle_center", "circle_2_point", "circle_3_point", "arc_3_point", "arc_center", "arc_tangent",
+                              "slot", "slot_arc", "ellipse", "ellipse_arc", "spline", "polygon", "point"}) {
+            INFO(t);
+            CHECK_THAT(unknown, ContainsSubstring(t));
+        }
+        // Shapes their tools could not build.
+        CHECK_THAT(refused({{"type", "circle_3_point"}, {"p0", {0, 0}}, {"p1", {5, 0}}, {"p2", {10, 0}}}), ContainsSubstring("one line"));
+        CHECK_THAT(refused({{"type", "rectangle_rounded"}, {"p0", {0, 0}}, {"p1", {20, 10}}, {"radius", 5}}),
+                   ContainsSubstring("less than half"));
+        CHECK_THAT(refused({{"type", "slot_arc"}, {"center", {0, 0}}, {"start", {10, 0}}, {"end", {5, 0}}, {"width", 2}}),
+                   ContainsSubstring("another direction"));
+        CHECK_THAT(refused({{"type", "polyline"}, {"points", {{0, 0}, {10, 0}, {0, 0}}}}), ContainsSubstring("three points"));
+        CHECK(ents.empty());
+    }
+    SECTION("the nineteen types, and a list of them")
+    {
+        const GUI::CommandCatalog catalog = cad_catalog();
+        CHECK(property_of(command_of(catalog, "sketch_draw"), "type").at("enum") ==
+              json::array({"line", "polyline", "rectangle_2_point", "rectangle_center", "rectangle_3_point", "rectangle_rounded",
+                           "circle_center", "circle_2_point", "circle_3_point", "arc_3_point", "arc_center", "arc_tangent", "slot",
+                           "slot_arc", "ellipse", "ellipse_arc", "spline", "polygon", "point"}));
+        // A tangent arc in a list leaves the shape before it.
+        const json r = draw({{"entities",
+                              {{{"type", "line"}, {"p0", {0, 0}}, {"p1", {10, 0}}},
+                               {{"type", "arc_tangent"}, {"end", {15, 5}}},
+                               {{"type", "rectangle_center"}, {"center", {40, 0}}, {"corner", {45, 3}}},
+                               {{"type", "circle_3_point"}, {"p0", {65, 0}}, {"p1", {60, 5}}, {"p2", {55, 0}}},
+                               {{"type", "polyline"}, {"points", {{0, 20}, {10, 20}, {10, 30}}}},
+                               {{"type", "slot_arc"}, {"center", {40, 20}}, {"start", {50, 20}}, {"end", {40, 30}}, {"width", 2}},
+                               {{"type", "point"}, {"p", {70, 20}}}}}});
+        CHECK(r.at("shapes") == json::parse(R"([{"first":0,"count":1},{"first":1,"count":1},{"first":2,"count":4},
+                                                 {"first":6,"count":1},{"first":7,"count":2},{"first":9,"count":4},
+                                                 {"first":13,"count":1}])"));
+        CHECK_THAT(dist(ents[1].p0, Vec2d(10, 0)), WithinAbs(0.0, 1e-12));
+        CHECK(ents[13].type == ET::Point);
+    }
+    SECTION("a grouped shape comes off whole with one undo")
+    {
+        draw({{"type", "line"}, {"p0", {0, -20}}, {"p1", {10, -20}}});
+        for (const json& shape : {json{{"type", "rectangle_center"}, {"center", {0, 0}}, {"corner", {6, 4}}},
+                                  json{{"type", "rectangle_3_point"}, {"p0", {0, 0}}, {"p1", {10, 5}}, {"width", 4}},
+                                  json{{"type", "rectangle_rounded"}, {"p0", {0, 0}}, {"p1", {20, 10}}, {"radius", 2}},
+                                  json{{"type", "slot_arc"}, {"center", {0, 0}}, {"start", {10, 0}}, {"end", {0, 10}}, {"width", 2}}}) {
+            INFO(shape.dump());
+            draw(shape);
+            CHECK(ents.size() > 1);
+            REQUIRE(tool.undo_last_entity());
+            CHECK(ents.size() == 1);
+        }
+        // A polyline is its lines, as its tool draws it: an undo takes its last line off.
+        draw({{"type", "polyline"}, {"points", {{0, 0}, {10, 0}, {10, 5}, {0, 5}}}});
+        REQUIRE(ents.size() == 4);
+        REQUIRE(tool.undo_last_entity());
+        CHECK(ents.size() == 3);
+    }
+}
+
+TEST_CASE("a rectangle_3_point and an arc_tangent at a slant carry the constraints their tools give them", "[Mcp][CAD]")
+{
+    using T = SketchConstraintType;
+    GUI::DesignSketchTool tool;
+    begin_sketch(tool);
+    const auto count = [&](T type) {
+        return std::count_if(tool.constraints().begin(), tool.constraints().end(), [type](const SketchEntityConstraintDef& c) { return c.type == type; });
+    };
+    const auto& ents = tool.entities();
+
+    // Sides off the axes: four lines, 16 degrees of freedom, less 2 for each of four corners and 1 for each of three
+    // right angles, the fourth being implied, as the Oblique rectangle tool infers them. Its corners stay where the call
+    // put them.
+    json r = sketch(tool, "sketch_draw", {{"type", "rectangle_3_point"}, {"p0", {0, 0}}, {"p1", {10, 3}}, {"width", 4}});
+    CHECK(count(T::Coincident) == 4);
+    CHECK(count(T::Perpendicular) == 3);
+    CHECK(tool.constraints().size() == 7);
+    CHECK(r.at("dof") == 5);
+    const Vec2d u = Vec2d(10, 3).normalized(), side = 4.0 * Vec2d(-u.y(), u.x());
+    const std::vector<Vec2d> corners = {Vec2d(0, 0), Vec2d(10, 3), Vec2d(10, 3) + side, side};
+    REQUIRE(ents.size() == 4);
+    for (size_t i = 0; i < 4; ++i) {
+        INFO("corner " << i);
+        CHECK_THAT((ents[i].p0 - corners[i]).norm(), WithinAbs(0.0, 1e-9));
+        CHECK_THAT((ents[i].p1 - corners[(i + 1) % 4]).norm(), WithinAbs(0.0, 1e-9));
+    }
+    // On the axes, the right angles would add nothing to the Horizontal and Vertical the sides carry: 4 degrees of
+    // freedom left, and the sketch solves.
+    tool.cancel();
+    begin_sketch(tool);
+    r = sketch(tool, "sketch_draw", {{"type", "rectangle_3_point"}, {"p0", {0, 0}}, {"p1", {10, 0}}, {"width", 4}});
+    CHECK(r.at("dof") == 4);
+    CHECK(tool.solve_ok());
+
+    // A tangent arc leaving a slanted line is bound Coincident and Tangent to it, as the Tangent arc tool binds it: a
+    // line's 4 and an arc's 5 degrees of freedom, less 2 and 1. Its ends stay where the line and the call put them.
+    tool.cancel();
+    begin_sketch(tool);
+    sketch(tool, "sketch_draw", {{"type", "line"}, {"p0", {0, 0}}, {"p1", {10, 3}}});
+    r = sketch(tool, "sketch_draw", {{"type", "arc_tangent"}, {"end", {15, 9}}});
+    CHECK(count(T::Coincident) == 1);
+    CHECK(count(T::Tangent) == 1);
+    CHECK(r.at("dof") == 6);
+    REQUIRE(ents.size() == 2);
+    CHECK_THAT((ents[1].p0 - Vec2d(10, 3)).norm(), WithinAbs(0.0, 1e-9));
+    CHECK_THAT((ents[1].p1 - Vec2d(15, 9)).norm(), WithinAbs(0.0, 1e-9));
+    CHECK_THAT((ents[0].p1 - Vec2d(10, 3)).norm(), WithinAbs(0.0, 1e-9));
+    // Leaving an arc it is bound Coincident only, as the tool's is: the tool infers tangency between a line and a curve.
+    tool.cancel();
+    begin_sketch(tool);
+    sketch(tool, "sketch_draw", {{"type", "arc_3_point"}, {"p0", {0, 0}}, {"p1", {10, 0}}, {"on_arc", {5, 3}}});
+    sketch(tool, "sketch_draw", {{"type", "arc_tangent"}, {"end", {20, 5}}});
+    CHECK(count(T::Coincident) == 1);
+    CHECK(count(T::Tangent) == 0);
+}
+
+TEST_CASE("a slot and a four-sided polygon at a slant carry the constraints their tools give them", "[Mcp][CAD]")
+{
+    using T = SketchConstraintType;
+    const double          deg = GENERATE(17.0, 33.0, 61.0, 128.0, 200.0, 341.0);
+    const double          a   = deg * M_PI / 180.0;
+    GUI::DesignSketchTool tool;
+    const auto            count = [&](T type) {
+        return std::count_if(tool.constraints().begin(), tool.constraints().end(), [type](const SketchEntityConstraintDef& c) { return c.type == type; });
+    };
+    const auto& ents = tool.entities();
+    INFO("slant " << deg << " degrees");
+
+    // A slot: two sides and two ends, 18 degrees of freedom, less 2 for each of four joints, 1 for each tangency the
+    // Slot tool infers (the first end to both sides, the second end to the first side) and 1 for the ends' equal radius.
+    // Its sides and ends stay where the call put them.
+    begin_sketch(tool);
+    const Vec2d u(std::cos(a), std::sin(a)), n(-u.y(), u.x()), c1 = 10.0 * u;
+    json        r = sketch(tool, "sketch_draw", {{"type", "slot"}, {"c0", {0, 0}}, {"c1", {c1.x(), c1.y()}}, {"width", 4}});
+    CHECK(count(T::Coincident) == 4);
+    CHECK(count(T::Tangent) == 3);
+    CHECK(count(T::EqualRadius) == 1);
+    CHECK(tool.constraints().size() == 8);
+    CHECK(r.at("dof") == 6);
+    REQUIRE(ents.size() == 4);
+    CHECK_THAT((ents[0].p0 - 2.0 * n).norm(), WithinAbs(0.0, 1e-9));
+    CHECK_THAT((ents[0].p1 - (c1 + 2.0 * n)).norm(), WithinAbs(0.0, 1e-9));
+    CHECK_THAT((ents[2].p0 - (c1 - 2.0 * n)).norm(), WithinAbs(0.0, 1e-9));
+    CHECK_THAT((ents[2].p1 + 2.0 * n).norm(), WithinAbs(0.0, 1e-9));
+    CHECK_THAT((ents[1].center - c1).norm(), WithinAbs(0.0, 1e-9));
+    CHECK_THAT(ents[3].center.norm(), WithinAbs(0.0, 1e-9));
+    CHECK_THAT(ents[1].radius, WithinAbs(2.0, 1e-9));
+    CHECK_THAT(ents[3].radius, WithinAbs(2.0, 1e-9));
+
+    // A four-sided polygon, to a vertex or across its flats: as the rectangle_3_point, four lines and four joints, less
+    // the three right angles the Polygon tool infers, the fourth being implied. Its vertices stay where the call put them.
+    for (const bool flats : {false, true}) {
+        INFO((flats ? "across_flats 12" : "radius 10"));
+        tool.cancel();
+        begin_sketch(tool);
+        json args = {{"type", "polygon"}, {"center", {0, 0}}, {"sides", 4}, {"angle_deg", deg}};
+        args[flats ? "across_flats" : "radius"] = flats ? 12 : 10;
+        r                                       = sketch(tool, "sketch_draw", args);
+        CHECK(count(T::Coincident) == 4);
+        CHECK(count(T::Perpendicular) == 3);
+        CHECK(tool.constraints().size() == 7);
+        CHECK(r.at("dof") == 5);
+        REQUIRE(ents.size() == 4);
+        const double R = flats ? 6.0 / std::cos(M_PI / 4.0) : 10.0, a0 = flats ? a - M_PI / 4.0 : a;
+        for (int k = 0; k < 4; ++k) {
+            INFO("vertex " << k);
+            CHECK_THAT((ents[k].p0 - R * Vec2d(std::cos(a0 + k * M_PI / 2.0), std::sin(a0 + k * M_PI / 2.0))).norm(), WithinAbs(0.0, 1e-9));
+        }
+    }
+}
+
+TEST_CASE("a rounded rectangle and an arc slot carry the constraints their tools give them", "[Mcp][CAD]")
+{
+    using T = SketchConstraintType;
+    const auto [x0, y0, x1, y1, radius] = GENERATE(table<double, double, double, double, double>(
+        {{0.3, -1.7, 29.1, 17.9, 3.3}, {-12.6, 4.2, 7.9, 31.5, 6.1}, {5.5, 5.5, 18.25, 9.75, 1.9}, {-30.1, -22.7, -3.3, -8.9, 2.45},
+         {1.0 / 3.0, 2.0 / 7.0, 40.0 / 3.0, 50.0 / 7.0, 1.1}, {-7.77, 0.91, 23.4, 26.2, 9.4}}));
+    INFO("rounded rectangle " << x0 << ", " << y0 << " to " << x1 << ", " << y1 << ", radius " << radius);
+    GUI::DesignSketchTool tool;
+    const auto            count = [&](T type) {
+        return std::count_if(tool.constraints().begin(), tool.constraints().end(), [type](const SketchEntityConstraintDef& c) { return c.type == type; });
+    };
+    const auto& ents = tool.entities();
+
+    // Four sides and four corner arcs, 36 degrees of freedom, less 2 for each of eight joints, 1 for each side's
+    // Horizontal or Vertical, 1 for each tangency the Rounded rectangle tool infers (every corner to the side before it,
+    // and the last to the first side) and 1 for each corner's radius equal to the first's. Its sides stay where the
+    // call put them.
+    begin_sketch(tool);
+    json r = sketch(tool, "sketch_draw", {{"type", "rectangle_rounded"}, {"p0", {x0, y0}}, {"p1", {x1, y1}}, {"radius", radius}});
+    CHECK(count(T::Coincident) == 8);
+    CHECK(count(T::Horizontal) == 2);
+    CHECK(count(T::Vertical) == 2);
+    CHECK(count(T::Tangent) == 7);
+    CHECK(count(T::EqualRadius) == 3);
+    CHECK(tool.constraints().size() == 22);
+    CHECK(r.at("dof") == 6);
+    REQUIRE(ents.size() == 8);
+    CHECK_THAT((ents[0].p0 - Vec2d(x0 + radius, y0)).norm(), WithinAbs(0.0, 1e-9));
+    CHECK_THAT((ents[2].p0 - Vec2d(x1, y0 + radius)).norm(), WithinAbs(0.0, 1e-9));
+    CHECK_THAT((ents[4].p0 - Vec2d(x1 - radius, y1)).norm(), WithinAbs(0.0, 1e-9));
+    CHECK_THAT((ents[6].p0 - Vec2d(x0, y1 - radius)).norm(), WithinAbs(0.0, 1e-9));
+    for (int k = 1; k < 8; k += 2) CHECK_THAT(ents[k].radius, WithinAbs(radius, 1e-9));
+
+    // An arc slot: four arcs, 20 degrees of freedom, less 2 for each of four joints and 1 for its ends' equal radius, as
+    // the Arc slot tool infers it. Its arcs stay where the call put them.
+    tool.cancel();
+    begin_sketch(tool);
+    const Vec2d c(x0, y0), s(x1, y1);
+    const double rc = (s - c).norm(), w = std::min(2.0 * radius, rc);
+    const Vec2d d = s - c, e = c + Vec2d(std::cos(1.3) * d.x() - std::sin(1.3) * d.y(), std::sin(1.3) * d.x() + std::cos(1.3) * d.y());
+    r             = sketch(tool, "sketch_draw", {{"type", "slot_arc"}, {"center", {c.x(), c.y()}}, {"start", {s.x(), s.y()}}, {"end", {e.x(), e.y()}}, {"width", w}});
+    CHECK(count(T::Coincident) == 4);
+    CHECK(count(T::EqualRadius) == 1);
+    CHECK(tool.constraints().size() == 5);
+    CHECK(r.at("dof") == 11);
+    REQUIRE(ents.size() == 4);
+    CHECK_THAT((ents[0].center - c).norm(), WithinAbs(0.0, 1e-9));
+    CHECK_THAT(ents[0].radius, WithinAbs(rc + w / 2.0, 1e-9));
+    CHECK_THAT((ents[3].center - s).norm(), WithinAbs(0.0, 1e-9));
+    CHECK_THAT((ents[1].center - e).norm(), WithinAbs(0.0, 1e-9));
+    CHECK_THAT(ents[1].radius, WithinAbs(w / 2.0, 1e-9));
+    CHECK_THAT(ents[3].radius, WithinAbs(w / 2.0, 1e-9));
+}
+
+TEST_CASE("a slot and a square on the axes have the degrees of freedom their tools leave", "[Mcp][CAD]")
+{
+    using T = SketchConstraintType;
+    GUI::DesignSketchTool tool;
+    const auto            count = [&](T type) {
+        return std::count_if(tool.constraints().begin(), tool.constraints().end(), [type](const SketchEntityConstraintDef& c) { return c.type == type; });
+    };
+    // A slot's sides carry Horizontal or Vertical, and the Slot tool's slot there carries no tangency or equal radius
+    // beside them, as its inference adds those as one batch, which the solver refuses: 8 degrees of freedom.
+    for (const bool vertical : {false, true}) {
+        INFO((vertical ? "vertical" : "horizontal"));
+        tool.cancel();
+        begin_sketch(tool);
+        const json c1 = vertical ? json{0, 20} : json{20, 0};
+        const json r  = sketch(tool, "sketch_draw", {{"type", "slot"}, {"c0", {0, 0}}, {"c1", c1}, {"width", 6}});
+        CHECK(count(T::Coincident) == 4);
+        CHECK(count(vertical ? T::Vertical : T::Horizontal) == 2);
+        CHECK(tool.constraints().size() == 6);
+        CHECK(r.at("dof") == 8);
+        CHECK(tool.solve_ok());
+    }
+    // A square's sides lie a rounding step off the axes, so exact inference levels only the sides that lie exactly on
+    // one, and right angles hold the others, as the Polygon tool's four level and upright sides hold all of them: 4
+    // degrees of freedom left, and its vertices where the call put them.
+    for (const auto& [flats, deg] : {std::pair{true, 0.0}, std::pair{false, 45.0}, std::pair{true, 90.0}}) {
+        INFO((flats ? "across_flats 20, angle " : "radius 10, angle ") << deg);
+        tool.cancel();
+        begin_sketch(tool);
+        json args = {{"type", "polygon"}, {"center", {0, 0}}, {"sides", 4}, {"angle_deg", deg}};
+        args[flats ? "across_flats" : "radius"] = flats ? 20 : 10;
+        const json r = sketch(tool, "sketch_draw", args);
+        CHECK(tool.constraints().size() == 8);
+        CHECK(r.at("dof") == 4);
+        CHECK(tool.solve_ok());
+        const double R = flats ? 10.0 / std::cos(M_PI / 4.0) : 10.0, a0 = deg * M_PI / 180.0 - (flats ? M_PI / 4.0 : 0.0);
+        REQUIRE(tool.entities().size() == 4);
+        for (int k = 0; k < 4; ++k)
+            CHECK_THAT((tool.entities()[k].p0 - R * Vec2d(std::cos(a0 + k * M_PI / 2.0), std::sin(a0 + k * M_PI / 2.0))).norm(), WithinAbs(0.0, 1e-9));
+    }
+}
+
+TEST_CASE("sketch_draw refuses a shape's field beside its list of shapes", "[Mcp][CAD]")
+{
+    GUI::DesignSketchTool tool;
+    begin_sketch(tool);
+    const json line = {{"type", "line"}, {"p0", {0, 0}}, {"p1", {10, 0}}};
+    CHECK_THAT(failure([&] { sketch(tool, "sketch_draw", {{"entities", json::array({line})}, {"center", {5, 5}}}); }),
+               ContainsSubstring("center belongs in an item of entities"));
+    CHECK_THAT(failure([&] { sketch(tool, "sketch_draw", {{"entities", json::array({line})}, {"type", "circle_center"}}); }),
+               ContainsSubstring("type belongs in an item of entities"));
+    CHECK(tool.entities().empty());
+    // construction is no shape's field: beside the list it is each item's that gives none of its own.
+    json kept            = line;
+    kept["p0"]           = {0, 5};
+    kept["p1"]           = {10, 5};
+    kept["construction"] = false;
+    sketch(tool, "sketch_draw", {{"entities", json::array({line, kept})}, {"construction", true}});
+    REQUIRE(tool.entities().size() == 2);
+    CHECK(tool.entities()[0].construction);
+    CHECK_FALSE(tool.entities()[1].construction);
+}
+
+TEST_CASE("sketch_draw takes an entities given as its list, an empty one included", "[Mcp][CAD]")
+{
+    GUI::DesignSketchTool tool;
+    begin_sketch(tool);
+    sketch(tool, "sketch_draw", {{"type", "line"}, {"p0", {0, 0}}, {"p1", {10, 0}}});
+    const std::vector<SketchEntity>              ents_before = tool.entities();
+    const std::vector<SketchEntityConstraintDef> cons_before = tool.constraints();
+    const auto unchanged = [&] {
+        CHECK(tool.entities().size() == ents_before.size());
+        CHECK(tool.constraints().size() == cons_before.size());
+    };
+    // A shape's field beside an empty list is refused as beside one with items, and an empty list alone says so.
+    const json line = {{"p0", {0, 5}}, {"p1", {10, 5}}};
+    json       beside = line;
+    beside["entities"] = json::array();
+    beside["type"]     = "line";
+    CHECK_THAT(failure([&] { sketch(tool, "sketch_draw", beside); }), ContainsSubstring("belongs in an item of entities"));
+    unchanged();
+    json fields         = line;
+    fields["entities"]  = json::array();
+    CHECK_THAT(failure([&] { sketch(tool, "sketch_draw", fields); }), ContainsSubstring("belongs in an item of entities"));
+    unchanged();
+    CHECK_THAT(failure([&] { sketch(tool, "sketch_draw", {{"entities", json::array()}}); }), ContainsSubstring("entities is empty"));
+    unchanged();
+    // A null entities is not given: the shape beside it is drawn.
+    json one        = line;
+    one["entities"] = nullptr;
+    one["type"]     = "line";
+    sketch(tool, "sketch_draw", one);
+    CHECK(tool.entities().size() == ents_before.size() + 1);
+}
+
+TEST_CASE("an arc_tangent leaves an entity an earlier item of the same list adds", "[Mcp][CAD]")
+{
+    using T = SketchConstraintType;
+    GUI::DesignSketchTool tool;
+    const auto&           ents  = tool.entities();
+    const auto            bound = [&](T type, int a, int b) {
+        return std::count_if(tool.constraints().begin(), tool.constraints().end(), [&](const SketchEntityConstraintDef& c) {
+            return c.type == type && ((c.ea == a && c.eb == b) || (c.ea == b && c.eb == a));
+        });
+    };
+    // A line and a tangent arc naming it, in one list, on an empty sketch and on one with two entities already: the arc
+    // starts at the line's end, bound to it there and tangent to it.
+    for (const int already : {0, 2}) {
+        INFO(already << " entities before");
+        tool.cancel();
+        begin_sketch(tool);
+        if (already > 0)
+            sketch(tool, "sketch_draw", {{"entities", {{{"type", "circle_center"}, {"center", {-20, 0}}, {"radius", 3}},
+                                                       {{"type", "line"}, {"p0", {-20, 10}}, {"p1", {-10, 12}}}}}});
+        REQUIRE(int(ents.size()) == already);
+        sketch(tool, "sketch_draw", {{"entities", {{{"type", "line"}, {"p0", {0, 0}}, {"p1", {10, 3}}},
+                                                   {{"type", "arc_tangent"}, {"entity", already}, {"end", {15, 9}}}}}});
+        REQUIRE(int(ents.size()) == already + 2);
+        CHECK(ents[already + 1].type == SketchEntity::Type::Arc);
+        CHECK_THAT((ents[already + 1].p0 - Vec2d(10, 3)).norm(), WithinAbs(0.0, 1e-9));
+        CHECK_THAT((ents[already + 1].p1 - Vec2d(15, 9)).norm(), WithinAbs(0.0, 1e-9));
+        CHECK(bound(T::Coincident, already, already + 1) == 1);
+        CHECK(bound(T::Tangent, already, already + 1) == 1);
+    }
+
+    // An index past what the sketch and the items before it hold, and a circle an item before it adds, are refused,
+    // and the sketch is as it was.
+    const size_t before = ents.size();
+    CHECK_THAT(failure([&] {
+                   sketch(tool, "sketch_draw", {{"entities", {{{"type", "line"}, {"p0", {0, 20}}, {"p1", {10, 23}}},
+                                                              {{"type", "arc_tangent"}, {"entity", int(before) + 1}, {"end", {15, 29}}}}}});
+               }),
+               ContainsSubstring("entity " + std::to_string(before + 1) + " does not exist"));
+    CHECK(ents.size() == before);
+    CHECK_THAT(failure([&] {
+                   sketch(tool, "sketch_draw", {{"entities", {{{"type", "circle_center"}, {"center", {30, 0}}, {"radius", 3}},
+                                                              {{"type", "arc_tangent"}, {"entity", int(before)}, {"end", {40, 5}}}}}});
+               }),
+               ContainsSubstring("circle " + std::to_string(before) + " is neither"));
+    CHECK(ents.size() == before);
+}
+
+TEST_CASE("a refused sketch_draw leaves the sketch as it was", "[Mcp][CAD]")
+{
+    GUI::DesignSketchTool tool;
+    begin_sketch(tool);
+    // A corner rectangle, one shape, already in the sketch, and a line after it.
+    sketch(tool, "sketch_draw", {{"type", "rectangle_2_point"}, {"p0", {-15, -10}}, {"p1", {15, 10}}});
+    sketch(tool, "sketch_draw", {{"type", "line"}, {"p0", {20, 0}}, {"p1", {30, 0}}});
+    const std::vector<SketchEntity>              ents_before = tool.entities();
+    const std::vector<SketchEntityConstraintDef> cons_before = tool.constraints();
+    const int                                    dof_before  = tool.dof();
+    const bool                                   ok_before   = tool.solve_ok();
+    REQUIRE(ents_before.size() == 5);
+
+    // A tangent arc whose end lies on the line it leaves makes no arc: refused once the items before it are drawn,
+    // in a list, and on its own after the line in the sketch.
+    const std::vector<json> refused_calls = {
+        {{"entities", {{{"type", "line"}, {"p0", {0, 30}}, {"p1", {10, 30}}}, {{"type", "arc_tangent"}, {"end", {20, 30}}}}}},
+        {{"entities",
+          {{{"type", "rectangle_center"}, {"center", {40, 0}}, {"corner", {45, 3}}}, {{"type", "arc_tangent"}, {"end", {35, -8}}}}}},
+        {{"type", "arc_tangent"}, {"end", {40, 0}}},
+    };
+    for (const json& call : refused_calls) {
+        INFO(call.dump());
+        CHECK_THAT(failure([&] { sketch(tool, "sketch_draw", call); }), ContainsSubstring("makes no arc"));
+        // Its entities, constraints and solve are the sketch's before the call.
+        const auto& ents = tool.entities();
+        REQUIRE(ents.size() == ents_before.size());
+        for (size_t i = 0; i < ents.size(); ++i) {
+            INFO("entity " << i);
+            CHECK(ents[i].type == ents_before[i].type);
+            CHECK_THAT((ents[i].p0 - ents_before[i].p0).norm(), WithinAbs(0.0, 0.0));
+            CHECK_THAT((ents[i].p1 - ents_before[i].p1).norm(), WithinAbs(0.0, 0.0));
+        }
+        const auto& cons = tool.constraints();
+        REQUIRE(cons.size() == cons_before.size());
+        for (size_t i = 0; i < cons.size(); ++i) {
+            INFO("constraint " << i);
+            CHECK(cons[i].type == cons_before[i].type);
+            CHECK(cons[i].ea == cons_before[i].ea);
+            CHECK(cons[i].eb == cons_before[i].eb);
+        }
+        CHECK(tool.dof() == dof_before);
+        CHECK(tool.solve_ok() == ok_before);
+    }
+    // One undo of the sketch takes off what it took off before: the line, then the rectangle whole.
+    REQUIRE(tool.undo_last_entity());
+    CHECK(tool.entities().size() == 4);
+    REQUIRE(tool.undo_last_entity());
+    CHECK(tool.entities().empty());
 }
 
 TEST_CASE("sketch_fillet rounds an inside corner with an arc bound tangent to both legs", "[Mcp][CAD]")
@@ -2992,7 +5253,7 @@ TEST_CASE("sketch_fillet rounds an inside corner with an arc bound tangent to bo
     using T = SketchConstraintType;
     GUI::DesignSketchTool tool;
     begin_sketch(tool);
-    sketch(tool, "sketch_add", {{"entities", l_bracket()}});
+    sketch(tool, "sketch_draw", {{"entities", l_bracket()}});
     CHECK_THAT(only_loop_area(tool), WithinAbs(264.0, 1e-9));
 
     const json r = sketch(tool, "sketch_fillet", {{"entities", {2, 3}}, {"radius", 3}});
@@ -3044,16 +5305,16 @@ TEST_CASE("sketch_fillet rounds an inside corner with an arc bound tangent to bo
     CHECK(sketch(tool, "sketch_fillet", {{"radius", 1}}).at("entity") == int(n));
 }
 
-TEST_CASE("sketch_trim cuts a line back to a crossing and extend runs one out to the next entity", "[Mcp][CAD]")
+TEST_CASE("sketch_trim cuts a line back to a crossing and sketch_extend runs one out to the next entity", "[Mcp][CAD]")
 {
     GUI::DesignSketchTool tool;
     begin_sketch(tool);
-    sketch(tool, "sketch_add", {{"entities",
+    sketch(tool, "sketch_draw", {{"entities",
                                  {{{"type", "line"}, {"p0", {-10, 0}}, {"p1", {10, 0}}},
                                   {{"type", "line"}, {"p0", {0, -10}}, {"p1", {0, 10}}},
                                   {{"type", "line"}, {"p0", {0, 20}}, {"p1", {10, 20}}},
                                   {{"type", "line"}, {"p0", {30, 15}}, {"p1", {30, 25}}},
-                                  {{"type", "circle"}, {"center", {60, 0}}, {"radius", 3}},
+                                  {{"type", "circle_center"}, {"center", {60, 0}}, {"radius", 3}},
                                   {{"type", "line"}, {"p0", {100, -50}}, {"p1", {110, -50}}}}}});
     const auto& ents = tool.entities();
 
@@ -3062,15 +5323,19 @@ TEST_CASE("sketch_trim cuts a line back to a crossing and extend runs one out to
     CHECK(r.at("geometry").at("type") == "line");
     CHECK(ents[0].p0 == Vec2d(-10, 0));
     CHECK(ents[0].p1.norm() < 1e-9);
+    CHECK_FALSE(r.contains("extend"));
 
-    r = sketch(tool, "sketch_trim", {{"at", {9, 20}}, {"extend", true}});
+    r = sketch(tool, "sketch_extend", {{"at", {9, 20}}});
     CHECK(r.at("entity") == 2);
     CHECK_THAT((ents[2].p1 - Vec2d(30, 20)).norm(), WithinAbs(0.0, 1e-9));
+    CHECK_FALSE(r.contains("extend"));
 
     const std::vector<SketchEntity> before = ents;
     auto refused = [&](const json& params) { return failure([&] { sketch(tool, "sketch_trim", params); }); };
     CHECK_THAT(refused({{"at", {100, 100}}}), ContainsSubstring("no sketch entity within 0.05 mm"));
-    CHECK_THAT(refused({{"at", {63, 0}}, {"extend", true}}), ContainsSubstring("extend works on lines and arcs; circle 4"));
+    CHECK_THAT(failure([&] { sketch(tool, "sketch_extend", {{"at", {63, 0}}}); }),
+               ContainsSubstring("extend works on lines and arcs; circle 4"));
+    CHECK_THAT(failure([&] { sketch(tool, "sketch_extend", {{"at", {100, 100}}}); }), ContainsSubstring("no sketch entity within 0.05 mm"));
     CHECK_THAT(refused({{"at", {63, 0}}}), ContainsSubstring("nothing to cut on circle 4"));
     CHECK_THAT(refused({{"at", {105, -50}}}), ContainsSubstring("nothing to cut on line 5"));
     CHECK_THAT(refused({{"at", {5, 0}}, {"tolerance", 0}}), ContainsSubstring("tolerance must be > 0"));
@@ -3084,19 +5349,20 @@ TEST_CASE("sketch_trim cuts a line back to a crossing and extend runs one out to
     CHECK(ents[1].p0.norm() < 1e-9);
 }
 
-TEST_CASE("sketch_transform moves, rotates, scales and arrays as the transform tools do", "[Mcp][CAD]")
+TEST_CASE("sketch_transform moves, rotates and scales, and sketch_pattern repeats, as the transform tools do", "[Mcp][CAD]")
 {
     using T = SketchConstraintType;
     GUI::DesignSketchTool tool;
     begin_sketch(tool);
-    sketch(tool, "sketch_add", {{"entities",
+    sketch(tool, "sketch_draw", {{"entities",
                                  {{{"type", "line"}, {"p0", {8, 0}}, {"p1", {12, 0}}},
                                   {{"type", "line"}, {"p0", {1, 0}}, {"p1", {2, 0}}},
-                                  {{"type", "circle"}, {"center", {30, 0}}, {"radius", 2}}}}});
+                                  {{"type", "circle_center"}, {"center", {30, 0}}, {"radius", 2}}}}});
     const auto& ents = tool.entities();
 
     // Six around the origin: five copies every 60 degrees, each bound equal in length.
-    json r = sketch(tool, "sketch_transform", {{"op", "polar_array"}, {"entities", {0}}, {"count", 6}, {"pivot", {0, 0}}});
+    json r = sketch(tool, "sketch_pattern", {{"type", "circular"}, {"entities", {0}}, {"count", 6}, {"pivot", {0, 0}}});
+    CHECK(r.at("type") == "circular");
     CHECK(r.at("first_index") == 3);
     CHECK(r.at("added") == 5);
     CHECK(r.at("bound") == 5);
@@ -3107,24 +5373,25 @@ TEST_CASE("sketch_transform moves, rotates, scales and arrays as the transform t
         CHECK(tool.constraints()[tool.constraints().size() - 6 + k].type == T::EqualLength);
     }
 
-    // A linear array of the circle: two copies 5 apart, each with the source's radius.
-    r = sketch(tool, "sketch_transform", {{"op", "array"}, {"entities", {2}}, {"dy", 5}, {"count", 3}});
+    // A linear pattern of the circle: two copies 5 apart, each with the source's radius.
+    r = sketch(tool, "sketch_pattern", {{"type", "linear"}, {"entities", {2}}, {"dy", 5}, {"count", 3}});
     CHECK(r.at("added") == 2);
     CHECK((ents[8].center - Vec2d(30, 5)).norm() < 1e-9);
     CHECK((ents[9].center - Vec2d(30, 10)).norm() < 1e-9);
     CHECK_FALSE(r.contains("pivot"));
 
     // Rotate a quarter turn about the origin, then scale twice about it, then move.
-    r = sketch(tool, "sketch_transform", {{"op", "rotate"}, {"entities", {1}}, {"angle_deg", 90}, {"pivot", {0, 0}}});
+    r = sketch(tool, "sketch_transform", {{"type", "rotate"}, {"entities", {1}}, {"angle_deg", 90}, {"pivot", {0, 0}}});
+    CHECK(r.at("type") == "rotate");
     CHECK(r.at("moved") == json::array({1}));
     CHECK((ents[1].p0 - Vec2d(0, 1)).norm() < 1e-9);
     CHECK((ents[1].p1 - Vec2d(0, 2)).norm() < 1e-9);
-    sketch(tool, "sketch_transform", {{"op", "scale"}, {"entities", {1}}, {"scale", 2}, {"pivot", {0, 0}}});
+    sketch(tool, "sketch_transform", {{"type", "scale"}, {"entities", {1}}, {"scale", 2}, {"pivot", {0, 0}}});
     CHECK((ents[1].p1 - Vec2d(0, 4)).norm() < 1e-9);
-    sketch(tool, "sketch_transform", {{"op", "move"}, {"entities", {1}}, {"dx", 3}});
+    sketch(tool, "sketch_transform", {{"type", "move"}, {"entities", {1}}, {"dx", 3}});
     CHECK((ents[1].p1 - Vec2d(3, 4)).norm() < 1e-9);
     // Without a pivot, rotate turns about the entities' centroid, the gizmo's pivot.
-    r = sketch(tool, "sketch_transform", {{"op", "rotate"}, {"entities", {1}}, {"angle", PI}});
+    r = sketch(tool, "sketch_transform", {{"type", "rotate"}, {"entities", {1}}, {"angle", PI}});
     CHECK_THAT(r.at("pivot")[0].get<double>(), WithinAbs(3.0, 1e-9));
     CHECK_THAT(r.at("pivot")[1].get<double>(), WithinAbs(3.0, 1e-9));
     CHECK((ents[1].p1 - Vec2d(3, 2)).norm() < 1e-9);
@@ -3132,15 +5399,24 @@ TEST_CASE("sketch_transform moves, rotates, scales and arrays as the transform t
 
     const size_t n = ents.size();
     auto refused = [&](const json& params) { return failure([&] { sketch(tool, "sketch_transform", params); }); };
-    CHECK_THAT(refused({{"op", "spin"}, {"entities", {1}}}), ContainsSubstring("op must be"));
-    CHECK_THAT(refused({{"op", "move"}, {"entities", {1}}, {"dx", 1}, {"angle", 1}}), ContainsSubstring("move takes no angle"));
-    CHECK_THAT(refused({{"op", "move"}, {"entities", {1}}}), ContainsSubstring("non-zero dx or dy"));
-    CHECK_THAT(refused({{"op", "rotate"}, {"entities", {1}}}), ContainsSubstring("non-zero angle"));
-    CHECK_THAT(refused({{"op", "scale"}, {"entities", {1}}, {"scale", 1}}), ContainsSubstring("other than 1"));
-    CHECK_THAT(refused({{"op", "polar_array"}, {"entities", {1}}, {"count", 4}}), ContainsSubstring("needs pivot"));
-    CHECK_THAT(refused({{"op", "array"}, {"entities", {1}}, {"dx", 1}, {"count", 1}}), ContainsSubstring("2 to 1000"));
-    CHECK_THAT(refused({{"op", "array"}, {"entities", {1, 1}}, {"dx", 1}, {"count", 2}}), ContainsSubstring("listed twice"));
-    CHECK_THAT(refused({{"op", "move"}, {"dx", 1}}), ContainsSubstring("nothing selected"));
+    auto unrepeated = [&](const json& params) { return failure([&] { sketch(tool, "sketch_pattern", params); }); };
+    CHECK_THAT(refused({{"type", "spin"}, {"entities", {1}}}), ContainsSubstring("type must be move, rotate or scale"));
+    CHECK_THAT(refused({{"type", "linear"}, {"entities", {1}}, {"dx", 1}}), ContainsSubstring("type must be move, rotate or scale"));
+    CHECK_THAT(refused({{"type", "move"}, {"entities", {1}}, {"dx", 1}, {"angle", 1}}), ContainsSubstring("move takes no angle"));
+    CHECK_THAT(refused({{"type", "move"}, {"entities", {1}}, {"dx", 1}, {"count", 3}}), ContainsSubstring("move takes no count"));
+    CHECK_THAT(refused({{"type", "move"}, {"entities", {1}}}), ContainsSubstring("non-zero dx or dy"));
+    CHECK_THAT(refused({{"type", "rotate"}, {"entities", {1}}}), ContainsSubstring("non-zero angle"));
+    CHECK_THAT(refused({{"type", "scale"}, {"entities", {1}}, {"scale", 1}}), ContainsSubstring("other than 1"));
+    CHECK_THAT(refused({{"type", "move"}, {"dx", 1}}), ContainsSubstring("nothing selected"));
+    CHECK_THAT(unrepeated({{"type", "move"}, {"entities", {1}}, {"dx", 1}, {"count", 2}}), ContainsSubstring("type must be linear or circular"));
+    CHECK_THAT(unrepeated({{"type", "circular"}, {"entities", {1}}, {"count", 4}}), ContainsSubstring("needs pivot"));
+    CHECK_THAT(unrepeated({{"type", "circular"}, {"entities", {1}}, {"count", 4}, {"pivot", {0, 0}}, {"dx", 1}}),
+               ContainsSubstring("circular takes no dx"));
+    CHECK_THAT(unrepeated({{"type", "linear"}, {"entities", {1}}, {"dx", 1}, {"count", 3}, {"pivot", {0, 0}}}),
+               ContainsSubstring("linear takes no pivot"));
+    CHECK_THAT(unrepeated({{"type", "linear"}, {"entities", {1}}, {"dx", 1}}), ContainsSubstring("2 to 1000"));
+    CHECK_THAT(unrepeated({{"type", "linear"}, {"entities", {1}}, {"dx", 1}, {"count", 1}}), ContainsSubstring("2 to 1000"));
+    CHECK_THAT(unrepeated({{"type", "linear"}, {"entities", {1, 1}}, {"dx", 1}, {"count", 2}}), ContainsSubstring("listed twice"));
     CHECK(ents.size() == n);
 }
 
@@ -3149,7 +5425,7 @@ TEST_CASE("a transform keeps the constraints among the entities it moves togethe
     using T = SketchConstraintType;
     GUI::DesignSketchTool tool;
     begin_sketch(tool);
-    sketch(tool, "sketch_add", {{"rect", {-15, -10, 15, 10}}});
+    sketch(tool, "sketch_draw", {{"type", "rectangle_2_point"}, {"p0", {-15, -10}}, {"p1", {15, 10}}});
     auto count = [&](T type) {
         return std::count_if(tool.constraints().begin(), tool.constraints().end(),
                              [type](const SketchEntityConstraintDef& c) { return c.type == type; });
@@ -3161,15 +5437,15 @@ TEST_CASE("a transform keeps the constraints among the entities it moves togethe
     const json whole    = {0, 1, 2, 3};
 
     // Moved or scaled whole, it is still the same rectangle: nothing is released.
-    json r = sketch(tool, "sketch_transform", {{"op", "move"}, {"entities", whole}, {"dx", 5}, {"dy", 3}});
+    json r = sketch(tool, "sketch_transform", {{"type", "move"}, {"entities", whole}, {"dx", 5}, {"dy", 3}});
     CHECK(r.at("released_constraints") == 0);
     CHECK(r.at("dof") == rect_dof);
-    r = sketch(tool, "sketch_transform", {{"op", "scale"}, {"entities", whole}, {"scale", 2}});
+    r = sketch(tool, "sketch_transform", {{"type", "scale"}, {"entities", whole}, {"scale", 2}});
     CHECK(r.at("released_constraints") == 0);
     CHECK(r.at("dof") == rect_dof);
 
     // Turned 30 degrees, its edges are neither horizontal nor vertical, but its corners still meet.
-    r = sketch(tool, "sketch_transform", {{"op", "rotate"}, {"entities", whole}, {"angle_deg", 30}});
+    r = sketch(tool, "sketch_transform", {{"type", "rotate"}, {"entities", whole}, {"angle_deg", 30}});
     CHECK(r.at("released_constraints") == 4);
     CHECK(count(T::Coincident) == 4);
     CHECK(count(T::Horizontal) == 0);
@@ -3179,14 +5455,418 @@ TEST_CASE("a transform keeps the constraints among the entities it moves togethe
     // A corner pinned to the origin stays behind when the whole rectangle moves: only the pin goes.
     sketch(tool, "sketch_constrain", {{"type", "coincident"}, {"refs", {{{"entity", 0}, {"role", "p0"}}, {{"entity", "origin"}}}}});
     REQUIRE(count(T::Coincident) == 5);
-    r = sketch(tool, "sketch_transform", {{"op", "move"}, {"entities", whole}, {"dx", 2}});
+    r = sketch(tool, "sketch_transform", {{"type", "move"}, {"entities", whole}, {"dx", 2}});
     CHECK(r.at("released_constraints") == 1);
     CHECK(count(T::Coincident) == 4);
 
     // One edge moved on its own leaves its neighbours: the two corners it shares are released.
-    r = sketch(tool, "sketch_transform", {{"op", "move"}, {"entities", {0}}, {"dx", 1}});
+    r = sketch(tool, "sketch_transform", {{"type", "move"}, {"entities", {0}}, {"dx", 1}});
     CHECK(r.at("released_constraints") == 2);
     CHECK(count(T::Coincident) == 2);
+}
+
+TEST_CASE("sketch_mirror about an axis binds the copies as the Mirror tool does", "[Mcp][CAD]")
+{
+    using T = SketchConstraintType;
+    const auto off = [](const Vec2d& a, const Vec2d& b) { return (a - b).norm(); };
+    // `p` reflected across the vertical line x = `x`.
+    const auto across = [](const Vec2d& p, double x) { return Vec2d(2.0 * x - p.x(), p.y()); };
+    // The two Symmetric constraints the Mirror tool keeps for a line, one for each end: the line's end, the copy's end that
+    // is its reflection (the copy runs the other way), the axis.
+    const auto both_ends = [](const json& added, int line, int copy, const json& axis) {
+        REQUIRE(added.size() == 2);
+        for (int k = 0; k < 2; ++k) {
+            const char* role = k == 0 ? "p0" : "p1";
+            const char* its  = k == 0 ? "p1" : "p0";
+            INFO(role);
+            CHECK(added[k].at("type") == "symmetric");
+            CHECK(added[k].at("refs") == json::array({{{"entity", line}, {"role", role}}, {{"entity", copy}, {"role", its}}, {{"entity", axis}}}));
+        }
+    };
+    const json slanted = {{"type", "line"}, {"p0", {5, 0}}, {"p1", {10, 5}}};
+    // Line 0 held 10 long: a distance between its ends, which the solver meets by moving them.
+    const json ten_long = {{"type", "distance"}, {"refs", {{{"entity", 0}, {"role", "p0"}}, {{"entity", 0}, {"role", "p1"}}}}, {"value", 10}};
+
+    // About the sketch's y axis.
+    {
+        GUI::DesignSketchTool tool;
+        begin_sketch(tool);
+        sketch(tool, "sketch_draw", slanted);
+        const json  r    = sketch(tool, "sketch_mirror", {{"axis", "y_axis"}, {"entities", {0}}});
+        const auto& ents = tool.entities();
+        REQUIRE(ents.size() == 2);
+        CHECK(r.at("first_index") == 1);
+        CHECK(r.at("added") == 1);
+        // (-5, 0) to (-10, 5), run the other way, as a mirrored chain continues head to tail.
+        CHECK_THAT(off(ents[1].p1, Vec2d(-5, 0)), WithinAbs(0.0, 1e-9));
+        CHECK_THAT(off(ents[1].p0, Vec2d(-10, 5)), WithinAbs(0.0, 1e-9));
+        both_ends(r.at("constraints_added"), 0, 1, "y_axis");
+        for (const json& c : r.at("constraints_added"))
+            CHECK(tool.constraints().at(c.at("index").get<std::size_t>()).type == T::Symmetric);
+        // A move would let go of a Symmetric constraint that crosses what it moves; a length the solver meets by moving
+        // the line keeps them, and the copy follows it.
+        sketch(tool, "sketch_dimension", ten_long);
+        CHECK_THAT(off(ents[0].p0, ents[0].p1), WithinAbs(10.0, 1e-6));
+        CHECK_THAT(off(ents[1].p1, across(ents[0].p0, 0.0)), WithinAbs(0.0, 1e-6));
+        CHECK_THAT(off(ents[1].p0, across(ents[0].p1, 0.0)), WithinAbs(0.0, 1e-6));
+    }
+    // About a vertical line of the sketch, x = 20.
+    {
+        GUI::DesignSketchTool tool;
+        begin_sketch(tool);
+        sketch(tool, "sketch_draw", {{"entities", {slanted, {{"type", "line"}, {"p0", {20, -10}}, {"p1", {20, 10}}}}}});
+        const json  r    = sketch(tool, "sketch_mirror", {{"axis", 1}, {"entities", {0}}});
+        const auto& ents = tool.entities();
+        REQUIRE(ents.size() == 3);
+        CHECK_THAT(off(ents[2].p1, Vec2d(35, 0)), WithinAbs(0.0, 1e-9));
+        CHECK_THAT(off(ents[2].p0, Vec2d(30, 5)), WithinAbs(0.0, 1e-9));
+        both_ends(r.at("constraints_added"), 0, 2, 1);
+        sketch(tool, "sketch_dimension", ten_long);
+        CHECK_THAT(off(ents[0].p0, ents[0].p1), WithinAbs(10.0, 1e-6));
+        CHECK_THAT(ents[1].p1.x() - ents[1].p0.x(), WithinAbs(0.0, 1e-9));   // the axis stays upright
+        const double x = ents[1].p0.x();
+        CHECK_THAT(off(ents[2].p1, across(ents[0].p0, x)), WithinAbs(0.0, 1e-6));
+        CHECK_THAT(off(ents[2].p0, across(ents[0].p1, x)), WithinAbs(0.0, 1e-6));
+    }
+    // An arc's copy runs the other way too, and is bound by its two ends.
+    {
+        GUI::DesignSketchTool tool;
+        begin_sketch(tool);
+        sketch(tool, "sketch_draw", {{"type", "arc_3_point"}, {"p0", {10, 0}}, {"p1", {5, 5}},
+                                     {"on_arc", {5 + 5 * std::cos(PI / 4), 5 * std::sin(PI / 4)}}});
+        const json  r    = sketch(tool, "sketch_mirror", {{"axis", "y_axis"}, {"entities", {0}}});
+        const auto& ents = tool.entities();
+        REQUIRE(ents.size() == 2);
+        CHECK(ents[1].type == SketchEntity::Type::Arc);
+        both_ends(r.at("constraints_added"), 0, 1, "y_axis");
+        CHECK_THAT(off(ents[1].p1, across(ents[0].p0, 0.0)), WithinAbs(0.0, 1e-9));
+        CHECK_THAT(off(ents[1].p0, across(ents[0].p1, 0.0)), WithinAbs(0.0, 1e-9));
+        CHECK_THAT(off(ents[1].center, Vec2d(-5, 0)), WithinAbs(0.0, 1e-9));
+    }
+    // What is refused adds nothing; two free points bind nothing.
+    {
+        GUI::DesignSketchTool tool;
+        begin_sketch(tool);
+        sketch(tool, "sketch_draw", {{"entities", {slanted, {{"type", "circle_center"}, {"center", {30, 0}}, {"radius", 3}}}}});
+        const std::size_t n = tool.entities().size(), nc = tool.constraints().size();
+        auto refused = [&](const json& params) { return failure([&] { sketch(tool, "sketch_mirror", params); }); };
+        CHECK_THAT(refused({{"axis", 1}, {"entities", {0}}}), ContainsSubstring("circle 1 is not a line"));
+        CHECK_THAT(refused({{"axis", "y_axis"}, {"axis_a", {0, 0}}, {"entities", {0}}}), ContainsSubstring("not both"));
+        CHECK_THAT(refused({{"axis", "z_axis"}, {"entities", {0}}}), ContainsSubstring("x_axis"));
+        CHECK_THAT(refused({{"axis", 0}, {"entities", {0}}}), ContainsSubstring("is the axis"));
+        CHECK(tool.entities().size() == n);
+        CHECK(tool.constraints().size() == nc);
+        const json r = sketch(tool, "sketch_mirror", {{"axis_a", {0, 0}}, {"axis_b", {0, 1}}, {"entities", {0}}});
+        CHECK(r.at("added") == 1);
+        CHECK(r.at("constraints_added").empty());
+        CHECK(tool.constraints().size() == nc);
+    }
+}
+
+TEST_CASE("a fillet or chamfer of a mirrored source's corner gives the source what it gives with no mirror, and frees the copy there",
+          "[Mcp][CAD]")
+{
+    using T = SketchConstraintType;
+    using R = SketchPointRole;
+    const auto off = [](const Vec2d& a, const Vec2d& b) { return (a - b).norm(); };
+    // Two lines meeting at the corner (15, 0); mirrored about the y axis, their copies meet at (-15, 0).
+    const json corner = {{"entities", {{{"type", "line"}, {"p0", {5, 0}}, {"p1", {15, 0}}},
+                                       {{"type", "line"}, {"p0", {15, 0}}, {"p1", {15, 10}}}}}};
+    // The corner rounded by radius 2, or cut by 2, and the degrees of freedom the sketch has after it with no mirror
+    // (each line 3, held Horizontal or Vertical, and the arc 5 or the segment 4, less its ends' Coincident and the
+    // arc's Tangent constraints).
+    struct Corner { const char* command; json params; int dof; };
+    const Corner ops[] = {{"sketch_fillet", {{"entities", {0, 1}}, {"radius", 2}}, 5},
+                          {"sketch_chamfer", {{"entities", {0, 1}}, {"distance", 2}}, 6}};
+    for (const Corner& op : ops) {
+        INFO(op.command);
+        GUI::DesignSketchTool without;
+        begin_sketch(without);
+        sketch(without, "sketch_draw", corner);
+        sketch(without, op.command, op.params);
+        CHECK(without.dof() == op.dof);
+        GUI::DesignSketchTool with;
+        begin_sketch(with);
+        sketch(with, "sketch_draw", corner);
+        const json m = sketch(with, "sketch_mirror", {{"axis", "y_axis"}, {"entities", {0, 1}}});
+        REQUIRE(m.at("constraints_added").size() == 4);
+        CHECK(m.at("dof") == 4);   // the source's 4; each copy is held by its source's two ends
+        const auto&                     ents   = with.entities();
+        const std::vector<SketchEntity> copies = {ents.at(2), ents.at(3)};
+        const json r = sketch(with, op.command, op.params);
+        CHECK(r.at("solve_ok") == true);
+        // The two lines and the arc or segment between them (index 4 here, 2 with no mirror) are the unmirrored ones.
+        REQUIRE(ents.size() == 5);
+        const std::pair<int, int> source[] = {{0, 0}, {1, 1}, {4, 2}};
+        for (const auto& [i, j] : source) {
+            INFO("entity " << i);
+            const SketchEntity &a = ents[i], &b = without.entities().at(j);
+            CHECK(a.type == b.type);
+            CHECK_THAT(off(a.p0, b.p0), WithinAbs(0.0, 1e-9));
+            CHECK_THAT(off(a.p1, b.p1), WithinAbs(0.0, 1e-9));
+            CHECK_THAT(off(a.center, b.center), WithinAbs(0.0, 1e-9));
+            CHECK_THAT(a.radius, WithinAbs(b.radius, 1e-9));
+        }
+        if (std::string(op.command) == "sketch_fillet") CHECK_THAT(ents[4].radius, WithinAbs(2.0, 1e-9));
+        // The copies stay where the mirror put them: their ends at the corner are let go of with the trimmed ends'
+        // Symmetric constraints, and the far ends keep theirs.
+        for (int k = 0; k < 2; ++k) {
+            INFO("copy " << k + 2);
+            CHECK_THAT(off(ents[2 + k].p0, copies[k].p0), WithinAbs(0.0, 1e-9));
+            CHECK_THAT(off(ents[2 + k].p1, copies[k].p1), WithinAbs(0.0, 1e-9));
+        }
+        std::vector<std::pair<int, R>> held;   // the source end each Symmetric constraint left holds
+        for (const SketchEntityConstraintDef& c : with.constraints())
+            if (c.type == T::Symmetric) held.emplace_back(c.ea, c.ra);
+        CHECK(held == std::vector<std::pair<int, R>>{{0, R::P0}, {1, R::P1}});
+        CHECK(r.at("dof") == op.dof + 4);   // and each copy's freed end
+    }
+}
+
+TEST_CASE("an extend of a mirrored source gives the source what it gives with no mirror, and frees the copy", "[Mcp][CAD]")
+{
+    using T = SketchConstraintType;
+    const auto off = [](const Vec2d& a, const Vec2d& b) { return (a - b).norm(); };
+    // A line ending short of a crossing line at x = 10, both mirrored about the y axis, the line then extended to it.
+    const json reaching = {{"entities", {{{"type", "line"}, {"p0", {5, 0}}, {"p1", {8, 0}}},
+                                         {{"type", "line"}, {"p0", {10, -5}}, {"p1", {10, 5}}}}}};
+    const json reach    = {{"at", {8, 0}}};
+    GUI::DesignSketchTool without;
+    begin_sketch(without);
+    sketch(without, "sketch_draw", reaching);
+    sketch(without, "sketch_extend", reach);
+    GUI::DesignSketchTool with;
+    begin_sketch(with);
+    sketch(with, "sketch_draw", reaching);
+    const json m = sketch(with, "sketch_mirror", {{"axis", "y_axis"}, {"entities", {0, 1}}});
+    REQUIRE(m.at("constraints_added").size() == 4);
+    CHECK(m.at("dof") == 6);   // each source line held Horizontal or Vertical, each copy held by its source
+    const auto&                     ents   = with.entities();
+    const std::vector<SketchEntity> copies = {ents.at(2), ents.at(3)};
+    const json e = sketch(with, "sketch_extend", reach);
+    CHECK(e.at("solve_ok") == true);
+    // The source is what the same extend gives with no mirror: the line runs on to (10, 0).
+    REQUIRE(ents.size() == 4);
+    CHECK_THAT(off(ents[0].p1, Vec2d(10, 0)), WithinAbs(0.0, 1e-9));
+    for (int i : {0, 1}) {
+        INFO("entity " << i);
+        CHECK_THAT(off(ents[i].p0, without.entities().at(i).p0), WithinAbs(0.0, 1e-9));
+        CHECK_THAT(off(ents[i].p1, without.entities().at(i).p1), WithinAbs(0.0, 1e-9));
+    }
+    // The extend lets go of the extended line's constraints, its Symmetric ones with them, as it does with no mirror:
+    // its copy stays where it was, short of its crossing and bound to nothing; the crossing line's copy stays bound.
+    CHECK(e.at("released_constraints") == 3);
+    CHECK(e.at("dof") == 11);
+    CHECK(without.dof() == 7);
+    for (int k = 0; k < 2; ++k) {
+        INFO("copy " << k + 2);
+        CHECK_THAT(off(ents[2 + k].p0, copies[k].p0), WithinAbs(0.0, 1e-9));
+        CHECK_THAT(off(ents[2 + k].p1, copies[k].p1), WithinAbs(0.0, 1e-9));
+    }
+    int symmetric_of_line = 0, symmetric_of_crossing = 0;
+    for (const SketchEntityConstraintDef& c : with.constraints())
+        if (c.type == T::Symmetric) {
+            symmetric_of_line += c.ea == 0;
+            symmetric_of_crossing += c.ea == 1 && c.eb == 3;
+        }
+    CHECK(symmetric_of_line == 0);
+    CHECK(symmetric_of_crossing == 2);
+}
+
+TEST_CASE("a trim of a mirrored source gives the source what it gives with no mirror, and frees the copy", "[Mcp][CAD]")
+{
+    using T = SketchConstraintType;
+    const auto off = [](const Vec2d& a, const Vec2d& b) { return (a - b).norm(); };
+    // A line crossed at (10, 0) by another, both mirrored about the y axis, the line then trimmed back to the crossing.
+    const json crossing = {{"entities", {{{"type", "line"}, {"p0", {5, 0}}, {"p1", {15, 0}}},
+                                         {{"type", "line"}, {"p0", {10, -5}}, {"p1", {10, 5}}}}}};
+    const json cut      = {{"at", {13, 0}}};
+    GUI::DesignSketchTool without;
+    begin_sketch(without);
+    sketch(without, "sketch_draw", crossing);
+    sketch(without, "sketch_trim", cut);
+    GUI::DesignSketchTool with;
+    begin_sketch(with);
+    sketch(with, "sketch_draw", crossing);
+    const json m = sketch(with, "sketch_mirror", {{"axis", "y_axis"}, {"entities", {0, 1}}});
+    REQUIRE(m.at("constraints_added").size() == 4);
+    CHECK(m.at("dof") == 6);   // each source line held Horizontal or Vertical, each copy held by its source
+    const auto&                     ents   = with.entities();
+    const std::vector<SketchEntity> copies = {ents.at(2), ents.at(3)};
+    const json t = sketch(with, "sketch_trim", cut);
+    CHECK(t.at("solve_ok") == true);
+    // The source is what the same trim leaves with no mirror.
+    REQUIRE(ents.size() == 4);
+    for (int i : {0, 1}) {
+        INFO("entity " << i);
+        CHECK_THAT(off(ents[i].p0, without.entities().at(i).p0), WithinAbs(0.0, 1e-9));
+        CHECK_THAT(off(ents[i].p1, without.entities().at(i).p1), WithinAbs(0.0, 1e-9));
+    }
+    // The trim lets go of the trimmed line's constraints, its Symmetric ones with them, as it does with no mirror: its
+    // copy stays where it was, untrimmed and bound to nothing; the crossing line's copy stays bound to it.
+    CHECK(t.at("released_constraints") == 3);
+    CHECK(t.at("dof") == 11);
+    CHECK(without.dof() == 7);
+    for (int k = 0; k < 2; ++k) {
+        INFO("copy " << k + 2);
+        CHECK_THAT(off(ents[2 + k].p0, copies[k].p0), WithinAbs(0.0, 1e-9));
+        CHECK_THAT(off(ents[2 + k].p1, copies[k].p1), WithinAbs(0.0, 1e-9));
+    }
+    int symmetric_of_line = 0, symmetric_of_crossing = 0;
+    for (const SketchEntityConstraintDef& c : with.constraints())
+        if (c.type == T::Symmetric) {
+            symmetric_of_line += c.ea == 0;
+            symmetric_of_crossing += c.ea == 1 && c.eb == 3;
+        }
+    CHECK(symmetric_of_line == 0);
+    CHECK(symmetric_of_crossing == 2);
+}
+
+TEST_CASE("sketch_offset binds a single entity's copy as the Offset tool does", "[Mcp][CAD]")
+{
+    GUI::DesignSketchTool tool;
+    begin_sketch(tool);
+    sketch(tool, "sketch_draw", {{"entities",
+                                 {{{"type", "line"}, {"p0", {0, 0}}, {"p1", {10, 5}}},
+                                  {{"type", "circle_center"}, {"center", {30, 0}}, {"radius", 5}},
+                                  {{"type", "line"}, {"p0", {50, 0}}, {"p1", {60, 3}}},
+                                  {{"type", "line"}, {"p0", {50, 10}}, {"p1", {60, 14}}},
+                                  {{"type", "line"}, {"p0", {0, 20}}, {"p1", {10, 20}}},
+                                  {{"type", "line"}, {"p0", {20, 20}}, {"p1", {20, 30}}},
+                                  {{"type", "arc_3_point"}, {"p0", {40, 20}}, {"p1", {50, 20}}, {"on_arc", {45, 25}}}}}});
+    // A line's copy Parallel to it, the line first, whichever way the line lies, a horizontal or vertical one included,
+    // whose copy is not held Horizontal or Vertical as well; a circle's and an arc's Concentric with it.
+    for (const auto& [entity, type] : std::vector<std::pair<int, std::string>>{
+             {0, "parallel"}, {4, "parallel"}, {5, "parallel"}, {1, "concentric"}, {6, "concentric"}}) {
+        INFO(entity << " " << type);
+        const json r = sketch(tool, "sketch_offset", {{"distance", 2}, {"entities", {entity}}});
+        REQUIRE(r.at("added") == 1);
+        const int  copy  = r.at("first_index").get<int>();
+        const json added = r.at("constraints_added");
+        REQUIRE(added.size() == 1);
+        CHECK(added[0].at("type") == type);
+        CHECK(added[0].at("refs") == json::array({{{"entity", entity}}, {{"entity", copy}}}));
+        CHECK(added[0].at("index").get<std::size_t>() == tool.constraints().size() - 1);
+    }
+    // Two entities' copies are left unbound.
+    const std::size_t nc = tool.constraints().size();
+    const json        r  = sketch(tool, "sketch_offset", {{"distance", 2}, {"entities", {2, 3}}});
+    CHECK(r.at("added") == 2);
+    CHECK(r.at("constraints_added").empty());
+    CHECK(tool.constraints().size() == nc);
+}
+
+TEST_CASE("sketch_project adds a body's edges to the open sketch as construction", "[Mcp][CAD]")
+{
+    CadDocument doc;
+    add_box(doc);   // 40 x 20 x 10, centred on the origin, z 0..10
+    const int top = face_facing(doc, Vec3d(0, 0, 1));
+    REQUIRE(top >= 0);
+    GUI::DesignSketchTool tool;
+    begin_sketch(tool);
+
+    // The top face's four edges, construction lines closing the box's 40 x 20 outline: each corner ends two of them.
+    json r = GUI::Mcp::cad_sketch_project(doc, tool, {{"source_body", 0}, {"face", top}});
+    CHECK(r.at("ok") == true);
+    CHECK(r.at("scope") == "sketch");
+    CHECK(r.at("first_index") == 0);
+    CHECK(r.at("added") == 4);
+    CHECK(r.at("entities") == 4);
+    const std::vector<SketchEntity>& ents = tool.entities();
+    REQUIRE(ents.size() == 4);
+    std::vector<Vec2d> ends;
+    for (const SketchEntity& e : ents) {
+        CHECK(e.type == SketchEntity::Type::Line);
+        CHECK(e.construction);
+        ends.push_back(e.p0);
+        ends.push_back(e.p1);
+    }
+    for (const Vec2d& p : ends)
+        CHECK(std::count_if(ends.begin(), ends.end(), [&p](const Vec2d& q) { return (p - q).norm() < 1e-9; }) == 2);
+    const BoundingBoxf outline = entities_box(ents, 0, 4);
+    CHECK_THAT(outline.size().x(), WithinAbs(40.0, 1e-9));
+    CHECK_THAT(outline.size().y(), WithinAbs(20.0, 1e-9));
+
+    // One edge of the top: one line.
+    const TopoDS_Shape& box = doc.bodies[0].shape;
+    int top_edge = -1;
+    for (int i = 0; i < GeometryEngine::edge_count(box) && top_edge < 0; ++i) {
+        const std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(GeometryEngine::edge_by_index(box, i));
+        if (!pts.empty() && std::all_of(pts.begin(), pts.end(), [](const Vec3d& p) { return p.z() > 10.0 - 1e-6; }))
+            top_edge = i;
+    }
+    REQUIRE(top_edge >= 0);
+    r = GUI::Mcp::cad_sketch_project(doc, tool, {{"source_body", 0}, {"edges", {top_edge}}});
+    CHECK(r.at("first_index") == 4);
+    CHECK(r.at("added") == 1);
+    REQUIRE(tool.entities().size() == 5);
+    CHECK(tool.entities()[4].construction);
+
+    // The plane is the open sketch's: another is refused, and null is the same as leaving it out. A refusal leaves the
+    // sketch as it was.
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_sketch_project(doc, tool, {{"source_body", 0}, {"face", top}, {"plane", "XZ"}}); }),
+               ContainsSubstring("plane is the open sketch's: leave it out"));
+    CHECK(tool.entities().size() == 5);
+    r = GUI::Mcp::cad_sketch_project(doc, tool, {{"source_body", 0}, {"face", top}, {"plane", nullptr}});
+    CHECK(r.at("added") == 4);
+    CHECK(tool.entities().size() == 9);
+    // No source body, and a body the engine does not have.
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_sketch_project(CadDocument(), tool, json::object()); }),
+               ContainsSubstring("no source body"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_sketch_project(doc, tool, {{"source_body", 3}}); }), ContainsSubstring("body 3"));
+    CHECK(tool.entities().size() == 9);
+
+    // Construction only: the sketch has no closed loop to build from.
+    CHECK(tool.loop_report().loops.empty());
+}
+
+TEST_CASE("sketch_insert_svg adds an SVG's outlines to the open sketch", "[Mcp][CAD]")
+{
+    // A drawing 40 mm square with one filled 10 x 10 mm square off its centre, and the same square unfilled.
+    const ScopedTemporaryFile square(".svg"), unfilled(".svg");
+    const auto write = [](const ScopedTemporaryFile& file, const char* fill) {
+        std::ofstream(file.string()) << R"(<svg xmlns="http://www.w3.org/2000/svg" width="40mm" height="40mm" viewBox="0 0 40 40">)"
+                                     << R"(<rect x="20" y="5" width="10" height="10" fill=")" << fill << R"("/></svg>)";
+    };
+    write(square, "black");
+    write(unfilled, "none");
+    GUI::DesignSketchTool tool;
+    begin_sketch(tool);
+    const auto sides = [&tool](std::size_t first, double length, const Vec2d& centre) {
+        const std::vector<SketchEntity>& ents = tool.entities();
+        REQUIRE(ents.size() == first + 4);
+        for (std::size_t i = first; i < first + 4; ++i) {
+            CHECK(ents[i].type == SketchEntity::Type::Line);
+            CHECK_FALSE(ents[i].construction);
+            CHECK_THAT((ents[i].p1 - ents[i].p0).norm(), WithinAbs(length, 1e-4));
+        }
+        const BoundingBoxf box = entities_box(ents, first, 4);
+        CHECK_THAT(box.center().x(), WithinAbs(centre.x(), 1e-4));
+        CHECK_THAT(box.center().y(), WithinAbs(centre.y(), 1e-4));
+    };
+
+    // Its four sides, 10 long, about the origin.
+    json r = sketch(tool, "sketch_insert_svg", {{"path", square.string()}});
+    CHECK(r.at("ok") == true);
+    CHECK(r.at("scope") == "sketch");
+    CHECK(r.at("added") == 4);
+    CHECK(r.at("entities") == 4);
+    sides(0, 10.0, Vec2d(0, 0));
+    // Twice the size, about (5, 5).
+    r = sketch(tool, "sketch_insert_svg", {{"path", square.string()}, {"scale", 2}, {"position", {5, 5}}});
+    CHECK(r.at("added") == 4);
+    CHECK(r.at("entities") == 8);
+    sides(4, 20.0, Vec2d(5, 5));
+
+    // Refused, leaving the sketch as it was: a plane, which is the open sketch's, a drawing with no fill, and a file
+    // that is not there.
+    CHECK_THAT(failure([&] { sketch(tool, "sketch_insert_svg", {{"path", square.string()}, {"plane", "XY"}}); }),
+               ContainsSubstring("plane is the open sketch's: leave it out"));
+    CHECK_THAT(failure([&] { sketch(tool, "sketch_insert_svg", {{"path", unfilled.string()}}); }),
+               ContainsSubstring("gives no outline"));
+    CHECK_THAT(failure([&] { sketch(tool, "sketch_insert_svg", {{"path", square.string() + ".missing"}}); }),
+               ContainsSubstring("not found"));
+    CHECK(tool.entities().size() == 8);
 }
 
 TEST_CASE("a loop reports the area it encloses whichever way it runs", "[Mcp][CAD]")
@@ -3195,7 +5875,7 @@ TEST_CASE("a loop reports the area it encloses whichever way it runs", "[Mcp][CA
     begin_sketch(tool);
     // A 10 mm square drawn clockwise (entities 0-3), and a slot, which the slot tool lays out
     // clockwise whichever way its centres are given (4-7).
-    sketch(tool, "sketch_add", {{"entities",
+    sketch(tool, "sketch_draw", {{"entities",
                                  {{{"type", "line"}, {"p0", {0, 0}}, {"p1", {0, 10}}},
                                   {{"type", "line"}, {"p0", {0, 10}}, {"p1", {10, 10}}},
                                   {{"type", "line"}, {"p0", {10, 10}}, {"p1", {10, 0}}},
@@ -3214,22 +5894,22 @@ TEST_CASE("a sketch with no constraints reports every entity's own degrees of fr
 {
     GUI::DesignSketchTool tool;
     begin_sketch(tool);
-    CHECK(sketch(tool, "sketch_constraints", json::object()).at("dof") == 0);   // nothing drawn, nothing free
+    CHECK(sketch(tool, "sketch_list_constraints", json::object()).at("dof") == 0);   // nothing drawn, nothing free
 
     // A circle: its centre and its radius.
-    json r = sketch(tool, "sketch_add", {{"type", "circle"}, {"center", {0, 0}}, {"radius", 5}});
+    json r = sketch(tool, "sketch_draw", {{"type", "circle_center"}, {"center", {0, 0}}, {"radius", 5}});
     REQUIRE(tool.constraints().empty());
     CHECK(r.at("dof") == 3);
-    CHECK(sketch(tool, "sketch_constraints", json::object()).at("dof") == 3);
+    CHECK(sketch(tool, "sketch_list_constraints", json::object()).at("dof") == 3);
 
     // An arc beside it: its centre and two ends, the ends held at one radius.
-    r = sketch(tool, "sketch_add", {{"type", "arc"}, {"center", {20, 0}}, {"radius", 3}, {"start_angle_deg", 0}, {"end_angle_deg", 90}});
+    r = sketch(tool, "sketch_draw", {{"type", "arc_center"}, {"center", {20, 0}}, {"radius", 3}, {"start_angle_deg", 0}, {"end_angle_deg", 90}});
     REQUIRE(tool.constraints().empty());
     CHECK(r.at("dof") == 3 + 5);
 
     // A horizontal line brings the first constraint, and the solver's count agrees: the curves
     // keep their 8, and the line has 3 of its 4 left.
-    r = sketch(tool, "sketch_add", {{"type", "line"}, {"p0", {0, 20}}, {"p1", {10, 20}}});
+    r = sketch(tool, "sketch_draw", {{"type", "line"}, {"p0", {0, 20}}, {"p1", {10, 20}}});
     REQUIRE(tool.constraints().size() == 1);
     CHECK(r.at("dof") == 3 + 5 + 3);
 }
@@ -3321,17 +6001,19 @@ TEST_CASE("constraints are planned from picks as the CONSTRAIN bar does, or take
     CHECK(planned[1].value == 90.0);
 }
 
-TEST_CASE("sketch_constrain solves with the new constraint or rolls it back, and sketch_unconstrain frees it", "[Mcp][CAD]")
+TEST_CASE("sketch_dimension and sketch_constrain solve with the new constraint or roll it back, and sketch_delete_constraint frees it", "[Mcp][CAD]")
 {
     GUI::DesignSketchTool tool;
     begin_sketch(tool);
-    sketch(tool, "sketch_add", {{"rect", {0, 0, 30, 20}}});
+    sketch(tool, "sketch_draw", {{"type", "rectangle_2_point"}, {"p0", {0, 0}}, {"p1", {30, 20}}});
     const int free_dof = tool.dof();   // position, width and height
     CHECK(free_dof == 4);
     const size_t inferred = tool.constraints().size();
 
     const json width = {{"type", "distance"}, {"refs", {{{"entity", 0}, {"role", "p0"}}, {{"entity", 0}, {"role", "p1"}}}}, {"value", 40}};
-    json r = sketch(tool, "sketch_constrain", width);
+    // A dimension is sketch_dimension's, and sketch_constrain adds the geometric constraints only.
+    CHECK_THAT(failure([&] { sketch(tool, "sketch_constrain", width); }), ContainsSubstring("sketch_dimension"));
+    json r = sketch(tool, "sketch_dimension", width);
     CHECK(r.at("added") == json::array({int(inferred)}));
     CHECK(r.at("items")[0].at("type") == "distance");
     CHECK(r.at("items")[0].at("value") == 40.0);
@@ -3341,7 +6023,9 @@ TEST_CASE("sketch_constrain solves with the new constraint or rolls it back, and
     // A rival width cannot be met: rolled back, and the sketch is as it was.
     json rival = width;
     rival["value"] = 25;
-    CHECK_THAT(failure([&] { sketch(tool, "sketch_constrain", rival); }), ContainsSubstring("over-constrained"));
+    CHECK_THAT(failure([&] { sketch(tool, "sketch_dimension", rival); }), ContainsSubstring("over-constrained"));
+    CHECK_THAT(failure([&] { sketch(tool, "sketch_dimension", {{"type", "coincident"}, {"entities", {0, 1}}}); }),
+               ContainsSubstring("sketch_constrain"));
     CHECK(tool.constraints().size() == inferred + 1);
     CHECK(tool.dof() == free_dof - 1);
 
@@ -3350,28 +6034,86 @@ TEST_CASE("sketch_constrain solves with the new constraint or rolls it back, and
     CHECK(r.at("dof") == free_dof - 3);
     CHECK(tool.entities()[0].p0.norm() < 1e-6);
 
-    const json list = sketch(tool, "sketch_constraints", json::object());
+    const json list = sketch(tool, "sketch_list_constraints", json::object());
     CHECK(list.at("scope") == "live");
     REQUIRE(list.at("items").size() == inferred + 2);
     CHECK(list.at("items").back().at("refs")[1] == json{{"entity", "origin"}});
 
-    r = sketch(tool, "sketch_unconstrain", {{"index", int(inferred)}});   // the width
+    r = sketch(tool, "sketch_delete_constraint", {{"index", int(inferred)}});   // the width
     CHECK(r.at("removed").at("type") == "distance");
     CHECK(r.at("constraints") == int(inferred + 1));
     CHECK(r.at("dof") == free_dof - 2);
-    CHECK_THAT(failure([&] { sketch(tool, "sketch_unconstrain", {{"index", 99}}); }), ContainsSubstring("out of range"));
-    CHECK_THAT(failure([&] { sketch(tool, "sketch_unconstrain", json::object()); }), ContainsSubstring("index must be"));
+    CHECK_THAT(failure([&] { sketch(tool, "sketch_delete_constraint", {{"index", 99}}); }), ContainsSubstring("out of range"));
+    CHECK_THAT(failure([&] { sketch(tool, "sketch_delete_constraint", json::object()); }), ContainsSubstring("index must be"));
     CHECK_THAT(failure([&] { sketch(tool, "sketch_move", json::object()); }), ContainsSubstring("not a Design command of the open sketch"));
+}
+
+TEST_CASE("a sketch command's type names its variant", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog catalog = cad_catalog();
+    auto type = [&](const char* key) { return property_of(command_of(catalog, key), "type"); };
+    CHECK(type("sketch_transform").at("enum") == json::array({"move", "rotate", "scale"}));
+    CHECK(type("sketch_pattern").at("enum") == json::array({"linear", "circular"}));
+    CHECK(type("sketch_dimension").at("enum") ==
+          json::array({"distance", "distance_x", "distance_y", "angle", "radius", "diameter"}));
+    CHECK(type("sketch_constrain").at("enum") ==
+          json::array({"fix", "coincident", "horizontal", "vertical", "lock_x", "lock_y", "equal_length", "parallel",
+                       "perpendicular", "concentric", "tangent", "midpoint", "symmetric", "point_on_line", "point_on_object",
+                       "equal_radius", "collinear", "symmetric_about_y", "symmetric_about_x", "equal"}));
+    for (const char* key : {"sketch_transform", "sketch_pattern", "sketch_dimension", "sketch_constrain"}) {
+        INFO(key);
+        CHECK_FALSE(type(key).contains("default"));
+        const std::vector<std::string> required = required_of(command_of(catalog, key));
+        CHECK(std::find(required.begin(), required.end(), "type") != required.end());
+    }
+    // A dimension is no geometric constraint, and a geometric constraint no dimension.
+    json distance{{"type", "distance"}, {"entities", {0}}, {"value", 5}};
+    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "sketch_constrain"), distance), ContainsSubstring("type must be one of"));
+    json parallel{{"type", "parallel"}, {"entities", {0, 1}}};
+    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "sketch_dimension"), parallel), ContainsSubstring("type must be one of"));
+    // What each takes, with its type alone or with the value a lock takes.
+    json linear{{"type", "linear"}};
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "sketch_pattern"), linear).empty());
+    json dimension{{"type", "distance"}};
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "sketch_dimension"), dimension).empty());
+    json lock{{"type", "lock_x"}, {"entities", {0}}, {"value", 5}};
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "sketch_constrain"), lock).empty());
+    // sketch_extend is the Extend row and Extend's argument form.
+    const GUI::NativeCommand& extend = command_of(catalog, "sketch_extend");
+    CHECK(property_of(extend, "at").is_object());
+    CHECK(property_of(extend, "tolerance").at("default") == 0.05);
+    CHECK(two_forms(extend));
+    // Each new block has one to three examples.
+    for (const char* key : {"sketch_pattern", "sketch_extend", "sketch_dimension"}) {
+        INFO(key);
+        CHECK(command_of(catalog, key).examples.size() >= 1);
+        CHECK(command_of(catalog, key).examples.size() <= 3);
+    }
+
+    // The functions: a linear pattern takes no angle; parallel takes no value; a quarter turn read in degrees.
+    GUI::DesignSketchTool tool;
+    begin_sketch(tool);
+    sketch(tool, "sketch_draw", {{"entities", {{{"type", "line"}, {"p0", {1, 0}}, {"p1", {2, 0}}}, {{"type", "line"}, {"p0", {0, 5}}, {"p1", {4, 7}}}}}});
+    CHECK_THAT(failure([&] { sketch(tool, "sketch_pattern", {{"type", "linear"}, {"entities", {0}}, {"count", 3}, {"dx", 5}, {"angle", 1}}); }),
+               ContainsSubstring("linear takes no angle"));
+    CHECK_THAT(failure([&] { sketch(tool, "sketch_constrain", {{"type", "parallel"}, {"entities", {0, 1}}, {"value", 5}}); }),
+               ContainsSubstring("parallel takes no value"));
+    json quarter{{"type", "rotate"}, {"entities", {0}}, {"pivot", {0, 0}}, {"angle_deg", 90}};
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "sketch_transform"), quarter).empty());
+    sketch(tool, "sketch_transform", quarter);
+    CHECK((tool.entities()[0].p0 - Vec2d(0, 1)).norm() < 1e-9);
+    CHECK((tool.entities()[0].p1 - Vec2d(0, 2)).norm() < 1e-9);
 }
 
 TEST_CASE("the rows for the sketch's shapes, edit ops and constraints", "[Mcp][CAD]")
 {
-    const std::vector<const char*> tools = {"sketch_add",       "sketch_fillet",    "sketch_chamfer",     "sketch_trim",
-                                            "sketch_transform", "sketch_constrain", "sketch_constraints", "sketch_unconstrain"};
+    const std::vector<const char*> tools = {"sketch_draw",      "sketch_fillet",           "sketch_chamfer",          "sketch_trim",
+                                            "sketch_extend",    "sketch_transform",        "sketch_pattern",          "sketch_constrain",
+                                            "sketch_dimension", "sketch_list_constraints", "sketch_delete_constraint"};
     const GUI::CommandCatalog catalog = cad_catalog();
     for (const char* t : tools) {
         INFO(t);
-        CHECK(command_of(catalog, t).read_only == (std::string(t) == "sketch_constraints"));
+        CHECK(command_of(catalog, t).read_only == (std::string(t) == "sketch_list_constraints"));
         CHECK_THAT(command_of(catalog, t).description, !ContainsSubstring("ok is false"));
     }
     auto param = [&](const char* key, const char* name) {
@@ -3386,21 +6128,31 @@ TEST_CASE("the rows for the sketch's shapes, edit ops and constraints", "[Mcp][C
     };
     // Required, as a param without a default is; then optional ones.
     for (const auto& [t, k] : std::vector<std::pair<const char*, const char*>>{
-             {"sketch_fillet", "radius"}, {"sketch_chamfer", "distance"}, {"sketch_trim", "at"}, {"sketch_transform", "op"},
-             {"sketch_constrain", "type"}, {"sketch_unconstrain", "index"}}) {
+             {"sketch_fillet", "radius"}, {"sketch_chamfer", "distance"}, {"sketch_trim", "at"}, {"sketch_extend", "at"},
+             {"sketch_transform", "type"}, {"sketch_pattern", "type"}, {"sketch_constrain", "type"}, {"sketch_dimension", "type"},
+             {"sketch_delete_constraint", "index"}}) {
         INFO(t << " " << k);
         CHECK(required(t, k));
     }
-    for (const char* k : {"angle", "scale", "count", "pivot"}) {
-        param("sketch_transform", k);
-        CHECK_FALSE(required("sketch_transform", k));
+    for (const auto& [t, k] : std::vector<std::pair<const char*, const char*>>{
+             {"sketch_transform", "angle"}, {"sketch_transform", "angle_deg"}, {"sketch_transform", "scale"},
+             {"sketch_transform", "pivot"}, {"sketch_pattern", "angle"}, {"sketch_pattern", "angle_deg"},
+             {"sketch_pattern", "count"}, {"sketch_pattern", "pivot"}}) {
+        param(t, k);
+        CHECK_FALSE(required(t, k));
     }
-    param("sketch_constraints", "sketch");
-    CHECK_FALSE(required("sketch_constraints", "sketch"));
-    const json types = param("sketch_add", "type").at("enum");
+    param("sketch_list_constraints", "sketch");
+    CHECK_FALSE(required("sketch_list_constraints", "sketch"));
+    const json types = param("sketch_draw", "type").at("enum");
     for (const char* t : {"polygon", "slot", "ellipse", "ellipse_arc", "spline"})
         CHECK(std::find(types.begin(), types.end(), json(t)) != types.end());
-    // Every constraint type the recipe stores has its name in the enum.
-    const json ctypes = param("sketch_constrain", "type").at("enum");
-    CHECK(ctypes.size() == size_t(SketchConstraintType::SymmetricAboutX) + 2);   // and "equal"
+    // Every constraint type the recipe stores has its name in one of the two enums, and none is in both.
+    const json geometric = param("sketch_constrain", "type").at("enum"), dimensions = param("sketch_dimension", "type").at("enum");
+    CHECK(geometric.size() == 20);   // "equal" among them
+    CHECK(dimensions.size() == 6);
+    CHECK(geometric.size() + dimensions.size() == size_t(SketchConstraintType::SymmetricAboutX) + 2);
+    for (const json& d : dimensions) {
+        INFO(d.dump());
+        CHECK(std::find(geometric.begin(), geometric.end(), d) == geometric.end());
+    }
 }

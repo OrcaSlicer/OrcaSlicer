@@ -105,7 +105,7 @@ def main():
     else:
         # The Design view's world frame is the Design commands', where the sketch planes' origin,
         # modeling_origin, sits at the Design bed's centre for a new design.
-        origin = client.call_command("describe_scene")["result"]["modeling_origin"]
+        origin = client.call_command("describe_design")["result"]["modeling_origin"]
         reply = set_view(tab="design", camera="top", look_at=origin, zoom=DESIGN_ZOOM)
         state = reply.get("camera_state", {})
         look_at = state.get("look_at") or []

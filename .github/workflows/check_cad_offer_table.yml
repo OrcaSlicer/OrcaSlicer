@@ -1,18 +1,21 @@
 name: Check CAD offer table
 
 # src/slic3r/GUI/CAD/DesignOffer.hpp is generated from scripts/CAD/tool_atlas.json and must never be
-# edited by hand. This fails when the checked-in header is not what the generator makes of the atlas.
+# edited by hand. This fails when the checked-in header is not what the generator makes of the atlas, and
+# when the generator's checks of an atlas (scripts/CAD/test_gen_offer_table.py) miss a fault.
 on:
   push:
     paths:
     - 'scripts/CAD/tool_atlas.json'
     - 'scripts/CAD/gen_offer_table.py'
+    - 'scripts/CAD/test_gen_offer_table.py'
     - 'src/slic3r/GUI/CAD/DesignOffer.hpp'
     - '.github/workflows/check_cad_offer_table.yml'
   pull_request:
     paths:
     - 'scripts/CAD/tool_atlas.json'
     - 'scripts/CAD/gen_offer_table.py'
+    - 'scripts/CAD/test_gen_offer_table.py'
     - 'src/slic3r/GUI/CAD/DesignOffer.hpp'
     - '.github/workflows/check_cad_offer_table.yml'
 
@@ -29,3 +32,6 @@ jobs:
 
       - name: Check the offer table against the atlas
         run: python3 scripts/CAD/gen_offer_table.py --check
+
+      - name: Test the generator's checks of the atlas
+        run: python3 scripts/CAD/test_gen_offer_table.py

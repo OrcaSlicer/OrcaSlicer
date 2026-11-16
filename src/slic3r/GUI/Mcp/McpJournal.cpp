@@ -165,7 +165,7 @@ void Journal::clear()
 
 void Journal::trim()
 {
-    // A session kept open for days, or one that sends thousands of large calls (a CAD run's sketch_add),
+    // A session kept open for days, or one that sends thousands of large calls (a CAD run's sketch_draw),
     // must not grow without bound; a replay is exported from the recent calls anyway (export_replay
     // {clear:true} starts afresh). The oldest calls whose outcome is known go first; a call still
     // waiting for its reply or its job keeps its place, even when that holds the journal over a bound

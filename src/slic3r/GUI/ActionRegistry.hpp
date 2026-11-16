@@ -123,6 +123,9 @@ struct AppAction
     // The catalog key of a command's tile (NativeCommands), whose own function run_action runs; empty for
     // every other action.
     std::string command;
+    // The arguments the tile of a menu row folded into `command` runs it with, an object that may be empty
+    // (NativeCommands::make_action()); null for every other action, which runs with the arguments it is given.
+    nlohmann::json preset;
 
     virtual ~AppAction() = default;
     // Re-resolves + runs (UI thread). `args` are a command's arguments (the layer percentage of Go to
@@ -165,10 +168,10 @@ inline bool requires_mode_switch(ConfigOptionMode setting_mode, ConfigOptionMode
 // hand-edited config must never grow the stored list past `limit`, and a duplicated id must collapse to its first pin.
 std::vector<std::string> cap_favourites(const std::vector<std::string>& ids, size_t limit);
 
-// Whether `id` is the id of a Design tab tile, the tile of a Design command whose entry has an action. Such a
-// tile is live only while that tab is shown, in its entry's mode. The Design table tells it apart, so it does
-// even when the catalog holds no Design command (the CAD feature off at startup). A build without CAD has no
-// table, and there it is never one.
+// Whether `id` is the id of a Design tab tile, that of an entry of the Design table with an action: a Design
+// command's own tile, or a folded row's, which runs the command it is folded into. Such a tile is live only while
+// that tab is shown, in its entry's mode. The Design table tells it apart, so it does even when the catalog holds
+// no Design command (the CAD feature off at startup). A build without CAD has no table, and there it is never one.
 bool is_design_tile_id(const std::string& id);
 
 // The pins snapshot() keeps, in their order: `stored` gets those with a live action (`live`) and the Design
@@ -323,10 +326,10 @@ private:
     // files that no longer exist are skipped and their stale ids dropped. Run by materialize_live().
     void materialize_recent_project_actions();
 
-    // (Re)materialise the Design tab's tiles: while the tab is shown with the CAD feature on, one per catalog
-    // command of group kDesignGroup with in_palette whose entry is offered in the tab's mode
-    // (Mcp::design_tiles()), titled as the right-click menu names its entry (the "Design" context) with the
-    // entry's icon; otherwise none. A build without CAD has none.
+    // (Re)materialise the Design tab's tiles: while the tab is shown with the CAD feature on, one per entry of the
+    // Design table with an action offered in the tab's mode (Mcp::design_tiles()), a Design command's own or a
+    // folded row's, titled as the right-click menu names the entry (the "Design" context) with the entry's icon;
+    // otherwise none. A build without CAD has none.
     void materialize_design_actions();
 
     // The three families above whose membership follows live state and is cheap to rebuild: plates, recent

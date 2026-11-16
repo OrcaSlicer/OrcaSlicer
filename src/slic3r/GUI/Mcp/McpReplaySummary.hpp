@@ -26,7 +26,8 @@ struct StepDescription
 {
     std::vector<StepFlag> flags; // no duplicates, in enum order
     // What the step acts on: {"kind":"files","names":[...]} | {"kind":"settings","pairs":[...]}
-    // | {"kind":"command","key":k,"args"?:["name: value", ...]} (a file by its name) | {"kind":"recent_project","name":n}
+    // | {"kind":"command","key":k,"args"?:["name: value", ...]} (a file by its name), or with "tile":t in place of
+    // "args" for a call with the arguments of k's tile t (NativeCommand::tiles) | {"kind":"recent_project","name":n}
     // | {"kind":"preset","name":n} | {"kind":"plates","plates":"current"|"all"|index}
     // | {"kind":"replay","steps":n} | {"kind":"value","text":t} | null.
     nlohmann::json what;
@@ -41,8 +42,8 @@ struct StepDescription
 
 // Describes `step` of `replay`, substituting its arguments leniently over `ctx`; a file counts as
 // written inside the output folder when it is inside ctx.out_dir. A step that calls a Speed Dial command
-// by its key (one of `catalog` with a tile and no place in the tool list) is described as run_action of
-// its tile is. A run_replay step is described by
+// by its key (one of `catalog` with no place in the tool list, with a tile of its own or called with the
+// arguments of one of its tiles) is described as run_action of that tile is. A run_replay step is described by
 // the steps of its inline replay, or of its file when `path` reads and parses, each in the nested
 // run's own context (its vars merged with the step's `vars`, its own replay and output folders);
 // past `depth` 4, or when the file doesn't read or parse, it gets every flag, "checked" and

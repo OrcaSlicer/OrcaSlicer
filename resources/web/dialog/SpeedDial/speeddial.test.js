@@ -508,6 +508,39 @@ assert.deepEqual(ctx.FAVS, [], "an empty bar, sent as text, empties the page's")
 ctx.render = renderBefore;
 ctx.FAVS = favsBefore;
 
+// The list C++ sends with each open runs a moment after the dial shows: a query typed by then, by a person or a call,
+// is kept and filters the new list, and the field is empty otherwise, as C++'s "closed" at the end of an open empties
+// it. Rendering and focusing need the DOM, so they are stubbed, and the field is a stand-in.
+var listBefore = { render: ctx.render, focusInput: ctx.focusInput, qEl: ctx.qEl, actions: ctx.ACTIONS };
+ctx.render = function () {};
+ctx.focusInput = function () {};
+ctx.qEl = { value: "", placeholder: "" };
+var listPayload = { command: "list_actions", actions: duplicateActions, favourites: [], recent: [] };
+ctx.qEl.value = "rep";
+ctx.onQueryInput();
+ctx.HandleStudio(listPayload);
+assert.equal(ctx.qEl.value, "rep", "a query typed before the open's list arrives stays in the field");
+assert.equal(ctx.query, "rep", "and is the query");
+assert.deepEqual(ctx.currentList(), ctx.commandList(duplicateActions, [], "rep"), "which filters the new list");
+ctx.HandleStudio({ command: "closed" });
+ctx.HandleStudio(listPayload);
+assert.equal(ctx.qEl.value, "", "the next open's list finds the field the last open left empty");
+assert.equal(ctx.query, "", "and its query");
+// A search, the dial closed, and a query typed in the next open before its list arrives: the field holds only what
+// was typed in that open, since closing empties it, and the list keeps it.
+ctx.qEl.value = "shell";
+ctx.onQueryInput();
+ctx.HandleStudio({ command: "closed" });
+ctx.qEl.value += "fillet";
+ctx.onQueryInput();
+ctx.HandleStudio(listPayload);
+assert.equal(ctx.qEl.value, "fillet", "a query typed after a reopen, before its list, is that open's alone");
+assert.equal(ctx.query, "fillet", "and is the query");
+ctx.render = listBefore.render;
+ctx.focusInput = listBefore.focusInput;
+ctx.qEl = listBefore.qEl;
+ctx.ACTIONS = listBefore.actions;
+
 // actionIcon: the SVG base name for a tile's pictogram, or "" when the action has none (blank tile).
 assert.equal(ctx.actionIcon({ id: "x", title: "Slice", icon: "media_play" }), "media_play",
     "an action's icon base name is returned verbatim");

@@ -252,8 +252,8 @@ def grade(pdf, name, report):
                          "p0": [ring[i][0], ring[i][1]],
                          "p1": [ring[i + 1][0], ring[i + 1][1]]})
     try_call("sketch_cancel")
-    call("sketch_begin", plane="XY")
-    call("sketch_add", entities=ents)
+    call("sketch_create", plane="XY")
+    call("sketch_draw", entities=ents)
     r = call("sketch_describe")
 
     ok = True
@@ -308,8 +308,8 @@ def grade(pdf, name, report):
     # MIRROR / OFFSET — engine operations on a REAL profile, not a tidy one
     n_outer = len(outer) - 1
     try_call("sketch_cancel")
-    call("sketch_begin", plane="XY")
-    call("sketch_add", entities=ents[:n_outer])
+    call("sketch_create", plane="XY")
+    call("sketch_draw", entities=ents[:n_outer])
     xs = [p[0] for p in outer]
     axis = min(xs) - 10.0
     call("sketch_select", entities=list(range(n_outer)))
@@ -322,8 +322,8 @@ def grade(pdf, name, report):
         ok &= report(name, "MIRROR", f"refused: {e}", False)
 
     try_call("sketch_cancel")
-    call("sketch_begin", plane="XY")
-    call("sketch_add", entities=ents[:n_outer])
+    call("sketch_create", plane="XY")
+    call("sketch_draw", entities=ents[:n_outer])
     try:
         call("sketch_offset", distance=0.5, entities=list(range(n_outer)))
         o = call("sketch_describe")
@@ -362,8 +362,8 @@ def grade_scale(pdf, name, report, budget):
         return None
 
     try_call("sketch_cancel")
-    call("sketch_begin", plane="XY")
-    t0 = time.monotonic(); call("sketch_add", entities=ents);  t_add = time.monotonic() - t0
+    call("sketch_create", plane="XY")
+    t0 = time.monotonic(); call("sketch_draw", entities=ents);  t_add = time.monotonic() - t0
     t0 = time.monotonic(); r = call("sketch_describe");        t_desc = time.monotonic() - t0
     t0 = time.monotonic(); call("sketch_select", entities=list(range(len(ents))))
     t_sel = time.monotonic() - t0

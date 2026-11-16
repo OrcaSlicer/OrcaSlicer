@@ -259,7 +259,7 @@ bool fit_pending(const Camera& camera)
 }
 
 // set_view's camera: a named direction or a fit of the shown 3D view. On the Design tab it points the Design
-// view as its own controls do, `default` being its Home view. UI thread.
+// view as its own controls do, `default` being its Home view and `sketch_normal` the sketch's N key. UI thread.
 void point_camera(Plater& plater, const std::string& cam)
 {
 #ifdef SLIC3R_CAD
@@ -272,6 +272,9 @@ void point_camera(Plater& plater, const std::string& cam)
         else if (cam == "fit_selection") {
             if (!view->zoom_to_box(view->selection_box()))
                 throw ToolFailure("Nothing is selected in the Design tab");
+        } else if (cam == "sketch_normal") {
+            if (!view->view_normal_to_sketch())
+                throw ToolFailure("No sketch is open in the Design tab");
         } else
             view->set_view(cam == "default" ? "iso" : cam);
         return;
@@ -672,17 +675,35 @@ void register_view_tools(CommandCatalog& catalog)
         "default view, or fit to bed / objects / selection, then look_at, the point it looks at, an orbit to look from "
         "between the named directions, and the zoom), the preview's color scheme (picked as in the legend's combo, which "
         "shows every feature type again), legend rows, time estimate and layers (1-based, or up to a height). Only the given "
-        "fields change, but a preview field given without tab or canvas shows the Preview tab. On the Design tab the camera points its view (default is its Home view; no fit_bed). The reply "
-        "echoes them; preview layers as [first, last, count] with z, the heights of first and last; with any camera field, "
-        "camera_state, the camera it leaves as get_app_state.camera gives it, and adjusted: [\"zoom\"] when the zoom was "
-        "held to its limits.",
+        "fields change, but a preview field given without tab or canvas shows the Preview tab. On the Design tab the camera points its view (default is its Home view; no fit_bed; "
+        "sketch_normal looks straight at the open sketch), and with tab design, section, origin_planes, world_axes, origin and bed "
+        "set the Design view's switches. The reply echoes them; preview layers as [first, last, count] with z, the heights of "
+        "first and last; with tab design, design: the section view and the four switches as they then are; with any camera "
+        "field, camera_state, the camera it leaves as get_app_state.camera gives it, and adjusted: [\"zoom\"] when the zoom "
+        "was held to its limits.",
         object_schema({{"tab", enum_prop(tabs, "Main window tab.")},
                        {"canvas", enum_prop({"3d", "preview", "assemble"}, "3D view: Prepare's, the preview, or the assemble view (needs an object; leave it with 3d, as its Return button does).")},
-                       {"camera", enum_prop({"iso", "top", "bottom", "front", "rear", "left", "right", "default", "fit_bed", "fit_objects", "fit_selection"},
-                                            "Camera direction or fit.")},
+                       {"camera", enum_prop({"iso", "top", "bottom", "front", "rear", "left", "right", "default", "fit_bed", "fit_objects", "fit_selection",
+                                             "sketch_normal"},
+                                            "Camera direction or fit; sketch_normal (Design tab) looks along the open sketch's normal, refused "
+                                            "with no sketch open.")},
+                       {"section", {{"type", "object"},
+                                    {"properties", {{"on", {{"type", "boolean"}, {"description", "Cut the model, or show it whole."}}},
+                                                    {"z", {{"type", "number"}, {"description", "Height of the cut in mm, in the Design view's world "
+                                                                                               "coordinates; left out, the model's middle."}}},
+                                                    {"keep", enum_prop({"lower", "upper"}, "The half that stays: lower (the default) or upper.")}}},
+                                    {"required", {"on"}},
+                                    {"additionalProperties", false},
+                                    {"description", "Design tab: the section view, a horizontal cut that hides half of the model to show "
+                                                    "inside it, as the toolbar's Section View and Flip set it."}}},
+                       {"origin_planes", {{"type", "boolean"}, {"description", "Design tab: show the origin helper planes (key P)."}}},
+                       {"world_axes", {{"type", "boolean"}, {"description", "Design tab: show the world axis triad (key A)."}}},
+                       {"origin", {{"type", "boolean"}, {"description", "Design tab: the Origin row's eye, the XY, XZ and YZ planes kept up "
+                                                                        "where a click picks one; off lets go of a picked plane."}}},
+                       {"bed", {{"type", "boolean"}, {"description", "Design tab: the Bed row's eye, the printer bed drawn."}}},
                        {"look_at", array_prop({{"type", "number"}}, "[x, y, z] in mm: the point the camera looks at, in the 3D view's "
                                                                    "world coordinates, as list_objects gives positions; on the Design tab, "
-                                                                   "the Design view's, which the Design commands' world points use (describe_scene's "
+                                                                   "the Design view's, which the Design commands' world points use (describe_design's "
                                                                    "modeling_origin is the sketch planes' origin). The camera moves "
                                                                    "parallel, keeping its direction and distance. After camera.")},
                        {"orbit", array_prop({{"type", "number"}}, "[yaw, pitch] in degrees: move the camera around what it looks at, "
@@ -706,6 +727,11 @@ void register_view_tools(CommandCatalog& catalog)
                                       args.contains("view_type") || args.contains("legend") || args.contains("time_mode");
             if (arg_string(args, "tab") == "design" && (args.contains("canvas") || preview_args))
                 throw ToolFailure("canvas and the Preview fields show Prepare or Preview; give them without tab design");
+            const bool design_args = args.contains("section") || args.contains("origin_planes") || args.contains("world_axes") ||
+                                     args.contains("origin") || args.contains("bed") || arg_string(args, "camera") == "sketch_normal";
+            if (design_args && arg_string(args, "tab") != "design")
+                throw ToolFailure("sketch_normal, section, origin_planes, world_axes, origin and bed are the Design tab's: give them "
+                                  "with tab design");
             if (args.contains("orbit") && args["orbit"].size() != 2)
                 throw ToolFailure("orbit is [yaw, pitch] in degrees");
             if (args.contains("look_at") && args["look_at"].size() != 3)
@@ -716,6 +742,29 @@ void register_view_tools(CommandCatalog& catalog)
                 Plater&    plater = ui_plater();
                 MainFrame* frame  = wxGetApp().mainframe;
                 json       done   = json::object();
+#ifdef SLIC3R_CAD
+                // The Design tab's panel, which its options set and the reply reads. They, and the cameras the
+                // Design view refuses (point_camera()), are refused here, before the tab or anything else
+                // changes; a rebuild refuses the options, its worker holding the document the reference planes
+                // are read from.
+                DesignPanel* design = nullptr;
+                if (arg_string(args, "tab") == "design" && frame->m_design_page != nullptr)
+                    design = DesignPanel::ensure();
+                if (design_args) {
+                    if (design == nullptr)
+                        throw ToolFailure(frame->m_design_page == nullptr ? "The Design tab is off; enable the CAD feature in Preferences and restart"
+                                                                          : "The Design tab isn't available in this window yet; retry");
+                    std::string why;
+                    if (design->mcp_busy(true, false, why))
+                        throw ToolFailure("Design tab busy: " + why, {{"code", -32002}});
+                    if (arg_string(args, "camera") == "sketch_normal" && !design->mcp_viewport()->is_sketching())
+                        throw ToolFailure("No sketch is open in the Design tab");
+                }
+                if (design != nullptr && arg_string(args, "camera") == "fit_bed")
+                    throw ToolFailure("fit_bed is not offered in the Design tab");
+                if (design != nullptr && arg_string(args, "camera") == "fit_selection" && !design->mcp_viewport()->selection_box().defined)
+                    throw ToolFailure("Nothing is selected in the Design tab");
+#endif
                 if (args.contains("tab")) {
                     const char* id = tab_id(arg_string(args, "tab"));
                     if (id == nullptr)
@@ -727,6 +776,34 @@ void register_view_tools(CommandCatalog& catalog)
                     frame->select_tab(wxString(id));
                     done["tab"] = arg_string(args, "tab");
                 }
+#ifdef SLIC3R_CAD
+                if (design != nullptr) {
+                    DesignCanvas* view = design->mcp_viewport();
+                    if (args.contains("section")) {
+                        const json& section = args["section"];
+                        design->set_section_view(section.at("on").get<bool>(),
+                                                 section.contains("z") ? std::optional<double>(section["z"].get<double>()) : std::nullopt,
+                                                 section.value("keep", "lower") == "upper");
+                    }
+                    if (args.contains("origin_planes"))
+                        view->set_show_planes(args["origin_planes"].get<bool>());
+                    if (args.contains("world_axes"))
+                        view->set_show_axes(args["world_axes"].get<bool>());
+                    if (args.contains("origin"))
+                        design->set_origin_shown(args["origin"].get<bool>());
+                    if (args.contains("bed"))
+                        design->set_bed_shown(args["bed"].get<bool>());
+                    // With no cut, no height or half to report.
+                    const DesignPanel::SectionView cut = design->section_view();
+                    done["design"] = {{"section", {{"on", cut.on},
+                                                   {"z", cut.on ? json(cut.z) : json()},
+                                                   {"keep", cut.on ? json(cut.keep_upper ? "upper" : "lower") : json()}}},
+                                      {"origin_planes", view->show_planes()},
+                                      {"world_axes", view->show_axes()},
+                                      {"origin", design->origin_shown()},
+                                      {"bed", design->bed_shown()}};
+                }
+#endif
                 if (args.contains("canvas")) {
                     const std::string view     = arg_string(args, "canvas");
                     GLCanvas3D*       assemble = plater.get_assmeble_canvas3D();

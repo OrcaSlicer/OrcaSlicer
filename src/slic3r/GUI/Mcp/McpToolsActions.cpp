@@ -79,7 +79,14 @@ const AppAction& find_action(ActionRegistry& actions, std::string& id)
 
 std::string action_args_error(const AppAction& action, const json& args)
 {
-    if (!action.command.empty() || person_form(args))
+    if (person_form(args))
+        return {};
+    // A folded row's tile runs its command with the row's arguments, which it takes as well as none.
+    if (!action.preset.is_null())
+        return args == action.preset ? std::string() :
+                                       "The action " + action.id() + " runs " + action.command + " with " + action.preset.dump() +
+                                           ": run it without args, or with exactly those";
+    if (!action.command.empty())
         return {};
     return "The action " + action.id() + " takes no arguments: run it without args";
 }
@@ -92,8 +99,18 @@ std::string unknown_action(const std::string& id, const CommandCatalog& catalog)
     if (is_design_tile_id(tile)) {
         if (const std::string* why = catalog.left_out(short_id(tile)))
             return id + " is a Design tab tile, and " + *why;
+        // A folded row's tile is a call of the command it is folded into with the row's arguments, written as the
+        // rest of the call is, a space after each colon and comma.
+        const auto [command, folded] = find_tile(catalog, short_id(tile));
+        std::string call = "{\"tool\": \"" + (command != nullptr ? command->key : short_id(tile)) + "\"";
+        if (folded != nullptr && !folded->at("args").empty()) {
+            std::string args;
+            for (const auto& [name, value] : folded->at("args").items())
+                args += (args.empty() ? "" : ", ") + json(name).dump() + ": " + value.dump();
+            call += ", \"args\": {" + args + "}";
+        }
         return id + " is a Design tab tile, there only while the Design tab is shown in its mode (a sketch's or the model's) "
-                    "with the CAD feature on; call_tool {\"tool\": \"" + short_id(tile) + "\"} runs its command from any tab";
+                    "with the CAD feature on; call_tool " + call + "} runs its command from any tab";
     }
     // The name may be a command's that has no tile, which call_tool runs.
     return "Unknown action id " + id + "; find an action with search_actions, or a command with search_tools";
@@ -198,8 +215,9 @@ void register_action_tools(CommandCatalog& catalog)
         "auto_answer_dialogs before the call. An export_gcode with a path completes when the file is written; an action "
         "that starts a background job (obj_arrange, obj_orient) when the job ends. An action that does nothing (no object "
         "selected) is an error. Some commands add what they did to the reply (the obj_order_by_* order, the object "
-        "obj_assemble made). A command's action runs that command, as call_tool {tool: its name} does; the other actions "
-        "(plates, recent projects, plugin scripts and pages, settings) run only here.",
+        "obj_assemble made). A command's action runs that command, as call_tool {tool: its command} does; the tile of a "
+        "Design tab menu row folded into a command runs that command with the row's arguments, and takes no others. The "
+        "other actions (plates, recent projects, plugin scripts and pages, settings) run only here.",
         object_schema({{"id", prop("string", "Action id from search_actions, or the name inside it.")},
                        {"args", {{"type", "object"}, {"description", "The command's arguments, as its input_schema gives them."}}}},
                       {"id"}),
@@ -216,6 +234,9 @@ void register_action_tools(CommandCatalog& catalog)
                 key = action.command;
                 if (key.empty())
                     result = actions.run(id, command_args, /*record_stats=*/false);
+                else if (!action.preset.is_null())
+                    // A folded row's tile runs its command with the row's arguments, which the journal records.
+                    command_args = action.preset;
                 return json();
             });
             if (key.empty()) {

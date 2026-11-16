@@ -93,7 +93,7 @@ under AI features in Preferences), attach to it through its datadir instead of a
 ```python
 orca = OrcaMcp.from_datadir()                        # the datadir the app uses without --datadir
 orca = OrcaMcp.from_datadir("/abs/datadir")          # an app started with --datadir /abs/datadir
-scene = orca.call_command("describe_scene")["result"]   # a Design command (the Design tab on)
+design = orca.call_command("describe_design")["result"]   # a Design command (the Design tab on)
 orca.call_command("helix", radius=10, pitch=3, height=30)
 ```
 
@@ -124,7 +124,10 @@ Design commands, and `search_tools {tool}` gives one's arguments and examples.
 the Speed Dial's commands section by section, each with its key, title, arguments and description, from
 the command reference `tests/data/command_catalog.json` (`docs/HLSD/mcp-server.md`, "Making a feature
 reachable"), and before them what the reference says of particular commands: those with one form, which
-needs its value, and the typed tools that are tiles too. It needs no running app. With `--check` it writes
+needs its value, and the typed tools that are tiles too. A command has a row of its own when it has a tile
+of its own (`in_palette`); each Design menu row folded into a command follows it as a row with the
+command's key, the row's title and the arguments that open its tool (`sketch_pattern` with
+`{"type": "linear"}` for Linear array). It needs no running app. With `--check` it writes
 nothing, prints the difference and exits 1 when the file is not what it would write. When a command
 changed, regenerate the reference first: run `slic3rutils_tests "[Reference]"` with
 `ORCA_UPDATE_COMMAND_REFERENCE=1` in the environment.
@@ -364,7 +367,7 @@ marked `optional` are calls that must be refused and change nothing.
   rolled back and one deleted.
 - `tests/cad_topology_targets.json` builds the bench's J wall hook from what the reading commands give back:
   its inside corners found by convexity, M4 countersinks seated on the front face on the axes of
-  pilot holes, the cones' kind, apex side and radii from `query_topology`, the hole heights and the
+  pilot holes, the cones' kind, apex side and radii from `body_describe`, the hole heights and the
   plate's thickness from `measure`, a datum plane midway through the plate and one 70 mm up with a
   sketch on it, a refused tangent plane, and the back face pushed out 2 mm.
 - `tests/cad_features.json` threads, sweeps, lofts and splits: the bench's M5 hex standoff tapped on
@@ -373,10 +376,10 @@ marked `optional` are calls that must be refused and change nothing.
   and a datum plane 40 mm up; the loft split by that datum and its lower half cut again by XY turned
   over.
 - `tests/cad_doc.json` reads and edits features as their cards do: a variable bound to an extrude,
-  then removed, and literal edits with `set_feature`. Then it commits the design to the plate,
+  then removed, and literal edits with `feature_edit`. Then it commits the design to the plate,
   recommits over the first object and undoes that in one step, exports STEP and reads it back into a
   new design, and commits two bodies both ways. Last it walks the Design history (`undo` / `redo` of
-  an edit and of a rename), hides, moves and deletes features, names, hides and colours bodies,
+  an edit and of a rename), suppresses, moves and deletes features, names, hides and colours bodies,
   commits only the shown one, and saves and reopens the project to check that a body's name and
   colour were kept.
 - `tests/cad_canvas.json` drives the Design view as a canvas: `set_view` shows the Design tab and
@@ -390,8 +393,9 @@ marked `optional` are calls that must be refused and change nothing.
 Three harness tests run on an instance launched with `--cad`. `test_cad_replay.py` makes calls as a
 client, so they are journaled, exports the session with `export_replay`, replays it into a new
 project and compares the body's mass properties and the features. The session has an empty sketch
-commit and a missed hole, which must fail and be left out, a legacy `fillet` answering ok false,
-which stays in, and face and edge ids passed with their `generation`, which the journal drops.
+commit, a missed hole and a fillet the kernel refuses, which must fail and be left out, a shell thicker
+than the plate answering ok false, which stays in, and face and edge ids passed with their `generation`,
+which the journal drops.
 `test_cad_slow_build.py` runs a long thread build (an M8 thread tapped 60 mm deep, about 8 s) and
 checks that while it builds `get_app_state` answers, a window screenshot succeeds, `list_widgets` lists
 the progress dialog and a screenshot of that dialog captures it, and another Design command is refused.
@@ -404,12 +408,23 @@ It takes four to eight minutes, or under a minute with the reply budget capped a
 every Design command, and for `undo` and `redo`, each on a fresh design, and fails one whose call fails or
 whose result has `ok` false, an error, or is the person's form; `--tool NAME` runs one command's.
 
+`test_cad_commands.py` checks what the Design commands' arguments do where the Design panel's own functions
+answer, which the unit tests, on a bare document, do not reach. Each rung starts from an empty design, calls
+commands with their arguments and grades what `describe_design`, `feature_describe`, `sketch_describe` and
+`body_mass_properties` read back: the `operation` and `type` words and the suppressed feature; each of ten
+shapes drawn once with its tool on the canvas and once with `sketch_draw`, which must agree in entities,
+constraints, loops and degrees of freedom; `sketch_edit` and its replace, cancel and refusals;
+`sketch_project` with and without an open sketch, `sketch_text`, `sketch_insert_svg` and Scale artwork;
+`feature_edit`'s `refs` and a card's picks while it edits a feature; `set_view`'s Design options;
+`select_geometry`, `confirm_tool`, `cancel_tool` and `body_place`; the Boolean card a call opens; and a
+pick of a folded row's tile from the Speed Dial, and its replay. Its docstring lists the rungs.
+
 Three more harness tests on a `--cad` instance drive the Design tab the way a person does. Every action goes
 through the UI tools (`set_view`, `click`, `mouse_gesture`, `press_keys`, `set_widget_value`, `answer_dialog`
 and `auto_answer_dialogs`), and the Design commands only read the result back (`sketch_describe`,
-`describe_scene`, `describe_feature`), save for one call in the scale rung; the right-click menu's layout they
+`describe_design`, `feature_describe`), save for one call in the scale rung; the right-click menu's layout they
 grade against is read from `scripts/CAD/tool_atlas.json`, the Design table the app's own is generated from,
-for the selection `describe_scene` names. Buttons and rows are found by label, and canvas positions come from
+for the selection `describe_design` names. Buttons and rows are found by label, and canvas positions come from
 a calibration that maps the open sketch's plane to canvas pixels, so nothing in them is tuned to a window
 size, screen scaling or theme. A map fitted from five probe points is reused, once one probe confirms it,
 while the canvas size and the camera stay the ones it was fitted on. The sketch tool's pick budgets and badge layout are in the canvas's GL pixels,
@@ -418,7 +433,7 @@ over `click_px_per_mm`). What they share is in `cad_gui.py` beside them. `test_c
 sketch tool's primitive with clicks on the canvas and types its exact values into the canvas's value field,
 drives the edit operations and each constraint button on drawn geometry, undoes inside a sketch and across its
 commit, saves the project and opens it again through the File menu, and draws on top of a sketch holding 1204
-entities. That last rung, `scale`, loads them with one `sketch_add` command while the rectangle tool is armed:
+entities. That last rung, `scale`, loads them with one `sketch_draw` command while the rectangle tool is armed:
 the one call in these tests that changes the sketch outside the UI, on purpose, since a bulk add made while a
 creation tool is armed must not be read as a drawn gesture that swallows the next key and click.
 `test_cad_context_menu.py` checks that the right-click offer names what was clicked and lists exactly the
@@ -434,6 +449,7 @@ tools/mcp/orca_mcp.py launch --cad
 tools/mcp/test_cad_sketching.py
 tools/mcp/test_cad_context_menu.py
 tools/mcp/test_cad_click_edit.py rect label
+tools/mcp/test_cad_commands.py words select
 ```
 
 Each prints `ok` or `FAIL` for every check and exits 1 if any failed. Rungs named on the command line

@@ -409,7 +409,7 @@ lambda happened to be built rather than by anything the user can see.
 
 ### 10.1 The architectural claim: there are two Dimension tools, and they disagree
 
-| | click-to-place (`Mode::Dimension`) | selection-based (the `sk_dimension` row) |
+| | click-to-place (`Mode::Dimension`) | selection-based (the `sketch_dimension` row) |
 |---|---|---|
 | entry | arm the tool, pick in the viewport (`:10651`) | select first, then apply (`DesignCanvas.cpp:1417-1430`) |
 | kinds it can make | Length, Diameter, Radius, Distance, DistanceToLine | **also Angle between two lines** |
@@ -615,7 +615,7 @@ Constrain session on a *committed* sketch reports "sketching", and the panel has
 property of a sketch; the mode is a way of editing one.
 
 Constraints are also the last large block of verbs living outside the offer. The offer has 92 rows
-(`DesignOffer.hpp`) and the whole constraint vocabulary is **one** of them (`sk_constrain`, `:168`);
+(`DesignOffer.hpp`) and the whole constraint vocabulary is **one** of them (`sketch_constrain`);
 the other 20 are toolbar buttons (`DesignPanel.cpp:1516-1539`). Five enum members have no button at
 all: `Distance` comes from the Dimension tool, `LockX`/`LockY` have solver bindings
 (`SketchSolver.cpp:191`, `:240`, `:245`) and only a label (`DesignPanel.cpp:8051`), `PointOnLine` is produced only as

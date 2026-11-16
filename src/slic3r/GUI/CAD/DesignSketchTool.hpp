@@ -219,8 +219,8 @@ public:
     // shown/hidden by a toggle (keys P / A). Off by default so the idle scene stays clean.
     void set_show_planes(bool s) { m_show_planes = s; }
     void set_show_axes(bool s)   { m_show_axes = s; }
-    bool toggle_show_planes() { m_show_planes = !m_show_planes; return m_show_planes; }
-    bool toggle_show_axes()   { m_show_axes   = !m_show_axes;   return m_show_axes; }
+    bool show_planes() const { return m_show_planes; }
+    bool show_axes() const   { return m_show_axes; }
 
     // Solid topology selection on the committed bodies: clicking a solid cycles
     // whole-solid -> face -> edge (Onshape-style) to target fillet/chamfer/extrude. With
@@ -254,6 +254,20 @@ public:
     // Select a whole body by index (from the Parts list) — Whole-level highlight, no face/edge.
     // body < 0 or out of range clears the selection.
     void select_body(int body);
+    // Select by id what a click on the bodies picks (`kind` Face, Edge or Vertex): face `face`, the edge set
+    // `edges` (the last the current edge, as a Shift+click set keeps it) or the vertex at `vertex_pt`, given in
+    // the model's frame, of body `body`, from the pick shapes the tool holds, and fire on_solid_selection_changed as
+    // the click does. No face is pointed at for edges or a vertex. What is stored and drawn is moved with the body,
+    // as a click's pick is (body_xform_pt()). False, the selection as it was, where can_select_solid() is.
+    bool select_solid(SolidSel kind, int body, int face, const std::vector<int>& edges,
+                      const Vec3d& vertex_pt);
+    // Whether select_solid() takes the pick: false, with the reason in `why` when given, for a body that is not
+    // pickable, an id its shape does not have, no edge or an edge listed twice. A caller checks a pick with it
+    // before it changes anything, and select_solid() runs the same tests.
+    bool can_select_solid(SolidSel kind, int body, int face, const std::vector<int>& edges,
+                          std::string* why = nullptr) const;
+    // The picked vertex's point, in the view's frame (where the moved body draws it).
+    Vec3d selected_vertex_point() const { return m_sel_vertex_pt; }
     // Outline these (body, face id) faces as selected: the faces the Feature tree's selected
     // feature made. A body whose shape changes later drops out, its face ids being stale. The
     // canvas fills them (DesignCanvas::rebuild_bodies).
@@ -320,6 +334,13 @@ public:
     void set_display_pick(int feature, int region) { m_display_pick = feature; m_display_pick_region = region; }
     int  display_pick() const { return m_display_pick; }
     int  display_pick_region() const { return m_display_pick_region; }
+    // The region of committed sketch `feature`, as the view shows it, whose own entities are `loop` (same_entities()):
+    // the number a click on it picks and a loop pick holds (selected_loop_entities()); -1 when the view shows no such
+    // region. The view leaves extruded loops out of a sketch, so this numbering is not the sketch's own.
+    int  display_region_of(int feature, const std::vector<SketchEntity>& loop) const;
+    // Two entity lists are the same loop: the same geometry in the same order. Exact up to rounding, as a
+    // per-loop extrude keeps a verbatim copy of the loop it takes.
+    static bool same_entities(const std::vector<SketchEntity>& a, const std::vector<SketchEntity>& b);
 
     // Visual Extrude gizmo (C5b). The Extrude tool is a DesignPanel docked card, so the
     // sketch tool is NOT active during it; the panel feeds the profile plane + a 2D centroid
@@ -631,6 +652,18 @@ public:
     // Fillet (or chamfer) the corner of lines a and b by `value`, the radius (or setback), as the
     // Fillet or Chamfer tool's Confirm does. False when the value overruns a leg.
     bool fillet_scripted(int a, int b, double value, bool chamfer);
+    // Mirror `targets` about `axis` as the Mirror tool's Confirm does: each copy bound Symmetric to its source about
+    // the axis, unless that would move anything off its reflection, when the copies stay unbound. `axis` is a line of
+    // the sketch, or its X or Y axis (kSketchRefAxisX, kSketchRefAxisY), which no pick gives. `added` receives the
+    // indices of the constraints kept. False, changing nothing, for an axis that is none of those, no target, a
+    // target that is no entity, is the axis or is given twice.
+    bool mirror_scripted(const std::vector<int>& targets, int axis, std::vector<int>& added);
+    // Offset `entity` alone by `distance` as the Offset tool's Confirm does for a pick that is its own outline: the copy
+    // is added as the tool adds it, with no constraint inferred for it, and bound Parallel (a line) or Concentric (an
+    // arc or a circle) to it where the solver keeps that. `added` receives the index of the constraint kept. False,
+    // changing nothing, while a gesture or a value field is pending, for an index that is no entity, and for an entity
+    // that gives no offset (an ellipse, a spline).
+    bool offset_scripted(int entity, double distance, std::vector<int>& added);
     // Cut back (or extend) the entity nearest `at`, within `tol`, to its nearest crossing with the
     // others, as a Trim or Extend click does. `picked` receives that entity, -1 when none is that
     // close; it is also set when the entity could not be cut.
@@ -641,14 +674,32 @@ public:
     // gizmo's own pivot. Returns the pivot used, empty when refused.
     std::optional<Vec2d> transform_scripted(Mode mode, const std::vector<int>& targets, const Vec2d& delta, double angle,
                                             double scale, int count, const std::optional<Vec2d>& pivot);
-    // A Polygon, Slot, Ellipse, EllipseArc or BSpline drawn from its clicks with the tool's own
-    // builder and shape grouping: polygon {centre, vertex or edge midpoint}, slot {centre, centre,
-    // a point half the width off the centreline}, ellipse {centre, major end, minor point} (+ start
-    // and end points for an arc), spline {poles}. `sides` and `circumscribed` are the polygon's;
-    // the tool's sticky polygon and construction settings are left as they were. Constraints are
-    // inferred exactly, as add_entities_scripted infers them. Returns the first new index, -1 when
-    // the clicks build nothing.
-    int  add_shape_scripted(Mode mode, const std::vector<Vec2d>& clicks, int sides, bool circumscribed, bool construction);
+    // A drawing tool's shape drawn from the clicks its gesture takes, with the builder and the shape
+    // grouping its last click uses: polyline {points; the last equal to the first closes the loop},
+    // corner rectangle {corner, opposite corner}, centre rectangle {centre, corner}, oblique
+    // rectangle {corner, corner, a point the width off that side}, rounded rectangle {corner,
+    // opposite corner, a point the corner radius from the nearest corner}, 2-point circle {the ends
+    // of a diameter}, 3-point circle {three points on it}, 3-point arc {start, end, a point on it},
+    // tangent arc {start, end}, which leaves `from_entity` (-1: the entity added last), a line or an
+    // arc, along its direction at its end, and builds nothing where no arc fits (the gesture draws a
+    // line there), slot {centre, centre, a point half the width off the centreline}, arc slot
+    // {centre, start, a point in the end's direction, a point half the width off the centreline},
+    // polygon {centre, vertex or edge midpoint}, ellipse {centre, major end, minor point} (+ start
+    // and end points for an arc), spline {poles}. `sides` and `circumscribed` are the polygon's; the
+    // tool's sticky polygon and construction settings are left as they were. Constraints are
+    // inferred exactly, as add_entities_scripted infers them, and an oblique rectangle's right angles
+    // and a tangent arc's tangency to the line it leaves, which the gesture's inference binds at any
+    // slant, are added where that left them out. Returns the first new index, -1 when the clicks
+    // build nothing.
+    int  add_shape_scripted(Mode mode, const std::vector<Vec2d>& clicks, int sides, bool circumscribed, bool construction,
+                            int from_entity = -1);
+    // The drawn sketch as it stands: its entities, constraints, shape groups, dimensions and the readout of its
+    // last solve. A caller that adds several shapes in one call keeps it before the first and puts the sketch back
+    // with it when a later one is refused, so that the refused call leaves the sketch, and what one undo of it
+    // takes off, as they were.
+    struct DrawnState;
+    DrawnState drawn_state() const;
+    void       restore_drawn_state(const DrawnState& state);
 
     // The loop report: what is CLOSED, what its internal voids are, and where a chain is still
     // open. This is the answer to "is my profile buildable", and it is the one question the
@@ -891,6 +942,24 @@ private:
         double param{0.0};         // slot half-width / polygon circumradius / fillet radius
         int    sides{0};           // polygon side count
     };
+
+public:
+    // drawn_state()'s, defined here, past the private types it holds.
+    struct DrawnState {
+        std::vector<SketchEntity>              entities;
+        std::vector<SketchEntityConstraintDef> constraints;
+        std::vector<Feature>                   features;
+        std::vector<DimAnnot>                  dimensions;
+        int                                    dof{-1};
+        bool                                   solve_ok{true};
+        std::vector<char>                      entity_conflict;
+        std::vector<int>                       bad_dims;
+        int                                    autoedit_seen{-1};
+        int                                    skipped_last{0};
+        bool                                   loop_defect_shown{false};
+    };
+
+private:
     // Build the live handle set for the current selection / just-drawn feature.
     std::vector<Handle> build_handles() const;
     // Nearest handle to plane-point p within tol; fills `out`. (Phase A: stub.)
@@ -1051,7 +1120,8 @@ private:
     // both on_mouse (append) and render (preview) share one geometry path.
     std::vector<SketchEntity> make_three_point_circle(const Vec2d& a, const Vec2d& b, const Vec2d& c) const;
     std::vector<SketchEntity> make_three_point_arc(const Vec2d& start, const Vec2d& end, const Vec2d& on_arc) const;
-    std::vector<SketchEntity> make_tangent_arc(const Vec2d& start, const Vec2d& end) const;
+    // The arc leaves start along the exit direction of entity `from`, a line or an arc; -1 is the last entity.
+    std::vector<SketchEntity> make_tangent_arc(const Vec2d& start, const Vec2d& end, int from = -1) const;
     // Center-start-end arc: click center, then start (sets radius), then a third
     // point whose direction from the center sets the CCW end angle.
     std::vector<SketchEntity> make_center_arc(const Vec2d& center, const Vec2d& start, const Vec2d& end_dir) const;

@@ -126,11 +126,19 @@ bool one_of(const std::string& s, std::initializer_list<const char*> names)
     return false;
 }
 
-void describe_command(Builder& b, const std::string& key, const json& args)
+// A call of command `key` with `args`, or of its tile `tile` (one of its tiles, which runs it with `args`): a call
+// whose arguments are a tile's is that tile, `tile` or else the first with them (tile_with_args()).
+void describe_command(Builder& b, const CommandCatalog& catalog, const std::string& key, const json& args,
+                      const json* tile = nullptr)
 {
     json what{{"kind", "command"}, {"key", key}};
-    // Each argument as "name: value", the file of a path by its name.
-    if (args.is_object() && !args.empty()) {
+    if (tile == nullptr)
+        if (const NativeCommand* command = catalog.find(key))
+            tile = tile_with_args(*command, args);
+    if (tile != nullptr) {
+        what["tile"] = tile->at("key");
+    } else if (args.is_object() && !args.empty()) {
+        // Each argument as "name: value", the file of a path by its name.
         json texts = json::array();
         for (const auto& [name, value] : args.items()) {
             const bool file = name == "path" && value.is_string();
@@ -158,12 +166,17 @@ void describe_command(Builder& b, const std::string& key, const json& args)
         b.flag(StepFlag::SendsToPrinter);
 }
 
-void describe_action(Builder& b, const json& args)
+void describe_action(Builder& b, const CommandCatalog& catalog, const json& args)
 {
     const std::string id        = args.contains("id") && args["id"].is_string() ? args["id"].get<std::string>() : std::string();
     const auto [prefix, middle] = split_action_id(id);
     if (prefix == kCommandPrefix) {
-        describe_command(b, middle, args.contains("args") ? args["args"] : json());
+        // A folded row's tile runs its command with the row's arguments, whatever run_action was given.
+        const auto [command, tile] = find_tile(catalog, middle);
+        if (tile != nullptr)
+            describe_command(b, catalog, command->key, tile->at("args"), tile);
+        else
+            describe_command(b, catalog, middle, args.contains("args") ? args["args"] : json());
     } else if (prefix == "orca_recent_project") {
         b.d.what = {{"kind", "recent_project"}, {"name", file_name(middle)}};
         b.flag(StepFlag::ReplacesProject);
@@ -179,12 +192,13 @@ void describe_action(Builder& b, const json& args)
     }
 }
 
-// A command of `catalog` that has a tile and no typed tool's place in the tool list (load_project, export_stl):
-// called by its key, it does what run_action of its tile does.
-bool tile_command(const CommandCatalog& catalog, const std::string& tool)
+// A command of `catalog` with no typed tool's place in the tool list called as one of its tiles: with a tile of its
+// own (load_project, export_stl), or with the arguments of a tile that runs it with them (a Design command's folded
+// row). Called so, it does what run_action of that tile does.
+bool tile_command(const CommandCatalog& catalog, const std::string& tool, const json& args)
 {
     const NativeCommand* command = catalog.find(tool);
-    return command != nullptr && command->in_palette && !command->listed;
+    return command != nullptr && !command->listed && (command->in_palette || tile_with_args(*command, args) != nullptr);
 }
 
 std::optional<std::string> read_text(const fs::path& path)
@@ -290,12 +304,12 @@ json describe_call(const CommandCatalog& catalog, const std::string& tool, const
 {
     if (tool == "run_action") {
         Builder b;
-        describe_action(b, args);
+        describe_action(b, catalog, args);
         return b.d.what;
     }
-    if (tile_command(catalog, tool)) {
+    if (tile_command(catalog, tool, args)) {
         Builder b;
-        describe_command(b, tool, args);
+        describe_command(b, catalog, tool, args);
         return b.d.what;
     }
     if (tool == "run_replay")
@@ -324,15 +338,15 @@ StepDescription describe_step(const CommandCatalog& catalog, const ReplayStep& s
     b.d.checks_result = !step.expect.empty();
 
     if (tool == "run_action") {
-        describe_action(b, args);
+        describe_action(b, catalog, args);
         return b.done();
     }
     if (tool == "run_replay") {
         describe_nested(b, catalog, args, ctx, depth);
         return b.done();
     }
-    if (tile_command(catalog, tool)) {
-        describe_command(b, tool, args);
+    if (tile_command(catalog, tool, args)) {
+        describe_command(b, catalog, tool, args);
         return b.done();
     }
     b.d.what = describe_what(tool, args);

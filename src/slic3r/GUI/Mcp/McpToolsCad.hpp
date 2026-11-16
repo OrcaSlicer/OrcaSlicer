@@ -1,18 +1,19 @@
 #pragma once
 
 // The Design tab's commands, one per entry of its table (kDesignTools, DesignOffer.hpp, generated from
-// scripts/CAD/tool_atlas.json) but align: its tools, sketches, features, measurements and edits, which an
-// agent finds with search_tools (group Design) and runs with call_tool, and a person picks as Speed Dial
-// tiles while the Design tab is shown, those of the mode it is in. With no arguments, an entry with an
-// action does what the right-click menu's row does, in the mode the row belongs to (open_refusal()); with
-// arguments, or silent: true, an entry with a tool block runs that block's silent form. They run on the UI
-// thread through the GUI's own CadDocument (no engine of their own), behind one gate (cad_gate()): every
-// command is refused (-32002) during a rebuild, whose worker owns the document, and a silent form that
-// changes the document also while the Design tab is busy with it, an open feature card or a sketch session;
-// face and edge ids read at another generation are refused (-32010). The catalog holds the commands only
-// while the CAD feature is on (NativeCommands::register_all_commands()). The unit tests call the cad_*
-// helpers directly.
+// scripts/CAD/tool_atlas.json) that has an action or a tool block and is no folded row (is_design_command()): its
+// tools, sketches, features, measurements and edits, which an agent finds with search_tools (group Design) and
+// runs with call_tool, and a person picks as Speed Dial tiles while the Design tab is shown, those of the mode it
+// is in. A call with exactly the arguments that choose one of the command's rows (opened_row()) does what that
+// right-click menu row does, in the mode the row belongs to (open_refusal()); any other call, or one with
+// silent: true, runs the entry's tool block's silent form. They run on the UI thread through the GUI's own
+// CadDocument (no engine of their own), behind one gate (cad_gate()): every command is refused (-32002) during a
+// rebuild, whose worker owns the document, and a silent form that changes the document also while the Design tab
+// is busy with it, an open feature card or a sketch session; face and edge ids read at another generation are
+// refused (-32010). The catalog holds the commands only while the CAD feature is on
+// (NativeCommands::register_all_commands()). The unit tests call the cad_* helpers directly.
 
+#include "libslic3r/Point.hpp"
 #include "slic3r/GUI/CAD/DesignOffer.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
@@ -50,37 +51,41 @@ using CadRun = nlohmann::json (*)(DesignPanel* panel, const nlohmann::json& para
 extern const std::pair<const char*, CadRun> kSilentForms[];
 extern const std::size_t                    kSilentFormCount;
 
-// A Design command: group Design, not listed, its function run on the UI thread. For a person's pick
-// (ToolContext::person()) `fn` runs in place, and a refusal it throws is shown in the UI's language where its
-// text is a msgid (an entry's refusal). For an automated call the journal records the arguments without
-// `generation`, which numbers ids within this session only, and with `silent`, which it adds where `schema`
-// takes it and the call gave nothing else, so that a replay runs the silent form too; then `fn` runs in one
-// UI closure and the call settles. The reply is {"result": fn's value}; a ToolFailure is the call's error.
+// A Design command: group Design, not listed, its function run on the UI thread and told whether it runs for a
+// person's pick (ToolContext::person()), which keeps the menu's rules where a call may target the Feature list's row
+// (open_tool()). For a person's pick `fn` runs in place, and a refusal it throws is shown in the UI's language where
+// its text is a msgid (an entry's refusal). For an automated call the journal records the arguments without
+// `generation`, which numbers ids within this session only, and with `silent` where `opens` says that what it
+// records would open a tool and the call did not, so that a replay runs the silent form too (`opens` empty:
+// nothing opens a tool); then `fn` runs in one UI closure and the call settles. The reply is
+// {"result": fn's value}; a ToolFailure is the call's error.
 NativeCommand cad_command(std::string key, std::string title, nlohmann::json schema,
-                          std::function<nlohmann::json(const nlohmann::json& args)> fn);
+                          std::function<nlohmann::json(const nlohmann::json& args, bool person)> fn,
+                          std::function<bool(const nlohmann::json& args)> opens = {});
 
-// Adds the Design commands to `catalog`, one per entry of kDesignTools that has an action or a tool block:
-// its id as the key, its name as the title, and its icon. An entry with an action is in the palette (its tile
-// is materialised only while the Design tab is shown in the entry's mode,
-// ActionRegistry::materialize_design_actions()). One with a block is read_only for Read access, and its
-// description is the block's summary, details and, for a silent form that reports a rejected rebuild in its
-// reply, how that shows; its examples are the block's and its schema cad_input_schema() of it, through
-// with_silent() when the entry has an action too. One with an action only takes no arguments, and its
-// description is its hint and what the call does. undo and redo are the shared commands of NativeCommands.cpp
-// and not among them.
+// Adds the Design commands to `catalog`, one per entry of kDesignTools that is a command (is_design_command()):
+// its id as the key, its name as the title, and its icon. An entry with an action is in the palette, and a row
+// folded into a command is one of the command's `tiles`, with the row's id as its key, its name, icon and args, and
+// as its description its hint and what a pick does (a tile is materialised only while the Design tab is shown in
+// its entry's mode, ActionRegistry::materialize_design_actions()). One with a block is read_only for Read access,
+// and its description is the block's summary, details and, for a silent form that reports a rejected rebuild in
+// its reply, how that shows, then the other calls that open a tool, each with its row's name; its examples are the
+// block's and its schema cad_input_schema() of it, through with_silent() when a call with no arguments opens a
+// tool. One with an action only takes no arguments, and its description is its hint and what the call does.
+// undo and redo are the shared commands of NativeCommands.cpp and not among them.
 void register_cad_commands(CommandCatalog& catalog);
 
 // Records in `catalog`, built with the CAD feature off, that it leaves out the keys register_cad_commands()
-// adds, because the feature was off when OrcaSlicer started and how a person turns it on
-// (CommandCatalog::leave_out()).
+// adds, and the ids of the rows folded into them, which name tiles, because the feature was off when OrcaSlicer
+// started and how a person turns it on (CommandCatalog::leave_out()).
 void leave_out_cad_commands(CommandCatalog& catalog);
 
 // What search_tools' description says of the Design commands, which tools/list does not show, so that an agent
-// learns without a search that they exist and are CAD: what they cover, that one is looked up before it is
-// called, and every key in the table's order, in two lists by what a call does: the entries with a tool block,
-// which run from their arguments (one with an action too runs its menu row when a call gives none, which the
-// first list's lead says), then those with an action only, which take none and do what their menu row does. It
-// starts with a space, to follow the description's last sentence.
+// learns without a search that they exist and are CAD: a lead saying what they cover, that one is looked up with
+// tool before it is called, and that a command whose schema has silent does what its menu row does when called
+// with no arguments unless silent is true; then each heading of kDesignSections with the keys of its commands
+// (DesignTool::section) in the table's order, Menu rows saying that its commands take no arguments. It starts with
+// a space, to follow the description's last sentence.
 std::string design_command_index();
 
 // The entities a sketch command acts on: those `params` lists in "entities", else `selection`, else, where the
@@ -91,17 +96,17 @@ std::vector<int> sketch_target_indices(const nlohmann::json& params, const std::
                                        bool all_if_empty);
 
 // The input schema of a tool block: an object whose properties are the block's params, a type written "a|b"
-// as the list of both, min, exclusive_min and max as minimum, exclusiveMinimum and maximum, enum and default
-// as written, and the unit joined to the description; a param with no default is required. `generation`, the
-// generation the call's face and edge ids were read at, is an optional property of every one. Arguments it
-// does not name are not refused: a tool may read more, such as a param in radians also in degrees under its
-// name with _deg.
+// (or "a|b|c") as the list of them, min, exclusive_min and max as minimum, exclusiveMinimum and maximum, enum
+// and default as written, and the unit joined to the description; a param with no default is required. `generation`, the
+// generation the call's face and edge ids were read at, is an optional property of every one. A block with
+// `closed` refuses an argument it does not name (additionalProperties false); another lets it through, as a
+// tool may read more, such as a param in radians also in degrees under its name with _deg.
 nlohmann::json cad_input_schema(const nlohmann::json& block);
 
 // The checks every Design command passes before its function, in this order: the main window is up (not
 // shutting down or still starting), the app is the editor and not the G-code viewer (-32001), the CAD
 // feature is on, and the Design panel can be built (-32001); then the busy rules of `access` (-32002; with
-// None only a rebuild's), the project's recipe loaded into an empty document
+// Read, None and Ui only a rebuild's), the project's recipe loaded into an empty document
 // (DesignPanel::hydrate_from_model()), as showing the tab would, and a `generation` in `args` that is not an
 // unsigned integer (-32602) or not the model's (-32010). Returns the panel. Throws ToolFailure, whose details
 // carry the code. UI thread only.
@@ -110,24 +115,48 @@ DesignPanel* cad_gate(CadAccess access, const nlohmann::json& args);
 // The Design table's entry `id`, or nullptr.
 const DesignTool* find_design_tool(const std::string& id);
 
+// Whether entry `t` is a command of the catalog: it has an action or a tool block, and is no folded row
+// (DesignTool::fold_into), which is a way of calling the command it is folded into.
+bool is_design_command(const DesignTool& t);
+
+// The row whose tool a call of `entry`'s command with `args` opens, or nullptr when the call runs. A call with no
+// arguments (null or {}) opens `entry`'s own row where it has an action, else the first row folded into it with
+// {}; any other opens `entry`'s row where it has an action and its own args equal `args`, else the first row
+// folded into it whose args equal `args`. Arguments are compared as JSON values, as they reach the command's
+// function: `generation`, `silent` or any other argument beside the choosing ones makes the call run.
+const DesignTool* opened_row(const DesignTool& entry, const nlohmann::json& args);
+
 // Whether the Design tab offers entry `t` in the mode it is in, `sketching` being the right-click menu's
 // DesignPanel::sketch_map_applies(): an entry of the sketch's vocabulary in a sketch, one of the model's
 // outside it, as the menu offers them. A sketch in Constrain mode is a sketch to the menu, though the tab's keys
 // there are the model's. Only then is its tile shown and its person's form run.
 bool offered_in_mode(const DesignTool& t, bool sketching);
 
-// The commands of `catalog` that have a Speed Dial tile while the Design tab is shown in the mode `sketching`
-// names (as offered_in_mode() takes it), in the catalog's order: those of group kDesignGroup with in_palette whose
-// entry is offered in that mode. None while the CAD feature is off (`cad_on` false): the tab stays until a
-// restart, but cad_gate() would refuse every pick of its tiles.
-std::vector<const NativeCommand*> design_tiles(const CommandCatalog& catalog, bool sketching, bool cad_on);
+// A Speed Dial tile of the Design tab: `command`'s own (`tile` null), or the item of command->tiles that a menu row
+// folded into it has.
+struct DesignTile
+{
+    const NativeCommand*  command;
+    const nlohmann::json* tile;
+};
+
+// The Speed Dial tiles the Design tab has while it is shown in the mode `sketching` names (as offered_in_mode()
+// takes it): one per entry of the Design table with an action offered in that mode, in the table's order, whose
+// command `catalog` holds: a folded row's runs the command it is folded into with the row's args. None while the
+// CAD feature is off (`cad_on` false): the tab stays until a restart, but cad_gate() would refuse every pick of
+// its tiles.
+std::vector<DesignTile> design_tiles(const CommandCatalog& catalog, bool sketching, bool cad_on);
 
 // Why the person's form of entry `t` is refused before its action runs, or nothing: `t` is not offered in the
 // tab's mode (offered_in_mode()), and the message says which mode it belongs to and what to do; or `t`'s
-// action is a btn: or fly: one, which the menu greys for a selection it does not accept, and selection `kind`
-// (OfferSel as int) is not one it accepts, and the details name the selection and those it accepts. A key:
-// action runs whatever is selected, as its key does. The message is a msgid, the code -32000.
-std::optional<ToolFailure> open_refusal(const DesignTool& t, bool sketching, int kind);
+// action is a btn: or fly: one, which the menu greys for a selection it does not accept, `t` accepts a kind the
+// tab reports as the selection in its mode, and selection `kind` (OfferSel as int) is not one it accepts, and the
+// details name the selection and those it accepts. A row that accepts no kind the tab reports there opens as its
+// toolbar button does, and a key: action runs whatever is selected, as its key does. With `row_target`, a call that
+// targets the Feature list's selected row (nothing picked in the view), a row whose action acts on that row
+// (DesignTool::feature_row) is not refused for the selection: its action says itself what it cannot do. The message
+// is a msgid, the code -32000.
+std::optional<ToolFailure> open_refusal(const DesignTool& t, bool sketching, int kind, bool row_target = false);
 
 // Runs the silent form of Design command `id` with `args` past cad_gate() with its entry's access, and
 // returns its result. One that fails is -32000, with "OCCT: " before a kernel exception's message; an id with
@@ -152,41 +181,84 @@ nlohmann::json cad_note(const CommandCatalog& catalog);
 SketchPlane cad_resolve_plane(const nlohmann::json& plane, const CadDocument& doc, bool drill,
                               int* face_body = nullptr);
 
-// describe_feature's reply for features[index]: what its card shows (`params`), the fields
-// set_feature takes (`editable`) with the card's limits (`ranges`), its expression bindings and
+// feature_describe's reply for features[index]: what its card shows (`params`), the fields
+// feature_edit takes (`editable`) with the card's limits (`ranges`), its expression bindings and
 // references, a sketch's geometry, and the features (`used_by`) and bodies (`bodies_made`) it
-// feeds. Throws std::runtime_error for an index out of range.
+// feeds; the bodies of the model before it (`bodies_before`, {index, name}, as the last rebuild recorded
+// them: null when it did not reach the feature), and the model its body, face and edge ids are read in
+// (`ids_of`): "before" it, or "finished" for a Plane, an Axis and a CoordSys, which the engine resolves
+// against the finished model.
+// Throws std::runtime_error for an index out of range.
 nlohmann::json cad_feature_json(const CadDocument& doc, int index);
 
-// set_feature's edit: overwrite the fields of `f` named in `fields` ({name: value}). Throws
+// feature_edit's `changed`: what differs between `was` and `now`, two cad_feature_json() replies for one feature
+// before and after an edit, as {name: [old, new]}: each of the card's params and refs, and as `plane` the plane the
+// feature builds on, which the reply gives beside them.
+nlohmann::json cad_feature_changes(const nlohmann::json& was, const nlohmann::json& now);
+
+// feature_edit's edit: overwrite the fields of `f` named in `fields` ({name: value}). Throws
 // std::runtime_error, leaving `f` as it was, for a field its card does not edit, a field bound to
-// an expression, a value of the wrong type, or one outside the card's range.
+// an expression, a value of the wrong type, or one outside the card's range. A Text feature's
+// text_string, text_height and text_font are only written here; feature_edit outlines the text again.
 void cad_apply_feature_fields(CadFeature& f, const nlohmann::json& fields);
 
-// commit's `replace`: the model's object indices to delete once the design is on the plate, sorted
+// The model as it stood just before features[feature]: the history before it (CadDocument::history_before())
+// rebuilt, as a card that edits a feature lists the bodies there (DesignPanel::populate_body_choices()).
+// Its bodies, faces and edges are the ones that feature's body indices and face and edge ids name.
+// Throws std::runtime_error for an index out of range and for a history that does not rebuild.
+CadDocument cad_document_before(const CadDocument& doc, int feature);
+
+// The vertices of body `body` of `doc`, in the order of TopExp::MapShapes() over its shape: a vertex's
+// id is its place here, as a face's and an edge's id is theirs. Throws std::runtime_error for a body
+// out of range.
+std::vector<Vec3d> cad_body_vertices(const CadDocument& doc, int body);
+
+// feature_edit's refs: overwrite the references of `f`, a copy of doc.features[index], named in `refs`
+// ({name: value}), under the names feature_describe reports, as far as the feature's card can pick them
+// again when it edits. Body indices and face and edge ids are those of `before`
+// (cad_document_before(doc, index)), but for a Plane, an Axis and a CoordSys, whose ids are the finished
+// model's, `doc`; a feature index names a feature before `index`. Throws std::runtime_error, leaving `f`
+// as it was, for an Extrude (its profile and target are fixed), a name the type does not take (listing
+// those it takes), a feature index that is not before `index` or not of the type wanted, a body index that
+// model does not have, and a face or an edge id that body does not have there.
+void cad_apply_feature_refs(CadFeature& f, const nlohmann::json& refs, const CadDocument& before, const CadDocument& doc,
+                            int index);
+
+// commit_to_plate's `replace`: the model's object indices to delete once the design is on the plate, sorted
 // ascending. Throws std::runtime_error for a value that is not an index, one out of range or
 // repeated, and an object that is part of a cut (deleting it asks the person first).
-std::vector<int> cad_commit_replace(const nlohmann::json& replace, const Model& model);
+std::vector<int> cad_commit_to_plate_replace(const nlohmann::json& replace, const Model& model);
 
 // sketch_describe {sketch}: committed sketch features[sketch] as the open sketch is described, its
 // entities, constraint count and loops, numbered as extrude's `loop` takes them; `tool` only
 // finds the loops. Throws std::runtime_error for an index that is not a sketch with entities.
 nlohmann::json cad_sketch_describe(const CadDocument& doc, const DesignSketchTool& tool, int sketch);
 
-// The Design commands that work on the open sketch alone, run on `tool`'s session: sketch_add,
-// sketch_fillet, sketch_chamfer, sketch_trim, sketch_transform, sketch_constrain,
-// sketch_constraints (the open sketch's) and sketch_unconstrain. Each runs the sketch tool's own
-// step for the button or gesture it stands for, checks every argument before it changes anything,
-// and throws std::runtime_error with the reason, leaving the sketch as it was. Needs no Design panel.
+// The Design commands that work on the open sketch alone, run on `tool`'s session: sketch_draw,
+// sketch_fillet, sketch_chamfer, sketch_trim, sketch_extend, sketch_offset, sketch_mirror,
+// sketch_transform, sketch_pattern, sketch_constrain, sketch_dimension, sketch_list_constraints (the
+// open sketch's), sketch_delete_constraint and sketch_insert_svg (an SVG file's outlines, scaled and moved, as Insert
+// SVG adds them to a sketch). Each runs the sketch tool's own step for the button or gesture it
+// stands for, checks every argument before it changes anything, and throws std::runtime_error with
+// the reason, leaving the sketch as it was; sketch_draw, whose tools can still refuse an item while
+// drawing it, puts the sketch back as it was before the call when one does. Needs no Design panel.
 nlohmann::json cad_sketch_call(DesignSketchTool& tool, const std::string& name, const nlohmann::json& params);
 
-// sketch_constrain's constraints on the open sketch's entities `ents`, as the CONSTRAIN bar would
-// add them. params.type is a SketchConstraintType in snake_case ("equal_length"; "equal" is the
-// bar's Equal). With params.entities (or else `selection`) the bar's planner chooses the points
-// (plan_entity_constraint), and a value it would ask for is params.value or the current one; with
-// params.refs the references are taken as written, {entity, role} for a point ("origin" too) and
-// {entity} for a whole entity ("x_axis", "y_axis" too), and params.value is required where the type
-// carries one. Values are mm, or degrees for an angle. Throws std::runtime_error with the reason.
+// sketch_project with a sketch open: the edges of body params.source_body of `doc` (-1, the default, the last body)
+// that a Project feature takes, params.edges, else those of params.face, else all of them, projected onto the open
+// sketch's plane (CadDocument::project_edges_on()) and added to `tool`'s session as construction entities, as a scripted
+// add adds entities (add_entities_scripted()). Reply {ok, scope: "sketch", first_index, added, entities: the sketch's
+// count}. Throws std::runtime_error, leaving the sketch as it was, for a params.plane that is not null (the open
+// sketch's plane is the one), a document with no body, and what project_edges_on() refuses.
+nlohmann::json cad_sketch_project(const CadDocument& doc, DesignSketchTool& tool, const nlohmann::json& params);
+
+// sketch_constrain's and sketch_dimension's constraints on the open sketch's entities `ents`, as the
+// CONSTRAIN bar would add them. params.type is a SketchConstraintType in snake_case ("equal_length";
+// "equal" is the bar's Equal). With params.entities (or else `selection`) the bar's planner chooses
+// the points (plan_entity_constraint), and a value it would ask for is params.value or the current
+// one; with params.refs the references are taken as written, {entity, role} for a point ("origin"
+// too) and {entity} for a whole entity ("x_axis", "y_axis" too), and params.value is required where
+// the type carries one. Values are mm, or degrees for an angle. Throws std::runtime_error with the reason.
 std::vector<SketchEntityConstraintDef> cad_constraint_defs(const nlohmann::json& params, const std::vector<SketchEntity>& ents,
                                                            const std::vector<int>& selection);
 
@@ -194,13 +266,24 @@ std::vector<SketchEntityConstraintDef> cad_constraint_defs(const nlohmann::json&
 // without rebuilding, the feature the Extrude or Revolve card adds for the committed sketch
 // params.sketch; it takes the feature's name and returns its index. Checking first lets a bad
 // argument fail before the caller takes an undo checkpoint. Extrude takes the whole sketch, or with
-// params.loop one of its loops with the loops inside it; its params.boolean "auto" (the default)
+// params.loop one of its loops with the loops inside it; its params.operation "auto" (the default)
 // joins the body the sketch touches, else makes a new body, as the card's default does. Revolve's
 // axis is params.axis_entity, a line of the sketch, else the sketch's only centerline when
 // params.axis is not given, else the plane axis params.axis. Throws std::runtime_error.
 std::function<int(const std::string& name)> cad_sketch_extrude(CadDocument& doc, const DesignSketchTool& tool,
                                                                const nlohmann::json& params);
 std::function<int(const std::string& name)> cad_sketch_revolve(CadDocument& doc, const nlohmann::json& params);
+
+// surface_revolve: the Surface Revolve card's sheet of committed sketch params.sketch, turned params.angle degrees
+// about the axis chosen and checked as cad_sketch_revolve() chooses it (params.axis_entity, params.axis), and the
+// other way with params.flip; returned as cad_sketch_revolve() returns it. Throws std::runtime_error.
+std::function<int(const std::string& name)> cad_surface_revolve(CadDocument& doc, const nlohmann::json& params);
+
+// list_align_types: for coordinate systems params.cs_a (fixed) and params.cs_b (on the body that moves), {ok, cs_a,
+// cs_b, types}, the five align types in order, each {type, fits, reason}: whether it fits the pair and, where it does
+// not, why (CadDocument::mate_options()); reason is null where it fits. Throws std::runtime_error for a cs_a or cs_b
+// that is not an integer.
+nlohmann::json cad_align_types(const CadDocument& doc, const nlohmann::json& params);
 
 // The profile revolve turns when it is given no sketch: params.profile, else a params.width by
 // params.height rectangle (default 20 x 10) beside the plane axis params.axis, one edge on it, the
@@ -210,18 +293,21 @@ SketchProfile cad_revolve_profile(const nlohmann::json& params);
 
 // extrude {face}: the Extrude card's push/pull of a picked face. Checks params against `doc` and
 // returns the call that adds the face extrude of params.face, a planar face of params.body (default
-// the last body), joined to that body unless params.boolean says otherwise; `frame` receives the
+// the last body), joined to that body unless params.operation says otherwise; `frame` receives the
 // face's plane. Throws std::runtime_error.
 std::function<int(const std::string& name)> cad_face_extrude(CadDocument& doc, const nlohmann::json& params,
                                                              SketchPlane& frame);
 
-// query_topology's reply for body params.body of `doc`: its faces (kind, area, centroid, normal and
+// body_describe's reply for body params.body of `doc`: its faces (kind, area, centroid, normal and
 // the numbers of an analytic surface) and edges (kind, length, ends), narrowed by the face filters
 // (kinds, direction, at_extreme) and edge filters (edge_kinds, direction, convex); with adjacency,
 // the faces' edges and the edges' faces and convexity, and a list whose filters were not given holds
 // the neighbours of the other's matches. Both lists are paged by params.limit and params.offset.
+// With params.vertices true it adds every vertex, {id, p} (cad_body_vertices()). With params.before, a
+// feature index, it reads the body as it stood just before that feature (cad_document_before()) and says
+// `before`; its `generation` stays the live document's, which a call passing these ids is checked against.
 // Throws std::runtime_error.
-nlohmann::json cad_query_topology(const CadDocument& doc, const nlohmann::json& params);
+nlohmann::json cad_body_describe(const CadDocument& doc, const nlohmann::json& params);
 
 // measure's reply for refs params.a and params.b, each a face, an edge (of its own body, else
 // params.body), a point, or a cylindrical face's axis: the distance between their representative
@@ -237,7 +323,7 @@ nlohmann::json cad_measure(const CadDocument& doc, const nlohmann::json& params)
 nlohmann::json cad_hole_placement(const CadDocument& doc, const nlohmann::json& params, SketchPlane& plane,
                                   int& target_body);
 
-// plane: check params against `doc` as the Plane card's Confirm does (CadDocument::datum_plane_refusal)
+// construct_plane: check params against `doc` as the Plane card's Confirm does (CadDocument::datum_plane_refusal)
 // and return the call that adds the datum plane, without rebuilding. Throws std::runtime_error.
 std::function<int(const std::string& name)> cad_datum_plane(CadDocument& doc, const nlohmann::json& params);
 
@@ -262,5 +348,26 @@ std::function<int(const std::string& name)> cad_thread(CadDocument& doc, const n
 std::function<int(const std::string& name)> cad_sweep(CadDocument& doc, const nlohmann::json& params);
 std::function<int(const std::string& name)> cad_loft(CadDocument& doc, const nlohmann::json& params);
 std::function<int(const std::string& name)> cad_split(CadDocument& doc, const nlohmann::json& params, nlohmann::json& resolved);
+
+// hole, thicken, pattern, align, fillet and chamfer, likewise.
+// hole: of params.type simple, counterbore or countersink, its seat sized by cbore_* or csink_*, and of
+// params.diameter, or of the standard clearance params.designation names, seat included
+// (CadDocument::add_hole_standard), which a diameter or seat size beside it is refused with. `resolved` receives
+// where it goes (cad_hole_placement) and the frame of its plane.
+// thicken: face params.face of body params.body (type face), or the whole sheet body (type surface); with no type,
+// face when params.face is given, else surface.
+// pattern: body params.body in a row along a plane axis (type linear), around the plane's normal (circular), or
+// along entity params.entity of sketch params.sketch (curve), which only a curve pattern takes and it requires.
+// align: a Mate of params.type (fastened, planar, revolute, slider or cylindrical) that moves the body of
+// coordinate system params.cs_b onto params.cs_a.
+// cad_dressup: a fillet of params.radius, or with `chamfer` a chamfer of params.distance, on params.edges, an edge
+// id or a list of them made one feature, of body params.body; or on an edge group, params.edges "top", "bottom",
+// "lateral" or "all", the card's Edges choice (the engine's FaceGroup overloads).
+// Each throws std::runtime_error.
+std::function<int(const std::string& name)> cad_hole(CadDocument& doc, const nlohmann::json& params, nlohmann::json& resolved);
+std::function<int(const std::string& name)> cad_thicken(CadDocument& doc, const nlohmann::json& params);
+std::function<int(const std::string& name)> cad_pattern(CadDocument& doc, const nlohmann::json& params);
+std::function<int(const std::string& name)> cad_align(CadDocument& doc, const nlohmann::json& params);
+std::function<int(const std::string& name)> cad_dressup(CadDocument& doc, const nlohmann::json& params, bool chamfer);
 
 }}} // namespace Slic3r::GUI::Mcp

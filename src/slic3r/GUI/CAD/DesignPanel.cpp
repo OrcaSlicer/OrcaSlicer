@@ -7,6 +7,7 @@
 #include "slic3r/GUI/CAD/DesignOffer.hpp"                // generated offer table — see scripts/CAD/tool_atlas.json
 #include "slic3r/GUI/GLToolbar.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Mcp/McpToolsCad.hpp"                // cad_body_vertices: a vertex id as body_describe numbers it
 #include "slic3r/GUI/SyntheticInput.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "libslic3r/CAD/GeometryEngine.hpp"   // face_by_index for face-extrude gizmo anchor
@@ -43,6 +44,7 @@
 #include "libslic3r/CAD/SketchSolver.hpp"
 #include <map>
 #include <math.h>
+#include <optional>
 #include <set>
 #include <wx/accel.h>
 #include <wx/event.h>
@@ -104,6 +106,9 @@
 #include "slic3r/GUI/format.hpp"
 #include "slic3r/GUI/Widgets/StaticBox.hpp"         // Prepare's rounded white card frame around each tool dialog
 #include "libslic3r/CAD/SketchImport.hpp"    // text_to_regions / svg_to_regions
+#include "libslic3r/Emboss.hpp"              // Emboss::FontFile: the loaded font text is outlined in
+#include "slic3r/Utils/WxFontUtils.hpp"      // a wxFont to the font file, and to the stored text_font
+#include <wx/fontenum.h>                     // wxFontEnumerator::IsValidFacename
 #include "libslic3r/CAD/ThreadStandards.hpp" // ISO metric / Unified imperial thread tables
 #include "libslic3r/Model.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -3244,7 +3249,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
         menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) { on_toggle_visibility(); }, id_vis);
         menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) { on_delete_feature(); },    id_del);
         if (art)
-            menu.Bind(wxEVT_MENU, [this, row](wxCommandEvent&) { on_transform_imported(row); }, id_art);
+            menu.Bind(wxEVT_MENU, [this, row](wxCommandEvent&) {
+                reset_edit_state();
+                edit_art_placement(row);
+            }, id_art);
         if (zoom)
             menu.Bind(wxEVT_MENU, [this, row](wxCommandEvent&) { zoom_to_feature(row); }, id_zoom);
         popup_menu(*m_tree, menu, m_tree->ScreenToClient(screen));
@@ -3517,7 +3525,13 @@ DesignPanel::DesignPanel(wxWindow* parent)
         [this](const std::vector<SketchEntity>& ents,
                const std::vector<SketchEntityConstraintDef>& cons,
                const SketchPlane& plane) {
+            m_sketch_finish = SketchFinish{};
+            // The session has ended either way (DesignSketchTool::finish()), so a re-opened sketch's edit ends
+            // with it: an index left set would let the next new sketch replace this one, and keep every Design
+            // command refused as if a card were open.
             if (ents.empty()) {
+                end_sketch_edit();   // a re-opened sketch keeps what it had
+                m_sketch_finish.error = "the sketch is empty";
                 set_status(StatusKind::Error, _L("Sketch empty — nothing committed"));
                 return;
             }
@@ -3534,15 +3548,25 @@ DesignPanel::DesignPanel(wxWindow* parent)
                     if (!cons.empty()) m_doc.solve_sketch_feature(m_edit_index);
                     m_doc.recompute();
                     set_status(StatusKind::Info, _L("Sketch updated"));
-                    m_edit_index = -1;
-                    refresh_tree();
-                    sync_sketch_display();
+                    m_sketch_finish = SketchFinish{true, true, m_edit_index, {}};
+                    end_sketch_edit();
+                    return;
                 }
+                // A feature built on the sketch no longer rebuilds: replace_feature() has put the features back, so
+                // the step is dropped, and the edits are lost with the session, which the status line says.
+                m_doc.abandon_checkpoint();
+                m_sketch_finish.error = m_doc.error;
+                end_sketch_edit();
+                // TRN Design tab status after Confirm on a sketch re-opened for editing. %1% is why the model could
+                // not be rebuilt with the edited sketch, such as a fillet that no longer fits.
+                set_status(StatusKind::Error, format_wxstr(_L("The sketch could not be replaced: %1%"),
+                                                           kernel_error_text(m_doc.error)));
                 return;
             }
             m_feature_counter++;
             const int sk = m_doc.add_sketch_entities(ents, plane,
                                feature_name(_L("Sketch")), cons);
+            m_sketch_finish = SketchFinish{true, false, sk, {}};
             if (!cons.empty()) m_doc.solve_sketch_feature(sk);   // enforce driving dimensions
             m_doc.recompute();
             set_status(StatusKind::Info, cons.empty()
@@ -3603,7 +3627,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // the Extrude dialog (with a ghost preview) targeting that sketch.
     m_viewport->set_on_sketch_face_selected([this](int region) {
         if (!m_viewport) return;
-        m_viewport->finish_sketch();                 // commit live sketch (synchronous)
+        if (!finish_sketch_first()) return;   // a re-opened sketch not put back: the region is the unkept edit's
         m_extrude_sketch_ref = resolve_extrude_sketch();
         if (m_extrude_sketch_ref < 0) {
             set_status(StatusKind::Error, _L("Could not resolve the sketch to extrude"));
@@ -3807,9 +3831,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // so the hole lives on the object's face — not on a stale dropdown/datum plane. Uses the
         // face under the cursor from the FIRST click (handle_solid_click reports it even at the
         // Whole level), so no whole->face cycle is needed.
-        if (m_active == Tool::Hole && face >= 0 && body >= 0 && body < int(m_doc.bodies.size())) {
-            const TopoDS_Face fc = GeometryEngine::face_by_index(m_doc.bodies[body].shape, face);
-            if (!fc.IsNull() && m_doc.inward_plane_of_face(body, face, m_hole_face_plane)) {
+        // The face is read in the model the pick was made in (pick_doc()).
+        if (m_active == Tool::Hole && face >= 0 && body >= 0 && body < int(pick_doc().bodies.size())) {
+            const TopoDS_Face fc = GeometryEngine::face_by_index(pick_doc().bodies[body].shape, face);
+            if (!fc.IsNull() && pick_doc().inward_plane_of_face(body, face, m_hole_face_plane)) {
                 m_hole_on_face    = true;
                 m_hole_face_body  = body;
                 set_hole_target_label(face);
@@ -3827,7 +3852,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
             GeometryEngine::CylinderFace cf;
             SketchPlane p;
             bool from_face = false;   // which of the two the cylinder actually came from
-            if (m_doc.thread_target(body, face, edge, p, cf, &from_face)) {
+            if (pick_doc().thread_target(body, face, edge, p, cf, &from_face)) {
                 m_thread_face_plane = p;
                 m_thread_on_face    = true;
                 m_thread_face_body  = m_sel_solid_body;
@@ -4391,12 +4416,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
     outer->Add(body_panel, 1, wxEXPAND);
     SetSizer(outer);
 
-    // The atlas says a verb is wired; the registrations above say what it runs. Nothing checks
+    // The atlas says a verb is wired; the registrations above say what it runs. Nothing else checks
     // that the two agree, and a broken join is INVISIBLE — the row renders, is enabled, and does
-    // nothing when picked. That defect has shipped three times (edit_feature and sk_move carrying
-    // action:null, then a whole flyout family the moment its widget stopped being built), and it
-    // cannot be seen by reading either side alone. Verify the join once, here, where every
-    // registration is complete. Cheap: 89 map lookups, once per panel.
+    // nothing when picked — and cannot be seen by reading either side alone. Verify the join once,
+    // here, where every registration is complete. Cheap: 89 map lookups, once per panel.
     {
         std::vector<std::string> dead;
         for (int i = 0; i < kDesignToolCount; ++i) {
@@ -4586,15 +4609,45 @@ void DesignPanel::set_status_ok()
         if (body_move_pending()) end_body_move(true);
         else                     m_viewport->clear_move_gizmo();   // the Transform card's, if up
         rebuild_disp_meshes();            // apply per-body Move transforms to the display/pick meshes
-        // Point the solid-pick at the fresh body + TRANSFORMED pick mesh (stable address) + the
-        // per-body xform vector (for edge sampling). Resets the whole/face/edge selection, whose
-        // ids invalidate on every recompute. Null body is handled inside.
-        m_viewport->set_solid_pick(&m_doc.bodies, &m_disp_pick_mesh,
-                                   &m_doc.display_tri_face, &m_doc.display_tri_body,
-                                   &m_body_visible, &m_body_xform);
+        feed_pick(true);
         feed_bodies();
     }
     sync_sketch_display();
+}
+
+int DesignPanel::sketch_extruded_by(int sketch) const
+{
+    for (int i = 0; i < int(m_doc.features.size()); ++i) {
+        const CadFeature& f = m_doc.features[i];
+        if (f.type == CadFeatureType::Extrude && f.enabled && f.sketch_ref == sketch) return i;
+    }
+    return -1;
+}
+
+std::vector<int> DesignPanel::loops_extruded_by(int sketch) const
+{
+    const std::vector<SketchEntity>& ents = m_doc.features[sketch].entities;
+    std::vector<int>                 by(ents.size(), -1);
+    std::vector<int>                 per_loop;
+    for (int i = 0; i < int(m_doc.features.size()); ++i) {
+        const CadFeature& f = m_doc.features[i];
+        if (f.type == CadFeatureType::Extrude && f.enabled && f.sketch_ref < 0 && !f.entities.empty()) per_loop.push_back(i);
+    }
+    if (per_loop.empty() || m_viewport == nullptr) return by;
+    // A per-loop extrude keeps the loop it took as region_entity_indices_with_holes() lists it, the region's own
+    // entities and then its holes', so a loop inside an extruded region goes with it.
+    for (const std::vector<int>& loop : m_viewport->region_entity_indices_with_holes(ents)) {
+        std::vector<SketchEntity> es;
+        for (int ei : loop)
+            if (ei >= 0 && ei < int(ents.size())) es.push_back(ents[ei]);
+        for (int e : per_loop)
+            if (DesignSketchTool::same_entities(es, m_doc.features[e].entities)) {
+                for (int ei : loop)
+                    if (ei >= 0 && ei < int(by.size()) && by[ei] < 0) by[ei] = e;
+                break;
+            }
+    }
+    return by;
 }
 
 // Draw every committed sketch that no enabled Extrude consumes, so a sketch stays
@@ -4604,56 +4657,19 @@ void DesignPanel::sync_sketch_display()
 {
     if (m_viewport == nullptr) return;
     const int n = int(m_doc.features.size());
-    std::vector<bool> consumed(n, false);
-    // Per-loop extrudes (sketch_ref < 0) carry a verbatim copy of the one loop they
-    // consumed; collect those so that loop is hidden from its source sketch overlay.
-    std::vector<std::vector<SketchEntity>> consumed_loops;
-    for (const CadFeature& f : m_doc.features) {
-        if (f.type != CadFeatureType::Extrude || !f.enabled) continue;
-        if (f.sketch_ref >= 0 && f.sketch_ref < n)        consumed[f.sketch_ref] = true;
-        else if (f.sketch_ref < 0 && !f.entities.empty()) consumed_loops.push_back(f.entities);
-    }
-    // Two loops match when their entities are the same geometry in the same order — the
-    // per-loop extrude stored a verbatim copy, so this is an exact comparison.
-    auto same_loop = [](const std::vector<SketchEntity>& a, const std::vector<SketchEntity>& b) {
-        if (a.size() != b.size() || a.empty()) return false;
-        auto eq = [](const Vec2d& u, const Vec2d& v) { return (u - v).squaredNorm() < 1e-10; };
-        for (size_t k = 0; k < a.size(); ++k) {
-            const SketchEntity& x = a[k]; const SketchEntity& y = b[k];
-            if (x.type != y.type || !eq(x.p0, y.p0) || !eq(x.p1, y.p1) ||
-                !eq(x.center, y.center) || std::abs(x.radius - y.radius) > 1e-7) return false;
-        }
-        return true;
-    };
-
     std::vector<DesignSketchTool::DisplaySketch> ds;
     for (int i = 0; i < n; ++i) {
         const CadFeature& f = m_doc.features[i];
-        if (f.type != CadFeatureType::Sketch || consumed[i] || !f.enabled)
+        if (f.type != CadFeatureType::Sketch || !f.enabled || sketch_extruded_by(i) >= 0)
             continue;
         if (!f.entities.empty()) {
-            if (consumed_loops.empty()) {
-                ds.push_back({ f.entities, f.plane, i });
-            } else {
-                // Drop the entities of any loop already extruded; keep the rest (other
-                // loops + non-loop entities) so they stay visible and selectable.
-                std::vector<char> drop(f.entities.size(), 0);
-                for (const std::vector<int>& loop : m_viewport->region_entity_indices_with_holes(f.entities)) {
-                    std::vector<SketchEntity> es;
-                    for (int ei : loop)
-                        if (ei >= 0 && ei < int(f.entities.size())) es.push_back(f.entities[ei]);
-                    bool gone = false;
-                    for (const std::vector<SketchEntity>& c : consumed_loops)
-                        if (same_loop(es, c)) { gone = true; break; }
-                    if (gone)
-                        for (int ei : loop)
-                            if (ei >= 0 && ei < int(drop.size())) drop[ei] = 1;
-                }
-                std::vector<SketchEntity> shown;
-                for (int ei = 0; ei < int(f.entities.size()); ++ei)
-                    if (!drop[ei]) shown.push_back(f.entities[ei]);
-                if (!shown.empty()) ds.push_back({ std::move(shown), f.plane, i });
-            }
+            // Drop the entities of any loop already extruded; keep the rest (other loops and non-loop entities) so
+            // they stay visible and selectable.
+            const std::vector<int>    taken = loops_extruded_by(i);
+            std::vector<SketchEntity> shown;
+            for (int ei = 0; ei < int(f.entities.size()); ++ei)
+                if (taken[ei] < 0) shown.push_back(f.entities[ei]);
+            if (!shown.empty()) ds.push_back({ std::move(shown), f.plane, i });
         } else if (!f.imported_regions.empty()) {
             // Imported art (Text/SVG) carries no solver entities; synthesize
             // closed line loops from each region contour so it shows as an
@@ -4712,7 +4728,7 @@ void DesignPanel::open_text_dialog(int feat)
             m_text_plane = m_viewport->mcp_sketch_tool().plane();
             if (m_viewport->live_sketch_has_work()) {
                 m_viewport->sketch_confirm_pending();
-                m_viewport->finish_sketch();     // keep what was drawn: it is its own feature
+                if (!finish_sketch_first()) return;   // keep what was drawn: it is its own feature
             } else {
                 m_viewport->cancel_sketch();     // an empty sketch was only a way to pick the plane
             }
@@ -4746,10 +4762,13 @@ void DesignPanel::open_text_dialog(int feat)
 void DesignPanel::text_dialog_changed()
 {
     if (m_text_dlg == nullptr) return;
-    const ImportRegions& regions = m_text_dlg->regions();
     const DesignTextDialog::Spec sp = m_text_dlg->spec();
     const bool have = m_text_feat >= 0 && m_text_feat < int(m_doc.features.size());
-    if (regions.empty()) {
+    CadFeature outlined;
+    outlined.text_string = std::string(sp.text.ToUTF8().data());
+    outlined.text_height = sp.height;
+    std::string why;   // the dialog's size line tells the person
+    if (!outline_text(outlined, WxFontUtils::load_wxFont(sp.font), why)) {
         // Nothing to draw. An edited text keeps its last outline (OK is disabled until there is
         // text again); a new one that has not been accepted simply goes away again.
         if (!m_text_editing && have) {
@@ -4764,25 +4783,96 @@ void DesignPanel::text_dialog_changed()
     }
     if (!have) {
         m_doc.checkpoint();   // undo boundary: the new text (Cancel removes it)
-        m_feature_counter++;
-        CadFeature f;
-        f.type             = CadFeatureType::Sketch;
-        f.name             = feature_name(_L("Text"));
-        f.plane            = m_text_plane;
-        f.import_offset    = m_text_offset;          // the regions are centred on the origin
-        f.import_on_face   = m_text_face_body >= 0;
-        f.import_face_body = m_text_face_body;
-        m_doc.features.push_back(f);
-        m_text_feat = int(m_doc.features.size()) - 1;
+        m_text_feat = push_text_feature(std::move(outlined), m_text_plane, m_text_face_body, m_text_offset);
         refresh_tree();
         set_tree_selection(m_text_feat);
+    } else {
+        CadFeature& f = m_doc.features[m_text_feat];
+        f.imported_regions = std::move(outlined.imported_regions);
+        f.text_string      = std::move(outlined.text_string);
+        f.text_font        = std::move(outlined.text_font);
+        f.text_height      = outlined.text_height;
     }
-    CadFeature& f = m_doc.features[m_text_feat];
-    f.imported_regions = regions;
-    f.text_string      = std::string(sp.text.ToUTF8().data());
-    f.text_font        = sp.font;
-    f.text_height      = sp.height;
     sync_sketch_display();   // the overlay draws the feature's regions: the canvas preview
+}
+
+bool DesignPanel::outline_text(CadFeature& f, const wxFont& font, std::string& why) const
+{
+    const std::string face(font.GetFaceName().ToUTF8().data());
+    std::shared_ptr<const Emboss::FontFile> file;
+    if (font.IsOk() && WxFontUtils::can_load(font))
+        file = WxFontUtils::create_font_file(font);
+    if (!file) {
+        why = "font " + face + " cannot be loaded for text";
+        return false;
+    }
+    ImportRegions regions = text_to_regions(f.text_string, f.text_height, file);
+    if (regions.empty()) {
+        why = "the text has no outline in font " + face;
+        return false;
+    }
+    f.imported_regions = std::move(regions);
+    f.text_font        = WxFontUtils::store_wxFont(font);
+    return true;
+}
+
+int DesignPanel::push_text_feature(CadFeature outlined, const SketchPlane& plane, int face_body, const Vec2d& position)
+{
+    m_feature_counter++;
+    outlined.type             = CadFeatureType::Sketch;
+    outlined.name             = feature_name(_L("Text"));
+    outlined.plane            = plane;
+    outlined.import_offset    = position;   // the regions are centred on the origin
+    outlined.import_on_face   = face_body >= 0;
+    outlined.import_face_body = face_body;
+    m_doc.features.push_back(std::move(outlined));
+    return int(m_doc.features.size()) - 1;
+}
+
+bool DesignPanel::mcp_outline_text(CadFeature& f, const std::string& text, const std::string& font, bool bold,
+                                   bool italic, double height, std::string& why) const
+{
+    // With no face given, a text keeps the font it is stored in, its Bold and Italic with it, and a new text starts
+    // from what the Text dialog starts one from: the face its Font list shows for the font last used. A new text with
+    // no height starts at the height last used.
+    const bool keep = font.empty() && !f.text_font.empty();
+    wxString   face = wxString::FromUTF8(font);
+    if (face.empty() && !keep) {
+        face = DesignTextDialog::listed_face(DesignTextDialog::last_font());
+    } else if (!keep && !wxFontEnumerator::IsValidFacename(face)) {
+        why = "font " + font + " is not installed";
+        return false;
+    }
+    f.text_string = text;
+    f.text_height = height > 0.0 ? height : DesignTextDialog::last_height();
+    // The font the dialog makes of a face and its Bold and Italic boxes.
+    return outline_text(f, keep ? WxFontUtils::load_wxFont(f.text_font) : wxFont(wxFontInfo(12).FaceName(face).Bold(bold).Italic(italic)),
+                        why);
+}
+
+int DesignPanel::mcp_push_text(const std::string& text, const std::string& font, bool bold, bool italic, double height,
+                               const SketchPlane& plane, int face_body, const Vec2d& position, std::string& why)
+{
+    CadFeature outlined;
+    if (!mcp_outline_text(outlined, text, font, bold, italic, height, why))
+        return -1;
+    return push_text_feature(std::move(outlined), plane, face_body, position);
+}
+
+int DesignPanel::mcp_push_art(const ImportRegions& regions, const wxString& base_name, const SketchPlane& plane,
+                              int face_body, const Vec2d& position)
+{
+    m_feature_counter++;
+    CadFeature f;
+    f.type             = CadFeatureType::Sketch;
+    f.name             = feature_name(base_name);
+    f.imported_regions = regions;
+    f.plane            = plane;
+    f.import_offset    = position;
+    f.import_on_face   = face_body >= 0;
+    f.import_face_body = face_body;
+    m_doc.features.push_back(std::move(f));
+    return int(m_doc.features.size()) - 1;
 }
 
 void DesignPanel::text_dialog_done(bool accepted)
@@ -4881,8 +4971,12 @@ bool DesignPanel::mcp_busy(bool read_only, bool sketch_method, std::string& why)
     // landing under it.
     if (read_only) return false;
     // A GUI editor holds a candidate built from the document as it was when it opened; a
-    // feature added or removed underneath it would be overwritten, or overwrite, on Confirm.
-    if (m_active != Tool::None || m_edit_index >= 0) { why = "a feature card is open in the Design tab"; return true; }
+    // feature added or removed underneath it would be overwritten, or overwrite, on Confirm. A
+    // re-opened sketch holds its index too, and is a sketch session, which the last rule covers.
+    if (m_active != Tool::None || (m_edit_index >= 0 && m_ui_mode != UiMode::Sketch)) {
+        why = "a feature card is open in the Design tab";
+        return true;
+    }
     if (m_text_dlg != nullptr) { why = "the Text dialog is open in the Design tab"; return true; }
     if (m_ui_mode == UiMode::Constrain) { why = "the Design tab is constraining a sketch"; return true; }
     // The Move holds a body index that any change to the document, an undo included, could point
@@ -4892,6 +4986,177 @@ bool DesignPanel::mcp_busy(bool read_only, bool sketch_method, std::string& why)
     // changes the feature list, which a live sketch session is about to commit into.
     if (!sketch_method && m_ui_mode == UiMode::Sketch) { why = "a sketch is open in the Design tab"; return true; }
     return false;
+}
+
+int DesignPanel::mcp_feature_row() const { return m_tree != nullptr ? m_tree->selection() : -1; }
+
+int DesignPanel::mcp_picked_plane() const { return m_plane_picked && m_ref_plane >= 0 && m_ref_plane <= 2 ? m_ref_plane : -1; }
+
+bool DesignPanel::mcp_select(const DesignSelection& s, std::string& why)
+{
+    using Kind = DesignSelection::Kind;
+    if (m_viewport == nullptr || m_tree == nullptr || m_parts == nullptr) { why = "the Design view is not built"; return false; }
+    const int  bodies  = int(m_doc.bodies.size());
+    DesignSketchTool& tool = m_viewport->mcp_sketch_tool();
+    // Everything the selecting below can refuse is tested here, by the tests it runs itself, so that a request that
+    // would fail there changes nothing.
+    const auto body_ok = [&] {
+        if (s.body >= 0 && s.body < bodies) return true;
+        why = "body " + std::to_string(s.body) + " is not a body of the model, which has " + std::to_string(bodies);
+        return false;
+    };
+    const auto handled = [&](bool set, const char* what) {
+        if (set) return true;
+        why = std::string("the Design view takes no ") + what + " now";
+        return false;
+    };
+    using SolidSel = DesignSketchTool::SolidSel;
+    const SolidSel solid = s.kind == Kind::Face ? SolidSel::Face : s.kind == Kind::Edges ? SolidSel::Edge : SolidSel::Vertex;
+    Vec3d          vertex_pt  = Vec3d::Zero();
+    int            shown_loop = -1;   // the loop's number among the regions the view shows, which a click picks
+    switch (s.kind) {
+    case Kind::None: break;
+    case Kind::Body:
+        if (!body_ok()) return false;
+        break;
+    case Kind::Face:
+    case Kind::Edges:
+    case Kind::Vertex: {
+        if (!body_ok()) return false;
+        if (s.kind == Kind::Vertex) {
+            std::vector<Vec3d> vertices;
+            try {
+                vertices = Mcp::cad_body_vertices(m_doc, s.body);
+            } catch (const std::exception& e) {
+                why = e.what();
+                return false;
+            }
+            if (s.vertex < 0 || s.vertex >= int(vertices.size())) {
+                why = "vertex " + std::to_string(s.vertex) + " is not one of body " + std::to_string(s.body) + ", which has " +
+                      std::to_string(vertices.size());
+                return false;
+            }
+            vertex_pt = vertices[size_t(s.vertex)];
+        }
+        if (!tool.can_select_solid(solid, s.body, s.face, s.edges, &why)) return false;
+        if (!handled(bool(tool.on_solid_selection_changed), "pick on a body")) return false;
+        break;
+    }
+    case Kind::Plane:
+        if (s.plane < 0 || s.plane > 2) { why = "plane is XY, XZ or YZ"; return false; }
+        // Where update_reference_planes() puts the planes up for a click (no card is open here).
+        if (!m_show_origin && !m_choosing_sketch_plane) {
+            why = "no click can pick a plane now: one does while the Origin row shows the planes (set_view {\"tab\": "
+                  "\"design\", \"origin\": true}) or while Sketch waits for its plane (sketch_create {})";
+            return false;
+        }
+        if (!handled(bool(tool.on_datum_base_picked), "pick on a plane")) return false;
+        break;
+    case Kind::Loop: {
+        if (s.sketch < 0 || s.sketch >= int(m_doc.features.size()) || m_doc.features[s.sketch].type != CadFeatureType::Sketch) {
+            why = "feature " + std::to_string(s.sketch) + " is not a sketch";
+            return false;
+        }
+        const CadFeature& sketch = m_doc.features[s.sketch];
+        const std::string named  = "sketch " + std::to_string(s.sketch);
+        // Numbered as sketch_describe's closed_loops and extrude's loop number them.
+        const std::vector<std::vector<int>> loops = m_viewport->region_entity_indices(sketch.entities);
+        if (s.loop < 0 || s.loop >= int(loops.size())) {
+            why = "loop " + std::to_string(s.loop) + " is not one of " + named + ", which has " + std::to_string(loops.size()) +
+                  (loops.size() == 1 ? " closed loop" : " closed loops");
+            return false;
+        }
+        if (!sketch.enabled) {
+            why = named + " is suppressed, so the view does not show it";
+            return false;
+        }
+        if (const int by = sketch_extruded_by(s.sketch); by >= 0) {
+            why = named + " is not on show: " + m_doc.features[by].name + " takes it whole, so no click picks a loop of it";
+            return false;
+        }
+        const std::vector<int>    taken = loops_extruded_by(s.sketch);
+        std::vector<SketchEntity> own;
+        for (const int ei : loops[s.loop]) {
+            if (taken[ei] >= 0) {
+                why = "loop " + std::to_string(s.loop) + " of " + named + " is not on show: " + m_doc.features[taken[ei]].name +
+                      " took it, so no click picks it";
+                return false;
+            }
+            own.push_back(sketch.entities[ei]);
+        }
+        shown_loop = tool.display_region_of(s.sketch, own);
+        if (shown_loop < 0) {
+            why = "loop " + std::to_string(s.loop) + " of " + named + " is not on show, so no click picks it";
+            return false;
+        }
+        if (!handled(bool(tool.on_display_sketch_selected), "pick on a sketch")) return false;
+        break;
+    }
+    case Kind::Feature:
+        if (s.feature < 0 || s.feature >= int(m_doc.features.size())) {
+            why = "feature " + std::to_string(s.feature) + " is not one of the " + std::to_string(m_doc.features.size()) +
+                  " features";
+            return false;
+        }
+        break;
+    }
+
+    // Each list's on_select clears what its row lit.
+    deselect_rows();
+    drop_selection();
+    drop_plane_pick();
+
+    switch (s.kind) {
+    case Kind::None: set_status(StatusKind::Info, _L("Nothing selected")); break;
+    // Its on_select runs apply_body_row(), as a click on the row does.
+    case Kind::Body: m_parts->select(s.body); break;
+    // The tool fires the solid pick's handler, which sets this panel's half.
+    case Kind::Face:
+    case Kind::Edges:
+    case Kind::Vertex:
+        if (!m_viewport->select_solid(solid, s.body, s.face, s.edges, vertex_pt)) {
+            why = "the Design view did not take the pick";
+            return false;
+        }
+        break;
+    case Kind::Plane: tool.on_datum_base_picked(s.plane); break;
+    case Kind::Loop:
+        m_viewport->set_loop_pick(s.sketch, shown_loop);
+        tool.on_display_sketch_selected(s.sketch, shown_loop, -1);
+        break;
+    // Its on_select lights what the feature made.
+    case Kind::Feature: set_tree_selection(s.feature); break;
+    }
+    // A row's highlight is found before this returns rather than after, where its busy loop would refuse the next
+    // call that came in meanwhile.
+    if (m_hl_pending) update_feature_highlight();
+    m_viewport->request_repaint();
+    return true;
+}
+
+bool DesignPanel::mcp_edit_sketch(int feature, std::string& why)
+{
+    if (m_viewport == nullptr) { why = "no viewport"; return false; }
+    if (m_viewport->is_sketching()) { why = "a sketch is already open; finish or cancel it first"; return false; }
+    return begin_sketch_edit(feature, &why);
+}
+
+void DesignPanel::mcp_cancel_sketch()
+{
+    if (m_viewport) m_viewport->cancel_sketch();
+    end_sketch_edit();
+    set_status(StatusKind::Info, wxString());
+}
+
+DesignPanel::SketchFinish DesignPanel::mcp_finish_sketch()
+{
+    m_sketch_finish = SketchFinish{};
+    if (m_viewport != nullptr && m_viewport->is_sketching()) {
+        m_viewport->sketch_confirm_pending();   // a ready edit-op or chain is kept, as the ✓ keeps it
+        m_viewport->finish_sketch();            // the commit handler checkpoints, solves, rebuilds and says what it did
+    }
+    set_ui_mode(UiMode::Feature);
+    return m_sketch_finish;
 }
 
 // Keep the Model's copy of the recipe in step with the document.
@@ -5122,44 +5387,37 @@ void DesignPanel::add_imported_sketch(
         return;
     }
     m_doc.checkpoint();   // undo boundary: importing Text/SVG art
-    m_feature_counter++;
-    CadFeature f;
-    f.type            = CadFeatureType::Sketch;
-    f.name            = feature_name(base_name);
-    f.imported_regions = regions;
 
     // #4: when a solid face is selected, drop the art ON that face, centred on it (ready to
     // engrave). Otherwise place it on the draw-plane dropdown at the plane origin (legacy).
-    bool on_face = false;
+    SketchPlane plane;
+    Vec2d       offset    = Vec2d::Zero();
+    int         face_body = -1;
     if (m_sel_solid_face >= 0 && m_sel_solid_body >= 0 && m_sel_solid_body < int(m_doc.bodies.size())) {
         const TopoDS_Face face =
             GeometryEngine::face_by_index(m_doc.bodies[m_sel_solid_body].shape, m_sel_solid_face);
         if (!face.IsNull()) {
-            f.plane = SketchPlane::from_face(face);
+            plane = SketchPlane::from_face(face);
             const Vec3d cw   = GeometryEngine::face_centroid_world(face);
-            const Vec2d c_uv = f.plane.project(cw, f.plane.normal);   // face centre in plane (u,v)
-            Vec2d lo(1e30, 1e30), hi(-1e30, -1e30);                   // bbox of the imported art
+            const Vec2d c_uv = plane.project(cw, plane.normal);   // face centre in plane (u,v)
+            Vec2d lo(1e30, 1e30), hi(-1e30, -1e30);               // bbox of the imported art
             for (const auto& reg : regions)
                 for (const auto& loop : reg)
                     for (const Vec2d& p : loop) { lo = lo.cwiseMin(p); hi = hi.cwiseMax(p); }
-            f.import_offset    = c_uv - 0.5 * (lo + hi);              // centre the art on the face
-            f.import_on_face   = true;
-            f.import_face_body = m_sel_solid_body;
-            on_face = true;
+            offset    = c_uv - 0.5 * (lo + hi);                   // centre the art on the face
+            face_body = m_sel_solid_body;
         }
     }
-    if (!on_face) {
-        f.plane = plane_from_choice(m_ref_plane);
-    }
+    if (face_body < 0)
+        plane = plane_from_choice(m_ref_plane);
 
     // Drop the live face selection (its body is now remembered on import_face_body): otherwise
     // the next Extrude would push/pull that face instead of extruding the placed art.
     m_sel_solid_face = m_sel_solid_edge = m_sel_solid_body = -1;
 
-    m_doc.features.push_back(f);
+    const int newidx = mcp_push_art(regions, base_name, plane, face_body, offset);
     m_doc.recompute();   // a lone sketch yields an empty body; that is expected
     refresh_tree();
-    const int newidx = int(m_doc.features.size()) - 1;
     set_tree_selection(newidx);   // select the new art
     sync_sketch_display();
     on_transform_imported(newidx);   // in-canvas place/size gizmo ON
@@ -5217,6 +5475,14 @@ void DesignPanel::cancel_insert()
     set_status(StatusKind::Info, _L("Insert canceled"));
 }
 
+void DesignPanel::edit_art_placement(int feat)
+{
+    m_doc.checkpoint();   // undo boundary: re-placing imported art
+    on_transform_imported(feat);
+    m_insert_feat = feat;
+    open_insert_card(wxString::FromUTF8(m_doc.features[feat].name));
+}
+
 void DesignPanel::on_transform_imported(int feat_idx)
 {
     if (feat_idx < 0 || feat_idx >= int(m_doc.features.size()) || !m_viewport)
@@ -5225,7 +5491,7 @@ void DesignPanel::on_transform_imported(int feat_idx)
     if (f.imported_regions.empty())
         return;
     end_body_move(true);   // the art's placement gizmo and ✓/✗ take over from a Move left open
-    end_sketch_plane_choice();   // ...and from a plane choice: Scale artwork reaches here directly
+    end_sketch_plane_choice();   // ...and from a plane choice: the gizmo takes the clicks it was waiting for
     // In-canvas bbox handles (replaces the Move/Scale dialog): drag a corner to scale,
     // the centre to move. Values stream back via set_on_imported_transform.
     m_viewport->begin_imported_transform(feat_idx, f.imported_regions, f.plane,
@@ -5272,11 +5538,14 @@ void DesignPanel::on_add_extrude()
     m_feature_counter++;
     const std::string name = feature_name(_L_CONTEXT("Extrude", "Design"));
     int idx = -1;
-    if (m_extrude_face_src >= 0) {
+    // The face-profile and loop selections the feature takes are consumed once it is built: when its rebuild fails the
+    // card stays open with them (confirm_tool()).
+    const bool from_face = m_extrude_face_src >= 0;
+    const bool from_loop = !from_face && extrude_uses_loop();
+    if (from_face) {
         // Onshape face-extrude: the picked solid face is the profile (no sketch wire).
         idx = m_doc.add_extrude_face(m_extrude_face_src, m_distance->GetValue(), false, mode, name);
-        m_extrude_face_src = -1;          // consume the face-profile selection
-    } else if (extrude_uses_loop()) {
+    } else if (from_loop) {
         // Extrude just the selected loop (its entity subset), leaving the source sketch's
         // other loops intact and still selectable.
         if (::getenv("ORCA_CAD_PICK_TRACE"))
@@ -5286,7 +5555,6 @@ void DesignPanel::on_add_extrude()
         idx = m_doc.add_extrude_entities(m_viewport->selected_loop_entities(),
                                          m_doc.features[m_extrude_sketch_ref].plane,
                                          m_distance->GetValue(), false, mode, name);
-        m_viewport->clear_loop_pick();   // consume the loop selection
     } else {
         idx = m_doc.add_extrude(m_extrude_sketch_ref, m_distance->GetValue(), false, mode, name);
     }
@@ -5307,10 +5575,13 @@ void DesignPanel::on_add_extrude()
             && m_doc.features[m_extrude_sketch_ref].import_on_face)
             f.target_body = m_doc.features[m_extrude_sketch_ref].import_face_body;
     }
-    if (!recompute_guarded(_L("Rebuilding model…")))
+    if (!recompute_guarded(_L("Rebuilding model…"))) {
         set_status(StatusKind::Error, wxString::Format(_L("The model could not be rebuilt: %s"), kernel_error_text(m_doc.error)));
-    else
+    } else {
+        if (from_face) m_extrude_face_src = -1;
+        if (from_loop) m_viewport->clear_loop_pick();
         set_status_ok();
+    }
     refresh_tree();
 }
 
@@ -5593,6 +5864,7 @@ void DesignPanel::on_add_surface_revolve()
     const int idx = m_doc.add_surface_revolve(m_surf_revolve_sketch_ref, m_surf_revolve_angle->GetValue(),
                                               axis, feature_name(_L("Surface Revolve")));
     m_doc.features[idx].revolve_axis_entity = axis_entity;
+    m_doc.features[idx].flip                = m_surf_revolve_flip->GetValue();
     if (!recompute_guarded(_L("Rebuilding model…")))
         set_status(StatusKind::Error, wxString::Format(_L("The model could not be rebuilt: %s"), kernel_error_text(m_doc.error)));
     else
@@ -5732,6 +6004,8 @@ void DesignPanel::xf_clear_preview()
 
 void DesignPanel::on_add_transform()
 {
+    sync_body_xform();
+    m_xf_shown = XfShown{m_body_xform, m_xf_gizmo_body, m_xf_gizmo_base, m_xf_prev_body, m_xf_prev_base};
     xf_clear_preview();   // the feature performs this motion parametrically; the preview must go
     // The gizmo baked its drag into the display transform so the body followed the cursor.
     // The feature about to be created performs that same motion parametrically, so hand the
@@ -5764,6 +6038,30 @@ void DesignPanel::on_add_transform()
     else
         set_status_ok();
     refresh_tree();
+}
+
+void DesignPanel::xf_show_again()
+{
+    if (!m_xf_shown) return;
+    const XfShown shown = std::move(*m_xf_shown);
+    m_xf_shown.reset();
+    // The document is back as it was before the add, so the bodies are those the poses were taken of.
+    sync_body_xform();
+    if (m_active != Tool::Transform || shown.poses.size() != m_body_xform.size()) return;
+    m_body_xform   = shown.poses;
+    m_xf_prev_body = shown.prev_body;
+    m_xf_prev_base = shown.prev_base;
+    const int b = shown.gizmo_body;
+    if (b >= 0 && b < int(m_body_xform.size()) && b < int(m_doc.display_body_meshes.size()) && m_viewport) {
+        // The gizmo where it stood: on the body's pose, its drags composing onto it as they did, and the card's numbers
+        // still measured from the pose the card armed it at.
+        const Transform3d&  pose = m_body_xform[size_t(b)];
+        const BoundingBoxf3 bb   = m_doc.display_body_meshes[size_t(b)].bounding_box();
+        m_viewport->begin_move_body(b, pose * bb.center(), pose, (pose.linear() * (bb.size() * 0.5)).norm());
+        m_xf_gizmo_body = b;
+        m_xf_gizmo_base = shown.gizmo_base;
+    }
+    feed_bodies();
 }
 
 void DesignPanel::on_add_mirror()
@@ -5866,11 +6164,13 @@ void DesignPanel::on_add_delete_face()
     const int target = (sel != wxNOT_FOUND) ? sel : -1;
     m_feature_counter++;
     m_doc.add_delete_face(target, m_del_faces, feature_name(_L("Delete Face")));
-    m_del_faces.clear();  // consumed; fresh state for the next use
-    if (!recompute_guarded(_L("Rebuilding model…")))
+    if (!recompute_guarded(_L("Rebuilding model…"))) {
+        // The card stays open with its faces (confirm_tool()).
         set_status(StatusKind::Error, wxString::Format(_L("The model could not be rebuilt: %s"), kernel_error_text(m_doc.error)));
-    else
+    } else {
+        m_del_faces.clear();  // consumed; fresh state for the next use
         set_status_ok();
+    }
     refresh_tree();
 }
 
@@ -6890,8 +7190,8 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
         }
         if (cs_a < 0 || cs_b < 0) { cs_a = cs_features[0]; cs_b = cs_features[1]; }
 
-        // The generated verb rows own [base, base + bound.size()); the table has 93 entries with a
-        // row (kDesignToolCount, 134, counts the commands with none too), so a gap of 500 keeps this
+        // The generated verb rows own [base, base + bound.size()); the table has 92 entries with a
+        // row (kDesignToolCount, 127, counts the commands with none too), so a gap of 500 keeps this
         // section's ids clear of that range and lets its own handler index by a distinct offset.
         const int mate_base = base + 500;
 
@@ -7688,29 +7988,37 @@ void DesignPanel::update_section_flip_btn()
     if (m_section_flip_btn) m_section_flip_btn->Enable(m_section_on);
 }
 
+void DesignPanel::set_section_view(bool on, std::optional<double> z, bool keep_upper)
+{
+    if (!m_viewport) return;
+    m_section_on = on;
+    if (on) {
+        m_section_cut_z = z ? *z : m_viewport->model_mid_z();
+        m_section_upper = keep_upper;
+        m_viewport->set_section_plane(true, m_section_cut_z, m_section_upper);
+    } else {
+        m_viewport->set_section_plane(false, 0.0);
+    }
+    update_section_flip_btn();
+}
+
 void DesignPanel::toggle_section_view()
 {
     if (!m_viewport) return;
-    m_section_on = !m_section_on;
-    if (m_section_on) {
-        m_section_cut_z = m_viewport->model_mid_z();   // start at the model's mid-height
-        m_section_upper = false;                       // keep the lower half by default
-        m_viewport->set_section_plane(true, m_section_cut_z, m_section_upper);
+    // On, it starts at the model's mid-height and keeps the lower half.
+    set_section_view(!m_section_on, std::nullopt, false);
+    if (m_section_on)
         set_status(_L("Section view on — hides half the model to see inside; "
                               "PageUp / PageDown move the plane, Flip shows the other half"));
-    } else {
-        m_viewport->set_section_plane(false, 0.0);
+    else
         set_status(_L("Section view off"));
-    }
     m_status->Refresh();
-    update_section_flip_btn();
 }
 
 void DesignPanel::flip_section_view()
 {
     if (!m_viewport || !m_section_on) return;
-    m_section_upper = !m_section_upper;
-    m_viewport->set_section_plane(true, m_section_cut_z, m_section_upper);
+    set_section_view(true, m_section_cut_z, !m_section_upper);
     set_status(StatusKind::Info, m_section_upper ? _L("Section view — showing the upper half")
                                                  : _L("Section view — showing the lower half"));
 }
@@ -7722,10 +8030,29 @@ void DesignPanel::sync_body_visible()
     m_body_visible.resize(m_doc.bodies.size(), true);
 }
 
+DesignPanel::BodyKey DesignPanel::body_key(int b) const
+{
+    const CadFeature::BodyId id    = m_doc.body_id(b);
+    const bool               known = id.src >= 0 && id.src < int(m_doc.features.size());
+    return {known ? m_doc.features[size_t(id.src)].uid : 0, id.ord};
+}
+
 void DesignPanel::sync_body_xform()
 {
-    // Parallel to bodies; new bodies default to identity (no move). Stable on resize.
-    m_body_xform.resize(m_doc.bodies.size(), Transform3d::Identity());
+    std::vector<BodyKey> keys(m_doc.bodies.size());
+    for (size_t b = 0; b < keys.size(); ++b) keys[b] = body_key(int(b));
+    if (keys == m_body_xform_keys && m_body_xform.size() == keys.size()) return;
+    // The placements held so far go under the identities they were held for, then each body takes its own.
+    for (size_t b = 0; b < m_body_xform_keys.size() && b < m_body_xform.size(); ++b) {
+        if (m_body_xform[b].isApprox(Transform3d::Identity()))
+            m_body_place.erase(m_body_xform_keys[b]);
+        else
+            m_body_place[m_body_xform_keys[b]] = m_body_xform[b];
+    }
+    m_body_xform.assign(keys.size(), Transform3d::Identity());
+    for (size_t b = 0; b < keys.size(); ++b)
+        if (const auto it = m_body_place.find(keys[b]); it != m_body_place.end()) m_body_xform[b] = it->second;
+    m_body_xform_keys = std::move(keys);
 }
 
 // Build the display + pick meshes with each body's Move transform applied. The pick mesh is
@@ -8060,7 +8387,8 @@ void DesignPanel::rename_body(int b, const std::string& name)
 // body so that face's outward normal points straight down (-Z) and drops it onto the bed —
 // Orca's exact math (Selection::flattening_rotate). Writes the per-body display transform
 // m_body_xform (baked into the mesh at Commit), like the Move gizmo; no shape mutation.
-// Returns false (with a hint) when no body face is selected, so the F key can fall through.
+// The F key's form lays the selected face, and returns false (with a hint) when no body face is
+// selected, so the key can fall through; body_place names the body and face.
 bool DesignPanel::place_on_face()
 {
     const int b = m_sel_solid_body;
@@ -8069,14 +8397,20 @@ bool DesignPanel::place_on_face()
         set_status(StatusKind::Error, _L("Click a face on the solid, then press F"));
         return false;
     }
-    const TopoDS_Face face = GeometryEngine::face_by_index(m_doc.bodies[b].shape, m_sel_solid_face);
+    return place_on_face(b, m_sel_solid_face);
+}
+
+bool DesignPanel::place_on_face(int b, int face_id)
+{
+    if (b < 0 || b >= int(m_doc.bodies.size()) || b >= int(m_doc.display_body_meshes.size())) return false;
+    const TopoDS_Face face = GeometryEngine::face_by_index(m_doc.bodies[b].shape, face_id);
     if (face.IsNull()) return false;
-    end_sketch_plane_choice();   // the body moves; a sketch was not started
     sync_body_xform();
     const Transform3d old_x = m_body_xform[b];
     // Outward face normal in the body's CURRENT displayed orientation.
     const Vec3d n = (old_x.linear() * GeometryEngine::face_normal_world(face)).normalized();
     if (!n.allFinite() || n.norm() < 0.5) return false;
+    end_sketch_plane_choice();   // the body moves; a sketch was not started
     // Align that normal with the down vector (-Z): the face ends up on the bed.
     const Transform3d R(Eigen::Quaterniond().setFromTwoVectors(n, -Vec3d::UnitZ()));
     // Rotate about the body's current world centroid so it spins in place, not about the origin.
@@ -8206,6 +8540,8 @@ void DesignPanel::clear_document()
     drop_selection();
     m_edit_index = -1;
     m_body_xform.clear();
+    m_body_xform_keys.clear();
+    m_body_place.clear();
     if (m_viewport) { m_viewport->clear_move_gizmo(); m_viewport->clear_mesh(); }
     after_tree_edit(true);         // rebuild the (now empty) tree + clear the viewport
     update_action_bar();
@@ -8310,9 +8646,7 @@ void DesignPanel::show_body(int b, bool shown)
     m_body_visible[b] = shown;
     if (m_viewport != nullptr) {
         feed_bodies();   // flips is_active; m_solid_visible is a stable pointer (live)
-        m_viewport->set_solid_pick(&m_doc.bodies, &m_disp_pick_mesh,
-                                   &m_doc.display_tri_face, &m_doc.display_tri_body,
-                                   &m_body_visible, &m_body_xform);
+        feed_pick(false);
     }
     refresh_tree();
     set_status(StatusKind::Info, wxString::Format(shown ? _L("Body %d shown") : _L("Body %d hidden"), b + 1));
@@ -8343,9 +8677,7 @@ bool DesignPanel::show_feature(int f, bool shown)
             // Hiding or showing a feature rebuilds the bodies and can renumber them, so the pick is
             // re-pointed and its selection dropped. That also brings picking back for a body shown
             // after everything was hidden (clear_mesh() dropped it).
-            m_viewport->set_solid_pick(&m_doc.bodies, &m_disp_pick_mesh,
-                                       &m_doc.display_tri_face, &m_doc.display_tri_body,
-                                       &m_body_visible, &m_body_xform);
+            feed_pick(true);
         }
     }
     sync_sketch_display();                // skips the hidden sketch + direct-renders
@@ -8392,8 +8724,9 @@ void DesignPanel::rename_feature(int f, const std::string& name)
 // Constrain" friction, so the constraint palette + Trim/Extend are reachable mid-sketch.
 bool DesignPanel::enter_constrain_inline()
 {
-    if (m_viewport && m_viewport->is_sketching())
-        m_viewport->finish_sketch();   // synchronous: packages live entities+constraints -> Sketch
+    // Synchronous: packages the live entities and constraints into a Sketch feature.
+    if (m_viewport && m_viewport->is_sketching() && !finish_sketch_first())
+        return false;
     const int sk = resolve_extrude_sketch();   // last/selected Sketch feature
     if (sk < 0) {
         set_status(StatusKind::Error, _L("Draw a sketch first, then Constrain"));
@@ -9596,11 +9929,11 @@ void DesignPanel::request_value(const wxString& label, double def, double mn, do
     set_status(StatusKind::Info, wxString::Format(_L("%s — type a value, press Enter (or Confirm)"), label));
 }
 
-void DesignPanel::confirm_value()
+bool DesignPanel::confirm_value()
 {
-    if (!m_value_cont) { cancel_value(); return; }
+    if (!m_value_cont) { cancel_value(); return false; }
     double v = 0.0;
-    if (!en_parse(m_value_input->GetValue(), v)) { m_value_input->SetFocus(); return; }
+    if (!en_parse(m_value_input->GetValue(), v)) { m_value_input->SetFocus(); return false; }
     v = std::min(std::max(v, m_value_min), m_value_max);   // clamp to range
     auto cont = m_value_cont;            // copy, then clear before running so a
     m_value_cont = nullptr;              // re-entrant request_value can re-arm cleanly
@@ -9609,6 +9942,7 @@ void DesignPanel::confirm_value()
     update_cards_frame(); m_form->Layout();
     m_form->FitInside();
     cont(v);                            // run the deferred constraint / edit-op apply
+    return true;
 }
 
 void DesignPanel::cancel_value()
@@ -10054,28 +10388,13 @@ void DesignPanel::on_edit_feature()
         // move / scale its placement instead, behind the same Confirm/Cancel gate as
         // the initial insert (Cancel = undo restores the prior placement).
         if (!f.imported_regions.empty()) {
-            m_doc.checkpoint();   // undo boundary: re-placing imported art
-            on_transform_imported(sel);
-            m_insert_feat = sel;
-            open_insert_card(wxString::FromUTF8(f.name));
+            edit_art_placement(sel);
             break;
         }
-        m_edit_index = sel;
         if (!f.entities.empty()) {
-            // Entity sketcher: re-open the geometry for full in-canvas editing (handles,
-            // live quotes, regular-polygon drag) in the ENTITY sketch UI (the top sketch
-            // toolbar + session card), NOT the legacy parametric card. The commit handler
-            // replaces this feature in place (see m_edit_index). Hide its display overlay
-            // so the live tool is the only copy drawn.
-            if (m_viewport) {
-                m_viewport->set_display_sketches({});
-                m_viewport->edit_sketch(f.entities, f.entity_constraints, f.plane);
-            }
-            // After the session opens, as a new sketch does (start_sketch_on_target): the mode
-            // change fills the sidebar's Constraints card from the live session.
-            set_ui_mode(UiMode::Sketch);
-            set_status(StatusKind::Info, _L("Editing sketch — drag a handle or double-click a dimension to edit it"));
+            begin_sketch_edit(sel);
         } else {
+            m_edit_index = sel;
             load_feature_into_dialog(f);
             open_tool(Tool::Sketch);
         }
@@ -10257,13 +10576,141 @@ void DesignPanel::on_edit_feature()
         set_status(StatusKind::Info, _L("This feature type can't be edited yet"));
         break;
     }
+    // A card that edits a feature picks faces, edges and bodies in the model before it, where the feature reads
+    // them. A Plane's, an Axis's and a Coordinate system's card picks in the finished model, where theirs are read.
+    if (m_edit_index == sel && m_active != Tool::None && m_active != Tool::Sketch && m_active != Tool::Insert &&
+        m_active != Tool::Plane && m_active != Tool::Axis && m_active != Tool::CoordSys)
+        pick_before(sel);
+}
+
+void DesignPanel::pick_before(int f)
+{
+    pick_shown();   // the pick never reads a model that is being replaced
+    if (m_viewport == nullptr || f < 0 || f > int(m_doc.features.size())) return;
+    auto before = std::make_unique<CadDocument>(m_doc.history_before(f));
+    if (!before->recompute()) return;
+    m_pick_before = std::move(before);
+    pick_in_before();
+}
+
+void DesignPanel::pick_in_before()
+{
+    // A body is matched to the one it became in the model shown by its identity, as recompute() carries a body's
+    // colour and name; one a later feature consumed has none there, so the person cannot have hidden or placed it.
+    sync_body_visible();
+    sync_body_xform();
+    const size_t n = m_pick_before->bodies.size();
+    m_pick_before_visible.assign(n, true);
+    m_pick_before_xform.assign(n, Transform3d::Identity());
+    bool placed = false;
+    for (size_t b = 0; b < n; ++b) {
+        const int shown = m_doc.body_index(m_pick_before->body_id(int(b)));
+        if (shown < 0) continue;
+        m_pick_before_visible[b] = m_body_visible[size_t(shown)];
+        m_pick_before_xform[b]   = m_body_xform[size_t(shown)];
+        placed                   = placed || !m_pick_before_xform[b].isApprox(Transform3d::Identity());
+    }
+    // The tessellation moved body by body in the order display_tri_face and display_tri_body follow, as
+    // rebuild_disp_meshes() moves the model shown's.
+    const std::vector<TriangleMesh>& meshes = m_pick_before->display_body_meshes;
+    if (!placed || meshes.size() != n) {
+        m_pick_before_mesh = m_pick_before->display_mesh;
+    } else {
+        m_pick_before_mesh = TriangleMesh{};
+        for (size_t b = 0; b < n; ++b) {
+            TriangleMesh m = meshes[b];
+            m.transform(m_pick_before_xform[b]);
+            m_pick_before_mesh.merge(m);
+        }
+    }
+    // The sketch tool's pick alone: the bodies' colours and lit faces stay those of the model shown.
+    m_viewport->mcp_sketch_tool().set_solid_pick(&m_pick_before->bodies, &m_pick_before_mesh, &m_pick_before->display_tri_face,
+                                                 &m_pick_before->display_tri_body, &m_pick_before_visible, &m_pick_before_xform);
+}
+
+void DesignPanel::feed_pick(bool rebuilt)
+{
+    if (m_viewport == nullptr) return;
+    // Point the solid-pick at the fresh body + TRANSFORMED pick mesh (stable address) + the per-body xform vector
+    // (for edge sampling). Resets the whole/face/edge selection, whose ids invalidate on every recompute. Null body is
+    // handled inside.
+    m_viewport->set_solid_pick(&m_doc.bodies, &m_disp_pick_mesh, &m_doc.display_tri_face, &m_doc.display_tri_body,
+                               &m_body_visible, &m_body_xform);
+    if (!m_pick_before) return;
+    if (!rebuilt) {
+        pick_in_before();
+        return;
+    }
+    m_pick_before.reset();   // the pick was just pointed at the model shown
+    pick_before(m_edit_index);
+}
+
+void DesignPanel::pick_shown()
+{
+    if (!m_pick_before) return;
+    m_pick_before.reset();
+    feed_pick(false);
+}
+
+bool DesignPanel::begin_sketch_edit(int feature, std::string* why)
+{
+    const auto refuse = [why](std::string reason) {
+        if (why != nullptr) *why = std::move(reason);
+        return false;
+    };
+    const int n = int(m_doc.features.size());
+    if (feature < 0 || feature >= n)
+        return refuse("feature " + std::to_string(feature) + " is out of range; the design has " + std::to_string(n) + " features");
+    const CadFeature& f    = m_doc.features[feature];
+    const std::string name = "feature " + std::to_string(feature) + " (" + f.name + ")";
+    // Edit on the row of each of these opens something else: the Project card, the Text dialog, the art's
+    // placement, the Sketch card.
+    if (f.type == CadFeatureType::Project)
+        return refuse(name + " is a Project sketch, whose entities follow the body it projects");
+    if (f.type != CadFeatureType::Sketch)
+        return refuse(name + " is not a sketch");
+    if (f.is_text())
+        return refuse(name + " is text, whose outlines are not sketch entities");
+    if (!f.imported_regions.empty())
+        return refuse(name + " is imported art, whose outlines are not sketch entities");
+    if (f.entities.empty())
+        return refuse(name + " is not drawn from entities: the Sketch card's rectangle, circle or profile");
+
+    // The entity sketch UI (the sketch toolbar and session card) with the geometry open for in-canvas editing:
+    // handles, live quotes, a regular polygon's drag. Its overlay is hidden so the live tool is the only copy drawn.
+    m_edit_index = feature;
+    if (m_viewport) {
+        m_viewport->set_display_sketches({});
+        m_viewport->edit_sketch(f.entities, f.entity_constraints, f.plane);
+    }
+    // After the session opens, as a new sketch does (start_sketch_on_target): the mode change fills the sidebar's
+    // Constraints card from the live session.
+    set_ui_mode(UiMode::Sketch);
+    set_status(StatusKind::Info, _L("Editing sketch — drag a handle or double-click a dimension to edit it"));
+    return true;
+}
+
+void DesignPanel::end_sketch_edit()
+{
+    m_edit_index = -1;
+    set_ui_mode(UiMode::Feature);
+    sync_sketch_display();
+    refresh_tree();
+}
+
+bool DesignPanel::finish_sketch_first()
+{
+    const bool reopened = m_edit_index >= 0;
+    m_sketch_finish     = SketchFinish{};   // the commit handler says what it did with the session
+    m_viewport->finish_sketch();
+    return m_sketch_finish.committed || !reopened;
 }
 
 void DesignPanel::on_export_step()
 {
-    // Bake any open feature preview first, so the STEP matches what is shown (mirrors on_commit).
-    if (m_active != Tool::None)
-        confirm_tool();
+    // An open card's feature is in the file only once its Confirm adds it, as commit_to_plate() has it on the plate.
+    if (!confirm_card_first())
+        return;
     if (m_doc.bodies.empty()) {
         set_status(StatusKind::Info, _L("Nothing to export — add a feature first"));
         return;
@@ -10306,13 +10753,18 @@ void DesignPanel::on_commit()
     commit_to_plate(m_commit_mode);
 }
 
+bool DesignPanel::confirm_card_first()
+{
+    if (m_active == Tool::None || m_active == Tool::Insert) return true;
+    return confirm_tool();
+}
+
 std::vector<size_t> DesignPanel::commit_to_plate(CommitMode mode, std::vector<int>* bodies_sent)
 {
-    // A feature tool open with a live preview ghost (e.g. a fillet being previewed) is
-    // NOT yet part of the body. Apply it first so "Commit to Plate" ships exactly what
-    // is shown on screen, not the pre-feature solid. (confirm_tool() applies + closes.)
-    if (m_active != Tool::None)
-        confirm_tool();
+    // A card open with its preview (a fillet being previewed) is not yet part of the bodies: its Confirm adds it first,
+    // so that what is shown goes to the plate.
+    if (!confirm_card_first())
+        return {};
     end_sketch_plane_choice();   // the bodies leave for the plate; a sketch was not started
 
     if (m_doc.display_mesh.its.indices.empty()) {
@@ -10932,7 +11384,12 @@ void DesignPanel::update_draft_gizmo()
     m_viewport->clear_draft_gizmo();
         return;
     }
+    // A face picked in the model before the feature a card edits can be one the model shown does not have.
     const TopoDS_Face f = GeometryEngine::face_by_index(m_doc.bodies[m_sel_solid_body].shape, m_sel_solid_face);
+    if (f.IsNull()) {
+        m_viewport->clear_draft_gizmo();
+        return;
+    }
     const Vec3d c = GeometryEngine::face_centroid_world(f);
     const Vec3d n = GeometryEngine::face_normal_world(f);
     m_viewport->set_draft_gizmo(c, n, m_draft_angle->GetValue());
@@ -11367,9 +11824,9 @@ void DesignPanel::update_reference_planes()
         m_viewport->clear_base_pick();
 }
 
-void DesignPanel::toggle_origin()
+void DesignPanel::set_origin_shown(bool on)
 {
-    m_show_origin = !m_show_origin;
+    m_show_origin = on;
     wxGetApp().app_config->set_bool("design_show_origin", m_show_origin);
     // A plane picked while they were up is not a selection once nobody can see it.
     if (!m_show_origin) drop_plane_pick();
@@ -11378,13 +11835,17 @@ void DesignPanel::toggle_origin()
     refresh_pinned();   // the Origin row's eye
 }
 
-void DesignPanel::toggle_bed()
+void DesignPanel::toggle_origin() { set_origin_shown(!m_show_origin); }
+
+void DesignPanel::set_bed_shown(bool on)
 {
-    m_show_bed = !m_show_bed;
+    m_show_bed = on;
     wxGetApp().app_config->set_bool("design_show_bed", m_show_bed);
     if (m_viewport) m_viewport->set_show_bed(m_show_bed);   // repaints
     refresh_pinned();   // the Bed row's eye
 }
+
+void DesignPanel::toggle_bed() { set_bed_shown(!m_show_bed); }
 
 // View switches, not history: a view toggle rebuilds these two rows and leaves the features
 // alone. The label dims while its thing is hidden, as a hidden body's does.
@@ -11587,11 +12048,10 @@ void DesignPanel::refresh_preview()
         return;
     }
 
-    // Trim m_body_xform to the LIVE committed bodies before building the ghost. A move
-    // writes a per-body display transform keyed by index; if a moved body is later deleted
-    // or consumed, its stale transform must not survive and get re-applied to whatever new
-    // body lands at that index — that was painting fresh extrudes as a moved+rotated ghost
-    // far from the sketch. resize() drops entries beyond the current body count.
+    // Fit m_body_xform to the LIVE committed bodies before building the ghost. A move's
+    // transform belongs to the body it moved, not to its index: when that body is deleted or
+    // consumed it must not be re-applied to whatever new body lands at that index, which would
+    // paint a fresh extrude as a moved+rotated ghost far from the sketch.
     sync_body_xform();
 
     CadFeature   cand = build_candidate(m_active);
@@ -11679,6 +12139,19 @@ void DesignPanel::update_cards_frame()
     root->Show(m_cards, any, false);   // non-recursive: don't re-show the hidden cards inside
 }
 
+// The pose `base` moved by `d` (world mm) and turned by `angle` radians about world axis `axis` (0 x, 1 y, 2 z; -1 for
+// no turn) through the body's centre, `centre` in the body's own frame. A rotation about the body's own centre, not the
+// world origin: what the Move / Rotate card and body_place add to where a body stands.
+static Transform3d placed_by(const Transform3d& base, const Vec3d& centre, const Vec3d& d, int axis, double angle)
+{
+    const Vec3d pivot = base * centre;
+    Transform3d x     = Transform3d::Identity();
+    x.translate(d + pivot);
+    if (axis >= 0 && axis <= 2) x.rotate(Eigen::AngleAxisd(angle, Vec3d::Unit(axis)));
+    x.translate(-pivot);
+    return x * base;
+}
+
 // Move/Rotate card: numeric entry that composes the same transform the drag gizmo builds —
 // translation in world mm plus a rotation about the body's centroid, applied onto the pose the
 // body had when Move opened (m_move_prev), so typing and dragging cannot fight each other.
@@ -11689,19 +12162,12 @@ void DesignPanel::apply_move_card()
 
     const double ang = m_move_angle ? m_move_angle->GetValue() * M_PI / 180.0 : 0.0;
     const int    ax  = m_move_axis ? m_move_axis->GetSelection() : 2;
-    const Vec3d  axis = (ax == 0) ? Vec3d::UnitX() : (ax == 1) ? Vec3d::UnitY() : Vec3d::UnitZ();
     const Vec3d  d(m_move_dx ? m_move_dx->GetValue() : 0.0,
                    m_move_dy ? m_move_dy->GetValue() : 0.0,
                    m_move_dz ? m_move_dz->GetValue() : 0.0);
 
-    // Rotate about the body's own centre, not the world origin.
-    const Vec3d pivot = m_move_prev * m_doc.display_body_meshes[b].bounding_box().center();
-    Transform3d x = Transform3d::Identity();
-    x.translate(d + pivot);
-    x.rotate(Eigen::AngleAxisd(ang, axis));
-    x.translate(-pivot);
-
-    m_body_xform[b] = x * m_move_prev;
+    m_body_xform[b] = placed_by(m_move_prev, m_doc.display_body_meshes[b].bounding_box().center(), d,
+                                (ax == 0 || ax == 1) ? ax : 2, ang);
     feed_bodies();
     if (m_viewport) m_viewport->request_repaint();
     set_status(StatusKind::Info, wxString::Format(_L("Body %d — moved (%.1f, %.1f, %.1f) mm, rotated %.1f°"),
@@ -11729,6 +12195,7 @@ void DesignPanel::push_polygon_params()
 void DesignPanel::open_tool(Tool t)
 {
     end_body_move(true);   // first: arm_transform_gizmo below takes over the same gizmo
+    pick_shown();          // a card opened in place of one that edited a feature picks in the model shown
     m_active = t;
     end_sketch_plane_choice();   // after m_active: the Plane card keeps its planes
     m_candidate_ok = true;   // a fresh card is confirmable until its preview says otherwise
@@ -12030,6 +12497,7 @@ void DesignPanel::close_tool()
         m_xf_gizmo_body = -1;
     }
     if (m_viewport) { m_viewport->set_body_translucent(false); m_viewport->set_body_hidden(false); m_viewport->set_xray_focus(-1); }   // restore the opaque solid
+    pick_shown();
     wxSizer* s = m_cards->GetSizer();
     s->Show(m_box_sketch,  false, true);
     s->Show(m_box_extrude, false, true);
@@ -12083,8 +12551,11 @@ void DesignPanel::close_tool()
     request_feature_highlight();   // the selected row's faces come back with the card gone
 }
 
-void DesignPanel::confirm_tool()
+bool DesignPanel::confirm_tool()
 {
+    // The Insert placement commits through finalize_insert(), and with no card open there is nothing to commit: neither
+    // takes an undo step.
+    if (m_active == Tool::Insert || m_active == Tool::None) return false;
     // One undo boundary per committed feature (Extrude/Dressup/Hole/Thread/Shell, the
     // legacy Sketch card via on_add_sketch, and edit-mode replace all funnel here).
     m_doc.checkpoint();
@@ -12097,9 +12568,13 @@ void DesignPanel::confirm_tool()
         reset_edit_state();
         close_tool();          // clears the preview ghost
         after_tree_edit(ok);   // refresh tree/viewport/status (or "Edit rejected")
-        return;
+        return ok;
     }
 
+    // Each on_add_ function adds the card's feature and rebuilds, or refuses with its reason on the status line. What
+    // it did is read from the document: whether a feature was added, and the error its rebuild left.
+    const size_t features_before = m_doc.features.size();
+    const int    counter_before  = m_feature_counter;
     switch (m_active) {
     case Tool::Sketch:  on_add_sketch();  break;
     case Tool::Extrude: on_add_extrude(); break;
@@ -12110,12 +12585,7 @@ void DesignPanel::confirm_tool()
     case Tool::Revolve: on_add_revolve(); break;
     case Tool::Sweep:   on_add_sweep();   break;
     case Tool::Pattern: on_add_pattern(); break;
-    case Tool::Plane:
-        if (!on_add_plane()) {   // refused: keep the card and its picks, and leave no empty undo step
-            m_doc.abandon_checkpoint();
-            return;
-        }
-        break;
+    case Tool::Plane:   on_add_plane();   break;
     case Tool::Loft:    on_add_loft();    break;
     case Tool::Draft:   on_add_draft();   break;
     case Tool::Boolean: on_add_boolean(); break;
@@ -12136,10 +12606,33 @@ void DesignPanel::confirm_tool()
     case Tool::Project:      on_add_project();      break;
     case Tool::DeleteFace:   on_add_delete_face();  break;
     case Tool::Helix:        on_add_helix();        break;
-    case Tool::Insert:  return;   // committed via finalize_insert(), never here
-    case Tool::None:    return;
+    case Tool::Insert:
+    case Tool::None:    break;   // returned above
     }
+    if (m_doc.features.size() == features_before) {
+        // Refused, with the reason on the status line: no undo step is left, and the card stays open with its picks and
+        // with what it showed.
+        m_doc.abandon_checkpoint();
+        xf_show_again();
+        return false;
+    }
+    if (!m_doc.error.empty()) {
+        // The rebuild failed: the feature is taken back as if it had never been added, and the card stays open with
+        // its picks and with what it showed, to be changed or cancelled.
+        const std::string why = m_doc.error;
+        m_doc.rollback();
+        m_feature_counter = counter_before;
+        // The model's copy of the recipe follows, also when the document is left empty, which refresh_tree() does not
+        // write.
+        sync_recipe_to_model();
+        refresh_tree();
+        set_status(StatusKind::Error, wxString::Format(_L("The model could not be rebuilt: %s"), kernel_error_text(why)));
+        xf_show_again();
+        return false;
+    }
+    m_xf_shown.reset();
     close_tool(); // also clears the preview ghost; the committed body is now shown
+    return true;
 }
 
 void DesignPanel::cancel_tool()
@@ -12153,23 +12646,24 @@ void DesignPanel::cancel_tool()
 
 // One Confirm surface for the whole tab. Routes to the right commit by current context:
 // a feature card, the Insert placement, the Sketch session, or the Constrain session.
-void DesignPanel::tool_confirm()
+bool DesignPanel::tool_confirm()
 {
-    if (m_value_cont) { confirm_value(); return; }   // value card owns ribbon ✓ while a value is pending
+    if (m_value_cont) return confirm_value();   // value card owns ribbon ✓ while a value is pending
     if (body_move_pending()) {   // keep the placement, drop the gizmo
         end_body_move(true);
         set_status_ok();
-        return;
+        return true;
     }
-    if (m_active == Tool::Insert) { finalize_insert(); return; }
-    if (m_active != Tool::None)   { confirm_tool();   return; }
+    if (m_active == Tool::Insert) { finalize_insert(); return true; }
+    if (m_active != Tool::None)   return confirm_tool();
     if (m_ui_mode == UiMode::Sketch) {
+        m_sketch_finish = SketchFinish{};   // the commit handler says what it did with the session
         if (m_viewport && m_viewport->is_sketching()) {
             m_viewport->sketch_confirm_pending();   // a ready edit-op/transform/chain is kept, not dropped
             m_viewport->finish_sketch();
         }
         set_ui_mode(UiMode::Feature);
-        return;
+        return m_sketch_finish.committed;
     }
     if (m_ui_mode == UiMode::Constrain) {
         cancel_value();
@@ -12177,7 +12671,9 @@ void DesignPanel::tool_confirm()
         m_constrain_feat = -1;
         set_ui_mode(UiMode::Feature);
         set_status(StatusKind::Info, wxString());
+        return true;
     }
+    return false;
 }
 
 // One Cancel/exit surface (also bound to Esc). Discards the active feature/insert, or a
@@ -12211,10 +12707,7 @@ void DesignPanel::tool_cancel()
             if (dlg.ShowModal() != wxID_YES) return;
         }
         if (m_viewport) m_viewport->cancel_sketch();   // drop the live session (committed art stays)
-        m_edit_index = -1;
-        set_ui_mode(UiMode::Feature);
-        sync_sketch_display();
-        refresh_tree();
+        end_sketch_edit();
         set_status(StatusKind::Info, wxString());
         return;
     }
@@ -12234,6 +12727,127 @@ bool DesignPanel::confirm_enabled() const
         return body_move_pending() || m_ui_mode == UiMode::Sketch || m_ui_mode == UiMode::Constrain;
     if (m_active == Tool::Insert) return true;
     return m_candidate_ok;
+}
+
+const char* DesignPanel::mcp_open_tool() const
+{
+    if (m_text_dlg != nullptr) return "text";
+    if (m_value_cont) return "value";
+    if (body_move_pending()) return "move";
+    if (m_active == Tool::Insert) return "insert";
+    if (m_active != Tool::None) return "card";
+    if (m_choosing_sketch_plane) return "plane_pick";
+    if (m_ui_mode == UiMode::Sketch) return "sketch";
+    if (m_ui_mode == UiMode::Constrain) return "constrain";
+    return nullptr;
+}
+
+bool DesignPanel::mcp_confirm_tool(ConfirmOutcome& out, std::string& why)
+{
+    const char* open = mcp_open_tool();
+    if (open == nullptr) { why = "nothing is open in the Design tab"; return false; }
+    const std::string was = open;
+    if (was == "plane_pick") { why = "a plane is being picked: select one with select_geometry, or cancel"; return false; }
+    if (was == "text") {
+        // The dialog's OK, which puts a new text in the design and opens its placement, or keeps an edited one.
+        if (!m_text_dlg->ok_enabled()) {
+            why = "the Text dialog's OK is off: " + std::string(m_text_dlg->size_line().ToUTF8().data());
+            return false;
+        }
+        out         = ConfirmOutcome{};
+        out.was     = was;
+        out.feature = m_text_feat;
+        m_text_dlg->accept();
+        out.ok = m_text_dlg == nullptr;
+        if (const char* still = mcp_open_tool()) out.open = still;
+        return true;
+    }
+    if (!confirm_enabled()) {
+        why = std::string(mcp_status().ToUTF8().data());
+        if (why.empty()) why = "the Design tab's Confirm is off";
+        return false;
+    }
+    // The feature an edit, a placement or Constrain mode works on is known before the Confirm closes what holds it;
+    // the one a card or a sketch adds, after.
+    const size_t before = m_doc.features.size();
+    const int    edited = was == "card"      ? m_edit_index
+                        : was == "insert"    ? m_insert_feat
+                        : was == "constrain" ? m_constrain_feat
+                                             : -1;
+    out         = ConfirmOutcome{};
+    out.was     = was;
+    out.ok      = tool_confirm();
+    if (was == "sketch")
+        out.feature = m_sketch_finish.committed ? m_sketch_finish.index : -1;
+    else if (edited >= 0)
+        out.feature = edited;
+    else if (out.ok && m_doc.features.size() > before)
+        out.feature = int(m_doc.features.size()) - 1;
+    if (const char* still = mcp_open_tool()) out.open = still;
+    return true;
+}
+
+bool DesignPanel::mcp_cancel_tool(std::string& was, std::string& why)
+{
+    const char* open = mcp_open_tool();
+    if (open == nullptr) { why = "nothing is open in the Design tab"; return false; }
+    was = open;
+    if (was == "text")
+        m_text_dlg->cancel();   // the dialog's Cancel: a new text goes, an edited one is as it was
+    else if (was == "sketch")
+        mcp_cancel_sketch();   // tool_cancel()'s sketch branch, without its Discard dialog
+    else
+        tool_cancel();
+    return true;
+}
+
+bool DesignPanel::mcp_place_body(int body, const Vec3d& move, int axis, double angle_deg, std::string& why)
+{
+    if (body < 0 || body >= int(m_doc.bodies.size()) || body >= int(m_doc.display_body_meshes.size()) ||
+        m_doc.display_body_meshes[body].empty()) {
+        why = "body " + std::to_string(body) + " has no shape shown to place";
+        return false;
+    }
+    end_sketch_plane_choice();   // the body moves, as with Move; a sketch was not started
+    sync_body_xform();
+    m_body_xform[body] = placed_by(m_body_xform[body], m_doc.display_body_meshes[body].bounding_box().center(), move, axis,
+                                   angle_deg * M_PI / 180.0);
+    feed_bodies();
+    if (m_viewport) m_viewport->request_repaint();
+    return true;
+}
+
+bool DesignPanel::mcp_place_body_on_face(int body, int face, std::string& why)
+{
+    if (body < 0 || body >= int(m_doc.bodies.size()) || body >= int(m_doc.display_body_meshes.size())) {
+        why = "body " + std::to_string(body) + " has no shape shown to place";
+        return false;
+    }
+    if (GeometryEngine::face_by_index(m_doc.bodies[body].shape, face).IsNull()) {
+        why = "face " + std::to_string(face) + " is not one of body " + std::to_string(body) + "'s " +
+              std::to_string(GeometryEngine::face_count(m_doc.bodies[body].shape)) + " faces";
+        return false;
+    }
+    if (!place_on_face(body, face)) {
+        why = "face " + std::to_string(face) + " has no normal to lay it on the bed by";
+        return false;
+    }
+    return true;
+}
+
+void DesignPanel::mcp_reset_body_placement(int body)
+{
+    sync_body_xform();
+    if (body < 0 || body >= int(m_body_xform.size())) return;
+    end_sketch_plane_choice();
+    m_body_xform[body] = Transform3d::Identity();
+    feed_bodies();
+    if (m_viewport) m_viewport->request_repaint();
+}
+
+Transform3d DesignPanel::mcp_body_placement(int body) const
+{
+    return body >= 0 && body < int(m_body_xform.size()) ? m_body_xform[body] : Transform3d::Identity();
 }
 
 void DesignPanel::update_confirm_button()

@@ -135,7 +135,7 @@ TEST_CASE("a two-form schema requires its arguments only when some are given", "
     CHECK_THAT(Mcp::validate_arguments(s, {{"silent", false}}), ContainsSubstring("silent"));
 }
 
-TEST_CASE("a reference entry has the command's fields, and its examples only when it has some", "[CommandCatalog][Reference]")
+TEST_CASE("a reference entry has the command's fields, and its examples and tiles only when it has some", "[CommandCatalog][Reference]")
 {
     NativeCommand c = command("export_it", true);
     c.title         = "Export It";
@@ -159,7 +159,7 @@ TEST_CASE("a reference entry has the command's fields, and its examples only whe
                         {"idempotent", false},
                         {"open_world", true},
                         {"guard", "recover"},
-                        {"completion", "export"},
+                        {"completion", "deferred"},
                         {"operations", json::array({"export_gcode"})}});
 
     const json call{{"tool", "export_it"}, {"args", {{"path", "a"}}}};
@@ -168,8 +168,12 @@ TEST_CASE("a reference entry has the command's fields, and its examples only whe
     c.examples       = json::array({json{{"title", "Export"}, {"calls", json::array({call})}}});
     const json other = Slic3r::GUI::command_reference(c);
     CHECK(other["guard"] == "inspect");
-    CHECK(other["completion"] == "none");
+    CHECK(other["completion"] == "immediate");
     CHECK(other["examples"] == c.examples);
+    CHECK_FALSE(other.contains("tiles"));
     c.guard = GuardClass::Mutate;
     CHECK(Slic3r::GUI::command_reference(c)["guard"] == "mutate");
+    c.tiles = json::array({json{{"key", "export_it_pdf"}, {"title", "Export as PDF"}, {"icon", ""}, {"description", ""},
+                                {"args", {{"format", "pdf"}}}}});
+    CHECK(Slic3r::GUI::command_reference(c)["tiles"] == c.tiles);
 }

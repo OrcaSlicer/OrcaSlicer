@@ -794,10 +794,12 @@ window.HandleStudio = function (payload) {
         RECENTS = next.recent;
         USER_MODE = next.userMode;
         TOOLTIP_EXPANDED = next.tooltipExpanded;
-        // A fresh payload re-opens the main phase; C++ never rehydrates the transient phase/query state.
+        // A fresh payload re-opens the main phase; C++ never rehydrates the transient phase/query state. It comes a
+        // moment after the dial shows, so a query can be typed before it, by a person or a call: the field holds only
+        // that, as "closed" empties it when an open ends, and it is kept and filters the new list.
         phase = "commands";
         tabOptions = [];
-        query = "";
+        query = qEl ? qEl.value : "";
         sel = { zone: "list", i: 0 };
         resetHover();
         // why: builtKey caches phase|query so renderCommandsList can skip a rebuild on arrow-nav.
@@ -805,12 +807,20 @@ window.HandleStudio = function (payload) {
         // empty-query key would skip the rebuild and leave stale list content.
         builtKey = "";
         if (qEl) {
-            qEl.value = "";
+            qEl.value = query;
             qEl.placeholder = T("sd_search", "Search actions");
             syncClearButton();
         }
         render({ resize: true, resetScroll: true });
         focusInput();
+    } else if (payload.command === "closed") {
+        // An open ended: the next one starts with an empty field.
+        query = "";
+        if (qEl) {
+            qEl.value = "";
+            syncClearButton();
+        }
+        render({ resize: true, resetScroll: true });
     } else if (payload.command === "tab_results") {
         tabOptions = payload.tabs || [];
         if (sel.zone === "list")
@@ -1559,6 +1569,11 @@ function exitPhase() {
     qEl.focus();
 }
 
+function onQueryInput() {
+    query = qEl.value; sel = { zone: "list", i: 0 }; syncClearButton();
+    render({ resize: true, resetScroll: true });
+}
+
 function focusInput() { setTimeout(function () { if (qEl) qEl.focus(); }, 0); }
 
 // ---- init --------------------------------------------------------------------
@@ -1580,10 +1595,7 @@ function OnInit() {
         render({ resize: true, resetScroll: true });
         qEl.focus();
     };
-    qEl.addEventListener("input", function () {
-        query = qEl.value; sel = { zone: "list", i: 0 }; syncClearButton();
-        render({ resize: true, resetScroll: true });
-    });
+    qEl.addEventListener("input", onQueryInput);
     // Caret moves without a value change (click / arrow keys) can enable or invalidate the ghost.
     qEl.addEventListener("keyup", updateGhost);
     qEl.addEventListener("click", updateGhost);

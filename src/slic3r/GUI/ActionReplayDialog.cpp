@@ -111,8 +111,9 @@ std::string join(const json& items)
     return out;
 }
 
-// The step's main line and, for a command given arguments, the second line, from describe_step()'s `what`.
-std::pair<std::string, std::string> what_text(const json& what)
+} // namespace
+
+std::pair<std::string, std::string> replay_what_text(const json& what, const CommandCatalog& catalog)
 {
     if (!what.is_object())
         return {};
@@ -123,8 +124,17 @@ std::pair<std::string, std::string> what_text(const json& what)
         return {join(what["pairs"]), {}};
     if (kind == "command") {
         const std::string               key     = what.value("key", "");
-        const auto*       command = NativeCommands::find(key);
-        // Titled as its tile is, so a Design command's step reads as the Design tab names its tool.
+        const auto*       command = catalog.find(key);
+        // Titled as its tile is, so a Design command's step reads as the Design tab names its tool; a call that is
+        // a folded row's tile, as that row.
+        if (what.contains("tile")) {
+            const auto [owner, tile] = find_tile(catalog, what.value("tile", ""));
+            if (tile != nullptr && owner == command) {
+                const std::string title   = tile->at("title").get<std::string>();
+                const char*       context = title_context(*owner);
+                return {into_u8(context != nullptr ? I18N::translate(title, context) : I18N::translate(title)), {}};
+            }
+        }
         return {command != nullptr ? into_u8(NativeCommands::tile_title(*command)) : key,
                 what.contains("args") ? join(what["args"]) : std::string()};
     }
@@ -150,6 +160,8 @@ std::pair<std::string, std::string> what_text(const json& what)
         return {what.value("text", ""), {}};
     return {};
 }
+
+namespace {
 
 // One check of a step's expect in a sentence; the pointer and operand are the replay's data.
 std::string check_text(const std::string& pointer, const std::string& op, const json& operand)
@@ -632,7 +644,7 @@ json ActionReplayDialog::describe(const Mcp::Replay& replay) const
                   {"args", Mcp::substitute_lenient(step.args, replay, ctx)},
                   {"expect", step.expect},
                   {"checks", checks_view(step.expect)}};
-        const auto [what, detail] = what_text(d.what);
+        const auto [what, detail] = replay_what_text(d.what, NativeCommands::instance());
         if (!what.empty())
             view["what_text"] = what;
         if (!detail.empty())

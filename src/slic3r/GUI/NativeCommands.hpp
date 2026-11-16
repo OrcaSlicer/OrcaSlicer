@@ -121,6 +121,10 @@ wxString tile_title(const NativeCommand& command);
 // kept as search aliases. Keeps the catalog's identity, presentation and behaviour as the single source of
 // truth; ActionRegistry only stores and dispatches the result. UI thread only.
 std::unique_ptr<AppAction> make_action(const NativeCommand& command);
+// The action of `tile`, one of `command`'s tiles (NativeCommand::tiles): the id of its key, its title translated
+// in the command's title_context(), its icon and description, no arguments to show an agent, and its args as the
+// preset the action runs the command with, for a person's pick and run_action alike. UI thread only.
+std::unique_ptr<AppAction> make_action(const NativeCommand& command, const nlohmann::json& tile);
 } // namespace NativeCommands
 
 }} // namespace Slic3r::GUI

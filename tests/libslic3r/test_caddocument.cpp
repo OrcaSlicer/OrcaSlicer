@@ -2617,7 +2617,7 @@ TEST_CASE("datum plane construction methods", "[CadDocument][plane]")
 
 // Mirrors the Snapmaker [Deviation] case (Snapmaker carries it in test_geometry.cpp; here it lives
 // alongside the CAD suite). GeometryEngine::surface_deviation = one-sided Hausdorff used by the
-// MCP validate_against acceptance metric.
+// MCP body_compare acceptance metric.
 TEST_CASE("surface_deviation: identical solids ~0, shifted solid ~shift", "[Deviation]")
 {
     TopoDS_Shape ref = BRepPrimAPI_MakeBox(10.0, 10.0, 10.0).Shape();
@@ -3867,6 +3867,42 @@ TEST_CASE("project round-trip serialization", "[CadDocument][project]")
         REQUIRE_THAT(double(y1), WithinAbs(bboxes[i].second.y(), 1e-6));
         REQUIRE_THAT(double(z1), WithinAbs(bboxes[i].second.z(), 1e-6));
     }
+}
+
+TEST_CASE("project_edges_on gives a box's top face as four lines on the plane and an error for a body not there", "[CadDocument][project]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    const int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Ext");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    int top_face = -1;
+    for (int i = 0; i < GeometryEngine::face_count(doc.bodies[0].shape); ++i)
+        if (GeometryEngine::face_normal_world(GeometryEngine::face_by_index(doc.bodies[0].shape, i)).z() > 0.9) {
+            top_face = i;
+            break;
+        }
+    REQUIRE(top_face >= 0);
+
+    // The 20 x 20 top face's outline, as construction lines on XY; the document gains no feature.
+    std::string error;
+    const std::vector<SketchEntity> ents = doc.project_edges_on(SketchPlane::XY(), 0, {}, top_face, error);
+    CHECK(error.empty());
+    REQUIRE(ents.size() == 4);
+    for (const SketchEntity& e : ents) {
+        CHECK(e.type == SketchEntity::Type::Line);
+        CHECK(e.construction);
+        CHECK_THAT((e.p1 - e.p0).norm(), WithinAbs(20.0, 1e-9));
+    }
+    CHECK(doc.features.size() == 2);
+
+    // Body 1 is not there.
+    const std::vector<SketchEntity> none = doc.project_edges_on(SketchPlane::XY(), 1, {}, top_face, error);
+    CHECK(none.empty());
+    CHECK_CONTAINS(error, "body 1");
 }
 
 TEST_CASE("Use/Convert Entities: box top-face edges land as construction geometry", "[CadDocument][project]")
@@ -8906,6 +8942,100 @@ TEST_CASE("Datum-plane references follow their plane when an earlier plane is de
     CHECK(std::abs(planes[1].second.origin.z() - 25.0) < 1e-9);   // still on P2, not on XY
 }
 
+TEST_CASE("A feature keeps its uid through every change of the history, and a recipe does not carry it",
+          "[CadDocument][history]")
+{
+    // Two sketches, then their two extrudes: two boxes, each its own body.
+    CadDocument doc;
+    SketchPlane beside = SketchPlane::XY();
+    beside.origin      = Vec3d(40, 0, 0);
+    const int s1 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "S1");
+    const int s2 = doc.add_sketch(SketchShape::Rectangle, beside, 10, 10, 0, "S2");
+    doc.add_extrude(s1, 5, false, BooleanMode::New, "E1");
+    doc.add_extrude(s2, 5, false, BooleanMode::New, "E2");
+    CHECK(doc.features[3].uid == 0);   // none until a rebuild gives it one
+    REQUIRE(doc.recompute());
+    const uint64_t first = doc.features[2].uid, second = doc.features[3].uid;
+    CHECK(first != 0);
+    CHECK(second != 0);
+    CHECK(first != second);
+    const auto uid_of = [&doc](const std::string& name) {
+        for (const CadFeature& f : doc.features)
+            if (f.name == name) return f.uid;
+        return uint64_t(0);
+    };
+
+    SECTION("a delete") {
+        REQUIRE(doc.remove_feature(2));
+        CHECK(uid_of("E2") == second);
+    }
+    SECTION("a reorder") {
+        REQUIRE(doc.move_feature(2, 1));
+        REQUIRE(doc.features[2].name == "E2");
+        CHECK(uid_of("E2") == second);
+        CHECK(uid_of("E1") == first);
+    }
+    SECTION("a suppress") {
+        REQUIRE(doc.set_feature_enabled(2, false));
+        CHECK(uid_of("E2") == second);
+        CHECK(uid_of("E1") == first);
+    }
+    SECTION("replace_feature, given a candidate with none, as a card's is") {
+        CadFeature edited = doc.features[3];
+        edited.distance   = 8;
+        edited.uid        = 0;
+        REQUIRE(doc.replace_feature(3, edited));
+        CHECK(doc.features[3].uid == second);
+    }
+    SECTION("undo and redo") {
+        doc.checkpoint();
+        REQUIRE(doc.remove_feature(2));
+        REQUIRE(doc.undo());
+        CHECK(uid_of("E1") == first);
+        CHECK(uid_of("E2") == second);
+        REQUIRE(doc.redo());
+        CHECK(uid_of("E1") == 0);
+        CHECK(uid_of("E2") == second);
+    }
+    SECTION("a feature added later gets one of its own") {
+        doc.add_extrude(s1, 2, false, BooleanMode::New, "E3");
+        REQUIRE(doc.recompute());
+        CHECK(uid_of("E3") != 0);
+        CHECK(uid_of("E3") != first);
+        CHECK(uid_of("E3") != second);
+    }
+    SECTION("a copy of the document makes numbers the live one never gives") {
+        CadDocument copy = doc.history_before(4);
+        copy.add_extrude(s1, 2, false, BooleanMode::New, "In the copy");
+        REQUIRE(copy.recompute());
+        doc.add_extrude(s1, 2, false, BooleanMode::New, "In the live one");
+        REQUIRE(doc.recompute());
+        CHECK(copy.features[4].uid != doc.features[4].uid);
+        CHECK(copy.features[3].uid == second);
+    }
+    SECTION("a recipe") {
+        // A feature serialized and read back has none, and one read with the recipe gets a new one when the recipe
+        // rebuilds.
+        std::ostringstream out;
+        {
+            cereal::BinaryOutputArchive archive(out);
+            archive(doc.features[3]);
+        }
+        CadFeature read;
+        {
+            std::istringstream in(out.str());
+            cereal::BinaryInputArchive archive(in);
+            archive(read);
+        }
+        CHECK(read.name == "E2");
+        CHECK(read.uid == 0);
+        CadDocument back;
+        REQUIRE(back.deserialize_recipe(doc.serialize_recipe()));
+        CHECK(back.features[3].uid != 0);
+        CHECK(back.features[3].uid != second);
+    }
+}
+
 TEST_CASE("clear() starts a document without the previous one's variables", "[CadDocument]")
 {
     CadDocument doc;
@@ -9309,4 +9439,42 @@ TEST_CASE("A hole owns its bore", "[CadDocument][highlight]")
     for (const auto& bf : bore)
         CHECK(made_face_type(doc, bf) == GeomAbs_Cylinder);
     CHECK(doc.faces_made_by(ex).size() == 6);
+}
+
+TEST_CASE("A rebuild records the bodies each feature starts from", "[CadDocument]")
+{
+    CadDocument doc;
+    const int sk0 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Sketch0");
+    doc.add_extrude(sk0, 10.0, false, BooleanMode::New, "Box0");
+    SketchPlane beside = SketchPlane::XY();
+    beside.origin = Vec3d(10, 5, 0);
+    const int sk1 = doc.add_sketch(SketchShape::Rectangle, beside, 20, 20, 10, "Sketch1");
+    doc.add_extrude(sk1, 10.0, false, BooleanMode::New, "Box1");
+    REQUIRE(doc.recompute());
+    doc.checkpoint();
+    const int cut = doc.add_boolean(BooleanMode::Cut, 0, 1, false, 0.0, -1, -1, "Cut");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    REQUIRE(doc.bodies_before.size() == doc.features.size());
+    REQUIRE(doc.bodies_before[size_t(sk0)].has_value());
+    CHECK(doc.bodies_before[size_t(sk0)]->empty());
+    // The Cut starts from both boxes. The first is the body the rebuild ends with; the tool it consumed is in none.
+    REQUIRE(doc.bodies_before[size_t(cut)].has_value());
+    const std::vector<CadDocument::BodyBefore>& was = *doc.bodies_before[size_t(cut)];
+    REQUIRE(was.size() == 2);
+    CHECK(doc.body_index(was[0].id) == 0);
+    CHECK(doc.body_index(was[1].id) == -1);
+    CHECK(doc.body_index(doc.body_id(0)) == 0);
+    // A copy keeps it, as it keeps the bodies.
+    const CadDocument copy = doc;
+    CHECK(copy.bodies_before.size() == doc.bodies_before.size());
+
+    // The history before the Cut rebuilds the two boxes, with none of the undo history.
+    CadDocument before = doc.history_before(cut);
+    CHECK(before.features.size() == size_t(cut));
+    CHECK(before.undo_depth() == 0);
+    REQUIRE(doc.undo_depth() == 1);
+    REQUIRE(before.recompute());
+    CHECK(before.bodies.size() == was.size());
 }

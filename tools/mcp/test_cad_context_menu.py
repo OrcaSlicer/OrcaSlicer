@@ -9,9 +9,9 @@ With no rung named, every rung runs. The offer is where a sketch's verbs live, a
 that have no key it is the only way to them. Each rung opens a sketch on the XY plane, right-clicks
 it with mouse_gesture, which lists the menu the click opens without showing it, and runs an item
 by its label path with popup_item. The menu is graded against the Design table it is built from
-(CadGui.verbs(): scripts/CAD/tool_atlas.json, for the selection describe_scene says the right-click
+(CadGui.verbs(): scripts/CAD/tool_atlas.json, for the selection describe_design says the right-click
 left); what a verb drew is graded on the geometry sketch_describe reads back, or for a text on
-the feature describe_feature reads. Every action goes through the MCP UI tools, and the Design commands only read.
+the feature feature_describe reads. Every action goes through the MCP UI tools, and the Design commands only read.
 Exits 0 when every check holds.
 
 The rungs: vocabulary right-clicks empty space, a line, a circle, a point and a line and a circle
@@ -611,7 +611,7 @@ def rung_curves():
     # the polygon's own centre, the mean of its vertices: the centre click lands within a pixel of
     # the sketch's origin, which the view is centred on, and snaps onto it.
     radii = {}
-    for verb, fit in (("sk_poly_inscribed", "inscribed"), ("sk_poly_circumscribed", "circumscribed")):
+    for verb, fit in (("sketch_polygon_inscribed", "inscribed"), ("sketch_polygon_circumscribed", "circumscribed")):
         clear_sketch()
         arm("curves", verb, *free)
         arm("curves", "sk_poly_5", *free)
@@ -795,9 +795,9 @@ def ok_text(s):
 
 
 def feature_names():
-    """The design's features by name, from describe_scene, which passes the Design commands' gate and so
+    """The design's features by name, from describe_design, which passes the Design commands' gate and so
     reads the design as loaded from the model's copy of it."""
-    return [f["name"] for f in gui.cad("describe_scene")["features"]]
+    return [f["name"] for f in gui.cad("describe_design")["features"]]
 
 
 def rung_art():
@@ -813,14 +813,14 @@ def rung_art():
     exact proportions of a shape whose proportions are known."""
     # Text, cancelled. The Insert step's Cancel undoes the text. Every Design command loads the
     # design from the model's copy when the document is empty, so a text left in that copy comes
-    # back in describe_scene even though the canvas dropped it.
+    # back in describe_design even though the canvas dropped it.
     gui.enter_sketch()
     x0, x1, y0, y1, cx, cy = safe_box()
     free = (cx, y1 - (y1 - y0) * 0.10)
     before = feature_names()
-    choose(gui.offer(*free), *free, "sk_text")
+    choose(gui.offer(*free), *free, "sketch_text")
     if not until(text_dialog_shown):
-        raise AssertionError(f"choosing sk_text opened no Text dialog: windows {gui.modeless()}")
+        raise AssertionError(f"choosing sketch_text opened no Text dialog: windows {gui.modeless()}")
     ok_text("LT")
     added = feature_names()
     gui.check("art: OK in the Text dialog adds the text to the design", len(added) == len(before) + 1,
@@ -828,7 +828,7 @@ def rung_art():
     gui.press("Cancel")  # the ribbon's Cancel, on the Insert step
     until(lambda: feature_names() == before, timeout=2.0)
     left = feature_names()
-    gui.check("art: the ribbon's Cancel after OK leaves no text, read back through describe_scene", left == before,
+    gui.check("art: the ribbon's Cancel after OK leaves no text, read back through describe_design", left == before,
               f"features {left}, before the text {before}")
 
     # Text, kept.
@@ -837,17 +837,17 @@ def rung_art():
     H = y1 - y0
     free = (cx, y1 - H * 0.10)
     o = gui.offer(*free)
-    gui.check("art: sk_text is offered on an empty sketch", "sk_text" in offered(o, gui.verbs()),
+    gui.check("art: sketch_text is offered on an empty sketch", "sketch_text" in offered(o, gui.verbs()),
               f"header {o.header!r}, menu {o.items}")
-    choose(o, *free, "sk_text")
+    choose(o, *free, "sketch_text")
     shown = until(text_dialog_shown)
     gui.check("art: choosing it opens the Text dialog", shown, f"windows {gui.modeless()}")
     if not shown:
         raise AssertionError("no Text dialog to type into")
     ok_text("LT")
     gui.confirm()  # the Insert gizmo's Confirm keeps the text where it was placed
-    feats = gui.cad("describe_scene")["features"]
-    card = gui.cad("describe_feature", feature=feats[-1]["index"])["params"] if feats else {}
+    feats = gui.cad("describe_design")["features"]
+    card = gui.cad("feature_describe", feature=feats[-1]["index"])["params"] if feats else {}
     # The text's outline is the feature's regions, each a closed outer loop with the loops inside
     # it as holes, and region_loops counts each region's. Neither L nor T has a hole, so the two
     # letters are two closed loops in all; a stray hole in either would make three.
@@ -866,7 +866,7 @@ def rung_art():
     x0, x1, y0, y1, cx, cy = safe_box()
     free = (cx, y1 - (y1 - y0) * 0.10)
     o = gui.offer(*free)
-    gui.check("art: sk_svg is offered too", "sk_svg" in offered(o, gui.verbs()), f"header {o.header!r}, menu {o.items}")
+    gui.check("art: sketch_insert_svg is offered too", "sketch_insert_svg" in offered(o, gui.verbs()), f"header {o.header!r}, menu {o.items}")
     if sys.platform.startswith("linux"):
         gui.skip("art: SVG import", "a GTK file picker can't take a path from MCP")
         leave()
@@ -874,7 +874,7 @@ def rung_art():
     # The picker is matched by its prompt, unanchored: a picker answered unshown has no title.
     gui.client.call("auto_answer_dialogs", rules=[{"match": "Import SVG", "button": "ok", "path": SVG}])
     try:
-        choose(o, *free, "sk_svg")
+        choose(o, *free, "sketch_insert_svg")
     finally:
         try:
             gui.client.call("auto_answer_dialogs", rules=[])
@@ -903,9 +903,9 @@ DRIVEN = {
     "sk_circle_2pt", "sk_circle_3pt", "sk_arc_center", "sk_arc_tangent",
     "sk_slot_arc", "sk_ellipse_arc",
     "sk_poly_3", "sk_poly_4", "sk_poly_5", "sk_poly_8", "sk_poly_12",
-    "sk_poly_inscribed", "sk_poly_circumscribed",
+    "sketch_polygon_inscribed", "sketch_polygon_circumscribed",
     "sk_move", "sk_rotate", "sk_scale", "sk_array", "sk_array_polar",   # transforms
-    "sk_text", "sk_svg",                                        # art
+    "sketch_text", "sketch_insert_svg",                         # art
 }
 
 

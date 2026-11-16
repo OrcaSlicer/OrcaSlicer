@@ -31,7 +31,12 @@ ENUM = {
 }
 
 # a tool block's access -> CadAccess enumerator
-ACCESS = {"read": "Read", "change": "Change", "sketch": "Sketch"}
+ACCESS = {"read": "Read", "change": "Change", "sketch": "Sketch", "ui": "Ui"}
+
+# The headings of search_tools' index of the Design commands (Mcp::design_command_index()), in its order: every
+# command's `section` is one of them. Menu rows holds the commands that take no arguments and only do what their row
+# does.
+SECTIONS = ("Document", "Sketch", "Solid", "Surface", "Construct", "Inspect", "Bodies", "History", "Menu rows")
 
 # The keys of a tool block that its command's description, schema and examples are made from.
 DOC_KEYS = ("summary", "details", "params", "examples", "ids")
@@ -59,8 +64,21 @@ def tstr_design(s):
 
 
 def doc_text(block):
-    """A tool block's summary, details, params, examples and ids as compact JSON text."""
-    return json.dumps({k: block[k] for k in DOC_KEYS}, ensure_ascii=False, separators=(",", ":"))
+    """A tool block's summary, details, params, examples and ids as compact JSON text, with closed when the
+    block closes its command's schema."""
+    doc = {k: block[k] for k in DOC_KEYS}
+    if block.get("closed") is True:
+        doc["closed"] = True
+    return json.dumps(doc, ensure_ascii=False, separators=(",", ":"))
+
+
+def same(a, b):
+    """Whether two JSON values are equal, a boolean apart from a number."""
+    return json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)
+
+
+def mode_of(v):
+    return "sketch" if v.get("mode") == "sketch" else "model"
 
 
 def doc_literal(block, indent):
@@ -71,14 +89,44 @@ def doc_literal(block, indent):
     return ("\n" + indent).join(cstr(p) for p in pieces)
 
 
-def validate(A):
-    """Refuse an atlas the header cannot represent, naming every fault at once.
+def arg_faults(vid, args, into):
+    """Why `args`, the arguments that choose entry `vid`'s row, are not arguments `into`'s block takes."""
+    if not isinstance(args, dict):
+        return [f"{vid}: args must be an object of the arguments that choose its row, not {args!r}"]
+    params = {p.get("name"): p for p in into["tool"].get("params", [])}
+    out = []
+    for name, value in args.items():
+        p = params.get(name)
+        if p is None:
+            out.append(f"{vid}: args name {name!r}, which {into['id']} does not take")
+        elif "enum" in p and not any(same(value, e) for e in p["enum"]):
+            out.append(f"{vid}: args give {name} {value!r}, which is not one of {p['enum']}")
+    return out
+
+
+def faults(A):
+    """Every fault of the atlas A, each naming its entry: what the header cannot represent, and what would leave
+    a call of a command unable to tell which of its rows it opens.
 
     An unknown slot or selection would surface as a bare ValueError from .index() below, and a
     duplicate verb id would not surface at all: a verb is looked up by id (DesignPanel::mcp_run_verb,
     the catalog's command keys) and the first match taken, so the second row would be unreachable.
-    A row with neither an action nor a tool block would be a command that does nothing; only align,
-    which is in the menu greyed until it has a GUI path, is allowed to be one.
+    An entry with no row, no action and no tool block is nothing; a row with neither is greyed (Align to,
+    until it has a GUI path), and no command.
+
+    A folded row (`fold`) is a way of calling the command `into` names with `args`: it keeps its row and
+    its action and has no block of its own, and its command is an entry with a block that is no folded
+    row. An entry with an action and a block may name the `args` that choose its own row. The arguments
+    that choose a row are ones its command takes, and choose that row only (Mcp::opened_row()): no two
+    rows of one command with equal args and different actions, and no folded row with the args its
+    command's own row takes, which a call with none also gives. A command's rows are in one mode.
+
+    Every command, an entry with an action or a block that is no folded row, has a `section`, its heading in
+    search_tools' index (SECTIONS); a folded or greyed row, which is no command, has none.
+
+    `feature_row` marks a row whose action acts on the selected row of the Feature list, which a call of its
+    command takes as its target when nothing is picked in the view (Mcp::open_refusal()): only a command with a row
+    of its own has one, an entry with an action that is no folded row.
     """
     slot_ids = {s["id"] for s in A["slots"]}
     sel_ids = {s["id"] for s in A["selections"]}
@@ -98,10 +146,19 @@ def validate(A):
             errs.append(f"{vid}: duplicate verb id")
         seen.add(vid)
         block = v.get("tool")
-        if not v.get("action") and block is None and vid != "align":
-            errs.append(f"{vid}: neither an action nor a tool block")
+        if v["slot"] is None and not v.get("action") and block is None:
+            errs.append(f"{vid}: neither a row, an action nor a tool block")
         if v.get("modal") and not v.get("action"):
             errs.append(f"{vid}: modal without an action")
+        command = (v.get("action") or block is not None) and "fold" not in v
+        if not command and "section" in v:
+            errs.append(f"{vid}: a folded or greyed row is no command and has no section")
+        elif command and "section" not in v:
+            errs.append(f"{vid}: a command needs a section, its heading in search_tools' index: one of {list(SECTIONS)}")
+        elif command and v["section"] not in SECTIONS:
+            errs.append(f'{vid}: section {v["section"]!r} is not one of {list(SECTIONS)}')
+        if v.get("feature_row") and (not v.get("action") or "fold" in v):
+            errs.append(f"{vid}: feature_row needs a row of its own: an action, and no fold")
         if block is not None:
             if block.get("access") not in ACCESS:
                 errs.append(f'{vid}: tool access {block.get("access")!r} is not one of {sorted(ACCESS)}')
@@ -114,8 +171,64 @@ def validate(A):
             for p in block.get("params", []):
                 if "nullable" in p and ("default" not in p or p["default"] is not None):
                     errs.append(f'{vid}: param {p.get("name")!r} has nullable but no null default')
+            if "closed" in block and not isinstance(block["closed"], bool):
+                errs.append(f'{vid}: closed must be true or false, not {block["closed"]!r}')
+        if "args" in v:
+            if not v.get("action") or block is None:
+                errs.append(f"{vid}: own args need an action and a tool block")
+            elif same(v["args"], {}):
+                errs.append(f"{vid}: own args {{}} are what a call with none gives")
+            else:
+                errs += arg_faults(vid, v["args"], v)
+
+    by_id = {}
+    for v in A["verbs"]:
+        by_id.setdefault(v["id"], v)
+    folded = {}   # a command's id -> the rows folded into it so far
+    for v in A["verbs"]:
+        if "fold" not in v:
+            continue
+        vid, fold = v["id"], v["fold"]
+        if not isinstance(fold, dict):
+            errs.append(f"{vid}: fold must be an object {{into, args}}, not {fold!r}")
+            continue
+        if not v.get("action"):
+            errs.append(f"{vid}: a fold needs an action, the row's own")
+        if v.get("tool") is not None:
+            errs.append(f"{vid}: a folded row has no tool block: its command has it")
+        into = by_id.get(fold.get("into"))
+        if into is None:
+            errs.append(f"{vid}: fold's into {fold.get('into')!r} names no entry")
+            continue
+        if "fold" in into:
+            errs.append(f"{vid}: fold's into {into['id']} is itself a folded row")
+            continue
+        if into.get("tool") is None:
+            errs.append(f"{vid}: fold's into {into['id']} has no tool block")
+            continue
+        args = fold.get("args")
+        bad = arg_faults(vid, args, into)
+        errs += bad
+        if bad:
+            continue
+        if into.get("action") and (same(args, {}) or ("args" in into and same(args, into["args"]))):
+            errs.append(f"{vid}: its args are the args {into['id']}'s own row takes")
+        if into["slot"] is not None and mode_of(v) != mode_of(into):
+            errs.append(f"{vid}: in another mode than {into['id']}'s own row")
+        for other in folded.get(into["id"], []):
+            if mode_of(other) != mode_of(v):
+                errs.append(f"{vid}: in another mode than {other['id']}, folded into {into['id']} too")
+            if same(other["fold"]["args"], args) and other.get("action") != v.get("action"):
+                errs.append(f"{vid}: the same args as {other['id']}, with another action")
+        folded.setdefault(into["id"], []).append(v)
     for s in sel_ids - set(ENUM):
         errs.append(f"selection {s!r} has no OfferSel enumerator")
+    return errs
+
+
+def validate(A):
+    """Refuse an atlas the header cannot represent, naming every fault at once (faults())."""
+    errs = faults(A)
     if errs:
         sys.exit("tool_atlas.json is inconsistent:\n  " + "\n  ".join(errs))
 
@@ -134,9 +247,13 @@ def main():
         "// has ONE row index, that index is the same in every selection it appears in, and verbs that do",
         "// not apply are shown disabled in place with their reason rather than removed. Row order was",
         "// ratified 2026-07-31; changing an index is a breaking change to every user's muscle memory.",
-        "// Every entry but align is also a command of the catalog's group Design (Mcp::register_cad_commands()):",
-        "// called with no arguments, one with an action does what its menu row does; otherwise, and always for",
-        "// an entry with no action, it runs its tool block's silent form. An entry with no row is a command only.",
+        "// An entry with an action or a tool block, and no fold_into, is a command of the catalog's group Design",
+        "// (Mcp::register_cad_commands(), Mcp::is_design_command()), under its section in search_tools' index. A",
+        "// call whose arguments are exactly those that choose one of its rows opens that row's tool for a person",
+        "// (Mcp::opened_row()): none choose the entry's own row where it has an action, else the rows folded into it",
+        "// with {}; a folded row's args, or the entry's own, choose that row. Any other call runs its tool block's",
+        "// silent form. A folded row (fold_into) is no command: it is a way of calling the command it names. A row",
+        "// with neither an action nor a tool block is greyed, and no command. An entry with no row is a command only.",
         "#ifndef slic3r_GUI_DesignOffer_hpp_",
         "#define slic3r_GUI_DesignOffer_hpp_",
         "",
@@ -173,11 +290,13 @@ def main():
         "",
         "// What a Design command's silent form does to the document, which decides when the Design tab lets",
         "// it run (DesignPanel::mcp_busy()). Read only looks, so it runs under anything but a rebuild. Sketch",
-        "// drives the live sketch session and Change edits the feature list or variables; both are refused under",
-        "// an open card, the Text dialog, Constrain mode or a body Move, and Change under a sketch session too,",
-        "// which is about to commit into the feature list. None: an entry with no silent form, and the opening",
+        "// drives the live sketch session, and Change edits the feature list or variables, or sets what is",
+        "// selected in the model; both are refused under an open card, the Text dialog, Constrain mode or a body",
+        "// Move, and Change under a sketch session too, which is about to commit into the feature list and in",
+        "// which a click means something else. Ui acts on what the tab has open (its Confirm and Cancel), so only a",
+        "// rebuild refuses it, though it changes the document. None: an entry with no silent form, and the opening",
         "// of a tool, which only a rebuild refuses, as the Design tab's keys and menu do.",
-        "enum class CadAccess { None, Read, Change, Sketch };",
+        "enum class CadAccess { None, Read, Change, Sketch, Ui };",
         "",
         "// One entry of the table. `action` routes to the code that already implements the verb:",
         '//   "key:S+E"        -> m_keys_feature[SHIFT(\'E\')]',
@@ -210,8 +329,28 @@ def main():
         "    CadAccess   access;       // its silent form's, None without one",
         "    bool        ok_false;     // its silent form reports a rejected rebuild in its reply (ok false)",
         "    // Its silent form's summary, details, params, examples and ids as JSON text, the parameter",
-        "    // schema of record; nullptr for an entry whose command only does what its row does.",
+        "    // schema of record, and closed when its schema refuses an argument it does not name; nullptr for an",
+        "    // entry whose command only does what its row does.",
         "    const char* doc;",
+        "    const char* fold_into;    // the id of the command this row is a variant of, or nullptr",
+        "    // The arguments that choose this row, as JSON text: a folded row's, or those that choose the own row of",
+        "    // an entry with an action and a tool block as a call with none does; nullptr for none.",
+        "    const char* args;",
+        "    // The heading its command is listed under in search_tools' index (kDesignSections,",
+        "    // Mcp::design_command_index()); nullptr for an entry that is no command.",
+        "    const char* section;",
+        "    // Its action acts on the selected row of the Feature list, which a call of its command, not a person's",
+        "    // pick, takes as what the row is for while nothing is picked in the view (Mcp::open_refusal()).",
+        "    bool        feature_row;",
+        "};",
+        "",
+        "// The headings of search_tools' index of the Design commands, in its order. Menu rows holds the commands",
+        "// that take no arguments and only do what their row does.",
+        "static const char* const kDesignSections[] = {",
+    ]
+    for s in SECTIONS:
+        lines.append(f"    {cstr(s)},")
+    lines += [
         "};",
         "",
         "// Row labels, in ratified order.",
@@ -259,8 +398,10 @@ def main():
         name = tstr_design(v["name"])
         if not (name.startswith('L_CONTEXT("') and name.endswith('", "Design")')):
             sys.exit(f'entry {v["id"]}: its name is not marked for translation in the Design context: {name}')
+        fold = v.get("fold")
+        args = fold["args"] if fold else v.get("args")
         lines.append(
-            "    {%s, %s, %d, %s, %s, %s, 0x%08xu, %d, %d, %s, %s, %s, %s, %s, %s, CadAccess::%s, %s,\n     %s}," % (
+            "    {%s, %s, %d, %s, %s, %s, 0x%08xu, %d, %d, %s, %s, %s, %s, %s, %s, CadAccess::%s, %s,\n     %s, %s, %s, %s, %s}," % (
                 cstr(v["id"]), name, slots.index(v["slot"]) if in_menu else -1,
                 cstr(v.get("key")), cstr(v.get("action")), tstr(v.get("refusal")),
                 mask, n.get("bodies", 0), n.get("sketches", 0),
@@ -270,7 +411,9 @@ def main():
                 "true" if v.get("modal") else "false",
                 ACCESS[block["access"]] if block else "None",
                 "true" if block and block["ok_false"] else "false",
-                doc_literal(block, "     ")))
+                doc_literal(block, "     "), cstr(fold["into"]) if fold else "nullptr",
+                "nullptr" if args is None else cstr(json.dumps(args, ensure_ascii=False, separators=(",", ":"))),
+                cstr(v.get("section")), "true" if v.get("feature_row") else "false"))
     lines += [
         "};",
         f"static const int kDesignToolCount = {len(A['verbs'])};",
@@ -301,8 +444,10 @@ def main():
     in_menu = [v for v in A["verbs"] if v["slot"] is not None]
     wired = sum(1 for v in A["verbs"] if v.get("action"))
     blocks = sum(1 for v in A["verbs"] if v.get("tool"))
+    folded = sum(1 for v in A["verbs"] if v.get("fold"))
     print(f"wrote {os.path.relpath(OUT, REPO)}: {len(A['verbs'])} entries, {len(in_menu)} in "
-          f"{len(slots)} rows, {wired} wired to existing actions, {blocks} with a silent form")
+          f"{len(slots)} rows, {wired} wired to existing actions, {blocks} with a silent form, "
+          f"{folded} folded into their commands")
     return 0
 
 

@@ -1348,20 +1348,22 @@ The Design tab's sketches, features, reads and measurements, feature and body ed
 plate are commands of the catalog (`Mcp/McpToolsCad.cpp`) in the group `Design`, not listed, so agents that
 never open the Design tab pay in `tools/list` for their names alone. The names end `search_tools`'
 description while the catalog holds the commands (`design_command_index()`): that they are the Design tab's
-CAD commands and what those cover, that one is looked up before it is called, and every key in the table's
-order, in two lists by what a call does, since `sketch_add` draws from its arguments and `sk_line_t` starts
-a tool for a person: the commands with a silent form, which run from their arguments, then those with an
-action only, which take none and act as their menu row does. The first list's lead says what its commands
-with an action as well do when a call gives no arguments: they run the menu row, unless `silent` is true, so
-`interference {}` opens the tool and `interference {silent: true}` returns the result. So an agent learns without a search that the
-commands exist and are CAD, and reads a command's description and schema only when it looks it up. The
-description stays within 4096 characters, the most a client is known to keep of one. Those that open a tool
-are in the palette,
-whose tiles for them the Speed Dial has while the Design tab is shown (see Speed Dial catalog).
+CAD commands and what those cover, that one is looked up before it is called, that a command whose schema has
+`silent` does what its menu row does when called with no arguments unless `silent` is true, so
+`interference {}` with a body selected opens the tool and `interference {silent: true}` returns the result,
+and then every key under its heading, in the table's order: Document, Sketch, Solid, Surface, Construct,
+Inspect, Bodies, History, and Menu rows, the commands that take no arguments and do what their row of the right-click menu
+does. The headings are the generator's (`SECTIONS` in `gen_offer_table.py`, `kDesignSections` in the
+header), and a command's is its entry's `section`. So an agent learns without a search that the commands
+exist, that they are CAD and where each works, and reads a command's description and schema only when it
+looks it up. The description stays within 4096 characters, the most a client is known to keep of one. The
+commands that open a tool are in the palette, whose tiles for them the Speed Dial has while the Design tab
+is shown (see Speed Dial catalog).
 `register_all_commands()` adds them through `register_cad_commands()` only when the catalog is built with
 the CAD feature on (`CatalogOptions::cad`, which startup takes in the editor from the value in force: the
 `enable_cad_feature` preference, or `--cad` for the run). With
-it off the catalog holds none, and records that it leaves them out (`leave_out_cad_commands()`):
+it off the catalog holds none, and records that it leaves them out (`leave_out_cad_commands()`), a folded
+row's id among them, which names a tile:
 `call_tool {tool: "hole"}` is an unknown command whose error says the feature was off when OrcaSlicer
 started and how a person turns it on, and `get_app_state` carries
 `cad_note`, how a person turns the feature on (`cad_note()`, in the editor while the catalog holds no Design
@@ -1371,49 +1373,133 @@ Design tiles, which go as soon as it is turned off (see Speed Dial catalog); a w
 language change in between makes the page by the new preference, while the catalog keeps the commands it
 started with.
 
-One table, the Design tab's, declares every command: `kDesignTools` in `CAD/DesignOffer.hpp`, generated from
-`scripts/CAD/tool_atlas.json`, which is also the right-click menu (`docs/HLSD/design-tab.md`). Every entry but
-`align`, which has no GUI path, is a command: its id is the key and its name the title, so the body's move is
-`body_transform`, apart from Prepare's `transform`, and the surface tools are `surf_extrude` and the rest. An
-entry with an action, its menu row's, has a person's form and a tile. An entry with a tool block has a silent
-form, whose function `kSilentForms` binds by the entry's id; a unit test fails for a block with no function
-and a function with no block. The block gives the silent form's access, a summary of one sentence (at most 120
-characters), details, typed params with units, defaults and limits, one to three examples, and whether it
-reports a rejected rebuild in its reply (`ok_false`); the header carries it as JSON text (`doc`).
-`register_cad_commands()` makes a command of each entry (`cad_command()`), in the table's order: the menu's
-verbs, then the 41 entries with no menu row, 133 commands in all. It is `read_only` for a `read` block, and
-has the entry's icon. Its description is the summary, the details and, with `ok_false`, how a rejected rebuild
-shows; an entry with an action only has its hint and what its call does: what its right-click menu row does,
-which may open a tool, start a sketch tool, act at once or tell the person why it cannot, with the status line
-in the reply, and the mode it runs in, "only in an open sketch" or "only outside a sketch" by its row. Its
-examples are the block's, each
-`{title, calls: [{tool, args}], needs?}` ending with the command it documents, where an argument
-`{"from_call": i, "key": k}` is the value under `k` in the result of call `i`, and a call of a command that
-has both forms with no other argument is `{"silent": true}`. Its input schema (`cad_input_schema()`) is built
-from the params: a type written `"a|b"` is the list of both, `min`, `exclusive_min` and `max` are `minimum`,
-`exclusiveMinimum` and `maximum`, `enum` and `default` carry over, the unit joins the description, and a param
-without a default is required. A param whose default is null is one its function reads as left out when it is
-null (no limit, the open sketch), so its type also admits null, and its enum holds null: `extrude {"sketch":
-null}` runs the silent form on its default rectangle, as `extrude {"silent": true}` does. A param marked
-`"nullable": false` keeps its type, as its function reads a null as a value given: `thread`'s `plane`, which a
-thread on a plane resolves as the plane named, and `sketch_transform`'s `angle`, `scale`, `count` and `pivot`,
-which an op they do not apply to refuses whenever they are present. For an entry with both forms it goes through `with_silent()`: `silent` is a
-property, and what the silent form requires is under `"if": {"minProperties": 1}, "then": {"required":
-[...]}`, so the call with no arguments, the person's form, requires nothing (`fillet {}` opens the Fillet
-tool, while `fillet {radius: 2}` needs `edge`). The description, the silent form's, says nothing of that call,
-so `silent`'s says what it does and the mode it runs in (all 32 such entries are the model's, outside a
-sketch). An entry with an action only takes no argument at all (`additionalProperties: false`), so `sk_rect
-{silent: true}` is refused by its schema. A limit is the one the tool's function or the kernel applies to
-every call that passes the param, so the schema refuses no call the function would run: a distance that may be
-negative, or a depth a through hole ignores, has none. A command with a silent form also takes `generation`,
-never required, whose description says how face and edge ids expire, and its schema does not refuse an
-argument it does not name, since a tool may read more (a param in radians also in degrees under its name with
-`_deg`); the normalizer reads `index` as `feature` and `params` or `values` as `fields`
-(`normalize_arguments()`), the names `describe_feature`, `set_feature` and the tree edits also read.
+The commands are named in one vocabulary, so that a client that knows a mainstream CAD program can guess a
+command, the argument that picks its variant and its values. Fusion 360's word names the command (Split
+Body is `split`, Patch `surface_patch`, Blend Curve `sketch_blend_curve`, Finish Sketch `sketch_finish`,
+Suppress `feature_suppress`, Align `align`); where Fusion has no such command, Onshape's (`helix`), then
+SolidWorks' (`sketch_repair`, `body_compare`). Three nouns the app shows everywhere are the app's: variable,
+body and feature. The body boolean is `boolean`, the app's name for the tool and Onshape's, since Fusion's
+Combine reads wrongly for a cut. No prefix means the 3D model, as Fusion's Solid tab does: the commands that
+build and change the model's bodies (`extrude`, `fillet`, `mirror`, `pattern`, `boolean`, `split`) and the
+two that take any geometry (`measure`, `interference`). A prefix marks another place: `sketch_` the sketch,
+with the same verbs there (`sketch_fillet`, `sketch_mirror`, `sketch_pattern`); `surface_` the commands that
+make sheet bodies; `construct_` reference planes, axes and coordinate systems; `feature_` one entry of the
+history; `body_` one body as an object, named and coloured, deleted, placed, described and measured, and
+`body_transform`, since bare `transform` is Prepare's. A name is whole words, never an abbreviation.
 
-A call with no arguments of an entry with an action, an agent's or a tile's, is the person's form
-(`open_tool()`). It passes `cad_gate()` with `CadAccess::None`, whose only busy rule is the rebuild's, so the
-recipe is loaded and the call refused while the model is being rebuilt, and runs the action in place
+One command does one operation: a menu row and the argument command for its job are one command, and a row
+that only picks a variant is a way of calling its command. One argument picks the variant. `type` says which
+kind of thing the command makes, or which way it makes it: a shape (`sketch_draw`, where a shape drawn more
+than one way names the way in Fusion's words, `rectangle_3_point`), a pattern's layout, a hole's kind, how a
+plane is defined. `operation` says what the result does to the bodies already there, in the same four words
+in every command that has it, Fusion's and the Extrude card's: `new_body`, `join`, `cut` and `intersect`
+(`extrude`, `revolve`, `sweep` and `loft`; `boolean`'s `join`, `cut` and `intersect`; `mirror`'s
+`new_body` and `join`), with `extrude`'s `auto`, which joins the body the profile touches. `extrude`'s has no
+default in its schema: left out, it is `auto` with a sketch or a face and `new_body` without one; `boolean`'s
+has none at all, so a call that gives other arguments and no `operation` is refused. No command has both, so
+the normalizer reads a guessed `type` as a command's `operation` and the other way round, where the command
+has no argument of that name and the value fits (`argument_aliases()`, beside `index` for `feature`):
+`boolean {type: "cut", target: 0, tool: 1}` cuts. A feature's fields (`feature_describe`, `feature_edit`,
+`feature_set_expression`) keep the engine's names (`hole_diameter`, `mate_offset`, `cut_offset`), which the
+project file stores and expressions bind, but for the four that hold a variant these words name: `mode` is
+read and written as `operation`, `mate_kind` and `hole_style` as `type`, and `pattern_circular` as `type`,
+`linear` or `circular`. What is stored is the engine's. A reply key that carries a command's name carries
+this one (`align_index`, `align_conflicts`), and a feature's type name (`Mate`, `Cut`, `SurfaceFill`,
+`CoordSys`) is the app's name for it in the history.
+
+One table, the Design tab's, declares every command: `kDesignTools` in `CAD/DesignOffer.hpp`, generated from
+`scripts/CAD/tool_atlas.json`, which is also the right-click menu (`docs/HLSD/design-tab.md`). An entry with an
+action or a tool block is a command, unless it is a folded row (`is_design_command()`): its id is the key and
+its name the title. Of the 127 entries, 88 are commands, in five kinds:
+
+- A merged entry is a menu row and the argument command for its job as one entry under the command's name: the
+  row's slot, key, action, accepts, mode, name, icon and hint, with the command's tool block (47:
+  `sketch_trim`, `extrude`, `feature_edit`). Called with no arguments it does what its row does.
+- A menu-only command has an action and no block (5: `rename_selected`, `zoom_to_selection`,
+  `sketch_polygon_inscribed`, `sketch_polygon_circumscribed`, `sketch_constrain_selected`). It takes no
+  argument at all (`additionalProperties: false`), `silent` included.
+- An argument-only command has a block and no action (36: `describe_design`, `sketch_draw`,
+  `select_geometry`); all but `measure`, whose row has no GUI path, have no menu row (`row` -1).
+- A folded row (`"fold": {"into": "sketch_pattern", "args": {"type": "linear"}}`) is a row whose tool is a
+  variant of the command it names: calling that command with the row's arguments opens it, so Linear array
+  is `sketch_pattern {type: "linear"}` and Color `body_set {}`. It is no command, and keeps its entry and its
+  id, which the menu, the keys, the toolbar, its tile and the GUI tests use. 37 rows fold into eight
+  commands: `sketch_draw` (24 shapes), `sketch_set_value` (the three value rows, one action under three
+  labels, each `{}`), `sketch_transform` (3), `sketch_pattern` (2), `boolean` (2), and `thicken`, `pattern`
+  and `body_set` (one each).
+- A greyed row has a slot and neither an action nor a block (`pat_curve`, `align_to`): shown disabled, and no
+  command.
+
+An entry with an action and a block may also name the arguments that choose its own row (`args`): `boolean`'s
+Join row is `{operation: "join"}`, `thicken`'s `{type: "face"}` and `pattern`'s `{type: "linear"}`, so that
+each of a command's variants opens the same way. The generator refuses a table in which a fold names no entry,
+another folded row or an entry with no block, a folded row has a block of its own or another mode than its
+command's row, two rows of a command have the same arguments under different actions, a row's arguments are
+its command's own, own `args` sit on an entry without an action and a block or are `{}`, or a command has no
+`section` (and a folded or greyed row has one).
+
+An entry with a tool block has a silent form, whose function `kSilentForms` binds by the entry's id; a unit
+test fails for a block with no function and a function with no block. The block gives the silent form's
+access, a summary of one sentence (at most 120 characters), details, typed params with units, defaults and
+limits, one to three examples, whether it reports a rejected rebuild in its reply (`ok_false`) and whether its
+schema is closed (`closed`); the header carries it as JSON text (`doc`). `register_cad_commands()` makes a
+command of each entry that is one (`design_command()`, through `cad_command()`), in the table's order. It is
+`read_only` and `idempotent` for a `read` block, and has the entry's icon. Its description is the summary, the
+details, with `ok_false` how a rejected rebuild shows, and, for a command whose rows a call's arguments choose,
+those argument sets each with its rows' names (`opening_calls()`), so that a search for "polar array" or
+"rounded rectangle" finds `sketch_pattern` or `sketch_draw` (`search_tools` matches keys, titles and
+descriptions, not schemas). A menu-only command's description is its hint and what its call does: what its
+right-click menu row does, which may open a tool, start a sketch tool, act at once or tell the person why it
+cannot, with the status line in the reply, and the mode it runs in, "only in an open sketch" or "only outside
+a sketch" by its row. Its examples are the block's, each `{title, calls: [{tool, args}], needs?}` ending with
+the command it documents, where an argument `{"from_call": i, "key": k}` is the value under `k` in the result
+of call `i`, and a call that gives nothing else of a command that opens a tool with no arguments is
+`{"silent": true}`. Its input
+schema (`cad_input_schema()`) is built from the params: a type written `"a|b"` is the list of both, `min`,
+`exclusive_min` and `max` are `minimum`, `exclusiveMinimum` and `maximum`, `enum` and `default` carry over,
+the unit joins the description, and a param without a default is required. A param whose default is null is
+one its function reads as left out when it is null (no limit, the open sketch), so its type also admits null,
+and its enum holds null: `extrude {"sketch": null}` runs the silent form on its default rectangle, as
+`extrude {"silent": true}` does. A param marked `"nullable": false` keeps its type, as its function reads a
+null as a value given: `thread`'s `plane`, which a thread on a plane resolves as the plane named, and
+`sketch_transform`'s `angle`, `scale` and `pivot` and `sketch_pattern`'s `count`, `angle` and `pivot`, which a
+type they do not apply to refuses whenever they are present. A command whose call with no arguments opens a
+tool goes through `with_silent()`: `silent` is a property, and what the silent form requires is under
+`"if": {"minProperties": 1}, "then": {"required": [...]}`, so the call with no arguments, the person's form,
+requires nothing (`fillet {}` with an edge selected opens the Fillet tool, while `fillet {radius: 2}` needs
+`edges`). The description, the silent form's, says nothing of that call, so `silent`'s says what it does and
+the mode it runs in, as that call's ("Called with no arguments, it runs only in an open sketch"): the argument
+form may run in the other mode, as `sketch_text`'s does on the model and `sketch_project`'s in a sketch too.
+A limit is the one the tool's function or the
+kernel applies to every call that passes the param, so the schema refuses no call the function would run: a
+distance that may be negative, or a depth a through hole ignores, has none. A command with a silent form also
+takes `generation`, never required, whose description says how face and edge ids expire. A `closed` block's
+schema refuses an argument it does not name (`additionalProperties: false`), so a word the command does not
+take is refused as an unknown argument rather than ignored, and the call never runs with a default its caller
+did not mean; the validator names an unknown argument before a missing
+required one. Every command with `operation` is closed, and every one with `type` but `construct_plane`,
+`construct_axis` and `construct_coordinate_system`, which keep open schemas, as do the others whose functions
+read more than they name (a param in radians also in degrees under its name with `_deg`); the normalizer
+reads `index` as `feature` and `params` or `values` as `fields` (`normalize_arguments()`), the names `feature_describe`, `feature_edit` and
+the tree edits also read.
+
+One rule decides what a call of a Design command does (`opened_row()`): **a call whose arguments are exactly
+those that choose one of its rows opens that row's tool for a person, as a pick of the row does; any other
+call runs its silent form.** No arguments choose the entry's own row where it has an action (`sketch_trim {}`,
+`boolean {}`); where it has none, the rows folded into it with `{}` (`body_set {}` the Color row,
+`sketch_set_value {}` the first of the value rows). A row's own or folded `args` choose that row:
+`boolean {operation: "cut"}` opens the Subtract row, `sketch_draw {type: "circle_3_point"}` arms the 3-point
+circle, and with entities selected `sketch_pattern {type: "circular"}` the Polar array. The arguments are
+compared as JSON values after `normalize_arguments()`, so `boolean {type: "cut"}` opens it too, and anything
+beside them, `generation` or `silent: true` among them, makes the call run. `silent: true` runs the silent
+form with the defaults of what the call leaves out, beside the choosing arguments as beside none. A command has
+`silent` where a call with no arguments opens a tool; `sketch_draw`, `sketch_transform` and `sketch_pattern` have
+none, since a call of them with no arguments opens nothing, and their closed schemas refuse `silent` beside their
+choosing arguments. So a call meant to run that gives only a row's arguments opens the tool, and its reply says so.
+
+A call that opens a tool, an agent's or a tile's, is the person's form (`open_tool()`, on the row's entry). It
+passes `cad_gate()` with `CadAccess::None`, whose only busy rule is the rebuild's, so the recipe is loaded and
+the call refused while the model is being rebuilt, and runs the row's action in place
 (`DesignPanel::mcp_run_verb()`), as the menu's row and the tab's keys do: an open card does not refuse it,
 since each tool decides what that means to it. Before the action, `open_refusal()` refuses it in two cases
 (`-32000`). An entry runs only in the mode its row belongs to, where the right-click menu offers it
@@ -1426,20 +1512,29 @@ Constrain mode they reach the model's while the menu offers the sketch's: there 
 row does, not what its key does. And an action that only the right-click menu reaches (`btn:`, `fly:`),
 whose row the menu greys for a selection it does not accept, is refused for one with "This tool does not apply
 to what is selected", its details naming the selection (`selection_kind`, `selection`) and the atlas ids of
-those the row accepts (`accepts`). It never gives the row's refusal, which is about the document (no body yet)
-and which the menu shows only for a row that takes the selection. A `key:` action runs whatever is selected,
-as its key does. The reply is `{"result": {"interactive": true, "tool", "applies", "modal", "selection_kind",
-"busy", "status"}}`: whether the row accepts the selection, whether a dialog the action opened held the call
-until it was answered (the atlas's `modal` entries but Text, whose dialog is modeless:
-`DesignPanel::mcp_text_dialog_open()` tells it), the selection's kind, `mcp_busy()`'s reason after the action
-(a card, a dialog or a sketch now open) or null, and the text of the tab's status line (`DesignPanel::mcp_status()`). It claims nothing about
-what the action did, which may be to open a card, arm a sketch tool, act at once, or say on the status line
-why it cannot (Loft with fewer than two profile sketches). A modal dialog the action opens holds the call,
-which the core reports as blocked by it, as for `new_project {}`; Text's dialog is modeless, so `sk_text {}`
-replies at once with a `busy` that names it, and its own Cancel or Escape closes it. For a person's pick, a
-refusal is shown in the UI's language where its text is a msgid, as these three refusals are. `describe_scene`
-gives `selection`, `{kind, id}`, the selection the right-click menu would be built for, by its `OfferSel` and
-its atlas id (`kDesignSelectionIds`).
+those the row accepts (`accepts`). Only a row that accepts a kind the tab can report in its mode is greyed so
+(`reported_kinds()`): Boolean's rows take two bodies and Rib's a sketch line, which the tab never reports as
+what is selected, so `boolean {}` opens the Boolean card as its toolbar button does, whatever is selected. It
+never gives the row's refusal, which is about the document (no body yet) and which the menu shows only for a
+row that takes the selection. A `key:` action runs whatever is selected, as its key does. A call that is not a
+person's pick, made while a row of the Feature list is selected and nothing is picked in the view, takes that
+row as what four rows act on (`feature_row` in the atlas): `feature_edit`, `rename_selected`, `feature_delete`
+and `sketch_constrain_selected` are not refused for the selection then, and their action says itself what it
+cannot do with the row; `zoom_to_selection` acts on what is picked in the view. A person's pick keeps the
+menu's rule, which greys those rows for that selection. The reply is `{"result": {"interactive": true,
+"tool", "applies", "modal", "selection_kind", "busy", "status"}}`: the command called, whether the row accepts
+the selection, whether a dialog the action opened held the call until it was answered (the atlas's `modal`
+entries but Text, whose dialog is modeless: `DesignPanel::mcp_text_dialog_open()` tells it), the selection's
+kind, `mcp_busy()`'s reason after the action (a card, a dialog or a sketch now open) or null, and the text of
+the tab's status line (`DesignPanel::mcp_status()`). It claims nothing about what the action did, which may be
+to open a card, arm a sketch tool, act at once, or say on the status line why it cannot (Loft with fewer than
+two profile sketches). A modal dialog the action opens holds the call, which the core reports as blocked by
+it, as for `new_project {}`; Text's dialog is modeless, so `sketch_text {}` replies at once with a `busy` that
+names it, and its own Cancel or Escape closes it. For a person's pick, a refusal is shown in the UI's language
+where its text is a msgid, as these three refusals are. `describe_design` gives `selection`, `{kind, id}`, the
+selection the right-click menu would be built for, by its `OfferSel` and its atlas id
+(`kDesignSelectionIds`), `picked_plane`, the reference plane picked in the view, and `feature_row`, the
+Feature list's selected row.
 
 An agent finds them as it finds any command: `search_tools {group: "Design"}` lists their names, a query
 finds them among the commands with their input schemas, and `search_tools {tool}` gives one's group,
@@ -1462,37 +1557,41 @@ generation is read, the project's recipe is loaded into an empty document
 (`DesignPanel::hydrate_from_model()`), as showing the tab would.
 
 A silent form's access (`CadAccess`, from its block) decides what `DesignPanel::mcp_busy()` lets through.
-Nothing runs while a rebuild's worker owns the document; otherwise `read` commands always run, and so does the
-opening of a tool. `change` and `sketch` commands are refused under an open feature card, the Text dialog,
-Constrain mode or an open body Move; in Constrain mode `sketch_commit` and `sketch_cancel` are refused too,
-and the tab's own Confirm or Cancel ends it. A card holds a candidate built from the document as it was when
-it opened, which a change underneath would overwrite, or be overwritten by, on Confirm; the Move holds a body
-index that a change could point at another body. A sketch session lets `sketch` commands through, since
-driving it is their point, and refuses `change` ones, as the GUI would not let the edit land there.
+Nothing runs while a rebuild's worker owns the document; otherwise `read` commands always run, and so do the
+opening of a tool and the `ui` commands, `confirm_tool` and `cancel_tool`, which act on what is open and
+change the document through it. `change` and `sketch` commands are refused under an open feature card, the
+Text dialog, Constrain mode or an open body Move; in Constrain mode `sketch_finish` and `sketch_cancel` are
+refused too, and the tab's own Confirm or Cancel, or `confirm_tool` and `cancel_tool`, end it. A card holds a
+candidate built from the document as it was when it opened, which a change underneath would overwrite, or be
+overwritten by, on Confirm; the Move holds a body index that a change could point at another body. A sketch
+session lets `sketch` commands through, since driving it is their point, and refuses `change` ones, as the GUI
+would not let the edit land there. `select_geometry` and `body_place` are `change` commands: a click in the
+view means something else under a card, a sketch, Constrain mode, a Move or the Text dialog.
 
 A Design command that fails is an error (an `isError` result with `code` `-32000`, `OCCT: …` for a kernel
 exception) and leaves the design as it was, so `export_replay` drops it and a replay never repeats a
 call that did nothing. That holds for argument errors and for a rebuild the kernel rejects alike.
-The exceptions are the silent forms whose block has `ok_false`, whose descriptions say so (`fillet`,
-`chamfer`, `boolean`, `pattern`, `mirror`, `shell`, the surface tools, `import_step`, `set_variable`
-and others): they report a rejected rebuild in their reply, `{ok: false, error}`, after the same
-rollback, so such a call is journaled and replays the same rejection. `extrude`, `revolve`, the `hole` tools, `split`
-and `sketch_add` fail as errors, so none of them fails two ways depending on its arguments. The
-feature tools that fail as errors add through `add_feature()`: one checkpoint, a rebuild, and on
-failure `CadDocument::rollback()`, which restores the checkpoint without leaving the refused recipe
-on the redo stack and with the redo branch the checkpoint cleared, then "Edit rejected" on the
-status line as for a refused GUI edit. Features made through a Design command are named as the cards
+The exceptions are the silent forms whose block has `ok_false`, whose descriptions say so (`boolean`,
+`mirror`, `shell`, `draft`, `rib`, the surface tools, `delete_face`, `import_step`, `set_variable` and others):
+they report a rejected rebuild in their reply, `{ok: false, error}`, after the same rollback, so such a call
+is journaled and replays the same rejection. `extrude`, `revolve`, `sweep`, `loft`, `hole`, `thread`, `split`,
+`fillet`, `chamfer`, `thicken`, `pattern`, `align` and `sketch_draw` fail as errors, so none of them fails two
+ways depending on its arguments. The feature tools that fail as errors add through `add_feature()`: one
+checkpoint, a rebuild, and on failure `CadDocument::rollback()`, which restores the checkpoint without leaving
+the refused recipe on the redo stack and with the redo branch the checkpoint cleared, then "Edit rejected" on
+the status line as for a refused GUI edit. Features made through a Design command are named as the cards
 name them ("Extrude 3"), from the panel's own counter.
 
 `generation` guards face and edge ids within a session, but its value depends on the session's
 history, so the journal records a Design command's call without `generation`, and with `silent`, which it
-adds to a call of a command that has both forms when the call gave nothing else, so that the replay runs the
-silent form rather than opening the tool; a replay rebuilds the same ids.
+adds to a call that ran when the call without `generation` would open a tool, so that the replay runs the
+silent form rather than opening the tool; a replay rebuilds the same ids. A call that opens a tool is
+journaled as it was given, and its replay opens the tool again.
 
-The plane-taking commands (`sketch_begin`, `extrude`, `revolve`, the `hole` tools, `thread`,
-`split`, `pattern`, `mirror`, `helix`, `project`) share one resolver, `cad_resolve_plane()`: `"XY"`,
-`"XZ"` or `"YZ"` through `modeling_origin`, `{"datum": i}` for a Plane feature, or
-`{"body": b, "face": f}` for a planar face. A face plane for sketching is
+The plane-taking commands (`sketch_create`, `extrude`, `revolve`, `hole`, `thread`, `split`, `pattern`,
+`mirror`, `helix`, `sketch_project`, `sketch_text`, `sketch_insert_svg`) share one resolver,
+`cad_resolve_plane()`: `"XY"`, `"XZ"` or `"YZ"` through `modeling_origin`, `{"datum": i}` for a Plane
+feature, or `{"body": b, "face": f}` for a planar face. A face plane for sketching is
 `CadDocument::plane_of_face()` (outward normal); for drilling it is
 `CadDocument::inward_plane_of_face()`, the Hole card's plane (normal into the body, x along the
 longest edge), and the hole or thread goes into that face's body. Their replies carry the `frame`
@@ -1500,81 +1599,152 @@ used. Because a sketch's base plane passes through `modeling_origin` like every 
 lands where the features drawn on the same plane land, and the coordinates in a replay are relative
 to the modeling origin on any printer.
 
-`describe_scene` reads the document: the features, each with the fields an expression drives
-(`bound`), the variables with their values (all null, with `variables_error`, when one does not
-evaluate), the bodies with the feature that made them, whether their eye is on, the colour the
-canvas draws and whether the Move gizmo placed them, the undo and redo depth, mate conflicts and the
-document's `auto_close_loops`. `describe_feature {feature}` reads one feature as its card shows
-it, from one per-type table, `feature_card()`: `params`, the `editable` ones named as the
-`CadFeature` members (the names `edit_feature` binds) with the `ranges` of the card's spin
-controls, `expr`, the structure the card keeps in `refs` (feature and body indices, face and edge
-ids), a sketch's plane, entities and constraints (snake_case types, point references with a role,
-angles in degrees), `used_by` / `bodies_made`, and, for imported Text or SVG art, how many regions it
-has (`regions`), how many closed loops each region has, its outer loop plus its holes
-(`region_loops`), and the area each region fills as placed, in mm² (`region_areas`). `used_by`
-comes from the kernel's own reference visitors, `CadDocument::for_each_feature_ref()` and, for a
-datum plane, `for_each_datum_ref()`, the lists that deleting and moving a feature remap.
+`describe_design` reads the document: the features, each with whether it is `suppressed` and the fields an
+expression drives (`bound`), the variables with their values (all null, with `variables_error`, when one does
+not evaluate), the bodies with the feature that made them, whether their eye is on, the colour the canvas
+draws, whether they were moved and their `placement` (null where the model has the body, else three rows of
+four numbers, the rotation and the translation in mm in the world frame), the undo and redo depth, the
+Commit button's mode (`commit_mode`), the aligns that cannot hold with those before them (`align_conflicts`),
+the document's `auto_close_loops`, and the selection (above). `feature_describe {feature}` reads one feature as
+its card shows it, from one per-type table, `feature_card()`: `params`, the `editable` ones named as the
+`CadFeature` members (the names `feature_set_expression` binds) but for the four variant fields, with the
+`ranges` of the card's spin controls, `expr`, the structure the card keeps in `refs` (feature and body
+indices, face and edge ids), a sketch's plane, entities and constraints (snake_case types, point references
+with a role, angles in degrees), `used_by` / `bodies_made`, and, for imported Text or SVG art, how many
+regions it has (`regions`), how many closed loops each region has, its outer loop plus its holes
+(`region_loops`), and the area each region fills as placed, in mm² (`region_areas`). `used_by` comes from the
+kernel's own reference visitors, `CadDocument::for_each_feature_ref()` and, for a datum plane,
+`for_each_datum_ref()`, the lists that deleting and moving a feature remap.
 
-`set_feature {feature, fields}` (also read as `index` and `params` or `values`, the names agents
-reach for, as `describe_feature` reads `index`) is a card's Confirm in edit mode: one checkpoint, then
-`CadDocument::replace_feature()` with a copy whose fields `cad_apply_feature_fields()` checked
-against the same table, so it takes only what the card edits (numbers within the card's range, and
-its choices). A field an expression drives is refused, since the next rebuild would overwrite it,
-and so is an end condition that needs a pick the feature does not hold. A rebuild the kernel
-refuses fails the call after `rollback()`. Numeric fields go through
-`CadDocument::set_numeric_field()`, the allow-list expressions use, so a literal edit and a binding
-reach the same fields. An empty `expr` removes a binding (`edit_feature`) or a variable
-(`set_variable`), as the Variables panel's Clear and Remove do; a binding on a field the evaluator
-does not know, or removing one that is not there, is refused.
+A feature's body indices and face and edge ids are as of the feature: they index the model as it stood just
+before it, which is how the feature stores them and how the rebuild replays them. A Plane's, an Axis's and a
+Coordinate system's are the finished model's, where the engine reads them (`for_each_body_ref()`).
+`feature_describe` says which in `ids_of` (`"before"` or `"finished"`), and lists in `bodies_before` the
+bodies that existed just before the feature (`{index, name}`), which `CadDocument::recompute()` records as it
+rebuilds (`CadDocument::bodies_before`, not saved): it is the last rebuild's, and null where that rebuild did
+not reach the feature. `body_describe {body, before: <feature>}` reads a body as it stood just before that
+feature, by replaying a copy of the history cut there (`cad_document_before()`, on
+`CadDocument::history_before()`, which leaves out the undo and redo stacks and the display meshes), as the
+cards do to list bodies when they edit. Those are the ids `feature_edit` takes in `refs`, for every feature
+but a Plane, an Axis and a Coordinate system. A card that edits a feature reads a face or an edge picked again
+the same way: the viewport's pick is fed the model before the feature while the card is open (not for a
+Plane, an Axis or a Coordinate system), each of its bodies where the view draws the body it became (its
+placement, matched by identity, as its visibility is), and the Hole and Thread cards read the picked face's
+geometry from that model too.
 
-A sketch goes from a session to a solid in typed calls. `sketch_begin {plane}` opens the session
+`feature_edit {feature, fields, refs}` (also read as `index` and `params` or `values`, the names agents
+reach for, as `feature_describe` reads `index`) is a card's Confirm in edit mode: one checkpoint, then
+`CadDocument::replace_feature()` with a copy whose fields `cad_apply_feature_fields()` checked against the
+same table, so it takes only what the card edits (numbers within the card's range, and its choices), and whose
+references `cad_apply_feature_refs()` changed, under the names `feature_describe` reports. `refs` reaches what
+the feature's card can pick again when it edits: a revolve's axis, a sweep's path, a loft's profiles, a
+boolean's two bodies, a mirror's, split's or helix's plane, a rib's line, an align's coordinate systems, a
+fillet's or chamfer's edges, a shell's, draft's or thicken's face, a hole's or thread's plane, the picks of a
+plane, axis or coordinate system, the faces of a Delete Face, the target body. An extrude's profile and target
+stay fixed, as its card keeps them. A feature index must name an earlier feature of the right type, a body
+index or id one the model before the feature has, and `generation` guards the call. For a Text feature
+`fields` takes the words, height and font (a face name, or the stored value `feature_describe` reports), with
+bold and italic beside a face name, and outlines it again; for imported art, its position as well as its
+scale. A field an expression drives is refused, since the next rebuild would overwrite it, and so is an end
+condition that needs a pick the feature does not hold. A rebuild the kernel refuses fails the call after
+`rollback()`. The reply is `changed`, each field and reference with its old and new value, and `plane`, the plane
+the feature builds on, which `feature_describe` reports beside them, where it changed (a mirror's, a helix's or
+a split's re-pointed). Numeric fields go
+through `CadDocument::set_numeric_field()`, the allow-list expressions use, so a literal edit and a binding
+reach the same fields. `feature_set_expression {feature, field, expr}` binds a field, and an empty `expr`
+removes a binding, as `set_variable`'s removes a variable, as the Variables panel's Clear and Remove do; a
+binding on a field the evaluator does not know, or removing one that is not there, is refused.
+
+A sketch goes from a session to a solid in typed calls. `sketch_create {plane}` opens the session
 through `DesignPanel::begin_sketch_session()`, the code a plane or face pick runs, without the tool
-menu that follows the click. `sketch_commit` is the sketch's ✓, whose commit handler adds the Sketch
-feature and solves its dimensions; the reply reads the committed feature back: `sketch_index`, its
-name and its loops. An empty sketch is refused before anything changes and the session stays open,
-because an exported replay leaves the failed call out and its next sketch call needs that session.
+menu that follows the click; `sketch_create {}` is the Sketch row, which with nothing picked waits for a plane.
+`sketch_finish` is the sketch's ✓, whose commit handler adds the Sketch feature and solves its dimensions; the
+reply reads the committed feature back: `sketch_index`, its name and its loops. A new sketch left empty is
+refused before anything changes and the session stays open, because an exported replay leaves the failed call
+out and its next sketch call needs that session. `sketch_edit {sketch}` re-opens a committed sketch in the
+session, as Edit on its row does (`DesignCanvas::edit_sketch()`, `DesignSketchTool::begin_edit()`), and the
+`sketch_` commands then act on it. `sketch_finish` replaces it in place (`replace_feature()`), in one undo
+step, rebuilds what is built on it and replies `replaced: true`; a replace the rebuild refuses, or a re-opened
+sketch left empty, ends the edit with the design as it was and replies `ok: false` with `replaced: false`,
+`sketch_index` and `error`, so the call is journaled and its replay ends the same edit. A click inside one of
+the sketch's loops, the Text dialog (`sketch_text {}`) and Constrain mode (K) finish the sketch first, and a
+re-opened one they cannot put back stops them there, with the reason on the status line, so nothing opens on
+the sketch as it was. `sketch_cancel` drops
+the changes without the dialog a person gets and resets the panel's edit state. `sketch_edit` is refused while
+a sketch is open, and for text, imported art, a Project sketch and a sketch not drawn from entities, each with
+its reason. An extrude of one loop keeps its own copy of that loop and does not follow the edit.
 `sketch_describe {sketch}` describes a committed sketch as the open one is described, through
-`DesignSketchTool::loop_report(entities)`. Its loop indices are those `extrude {loop}` takes: a
-region lists the loops inside it under `holes`, and each of those is a loop of its own.
-`extrude {sketch}` and `revolve {sketch}` are the cards' Confirm on a committed sketch. Extrude
-takes the whole sketch (`add_extrude`) or, with `loop`, one region and the loops inside it, the list
-a loop picked in the viewport hands the card (`add_extrude_entities`). Its `boolean: "auto"`, the
-default with a sketch, joins the body the sketch touches (`CadDocument::body_touching_sketch()`),
-else makes a new body, as the card's default does; `body` names the body to work on in every form.
-Revolve's axis is a line of the sketch (`axis_entity`), else the sketch's only centerline, which the
-card also offers first (`DesignPanel::default_revolve_axis_entity()`), else a plane axis.
-`cad_sketch_extrude()` and `cad_sketch_revolve()` check every argument before the checkpoint and
-return the call that adds the feature.
+`DesignSketchTool::loop_report(entities)`. Its loop indices are those `extrude {loop}` and
+`select_geometry {sketch, loop}` take: a region lists the loops inside it under `holes`, and each of those is
+a loop of its own. `extrude {sketch}` and `revolve {sketch}` are the cards' Confirm on a committed sketch.
+Extrude takes the whole sketch (`add_extrude`) or, with `loop`, one region and the loops inside it, the list
+a loop picked in the viewport hands the card (`add_extrude_entities`); `body` names the body to work on in
+every form. Revolve's axis is a line of the sketch (`axis_entity`), else the sketch's only centerline, which
+the card also offers first (`DesignPanel::default_revolve_axis_entity()`), else a plane axis.
+`cad_sketch_extrude()` and `cad_sketch_revolve()` check every argument before the checkpoint and return the
+call that adds the feature. `surface_revolve` takes `axis_entity` and `flip` as `revolve` does, with its
+checks (`cad_surface_revolve()`), and `feature_edit` edits both.
 
 Inside the session, the sketch's own tools are reached without a pointer through
 `cad_sketch_call()`, which needs only the live `DesignSketchTool` and checks every argument before
-it changes anything. `sketch_add` takes, besides lines, arcs, circles and points, the shapes the
-drawing tools build: a polygon (by its circumradius, or across the flats, the tool's inscribed and
-circumscribed fits), a slot, an ellipse, an elliptical arc and a spline. Their fields are those
-`sketch_describe` reads back (`radius`, `rminor`, `rotation`, `ctrl`); each is turned into the clicks
-its tool takes and built by the tool's own builder and shape grouping
-(`DesignSketchTool::add_shape_scripted()`), leaving the tool's sticky polygon and construction
-settings alone. Angles are radians, or degrees under a `_deg` name. `sketch_fillet`,
-`sketch_chamfer`, `sketch_trim` (with `extend`) and `sketch_transform` (move, rotate, scale, array,
-polar array) run the edit tools' own apply steps through scripted entry points, so they keep the
-constraint upkeep a click gets: a fillet arc bound coincident and tangent to its legs, constraints
-an op invalidates released, array copies bound to their source. They leave the armed tool armed,
-and are refused while a gesture or a value field is pending, which the tool's apply step would
-take over. `sketch_trim` picks the entity nearest `at` within a `tolerance` in mm, where the
-scissors' click uses a pixel radius. `sketch_constrain` is a CONSTRAIN bar button: with
-`entities` (else the selection) the bar's planner, `plan_entity_constraint()` with
-`write_plan_value()` in `SketchEngine`, shared with the panel, chooses the points, and the value it
-would ask for defaults to the current one; with `refs` the references are taken as written, in the form
-`sketch_constraints` and `describe_feature` report them (`{entity, role}` for a point, `{entity}` for
-a whole entity, `"origin"`, `"x_axis"` and `"y_axis"` for the sketch's implicit references), which
-also reaches the types the bar has no button for (distance, lock, point on line or object). A
-constraint the sketch cannot solve with is rolled back and the call fails; a refused pick names the
-planner's reason as a code. `sketch_unconstrain` is a constraint row's delete button; the later
-indices move down. `sketch_constraints` reads the open sketch's constraints, or a committed one's
-by `sketch`. Live sketch edits are not on the Design undo stack until the commit, as in the GUI.
+it changes anything. `sketch_draw {type, ...}` draws one of nineteen shapes from its fields, or a list of
+shapes as `entities`, each with its `type`: `line`, `polyline`, `rectangle_2_point`, `rectangle_center`,
+`rectangle_3_point`, `rectangle_rounded`, `circle_center`, `circle_2_point`, `circle_3_point`, `arc_3_point`,
+`arc_center`, `arc_tangent` (from the end of `entity`, the line or arc it continues, one the sketch has or one
+an item before it adds, the one added last when it is left out, leaving along its direction there), `slot`,
+`slot_arc`, `ellipse`, `ellipse_arc`, `spline`, `polygon` (by its circumradius or across the flats, the tool's
+inscribed and circumscribed fits) and `point`. Their fields are those `sketch_describe` reads back (`radius`,
+`rminor`, `rotation`, `ctrl`); each shape is turned into the clicks its tool takes and built by the tool's own
+builder and shape grouping (`DesignSketchTool::add_shape_scripted()`), so one undo takes it off whole, or a
+polyline's last line only, as their tools leave them, leaving the tool's sticky polygon and construction
+settings alone. Each shape carries the constraints its tool gives it, at any slant. Its constraints are
+inferred exactly, so that none moves what is given; as exact inference records a relation only where rounding
+leaves it exact, the ones the tool binds inside the shape are added where it left them out: a
+`rectangle_3_point`'s and a square's right angles, an `arc_tangent`'s tangency to a line it leaves, a `slot`'s
+tangencies and equal ends, a `slot_arc`'s equal ends, and a `rectangle_rounded`'s level and upright sides,
+tangencies and equal corners, batched as the tool's inference batches them. A constraint between a shape and
+the sketch's axes or what is already in the sketch, or between plain lines, is inferred only where it holds
+exactly, so a square on the axes, whose sides lie a rounding step off them, is level only on a side lying
+exactly on one, and right angles hold the others: as many constraints and degrees of freedom as its tool's,
+some of another kind. Each item of `entities` carries its own fields, so a shape's field beside the list is
+refused, and a `construction` beside it is each item's that gives none of its own. A refused `sketch_draw`
+leaves the sketch exactly as it was. Angles are radians, or degrees
+under a `_deg` name.
+`sketch_fillet`, `sketch_chamfer`, `sketch_trim`, `sketch_extend`, `sketch_transform {type: move | rotate |
+scale}` and `sketch_pattern {type: linear | circular}` run the edit tools' own apply steps through scripted
+entry points, so they keep the constraint upkeep a click gets: a fillet arc bound coincident and tangent to its
+legs, constraints an op invalidates released (Fillet and Chamfer let go of the Symmetric constraints on the two
+ends they trim, Trim and Extend the line's), pattern copies bound to their source. They leave the armed tool
+armed, and are refused while a gesture or a value field is pending, which the tool's apply step would take
+over. `sketch_trim` and `sketch_extend` pick the entity nearest `at` within a `tolerance` in mm, where the
+scissors' click uses a pixel radius. `sketch_mirror {axis}` mirrors about a line of the sketch, `"x_axis"` or
+`"y_axis"` through the Mirror tool's own Confirm, which binds each end of a mirrored line or arc Symmetric to
+its source's opposite end about the axis; `axis_a` and `axis_b`, two free points, bind nothing. `sketch_offset` of one
+entity binds its copy Parallel or Concentric, as the Offset tool does (`DesignSketchTool::offset_scripted()`),
+and that copy gets no inferred constraints. Both replies list the constraints added. `sketch_constrain` is a
+CONSTRAIN bar button and `sketch_dimension {type: distance | distance_x | distance_y | angle | radius |
+diameter}` the Dimension tool: with `entities` (else the selection) the bar's planner,
+`plan_entity_constraint()` with `write_plan_value()` in `SketchEngine`, shared with the panel, chooses the
+points, and the value it would ask for defaults to the current one; with `refs` the references are taken as
+written, in the form `sketch_list_constraints` and `feature_describe` report them (`{entity, role}` for a
+point, `{entity}` for a whole entity, `"origin"`, `"x_axis"` and `"y_axis"` for the sketch's implicit
+references), which also reaches the types the bar has no button for (lock, point on line or object). A
+constraint the sketch cannot solve with is rolled back and the call fails; a refused pick names the planner's
+reason as a code. `sketch_delete_constraint` is a constraint row's delete button; the later indices move down.
+`sketch_list_constraints` reads the open sketch's constraints, or a committed one's by `sketch`.
+`sketch_project` with a sketch open, new or re-opened, adds a body's edges to it as construction entities,
+which do not follow the body; with none open it adds a Project feature, a sketch on `plane` that follows the
+body. `sketch_insert_svg {path, scale, position}` adds an SVG file's outlines to the open sketch as lines, as
+Insert SVG does there (`add_imported_regions`), and with no sketch open makes an art feature on `plane`.
+`sketch_text {text, font, bold, italic, height, plane, position}` makes a Text feature on the model: the
+dialog's outline (`DesignPanel::mcp_outline_text()`) and push, one undo step, no dialog and no placement
+step, a font left out being the face the Text dialog would start from. Both decide every refusal (a font not
+installed, text or a file with no outline) before anything changes. Live sketch edits are not on the Design
+undo stack until the commit, as in the GUI.
 
-`query_topology` reads a body from one enumeration (`faces_of()`, `edges_of()`, whose ordinals are
-the ids every other Design command takes). A face's kind is its OCCT surface type, from
+`body_describe` reads a body from one enumeration (`faces_of()`, `edges_of()`, whose ordinals are
+the ids every other Design command takes), and with `vertices` its vertices (`{id, p}`, numbered as
+`TopExp::MapShapes()` numbers them, as faces and edges are). A face's kind is its OCCT surface type, from
 `GeometryEngine::surface_info()`, with its area and the numbers that define it: a cylinder's radius
 and axis, a cone's apex, axis into its opening, half angle and the radii the face reaches, a
 sphere's centre and radius, a torus's centre, axis and radii; `internal` marks a bore or a
@@ -1587,7 +1757,9 @@ neighbours of the other list's matches, so `{kinds: ["conical"], adjacency: true
 with their edges. Adjacency comes from `edge_faces()` (one face for a seam), and convexity from
 `edge_convexity()`, OCCT's fillet classification (`ChFi3d::DefineConnectType`). `limit` and `offset`
 page both lists alike; `face_count`/`edge_count` stay the body's totals and
-`faces_total`/`edges_total` count what matched.
+`faces_total`/`edges_total` count what matched. `fillet` and `chamfer` take edge ids in `edges`, or one of
+the card's Edges choices, `"top"`, `"bottom"`, `"lateral"` or `"all"`, through the engine's face-group
+overloads.
 
 `measure` keeps `distance`, between the refs' representative points (a face's centroid, an edge's
 middle sample), and adds `min_distance` with the closest points (`GeometryEngine::min_distance()`,
@@ -1595,15 +1767,24 @@ OCCT's `BRepExtrema_DistShapeShape`), and `parallel_gap` across two parallel pla
 may name its own body, and `{"face": f, "axis": true}` stands for a cylinder's axis over the face's
 length, so a hole's height or spacing is one call.
 
-The hole commands drill a face plane's own body, or the body `body` names, else the last body, and
-take `at` instead of `x`/`y`: a world point projected onto the plane along its normal (the reply's
-`off_plane` says how far), or a cylindrical face or circular edge whose axis the hole shares, which
-replays on any printer. `cad_hole_placement()` resolves all of it before the checkpoint. `extrude
-{face}` is the Extrude card's push/pull of a picked planar face (`add_extrude_face`), joined to that
-face's body by default. `plane` is the Plane card's Confirm: every construction (offset, angle,
-midplane, tangent, two edges, coincident) with its references as `{body, face}` or `{body, edge}`,
-checked by `CadDocument::datum_plane_refusal()`, the card's own check, before the checkpoint; a
-parameter the construction would ignore is refused.
+`hole` drills a face plane's own body, or the body `body` names, else the last body, and takes `at` instead
+of `x`/`y`: a world point projected onto the plane along its normal (the reply's `off_plane` says how far), or
+a cylindrical face or circular edge whose axis the hole shares, which replays on any printer. Its `type` is
+`simple`, `counterbore` or `countersink`, the seat for a screw head, a counterbore sized by `cbore_*` and a
+countersink by `csink_*`, each refused beside another type, or by the standard with `designation` (a
+clearance size such as M6, ISO 273 or ANSI), which gives the diameter in its
+place. `cad_hole_placement()` resolves all of it before the checkpoint. `extrude {face}` is the Extrude card's
+push/pull of a picked planar face (`add_extrude_face`), joined to that face's body by default.
+`construct_plane` is the Plane card's Confirm: every construction (offset, angle, midplane, tangent, two
+edges, coincident) with its references as `{body, face}` or `{body, edge}`, checked by
+`CadDocument::datum_plane_refusal()`, the card's own check, before the checkpoint; a parameter the
+construction would ignore is refused. `thicken {type: face}` offsets one face of a body into a plate and
+`thicken {type: surface}` thickens a sheet body; left out, `type` is `face` when `face` is given. `pattern`'s
+`type` is `linear`, `circular` or `curve`, the last along a sketch's `entity`, and what one type reads is
+refused beside another: `spacing` and `dir` go with `linear`, `angle` with `circular`, `plane` with both,
+`sketch` and `entity` with `curve`. `align {type, cs_a, cs_b}` is
+the Mate card's Confirm, its five types `fastened` to `cylindrical`, and `list_align_types {cs_a, cs_b}` says
+which fit that pair and why each other one does not, as the card dims them (`CadDocument::mate_options()`).
 
 `thread`, `sweep`, `loft` and `split` are their cards' Confirm. `thread` takes a cylindrical face or
 a circular edge, as a pick sets the Thread card: `CadDocument::thread_target()`, which the card's
@@ -1619,9 +1800,9 @@ binormal), as a spring's or a thread's wire is drawn. `helix` replies with its `
 `tangent`, where a profile is drawn across the curve. `loft` takes two or more sketches in order.
 `split {plane}` is the Cut card's feature (`add_cut`) with the card's plane forms plus a face plane,
 `offset`, `flip` and the kernel's `keep_upper`/`keep_lower`, which the card always leaves both on;
-`split {face}` splits along a face's plane. A plane clear of the body is refused, since the kernel
-would leave one piece empty. The reply names the pieces: the upper one keeps the body's index and
-the lower one follows it.
+`split {face}` splits along a face's plane, and `split {}` is the Cut row. A plane clear of the body is
+refused, since the kernel would leave one piece empty. The reply names the pieces: the upper one keeps the
+body's index and the lower one follows it.
 
 Thread, sweep and loft rebuild as their cards do, through `DesignPanel::recompute_guarded()`: the
 kernel works on a worker thread while the UI thread waits in `wxYield()` behind a progress dialog
@@ -1634,6 +1815,34 @@ another Design command and `undo` among them, are refused by `UiInvoker` as runn
 rebuilding call ("Busy: thread is still running"), and `mcp_busy()` refuses every Design command while
 a rebuild's worker owns the document, the GUI's own rebuilds included. A call past the reply budget
 becomes a running job.
+
+`select_geometry` sets the selection a click would set, in the view and in the lists, so that a row's call
+with no arguments, `zoom_to_selection` and `rename_selected` have something to act on: a body as a click on
+its Bodies row selects it, a face, edges or a vertex of a body as a click in the view picks them, a reference
+plane while a click could pick one (the Origin row shows the planes, or Sketch waits for its plane, where
+picking it opens the sketch), a committed sketch's loop, numbered as `sketch_describe`'s `closed_loops` and
+only while the view shows it (an extrude of the whole sketch hides its loops and an extrude of one loop hides
+that loop, and a hidden loop is refused, naming the extrude), or a feature as a click on its Feature list
+row; a call with nothing clears it. A vertex's id is its place among the body's vertices
+(`cad_body_vertices()`). The reply is the selection as `describe_design` reports it, and the tab takes the
+next call once it has replied. `confirm_tool` confirms what is open: the Text dialog as its OK does (a new
+text goes into the design with its placement then open), else as Enter does (`tool_confirm()`), in the
+order Confirm takes it: a value field, a body Move, a text or art placement, a feature card, a sketch,
+Constrain mode; it is refused when nothing is open, while Sketch waits for its plane, while the Text dialog's
+OK is off, with the dialog's size line as the reason, and while Confirm is off, with the status line as the
+reason, and replies what was open, whether it took (`ok`), the feature added
+or edited, what is still open and the status line. A card's Confirm that adds a feature whose rebuild fails
+takes the feature back, and an add the card refuses, or that adds nothing, abandons its checkpoint: either way
+no undo step is taken and the card stays open with the reason on the status line, as a person's Confirm
+leaves it.
+`cancel_tool` cancels what is open as the card's Cancel does (`tool_cancel()`), the Text dialog as its Cancel
+does, an open sketch discarded without the dialog and a re-opened one kept as it was.
+`body_place {body, move, rotate | face | reset}` is
+the Bodies row's Move and Place on Face: where the body goes for Commit to Plate and Export STEP
+(`m_body_xform`), turned about its centre as the Move / Rotate card turns it, a face laid on the bed as
+`place_on_face()` lays it, or put back where the model has it. Like the tools it is outside the history, with
+no undo step, and the project file does not keep it; a placement follows its body when the bodies are
+renumbered, by the transient `uid` of the feature that made it (`CadFeature::uid`).
 
 `undo` and `redo` are the Speed Dial's commands (`NativeCommands.cpp`), shared by the Design tab and
 the project, and act on the history of the tab shown, as Edit > Undo and Redo and the top bar's buttons
@@ -1664,29 +1873,31 @@ catalog that holds them. The Design history is not saved with a project.
 
 The Feature tree's and Bodies list's edits are split from their handlers into index-taking
 `DesignPanel` cores that the handlers call after resolving the selected row, so `feature_delete`,
-`feature_move` (one place up or down), `feature_set_enabled`, `feature_rename`, `body_set` and
+`feature_move` (one place up or down), `feature_suppress`, `feature_rename`, `body_set` and
 `body_delete` run the GUI's own code without selecting a row, and queue no face highlight of their
 own. Each tree edit is one Design undo step; when the kernel refuses one (a consumer moved above
-its input, a feature shown without the body it works on, a delete a later feature cannot survive),
+its input, a feature brought back without the body it works on, a delete a later feature cannot survive),
 the kernel has already put the features back, `CadDocument::abandon_checkpoint()` drops the
 checkpoint and restores the redo branch it cleared, and the call fails with the kernel's reason.
-A feature rename is its own undo step. `body_set {body, name?, color?, visible?}` checks every
+A feature rename is its own undo step. `feature_suppress {feature, suppressed}` leaves the feature out of
+the rebuild, as its row's eye does, or brings it back. `body_set {body, name?, color?, visible?}` checks every
 argument before it changes anything; a body's name and colour are saved in the recipe and are not
-in the undo history, and its visibility is view state that decides what `commit` sends.
+in the undo history, and its visibility is view state that decides what `commit_to_plate` sends.
 `body_delete` deletes the feature that made the body (`CadBody::source_feature`). Deletes, moves and
-hiding renumber features and bodies, so the replies carry the new counts and `generation`.
+suppressing renumber features and bodies, so the replies carry the new counts and `generation`.
 
-`commit {mode, replace}` is Commit to Plate: `DesignPanel::commit_to_plate()`, which the button
-also runs, sends the visible bodies (a lone body even when hidden) at their Move-gizmo positions,
+`commit_to_plate {mode, replace}` is Commit to Plate: `DesignPanel::commit_to_plate()`, which the button
+also runs, sends the visible bodies (a lone body even when hidden) where they are placed,
 as one Prepare undo step, and shows Prepare. A body named in the Bodies list names its object, or
 its part of an assembly; otherwise the design's labels ("Design Body", "Design Assembly") are used.
 `mode` applies to this call only and leaves the split button and `design_commit_mode`, the user's
-choice, as they are. `replace` lists Prepare objects to delete afterwards through the Object
+choice, as they are; given none, the call uses the button's, which `describe_design` reports as
+`commit_mode`. `replace` lists Prepare objects to delete afterwards through the Object
 List's delete path, under one outer snapshot so the commit and the deletions are a single undo
 step. It refuses before anything changes: an index out of range or repeated, an object that is
 part of a cut (deleting one asks the person first), an open gizmo, a design with no body, or every
 body hidden. The reply gives the new objects' `list_objects` indices after the deletions.
-`commit` is the one Design command that changes Prepare's model. It needs no refusal of its own:
+`commit_to_plate` is the one Design command that changes Prepare's model. It needs no refusal of its own:
 the mutate guard a Design command's call runs under keeps it out of a modal dialog and out of another
 call's nested event loop.
 
@@ -1694,18 +1905,23 @@ call's nested event loop.
 also clears the Design undo history and leaves committed objects on the plate. A design with
 features, bodies or variables needs `discard_changes: true`. `export_step {path, overwrite}` is
 Export STEP… without its file dialog (`DesignPanel::export_step_to()`, shared with it): every
-body as native B-rep at its Move-gizmo position, under the server's output-path rules.
-`import_step`, `import_mesh` and `validate_against`'s `reference.step` take an absolute, existing
+body as native B-rep where it is placed, under the server's output-path rules.
+`import_step`, `import_mesh` and `body_compare`'s `reference.step` take an absolute, existing
 path, like every file the server reads.
 
 `set_view {tab: "design"}` shows the Design tab, and while it is shown `camera` points the Design
 view as its own controls do: a direction through `DesignCanvas::set_view()`, `default` its Home
-view (iso, fitted), `fit_objects` its `fit_view()`, and `fit_selection` the pick's box, refused when
-nothing is picked. `look_at`, `orbit` and `zoom` act on the Design camera as on Prepare's, since the
-tab swaps it into the plater's slot (see Camera, under GUI automation). The camera is applied in a
-second UI closure after `settle()`, because the tab takes the shared camera only when its page shows
-(`DesignPanel::on_tab_shown()`). `fit_bed`, `canvas`
-and the Preview fields are refused with the Design tab, since they show Prepare or Preview. The
+view (iso, fitted), `fit_objects` its `fit_view()`, `fit_selection` the pick's box, refused when
+nothing is picked, and `sketch_normal` straight at the open sketch, refused with none open
+(`DesignCanvas::view_normal_to_sketch()` does nothing without one). `look_at`, `orbit` and `zoom` act on the
+Design camera as on Prepare's, since the tab swaps it into the plater's slot (see Camera, under GUI
+automation). The camera is applied in a second UI closure after `settle()`, because the tab takes the shared
+camera only when its page shows (`DesignPanel::on_tab_shown()`). With `tab: "design"`, `section {on, z,
+keep}` sets the section view, a horizontal cut at world `z` (left out, the model's middle) that keeps the
+lower or the upper half, and `origin_planes`, `world_axes`, `origin` and `bed` show or hide the origin helper
+planes, the world axes, the Origin row's pickable planes and the bed, each through a setter by value; the
+reply's `design` reads them back. They are refused during a rebuild, and without `tab: "design"`. `fit_bed`,
+`canvas` and the Preview fields are refused with the Design tab, since they show Prepare or Preview. The
 Design view is a canvas target for `list_widgets`, the input tools and screenshots (see GUI automation and
 Screenshots).
 
@@ -1717,13 +1933,14 @@ show. A project holding only a design loads no objects, and `Plater::load_projec
 its file all the same, since a loaded recipe counts as a loaded project.
 
 `tests/slic3rutils/test_mcp_cad.cpp` (`[Mcp][CAD]`) checks the Design commands as the catalog holds
-them (one per entry of the Design table but `align`, a silent form for every block and a block for every
-silent form, which entries have a tile and an icon, their schemas, descriptions and access, and every
-example's calls against their commands' schemas), that none is registered with the feature off, how a call is
-journaled, the plane resolver, the rollbacks, and the tools through their public seams
-(`cad_sketch_extrude()`, `cad_sketch_call()`, `cad_query_topology()`, `cad_thread()` and the rest),
-which take a `CadDocument` or a bare `DesignSketchTool` and need no Design panel. The
-replays run on an instance that `tools/mcp/orca_mcp.py launch --cad` starts:
+them (one per command entry of the Design table, none for a folded or greyed row, a silent form for every
+block and a block for every silent form, which entries have a tile and an icon, the folded rows' tiles, their
+schemas, descriptions, sections and access, and every example's calls against their commands' schemas), that
+none is registered with the feature off, which call opens a tool and which runs, how a call is journaled, the
+plane resolver, the rollbacks, and the tools through their public seams (`cad_sketch_extrude()`,
+`cad_sketch_call()`, `cad_body_describe()`, `cad_thread()` and the rest), which take a `CadDocument` or a
+bare `DesignSketchTool` and need no Design panel; `scripts/CAD/test_gen_offer_table.py` checks the
+generator's refusals. The replays run on an instance that `tools/mcp/orca_mcp.py launch --cad` starts:
 `tools/mcp/tests/cad_sketch_to_solid.json`, `cad_sketch_edit.json`, `cad_topology_targets.json`,
 `cad_features.json`, `cad_doc.json` and `cad_canvas.json` (the Design view as a canvas target, its
 key hook, and the dirty flag). `tools/mcp/test_cad_replay.py` records a session with
@@ -1733,9 +1950,14 @@ properties; `tools/mcp/test_cad_slow_build.py` checks the window during a guarde
 (a hole that misses a slow-to-rebuild coil), which leaves it out, and replays it.
 `tools/mcp/test_cad_examples.py` runs every example, `undo`'s and `redo`'s too, each on a fresh design,
 and fails an example when a call fails or its result has `ok` false, an error, or is the person's form.
-`tools/mcp/test_cad_sketching.py`, `test_cad_context_menu.py` and `test_cad_click_edit.py` drive
-the Design tab through the GUI tools as a person does (canvas gestures, typed values, the offer
-menu, file pickers answered by path rules) and read the result back with `read` Design commands.
+`tools/mcp/test_cad_commands.py` checks in the running app what the commands' arguments do where the Design
+panel's own functions answer: the words, `sketch_draw` against each shape's tool, `sketch_edit`, the
+gaps' argument forms, `feature_edit`'s `refs`, `select_geometry`, `confirm_tool` and `cancel_tool`,
+`body_place`, the Boolean card a call opens, and a folded row's tile picked from the Speed Dial and
+replayed. `tools/mcp/test_cad_sketching.py`, `test_cad_context_menu.py`
+and `test_cad_click_edit.py` drive the Design tab through the GUI tools as a person does (canvas gestures,
+typed values, the offer menu, file pickers answered by path rules) and read the result back with `read`
+Design commands.
 
 ## Speed Dial catalog
 
@@ -1758,22 +1980,36 @@ before startup builds it, the automation runtime included, which `GUI_App` start
 nothing else in the catalog: no typed tool has one, but the four that are also a Speed Dial command. The
 Design tab's are the exception: `palette_commands()` leaves group `Design` out, and
 `ActionRegistry::materialize_design_actions()`, which `materialize_live()` runs beside the plate and
-recent-project families for `snapshot()`, `describe()` and `find_live()`, holds a tile for each Design command
-with `in_palette` whose entry is offered in the tab's mode (`Mcp::design_tiles()`, by `Mcp::offered_in_mode()`)
-while `MainFrame::shown_design_panel()` is not null and the CAD feature is on, and none otherwise, so the Speed
-Dial has the sketch's tiles in an open sketch, the model's outside one, and no Design tile on another tab, nor
-once the feature is turned off: the tab stays until the restart, but `cad_gate()` would refuse every pick of
-its tiles. A tile's title is `NativeCommands::tile_title()`: for a Design command, the entry's name translated
-with the `Design` context (`title_context()`), as the right-click menu translates it, and its icon is the
-entry's. Every place that shows a person a command's title translates it so: the Action Replay window's step
-and its summary line, a person's job notices ("Started", "Finished"), the tool list of the replay and script
-editors, and a recording's caption of a call (`CaptionBoard` keeps the context beside the title). Every
-entry's name is marked for translation in that context (`gen_offer_table.py` writes it as `L_CONTEXT`), also
-an entry's with no menu row, which has no tile but is shown in these places. A pin of a Design tile stays in
-the stored favourites while its tile is not live, and only leaves the bar that is shown (`prune_favourites()`,
-`is_design_tile_id()`, which goes by the Design table, so also when the CAD feature was off at startup). Every
-other pin with no live action is dropped. A build without CAD has no Design tile, and drops such a pin as any
-other. The bar's limit of ten is on what it shows: the first ten live pins in their stored order. A pin is
+recent-project families for `snapshot()`, `describe()` and `find_live()`, holds a tile for each entry of the
+Design table with an action that is offered in the tab's mode, in the table's order (`Mcp::design_tiles()`, by
+`Mcp::offered_in_mode()`), while `MainFrame::shown_design_panel()` is not null and the CAD feature is on, and
+none otherwise, so the Speed Dial has the sketch's tiles in an open sketch, the model's outside one, and no
+Design tile on another tab, nor once the feature is turned off: the tab stays until the restart, but
+`cad_gate()` would refuse every pick of its tiles. A command with an action of its own has its tile under its
+key (`orca_command:sketch_trim:orca`); a menu row folded into a command keeps its tile under the row's id
+(`orca_command:sk_array:orca`), one of the command's `tiles` (`NativeCommand::tiles`: `{key, title, icon,
+description, args}`, which the command reference writes), with the row's title and icon. Its action
+(`CommandAction` made from the tile) shows an agent no arguments and holds the row's as its `preset`, which
+`CommandAction::run()` gives the command in place of the call's: so a pick runs the command with the row's
+arguments, as `call_tool {"tool": "sketch_pattern", "args": {"type": "linear"}}` does, through
+`NativeCommands::run()` with a person's context, with the MCP server on or off, and `find_tile()` maps a
+tile's id to its command and tile. 89 tiles in all: 52 commands' own and 37 folded rows'. A tile's title is
+`NativeCommands::tile_title()`: for a Design command, the entry's name translated with the `Design` context
+(`title_context()`), as the right-click menu translates it, and its icon is the entry's. Every place that
+shows a person a command's title translates it so: the Action Replay window's step and its summary line, a
+person's job notices ("Started", "Finished"), the tool list of the replay and script editors, and a
+recording's caption of a call (`CaptionBoard` keeps the context beside the title). A call of a command with a
+folded row's arguments is titled as that row's tile wherever a person is shown it (`call_title()`,
+`tile_with_args()`): a recording's caption (`McpRecorder::call_started()`) and an Action Replay step, whose
+description names the tile
+(`describe_step()`'s `what` has `tile`, which `replay_what_text()` titles). Every entry's name is marked for
+translation in that context (`gen_offer_table.py` writes it as `L_CONTEXT`), also an entry's with no menu row,
+which has no tile but is shown in these places. A pin of a Design tile stays in the stored favourites while its
+tile is not live, and only leaves the bar that is shown (`prune_favourites()`, `is_design_tile_id()`, which goes
+by the Design table's entries with an action, a folded row's among them, so also when the CAD feature was off
+at startup). Every other pin with no live action is dropped, a pin stored under an id the table does not have
+among them, and the pins around it are kept. A build without CAD has no Design tile, and drops such a pin as
+any other. The bar's limit of ten is on what it shows: the first ten live pins in their stored order. A pin is
 refused only while the bar shows ten (`add_favourite()`), so a hidden pin never fills it, and a live pin past
 the tenth stays stored and comes onto the bar once a pin before it is unpinned. After each pin, unpin and reorder
 the open Speed Dial's page is sent the bar as the registry then shows it (`SpeedDialWebDialog::send_favourites()`,
@@ -1833,7 +2069,7 @@ dialog and replies `blocked_by_dialog`. A command with one form, which needs its
 schema: Go to layer (`percent`) and Go to tab (`tab`), whose value the palette collects in its second phase
 (`input`) and passes as `{"percent": 50}` or `{"tab": "preview"}`; called without it, they are refused.
 A two-form command whose silent form also needs no argument takes `silent: true` (`Mcp::with_silent()`):
-the schema gains `silent`, which only `true` fits, and moves the silent form's `required` list under
+it adds `silent` to the schema, which only `true` fits, and moves the silent form's `required` list under
 `"if": {"minProperties": 1}, "then": {"required": [...]}`, which the validator reads as "required once any
 argument is given"; it reads no other use of `if`. `with_person_form()` makes such a command of a typed
 tool and the tile's person's form, which runs as a `ui_command()` function does: `new_project`,
@@ -1873,13 +2109,15 @@ Speed Dial's own picks run from the snapshot it was opened with. An unknown id r
 close ids, scored by edit distance against both the full id and its key, a key that contains the request
 (`delete_all` in `obj_delete_all`) counting as closest, and says where to find an action or a command (see
 Tool catalog); the id or key of a Design tile that is not live says instead that the tile is there only while
-the Design tab is shown in its mode with the CAD feature on, and that `call_tool` runs its command from any
-tab, or, in a run started with the feature off, that it was off then and how a person turns it on, as
-`call_tool` does (`unknown_action()`). A command's tile runs the command's own function:
-`args` are checked against its schema, and it runs through a `Mcp::TileContext`, which is `run_action`'s
-own context except that a command rewriting its journal entry does so inside `run_action`'s, as
-`{"id": ..., "args": ...}`, so a recorded session replays through `run_action`; the reply's `ran` is the
-resolved id. Any other action (a plugin's script or page, a plate's, a setting's, a recent project's) takes
+the Design tab is shown in its mode with the CAD feature on, and names the call that runs its command from any
+tab, with a folded row's arguments (`call_tool {"tool": "sketch_pattern", "args": {"type": "linear"}}`), or, in
+a run started with the feature off, that it was off then and how a person turns it on, as `call_tool` does
+(`unknown_action()`). A command's tile runs the command's own function: `args` are checked against its schema,
+and it runs through a `Mcp::TileContext`, which is `run_action`'s own context except that a command rewriting
+its journal entry does so inside `run_action`'s, as `{"id": ..., "args": ...}`, so a recorded session replays
+through `run_action`; the reply's `ran` is the resolved id. A folded row's tile takes no `args`, or exactly the
+row's (`action_args_error()`), and runs its command with the row's, which its journal entry records, so its
+replay runs the same tool. Any other action (a plugin's script or page, a plate's, a setting's, a recent project's) takes
 no arguments, so `args` other than `{}` are refused, saying so (`action_args_error()`); it runs through
 `ActionRegistry::run(id, args, record_stats=false)`, so agent runs never reorder the palette, and replies as a
 command does.
@@ -2132,7 +2370,7 @@ tools and screenshots reach: `list_widgets` lists its ImGui items, `click` and `
 and `mouse_gesture` takes `canvas: "design"` (`"current"` is the view shown, `shown_canvas()`). A click
 there goes to the Design view's own handlers, so a left click picks a face, edge or body and a right
 click opens the offer menu, which is listed or run like any other. Points of the model name
-Prepare's objects, so on the Design view `mouse_gesture` takes pixels only; the `query_topology` command
+Prepare's objects, so on the Design view `mouse_gesture` takes pixels only; the `body_describe` command
 gives its faces.
 
 ### Windows
@@ -2518,7 +2756,7 @@ plater's camera, and the Design tab swaps its own into that slot while it is sho
 (`DesignCanvas::enter_viewport()`), so `Plater::get_camera()` is always the shown view's and one code
 path serves all of them. `look_at` is the point the camera looks at, in mm in the view's world
 coordinates, as `list_objects` gives positions. On the Design tab these are the Design view's, the
-frame the Design commands' world points use, where `describe_scene`'s `modeling_origin` is the sketch
+frame the Design commands' world points use, where `describe_design`'s `modeling_origin` is the sketch
 planes' origin. `Camera::set_target()` moves the camera parallel, keeping its direction and
 distance. `zoom` is viewport pixels per mm at the target's depth, which are screenshot pixels: exact
 everywhere in an orthographic view, and only at the target's depth in a perspective one
@@ -3465,7 +3703,7 @@ agents read in English, is shown as a detail under a translated lead. Tool title
 
 The session journal records client calls to journaled tools in order: every mutate tool, plus
 `wait` and `screenshot`, which a replay needs. It keeps at most 5000 calls and 64 MiB of their
-arguments (serialized), so a long CAD run's large `sketch_add` calls can't grow it without bound:
+arguments (serialized), so a long CAD run's large `sketch_draw` calls can't grow it without bound:
 after each change it drops the oldest calls whose outcome is known until it is within both. A call
 still waiting for its reply or its job keeps its place, so calls still waiting may hold it over for a
 while; once they finish they are dropped like any other call, oldest first, and only while the

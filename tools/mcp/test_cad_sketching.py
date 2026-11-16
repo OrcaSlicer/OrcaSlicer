@@ -25,7 +25,7 @@ selects it and deletes nothing, as does a double-click, then deletes it with Del
 feature_undo undo inside a sketch and across its commit, from the keyboard. roundtrip saves the project and opens it again through
 the File menu, its file pickers answered by auto_answer_dialogs rules with the path (skipped on
 Linux, where a GTK picker can't take one). scale draws on top of a sketch holding 1204 entities,
-which it loads with one sketch_add command while a tool is armed; the call says why.
+which it loads with one sketch_draw command while a tool is armed; the call says why.
 calibration_cache checks the harness itself: a sketch's plane-to-pixel map is reused in the view it
 was fitted on, fitted again on a resized canvas, and still lands clicks where they are meant.
 selfcheck-recovery runs only when named: it raises with the mouse button held, the offer menu
@@ -895,7 +895,7 @@ def rung_badge():
     gui.enter_sketch("r")
     draw_rect_undimensioned()
     side = gui.sketch()["entities"][0]
-    cons = gui.cad("sketch_constraints")["items"]
+    cons = gui.cad("sketch_list_constraints")["items"]
     on_side = [c for c in cons if c["refs"] and c["refs"][0].get("entity") == side["index"]]
     horizontal = next((c for c in on_side if c["type"] == "horizontal"), None)
     if horizontal is None:
@@ -914,7 +914,7 @@ def rung_badge():
               d["selected_constraint"] == horizontal["index"] and not d["selection"],
               f"selected constraint {d['selected_constraint']}, picked entities {d['selection']}")
     key("Delete")
-    left = gui.cad("sketch_constraints")["items"]
+    left = gui.cad("sketch_list_constraints")["items"]
     gui.check("badge: Delete removed one constraint", len(left) == len(cons) - 1,
               f"{len(cons)} constraints before Delete, {len(left)} after")
     gui.check("badge: the one removed is the side's Horizontal",
@@ -1402,7 +1402,7 @@ def rung_type_guards():
 # ---------------------------------------------------------------- history, files and size
 
 def features():
-    return gui.cad("describe_scene")["features"]
+    return gui.cad("describe_design")["features"]
 
 
 def rung_undo():
@@ -1561,13 +1561,13 @@ def rung_scale():
             for k in range(4):
                 ents.append({"type": "line", "p0": list(c[k]), "p1": list(c[k + 1])})
     # The one call in this test that changes the sketch outside the UI, and part of what the rung
-    # tests. It is the regression test for j7gc: a bulk sketch_add made while a creation tool is
+    # tests. It is the regression test for j7gc: a bulk sketch_draw made while a creation tool is
     # armed, here the rectangle, was read as a drawn gesture, opened that tool's value field and
     # swallowed the next key and click until an Escape dismissed it. So no Escape follows: the
     # gesture below has to land on the first try. Where the plate comes from is not under test,
     # only that drawing still works with it on screen.
     t0 = time.monotonic()
-    gui.cad("sketch_add", entities=ents)
+    gui.cad("sketch_draw", entities=ents)
     t_add = time.monotonic() - t0
     d0 = gui.sketch()
     gui.check("scale: every entity loaded", len(d0["entities"]) == len(ents),

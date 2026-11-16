@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 // The command type and the catalog that holds every command. No wx here: this header is part of the library
@@ -52,8 +53,12 @@ struct NativeCommand
     nlohmann::json input_schema = {{"type", "object"}, {"properties", nlohmann::json::object()}};
     // Calls that document the command: [{title, calls: [{tool, args}], needs?}], or null.
     nlohmann::json examples;
+    // The tiles of the menu rows folded into a Design command, [{key, title, icon, description, args}], or null:
+    // each, under the id of its key, runs the command with `args` (NativeCommands::make_action()). Its title is an
+    // untranslated msgid in title_context(), as the command's is.
+    nlohmann::json tiles;
     bool listed     = false; // shown in tools/list: a typed tool
-    bool in_palette = false; // a person can pick it: it has a tile
+    bool in_palette = false; // a person can pick it: it has a tile of its own, under its key
     // The access labels sent as MCP's annotations. Clients act on them: Codex asks a person before every call
     // of a destructive command, and Claude Code runs read-only calls in parallel and retries idempotent ones.
     // read_only: it changes nothing in the app or the project; screenshot is, since its PNG replaces no file
@@ -95,8 +100,16 @@ inline const char* title_context(const NativeCommand& command)
     return command.group == kDesignGroup ? "Design" : nullptr;
 }
 
-// What the reference says of a command: key, title, group, description, input_schema, examples when it has
-// some, listed, in_palette, the four access labels, guard ("inspect", "recover", "mutate"), completion
+// The first of `command`'s tiles whose args are `args`, compared as JSON values, a null `args` as {}; nullptr when
+// none is.
+const nlohmann::json* tile_with_args(const NativeCommand& command, const nlohmann::json& args);
+
+// What a call of `command` with `args` is titled where a person is shown it (a recording's caption): the title of
+// tile_with_args(), else the command's. Untranslated, in title_context(command).
+std::string call_title(const NativeCommand& command, const nlohmann::json& args);
+
+// What the reference says of a command: key, title, group, description, input_schema, examples and tiles when it
+// has some, listed, in_palette, the four access labels, guard ("inspect", "recover", "mutate"), completion
 // ("none", "export") and operations. All of it is the command's English text and constants, never translated.
 nlohmann::json command_reference(const NativeCommand& command);
 
@@ -152,6 +165,11 @@ private:
     std::vector<std::unique_ptr<CommandSource>>  m_sources;
     bool                                         m_sealed = false;
 };
+
+// The command of `catalog` that has a tile under `key`, with that tile: the command `key` with nullptr when its
+// own tile is (in_palette), else the command with the item of its `tiles` whose key is `key`; nullptrs when no
+// command added with add() has one.
+std::pair<const NativeCommand*, const nlohmann::json*> find_tile(const CommandCatalog& catalog, const std::string& key);
 
 // The reference of `catalog`: {"commands": [command_reference(), ...]} of the commands added with add(), in
 // the order they were added. Its sources' commands are left out: they are a plugin's, not the build's.

@@ -84,9 +84,6 @@ std::string validate_value(const json& schema, const json& value, const std::str
                         return (path.empty() ? std::string() : path + ".") + key.get<std::string>() + " is required";
             return {};
         };
-        if (auto it = schema.find("required"); it != schema.end())
-            if (std::string err = missing(*it); !err.empty())
-                return err;
         const bool closed = schema.value("additionalProperties", true) == false;
         for (auto it = value.begin(); it != value.end(); ++it) {
             const std::string child = path.empty() ? it.key() : path + "." + it.key();
@@ -100,8 +97,13 @@ std::string validate_value(const json& schema, const json& value, const std::str
                 return "unknown argument " + child + " (accepted: " + json(names).dump() + ")";
             }
         }
+        // What is required, after the properties, so that a wrong value or an argument the tool does not take (an
+        // old name for a required one) is named before what is missing.
+        if (auto it = schema.find("required"); it != schema.end())
+            if (std::string err = missing(*it); !err.empty())
+                return err;
         // with_silent()'s shape, and no other use of if: what the silent form requires, once the call gives any
-        // argument. After the properties, so that a wrong value is named before what is missing.
+        // argument.
         const auto cond = schema.find("if"), then = schema.find("then");
         if (cond != schema.end() && then != schema.end() && *cond == json{{"minProperties", 1}} && then->is_object() && !value.empty())
             if (auto it = then->find("required"); it != then->end())
@@ -123,6 +125,9 @@ const std::vector<std::pair<std::string, std::vector<std::string>>>& argument_al
         // The Design commands' feature index and a feature's card fields, which their functions also read
         // under these names.
         {"index", {"feature"}},       {"params", {"fields"}},   {"values", {"fields"}},
+        // The Design commands' two variant arguments, what the result does to the bodies (operation) and which kind
+        // of thing a command makes (type): a command that has one of them reads the other as it.
+        {"type", {"operation"}},      {"operation", {"type"}},
     };
     return aliases;
 }

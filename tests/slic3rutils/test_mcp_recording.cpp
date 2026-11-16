@@ -3,6 +3,7 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/Mcp/McpJournal.hpp"
 #include "slic3r/GUI/Mcp/McpPaths.hpp"
@@ -1005,6 +1006,31 @@ TEST_CASE("a caption keeps the context its title is translated in", "[Mcp][Recor
     REQUIRE(board.current(t0).has_value());
     CHECK(board.current(t0)->title == "Shell");
     CHECK(board.current(t0)->context == "Design");
+}
+
+TEST_CASE("a call with a tile's arguments is captioned with the tile's title", "[Mcp][Recording]")
+{
+    // A Design command whose Linear array row is folded into it: the call that row's tile makes is titled as the
+    // tile, untranslated and in the command's context, as McpRecorder::call_started() hands it to the board.
+    NativeCommand pattern;
+    pattern.key   = "sketch_pattern";
+    pattern.title = "Pattern sketch entities";
+    pattern.group = kDesignGroup;
+    pattern.tiles = json::array({{{"key", "sk_array"},
+                                  {"title", "Linear array"},
+                                  {"icon", "design_array"},
+                                  {"description", ""},
+                                  {"args", {{"type", "linear"}}}}});
+    CaptionBoard board;
+    const auto   t0 = CaptionBoard::Clock::now();
+    board.call_started(1, call_title(pattern, {{"type", "linear"}}), "", t0, title_context(pattern));
+    REQUIRE(board.current(t0).has_value());
+    CHECK(board.current(t0)->title == "Linear array");
+    CHECK(board.current(t0)->context == "Design");
+    // A call with any other arguments is the command's.
+    board.call_started(2, call_title(pattern, {{"type", "linear"}, {"count", 3}}), "", t0, title_context(pattern));
+    REQUIRE(board.current(t0).has_value());
+    CHECK(board.current(t0)->title == "Pattern sketch entities");
 }
 
 TEST_CASE("the caption is the newest call that runs or lingers", "[Mcp][Recording]")

@@ -551,28 +551,45 @@ AppActionRunResult import_preset_file(const boost::filesystem::path& path, bool 
     return {AppActionRunResult::Level::Succeeded, message};
 }
 
-// Thin AppAction wrapper for one catalog entry: identity and presentation come from the catalog,
-// run() routes back to it. The id is keyed by the stable catalog key (not the display title), so a
+// Thin AppAction wrapper for one catalog entry, or one of its tiles: identity and presentation come from the
+// catalog, run() routes back to it. The id is keyed by the stable catalog key (not the display title), so a
 // rename or a UI-language switch never re-keys the action.
 struct CommandAction : AppAction
 {
-    AppActionRunResult run(const json& args) const override { return NativeCommands::run(command, args); }
+    // A tile with a preset runs its command with it: run_action takes no arguments for it, or exactly those.
+    AppActionRunResult run(const json& args) const override { return NativeCommands::run(command, preset.is_null() ? args : preset); }
 
-    // `title` is the command's title in the UI's language.
-    CommandAction(const NativeCommand& c, std::string title)
-        : AppAction(AppActionId{AppAction::compose_id(kCommandPrefix, c.key, kOrcaSourceKey)}, std::move(title), kOrcaSourceKey,
+    // The command's own tile. `title` is the command's title in the UI's language.
+    CommandAction(const NativeCommand& c, std::string title) : CommandAction(c, c.key, std::move(title), c.title)
+    {
+        this->input                   = c.input;
+        this->icon                    = c.icon;
+        this->automation_description  = c.description;
+        this->input_schema            = c.input_schema;
+        this->completes_in_background = c.completion == CommandCompletion::Deferred;
+    }
+
+    // The tile `tile` of `c`, which runs `c` with its args. `title` is the tile's title in the UI's language.
+    CommandAction(const NativeCommand& c, const json& tile, std::string title)
+        : CommandAction(c, tile.at("key").get<std::string>(), std::move(title), tile.at("title").get<std::string>())
+    {
+        this->icon                   = tile.at("icon").get<std::string>();
+        this->automation_description = tile.at("description").get<std::string>();
+        this->input_schema           = Mcp::object_schema({});
+        this->preset                 = tile.at("args");
+    }
+
+private:
+    // Under id `key`, with the English `title_en`.
+    CommandAction(const NativeCommand& c, const std::string& key, std::string title, std::string title_en)
+        : AppAction(AppActionId{AppAction::compose_id(kCommandPrefix, key, kOrcaSourceKey)}, std::move(title), kOrcaSourceKey,
                     kOrcaSourceName)
     {
         this->kind     = AppActionKind::Command;
         this->group    = I18N::translate_utf8(c.group);
-        this->title_en = c.title;
+        this->title_en = std::move(title_en);
         this->group_en = c.group;
-        this->input    = c.input;
-        this->icon     = c.icon;
-        this->automation_description  = c.description;
-        this->input_schema            = c.input_schema;
-        this->command                 = c.key;
-        this->completes_in_background = c.completion == CommandCompletion::Deferred;
+        this->command  = c.key;
     }
 };
 
@@ -917,9 +934,9 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
                 {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
                 {"tool": "undo", "args": {"history": "design"}}]},
             {"title": "Take back the last shape drawn in a sketch", "calls": [
-                {"tool": "sketch_begin", "args": {"plane": "XY"}},
-                {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
-                {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [0, 0], "radius": 4}]}},
+                {"tool": "sketch_create", "args": {"plane": "XY"}},
+                {"tool": "sketch_draw", "args": {"type": "rectangle_2_point", "p0": [-15, -10], "p1": [15, 10]}},
+                {"tool": "sketch_draw", "args": {"entities": [{"type": "circle_center", "center": [0, 0], "radius": 4}]}},
                 {"tool": "undo", "args": {"history": "design"}}]}])json");
 #endif
     NativeCommand& redo = add_with_icon("redo", L("Redo"), L("Commands"), "menu_redo", [](const json& args) { return undo_redo(args, true); });
@@ -933,9 +950,9 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
                 {"tool": "undo", "args": {"history": "design"}},
                 {"tool": "redo", "args": {"history": "design"}}]},
             {"title": "Put back the shape undo took off a sketch", "calls": [
-                {"tool": "sketch_begin", "args": {"plane": "XY"}},
-                {"tool": "sketch_add", "args": {"rect": [-15, -10, 15, 10]}},
-                {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [0, 0], "radius": 4}]}},
+                {"tool": "sketch_create", "args": {"plane": "XY"}},
+                {"tool": "sketch_draw", "args": {"type": "rectangle_2_point", "p0": [-15, -10], "p1": [15, 10]}},
+                {"tool": "sketch_draw", "args": {"entities": [{"type": "circle_center", "center": [0, 0], "radius": 4}]}},
                 {"tool": "undo", "args": {"history": "design"}},
                 {"tool": "redo", "args": {"history": "design"}}]}])json");
 #endif
@@ -1839,15 +1856,27 @@ std::vector<const NativeCommand*> NativeCommands::palette_commands(const Command
     return out;
 }
 
-wxString NativeCommands::tile_title(const NativeCommand& command)
+namespace {
+
+// `title`, a title of `command` or of one of its tiles, in the UI's language.
+wxString translated_title(const NativeCommand& command, const std::string& title)
 {
     const char* context = title_context(command);
-    return context != nullptr ? I18N::translate(command.title, context) : I18N::translate(command.title);
+    return context != nullptr ? I18N::translate(title, context) : I18N::translate(title);
 }
+
+} // namespace
+
+wxString NativeCommands::tile_title(const NativeCommand& command) { return translated_title(command, command.title); }
 
 std::unique_ptr<AppAction> NativeCommands::make_action(const NativeCommand& command)
 {
     return std::make_unique<CommandAction>(command, into_u8(tile_title(command)));
+}
+
+std::unique_ptr<AppAction> NativeCommands::make_action(const NativeCommand& command, const json& tile)
+{
+    return std::make_unique<CommandAction>(command, tile, into_u8(translated_title(command, tile.at("title").get<std::string>())));
 }
 
 const NativeCommand* NativeCommands::find(const std::string& key) { return instance().find(key); }

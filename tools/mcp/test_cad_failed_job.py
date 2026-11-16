@@ -42,9 +42,9 @@ def coil(client, turns):
     """A new design holding one coil: a 1.2 mm wire swept along a helix of radius 10 and pitch 3."""
     cad(client, "new_design", discard_changes=True)
     cad(client, "helix", radius=10, pitch=3, height=3 * turns)
-    cad(client, "sketch_begin", plane="XZ")
-    cad(client, "sketch_add", type="circle", center=[10, 0], radius=1.2)
-    cad(client, "sketch_commit")
+    cad(client, "sketch_create", plane="XZ")
+    cad(client, "sketch_draw", type="circle_center", center=[10, 0], radius=1.2)
+    cad(client, "sketch_finish")
     start = time.time()
     client.await_job(cad(client, "sweep", sketch=1, path=0))
     return time.time() - start
@@ -121,8 +121,8 @@ def main():
     check("the hole then fails as an error", failure and "removed no material" in failure,
           f"{failure} after {time.time() - start:.1f} s")
     cad(client, "feature_rename", feature=2, name="Coil")
-    live_scene = cad(client, "describe_scene")["result"]
-    live_mass = cad(client, "mass_props", body=0)["result"]
+    live_scene = cad(client, "describe_design")["result"]
+    live_mass = cad(client, "body_mass_properties", body=0)["result"]
 
     after = client.call("export_replay", path=path, overwrite=True)
     # A Design command's call is journaled as its own.
@@ -145,8 +145,8 @@ def main():
     replay = client.await_job(client.call("run_replay", path=run_path, out_dir=out_dir), timeout=1800)
     check("the exported session replays", replay.get("passed") is True,
           json.dumps([s for s in replay.get("steps", []) if not s.get("ok")][:1]))
-    scene = cad(client, "describe_scene")["result"]
-    mass = cad(client, "mass_props", body=0)["result"]
+    scene = cad(client, "describe_design")["result"]
+    mass = cad(client, "body_mass_properties", body=0)["result"]
     # Feature names count on across projects; the renamed one keeps its name.
     kinds = lambda s: [f["type"] for f in s["features"]]  # noqa: E731
     check("the same features, the coil renamed", kinds(scene) == kinds(live_scene) and scene["features"][2]["name"] == "Coil",

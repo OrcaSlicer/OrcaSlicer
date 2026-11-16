@@ -901,8 +901,9 @@ void McpRecorder::call_started(uint64_t call, const NativeCommand& def, const js
     std::lock_guard<std::mutex> lock(m_mutex);
     if (!m_rec || m_rec->ending || !m_rec->options.captions)
         return;
+    // A call with a folded row's arguments is captioned as that row's tile.
     const char* context = title_context(def);
-    m_rec->board.call_started(call, def.title, safe_caption_detail(def.key, args), Clock::now(),
+    m_rec->board.call_started(call, call_title(def, args), safe_caption_detail(def.key, args), Clock::now(),
                               context != nullptr ? context : "");
     m_captioned[call] = {def.key, {args}};
 }

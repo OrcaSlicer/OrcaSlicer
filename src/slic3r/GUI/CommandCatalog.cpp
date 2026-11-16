@@ -124,6 +124,36 @@ const char* completion_name(CommandCompletion completion)
 
 } // namespace
 
+const nlohmann::json* tile_with_args(const NativeCommand& command, const nlohmann::json& args)
+{
+    if (!command.tiles.is_array())
+        return nullptr;
+    // A call with no arguments gives none, null as {}, as Mcp::opened_row() reads it.
+    const nlohmann::json given = Mcp::person_form(args) ? nlohmann::json::object() : args;
+    for (const nlohmann::json& tile : command.tiles)
+        if (tile.at("args") == given)
+            return &tile;
+    return nullptr;
+}
+
+std::string call_title(const NativeCommand& command, const nlohmann::json& args)
+{
+    const nlohmann::json* tile = tile_with_args(command, args);
+    return tile != nullptr ? tile->at("title").get<std::string>() : command.title;
+}
+
+std::pair<const NativeCommand*, const nlohmann::json*> find_tile(const CommandCatalog& catalog, const std::string& key)
+{
+    if (const NativeCommand* command = catalog.find(key); command != nullptr && command->in_palette)
+        return {command, nullptr};
+    for (const NativeCommand& command : catalog.commands())
+        if (command.tiles.is_array())
+            for (const nlohmann::json& tile : command.tiles)
+                if (tile.at("key") == key)
+                    return {&command, &tile};
+    return {nullptr, nullptr};
+}
+
 nlohmann::json command_reference(const NativeCommand& command)
 {
     nlohmann::json entry{{"key", command.key},
@@ -142,6 +172,8 @@ nlohmann::json command_reference(const NativeCommand& command)
                          {"operations", command.operations}};
     if (!command.examples.is_null())
         entry["examples"] = command.examples;
+    if (!command.tiles.is_null())
+        entry["tiles"] = command.tiles;
     return entry;
 }
 

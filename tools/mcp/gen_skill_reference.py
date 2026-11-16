@@ -7,9 +7,11 @@
 Reads tests/data/command_catalog.json, the reference of the command catalog that the unit test
 "the checked-in command reference matches the catalog" keeps current, and writes
 skills/orcaslicer-mcp-skills/references/actions.md in the checkout of the orcaslicer-mcp-skills
-repository: every command a person can pick (in_palette), section by section in the order the
-catalog adds them, with its key, title, arguments and description. The file is generated: edit the
-commands in OrcaSlicer and regenerate it. A header that names a command the reference does not have is an
+repository: every command a person can pick, section by section in the order the catalog adds them.
+A command with a tile of its own (in_palette) has a row with its key, title, arguments and
+description; each Design menu row folded into a command (its tiles) has a row after it, with the
+command's key, the tile's title, the arguments that open it and its description. The file is
+generated: edit the commands in OrcaSlicer and regenerate it. A header that names a command the reference does not have is an
 error, so that a renamed or removed command cannot leave it stale. Standard library only.
 """
 
@@ -54,6 +56,11 @@ is on, and `cad_note`, while its commands cannot run, how to turn it on (a test 
 the Design tab is shown in the tile's mode (in a sketch or outside one); `call_tool` runs its command from any
 tab. Called with no arguments, a tile's command does what its right-click menu row does, which may be to act
 at once (a Delete row deletes what is selected) or to decline.
+
+A row whose arguments are written as a call's own (`{"type": "linear"}`, or `{}`) is one tool of its command:
+`call_tool` given exactly those arguments opens that tool, as a person's pick of its tile does, and any other call
+runs the command from its arguments. The tile has an id of its own, which `search_actions` gives, and `run_action`
+runs it with no arguments or with exactly those.
 """
 
 # The words HEADER writes in backticks that name no command: an argument, a reply's status and a field.
@@ -118,17 +125,25 @@ def header(palette):
     return HEADER + "\n" + "\n".join(textwrap.wrap(" ".join(facts), width=110)) + "\n"
 
 
+def row(key, title, args, does):
+    """One row of a section's table."""
+    return "| `%s` | %s | %s | %s |\n" % (key, cell(title), cell(args), cell(does))
+
+
 def render(reference):
-    palette = [command for command in reference["commands"] if command["in_palette"]]
+    # A command is in the palette with a tile of its own, or through the tiles of the menu rows folded into it.
+    palette = [command for command in reference["commands"] if command["in_palette"] or command.get("tiles")]
     sections = {}
     for command in palette:
         sections.setdefault(command["group"], []).append(command)
-    out = [header(palette)]
+    out = [header([command for command in palette if command["in_palette"]])]
     for group, commands in sections.items():
         out.append("\n## %s\n\n| key | title | arguments | does |\n|---|---|---|---|\n" % group)
         for c in commands:
-            out.append("| `%s` | %s | %s | %s |\n" % (c["key"], cell(c["title"]), cell(arguments(c["input_schema"])),
-                                                   cell(c["description"])))
+            if c["in_palette"]:
+                out.append(row(c["key"], c["title"], arguments(c["input_schema"]), c["description"]))
+            for tile in c.get("tiles", []):
+                out.append(row(c["key"], tile["title"], "`%s`" % json.dumps(tile["args"]), tile["description"]))
     return "".join(out)
 
 

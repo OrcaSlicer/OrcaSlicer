@@ -13,6 +13,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <utility>
 
 #include <wx/event.h>
 #include <wx/filename.h>
@@ -24,11 +25,18 @@ class wxWindow;
 
 namespace Slic3r { namespace GUI {
 
+class CommandCatalog;
+
 namespace Mcp {
 class PersonRun;
 struct Replay;
 struct ReplayContext;
 } // namespace Mcp
+
+// A replay step's main line in the Action Replay window and, for a command given arguments, its second line, from
+// describe_step()'s `what`, in the UI's language. A command, found in `catalog`, is titled as its own tile is, and a
+// call that is one of its tiles (`what`'s `tile`) as that tile.
+std::pair<std::string, std::string> replay_what_text(const nlohmann::json& what, const CommandCatalog& catalog);
 
 // The Action Replay window: a person opens or writes a replay file (an orca_replay, the JSON list of tool calls an
 // agent session exports), saves it, reads its steps and replays it, whole or one step at a time, watching each step's

@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <map>
+#include <optional>
 #include <cereal/types/map.hpp>
 #include <string>
 #include <vector>
@@ -236,6 +237,12 @@ struct CadFeature {
     struct BodyId { int src{-1}; int ord{0}; };
     std::vector<BodyId> body_ref_ids;
     bool                body_refs_pending{false};
+
+    // Transient, never serialized: the feature's identity, which its index is not, since a delete, a reorder or an undo
+    // moves it. Every copy keeps it (undo and redo, a reorder, a suppress, replace_feature(), a copy of the document),
+    // and no other feature in the process is given the same one. 0 until recompute() gives it one: a feature read from
+    // a project, or added since the last rebuild, has none. The Design tab keys where a body stands by its maker's.
+    uint64_t uid{0};
 
     // Datum/reference plane: a derived SketchPlane the document offers as a selectable
     // sketch plane (no solid). plane_base selects the reference (0=XY,1=XZ,2=YZ, or 3+N
@@ -589,6 +596,20 @@ public:
     std::vector<int>        display_tri_face;  // per-triangle face id WITHIN its source body
     std::vector<int>        display_tri_body;  // per-triangle source body index (into bodies)
     std::string             error;             // last recompute error ("" = ok)
+    // The bodies each feature started from in the last recompute(), indexed like `features`: their makers' names and
+    // identities, which body_index() finds them by in `bodies`. Null for a feature that rebuild did not reach. A
+    // rebuild result like `bodies`: refilled by recompute(), never saved.
+    struct BodyBefore { std::string name; CadFeature::BodyId id; };
+    std::vector<std::optional<std::vector<BodyBefore>>> bodies_before;
+    // A body's identity, the feature that made it and which of that feature's bodies it is, and the index in `bodies`
+    // of the body that has one (-1 for none): what carries a body's colour, its name and the references to it across
+    // a rebuild that renumbers the bodies.
+    CadFeature::BodyId body_id(int body) const;
+    int                body_index(const CadFeature::BodyId& id) const;
+    // The history before feature `f`, not rebuilt: features [0, f) with the variables, the settings the rebuild reads
+    // and the bodies, whose names and colours recompute() carries across. No undo history and no display meshes,
+    // which a copy of the whole document would spend its time on.
+    CadDocument history_before(int f) const;
 
     // Mate diagnostics, refilled by every recompute(). Non-fatal by design: the
     // document still evaluates — this only names what the user should look at.
@@ -633,11 +654,19 @@ public:
     // entities are (re)derived on every recompute.
     int  add_project_edges(int source_body, const std::vector<int>& edge_ids, int face,
                            const SketchPlane& plane, const std::string& name);
-    // Onshape's "Use" / SolidWorks' "Convert Entities": project a body's edges onto the plane of
-    // an EXISTING sketch feature and append them to that sketch as CONSTRUCTION entities, so new
-    // geometry can be constrained to them. Returns the number of entities appended, or -1 if the
-    // sketch or body reference is invalid. Unlike add_project_edges this creates no feature: the
-    // references become part of the sketch that borrows them.
+    // The edges of bodies[source_body] that a Project feature takes (`edge_ids`, else the edges of
+    // face `face`, else all of them), projected onto `plane` as CONSTRUCTION entities: references a
+    // sketch borrows to constrain new geometry to. Face and edge ids are those of the model as it
+    // stands. Changes nothing. Empty, with `error` saying why, for a body that does not exist or has
+    // no shape, an id that names no face or edge, and edges that all project to a point.
+    std::vector<SketchEntity> project_edges_on(const SketchPlane& plane, int source_body,
+                                               const std::vector<int>& edge_ids, int face,
+                                               std::string& error) const;
+    // Onshape's "Use" / SolidWorks' "Convert Entities": the entities project_edges_on() gives on the
+    // plane of an EXISTING sketch feature, appended to that sketch. Returns the number of entities
+    // appended, or -1 if the sketch reference is invalid or project_edges_on() gives none. Unlike
+    // add_project_edges this creates no feature: the references become part of the sketch that
+    // borrows them.
     int  project_edges_into_sketch(int sketch_feature, int source_body,
                                    const std::vector<int>& edge_ids, int face);
     // Append a bridging BSpline entity connecting endpoint `end_a` of entity `ent_a` to

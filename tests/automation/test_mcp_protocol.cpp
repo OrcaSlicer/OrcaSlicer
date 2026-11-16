@@ -134,10 +134,15 @@ TEST_CASE("tool failures and invalid arguments are isError results", "[Mcp]")
     CHECK(failed["isError"] == true);
     CHECK(failed["content"][0]["text"].get<std::string>().find("it broke") != std::string::npos);
 
+    // A misspelt argument is named, with the names the tool takes, before the one it then misses.
     const json bad = body(f.post({{"jsonrpc", "2.0"}, {"id", 5}, {"method", "tools/call"}, {"params", {{"name", "echo"}, {"arguments", {{"txt", "hi"}}}}}}))["result"];
     CHECK(bad["isError"] == true);
     const std::string text = bad["content"][0]["text"];
-    CHECK(text.find("text is required") != std::string::npos);
+    CHECK(text.find("unknown argument txt") != std::string::npos);
+    CHECK(text.find("\"text\"") != std::string::npos);
+    const json missing = body(f.post({{"jsonrpc", "2.0"}, {"id", 5}, {"method", "tools/call"}, {"params", {{"name", "echo"}, {"arguments", json::object()}}}}))["result"];
+    CHECK(missing["isError"] == true);
+    CHECK(missing["content"][0]["text"].get<std::string>().find("text is required") != std::string::npos);
 }
 
 TEST_CASE("an unknown tool is a JSON-RPC error with suggestions", "[Mcp]")
@@ -301,6 +306,15 @@ TEST_CASE("argument validation covers types, enums, ranges and arrays", "[Mcp]")
     CHECK(validate_arguments(schema, {{"paths", {1}}}).find("paths[0]") != std::string::npos);
     CHECK(validate_arguments(schema, {{"extra", 1}}).find("unknown argument extra") != std::string::npos);
 
+    // An argument the tool does not take is named before one the call leaves out: a call that gives an old name for
+    // a required argument is told that name is not taken.
+    const json required = {{"type", "object"},
+                           {"properties", {{"suppressed", {{"type", "boolean"}}}}},
+                           {"required", {"suppressed"}},
+                           {"additionalProperties", false}};
+    CHECK(validate_arguments(required, {{"enabled", false}}).find("unknown argument enabled") != std::string::npos);
+    CHECK(validate_arguments(required, json::object()).find("suppressed is required") != std::string::npos);
+
     // A plugin operation's draft-04 schema gives exclusiveMinimum as a boolean that qualifies minimum.
     const json draft4 = {{"type", "object"}, {"properties", {{"zoom", {{"type", "number"}, {"minimum", 0}, {"exclusiveMinimum", true}}}}}};
     std::string draft4_error;
@@ -354,6 +368,26 @@ TEST_CASE("argument normalization reads a capture's output path as its save_path
     CHECK(normalized(capture, {{"path", "/a.png"}}) == json{{"save_path", "/a.png"}});
     const json encode = {{"path", {{"type", "string"}}}, {"save_path", {{"type", "string"}}}};
     CHECK(normalized(encode, {{"path", "/a.mkv"}}) == json{{"path", "/a.mkv"}});
+}
+
+TEST_CASE("argument normalization reads a guessed type as operation, and operation as type", "[Mcp]")
+{
+    const auto normalized = [](const json& properties, json args) {
+        normalize_arguments({{"type", "object"}, {"properties", properties}, {"additionalProperties", false}}, args);
+        return args;
+    };
+    // What the result does to the bodies, and which variant a command makes: a call gives one for the other.
+    const json operation = {{"operation", {{"type", "string"}, {"enum", {"join", "cut", "intersect"}}}}};
+    CHECK(normalized(operation, {{"type", "cut"}}) == json{{"operation", "cut"}});
+    const json type = {{"type", {{"type", "string"}, {"enum", {"offset", "angle"}}}}};
+    CHECK(normalized(type, {{"operation", "offset"}}) == json{{"type", "offset"}});
+    // A value the other does not take stays, for the validator to name.
+    CHECK(normalized(operation, {{"type", "sideways"}}) == json{{"type", "sideways"}});
+    // A tool that takes both keeps each where the call put it.
+    const json both = {{"operation", {{"type", "string"}, {"enum", {"join", "cut"}}}},
+                       {"type", {{"type", "string"}, {"enum", {"cut", "linear"}}}}};
+    CHECK(normalized(both, {{"type", "cut"}}) == json{{"type", "cut"}});
+    CHECK(normalized(both, {{"operation", "cut"}}) == json{{"operation", "cut"}});
 }
 
 TEST_CASE("argument normalization leaves a value its enum lacks, and a 3D view under another name, for the validator", "[Mcp]")

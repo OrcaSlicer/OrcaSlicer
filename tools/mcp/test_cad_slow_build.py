@@ -75,14 +75,14 @@ def main():
                     dialog_shot = client.call("screenshot", target=ref, include_image=False,
                                               save_path=os.path.join(out, "progress.png"))
                 try:
-                    client.call("call_tool", tool="describe_scene")
+                    client.call("call_tool", tool="describe_design")
                     refused = False
                 except orca_mcp.McpError as e:
                     refused = str(e)
     worker.join(600)
     seconds = time.time() - started
     result = client.await_job(box.get("result")) if "result" in box else None
-    scene = client.call("call_tool", tool="describe_scene")["result"]
+    scene = client.call("call_tool", tool="describe_design")["result"]
     threads = [f for f in scene["features"] if f["type"] == "Thread"]
 
     print(f"build took {seconds:.1f} s; screenshots in {out}")
