@@ -132,6 +132,7 @@ uniform vec2 print_volume_z;
 uniform vec3 extruder_printable_heights;
 const uint INSTANCE_PARTLY_INSIDE = 1u;
 const uint INSTANCE_WIPE_TOWER = 2u;
+const uint INSTANCE_SLICE_ERROR = 4u;
 
 // Reprojection of the interactive passes: the previous interactive frame, its camera and size. While
 // orbiting, each frame blends its one sample per pixel with what the previous frame saw at the same
@@ -1012,7 +1013,8 @@ float layer_shading(inout vec3 albedo, uint vertex)
 vec3 object_view_tint(vec3 albedo, Hit hit)
 {
     uint flags = uint(instances[hit.inst_index].local_to_world[3].x + 0.5);
-    vec3 c = pow(albedo, vec3(1.0 / 2.2));
+    // An object that failed to slice is red, the other tints on top, as GLVolumeCollection::render() does.
+    vec3 c = (flags & INSTANCE_SLICE_ERROR) != 0u ? vec3(1.0, 0.0, 0.0) : pow(albedo, vec3(1.0 / 2.2));
     vec3 p = hit.position;
     if (slope_active && (flags & INSTANCE_WIPE_TOWER) == 0u) {
         vec3 outward = hit.front_face ? hit.shading_normal : -hit.shading_normal;

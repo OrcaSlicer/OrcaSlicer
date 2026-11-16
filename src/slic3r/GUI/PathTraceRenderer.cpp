@@ -333,10 +333,11 @@ bool PathTraceRenderer::is_enabled() const
         gizmo == GLGizmosManager::FdmSupports ||
         gizmo == GLGizmosManager::FuzzySkin ||
         gizmo == GLGizmosManager::MmSegmentation ||
-        gizmo == GLGizmosManager::PaintedModifier)
+        gizmo == GLGizmosManager::PaintedModifier ||
+        gizmo == GLGizmosManager::Cut)
         return false;
     // The layer height editor and X-Ray draw the objects through their own shaders, as the painting
-    // gizmos do.
+    // gizmos do, and the cut gizmo colors the two halves of the object it cuts.
     if (m_canvas.m_picking_enabled && m_canvas.m_layers_editing.is_enabled() && m_canvas.m_layers_editing.last_object_id != -1 &&
         m_canvas.m_layers_editing.object_max_z() > 0.0f)
         return false;
@@ -345,7 +346,8 @@ bool PathTraceRenderer::is_enabled() const
 
 bool PathTraceRenderer::draws_volume(const GLVolume& volume)
 {
-    return !volume.is_modifier && volume.printable;
+    // A hidden object is drawn as a grey ghost, by the rasterizer.
+    return !volume.is_modifier && volume.printable && volume.visible;
 }
 
 bool PathTraceRenderer::is_frame_final() const
@@ -1151,12 +1153,15 @@ void PathTraceRenderer::update_instances_and_tlas(size_t transform_signature)
     }
     constexpr uint32_t INSTANCE_PARTLY_INSIDE = 1;
     constexpr uint32_t INSTANCE_WIPE_TOWER = 2;
+    constexpr uint32_t INSTANCE_SLICE_ERROR = 4;
     for (const GLVolume* v : m_canvas.m_volumes.volumes) {
         if (v == nullptr || !v->is_active || !draws_volume(*v))
             continue;
         const auto it = part_blases.find(pathtrace_part_key(*v));
         if (it != part_blases.end())
-            add_instance(*it->second, v->world_matrix(), (v->partly_inside ? INSTANCE_PARTLY_INSIDE : 0u) | (v->is_wipe_tower ? INSTANCE_WIPE_TOWER : 0u));
+            add_instance(*it->second, v->world_matrix(), (v->partly_inside ? INSTANCE_PARTLY_INSIDE : 0u) |
+                                                         (v->is_wipe_tower ? INSTANCE_WIPE_TOWER : 0u) |
+                                                         (v->slice_error ? INSTANCE_SLICE_ERROR : 0u));
     }
 
     if (m_gpu_instance_buffer == 0)
@@ -1744,6 +1749,7 @@ bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_s
             combine_geom(volume->model.indices_count());
             combine_geom(size_t(volume->is_active));
             combine_geom(size_t(volume->printable));
+            combine_geom(size_t(volume->visible));
             combine_geom(size_t(volume->is_modifier));
             combine_geom(size_t(volume->extruder_id));
             combine_geom(size_t(volume->is_wipe_tower));
@@ -1795,6 +1801,7 @@ bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_s
                 continue;
             combine_matrix(transform_signature, volume->world_matrix());
             combine_transform(size_t(volume->partly_inside));
+            combine_transform(size_t(volume->slice_error));
         }
     }
     if (transform_signature == 0)
