@@ -7500,32 +7500,37 @@ ModelObject* ObjectList::object(const int obj_idx) const
 
 void ObjectList::apply_object_instance_transfrom_to_all_volumes(ModelObject *model_object, bool need_update_assemble_matrix)
 {
-    const Geometry::Transformation &instance_transformation  = model_object->instances[0]->get_transformation();
-    Vec3d                           original_instance_center = instance_transformation.get_offset();
+    // The volumes take over the rotation, scale and mirror of the first instance (not its offset).
+    // Copied by value, the instances are rewritten below.
+    const Transform3d instance_matrix         = model_object->instances[0]->get_transformation().get_matrix_no_offset();
+    const Transform3d instance_inverse_matrix = instance_matrix.inverse();
 
-    if (need_update_assemble_matrix) {
-        // apply the instance_transform(except offset) to assemble_transform
-        Geometry::Transformation instance_transformation_copy = instance_transformation;
-        instance_transformation_copy.set_offset(Vec3d(0, 0, 0)); // remove the effect of offset
-        const Transform3d &instance_inverse_matrix = instance_transformation_copy.get_matrix().inverse();
-        const Transform3d &assemble_matrix         = model_object->instances[0]->get_assemble_transformation().get_matrix();
-        Transform3d        new_assemble_transform  = assemble_matrix * instance_inverse_matrix;
-        model_object->instances[0]->set_assemble_from_transform(new_assemble_transform);
-    }
-
-    // apply the instance_transform to volumn
-    const Transform3d &transformation_matrix = instance_transformation.get_matrix();
+    // apply the instance_transform(except offset) to the volumes
     for (ModelVolume *volume : model_object->volumes) {
-        const Transform3d &volume_matrix = volume->get_matrix();
-        Transform3d        new_matrix    = transformation_matrix * volume_matrix;
+        const Transform3d new_matrix = instance_matrix * volume->get_matrix();
         volume->set_transformation(new_matrix);
     }
-    model_object->instances[0]->set_transformation(Geometry::Transformation());
 
+    // Take the same transform out of every instance, so that none of them moves on the bed or in the assembly view.
+    // The volumes are shared: resetting the first instance only would shift and transform the other ones.
+    for (ModelInstance *instance : model_object->instances) {
+        if (need_update_assemble_matrix) {
+            const Transform3d new_assemble_transform = instance->get_assemble_transformation().get_matrix() * instance_inverse_matrix;
+            instance->set_assemble_from_transform(new_assemble_transform);
+        }
+
+        const Vec3d offset     = instance->get_offset();
+        Transform3d new_matrix = instance->get_transformation().get_matrix_no_offset() * instance_inverse_matrix;
+        // An instance sharing the rotation and scale of the first one (the usual case) is left with the exact identity.
+        if (new_matrix.isApprox(Transform3d::Identity()))
+            new_matrix.setIdentity();
+        new_matrix.translation() = offset;
+        instance->set_transformation(Geometry::Transformation(new_matrix));
+    }
+
+    // The setters above do not invalidate the cached bounding boxes of the object.
+    model_object->invalidate_bounding_box();
     model_object->ensure_on_bed();
-    // keep new instance center the same as the original center
-    model_object->translate(-original_instance_center);
-    model_object->translate_instances(original_instance_center);
 
     // update the cache data in selection to keep the data of ModelVolume and GLVolume are consistent
     wxGetApp().plater()->update();
