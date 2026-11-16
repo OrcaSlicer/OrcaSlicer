@@ -45,20 +45,20 @@ Two consequences follow from deriving rather than storing:
 ## Geometry kernel and dependency surface
 
 The kernel is OCCT, which OrcaSlicer **already** links — `Format/STEP.cpp` and `Format/svg.cpp`
-use it upstream. The Design tab adds no third-party dependency; it
-widens the existing OCCT build by one module flag in `deps/OCCT/OCCT.cmake`:
+use it upstream. The Design tab adds no third-party dependency; it adds three toolkits to the
+list `deps/OCCT/OCCT.cmake` builds:
 
 ```cmake
--DBUILD_MODULE_ModelingAlgorithms=${SLIC3R_CAD}
+if (SLIC3R_CAD)
+    list(APPEND _occt_toolkits TKFillet TKOffset TKBool)
+endif ()
 ```
 
-Most of that module's toolkits are built either way, because `DataExchange`, which the STEP
-importer uses, depends on them. With the flag on, OCCT also builds `TKFillet` (used through
-`BRepFilletAPI`), `TKOffset` (`BRepOffsetAPI`), and `TKFeat`, `TKHelix`, `TKXMesh` and
-`TKExpress`, which nothing here references but which the module flag builds anyway, because
-OCCT's module flags are all-or-nothing. On macOS and Linux OCCT links statically, so an
-unreferenced toolkit costs build time and no shipped bytes. On Windows OCCT builds shared and
-only the linked toolkits ship, so the tab adds the `TKFillet`, `TKOffset` and `TKBool` DLLs.
+`deps/OCCT/OCCT.cmake` turns every OCCT module off and builds only the toolkits libslic3r links
+(`BUILD_ADDITIONAL_TOOLKITS`), plus their dependencies. The tab's toolkits are `TKFillet` (used
+through `BRepFilletAPI`), `TKOffset` (`BRepOffsetAPI`) and `TKBool`, which they need. On macOS
+and Linux OCCT links statically. On Windows OCCT builds shared and only the linked toolkits
+ship, so the tab adds the `TKFillet`, `TKOffset` and `TKBool` DLLs.
 
 On Windows the packaging step asserts that every linked OCCT toolkit has a shipped DLL and
 fails the configure with the name of any that is missing, because the alternative failure — a
@@ -79,8 +79,8 @@ upstream-sync burden, paid deliberately to keep `deps/` unchanged.
 
 ## The SLIC3R_CAD gate
 
-`SLIC3R_CAD` (default ON) compiles the tab and selects the OCCT module flag above. With it OFF
-the tab is not built and the deps prefix matches upstream exactly. The gate is cheap because
+`SLIC3R_CAD` (default ON) compiles the tab and adds the three OCCT toolkits above. With it OFF
+the tab is not built and the deps prefix has none of the tab's toolkits. The gate is cheap because
 the hooks the Design tab adds to shared GUI code — chiefly the `m_design_sketch_tool` member
 and the render, mouse and key hooks in `GLCanvas3D` — are null-guarded on the path they extend,
 so removing the tab removes behaviour rather than requiring the host code to be rewritten.
