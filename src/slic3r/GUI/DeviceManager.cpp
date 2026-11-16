@@ -66,7 +66,6 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include <wx/app.h>
 #include <wx/colour.h>
 #include <tuple>
 #include <wx/app.h>

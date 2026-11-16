@@ -34,6 +34,7 @@
 #include "DeviceCore/DevMappingNozzle.h"
 #include "DeviceCore/DevPrintOptions.h" // smart-nozzle-blob detection option
 #include "libslic3r/MultiNozzleUtils.hpp" // filament-change-gap model for the best-position popup
+#include "libslic3r/IMEXHelpers.hpp"     // logical->physical extruder map for send mapping
 #include "BackgroundSlicingProcess.hpp"   // complete type for background_process().get_current_gcode_result()
 #include "DeviceCore/DevStorage.h"
 
@@ -1232,69 +1233,162 @@ bool SelectMachineDialog::do_ams_mapping(MachineObject *obj_,bool use_ams)
 
     int filament_result = 0;
     std::vector<bool> map_opt;  //four values: use_left_ams, use_right_ams, use_left_ext, use_right_ext
+    const bool is_bbl_vendor = wxTheApp != nullptr && wxGetApp().preset_bundle != nullptr && wxGetApp().preset_bundle->is_bbl_vendor();
     // Orca: only do the per-physical-extruder left/right split when the device actually reports
     // 2+ extruders. A non-BBL multi-nozzle printer (e.g. Snapmaker U1) reports a single extruder
     // with one filament pool, so it maps as a single surface via the else branch below.
     if (nozzle_nums > 1 && obj_->GetExtderSystem()->GetTotalExtderCount() > 1){
         //get nozzle property, the extders are same?
         if (true/*!can_hybrid_mapping(obj_get_extder_data())*/){
-            std::vector<FilamentInfo>           m_ams_mapping_result_left, m_ams_mapping_result_right;
-            std::vector<FilamentInfo>           m_filament_left, m_filament_right;
-            for (auto it = m_filaments.begin(); it != m_filaments.end(); it++){
-                if (it->id < 0 || it->id > m_filaments_map.size()){
-                    BOOST_LOG_TRIVIAL(info) << "error: do_ams_mapping: m_filaments[].it" << it->id;
-                    BOOST_LOG_TRIVIAL(info) << "m_filaments_map.size()" << m_filaments_map.size();
-                    return false;
+            if (!is_bbl_vendor) {
+                // Generic multi-extruder send mapping. filament_map stores a 1-based logical
+                // extruder; physical_extruder_map resolves that logical extruder to the device
+                // toolhead whose AMS feeds it (identity unless the preset authors a swap). Group
+                // the filaments by that toolhead and match each group against only the AMS units
+                // bound to it and its own external spool, then combine the per-extruder results.
+                const ConfigOptionInts *physical_extruder_map = full_config.option<ConfigOptionInts>("physical_extruder_map");
+                const ConfigOptionInts  extruder_map = effective_physical_extruder_map(physical_extruder_map, static_cast<int>(nozzle_nums));
+
+                std::map<int, std::vector<FilamentInfo>> filament_groups;
+                for (const auto& filament : m_filaments) {
+                    if (filament.id < 0 || filament.id >= static_cast<int>(m_filaments_map.size())) {
+                        BOOST_LOG_TRIVIAL(info) << "error: do_ams_mapping: m_filaments[].it" << filament.id;
+                        BOOST_LOG_TRIVIAL(info) << "m_filaments_map.size()" << m_filaments_map.size();
+                        return false;
+                    }
+                    const int logical_extruder = m_filaments_map[filament.id] - 1;
+                    if (logical_extruder < 0 || logical_extruder >= static_cast<int>(extruder_map.values.size())) {
+                        BOOST_LOG_TRIVIAL(info) << "error: do_ams_mapping: invalid filament_map value "
+                                                << m_filaments_map[filament.id] << " for filament " << filament.id;
+                        return false;
+                    }
+                    const int device_extruder = extruder_map.values[logical_extruder];
+                    if (device_extruder < 0) {
+                        BOOST_LOG_TRIVIAL(info) << "error: do_ams_mapping: logical extruder " << logical_extruder
+                                                << " has no physical extruder for filament " << filament.id;
+                        return false;
+                    }
+                    filament_groups[device_extruder].push_back(filament);
                 }
 
-                if (it->id < m_filaments_map.size()) {
-                    if (m_filaments_map[it->id] == 1)
-                        m_filament_left.push_back(*it);
-                    else if (m_filaments_map[it->id] == 2)
-                        m_filament_right.push_back(*it);
-                }
-            }
-
-            bool has_left_ams = false, has_right_ams = false;
-            for (auto ams_item : obj_->GetFilaSystem()->GetAmsList()) {
-                if (ams_item.second->GetExtruderId() == 0) {
-                    if (obj_->is_main_extruder_on_left())
-                        has_left_ams = true;
-                    else
-                        has_right_ams = true;
-                }
-                else if (ams_item.second->GetExtruderId() == 1) {
-                    if (obj_->is_main_extruder_on_left())
-                        has_right_ams = true;
-                    else
-                        has_left_ams = true;
+                // Mirror the per-side rule of the Bambu split: an extruder that already provides
+                // AMS filament in this mapping does not also offer its external spool.
+                std::set<int> extruders_with_ams;
+                for (const auto& ams_item : obj_->GetFilaSystem()->GetAmsList()) {
+                    for (int extruder_id : ams_item.second->GetBindedExtruderSet())
+                        extruders_with_ams.insert(extruder_id);
                 }
 
-                if (has_left_ams && has_right_ams)
-                    break;
-            }
+                std::vector<FilamentInfo> combined_result;
+                bool                      any_group_run   = false;
+                bool                      all_groups_ok   = true;
+                for (const auto& group : filament_groups) {
+                    any_group_run = true;
+                    const bool has_ams = extruders_with_ams.count(group.first) != 0;
+                    map_opt = { true, true, !has_ams, !has_ams };
+                    if (!use_ams) {
+                        map_opt[0] = false;
+                        map_opt[1] = false;
+                        map_opt[2] = true;
+                        map_opt[3] = true;
+                    }
 
-            map_opt = {true, false, !has_left_ams, false};   //four values: use_left_ams, use_right_ams, use_left_ext, use_right_ext
-            if (!use_ams) {
-                map_opt[0] = false;
-                map_opt[2] = true;
-            }
-            int result_first = DevMappingUtil::ams_filament_mapping(obj_, m_filament_left, m_ams_mapping_result_left, map_opt);
-            map_opt = { false, true, false, !has_right_ams };
-            if (!use_ams) {
-                map_opt[1] = false;
-                map_opt[3] = true;
-            }
-            int result_second = DevMappingUtil::ams_filament_mapping(obj_, m_filament_right, m_ams_mapping_result_right, map_opt);
+                    std::vector<FilamentInfo> group_result;
+                    const int group_status = DevMappingUtil::ams_filament_mapping(obj_, group.second, group_result, map_opt,
+                                                                                 std::vector<int>(), false, group.first);
+                    // 0 means the matcher ran; its result may still be invalid and is validated by
+                    // the caller. Any other status, or an entry count that does not cover the whole
+                    // group, means this group was not fully mapped.
+                    if (group_status != 0 || group_result.size() != group.second.size())
+                        all_groups_ok = false;
+                    combined_result.insert(combined_result.end(), group_result.begin(), group_result.end());
+                }
 
-            //m_ams_mapping_result.clear();
-            m_ams_mapping_result.resize(m_ams_mapping_result_left.size() + m_ams_mapping_result_right.size());
-            std::merge(m_ams_mapping_result_left.begin(), m_ams_mapping_result_left.end(), m_ams_mapping_result_right.begin(),
-                m_ams_mapping_result_right.end(), m_ams_mapping_result.begin(),
-                [](const FilamentInfo& f1, const FilamentInfo& f2) {
-                    return f1.id < f2.id; // Merge based on age
-                });
-            filament_result = (result_first && result_second);
+                // A filament the matcher did not return an entry for would silently vanish from the
+                // mapping, which could validate a partial result. Keep an explicit unmapped entry
+                // for it so the failure stays visible and the result cannot be reported as complete.
+                std::set<int> mapped_filament_ids;
+                for (const auto& mapped : combined_result)
+                    mapped_filament_ids.insert(mapped.id);
+                for (const auto& filament : m_filaments) {
+                    if (mapped_filament_ids.count(filament.id) != 0)
+                        continue;
+                    FilamentInfo unmapped;
+                    unmapped.id          = filament.id;
+                    unmapped.type        = filament.type;
+                    unmapped.filament_id = filament.filament_id;
+                    unmapped.tray_id     = -1;
+                    combined_result.push_back(unmapped);
+                }
+
+                std::sort(combined_result.begin(), combined_result.end(),
+                          [](const FilamentInfo& f1, const FilamentInfo& f2) { return f1.id < f2.id; });
+                m_ams_mapping_result = std::move(combined_result);
+
+                // 1 is the existing "no automatic mapping" status. It makes the caller re-check the
+                // result and, unlike a nonzero reset status, keeps the per-group entries just built
+                // so the user still sees which filaments did map.
+                filament_result = (any_group_run && all_groups_ok) ? 0 : 1;
+            } else {
+                std::vector<FilamentInfo>           m_ams_mapping_result_left, m_ams_mapping_result_right;
+                std::vector<FilamentInfo>           m_filament_left, m_filament_right;
+
+                for (auto it = m_filaments.begin(); it != m_filaments.end(); it++){
+                    if (it->id < 0 || it->id > m_filaments_map.size()){
+                        BOOST_LOG_TRIVIAL(info) << "error: do_ams_mapping: m_filaments[].it" << it->id;
+                        BOOST_LOG_TRIVIAL(info) << "m_filaments_map.size()" << m_filaments_map.size();
+                        return false;
+                    }
+
+                    if (it->id < m_filaments_map.size()) {
+                        if (m_filaments_map[it->id] == 1)
+                            m_filament_left.push_back(*it);
+                        else if (m_filaments_map[it->id] == 2)
+                            m_filament_right.push_back(*it);
+                    }
+                }
+
+                bool has_left_ams = false, has_right_ams = false;
+                for (auto ams_item : obj_->GetFilaSystem()->GetAmsList()) {
+                    if (ams_item.second->GetExtruderId() == 0) {
+                        if (obj_->is_main_extruder_on_left())
+                            has_left_ams = true;
+                        else
+                            has_right_ams = true;
+                    }
+                    else if (ams_item.second->GetExtruderId() == 1) {
+                        if (obj_->is_main_extruder_on_left())
+                            has_right_ams = true;
+                        else
+                            has_left_ams = true;
+                    }
+
+                    if (has_left_ams && has_right_ams)
+                        break;
+                }
+
+                map_opt = {true, false, !has_left_ams, false};   //four values: use_left_ams, use_right_ams, use_left_ext, use_right_ext
+                if (!use_ams) {
+                    map_opt[0] = false;
+                    map_opt[2] = true;
+                }
+                int result_first = DevMappingUtil::ams_filament_mapping(obj_, m_filament_left, m_ams_mapping_result_left, map_opt);
+                map_opt = { false, true, false, !has_right_ams };
+                if (!use_ams) {
+                    map_opt[1] = false;
+                    map_opt[3] = true;
+                }
+                int result_second = DevMappingUtil::ams_filament_mapping(obj_, m_filament_right, m_ams_mapping_result_right, map_opt);
+
+                //m_ams_mapping_result.clear();
+                m_ams_mapping_result.resize(m_ams_mapping_result_left.size() + m_ams_mapping_result_right.size());
+                std::merge(m_ams_mapping_result_left.begin(), m_ams_mapping_result_left.end(), m_ams_mapping_result_right.begin(),
+                    m_ams_mapping_result_right.end(), m_ams_mapping_result.begin(),
+                    [](const FilamentInfo& f1, const FilamentInfo& f2) {
+                        return f1.id < f2.id; // Merge based on age
+                    });
+                filament_result = (result_first && result_second);
+            }
         }
         //can hybrid mapping
         else {
@@ -1413,8 +1507,12 @@ bool SelectMachineDialog::get_ams_mapping_result(std::string &mapping_array_str,
                             auto it = wxGetApp().preset_bundle->filaments.find_preset(wxGetApp().preset_bundle->filament_presets[i]);
                             if (it != nullptr) { mapping_item["filamentId"] = it->filament_id; }
                         }
-                        /* nozzle id */
-                        if (i >= 0 && i < filament_maps.size()) { mapping_item["nozzleId"] = convert_filament_map_nozzle_id_to_task_nozzle_id(filament_maps[i]); }
+                        /* nozzle id; a generic printer's third and later toolheads have no BBL task id */
+                        if (i >= 0 && i < filament_maps.size()) {
+                            const int task_nozzle_id = convert_filament_map_nozzle_id_to_task_nozzle_id(filament_maps[i]);
+                            if (task_nozzle_id >= 0)
+                                mapping_item["nozzleId"] = task_nozzle_id;
+                        }
                         // convert #RRGGBB to RRGGBBAA
                         mapping_item["sourceColor"] = m_filaments[k].color;
                         mapping_item["targetColor"] = m_ams_mapping_result[k].color;
@@ -1581,11 +1679,10 @@ int SelectMachineDialog::convert_filament_map_nozzle_id_to_task_nozzle_id(int no
     else if (nozzle_id == (int)FilamentMapNozzleId::NOZZLE_RIGHT) {
         return (int)CloudTaskNozzleId::NOZZLE_RIGHT;
     }
-    else {
-        /* unsupported nozzle id */
-        assert(false);
-        return nozzle_id;
-    }
+    // A generic printer can map filaments to more than two toolheads, but the BBL task payload only
+    // names the left/right pair. Return a "no task nozzle id" sentinel and let the caller omit the
+    // field instead of asserting on a valid generic mapping.
+    return -1;
 }
 
 // Physical nozzle(s) a mapped filament prints on. key: nozzle pos id, value: nozzle.

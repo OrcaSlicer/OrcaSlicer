@@ -80,10 +80,6 @@ struct PublishedMaterialEntry {
     // Required filament colour, applied on load regardless of the type match.
     bool publish_color{false};
     std::string color;
-    // Import-side only, never serialized: the authored slot sits past the receiver's physical
-    // capacity, so the entry is appended as an empty mixed-filament placeholder (virtual tail
-    // slot; the GUI flags it for the user to assign components).
-    bool mixed_placeholder{false};
 };
 
 // The author's printer_extruder_id and printer_extruder_variant, one entry per per-variant index

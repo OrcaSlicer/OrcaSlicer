@@ -152,9 +152,20 @@ used for backup-slot translation, calibration addressing, and the mapping popups
 
 The sidebar sync matcher uses the same identities. Bambu retains its fixed left/right AMS and
 external-spool choices. For a generic printer, a full sync considers AMS units according to their
-bound extruder ids and considers every external slot by `255 - vt_id`; a split left/right mapping
-still restricts itself to the corresponding legacy extruders 0 and 1. Generic AMS lanes use the
-cumulative tray index above, while their `ams_id`/`slot_id` pair remains the address used to update
+bound extruder ids and considers every external slot by `255 - vt_id`; a split left/right request
+still restricts itself to the corresponding legacy extruders 0 and 1. The send dialog maps a generic
+printer one extruder at a time instead: it groups the used filaments by their mapped extruder,
+resolved to the physical toolhead through `physical_extruder_map`, and each group is matched only
+against the AMS units bound to that extruder and that extruder's external spool. As in the split
+left/right request, an extruder that already offers AMS filament in the mapping does not also offer
+its external spool. The per-extruder results are then combined into the single filament-to-slot
+mapping the print job needs; a filament a group cannot map stays explicitly unmapped, so a partial
+result is never reported as a complete mapping. A switch-bound AMS unit feeds several extruders, so
+it is a candidate in each of their groups and the same lane can be chosen by more than one group.
+The matcher already permits reusing a lane within one mapping (for an exact colour/type match, or as
+a fallback when no unused lane matches), so this is a valid but suboptimal assignment rather than a
+lost slot. Generic AMS lanes use the cumulative tray index above, while their `ams_id`/`slot_id`
+pair remains the address used to update
 the matching sidebar entry. The runtime filament-list configs also carry a transient device-extruder
 association so generic entries are grouped under the correct toolhead after sync; that association
 is removed before the configs enter the slicing pipeline. Bambu keeps the existing key-based

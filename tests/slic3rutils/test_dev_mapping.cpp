@@ -570,13 +570,112 @@ TEST_CASE("Generic AMS units on every extruder join the mapping", "[DevMapping]"
     CHECK(result[0].ams_id == "3");
     CHECK(result[0].tray_id == 3);
 
-    // SelectMachine's right-side split passes only the right flag: extruder 3's unit stays out and
+    // A legacy right-side-only request passes only the right flag: extruder 3's unit stays out and
     // nothing in extruder 0's unit matches PETG, so the filament is left unmapped.
     std::vector<FilamentInfo> split_result;
     map_opt[MappingOption::USE_LEFT_AMS] = false;
     DevMappingUtil::ams_filament_mapping(&obj, {fila}, split_result, map_opt, {}, false);
     REQUIRE(split_result.size() == 1);
     CHECK(split_result[0].tray_id == -1);
+
+    // The send dialog names the filament's own extruder instead of a legacy side. Only extruder 3's
+    // sources are candidates, so the same filament maps to that extruder's unit.
+    map_opt.assign(4, true); // both AMS flags and both external flags, as SelectMachine builds them
+    std::vector<FilamentInfo> per_extruder_result;
+    DevMappingUtil::ams_filament_mapping(&obj, {fila}, per_extruder_result, map_opt, {}, false, 3);
+    REQUIRE(per_extruder_result.size() == 1);
+    CHECK(per_extruder_result[0].ams_id == "3");
+    CHECK(per_extruder_result[0].tray_id == 3);
+}
+
+TEST_CASE("A per-extruder mapping request uses only that extruder's filament sources", "[DevMapping]")
+{
+    MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
+
+    // Three extruders with one AMS unit each, plus a reported external spool on extruder 1 only.
+    const json filament = {
+        {"units", json::array({
+            {{"id", "0"}, {"extruder", 0}, {"slots", json::array({
+                {{"index", 0}, {"loaded", true}, {"material", "PLA"}, {"color", "FF0000FF"}}
+            })}},
+            {{"id", "1"}, {"extruder", 1}, {"slots", json::array({
+                {{"index", 0}, {"loaded", true}, {"material", "ABS"}, {"color", "00FF00FF"}}
+            })}},
+            {{"id", "2"}, {"extruder", 2}, {"slots", json::array({
+                {{"index", 0}, {"loaded", true}, {"material", "PETG"}, {"color", "0000FFFF"}}
+            })}}
+        })},
+        {"external", json::array({
+            {{"extruder", 1}, {"loaded", true}, {"material", "ASA"}, {"color", "FFFF00FF"}}
+        })}
+    };
+    DevFilaSystemParser::ParseAgentFilament(filament, &obj, obj.GetFilaSystem().get());
+    REQUIRE(obj.GetFilaSystem()->GetAmsCount() == 3);
+    REQUIRE(obj.vt_slot.size() == 2);
+    CHECK(obj.vt_slot[1].id == "254");
+
+    // Enable every source. The send dialog enables both AMS flags and, for an extruder without AMS,
+    // both external flags; enabling all four here leaves the extruder filter as the only variable.
+    const std::vector<bool> all_sources(4, true);
+
+    // ABS is extruder 1's AMS colour. Asking for extruder 2 must not borrow it.
+    FilamentInfo abs;
+    abs.id    = 0;
+    abs.type  = "ABS";
+    abs.color = "#00FF00FF";
+
+    std::vector<FilamentInfo> foreign;
+    DevMappingUtil::ams_filament_mapping(&obj, {abs}, foreign, all_sources, {}, false, 2);
+    REQUIRE(foreign.size() == 1);
+    CHECK(foreign[0].tray_id == -1);
+
+    // The same request for extruder 1 uses that extruder's own unit.
+    std::vector<FilamentInfo> own;
+    DevMappingUtil::ams_filament_mapping(&obj, {abs}, own, all_sources, {}, false, 1);
+    REQUIRE(own.size() == 1);
+    CHECK(own[0].ams_id == "1");
+    CHECK(own[0].tray_id == 1); // cumulative lane index: one lane in each preceding unit
+
+    // With AMS disabled, extruder 1's external spool (254) is its only candidate.
+    FilamentInfo asa;
+    asa.id    = 1;
+    asa.type  = "ASA";
+    asa.color = "#FFFF00FF";
+    std::vector<bool> external_only(4, false);
+    external_only[MappingOption::USE_LEFT_EXT]  = true;
+    external_only[MappingOption::USE_RIGHT_EXT] = true;
+    std::vector<FilamentInfo> external;
+    DevMappingUtil::ams_filament_mapping(&obj, {asa}, external, external_only, {}, false, 1);
+    REQUIRE(external.size() == 1);
+    CHECK(external[0].ams_id == "254");
+    CHECK(external[0].tray_id == 254);
+}
+
+TEST_CASE("The mapping status separates an empty request from an attempted mapping", "[DevMapping]")
+{
+    MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
+
+    std::vector<bool> ams_only(4, false);
+    ams_only[MappingOption::USE_LEFT_AMS]  = true;
+    ams_only[MappingOption::USE_RIGHT_AMS] = true;
+
+    // No filaments: the matcher did not run.
+    std::vector<FilamentInfo> empty_result;
+    CHECK(DevMappingUtil::ams_filament_mapping(&obj, {}, empty_result, ams_only, {}, false, 0) == -1);
+    CHECK(empty_result.empty());
+
+    // A non-empty request always reports 0 once attempted, even when no slot matches. Validity is
+    // the caller's separate check, so a caller aggregating several extruders must not read 0 as
+    // "every extruder mapped".
+    FilamentInfo fila;
+    fila.id    = 0;
+    fila.type  = "PLA";
+    fila.color = "#FF0000FF";
+    std::vector<FilamentInfo> result;
+    CHECK(DevMappingUtil::ams_filament_mapping(&obj, {fila}, result, ams_only, {}, false, 0) == 0);
+    REQUIRE(result.size() == 1);
+    CHECK(result[0].tray_id == -1);
+    CHECK_FALSE(DevMappingUtil::is_valid_mapping_result(&obj, result, true));
 }
 
 TEST_CASE("Generic external spool is suppressed when its extruder has AMS filament", "[DevMapping]")

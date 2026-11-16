@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <vector>
 #include <wx/string.h>
 
@@ -27,7 +28,12 @@ public:
 public:
     static bool is_valid_mapping_result(const MachineObject* obj, std::vector<FilamentInfo>& result, bool check_empty_slot = false);
 
-    static int ams_filament_mapping(const MachineObject* obj, const std::vector<FilamentInfo>& filaments, std::vector<FilamentInfo>& result, std::vector<bool> map_opt, std::vector<int> exclude_id = std::vector<int>(), bool nozzle_has_ams_then_ignore_ext = false);
+    // `only_extruder_id` restricts a generic printer's candidates to the AMS units bound to that
+    // extruder and that extruder's own external spool, so a caller can map one extruder at a time.
+    // It is ignored for Bambu printers, whose left/right flags already select the candidates.
+    // Returns -1 when `filaments` is empty; otherwise 0 once a mapping has been attempted, even if
+    // the result is incomplete or invalid (callers validate it separately).
+    static int ams_filament_mapping(const MachineObject* obj, const std::vector<FilamentInfo>& filaments, std::vector<FilamentInfo>& result, std::vector<bool> map_opt, std::vector<int> exclude_id = std::vector<int>(), bool nozzle_has_ams_then_ignore_ext = false, std::optional<int> only_extruder_id = std::nullopt);
 };
 
 };
