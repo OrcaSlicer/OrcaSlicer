@@ -12,7 +12,8 @@ Contents: [Rules](#rules) · [Why the library exists](#why-the-library-exists) �
 [Namespaces](#namespaces-and-the-checkbox-clash) · [Catalog](#catalog) · [Event semantics](#event-semantics) ·
 [Custom vs raw](#custom-vs-raw) · [Shared lifecycle rules](#shared-lifecycle-rules) · [Button](#button) ·
 [DialogButtons](#dialogbuttons) · [Label and HyperLink](#label-and-hyperlink) · [CheckBox](#checkbox-and-radiobox) ·
-[SwitchButton family](#switchbutton-family) · [RadioGroup](#radiogroup) · [TextInput](#textinput) ·
+[LabeledCheckBox](#labeledcheckbox) · [SwitchButton family](#switchbutton-family) · [RadioGroup](#radiogroup) ·
+[TextInput](#textinput) ·
 [ComboBox and DropDown](#combobox-and-dropdown) · [SpinInput](#spininput-and-tempinput) · [Tab systems](#tab-systems) ·
 [StaticBox, LabeledStaticBox, StaticLine](#staticbox-labeledstaticbox-staticline) · [ProgressBar](#progressbar) ·
 [ScrolledWindow](#scrolledwindow) · [PopupWindow](#popupwindow) ·
@@ -21,9 +22,9 @@ Contents: [Rules](#rules) · [Why the library exists](#why-the-library-exists) �
 
 ## Rules
 
-1. Interactive controls in new or modified UI are Orca widgets (`Button`, `::CheckBox`, `::ComboBox`, `::TextInput`,
-   `SpinInput`, `SwitchButton`, `RadioGroup`, `TabCtrl`); never `wxButton`, `wxSpinCtrl`, `wxCheckBox`, `wxChoice` or
-   a single-line `wxTextCtrl` in new code. → §Custom vs raw
+1. Interactive controls in new or modified UI are Orca widgets (`Button`, `::CheckBox`, `LabeledCheckBox`,
+   `::ComboBox`, `::TextInput`, `SpinInput`, `SwitchButton`, `RadioGroup`, `TabCtrl`); never `wxButton`, `wxSpinCtrl`,
+   `wxCheckBox`, `wxChoice` or a single-line `wxTextCtrl` in new code. → §Custom vs raw
 2. Every dialog's bottom button row is `DialogButtons`. → §DialogButtons
 3. Inside `namespace Slic3r::GUI` write `::CheckBox`, `::TextInput`, `::ComboBox` (also in `dynamic_cast` and
    forward declarations, which go at global scope). → §Namespaces
@@ -38,7 +39,8 @@ Contents: [Rules](#rules) · [Why the library exists](#why-the-library-exists) �
 7. Know which setters emit: `RadioGroup::SetSelection`, `MultiSwitchButton::SetSelection`, `TabCtrl::SelectItem`,
    `Notebook::SetSelection`, an editable `ComboBox::SetSelection` (as `wxEVT_TEXT`) and `SpinInput::SetValue` (as
    `wxEVT_TEXT` + `EVT_SPINCTRL_TEXT`) do. → §Event semantics
-8. `::CheckBox` and `SwitchButton` emit `wxEVT_TOGGLEBUTTON`, never `wxEVT_CHECKBOX`. → §CheckBox and RadioBox
+8. `::CheckBox` and `SwitchButton` emit `wxEVT_TOGGLEBUTTON`, never `wxEVT_CHECKBOX`; `LabeledCheckBox` sends both
+   from itself. → §CheckBox and RadioBox, §LabeledCheckBox
 9. Set a container's background colour before creating widgets in it. → §Shared lifecycle rules
 10. Enable/disable custom widgets individually; disabling an ancestor leaves them painted enabled (`::CheckBox`, a native button, greys with it). → §Shared lifecycle
     rules
@@ -61,6 +63,9 @@ Contents: [Rules](#rules) · [Why the library exists](#why-the-library-exists) �
     → §StaticBox, LabeledStaticBox, StaticLine
 21. Links are `HyperLink`, or a `Label` given `LB_HYPERLINK` through `SetWindowStyleFlag` (the constructor ignores it).
     → §Label and HyperLink
+22. When the label is on the right side of the check box and belongs to it, use a `LabeledCheckBox`, not a
+    `::CheckBox` paired with a label by hand. Bind **one** of its two events; change its label, font and wrap through
+    the control; read its enabled state through a `LabeledCheckBox*`. → §LabeledCheckBox
 
 ## Why the library exists
 
@@ -134,6 +139,7 @@ class, which is not a `wxWindow`. `TextCtrl` also names the MSW `wxTextCtrl` sub
 | `Label` | `wxStaticText` | `wxStaticText` | `Label(parent, text = "", style = 0, size)` (font `Body_14`), `Label(parent, font, text, style, size)` | `LB_AUTO_WRAP`, `LB_PROPAGATE_MOUSE_EVENT`, `LB_HYPERLINK` (via `SetWindowStyleFlag`); hosts the font table. §Label |
 | `HyperLink` (`Slic3r::GUI`) | `wxHyperlinkCtrl` | `wxStaticText` | `HyperLink(parent, label = "", url = "", style = 0)` | opens `url` with `wxLaunchDefaultBrowser` on left-down. §Label |
 | `::CheckBox` | `wxCheckBox` | `wxBitmapToggleButton` | `CheckBox(parent, id = wxID_ANY)` — **no label** | emits `wxEVT_TOGGLEBUTTON`; `SetHalfChecked`; `Rescale()`. §CheckBox |
+| `LabeledCheckBox` | `wxCheckBox` with a label, a `::CheckBox` paired with its own label on the right side | `wxPanel` | `LabeledCheckBox(parent, label = "", id = wxID_ANY)` | clickable label with focus frame; emits `wxEVT_CHECKBOX` **and** `wxEVT_TOGGLEBUTTON`; `Wrap(width)`/`AutoWrap()`; `GetLabelCtrl()`; `Rescale()`. §LabeledCheckBox |
 | `SwitchButton` | on/off `wxCheckBox`, `wxToggleButton` | `wxBitmapToggleButton` | `SwitchButton(parent = nullptr, id = wxID_ANY)` | `SetLabels(on, off)`; track/thumb/text `StateColor`s; emits `wxEVT_TOGGLEBUTTON`. §SwitchButton family |
 | `MultiSwitchButton` | segmented `wxRadioBox` | `StaticBox` | `MultiSwitchButton(parent, id, pos, size, style)` | emits `wxCUSTOMEVT_MULTISWITCH_SELECTION`, also from `SetSelection`. §SwitchButton family |
 | `RadioGroup` | `wxRadioBox`, `wxRadioButton` rows | `wxPanel` | `RadioGroup(parent, std::vector<wxString> labels, wxHORIZONTAL/wxVERTICAL, row_col_limit = -1)` | emits `wxEVT_RADIOBOX` from **every** `SetSelection`. §RadioGroup |
@@ -164,6 +170,7 @@ Field classes (`Field.cpp`) build their editors from these widgets (`TextCtrl` �
 |---|---|---|---|---|
 | `Button` | `wxEVT_BUTTON` (on release inside, Space/Enter) | button id / button | `SetValue(bool)` (Checked look) silent | on the button (Rule 6) |
 | `::CheckBox`, `SwitchButton` | `wxEVT_TOGGLEBUTTON` | native id / widget | `SetValue`, `SetHalfChecked` silent (`interface/wx/tglbtn.h:98`) | on the widget; never `wxEVT_CHECKBOX` |
+| `LabeledCheckBox` | `wxEVT_CHECKBOX`, then `wxEVT_TOGGLEBUTTON` (int = new value), also from a label click | control id / control | `SetValue`, `SetHalfChecked` silent | on the control, **one** of the two; no `Skip()` needed for the bitmap |
 | `::ComboBox` | `wxEVT_COMBOBOX` (int = index, string = text) from popup pick, arrow keys (read-only combo), `SelectAndNotify`; `wxEVT_COMBOBOX_DROPDOWN`/`_CLOSEUP` | COMBOBOX: combo's auto id / combo; DROPDOWN/CLOSEUP: **id 0, no object** | `SetSelection`, `SetValue` silent for COMBOBOX; editable or `CB_NO_TEXT`: they send `wxEVT_TEXT` | on the combo |
 | `::TextInput` | inner `wxEVT_TEXT` (propagates); `wxEVT_TEXT_ENTER`, `wxEVT_KILL_FOCUS` re-sent to the wrapper only | TEXT: **inner** id/object; ENTER/KILL_FOCUS: wrapper id, inner object | `GetTextCtrl()->SetValue` sends `wxEVT_TEXT`; `ChangeValue` silent | TEXT: wrapper, inner, or ancestor by type; ENTER/KILL_FOCUS: wrapper or inner |
 | `SpinInput` | `wxEVT_SPINCTRL` (a plain `wxCommandEvent`, no int) on commit; `EVT_SPINCTRL_TEXT` (int + string) per parseable keystroke; inner `wxEVT_TEXT` | spinner id / spinner | `SetValue` sends `EVT_SPINCTRL_TEXT` + `wxEVT_TEXT`, no `wxEVT_SPINCTRL` | on the spinner; handler takes `wxCommandEvent&` |
@@ -221,7 +228,9 @@ No Orca replacement exists — use raw wx (`references/controls-dataview.md`) fo
 
 **Background snapshot.** `StaticBox::Create`, `Label`, `SwitchButton` (through `StaticBox::GetParentBackgroundColor`:
 a parent `StaticBox`'s default fill — the midpoint for a gradient — else `parent->GetBackgroundColour()`), and
-`::CheckBox`, `RadioGroup` (`parent->GetBackgroundColour()`) copy the parent's background colour at construction;
+`::CheckBox`, `RadioGroup` (`parent->GetBackgroundColour()`) copy the parent's background colour at construction, and
+so does `LabeledCheckBox` (`GetParentBackground` in `LabeledCheckBox.cpp`: the parent's colour, or under a scrolled
+window the colour of that window's child on the parent chain);
 wx itself never inherits a background colour ([source] `src/common/wincmn.cpp:1543-1552`).
 - **Rule:** Set the container's background before creating widgets in it.
   ```cpp
@@ -242,7 +251,8 @@ its disabled bitmap (`src/msw/window.cpp:576-593`, `src/msw/anybutton.cpp:846-87
 button image draws a greyed copy of the current bitmap while `!IsEnabled()` (`src/gtk/image_gtk.cpp:37-42`), though
 the disabled bitmap itself needs `IsThisEnabled()` false (`src/gtk/anybutton.cpp:140-146`); macOS sends
 `setEnabled:NO` (`src/osx/cocoa/window.mm:3784-3791`) and AppKit dims the image (`NSButtonCell`
-`imageDimsWhenDisabled`, default YES).
+`imageDimsWhenDisabled`, default YES). A `LabeledCheckBox` is half of each: its inner check greys with the parent, its
+label keeps the enabled colour, which only `LabeledCheckBox::Enable` changes.
 - **Rule:** Enable/disable each custom widget directly (`RadioGroup::Enable` does this for its own buttons).
   ```cpp
   m_options_panel->Enable(on);                                                // Wrong: widgets keep the enabled look
@@ -251,8 +261,8 @@ the disabled bitmap itself needs `IsThisEnabled()` false (`src/gtk/anybutton.cpp
   ```
 
 **DPI.** Widgets size themselves from `FromDIP` values and cached bitmaps; after a DPI change the owning
-`DPIDialog::on_dpi_changed` must call `Rescale()` on each (`Button`, `::CheckBox`, `::TextInput`, `::ComboBox`
-(also rescales its `DropDown`), `SpinInput`, `SwitchButton`, `MultiSwitchButton`, `TabCtrl`, `StaticLine`,
+`DPIDialog::on_dpi_changed` must call `Rescale()` on each (`Button`, `::CheckBox`, `LabeledCheckBox`, `::TextInput`,
+`::ComboBox` (also rescales its `DropDown`), `SpinInput`, `SwitchButton`, `MultiSwitchButton`, `TabCtrl`, `StaticLine`,
 `ModeSwitchButton`). Exceptions: `RadioGroup`, `Label`, `HyperLink` and `LabeledStaticBox` (its scale is fixed in
 `Create()`) have no `Rescale()`; `ProgressBar::Rescale()` is empty; `DialogButtons` rescales itself. Pass sizes through
 `FromDIP` (`references/dpi-bitmaps-fonts.md`).
@@ -276,7 +286,8 @@ it re-reads colours, e.g. `SwitchButton`), and keep `UpdateDlgDarkUI(this)` as t
 a label, font, icon, style or DPI changes, and the bitmap toggles (`::CheckBox`, `SwitchButton`) size themselves
 to their bitmap in `Rescale()`.
 Nothing re-lays out the parent: call `Layout()` on the container after changing a widget's content at runtime
-(`references/sizers-layout.md`).
+(`references/sizers-layout.md`). `LabeledCheckBox` is the exception: its setters re-fit it and send the parent a size
+event (§LabeledCheckBox).
 
 **Mouse capture.** `Button`, `DropDown`, `SpinInput`'s arrows, `ModeSwitchButton`, `MyScrollbar`, `StepCtrl` and the
 device-page `SideButton`, `ImageSwitchButton` and `AxisCtrlButton` capture the mouse while pressed; a capture leak
@@ -461,8 +472,10 @@ Pitfalls:
 ## CheckBox and RadioBox
 
 `::CheckBox` (`Widgets/CheckBox.cpp`) is a `wxBitmapToggleButton` (`wxBORDER_NONE`) showing 18 px SVGs
-`check_{on,half,off}`, `…_disabled`, `…_focused`. It has **no label**: pair it with a `wxStaticText`/`Label`
-(as `CloneDialog::CloneDialog` does). `GetValue()` is a 2-state `bool`.
+`check_{on,half,off}`, `…_disabled`, `…_focused`. It has **no label**: when the label is on the right side of the
+check box and belongs to it, use a `LabeledCheckBox` (§LabeledCheckBox); pair a bare `::CheckBox` with a
+`wxStaticText`/`Label` only where the label sits elsewhere, such as on the left side in the label column of a form
+row (as `CloneDialog::CloneDialog` does). `GetValue()` is a 2-state `bool`.
 - Emits `wxEVT_TOGGLEBUTTON` on click (native). `SetValue` emits nothing (`interface/wx/tglbtn.h:98`).
 - `SetHalfChecked(true)` is a drawn-only third state (`IsHalfChecked()` exists for the inspector only); the widget's own toggle handler
   clears it on any click. `SetValue` does **not** clear it — call `SetHalfChecked(false)` before showing a definite
@@ -486,6 +499,94 @@ Pitfalls:
   cb->Bind(wxEVT_CHECKBOX, h);                                                   // Wrong: never fires
   cb->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) { apply(); });          // Wrong: bitmap not refreshed
   cb->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) { e.Skip(); apply(); }); // Right
+  ```
+
+## LabeledCheckBox
+
+`LabeledCheckBox` (`Widgets/LabeledCheckBox.cpp`, global namespace) is the check box with its own label on the
+right side: a `wxPanel` holding a `::CheckBox` and, to its right, a `StaticBox` frame around a `Label`. The label
+must belong to the check box, that is, name the option the box switches. Other text that only shares the row (a
+value, a unit, a link, the label of the next control) is not its label, however close it sits, and stays a separate
+window. The control has no other label position: a label on the left side or in a separate column stays a
+`::CheckBox` paired with a label (§CheckBox and RadioBox). Constructor
+`LabeledCheckBox(parent, label = "", id = wxID_ANY)`; font `Body_14`, label colour `#363636` (dark-mapped at
+construction). An empty label hides the frame and leaves the bare check.
+
+- **Value.** `SetValue(bool)`, `GetValue()`/`IsChecked()`, `SetHalfChecked(bool = true)`. The half state is
+  `::CheckBox`'s: drawn only, cleared by any user toggle, not by `SetValue`. No setter emits.
+- **Events.** A user toggle — a click on the check, Space on the focused check, a left click on the label or its
+  frame — sends `wxEVT_CHECKBOX` and then `wxEVT_TOGGLEBUTTON` from the control (`LabeledCheckBox::OnToggled`): the
+  control's current id (so `SetId()` after construction works), the control as event object, `IsChecked()`/`GetInt()`
+  = the new value. A double click on the label toggles twice (its second click arrives as `wxEVT_LEFT_DCLICK`). The
+  inner check's own `wxEVT_TOGGLEBUTTON` is consumed, so an ancestor bound by type gets one event of each type per
+  toggle. The control has no handler of its own for the two events: a handler bound on it needs no `Skip()` to keep
+  the bitmap right; `Skip()` only lets ancestors see the event. For a label click both events are sent from inside
+  the label's `wxEVT_LEFT_DOWN` handler, so a handler that opens a modal dialog defers it with `CallAfter`
+  (`references/windows-dialogs.md` rule 19).
+- **Focus.** The inner check holds the keyboard focus; frame and label never take it, and a label click moves the
+  focus to the check. `HasFocus()` reports the check's focus. The frame's border is the focus indicator
+  (`LabeledCheckBox::ShowFocus`): `#009688` when focused, the background colour otherwise.
+- **Hover.** While the pointer is on the label or its frame, the check shows its hover bitmap
+  (`LabeledCheckBox::ShowHover`).
+- **Enable.** `Enable(bool)` disables the inner check and greys the label (`#6B6A6A`, dark-mapped); the panel itself
+  stays enabled. `IsEnabled()` is a non-virtual shadow that returns the check's state. A disabled control ignores
+  label clicks.
+- **Setters go through the control.** `SetLabel`, `SetFont`, `Wrap`, `AutoWrap` and `Rescale` update the label,
+  re-fit the control (`Fit()`) and send the parent a size event (`LabeledCheckBox::Relayout`), so a sizer-managed
+  parent lays out again; a top-level window is not re-fitted. `SetForegroundColour` sets the enabled label colour,
+  `SetBackgroundColour` reaches check, frame and label, and a tooltip set on the control is copied to all three
+  (`DoSetToolTip`). `GetLabelCtrl()` returns the inner `Label`.
+- **Wrapping** is `Label::Wrap` on the stored text. `Wrap(width)` wraps the text to `width` px minus the check and
+  the padding, so the whole control fits `width`; `width <= 0` unwraps. `AutoWrap(true)` re-wraps to the width the
+  control is given on every `wxEVT_SIZE`, so it needs a sizer item that gives it a width (`wxEXPAND` in a vertical
+  sizer, or a proportion) inside a container whose width comes from elsewhere: until the first layout the control
+  reports its unwrapped width. Each of the two calls cancels the other mode. With a wrapped label the check stays
+  centred on the first text line.
+- **Metrics.** The padding around the text is `FromDIP(wxSize(5, 2))`, the padding of `RadioGroup`'s label buttons
+  (`RadioGroup::Create`), and both icons are 18 px: a `LabeledCheckBox` and a `RadioGroup` added with the same left
+  border line up icon under icon and text under text. Unlike `RadioGroup`, which puts `FromDIP(4)` above and below
+  each row, the control adds no outer margin; row spacing is the sizer's.
+- **DPI.** `Rescale()` rescales the check and re-fits; call it from `on_dpi_changed`.
+- **[source] Bitmap states on MSW.** Setting the normal bitmap of a bitmap button (`SetBitmapLabel`) deletes the
+  button's image data, so the bitmaps set for the other states are gone and their getters (`GetBitmapCurrent()`, …)
+  return a null bitmap until they are set again (`src/msw/anybutton.cpp:770-783`, `:785-796`); a null normal bitmap
+  then removes the image without a refresh (`:797-812`). wxGTK keeps one bitmap per state
+  (`src/gtk/anybutton.cpp:198-201`, `:391`). `LabeledCheckBox::ShowHover` shows the hover art by copying the check's
+  hover bitmap into its normal state, and therefore lets `::CheckBox` set all its bitmaps again first.
+
+Pitfalls:
+- **Rule:** When the label is on the right side of the check box and belongs to it, use one `LabeledCheckBox`;
+  don't pair a `::CheckBox` with a `wxStaticText`/`Label` and forward the label's clicks by hand.
+  **Why:** the hand-made pair needs its own sizer, label styling, click and double-click forwarding, disabled
+  colour and tooltip on both windows, and still shows no focus frame on the label.
+  ```cpp
+  auto* cb  = new ::CheckBox(this);                                           // Wrong: two windows wired by hand
+  auto* lbl = new wxStaticText(this, wxID_ANY, _L("Don't show again"));
+  lbl->Bind(wxEVT_LEFT_DOWN, [cb](wxMouseEvent&) { cb->SetValue(!cb->GetValue()); /* + send the event */ });
+  auto* cb = new LabeledCheckBox(this, _L("Don't show again"));               // Right
+  ```
+- **Rule:** Bind **one** of the two events.
+  **Why:** both are sent for every toggle, so that a handler written for a `wxCheckBox` (`wxEVT_CHECKBOX`) or for a
+  `::CheckBox` (`wxEVT_TOGGLEBUTTON`) keeps working when the control replaces either; a handler bound to both runs
+  twice.
+  ```cpp
+  cb->Bind(wxEVT_CHECKBOX, h); cb->Bind(wxEVT_TOGGLEBUTTON, h);                               // Wrong: h runs twice
+  cb->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) { apply(e.IsChecked()); e.Skip(); });    // Right
+  ```
+- **Rule:** Change the label, font and wrap through the control, not through `GetLabelCtrl()`.
+  **Why:** only the control's own setters re-wrap, re-fit and notify the parent.
+  ```cpp
+  cb->GetLabelCtrl()->SetLabel(text);     // Wrong: the control keeps its old size and wrap
+  cb->SetLabel(text);                     // Right
+  ```
+- **Rule:** Read the enabled state through a `LabeledCheckBox*`.
+  **Why:** `Enable()` is virtual and works through any pointer, but `IsEnabled()` is not: through a `wxWindow*` it
+  reports the panel, which stays enabled (`src/common/wincmn.cpp:1142-1145`). The rule of §Shared lifecycle rules
+  holds too: disabling an ancestor greys the inner check but not the label — call the control's `Enable()`.
+  ```cpp
+  wxWindow* w = cb; cb->Enable(false);
+  if (w->IsEnabled())  { /* Wrong: still true */ }
+  if (cb->IsEnabled()) { /* Right: false */ }
   ```
 
 ## SwitchButton family
