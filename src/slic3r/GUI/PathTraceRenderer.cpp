@@ -1651,7 +1651,6 @@ bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_s
 
     combine_geom(size_t(m_canvas.m_canvas_type));
     combine_geom(size_t(wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_SMOOTH_NORMALS)));
-    float preview_z_min = -1e10f;
     float preview_z_max = 1e10f;
     int preview_move_min = -1;
     int preview_move_max = -1;
@@ -1721,19 +1720,17 @@ bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_s
                 ? uint32_t(full_range[0])
                 : uint32_t(visible_range[0]);
             const uint32_t max_v = uint32_t(visible_range[1]);
+            // The moves hide what the sliders hide, as in the rasterized preview. The top of the visible
+            // layers also culls the boxes of the BVH, but only where each layer lies above the one before:
+            // a print by object starts every object at the bed again.
             preview_move_min = int(min_v);
             preview_move_max = int(max_v);
             const std::vector<double> layer_zs = m_canvas.m_gcode_viewer.get_layers_zs();
-            if (!layer_zs.empty()) {
+            if (!layer_zs.empty() && std::is_sorted(layer_zs.begin(), layer_zs.end())) {
                 const auto& layers_range = m_canvas.m_gcode_viewer.get_layers_z_range();
-                const size_t min_layer = std::min(layers_range[0], layers_range[1]);
-                const size_t max_layer = std::max(layers_range[0], layers_range[1]);
-                const size_t min_idx   = std::min<size_t>(min_layer, layer_zs.size() - 1);
-                const size_t max_idx   = std::min<size_t>(max_layer, layer_zs.size() - 1);
-                preview_z_min = (min_idx > 0) ? float(0.5 * (layer_zs[min_idx - 1] + layer_zs[min_idx])) : -1.0f;
-                preview_z_max = (max_idx + 1 < layer_zs.size())
-                    ? float(0.5 * (layer_zs[max_idx] + layer_zs[max_idx + 1]))
-                    : float(layer_zs[max_idx] + 1.0);
+                const size_t max_idx = std::min<size_t>(std::max(layers_range[0], layers_range[1]), layer_zs.size() - 1);
+                if (max_idx + 1 < layer_zs.size())
+                    preview_z_max = float(0.5 * (layer_zs[max_idx] + layer_zs[max_idx + 1]));
             }
         }
     } else if (m_canvas.m_model != nullptr) {
@@ -1901,7 +1898,6 @@ bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_s
     combine(size_t(quality.quality_preset));
     combine(size_t(m_canvas._shadow_mode()));
     combine(size_t(glossy_toolpaths));
-    combine(preview_z_min);
     combine(preview_z_max);
     combine(preview_move_min);
     combine(preview_move_max);
@@ -1912,18 +1908,38 @@ bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_s
         for (double v : clip_plane.get_data())
             combine(v);
     }
-    // The greying and dimming of the layers around the ones the sliders show, by the top of the layers.
+    // The greying and dimming of the layers around the ones the sliders show, by the moves of the layers
+    // as the rasterized preview does by their ids: the heights of the layers repeat in a print by object.
     libvgcode::LayerShading layer_shading;
-    std::array<float, 3> layer_shading_z{ -1e9f, -1e9f, -1e9f };
+    std::array<int, 4> lit_layer_moves{ 1, 0, 1, 0 }; // two empty ranges of moves
+    int grey_below_move = 0;
     if (m_canvas.m_canvas_type == GLCanvas3D::ECanvasType::CanvasPreview) {
         layer_shading = m_canvas.m_gcode_viewer.get_layer_shading();
-        const std::vector<double> layer_zs = m_canvas.m_gcode_viewer.get_layers_zs();
-        const auto layer_top = [&layer_zs](int id) { return id >= 0 && size_t(id) < layer_zs.size() ? float(layer_zs[size_t(id)]) : -1e9f; };
-        layer_shading_z = { layer_top(layer_shading.lit_layers[0]), layer_top(layer_shading.lit_layers[1]),
-                            layer_shading.grey_below_layer > 0 ? layer_top(layer_shading.grey_below_layer) : -1e9f };
+        if (m_layer_moves_signature != geom_signature) {
+            GCodeViewer& viewer = m_canvas.m_gcode_viewer;
+            m_layer_moves.assign(viewer.get_layers_count(), { UINT32_MAX, 0 });
+            for (size_t i = 0; i < viewer.get_vertices_count(); ++i) {
+                const uint32_t layer = viewer.get_gcode_vertex_at(i).layer_id;
+                if (layer < m_layer_moves.size()) {
+                    m_layer_moves[layer][0] = std::min(m_layer_moves[layer][0], uint32_t(i));
+                    m_layer_moves[layer][1] = std::max(m_layer_moves[layer][1], uint32_t(i));
+                }
+            }
+            m_layer_moves_signature = geom_signature;
+        }
+        const auto moves_of = [this](int layer) {
+            if (layer < 0 || size_t(layer) >= m_layer_moves.size() || m_layer_moves[size_t(layer)][0] == UINT32_MAX)
+                return std::array<int, 2>{ 1, 0 };
+            return std::array<int, 2>{ int(m_layer_moves[size_t(layer)][0]), int(m_layer_moves[size_t(layer)][1]) };
+        };
+        const std::array<int, 2> lit_0 = moves_of(layer_shading.lit_layers[0]);
+        const std::array<int, 2> lit_1 = moves_of(layer_shading.lit_layers[1]);
+        lit_layer_moves = { lit_0[0], lit_0[1], lit_1[0], lit_1[1] };
+        grey_below_move = layer_shading.grey_below_layer > 0 ? std::max(moves_of(layer_shading.grey_below_layer)[0], 0) : 0;
     }
-    for (float z : layer_shading_z)
-        combine(z);
+    for (int move : lit_layer_moves)
+        combine(move);
+    combine(grey_below_move);
     combine(layer_shading.dim_brightness);
     combine(layer_shading.kept_vertex);
     // The object views of Prepare, see slope_active in pathtrace.comp.
@@ -2065,7 +2081,6 @@ bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_s
         // The interactive pass runs the same path tracer as the progressive one, so that the image
         // keeps its look while orbiting, with one indirect bounce.
         compute_shader->set_uniform("max_bounces", interactive_pass ? std::min(quality.cfg_bounces, 1) : quality.cfg_bounces);
-        compute_shader->set_uniform("z_min", preview_z_min);
         compute_shader->set_uniform("z_max", preview_z_max);
         compute_shader->set_uniform("move_min", preview_move_min);
         compute_shader->set_uniform("move_max", preview_move_max);
@@ -2083,8 +2098,8 @@ bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_s
         compute_shader->set_uniform("layer_profile_mode", (m_canvas.m_canvas_type == GLCanvas3D::ECanvasType::CanvasPreview) ? 1 : 0);
         compute_shader->set_uniform("is_preview_canvas", m_canvas.m_canvas_type == GLCanvas3D::ECanvasType::CanvasPreview);
         compute_shader->set_uniform("bed_hidden", !source_camera.is_looking_downward());
-        compute_shader->set_uniform("lit_layer_z", std::array<float, 2>{ layer_shading_z[0], layer_shading_z[1] });
-        compute_shader->set_uniform("grey_below_z", layer_shading_z[2]);
+        compute_shader->set_uniform("lit_layer_moves", lit_layer_moves);
+        compute_shader->set_uniform("grey_below_move", grey_below_move);
         compute_shader->set_uniform("layer_dim", layer_shading.dim_brightness);
         compute_shader->set_uniform("kept_vertex", layer_shading.kept_vertex);
         compute_shader->set_uniform("slope_active", slope_active);

@@ -96,7 +96,8 @@ uniform bool camera_orthographic;
 uniform int sample_start;
 uniform int sample_count;
 uniform int max_bounces;
-uniform float z_min;
+// The top of the visible layers, to cull the boxes of the BVH above it; what the sliders hide is hidden
+// by the moves.
 uniform float z_max;
 uniform int move_min;
 uniform int move_max;
@@ -109,11 +110,12 @@ uniform bool is_preview_canvas;
 // Seen from below, the rasterizer draws the bed see-through: the path tracer leaves it out.
 uniform bool bed_hidden;
 // The layers greyed or dimmed around the ones the sliders show, as the rasterized preview draws them
-// (libvgcode::LayerShading): by the top of the layers, not by their ids, which the triangles carry.
-// The layers at lit_layer_z and the toolpath vertex kept_vertex keep their color. The others are
-// scaled by layer_dim in 8 bit sRGB, or, without dimming (layer_dim < 0), grey below grey_below_z.
-uniform vec2 lit_layer_z;
-uniform float grey_below_z;
+// (libvgcode::LayerShading), by the moves of the layers, which the triangles carry. The moves of the
+// two lit layers, first and last in xy and zw, and the toolpath vertex kept_vertex keep their color.
+// The others are scaled by layer_dim in 8 bit sRGB, or, without dimming (layer_dim < 0), grey before
+// the move grey_below_move.
+uniform ivec4 lit_layer_moves;
+uniform int grey_below_move;
 uniform float layer_dim;
 uniform int kept_vertex;
 uniform bool glossy_toolpaths;
@@ -555,7 +557,7 @@ float box_entry(vec3 bmin, vec3 bmax, vec3 inv_dir, vec3 origin_inv, float t_nea
 
 float node_entry(BvhNode node, bool z_cull, vec3 inv_dir, vec3 origin_inv, float t_near, float t_far)
 {
-    if (z_cull && (node.bounds_max.z < z_min || node.bounds_min.z > z_max))
+    if (z_cull && node.bounds_min.z > z_max)
         return -1.0;
     return box_entry(node.bounds_min.xyz, node.bounds_max.xyz, inv_dir, origin_inv, t_near, t_far);
 }
@@ -582,8 +584,6 @@ bool triangle_hidden(Triangle tri)
 {
     if (tri.tag_z < 0.0)
         return false;
-    if (g_has_z_filter && (tri.tag_z < z_min || tri.tag_z > z_max))
-        return true;
     if (g_has_move_filter) {
         uint raw_v_id = tri.vertex_id;
         if (raw_v_id != 0xFFFFFFFFu && ((move_min >= 0 && int(raw_v_id) < move_min) || (move_max >= 0 && int(raw_v_id) > move_max)))
@@ -991,18 +991,19 @@ void contribute(vec3 c, int depth, float scale)
 
 void contribute(vec3 c, int depth) { contribute(c, depth, 1.0); }
 
-// Greying or dimming of a toolpath's layer, see lit_layer_z. Greying replaces the albedo with the
+// Greying or dimming of a toolpath's layer, see lit_layer_moves. Greying replaces the albedo with the
 // rasterized preview's grey. Dimming is a view aid, not a material: the whole surface the camera sees
 // darkens, its highlights included, by the factor returned, the linear equivalent of the 8 bit sRGB
 // scale the rasterizer applies.
-float layer_shading(inout vec3 albedo, float layer_z, uint vertex)
+float layer_shading(inout vec3 albedo, uint vertex)
 {
-    const float same_layer = 1e-3;
-    if (int(vertex) == kept_vertex || abs(layer_z - lit_layer_z.x) < same_layer || abs(layer_z - lit_layer_z.y) < same_layer)
+    int move = int(vertex);
+    if (move == kept_vertex || (move >= lit_layer_moves.x && move <= lit_layer_moves.y) ||
+        (move >= lit_layer_moves.z && move <= lit_layer_moves.w))
         return 1.0;
     if (layer_dim >= 0.0)
         return pow(layer_dim, 2.2);
-    if (layer_z < grey_below_z - same_layer)
+    if (move < grey_below_move)
         albedo = vec3(0.0512695); // sRGB 64
     return 1.0;
 }
@@ -1335,7 +1336,7 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
         bool toolpath = hit.tag >= 0.0;
         bool seam = toolpath && sh.params.z > 3.5;
         if (toolpath && !seam) {
-            float dim = layer_shading(albedo, hit.tag, triangles[hit.tri_index].vertex_id);
+            float dim = layer_shading(albedo, triangles[hit.tri_index].vertex_id);
             if (depth == 0 && trans == 0)
                 throughput *= dim;
         }
@@ -1679,7 +1680,7 @@ void main()
 
     g_has_clipping = dot(clipping_plane.xyz, clipping_plane.xyz) > 0.5;
     g_has_move_filter = (move_min >= 0 || move_max >= 0);
-    g_has_z_filter = (z_min > -1e5 || z_max < 1e5);
+    g_has_z_filter = z_max < 1e5;
     g_interactive = is_interactive_pass;
     g_pixel_seed = hash_u32(uint(pixel.x) + hash_u32(uint(pixel.y) + 0x9e3779b9u));
 

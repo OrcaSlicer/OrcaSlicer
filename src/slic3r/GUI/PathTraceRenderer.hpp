@@ -78,6 +78,10 @@ private:
     // Whether the uploaded scene has shading normals, which do not stay on the CPU.
     bool m_gpu_has_vertex_normals{false};
     std::vector<size_t> m_gpu_tri_vertex_id;
+    // The first and last move of each layer of the toolpaths, for the layer shading, and the geometry
+    // signature they were found for.
+    std::vector<std::array<uint32_t, 2>> m_layer_moves;
+    size_t m_layer_moves_signature{0};
     size_t m_preview_color_signature{0};
     std::chrono::steady_clock::time_point m_last_change_time{};
     unsigned int m_gpu_node_buffer{0};
