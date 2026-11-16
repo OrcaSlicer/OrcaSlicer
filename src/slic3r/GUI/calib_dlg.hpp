@@ -19,7 +19,9 @@
 #include <wx/event.h>
 #include <wx/radiobox.h>
 #include <wx/sizer.h>
+#include <functional>
 #include <memory>
+#include <utility>
 #include "libslic3r/calib.hpp"
 #include "libslic3r/Preset.hpp"
 
@@ -37,13 +39,16 @@ public:
     void apply_to(Calib_Params& params) const;
     // The selected filament's preset, with the filament tab's unsaved edits when the tab has it open.
     const Preset* preset() const;
+    // Called when the user picks a filament and each time the dialog opens.
+    void set_on_change(std::function<void()> on_change) { m_on_change = std::move(on_change); }
 
 private:
     void refresh();
 
-    wxWindow*   m_parent;
-    wxBoxSizer* m_sizer;
-    ::ComboBox* m_combo;
+    wxWindow*             m_parent;
+    wxBoxSizer*           m_sizer;
+    ::ComboBox*           m_combo;
+    std::function<void()> m_on_change;
 };
 
 class PA_Calibration_Dlg : public DPIDialog
@@ -81,17 +86,14 @@ class Temp_Calibration_Dlg : public DPIDialog
 {
 public:
     Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* plater);
-    ~Temp_Calibration_Dlg();
     void on_dpi_changed(const wxRect& suggested_rect) override;
 
 protected:
     
     virtual void on_start(wxCommandEvent& event);
-    virtual void on_filament_type_changed(wxCommandEvent& event);
     void on_show(wxShowEvent& event);
     Calib_Params m_params;
 
-    RadioGroup* m_rbFilamentType;
     RadioGroup* m_rbModel = nullptr;
     wxStaticBoxSizer* m_model_box = nullptr;
     TextInput* m_tiStart;

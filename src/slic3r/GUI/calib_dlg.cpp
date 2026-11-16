@@ -161,10 +161,17 @@ CalibFilamentSelector::CalibFilamentSelector(wxWindow* parent) : m_parent(parent
     m_sizer->Add(label, 0, wxALL | wxALIGN_CENTER_VERTICAL, parent->FromDIP(2));
     m_sizer->Add(m_combo, 1, wxALL | wxALIGN_CENTER_VERTICAL, parent->FromDIP(2));
     refresh();
+    m_combo->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& event) {
+        if (m_on_change)
+            m_on_change();
+        event.Skip();
+    });
     // The dialogs are reused, so the list follows the project's filaments each time one opens.
     parent->Bind(wxEVT_SHOW, [this](wxShowEvent& event) {
         if (event.IsShown()) {
             refresh();
+            if (m_on_change)
+                m_on_change();
             m_parent->GetSizer()->SetSizeHints(m_parent);
         }
         event.Skip();
@@ -500,19 +507,6 @@ void PA_Calibration_Dlg::on_show(wxShowEvent& event) {
 
 // Temp calib dlg
 //
-enum FILAMENT_TYPE : int
-{
-    tPLA = 0,
-    tABS_ASA,
-    tPETG,
-    tPCTG,
-    tTPU,
-    tTPU_AMS,
-    tPA_CF,
-    tPET_CF,
-    tCustom
-};
-
 Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     : DPIDialog(parent, id, _L("Temperature calibration"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE), m_plater(plater)
 {
@@ -524,14 +518,6 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     SetSizer(v_sizer);
     m_filament = std::make_unique<CalibFilamentSelector>(this);
     v_sizer->Add(m_filament->sizer(), 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
-
-    // Method Radio Group
-    auto labeled_box_method = new LabeledStaticBox(this, _L("Filament type"));
-    auto method_box = new wxStaticBoxSizer(labeled_box_method, wxHORIZONTAL);
-
-	m_rbFilamentType = new RadioGroup(this, { _L("PLA"), _L("ABS/ASA"), _L("PETG"), _L("PCTG"), _L("TPU"), _L("PA-CF"), _L("PET-CF"), _L("Custom") }, wxVERTICAL, 2);
-    method_box->Add(m_rbFilamentType, 0, wxALL | wxEXPAND, FromDIP(4));
-    v_sizer->Add(method_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Belt temperature-tower model: Standard (sectioned tower) vs Overhang (engraved
     // inverted-L provini that stress overhang quality per temperature). Only affects
@@ -612,7 +598,29 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
 
     dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &Temp_Calibration_Dlg::on_start, this);
 
-    m_rbFilamentType->Connect(wxEVT_COMMAND_RADIOBOX_SELECTED, wxCommandEventHandler(Temp_Calibration_Dlg::on_filament_type_changed), NULL, this);
+    // Start from the recommended range of the filament being calibrated; keep typed temperatures until it changes.
+    m_filament->set_on_change([this, last_filament = std::string()]() mutable {
+        const Preset*     preset   = m_filament->preset();
+        const std::string filament = preset != nullptr ? preset->name : std::string();
+        if (filament == last_filament)
+            return;
+        last_filament = filament;
+        // In the tower's 5 °C steps, or PLA's range when the filament's leaves no room for a test.
+        int         start_temp = 230;
+        int         end_temp   = 190;
+        const auto* low        = preset != nullptr ? preset->config.option<ConfigOptionInts>("nozzle_temperature_range_low") : nullptr;
+        const auto* high       = preset != nullptr ? preset->config.option<ConfigOptionInts>("nozzle_temperature_range_high") : nullptr;
+        if (low != nullptr && high != nullptr && !low->values.empty() && !high->values.empty()) {
+            const int lo = std::max((low->values.front() + 4) / 5 * 5, 155);
+            const int hi = std::min(high->values.front() / 5 * 5, 500);
+            if (hi >= lo + 5) {
+                start_temp = hi;
+                end_temp   = lo;
+            }
+        }
+        m_tiStart->GetTextCtrl()->SetValue(std::to_string(start_temp));
+        m_tiEnd->GetTextCtrl()->SetValue(std::to_string(end_temp));
+    });
 
     // Refresh the belt-only model picker on every show — the dialog is cached and
     // reused across printer switches.
@@ -657,11 +665,6 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
 
 }
 
-Temp_Calibration_Dlg::~Temp_Calibration_Dlg() {
-    // Disconnect Events
-    m_rbFilamentType->Disconnect(wxEVT_COMMAND_RADIOBOX_SELECTED, wxCommandEventHandler(Temp_Calibration_Dlg::on_filament_type_changed), NULL, this);
-}
-
 void Temp_Calibration_Dlg::on_start(wxCommandEvent& event) {
     bool read_long = false;
     unsigned long start=0,end=0;
@@ -696,48 +699,6 @@ void Temp_Calibration_Dlg::on_show(wxShowEvent& event) {
         Fit();
         GetSizer()->SetSizeHints(this);
     }
-    event.Skip();
-}
-
-void Temp_Calibration_Dlg::on_filament_type_changed(wxCommandEvent& event) {
-    int selection = event.GetSelection();
-    unsigned long start = 0, end = 0;
-    switch(selection)
-    {
-        case tABS_ASA:
-            start = 270;
-            end = 230;
-            break;
-        case tPETG:
-            start = 250;
-            end = 230;
-            break;
-        case tPCTG:
-            start = 280;
-            end = 240;
-            break;
-        case tTPU:
-        case tTPU_AMS:
-            start = 240;
-            end = 210;
-            break;
-        case tPA_CF:
-            start = 320;
-            end = 280;
-            break;
-        case tPET_CF:
-            start = 320;
-            end = 280;
-            break;
-        case tPLA:
-        case tCustom:
-            start = 230;
-            end = 190;
-            break;
-    }
-
-    m_tiEnd->GetTextCtrl()->SetValue(std::to_string(end));
-    m_tiStart->GetTextCtrl()->SetValue(std::to_string(start));
     event.Skip();
 }
 
