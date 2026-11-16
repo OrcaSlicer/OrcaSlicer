@@ -1,0 +1,59 @@
+{
+ "brand": "printedsolid",
+ "vendor": "Printed Solid",
+ "source": "OpenPrintTag material database",
+ "url": "https://github.com/OpenPrintTag/openprinttag-database",
+ "license": "MIT",
+ "copyright": "Copyright 2025 Prusa Research a.s.",
+ "unit": "mm",
+ "filaments": [
+  {
+   "name": "Jessie Premium PLA 3DPN Vanilla Bean Ice Cream",
+   "type": "PLA",
+   "color": "#acb1ba",
+   "td": 2.3
+  },
+  {
+   "name": "Jessie Premium PLA Bold Blue",
+   "type": "PLA",
+   "color": "#2e56f1",
+   "td": 2.4
+  },
+  {
+   "name": "Jessie Premium PLA Golden Winner Glitter",
+   "type": "PLA",
+   "color": "#816300",
+   "td": 2.7
+  },
+  {
+   "name": "Jessie Premium PLA Green Slime Glitter",
+   "type": "PLA",
+   "color": "#a1ac21",
+   "td": 3.7
+  },
+  {
+   "name": "Jessie Premium PLA Limer Green",
+   "type": "PLA",
+   "color": "#7fe200",
+   "td": 2.0
+  },
+  {
+   "name": "Jessie Premium PLA Neon Green",
+   "type": "PLA",
+   "color": "#c4dc00",
+   "td": 9.0
+  },
+  {
+   "name": "Jessie Premium PLA Quarter White",
+   "type": "PLA",
+   "color": "#efefef",
+   "td": 6.1
+  },
+  {
+   "name": "Jessie Premium PLA White",
+   "type": "PLA",
+   "color": "#ffffff",
+   "td": 3.1
+  }
+ ]
+}
