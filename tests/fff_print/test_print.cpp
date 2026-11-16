@@ -1934,10 +1934,11 @@ TEST_CASE("Sequential printing counts a raft toward whether an object is short",
 namespace {
 
 // A row of 10 mm wide cubes along X, `gap` mm apart edge to edge, printed by object with two filaments. `overrides[i]`
-// sets the filaments of cube i, `heights[i]` its height (10 mm when not given). The toolhead radius of 20 mm needs a gap
-// of about 20 mm between cubes printed apart.
+// sets the filaments of cube i, `heights[i]` its height (10 mm when not given), `extra` any other setting. The toolhead
+// radius of 20 mm needs a gap of about 20 mm between cubes printed apart.
 void place_cubes_by_filament(const std::vector<std::vector<ConfigBase::SetDeserializeItem>> &overrides, double gap, bool group,
-                             Print &print, Model &model, const std::vector<double> &heights = {})
+                             Print &print, Model &model, const std::vector<double> &heights = {},
+                             const std::vector<ConfigBase::SetDeserializeItem> &extra = {})
 {
     std::vector<TriangleMesh> meshes;
     for (size_t i = 0; i < overrides.size(); ++i) {
@@ -1957,6 +1958,8 @@ void place_cubes_by_filament(const std::vector<std::vector<ConfigBase::SetDeseri
         { "brim_type",                        "no_brim" },
         { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
     });
+    for (const ConfigBase::SetDeserializeItem &item : extra)
+        config.set_deserialize_strict(item.opt_key, item.opt_value);
     init_print(std::move(meshes), print, model, config, &overrides, /*arrange=*/false);
 }
 
@@ -2079,6 +2082,23 @@ TEST_CASE("Sequential printing needs toolhead clearance only between groups when
     const std::string error = print.validate().string;
     INFO(error);
     CHECK((error.find("too close to others") != std::string::npos) == too_close);
+}
+
+TEST_CASE("Sequential printing gives a group one per-object skirt when grouped by filament", "[Print]")
+{
+    // Two cubes of filament 1, 5 mm apart, each with a skirt loop 3 mm out, so the two skirts would cross. Printed
+    // together as one group, layer by layer, the cubes share one skirt, as printing by layer does, and the plate slices.
+    Print print;
+    Model model;
+    place_cubes_by_filament({ { { "extruder", 1 } }, { { "extruder", 1 } } }, 5., /*group=*/true, print, model, {},
+                            { { "skirt_type", "perobject" }, { "skirt_loops", 1 }, { "skirt_distance", 3 }, { "skirt_height", 1 } });
+    const std::string error = print.validate().string;
+    INFO(error);
+    REQUIRE(error.empty());
+
+    std::string gcode;
+    REQUIRE_NOTHROW(gcode = Test::gcode(print));
+    CHECK(role_passes(gcode, "skirt") == 1);
 }
 
 TEST_CASE("Sequential printing lets the last group reach above the rod when grouped by filament", "[Print]")

@@ -4638,11 +4638,36 @@ void Print::_make_skirt()
             return brims;
         };
 
+        // Orca: with group_objects_by_filament the instances of a group print together, layer by layer, so a skirt they
+        // share is printed once, as in By layer. Only a skirt shared by instances of different groups can't be printed.
+        std::map<ObjectInstanceID, size_t> print_group_of;
+        if (m_config.print_sequence == PrintSequence::ByObject && m_config.group_objects_by_filament) {
+            std::vector<const PrintInstance*> all_instances;
+            for (const PrintObject *object : m_objects)
+                for (const PrintInstance &instance : object->instances())
+                    all_instances.push_back(&instance);
+            const std::vector<std::vector<const PrintInstance*>> print_groups = this->sequential_print_groups(all_instances);
+            for (size_t idx = 0; idx < print_groups.size(); ++idx)
+                for (const PrintInstance *instance : print_groups[idx])
+                    print_group_of[{ instance->print_object->id(), size_t(instance - instance->print_object->instances().data()) }] = idx;
+        }
+        auto spans_print_groups = [&print_group_of](const std::vector<ObjectInstanceID> &instances) {
+            if (instances.size() < 2)
+                return false;
+            if (print_group_of.empty())
+                return true;
+            const auto first = print_group_of.find(instances.front());
+            return std::any_of(instances.begin(), instances.end(), [&](const ObjectInstanceID &instance) {
+                const auto it = print_group_of.find(instance);
+                return first == print_group_of.end() || it == print_group_of.end() || it->second != first->second;
+            });
+        };
+
         auto grouped_points = build_skirt_brim_groups();
         for (auto& [_, group] : grouped_points) {
             if (!group.emits_skirt || group.points.size() < 3)
                 continue;
-            if (generate_skirt && m_config.skirt_type == stPerObject && group.instances.size() > 1)
+            if (generate_skirt && m_config.skirt_type == stPerObject && spans_print_groups(group.instances))
                 m_has_shared_per_object_skirt = true;
             // Orca: Group points already include the occupied outline, so don't
             // add skirt distance here again.
