@@ -3571,30 +3571,29 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
             m_frame_profiler.mark("bed");
             _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, true, hover_id);
             m_frame_profiler.mark("plates");
-            if (m_path_tracer->render(camera, cnv_size)) {
-                const auto& layers_range = m_gcode_viewer.get_layers_z_range();
-                const std::vector<double> layer_zs = m_gcode_viewer.get_layers_zs();
-                const bool has_unprinted_layers = !layer_zs.empty() && (layers_range[1] + 1 < layer_zs.size());
+            const auto& layers_range = m_gcode_viewer.get_layers_z_range();
+            const std::vector<double> layer_zs = m_gcode_viewer.get_layers_zs();
+            // The shells of the layers not shown, under the path traced toolpaths, which cover them
+            // as they cover them in the rasterized preview.
+            std::function<void()> draw_shells;
+            if (!layer_zs.empty() && layers_range[1] + 1 < layer_zs.size())
+                draw_shells = [this, min_z = float(layer_zs[layers_range[1]])]() {
+                    m_gcode_viewer.m_shells.volumes.set_z_range(min_z, 1e6f);
+                    m_gcode_viewer.render_shells();
+                    m_gcode_viewer.m_shells.volumes.set_z_range(-1e6f, 1e6f);
+                };
+            if (m_path_tracer->render(camera, cnv_size, draw_shells)) {
                 // The toolhead marker stands at the current move while the moves are scrubbed.
-                const bool has_unprinted_moves = m_gcode_viewer.get_gcode_view_visible_range().back() !=
-                                                 m_gcode_viewer.get_gcode_view_full_range().back();
-                // The depth of the toolpaths, so that the print hides the shells and the marker
-                // behind it as in the rasterized preview.
-                if (has_unprinted_layers || has_unprinted_moves) {
+                if (m_gcode_viewer.get_gcode_view_visible_range().back() != m_gcode_viewer.get_gcode_view_full_range().back()) {
+                    // The depth of the toolpaths, so that the print hides the marker behind it as in
+                    // the rasterized preview.
                     glsafe(::glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE));
                     glsafe(::glEnable(GL_DEPTH_TEST));
                     glsafe(::glDepthMask(GL_TRUE));
                     m_gcode_viewer.render_toolpaths();
                     glsafe(::glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
-                }
-                if (has_unprinted_layers) {
-                    const float min_z = float(layer_zs[layers_range[1]]);
-                    m_gcode_viewer.m_shells.volumes.set_z_range(min_z, 1e6f);
-                    m_gcode_viewer.render_shells();
-                    m_gcode_viewer.m_shells.volumes.set_z_range(-1e6f, 1e6f);
-                }
-                if (has_unprinted_moves)
                     m_gcode_viewer.render_markers(cnv_size.get_width(), cnv_size.get_height());
+                }
                 m_frame_profiler.mark("path tracing");
                 pathtraced_rendered = true;
             }

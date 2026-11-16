@@ -6,6 +6,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <future>
 #include <memory>
 #include <numeric>
@@ -48,7 +49,8 @@ public:
     bool is_enabled() const;
 
     // Draws the scene over the rasterized bed, false if the rasterizer has to draw it instead.
-    bool render(const Camera& source_camera, const Size& canvas_size);
+    // draw_under draws what the path traced scene covers, with the depth test on, after the bed is lit.
+    bool render(const Camera& source_camera, const Size& canvas_size, const std::function<void()>& draw_under = {});
     // Whether the image on screen is final, so that the scene cache may keep it.
     bool is_frame_final() const;
     void render_fps_overlay(ImGuiWrapper& imgui) const;
@@ -237,8 +239,8 @@ private:
     // Resolves the accumulation of the last pass into the interactive or the full resolution display
     // images, through the denoiser.
     void resolve_image(GLShaderProgram& shader, bool interactive, uint32_t width, uint32_t height, uint32_t samples);
-    // Composites the path traced display images over the rasterized bed.
-    void render_composite();
+    // Composites the path traced display images over the rasterized bed and what draw_under draws.
+    void render_composite(const std::function<void()>& draw_under);
 };
 
 } // namespace GUI

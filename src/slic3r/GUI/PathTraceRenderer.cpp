@@ -306,6 +306,15 @@ int sss_mode_for_extruder(const std::vector<int>& families, size_t extruder_idx,
     return family;
 }
 
+// The options the rasterized preview draws as points, which the path tracer draws as double cones.
+constexpr std::array<libvgcode::EOptionType, 7> PREVIEW_MARKER_OPTIONS = {
+    libvgcode::EOptionType::Seams,       libvgcode::EOptionType::Retractions,  libvgcode::EOptionType::Unretractions,
+    libvgcode::EOptionType::ToolChanges, libvgcode::EOptionType::ColorChanges, libvgcode::EOptionType::PausePrints,
+    libvgcode::EOptionType::CustomGCodes };
+// The opacity the triangles of a marker carry: the shader draws them opaque and, as the rasterizer
+// does, a little in front of the toolpaths they sit in.
+constexpr float PREVIEW_MARKER_OPACITY = 2.0f;
+
 } // namespace
 
 bool PathTraceRenderer::is_available()
@@ -533,7 +542,7 @@ PathTraceRenderer::SceneBuildResult PathTraceRenderer::build_scene_async(
                     if (job.source_tri_vertex_id[src_idx] == SIZE_MAX) {
                         result.gpu_scene.shadings[i].albedo = PLATE_ALBEDO;
                     } else {
-                        result.gpu_scene.shadings[i].albedo[3] = tri_opacity;
+                        result.gpu_scene.shadings[i].albedo[3] = std::min(tri_opacity, 1.0f);
                     }
                 }
             }
@@ -947,50 +956,65 @@ void PathTraceRenderer::extract_preview_toolpaths(
             }
         }
 
-        // Add option markers (seams) into the BVH scene so they are physically path traced
-        if (m_canvas.m_gcode_viewer.is_option_visible(libvgcode::EOptionType::Seams)) {
-            const ColorRGBA seam_col = m_canvas.m_gcode_viewer.get_option_color(libvgcode::EOptionType::Seams);
-            const Vec4f seam_albedo = to_linear_albedo(seam_col.r(), seam_col.g(), seam_col.b(), 1.0f);
-
+        // The markers of the options the legend shows, which the rasterized preview draws as points:
+        // its double cones in the colors of the legend, half self-illuminated and casting no shadow
+        // in the shader. Several on one spot, as a retraction and its unretraction often are, nest,
+        // each a little smaller than the one before, rather than fight for the same surface.
+        std::array<bool, libvgcode::OPTION_TYPES_COUNT> marker_visible{};
+        std::array<Vec4f, libvgcode::OPTION_TYPES_COUNT> marker_albedo{};
+        std::array<float, libvgcode::OPTION_TYPES_COUNT> marker_scale{};
+        bool any_marker = false;
+        for (size_t k = 0; k < PREVIEW_MARKER_OPTIONS.size(); ++k) {
+            const size_t option = size_t(PREVIEW_MARKER_OPTIONS[k]);
+            marker_visible[option] = m_canvas.m_gcode_viewer.is_option_visible(PREVIEW_MARKER_OPTIONS[k]);
+            any_marker = any_marker || marker_visible[option];
+            const ColorRGBA color = m_canvas.m_gcode_viewer.get_option_color(PREVIEW_MARKER_OPTIONS[k]);
+            marker_albedo[option] = to_linear_albedo(color.r(), color.g(), color.b(), 1.0f);
+            marker_scale[option] = 1.0f - 0.06f * float(k);
+        }
+        if (any_marker) {
             for (size_t i = 0; i < total_vertices; ++i) {
                 const libvgcode::PathVertex& v = m_canvas.m_gcode_viewer.get_gcode_vertex_at(i);
-                if (v.type != libvgcode::EMoveType::Seam)
+                if (!v.is_option())
                     continue;
+                const size_t option = size_t(libvgcode::move_type_to_option(v.type));
+                if (option >= marker_visible.size() || !marker_visible[option])
+                    continue;
+                const Vec4f& marker_color = marker_albedo[option];
 
+                // The size, the place and the 16 sides of the rasterizer's marker (libvgcode's
+                // OptionTemplate scaled by its options shader).
                 const float h = (v.height > 0.01f ? v.height : 0.20f);
                 const float w = (v.width > 0.01f ? v.width : 0.45f);
-                const float half_h = 0.75f * h;
-                const float r = 0.75f * w;
+                const float half_h = 0.75f * h * marker_scale[option];
+                const float r = 0.75f * w * marker_scale[option];
                 const Vec3f center{v.position[0], v.position[1], v.position[2] - 0.5f * h};
                 const Vec3f top = center + Vec3f(0.0f, 0.0f, half_h);
                 const Vec3f bot = center - Vec3f(0.0f, 0.0f, half_h);
-                const Vec3f pe  = center + Vec3f(r, 0.0f, 0.0f);
-                const Vec3f pw  = center - Vec3f(r, 0.0f, 0.0f);
-                const Vec3f pn  = center + Vec3f(0.0f, r, 0.0f);
-                const Vec3f ps  = center - Vec3f(0.0f, r, 0.0f);
 
                 const auto add_tri = [&](const Vec3f& pA, const Vec3f& pB, const Vec3f& pC) {
                     PathTraceTriangle tri;
                     tri.a = pA; tri.b = pB; tri.c = pC;
-                    tri.albedo = seam_albedo;
+                    tri.albedo = marker_color;
                     job.preview_triangles.push_back(std::move(tri));
                     job.source_tri_vertex_id.push_back(i);
                     job.source_tri_tag_z.push_back(center.z());
                     job.source_tri_height.push_back(h);
                     job.source_tri_role.push_back(0.35f);
-                    job.source_tri_facet.push_back(4.0f); // 4.0 for seam diamond
+                    job.source_tri_facet.push_back(4.0f); // 4.0 for a marker
                     job.source_tri_delta_angle.push_back(0.0f);
-                    job.source_tri_opacity.push_back(1.0f);
+                    job.source_tri_opacity.push_back(PREVIEW_MARKER_OPACITY);
                 };
 
-                add_tri(top, pe, pn);
-                add_tri(top, pn, pw);
-                add_tri(top, pw, ps);
-                add_tri(top, ps, pe);
-                add_tri(bot, pn, pe);
-                add_tri(bot, pw, pn);
-                add_tri(bot, ps, pw);
-                add_tri(bot, pe, ps);
+                constexpr int sides = 16;
+                for (int s = 0; s < sides; ++s) {
+                    const float a0 = 2.0f * float(PI) * float(s) / float(sides);
+                    const float a1 = 2.0f * float(PI) * float(s + 1) / float(sides);
+                    const Vec3f p0 = center + Vec3f(r * std::cos(a0), r * std::sin(a0), 0.0f);
+                    const Vec3f p1 = center + Vec3f(r * std::cos(a1), r * std::sin(a1), 0.0f);
+                    add_tri(top, p0, p1);
+                    add_tri(bot, p1, p0);
+                }
             }
         }
     }
@@ -1308,7 +1332,7 @@ void PathTraceRenderer::update_instances_and_tlas(size_t transform_signature)
     m_transform_signature = transform_signature;
 }
 
-void PathTraceRenderer::render_composite()
+void PathTraceRenderer::render_composite(const std::function<void()>& draw_under)
 {
     // The interactive image stays on screen until the first full resolution sample is complete.
     const bool show_interactive = m_gpu_samples < 2 && m_gpu_interactive_size[0] > 0;
@@ -1325,6 +1349,13 @@ void PathTraceRenderer::render_composite()
     glsafe(::glEnable(GL_BLEND));
     glsafe(::glBlendFuncSeparate(GL_DST_COLOR, GL_SRC_COLOR, GL_ZERO, GL_ONE));
     render_pathtrace_fullscreen_texture(m_canvas.m_background, bed_tex, u, v);
+    if (draw_under) {
+        glsafe(::glDisable(GL_BLEND));
+        glsafe(::glEnable(GL_DEPTH_TEST));
+        draw_under();
+        glsafe(::glDisable(GL_DEPTH_TEST));
+        glsafe(::glEnable(GL_BLEND));
+    }
     // Pass 2: path traced objects over the modulated bed, in premultiplied color, which stays right
     // when the image is scaled up. Destination alpha stays at 1, or a Wayland compositor would treat
     // the edges of the objects as window transparency.
@@ -1472,8 +1503,8 @@ void PathTraceRenderer::update_scene_colors(const std::vector<ColorRGBA>& extrud
                 const ColorRGBA opt_col = m_canvas.m_gcode_viewer.get_option_color(libvgcode::move_type_to_option(v.type));
                 const Vec4f lin_opt = to_linear_albedo(opt_col.r(), opt_col.g(), opt_col.b(), 1.0f);
                 m_gpu_scene.shadings[i].albedo = {lin_opt.x(), lin_opt.y(), lin_opt.z(), 1.0f};
-                if (std::abs(m_gpu_scene.triangles[i].c[3] - 1.0f) > 1e-4f) {
-                    m_gpu_scene.triangles[i].c[3] = 1.0f;
+                if (m_gpu_scene.triangles[i].c[3] != PREVIEW_MARKER_OPACITY) {
+                    m_gpu_scene.triangles[i].c[3] = PREVIEW_MARKER_OPACITY;
                     any_opacity_changed = true;
                 }
                 continue;
@@ -1642,7 +1673,7 @@ void PathTraceRenderer::read_back_gpu_times(int write_query_idx, int read_query_
     }
 }
 
-bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_size)
+bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_size, const std::function<void()>& draw_under)
 {
     size_t geom_signature = 0;
     const auto combine_geom = [&geom_signature](const auto& value) { boost::hash_combine(geom_signature, value); };
@@ -1717,7 +1748,8 @@ bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_s
             combine_geom(v);
         for (size_t r = 0; r < libvgcode::GCODE_EXTRUSION_ROLES_COUNT; ++r)
             combine_geom(size_t(m_canvas.m_gcode_viewer.is_extrusion_role_visible(libvgcode::EGCodeExtrusionRole(r))));
-        combine_geom(size_t(m_canvas.m_gcode_viewer.is_option_visible(libvgcode::EOptionType::Seams)));
+        for (const libvgcode::EOptionType option : PREVIEW_MARKER_OPTIONS)
+            combine_geom(size_t(m_canvas.m_gcode_viewer.is_option_visible(option)));
         if (m_canvas.m_gcode_viewer.has_data() && m_canvas.m_gcode_viewer.get_vertices_count() > 0) {
             const libvgcode::Interval& visible_range = m_canvas.m_gcode_viewer.get_gcode_view_visible_range();
             const libvgcode::Interval& full_range    = m_canvas.m_gcode_viewer.get_gcode_view_full_range();
@@ -2036,7 +2068,7 @@ bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_s
 
     if (!interactive && m_gpu_samples >= 1 && ImGui::IsAnyItemActive()) {
         m_canvas.schedule_extra_frame(16);
-        render_composite();
+        render_composite(draw_under);
         return true;
     }
 
@@ -2290,7 +2322,7 @@ bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_s
         m_canvas.schedule_extra_frame(60);
     }
 
-    render_composite();
+    render_composite(draw_under);
     m_canvas.m_frame_profiler.mark("pt composite");
     return true;
 }

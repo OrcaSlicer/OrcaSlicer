@@ -168,6 +168,11 @@ const float EDGE_TOLERANCE = 2e-4;
 const uint NO_HIT = 0xFFFFFFFFu;
 
 const float OPAQUE_OPACITY = 0.96;
+// The triangles of the markers of the preview carry an opacity of 2. A closest hit takes them as if
+// they were this much nearer, in mm, as the rasterizer moves them toward the eye so that they show
+// on the toolpaths they sit in.
+const float MARKER_OPACITY = 1.5;
+const float MARKER_BIAS = 0.1;
 // Index of refraction of PLA, PETG, ABS and their kin.
 const float IOR = 1.5;
 // The opacity of a filament color is that of this thickness of filament, in mm.
@@ -229,6 +234,9 @@ bool g_interactive = false;
 // Distances along the current ray between which the section view keeps geometry.
 float g_clip_near = 0.0;
 float g_clip_far = FLT_BIG;
+// How far behind the closest hit so far the boxes of the BVH may begin: a marker there may still be
+// nearer by its bias.
+float g_hit_slack = 0.0;
 
 uint g_pixel_seed = 0u;
 uint g_sample_index = 0u;
@@ -629,12 +637,15 @@ void closest_leaf_test(uint i, Ray local_ray, float loc_scale, uint inst_idx, in
     vec2 bary;
     float det;
     float t_local = intersect_triangle(tri, local_ray.origin, local_ray.direction, EDGE_TOLERANCE, bary, det);
-    if (t_local < ray_epsilon || t_local >= hit.distance * loc_scale)
+    if (t_local < ray_epsilon)
         return;
     float t_world = t_local / loc_scale;
+    float t_rank = opacity > MARKER_OPACITY ? max(t_world - MARKER_BIAS, 0.5 * t_world) : t_world;
+    if (t_rank >= hit.distance)
+        return;
     if (g_has_clipping && tri.tag_z > -1.5 && (t_world < g_clip_near || t_world > g_clip_far))
         return;
-    hit.distance = t_world;
+    hit.distance = t_rank;
     hit.bary = bary;
     hit.tag = tri.tag_z;
     hit.opacity = clamp(opacity, 0.0, 1.0);
@@ -655,7 +666,8 @@ bool shadow_leaf_test(uint i, Ray local_ray, float loc_scale)
     if (triangle_hidden(tri))
         return false;
     float opacity = tri.opacity;
-    if (opacity < 0.01)
+    // The markers of the preview cast no shadow.
+    if (opacity < 0.01 || opacity > MARKER_OPACITY)
         return false;
     bool opaque = opacity >= OPAQUE_OPACITY;
     vec2 bary;
@@ -666,15 +678,12 @@ bool shadow_leaf_test(uint i, Ray local_ray, float loc_scale)
     float t_world = t_local / loc_scale;
     if (g_has_clipping && tri.tag_z > -1.5 && (t_world < g_clip_near || t_world > g_clip_far))
         return false;
-    Shading sh = shadings[i];
-    // Seam markers cast no shadow.
-    if (sh.params.z > 3.5)
-        return false;
     if (opaque) {
         g_sh_blocked = true;
         return true;
     }
 
+    Shading sh = shadings[i];
     vec3 e1 = tri.b.xyz - tri.a.xyz;
     vec3 e2 = tri.c.xyz - tri.a.xyz;
     float cos_i = clamp(abs(det) / max(length(cross(e1, e2)), 1e-20), 0.0, 1.0);
@@ -711,7 +720,7 @@ bool traverse_blas(int mode, uint root, bool is_print_inst, uint inst_idx, Ray l
     vec3 origin_inv = local_ray.origin * local_inv_dir;
 
     BvhNode node = nodes[root];
-    if (node_entry(node, z_cull, local_inv_dir, origin_inv, t_near, min(clip_far, hit.distance * loc_scale)) < 0.0)
+    if (node_entry(node, z_cull, local_inv_dir, origin_inv, t_near, min(clip_far, (hit.distance + g_hit_slack) * loc_scale)) < 0.0)
         return false;
 
     uint stack_index[32];
@@ -723,7 +732,7 @@ bool traverse_blas(int mode, uint root, bool is_print_inst, uint inst_idx, Ray l
             uint left = uint(node.left_or_first);
             BvhNode node_a = nodes[left];
             BvhNode node_b = nodes[left + 1u];
-            float t_far = min(clip_far, hit.distance * loc_scale);
+            float t_far = min(clip_far, (hit.distance + g_hit_slack) * loc_scale);
             float d_a = node_entry(node_a, z_cull, local_inv_dir, origin_inv, t_near, t_far);
             float d_b = node_entry(node_b, z_cull, local_inv_dir, origin_inv, t_near, t_far);
             if (d_a >= 0.0 && d_b >= 0.0) {
@@ -769,7 +778,7 @@ bool visit_instance(int mode, uint inst_idx, Ray ray, vec3 inv_dir, vec3 origin_
     // The bed casts no shadow.
     if ((mode == TRAVERSE_SHADOW || bed_hidden) && bmin.w < 0.0)
         return false;
-    if (test_bounds && box_entry(bmin.xyz, bmax.xyz, inv_dir, origin_inv, ray_epsilon, hit.distance) < 0.0)
+    if (test_bounds && box_entry(bmin.xyz, bmax.xyz, inv_dir, origin_inv, ray_epsilon, hit.distance + g_hit_slack) < 0.0)
         return false;
 
     Ray local_ray = ray;
@@ -796,6 +805,7 @@ void traverse_scene(int mode, Ray ray, inout Hit hit)
     if (instance_count <= 0)
         return;
     setup_clip_interval(ray);
+    g_hit_slack = mode == TRAVERSE_CLOSEST && is_preview_canvas ? MARKER_BIAS : 0.0;
     vec3 inv_dir = 1.0 / safe_ray_dir3(ray.direction);
     vec3 origin_inv = ray.origin * inv_dir;
 
@@ -806,7 +816,7 @@ void traverse_scene(int mode, Ray ray, inout Hit hit)
     uint stack_index[16];
     int stack_size = 0;
     BvhNode node = tlas_nodes[0];
-    bool walking = use_tlas && box_entry(node.bounds_min.xyz, node.bounds_max.xyz, inv_dir, origin_inv, ray_epsilon, hit.distance) >= 0.0;
+    bool walking = use_tlas && box_entry(node.bounds_min.xyz, node.bounds_max.xyz, inv_dir, origin_inv, ray_epsilon, hit.distance + g_hit_slack) >= 0.0;
     while (true) {
         uint inst_idx = 0u;
         if (!use_tlas) {
@@ -821,8 +831,8 @@ void traverse_scene(int mode, Ray ray, inout Hit hit)
                     uint left = uint(node.left_or_first);
                     BvhNode node_a = tlas_nodes[left];
                     BvhNode node_b = tlas_nodes[left + 1u];
-                    float d_a = box_entry(node_a.bounds_min.xyz, node_a.bounds_max.xyz, inv_dir, origin_inv, ray_epsilon, hit.distance);
-                    float d_b = box_entry(node_b.bounds_min.xyz, node_b.bounds_max.xyz, inv_dir, origin_inv, ray_epsilon, hit.distance);
+                    float d_a = box_entry(node_a.bounds_min.xyz, node_a.bounds_max.xyz, inv_dir, origin_inv, ray_epsilon, hit.distance + g_hit_slack);
+                    float d_b = box_entry(node_b.bounds_min.xyz, node_b.bounds_max.xyz, inv_dir, origin_inv, ray_epsilon, hit.distance + g_hit_slack);
                     if (d_a >= 0.0 && d_b >= 0.0) {
                         uint far_index = left + 1u;
                         if (d_b < d_a) {
@@ -1336,8 +1346,8 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
         vec3 albedo = sh.albedo.rgb;
         float opacity = hit.opacity;
         bool toolpath = hit.tag >= 0.0;
-        bool seam = toolpath && sh.params.z > 3.5;
-        if (toolpath && !seam) {
+        bool marker = toolpath && sh.params.z > 3.5;
+        if (toolpath && !marker) {
             float dim = layer_shading(albedo, triangles[hit.tri_index].vertex_id);
             if (depth == 0 && trans == 0)
                 throughput *= dim;
@@ -1355,7 +1365,7 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
         float diffuse_scale = 1.0;
         float spec_scale = 1.0;
         // Synthetic bead normals only where the camera sees the surface; bounces use the facets.
-        if (toolpath && depth == 0 && !seam && trans < 3)
+        if (toolpath && depth == 0 && !marker && trans < 3)
             ns = toolpath_shading_normal(hit, sh, v, diffuse_scale, spec_scale);
         if (dot(ns, v) < 1e-3)
             ns = ng;
@@ -1366,8 +1376,8 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
             aux_albedo = vec4(clamp(albedo, vec3(0.0), vec3(1.0)), opacity < OPAQUE_OPACITY ? CLASS_TRANSLUCENT : CLASS_OPAQUE);
         }
 
-        if (seam) {
-            // Seam markers stay readable: half lit, half self-illuminated, never shadowed.
+        if (marker) {
+            // The markers of the preview stay readable: half lit, half self-illuminated, never shadowed.
             float e = sky_irradiance(ns) + 0.70 * max(dot(ns, key_base), 0.0) + 0.22 * max(dot(ns, fill_dir), 0.0);
             contribute(throughput * albedo * (0.35 + 0.65 * max(0.20, e)), depth);
             done = true;
