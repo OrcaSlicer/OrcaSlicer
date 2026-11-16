@@ -2,6 +2,12 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include "libslic3r/Time.hpp"
+#include "libslic3r/Utils.hpp"
+
+#include <boost/date_time/gregorian/gregorian_types.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/date_time/posix_time/ptime.hpp>
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
 
 #include <ctime>
 #include <sstream>
@@ -50,4 +56,37 @@ TEST_CASE("Slic3r_UTC_Time_Format", "[Timeutils]") {
     std::string date = Slic3r::Utils::utc_timestamp(t);
     
     REQUIRE(date == mydate);
+}
+
+TEST_CASE("format_clock_time", "[Timeutils]") {
+    using Slic3r::format_clock_time;
+
+    // 24-hour output is the unchanged default look.
+    REQUIRE(format_clock_time(0, 5, false) == "00:05");
+    REQUIRE(format_clock_time(13, 30, false) == "13:30");
+    REQUIRE(format_clock_time(23, 59, false, 7) == "23:59:07");
+
+    // 12-hour: midnight is 12 AM, noon is 12 PM.
+    REQUIRE(format_clock_time(0, 5, true) == "12:05 AM");
+    REQUIRE(format_clock_time(9, 0, true) == "09:00 AM");
+    REQUIRE(format_clock_time(12, 0, true) == "12:00 PM");
+    REQUIRE(format_clock_time(13, 30, true) == "01:30 PM");
+    REQUIRE(format_clock_time(23, 59, true, 7) == "11:59:07 PM");
+}
+
+TEST_CASE("The print end time follows the clock format and carries the days it is away", "[Timeutils]") {
+    using namespace boost::posix_time;
+    const ptime now(boost::gregorian::date(2026, 10, 16), hours(10) + minutes(0));
+
+    REQUIRE(Slic3r::get_bbl_monitor_end_time_dhm(0.f).empty());
+    REQUIRE(Slic3r::get_bbl_monitor_end_time_dhm(0.f, true, now).empty());
+
+    // 24-hour, with and without a day offset
+    CHECK(Slic3r::get_bbl_monitor_end_time_dhm(3600.f, false, now) == "11:00");
+    CHECK(Slic3r::get_bbl_monitor_end_time_dhm(15 * 3600.f, false, now) == "01:00 +1");
+    CHECK(Slic3r::get_bbl_monitor_end_time_dhm(63 * 3600.f, false, now) == "01:00 +3");
+
+    // 12-hour keeps the same offset after AM/PM
+    CHECK(Slic3r::get_bbl_monitor_end_time_dhm(3600.f, true, now) == "11:00 AM");
+    CHECK(Slic3r::get_bbl_monitor_end_time_dhm(15 * 3600.f, true, now) == "01:00 AM +1");
 }
