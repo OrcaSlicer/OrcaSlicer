@@ -1091,7 +1091,7 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     }
     imgui_wrapper->disabled_end();
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-        imgui_wrapper->tooltip(_L("Move the selection in X and Y to the center of the current plate."), ImGui::GetFontSize() * 20.0f);
+        imgui_wrapper->tooltip(_L("Move the selection in X and Y to the center of the current plate, even if it is on another plate."), ImGui::GetFontSize() * 20.0f);
 
     ImGui::SameLine();
     GLGizmoUtils::begin_right_aligned_buttons({ _L("Done") });
