@@ -201,6 +201,10 @@ enum class NotificationType
     // One aggregate notice that installed OrcaCloud plugins have updates. "More" opens the
     // Plugins dialog, where the updates can be installed.
     OrcaCloudPluginUpdateAvailable,
+    // A verified application update is in the cache. Persistent, with an "Install update"
+    // action that opens the update dialog. Not registered in basic_notifications: it is
+    // pushed with the explicit level, text, hypertext and callback overload.
+    AppUpdateReady,
     NotificationTypeCount
 
 };

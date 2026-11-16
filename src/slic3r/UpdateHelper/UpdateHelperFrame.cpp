@@ -290,9 +290,7 @@ UpdateHelperFrame::UpdateHelperFrame(const UpdateHandoff& handoff, Mode mode)
     Bind(wxEVT_BUTTON, &UpdateHelperFrame::on_cancel, this, wxID_CANCEL);
     Bind(wxEVT_CLOSE_WINDOW, &UpdateHelperFrame::on_close, this);
 
-    const char* mode_name = m_mode == Mode::Prefetch    ? "prefetch"
-                          : m_mode == Mode::InstallOnly ? "install-only"
-                                                        : "interactive";
+    const char* mode_name = m_mode == Mode::Prefetch ? "prefetch" : "interactive";
     m_log.write(std::string("update helper started in ") + mode_name + " mode for version " + handoff.version +
                 " on the " + handoff.channel + " channel");
 }
@@ -367,7 +365,7 @@ void UpdateHelperFrame::finish(int code, const wxString& message, bool alert)
     m_worker_done.store(true);
     // The application closed itself for this update: if the update does not go
     // through, start it again rather than leave the user without one. A silent run
-    // must not: the user quit deliberately and the next start reports the failure.
+    // has no window to say that in, so it leaves the message for the next start.
     const bool relaunch = code != 0 && m_parent_gone && !silent();
     wxTheApp->CallAfter([this, message, alert, relaunch, code]() {
         if (relaunch && !relaunch_app(m_handoff))
@@ -624,21 +622,7 @@ bool UpdateHelperFrame::check_artifact(const fs::path& artifact)
         m_log.write("the artifact disappeared while it was being verified");
     }
 
-    if (m_mode == Mode::InstallOnly) {
-        if (content_failure) {
-            fail(1, error);
-            return false;
-        }
-        // Nothing complete to install, and nothing failed: the next start fetches it again.
-        // The application already closed for this update, so it is started again rather
-        // than left missing.
-        m_log.write("no complete download to install; starting the application again");
-        if (!relaunch_app(m_handoff))
-            m_log.write("could not start the application again");
-        finish(0, "", false);
-    } else {
-        fail(1, error);
-    }
+    fail(1, error);
     return false;
 }
 
@@ -652,14 +636,28 @@ void UpdateHelperFrame::run()
         const fs::path      part(paths.part);
         const fs::path      artifact(paths.artifact);
 
-        // Prefetch only puts the artifact on disk: the install is a separate
-        // --install-only run, started when the application quits.
+        // Prefetch downloads and verifies the artifact, then records the verification the
+        // application reads. The install itself waits for the user to accept it.
         if (m_mode == Mode::Prefetch) {
+            // Held while writing, so a skip can tell a live download from a leftover file.
+            const std::string download_lock = Slic3r::updater_download_lock_path();
+            if (!Slic3r::acquire_install_lock(download_lock)) {
+                m_log.write("another download of this install is running");
+                finish(0, "", false);
+                return;
+            }
             if (fetch_artifact(download_dir, part, artifact) && check_artifact(artifact)) {
+                // The marker is what the application reads as "ready": a run that cannot
+                // record it has to report a failure, or the user is told nothing at all.
+                if (!Slic3r::mark_download_verified(download_dir.string(), m_handoff.asset_name, m_handoff.digest)) {
+                    fail(1, "The downloaded file could not be recorded.");
+                    return;
+                }
                 // A failure left by an earlier run no longer applies: the download this
                 // start needed is in place.
                 Slic3r::remove_update_failure();
-                m_log.write("prefetch done, the install is left to the next run");
+                m_log.write("prefetch done, the install waits for the user");
+                Slic3r::release_install_lock(download_lock);
                 finish(0, "", false);
             }
             return;
@@ -672,13 +670,6 @@ void UpdateHelperFrame::run()
             return;
         }
         if (waited == WaitResult::Timeout) {
-            if (silent()) {
-                // The application did not exit in time, and nothing failed: the
-                // verified file stays for the next start.
-                m_log.write("leaving the update for the next start: the parent process is still running");
-                finish(0, "", false);
-                return;
-            }
             m_log.write("giving up: the parent process is still running");
             fail(1, "OrcaSlicer is still running.");
             return;
@@ -702,13 +693,7 @@ void UpdateHelperFrame::run()
         }
 
         // A manual update downloads here, once the lock has ruled out a second helper.
-        if (m_mode == Mode::Interactive && !fetch_artifact(download_dir, part, artifact))
-            return;
-
-        // Install-only has nothing to fetch: the file a previous run left is what it
-        // installs, if it is still there. Checked after the parent is gone, so a run with
-        // nothing to install starts the application again only once it has exited.
-        if (m_mode == Mode::InstallOnly && !check_artifact(artifact))
+        if (!fetch_artifact(download_dir, part, artifact))
             return;
 
         // Held from here until the install returns: what is verified is what runs.
@@ -756,7 +741,7 @@ void UpdateHelperFrame::run()
         sink.cancelled = [this]() { return m_cancel_requested.load(); };
 
         std::string install_error;
-        if (!apply_update(m_handoff, artifact.string(), sink, install_error, m_mode != Mode::InstallOnly)) {
+        if (!apply_update(m_handoff, artifact.string(), sink, install_error)) {
             if (!m_unfinished_install.empty()) {
                 m_log.write("leaving the running installer to finish the update");
                 finish(0, wxString::FromUTF8(m_unfinished_install), !silent());

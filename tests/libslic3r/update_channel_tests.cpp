@@ -939,7 +939,7 @@ TEST_CASE("A check with nothing to offer has nothing to do", "[UpdateChannel]")
 
     // Unavailable wins over every other field, a manual check included.
     request.user_initiated = true;
-    request.automatic      = false;
+    request.download_ready = true;
     CHECK(update_action(request) == UpdateAction::None);
 }
 
@@ -948,40 +948,38 @@ TEST_CASE("An automatic check ignores a skipped update", "[UpdateChannel]")
     UpdateRequest request;
     request.available = true;
     request.skipped   = true;
-    request.automatic = true;
 
+    CHECK(update_action(request) == UpdateAction::None);
+
+    // A skipped build is not reported either, even when its artifact is already verified.
+    request.download_ready = true;
     CHECK(update_action(request) == UpdateAction::None);
 }
 
-TEST_CASE("A manual check installs a skipped update", "[UpdateChannel]")
+TEST_CASE("A manual check still offers a skipped update", "[UpdateChannel]")
 {
     UpdateRequest request;
     request.available      = true;
     request.skipped        = true;
     request.user_initiated = true;
-    request.automatic      = false;
 
-    CHECK(update_action(request) == UpdateAction::InstallNow);
+    CHECK(update_action(request) == UpdateAction::Prefetch);
+
+    // The verified artifact opens the dialog at once rather than being fetched again.
+    request.download_ready = true;
+    CHECK(update_action(request) == UpdateAction::NotifyReady);
 }
 
-TEST_CASE("An automatic check prefetches the update", "[UpdateChannel]")
+TEST_CASE("A verified download is reported ready instead of prefetched", "[UpdateChannel]")
 {
     const UpdateRequest request{true, false, false, true};
 
+    CHECK(update_action(request) == UpdateAction::NotifyReady);
+}
+
+TEST_CASE("An available update without a verified download is prefetched", "[UpdateChannel]")
+{
+    const UpdateRequest request{true, false, false, false};
+
     CHECK(update_action(request) == UpdateAction::Prefetch);
-}
-
-TEST_CASE("A non-automatic check installs the update now", "[UpdateChannel]")
-{
-    const UpdateRequest request{true, false, true, false};
-
-    CHECK(update_action(request) == UpdateAction::InstallNow);
-}
-
-TEST_CASE("An update installs on quit only when it is downloaded and nothing is in the way", "[UpdateChannel]")
-{
-    CHECK(update_ready_to_install(true, false, false));
-    CHECK_FALSE(update_ready_to_install(false, false, false));
-    CHECK_FALSE(update_ready_to_install(true, true, false));
-    CHECK_FALSE(update_ready_to_install(true, false, true));
 }

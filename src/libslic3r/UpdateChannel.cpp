@@ -378,10 +378,10 @@ UpdateCandidate resolve_update(const std::string& releases_json,
     const std::string source_channel =
         inferred_channel ? update_channel_key(channel_of_version(running_version)) : installed_channel;
     bool channel_switch = channel != UpdateChannel::PreRelease && source_channel != update_channel_key(channel);
-    // An inferred switch must not downgrade: the automatic check would otherwise replace a
-    // hand-installed 2.6.0-rc1 with the newest stable at quit, with no dialog. A version that
-    // cannot be compared takes no switch either: offering a channel's current build without an
-    // ordering test is the same silent downgrade.
+    // An inferred switch must not downgrade: it would otherwise offer a hand-installed
+    // 2.6.0-rc1 the newest stable, and a click would replace a newer build with an older one.
+    // A version that cannot be compared takes no switch either: offering a channel's current
+    // build without an ordering test is the same downgrade.
     if (channel_switch && inferred_channel)
         channel_switch = Semver::parse(running_version) && is_newer_version(candidate.version, running_version);
 
@@ -464,15 +464,10 @@ UpdateAction update_action(const UpdateRequest& request)
     if (request.skipped && !request.user_initiated)
         return UpdateAction::None;
 
-    if (!request.automatic)
-        return UpdateAction::InstallNow;
+    if (request.download_ready)
+        return UpdateAction::NotifyReady;
 
     return UpdateAction::Prefetch;
-}
-
-bool update_ready_to_install(bool download_ready, bool project_dirty, bool job_running)
-{
-    return download_ready && !project_dirty && !job_running;
 }
 
 } // namespace Slic3r

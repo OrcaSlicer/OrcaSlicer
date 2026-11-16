@@ -47,12 +47,11 @@ private:
 class UpdateHelperFrame : public wxFrame
 {
 public:
-    // How this run was started. The silent modes never show the window: they only
-    // write the log, and leave any failure for the next start to report.
+    // How this run was started. The silent mode never shows the window: it only
+    // writes the log, and leaves any failure for the next start to report.
     enum class Mode {
         Interactive,  // started from the application: wait, download, install
-        Prefetch,     // --silent: fetch the artifact only; a later run installs it
-        InstallOnly,  // --install-only: the artifact is complete; install after the application quits
+        Prefetch,     // --silent: fetch and verify the artifact only; the install waits for the user
     };
 
     explicit UpdateHelperFrame(const UpdateHandoff& handoff, Mode mode = Mode::Interactive);
@@ -74,14 +73,13 @@ private:
     void on_cancel(wxCommandEvent& event);
     void on_close(wxCloseEvent& event);
 
-    bool silent() const { return m_mode != Mode::Interactive; }
+    bool silent() const { return m_mode == Mode::Prefetch; }
 
     void run();                                  // worker thread
     // Fetches the artifact into `artifact` unless an earlier run already did. Does not verify it.
     bool fetch_artifact(const boost::filesystem::path& download_dir,
                         const boost::filesystem::path& part, const boost::filesystem::path& artifact);
-    // Verifies the file this run or an earlier one fetched. Nothing to install is not a
-    // failure at quit: the next start fetches it again.
+    // Verifies the file this run or an earlier one fetched. Any failure is this run's failure.
     bool check_artifact(const boost::filesystem::path& artifact);
     // Ends a failed run: logged, and recorded for the next start when there is no window.
     void fail(int code, const std::string& message);

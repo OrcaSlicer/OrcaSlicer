@@ -50,8 +50,8 @@ outside the application carries no channel, so the channel is read from its vers
 instead: `-dev` or an unparseable version is nightly, `-rc`, `-beta` and `-alpha` are
 pre-release, the rest stable. That inferred channel may only switch to a candidate that
 does not sort lower, and a version that cannot be compared takes no switch at all:
-otherwise a hand-installed `2.6.0-rc1` would be replaced by an older stable at quit,
-with nothing shown.
+otherwise a hand-installed `2.6.0-rc1` would be offered an older stable on a switch,
+and a click would replace a newer build with an older one.
 
 `resolve_update()` performs the whole decision and returns a candidate plus a reason
 string for the log. It is pure — no network, no wx, no globals — so every rule above
@@ -76,41 +76,50 @@ the GUI decides a button label once and the helper is only ever started for a fl
 that can use it. An executable inside a CMake build tree resolves to `other` on both
 Windows and macOS: a development build must never replace the tree it runs from.
 
-## The two flows
+## The flows
 
-A check the user starts from Help → Check for Updates keeps its dialog, shows the
-channel, and installs on request. The automatic check — startup, or the re-check after
-Preferences closes — never opens a dialog:
+Every check resolves the same way. When something newer exists, the prefetch helper
+downloads it, verifies it, records a verified marker beside the artifact and exits. The
+application keeps running and shows a notification:
 
 ```
-startup check → resolve_update → prefetch helper (download + sha256)
-                                    ↓
-                            application keeps running
-                                    ↓
-                              user quits
-                                    ↓
-                    install helper (verify, lock, swap, record)
+check → resolve_update → prefetch (download, verify, mark) → notification
+                                                              ↓
+                                                     user opens the dialog
+                                                              ↓
+                                    install helper (lock, verify, swap, record, relaunch)
 ```
 
-The prefetch helper exits once the file is verified. The install helper runs when the
-application is closing, takes the install lock only after the parent process is gone,
-verifies the file again, swaps it in, records the digest and — for a quit-time install
-— does not start the application again.
+Nothing installs without that click. There is no install at quit: quitting in any state
+leaves the verified artifact in the cache, and the next start notifies again.
 
-`update_action()` owns the choice between these flows, and `update_ready_to_install()`
-owns the question of whether a quit may install: a dirty project or a running job
-defers it to a later quit. Both are pure functions, so the policy is tested rather
-than observed.
+`update_action()` owns the choice between doing nothing, prefetching and notifying, and
+takes readiness as an input on top of the skip and manual-check rules. It is pure, so the
+policy is tested rather than observed. Readiness is a filesystem fact:
+`download_is_verified()` requires the artifact at its expected size *and* a marker naming
+the candidate's digest, because the helper renames the file before verifying it, and a
+nightly reuses one asset name across builds.
 
-A quit-time install is also refused for a candidate the user skipped, for one from a
-channel they have since left, and when this run already handed the install to a helper.
-macOS reaches the quit through `wxEVT_END_SESSION` as well, where `OnExit()` does not run,
-so the same decision is made there. In stealth mode the startup check does not run,
-because it starts a background download; the re-check after a channel change still does.
+The notification carries one action, which opens the same dialog as Help → Check for
+Updates: release notes, channel, "Install and restart", "Skip this Version", "Cancel". A
+manual check with a verified artifact opens it immediately; one that finds nothing answers
+"This is the newest version."; one that runs while a download is in flight says so.
 
-An automatic update that fails leaves a message in `update_failed.txt`, which the next
-start shows as a notification. Without a dialog this is the only way a failure reaches
-the user; the detailed trail is in `updater.log`.
+Neither the notification nor the candidate is persisted. The next check recomputes both
+from the release list and the cache, which is why an artifact that finished while the
+application was closed still produces a notification at the next start.
+
+`Skip this Version` stops offering that build and deletes the cached artifact. The deletion
+takes a per-download lock, because a prefetch helper started before a restart may still be
+writing the `.part`; when the lock is held, the deletion is deferred to the next skipped
+check.
+
+In stealth mode the startup check does not run, because it starts a background download;
+the re-check after a channel change and Help → Check for Updates still do.
+
+A failed download leaves a message in `update_failed.txt`, which the next start shows as a
+notification; the detailed trail is in `updater.log`. A failed install is visible in the
+helper window instead, because every install is started by the user.
 
 ## What the two processes exchange
 
@@ -132,13 +141,18 @@ handed to its helper.
 | `installed.json` | helper | app, next start | what was installed, and the tree it belongs to |
 | `pending.json` | helper, before the swap | app, next start | the swap in flight; on macOS the tree moved aside, for rollback and cleanup |
 | `install.lock` | app, then helper | both | an OS file lock held for the life of the holder |
-| `update_failed.txt` | helper | app, next start | why an automatic update failed |
+| `download.lock` | prefetch helper | app, skip path | held while a prefetch writes; a skip defers its cleanup while it is held |
+| `<artifact>.verified` | prefetch helper, after verification | app | the digest the artifact verified for |
+| `update_failed.txt` | helper | app, next start | why a background download failed |
 | `downloads/<install>/`, `helper/<install>/`, `updater.log` | both | both | artifact, extracted helper, log |
 
 The digest of the build a `.part` belongs to is recorded beside it, so a resumed
 download can never be appended to a file for a different build. A `.part` that is
 already the size of the release is verified instead of fetched again, and a verified
-artifact is kept until it is installed rather than downloaded once per start.
+artifact is kept until it is installed rather than downloaded once per start. The
+artifact is reported ready only when a `.verified` marker beside it names the candidate's
+digest: the helper renames the file before verifying it, and a nightly keeps one asset
+name across builds, so the name and its size are not identity.
 
 A download whose size or digest does not match the listing is dropped with its digest
 marker, so the next check fetches it again rather than trusting its size. A file that
@@ -147,7 +161,9 @@ check is repeated on the next start rather than the file being thrown away.
 
 The lock is an OS-level lock on an open handle, not a pid file: the OS releases it
 when the holder dies, and a held lock cannot be read through another handle, so it
-carries no state. It prevents two installs, and the cleanup respects it.
+carries no state. It prevents two installs, and the cleanup respects it. A second lock in
+the download directory is held by the prefetch while it writes, so a skip's cleanup and an
+install that follows a click both wait or refuse rather than race it.
 
 ## Installing
 
@@ -210,10 +226,10 @@ recorded only in the other registry view — a CPack-era leftover beside a newer
 install — is refused rather than written by the wrong scope rule. Telling the first apart
 needs to know whether the caller named the tree, which `$INSTDIR` alone does not say.
 
-The helper turns a failure into the message the next start shows. It adds that the previous
-version was removed only when the executable is no longer in the tree after the installer
-stopped, which with stage and swap means the installer reached the swap and could not
-finish; every other failure leaves a version that still runs.
+The helper reports a failure in its window, and records it for the next start only when it
+has no window. It adds that the previous version was removed only when the executable is no
+longer in the tree after the installer stopped, which with stage and swap means the installer
+reached the swap and could not finish; every other failure leaves a version that still runs.
 
 **Uninstalling.** The uninstaller removes only the record of the tree it sits in: the
 machine entry when a machine record names that tree, the per-user entry when the user hive
@@ -258,7 +274,8 @@ on the user reading a dialog:
    An empty value disables it with a warning, which is what a local or unsigned PR build
    wants and what a release build must not have.
 
-Checks 3 and 4 together are what replaces the user's judgement once nothing prompts.
+Checks 3 and 4 together are what let a single click install the file without the user
+judging what it is.
 
 A release build carries the pin of its platform and cannot be configured without it:
 `ORCA_RELEASE_BUILD=ON` makes the configure fail when Windows has no publisher or macOS
@@ -286,6 +303,12 @@ packages under, and refuses to ship a helper that would accept anything else.
   the next start, which that build may never reach.
 - The Windows check for another running instance cannot see processes it has no
   permission to open.
+- Nothing installs while the application closes. Every update ends in a restart the user
+  started, so a nightly notifies at every launch until it is installed or skipped.
+- A launch without a network cannot install a cached artifact: the asset URL and digest
+  arrive with the check.
+- Skip deletes the cached artifact only when no prefetch holds the download lock, so a
+  skipped build's file can survive one more check.
 
 ## Where the code lives
 

@@ -101,12 +101,12 @@ void update_skip_values(const UpdateCandidate& candidate,
                         std::string&           skip_version,
                         std::string&           skip_artifact);
 
-// What the caller does with a candidate. A check the user started keeps its dialog;
-// the automatic one downloads in the background and installs when the application quits.
+// What the caller does with a candidate. A check may download on its own, but nothing
+// installs until the user asks for it.
 enum class UpdateAction {
-    None,        // nothing to do
-    Prefetch,    // fetch and verify now, install when the application quits
-    InstallNow,  // fetch, verify and install, closing the application first
+    None,         // nothing to do
+    Prefetch,     // fetch and verify now, notify when the artifact is ready
+    NotifyReady,  // the verified artifact is in the cache: notify, or open the dialog
 };
 
 struct UpdateRequest
@@ -114,14 +114,10 @@ struct UpdateRequest
     bool available      = false;  // resolve_update() found a candidate
     bool skipped        = false;  // update_is_skipped() answered true for this check
     bool user_initiated = false;  // Help > Check for Updates
-    bool automatic      = true;   // this check runs without a dialog
+    bool download_ready = false;  // download_is_verified(): the artifact is in the cache
 };
 
 UpdateAction update_action(const UpdateRequest& request);
-
-// True when the verified download may be installed as the application exits: a job in
-// progress or an unsaved project means the install waits for a later quit.
-bool update_ready_to_install(bool download_ready, bool project_dirty, bool job_running);
 
 } // namespace Slic3r
 

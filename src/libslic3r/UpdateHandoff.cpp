@@ -3,6 +3,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/directory.hpp>
+#include <boost/system/error_code.hpp>
 #include <cstdint>
 #include <cstdlib>
 #include <algorithm>
@@ -159,6 +160,13 @@ bool is_plain_path_segment(const std::string& segment)
     });
 }
 
+// Markers are compared without the line ending an editor or a text writer may add.
+void trim_trailing_space(std::string& text)
+{
+    while (!text.empty() && (text.back() == '\n' || text.back() == '\r' || text.back() == ' ' || text.back() == '\t'))
+        text.pop_back();
+}
+
 #ifdef _WIN32
 using LockHandle = HANDLE;
 #else
@@ -306,6 +314,11 @@ std::string updater_lock_path()
     return (fs::path(cache_root()) / "install.lock").string();
 }
 
+std::string updater_download_lock_path()
+{
+    return (fs::path(updater_download_dir()) / "download.lock").string();
+}
+
 std::string updater_log_path()
 {
     return (fs::path(cache_root()) / "updater.log").string();
@@ -369,7 +382,45 @@ DownloadPaths download_paths(const std::string& dir, const std::string& asset_na
     paths.part     = (fs::path(dir) / (keep + ".part")).string();
     paths.marker   = (fs::path(dir) / (keep + ".part.digest")).string();
     paths.artifact = (fs::path(dir) / keep).string();
+    paths.verified = (fs::path(dir) / (keep + ".part.verified")).string();
     return paths;
+}
+
+bool download_is_verified(const std::string& dir,
+                          const std::string& asset_name,
+                          const std::string& digest,
+                          int64_t            expected_size)
+{
+    if (expected_size <= 0)
+        return false;
+
+    const DownloadPaths paths = download_paths(dir, asset_name);
+    boost::system::error_code ec;
+    if (!fs::is_regular_file(paths.artifact, ec))
+        return false;
+    const auto size = fs::file_size(paths.artifact, ec);
+    if (ec || static_cast<int64_t>(size) != expected_size)
+        return false;
+
+    std::string recorded;
+    if (!read_file(paths.verified, recorded))
+        return false;
+    trim_trailing_space(recorded);
+    return recorded == digest;
+}
+
+bool mark_download_verified(const std::string& dir, const std::string& asset_name, const std::string& digest)
+{
+    return write_file_atomic(download_paths(dir, asset_name).verified, digest);
+}
+
+void remove_download(const std::string& dir, const std::string& asset_name)
+{
+    const DownloadPaths paths = download_paths(dir, asset_name);
+    remove_file(paths.artifact);
+    remove_file(paths.verified);
+    remove_file(paths.marker);
+    remove_file(paths.part);
 }
 
 DownloadPrep prepare_download_dir(const std::string& dir,
@@ -383,6 +434,7 @@ DownloadPrep prepare_download_dir(const std::string& dir,
     const fs::path      part(paths.part);
     const fs::path      marker(paths.marker);
     const fs::path      artifact(paths.artifact);
+    const fs::path      verified(paths.verified);
 
     boost::system::error_code ec;
     if (!fs::is_directory(directory, ec))
@@ -392,8 +444,7 @@ DownloadPrep prepare_download_dir(const std::string& dir,
     // smaller than that build: anything else is a leftover.
     std::string recorded;
     const bool  have_marker = read_file(marker.string(), recorded);
-    while (!recorded.empty() && (recorded.back() == '\n' || recorded.back() == '\r' || recorded.back() == ' '))
-        recorded.pop_back();
+    trim_trailing_space(recorded);
     if (!digest.empty() && fs::is_regular_file(part, ec) && have_marker) {
         prep.resumable = recorded == digest;
         if (prep.resumable && expected_size > 0) {
@@ -421,9 +472,12 @@ DownloadPrep prepare_download_dir(const std::string& dir,
 
     // Whatever else sits here is another candidate's, and stays: with a per-install directory a
     // second helper (a channel switch, a new nightly) may be writing it beside this download.
+    // The verified marker belongs to the artifact, so the two are swept together.
     std::vector<std::string> own_names;
-    if (!prep.complete)
+    if (!prep.complete) {
         own_names.push_back(artifact.filename().string());
+        own_names.push_back(verified.filename().string());
+    }
     if (asset_name.empty()) {
         // The names a download took before it was named after its asset.
         own_names.emplace_back("update.part");
@@ -454,6 +508,7 @@ void discard_download(const std::string& dir, const std::string& asset_name)
 {
     const DownloadPaths paths = download_paths(dir, asset_name);
     remove_file(paths.artifact);
+    remove_file(paths.verified);
     remove_file(paths.marker);
 }
 

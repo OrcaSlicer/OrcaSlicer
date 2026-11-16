@@ -14,7 +14,7 @@ namespace Updater {
 
 // Each returns false with `error` filled when the install did not happen, or
 // when a change already made was rolled back. `launch` starts the new build once
-// it is in place; the install after a quit passes false.
+// it is in place.
 bool apply_windows_install(const UpdateHandoff& handoff, const std::string& artifact_path, ProgressSink& sink, std::string& error, bool launch = true);
 bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifact_path, ProgressSink& sink, std::string& error, bool launch = true);
 

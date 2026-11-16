@@ -77,6 +77,16 @@ fs::path marker_path(const fs::path& dir)
     return dir / (std::string(kAsset) + ".part.digest");
 }
 
+fs::path artifact_path(const fs::path& dir)
+{
+    return dir / kAsset;
+}
+
+fs::path verified_path(const fs::path& dir)
+{
+    return dir / (std::string(kAsset) + ".part.verified");
+}
+
 // A download directory holding a partial download of the artifact, recorded for `digest`.
 void write_partial_download(const fs::path& dir, const std::string& digest, std::size_t bytes)
 {
@@ -140,6 +150,11 @@ TEST_CASE("Each install downloads into its own directory", "[UpdateHandoff]")
     CHECK(parent.parent_path() == shared);
     CHECK(parent.filename() == install_identity_hex("/opt/OrcaSlicer"));
 
+    // The download lock lives inside the install's own download directory, not beside the
+    // install lock: two copies must be able to prefetch at the same time.
+    CHECK(fs::path(updater_download_lock_path()) == parent / "download.lock");
+    CHECK(fs::path(updater_download_lock_path()) != fs::path(updater_lock_path()));
+
     // The job handed to the helper is keyed too: two copies share one cache, and one must
     // not overwrite the job the other one handed over.
     const std::string keyed_handoff = updater_handoff_path();
@@ -182,6 +197,11 @@ TEST_CASE("A download is named after the asset, inside its own directory", "[Upd
     CHECK(fs::path(paths.part) == fs::path("cache") / "OrcaSlicer_V2.5.0.AppImage.part");
     CHECK(fs::path(paths.marker) == fs::path("cache") / "OrcaSlicer_V2.5.0.AppImage.part.digest");
     CHECK(fs::path(paths.artifact) == fs::path("cache") / "OrcaSlicer_V2.5.0.AppImage");
+    // The verified marker is its own file, beside the artifact it describes.
+    CHECK(fs::path(paths.verified) == fs::path("cache") / "OrcaSlicer_V2.5.0.AppImage.part.verified");
+    CHECK(fs::path(paths.verified) != fs::path(paths.part));
+    CHECK(fs::path(paths.verified) != fs::path(paths.marker));
+    CHECK(fs::path(paths.verified) != fs::path(paths.artifact));
 
     // No asset name to go by: the artifact still lands in the directory.
     CHECK(fs::path(download_paths("cache", "").artifact) == fs::path("cache") / "update.part");
@@ -312,9 +332,11 @@ TEST_CASE("A verified artifact recorded for another build is dropped", "[UpdateH
 TEST_CASE("A download the verifier rejected is fetched again", "[UpdateHandoff]")
 {
     ScopedTemporaryDir dir;
-    // The helper renames a verified download to its asset name and keeps the digest marker.
+    // The helper renames a verified download to its asset name and keeps the digest marker,
+    // then records the digest it verified.
     write_text(dir.path() / kAsset, std::string(kSize, 'x'));
     write_text(marker_path(dir.path()), kDigest);
+    CHECK(mark_download_verified(dir.string(), kAsset, kDigest));
     CHECK(prepare_download_dir(dir.string(), kAsset, kDigest, kSize).complete);
 
     // A prefetch of another build is still writing its .part.
@@ -324,10 +346,126 @@ TEST_CASE("A download the verifier rejected is fetched again", "[UpdateHandoff]"
     discard_download(dir.string(), kAsset);
     CHECK_FALSE(fs::exists(dir.path() / kAsset));
     CHECK_FALSE(fs::exists(marker_path(dir.path())));
+    CHECK_FALSE(fs::exists(verified_path(dir.path())));
     CHECK(fs::exists(other));
 
     // Nothing is left for the next run to take as complete, so it downloads the file again.
     CHECK_FALSE(prepare_download_dir(dir.string(), kAsset, kDigest, kSize).complete);
+}
+
+TEST_CASE("A download needs the artifact at its expected size before it can be verified", "[UpdateHandoff]")
+{
+    ScopedTemporaryDir dir;
+
+    // Nothing downloaded yet.
+    CHECK_FALSE(download_is_verified(dir.string(), kAsset, kDigest, kSize));
+
+    // The helper has recorded a verification, but the artifact is not there.
+    CHECK(mark_download_verified(dir.string(), kAsset, kDigest));
+    CHECK_FALSE(download_is_verified(dir.string(), kAsset, kDigest, kSize));
+
+    // The final name is there, at the wrong size: the download was interrupted.
+    write_text(artifact_path(dir.path()), std::string(kSize - 1, 'x'));
+    CHECK_FALSE(download_is_verified(dir.string(), kAsset, kDigest, kSize));
+
+    // A release without a size can never be reported ready.
+    write_text(artifact_path(dir.path()), std::string(kSize, 'x'));
+    CHECK_FALSE(download_is_verified(dir.string(), kAsset, kDigest, 0));
+}
+
+TEST_CASE("A download at the right size is verified only by a marker naming its digest", "[UpdateHandoff]")
+{
+    ScopedTemporaryDir dir;
+    write_text(artifact_path(dir.path()), std::string(kSize, 'x'));
+
+    // fetch_artifact() renames before verifying, so the artifact alone proves nothing.
+    CHECK_FALSE(download_is_verified(dir.string(), kAsset, kDigest, kSize));
+
+    CHECK(mark_download_verified(dir.string(), kAsset, kDigest));
+    CHECK(read_text(verified_path(dir.path())) == kDigest);
+    CHECK(download_is_verified(dir.string(), kAsset, kDigest, kSize));
+
+    // A nightly reuses one asset name, so another build's digest leaves this download unverified.
+    write_text(verified_path(dir.path()), "sha256:2222");
+    CHECK_FALSE(download_is_verified(dir.string(), kAsset, kDigest, kSize));
+}
+
+TEST_CASE("A recorded digest with a trailing line ending still verifies", "[UpdateHandoff]")
+{
+    ScopedTemporaryDir dir;
+    write_text(artifact_path(dir.path()), std::string(kSize, 'x'));
+    write_text(verified_path(dir.path()), std::string(kDigest) + "\r\n");
+
+    CHECK(download_is_verified(dir.string(), kAsset, kDigest, kSize));
+}
+
+TEST_CASE("A release without a digest verifies against an empty marker only", "[UpdateHandoff]")
+{
+    ScopedTemporaryDir dir;
+    write_text(artifact_path(dir.path()), std::string(kSize, 'x'));
+
+    // No marker at all: nothing recorded this download as verified.
+    CHECK_FALSE(download_is_verified(dir.string(), kAsset, "", kSize));
+
+    write_text(verified_path(dir.path()), "");
+    CHECK(download_is_verified(dir.string(), kAsset, "", kSize));
+    // An empty marker does not stand in for a digest.
+    CHECK_FALSE(download_is_verified(dir.string(), kAsset, kDigest, kSize));
+
+    write_text(verified_path(dir.path()), kDigest);
+    CHECK_FALSE(download_is_verified(dir.string(), kAsset, "", kSize));
+}
+
+TEST_CASE("Removing a download takes the artifact and every marker beside it", "[UpdateHandoff]")
+{
+    ScopedTemporaryDir dir;
+    write_text(part_path(dir.path()), std::string(50, 'y'));
+    write_text(marker_path(dir.path()), kDigest);
+    write_text(artifact_path(dir.path()), std::string(kSize, 'x'));
+    CHECK(mark_download_verified(dir.string(), kAsset, kDigest));
+
+    remove_download(dir.string(), kAsset);
+
+    CHECK_FALSE(fs::exists(part_path(dir.path())));
+    CHECK_FALSE(fs::exists(marker_path(dir.path())));
+    CHECK_FALSE(fs::exists(artifact_path(dir.path())));
+    CHECK_FALSE(fs::exists(verified_path(dir.path())));
+}
+
+TEST_CASE("Removing a download from a directory that is not there does nothing", "[UpdateHandoff]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path     absent = dir.path() / "absent";
+
+    remove_download(absent.string(), kAsset);
+    CHECK_FALSE(fs::exists(absent));
+}
+
+TEST_CASE("The verified marker is swept with the artifact of another build", "[UpdateHandoff]")
+{
+    ScopedTemporaryDir dir;
+    write_text(artifact_path(dir.path()), std::string(kSize, 'x'));
+    write_text(marker_path(dir.path()), "sha256:2222");
+    write_text(verified_path(dir.path()), "sha256:2222");
+
+    const DownloadPrep prep = prepare_download_dir(dir.string(), kAsset, kDigest, kSize);
+    CHECK_FALSE(prep.complete);
+    CHECK(contains(prep.dropped, artifact_path(dir.path())));
+    CHECK_FALSE(fs::exists(artifact_path(dir.path())));
+    CHECK_FALSE(fs::exists(verified_path(dir.path())));
+}
+
+TEST_CASE("The verified marker of this build's artifact is kept for the next launch", "[UpdateHandoff]")
+{
+    ScopedTemporaryDir dir;
+    write_text(artifact_path(dir.path()), std::string(kSize, 'x'));
+    write_text(marker_path(dir.path()), kDigest);
+    CHECK(mark_download_verified(dir.string(), kAsset, kDigest));
+
+    const DownloadPrep prep = prepare_download_dir(dir.string(), kAsset, kDigest, kSize);
+    CHECK(prep.complete);
+    CHECK(fs::exists(verified_path(dir.path())));
+    CHECK(download_is_verified(dir.string(), kAsset, kDigest, kSize));
 }
 
 TEST_CASE("The build a partial download belongs to is recorded next to it", "[UpdateHandoff]")

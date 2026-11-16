@@ -58,6 +58,8 @@ class wxMenuItem;
 class wxMenuBar;
 class wxTopLevelWindow;
 class wxDataViewCtrl;
+class wxTimer;
+class wxTimerEvent;
 class wxBookCtrlBase;
 class wxGLCanvas;
 class wxGLContext;
@@ -357,11 +359,11 @@ private:
     Slic3r::UpdateCandidate m_update_candidate;
     // Identity of the artifact whose background download was started, so it starts once.
     std::string m_prefetching_artifact;
-    // What the close event saw, because OnExit() runs after the Plater is gone.
-    bool m_closing_project_dirty { false };
-    bool m_closing_job_running { false };
-    // A helper already owns this run's install; a second one must not be started at exit.
-    bool m_update_install_started { false };
+    // Identity of the candidate the ready notification was already pushed for, so one
+    // candidate notifies once per session.
+    std::string m_update_notified_identity;
+    // Polls the cache while a prefetch runs, so the notification follows without a restart.
+    wxTimer*    m_update_ready_timer { nullptr };
     static std::string version_display;
     HMSQuery    *hms_query { nullptr };
     FilamentColorCodeQuery* m_filament_color_code_query{ nullptr };
@@ -621,16 +623,21 @@ public:
     // Hands the resolved update to the helper: writes the handoff, extracts and spawns the
     // helper, and closes the app. Falls back to the release page when that is not possible.
     void            start_in_app_update();
+    // Offers the candidate: install in place or open the release page. Called by a manual
+    // check and by the ready notification's action, never by the automatic check.
+    void            show_update_dialog();
+    // Pushes the persistent "ready to install" notification for the current candidate.
+    void            notify_update_ready();
     // Starts the download the automatic check hands to the helper, without a dialog or a
-    // lock; the update installs from install_update_on_exit().
+    // lock; the notification follows once the artifact is verified.
     void            prefetch_update();
-    // Installs a verified download as the app quits, when no project or job is at risk.
-    void            install_update_on_exit();
+    // Deletes a cached artifact the user no longer wants, unless a prefetch still writes it.
+    void            drop_cached_update(const std::string& asset_name);
+    // Polls download_is_verified() while a prefetch runs and notifies when it is done.
+    void            start_update_ready_timer();
+    void            on_update_ready_timer(wxTimerEvent& event);
     // Cleans up after an install that happened while this build was being replaced.
     void            finish_pending_update();
-    // Records what the close event saw, for install_update_on_exit(). Bound on every
-    // mainframe, including a frame rebuilt by recreate_GUI().
-    void            bind_mainframe_close_handler();
     // Offers to migrate user filament presets made against an older release that lost printers their parent
     // listed then. At startup it asks on every start that finds such presets, unless the user chose not to be
     // reminded; while the user presets sync with the cloud, it waits until they have been pulled. by_user also

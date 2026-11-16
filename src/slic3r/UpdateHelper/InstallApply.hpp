@@ -42,9 +42,8 @@ struct ProgressSink
 
 // Verified artifact in hand: swap it into the install described by `handoff`,
 // record it, and launch the new build. Returns false with `error` filled when
-// nothing was changed, or when a change was rolled back. `launch_new_build` is
-// false for the install that runs after the user quit, where starting the
-// application again would contradict the quit.
+// nothing was changed, or when a change was rolled back. `launch_new_build` starts
+// the new build once it is in place; the frame always passes true.
 bool apply_update(const UpdateHandoff& handoff,
                   const std::string&   artifact_path,
                   ProgressSink&        sink,

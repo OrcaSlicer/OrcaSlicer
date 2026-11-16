@@ -39,7 +39,7 @@ bool parse_handoff_path(int argc, wxChar** argv, wxString& out)
     return false;
 }
 
-// Accepts "--silent" and "--install-only", in any order and anywhere on the line.
+// Accepts "--silent", anywhere on the line.
 bool has_flag(int argc, wxChar** argv, const wxString& flag)
 {
     for (int i = 1; i < argc; ++i) {
@@ -94,16 +94,13 @@ bool UpdateHelperApp::OnInit()
     // Not wxApp::OnInit(): its command-line parser rejects --handoff and returns false.
     SetAppName("OrcaSlicerUpdater");
 
-    // An automatic update starts the helper without a window: "--silent" fetches the
-    // file while the application still runs, "--install-only" installs one fetched
-    // by an earlier run.
+    // An automatic update starts the helper without a window: "--silent" fetches and
+    // verifies the file while the application still runs.
     using Mode = Slic3r::Updater::UpdateHelperFrame::Mode;
     Mode mode = Mode::Interactive;
     if (has_flag(argc, argv, "--silent"))
         mode = Mode::Prefetch;
-    if (has_flag(argc, argv, "--install-only"))
-        mode = Mode::InstallOnly;
-    // The silent modes never open a window, not even for an error.
+    // The silent mode never opens a window, not even for an error.
     const bool silent_run = mode != Mode::Interactive;
 
     wxString handoff_arg;

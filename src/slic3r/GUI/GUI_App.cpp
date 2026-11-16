@@ -1129,10 +1129,6 @@ void GUI_App::post_init()
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " sync_user_preset: false";
     }
 
-    // OnExit() runs after the windows are gone, so the install on exit decides from what the
-    // close saw. Bound here after the GL retry, and again for a frame recreate_GUI() builds.
-    bind_mainframe_close_handler();
-
     // Restore a backup and consume installed.json before anything else: the G-code viewer
     // never runs the block below, so it would otherwise never finish an interrupted install.
     CallAfter([this] {
@@ -2926,7 +2922,7 @@ void GUI_App::on_start_subscribe_again(std::string dev_id)
             obj->subscribe_counter--;
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": dev_id=" << obj->get_dev_id();
         }
-    });
+    }, start_subscribe_timer->GetId());
     start_subscribe_timer->Start(5000, wxTIMER_ONE_SHOT);
 }
 
@@ -2968,8 +2964,6 @@ bool GUI_App::OnInit()
 
 int GUI_App::OnExit()
 {
-    install_update_on_exit();
-
     stop_http_server();
     stop_sync_user_preset();
     if (m_startup_cloud_plugin_fetch_thread.joinable())
@@ -3318,10 +3312,6 @@ bool GUI_App::on_init_inner()
     // Stop the Orca Cloud health check as OnExit() does, so no request is in flight while exit() tears down.
     wxGetApp().Bind(wxEVT_END_SESSION, [this](wxCloseEvent &e) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "received wxEVT_END_SESSION";
-        // OnExit() never runs on this path, so a verified update is installed here instead of
-        // being dropped; the helper only installs after this process has gone. A launch that
-        // already happened is not repeated.
-        install_update_on_exit();
         stop_sync_user_preset();
         stop_orca_health_check(m_agent);
         // Before the plugin manager and network module go away.
@@ -3536,29 +3526,54 @@ bool GUI_App::on_init_inner()
             if (this->plater_ == nullptr || !m_update_candidate.available)
                 return;
 
+            // Readiness needs the helper's verified marker, not just the artifact's name: a
+            // nightly reuses one name, and fetch_artifact() renames before it verifies.
+            const bool in_app = can_install_in_app(m_update_candidate, current_install_flavour());
+            const bool ready  = in_app && download_is_verified(updater_download_dir(), m_update_candidate.asset.name,
+                                                               m_update_candidate.asset.digest,
+                                                               m_update_candidate.asset.size);
+
             UpdateRequest request;
             request.available      = m_update_candidate.available;
             request.skipped        = update_is_skipped(m_update_candidate, app_config->get("skip_version"),
                                                        app_config->skip_artifact());
             request.user_initiated = evt.GetInt() != 0;
-            request.automatic      = !request.user_initiated;
+            request.download_ready = ready;
 
             switch (update_action(request)) {
             case UpdateAction::None:
-                // A user-initiated check shows the dialog even for a skipped version; the
-                // startup check stays quiet then. The candidate is dropped: the install at
-                // quit must not take it, and an artifact prefetched before the skip may
-                // still be in the cache.
+                // Skip means "do not tell me about this build", so a cached artifact of a
+                // skipped candidate goes too. A manual check of a skipped version still reaches
+                // the dialog through Prefetch or NotifyReady.
                 BOOST_LOG_TRIVIAL(info) << "Update " << m_update_candidate.version_label << ": nothing to do";
+                if (request.skipped)
+                    drop_cached_update(m_update_candidate.asset.name);
                 m_update_candidate = UpdateCandidate();
+                if (m_update_ready_timer)
+                    m_update_ready_timer->Stop();
+                m_update_notified_identity.clear();
+                if (NotificationManager* notifications = notification_manager())
+                    notifications->close_notification_of_type(NotificationType::AppUpdateReady);
+                return;
+            case UpdateAction::NotifyReady:
+                // A click deserves an immediate answer; the automatic check posts the
+                // persistent notification instead.
+                if (request.user_initiated)
+                    show_update_dialog();
+                else
+                    notify_update_ready();
                 return;
             case UpdateAction::Prefetch:
-                // The automatic check never shows a dialog: it downloads quietly and installs
-                // when the application quits.
+                // The automatic check never shows a dialog: it downloads quietly and the
+                // notification follows once the artifact is verified.
                 BOOST_LOG_TRIVIAL(info) << "Update " << m_update_candidate.version_label << ": downloading in the background";
-                // prefetch_update() only logs for a flavour that cannot install in place, so the
-                // user would never hear of the release. Point them at it instead.
-                if (!can_install_in_app(m_update_candidate, current_install_flavour())) {
+                if (!in_app) {
+                    // prefetch_update() only logs for a flavour that cannot install in place, so
+                    // the user would never hear of the release. Point them at it instead.
+                    if (request.user_initiated) {
+                        show_update_dialog();
+                        return;
+                    }
                     if (NotificationManager* notifications = notification_manager()) {
                         const UpdateCandidate candidate = m_update_candidate;
                         notifications->push_notification(
@@ -3571,50 +3586,18 @@ bool GUI_App::on_init_inner()
                                 return true;
                             });
                     }
+                    m_update_candidate = UpdateCandidate();
                     return;
                 }
                 prefetch_update();
-                return;
-            case UpdateAction::InstallNow:
-                break;
-            }
-
-            // Destroyed before the action runs: the in-app update closes the main frame, which
-            // would otherwise delete the dialog as a child and then again at scope exit.
-            int answer = wxID_CANCEL;
-            {
-                UpdateVersionDialog dialog(this->mainframe);
-                wxString channel_label;
-                switch (m_update_candidate.channel) {
-                case UpdateChannel::PreRelease: channel_label = _L("Pre-Release channel"); break;
-                case UpdateChannel::Nightly:    channel_label = _L("Nightly channel"); break;
-                case UpdateChannel::Stable:     channel_label = _L("Stable channel"); break;
+                start_update_ready_timer();
+                // Also answers a check made while this session's prefetch is already running.
+                if (request.user_initiated) {
+                    MessageDialog dlg(this->mainframe, _L("The update is downloading in the background."),
+                                      _L("Update"), wxOK | wxICON_INFORMATION);
+                    dlg.ShowModal();
                 }
-                dialog.set_channel_label(channel_label);
-                dialog.set_release_url(wxString::FromUTF8(m_update_candidate.release_url));
-                dialog.set_install_in_app(can_install_in_app(m_update_candidate, current_install_flavour()));
-                dialog.update_version_info(wxString::FromUTF8(m_update_candidate.release_notes),
-                                           wxString::FromUTF8(m_update_candidate.version_label));
-                answer = dialog.ShowModal();
-            }
-            switch (answer) {
-            case wxID_YES: {
-                // Store builds get updates from the Microsoft Store and Flatpak builds from
-                // Flathub. Download-only installs open the asset itself.
-                if (can_install_in_app(m_update_candidate, current_install_flavour()))
-                    start_in_app_update();
-                else
-                    open_update_page(m_update_candidate);
-                // The page replaces the install: nothing may remain armed for the quit path.
-                m_update_candidate = UpdateCandidate();
-                break;
-            }
-            // A declined or dismissed dialog disarms the candidate: install_update_on_exit()
-            // would otherwise install what the user just refused.
-            case wxID_NO:
-            default:
-                m_update_candidate = UpdateCandidate();
-                break;
+                return;
             }
             });
 
@@ -5118,8 +5101,6 @@ void GUI_App::recreate_GUI(const wxString &msg_name)
 
     switch_window_pools();
     mainframe = new MainFrame();
-    // The rebuilt frame needs the close handler too, or the snapshot below stays stale.
-    bind_mainframe_close_handler();
     if (is_editor())
         // hide settings tabs after first Layout
         mainframe->select_tab(TAB_ID_PREPARE);
@@ -6643,10 +6624,19 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
                                              error);
         })
         .on_complete([this, by_user, channel, installed_artifact, installed_channel, flavour](std::string body, unsigned http_status) {
-          // Every return below offers no update. The candidate is cleared on the UI thread so
-          // that a withdrawn or unreachable release is not installed by the quit path.
+          // Every return below offers no update. The candidate is cleared on the UI thread, and
+          // the notification and the poll with it: the release is no longer on offer.
           auto drop_candidate = [this] {
-            GUI::wxGetApp().CallAfter([this] { m_update_candidate = UpdateCandidate(); });
+            GUI::wxGetApp().CallAfter([this] {
+                m_update_candidate = UpdateCandidate();
+                // The notification is gone, so the same candidate must be able to notify
+                // again once a later check resolves it.
+                m_update_notified_identity.clear();
+                if (m_update_ready_timer)
+                    m_update_ready_timer->Stop();
+                if (NotificationManager* notifications = notification_manager())
+                    notifications->close_notification_of_type(NotificationType::AppUpdateReady);
+            });
           };
           if (http_status != 200) {
             drop_candidate();
@@ -6861,8 +6851,8 @@ std::vector<fs::path> updater_helper_candidates(const fs::path& exe_dir)
     return candidates;
 }
 
-// The copy extract_updater_helper() left in the cache, if any. Preferred at exit, because a
-// prefetch helper may still run from it and Windows cannot replace a running binary.
+// The copy extract_updater_helper() left in the cache, if any. Preferred, because a prefetch
+// helper may still run from it and Windows cannot replace a running binary.
 std::string extracted_updater_helper()
 {
     for (const fs::path& candidate : updater_helper_candidates(fs::path(updater_helper_dir()))) {
@@ -7005,19 +6995,6 @@ bool launch_updater_helper(const std::string& helper, std::initializer_list<cons
     return wxExecute(argv.data(), wxEXEC_ASYNC, nullptr, &exec_env) > 0;
 }
 
-// True when the helper's verified download of this candidate is still in the cache.
-bool update_download_ready(const UpdateCandidate& candidate)
-{
-    if (candidate.asset.size <= 0)
-        return false;
-    const fs::path artifact(download_paths(updater_download_dir(), candidate.asset.name).artifact);
-    boost::system::error_code ec;
-    if (!fs::is_regular_file(artifact, ec))
-        return false;
-    const auto size = fs::file_size(artifact, ec);
-    return !ec && static_cast<int64_t>(size) == candidate.asset.size;
-}
-
 // True when this process runs from `path`. Compared on disk, so a differently spelled path still matches.
 bool running_from(const std::string& path)
 {
@@ -7044,6 +7021,17 @@ void clear_install_leftovers()
 void GUI_App::set_skip_version(bool skip)
 {
     BOOST_LOG_TRIVIAL(info) << "set_skip_version, skip = " << skip << ", version = " << m_update_candidate.version_label;
+    // The cleanup below needs the asset name after the candidate is gone.
+    const std::string asset_name = m_update_candidate.asset.name;
+    if (skip) {
+        if (NotificationManager* notifications = notification_manager())
+            notifications->close_notification_of_type(NotificationType::AppUpdateReady);
+        if (m_update_ready_timer)
+            m_update_ready_timer->Stop();
+        m_update_notified_identity.clear();
+        m_prefetching_artifact.clear();
+    }
+
     std::string skip_version  = app_config->get("skip_version");
     std::string skip_artifact = app_config->skip_artifact();
     if (skip) {
@@ -7059,23 +7047,11 @@ void GUI_App::set_skip_version(bool skip)
     app_config->set_skip_artifact(skip_artifact);
 
     // Read the skip values before this: for a nightly the skip names the candidate's digest.
-    // Nothing may install on a quit what the user just asked not to be offered.
-    if (skip)
+    if (skip) {
         m_update_candidate = UpdateCandidate();
-}
-
-void GUI_App::bind_mainframe_close_handler()
-{
-    if (mainframe == nullptr)
-        return;
-    mainframe->Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent& evt) {
-        if (this->plater_ != nullptr) {
-            m_closing_project_dirty = this->plater_->is_project_dirty();
-            m_closing_job_running   = this->plater_->is_background_process_slicing() ||
-                                      this->plater_->is_export_gcode_scheduled();
-        }
-        evt.Skip();
-    });
+        // Skip means "do not tell me about this build", so the cached artifact goes too.
+        drop_cached_update(asset_name);
+    }
 }
 
 void GUI_App::start_in_app_update()
@@ -7089,27 +7065,6 @@ void GUI_App::start_in_app_update()
 
     set_updater_cache_dir(update_cache_dir());
     set_updater_install_root(app_install_root());
-
-    // The background prefetch may still have the .part open for append: a second helper would
-    // resume it, fail the digest and report the update as damaged. On Windows
-    // extract_updater_helper() would also delete the folder that prefetch runs from.
-    // A .part whose size already matches the asset is complete, not still downloading: the
-    // helper's next step renames it into place, and a manual install that waits for it would
-    // only ever be told to try again. A .part no prefetch of this run wrote is a leftover: the
-    // helper resumes it, so it is no reason to refuse.
-    if (!update_download_ready(m_update_candidate) && m_prefetching_artifact == m_update_candidate.identity()) {
-        const fs::path part(download_paths(updater_download_dir(), m_update_candidate.asset.name).part);
-        boost::system::error_code part_ec;
-        const auto part_size = fs::file_size(part, part_ec);
-        const int64_t expected = m_update_candidate.asset.size;
-        const bool still_downloading = !part_ec && (expected <= 0 || static_cast<int64_t>(part_size) < expected);
-        if (still_downloading) {
-            MessageDialog dlg(this->mainframe, _L("The update is still downloading. Try again in a moment."),
-                              _L("Update"), wxOK | wxICON_INFORMATION);
-            dlg.ShowModal();
-            return;
-        }
-    }
 
     // Refuse while this app has a local job: an install closes the app and would lose it.
     if (this->plater_ != nullptr && (this->plater_->is_background_process_slicing() ||
@@ -7129,11 +7084,24 @@ void GUI_App::start_in_app_update()
         return;
     }
 
+    // A prefetch helper may still be writing this build's .part: a second helper would resume
+    // it and the digest would fail. Its lock says so, and this one is held until the process
+    // exits, so no prefetch starts again during the close.
+    const std::string download_lock = updater_download_lock_path();
+    if (!acquire_install_lock(download_lock)) {
+        release_install_lock(lock_path);
+        MessageDialog dlg(this->mainframe, _L("The update is still downloading. Try again in a moment."),
+                          _L("Update"), wxOK | wxICON_INFORMATION);
+        dlg.ShowModal();
+        return;
+    }
+
     const UpdateHandoff handoff = make_update_handoff(m_update_candidate);
 
     const std::string helper = extract_updater_helper();
     if (helper.empty()) {
         release_install_lock(lock_path);
+        release_install_lock(download_lock);
         MessageDialog dlg(this->mainframe,
                           _L("The updater is missing from this installation. Opening the release page instead."),
                           _L("Update"), wxOK | wxICON_WARNING);
@@ -7144,6 +7112,7 @@ void GUI_App::start_in_app_update()
 
     if (!write_handoff(handoff)) {
         release_install_lock(lock_path);
+        release_install_lock(download_lock);
         MessageDialog dlg(this->mainframe, _L("Could not prepare the update."), _L("Update"), wxOK | wxICON_ERROR);
         dlg.ShowModal();
         return;
@@ -7151,13 +7120,9 @@ void GUI_App::start_in_app_update()
 
     // Close the app before the helper starts: the running binary cannot be replaced.
     // Close(false) keeps the normal prompts (save project, empty the print queue).
-    // OnExit() runs inside Close() and would otherwise start a second, silent helper on the
-    // same install, so this is set first and cleared if the close is vetoed: the app then
-    // keeps running, and a later quit must still be able to install.
-    m_update_install_started = true;
     if (!mainframe || !mainframe->Close(false)) {
-        m_update_install_started = false;
         release_install_lock(lock_path);
+        release_install_lock(download_lock);
         remove_handoff();
         return;
     }
@@ -7165,6 +7130,7 @@ void GUI_App::start_in_app_update()
     // The helper outlives this process and must not keep the log folder as its working directory.
     if (!launch_updater_helper(helper, {})) {
         release_install_lock(lock_path);
+        release_install_lock(download_lock);
         remove_handoff();
         MessageDialog dlg(nullptr, _L("Could not start the updater."), _L("Update"), wxOK | wxICON_ERROR);
         dlg.ShowModal();
@@ -7210,68 +7176,121 @@ void GUI_App::prefetch_update()
     BOOST_LOG_TRIVIAL(info) << "Started the background download of " << m_update_candidate.asset.name;
 }
 
-void GUI_App::install_update_on_exit()
+void GUI_App::show_update_dialog()
 {
-    // A helper already handed this install; starting another one races it for the lock.
-    if (m_update_install_started)
-        return;
-
     if (!m_update_candidate.available)
         return;
 
-    // A skipped candidate, or one from a channel the user has left, is never installed on a
-    // quit: the check stores the candidate before the decision, and an artifact prefetched
-    // before the skip can still be in the cache.
-    if (update_is_skipped(m_update_candidate, app_config->get("skip_version"), app_config->skip_artifact()))
-        return;
-    if (update_channel_from_key(app_config->update_channel()) != m_update_candidate.channel)
-        return;
+    // The notification has done its job: the dialog answers for the same candidate.
+    if (NotificationManager* notifications = notification_manager())
+        notifications->close_notification_of_type(NotificationType::AppUpdateReady);
 
-    if (!can_install_in_app(m_update_candidate, current_install_flavour())) {
-        BOOST_LOG_TRIVIAL(info) << "Not installing the update on exit: no asset for this installation";
-        return;
+    // Destroyed before the action runs: the in-app update closes the main frame, which
+    // would otherwise delete the dialog as a child and then again at scope exit.
+    int answer = wxID_CANCEL;
+    {
+        UpdateVersionDialog dialog(this->mainframe);
+        wxString channel_label;
+        switch (m_update_candidate.channel) {
+        case UpdateChannel::PreRelease: channel_label = _L("Pre-Release channel"); break;
+        case UpdateChannel::Nightly:    channel_label = _L("Nightly channel"); break;
+        case UpdateChannel::Stable:     channel_label = _L("Stable channel"); break;
+        }
+        dialog.set_channel_label(channel_label);
+        dialog.set_release_url(wxString::FromUTF8(m_update_candidate.release_url));
+        dialog.set_install_in_app(can_install_in_app(m_update_candidate, current_install_flavour()));
+        dialog.update_version_info(wxString::FromUTF8(m_update_candidate.release_notes),
+                                   wxString::FromUTF8(m_update_candidate.version_label));
+        answer = dialog.ShowModal();
+    }
+    switch (answer) {
+    case wxID_YES:
+        // Store builds get updates from the Microsoft Store and Flatpak builds from
+        // Flathub. Download-only installs open the asset itself.
+        if (can_install_in_app(m_update_candidate, current_install_flavour()))
+            start_in_app_update();
+        else
+            open_update_page(m_update_candidate);
+        // The page replaces the install: nothing may remain armed for this candidate.
+        m_update_candidate = UpdateCandidate();
+        break;
+    case wxID_NO:
+    default:
+        m_update_candidate = UpdateCandidate();
+        break;
     }
 
+    // The dialog answered for this candidate: the poll has nothing left to watch. The
+    // notified identity is kept, so dismissing the dialog stays quiet for this session.
+    if (m_update_ready_timer)
+        m_update_ready_timer->Stop();
+}
+
+void GUI_App::notify_update_ready()
+{
+    if (m_update_notified_identity == m_update_candidate.identity())
+        return;
+    NotificationManager* notifications = notification_manager();
+    if (notifications == nullptr)
+        return;
+
+    // Warning is the only level that does not fade: Important disappears after 20 s.
+    notifications->push_notification(NotificationType::AppUpdateReady,
+                                     NotificationManager::NotificationLevel::WarningNotificationLevel,
+                                     format(_u8L("OrcaSlicer %1% is ready to install."), m_update_candidate.version_label),
+                                     _u8L("Install update"),
+                                     [](wxEvtHandler*) {
+                                         wxGetApp().CallAfter([] { wxGetApp().show_update_dialog(); });
+                                         return true;
+                                     });
+    m_update_notified_identity = m_update_candidate.identity();
+}
+
+void GUI_App::drop_cached_update(const std::string& asset_name)
+{
     set_updater_cache_dir(update_cache_dir());
     set_updater_install_root(app_install_root());
 
-    const bool download_ready = update_download_ready(m_update_candidate);
-    if (!download_ready) {
-        BOOST_LOG_TRIVIAL(info) << "Not installing the update on exit: no verified download of " << m_update_candidate.asset.name;
+    const std::string dir = updater_download_dir();
+    if (dir.empty())
         return;
-    }
+    boost::system::error_code ec;
+    if (!fs::is_directory(fs::path(dir), ec))
+        return;
 
-    // The close event recorded whether a project or a job was at risk; the window is gone here.
-    if (!update_ready_to_install(download_ready, m_closing_project_dirty, m_closing_job_running)) {
-        BOOST_LOG_TRIVIAL(info) << "Update deferred to a later quit: project dirty " << m_closing_project_dirty << ", job running "
-                                << m_closing_job_running;
+    // A prefetch helper started before a restart may still be writing the artifact, and
+    // deleting its .part would fail the write and leave a confusing update_failed.txt. Its
+    // lock says so; the next skipped check retries.
+    const std::string lock_path = updater_download_lock_path();
+    if (!acquire_install_lock(lock_path))
         return;
-    }
+    remove_download(dir, asset_name);
+    release_install_lock(lock_path);
+}
 
-    // The extracted copy first: a prefetch helper may still run from it, and Windows cannot
-    // replace a running binary.
-    std::string helper = extracted_updater_helper();
-    if (helper.empty())
-        helper = extract_updater_helper();
-    if (helper.empty()) {
-        BOOST_LOG_TRIVIAL(warning) << "Not installing the update on exit: the updater helper is missing";
-        return;
+void GUI_App::start_update_ready_timer()
+{
+    if (m_update_ready_timer == nullptr) {
+        m_update_ready_timer = new wxTimer(this, wxID_ANY);
+        // Bound on its own id: a wildcard handler would also take every other app timer.
+        Bind(wxEVT_TIMER, &GUI_App::on_update_ready_timer, this, m_update_ready_timer->GetId());
     }
+    m_update_ready_timer->Start(15000);
+}
 
-    // The helper deletes the handoff it read at prefetch time, so this writes a fresh one.
-    if (!write_handoff(make_update_handoff(m_update_candidate))) {
-        BOOST_LOG_TRIVIAL(warning) << "Not installing the update on exit: could not write the handoff";
+void GUI_App::on_update_ready_timer(wxTimerEvent&)
+{
+    if (!m_update_candidate.available) {
+        m_update_ready_timer->Stop();
         return;
     }
-
-    if (!launch_updater_helper(helper, {L"--install-only", L"--silent"})) {
-        m_update_install_started = false; // nothing started, a later quit may try again
-        remove_handoff();
-        BOOST_LOG_TRIVIAL(warning) << "Could not start the updater on exit";
+    // One stat per tick: the helper's verified marker only appears once it is done.
+    if (!download_is_verified(updater_download_dir(), m_update_candidate.asset.name, m_update_candidate.asset.digest,
+                              m_update_candidate.asset.size))
         return;
-    }
-    m_update_install_started = true;
-    BOOST_LOG_TRIVIAL(info) << "Started the updater on exit for " << m_update_candidate.version_label;
+    m_prefetching_artifact.clear();
+    m_update_ready_timer->Stop();
+    notify_update_ready();
 }
 
 void GUI_App::finish_pending_update()
@@ -9655,8 +9674,21 @@ void GUI_App::open_preferences(PreferencesTab tab, const std::string& highlight_
         dlg.ShowModal();
         // Checked once the dialog is closed: an update started while it is open would
         // hand its result to a dialog that is still modal.
-        if (app_config->update_channel() != channel_before)
+        if (app_config->update_channel() != channel_before) {
+            // The candidate, its notification and its artifact belong to the channel the user
+            // has left. The deletion takes the download lock, so a prefetch still writing the
+            // old build is left alone and the file is swept on a later check.
+            const std::string old_asset = m_update_candidate.asset.name;
+            if (NotificationManager* notifications = notification_manager())
+                notifications->close_notification_of_type(NotificationType::AppUpdateReady);
+            if (m_update_ready_timer)
+                m_update_ready_timer->Stop();
+            m_update_notified_identity.clear();
+            m_update_candidate = UpdateCandidate();
+            if (!old_asset.empty())
+                drop_cached_update(old_asset);
             check_new_version_sf(true, 0);
+        }
         need_recreate_gui = dlg.recreate_GUI();
         pending_language = dlg.pending_language();
         if (!need_recreate_gui) {
