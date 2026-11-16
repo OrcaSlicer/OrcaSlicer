@@ -26,6 +26,11 @@
 #include "slic3r/GUI/wxExtensions.hpp"
 #include <wx/dcgraph.h>
 #include "MainFrame.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Preset.hpp"
+#include "format.hpp"
+#include "PresetComboBoxes.hpp"
+#include "Tab.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include <string>
 #include <vector>
@@ -135,6 +140,82 @@ bool is_belt_printer_selected()
     return false;
 }
 
+// The rule the slicer uses to find a filament's extruder; -1 while an automatic filament map is unresolved.
+int calib_filament_extruder(size_t filament_id)
+{
+    PresetBundle&       bundle  = *wxGetApp().preset_bundle;
+    const Plater&       plater  = *wxGetApp().plater();
+    const auto*         nozzles = bundle.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter");
+    return bed_exclusion_extruder_for_filament(filament_id, plater.get_global_filament_map(), plater.get_global_filament_map_mode(),
+                                               bundle.is_bbl_vendor(), false, nozzles != nullptr ? nozzles->size() : 1);
+}
+
+}
+
+CalibFilamentSelector::CalibFilamentSelector(wxWindow* parent) : m_parent(parent)
+{
+    m_sizer     = new wxBoxSizer(wxHORIZONTAL);
+    auto* label = new wxStaticText(parent, wxID_ANY, _L("Filament: "));
+    m_combo     = new ::ComboBox(parent, wxID_ANY, wxEmptyString, wxDefaultPosition, parent->FromDIP(wxSize(260, -1)), 0, nullptr,
+                                 wxCB_READONLY);
+    m_sizer->Add(label, 0, wxALL | wxALIGN_CENTER_VERTICAL, parent->FromDIP(2));
+    m_sizer->Add(m_combo, 1, wxALL | wxALIGN_CENTER_VERTICAL, parent->FromDIP(2));
+    refresh();
+    // The dialogs are reused, so the list follows the project's filaments each time one opens.
+    parent->Bind(wxEVT_SHOW, [this](wxShowEvent& event) {
+        if (event.IsShown()) {
+            refresh();
+            m_parent->GetSizer()->SetSizeHints(m_parent);
+        }
+        event.Skip();
+    });
+}
+
+void CalibFilamentSelector::refresh()
+{
+    const PresetBundle& bundle = *wxGetApp().preset_bundle;
+    const size_t count = std::min(bundle.num_physical_filaments(), bundle.filament_presets.size());
+    const auto*  nozzles = bundle.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter");
+    const bool   multi_extruder = nozzles != nullptr && nozzles->size() > 1;
+
+    int selection = m_combo->GetSelection();
+    if (selection < 0 || size_t(selection) >= count) {
+        // Start on the filament the filament tab has open.
+        Tab* tab  = wxGetApp().get_tab(Preset::TYPE_FILAMENT);
+        selection = tab != nullptr ? tab->get_combo_box()->get_filament_idx() : 0;
+    }
+
+    m_combo->Clear();
+    const std::vector<wxBitmap*> icons = get_extruder_color_icons(true);
+    for (size_t i = 0; i < count; ++i) {
+        const Preset* preset = bundle.filaments.find_preset(bundle.filament_presets[i]);
+        wxString      name   = wxString::FromUTF8(preset != nullptr ? preset->label(false) : bundle.filament_presets[i]);
+        if (const int extruder = calib_filament_extruder(i); multi_extruder && extruder >= 0)
+            // TRN %1% is a filament preset name, %2% the number of the extruder that prints it.
+            name = format_wxstr(_L("%1% (Extruder %2%)"), name, extruder + 1);
+        m_combo->Append(name, i < icons.size() && icons[i] != nullptr ? *icons[i] : wxNullBitmap);
+    }
+    if (count > 0)
+        m_combo->SetSelection(std::clamp(selection, 0, int(count) - 1));
+    m_sizer->ShowItems(count > 1);
+}
+
+int CalibFilamentSelector::filament_id() const { return std::max(m_combo->GetSelection(), 0); }
+
+int CalibFilamentSelector::extruder_id() const { return std::max(calib_filament_extruder(size_t(filament_id())), 0); }
+
+void CalibFilamentSelector::apply_to(Calib_Params& params) const
+{
+    params.filament_id = filament_id();
+    params.extruder_id = extruder_id();
+}
+
+const Preset* CalibFilamentSelector::preset() const
+{
+    // find_preset() returns the edited copy of the preset the filament tab has open.
+    const PresetBundle& bundle = *wxGetApp().preset_bundle;
+    const size_t        id     = size_t(filament_id());
+    return id < bundle.filament_presets.size() ? bundle.filaments.find_preset(bundle.filament_presets[id], true) : nullptr;
 }
 
 PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
@@ -146,6 +227,8 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+    m_filament = std::make_unique<CalibFilamentSelector>(this);
+    v_sizer->Add(m_filament->sizer(), 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Extruder type Radio Group
     auto labeled_box_type = new LabeledStaticBox(this, _L("Extruder type"));
@@ -211,7 +294,7 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     // Print Numbers
     wxBoxSizer* cb_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto cb_title = new wxStaticText(this, wxID_ANY, cb_print_no_str, wxDefaultPosition, st_size, 0);
-    m_cbPrintNum = new CheckBox(this);
+    m_cbPrintNum = new ::CheckBox(this);
     m_cbPrintNum->SetValue(false);
     m_cbPrintNum->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
         (m_params.print_numbers) = (m_params.print_numbers) ? false : true;
@@ -377,6 +460,7 @@ void PA_Calibration_Dlg::on_start(wxCommandEvent& event) {
         }
     }
 
+    m_filament->apply_to(m_params);
     m_plater->calib_pa(m_params);
     EndModal(wxID_OK);
 
@@ -411,6 +495,7 @@ void PA_Calibration_Dlg::on_show(wxShowEvent& event) {
         m_rbMethod->SetRadioTooltip(2, wxEmptyString);
     }
     PA_Calibration_Dlg::reset_params();
+    event.Skip();
 }
 
 // Temp calib dlg
@@ -437,6 +522,8 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+    m_filament = std::make_unique<CalibFilamentSelector>(this);
+    v_sizer->Add(m_filament->sizer(), 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Method Radio Group
     auto labeled_box_method = new LabeledStaticBox(this, _L("Filament type"));
@@ -592,6 +679,7 @@ void Temp_Calibration_Dlg::on_start(wxCommandEvent& event) {
     m_params.mode = CalibMode::Calib_Temp_Tower;
     // Picker only exists on belt printers; default non-belt to the Standard model.
     m_params.test_model = m_rbModel ? m_rbModel->GetSelection() : 0;
+    m_filament->apply_to(m_params);
     m_plater->calib_temp(m_params);
     EndModal(wxID_OK);
 
@@ -672,6 +760,8 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+    m_filament = std::make_unique<CalibFilamentSelector>(this);
+    v_sizer->Add(m_filament->sizer(), 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Settings
     wxString start_vol_str = _L("Start volumetric speed: ");
@@ -760,6 +850,7 @@ void MaxVolumetricSpeed_Test_Dlg::on_start(wxCommandEvent& event) {
     }
 
     m_params.mode = CalibMode::Calib_Vol_speed_Tower;
+    m_filament->apply_to(m_params);
     m_plater->calib_max_vol_speed(m_params);
     EndModal(wxID_OK);
 
@@ -785,6 +876,8 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+    m_filament = std::make_unique<CalibFilamentSelector>(this);
+    v_sizer->Add(m_filament->sizer(), 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Settings
     wxString start_str    = _L("Start speed: ");
@@ -891,12 +984,14 @@ void VFA_Test_Dlg::on_start(wxCommandEvent& event)
     // If the requested end speed would exceed the filament's maximum volumetric speed, the slicer clamps the
     // outer wall speed, so the upper blocks of the tower would all print at the same (clamped) speed instead of
     // the requested one. Depending on the "Auto-adjust" option, either fix it automatically or just warn.
+    m_filament->apply_to(m_params);
     m_params.vfa_layer_height    = 0.0; // 0 = auto (nozzle/2); overridden below when auto-adjusting
     m_params.nozzle_based_resize = m_cbResize->GetValue();
     if (const auto* preset_bundle = wxGetApp().preset_bundle) {
         const auto& printer_config  = preset_bundle->printers.get_edited_preset().config;
         const auto& print_config    = preset_bundle->prints.get_edited_preset().config;
-        const auto& filament_config = preset_bundle->filaments.get_edited_preset().config;
+        const Preset* filament        = m_filament->preset();
+        const auto&   filament_config = (filament != nullptr ? *filament : preset_bundle->filaments.get_edited_preset()).config;
 
         const int extruder_id = std::max(m_params.extruder_id, 0);
         auto get_at = [extruder_id](const ConfigOptionFloats* opt, double fallback) {
@@ -1043,6 +1138,8 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+    m_filament = std::make_unique<CalibFilamentSelector>(this);
+    v_sizer->Add(m_filament->sizer(), 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Settings
     wxString start_length_str = _L("Start retraction length: ");
@@ -1133,6 +1230,7 @@ void Retraction_Test_Dlg::on_start(wxCommandEvent& event) {
     }
 
     m_params.mode = CalibMode::Calib_Retraction_tower;
+    m_filament->apply_to(m_params);
     m_plater->calib_retraction(m_params);
     EndModal(wxID_OK);
 
@@ -1162,6 +1260,8 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+    m_filament = std::make_unique<CalibFilamentSelector>(this);
+    v_sizer->Add(m_filament->sizer(), 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Model selection
     auto labeled_box_model = new LabeledStaticBox(this, _L("Test model"));
@@ -1360,6 +1460,7 @@ void Input_Shaping_Freq_Test_Dlg::on_start(wxCommandEvent& event) {
     // Set model type based on selection
     m_params.test_model = m_rbModel->GetSelection() == 0 ? 0 : 1; // 0 = Ringing Tower, 1 = Fast Tower
     
+    m_filament->apply_to(m_params);
     m_plater->calib_input_shaping_freq(m_params);
     EndModal(wxID_OK);
 }
@@ -1387,6 +1488,8 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+    m_filament = std::make_unique<CalibFilamentSelector>(this);
+    v_sizer->Add(m_filament->sizer(), 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Model selection
     auto labeled_box_model = new LabeledStaticBox(this, _L("Test model"));
@@ -1561,6 +1664,7 @@ void Input_Shaping_Damp_Test_Dlg::on_start(wxCommandEvent& event) {
     // Set model type based on selection
     m_params.test_model = m_rbModel->GetSelection() == 0 ? 0 : 1; // 0 = Ringing Tower, 1 = Fast Tower
     
+    m_filament->apply_to(m_params);
     m_plater->calib_input_shaping_damp(m_params);
     EndModal(wxID_OK);
 }
@@ -1582,6 +1686,8 @@ Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* 
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+    m_filament = std::make_unique<CalibFilamentSelector>(this);
+    v_sizer->Add(m_filament->sizer(), 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Model selection
     auto labeled_box_model = new LabeledStaticBox(this, _L("Test model"));
@@ -1755,6 +1861,7 @@ void Cornering_Test_Dlg::on_start(wxCommandEvent& event) {
     // Set model type based on selection
     m_params.test_model = m_rbModel->GetSelection();
 
+    m_filament->apply_to(m_params);
     m_plater->Calib_Cornering(m_params);
     EndModal(wxID_OK);
 }
@@ -1775,6 +1882,8 @@ FlowRateCalibrationDialog::FlowRateCalibrationDialog(wxWindow* parent, wxWindowI
 
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
+    m_filament = std::make_unique<CalibFilamentSelector>(this);
+    v_sizer->Add(m_filament->sizer(), 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Type selection
     auto labeled_box_type = new LabeledStaticBox(this, _L("Calibration Test Type"));
@@ -1872,7 +1981,7 @@ void FlowRateCalibrationDialog::on_start(wxCommandEvent& event) {
     bool is_linear = (type >= 2);
     int pass = (type % 2) + 1;
 
-    m_plater->calib_flowrate(is_linear, pass, pattern);
+    m_plater->calib_flowrate(is_linear, pass, pattern, m_filament->filament_id(), m_filament->extruder_id());
     EndModal(wxID_OK);
 }
 
