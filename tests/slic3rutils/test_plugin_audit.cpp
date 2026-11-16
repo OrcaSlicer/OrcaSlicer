@@ -115,18 +115,15 @@ AuditPromptRequest declared_request(const std::string& plugin_key, std::vector<A
     return request;
 }
 
-// The informational denial shown for a create/delete event raised off the GUI thread. It has no
-// Yes/No choice and no worker waiting on it.
+// The informational denial shown for a create/delete event raised off the GUI thread. Production
+// builds it by copying the runtime request it denies and changing only the kind, so it carries the
+// same keys; it has no Yes/No choice and no worker waiting on it.
 AuditPromptRequest denied_request(const std::string& plugin_key, AuditEventCategory category,
                                   std::vector<std::string> targets)
 {
-    AuditPromptRequest request;
-    request.kind        = AuditPromptKind::DeniedOperation;
-    request.category    = category;
-    request.plugin_key  = plugin_key;
-    request.plugin_name = plugin_key;
-    request.event_name  = category == AuditEventCategory::FsDelete ? "os.remove" : "open";
-    request.shown       = std::move(targets);
+    AuditPromptRequest request = prompt_request(plugin_key, category, std::move(targets));
+    request.event_name         = category == AuditEventCategory::FsDelete ? "os.remove" : "open";
+    request.kind               = AuditPromptKind::DeniedOperation;
     return request;
 }
 
@@ -292,8 +289,9 @@ TEST_CASE("Runtime, declared, and informational audit prompts are serialized in 
     CHECK(denied->category == AuditEventCategory::FsDelete);
     const std::vector<std::string> denied_targets{"/deleted"};
     CHECK(denied->shown == denied_targets);
-    // An informational denial grants nothing and has no worker to release.
-    CHECK(denied->keys.empty());
+    // A denial copies the runtime request it denies, so its keys are present even though the
+    // category grants nothing via a denial, and no worker waits on it.
+    CHECK(denied->keys == denied_targets);
     CHECK(denied->completion == nullptr);
     queue.complete();
     CHECK(queue.idle());
@@ -377,7 +375,7 @@ TEST_CASE("A create/delete prompt falls back to an informational denial when ano
     CHECK(queued->category == AuditEventCategory::FsCreate);
     const std::vector<std::string> expected{"/new"};
     CHECK(queued->shown == expected);
-    CHECK(queued->keys.empty());
+    CHECK(queued->keys == expected);
     CHECK(queued->completion == nullptr);
     queue.complete();
     CHECK(queue.idle());

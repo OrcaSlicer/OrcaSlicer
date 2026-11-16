@@ -424,6 +424,12 @@ private:
 
     bool contains_locked(const AuditPromptRequest& request) const;
 
+    // Drops queued requests matching `matches` and cancels the active request when it matches and
+    // its commit has not begun. Returns the blocked workers' completions in FIFO order. The caller
+    // resolves them after this returns, never under m_mutex: the wake-up can re-enter the queue.
+    std::vector<std::shared_ptr<AuditPromptCompletion>>
+    discard_matching(const std::function<bool(const AuditPromptRequest&)>& matches);
+
     mutable std::mutex                m_mutex;
     std::deque<AuditPromptRequest>    m_pending;
     std::optional<AuditPromptRequest> m_active;

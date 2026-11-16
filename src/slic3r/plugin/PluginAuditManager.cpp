@@ -21,6 +21,7 @@
 #include <cstdlib>
 #include <deque>
 #include <exception>
+#include <functional>
 #include <future>
 #include <mutex>
 #include <memory>
@@ -2276,20 +2277,8 @@ std::size_t AuditPromptQueue::pending_count() const
 
 void AuditPromptQueue::discard_all()
 {
-    std::vector<std::shared_ptr<AuditPromptCompletion>> completions;
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        for (const AuditPromptRequest& request : m_pending)
-            if (request.completion)
-                completions.push_back(request.completion);
-        m_pending.clear();
-
-        if (m_active && !m_active_committing) {
-            m_active_cancelled = true;
-            if (m_active->completion)
-                completions.push_back(m_active->completion);
-        }
-    }
+    const std::vector<std::shared_ptr<AuditPromptCompletion>> completions =
+        discard_matching([](const AuditPromptRequest&) { return true; });
 
     // Never resolve under the queue lock: the wake-up is another thread that may re-enter.
     for (const auto& completion : completions)
@@ -2298,28 +2287,32 @@ void AuditPromptQueue::discard_all()
 
 void AuditPromptQueue::discard_plugin(const std::string& plugin_key)
 {
-    std::vector<std::shared_ptr<AuditPromptCompletion>> completions;
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        for (const AuditPromptRequest& request : m_pending)
-            if (request.plugin_key == plugin_key && request.completion)
-                completions.push_back(request.completion);
-
-        m_pending.erase(std::remove_if(m_pending.begin(), m_pending.end(),
-                                       [&plugin_key](const AuditPromptRequest& request) {
-                                           return request.plugin_key == plugin_key;
-                                       }),
-                        m_pending.end());
-
-        if (m_active && m_active->plugin_key == plugin_key && !m_active_committing) {
-            m_active_cancelled = true;
-            if (m_active->completion)
-                completions.push_back(m_active->completion);
-        }
-    }
+    const std::vector<std::shared_ptr<AuditPromptCompletion>> completions =
+        discard_matching([&plugin_key](const AuditPromptRequest& request) { return request.plugin_key == plugin_key; });
 
     for (const auto& completion : completions)
         completion->resolve(false);
+}
+
+std::vector<std::shared_ptr<AuditPromptCompletion>>
+AuditPromptQueue::discard_matching(const std::function<bool(const AuditPromptRequest&)>& matches)
+{
+    std::vector<std::shared_ptr<AuditPromptCompletion>> completions;
+    std::lock_guard<std::mutex>                         lock(m_mutex);
+
+    // Collect before erasing so the workers are released oldest first.
+    for (const AuditPromptRequest& request : m_pending)
+        if (matches(request) && request.completion)
+            completions.push_back(request.completion);
+    m_pending.erase(std::remove_if(m_pending.begin(), m_pending.end(), matches), m_pending.end());
+
+    // A commit already begun is left to finish, matching the active prompt's contract.
+    if (m_active && matches(*m_active) && !m_active_committing) {
+        m_active_cancelled = true;
+        if (m_active->completion)
+            completions.push_back(m_active->completion);
+    }
+    return completions;
 }
 
 bool AuditPromptQueue::same_request(const AuditPromptRequest& a, const AuditPromptRequest& b)
