@@ -138,14 +138,6 @@ bool PluginManager::initialize()
     // Uninstalled in shutdown() before the interpreter finalizes.
     plugin_hooks::install();
 
-    // Persist auto-load / capability state to each plugin's .install_state.json sidecar.
-    // On load: write enabled=true plus the current capability flags. Unloading flips enabled=false
-    // directly in unload_plugin(), not through the asynchronous completion callbacks: an update
-    // dispatches unload and load callbacks from a worker, and a deferred enabled=false write could
-    // otherwise land after the replacement package has been installed. The unload path is skipped
-    // during shutdown, so app exit does not wipe the auto-load list.
-    subscribe_on_load_callback([this](const std::string& key) { write_loaded_plugin_install_state(key); });
-
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Plugin manager initialized";
 
     return true;
@@ -1083,6 +1075,11 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
 
     clear_plugin_error(plugin_key);
 
+    // Persist only after the plugin is committed as loaded. Lifecycle callbacks are dispatched
+    // asynchronously from worker threads and must not own sidecar persistence.
+    if (!m_shutting_down.load(std::memory_order_acquire))
+        write_loaded_plugin_install_state(plugin_key);
+
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_load_errors.erase(plugin_key);
@@ -1129,7 +1126,9 @@ bool PluginManager::unload_plugin(const std::string& plugin_key)
 
     // Flip the durable flag here rather than in a completion callback: the update path unloads on
     // a worker and immediately replaces the package, so a deferred write must not race the new
-    // sidecar. Shutdown skips this to preserve the auto-load list across app exit.
+    // sidecar. Persisting before the unload completes also means callers that delete or replace
+    // the plugin directory next already see the disabled state. Shutdown skips this to preserve
+    // the auto-load list across app exit.
     if (!m_shutting_down.load(std::memory_order_acquire))
         mark_plugin_install_state_disabled(plugin_key);
 
