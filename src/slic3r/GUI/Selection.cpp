@@ -10,6 +10,7 @@
 #include "Plater.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 
+#include "libslic3r/GCode/WipeTower.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -48,7 +49,6 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/log/trivial.hpp>
-#include <boost/format.hpp>
 
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Min_sphere_of_spheres_d.h>
@@ -70,12 +70,6 @@ static const Slic3r::ColorRGBA TRANSPARENT_PLANE_COLOR = { 0.8f, 0.8f, 0.8f, 0.5
 
 namespace Slic3r {
 namespace GUI {
-
-// Volumes that have a GLVolume in the scene: painted modifiers have none.
-static unsigned int scene_volumes_count(const ModelObject &model_object)
-{
-    return (unsigned int)std::count_if(model_object.volumes.begin(), model_object.volumes.end(), [](const ModelVolume *v) { return ! v->is_painted_modifier(); });
-}
 
 Selection::VolumeCache::TransformCache::TransformCache()
     : position(Vec3d::Zero())
@@ -880,7 +874,7 @@ bool Selection::is_single_full_instance() const
             volumes_idxs.insert(volume_idx);
     }
 
-    return scene_volumes_count(*m_model->objects[object_idx]) == volumes_idxs.size();
+    return m_model->objects[object_idx]->volumes.size() == volumes_idxs.size();
 }
 
 bool Selection::is_from_single_object() const
@@ -1299,12 +1293,11 @@ void Selection::translate(const Vec3d &displacement, TransformationType transfor
                 transform_instance_relative(v, volume_data, transformation_type, Geometry::translation_transform(displacement), m_cache.dragging_center);
         } else {
             if (v.is_wipe_tower) {//in world cs
-                int           plate_idx           = v.object_idx() - 1000;
-                PartPlate*    plate               = wxGetApp().plater()->get_partplate_list().get_plate(plate_idx);
-                Polygons      bed_polys{plate->get_shared_printable_polygon()};
-                // Without an area every extruder reaches the tower cannot be printed, but it still stays on the plate.
-                if (bed_polys.front().points.empty())
-                    bed_polys.front() = Polygon::new_scale(plate->get_shape());
+                const int plate_idx = wipe_tower_object_plate_idx(v.object_idx());
+                PartPlateList &ppl  = wxGetApp().plater()->get_partplate_list();
+                if (plate_idx < 0 || plate_idx >= ppl.get_plate_count())
+                    continue;
+                const Polygons bed_polys{ppl.get_plate(plate_idx)->get_shared_printable_polygon()};
                 Vec3d         tower_origin        = m_cache.volumes_data[i].get_volume_position();
                 Vec3d         actual_displacement = displacement;
                 // Both preview volumes carry the brim in their bounding box, and the release
@@ -2355,7 +2348,7 @@ void Selection::update_type()
             else
             {
                 const ModelObject* model_object = m_model->objects[first->object_idx()];
-                unsigned int volumes_count = scene_volumes_count(*model_object);
+                unsigned int volumes_count = (unsigned int)model_object->volumes.size();
                 unsigned int instances_count = (unsigned int)model_object->instances.size();
                 if (volumes_count * instances_count == 1)
                 {
@@ -2388,7 +2381,7 @@ void Selection::update_type()
             if (m_cache.content.size() == 1) // single object
             {
                 const ModelObject* model_object = m_model->objects[m_cache.content.begin()->first];
-                unsigned int model_volumes_count = scene_volumes_count(*model_object);
+                unsigned int model_volumes_count = (unsigned int)model_object->volumes.size();
 
                 unsigned int instances_count = (unsigned int)model_object->instances.size();
                 unsigned int selected_instances_count = (unsigned int)m_cache.content.begin()->second.size();
@@ -2435,10 +2428,10 @@ void Selection::update_type()
                 unsigned int sels_cntr = 0;
                 for (ObjectIdxsToInstanceIdxsMap::iterator it = m_cache.content.begin(); it != m_cache.content.end(); ++it)
                 {
-                    bool               is_wipe_tower   = it->first >= 1000;
-                    int                actual_obj_id   = is_wipe_tower ? it->first - 1000 : it->first;
-                    const ModelObject *model_object    = m_model->objects[actual_obj_id];
-                    unsigned int volumes_count = scene_volumes_count(*model_object);
+                    if (is_wipe_tower_object_idx(it->first))
+                        continue;
+                    const ModelObject *model_object = m_model->objects[it->first];
+                    unsigned int volumes_count = (unsigned int)model_object->volumes.size();
                     unsigned int instances_count = (unsigned int)model_object->instances.size();
                     sels_cntr += volumes_count * instances_count;
                 }
@@ -3229,7 +3222,7 @@ bool Selection::is_from_fully_selected_instance(unsigned int volume_idx) const
         return false;
 
     unsigned int count = (unsigned int)std::count_if(m_list.begin(), m_list.end(), SameInstance(object_idx, volume->instance_idx(), *m_volumes));
-    return count == scene_volumes_count(*m_model->objects[object_idx]);
+    return count == (unsigned int)m_model->objects[object_idx]->volumes.size();
 }
 
 void Selection::paste_volumes_from_clipboard()
@@ -3358,8 +3351,6 @@ void Selection::paste_objects_from_clipboard()
             Geometry::Transformation t = inst->get_transformation();
             inst->set_assemble_transformation(t);
         }
-        // Its pose on the plate would put it far from the other objects in the assembly view.
-        m_model->set_assembly_pos(dst_object);
 
         object_idxs.push_back(m_model->objects.size() - 1);
 #ifdef _DEBUG
