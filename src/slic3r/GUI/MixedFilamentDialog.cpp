@@ -40,6 +40,8 @@
 #include "I18N.hpp"
 #include "format.hpp"
 #include <wx/clipbrd.h>
+#include <wx/dataobj.h>
+#include <wx/stattext.h>
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "GradientCurveEditor.hpp"
