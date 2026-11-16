@@ -777,6 +777,8 @@ NozzleListTable::NozzleListTable(wxWindow* parent) : wxPanel(parent,wxID_ANY,wxD
 
     fs::path filepath = fs::path(resources_dir()) / "web/flush/NozzleListTable.html";
     wxString url = file_url_from_path(filepath);
+    if (wxGetApp().dark_mode())
+        url += "?dark=1";
     // Queue behind CreateWebView's own deferred "wx" add on macOS/Linux: the page posts "init"
     // from DOMContentLoaded, so it must load only once the bridge can receive that message.
     wxWebView* web_view = m_web_view;

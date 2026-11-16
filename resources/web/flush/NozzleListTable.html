@@ -4,13 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>喷嘴选择表格</title>
+    <script>
+      // Apply Orca's theme before the page is painted.
+      if (new URLSearchParams(window.location.search).get('dark') === '1')
+        document.documentElement.classList.add('darkmode');
+    </script>
     <style>
       html, body {
         margin: 0;
         padding: 0;
         height: 100%;
         background-color: #ffffff;
-        transition: background-color 0.3s ease;
       }
 
       html {
@@ -39,7 +43,7 @@
       th, td {
         padding: 10px;
         vertical-align: middle;
-        transition: border-color 0.3s ease, background-color 0.3s ease;
+        transition: border-color 0.3s ease;
         border: 1px solid #ddd; /* 所有单元格边框 */
       }
 
@@ -96,7 +100,8 @@
       }
 
       /* 暗黑模式样式 */
-      html.darkmode {
+      html.darkmode,
+      html.darkmode body {
         background-color: #1a1a1a;
       }
 
