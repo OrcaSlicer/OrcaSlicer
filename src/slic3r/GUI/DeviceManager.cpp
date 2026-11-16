@@ -579,6 +579,15 @@ void MachineObject::set_access_code(std::string code, bool only_refresh)
     }
 }
 
+void MachineObject::set_ca_file(std::string path, bool only_refresh)
+{
+    ca_file = std::move(path);
+    if (only_refresh && is_lan_mode_printer() && has_access_right()) {
+        if (AppConfig* config = m_manager ? m_manager->get_app_config() : GUI::wxGetApp().app_config)
+            DeviceManager::update_local_machine(*this, config);
+    }
+}
+
 std::string MachineObject::get_show_printer_type() const
 {
     std::string printer_type = this->printer_type;
@@ -1200,12 +1209,14 @@ void MachineObject::parse_home_flag(int flag)
         m_fila_system->GetAmsSystemSetting().SetAutoRefillEnabled(((flag >> 10) & 0x1) != 0);
     }
 
-    is_support_flow_calibration = ((flag >> 15) & 0x1) != 0;
-    if (this->is_series_o()) { is_support_flow_calibration = false; } // todo: Temp modification due to incorrect machine push message for H2D
+    if (!((is_support_flow_calibration || is_support_pa_calibration) && this->is_series_n())) { // modification: Protect A1/A1 mini legacy firmware capability reporting. If either capability is already reported as supported, preserve it; otherwise, fall back to home_flag bits for newer firmware.
+        is_support_flow_calibration = ((flag >> 15) & 0x1) != 0;
+        if (this->is_series_o()) { is_support_flow_calibration = false; } // todo: Temp modification due to incorrect machine push message for H2D
 
-    is_support_pa_calibration = ((flag >> 16) & 0x1) != 0;
-    if (this->is_series_p()) { is_support_pa_calibration = false; } // todo: Temp modification due to incorrect machine push message for P
-
+        is_support_pa_calibration = ((flag >> 16) & 0x1) != 0;
+        if (this->is_series_p()) { is_support_pa_calibration = false; } // todo: Temp modification due to incorrect machine push message for P
+    }
+        
     if (time(nullptr) - xcam_prompt_sound_hold_start > HOLD_TIME_3SEC) {
         xcam_allow_prompt_sound = ((flag >> 17) & 0x1) != 0;
     }
@@ -2706,13 +2717,20 @@ int MachineObject::connect()
     // bare IP as dev_ip, so take the port from the dev_id rather than falling back to port 80.
     if (port.empty() && connects_through_moonraker_agent(printer_agent_id))
         Http::get_host_from_url(get_dev_id(), &port);
-    std::string ca_file;
+    // A Bambu printer's CA is chosen per device in the connect dialog. Never take it from the
+    // selected preset: it may belong to another printer, or come from an imported profile.
+    // A local machine saved before agent ids existed belongs to the agent that connects it now.
+    const std::string agent_id = !printer_agent_id.empty() ? printer_agent_id :
+                                 m_manager                 ? m_manager->get_current_printer_agent_id() : std::string();
+    const bool  is_bbl  = agent_id == BBL_PRINTER_AGENT_ID;
+    std::string ca_file = is_bbl ? get_ca_file() : std::string();
 
     if (wxTheApp && GUI::wxGetApp().preset_bundle) {
         const auto& config = GUI::wxGetApp().preset_bundle->printers.get_edited_preset().config;
         if (port.empty())
             port = config.opt_string("printhost_port");
-        ca_file = config.opt_string("printhost_cafile");
+        if (!is_bbl)
+            ca_file = config.opt_string("printhost_cafile");
 
         // Refresh credentials from the matching preset for connections that bypass GUI_App::select_machine().
         const std::string print_host = config.opt_string("print_host");

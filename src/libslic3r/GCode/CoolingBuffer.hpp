@@ -2,17 +2,19 @@
 #define slic3r_CoolingBuffer_hpp_
 
 #include "../Point.hpp"
+#include "../PrintConfig.hpp"
+#include "GCodeProcessor.hpp"
 #include <cstddef>
 #include <map>
 #include <string>
 #include <cfloat>
+#include <utility>
 #include <vector>
 
 namespace Slic3r {
 
 class GCode;
 class Layer;
-class PrintConfig;
 struct PerExtruderAdjustments;
 
 // A standalone G-code filter, to control cooling of the print.
@@ -31,6 +33,8 @@ public:
     void        reset(const Vec3d &position);
     void        set_current_extruder(unsigned int extruder_id, unsigned int nozzle_id) { m_current_extruder = extruder_id; m_current_nozzle = nozzle_id; }
     std::string process_layer(std::string &&gcode, size_t layer_id, bool flush);
+    // ORCA: Remembers the motion limits that G-code outside the layers sets, such as the start G-code, to time the layers.
+    void        remember_motion_settings(const std::string &gcode);
 
     // Layer time smoothing needs the layer times of the whole print, so the layers are processed in two passes:
     // collect_layer() parses each layer and applies the minimum layer time slow down, finish_deferred() then smooths
@@ -44,8 +48,19 @@ public:
 private:
 	CoolingBuffer& operator=(const CoolingBuffer&) = delete;
     // final_extruder, if not null, receives the extruder active at the end of the layer.
-    std::vector<PerExtruderAdjustments> parse_layer_gcode(const std::string &gcode, std::vector<float> &current_pos, unsigned int *final_extruder = nullptr) const;
-    float       calculate_layer_slowdown(std::vector<PerExtruderAdjustments> &per_extruder_adjustments);
+    std::vector<PerExtruderAdjustments> parse_layer_gcode(const std::string &gcode, std::vector<float> &current_pos, unsigned int *final_extruder = nullptr);
+    // The slowdown aims at time_scale times each minimum layer time, in the time at the feed rates.
+    float       calculate_layer_slowdown(std::vector<PerExtruderAdjustments> &per_extruder_adjustments, float time_scale);
+    // ORCA: Slows the layer down to the minimum layer time as the time estimate gives it, and returns that time.
+    float       slow_down_layer(const std::string &gcode, std::vector<PerExtruderAdjustments> &per_extruder_adjustments);
+    // ORCA: The time of the layer's timed part, with acceleration, as the preview estimates it.
+    float       estimate_layer_time(const std::string &gcode, const std::vector<PerExtruderAdjustments> &per_extruder_adjustments);
+    void        remember_motion_setting(const std::string &line);
+    // ORCA: The G-code that puts the layer timer in the machine state with this extruder at this position.
+    std::string timer_setup(unsigned int extruder, const std::vector<float> &position) const;
+    // ORCA: Slows the layer down to its minimum layer time, keeping the outer walls out of the resonance avoidance range
+    // where that can be done. Returns the layer time, as the preview estimates it.
+    float       slow_down_layer_keeping_resonance_range(std::vector<PerExtruderAdjustments> &per_extruder_adjustments);
     // Apply slow down over G-code lines stored in per_extruder_adjustments, enable fan if needed.
     // Returns the adjusted G-code.
     std::string apply_layer_cooldown(const std::string &gcode, size_t layer_id, float layer_time, std::vector<PerExtruderAdjustments> &per_extruder_adjustments);
@@ -83,6 +98,17 @@ private:
     // Belt printers: the extrusion being processed lies in the first-layer band above the
     // belt (between a ";_BELT_BAND_START" and a ";_BELT_BAND_END"). Kept across layers.
     bool                        m_belt_band_active = false;
+
+    // ORCA: Times the layers. Its config leaves out filament changes, which the layer time does not count.
+    GCodeProcessor              m_layer_timer;
+    PrintConfig                 m_layer_timer_config;
+    // The last line of each kind that sets an acceleration or another motion limit, and its order.
+    std::map<std::string, std::pair<size_t, std::string>> m_motion_settings;
+    size_t                      m_motion_settings_count { 0 };
+    // Where the layer's timed part starts in its G-code, and the G-code that sets the timer up for it. The whole layer is
+    // timed, unless a filament change comes before its first extrusion: then it is timed from that extrusion.
+    size_t                      m_timed_from { std::string::npos };
+    std::string                 m_timer_setup;
 };
 
 }
