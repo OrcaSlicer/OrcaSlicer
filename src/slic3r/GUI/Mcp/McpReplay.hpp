@@ -40,6 +40,12 @@ struct ReplayContext
     nlohmann::json          jobs = nlohmann::json::object(); // save_as name -> job id
 };
 
+// The version of the replay format this build writes, the semver string a replay gives as "orca_replay_version".
+// A replay is read when it has this major version and a minor version no newer than this one; while the major
+// version is 0, every minor version may break, so only this minor version is read. The editor's draft and key
+// suggestions write the same version (REPLAY_VERSION in resources/web/dialog/ActionReplay/replay_editor.js).
+inline constexpr const char* REPLAY_VERSION = "0.1.0";
+
 // Parses a replay (JSON with // and /* */ comments). nullopt with `err` set when invalid.
 std::optional<Replay> parse_replay(const std::string& text, std::string& err);
 

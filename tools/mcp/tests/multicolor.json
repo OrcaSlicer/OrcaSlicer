@@ -3,7 +3,7 @@
 // flushing volumes, plate type and prime tower position through the project scope. Run it with
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/multicolor.json --out /tmp/multicolor
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "object and part filaments",
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},

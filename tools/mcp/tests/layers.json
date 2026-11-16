@@ -6,7 +6,7 @@
 // A refusal can't be asserted directly (a failed step stops the run), so each one is an optional
 // step followed by a check that nothing changed.
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "layer-based edits",
   "vars": {"cube": "${replay_dir}/../../../resources/handy_models/OrcaCube_v2.drc",
            "benchy": "${replay_dir}/../../../resources/handy_models/3DBenchy.drc"},

@@ -802,13 +802,13 @@ TEST_CASE("a script hands run_replay a script given as JSON text as it is, with 
     ScopedToolBridge       bound(bridge);
     const PythonRunOutcome out = run(R"PY(
 import orca
-text = '{"orca_replay": 1, "steps": []}  // replayed'
+text = '{"orca_replay_version": "0.1.0", "steps": []}  // replayed'
 result = orca.host.tools.run_replay(text, {"part": "lid"})
 )PY");
     REQUIRE(out.status == "finished");
     CHECK(out.result == json{{"passed", true}});
     CHECK(bridge.calls == std::vector<std::string>{"run_replay"});
-    CHECK(bridge.last_args == json{{"replay", R"({"orca_replay": 1, "steps": []}  // replayed)"}, {"vars", {{"part", "lid"}}}});
+    CHECK(bridge.last_args == json{{"replay", R"({"orca_replay_version": "0.1.0", "steps": []}  // replayed)"}, {"vars", {{"part", "lid"}}}});
 }
 
 TEST_CASE("a run waits for the non-daemon threads it starts, which call tools through it", "[PythonScript][Python]")

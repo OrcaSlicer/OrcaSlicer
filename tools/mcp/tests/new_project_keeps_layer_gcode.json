@@ -3,7 +3,7 @@
 // a live app:
 //   python3 tools/mcp/orca_mcp.py run-replay tools/mcp/tests/new_project_keeps_layer_gcode.json --out <dir>
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "new project keeps layer G-code",
   "vars": {"cube": "${replay_dir}/../../../resources/handy_models/OrcaCube_v2.drc"},
   "steps": [

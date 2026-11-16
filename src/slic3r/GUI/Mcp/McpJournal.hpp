@@ -51,7 +51,7 @@ public:
     void     job_ended(uint64_t seq, const ToolResult& result);
     void     clear();
 
-    // {"orca_replay":1, "name":..., "steps":[...]} with job names substituted and screenshot paths
+    // {"orca_replay_version": REPLAY_VERSION, "name":..., "steps":[...]} with job names substituted and screenshot paths
     // rewritten to ${out_dir}/<file name>. The calls left out because their outcome is still open go
     // to `left_out_running` as [{tool, job}] (no job for a call that is not one).
     nlohmann::json to_replay(const std::string& name, nlohmann::json* left_out_running = nullptr) const;

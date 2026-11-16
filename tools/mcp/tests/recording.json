@@ -4,7 +4,7 @@
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/recording.json --out /tmp/recording
 // The encode steps need an ffmpeg with libx265 (ORCA_FFMPEG or on PATH), so they are optional.
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "recording",
   "vars": {"model": "${replay_dir}/../../../resources/handy_models/OrcaCube_v2.drc"},
   "steps": [
@@ -43,7 +43,7 @@
      "expect": {"/codec": {"eq": "h265"}, "/encoder": {"eq": "libx265"}, "/seconds": {"gt": 1}, "/raw_video_file_deleted": {"eq": false}}},
 
     // A recording a replay starts ends with that replay, its file closed when the replay's call returns.
-    {"tool": "run_replay", "args": {"replay": {"orca_replay": 1, "name": "inner", "steps": [
+    {"tool": "run_replay", "args": {"replay": {"orca_replay_version": "0.1.0", "name": "inner", "steps": [
        {"tool": "start_recording", "args": {"target": "canvas", "fps": 5, "save_path": "${out_dir}/inner.mkv", "overwrite": true}},
        {"tool": "set_view", "args": {"camera": "iso"}},
        {"tool": "mouse_gesture", "args": {"action": "drag", "x": 400, "y": 300, "to": [500, 340]}}]}},

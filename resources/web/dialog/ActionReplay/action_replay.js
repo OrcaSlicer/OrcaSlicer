@@ -79,7 +79,7 @@ function draftReplay() {
     "// " + T("draft_out_dir", "%s is this run's output folder.", "${out_dir}"),
     "// " + T("draft_keys", "%s shows suggestions, %s replays the file.", T("key_suggest", "Ctrl+Space"), T("key_run", "Ctrl+Enter")),
     "{",
-    '  "orca_replay": 1,',
+    '  "orca_replay_version": ' + JSON.stringify(REPLAY_VERSION) + ",",
     '  "name": ' + JSON.stringify(T("untitled_replay", "Untitled replay")) + ",",
     '  "steps": [',
     '    {"tool": "wait", "args": {"for": "ready"}},',

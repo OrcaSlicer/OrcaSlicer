@@ -6,7 +6,7 @@
 // The sums (filament_g as the slots' g, a slot's g as its four uses) are unit tests in
 // tests/slic3rutils/test_mcp_results.cpp, since a replay step cannot add values up.
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "slice statistics",
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},

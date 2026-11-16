@@ -1105,7 +1105,7 @@ TEST_CASE("a failure's caption hides what the call's caption hides", "[Mcp][Reco
           "0.33 is out of range");
     CHECK(caption_error("press_keys", {{"text", "pa55word"}}, "typed pa55word into nothing") == "typed " + dots + " into nothing");
     // A secret in a step of an inline replay is found under its key.
-    const json replay = {{"replay", {{"orca_replay", 1}, {"steps", json::array({{{"tool", "set_settings"}, {"args", {{"values", {{"printhost_password", "letmein9"}}}}}}})}}}};
+    const json replay = {{"replay", {{"orca_replay_version", "0.1.0"}, {"steps", json::array({{{"tool", "set_settings"}, {"args", {{"values", {{"printhost_password", "letmein9"}}}}}}})}}}};
     CHECK(caption_error("run_replay", replay, "step 1 failed: letmein9 rejected") == "step 1 failed: " + dots + " rejected");
     // Too short to take out safely: the error is left out.
     CHECK(caption_error("press_keys", {{"text", "ab"}}, "typed ab").empty());

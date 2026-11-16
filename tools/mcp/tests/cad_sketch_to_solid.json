@@ -6,7 +6,7 @@
 //   tools/mcp/orca_mcp.py launch --cad
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/cad_sketch_to_solid.json --out /tmp/out
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "cad sketch to solid",
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},

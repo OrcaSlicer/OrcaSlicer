@@ -83,9 +83,9 @@ def main():
     check("run_replay still runs the smoke test", smoke.get("passed") is True, smoke.get("failed_step"))
 
     nested = {
-        "orca_replay": 1,
+        "orca_replay_version": "0.1.0",
         "name": "nested",
-        "steps": [{"tool": "run_replay", "args": {"replay": {"orca_replay": 1, "steps": [{"tool": "get_app_state"}]}},
+        "steps": [{"tool": "run_replay", "args": {"replay": {"orca_replay_version": "0.1.0", "steps": [{"tool": "get_app_state"}]}},
                    "expect": {"/passed": {"eq": True}}}],
     }
     result = client.await_job(client.call("run_replay", replay=nested, out_dir=os.path.join(out, "nested")))

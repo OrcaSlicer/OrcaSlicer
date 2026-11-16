@@ -18,7 +18,7 @@ test("a replay's root keys are suggested in a key's string", () => {
   assert.equal(found.kind, "key");
   assert.equal(found.from, 5);
   assert.equal(found.to, 5);
-  assert.deepEqual(labels(found), ["orca_replay", "name", "vars", "steps"]);
+  assert.deepEqual(labels(found), ["orca_replay_version", "name", "vars", "steps"]);
 });
 
 test("a step's keys are suggested inside steps[], leaving out the ones it has", () => {
@@ -79,9 +79,9 @@ test("an accepted key gets its colon and an empty value with the caret inside", 
   // A string's value opens the suggestions again inside its quotes.
   const name = found.items.find((item) => item.label === "name");
   assert.deepEqual(editor.acceptEdit(text, found, name), { from: 2, to: 2, insert: 'name": ""', back: 1, reopen: true });
-  // A number waits after the colon.
-  const version = found.items.find((item) => item.label === "orca_replay");
-  assert.deepEqual(editor.acceptEdit(text, found, version), { from: 2, to: 2, insert: 'orca_replay": 1', back: 0, reopen: false });
+  // The format version is written whole, with the caret after it.
+  const version = found.items.find((item) => item.label === "orca_replay_version");
+  assert.deepEqual(editor.acceptEdit(text, found, version), { from: 2, to: 2, insert: 'orca_replay_version": "0.1.0"', back: 0, reopen: false });
 });
 
 test("a key accepted before an existing colon replaces only the key", () => {

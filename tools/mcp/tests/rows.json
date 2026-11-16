@@ -6,7 +6,7 @@
 // Refusals (a bad column, a row without a checkbox, two rows a locator names) and checklist rows (the
 // Add Settings checklist is on no FFF menu) are unit tests in tests/slic3rutils/test_mcp_results.cpp.
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "rows and popups",
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},

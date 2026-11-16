@@ -6,7 +6,7 @@
 // The project has three plates with a cube on the first. Every call it records is optional. Run it with
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_select_plate.json --out <dir>
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "ops select_plate",
   "vars": {"undo": "${replay_dir}/fixtures/ops_undo.py"},
   "steps": [

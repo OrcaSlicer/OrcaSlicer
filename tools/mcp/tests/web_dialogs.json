@@ -6,7 +6,7 @@
 // printer:
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/web_dialogs.json --out /tmp/web_dialogs
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "web dialogs through the GUI tools",
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},

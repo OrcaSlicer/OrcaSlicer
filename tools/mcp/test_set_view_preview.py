@@ -91,7 +91,7 @@ def main():
         steps += [{"tool": "screenshot", "args": {"target": "canvas", "save_path": f"${{out_dir}}/{i}{shot}.png",
                                                   "overwrite": True, "include_image": False}}
                   for shot in "ab"]
-    ran = client.await_job(client.call("run_replay", replay={"orca_replay": 1, "name": "captures after view changes", "steps": steps},
+    ran = client.await_job(client.call("run_replay", replay={"orca_replay_version": "0.1.0", "name": "captures after view changes", "steps": steps},
                                        out_dir=out_dir))
     check("the capture replay runs", ran.get("passed") is True, ran)
     if ran.get("passed") is True:

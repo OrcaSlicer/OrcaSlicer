@@ -1,5 +1,6 @@
 #include "McpJournal.hpp"
 #include "McpPaths.hpp"
+#include "McpReplay.hpp"
 
 #include "slic3r/GUI/ActionIds.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
@@ -256,7 +257,7 @@ nlohmann::json Journal::to_replay(const std::string& name, nlohmann::json* left_
             steps.push_back({{"tool", "wait"}, {"args", {{"for", "dialog"}, {"timeout_s", 50}}}, {"expect", {{"/satisfied", {{"eq", true}}}}}});
         steps.push_back(std::move(step));
     }
-    return {{"orca_replay", 1}, {"name", name}, {"steps", std::move(steps)}};
+    return {{"orca_replay_version", REPLAY_VERSION}, {"name", name}, {"steps", std::move(steps)}};
 }
 
 }}} // namespace Slic3r::GUI::Mcp

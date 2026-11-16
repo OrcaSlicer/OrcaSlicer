@@ -8,7 +8,7 @@
 // tested in tests/slic3rutils/test_mcp_results.cpp, since a replay step cannot add values up, and a
 // refusal cannot be expected in a replay; tools/mcp/test_set_view_preview.py checks set_view's.
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "preview data",
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},

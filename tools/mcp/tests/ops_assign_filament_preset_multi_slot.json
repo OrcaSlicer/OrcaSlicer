@@ -12,7 +12,7 @@
 // with
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_assign_filament_preset_multi_slot.json --out <dir>
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "ops assign_filament_preset, several slots",
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},

@@ -228,7 +228,7 @@ def main():
         install(datadir)  # enabled again: unticking it saved it disabled
         steps = os.path.join(datadir, "plugin_rule.json")
         with open(steps, "w", encoding="utf-8") as f:
-            json.dump({"orca_replay": 1, "name": "a plugin's rule without MCP", "steps": [
+            json.dump({"orca_replay_version": "0.1.0", "name": "a plugin's rule without MCP", "steps": [
                 {"tool": "run_action", "args": {"id": f"plugin_script_action:{CAPABILITIES[2]}:{PLUGIN}"}},
                 {"tool": "wait", "args": {"for": "dialog", "timeout_s": 10}}]}, f)
         out = os.path.join(plugin_dir, "out_rule.json")

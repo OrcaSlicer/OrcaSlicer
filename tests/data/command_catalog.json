@@ -386,7 +386,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Open the Action Replay window, where a person opens a replay file (an orca_replay), reads its steps and replays them. Agents run replays with the run_replay tool instead.",
+   "description": "Open the Action Replay window, where a person opens a replay file, reads its steps and replays them. Agents run replays with the run_replay tool instead.",
    "destructive": false,
    "group": "Commands",
    "guard": "mutate",
@@ -4755,7 +4755,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Replay a list of tool calls in order and report each step: {orca_replay:1, name, vars, steps:[{tool, args, expect, optional, await, save_as, timeout_s}]}, JSON with comments. Strings may use ${replay_dir}, ${out_dir}, ${env:NAME}, ${vars.NAME} and ${jobs.NAME}. A step that returns a job is awaited unless await:false, which stores the job under save_as so later steps can answer the dialog it opened. expect maps a JSON pointer into the step's result to matchers (eq ne gt ge lt le contains regex exists empty); the first failed step or expectation stops the run unless the step is optional. Writes result.json to out_dir (default: the replay file's name with .out, beside it; for an inline replay, replay-<timestamp> in the session's output folder). Reply: passed, steps, failed_step, out_dir and result_file. auto_answer_dialogs rules a replay registers end with it. export_replay turns this session into one.",
+   "description": "Replay a list of tool calls in order and report each step: {orca_replay_version:\"0.1.0\", name, vars, steps:[{tool, args, expect, optional, await, save_as, timeout_s}]}, JSON with comments. Strings may use ${replay_dir}, ${out_dir}, ${env:NAME}, ${vars.NAME} and ${jobs.NAME}. A step that returns a job is awaited unless await:false, which stores the job under save_as so later steps can answer the dialog it opened. expect maps a JSON pointer into the step's result to matchers (eq ne gt ge lt le contains regex exists empty); the first failed step or expectation stops the run unless the step is optional. Writes result.json to out_dir (default: the replay file's name with .out, beside it; for an inline replay, replay-<timestamp> in the session's output folder). Reply: passed, steps, failed_step, out_dir and result_file. auto_answer_dialogs rules a replay registers end with it. export_replay turns this session into one.",
    "destructive": false,
    "group": "core",
    "guard": "mutate",

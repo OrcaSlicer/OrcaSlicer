@@ -7,7 +7,7 @@
 // refusals (an icon the plate does not show, a plate that does not exist, an open gizmo, the Preview)
 // can't be expected in a replay.
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "plate icons",
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},

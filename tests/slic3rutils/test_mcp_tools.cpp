@@ -590,7 +590,7 @@ TEST_CASE("the journal records indices without expected ids, except a Python ste
     CHECK(without_expected_ids(catalog, "set_settings", json{{"object", 0}, {"object_id", 7}, {"part_id", 8}}) == json{{"object", 0}});
     CHECK(without_expected_ids(catalog, "set_height_ranges", json{{"object", 0}, {"object_id", 7}}) == json{{"object", 0}});
     CHECK(without_expected_ids(catalog, "set_variable_layer_height", json{{"object", 0}, {"object_id", 7}}) == json{{"object", 0}});
-    const json replay{{"replay", {{"orca_replay", 1},
+    const json replay{{"replay", {{"orca_replay_version", "0.1.0"},
                                   {"steps", {{{"tool", "transform"}, {"args", {{"object", 1}, {"object_id", 9}}}},
                                              {{"tool", "run_script"}, {"args", {{"code", "x"}, {"args", {{"object_id", 9}}}}}}}}}}};
     const json recorded = without_expected_ids(catalog, "run_replay", replay);
@@ -603,12 +603,12 @@ TEST_CASE("the journal records an inline replay given as JSON text as its object
 {
     const CommandCatalog& catalog = Slic3r::GUI::NativeCommands::instance();
     const json as_text{{"replay", "// moves the lid\n"
-                                  R"({"orca_replay": 1, "steps": [{"tool": "transform", "args": {"object": 1, "object_id": 9}}]})"}};
+                                  R"({"orca_replay_version": "0.1.0", "steps": [{"tool": "transform", "args": {"object": 1, "object_id": 9}}]})"}};
     const json recorded = without_expected_ids(catalog, "run_replay", as_text);
     REQUIRE(recorded["replay"].is_object());
     CHECK(recorded["replay"]["steps"][0]["args"] == json{{"object", 1}});
     // Text that doesn't parse is the call's error; it is recorded as given.
-    CHECK(without_expected_ids(catalog, "run_replay", json{{"replay", "{\"orca_replay\": 1,"}}) == json{{"replay", "{\"orca_replay\": 1,"}});
+    CHECK(without_expected_ids(catalog, "run_replay", json{{"replay", "{\"orca_replay_version\": \"0.1.0\","}}) == json{{"replay", "{\"orca_replay_version\": \"0.1.0\","}});
 }
 
 TEST_CASE("the journal strips a command's id arguments", "[Mcp]")
@@ -618,7 +618,7 @@ TEST_CASE("the journal strips a command's id arguments", "[Mcp]")
     // Inside the call_tool and run_replay wrappers too.
     CHECK(without_expected_ids(catalog, "call_tool", json{{"tool", "transform"}, {"args", {{"object", 1}, {"object_id", 9}}}}) ==
           json{{"tool", "transform"}, {"args", {{"object", 1}}}});
-    const json replay{{"replay", {{"orca_replay", 1},
+    const json replay{{"replay", {{"orca_replay_version", "0.1.0"},
                                   {"steps", {{{"tool", "call_tool"}, {"args", {{"tool", "transform"}, {"args", {{"object", 1}, {"object_id", 9}}}}}}}}}}};
     CHECK(without_expected_ids(catalog, "run_replay", replay)["replay"]["steps"][0]["args"]["args"] == json{{"object", 1}});
     // A plugin operation's own fields of the same names are its arguments, recorded as given.

@@ -38,7 +38,7 @@ struct ReplayContext;
 // call that is one of its tiles (`what`'s `tile`) as that tile.
 std::pair<std::string, std::string> replay_what_text(const nlohmann::json& what, const CommandCatalog& catalog);
 
-// The Action Replay window: a person opens or writes a replay file (an orca_replay, the JSON list of tool calls an
+// The Action Replay window: a person opens or writes a replay file (the JSON list of tool calls an
 // agent session exports), saves it, reads its steps and replays it, whole or one step at a time, watching each step's
 // outcome. The page (resources/web/dialog/ActionReplay) shows; this host parses, describes, words and runs, through the
 // automation runtime's replay runner without opening the MCP endpoint. A Python script opened or dropped here is

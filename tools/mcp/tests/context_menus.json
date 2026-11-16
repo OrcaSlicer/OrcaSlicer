@@ -5,7 +5,7 @@
 // Refusals (no such item, a submenu, a disabled item, a click that opened no menu) are unit tests in
 // tests/slic3rutils/test_mcp_results.cpp, since a replay step cannot expect an error.
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "context menus",
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},

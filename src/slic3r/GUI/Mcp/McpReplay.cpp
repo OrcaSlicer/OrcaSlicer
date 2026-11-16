@@ -2,6 +2,10 @@
 #include "McpPaths.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 
+#include "libslic3r/Semver.hpp"
+
+#include <boost/optional/optional.hpp>
+
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
@@ -18,6 +22,23 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 using nlohmann::json;
 
 namespace {
+
+// Why this build can't read a replay whose "orca_replay_version" is `field`, or nullopt when it can, by the rule
+// REPLAY_VERSION describes.
+std::optional<std::string> version_error(const json& field)
+{
+    boost::optional<Semver> theirs;
+    if (field.is_string())
+        theirs = Semver::parse(field.get<std::string>());
+    if (!theirs)
+        return std::string("\"orca_replay_version\" must be a version such as \"") + REPLAY_VERSION + "\"";
+    static const Semver ours(REPLAY_VERSION);
+    if (theirs->maj() == ours.maj() && (ours.maj() == 0 ? theirs->min() == ours.min() : theirs->min() <= ours.min()))
+        return std::nullopt;
+    return "the replay is format " + field.get<std::string>() +
+           (*theirs > ours ? ", written for a newer OrcaSlicer" : ", which this OrcaSlicer no longer reads") +
+           "; this one reads format " + REPLAY_VERSION;
+}
 
 bool is_job_envelope(const ToolResult& r)
 {
@@ -211,8 +232,12 @@ std::optional<Replay> parse_replay(const std::string& text, std::string& err)
         err = "the replay is not valid JSON: " + text_position(text, e.byte) + ": " + (sep == std::string::npos ? what : what.substr(sep + 2));
         return std::nullopt;
     }
-    if (!doc.is_object() || !doc.contains("orca_replay") || doc["orca_replay"] != 1) {
-        err = "the replay must be an object with \"orca_replay\": 1";
+    if (!doc.is_object() || !doc.contains("orca_replay_version")) {
+        err = std::string("the replay must be an object with \"orca_replay_version\": \"") + REPLAY_VERSION + "\"";
+        return std::nullopt;
+    }
+    if (auto bad = version_error(doc["orca_replay_version"])) {
+        err = std::move(*bad);
         return std::nullopt;
     }
     if (!doc.contains("steps") || !doc["steps"].is_array()) {

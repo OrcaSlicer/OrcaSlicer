@@ -68,7 +68,7 @@ HANDED_OVER = (-1, 255)     # a start that handed its command line to a window, 
 MODEL = os.path.join(HERE, "..", "..", "resources", "handy_models", "OrcaCube_v2.drc")
 DROPPED = (McpError, OSError, http.client.HTTPException)
 
-REPLAY = {"orca_replay": 1, "name": "the app's state", "steps": [{"tool": "get_app_state"}]}
+REPLAY = {"orca_replay_version": "0.1.0", "name": "the app's state", "steps": [{"tool": "get_app_state"}]}
 SCREENSHOT_SCRIPT = """
 import orca
 orca.host.tools.call("screenshot", {"include_image": False})

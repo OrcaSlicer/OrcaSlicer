@@ -9,7 +9,7 @@
 // optional. Run it with
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_new_project.json --out <dir>
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "ops new_project",
   "vars": {"undo": "${replay_dir}/fixtures/ops_undo.py"},
   "steps": [

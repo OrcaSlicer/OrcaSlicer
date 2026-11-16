@@ -6,7 +6,7 @@
 // without meta. Run on a live app:
 //   python3 tools/mcp/orca_mcp.py run-replay tools/mcp/tests/agent_forms.json --out <dir>
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "agent argument forms",
   "vars": {"cube": "${replay_dir}/../../../resources/handy_models/OrcaCube_v2.drc"},
   "steps": [

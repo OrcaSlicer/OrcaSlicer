@@ -112,7 +112,8 @@ void register_replay_tools(CommandCatalog& catalog)
 {
     NativeCommand run = mutate_tool(
         "core", "run_replay", L("Run a replay"),
-        "Replay a list of tool calls in order and report each step: {orca_replay:1, name, vars, steps:[{tool, args, expect, "
+        std::string("Replay a list of tool calls in order and report each step: {orca_replay_version:\"") + REPLAY_VERSION +
+            "\", name, vars, steps:[{tool, args, expect, "
         "optional, await, save_as, timeout_s}]}, JSON with comments. Strings may use ${replay_dir}, ${out_dir}, ${env:NAME}, "
         "${vars.NAME} and ${jobs.NAME}. A step that returns a job is awaited unless await:false, which stores the job under "
         "save_as so later steps can answer the dialog it opened. expect maps a JSON pointer into the step's result to "

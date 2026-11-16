@@ -2,11 +2,15 @@
 // names, a tool's args and their allowed values, and ${…} placeholders, with what accepting one and Return write. The
 // editor is Ace, set up by ../js/code_editor.js; the pure functions here are also loaded by replay_editor.test.js.
 
+// The replay format version the draft and the version key's suggestion write: the host's REPLAY_VERSION
+// (src/slic3r/GUI/Mcp/McpReplay.hpp), which says which versions it reads.
+const REPLAY_VERSION = "0.1.0";
+
 // The keys of a replay and of a step, with the JSON type of their values. Accepting a key writes a
 // value of that type after its colon (an empty string, object or array with the caret inside, or true),
 // or the item's own `then`; for a number the caret waits after the colon.
 const ROOT_KEYS = [
-  { label: "orca_replay", detail: "integer", then: "1" },
+  { label: "orca_replay_version", detail: "string", then: JSON.stringify(REPLAY_VERSION) },
   { label: "name", detail: "string" },
   { label: "vars", detail: "object" },
   { label: "steps", detail: "array" },

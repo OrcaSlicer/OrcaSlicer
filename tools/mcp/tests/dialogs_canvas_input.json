@@ -5,7 +5,7 @@
 // Refusals (a point or an ImGui item under a panel or notification) are unit tests in
 // tests/slic3rutils/test_mcp_results.cpp, since a replay step cannot expect an error.
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "auto-answers and canvas input",
   "vars": {"standard": "0.20mm Standard @BBL X1C", "fine": "0.16mm High Quality @BBL X1C"},
   "steps": [

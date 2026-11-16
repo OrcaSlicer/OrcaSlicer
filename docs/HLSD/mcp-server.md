@@ -3560,7 +3560,7 @@ thread's progress and error events go to, so the row exists before any of them i
 ## Replays and the journal
 
 ```jsonc
-{ "orca_replay": 1, "name": "repro #12345",
+{ "orca_replay_version": "0.1.0", "name": "repro #12345",
   "vars": {"model": "${replay_dir}/part.stl"},
   "steps": [
     {"tool": "open_files", "args": {"paths": ["${vars.model}"]}},
@@ -3571,6 +3571,13 @@ thread's progress and error events go to, so the row exists before any of them i
     {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/preview.png", "overwrite": true}}
   ]}
 ```
+
+`orca_replay_version` is the semver of the replay format (`REPLAY_VERSION` in `McpReplay.hpp`), which
+an exported replay is stamped with. A minor version adds tools or fields, so a build reads replays of
+its own major version up to its own minor version; a major version renames or removes them. While the
+major version is 0 any change may break a replay, so a build reads only its own minor version. A
+replay a build can't read is refused before any step runs, saying whether it needs a newer
+OrcaSlicer.
 
 A replay is JSON with comments allowed. `run_replay` runs a file or an inline replay as a job whose
 steps call tools as its children (`ToolContext::call_child()`), so steps are not journaled and a

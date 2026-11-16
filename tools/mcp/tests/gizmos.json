@@ -6,7 +6,7 @@
 //   tools/mcp/orca_mcp.py call run_replay '{"path": "/abs/tools/mcp/tests/gizmos.json",
 //       "out_dir": "/tmp/gizmos-small", "vars": {"window_size": [1100, 760]}}' --wait
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "every gizmo",
   "vars": {
     "window_size": [1600, 900],

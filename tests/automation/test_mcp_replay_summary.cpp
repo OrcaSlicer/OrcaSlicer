@@ -58,7 +58,7 @@ CommandCatalog tile_catalog()
 StepDescription describe(const std::string& step, const std::string& vars = "{}")
 {
     std::string err;
-    const auto  replay = parse_replay(R"({"orca_replay": 1, "vars": )" + vars + R"(, "steps": [)" + step + "]}", err);
+    const auto  replay = parse_replay(R"({"orca_replay_version": "0.1.0", "vars": )" + vars + R"(, "steps": [)" + step + "]}", err);
     INFO(err);
     REQUIRE(replay.has_value());
     ReplayContext ctx;
@@ -190,7 +190,7 @@ TEST_CASE("a call with other arguments than a tile's is described by its argumen
 TEST_CASE("a step that calls a tile's command by its key is described from the catalog it is given", "[Mcp]")
 {
     std::string err;
-    const auto  replay = parse_replay(R"({"orca_replay": 1, "steps": [{"tool": "export_stl", "args": {"path": "C:/a.stl"}}]})", err);
+    const auto  replay = parse_replay(R"({"orca_replay_version": "0.1.0", "steps": [{"tool": "export_stl", "args": {"path": "C:/a.stl"}}]})", err);
     INFO(err);
     REQUIRE(replay.has_value());
     ReplayContext ctx;
@@ -325,62 +325,62 @@ TEST_CASE("steps that can answer a dialog are told apart", "[Mcp]")
 TEST_CASE("nested replays join their steps' descriptions", "[Mcp]")
 {
     const StepDescription replacing = describe(
-        R"({"tool": "run_replay", "args": {"replay": {"orca_replay": 1, "steps": [{"tool": "new_project", "args": {"discard_changes": true}}]}}})");
+        R"({"tool": "run_replay", "args": {"replay": {"orca_replay_version": "0.1.0", "steps": [{"tool": "new_project", "args": {"discard_changes": true}}]}}})");
     CHECK(flags_of(replacing) == Flags{"replaces_project"});
     CHECK(replacing.replace == "checked");
     CHECK(replacing.what == json{{"kind", "replay"}, {"steps", 1}});
 
     // An inline replay given as JSON text, comments included, reads as its object does.
-    const std::string     text    = "// starts over\n" R"({"orca_replay": 1, "steps": [{"tool": "new_project", "args": {"discard_changes": true}}]})";
+    const std::string     text    = "// starts over\n" R"({"orca_replay_version": "0.1.0", "steps": [{"tool": "new_project", "args": {"discard_changes": true}}]})";
     const StepDescription as_text = describe(json{{"tool", "run_replay"}, {"args", {{"replay", text}}}}.dump());
     CHECK(flags_of(as_text) == Flags{"replaces_project"});
     CHECK(as_text.what == json{{"kind", "replay"}, {"steps", 1}});
 
     const StepDescription own_output = describe(
-        R"({"tool": "run_replay", "args": {"replay": {"orca_replay": 1, "steps": [{"tool": "screenshot", "args": {"save_path": "${out_dir}/n.png"}}]}}})");
+        R"({"tool": "run_replay", "args": {"replay": {"orca_replay_version": "0.1.0", "steps": [{"tool": "screenshot", "args": {"save_path": "${out_dir}/n.png"}}]}}})");
     CHECK(flags_of(own_output).empty());
 
     // The outer replay substitutes an inline replay's placeholders before the nested run starts, as
     // run_replay does: the step's own vars come too late, and its out_dir doesn't move ${out_dir}.
     const StepDescription outer_vars = describe(
-        R"({"tool": "run_replay", "args": {"replay": {"orca_replay": 1, "steps": [{"tool": "open_files", "args": {"paths": ["${vars.p}"]}}]}}})",
+        R"({"tool": "run_replay", "args": {"replay": {"orca_replay_version": "0.1.0", "steps": [{"tool": "open_files", "args": {"paths": ["${vars.p}"]}}]}}})",
         R"({"p": "C:/a/p.3mf"})");
     CHECK(flags_of(outer_vars) == Flags{"replaces_project"});
     CHECK(outer_vars.replace == "checked");
 
     const StepDescription step_vars = describe(
-        R"({"tool": "run_replay", "args": {"vars": {"p": "C:/a/p.3mf"}, "replay": {"orca_replay": 1, "vars": {"p": "C:/a/q.3mf"}, "steps": [{"tool": "open_files", "args": {"paths": ["${vars.p}"]}}]}}})");
+        R"({"tool": "run_replay", "args": {"vars": {"p": "C:/a/p.3mf"}, "replay": {"orca_replay_version": "0.1.0", "vars": {"p": "C:/a/q.3mf"}, "steps": [{"tool": "open_files", "args": {"paths": ["${vars.p}"]}}]}}})");
     CHECK(flags_of(step_vars).empty());
     CHECK(step_vars.replace == "");
 
     const StepDescription own_folder = describe(
-        R"({"tool": "run_replay", "args": {"out_dir": "C:/elsewhere", "replay": {"orca_replay": 1, "steps": [{"tool": "screenshot", "args": {"save_path": "${out_dir}/n.png"}}]}}})");
+        R"({"tool": "run_replay", "args": {"out_dir": "C:/elsewhere", "replay": {"orca_replay_version": "0.1.0", "steps": [{"tool": "screenshot", "args": {"save_path": "${out_dir}/n.png"}}]}}})");
     CHECK(flags_of(own_folder).empty());
 
     const StepDescription mixed = describe(
-        R"({"tool": "run_replay", "args": {"replay": {"orca_replay": 1, "steps": [{"tool": "run_action", "args": {"id": "orca_command:new_project:orca"}}, {"tool": "new_project", "args": {"silent": true}}]}}})");
+        R"({"tool": "run_replay", "args": {"replay": {"orca_replay_version": "0.1.0", "steps": [{"tool": "run_action", "args": {"id": "orca_command:new_project:orca"}}, {"tool": "new_project", "args": {"silent": true}}]}}})");
     CHECK(mixed.replace == "checked");
 
     const StepDescription clicking = describe(
-        R"({"tool": "run_replay", "args": {"replay": {"orca_replay": 1, "steps": [{"tool": "click", "args": {"target": {"label": "No"}}}]}}})");
+        R"({"tool": "run_replay", "args": {"replay": {"orca_replay_version": "0.1.0", "steps": [{"tool": "click", "args": {"target": {"label": "No"}}}]}}})");
     CHECK(clicking.answers_dialogs);
 
     // Five levels of nesting: past the inspection depth, so the effect can't be read.
-    std::string deep = R"({"orca_replay": 1, "steps": [{"tool": "new_project"}]})";
+    std::string deep = R"({"orca_replay_version": "0.1.0", "steps": [{"tool": "new_project"}]})";
     for (int i = 0; i < 5; ++i)
-        deep = R"({"orca_replay": 1, "steps": [{"tool": "run_replay", "args": {"replay": )" + deep + "}}]}";
+        deep = R"({"orca_replay_version": "0.1.0", "steps": [{"tool": "run_replay", "args": {"replay": )" + deep + "}}]}";
     const StepDescription too_deep = describe(R"({"tool": "run_replay", "args": {"replay": )" + deep + "}}");
     CHECK(flags_of(too_deep) == kEveryFlag);
     CHECK(too_deep.replace == "checked");
     CHECK(too_deep.answers_dialogs);
     CHECK(too_deep.what == json{{"kind", "replay"}, {"steps", 1}});
 
-    const StepDescription invalid = describe(R"({"tool": "run_replay", "args": {"replay": {"orca_replay": 1, "steps": [{"tool": 3}]}}})");
+    const StepDescription invalid = describe(R"({"tool": "run_replay", "args": {"replay": {"orca_replay_version": "0.1.0", "steps": [{"tool": 3}]}}})");
     CHECK(flags_of(invalid) == kEveryFlag);
     REQUIRE(invalid.what.value("kind", "") == "value");
     CHECK(invalid.what.value("text", "").find("step 1") != std::string::npos);
 
-    const StepDescription broken_text = describe(json{{"tool", "run_replay"}, {"args", {{"replay", "{\"orca_replay\": 1,\n \"steps\": ["}}}}.dump());
+    const StepDescription broken_text = describe(json{{"tool", "run_replay"}, {"args", {{"replay", "{\"orca_replay_version\": \"0.1.0\",\n \"steps\": ["}}}}.dump());
     CHECK(flags_of(broken_text) == kEveryFlag);
     REQUIRE(broken_text.what.value("kind", "") == "value");
     CHECK(broken_text.what.value("text", "").find("line 2") != std::string::npos);
@@ -401,7 +401,7 @@ TEST_CASE("saved jobs don't change a step's flags", "[Mcp]")
                                       R"({"tool": "run_action", "args": {"id": "orca_command:import_file:orca", "args": {"path": "${jobs.p}"}}})");
     INFO(step);
     std::string err;
-    const auto  replay = parse_replay(R"({"orca_replay": 1, "steps": [)" + step + "]}", err);
+    const auto  replay = parse_replay(R"({"orca_replay_version": "0.1.0", "steps": [)" + step + "]}", err);
     REQUIRE(replay.has_value());
     ReplayContext without;
     without.out_dir = "C:/out";

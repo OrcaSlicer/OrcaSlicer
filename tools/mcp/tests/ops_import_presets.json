@@ -8,7 +8,7 @@
 // call it records is optional. Run it with
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_import_presets.json --out <dir>
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "ops import_presets",
   "vars": {"undo": "${replay_dir}/fixtures/ops_undo.py",
            "pla": "${replay_dir}/fixtures/mcp_import_pla.json",

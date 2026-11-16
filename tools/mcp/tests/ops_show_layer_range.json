@@ -8,7 +8,7 @@
 // (fixtures/ops_undo.py). Every call it records is optional. Run it with
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_show_layer_range.json --out <dir>
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "ops show_layer_range",
   "vars": {"undo": "${replay_dir}/fixtures/ops_undo.py"},
   "steps": [

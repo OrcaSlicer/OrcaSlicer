@@ -5,7 +5,7 @@
 // or headless with
 //   orca-slicer --run tools/mcp/smoke_test.json --outputdir /tmp/smoke
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "smoke",
   "vars": {"model": "${replay_dir}/../../resources/handy_models/3DBenchy.drc"},
   "steps": [

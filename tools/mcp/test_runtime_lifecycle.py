@@ -381,7 +381,7 @@ def exit_without_endpoint(binary):
     os.makedirs(out)
     with open(replay, "w", encoding="utf-8") as f:
         # The expect makes a run that opened the endpoint fail the replay, and with it the check.
-        json.dump({"orca_replay": 1, "name": "the app's state without the server",
+        json.dump({"orca_replay_version": "0.1.0", "name": "the app's state without the server",
                    "steps": [{"tool": "get_app_state", "expect": {"/mcp/serving": {"eq": False}}}]}, f)
     try:
         with Instance(binary, "--run", replay, "--outputdir", out, serve=False) as app:

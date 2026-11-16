@@ -650,7 +650,7 @@ def main():
     check("an up the page takes too late leaves its press for the next gesture",
           "error" in r and missed == ups + 5 and page_log(window_log).count("pad up") == ups + 6, lambda: [r, missed, page_log(window_log)])
     # A replay's press on a page ends with the replay, as a widget's does.
-    pressing = {"orca_replay": 1, "name": "press", "steps": [
+    pressing = {"orca_replay_version": "0.1.0", "name": "press", "steps": [
         {"tool": "mouse_gesture", "args": {"target": {"web": "Pad", "within": "MCP web fixture window"}, "action": "down", "x": 5, "y": 5}}]}
     res = client.await_job(client.call("run_replay", replay=pressing, out_dir=os.path.join(session["datadir"], "press_replay")))
     check("a replay's press on a page ends with the replay",

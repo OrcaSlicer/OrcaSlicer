@@ -8,7 +8,7 @@
 // restart) with
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_select_preset.json --out <dir>
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "ops select_preset",
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},

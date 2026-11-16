@@ -71,7 +71,7 @@ TEST_CASE("replays allow comments and read their fields", "[Mcp]")
 {
     const Replay s = parse_ok(R"({
         // a comment
-        "orca_replay": 1, "name": "repro", /* block */ "vars": {"n": 3},
+        "orca_replay_version": "0.1.0", "name": "repro", /* block */ "vars": {"n": 3},
         "steps": [{"tool": "slice", "expect": {"/ok": {"eq": true}}, "optional": true, "timeout_s": 5},
                   {"tool": "run_action", "await": false, "save_as": "prefs"}]
     })");
@@ -87,21 +87,40 @@ TEST_CASE("invalid replays are rejected with a reason", "[Mcp]")
 {
     const auto [text, reason] = GENERATE(table<std::string, std::string>({
         {"{", "not valid JSON"},
-        {R"({"steps": []})", "orca_replay"},
-        {R"({"orca_replay": 2, "steps": []})", "orca_replay"},
-        {R"({"orca_replay": 1})", "steps"},
-        {R"({"orca_replay": 1, "steps": [{"args": {}}]})", "step 1"},
-        {R"({"orca_replay": 1, "steps": [{"tool": "x", "await": false}]})", "save_as"},
-        {R"({"orca_replay": 1, "steps": [{"tool": "x", "args": []}]})", "args"},
+        {R"({"steps": []})", "orca_replay_version"},
+        {R"({"orca_replay_version": "0.1.0"})", "steps"},
+        {R"({"orca_replay_version": "0.1.0", "steps": [{"args": {}}]})", "step 1"},
+        {R"({"orca_replay_version": "0.1.0", "steps": [{"tool": "x", "await": false}]})", "save_as"},
+        {R"({"orca_replay_version": "0.1.0", "steps": [{"tool": "x", "args": []}]})", "args"},
     }));
     std::string err;
     CHECK_FALSE(parse_replay(text, err).has_value());
     CHECK(err.find(reason) != std::string::npos);
 }
 
+TEST_CASE("a replay is read only in a format version this build reads", "[Mcp]")
+{
+    // This build reads format 0.1.0 (REPLAY_VERSION): while the major version is 0, only its own minor version.
+    const auto [version, reason] = GENERATE(table<std::string, std::string>({
+        {"0.1.0", ""},
+        {"0.1.7", ""},
+        {"0.1.0-beta", ""},
+        {"0.2.0", "written for a newer OrcaSlicer"},
+        {"1.0.0", "written for a newer OrcaSlicer"},
+        {"0.0.9", "no longer reads"},
+        {"v0.1.0", "must be a version"},
+        {"0.x.0", "must be a version"},
+    }));
+    CAPTURE(version);
+    std::string err;
+    const auto  replay = parse_replay(R"({"orca_replay_version": ")" + version + R"(", "steps": []})", err);
+    CHECK(replay.has_value() == reason.empty());
+    CHECK(err.find(reason) != std::string::npos);
+}
+
 TEST_CASE("vars, env and jobs substitute recursively", "[Mcp]")
 {
-    const Replay s = parse_ok(R"({"orca_replay": 1, "vars": {"model": "${replay_dir}/part.stl", "count": 3}, "steps": []})");
+    const Replay s = parse_ok(R"({"orca_replay_version": "0.1.0", "vars": {"model": "${replay_dir}/part.stl", "count": 3}, "steps": []})");
     ReplayContext ctx;
     ctx.replay_dir = "/replays";
     ctx.out_dir    = "/out";
@@ -160,7 +179,7 @@ TEST_CASE("a job-returning step is awaited before its expect is checked", "[Mcp]
     FakeHost f;
     f.tools["slice"]    = [](const json&) { return ToolResult::ok({{"status", "running"}, {"job", "j3"}}); };
     f.job_results["j3"] = ToolResult::ok({{"plates", {{{"outcome", "ok"}}}}});
-    const Replay  s     = parse_ok(R"({"orca_replay": 1, "steps": [{"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}}]})");
+    const Replay  s     = parse_ok(R"({"orca_replay_version": "0.1.0", "steps": [{"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}}]})");
     ReplayContext ctx;
     const json    out = run_replay(s, ctx, f.host());
     CHECK(out["passed"] == true);
@@ -173,7 +192,7 @@ TEST_CASE("await false stores the job under save_as for later steps", "[Mcp]")
     f.tools["run_action"]     = [](const json&) { return ToolResult::ok({{"status", "blocked_by_dialog"}, {"job", "j5"}}); };
     f.tools["answer_dialog"] = [](const json&) { return ToolResult::ok(); };
     f.tools["wait"]           = [](const json& a) { return ToolResult::ok({{"job", a["job"]}}); };
-    const Replay s = parse_ok(R"({"orca_replay": 1, "steps": [
+    const Replay s = parse_ok(R"({"orca_replay_version": "0.1.0", "steps": [
         {"tool": "run_action", "await": false, "save_as": "prefs"},
         {"tool": "answer_dialog", "args": {"button": "close"}},
         {"tool": "wait", "args": {"for": "job", "job": "${jobs.prefs}"}, "expect": {"/job": {"eq": "j5"}}}]})");
@@ -189,7 +208,7 @@ TEST_CASE("a run stops at the first failed step unless it is optional", "[Mcp]")
     FakeHost f;
     f.tools["ok"]   = [](const json&) { return ToolResult::ok({{"v", 1}}); };
     f.tools["fail"] = [](const json&) { return ToolResult::error("nope"); };
-    const Replay s = parse_ok(R"({"orca_replay": 1, "steps": [
+    const Replay s = parse_ok(R"({"orca_replay_version": "0.1.0", "steps": [
         {"tool": "fail", "optional": true}, {"tool": "ok", "expect": {"/v": {"eq": 2}}}, {"tool": "ok"}]})");
     ReplayContext ctx;
     const json    out = run_replay(s, ctx, f.host());
@@ -205,7 +224,7 @@ TEST_CASE("a run reports each step as it starts and ends", "[Mcp]")
     FakeHost f;
     f.tools["a"] = [](const json&) { return ToolResult::ok(); };
     f.tools["b"] = [](const json&) { return ToolResult::ok(); };
-    const Replay             s = parse_ok(R"({"orca_replay": 1, "steps": [{"tool": "a"}, {"tool": "b"}]})");
+    const Replay             s = parse_ok(R"({"orca_replay_version": "0.1.0", "steps": [{"tool": "a"}, {"tool": "b"}]})");
     std::vector<std::string> events;
     ReplayHost               h = f.host();
     h.step_started             = [&](std::size_t index) { events.push_back("started " + std::to_string(index)); };
@@ -224,7 +243,7 @@ TEST_CASE("only_step runs one step and reports its own index", "[Mcp]")
     FakeHost f;
     for (const char* name : {"a", "b", "c"})
         f.tools[name] = [](const json&) { return ToolResult::ok(); };
-    const Replay  s = parse_ok(R"({"orca_replay": 1, "steps": [{"tool": "a"}, {"tool": "b"}, {"tool": "c"}]})");
+    const Replay  s = parse_ok(R"({"orca_replay_version": "0.1.0", "steps": [{"tool": "a"}, {"tool": "b"}, {"tool": "c"}]})");
     ReplayContext ctx;
     const json    out = run_replay(s, ctx, f.host(), 2);
     REQUIRE(f.calls.size() == 1);
@@ -240,7 +259,7 @@ TEST_CASE("jobs saved by an earlier run resolve in a later single step", "[Mcp]"
     FakeHost f;
     f.tools["x"]    = [](const json&) { return ToolResult::ok({{"status", "running"}, {"job", "j7"}}); };
     f.tools["wait"] = [](const json& a) { return ToolResult::ok({{"job", a["job"]}}); };
-    const Replay s  = parse_ok(R"({"orca_replay": 1, "steps": [
+    const Replay s  = parse_ok(R"({"orca_replay_version": "0.1.0", "steps": [
         {"tool": "x", "await": false, "save_as": "prefs"},
         {"tool": "wait", "args": {"job": "${jobs.prefs}"}},
         {"tool": "wait", "args": {"job": "${jobs.none}"}}]})");
@@ -263,8 +282,8 @@ TEST_CASE("jobs saved by an earlier run resolve in a later single step", "[Mcp]"
 
 TEST_CASE("a stop during a step marks that step, even the last one", "[Mcp]")
 {
-    const std::string text = GENERATE(as<std::string>{}, R"({"orca_replay": 1, "steps": [{"tool": "stopper"}]})",
-                                      R"({"orca_replay": 1, "steps": [{"tool": "stopper", "optional": true}]})");
+    const std::string text = GENERATE(as<std::string>{}, R"({"orca_replay_version": "0.1.0", "steps": [{"tool": "stopper"}]})",
+                                      R"({"orca_replay_version": "0.1.0", "steps": [{"tool": "stopper", "optional": true}]})");
     const bool        single = GENERATE(false, true);
     FakeHost          f;
     f.tools["stopper"] = [&f](const json&) {
@@ -290,7 +309,7 @@ TEST_CASE("a stop during a job wait is a cancel, not a timeout", "[Mcp]")
 {
     FakeHost f;
     f.tools["slow"] = [](const json&) { return ToolResult::ok({{"status", "running"}, {"job", "j1"}}); };
-    const Replay s  = parse_ok(R"({"orca_replay": 1, "steps": [{"tool": "slow"}]})");
+    const Replay s  = parse_ok(R"({"orca_replay_version": "0.1.0", "steps": [{"tool": "slow"}]})");
 
     ReplayHost stopping = f.host();
     stopping.wait_job   = [&f](const std::string&, int) -> std::optional<ToolResult> {
@@ -312,7 +331,7 @@ TEST_CASE("a job wait that times out names the dialog left open", "[Mcp]")
 {
     FakeHost f;
     f.tools["opens"] = [](const json&) { return ToolResult::ok({{"status", "blocked_by_dialog"}, {"job", "j1"}}); };
-    const Replay s   = parse_ok(R"({"orca_replay": 1, "steps": [{"tool": "opens"}]})");
+    const Replay s   = parse_ok(R"({"orca_replay_version": "0.1.0", "steps": [{"tool": "opens"}]})");
 
     const json dialogs = json::array({{{"title", "Uniform scale"}, {"native", false}}, {{"title", "Preferences"}, {"native", false}}});
     ReplayHost host    = f.host();
@@ -332,7 +351,7 @@ TEST_CASE("a failed expectation carries its parts", "[Mcp]")
 {
     FakeHost f;
     f.tools["slice"] = [](const json&) { return ToolResult::ok({{"plates", {{{"outcome", "error"}}}}}); };
-    const Replay  s  = parse_ok(R"({"orca_replay": 1, "steps": [{"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}}]})");
+    const Replay  s  = parse_ok(R"({"orca_replay_version": "0.1.0", "steps": [{"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}}]})");
     ReplayContext ctx;
     const json    entry = run_replay(s, ctx, f.host())["steps"][0];
     CHECK(entry["reason"] == json{{"kind", "expect"}, {"pointer", "/plates/0/outcome"}, {"op", "eq"},
@@ -344,7 +363,7 @@ TEST_CASE("a matcher that is not an object is a malformed expectation", "[Mcp]")
 {
     FakeHost f;
     f.tools["slice"] = [](const json&) { return ToolResult::ok({{"outcome", "ok"}}); };
-    const Replay  s  = parse_ok(R"({"orca_replay": 1, "steps": [{"tool": "slice", "expect": {"/outcome": "ok"}}]})");
+    const Replay  s  = parse_ok(R"({"orca_replay_version": "0.1.0", "steps": [{"tool": "slice", "expect": {"/outcome": "ok"}}]})");
     ReplayContext ctx;
     const json    entry = run_replay(s, ctx, f.host())["steps"][0];
     CHECK(entry["ok"] == false);
@@ -358,16 +377,16 @@ TEST_CASE("an inline nested replay's placeholders are the outer replay's", "[Mcp
 {
     FakeHost f;
     f.tools["run_replay"] = [](const json&) { return ToolResult::ok({{"passed", true}}); };
-    const Replay with_outer = parse_ok(R"({"orca_replay": 1, "vars": {"p": "outer.stl"}, "steps": [{"tool": "run_replay",
-        "args": {"vars": {"p": "step.stl"}, "replay": {"orca_replay": 1, "steps": [{"tool": "open_files", "args": {"paths": ["${vars.p}"]}}]}}}]})");
+    const Replay with_outer = parse_ok(R"({"orca_replay_version": "0.1.0", "vars": {"p": "outer.stl"}, "steps": [{"tool": "run_replay",
+        "args": {"vars": {"p": "step.stl"}, "replay": {"orca_replay_version": "0.1.0", "steps": [{"tool": "open_files", "args": {"paths": ["${vars.p}"]}}]}}}]})");
     ReplayContext ctx;
     CHECK(run_replay(with_outer, ctx, f.host())["passed"] == true);
     REQUIRE(f.calls.size() == 1);
     CHECK(f.calls[0].second["replay"]["steps"][0]["args"]["paths"][0] == "outer.stl");
 
     FakeHost     g;
-    const Replay step_only = parse_ok(R"({"orca_replay": 1, "steps": [{"tool": "run_replay",
-        "args": {"vars": {"p": "step.stl"}, "replay": {"orca_replay": 1, "steps": [{"tool": "open_files", "args": {"paths": ["${vars.p}"]}}]}}}]})");
+    const Replay step_only = parse_ok(R"({"orca_replay_version": "0.1.0", "steps": [{"tool": "run_replay",
+        "args": {"vars": {"p": "step.stl"}, "replay": {"orca_replay_version": "0.1.0", "steps": [{"tool": "open_files", "args": {"paths": ["${vars.p}"]}}]}}}]})");
     const json   out = run_replay(step_only, ctx, g.host());
     CHECK(out["passed"] == false);
     CHECK(out["steps"][0]["reason"] == json{{"kind", "placeholder"}, {"text", "${vars.p}"}});
@@ -376,7 +395,7 @@ TEST_CASE("an inline nested replay's placeholders are the outer replay's", "[Mcp
 
 TEST_CASE("lenient substitution keeps what it cannot resolve", "[Mcp]")
 {
-    const Replay  s = parse_ok(R"({"orca_replay": 1, "vars": {"model": "C:/m/part.stl"}, "steps": []})");
+    const Replay  s = parse_ok(R"({"orca_replay_version": "0.1.0", "vars": {"model": "C:/m/part.stl"}, "steps": []})");
     ReplayContext ctx;
     CHECK(substitute_lenient("${vars.model}", s, ctx) == "C:/m/part.stl");
     CHECK(substitute_lenient("${jobs.none}/x", s, ctx) == "${jobs.none}/x");
@@ -386,13 +405,13 @@ TEST_CASE("lenient substitution keeps what it cannot resolve", "[Mcp]")
 TEST_CASE("malformed replays are errors, not exceptions", "[Mcp]")
 {
     const auto [text, field] = GENERATE(table<std::string, std::string>({
-        {R"({"orca_replay": "1", "steps": []})", "orca_replay"},
-        {R"({"orca_replay": 1, "name": 5, "steps": []})", "name"},
-        {R"({"orca_replay": 1, "steps": [{"tool": 3}]})", "step 1: \"tool\""},
-        {R"({"orca_replay": 1, "steps": [{"tool": "a", "timeout_s": "9"}]})", "step 1: \"timeout_s\""},
-        {R"({"orca_replay": 1, "steps": [{"tool": "a", "optional": "yes"}]})", "step 1: \"optional\""},
-        {R"([])", "orca_replay"},
-        {R"({})", "orca_replay"},
+        {R"({"orca_replay_version": 1, "steps": []})", "orca_replay_version"},
+        {R"({"orca_replay_version": "0.1.0", "name": 5, "steps": []})", "name"},
+        {R"({"orca_replay_version": "0.1.0", "steps": [{"tool": 3}]})", "step 1: \"tool\""},
+        {R"({"orca_replay_version": "0.1.0", "steps": [{"tool": "a", "timeout_s": "9"}]})", "step 1: \"timeout_s\""},
+        {R"({"orca_replay_version": "0.1.0", "steps": [{"tool": "a", "optional": "yes"}]})", "step 1: \"optional\""},
+        {R"([])", "orca_replay_version"},
+        {R"({})", "orca_replay_version"},
     }));
     std::string          err;
     std::optional<Replay> s;
@@ -404,13 +423,13 @@ TEST_CASE("malformed replays are errors, not exceptions", "[Mcp]")
 TEST_CASE("broken JSON says where", "[Mcp]")
 {
     std::string err;
-    CHECK_FALSE(parse_replay("{\n  \"orca_replay\": 1,\n  \"steps\": [ {\"tool\": \"a\",, } ]\n}", err).has_value());
+    CHECK_FALSE(parse_replay("{\n  \"orca_replay_version\": \"0.1.0\",\n  \"steps\": [ {\"tool\": \"a\",, } ]\n}", err).has_value());
     CHECK(err.find("line 3, column") != std::string::npos);
 }
 
 TEST_CASE("a Python step's code runs as written while its other arguments substitute", "[Mcp]")
 {
-    const Replay s = parse_ok(R"({"orca_replay": 1, "vars": {"a": "seven"}, "steps": [
+    const Replay s = parse_ok(R"({"orca_replay_version": "0.1.0", "vars": {"a": "seven"}, "steps": [
         {"tool": "run_script", "args": {"code": "label = '${vars.a}'", "args": {"label": "${vars.a}"}}}]})");
     FakeHost fake;
     fake.tools["run_script"] = [](const json&) { return ToolResult::ok({{"status", "finished"}, {"result", nullptr}, {"output", ""}}); };
@@ -424,7 +443,7 @@ TEST_CASE("a Python step's code runs as written while its other arguments substi
 
 TEST_CASE("a Python step that did not finish fails its replay", "[Mcp]")
 {
-    const Replay s = parse_ok(R"S({"orca_replay": 1, "steps": [
+    const Replay s = parse_ok(R"S({"orca_replay_version": "0.1.0", "steps": [
         {"tool": "run_script", "args": {"code": "raise ValueError('x')"}},
         {"tool": "get_app_state"}]})S");
     FakeHost fake;
@@ -444,7 +463,7 @@ TEST_CASE("a Python step that did not finish fails its replay", "[Mcp]")
 
 TEST_CASE("a Python step left running with await false keeps its job for later steps", "[Mcp]")
 {
-    const Replay s = parse_ok(R"({"orca_replay": 1, "steps": [
+    const Replay s = parse_ok(R"({"orca_replay_version": "0.1.0", "steps": [
         {"tool": "run_script", "args": {"code": "x = 1"}, "await": false, "save_as": "py"},
         {"tool": "get_app_state"}]})");
     FakeHost fake;
@@ -459,9 +478,9 @@ TEST_CASE("a Python step left running with await false keeps its job for later s
 TEST_CASE("Python reached through call_tool or a nested replay follows the Python step rules", "[Mcp]")
 {
     // Its code runs as written however the step reaches it.
-    const Replay s = parse_ok(R"S({"orca_replay": 1, "vars": {"a": "seven"}, "steps": [
+    const Replay s = parse_ok(R"S({"orca_replay_version": "0.1.0", "vars": {"a": "seven"}, "steps": [
         {"tool": "call_tool", "args": {"tool": "run_script", "args": {"code": "x = '${vars.a}'", "args": {"v": "${vars.a}"}}}},
-        {"tool": "run_replay", "args": {"replay": {"orca_replay": 1, "steps": [
+        {"tool": "run_replay", "args": {"replay": {"orca_replay_version": "0.1.0", "steps": [
             {"tool": "run_script", "args": {"code": "y = '${vars.a}'"}},
             {"tool": "set_settings", "args": {"note": "${vars.a}"}}]}}}]})S");
     FakeHost fake;
@@ -478,7 +497,7 @@ TEST_CASE("Python reached through call_tool or a nested replay follows the Pytho
     CHECK(nested[1]["args"]["note"] == "seven");
 
     // A run that raised through call_tool fails its step.
-    const Replay failing = parse_ok(R"({"orca_replay": 1, "steps": [
+    const Replay failing = parse_ok(R"({"orca_replay_version": "0.1.0", "steps": [
         {"tool": "call_tool", "args": {"tool": "run_script", "args": {"code": "x"}}}]})");
     FakeHost raising;
     raising.tools["call_tool"] = [](const json&) { return ToolResult::ok({{"status", "raised"}, {"message", "NameError: x"}}); };

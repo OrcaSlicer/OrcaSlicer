@@ -616,7 +616,7 @@ void describe_commands(std::vector<NativeCommand>& commands)
                  "features, bodies and generation; entities in a sketch."},
         {"redo", "Put back what undo took back, until the next change, as Edit > Redo does, in the history undo takes. Reply "
                  "as undo's."},
-        {"open_action_replay", "Open the Action Replay window, where a person opens a replay file (an orca_replay), reads its steps "
+        {"open_action_replay", "Open the Action Replay window, where a person opens a replay file, reads its steps "
                                "and replays them. Agents run replays with the run_replay tool instead."},
         {"toggle_run_script_panel", "Show or hide the Run Script panel, where a person writes and runs Python scripts cell by cell. "
                                     "Agents run Python with the run_script tool instead."},

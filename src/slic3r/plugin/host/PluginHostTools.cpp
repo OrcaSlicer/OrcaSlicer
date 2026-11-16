@@ -3,6 +3,7 @@
 #include "PluginHostBindings.hpp"
 
 #include <slic3r/GUI/CommandCatalog.hpp>
+#include <slic3r/GUI/Mcp/McpReplay.hpp>
 #include <slic3r/GUI/NativeCommands.hpp>
 #include <slic3r/plugin/PluginAuditManager.hpp>
 #include <slic3r/plugin/PluginJsonPy.hpp>
@@ -162,6 +163,12 @@ void register_tools(py::module_& host)
         "hold the result's data. A person's or an agent's script calls tools from its own code and from the threads and "
         "pool tasks it starts, while its run lasts, but not from its window callbacks; a plugin calls from a "
         "Script worker, never the UI thread.");
+    // Static, as pybind keeps a docstring by its pointer; it names the format version this build reads.
+    static const std::string run_replay_doc =
+        std::string("Run a replay ({\"orca_replay_version\": \"") + GUI::Mcp::REPLAY_VERSION +
+        "\", \"steps\": [...]}) as the run_replay tool does, and return its result. "
+        "`replay` is the replay as a dict or as its JSON text, which may hold comments as a replay file does; "
+        "`vars` override the replay's vars. For a replay file, call(\"run_replay\", {\"path\": ...}).";
     tools.def(
         "run_replay",
         [tools](const py::object& replay, const py::object& vars) mutable {
@@ -172,9 +179,7 @@ void register_tools(py::module_& host)
             return json_to_py(call_tool(tools, "run_replay", args));
         },
         py::arg("replay"), py::arg("vars") = py::none(),
-        "Run a replay ({orca_replay: 1, steps: [...]}) as the run_replay tool does, and return its result. "
-        "`replay` is the replay as a dict or as its JSON text, which may hold comments as a replay file does; "
-        "`vars` override the replay's vars. For a replay file, call(\"run_replay\", {\"path\": ...}).");
+        run_replay_doc.c_str());
     // Both only read the catalog, which is sealed and read on any thread, so neither needs a run or a plugin. They read
     // it without the GIL, as call() waits without it; no thread holds the plugin operations' lock while it waits for the GIL.
     tools.def(

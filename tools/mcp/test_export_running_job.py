@@ -40,7 +40,7 @@ def main():
 
     # ---- A job past the reply budget, exported while it runs and after it ends ----
     start = time.time()
-    slow = {"orca_replay": 1, "name": "slow",
+    slow = {"orca_replay_version": "0.1.0", "name": "slow",
             "steps": [{"tool": "wait", "args": {"for": "dialog", "timeout_s": orca_mcp.reply_budget_s() + 3}}]}
     started = client.call("run_replay", _timeout=120, replay=slow, out_dir=os.path.join(work, "slow"))
     check("the slow replay replies with its running job", started.get("status") == "running",

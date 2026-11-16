@@ -6,7 +6,7 @@
 // once, to show that the lock is one undo step. Every call it records is optional. Run it with
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_set_plate_locked.json --out <dir>
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "ops set_plate_locked",
   "vars": {"undo": "${replay_dir}/fixtures/ops_undo.py"},
   "steps": [

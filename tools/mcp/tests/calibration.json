@@ -8,7 +8,7 @@
 // printer (Bambu Lab X1 Carbon) and reruns on the same datadir. Run it with
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/calibration.json --out /tmp/calibration
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "calibration tests",
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},

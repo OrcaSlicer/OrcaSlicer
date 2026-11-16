@@ -9,7 +9,7 @@
 // with one slot the flushing volumes matrix has no entry to recalculate. Run it on a freshly launched app with
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_assign_filament_preset_one_slot.json --out <dir>
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "ops assign_filament_preset, one slot",
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},

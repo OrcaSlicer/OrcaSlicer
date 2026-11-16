@@ -6,7 +6,7 @@
 // A refusal can't be asserted directly (a failed step stops the run), so each one is an optional
 // step followed by a check that nothing changed.
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "object structure and scene",
   "vars": {"cube": "${replay_dir}/../../../resources/handy_models/OrcaCube_v2.drc",
            "svg": "${replay_dir}/fixtures/star.svg"},

@@ -13,7 +13,7 @@
 // stay in the datadir, so the first save of each name passes overwrite and the replay reruns. Run it with
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/presets.json --out /tmp/presets
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "save presets and drop edits",
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},

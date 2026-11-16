@@ -7,7 +7,7 @@
 // without overwrite, so they refuse the files of an earlier run):
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_export_stl.json --out <new dir>
 {
-  "orca_replay": 1,
+  "orca_replay_version": "0.1.0",
   "name": "ops export_stl",
   "vars": {"undo": "${replay_dir}/fixtures/ops_undo.py"},
   "steps": [
