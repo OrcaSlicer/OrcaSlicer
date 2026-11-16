@@ -15,7 +15,7 @@
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/miniz_extension.hpp"
 #include "libslic3r/Zipper.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Semver.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"

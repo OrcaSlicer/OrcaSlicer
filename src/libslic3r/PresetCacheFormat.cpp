@@ -28,7 +28,7 @@
 #include <vector>
 
 #include "Config.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "Semver.hpp"
 #include "Preset.hpp"
 #include "libslic3r/Utils.hpp"

@@ -3,7 +3,7 @@
 #include "../GUI/DeviceManager.hpp"
 #include "../GUI/Jobs/PrintJob.hpp"
 #include "slic3r/GUI/Jobs/Worker.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <string>
 #include <memory>
 #include <wx/string.h>

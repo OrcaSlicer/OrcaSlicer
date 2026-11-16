@@ -18,7 +18,7 @@
 #include "PrintBase.hpp"
 #include "ShortestPath.hpp"
 #include "libslic3r.h"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "MaterialType.hpp"
 #include "Model.hpp"
 #include "Support/SupportCommon.hpp"

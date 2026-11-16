@@ -2,7 +2,7 @@
 
 #include "libslic3r/GCode/ThumbnailData.hpp"
 #include "libslic3r/GCode/Thumbnails.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/TexturePainting.hpp"
 #include "slic3r/GUI/AVVideoDecoder.hpp"
 #include "slic3r/GUI/Printer/BambuTunnel.h"

@@ -13,7 +13,7 @@
 #include "../ExPolygon.hpp"
 #include "../Point.hpp"
 #include "../Polyline.hpp"
-#include "../PrintConfig.hpp"
+#include "../PrintConfigBase.hpp"
 
 namespace Slic3r {
 

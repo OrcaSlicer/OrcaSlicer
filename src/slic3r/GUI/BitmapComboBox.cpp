@@ -28,7 +28,7 @@
 #endif //__WINDOWS__
 
 #include "libslic3r/libslic3r.h"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/PresetBundle.hpp"
 
 #include "GUI.hpp"

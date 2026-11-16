@@ -29,7 +29,7 @@
 #include <wx/timer.h>
 #include <memory>
 #include "Lazy.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 
 namespace Slic3r {

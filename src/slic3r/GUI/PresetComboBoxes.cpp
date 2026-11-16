@@ -52,7 +52,7 @@
 #include <wx/msw/private.h>
 #endif
 
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Color.hpp"
 

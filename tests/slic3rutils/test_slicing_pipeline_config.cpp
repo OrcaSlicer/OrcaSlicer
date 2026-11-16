@@ -6,7 +6,7 @@
 #include <chrono>
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Config.hpp"
 #include <slic3r/plugin/PluginConfig.hpp>
 #include "slic3r/plugin/PluginFsUtils.hpp"

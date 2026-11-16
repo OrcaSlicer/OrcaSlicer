@@ -12,7 +12,7 @@
 #include <slic3r/GUI/Widgets/TextInput.hpp>
 
 #ifdef __WXOSX__
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #endif
 
 class wxBoxSizer;

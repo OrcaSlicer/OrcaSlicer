@@ -1,6 +1,6 @@
 #include "Thumbnails.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/enum_bitmask.hpp"

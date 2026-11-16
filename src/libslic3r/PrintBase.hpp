@@ -19,7 +19,7 @@
 #include "ObjectID.hpp"
 #include "Model.hpp"
 #include "PlaceholderParser.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 
 namespace Slic3r {
 

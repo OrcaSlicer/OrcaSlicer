@@ -12,7 +12,7 @@
 #include "libslic3r/Exception.hpp"
 #include "libslic3r/Preset.hpp"
 #include <functional>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 #include <cstdio>

@@ -3,7 +3,7 @@
 
 #include "libslic3r.h"
 #include "FlushVolPredictor.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 
 
 namespace Slic3r {

@@ -15,7 +15,7 @@
 #include "I18N.hpp"
 #include "Tab.hpp"
 
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 namespace Slic3r {
 

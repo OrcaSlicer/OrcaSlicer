@@ -9,7 +9,7 @@
 #include <string>
 #include <exception>
 
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "MultiNozzleUtils.hpp"
 
 namespace Slic3r

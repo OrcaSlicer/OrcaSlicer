@@ -13,7 +13,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include "Model.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include <numeric>
 #include <boost/geometry/index/rtree.hpp>
 #include <boost/log/trivial.hpp>

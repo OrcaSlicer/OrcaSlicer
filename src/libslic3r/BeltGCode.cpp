@@ -4,7 +4,7 @@
 #include "BeltTransform.hpp"
 #include "Print.hpp"
 #include "Point.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "libslic3r.h"
 #include <cstdlib>
 

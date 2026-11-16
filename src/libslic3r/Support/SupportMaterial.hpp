@@ -2,7 +2,7 @@
 #define slic3r_SupportMaterial_hpp_
 
 #include "libslic3r/Polygon.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "Slicing.hpp"
 #include "SupportLayer.hpp"
 #include "SupportParameters.hpp"

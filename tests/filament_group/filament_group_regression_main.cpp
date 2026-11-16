@@ -25,7 +25,7 @@
 #include <fstream>
 #include "libslic3r/FilamentGroup.hpp"
 #include "libslic3r/FilamentGroupUtils.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <string>
 #include <vector>
 #include <algorithm>

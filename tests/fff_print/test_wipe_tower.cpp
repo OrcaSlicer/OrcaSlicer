@@ -32,7 +32,7 @@
 #include "libslic3r/GCode/WipeTower.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/ModelArrange.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Slicing.hpp"
 #include "libslic3r/Utils.hpp"
 

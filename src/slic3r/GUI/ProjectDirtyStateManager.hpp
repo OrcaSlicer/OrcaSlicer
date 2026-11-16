@@ -5,7 +5,7 @@
 #include "libslic3r/Technologies.hpp"
 #include <array>
 #include <string>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <vector>
 
 namespace Slic3r {

@@ -20,7 +20,7 @@
 #include "../Utils.hpp"
 #include "../format.hpp"
 #include "libslic3r/libslic3r.h"
-#include "../PrintConfig.hpp"
+#include "../PrintConfigBase.hpp"
 
 #include <cstddef>
 #include <algorithm>

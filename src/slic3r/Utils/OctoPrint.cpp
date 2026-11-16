@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <boost/optional/optional.hpp>
 #include "libslic3r/Config.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Exception.hpp"
 #include <sstream>
 #include <exception>

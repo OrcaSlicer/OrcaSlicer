@@ -183,7 +183,7 @@
 #include <wx/zipstrm.h>
 
 #include "libslic3r/Config.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/MultiPoint.hpp"

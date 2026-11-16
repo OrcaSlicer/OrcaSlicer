@@ -15,7 +15,7 @@
 #include <cmath>
 #include <cstddef>
 #include <exception>
-#include <libslic3r/PrintConfig.hpp>
+#include <libslic3r/PrintConfigBase.hpp>
 #include <limits>
 #include <sstream>
 #include <string>

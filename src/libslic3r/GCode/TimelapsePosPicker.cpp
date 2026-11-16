@@ -4,7 +4,7 @@
 #include "Layer.hpp"
 #include "libslic3r/Point.hpp"
 #include <cstdlib>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <optional>
 #include <vector>
 #include <cstddef>

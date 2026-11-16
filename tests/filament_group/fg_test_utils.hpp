@@ -3,7 +3,7 @@
 
 #include "fg_test_serialization.hpp"
 #include "libslic3r/FilamentGroupUtils.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/FilamentGroup.hpp"
 #include <iterator>
 #include <random>

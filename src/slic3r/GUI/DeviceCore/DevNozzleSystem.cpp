@@ -11,7 +11,7 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <boost/log/trivial.hpp>
 #include <wx/string.h>
 #include <string>

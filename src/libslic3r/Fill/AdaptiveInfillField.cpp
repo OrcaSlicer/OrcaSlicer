@@ -23,7 +23,7 @@
 #include "../Point.hpp"
 #include "../Polygon.hpp"
 #include "../Polyline.hpp"
-#include "../PrintConfig.hpp"
+#include "../PrintConfigBase.hpp"
 #include "../libslic3r.h"
 
 namespace Slic3r {

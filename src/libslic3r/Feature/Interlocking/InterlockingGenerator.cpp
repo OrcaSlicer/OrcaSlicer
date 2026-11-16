@@ -20,7 +20,7 @@
 #include <vector>
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Print.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/SurfaceCollection.hpp"
 
 namespace std {

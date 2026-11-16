@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <wx/colour.h>
 #include "libslic3r/Config.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <vector>
 #include <cstddef>
 #include <string>

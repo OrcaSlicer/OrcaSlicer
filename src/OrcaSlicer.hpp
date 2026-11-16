@@ -3,7 +3,7 @@
 
 #include <map>
 #include "libslic3r/BoundingBox.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include <set>
 #include <string>

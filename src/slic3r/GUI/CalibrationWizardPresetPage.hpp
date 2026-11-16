@@ -18,7 +18,7 @@
 #include "slic3r/GUI/DeviceManager.hpp"
 #include <map>
 #include "libslic3r/Preset.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <memory>
 #include "slic3r/GUI/Jobs/ProgressIndicator.hpp"
 #include "slic3r/GUI/Widgets/AMSItem.hpp"

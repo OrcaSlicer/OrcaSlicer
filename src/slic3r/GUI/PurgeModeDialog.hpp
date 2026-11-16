@@ -7,7 +7,7 @@
 #include <wx/string.h>
 
 #include "GUI_Utils.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "Widgets/Label.hpp"
 
 class wxStaticText;

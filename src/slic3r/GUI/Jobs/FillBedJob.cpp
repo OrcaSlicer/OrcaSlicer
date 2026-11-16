@@ -13,7 +13,7 @@
 #include "libslic3r/BoundingBox.hpp"
 #include <cstddef>
 #include "libslic3r/libslic3r.h"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Arrange.hpp"
 #include "libslic3r/ExPolygon.hpp"

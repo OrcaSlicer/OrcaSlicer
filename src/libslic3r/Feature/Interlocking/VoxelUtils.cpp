@@ -7,7 +7,7 @@
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/Surface.hpp"

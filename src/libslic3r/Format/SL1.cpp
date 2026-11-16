@@ -34,7 +34,7 @@
 #include "libslic3r/SlicesToTriangleMesh.hpp"
 #include "libslic3r/MarchingSquares.hpp"
 #include "libslic3r/ClipperUtils.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/SLA/RasterBase.hpp"
 #include "libslic3r/miniz_extension.hpp"
 #include "libslic3r/PNGReadWrite.hpp"

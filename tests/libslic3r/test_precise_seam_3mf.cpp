@@ -7,7 +7,7 @@
 #include <catch2/catch_message.hpp>
 #include "test_utils.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/Semver.hpp"
 #include "libslic3r/Format/3mf.hpp"

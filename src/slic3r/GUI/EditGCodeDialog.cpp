@@ -3,7 +3,7 @@
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include "libslic3r/Config.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <set>
 #include <initializer_list>
 #include <map>

@@ -25,7 +25,7 @@
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include <imgui.h>
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Config.hpp"
 #include "slic3r/GUI/Event.hpp"
 #include <wx/busycursor.h>

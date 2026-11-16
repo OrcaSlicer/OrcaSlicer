@@ -3,7 +3,7 @@
 #include "libslic3r.h"
 #include "Point.hpp"
 #include "BeltTransform.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "Model.hpp"
 
 namespace Slic3r {

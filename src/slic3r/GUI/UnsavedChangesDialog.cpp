@@ -52,7 +52,7 @@
 #include <wx/tglbtn.h>
 #include <wx/types.h>
 
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Color.hpp"
 #include "format.hpp"

@@ -2,7 +2,7 @@
 #define slic3r_GUI_SelectMachine_hpp_
 
 #include <string>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <vector>
 #include "libslic3r/ProjectTask.hpp"
 #include <map>

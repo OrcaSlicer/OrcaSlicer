@@ -32,7 +32,7 @@
 #include <exception>
 #include <iostream>
 #include <fstream>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <memory>
 #include <new>
 #include "libslic3r/Print.hpp"

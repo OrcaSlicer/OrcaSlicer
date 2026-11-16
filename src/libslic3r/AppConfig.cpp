@@ -1,6 +1,6 @@
 #include "Technologies.hpp"
 #include "Config.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "calib.hpp"
 #include "Semver.hpp"
 #include "libslic3r/libslic3r.h"

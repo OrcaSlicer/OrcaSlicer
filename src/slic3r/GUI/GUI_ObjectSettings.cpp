@@ -24,7 +24,7 @@
 #include <string>
 #include <wx/wupdlock.h>
 #include "libslic3r/Preset.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "slic3r/GUI/ParamsPanel.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 

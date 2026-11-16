@@ -10,7 +10,7 @@
 
 #include "libslic3r/libslic3r.h"
 #include <cstddef>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <initializer_list>
 #include <set>
 #include <string>

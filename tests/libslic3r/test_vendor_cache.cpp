@@ -15,7 +15,7 @@
 #include <iterator>
 #include "libslic3r/Semver.hpp"
 #include "libslic3r/Config.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <memory>
 #include <numeric>
 #include <random>

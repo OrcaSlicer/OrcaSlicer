@@ -4,7 +4,7 @@
 #include "IPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
 #include "libslic3r/PresetBundle.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include <boost/log/trivial.hpp>

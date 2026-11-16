@@ -22,7 +22,7 @@
 #include <wx/string.h>
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/PresetBundle.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 namespace Slic3r
 {

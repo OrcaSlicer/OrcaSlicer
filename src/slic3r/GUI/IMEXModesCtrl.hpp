@@ -1,7 +1,7 @@
 #ifndef slic3r_IMEXModesCtrl_hpp_
 #define slic3r_IMEXModesCtrl_hpp_
 
-#include <libslic3r/PrintConfig.hpp>
+#include <libslic3r/PrintConfigBase.hpp>
 #include <utility>
 #include <wx/colour.h>
 #include <wx/panel.h>

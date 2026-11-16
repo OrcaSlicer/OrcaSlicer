@@ -16,7 +16,7 @@
 #include <vector>
 #include <new>
 #include "libslic3r/GCode/ThumbnailData.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Zipper.hpp"
 #include <mutex>
 #include "libslic3r/PrintBase.hpp"

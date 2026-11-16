@@ -12,7 +12,7 @@
 #include <functional>
 #include <map>
 #include "libslic3r/Config.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Semver.hpp"
 #include <memory>

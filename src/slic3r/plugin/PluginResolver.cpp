@@ -30,7 +30,7 @@
 #include <thread>
 #include <tuple>
 #include <unordered_map>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "slic3r/plugin/PluginDescriptor.hpp"
 
 namespace Slic3r {

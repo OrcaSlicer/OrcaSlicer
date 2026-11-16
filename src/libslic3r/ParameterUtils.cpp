@@ -1,6 +1,6 @@
 #include "ParameterUtils.hpp"
 #include "Config.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/constants.hpp>
 #include <boost/algorithm/string/split.hpp>

@@ -21,7 +21,7 @@
 #include <iomanip>
 #include <exception>
 #include "libslic3r/LifecycleEvents.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"

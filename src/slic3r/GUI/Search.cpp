@@ -44,7 +44,7 @@
 #include "wx/numformatter.h"
 #include "Widgets/Label.hpp"
 
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "GUI_App.hpp"
 #include "Plater.hpp"

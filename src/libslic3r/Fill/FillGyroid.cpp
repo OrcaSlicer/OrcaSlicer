@@ -17,7 +17,7 @@
 #include "libslic3r/Polyline.hpp"
 #include "FillGyroid.hpp"
 #include "libslic3r/Polygon.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "AdaptiveInfillField.hpp"
 
 namespace Slic3r {

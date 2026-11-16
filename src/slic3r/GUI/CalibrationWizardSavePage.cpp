@@ -27,7 +27,7 @@
 #include <wx/arrstr.h>
 #include <map>
 #include <wx/sizer.h>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <wx/anybutton.h>
 #include "slic3r/GUI/wxExtensions.hpp"
 #include <boost/log/trivial.hpp>

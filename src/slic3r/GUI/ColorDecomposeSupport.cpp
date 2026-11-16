@@ -25,7 +25,7 @@
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/ColorDecomposeRecipe.hpp"
 #include "libslic3r/FilamentMixer.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 using json = nlohmann::json;
 

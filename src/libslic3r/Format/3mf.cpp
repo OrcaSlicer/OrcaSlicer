@@ -15,7 +15,7 @@
 #include "libslic3r/SLA/Hollowing.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r_version.h"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 #include "3mf.hpp"
 

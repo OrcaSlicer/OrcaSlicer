@@ -7,7 +7,7 @@
 #include <memory>
 #include <map>
 #include "libslic3r/ProjectTask.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include "slic3r/GUI/AmsMappingPopup.hpp"

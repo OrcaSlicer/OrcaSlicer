@@ -1820,7 +1820,7 @@ void PrinterFileSystem::Reconnect(boost::unique_lock<boost::mutex> &l, int resul
 
 
 #include <stdlib.h>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #if defined(_MSC_VER) || defined(_WIN32)
 #include <Windows.h>
 #else

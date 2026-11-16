@@ -57,7 +57,7 @@ using namespace nlohmann;
 
 //FIXME for GCodeFlavor and gcfMarlin (for forward-compatibility conversion)
 // This is not nice, likely it would be better to pass the ConfigSubstitutionContext to handle_legacy().
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 
 namespace Slic3r {
 

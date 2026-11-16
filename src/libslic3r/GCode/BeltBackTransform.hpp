@@ -3,7 +3,7 @@
 
 #include "../libslic3r.h"
 #include "../Point.hpp"
-#include "../PrintConfig.hpp"
+#include "../PrintConfigBase.hpp"
 
 namespace Slic3r {
 

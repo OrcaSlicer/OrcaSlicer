@@ -9,7 +9,7 @@
 #include "MainFrame.hpp"
 #include "format.hpp"
 
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 #include <algorithm>
 #include <boost/algorithm/string/erase.hpp>

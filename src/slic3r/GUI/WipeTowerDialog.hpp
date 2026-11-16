@@ -11,7 +11,7 @@
 #include <wx/string.h>
 #include <wx/webview.h>
 #include "libslic3r/FlushVolCalc.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "Widgets/SpinInput.hpp"
 
 #include "RammingChart.hpp"

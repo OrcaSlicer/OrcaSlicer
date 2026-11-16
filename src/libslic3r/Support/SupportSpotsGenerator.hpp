@@ -1,7 +1,7 @@
 #ifndef SRC_LIBSLIC3R_SUPPORTABLEISSUESSEARCH_HPP_
 #define SRC_LIBSLIC3R_SUPPORTABLEISSUESSEARCH_HPP_
 
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "MaterialType.hpp"
 #include <boost/log/trivial.hpp>
 #include <cstddef>

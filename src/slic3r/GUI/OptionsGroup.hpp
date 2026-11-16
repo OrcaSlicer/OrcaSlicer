@@ -17,7 +17,7 @@
 #include <wx/string.h>
 
 #include "libslic3r/Config.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 #include "Field.hpp"
 #include "I18N.hpp"

@@ -20,7 +20,7 @@
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include <cassert>
 #include <exception>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <nlohmann/json.hpp>
 #include <vector>
 #include <string>

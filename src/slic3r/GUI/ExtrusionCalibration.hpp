@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 #include <wx/event.h>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <wx/panel.h>
 
 #define EXTRUSION_CALIBRATION_DEF_COLOUR    wxColour(255, 255, 255)

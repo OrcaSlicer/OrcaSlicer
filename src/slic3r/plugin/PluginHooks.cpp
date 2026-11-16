@@ -23,7 +23,7 @@
 #include <string>
 #include <stdexcept>
 #include "libslic3r/PrintBase.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 namespace Slic3r::plugin_hooks {
 namespace {

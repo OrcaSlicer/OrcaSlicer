@@ -22,7 +22,7 @@
 #include <utility>
 
 #include "Config.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "Semver.hpp"
 #include "ProjectTask.hpp"
 #include "libslic3r.h"

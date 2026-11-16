@@ -8,7 +8,7 @@
 #include <wx/string.h>
 #include <exception>
 #include <cstddef>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "Job.hpp"
 #include "slic3r/GUI/DeviceCore/DevStorage.h" 
 

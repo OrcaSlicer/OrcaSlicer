@@ -1,5 +1,5 @@
 #include "MultiNozzleUtils.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "Config.hpp"
 #include "Utils.hpp"
 #include "ProjectTask.hpp" // Slic3r::FilamentInfo (StaticNozzleGroupResult / load_nozzle_infos_with_compatibility)

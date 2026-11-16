@@ -2,7 +2,7 @@
 #define slic3r_GUI_Init_hpp_
 
 #include <libslic3r/Preset.hpp>
-#include <libslic3r/PrintConfig.hpp>
+#include <libslic3r/PrintConfigBase.hpp>
 #include <vector>
 #include <utility>
 #include <string>

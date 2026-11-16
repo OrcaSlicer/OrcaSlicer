@@ -22,7 +22,7 @@
 #include <utility>
 #include "libslic3r/Config.hpp"
 #include "libslic3r/GCodeWriter.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/I18N.hpp"
 #include "libslic3r/format.hpp"
 

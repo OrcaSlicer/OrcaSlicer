@@ -32,7 +32,7 @@
 #include <utility>
 #include "libslic3r/Extruder.hpp"
 #include "libslic3r/GCodeWriter.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/SurfaceCollection.hpp"
 
 namespace Slic3r {

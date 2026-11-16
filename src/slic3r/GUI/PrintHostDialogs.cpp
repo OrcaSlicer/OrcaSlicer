@@ -14,7 +14,7 @@
 #include <iomanip>
 #include "libslic3r/ProjectTask.hpp"
 #include <ios>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Config.hpp"
 #include <limits>
 

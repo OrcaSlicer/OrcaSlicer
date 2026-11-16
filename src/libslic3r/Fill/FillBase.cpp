@@ -20,7 +20,7 @@
 #include "../Geometry.hpp"
 #include "../Geometry/Circle.hpp"
 #include "../Point.hpp"
-#include "../PrintConfig.hpp"
+#include "../PrintConfigBase.hpp"
 #include "../Surface.hpp"
 #include "../libslic3r.h"
 #include "../VariableWidth.hpp"

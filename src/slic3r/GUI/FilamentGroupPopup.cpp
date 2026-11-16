@@ -6,7 +6,7 @@
 #include "PartPlate.hpp"
 #include <wx/colour.h>
 #include "libslic3r/Config.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <map>
 #include <string>
 #include <boost/log/trivial.hpp>

@@ -14,7 +14,7 @@
 #include "../I18N.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/ObjectID.hpp"

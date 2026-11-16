@@ -46,7 +46,7 @@
 #include <wx/string.h>
 
 #include "libslic3r/FilamentMixer.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "slic3r/GUI/FilamentBitmapUtils.hpp"
 
 using namespace Slic3r;

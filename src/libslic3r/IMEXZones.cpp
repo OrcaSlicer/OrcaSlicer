@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "BoundingBox.hpp"
 #include "Config.hpp"
 #include "libslic3r/IMEXHelpers.hpp"

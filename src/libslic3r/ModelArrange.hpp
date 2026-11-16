@@ -8,7 +8,7 @@
 #include "Exception.hpp"
 #include <string>
 #include "Point.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Model.hpp"
 
 namespace Slic3r {

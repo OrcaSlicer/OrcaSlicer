@@ -11,7 +11,7 @@
 #include "libslic3r/CutUtils.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Point.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/TriangleSelector.hpp"
 

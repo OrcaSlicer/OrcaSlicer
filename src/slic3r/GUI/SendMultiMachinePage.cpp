@@ -25,7 +25,7 @@
 #include <boost/log/trivial.hpp>
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include "slic3r/GUI/PartPlate.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <nlohmann/json.hpp>
 #include "slic3r/GUI/MsgDialog.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"

@@ -11,7 +11,7 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Preset.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 #include <cstdint>
 #include "libslic3r/Exception.hpp"

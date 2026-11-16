@@ -143,7 +143,7 @@ TEST_CASE("orca.slicing is workflow-only: context exposes raw print/object; view
     CHECK(pyctx.attr("object").is_none());
 }
 
-#include "libslic3r/PrintConfig.hpp"   // DynamicPrintConfig for the psGCodePostProcess context
+#include "libslic3r/PrintConfigBase.hpp"   // DynamicPrintConfig for the psGCodePostProcess context
 #include <boost/nowide/fstream.hpp>
 #include <sstream>
 #include "libslic3r/BoundingBox.hpp"

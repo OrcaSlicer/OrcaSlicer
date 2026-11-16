@@ -4,7 +4,7 @@
 #include "catch2/generators/catch_generators.hpp"
 #include "catch2/catch_message.hpp"
 #include "libslic3r/Config.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 #include "test_helpers.hpp"
 #include "test_utils.hpp"
