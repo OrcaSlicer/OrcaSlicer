@@ -1760,8 +1760,13 @@ int MachineObject::command_ams_change_filament(bool load, std::string ams_id, st
         if (atoi(ams_id.c_str()) < 16) {
             tray_id = atoi(ams_id.c_str()) * 4 + atoi(slot_id.c_str());
         }
+
+        const std::string agent_id = !printer_agent_id.empty() ? printer_agent_id :
+                                     m_manager                 ? m_manager->get_current_printer_agent_id() :
+                                                                 std::string();
+        const bool is_bbl          = agent_id == BBL_PRINTER_AGENT_ID;
         // TODO: Orca hack
-        if (ams_id == "254")
+        if (is_bbl && ams_id == "254")
             ams_id = "255";
 
         j["print"]["command"]     = "ams_change_filament";
