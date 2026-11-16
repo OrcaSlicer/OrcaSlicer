@@ -166,6 +166,8 @@ void FillTpmsFK::_fill_surface_single(const FillParams&              params,
 
     // Prune the lines within the expolygon.
     polylines = intersection_pl(std::move(polylines), expolygon);
+    // Clipping also cuts a closed ring at its first point, anywhere along a line.
+    join_close_ends(polylines, SCALED_EPSILON, true);
 
     if (!polylines.empty()) {
         // Remove very small bits, but be careful to not remove infill lines connecting thin walls!
