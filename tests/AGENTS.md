@@ -52,6 +52,7 @@ Check these before writing your own setup or output-parsing code.
 ## Catch2 rules that cause real breakage
 
 - Never reuse a `SECTION` name inside a loop. Use `DYNAMIC_SECTION` so each iteration is unique.
+- Every test case and `SECTION` must run an assertion; nested sections and `SKIP` count. ctest passes `--warn NoAssertions`, which fails a section whose checks all come after it. Use `GENERATE` for setup-only variations.
 - Never assert from a spawned thread. Catch2 assertions are not thread-safe. Collect results in the thread and assert on the main thread.
 - Never combine conditions with `&&` or `||` inside one assertion. Split them so Catch2 can print both operands on failure.
 - Compare floats with `WithinAbs` or `WithinRel`, never `==`. Prefer these over `Approx` in new tests.
