@@ -1532,17 +1532,8 @@ void UVEditorCanvas::render()
     // Dim the texture everywhere but inside the islands: the fills go into the stencil only, then one
     // full-viewport quad washes the rest towards the background. Skipped without a stencil buffer, where the
     // quad would cover the islands too.
-    if (m_stencil_bits < 0) {
-        GLint bits = 0;
-        ::glGetError(); // drop anything pending, so the check below sees only this query
-        ::glGetIntegerv(GL_STENCIL_BITS, &bits); // compatibility profiles
-        if (::glGetError() != GL_NO_ERROR) {
-            bits = 0;
-            ::glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, GL_STENCIL, GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE, &bits);
-            ::glGetError();
-        }
-        m_stencil_bits = std::max(0, int(bits));
-    }
+    if (m_stencil_bits < 0)
+        m_stencil_bits = OpenGLManager::stencil_bits();
     if (has_islands() && !m_island_fill.empty() && m_stencil_bits > 0) {
         if (!m_dim_quad_glmodel.is_initialized()) {
             GLModel::Geometry q;

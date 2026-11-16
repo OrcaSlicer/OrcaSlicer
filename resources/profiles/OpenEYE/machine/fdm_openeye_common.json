@@ -46,7 +46,7 @@
 	"gcode_flavor": "klipper",
 	"head_wrap_detect_zone": [],
 	"high_current_on_filament_swap": "0",
-	"host_type": "octoprint",
+	"host_type": "moonraker",
 	"printer_agent": "moonraker",
 	"layer_change_gcode": "SET_PRINT_STATS_INFO CURRENT_LAYER={layer_num + 1}\n_MMU_UPDATE_HEIGHT",
 	"long_retractions_when_cut": [

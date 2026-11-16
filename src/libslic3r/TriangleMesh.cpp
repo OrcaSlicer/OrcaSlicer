@@ -1023,16 +1023,16 @@ indexed_triangle_set its_make_frustum(double r, double h, double fa)
 // Generate the mesh for a torus
 // r: major radius (distance from center of tube to center of torus)
 // h: minor radius (radius of the tube)
-// fa: angular step in radians (smaller = more segments)
-indexed_triangle_set its_make_torus(double r, double h, double fa)
+// fa_major, fa_minor: angular steps in radians around the main ring and the tube (smaller = more segments)
+indexed_triangle_set its_make_torus(double r, double h, double fa_major, double fa_minor)
 {
     indexed_triangle_set mesh;
     auto& vertices = mesh.vertices;
     auto& facets = mesh.indices;
 
     // Number of segments around the main ring and the tube
-    size_t n_major = (size_t)ceil(2. * PI / fa);
-    size_t n_minor = (size_t)ceil(2. * PI / fa);
+    size_t n_major = (size_t)ceil(2. * PI / fa_major);
+    size_t n_minor = (size_t)ceil(2. * PI / fa_minor);
 
     double major_step = 2. * PI / n_major;
     double minor_step = 2. * PI / n_minor;

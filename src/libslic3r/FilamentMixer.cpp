@@ -537,6 +537,26 @@ std::vector<unsigned int> expand_mixed_filaments(
     return result;
 }
 
+std::vector<int> expand_mixed_filament_ids(const std::vector<int> &filament_ids, const ConfigBase &config)
+{
+    static const std::vector<unsigned char> no_mixed;
+    static const std::vector<std::string>   no_comps;
+    const auto *is_mixed = config.option<ConfigOptionBools>("filament_is_mixed");
+    const auto *comps    = config.option<ConfigOptionStrings>("filament_mixed_components");
+    std::vector<unsigned int> ids_0based;
+    for (const int id : filament_ids)
+        if (id >= 1)
+            ids_0based.push_back(static_cast<unsigned int>(id - 1));
+    ids_0based = expand_mixed_filaments(ids_0based, is_mixed != nullptr ? is_mixed->values : no_mixed,
+                                        comps != nullptr ? comps->values : no_comps);
+
+    std::vector<int> result;
+    result.reserve(ids_0based.size());
+    for (const unsigned int id : ids_0based)
+        result.push_back(static_cast<int>(id) + 1);
+    return result;
+}
+
 void remap_mixed_components_on_delete(
     const std::vector<unsigned char> &is_mixed,
     std::vector<std::string>         &comp_strs,

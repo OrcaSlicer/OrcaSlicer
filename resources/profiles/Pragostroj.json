@@ -1,6 +1,6 @@
 {
 	"name": "Pragostroj",
-	"version": "01.00.01.00",
+	"version": "01.00.01.01",
 	"force_update": "0",
 	"description": "Pragostroj printers config",
 	"machine_model_list": [
