@@ -760,6 +760,13 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"permissions_edit_value_label", _u8L("Edit value for %s")},
         {"permissions_add", _u8L_CONTEXT("Add", "Permission value")},
         {"permissions_add_label", _u8L("Add value to %s")},
+        // TRN %s is the original permission value that was removed outside this dialog.
+        {"permissions_edit_no_longer_granted", _u8L("The original value is no longer granted: %s. Add the edited value or discard it.")},
+        // TRN %s is the original permission value before the user's unsaved edit.
+        {"permissions_edit_original", _u8L("Unsaved edit of: %s")},
+        {"permissions_discard", _u8L("Discard")},
+        // TRN %s is the original permission value whose unsaved edit will be discarded.
+        {"permissions_discard_edit_label", _u8L("Discard edit of %s")},
         {"permissions_remove", _u8L_CONTEXT("Remove", "Permission value")},
         {"permissions_remove_label", _u8L("Remove %s")},
         {"run_named", _u8L("Run \"%s\"")},

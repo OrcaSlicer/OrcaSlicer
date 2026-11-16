@@ -829,10 +829,20 @@ TEST_CASE("Uniting overlapping polygons in groups gives the same region as one u
     std::mt19937 rng(1);
     const auto   uniform = [&rng](double from, double to) { return from + (to - from) * double(rng()) / double(std::mt19937::max()); };
     ExPolygons   polygons;
+    const auto   check_grouped_union = [&polygons]() {
+        const ExPolygons single  = union_ex(polygons);
+        const ExPolygons grouped = union_overlapping_ex(polygons);
+        CHECK(grouped.size() == single.size());
+        CHECK(hole_count(grouped) == hole_count(single));
+        // Grouping only changes the rounding, so the two differ by far less than a square micron.
+        CHECK(area(diff_ex(single, grouped)) + area(diff_ex(grouped, single)) < sqr(scaled<double>(0.001)));
+    };
+
     SECTION("Dense circles") {
         // Branch circles of a support layer, overlapping into a few large pieces with holes between them.
         for (int i = 0; i < 1500; ++ i)
             polygons.emplace_back(circle(Vec2d(uniform(0., 30.), uniform(0., 30.)), uniform(0.5, 1.5)));
+        check_grouped_union();
     }
     SECTION("Rings with an island in each hole") {
         for (int i = 0; i < 60; ++ i) {
@@ -844,23 +854,20 @@ TEST_CASE("Uniting overlapping polygons in groups gives the same region as one u
             polygons.emplace_back(std::move(ring));
             polygons.emplace_back(circle(centre, 0.4));
         }
+        check_grouped_union();
     }
     SECTION("Squares sharing their edges") {
         for (int i = 0; i < 20; ++ i)
             for (int j = 0; j < 20; ++ j)
                 polygons.emplace_back(square(i, j));
+        check_grouped_union();
     }
     SECTION("Separate squares") {
         for (int i = 0; i < 20; ++ i)
             for (int j = 0; j < 20; ++ j)
                 polygons.emplace_back(square(2 * i, 2 * j));
+        check_grouped_union();
     }
-    const ExPolygons single  = union_ex(polygons);
-    const ExPolygons grouped = union_overlapping_ex(polygons);
-    CHECK(grouped.size() == single.size());
-    CHECK(hole_count(grouped) == hole_count(single));
-    // Grouping only changes the rounding, so the two differ by far less than a square micron.
-    CHECK(area(diff_ex(single, grouped)) + area(diff_ex(grouped, single)) < sqr(scaled<double>(0.001)));
 }
 
 TEST_CASE("Uniting a few polygons in groups is one union", "[ClipperUtils]") {

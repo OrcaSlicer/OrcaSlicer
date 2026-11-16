@@ -7,6 +7,8 @@
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/calib.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/ModelArrange.hpp"
@@ -23,6 +25,7 @@
 #include "libslic3r/libslic3r.h"
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <cstddef>
 #include <fstream>
 #include <ios>
@@ -163,6 +166,214 @@ TEST_CASE("The filament flow ratio scales the extruded length once", "[GCode]")
     const double full = extruded_length(1.);
     REQUIRE(full > 0.);
     CHECK_THAT(extruded_length(0.9) / full, Catch::Matchers::WithinRel(0.9, 1e-3));
+}
+
+TEST_CASE("Retract after outer wall retracts on a travel shorter than the threshold", "[GCode]")
+{
+    const bool enabled = GENERATE(false, true);
+    CAPTURE(enabled);
+    // Inner-outer-inner order puts a short travel between the outer wall and the next inner wall;
+    // the 5 mm threshold alone would skip its retraction.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "gcode_flavor", "marlin2" },
+        { "layer_height", "0.2" },
+        { "initial_layer_print_height", "0.2" },
+        { "wall_loops", "3" },
+        { "wall_sequence", "inner-outer-inner wall" },
+        { "top_shell_layers", "0" },
+        { "bottom_shell_layers", "0" },
+        { "sparse_infill_density", "0%" },
+        { "retraction_length", "0.8" },
+        { "retraction_minimum_travel", "5" },
+        { "retract_when_changing_layer", "0" },
+        { "wipe", "0" },
+        { "z_hop", "0" },
+        { "gcode_comments", "1" },
+        { "machine_start_gcode", "" },
+        { "machine_end_gcode", "" },
+        { "retract_after_outer_wall", enabled ? "1" : "0" },
+    });
+    const std::string output = Test::slice({ make_cube(10., 10., 1.) }, config);
+
+    const std::string &role_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
+    ExtrusionRole role = erNone;
+    ExtrusionRole last_extruded = erNone;
+    double retraction = 0.;
+    size_t exits = 0;
+    size_t entries = 0;
+    GCodeReader parser;
+    parser.apply_config(config);
+    parser.parse_buffer(output, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.comment().find(role_tag) == 0)
+            role = ExtrusionEntity::string_to_role(line.comment().substr(role_tag.size()));
+        if (line.extruding(self) && line.dist_XY(self) > EPSILON) {
+            if (last_extruded == erExternalPerimeter && role != erExternalPerimeter) {
+                REQUIRE(role == erPerimeter);
+                ++exits;
+                CHECK_THAT(retraction, Catch::Matchers::WithinAbs(enabled ? 0.8 : 0., 0.00005));
+            } else if (last_extruded == erPerimeter && role == erExternalPerimeter) {
+                // The short travel from an inner wall to the outer wall keeps the threshold.
+                ++entries;
+                CHECK_THAT(retraction, Catch::Matchers::WithinAbs(0., 0.00005));
+            }
+            last_extruded = role;
+            retraction = 0.;
+        } else if (line.retracting(self)) {
+            retraction -= line.dist_E(self);
+        }
+    });
+    // The 1 mm cube has five 0.2 mm layers, each printing an inner wall, the outer wall and another inner wall.
+    REQUIRE(exits == 5);
+    REQUIRE(entries == 5);
+}
+
+TEST_CASE("Retract after outer wall retracts on a layer change that follows the outer wall", "[GCode]")
+{
+    const bool enabled = GENERATE(false, true);
+    CAPTURE(enabled);
+    // Inner/outer order ends every layer with the outer wall. Without a retraction on layer change, only
+    // this option retracts on the short travel to the next layer; the 5 mm threshold alone would skip it.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "gcode_flavor", "marlin2" },
+        { "layer_height", "0.2" },
+        { "initial_layer_print_height", "0.2" },
+        { "wall_loops", "2" },
+        { "wall_sequence", "inner wall/outer wall" },
+        { "top_shell_layers", "0" },
+        { "bottom_shell_layers", "0" },
+        { "sparse_infill_density", "0%" },
+        { "skirt_loops", "0" },
+        { "brim_type", "no_brim" },
+        { "retraction_length", "0.8" },
+        { "retraction_minimum_travel", "5" },
+        { "retract_when_changing_layer", "0" },
+        { "wipe", "0" },
+        { "z_hop", "0" },
+        { "gcode_comments", "1" },
+        { "machine_start_gcode", "" },
+        { "machine_end_gcode", "" },
+        { "retract_after_outer_wall", enabled ? "1" : "0" },
+    });
+    const std::string output = Test::slice({ make_cube(10., 10., 1.) }, config);
+
+    const std::string &role_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
+    ExtrusionRole role = erNone;
+    ExtrusionRole last_extruded = erNone;
+    double last_z = 0.;
+    double retraction = 0.;
+    double travel = 0.;
+    size_t layer_changes = 0;
+    GCodeReader parser;
+    parser.apply_config(config);
+    parser.parse_buffer(output, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.comment().find(role_tag) == 0)
+            role = ExtrusionEntity::string_to_role(line.comment().substr(role_tag.size()));
+        if (line.extruding(self) && line.dist_XY(self) > EPSILON) {
+            // The first extrusion on a new layer closes the travel that left the layer below.
+            if (last_extruded != erNone && self.z() - last_z > EPSILON) {
+                ++layer_changes;
+                REQUIRE(last_extruded == erExternalPerimeter);
+                REQUIRE(role == erPerimeter);
+                REQUIRE(travel < 5.);
+                CHECK_THAT(retraction, Catch::Matchers::WithinAbs(enabled ? 0.8 : 0., 0.00005));
+            }
+            last_extruded = role;
+            last_z = self.z();
+            retraction = 0.;
+            travel = 0.;
+        } else {
+            if (line.retracting(self))
+                retraction -= line.dist_E(self);
+            travel += line.dist_XY(self);
+        }
+    });
+    // The 1 mm cube has five 0.2 mm layers, so four layer changes.
+    REQUIRE(layer_changes == 4);
+}
+
+TEST_CASE("Retract after outer wall tells walls apart by wall index on a full overhang", "[GCode]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+    // A 10 mm plate on a 2 mm pillar: the plate's first layer prints all three walls in mid air, so every
+    // path there has the overhang role. Only the outer wall may skip the 5 mm threshold.
+    TriangleMesh mesh = make_cube(2., 2., 1.);
+    TriangleMesh plate = make_cube(10., 10., 0.4);
+    plate.translate(-4.f, -4.f, 1.f);
+    mesh.merge(plate);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "gcode_flavor", "marlin2" },
+        { "wall_generator", wall_generator },
+        { "layer_height", "0.2" },
+        { "initial_layer_print_height", "0.2" },
+        { "wall_loops", "3" },
+        { "wall_sequence", "inner-outer-inner wall" },
+        { "detect_overhang_wall", "1" },
+        { "extra_perimeters_on_overhangs", "0" },
+        { "top_shell_layers", "0" },
+        { "bottom_shell_layers", "0" },
+        { "sparse_infill_density", "0%" },
+        { "retraction_length", "0.8" },
+        { "retraction_minimum_travel", "5" },
+        { "retract_when_changing_layer", "0" },
+        { "wipe", "0" },
+        { "z_hop", "0" },
+        { "gcode_comments", "1" },
+        { "machine_start_gcode", "" },
+        { "machine_end_gcode", "" },
+        { "retract_after_outer_wall", "1" },
+    });
+    const std::string output = Test::slice({ mesh }, config);
+
+    // Walls on the plate's first layer (1.0 to 1.2 mm) in print order, with what follows each of them.
+    struct Wall { double length = 0.; ExtrusionRole role = erNone; double retraction = 0.; double travel = 0.; };
+    std::vector<Wall> walls;
+    const std::string &role_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
+    ExtrusionRole role = erNone;
+    GCodeReader parser;
+    parser.apply_config(config);
+    parser.parse_buffer(output, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.comment().find(role_tag) == 0)
+            role = ExtrusionEntity::string_to_role(line.comment().substr(role_tag.size()));
+        if (std::abs(self.z() - 1.2) > 0.001)
+            return;
+        if (line.extruding(self) && line.dist_XY(self) > EPSILON) {
+            // Other extrusions on the layer, if any appear, are not walls.
+            if (!is_perimeter(role))
+                return;
+            // A travel separates one wall from the next.
+            if (walls.empty() || walls.back().travel > EPSILON)
+                walls.emplace_back();
+            walls.back().length += line.dist_XY(self);
+            walls.back().role = role;
+        } else if (!walls.empty()) {
+            if (line.retracting(self))
+                walls.back().retraction -= line.dist_E(self);
+            walls.back().travel += line.dist_XY(self);
+        }
+    });
+
+    REQUIRE(walls.size() == 3);
+    // The outer wall is the longest loop, printed between the two inner walls.
+    const auto outer = std::max_element(walls.begin(), walls.end(),
+                                        [](const Wall &a, const Wall &b) { return a.length < b.length; });
+    REQUIRE(outer == walls.begin() + 1);
+    for (const Wall &wall : walls)
+        REQUIRE(wall.role == erOverhangPerimeter);
+    for (size_t i = 0; i + 1 < walls.size(); ++i) {
+        CAPTURE(i);
+        REQUIRE(walls[i].travel < 5.);
+        CHECK_THAT(walls[i].retraction, Catch::Matchers::WithinAbs(i == 1 ? 0.8 : 0., 0.00005));
+    }
+}
+
+TEST_CASE("Retract after outer wall is on by default", "[GCode]")
+{
+    const DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    CHECK(config.opt_bool("retract_after_outer_wall"));
 }
 
 // Firmwares read the compatibility header lines (Anycubic's GoKlipper heats the bed with
