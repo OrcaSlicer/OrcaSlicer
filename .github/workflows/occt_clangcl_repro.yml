@@ -1,0 +1,105 @@
+# TEST: captures what clang-cl cannot compile in OCCT for Windows ARM64.
+# Configures OCCT once, then compiles each failing source with flag variants and
+# saves its preprocessed source and assembly.
+name: OCCT clang-cl ARM64 repro
+
+on:
+  push:
+    branches:
+      - occt-clang-cl-arm64-test
+    paths:
+      - '.github/workflows/occt_clangcl_repro.yml'
+
+jobs:
+  repro:
+    runs-on: windows-11-vs2026-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          lfs: 'false'
+
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~4.3.0"
+
+      - name: Configure OCCT and compile the failing sources
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+          cmd /c "`"$vs\Common7\Tools\VsDevCmd.bat`" -arch=arm64 -host_arch=arm64 >nul && set" | ForEach-Object {
+            if ($_ -match '^([^=]+)=(.*)$') { [Environment]::SetEnvironmentVariable($Matches[1], $Matches[2]) }
+          }
+          $cl = "$vs\VC\Tools\Llvm\ARM64\bin\clang-cl.exe".Replace('\', '/')
+          & $cl --version
+
+          $src = "$env:RUNNER_TEMP\occt-src"
+          $bld = "$env:RUNNER_TEMP\occt-build"
+          $out = "$env:GITHUB_WORKSPACE\repro-out"
+          New-Item -ItemType Directory -Force $src, $out | Out-Null
+          Invoke-WebRequest https://github.com/Open-Cascade-SAS/OCCT/archive/refs/tags/V8_0_1.zip -OutFile "$env:RUNNER_TEMP\occt.zip"
+          tar -xf "$env:RUNNER_TEMP\occt.zip" -C $src
+          $occt = "$src\OCCT-8_0_1"
+          Push-Location $occt
+          Get-ChildItem "$env:GITHUB_WORKSPACE\deps\OCCT\*.patch" | ForEach-Object { git apply --ignore-space-change --whitespace=fix $_.FullName }
+          Pop-Location
+
+          # The same toolkits and options as deps/OCCT/OCCT.cmake (SLIC3R_CAD on).
+          cmake -S $occt -B $bld -G Ninja -DCMAKE_BUILD_TYPE=Release `
+            "-DCMAKE_C_COMPILER=$cl" "-DCMAKE_CXX_COMPILER=$cl" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON `
+            -DCMAKE_CXX_STANDARD=17 -DBUILD_LIBRARY_TYPE=Shared -DUSE_TK=OFF -DUSE_TBB=OFF `
+            -DUSE_FREETYPE=OFF -DUSE_FFMPEG=OFF -DUSE_VTK=OFF -DBUILD_DOC_Overview=OFF -DBUILD_USE_PCH=OFF `
+            -DBUILD_MODULE_ApplicationFramework=OFF -DBUILD_MODULE_DataExchange=OFF -DBUILD_MODULE_Draw=OFF `
+            -DBUILD_MODULE_FoundationClasses=OFF -DBUILD_MODULE_ModelingAlgorithms=OFF `
+            -DBUILD_MODULE_ModelingData=OFF -DBUILD_MODULE_Visualization=OFF `
+            "-DBUILD_ADDITIONAL_TOOLKITS=TKDESTEP TKDE TKXCAF TKXSBase TKVCAF TKCAF TKLCAF TKCDF TKV3d TKService TKMesh TKBO TKPrim TKHLR TKShHealing TKTopAlgo TKGeomAlgo TKBRep TKGeomBase TKG3d TKG2d TKMath TKernel TKFillet TKOffset TKBool"
+          if ($LASTEXITCODE) { exit 1 }
+
+          $files = 'BRepOffset_MakeOffset_1', 'ChFi3d_Builder_C1', 'Extrema_GenExtCS', 'Extrema_GenExtPS',
+            'Extrema_GenExtSS', 'GeomBndLib_BezierSurface', 'GeomBndLib_BSplineSurface', 'GeomBndLib_OtherSurface',
+            'GeomFill_Gordon', 'GeomGridEval_OffsetSurface', 'GeomGridEval_Surface', 'HLRBRep_ThePolyhedronOfInterCSurf',
+            'IntCurveSurface_ThePolyhedronOfHInter', 'IntPatch_Polyhedron', 'Intrv_Intervals', 'STEPCAFControl_GDTProperty'
+          $variants = [ordered]@{
+            'base'  = @()
+            'EHsc'  = @(' /EHa', ' /EHsc')
+            'O1'    = @(' /O2', ' /O1')
+            'Od'    = @(' /O2 /Ob2', ' /Od')
+            'Ob0'   = @(' /Ob2', ' /Ob0')
+          }
+          $cc = Get-Content "$bld\compile_commands.json" -Raw | ConvertFrom-Json
+          $rows = @("| File | " + ($variants.Keys -join ' | ') + " |", "|---" * ($variants.Count + 1) + "|")
+          foreach ($f in $files) {
+            $e = $cc | Where-Object { $_.file -like "*\$f.cxx" -or $_.file -like "*/$f.cxx" } | Select-Object -First 1
+            if (-not $e) { $rows += "| $f | not in compile_commands |"; continue }
+            Set-Content "$out\$f.cmd.txt" $e.command
+            Push-Location $e.directory
+            # A batch file keeps cmd from stripping the quotes around the compiler path.
+            $bat = "$env:RUNNER_TEMP\compile.bat"
+            Set-Content $bat "@$($e.command) /P /Fi`"$out\$f.i`""
+            cmd /c $bat *> "$out\$f.preprocess.log"
+            $cells = @()
+            foreach ($k in $variants.Keys) {
+              $cmdline = $e.command
+              if ($variants[$k].Count) {
+                if (-not $cmdline.Contains($variants[$k][0])) { $cells += 'n/a'; continue }
+                $cmdline = $cmdline.Replace($variants[$k][0], $variants[$k][1])
+              }
+              $extra = if ($k -eq 'base') { " /FA /Fa`"$out\$f.s`"" } else { '' }
+              Set-Content $bat "@$cmdline$extra /Fo`"$env:RUNNER_TEMP\$f.$k.obj`""
+              cmd /c $bat *> "$out\$f.$k.log"
+              $cells += if ($LASTEXITCODE) { 'FAIL' } else { 'ok' }
+            }
+            Pop-Location
+            $rows += "| $f | " + ($cells -join ' | ') + " |"
+          }
+          $rows | Tee-Object "$out\results.md" | Out-File -Append $env:GITHUB_STEP_SUMMARY -Encoding utf8
+          $rows
+
+      - name: Upload the preprocessed sources and assembly
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: occt-clangcl-arm64-repro
+          path: repro-out
+          retention-days: 7
