@@ -977,29 +977,33 @@ TEST_CASE("Selected printer uses its default or saved bed type", "[Preset][Bundl
     app_config.set("curr_bed_type", std::to_string(static_cast<int>(btPTE)));
     PresetBundle::PresetPreferences preferred_selection;
     BedType expected_bed_type;
+    const auto check_bed_type = [&]() {
+        bundle.load_selections(app_config, preferred_selection);
+        bundle.export_selections(app_config);
+
+        CHECK(bundle.project_config.opt_enum<BedType>("curr_bed_type") == expected_bed_type);
+        CHECK(app_config.get_printer_setting("Test Printer", "curr_bed_type") == std::to_string(static_cast<int>(expected_bed_type)));
+    };
 
     SECTION("New printer uses its symbolic default") {
         expected_bed_type = btEP;
         preferred_selection = {"TEST-MODEL", "0.4"};
+        check_bed_type();
     }
     SECTION("Re-enabled printer uses its saved selection") {
         expected_bed_type = btPC;
         preferred_selection = {"TEST-MODEL", "0.4"};
         app_config.set_printer_setting("Test Printer", "curr_bed_type",
                                        std::to_string(static_cast<int>(expected_bed_type)));
+        check_bed_type();
     }
     SECTION("Existing printer keeps its saved selection after presets reload") {
         expected_bed_type = btPCT;
         app_config.set("presets", PRESET_PRINTER_NAME, "Test Printer");
         app_config.set_printer_setting("Test Printer", "curr_bed_type",
                                        std::to_string(static_cast<int>(expected_bed_type)));
+        check_bed_type();
     }
-
-    bundle.load_selections(app_config, preferred_selection);
-    bundle.export_selections(app_config);
-
-    CHECK(bundle.project_config.opt_enum<BedType>("curr_bed_type") == expected_bed_type);
-    CHECK(app_config.get_printer_setting("Test Printer", "curr_bed_type") == std::to_string(static_cast<int>(expected_bed_type)));
 }
 
 TEST_CASE("Installed slot filaments keep their slots when selections reload", "[Preset][Bundle]")
@@ -1089,6 +1093,13 @@ TEST_CASE("A user printer with more extruders than its parent keeps every extrud
     parent.config.set_deserialize_strict("nozzle_volume", "107,107,107,107");
     parent.is_system = true;
 
+    const auto check_child = [&printers]() {
+        const Preset *child = printers.find_preset("User Printer");
+        REQUIRE(child != nullptr);
+        CHECK(child->config.opt_serialize("retract_length_toolchange") == "1,2,3,4,5");
+        CHECK(child->config.opt_serialize("nozzle_volume") == "107,107,107,107,143");
+    };
+
     // A user printer adding a fifth extruder. The four it shares with the parent leave
     // nozzle_volume unset, as a saved user preset does for values equal to its parent's.
     PresetsConfigSubstitutions substitutions;
@@ -1107,6 +1118,7 @@ TEST_CASE("A user printer with more extruders than its parent keeps every extrud
         })";
         printers.load_presets(temp_dir.path().string(), PRESET_PRINTER_NAME, substitutions,
                               ForwardCompatibilitySubstitutionRule::Disable);
+        check_child();
     }
     SECTION("from the cloud") {
         const std::map<std::string, std::string> values = {
@@ -1119,12 +1131,8 @@ TEST_CASE("A user printer with more extruders than its parent keeps every extrud
             {"retract_length_toolchange", "1,2,3,4,5"},
             {"nozzle_volume", "nil,nil,nil,nil,143"}};
         REQUIRE(printers.load_user_preset("User Printer", values, substitutions, ForwardCompatibilitySubstitutionRule::Disable));
+        check_child();
     }
-
-    const Preset *child = printers.find_preset("User Printer");
-    REQUIRE(child != nullptr);
-    CHECK(child->config.opt_serialize("retract_length_toolchange") == "1,2,3,4,5");
-    CHECK(child->config.opt_serialize("nozzle_volume") == "107,107,107,107,143");
 }
 
 TEST_CASE("A user preset synced to the cloud and back keeps its values on every nozzle variant", "[Preset][Bundle]")
@@ -1889,37 +1897,50 @@ TEST_CASE("Every printer variant has a compatible default material", "[Preset][V
 
     CHECK_FALSE(bundle.has_errors());
     bool expected_errors = true;
+    const auto check_errors = [&]() {
+        CHECK(bundle.check_printer_default_materials() == expected_errors);
+        CHECK(bundle.has_errors() == expected_errors);
+    };
 
     SECTION("A model default for one nozzle does not cover another nozzle") {
         model.default_materials = {"Acme PLA @0.4"};
+        check_errors();
     }
     SECTION("An empty default list leaves every variant uncovered") {
         model.default_materials.clear();
+        check_errors();
     }
     SECTION("An unknown filament cannot be a default") {
         model.default_materials = {"Missing PLA"};
+        check_errors();
     }
     SECTION("An unknown name is an error even when a compatible default covers the variant") {
         model.default_materials.insert(model.default_materials.begin(), "Missing PLA");
+        check_errors();
     }
     SECTION("An unknown default_filament_profile name is an error") {
         bundle.printers.find_preset("Acme Printer 0.6", false, true)
             ->config.option<ConfigOptionStrings>("default_filament_profile", true)->values = {"Missing PLA"};
+        check_errors();
     }
     SECTION("A known default_filament_profile name is not an error") {
         bundle.printers.find_preset("Acme Printer 0.6", false, true)
             ->config.option<ConfigOptionStrings>("default_filament_profile", true)->values = {"Acme PLA @0.6"};
         expected_errors = false;
+        check_errors();
     }
     SECTION("A short alias does not resolve as an installed default") {
         model.default_materials = {"Acme PLA"};
+        check_errors();
     }
     SECTION("A user filament cannot satisfy a shipped default") {
         bundle.filaments.find_preset("Acme PLA @0.6", false, true)->is_system = false;
+        check_errors();
     }
     SECTION("One compatible default per variant is sufficient") {
         model.default_materials.insert(model.default_materials.begin(), "Acme PLA @0.2");
         expected_errors = false;
+        check_errors();
     }
     SECTION("Compatibility conditions apply to each nozzle") {
         model.default_materials = {"Acme PLA @0.4"};
@@ -1929,6 +1950,7 @@ TEST_CASE("Every printer variant has a compatible default material", "[Preset][V
         filament->vendor = &library;
         filament->config.option<ConfigOptionStrings>("compatible_printers")->values.clear();
         filament->config.option<ConfigOptionString>("compatible_printers_condition")->value = "nozzle_diameter[0] == 0.4";
+        check_errors();
     }
     SECTION("Library defaults respect printer exclusions") {
         model.default_materials = {"Acme PLA @0.4"};
@@ -1939,15 +1961,14 @@ TEST_CASE("Every printer variant has a compatible default material", "[Preset][V
         filament->config.option<ConfigOptionStrings>("compatible_printers")->values.clear();
         CHECK_FALSE(bundle.check_printer_default_materials());
         filament->m_excluded_from.insert("Acme Printer 0.6");
+        check_errors();
     }
     SECTION("User printers do not need model defaults") {
         model.default_materials = {"Acme PLA @0.4"};
         bundle.printers.find_preset("Acme Printer 0.6", false, true)->is_system = false;
         expected_errors = false;
+        check_errors();
     }
-
-    CHECK(bundle.check_printer_default_materials() == expected_errors);
-    CHECK(bundle.has_errors() == expected_errors);
 }
 
 // Under a shared override key, the last preset merged into the full config overwrote the others', so an
@@ -8162,8 +8183,10 @@ TEST_CASE("A system preset resolves by a name it was renamed from", "[Preset][Bu
     const fs::path     profiles = temp_dir.path() / "resources" / "profiles";
     write_acme_printer_vendor(profiles, 33.);
 
-    SECTION("from the profile JSONs") {}
-    SECTION("from a vendor shipped as its preset cache alone") {
+    // From the profile JSONs, or from a vendor shipped as its preset cache alone.
+    const bool cache_only = GENERATE(false, true);
+    CAPTURE(cache_only);
+    if (cache_only) {
         PresetBundle writer;
         writer.set_generate_vendor_caches(true);
         writer.load_vendor_configs_from_json(profiles.string(), "Acme", PresetBundle::LoadSystem,
@@ -8892,16 +8915,20 @@ TEST_CASE("Migrating a user filament leaves a file another instance changed afte
         filaments.legacy_user_filament_presets({ { k1_parent, { "Creality K1C 0.4 nozzle" } } });
     REQUIRE(legacy_presets.size() == 1);
     CHECK(legacy_presets[0].inherits == k1_parent);
+    const auto check_file_left_alone = [&]() {
+        const std::string edited = read_file(file);
+        CHECK_FALSE(PresetCollection::write_legacy_user_filament_preset(legacy_presets[0]));
+        CHECK(read_file(file) == edited);
+    };
 
     SECTION("to set its own printers") {
         write_user_filament(temp_dir.path(), "My PETG", k1_parent, R"(,"compatible_printers":["Creality K1C 0.8 nozzle"])");
+        check_file_left_alone();
     }
     SECTION("to inherit another parent") {
         write_user_filament(temp_dir.path(), "My PETG", "Generic PETG @System");
+        check_file_left_alone();
     }
-    const std::string edited = read_file(file);
-    CHECK_FALSE(PresetCollection::write_legacy_user_filament_preset(legacy_presets[0]));
-    CHECK(read_file(file) == edited);
 }
 
 TEST_CASE("Migrating user filaments backs up and writes nothing while it can not take the user presets lock", "[Preset][Bundle]")
@@ -8972,8 +8999,10 @@ TEST_CASE("Migrating the selected user filament keeps a printer list edit pendin
 
     std::vector<std::string> expected_edited = migrated;
     bool                     expected_dirty  = false;
-    SECTION("an unedited list follows the saved one") {}
-    SECTION("an edited list stays as edited") {
+    // An unedited list follows the saved one, an edited list stays as edited.
+    const bool edited = GENERATE(false, true);
+    CAPTURE(edited);
+    if (edited) {
         edited_printers() = { "Creality K1C 0.8 nozzle" };
         expected_edited   = edited_printers();
         expected_dirty    = true;
