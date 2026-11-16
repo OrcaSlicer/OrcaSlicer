@@ -1155,10 +1155,34 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
             return print_instance_with_bounding_box[l].model_position < print_instance_with_bounding_box[r].model_position;
         });
 
+        if (has_print_groups) {
+            // Orca: keep the instances of a group together, where the first of them is in the list.
+            std::map<size_t, size_t> group_first;
+            for (size_t k = 0; k < n; ++k)
+                group_first.try_emplace(group_of_instance.at(print_instance_with_bounding_box[fallback_order[k]].print_instance), k);
+            std::stable_sort(fallback_order.begin(), fallback_order.end(), [&](size_t l, size_t r) {
+                return group_first.at(group_of_instance.at(print_instance_with_bounding_box[l].print_instance)) <
+                       group_first.at(group_of_instance.at(print_instance_with_bounding_box[r].print_instance));
+            });
+        }
+
         std::vector<size_t> list_position(n);
         for (size_t k = 0; k < n; ++k)
             list_position[fallback_order[k]] = k;
-        auto by_list_position = [&list_position](size_t l, size_t r) { return list_position[l] < list_position[r]; };
+
+        // Orca: the instances of a group print together, so the order is found for groups, each one a node holding its
+        // instances in list order. The nodes are in list order too. Without groups, a node holds one instance.
+        std::vector<std::vector<size_t>> nodes;
+        {
+            std::map<size_t, size_t> node_of_group;
+            for (size_t idx : fallback_order) {
+                const auto [it, added] = node_of_group.try_emplace(group_of_instance.at(print_instance_with_bounding_box[idx].print_instance), nodes.size());
+                if (added)
+                    nodes.emplace_back();
+                nodes[it->second].push_back(idx);
+            }
+        }
+        const size_t node_count = nodes.size();
 
         // Mirrors the vertical-clearance check below: the part of the potentially-too-tall instance
         // the rod can hit (see rod_min_y) is tested against the other instance's inflated footprint,
@@ -1174,28 +1198,30 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         };
 
         std::vector<size_t> must_be_last;
-        for (size_t i = 0; i < n; ++i)
-            if (print_instance_with_bounding_box[i].height > hc1)
-                must_be_last.push_back(i);
+        for (size_t node = 0; node < node_count; ++node)
+            if (std::any_of(nodes[node].begin(), nodes[node].end(), [&](size_t i) { return print_instance_with_bounding_box[i].height > hc1; }))
+                must_be_last.push_back(node);
 
         bool solved = false;
         std::vector<size_t> solved_order;
 
-        // Orca: the reordering below works on single instances. A group prints as one, so with groups the list order is kept.
-        if (!has_print_groups && must_be_last.size() <= 1) {
-            size_t last_idx = must_be_last.empty() ? size_t(-1) : must_be_last.front();
+        if (must_be_last.size() <= 1) {
+            size_t last_node = must_be_last.empty() ? size_t(-1) : must_be_last.front();
 
             // Edge b -> a means "b must be scheduled before a".
-            std::vector<std::vector<size_t>> adj(n);
-            std::vector<int> indegree(n, 0);
+            std::vector<std::vector<size_t>> adj(node_count);
+            std::vector<int> indegree(node_count, 0);
             bool infeasible = false;
-            for (size_t a = 0; a < n && !infeasible; ++a) {
-                if (a == last_idx) continue;
-                if (!print_instance_with_bounding_box[a].has_above_rod) continue; // nothing reaches the rod: no constraint
-                for (size_t b = 0; b < n; ++b) {
+            for (size_t a = 0; a < node_count && !infeasible; ++a) {
+                if (a == last_node) continue;
+                for (size_t b = 0; b < node_count && !infeasible; ++b) {
                     if (b == a) continue;
-                    if (!overlaps_in_y(a, b)) continue;
-                    if (b == last_idx) {
+                    // Nothing of a reaching the rod over b: no constraint.
+                    const bool overlap = std::any_of(nodes[a].begin(), nodes[a].end(), [&](size_t ia) {
+                        return std::any_of(nodes[b].begin(), nodes[b].end(), [&](size_t ib) { return overlaps_in_y(ia, ib); });
+                    });
+                    if (!overlap) continue;
+                    if (b == last_node) {
                         // 'a' can't tolerate the last-placed instance printing after it while
                         // overlapping it, and the last instance can't be moved earlier by
                         // definition (nothing else may be scheduled after it) -> unsolvable.
@@ -1211,31 +1237,31 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                 // Kahn's algorithm; ties are broken by place in the list so the result is
                 // the minimal perturbation of the incoming order, not an arbitrary one.
                 std::vector<size_t> ready;
-                for (size_t i = 0; i < n; ++i)
-                    if (i != last_idx && indegree[i] == 0)
+                for (size_t i = 0; i < node_count; ++i)
+                    if (i != last_node && indegree[i] == 0)
                         ready.push_back(i);
-                std::sort(ready.begin(), ready.end(), by_list_position);
 
                 std::vector<size_t> order;
-                order.reserve(n);
+                order.reserve(node_count);
                 while (!ready.empty()) {
                     size_t cur = ready.front();
                     ready.erase(ready.begin());
                     order.push_back(cur);
                     for (size_t nxt : adj[cur]) {
                         if (--indegree[nxt] == 0) {
-                            auto pos = std::upper_bound(ready.begin(), ready.end(), nxt, by_list_position);
+                            auto pos = std::upper_bound(ready.begin(), ready.end(), nxt);
                             ready.insert(pos, nxt);
                         }
                     }
                 }
 
-                if (last_idx != size_t(-1))
-                    order.push_back(last_idx);
+                if (last_node != size_t(-1))
+                    order.push_back(last_node);
 
-                if (order.size() == n) {
+                if (order.size() == node_count) {
                     solved = true;
-                    solved_order = std::move(order);
+                    for (size_t node : order)
+                        solved_order.insert(solved_order.end(), nodes[node].begin(), nodes[node].end());
                 }
                 // else: a cycle among mutually Y-overlapping, over-hc2 instances -> genuinely
                 // unsolvable; fall through to the fallback order below.
@@ -1262,16 +1288,6 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
             warning->is_warning = true;
         }
 
-        if (has_print_groups) {
-            // Orca: keep the instances of a group together, where the first of them is in the list.
-            std::map<size_t, size_t> group_first;
-            for (size_t k = 0; k < n; ++k)
-                group_first.try_emplace(group_of_instance.at(print_instance_with_bounding_box[fallback_order[k]].print_instance), k);
-            std::stable_sort(fallback_order.begin(), fallback_order.end(), [&](size_t l, size_t r) {
-                return group_first.at(group_of_instance.at(print_instance_with_bounding_box[l].print_instance)) <
-                       group_first.at(group_of_instance.at(print_instance_with_bounding_box[r].print_instance));
-            });
-        }
         {
             std::vector<print_instance_info> reordered;
             reordered.reserve(n);

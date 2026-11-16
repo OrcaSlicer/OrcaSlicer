@@ -1933,14 +1933,15 @@ TEST_CASE("Sequential printing counts a raft toward whether an object is short",
 
 namespace {
 
-// A row of 10 mm cubes along X, `gap` mm apart edge to edge, printed by object with two filaments. `overrides[i]`
-// sets the filaments of cube i. The toolhead radius of 20 mm needs a gap of about 20 mm between cubes printed apart.
+// A row of 10 mm wide cubes along X, `gap` mm apart edge to edge, printed by object with two filaments. `overrides[i]`
+// sets the filaments of cube i, `heights[i]` its height (10 mm when not given). The toolhead radius of 20 mm needs a gap
+// of about 20 mm between cubes printed apart.
 void place_cubes_by_filament(const std::vector<std::vector<ConfigBase::SetDeserializeItem>> &overrides, double gap, bool group,
-                             Print &print, Model &model, double height = 10.)
+                             Print &print, Model &model, const std::vector<double> &heights = {})
 {
     std::vector<TriangleMesh> meshes;
     for (size_t i = 0; i < overrides.size(); ++i) {
-        TriangleMesh box = make_cube(10, 10, height);
+        TriangleMesh box = make_cube(10, 10, i < heights.size() ? heights[i] : 10.);
         box.translate(float(20. + double(i) * (10. + gap)), 100.f, 0.f);
         meshes.push_back(std::move(box));
     }
@@ -2089,10 +2090,28 @@ TEST_CASE("Sequential printing lets the last group reach above the rod when grou
     CAPTURE(group);
     Print print;
     Model model;
-    place_cubes_by_filament({ { { "extruder", 1 } }, { { "extruder", 1 } } }, 30., group, print, model, /*height=*/30.);
+    place_cubes_by_filament({ { { "extruder", 1 } }, { { "extruder", 1 } } }, 30., group, print, model, { 30., 30. });
     const std::string error = print.validate().string;
     INFO(error);
     CHECK((error.find("too tall") != std::string::npos) == ! group);
+}
+
+TEST_CASE("Sequential printing orders the groups to clear the rod when grouped by filament", "[Print]")
+{
+    // A 30 mm cube of filament 1 first in the list, then 10 mm cubes of filament 2 and 1, all in one Y band, with the
+    // rod and the lid at 25 mm. The group of the tall cube has to print last, so the cube of filament 2 goes first.
+    Print print;
+    Model model;
+    place_cubes_by_filament({ { { "extruder", 1 } }, { { "extruder", 2 } }, { { "extruder", 1 } } }, 30., /*group=*/true, print, model,
+                            { 30., 10., 10. });
+    const std::string error = print.validate().string;
+    INFO(error);
+    CHECK(error.empty());
+    // validate() records the print order on the print's own copy of the model.
+    const ModelObjectPtrs &objects = print.model().objects;
+    CHECK(objects[1]->instances.front()->arrange_order == 1);
+    CHECK(objects[0]->instances.front()->arrange_order > 1);
+    CHECK(objects[2]->instances.front()->arrange_order > 1);
 }
 
 TEST_CASE("Sequential printing measures objects on a belt printer by the model's top", "[Print][belt]")
