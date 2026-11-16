@@ -29,6 +29,7 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/SceneRaycaster.hpp"
 #include <memory>
+#include <optional>
 #include "slic3r/GUI/3DScene.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Line.hpp"
@@ -281,7 +282,6 @@ GLGizmoCut3D::GLGizmoCut3D(GLCanvas3D& parent, const std::string& icon_filename,
         {"Flap Angle"   , _u8L("Flap Angle")},
         {"Groove Angle" , _u8L("Groove Angle")},
         {"Cut position" , _u8L("Cut position")}, // ORCA
-        {"Build Volume" , _u8L("Build Volume")}, // ORCA
         {"Multiple"     , _u8L("Multiple")}, // ORCA
         {"Count"        , _u8L("Count")}, // ORCA
         {"Gap"          , _u8L("Gap")}, // ORCA
@@ -439,9 +439,18 @@ bool GLGizmoCut3D::on_mouse(const wxMouseEvent &mouse_event)
         if (! m_connectors_editing && mouse_event.GetModifiers() == wxMOD_NONE &&
             CutMode(m_mode) == CutMode::cutPlanar) {
             // Check the internal part raycasters.
-            if (! m_part_selection.valid())
+            const bool had_part_selection = m_part_selection.valid();
+            if (!had_part_selection) {
+                if (!is_mouse_over_selected_object(mouse_pos))
+                    return true;
                 process_contours();
-            m_part_selection.toggle_selection(mouse_pos);
+            }
+            if (!m_part_selection.toggle_selection(mouse_pos)) {
+                // An empty-space click must not enter contour cutting mode.
+                if (!had_part_selection)
+                    reset_cut_by_contours();
+                return true;
+            }
             check_and_update_connectors_state(); // after a contour is deactivated, its connectors are inside the object
             return true;
         }
@@ -458,6 +467,23 @@ bool GLGizmoCut3D::on_mouse(const wxMouseEvent &mouse_event)
     else if (pending_right_up && mouse_event.RightUp()) {
         pending_right_up = false;
         return true;
+    }
+    return false;
+}
+
+bool GLGizmoCut3D::is_mouse_over_selected_object(const Vec2d& mouse_pos) const
+{
+    const Selection& selection = m_parent.get_selection();
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    Vec3f position, normal;
+    for (unsigned int id : selection.get_volume_idxs()) {
+        const GLVolume* volume = selection.get_volume(id);
+        // Fall back to the cut-part hit test if the original raycaster is unavailable.
+        if (volume == nullptr || volume->mesh_raycaster == nullptr)
+            return true;
+        // Ignore the cut plane: this only checks whether building cut parts is necessary.
+        if (volume->mesh_raycaster->closest_hit(mouse_pos, volume->world_matrix(), camera, position, normal))
+            return true;
     }
     return false;
 }
@@ -2282,7 +2308,7 @@ std::vector<Cut::Part> GLGizmoCut3D::PartSelection::get_cut_parts()
 }
 
 
-void GLGizmoCut3D::PartSelection::toggle_selection(const Vec2d& mouse_pos)
+bool GLGizmoCut3D::PartSelection::toggle_selection(const Vec2d& mouse_pos)
 {
     // FIXME: Cache the transforms.
     const Camera& camera     = wxGetApp().plater()->get_camera();
@@ -2318,7 +2344,9 @@ void GLGizmoCut3D::PartSelection::toggle_selection(const Vec2d& mouse_pos)
             }
             ++cont_id;
         }
+        return true;
     }
+    return false;
 }
 
 void GLGizmoCut3D::PartSelection::turn_over_selection()
@@ -2531,7 +2559,7 @@ void GLGizmoCut3D::render_build_size()
     Vec3d    tbb_sz   = m_transformed_bounding_box.size() * koef; // ORCA 
 
     ImGui::AlignTextToFramePadding();
-    m_imgui->text(_L("Build Volume"));
+    m_imgui->text(_L("Size"));
     ImGui::SameLine(m_label_width);
     ImGui::Text("%.2f x %.2f x %.2f %s", tbb_sz.x(), tbb_sz.y(), tbb_sz.z(), unit_str.ToUTF8().data()); // ORCA use regular text color and simplify format
 }
@@ -2763,11 +2791,16 @@ void GLGizmoCut3D::render_groove_int_input(const std::string& label, int& in_val
     ImGui::AlignTextToFramePadding();
     ImGui::SameLine(m_label_width);
     ImGui::PushItemWidth(m_control_width);
-    if (ImGui::InputInt("##int_input", &in_val, 1, 5)) {
-        in_val = std::clamp(in_val, min_val, max_val);
-
-        is_changed = true;
+    int val = in_val;
+    if (ImGui::InputInt("##int_input", &val, 1, 5)) {
+        val = std::clamp(val, min_val, max_val);
+        // ORCA Holding +/- at the limit clamps back to the same value, don't rebuild for that.
+        if (val != in_val) {
+            in_val     = val;
+            is_changed = true;
+        }
     }
+    m_imgui->request_frames_while_held(); // ORCA auto-repeat of the +/- buttons
     
     ImGui::SameLine();
     m_imgui->disabled_begin(in_val == init_val);
@@ -3028,9 +3061,14 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
 
     if (mode == CutMode::cutPlanar) {
         ImGui::SameLine();
-        m_imgui->disabled_begin(is_cut_plane_init && !has_connectors);
-        if (m_imgui->button(_L("Reset"), _L("Reset cutting plane and remove connectors"))) {
-            Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Reset Cut"), UndoRedo::SnapshotType::GizmoAction);
+        m_imgui->disabled_begin(is_cut_plane_init && !has_connectors && !m_part_selection.valid());
+        if (m_imgui->button(_L("Reset"),
+                           // TRN: Part assignments are the upper/lower cut groups changed by right-clicking parts.
+                           _L("Reset the cutting plane, remove connectors, and clear part assignments."))) {
+            // Part selection is not serialized in undo snapshots.
+            std::optional<Plater::TakeSnapshot> snapshot;
+            if (!is_cut_plane_init || has_connectors)
+                snapshot.emplace(wxGetApp().plater(), _u8L("Reset Cut"), UndoRedo::SnapshotType::GizmoAction);
             reset_cut_plane();
             reset_connectors();
         }
@@ -3555,10 +3593,14 @@ static void check_objects_after_cut(const ModelObjectPtrs& objects)
     wxString names = from_u8(err_objects_names[0]);
     for (size_t i = 1; i < err_objects_names.size(); i++)
         names += ", " + from_u8(err_objects_names[i]);
-    WarningDialog(wxGetApp().plater(), format_wxstr(_L("Objects(%1%) have duplicated connectors. "
+    WarningDialog(wxGetApp().plater(), format_wxstr(_L_PLURAL("Object (%1%) has duplicated connectors. "
                                 "Some connectors may be missing in slicing result.\n"
                                 "Please report to the OrcaSlicer team in which scenario this issue happened.\n"
-                                "Thank you."), names)).ShowModal();
+                                "Thank you.",
+                                "Objects (%1%) have duplicated connectors. "
+                                "Some connectors may be missing in slicing result.\n"
+                                "Please report to the OrcaSlicer team in which scenario this issue happened.\n"
+                                "Thank you.", unsigned(err_objects_names.size())), names)).ShowModal();
 }
 
 void synchronize_model_after_cut(Model& model, const CutObjectBase& cut_id)

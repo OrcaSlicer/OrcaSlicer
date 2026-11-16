@@ -51,7 +51,6 @@
 #include <limits>
 #include <memory>
 #include <math.h>
-#include <mutex>
 #include <numeric>
 #include <iterator>
 #include <optional>
@@ -918,9 +917,39 @@ public:
     const bool                                          force_tip_to_roof;
     bool                                                min_xy_dist;
 
+    struct PendingRoof {
+        Polygons                     polygons;
+        size_t                       layer_idx;
+        size_t                       dtt_roof;
+    };
+    struct PendingTip {
+        std::pair<Point, LineStatus> point;
+        LayerIndex                   insert_layer;
+        size_t                       dont_move_until;
+        bool                         roof;
+        size_t                       roof_recovery_dtt;
+        bool                         skip_ovalisation;
+    };
+    // Roofs and tips of one overhang layer. Overhang layers are processed in parallel and a tip may be dropped
+    // in favor of a nearby one inserted earlier, so they are collected here and committed in overhang layer order
+    // to keep the result independent of thread timing.
+    struct Placement {
+        std::vector<PendingRoof>     roofs;
+        std::vector<PendingTip>      tips;
+    };
+
+    void commit(Placement &&placement)
+    {
+        for (PendingRoof &roof : placement.roofs)
+            this->add_roof_unguarded(std::move(roof.polygons), roof.layer_idx, roof.dtt_roof);
+        for (const PendingTip &tip : placement.tips)
+            add_point_as_influence_area(tip);
+    }
+
 public:
     // called by sample_overhang_area()
     void add_points_along_lines(
+        Placement           &placement,
         // Insert points (tree tips or top contact interfaces) along these lines.
         LineInformations    lines,
         // Start at this layer.
@@ -963,7 +992,7 @@ public:
                 // add all points that would not be valid
                 for (const LineInformation &line : points)
                     for (const std::pair<Point, LineStatus> &point_data : line)
-                        add_point_as_influence_area(point_data, this_layer_idx,
+                        placement.tips.push_back({ point_data, LayerIndex(this_layer_idx),
                             // don't move until
                             roof_tip_layers - dtt_roof_tip,
                             // supports roof
@@ -971,7 +1000,7 @@ public:
                             // recovered roof/contact depth for this slice
                             roof_recovery_depth,
                             // disable ovalization
-                            false);
+                            false });
             }
 
             // add all tips as roof to the roof storage
@@ -984,7 +1013,7 @@ public:
                     roof_circle.translate(p.first);
                     new_roofs.emplace_back(std::move(roof_circle));
                 }
-            this->add_roof(std::move(new_roofs), this_layer_idx, roof_recovery_depth);
+            placement.roofs.push_back({ std::move(new_roofs), this_layer_idx, roof_recovery_depth });
         }
 
         const size_t roof_recovery_depth = dtt_roof_tip + supports_roof_layers;
@@ -993,59 +1022,56 @@ public:
             // Ovalisation should be disabled for these to improve the quality of the lines when tip_diameter=line_width
             bool disable_ovalistation = config.min_radius < 3 * config.support_line_width && roof_tip_layers == 0 && dtt_roof_tip == 0 && line.size() > 5;
             for (const std::pair<Point, LineStatus> &point_data : line)
-                add_point_as_influence_area(point_data, insert_layer_idx - dtt_roof_tip,
+                placement.tips.push_back({ point_data, insert_layer_idx - LayerIndex(dtt_roof_tip),
                     // don't move until
                     dont_move_until > dtt_roof_tip ? dont_move_until - dtt_roof_tip : 0,
                     // supports roof
                     roof_recovery_depth > 0,
                     // recovered roof/contact depth for this slice
                     roof_recovery_depth,
-                    disable_ovalistation);
+                    disable_ovalistation });
         }
     }
 
 private:
-    // called by this->add_points_along_lines()
-    void add_point_as_influence_area(std::pair<Point, LineStatus> p, LayerIndex insert_layer, size_t dont_move_until, bool roof, size_t roof_recovery_dtt, bool skip_ovalisation)
+    // called by this->commit()
+    void add_point_as_influence_area(const PendingTip &tip)
     {
-        bool to_bp = p.second == LineStatus::TO_BP || p.second == LineStatus::TO_BP_SAFE;
-        bool gracious = to_bp || p.second == LineStatus::TO_MODEL_GRACIOUS || p.second == LineStatus::TO_MODEL_GRACIOUS_SAFE;
-        bool safe_radius = p.second == LineStatus::TO_BP_SAFE || p.second == LineStatus::TO_MODEL_GRACIOUS_SAFE;
+        const Point &position = tip.point.first;
+        const LineStatus status = tip.point.second;
+        bool to_bp = status == LineStatus::TO_BP || status == LineStatus::TO_BP_SAFE;
+        bool gracious = to_bp || status == LineStatus::TO_MODEL_GRACIOUS || status == LineStatus::TO_MODEL_GRACIOUS_SAFE;
+        bool safe_radius = status == LineStatus::TO_BP_SAFE || status == LineStatus::TO_MODEL_GRACIOUS_SAFE;
         if (! config.support_rests_on_model && ! to_bp) {
             BOOST_LOG_TRIVIAL(warning) << "Tried to add an invalid support point";
             tree_supports_show_error("Unable to add tip. Some overhang may not be supported correctly."sv, true);
             return;
         }
-        Polygons circle{ m_base_circle };
-        circle.front().translate(p.first);
-        {
-            Point hash_pos = p.first / ((config.min_radius + 1) / 10);
-            std::lock_guard<std::mutex> critical_section_movebounds(m_mutex_movebounds);
-            if (!m_already_inserted[insert_layer].count(hash_pos)) {
-                // normalize the point a bit to also catch points which are so close that inserting it would achieve nothing
-                m_already_inserted[insert_layer].emplace(hash_pos);
-                static constexpr const size_t dtt = 0;
-                SupportElementState state;
-                state.target_height = insert_layer;
-                state.target_position = p.first;
-                state.next_position = p.first;
-                state.layer_idx = insert_layer;
-                state.effective_radius_height = dtt;
-                state.to_buildplate = to_bp;
-                state.distance_to_top = dtt;
-                state.result_on_layer = p.first;
-                assert(state.result_on_layer_is_set());
-                state.increased_to_model_radius = 0;
-                state.to_model_gracious = gracious;
-                state.elephant_foot_increases = 0;
-                state.use_min_xy_dist = min_xy_dist;
-                state.supports_roof = roof;
-                state.dont_move_until = dont_move_until;
-                state.can_use_safe_radius = safe_radius;
-                state.set_pending_roof_recovery(force_tip_to_roof ? dont_move_until : 0, roof_recovery_dtt);
-                state.skip_ovalisation = skip_ovalisation;
-                move_bounds[insert_layer].emplace_back(state, std::move(circle));
-            }
+        // normalize the point a bit to also catch points which are so close that inserting it would achieve nothing
+        if (m_already_inserted[tip.insert_layer].emplace(position / ((config.min_radius + 1) / 10)).second) {
+            Polygons circle{ m_base_circle };
+            circle.front().translate(position);
+            static constexpr const size_t dtt = 0;
+            SupportElementState state;
+            state.target_height = tip.insert_layer;
+            state.target_position = position;
+            state.next_position = position;
+            state.layer_idx = tip.insert_layer;
+            state.effective_radius_height = dtt;
+            state.to_buildplate = to_bp;
+            state.distance_to_top = dtt;
+            state.result_on_layer = position;
+            assert(state.result_on_layer_is_set());
+            state.increased_to_model_radius = 0;
+            state.to_model_gracious = gracious;
+            state.elephant_foot_increases = 0;
+            state.use_min_xy_dist = min_xy_dist;
+            state.supports_roof = tip.roof;
+            state.dont_move_until = tip.dont_move_until;
+            state.can_use_safe_radius = safe_radius;
+            state.set_pending_roof_recovery(force_tip_to_roof ? tip.dont_move_until : 0, tip.roof_recovery_dtt);
+            state.skip_ovalisation = tip.skip_ovalisation;
+            move_bounds[tip.insert_layer].emplace_back(state, std::move(circle));
         }
     }
 
@@ -1056,8 +1082,6 @@ private:
     coord_t m_base_radius;
     Polygon                                       m_base_circle;
 
-    // Mutexes, guards
-    std::mutex                                          m_mutex_movebounds;
     std::vector<std::unordered_set<Point, PointHash>>   m_already_inserted;
 };
 
@@ -1157,8 +1181,10 @@ void sample_overhang_area(
     const coord_t                        connect_length,
     // Configuration classes
     const TreeSupportMeshGroupSettings& mesh_group_settings,
-    // Configuration & Output
-    RichInterfacePlacer& interface_placer)
+    // Configuration
+    RichInterfacePlacer& interface_placer,
+    // Output
+    RichInterfacePlacer::Placement& placement)
 {
     // Assumption is that roof will support roof further up to avoid a lot of unnecessary branches. Each layer down it is checked whether the roof area
     // is still large enough to be a roof and aborted as soon as it is not. This part was already reworked a few times, and there could be an argument
@@ -1226,7 +1252,9 @@ void sample_overhang_area(
                 }
             }
         added_roofs.erase(added_roofs.begin() + dtt_roof, added_roofs.end());
-        interface_placer.add_roofs(std::move(added_roofs), layer_idx);
+        for (size_t idx = 0; idx < added_roofs.size(); ++ idx)
+            if (! added_roofs[idx].empty())
+                placement.roofs.push_back({ std::move(added_roofs[idx]), layer_idx - idx, idx });
     }
 
     if (overhang_lines.empty()) {
@@ -1263,11 +1291,12 @@ void sample_overhang_area(
     assert(dtt_roof <= layer_idx);
     if (dtt_roof >= layer_idx && large_horizontal_roof)
         // Reached buildplate when generating contact, interface and base interface layers.
-        interface_placer.add_roof_build_plate(std::move(overhang_area), dtt_roof);
+        placement.roofs.push_back({ std::move(overhang_area), 0, std::min(dtt_roof, interface_placer.support_parameters.num_top_interface_layers) });
     else {
         // normal trees have to be generated
         const bool roof_enabled = num_support_roof_layers > 0;
         interface_placer.add_points_along_lines(
+            placement,
             // Sample along these lines
             overhang_lines,
             // First layer index to insert the tree tips or interfaces.
@@ -1367,14 +1396,16 @@ static void generate_initial_areas(
     }
 
     RichInterfacePlacer rich_interface_placer{ interface_placer, volumes, force_tip_to_roof, num_support_layers, move_bounds };
+    std::vector<RichInterfacePlacer::Placement> placements(raw_overhangs.size());
 
     tbb::parallel_for(tbb::blocked_range<size_t>(0, raw_overhangs.size()),
         [&volumes, &config, &raw_overhangs, &mesh_group_settings,
          min_xy_dist, roof_enabled, num_support_roof_layers, extra_outset, circle_length_to_half_linewidth_change, connect_length,
-         &rich_interface_placer, &throw_on_cancel](const tbb::blocked_range<size_t> &range) {
+         &rich_interface_placer, &placements, &throw_on_cancel](const tbb::blocked_range<size_t> &range) {
         for (size_t raw_overhang_idx = range.begin(); raw_overhang_idx < range.end(); ++ raw_overhang_idx) {
             size_t           layer_idx    = raw_overhangs[raw_overhang_idx].first;
             const Polygons  &overhang_raw = *raw_overhangs[raw_overhang_idx].second;
+            RichInterfacePlacer::Placement &placement = placements[raw_overhang_idx];
 
             // take the least restrictive avoidance possible
             Polygons relevant_forbidden;
@@ -1463,7 +1494,7 @@ static void generate_initial_areas(
                         LineInformations fresh_valid_points = convert_lines_to_internal(volumes, config, convert_internal_to_lines(split.second), layer_idx - lag_ctr);
                         validate_range(fresh_valid_points);
 
-                        rich_interface_placer.add_points_along_lines(fresh_valid_points, (force_tip_to_roof && lag_ctr <= num_support_roof_layers) ? num_support_roof_layers : 0, layer_idx - lag_ctr, false, roof_enabled ? num_support_roof_layers : 0);
+                        rich_interface_placer.add_points_along_lines(placement, fresh_valid_points, (force_tip_to_roof && lag_ctr <= num_support_roof_layers) ? num_support_roof_layers : 0, layer_idx - lag_ctr, false, roof_enabled ? num_support_roof_layers : 0);
                     }
                 }
 #endif
@@ -1481,7 +1512,7 @@ static void generate_initial_areas(
                 //check_self_intersections(overhang_regular, "overhang_regular3");
                 for (ExPolygon &roof_part : union_ex(overhang_roofs)) {
                     sample_overhang_area(to_polygons(std::move(roof_part)), true, layer_idx, num_support_roof_layers, connect_length,
-                        mesh_group_settings, rich_interface_placer);
+                        mesh_group_settings, rich_interface_placer, placement);
                     throw_on_cancel();
                 }
             }
@@ -1493,11 +1524,14 @@ static void generate_initial_areas(
             for (ExPolygon &support_part : union_ex(overhang_regular)) {
                 sample_overhang_area(to_polygons(std::move(support_part)),
                     false, layer_idx, num_support_roof_layers, connect_length,
-                    mesh_group_settings, rich_interface_placer);
+                    mesh_group_settings, rich_interface_placer, placement);
                 throw_on_cancel();
             }
         }
     });
+
+    for (RichInterfacePlacer::Placement &placement : placements)
+        rich_interface_placer.commit(std::move(placement));
 
     finalize_raft_contact(print_object, raft_contact_layer_idx, interface_placer.top_contacts_mutable(), move_bounds);
 }
@@ -3485,12 +3519,41 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
         m_progress_offset = counter == 0 ? 0 : TREE_PROGRESS_TOTAL * (double(counter) * m_progress_multiplier);
 #endif // SLIC3R_TREESUPPORT_PROGRESS
         PrintObject &print_object = *print.get_object(processing.second.front());
+        const size_t num_raft_layers_for_exclusions = config.raft_layers.size();
+        std::vector<std::pair<coordf_t, coordf_t>> tree_layer_z_ranges;
+        tree_layer_z_ranges.reserve(num_raft_layers_for_exclusions + print_object.layer_count());
+        coordf_t previous_z = 0.;
+        for (const coordf_t print_z : config.raft_layers) {
+            tree_layer_z_ranges.emplace_back(previous_z, print_z);
+            previous_z = print_z;
+        }
+        for (const Layer *layer : print_object.layers()) {
+            tree_layer_z_ranges.emplace_back(layer->print_z - layer->height, layer->print_z);
+        }
+        // A tree is one continuous structure while "current filament" may
+        // alternate between base and interface nozzles from layer to layer.
+        // Planning against both masks prevents a locally valid layer from
+        // forcing a branch through another possible nozzle's exclusion volume.
+        std::vector<Polygons> exclusion_areas =
+            support_exclusion_areas_for_layers(print_object, tree_layer_z_ranges, false);
+        const bool tree_uses_interface_material = !config.raft_layers.empty() ||
+            print_object.config().support_interface_top_layers.value > 0 ||
+            number_of_support_interface_bottom_layers(print_object.config()) > 0;
+        if (tree_uses_interface_material) {
+            const std::vector<Polygons> interface_exclusion_areas =
+                support_exclusion_areas_for_layers(print_object, tree_layer_z_ranges, true);
+            for (size_t layer_idx = 0; layer_idx < exclusion_areas.size(); ++layer_idx) {
+                append(exclusion_areas[layer_idx], interface_exclusion_areas[layer_idx]);
+                exclusion_areas[layer_idx] = union_(exclusion_areas[layer_idx]);
+            }
+        }
+
         // Generator for model collision, avoidance and internal guide volumes.
         TreeModelVolumes volumes{ print_object, build_volume, config.maximum_move_distance, config.maximum_move_distance_slow, processing.second.front(),
 #ifdef SLIC3R_TREESUPPORTS_PROGRESS
             m_progress_multiplier, m_progress_offset,
 #endif // SLIC3R_TREESUPPORTS_PROGRESS
-            /* additional_excluded_areas */{} };
+            exclusion_areas };
 
         //FIXME generating overhangs just for the first mesh of the group.
         assert(processing.second.size() == 1);
@@ -3638,6 +3701,9 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
 
         // Produce the support G-code.
         SupportGeneratorLayersPtr raft_layers = generate_raft_base(print_object, support_params, print_object.slicing_parameters(), top_contacts, interface_layers, base_interface_layers, intermediate_layers, layer_storage);
+        trim_support_layers_by_exclusion_volumes(
+            print_object, raft_layers, bottom_contacts, top_contacts, intermediate_layers,
+            interface_layers, base_interface_layers);
         SupportGeneratorLayersPtr layers_sorted = generate_support_layers(print_object, raft_layers, bottom_contacts, top_contacts, intermediate_layers, interface_layers, base_interface_layers);
 
         // BBS: This is a hack to avoid the support being generated outside the bed area. See #4769.

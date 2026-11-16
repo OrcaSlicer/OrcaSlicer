@@ -1,6 +1,7 @@
 #include "GLGizmoSeam.hpp"
 
 #include "libslic3r/Model.hpp"
+#include "libslic3r/TriangleSelector.hpp"
 
 //#include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
@@ -327,7 +328,8 @@ void GLGizmoSeam::update_from_model_object(bool first_update)
 
         m_triangle_selectors.emplace_back(std::make_unique<TriangleSelectorPatch>(*mesh, ebt_colors));
         // Reset of TriangleSelector is done inside TriangleSelectorGUI's constructor, so we don't need it to perform it again in deserialize().
-        m_triangle_selectors.back()->deserialize(mv->seam_facets.get_data(), false);
+        // The colour table has NONE/ENFORCER/BLOCKER only: a higher state in the file is reset to NONE.
+        m_triangle_selectors.back()->deserialize(mv->seam_facets.get_data(), false, EnforcerBlockerType::BLOCKER);
         m_triangle_selectors.back()->request_update_render_data();
     }
 }

@@ -1,6 +1,7 @@
 #include "PluginHooks.hpp"
 
 #include "PluginManager.hpp"
+#include "PluginResolver.hpp"
 #include "PythonInterpreter.hpp"
 #include "PythonPluginInterface.hpp"
 #include "pluginTypes/slicingPipeline/SlicingPipelinePluginCapability.hpp"
@@ -10,6 +11,8 @@
 #include "libslic3r/LifecycleEvents.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r_version.h"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/format.hpp"
 
 #include <boost/log/trivial.hpp>
 
@@ -31,24 +34,8 @@ namespace {
 void install_capability_resolver()
 {
     ConfigBase::set_resolve_capability_fn([](const std::string& cap_name, const std::string& cap_type) {
-        PluginManager& plugin_mgr = PluginManager::instance();
-        const PluginCapabilityType type = plugin_capability_type_from_string(cap_type);
-        // only_enabled = false: this resolves the reference a preset STORES, which must stay
-        // resolvable whether or not the user currently has the capability enabled. Filtering on
-        // the enable flag here would quietly drop the reference out of the preset's manifest.
-        auto plugin_cap = plugin_mgr.get_plugin_capability(cap_name, type, /*only_enabled=*/false);
-        if (!plugin_cap)
-            return std::string();
-
-        PluginDescriptor descriptor;
-        if (!plugin_mgr.try_get_plugin_descriptor_for_capability(cap_name, type, descriptor))
-            return std::string();
-
-        // Cloud plugins are resolved at runtime via the UUID in the middle field, so the first
-        // field keeps the friendly display name. Local plugins are looked up by plugin_key (the
-        // first field, with an empty UUID), so emit the plugin_key to keep them resolvable.
-        const std::string identity = descriptor.is_cloud_plugin() ? descriptor.name : descriptor.plugin_key;
-        return identity + ';' + descriptor.cloud_uuid() + ';' + cap_name;
+        const auto ref = PluginManager::instance().resolve_capability_ref(cap_name, plugin_capability_type_from_string(cap_type));
+        return ref ? create_full_ref(*ref) : std::string();
     });
 }
 
@@ -100,18 +87,24 @@ void install_slicing_pipeline_hook()
                         ctx.step   = step;
                         ctx.print  = &print;
                         ctx.object = object;
+                        // Slicing hooks are synchronous by design and never await: the context
+                        // borrows Print/PrintObject that are only valid during this call, and the
+                        // UI thread may itself be blocked waiting on this slicing worker. An async
+                        // override is rejected here rather than scheduled -- cap->execute() casts
+                        // its Python result to ExecutionResult and a coroutine object cannot be
+                        // cast, so it surfaces as the SlicingError below.
                         r = cap->execute(ctx);
                     } catch (const CanceledException&) {
                         throw; // cancellation must reach process(), never become a slicing error
                     } catch (const std::exception& ex) {
                         // A Python raise reaches here as pybind11::error_already_set; surface it as a
                         // (non-critical) slicing error instead of a crash.
-                        throw SlicingError(std::string("Slicing pipeline plugin '") +
-                                           ref.capability_name + "' error: " + ex.what());
+                        throw SlicingError(GUI::format(_u8L("Slicing pipeline plugin '%1%' error: %2%"),
+                                                       ref.capability_name, ex.what()));
                     }
                     if (r.status == PluginResult::FatalError)
-                        throw SlicingError(std::string("Slicing pipeline plugin '") +
-                                           ref.capability_name + "' error: " + r.message);
+                        throw SlicingError(GUI::format(_u8L("Slicing pipeline plugin '%1%' error: %2%"),
+                                                       ref.capability_name, r.message));
                     // log a non-empty success/skipped message instead of dropping it. This is
                     // log-only by design: every pipeline hook fires AFTER set_done() (see Print.cpp),
                     // so the Print-level m_step_active is -1 here. Calling active_step_add_warning()

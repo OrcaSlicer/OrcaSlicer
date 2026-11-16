@@ -78,6 +78,12 @@ public:
     std::vector<int> extrude_ids;
     int filament_temp_type = -1; // -1 means unset. otherwise should be {0,1,2}
     double height{ 0 };
+    double z_min{ 0 };
+    double z_max{ 0 };
+    bool has_z_range{ false };
+    bool is_bed_exclusion{ false };
+    std::vector<int> bed_exclusion_extruder_ids;
+    int bed_exclusion_extruder_id{ -1 };
     double print_temp{ 0 };
     double bed_temp{ 0 };
     double vitrify_temp{ 0 };  // vitrify temperature

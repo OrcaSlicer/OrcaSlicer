@@ -37,6 +37,11 @@
 using namespace nlohmann;
 
 namespace {
+    // The printer last selected under each printer agent, keyed by agent id.
+    const std::string LAST_SELECTED_MACHINE_SECTION = "last_selected_machine";
+    // Builds before that kept one printer for every agent in this app key.
+    const std::string LEGACY_LAST_SELECTED_MACHINE_KEY = "user_last_selected_machine";
+
     // Orca: access_code lives on BBLocalMachine::access_code (keyed by dev_id via
     // get_local_machines(), scoped by the record's own printer_agent_id field) - so binding a
     // printer under one agent doesn't silently appear as already-bound under a different,
@@ -60,6 +65,14 @@ namespace {
             return code;
         }
         return "";
+    }
+
+    // Scoped to the agent like the access code above; there is no legacy flat key to fall back to.
+    std::string get_stored_ca_file(Slic3r::AppConfig* config, const std::string& dev_id, const std::string& agent_id)
+    {
+        const auto& machines = config->get_local_machines();
+        auto        it       = machines.find(dev_id);
+        return it != machines.end() && it->second.printer_agent_id == agent_id ? it->second.ca_file : "";
     }
 }
 
@@ -105,6 +118,7 @@ namespace Slic3r
             obj->m_is_online         = true;
             obj->last_alive          = Slic3r::Utils::get_current_time_utc();
             obj->set_access_code(get_access_code_with_legacy_fallback(config, m.dev_id, obj->printer_agent_id), false);
+            obj->set_ca_file(m.ca_file, false);
             if (obj->has_access_right()) {
                 localMachineList.insert(std::make_pair(m.dev_id, obj));
             } else {
@@ -126,6 +140,7 @@ namespace Slic3r
                     local_machine.printer_type     = m.printer_type;
                     local_machine.printer_agent_id = m.printer_agent_id;
                     local_machine.access_code      = m.get_access_code();
+                    local_machine.ca_file          = m.get_ca_file();
                     config->update_local_machine(local_machine);
                 }
             } else {
@@ -275,6 +290,18 @@ namespace Slic3r
             std::string printer_signal  = j["dev_signal"].get<std::string>();
             std::string connect_type    = j["connect_type"].get<std::string>();
             std::string bind_state      = j["bind_state"].get<std::string>();
+
+            // Passive discovery must not replace another agent's saved binding.
+            if (get_current_printer_agent_id() == MOONRAKER_PRINTER_AGENT_ID) {
+                if (AppConfig* config = get_app_config()) {
+                    const auto& machines = config->get_local_machines();
+                    auto it = machines.find(dev_id);
+                    if (it != machines.end() && it->second.printer_agent_id != MOONRAKER_PRINTER_AGENT_ID) {
+                        BOOST_LOG_TRIVIAL(warning) << "Ignoring Moonraker discovery for a device owned by another agent: " << dev_id;
+                        return;
+                    }
+                }
+            }
 
             if (connect_type == "farm") {
                 connect_type ="lan";
@@ -429,6 +456,7 @@ namespace Slic3r
                 //load access code
                 if (config) {
                     obj->set_access_code(get_access_code_with_legacy_fallback(config, dev_id, obj->printer_agent_id), false);
+                    obj->set_ca_file(get_stored_ca_file(config, dev_id, obj->printer_agent_id), false);
                 }
                 localMachineList.insert(std::make_pair(dev_id, obj));
 
@@ -461,11 +489,13 @@ namespace Slic3r
         std::string version, std::string access_code)
     {
         MachineObject* obj;
-        auto           it = localMachineList.find(machine.dev_id);
+        bool           agent_changed = false;
+        auto           it            = localMachineList.find(machine.dev_id);
         if (it != localMachineList.end()) {
             obj = it->second;
             // insert_local_device is called by the active agent, so a reused entry must follow
             // that agent as well; otherwise the agent-scoped printer list hides it.
+            agent_changed         = obj->printer_agent_id != get_current_printer_agent_id();
             obj->printer_agent_id = get_current_printer_agent_id();
         } else {
             obj = new MachineObject(this, m_agent, machine.dev_name, machine.dev_id, machine.dev_ip);
@@ -483,6 +513,8 @@ namespace Slic3r
         obj->m_is_online = true;
         obj->last_alive = Slic3r::Utils::get_current_time_utc();
         obj->set_access_code(access_code, false);
+        if ((agent_changed || obj->get_ca_file().empty()) && get_app_config())
+            obj->set_ca_file(get_stored_ca_file(get_app_config(), machine.dev_id, obj->printer_agent_id), false);
 
         update_local_machine(*obj, get_app_config());
 
@@ -592,8 +624,15 @@ namespace Slic3r
             }
         }
         userMachineList.clear();
+        // A machine list that arrives for the signed-out account must not reselect its printer.
+        m_restore_last_machine = false;
 
         if (!keep_selected_machine) {
+            // The printer signing out deselects is not reconnected at the next start either. Its
+            // connection type can't tell which that is: a Bambu account printer LAN discovery never
+            // saw has none.
+            if (!selected_machine.empty())
+                record_user_last_machine("");
             selected_machine = "";
             local_selected_machine = "";
         }
@@ -623,6 +662,7 @@ namespace Slic3r
 
     bool DeviceManager::set_selected_machine(std::string dev_id)
     {
+        m_restore_last_machine = false; // any selection settles a pending restore_last_machine()
         BOOST_LOG_TRIVIAL(info) << "set_selected_machine=" << dev_id
             << " cur_selected=" << selected_machine;
         auto my_machine_list = get_my_machine_list(get_current_printer_agent_id());
@@ -679,6 +719,20 @@ namespace Slic3r
                 // same dev_id, lan => disconnect and reconnect
                 else
                 {
+                    // Orca: unless a Bambu printer's connect is still in flight. Tearing that down
+                    // mid-flight is what the 02.08 network plugin does not survive, and re-picking the
+                    // printer a restore just reconnected is the quickest way there. Only Bambu: the
+                    // Moonraker agents report no failed connect, so their flag would never clear and
+                    // re-picking the printer would no longer retry it. The Bambu plugin gives up on a
+                    // connect it can't make after about 24 s; one still unanswered after 60 s stops
+                    // counting, so a plugin version that drops the result can't block retries for good.
+                    if (it->second->printer_agent_id == BBL_PRINTER_AGENT_ID && it->second->get_lan_mode_connection_state() &&
+                        std::chrono::steady_clock::now() - m_lan_connect_started < std::chrono::seconds(60)) {
+                        BOOST_LOG_TRIVIAL(info) << "set_selected_machine: same lan machine, dev_id =" << dev_id
+                            << ", its connect is still in flight, keep it";
+                        return true;
+                    }
+
                     BOOST_LOG_TRIVIAL(info) << "set_selected_machine: same lan machine, dev_id =" << dev_id
                         << ", disconnect and reconnect";
 
@@ -690,6 +744,7 @@ namespace Slic3r
 
                         it->second->connect();
                         it->second->set_lan_mode_connection_state(true);
+                        m_lan_connect_started = std::chrono::steady_clock::now();
                     }
                 }
             }
@@ -712,6 +767,7 @@ namespace Slic3r
                         it->second->reset();
                         it->second->connect();
                         it->second->set_lan_mode_connection_state(true);
+                        m_lan_connect_started = std::chrono::steady_clock::now();
                     }
                 }
             }
@@ -881,6 +937,16 @@ namespace Slic3r
 
     void DeviceManager::parse_user_print_info(std::string body)
     {
+        // A pending restore waits for the first accepted list, whoever fetched it. It selects a
+        // machine, so it runs once listMutex is released.
+        if (read_user_print_info(body) && m_restore_last_machine) {
+            m_restore_last_machine = false;
+            load_last_machine();
+        }
+    }
+
+    bool DeviceManager::read_user_print_info(const std::string& body)
+    {
         BOOST_LOG_TRIVIAL(trace) << "DeviceManager::parse_user_print_info";
         std::lock_guard<std::mutex> lock(listMutex);
 
@@ -911,14 +977,16 @@ namespace Slic3r
                 BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ": ignoring stale response provider="
                                          << provider << " agent_id=" << agent_id
                                          << " generation=" << generation;
-                return;
+                return false;
             }
 
 #if !BBL_RELEASE_TO_PUBLIC
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": " << j;
 #endif
 
-            if (j.contains("devices") && !j["devices"].is_null())
+            // Without a device list the response leaves the list as it is, so it is not one.
+            const bool has_device_list = j.contains("devices") && !j["devices"].is_null();
+            if (has_device_list)
             {
                 for (auto& elem : j["devices"])
                 {
@@ -1020,11 +1088,13 @@ namespace Slic3r
                                         << " parsed_count=" << new_list.size()
                                         << " stored_count=" << userMachineList.size();
             }
+            return has_device_list;
         }
         catch (std::exception& e)
         {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " exception=" << e.what();
         }
+        return false;
     }
 
     void DeviceManager::update_user_machine_list_info(const std::string& provider)
@@ -1043,42 +1113,72 @@ namespace Slic3r
             // parse_user_print_info and on_machine_alive (SSDP for discovery) both mutate the same userMachineList map.
             // on_machine_alive mutates the map on the UI thread, do the same for parse_user_print_info.
             BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: queueing parse_user_print_info on UI thread";
-            Slic3r::GUI::wxGetApp().CallAfter([this, body]() { parse_user_print_info(body); });
+            Slic3r::GUI::wxGetApp().CallAfter([this, body]() {
+                // The parse may restore a printer (restore_last_machine()), which needs a live app.
+                if (!Slic3r::GUI::wxGetApp().is_closing())
+                    parse_user_print_info(body);
+            });
         }
     }
 
+    // The remembered printer is kept per printer agent: each agent lists its own machines, so a
+    // printer preset of another agent in between must not make Orca forget this agent's printer.
     void DeviceManager::record_user_last_machine(const std::string& dev_id)
     {
-        if (AppConfig* config = get_app_config()) {
-            config->set("user_last_selected_machine", dev_id);
-        }
+        AppConfig*        config   = get_app_config();
+        const std::string agent_id = get_current_printer_agent_id();
+        if (!config || agent_id.empty())
+            return;
+
+        // A forget leaves no entry, so the section lists only remembered printers.
+        if (!dev_id.empty())
+            config->set(LAST_SELECTED_MACHINE_SECTION, agent_id, dev_id);
+        else
+            config->erase(LAST_SELECTED_MACHINE_SECTION, agent_id);
+        // The pre-per-agent key is only read until the Bambu agent records its own printer, a forget
+        // included, so it can't bring back a printer the user has left.
+        if (agent_id == BBL_PRINTER_AGENT_ID && config->has(LEGACY_LAST_SELECTED_MACHINE_KEY))
+            config->erase("app", LEGACY_LAST_SELECTED_MACHINE_KEY);
     }
 
     std::string DeviceManager::get_user_last_machine() const
     {
-        if (AppConfig* config = get_app_config()) {
-            const auto& user_last_machine = config->get("user_last_selected_machine");
-            if (!user_last_machine.empty()) {
-                return user_last_machine;
-            } else if (m_agent) {
-                return m_agent->get_user_selected_machine();
+        const std::string agent_id = get_current_printer_agent_id();
+        if (AppConfig* config = get_app_config(); config && !agent_id.empty()) {
+            const std::string last_machine = config->get(LAST_SELECTED_MACHINE_SECTION, agent_id);
+            if (!last_machine.empty())
+                return last_machine;
+            // The legacy key holds whichever agent's printer was selected last. Only Bambu printers
+            // are restored from it: the other agents select the preset's print_host.
+            if (agent_id == BBL_PRINTER_AGENT_ID) {
+                const std::string legacy_machine = config->get(LEGACY_LAST_SELECTED_MACHINE_KEY);
+                if (!legacy_machine.empty())
+                    return legacy_machine;
             }
         }
 
-        return "";
+        return m_agent ? m_agent->get_user_selected_machine() : "";
     }
 
     void DeviceManager::load_last_machine()
     {
-        // Only reconnect the remembered cloud machine. Do not select an arbitrary
-        // first machine: agent swaps intentionally leave the selection empty until
-        // the new agent explicitly selects its configured printer.
-        if (userMachineList.empty())
+        // Reconnect only the printer the user last selected under this agent, LAN or cloud, never
+        // another one: an unrequested connection to a printer the user then switches away from is
+        // torn down mid-flight, which the 02.08 network plugin does not survive.
+        if (get_selected_machine())
             return;
 
-        const auto& last_monitor_machine = get_user_last_machine();
-        if (userMachineList.find(last_monitor_machine) != userMachineList.end())
-            set_selected_machine(last_monitor_machine);
+        const std::string last_machine = get_user_last_machine();
+        if (!last_machine.empty() && get_my_machine_list(get_current_printer_agent_id()).count(last_machine) != 0)
+            set_selected_machine(last_machine);
+    }
+
+    void DeviceManager::restore_last_machine()
+    {
+        // A cloud printer is listed only once the account's machine list arrives, so until a list is
+        // accepted (parse_user_print_info) or a selection is made, the restore stays pending.
+        m_restore_last_machine = true;
+        load_last_machine();
     }
 
     void DeviceManager::OnMachineBindStateChanged(MachineObject* obj, const std::string& new_state)

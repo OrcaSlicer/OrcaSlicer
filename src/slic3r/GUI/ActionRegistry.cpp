@@ -3,10 +3,13 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "I18N.hpp"
+#include "ImGuiWrapper.hpp"
 #include "MainFrame.hpp"
 #include "NativeCommands.hpp"
 #include "Notebook.hpp"
+#include "NotificationManager.hpp"
 #include "OptionsGroup.hpp"
+#include "OptionStateRegistry.hpp"
 #include "Plater.hpp"
 #include "SettingsIndex.hpp"
 #include "Tab.hpp"
@@ -38,6 +41,7 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r { namespace GUI {
 
@@ -99,6 +103,45 @@ std::string find_loaded_source_name(PluginManager& manager, const std::string& p
     return plugin_key;
 }
 
+// Translates a Script capability outcome into the action layer's result vocabulary. Shared by
+// the synchronous run path and the async completion notification.
+AppActionRunResult script_outcome_to_action_result(const ScriptCompletion& completion)
+{
+    // Cancelled by PluginManager (unload/shutdown): expected termination, nothing to show.
+    if (completion.cancelled)
+        return {};
+
+    if (!completion.error.empty())
+        return {AppActionRunResult::Level::Error, from_u8(completion.error)};
+
+    const ExecutionResult& result   = completion.result;
+    const bool             skipped  = result.status == PluginResult::Skipped;
+    const wxString         fallback = skipped ? _L("Script plugin skipped.") : _L("Script plugin finished.");
+    return {skipped ? AppActionRunResult::Level::Info : AppActionRunResult::Level::Success,
+            result.message.empty() ? fallback : from_u8(result.message)};
+}
+
+// Surfaces the eventual outcome of an async script launched from the speed dial. That launch
+// already returned (the UI was not blocked), so the finish is reported as a notification. A
+// cancellation is silent.
+void notify_script_outcome(const ScriptCompletion& completion)
+{
+    if (completion.cancelled)
+        return;
+    if (wxTheApp == nullptr || wxGetApp().is_closing())
+        return;
+
+    Plater* plater = wxGetApp().plater();
+    if (plater == nullptr || wxGetApp().imgui() == nullptr || !wxGetApp().imgui()->display_initialized())
+        return;
+
+    const AppActionRunResult action_result = script_outcome_to_action_result(completion);
+    const auto               level         = action_result.level == AppActionRunResult::Level::Error
+                                                 ? NotificationManager::NotificationLevel::ErrorNotificationLevel
+                                                 : NotificationManager::NotificationLevel::RegularNotificationLevel;
+    plater->get_notification_manager()->push_notification(NotificationType::CustomNotification, level, into_u8(action_result.message));
+}
+
 // A runnable script capability exposed as a speed-dial action. source_key = plugin_key
 // (identity), so a plugin display-name change does not re-key the action.
 struct PluginScriptAction : AppAction
@@ -124,15 +167,36 @@ struct PluginScriptAction : AppAction
 
     AppActionRunResult run(const std::string& /*param*/) const override
     {
-        std::string error;
-        const ExecutionResult result = PluginManager::instance().run_script_capability(plugin_key, capability, error);
-        if (!error.empty())
-            return {AppActionRunResult::Level::Error, from_u8(error)};
+        struct Outcome
+        {
+            bool               async     = false;
+            bool               completed = false;
+            AppActionRunResult result;
+        };
+        auto outcome = std::make_shared<Outcome>();
 
-        const bool skipped      = result.status == PluginResult::Skipped;
-        const wxString fallback = skipped ? _L("Script plugin skipped.") : _L("Script plugin finished.");
-        return {skipped ? AppActionRunResult::Level::Info : AppActionRunResult::Level::Success,
-                result.message.empty() ? fallback : from_u8(result.message)};
+        auto on_done = [outcome](const ScriptCompletion& completion) {
+            outcome->result    = script_outcome_to_action_result(completion);
+            outcome->completed = true;
+            if (outcome->async)
+                notify_script_outcome(completion);
+        };
+
+        const PluginManager::ScriptLaunchResult launch = PluginManager::instance().launch_script_capability(plugin_key, capability, on_done);
+        if (launch.launched_async) {
+            // The completion is delivered on this (GUI) thread once the (sync or async) invocation
+            // finishes, so marking `async` here cannot race with on_done. The speed dial has already
+            // shown a result by then; the final outcome arrives as a notification (a cancellation is
+            // silent).
+            outcome->async = true;
+            if (outcome->completed)
+                return outcome->result;
+            return {AppActionRunResult::Level::Info, _L("Script plugin started.")};
+        }
+
+        // The launch failed inline; on_done produced the (error) result.
+        on_done(launch.outcome);
+        return outcome->result;
     }
 };
 
@@ -206,17 +270,50 @@ constexpr const char* kPlateGotoPrefix     = "orca_plate_goto";
 constexpr const char* kRecentProjectPrefix = "orca_recent_project";
 
 // Display context for a setting action's eyebrow, e.g. the "Process" in "Process : Quality : Layers".
-// Keyed by the option's preset type so the palette reads like the settings sidebar tabs.
-std::string setting_type_context(Preset::Type type)
+// Keyed by the option's preset type so the palette reads like the settings sidebar tabs. Untranslated:
+// the caller translates it for the displayed breadcrumb and keeps it for the English one.
+const char* setting_type_context(Preset::Type type)
 {
     switch (type) {
     case Preset::TYPE_FILAMENT:
-    case Preset::TYPE_SLA_MATERIAL: return _u8L("Filament");
-    case Preset::TYPE_PRINTER: return _u8L("Printer");
+    case Preset::TYPE_SLA_MATERIAL: return L("Filament");
+    case Preset::TYPE_PRINTER: return L("Printer");
     case Preset::TYPE_PRINT:
     case Preset::TYPE_SLA_PRINT:
-    default: return _u8L("Process");
+    default: return L("Process");
     }
+}
+
+// A setting's text in one language. The displayed text and its English search aliases both come from
+// here, so in an English UI the two are equal and no alias is sent.
+struct SettingText
+{
+    std::string title;      // the label the settings row draws
+    std::string full_label; // the descriptive ConfigOptionDef name when it differs from title: a
+                            // search-only alias ("overhang reversal" still finds "Reverse on even")
+    std::string source;     // the full settings path "Process : Quality : Layers". The JS renders
+                            // group || source and searches every field, so putting the whole path in
+                            // source both displays it and makes it matchable by any segment.
+};
+
+SettingText setting_text(const std::wstring& def_label, const std::string& display_label, const wxString& row_label, bool row_multi,
+                         const std::string& type_name, const std::wstring& category, const std::wstring& group)
+{
+    SettingText       text;
+    const std::string def = boost::nowide::narrow(def_label);
+    text.title            = into_u8(Search::resolve_setting_title(from_u8(display_label), row_label, row_multi));
+    if (text.title.empty())
+        text.title = def;
+    if (text.title != def)
+        text.full_label = def;
+
+    std::wstring path = boost::nowide::widen(type_name);
+    if (!category.empty())
+        path += L" : " + category;
+    if (!group.empty())
+        path += L" : " + group;
+    text.source = boost::nowide::narrow(path);
+    return text;
 }
 
 // Stable, non-localized mode token for the webview, which maps it to a badge ("Developer" etc.).
@@ -305,8 +402,9 @@ struct PlateAction : AppAction
     PlateAction(int index, std::string title, std::string source_name)
         : AppAction(AppActionId{id_for(index)}, std::move(title), kOrcaSourceKey, std::move(source_name)), plate_index(index)
     {
-        this->kind  = AppActionKind::Command;
-        this->group = _u8L("Plate");
+        this->kind     = AppActionKind::Command;
+        this->group_en = L("Plate");
+        this->group    = I18N::translate_utf8(this->group_en);
     }
 
     AppActionRunResult run(const std::string& /*param*/) const override
@@ -328,8 +426,9 @@ struct RecentProjectAction : AppAction
     RecentProjectAction(std::string path, std::string title, std::string source)
         : AppAction(AppActionId{id_for(path)}, std::move(title), kOrcaSourceKey, std::move(source)), file_path(std::move(path))
     {
-        this->kind  = AppActionKind::Command;
-        this->group = _u8L("Recent Projects");
+        this->kind     = AppActionKind::Command;
+        this->group_en = L("Recent Projects");
+        this->group    = I18N::translate_utf8(this->group_en);
     }
 
     AppActionRunResult run(const std::string& /*param*/) const override
@@ -341,6 +440,30 @@ struct RecentProjectAction : AppAction
 };
 
 } // namespace
+
+nlohmann::json action_json(const AppAction& a)
+{
+    nlohmann::json j({{"id", a.id()},
+                      {"title", a.title()},
+                      {"full_label", a.full_label},
+                      {"source", a.source_name()},
+                      {"group", a.group},
+                      {"kind", a.kind == AppActionKind::Plugin ? "plugin" : "command"},
+                      {"input", a.input},
+                      {"icon", a.icon},
+                      {"mode", mode_key(a.required_mode)},
+                      {"desc", a.tooltip},
+                      {"wiki", !a.help_url.empty()}});
+    auto add_alias = [&j](const char* key, const std::string& english, const std::string& local) {
+        if (!english.empty() && english != local)
+            j[key] = english;
+    };
+    add_alias("title_en", a.title_en, a.title());
+    add_alias("group_en", a.group_en, a.group);
+    add_alias("source_en", a.source_en, a.source_name());
+    add_alias("full_label_en", a.full_label_en, a.full_label);
+    return j;
+}
 
 ActionRegistry::~ActionRegistry() = default;
 
@@ -430,7 +553,8 @@ void ActionRegistry::relocalize_builtins()
 
     // Drop only the built-in commands; plugins and the dynamically materialised families are
     // either unlocalized or rebuilt per snapshot. remove() only erases the map entry, and upsert()
-    // re-seeds favourites/stats from config, so key-based ids keep their pinned state.
+    // re-seeds favourites/stats from config, so key-based ids keep their pinned state. make_action()
+    // translates in the new locale.
     std::vector<std::string> stale;
     for (const auto& [id, action] : m_actions)
         if (action->source_key() == kOrcaSourceKey && action->kind == AppActionKind::Command)
@@ -438,7 +562,6 @@ void ActionRegistry::relocalize_builtins()
     for (const std::string& id : stale)
         remove(id);
 
-    NativeCommands::rebuild_catalog();
     for (const NativeCommand& c : NativeCommands::catalog())
         upsert(NativeCommands::make_action(c));
 }
@@ -660,40 +783,36 @@ void ActionRegistry::materialize_setting_actions()
 
     std::unordered_set<std::string> seen;
     for (const Search::Option& opt : options) {
-        // The row's live state drives both the hidden filter and the title (labels can change at
-        // runtime, e.g. brim_width -> "Brim ear radius"). Hidden rows are skipped, not marked seen.
-        Tab* tab = wxGetApp().get_tab(opt.type);
+        // Keep recorded hidden settings searchable so the detail strip can explain their state.
+        // Unrecorded row restrictions retain their existing visibility behavior.
+        Tab* tab = get_tab_for_option(opt.opt_key(), opt.type);
+        const std::string key = opt.opt_key().substr(0, opt.opt_key().find('#'));
+        const OptionStateRegistry* registry = tab ? &tab->option_state_registry() : nullptr;
         Tab::SettingRowState row;
         if (tab)
             row = tab->setting_row_state(opt.opt_key());
-        if (!row.visible)
+        if (!row.visible && (!registry || !registry->hidden_reason(key)))
             continue;
 
         const std::string id = SettingAction::id_for(opt.opt_key(), opt.type);
         seen.insert(id);
 
-        // The page draws Line::label; the descriptive ConfigOptionDef name stays a search-only alias
-        // ("overhang reversal" still finds "Reverse on even").
-        const std::string search_label = boost::nowide::narrow(opt.label_local.empty() ? opt.label : opt.label_local);
-        std::string       title        = into_u8(Search::resolve_setting_title(from_u8(opt.display_label), row.label, row.multi));
-        if (title.empty())
-            title = search_label;
+        // The localized text the page shows, and its English search aliases from the untranslated row
+        // label, def name and breadcrumb.
+        const char* type_context = setting_type_context(opt.type);
+        SettingText local   = setting_text(opt.label_local.empty() ? opt.label : opt.label_local, opt.display_label, row.label, row.multi,
+                                           I18N::translate_utf8(type_context), opt.category_local, opt.group_local);
+        SettingText english = setting_text(opt.label, opt.display_label_en, row.label_en, row.multi, type_context,
+                                           Tab::translate_category(opt.category, opt.type, false).ToStdWstring(), opt.group);
 
-        // Eyebrow/source = the full settings path "Process : Quality : Layers" (localized). The JS
-        // renders group || source and searches source + " " + group, so putting the whole path in
-        // source both displays it and makes it matchable by any segment (e.g. a "quality" query).
-        std::wstring path = boost::nowide::widen(setting_type_context(opt.type));
-        if (!opt.category_local.empty())
-            path += L" : " + opt.category_local;
-        if (!opt.group_local.empty())
-            path += L" : " + opt.group_local;
-
-        // title = the label the settings row draws; group stays empty so the source path (above) is
-        // the single display/search breadcrumb rather than being duplicated.
-        auto action = std::make_unique<SettingAction>(opt.opt_key(), opt.type, title, std::string(), opt.category,
-                                                      boost::nowide::narrow(path), opt.mode);
-        if (title != search_label)
-            action->full_label = search_label;
+        // group stays empty so the source path is the single display/search breadcrumb rather than
+        // being duplicated.
+        auto action = std::make_unique<SettingAction>(opt.opt_key(), opt.type, local.title, std::string(), opt.category, local.source,
+                                                      opt.mode);
+        action->full_label    = std::move(local.full_label);
+        action->title_en      = std::move(english.title);
+        action->full_label_en = std::move(english.full_label);
+        action->source_en     = std::move(english.source);
 
         // Tile pictogram = the icon of the setting's own group header (e.g. Advanced -> param_advanced),
         // the one shown next to it in the page. Fall back to the page/category icon for groups
@@ -708,6 +827,11 @@ void ActionRegistry::materialize_setting_actions()
 
         // Footer description + wiki affordance; only settings whose row declared a wiki path have one.
         action->tooltip = opt.tooltip;
+        if (registry) {
+            const std::string availability = into_u8(registry->description(key));
+            if (!availability.empty())
+                action->tooltip = availability + (action->tooltip.empty() ? "" : "\n\n" + action->tooltip);
+        }
         if (!opt.wiki_path.empty())
             action->help_url = into_u8(OptionsGroup::get_url(opt.wiki_path));
 
@@ -751,13 +875,14 @@ void ActionRegistry::materialize_plate_actions()
         seen.insert(id);
 
         // "Go to Plate N" + " (name)" when the plate is named, matching the object-list label.
-        std::string title(_u8L("Go to Plate"));
-        title += " " + std::to_string(i + 1);
-        const std::string name = plate->get_plate_name();
+        const char* go_to_plate = L("Go to Plate");
+        std::string suffix      = " " + std::to_string(i + 1);
+        const std::string name  = plate->get_plate_name();
         if (!name.empty())
-            title += " (" + name + ")";
+            suffix += " (" + name + ")";
 
-        auto action = std::make_unique<PlateAction>(int(i), title, kOrcaSourceName);
+        auto action      = std::make_unique<PlateAction>(int(i), I18N::translate_utf8(go_to_plate) + suffix, kOrcaSourceName);
+        action->title_en = go_to_plate + suffix;
         seed_from(stats, favs, id, *action);
         auto const action_id  = action->id();
         auto const app_action = std::shared_ptr<AppAction>(std::move(action));
@@ -868,23 +993,9 @@ nlohmann::json ActionRegistry::snapshot()
         return a->id() < b->id();
     });
 
-    auto action_to_json = [](const AppAction* a) {
-        return nlohmann::json({{"id", a->id()},
-                               {"title", a->title()},
-                               {"full_label", a->full_label},
-                               {"source", a->source_name()},
-                               {"group", a->group},
-                               {"kind", a->kind == AppActionKind::Plugin ? "plugin" : "command"},
-                               {"input", a->input},
-                               {"icon", a->icon},
-                               {"mode", mode_key(a->required_mode)},
-                               {"desc", a->tooltip},
-                               {"wiki", !a->help_url.empty()}});
-    };
-
     nlohmann::json actions = nlohmann::json::array();
     for (const AppAction* a : sorted)
-        actions.push_back(action_to_json(a));
+        actions.push_back(action_json(*a));
 
     // why: favourites is the ORDERED pin list - it must come from favourite_actions
     // as stored, not be re-derived from the frecency-sorted actions (that would
@@ -917,7 +1028,7 @@ nlohmann::json ActionRegistry::snapshot()
         recent.resize(recent_limit);
     nlohmann::json recent_json = nlohmann::json::array();
     for (const AppAction* a : recent)
-        recent_json.push_back(action_to_json(a));
+        recent_json.push_back(action_json(*a));
 
     return {{"actions", std::move(actions)},
             {"favourites", std::move(favourites)},
@@ -937,14 +1048,21 @@ nlohmann::json ActionRegistry::tab_options() const
     MainFrame* mf = wxGetApp().mainframe;
     if (!mf || !mf->m_tabpanel)
         return out;
+    // English labels of the built-in pages whose id is not already their English name, so the tab
+    // picker can be searched in English in any UI language.
+    static const std::unordered_map<std::string, const char*> english_labels{
+        {TAB_ID_MONITOR, L("Device")}, {TAB_ID_MONITOR_WEB, L("Device (Web)")}, {TAB_ID_MULTI_DEVICE, L("Multi-device")}};
+
     Notebook* notebook = mf->m_tabpanel;
     for (size_t i = 0; i < notebook->GetPageCount(); ++i) {
         const wxString id = notebook->GetPageName(i);
         if (id.empty())
             continue;
-        out.push_back({{"id", id.ToStdString()},
-                       {"title", notebook->GetPageLabel(i).ToStdString()},
-                       {"icon", notebook->GetPageIcon(i)}});
+        const std::string title = notebook->GetPageLabel(i).ToStdString();
+        nlohmann::json    tab({{"id", id.ToStdString()}, {"title", title}, {"icon", notebook->GetPageIcon(i)}});
+        if (auto it = english_labels.find(id.ToStdString()); it != english_labels.end() && title != it->second)
+            tab["title_en"] = it->second;
+        out.push_back(std::move(tab));
     }
     return out;
 }

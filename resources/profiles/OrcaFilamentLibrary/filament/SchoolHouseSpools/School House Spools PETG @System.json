@@ -1,0 +1,18 @@
+{
+	"type": "filament",
+	"name": "School House Spools PETG @System",
+	"inherits": "School House Spools PETG @base",
+	"from": "system",
+	"setting_id": "RSu2orfhR8ktT36h",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"13"
+	],
+	"filament_long_retractions_when_cut": [
+		"1"
+	],
+	"filament_retraction_distances_when_cut": [
+		"18"
+	],
+	"compatible_printers": []
+}

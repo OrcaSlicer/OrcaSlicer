@@ -77,9 +77,6 @@ TriangleMesh merge(std::vector<TriangleMesh> meshes);
 bool does_bound_a_volume(const CGALMesh &mesh);
 bool empty(const CGALMesh &mesh);
 
-// Repair a mesh using CGAL. Returns true on success. Optionally returns a summary of repairs and an error string.
-bool repair(TriangleMesh &mesh, RepairedMeshErrors *repaired_errors = nullptr, std::string *error = nullptr);
-
 // Real UV unwrap of an open mesh patch via CGAL's LSCM (Least Squares Conformal Maps) surface
 // parameterization. Returns one UV coordinate per input vertex (same indexing as `mesh.vertices`),
 // or nullopt if `mesh` isn't a single topological disk -- LSCM needs exactly one connected

@@ -29,10 +29,10 @@ as for predictable geometry.
 
 ## Vendored Clipper2
 
-`deps_src/clipper2` builds the static target `Clipper2`. It carries four
+`deps_src/clipper2` builds the static target `Clipper2`. It carries five
 changes to the upstream sources that must be carried over when Clipper2 is
 updated. The namespace switch sits at the top of every header and source, the
-other three are marked with `Orca:` comments.
+other four are marked with `Orca:` comments.
 
 | Change | Files | Why |
 | --- | --- | --- |
@@ -40,6 +40,7 @@ other three are marked with `Orca:` comments.
 | Engine nodes from tbbmalloc | `clipper.engine.h`, `clipper.engine.cpp` | Vertices, active edges, output points and records, local minima and `PolyTree` nodes are allocated one by one. `CLIPPER2_NODE_ALLOCATOR` routes them through `scalable_malloc`, because the default heap does not scale when all slicing threads clip at once. |
 | Concave joins at the edge crossing | `clipper.offset.cpp` | For closed paths, a concave corner is joined at the crossing of the two offset edges when that point lies within half of both adjacent edges. The upstream 3-point loop makes inward offsets of dense curves very slow to union. |
 | Rounded arc steps | `clipper.offset.cpp` | Round joins use the rounded number of steps, not the ceiling, which keeps the vertex count of round offsets that the rest of the code is tuned for. |
+| No intersection sort for edges in order | `clipper.engine.h`, `clipper.engine.cpp` | `AdjustCurrXAndCopyToSEL()` reports whether the active edges kept their order at the top of the scanbeam, and `BuildIntersectList()` returns before its merge sort when they did. Most scanbeams have no crossing, and the sort was a large part of every boolean on dense support layers. |
 
 ## ClipperUtils semantics
 
@@ -61,6 +62,23 @@ Clipper2 behaves differently by default, the wrapper adjusts it.
   before an intersection or a difference, so that edges shared by subject and
   clip do not leave slivers.
 - Open polylines are clipped with the non-zero rule and keep their direction.
+
+### Tiled booleans
+
+The sweep slows down with the number of edges crossing a scan line, so a layer
+cut into thousands of pieces makes every whole-layer boolean expensive.
+`diff_ex_by_piece()` and `intersection_ex_by_piece()` take a subject of
+non-overlapping `ExPolygons`, group them into tiles with
+`ClipperUtils::tile_expolygons()`, and run each tile in parallel against only
+the clip polygons near it, cut to the tile's box. Below 128 pieces there is a
+single tile, and they are the plain `diff_ex()` / `intersection_ex()`.
+
+The result covers the same area as the plain call. Without the safety offset
+the rings are the same. With it, each tile unites only the clip polygons near
+it, so a clip edge that the whole-layer union splits where it crosses a distant
+clip polygon stays whole, and a crossing with the subject can round 1 unit
+differently. The tiles' results are concatenated in tile order, so the order of
+the output `ExPolygons` differs from the plain call.
 
 ### Offsets
 

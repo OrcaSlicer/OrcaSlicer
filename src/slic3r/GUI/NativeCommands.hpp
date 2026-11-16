@@ -16,27 +16,25 @@ namespace Slic3r { namespace GUI {
 struct NativeCommand
 {
     std::string key;
-    std::string title;
-    std::string group;
+    std::string title; // untranslated English msgid; make_action() translates it for display
+    std::string group; // likewise
     std::string input; // "percent"/"tab" or "" for immediate run
     std::string icon;  // SVG base name, or "" to render a blank tile
     std::function<AppActionRunResult(const std::string& param)> runner;
 };
 
 namespace NativeCommands {
-// The full built-in command catalog. Built on first use and reused; call rebuild_catalog() after a
-// live UI language switch so the translated titles/groups match the new locale. UI thread only.
+// The full built-in command catalog. Built on first use and reused; it holds no translated text, so
+// it stays valid across a UI language switch. UI thread only.
 const std::vector<NativeCommand>& catalog();
-
-// Rebuilds the catalog in the current locale. UI thread only.
-void rebuild_catalog();
 
 // Dispatches `key` to its runner (unknown keys return a quiet Info). UI thread only.
 AppActionRunResult run(const std::string& key, const std::string& param = {});
 
-// Materialises one catalog entry as a runnable AppAction. Keeps the catalog's identity,
-// presentation and behaviour as the single source of truth; ActionRegistry only stores and
-// dispatches the result. UI thread only.
+// Materialises one catalog entry as a runnable AppAction, titled in the current UI language with the
+// English title/group kept as search aliases. Keeps the catalog's identity, presentation and
+// behaviour as the single source of truth; ActionRegistry only stores and dispatches the result.
+// UI thread only.
 std::unique_ptr<AppAction> make_action(const NativeCommand& command);
 } // namespace NativeCommands
 

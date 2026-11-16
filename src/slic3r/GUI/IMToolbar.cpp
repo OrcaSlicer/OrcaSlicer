@@ -23,27 +23,23 @@ IMToolbarItem::~IMToolbarItem()
 }
 
 
-bool IMToolbarItem::generate_texture()
+void IMToolbarItem::set_thumbnail(const ThumbnailData& thumbnail)
 {
-    GLint last_texture;
-    unsigned m_image_texture{ 0 };
-    unsigned char* pixels = (unsigned char*)(&image_data[0]);
+    if (!thumbnail.is_valid())
+        return;
 
+    GLint  last_texture;
+    GLuint id = (GLuint)(intptr_t)texture_id;
     glsafe(::glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture));
-    glsafe(::glGenTextures(1, &m_image_texture));
-    glsafe(::glBindTexture(GL_TEXTURE_2D, m_image_texture));
+    if (id == 0)
+        glsafe(::glGenTextures(1, &id));
+    glsafe(::glBindTexture(GL_TEXTURE_2D, id));
     glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
     glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
     glsafe(::glPixelStorei(GL_UNPACK_ROW_LENGTH, 0));
-    glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
-
-    // Store our identifier
-    texture_id = (ImTextureID)(intptr_t)m_image_texture;
-
-    // Restore state
+    glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, thumbnail.width, thumbnail.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, thumbnail.pixels.data()));
+    texture_id = (ImTextureID)(intptr_t)id;
     glsafe(::glBindTexture(GL_TEXTURE_2D, last_texture));
-
-    return true;
 }
 
 void IMToolbar::del_all_item()

@@ -99,10 +99,11 @@ void LayerRegion::slices_to_fill_surfaces_clipped()
         by_surface[size_t(surface.surface_type)].emplace_back(&surface);
     // Trim surfaces by the fill_boundaries.
     this->fill_surfaces.surfaces.clear();
+    const Polygons fill_boundaries = to_polygons(this->fill_expolygons);
     for (size_t surface_type = 0; surface_type < size_t(stCount); ++ surface_type) {
         const SurfacesPtr &this_surfaces = by_surface[surface_type];
         if (! this_surfaces.empty())
-            this->fill_surfaces.append(intersection_ex(this_surfaces, this->fill_expolygons), SurfaceType(surface_type));
+            this->fill_surfaces.append(intersection_ex_by_piece(to_expolygons(this_surfaces), fill_boundaries), SurfaceType(surface_type));
     }
 }
 
@@ -292,7 +293,8 @@ std::vector<Bridge> get_grouped_bridges(
 void detect_bridge_directions(
     const Algorithm::WaveSeeds& bridge_anchors,
     std::vector<Bridge>& bridges,
-    const std::vector<ExpansionZone>& expansion_zones
+    const std::vector<ExpansionZone>& expansion_zones,
+    const Polygons& other_regions_anchors
 ) {
     if (expansion_zones.empty()) {
         throw std::runtime_error("At least one expansion zone must exist!");
@@ -300,7 +302,8 @@ void detect_bridge_directions(
     auto it_bridge_anchor = bridge_anchors.begin();
     for (uint32_t bridge_id = 0; bridge_id < uint32_t(bridges.size()); ++ bridge_id) {
         Bridge &bridge = bridges[bridge_id];
-        Polygons anchor_areas;
+        Polygons anchor_areas = ClipperUtils::clip_clipper_polygons_with_subject_bbox(
+            other_regions_anchors, get_extents(bridge.expolygon).inflated(SCALED_EPSILON * 2));
         int32_t last_anchor_id = -1;
         for (; it_bridge_anchor != bridge_anchors.end() && it_bridge_anchor->src == bridge_id; ++ it_bridge_anchor) {
             if (last_anchor_id != int(it_bridge_anchor->boundary)) {
@@ -428,7 +431,8 @@ ExpansionResult expand_expolygons(
 Surfaces expand_bridges_detect_orientations(
     Surfaces &surfaces,
     std::vector<ExpansionZone>& expansion_zones,
-    const float closing_radius
+    const float closing_radius,
+    const Polygons& other_regions_anchors
 )
 {
 
@@ -450,7 +454,7 @@ Surfaces expand_bridges_detect_orientations(
     bridge_expolygons.clear();
 
     std::sort(expansion_result.anchors.begin(), expansion_result.anchors.end(), Algorithm::lower_by_src_and_boundary);
-    detect_bridge_directions(expansion_result.anchors, bridges, expansion_zones);
+    detect_bridge_directions(expansion_result.anchors, bridges, expansion_zones, other_regions_anchors);
 
     // Merge the groups with the same group id, produce surfaces by merging source overhangs with their newly expanded anchors.
     std::sort(expansion_result.expansions.begin(), expansion_result.expansions.end(), [](auto &l, auto &r) {
@@ -575,9 +579,16 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
             align_offset_rad = std::atan2((double)m(1, 0), (double)m(0, 0));
         }
 
+        // Orca: The supported parts of the other regions anchor a bridge as well, as one segmented into a region of its own.
+        Polygons other_regions_anchors;
+        if (lower_layer != nullptr && this->fill_surfaces.has(stBottomBridge))
+            for (const LayerRegion *other : this->layer()->regions())
+                if (other != this)
+                    polygons_append(other_regions_anchors, intersection(other->slices.surfaces, lower_layer->lslices));
+
         bridges.surfaces = (custom_angle_deg > 0.0 && !relative_angle) ?
             expand_merge_surfaces(this->fill_surfaces.surfaces, stBottomBridge, expansion_zones, closing_radius, custom_angle_rad + align_offset_rad) :
-            expand_bridges_detect_orientations(this->fill_surfaces.surfaces, expansion_zones, closing_radius);
+            expand_bridges_detect_orientations(this->fill_surfaces.surfaces, expansion_zones, closing_radius, other_regions_anchors);
         if (custom_angle_deg > 0.0 && relative_angle) {
             for (Surface &bridge_surface : bridges.surfaces) {
                 if (bridge_surface.bridge_angle >= 0)
@@ -1100,16 +1111,13 @@ void LayerRegion::simplify_entity_collection(ExtrusionEntityCollection* entity_c
 void LayerRegion::simplify_path(ExtrusionPath* path)
 {
     const auto &print_config = this->layer()->object()->print()->config();
-    const bool spiral_mode = print_config.spiral_mode;
-    const bool enable_arc_fitting = print_config.enable_arc_fitting;
+    const ArcFittingMode arc_fitting = print_config.enable_arc_fitting.value;
+    const bool is_sparse_infill = path->role() == erInternalInfill;
     const auto scaled_resolution = scaled<double>(print_config.resolution.value);
 
-    if (enable_arc_fitting &&
-        !spiral_mode) {
-        if (path->role() == erInternalInfill)
-            path->simplify_by_fitting_arc(SCALED_SPARSE_INFILL_RESOLUTION);
-        else
-            path->simplify_by_fitting_arc(scaled_resolution);
+    if (!print_config.spiral_mode &&
+        (arc_fitting == ArcFittingMode::Enabled || (arc_fitting == ArcFittingMode::SparseInfill && is_sparse_infill))) {
+        path->simplify_by_fitting_arc(is_sparse_infill ? SCALED_SPARSE_INFILL_RESOLUTION : scaled_resolution);
     } else {
         path->simplify(scaled_resolution);
     }
@@ -1117,42 +1125,14 @@ void LayerRegion::simplify_path(ExtrusionPath* path)
 
 void LayerRegion::simplify_multi_path(ExtrusionMultiPath* multipath)
 {
-    const auto &print_config = this->layer()->object()->print()->config();
-    const bool spiral_mode = print_config.spiral_mode;
-    const bool enable_arc_fitting = print_config.enable_arc_fitting;
-    const auto scaled_resolution = scaled<double>(print_config.resolution.value);
-
-    for (size_t i = 0; i < multipath->paths.size(); ++i) {
-        if (enable_arc_fitting &&
-            !spiral_mode) {
-            if (multipath->paths[i].role() == erInternalInfill)
-                multipath->paths[i].simplify_by_fitting_arc(SCALED_SPARSE_INFILL_RESOLUTION);
-            else
-                multipath->paths[i].simplify_by_fitting_arc(scaled_resolution);
-        } else {
-            multipath->paths[i].simplify(scaled_resolution);
-        }
-    }
+    for (ExtrusionPath &path : multipath->paths)
+        this->simplify_path(&path);
 }
 
 void LayerRegion::simplify_loop(ExtrusionLoop* loop)
 {
-    const auto &print_config = this->layer()->object()->print()->config();
-    const bool spiral_mode = print_config.spiral_mode;
-    const bool enable_arc_fitting = print_config.enable_arc_fitting;
-    const auto scaled_resolution = scaled<double>(print_config.resolution.value);
-
-    for (size_t i = 0; i < loop->paths.size(); ++i) {
-        if (enable_arc_fitting &&
-            !spiral_mode) {
-            if (loop->paths[i].role() == erInternalInfill)
-                loop->paths[i].simplify_by_fitting_arc(SCALED_SPARSE_INFILL_RESOLUTION);
-            else
-                loop->paths[i].simplify_by_fitting_arc(scaled_resolution);
-        } else {
-            loop->paths[i].simplify(scaled_resolution);
-        }
-    }
+    for (ExtrusionPath &path : loop->paths)
+        this->simplify_path(&path);
 }
 
 }

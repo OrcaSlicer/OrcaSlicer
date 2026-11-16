@@ -382,11 +382,12 @@ void GridCellFilamentsRenderer::Draw(wxGrid &grid, wxGridCellAttr &attr, wxDC &d
             (grid_row->model_volume_type != ModelVolumeType::SUPPORT_BLOCKER) && \
             (grid_row->model_volume_type != ModelVolumeType::SUPPORT_ENFORCER) && \
             (grid_row->model_volume_type != ModelVolumeType::PARAMETER_MODIFIER) && \
+            (grid_row->model_volume_type != ModelVolumeType::PAINTED_MODIFIER) && \
             !is_precise_seam(grid_row->model_volume_type)) { // Precise Seam is non-printing helper geometry
             dc.DrawBitmap(*bitmap, wxPoint(rect.x + offset_x, rect.y + offset_y));
         }
-        else if (grid_row->model_volume_type == ModelVolumeType::PARAMETER_MODIFIER){
-            dc.DrawText("Default", wxPoint(rect.x + offset_x, rect.y + offset_y));
+        else if (grid_row->model_volume_type == ModelVolumeType::PARAMETER_MODIFIER || grid_row->model_volume_type == ModelVolumeType::PAINTED_MODIFIER){
+            dc.DrawText(_L("Default"), wxPoint(rect.x + offset_x, rect.y + offset_y));
         }
 
         text_rect.x += bitmap_width + grid_cell_border_width * 2;

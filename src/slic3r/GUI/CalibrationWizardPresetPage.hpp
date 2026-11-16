@@ -251,7 +251,7 @@ public:
     void msw_rescale() override;
     void on_sys_color_changed() override;
 
-    int get_extruder_id(int ams_id);
+    int get_extruder_id_by_tray_id(int tray_id);
     float get_nozzle_diameter(int extruder_id) const;
     NozzleVolumeType get_nozzle_volume_type(int extruder_id) const;
     ExtruderType get_extruder_type(int extruder_id) const;

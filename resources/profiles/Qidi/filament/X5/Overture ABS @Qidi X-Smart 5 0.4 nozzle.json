@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Overture ABS @Qidi X-Smart 5 0.4 nozzle",
+	"inherits": "Overture ABS@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "3s3DpHGEWFqNnqge",
+	"instantiation": "true",
+	"during_print_exhaust_fan_speed": [
+		"40"
+	],
+	"pressure_advance": [
+		"0.025"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.4 nozzle"
+	]
+}

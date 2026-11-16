@@ -169,6 +169,11 @@ static std::unordered_map<int, wxString> s_ams_display_formats = {
 
 wxString DevAms::GetDisplayName() const
 {
+    if (!m_display_name.empty())
+    {
+        return wxString::FromUTF8(m_display_name);
+    }
+
     wxString ams_display_format;
     // GetAmsType() maps AMS_LITE_MIXED -> AMS_LITE so N9 shows the AMS-Lite name.
     auto iter = s_ams_display_formats.find(GetAmsType());
@@ -532,6 +537,8 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
 
                     /*set ams type flag*/
                     curr_ams->SetAmsType(type_id);
+
+                    DevJsonValParser::ParseVal(*it, "display_name", curr_ams->m_display_name, std::string());
 
                     // Refresh the switch-aware extruder binding on every push (both create and
                     // update paths) so it can't go stale after an AMS is re-homed to another

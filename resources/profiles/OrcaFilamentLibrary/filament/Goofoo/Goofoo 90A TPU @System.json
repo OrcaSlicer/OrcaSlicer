@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Goofoo 90A TPU @System",
+	"inherits": "Goofoo 90A TPU @base",
+	"from": "system",
+	"setting_id": "tjq76AQe9SCzZVo6",
+	"instantiation": "true",
+	"compatible_printers": []
+}

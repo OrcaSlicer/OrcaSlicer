@@ -35,6 +35,9 @@ struct KeyChord
     // True when Ctrl or Alt is held or the key is non-printable, the chords a menu can own without
     // swallowing typing in text fields.
     bool is_menu_accelerator() const;
+    // True for a chord a focused text field acts on: typing a character (AltGr and macOS Option
+    // characters included), moving the caret, selecting, deleting, or the clipboard and undo chords.
+    bool edits_text() const;
     // True for a chord the desktop acts on although the app receives it, so a binding would
     // take it from the system.
     bool is_system_shortcut() const;

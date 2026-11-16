@@ -29,6 +29,7 @@
 #include <wx/timer.h>
 #include <memory>
 #include "Lazy.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 
 namespace Slic3r {
@@ -68,6 +69,10 @@ private:
     // Last url passed to load_url(), reloaded after reset_browser().
     wxString m_url;
     wxString m_url_deferred;
+    // Host type the page was loaded for; it selects the handler, so a change needs a reload.
+    PrintHostType m_host_type{htOctoPrint};
+    // True once the page for m_url has finished loading in m_browser.
+    bool m_url_loaded{false};
     std::unique_ptr<PrinterWebViewHandler> m_handler;
     bool m_reset_on_show{false};
 

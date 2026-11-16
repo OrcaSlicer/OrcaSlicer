@@ -50,6 +50,25 @@ assert.equal(ctx.filterTabs(tabOptions, "Device").length, 1,
     "a typed query matches a tab title");
 assert.deepEqual(ctx.filterTabs(tabOptions, "zzz"), [],
     "a typed query with no match returns an empty list");
+// A translated tab whose id is not its English name carries title_en, so English still finds it.
+const localizedTabs = [
+    { id: "monitor", title: "设备", title_en: "Device" },
+    { id: "prepare", title: "准备" }
+];
+assert.deepEqual(ctx.filterTabs(localizedTabs, "device").map(function (t) { return t.id; }), ["monitor"],
+    "a localized tab matches its English title");
+assert.deepEqual(ctx.filterTabs(localizedTabs, "设备").map(function (t) { return t.id; }), ["monitor"],
+    "a localized tab still matches its translated title");
+// A tab found only through its English title shows it as a hint; one that matched its translated
+// title or id already shows why, and one without an English title has nothing to show.
+assert.deepEqual(ctx.tabAliasHint(localizedTabs[0], "device"), { text: "Device", ranges: [[0, 6]] },
+    "an English-only tab match yields the English title and its highlight ranges");
+assert.equal(ctx.tabAliasHint(localizedTabs[0], "设备"), null,
+    "a translated-title tab match draws no English hint");
+assert.equal(ctx.tabAliasHint(localizedTabs[0], "monitor"), null,
+    "a tab matched by its id draws no English hint");
+assert.equal(ctx.tabAliasHint(localizedTabs[1], "Device"), null,
+    "a tab with no English title has no hint");
 
 // tabTitle: pages added with an empty title (e.g. MainFrame's Home tab) fall back to the id.
 assert.equal(ctx.tabTitle({ id: "home", title: "" }), "Home",
@@ -81,6 +100,22 @@ assert.equal(ctx.searchActions(pool, "layer").length >= 2, true,
     "both a setting and a command match the same query in the same list");
 assert.equal(ctx.searchActions(pool, "surface")[0].id, "c2",
     "a later-but-precise match still ranks by relevance, not by pool type");
+
+
+const restrictedSettings = [
+    { id: "thin-wall", title: "Thin wall detection", source: "Process", desc: "Disabled: unavailable with Arachne." },
+    { id: "wall-generator", title: "Wall generator", source: "Process", desc: "Choose a wall generator." }
+];
+const settingsWithoutReasons = restrictedSettings.map(function (a) {
+    return { id: a.id, title: a.title, source: a.source };
+});
+assert.deepEqual(
+    ctx.searchActions(restrictedSettings, "wall").map(function (a) { return a.id; }),
+    ctx.searchActions(settingsWithoutReasons, "wall").map(function (a) { return a.id; }),
+    "availability explanations do not change name-match ordering"
+);
+assert.equal(ctx.searchActions(restrictedSettings, "Arachne").length, 0,
+    "a dependency mentioned only in the explanation does not match the setting name");
 
 const pluginPool = [
     { id: "plugin-action", title: "Optimize G-code", source: "Gcode Optimizer", group: "", kind: "plugin" },
@@ -192,6 +227,89 @@ assert.equal(ctx.completionFor("", compPool), null, "an empty query has no compl
 assert.equal(ctx.completionFor("zzz", ctx.searchActions(compPool, "zzz")), null,
     "a query with no match has no completion");
 
+// English aliases: in a non-English UI each translated field may carry its English counterpart
+// (*_en), searched with the weight of the field it mirrors. An English UI sends none.
+const zhPool = [
+    { id: "rev", title: "反转偶数层悬垂方向", full_label: "悬垂反转", source: "工艺 : 质量 : 悬垂",
+      title_en: "Reverse on even", full_label_en: "Overhang reversal", source_en: "Process : Quality : Overhangs",
+      group: "", input: "" },
+    { id: "slice", title: "切片并预览", source: "OrcaSlicer", group: "切片和导出",
+      title_en: "Slice and Preview", group_en: "Slice & Export", input: "" },
+    { id: "brim", title: "Brim宽度", source: "工艺 : 其他 : Brim", source_en: "Process : Others : Brim",
+      group: "", input: "" }
+];
+assert.deepEqual(ctx.searchActions(zhPool, "reverse on even").map(function (a) { return a.id; }), ["rev"],
+    "an English query finds a translated setting through its English title");
+assert.equal(ctx.matchIndex.rev.title, null, "an English-only match does not highlight the translated title");
+assert.deepEqual(ctx.matchIndex.rev.title_en, [[0, 15]], "the English title keeps its ranges for the hint");
+assert.deepEqual(ctx.searchActions(zhPool, "偶数层").map(function (a) { return a.id; }), ["rev"],
+    "the translated title is still searchable");
+assert.equal(ctx.matchIndex.rev.title_en, null, "a translated-title match leaves no English hint ranges");
+assert.deepEqual(ctx.searchActions(zhPool, "reverse 悬垂").map(function (a) { return a.id; }), ["rev"],
+    "a mixed query may match one token in English and another in the translation");
+assert.deepEqual(ctx.searchActions(zhPool, "overhang reversal").map(function (a) { return a.id; }), ["rev"],
+    "the English full_label alias is searchable");
+assert.deepEqual(ctx.searchActions(zhPool, "export").map(function (a) { return a.id; }), ["slice"],
+    "the English group alias is searchable");
+assert.deepEqual(ctx.searchActions(zhPool, "brim").map(function (a) { return a.id; }), ["brim"],
+    "a translation that keeps the English word matches the displayed title");
+assert.deepEqual(ctx.matchIndex.brim.title, [[0, 4]], "that match highlights the displayed title, so no hint is drawn");
+// Weights mirror the localized fields: an English title match outranks an English breadcrumb match.
+const zhRankPool = [
+    { id: "src", title: "内壁", source: "工艺 : 速度", source_en: "Process : Speed", group: "", input: "" },
+    { id: "ttl", title: "速度", source: "工艺 : 其他", title_en: "Speed", group: "", input: "" }
+];
+assert.deepEqual(ctx.searchActions(zhRankPool, "speed").map(function (a) { return a.id; }), ["ttl", "src"],
+    "an English title match outranks an English breadcrumb match, as their localized fields do");
+// Absent aliases (an English UI) leave no English hint; every pool above has none and ranks as before.
+ctx.searchActions(pool, "layer");
+assert.equal(ctx.matchIndex.c1.title_en, null, "an action without English aliases has no English hint ranges");
+assert.equal(ctx.completionFor("reverse o", ctx.searchActions(zhPool, "reverse o")).suffix, "n",
+    "completion extends an English word from title_en");
+assert.equal(ctx.completionFor("quality overh", ctx.searchActions(zhPool, "quality overh")).suffix, "angs",
+    "completion also reaches the English breadcrumb");
+// A row matched only through an English group/source/full_label alias still names the action in
+// English: the hint is title_en (the English name), not the alias that matched, so a breadcrumb hit
+// does not just repeat the translated eyebrow.
+ctx.searchActions(zhPool, "export");
+assert.deepEqual(ctx.matchIndex.slice.group_en, [[8, 14]], "the English group keeps its ranges");
+assert.deepEqual(ctx.englishHint(zhPool[1], ctx.matchIndex.slice, null), { text: "Slice and Preview", ranges: null },
+    "an English group match names the action, unhighlighted");
+assert.deepEqual(ctx.englishBreadcrumb(zhPool[1], ctx.matchIndex.slice), { text: "Slice & Export", ranges: [[8, 14]] },
+    "an English group match shows the English breadcrumb beside the eyebrow");
+ctx.searchActions(zhPool, "overhang reversal");
+assert.deepEqual(ctx.matchIndex.rev.full_label_en, [[0, 17]], "the English full_label keeps its ranges");
+assert.deepEqual(ctx.englishHint(zhPool[0], ctx.matchIndex.rev, null), { text: "Reverse on even", ranges: null },
+    "an English full_label match names the action, unhighlighted");
+ctx.searchActions(zhPool, "quality");
+assert.deepEqual(ctx.matchIndex.rev.source_en, [[10, 17]], "the English breadcrumb keeps its ranges");
+assert.deepEqual(ctx.englishHint(zhPool[0], ctx.matchIndex.rev, null), { text: "Reverse on even", ranges: null },
+    "an English breadcrumb match names the action, not the breadcrumb");
+assert.deepEqual(ctx.englishBreadcrumb(zhPool[0], ctx.matchIndex.rev), { text: "Process : Quality : Overhangs", ranges: [[10, 17]] },
+    "an English breadcrumb match shows the English breadcrumb beside the eyebrow");
+// The name itself matching is the one case that highlights the hint.
+ctx.searchActions(zhPool, "reverse on even");
+assert.deepEqual(ctx.englishHint(zhPool[0], ctx.matchIndex.rev, null), { text: "Reverse on even", ranges: [[0, 15]] },
+    "an English title match names and highlights the action");
+assert.equal(ctx.englishBreadcrumb(zhPool[0], ctx.matchIndex.rev), null,
+    "an English title match shows no breadcrumb hint");
+// A breadcrumb match with no English name falls back to the matched alias.
+assert.deepEqual(ctx.englishHint({ title_en: "", source_en: "Process : Speed" }, { source_en: [[10, 15]] }, null),
+    { text: "Process : Speed", ranges: [[10, 15]] }, "without an English name the matched alias is shown");
+// A visible translated highlight suppresses the hint even when an English alias also matched.
+ctx.searchActions(zhPool, "brim");
+assert.equal(ctx.englishHint(zhPool[2], ctx.matchIndex.brim, ctx.matchIndex.brim.title), null,
+    "a row that highlights its translated title draws no English hint");
+// The reported case: "process speed" matches only the English breadcrumb of "Inner wall", so the hint
+// names the setting rather than echoing the breadcrumb.
+const zhInner = [{ id: "inner", title: "内壁", title_en: "Inner wall", source: "工艺 : 速度",
+                   source_en: "Process : Speed", group: "", input: "" }];
+ctx.searchActions(zhInner, "process speed");
+assert.deepEqual(ctx.englishHint(zhInner[0], ctx.matchIndex.inner, null), { text: "Inner wall", ranges: null },
+    "a breadcrumb-only match names the setting in English");
+assert.deepEqual(ctx.englishBreadcrumb(zhInner[0], ctx.matchIndex.inner), { text: "Process : Speed", ranges: [[0, 8], [10, 15]] },
+    "a breadcrumb-only match shows the English breadcrumb beside the eyebrow");
+
 // actionCategory: a command/dynamic action's group is its category; a setting uses the top-level
 // source segment; every plugin shares one header; a category-less action falls back to "Other".
 assert.equal(ctx.actionCategory({ id: "c", group: "Help", source: "OrcaSlicer", kind: "command" }), "Help",
@@ -281,6 +399,31 @@ assert.equal(
     "fedcba9876543210",
     "favourites stay runnable with an empty query - the fav bar is always visible"
 );
+
+// detailActionId: the footer describes the hovered row while the pointer rests on it, and falls back
+// to the keyboard selection otherwise (a single click launches, so hover is the only preview).
+assert.equal(
+    ctx.detailActionId("fedcba9876543210", { zone: "list", i: 0 }, duplicateActions, []),
+    "fedcba9876543210",
+    "hovering a row describes it instead of the selection"
+);
+assert.equal(
+    ctx.detailActionId(null, { zone: "list", i: 0 }, duplicateActions, []),
+    "0123456789abcdef",
+    "with no hover the footer follows the keyboard selection"
+);
+assert.equal(
+    ctx.detailActionId(null, { zone: "fav", i: 0 }, duplicateActions, ["fedcba9876543210"]),
+    "fedcba9876543210",
+    "with no hover the footer follows the fav bar selection"
+);
+
+// phaseClickIgnored: the click that lands right after a phase switch is the tail of a double-click
+// on the command that opened it, so the fresh tab list ignores it; later clicks activate normally.
+assert.equal(ctx.phaseClickIgnored(1000, 900), true, "a click inside the grace window is ignored");
+assert.equal(ctx.phaseClickIgnored(1000, 1000 - ctx.PHASE_CLICK_GRACE_MS), false,
+    "a click at the end of the grace window activates");
+assert.equal(ctx.phaseClickIgnored(1000, 0), false, "an unset phase timestamp never suppresses a click");
 
 // Fav quick-launch slots: digit 1..9 -> index 0..8, digit 0 -> index 9 (the 10th), else -1.
 assert.equal(ctx.favIndexForDigit("1"), 0, "digit 1 maps to the 1st favourite slot");
@@ -456,9 +599,93 @@ assert.equal(ctx.stateFromPayload({}).tooltipExpanded, true, "expansion defaults
 assert.equal(ctx.stateFromPayload({ tooltip_expanded: false }).tooltipExpanded, false, "a collapsed payload is honored");
 assert.equal(ctx.stateFromPayload({ tooltip_expanded: true }).tooltipExpanded, true, "an expanded payload is honored");
 
-// resultCountText: a search counts the shown matches only ("Showing N actions"); the total is used
+// resultCountText: a search counts the shown matches only ("Matching actions: N"); the total is used
 // solely for the empty-query count.
-assert.equal(ctx.resultCountText(100, 3, "lay"), "Showing 3 actions", "a search reports the shown match count only");
-assert.equal(ctx.resultCountText(100, 100, ""), "100 actions", "an empty query reports the total");
+assert.equal(ctx.resultCountText(100, 3, "lay"), "Matching actions: 3", "a search reports the shown match count only");
+assert.equal(ctx.resultCountText(100, 100, ""), "Actions: 100", "an empty query reports the total");
+
+// ---- hover preview commit timing ---------------------------------------------------------
+// The footer preview commits only after the pointer rests on a row, so a pointer crossing the rows
+// between a rested row and the footer must not preview them (style.css rows are 44px). The timing
+// is only observable through setHover, so Date.now and the timers are faked; the detail strip and
+// document are absent, so a commit re-renders nothing and only the hover state moves. Each tick is
+// one mousemove (25 ms apart, shorter than the 150 ms settle window).
+var fakeNow = 0;
+var fakeTimers = [];
+var nextTimerId = 1;
+ctx.document = { body: null };                // requestResize stops at the missing body
+ctx.Date.now = function () { return fakeNow; };
+ctx.setTimeout = function (fn, ms) {
+    var t = { id: nextTimerId++, at: fakeNow + Math.max(0, ms || 0), fn: fn };
+    fakeTimers.push(t);
+    return t.id;
+};
+ctx.clearTimeout = function (id) {
+    fakeTimers = fakeTimers.filter(function (t) { return t.id !== id; });
+};
+// Run every timer due within `ms`, then move the clock to the end of the window.
+function advance(ms) {
+    var end = fakeNow + ms;
+    for (;;) {
+        var due = null;
+        fakeTimers.forEach(function (t) { if (t.at <= end && (!due || t.at < due.at)) due = t; });
+        if (!due) break;
+        fakeTimers.splice(fakeTimers.indexOf(due), 1);
+        if (due.at > fakeNow) fakeNow = due.at;
+        due.fn();
+    }
+    fakeNow = end;
+}
+function moveTo(id, x, y) { ctx.setHover(id, { clientX: x, clientY: y }); }
+
+// Slow move from a rested row down to the footer: 175 ms per crossed row, which is longer than the
+// 150 ms settle window. 3 px per tick keeps each restart cumulative (a real slow pointer moves a
+// few px per frame, and the distance from the last counted position is what restarts the wait).
+ctx.resetHover();
+moveTo("row-a", 100, 100);
+advance(200);
+assert.equal(ctx.hover, "row-a", "resting on a row previews it");
+["row-b", "row-c", "row-d"].forEach(function (id, i) {
+    for (var t = 1; t <= 7; t++) {
+        moveTo(id, 100 + t * 3, 144 + i * 44);
+        advance(25);
+        assert.equal(ctx.hover, "row-a",
+            "crossing " + id + " for " + (t * 25) + " ms never previews it: the footer keeps the rested row");
+    }
+});
+ctx.cancelHover();    // listEl mouseleave on the way into the footer strip
+advance(500);
+assert.equal(ctx.hover, "row-a", "the footer keeps the rested row's wiki link while moving into it");
+
+// Hand jitter under 6 px must not push the preview back: a 1 px shake still previews on the settle
+// window from the row entry.
+ctx.resetHover();
+moveTo("row-a", 100, 100);
+for (var j = 1; j <= 5; j++) {
+    advance(25);
+    moveTo("row-a", 100 + (j % 2), 100 + (j % 2));
+    assert.equal(ctx.hover, null, "a 1 px shake inside " + (j * 25) + " ms is still waiting to settle");
+}
+advance(25);                                  // 150 ms since the row entry
+assert.equal(ctx.hover, "row-a", "a 1 px shake does not postpone the preview past the settle window");
+for (var m = 0; m < 4; m++) {
+    advance(25);
+    moveTo("row-a", 100 + (m % 2), 100);
+    assert.equal(ctx.hover, "row-a", "a shaking pointer keeps the committed preview");
+}
+
+// A pointer that keeps drifting >= 6 px on one row never rests, so only the 1000 ms cap previews it.
+ctx.resetHover();
+fakeNow = 0;
+fakeTimers = [];
+moveTo("row-a", 100, 100);
+for (var k = 1; k <= 9; k++) {
+    advance(100);
+    moveTo("row-a", 100 + k * 10, 100);
+    assert.equal(ctx.hover, null,
+        "a pointer still moving " + (k * 100) + " ms in has not been previewed yet");
+}
+advance(100);
+assert.equal(ctx.hover, "row-a", "the 1000 ms cap previews the row even while the pointer keeps moving");
 
 console.log("ok");

@@ -8,6 +8,7 @@
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Preset.hpp"
 #include <slic3r/GUI/GUI.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <wx/chartype.h>
 #include <unordered_map>
 #include <string>
@@ -66,6 +67,7 @@ public:
     void InitExportData();
 
     void on_script_message(const nlohmann::json& payload) override;
+    nlohmann::json localized_strings() const override;
     void OnRequestPresets();
     void OnExportData(const wxString& path, const wxString& name, nlohmann::json data);
 

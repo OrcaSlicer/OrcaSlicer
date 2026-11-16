@@ -104,7 +104,7 @@ class PlaterWorker: public Worker {
             if (eptr) try {
                 std::rethrow_exception(eptr);
             }  catch (std::exception &e) {
-                show_error(m_plater, _L("An unexpected error occurred") + ": " + e.what());
+                show_error(m_plater, _L("An unexpected error occurred") + ": " + from_u8(e.what()));
                 eptr = nullptr;
             }
         }

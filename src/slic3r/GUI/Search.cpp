@@ -1,4 +1,8 @@
 #include "Search.hpp"
+#include "OptionStateRegistry.hpp"
+
+#include <wx/app.h>
+#include <wx/control.h>
 
 #include "slic3r/GUI/GUI.hpp"
 #include "libslic3r/Preset.hpp"
@@ -34,6 +38,7 @@
 #include <wx/window.h>
 #include <wx/variant.h>
 #include <wx/debug.h>
+#include <wx/defs.h>
 
 #include "wx/dataview.h"
 #include "wx/numformatter.h"
@@ -72,9 +77,31 @@ bool focus_left_popup(wxWindow* popup, wxWindow* focus_window, wxWindow* related
         focus_window != related_window_2 && focus_window != related_window_3;
 }
 
+// Close a search popup on Esc and stop the key there. Without this, Esc reaches the window holding the search,
+// and a settings dialog closes while the popup keeps the input grab. Only GTK puts the search field inside the
+// popup, so only there does the key pass through it; elsewhere the field stays outside and this never runs.
+template<class Close> void close_on_escape(wxWindow* popup, Close close)
+{
+    popup->Bind(wxEVT_CHAR_HOOK, [close](wxKeyEvent& e) {
+        if (e.GetKeyCode() == WXK_ESCAPE)
+            close();
+        else
+            e.Skip();
+    });
+}
+
 } // namespace
 
 namespace Search {
+
+static wxString option_availability(const Option& option)
+{
+    if (!wxTheApp)
+        return {};
+    const std::string key = option.opt_key();
+    GUI::Tab* tab = GUI::get_tab_for_option(key, option.type);
+    return tab ? tab->option_state_registry().description(key.substr(0, key.find('#'))) : wxString();
+}
 
 static char marker_by_type(Preset::Type type, PrinterTechnology pt)
 {
@@ -175,7 +202,11 @@ bool OptionsSearcher::search(const std::string &search, bool force /* = false*/,
     };
 
     auto get_tooltip = [this, &sep](const Option &opt) {
-        return wxString(marker_by_type(opt.type, printer_technology)) + opt.category_local + sep + opt.group_local + sep + opt.label_local;
+        wxString tooltip = wxString(marker_by_type(opt.type, printer_technology)) + opt.category_local + sep + opt.group_local + sep + opt.label_local;
+        const wxString availability = option_availability(opt);
+        if (!availability.empty())
+            tooltip += "\n\n" + availability;
+        return tooltip;
     };
 
     std::vector<uint16_t>      matches, matches2;
@@ -296,12 +327,15 @@ void OptionsSearcher::dlg_msw_rescale()
 //          SearchItem
 //------------------------------------------
 
-SearchItem::SearchItem(wxWindow *parent, wxString text, int index, SearchDialog* sdialog, SearchObjectDialog* search_dialog, wxString tooltip)
-    : wxWindow(parent, wxID_ANY, wxDefaultPosition, wxSize(parent->GetSize().GetWidth(), 3 * GUI::wxGetApp().em_unit()))
+SearchItem::SearchItem(wxWindow *parent, wxString text, int index, SearchDialog* sdialog, SearchObjectDialog* search_dialog,
+                       wxString tooltip, wxString availability)
+    : wxWindow(parent, wxID_ANY, wxDefaultPosition,
+               wxSize(parent->GetSize().GetWidth(), (availability.empty() ? 3 : 5) * GUI::wxGetApp().em_unit()))
 {
     m_sdialog = sdialog;
     m_search_object_dialog = search_dialog;
     m_text  = text;
+    m_availability = std::move(availability);
     m_index = index;
 
     this->SetToolTip(tooltip);
@@ -331,8 +365,8 @@ wxSize SearchItem::DrawTextString(wxDC &dc, const wxString &text, const wxPoint 
 void SearchItem::OnPaint(wxPaintEvent &event)
 {
     wxPaintDC dc(this);
-    auto      top  = 5;
-    int       left = 20;
+    auto      top  = FromDIP(5);
+    int       left = FromDIP(20);
 
     auto bold_pair = std::vector<std::pair<int, int>>();
     
@@ -390,6 +424,16 @@ void SearchItem::OnPaint(wxPaintEvent &event)
                 left += DrawTextString(dc, str, wxPoint(left, top), true).GetWidth();
             }
         }
+    }
+
+    if (!m_availability.empty()) {
+        const int status_top = top + dc.GetCharHeight() + FromDIP(3);
+        dc.SetFont(Label::Body_12);
+        dc.SetTextForeground(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
+        const int width = GetClientSize().x - FromDIP(40);
+        if (width > 0)
+            dc.DrawText(wxControl::Ellipsize(m_availability.BeforeFirst('\n'), dc, wxELLIPSIZE_END, width),
+                        FromDIP(20), status_top);
     }
 }
 
@@ -484,6 +528,13 @@ SearchDialog::SearchDialog(OptionsSearcher *searcher, Preset::Type type, wxWindo
     search_line->Bind(wxEVT_TEXT, &SearchDialog::OnInputText, this);
     search_line->Bind(wxEVT_LEFT_UP, &SearchDialog::OnLeftUpInTextCtrl, this);
     search_line2 = search_line->GetTextCtrl();
+
+    close_on_escape(this, [this] {
+        Die();
+        // The focused field hides with the popup. Give the focus back to the search button once the exit event
+        // has shown it again, so a second Esc reaches the dialog.
+        CallAfter([this] { m_search_item_tag->SetFocus(); });
+    });
 
     // scroll window
     m_scrolledWindow = new ScrolledWindow(m_client_panel, wxID_ANY, wxDefaultPosition, wxSize(POPUP_WIDTH * em - (em + em /2), POPUP_HEIGHT * em), wxVSCROLL, 6, 6);
@@ -629,7 +680,8 @@ void SearchDialog::update_list()
     auto                            index   = 0;
     for (const FoundOption &item : filters) {
         wxString str = from_u8(item.label).Remove(0, 1);
-        auto     tmp = new SearchItem(m_listPanel, str, index, this);
+        const wxString availability = option_availability(searcher->get_option(index));
+        auto tmp = new SearchItem(m_listPanel, str, index, this, nullptr, from_u8(item.tooltip).Remove(0, 1), availability);
         m_listsizer->Add(tmp, 0, wxEXPAND, 0);
         index++;
     }
@@ -737,6 +789,7 @@ SearchObjectDialog::SearchObjectDialog(GUI::ObjectList* object_list, wxWindow* p
     search_line->Bind(wxEVT_TEXT, &SearchObjectDialog::OnInputText, this);
     search_line->Bind(wxEVT_LEFT_UP, &SearchObjectDialog::OnLeftUpInTextCtrl, this);
     search_line2 = search_line->GetTextCtrl();
+    close_on_escape(this, [this] { Die(); });
 
 
     // scroll window

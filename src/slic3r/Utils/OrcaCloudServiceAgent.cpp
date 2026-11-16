@@ -5,9 +5,12 @@
 #include "ICloudServiceAgent.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
 
 #include <atomic>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/io_context.hpp>
@@ -70,6 +73,7 @@
 #if !defined(_WIN32)
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/file.h>
 #include <cerrno>
 #endif
 
@@ -108,6 +112,10 @@ constexpr const char* ORCA_CLOUD_PRINTER       = "/api/v1/printers";
 
 constexpr const char* ORCA_CLOUD_LOGIN_PATH = "/orcaslicer-login";
 
+// Gateway endpoint that mints a one-time web-session handoff token for the signed-in desktop
+// user. The cloud pane reloads the returned token into the webview (see build_web_session_*).
+constexpr const char* ORCA_WEB_SESSION_HANDOFF_PATH = "/api/v1/account/web-session-handoff";
+
 constexpr const char* CONFIG_ORCA_API_URL   = "orca_api_url";
 constexpr const char* CONFIG_ORCA_AUTH_URL  = "orca_auth_url";
 constexpr const char* CONFIG_ORCA_CLOUD_URL = "orca_cloud_url";
@@ -140,10 +148,9 @@ public:
 #else
         m_fd = ::open(path.c_str(), O_RDWR | O_CREAT | O_CLOEXEC, 0600);
         if (m_fd == -1) { m_locked = true; return; }              // can't open -> don't block
-        struct flock fl{};
-        fl.l_type = F_WRLCK; fl.l_whence = SEEK_SET; fl.l_start = 0; fl.l_len = 0;
         int rc;
-        do { rc = ::fcntl(m_fd, F_SETLKW, &fl); } while (rc == -1 && errno == EINTR); // blocks in kernel
+        // An fcntl lock would not block other threads in this process, and any close() of this file would release it.
+        do { rc = ::flock(m_fd, LOCK_EX); } while (rc == -1 && errno == EINTR); // blocks in kernel
         m_locked = (rc != -1);
 #endif
     }
@@ -500,6 +507,22 @@ bool aes256gcm_decrypt(const std::string& b64_payload, const std::vector<unsigne
     plain.resize(plain_len);
     plaintext.assign(reinterpret_cast<char*>(plain.data()), plain.size());
     return true;
+}
+
+// The ETag of the last response in `headers`, which holds every header line curl received for the
+// request, those of any redirect included. Empty if that response has none.
+std::string etag_from_headers(const std::string& headers)
+{
+    std::string        etag;
+    std::istringstream lines(headers);
+    std::string        line;
+    while (std::getline(lines, line)) {
+        if (boost::istarts_with(line, "HTTP/"))
+            etag.clear(); // a status line starts the next response
+        else if (boost::istarts_with(line, "etag:"))
+            etag = boost::trim_copy(line.substr(5));
+    }
+    return etag;
 }
 
 } // namespace
@@ -882,7 +905,7 @@ std::string OrcaCloudServiceAgent::build_login_cmd()
     if (is_user_login()) {
         std::string display_name = get_user_nickname();
         if (display_name.empty()) {
-            display_name = "unknown name";
+            display_name = _u8L("unknown name");
         }
         json cmd;
         cmd["command"]         = "orca_userlogin";
@@ -1374,24 +1397,31 @@ int OrcaCloudServiceAgent::get_setting_list2(std::string bundle_version, CheckFn
     return success ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_GET_SETTING_LIST_FAILED;
 }
 
-int OrcaCloudServiceAgent::delete_setting(std::string setting_id)
+int OrcaCloudServiceAgent::delete_setting(std::string setting_id) { return delete_setting_as({}, setting_id); }
+
+int OrcaCloudServiceAgent::delete_setting_as(const std::string& user_id, const std::string& setting_id)
 {
+    // Cloud profiles are named by UUIDs. Any other id, such as a system preset's setting_id, names
+    // nothing in the cloud, so there is nothing to delete and no request to send.
+    if (!is_uuid(setting_id)) {
+        BOOST_LOG_TRIVIAL(info) << "OrcaCloudServiceAgent: delete_setting skipped, not a cloud profile id: " << setting_id;
+        return BAMBU_NETWORK_SUCCESS;
+    }
+
     std::string path = std::string(ORCA_SYNC_DELETE_PATH) + "?resource=" + ORCA_SYNC_PROFILE_TABLE + "&id=" + setting_id;
     std::string response;
     unsigned int http_code = 0;
 
-    int result = http_delete(path, &response, &http_code);
+    http_delete(path, &response, &http_code, user_id);
 
-    // Treat 204 as success: the setting is already gone from cloud, which is our goal.
-    if (http_code == 204) {
+    // 200 deleted the profile and 204 says there was nothing to delete. A 404 is final only when the
+    // gateway itself answered it: {"status":"failed"} means this account owns no profile with this id.
+    // Anything else, a network failure included, is worth another attempt.
+    if (http_code == 200 || http_code == 204)
         return BAMBU_NETWORK_SUCCESS;
-    }
-
-    if (result != BAMBU_NETWORK_SUCCESS || http_code >= 400) {
-        return BAMBU_NETWORK_ERR_DEL_SETTING_FAILED;
-    }
-
-    return BAMBU_NETWORK_SUCCESS;
+    if (http_code == 404 && get_json_string_field(json::parse(response, nullptr, false), "status") == "failed")
+        return BAMBU_NETWORK_SUCCESS;
+    return BAMBU_NETWORK_ERR_DEL_SETTING_FAILED;
 }
 
 // ============================================================================
@@ -1912,13 +1942,20 @@ RefreshResult OrcaCloudServiceAgent::refresh_from_storage(const std::string& rea
 
 bool OrcaCloudServiceAgent::refresh_if_expiring(std::chrono::seconds skew, const std::string& reason)
 {
-    bool needs_refresh = false;
-    {
+    const auto needs_refresh = [&] {
         std::lock_guard<std::mutex> lock(session_mutex);
-        needs_refresh = should_refresh_locked(skew);
-    }
+        return should_refresh_locked(skew);
+    };
+    if (!needs_refresh())
+        return true;
 
-    if (!needs_refresh)
+    // A refresh may already be running on another thread, e.g. the one start() launches. Wait for
+    // it and check again instead of spending the refresh token it is rotating. Bounded: the
+    // refresh POST times out after 30 s.
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(60);
+    while (refresh_running.load() && std::chrono::steady_clock::now() < deadline)
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    if (!needs_refresh())
         return true;
 
     // First attempt. refresh_from_storage blocks on the cross-process lock and reads the
@@ -1930,6 +1967,8 @@ bool OrcaCloudServiceAgent::refresh_if_expiring(std::chrono::seconds skew, const
     // One retry, only for a transient network failure of the refresh POST (lost response,
     // timeout, 429/5xx -> Transient). The retry re-acquires the lock and re-reads the store.
     std::this_thread::sleep_for(std::chrono::milliseconds(750));
+    if (!needs_refresh())
+        return true;
     return refresh_from_storage(reason + "_retry", false) == RefreshResult::Success;
 }
 
@@ -2143,6 +2182,10 @@ void OrcaCloudServiceAgent::clear_session(bool all_backends)
         std::lock_guard<std::mutex> lock(session_mutex);
         session = SessionInfo{};
     }
+    {
+        std::lock_guard<std::mutex> lock(subscriptions_cache_mutex);
+        subscriptions_cache = SubscriptionsCache{};
+    }
     clear_user_secret(all_backends);
 }
 
@@ -2194,7 +2237,8 @@ bool OrcaCloudServiceAgent::resolve_unauthorized(HttpResult& res,
     return rr == RefreshResult::Transient;
 }
 
-int OrcaCloudServiceAgent::http_get(const std::string& path, std::string* response_body, unsigned int* http_code)
+int OrcaCloudServiceAgent::http_get(const std::string& path, std::string* response_body, unsigned int* http_code,
+                                    const std::string& if_none_match, std::string* etag)
 {
     std::string url = api_base_url + path;
     BOOST_LOG_TRIVIAL(trace) << "OrcaCloudServiceAgent: GET " << url;
@@ -2219,6 +2263,14 @@ int OrcaCloudServiceAgent::http_get(const std::string& path, std::string* respon
                 http.header("Authorization", "Bearer " + token);
             }
 
+            if (!if_none_match.empty())
+                http.header("If-None-Match", if_none_match);
+            // The callback runs once per header line with every header received so far, so only the
+            // last call's headers are kept and read.
+            std::string received_headers;
+            if (etag != nullptr)
+                http.on_header_callback([&received_headers](std::string received) { received_headers = std::move(received); });
+
             http.on_complete([&](std::string body, unsigned resp_status) {
                     result.success = true;
                     result.status  = resp_status;
@@ -2232,6 +2284,8 @@ int OrcaCloudServiceAgent::http_get(const std::string& path, std::string* respon
                 })
                 .timeout_max(30)
                 .perform_sync();
+            if (etag != nullptr)
+                result.etag = etag_from_headers(received_headers);
 
         } catch (const std::exception& e) {
             BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: http_get exception - " << e.what();
@@ -2246,6 +2300,8 @@ int OrcaCloudServiceAgent::http_get(const std::string& path, std::string* respon
         *response_body = res.body;
     if (http_code)
         *http_code = res.status;
+    if (etag)
+        *etag = res.etag;
 
     if (!suppress && (!res.success || res.status >= 400)) {
         invoke_http_error_callback(res.status, res.body);
@@ -2381,20 +2437,30 @@ int OrcaCloudServiceAgent::http_put(const std::string& path, const std::string& 
     return (res.success && !suppress) ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECT_FAILED;
 }
 
-int OrcaCloudServiceAgent::http_delete(const std::string& path, std::string* response_body, unsigned int* http_code)
+int OrcaCloudServiceAgent::http_delete(const std::string& path, std::string* response_body, unsigned int* http_code, const std::string& required_user_id)
 {
     std::string url = api_base_url + path;
     BOOST_LOG_TRIVIAL(trace) << "OrcaCloudServiceAgent: DELETE " << url;
 
     ensure_token_fresh("http_delete_" + path);
 
+    bool wrong_account = false;
     auto perform = [&]() {
         HttpResult result;
         try {
+            // The token and the account it belongs to are read together, so the check can't go stale
+            // before the token is used.
+            std::string token;
+            {
+                std::lock_guard<std::mutex> lock(session_mutex);
+                wrong_account = !required_user_id.empty() && session.user_id != required_user_id;
+                token         = session.access_token;
+            }
+            if (wrong_account)
+                return result;
+
             auto http = Http::del(url);
             http.tls_verify(true);
-
-            std::string token = get_access_token();
 
             auto headers = data_headers();
             for (const auto& pair : headers) {
@@ -2411,8 +2477,9 @@ int OrcaCloudServiceAgent::http_delete(const std::string& path, std::string* res
                     result.body    = resp_body;
                 })
                 .on_error([&](std::string resp_body, std::string error, unsigned resp_status) {
+                    // A network failure keeps status 0, so callers can't mistake it for the server's 404.
                     result.success = false;
-                    result.status  = resp_status == 0 ? 404 : resp_status;
+                    result.status  = resp_status;
                     result.body    = resp_body;
                     BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: HTTP error - " << error;
                 })
@@ -2432,6 +2499,11 @@ int OrcaCloudServiceAgent::http_delete(const std::string& path, std::string* res
         *response_body = res.body;
     if (http_code)
         *http_code = res.status;
+
+    if (wrong_account) {
+        BOOST_LOG_TRIVIAL(info) << "OrcaCloudServiceAgent: DELETE " << path << " not sent, the session no longer belongs to the requesting account";
+        return BAMBU_NETWORK_ERR_CONNECT_FAILED;
+    }
 
     if (!suppress && (!res.success || res.status >= 400)) {
         invoke_http_error_callback(res.status, res.body);
@@ -3018,6 +3090,148 @@ std::string OrcaCloudServiceAgent::get_cloud_login_url(const std::string& langua
     return url;
 }
 
+// Percent-encodes every byte outside the RFC 3986 unreserved set (A-Za-z0-9-._~), so token values
+// survive fragment parsing intact. Deliberately tiny: no URL-encoder dependency.
+static std::string percent_encode_unreserved(const std::string& s)
+{
+    static const char* const hex = "0123456789ABCDEF";
+    std::string out;
+    out.reserve(s.size());
+    for (unsigned char c : s) {
+        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
+            c == '-' || c == '.' || c == '_' || c == '~') {
+            out.push_back(static_cast<char>(c));
+        } else {
+            out.push_back('%');
+            out.push_back(hex[c >> 4]);
+            out.push_back(hex[c & 0x0F]);
+        }
+    }
+    return out;
+}
+
+std::string OrcaCloudServiceAgent::build_web_session_start_url(const std::string& next) const
+{
+    if (cloud_base_url.empty())
+        return "";
+
+    // The page replaces a `next` that is not a same-site path with /app/profiles, so pass a
+    // same-site path (the guide's default) and let it validate.
+    std::string url = cloud_base_url + "/auth/handoff?next=" +
+                      percent_encode_unreserved(next.empty() ? "/app/profiles" : next);
+
+    std::lock_guard<std::mutex> lock(session_mutex);
+    if (session.logged_in && !session.user_id.empty())
+        url += "&user_id=" + percent_encode_unreserved(session.user_id);
+    return url;
+}
+
+std::string OrcaCloudServiceAgent::build_web_session_complete_url(const std::string& token_hash,
+                                                                  const std::string& state) const
+{
+    if (cloud_base_url.empty() || token_hash.empty() || state.empty())
+        return "";
+
+    // Fragment (not query) so the one-time token never reaches a server or a log.
+    return cloud_base_url + "/auth/handoff#token_hash=" + percent_encode_unreserved(token_hash) +
+           "&state=" + percent_encode_unreserved(state);
+}
+
+std::string OrcaCloudServiceAgent::build_web_session_signout_url() const
+{
+    if (cloud_base_url.empty())
+        return "";
+    return cloud_base_url + "/auth/handoff?signout=1";
+}
+
+// Extracts the machine-readable code from a handoff error body. 401 uses {"error":"<code>"};
+// the other statuses use {"error":{"code":"<code>","message":"..."}}.
+static std::string handoff_error_code(const std::string& body)
+{
+    const json j = json::parse(body, nullptr, false);
+    if (j.is_discarded() || !j.is_object() || !j.contains("error"))
+        return "";
+    const auto& err = j["error"];
+    if (err.is_string())
+        return err.get<std::string>();
+    if (err.is_object() && err.contains("code") && err["code"].is_string())
+        return err["code"].get<std::string>();
+    return "";
+}
+
+int OrcaCloudServiceAgent::request_web_session_handoff(std::string& token_hash, std::string& error_code,
+                                                       unsigned int& http_code)
+{
+    token_hash.clear();
+    error_code.clear();
+    http_code = 0;
+
+    const std::string url = api_base_url + ORCA_WEB_SESSION_HANDOFF_PATH;
+    BOOST_LOG_TRIVIAL(trace) << "OrcaCloudServiceAgent: POST " << ORCA_WEB_SESSION_HANDOFF_PATH;
+
+    // Refresh the desktop token the usual way before minting (newest access token).
+    ensure_token_fresh("web_session_handoff");
+
+    auto perform = [&]() {
+        HttpResult result;
+        try {
+            auto http = Http::post(url);
+            http.tls_verify(true);
+
+            const std::string token = get_access_token();
+
+            auto headers = data_headers();
+            for (const auto& pair : headers) {
+                http.header(pair.first, pair.second);
+            }
+            if (!token.empty()) {
+                http.header("Authorization", "Bearer " + token);
+            }
+
+            // No request body: the endpoint identifies the user by the bearer token alone.
+            http.on_complete([&](std::string resp_body, unsigned resp_status) {
+                    result.success = true;
+                    result.status  = resp_status;
+                    result.body    = resp_body;
+                })
+                .on_error([&](std::string resp_body, std::string error, unsigned resp_status) {
+                    result.success = false;
+                    result.status  = resp_status == 0 ? 404 : resp_status;
+                    result.body    = resp_body;
+                    BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: web-session-handoff HTTP error - " << error;
+                })
+                .timeout_max(30)
+                .perform_sync();
+
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: web-session-handoff exception - " << e.what();
+        }
+        return result;
+    };
+
+    HttpResult res = perform();
+    // Reuse the shared 401 policy (refresh once, then retry), exactly like http_get/http_post:
+    // `suppress` is true for a transient refresh failure (keep the session and token, no logout)
+    // and false when the refresh token was rejected — so a 401 that remains after the refresh
+    // surfaces through the generic HTTP-error callback and drives the normal desktop logout.
+    // Every other handoff status (409/429/503/transport) stays silent here, so the page can
+    // offer "Try again" instead of the desktop showing a generic cloud error.
+    const bool suppress = resolve_unauthorized(res, perform, "web_session_handoff");
+    if (!suppress && res.status == 401)
+        invoke_http_error_callback(res.status, res.body);
+
+    http_code = res.status;
+    if (res.status == 200) {
+        const json j = json::parse(res.body, nullptr, false);
+        if (!j.is_discarded() && j.is_object() && j.contains("token_hash") && j["token_hash"].is_string())
+            token_hash = j["token_hash"].get<std::string>();
+    } else {
+        error_code = handoff_error_code(res.body);
+    }
+
+    return (res.success && res.status == 200) ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECT_FAILED;
+}
+
 int OrcaCloudServiceAgent::get_mw_user_preference(std::function<void(std::string)> callback)
 {
     BOOST_LOG_TRIVIAL(debug) << "OrcaCloudServiceAgent: get_mw_user_preference (stub)";
@@ -3046,12 +3260,7 @@ bool OrcaCloudServiceAgent::unsubscribe_bundle(const std::string& bundle_id)
     std::string response;
     unsigned int http_code = 0;
 
-    int result = http_delete(path, &response, &http_code);
-    if (http_code >= 400) {
-        return false;
-    }
-
-    return true;
+    return http_delete(path, &response, &http_code) == BAMBU_NETWORK_SUCCESS;
 }
 
 std::string OrcaCloudServiceAgent::get_bundle_url(const std::string& bundle_id) const
@@ -3067,10 +3276,28 @@ int OrcaCloudServiceAgent::get_subscribed_bundles(std::vector<std::pair<std::str
     std::string response_body;
     unsigned int http_code = 0;
 
-    // GET /api/v1/bundles
-    int result = http_get("/api/v1/subscriptions", &response_body, &http_code);
+    // Revalidate the list this account received last. The gateway's weak ETag is a hash of the body,
+    // so a 304 stands for exactly the remembered body.
+    const std::string user_id = get_user_id();
+    std::string       if_none_match;
+    {
+        std::lock_guard<std::mutex> lock(subscriptions_cache_mutex);
+        if (!user_id.empty() && subscriptions_cache.user_id == user_id)
+            if_none_match = subscriptions_cache.etag;
+    }
 
-    if (result != 0 || http_code != 200) {
+    std::string etag;
+    int result = http_get(ORCA_SUBSCRIPTIONS_PATH, &response_body, &http_code, if_none_match, &etag);
+
+    const bool not_modified = result == 0 && http_code == 304;
+    if (not_modified) {
+        std::lock_guard<std::mutex> lock(subscriptions_cache_mutex);
+        if (if_none_match.empty() || subscriptions_cache.user_id != user_id || subscriptions_cache.etag != if_none_match) {
+            BOOST_LOG_TRIVIAL(error) << "get_subscribed_bundles failed: 304 without the list it refers to";
+            return -1;
+        }
+        response_body = subscriptions_cache.body;
+    } else if (result != 0 || http_code != 200) {
         BOOST_LOG_TRIVIAL(error) << "get_subscribed_bundles failed: http_code=" << http_code << ", response=" << response_body;
         return result != 0 ? result : http_code;
     }
@@ -3108,7 +3335,16 @@ int OrcaCloudServiceAgent::get_subscribed_bundles(std::vector<std::pair<std::str
             bundles->push_back(std::make_pair(bundle_json["id"].get<std::string>(), bundle_json["version"].get<std::string>()));
         }
 
-        BOOST_LOG_TRIVIAL(info) << "get_subscribed_bundles: loaded " << bundles->size() << " bundles";
+        // Kept only while the session is still the account that asked, so a sign-out during the
+        // request doesn't leave the list behind.
+        if (!not_modified) {
+            const bool keep = !etag.empty() && !user_id.empty() && get_user_id() == user_id;
+            std::lock_guard<std::mutex> lock(subscriptions_cache_mutex);
+            subscriptions_cache = keep ? SubscriptionsCache{user_id, etag, response_body} : SubscriptionsCache{};
+        }
+
+        BOOST_LOG_TRIVIAL(info) << "get_subscribed_bundles: loaded " << bundles->size() << " bundles"
+                                << (not_modified ? " (unchanged)" : "");
         return 0;
 
     } catch (const std::exception& e) {

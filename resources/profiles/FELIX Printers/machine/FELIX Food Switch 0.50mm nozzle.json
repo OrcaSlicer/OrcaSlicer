@@ -1,0 +1,36 @@
+{
+  "type": "machine",
+  "name": "FELIX Food Switch 0.50mm nozzle",
+  "inherits": "fdm_felix_food_switch_common",
+  "from": "system",
+  "setting_id": "ek8J7xF71Jc5s1KH",
+  "instantiation": "true",
+  "printer_model": "FELIX Food Switch",
+  "printer_variant": "0.5",
+  "gcode_flavor": "repetier",
+  "single_extruder_multi_material": "0",
+  "extruder_type": [
+    "Direct Drive",
+    "Direct Drive"
+  ],
+  "nozzle_diameter": [
+    "0.5",
+    "0.5"
+  ],
+  "default_print_profile": "FELIX Food Normal @ 0.50mm",
+  "default_filament_profile": [
+    "Food Medium Plastic Syringe @0.50mm"
+  ],
+  "min_layer_height": [
+    "0.25",
+    "0.25"
+  ],
+  "max_layer_height": [
+    "0.4",
+    "0.4"
+  ],
+  "extruder_offset": [
+    "0x0",
+    "0x0"
+  ]
+}

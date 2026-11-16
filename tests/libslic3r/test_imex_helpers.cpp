@@ -283,7 +283,7 @@ TEST_CASE("A Span mode refuses a color routed to a tool outside the primary's ga
     auto pem = make_pem({0, 1, 2, 3});
     const std::string reason = imex_multicolor_block_reason("mc-copy", "0:P,1:S,2:C,3:C", 2, {0, 1, 3}, pem);
     // The message names the color tools and where the map sends the offending filament (1-based).
-    REQUIRE_THAT(reason, Catch::Matchers::ContainsSubstring("only T0/T1 print colors, but filament 4 is routed to T3"));
+    REQUIRE_THAT(reason, Catch::Matchers::ContainsSubstring("colors are printed only by T0/T1, but filament 4 is routed to T3"));
     REQUIRE_THAT(imex_multicolor_block_reason("mc-copy", "0:P,1:S,2:C,3:C", 2, {0, 4}, pem),
                  Catch::Matchers::ContainsSubstring("filament 5 isn't routed to any tool"));
     // A head the mode leaves inactive is no better, and neither is no head at all.

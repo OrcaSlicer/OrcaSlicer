@@ -10,6 +10,7 @@
 #include <wx/sizer.h>
 #include "wxExtensions.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "OptionStateRegistry.hpp"
 
 class wxSizer;
 class wxWindow;
@@ -54,6 +55,7 @@ class ObjectTableSettings : public OTG_Settings
 
     DynamicPrintConfig m_current_config;
     DynamicPrintConfig m_origin_config;
+    OptionStateRegistry m_option_state_registry;
     ScalableBitmap m_bmp_reset;
     ScalableBitmap m_bmp_reset_focus;
     ScalableBitmap m_bmp_reset_disable;
@@ -63,6 +65,8 @@ class ObjectTableSettings : public OTG_Settings
     std::string m_current_category;
     int m_current_different { 0 };
     std::map<std::string, int> m_different_map;
+
+    void update_option_tooltips(ConfigOptionsGroup& group);
 
 public:
     ObjectTableSettings(wxWindow* parent, ObjectGridTable* table);

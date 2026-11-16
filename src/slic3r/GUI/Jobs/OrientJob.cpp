@@ -26,6 +26,7 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/format.hpp"
 #include "slic3r/GUI/Selection.hpp"
 
 
@@ -235,7 +236,8 @@ void OrientJob::process(Ctl &ctl)
 
     params.progressind = [this, count, &ctl](unsigned st, std::string orientstr) {
         st += m_unprintable.size();
-        if (st > 0) ctl.update_status(int(st / float(count) * 100), _u8L("Orienting") + " " + orientstr);
+        // TRN Progress status. %1% is the name of the object being oriented.
+        if (st > 0) ctl.update_status(int(st / float(count) * 100), GUI::format(_u8L("Orienting %1%"), orientstr));
     };
 
     orientation::orient(m_selected, m_unselected, params);

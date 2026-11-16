@@ -301,6 +301,10 @@ $cases = @(
        Contains = @('Precompiled header: off') }
     @{ Name = 'the precompiled header is on unless asked'; Args = @('-s')
        NotContains = @('SLIC3R_PCH') }
+    @{ Name = '-l turns the precompiled header off'; Args = @('-s', '-l')
+       Contains = @('-DSLIC3R_PCH=OFF', 'Precompiled header: off') }
+    @{ Name = 'a deps-only build says nothing about the precompiled header'; Args = @('-d', '-l')
+       NotContains = @('Precompiled header') }
     @{ Name = '--no-pch works without a cache'; Args = @('-s', '--no-pch')
        NotContains = @('COMPILER_LAUNCHER') }
     @{ Name = 'the slicer build runs gettext'; Args = @('-s')

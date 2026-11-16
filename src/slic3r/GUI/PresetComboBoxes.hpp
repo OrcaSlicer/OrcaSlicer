@@ -11,7 +11,6 @@
 #include "libslic3r/PrintConfig.hpp"
 #include <map>
 #include <utility>
-#include <wx/colourdata.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/clrpicker.h>
@@ -201,7 +200,6 @@ public:
 
     // BBS
     wxButton* clr_picker { nullptr };
-    wxColourData m_clrData;
 
     wxColor get_color() { return m_color; }
 

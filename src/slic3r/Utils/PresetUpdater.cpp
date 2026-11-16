@@ -209,6 +209,23 @@ struct Updates
 
 static bool reload_configs_update_gui();
 
+// Orca: whether the bundle for `vendor_name` is meant for this user.
+// A vendor only appears in AppConfig::vendors() once one of its printer models
+// has been selected, so an unlisted vendor is not in use and its cache must not
+// prompt. The two Orca bundles are never selected that way but are always
+// needed. `explicitly_allowed` carries vendors the user has just confirmed in
+// check_new_vendors(); they are installed before any of their printers is
+// selected, so they cannot be enabled yet.
+static bool is_vendor_wanted(const AppConfig::VendorMap &enabled_vendors,
+                             const std::set<std::string> &explicitly_allowed,
+                             const std::string &vendor_name)
+{
+    return vendor_name == PresetBundle::ORCA_DEFAULT_BUNDLE
+        || vendor_name == PresetBundle::ORCA_FILAMENT_LIBRARY
+        || enabled_vendors.find(vendor_name) != enabled_vendors.end()
+        || explicitly_allowed.find(vendor_name) != explicitly_allowed.end();
+}
+
 
 wxDEFINE_EVENT(EVT_SLIC3R_VERSION_ONLINE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_SLIC3R_EXPERIMENTAL_VERSION_ONLINE, wxCommandEvent);
@@ -275,7 +292,8 @@ struct PresetUpdater::priv
 	bool install_bundles_rsrc(const std::vector<std::string>& bundles, bool snapshot) const;
 	void check_installed_vendor_profiles() const;
     Updates get_printer_config_updates(bool update = false) const;
-	Updates get_config_updates(const Semver& old_slic3r_version) const;
+	Updates get_config_updates(const Semver& old_slic3r_version,
+	                           const std::set<std::string>& explicitly_allowed_vendors = {}) const;
 	bool perform_updates(Updates &&updates, bool snapshot = true) const;
 	void set_waiting_updates(Updates u);
 };
@@ -303,7 +321,9 @@ void PresetUpdater::priv::set_download_prefs(AppConfig *app_config)
 	version_check_url = app_config->version_check_url();
 
 	auto profile_update_url = app_config->profile_update_url();
-	if (!profile_update_url.empty() && app_config->get_bool("enable_ota"))
+	// Dev builds keep the profiles from their own source tree; an over-the-air bundle would replace them.
+	const bool dev_build = boost::algorithm::icontains(std::string(SoftFever_VERSION), "dev");
+	if (!profile_update_url.empty() && !dev_build)
 		enabled_config_update = true;
 	else
 		enabled_config_update = false;
@@ -1058,11 +1078,7 @@ void PresetUpdater::priv::check_installed_vendor_profiles() const
     // A vendor is named by its profile or, where the build ships preset caches
     // instead of the raw profile JSONs, by its cache alone.
     for (const std::string &vendor_name : vendor_names_in(rsrc_path)) {
-        // enabled_vendors lists the vendors whose printer models the user picked, and
-        // neither of these two is ever in it.
-        const auto is_vendor_enabled = (vendor_name == PresetBundle::ORCA_DEFAULT_BUNDLE)
-                                       || (vendor_name == PresetBundle::ORCA_FILAMENT_LIBRARY)
-                                       || (enabled_vendors.find(vendor_name) != enabled_vendors.end());
+        const auto is_vendor_enabled = is_vendor_wanted(enabled_vendors, {}, vendor_name);
         if (is_vendor_installed(vendor_name)) {
             if (is_vendor_enabled) {
                 // Orca: whichever form of the vendor resources ships at the newer
@@ -1143,7 +1159,8 @@ Updates PresetUpdater::priv::get_printer_config_updates(bool update) const
 // Version of slic3r that was running the last time and which was read out from PrusaSlicer.ini is provided
 // as a parameter.
 // Orca: OTA profile updates should be loacated in ota/profiles folder
-Updates PresetUpdater::priv::get_config_updates(const Semver &old_slic3r_version) const
+Updates PresetUpdater::priv::get_config_updates(const Semver &old_slic3r_version,
+                                               const std::set<std::string> &explicitly_allowed_vendors) const
 {
 	Updates updates;
 
@@ -1151,6 +1168,8 @@ Updates PresetUpdater::priv::get_config_updates(const Semver &old_slic3r_version
     auto cache_profile_path =  cache_path / "profiles";
     if (!fs::exists(cache_profile_path))
         return updates;
+
+	const auto &enabled_vendors = GUI::wxGetApp().app_config->vendors();
 
 	// Orca (PR #130): vendor changelogs are captured in memory during
 	// sync_vendor_config()/check_new_vendors(), not written beside the cache.
@@ -1168,6 +1187,11 @@ Updates PresetUpdater::priv::get_config_updates(const Semver &old_slic3r_version
 			continue;
 
 		const std::string vendor_name = path.stem().string();
+		if (!is_vendor_wanted(enabled_vendors, explicitly_allowed_vendors, vendor_name)) {
+			BOOST_LOG_TRIVIAL(info) << "[Orca Updater]:ignoring cached update for " << vendor_name
+			                        << ": the vendor is not enabled";
+			continue;
+		}
 		auto print_in_cache = (cache_profile_path / vendor_name / PRESET_PRINT_NAME);
 		auto filament_in_cache = (cache_profile_path / vendor_name / PRESET_FILAMENT_NAME);
 		auto machine_in_cache = (cache_profile_path / vendor_name / PRESET_PRINTER_NAME);
@@ -1383,6 +1407,9 @@ void PresetUpdater::check_vendor_update(const std::string& vendor_id)
 {
     if (!p->enabled_config_update) return;
     if (vendor_id.empty()) return;
+    // Stealth mode can be switched off mid-session, so it is checked before the vendor is marked
+    // as checked: the next printer change after that still queries the server.
+    if (GUI::wxGetApp().app_config->get_stealth_mode()) return;
 
     if (!p->checked_vendors.insert(vendor_id).second)
         return;
@@ -1530,8 +1557,10 @@ void PresetUpdater::priv::check_new_vendors(const std::set<std::string>& system_
                         vendor_list += ", ";
                     vendor_list += candidate.vendor_id;
                 }
-                GUI::wxGetApp().plater()->get_notification_manager()->push_notification(
-                    _u8L("Downloading new vendor profile(s): ") + vendor_list + _u8L("..."));
+                GUI::wxGetApp().plater()->get_notification_manager()->push_notification(GUI::format(
+                    // TRN %1% is a comma-separated list of vendor names.
+                    _L_PLURAL("Downloading new vendor profile: %1%...", "Downloading new vendor profiles: %1%...", candidates.size()),
+                    vendor_list));
             }
 
             vendor_check_threads.emplace_back([this, candidates, callback]() {
@@ -1638,12 +1667,14 @@ void PresetUpdater::priv::check_new_vendors(const std::set<std::string>& system_
                     // into data_dir()/system.
                     GUI::wxGetApp().CallAfter([this, new_vendor_ids] {
                         AppConfig* app_config = GUI::wxGetApp().app_config;
-                        Updates    updates    = get_config_updates(app_config->orig_version());
 
                         // Only install the vendors just confirmed; leave any other unrelated
                         // pending cached update (from a background sync_vendor_config()) alone,
-                        // still gated behind its own notification/confirmation.
+                        // still gated behind its own notification/confirmation. The confirmed
+                        // ids are passed in because a new vendor is not enabled yet and would
+                        // otherwise be filtered out of the ordinary update scan.
                         std::set<std::string> confirmed(new_vendor_ids.begin(), new_vendor_ids.end());
+                        Updates    updates    = get_config_updates(app_config->orig_version(), confirmed);
                         Updates                filtered;
                         for (auto& update : updates.updates)
                             if (confirmed.count(update.vendor))
@@ -1678,8 +1709,10 @@ void PresetUpdater::priv::check_new_vendors(const std::set<std::string>& system_
                                 vendor_list += ", ";
                             vendor_list += vendor_id;
                         }
-                        GUI::wxGetApp().plater()->get_notification_manager()->push_notification(
-                            _u8L("Failed to download vendor profile(s): ") + vendor_list);
+                        GUI::wxGetApp().plater()->get_notification_manager()->push_notification(GUI::format(
+                            // TRN %1% is a comma-separated list of vendor names.
+                            _L_PLURAL("Failed to download vendor profile: %1%", "Failed to download vendor profiles: %1%", failed_vendor_ids.size()),
+                            vendor_list));
                     });
                 }
 

@@ -295,7 +295,7 @@ void NetworkTestDialog::start_test_url(TestJob job, wxString name, wxString url)
 			}
 		})
 		.on_ip_resolve([this,name,job](std::string ip) {
-			wxString ip_report = wxString::Format(_L("test %s ip resolved = %s"), name, ip);
+			wxString ip_report = wxString::Format(_L("test %s IP resolved = %s"), name, ip);
 			update_status(job, ip_report);
 		})
 		.on_error([this,name,job](std::string body, std::string error, unsigned int status) {

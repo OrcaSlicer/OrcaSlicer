@@ -11,7 +11,7 @@
     <link rel="stylesheet" type="text/css" href="../css/theme.css" />
     <script type="text/javascript" src="../../include/jquery-3.6.0.min.js"></script>
     <script type="text/javascript" src="../js/json2.js"></script>	
-    <script type="text/javascript" src="../../data/text.js"></script>	
+    <script type="text/javascript" src="../../include/i18n.js"></script>	
     <script type="text/javascript" src="../js/globalapi.js"></script>	
     <script type="text/javascript" src="../js/common.js"></script>
     <!-- <script type="text/javascript" src="./23.js"></script>	 -->
@@ -21,7 +21,7 @@
   <div class="app">                                                                                                                                                                                                                                                                    
     <div class="split">                                                                                                                                                                                                                                                                
       <div class="top-toolbar">                                                                                                                                                                                                                                                        
-        <button id="refresh_btn" class="ButtonStyleConfirm ButtonTypeChoice toolbar-btn">Refresh</button>                                                                                                                                                                              
+        <button id="refresh_btn" class="ButtonStyleConfirm ButtonTypeChoice toolbar-btn" data-i18n="refresh">Refresh</button>                                                                                                                                                                              
                                                                                                                                                                                                                                                                                        
         <!-- <label class="auto-update-switch" for="auto_update_toggle">                                                                                                                                                                                                                          
           <span class="auto-update-label">Auto update</span>                                                                                                                                                                                                                                 
@@ -35,18 +35,18 @@
                                                                                                                                                                                                                                                                                        
       <section class="pane top">                                                                                                                                                                                                                                                       
         <div class="hdr top-cols">                                                                                                                                                                                                                                                     
-          <span>Name</span>                                                                                                                                                                                                                                                            
-          <span>Type</span>                                                                                                                                                                                                                                                            
-          <span>Version</span>                                                                                                                                                                                                                                                         
-          <span>Update</span>                                                                                                                                                                                                                                                          
+          <span data-i18n="name">Name</span>                                                                                                                                                                                                                                                            
+          <span data-i18n="type">Type</span>                                                                                                                                                                                                                                                            
+          <span data-i18n="version">Version</span>                                                                                                                                                                                                                                                         
+          <span data-i18n="update">Update</span>                                                                                                                                                                                                                                                          
         </div>                                                                                                                                                                                                                                                                         
         <div id="topList" class="body"></div>                                                                                                                                                                                                                                          
       </section>                                                                                                                                                                                                                                                                       
                                                                                                                                                                                                                                                                                        
       <section class="pane bottom">                                                                                                                                                                                                                                                    
         <div class="hdr bot-cols">                                                                                                                                                                                                                                                     
-          <span>Name</span>                                                                                                                                                                                                                                                            
-          <span>Type</span>                                                                                                                                                                                                                                                            
+          <span data-i18n="name">Name</span>                                                                                                                                                                                                                                                            
+          <span data-i18n="type">Type</span>                                                                                                                                                                                                                                                            
         </div>                                                                                                                                                                                                                                                                         
         <div id="bottomList" class="body"></div>                                                                                                                                                                                                                                       
       </section>                                                                                                                                                                                                                                                                       
@@ -55,15 +55,15 @@
 
   <!-- Footer -->
     <div id="AcceptArea">
-      <div id="export_btn" class="ButtonStyleConfirm ButtonTypeChoice" hidden>Export Presets</div>
-      <div id="close_btn" class="ButtonStyleRegular ButtonTypeChoice">Close</div>
+      <div id="export_btn" class="ButtonStyleConfirm ButtonTypeChoice" data-i18n="export_presets" hidden>Export Presets</div>
+      <div id="close_btn" class="ButtonStyleRegular ButtonTypeChoice" data-i18n="close">Close</div>
     </div>
 
   <!-- Context Menu -->
   <div id="ctxMenu" class="ctx" hidden>
-    <button class="ctx-item" data-action="open_folder">Open folder in explorer</button>
-    <button id = "delete_btn" class="ctx-item-delete" data-action="delete_bundle" hidden>Delete bundle</button>
-    <button id = "unsubscribe_btn" class="ctx-item-subscribed" data-action="unsubscribe_bundle" hidden>Unsubscribe bundle</button>
+    <button class="ctx-item" data-action="open_folder" data-i18n="open_folder">Show in folder</button>
+    <button id = "delete_btn" class="ctx-item-delete" data-action="delete_bundle" data-i18n="delete_bundle" hidden>Delete bundle</button>
+    <button id = "unsubscribe_btn" class="ctx-item-subscribed" data-action="unsubscribe_bundle" data-i18n="unsubscribe_bundle" hidden>Unsubscribe bundle</button>
   </div>
 
   

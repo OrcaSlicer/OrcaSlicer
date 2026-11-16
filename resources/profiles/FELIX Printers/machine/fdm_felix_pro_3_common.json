@@ -1,0 +1,16 @@
+{
+  "type": "machine",
+  "name": "fdm_felix_pro_3_common",
+  "inherits": "fdm_all_machines_common",
+  "from": "system",
+  "instantiation": "false",
+  "machine_max_speed_x": ["300", "300"],
+  "machine_max_speed_y": ["300", "300"],
+  "machine_max_speed_z": ["20", "20"],
+  "machine_max_speed_e": ["60", "60"],
+  "printable_area": ["0x0", "235x0", "235x244", "0x244"],
+  "printable_height": "235",
+  "z_offset": "0",
+  "machine_start_gcode": "; FELIX [printer_model] - OrcaSlicer Start G-code - V1.00\nM107\nM190 S[bed_temperature_initial_layer_single]\n{if is_extruder_used[0]}M104 T0 S{nozzle_temperature_initial_layer[0]}\n{endif}{if is_extruder_used[1]}M104 T1 S{nozzle_temperature_initial_layer[1]}\n{endif}{if is_extruder_used[0]}M109 T0 S{nozzle_temperature_initial_layer[0]}\n{endif}{if is_extruder_used[1]}M109 T1 S{nozzle_temperature_initial_layer[1]}\n{endif}G28\nG90\nT[initial_tool]\n",
+  "machine_end_gcode": "; FELIX [printer_model] - OrcaSlicer End G-code - V1.00\nG92 E0\nG1 E-8 F{retraction_speed[0]*60}\nG92 E0\nG91\nG1 Z10 F{travel_speed*60}\nG90\nG1 X5 Y5 F6000\nM104 S0 T0\nM104 S0 T1\nM140 S0\nM107\nM84\n"
+}

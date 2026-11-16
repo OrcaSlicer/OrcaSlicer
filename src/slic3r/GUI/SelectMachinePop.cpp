@@ -55,6 +55,7 @@
 #include "BindDialog.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include <wx/textctrl.h>
 
 namespace Slic3r { namespace GUI {
@@ -732,10 +733,11 @@ void SelectMachinePopup::update_user_devices()
                 if (mobj) {
                     AppConfig* config = wxGetApp().app_config;
                     if (config) {
+                        config->clear_local_machine_access_code(mobj->get_dev_id(), mobj->printer_agent_id);
                         config->erase_local_machine(mobj->get_dev_id());
                     }
 
-                    mobj->set_access_code("");
+                    mobj->revoke_access();
                 }
 
                 if (GUI::wxGetApp().plater())

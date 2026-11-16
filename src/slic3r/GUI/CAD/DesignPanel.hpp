@@ -14,6 +14,7 @@
 #include <wx/panel.h>
 #include <wx/scrolwin.h>
 #include <wx/string.h>
+#include <wx/statline.h>
 
 #include <vector>
 #include <memory>
@@ -293,9 +294,14 @@ private:
     // Constrain modes set m_active too, so is_sketching() alone would claim the live scope while
     // the committed manager is open.
     bool live_constraint_scope() const;
-    void rebuild_constraint_list();                                      // refill m_constraint_rows
+    void rebuild_constraint_list();                                      // refill m_constraint_list
     void delete_constraint(int idx);                                     // erase + re-solve + refresh
-    void highlight_constraint_entities(int idx);                         // push referenced entities to viewport
+    // The constraints the card lists: the live session's, or the constrained feature's.
+    const std::vector<SketchEntityConstraintDef>& shown_constraints() const;
+    void on_constraint_selected(int con);                                // the canvas's selection moved
+    void zoom_to_constraint(int con);                                    // frame the entities it binds
+    // Delete what the open sketch has selected, geometry or a constraint; false when nothing is.
+    bool delete_sketch_selection();
     void refresh_constrain_dof();                                        // re-solve feature, mirror DoF readout
     wxString constraint_label(const SketchEntityConstraintDef& d) const; // human-readable row text
     void after_edit_op();                                                // shared edit-op refresh tail
@@ -1040,11 +1046,12 @@ private:
     // Tree row of the sketch currently being constrained (-1 = not constraining).
     int               m_constrain_feat{-1};
 
-    // Constraint-manager card (C3.4): header + a rebuildable list of constraint rows.
+    // Constraint-manager card (C3.4): header + the list of constraint rows, or a line saying
+    // there are none.
     wxSizer*          m_box_constraints{nullptr};
     wxStaticText*     m_hdr_constraints{nullptr};
-    wxSizer*          m_constraint_rows{nullptr};
-    int               m_constraint_sel{-1};   // highlighted constraint row, or -1
+    wxStaticText*     m_constraints_none{nullptr};
+    DesignRowList*    m_constraint_list{nullptr};
 };
 
 }} // namespace Slic3r::GUI

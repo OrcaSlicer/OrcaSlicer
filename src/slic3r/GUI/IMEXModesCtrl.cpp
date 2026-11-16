@@ -171,14 +171,14 @@ void IMEXModesCtrl::rebuild_info_and_header() {
     m_hdr_panel->DestroyChildren();
     auto* hdr_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto* hdr_name  = page_label(new wxStaticText(m_hdr_panel, wxID_ANY, _L("Mode")));
-    auto* hdr_tools = page_label(new wxStaticText(m_hdr_panel, wxID_ANY, _L("Tools")));
+    auto* hdr_tools = page_label(new wxStaticText(m_hdr_panel, wxID_ANY, _L_CONTEXT("Tools", "IDEX/IQEX modes")));
     auto* hdr_gcode = page_label(new wxStaticText(m_hdr_panel, wxID_ANY, _L("G-code")));
     hdr_name->SetToolTip(_L("How the mode is labeled in the plate's IDEX/IQEX mode selector. "
                             "Required — a mode with no name cannot be selected."));
     hdr_tools->SetToolTip(_L("Which tool heads take part in the mode and what role each one plays. "
                              "Click a tile to cycle its role."));
     hdr_gcode->SetToolTip(_L("G-code run at print start to put the printer into this mode "
-                             "(for example a Klipper SET_PRINT_MODE call). The slicer only emits "
+                             "(for example a Klipper SET_PRINT_MODE call).\n\nThe slicer only emits "
                              "the Primary tool's paths; the firmware drives the others."));
     const int grid_px = m_n_cols * FromDIP(26) - FromDIP(2);  // tile 24 + 2px gap, less the trailing gap
     const int name_col_px = FromDIP(kNameColPx + 6);
@@ -321,15 +321,21 @@ bool IMEXModesCtrl::fix_row_name(Row& r) {
 IMEXModesCtrl::RoleStyle IMEXModesCtrl::role_style(std::optional<ImexRole> role) {
     // Gray / "Inactive" is the no-role answer; every role gets an explicit case so a new
     // one is a compile-time -Wswitch prompt rather than a tile that silently renders gray.
+    // TRN IDEX/IQEX role of a tool head that takes no part in the mode.
+    const wxString inactive = _L_CONTEXT("Inactive", "IDEX/IQEX role");
     if (!role)
-        return { wxColour(90, 90, 90), *wxWHITE, "Inactive" };
+        return { wxColour(90, 90, 90), *wxWHITE, inactive };
     switch (*role) {
-    case ImexRole::Primary: return { wxColour(50,  160, 50),  *wxWHITE, "Primary" };  // green
-    case ImexRole::Copy:    return { wxColour(60,  120, 210), *wxWHITE, "Copy"    };  // blue
-    case ImexRole::Mirror:  return { wxColour(210, 130, 20),  *wxWHITE, "Mirror"  };  // amber
-    case ImexRole::Span:    return { wxColour(180, 180, 40),  *wxWHITE, "Span"    };  // yellow
+    // TRN IDEX/IQEX role: the tool head the slicer generates paths for.
+    case ImexRole::Primary: return { wxColour(50,  160, 50),  *wxWHITE, _L_CONTEXT("Primary", "IDEX/IQEX role") };  // green
+    // TRN IDEX/IQEX role: the tool head prints a copy of the Primary's paths.
+    case ImexRole::Copy:    return { wxColour(60,  120, 210), *wxWHITE, _L_CONTEXT("Copy", "IDEX/IQEX role")    };  // blue
+    // TRN IDEX/IQEX role: the tool head prints a mirror image of the Primary's paths.
+    case ImexRole::Mirror:  return { wxColour(210, 130, 20),  *wxWHITE, _L_CONTEXT("Mirror", "IDEX/IQEX role")  };  // amber
+    // TRN IDEX/IQEX role: multicolor partner of the Primary on the same gantry.
+    case ImexRole::Span:    return { wxColour(180, 180, 40),  *wxWHITE, _L_CONTEXT("Span", "IDEX/IQEX role")    };  // yellow
     }
-    return { wxColour(90, 90, 90), *wxWHITE, "Inactive" };  // keeps every compiler quiet
+    return { wxColour(90, 90, 90), *wxWHITE, inactive };  // keeps every compiler quiet
 }
 
 wxString IMEXModesCtrl::role_hint(ImexRole role) {
@@ -705,7 +711,7 @@ void IMEXModesCtrl::add_row(const std::string& name,
                            "the machine start G-code. This is where the printer is put into the "
                            "matching firmware mode — for example a Klipper SET_PRINT_MODE call or a "
                            "RepRapFirmware M567 — since the slicer only emits the Primary tool's "
-                           "paths and the firmware drives the Copy / Mirror tools. Placeholders are "
+                           "paths and the firmware drives the Copy / Mirror tools.\n\nPlaceholders are "
                            "supported; use the edit button to browse them. Leave empty if the mode "
                            "needs no firmware setup."));
     r.gcode->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { notify(); });

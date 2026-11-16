@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "EverLoop rPETG Premium @System",
+	"inherits": "EverLoop rPETG Premium @base",
+	"from": "system",
+	"setting_id": "4cmDRHXSdvxa1set",
+	"instantiation": "true",
+	"compatible_printers": []
+}

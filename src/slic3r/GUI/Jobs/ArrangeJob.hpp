@@ -16,10 +16,17 @@
 namespace Slic3r {
 
 class ModelInstance;
+class ModelObject;
 
 namespace GUI {
 
 class Plater;
+class PartPlate;
+
+void set_arrange_polygon_bed_exclusion_extruders(arrangement::ArrangePolygon &polygon,
+                                                  const ModelObject &object,
+                                                  const PartPlate &plate,
+                                                  const DynamicPrintConfig &config);
 
 class ArrangeJob : public Job
 {
@@ -71,7 +78,7 @@ class ArrangeJob : public Job
     void prepare_belt_regions(int num_plates);
     void prepare_imex_zones();
 
-    ArrangePolygon prepare_arrange_polygon(void* instance);
+    ArrangePolygon prepare_arrange_polygon(void *instance, const PartPlate *mapping_plate = nullptr);
 
 protected:
 

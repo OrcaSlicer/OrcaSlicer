@@ -5,23 +5,33 @@
 .DESCRIPTION
     The Windows counterpart of scripts/check_profile.sh, and kept deliberately close to it.
 
-    Runs the same five checks, in the same order, with the same validator flags, and with the
+    Runs the same seven checks, in the same order, with the same validator flags, and with the
     same semantics: every check runs even after an earlier one fails (the workflow's
     continue-on-error), then the script exits non-zero once at the end.
 
         profile_tool                  scripts/orca_profile_tool.py check
+        version_bump                  scripts/orca_profile_tool.py version-check: every changed
+                                      bundle's <Vendor>.json has a newer version than at -Base
+        legacy_compat                 scripts/orca_profile_tool.py legacy-compat --check against
+                                      the v2.4.2 profiles
         validate_system               validator -p <profiles> -l <level>
         validate_slice                validator -p <profiles> -s -l <level>
         validate_filament_subtypes    validator -p <profiles> -l <level> -f
         validate_custom               validator against every released custom-preset fixture
 
-    profile_tool is the only check that is not the validator binary; it makes the static checks
-    the validator cannot, because the validator loads the tree the way the slicer does and so
-    never sees a profile no <vendor>.json indexes, a preset name two files claim, or a file
-    normalize and update-index would still rewrite.
+    profile_tool, version_bump and legacy_compat are the checks that are not the validator
+    binary; they make the static checks the validator cannot, because the validator loads the
+    tree the way the slicer does and so never sees a profile no <vendor>.json indexes, a preset
+    name two files claim, a file normalize and update-index would still rewrite, or a bundle
+    that changed without its version being bumped. version_bump compares the tree with the
+    commit it left main at, where CI compares a PR with the branch it merges into; -Base points
+    it elsewhere. It is skipped, unless named, for a -ProfilesDir tree that is not inside a git
+    checkout, or one with neither upstream/main nor origin/main to compare with when no -Base
+    is given.
 
-    Everything that has to be downloaded - the profile validator and the custom-preset fixture
-    archives - lands under a per-user cache directory (%LOCALAPPDATA%\orca-profile-check) and
+    Everything that has to be downloaded - the profile validator, the custom-preset fixture
+    archives and the v2.4.2 profile tree - lands under a per-user cache directory
+    (%LOCALAPPDATA%\orca-profile-check) and
     is reused on the next run. Being outside the checkout, that directory is shared by every
     worktree on the machine. It also holds one log per check plus a copy of the comment CI would
     post on the PR.
@@ -48,7 +58,12 @@
     check it cannot narrow is validate_slice for a vendor that ships no printers; the summary
     reports that one as skipped, and naming it explicitly still runs it. profile_tool keeps its
     two cross-vendor checks (setting_id and filament_id) tree-wide, so a scoped run can still
-    fail on another vendor's files.
+    fail on another vendor's files, and legacy_compat is tree-wide too: the map it checks covers
+    every vendor.
+
+.PARAMETER Base
+    The git ref version_bump compares the tree with (default: where the branch left
+    upstream/main, else origin/main).
 
 .PARAMETER Validator
     OrcaSlicer_profile_validator.exe to use; also $env:ORCA_PROFILE_VALIDATOR. Default: the local
@@ -87,6 +102,7 @@
 param(
     [Alias('p')] [string] $ProfilesDir,
     [Alias('v')] [string] $Vendor,
+    [string] $Base,
     [string] $Validator,
     [string] $WorkDir,
     [Alias('l')] [int] $LogLevel = 2,
@@ -116,7 +132,7 @@ $HostArch = switch ($HostArch) {
     default { 'x86' }
 }
 
-$AllChecks = @('profile_tool', 'validate_system', 'validate_slice', 'validate_filament_subtypes', 'validate_custom')
+$AllChecks = @('profile_tool', 'version_bump', 'legacy_compat', 'validate_system', 'validate_slice', 'validate_filament_subtypes', 'validate_custom')
 
 $script:LogWriter = $null
 $script:Python = ''
@@ -213,6 +229,7 @@ if ($Vendor) {
 # run passes neither, so the checks below splat these in either way.
 $VendorArgs = if ($Vendor) { @('-v', $Vendor) } else { @() }
 $VendorPyArgs = if ($Vendor) { @('--vendor', $Vendor) } else { @() }
+$BaseArgs = if ($Base) { @('--base', $Base) } else { @() }
 
 if (-not $WorkDir) {
     # Per-user cache dir, so every worktree on the machine shares one set of downloads.
@@ -439,12 +456,77 @@ function Expand-VendorPresets([string] $Zip, [string] $Tree, [string] $Prefix) {
     return $kept
 }
 
+# The profile tree of the release resources\info\legacy_compatible_printers.json is generated
+# against. The tag is immutable, so the extracted tree is cached in the work dir and -Refresh
+# re-extracts it. A checkout without the tag (a shallow clone, a fork that never fetched tags)
+# gets it from upstream, as CI does. git archive writes a file rather than a pipe, which
+# PowerShell would re-encode, and tar.exe ships with Windows 10 and later.
+$LegacyBaseTag = 'v2.4.2'
+$LegacyBaseUrl = 'https://github.com/OrcaSlicer/OrcaSlicer.git'
+
+# Why the default run leaves version_bump out, or $null when it can run.
+function Get-VersionBumpSkipReason {
+    $ErrorActionPreference = 'Continue'
+    & git -C $ProfilesDir rev-parse --is-inside-work-tree 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) { return "$ProfilesDir is not in a git checkout" }
+    if ($Base) { return $null }
+    foreach ($main in 'upstream/main', 'origin/main') {
+        & git -C $ProfilesDir rev-parse -q --verify "$main^{commit}" 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) { return $null }
+    }
+    return 'neither upstream/main nor origin/main exists to compare with; pass -Base'
+}
+
+function Get-LegacyBaseProfiles {
+    $ErrorActionPreference = 'Continue'
+    $base = Join-Path (Join-Path $WorkDir 'legacy-base') $LegacyBaseTag
+    $profiles = Join-Path (Join-Path $base 'resources') 'profiles'
+    if ($Refresh -or -not (Test-Path -LiteralPath $profiles -PathType Container)) {
+        & git -C $RepoRoot rev-parse -q --verify "refs/tags/$LegacyBaseTag^{commit}" 2>$null | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "fetching tag $LegacyBaseTag from $LegacyBaseUrl ..."
+            & git -C $RepoRoot fetch --no-tags $LegacyBaseUrl "refs/tags/${LegacyBaseTag}:refs/tags/${LegacyBaseTag}"
+            if ($LASTEXITCODE -ne 0) { throw "cannot fetch tag $LegacyBaseTag" }
+        }
+        # Extracted beside its final place and moved there whole, so an interrupted extraction is
+        # never mistaken for the tree on the next run.
+        $partial = "$base.partial"
+        foreach ($dir in $base, $partial) {
+            if (Test-Path -LiteralPath $dir) { Remove-Item -LiteralPath $dir -Recurse -Force }
+        }
+        New-Item -ItemType Directory -Force -Path $partial | Out-Null
+        $archive = Join-Path $partial 'profiles.tar'
+        & git -C $RepoRoot archive -o $archive $LegacyBaseTag resources/profiles
+        if ($LASTEXITCODE -ne 0) { throw "cannot archive resources/profiles of $LegacyBaseTag" }
+        & tar -xf $archive -C $partial
+        if ($LASTEXITCODE -ne 0) { throw "cannot extract $archive" }
+        Remove-Item -LiteralPath $archive -Force
+        Move-Item -LiteralPath $partial -Destination $base
+    }
+    return $profiles
+}
+
 # ---------------------------------------------------------------------------- checks
 
 $CheckBodies = @{
 
     profile_tool = {
         Invoke-Tool -Exe (Resolve-Python) -Arguments (@((Join-Path $RepoRoot 'scripts\orca_profile_tool.py'), 'check', '--profiles', $ProfilesDir) + $VendorPyArgs)
+    }
+
+    # The app installs a bundle only when its version is newer than the installed one, and the
+    # OTA profile update is named after it, so a changed bundle whose <Vendor>.json keeps its
+    # version never reaches users.
+    version_bump = {
+        Invoke-Tool -Exe (Resolve-Python) -Arguments (@((Join-Path $RepoRoot 'scripts\orca_profile_tool.py'), 'version-check', '--profiles', $ProfilesDir) + $VendorPyArgs + $BaseArgs)
+    }
+
+    # The map says which printers a user filament preset made against 2.4.2 can be migrated
+    # back to, so a profile change that renames a filament preset or narrows its
+    # compatible_printers has to regenerate it (the CI comment gives the command).
+    legacy_compat = {
+        $base = Get-LegacyBaseProfiles
+        Invoke-Tool -Exe (Resolve-Python) -Arguments @((Join-Path $RepoRoot 'scripts\orca_profile_tool.py'), 'legacy-compat', '--profiles', $ProfilesDir, '--base', $base, '--check')
     }
 
     validate_system = {
@@ -581,6 +663,8 @@ $CheckBodies = @{
 # Heading CI puts above this check's log in the PR comment.
 $CommentHeadings = @{
     profile_tool               = '### Profile Check Failed (orca_profile_tool.py)'
+    version_bump               = '### Profile Version Not Bumped'
+    legacy_compat              = '### Legacy Compatible Printers Map Out of Date'
     validate_system            = '### System Profile Validation Failed'
     validate_slice             = '### Slice Validation Failed (custom g-code expansion)'
     validate_filament_subtypes = '### Filament Subtype Validation Failed'
@@ -627,11 +711,12 @@ try {
     [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
     Push-UserPresets
 
-    if ($Checks | Where-Object { $_ -ne 'profile_tool' }) { $Validator = Resolve-Validator }
+    if ($Checks | Where-Object { $_ -notin 'profile_tool', 'version_bump', 'legacy_compat' }) { $Validator = Resolve-Validator }
 
     # An empty printer set is a failure to the sweep, so validate_slice is recorded as skipped
     # rather than run for a vendor that ships no printers (the filament-only OrcaFilamentLibrary);
-    # naming the check explicitly still runs it.
+    # naming the check explicitly still runs it. So is version_bump for a -ProfilesDir tree git
+    # cannot diff, such as a copy made to try a change on, or one with no main to diff against.
     $results = [ordered] @{}
     $skipReasons = @{}
     foreach ($name in $AllChecks) {
@@ -640,6 +725,9 @@ try {
             -not (Test-Path -LiteralPath (Join-Path (Join-Path $ProfilesDir $Vendor) 'machine') -PathType Container)) {
             $results[$name] = 'skip'
             $skipReasons[$name] = "$Vendor ships no printers"
+        } elseif ($name -eq 'version_bump' -and -not $NamedChecks -and ($why = Get-VersionBumpSkipReason)) {
+            $results[$name] = 'skip'
+            $skipReasons[$name] = $why
         } else {
             $results[$name] = if (Invoke-Check $name) { 'pass' } else { 'fail' }
         }

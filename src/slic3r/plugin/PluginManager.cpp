@@ -5,6 +5,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <exception>
 #include <functional>
+#include "libslic3r/Config.hpp"
 #include "libslic3r/LifecycleEvents.hpp"
 #include <memory>
 #include <optional>
@@ -12,13 +13,20 @@
 
 #include "PluginFsUtils.hpp"
 #include "PluginHooks.hpp"
+#include "PluginAuditManager.hpp"
+#include "PyPluginTrampoline.hpp"
 #include "PythonInterpreter.hpp"
 #include "PythonPluginBridge.hpp"
 
 #include "OrcaCloudServiceAgent.hpp"
 #include "libslic3r/Semver.hpp"
+#include "pybind11/pytypes.h"
+#include "pybind11/gil.h"
+#include "pybind11/pybind11.h"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
+#include "slic3r/GUI/format.hpp"
 
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
@@ -33,12 +41,14 @@
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <slic3r/plugin/pluginTypes/script/ScriptPluginCapability.hpp>
 #include <stdexcept>
+#include <string>
 #include <thread>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 #include <wx/app.h>
 #include <wx/thread.h>
+#include <wx/utils.h>
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
@@ -48,6 +58,19 @@ namespace {
 // Sentinel error returned by the registry pre-check when the load was cancelled while it ran.
 // A cancelled load records no error and fires no failure path — it just unwinds.
 const char* const LOAD_CANCELLED = "__plugin_load_cancelled__";
+
+std::vector<std::string>* permission_bucket(PluginPermissions& permissions, PluginPermissionCategory category)
+{
+    switch (category) {
+    case PluginPermissionCategory::FsRead: return &permissions.fs_read;
+    case PluginPermissionCategory::FsReadWrite: return &permissions.fs_readwrite;
+    case PluginPermissionCategory::NetworkHttp: return &permissions.network_http;
+    case PluginPermissionCategory::NetworkSocket: return &permissions.network_socket;
+    case PluginPermissionCategory::Process: return &permissions.process;
+    case PluginPermissionCategory::Events: return &permissions.events;
+    }
+    return nullptr;
+}
 
 } // namespace
 
@@ -66,8 +89,10 @@ void Plugin::release_module()
 PluginManager& PluginManager::instance()
 {
     // Touch the interpreter first so its static outlives this one: ~Plugin needs it alive to
-    // release module, sys.modules, and sys.path ownership safely.
+    // release module, sys.modules, and sys.path ownership safely. Touch the async Script runtime
+    // next, so ~PluginManager can still drain it during its own shutdown().
     PythonInterpreter::instance();
+    ScriptAsyncRuntime::instance();
     static PluginManager inst;
     return inst;
 }
@@ -99,6 +124,9 @@ bool PluginManager::initialize()
         m_initialized = true;
     }
 
+    // Re-arm the async Script runtime in case shutdown() ran earlier in this process.
+    ScriptAsyncRuntime::instance().reset();
+
     // Bring every capability's stored config into memory. Deliberately unconditional and
     // independent of which plugins are installed: an entry outlives uninstall/unsubscribe, so a
     // plugin that comes back later finds its settings intact. A missing or malformed file just
@@ -116,6 +144,7 @@ bool PluginManager::initialize()
     subscribe_on_unload_callback([this](const std::string& key) {
         if (m_shutting_down.load(std::memory_order_acquire))
             return;
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
         PluginDescriptor descriptor;
         if (!try_get_plugin_descriptor(key, descriptor) || descriptor.plugin_root.empty())
             return;
@@ -165,6 +194,10 @@ void PluginManager::shutdown()
     unload_all_plugins();
     PythonPluginBridge::instance().clear_pending_captures();
 
+    // Every async Script run has been drained by unload_all_plugins above; wait for every
+    // invocation worker before the interpreter is allowed to finalize.
+    ScriptAsyncRuntime::instance().shutdown();
+
     // Every config write already goes to disk as it happens (store_capability_config), so this
     // only catches an in-memory-only mutation. Note we flush rather than clear: unloading the
     // plugins above must never discard their stored config.
@@ -204,7 +237,7 @@ std::string PluginManager::check_registry_locked(const std::string& plugin_key, 
 {
     const Plugin* entry = find_plugin_locked(plugin_key);
     if (entry != nullptr && entry->is_loaded())
-        return "Plugin package is already loaded: " + plugin_key;
+        return GUI::format(_u8L("Plugin package is already loaded: %1%"), plugin_key);
 
     // A capability name must be unique per type across every loaded package.
     for (const auto& capability : candidate.capabilities) {
@@ -215,8 +248,9 @@ std::string PluginManager::check_registry_locked(const std::string& plugin_key, 
                 continue;
             for (const auto& existing : other.capabilities) {
                 if (existing && existing->type() == capability->type() && existing->name() == capability->name())
-                    return "Capability collision for type " + plugin_capability_type_to_string(capability->type()) + " and name '" +
-                           capability->name() + "'";
+                    // TRN %1% is the capability type (e.g. Script), %2% the capability name.
+                    return GUI::format(_u8L("Capability collision for type %1% and name '%2%'"),
+                                       PluginConfig::capability_type_label(capability->type()), capability->name());
             }
         }
     }
@@ -313,7 +347,7 @@ void PluginManager::merge_discovered_plugins(std::vector<PluginDescriptor> disco
                 continue;
 
             if (std::find(seen.begin(), seen.end(), descriptor.plugin_key) != seen.end()) {
-                const std::string duplicate_error = "Duplicate plugin key discovered: " + descriptor.plugin_key;
+                const std::string duplicate_error = GUI::format(_u8L("Duplicate plugin key discovered: %1%"), descriptor.plugin_key);
                 if (Plugin* existing = find_plugin_locked(descriptor.plugin_key)) {
                     existing->descriptor.set_error(duplicate_error);
                     BOOST_LOG_TRIVIAL(error) << duplicate_error << " (" << existing->descriptor.entry_path << ", "
@@ -537,6 +571,24 @@ bool PluginManager::try_get_plugin_descriptor_for_capability(const std::string& 
     return false;
 }
 
+std::optional<PluginCapabilityRef> PluginManager::resolve_capability_ref(const std::string& capability_name,
+                                                                         PluginCapabilityType type) const
+{
+    // only_enabled = false: a stored reference must stay resolvable whether or not the user
+    // currently has the capability enabled; the dispatchers report "disabled" separately.
+    if (!get_plugin_capability(capability_name, type, /*only_enabled=*/false))
+        return std::nullopt;
+
+    PluginDescriptor descriptor;
+    if (!try_get_plugin_descriptor_for_capability(capability_name, type, descriptor))
+        return std::nullopt;
+
+    // Cloud plugins are resolved at runtime via the UUID, so the name field keeps the friendly
+    // display name. Local plugins are looked up by plugin_key with an empty UUID.
+    const std::string identity = descriptor.is_cloud_plugin() ? descriptor.name : descriptor.plugin_key;
+    return PluginCapabilityRef{identity, capability_name, descriptor.cloud_uuid()};
+}
+
 std::string PluginManager::get_storage_dir(const std::string& plugin_key) const
 {
     namespace fs = boost::filesystem;
@@ -639,8 +691,12 @@ std::shared_ptr<PluginCapabilityInterface> PluginManager::get_plugin_capability(
 
 bool PluginManager::get_install_state(const std::string& plugin_key, PluginInstallState& install_state)
 {
+    // Serialize the read against every in-process sidecar writer. Lock order stays
+    // install-state -> m_mutex, matching the writers.
+    std::lock_guard<std::mutex> state_lock(install_state_mutex());
+
     PluginDescriptor descriptor;
-    if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
+    if (!try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty()) {
         return false;
     }
 
@@ -687,7 +743,7 @@ bool PluginManager::wait_for_plugin_load(const std::string& plugin_key, std::chr
     if (timeout == std::chrono::milliseconds::max()) {
         m_load_cv.wait(lock, done);
     } else if (!m_load_cv.wait_for(lock, timeout, done)) {
-        error = "Plugin load is still in progress";
+        error = _u8L("Plugin load is still in progress");
         return false;
     }
 
@@ -751,6 +807,10 @@ void PluginManager::release_load_slot(const std::string& plugin_key)
 void PluginManager::cancel_and_wait_for_capabilities(
     const std::vector<std::shared_ptr<PluginCapabilityInterface>>& capabilities)
 {
+    // Ask the plugin to cancel first, then schedule the async cancellation: on_cancelled() can
+    // observe/record state while the run is still intact, and only afterwards is its asyncio task
+    // cancelled. Draining of capability references still follows, so the module is not unloaded
+    // until the run has settled.
     for (const auto& capability : capabilities) {
         if (!capability || !capability->is_enabled())
             continue;
@@ -766,15 +826,37 @@ void PluginManager::cancel_and_wait_for_capabilities(
         }
     }
 
-    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
-    while (std::chrono::steady_clock::now() < deadline) {
+    for (const auto& capability : capabilities) {
+        if (capability)
+            ScriptAsyncRuntime::instance().cancel_plugin(capability->audit_plugin_key());
+    }
+
+    // Script rows are bounded only by their own worker: a cancelled or stalled invocation of another
+    // plugin can no longer couple to this one (each invocation owns a thread). A Script worker is
+    // drained without a deadline — forcing module unload while one is outstanding would leave Python
+    // executing against a freed module, or let a blocking preset selection mutate presets after the
+    // plugin is gone. Non-Script synchronous calls keep the historical bounded grace. On the GUI
+    // thread the event loop is pumped so a modal selection can settle instead of being starved by a
+    // blocking wait.
+    const auto grace_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    for (;;) {
         const bool all_released = std::all_of(capabilities.begin(), capabilities.end(), [](const auto& capability) {
             return !capability || capability->ref_count() == 0;
         });
-        if (all_released)
+        // A cancellation that arrived before the invocation ran skips the ref counter, so an active
+        // worker must also be gone: never unload the module while any Script thread is still live.
+        const bool invocation_active = std::any_of(capabilities.begin(), capabilities.end(), [](const auto& capability) {
+            return capability != nullptr && ScriptAsyncRuntime::instance().has_active_run(capability.get());
+        });
+        if (all_released && !invocation_active)
             return;
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        if (!invocation_active && std::chrono::steady_clock::now() >= grace_deadline)
+            break;
+
+        if (wxTheApp != nullptr && wxIsMainThread())
+            wxYield();
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
 
     for (const auto& capability : capabilities) {
@@ -854,11 +936,11 @@ void PluginManager::load_plugin(const std::string& plugin_key, bool skip_deps, s
     if (!exists || invalid) {
         std::string message;
         if (invalid) {
-            message = "Plugin is invalid: " + plugin_id;
+            message = GUI::format(_u8L("Plugin is invalid: %1%"), plugin_id);
             if (!invalid_error.empty())
                 message += " - " + invalid_error;
         } else {
-            message = "Plugin not found: " + plugin_id;
+            message = GUI::format(_u8L("Plugin not found: %1%"), plugin_id);
         }
 
         {
@@ -892,9 +974,9 @@ void PluginManager::load_plugin(const std::string& plugin_key, bool skip_deps, s
         try {
             load_plugin_impl(plugin_id, skip_deps, capabilities_to_enable);
         } catch (const std::exception& ex) {
-            fail_unexpected(std::string("Unexpected plugin load failure: ") + ex.what());
+            fail_unexpected(GUI::format(_u8L("Unexpected plugin load failure: %1%"), ex.what()));
         } catch (...) {
-            fail_unexpected("Unexpected plugin load failure");
+            fail_unexpected(_u8L("Unexpected plugin load failure"));
         }
 
         if (!m_shutting_down.load(std::memory_order_acquire))
@@ -920,7 +1002,7 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
 
     PluginDescriptor descriptor;
     if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
-        fail("Plugin manifest not found: " + plugin_key);
+        fail(GUI::format(_u8L("Plugin manifest not found: %1%"), plugin_key));
         return;
     }
 
@@ -936,10 +1018,11 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
 
     Plugin plugin;
     std::string error;
-    if (!plugin_loader::load(descriptor, skip_deps, capabilities_to_enable, registry_precheck, plugin, error)) {
+    bool registration_failed = false;
+    if (!plugin_loader::load(descriptor, skip_deps, capabilities_to_enable, registry_precheck, plugin, error, &registration_failed)) {
         if (error == LOAD_CANCELLED)
             return; // cancelled: nothing materialized survives, and no error is recorded
-        if (error.rfind("Plugin registration failed:", 0) == 0)
+        if (registration_failed)
             mark_plugin_install_state_disabled(plugin_key);
         fail(std::move(error));
         return;
@@ -968,7 +1051,7 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
             if (registry_error.empty()) {
                 Plugin* entry = find_plugin_locked(plugin_key);
                 if (entry == nullptr) {
-                    registry_error = "Plugin manifest not found: " + plugin_key;
+                    registry_error = GUI::format(_u8L("Plugin manifest not found: %1%"), plugin_key);
                 } else {
                     // Move everything via Plugin's own move assignment, but the package's
                     // descriptor (identity/metadata) belongs to the registry entry, not to the
@@ -1143,7 +1226,7 @@ void PluginManager::set_capability_enabled(const PluginCapabilityId& id, bool en
 
 void PluginManager::write_loaded_plugin_install_state(const std::string& plugin_key)
 {
-    std::lock_guard<std::mutex> state_lock(m_install_state_mutex);
+    std::lock_guard<std::mutex> state_lock(install_state_mutex());
 
     PluginDescriptor descriptor;
     std::vector<std::pair<std::string, bool>> capabilities;
@@ -1168,7 +1251,7 @@ void PluginManager::write_loaded_plugin_install_state(const std::string& plugin_
 
 void PluginManager::mark_plugin_install_state_disabled(const std::string& plugin_key)
 {
-    std::lock_guard<std::mutex> state_lock(m_install_state_mutex);
+    std::lock_guard<std::mutex> state_lock(install_state_mutex());
 
     PluginDescriptor descriptor;
     if (!try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
@@ -1176,12 +1259,17 @@ void PluginManager::mark_plugin_install_state_disabled(const std::string& plugin
 
     const boost::filesystem::path root(descriptor.plugin_root);
     PluginInstallState state;
-    if (!read_install_state(root, state)) {
-        state.installed_from    = descriptor.is_cloud_plugin() ? "cloud" : "local";
-        state.installed_version = !descriptor.installed_version.empty() ? descriptor.installed_version : descriptor.version;
-        state.plugin_name       = descriptor.name;
-        state.cloud_uuid        = descriptor.cloud_uuid();
+    // Only a missing sidecar may be seeded. One that exists but cannot be read may still hold
+    // permissions and capability choices that are recoverable, so it must not be replaced by a
+    // fresh one. Report the skip and leave the descriptor alone, exactly as for a failed write.
+    const InstallStateReadStatus status = read_install_state_status(root, state);
+    if (status == InstallStateReadStatus::Unreadable) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Cannot read install state for " << plugin_key
+                                   << "; leaving the sidecar untouched";
+        return;
     }
+    if (status == InstallStateReadStatus::Absent)
+        seed_install_metadata(state, descriptor);
     state.enabled = false;
     if (!write_install_state(root, state))
         return;
@@ -1191,9 +1279,74 @@ void PluginManager::mark_plugin_install_state_disabled(const std::string& plugin
         plugin->descriptor.enabled = false;
 }
 
+bool PluginManager::mutate_plugin_permissions(const std::string& plugin_key, const PluginPermissionMutation& mutation,
+                                              PluginPermissions* applied)
+{
+    std::lock_guard<std::mutex> state_lock(install_state_mutex());
+
+    if (plugin_key.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": No plugin key supplied";
+        return false;
+    }
+
+    // Enabling full access is the dangerous direction and must target a loadable (non-invalid)
+    // package. Disabling and plain list edits accept any known installed package.
+    PluginDescriptor descriptor;
+    const bool       enabling_full_access = mutation.full_access && *mutation.full_access;
+    const bool       known = enabling_full_access ? try_get_valid_plugin_descriptor(plugin_key, descriptor)
+                                                  : try_get_plugin_descriptor(plugin_key, descriptor);
+    if (!known || !descriptor.has_local_package() || descriptor.plugin_root.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": No installed plugin to update: " << plugin_key;
+        return false;
+    }
+
+    const boost::filesystem::path root(descriptor.plugin_root);
+    PluginInstallState state;
+    if (!read_install_state(root, state)) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to read install state for " << plugin_key;
+        return false;
+    }
+
+    // Apply against the latest state read under the lock, so a grant another writer added since
+    // the caller last looked is kept. Removals run first: a value named in both lists ends present.
+    for (const PluginPermissionMutation::Entry& entry : mutation.remove) {
+        if (entry.value.empty())
+            continue;
+        std::vector<std::string>* bucket = permission_bucket(state.permissions, entry.category);
+        if (bucket == nullptr)
+            continue;
+        bucket->erase(std::remove(bucket->begin(), bucket->end(), entry.value), bucket->end());
+    }
+    for (const PluginPermissionMutation::Entry& entry : mutation.add) {
+        if (entry.value.empty())
+            continue;
+        std::vector<std::string>* bucket = permission_bucket(state.permissions, entry.category);
+        if (bucket == nullptr)
+            continue;
+        if (std::find(bucket->begin(), bucket->end(), entry.value) == bucket->end())
+            bucket->push_back(entry.value);
+    }
+
+    if (mutation.threading)
+        state.permissions.threading = *mutation.threading;
+    if (mutation.full_access)
+        state.permissions.full_access = *mutation.full_access;
+
+    if (!write_install_state(root, state)) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to write install state for " << plugin_key;
+        return false;
+    }
+
+    if (applied != nullptr)
+        *applied = state.permissions;
+
+    BOOST_LOG_TRIVIAL(info) << "Applied permission changes for plugin " << plugin_key;
+    return true;
+}
+
 void PluginManager::revoke_plugin_permissions(const std::string& plugin_key)
 {
-    std::lock_guard<std::mutex> state_lock(m_install_state_mutex);
+    std::lock_guard<std::mutex> state_lock(install_state_mutex());
 
     PluginDescriptor descriptor;
     if (!try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
@@ -1582,7 +1735,7 @@ void PluginManager::fetch_plugins_from_cloud(std::vector<std::string>* out_not_f
                     return;
                 plater->get_notification_manager()->push_notification(GUI::NotificationType::CustomNotification,
                                                                       GUI::NotificationManager::NotificationLevel::WarningNotificationLevel,
-                                                                      "Failed to fetch plugins from the cloud. See logs for details.");
+                                                                      _u8L("Failed to fetch plugins from the cloud. See logs for details."));
             });
         }
     }
@@ -1636,6 +1789,52 @@ void PluginManager::fetch_plugins_from_cloud(std::vector<std::string>* out_not_f
         }
     }
 
+    // A successful fetch is the only point where update availability is authoritative. Publish
+    // one aggregate notice after the orphan/unauthorized verdicts above so a plugin the user can
+    // no longer act on is not advertised. The check is repeated when the callback runs, keeping
+    // the notice fresh if an update was installed while the fetch was in flight.
+    if (cloud_fetch_succeeded) {
+        std::string fetched_cloud_user;
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            fetched_cloud_user = m_cloud_user_id;
+        }
+
+        auto push_update_notification = [this, fetched_cloud_user]() {
+            if (wxTheApp == nullptr || m_shutting_down.load(std::memory_order_acquire))
+                return;
+            if (GUI::wxGetApp().is_closing())
+                return;
+            GUI::Plater* plater = GUI::wxGetApp().plater();
+            // Before post_init() there is no plater yet; GUI_App's startup report delivers the
+            // notice instead of dropping it.
+            if (plater == nullptr)
+                return;
+
+            bool update_available = false;
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                if (m_cloud_user_id != fetched_cloud_user)
+                    return; // login/logout while the fetch was in flight
+                update_available = std::any_of(m_plugins.begin(), m_plugins.end(), [](const Plugin& plugin) {
+                    return plugin.descriptor.has_update_available();
+                });
+            }
+            if (!update_available)
+                return;
+
+            GUI::NotificationManager* notifications = plater->get_notification_manager();
+            if (notifications == nullptr ||
+                notifications->has_notification_of_type(GUI::NotificationType::OrcaCloudPluginUpdateAvailable))
+                return;
+            notifications->push_notification(GUI::NotificationType::OrcaCloudPluginUpdateAvailable);
+        };
+        if (wxTheApp == nullptr || wxIsMainThread())
+            push_update_notification();
+        else
+            GUI::wxGetApp().CallAfter(std::move(push_update_notification));
+    }
+
     if (out_not_found)
         *out_not_found = std::move(not_found);
     if (out_unauthorized)
@@ -1650,11 +1849,11 @@ bool PluginManager::subscribe_and_install_cloud_plugin(const std::string& plugin
 
     const std::string plugin_uuid = is_uuid(plugin_key) ? plugin_key : std::string{};
     if (plugin_uuid.empty()) {
-        error = "Cloud plugin key is missing UUID.";
+        error = _u8L("Cloud plugin key is missing UUID.");
         return false;
     }
     if (!m_cloud_service.can_fetch_cloud_plugins()) {
-        error = "Sign in to OrcaCloud to install this plugin.";
+        error = _u8L("Sign in to OrcaCloud to install this plugin.");
         return false;
     }
 
@@ -1672,7 +1871,7 @@ bool PluginManager::subscribe_and_install_cloud_plugin(const std::string& plugin
         fetch_plugins_from_cloud();
         found = try_get_plugin_descriptor(plugin_key, descriptor) && descriptor.is_cloud_plugin();
         if (!found) {
-            error = "Subscribed cloud plugin was not returned by OrcaCloud.";
+            error = _u8L("Subscribed cloud plugin was not returned by OrcaCloud.");
             return false;
         }
     }
@@ -1690,7 +1889,7 @@ bool PluginManager::download_and_install_cloud_plugin(const std::string& plugin_
     CloudPluginDownload download;
     PluginDescriptor descriptor;
     if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
-        error = "Plugin not found: " + plugin_key;
+        error = GUI::format(_u8L("Plugin not found: %1%"), plugin_key);
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to find plugin key " << plugin_key;
         return false;
     }
@@ -1700,7 +1899,7 @@ bool PluginManager::download_and_install_cloud_plugin(const std::string& plugin_
     const std::string requested_version = version.empty() ? descriptor.version : version;
     if (!m_cloud_service.download_cloud_plugin(descriptor, requested_version, download, error)) {
         if (error.empty())
-            error = "Failed to download cloud plugin.";
+            error = _u8L("Failed to download cloud plugin.");
         set_plugin_error(plugin_key, error);
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << error;
         return false;
@@ -1720,7 +1919,7 @@ bool PluginManager::download_and_install_cloud_plugin(const std::string& plugin_
 
     if (!install_plugin(download.package_path, descriptor, error)) {
         if (error.empty())
-            error = "Failed to install cloud plugin.";
+            error = _u8L("Failed to install cloud plugin.");
         set_plugin_error(plugin_key, error);
         boost::system::error_code ec;
         boost::filesystem::remove(download.package_path, ec);
@@ -1746,7 +1945,7 @@ bool PluginManager::download_and_install_cloud_plugin(const std::string& plugin_
         std::lock_guard<std::mutex> lock(m_mutex);
         Plugin* entry = find_plugin_locked(plugin_key);
         if (entry == nullptr) {
-            error = "Plugin not found.";
+            error = _u8L("Plugin not found.");
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Cloud plugin " << plugin_key
                                        << " downloaded successfully but failed to update plugin metadata. Plugin object not found.";
         } else {
@@ -1768,12 +1967,12 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
 
     PluginDescriptor descriptor;
     if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
-        error = "Plugin not found: " + plugin_key;
+        error = GUI::format(_u8L("Plugin not found: %1%"), plugin_key);
         return false;
     }
 
     if (!descriptor.is_cloud_plugin()) {
-        error = "Only cloud plugins can be updated.";
+        error = _u8L("Only cloud plugins can be updated.");
         set_plugin_error(plugin_key, error);
         return false;
     }
@@ -1784,7 +1983,7 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
         if (descriptor.cloud->update_available) {
             version = descriptor.latest_available_version();
         } else {
-            error = "Trying to update plugin with no available update. Version is empty.";
+            error = _u8L("No update is available for this plugin.");
             set_plugin_error(plugin_key, error);
             return false;
         }
@@ -1798,7 +1997,7 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
         {
             std::lock_guard<std::mutex> lock(m_mutex);
             resolved_allowed_plugin_root = resolve_allowed_plugin_root(descriptor, get_plugin_directories(m_cloud_user_id),
-                                                                       "Refusing to delete a plugin outside the known plugin directories.",
+                                                                       _u8L("Refusing to delete a plugin outside the known plugin directories."),
                                                                        resolved_root, error);
         }
 
@@ -1835,7 +2034,7 @@ bool PluginManager::delete_installed_plugin_package(const PluginDescriptor& plug
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         resolved_allowed_plugin_root = resolve_allowed_plugin_root(plugin, get_plugin_directories(m_cloud_user_id),
-                                                                   "Refusing to delete a plugin outside the known plugin directories.",
+                                                                   _u8L("Refusing to delete a plugin outside the known plugin directories."),
                                                                    resolved_root, error);
     }
     if (!resolved_allowed_plugin_root)
@@ -1866,7 +2065,7 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         resolved_allowed_plugin_root = resolve_allowed_plugin_root(plugin_descriptor, get_plugin_directories(m_cloud_user_id),
-                                                                   "Refusing to update a plugin outside the known plugin directories.",
+                                                                   _u8L("Refusing to update a plugin outside the known plugin directories."),
                                                                    resolved_root, error);
     }
 
@@ -1888,24 +2087,37 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
     // capabilities' audit key must follow, since it is what identifies their owning package.
     std::vector<PluginCapabilityId> rekeyed;
     {
+        // Sidecar read-modify-write first, then the registry lock: that is the lock order every
+        // install-state writer uses (install_state_mutex -> m_mutex).
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
         std::lock_guard<std::mutex> lock(m_mutex);
 
         Plugin* entry = find_plugin_locked(old_key);
         if (entry == nullptr) {
-            error = "Plugin manifest not found: " + old_key;
+            error = GUI::format(_u8L("Plugin manifest not found: %1%"), old_key);
             return false;
         }
 
         if (find_plugin_locked(new_key) != nullptr && new_key != old_key) {
-            error = "Cannot keep plugin local: local plugin key already exists: " + new_key;
+            error = GUI::format(_u8L("Cannot keep plugin local: local plugin key already exists: %1%"), new_key);
             BOOST_LOG_TRIVIAL(warning) << error;
             return false;
         }
 
         // Preserve the sidecar's package and capability choices while changing only its origin.
         // Re-keying an installed plugin must not silently re-enable capabilities.
-        PluginInstallState install_state;
-        if (!read_install_state(resolved_root, install_state)) {
+        PluginInstallState           install_state;
+        const InstallStateReadStatus install_state_status = read_install_state_status(resolved_root, install_state);
+        if (install_state_status == InstallStateReadStatus::Unreadable) {
+            // The sidecar exists but cannot be read, so its permissions and capability choices may
+            // still be recoverable: fail without replacing it and without re-keying the registry
+            // entry, leaving the plugin exactly as it was.
+            error = GUI::format(_u8L("Failed to read plugin install state: %1%"),
+                                (resolved_root / INSTALL_STATE_FILE).string());
+            BOOST_LOG_TRIVIAL(warning) << error;
+            return false;
+        }
+        if (install_state_status == InstallStateReadStatus::Absent) {
             install_state.installed_version = !local_descriptor.installed_version.empty()
                                                   ? local_descriptor.installed_version
                                                   : local_descriptor.version;
@@ -1917,7 +2129,7 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
         if (install_state.installed_version.empty())
             install_state.installed_version = local_descriptor.version;
         if (!write_install_state(resolved_root, install_state)) {
-            error = "Failed to update plugin install state: " + (resolved_root / INSTALL_STATE_FILE).string();
+            error = GUI::format(_u8L("Failed to update plugin install state: %1%"), (resolved_root / INSTALL_STATE_FILE).string());
             return false;
         }
 
@@ -1985,7 +2197,7 @@ bool PluginManager::delete_plugin(const std::string& plugin_key, std::string& er
 
     PluginDescriptor descriptor;
     if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
-        error = "Plugin not found: " + plugin_key;
+        error = GUI::format(_u8L("Plugin not found: %1%"), plugin_key);
         return false;
     }
 
@@ -2007,18 +2219,18 @@ bool PluginManager::unsubscribe_cloud_plugin(const std::string& plugin_key, std:
 
     PluginDescriptor descriptor;
     if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
-        error = "Plugin not found: " + plugin_key;
+        error = GUI::format(_u8L("Plugin not found: %1%"), plugin_key);
         return false;
     }
 
     if (!descriptor.is_cloud_plugin()) {
-        error = "Only cloud plugins can be unsubscribed.";
+        error = _u8L("Only cloud plugins can be unsubscribed.");
         set_plugin_error(plugin_key, error);
         return false;
     }
 
     if (descriptor.cloud && descriptor.cloud->is_mine) {
-        error = "Cannot unsubscribe your own plugins.";
+        error = _u8L("Cannot unsubscribe your own plugins.");
         set_plugin_error(plugin_key, error);
         return false;
     }
@@ -2040,18 +2252,18 @@ bool PluginManager::delete_and_unsubscribe_cloud_plugin(const std::string& plugi
 
     PluginDescriptor descriptor;
     if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
-        error = "Plugin not found: " + plugin_key;
+        error = GUI::format(_u8L("Plugin not found: %1%"), plugin_key);
         return false;
     }
 
     if (!descriptor.is_cloud_plugin()) {
-        error = "Only cloud plugins can be deleted and unsubscribed.";
+        error = _u8L("Only cloud plugins can be deleted and unsubscribed.");
         set_plugin_error(plugin_key, error);
         return false;
     }
 
     if (descriptor.cloud->is_mine) {
-        error = "Cannot unsubscribe your own plugins. Use Delete to remove the local files.";
+        error = _u8L("Cannot unsubscribe your own plugins. Use Delete to remove the local files.");
         set_plugin_error(plugin_key, error);
         return false;
     }
@@ -2066,41 +2278,385 @@ bool PluginManager::delete_and_unsubscribe_cloud_plugin(const std::string& plugi
     return finalize_cloud_plugin_removal(descriptor, false, error);
 }
 
+// ── Async Script runtime ────────────────────────────────────────────────────────────────────
+
+namespace {
+
+// The asyncio loop of the Script invocation running on the calling thread. Owned +1 while set;
+// always cleared under the GIL before the worker thread exits.
+thread_local PyObject* tl_script_loop = nullptr;
+
+} // namespace
+
+struct ScriptAsyncRuntime::Impl
+{
+    struct Run
+    {
+        std::string plugin_key;
+        std::string capability_name;
+        std::shared_ptr<PluginCapabilityInterface> capability;
+        std::function<void(const ScriptCompletion&)> on_done;
+        std::atomic<bool> cancel_requested{false};
+        // True while an asyncio loop/task is live for this run. Read without the GIL by
+        // cancel_plugin() to avoid taking the GIL for a purely synchronous invocation.
+        std::atomic<bool> has_loop{false};
+
+        // Live asyncio loop/task for cancellation. Guarded by handle_mutex and only touched
+        // with the GIL held.
+        std::mutex       handle_mutex;
+        pybind11::object loop;
+        pybind11::object task;
+    };
+
+    std::mutex                        mutex;
+    std::condition_variable           cv;
+    std::vector<std::shared_ptr<Run>> active;
+    bool                              stopping = false;
+
+    // Runs one invocation to completion on the calling (worker) thread.
+    void run_invocation(const std::shared_ptr<Run>& run);
+};
+
+void ScriptAsyncRuntime::Impl::run_invocation(const std::shared_ptr<Run>& run)
+{
+    ScriptCompletion completion;
+
+    {
+        PythonRuntimeLease lease = PythonInterpreter::instance().acquire_runtime_lease();
+        if (!lease) {
+            completion.error = _u8L("Python interpreter is shutting down.");
+        } else {
+            pybind11::gil_scoped_acquire gil;
+
+            if (run->cancel_requested.load(std::memory_order_acquire)) {
+                // Cancelled before it ran: expected termination, never an error.
+                completion.cancelled = true;
+            } else {
+                // Hold the capability reference, the audit scope and the GIL for the whole
+                // invocation, so unload/shutdown cannot tear the module out from under it.
+                PluginCapabilityInterface::RefCounter ref_counter(*run->capability);
+
+                std::optional<ScopedPluginAuditContext> audit_scope;
+                if (!run->capability->audit_plugin_key().empty())
+                    audit_scope.emplace(run->capability->audit_plugin_key(), run->capability->name());
+
+                // Detection and execution both happen here, on the worker: a synchronous
+                // `def execute` runs to completion off the UI thread, exactly like an `async def`.
+                ScriptExecuteInvocation invocation = invoke_script_execute(run->capability);
+                if (!invocation.error.empty()) {
+                    completion.error = invocation.error;
+                } else if (!invocation.is_async) {
+                    completion.result = invocation.result;
+                } else if (run->cancel_requested.load(std::memory_order_acquire)) {
+                    completion.cancelled = true;
+                } else {
+                    try {
+                        pybind11::module_ asyncio = pybind11::module_::import("asyncio");
+                        pybind11::object  loop    = asyncio.attr("new_event_loop")();
+                        asyncio.attr("set_event_loop")(loop);
+
+                        tl_script_loop = loop.ptr();
+                        Py_INCREF(tl_script_loop);
+
+                        pybind11::object task = loop.attr("create_task")(std::move(invocation.awaitable));
+                        {
+                            std::lock_guard<std::mutex> lock(run->handle_mutex);
+                            run->loop = loop;
+                            run->task = task;
+                        }
+                        run->has_loop.store(true, std::memory_order_release);
+                        // A cancellation that arrived before the loop came up must still land.
+                        if (run->cancel_requested.load(std::memory_order_acquire))
+                            loop.attr("call_soon_threadsafe")(task.attr("cancel"));
+
+                        try {
+                            pybind11::object returned = loop.attr("run_until_complete")(task);
+                            completion.result = returned.cast<ExecutionResult>();
+                        } catch (pybind11::error_already_set& err) {
+                            // Only our own cancel_plugin() cancellation is expected termination; a
+                            // CancelledError the plugin raised on its own stays a real error.
+                            if (err.matches(asyncio.attr("CancelledError")) &&
+                                run->cancel_requested.load(std::memory_order_acquire)) {
+                                completion.cancelled = true;
+                            } else {
+                                log_python_exception_keep(err);
+                                completion.error = err.what();
+                            }
+                        }
+
+                        run->has_loop.store(false, std::memory_order_release);
+                        {
+                            std::lock_guard<std::mutex> lock(run->handle_mutex);
+                            run->task = pybind11::object();
+                            run->loop = pybind11::object();
+                        }
+                        Py_CLEAR(tl_script_loop);
+                        loop.attr("close")();
+                        asyncio.attr("set_event_loop")(pybind11::none());
+                    } catch (pybind11::error_already_set& err) {
+                        log_python_exception_keep(err);
+                        completion.error = err.what();
+                    } catch (const std::exception& ex) {
+                        completion.error = ex.what();
+                    }
+
+                    // Covers an exception thrown after the loop came up but before the clear above.
+                    if (run->has_loop.load(std::memory_order_acquire)) {
+                        run->has_loop.store(false, std::memory_order_release);
+                        std::lock_guard<std::mutex> lock(run->handle_mutex);
+                        run->task = pybind11::object();
+                        run->loop = pybind11::object();
+                    }
+
+                    if (tl_script_loop != nullptr)
+                        Py_CLEAR(tl_script_loop);
+                }
+            }
+
+            // Drop the capability reference while the GIL is held: releasing a pybind holder from
+            // a non-Python thread would DECREF the capability without the GIL. Runs on every
+            // lease-valid path, including an invocation cancelled before it ran.
+            run->capability.reset();
+        }
+    }
+
+    // A cancellation requested by cancel_plugin() (unload/shutdown) is expected termination and is
+    // authoritative: whatever the body did — finished, swallowed CancelledError, or failed — nothing
+    // is surfaced as an error or as a normal success.
+    if (run->cancel_requested.load(std::memory_order_acquire)) {
+        completion.cancelled = true;
+        completion.error.clear();
+    }
+
+    auto on_done = std::move(run->on_done);
+    auto deliver = [on_done, completion]() {
+        if (on_done)
+            on_done(completion);
+    };
+
+    if (wxTheApp == nullptr || wxIsMainThread())
+        deliver();
+    else
+        GUI::wxGetApp().CallAfter(deliver);
+
+    // Leave `active` last, so a drain cannot observe the run as finished before its completion was
+    // queued/delivered and its capability reference released.
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        active.erase(std::remove(active.begin(), active.end(), run), active.end());
+    }
+    cv.notify_all();
+}
+
+ScriptAsyncRuntime& ScriptAsyncRuntime::instance()
+{
+    static ScriptAsyncRuntime inst;
+    return inst;
+}
+
+ScriptAsyncRuntime::ScriptAsyncRuntime() : m_impl(std::make_unique<Impl>()) {}
+
+ScriptAsyncRuntime::~ScriptAsyncRuntime() { shutdown(); }
+
+bool ScriptAsyncRuntime::start(const std::string& plugin_key,
+                               const std::string& capability_name,
+                               std::shared_ptr<PluginCapabilityInterface> capability,
+                               std::function<void(const ScriptCompletion&)> on_done)
+{
+    if (!PythonInterpreter::instance().is_initialized())
+        return false;
+
+    auto run             = std::make_shared<Impl::Run>();
+    run->plugin_key      = plugin_key;
+    run->capability_name = capability_name;
+    run->capability      = std::move(capability);
+    run->on_done         = std::move(on_done);
+
+    {
+        std::lock_guard<std::mutex> lock(m_impl->mutex);
+        if (m_impl->stopping)
+            return false;
+        m_impl->active.push_back(run);
+    }
+
+    // One worker thread per invocation. A stalled invocation of one plugin can never delay another
+    // plugin's unload or another invocation, and no invocation body ever runs on the caller (UI)
+    // thread. The thread holds `run` (and so the capability) until it finishes; the runtime tracks
+    // it in `active` and waits for it on shutdown.
+    Impl* impl = m_impl.get();
+    try {
+        std::thread([impl, run] { impl->run_invocation(run); }).detach();
+    } catch (...) {
+        std::lock_guard<std::mutex> lock(m_impl->mutex);
+        m_impl->active.erase(std::remove(m_impl->active.begin(), m_impl->active.end(), run), m_impl->active.end());
+        return false;
+    }
+    return true;
+}
+
+void ScriptAsyncRuntime::cancel_plugin(const std::string& plugin_key)
+{
+    std::vector<std::shared_ptr<Impl::Run>> runs;
+    {
+        std::lock_guard<std::mutex> lock(m_impl->mutex);
+        for (const auto& run : m_impl->active)
+            if (run->plugin_key == plugin_key)
+                runs.push_back(run);
+    }
+
+    for (const auto& run : runs)
+        run->cancel_requested.store(true, std::memory_order_release);
+
+    for (const auto& run : runs) {
+        // A synchronous invocation has no loop to cancel; skip it so the caller never blocks on
+        // the GIL while that invocation is (uninterruptibly) running.
+        if (!run->has_loop.load(std::memory_order_acquire))
+            continue;
+
+        PythonGILState gil;
+        if (!gil)
+            continue;
+
+        pybind11::object loop;
+        pybind11::object task;
+        {
+            std::lock_guard<std::mutex> lock(run->handle_mutex);
+            loop = run->loop;
+            task = run->task;
+        }
+        if (!loop || !task)
+            continue;
+
+        try {
+            loop.attr("call_soon_threadsafe")(task.attr("cancel"));
+        } catch (const std::exception& ex) {
+            BOOST_LOG_TRIVIAL(warning) << "Script async cancel failed for plugin '" << plugin_key << "': " << ex.what();
+        }
+    }
+}
+
+bool ScriptAsyncRuntime::has_active_run(const PluginCapabilityInterface* capability) const
+{
+    std::lock_guard<std::mutex> lock(m_impl->mutex);
+    for (const auto& run : m_impl->active)
+        if (run->capability.get() == capability)
+            return true;
+    return false;
+}
+
+void ScriptAsyncRuntime::shutdown()
+{
+    {
+        std::lock_guard<std::mutex> lock(m_impl->mutex);
+        m_impl->stopping = true;
+    }
+
+    std::unique_lock<std::mutex> lock(m_impl->mutex);
+    m_impl->cv.wait(lock, [this] { return m_impl->active.empty(); });
+}
+
+void ScriptAsyncRuntime::reset()
+{
+    shutdown();
+
+    std::lock_guard<std::mutex> lock(m_impl->mutex);
+    m_impl->stopping = false;
+}
+
+pybind11::object ScriptAsyncRuntime::current_loop()
+{
+    if (tl_script_loop == nullptr)
+        return pybind11::object();
+    return pybind11::reinterpret_borrow<pybind11::object>(pybind11::handle(tl_script_loop));
+}
+
 ExecutionResult PluginManager::run_script_capability(const std::string& plugin_key, const std::string& capability_name, std::string& error)
 {
-    if (plugin_key.empty() || capability_name.empty()) {
-        return {};
+    ExecutionResult result;
+    std::mutex              mutex;
+    std::condition_variable cv;
+    bool                    done = false;
+
+    ScriptLaunchResult launch = launch_script_capability(
+        plugin_key, capability_name, [&](const ScriptCompletion& completion) {
+            std::lock_guard<std::mutex> lock(mutex);
+            result = completion.result;
+            // A cancel_plugin() cancellation is expected termination, not an error to report.
+            error  = completion.cancelled ? std::string() : completion.error;
+            done   = true;
+            cv.notify_all();
+        });
+
+    if (launch.launched_async) {
+        // Async run: the completion is delivered on the GUI thread. When this call is itself on
+        // the GUI thread it must pump the event loop, or the completion can never be delivered.
+        std::unique_lock<std::mutex> lock(mutex);
+        if (wxTheApp != nullptr && wxIsMainThread()) {
+            while (!done) {
+                cv.wait_for(lock, std::chrono::milliseconds(10));
+                lock.unlock();
+                wxYield();
+                lock.lock();
+            }
+        } else {
+            cv.wait(lock, [&] { return done; });
+        }
+    } else {
+        result = launch.outcome.result;
+        error  = launch.outcome.error;
+    }
+
+    return result;
+}
+
+PluginManager::ScriptLaunchResult PluginManager::launch_script_capability(const std::string& plugin_key,
+                                                                          const std::string& capability_name,
+                                                                          ScriptCompletionFn  on_done)
+{
+    ScriptLaunchResult launch;
+
+    // Mirror the historical synchronous behavior for a dangling reference: nothing to run and
+    // no error (the caller's guarded UI normally prevents this).
+    if (plugin_key.empty() || capability_name.empty())
+        return launch;
+
+    if (m_shutting_down.load(std::memory_order_acquire)) {
+        launch.outcome.error = _u8L("Plugin system is shutting down.");
+        return launch;
     }
 
     auto cap = get_plugin_capability({PluginCapabilityType::Script, capability_name, plugin_key});
     if (!cap)
-        return {};
+        return launch;
 
-    auto cap_interface = std::dynamic_pointer_cast<ScriptPluginCapability>(cap);
-    if (!cap_interface)
-        return {};
+    if (!std::dynamic_pointer_cast<ScriptPluginCapability>(cap))
+        return launch;
 
-    ExecutionResult result;
-    try {
-        PythonGILState gil;
-        if (!gil) {
-            error = "Python interpreter is shutting down";
-            return {};
-        }
-        result = cap_interface->execute();
-    } catch (const std::exception& ex) {
-        error = ex.what();
-        BOOST_LOG_TRIVIAL(error) << "Script plugin execution threw exception. plugin_key=" << plugin_key << " error=" << error;
-    } catch (...) {
-        error = "Unknown error";
-        BOOST_LOG_TRIVIAL(error) << "Script plugin execution threw unknown exception. plugin_key=" << plugin_key;
+    // Every Script body runs off the caller's thread now: the invocation — including detection and
+    // a synchronous `def execute` — is handed to the runtime, which runs it on its own worker and
+    // reports the outcome through the completion callback. Nothing executes before returning here,
+    // so the UI thread is never blocked by a Script invocation.
+    const bool started = ScriptAsyncRuntime::instance().start(
+        plugin_key, capability_name, cap,
+        [this, plugin_key, on_done](const ScriptCompletion& completion) {
+            // A cancellation requested by cancel_plugin() (unload/shutdown) is expected termination:
+            // record no plugin error and surface nothing. Genuine user/plugin errors still record.
+            if (!completion.cancelled && !completion.error.empty())
+                set_plugin_error(plugin_key, completion.error);
+            if (on_done)
+                on_done(completion);
+        });
+
+    if (!started) {
+        launch.outcome.error = _u8L("Plugin system is shutting down.");
+        set_plugin_error(plugin_key, launch.outcome.error);
+        BOOST_LOG_TRIVIAL(error) << "Script plugin execution failed. plugin_key=" << plugin_key
+                                 << " error=" << launch.outcome.error;
+        return launch;
     }
 
-    if (!error.empty()) {
-        set_plugin_error(plugin_key, error);
-    }
-
-    return result;
+    launch.launched_async = true;
+    return launch;
 }
 
 void PluginManager::dispatch_lifecycle_event(LifecycleEvent evt, const LifecycleEventContext& ctx) {

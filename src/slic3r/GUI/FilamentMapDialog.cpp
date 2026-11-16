@@ -20,6 +20,8 @@
 #include <wx/gdicmn.h>
 #include <wx/dialog.h>
 #include "slic3r/GUI/FilamentMapPanel.hpp"
+#include "slic3r/GUI/FilamentGroupPopup.hpp"
+#include "slic3r/GUI/MainFrame.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -377,6 +379,13 @@ FilamentMapMode FilamentMapDialog::get_mode()
 
 int FilamentMapDialog::ShowModal()
 {
+    // The Slice-plate hover popup is a transient popup that keeps grabbing the mouse
+    // capture while shown. Left behind this modal dialog it would starve the dialog of
+    // mouse events, so close it synchronously first, whichever path opened the dialog.
+    if (MainFrame* frame = wxGetApp().mainframe;
+        frame && frame->m_filament_group_popup && frame->m_filament_group_popup->IsShown())
+        frame->m_filament_group_popup->Dismiss();
+
     update_panel_status(m_page_type);
     return wxDialog::ShowModal();
 }

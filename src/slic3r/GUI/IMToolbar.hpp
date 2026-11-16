@@ -12,6 +12,8 @@
 #define DEFAULT_TOOLBAR_BUTTON_HEIGHT   80.0f
 
 namespace Slic3r {
+struct ThumbnailData;
+
 namespace GUI {
 
 class IMToolbarItem
@@ -33,11 +35,9 @@ public:
     SliceState slice_state;
 
     ImTextureID texture_id { 0 };
-    std::vector<unsigned char> image_data;
-    unsigned int image_width;
-    unsigned int image_height;
 
-    bool generate_texture();
+    // Uploads a valid thumbnail as the texture; the item keeps no copy of its pixels.
+    void set_thumbnail(const ThumbnailData& thumbnail);
     ~IMToolbarItem();
 };
 
