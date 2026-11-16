@@ -66,6 +66,8 @@ jobs:
             'O1'    = @(' /O2', ' /O1')
             'Od'    = @(' /O2 /Ob2', ' /Od')
             'Ob0'   = @(' /Ob2', ' /Ob0')
+            # /EHa kept; jump tables uncompressed and branch ranges halved for the /EHa nops.
+            'mllvm' = @(' /EHa', ' /EHa -mllvm -aarch64-enable-compress-jump-tables=false -mllvm -aarch64-tbz-offset-bits=13 -mllvm -aarch64-cbz-offset-bits=18 -mllvm -aarch64-bcc-offset-bits=18')
           }
           $cc = Get-Content "$bld\compile_commands.json" -Raw | ConvertFrom-Json
           $rows = @("| File | " + ($variants.Keys -join ' | ') + " |", "|---" * ($variants.Count + 1) + "|")
