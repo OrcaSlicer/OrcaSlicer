@@ -38,6 +38,8 @@
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/FilamentMixer.hpp"
 #include "I18N.hpp"
+#include "format.hpp"
+#include <wx/clipbrd.h>
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "GradientCurveEditor.hpp"
@@ -743,7 +745,24 @@ wxBoxSizer* MixedFilamentDialog::create_preview_panel()
     m_preview_rgb->SetForegroundColour(StateColor::darkModeColorFor(COLOR_LABEL_MUTED));
     m_preview_rgb->SetFont(::Label::Body_12);
     m_preview_rgb->SetMinSize(wxSize(FromDIP(rgb_label_width), m_preview_rgb->GetBestSize().y));
+
+    // The same color as a hex code, copied to the clipboard on a click.
+    m_preview_hex = new wxStaticText(this, wxID_ANY, " ", wxDefaultPosition, wxSize(FromDIP(rgb_label_width), -1),
+                                     wxALIGN_CENTRE_HORIZONTAL | wxST_NO_AUTORESIZE);
+    m_preview_hex->SetForegroundColour(StateColor::darkModeColorFor(COLOR_LABEL_MUTED));
+    m_preview_hex->SetFont(::Label::Body_12);
+    m_preview_hex->SetMinSize(wxSize(FromDIP(rgb_label_width), m_preview_hex->GetBestSize().y));
+    m_preview_hex->SetCursor(wxCursor(wxCURSOR_HAND));
+    m_preview_hex->SetToolTip(_L("Click to copy the color code"));
+    m_preview_hex->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &) {
+        const wxString hex = m_preview_hex->GetLabel().Trim();
+        if (hex.empty() || !wxTheClipboard->Open())
+            return;
+        wxTheClipboard->SetData(new wxTextDataObject(hex));
+        wxTheClipboard->Close();
+    });
     sizer->Add(m_preview_rgb, 0, wxALIGN_CENTER | wxTOP, FromDIP(2));
+    sizer->Add(m_preview_hex, 0, wxALIGN_CENTER);
 
     return sizer;
 }
@@ -1593,6 +1612,7 @@ void MixedFilamentDialog::update_preview()
         // A gradient has no single color, so only the plain mix is described.
         const size_t n = num_components();
         wxString     text(" ");
+        wxString     hex(" ");
         if (n > 0 && !(m_result.gradient_enabled && n == 2)) {
             std::vector<wxColour> cols;
             std::vector<double>   weights;
@@ -1601,9 +1621,13 @@ void MixedFilamentDialog::update_preview()
                 weights.push_back(ratio(i) / 100.0);
             }
             const wxColour mixed = blend_n_colors(cols, weights);
-            text = wxString::Format("RGB: %d, %d, %d", mixed.Red(), mixed.Green(), mixed.Blue());
+            // TRN The red, green and blue values (0-255) of the color of the mix, shown under the preview.
+            text = format_wxstr(_L("RGB: %1%, %2%, %3%"), mixed.Red(), mixed.Green(), mixed.Blue());
+            hex  = wxString::Format("#%02X%02X%02X", mixed.Red(), mixed.Green(), mixed.Blue());
         }
         m_preview_rgb->SetLabel(text);
+        if (m_preview_hex)
+            m_preview_hex->SetLabel(hex);
     }
     if (m_preview_canvas)  m_preview_canvas->Refresh();
     if (m_summary_panel)   m_summary_panel->Refresh();
