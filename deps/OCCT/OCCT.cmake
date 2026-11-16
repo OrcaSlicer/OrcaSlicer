@@ -12,6 +12,12 @@ if (MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     if ("${DEPS_ARCH}" STREQUAL "arm64" OR CMAKE_GENERATOR MATCHES "Visual Studio")
         set(_occt_pch OFF)
     endif ()
+    # TEST: /EHa adds a nop after exception labels that LLVM's AArch64 size estimates leave out,
+    # so 1-byte jump tables and short branches overflow. Uncompressed tables and halved branch
+    # ranges leave room for it.
+    if ("${DEPS_ARCH}" STREQUAL "arm64")
+        list(APPEND _occt_compiler_args "-DCMAKE_CXX_FLAGS_INIT:STRING=-mllvm -aarch64-enable-compress-jump-tables=false -mllvm -aarch64-tbz-offset-bits=13 -mllvm -aarch64-cbz-offset-bits=18 -mllvm -aarch64-bcc-offset-bits=18")
+    endif ()
 endif ()
 
 if(WIN32)
