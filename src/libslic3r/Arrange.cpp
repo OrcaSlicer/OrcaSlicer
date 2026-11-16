@@ -7,7 +7,10 @@
 #include "BoundingBox.hpp"
 #include "PrintConfig.hpp"
 #include "libslic3r.h"
+#include "Geometry/ConvexHull.hpp"
 
+#include <cassert>
+#include <map>
 #include <Eigen/Core>
 #include <boost/geometry/index/parameters.hpp>
 #include <functional>
@@ -1340,6 +1343,107 @@ template void arrange(ArrangePolygons &items, const ArrangePolygons &excludes, c
 template void arrange(ArrangePolygons &items, const ArrangePolygons &excludes, const CircleBed &bed, const ArrangeParams &params);
 template void arrange(ArrangePolygons &items, const ArrangePolygons &excludes, const Polygon &bed, const ArrangeParams &params);
 template void arrange(ArrangePolygons &items, const ArrangePolygons &excludes, const InfiniteBed &bed, const ArrangeParams &params);
+
+std::vector<ArrangePolygons> pack_print_groups(ArrangePolygons &selected, const DynamicPrintConfig *print_cfg, const ArrangeParams &params)
+{
+    std::vector<ArrangePolygons> groups;
+    if (!params.is_seq_print)
+        return groups;
+
+    std::map<int, ArrangePolygons> members_of_group;
+    ArrangePolygons                alone;
+    for (ArrangePolygon &ap : selected)
+        (ap.print_group >= 0 && !ap.is_wipe_tower && !ap.is_virt_object ? members_of_group[ap.print_group] : alone).emplace_back(std::move(ap));
+    selected = std::move(alone);
+
+    ArrangePolygons group_items;
+    for (auto &[print_group, members] : members_of_group) {
+        if (members.size() < 2) {
+            append(selected, std::move(members));
+            continue;
+        }
+        // Inside a group, the room of a print by layer, the user's distance being the one between groups.
+        ArrangeParams members_params    = params;
+        members_params.is_seq_print     = false;
+        members_params.min_obj_distance = 0;
+        members_params.progressind      = [](unsigned, std::string) {};
+        members_params.on_packed        = nullptr;
+        members_params.excluded_regions.clear();
+        members_params.nonprefered_regions.clear();
+        update_selected_items_inflation(members, print_cfg, members_params);
+        arrange(members, {}, get_shrink_bedpts(print_cfg, members_params), members_params);
+
+        // One item for the members on each bed.
+        std::map<int, ArrangePolygons> members_on_bed;
+        for (ArrangePolygon &ap : members)
+            if (ap.is_arranged())
+                members_on_bed[ap.bed_idx].emplace_back(std::move(ap));
+            else
+                selected.emplace_back(std::move(ap));
+        for (auto &[bed_idx, on_bed] : members_on_bed) {
+            if (on_bed.size() < 2) {
+                append(selected, std::move(on_bed));
+                continue;
+            }
+            Points points;
+            for (const ArrangePolygon &ap : on_bed)
+                append(points, ap.transformed_poly().contour.points);
+            Polygon     hull   = Geometry::convex_hull(std::move(points));
+            const Point center = hull.bounding_box().center();
+            hull.translate(-center);
+
+            // The filament, temperatures and the rest of what the arrange reads of an item.
+            ArrangePolygon group = on_bed.front();
+            group.poly           = ExPolygon(std::move(hull));
+            group.translation    = center;
+            group.rotation       = 0.;
+            group.inflation      = 0;
+            group.setter         = nullptr;
+            for (ArrangePolygon &ap : on_bed) {
+                group.priority         = std::max(group.priority, ap.priority);
+                group.height           = std::max(group.height, ap.height);
+                group.z_min            = std::min(group.z_min, ap.z_min);
+                group.z_max            = std::max(group.z_max, ap.z_max);
+                group.has_z_range      = group.has_z_range && ap.has_z_range;
+                group.brim_width       = std::max(group.brim_width, ap.brim_width);
+                group.has_tree_support = group.has_tree_support || ap.has_tree_support;
+                // No nozzle listed stands for every nozzle.
+                if (group.bed_exclusion_extruder_ids.empty() || ap.bed_exclusion_extruder_ids.empty())
+                    group.bed_exclusion_extruder_ids.clear();
+                else
+                    append(group.bed_exclusion_extruder_ids, ap.bed_exclusion_extruder_ids);
+                // Where the member stands in the group, the group turning about its center.
+                ap.translation -= center;
+            }
+            sort_remove_duplicates(group.bed_exclusion_extruder_ids);
+            group_items.emplace_back(std::move(group));
+            groups.emplace_back(std::move(on_bed));
+        }
+    }
+    append(selected, std::move(group_items));
+    return groups;
+}
+
+void unpack_print_groups(ArrangePolygons &selected, std::vector<ArrangePolygons> &groups)
+{
+    assert(selected.size() >= groups.size());
+    const size_t first_group = selected.size() - groups.size();
+    for (size_t idx = 0; idx < groups.size(); ++idx) {
+        const ArrangePolygon &group = selected[first_group + idx];
+        for (ArrangePolygon &ap : groups[idx]) {
+            Point offset(ap.translation);
+            offset.rotate(group.rotation);
+            ap.translation = group.translation + offset;
+            ap.rotation += group.rotation;
+            ap.bed_idx = group.bed_idx;
+            ap.itemid  = group.itemid;
+        }
+    }
+    selected.resize(first_group);
+    for (ArrangePolygons &members : groups)
+        append(selected, std::move(members));
+    groups.clear();
+}
 
 } // namespace arr
 } // namespace Slic3r

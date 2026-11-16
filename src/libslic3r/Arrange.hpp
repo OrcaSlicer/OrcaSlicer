@@ -93,6 +93,10 @@ struct ArrangePolygon {
     // Zero-based nozzle owning an exclusion obstacle; -1 means shared.
     int       bed_exclusion_extruder_id{ -1 };
     double    brim_width{ 0 };     // brim width
+    // Orca: printing by object with the objects grouped by filament, the 0-based filament this object prints with
+    // alone, which puts it in one group with the other objects of that filament (see Print::sequential_print_groups());
+    // -1 when it prints alone.
+    int       print_group{ -1 };
     std::string name;
 
     // If empty, any rotation is allowed (currently unsupported)
@@ -211,6 +215,15 @@ void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPri
 void update_unselected_items_inflation(ArrangePolygons& unselected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
 
 void update_selected_items_axis_align(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
+
+// Orca: printing by object with the objects grouped by filament, the objects of a group print together, layer by layer,
+// so they only need the room they need printing by layer, and the extruder clearance stays between groups. Packs the
+// items of each group (ArrangePolygon::print_group) on the bed as when printing by layer, and puts in their place one
+// item for each bed they fill, their convex hull, at the end of selected. Call it before update_selected_items_inflation(),
+// and unpack_print_groups() with the groups it returns after the arrange.
+std::vector<ArrangePolygons> pack_print_groups(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
+// Moves the items of each group as the arrange moved the item that stood for them, and puts them back in selected.
+void unpack_print_groups(ArrangePolygons& selected, std::vector<ArrangePolygons>& groups);
 
 bool has_bed_exclusion_regions(const ArrangePolygons& polygons);
 bool bed_exclusion_applies(const ArrangePolygon& item, const ArrangePolygon& fixed_item);
