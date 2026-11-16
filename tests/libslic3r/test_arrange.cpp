@@ -28,6 +28,7 @@ using namespace Slic3r::arrangement;
 
 namespace {
 
+using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
 
 // Square of the given (scaled) side, lower-left at the origin. bed_idx starts at
@@ -251,21 +252,24 @@ TEST_CASE("Arrange spaces items by their inflation", "[Arrange]")
 
 TEST_CASE("Fill bed counts a copy with the room the arrange keeps around it", "[Arrange]")
 {
-    // Fill bed divides the free bed area by the area of one copy. A set spacing grows each side
-    // by half of it; with Spacing 0 the arrange keeps the auto spacing, half the tree support's
-    // reach with tree support, else the brim width.
-    struct Grow { double spacing_mm; bool tree_support; double brim_mm; double per_side_mm; };
-    const Grow g = GENERATE(values<Grow>({{0., true, 24., 12.}, {0., false, 6., 6.}, {6., true, 24., 3.}}));
+    // Fill bed divides the free bed area by the area of one copy grown by this room on each side.
+    // A set spacing gives half of it; with Spacing 0 the arrange keeps the auto spacing, half the
+    // tree support's reach with tree support, else the brim width. Printing by object, an object
+    // taller than the nozzle keeps half the extruder clearance.
+    struct Room { double spacing_mm; bool tree_support; double brim_mm; bool by_object; double per_side_mm; };
+    const Room r = GENERATE(values<Room>({{0., true, 24., false, 12.},
+                                          {0., false, 6., false, 6.},
+                                          {6., true, 24., false, 3.},
+                                          {0., false, 6., true, CLEARANCE_MM / 2}}));
 
-    const double       side_mm = 20.;
-    DynamicPrintConfig cfg     = bed_config();
-    ArrangePolygon     item    = squares(1, side_mm).front();
-    item.has_tree_support      = g.tree_support;
-    item.brim_width            = g.brim_mm;
+    DynamicPrintConfig  cfg     = bed_config();
+    ArrangePolygon      item    = squares(1, 20., 10 * NOZZLE_HEIGHT_MM).front();
+    item.has_tree_support       = r.tree_support;
+    item.brim_width             = r.brim_mm;
+    const coord_t       spacing = scaled(r.spacing_mm);
+    const ArrangeParams params  = r.by_object ? seq_print_params(spacing) : quiet_params(spacing);
 
-    const double grown_mm = side_mm + 2 * g.per_side_mm;
-    REQUIRE_THAT(get_inflated_item_area(item, &cfg, quiet_params(scaled(g.spacing_mm))),
-                 Catch::Matchers::WithinRel(grown_mm * grown_mm, 1e-3));
+    REQUIRE_THAT(unscaled(get_selected_item_inflation(item, &cfg, params)), WithinAbs(r.per_side_mm, 1e-2));
 }
 
 TEST_CASE("An item larger than the bed cannot be placed", "[Arrange]")
