@@ -154,8 +154,11 @@ public:
     void        process_classic();
     void        process_arachne();
 
-    void        add_infill_contour_for_arachne( ExPolygons infill_contour, int loops, coord_t ext_perimeter_spacing, coord_t perimeter_spacing, coord_t min_perimeter_infill_spacing, coord_t spacing, bool is_inner_part );
-
+    inline double get_inset(int loop_number, double perimeter_spacing, double ext_perimeter_spacing);
+    void        split_top_surfaces(ExPolygons &top_fills, ExPolygons &fill_clip, double bridge_overlap) const;
+    void        add_gap_filling(ExPolygons& gaps); 
+    void        add_infill_contour(ExPolygons& infill_contour, ExPolygons& top_expolygons, ExPolygons& infill_contour_by_one_wall, double insert, double min_spacing);
+    void        add_infill_zero_contour(ExPolygons& infill_contour); 
     double      ext_mm3_per_mm()        const { return m_ext_mm3_per_mm; }
     double      mm3_per_mm()            const { return m_mm3_per_mm; }
     double      mm3_per_mm_overhang()   const { return m_mm3_per_mm_overhang; }
@@ -169,9 +172,11 @@ public:
 
 private:
     std::vector<Polygons>     generate_lower_polygons_series(float width);
-    void split_top_surfaces(const ExPolygons &orig_polygons, ExPolygons &top_fills, ExPolygons &non_top_polygons, ExPolygons &fill_clip) const;
+    std::pair<double, double> dist_boundary(double width);
     void apply_extra_perimeters(ExPolygons& infill_area);
     void process_no_bridge(Surfaces& all_surfaces, coord_t perimeter_spacing, coord_t ext_perimeter_width);
+    // to save memory, directly modify top
+    bool should_enable_top_one_wall(const ExPolygons& original_expolys, const ExPolygons& top_expolys);
 
 private:
     bool        m_spiral_vase;
