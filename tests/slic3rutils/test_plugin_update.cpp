@@ -48,6 +48,17 @@ using tcp = boost::asio::ip::tcp;
 // expires, so the cloud agent does not try to refresh the token during a test.
 constexpr const char* FAR_FUTURE_JWT = "eyJhbGciOiJub25lIn0.eyJleHAiOjQxMDI0NDQ4MDB9.sig";
 
+// Signs a throwaway agent in for a test. The JSON overload's second argument is notify_login, not
+// persist: it forwards to the string overload, which defaults persist to true and would write the
+// fake session into the real token store. Sign in through the string overload with persist=false
+// so the tests never touch the machine's keychain.
+void sign_in_without_persisting(OrcaCloudServiceAgent& agent, const std::string& user_id)
+{
+    REQUIRE(agent.set_user_session(FAR_FUTURE_JWT, user_id,
+                                   /*username=*/"", /*nickname=*/"", /*avatar=*/"",
+                                   /*refresh_token=*/"", /*persist=*/false));
+}
+
 // The package used for both the installed plugin and its replacement. The version in the PEP 723
 // header makes the replaced file observable. When `slow` is set, the module sleeps before its
 // registration so a test can hold a load in progress.
@@ -280,7 +291,7 @@ TEST_CASE("Updating an active cloud plugin reloads it, keeps capability choices 
 
     auto agent = std::make_shared<OrcaCloudServiceAgent>((plugin_system.python_data_dir.dir / "cloud-agent").string());
     agent->set_api_base_url(api_server.url());
-    REQUIRE(agent->set_user_session(json{{"access_token", FAR_FUTURE_JWT}, {"user_id", user_id}}, false));
+    sign_in_without_persisting(*agent, user_id);
 
     PluginManager& manager = PluginManager::instance();
     manager.set_cloud_agent(agent);
@@ -330,7 +341,7 @@ TEST_CASE("Updating a deactivated cloud plugin keeps it deactivated, keeps capab
 
     auto agent = std::make_shared<OrcaCloudServiceAgent>((plugin_system.python_data_dir.dir / "cloud-agent").string());
     agent->set_api_base_url(api_server.url());
-    REQUIRE(agent->set_user_session(json{{"access_token", FAR_FUTURE_JWT}, {"user_id", user_id}}, false));
+    sign_in_without_persisting(*agent, user_id);
 
     PluginManager& manager = PluginManager::instance();
     manager.set_cloud_agent(agent);
@@ -364,7 +375,7 @@ TEST_CASE("A failed download leaves the installed package and activation intent 
 
     auto agent = std::make_shared<OrcaCloudServiceAgent>((plugin_system.python_data_dir.dir / "cloud-agent").string());
     agent->set_api_base_url(api_server.url());
-    REQUIRE(agent->set_user_session(json{{"access_token", FAR_FUTURE_JWT}, {"user_id", user_id}}, false));
+    sign_in_without_persisting(*agent, user_id);
 
     PluginManager& manager = PluginManager::instance();
     manager.set_cloud_agent(agent);
@@ -404,7 +415,7 @@ TEST_CASE("A failed install leaves the installed package and activation intent u
 
     auto agent = std::make_shared<OrcaCloudServiceAgent>((plugin_system.python_data_dir.dir / "cloud-agent").string());
     agent->set_api_base_url(api_server.url());
-    REQUIRE(agent->set_user_session(json{{"access_token", FAR_FUTURE_JWT}, {"user_id", user_id}}, false));
+    sign_in_without_persisting(*agent, user_id);
 
     PluginManager& manager = PluginManager::instance();
     manager.set_cloud_agent(agent);
@@ -461,4 +472,24 @@ TEST_CASE("An update is refused while the plugin is still loading", "[PluginUpda
     CHECK_FALSE(manager.update_cloud_plugin(uuid, retry_error, "2.0"));
     CHECK(retry_error.find("still in progress") == std::string::npos);
     CHECK(retry_error.find("already in progress") == std::string::npos);
+}
+
+TEST_CASE("A fake update session is not written to the token store", "[PluginUpdate]")
+{
+    // The isolated file backend makes persistence observable without touching the keychain.
+    ScopedTemporaryDir    secrets("orca-update-secret");
+    OrcaCloudServiceAgent agent((secrets.path() / "cloud-agent").string());
+    agent.set_use_encrypted_token_file(true);
+    agent.set_config_dir(secrets.path().string());
+
+    const fs::path secret_path = secrets.path() / secret_constants::USER_SECRET_FILENAME;
+
+    // The backend does store a secret when asked, so the check below can fail.
+    agent.persist_user_secret("refresh-token");
+    REQUIRE(fs::exists(secret_path));
+    fs::remove(secret_path);
+
+    sign_in_without_persisting(agent, "update-user");
+    CHECK(agent.get_user_id() == "update-user");
+    CHECK_FALSE(fs::exists(secret_path));
 }

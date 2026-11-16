@@ -664,9 +664,13 @@ bool install_plugin(const boost::filesystem::path& filepath, const std::string& 
 bool install_plugin(const boost::filesystem::path& filepath,
                     const std::string&             cloud_user_id,
                     PluginDescriptor&              plugin_descriptor,
-                    std::string&                   error)
+                    std::string&                   error,
+                    bool*                          install_target_intact)
 {
     namespace fs = boost::filesystem;
+
+    if (install_target_intact != nullptr)
+        *install_target_intact = true;
 
     const std::string cloud_uuid       = plugin_descriptor.cloud_uuid();
     const bool        is_cloud_install = !cloud_uuid.empty();
@@ -748,9 +752,14 @@ bool install_plugin(const boost::filesystem::path& filepath,
 
         restore_ec.clear();
         fs::rename(backup_dir, final_dir, restore_ec);
-        if (restore_ec)
+        if (restore_ec) {
             BOOST_LOG_TRIVIAL(error) << "Failed to restore plugin backup " << backup_dir.string() << " to "
                                      << final_dir.string() << ": " << restore_ec.message();
+            // The old package survives only under the backup name, where it is not usable as the
+            // installed package.
+            if (install_target_intact != nullptr)
+                *install_target_intact = false;
+        }
     };
 
     // Backup existing installation if present. The "__" prefix keeps an abandoned backup out of
@@ -798,6 +807,11 @@ bool install_plugin(const boost::filesystem::path& filepath,
             return fail(GUI::format(_u8L("Failed to write plugin install state: %1%"), (final_dir / INSTALL_STATE_FILE).string()));
         }
     }
+
+    // The replacement is committed: the package that was installed before this call no longer
+    // occupies its recorded location.
+    if (install_target_intact != nullptr)
+        *install_target_intact = false;
 
     if (backup_created) {
         boost::system::error_code remove_ec;

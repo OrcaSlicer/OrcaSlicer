@@ -272,7 +272,10 @@ public:
     // On success the previous per-capability choices are retained while every permission is reset,
     // and a loaded package is reloaded afterwards; a deactivated one keeps enabled=false in its
     // sidecar across the restart. A load already in progress makes the update fail instead of
-    // being cancelled by the replacement.
+    // being cancelled by the replacement. A failed install restores the previous permissions and
+    // reloads the old package only when that package is still present at its recorded root; a
+    // committed replacement never inherits them. The install always targets the account the update
+    // started under, and a detected account change aborts before the installed package is touched.
     bool update_cloud_plugin(const std::string& plugin_key, std::string& error, std::string version = "");
 
     bool delete_plugin(const std::string& plugin_key, std::string& error);
@@ -349,19 +352,46 @@ private:
 
     // Writes the sidecar for a loaded plugin (enabled=true plus the current per-capability flags).
     void write_loaded_plugin_install_state(const std::string& plugin_key);
-    // Persists enabled=false and mirrors it into the in-memory descriptor. Returns whether the
-    // sidecar was written; the unload path ignores the result.
-    bool mark_plugin_install_state_disabled(const std::string& plugin_key);
+    // Persists enabled=false and mirrors it into the in-memory descriptor. A sidecar that cannot be
+    // read or written is left untouched.
+    void mark_plugin_install_state_disabled(const std::string& plugin_key);
     // Revoke permissions after a package replacement so the new package must request them again.
     void revoke_plugin_permissions(const std::string& plugin_key);
 
+    // Keep the cloud install directory in step with the signed-in agent, as every cloud install
+    // must land in _subscribed/<user_id>/.
+    void sync_cloud_user_from_agent();
+
+    // What a failed cloud package install left behind, for the updater's rollback decision.
+    enum class CloudUpdateFailure {
+        PreviousPackageUsable, // the installer left the previously installed package in place
+        ReplacementInstalled,  // the replacement was installed; only the metadata update failed
+        RollbackFailed,        // the install target could not be restored; the previous package may
+                               // have lived at a different root and is then unaffected
+    };
+
+    // Installs a package. The caller holds no manager lock. cloud_user_id_override, when given, is
+    // the account directory resolved and validated by an update; otherwise the current cloud user
+    // is read after the discovery wait.
+    bool install_plugin_impl(const boost::filesystem::path& filepath,
+                             PluginDescriptor&              plugin_descriptor,
+                             const std::string*             cloud_user_id_override,
+                             std::string&                   error,
+                             bool*                          install_target_intact);
+
     // Installs an already downloaded cloud package and updates the in-memory descriptor. The
-    // caller owns the package file: it is removed here on both success and failure.
+    // caller owns the package file: it is removed here on both success and failure. cloud_user_id,
+    // when given, is the account directory the caller validated the install target against;
+    // otherwise the current cloud user is used. When the call fails, `failure` (if given) reports
+    // what was left on disk so the caller can decide whether restoring the previous package's
+    // state and reloading it is meaningful.
     bool install_cloud_plugin_package(const std::string& plugin_key,
                                       const std::string& requested_version,
                                       const boost::filesystem::path& package_path,
                                       const PluginDescriptor& descriptor,
-                                      std::string& error);
+                                      const std::string* cloud_user_id,
+                                      std::string& error,
+                                      CloudUpdateFailure* failure = nullptr);
     // Rewrites the freshly installed sidecar after a successful update: retains the previous
     // per-capability choices, clears every permission, and records the pre-update auto-load intent.
     bool write_plugin_state_after_update(const PluginDescriptor& installed,
@@ -369,7 +399,7 @@ private:
                                          bool enabled,
                                          std::string& error);
     // Puts back the sidecar (permissions, capability choices and enabled flag) that the unload
-    // step overwrote when a replacement failed and the installer restored the previous package.
+    // step overwrote when a replacement failed and the previous package is still in place.
     void restore_plugin_state_after_failed_update(const PluginDescriptor& previous,
                                                   const PluginInstallState& previous_state,
                                                   bool had_previous_state,
