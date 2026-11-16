@@ -133,7 +133,10 @@ jobs:
         with:
           path: ${{ github.workspace }}/.ccache
           key: ${{ env.CCACHE_ENTRY }}
-          restore-keys: ccache-${{ env.CCACHE_LEG }}-
+          restore-keys: |
+            ccache-${{ env.CCACHE_LEG }}-${{ github.base_ref }}-
+            ccache-${{ env.CCACHE_LEG }}-main-
+            ccache-${{ env.CCACHE_LEG }}-
 
       - name: Enable compiler cache
         if: ${{ steps.ccache.outcome == 'success' && runner.os != 'Windows' }}

@@ -107,6 +107,10 @@ jobs:
         with:
           path: ${{ steps.macos_path.outputs.path || format('{0}/{1}', github.workspace, steps.set_outputs.outputs.cache-path) }}
           key: ${{ steps.set_outputs.outputs.cache-key }}
+          restore-keys: |
+            ${{ steps.set_outputs.outputs.cache-prefix }}${github.base_ref}-
+            ${{ steps.set_outputs.outputs.cache-prefix }}main-
+            ${{ steps.set_outputs.outputs.cache-prefix }}
           lookup-only: true
         
       # A pull request that misses the cache can wait for a base branch build of the same deps.
@@ -155,6 +159,10 @@ jobs:
         with:
           path: ${{ needs.check_cache.outputs.macos-path }}
           key: ${{ needs.check_cache.outputs.cache-key }}
+          restore-keys: |
+            ${{ needs.check_cache.outputs.cache-prefix }}${github.base_ref}-
+            ${{ needs.check_cache.outputs.cache-prefix }}main-
+            ${{ needs.check_cache.outputs.cache-prefix }}
           lookup-only: true
 
   # Hosted macOS runners are scarce, so a pull request's macOS build waits until

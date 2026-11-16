@@ -87,7 +87,10 @@ jobs:
         with:
           path: ${{ github.workspace }}/${{ inputs.cache-path }}
           key: ${{ inputs.cache-key }}
-          restore-keys: ${{ inputs.cache-prefix }}
+          restore-keys: |
+            ${{ inputs.cache-prefix }}${github.base_ref}-
+            ${{ inputs.cache-prefix }}main-
+            ${{ inputs.cache-prefix }}
 
       - uses: lukka/get-cmake@latest
         with:

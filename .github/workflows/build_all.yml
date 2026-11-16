@@ -139,30 +139,34 @@ jobs:
       clean: ${{ inputs.clean-build || false }}
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
+  
   build_macos_arch:
-    # Disabled on fork: self-hosted macOS runner not available
-    if: ${{ github.repository == 'OrcaSlicer/OrcaSlicer' }}
     strategy:
       fail-fast: false
       matrix:
         arch: [arm64, x86_64]
+    needs: check_build_script
+    if: ${{ !cancelled() && needs.check_build_script.result == 'success' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
       os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
       arch: ${{ matrix.arch }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
+      clean: ${{ inputs.clean-build || false }}
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
+  
   build_macos_universal:
-    # Disabled on fork: self-hosted macOS runner not available
-    if: ${{ github.repository == 'OrcaSlicer/OrcaSlicer' }}
     name: Build macOS Universal
+    needs: build_macos_arch
+    if: ${{ !cancelled() && needs.build_macos_arch.result == 'success' && !inputs.build-deps-only && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_orca.yml
     with:
       os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
       arch: universal
       macos-combine-only: true
     secrets: inherit
+  
   build_linux:
     strategy:
       fail-fast: false
@@ -172,6 +176,12 @@ jobs:
             os: ubuntu-24.04
             compiler: clang
             preset: x64-clang
+            flags: -l -x
+            script: ps1
+          - arch: aarch64
+            os: ubuntu-24.04-arm
+            compiler: clang
+            preset: aarch64-clang
             flags: -l -x
             script: ps1
     needs: check_build_script
@@ -188,12 +198,25 @@ jobs:
       clean: ${{ inputs.clean-build || false }}
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
+
+  unit_tests_linux_x86_64:
+    name: Linux x86_64
+    needs: build_linux
+    if: ${{ !cancelled() && success() }}
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }}
+      artifact: ${{ github.sha }}-tests-linux-x86_64
+  
   unit_tests_linux_aarch64:
     name: Linux aarch64
+    needs: build_linux
+    if: ${{ !cancelled() && success() && !vars.SELF_HOSTED }}
     uses: ./.github/workflows/unit_tests.yml
     with:
       os: ubuntu-24.04-arm
       artifact: ${{ github.sha }}-tests-linux-aarch64
+  
   unit_tests_windows_x64_clang:
     name: Windows x64 (clang-cl + Ninja)
     needs: build_windows
@@ -202,8 +225,37 @@ jobs:
     with:
       os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-latest' }}
       artifact: ${{ github.sha }}-tests-windows-x64-x64-clang
-  # macOS and ARM64 tests disabled on fork (no self-hosted runners available)
-  # Re-enable on upstream: OrcaSlicer/OrcaSlicer
+  
+  unit_tests_windows_arm64:
+    name: Windows arm64
+    needs: build_windows
+    if: ${{ !cancelled() && success() && !vars.SELF_HOSTED }}
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: windows-11-vs2026-arm
+      artifact: ${{ github.sha }}-tests-windows-arm64-arm64-clang
+      test-dir: build-arm64/tests
+  
+  unit_tests_macos_arm64:
+    name: macOS arm64
+    needs: build_macos_arch
+    if: ${{ !cancelled() && success() }}
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
+      artifact: ${{ github.sha }}-tests-macos-arm64
+      test-dir: build/arm64/tests
+  
+  unit_tests_macos_x86_64:
+    name: macOS x86_64
+    needs: build_macos_arch
+    if: ${{ !cancelled() && success() }}
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
+      artifact: ${{ github.sha }}-tests-macos-x86_64
+      test-dir: build/x86_64/tests
+
   # Slice a two-colour cube through every shipped printer, and through every
   # system process/filament whose templates no printer's own slice reaches, so
   # every custom g-code and filename_format shipped is expanded (names in {if}
@@ -212,9 +264,9 @@ jobs:
   # Profile-only PRs are covered by check_profiles.yml's nightly binary; this
   # covers src/engine PRs with the PR-built binary.
   slice_check_linux:
-    # TEMPORARILY DISABLED: Windows-only testing
-    if: false
     name: Slice check (Linux ${{ vars.SELF_HOSTED && 'x86_64' || 'aarch64' }})
+    needs: build_linux
+    if: ${{ !cancelled() && success() }}
     # Follows whichever Linux leg built the validator.
     runs-on: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04-arm' }}
     steps:
@@ -230,9 +282,10 @@ jobs:
         run: |
           chmod +x validator-bin/OrcaSlicer_profile_validator
           ./validator-bin/OrcaSlicer_profile_validator -p "${{ github.workspace }}/resources/profiles" -s -l 2
+
   publish_test_results:
     name: Publish Test Results
-    needs: [unit_tests_windows_x64_clang]
+    needs: [unit_tests_linux_x86_64, unit_tests_linux_aarch64, unit_tests_windows_x64_clang, unit_tests_windows_arm64, unit_tests_macos_arm64, unit_tests_macos_x86_64]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
@@ -254,9 +307,8 @@ jobs:
         with:
           name: test-results-*
           failOnError: false
+
   flatpak:
-    # Disabled on fork: requires specific container setup
-    if: ${{ github.repository == 'OrcaSlicer/OrcaSlicer' }}
     name: "Flatpak"
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
@@ -276,6 +328,7 @@ jobs:
           - arch: aarch64
             runner: ubuntu-24.04-arm
     # Don't run scheduled builds on forks; skip entirely on self-hosted runners
+    if: ${{ !cancelled() && !vars.SELF_HOSTED && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
 
     runs-on: ${{ matrix.variant.runner }}
     env:
@@ -333,18 +386,20 @@ jobs:
         enableCrossOsArchive: false
     - name: Cleanup flatpak-builder
       run: rm -rf .flatpak-builder/build
+  
   unit_tests_flatpak_x86_64:
-    # TEMPORARILY DISABLED: Windows-only testing
-    if: false
     name: Flatpak x86_64
+    needs: flatpak
+    if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests_flatpak.yml
     with:
       os: ubuntu-24.04
       artifact: ${{ github.sha }}-flatpak-tests-x86_64
+  
   unit_tests_flatpak_aarch64:
-    # TEMPORARILY DISABLED: Windows-only testing
-    if: false
     name: Flatpak aarch64
+    needs: flatpak
+    if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests_flatpak.yml
     with:
       os: ubuntu-24.04-arm
