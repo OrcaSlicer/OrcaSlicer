@@ -137,25 +137,6 @@ bool PluginManager::initialize()
     // Uninstalled in shutdown() before the interpreter finalizes.
     plugin_hooks::install();
 
-    // Persist auto-load / capability state to each plugin's .install_state.json sidecar.
-    // On load: write enabled=true plus the current capability flags. On unload: flip enabled=false.
-    // The on-unload callback is skipped during shutdown, so app exit does not wipe the auto-load list.
-    subscribe_on_load_callback([this](const std::string& key) { write_loaded_plugin_install_state(key); });
-    subscribe_on_unload_callback([this](const std::string& key) {
-        if (m_shutting_down.load(std::memory_order_acquire))
-            return;
-        std::lock_guard<std::mutex> state_lock(install_state_mutex());
-        PluginDescriptor descriptor;
-        if (!try_get_plugin_descriptor(key, descriptor) || descriptor.plugin_root.empty())
-            return;
-        const boost::filesystem::path root(descriptor.plugin_root);
-        PluginInstallState state;
-        if (read_install_state(root, state)) {
-            state.enabled = false;
-            write_install_state(root, state);
-        }
-    });
-
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Plugin manager initialized";
 
     return true;
@@ -1075,6 +1056,11 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
 
     clear_plugin_error(plugin_key);
 
+    // Persist only after the plugin is committed as loaded. Lifecycle callbacks are dispatched
+    // asynchronously from worker threads and must not own sidecar persistence.
+    if (!m_shutting_down.load(std::memory_order_acquire))
+        write_loaded_plugin_install_state(plugin_key);
+
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_load_errors.erase(plugin_key);
@@ -1128,8 +1114,10 @@ bool PluginManager::unload_plugin(const std::string& plugin_key)
     // Teardown runs outside m_mutex: it calls into Python and must not hold the registry lock.
     plugin_loader::unload(removed);
 
-    // The .install_state.json sidecar is flipped to enabled=false by the on-unload callback
-    // (skipped during shutdown), so the auto-load list survives app exit.
+    // Persist before returning: callers may delete or replace the plugin directory next.
+    if (!m_shutting_down.load(std::memory_order_acquire))
+        mark_plugin_install_state_disabled(plugin_key);
+
     BOOST_LOG_TRIVIAL(info) << "Unloaded plugin: " << plugin_key;
 
     return true;
