@@ -46,17 +46,16 @@ public:
 
     void SetBorderColor(StateColor const &color);
 
-    bool SetFont(const wxFont &set_font) override;
-
     bool Enable(bool enable) override;
 
     // Only meant to be used by inspector, not public API
     int        GetCornerRadius() const { return m_radius; }
     int        GetBorderWidth() const  { return m_border_width; }
     StateColor GetBorderColor() const  { return border_color; }
-    float      GetScale() const        { return m_scale; }
+    float      GetScale() const        { return FromDIP(100) / 100.f; }
 
 private:
+    wxFont scaled_font() const;
     void PickDC(wxDC& dc);
 
 protected:
@@ -66,11 +65,7 @@ protected:
     StateColor   background_color;
     int          m_border_width;
     int          m_radius;
-    wxFont       m_font;
     wxString     m_label;
-    int          m_label_height;
-    int          m_label_width;
-    float        m_scale;
     wxPoint      m_pos;
 
     virtual void DrawBorderAndLabel(wxDC& dc);

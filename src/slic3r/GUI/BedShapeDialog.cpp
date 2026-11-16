@@ -194,13 +194,16 @@ void BedShapeDialog::on_dpi_changed(const wxRect &suggested_rect)
     m_panel->m_shape_combo->Rescale();
     m_panel->m_shape_combo->SetMinSize({-1, 3 * em}); // Fix combo size on scale
 
-    for (auto og : m_panel->m_optgroups)
+    for (auto og : m_panel->m_optgroups) {
         og->msw_rescale();
+        og->parent()->Layout();
+    }
 
-    const wxSize& size = wxSize(64 * em, -1);
+    m_panel->m_shape_options_book->Layout();
+    m_panel->GetSizer()->SetSizeHints(m_panel);
 
-    SetMinSize(size);
-    SetSize(size);
+    SetMinSize(wxSize(64 * em, -1));
+    Fit();
 
     Refresh();
 }
