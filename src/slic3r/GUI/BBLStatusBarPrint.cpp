@@ -9,6 +9,7 @@
 #include <utility>
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
 #include <cstddef>
 #include <wx/timer.h>
 #include <wx/gauge.h>
@@ -22,6 +23,11 @@
 
 #include <iostream>
 #include <regex>
+
+#ifdef __WXGTK__
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#endif
 
 namespace Slic3r {
 
@@ -99,9 +105,20 @@ BBLStatusBarPrint::BBLStatusBarPrint(wxWindow *parent, int id)
     m_sizer_status_text->Add(m_static_bitmap_show_error, 0, wxALIGN_CENTER, 0);
 
 
-    m_prog = new wxGauge(m_self, wxID_ANY, 100, wxDefaultPosition, wxSize(-1, m_self->FromDIP(6)), wxGA_HORIZONTAL);
-    m_prog->SetMinSize(wxSize(m_self->FromDIP(520), m_self->FromDIP(6)));
-    m_prog->SetMaxSize(wxSize(m_self->FromDIP(520), m_self->FromDIP(6)));
+    m_prog = new wxGauge(m_self, wxID_ANY, 100, wxDefaultPosition, wxSize(-1, m_self->FromDIP(8)), wxGA_HORIZONTAL);
+    m_prog->SetMinSize(wxSize(m_self->FromDIP(520), m_self->FromDIP(8)));
+    m_prog->SetMaxSize(wxSize(m_self->FromDIP(520), m_self->FromDIP(8)));
+#ifdef __WXGTK__
+    SetGaugeColor(m_prog, 
+        StateColor::darkModeColorFor(wxColour("#009688")).GetAsString(), 
+        StateColor::darkModeColorFor(wxColour("#D9D9D9")).GetAsString()
+    );
+#else
+    m_prog->Pulse(); // colors not applied without this. probably it switches to a dc painted version of progressbar
+    m_prog->SetForegroundColour(wxColour("#009688"));
+    m_prog->SetBackgroundColour(wxColour("#D9D9D9"));
+    Slic3r::GUI::wxGetApp().UpdateDarkUI(m_prog);
+#endif
     m_prog->SetValue(0);
 
     m_sizer_bottom->Add(m_prog, 1, wxALIGN_CENTER, 0);

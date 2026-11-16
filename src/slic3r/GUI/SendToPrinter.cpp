@@ -37,6 +37,7 @@
 #include <memory>
 #include "slic3r/GUI/BBLStatusBarSend.hpp"
 #include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include <slic3r/GUI/Widgets/StaticLine.hpp>
 #include <wx/chartype.h>
 #include <wx/busycursor.h>
 #include <boost/log/trivial.hpp>
@@ -305,6 +306,11 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     m_panel_image->SetSizer(sizer_thumbnail);
     m_panel_image->Layout();
 
+    auto m_model_title = new StaticLine(m_scrollable_region, false, _L("Model Information"));
+    m_model_title->SetFont(::Label::Head_14);
+    m_model_title->SetForegroundColour(0x363636);
+    m_model_title->SetBackgroundColour(m_colour_def_color);
+
     wxBoxSizer *m_sizer_basic        = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer *m_sizer_basic_weight = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer *m_sizer_basic_time   = new wxBoxSizer(wxHORIZONTAL);
@@ -314,7 +320,7 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     m_stext_time = new wxStaticText(m_scrollable_region, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT);
     m_sizer_basic_weight->Add(m_stext_time, 0, wxALL, FromDIP(5));
     m_sizer_basic->Add(m_sizer_basic_weight, 0, wxALIGN_CENTER, 0);
-    m_sizer_basic->Add(0, 0, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(30));
+    m_sizer_basic->Add(0, 0, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(15));
 
     auto weightimg = new wxStaticBitmap(m_scrollable_region, wxID_ANY, create_scaled_bitmap("print-weight", this, 18), wxDefaultPosition, wxSize(FromDIP(18), FromDIP(18)), 0);
     m_sizer_basic_time->Add(weightimg, 1, wxEXPAND | wxALL, FromDIP(5));
@@ -322,20 +328,11 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     m_sizer_basic_time->Add(m_stext_weight, 0, wxALL, FromDIP(5));
     m_sizer_basic->Add(m_sizer_basic_time, 0, wxALIGN_CENTER, 0);
 
-    m_line_materia = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
-    m_line_materia->SetForegroundColour(wxColour(238, 238, 238));
-    m_line_materia->SetBackgroundColour(wxColour(238, 238, 238));
-
     wxBoxSizer *m_sizer_printer = new wxBoxSizer(wxHORIZONTAL);
 
-    m_stext_printer_title = new wxStaticText(this, wxID_ANY, _L("Printer"), wxDefaultPosition, wxSize(-1, -1), 0);
-    m_stext_printer_title->SetFont(::Label::Head_14);
-    m_stext_printer_title->Wrap(-1);
-    m_stext_printer_title->SetForegroundColour(m_colour_bold_color);
-    m_stext_printer_title->SetBackgroundColour(m_colour_def_color);
-
-    m_sizer_printer->Add(m_stext_printer_title, 0, wxALL | wxLEFT, FromDIP(5));
-    m_sizer_printer->Add(0, 0, 0, wxEXPAND | wxLEFT, FromDIP(12));
+    auto m_printer_title = new StaticLine(this, false, _L("Printer"));
+    m_printer_title->SetFont(::Label::Head_14);
+    m_printer_title->SetForegroundColour(0x363636);
 
     m_comboBox_printer = new ::ComboBox(this, wxID_ANY, "", wxDefaultPosition, wxSize(FromDIP(250), -1), 0, nullptr, wxCB_READONLY);
     m_comboBox_printer->Bind(wxEVT_COMBOBOX, &SendToPrinterDialog::on_selection_changed, this);
@@ -381,9 +378,6 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     m_connecting_panel->Fit();
     m_connecting_panel->Hide();
 
-    // line schedule
-    m_line_schedule = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 1));
-    m_line_schedule->SetBackgroundColour(wxColour(238, 238, 238));
     m_simplebook   = new wxSimplebook(this, wxID_ANY, wxDefaultPosition, SELECT_MACHINE_DIALOG_SIMBOOK_SIZE, 0);
 
     // perpare mode
@@ -393,7 +387,7 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     wxBoxSizer *m_sizer_prepare = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *m_sizer_pcont   = new wxBoxSizer(wxHORIZONTAL);
 
-    m_sizer_prepare->Add(0, 0, 1, wxTOP, FromDIP(22));
+    m_sizer_prepare->Add(0, 0, 1, wxTOP, FromDIP(15));
     m_sizer_pcont->Add(0, 0, 1, wxEXPAND, 0);
     m_button_ensure = new Button(m_panel_prepare, _L("Send"));
     m_button_ensure->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
@@ -525,6 +519,8 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
 
     m_sizer_scrollable_region->Add(m_panel_image, 0, wxALIGN_CENTER_HORIZONTAL, 0);
     m_sizer_scrollable_region->Add(0, 0, 0, wxTOP, FromDIP(10));
+    m_sizer_scrollable_region->Add(m_model_title, 0, wxEXPAND);
+    m_sizer_scrollable_region->AddSpacer(FromDIP(5));
     m_sizer_scrollable_region->Add(m_sizer_basic, 0, wxALIGN_CENTER_HORIZONTAL, 0);
 	m_scrollable_region->SetSizer(m_sizer_scrollable_region);
 	m_scrollable_region->Layout();
@@ -616,19 +612,18 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
 
     m_sizer_main->Add(m_line_top, 0, wxEXPAND, 0);
     m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(10));
-    m_sizer_main->Add(m_scrollable_region, 0, wxALIGN_CENTER_HORIZONTAL, 0);
+    m_sizer_main->Add(m_scrollable_region, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(15));
     m_sizer_main->Add(0, 0, 0, wxEXPAND | wxTOP, FromDIP(6));
     m_sizer_main->Add(m_rename_switch_panel, 0, wxALIGN_CENTER_HORIZONTAL, 0);
-    m_sizer_main->Add(0, 0, 0, wxEXPAND | wxTOP, FromDIP(6));
-    m_sizer_main->Add(m_line_materia, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(30));
     m_sizer_main->Add(0, 0, 0, wxEXPAND | wxTOP, FromDIP(12));
-    m_sizer_main->Add(m_sizer_printer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(30));
+    m_sizer_main->Add(m_printer_title, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(15));
+    m_sizer_main->AddSpacer(FromDIP(10));
+    m_sizer_main->Add(m_sizer_printer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(15));
     m_sizer_main->Add(m_storage_panel, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP , FromDIP(8));
     m_sizer_main->Add(0, 0, 0, wxEXPAND | wxTOP, FromDIP(11));
     m_sizer_main->Add(m_statictext_printer_msg, 0, wxALIGN_CENTER_HORIZONTAL, 0);
     m_sizer_main->Add(m_connecting_panel, 0, wxALIGN_CENTER_HORIZONTAL, 0);
-    m_sizer_main->Add(0, 1, 0, wxTOP, FromDIP(22));
-    m_sizer_main->Add(m_line_schedule, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(30));
+    m_sizer_main->Add(0, 1, 0, wxTOP, FromDIP(15));
     m_sizer_main->Add(m_simplebook, 0, wxALIGN_CENTER_HORIZONTAL, 0);
     m_sizer_main->Add(m_sw_print_failed_info, 0, wxALIGN_CENTER, 0);
     m_sizer_main->Add(0, 0, 0, wxEXPAND | wxTOP, FromDIP(13));

@@ -303,6 +303,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     auto m_model_title = new StaticLine(m_basic_panel, false, _L("Model Information"));
     m_model_title->SetFont(::Label::Head_14);
     m_model_title->SetForegroundColour(0x363636);
+    m_model_title->SetBackgroundColour(*wxWHITE);
 
     /*rename*/
     auto sizer_rename = new wxBoxSizer(wxHORIZONTAL);
@@ -458,7 +459,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
 
 
     m_basicl_sizer->Add(m_sizer_thumbnail_area, 0, wxLEFT, 0);
-    m_basicl_sizer->Add(0, 0, 0, wxLEFT, FromDIP(8));
+    m_basicl_sizer->Add(0, 0, 0, wxLEFT, FromDIP(15));
     m_basicl_sizer->Add(sizer_basic_right_info, 1, wxLEFT, 0);
 
     m_basic_panel->SetSizer(m_basicl_sizer);
@@ -572,6 +573,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     /*ams mapping suggestions*/
 
     m_link_edit_nozzle = new HyperLink(m_scroll_area, _L("Not satisfied with the grouping of filaments? Regroup and slice ->"));
+    m_link_edit_nozzle->SetFont(Label::Body_13);
     m_link_edit_nozzle->Bind(wxEVT_LEFT_DOWN, [this](auto &e) {
 
         if (m_is_in_sending_mode) {
@@ -592,13 +594,11 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     m_check_ext_change_assist = new LabeledCheckBox(m_scroll_area, _L("Multi-color with external"));
     m_check_ext_change_assist->SetValue(false);
     m_check_ext_change_assist->SetToolTip(_L("Manually change external spool during printing for multi-color printing"));
-    m_check_ext_change_assist->Wrap(FromDIP(200));
     m_check_ext_change_assist->Hide();
 
-    wxSizer* suggestion_sizer = new wxBoxSizer(wxHORIZONTAL);
-    suggestion_sizer->Add(m_link_edit_nozzle, 0, wxALIGN_CENTER_VERTICAL);
-    suggestion_sizer->Add(0, 0, 1, wxEXPAND, 0);
-    suggestion_sizer->Add(m_check_ext_change_assist, 0, wxALIGN_CENTER_VERTICAL);
+    wxSizer* suggestion_sizer = new wxBoxSizer(wxVERTICAL); // ORCA use vertical layout for ensuring all items fits without wrapping
+    suggestion_sizer->Add(m_link_edit_nozzle, 0, wxBOTTOM, FromDIP(5));
+    suggestion_sizer->Add(m_check_ext_change_assist, 0, wxALIGN_RIGHT);
 
     m_mapping_sugs_sizer = new wxBoxSizer(wxHORIZONTAL);
     //auto m_img_mapping_sugs = new wxStaticBitmap(this, wxID_ANY, create_scaled_bitmap("warning", this, 16), wxDefaultPosition, wxSize(FromDIP(16), FromDIP(16)));
@@ -883,7 +883,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(10));
     m_scroll_sizer->Add(m_warn_when_drying_sizer, 0, wxLEFT|wxRIGHT, FromDIP(15));
     m_scroll_sizer->Add(sizer_split_options, 1, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(15));
-    //m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(10));
+    m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(5));
     m_scroll_sizer->Add(m_options_other, 0, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(15));
     m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(30));
 
