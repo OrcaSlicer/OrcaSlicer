@@ -1725,6 +1725,9 @@ Polygons compacted_wipe_tower_rings(const CompactedTowerZone &zone, bool any_bod
 // it ends up buried inside the mesh.
 Polygon compacted_wipe_tower_offender_outline(const Polygon &inst_hull, double body_clearance);
 
+// Orca: outward serpentines (expansion joints) in a convex draft shield loop next to its sharp corners.
+Polygon draft_shield_serpentines(const Polygon &loop, double depth_mm, double pitch_mm, int serpentines_per_corner);
+
 } /* slic3r_Print_hpp_ */
 
 #endif

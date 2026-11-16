@@ -993,6 +993,20 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("single_loop_draft_shield", have_skirt, -1, skirt_reason); // ORCA: Display one wall if skirt enabled
     for (auto el : {"skirt_type", "min_skirt_length", "skirt_distance", "skirt_start_angle", "skirt_speed", "draft_shield"})
         toggle_field(el, have_skirt, -1, skirt_reason);
+    // Orca: draft shield options against warping
+    const bool have_shield = have_skirt && config->opt_enum<DraftShield>("draft_shield") == dsEnabled;
+    const wxString shield_reason = _L("Use a non-belt printer with skirt loops above zero and enable the draft shield to use this setting.");
+    for (auto el : {"draft_shield_brim_width", "draft_shield_serpentine_depth", "draft_shield_speed", "draft_shield_first_layer_flow_ratio"})
+        toggle_field(el, have_shield, -1, shield_reason);
+    const bool have_shield_brim = have_shield && config->opt_float("draft_shield_brim_width") > 0.;
+    const wxString shield_brim_reason = have_shield ? _L("Set the draft shield brim width above zero to use this setting.") : shield_reason;
+    toggle_field("draft_shield_fillet_width", have_shield_brim, -1, shield_brim_reason);
+    toggle_field("draft_shield_fillet_layers", have_shield_brim && config->opt_float("draft_shield_fillet_width") > 0., -1,
+                 have_shield_brim ? _L("Set the draft shield fillet width above zero to use this setting.") : shield_brim_reason);
+    const bool have_serpentines = have_shield && config->opt_float("draft_shield_serpentine_depth") > 0.;
+    for (auto el : {"draft_shield_serpentine_pitch", "draft_shield_serpentine_count"})
+        toggle_field(el, have_serpentines, -1,
+                     have_shield ? _L("Set the draft shield serpentine depth above zero to use this setting.") : shield_reason);
     if (is_belt_printer) {
         const wxString belt_skirt_reason = _L("Skirts are unavailable for belt printers.");
         toggle_field("skirt_loops", false, -1, belt_skirt_reason);
@@ -1015,7 +1029,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // On a tilted belt Auto / Mouse ear / Painted all collapse to outer-only at the
     // configured width, so the width field has to stay live for them too.
     toggle_field("brim_width", have_brim_width || (have_brim && is_belt_tilted), -1, _L("Select a brim type with an editable width, or enable a brim on a tilted belt printer."));
-    toggle_field("brim_flow_ratio", have_brim, -1, brim_reason);
+    // Orca: the draft shield brim is printed as a brim too.
+    toggle_field("brim_flow_ratio", have_brim || have_shield_brim, -1, brim_reason);
     // Paired toggle_line + toggle_field: cb_toggle_line is null in the per-object
     // override panel, so the row cannot be hidden there and greying out is the
     // fallback.  Both extras are belt-only: one extends the brim ahead along the belt,

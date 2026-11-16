@@ -775,6 +775,8 @@ protected:
     OozePrevention                      m_ooze_prevention;
     Wipe                                m_wipe;
     AvoidCrossingPerimeters             m_avoid_crossing_perimeters;
+    // Orca: when > 0, replaces skirt_speed for the draft shield walls being extruded (draft_shield_speed).
+    double                              m_skirt_speed_override { 0. };
     ExclusionVolumeTravelAvoidance      m_exclusion_volume_travel_avoidance;
     RetractWhenCrossingPerimeters       m_retract_when_crossing_perimeters;
     TimelapsePosPicker                  m_timelapse_pos_picker;
