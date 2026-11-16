@@ -799,15 +799,12 @@ bool install_plugin(const boost::filesystem::path& filepath,
     // install-state mutex so it cannot interleave with an in-process read-modify-write writer.
     {
         std::lock_guard<std::mutex> state_lock(install_state_mutex());
-        PluginDescriptor            installed_entry = plugin_descriptor;
-        if (is_cloud_install)
-            installed_entry.cloud = CloudPluginState{cloud_uuid, true, false, false, plugin_descriptor.cloud->is_mine};
 
         // Seed the metadata of the package being installed. An update supplies the previous
         // activation and capability choices; permissions are always reset because the new
         // executable code must request them again.
         PluginInstallState state;
-        seed_install_metadata(state, installed_entry);
+        seed_install_metadata(state, plugin_descriptor);
         if (preserved_state != nullptr) {
             state.enabled      = preserved_state->enabled;
             state.capabilities = preserved_state->capabilities;

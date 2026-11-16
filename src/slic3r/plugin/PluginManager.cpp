@@ -2213,16 +2213,16 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
         return false;
     }
 
-    // Resolve the account directory before touching the installed package. The account must still
-    // be the one captured before the download: a sign-in/sign-out or account switch while it ran
-    // would otherwise install the replacement into a different user's directory. The validated id
-    // is passed to the installer, so a change after this check cannot redirect the install either.
-    std::string install_cloud_user;
+    // Check the account before touching the installed package. It must still be the one captured
+    // before the download: a sign-in/sign-out or account switch while it ran would otherwise
+    // install the replacement into a different user's directory. The pinned id is passed to the
+    // installer, so a change after this check cannot redirect the install either.
+    bool account_changed = false;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        install_cloud_user = m_cloud_user_id;
+        account_changed = m_cloud_user_id != update_cloud_user;
     }
-    if (install_cloud_user.empty() || install_cloud_user != update_cloud_user) {
+    if (account_changed) {
         error = _u8L("The cloud account changed while the plugin was updating. Please try again.");
         boost::system::error_code ec;
         boost::filesystem::remove(download.package_path, ec);
@@ -2236,7 +2236,7 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
         bool resolved_allowed_plugin_root = false;
         {
             std::lock_guard<std::mutex> lock(m_mutex);
-            resolved_allowed_plugin_root = resolve_allowed_plugin_root(previous, get_plugin_directories(install_cloud_user),
+            resolved_allowed_plugin_root = resolve_allowed_plugin_root(previous, get_plugin_directories(update_cloud_user),
                                                                        _u8L("Refusing to delete a plugin outside the known plugin directories."),
                                                                        resolved_root, error);
         }
@@ -2264,7 +2264,7 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
             preserved_state.capabilities = previous_state.capabilities;
     }
 
-    if (!install_cloud_plugin_package(plugin_key, version, download.package_path, previous, &install_cloud_user, install_error,
+    if (!install_cloud_plugin_package(plugin_key, version, download.package_path, previous, &update_cloud_user, install_error,
                                       &failure, had_local_package ? &preserved_state : nullptr)) {
         // Restoring the old state and reloading the old package is only meaningful when the
         // installer left that package in place. A committed replacement must not inherit the old
@@ -2279,7 +2279,7 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
         if (failure == CloudUpdateFailure::RollbackFailed && had_local_package && !resolved_root.empty() &&
             !previous.cloud_uuid().empty()) {
             const boost::filesystem::path install_target =
-                boost::filesystem::path(get_cloud_plugin_dir(install_cloud_user)) / previous.cloud_uuid();
+                boost::filesystem::path(get_cloud_plugin_dir(update_cloud_user)) / previous.cloud_uuid();
             boost::system::error_code target_ec;
             const boost::filesystem::path target_root = boost::filesystem::weakly_canonical(install_target, target_ec);
             if (!target_ec && resolved_root != target_root) {
@@ -2352,13 +2352,6 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
         }
     };
 
-    if (!was_enabled) {
-        remove_stale_old_package();
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Cloud plugin " << plugin_key
-                                << " updated and kept deactivated";
-        return true;
-    }
-
     if (was_loaded) {
         // The package is already installed and its state persisted, so a failure here is reported
         // as a reload failure rather than hiding the successful update.
@@ -2371,6 +2364,9 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
         }
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Cloud plugin " << plugin_key
                                 << " updated and reloaded";
+    } else if (!was_enabled) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Cloud plugin " << plugin_key
+                                << " updated and kept deactivated";
     }
 
     remove_stale_old_package();

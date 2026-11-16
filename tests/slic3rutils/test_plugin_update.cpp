@@ -272,6 +272,23 @@ void check_untouched_state(const fs::path& plugin_dir, const fs::path& entry_pat
     CHECK(state.permissions.fs_read == std::vector<std::string>{"/old/grant"});
 }
 
+// Signs a throwaway agent in for `user_id`, points it at `api_url`, hands it to the manager and
+// rebuilds the registry from the data directory. The manager keeps the agent alive, and
+// `plugin_system` owns the data directory its config lives in, so neither outlives the test.
+PluginManager& start_update_session(ScopedPluginManager& plugin_system, const std::string& user_id,
+                                    const std::string& api_url)
+{
+    auto agent = std::make_shared<OrcaCloudServiceAgent>((plugin_system.python_data_dir.dir / "cloud-agent").string());
+    agent->set_api_base_url(api_url);
+    sign_in_without_persisting(*agent, user_id);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.set_cloud_agent(agent);
+    manager.set_cloud_user(user_id);
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    return manager;
+}
+
 } // namespace
 
 TEST_CASE("Updating an active cloud plugin reloads it, keeps capability choices and resets permissions",
@@ -289,14 +306,7 @@ TEST_CASE("Updating an active cloud plugin reloads it, keeps capability choices 
     OneShotHttpServer api_server(download_response(uuid, package_server.url() + "/Cloud_Update_Plugin.py"),
                                  "application/json");
 
-    auto agent = std::make_shared<OrcaCloudServiceAgent>((plugin_system.python_data_dir.dir / "cloud-agent").string());
-    agent->set_api_base_url(api_server.url());
-    sign_in_without_persisting(*agent, user_id);
-
-    PluginManager& manager = PluginManager::instance();
-    manager.set_cloud_agent(agent);
-    manager.set_cloud_user(user_id);
-    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    PluginManager& manager = start_update_session(plugin_system, user_id, api_server.url());
 
     std::string load_error;
     manager.load_plugin(uuid, /*skip_deps=*/true);
@@ -339,14 +349,7 @@ TEST_CASE("Updating a deactivated cloud plugin keeps it deactivated, keeps capab
     OneShotHttpServer api_server(download_response(uuid, package_server.url() + "/Cloud_Update_Plugin.py"),
                                  "application/json");
 
-    auto agent = std::make_shared<OrcaCloudServiceAgent>((plugin_system.python_data_dir.dir / "cloud-agent").string());
-    agent->set_api_base_url(api_server.url());
-    sign_in_without_persisting(*agent, user_id);
-
-    PluginManager& manager = PluginManager::instance();
-    manager.set_cloud_agent(agent);
-    manager.set_cloud_user(user_id);
-    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    PluginManager& manager = start_update_session(plugin_system, user_id, api_server.url());
 
     ScopedEnvVar no_proxy{"no_proxy", "127.0.0.1"};
 
@@ -373,14 +376,7 @@ TEST_CASE("A failed download leaves the installed package and activation intent 
 
     OneShotHttpServer api_server(missing_version_response(uuid), "application/json");
 
-    auto agent = std::make_shared<OrcaCloudServiceAgent>((plugin_system.python_data_dir.dir / "cloud-agent").string());
-    agent->set_api_base_url(api_server.url());
-    sign_in_without_persisting(*agent, user_id);
-
-    PluginManager& manager = PluginManager::instance();
-    manager.set_cloud_agent(agent);
-    manager.set_cloud_user(user_id);
-    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    PluginManager& manager = start_update_session(plugin_system, user_id, api_server.url());
 
     ScopedEnvVar no_proxy{"no_proxy", "127.0.0.1"};
 
@@ -413,14 +409,7 @@ TEST_CASE("A failed install leaves the installed package and activation intent u
                                      "application/octet-stream");
     OneShotHttpServer api_server(download_response(uuid, package_server.url() + "/broken.py"), "application/json");
 
-    auto agent = std::make_shared<OrcaCloudServiceAgent>((plugin_system.python_data_dir.dir / "cloud-agent").string());
-    agent->set_api_base_url(api_server.url());
-    sign_in_without_persisting(*agent, user_id);
-
-    PluginManager& manager = PluginManager::instance();
-    manager.set_cloud_agent(agent);
-    manager.set_cloud_user(user_id);
-    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    PluginManager& manager = start_update_session(plugin_system, user_id, api_server.url());
 
     ScopedEnvVar no_proxy{"no_proxy", "127.0.0.1"};
 
@@ -451,14 +440,7 @@ TEST_CASE("A failed install that reloads the previous version does not mark the 
                                      "application/octet-stream");
     OneShotHttpServer api_server(download_response(uuid, package_server.url() + "/broken.py"), "application/json");
 
-    auto agent = std::make_shared<OrcaCloudServiceAgent>((plugin_system.python_data_dir.dir / "cloud-agent").string());
-    agent->set_api_base_url(api_server.url());
-    sign_in_without_persisting(*agent, user_id);
-
-    PluginManager& manager = PluginManager::instance();
-    manager.set_cloud_agent(agent);
-    manager.set_cloud_user(user_id);
-    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    PluginManager& manager = start_update_session(plugin_system, user_id, api_server.url());
 
     std::string load_error;
     manager.load_plugin(uuid, /*skip_deps=*/true);
@@ -518,14 +500,7 @@ TEST_CASE("A failed update keeps a previously broken plugin's load error visible
                                      "application/octet-stream");
     OneShotHttpServer api_server(download_response(uuid, package_server.url() + "/broken.py"), "application/json");
 
-    auto agent = std::make_shared<OrcaCloudServiceAgent>((plugin_system.python_data_dir.dir / "cloud-agent").string());
-    agent->set_api_base_url(api_server.url());
-    sign_in_without_persisting(*agent, user_id);
-
-    PluginManager& manager = PluginManager::instance();
-    manager.set_cloud_agent(agent);
-    manager.set_cloud_user(user_id);
-    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    PluginManager& manager = start_update_session(plugin_system, user_id, api_server.url());
 
     std::string load_error;
     manager.load_plugin(uuid, /*skip_deps=*/true);
