@@ -113,6 +113,8 @@ TEST_CASE("Overhanging edge should be supported", "[SupGen]") {
     REQUIRE(ddiff > - 0.1 * cfg.minimal_distance);
 }
 
+#ifdef SLIC3R_HAS_OPENVDB
+// Needs a real hollow interior, which only exists when built with OpenVDB.
 TEST_CASE("Hollowed cube should be supported from the inside", "[SupGen][Hollowed]") {
     TriangleMesh mesh = make_cube(20., 20., 20.);
 
@@ -131,6 +133,7 @@ TEST_CASE("Hollowed cube should be supported from the inside", "[SupGen][Hollowe
 
     REQUIRE(!pts.empty());
 }
+#endif // SLIC3R_HAS_OPENVDB
 
 TEST_CASE("Two parallel plates should be supported", "[SupGen][Hollowed]")
 {

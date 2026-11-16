@@ -157,7 +157,9 @@ static unsigned int region_filament(const ExtrusionEntityCollection &extrusions,
             return config.bottom_surface_filament_id.value;
         return config.internal_solid_filament_id.value;
     }
-    // Walls, and the gap fill between them.
+    // Orca: Classic gap fill lies inside the outer wall. With one wall, the inner wall filament is not in use.
+    if (extrusions.role() == erGapFill)
+        return config.wall_loops.value > 1 ? config.inner_wall_filament_id.value : config.outer_wall_filament_id.value;
     const ExtrusionEntitiesPtr &walls = extrusions.entities;
     return !walls.empty() && std::all_of(walls.begin(), walls.end(), [](const ExtrusionEntity *ee) { return is_inner_wall(*ee); }) ?
         config.inner_wall_filament_id.value : config.outer_wall_filament_id.value;
@@ -190,6 +192,14 @@ static double calc_max_layer_height(const PrintConfig &config, double max_object
     // The Prusa3D Fast (0.35mm layer height) print profile sets a higher layer height than what is normally allowed
     // by the nozzle. This is a hack and it works by increasing extrusion width. See GH #3919.
     return std::max(max_layer_height, max_object_layer_height);
+}
+
+static double calc_min_layer_height(const PrintConfig &config)
+{
+    double min_layer_height = std::numeric_limits<double>::max();
+    for (size_t i = 0; i < config.nozzle_diameter.values.size(); ++ i)
+        min_layer_height = std::min(min_layer_height, config.min_layer_height.get_at(i));
+    return config.nozzle_diameter.values.empty() ? 0. : min_layer_height;
 }
 
 //calculate the flush weight (first value) and filament change count(second value)
@@ -1233,13 +1243,48 @@ void ToolOrdering::fill_wipe_tower_partitions(const PrintConfig &config, coordf_
             }
     }
 
-    // Calculate the wipe_tower_layer_height values.
-    coordf_t wipe_tower_print_z_last = 0.;
-    for (LayerTools &lt : m_layer_tools)
-        if (lt.has_wipe_tower) {
+    // Calculate the wipe_tower_layer_height values. Precise Z height ends each object at its exact
+    // top, so another object's layers can sit above these by less than the printer's minimum layer
+    // height. A tower layer that thin cannot be printed, and a purge sized for it runs up to hundreds
+    // of mm long, so it joins the tower layer below. The floor matches the towers' own WT_EPSILON
+    // merge, which would otherwise size the joined tool changes with the sliver's height. The EPSILON
+    // margin keeps layers sliced at exactly the minimum height, whose sums round below it, apart.
+    const double min_tower_layer_height = std::max(calc_min_layer_height(config), 1e-3);
+    coordf_t     wipe_tower_print_z_last = 0.;
+    // The layer that finishes the current tower layer, and whether any layer of it changes tools.
+    LayerTools  *tower_layer_end         = nullptr;
+    bool         tower_layer_changes     = false;
+    unsigned int current_extruder        = (unsigned int) -1;
+    for (LayerTools &lt : m_layer_tools) {
+        lt.wipe_tower_layer_ends = true;
+        // The G-code takes one tower result per tool change, so a layer that changes tools always
+        // takes one; a layer that does not takes one only when it finishes the tower layer.
+        const bool changes = ! lt.extruders.empty() &&
+            (current_extruder == (unsigned int) -1 || lt.extruders.size() > 1 || lt.extruders.front() != current_extruder);
+        if (! lt.extruders.empty())
+            current_extruder = lt.extruders.back();
+        if (! lt.has_wipe_tower)
+            continue;
+        // Only a layer that prints joins, so the tower layer is always finished by a printing layer.
+        if (tower_layer_end != nullptr && ! lt.extruders.empty() && lt.print_z - wipe_tower_print_z_last + EPSILON < min_tower_layer_height) {
+            lt.wipe_tower_print_z      = tower_layer_end->wipe_tower_print_z;
+            lt.wipe_tower_layer_height = tower_layer_end->wipe_tower_layer_height;
+            // The finish rides on the last tool change of the joined layers, as it does on its own
+            // layer: one that takes over after the last result is gone has nothing left to print.
+            if (changes || ! tower_layer_changes) {
+                tower_layer_end->wipe_tower_layer_ends = false;
+                tower_layer_end                        = &lt;
+            } else
+                lt.wipe_tower_layer_ends = false;
+            tower_layer_changes |= changes;
+        } else {
+            lt.wipe_tower_print_z      = lt.print_z;
             lt.wipe_tower_layer_height = lt.print_z - wipe_tower_print_z_last;
-            wipe_tower_print_z_last = lt.print_z;
+            wipe_tower_print_z_last    = lt.print_z;
+            tower_layer_end            = &lt;
+            tower_layer_changes        = changes;
         }
+    }
 }
 
 void ToolOrdering::collect_extruder_statistics(bool prime_multi_material)

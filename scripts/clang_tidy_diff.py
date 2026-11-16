@@ -8,7 +8,7 @@ include) fails wherever the error is. Headers are compiled on their own, and
 fail only on errors in their changed lines. Deleting an #include also fails
 on every use, changed or not, that now lacks the header it provided.
 
-With -- --fix, clang-tidy adds the missing includes, on those lines only, and
+With -- --fix, clang-tidy applies its fixes, on those lines only, and
 each file it changed is checked again so that only what remains is reported.
 
 The checks come from .clang-tidy at the repository root. The compile database
@@ -307,7 +307,7 @@ def main():
                 print(f"... and {len(diagnostics) - MAX_REPORTED} more")
 
     if fixed:
-        print(f"\nAdded includes to {len(fixed)} file(s):")
+        print(f"\nApplied clang-tidy's fixes to {len(fixed)} file(s):")
         for path in fixed:
             print(f"    {path}")
     if failed and fixed:

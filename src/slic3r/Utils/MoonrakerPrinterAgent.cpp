@@ -679,6 +679,13 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
                 if (tray->nozzle_temp > 0) {
                     tray_json["nozzle_temp_max"] = std::to_string(tray->nozzle_temp);
                 }
+                // A spool that resolved to no preset (the printer cannot name it, or no preset
+                // of its type is installed) gives the project no filament, so the sync keeps
+                // the project filament in that position as it does for an empty slot. The
+                // tray still exists, so the mapping dialog shows it in its colour.
+                if (tray->tray_info_idx.empty()) {
+                    tray_json["tray_slot_placeholder"] = "1";
+                }
             } else {
                 tray_json["tray_info_idx"] = "";
                 tray_json["tray_type"] = "";
@@ -794,7 +801,11 @@ std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::st
     static const std::map<std::string, std::string> type_to_ofl_family = {
         // PLA variants
         {"PLA", "PLA"},
+        {"PLA+", "PLA"},
+        {"PLA PRO", "PLA"},
         {"PLA-CF", "PLA-CF"},
+        {"PLA MATTE", "PLA Matte"},
+        {"PLA-MATTE", "PLA Matte"},
         {"PLA SILK", "PLA Silk"},
         {"PLA-SILK", "PLA Silk"},
         {"PLA HIGH SPEED", "PLA High Speed"},
@@ -803,11 +814,16 @@ std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::st
 
         // ABS/ASA variants
         {"ABS", "ABS"},
+        {"ABS+", "ABS"},
         {"ASA", "ASA"},
 
         // PETG/PET variants
         {"PETG", "PETG"},
+        {"PETG+", "PETG"},
         {"PET", "PETG"},
+        {"PETG HF", "PETG HF"},
+        {"PETG-HF", "PETG HF"},
+        {"PETG-CF", "PETG-CF"},
         {"PCTG", "PCTG"},
 
         // PA/Nylon variants
@@ -823,7 +839,10 @@ std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::st
 
         // PP/PE variants
         {"PE", "PE"},
+        {"PE-CF", "PE-CF"},
         {"PP", "PP"},
+        {"PP-CF", "PP-CF"},
+        {"PP-GF", "PP-GF"},
 
         // Support materials
         {"PVA", "PVA"},
@@ -881,8 +900,9 @@ bool MoonrakerPrinterAgent::fetch_creality_cfs_data(std::vector<AmsTrayData>& tr
         data.tray_type = slot.material_type;
         data.tray_color = slot.color;
         data.has_filament = true;
-        data.tray_info_idx = bundle ? bundle->filaments.filament_id_by_type(data.tray_type)
-                                    : map_filament_type_to_generic_id(data.tray_type);
+        data.tray_info_idx = bundle ? bundle->filaments.filament_id_by_type(data.tray_type) : std::string();
+        if (data.tray_info_idx.empty())
+            data.tray_info_idx = map_filament_type_to_generic_id(data.tray_type);
         max_lane_index = std::max(max_lane_index, data.slot_index);
         trays.push_back(std::move(data));
     }
@@ -1042,10 +1062,10 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
         // counts: Happy Hare writes Spoolman's numeric filament record id under the same key.
         tray.tray_info_idx = safe_json_string(lane_obj, "filament_id");
         auto* bundle = GUI::wxGetApp().preset_bundle;
+        if (tray.tray_info_idx.empty() && bundle)
+            tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
         if (tray.tray_info_idx.empty())
-            tray.tray_info_idx = bundle
-                ? bundle->filaments.filament_id_by_type(tray.tray_type)
-                : map_filament_type_to_generic_id(tray.tray_type);
+            tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
 
         max_lane_index = std::max(max_lane_index, lane_index);
         trays.push_back(tray);
@@ -1171,9 +1191,9 @@ bool MoonrakerPrinterAgent::fetch_hh_filament_info(std::vector<AmsTrayData>& tra
         tray.has_filament = true;
 
         auto* bundle = GUI::wxGetApp().preset_bundle;
-        tray.tray_info_idx = bundle
-            ? bundle->filaments.filament_id_by_type(tray.tray_type)
-            : map_filament_type_to_generic_id(tray.tray_type);
+        tray.tray_info_idx = bundle ? bundle->filaments.filament_id_by_type(tray.tray_type) : std::string();
+        if (tray.tray_info_idx.empty())
+            tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
 
         max_lane_index = std::max(max_lane_index, gate_idx);
         trays.push_back(tray);
@@ -1580,7 +1600,9 @@ void MoonrakerPrinterAgent::announce_printhost_device()
     nlohmann::json payload;
     payload["dev_name"]     = dev_name;
     payload["dev_id"]       = device_info.dev_id;
-    payload["dev_ip"]       = device_info.dev_ip;
+    // With its port: the saved device record takes its dev_ip from here and the next connection
+    // reads the port back from it, so a bare IP would mean port 80.
+    payload["dev_ip"]       = Http::get_host_header_value(device_info.base_url);
     payload["dev_type"]     = model_id.empty() ? dev_name : model_id;
     payload["dev_signal"]   = "0";
     payload["connect_type"] = "lan";

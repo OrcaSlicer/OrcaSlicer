@@ -627,6 +627,10 @@ void NotificationManager::PopNotification::init()
 	// Do not init closing notification
 	if (is_finished())
 		return;
+	// Text is measured with the ImGui font, which the first ImGui frame sets up. Without a
+	// working OpenGL context that frame never comes, so stay Unknown and let render() init.
+	if (ImGui::GetFont() == nullptr)
+		return;
 
 	count_spaces();
 	count_lines();

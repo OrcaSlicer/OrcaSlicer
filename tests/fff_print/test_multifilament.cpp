@@ -492,6 +492,37 @@ TEST_CASE("Gap fill between walls does not schedule the sparse infill filament",
     CHECK(idle_tool_changes(gcode) == 0);
 }
 
+// Gap fill lies inside the outer wall, so choosing the outer wall filament must not move it.
+TEST_CASE("Gap fill between walls prints with the inner wall filament", "[MultiFilament]")
+{
+    const std::string gcode = slice({ make_cube(20., 1.9, 5.) },
+        multifilament_config(2, {
+            { "wall_generator",         "classic" },
+            { "wall_loops",             2 },
+            { "outer_wall_filament_id", 2 },
+            { "skirt_loops",            0 },
+            { "brim_type",              "no_brim" },
+        }));
+    REQUIRE(tools_for_feature(gcode, "Gap infill") == std::set<int>{ 0 });
+    CHECK(tools_for_feature(gcode, "Outer wall") == std::set<int>{ 1 });
+    CHECK(idle_tool_changes(gcode) == 0);
+}
+
+// One wall leaves a 1.1mm plate a gap between its two sides, and the inner wall filament is not in use.
+TEST_CASE("Gap fill with a single wall does not use the inner wall filament", "[MultiFilament]")
+{
+    const std::string gcode = slice({ make_cube(20., 1.1, 5.) },
+        multifilament_config(2, {
+            { "wall_generator",         "classic" },
+            { "wall_loops",             1 },
+            { "inner_wall_filament_id", 2 },
+            { "skirt_loops",            0 },
+            { "brim_type",              "no_brim" },
+        }));
+    REQUIRE(tools_for_feature(gcode, "Gap infill") == std::set<int>{ 0 });
+    CHECK(idle_tool_changes(gcode) == 0);
+}
+
 // A 20x20x2mm base carrying a 0.5mm fin: the fin's layers fit a single wall, so they must not switch to the inner
 // wall filament the base uses.
 TEST_CASE("A layer without inner walls does not switch to the inner wall filament", "[MultiFilament]")
@@ -2261,4 +2292,101 @@ TEST_CASE("Nozzle change ramming is symmetric for identical filaments", "[MultiF
         CHECK(medians.back() > 0.);
     }
     CHECK_THAT(medians[0], Catch::Matchers::WithinRel(medians[1], 0.01));
+}
+
+// Regression for #14753: emit M104 after T0 in single-extruder MM to override firmware/CFS reset.
+TEST_CASE("Single-extruder MM emits M104 after T0 toolchange", "[MultiFilament]")
+{
+    const int expected_temp = 240;
+    const std::string gcode = slice({ cube(20) },
+        multifilament_config(2, {
+            { "nozzle_temperature",               std::to_string(expected_temp) + "," + std::to_string(expected_temp) },
+            { "nozzle_temperature_initial_layer", std::to_string(expected_temp) + "," + std::to_string(expected_temp) },
+            { "machine_start_gcode",              "" },
+            { "enable_prime_tower",               "0" },
+        }));
+
+    bool found_t0 = false;
+    std::string first_cmd_after_t0;
+    int first_temp_after_t0 = -1;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader& self, const GCodeReader::GCodeLine& line) {
+        const std::string cmd(line.cmd());
+        if (cmd.empty())
+            return;
+        if (!found_t0) {
+            if (cmd == "T0")
+                found_t0 = true;
+        } else {
+            first_cmd_after_t0 = cmd;
+            float s_val = 0;
+            if (line.has_value('S', s_val))
+                first_temp_after_t0 = int(s_val);
+            self.quit_parsing();
+        }
+    });
+
+    REQUIRE(found_t0);
+    REQUIRE(first_cmd_after_t0 == "M104");
+    REQUIRE(first_temp_after_t0 == expected_temp);
+}
+
+// Single-filament prints must not get an M104 after start G-code when no T command was written.
+TEST_CASE("Single-filament print does not emit M104 after start G-code", "[MultiFilament]")
+{
+    const std::string gcode = slice({ cube(20) },
+        multifilament_config(1, {
+            { "machine_start_gcode", "; START_GCODE_END\n" },
+            { "enable_prime_tower",  "0" },
+        }));
+
+    const size_t start_pos = gcode.find("; START_GCODE_END");
+    REQUIRE(start_pos != std::string::npos);
+    const size_t layer_pos = gcode.find(";LAYER_CHANGE", start_pos);
+    REQUIRE(layer_pos != std::string::npos);
+
+    const std::string between = gcode.substr(start_pos, layer_pos - start_pos);
+    CHECK(between.find("M104") == std::string::npos);
+    CHECK(between.find("M109") == std::string::npos);
+    CHECK(between.find("T0") == std::string::npos);
+}
+
+// A custom M104 in filament start G-code must be preserved after T0 and the slicer's default M104.
+TEST_CASE("Custom M104 in filament start G-code wins on a T0-only print", "[MultiFilament]")
+{
+    const int slicer_temp = 240;
+    const int custom_temp = 255;
+    const std::string gcode = slice({ cube(20) },
+        multifilament_config(2, {
+            { "nozzle_temperature",               std::to_string(slicer_temp) + "," + std::to_string(slicer_temp) },
+            { "nozzle_temperature_initial_layer", std::to_string(slicer_temp) + "," + std::to_string(slicer_temp) },
+            { "filament_start_gcode",             std::string("M104 S") + std::to_string(custom_temp) + "\n" },
+            { "machine_start_gcode",              "" },
+            { "enable_prime_tower",               "0" },
+        }));
+
+    bool found_t0 = false;
+    std::vector<int> temps_after_t0;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader& self, const GCodeReader::GCodeLine& line) {
+        const std::string cmd(line.cmd());
+        if (cmd == ";LAYER_CHANGE" || line.comment() == "LAYER_CHANGE") {
+            if (found_t0)
+                self.quit_parsing();
+            return;
+        }
+        if (!found_t0) {
+            if (cmd == "T0")
+                found_t0 = true;
+        } else if (cmd == "M104" || cmd == "M109") {
+            float s_val = 0;
+            if (line.has_value('S', s_val))
+                temps_after_t0.push_back(int(s_val));
+        }
+    });
+
+    REQUIRE(found_t0);
+    REQUIRE(temps_after_t0.size() >= 2);
+    CHECK(temps_after_t0.front() == slicer_temp);
+    CHECK(temps_after_t0.back() == custom_temp);
 }
