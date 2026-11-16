@@ -1910,6 +1910,7 @@ void Filler::_fill_surface_single(
 
         // Crop all polylines
         all_polylines = intersection_pl(std::move(all_polylines), expolygon);
+        join_cut_outlines(all_polylines, params);
 #endif
     }
 

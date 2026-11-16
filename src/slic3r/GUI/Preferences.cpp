@@ -1,5 +1,6 @@
 #include "Preferences.hpp"
 #include "CloudProvider.hpp"
+#include "ColorPickerDialog.hpp"
 #include "OptionsGroup.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
@@ -9,8 +10,13 @@
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Color.hpp"
 #include "libslic3r/Format/DRC.hpp"
 #include <wx/gdicmn.h>
+#include <wx/brush.h>
+#include <wx/colour.h>
+#include <wx/dc.h>
+#include <wx/pen.h>
 #include <wx/arrstr.h>
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include <wx/event.h>
@@ -20,6 +26,8 @@
 #include <tuple>
 #include <string>
 #include <vector>
+#include <variant>
+#include <optional>
 #include <functional>
 #include <cstdlib>
 #include <cassert>
@@ -66,6 +74,7 @@
 #include "NetworkTestDialog.hpp"
 #include "SceneBenchmark.hpp"
 #include "Widgets/StaticLine.hpp"
+#include "Widgets/StaticBox.hpp"
 #include "Widgets/RadioGroup.hpp"
 #include "Shortcuts.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
@@ -80,6 +89,51 @@
 #endif //__WINDOWS__
 
 namespace Slic3r { namespace GUI {
+
+class ColorSwatchButton : public Button
+{
+public:
+    ColorSwatchButton(wxWindow* parent, const wxString& color) : Button(parent, wxEmptyString)
+    {
+        SetStyle(ButtonStyle::Regular, ButtonType::Icon);
+        set_color(color);
+    }
+
+    void set_color(const wxString& color)
+    {
+        m_color = wxColour(color);
+        if (!m_color.IsOk())
+            BOOST_LOG_TRIVIAL(error) << "Invalid configured outline color";
+        Refresh();
+    }
+
+    bool Enable(bool enable = true) override
+    {
+        const bool changed = Button::Enable(enable);
+        Refresh();
+        return changed;
+    }
+
+protected:
+    void doRender(wxDC& dc) override
+    {
+        StaticBox::doRender(dc);
+        if (!m_color.IsOk())
+            return;
+        wxRect swatch(GetClientRect());
+        swatch.Deflate(FromDIP(4));
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        // A color sample must not be remapped by the application theme.
+        wxColour color = m_color;
+        if (!IsEnabled())
+            color.MakeDisabled();
+        dc.SetBrush(wxBrush(color));
+        dc.DrawRectangle(swatch);
+    }
+
+private:
+    wxColour m_color;
+};
 
 class MyscrolledWindow : public wxScrolledWindow {
 public:
@@ -371,7 +425,7 @@ wxBoxSizer* PreferencesDialog::create_item_combobox(wxString title, wxString too
     return sizer;
 }
 
-wxBoxSizer *PreferencesDialog::create_item_combobox(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, std::vector<std::string> config_name_index, const wxString wiki_url)
+wxBoxSizer *PreferencesDialog::create_item_combobox(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, std::vector<std::string> config_name_index, std::function<void(std::string)> onchange, const wxString wiki_url)
 {
     assert(vlist.size() == config_name_index.size());
     unsigned int current_index = 0;
@@ -387,8 +441,9 @@ wxBoxSizer *PreferencesDialog::create_item_combobox(wxString title, wxString too
     auto [sizer, combobox] = create_item_combobox_base(title, tooltip, param, vlist, current_index);
 
     //// save config
-    combobox->GetDropDown().Bind(wxEVT_COMBOBOX, [this, param, config_name_index](wxCommandEvent& e) {
+    combobox->GetDropDown().Bind(wxEVT_COMBOBOX, [this, param, config_name_index, onchange](wxCommandEvent& e) {
         app_config->set(param, config_name_index[e.GetSelection()]);
+        if (onchange != nullptr) onchange(config_name_index[e.GetSelection()]);
         e.Skip();
     });
 
@@ -1098,6 +1153,9 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
         }
         else if (param == SETTING_OPENGL_SCENE_CACHE) {
             if (m_skip_identical_frames_checkbox) m_skip_identical_frames_checkbox->Enable(checkbox->GetValue());
+        }
+        else if (param == SETTING_OPENGL_OUTLINE_PERSISTENT) {
+            if (m_persistent_outline_color_button) m_persistent_outline_color_button->Enable(checkbox->GetValue());
         }
         else if (param == "stealth_mode") {
             bool enabled = app_config->get_stealth_mode();
@@ -1983,6 +2041,33 @@ void PreferencesDialog::create_items()
         "preview_default_view_type", PreviewViewTypeLabels, PreviewViewTypeValues);
     g_sizer->Add(item_preview_view_type);
 
+    auto item_reduced_detail_mode = create_item_combobox(
+        _L("Simplify preview while dragging"),
+        _L("What the sliced preview draws while you drag the camera or a preview slider, or zoom with the mouse wheel, so that large prints stay responsive. "
+           "The full toolpaths are restored as soon as you let go.\n"
+           "Off: the full toolpaths.\n"
+           "Solid model: the sliced objects and the prime tower as solid shapes in the colors of the current view, cut to the visible layer range, "
+           "with its bottom and top layers and the supports drawn as toolpaths. Negative volumes are not cut out. "
+           "A print made object by object, or one on a belt printer, keeps its full toolpaths.\n"
+           "Shell only: every layer without its sparse infill, internal solid infill, internal bridges and gap fill, which lie under the walls and skins. "
+           "Walls, top and bottom surfaces, bridges, supports and the prime tower are drawn whole, so the print looks the same from outside.\n"
+           "The bottom and top layers of the visible range are always drawn whole; a layer with no infill of its own, as with infill combination, takes the layers down to the nearest one with infill along."),
+        "preview_reduced_detail_mode",
+        {_L("Off"), _L("Solid model"), _L("Shell only")},
+        {"off", "solid", "shell"},
+        // apply the new mode immediately to the currently loaded preview
+        [](std::string value) {
+            if (Plater* plater = wxGetApp().plater()) {
+                if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
+                    canvas->get_gcode_viewer().set_reduced_detail_mode(value);
+                    canvas->set_as_dirty();
+                    canvas->request_extra_frame();
+                }
+            }
+        }
+    );
+    g_sizer->Add(item_reduced_detail_mode);
+
     auto item_dim_previous_layers = create_item_checkbox(
         _L("Dim lower layers"),
         _L("When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."),
@@ -2214,6 +2299,48 @@ void PreferencesDialog::create_items()
         SETTING_OPENGL_REALISTIC_GLOSS
     );
     g_sizer->Add(item_realistic_gloss);
+
+    //// GRAPHICS > Outline
+    g_sizer->Add(create_item_title(_L("Outline")), 1, wxEXPAND);
+
+    g_sizer->Add(create_item_checkbox(
+        _L("Persistent"),
+        _L("When Outline is enabled in the 3D canvas menu, outlines visible objects even when they are not selected."),
+        SETTING_OPENGL_OUTLINE_PERSISTENT));
+
+    auto add_outline_color_item = [this, g_sizer](const wxString& label, const wxString& tooltip, const std::string& key) {
+        auto sizer  = create_item_label(label, tooltip);
+        auto button = new ColorSwatchButton(m_parent, from_u8(app_config->get(key)));
+        button->SetToolTip(tooltip);
+        button->Bind(wxEVT_BUTTON, [this, button, key](wxCommandEvent& event) {
+            event.Skip();
+            ColorRGBA initial;
+            if (!decode_color(app_config->get(key), initial)) {
+                show_error(this, _L("The configured outline color is invalid."));
+                return;
+            }
+            ColorPickerDialog dialog(this, initial, {}, false, button);
+            if (dialog.ShowModal() == wxID_OK && dialog.selection()) {
+                const ColorRGBA& color = std::get<ColorRGBA>(*dialog.selection());
+                const std::string value = encode_color(ColorRGB(color.r(), color.g(), color.b()));
+                app_config->set(key, value);
+                app_config->save();
+                button->set_color(from_u8(value));
+                // The scrolled window applies the scroll offset to the entire layout.
+                m_parent->Layout();
+                m_parent->FitInside();
+            }
+        });
+        sizer->Add(button, 0, wxALIGN_CENTER_VERTICAL);
+        g_sizer->Add(sizer);
+        return button;
+    };
+    m_persistent_outline_color_button = add_outline_color_item(
+        _L("Persistent color"), _L("Choose the color of the persistent outlines of unselected objects."),
+        SETTING_OPENGL_OUTLINE_COLOR);
+    m_persistent_outline_color_button->Enable(app_config->get_bool(SETTING_OPENGL_OUTLINE_PERSISTENT));
+    add_outline_color_item(_L("Selection color"), _L("Choose the color of the outlines of selected objects."),
+                           SETTING_OPENGL_SELECTION_OUTLINE_COLOR);
 
     //// GRAPHICS > Anti-aliasing
     g_sizer->Add(create_item_title(_L("Anti-aliasing")), 1, wxEXPAND);

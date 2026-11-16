@@ -8,6 +8,10 @@
 # - An assemble list object with an empty filament list, or a negative filament id, is rejected
 #   as a config error.
 # - --assemble with no input model is rejected as invalid parameters.
+# - Standalone filament presets, which set neither a diameter nor a colour, export and slice: alone,
+#   and paired with one that does in either order.
+# - A filament that omits a long-retraction key next to one that sets it follows the first filament
+#   in the flush volumes, as the slice reads it, not a read past the end of its values.
 #
 # usage: test_cli_malformed_input.sh <orca-slicer binary> <python3>
 set -u
@@ -37,6 +41,17 @@ cat > "$WORK/machine.json" <<'EOF'
     "layer_change_gcode": "G92 E0"
 }
 EOF
+# The same printer with long retraction on, so the per-filament long-retraction keys matter.
+"$PY" - "$WORK/machine.json" "$WORK/machine_lr.json" <<'EOF'
+import json, sys
+
+with open(sys.argv[1]) as f:
+    machine = json.load(f)
+machine.update({"enable_long_retraction_when_cut": "2", "long_retractions_when_cut": ["1"],
+                "retraction_distances_when_cut": ["18"], "nozzle_volume": ["107"]})
+with open(sys.argv[2], "w") as f:
+    json.dump(machine, f)
+EOF
 cat > "$WORK/process.json" <<'EOF'
 {
     "type": "process",
@@ -49,6 +64,37 @@ cat > "$WORK/filament.json" <<'EOF'
     "type": "filament",
     "from": "User",
     "name": "CLI malformed input test filament"
+}
+EOF
+# A filament that sets the per-filament options the flush matrix reads.
+cat > "$WORK/filament_full.json" <<'EOF'
+{
+    "type": "filament",
+    "from": "User",
+    "name": "CLI malformed input test full filament",
+    "filament_diameter": ["1.75"],
+    "filament_is_support": ["1"],
+    "filament_colour": ["#FF0000"]
+}
+EOF
+
+cat > "$WORK/filament_lr.json" <<'EOF'
+{
+    "type": "filament",
+    "from": "User",
+    "name": "CLI malformed input test long retraction filament",
+    "filament_diameter": ["1.75"],
+    "filament_long_retractions_when_cut": ["1"],
+    "filament_retraction_distances_when_cut": ["18"]
+}
+EOF
+# Long retraction on, but no distance.
+cat > "$WORK/filament_lr_nodist.json" <<'EOF'
+{
+    "type": "filament",
+    "from": "User",
+    "name": "CLI malformed input test long retraction filament without distance",
+    "filament_long_retractions_when_cut": ["1"]
 }
 EOF
 
@@ -154,6 +200,27 @@ echo "== a one-filament project exported by the CLI is the base for the project 
 run_presets export --slice 0 --export-3mf project.3mf "$WORK/cube.stl"
 expect_status export $CLI_SUCCESS
 [ -f "$WORK/export/project.3mf" ] || { echo "FAIL: project export failed"; tail -n 40 "$WORK/export/log"; exit 1; }
+
+echo "== two filaments slice whether or not either sets a diameter, in either order"
+for pair in "filament filament" "filament_full filament_full" "filament filament_full" "filament_full filament"; do
+    read -r first second <<<"$pair"
+    tag="two_${first}_${second}"
+    run "$tag" --load-settings "$WORK/machine.json;$WORK/process.json" \
+        --load-filaments "$WORK/$first.json;$WORK/$second.json" --slice 0 "$WORK/cube.stl"
+    expect_status "$tag" $CLI_SUCCESS
+    expect_gcode "$tag"
+done
+
+echo "== a filament that omits a long-retraction key follows the first filament's flush volume"
+# 107 mm3 nozzle, less 18 mm of 1.75 mm filament: the second filament takes the first's distance, the
+# third its flag and distance.
+mkdir -p "$WORK/long_retraction"
+run long_retraction --debug 3 --logfile "$WORK/long_retraction/boost.log" \
+    --load-settings "$WORK/machine_lr.json;$WORK/process.json" \
+    --load-filaments "$WORK/filament_lr.json;$WORK/filament_lr_nodist.json;$WORK/filament.json" --slice 0 "$WORK/cube.stl"
+expect_status long_retraction $CLI_SUCCESS
+expect_gcode long_retraction
+grep -qF "extra_flush_volume: 63,63,63," "$WORK/long_retraction/boost.log" || fail "long_retraction: unexpected flush volumes"
 
 echo "== an inherits_group of the wrong length still loads"
 for group in '[]' '[""]' '["", "", "", "", ""]'; do

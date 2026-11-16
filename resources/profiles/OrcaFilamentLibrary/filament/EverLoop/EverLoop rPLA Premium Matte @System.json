@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "EverLoop rPLA Premium Matte @System",
+	"inherits": "EverLoop rPLA Premium Matte @base",
+	"from": "system",
+	"setting_id": "LzQK3O8BAG36gyO2",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -195,6 +195,7 @@ void FillPlanePath::_fill_surface_single(
             if (! kept.empty())
                 polylines = std::move(kept);
         }
+        join_cut_outlines(polylines, params);
         if (!polylines.empty()) {
             Polylines chained;
             if (params.dont_connect() || params.density > 0.5) {
