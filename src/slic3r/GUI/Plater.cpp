@@ -6422,13 +6422,10 @@ void Sidebar::on_bed_type_change(BedType bed_type)
  *
  * Return Value:
  * - Map key encoding:
- *   - Virtual trays: 0x10000 + vt_tray.id for the main extruder's slot, or just vt_tray.id for the
- *     others. Bambu's fixed pair is 255 (main) / 254 (secondary); a generic printer identifies each
- *     slot by its own id (extruder = VIRTUAL_TRAY_MAIN_ID - id: 255 -> 0, 254 -> 1, ...)
- *   - AMS trays: 0x10000 + (ams_id * 4 + slot_id) (main extruder), or (ams_id * 4 + slot_id) (secondary)
- *   - Generic (non-Bambu) units are not four slots wide: their trays index by a cumulative lane
- *     count across units instead of ams_id * 4 + slot_id
- *   - The 0x10000 flag indicates the main/right extruder
+ *   - Bambu virtual trays use 0x10000 + id for the main slot and id for the secondary slot.
+ *     Bambu AMS trays use ams_id * 4 + slot_id, with 0x10000 added for the main extruder.
+ *   - Generic virtual trays use their id (255 - extruder id). Generic AMS trays use a
+ *     cumulative lane index across units. Their extruder association is stored in the value.
  * - Map value: DynamicPrintConfig with filament properties (id, type, color, etc.)
  *
  * @param obj The MachineObject representing the connected printer (nullable)
@@ -6503,14 +6500,9 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
                     continue;
                 }
             }
-            // Bambu keeps its fixed pair with the leading (main/right) slot marked 0x10000. On a
-            // generic printer every external slot is identified by its own virtual tray id
-            // (extruder = VIRTUAL_TRAY_MAIN_ID - id: 255 -> 0, 254 -> 1, ...), so mark the main
-            // extruder's slot by identity rather than by position in vt_slot. The map key then
-            // keeps each slot bound to its extruder across refreshes and sparse reports.
-            const bool is_main_slot = is_bbl_vendor ? (&vt_tray == &obj->vt_slot.front())
-                                                    : (vt_id == VIRTUAL_TRAY_MAIN_ID);
-            const int  key = (is_main_slot ? 0x10000 : 0) + vt_id;
+            // Only Bambu encodes the main/right slot with the left/right key offset.
+            const bool use_bambu_main_offset = is_bbl_vendor && &vt_tray == &obj->vt_slot.front();
+            const int  key = (use_bambu_main_offset ? 0x10000 : 0) + vt_id;
             const auto inserted = filament_ams_list.emplace(key,
                                                             build_tray_config(vt_tray, "Ext", vt_tray.id, "0", VIRTUAL_TRAY_MAIN_ID - vt_id));
             virtual_slot_keys.insert(key);

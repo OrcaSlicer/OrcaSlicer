@@ -6,6 +6,7 @@
 #include <limits>
 
 #include <map>
+#include <optional>
 #include <vector>
 #include <string>
 #include <utility>
