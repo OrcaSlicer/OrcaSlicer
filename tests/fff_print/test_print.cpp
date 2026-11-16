@@ -2024,6 +2024,43 @@ TEST_CASE("Sequential printing prints an object of several filaments on its own 
     CHECK(returns_to_bed(Test::gcode(print)) == 1);
 }
 
+TEST_CASE("Sequential printing prints a group of objects with different layer heights at the heights of both", "[Print]")
+{
+    // Two cubes of filament 1 with 0.2 mm and 0.1 mm layers. Grouped, they print together, layer by layer, at every
+    // height either of them has, as printing by layer does; the header counts those layers once.
+    Print print;
+    Model model;
+    place_cubes_by_filament({ { { "extruder", 1 }, { "layer_height", 0.2 } }, { { "extruder", 1 }, { "layer_height", 0.1 } } },
+                            30., /*group=*/true, print, model);
+    const std::string error = print.validate().string;
+    INFO(error);
+    REQUIRE(error.empty());
+    const std::string gcode = Test::gcode(print);
+
+    REQUIRE(print.objects().size() == 2);
+    std::vector<double> heights;
+    for (const PrintObject *object : print.objects())
+        for (const Layer *layer : object->layers())
+            heights.push_back(layer->print_z);
+    std::sort(heights.begin(), heights.end());
+    heights.erase(std::unique(heights.begin(), heights.end(), [](double l, double r) { return std::abs(l - r) < EPSILON; }), heights.end());
+    // The finer cube has every height of the other one.
+    REQUIRE(heights.size() == std::max(print.objects()[0]->layers().size(), print.objects()[1]->layers().size()));
+
+    size_t layer_changes = 0, layer_count = 0;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader &, const GCodeReader::GCodeLine &line) {
+        const std::string &raw = line.raw();
+        if (raw.rfind(";LAYER_CHANGE", 0) == 0)
+            ++layer_changes;
+        else if (raw.rfind("; total layers count = ", 0) == 0)
+            layer_count = size_t(std::atoi(raw.c_str() + 23));
+    });
+    CHECK(layer_changes == heights.size());
+    CHECK(layer_count == heights.size());
+    CHECK(returns_to_bed(gcode) == 0);
+}
+
 TEST_CASE("Sequential printing needs toolhead clearance only between groups when grouped by filament", "[Print]")
 {
     // Two cubes 5 mm apart, inside the 20 mm toolhead radius. Printed one after the other they are too close; printed
