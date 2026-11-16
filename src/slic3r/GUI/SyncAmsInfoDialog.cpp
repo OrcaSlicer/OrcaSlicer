@@ -1257,7 +1257,8 @@ void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &resul
                 }
 
                 else if (f->tray_id >= 0) {
-                    ams_id = wxGetApp().transition_tridid(f->tray_id);
+                    auto* dev = wxGetApp().getDeviceManager();
+                    ams_id = mapping_tray_label(dev ? dev->get_selected_machine() : nullptr, f->tray_id);
                     // ams_id = wxString::Format("%02d", f->tray_id + 1);
                 } else {
                     ams_id = "-";

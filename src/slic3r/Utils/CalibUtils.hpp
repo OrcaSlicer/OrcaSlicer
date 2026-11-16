@@ -96,6 +96,12 @@ private:
 };
 
 extern void get_tray_ams_and_slot_id(MachineObject* obj, int in_tray_id, int &ams_id, int &slot_id, int &tray_id);
+// Linear tray id of an AMS lane. A generic device numbers its lanes cumulatively across units of
+// any size; Bambu keeps its fixed four-slot stride, and a virtual (external-spool) lane maps to its
+// own id. This is the complement of get_tray_ams_and_slot_id for reported lanes, but not an exact
+// inverse: an unknown lane falls back to the four-slot stride, and Bambu's decoder may remap an
+// external spool id.
+extern int get_tray_id_by_ams_slot(MachineObject* obj, int ams_id, int slot_id);
 
 extern void get_default_k_n_value(const std::string &filament_id, float &k, float &n);
 extern wxString get_nozzle_volume_type_name(NozzleVolumeType type);

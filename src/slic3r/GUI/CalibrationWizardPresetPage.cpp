@@ -13,6 +13,7 @@
 #include "libslic3r/PresetBundle.hpp"
 #include <cstdlib>
 #include <regex>
+#include <wx/app.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/panel.h>
@@ -23,6 +24,7 @@
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include <string>
 #include <wx/sizer.h>
+#include <wx/scrolwin.h>
 #include "slic3r/GUI/CalibrationWizardPage.hpp"
 #include "slic3r/GUI/Widgets/AMSItem.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
@@ -569,6 +571,10 @@ void CalibrationPresetPage::msw_rescale()
     for (auto& comboBox : m_filament_comboBox_list) {
         comboBox->msw_rescale();
     }
+    for (auto* comboBox : m_main_filament_comboBox_list)
+        comboBox->msw_rescale();
+    for (auto* comboBox : m_deputy_filament_comboBox_list)
+        comboBox->msw_rescale();
 
     for (AMSPreview *ams_item : m_main_ams_preview_list)
         ams_item->msw_rescale();
@@ -978,7 +984,7 @@ void CalibrationPresetPage::create_filament_list_panel(wxWindow* parent)
     m_multi_ams_panel = new wxPanel(parent);
     panel_sizer->Add(m_multi_ams_panel);
 
-    auto filament_fgSizer = new wxFlexGridSizer(2, 2, FromDIP(10), CALIBRATION_FGSIZER_HGAP);
+    auto filament_fgSizer = m_filament_grid_sizer = new wxFlexGridSizer(0, 2, FromDIP(10), CALIBRATION_FGSIZER_HGAP);
     for (int i = 0; i < 4; i++) {
         auto filament_comboBox_sizer = new wxBoxSizer(wxHORIZONTAL);
         wxRadioButton* radio_btn = new wxRadioButton(m_filament_list_panel, wxID_ANY, "");
@@ -1015,6 +1021,68 @@ void CalibrationPresetPage::create_filament_list_panel(wxWindow* parent)
 
     parent->SetSizer(panel_sizer);
     panel_sizer->Fit(parent);
+}
+
+void CalibrationPresetPage::ensure_filament_controls(FilamentComboBoxList& controls, wxWindow* parent, wxSizer* sizer,
+                                                       int count, int index_offset)
+{
+    while (static_cast<int>(controls.size()) < count) {
+        const int slot = static_cast<int>(controls.size());
+        // The first four controls retain the established model indexes. Extra controls in the
+        // two-nozzle view need distinct indexes after the eight existing model positions.
+        const int index = index_offset < 0 ? slot : 8 + (slot - 4) * 2 + index_offset;
+        auto* row = new wxBoxSizer(wxHORIZONTAL);
+        auto* radio = new wxRadioButton(parent, wxID_ANY, "");
+        auto* check = new CheckBox(parent);
+        check->SetBackgroundColour(*wxWHITE);
+        auto* control = new FilamentComboBox(parent, index);
+        control->SetRadioBox(radio);
+        control->SetCheckBox(check);
+        control->set_select_mode(m_cali_filament_mode);
+        row->Add(radio, 0, wxALIGN_CENTER);
+        row->Add(check, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(8));
+        row->Add(control, 0, wxALIGN_CENTER);
+        sizer->Add(row, 0);
+        controls.push_back(control);
+
+        control->Bind(EVT_CALI_TRAY_CHANGED, &CalibrationPresetPage::on_select_tray, this);
+        radio->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) {
+            wxCommandEvent event(EVT_CALI_TRAY_CHANGED);
+            event.SetEventObject(this);
+            wxPostEvent(this, event);
+        });
+        check->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& evt) {
+            wxCommandEvent event(EVT_CALI_TRAY_CHANGED);
+            event.SetEventObject(this);
+            wxPostEvent(this, event);
+            evt.Skip();
+        });
+    }
+}
+
+void CalibrationPresetPage::update_slot_limit(FilamentComboBox* control)
+{
+    // Automatic PA templates have four or eight objects. Other calibration paths have not
+    // established support for additional slots, so leave them visible but unavailable too.
+    const int model_size = curr_obj && curr_obj->is_multi_extruders() ? 8 : 4;
+    const bool unavailable = control->get_index() >= model_size;
+    if (unavailable)
+        control->Enable(false);
+    const wxString tip = unavailable ? _L("This slot is not available for calibration.") : wxString();
+    control->SetToolTip(tip);
+    control->GetRadioBox()->SetToolTip(tip);
+    control->GetCheckBox()->SetToolTip(tip);
+}
+
+void CalibrationPresetPage::relayout_filament_controls()
+{
+    m_filament_list_panel->Layout();
+    m_multi_exutrder_filament_list_panel->Layout();
+    Layout();
+    if (auto* scroll = dynamic_cast<wxScrolledWindow*>(GetParent())) {
+        scroll->Layout();
+        scroll->FitInside();
+    }
 }
 
 float CalibrationPresetPage::get_nozzle_diameter(int extruder_id) const
@@ -2016,7 +2084,10 @@ void CalibrationPresetPage::set_cali_filament_mode(CalibrationFilamentMode mode)
     CalibrationWizardPage::set_cali_filament_mode(mode);
 
     for (int i = 0; i < m_filament_comboBox_list.size(); i++) {
+        const bool shown = m_filament_comboBox_list[i]->IsShown();
         m_filament_comboBox_list[i]->set_select_mode(mode);
+        if (!shown)
+            m_filament_comboBox_list[i]->HidePanel();
     }
 
     if (mode == CALI_MODEL_MULITI) {
@@ -2286,7 +2357,9 @@ void CalibrationPresetPage::sync_ams_info(MachineObject* obj)
             int tray_id = -1;
             if (!tray_item.second->id.empty()) {
                 try {
-                    tray_id = stoi(tray_item.second->id) + stoi(ams_item.second->GetAmsId()) * 4;
+                    // The sidebar list keys generic lanes by their cumulative index, so resolve the
+                    // same identity instead of assuming a four-slot stride.
+                    tray_id = get_tray_id_by_ams_slot(obj, stoi(ams_item.second->GetAmsId()), stoi(tray_item.first));
                 }
                 catch (...) {
                     ;
@@ -2395,7 +2468,9 @@ void CalibrationPresetPage::sync_ams_info(MachineObject* obj)
         } else if (vt_tray.id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) {
             deputy_ams_info.push_back(info);
         } else {
-            assert(false);
+            // A device with more than two extruders owns one external spool per extruder, but this
+            // page only offers a main and a deputy panel, so the remaining spools stay unselectable.
+            BOOST_LOG_TRIVIAL(info) << "CalibrationPresetPage: external spool " << vt_tray.id << " has no calibration panel";
         }
     }
 
@@ -2430,9 +2505,9 @@ void CalibrationPresetPage::select_default_compatible_filament()
 
     if (!devPrinterUtil::IsVirtualSlot(ams_id)) {
         std::map<int, Preset *> selected_filament;
-        for (size_t i = 0; i < 4; ++i) {
+        for (size_t i = 0; i < m_filament_comboBox_list.size(); ++i) {
             auto &fcb = m_filament_comboBox_list[i];
-            if (!fcb->GetRadioBox()->IsEnabled())
+            if (!fcb->IsShown() || !fcb->GetRadioBox()->IsEnabled())
                 continue;
             int tray_id = fcb->get_tray_id();
             Preset* preset = const_cast<Preset *>(fcb->GetComboBox()->get_selected_preset());
@@ -2504,23 +2579,23 @@ std::vector<FilamentComboBox*> CalibrationPresetPage::get_selected_filament_comb
     if (curr_obj && curr_obj->is_multi_extruders()) {
         if (m_cali_filament_mode == CalibrationFilamentMode::CALI_MODEL_MULITI) {
             for (auto &fcb : m_main_filament_comboBox_list) {
-                if (fcb->GetCheckBox()->GetValue()) {
+                if (fcb->IsShown() && fcb->GetCheckBox()->GetValue()) {
                     fcb_list.push_back(fcb);
                 }
             }
             for (auto &fcb : m_deputy_filament_comboBox_list) {
-                if (fcb->GetCheckBox()->GetValue()) {
+                if (fcb->IsShown() && fcb->GetCheckBox()->GetValue()) {
                     fcb_list.push_back(fcb);
                 }
             }
         } else if (m_cali_filament_mode == CalibrationFilamentMode::CALI_MODEL_SINGLE) {
             for (auto &fcb : m_main_filament_comboBox_list) {
-                if (fcb->GetRadioBox()->GetValue()) {
+                if (fcb->IsShown() && fcb->GetRadioBox()->GetValue()) {
                     fcb_list.push_back(fcb);
                 }
             }
             for (auto &fcb : m_deputy_filament_comboBox_list) {
-                if (fcb->GetRadioBox()->GetValue()) {
+                if (fcb->IsShown() && fcb->GetRadioBox()->GetValue()) {
                     fcb_list.push_back(fcb);
                 }
             }
@@ -2529,13 +2604,13 @@ std::vector<FilamentComboBox*> CalibrationPresetPage::get_selected_filament_comb
     else {
         if (m_cali_filament_mode == CalibrationFilamentMode::CALI_MODEL_MULITI) {
             for (auto &fcb : m_filament_comboBox_list) {
-                if (fcb->GetCheckBox()->GetValue()) {
+                if (fcb->IsShown() && fcb->GetCheckBox()->GetValue()) {
                     fcb_list.push_back(fcb);
                 }
             }
         } else if (m_cali_filament_mode == CalibrationFilamentMode::CALI_MODEL_SINGLE) {
             for (auto &fcb : m_filament_comboBox_list) {
-                if (fcb->GetRadioBox()->GetValue()) {
+                if (fcb->IsShown() && fcb->GetRadioBox()->GetValue()) {
                     fcb_list.push_back(fcb);
                 }
             }
@@ -2590,6 +2665,24 @@ void CalibrationPresetPage::get_cali_stage(CaliPresetStage& stage, float& value)
     }
 }
 
+// Bambu keeps its fixed four-slot unit; a generic unit reports its own lane count.
+static int visible_slot_count(MachineObject* obj, int ams_id_int)
+{
+    if (devPrinterUtil::IsVirtualSlot(ams_id_int))
+        return 1;
+
+    const bool is_bbl_vendor = wxTheApp != nullptr && wxGetApp().preset_bundle != nullptr && wxGetApp().preset_bundle->is_bbl_vendor();
+    if (!is_bbl_vendor && obj && obj->GetFilaSystem()) {
+        if (const DevAms* ams = obj->GetFilaSystem()->GetAmsById(std::to_string(ams_id_int)))
+            return static_cast<int>(ams->GetTrays().size());
+    }
+
+    if (ams_id_int >= 128 && ams_id_int < 153) // N3S
+        return 1;
+
+    return 4;
+}
+
 void CalibrationPresetPage::update_multi_extruder_filament_combobox(const std::string &ams_id, int nozzle_id)
 {
     if (nozzle_id == 0) {
@@ -2632,58 +2725,31 @@ void CalibrationPresetPage::update_multi_extruder_filament_combobox(const std::s
 
     } catch (...) {}
 
-    int item_size = 4;
-    if (ams_id == std::to_string(VIRTUAL_TRAY_MAIN_ID) || ams_id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) {
-        item_size = 1;
-    }
+    const int item_size = visible_slot_count(curr_obj, ams_id_int);
 
-    if (ams_id_int >= 128 && ams_id_int < 153) {  // N3S
-        item_size = 1;
-    }
+    auto& controls = nozzle_id == 0 ? m_main_filament_comboBox_list : m_deputy_filament_comboBox_list;
+    auto* sizer = nozzle_id == 0 ? m_main_ams_items_sizer : m_deputy_ams_items_sizer;
+    ensure_filament_controls(controls, m_multi_exutrder_filament_list_panel, sizer, item_size, nozzle_id == 0 ? 0 : 1);
 
-    for (int i = 0; i < 4; i++) {
-        if (i < item_size) {
-            if (nozzle_id == 0)
-                m_main_filament_comboBox_list[i]->ShowPanel();
-            else
-                m_deputy_filament_comboBox_list[i]->ShowPanel();
-        }
-        else {
-            if (nozzle_id == 0)
-                m_main_filament_comboBox_list[i]->HidePanel();
-            else
-                m_deputy_filament_comboBox_list[i]->HidePanel();
+    for (size_t i = 0; i < controls.size(); i++) {
+        if (i < static_cast<size_t>(item_size)) {
+            controls[i]->ShowPanel();
+        } else {
+            controls[i]->SetValue(false, false);
+            controls[i]->HidePanel();
+            continue;
         }
 
-        int tray_index = ams_id_int * 4 + i;
-        if (ams_id == std::to_string(VIRTUAL_TRAY_MAIN_ID) || ams_id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) {
-            tray_index = stoi(ams_id);
-        }
+        const int tray_index = get_tray_id_by_ams_slot(curr_obj, ams_id_int, i);
 
         auto it = std::find_if(filament_ams_list.begin(), filament_ams_list.end(), [tray_index](auto &entry) {
             return entry.first == tray_index;
         });
 
-        if (nozzle_id == 0) {
-            if (m_main_filament_comboBox_list.empty())
-                continue;
-            if (it != filament_ams_list.end()) {
-                m_main_filament_comboBox_list[i]->load_tray_from_ams(tray_index, it->second);
-            } else {
-                m_main_filament_comboBox_list[i]->load_tray_from_ams(tray_index, empty_config);
-            }
-        }
-        else{
-            if (m_deputy_filament_comboBox_list.empty())
-                continue;
-            if (it != filament_ams_list.end()) {
-                m_deputy_filament_comboBox_list[i]->load_tray_from_ams(tray_index, it->second);
-            } else {
-                m_deputy_filament_comboBox_list[i]->load_tray_from_ams(tray_index, empty_config);
-            }
-        }
+        controls[i]->load_tray_from_ams(tray_index, it != filament_ams_list.end() ? it->second : empty_config);
+        update_slot_limit(controls[i]);
     }
-    Layout();
+    relayout_filament_controls();
 }
 
 void CalibrationPresetPage::update_filament_combobox(std::string ams_id)
@@ -2720,25 +2786,19 @@ void CalibrationPresetPage::update_filament_combobox(std::string ams_id)
 
     } catch (...) {}
 
-    int item_size = 4;
-    if (ams_id == std::to_string(VIRTUAL_TRAY_MAIN_ID) || ams_id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) {
-        item_size = 1;
-    }
+    const int item_size = visible_slot_count(curr_obj, ams_id_int);
 
-    if (ams_id_int >= 128 && ams_id_int < 153) { // N3S
-        item_size = 1;
-    }
-
-    for (int i = 0; i < 4; i++) {
-        if (i < item_size)
+    ensure_filament_controls(m_filament_comboBox_list, m_filament_list_panel, m_filament_grid_sizer, item_size, -1);
+    for (size_t i = 0; i < m_filament_comboBox_list.size(); i++) {
+        if (i < static_cast<size_t>(item_size))
             m_filament_comboBox_list[i]->ShowPanel();
-        else
+        else {
+            m_filament_comboBox_list[i]->SetValue(false, false);
             m_filament_comboBox_list[i]->HidePanel();
-
-        int tray_index = ams_id_int * 4 + i;
-        if (ams_id == std::to_string(VIRTUAL_TRAY_MAIN_ID) || ams_id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) {
-            tray_index = stoi(ams_id);
+            continue;
         }
+
+        const int tray_index = get_tray_id_by_ams_slot(curr_obj, ams_id_int, i);
 
         auto it = std::find_if(filament_ams_list.begin(), filament_ams_list.end(), [tray_index](auto& entry) {
             return entry.first == tray_index;
@@ -2750,8 +2810,9 @@ void CalibrationPresetPage::update_filament_combobox(std::string ams_id)
         else {
             m_filament_comboBox_list[i]->load_tray_from_ams(tray_index, empty_config);
         }
+        update_slot_limit(m_filament_comboBox_list[i]);
     }
-    Layout();
+    relayout_filament_controls();
 }
 
 Preset* CalibrationPresetPage::get_printer_preset(MachineObject* obj, float nozzle_value)

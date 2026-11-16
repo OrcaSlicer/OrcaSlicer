@@ -19,6 +19,7 @@
 #include <ios>
 #include <iomanip>
 #include <wx/anybutton.h>
+#include <wx/app.h>
 #include <wx/checklst.h>
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
@@ -80,6 +81,11 @@
 namespace Slic3r { namespace GUI {
 
 wxDEFINE_EVENT(EVT_SELECTED_COLOR, wxCommandEvent);
+
+static bool is_bbl_vendor_printer()
+{
+    return wxTheApp != nullptr && wxGetApp().preset_bundle != nullptr && wxGetApp().preset_bundle->is_bbl_vendor();
+}
 
 namespace {
 
@@ -686,8 +692,9 @@ void AMSMaterialsSetting::on_select_reset(wxCommandEvent& event) {
 
         // set k / n value
         if (obj->cali_version <= -1 && obj->get_printer_series() == PrinterSeries::SERIES_P1P) {
-            // set extrusion cali ratio
-            int cali_tray_id = ams_id * 4 + slot_id;
+            // set extrusion cali ratio. Bambu firmware expects the raw four-slot formula here, even
+            // for a virtual tray, so keep it verbatim; a generic device addresses the resolved lane.
+            int cali_tray_id = is_bbl_vendor_printer() ? ams_id * 4 + slot_id : get_tray_id_by_ams_slot(obj, ams_id, slot_id);
 
             double k = 0.0;
             try {
@@ -708,12 +715,9 @@ void AMSMaterialsSetting::on_select_reset(wxCommandEvent& event) {
         }
         else {
             PACalibIndexInfo select_index_info;
-            int tray_id = ams_id * 4 + slot_id;
-            if (is_virtual_tray()) {
-                tray_id = ams_id;
-                if (!obj->is_enable_np) {
-                    tray_id = VIRTUAL_TRAY_DEPUTY_ID;
-                }
+            int tray_id = get_tray_id_by_ams_slot(obj, ams_id, slot_id);
+            if (is_virtual_tray() && is_bbl_vendor_printer() && !obj->is_enable_np) {
+                tray_id = VIRTUAL_TRAY_DEPUTY_ID;
             }
             select_index_info.tray_id = tray_id;
             select_index_info.ams_id = ams_id;
@@ -946,7 +950,7 @@ void AMSMaterialsSetting::on_select_ok(wxCommandEvent &event)
         }
 
         auto vt_tray = ams_id;
-        if (!obj->is_enable_np) {
+        if (is_bbl_vendor_printer() && !obj->is_enable_np) {
             vt_tray = VIRTUAL_TRAY_DEPUTY_ID;
         }
 
@@ -974,7 +978,7 @@ void AMSMaterialsSetting::on_select_ok(wxCommandEvent &event)
         }
     }
     else {
-        int cali_tray_id = ams_id * 4 + slot_id;
+        int cali_tray_id = get_tray_id_by_ams_slot(obj, ams_id, slot_id);
         double k = 0.0;
         try {
             k_text.ToDouble(&k);
@@ -1110,9 +1114,9 @@ void AMSMaterialsSetting::on_clr_picker(wxMouseEvent &event)
 
 bool AMSMaterialsSetting::is_virtual_tray()
 {
-    if (ams_id == VIRTUAL_TRAY_MAIN_ID || ams_id == VIRTUAL_TRAY_DEPUTY_ID)
-        return true;
-    return false;
+    // A generic multi-extruder device owns one external spool per extruder (255 down), not only the
+    // Bambu pair; IsVirtualSlot resolves the right set for the active vendor.
+    return devPrinterUtil::IsVirtualSlot(ams_id);
 }
 
 void AMSMaterialsSetting::update_widgets()
@@ -1734,7 +1738,7 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
         }
 
         m_comboBox_cali_result->Set(items);
-        if (ams_id == VIRTUAL_TRAY_MAIN_ID || ams_id == VIRTUAL_TRAY_DEPUTY_ID) {
+        if (is_virtual_tray()) {
             if (from_printer && (*from_printer == 1)) {
                 for (auto slot : obj->vt_slot) {
                     if (slot.id == std::to_string(ams_id))

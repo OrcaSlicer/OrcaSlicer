@@ -1174,7 +1174,8 @@ void SelectMachineDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &res
                 {
                     ams_id = _L("Ext");
                 }else if (f->tray_id >= 0) {
-                    ams_id = wxGetApp().transition_tridid(f->tray_id);
+                    auto* dev = wxGetApp().getDeviceManager();
+                    ams_id = mapping_tray_label(dev ? dev->get_selected_machine() : nullptr, f->tray_id);
                 } else {
                     ams_id = "-";
                 }
@@ -2997,7 +2998,7 @@ void SelectMachineDialog::on_ok_btn(wxCommandEvent &event)
 
 
     //check for unidentified material
-    auto mapping_result = m_mapping_popup.parse_ams_mapping(obj_->GetFilaSystem()->GetAmsList());
+    auto mapping_result = m_mapping_popup.parse_ams_mapping(obj_);
     auto has_unknown_filament = false;
 
     for (auto i = 0; i < m_ams_mapping_result.size(); i++) {
@@ -4502,7 +4503,7 @@ static wxString _check_kval_not_default(const MachineObject* obj, const std::vec
         } else if (info.tray_id == VIRTUAL_TRAY_DEPUTY_ID) {
             ams_name = _L("Left-Ext");
         } else {
-            ams_name = wxGetApp().transition_tridid(info.tray_id);
+            ams_name = mapping_tray_label(obj, info.tray_id);
         }
 
         if (!ams_names.empty()) { ams_names += ", ";}
