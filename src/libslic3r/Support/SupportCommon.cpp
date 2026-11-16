@@ -1773,7 +1773,7 @@ void generate_support_toolpaths(
             } else {
                 if (support_params.ironing && !top_contact_layer.empty()) {
                     // Orca: save the top surface to be ironed later
-                    layer_cache.ironing_angle = support_interface_angle; // TODO: should we rotate 90 degrees?
+                    layer_cache.ironing_angle = support_interface_angle + support_params.ironing_direction;
                     layer_cache.polys_to_iron = top_contact_layer.polygons_to_extrude();
                 }
 
@@ -2046,6 +2046,8 @@ void generate_support_toolpaths(
 
                 ExPolygons polys_to_iron = union_safety_offset_ex(layer_cache.polys_to_iron);
                 layer_cache.polys_to_iron.clear();
+                if (support_params.ironing_inset > EPSILON)
+                    polys_to_iron = offset_ex(polys_to_iron, -scale_(support_params.ironing_inset));
 
                 // Find the layer above that directly overlaps current layer, clip the overlapped part
                 if (support_layer_id < support_layers.size() - 1) {
