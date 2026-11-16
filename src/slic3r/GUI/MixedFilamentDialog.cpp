@@ -737,7 +737,7 @@ wxBoxSizer* MixedFilamentDialog::create_preview_panel()
     // The color of the mix, as in the Decompose Color dialog. Empty text keeps the line's height.
     // A little wider than the preview, so the longest value fits. It keeps its size when the text changes, so the value
     // stays centered under the preview instead of growing the column or being clipped, with no layout needed.
-    constexpr int rgb_label_width = 150;
+    constexpr int rgb_label_width = 140;
     m_preview_rgb = new wxStaticText(this, wxID_ANY, " ", wxDefaultPosition, wxSize(FromDIP(rgb_label_width), -1),
                                      wxALIGN_CENTRE_HORIZONTAL | wxST_NO_AUTORESIZE);
     m_preview_rgb->SetForegroundColour(StateColor::darkModeColorFor(COLOR_LABEL_MUTED));
