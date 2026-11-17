@@ -57,7 +57,10 @@ public:
     // Limit newly added/imported points without invalidating larger saved models.
     virtual size_t maximum_point_count() const = 0;
     // Insert in the requested interval, or the nearest one with room for a valid point.
-    // Leave rows and the requested position unchanged at the limit or when no interval can be split.
+    // Beside a lone point, add the seed end it lacks: the last seed row to its right when the model
+    // accepts that pair, otherwise the first seed row to its left. On success row is the new point's index.
+    // Leave rows and the requested position unchanged at the limit, for an empty or invalid table,
+    // or when no valid point fits.
     bool insert_point(Rows& rows, int& row) const;
     // Move a point within drag_bounds(), rounding each moved coordinate with format_point_number().
     // A coordinate proposed at its current value keeps its value and text, even outside the bounds,
@@ -94,6 +97,8 @@ public:
     virtual const char* validate_view(const CurveView& view) const;
 
 private:
+    bool insert_beside_point(Rows& rows, int& row) const;
+
     std::vector<std::string> m_initial_parameters;
     std::vector<std::string> m_parameters;
     std::string m_serialized_parameters;

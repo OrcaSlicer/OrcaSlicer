@@ -6,7 +6,6 @@
 
 #include <cmath>
 #include <cstddef>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -84,11 +83,23 @@ TEST_CASE("Nonlinear flow curves use identical PCHIP interpolation in the previe
     CHECK_THAT(compensator.modify_flow(length, extrusion, erSolidInfill), WithinAbs(extrusion * preview(length), 1e-12));
 }
 
-TEST_CASE("Constructing a flow compensator without parsed points remains an error", "[SmallAreaInfillFlowCompensation][Regression]")
+TEST_CASE("A blank flow model applies no compensation", "[SmallAreaInfillFlowCompensation][Regression]")
 {
     GCodeConfig config;
-    config.small_area_infill_flow_compensation_model.values.clear();
-    REQUIRE_THROWS_AS(SmallAreaInfillFlowCompensator(config), std::invalid_argument);
+    config.small_area_infill_flow_compensation_model.values =
+        GENERATE(std::vector<std::string>{}, std::vector<std::string>{""}, std::vector<std::string>{"\n"},
+                 std::vector<std::string>{" ", "\t\n", ""});
+    SmallAreaInfillFlowCompensator compensator(config);
+    const double length = GENERATE(0.0, 0.1, 5.0, 1000.0);
+    CHECK_THAT(compensator.modify_flow(length, 3.0, erSolidInfill), WithinAbs(3.0, 1e-12));
+}
+
+TEST_CASE("A flow model whose entries hold fewer than two points is an error", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    GCodeConfig config;
+    config.small_area_infill_flow_compensation_model.values =
+        GENERATE(std::vector<std::string>{"5"}, std::vector<std::string>{"0", " "}, std::vector<std::string>{"0,1"});
+    REQUIRE_THROWS_AS(SmallAreaInfillFlowCompensator(config), InvalidArgument);
 }
 
 TEST_CASE("Legacy flow models with trailing and interleaved blanks remain usable during slicing", "[SmallAreaInfillFlowCompensation][Regression]")
@@ -154,14 +165,69 @@ TEST_CASE("Flow compensation only changes eligible infill roles within the model
     CHECK_THAT(compensator.modify_flow(11.0, extrusion, role), WithinAbs(extrusion, 1e-12));
 }
 
-TEST_CASE("The G-code consumer rejects malformed points instead of silently using partial numbers", "[SmallAreaInfillFlowCompensation][Regression]")
+TEST_CASE("Slicing reads flow model entries as the parser before the curve editor read them", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    // The points that parser took from the entry placed between "0,0" and "10,1": it split at
+    // commas, skipped an entry with a blank first field or with no second field, and read
+    // the leading number of the first two fields.
+    struct Entry { std::string text; std::vector<double> x, y; };
+    const std::vector<double> ends_x = {0, 10}, ends_y = {0, 1};
+    const auto entry = GENERATE_COPY(
+        Entry{"5", ends_x, ends_y},
+        Entry{"1,", ends_x, ends_y},
+        Entry{" ,0.5", ends_x, ends_y},
+        Entry{",", ends_x, ends_y},
+        Entry{"0.2,0.44,x", {0, 0.2, 10}, {0, 0.44, 1}},
+        Entry{"5,0.8 mm", {0, 5, 10}, {0, 0.8, 1}},
+        Entry{"5junk,0.8junk", {0, 5, 10}, {0, 0.8, 1}},
+        Entry{"0.2,0.4444\n0.4,0.6145", {0, 0.2, 10}, {0, 0.4444, 1}},
+        Entry{"\n 0.2 , 0.4444 ", {0, 0.2, 10}, {0, 0.4444, 1}},
+        Entry{"+5.,\t+.8e0,,", {0, 5, 10}, {0, 0.8, 1}},
+        Entry{"5e,8e-1e", {0, 5, 10}, {0, 0.8, 1}});
+    CAPTURE(entry.text);
+    GCodeConfig config;
+    config.small_area_infill_flow_compensation_model.values = {"0,0", entry.text, "10,1"};
+    SmallAreaInfillFlowCompensator compensator(config);
+    // The same interpolation over the expected points: at each of them it gives their factor.
+    const PchipInterpolatorHelper expected(entry.x, entry.y);
+    CHECK_THAT(compensator.modify_flow(entry.x[1], 1.0, erSolidInfill), WithinAbs(entry.y[1], 1e-12));
+    for (const double length : {0.1, 1.0, 3.0, 7.0})
+        CHECK_THAT(compensator.modify_flow(length, 1.0, erSolidInfill), WithinAbs(expected.interpolate(length), 1e-12));
+}
+
+TEST_CASE("Slicing rejects flow model entries without a number in either of the first two fields", "[SmallAreaInfillFlowCompensation][Regression]")
 {
     GCodeConfig config;
-    const std::string point = GENERATE(as<std::string>{}, "5junk,0.5", "5,0.5junk", "5", "5,0.5,extra");
+    const std::string point = GENERATE(as<std::string>{}, "bad,0.5", "5,bad", "5,,0.5", "5, ", "5,\n", "+-5,0.5", "5,mm0.5");
     config.small_area_infill_flow_compensation_model.values = {"0,0", point, "10,1"};
     REQUIRE_THROWS_AS(SmallAreaInfillFlowCompensator(config), InvalidArgument);
-    config.small_area_infill_flow_compensation_model.values = {"0", " "};
-    REQUIRE_THROWS_AS(SmallAreaInfillFlowCompensator(config), InvalidArgument);
+}
+
+TEST_CASE("The default flow model compensates as before the curve editor in each stored spelling", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    // Profiles store the model as an array of entries, as one string of quoted entries with
+    // escaped line breaks, or as one string with a line break after each semicolon.
+    const std::string stored = GENERATE(as<std::string>{}, "",
+        "0,0;\"\\n0.2,0.4444\";\"\\n0.4,0.6145\";\"\\n0.6,0.7059\";\"\\n0.8,0.7619\";\"\\n1.5,0.8571\";"
+        "\"\\n2,0.8889\";\"\\n3,0.9231\";\"\\n5,0.9520\";\"\\n10,1\"",
+        "0,0;\n0.2,0.4444;\n0.4,0.6145;\n0.6,0.7059;\n0.8,0.7619;\n1.5,0.8571;\n2,0.8889;\n3,0.9231;\n5,0.9520;\n10,1");
+    GCodeConfig config;
+    auto& model = config.small_area_infill_flow_compensation_model;
+    model.values = {"0,0", "\n0.2,0.4444", "\n0.4,0.6145", "\n0.6,0.7059", "\n0.8,0.7619",
+                    "\n1.5,0.8571", "\n2,0.8889", "\n3,0.9231", "\n5,0.9520", "\n10,1"};
+    const auto* defaults = static_cast<const ConfigOptionStrings*>(
+        print_config_def.get("small_area_infill_flow_compensation_model")->default_value.get());
+    REQUIRE(model.values == defaults->values);
+    if (!stored.empty()) REQUIRE(model.deserialize(stored));
+    SmallAreaInfillFlowCompensator compensator(config);
+    // PCHIP over the default points, computed apart from the slicer. A length of 0 and lengths
+    // past the last point are left alone.
+    const auto [length, factor] = GENERATE(table<double, double>({
+        {0.0, 1.0}, {0.1, 0.24699636289666393}, {0.2, 0.4444}, {0.3, 0.5453402145411946},
+        {0.5, 0.6663822828063748}, {1.0, 0.7972666843879391}, {1.5, 0.8571}, {2.5, 0.9090927793018251},
+        {4.0, 0.9398994135110998}, {7.5, 0.9774238532110091}, {10.0, 1.0}, {10.5, 1.0}}));
+    CAPTURE(stored, length);
+    CHECK_THAT(compensator.modify_flow(length, 1.0, erSolidInfill), WithinAbs(factor, 1e-9));
 }
 
 TEST_CASE("The G-code consumer rejects nonfinite flow model points", "[SmallAreaInfillFlowCompensation]")
@@ -199,15 +265,14 @@ TEST_CASE("Disabled flow compensation ignores a malformed stored model", "[Small
     CHECK_THAT(exported_volume(config), WithinAbs(baseline, 1e-9));
 }
 
-TEST_CASE("Inactive flow models leave exported extrusion unchanged", "[SmallAreaInfillFlowCompensation][Regression][Slicing]")
+TEST_CASE("Enabled flow compensation with a blank model leaves exported extrusion unchanged", "[SmallAreaInfillFlowCompensation][Regression][Slicing]")
 {
     auto config = flow_config();
     const double baseline = exported_volume(config);
     REQUIRE(baseline > 0.0);
-    const bool empty_enabled_model = GENERATE(false, true);
-    config.option<ConfigOptionBool>("small_area_infill_flow_compensation")->value = empty_enabled_model;
+    config.option<ConfigOptionBool>("small_area_infill_flow_compensation")->value = true;
     config.option<ConfigOptionStrings>("small_area_infill_flow_compensation_model")->values =
-        empty_enabled_model ? std::vector<std::string>{} : std::vector<std::string>{"malformed model"};
+        GENERATE(std::vector<std::string>{}, std::vector<std::string>{""}, std::vector<std::string>{"\n"});
     CHECK_THAT(exported_volume(config), WithinAbs(baseline, 1e-6));
 }
 

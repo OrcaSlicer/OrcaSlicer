@@ -9,6 +9,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include "I18N.hpp"
 #include "GCode/PchipInterpolatorHelper.hpp"
@@ -98,7 +99,7 @@ CurveModel::Rows CurveModel::decode_rows(const std::vector<std::string>& paramet
 std::vector<std::string> CurveModel::encode_rows(const Rows& rows, const std::vector<std::string>& initial_parameters)
 {
     std::vector<std::string> output;
-    if (!rows.empty() && rows == decode_rows(initial_parameters)) return initial_parameters;
+    if (rows == decode_rows(initial_parameters)) return initial_parameters;
     std::vector<std::string> initial;
     for (const auto& parameter : initial_parameters)
         if (!boost::algorithm::trim_copy(parameter).empty()) initial.push_back(parameter);
@@ -139,6 +140,7 @@ std::string CurveModel::format_number(double value)
 bool CurveModel::insert_point(Rows& rows, int& row) const
 {
     if (rows.size() >= maximum_point_count()) return false;
+    if (rows.size() == 1) return insert_beside_point(rows, row);
     std::vector<double> x, y;
     int error_row;
     if (read_points(rows, x, y, error_row) || x.size() < 2) return false;
@@ -170,6 +172,36 @@ bool CurveModel::insert_point(Rows& rows, int& row) const
             row = position;
             return true;
         }
+    }
+    return false;
+}
+
+bool CurveModel::insert_beside_point(Rows& rows, int& row) const
+{
+    const Rows seeds = seed_rows();
+    double x, y;
+    if (seeds.empty() || !read_number(rows.front().first, x) || !read_number(rows.front().second, y)) return false;
+    const CurveViewLimits limits = view_limits();
+    for (int position : std::array<int, 2>{1, 0}) {
+        const Row& seed = position == 1 ? seeds.back() : seeds.front();
+        double new_x, new_y;
+        if (!read_number(seed.first, new_x) || !read_number(seed.second, new_y)) continue;
+        // A seed that is not on this side of the point lends only its other coordinate.
+        if (position == 1 ? new_x <= x : new_x >= x) new_x = position == 1 ? x + limits.x_step : x - limits.x_step;
+        std::vector<double> candidate_x = {x}, candidate_y = {y};
+        candidate_x.insert(candidate_x.begin() + position, new_x);
+        candidate_y.insert(candidate_y.begin() + position, new_y);
+        // The editing bounds carry the model's rules for an end point, such as a locked coordinate.
+        const CurveView bounds = drag_bounds(position, candidate_x, candidate_y, limits.bounds);
+        if (!(bounds.min_x <= bounds.max_x) || !(bounds.min_y <= bounds.max_y)) continue;
+        Row point = {format_point_number(std::clamp(new_x, bounds.min_x, bounds.max_x)),
+                     format_point_number(std::clamp(new_y, bounds.min_y, bounds.max_y))};
+        int error_row;
+        if (!read_number(point.first, candidate_x[position]) || !read_number(point.second, candidate_y[position]) ||
+            candidate_x[0] >= candidate_x[1] || validate_points(candidate_x, candidate_y, error_row)) continue;
+        rows.insert(rows.begin() + position, std::move(point));
+        row = position;
+        return true;
     }
     return false;
 }
@@ -220,13 +252,15 @@ const char* CurveModel::read_csv(const std::string& text, Rows& rows, int& line)
         boost::algorithm::trim(record);
         if (record.empty()) continue;
         if (!separator) {
-            // The documented preset format terminates comma-separated pairs with ';'.
-            // Keep semicolon CSV (including decimal commas) as a separate dialect.
+            // The documented preset format separates comma-separated pairs with ';', with or without
+            // one after the last pair. Keep semicolon CSV (including decimal commas) as a separate
+            // dialect: a line that is two numbers around one ';' is a row of it.
             Row trial;
             double first, second;
-            legacy = record.back() == ';' && record.find(',') != std::string::npos &&
+            const bool semicolon = record.find(';') != std::string::npos;
+            legacy = semicolon && record.find(',') != std::string::npos &&
                 !(split_csv_row(record, ';', trial) && read_number(trial.first, first) && read_number(trial.second, second));
-            separator = legacy || record.find(';') == std::string::npos ? ',' : ';';
+            separator = legacy || !semicolon ? ',' : ';';
         }
         line = current_line;
         std::vector<std::string> records;
@@ -242,7 +276,8 @@ const char* CurveModel::read_csv(const std::string& text, Rows& rows, int& line)
             Row point;
             if (!split_csv_row(pair, separator, point)) return L("CSV must contain exactly two columns per line.");
             if (candidate.empty() && !header &&
-                ((point.first == columns[0] && point.second == columns[1]) || point == Row{"x", "y"})) {
+                ((boost::algorithm::iequals(point.first, columns[0]) && boost::algorithm::iequals(point.second, columns[1])) ||
+                 (boost::algorithm::iequals(point.first, "x") && boost::algorithm::iequals(point.second, "y")))) {
                 header = true;
                 continue;
             }
