@@ -632,6 +632,13 @@ lowest priority first; a whole-perimeter zone types every candidate. Blocked
 and Enforced zones therefore take precedence over painting, and Neutral clears
 painting inside its zone.
 
+A loop on which a candidate is left Enforced by a zone has exact ends (see
+[Seam alignment](seam-alignment.md)): the zone ends at its inserted boundaries,
+so alignment and the Random position keep the seam between them. The mark is one
+per loop and is set after painting has typed the candidates. A run enforced on
+the same loop only by paint near the layer keeps its candidates, but the seam no
+longer passes its ends either.
+
 ## Numeric tolerances
 
 Coordinates are integers in scaled units: 1 nm by default, and 10 nm when a bed

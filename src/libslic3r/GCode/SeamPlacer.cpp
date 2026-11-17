@@ -1061,8 +1061,10 @@ void process_perimeter_polygon(const Polygon &orig_polygon, float z_coord, const
 
   // Apply weak modifiers if no strong modifier was inserted
   if (!inserted_seam_position.has_value() && !weak_segments.empty()) {
-    PreciseSeam::apply_weak_modifiers_to_perimeter(
-        weak_segments, result, perimeter, some_point_enforced, warnings);
+    // An Enforced zone ends at its inserted boundaries, as exactly as paint crossing the layer: alignment and
+    // Random must keep the seam inside it. Set here, after painting has typed the candidates by this flag.
+    if (PreciseSeam::apply_weak_modifiers_to_perimeter(weak_segments, result, perimeter, some_point_enforced, warnings))
+      perimeter.exact_enforced_ends = true;
   }
 
   if (some_point_enforced) {

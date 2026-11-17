@@ -264,7 +264,8 @@ std::vector<WeakModifierSegment> collect_weak_modifier_segments(
 // Retypes the candidates inside each zone in the given order (pass zones lowest priority first);
 // sets some_point_enforced when an Enforced zone applies. When the whole perimeter ends up Blocked and
 // the highest whole-perimeter zone is Blocked, flags that zone's modifier for the warning.
-void apply_weak_modifiers_to_perimeter(
+// Returns whether a candidate is left Enforced by a zone, not overwritten by a later one.
+bool apply_weak_modifiers_to_perimeter(
     const std::vector<WeakModifierSegment> &weak_segments,
     PrintObjectSeamData::LayerSeams &result,
     const SeamPlacerImpl::Perimeter &perimeter,

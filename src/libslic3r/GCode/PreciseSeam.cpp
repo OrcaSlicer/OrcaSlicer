@@ -1826,7 +1826,7 @@ std::vector<WeakModifierSegment> collect_weak_modifier_segments(
     return prepare_weak_modifier_segments(std::move(result), polygon);
 }
 
-void apply_weak_modifiers_to_perimeter(
+bool apply_weak_modifiers_to_perimeter(
     const std::vector<WeakModifierSegment> &weak_segments,
     PrintObjectSeamData::LayerSeams &result,
     const SeamPlacerImpl::Perimeter &perimeter,
@@ -1836,6 +1836,8 @@ void apply_weak_modifiers_to_perimeter(
     // Get z-coordinate for unscaling boundary points
     const float z_coord = result.points[perimeter.start_index].position.z();
     const size_t perimeter_size = perimeter.end_index - perimeter.start_index;
+    // Candidates whose last zone is Enforced; painting may have enforced others.
+    std::vector<char> zone_enforced(perimeter_size, 0);
 
     // Helper lambda: search for point index in result.points by unscaled coordinates.
     // Linear scan is intentional — O(N×M) is acceptable for typical M ≤ 5 weak segments.
@@ -1857,6 +1859,7 @@ void apply_weak_modifiers_to_perimeter(
         if (segment.whole_perimeter) {
             for (size_t i = perimeter.start_index; i < perimeter.end_index; ++i)
                 result.points[i].type = segment.type;
+            std::fill(zone_enforced.begin(), zone_enforced.end(), segment.type == EnforcedBlockedSeamPoint::Enforced);
             if (segment.type == EnforcedBlockedSeamPoint::Enforced)
                 some_point_enforced = true;
             continue;
@@ -1874,6 +1877,7 @@ void apply_weak_modifiers_to_perimeter(
         // Apply modifier type to range [left_idx, right_idx] with wraparound
         for (size_t idx = left_idx.value(); ; idx = (idx + 1) % perimeter_size) {
             result.points[perimeter.start_index + idx].type = segment.type;
+            zone_enforced[idx] = segment.type == EnforcedBlockedSeamPoint::Enforced;
             if (idx == right_idx.value()) break;
         }
 
@@ -1882,18 +1886,20 @@ void apply_weak_modifiers_to_perimeter(
         }
     }
 
+    const bool enforced_by_zone = std::find(zone_enforced.begin(), zone_enforced.end(), 1) != zone_enforced.end();
     // Only the highest whole zone is in effect, and a higher band may still unblock part of it.
     if (warnings == nullptr)
-        return;
+        return enforced_by_zone;
     const auto last_whole = std::find_if(weak_segments.rbegin(), weak_segments.rend(),
                                          [](const WeakModifierSegment &segment) { return segment.whole_perimeter; });
     if (last_whole == weak_segments.rend() || last_whole->type != EnforcedBlockedSeamPoint::Blocked)
-        return;
+        return enforced_by_zone;
     for (size_t i = perimeter.start_index; i < perimeter.end_index; ++i)
         if (result.points[i].type != EnforcedBlockedSeamPoint::Blocked)
-            return;
+            return enforced_by_zone;
     if (const auto usage = warnings->modifier_usage.find(last_whole->modifier); usage != warnings->modifier_usage.end())
         PreciseSeamWarnings::set(usage->second.fully_blocked);
+    return enforced_by_zone;
 }
 
 // Restore precise seam positions that may have been modified
