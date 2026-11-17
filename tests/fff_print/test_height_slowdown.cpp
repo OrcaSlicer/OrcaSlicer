@@ -131,6 +131,13 @@ TEST_CASE("Height slowdown keeps the speed above the minimum speed", "[HeightSlo
     REQUIRE(off.size() == kept.size());
     CHECK_THAT(kept.rbegin()->second, WithinAbs(off.rbegin()->second, 1e-6));
     CHECK(on.rbegin()->second < kept.rbegin()->second);
+
+    // The same goes for the travel moves.
+    const std::map<double, double> travel_off  = slice_cube_feedrates(false, true);
+    const std::map<double, double> travel_on   = slice_cube_feedrates(true, true);
+    const std::map<double, double> travel_kept = slice_cube_feedrates(true, true, {{ "height_slowdown_min_speed", "1000" }});
+    CHECK_THAT(travel_kept.rbegin()->second, WithinAbs(travel_off.rbegin()->second, 1e-6));
+    CHECK(travel_on.rbegin()->second < travel_kept.rbegin()->second);
 }
 
 TEST_CASE("Height slowdown can be set for a single object", "[HeightSlowdown]")

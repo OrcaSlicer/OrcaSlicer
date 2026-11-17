@@ -9259,9 +9259,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
     const std::vector<double> normal_travel_speed_z = m_writer.config.travel_speed_z.values;
     if (height_slowdown.motion < 1.) {
         for (double &v : m_writer.config.travel_speed.values)
-            v *= height_slowdown.motion;
+            v = height_slowdown_limited(v * height_slowdown.motion, v, height_slowdown.min_speed);
         for (double &v : m_writer.config.travel_speed_z.values)
-            v *= height_slowdown.motion;
+            v = height_slowdown_limited(v * height_slowdown.motion, v, height_slowdown.min_speed);
     }
     if (height_slowdown.travel_acceleration < 1.) {
         m_height_slowdown_travel_factor           = height_slowdown.travel_acceleration;

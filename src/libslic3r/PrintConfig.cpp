@@ -4178,8 +4178,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("height_slowdown_min_speed", coFloat);
     def->label = L("Minimum speed");
-    def->tooltip = L("The slowdown does not lower the printing speed below this. A speed that is already lower is not changed. "
-                     "0 means no limit.");
+    def->tooltip = L("The slowdown does not lower the printing speed or the travel speed below this. A speed that is already lower is "
+                     "not changed. 0 means no limit.");
     def->sidetext = L("mm/s");
     def->min = 0;
     def->mode = comExpert;
