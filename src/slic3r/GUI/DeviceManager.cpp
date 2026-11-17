@@ -836,6 +836,15 @@ DevAmsTray *MachineObject::get_curr_tray()
     return nullptr;
 }
 
+DevAmsTray *MachineObject::get_external_virtual_tray(const std::string &ams_id)
+{
+    for (auto &tray : vt_slot) {
+        if (tray.id == ams_id)
+            return &tray;
+    }
+    return nullptr;
+}
+
 std::string MachineObject::get_filament_id(std::string ams_id, std::string tray_id) const {
     return this->get_tray(ams_id, tray_id).setting_id;
 }

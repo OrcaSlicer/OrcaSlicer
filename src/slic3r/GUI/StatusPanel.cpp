@@ -4148,10 +4148,17 @@ void StatusPanel::update_ams_control_state(std::string ams_id, std::string slot_
 {
     wxString load_error_info, unload_error_info;
 
+    const bool is_bbl_vendor = wxGetApp().preset_bundle != nullptr && wxGetApp().preset_bundle->is_bbl_vendor();
+    // Orca: Bambu keeps the existing preset-count test. Generic printers use the external slots
+    // actually present on the device, so a preset/device extruder-count mismatch cannot
+    // misclassify a slot (for example 253 on a three-extruder device with a one-extruder preset).
+    const bool is_external_slot = is_bbl_vendor ? devPrinterUtil::IsVirtualSlot(ams_id)
+                                                : obj->get_external_virtual_tray(ams_id) != nullptr;
+
     if (obj->is_in_printing() && !obj->can_resume()) {
         load_error_info = _L("The printer is busy with another print job.");
         unload_error_info = _L("The printer is busy with another print job.");
-    } else if (obj->can_resume() && !devPrinterUtil::IsVirtualSlot(ams_id)) {
+    } else if (obj->can_resume() && !is_external_slot) {
         load_error_info = _L("When printing is paused, filament loading and unloading are only supported for external slots.");
         unload_error_info = _L("When printing is paused, filament loading and unloading are only supported for external slots.");
     } else {
@@ -4172,7 +4179,7 @@ void StatusPanel::update_ams_control_state(std::string ams_id, std::string slot_
         if (ams_id.empty() || slot_id.empty()) {
             load_error_info = _L("Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filament.");
             unload_error_info = _L("Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filament.");
-        } else if (obj->GetFilaSwitch()->IsInstalled() && devPrinterUtil::IsVirtualSlot(ams_id)) {
+        } else if (obj->GetFilaSwitch()->IsInstalled() && is_external_slot) {
             // Orca: with a Filament Track Switch installed the external spool cannot be routed, so both actions are blocked.
             load_error_info  = _L("\"Load\" or \"Unload\" is not supported for external spool while using Filament Track Switch.");
             unload_error_info = load_error_info;
@@ -4180,7 +4187,8 @@ void StatusPanel::update_ams_control_state(std::string ams_id, std::string slot_
             // Orca: an un-calibrated Filament Track Switch cannot route filament to either extruder, so block both actions.
             load_error_info  = _L("The Filament Track Switch has not been setup. Please setup on printer.");
             unload_error_info = load_error_info;
-        } else if (ams_id == std::to_string(VIRTUAL_TRAY_MAIN_ID) || ams_id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) {
+        } else if (is_external_slot) {
+            // Orca: every external slot (255, 254, 253, ...) reaches the "already loaded" check.
             for (auto ext : obj->GetExtderSystem()->GetExtruders()) {
                 if (ext.GetSlotNow().ams_id == ams_id && ext.GetSlotNow().slot_id == slot_id)
                 {
@@ -4984,41 +4992,48 @@ void StatusPanel::on_ams_load_curr()
         }
 
         update_load_with_temp();
-        //virtual tray
-        if (curr_ams_id.compare(std::to_string(VIRTUAL_TRAY_MAIN_ID)) == 0 ||
-            curr_ams_id.compare(std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) == 0)
-        {
-            int vt_slot_idx = 0;
-            if (curr_ams_id.compare(std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) == 0)
-            {
-                vt_slot_idx = 1;
-            }
 
+        //virtual tray
+        const bool is_bbl_vendor = wxGetApp().preset_bundle != nullptr && wxGetApp().preset_bundle->is_bbl_vendor();
+        DevAmsTray* vt_tray = nullptr;
+        if (is_bbl_vendor) {
+            // Bambu keeps its fixed external pair (main at index 0, deputy at index 1).
+            if (curr_ams_id.compare(std::to_string(VIRTUAL_TRAY_MAIN_ID)) == 0 ||
+                curr_ams_id.compare(std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) == 0)
+            {
+                const int vt_slot_idx = curr_ams_id.compare(std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) == 0 ? 1 : 0;
+                if (vt_slot_idx < static_cast<int>(obj->vt_slot.size())) {
+                    vt_tray = &obj->vt_slot[vt_slot_idx];
+                }
+            }
+        } else {
+            // Generic printers address any external slot by its own virtual tray id (255, 254, 253, ...).
+            vt_tray = obj->get_external_virtual_tray(curr_ams_id);
+        }
+
+        if (vt_tray) {
             int old_temp = -1;
             int new_temp = -1;
-            DevAmsTray* curr_tray = &obj->vt_slot[vt_slot_idx];
-
-            if (!curr_tray) return;
 
             try {
-                if (!curr_tray->nozzle_temp_max.empty() && !curr_tray->nozzle_temp_min.empty())
-                    old_temp = (atoi(curr_tray->nozzle_temp_min.c_str()) + atoi(curr_tray->nozzle_temp_max.c_str())) / 2;
-                if (!curr_tray->nozzle_temp_max.empty() && !curr_tray->nozzle_temp_min.empty())
-                    new_temp = (atoi(curr_tray->nozzle_temp_min.c_str()) + atoi(curr_tray->nozzle_temp_max.c_str())) / 2;
+                if (!vt_tray->nozzle_temp_max.empty() && !vt_tray->nozzle_temp_min.empty())
+                    old_temp = (atoi(vt_tray->nozzle_temp_min.c_str()) + atoi(vt_tray->nozzle_temp_max.c_str())) / 2;
+                if (!vt_tray->nozzle_temp_max.empty() && !vt_tray->nozzle_temp_min.empty())
+                    new_temp = (atoi(vt_tray->nozzle_temp_min.c_str()) + atoi(vt_tray->nozzle_temp_max.c_str())) / 2;
             }
             catch (...) {
                 ;
             }
 
-            if (obj->is_enable_np || obj->is_enable_ams_np) {
-                try {
-                    if (!curr_ams_id.empty() && !curr_can_id.empty()) {
-                        obj->command_ams_change_filament(true, curr_ams_id, "0", old_temp, new_temp, extruder_id);
-                    }
-                } catch (...) {}
-            } else {
+            if (is_bbl_vendor && !obj->is_enable_np && !obj->is_enable_ams_np) {
+                // Legacy Bambu protocol loads the external spool through the fixed deputy id.
                 obj->command_ams_change_filament(true, "254", "0", old_temp, new_temp, extruder_id);
+            } else if (!curr_ams_id.empty() && !curr_can_id.empty()) {
+                try {
+                    obj->command_ams_change_filament(true, curr_ams_id, "0", old_temp, new_temp, extruder_id);
+                } catch (...) {}
             }
+            return;
         }
 
         std::map<std::string, DevAms*>::iterator it = obj->GetFilaSystem()->GetAmsList().find(curr_ams_id);
@@ -5303,7 +5318,11 @@ void StatusPanel::on_ext_spool_edit(wxCommandEvent &event)
 
         m_filament_setting_dlg->ams_id = ams_id;
         m_filament_setting_dlg->slot_id  = slot_id;
-        int nozzle_index = ams_id == VIRTUAL_TRAY_MAIN_ID ? 0 : 1;
+
+        // Orca: look the external slot up by its own virtual tray id instead of a fixed pair index,
+        // so a generic printer with more than two external slots edits the selected one.
+        DevAmsTray* ext_tray = obj->get_external_virtual_tray(std::to_string(ams_id));
+        if (!ext_tray) { return; }
 
         try {
             std::string sn_number;
@@ -5312,16 +5331,16 @@ void StatusPanel::on_ext_spool_edit(wxCommandEvent &event)
             std::string temp_min;
             wxString k_val;
             wxString n_val;
-            k_val                                   = wxString::Format("%.3f", obj->vt_slot[nozzle_index].k);
-            n_val                                   = wxString::Format("%.3f", obj->vt_slot[nozzle_index].n);
-            wxColor color                           = DevAmsTray::decode_color(obj->vt_slot[nozzle_index].color);
-            m_filament_setting_dlg->ams_filament_id = obj->vt_slot[nozzle_index].setting_id;
+            k_val                                   = wxString::Format("%.3f", ext_tray->k);
+            n_val                                   = wxString::Format("%.3f", ext_tray->n);
+            wxColor color                           = DevAmsTray::decode_color(ext_tray->color);
+            m_filament_setting_dlg->ams_filament_id = ext_tray->setting_id;
 
             std::vector<wxColour> cols;
-            for (auto col : obj->vt_slot[nozzle_index].cols) {
+            for (auto col : ext_tray->cols) {
                 cols.push_back(DevAmsTray::decode_color(col));
             }
-            m_filament_setting_dlg->set_ctype(obj->vt_slot[nozzle_index].ctype);
+            m_filament_setting_dlg->set_ctype(ext_tray->ctype);
 
             if (m_filament_setting_dlg->ams_filament_id.empty()) {
                 m_filament_setting_dlg->set_empty_color(color);
@@ -5331,12 +5350,12 @@ void StatusPanel::on_ext_spool_edit(wxCommandEvent &event)
                 m_filament_setting_dlg->set_colors(cols);
             }
 
-            m_filament_setting_dlg->m_is_third = !DevFilaSystem::IsBBL_Filament(obj->vt_slot[nozzle_index].tag_uid);
+            m_filament_setting_dlg->m_is_third = !DevFilaSystem::IsBBL_Filament(ext_tray->tag_uid);
             if (!m_filament_setting_dlg->m_is_third) {
-                sn_number = obj->vt_slot[nozzle_index].uuid;
-                filament  = obj->vt_slot[nozzle_index].sub_brands;
-                temp_max  = obj->vt_slot[nozzle_index].nozzle_temp_max;
-                temp_min  = obj->vt_slot[nozzle_index].nozzle_temp_min;
+                sn_number = ext_tray->uuid;
+                filament  = ext_tray->sub_brands;
+                temp_max  = ext_tray->nozzle_temp_max;
+                temp_min  = ext_tray->nozzle_temp_min;
             }
 
             m_filament_setting_dlg->Move(wxPoint(current_position_x,current_position_y));

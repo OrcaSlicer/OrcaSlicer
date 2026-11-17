@@ -1203,20 +1203,15 @@ void AMSControl::UpdateAms(const std::string   &series_name,
             }
             std::string ams_id = ams_item.second->get_ams_id();
             AmsItem* cans = ams_item.second;
-            if (cans->get_ams_id() == std::to_string(VIRTUAL_TRAY_MAIN_ID) || cans->get_ams_id() == std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) {
-                for (auto ifo : m_ext_info) {
-                    if (ifo.ams_id == ams_id) {
-                        cans->UpdateInfo(ifo);
-                        cans->show_sn_value(m_ams_model == AMSModel::AMS_LITE ? false : true);
-                    }
-                }
-            }
-            else{
-                for (auto ifo : m_ams_info) {
-                    if (ifo.ams_id == ams_id) {
-                        cans->UpdateInfo(ifo);
-                        cans->show_sn_value(m_ams_model == AMSModel::AMS_LITE ? false : true);
-                    }
+            // Orca: pick the source list by membership, not by the fixed 255/254 pair, so every
+            // external slot of a generic printer (255, 254, 253, ...) is refreshed from m_ext_info.
+            const auto ext_it = std::find_if(m_ext_info.begin(), m_ext_info.end(),
+                                             [&ams_id](const AMSinfo& info) { return info.ams_id == ams_id; });
+            const auto& source = ext_it != m_ext_info.end() ? m_ext_info : m_ams_info;
+            for (const auto& ifo : source) {
+                if (ifo.ams_id == ams_id) {
+                    cans->UpdateInfo(ifo);
+                    cans->show_sn_value(m_ams_model == AMSModel::AMS_LITE ? false : true);
                 }
             }
         }
