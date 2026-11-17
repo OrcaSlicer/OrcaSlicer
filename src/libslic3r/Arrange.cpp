@@ -70,7 +70,8 @@ template<class S> struct NfpImpl<S, NfpLevel::CONVEX_ONLY>
 {
     NfpResult<S> operator()(const S &sh, const S &other)
     {
-        return nfpConvexOnly<S, boost::rational<LargeInt>>(sh, other);
+        // The edge sort needs exact cross products of coordinate differences.
+        return nfpConvexOnly<S, LargeInt>(sh, other);
     }
 };
 

@@ -321,21 +321,15 @@ inline NfpResult<RawShape> nfpConvexOnly(const RawShape& sh,
             else q[i] = quadrants[((lcos[i] < 0) << 1) + (lsin[i] < 0)];
             
         if(q[0] == q[1]) { // only bother if p1 and p2 are in the same quadrant
-            auto lsq1 = pl::magnsq(p1);     // squared magnitudes, avoid sqrt
-            auto lsq2 = pl::magnsq(p2);     // squared magnitudes, avoid sqrt
-
-            // We will actually compare l^2 * cos^2(phi) which saturates the
-            // cos function. But with the quadrant info we can get the sign back
-            int sign = q[0] == 1 || q[0] == 2 ? -1 : 1;
-            
-            // If Ratio is an actual rational type, there is no precision loss
-            auto pcos1 = Ratio(lcos[0]) / lsq1 * sign * lcos[0];
-            auto pcos2 = Ratio(lcos[1]) / lsq2 * sign * lcos[1];
+            // Within one quadrant the edges are less than 90 degrees apart, so
+            // the sign of their cross product orders them by angle. With an
+            // integer Ratio wide enough for the product it is exact.
+            const Ratio cross = Ratio(getX(p1)) * Ratio(getY(p2)) - Ratio(getY(p1)) * Ratio(getX(p2));
 
             if constexpr (is_clockwise<RawShape>())
-                return q[0] < 2 ? pcos1 < pcos2 : pcos1 > pcos2;
+                return cross < Ratio(0);
             else
-                return q[0] < 2 ? pcos1 > pcos2 : pcos1 < pcos2;
+                return cross > Ratio(0);
         }
         
         // If in different quadrants, compare the quadrant indices only.
