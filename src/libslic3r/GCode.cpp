@@ -8607,7 +8607,7 @@ void GCode::split_and_mapping_speed(double other_path_v, double final_v, Extrusi
     };
 
     //check line length
-    auto length_enough = [this](double length) {
+    auto length_enough = [](double length) {
         if (length < min_step_length || length - min_step_length < min_step_length / 2)
             return false;
 
@@ -8674,7 +8674,7 @@ void GCode::split_and_mapping_speed(double other_path_v, double final_v, Extrusi
             } else {
                 // path is too long, split it
                 double rate     = min_step_length / seg_length;
-                Point3 insert_p = line_start_pt + (line_end_pt - line_start_pt) * (float) rate;
+                Point3 insert_p = line_start_pt + ((line_end_pt - line_start_pt).cast<double>() * rate).cast<coord_t>();
 
                 split_line_speed = insert_speed(min_step_length, x_base, smooth_length_count, final_v);
                 line_start_pt    = insert_p;
@@ -8792,7 +8792,7 @@ ExtrusionPaths GCode::set_speed_transition(std::vector<ExtrusionPaths> &paths)
             continue;
         }
         // get smooth length
-        auto get_path_length = [this](ExtrusionPaths path) {
+        auto get_path_length = [](ExtrusionPaths path) {
             return std::accumulate(path.begin(), path.end(), 0.0, [](double sum, const ExtrusionPath &p) { return sum + p.length(); });
         };
 
