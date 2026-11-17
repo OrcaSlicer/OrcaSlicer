@@ -93,8 +93,9 @@ private:
     wxRecursionGuardFlag m_layout_depth = 0;
     wxRecursionGuardFlag m_grid_resize_depth = 0;
 #ifdef __WXMSW__
-    // The rect of the last WM_DPICHANGED, its position relative to the window's position then.
-    wxRect m_dpi_suggested_rect;
+    // The rect of the last WM_DPICHANGED, its position relative to the window's position then,
+    // and the window's size then: a border drag that goes on after the DPI change voids the rect.
+    struct { wxRect rect; wxSize size; } m_dpi_suggested;
 #endif
 };
 

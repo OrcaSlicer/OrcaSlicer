@@ -198,9 +198,12 @@ ends, and it takes DPI and theme changes from the base class (`on_dpi_changed()`
 `on_sys_color_changed()`) without binding these events on itself a second time. On a DPI change on
 Windows it applies the rectangle Windows suggests, no smaller than its minimum size, because
 wxWidgets leaves the size and position to a window that handles the event; keeping the old corner
-could leave it mostly on the previous monitor and change the DPI back. On macOS the base class
-does not handle the DPI event, and logical sizes do not change there; the widgets with icons rescale from their own handlers on every platform. Escape is decided
-by the dialog's key hook, which runs before the one of the base class.
+could leave it mostly on the previous monitor and change the DPI back. When the user goes on
+resizing the window after the DPI change, or one drag crosses two DPI changes, the suggested
+rectangle no longer fits, and the dialog keeps its corner and scales its current size. On macOS
+the base class does not handle the DPI event, and logical sizes do not change there; the widgets
+with icons rescale from their own handlers on every platform. Escape is decided by the dialog's
+key hook, which runs before the one of the base class.
 
 Its size and position are stored under a key given by the dialog that derives from it, not under
 the window name, and are brought back onto a display when restored.
