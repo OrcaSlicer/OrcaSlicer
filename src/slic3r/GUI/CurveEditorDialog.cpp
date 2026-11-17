@@ -112,6 +112,19 @@ private:
     FlatGridHeaderRenderer<wxGridCornerHeaderRenderer> m_corner;
 };
 
+#ifdef __WXMSW__
+// Windows gives a window the DPI of the display that has the largest part of it, so a rescaled
+// rect left mostly on another display changes the DPI back. Move it only then, into the display.
+void keep_on_display(wxRect& rect, int display)
+{
+    if (display == wxNOT_FOUND || wxDisplay::GetFromRect(rect) == display)
+        return;
+    const wxRect area = wxDisplay(unsigned(display)).GetClientArea();
+    rect.x = std::max(area.x, std::min(rect.x, area.GetRight() + 1 - rect.width));
+    rect.y = std::max(area.y, std::min(rect.y, area.GetBottom() + 1 - rect.height));
+}
+#endif
+
 } // namespace
 
 CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, const wxString& help_text,
@@ -618,9 +631,11 @@ void CurveEditorDialog::on_dpi_changed(const wxRect&)
     // Take the position Windows suggests too: the old top-left can leave the window mostly on the
     // previous monitor, which changes the DPI back. A drag rescales at the drop, so the rect follows a
     // move; a resize after the DPI change makes it stale, and the size the user left is scaled instead.
-    wxRect rect(GetPosition(), GetSize() * (double(scale_factor()) / prev_scale_factor()));
-    if (!m_dpi_suggested.rect.IsEmpty() && GetSize() == m_dpi_suggested.size)
-        rect = wxRect(GetPosition() + m_dpi_suggested.rect.GetPosition(), m_dpi_suggested.rect.GetSize());
+    // The rect must stay on the display whose DPI is being applied.
+    const bool suggested = !m_dpi_suggested.rect.IsEmpty() && GetSize() == m_dpi_suggested.size;
+    wxRect rect = suggested ? wxRect(GetPosition() + m_dpi_suggested.rect.GetPosition(), m_dpi_suggested.rect.GetSize())
+                            : wxRect(GetPosition(), GetSize() * (double(scale_factor()) / prev_scale_factor()));
+    const int display = wxDisplay::GetFromRect(suggested ? rect : GetRect());
     m_dpi_suggested = {};
 #endif
     m_chart->finish_drag();
@@ -645,6 +660,7 @@ void CurveEditorDialog::on_dpi_changed(const wxRect&)
     GetSizer()->SetSizeHints(this);
 #ifdef __WXMSW__
     rect.SetSize(wxSize(std::max(rect.width, GetMinSize().x), std::max(rect.height, GetMinSize().y)));
+    keep_on_display(rect, display);
     SetSize(rect);
 #endif
     Layout();
