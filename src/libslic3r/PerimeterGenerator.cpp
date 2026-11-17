@@ -649,6 +649,12 @@ static double over_top_length(const Polyline &centerline, const ExPolygons &top_
     return total_length(intersection_pl(Polylines{ centerline }, top_region));
 }
 
+// ORCA: the area the top fill takes, the top fills grown by half the outer wall spacing to meet the outer wall.
+static ExPolygons top_fill_area(const ExPolygons &top_fills, const ExPolygons &fill_clip, coord_t ext_perimeter_spacing)
+{
+    return intersection_ex(fill_clip, offset_ex(top_fills, double(ext_perimeter_spacing / 2)));
+}
+
 // ORCA: only_one_wall_top for Arachne - cut out of the already generated inner walls the parts running over the top
 // surface, so geometry that continues upward keeps its walls. A wall too short over the top to be worth slitting open
 // is left whole, its footprint reported in kept_over_top for the caller to withhold from the top fill.
@@ -1710,8 +1716,9 @@ void PerimeterGenerator::process_classic()
                         ExPolygons non_top_polygons;
                         this->split_top_surfaces(last, top_fills, non_top_polygons, fill_clip);
                         apply_one_wall_top = !top_fills.empty();
+                        // All the top fill covers, see docs/HLSD/only-one-wall-top.md.
                         if (apply_one_wall_top)
-                            one_wall_top_region = diff_ex(last, non_top_polygons);
+                            one_wall_top_region = top_fill_area(top_fills, fill_clip, ext_perimeter_spacing);
                     } else {
                         // Onion the not-top region only, so the remaining walls stop at the top boundary.
                         this->split_top_surfaces(last, top_fills, last, fill_clip);
@@ -2050,7 +2057,7 @@ void PerimeterGenerator::process_classic()
             float(min_perimeter_infill_spacing / 2.));
         // append infill areas to fill_surfaces
         //if any top_fills, grow them by ext_perimeter_spacing/2 to have the real un-anchored fill
-        ExPolygons top_infill_exp = intersection_ex(fill_clip, offset_ex(top_fills, double(ext_perimeter_spacing / 2)));
+        ExPolygons top_infill_exp = top_fill_area(top_fills, fill_clip, ext_perimeter_spacing);
         // ORCA: only_one_wall_top - route the top fill around the walls kept despite grazing the top.
         if (!one_wall_top_kept_bands.empty())
             top_infill_exp = diff_ex(top_infill_exp, one_wall_top_kept_bands);

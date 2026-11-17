@@ -351,6 +351,17 @@ double inner_wall_length(const Layer &layer)
     return unscale<double>(len);
 }
 
+// Length of the inner-wall centerline inside the given area on a layer.
+double inner_wall_length_inside(const Layer &layer, const ExPolygons &area)
+{
+    double len = 0.;
+    for (const LayerRegion *region : layer.regions())
+        for (const ExtrusionEntity *entity : region->perimeters.flatten().entities)
+            if (is_internal_perimeter(entity->role()))
+                len += total_length(intersection_pl(entity->as_polylines(), area));
+    return unscale<double>(len);
+}
+
 } // namespace
 
 // A wall runs over the top surface wherever any part of it is over that surface, which a per-vertex test does
@@ -380,6 +391,49 @@ TEST_CASE("Only one wall on top surfaces keeps the top fill off inner walls that
     REQUIRE(below != nullptr);
     REQUIRE(inner_wall_length(*below) > 0.);
 
+    CHECK(inner_wall_over_top_fill(*ledge) < 1.0);
+}
+
+// Arachne cuts its inner walls at the top surface instead of dropping them, so the walls under the posts stay. Each
+// post sits on two outer sides of the base, each carrying both inner walls of wall_loops 3: 4 x 2 x 2 x 10mm, of
+// which the cut at the inner sides of the posts may take some, but not half.
+TEST_CASE("Only one wall on top surfaces keeps the Arachne inner walls under the geometry that keeps rising", "[Perimeters]")
+{
+    DynamicPrintConfig config = base_config("arachne");
+    config.set_deserialize_strict({
+        { "only_one_wall_top",     true },
+        { "top_surface_expansion", 2.0 },
+    });
+    Print print;
+    Model model;
+    base_with_corner_posts(print, model, config);
+
+    const Layer *ledge = layer_at(print, ledge_z);
+    REQUIRE(ledge != nullptr);
+    REQUIRE(ledge->upper_layer != nullptr);
+    CHECK(inner_wall_length_inside(*ledge, ledge->upper_layer->lslices) > 0.5 * 4 * 2 * 2 * 10.);
+}
+
+// With the precise outer wall off and equal wall spacings, the first inner wall lies exactly on the edge of the band
+// next to the outer wall that split_top_surfaces() counts as not top, while the top fill covers it. A ledge along the
+// whole outer wall gives that wall no other crossing to be caught by.
+TEST_CASE("Only one wall on top surfaces keeps the top fill off the inner wall beside the outer wall", "[Perimeters]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+
+    DynamicPrintConfig config = base_config(wall_generator);
+    config.set_deserialize_strict({
+        { "only_one_wall_top",     true },
+        { "top_surface_expansion", 2.0 },
+        { "precise_outer_wall",    false },
+    });
+    Print print;
+    init_and_process_print({ step_with_ledge() }, print, config);
+
+    const Layer *ledge = layer_at(print, ledge_z);
+    REQUIRE(ledge != nullptr);
+    REQUIRE(top_fill_length(*ledge) > 0.);
     CHECK(inner_wall_over_top_fill(*ledge) < 1.0);
 }
 
