@@ -139,9 +139,11 @@ namespace GUI {
 
         static void render_texture(unsigned int tex_id, float left, float right, float bottom, float top);
         static void render_sub_texture(unsigned int tex_id, float left, float right, float bottom, float top, const Quad_UVs& uvs);
-        // Copies the bound read framebuffer into an RGBA texture, creating it on first use and
-        // reallocating it when the size changes.
-        static void copy_from_framebuffer(unsigned int& tex_id, std::array<unsigned int, 2>& tex_size, unsigned int width, unsigned int height, int filter);
+        // Copies the window framebuffer, bound for reading and drawing, into an RGBA texture, creating it on first use and
+        // reallocating it when the size changes. Where a copy can't resolve the window's samples, a blit through
+        // framebuffer_id does, a framebuffer object created on first use; the caller deletes both.
+        static void copy_from_framebuffer(unsigned int& tex_id, unsigned int& framebuffer_id, std::array<unsigned int, 2>& tex_size,
+                                          unsigned int width, unsigned int height, int filter);
 
     private:
         bool load_from_png(const std::string& filename, bool use_mipmaps, ECompressionType compression_type, bool apply_anisotropy);

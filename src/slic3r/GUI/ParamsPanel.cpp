@@ -37,6 +37,7 @@
 #include <wx/timer.h>
 #include <cstddef>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
 #include <wx/wupdlock.h>
 #include <vector>
 

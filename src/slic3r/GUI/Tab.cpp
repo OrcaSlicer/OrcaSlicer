@@ -3078,6 +3078,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("wipe_inward", "quality_settings_seam#wipe-inward");
         optgroup->append_single_option_line("wipe_inward_distance", "quality_settings_seam#wipe-inward");
         optgroup->append_single_option_line("wipe_before_external_loop","quality_settings_seam#wipe-before-external");
+        optgroup->append_single_option_line("retract_after_outer_wall", "quality_settings_seam#retract-after-outer-wall");
 
 
         optgroup = page->new_optgroup(L("Precision"), L"param_precision");
@@ -3255,23 +3256,36 @@ void TabPrint::build()
         optgroup->append_single_option_line("ensure_vertical_shell_thickness", "strength_settings_advanced#ensure-vertical-shell-thickness");
 
     page = add_options_page(L("Speed"), "custom-gcode_speed"); // ORCA: icon only visible on placeholders
+        // Orca: each speed below is followed by its volumetric alternative; ConfigManipulation shows one of the two.
+        optgroup = page->new_optgroup(L("Speed definition"), L"param_volumetric_speed", 15);
+        optgroup->append_single_option_line("enable_volumetric_speeds", "speed_settings_other_layers_speed#volumetric-speeds");
         optgroup = page->new_optgroup(L("First layer speed"), L"param_speed_first", 15);
         optgroup->append_single_option_line("initial_layer_speed", "speed_settings_initial_layer_speed#initial-layer", 0);
+        optgroup->append_single_option_line("initial_layer_volumetric_flow", "speed_settings_initial_layer_speed#initial-layer", 0);
         optgroup->append_single_option_line("initial_layer_infill_speed", "speed_settings_initial_layer_speed#initial-layer-infill", 0);
+        optgroup->append_single_option_line("initial_layer_infill_volumetric_flow", "speed_settings_initial_layer_speed#initial-layer-infill", 0);
         optgroup->append_single_option_line("initial_layer_travel_speed", "speed_settings_initial_layer_speed#initial-layer-travel-speed", 0);
         optgroup->append_single_option_line("slow_down_layers", "speed_settings_initial_layer_speed#number-of-slow-layers");
         optgroup = page->new_optgroup(L("Other layers speed"), L"param_speed", 15);
         optgroup->append_single_option_line("outer_wall_speed", "speed_settings_other_layers_speed#outer-wall", 0);
+        optgroup->append_single_option_line("outer_wall_volumetric_flow", "speed_settings_other_layers_speed#outer-wall", 0);
         optgroup->append_single_option_line("inner_wall_speed", "speed_settings_other_layers_speed#inner-wall", 0);
+        optgroup->append_single_option_line("inner_wall_volumetric_flow", "speed_settings_other_layers_speed#inner-wall", 0);
         optgroup->append_single_option_line("small_perimeter_speed", "speed_settings_other_layers_speed#small-perimeters", 0);
         optgroup->append_single_option_line("small_perimeter_threshold", "speed_settings_other_layers_speed#small-perimeters-threshold", 0);
         optgroup->append_single_option_line("sparse_infill_speed", "speed_settings_other_layers_speed#sparse-infill", 0);
+        optgroup->append_single_option_line("sparse_infill_volumetric_flow", "speed_settings_other_layers_speed#sparse-infill", 0);
         optgroup->append_single_option_line("internal_solid_infill_speed", "speed_settings_other_layers_speed#internal-solid-infill", 0);
+        optgroup->append_single_option_line("internal_solid_infill_volumetric_flow", "speed_settings_other_layers_speed#internal-solid-infill", 0);
         optgroup->append_single_option_line("top_surface_speed", "speed_settings_other_layers_speed#top-surface", 0);
+        optgroup->append_single_option_line("top_surface_volumetric_flow", "speed_settings_other_layers_speed#top-surface", 0);
         optgroup->append_single_option_line("gap_infill_speed", "speed_settings_other_layers_speed#gap-infill", 0);
+        optgroup->append_single_option_line("gap_infill_volumetric_flow", "speed_settings_other_layers_speed#gap-infill", 0);
         optgroup->append_single_option_line("ironing_speed", "speed_settings_other_layers_speed#ironing-speed");
         optgroup->append_single_option_line("support_speed", "speed_settings_other_layers_speed#support", 0);
+        optgroup->append_single_option_line("support_volumetric_flow", "speed_settings_other_layers_speed#support", 0);
         optgroup->append_single_option_line("support_interface_speed", "speed_settings_other_layers_speed#support-interface", 0);
+        optgroup->append_single_option_line("support_interface_volumetric_flow", "speed_settings_other_layers_speed#support-interface", 0);
         optgroup->append_single_option_line("small_support_perimeter_speed", "speed_settings_other_layers_speed#small-tree-support-perimeters", 0);
         optgroup->append_single_option_line("small_support_perimeter_threshold", "speed_settings_other_layers_speed#small-tree-support-perimeters-threshold", 0);
         optgroup = page->new_optgroup(L("Overhang speed"), L"param_overhang_speed", 15);
@@ -3287,8 +3301,14 @@ void TabPrint::build()
         optgroup->append_line(line);
         optgroup->append_separator();
         line = { L("Bridge"), L("Set speed for external and internal bridges") };
+        line.label_path = "speed_settings_overhang_speed#bridge-speed";
         line.append_option(optgroup->get_option("bridge_speed", 0));
         line.append_option(optgroup->get_option("internal_bridge_speed", 0));
+        optgroup->append_line(line);
+        line = { L("Bridge"), L("Set volumetric speed for external and internal bridges") };
+        line.label_path = "speed_settings_overhang_speed#bridge-speed";
+        line.append_option(optgroup->get_option("bridge_volumetric_flow", 0));
+        line.append_option(optgroup->get_option("internal_bridge_volumetric_flow", 0));
         optgroup->append_line(line);
 
         optgroup = page->new_optgroup(L("Travel speed"), L"param_travel_speed", 15);
@@ -4014,8 +4034,9 @@ void TabPrintModel::on_value_change(const std::string& opt_id, const boost::any&
     if (auto n = opt_key.find('#'); n != std::string::npos) {
         opt_key = opt_key.substr(0, n);
         auto iter = m_active_page->m_opt_id_map.lower_bound(opt_key);
-        assert(iter != m_active_page->m_opt_id_map.end() && iter->second == opt_id);
-        opt_id2 = iter->first;
+        // Without a mapping for this field, its own id carries the index.
+        if (iter != m_active_page->m_opt_id_map.end() && iter->second == opt_id)
+            opt_id2 = iter->first;
         opt_index = std::atoi(opt_id2.c_str() + n + 1);
     }
     if (!has_key(opt_key))
@@ -4961,6 +4982,7 @@ void TabFilament::build()
         optgroup = page->new_optgroup(L("Volumetric speed limitation"), L"param_volumetric_speed");
         optgroup->append_single_option_line("filament_adaptive_volumetric_speed", "material_volumetric_speed_limitation#adaptive-volumetric-speed", 0);
         optgroup->append_single_option_line("filament_max_volumetric_speed", "material_volumetric_speed_limitation#max-volumetric-speed", 0);
+        optgroup->append_single_option_line("filament_max_external_volumetric_speed", "material_volumetric_speed_limitation#max-external-volumetric-speed", 0);
 
         //line = { "", "" };
         //line.full_width = 1;
@@ -7378,7 +7400,7 @@ void Tab::load_current_preset()
                         object->config.assign_config(std::move(object_config));
                     }
                     for (ModelVolume* v : object->volumes) {
-                        if (v->is_model_part() || v->is_modifier()) {
+                        if (v->is_model_part() || v->is_region_modifier()) {
                             DynamicPrintConfig volume_config = v->config.get();
                             if (!volume_config.empty()) {
                                 volume_config.update_values_from_multi_to_multi_2(prev_variant_list,new_variant_list,new_print_config, print_options_with_variant);
@@ -8616,13 +8638,8 @@ static void toggle_compatible_condition(Tab& tab, const std::string& key, bool e
 // Return a callback to create a Tab widget to mark the preferences as compatible / incompatible to the current printer.
 wxSizer* Tab::compatible_widget_create(wxWindow* parent, PresetDependencies &deps)
 {
-    deps.checkbox = new ::CheckBox(parent, wxID_ANY);
+    deps.checkbox = new LabeledCheckBox(parent, _L("All"));
     wxGetApp().UpdateDarkUI(deps.checkbox, false, true);
-
-    deps.checkbox_title = new wxStaticText(parent, wxID_ANY, _L("All"));
-    deps.checkbox_title->SetFont(Label::Body_14);
-    deps.checkbox_title->SetForegroundColour(wxColour("#363636"));
-    wxGetApp().UpdateDarkUI(deps.checkbox_title, false, true);
 
     // ORCA modernize button style
     Button* btn = new Button(parent, _(L("Set")) + " " + dots);
@@ -8631,11 +8648,11 @@ wxSizer* Tab::compatible_widget_create(wxWindow* parent, PresetDependencies &dep
 
     auto sizer = new wxBoxSizer(wxHORIZONTAL);
     sizer->Add((deps.checkbox), 0, wxALIGN_CENTER_VERTICAL);
-    sizer->Add((deps.checkbox_title), 0, wxALIGN_CENTER_VERTICAL);
     sizer->Add(new wxStaticText(parent, wxID_ANY, "  ")); // weirdly didnt apply AddSpacer or wxRIGHT border
     sizer->Add((deps.btn), 0, wxALIGN_CENTER_VERTICAL);
 
-    auto on_toggle = [this, &deps](const bool &state){
+    deps.checkbox->Bind(wxEVT_CHECKBOX, ([this, &deps](wxCommandEvent& e) {
+        bool state = e.IsChecked();
         deps.checkbox->SetValue(state);
         deps.btn->Enable(!state);
         // All printers have been made compatible with this preset.
@@ -8643,21 +8660,6 @@ wxSizer* Tab::compatible_widget_create(wxWindow* parent, PresetDependencies &dep
             this->load_key_value(deps.key_list, std::vector<std::string> {});
         toggle_compatible_condition(*this, deps.key_condition, state);
         this->update_changed_ui();
-    };
-
-    deps.checkbox_title->Bind(wxEVT_LEFT_DOWN,([&deps, on_toggle](wxMouseEvent& e) {
-        if (e.GetEventType() == wxEVT_LEFT_DCLICK) return;
-        on_toggle(!deps.checkbox->GetValue());
-        e.Skip();
-    }));
-
-    deps.checkbox_title->Bind(wxEVT_LEFT_DCLICK,([&deps, on_toggle](wxMouseEvent& e) {
-        on_toggle(!deps.checkbox->GetValue());
-        e.Skip();
-    }));
-
-    deps.checkbox->Bind(wxEVT_TOGGLEBUTTON, ([on_toggle](wxCommandEvent& e) {
-        on_toggle(e.IsChecked());
         e.Skip();
     }), deps.checkbox->GetId());
 
@@ -9363,8 +9365,23 @@ void Tab::switch_excluder(int extruder_id, bool reload)
     }
     auto get_index_for_extruder =
             [this, &extruders, variant_keys = extruder_variant_keys[m_type >= Preset::TYPE_COUNT ? Preset::TYPE_PRINT : m_type]](int extruder_id, int stride = 1) {
-        return m_config->get_index_for_extruder(extruder_id + 1, variant_keys.first,
-            ExtruderType(extruders->values[extruder_id]), get_actual_nozzle_volume_type(extruder_id), variant_keys.second, stride);
+        const ExtruderType     extruder_type = ExtruderType(extruders->values[extruder_id]);
+        const NozzleVolumeType volume_type   = get_actual_nozzle_volume_type(extruder_id);
+        const int index = m_config->get_index_for_extruder(extruder_id + 1, variant_keys.first, extruder_type, volume_type,
+                                                           variant_keys.second, stride);
+        if (index >= 0)
+            return index;
+        // A config without this extruder's variant (a Bowden printer with a "Direct Drive Standard" process) still
+        // gets its pages mapped: use the extruder's first variant, as slicing does.
+        const std::string variant  = get_extruder_variant_string(extruder_type, volume_type);
+        const auto       *variants = m_config->option<ConfigOptionStrings>(variant_keys.second);
+        const auto       *ids      = variant_keys.first.empty() ? nullptr : m_config->option<ConfigOptionInts>(variant_keys.first);
+        const int fallback = std::max(find_variant_index(variant, extruder_id + 1, variants ? variants->values : std::vector<std::string>(),
+                                                         ids ? ids->values : std::vector<int>()),
+                                      0);
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": no " << variant << " variant in " << variant_keys.second << ", using variant "
+                                   << fallback;
+        return fallback * stride;
     };
     auto index = m_variant_combo ? extruder_id : get_index_for_extruder(extruder_id == -1 ? 0 : extruder_id);
     if (index < 0)

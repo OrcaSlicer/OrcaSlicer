@@ -304,6 +304,9 @@ public:
 
 		// Calculate extrusion flow from desired line width, nozzle diameter, filament diameter and layer_height:
 		m_extrusion_flow = extrusion_flow(layer_height);
+        // Orca: with volumetric speeds, the first layer speed is its flow divided by the line cross section.
+        if (m_first_layer_volumetric_flow > 0.f)
+            m_first_layer_speed = m_first_layer_volumetric_flow / (m_extrusion_flow * filament_area());
         // Advance m_layer_info iterator, making sure we got it right
 		while (!m_plan.empty() && m_layer_info->z < print_z - WT_EPSILON && m_layer_info+1 != m_plan.end())
 			++m_layer_info;
@@ -509,6 +512,8 @@ private:
     int    m_old_temperature    = -1;   // To keep track of what was the last temp that we set (so we don't issue the command when not neccessary)
     float  m_travel_speed       = 0.f;
     float  m_first_layer_speed  = 0.f;
+    // Volumetric flow (mm³/s) set_layer() derives m_first_layer_speed from, 0 without volumetric speeds.
+    float  m_first_layer_volumetric_flow = 0.f;
     size_t m_first_layer_idx    = size_t(-1);
     Vec2f            m_origin;
     std::vector<int>    m_last_layer_id;

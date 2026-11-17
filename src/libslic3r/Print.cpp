@@ -308,6 +308,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "nozzle_height",
         "extruder_colour",
         "filament_flow_ratio",
+        "filament_max_external_volumetric_speed",
         "reduce_fan_stop_start_freq",
         "dont_slow_down_outer_wall",
         "fan_cooling_layer_time",
@@ -579,6 +580,9 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "travel_speed"
             || opt_key == "travel_speed_z"
             || opt_key == "initial_layer_speed"
+            || opt_key == "enable_volumetric_speeds"
+            || opt_key == "initial_layer_volumetric_flow"
+            || opt_key == "initial_layer_infill_volumetric_flow"
             || opt_key == "initial_layer_travel_speed"
             || opt_key == "initial_layer_travel_acceleration"
             || opt_key == "initial_layer_travel_jerk"
@@ -3484,6 +3488,9 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 return false;
             if (!model_volume1.fuzzy_skin_facets.equals(model_volume2.fuzzy_skin_facets))
                 return false;
+            if (!model_volume1.painted_modifier_facets.equals(model_volume2.painted_modifier_facets) ||
+                model_volume1.painted_modifier_depth != model_volume2.painted_modifier_depth)
+                return false;
             if (model_volume1.config.get() != model_volume2.config.get())
                 return false;
         }
@@ -5688,8 +5695,8 @@ void Print::_make_wipe_tower()
 
         // Lets go through the wipe tower layers and determine pairs of extruder changes for each
         // to pass to wipe_tower (so that it can use it for planning the layout of the tower)
-        unsigned int current_extruder_id = m_wipe_tower_data.tool_ordering.all_extruders().back();
         {
+            unsigned int current_extruder_id = m_wipe_tower_data.tool_ordering.all_extruders().back();
             for (auto &layer_tools : m_wipe_tower_data.tool_ordering.layer_tools()) { // for all layers
                 if (!layer_tools.has_wipe_tower)
                     continue;
@@ -5750,12 +5757,14 @@ void Print::_make_wipe_tower()
             } else {
                 // There is yet enough space at this layer of the wipe tower for the final purge.
             }
-        } else if (m_config.single_extruder_multi_material || m_config.filament_multitool_ramming.get_at(current_extruder_id)) {
-            // The tower stops below the last print layer, but the last filament has to ram out. Unload at the
-            // object's top layer so the nozzle doesn't descend into the part on its way to the tower.
+        } else if (m_config.single_extruder_multi_material) {
+            // The tower stops below the last print layer, but a single-extruder MMU still has to unload the last
+            // filament. Unload at the object's top layer so the nozzle doesn't descend into the part on its way
+            // to the tower.
             wipe_tower.set_layer(float(m_wipe_tower_data.tool_ordering.back().print_z), float(layer_height), 0, false, true);
         } else {
-            // The wipe tower does not reach the last print layer and nothing needs ramming.
+            // The wipe tower does not reach the last print layer and nothing needs unloading: without SEMM the
+            // final purge only rams, with no retraction or parking, so it would just extrude in mid-air.
             // Skip final purge to avoid generating purge lines in mid-air.
             generate_final_purge = false;
         }
