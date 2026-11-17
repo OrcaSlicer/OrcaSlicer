@@ -195,10 +195,11 @@ Escape while a cell is being edited cancels only that edit; the next Escape canc
 The dialog is a `DPIDialog`, like the other dialogs of the application. It is therefore on the
 application's stack of modal dialogs, which is what ends the open dialogs when the system session
 ends, and it takes DPI and theme changes from the base class (`on_dpi_changed()`,
-`on_sys_color_changed()`) without binding these events on itself a second time. On a DPI change it
-scales its own size on Windows, because wxWidgets leaves the size to a window that handles the
-event. On macOS the base class does not handle the DPI event, and logical sizes do not change
-there; the widgets with icons rescale from their own handlers on every platform. Escape is decided
+`on_sys_color_changed()`) without binding these events on itself a second time. On a DPI change on
+Windows it applies the rectangle Windows suggests, no smaller than its minimum size, because
+wxWidgets leaves the size and position to a window that handles the event; keeping the old corner
+could leave it mostly on the previous monitor and change the DPI back. On macOS the base class
+does not handle the DPI event, and logical sizes do not change there; the widgets with icons rescale from their own handlers on every platform. Escape is decided
 by the dialog's key hook, which runs before the one of the base class.
 
 Its size and position are stored under a key given by the dialog that derives from it, not under

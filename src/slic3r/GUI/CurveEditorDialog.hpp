@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <wx/defs.h>
 #include <wx/gdicmn.h>
 #include <wx/recguard.h>
 #include <wx/string.h>
@@ -40,6 +41,9 @@ protected:
                       std::string geometry_key = {});
     void on_dpi_changed(const wxRect& suggested_rect) override;
     void on_sys_color_changed() override;
+#ifdef __WXMSW__
+    WXLRESULT MSWWindowProc(WXUINT message, WXWPARAM wParam, WXLPARAM lParam) override;
+#endif
 
 private:
     void load_points(const Rows& rows);
@@ -88,6 +92,10 @@ private:
     std::vector<std::function<void()>> m_theme_rescales;
     wxRecursionGuardFlag m_layout_depth = 0;
     wxRecursionGuardFlag m_grid_resize_depth = 0;
+#ifdef __WXMSW__
+    // The rect of the last WM_DPICHANGED, its position relative to the window's position then.
+    wxRect m_dpi_suggested_rect;
+#endif
 };
 
 } // namespace Slic3r::GUI
