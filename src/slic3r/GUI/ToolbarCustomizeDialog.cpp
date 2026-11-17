@@ -19,6 +19,7 @@
 #include <wx/panel.h>
 #include <wx/sizer.h>
 #include <wx/string.h>
+#include <wx/tglbtn.h>
 #include <wx/toplevel.h>
 
 #include <algorithm>
