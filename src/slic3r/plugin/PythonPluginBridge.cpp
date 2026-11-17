@@ -680,11 +680,23 @@ lists that canonical folder; a parent folder whose own name contains "*" is refu
 stored. On the main thread the operation then proceeds; a request raised on a worker thread
 denies the current operation, so the plugin has to retry it after approval.
 
+A recursive delete (shutil.rmtree) is a subtree operation. A literal folder grant is not
+enough, even when it names the target folder or its parent. A saved fs_delete tree grant covers
+the entries inside its root; deleting the root folder itself is covered only when the folder
+containing that root is also granted. Otherwise the user is asked for one-time consent for the
+canonical target subtree before the walk starts. That consent is never saved, covers only that
+operation, and a prompt that has to be posted to a worker thread applies to one matching retry
+within its short lifetime. Nested deletes inside the approved subtree proceed without another
+prompt; denied paths stay blocked. A permission edit, revocation, or reinstall discards any
+pending recursive-delete consent, so an old prompt cannot grant access to the reinstalled code.
+
 A filesystem target may end in "/*" to grant a whole directory tree, for example
 "/path/to/folder/*". That covers the folder itself and every path beneath it, at any depth.
 "*" is the only wildcard and is recognized only as the final path component; a "*" anywhere
 else in a target is an ordinary character. Tree grants apply to fs_read, fs_readwrite,
-fs_create and fs_delete, and a grant in one bucket never authorizes another direction. Tree
+fs_create and fs_delete, and a grant in one bucket never authorizes another direction. For
+fs_delete, the tree covers deleting entries inside the folder and below, not deleting the
+folder root itself; that removal needs the parent folder granted. Tree
 grants are matched on canonical paths, so a symlink below the granted folder does not extend
 the grant outside it. Paths the host denies by name or keyword stay denied even when a
 wildcard covers them.

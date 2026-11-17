@@ -17,7 +17,9 @@
 
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <exception>
 #include <future>
@@ -1016,6 +1018,203 @@ bool PluginAuditManager::last_violation(AuditViolation& violation) const
 
 namespace PluginAuditDetail {
 
+// A one-time consent for a recursive delete whose prompt could not run inline. It is deliberately
+// in-memory only: no sidecar grant is written, so the approval cannot widen future delete access.
+// The plugin key and canonical subtree root bind it to exactly one retry, and the short lifetime
+// plus bounded count keep abandoned prompts from accumulating.
+struct RecursiveDeleteApproval
+{
+    std::string                             plugin_key;
+    std::string                             canonical_root;
+    std::chrono::steady_clock::time_point   expires_at;
+};
+
+using RecursiveDeleteClock = std::chrono::steady_clock;
+
+constexpr int                            kRecursiveDeleteApprovalLifetimeSeconds = 60;
+std::mutex                               s_recursive_delete_approval_mutex;
+std::vector<RecursiveDeleteApproval>     s_recursive_delete_approvals;
+std::chrono::milliseconds                s_recursive_delete_approval_lifetime{kRecursiveDeleteApprovalLifetimeSeconds * 1000};
+constexpr std::size_t                    kMaxRecursiveDeleteApprovals = 16;
+
+// Prompts that have been posted but not yet answered. The key is the same plugin/target pair an
+// approval would use, so a plugin retry loop cannot queue a second modal while the first is still
+// open. The entry is cleared when the dialog is answered, or when posting is abandoned.
+struct RecursiveDeletePromptKey
+{
+    std::string   plugin_key;
+    std::string   canonical_root;
+    std::uint64_t generation;
+};
+
+std::vector<RecursiveDeletePromptKey>    s_pending_recursive_delete_prompts;
+constexpr std::size_t                    kMaxRecursiveDeletePrompts = 16;
+
+// Incremented whenever a plugin's permission state is edited, revoked, or reinstalled. Posted
+// dialog callbacks capture this value and must not store an approval after it changes.
+std::unordered_map<std::string, std::uint64_t> s_recursive_delete_generations;
+
+PluginAuditManager::RecursiveDeletePrompt s_recursive_delete_prompt_for_testing;
+bool                                      s_recursive_delete_prompt_background_for_testing = false;
+bool                                      s_recursive_delete_prompt_deferred_for_testing = false;
+
+std::uint64_t recursive_delete_generation(const std::string& plugin_key)
+{
+    std::lock_guard<std::mutex> lock(s_recursive_delete_approval_mutex);
+    const auto it = s_recursive_delete_generations.find(plugin_key);
+    return it == s_recursive_delete_generations.end() ? 0 : it->second;
+}
+
+void invalidate_recursive_delete_state(const std::string& plugin_key)
+{
+    if (plugin_key.empty())
+        return;
+
+    std::lock_guard<std::mutex> lock(s_recursive_delete_approval_mutex);
+    ++s_recursive_delete_generations[plugin_key];
+
+    // Any approval or dedup key was granted for the previous permission state. Erase both so a
+    // later retry starts from the current state. A dialog already posted cannot be withdrawn;
+    // its callback becomes a no-op through the generation token it captured.
+    s_recursive_delete_approvals.erase(
+        std::remove_if(s_recursive_delete_approvals.begin(), s_recursive_delete_approvals.end(),
+                       [&plugin_key](const RecursiveDeleteApproval& approval) {
+                           return approval.plugin_key == plugin_key;
+                       }),
+        s_recursive_delete_approvals.end());
+    s_pending_recursive_delete_prompts.erase(
+        std::remove_if(s_pending_recursive_delete_prompts.begin(), s_pending_recursive_delete_prompts.end(),
+                       [&plugin_key](const RecursiveDeletePromptKey& prompt) {
+                           return prompt.plugin_key == plugin_key;
+                       }),
+        s_pending_recursive_delete_prompts.end());
+}
+
+// Caller holds s_recursive_delete_approval_mutex.
+void prune_recursive_delete_approvals(const RecursiveDeleteClock::time_point& now)
+{
+    s_recursive_delete_approvals.erase(
+        std::remove_if(s_recursive_delete_approvals.begin(), s_recursive_delete_approvals.end(),
+                       [now](const RecursiveDeleteApproval& approval) { return approval.expires_at <= now; }),
+        s_recursive_delete_approvals.end());
+}
+
+// True when no prompt for this plugin and target is already posted. The caller must pair a true
+// result with finish_recursive_delete_prompt() after the dialog is answered.
+bool begin_recursive_delete_prompt(const std::string& plugin_key, const std::string& canonical_root,
+                                   std::uint64_t generation)
+{
+    std::lock_guard<std::mutex> lock(s_recursive_delete_approval_mutex);
+    const auto same = [&plugin_key, &canonical_root](const RecursiveDeletePromptKey& prompt) {
+        return prompt.plugin_key == plugin_key && prompt.canonical_root == canonical_root;
+    };
+    if (std::find_if(s_pending_recursive_delete_prompts.begin(), s_pending_recursive_delete_prompts.end(), same) !=
+        s_pending_recursive_delete_prompts.end())
+        return false;
+
+    // At capacity, reject the new prompt instead of evicting an existing key: the evicted
+    // dialog is already queued and cannot be withdrawn, so eviction would let repeated distinct
+    // targets queue unlimited dialogs while losing the ability to deduplicate them.
+    if (s_pending_recursive_delete_prompts.size() >= kMaxRecursiveDeletePrompts)
+        return false;
+
+    s_pending_recursive_delete_prompts.push_back({plugin_key, canonical_root, generation});
+    return true;
+}
+
+void finish_recursive_delete_prompt(const std::string& plugin_key, const std::string& canonical_root,
+                                    std::uint64_t generation)
+{
+    std::lock_guard<std::mutex> lock(s_recursive_delete_approval_mutex);
+    s_pending_recursive_delete_prompts.erase(
+        std::remove_if(s_pending_recursive_delete_prompts.begin(), s_pending_recursive_delete_prompts.end(),
+                       [&plugin_key, &canonical_root, generation](const RecursiveDeletePromptKey& prompt) {
+                           return prompt.plugin_key == plugin_key && prompt.canonical_root == canonical_root &&
+                                  prompt.generation == generation;
+                       }),
+        s_pending_recursive_delete_prompts.end());
+}
+
+std::size_t pending_recursive_delete_prompts()
+{
+    std::lock_guard<std::mutex> lock(s_recursive_delete_approval_mutex);
+    return s_pending_recursive_delete_prompts.size();
+}
+
+// Releases a pending-prompt dedup key on every exit path, including an exception thrown by the
+// dialog or the test seam. A deferred test answer deliberately keeps the key and calls
+// dismiss(); production callbacks just let the guard run.
+class RecursiveDeletePromptGuard
+{
+public:
+    RecursiveDeletePromptGuard(std::string plugin_key, std::string canonical_root, std::uint64_t generation)
+        : m_plugin_key(std::move(plugin_key))
+        , m_canonical_root(std::move(canonical_root))
+        , m_generation(generation)
+    {}
+    ~RecursiveDeletePromptGuard()
+    {
+        if (m_active)
+            finish_recursive_delete_prompt(m_plugin_key, m_canonical_root, m_generation);
+    }
+
+    void dismiss() { m_active = false; }
+
+    RecursiveDeletePromptGuard(const RecursiveDeletePromptGuard&)            = delete;
+    RecursiveDeletePromptGuard& operator=(const RecursiveDeletePromptGuard&) = delete;
+
+private:
+    std::string   m_plugin_key;
+    std::string   m_canonical_root;
+    std::uint64_t m_generation;
+    bool          m_active = true;
+};
+
+void store_recursive_delete_approval(const std::string& plugin_key, const std::string& canonical_root)
+{
+    if (plugin_key.empty() || canonical_root.empty())
+        return;
+
+    std::lock_guard<std::mutex> lock(s_recursive_delete_approval_mutex);
+    const RecursiveDeleteClock::time_point now = RecursiveDeleteClock::now();
+    prune_recursive_delete_approvals(now);
+
+    // Bound the store even when a user answers many prompts: the oldest pending consent is no
+    // more useful than an expired one.
+    if (s_recursive_delete_approvals.size() >= kMaxRecursiveDeleteApprovals)
+        s_recursive_delete_approvals.erase(s_recursive_delete_approvals.begin());
+
+    s_recursive_delete_approvals.push_back({plugin_key, canonical_root, now + s_recursive_delete_approval_lifetime});
+}
+
+bool take_recursive_delete_approval(const std::string& plugin_key, const std::string& canonical_root)
+{
+    if (plugin_key.empty() || canonical_root.empty())
+        return false;
+
+    std::lock_guard<std::mutex> lock(s_recursive_delete_approval_mutex);
+    prune_recursive_delete_approvals(RecursiveDeleteClock::now());
+
+    const auto found = std::find_if(s_recursive_delete_approvals.begin(), s_recursive_delete_approvals.end(),
+                                    [&plugin_key, &canonical_root](const RecursiveDeleteApproval& approval) {
+                                        return approval.plugin_key == plugin_key &&
+                                               approval.canonical_root == canonical_root;
+                                    });
+    if (found == s_recursive_delete_approvals.end())
+        return false;
+
+    // Single use: the retry this consent authorised is the only one it can start.
+    s_recursive_delete_approvals.erase(found);
+    return true;
+}
+
+std::size_t pending_recursive_delete_approvals()
+{
+    std::lock_guard<std::mutex> lock(s_recursive_delete_approval_mutex);
+    prune_recursive_delete_approvals(RecursiveDeleteClock::now());
+    return s_recursive_delete_approvals.size();
+}
+
 PyObject* tuple_item(PyObject* args, Py_ssize_t index)
 {
     if (!args || !PyTuple_Check(args) || index < 0 || index >= PyTuple_GET_SIZE(args))
@@ -1655,6 +1854,55 @@ bool create_delete_target_folder(const std::string& target, boost::filesystem::p
     return true;
 }
 
+// True when `target` names the approved subtree root itself, without resolving the final path
+// component through a symlink. Deleting a link acts on the link entry, not on its destination, so
+// an outside link pointing into the subtree must not be treated as the subtree root. The parent is
+// canonicalized, which resolves intermediate symlinks and ".." with the operating system's
+// semantics; the path is never lexically folded first, because "link/.." must follow the link
+// before stepping up. The final component is compared by name, and a final ".." fails closed.
+bool delete_entry_names_subtree_root(const std::string& target, const boost::filesystem::path& canonical_subtree)
+{
+    namespace fs = boost::filesystem;
+
+    if (target.empty() || canonical_subtree.empty() || !canonical_subtree.is_absolute())
+        return false;
+
+    boost::system::error_code ec;
+    const fs::path path(target);
+    const fs::path absolute = path.is_absolute() ? path : fs::absolute(path, ec);
+    if (ec || !absolute.is_absolute())
+        return false;
+
+    // Strip only trailing separators / "." components so a trailing slash still names the entry.
+    // Do not lexically fold the remaining path: that would turn "<link>/.." into the link's
+    // lexical parent instead of the parent of the link's destination.
+    fs::path entry = absolute;
+    while (!entry.empty() && (entry.filename() == "." || entry.filename().empty()) &&
+           !entry.parent_path().empty())
+        entry = entry.parent_path();
+
+    if (entry.empty() || entry.filename() == "." || entry.filename() == "..")
+        return false;
+
+    const fs::path parent = fs::weakly_canonical(entry.parent_path(), ec);
+    if (ec || !parent.is_absolute() || !fs::is_directory(parent, ec) || ec)
+        return false;
+
+    return same_canonical_path(parent / entry.filename(), canonical_subtree);
+}
+
+// True when deleting `target` acts on an entry inside `canonical_subtree`. The containing folder
+// decides scope, so a symlink entry is judged by where it lives, not by what it points at. The one
+// exception is the subtree root itself, recognised without following its final component.
+bool delete_target_within_subtree(const std::string& target, const boost::filesystem::path& canonical_subtree)
+{
+    boost::filesystem::path folder;
+    if (create_delete_target_folder(target, folder) && is_inside_allowed_root(folder, canonical_subtree))
+        return true;
+
+    return delete_entry_names_subtree_root(target, canonical_subtree);
+}
+
 // True when a runtime folder path contains '*'. A folder literally named with a wildcard cannot
 // be stored as a literal create/delete grant: the sidecar would read the marker as a tree grant
 // and cover a broader scope than the approved folder. Runtime callers fail closed before
@@ -2204,6 +2452,119 @@ bool prompt_for_permission_message(const PermissionMessage& message)
     return show_permission_dialog(message, _L("Plugin permissions"));
 }
 
+// A recursive delete consent shows the canonical subtree root and states that the approval lasts
+// only for this operation (or, when posted asynchronously, for one next matching attempt). That
+// scope cannot be expressed by the persistent create/delete grant prompt, so it has its own
+// complete message rather than a fragment appended to the folder prompt. A filesystem, drive, or
+// network share root gets an additional sentence: deleting it covers everything on that root.
+PermissionMessage formatted_recursive_delete_message(const wxString& plugin_name, const wxString& target,
+                                                     bool root_scope, bool background)
+{
+    wxString marker = "__ORCA_RECURSIVE_DELETE_TARGET__";
+    while (plugin_name.Contains(marker) || target.Contains(marker))
+        marker += "_";
+
+    // TRN %1% is the plugin name; %2% is the canonical folder whose subtree may be deleted.
+    wxString format;
+    if (root_scope) {
+        format = background
+                     ? _L("Plugin \"%1%\" is requesting to recursively delete the following folder:\n%2%\n\n"
+                          "This target is a filesystem, drive, or network share root. Approval covers that entire "
+                          "filesystem, drive, or network share, and applies to the next matching attempt within one "
+                          "minute after you approve. The current attempt has already been denied. It is not saved as "
+                          "a permission and cannot be reused for another operation. Protected paths stay blocked.")
+                     : _L("Plugin \"%1%\" is requesting to recursively delete the following folder:\n%2%\n\n"
+                          "This target is a filesystem, drive, or network share root. Approval covers that entire "
+                          "filesystem, drive, or network share while this operation runs. It is not saved as a "
+                          "permission and cannot be reused for another operation. Protected paths stay blocked.");
+    } else {
+        format = background
+                     ? _L("Plugin \"%1%\" is requesting to recursively delete the following folder:\n%2%\n\n"
+                          "Approval covers deleting the entries in this folder and everything inside it, and applies "
+                          "to the next matching attempt within one minute after you approve. The current attempt has "
+                          "already been denied. It is not saved as a permission and cannot be reused for another "
+                          "operation. Protected paths stay blocked.")
+                     : _L("Plugin \"%1%\" is requesting to recursively delete the following folder:\n%2%\n\n"
+                          "Approval covers deleting the entries in this folder and everything inside it while this "
+                          "operation runs. It is not saved as a permission and cannot be reused for another operation. "
+                          "Protected paths stay blocked.");
+    }
+    wxString text = GUI::format_wxstr(format, plugin_name, marker);
+
+    PermissionMessage message{text, {}};
+    const size_t pos = message.text.find(marker);
+    if (pos != wxString::npos) {
+        message.text.replace(pos, marker.length(), target);
+        message.targets.emplace_back(pos, target.length());
+    }
+    return message;
+}
+
+// Builds and shows the modal recursive-delete prompt. Must run on the GUI thread.
+bool prompt_for_recursive_delete(const std::string& plugin_name, const std::string& target, bool root_scope,
+                                 bool background)
+{
+    return show_permission_dialog(
+        formatted_recursive_delete_message(wxString::FromUTF8(plugin_name.c_str()), wxString::FromUTF8(target.c_str()),
+                                           root_scope, background),
+        _L("Plugin permission request"));
+}
+
+// Asks for one-time consent to delete the canonical `target` subtree. On the wx main thread the
+// answer is available before the operation returns, so a Yes lets this attempt proceed. Off that
+// thread the modal is posted and the current attempt is denied; a Yes records a short-lived
+// single-use approval that only the same plugin and target can consume on a retry. A pending
+// prompt for the same plugin/target is not posted again, so a plugin retry loop cannot flood the
+// user with duplicate modals.
+bool request_recursive_delete_consent(const std::string& plugin_key, const std::string& plugin_name,
+                                      const std::string& target, bool root_scope)
+{
+    BOOST_LOG_TRIVIAL(info) << "[AUDIT PROMPT] plugin=" << plugin_key << " event=shutil.rmtree scope=subtree target=["
+                            << target << "]";
+
+    const std::uint64_t generation = recursive_delete_generation(plugin_key);
+
+    if (s_recursive_delete_prompt_for_testing) {
+        if (s_recursive_delete_prompt_background_for_testing) {
+            if (!begin_recursive_delete_prompt(plugin_key, target, generation))
+                return false;
+            RecursiveDeletePromptGuard guard(plugin_key, target, generation);
+            const bool granted = s_recursive_delete_prompt_for_testing(plugin_name, target);
+            if (s_recursive_delete_prompt_deferred_for_testing) {
+                guard.dismiss(); // answered later through answer_recursive_delete_prompt_for_testing
+                return false;
+            }
+            if (granted && recursive_delete_generation(plugin_key) == generation)
+                PluginAuditManager::instance().add_recursive_delete_approval(plugin_key, target);
+            return false;
+        }
+        return s_recursive_delete_prompt_for_testing(plugin_name, target);
+    }
+
+    if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
+        return false;
+
+    if (!s_recursive_delete_prompt_background_for_testing && wxIsMainThread()) {
+        const bool granted =
+            prompt_for_recursive_delete(plugin_name, target, root_scope, /*background=*/false);
+        return granted && recursive_delete_generation(plugin_key) == generation;
+    }
+
+    if (!begin_recursive_delete_prompt(plugin_key, target, generation))
+        return false;
+
+    GUI::wxGetApp().CallAfter([plugin_key, plugin_name, target, root_scope, generation]() {
+        RecursiveDeletePromptGuard guard(plugin_key, target, generation);
+        if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
+            return;
+        const bool granted = prompt_for_recursive_delete(plugin_name, target, root_scope, /*background=*/true);
+        // A permission edit or reinstall while the dialog was open invalidates the consent.
+        if (granted && recursive_delete_generation(plugin_key) == generation)
+            PluginAuditManager::instance().add_recursive_delete_approval(plugin_key, target);
+    });
+    return false;
+}
+
 // Records a grant in the plugin's sidecar so it is not asked again. Each persist helper re-reads
 // the sidecar under the shared lock, because the async prompt outlives the caller's copy of it.
 // Returns true when at least one write succeeded, and only then notifies an existing Plugins
@@ -2302,13 +2663,17 @@ bool request_permission(AuditEventCategory category, const std::string& plugin_k
 // Decides an event that no allowed root or running operation covers: a saved grant allows it,
 // otherwise the user is asked. A Yes is saved for every category that has a persistent grant
 // list, including create/delete, whose grant is the folder containing each approved target.
+// Recursive deletes are the exception: their consent covers one subtree for one operation and
+// is never written to the sidecar. `approved_delete_subtree` is set to that canonical subtree so
+// the recorded root frame can cover its nested deletes.
 int decide_audited_event(PluginAuditManager&             mgr,
                          PluginInstallState&              state,
                          const std::string&                plugin_key,
                          const std::string&                plugin_name,
                          const std::string&                event_name,
                          AuditEventCategory                category,
-                         const std::vector<std::string>&   targets)
+                         const std::vector<std::string>&   targets,
+                         boost::filesystem::path&          approved_delete_subtree)
 {
     // Full access turns permission auditing off for this plugin, so no grant or prompt applies.
     // This is reached only after audit_plugin_event's unconditional denied-path loop: the
@@ -2323,6 +2688,59 @@ int decide_audited_event(PluginAuditManager&             mgr,
     const bool                     threading_category = category == AuditEventCategory::Threading;
     const bool                     create_delete_category = is_create_delete_category(category);
     std::vector<std::string>*      permission_list = permission_list_for(category, by_event, state.permissions);
+
+    // A recursive delete walks and deletes a whole subtree, so it is judged as a subtree
+    // operation before the ordinary folder-grant check. A plain folder grant names direct
+    // entries only: even one naming the target folder or its parent is insufficient. Saved tree
+    // grants must cover both the entries inside the target and removal of the target folder
+    // itself. Otherwise the user is asked for one-time consent for this canonical subtree before
+    // the walk starts; that consent is never persisted.
+    if (category == AuditEventCategory::FsDelete && event_name == "shutil.rmtree" && !by_event) {
+        if (targets.size() != 1)
+            return report_denied(mgr, event_name, {false, "recursive delete target cannot be resolved"});
+
+        boost::filesystem::path root;
+        if (!resolve_create_delete_folder(boost::filesystem::path(targets.front()), root))
+            return report_denied(mgr, event_name, {false, "recursive delete target cannot be resolved"}, targets.front());
+
+        const std::string canonical_root = root.string();
+        const std::string subtree_grant  = (root / "*").string();
+        const bool subtree_covered =
+            permission_list &&
+            (create_delete_grant_full(*permission_list) ||
+             create_delete_grant_covers_grant(*permission_list, subtree_grant));
+        if (subtree_covered) {
+            // A tree grant over the target covers the entries inside it, not necessarily deleting
+            // the target folder itself: a target-rooted "<target>/*" grant leaves the final
+            // os.rmdir(target) to the containing folder of target. Only return here when that
+            // removal is separately covered too; otherwise the one-time consent below has to
+            // authorise the root removal explicitly before the walk starts.
+            if (has_permission(AuditEventCategory::FsDelete, /*by_event=*/false, *permission_list, targets.front())) {
+                // A matching consent is obsolete once saved grants cover the whole operation.
+                mgr.consume_recursive_delete_approval(plugin_key, canonical_root);
+                return 0;
+            }
+        }
+
+        // A Yes posted by an earlier attempt is bound to this plugin and canonical target. Take
+        // it before asking again; consuming removes it, so it cannot authorise a second run.
+        if (mgr.consume_recursive_delete_approval(plugin_key, canonical_root)) {
+            approved_delete_subtree = root;
+            return 0;
+        }
+
+        // Letting a root frame go runs finalizers where no dialog may open: what they do must
+        // already be granted.
+        if (mgr.releasing_frames())
+            return report_denied(mgr, event_name, {false, "recursive delete requires subtree permission"}, canonical_root);
+
+        const bool root_scope = is_filesystem_root(root);
+        if (!request_recursive_delete_consent(plugin_key, plugin_name, canonical_root, root_scope))
+            return report_denied(mgr, event_name, {false, "recursive delete requires subtree permission"}, canonical_root);
+
+        approved_delete_subtree = root;
+        return 0;
+    }
 
     // Create/delete grants name folders: an approval saves the folder that directly contains
     // each unresolved target, and the prompt shows both the triggering target and that canonical
@@ -2463,10 +2881,18 @@ int audit_plugin_event(PluginAuditManager& mgr, const std::string& event_name, A
     // urlopen(), is not asked again. urllib.Request is always judged on its own URL, so a
     // redirect or a nested urlopen() inside a running request is not covered by it. A read/write
     // root (copytree, unpack_archive, move) covers the create/delete events it performs, but a
-    // delete root (rmtree) does not cover nested deletes: an exact folder grant covers direct
-    // entries only, so each nested delete is judged on its own (a tree grant can still allow it).
+    // delete root (rmtree) does not cover nested deletes unless this operation was started with a
+    // subtree-scoped delete (one-time consent or an implicit writable root). In that case a
+    // nested delete is covered only while its target stays inside the approved subtree and the
+    // stack between it and the root holds stdlib frames only; a tree grant can still allow a
+    // nested delete on its own. Protected paths were already denied above, so they remain blocked
+    // even inside an approved subtree.
+    const bool approved_subtree_covers_delete =
+        event_type == AuditEventCategory::FsDelete &&
+        mgr.delete_target_inside_approved_subtree(permission_targets);
     if (event_name != "urllib.Request" &&
-        mgr.covered_by_root_frame(/*allow_delete_roots=*/event_type != AuditEventCategory::FsDelete))
+        (mgr.covered_by_root_frame(/*allow_delete_roots=*/event_type != AuditEventCategory::FsDelete) ||
+         approved_subtree_covers_delete))
         return 0;
 
     // A hardlink's source becomes writable through the new name, so the source needs write
@@ -2490,10 +2916,28 @@ int audit_plugin_event(PluginAuditManager& mgr, const std::string& event_name, A
         const bool is_write = event_type != AuditEventCategory::FsRead;
         const bool all_inside_allowed_root =
             std::all_of(permission_targets.begin(), permission_targets.end(), [&](const std::string& target) {
+                if (event_type == AuditEventCategory::FsDelete) {
+                    // Delete scope is the entry's containing folder (or the root itself), not the
+                    // final symlink's destination. This both keeps an outside link entry outside
+                    // its allowed root and lets a recursive delete remove a link that lives inside
+                    // a writable root but points outside.
+                    return mgr.delete_target_inside_writable_allowed_root(target);
+                }
                 return mgr.check_path_access(boost::filesystem::path(target), is_write).allowed;
             });
-        if (all_inside_allowed_root)
+        if (all_inside_allowed_root) {
+            // A recursive delete allowed by an implicit root still records its operation frame,
+            // scoped to the target subtree. That covers the fd-based reads and os.open calls
+            // rmtree performs (os.scandir(fd) exposes no path) and lets the walk remove symlink
+            // entries without prompting, while nested deletes stay inside the target subtree.
+            if (event_type == AuditEventCategory::FsDelete && event_name == "shutil.rmtree" &&
+                permission_targets.size() == 1) {
+                boost::filesystem::path implicit_subtree;
+                if (resolve_create_delete_folder(boost::filesystem::path(permission_targets.front()), implicit_subtree))
+                    mgr.record_root_frame(event_type, implicit_subtree);
+            }
             return 0;
+        }
     }
 
     PluginInstallState state;
@@ -2504,17 +2948,52 @@ int audit_plugin_event(PluginAuditManager& mgr, const std::string& event_name, A
 
     const std::string plugin_name = state.plugin_name.empty() ? mgr.current_plugin() : state.plugin_name;
 
-    const int result = decide_audited_event(mgr, state, mgr.current_plugin(), plugin_name, event_name, event_type, permission_targets);
+    boost::filesystem::path approved_delete_subtree;
+    const int result = decide_audited_event(mgr, state, mgr.current_plugin(), plugin_name, event_name, event_type,
+                                            permission_targets, approved_delete_subtree);
 
     // A granted operation covers its nested events while it runs, except that a delete root does
-    // not cover a nested delete (see the coverage check above). A targetless grant names no
-    // operation, so it covers nothing else.
+    // not cover a nested delete unless a subtree-scoped delete was recorded on the frame (see the
+    // coverage check above). A targetless grant names no operation, so it covers nothing else.
     if (result == 0 && !permission_targets.empty() && operation_root_events.count(event_name))
-        mgr.record_root_frame(event_type);
+        mgr.record_root_frame(event_type, approved_delete_subtree);
     return result;
 }
 
 } // namespace PluginAuditDetail
+
+bool PluginAuditManager::delete_target_inside_writable_allowed_root(const std::string& target) const
+{
+    if (target.empty())
+        return false;
+
+    // Deleting `target` acts on an entry in its containing folder, or on the root itself. Never
+    // decide from the final component's symlink destination: an outside link pointing into a
+    // writable root must not become an implicit delete of the outside entry.
+    const auto inside_root = [&target](const AllowedRoot& root) {
+        if (!root.allow_write)
+            return false;
+        boost::filesystem::path canonical_root;
+        return PluginAuditDetail::canonical_folder(root.path, canonical_root) &&
+               PluginAuditDetail::delete_target_within_subtree(target, canonical_root);
+    };
+
+    if (std::any_of(m_scoped_allowed_roots.begin(), m_scoped_allowed_roots.end(), inside_root))
+        return true;
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return std::any_of(m_global_allowed_roots.begin(), m_global_allowed_roots.end(), inside_root);
+}
+
+bool PluginAuditManager::consume_recursive_delete_approval(const std::string& plugin_key, const std::string& canonical_root)
+{
+    return PluginAuditDetail::take_recursive_delete_approval(plugin_key, canonical_root);
+}
+
+void PluginAuditManager::add_recursive_delete_approval(const std::string& plugin_key, const std::string& canonical_root)
+{
+    PluginAuditDetail::store_recursive_delete_approval(plugin_key, canonical_root);
+}
 
 bool PluginAuditManager::request_permissions(const std::string& plugin_key, const PluginPermissions& requested)
 {
@@ -2771,7 +3250,8 @@ bool PluginAuditManager::is_create_delete_tree_grant(const std::string& target)
     return PluginAuditDetail::requested_tree_grant_root(target, root);
 }
 
-void PluginAuditManager::record_root_frame(AuditEventCategory category)
+void PluginAuditManager::record_root_frame(AuditEventCategory category,
+                                           const boost::filesystem::path& approved_delete_subtree)
 {
     PyObject* frame = reinterpret_cast<PyObject*>(PyEval_GetFrame()); // borrowed reference
     if (!frame || !PluginAuditDetail::is_stdlib_frame(frame))
@@ -2782,13 +3262,16 @@ void PluginAuditManager::record_root_frame(AuditEventCategory category)
                                           [frame](const RootFrame& record) { return record.frame == frame; });
     if (it == m_root_frames.end()) {
         Py_INCREF(frame);
-        m_root_frames.push_back({frame, delete_root});
+        m_root_frames.push_back({frame, delete_root, approved_delete_subtree});
         return;
     }
     // The record owns the one reference; the mark is sticky, so a frame first recorded as a
     // read/write root still stops covering nested deletes once it is also a delete root.
     if (delete_root)
         it->delete_root = true;
+    // Keep a subtree consent already recorded on this frame; a later grant does not widen it.
+    if (!approved_delete_subtree.empty())
+        it->approved_delete_subtree = approved_delete_subtree;
 }
 
 bool PluginAuditManager::covered_by_root_frame(bool allow_delete_roots) const
@@ -2802,15 +3285,47 @@ bool PluginAuditManager::covered_by_root_frame(bool allow_delete_roots) const
         const auto root = std::find_if(m_root_frames.begin(), m_root_frames.end(),
                                        [frame](const RootFrame& record) { return record.frame == frame; });
         if (root != m_root_frames.end()) {
-            // A delete root does not cover a nested delete: an exact folder grant covers direct
-            // entries only, while an outer read/write root may still cover the same operation,
-            // and a tree grant may allow it when the event is judged.
+            // A delete root does not cover a nested delete by itself: an exact folder grant
+            // covers direct entries only, while an outer read/write root may still cover the
+            // same operation, and a tree grant may allow it when the event is judged. A delete
+            // root started with one-time subtree consent is handled by
+            // delete_target_inside_approved_subtree(), which also checks the target's scope.
             if (!root->delete_root || allow_delete_roots)
                 return true;
             continue;
         }
         if (!PluginAuditDetail::is_stdlib_frame(frame))
             return false;
+    }
+    return false;
+}
+
+bool PluginAuditManager::delete_target_inside_approved_subtree(const std::vector<std::string>& targets) const
+{
+    if (m_root_frames.empty() || targets.empty())
+        return false;
+
+    // Same frame walk as covered_by_root_frame: stop at plugin or third-party code, so a callback
+    // the operation invokes is judged on its own. The first delete root carrying a one-time
+    // consent is the operation boundary; only its canonical subtree covers the nested deletes.
+    for (PyObject* frame : PluginAuditDetail::stack_frames()) {
+        const auto root = std::find_if(m_root_frames.begin(), m_root_frames.end(),
+                                       [frame](const RootFrame& record) { return record.frame == frame; });
+        if (root == m_root_frames.end()) {
+            if (!PluginAuditDetail::is_stdlib_frame(frame))
+                break;
+            continue;
+        }
+
+        if (!root->delete_root || root->approved_delete_subtree.empty())
+            continue; // keep looking for an outer operation with subtree consent
+
+        const boost::filesystem::path& approved_subtree = root->approved_delete_subtree;
+        for (const std::string& target : targets) {
+            if (!PluginAuditDetail::delete_target_within_subtree(target, approved_subtree))
+                return false;
+        }
+        return true;
     }
     return false;
 }
@@ -2879,6 +3394,83 @@ void PluginAuditManager::release_frames(std::vector<RootFrame>& frames)
 void PluginAuditManager::set_permission_prompt_for_testing(PermissionPrompt prompt)
 {
     PluginAuditDetail::s_permission_prompt_for_testing = std::move(prompt);
+}
+
+void PluginAuditManager::set_recursive_delete_prompt_for_testing(RecursiveDeletePrompt prompt)
+{
+    PluginAuditDetail::s_recursive_delete_prompt_for_testing = std::move(prompt);
+}
+
+void PluginAuditManager::set_recursive_delete_prompt_background_for_testing(bool background)
+{
+    PluginAuditDetail::s_recursive_delete_prompt_background_for_testing = background;
+}
+
+std::string PluginAuditManager::format_recursive_delete_permission_prompt_for_testing(const std::string& plugin_name,
+                                                                                       const std::string& target,
+                                                                                       bool root_scope,
+                                                                                       bool background)
+{
+    return PluginAuditDetail::formatted_recursive_delete_message(wxString::FromUTF8(plugin_name.c_str()),
+                                                                wxString::FromUTF8(target.c_str()), root_scope,
+                                                                background)
+        .text.utf8_string();
+}
+
+void PluginAuditManager::set_recursive_delete_prompt_deferred_for_testing(bool deferred)
+{
+    PluginAuditDetail::s_recursive_delete_prompt_deferred_for_testing = deferred;
+}
+
+std::uint64_t PluginAuditManager::recursive_delete_generation_for_testing(const std::string& plugin_key)
+{
+    return PluginAuditDetail::recursive_delete_generation(plugin_key);
+}
+
+void PluginAuditManager::answer_recursive_delete_prompt_for_testing(const std::string& plugin_key,
+                                                                     const std::string& canonical_root, bool granted,
+                                                                     std::uint64_t generation)
+{
+    PluginAuditDetail::finish_recursive_delete_prompt(plugin_key, canonical_root, generation);
+    if (granted && PluginAuditDetail::recursive_delete_generation(plugin_key) == generation)
+        PluginAuditDetail::store_recursive_delete_approval(plugin_key, canonical_root);
+}
+
+void PluginAuditManager::invalidate_recursive_delete_state(const std::string& plugin_key)
+{
+    PluginAuditDetail::invalidate_recursive_delete_state(plugin_key);
+}
+
+std::size_t PluginAuditManager::pending_recursive_delete_prompts_for_testing()
+{
+    return PluginAuditDetail::pending_recursive_delete_prompts();
+}
+
+bool PluginAuditManager::delete_target_inside_subtree_for_testing(const std::string& target,
+                                                                  const std::string& canonical_subtree)
+{
+    boost::filesystem::path subtree;
+    if (!PluginAuditDetail::canonical_folder(boost::filesystem::path(canonical_subtree), subtree))
+        return false;
+    return PluginAuditDetail::delete_target_within_subtree(target, subtree);
+}
+
+void PluginAuditManager::clear_recursive_delete_approvals_for_testing()
+{
+    std::lock_guard<std::mutex> lock(PluginAuditDetail::s_recursive_delete_approval_mutex);
+    PluginAuditDetail::s_recursive_delete_approvals.clear();
+    PluginAuditDetail::s_pending_recursive_delete_prompts.clear();
+}
+
+void PluginAuditManager::set_recursive_delete_approval_lifetime_for_testing(std::chrono::milliseconds lifetime)
+{
+    std::lock_guard<std::mutex> lock(PluginAuditDetail::s_recursive_delete_approval_mutex);
+    PluginAuditDetail::s_recursive_delete_approval_lifetime = lifetime;
+}
+
+std::size_t PluginAuditManager::pending_recursive_delete_approvals_for_testing()
+{
+    return PluginAuditDetail::pending_recursive_delete_approvals();
 }
 
 std::string PluginAuditManager::format_create_delete_permission_prompt_for_testing(

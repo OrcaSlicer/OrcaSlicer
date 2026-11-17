@@ -4,6 +4,9 @@
 // Via pybind11 so this file requests the same python3xx.lib as everything else.
 #include <boost/filesystem/path.hpp>
 #include <pybind11/conduit/wrap_include_python_h.h>
+#include <chrono>
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <mutex>
 #include <string>
@@ -143,6 +146,13 @@ public:
     AuditDecision check_path_access(const boost::filesystem::path& candidate, bool is_write);
     AuditDecision check_open(const std::string& path, const std::string& mode);
 
+    // True when deleting `target` is implicitly allowed because the entry lives in a writable
+    // allowed root, or is the root itself. Scope is decided by the canonical containing folder,
+    // never by resolving the final component: deleting a symlink acts on the link inside the
+    // root, and an outside link pointing into the root is not implicit. This is the FsDelete
+    // form of the allowed-root check; it preserves deny handling done earlier in the hook.
+    bool delete_target_inside_writable_allowed_root(const std::string& target) const;
+
     // Ask the user to grant the requested permissions. The request may originate on a plugin
     // load worker, so the implementation marshals the modal dialog to the wx main thread.
     // Targets already persisted for the plugin are not shown or asked for again. Returns true
@@ -173,7 +183,10 @@ public:
     // filesystem, drive, or network share; its prompt says so explicitly. Denied paths stay
     // denied. At runtime, approving either operation stores the
     // parent folder of the target (a direct grant, not a tree grant), and the prompt shows that
-    // canonical folder rather than the target. A runtime folder whose own name contains "*" is
+    // canonical folder rather than the target. A recursive delete (shutil.rmtree) is the
+    // exception: a direct folder grant is insufficient, so it needs a saved tree grant covering
+    // the target or one-time consent for the canonical subtree. That consent is never stored; see
+    // the recursive-delete consent helpers below. A runtime folder whose own name contains "*" is
     // never prompted for or stored, because the sidecar would read it as a tree grant. The GUI
     // thread then lets the operation proceed; a worker-thread approval denies the current
     // operation, which has to be retried.
@@ -208,6 +221,67 @@ public:
     // request_permissions resolves it against the working directory and stores it canonically.
     static bool is_create_delete_tree_grant(const std::string& target);
 
+    // --- recursive delete consent ---
+    // A recursive delete (shutil.rmtree) is authorised only by saved delete grants covering the
+    // whole operation, or by a one-time consent for that subtree. A plain folder grant is
+    // insufficient even when it names the target folder or its parent: it authorises deleting
+    // direct entries, not walking and deleting a whole subtree. A tree grant rooted exactly at
+    // the target covers the entries inside it but not deleting the target folder itself, which
+    // is an entry in the parent; that final removal needs the parent covered separately or the
+    // one-time consent. One-time consent is never written to the sidecar.
+    //
+    // When the prompt cannot run inline (the event is raised off the wx main thread), the current
+    // attempt is denied and the dialog is posted. A Yes records a short-lived (one minute),
+    // single-use approval bound to the plugin key and canonical subtree root. `add_` and
+    // `consume_` are the in-memory store used by that retry path; the first matching retry
+    // consumes the approval. They are thread-safe, bound in time, and never authorise a different
+    // plugin or target. A prompt already pending for the same pair is not posted again.
+    //
+    // A permission edit, revocation, or reinstall invalidates the plugin's transient approvals,
+    // pending prompt keys, and any queued dialog callback: posted callbacks carry the generation
+    // they were created for and become no-ops after invalidation.
+    void invalidate_recursive_delete_state(const std::string& plugin_key);
+    bool consume_recursive_delete_approval(const std::string& plugin_key, const std::string& canonical_root);
+    void add_recursive_delete_approval(const std::string& plugin_key, const std::string& canonical_root);
+
+    // Answers a recursive-delete consent prompt in place of the dialog, for tests.
+    // `target` is the canonical subtree root the consent covers. Production never sets it.
+    using RecursiveDeletePrompt = std::function<bool(const std::string& plugin_name, const std::string& target)>;
+    static void set_recursive_delete_prompt_for_testing(RecursiveDeletePrompt prompt);
+
+    // Simulates a prompt that cannot run inline on the wx main thread: with `background` true the
+    // current attempt is denied, and a Yes from the testing prompt records a retry approval.
+    static void set_recursive_delete_prompt_background_for_testing(bool background);
+
+    // Returns the recursive-delete prompt exactly as the dialog receives it, for tests.
+    static std::string format_recursive_delete_permission_prompt_for_testing(const std::string& plugin_name,
+                                                                             const std::string& target,
+                                                                             bool root_scope = false,
+                                                                             bool background = false);
+
+    // Test-only lifecycle hooks: clear pending retry approvals, shorten their lifetime, or read
+    // how many are pending. Production never calls them.
+    static void clear_recursive_delete_approvals_for_testing();
+    static void set_recursive_delete_approval_lifetime_for_testing(std::chrono::milliseconds lifetime);
+    static std::size_t pending_recursive_delete_approvals_for_testing();
+
+    // Test-only control for the posted-prompt path. With `deferred` true, a background request
+    // records its deduplication key but leaves it pending instead of treating the testing prompt's
+    // answer as final; answer_recursive_delete_prompt_for_testing() then completes it, as the real
+    // dialog callback would. `generation` is the token read when the prompt was posted; answering
+    // with a stale token does not store an approval.
+    static void set_recursive_delete_prompt_deferred_for_testing(bool deferred);
+    static std::uint64_t recursive_delete_generation_for_testing(const std::string& plugin_key);
+    static void answer_recursive_delete_prompt_for_testing(const std::string& plugin_key,
+                                                           const std::string& canonical_root, bool granted,
+                                                           std::uint64_t generation);
+    static std::size_t pending_recursive_delete_prompts_for_testing();
+
+    // Exposes the entry-scope predicate used for nested deletes without requiring a live Python
+    // frame. The subtree must be canonical and absolute.
+    static bool delete_target_inside_subtree_for_testing(const std::string& target,
+                                                         const std::string& canonical_subtree);
+
     // True when a granted scheme://host entry covers `target`. `target` is a URL (urllib.Request),
     // a bare host (http.client.connect, socket.getaddrinfo) or an address as exposed by the audit
     // event (a hostname, a host:port pair, or a legacy persisted tuple such as "('host', 443)").
@@ -235,14 +309,24 @@ public:
     // run finalizers of objects its locals held; they are judged as the plugin and never prompt.
     //
     // The root's category is recorded too. A delete root (shutil.rmtree) does not cover nested
-    // delete events: an exact folder grant covers only its direct entries, so each nested delete
-    // is judged on its own, while a tree grant covering the target may still allow it. A
-    // read/write root (copytree, unpack_archive, move) still covers the create/delete events it
-    // performs.
-    void record_root_frame(AuditEventCategory category);
+    // delete events by itself: an exact folder grant covers only its direct entries, so each
+    // nested delete is judged on its own, while a tree grant covering the target may still allow
+    // it. One-time recursive-delete consent records its canonical subtree on the frame, which
+    // covers nested deletes whose target stays inside that subtree. A read/write root (copytree,
+    // unpack_archive, move) still covers the create/delete events it performs.
+    // `approved_delete_subtree`, when non-empty, is the canonical subtree a one-time recursive
+    // delete consent covers.
+    void record_root_frame(AuditEventCategory category,
+                           const boost::filesystem::path& approved_delete_subtree = {});
     // `allow_delete_roots` is false for a delete event: a frame recorded for a delete root then
     // does not cover it, while a read/write root still does.
     bool covered_by_root_frame(bool allow_delete_roots = true) const;
+    // True when every delete target is inside the subtree of a delete root frame recorded with a
+    // subtree scope (one-time consent or an implicit writable root), and the stack between the
+    // event and that frame is stdlib code only. This keeps the scope to the approved operation
+    // and its subtree; plugin callbacks the operation invokes are judged on their own. Protected
+    // paths are denied before this check.
+    bool delete_target_inside_approved_subtree(const std::vector<std::string>& targets) const;
     bool releasing_frames() const;
 
     // True when code from `filename` (a code object's co_filename) is the interpreter's own
@@ -289,12 +373,14 @@ private:
 
     // A stdlib frame that raised an operation's own root event. The vector that holds these owns
     // one strong reference per frame. delete_root marks a frame recorded for a delete root: such
-    // a frame does not cover a nested delete (see covered_by_root_frame), and the mark is sticky
+    // a frame does not cover a nested delete by itself (see covered_by_root_frame), unless it also
+    // records the canonical subtree of a one-time recursive-delete consent. The mark is sticky
     // once set, even if the same frame later raises another root event.
     struct RootFrame
     {
-        PyObject* frame;       // strong reference
-        bool      delete_root;
+        PyObject*                    frame;       // strong reference
+        bool                         delete_root;
+        boost::filesystem::path      approved_delete_subtree; // empty unless one-time consent
     };
 
     static int audit_hook(const char* event, PyObject* args, void* user_data);

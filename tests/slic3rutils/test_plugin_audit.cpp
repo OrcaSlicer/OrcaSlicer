@@ -4,6 +4,7 @@
 #include <boost/system/error_code.hpp>
 #include <catch2/catch_all.hpp>
 
+#include <cstddef>
 #include <libslic3r/Utils.hpp>
 #include <libslic3r/libslic3r.h>         // GCODEVIEWER_APP_KEY, SLIC3R_APP_KEY (via libslic3r_version.h)
 #include <slic3r/plugin/PluginAuditManager.hpp>
@@ -34,6 +35,8 @@
 #include <pybind11/stl.h>
 
 #include <clocale>
+#include <chrono>
+#include <cstdint>
 #include <fstream>
 #include <functional>
 #include <ios>
@@ -816,6 +819,7 @@ struct AuditHarness
     ScopedTemporaryDir                 outside{"orca-plugin-audit-outside"};
     std::vector<Prompt>                prompts;
     std::function<bool(const Prompt&)> approve = [](const Prompt&) { return false; };
+    std::function<bool(const Prompt&)> approve_recursive_delete = [](const Prompt&) { return false; };
 
     AuditHarness()
     {
@@ -824,17 +828,32 @@ struct AuditHarness
         audit.clear_current_capability();
         audit.clear_audit_denial();
         audit.clear_last_violation();
+        PluginAuditManager::clear_recursive_delete_approvals_for_testing();
+        PluginAuditManager::set_recursive_delete_approval_lifetime_for_testing(std::chrono::minutes(1));
+        PluginAuditManager::set_recursive_delete_prompt_background_for_testing(false);
+        PluginAuditManager::set_recursive_delete_prompt_deferred_for_testing(false);
         PluginAuditManager::set_permission_prompt_for_testing(
             [this](const std::string& event, const std::vector<std::string>& targets,
                    const std::vector<PluginAuditManager::PermissionPromptEntry>& entries) {
                 prompts.push_back({PluginAuditManager::instance().current_plugin(), event, targets, entries});
                 return approve(prompts.back());
             });
+        PluginAuditManager::set_recursive_delete_prompt_for_testing(
+            [this](const std::string&, const std::string& target) {
+                prompts.push_back({PluginAuditManager::instance().current_plugin(), "shutil.rmtree", {target},
+                                   {{target, ""}}});
+                return approve_recursive_delete(prompts.back());
+            });
     }
 
     ~AuditHarness()
     {
         PluginAuditManager::set_permission_prompt_for_testing(nullptr);
+        PluginAuditManager::set_recursive_delete_prompt_for_testing(nullptr);
+        PluginAuditManager::set_recursive_delete_prompt_background_for_testing(false);
+        PluginAuditManager::set_recursive_delete_prompt_deferred_for_testing(false);
+        PluginAuditManager::clear_recursive_delete_approvals_for_testing();
+        PluginAuditManager::set_recursive_delete_approval_lifetime_for_testing(std::chrono::minutes(1));
         PluginManager::instance().shutdown();
     }
 
@@ -3361,7 +3380,7 @@ except OSError:
     CHECK(describe(harness.prompts).empty());
 }
 
-TEST_CASE("Recursive rmtree does not let a direct parent delete grant cover subfolder contents", "[audit][Python]")
+TEST_CASE("A recursive delete needs one-time subtree consent instead of a direct folder grant", "[audit][Python]")
 {
     AuditHarness harness;
     if (!harness.initialized)
@@ -3371,41 +3390,642 @@ TEST_CASE("Recursive rmtree does not let a direct parent delete grant cover subf
     PythonSide python(harness);
 
     python.exec(R"PY(
-DELETE_PARENT = os.path.realpath(os.path.join(OUTSIDE, "rmtree-parent"))
-DELETE_SUBFOLDER = os.path.join(DELETE_PARENT, "sub")
-os.makedirs(DELETE_SUBFOLDER)
-DELETE_A = os.path.join(DELETE_SUBFOLDER, "a.txt")
-DELETE_B = os.path.join(DELETE_SUBFOLDER, "b.txt")
-for path in (DELETE_A, DELETE_B):
-    with open(path, "w") as f:
+RMTREE_PARENT = os.path.realpath(os.path.join(OUTSIDE, "rmtree-parent"))
+RMTREE_TARGET = os.path.join(RMTREE_PARENT, "sub")
+os.makedirs(RMTREE_TARGET)
+for name in ("a.txt", "b.txt"):
+    with open(os.path.join(RMTREE_TARGET, name), "w") as f:
         f.write("x")
+RMTREE_EXACT_TARGET = os.path.join(RMTREE_PARENT, "exact")
+os.makedirs(RMTREE_EXACT_TARGET)
+with open(os.path.join(RMTREE_EXACT_TARGET, "one.txt"), "w") as f:
+    f.write("x")
+)PY");
+
+    // A grant naming the parent folder authorises deleting the direct entry "sub", not walking
+    // and deleting what is inside it. The recursive delete asks for subtree consent instead.
+    PluginPermissions permissions;
+    permissions.fs_delete = {python.str("RMTREE_PARENT")};
+    harness.save_permissions(PLUGIN, permissions);
+    harness.approve_recursive_delete = [](const Prompt&) { return false; };
+    python.run_as(PLUGIN, "denied_outcome = attempt(lambda: shutil.rmtree(RMTREE_TARGET))");
+
+    CHECK(python.str("denied_outcome") == "denied");
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().event == "shutil.rmtree");
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{python.str("RMTREE_TARGET")});
+    // The prompt has no saved folder: recursive-delete consent is for this operation only.
+    CHECK(harness.prompts.front().entries ==
+          std::vector<PluginAuditManager::PermissionPromptEntry>{{python.str("RMTREE_TARGET"), ""}});
+    CHECK(fs::is_directory(fs::path(python.str("RMTREE_TARGET"))));
+    CHECK(harness.saved_permissions(PLUGIN).fs_delete == std::vector<std::string>{python.str("RMTREE_PARENT")});
+
+    // A grant naming the recursive target itself is also a direct folder grant, so it does not
+    // cover the subtree either.
+    harness.prompts.clear();
+    permissions.fs_delete = {python.str("RMTREE_EXACT_TARGET")};
+    harness.save_permissions(PLUGIN, permissions);
+    python.run_as(PLUGIN, "exact_outcome = attempt(lambda: shutil.rmtree(RMTREE_EXACT_TARGET))");
+    CHECK(python.str("exact_outcome") == "denied");
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{python.str("RMTREE_EXACT_TARGET")});
+    CHECK(fs::exists(fs::path(python.str("RMTREE_EXACT_TARGET")) / "one.txt"));
+
+    // One-time consent lets this operation proceed, including its nested deletes, and stores
+    // nothing: the saved direct grant is unchanged.
+    harness.prompts.clear();
+    harness.approve_recursive_delete = [](const Prompt&) { return true; };
+    python.run_as(PLUGIN, "approved_outcome = attempt(lambda: shutil.rmtree(RMTREE_TARGET))");
+
+    CHECK(python.str("approved_outcome") == "ok");
+    CHECK_FALSE(fs::exists(fs::path(python.str("RMTREE_TARGET"))));
+    CHECK(harness.saved_permissions(PLUGIN).fs_delete == std::vector<std::string>{python.str("RMTREE_EXACT_TARGET")});
+}
+
+TEST_CASE("A saved delete tree grant covers a recursive delete without a prompt", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+RMTREE_TREE_ROOT = os.path.realpath(os.path.join(OUTSIDE, "rmtree-tree-grant"))
+RMTREE_TREE_TARGET = os.path.join(RMTREE_TREE_ROOT, "sub")
+os.makedirs(RMTREE_TREE_TARGET)
+with open(os.path.join(RMTREE_TREE_TARGET, "a.txt"), "w") as f:
+    f.write("x")
+RMTREE_FULL_TARGET = os.path.join(RMTREE_TREE_ROOT, "full")
+os.makedirs(RMTREE_FULL_TARGET)
+with open(os.path.join(RMTREE_FULL_TARGET, "a.txt"), "w") as f:
+    f.write("x")
+RMTREE_SELF_GRANT = os.path.join(RMTREE_TREE_ROOT, "self-grant")
+os.makedirs(RMTREE_SELF_GRANT)
+with open(os.path.join(RMTREE_SELF_GRANT, "a.txt"), "w") as f:
+    f.write("x")
+RMTREE_SELF_COVERED = os.path.join(RMTREE_TREE_ROOT, "self-covered")
+os.makedirs(RMTREE_SELF_COVERED)
+with open(os.path.join(RMTREE_SELF_COVERED, "a.txt"), "w") as f:
+    f.write("x")
 )PY");
 
     PluginPermissions permissions;
-    // The grant names the parent, so deleting the direct entry "sub" is allowed. It does not
-    // grant deleting the entries inside "sub".
-    permissions.fs_delete = {python.str("DELETE_PARENT")};
+    permissions.fs_delete = {python.str("RMTREE_TREE_ROOT") + "/*"};
     harness.save_permissions(PLUGIN, permissions);
+    python.run_as(PLUGIN, "tree_outcome = attempt(lambda: shutil.rmtree(RMTREE_TREE_TARGET))");
 
-    // Reads needed by rmtree may still be approved if the implementation asks; deletes are left
-    // denied. The recursive walk must not inherit the parent's delete grant for its children.
-    harness.approve = [](const Prompt& prompt) { return prompt.event != "os.remove" && prompt.event != "os.rmdir"; };
-    python.run_as(PLUGIN, "outcome = attempt(lambda: shutil.rmtree(DELETE_SUBFOLDER))");
+    CHECK(python.str("tree_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+    CHECK_FALSE(fs::exists(fs::path(python.str("RMTREE_TREE_TARGET"))));
+    CHECK(harness.saved_permissions(PLUGIN).fs_delete ==
+          std::vector<std::string>{python.str("RMTREE_TREE_ROOT") + "/*"});
 
-    CHECK(python.str("outcome") == "denied");
-    CHECK(fs::is_directory(fs::path(python.str("DELETE_SUBFOLDER"))));
-    const int remaining = (fs::exists(fs::path(python.str("DELETE_A"))) ? 1 : 0) +
-                          (fs::exists(fs::path(python.str("DELETE_B"))) ? 1 : 0);
-    CHECK(remaining >= 1);
-
-    // A full delete grant still allows the recursive operation.
+    // Full delete access likewise covers the operation without a prompt.
     permissions.fs_delete = {"*"};
     harness.save_permissions(PLUGIN, permissions);
     harness.prompts.clear();
-    harness.approve = [](const Prompt& prompt) { return prompt.event != "os.remove" && prompt.event != "os.rmdir"; };
-    python.run_as(PLUGIN, "full_outcome = attempt(lambda: shutil.rmtree(DELETE_SUBFOLDER))");
+    python.run_as(PLUGIN, "full_outcome = attempt(lambda: shutil.rmtree(RMTREE_FULL_TARGET))");
     CHECK(python.str("full_outcome") == "ok");
-    CHECK_FALSE(fs::exists(fs::path(python.str("DELETE_SUBFOLDER"))));
+    CHECK(describe(harness.prompts).empty());
+    CHECK_FALSE(fs::exists(fs::path(python.str("RMTREE_FULL_TARGET"))));
+
+    // A tree grant rooted at the target itself covers its contents but not the final rmdir of
+    // the target: that entry lives in the parent folder. The grant must not be silently extended
+    // to remove the directory; consent is asked before the walk starts, so denial leaves the tree
+    // intact and approval lets the whole operation finish without a mid-walk prompt.
+    permissions.fs_delete = {python.str("RMTREE_SELF_GRANT") + "/*"};
+    harness.save_permissions(PLUGIN, permissions);
+    harness.prompts.clear();
+    harness.approve_recursive_delete = [](const Prompt&) { return false; };
+    python.run_as(PLUGIN, "self_grant_denied = attempt(lambda: shutil.rmtree(RMTREE_SELF_GRANT))");
+    CHECK(python.str("self_grant_denied") == "denied");
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().event == "shutil.rmtree");
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{python.str("RMTREE_SELF_GRANT")});
+    CHECK(fs::exists(fs::path(python.str("RMTREE_SELF_GRANT")) / "a.txt"));
+    CHECK(harness.saved_permissions(PLUGIN).fs_delete ==
+          std::vector<std::string>{python.str("RMTREE_SELF_GRANT") + "/*"});
+
+    harness.prompts.clear();
+    harness.approve_recursive_delete = [](const Prompt&) { return true; };
+    python.run_as(PLUGIN, "self_grant_approved = attempt(lambda: shutil.rmtree(RMTREE_SELF_GRANT))");
+    CHECK(python.str("self_grant_approved") == "ok");
+    CHECK(harness.prompts.size() == 1); // only the pre-walk consent, no nested prompt
+    CHECK_FALSE(fs::exists(fs::path(python.str("RMTREE_SELF_GRANT"))));
+
+    // The same target-rooted tree grant plus a separate grant for the parent covers the root
+    // removal too, so the saved grants suffice without a prompt.
+    permissions.fs_delete = {python.str("RMTREE_SELF_COVERED") + "/*", python.str("RMTREE_TREE_ROOT")};
+    harness.save_permissions(PLUGIN, permissions);
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "self_covered_outcome = attempt(lambda: shutil.rmtree(RMTREE_SELF_COVERED))");
+    CHECK(python.str("self_covered_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+    CHECK_FALSE(fs::exists(fs::path(python.str("RMTREE_SELF_COVERED"))));
+}
+
+TEST_CASE("Recursive delete consent is not persisted and does not follow a symlink out of the subtree", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+RMTREE_SCOPE_ROOT = os.path.realpath(os.path.join(OUTSIDE, "rmtree-scope-root"))
+RMTREE_OUTSIDE = os.path.realpath(os.path.join(OUTSIDE, "rmtree-scope-outside"))
+os.makedirs(RMTREE_SCOPE_ROOT)
+os.makedirs(RMTREE_OUTSIDE)
+RMTREE_OUTSIDE_FILE = os.path.join(RMTREE_OUTSIDE, "keep.txt")
+with open(RMTREE_OUTSIDE_FILE, "w") as f:
+    f.write("x")
+with open(os.path.join(RMTREE_SCOPE_ROOT, "delete.txt"), "w") as f:
+    f.write("x")
+try:
+    os.symlink(RMTREE_OUTSIDE, os.path.join(RMTREE_SCOPE_ROOT, "alias"), target_is_directory=True)
+    RMTREE_SYMLINK_OK = True
+except (OSError, NotImplementedError):
+    RMTREE_SYMLINK_OK = False
+)PY");
+    if (python.eval("RMTREE_SYMLINK_OK") != "True")
+        SKIP("Cannot create a directory symlink here");
+
+    harness.approve_recursive_delete = [](const Prompt&) { return true; };
+    python.run_as(PLUGIN, "scope_outcome = attempt(lambda: shutil.rmtree(RMTREE_SCOPE_ROOT))");
+
+    CHECK(python.str("scope_outcome") == "ok");
+    CHECK_FALSE(fs::exists(fs::path(python.str("RMTREE_SCOPE_ROOT"))));
+    // The symlink is an entry in the approved folder, not consent to follow it outside.
+    CHECK(fs::exists(fs::path(python.str("RMTREE_OUTSIDE_FILE"))));
+    CHECK(harness.saved_permissions(PLUGIN).fs_delete.empty());
+
+    // Approval covers one operation only: the same target asks again instead of inheriting a
+    // remembered subtree grant.
+    python.exec("os.makedirs(RMTREE_SCOPE_ROOT)");
+    harness.prompts.clear();
+    harness.approve_recursive_delete = [](const Prompt&) { return false; };
+    python.run_as(PLUGIN, "second_scope_outcome = attempt(lambda: shutil.rmtree(RMTREE_SCOPE_ROOT))");
+    CHECK(python.str("second_scope_outcome") == "denied");
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().event == "shutil.rmtree");
+    CHECK(harness.saved_permissions(PLUGIN).fs_delete.empty());
+}
+
+TEST_CASE("A recursive delete does not treat a symlink/.. spelling as an implicit allowed root", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+    python.globals["DATA_DIR"] = harness.data.dir.string();
+
+    python.exec(R"PY(
+RMTREE_ESCAPE_PARENT = os.path.dirname(DATA_DIR.rstrip(os.sep)) or os.sep
+RMTREE_ESCAPE_BASENAME = os.path.basename(DATA_DIR.rstrip(os.sep))
+RMTREE_ESCAPE_LINK = os.path.join(RMTREE_ESCAPE_PARENT, "orca-rmtree-bypass-%d" % os.getpid())
+if os.path.lexists(RMTREE_ESCAPE_LINK):
+    os.remove(RMTREE_ESCAPE_LINK)
+RMTREE_ESCAPE_OUTSIDE = os.path.realpath(os.path.join(OUTSIDE, "rmtree-escape-outside"))
+RMTREE_ESCAPE_DEEP = os.path.join(RMTREE_ESCAPE_OUTSIDE, "deep")
+RMTREE_ESCAPE_TARGET = os.path.join(RMTREE_ESCAPE_OUTSIDE, RMTREE_ESCAPE_BASENAME)
+os.makedirs(RMTREE_ESCAPE_DEEP)
+os.makedirs(RMTREE_ESCAPE_TARGET)
+with open(os.path.join(RMTREE_ESCAPE_TARGET, "keep.txt"), "w") as f:
+    f.write("x")
+try:
+    os.symlink(RMTREE_ESCAPE_DEEP, RMTREE_ESCAPE_LINK, target_is_directory=True)
+    RMTREE_ESCAPE_SYMLINK_OK = True
+except (OSError, NotImplementedError):
+    RMTREE_ESCAPE_SYMLINK_OK = False
+# Lexically this folds to DATA_DIR itself. The OS follows the link first, so it names
+# OUTSIDE/<data-dir-basename> instead.
+RMTREE_ESCAPE_PATH = os.path.join(RMTREE_ESCAPE_PARENT, os.path.basename(RMTREE_ESCAPE_LINK), "..",
+                                  RMTREE_ESCAPE_BASENAME)
+)PY");
+    if (python.eval("RMTREE_ESCAPE_SYMLINK_OK") != "True")
+        SKIP("Cannot create a directory symlink beside the data directory");
+
+    harness.approve_recursive_delete = [](const Prompt&) { return false; };
+    python.run_as(PLUGIN, "escape_outcome = attempt(lambda: shutil.rmtree(RMTREE_ESCAPE_PATH))");
+
+    CHECK(python.str("escape_outcome") == "denied");
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().event == "shutil.rmtree");
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{python.str("RMTREE_ESCAPE_TARGET")});
+    CHECK(fs::exists(fs::path(python.str("RMTREE_ESCAPE_TARGET")) / "keep.txt"));
+    python.exec("os.remove(RMTREE_ESCAPE_LINK)");
+}
+
+TEST_CASE("A recursive delete inside an implicit writable root removes symlink entries without prompts", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+    python.globals["DATA_DIR"] = harness.data.dir.string();
+
+    python.exec(R"PY(
+RMTREE_IMPLICIT_TREE = os.path.realpath(os.path.join(DATA_DIR, "rmtree-implicit"))
+RMTREE_IMPLICIT_OUTSIDE = os.path.realpath(os.path.join(OUTSIDE, "rmtree-implicit-outside"))
+os.makedirs(RMTREE_IMPLICIT_TREE)
+os.makedirs(RMTREE_IMPLICIT_OUTSIDE)
+RMTREE_IMPLICIT_KEEP = os.path.join(RMTREE_IMPLICIT_OUTSIDE, "keep.txt")
+with open(RMTREE_IMPLICIT_KEEP, "w") as f:
+    f.write("x")
+with open(os.path.join(RMTREE_IMPLICIT_TREE, "a.txt"), "w") as f:
+    f.write("x")
+try:
+    os.symlink(RMTREE_IMPLICIT_OUTSIDE, os.path.join(RMTREE_IMPLICIT_TREE, "alias"), target_is_directory=True)
+    RMTREE_IMPLICIT_SYMLINK_OK = True
+except (OSError, NotImplementedError):
+    RMTREE_IMPLICIT_SYMLINK_OK = False
+)PY");
+    if (python.eval("RMTREE_IMPLICIT_SYMLINK_OK") != "True")
+        SKIP("Cannot create a directory symlink here");
+
+    // data_dir() is an implicit writable root. The recursive delete needs no consent, and the
+    // fd-based reads plus the symlink entry must not interrupt or partially delete the walk.
+    python.run_as(PLUGIN, "implicit_outcome = attempt(lambda: shutil.rmtree(RMTREE_IMPLICIT_TREE))");
+
+    CHECK(python.str("implicit_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+    CHECK_FALSE(fs::exists(fs::path(python.str("RMTREE_IMPLICIT_TREE"))));
+    CHECK(fs::exists(fs::path(python.str("RMTREE_IMPLICIT_KEEP"))));
+    CHECK(harness.saved_permissions(PLUGIN).fs_delete.empty());
+}
+
+TEST_CASE("A recursive delete keeps protected paths blocked inside an approved subtree", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    seed_denied_keywords();
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+    PluginAuditManager& mgr = PluginAuditManager::instance();
+
+    python.exec(R"PY(
+RMTREE_PROTECTED_ROOT = os.path.realpath(os.path.join(OUTSIDE, "rmtree-protected-root"))
+RMTREE_PROTECTED_DIR = os.path.join(RMTREE_PROTECTED_ROOT, "secrets")
+os.makedirs(RMTREE_PROTECTED_DIR)
+RMTREE_PROTECTED_FILE = os.path.join(RMTREE_PROTECTED_DIR, "token.txt")
+with open(RMTREE_PROTECTED_FILE, "w") as f:
+    f.write("x")
+with open(os.path.join(RMTREE_PROTECTED_ROOT, "ordinary.txt"), "w") as f:
+    f.write("x")
+)PY");
+
+    // The subtree consent covers the folder, but the deny registry is checked before any
+    // operation coverage, so the protected entry stops the walk.
+    harness.approve_recursive_delete = [](const Prompt&) { return true; };
+    python.run_as(PLUGIN, "protected_outcome = attempt(lambda: shutil.rmtree(RMTREE_PROTECTED_ROOT))");
+
+    CHECK(python.str("protected_outcome") == "denied");
+    CHECK(fs::exists(fs::path(python.str("RMTREE_PROTECTED_FILE"))));
+    CHECK(fs::is_directory(fs::path(python.str("RMTREE_PROTECTED_DIR"))));
+    CHECK(harness.saved_permissions(PLUGIN).fs_delete.empty());
+    AuditViolation violation;
+    REQUIRE(mgr.last_violation(violation));
+    CHECK(violation.reason == "denied path");
+}
+
+TEST_CASE("A delete is scoped by the entry, not by a final symlink's destination", "[audit]")
+{
+    ScopedTemporaryDir temp{"orca-plugin-audit-delete-scope"};
+    const fs::path approved = temp.path() / "approved";
+    const fs::path outside = temp.path() / "outside";
+    fs::create_directories(approved / "sub");
+    fs::create_directories(outside);
+
+    boost::system::error_code ec;
+    fs::create_directory_symlink(approved, outside / "link_to_approved", ec);
+    if (ec)
+        SKIP("Cannot create a directory symlink here");
+
+    const std::string subtree = fs::weakly_canonical(approved).string();
+
+    // An entry below the subtree and the subtree root itself are covered.
+    CHECK(PluginAuditManager::delete_target_inside_subtree_for_testing((approved / "sub" / "a.txt").string(), subtree));
+    CHECK(PluginAuditManager::delete_target_inside_subtree_for_testing(approved.string(), subtree));
+
+    // Deleting this link acts on the link entry in `outside`, even though its destination is the
+    // approved subtree. The destination must not authorise removing the outside entry.
+    CHECK_FALSE(PluginAuditManager::delete_target_inside_subtree_for_testing((outside / "link_to_approved").string(),
+                                                                            subtree));
+    CHECK_FALSE(PluginAuditManager::delete_target_inside_subtree_for_testing(outside.string(), subtree));
+
+    // `link/..` must follow the link before stepping up. Lexically folding this target would name
+    // the approved root, but the operating system resolves it to `outside/approved`.
+    fs::create_directories(outside / "deep");
+    fs::create_directories(outside / "approved");
+    fs::create_directory_symlink(outside / "deep", temp.path() / "escape_link", ec);
+    REQUIRE_FALSE(ec);
+    CHECK_FALSE(PluginAuditManager::delete_target_inside_subtree_for_testing(
+        (temp.path() / "escape_link" / ".." / "approved").string(), subtree));
+
+    // When the link actually leads back to the approved root's parent, the same spelling is the
+    // approved root entry and is covered.
+    fs::create_directories(temp.path() / "inside");
+    fs::create_directory_symlink(temp.path() / "inside", temp.path() / "safe_link", ec);
+    REQUIRE_FALSE(ec);
+    CHECK(PluginAuditManager::delete_target_inside_subtree_for_testing(
+        (temp.path() / "safe_link" / ".." / "approved").string(), subtree));
+
+    // A final ".." is ambiguous between the entry and a directory traversal, so it fails closed.
+    CHECK_FALSE(PluginAuditManager::delete_target_inside_subtree_for_testing((approved / "..").string(), subtree));
+
+    // A link inside the subtree is an entry inside it; deleting the link does not follow it out.
+    fs::create_directory_symlink(outside, approved / "link_to_outside", ec);
+    REQUIRE_FALSE(ec);
+    CHECK(PluginAuditManager::delete_target_inside_subtree_for_testing((approved / "link_to_outside").string(), subtree));
+}
+
+TEST_CASE("An asynchronous recursive delete approval is single-use and bound to its plugin and target", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    const std::string other_plugin = "OtherAuditPlugin";
+    harness.add_plugin(PLUGIN);
+    harness.add_plugin(other_plugin);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+RMTREE_ASYNC_A = os.path.realpath(os.path.join(OUTSIDE, "rmtree-async-a"))
+RMTREE_ASYNC_B = os.path.realpath(os.path.join(OUTSIDE, "rmtree-async-b"))
+for root in (RMTREE_ASYNC_A, RMTREE_ASYNC_B):
+    os.makedirs(root)
+    with open(os.path.join(root, "a.txt"), "w") as f:
+        f.write("x")
+)PY");
+
+    // The posted prompt is answered Yes, but the attempt that raised it was already denied.
+    harness.approve_recursive_delete = [](const Prompt&) { return true; };
+    PluginAuditManager::set_recursive_delete_prompt_background_for_testing(true);
+    python.run_as(PLUGIN, "first_outcome = attempt(lambda: shutil.rmtree(RMTREE_ASYNC_A))");
+
+    CHECK(python.str("first_outcome") == "denied");
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().plugin == PLUGIN);
+    CHECK(harness.prompts.front().event == "shutil.rmtree");
+    CHECK(PluginAuditManager::pending_recursive_delete_approvals_for_testing() == 1);
+    CHECK(harness.saved_permissions(PLUGIN).fs_delete.empty());
+    CHECK(fs::is_directory(fs::path(python.str("RMTREE_ASYNC_A"))));
+
+    // The first retry consumes the approval and proceeds without another prompt.
+    python.run_as(PLUGIN, "retry_outcome = attempt(lambda: shutil.rmtree(RMTREE_ASYNC_A))");
+    CHECK(python.str("retry_outcome") == "ok");
+    CHECK(harness.prompts.size() == 1);
+    CHECK(PluginAuditManager::pending_recursive_delete_approvals_for_testing() == 0);
+    CHECK_FALSE(fs::exists(fs::path(python.str("RMTREE_ASYNC_A"))));
+
+    // The approval is single use: a second recursive delete of the same folder asks again.
+    python.exec("os.makedirs(RMTREE_ASYNC_A)");
+    python.run_as(PLUGIN, "second_outcome = attempt(lambda: shutil.rmtree(RMTREE_ASYNC_A))");
+    CHECK(python.str("second_outcome") == "denied");
+    CHECK(harness.prompts.size() == 2);
+    CHECK(PluginAuditManager::pending_recursive_delete_approvals_for_testing() == 1);
+
+    // A different target cannot spend that approval.
+    python.run_as(PLUGIN, "other_target_outcome = attempt(lambda: shutil.rmtree(RMTREE_ASYNC_B))");
+    CHECK(python.str("other_target_outcome") == "denied");
+    REQUIRE(harness.prompts.size() == 3);
+    CHECK(harness.prompts.back().targets == std::vector<std::string>{python.str("RMTREE_ASYNC_B")});
+    CHECK(PluginAuditManager::pending_recursive_delete_approvals_for_testing() == 2);
+
+    // Another plugin cannot spend this plugin's pending approval.
+    python.run_as(other_plugin, "other_plugin_outcome = attempt(lambda: shutil.rmtree(RMTREE_ASYNC_B))");
+    CHECK(python.str("other_plugin_outcome") == "denied");
+    REQUIRE(harness.prompts.size() == 4);
+    CHECK(harness.prompts.back().plugin == other_plugin);
+    CHECK(PluginAuditManager::pending_recursive_delete_approvals_for_testing() == 3);
+
+    // The original plugin still has its own approval for this target and can consume it.
+    python.run_as(PLUGIN, "own_retry_outcome = attempt(lambda: shutil.rmtree(RMTREE_ASYNC_B))");
+    CHECK(python.str("own_retry_outcome") == "ok");
+    CHECK(harness.prompts.size() == 4);
+    CHECK(PluginAuditManager::pending_recursive_delete_approvals_for_testing() == 2);
+}
+
+TEST_CASE("A pending recursive delete prompt is not posted twice for the same plugin and target", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+RMTREE_DEDUP_ROOT = os.path.realpath(os.path.join(OUTSIDE, "rmtree-dedup"))
+os.makedirs(RMTREE_DEDUP_ROOT)
+with open(os.path.join(RMTREE_DEDUP_ROOT, "a.txt"), "w") as f:
+    f.write("x")
+)PY");
+
+    harness.approve_recursive_delete = [](const Prompt&) { return true; };
+    PluginAuditManager::set_recursive_delete_prompt_background_for_testing(true);
+    PluginAuditManager::set_recursive_delete_prompt_deferred_for_testing(true);
+    const std::uint64_t generation = PluginAuditManager::recursive_delete_generation_for_testing(PLUGIN);
+    python.run_as(PLUGIN, "first_outcome = attempt(lambda: shutil.rmtree(RMTREE_DEDUP_ROOT))");
+    CHECK(python.str("first_outcome") == "denied");
+    CHECK(harness.prompts.size() == 1);
+    CHECK(PluginAuditManager::pending_recursive_delete_prompts_for_testing() == 1);
+    CHECK(PluginAuditManager::pending_recursive_delete_approvals_for_testing() == 0);
+
+    // The dialog is still open, so a retry loop must not queue another modal for the same target.
+    python.run_as(PLUGIN, "second_outcome = attempt(lambda: shutil.rmtree(RMTREE_DEDUP_ROOT))");
+    CHECK(python.str("second_outcome") == "denied");
+    CHECK(harness.prompts.size() == 1);
+    CHECK(PluginAuditManager::pending_recursive_delete_prompts_for_testing() == 1);
+
+    // Answering the posted prompt stores the single retry approval and releases the dedup key.
+    PluginAuditManager::answer_recursive_delete_prompt_for_testing(PLUGIN, python.str("RMTREE_DEDUP_ROOT"), true,
+                                                                   generation);
+    CHECK(PluginAuditManager::pending_recursive_delete_prompts_for_testing() == 0);
+    CHECK(PluginAuditManager::pending_recursive_delete_approvals_for_testing() == 1);
+
+    python.run_as(PLUGIN, "retry_outcome = attempt(lambda: shutil.rmtree(RMTREE_DEDUP_ROOT))");
+    CHECK(python.str("retry_outcome") == "ok");
+    CHECK(harness.prompts.size() == 1);
+    CHECK(PluginAuditManager::pending_recursive_delete_approvals_for_testing() == 0);
+    CHECK_FALSE(fs::exists(fs::path(python.str("RMTREE_DEDUP_ROOT"))));
+}
+
+TEST_CASE("The pending recursive delete prompt store rejects new prompts at capacity", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+RMTREE_CAP_ROOTS = []
+for index in range(17):
+    root = os.path.realpath(os.path.join(OUTSIDE, "rmtree-cap-%d" % index))
+    os.makedirs(root)
+    with open(os.path.join(root, "a.txt"), "w") as f:
+        f.write("x")
+    RMTREE_CAP_ROOTS.append(root)
+RMTREE_CAP_OUTCOMES = []
+)PY");
+
+    harness.approve_recursive_delete = [](const Prompt&) { return true; };
+    PluginAuditManager::set_recursive_delete_prompt_background_for_testing(true);
+    PluginAuditManager::set_recursive_delete_prompt_deferred_for_testing(true);
+    const std::uint64_t generation = PluginAuditManager::recursive_delete_generation_for_testing(PLUGIN);
+    python.run_as(PLUGIN, R"PY(
+for root in RMTREE_CAP_ROOTS:
+    RMTREE_CAP_OUTCOMES.append(attempt(lambda root=root: shutil.rmtree(root)))
+)PY");
+
+    CHECK(python.strings("RMTREE_CAP_OUTCOMES") == std::vector<std::string>(17, "denied"));
+    // The first sixteen queue dialogs; the seventeenth is rejected rather than evicting a key
+    // whose dialog is already queued. That keeps the dedup set bounded and prevents unlimited
+    // dialogs from repeated distinct targets.
+    CHECK(harness.prompts.size() == 16);
+    CHECK(PluginAuditManager::pending_recursive_delete_prompts_for_testing() == 16);
+
+    // Answering one releases its key and allows that target's retry.
+    PluginAuditManager::answer_recursive_delete_prompt_for_testing(
+        PLUGIN, python.eval("RMTREE_CAP_ROOTS[0]"), true, generation);
+    CHECK(PluginAuditManager::pending_recursive_delete_prompts_for_testing() == 15);
+    python.run_as(PLUGIN, "cap_retry_outcome = attempt(lambda: shutil.rmtree(RMTREE_CAP_ROOTS[0]))");
+    CHECK(python.str("cap_retry_outcome") == "ok");
+    CHECK_FALSE(fs::exists(fs::path(python.eval("RMTREE_CAP_ROOTS[0]"))));
+}
+
+TEST_CASE("Revoking permissions invalidates recursive delete approvals and posted prompt tokens", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+RMTREE_REVOKE_A = os.path.realpath(os.path.join(OUTSIDE, "rmtree-revoke-a"))
+RMTREE_REVOKE_B = os.path.realpath(os.path.join(OUTSIDE, "rmtree-revoke-b"))
+for root in (RMTREE_REVOKE_A, RMTREE_REVOKE_B):
+    os.makedirs(root)
+    with open(os.path.join(root, "a.txt"), "w") as f:
+        f.write("x")
+)PY");
+
+    PluginAuditManager::set_recursive_delete_prompt_background_for_testing(true);
+    harness.approve_recursive_delete = [](const Prompt&) { return true; };
+    python.run_as(PLUGIN, "approval_outcome = attempt(lambda: shutil.rmtree(RMTREE_REVOKE_A))");
+    CHECK(python.str("approval_outcome") == "denied");
+    CHECK(PluginAuditManager::pending_recursive_delete_approvals_for_testing() == 1);
+
+    PluginAuditManager::set_recursive_delete_prompt_deferred_for_testing(true);
+    python.run_as(PLUGIN, "pending_outcome = attempt(lambda: shutil.rmtree(RMTREE_REVOKE_B))");
+    CHECK(python.str("pending_outcome") == "denied");
+    CHECK(PluginAuditManager::pending_recursive_delete_prompts_for_testing() == 1);
+    const std::uint64_t stale_generation = PluginAuditManager::recursive_delete_generation_for_testing(PLUGIN);
+    const std::size_t  prompts_before       = harness.prompts.size();
+
+    PluginAuditManager::instance().invalidate_recursive_delete_state(PLUGIN);
+    CHECK(PluginAuditManager::pending_recursive_delete_approvals_for_testing() == 0);
+    CHECK(PluginAuditManager::pending_recursive_delete_prompts_for_testing() == 0);
+
+    // A callback from the old dialog generation must not recreate an approval.
+    PluginAuditManager::answer_recursive_delete_prompt_for_testing(PLUGIN, python.str("RMTREE_REVOKE_B"), true,
+                                                                   stale_generation);
+    CHECK(PluginAuditManager::pending_recursive_delete_approvals_for_testing() == 0);
+
+    // The old approval for A is gone too; the retry is denied and prompts again.
+    PluginAuditManager::set_recursive_delete_prompt_deferred_for_testing(false);
+    harness.approve_recursive_delete = [](const Prompt&) { return false; };
+    python.run_as(PLUGIN, "revoked_retry_outcome = attempt(lambda: shutil.rmtree(RMTREE_REVOKE_A))");
+    CHECK(python.str("revoked_retry_outcome") == "denied");
+    CHECK(harness.prompts.size() == prompts_before + 1);
+    CHECK(PluginAuditManager::pending_recursive_delete_approvals_for_testing() == 0);
+    CHECK(fs::exists(fs::path(python.str("RMTREE_REVOKE_A"))));
+}
+
+TEST_CASE("An expired recursive delete approval is not reused", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+RMTREE_EXPIRED_ROOT = os.path.realpath(os.path.join(OUTSIDE, "rmtree-expired"))
+os.makedirs(RMTREE_EXPIRED_ROOT)
+with open(os.path.join(RMTREE_EXPIRED_ROOT, "a.txt"), "w") as f:
+    f.write("x")
+)PY");
+
+    // A negative lifetime makes the approval expired as soon as it is stored, so the retry must
+    // prompt again instead of proceeding.
+    PluginAuditManager::set_recursive_delete_approval_lifetime_for_testing(std::chrono::milliseconds(-1));
+    harness.approve_recursive_delete = [](const Prompt&) { return true; };
+    PluginAuditManager::set_recursive_delete_prompt_background_for_testing(true);
+    python.run_as(PLUGIN, "first_outcome = attempt(lambda: shutil.rmtree(RMTREE_EXPIRED_ROOT))");
+    CHECK(python.str("first_outcome") == "denied");
+    CHECK(PluginAuditManager::pending_recursive_delete_approvals_for_testing() == 0);
+
+    python.run_as(PLUGIN, "retry_outcome = attempt(lambda: shutil.rmtree(RMTREE_EXPIRED_ROOT))");
+    CHECK(python.str("retry_outcome") == "denied");
+    CHECK(harness.prompts.size() == 2);
+    CHECK(fs::is_directory(fs::path(python.str("RMTREE_EXPIRED_ROOT"))));
+    CHECK(harness.saved_permissions(PLUGIN).fs_delete.empty());
+}
+
+TEST_CASE("A recursive delete prompt shows the subtree and states the consent is one-time", "[audit]")
+{
+    const std::string text =
+        PluginAuditManager::format_recursive_delete_permission_prompt_for_testing("PromptPlugin", "/work/tree");
+
+    const std::string expected =
+        "Plugin \"PromptPlugin\" is requesting to recursively delete the following folder:\n"
+        "/work/tree\n"
+        "\n"
+        "Approval covers deleting the entries in this folder and everything inside it while this operation runs. "
+        "It is not saved as a permission and cannot be reused for another operation. Protected paths stay blocked.";
+    CHECK(text == expected);
+
+    // A posted prompt can only be answered for a later retry, so it must not claim the current
+    // operation will proceed, and it must name the short lifetime of that retry approval.
+    const std::string background =
+        PluginAuditManager::format_recursive_delete_permission_prompt_for_testing("PromptPlugin", "/work/tree", false, true);
+    const std::string expected_background =
+        "Plugin \"PromptPlugin\" is requesting to recursively delete the following folder:\n"
+        "/work/tree\n"
+        "\n"
+        "Approval covers deleting the entries in this folder and everything inside it, and applies to the next "
+        "matching attempt within one minute after you approve. The current attempt has already been denied. It is "
+        "not saved as a permission and cannot be reused for another operation. Protected paths stay blocked.";
+    CHECK(background == expected_background);
+
+    // A filesystem, drive, or network share root gets an explicit warning about its scope.
+    const std::string root = PluginAuditManager::format_recursive_delete_permission_prompt_for_testing(
+        "PromptPlugin", "/", /*root_scope=*/true, /*background=*/false);
+    const std::string expected_root =
+        "Plugin \"PromptPlugin\" is requesting to recursively delete the following folder:\n"
+        "/\n"
+        "\n"
+        "This target is a filesystem, drive, or network share root. Approval covers that entire filesystem, drive, "
+        "or network share while this operation runs. It is not saved as a permission and cannot be reused for "
+        "another operation. Protected paths stay blocked.";
+    CHECK(root == expected_root);
 }
 
 TEST_CASE("A trailing symlink is judged by its containing folder, not its target", "[audit][Python]")
@@ -3607,6 +4227,44 @@ outcome = attempt(lambda: shutil.rmtree("tree", dir_fd=RMTREE_FD))
     CHECK(describe(harness.prompts).empty());
     CHECK_FALSE(fs::exists(fs::path(python.str("RMTREE_TREE"))));
     python.exec("os.close(RMTREE_FD)");
+}
+TEST_CASE("A dir_fd recursive delete resolves the target before asking for consent", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+import inspect
+RMTREE_CONSENT_DIR_FD_SUPPORTED = "dir_fd" in inspect.signature(shutil.rmtree).parameters
+RMTREE_CONSENT_PARENT = os.path.realpath(os.path.join(OUTSIDE, "rmtree-consent-fd-parent"))
+RMTREE_CONSENT_TREE = os.path.join(RMTREE_CONSENT_PARENT, "tree")
+os.makedirs(RMTREE_CONSENT_TREE)
+with open(os.path.join(RMTREE_CONSENT_TREE, "a.txt"), "w") as f:
+    f.write("x")
+RMTREE_CONSENT_FD = os.open(RMTREE_CONSENT_PARENT, os.O_RDONLY)
+)PY");
+    if (python.eval("RMTREE_CONSENT_DIR_FD_SUPPORTED") != "True")
+        SKIP("This Python's shutil.rmtree has no dir_fd parameter");
+
+    // Without a grant, the resolved folder is what the consent prompt shows and approves. The
+    // operation must also be able to finish: rmtree's fd-based reads and nested deletes run inside
+    // the approved subtree.
+    harness.approve_recursive_delete = [](const Prompt&) { return true; };
+    python.run_as(PLUGIN, R"PY(
+fd_outcome = attempt(lambda: shutil.rmtree("tree", dir_fd=RMTREE_CONSENT_FD))
+)PY");
+
+    CHECK(python.str("fd_outcome") == "ok");
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().event == "shutil.rmtree");
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{python.str("RMTREE_CONSENT_TREE")});
+    CHECK_FALSE(fs::exists(fs::path(python.str("RMTREE_CONSENT_TREE"))));
+    CHECK(harness.saved_permissions(PLUGIN).fs_delete.empty());
+    python.exec("os.close(RMTREE_CONSENT_FD)");
 }
 #elif !defined(_WIN32)
 TEST_CASE("A non-default dir_fd fails closed when the platform cannot resolve it", "[audit][Python]")

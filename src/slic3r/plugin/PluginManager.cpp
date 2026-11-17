@@ -1342,6 +1342,9 @@ bool PluginManager::mutate_plugin_permissions(const std::string& plugin_key, con
     if (applied != nullptr)
         *applied = state.permissions;
 
+    // Pending recursive-delete consents were granted against the previous permission state.
+    PluginAuditManager::instance().invalidate_recursive_delete_state(plugin_key);
+
     BOOST_LOG_TRIVIAL(info) << "Applied permission changes for plugin " << plugin_key;
     return true;
 }
@@ -1364,6 +1367,9 @@ void PluginManager::revoke_plugin_permissions(const std::string& plugin_key)
     state.permissions = {};
     if (!write_install_state(root, state))
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to revoke permissions for " << plugin_key;
+
+    // A revoke or reinstall invalidates transient recursive-delete consents and queued callbacks.
+    PluginAuditManager::instance().invalidate_recursive_delete_state(plugin_key);
 }
 
 // ── Callbacks ───────────────────────────────────────────────────────────────────────────────
