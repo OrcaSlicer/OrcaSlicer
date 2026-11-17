@@ -616,11 +616,12 @@ void CurveEditorDialog::on_dpi_changed(const wxRect&)
 #ifdef __WXMSW__
     // wx leaves the rect of a window whose DPI event was handled, as DPIDialog does, to the window.
     // Take the position Windows suggests too: the old top-left can leave the window mostly on the
-    // previous monitor, which changes the DPI back. A drag rescales at the drop, so the rect follows it.
+    // previous monitor, which changes the DPI back. A drag rescales at the drop, so the rect follows a
+    // move; a resize after the DPI change makes it stale, and the size the user left is scaled instead.
     wxRect rect(GetPosition(), GetSize() * (double(scale_factor()) / prev_scale_factor()));
-    if (!m_dpi_suggested_rect.IsEmpty())
-        rect = wxRect(GetPosition() + m_dpi_suggested_rect.GetPosition(), m_dpi_suggested_rect.GetSize());
-    m_dpi_suggested_rect = wxRect();
+    if (!m_dpi_suggested.rect.IsEmpty() && GetSize() == m_dpi_suggested.size)
+        rect = wxRect(GetPosition() + m_dpi_suggested.rect.GetPosition(), m_dpi_suggested.rect.GetSize());
+    m_dpi_suggested = {};
 #endif
     m_chart->finish_drag();
     m_content->SetScrollRate(FromDIP(10), FromDIP(10));
@@ -655,10 +656,15 @@ void CurveEditorDialog::on_dpi_changed(const wxRect&)
 WXLRESULT CurveEditorDialog::MSWWindowProc(WXUINT message, WXWPARAM wParam, WXLPARAM lParam)
 {
     // wxDPIChangedEvent carries no rect. Keep it relative to the window, which a drag only moves.
+    // Windows scales the rect from the DPI it reported last, so it fits only if the window was rescaled
+    // to that DPI: not after two changes in one drag (scale_factor() is not updated yet here).
     if (message == WM_DPICHANGED) {
         const RECT& rect = *reinterpret_cast<const RECT*>(lParam);
-        m_dpi_suggested_rect = wxRect(wxPoint(rect.left, rect.top) - GetPosition(),
-                                      wxSize(rect.right - rect.left, rect.bottom - rect.top));
+        m_dpi_suggested = {};
+        if (std::abs(scale_factor() - prev_scale_factor()) < 0.001f)
+            m_dpi_suggested = {wxRect(wxPoint(rect.left, rect.top) - GetPosition(),
+                                      wxSize(rect.right - rect.left, rect.bottom - rect.top)),
+                               GetSize()};
     }
     return DPIDialog::MSWWindowProc(message, wParam, lParam);
 }
