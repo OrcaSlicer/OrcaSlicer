@@ -78,7 +78,22 @@ bool read_hex_prefix(std::string_view text, double& value)
             power = std::min(power * 10 + (text[position] - '0'), 1000000);
         exponent += negative ? -power : power;
     }
-    value = std::ldexp(double(mantissa), exponent);
+    // Round once, half to even, to the bits the double holds: 53, fewer for a subnormal value, none
+    // for a value below half of the smallest one. Scaling the rounded integer is then exact.
+    int bits = 0;
+    for (uint64_t rest = mantissa; rest != 0; rest >>= 1) ++bits;
+    const int kept = std::min(53, exponent + bits + 1074);
+    if (kept < 0) {
+        value = 0;
+        return true;
+    }
+    const int shift = std::max(bits - kept, 0);
+    if (shift > 0) {
+        const uint64_t half = uint64_t(1) << (shift - 1), dropped = mantissa & (half * 2 - 1);
+        mantissa = shift < 64 ? mantissa >> shift : 0;
+        if (dropped > half || (dropped == half && (mantissa & 1))) ++mantissa;
+    }
+    value = std::ldexp(double(mantissa), exponent + shift);
     return true;
 }
 
