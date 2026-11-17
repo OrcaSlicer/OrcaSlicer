@@ -264,6 +264,12 @@ the field sets (`DropDown::SetItemHoverHandler()`), which passes it on as a `hov
 with the item's row; a value without a picture shows nothing. An item is matched to its value by its
 text, not its index, since some lists leave values out or are filled elsewhere.
 
+## Turning the pictures off
+
+The "Show pictures in tooltips" preference (`show_tooltip_pictures`, on by default) leaves every
+tooltip as its text alone. Nothing else about it changes: it waits the same, opens in the same place
+and is as wide as its text needs. Nothing is decoded while it is off, so the pictures cost nothing then.
+
 ## Making one
 
 ### The toolbar

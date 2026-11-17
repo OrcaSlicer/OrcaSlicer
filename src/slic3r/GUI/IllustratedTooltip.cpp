@@ -10,6 +10,7 @@
 #include <boost/filesystem/path.hpp>
 #include <imgui/imgui_internal.h>
 
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
@@ -97,8 +98,15 @@ bool IllustratedTooltip::ready(const ImVec2 &control, GLCanvas3D &canvas)
     return true;
 }
 
+bool IllustratedTooltip::pictures_shown()
+{
+    const AppConfig *config = wxGetApp().app_config;
+    return config == nullptr || config->get_bool("show_tooltip_pictures");
+}
+
 float IllustratedTooltip::width(const std::string &text, bool with_media, float wrap)
 {
+    with_media = with_media && pictures_shown();
     // The width has to be known by the caller, not left to ImGui, because a tooltip is placed by its
     // edges and a picture has to be laid out against something. A plain one takes exactly what its text
     // needs, as it did when ImGui sized it, so a two-word tooltip is not a wide box with two words in it.
@@ -152,7 +160,8 @@ void IllustratedTooltip::render(const ImVec2 &pos, float width, const std::strin
     if (!text.empty())
         ImGui::TextUnformatted(text.c_str());
     ImGui::PopTextWrapPos();
-    render_media(media, width - 2.f * ImGui::GetStyle().WindowPadding.x, canvas);
+    if (pictures_shown())
+        render_media(media, width - 2.f * ImGui::GetStyle().WindowPadding.x, canvas);
     ImGui::EndTooltip();
     ImGuiWrapper::pop_tooltip_style();
     ImGui::PopStyleVar();
