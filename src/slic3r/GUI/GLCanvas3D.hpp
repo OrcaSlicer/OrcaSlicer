@@ -1438,6 +1438,10 @@ public:
     void apply_selection_rotate(double angle_z_rad);
     void finish_selection_edit();
     void update_shortcut_tooltips();
+    // Rebuilds the Prepare canvas's main toolbar and gizmo bar from the saved toolbar layout.
+    void apply_toolbar_layout();
+    // The stock visibility rule of a toolbar item or gizmo id, ignoring the user's layout.
+    bool is_toolbar_item_available(const std::string& id) const;
     void on_mouse_wheel(wxMouseEvent& evt);
     void on_timer(wxTimerEvent& evt);
     void on_render_timer(wxTimerEvent& evt);
