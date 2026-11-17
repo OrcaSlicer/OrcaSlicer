@@ -629,13 +629,13 @@ void MaterialSyncItem::render(wxDC &dc)
     if (mapping_txt == "-") {
         m_match = false;
         mapping_txt = _L("Unmapped");
-        SetToolTip(_L("Upper half area:  Original\nLower half area: The filament from original project will be used when unmapped.\nAnd you can click it to modify"));
+        set_illustrated_tooltip(this, _L("Upper half area:  Original\nLower half area: The filament from original project will be used when unmapped.\nAnd you can click it to modify"));
     } else {
         m_match = true;
         if (m_dropdown_allow_painted) {
-            SetToolTip(_L("Upper half area:  Original\nLower half area:  Filament in AMS\nAnd you can click it to modify"));
+            set_illustrated_tooltip(this, _L("Upper half area:  Original\nLower half area:  Filament in AMS\nAnd you can click it to modify"));
         } else {
-            SetToolTip(_L("Upper half area:  Original\nLower half area:  Filament in AMS\nAnd you cannot click it to modify"));
+            set_illustrated_tooltip(this, _L("Upper half area:  Original\nLower half area:  Filament in AMS\nAnd you cannot click it to modify"));
         }
     }
     dc.SetFont(::Label::Body_12);
@@ -938,7 +938,7 @@ AmsMapingPopup::AmsMapingPopup(wxWindow *parent, bool use_in_sync_dialog) :
      m_reset_btn->SetName(wxGetApp().dark_mode() ? "erase_dark" : "erase");
      m_reset_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) { reset_ams_info(); });
      m_reset_btn->SetBackgroundColour(*wxWHITE);
-     m_reset_btn->SetToolTip(_L("Reset current filament mapping"));
+     set_illustrated_tooltip(m_reset_btn, _L("Reset current filament mapping"));
 
      m_sizer_ams_right_horizonal->AddStretchSpacer();
      m_sizer_ams_right_horizonal->AddSpacer(FromDIP(5));
@@ -2140,6 +2140,8 @@ void AmsReplaceMaterialDialog::create()
     m_nozzle_btn_panel->Hide();
     set_illustrated_tooltip(m_nozzle_btn_panel, _L("Each extruder has its own backup filaments. Choose the one whose groups are shown below."));
     m_nozzle_btn_panel->Connect(wxCUSTOMEVT_SWITCH_POS, wxCommandEventHandler(AmsReplaceMaterialDialog::on_nozzle_selected), NULL, this);
+    set_illustrated_tooltip(m_nozzle_btn_panel, _L("Shows the backup groups of the left or the right nozzle. Each nozzle switches only "
+                                                   "between the filaments fed to it."));
 
     label_txt = new Label(this, _L("When the current material run out, the printer will continue to print in the following order."));
     label_txt->SetFont(Label::Body_13);

@@ -473,6 +473,10 @@ static FlashforgeMaterialMapWidget* as_ff_map_widget(wxWindow* window)
 
 } // namespace
 
+// Two options several printers' upload dialogs share, worded as in the send-print dialog of the Device tab.
+static wxString bed_leveling_tip() { return _L("This checks the flatness of heatbed. Leveling makes extruded height uniform."); }
+static wxString timelapse_tip() { return _L("Records a video of the print with the printer's camera."); }
+
 static const char *CONFIG_KEY_PATH  = "printhost_path";
 static const char *CONFIG_KEY_GROUP = "printhost_group";
 static const char* CONFIG_KEY_STORAGE = "printhost_storage";
@@ -776,12 +780,11 @@ void FlashforgePrintHostSendDialog::init()
 
     m_flashforge_options_sizer = new wxBoxSizer(wxVERTICAL);
 
-    auto add_option_checkbox = [this](wxBoxSizer* parent, const wxString& label, const wxString& tooltip, bool value,
-                                      std::function<void(bool)> setter, ::CheckBox** out = nullptr) {
+    auto add_option_checkbox = [this](wxBoxSizer* parent, const wxString& label, bool value, std::function<void(bool)> setter, ::CheckBox** out,
+                                      const wxString& tip, const std::vector<TipMedia>& media) {
         auto row      = new wxBoxSizer(wxHORIZONTAL);
         auto checkbox = new ::CheckBox(this);
         checkbox->SetValue(value);
-        set_illustrated_tooltip(checkbox, tooltip);
         checkbox->Bind(wxEVT_TOGGLEBUTTON, [setter](wxCommandEvent& e) {
             auto* source = dynamic_cast<::CheckBox*>(e.GetEventObject());
             if (source != nullptr)
@@ -794,24 +797,23 @@ void FlashforgePrintHostSendDialog::init()
         auto text = new wxStaticText(this, wxID_ANY, label);
         text->SetFont(::Label::Body_13);
         text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
-        set_illustrated_tooltip(text, tooltip);
         row->Add(text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
         parent->Add(row);
         parent->AddSpacer(FromDIP(6));
+        set_illustrated_tooltip(checkbox, tip, media);
+        set_illustrated_tooltip(text, tip, media);
 
         if (out != nullptr)
             *out = checkbox;
     };
 
-    add_option_checkbox(m_flashforge_options_sizer, _L("Leveling before print"),
-                        _L("Have the printer probe the bed before it starts printing."), m_leveling_before_print,
-                        [this](bool checked) { m_leveling_before_print = checked; }, &m_checkbox_leveling);
-    add_option_checkbox(m_flashforge_options_sizer, _L("Time-lapse"),
-                        _L("Have the printer record a time-lapse video of the print."), m_time_lapse_video,
-                        [this](bool checked) { m_time_lapse_video = checked; }, &m_checkbox_timelapse);
-    add_option_checkbox(m_flashforge_options_sizer, _L("Enable IFS"),
-                        _L("Print from the printer's material station (IFS), with each material of the plate assigned to one of its slots."),
-                        m_use_material_station,
+    add_option_checkbox(m_flashforge_options_sizer, _L("Leveling before print"), m_leveling_before_print,
+                        [this](bool checked) { m_leveling_before_print = checked; }, &m_checkbox_leveling,
+                        bed_leveling_tip(), {{"device/bed_leveling.gif", {}}});
+    add_option_checkbox(m_flashforge_options_sizer, _L("Time-lapse"), m_time_lapse_video,
+                        [this](bool checked) { m_time_lapse_video = checked; }, &m_checkbox_timelapse,
+                        timelapse_tip(), {{"device/timelapse_traditional.gif", {}}});
+    add_option_checkbox(m_flashforge_options_sizer, _L("Enable IFS"), m_use_material_station,
                         [this](bool checked) {
                             m_use_material_station = checked;
                             if (checked) {
@@ -819,7 +821,10 @@ void FlashforgePrintHostSendDialog::init()
                                 rebuild_mapping_rows();
                             }
                             sync_mapping_section_visibility();
-                        }, &m_checkbox_ifs);
+                        }, &m_checkbox_ifs,
+                        _L("Prints with the filaments loaded in the printer's IFS filament station, matched below to the "
+                           "filaments of the project. Off, the printer uses the filament loaded in it."),
+                        {});
 
     if (m_checkbox_ifs != nullptr && !m_supports_material_station)
         m_checkbox_ifs->Enable(false);
@@ -1746,6 +1751,8 @@ void ElegooPrintHostSendDialog::init() {
 
         auto checkbox_text = new wxStaticText(this, wxID_ANY, _L("Time-lapse"), wxDefaultPosition, wxDefaultSize, 0);
         checkbox_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+        for (wxWindow* w : {static_cast<wxWindow*>(checkbox), static_cast<wxWindow*>(checkbox_text)})
+            set_illustrated_tooltip(w, timelapse_tip(), {{"device/timelapse_traditional.gif", {}}});
         checkbox_text->SetFont(::Label::Body_13);
         checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
         uploadandprint_sizer->Add(checkbox_sizer);
@@ -1765,6 +1772,8 @@ void ElegooPrintHostSendDialog::init() {
 
         auto checkbox_text = new wxStaticText(this, wxID_ANY, _L("Heated Bed Leveling"), wxDefaultPosition, wxDefaultSize, 0);
         checkbox_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+        for (wxWindow* w : {static_cast<wxWindow*>(checkbox), static_cast<wxWindow*>(checkbox_text)})
+            set_illustrated_tooltip(w, bed_leveling_tip(), {{"device/bed_leveling.gif", {}}});
         checkbox_text->SetFont(::Label::Body_13);
         checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
         uploadandprint_sizer->Add(checkbox_sizer);

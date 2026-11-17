@@ -132,6 +132,9 @@ protected:
     Button *m_button_extruder_feed {nullptr};
     Button *m_button_extruder_back {nullptr};
     Button *m_button_auto_refill{ nullptr };
+    // Why the Load and Unload buttons are disabled, as last given (empty when enabled).
+    wxString m_load_btn_tip;
+    wxString m_unload_btn_tip;
     wxStaticBitmap* m_button_ams_setting   {nullptr};
     wxStaticBitmap* m_img_ams_backup  {nullptr};
     wxStaticBitmap* m_img_amsmapping_tip {nullptr};
