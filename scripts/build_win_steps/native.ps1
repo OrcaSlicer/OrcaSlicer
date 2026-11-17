@@ -77,3 +77,53 @@ function New-BuildLogPath {
     New-Item -ItemType Directory -Path $logDir -Force | Out-Null
     return (Join-Path $logDir ("{0}-{1}.log" -f (Get-Date -Format "yyyyMMdd-HHmmss"), $Name))
 }
+
+# Resource monitoring (simple CSV logging, no external deps)
+$global:ResourceMonitorJob = $null
+$global:ResourceMonitorCsv = $null
+
+function Start-ResourceMonitor {
+    param([int]$IntervalSeconds = 15)
+    $csvPath = Join-Path $env:TEMP "orca-resource-monitor-$PID.csv"
+    $global:ResourceMonitorCsv = $csvPath
+    "Timestamp,CPU_Pct,RAM_Used_GB,RAM_Total_GB,Disk_Free_GB,Disk_Total_GB" | Set-Content -LiteralPath $csvPath -Encoding ASCII
+
+    $global:BuildStarted = Get-Date
+    $global:ResourceMonitorJob = Start-Job -ScriptBlock {
+        param($csvPath, $interval)
+        while ($true) {
+            $cpu = Get-Counter '\Processor(_Total)\% Processor Time' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty CounterSamples | Select-Object -ExpandProperty CookedValue
+            $ram = Get-CimInstance Win32_OperatingSystem
+            $disk = Get-PSDrive C -ErrorAction SilentlyContinue
+            $timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+            $line = "$timestamp,{0:N2},{1:N2},{2:N2},{3:N2},{4:N2}" -f $cpu, ($ram.FreePhysicalMemory/1MB), ($ram.TotalVisibleMemorySize/1MB), ($disk.Free/1GB), ($disk.Used+$disk.Free)/1GB
+            Add-Content -LiteralPath $csvPath -Value $line -Encoding ASCII
+            Start-Sleep -Seconds $interval
+        }
+    } -ArgumentList $csvPath, $IntervalSeconds
+
+    Write-Host "  Resource monitor started (interval ${IntervalSeconds}s, log: $csvPath)" -ForegroundColor DarkGray
+}
+
+function Stop-ResourceMonitor {
+    if ($global:ResourceMonitorJob) {
+        Stop-Job $global:ResourceMonitorJob -ErrorAction SilentlyContinue
+        Remove-Job $global:ResourceMonitorJob -Force -ErrorAction SilentlyContinue
+        $global:ResourceMonitorJob = $null
+    }
+}
+
+function Show-ResourceSummary {
+    if (-not $global:ResourceMonitorCsv -or -not (Test-Path $global:ResourceMonitorCsv)) { return }
+    $data = Import-Csv $global:ResourceMonitorCsv
+    if (-not $data) { return }
+    $avgCpu = ($data | Measure-Object -Property CPU_Pct -Average).Average
+    $maxRam = ($data | Measure-Object -Property RAM_Used_GB -Maximum).Maximum
+    $minDisk = ($data | Measure-Object -Property Disk_Free_GB -Minimum).Minimum
+    Write-Host ""
+    Write-Host "  Resource Summary:" -ForegroundColor Cyan
+    Write-Host "  Avg CPU:   {0:N1}%" -f $avgCpu
+    Write-Host "  Peak RAM:  {0:N1} GB" -f $maxRam
+    Write-Host "  Min Disk:  {0:N1} GB free" -f $minDisk
+    Write-Host "  Log:       $global:ResourceMonitorCsv" -ForegroundColor DarkGray
+}
