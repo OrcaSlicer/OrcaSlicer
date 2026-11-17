@@ -1216,6 +1216,7 @@ static std::vector<std::string> s_Preset_print_options{
     "is_infill_first",
     "sparse_infill_density",
     "fill_multiline",
+    "sparse_infill_strategy",
     "adaptive_infill_mode",
     "adaptive_infill_interior_density",
     "adaptive_infill_gradient",
