@@ -38,7 +38,7 @@ jobs:
             tests
             resources
       - name: Apt-Install Dependencies
-        if: runner.os == 'Linux' && !vars.SELF_HOSTED
+        if: runner.os == 'Linux'
         uses: ./.github/actions/apt-install-deps
       - name: Restore Test Artifact
         uses: actions/download-artifact@v8
@@ -51,7 +51,7 @@ jobs:
           useCloudCache: true
       # Skips self-hosted runners, where this machine-wide setting would stay after the job ends.
       - name: Enable Crash Dumps
-        if: runner.os == 'Windows' && !vars.SELF_HOSTED
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $key = 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps'
@@ -75,7 +75,7 @@ jobs:
           name: unit-test-logs-${{ inputs.artifact }}
           path: ${{ inputs.test-dir }}/**/*.log
       - name: Upload Crash Dumps
-        if: ${{ failure() && runner.os == 'Windows' && !vars.SELF_HOSTED }}
+        if: ${{ failure() && runner.os == 'Windows' }}
         uses: actions/upload-artifact@v7
         with:
           name: crash-dumps-${{ inputs.artifact }}
