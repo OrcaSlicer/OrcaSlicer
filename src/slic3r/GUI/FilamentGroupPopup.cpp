@@ -10,6 +10,7 @@
 #include <map>
 #include <string>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
 #include <vector>
 #include <wx/utils.h>
 #include "slic3r/GUI/wxExtensions.hpp"
