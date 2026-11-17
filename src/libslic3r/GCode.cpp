@@ -8674,7 +8674,7 @@ void GCode::split_and_mapping_speed(double other_path_v, double final_v, Extrusi
             } else {
                 // path is too long, split it
                 double rate     = min_step_length / seg_length;
-                Point3 insert_p = line_start_pt + ((line_end_pt - line_start_pt).cast<double>() * rate).cast<coord_t>();
+                Point3 insert_p(line_start_pt + ((line_end_pt - line_start_pt).cast<double>() * rate).cast<coord_t>());
 
                 split_line_speed = insert_speed(min_step_length, x_base, smooth_length_count, final_v);
                 line_start_pt    = insert_p;
