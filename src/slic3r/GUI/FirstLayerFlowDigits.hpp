@@ -1,7 +1,7 @@
 #pragma once
 // Printable, connected 7x9 bitmap numerals for first-layer flow labels.
 // Each occupied pixel is 0.50 mm square. Adjacent pixels share one solid
-// manifold mesh, with internal walls omitted. Z spans exactly 0..0.24 mm.
+// mesh, with internal walls omitted. Z spans exactly 0..0.24 mm.
 #include <array>
 #include <cstdint>
 #include <stdexcept>

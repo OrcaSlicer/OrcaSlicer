@@ -17768,8 +17768,7 @@ static std::string belt_temp_tower_asset(const Calib_Params &params)
 
 void Plater::calib_first_layer_flow() {
     // The reference geometry has one square per object, in patch order.
-    // Only the development build should be used until Orca compilation and
-    // slicing have confirmed the imported volume coordinate conventions.
+    // Flow adjustments are per-object; filament presets remain unchanged.
     const auto& filament = wxGetApp().preset_bundle->filaments.get_edited_preset().config;
     const auto* option = filament.option<ConfigOptionFloats>("filament_flow_ratio");
     if (!option || option->values.empty()) {
