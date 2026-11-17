@@ -356,6 +356,18 @@ void PluginManager::run_discovery_task(bool clear)
 
         const std::vector<std::string> dirs      = get_plugin_directories(cloud_user_id);
         std::vector<PluginDescriptor> discovered = discover_plugin_packages(dirs, error);
+
+        // The test seam runs on the discovery worker, outside m_mutex, so a caller can record
+        // runtime state while discovery is still in progress and before the scanned descriptors
+        // are merged with it.
+        std::function<void()> gate;
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            gate = m_discovery_gate_for_testing;
+        }
+        if (gate)
+            gate();
+
         merge_discovered_plugins(std::move(discovered), clear);
     } catch (const std::exception& ex) {
         error = std::string("Plugin discovery failed: ") + ex.what();
@@ -542,6 +554,12 @@ bool PluginManager::wait_for_discovery(std::chrono::milliseconds timeout, std::s
     }
 
     return true;
+}
+
+void PluginManager::set_discovery_gate_for_testing(std::function<void()> gate)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_discovery_gate_for_testing = std::move(gate);
 }
 
 // ── Descriptors ─────────────────────────────────────────────────────────────────────────────

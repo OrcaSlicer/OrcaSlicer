@@ -3,15 +3,43 @@
 #include <libslic3r/Exception.hpp>
 #include <libslic3r/PrintConfig.hpp>
 #include <libslic3r/Fill/InfillPurpose.hpp>
+#include <atomic>
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 
 #include "catch2/catch_test_macros.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/Fill/InfillFactory.hpp"
 
 using namespace Slic3r;
+
+namespace {
+
+struct PinStateRecorder
+{
+    // -1: the lease was never dropped, 0: the pin was already released, 1: the pin was still held.
+    std::atomic<int> pinned_at_lease_drop{-1};
+};
+
+// Opaque provider lease that records the registry's pin state at the moment it is dropped. Its
+// destructor calls back into the registry, so it must never be destroyed while the registry lock is
+// held.
+struct PinProbeLease
+{
+    PinProbeLease(std::string plugin_key, std::string capability_name, std::shared_ptr<PinStateRecorder> recorder)
+        : plugin_key(std::move(plugin_key)), capability_name(std::move(capability_name)), recorder(std::move(recorder))
+    {}
+
+    std::string plugin_key;
+    std::string capability_name;
+    std::shared_ptr<PinStateRecorder> recorder;
+
+    ~PinProbeLease() { recorder->pinned_at_lease_drop.store(InfillFactory::has_pinned_infills(plugin_key, capability_name) ? 1 : 0); }
+};
+
+} // namespace
 
 TEST_CASE("Infill factory registers built-in patterns with explicit metadata", "[InfillFactory]")
 {
@@ -138,6 +166,43 @@ TEST_CASE("A selection keeps the provider lease alive until the job releases it"
     selection.reset();
     CHECK(lease_observer.expired());
     CHECK_FALSE(InfillFactory::has_pinned_infills(plugin_key, capability));
+}
+
+TEST_CASE("A selection drops its provider reference before it releases the pin", "[InfillFactory]")
+{
+    const std::string id         = "test-reset-order-pattern";
+    const std::string plugin_key = "test-reset-order-plugin";
+    const std::string capability = "Reset Order Infill";
+
+    auto recorder = std::make_shared<PinStateRecorder>();
+
+    std::shared_ptr<void> lease = std::make_shared<PinProbeLease>(plugin_key, capability, recorder);
+    REQUIRE(InfillFactory::register_plugin_infill(id, "Reset Order Pattern", plugin_key, capability, {InfillSurfacePurpose::Sparse}, lease,
+                                                  []() -> std::unique_ptr<Fill> { return {}; }));
+
+    std::string error;
+    InfillFactory::Selection selection = InfillFactory::select_infill(id, plugin_key, capability, {InfillSurfacePurpose::Sparse}, error);
+    REQUIRE(static_cast<bool>(selection));
+    lease.reset();
+    CHECK(InfillFactory::has_pinned_infills(plugin_key, capability));
+
+    // The same provider publishing again replaces the published metadata but keeps the pin. The
+    // selection is now the only owner of the info it validated against, and therefore of the lease
+    // that info holds, so the lease is dropped exactly when the selection is.
+    REQUIRE(InfillFactory::register_plugin_infill(id, "Reset Order Pattern", plugin_key, capability, {InfillSurfacePurpose::Sparse}, {},
+                                                  []() -> std::unique_ptr<Fill> { return {}; }));
+
+    // Retiring the entry is the path whose reset also erases it, so this is where the pin used to
+    // be released before the provider reference was dropped.
+    InfillFactory::unregister_plugin_infills(plugin_key, capability);
+
+    selection.reset();
+
+    // The pin must still be held while the lease is dropped; otherwise an unload polling
+    // has_pinned_infills() could see no job lease and tear the provider module down under it.
+    CHECK(recorder->pinned_at_lease_drop.load() == 1);
+    CHECK_FALSE(InfillFactory::has_pinned_infills(plugin_key, capability));
+    CHECK_FALSE(InfillFactory::is_infill_registered(id));
 }
 
 TEST_CASE("Re-enabling the same provider revives a pattern that is still pinned", "[InfillFactory]")

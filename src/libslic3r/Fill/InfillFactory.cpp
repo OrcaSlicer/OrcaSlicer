@@ -249,12 +249,15 @@ void InfillFactory::Selection::reset()
 {
     if (!m_info)
         return;
-    // Keep the provider leased until the pin is gone, then release both. release_selection() may
-    // erase a retired entry; the entry that m_info still holds keeps the provider alive until this
-    // object drops it, so no other thread can observe a half-released pair.
+    // Drop the provider reference before the pin. has_pinned_infills() is the only signal that a
+    // job lease is outstanding, so an unload that saw the pin cleared while this object still held
+    // the provider could stop waiting and tear the module down under a live lease. Copy the id
+    // first: the held pin keeps the entry present, so it still names the same entry below, and
+    // release_selection() performs both the decrement and the optional erase under the registry
+    // lock, leaving no window in which the entry is gone while its lease is still held.
     const std::string id = m_info->id;
-    InfillFactory::release_selection(id);
     m_info.reset();
+    InfillFactory::release_selection(id);
 }
 
 void InfillFactory::register_all_infills()

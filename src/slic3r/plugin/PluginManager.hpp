@@ -172,6 +172,11 @@ public:
     std::string get_discovery_error() const;
     bool wait_for_discovery(std::chrono::milliseconds timeout, std::string& error) const;
 
+    // Test seam: run on the discovery worker after the package scan returns and before the scanned
+    // descriptors are merged. It runs while discovery is still marked in progress and with no lock
+    // held, so a test can hold discovery at that point and observe what a concurrent caller sees.
+    void set_discovery_gate_for_testing(std::function<void()> gate);
+
 
     std::vector<PluginDescriptor> get_plugin_descriptors(bool include_invalid = false) const;
     // Packages that materialize at least one capability of this type. A package's capability types
@@ -419,6 +424,7 @@ private:
     bool m_discovery_in_progress = false;
     std::string m_discovery_error;
     mutable std::condition_variable m_discovery_cv;
+    std::function<void()> m_discovery_gate_for_testing;
 
     std::string m_cloud_user_id;
     std::atomic<bool> m_shutting_down{false};

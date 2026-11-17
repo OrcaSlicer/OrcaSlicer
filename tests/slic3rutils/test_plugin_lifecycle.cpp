@@ -1344,38 +1344,91 @@ TEST_CASE("A runtime diagnostic is recorded without waiting for an in-progress d
     PluginDescriptor descriptor;
     REQUIRE(manager.try_get_plugin_descriptor("Echo_Plugin", descriptor));
 
-    // A second package that is slow to scan keeps a rescan inside discover_plugin_packages() long
-    // enough for the report below to land while it runs. The metadata reader reads the file line by
-    // line, so a large comment-only file costs a deterministic amount of time without needing Python.
-    const fs::path slow_dir = data_dir_guard.plugins_dir() / "Slow_Plugin";
-    fs::create_directories(slow_dir);
+    // Hold the discovery worker between its package scan and the descriptor merge. At that point
+    // discovery is still in progress and the worker holds no registry lock, so the report below
+    // deterministically lands mid-discovery instead of racing a fast scan.
+    //
+    // The worker's wait is bounded: if report_plugin_diagnostic ever regresses to waiting for
+    // discovery, the gate expires so the report can return and the test fails instead of hanging.
+    struct DiscoveryGate
     {
-        std::ofstream out((slow_dir / "Slow_Plugin.py").string(), std::ios::binary);
-        const std::string filler(8 * 1000 * 1000, '\n');
-        out.write(filler.data(), static_cast<std::streamsize>(filler.size()));
-    }
+        struct State
+        {
+            std::mutex mutex;
+            std::condition_variable cv;
+            bool reached   = false;
+            bool released  = false;
+            bool timed_out = false;
+        };
 
-    bool reported_during_scan = false;
-    for (int attempt = 0; attempt < 5 && !reported_during_scan; ++attempt) {
-        std::string attempt_error;
-        REQUIRE(manager.wait_for_discovery(std::chrono::seconds(120), attempt_error));
-        manager.discover_plugins(/*async=*/true, /*clear=*/false);
-        if (!manager.is_discovery_in_progress())
-            continue; // the worker finished before this thread was scheduled; scan again
+        PluginManager& manager;
+        // Shared with the worker's callback copy so the state outlives this guard even if teardown
+        // times out while discovery still holds a reference.
+        std::shared_ptr<State> state = std::make_shared<State>();
 
-        // A generation worker reports here while it still holds its provider lease. Recording the
-        // diagnostic takes only the registry lock, which discovery never holds while scanning, so the
-        // scan must still be running when the call returns: waiting for it would make a concurrent
-        // unload — which waits for the lease — wait for the whole scan.
-        if (!manager.report_plugin_diagnostic("Echo_Plugin", "boom while a scan runs"))
-            continue;
-        // A scan that ended between the report and this check did not exercise the interleaving.
-        // Retry instead of failing on thread scheduling.
-        if (!manager.is_discovery_in_progress())
-            continue;
-        reported_during_scan = true;
-    }
-    REQUIRE(reported_during_scan);
+        explicit DiscoveryGate(PluginManager& manager_) : manager(manager_)
+        {
+            std::shared_ptr<State> gate_state = state;
+            manager.set_discovery_gate_for_testing([gate_state] { hold(*gate_state); });
+        }
+
+        ~DiscoveryGate()
+        {
+            release();
+            std::string wait_error;
+            manager.wait_for_discovery(std::chrono::seconds(120), wait_error);
+            manager.set_discovery_gate_for_testing({});
+        }
+
+        DiscoveryGate(const DiscoveryGate&)            = delete;
+        DiscoveryGate& operator=(const DiscoveryGate&) = delete;
+
+        static void hold(State& state)
+        {
+            std::unique_lock<std::mutex> lock(state.mutex);
+            state.reached = true;
+            state.cv.notify_all();
+            if (!state.cv.wait_for(lock, std::chrono::seconds(60), [&state] { return state.released; }))
+                state.timed_out = true;
+        }
+
+        void release()
+        {
+            std::lock_guard<std::mutex> lock(state->mutex);
+            state->released = true;
+            state->cv.notify_all();
+        }
+
+        bool wait_until_reached(std::chrono::milliseconds timeout)
+        {
+            std::unique_lock<std::mutex> lock(state->mutex);
+            return state->cv.wait_for(lock, timeout, [this] { return state->reached; });
+        }
+
+        bool timed_out()
+        {
+            std::lock_guard<std::mutex> lock(state->mutex);
+            return state->timed_out;
+        }
+    } gate(manager);
+
+    manager.discover_plugins(/*async=*/true, /*clear=*/false);
+    REQUIRE(gate.wait_until_reached(std::chrono::seconds(120)));
+
+    // A generation worker reports here while it still holds its provider lease. Recording the
+    // diagnostic takes only the registry lock, which the discovery worker does not hold at this
+    // point, so discovery must still be in progress when the call returns: waiting for it would
+    // make a concurrent unload, which waits for the lease, wait for the whole discovery.
+    REQUIRE(manager.is_discovery_in_progress());
+    REQUIRE(manager.report_plugin_diagnostic("Echo_Plugin", "boom while a scan runs"));
+
+    // A bounded gate expiry means report_plugin_diagnostic waited for discovery: the worker had to
+    // be released by the timeout before the report could return.
+    INFO("report_plugin_diagnostic must not wait for discovery to finish");
+    REQUIRE_FALSE(gate.timed_out());
+    CHECK(manager.is_discovery_in_progress());
+
+    gate.release();
 
     std::string wait_error;
     REQUIRE(manager.wait_for_discovery(std::chrono::seconds(120), wait_error));
