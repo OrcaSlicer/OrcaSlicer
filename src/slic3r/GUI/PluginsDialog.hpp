@@ -286,6 +286,9 @@ private:
     // asynchronous plugin load reported via update_plugin_dialog_ui() finishes. No-op otherwise.
     void resolve_pending_activation();
     void update_plugin(const std::string& plugin_key);
+    // Updates every plugin with an available update behind one progress dialog, after a
+    // confirmation that can also activate the updated plugins.
+    void update_all_plugins();
 
     void open_plugin_folder(const Slic3r::PluginDescriptor& plugin);
     void delete_local_plugin(const Slic3r::PluginDescriptor& plugin);

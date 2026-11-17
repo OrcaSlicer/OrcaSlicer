@@ -548,6 +548,10 @@ void AppConfig::set_defaults()
         set_bool("show_shared_profiles_notification", true);
     }
 
+    if (get("plugin_update_keep_permissions").empty()) {
+        set_bool("plugin_update_keep_permissions", true);
+    }
+
     if (get("auto_calculate_flush").empty()){
         set("auto_calculate_flush","all");
     }

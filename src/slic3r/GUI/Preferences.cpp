@@ -2135,6 +2135,14 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_plugin_pages_visible_count);
 
+    auto item_plugin_update_keep_permissions = create_item_checkbox(
+        _L("Keep permissions when updating plugins"),
+        _L("When a plugin is updated, keep the permissions you granted to the previous version, including full access. "
+           "The new version is still asked for any permission it requests beyond those. "
+           "Turn this off to make every updated plugin request all of its permissions again."),
+        "plugin_update_keep_permissions");
+    g_sizer->Add(item_plugin_update_keep_permissions);
+
     //// BEHAVIOUR > Design
 #ifdef SLIC3R_CAD
     // Design-tab only, so it stays out of the way while the CAD feature is switched off.

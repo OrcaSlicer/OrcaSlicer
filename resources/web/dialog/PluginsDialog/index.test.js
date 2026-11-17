@@ -49,3 +49,23 @@ test("update control stays hidden when no update is available, even while loadin
 
   assert.equal(button.hidden, true);
 });
+
+test("update all control counts the plugins with an update and hides when there are none", () => {
+  const dialog = loadPluginDialog();
+  const button = { hidden: true, textContent: "" };
+  dialog.document = { getElementById: (id) => (id === "update_all_btn" ? button : null) };
+
+  vm.runInContext(`
+    pluginsById.set("a", { plugin_key: "a", update_status: "update_available" });
+    pluginsById.set("b", { plugin_key: "b", update_status: "normal" });
+    pluginsById.set("c", { plugin_key: "c", update_status: "update_available" });
+    pluginsById.set("d", { plugin_key: "d", update_status: "unauthorized" });
+  `, dialog);
+  dialog.RenderUpdateAllButton();
+  assert.equal(button.hidden, false);
+  assert.equal(button.textContent, "Update all (2)");
+
+  vm.runInContext(`pluginsById.clear(); pluginsById.set("b", { plugin_key: "b", update_status: "normal" });`, dialog);
+  dialog.RenderUpdateAllButton();
+  assert.equal(button.hidden, true);
+});
