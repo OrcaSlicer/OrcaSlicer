@@ -2854,7 +2854,8 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                         err_msg = L("Bridge line width must not exceed nozzle diameter");
                         return { err_msg, object, "bridge_line_width" };
                     }
-                    if (!allow_thin_bridge_width && bridge_width <= layer_height) {
+                    // A bridge as wide as the layer is tall is a round strand, the same as a thick bridge.
+                    if (!allow_thin_bridge_width && bridge_width < layer_height) {
                         err_msg = L("Line width too small");
                         return { err_msg, object, "bridge_line_width" };
                     }
