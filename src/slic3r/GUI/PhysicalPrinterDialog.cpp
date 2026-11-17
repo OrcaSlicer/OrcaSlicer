@@ -157,6 +157,8 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
             this->update_ports();
         if (opt_key == "bbl_use_print_host_webui")
             this->update_webui();
+        if (opt_key == "disable_device_tab")
+            this->update_device_ui_enabled(boost::any_cast<bool>(value));
     };
 
     m_optgroup->append_single_option_line("host_type");
@@ -365,11 +367,15 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
     host_line.append_widget(print_host_logout);
     m_optgroup->append_line(host_line);
 
+    // Orca: the Device tab checkbox sits next to the Device UI it turns off. The line shows the
+    // Device UI label, so its field gets none of its own.
     option = m_optgroup->get_option("print_host_webui");
     option.opt.width = Field::def_width_wider();
-    m_optgroup->append_single_option_line(option);
-
-    m_optgroup->append_single_option_line("disable_device_tab");
+    Line webui_line{from_u8(option.opt.label), from_u8(option.opt.tooltip)};
+    option.opt.label.clear();
+    webui_line.append_option(option);
+    webui_line.append_option(m_optgroup->get_option("disable_device_tab"));
+    m_optgroup->append_line(webui_line);
 
     {
         // For bbl printers, we build a fake option to control whether the original device tab should be used
@@ -561,6 +567,13 @@ void PhysicalPrinterDialog::update_webui()
     }
 }
 
+// A disabled Device tab loads no page, so its Device UI is greyed out but keeps its value.
+void PhysicalPrinterDialog::update_device_ui_enabled(bool device_tab_disabled)
+{
+    if (Field* field = m_optgroup->get_field("print_host_webui"))
+        field->toggle(!device_tab_disabled);
+}
+
 void PhysicalPrinterDialog::update_printhost_buttons()
 {
     std::unique_ptr<PrintHost> host(PrintHost::get_print_host(m_config));
@@ -750,6 +763,9 @@ void PhysicalPrinterDialog::update(bool printer_change)
     update_preset_input();
 
     update_printhost_buttons();
+
+    const auto* device_tab_disabled = m_config->option<ConfigOptionBool>("disable_device_tab");
+    update_device_ui_enabled(device_tab_disabled != nullptr && device_tab_disabled->value);
 
     this->SetSize(this->GetBestSize());
     this->Layout();
