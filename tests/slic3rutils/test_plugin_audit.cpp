@@ -4305,7 +4305,7 @@ except (OSError, NotImplementedError):
     CHECK(harness.saved_permissions(PLUGIN).fs_delete.empty());
 }
 
-TEST_CASE("A recursive delete does not treat a symlink/.. spelling as an implicit allowed root", "[audit][Python]")
+TEST_CASE("A recursive delete resolves a symlink/.. spelling using platform semantics", "[audit][Python]")
 {
     AuditHarness harness;
     if (!harness.initialized)
@@ -4316,15 +4316,21 @@ TEST_CASE("A recursive delete does not treat a symlink/.. spelling as an implici
     python.globals["DATA_DIR"] = harness.data.dir.string();
 
     python.exec(R"PY(
-RMTREE_ESCAPE_PARENT = os.path.dirname(DATA_DIR.rstrip(os.sep)) or os.sep
-RMTREE_ESCAPE_BASENAME = os.path.basename(DATA_DIR.rstrip(os.sep))
-RMTREE_ESCAPE_LINK = os.path.join(RMTREE_ESCAPE_PARENT, "orca-rmtree-bypass-%d" % os.getpid())
+RMTREE_ESCAPE_LINK = os.path.join(DATA_DIR, "orca-rmtree-bypass-%d" % os.getpid())
 if os.path.lexists(RMTREE_ESCAPE_LINK):
     os.remove(RMTREE_ESCAPE_LINK)
 RMTREE_ESCAPE_OUTSIDE = os.path.realpath(os.path.join(OUTSIDE, "rmtree-escape-outside"))
 RMTREE_ESCAPE_DEEP = os.path.join(RMTREE_ESCAPE_OUTSIDE, "deep")
-RMTREE_ESCAPE_TARGET = os.path.join(RMTREE_ESCAPE_OUTSIDE, RMTREE_ESCAPE_BASENAME)
+# The name the spelling folds to on Win32, where data_dir() is an implicit writable root and the
+# delete is expected to run, and the folder POSIX reaches instead once the link is followed. Both
+# are folders of their own, so a delete of either one cannot touch the data directory itself.
+RMTREE_ESCAPE_NAME = "rmtree-escape-name"
+RMTREE_ESCAPE_INSIDE = os.path.join(DATA_DIR, RMTREE_ESCAPE_NAME)
+RMTREE_ESCAPE_TARGET = os.path.join(RMTREE_ESCAPE_OUTSIDE, RMTREE_ESCAPE_NAME)
 os.makedirs(RMTREE_ESCAPE_DEEP)
+os.makedirs(RMTREE_ESCAPE_INSIDE)
+with open(os.path.join(RMTREE_ESCAPE_INSIDE, "inside.txt"), "w") as f:
+    f.write("x")
 os.makedirs(RMTREE_ESCAPE_TARGET)
 with open(os.path.join(RMTREE_ESCAPE_TARGET, "keep.txt"), "w") as f:
     f.write("x")
@@ -4333,22 +4339,36 @@ try:
     RMTREE_ESCAPE_SYMLINK_OK = True
 except (OSError, NotImplementedError):
     RMTREE_ESCAPE_SYMLINK_OK = False
-# Lexically this folds to DATA_DIR itself. The OS follows the link first, so it names
-# OUTSIDE/<data-dir-basename> instead.
-RMTREE_ESCAPE_PATH = os.path.join(RMTREE_ESCAPE_PARENT, os.path.basename(RMTREE_ESCAPE_LINK), "..",
-                                  RMTREE_ESCAPE_BASENAME)
+# Lexically this folds to DATA_DIR/<escape-name>, inside the implicit writable root. POSIX follows
+# the link first, so there it names OUTSIDE/<escape-name> instead.
+RMTREE_ESCAPE_PATH = os.path.join(DATA_DIR, os.path.basename(RMTREE_ESCAPE_LINK), "..", RMTREE_ESCAPE_NAME)
 )PY");
     if (python.eval("RMTREE_ESCAPE_SYMLINK_OK") != "True")
-        SKIP("Cannot create a directory symlink beside the data directory");
+        SKIP("Cannot create a directory symlink inside the data directory");
 
+    // On POSIX the link is followed before the
+    // step-up, so the target is outside the implicit root and the recursive delete must ask first;
+    // denied, it must leave both folders in place. Win32 expands the ".." lexically before the file
+    // system sees the path, so the same spelling stays inside the implicit writable root: the walk
+    // runs without a prompt and removes the isolated folder created for it above, never the link's
+    // destination.
     harness.approve_recursive_delete = [](const Prompt&) { return false; };
     python.run_as(PLUGIN, "escape_outcome = attempt(lambda: shutil.rmtree(RMTREE_ESCAPE_PATH))");
 
+    CHECK(harness.saved_permissions(PLUGIN).fs_delete.empty());
+    CHECK(fs::exists(fs::path(python.str("RMTREE_ESCAPE_TARGET")) / "keep.txt"));
+#if defined(_WIN32)
+    CHECK(python.str("escape_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+    CHECK_FALSE(fs::exists(fs::path(python.str("RMTREE_ESCAPE_INSIDE"))));
+#else
     CHECK(python.str("escape_outcome") == "denied");
     REQUIRE(harness.prompts.size() == 1);
     CHECK(harness.prompts.front().event == "shutil.rmtree");
     CHECK(harness.prompts.front().targets == std::vector<std::string>{python.str("RMTREE_ESCAPE_TARGET")});
-    CHECK(fs::exists(fs::path(python.str("RMTREE_ESCAPE_TARGET")) / "keep.txt"));
+    CHECK(fs::exists(fs::path(python.str("RMTREE_ESCAPE_INSIDE")) / "inside.txt"));
+#endif
+
     python.exec("os.remove(RMTREE_ESCAPE_LINK)");
 }
 
@@ -4453,24 +4473,32 @@ TEST_CASE("A delete is scoped by the entry, not by a final symlink's destination
                                                                             subtree));
     CHECK_FALSE(PluginAuditManager::delete_target_inside_subtree_for_testing(outside.string(), subtree));
 
-    // `link/..` must follow the link before stepping up. Lexically folding this target would name
-    // the approved root, but the operating system resolves it to `outside/approved`.
+    // `link/..` is resolved by the platform, and the platforms differ. Win32 expands "." and ".."
+    // lexically, before the file system sees the path, so this spelling is the approved root itself
+    // and a link cannot carry the step-up out of the tree. POSIX follows the link first, so there it
+    // is `outside/approved`. The check must give the answer the delete reaches on that platform.
     fs::create_directories(outside / "deep");
     fs::create_directories(outside / "approved");
     fs::create_directory_symlink(outside / "deep", temp.path() / "escape_link", ec);
     REQUIRE_FALSE(ec);
+#if defined(_WIN32)
+    CHECK(PluginAuditManager::delete_target_inside_subtree_for_testing(
+        (temp.path() / "escape_link" / ".." / "approved").string(), subtree));
+#else
     CHECK_FALSE(PluginAuditManager::delete_target_inside_subtree_for_testing(
         (temp.path() / "escape_link" / ".." / "approved").string(), subtree));
+#endif
 
-    // When the link actually leads back to the approved root's parent, the same spelling is the
-    // approved root entry and is covered.
+    // Both readings of the same spelling name the approved root: POSIX reaches it through the link,
+    // Win32 by folding. It is covered either way.
     fs::create_directories(temp.path() / "inside");
     fs::create_directory_symlink(temp.path() / "inside", temp.path() / "safe_link", ec);
     REQUIRE_FALSE(ec);
     CHECK(PluginAuditManager::delete_target_inside_subtree_for_testing(
         (temp.path() / "safe_link" / ".." / "approved").string(), subtree));
 
-    // A final ".." is ambiguous between the entry and a directory traversal, so it fails closed.
+    // A final ".." names no entry of the subtree: POSIX refuses it as a final component, and Win32
+    // folds it to the approved root's parent, which is outside. Either way it fails closed.
     CHECK_FALSE(PluginAuditManager::delete_target_inside_subtree_for_testing((approved / "..").string(), subtree));
 
     // A link inside the subtree is an entry inside it; deleting the link does not follow it out.
