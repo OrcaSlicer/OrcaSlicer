@@ -6,6 +6,9 @@
 // For parallel for
 #include <functional>
 #include <iterator>
+#include <limits>
+#include <numeric>
+#include <optional>
 #include <future>
 #include <atomic>
 
@@ -778,9 +781,44 @@ private:
         }
         if (can_pack == false) {
 
-            Pile merged_pile = merged_pile_;
+            // The rotations are tried in parallel, each on its own copy of the item
+            // and of the pile. The placed items' lazy caches are filled first, so
+            // the rotations only read them, and the winner is chosen in rotation
+            // order with the same comparison a serial loop makes.
+            for (Item &placed : items_) {
+                placed.transformedShape();
+                placed.referenceVertex();
+                placed.rightmostTopVertex();
+                placed.leftmostBottomVertex();
+                placed.boundingBox();
+                placed.area();
+            }
 
-            for(auto rot : config_.rotations) {
+            if(config_.before_packing)
+                config_.before_packing(merged_pile_, items_, remlist);
+
+            struct RotationResult {
+                bool   found   = false;
+                double score   = std::numeric_limits<double>::max();
+                double overfit = std::numeric_limits<double>::max();
+                Vertex tr{0, 0};
+            };
+            std::vector<RotationResult> rot_results(config_.rotations.size());
+            std::vector<size_t>         rot_indices(config_.rotations.size());
+            std::iota(rot_indices.begin(), rot_indices.end(), size_t(0));
+            Item &unrotated = item;
+
+            // A single rotation runs inline on the item itself: a task and a copy
+            // would only add overhead.
+            const bool  rot_parallel = config_.parallel && rot_indices.size() > 1;
+            std::launch rot_policy   = rot_parallel ? std::launch::deferred | std::launch::async : std::launch::deferred;
+
+            __parallel::enumerate(rot_indices.begin(), rot_indices.end(), [&](size_t ri, size_t) {
+                const Radians       rot = config_.rotations[ri];
+                std::optional<Item> own;
+                Item               &item        = rot_parallel ? own.emplace(unrotated) : unrotated;
+                Pile                merged_pile = merged_pile_;
+                double best_overfit = std::numeric_limits<double>::max();
 
                 item.translation(initial_tr);
                 item.rotation(initial_rot + rot);
@@ -790,8 +828,7 @@ private:
                 // it is disjunct from the current merged pile
                 placeOutsideOfBin(item);
 
-                nfps = calcnfp(item, binbb, Lvl<MaxNfpLevel::value>());
-
+                const Shapes nfps = calcnfp(item, binbb, Lvl<MaxNfpLevel::value>());
 
                 auto iv = item.referenceVertex();
 
@@ -845,9 +882,6 @@ private:
                 double best_score = std::numeric_limits<double>::max();
                 std::launch policy = std::launch::deferred;
                 if(config_.parallel) policy |= std::launch::async;
-
-                if(config_.before_packing)
-                    config_.before_packing(merged_pile, items_, remlist);
 
                 using OptResult = opt::Result<double>;
                 using OptResults = std::vector<OptResult>;
@@ -959,12 +993,23 @@ private:
                     }
                 }
 
-                if( best_score < global_score) {
-                    auto d = (getNfpPoint(optimum) - iv) + startpos;
-                    final_tr = d;
-                    final_rot = initial_rot + rot;
-                    can_pack = true;
-                    global_score = best_score;
+                RotationResult &res = rot_results[ri];
+                res.overfit = best_overfit;
+                if (best_score < std::numeric_limits<double>::max()) {
+                    res.found = true;
+                    res.score = best_score;
+                    res.tr    = (getNfpPoint(optimum) - iv) + startpos;
+                }
+            }, rot_policy);
+
+            for (size_t ri = 0; ri < rot_results.size(); ++ri) {
+                const RotationResult &res = rot_results[ri];
+                best_overfit = std::min(best_overfit, res.overfit);
+                if (res.found && res.score < global_score) {
+                    final_tr     = res.tr;
+                    final_rot    = initial_rot + config_.rotations[ri];
+                    can_pack     = true;
+                    global_score = res.score;
                 }
             }
 
