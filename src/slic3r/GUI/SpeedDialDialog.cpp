@@ -126,7 +126,6 @@ nlohmann::json speed_dial_ui_strings()
         {"sd_fav_slot", _u8L("Favorite %s (%s)")},
         {"sd_pin_fav", _u8L("Pin to favorites (%s)")},
         {"sd_unpin_fav", _u8L("Unpin from favorites (%s)")},
-        {"sd_remove_fav", _u8L("Remove from favorites")},
         {"sd_move_left", _u8L("Move left")},
         {"sd_move_right", _u8L("Move right")},
         {"sd_unpin", _u8L("Unpin")},

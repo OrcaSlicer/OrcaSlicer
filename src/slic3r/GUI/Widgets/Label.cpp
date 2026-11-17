@@ -18,6 +18,7 @@
 #include <wx/language.h>
 #include <wx/settings.h>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
 #include <wx/string.h>
 #include <wx/stattext.h>
 #ifdef __linux__

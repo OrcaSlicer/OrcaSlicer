@@ -22,6 +22,25 @@
 
 using namespace Slic3r;
 
+namespace {
+
+class RecordingAgent : public MoonrakerPrinterAgent
+{
+public:
+    RecordingAgent() : MoonrakerPrinterAgent("") {}
+    int         connections = 0;
+    std::string port;
+    int connect_printer(const PrinterConnectionParams& params) override
+    {
+        ++connections;
+        port = params.port;
+        return 0;
+    }
+    int disconnect_printer() override { return 0; }
+};
+
+} // namespace
+
 TEST_CASE("Moonraker permits an empty access code", "[DeviceAccess]")
 {
     MachineObject machine(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
@@ -50,19 +69,6 @@ TEST_CASE("Moonraker logout revokes access until explicitly rebound", "[DeviceAc
 
 TEST_CASE("Revoked access prevents calls to the printer agent", "[DeviceAccess]")
 {
-    class RecordingAgent : public MoonrakerPrinterAgent
-    {
-    public:
-        RecordingAgent() : MoonrakerPrinterAgent("") {}
-        int connections = 0;
-        int connect_printer(const PrinterConnectionParams&) override
-        {
-            ++connections;
-            return 0;
-        }
-        int disconnect_printer() override { return 0; }
-    };
-
     auto agent = std::make_shared<RecordingAgent>();
     NetworkAgent network(nullptr, agent);
     MachineObject machine(nullptr, &network, "test", "test_dev", "127.0.0.1");
@@ -80,11 +86,35 @@ TEST_CASE("Revoked access prevents calls to the printer agent", "[DeviceAccess]"
     REQUIRE(agent->connections == 2);
 }
 
+TEST_CASE("A saved print host without a port connects on the port in its dev_id", "[DeviceAccess]")
+{
+    auto agent = std::make_shared<RecordingAgent>();
+    NetworkAgent network(nullptr, agent);
+    MachineObject machine(nullptr, &network, "test", "192.0.2.10:7125", "192.0.2.10");
+    machine.set_access_code("configured-key", false);
+
+    SECTION("Agents that connect like Moonraker repair the record")
+    {
+        machine.printer_agent_id = GENERATE(as<std::string>{}, MOONRAKER_PRINTER_AGENT_ID, QIDI_PRINTER_AGENT_ID,
+                                            SNAPMAKER_PRINTER_AGENT_ID, CREALITYPRINT_PRINTER_AGENT_ID);
+        REQUIRE(machine.connect() == 0);
+        REQUIRE(agent->port == "7125");
+    }
+
+    SECTION("Other agents keep the saved address as it is")
+    {
+        machine.printer_agent_id = BBL_PRINTER_AGENT_ID;
+        REQUIRE(machine.connect() == 0);
+        REQUIRE(agent->port.empty());
+    }
+}
+
 TEST_CASE("Other printer agents require an access code", "[DeviceAccess]")
 {
     MachineObject machine(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
     machine.printer_agent_id = GENERATE(
-        BBL_PRINTER_AGENT_ID, ORCA_PRINTER_AGENT_ID, "qidi", "snapmaker", "crealityprint", "plugin", "unknown");
+        BBL_PRINTER_AGENT_ID, ORCA_PRINTER_AGENT_ID, QIDI_PRINTER_AGENT_ID, SNAPMAKER_PRINTER_AGENT_ID, CREALITYPRINT_PRINTER_AGENT_ID, "plugin",
+        "unknown");
 
     machine.set_access_code("", false);
     REQUIRE_FALSE(machine.has_access_right());

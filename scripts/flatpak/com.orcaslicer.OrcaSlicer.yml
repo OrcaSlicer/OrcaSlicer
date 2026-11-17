@@ -214,23 +214,26 @@ modules:
         sha256: 1c4bdde9c3c6ef20ea4b50b73601de56769f2eb131b36927d7c6489f102e6c30
         dest: external-packages/SLVS
 
-      # Blosc 1.17.0 (tamasmeszaros fork)
-      - type: file
-        url: https://github.com/tamasmeszaros/c-blosc/archive/refs/heads/v1.17.0_tm.zip
-        sha256: dcb48bf43a672fa3de6a4b1de2c4c238709dad5893d1e097b8374ad84b1fc3b3
-        dest: external-packages/Blosc
+      # Blosc, OpenEXR and OpenVDB are only built with -DSLIC3R_OPENVDB=ON (default OFF).
+      # Uncomment these three entries for such a build.
 
-      # OpenEXR v2.5.5
-      - type: file
-        url: https://github.com/AcademySoftwareFoundation/openexr/archive/refs/tags/v2.5.5.zip
-        sha256: 0307a3d7e1fa1e77e9d84d7e9a8694583fbbbfd50bdc6884e2c96b8ef6b902de
-        dest: external-packages/OpenEXR
+      # # Blosc 1.17.0 (tamasmeszaros fork)
+      # - type: file
+      #   url: https://github.com/tamasmeszaros/c-blosc/archive/refs/heads/v1.17.0_tm.zip
+      #   sha256: dcb48bf43a672fa3de6a4b1de2c4c238709dad5893d1e097b8374ad84b1fc3b3
+      #   dest: external-packages/Blosc
 
-      # OpenVDB (custom fork)
-      - type: file
-        url: https://github.com/tamasmeszaros/openvdb/archive/a68fd58d0e2b85f01adeb8b13d7555183ab10aa5.zip
-        sha256: f353e7b99bd0cbfc27ac9082de51acf32a8bc0b3e21ff9661ecca6f205ec1d81
-        dest: external-packages/OpenVDB
+      # # OpenEXR v2.5.5
+      # - type: file
+      #   url: https://github.com/AcademySoftwareFoundation/openexr/archive/refs/tags/v2.5.5.zip
+      #   sha256: 0307a3d7e1fa1e77e9d84d7e9a8694583fbbbfd50bdc6884e2c96b8ef6b902de
+      #   dest: external-packages/OpenEXR
+
+      # # OpenVDB (custom fork)
+      # - type: file
+      #   url: https://github.com/tamasmeszaros/openvdb/archive/a68fd58d0e2b85f01adeb8b13d7555183ab10aa5.zip
+      #   sha256: f353e7b99bd0cbfc27ac9082de51acf32a8bc0b3e21ff9661ecca6f205ec1d81
+      #   dest: external-packages/OpenVDB
 
       # GMP 6.3.0
       - type: file
@@ -274,16 +277,17 @@ modules:
         sha256: 66dfbaee288f2bc43172440a55d0235dfc7bf885dda6435c038e8000e79582cb
         dest: external-packages/Assimp
 
-      # OpenSSL 1.1.1w (GNOME SDK has 3.x; OrcaSlicer requires 1.1.x)
+      # OpenSSL 3.5.9 (pinned so every platform ships the same OpenSSL; the
+      # bundled CPython's _ssl is built against it)
       - type: file
-        url: https://github.com/openssl/openssl/archive/OpenSSL_1_1_1w.tar.gz
-        sha256: 2130e8c2fb3b79d1086186f78e59e8bc8d1a6aedf17ab3907f4cb9ae20918c41
+        url: https://github.com/openssl/openssl/releases/download/openssl-3.5.9/openssl-3.5.9.tar.gz
+        sha256: 603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a
         dest: external-packages/OpenSSL
 
-      # CURL 7.75.0 (built from source to link against OpenSSL 1.1.x)
+      # CURL 8.23.0 (built from source to link against the bundled OpenSSL)
       - type: file
-        url: https://github.com/curl/curl/archive/refs/tags/curl-7_75_0.zip
-        sha256: a63ae025bb0a14f119e73250f2c923f4bf89aa93b8d4fafa4a9f5353a96a765a
+        url: https://github.com/curl/curl/archive/refs/tags/curl-8_23_0.zip
+        sha256: 4f443969ea4ea6ccb5ac984488683bb92384bc4df0affa3938ce77f20b30d853
         dest: external-packages/CURL
 
       # OCCT (OpenCASCADE) V8_0_1
@@ -348,23 +352,31 @@ modules:
         sha256: 1b4c2cb6cba1ca5e53b9e85eeeab02154cab4b70894c96e97a9c747a26d19d63
         dest: external-packages/JPEG
 
+      # Expat 2.10.0
+      # The entity-amplification guard is a security boundary: the release
+      # archive is pinned by hash and CMake verifies the same hash.
+      - type: file
+        url: https://github.com/libexpat/libexpat/releases/download/R_2_10_0/expat-2.10.0.tar.gz
+        sha256: 5466a341f9c692ef7a958a6881311be597f8e1ce345984cf78414f54793dea4c
+        dest: external-packages/EXPAT
+
       # ---------------------------------------------------------------
-      # uv 0.11.21, pinned per arch (only the matching one is fetched).
+      # uv 0.13.7, pinned per arch (only the matching one is fetched).
       # Keep the version and hashes in sync with ORCA_UV_VERSION and
       # ORCA_UV_SHA256_* in CMakeLists.txt. Installed by the build commands
       # above; CMake uses that copy instead of downloading its own, because
       # the build sandbox has no network.
       # ---------------------------------------------------------------
       - type: archive
-        url: https://github.com/astral-sh/uv/releases/download/0.11.21/uv-x86_64-unknown-linux-gnu.tar.gz
-        sha256: 8c88519b0ef0af9801fcdee419bbb12116bd9e6b18e162ae093c932d8b264050
+        url: https://github.com/astral-sh/uv/releases/download/0.13.7/uv-x86_64-unknown-linux-gnu.tar.gz
+        sha256: c5221ff41b7892bfc223543883600125f6a47fe845093e0f5bdff4f359196d83
         only-arches:
           - x86_64
         dest: uv
 
       - type: archive
-        url: https://github.com/astral-sh/uv/releases/download/0.11.21/uv-aarch64-unknown-linux-gnu.tar.gz
-        sha256: 88e800834007cc5efd4675f166eb2a51e7e3ad19876d85fa8805a6fb5c922397
+        url: https://github.com/astral-sh/uv/releases/download/0.13.7/uv-aarch64-unknown-linux-gnu.tar.gz
+        sha256: 71279f8d3c67241e807b9d8db872d1bf541579fb9f08b7d1eb1682196d1e57dc
         only-arches:
           - aarch64
         dest: uv

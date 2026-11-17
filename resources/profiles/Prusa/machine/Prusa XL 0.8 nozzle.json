@@ -17,5 +17,5 @@
 	"min_layer_height": "0.2",
 	"retraction_length": "0.6",
 	"retraction_speed": "25",
-	"detraction_speed": "15"
+	"deretraction_speed": "15"
 }

@@ -7,9 +7,9 @@
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
 #include "Widgets/Button.hpp"
-#include "Widgets/CheckBox.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include "Widgets/Label.hpp"
+#include "Widgets/LabeledCheckBox.hpp"
 #include "Widgets/TextInput.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 
@@ -99,20 +99,11 @@ bool PrimitiveSizeDialog::save_as_default() const { return m_save_default->GetVa
 
 bool PrimitiveSizeDialog::dont_show_again() const { return m_dont_show->GetValue(); }
 
-::CheckBox* PrimitiveSizeDialog::add_checkbox(wxSizer* sizer, const wxString& label, const wxString& tooltip)
+LabeledCheckBox* PrimitiveSizeDialog::add_checkbox(wxSizer* sizer, const wxString& label, const wxString& tooltip)
 {
-    auto checkbox = new ::CheckBox(this);
-    auto text     = new wxStaticText(this, wxID_ANY, label);
+    auto checkbox = new LabeledCheckBox(this, label);
     checkbox->SetToolTip(tooltip);
-    text->SetToolTip(tooltip);
-    auto toggle = [checkbox](wxMouseEvent&) { checkbox->SetValue(!checkbox->GetValue()); };
-    text->Bind(wxEVT_LEFT_DOWN, toggle);
-    text->Bind(wxEVT_LEFT_DCLICK, toggle);
-
-    auto row = new wxBoxSizer(wxHORIZONTAL);
-    row->Add(checkbox, 0, wxALIGN_CENTER_VERTICAL);
-    row->Add(text, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
-    sizer->Add(row, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
+    sizer->Add(checkbox, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
     return checkbox;
 }
 
