@@ -157,7 +157,7 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
             this->update_ports();
         if (opt_key == "bbl_use_print_host_webui")
             this->update_webui();
-        if (opt_key == "disable_device_tab")
+        if (opt_key == "enable_device_tab")
             this->update_device_ui_enabled(boost::any_cast<bool>(value));
     };
 
@@ -367,14 +367,14 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
     host_line.append_widget(print_host_logout);
     m_optgroup->append_line(host_line);
 
-    // Orca: the Device tab checkbox sits next to the Device UI it turns off. The line shows the
+    // Orca: the Device tab checkbox sits next to the Device UI it turns on and off. The line shows the
     // Device UI label, so its field gets none of its own.
     option = m_optgroup->get_option("print_host_webui");
     option.opt.width = Field::def_width_wider();
     Line webui_line{from_u8(option.opt.label), from_u8(option.opt.tooltip)};
     option.opt.label.clear();
     webui_line.append_option(option);
-    webui_line.append_option(m_optgroup->get_option("disable_device_tab"));
+    webui_line.append_option(m_optgroup->get_option("enable_device_tab"));
     m_optgroup->append_line(webui_line);
 
     {
@@ -567,11 +567,11 @@ void PhysicalPrinterDialog::update_webui()
     }
 }
 
-// A disabled Device tab loads no page, so its Device UI is greyed out but keeps its value.
-void PhysicalPrinterDialog::update_device_ui_enabled(bool device_tab_disabled)
+// A Device tab that is off loads no page, so its Device UI is greyed out but keeps its value.
+void PhysicalPrinterDialog::update_device_ui_enabled(bool device_tab_enabled)
 {
     if (Field* field = m_optgroup->get_field("print_host_webui"))
-        field->toggle(!device_tab_disabled);
+        field->toggle(device_tab_enabled);
 }
 
 void PhysicalPrinterDialog::update_printhost_buttons()
@@ -764,8 +764,8 @@ void PhysicalPrinterDialog::update(bool printer_change)
 
     update_printhost_buttons();
 
-    const auto* device_tab_disabled = m_config->option<ConfigOptionBool>("disable_device_tab");
-    update_device_ui_enabled(device_tab_disabled != nullptr && device_tab_disabled->value);
+    const auto* device_tab_enabled = m_config->option<ConfigOptionBool>("enable_device_tab");
+    update_device_ui_enabled(device_tab_enabled == nullptr || device_tab_enabled->value);
 
     this->SetSize(this->GetBestSize());
     this->Layout();
