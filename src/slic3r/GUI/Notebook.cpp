@@ -319,29 +319,42 @@ int ButtonsListCtrl::GetTabWidth(bool compact)
     return (compact ? 40 : 136) * em_unit(this) / 10;
 }
 
-// ORCA: width of a horizontal sizer's contents, hidden ones included.
-static int full_width(wxSizer* sizer)
+// ORCA: width of the shown contents of a horizontal sizer. Measured from the widgets rather than
+// the sizer's cached minimum, which lags behind a Show()/Hide() until the next layout.
+static int shown_width(wxSizer* sizer)
 {
     int width = 0;
     for (wxSizerItem* item : sizer->GetChildren()) {
         if (item->IsSizer())
-            width += full_width(item->GetSizer());
-        else if (wxWindow* win = item->GetWindow())
-            width += win->GetSizer() != nullptr ? full_width(win->GetSizer()) : win->GetBestSize().GetWidth();
-        else
+            width += shown_width(item->GetSizer());
+        else if (wxWindow* win = item->GetWindow()) {
+            if (!win->IsShown())
+                continue;
+            width += win->GetSizer() != nullptr ? shown_width(win->GetSizer()) : win->GetBestSize().GetWidth();
+        } else
             width += item->GetSpacer().GetWidth();
         width += item->GetBorder() * (((item->GetFlag() & wxLEFT) ? 1 : 0) + ((item->GetFlag() & wxRIGHT) ? 1 : 0));
     }
     return width;
 }
 
-// ORCA: the side tools (Slice/Print) are hidden outside Prepare and Preview. Their room is kept
-// on every tab, so tabs do not move in and out of the overflow menu when switching tabs.
+// ORCA: the side tools (Slice/Print) only show on Prepare and Preview, and only take room there.
 // The margin is the one MainFrame::fit_tab_labels() keeps in front of them.
 int ButtonsListCtrl::GetTabsAreaWidth() const
 {
-    const int side_tools = m_side_tools != nullptr ? full_width(m_side_tools) : 0;
+    const int side_tools = m_side_tools != nullptr ? shown_width(m_side_tools) : 0;
     return GetClientSize().GetWidth() - side_tools - FromDIP(15);
+}
+
+// ORCA: Button::messureSize() with the label shown: an icon-only tab's width (icon and padding)
+// plus the text and the icon gap set in InsertPage().
+int ButtonsListCtrl::GetFullTabWidth(const wxString& label)
+{
+    if (label.empty())
+        return GetTabWidth(true);
+    // In the tab buttons' font, which can differ from the bar's.
+    const wxWindow* text = m_pageButtons.empty() ? static_cast<const wxWindow*>(this) : m_pageButtons.front();
+    return std::max(GetTabWidth(false), GetTabWidth(true) + text->GetTextExtent(label).GetWidth() + 5 + text->GetTextExtent(" ").GetWidth());
 }
 
 // ORCA

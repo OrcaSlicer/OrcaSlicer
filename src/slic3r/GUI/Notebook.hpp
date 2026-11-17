@@ -68,6 +68,8 @@ public:
     void EnableReorder(bool enable) { m_reorder_enabled = enable; }
     // ORCA: width of a tab button, full or compacted to its icon.
     int GetTabWidth(bool compact);
+    // ORCA: width of a tab showing `label` in full: its text, icon and padding, at least GetTabWidth(false).
+    int GetFullTabWidth(const wxString& label);
     // ORCA: width the tab buttons and the overflow button can use without covering the side tools.
     int GetTabsAreaWidth() const;
 

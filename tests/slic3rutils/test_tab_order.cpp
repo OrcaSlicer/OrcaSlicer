@@ -43,15 +43,28 @@ TEST_CASE("Tab order places a page among the pages already in the bar", "[TabOrd
 
 TEST_CASE("Plugin tabs that fit follow the bar width", "[TabOrder]")
 {
-    // macOS at 100 %: tabs are 136 px, the overflow button and the icon-only Home tab 40 px, so six
-    // built-in tabs take 40 + 5 * 136 = 720 px. Slice/Print with their dropdowns and spacers take
-    // about 456 px, plus the 15 px margin.
-    auto fit = [](int window, int plugins) { return Slic3r::PluginPages::fitting_tabs(window - 471 - 720, plugins, 136, 40); };
+    // macOS at 100 %, worked out from the widgets' sizing code:
+    // - a tab is 136 px (Button's minimum, wider than the labels here), icon-only Home and the
+    //   overflow button 40 px, so the six built-in tabs take 40 + 5 * 136 = 720 px;
+    // - Slice/Print with their dropdowns take 422 px, only on Prepare and Preview; the two spacers
+    //   beside them 34 px and the margin in front 15 px on every tab.
+    const int built_in = 720, spacers = 34 + 15, slice_print = 422;
+    auto fit = [&](int window, int plugins, bool slice_print_shown) {
+        const int room = window - built_in - spacers - (slice_print_shown ? slice_print : 0);
+        return Slic3r::PluginPages::fitting_tabs(room, std::vector<int>(plugins, 136), 40);
+    };
 
-    CHECK(fit(1400, 7) == 1);
-    CHECK(fit(1920, 7) == 5);
-    CHECK(fit(2600, 7) == 7);
-    CHECK(fit(2723, 7) == 7);
-    CHECK(fit(2723, 15) == 10);
-    CHECK(fit(1100, 7) == 0);
+    // Before this change it was 5 at every width.
+    CHECK(fit(1920, 6, false) == 6); // Home, Device, plugin tabs: all six, no overflow button
+    CHECK(fit(1920, 9, false) == 8); // 8 and the overflow button
+    CHECK(fit(1920, 6, true) == 5);  // Prepare and Preview, next to Slice/Print
+    CHECK(fit(1400, 7, true) == 1);
+    CHECK(fit(1400, 7, false) == 4);
+    CHECK(fit(2600, 7, true) == 7);
+    CHECK(fit(2723, 15, true) == 10);
+    CHECK(fit(1100, 7, true) == 0);
+
+    // Longer labels take more room.
+    CHECK(Slic3r::PluginPages::fitting_tabs(471, {136, 200, 136}, 40) == 2);
+    CHECK(Slic3r::PluginPages::fitting_tabs(472, {136, 200, 136}, 40) == 3);
 }

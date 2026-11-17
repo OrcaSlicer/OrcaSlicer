@@ -404,23 +404,33 @@ void PluginPages::relayout()
 
 int PluginPages::fitting_page_count() const
 {
-    // Tabs are counted at full width: the count must not depend on whether
+    // Tabs are counted with their labels shown: the count must not depend on whether
     // MainFrame::fit_tab_labels() has compacted them to icons.
     ButtonsListCtrl* bar  = m_parent->GetBtnsListCtrl();
     int              room = bar->GetTabsAreaWidth();
     for (size_t i = 0; i < m_parent->GetPageCount(); ++i)
         if (!Notebook::IsPluginPageId(m_parent->GetPageName(i)))
-            room -= bar->GetTabWidth(m_parent->GetPageLabel(i).empty());
+            room -= bar->GetFullTabWidth(m_parent->GetPageLabel(i));
 
+    std::vector<int> widths;
+    for (const PluginCapabilityId& id : m_order)
+        widths.push_back(bar->GetFullTabWidth(wxString::FromUTF8(id.name)));
     // The overflow button takes an icon-only tab's width.
-    return fitting_tabs(room, static_cast<int>(m_order.size()), bar->GetTabWidth(false), bar->GetTabWidth(true));
+    return fitting_tabs(room, widths, bar->GetTabWidth(true));
 }
 
-int PluginPages::fitting_tabs(int room, int total, int tab_width, int overflow_width)
+int PluginPages::fitting_tabs(int room, const std::vector<int>& widths, int overflow_width)
 {
-    if (room >= total * tab_width)
-        return total;
-    return std::max(0, (room - overflow_width) / tab_width);
+    int used = 0;
+    for (const int width : widths)
+        used += width;
+    if (used <= room)
+        return static_cast<int>(widths.size());
+
+    int count = 0;
+    for (used = overflow_width; count < static_cast<int>(widths.size()) && used + widths[count] <= room; ++count)
+        used += widths[count];
+    return count;
 }
 
 void PluginPages::select_page(const PluginCapabilityId& id)

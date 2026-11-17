@@ -1456,23 +1456,17 @@ void MainFrame::update_title_colour_after_set_title()
 
 void MainFrame::show_option(bool show)
 {
-    if (!show) {
-        if (m_slice_btn->IsShown()) {
-            m_slice_btn->Hide();
-            m_print_btn->Hide();
-            m_slice_option_btn->Hide();
-            m_print_option_btn->Hide();
-            Layout();
-        }
-    } else {
-        if (!m_slice_btn->IsShown()) {
-            m_slice_btn->Show();
-            m_print_btn->Show();
-            m_slice_option_btn->Show();
-            m_print_option_btn->Show();
-            Layout();
-        }
-    }
+    if (m_slice_btn->IsShown() == show)
+        return;
+
+    m_slice_btn->Show(show);
+    m_print_btn->Show(show);
+    m_slice_option_btn->Show(show);
+    m_print_option_btn->Show(show);
+    Layout();
+    // ORCA: Slice/Print only take room on the tabs that show them, so plugin tabs can move in or
+    // out of the overflow. Not now: this runs while the notebook is switching pages.
+    CallAfter([this] { fit_tab_labels(); });
 }
 
 void MainFrame::set_undo_redo_enabled(bool undo, bool redo)
