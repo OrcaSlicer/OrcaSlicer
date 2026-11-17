@@ -18,11 +18,15 @@
 namespace Slic3r {
 namespace {
 
+// The first two comma-separated fields of a saved entry, which are the ones its consumer reads.
+// A later comma is never a decimal separator there, so the text from it on is left out of the row
+// rather than shown as a fraction that the consumer does not see.
 CurveModel::Row split_point(const std::string& parameter)
 {
     const auto comma = parameter.find(',');
+    if (comma == std::string::npos) return {boost::algorithm::trim_copy(parameter), std::string()};
     return {boost::algorithm::trim_copy(parameter.substr(0, comma)),
-            comma == std::string::npos ? std::string() : boost::algorithm::trim_copy(parameter.substr(comma + 1))};
+            boost::algorithm::trim_copy(parameter.substr(comma + 1, parameter.find(',', comma + 1) - comma - 1))};
 }
 
 bool split_csv_row(const std::string& line, char separator, CurveModel::Row& row)
@@ -237,7 +241,9 @@ bool CurveModel::move_point(int row, double proposed_x, double proposed_y, const
 
 const char* CurveModel::read_csv(const std::string& text, Rows& rows, int& line) const
 {
-    std::istringstream stream(text.compare(0, 3, "\xEF\xBB\xBF") == 0 ? text.substr(3) : text);
+    const std::string content = text.compare(0, 3, "\xEF\xBB\xBF") == 0 ? text.substr(3) : text;
+    const bool single_line = boost::algorithm::trim_copy(content).find('\n') == std::string::npos;
+    std::istringstream stream(content);
     Rows candidate;
     std::vector<int> line_numbers;
     std::string record;
@@ -260,6 +266,13 @@ const char* CurveModel::read_csv(const std::string& text, Rows& rows, int& line)
             const bool semicolon = record.find(';') != std::string::npos;
             legacy = semicolon && record.find(',') != std::string::npos &&
                 !(split_csv_row(record, ';', trial) && read_number(trial.first, first) && read_number(trial.second, second));
+            // Two pairs on the only line, such as "0,0;10,1", also read as one such row with decimal
+            // commas. They are the two pairs unless that row is a curve by itself.
+            if (single_line && trial.first.find(',') != std::string::npos && trial.second.find(',') != std::string::npos) {
+                std::vector<double> x, y;
+                int row;
+                legacy = legacy || read_points({trial}, x, y, row) != nullptr;
+            }
             separator = legacy || !semicolon ? ',' : ';';
         }
         line = current_line;

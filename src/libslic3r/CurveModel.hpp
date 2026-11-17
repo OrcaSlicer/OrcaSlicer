@@ -42,6 +42,8 @@ public:
     const std::string& serialized_parameters() const { return m_serialized_parameters; }
 
     // Preserve unchanged config rows verbatim; normalize only edited numeric cells.
+    // A row holds the first two comma-separated fields of its entry, so a decimal comma is never
+    // read from a saved entry: only a typed or imported cell can hold one, and it is saved as a point.
     static Rows decode_rows(const std::vector<std::string>& parameters);
     static std::vector<std::string> encode_rows(const Rows& rows, const std::vector<std::string>& initial_parameters);
     // Legacy GUI value format. ConfigOptionStrings handles serialization to files.
@@ -70,6 +72,7 @@ public:
                     std::vector<double>& x, std::vector<double>& y, Row& point) const;
     // CSV uses stable column identifiers and locale-independent export. Failed reads/writes
     // leave the output untouched; line is a physical CSV line, row is a table row (zero-based).
+    // read_csv() also takes the saved text of comma-separated pairs with ';' between them.
     const char* read_csv(const std::string& text, Rows& rows, int& line) const;
     const char* write_csv(const Rows& rows, std::string& text, int& row) const;
     virtual std::array<const char*, 2> csv_column_names() const { return {"x", "y"}; }
