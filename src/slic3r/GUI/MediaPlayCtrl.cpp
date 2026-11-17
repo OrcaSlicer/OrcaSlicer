@@ -17,6 +17,7 @@
 #include "MsgDialog.hpp"
 #include "DownloadProgressDialog.hpp"
 #include "slic3r/Utils/BBLNetworkPlugin.hpp"
+#include "libslic3r/PresetBundle.hpp"
 
 
 #include <algorithm>
@@ -235,8 +236,18 @@ CameraStreamMode MediaPlayCtrl::current_mode() const
     return agent ? agent->get_camera_stream_mode() : CameraStreamMode::none;
 }
 
+void MediaPlayCtrl::update_idle_image()
+{
+    if (wxGetApp().preset_bundle && wxGetApp().preset_bundle->is_bbl_vendor())
+        m_media_ctrl->SetIdleImage(from_u8(resources_dir() + "/images/live_stream_bambu.png"));
+    else
+        m_media_ctrl->SetIdleImage(from_u8(resources_dir() + "/images/live_stream_default.png"));
+}
+
 void MediaPlayCtrl::SetMachineObject(MachineObject* obj)
 {
+    update_idle_image();
+
     const CameraStreamMode mode = current_mode();
     if (mode != m_last_mode) {
         if (m_last_state != MEDIASTATE_IDLE) {
@@ -973,6 +984,8 @@ void MediaPlayCtrl::on_show_hide(wxShowEvent &evt)
     m_failed_retry = 0;
     if (!IsShownOnScreen())
         Stop();
+    else
+        update_idle_image(); // before the first refresh, which waits for the printer to connect
 }
 
 void MediaPlayCtrl::media_proc()

@@ -140,6 +140,75 @@ bool delete_plugin_root(const boost::filesystem::path& resolved_root, const std:
 {
     namespace fs = boost::filesystem;
 
+#ifdef _WIN32
+    // Windows can report a deletion that is already under way as a transient error: a just-removed
+    // child can stay visible for a moment (ERROR_DIR_NOT_EMPTY, 145), a scanner or shell preview can
+    // still hold a handle (ERROR_SHARING_VIOLATION, 32), and Boost 1.84's child-open path maps
+    // STATUS_SHARING_VIOLATION to ERROR_NOT_SUPPORTED (50). Retry only those three codes, and keep
+    // each reported as returned: 50 and 145 are different failures and are never relabeled.
+    constexpr unsigned                  max_attempts = 5;
+    constexpr std::chrono::milliseconds retry_delays[max_attempts - 1] = {
+        std::chrono::milliseconds(100), std::chrono::milliseconds(250),
+        std::chrono::milliseconds(500), std::chrono::milliseconds(1000)};
+
+    const auto is_transient_delete_error = [](const boost::system::error_code& err) {
+        return err.category() == boost::system::system_category() &&
+               (err.value() == ERROR_DIR_NOT_EMPTY || err.value() == ERROR_SHARING_VIOLATION ||
+                err.value() == ERROR_NOT_SUPPORTED);
+    };
+
+    boost::system::error_code ec;
+    boost::system::error_code last_retry_error;
+    std::uintmax_t            removed_count = 0;
+    unsigned                  attempts      = 0;
+
+    for (;;) {
+        ++attempts;
+        ec.clear();
+        removed_count = fs::remove_all(resolved_root, ec);
+        if (!ec)
+            break;
+
+        if (attempts < max_attempts && is_transient_delete_error(ec)) {
+            const std::chrono::milliseconds delay = retry_delays[attempts - 1];
+            BOOST_LOG_TRIVIAL(warning) << "Failed to delete plugin folder " << resolved_root.string()
+                                       << " transiently: attempt=" << attempts << "/" << max_attempts
+                                       << " error_value=" << ec.value() << " error_category=" << ec.category().name()
+                                       << " message=" << ec.message() << " delay_ms=" << delay.count();
+            last_retry_error = ec;
+            ::Sleep(static_cast<DWORD>(delay.count()));
+            continue;
+        }
+
+        break;
+    }
+
+    if (ec) {
+        // TRN %1% is a folder path, %2% the system error message.
+        error = GUI::format(_u8L("Failed to delete plugin folder %1%: %2%"), resolved_root.string(), ec.message());
+        BOOST_LOG_TRIVIAL(error) << "Failed to delete plugin folder " << resolved_root.string()
+                                 << " after attempts=" << attempts << " error_value=" << ec.value()
+                                 << " error_category=" << ec.category().name() << " message=" << ec.message();
+        return false;
+    }
+
+    if (attempts > 1) {
+        // Recovered after one or more transient failures: keep the last failure for diagnosis.
+        BOOST_LOG_TRIVIAL(info) << "Deleted plugin: " << plugin_id << " from " << resolved_root.string()
+                                << " after attempts=" << attempts << " last_error_value=" << last_retry_error.value()
+                                << " last_error_category=" << last_retry_error.category().name()
+                                << " last_error_message=" << last_retry_error.message();
+        return true;
+    }
+
+    if (removed_count == 0) {
+        return true;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "Deleted plugin: " << plugin_id << " from " << resolved_root.string();
+    return true;
+#else
+    // Non-Windows behavior is unchanged: one remove_all() call, no retries.
     boost::system::error_code ec;
     const auto removed_count = fs::remove_all(resolved_root, ec);
     if (ec) {
@@ -154,6 +223,7 @@ bool delete_plugin_root(const boost::filesystem::path& resolved_root, const std:
 
     BOOST_LOG_TRIVIAL(info) << "Deleted plugin: " << plugin_id << " from " << resolved_root.string();
     return true;
+#endif
 }
 
 
