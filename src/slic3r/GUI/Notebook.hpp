@@ -3,7 +3,9 @@
 
 //#ifdef _WIN32
 
+#include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <initializer_list>
 #include <string>
 #include <vector>
@@ -27,6 +29,8 @@ class Button;
 
 // custom message the ButtonsListCtrl sends to its parent (Notebook) to notify a selection change:
 wxDECLARE_EVENT(wxCUSTOMEVT_NOTEBOOK_SEL_CHANGED, wxCommandEvent);
+// ORCA: posted to the Notebook after the user dragged a tab to a new position.
+wxDECLARE_EVENT(wxCUSTOMEVT_NOTEBOOK_PAGES_REORDERED, wxCommandEvent);
 
 class ButtonsListCtrl : public wxControl
 {
@@ -58,8 +62,21 @@ public:
     // an overflow indicator. Pass nullptr to remove it; ownership stays with the caller.
     void SetOverflowButton(wxWindow* button);
     wxWindow* GetOverflowButton() const { return m_overflow_button; }
+    // ORCA: moves tab button `from` to index `to`, keeping the selection on the same button.
+    void MovePage(size_t from, size_t to);
+    // ORCA: hold Cmd (macOS) or Ctrl and drag a tab to move it. Off by default.
+    void EnableReorder(bool enable) { m_reorder_enabled = enable; }
+    // ORCA: width of a tab button, full or compacted to its icon.
+    int GetTabWidth(bool compact);
+    // ORCA: width the tab buttons and the overflow button can use without covering the side tools.
+    int GetTabsAreaWidth() const;
 
 private:
+    void OnTabLeftDown(wxMouseEvent& evt, Button* btn);
+    void OnDragMotion(wxMouseEvent& evt);
+    void OnDragKey(wxKeyEvent& evt);
+    void EndDrag(bool commit);
+
     wxFlexGridSizer*                m_buttons_sizer;
     wxBoxSizer*                     m_sizer;
     // BBS: use Button
@@ -70,6 +87,10 @@ private:
     std::vector<wxString>           m_pageLabels; // ORCA
     std::vector<std::string>        m_pageIcons;  // ORCA: resource icon name per page, plugin pages empty
     wxWindow*                       m_overflow_button{nullptr}; // ORCA
+    wxBoxSizer*                     m_side_tools{nullptr};      // ORCA
+    bool                            m_reorder_enabled{false};   // ORCA
+    int                             m_drag_from{-1};            // ORCA: index the dragged tab started at, -1 when not dragging
+    int                             m_drag_at{-1};              // ORCA: index the dragged tab is at now
 };
 
 class Notebook : public wxBookCtrlBase
@@ -192,6 +213,7 @@ public:
                     bool bSelect = false,
                     const wxBitmap& bmp = wxNullBitmap)
     {
+        n = OrderedPosition(m_pageOrder, m_pageNames, id, n);
         if (!wxBookCtrlBase::InsertPage(n, page, text, bSelect))
             return false;
 
@@ -353,6 +375,31 @@ public:
         return n < m_pageNames.size() ? m_pageNames[n] : wxString();
     }
 
+    // ORCA: user-chosen tab order, as page ids. Pages listed here are inserted at their place in it.
+    void SetPageOrder(std::vector<wxString> order) { m_pageOrder = std::move(order); }
+    const std::vector<wxString>& GetPageOrder() const { return m_pageOrder; }
+    // Position of `id` in the page order, or SIZE_MAX when it has none.
+    size_t GetPageRank(const wxString& id) const { return PageRank(m_pageOrder, id); }
+    static size_t PageRank(const std::vector<wxString>& order, const wxString& id)
+    {
+        const auto it = std::find(order.begin(), order.end(), id);
+        return id.empty() || it == order.end() ? SIZE_MAX : static_cast<size_t>(it - order.begin());
+    }
+
+    // ORCA: plugin pages are named "plugin.<plugin key>.<page name>" (PluginPages::page_tab_id()).
+    static bool IsPluginPageId(const wxString& id) { return id.StartsWith("plugin."); }
+
+    // ORCA: moves page `from` towards `to` and returns where it landed. Plugin pages stay after the
+    // built-in ones, so the plugin overflow button stays next to them.
+    size_t MovePage(size_t from, size_t to);
+    // ORCA: makes the page order match the tab bar. Pages not in the bar now (a plugin page behind
+    // the overflow button, a printer-specific tab) keep their place before the page they preceded.
+    void RememberPageOrder() { m_pageOrder = MergePageOrder(m_pageOrder, m_pageNames); }
+    static std::vector<wxString> MergePageOrder(const std::vector<wxString>& order, const std::vector<wxString>& page_names);
+    // Where page `id`, asked for at `n` among `page_names`, goes so the pages keep `order`.
+    static size_t OrderedPosition(const std::vector<wxString>& order, const std::vector<wxString>& page_names,
+                                  const wxString& id, size_t n);
+
     wxString GetSelectedPageName() const
     {
         const int sel = GetSelection();
@@ -502,6 +549,7 @@ private:
     void Init();
 
     std::vector<wxString> m_pageNames; // index-parallel to wxBookCtrlBase::m_pages
+    std::vector<wxString> m_pageOrder; // ORCA
 
     wxShowEffect m_showEffect,
                  m_hideEffect;

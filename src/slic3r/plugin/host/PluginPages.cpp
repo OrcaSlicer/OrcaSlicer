@@ -1,6 +1,5 @@
 #include "PluginPages.hpp"
 
-#include "libslic3r/AppConfig.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/Notebook.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -175,8 +174,6 @@ void PluginPages::initialize(Notebook* parent)
     if (m_parent == nullptr)
         return;
 
-    m_visible_page_count = GUI::wxGetApp().app_config->get_plugin_pages_visible_count();
-
     for (const auto& capability : PluginManager::instance().get_plugin_capabilities("", PluginCapabilityType::Pages)) {
         if (capability)
             create_page(capability->identity());
@@ -191,16 +188,6 @@ void PluginPages::shutdown()
     for (const PluginCapabilityId& id : std::vector<PluginCapabilityId>(m_order))
         remove_page(id);
     m_parent = nullptr;
-}
-
-void PluginPages::set_visible_page_count(int count)
-{
-    const int clamped = std::clamp(count, PLUGIN_PAGES_VISIBLE_COUNT_MIN, PLUGIN_PAGES_VISIBLE_COUNT_MAX);
-    if (clamped == m_visible_page_count)
-        return;
-
-    m_visible_page_count = clamped;
-    relayout();
 }
 
 std::shared_ptr<PagesPluginCapability> PluginPages::get_pages_cap(const PluginCapabilityId& id, bool is_enabled) const
@@ -330,7 +317,13 @@ void PluginPages::relayout()
         }),
         m_order.end());
 
-    const int visible_slots = std::max(1, m_visible_page_count);
+    // In the order the user dragged the tabs to; pages never placed keep registration order, last.
+    std::stable_sort(m_order.begin(), m_order.end(), [this](const PluginCapabilityId& a, const PluginCapabilityId& b) {
+        return m_parent->GetPageRank(page_tab_id(a)) < m_parent->GetPageRank(page_tab_id(b));
+    });
+
+    m_visible_slots = std::max(1, fitting_page_count());
+    const int visible_slots = m_visible_slots;
     const bool need_overflow = static_cast<int>(m_order.size()) > visible_slots;
 
     // Every visible slot is a normal, individual tab hosting its own page. When there's
@@ -411,6 +404,24 @@ void PluginPages::relayout()
             mainframe->fit_tab_labels();
 }
 
+int PluginPages::fitting_page_count() const
+{
+    // Tabs are counted at full width: the count must not depend on whether
+    // MainFrame::fit_tab_labels() has compacted them to icons.
+    ButtonsListCtrl* bar  = m_parent->GetBtnsListCtrl();
+    int              room = bar->GetTabsAreaWidth();
+    for (size_t i = 0; i < m_parent->GetPageCount(); ++i)
+        if (!Notebook::IsPluginPageId(m_parent->GetPageName(i)))
+            room -= bar->GetTabWidth(m_parent->GetPageLabel(i).empty());
+
+    const int tab   = bar->GetTabWidth(false);
+    const int total = static_cast<int>(m_order.size());
+    if (room >= total * tab)
+        return total;
+    // The overflow button takes an icon-only tab's width.
+    return (room - bar->GetTabWidth(true)) / tab;
+}
+
 void PluginPages::select_page(const PluginCapabilityId& id)
 {
     if (m_parent == nullptr || m_pages.find(id) == m_pages.end())
@@ -424,7 +435,7 @@ void PluginPages::select_page(const PluginCapabilityId& id)
 
 void PluginPages::show_overflow_menu()
 {
-    const int visible_slots = std::max(1, m_visible_page_count);
+    const int visible_slots = m_visible_slots;
     if (m_overflow_button == nullptr || static_cast<int>(m_order.size()) <= visible_slots)
         return;
 

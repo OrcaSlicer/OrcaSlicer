@@ -1507,6 +1507,25 @@ void MainFrame::init_tabpanel() {
     m_tabpanel->Hide();
     m_settings_dialog.set_tabpanel(m_tabpanel);
 
+    // ORCA: Cmd/Ctrl + drag moves a tab; the order is kept in the app config.
+    {
+        std::vector<wxString> order;
+        const auto ids = nlohmann::json::parse(wxGetApp().app_config->get(SETTING_TAB_ORDER), nullptr, false);
+        if (ids.is_array())
+            for (const auto& id : ids)
+                if (id.is_string())
+                    order.push_back(from_u8(id.get<std::string>()));
+        m_tabpanel->SetPageOrder(std::move(order));
+    }
+    m_tabpanel->GetBtnsListCtrl()->EnableReorder(true);
+    m_tabpanel->Bind(wxCUSTOMEVT_NOTEBOOK_PAGES_REORDERED, [this](wxCommandEvent&) {
+        nlohmann::json ids = nlohmann::json::array();
+        for (const wxString& id : m_tabpanel->GetPageOrder())
+            ids.push_back(into_u8(id));
+        wxGetApp().app_config->set(SETTING_TAB_ORDER, ids.dump());
+        m_plugin_pages->relayout(); // the plugin overflow follows the new order
+    });
+
 #ifdef __WXMSW__
     m_tabpanel->Bind(wxEVT_BOOKCTRL_PAGE_CHANGED, [this](wxBookCtrlEvent& e) {
 #else
@@ -1801,6 +1820,9 @@ void MainFrame::fit_tab_labels()
 {
     if (!m_tabpanel || !m_slice_option_btn) // ignore layout change while slice/print buttons not visible
         return;
+
+    // The bar width decides how many plugin tabs fit before the rest go behind the overflow button.
+    m_plugin_pages->relayout();
 
     auto* ctrl  = m_tabpanel->GetBtnsListCtrl();
     auto* sizer = ctrl->GetBtnsSizer();

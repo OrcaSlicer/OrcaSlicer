@@ -62,8 +62,6 @@ public:
     void on_plugin_register(const std::string& plugin_key);
     void on_plugin_deregister(const std::string& plugin_key);
 
-    void set_visible_page_count(int count);
-
     void relayout();
 
     void select_page(const PluginCapabilityId& id);
@@ -74,6 +72,8 @@ private:
     void remove_page(const PluginCapabilityId& id);
 
     void show_overflow_menu();
+    // How many plugin tabs fit in the tab bar next to the built-in tabs.
+    int fitting_page_count() const;
     static wxString page_tab_id(const PluginCapabilityId& id);
 
     struct Page
@@ -86,7 +86,7 @@ private:
     std::vector<PluginCapabilityId> m_order;
     Notebook* m_parent{nullptr};
 
-    int m_visible_page_count{0};
+    int m_visible_slots{1};
 
     std::optional<PluginCapabilityId> m_swapped_in_id;
     wxWindow* m_overflow_button{nullptr};
