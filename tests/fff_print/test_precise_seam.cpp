@@ -2059,6 +2059,33 @@ TEST_CASE("A wider first layer line does not change which modifiers reach the mo
     }
 }
 
+TEST_CASE("On a narrow island printed with a thinner line a flush modifier stays clear and a slightly deeper one acts", "[PreciseSeam]")
+{
+    const double depth = GENERATE(0., 0.02);
+    CAPTURE(depth);
+    // An 8 x 0.6 mm island: too narrow for two 0.4 mm lines and under 10 mm long, so without thin wall detection
+    // the classic generator prints it as one loop of a thinner line, whose centerline lies closer to the faces.
+    ExportFixture fixture("back", 0, make_cube(8, 0.6, 2));
+    fixture.config.set_deserialize_strict("wall_generator", "classic");
+    fixture.config.set_deserialize_strict("detect_thin_wall", "0");
+    // Elephant foot layers are measured; here the shift comes from the loop's own line width.
+    fixture.config.set_deserialize_strict("elefant_foot_compensation", "0");
+    // Flush with the front face, or 0.02 mm into it: the margin keeps the surface 5 um inside the model face.
+    fixture.add(ModelVolumeType::PRECISE_SEAM_CENTER, make_cube(2, 3. + depth, 4), Vec3d(3, -3, -1));
+    const auto loops = outer_wall_loops(fixture.export_gcode());
+    REQUIRE(loops.size() == 10);
+    for (const OuterLoop &loop : loops) {
+        CAPTURE(loop.seam.x(), loop.seam.y());
+        // Thinner than 0.4 mm: the loop is wider than the 0.2 mm a nominal line would leave it.
+        CHECK(loop.bounds.size().y() > 0.21);
+        if (depth > 0.) {
+            CHECK_THAT(loop.seam.x(), Catch::Matchers::WithinAbs(4. - 4., 0.01));
+            CHECK_THAT(loop.seam.y(), Catch::Matchers::WithinAbs(loop.bounds.min.y() - loop.bounds.center().y(), 0.01));
+        } else
+            CHECK(loop.seam.y() > 0.); // The back seam, away from the helper.
+    }
+}
+
 namespace {
 // A wall of the given thickness along a quarter circle of radius 10 mm around the origin, 2 mm high: from (10, 0)
 // to (0, 10) through 90 segments.
