@@ -54,6 +54,34 @@ TEST_CASE("Option restrictions belong to one registry and preserve the supplied 
     CHECK(first.disabled_reason("option") == nullptr);
 }
 
+TEST_CASE("A hidden page keeps its options hidden whatever their rules report", "[OptionStateRegistry]")
+{
+    OptionStateRegistry registry;
+    registry.set_visible("option", false, "Rule reason");
+    registry.set_page_hidden("option", true, "Page reason");
+    REQUIRE(registry.hidden_reason("option") != nullptr);
+    CHECK(*registry.hidden_reason("option") == "Page reason");
+
+    registry.set_visible("option", true);
+    registry.clear();
+    REQUIRE(registry.hidden_reason("option") != nullptr);
+    CHECK(*registry.hidden_reason("option") == "Page reason");
+
+    registry.set_page_hidden("option", false);
+    CHECK(registry.hidden_reason("option") == nullptr);
+}
+
+TEST_CASE("Showing a hidden page restores the reason its rule recorded", "[OptionStateRegistry]")
+{
+    OptionStateRegistry registry;
+    registry.set_visible("option", false, "Rule reason");
+    registry.set_page_hidden("option", true, "Page reason");
+    registry.set_page_hidden("option", false);
+
+    REQUIRE(registry.hidden_reason("option") != nullptr);
+    CHECK(*registry.hidden_reason("option") == "Rule reason");
+}
+
 TEST_CASE("Dependency toggles forward their reasons without requiring page controls", "[OptionStateRegistry]")
 {
     OptionStateRegistry registry;
