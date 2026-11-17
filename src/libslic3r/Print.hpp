@@ -49,6 +49,7 @@
 #include <tuple>
 #include <unordered_map>
 #include <vector>
+#include <initializer_list>
 #include <utility>
 
 #include "calib.hpp"
@@ -1406,7 +1407,7 @@ public:
         const std::vector<int>& nozzle_temperature_range_lows,
         const std::vector<int>& nozzle_temperature_range_highs);
     // similar to check_multi_filaments_compatibility, but the input is int, and may be negative (means unset)
-    static bool is_filaments_compatible(const std::vector<int>& types);
+    static bool is_filaments_compatible(std::initializer_list<int> types);
     // get the compatible filament type of a multi-material object
     // Rule:
     // 1. LowTemp+HighLowCompatible=LowTemp
