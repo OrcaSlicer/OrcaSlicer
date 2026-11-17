@@ -1449,6 +1449,7 @@ static std::vector<std::string> s_Preset_print_options{
     "height_slowdown_initial_layers",
     "height_slowdown_start_speed",
     "height_slowdown_end_speed",
+    "height_slowdown_end_height",
     "height_slowdown_end_travel_acceleration",
     "height_slowdown_min_speed",
     "height_slowdown_min_acceleration",

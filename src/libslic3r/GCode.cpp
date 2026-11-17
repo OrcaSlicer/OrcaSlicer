@@ -9190,7 +9190,7 @@ static bool overhang_fan_active(float overlap, int overhang_fan_threshold, Extru
 }
 
 // Height slowdown factors for a path of the layer being printed. The ramp runs from the first layer after
-// `height_slowdown_initial_layers` to the last layer of the object. Skirt, brim and support keep their normal values.
+// `height_slowdown_initial_layers` to the end height. Skirt, brim and support keep their normal values.
 HeightSlowdownFactors GCode::height_slowdown_factors(ExtrusionRole role) const
 {
     if (m_layer == nullptr || m_config.spiral_mode.value || !m_calib_config.keys().empty() ||
@@ -9207,7 +9207,10 @@ HeightSlowdownFactors GCode::height_slowdown_factors(ExtrusionRole role) const
     if (layers.size() <= initial)
         return {};
 
-    HeightSlowdownFactors factors = Slic3r::height_slowdown_factors(m_layer->print_z, layers[initial]->print_z, layers.back()->print_z,
+    // The ramp ends at a height of the print, not at the top of the object, so that low objects are hardly slowed down.
+    const double end_height = object_config.height_slowdown_end_height.value > 0. ? object_config.height_slowdown_end_height.value :
+                                                                                    m_config.printable_height.value;
+    HeightSlowdownFactors factors = Slic3r::height_slowdown_factors(m_layer->print_z, layers[initial]->print_z, end_height,
                                                                     object_config.height_slowdown_start_speed.value / 100.,
                                                                     object_config.height_slowdown_end_speed.value / 100.,
                                                                     object_config.height_slowdown_end_travel_acceleration.value / 100.);

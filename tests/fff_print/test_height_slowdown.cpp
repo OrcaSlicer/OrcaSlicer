@@ -88,6 +88,7 @@ std::map<double, double> slice_cube_feedrates(bool slowdown, bool travel = false
         { "height_slowdown_initial_layers", "3" },
         { "height_slowdown_start_speed", "100" },
         { "height_slowdown_end_speed", "50" },
+        { "height_slowdown_end_height", "20" }, // the top of the cube
     });
     for (const auto &[key, value] : extra)
         config.set_deserialize_strict(key, value);
@@ -143,6 +144,7 @@ TEST_CASE("Height slowdown can be set for a single object", "[HeightSlowdown]")
             { "height_slowdown_initial_layers", "3" },
             { "height_slowdown_start_speed", "100" },
             { "height_slowdown_end_speed", "50" },
+            { "height_slowdown_end_height", "20" },
         });
         const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{{{ "automatic_height_slowdown", object ? "1" : "0" }}};
         Print print;
@@ -157,4 +159,14 @@ TEST_CASE("Height slowdown can be set for a single object", "[HeightSlowdown]")
     // The object setting wins over the project setting, in both directions.
     CHECK(top_layer_feedrate(false, true) < 0.75 * normal);
     CHECK_THAT(top_layer_feedrate(true, false), WithinAbs(normal, 1e-6));
+}
+
+TEST_CASE("Height slowdown hardly slows down a low object by default", "[HeightSlowdown]")
+{
+    // With the end height left at 0, the ramp ends at the printable height of the printer, so a 20 mm cube only gets a small part of it.
+    const std::map<double, double> off     = slice_cube_feedrates(false);
+    const std::map<double, double> default_height = slice_cube_feedrates(true, false, {{ "height_slowdown_end_height", "0" }});
+    const std::map<double, double> cube_height    = slice_cube_feedrates(true);
+    CHECK(default_height.rbegin()->second > 0.9 * off.rbegin()->second);
+    CHECK(cube_height.rbegin()->second < 0.75 * off.rbegin()->second);
 }

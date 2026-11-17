@@ -26,10 +26,9 @@ inline double height_slowdown_limited(double scaled, double normal, double min_v
     return std::max(scaled, std::min(normal, min_value));
 }
 
-// The ramp of an object runs from `ramp_first_z` (the first layer that is not kept as it is) to
-// `ramp_last_z` (its last layer), both print heights of model layers (support and raft layers are not
-// part of it). Below the ramp the normal values are kept. If the ramp has a single layer, it gets
-// `end_factor`.
+// The ramp of an object runs from `ramp_first_z` (the first layer that is not kept as it is, a print height of
+// a model layer) to `ramp_last_z` (the end height, which can be above the object). Above it the end values are kept.
+// Below the ramp the normal values are kept. If the ramp has no height, it gets `end_factor`.
 inline HeightSlowdownFactors height_slowdown_factors(double print_z, double ramp_first_z, double ramp_last_z,
                                                      double start_factor, double end_factor, double end_travel_acceleration_factor = 1.)
 {

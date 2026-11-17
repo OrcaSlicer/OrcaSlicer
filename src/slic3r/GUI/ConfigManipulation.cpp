@@ -1233,7 +1233,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
         toggle_line(el, has_set_other_flow_ratios, -1, _L("Enable setting other flow ratios to use this setting."));
 
     const bool has_height_slowdown = config->opt_bool("automatic_height_slowdown");
-    for (auto el : {"height_slowdown_initial_layers", "height_slowdown_start_speed", "height_slowdown_end_speed",
+    for (auto el : {"height_slowdown_initial_layers", "height_slowdown_start_speed", "height_slowdown_end_speed", "height_slowdown_end_height",
                     "height_slowdown_end_travel_acceleration", "height_slowdown_min_speed", "height_slowdown_min_acceleration"})
         toggle_line(el, has_height_slowdown, -1, _L("Enable slowing down by model height to use this setting."));
 

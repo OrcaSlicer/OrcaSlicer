@@ -3249,6 +3249,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("height_slowdown_initial_layers");
         optgroup->append_single_option_line("height_slowdown_start_speed");
         optgroup->append_single_option_line("height_slowdown_end_speed");
+        optgroup->append_single_option_line("height_slowdown_end_height");
         optgroup->append_single_option_line("height_slowdown_end_travel_acceleration");
         optgroup->append_single_option_line("height_slowdown_min_speed");
         optgroup->append_single_option_line("height_slowdown_min_acceleration");

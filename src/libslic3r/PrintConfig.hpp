@@ -1435,6 +1435,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt,                 height_slowdown_initial_layers))
     ((ConfigOptionPercent,             height_slowdown_start_speed))
     ((ConfigOptionPercent,             height_slowdown_end_speed))
+    ((ConfigOptionFloat,               height_slowdown_end_height))
     ((ConfigOptionPercent,             height_slowdown_end_travel_acceleration))
     ((ConfigOptionFloat,               height_slowdown_min_speed))
     ((ConfigOptionFloat,               height_slowdown_min_acceleration))

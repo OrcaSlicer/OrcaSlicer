@@ -4116,8 +4116,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("automatic_height_slowdown", coBool);
     def->label = L("Slow down by model height");
     def->category = L("Speed");
-    def->tooltip = L("Gradually change the speed of each object as it gets taller. The speed starts at the start speed on the first layer after "
-                     "the layers that are not affected and reaches the end speed on the last layer of the object. Acceleration and the travel "
+    def->tooltip = L("Gradually change the speed as the print gets taller. The speed starts at the start speed on the first layer after "
+                     "the layers that are not affected and reaches the end speed at the end height, so low objects are hardly slowed down. "
+                     "Acceleration and the travel "
                      "moves to the printed paths are slowed down the same way, but never sped up. Support, skirt and brim are not changed. "
                      "Volumetric speed limits and the printer's speed limits still apply.");
     def->mode = comAdvanced;
@@ -4145,7 +4146,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("height_slowdown_end_speed", coPercent);
     def->label = L("End speed");
-    def->tooltip = L("Speed on the last layer of the object, as a percentage of the normal speed. The speed changes linearly between "
+    def->tooltip = L("Speed at the end height, as a percentage of the normal speed. The speed changes linearly between "
                      "the start speed and this.");
     def->sidetext = "%";
     def->min = 10;
@@ -4153,9 +4154,18 @@ void PrintConfigDef::init_fff_params()
     def->mode = comExpert;
     def->set_default_value(new ConfigOptionPercent(50));
 
+    def = this->add("height_slowdown_end_height", coFloat);
+    def->label = L("End height");
+    def->tooltip = L("Height at which the slowdown reaches the end speed. Above it the end speed is kept. 0 uses the printable height of the "
+                     "printer, so a low object is hardly slowed down and a tall one gets the full slowdown.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0));
+
     def = this->add("height_slowdown_end_travel_acceleration", coPercent);
     def->label = L("End travel acceleration");
-    def->tooltip = L("Travel acceleration on the last layer of the object, as a percentage of the normal travel acceleration. Travel moves "
+    def->tooltip = L("Travel acceleration at the end height, as a percentage of the normal travel acceleration. Travel moves "
                      "change faster than printing moves because the toolhead swings the most there. The value changes linearly from the "
                      "first layer that is affected.");
     def->sidetext = "%";
