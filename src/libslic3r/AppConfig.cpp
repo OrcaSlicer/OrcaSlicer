@@ -524,6 +524,9 @@ void AppConfig::set_defaults()
         set_bool("show_splash_screen", true);
     }
 
+    if (get("show_tooltip_pictures").empty())
+        set_bool("show_tooltip_pictures", true);
+
     if(get("auto_arrange").empty()) {
         set_bool("auto_arrange", true);
     }
