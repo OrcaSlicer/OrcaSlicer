@@ -41,10 +41,12 @@ jobs:
         if: runner.os == 'Linux' && !vars.SELF_HOSTED
         uses: ./.github/actions/apt-install-deps
       - name: Restore Test Artifact
-        # Native GTK interaction tests need a display on headless runners.
         uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.artifact }}
+      # Native GTK interaction tests need a display on headless runners; run_unit_tests.sh
+      # starts them under xvfb-run. Nothing is installed on a self-hosted runner: one with
+      # neither a display nor xvfb skips these tests and the script reports a warning.
       - name: Install virtual display for GUI tests
         if: runner.os == 'Linux' && !vars.SELF_HOSTED
         run: sudo apt-get update && sudo apt-get install -y xvfb xauth
