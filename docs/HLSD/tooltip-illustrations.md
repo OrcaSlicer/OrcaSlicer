@@ -152,6 +152,12 @@ Which frame is drawn is measured on a real clock, not `ImGui::GetTime()`. Nothin
 than seconds. On a canvas that renders only when asked, that is not a clock at all: an animation driven
 by it crawls while the canvas is idle and races while a moving mouse is rendering it flat out.
 
+## Turning the pictures off
+
+The "Show pictures in tooltips" preference (`show_tooltip_pictures`, on by default) leaves every
+tooltip as its text alone. Nothing else about it changes: it waits the same, opens in the same place
+and is as wide as its text needs. Nothing is decoded while it is off, so the pictures cost nothing then.
+
 ## Making one
 
 ### The toolbar
