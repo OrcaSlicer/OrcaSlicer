@@ -532,6 +532,11 @@ bool MoonrakerPrinterAgent::print_uploaded_file(const PrintParams& /*params*/, c
     return send_gcode_sync(device_info.dev_id, "SDCARD_PRINT_FILE FILENAME=\"" + filename + "\"");
 }
 
+bool MoonrakerPrinterAgent::extract_plate_gcode(const std::string& archive_path, int plate_index, const std::string& gcode_path)
+{
+    return ::extract_plate_gcode(archive_path, plate_index, gcode_path);
+}
+
 bool MoonrakerPrinterAgent::accepts_3mf() const
 {
     const PresetBundle*     bundle  = GUI::wxGetApp().preset_bundle;
