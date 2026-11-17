@@ -15,7 +15,7 @@ inline Slic3r::TriangleMesh to_orca_mesh(const Mesh& label, float z_offset = 0.0
     validate_single_layer(label);
     if (label.vertices.size() > static_cast<size_t>(std::numeric_limits<int>::max()))
         throw std::length_error("label has too many vertices");
-    Slic3r::indexed_triangle_set its;
+    ::indexed_triangle_set its;
     its.vertices.reserve(label.vertices.size());
     its.indices.reserve(label.triangles.size());
     for (const auto& v : label.vertices)
