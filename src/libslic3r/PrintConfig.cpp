@@ -4116,17 +4116,18 @@ void PrintConfigDef::init_fff_params()
     def = this->add("automatic_height_slowdown", coBool);
     def->label = L("Slow down by model height");
     def->category = L("Speed");
-    def->tooltip = L("Gradually change the speed as the print gets taller. The speed starts at the start speed on the first layer after "
-                     "the layers that are not affected and reaches the end speed at the end height, so low objects are hardly slowed down. "
-                     "Acceleration and the travel "
-                     "moves to the printed paths are slowed down the same way, but never sped up. Support, skirt and brim are not changed. "
-                     "Volumetric speed limits and the printer's speed limits still apply.");
+    def->tooltip = L("Slow down printing as the print gets taller, which reduces the vibration of tall, thin objects. The speed changes "
+                     "linearly from the start speed, on the first layer after the layers that are not affected, to the end speed at the end "
+                     "height. A low object therefore gets only a small part of the slowdown.\n"
+                     "The acceleration and the speed of the travel moves follow the end speed but are never increased, and the travel "
+                     "acceleration has its own end value. Skirt, brim and support are not changed. The volumetric speed limit of the "
+                     "filament and the speed limits of the printer still apply. This can be set for each object.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("height_slowdown_initial_layers", coInt);
     def->label = L("Layers not affected");
-    def->tooltip = L("Number of layers at the start of each object that keep their normal speed. The change starts on the layer after them.");
+    def->tooltip = L("Number of layers at the start of the object that keep their normal speed. The slowdown starts on the layer after them.");
     def->sidetext = L("layers"); // ORCA add side text
     def->min = 0;
     def->max = 1000;
@@ -4135,9 +4136,9 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("height_slowdown_start_speed", coPercent);
     def->label = L("Start speed");
-    def->tooltip = L("Speed on the first layer that is affected, as a percentage of the normal speed. The default of 100% starts at the "
-                     "normal speed. Values above 100% speed up; the speed is still limited by the volumetric speed of the filament "
-                     "and the printer's speed limits.");
+    def->tooltip = L("Printing speed on the first layer that is slowed down, as a percentage of the normal speed. 100% starts at the normal "
+                     "speed. Values above 100% speed up the lower part of the object, limited by the volumetric speed of the filament and the "
+                     "speed limits of the printer. The acceleration is not increased.");
     def->sidetext = "%";
     def->min = 10;
     def->max = 200;
@@ -4146,8 +4147,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("height_slowdown_end_speed", coPercent);
     def->label = L("End speed");
-    def->tooltip = L("Speed at the end height, as a percentage of the normal speed. The speed changes linearly between "
-                     "the start speed and this.");
+    def->tooltip = L("Printing speed at the end height, as a percentage of the normal speed. The speed changes linearly between "
+                     "the start speed and this. The acceleration and the travel speed are lowered to the same percentage, but never raised.");
     def->sidetext = "%";
     def->min = 10;
     def->max = 200;
@@ -4156,8 +4157,9 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("height_slowdown_end_height", coFloat);
     def->label = L("End height");
-    def->tooltip = L("Height at which the slowdown reaches the end speed. Above it the end speed is kept. 0 uses the printable height of the "
-                     "printer, so a low object is hardly slowed down and a tall one gets the full slowdown.");
+    def->tooltip = L("Height at which the slowdown reaches its end values. Above it the end values are kept. 0 uses the printable height of "
+                     "the printer, so a low object is hardly slowed down and a tall one gets the full slowdown. Enter the height of the "
+                     "object to slow it down fully at its top.");
     def->sidetext = L("mm");
     def->min = 0;
     def->mode = comExpert;
@@ -4165,9 +4167,9 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("height_slowdown_end_travel_acceleration", coPercent);
     def->label = L("End travel acceleration");
-    def->tooltip = L("Travel acceleration at the end height, as a percentage of the normal travel acceleration. Travel moves "
-                     "change faster than printing moves because the toolhead swings the most there. The value changes linearly from the "
-                     "first layer that is affected.");
+    def->tooltip = L("Travel acceleration at the end height, as a percentage of the normal travel acceleration. It changes linearly "
+                     "from the first layer that is slowed down. Travel moves are fast and swing the toolhead the most, so they usually need a "
+                     "lower value than the printing acceleration.");
     def->sidetext = "%";
     def->min = 10;
     def->max = 100;
@@ -4176,7 +4178,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("height_slowdown_min_speed", coFloat);
     def->label = L("Minimum speed");
-    def->tooltip = L("The slowdown does not take the printing speed below this. A path that is already slower keeps its speed.");
+    def->tooltip = L("The slowdown does not lower the printing speed below this. A speed that is already lower is not changed. "
+                     "0 means no limit.");
     def->sidetext = L("mm/s");
     def->min = 0;
     def->mode = comExpert;
@@ -4184,8 +4187,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("height_slowdown_min_acceleration", coFloat);
     def->label = L("Minimum acceleration");
-    def->tooltip = L("The slowdown does not take the acceleration, including the travel acceleration, below this. A value that is already "
-                     "lower keeps its value.");
+    def->tooltip = L("The slowdown does not lower the acceleration, including the travel acceleration, below this. A value that is "
+                     "already lower is not changed. 0 means no limit.");
     def->sidetext = L("mm/s²");
     def->min = 0;
     def->mode = comExpert;
