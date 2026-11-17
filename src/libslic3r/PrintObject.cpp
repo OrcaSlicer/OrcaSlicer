@@ -880,6 +880,11 @@ void PrintObject::ironing()
     }
 }
 
+bool PrintObject::precise_z_height() const
+{
+    return m_config.precise_z_height.value && !m_print->precise_z_height_overridden();
+}
+
 bool PrintObject::need_z_contouring() const
 {
     size_t num_regions = this->num_printing_regions();
@@ -1505,7 +1510,13 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "inner_wall_speed"
             || opt_key == "support_speed"
             || opt_key == "internal_solid_infill_speed"
-            || opt_key == "top_surface_speed") {
+            || opt_key == "top_surface_speed"
+            || opt_key == "outer_wall_volumetric_flow"
+            || opt_key == "inner_wall_volumetric_flow"
+            || opt_key == "sparse_infill_volumetric_flow"
+            || opt_key == "internal_solid_infill_volumetric_flow"
+            || opt_key == "top_surface_volumetric_flow"
+            || opt_key == "support_volumetric_flow") {
             // Brim is printed below supports, support invalidates brim and skirt.
             steps.emplace_back(posSupportMaterial);
             if (opt_key == "brim_type" || opt_key == "brim_width") {
@@ -1532,7 +1543,8 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "seam_gap"
             || opt_key == "role_based_wipe_speed"
             || opt_key == "wipe_on_loops"
-            || opt_key == "wipe_speed") {
+            || opt_key == "wipe_speed"
+            || opt_key == "gap_infill_volumetric_flow") {
             steps.emplace_back(posPerimeters);
         } else if (
             opt_key == "small_area_infill_flow_compensation_model") {
@@ -1843,6 +1855,9 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "overhang_4_4_speed"
             || opt_key == "bridge_speed"
             || opt_key == "internal_bridge_speed"
+            || opt_key == "support_interface_volumetric_flow"
+            || opt_key == "bridge_volumetric_flow"
+            || opt_key == "internal_bridge_volumetric_flow"
             || opt_key == "outer_wall_speed"
             || opt_key == "small_perimeter_speed"
             || opt_key == "small_perimeter_threshold"
@@ -1873,6 +1888,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "scarf_joint_flow_ratio"
             || opt_key == "wipe_inward"
             || opt_key == "wipe_inward_distance"
+            || opt_key == "retract_after_outer_wall"
             || opt_key == "spiral_starting_flow_ratio"
             || opt_key == "spiral_finishing_flow_ratio") {
             invalidated |= m_print->invalidate_step(psGCodeExport);
@@ -4446,8 +4462,8 @@ PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &defau
         // default_or_parent_region_config contains parent PrintRegion config, which already contains ModelVolume's config.
     }
     apply_to_print_region_config(config, volume.config.get(), feature_overrides, variant_index);
-    if (! volume.material_id().empty())
-        apply_to_print_region_config(config, volume.material()->config.get(), feature_overrides, variant_index);
+    if (const ModelMaterial* material = volume.material(); material != nullptr)
+        apply_to_print_region_config(config, material->config.get(), feature_overrides, variant_index);
     if (layer_range_config != nullptr) {
         // Not applicable to modifiers.
         assert(volume.is_model_part());

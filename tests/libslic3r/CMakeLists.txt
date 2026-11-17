@@ -28,6 +28,7 @@ add_executable(${_TEST_NAME}_tests
     test_clipper_offset.cpp
     test_clipper_utils.cpp
     test_cut_connectors.cpp
+    test_cut.cpp
     test_config.cpp
     test_config_variant_expansion.cpp
     test_locales_utils.cpp
@@ -51,6 +52,7 @@ add_executable(${_TEST_NAME}_tests
     test_infill_factory.cpp
     test_adaptive_infill_field.cpp
     test_geometry.cpp
+    test_measure.cpp
     test_kdtree.cpp
     test_lightning.cpp
     test_imex_arrange.cpp
@@ -65,6 +67,7 @@ add_executable(${_TEST_NAME}_tests
     test_minimum_spanning_tree.cpp
     test_nozzle_volume_type.cpp
     test_obj.cpp
+    test_painted_modifier.cpp
     test_step.cpp
     test_stl.cpp
     test_triangle_mesh_deal.cpp
@@ -83,6 +86,7 @@ add_executable(${_TEST_NAME}_tests
     test_wipe_tower_estimate.cpp
     test_wipe_tower.cpp
     test_wipe_path.cpp
+    test_slicing.cpp
     test_optimizers.cpp
     test_ordering_strategies.cpp
     test_parameter_utils.cpp
