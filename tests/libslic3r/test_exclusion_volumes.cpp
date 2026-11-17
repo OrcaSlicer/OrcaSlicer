@@ -102,7 +102,7 @@ TEST_CASE("Legacy exclusion polygons keep their point representation", "[Exclusi
     CHECK_FALSE(is_bed_exclusion_volume_syntax(option.serialize()));
 }
 
-TEST_CASE("Excluded bed areas require simple polygons", "[ExclusionVolume][PrintConfig][Regression]")
+TEST_CASE("Excluded bed areas reject crossing polygons", "[ExclusionVolume][PrintConfig][Regression]")
 {
     ConfigOptionPoints self_intersecting;
     REQUIRE(self_intersecting.deserialize("0x0,6x0,1x220,6x220"));
@@ -115,6 +115,12 @@ TEST_CASE("Excluded bed areas require simple polygons", "[ExclusionVolume][Print
     ConfigOptionPoints zero_area;
     REQUIRE(zero_area.deserialize("0x0,6x0,0x220,6x220"));
     CHECK_FALSE(is_valid_bed_exclude_area(zero_area.values));
+
+    ConfigOptionPoints legacy_compound;
+    REQUIRE(legacy_compound.deserialize(
+        "0x0,3x0,3x420,0x420,0x0,423x0,423x0,423x0,"
+        "423x0,426x0,426x420,423x420,423x0,0x0,0x0,0x0"));
+    CHECK(is_valid_bed_exclude_area(legacy_compound.values));
 
     ConfigOptionPoints valid;
     REQUIRE(valid.deserialize("0x0,6x0,6x220,0x220"));
