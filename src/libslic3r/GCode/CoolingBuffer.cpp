@@ -656,6 +656,7 @@ std::vector<std::string> CoolingBuffer::finish_deferred()
         layer.gcode.shrink_to_fit();
     }
     return out;
+}
 
 // The kind of a line that sets a limit the time estimate follows, such as "M204 P T" or "SET_VELOCITY_LIMIT ACCEL",
 // from its command and parameter names; empty for any other line.
