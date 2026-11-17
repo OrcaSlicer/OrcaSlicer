@@ -1,12 +1,21 @@
-# Unit: Minimal rendering (native PowerShell, <100 lines)
-# No external deps, works in PS 5.1+, outputs clean CI-friendly text
+# Unit: Console rendering. Native PowerShell only: no Spectre, no Python, no CSV.
+# Sparklines turn the samples collected by native.ps1 into a readable shape.
 
-$script:RenderStarted = Get-Date
+# Block glyphs are single bytes in UTF-8 but multi-byte in the OEM code page that
+# PS 5.1 defaults to when stdout is redirected, which is how CI captures it.
+try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch { }
+
+function Get-TimeStamp {
+    param([datetime]$Since)
+    if (-not $Since) { $Since = $global:BuildStarted }
+    if (-not $Since) { $Since = Get-Date }
+    $span = (Get-Date) - $Since
+    return "{0}:{1:00}:{2:00}" -f [math]::Floor($span.TotalHours), ([math]::Floor($span.TotalMinutes) % 60), [math]::Round($span.Seconds)
+}
 
 function Write-Step {
     param([string]$Text)
-    $ts = Get-TimeStamp
-    Write-Host "[$ts] $Text"
+    Write-Host "[$(Get-TimeStamp)] $Text"
 }
 
 function Write-Status {
@@ -15,48 +24,42 @@ function Write-Status {
         [string]$Text,
         [string]$Color = "DarkGray"
     )
-    Write-Host ("  {0,-9} {1}" -f "[$Tag]", $Text) -ForegroundColor $Color
+    Write-Host ("  {0,-10} {1}" -f "[$Tag]", $Text) -ForegroundColor $Color
 }
 
-function Write-ErrorLine {
-    param([string]$Text)
-    Write-Host "  [ERR] $Text" -ForegroundColor Red
+function Format-Duration {
+    param([TimeSpan]$Span)
+    if ($Span.TotalHours -ge 1) { return "{0}:{1:00}:{2:00}" -f [math]::Floor($Span.TotalHours), $Span.Minutes, $Span.Seconds }
+    if ($Span.TotalMinutes -ge 1) { return "{0}m {1:00}s" -f [math]::Floor($Span.TotalMinutes), $Span.Seconds }
+    return "{0}s" -f [math]::Round($Span.TotalSeconds)
 }
 
-function Write-WarningLine {
-    param([string]$Text)
-    Write-Host "  [WARN] $Text" -ForegroundColor Yellow
-}
-
-function Show-BuildMetrics {
-    param([hashtable]$Timing)
-    if (-not $Timing -or $Timing.Count -eq 0) { return }
-
-    $fmt = {
-        param($t)
-        $h = [math]::Floor($t.TotalHours)
-        $m = [math]::Floor($t.TotalMinutes) % 60
-        $s = [math]::Round($t.Seconds)
-        if ($h) { "{0}:{1:00}:{2:00}" -f $h, $m, $s }
-        elseif ($m) { "{0}m {1:00}s" -f $m, $s }
-        else { "{0}s" -f $s }
+# Renders values as one block glyph per column. Columns are fixed so the CPU,
+# RAM and disk charts line up; a short build is not stretched to full width.
+function Format-Sparkline {
+    param(
+        [double[]]$Values,
+        [double]$Min = 0,
+        [double]$Max,
+        [int]$Width = 56
+    )
+    if (-not $Values -or $Values.Count -eq 0) { return "" }
+    if (-not $Max -or $Max -le $Min) {
+        $Max = ($Values | Measure-Object -Maximum).Maximum
+        if ($Max -le $Min) { $Max = $Min + 1 }
     }
-
-    Write-Host ""
-    Write-Host "  Total:     $(& $fmt $Timing.Total)" -ForegroundColor Cyan
-    foreach ($k in $Timing.Keys) {
-        if ($k -ne 'Total') {
-            Write-Host "  $($k.PadRight(8)) $(& $fmt $Timing[$k])" -ForegroundColor DarkGray
-        }
+    $ramp = [char[]](0x2581..0x2588)
+    $cols = [math]::Min($Width, $Values.Count)
+    $sb = New-Object System.Text.StringBuilder
+    for ($col = 0; $col -lt $cols; $col++) {
+        $start = [int][math]::Floor($col * $Values.Count / $cols)
+        $end   = [int][math]::Max($start, [math]::Floor(($col + 1) * $Values.Count / $cols) - 1)
+        $avg = ($Values[$start..$end] | Measure-Object -Average).Average
+        $idx = [int][math]::Round((($avg - $Min) / ($Max - $Min)) * 7)
+        if ($idx -lt 0) { $idx = 0 } elseif ($idx -gt 7) { $idx = 7 }
+        [void]$sb.Append($ramp[$idx])
     }
-}
-
-function Get-TimeStamp {
-    $span = (Get-Date) - $script:RenderStarted
-    $h = [math]::Floor($span.TotalHours)
-    $m = [math]::Floor($span.TotalMinutes) % 60
-    $s = [math]::Round($span.Seconds)
-    return "{0}:{1}:{2}" -f $h, $m, $s
+    return $sb.ToString()
 }
 
 function Show-CcacheStats {
@@ -65,21 +68,6 @@ function Show-CcacheStats {
     try {
         & $CcachePath -s | ForEach-Object { Write-Status "ccache" $_ }
     } catch {
-        Write-Status "ccache" "Unavailable: $($_.Exception.Message)" "Yellow"
+        Write-Status "ccache" "unavailable: $($_.Exception.Message)" "Yellow"
     }
-}
-
-# Progress helper
-function Start-BuildProgress {
-    param([string]$Activity, [string]$Status = "")
-    Write-Progress -Activity $Activity -Status $Status -PercentComplete 0
-}
-
-function Update-BuildProgress {
-    param([int]$Percent, [string]$Status = "")
-    Write-Progress -PercentComplete $Percent -Status $Status
-}
-
-function Complete-BuildProgress {
-    Write-Progress -Completed
 }
