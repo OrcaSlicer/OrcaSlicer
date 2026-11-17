@@ -193,8 +193,6 @@ Please refer to the wiki to ensure you're following the latest and most accurate
 
 ## Build on Windows with `build_win.ps1`
 
-The PowerShell build script provides a modern build experience with better parallelism, ccache support, and detailed metrics.
-
 ### Quick Start
 
 ```powershell
