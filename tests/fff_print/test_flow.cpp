@@ -93,3 +93,13 @@ SCENARIO("Flow math for bridges", "[Flow]") {
         }
     }
 }
+
+TEST_CASE("A flow ratio scales the cross-section of a line", "[Flow][Regression]")
+{
+    // At 0.2 mm layers a 0.2 mm line can't get narrower, so a ratio below 1 turns it into a round strand.
+    // A 0.3 mm line narrows instead, and a ratio above 1 grows the line.
+    const auto [width, ratio] = GENERATE(table<float, double>({ { 0.2f, 0.95 }, { 0.2f, 0.5 }, { 0.3f, 0.95 }, { 0.2f, 1.2 } }));
+    const Flow flow(width, 0.2f, 0.2f);
+
+    CHECK_THAT(flow.with_flow_ratio(ratio).mm3_per_mm(), Catch::Matchers::WithinRel(ratio * flow.mm3_per_mm(), 1e-4));
+}
