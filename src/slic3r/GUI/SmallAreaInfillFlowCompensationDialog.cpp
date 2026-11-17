@@ -38,7 +38,7 @@ SmallAreaInfillFlowCompensationDialog::SmallAreaInfillFlowCompensationDialog(
     : CurveEditorDialog(parent, _L("Flow Compensation Model"),
         _L("Drag points on the graph or edit their extrusion length and flow correction factor in the table.\n"
            "Lengths and factors must strictly increase. The first length must be 0 and the last factor must be 1."),
-        {_L("Extrusion length") + " (mm)", _L("Flow correction factor"), 1.0, "1.0", 0.0, 1.0},
+        {_L("Extrusion length (mm)"), _L("Flow correction factor"), 1.0, "1.0", 0.0, 1.0},
         std::make_unique<SmallAreaInfillFlowCompensationModel>(parameters, printer_bed_diagonal()),
         "small_area_infill_flow_compensation_editor")
 {}

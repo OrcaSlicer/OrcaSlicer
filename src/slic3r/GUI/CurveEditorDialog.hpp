@@ -6,14 +6,14 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <wx/dialog.h>
-#include <wx/file.h>
-#include <wx/grid.h>
+#include <wx/gdicmn.h>
 #include <wx/recguard.h>
-#include <wx/strconv.h>
 #include <wx/string.h>
+#include "GUI_Utils.hpp"
 #include "libslic3r/CurveModel.hpp"
 
+class wxFlexGridSizer;
+class wxGrid;
 class wxPanel;
 class wxStaticText;
 class wxTextCtrl;
@@ -25,7 +25,7 @@ class TextInput;
 namespace Slic3r::GUI {
 
 // Reusable presentation and interaction for a wx-independent CurveModel.
-class CurveEditorDialog : public wxDialog
+class CurveEditorDialog : public DPIDialog
 {
 public:
     using Rows = CurveModel::Rows;
@@ -34,33 +34,12 @@ public:
     bool is_modified() const { return m_model->is_modified(); }
 
 protected:
-    // Escape first abandons only the active cell edit; other dialog changes remain intact.
-    static bool cancel_cell_edit(wxGrid& grid) {
-        if (!grid.IsCellEditControlEnabled()) return false;
-        auto* editor = grid.GetCellEditor(grid.GetGridCursorRow(), grid.GetGridCursorCol());
-        editor->Reset();
-        editor->DecRef();
-        grid.DisableCellEditControl();
-        grid.SetFocus();
-        return true;
-    }
-    // The file steps of CSV import and export, apart from the dialogs that choose the path.
-    static bool read_csv_file(const wxString& path, std::string& text) {
-        wxFile file(path);
-        wxString content;
-        if (!file.IsOpened() || !file.ReadAll(&content, wxConvUTF8)) return false;
-        text = content.utf8_string();
-        return true;
-    }
-    // Commit a complete temporary file so a failed write preserves an existing CSV.
-    static bool write_csv_file(const wxString& path, const std::string& text) {
-        wxTempFile file(path);
-        return file.IsOpened() && file.Write(wxString::FromUTF8(text), wxConvUTF8) && file.Commit();
-    }
     // Use a stable, non-localized geometry key for each dialog; an empty key disables persistence.
     CurveEditorDialog(wxWindow* parent, const wxString& title, const wxString& help,
                       const CurveEditorAppearance& appearance, std::unique_ptr<CurveModel> model,
                       std::string geometry_key = {});
+    void on_dpi_changed(const wxRect& suggested_rect) override;
+    void on_sys_color_changed() override;
 
 private:
     void load_points(const Rows& rows);
@@ -98,6 +77,7 @@ private:
     Button* m_export_csv;
     Button* m_ok;
     wxStaticText* m_status;
+    wxFlexGridSizer* m_ranges;
     TextInput* m_range_fields[4];
     wxSpinButton* m_range_arrows[4];
     wxStaticText* m_range_status;
