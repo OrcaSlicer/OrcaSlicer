@@ -3921,7 +3921,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Default"));
     def->enum_labels.push_back(L("Crossing"));
     def->enum_labels.push_back(L("Non-crossing"));
-    def->mode       = comAdvanced;
+    def->mode       = comExpert;
     def->set_default_value(new ConfigOptionEnum<InfillStrategy>(InfillStrategy::Default));
 
     def             = this->add("adaptive_infill_mode", coEnum);
