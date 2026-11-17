@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstddef>
 #include <functional>
+#include <initializer_list>
 #include <limits>
 #include <memory>
 #include <string>
@@ -115,13 +116,32 @@ private:
 #ifdef __WXMSW__
 // Windows gives a window the DPI of the display that has the largest part of it, so a rescaled
 // rect left mostly on another display changes the DPI back. Move it only then, into the display.
-void keep_on_display(wxRect& rect, int display)
+void keep_on_display(wxRect& rect, int display, const wxSize& min_size)
 {
     if (display == wxNOT_FOUND || wxDisplay::GetFromRect(rect) == display)
         return;
     const wxRect area = wxDisplay(unsigned(display)).GetClientArea();
+    // A dialog larger than its display has no use, the content scrolls. A rect that fits the area
+    // is inside it after the clamp, hence owned by the display.
+    rect.SetSize(wxSize(std::max(min_size.x, std::min(rect.width, area.width)),
+                        std::max(min_size.y, std::min(rect.height, area.height))));
     rect.x = std::max(area.x, std::min(rect.x, area.GetRight() + 1 - rect.width));
     rect.y = std::max(area.y, std::min(rect.y, area.GetBottom() + 1 - rect.height));
+    if (wxDisplay::GetFromRect(rect) == display)
+        return;
+    // Only a minimum size larger than the area overflows it, and the left/top aligned rect puts the
+    // overflow on a neighbour that got the largest part. Try the overflow on the other side, which may
+    // have a smaller neighbour or none, keeping the title bar on a display. Else keep left/top.
+    const wxPoint aligned = rect.GetPosition();
+    const wxPoint opposite(rect.width > area.width ? area.GetRight() + 1 - rect.width : aligned.x,
+                           rect.height > area.height ? area.GetBottom() + 1 - rect.height : aligned.y);
+    for (const wxPoint& position : {wxPoint(opposite.x, aligned.y), wxPoint(aligned.x, opposite.y), opposite}) {
+        rect.SetPosition(position);
+        if (position != aligned && wxDisplay::GetFromRect(rect) == display &&
+            wxDisplay::GetFromPoint(wxPoint(std::max(rect.x, area.x), rect.y)) != wxNOT_FOUND)
+            return;
+    }
+    rect.SetPosition(aligned);
 }
 #endif
 
@@ -660,7 +680,7 @@ void CurveEditorDialog::on_dpi_changed(const wxRect&)
     GetSizer()->SetSizeHints(this);
 #ifdef __WXMSW__
     rect.SetSize(wxSize(std::max(rect.width, GetMinSize().x), std::max(rect.height, GetMinSize().y)));
-    keep_on_display(rect, display);
+    keep_on_display(rect, display, GetMinSize());
     SetSize(rect);
 #endif
     Layout();
