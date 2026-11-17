@@ -2,6 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -72,11 +73,12 @@ struct Message
     std::string payload;
 };
 
-// Serves the printer's HTTP API and its websocket on one port.
+// Serves the printer's HTTP API and its websocket on one port. A non-empty file_list answers the G-code file list query.
 class FakeCrealityPrinter
 {
 public:
-    FakeCrealityPrinter(Behavior behavior, std::string model) : m_behavior(behavior), m_model(std::move(model))
+    FakeCrealityPrinter(Behavior behavior, std::string model, std::string file_list = {})
+        : m_behavior(behavior), m_model(std::move(model)), m_file_list(std::move(file_list))
     {
         m_accept_thread = std::thread([this] { accept_loop(); });
     }
@@ -170,6 +172,10 @@ private:
                 m_messages.push_back({ws.got_text(), payload});
             }
             const std::string slots = R"({"boxsInfo":{"materialBoxs":[]}})";
+            if (!m_file_list.empty() && payload.find("reqGcodeFile") != std::string::npos) {
+                ws.write(net::buffer(m_file_list), ec);
+                continue;
+            }
             if (first && m_behavior == Behavior::ReportsNoCfs) {
                 ws.write(net::buffer(std::string(R"({"cfsConnect":0,"nozzleTemp":"25.000000"})")), ec);
                 wait_for_release();
@@ -229,6 +235,7 @@ private:
 
     const Behavior m_behavior;
     const std::string m_model;
+    const std::string m_file_list;
     net::io_context m_accept_ioc;
     tcp::acceptor m_acceptor{m_accept_ioc, {net::ip::make_address("127.0.0.1"), 0}};
     std::atomic<bool> m_stopping{false};
@@ -268,6 +275,7 @@ std::unique_ptr<TestHost> make_host(const FakeCrealityPrinter& printer, std::chr
     host->ws_settings.connect     = deadline;
     host->ws_settings.reply       = deadline;
     host->ws_settings.slots_reply = deadline;
+    host->ws_settings.files_reply = deadline;
     host->ws_settings.close       = deadline;
     return host;
 }
@@ -296,6 +304,18 @@ bool upload_and_print(const CrealityPrint& host, wxString& error, const std::map
     upload.post_action   = PrintHostPostUploadAction::StartPrint;
     upload.extended_info = extended_info;
     return host.upload(upload, [](Http::Progress, bool&) {}, [&](wxString message) { error = message; }, [](wxString, wxString) {});
+}
+
+bool is_file_list_query(const Message& message) { return message.payload.find("reqGcodeFile") != std::string::npos; }
+
+// The start commands, without the G-code file list query and the heartbeat acknowledgement sent on its connection.
+std::vector<Message> start_messages(FakeCrealityPrinter& printer)
+{
+    std::vector<Message> messages = printer.messages();
+    messages.erase(std::remove_if(messages.begin(), messages.end(),
+                                  [](const Message& message) { return is_file_list_query(message) || message.payload == "ok"; }),
+                   messages.end());
+    return messages;
 }
 
 } // namespace
@@ -495,7 +515,8 @@ TEST_CASE("Starting a print gives a silent printer no more than its deadlines", 
 
 TEST_CASE("Starting a print sends each command with the G-code path in a text frame", "[CrealityPrint]")
 {
-    // F008 is a multi-color model and F018 a plain one. K1C, F005 (Ender-3 V3 KE) and F016 (K2 SE) keep their G-code under /usr/data.
+    // The printer never answers the G-code file list query, so the model decides the folder. F008 is a multi-color model and F018
+    // a plain one. K1C, F005 (Ender-3 V3 KE), F016 (K2 SE) and a Nebula Pad on an Ender-3 V2 Neo keep their G-code under /usr/data.
     // Only a mapping onto CFS slots starts a multi-color print; a printer that listed no slots starts plainly.
     const std::map<std::string, std::string> cfs_mapping = {{"enableSelfTest", "0"}, {"colorMatch_0", "T1A\tPLA\t#FF0000\t1\t0"}};
     const auto [model, extended_info, commands, gcode] = GENERATE_REF(table<std::string, std::map<std::string, std::string>, std::vector<std::string>, std::string>({
@@ -503,6 +524,7 @@ TEST_CASE("Starting a print sends each command with the G-code path in a text fr
         {"F008", {}, {"opGcodeFile"}, "printprt:/mnt/UDISK/printer_data/gcodes/test.gcode"},
         {"F018", {}, {"opGcodeFile"}, "printprt:/mnt/UDISK/printer_data/gcodes/test.gcode"},
         {"F005", {}, {"opGcodeFile"}, "printprt:/usr/data/printer_data/gcodes/test.gcode"},
+        {"Ender-3 V2 Neo", {}, {"opGcodeFile"}, "printprt:/usr/data/printer_data/gcodes/test.gcode"},
         {"F016", cfs_mapping, {"colorMatch", "multiColorPrint"}, "/usr/data/printer_data/gcodes/test.gcode"},
         {"K1C", cfs_mapping, {"colorMatch", "multiColorPrint"}, "/usr/data/printer_data/gcodes/test.gcode"},
         {"K1C", {}, {"opGcodeFile"}, "printprt:/usr/data/printer_data/gcodes/test.gcode"},
@@ -511,11 +533,12 @@ TEST_CASE("Starting a print sends each command with the G-code path in a text fr
 
     FakeCrealityPrinter printer(Behavior::Answers, model);
     const auto host = make_host(printer, 5s);
+    host->ws_settings.files_reply = 200ms;
     wxString error;
 
     CHECK(upload_and_print(*host, error, extended_info));
     CHECK(error.empty());
-    const std::vector<Message> messages = printer.messages();
+    const std::vector<Message> messages = start_messages(printer);
     REQUIRE(messages.size() == commands.size());
     for (std::size_t i = 0; i < messages.size(); ++i) {
         CAPTURE(i);
@@ -524,6 +547,41 @@ TEST_CASE("Starting a print sends each command with the G-code path in a text fr
         REQUIRE(params.contains(commands[i]));
         CHECK(params.at(commands[i]).dump().find(gcode) != std::string::npos);
     }
+}
+
+TEST_CASE("Starting a print uses the folder the printer lists its G-code in", "[CrealityPrint]")
+{
+    // K1-family firmware lists "folder:name:..." entries and K2-family firmware files with their path. The list decides over the
+    // model, which would give F018 and the unlisted F099 /mnt/UDISK and K1C /usr/data. Another file gives the folder while the
+    // printer does not list the upload yet, and a list without files leaves the folder to the model.
+    const std::string k1_upload = R"({"retGcodeFileInfo":{"totalNum":1,"fileInfo":"/usr/data/printer_data/gcodes:test.gcode:63301:0.240000:1794188820:109:/tmp/test.png;"}})";
+    const std::string k1_other  = R"({"retGcodeFileInfo":{"totalNum":1,"fileInfo":"/usr/data/printer_data/gcodes:other.gcode:63301:0.240000:1794188820:109:/tmp/other.png;"}})";
+    const std::string k2_upload = R"({"retGcodeFileInfo2":[{"name":"test.gcode","path":"/mnt/UDISK/printer_data/gcodes/test.gcode","type":8}]})";
+    const std::string k2_both   = R"({"retGcodeFileInfo2":[{"name":"other.gcode","path":"/usr/data/printer_data/gcodes/other.gcode","type":8},)"
+                                  R"({"name":"test.gcode","path":"/mnt/UDISK/printer_data/gcodes/test.gcode","type":8}]})";
+    const std::string no_files  = R"({"retGcodeFileInfo2":[]})";
+    const auto [model, file_list, gcode] = GENERATE_REF(table<std::string, std::string, std::string>({
+        {"F099", k1_upload, "/usr/data/printer_data/gcodes/test.gcode"},
+        {"F018", k1_other, "/usr/data/printer_data/gcodes/test.gcode"},
+        {"K1C", k2_upload, "/mnt/UDISK/printer_data/gcodes/test.gcode"},
+        {"K1C", k2_both, "/mnt/UDISK/printer_data/gcodes/test.gcode"},
+        {"F005", no_files, "/usr/data/printer_data/gcodes/test.gcode"},
+        {"F018", no_files, "/mnt/UDISK/printer_data/gcodes/test.gcode"},
+    }));
+    CAPTURE(model, file_list);
+
+    FakeCrealityPrinter printer(Behavior::Answers, model, file_list);
+    const auto host = make_host(printer, 5s);
+    wxString error;
+
+    CHECK(upload_and_print(*host, error));
+    CHECK(error.empty());
+    const std::vector<Message> messages = printer.messages();
+    REQUIRE(messages.size() == 2);
+    CHECK(is_file_list_query(messages[0]));
+    CHECK(messages[0].text);
+    const nlohmann::json params = nlohmann::json::parse(messages[1].payload).at("params");
+    CHECK(params.at("opGcodeFile") == "printprt:" + gcode);
 }
 
 namespace {

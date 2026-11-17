@@ -324,6 +324,74 @@ static std::string ws_query_slots(net::io_context&                      ioc,
     return {};
 }
 
+// Sends the G-code file list query and returns the reply, or nothing when none comes before files_reply.
+static std::string ws_query_file_list(net::io_context& ioc, websocket::stream<beast::tcp_stream>& ws, std::chrono::milliseconds files_reply)
+{
+    const auto deadline = std::chrono::steady_clock::now() + files_reply;
+    beast::get_lowest_layer(ws).expires_at(deadline);
+    ws_send(ioc, ws, json{{"method", "get"}, {"params", {{"reqGcodeFile", 1}}}});
+
+    while (std::chrono::steady_clock::now() < deadline) {
+        beast::flat_buffer buf;
+        const beast::error_code ec = ws_read(ioc, ws, buf);
+        if (ec == beast::error::timeout)
+            break;
+        if (ec)
+            throw beast::system_error{ec};
+        const std::string msg = beast::buffers_to_string(buf.data());
+        if (msg.find("heart_beat") != std::string::npos) {
+            ws_write(ioc, ws, "ok");
+            continue;
+        }
+        if (msg.find("retGcodeFileInfo") != std::string::npos)
+            return msg;
+    }
+    BOOST_LOG_TRIVIAL(warning) << "CrealityPrint: Timed out waiting for the G-code file list";
+    return {};
+}
+
+// Reads the folder above printer_data/gcodes from a reply to reqGcodeFile: the one filename is listed in, else the one any
+// other file is listed in, or nothing when the reply lists no file there. K2-family firmware answers retGcodeFileInfo2,
+// a list of files with their path. K1-family firmware answers retGcodeFileInfo, whose fileInfo holds "folder:name:..."
+// entries separated by ';'.
+static std::string listed_gcode_root(const std::string& reply_text, const std::string& filename)
+{
+    const json reply = json::parse(reply_text, nullptr, false);
+    if (!reply.is_object())
+        return {};
+
+    std::vector<std::string> paths;
+    if (const auto files = reply.find("retGcodeFileInfo2"); files != reply.end() && files->is_array()) {
+        for (const json& file : *files)
+            if (file.is_object() && file.contains("path") && file.at("path").is_string())
+                paths.push_back(file.at("path").get<std::string>());
+    } else if (const auto info = reply.find("retGcodeFileInfo"); info != reply.end() && info->is_object() && info->contains("fileInfo") &&
+               info->at("fileInfo").is_string()) {
+        std::istringstream entries(info->at("fileInfo").get<std::string>());
+        for (std::string entry; std::getline(entries, entry, ';');) {
+            const size_t folder_end = entry.find(':');
+            if (folder_end == std::string::npos)
+                continue;
+            const size_t name_end = entry.find(':', folder_end + 1);
+            paths.push_back(entry.substr(0, folder_end) + '/' +
+                            entry.substr(folder_end + 1, name_end == std::string::npos ? std::string::npos : name_end - folder_end - 1));
+        }
+    }
+
+    const std::string gcodes = "/printer_data/gcodes/";
+    std::string       root;
+    for (const std::string& path : paths) {
+        const size_t at = path.find(gcodes);
+        if (at == std::string::npos)
+            continue;
+        if (path.compare(at + gcodes.size(), std::string::npos, filename) == 0)
+            return path.substr(0, at);
+        if (root.empty())
+            root = path.substr(0, at);
+    }
+    return root;
+}
+
 // The K1 SE closes its side after a reply and K1-family printers after a start command, so a close error is not a failure.
 static void ws_close(net::io_context& ioc, websocket::stream<beast::tcp_stream>& ws, std::chrono::milliseconds timeout)
 {
@@ -331,7 +399,8 @@ static void ws_close(net::io_context& ioc, websocket::stream<beast::tcp_stream>&
     run_until_done(ioc, [&](auto&& handler) { ws.async_close(websocket::close_code::normal, handler); });
 }
 
-// Add a model by its /info value once its firmware is known to keep gcodes under /usr/data; every other model uses /mnt/UDISK.
+// The folder for a printer that lists no G-code file. Add a model by its /info value once its firmware is known to keep gcodes
+// under /usr/data; every other model uses /mnt/UDISK.
 static bool stores_gcode_in_usr_data(const std::string& model)
 {
     static const std::unordered_set<std::string> usr_data_models = {
@@ -341,6 +410,7 @@ static bool stores_gcode_in_usr_data(const std::string& model)
         "F004", // Ender-5 Max
         "F005", // Ender-3 V3 KE
         "F016", // K2 SE
+        "Ender-3 V2 Neo", // Nebula Pad on an Ender-3 V2 Neo
         "K1",
         "K1 Max",
         "K1 Max_CFS-C",
@@ -426,6 +496,26 @@ std::string CrealityPrint::query_boxes_info(bool* no_cfs) const
         return result;
     } catch (std::exception const& e) {
         BOOST_LOG_TRIVIAL(error) << "CrealityPrint: Failed to query boxsInfo: " << e.what();
+        return {};
+    }
+}
+
+// Uses a connection of its own, since the K1 SE closes its side after a reply.
+std::string CrealityPrint::query_gcode_root(const std::string& filename) const
+{
+    try {
+        net::io_context ioc;
+        websocket::stream<beast::tcp_stream> ws{ioc};
+        ws_connect(ioc, ws, m_host, ws_settings.port, ws_settings.connect);
+
+        const std::string root = listed_gcode_root(ws_query_file_list(ioc, ws, ws_settings.files_reply), filename);
+        if (!root.empty())
+            BOOST_LOG_TRIVIAL(info) << "CrealityPrint: The printer lists its G-code under " << root;
+
+        ws_close(ioc, ws, ws_settings.close);
+        return root;
+    } catch (std::exception const& e) {
+        BOOST_LOG_TRIVIAL(error) << "CrealityPrint: Failed to query the G-code file list: " << e.what();
         return {};
     }
 }
@@ -523,9 +613,16 @@ bool CrealityPrint::start_print(wxString &msg, const std::string &filename, cons
     try {
         // Runs before the WebSocket opens and its reply deadline starts, since it can query the
         // printer over HTTP. It also fills m_model.
-        const bool        multi_color = supports_multi_color_print();
-        const std::string data_root   = stores_gcode_in_usr_data(m_model) ? "/usr/data" : "/mnt/UDISK";
-        const std::string gcode_path  = data_root + "/printer_data/gcodes/" + filename;
+        const bool multi_color = supports_multi_color_print();
+        // Starts the file from the folder the printer lists it in, as Creality Print does, since the
+        // folder depends on the printer's board and not on its model. The model decides only when the
+        // printer lists no file.
+        std::string data_root = query_gcode_root(filename);
+        if (data_root.empty()) {
+            data_root = stores_gcode_in_usr_data(m_model) ? "/usr/data" : "/mnt/UDISK";
+            BOOST_LOG_TRIVIAL(info) << "CrealityPrint: The printer lists no G-code file; using " << data_root << " for model " << m_model;
+        }
+        const std::string gcode_path = data_root + "/printer_data/gcodes/" + filename;
 
         net::io_context ioc;
         websocket::stream<beast::tcp_stream> ws{ioc};

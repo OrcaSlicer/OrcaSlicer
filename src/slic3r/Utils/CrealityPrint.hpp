@@ -69,6 +69,7 @@ protected:
         std::chrono::milliseconds connect{std::chrono::seconds(5)};     // Per resolved address tried, then again for the opening handshake
         std::chrono::milliseconds reply{std::chrono::seconds(10)};      // Commands and the replies read after them
         std::chrono::milliseconds slots_reply{std::chrono::seconds(5)}; // The CFS slot query, extended to reply once a status reports a CFS connected
+        std::chrono::milliseconds files_reply{std::chrono::seconds(3)}; // The G-code file list query before a start
         std::chrono::milliseconds close{std::chrono::seconds(3)};       // Closing handshake
     } ws_settings;
 
@@ -83,6 +84,8 @@ private:
 
     std::string make_url(const std::string& path) const;
     bool start_print(wxString& msg, const std::string& filename, const std::map<std::string, std::string>& extended_info) const;
+    // The folder above printer_data/gcodes that the printer lists filename in, or nothing when it lists no file there.
+    std::string query_gcode_root(const std::string& filename) const;
     std::string safe_filename(const std::string& filename) const;
     void query_model() const;
     // Reads /info and caches the model. When msg is not null, it gets a translated error, or on Windows the resolved address.
