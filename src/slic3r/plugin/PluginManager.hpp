@@ -233,11 +233,22 @@ public:
     void unload_cloud_plugins();
     bool is_plugin_loaded(const std::string& plugin_key) const;
     bool is_plugin_load_in_progress(const std::string& plugin_key) const;
+    // True when an in-flight load has been cancelled but its worker has not released the slot yet.
+    // Such a load stays "in progress" for wait_for_all_plugin_loads(), but it is no longer treated
+    // as a live plugin when cancellation is observed. A dialog racing with cancellation may still
+    // appear or remain open, but its answer is discarded unless the commit already won.
+    bool is_plugin_load_cancelled(const std::string& plugin_key) const;
     void wait_for_all_plugin_loads() const;
     bool wait_for_all_plugin_loads(std::chrono::milliseconds timeout) const; // false on timeout
     bool wait_for_plugin_load(const std::string& plugin_key, std::chrono::milliseconds timeout, std::string& error) const;
     bool cancel_plugin_load(const std::string& plugin_key);
     std::string get_plugin_load_error(const std::string& plugin_key) const;
+    // True when a discovered plugin's most recent load attempt failed for an ordinary reason.
+    // Cancelling the load, starting another one, unloading the plugin, installing it again, or
+    // removing its package clears it. A discovery rescan leaves it alone, because a rescan does
+    // not prove the executable package changed. A queued runtime prompt stays actionable in this
+    // state, because approving it saves the grant that lets the retry load succeed.
+    bool is_plugin_load_failed(const std::string& plugin_key) const;
 
     void set_capability_enabled(const PluginCapabilityId& id, bool enabled);
 
@@ -372,6 +383,9 @@ private:
     // wait_for_all_plugin_loads() return early, after which shutdown() unloads everything and
     // GUI_App finalizes the interpreter — leaving the live worker to run Python against it.
     std::unordered_set<std::string> m_cancelled;
+    // Keys whose most recent load attempt failed without being cancelled. Kept separately from
+    // m_load_errors so clearing it never changes the error a load waiter reads.
+    std::unordered_set<std::string> m_failed_loads;
     std::map<std::string, std::string> m_load_errors;
     mutable std::condition_variable m_load_cv;
 

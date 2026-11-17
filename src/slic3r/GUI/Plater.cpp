@@ -1,5 +1,6 @@
 #include "Plater.hpp"
 #include "IllustratedTipPopup.hpp"
+#include "LazyPage.hpp"
 #include "../Utils/NetworkAgent.hpp"
 #include "IPrinterAgent.hpp"
 #include "CalibUtils.hpp"
@@ -83,6 +84,7 @@
 #include "slic3r/GUI/Printer/PrinterFileSystem.h"
 #include "slic3r/GUI/GUI_Geometry.hpp"
 #include "slic3r/GUI/Widgets/DialogButtons.hpp"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
 #include "slic3r/GUI/PrintOptionsDialog.hpp"
 #include "slic3r/GUI/CalibrationPanel.hpp"
 #include "slic3r/GUI/CalibrationWizard.hpp"
@@ -118,6 +120,7 @@
 #include <wx/anybutton.h>
 #include <wx/dcclient.h>
 #include <wx/dcbuffer.h>
+#include <wx/dcgraph.h>
 #include <wx/chartype.h>
 #include <wx/busycursor.h>
 #include <wx/app.h>
@@ -1298,6 +1301,10 @@ std::vector<int> get_min_flush_volumes(const DynamicPrintConfig &full_config, si
         filament_long_retractions_when_cut = filament_long_retractions_when_cut_opt->values;
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": get filament_long_retractions_when_cut from config, size=%1%, values=%2%")%filament_long_retractions_when_cut.size() %filament_long_retractions_when_cut_opt->serialize();
     }
+    // A standalone preset that omits either key leaves it shorter than the filament list; the rest follow
+    // the first filament, as get_at() reads them when slicing.
+    filament_retraction_distance_when_cut.resize(filament_size, filament_retraction_distance_when_cut.empty() ? 18.0 : filament_retraction_distance_when_cut.front());
+    filament_long_retractions_when_cut.resize(filament_size, filament_long_retractions_when_cut.empty() ? 0 : filament_long_retractions_when_cut.front());
 
     for (size_t idx = 0; idx < filament_size; ++idx) {
         int extra_flush_volume = nozzle_volume_val;
@@ -4621,9 +4628,19 @@ void Sidebar::update_mixed_filament_list()
                 wxBufferedPaintDC dc(content_panel);
                 wxSize sz = content_panel->GetClientSize();
 
-                dc.SetBrush(wxBrush(mc_bg));
-                dc.SetPen(wxPen(mc_border, 1));
-                dc.DrawRectangle(0, 0, sz.GetWidth(), sz.GetHeight());
+                dc.SetBackground(wxBrush(StaticBox::GetParentBackgroundColor(content_panel->GetParent())));
+                dc.Clear();
+                if (sz.GetWidth() < 2 || sz.GetHeight() < 2)
+                    return;
+                {
+                    wxGCDC gdc(dc);
+                    wxDC* border_dc = gdc.IsOk() ? static_cast<wxDC*>(&gdc) : &dc;
+                    const int border_width = 1;
+                    border_dc->SetBrush(wxBrush(mc_bg));
+                    border_dc->SetPen(wxPen(mc_border, border_width));
+                    border_dc->DrawRoundedRectangle(0, 0, sz.GetWidth(), sz.GetHeight(),
+                                                    content_panel->FromDIP(StaticBox::InputCornerRadius) - border_width);
+                }
 
                 dc.SetFont(::Label::Body_13);
                 int x = cp_pad;
@@ -11717,6 +11734,10 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
 
     background_process.fff_print()->set_check_multi_filaments_compatibility(wxGetApp().app_config->get("enable_high_low_temp_mixed_printing") == "false");
 
+    // Painted modifiers have no geometry in the scene, the parts they are painted on were moved without them.
+    for (ModelObject *model_object : this->model.objects)
+        model_object->sync_painted_modifiers();
+
     Print::ApplyStatus invalidated;
     const auto& preset_bundle = wxGetApp().preset_bundle;
     if (preset_bundle->get_printer_extruder_count() > 1) {
@@ -17216,6 +17237,7 @@ void Plater::calib_pa(const Calib_Params& params)
     print_config->set_key_value("overhang_reverse", new ConfigOptionBool(false));
     print_config->set_key_value("precise_z_height", new ConfigOptionBool(false));
     print_config->set_key_value("wipe_inward", new ConfigOptionBool(false));
+    print_config->set_key_value("retract_after_outer_wall", new ConfigOptionBool(false));
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
     switch (params.mode) {
         case CalibMode::Calib_PA_Line:
@@ -17636,6 +17658,8 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
         _obj->config.set_key_value("seam_slope_type", new ConfigOptionEnum<SeamScarfType>(SeamScarfType::None));
         _obj->config.set_key_value("gap_fill_target", new ConfigOptionEnum<GapFillTarget>(GapFillTarget::gftNowhere));
         print_config->set_key_value("max_volumetric_extrusion_rate_slope", new ConfigOptionFloat(0));
+        // ORCA: the speeds above are linear, and no calibration mode switches volumetric speeds off here.
+        print_config->set_key_value("enable_volumetric_speeds", new ConfigOptionBool(false));
         // ORCA: request the calibration's special toolpath order (chords first, center spiral
         // last and inside-out) so opposing directions collide into the tactile lip the test
         // reads. The special order only applies while the fill order is Default, so reset the
@@ -18129,6 +18153,7 @@ void Plater::calib_retraction(const Calib_Params& params)
 
     print_config->set_key_value("enable_wrapping_detection", new ConfigOptionBool(false));
     print_config->set_key_value("wipe_inward", new ConfigOptionBool(false));
+    print_config->set_key_value("retract_after_outer_wall", new ConfigOptionBool(false));
 
     float nozzle_diameter = printer_config->option<ConfigOptionFloats>("nozzle_diameter")->get_at(0);
     float layer_height;
@@ -21112,6 +21137,8 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
         }
     }
 
+    for (ModelObject *model_object : p->model.objects)
+        model_object->sync_painted_modifiers();
     bool store_result = Slic3r::store_bbs_3mf(store_params);
     // reset designed info
     if (!has_design_info)
@@ -24655,6 +24682,7 @@ wxMenu* Plater::object_menu()           { return p->menus.object_menu();        
 wxMenu* Plater::part_menu()             { return p->menus.part_menu();              }
 wxMenu* Plater::text_part_menu()        { return p->menus.text_part_menu();         }
 wxMenu* Plater::svg_part_menu()         { return p->menus.svg_part_menu();          }
+wxMenu* Plater::painted_modifier_menu() { return p->menus.painted_modifier_menu();  }
 wxMenu* Plater::sla_object_menu()       { return p->menus.sla_object_menu();        }
 wxMenu* Plater::default_menu()          { return p->menus.default_menu();           }
 wxMenu* Plater::instance_menu()         { return p->menus.instance_menu();          }

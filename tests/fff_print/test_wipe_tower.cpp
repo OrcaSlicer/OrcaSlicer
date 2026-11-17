@@ -958,8 +958,9 @@ TEST_CASE("No final unload is generated when the tower stops short and nothing r
     CHECK(print.wipe_tower_data(2).final_purge->gcode.empty());
 }
 
-// The other ramming condition: a multi-tool printer whose last filament rams on the tower.
-TEST_CASE("The final unload is generated for a short tower when the last filament rams without SEMM", "[WipeTower]")
+// Without SEMM the final purge only rams, with no retraction or parking, so on a short tower it would just
+// print ramming lines in mid-air.
+TEST_CASE("No final unload is generated for a short tower when a toolchanger's last filament rams", "[WipeTower]")
 {
     DynamicPrintConfig config = short_tower_config(false);
     config.set_deserialize_strict({ { "filament_multitool_ramming", "1,1" } });
@@ -967,7 +968,7 @@ TEST_CASE("The final unload is generated for a short tower when the last filamen
     slice_short_tower_cube(print, config);
     REQUIRE(print.wipe_tower_data(2).tool_ordering.back().wipe_tower_partitions == 0);
     REQUIRE(print.wipe_tower_data(2).final_purge);
-    CHECK_FALSE(print.wipe_tower_data(2).final_purge->gcode.empty());
+    CHECK(print.wipe_tower_data(2).final_purge->gcode.empty());
 }
 
 TEST_CASE("A tower printed without a tool change is still validated against the bed", "[WipeTower]")

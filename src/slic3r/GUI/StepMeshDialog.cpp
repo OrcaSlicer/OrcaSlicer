@@ -16,7 +16,6 @@
 #include <wx/gdicmn.h>
 #include <wx/sizer.h>
 #include <wx/slider.h>
-#include <wx/tglbtn.h>
 #include <wx/dcmemory.h>
 #include "GUI_App.hpp"
 #include "I18N.hpp"
@@ -272,13 +271,14 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
 
     bSizer->Add(angle_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, LEFT_RIGHT_PADING);
 
-    // App-styled check boxes, the same as in the AMF and 3MF import dialogs.
+    // Same check boxes as in the AMF and 3MF import dialogs.
     m_split_compound_checkbox = add_import_checkbox(this, *bSizer, _L("Split compound and compsolid into multiple objects"),
                                                     wxGetApp().app_config->get_bool("is_split_compound"), wxLEFT | wxRIGHT | wxTOP, LEFT_RIGHT_PADING);
     if (m_import_options != nullptr) {
-        m_split_compound_checkbox.SetToolTip(_L("Loads each body of a multi-body part separately. Needed to keep the bodies' original names."),
-                                             {{"app_ui/load_single.png", _L("Off")}, {"app_ui/load_assembly.png", _L("On")}});
-        m_split_compound_checkbox.SetValue(m_import_options->split_compound);
+        set_illustrated_tooltip(m_split_compound_checkbox,
+                                _L("Loads each body of a multi-body part separately. Needed to keep the bodies' original names."),
+                                {{"app_ui/load_single.png", _L("Off")}, {"app_ui/load_assembly.png", _L("On")}});
+        m_split_compound_checkbox->SetValue(m_import_options->split_compound);
         m_load_mode = new RadioGroup(this, {_L("Load as an assembly"), _L("Load as a single object (can be split later)")}, wxVERTICAL);
         m_load_mode->SetSelection(m_import_options->load_as_assembly ? 0 : 1);
         m_load_mode->SetRadioIllustratedTooltip(0, _L("The bodies of each group in the file become parts of one object, in their relative positions."),
@@ -288,21 +288,21 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
         bSizer->Add(m_load_mode, 0, wxLEFT | wxRIGHT | wxTOP, LEFT_RIGHT_PADING);
         m_keep_names_checkbox = add_import_checkbox(this, *bSizer, _L("Keep original names"), m_import_options->keep_names,
                                                     wxLEFT | wxRIGHT | wxTOP, LEFT_RIGHT_PADING);
-        m_keep_names_checkbox.SetToolTip(_L("Use the body names stored in the file, when there are any. Needs Split compound for parts with several bodies."));
+        set_illustrated_tooltip(m_keep_names_checkbox, _L("Use the body names stored in the file, when there are any. Needs Split compound for parts with several bodies."));
         m_sort_names_checkbox = add_import_checkbox(this, *bSizer, _L("Sort parts by name"), m_import_options->sort_names,
                                                     wxLEFT | wxRIGHT | wxTOP, LEFT_RIGHT_PADING);
-        m_sort_names_checkbox.SetToolTip(_L("Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."));
+        set_illustrated_tooltip(m_sort_names_checkbox, _L("Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."));
         // The dialog opens with the remembered values; only the user's clicks move the linked option.
-        m_keep_names_checkbox.box->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
+        m_keep_names_checkbox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
             // Body names of a multi-body part exist only after splitting it.
-            if (m_keep_names_checkbox.GetValue())
-                m_split_compound_checkbox.SetValue(true);
+            if (m_keep_names_checkbox->GetValue())
+                m_split_compound_checkbox->SetValue(true);
             e.Skip();
         });
-        m_split_compound_checkbox.box->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
-            if (!m_split_compound_checkbox.GetValue() && m_keep_names_checkbox.GetValue()) {
-                m_keep_names_checkbox.SetValue(false);
-                m_sort_names_checkbox.Enable(false);
+        m_split_compound_checkbox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
+            if (!m_split_compound_checkbox->GetValue() && m_keep_names_checkbox->GetValue()) {
+                m_keep_names_checkbox->SetValue(false);
+                m_sort_names_checkbox->Enable(false);
             }
             e.Skip();
         });
@@ -324,14 +324,14 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
 
     m_save_default_checkbox = add_import_checkbox(this, *bSizer,
         m_import_options ? _L("Remember my choice") : _L("Save these settings as default"), false, wxLEFT | wxRIGHT, LEFT_RIGHT_PADING);
-    m_save_default_checkbox.SetToolTip(_L("If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."));
+    set_illustrated_tooltip(m_save_default_checkbox, _L("If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."));
 
     bSizer->AddSpacer(FromDIP(10));
 
     m_checkbox = add_import_checkbox(this, *bSizer,
         m_import_options ? _L("Don't ask again") : _L("Don't show again"), false, wxLEFT, LEFT_RIGHT_PADING);
     if (m_import_options != nullptr)
-        m_checkbox.SetToolTip(_L("Save these choices and apply them without asking next time. You can show this dialog again in Preferences."));
+        set_illustrated_tooltip(m_checkbox, _L("Save these choices and apply them without asking next time. You can show this dialog again in Preferences."));
 
     wxBoxSizer* bSizer_button = new wxBoxSizer(wxHORIZONTAL);
 
@@ -356,21 +356,21 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
             validate_number_range(linear_input->GetTextCtrl()->GetValue(), 0.001, 0.1)) {
             if (m_import_options != nullptr) {
                 // The callback uses these values now; AppConfig is updated only after batch success.
-                m_import_options->keep_names = m_keep_names_checkbox.GetValue();
-                m_import_options->split_compound = m_split_compound_checkbox.GetValue();
-                m_import_options->sort_names = m_sort_names_checkbox.GetValue();
+                m_import_options->keep_names = m_keep_names_checkbox->GetValue();
+                m_import_options->split_compound = m_split_compound_checkbox->GetValue();
+                m_import_options->sort_names = m_sort_names_checkbox->GetValue();
                 m_import_options->load_as_assembly = m_load_mode->GetSelection() == 0;
-                m_import_options->remember = m_save_default_checkbox.GetValue();
-                m_import_options->dont_ask = m_checkbox.GetValue();
+                m_import_options->remember = m_save_default_checkbox->GetValue();
+                m_import_options->dont_ask = m_checkbox->GetValue();
                 m_import_options->linear_deflection = get_linear_deflection();
                 m_import_options->angle_deflection = get_angle_deflection();
                 m_import_options->chosen = true;
             } else {
-                if (m_checkbox.GetValue()) {
+                if (m_checkbox->GetValue()) {
                     wxGetApp().app_config->set_bool("enable_step_mesh_setting", false);
                 }
-                if (m_save_default_checkbox.GetValue()) {
-                    wxGetApp().app_config->set_bool("is_split_compound", m_split_compound_checkbox.GetValue());
+                if (m_save_default_checkbox->GetValue()) {
+                    wxGetApp().app_config->set_bool("is_split_compound", m_split_compound_checkbox->GetValue());
                     wxGetApp().app_config->set("linear_deflection", float_to_string_decimal_point(get_linear_deflection(), 3));
                     wxGetApp().app_config->set("angle_deflection", float_to_string_decimal_point(get_angle_deflection(), 2));
                 }

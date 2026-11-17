@@ -64,7 +64,7 @@ WORKDIR OrcaSlicer
 RUN ./build_linux.sh -u
 
 # Pinned dependencies in ./deps (OCCT 7.6 with ModelingAlgorithms enabled, OpenCV,
-# OpenVDB, Boost, wxWidgets, ...). This is the long step; it is baked into the image.
+# Boost, wxWidgets, ...). This is the long step; it is baked into the image.
 # -j 12, not the default all-cores: on 2026-08-21 an unbounded deps build plus an unbounded
 # app build put 42 GB of cc1plus on a 62 GB box and OOM-killed the host for 2h28m. 12 keeps
 # the compile fast while leaving the machine usable. Pair with `docker build --memory`.
