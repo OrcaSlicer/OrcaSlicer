@@ -36,36 +36,44 @@ namespace {
 
 wxString toolbar_item_name(const std::string& id)
 {
-    static const std::map<std::string, const char*> names{
-        {TOOLBAR_SEPARATOR_ID, L("Separator")},
-        {"add", L("Add")},
-        {"addplate", L("Add plate")},
-        {"orient", L("Auto orient")},
-        {"arrange", L("Arrange")},
-        {"more", L("Add instance")},
-        {"fewer", L("Remove instance")},
-        {"splitobjects", L("Split to objects")},
-        {"splitvolumes", L("Split to parts")},
-        {"layersediting", L("Variable layer height")},
-        {"move", L("Move")},
-        {"rotate", L("Rotate")},
-        {"scale", L("Scale")},
-        {"flatten", L("Lay on Face")},
-        {"cut", L("Cut")},
-        {"mesh_boolean", L("Mesh Boolean")},
-        {"fdm_supports", L("Support Painting")},
-        {"seam", L("Seam painting")},
-        {"fuzzy_skin", L("Paint-on fuzzy skin")},
-        {"mmu_segmentation", L("Color Painting")},
-        {"painted_modifier", L("Painted modifier")},
-        {"texture_displacement", L("Texture displacement")},
-        {"emboss", L("Emboss")},
-        {"measure", L("Measure")},
-        {"assembly", L("Assembly")},
-        {"brim_ears", L("Brim Ears")},
+    struct Name
+    {
+        const char* text;
+        const char* context = nullptr;
+    };
+    // Same msgids and contexts as the toolbar tooltips and gizmo names, so both read the same when translated.
+    static const std::map<std::string, Name> names{
+        {TOOLBAR_SEPARATOR_ID, {L("Separator")}},
+        {"add", {L("Add")}},
+        {"addplate", {L("Add plate")}},
+        {"orient", {L("Auto orient")}},
+        {"arrange", {L("Arrange")}},
+        {"more", {L("Add instance")}},
+        {"fewer", {L("Remove instance")}},
+        {"splitobjects", {L("Split to objects")}},
+        {"splitvolumes", {L("Split to parts")}},
+        {"layersediting", {L("Variable layer height")}},
+        {"move", {L("Move")}},
+        {"rotate", {L("Rotate")}},
+        {"scale", {L_CONTEXT("Scale", "Verb"), "Verb"}},
+        {"flatten", {L("Lay on Face")}},
+        {"cut", {L_CONTEXT("Cut", "Cut tool"), "Cut tool"}},
+        {"mesh_boolean", {L("Mesh Boolean")}},
+        {"fdm_supports", {L("Support Painting")}},
+        {"seam", {L("Seam painting")}},
+        {"fuzzy_skin", {L("Paint-on fuzzy skin")}},
+        {"mmu_segmentation", {L("Color Painting")}},
+        {"painted_modifier", {L("Painted modifier")}},
+        {"texture_displacement", {L("Texture displacement")}},
+        {"emboss", {L("Emboss")}},
+        {"measure", {L("Measure")}},
+        {"assembly", {L_CONTEXT("Assemble", "Assembly tool"), "Assembly tool"}},
+        {"brim_ears", {L("Brim Ears")}},
     };
     const auto it = names.find(id);
-    return it != names.end() ? I18N::translate(it->second) : wxString::FromUTF8(id);
+    if (it == names.end())
+        return wxString::FromUTF8(id);
+    return it->second.context != nullptr ? I18N::translate(it->second.text, it->second.context) : I18N::translate(it->second.text);
 }
 
 class ToolbarCustomizeDialog : public DPIDialog
