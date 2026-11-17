@@ -85,16 +85,22 @@ void release_automatic_touchpad_input()
 #endif
 
 #ifndef __WXOSX__
-#ifdef __WXGTK__
-// GTK's pan recognizers also fire for a left-button drag, which would pan the view from an empty
-// plot area, while two-finger scrolling arrives as scroll events. Only the pinch needs a gesture.
-constexpr int touch_gestures = wxTOUCH_ZOOM_GESTURE;
-#else
 constexpr int touch_gestures = wxTOUCH_PAN_GESTURES | wxTOUCH_ZOOM_GESTURE;
-#endif
 #endif
 
 #ifdef __WXGTK__
+// GTK's pan recognizers also fire for a left-button drag, which must not pan the view from an empty
+// plot area as a finger on a touchscreen does. GTK reports a pan while it dispatches the pointer or
+// touch event that moved it, so that event names the device. A pan event that arrives outside
+// such a dispatch was sent by the program and follows no mouse.
+bool gtk_pan_from_touchscreen()
+{
+    const auto event = std::unique_ptr<GdkEvent, decltype(&gdk_event_free)>(gtk_get_current_event(), gdk_event_free);
+    if (!event) return true;
+    auto* device = gdk_event_get_source_device(event.get());
+    return device && gdk_device_get_source(device) == GDK_SOURCE_TOUCHSCREEN;
+}
+
 #if GTK_CHECK_VERSION(3, 20, 0)
 bool gtk_has_touchpad()
 {
@@ -338,10 +344,14 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
     Bind(wxEVT_GESTURE_PAN, [this](wxPanGestureEvent& event) {
         if ((!m_touchpad_controls && !m_automatic_touchpad_controls) || !on_pan) { event.Skip(); return; }
         // A gesture runs from an accepted start to its end. One that starts during a mouse drag
-        // is ignored as a whole, so it cannot take over halfway when the drag ends.
+        // is ignored as a whole, so it cannot take over halfway when the drag ends. So is one
+        // that GTK recognizes in a drag of anything but a finger on a touchscreen.
         const bool mouse_drag = m_dragged_point >= 0 || m_middle_panning;
         if (event.IsGestureStart()) {
             m_pan_gesture_active = !mouse_drag;
+#ifdef __WXGTK__
+            m_pan_gesture_active = m_pan_gesture_active && gtk_pan_from_touchscreen();
+#endif
             if (m_pan_gesture_active) cancel_pan();
         }
         if (m_pan_gesture_active && !mouse_drag && !m_zoom_gesture_active) {

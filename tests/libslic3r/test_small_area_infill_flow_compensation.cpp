@@ -113,6 +113,34 @@ TEST_CASE("One-line point text imports with or without a semicolon after the las
     CHECK(rows == CurveModel::Rows{{"0", "0"}, {"5", "0.5"}, {"10", "1"}});
 }
 
+TEST_CASE("Two pairs on the only line import as two points rather than one decimal comma row", "[SmallAreaInfillFlowCompensation][CurveModel][CSV][Regression]")
+{
+    const std::string text = GENERATE(as<std::string>{}, "0,0;10,1", "0,0; 10,1", "\xEF\xBB\xBF" "0,0;10,1\r\n\r\n");
+    FlowModel model;
+    CurveModel::Rows rows;
+    int line = -1;
+    REQUIRE(model.read_csv(text, rows, line) == nullptr);
+    CHECK(rows == CurveModel::Rows{{"0", "0"}, {"10", "1"}});
+}
+
+TEST_CASE("Lines of two decimal comma numbers around a semicolon import as CSV rows", "[SmallAreaInfillFlowCompensation][CurveModel][CSV][Regression]")
+{
+    FlowModel model;
+    CurveModel::Rows rows;
+    int line = -1;
+    REQUIRE(model.read_csv("0,0;0,5\n10,0;1,0\n", rows, line) == nullptr);
+    CHECK(rows == CurveModel::Rows{{"0,0", "0,5"}, {"10,0", "1,0"}});
+    std::vector<double> x, y;
+    int row = -1;
+    REQUIRE(model.read_points(rows, x, y, row) == nullptr);
+    CHECK_THAT(y.front(), WithinAbs(0.5, 1e-12));
+    CHECK_THAT(x.back(), WithinAbs(10.0, 1e-12));
+    // A model that takes a single point keeps such a row on the only line.
+    NonmonotoneModel free_model;
+    REQUIRE(free_model.read_csv("0,5;0,75", rows, line) == nullptr);
+    CHECK(rows == CurveModel::Rows{{"0,5", "0,75"}});
+}
+
 TEST_CASE("CSV headers match in any letter case", "[SmallAreaInfillFlowCompensation][CurveModel][CSV][Regression]")
 {
     const std::string header = GENERATE(as<std::string>{}, "X,Y", "x,Y", "Extrusion_Length,FLOW_CORRECTION_FACTOR", "X;Y");
@@ -142,8 +170,8 @@ TEST_CASE("Accepting a blank saved model unchanged keeps its saved entries", "[S
 
 TEST_CASE("The editor flags entries that slicing reads leniently", "[SmallAreaInfillFlowCompensation][CurveModel][Regression]")
 {
-    const std::string entry = GENERATE(as<std::string>{}, "5", "1,", " ,0.5", "0.2,0.44,x", "5,0.5 mm", "5junk,0.5",
-                                       "0.2,0.4444\n0.4,0.6145");
+    const std::string entry = GENERATE(as<std::string>{}, "5", "1,", " ,0.5", "5,0.5 mm", "5junk,0.5",
+                                       "0.2,0.4444\n0.4,0.6145", "5,0x1p-1", "bad", "bad,", "5,,0.5");
     const FlowModel model({"0,0", entry, "10,1"});
     const auto rows = model.rows();
     REQUIRE(rows.size() == 3);
@@ -151,6 +179,48 @@ TEST_CASE("The editor flags entries that slicing reads leniently", "[SmallAreaIn
     int row = -1;
     CHECK(model.read_points(rows, x, y, row) != nullptr);
     CHECK(row == 1);
+}
+
+TEST_CASE("A saved entry shows its first two fields and no decimal comma", "[SmallAreaInfillFlowCompensation][CurveModel][Regression]")
+{
+    // Slicing reads the first two comma-separated fields of an entry, so the editor must not
+    // take the second and the third one for a number with a decimal comma.
+    struct Entry { std::string text; CurveModel::Row row; double x, y; };
+    const auto entry = GENERATE(Entry{"0,0,5", {"0", "0"}, 0.0, 0.0},
+                                Entry{"0, -0,5 ", {"0", "-0"}, 0.0, 0.0},
+                                Entry{"0,0.5,", {"0", "0.5"}, 0.0, 0.5},
+                                Entry{"0,0.44,x", {"0", "0.44"}, 0.0, 0.44});
+    CAPTURE(entry.text);
+    const std::vector<std::string> values = {entry.text, "10,1"};
+    FlowModel model(values);
+    const auto rows = model.rows();
+    REQUIRE(rows == CurveModel::Rows{entry.row, {"10", "1"}});
+    std::vector<double> x, y;
+    int row = -1;
+    REQUIRE(model.read_points(rows, x, y, row) == nullptr);
+    CHECK_THAT(x.front(), WithinAbs(entry.x, 1e-12));
+    CHECK_THAT(y.front(), WithinAbs(entry.y, 1e-12));
+    // Unchanged, the entry stays as saved; a typed decimal comma is saved as a point.
+    model.accept_rows(rows);
+    CHECK(model.parameters() == values);
+    CHECK_FALSE(model.is_modified());
+    model.accept_rows({{"0", "0,5"}, {"10", "1"}});
+    CHECK(model.parameters() == std::vector<std::string>{"0,0.5", values[1]});
+}
+
+TEST_CASE("A middle entry with more than two fields reads as its first two", "[SmallAreaInfillFlowCompensation][CurveModel][Regression]")
+{
+    const FlowModel model({"0,-1", "5,0,9", "0.2,0.44,x", "10,1"});
+    const auto rows = model.rows();
+    REQUIRE(rows == CurveModel::Rows{{"0", "-1"}, {"5", "0"}, {"0.2", "0.44"}, {"10", "1"}});
+    std::vector<double> x, y;
+    int row = -1;
+    // The lengths 5 and 0.2 are out of order, which the editor reports as slicing does.
+    CHECK(model.read_points(rows, x, y, row) != nullptr);
+    CHECK(row == 2);
+    REQUIRE(model.read_points({rows[0], rows[1], rows[3]}, x, y, row) == nullptr);
+    CHECK_THAT(x[1], WithinAbs(5.0, 1e-12));
+    CHECK_THAT(y[1], WithinAbs(0.0, 1e-12));
 }
 
 TEST_CASE("A point is added beside a lone point", "[SmallAreaInfillFlowCompensation][CurveModel][Regression]")
@@ -436,7 +506,8 @@ TEST_CASE("Malformed flow model points remain visible for repair", "[SmallAreaIn
     CHECK(rows[0] == FlowModel::Row{"missing separator", ""});
     CHECK(rows[1] == FlowModel::Row{"", "0.5"});
     CHECK(rows[2] == FlowModel::Row{"2", ""});
-    CHECK(rows[3] == FlowModel::Row{"3", "0.8,extra"});
+    // Slicing reads nothing past the second field, so it is no part of the point.
+    CHECK(rows[3] == FlowModel::Row{"3", "0.8"});
 }
 
 TEST_CASE("Editing a flow model point normalizes decimal commas and preserves other points", "[SmallAreaInfillFlowCompensation]")
