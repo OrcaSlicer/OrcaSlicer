@@ -378,7 +378,8 @@ public:
     // ORCA: user-chosen tab order, as page ids. Pages listed here are inserted at their place in it.
     void SetPageOrder(std::vector<wxString> order) { m_pageOrder = std::move(order); }
     const std::vector<wxString>& GetPageOrder() const { return m_pageOrder; }
-    // Position of `id` in the page order, or SIZE_MAX when it has none.
+    // Position of `id` in the page order, or SIZE_MAX when it has none. Pages without one (a newly
+    // installed plugin) go where they are inserted, which for plugin pages is the end of the bar.
     size_t GetPageRank(const wxString& id) const { return PageRank(m_pageOrder, id); }
     static size_t PageRank(const std::vector<wxString>& order, const wxString& id)
     {
@@ -389,11 +390,11 @@ public:
     // ORCA: plugin pages are named "plugin.<plugin key>.<page name>" (PluginPages::page_tab_id()).
     static bool IsPluginPageId(const wxString& id) { return id.StartsWith("plugin."); }
 
-    // ORCA: moves page `from` towards `to` and returns where it landed. Plugin pages stay after the
-    // built-in ones, so the plugin overflow button stays next to them.
-    size_t MovePage(size_t from, size_t to);
+    // ORCA: moves page `from` to `to`; built-in and plugin pages share one order.
+    void MovePage(size_t from, size_t to);
     // ORCA: makes the page order match the tab bar. Pages not in the bar now (a plugin page behind
-    // the overflow button, a printer-specific tab) keep their place before the page they preceded.
+    // the overflow button, a printer-specific tab) keep their place before the page they preceded,
+    // or go last when nothing followed them.
     void RememberPageOrder() { m_pageOrder = MergePageOrder(m_pageOrder, m_pageNames); }
     static std::vector<wxString> MergePageOrder(const std::vector<wxString>& order, const std::vector<wxString>& page_names);
     // Where page `id`, asked for at `n` among `page_names`, goes so the pages keep `order`.

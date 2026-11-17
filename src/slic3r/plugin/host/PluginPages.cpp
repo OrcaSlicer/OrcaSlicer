@@ -183,8 +183,9 @@ void PluginPages::initialize(Notebook* parent)
 
 void PluginPages::shutdown()
 {
-    // Removing the selected tab selects the tab to its left. In tab order that is a built-in tab,
-    // never an unbuilt plugin page that is removed next and would be built only to be destroyed.
+    // Removing the selected tab selects the tab to its left. m_order is in tab order, so the plugin
+    // tabs to its left are gone by then and that is a built-in tab, not an unbuilt plugin page that
+    // is removed next and would be built only to be destroyed.
     for (const PluginCapabilityId& id : std::vector<PluginCapabilityId>(m_order))
         remove_page(id);
     m_parent = nullptr;
@@ -343,17 +344,13 @@ void PluginPages::relayout()
     }
 
     // MainFrame::show_device() relayouts on every printer change and most of those change
-    // nothing, so only touch the notebook when the trailing slots don't already spell out
-    // tab_ids — a rebuild destroys and recreates every tab button and rasterizes every icon.
-    const size_t page_count = m_parent->GetPageCount();
-    bool up_to_date = page_count >= tab_ids.size();
-    for (size_t i = 0; up_to_date && i < tab_ids.size(); ++i)
-        up_to_date = m_parent->GetPageName(page_count - tab_ids.size() + i) == page_tab_id(tab_ids[i]);
+    // nothing, so only touch the notebook when the pages in it are not already tab_ids — a
+    // rebuild destroys and recreates every tab button and rasterizes every icon. Where each tab
+    // sits is the notebook's page order, which the user can mix with the built-in tabs.
+    bool up_to_date = true;
     for (const auto& [id, entry] : m_pages) {
-        if (!up_to_date)
-            break;
         const bool wanted = std::find(tab_ids.begin(), tab_ids.end(), id) != tab_ids.end();
-        up_to_date = entry.page->in_book() == wanted;
+        up_to_date = up_to_date && entry.page->in_book() == wanted;
     }
 
     if (!up_to_date) {
@@ -370,6 +367,7 @@ void PluginPages::relayout()
             }
         }
 
+        // Notebook::InsertPage() moves a page with a place in the saved order to that place.
         for (const auto& id : tab_ids) {
             const Page& entry = m_pages.at(id);
             m_parent->InsertPage(m_parent->GetPageCount(), page_tab_id(id), entry.page, wxString::FromUTF8(id.name), "",

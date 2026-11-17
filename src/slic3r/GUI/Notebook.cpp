@@ -404,8 +404,10 @@ void ButtonsListCtrl::OnDragMotion(wxMouseEvent& evt)
         // Move once the pointer would be over the dragged tab after the move. Tabs differ in
         // width (icon-only ones), and moving earlier would swap them back and forth.
         const bool past = static_cast<int>(i) > m_drag_at ? x > rect.GetRight() - width : x < rect.GetLeft() + width;
-        if (past)
-            m_drag_at = static_cast<int>(static_cast<Notebook*>(GetParent())->MovePage(m_drag_at, i));
+        if (past) {
+            static_cast<Notebook*>(GetParent())->MovePage(m_drag_at, i);
+            m_drag_at = static_cast<int>(i);
+        }
         break;
     }
 }
@@ -447,17 +449,11 @@ void ButtonsListCtrl::EndDrag(bool commit)
 //#endif // _WIN32
 
 // ORCA
-size_t Notebook::MovePage(size_t from, size_t to)
+void Notebook::MovePage(size_t from, size_t to)
 {
     const size_t count = GetPageCount();
-    if (from >= count || to >= count)
-        return from;
-
-    const bool plugin = IsPluginPageId(GetPageName(from));
-    while (to != from && IsPluginPageId(GetPageName(to)) != plugin)
-        to > from ? --to : ++to;
-    if (to == from)
-        return from;
+    if (from == to || from >= count || to >= count)
+        return;
 
     auto move = [from, to](auto& items) {
         auto item = items[from];
@@ -476,7 +472,6 @@ size_t Notebook::MovePage(size_t from, size_t to)
         ++m_selection;
 
     GetBtnsListCtrl()->MovePage(from, to);
-    return to;
 }
 
 // ORCA
@@ -487,21 +482,11 @@ std::vector<wxString> Notebook::MergePageOrder(const std::vector<wxString>& old_
         if (!name.empty())
             order.push_back(name);
 
-    // Back to front, so the page that came next in the old order is already placed. Without one
-    // in the same group, the page goes to the end of its group: a plugin page behind the overflow
-    // button stays behind it, a built-in tab stays ahead of the plugin tabs.
-    for (size_t k = old_order.size(); k-- > 0;) {
-        const wxString& id = old_order[k];
-        if (std::find(order.begin(), order.end(), id) != order.end())
-            continue;
-        const bool plugin = IsPluginPageId(id);
-        auto       pos    = k + 1 < old_order.size() && IsPluginPageId(old_order[k + 1]) == plugin ?
-                                std::find(order.begin(), order.end(), old_order[k + 1]) :
-                                std::find_if(order.begin(), order.end(), [plugin](const wxString& other) {
-                                    return !plugin && IsPluginPageId(other);
-                                });
-        order.insert(pos, id);
-    }
+    // Back to front, so the page that came next in the old order is already placed.
+    for (size_t k = old_order.size(); k-- > 0;)
+        if (std::find(order.begin(), order.end(), old_order[k]) == order.end())
+            order.insert(k + 1 < old_order.size() ? std::find(order.begin(), order.end(), old_order[k + 1]) : order.end(),
+                         old_order[k]);
     return order;
 }
 
