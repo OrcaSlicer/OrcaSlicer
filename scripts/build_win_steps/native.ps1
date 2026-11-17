@@ -82,12 +82,16 @@ function New-BuildLogPath {
     return (Join-Path $logDir ("{0}-{1}.log" -f (Get-Date -Format "yyyyMMdd-HHmmss"), $Name))
 }
 
-# Resource sampling. The sampler runs in a background job because the parent is
-# blocked inside the compiler invocation. A job cannot write to the parent's
-# variables - it is a separate process - so samples travel back through the job
-# output stream and are drained on stop.
+# Resource sampling, split by tool.
+#
+# The sampler runs in a background job because the parent is blocked inside the
+# compiler call, and a job cannot write the parent's variables - it is a separate
+# process - so samples come back through the job output stream and are drained on
+# stop. Counting only the build-tree executables is what separates "the compiler
+# used 9 cores" from "the machine was 40% busy"; machine-wide counters cannot.
 $global:ResourceMonitorJob = $null
 $global:ResourceSamples = @()
+$global:ResourceCategories = @('compiler', 'linker', 'build', 'ccache')
 
 function Start-ResourceMonitor {
     param([int]$IntervalSeconds = 15)
@@ -95,27 +99,107 @@ function Start-ResourceMonitor {
     $global:ResourceMonitorStarted = $true
 
     $global:ResourceMonitorJob = Start-Job -ScriptBlock {
-        param($interval)
+        param($reportInterval)
+
+        $toolCategory = @{
+            'clang-cl' = 'compiler'; 'clang' = 'compiler'; 'clang++' = 'compiler'
+            'cl'       = 'compiler'; 'llvm-rc' = 'compiler'
+            'lld-link' = 'linker';   'link' = 'linker';  'llvm-lib' = 'linker'
+            'ninja'    = 'build';    'cmake' = 'build';  'msbuild' = 'build'
+            'ccache'   = 'ccache'
+        }
+        $categories = @('compiler', 'linker', 'build', 'ccache')
+        $logical = [Environment]::ProcessorCount
+        $totalGb = [math]::Round((Get-CimInstance Win32_OperatingSystem).TotalVisibleMemorySize / 1MB, 1)
+
         $t0 = Get-Date
+        $windowStart = $t0
+        $previousCpu = @{}
+        $accumulated = @{}
+        foreach ($category in $categories) { $accumulated[$category] = 0.0 }
+        $peakRss = 0.0
+        $peakRssBy = @{}
+        foreach ($category in $categories) { $peakRssBy[$category] = 0.0 }
+
         while ($true) {
-            # Win32_Processor reports machine-wide load without the one-second
-            # settle that Get-Counter needs on first call.
-            $cpu  = (Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue | Measure-Object LoadPercentage -Average).Average
-            $os   = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
-            $disk = Get-PSDrive C -ErrorAction SilentlyContinue
-            [pscustomobject]@{
-                Elapsed   = ((Get-Date) - $t0).TotalSeconds
-                CPU       = [double]$cpu
-                RAMUsed   = ($os.TotalVisibleMemorySize - $os.FreePhysicalMemory) / 1MB
-                RAMTotal  = $os.TotalVisibleMemorySize / 1MB
-                DiskFree  = $disk.Free / 1GB
-                DiskTotal = ($disk.Used + $disk.Free) / 1GB
+            try {
+                $now = Get-Date
+                $window = ($now - $windowStart).TotalSeconds
+                $currentCpu = @{}
+                $currentCategory = @{}
+                $currentRss = @{}
+
+                # One enumeration, filtered by name. Asking Get-Process per tool
+                # name costs 13 times as much and still only sees whatever happens
+                # to be alive at that instant.
+                foreach ($process in @(Get-Process -ErrorAction SilentlyContinue)) {
+                    try {
+                        $category = $toolCategory[$process.ProcessName]
+                        if (-not $category) { continue }
+                        $processId = [int]$process.Id
+                        $currentCpu[$processId] = if ($null -ne $process.CPU) { [double]$process.CPU } else { 0.0 }
+                        $currentCategory[$processId] = $category
+                        $currentRss[$processId] = [double]$process.WorkingSet64
+                    } catch {
+                        # The process can exit between enumeration and the read.
+                    }
+                }
+
+                foreach ($processId in $currentCpu.Keys) {
+                    $last = $previousCpu[$processId]
+                    # A process that appeared mid-window has no earlier counter, so
+                    # only the part of its lifetime inside the window counts.
+                    $delta = if ($null -eq $last) { [math]::Min($currentCpu[$processId], [math]::Max(0.0, $window)) }
+                             elseif ($currentCpu[$processId] -ge $last) { $currentCpu[$processId] - $last }
+                             else { 0.0 }
+                    if ($delta -gt 0) { $accumulated[$currentCategory[$processId]] += $delta }
+                }
+
+                $rssNow = 0.0
+                $rssBy = @{}
+                foreach ($category in $categories) { $rssBy[$category] = 0.0 }
+                foreach ($processId in $currentRss.Keys) {
+                    $rssNow += $currentRss[$processId]
+                    $rssBy[$currentCategory[$processId]] += $currentRss[$processId]
+                }
+                # Freeze the split at the peak instant: taking it at report time
+                # would mix instants and the parts would not add up to the total.
+                if ($rssNow -gt $peakRss) {
+                    $peakRss = $rssNow
+                    foreach ($category in $categories) { $peakRssBy[$category] = $rssBy[$category] }
+                }
+
+                if ($window -ge $reportInterval) {
+                    $cores = @()
+                    foreach ($category in $categories) {
+                        # Cores, not percent: 400% on 8 cores is unreadable, 4.0 is not.
+                        $cores += [math]::Max(0.0, $accumulated[$category] / $window)
+                    }
+                    [pscustomobject]@{
+                        Elapsed = ($now - $t0).TotalSeconds
+                        Cores   = $cores
+                        RssGb   = $peakRss / 1GB
+                        RssBy   = @($categories | ForEach-Object { $peakRssBy[$_] / 1GB })
+                        TotalGb = $totalGb
+                        Logical = $logical
+                    }
+                    $windowStart = $now
+                    foreach ($category in $categories) { $accumulated[$category] = 0.0 }
+                    $peakRss = 0.0
+                    foreach ($category in $categories) { $peakRssBy[$category] = 0.0 }
+                }
+                $previousCpu = $currentCpu
+            } catch {
+                # Sampling must never fail the build.
             }
-            Start-Sleep -Seconds $interval
+            # A compile can live 200 ms, so the sampling tick has to be well under
+            # that or the process is never seen and its CPU goes uncounted. The
+            # report interval is unrelated: it only sets chart resolution.
+            Start-Sleep -Milliseconds 250
         }
     } -ArgumentList $IntervalSeconds
 
-    Write-Status "sampler" "CPU, RAM and disk every ${IntervalSeconds}s"
+    Write-Status "sampler" "build-tree CPU and RAM every ${IntervalSeconds}s"
 }
 
 function Stop-ResourceMonitor {
@@ -130,34 +214,50 @@ function Stop-ResourceMonitor {
 
 function Show-ResourceSummary {
     $samples = @($global:ResourceSamples | Where-Object { $null -ne $_ })
-    if ($samples.Count -eq 0) {
-        # Only worth a line when the sampler actually ran; a failure before step 4
-        # never started it.
-        if ($global:ResourceMonitorStarted) { Write-Status "sampler" "no samples collected" "Yellow" }
-        return
-    }
+    if ($samples.Count -eq 0) { return }
 
-    $cpu = @($samples | ForEach-Object { [double]$_.CPU })
-    $ram = @($samples | ForEach-Object { [double]$_.RAMUsed })
-    $dsk = @($samples | ForEach-Object { [double]$_.DiskFree })
     $last = $samples[-1]
+    $logical = [math]::Max(1.0, [double]$last.Logical)
+    $totalGb = [double]$last.TotalGb
+
     $header = if ($samples.Count -gt 1) {
-        # Query latency makes the real gap larger than the requested interval.
-        $gap = ($last.Elapsed - $samples[0].Elapsed) / ($samples.Count - 1)
-        "  Resource use ({0} samples, {1:N0}s apart)" -f $samples.Count, $gap
+        "  Resource use ({0} samples, {1:N0}s apart)" -f $samples.Count, (($last.Elapsed - $samples[0].Elapsed) / ($samples.Count - 1))
     } else {
         "  Resource use (1 sample)"
     }
 
+    # Every CPU row shares the 0..logical scale, so a tool's shape can be read
+    # against the total instead of needing its own axis.
+    $cores = @($samples | ForEach-Object { ($_.Cores | Measure-Object -Sum).Sum })
+    $rss = @($samples | ForEach-Object { [double]$_.RssGb })
+
     Write-Host ""
     Write-Host $header -ForegroundColor Cyan
 
-    Write-Host ("  CPU    avg {0:N0}%  peak {1:N0}%" -f ($cpu | Measure-Object -Average).Average, ($cpu | Measure-Object -Maximum).Maximum)
-    Write-Host ("         " + (Format-Sparkline -Values $cpu -Min 0 -Max 100)) -ForegroundColor DarkGray
+    Write-Host ("  CPU    avg {0:N1}  peak {1:N1} of {2:N0} cores" -f `
+        ($cores | Measure-Object -Average).Average, ($cores | Measure-Object -Maximum).Maximum, $logical)
+    Write-Host ("    total    " + (Format-Sparkline -Values $cores -Min 0 -Max $logical)) -ForegroundColor Cyan
 
-    Write-Host ("  RAM    peak {0:N1} of {1:N1} GB" -f ($ram | Measure-Object -Maximum).Maximum, $last.RAMTotal)
-    Write-Host ("         " + (Format-Sparkline -Values $ram -Min 0 -Max $last.RAMTotal)) -ForegroundColor DarkGray
+    # Share is over the whole run, not the peak: a tool can own the peak instant
+    # and still be minor overall, and that is what the split is asked about.
+    $coreSum = ($cores | Measure-Object -Sum).Sum
+    for ($i = 0; $i -lt $global:ResourceCategories.Count; $i++) {
+        $values = @($samples | ForEach-Object { [double]$_.Cores[$i] })
+        $peak = ($values | Measure-Object -Maximum).Maximum
+        if ($peak -lt 0.05) { continue }
+        $share = if ($coreSum -gt 0) { 100 * ($values | Measure-Object -Sum).Sum / $coreSum } else { 0 }
+        Write-Host ("    {0,-8} {1,4:N1} cores {2,3:N0}%  {3}" -f $global:ResourceCategories[$i], $peak, $share, (Format-Sparkline -Values $values -Min 0 -Max $logical)) -ForegroundColor DarkGray
+    }
 
-    Write-Host ("  Disk   min {0:N1} of {1:N1} GB free" -f ($dsk | Measure-Object -Minimum).Minimum, $last.DiskTotal)
-    Write-Host ("         " + (Format-Sparkline -Values $dsk -Min 0 -Max $last.DiskTotal)) -ForegroundColor DarkGray
+    Write-Host ("  RAM    peak {0:N1} of {1:N1} GB" -f ($rss | Measure-Object -Maximum).Maximum, $totalGb)
+    Write-Host ("    total    " + (Format-Sparkline -Values $rss -Min 0 -Max $totalGb)) -ForegroundColor Cyan
+
+    $rssSum = ($rss | Measure-Object -Sum).Sum
+    for ($i = 0; $i -lt $global:ResourceCategories.Count; $i++) {
+        $values = @($samples | ForEach-Object { [double]$_.RssBy[$i] })
+        $peak = ($values | Measure-Object -Maximum).Maximum
+        if ($peak -lt 0.05) { continue }
+        $share = if ($rssSum -gt 0) { 100 * ($values | Measure-Object -Sum).Sum / $rssSum } else { 0 }
+        Write-Host ("    {0,-8} {1,4:N1} GB   {2,3:N0}%  {3}" -f $global:ResourceCategories[$i], $peak, $share, (Format-Sparkline -Values $values -Min 0 -Max $totalGb)) -ForegroundColor DarkGray
+    }
 }
