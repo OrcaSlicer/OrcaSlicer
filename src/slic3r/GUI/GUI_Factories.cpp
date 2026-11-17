@@ -115,7 +115,7 @@ std::map<std::string, std::vector<SimpleSettingData>>  SettingsFactory::OBJECT_C
                     {"make_overhang_printable_angle","", 8},{"make_overhang_printable_hole_size","",9}, {"wall_sequence","",10},
                     {"precise_z_height", "",10}
                     }},
-    { L("Support"), {{"brim_type", "",1},{"brim_width", "",2},{"leading_brim_length", "",3},{"extra_brim_width", "",4},{"brim_object_gap", "",5},{"brim_flow_ratio", "",6},{"brim_use_efc_outline", "",7},
+    { L("Support"), {{"brim_type", "",1},{"brim_width", "",2},{"leading_brim_length", "",3},{"extra_brim_width", "",4},{"brim_object_gap", "",5},{"brim_flow_ratio", "",6},{"brim_use_efc_outline", "",7},{"brim_include_supports", "",36},
                     {"enable_support", "",8},{"support_type", "",9},{"support_threshold_angle", "",10}, {"support_threshold_overlap", "",11}, {"support_on_build_plate_only", "",12},
                     {"support_filament", "",13},{"support_interface_filament", "",14},{"support_expansion", "",15},{"support_style", "",16},
                     {"tree_support_brim_width", "",17}, {"tree_support_branch_angle", "",18},{"tree_support_branch_angle_organic","",19}, {"tree_support_wall_count", "",20},{"tree_support_branch_diameter_angle", "",21},//tree support

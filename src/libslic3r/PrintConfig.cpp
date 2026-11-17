@@ -2166,6 +2166,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("brim_include_supports", coBool);
+    def->label = L("Include supports in auto brim");
+    def->category = L("Support");
+    def->tooltip = L("With the Auto brim, also size the brim from the tree support that stands on the build plate, using the height of the whole "
+                     "stack of the support and the object. The Auto brim only looks at the object otherwise, so a tall, thin tree support "
+                     "gets no brim of its own, or the brim of an object that stands on it is too small.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("combine_brims", coBool);
     def->label = L("Combine brims");
     def->category = L("Support");
