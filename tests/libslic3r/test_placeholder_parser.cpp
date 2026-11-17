@@ -7,6 +7,7 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_message.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include "libslic3r/PlaceholderParser.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -108,6 +109,8 @@ SCENARIO("Placeholder parser scripting", "[PlaceholderParser]") {
     // If scarf_joint_speed is set to percent, then it is applied over respective extrusion types by overriding their respective speeds.
     // The PlaceholderParser has no way to know which extrusion type the caller has in mind, therefore it throws.
     SECTION("scarf_joint_speed") { REQUIRE_THROWS(parser.process("{scarf_joint_speed}")); }
+    // seam_gap is a percentage of nozzle_diameter, a per-extruder vector the parser cannot pick an element from.
+    SECTION("seam_gap as a percentage") { REQUIRE_THROWS(parser.process("{seam_gap}")); }
 
     // Test the boolean expression parser.
     auto boolean_expression = [&parser](const std::string& templ) { return parser.evaluate_boolean_expression(templ, parser.config()); };
@@ -398,6 +401,15 @@ SCENARIO("Placeholder parser names in branches that are not taken", "[Placeholde
         // Boolean expressions are not checked, so compatibility conditions keep their behaviour.
         CHECK(PlaceholderParser::evaluate_boolean_expression("false ? no_such_var == 1 : true", config));
     }
+}
+
+TEST_CASE("Placeholder parser returns an absolute seam gap as is", "[PlaceholderParser]") {
+    PlaceholderParser parser;
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({ { "seam_gap", "0.15" } });
+    parser.apply_config(config);
+
+    CHECK_THAT(std::stod(parser.process("{seam_gap}")), Catch::Matchers::WithinAbs(0.15, 1e-9));
 }
 
 TEST_CASE("Placeholder parser deferred values can be printed but not computed with", "[PlaceholderParser]") {

@@ -11,6 +11,11 @@
 #include <algorithm>
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
+#include <wx/brush.h>
+#include <wx/cursor.h>
+#include <wx/pen.h>
+#include <cstddef>
+#include <vector>
 #include <wx/string.h>
 #include <wx/gdicmn.h>
 #include <wx/textctrl.h>
@@ -39,6 +44,9 @@ TextInput::TextInput()
                  std::make_pair(0x6B6B6B, (int) StateColor::Normal))
     , text_color(std::make_pair(0x6B6B6B, (int) StateColor::Disabled),
                  std::make_pair(0x262E30, (int) StateColor::Normal))
+    , unit_track_color(std::make_pair(0xF0F0F1, (int) StateColor::Disabled),
+                       std::make_pair(0xEEEEEE, (int) StateColor::Normal))
+    , unit_hover_color(std::make_pair(0xD4D4D4, (int) StateColor::Normal))
 {
     input_corner_radius = true;
     border_width = 1;
@@ -74,7 +82,7 @@ void TextInput::Create(wxWindow *     parent,
     wxWindow::SetLabel(label);
     assert((style & wxRIGHT) == 0);
     style &= ~wxALIGN_MASK;
-    state_handler.attach({&label_color, & text_color});
+    state_handler.attach({&label_color, &text_color, &unit_track_color, &unit_hover_color});
     state_handler.update_binds();
     text_ctrl = new TextCtrl(this, wxID_ANY, text, {4, 4}, wxDefaultSize, style | wxBORDER_NONE | wxTE_PROCESS_ENTER);
 
@@ -99,6 +107,33 @@ void TextInput::Create(wxWindow *     parent,
         ProcessEventLocally(e);
     });
     text_ctrl->Bind(wxEVT_RIGHT_DOWN, [](auto &e) {}); // disable context menu
+    Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& e) {
+        const int unit = unitAt(e.GetPosition());
+        if (unit < 0 || unit == unit_selection) {
+            e.Skip();
+            return;
+        }
+        unit_hover = -1;
+        SetCursor(wxNullCursor);
+        SetUnitSelection(unit);
+        wxCommandEvent evt(wxEVT_CHOICE, GetId());
+        evt.SetEventObject(this);
+        evt.SetInt(unit);
+        GetEventHandler()->ProcessEvent(evt);
+    });
+    auto update_unit_cursor = [this](wxMouseEvent& e) {
+        int unit = e.Leaving() ? -1 : unitAt(e.GetPosition());
+        if (unit == unit_selection)
+            unit = -1;
+        if (unit != unit_hover) {
+            unit_hover = unit;
+            SetCursor(unit >= 0 ? wxCursor(wxCURSOR_HAND) : wxNullCursor);
+            Refresh();
+        }
+        e.Skip();
+    };
+    Bind(wxEVT_MOTION, update_unit_cursor);
+    Bind(wxEVT_LEAVE_WINDOW, update_unit_cursor);
     if (!icon.IsEmpty()) {
         this->icon = ScalableBitmap(this, icon.ToStdString(), 16);
     }
@@ -107,9 +142,36 @@ void TextInput::Create(wxWindow *     parent,
 
 void TextInput::SetLabel(const wxString& label)
 {
+    units.clear();
+    unit_rects.clear();
     wxWindow::SetLabel(label);
     messureSize();
     Refresh();
+}
+
+void TextInput::SetUnits(const std::vector<wxString>& units, int selection)
+{
+    this->units = units;
+    unit_rects.clear();
+    unit_selection = selection;
+    messureSize();
+    Refresh();
+}
+
+void TextInput::SetUnitSelection(int selection)
+{
+    if (unit_selection == selection)
+        return;
+    unit_selection = selection;
+    Refresh();
+}
+
+int TextInput::unitAt(const wxPoint& pos) const
+{
+    for (size_t i = 0; i < unit_rects.size(); i++)
+        if (unit_rects[i].Contains(pos))
+            return int(i);
+    return -1;
 }
 
 void TextInput::SetStaticTips(const wxString& tips, const wxBitmap& bitmap)
@@ -277,6 +339,33 @@ void TextInput::render(wxDC& dc)
         dc.DrawBitmap(icon_1.bmp(), pt);
         pt.x += szIcon.x + 0;
     }
+    if (!units.empty()) {
+        const int    gap     = FromDIP(2);
+        const int    padding = FromDIP(5);
+        const wxRect track(size.x - labelSize.x - FromDIP(3), (size.y - labelSize.y) / 2, labelSize.x, labelSize.y);
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        dc.SetBrush(wxBrush(unit_track_color.colorForStates(states)));
+        dc.DrawRoundedRectangle(track, FromDIP(4));
+        unit_rects.clear();
+        int x = track.x + gap;
+        for (size_t i = 0; i < units.size(); i++) {
+            const bool selected = int(i) == unit_selection;
+            dc.SetFont(Label::Head_12);
+            const wxRect segment(x, track.y + gap, dc.GetTextExtent(units[i]).x + 2 * padding, track.height - 2 * gap);
+            unit_rects.emplace_back(segment.x, 0, segment.width, size.y);
+            if (selected || int(i) == unit_hover) {
+                dc.SetBrush(wxBrush(selected ? background_color.colorForStates(states) : unit_hover_color.colorForStates(states)));
+                dc.DrawRoundedRectangle(segment, FromDIP(3));
+            }
+            if (!selected)
+                dc.SetFont(Label::Body_12);
+            const wxSize text_size = dc.GetTextExtent(units[i]);
+            dc.SetTextForeground((selected ? text_color : label_color).colorForStates(states));
+            dc.DrawText(units[i], segment.x + (segment.width - text_size.x) / 2, segment.y + (segment.height - text_size.y) / 2);
+            x += segment.width;
+        }
+        return;
+    }
     auto text = wxWindow::GetLabel();
     if (!text.IsEmpty()) {
         if (static_tips.IsEmpty()) {
@@ -346,6 +435,13 @@ void TextInput::messureSize()
     else
         dc.SetFont(Label::Body_12);
     labelSize = dc.GetTextExtent(wxWindow::GetLabel());
+    if (!units.empty()) {
+        // Size of the track of the unit selector, see render()
+        dc.SetFont(Label::Head_12);
+        labelSize = wxSize(2 * FromDIP(2), dc.GetCharHeight() + 2 * FromDIP(3));
+        for (const wxString& unit : units)
+            labelSize.x += dc.GetTextExtent(unit).x + 2 * FromDIP(5);
+    }
     wxSize textSize = text_ctrl->GetSize();
 
     if (!static_tips.empty()) {
