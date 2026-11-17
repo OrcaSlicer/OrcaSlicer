@@ -541,7 +541,11 @@ void MediaFilePanel::fetchUrl(boost::weak_ptr<PrinterFileSystem> wfs)
     }
     if (agent) {
         std::string protocols[] = {"", "\"tutk\"", "\"agora\"", "\"tutk\",\"agora\""};
-        agent->get_camera_url(m_machine + "|" + m_dev_ver + "|" + protocols[m_remote_proto],
+        // 4th packed field "files" tells the plugin this is the storage
+        // browser: it must mint TUTK even when prefer_lan_over_tutk is on
+        // (camera keeps the LAN URL; P1S 01.10.00.15 has no local :6000
+        // file CTRL service).
+        agent->get_camera_url(m_machine + "|" + m_dev_ver + "|" + protocols[m_remote_proto] + "|files",
             [this, wfs, m = m_machine, v = agent->get_version(), dv = m_dev_ver](std::string url) {
             if (boost::algorithm::starts_with(url, "bambu:///")) {
                 url += "&device=" + m;

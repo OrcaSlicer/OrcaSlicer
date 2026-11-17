@@ -492,7 +492,8 @@ void PartSkipDialog::fetchUrl(boost::weak_ptr<PrinterFileSystem> wfs)
         }
         case URL_TUTK: {
             std::string protocols[] = {"", "\"tutk\"", "\"agora\"", "\"tutk\",\"agora\""};
-            agent->get_camera_url(obj->get_dev_id() + "|" + dev_ver + "|" + protocols[3], [this, wfs, m = dev_id, v = agent->get_version(), dv = dev_ver](std::string url)
+            // "|files": storage browser, always TUTK (see MediaFilePanel).
+            agent->get_camera_url(obj->get_dev_id() + "|" + dev_ver + "|" + protocols[3] + "|files", [this, wfs, m = dev_id, v = agent->get_version(), dv = dev_ver](std::string url)
                 {
                 if (boost::algorithm::starts_with(url, "bambu:///")) {
                     url += "&device=" + m;
