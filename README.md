@@ -191,14 +191,9 @@ All updated build instructions for Windows, macOS, and Linux are now available o
 
 Please refer to the wiki to ensure you're following the latest and most accurate steps for your platform.
 
-## Build on Windows with `build_win.ps1` (New PowerShell Build Script)
+## Build on Windows with `build_win.ps1`
 
-The new `build_win.ps1` script provides a modern, cross-platform build experience with better parallelism, ccache support, and detailed metrics.
-
-### Prerequisites
-- **Visual Studio 2022/2026** with "Desktop development with C++" workload
-- **Git** (for version info)
-- **Optional**: ccache for faster incremental builds (`winget install ccache`)
+The PowerShell build script provides a modern build experience with better parallelism, ccache support, and detailed metrics.
 
 ### Quick Start
 
@@ -207,16 +202,13 @@ The new `build_win.ps1` script provides a modern, cross-platform build experienc
 git clone --recurse-submodules https://github.com/OrcaSlicer/OrcaSlicer.git
 cd OrcaSlicer
 
-# Build everything (dependencies + slicer + tests + installer)
-.\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64
-
-# Clean build (removes slicer build tree, keeps cached deps)
-.\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64 -Clean
-
-# Build with clang-cl + Ninja (faster, better diagnostics)
+# Build everything (clang-cl + Ninja, recommended)
 .\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64 -ClangCl -Ninja
 
-# Build with ccache for faster incremental builds
+# Clean build (removes slicer tree, keeps cached deps)
+.\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64 -ClangCl -Ninja -Clean
+
+# With ccache for faster incremental builds
 .\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64 -ClangCl -Ninja -Cache ccache
 
 # Build dependencies only
@@ -230,45 +222,35 @@ cd OrcaSlicer
 | `-Slicer` | Build OrcaSlicer |
 | `-Deps` | Build dependencies only |
 | `-Tests` | Build unit tests |
-| `-InstallSlicer` | Install into build tree (required for `-PackApp`) |
+| `-InstallSlicer` | Install into build tree |
 | `-Arch x64` | Target architecture (`x64` or `arm64`) |
-| `-Clean` | Remove slicer build tree before building |
+| `-Clean` | Remove slicer tree (keeps deps cache) |
 | `-ClangCl` | Use clang-cl compiler |
-| `-Ninja` | Use Ninja generator (faster than MSBuild) |
-| `-Msbuild` | Use MSBuild generator (Visual Studio solution) |
-| `-Cache ccache` | Enable ccache for faster incremental builds |
-| `-Unity` | Enable unity (jumbo) builds |
-| `-NoPch` | Disable precompiled headers |
+| `-Ninja` | Use Ninja generator (faster) |
+| `-Cache ccache` | Enable ccache for incremental builds |
 | `-MaxJobs N` | Limit parallel jobs (default: auto) |
-| `-Cache ccache` | Enable ccache compiler cache |
 | `-NoConfigure` | Skip CMake configure (incremental) |
-| `-Verbose` | Show compiler command lines |
-| `-DryRun` | Print commands without executing |
 
 ### Presets
 
 ```powershell
-# Use predefined presets (equivalent to the flags above)
-.\build_win.ps1 -Preset x64-clang      # clang-cl + Ninja
-.\build_win.ps1 -Preset x64-clang-cache # clang-cl + Ninja + ccache
-.\build_win.ps1 -Preset x64-msvc       # MSVC + Ninja
-.\build_win.ps1 -Preset x64-msbuild    # MSVC + MSBuild
-.\build_win.ps1 -Preset x64-clang-unity # clang-cl + Ninja + unity
+# Recommended: clang-cl + Ninja (fastest)
+.\build_win.ps1 -Preset x64-clang
+
+# With ccache for incremental builds
+.\build_win.ps1 -Preset x64-clang-cache
 ```
 
 ### Performance Tips
 
-1. **Use `-ClangCl -Ninja`** — ~30-40% faster than MSVC+MSBuild on clean builds
-2. **Add `-Cache ccache`** — Speeds up incremental builds significantly
+1. **Use `-ClangCl -Ninja`** (or `-Preset x64-clang`) — ~30-40% faster than MSVC+MSBuild
+2. **Add `-Cache ccache`** (or `-Preset x64-clang-cache`) — Speeds up incremental builds
 3. **Use `-Clean` only when needed** — Keeps dependency cache, only removes slicer tree
-4. **Run from PowerShell 7+** — Better output rendering (`pwsh`)
+4. **Run from PowerShell 7+ (`pwsh`)** — Better output rendering
 
 ### CI/CD Integration
 
-The script is designed for both local development and CI:
-
 ```yaml
-# GitHub Actions example
 - name: Build OrcaSlicer
   shell: pwsh
   run: |
@@ -283,17 +265,12 @@ The script is designed for both local development and CI:
 | `ccache not found` | `winget install ccache` or add to PATH |
 | `CMake 3.21+ required` | Script downloads official CMake if not found |
 | `Strawberry Perl missing` | Script auto-downloads portable Strawberry Perl |
-| `Iconv not found` | Use deps cache v2 (built-in, no system Iconv needed) |
+| `Iconv not found` | Uses deps cache v2 (built-in, no system Iconv needed) |
 
-### Legacy `build_win.bat`
-
-The original `build_win.bat` is still available for compatibility:
-
-```cmd
-build_win.bat -s -t -i -a x64 -l -x --clean
-```
-
-See `build_win.bat --help` for all options.
+### Prerequisites
+- **Visual Studio 2022/2026** with "Desktop development with C++" workload
+- **Git** (for version info)
+- **Optional**: ccache (`winget install ccache`)
 
 # Klipper Note
 
