@@ -142,7 +142,13 @@ bool PluginManager::initialize()
     return true;
 }
 
-void PluginManager::set_shutting_down() { m_shutting_down.store(true, std::memory_order_release); }
+void PluginManager::set_shutting_down()
+{
+    m_shutting_down.store(true, std::memory_order_release);
+    // The GUI may already be closing: drop audit prompts that have not been shown yet rather than
+    // letting a queued dialog open after shutdown has begun.
+    PluginAuditManager::discard_pending_permission_prompts();
+}
 
 void PluginManager::shutdown()
 {
@@ -154,15 +160,17 @@ void PluginManager::shutdown()
             return;
     }
 
+    // Set the shutdown flag before releasing any blocked permission prompt: a worker that fails
+    // because of that release must see the cancellation and not record a spurious load error or
+    // disable the package.
+    set_shutting_down();
+
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": PluginManager shutdown enter";
 
     // Detach the libslic3r hooks first so nothing dispatches into Python while (or after) plugins
     // unload. The lifecycle-event hook also drains callbacks already in progress before returning;
     // the remaining hook seams retain their existing shutdown requirements.
     plugin_hooks::uninstall();
-
-    // Reject new plugin loads before we drain.
-    set_shutting_down();
 
     std::string wait_error;
     if (!wait_for_discovery(std::chrono::milliseconds::max(), wait_error) && !wait_error.empty())
@@ -430,6 +438,12 @@ void PluginManager::unload_and_erase_if(const std::function<bool(const Plugin&)>
             }
             if (loaded_entry_found)
                 continue;
+
+            // A removed package can no longer retry the load a queued prompt was waiting for.
+            // Loaded entries were unloaded above; not-loaded ones are erased here.
+            for (const Plugin& plugin : m_plugins)
+                if (should_remove(plugin))
+                    m_failed_loads.erase(plugin.descriptor.plugin_key);
 
             m_plugins.erase(std::remove_if(m_plugins.begin(), m_plugins.end(), should_remove), m_plugins.end());
             if (after_erase_locked)
@@ -703,6 +717,12 @@ bool PluginManager::is_plugin_load_in_progress(const std::string& plugin_key) co
     return m_load_in_progress.count(plugin_key) > 0;
 }
 
+bool PluginManager::is_plugin_load_cancelled(const std::string& plugin_key) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return is_plugin_load_cancelled_locked(plugin_key);
+}
+
 void PluginManager::wait_for_all_plugin_loads() const
 {
     std::unique_lock<std::mutex> lock(m_mutex);
@@ -744,6 +764,12 @@ std::string PluginManager::get_plugin_load_error(const std::string& plugin_key) 
     return it == m_load_errors.end() ? std::string{} : it->second;
 }
 
+bool PluginManager::is_plugin_load_failed(const std::string& plugin_key) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return find_plugin_locked(plugin_key) != nullptr && m_failed_loads.count(plugin_key) > 0;
+}
+
 bool PluginManager::cancel_plugin_load(const std::string& plugin_key)
 {
     bool cancelled = false;
@@ -751,6 +777,13 @@ bool PluginManager::cancel_plugin_load(const std::string& plugin_key)
         std::lock_guard<std::mutex> lock(m_mutex);
         cancelled = cancel_plugin_load_locked(plugin_key);
     }
+
+    // A queued or active audit prompt for this load would keep its worker blocked on an answer
+    // that can no longer authorize anything. Mark the load cancelled first, then discard outside
+    // m_mutex, matching unload_plugin(): a prompt whose answer has not begun committing loses to
+    // the cancellation, while an in-progress commit stays atomic.
+    if (cancelled)
+        PluginAuditManager::discard_pending_permission_prompts_for(plugin_key);
 
     notify_plugin_load_state_changed(cancelled);
     return cancelled;
@@ -763,6 +796,7 @@ bool PluginManager::cancel_plugin_load_locked(const std::string& plugin_key)
 
     m_cancelled.insert(plugin_key);
     m_load_errors.erase(plugin_key);
+    m_failed_loads.erase(plugin_key);
     return true;
 }
 
@@ -780,7 +814,17 @@ void PluginManager::release_load_slot(const std::string& plugin_key)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         changed = m_load_in_progress.erase(plugin_key) > 0;
-        m_cancelled.erase(plugin_key);
+
+        const bool cancelled = m_cancelled.erase(plugin_key) > 0;
+        const Plugin* plugin = find_plugin_locked(plugin_key);
+        const bool loaded    = plugin != nullptr && plugin->is_loaded();
+        // Record an ordinary failure, but never a cancelled or successful load, and never one for
+        // a package that was removed while the worker unwound. Only the ordinary failure leaves
+        // its queued runtime prompts actionable for approval and retry.
+        if (cancelled || loaded || plugin == nullptr || m_load_errors.count(plugin_key) == 0)
+            m_failed_loads.erase(plugin_key);
+        else
+            m_failed_loads.insert(plugin_key);
     }
     notify_plugin_load_state_changed(changed);
 }
@@ -887,6 +931,7 @@ void PluginManager::load_plugin(const std::string& plugin_key, bool skip_deps, s
         if (exists && !invalid && !already_loaded && !load_in_progress && !shutting_down) {
             m_load_in_progress.insert(plugin_id);
             m_load_errors.erase(plugin_id);
+            m_failed_loads.erase(plugin_id);
             load_slot_claimed = true;
         }
     }
@@ -1001,8 +1046,18 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
     std::string error;
     bool registration_failed = false;
     if (!plugin_loader::load(descriptor, skip_deps, capabilities_to_enable, registry_precheck, plugin, error, &registration_failed)) {
-        if (error == LOAD_CANCELLED)
+        // A permission prompt denied because the load was cancelled (unload or shutdown) surfaces
+        // here as an ordinary registration/permission failure. Do not disable the package or record
+        // an error for that: a genuine denial still follows the normal failure path below.
+        bool load_cancelled = m_shutting_down.load(std::memory_order_acquire);
+        if (!load_cancelled) {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            load_cancelled = is_plugin_load_cancelled_locked(plugin_key);
+        }
+        if (error == LOAD_CANCELLED || load_cancelled) {
+            BOOST_LOG_TRIVIAL(info) << "[load_plugin_impl] CANCELLED plugin=" << plugin_key;
             return; // cancelled: nothing materialized survives, and no error is recorded
+        }
         if (registration_failed)
             mark_plugin_install_state_disabled(plugin_key);
         fail(std::move(error));
@@ -1085,6 +1140,9 @@ bool PluginManager::unload_plugin(const std::string& plugin_key)
 
         // Cancel any in-progress load for this plugin so its worker discards the result.
         cancelled = cancel_plugin_load_locked(plugin_key);
+        // An explicit unload also revokes the "ordinary failure" state, so a prompt admitted
+        // after the queue discard below can never be shown for the unloaded plugin.
+        m_failed_loads.erase(plugin_key);
 
         Plugin* plugin = find_plugin_locked(plugin_key);
         if (plugin != nullptr && plugin->is_loaded()) {
@@ -1099,6 +1157,11 @@ bool PluginManager::unload_plugin(const std::string& plugin_key)
             plugin->descriptor               = std::move(kept_descriptor);
         }
     }
+
+    // Queued audit prompts belong to a plugin that is going away: cancel any blocked load worker
+    // and keep a late answer from persisting. Do this after marking the load cancelled so a worker
+    // released by the cancellation cannot take it as approval.
+    PluginAuditManager::discard_pending_permission_prompts_for(plugin_key);
 
     if (!found) {
         notify_plugin_load_state_changed(cancelled);
@@ -1147,8 +1210,10 @@ void PluginManager::unload_all_plugins()
 
     // Bulk shutdown intentionally skips the normal unload notification path, but resources owned
     // by GUI subscribers still need to be torn down before the interpreter is finalized.
-    for (const std::string& key : removed_keys)
+    for (const std::string& key : removed_keys) {
+        PluginAuditManager::discard_pending_permission_prompts_for(key);
         run_on_unload_callbacks(key);
+    }
 
     // Broadcast cancellation to every plugin before waiting. This keeps bulk unload from
     // starving a later plugin while an earlier plugin uses the full cancellation grace period.
@@ -1573,8 +1638,14 @@ bool PluginManager::install_plugin(const boost::filesystem::path& filepath, Plug
 
     // Every successful install may have replaced executable plugin code. Revoke any permissions
     // associated with the previous package so the newly installed version must request them again.
-    if (!plugin_descriptor.plugin_key.empty())
+    if (!plugin_descriptor.plugin_key.empty()) {
         revoke_plugin_permissions(plugin_descriptor.plugin_key);
+
+        // A prompt queued by the replaced code must not grant a permission the new code never
+        // requested: an installed package starts its lifecycle from a clean failure state.
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_failed_loads.erase(plugin_descriptor.plugin_key);
+    }
 
     if (!plugin_descriptor.plugin_key.empty())
         clear_plugin_error(plugin_descriptor.plugin_key);
@@ -2124,6 +2195,9 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
         entry->descriptor.plugin_key = new_key;
         entry->descriptor.cloud.reset();
         entry->descriptor.clear_error();
+        // The package identity changed, so neither key may keep an old failure's prompt alive.
+        m_failed_loads.erase(old_key);
+        m_failed_loads.erase(new_key);
 
         for (const auto& capability : entry->capabilities) {
             if (capability)
@@ -2168,6 +2242,7 @@ bool PluginManager::finalize_cloud_plugin_removal(const PluginDescriptor& plugin
 
     {
         std::lock_guard<std::mutex> lock(m_mutex);
+        m_failed_loads.erase(plugin.plugin_key);
         m_plugins.erase(std::remove_if(m_plugins.begin(), m_plugins.end(),
                                        [&plugin](const Plugin& entry) { return entry.descriptor.plugin_key == plugin.plugin_key; }),
                         m_plugins.end());
