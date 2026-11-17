@@ -1,6 +1,8 @@
 #include "FirstLayerFlowMath.hpp"
 #include "FirstLayerFlowLabelPlan.hpp"
+#include "FirstLayerFlowMeshChecks.hpp"
 #include "FirstLayerFlowOrcaMesh.hpp"
+#include <wx/defs.h>
 #include <wx/filename.h>
 #include <wx/utils.h>
 #include <wx/filefn.h>

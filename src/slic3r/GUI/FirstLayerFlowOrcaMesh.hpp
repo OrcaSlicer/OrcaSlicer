@@ -1,10 +1,12 @@
 #pragma once
 // Adapter only: no GUI, configuration, file I/O, or ownership side effects.
-// Include after Orca's TriangleMesh.hpp in the integration translation unit.
+#include "libslic3r/TriangleMesh.hpp"
 #include "FirstLayerFlowDigits.hpp"
 #include "FirstLayerFlowMeshChecks.hpp"
+#include <cstddef>
 #include <limits>
 #include <stdexcept>
+#include <utility>
 
 namespace flf {
 // Converts checked, self-contained label geometry into an Orca TriangleMesh.
@@ -13,7 +15,7 @@ inline Slic3r::TriangleMesh to_orca_mesh(const Mesh& label, float z_offset = 0.0
     validate_single_layer(label);
     if (label.vertices.size() > static_cast<size_t>(std::numeric_limits<int>::max()))
         throw std::length_error("label has too many vertices");
-    ::indexed_triangle_set its;
+    Slic3r::indexed_triangle_set its;
     its.vertices.reserve(label.vertices.size());
     its.indices.reserve(label.triangles.size());
     for (const auto& v : label.vertices)
