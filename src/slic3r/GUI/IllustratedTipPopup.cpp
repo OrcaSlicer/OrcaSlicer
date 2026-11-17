@@ -660,15 +660,21 @@ void TipWindow::show_tip()
     // An xdg_popup is placed by the compositor against a rectangle of its parent, with rules for when it
     // does not fit: the only way to put it beside its window without knowing the screen. It has to be
     // asked before the popup maps.
-    if (on_wayland() && (!m_wayland_side.IsEmpty() || m_wayland_by_rect)) {
+    if (on_wayland()) {
         GtkWidget *widget = GetHandle();
         gtk_widget_realize(widget);
         if (GdkWindow *window = gtk_widget_get_window(widget)) {
+            // The xdg_popup takes the size its window has when it maps, and keeps it while mapped. A wx
+            // popup's SetSize() only requests a size, which GTK gives the window later: without this the
+            // popup would open at the size of the tooltip shown before it, cutting the text off or
+            // leaving empty space under it.
+            const wxSize size = GetSize();
+            gdk_window_resize(window, size.x, size.y);
             if (!m_wayland_side.IsEmpty()) {
                 const GdkRectangle side{m_wayland_side.x, m_wayland_side.y, m_wayland_side.width, m_wayland_side.height};
                 gdk_window_move_to_rect(window, &side, GDK_GRAVITY_NORTH_EAST, GDK_GRAVITY_NORTH_WEST,
                                         GdkAnchorHints(GDK_ANCHOR_FLIP_X | GDK_ANCHOR_SLIDE_Y), m_wayland_gap, 0);
-            } else {
+            } else if (m_wayland_by_rect) {
                 // Back to the position SetSize() gave, which GTK does not send again when it is unchanged.
                 const wxPoint pos = GetPosition();
                 gdk_window_move(window, pos.x, pos.y);
