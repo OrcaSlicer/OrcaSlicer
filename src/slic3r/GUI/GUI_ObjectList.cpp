@@ -7514,7 +7514,9 @@ void ObjectList::apply_object_instance_transfrom_to_all_volumes(ModelObject *mod
     // Take the same transform out of every instance, so that none of them moves on the bed or in the assembly view.
     // The volumes are shared: resetting the first instance only would shift and transform the other ones.
     for (ModelInstance *instance : model_object->instances) {
-        if (need_update_assemble_matrix) {
+        // An instance without an assembly transform yet (added as a copy) is left as it is: writing one here would mark it
+        // as initialized, it would then never be placed from its bed transform and would be saved on the assembly origin.
+        if (need_update_assemble_matrix && instance->is_assemble_initialized()) {
             const Transform3d new_assemble_transform = instance->get_assemble_transformation().get_matrix() * instance_inverse_matrix;
             instance->set_assemble_from_transform(new_assemble_transform);
         }

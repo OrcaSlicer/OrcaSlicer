@@ -19746,6 +19746,8 @@ void Plater::increase_instances(size_t num)
         model_object->add_instance(offset_vec, model_instance->get_scaling_factor(), model_instance->get_rotation(), model_instance->get_mirror());
 //        p->print.get_object(obj_idx)->add_copy(Slic3r::to_2d(offset_vec));
     }
+    // Without a pose in the assembly view the copies sit on its origin, on top of each other.
+    p->model.set_assembly_pos_of_copies(model_object, model_object->instances.size() - num);
     // Register the copies with the plate they land on before the scene reloads: the plate's
     // filament list and wipe tower preview are read from that registry.
     for (size_t i = model_object->instances.size() - num; i < model_object->instances.size(); ++i)

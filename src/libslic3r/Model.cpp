@@ -836,6 +836,35 @@ void Model::set_assembly_pos(ModelObject *model_object, const std::vector<const 
         instance->set_assemble_offset(instance->get_assemble_offset() + shift);
 }
 
+void Model::set_assembly_pos_of_copies(ModelObject *model_object, size_t first_copy)
+{
+    ModelInstancePtrs &instances = model_object->instances;
+    // A source without a pose yet is placed later together with its copies, from their poses on the plate.
+    if (first_copy == 0 || first_copy >= instances.size() || !instances[first_copy - 1]->is_assemble_initialized())
+        return;
+
+    const ModelInstance     &source     = *instances[first_copy - 1];
+    Geometry::Transformation pose       = source.get_assemble_transformation();
+    const BoundingBoxf3     &raw_box    = model_object->raw_mesh_bounding_box();
+    const BoundingBoxf3      source_box = raw_box.transformed(pose.get_matrix());
+    // Everything that is in the assembly view, without the copies.
+    BoundingBoxf3 placed;
+    for (const ModelObject *o : this->objects)
+        if (o != model_object)
+            placed.merge(o->bounding_box_in_assembly_view());
+    for (size_t i = 0; i < first_copy; ++i)
+        placed.merge(raw_box.transformed(instances[i]->get_assemble_transformation().get_matrix()));
+
+    // From the right edge of everything, the width of the source and 10 mm further for every copy.
+    Vec3d offset = pose.get_offset() + (placed.max.x() - source_box.max.x()) * Vec3d::UnitX();
+    for (size_t i = first_copy; i < instances.size(); ++i) {
+        offset.x() += source_box.size().x() + 10.;
+        pose.set_offset(offset);
+        instances[i]->set_assemble_transformation(pose);
+        instances[i]->set_offset_to_assembly(source.get_offset_to_assembly());
+    }
+}
+
 // this returns the bounding box of the *transformed* instances
 BoundingBoxf3 Model::bounding_box_approx() const
 {
