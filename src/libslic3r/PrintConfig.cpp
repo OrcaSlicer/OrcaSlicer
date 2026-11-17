@@ -4183,7 +4183,7 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = L("mm/s");
     def->min = 0;
     def->mode = comExpert;
-    def->set_default_value(new ConfigOptionFloat(10));
+    def->set_default_value(new ConfigOptionFloat(30));
 
     def = this->add("height_slowdown_min_acceleration", coFloat);
     def->label = L("Minimum acceleration");

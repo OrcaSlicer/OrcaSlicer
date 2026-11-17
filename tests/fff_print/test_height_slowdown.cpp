@@ -89,6 +89,7 @@ std::map<double, double> slice_cube_feedrates(bool slowdown, bool travel = false
         { "height_slowdown_start_speed", "100" },
         { "height_slowdown_end_speed", "50" },
         { "height_slowdown_end_height", "20" }, // the top of the cube
+        { "height_slowdown_min_speed", "0" },   // so that the tests do not depend on the default minimum
     });
     for (const auto &[key, value] : extra)
         config.set_deserialize_strict(key, value);
@@ -152,6 +153,7 @@ TEST_CASE("Height slowdown can be set for a single object", "[HeightSlowdown]")
             { "height_slowdown_start_speed", "100" },
             { "height_slowdown_end_speed", "50" },
             { "height_slowdown_end_height", "20" },
+            { "height_slowdown_min_speed", "0" },
         });
         const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{{{ "automatic_height_slowdown", object ? "1" : "0" }}};
         Print print;
