@@ -24,7 +24,7 @@ param(
     [switch]$NoFetch,
     # Build directory for the compile database.
     [string]$BuildDir = "build-tidy",
-    # Dependency build directory (default: the deps\build* tree build_win.bat made).
+    # Dependency build directory (default: the deps\build tree build_win.ps1 made).
     [string]$DepsDir = "",
     # x64 or arm64 (default: this machine's).
     [string]$Arch = "",
@@ -88,7 +88,7 @@ if (-not $Arch) {
 
 # --- System tools -------------------------------------------------------------
 
-if (-not (Has "git")) { Request-Install "Git" "build_win.bat --install-deps" }
+if (-not (Has "git")) { Request-Install "Git" "build_win.ps1 -InstallDeps" }
 
 # Python: the py launcher, else a python.exe that is not the Microsoft Store stub.
 $Python = $null
@@ -110,12 +110,12 @@ $VsPath = $null
 if (Test-Path $Vswhere) {
     $VsPath = & $Vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
 }
-if (-not $VsPath) { Request-Install "Visual Studio with the C++ tools" "build_win.bat --install-vs buildtools" }
+if (-not $VsPath) { Request-Install "Visual Studio with the C++ tools" "build_win.ps1 -InstallVs buildtools" }
 
-# Load the developer environment, as build_win.bat does.
+# Load the developer environment, as build_win.ps1 does.
 $HostArch = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "arm64" } else { "x64" }
 $VsDevCmd = Join-Path $VsPath "Common7\Tools\VsDevCmd.bat"
-# Ignores VsDevCmd's exit code, as build_win.bat does, and checks the variables it sets
+# Ignores VsDevCmd's exit code, as build_win.ps1 does, and checks the variables it sets
 # before applying any, cleared in cmd so values inherited from a developer shell do not count.
 $envLines = & cmd /c "set VCToolsInstallDir=& set WindowsSdkDir=& `"$VsDevCmd`" -arch=$Arch -host_arch=$HostArch -no_logo >nul 2>nul & set"
 if (-not ($envLines -match '^VCToolsInstallDir=.') -or -not ($envLines -match '^WindowsSdkDir=.')) {
@@ -125,7 +125,7 @@ foreach ($line in $envLines) {
     $i = $line.IndexOf("=")
     if ($i -gt 0) { Set-Item -Path ("env:" + $line.Substring(0, $i)) -Value $line.Substring($i + 1) }
 }
-if (-not (Has "cmake")) { Request-Install "CMake" "build_win.bat --install-deps" }
+if (-not (Has "cmake")) { Request-Install "CMake" "build_win.ps1 -InstallDeps" }
 if (-not (Has "ninja")) { Request-Install "Ninja" "winget install -e --id Ninja-build.Ninja" }
 
 # --- clang-tidy ---------------------------------------------------------------
@@ -164,8 +164,7 @@ if (-not (Test-Pinned $ClangTidy)) {
 
 # --- Dependencies -------------------------------------------------------------
 
-# build_win.bat names the tree after the compiler and architecture: deps\build for cl,
-# deps\build-clang for clang-cl, with -arm64 appended on ARM64.
+# build_win.ps1 keeps dependencies in deps\build, and in deps\build-arm64 on ARM64.
 $Suffix = if ($Arch -eq "arm64") { "-arm64" } else { "" }
 $Compiler = "cl"
 # A configured build directory remembers where its dependencies are.
@@ -177,16 +176,16 @@ if (-not $DepsDir -and (Test-Path $Cache)) {
 if (-not $DepsDir) {
     if (Test-Path "deps\build$Suffix\OrcaSlicer_dep") {
         $DepsDir = "deps\build$Suffix"
-    } elseif (Test-Path "deps\build-clang$Suffix\OrcaSlicer_dep") {
-        $DepsDir = "deps\build-clang$Suffix"
+    } elseif (Test-Path "deps\build\OrcaSlicer_dep") {
+        $DepsDir = "deps\build"
     }
 }
 if ($DepsDir -and ($DepsDir -match 'clang')) { $Compiler = "clang-cl" }
 if (-not $DepsDir -or -not (Test-Path (Join-Path $DepsDir "OrcaSlicer_dep"))) {
-    $BuildDeps = "build_win.bat -d --arch $Arch"
+    $BuildDeps = "build_win.ps1 -Deps -Arch $Arch"
     Write-Host "OrcaSlicer's dependencies are not built."
     if (Ask "Build them now with $BuildDeps? This takes a while.") {
-        & cmd /c $BuildDeps
+        & (Join-Path $PSScriptRoot "..\build_win.ps1") -Deps -Arch $Arch
         if ($LASTEXITCODE -ne 0) { throw "Building the dependencies failed." }
         $DepsDir = "deps\build$Suffix"
     } else {
@@ -196,7 +195,7 @@ if (-not $DepsDir -or -not (Test-Path (Join-Path $DepsDir "OrcaSlicer_dep"))) {
 }
 $DepsDir = (Resolve-Path $DepsDir).Path
 if ($Compiler -eq "clang-cl" -and -not (Has "clang-cl")) {
-    Request-Install "clang-cl (the Visual Studio C++ Clang tools)" "build_win.bat --install-vs buildtools"
+    Request-Install "clang-cl (the Visual Studio C++ Clang tools)" "build_win.ps1 -InstallVs buildtools"
 }
 
 # --- Compile database ---------------------------------------------------------

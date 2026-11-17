@@ -26,10 +26,6 @@ on:
         flags:
           required: false
           type: string
-        script:
-          required: false
-          type: string
-          default: ps1
         clean:
           required: false
           type: boolean
@@ -603,25 +599,18 @@ jobs:
           if (-not $flags) {
             $flags = if ("${{ inputs.compiler }}" -eq "clang") { "-l", "-x" } else { "--msvc", "--msbuild" }
           }
-          # Use build_win.ps1 by default; build_win.bat for baseline comparison
           # The self-hosted workspace keeps the previous run's build tree, so a
           # leg that does not clean is incremental and reports a fraction of its
           # real cost. -Clean removes the slicer tree only; cached deps stay.
           $cleanBuild = "${{ inputs.clean }}" -eq "true"
-          if ("${{ inputs.script }}" -eq "bat") {
-            $batArgs = @("-s", "--tests", "-i", "--arch", "${{ inputs.arch }}", "--build-dir", $env:BUILD_DIR, "--deps-dir", $deps) + $flags
-            if ($cleanBuild) { $batArgs += "--clean" }
-            & "${{ github.workspace }}\build_win.bat" @batArgs
-          } else {
-            $useClangCl = $flags -contains "-l"
-            $useNinja   = $flags -contains "-x"
-            $useMsvc    = $flags -contains "--msvc"
-            $useMsbuild = $flags -contains "--msbuild"
-            $useCache   = if ($flags -contains "--ccache") { "ccache" } else { $null }
-            # Bind the switch directly: splatting a string binds it positionally and breaks
-            # parameter binding on build_win.ps1.
-            & "${{ github.workspace }}\build_win.ps1" -Slicer -Tests -InstallSlicer -Arch ${{ inputs.arch }} -SlicerDir $env:BUILD_DIR -DepsDir $deps -ClangCl:$useClangCl -Ninja:$useNinja -Msvc:$useMsvc -Msbuild:$useMsbuild -Cache:$useCache -Clean:$cleanBuild
-          }
+          $useClangCl = $flags -contains "-l"
+          $useNinja   = $flags -contains "-x"
+          $useMsvc    = $flags -contains "--msvc"
+          $useMsbuild = $flags -contains "--msbuild"
+          $useCache   = if ($flags -contains "--ccache") { "ccache" } else { $null }
+          # Bind the switch directly: splatting a string binds it positionally and breaks
+          # parameter binding on build_win.ps1.
+          & "${{ github.workspace }}\build_win.ps1" -Slicer -Tests -InstallSlicer -Arch ${{ inputs.arch }} -SlicerDir $env:BUILD_DIR -DepsDir $deps -ClangCl:$useClangCl -Ninja:$useNinja -Msvc:$useMsvc -Msbuild:$useMsbuild -Cache:$useCache -Clean:$cleanBuild
         shell: powershell
 
       - name: Build system preset cache (Windows)

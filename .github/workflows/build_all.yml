@@ -17,8 +17,8 @@ on:
       - ".github/workflows/build_*.yml"
       - ".github/workflows/unit_tests*.yml"
       - 'build_linux.sh'
-      - 'build_win.bat'
-      - 'scripts/test_build_win.ps1'
+      - 'build_win.ps1'
+      - 'scripts/build_win_steps/**'
       - 'scripts/check_exception_throw_info.ps1'
       - 'scripts/test_check_exception_throw_info.ps1'
       - 'build_release_macos.sh'
@@ -43,8 +43,8 @@ on:
       - ".github/workflows/build_*.yml"
       - ".github/workflows/unit_tests*.yml"
       - 'build_linux.sh'
-      - 'build_win.bat'
-      - 'scripts/test_build_win.ps1'
+      - 'build_win.ps1'
+      - 'scripts/build_win_steps/**'
       - 'scripts/check_exception_throw_info.ps1'
       - 'scripts/test_check_exception_throw_info.ps1'
       - 'build_release_macos.sh'
@@ -80,7 +80,8 @@ concurrency:
   
 
 jobs:
-  # build_win.bat ships a test suite. Run it before the Windows builds.
+  # The build scripts that stay in the repo ship test suites. Run them before
+  # the builds.
   check_build_script:
     name: Windows build script tests
     runs-on: windows-latest
@@ -89,13 +90,6 @@ jobs:
         uses: actions/checkout@v7
         with:
           lfs: 'false'
-
-      # Windows PowerShell rather than pwsh: the suite drives build_win.bat
-      # through cmd, and the two differ in how they quote native arguments.
-      - name: Run the build script test suite
-        timeout-minutes: 15
-        shell: powershell
-        run: .\scripts\test_build_win.ps1
 
       - name: Run the exception throw info check tests
         timeout-minutes: 5
@@ -108,7 +102,7 @@ jobs:
         run: .\scripts\test_prune_cached_presets.ps1
 
   build_windows:
-    name: Build Windows ${{ matrix.arch }} (${{ matrix.preset }})${{ matrix.script == 'bat' && ' (baseline - current main)' || ' (candidate - ps1)' }}
+    name: Build Windows ${{ matrix.arch }} (${{ matrix.preset }})
     strategy:
       fail-fast: false
       matrix:
@@ -118,13 +112,6 @@ jobs:
             compiler: clang
             preset: x64-clang
             flags: -l -x
-            script: ps1
-          - arch: x64
-            os: windows-latest
-            compiler: clang
-            preset: x64-clang
-            flags: -l -x
-            script: bat
     needs: check_build_script
     if: ${{ !cancelled() && needs.check_build_script.result == 'success' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
@@ -134,7 +121,6 @@ jobs:
       compiler: ${{ matrix.compiler }}
       preset: ${{ matrix.preset }}
       flags: ${{ matrix.flags }}
-      script: ${{ matrix.script }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
       clean: ${{ inputs.clean-build || false }}
       force-build: ${{ github.event_name == 'schedule' }}
@@ -177,13 +163,11 @@ jobs:
             compiler: clang
             preset: x64-clang
             flags: -l -x
-            script: ps1
           - arch: aarch64
             os: ubuntu-24.04-arm
             compiler: clang
             preset: aarch64-clang
             flags: -l -x
-            script: ps1
     needs: check_build_script
     if: ${{ !cancelled() && needs.check_build_script.result == 'success' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
@@ -193,7 +177,6 @@ jobs:
       compiler: ${{ matrix.compiler }}
       preset: ${{ matrix.preset }}
       flags: ${{ matrix.flags }}
-      script: ${{ matrix.script }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
       clean: ${{ inputs.clean-build || false }}
       force-build: ${{ github.event_name == 'schedule' }}

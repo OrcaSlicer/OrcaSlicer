@@ -35,10 +35,6 @@ on:
       force-build:
         required: false
         type: boolean
-      script:
-        required: false
-        type: string
-        default: ps1
       clean:
         required: false
         type: boolean
@@ -213,18 +209,12 @@ jobs:
             }
             # ccache is for the slicer build, not deps build
             $depsFlags = $flags | Where-Object { $_ -ne '--ccache' }
-            # Use build_win.ps1 by default; build_win.bat for baseline comparison
-            if ("${{ inputs.script }}" -eq "bat") {
-              $batArgs = @("-d", "--arch", "${{ inputs.arch }}", "--deps-dir", $deps) + $depsFlags
-              & "${{ github.workspace }}\build_win.bat" @batArgs
-            } else {
-              $useClangCl = $depsFlags -contains "-l"
-              $useNinja   = $depsFlags -contains "-x"
-              $useMsvc    = $depsFlags -contains "--msvc"
-              $useMsbuild = $depsFlags -contains "--msbuild"
-              # ccache not used for deps build
-              & "${{ github.workspace }}\build_win.ps1" -Deps -Arch ${{ inputs.arch }} -DepsDir $deps -ClangCl:$useClangCl -Ninja:$useNinja -Msvc:$useMsvc -Msbuild:$useMsbuild
-            }
+            $useClangCl = $depsFlags -contains "-l"
+            $useNinja   = $depsFlags -contains "-x"
+            $useMsvc    = $depsFlags -contains "--msvc"
+            $useMsbuild = $depsFlags -contains "--msbuild"
+            # ccache not used for deps build
+            & "${{ github.workspace }}\build_win.ps1" -Deps -Arch ${{ inputs.arch }} -DepsDir $deps -ClangCl:$useClangCl -Ninja:$useNinja -Msvc:$useMsvc -Msbuild:$useMsbuild
         shell: powershell
 
       - name: Build on Mac ${{ inputs.arch }}
@@ -276,6 +266,5 @@ jobs:
       compiler: ${{ inputs.compiler }}
       preset: ${{ inputs.preset }}
       flags: ${{ inputs.flags }}
-      script: ${{ inputs.script }}
       clean: ${{ inputs.clean }}
     secrets: inherit

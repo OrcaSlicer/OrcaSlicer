@@ -324,7 +324,7 @@ function Get-Sha256([string] $Path) {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
 }
 
-# Directories a built validator can sit in, best first: build_win.bat names its trees build,
+# Directories a built validator can sit in, best first: the build scripts name their trees build,
 # build-dbginfo, build-minsize and build-dbg, each optionally -clang and -arm64 suffixed, and
 # CMake puts the binary in src\<config>. Each pattern is matched both directly under a build root
 # and one level down (build\x64), for trees laid out the way the macOS ones are.

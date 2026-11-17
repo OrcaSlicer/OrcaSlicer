@@ -25,10 +25,6 @@ on:
       force-build:
         required: false
         type: boolean
-      script:
-        required: false
-        type: string
-        default: ps1
       clean:
         required: false
         type: boolean
@@ -78,7 +74,7 @@ jobs:
           # 'linux-clang' keeps the cache it already has.
           cache-os: ${{ (runner.os == 'macOS' || startsWith(inputs.os, 'macos-')) && format('{0}-{1}', inputs.os, inputs.arch) || (runner.os == 'Windows' && format('windows-{0}-{1}', inputs.arch, inputs.compiler) || format('linux-clang{0}', inputs.arch && format('-{0}', inputs.arch) || '')) }}
           # The Windows ARM64 deps build in build-arm64, all others under build;
-          # build_deps.yml and build_orca.yml pass the Windows directory to build_win.bat.
+          # build_deps.yml and build_orca.yml pass the Windows build directory to build_win.ps1.
           dep-folder-name: ${{ (runner.os == 'macOS' || startsWith(inputs.os, 'macos-')) && format('/{0}', inputs.arch) || (runner.os == 'Windows' && inputs.arch == 'arm64') && '-arm64/OrcaSlicer_dep' || '/OrcaSlicer_dep' }}
           output-cmd: ${{ runner.os == 'Windows' && '$env:GITHUB_OUTPUT' || '"$GITHUB_OUTPUT"'}}
         run: |
@@ -235,6 +231,5 @@ jobs:
       flags: ${{ inputs.flags }}
       build-deps-only: ${{ inputs.build-deps-only }}
       force-build: ${{ inputs.force-build }}
-      script: ${{ inputs.script }}
       clean: ${{ inputs.clean }}
     secrets: inherit

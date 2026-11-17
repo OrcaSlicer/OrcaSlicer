@@ -45,8 +45,8 @@ on:
      - ".github/workflows/build_*.yml"
      - ".github/workflows/unit_tests*.yml"
      - 'build_linux.sh'
-     - 'build_win.bat'
-     - 'scripts/test_build_win.ps1'
+     - 'build_win.ps1'
+     - 'scripts/build_win_steps/**'
      - 'scripts/check_exception_throw_info.ps1'
      - 'scripts/test_check_exception_throw_info.ps1'
      - 'build_release_macos.sh'
@@ -138,7 +138,7 @@ jobs:
       arch: ${{ matrix.arch }}
     secrets: inherit
 
-  # build_all.yml has already run the build script's test suite for this
+  # build_all.yml has already run the build script test suites for this
   # commit, before its Windows x64 build. Skipped on self-hosted runners, as
   # there (the self-hosted Windows server is x64-only).
   build_windows_arm64:

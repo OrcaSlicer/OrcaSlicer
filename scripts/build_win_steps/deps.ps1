@@ -23,7 +23,7 @@ function Get-DepsManifestHash {
 
 function Check-Dependencies {
     param([string]$Cmake, [string]$Compiler, [string]$Config, [switch]$ForceRebuild, [string]$DepsBuildDir, [int]$MaxJobs = 0)
-    if (-not $DepsBuildDir) { $DepsBuildDir = "deps/build-clang" }
+    if (-not $DepsBuildDir) { $DepsBuildDir = "deps/build" }
     $depsPrefix   = "$DepsBuildDir/OrcaSlicer_dep/usr/local"
     # Keep the manifest inside OrcaSlicer_dep so it travels with the CI cache and
     # deps artifact, which archive only that directory.
@@ -38,10 +38,8 @@ function Check-Dependencies {
         # CI caches only deps/build/OrcaSlicer_dep, so a cache-restored tree arrives
         # without the manifest that used to live in its parent. Treating that as
         # "never completed" rebuilt every dependency from source on every CI job -
-        # hours of work that build_win.bat skips (it trusts any existing usr/local),
-        # which both stalled the self-hosted runner and skewed the .bat/.ps1
-        # comparison. Adopt the tree and record its hash; only a missing prefix
-        # counts as incomplete.
+        # hours of work that stalled the self-hosted runner. Adopt the tree and
+        # record its hash; only a missing prefix counts as incomplete.
         $currentHash | Set-Content $depsManifest -Encoding ASCII
         $storedHash = $currentHash
     }
@@ -51,9 +49,9 @@ function Check-Dependencies {
     }
 
     if ($needsRebuild) {
-        # Match build_win.bat: set CMAKE_POLICY_VERSION_MINIMUM for deps CMake
+        # The deps CMakeLists still declare a policy version below 3.5.
         $env:CMAKE_POLICY_VERSION_MINIMUM = "3.5"
-        # Match build_win.bat: set parallel level for ninja
+        # Ninja and Make honour this for the deps build.
         if ($MaxJobs -gt 0) {
             $env:CMAKE_BUILD_PARALLEL_LEVEL = $MaxJobs.ToString()
         }
@@ -65,7 +63,6 @@ function Check-Dependencies {
             $depsConfigureArgs += "-DCMAKE_C_COMPILER=$Compiler"
             $depsConfigureArgs += "-DCMAKE_CXX_COMPILER=$Compiler"
             # Do NOT explicitly pass MASM compiler; let cmake auto-detect from VS env
-            # (build_win.bat does not pass it either)
         }
         Write-Host "  [deps] Building dependencies..."
         Invoke-BuildStep -Label "Dependency configuration" -Command $Cmake -Arguments $depsConfigureArgs -LogPath (New-BuildLogPath "deps-configure")
