@@ -101,7 +101,7 @@ struct FillParams
     // Orca: corner smoothing factor in the range [0, 1].
     double      smooth_factor { 0. };
     // The corner smoothing in scaled coordinates.
-    CornerSmoothing corner_smoothing() const { return CornerSmoothing{smooth_factor, scaled<double>(resolution)}; }
+    CornerSmoothing corner_smoothing() const { return CornerSmoothing{smooth_factor, scaled<double>(corner_smoothing_tolerance(resolution))}; }
 
     // For Lateral lattice
     coordf_t    lateral_lattice_angle_1    { 0.f };
