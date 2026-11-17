@@ -14061,18 +14061,26 @@ bool is_valid_bed_exclude_area(const Pointfs &points)
     }
 
     const Polygon polygon = Polygon::new_scale(points);
-    if (has_duplicate_points(polygon))
-        return false;
-
     const Points &vertices = polygon.points;
     if (polygon.area() == 0.0)
         return false;
+
+    const auto edges_cross = [](const Point &first_start, const Point &first_end,
+                                const Point &second_start, const Point &second_end) {
+        const int first_start_side = int128::orient(first_start, first_end, second_start);
+        const int first_end_side = int128::orient(first_start, first_end, second_end);
+        const int second_start_side = int128::orient(second_start, second_end, first_start);
+        const int second_end_side = int128::orient(second_start, second_end, first_end);
+        return first_start_side != 0 && first_end_side != 0 &&
+               second_start_side != 0 && second_end_side != 0 &&
+               first_start_side != first_end_side && second_start_side != second_end_side;
+    };
 
     const size_t count = vertices.size();
     for (size_t idx = 0; idx + 2 < count; ++idx) {
         const size_t end = idx == 0 ? count - 1 : count;
         for (size_t other = idx + 2; other < end; ++other) {
-            if (Geometry::segments_intersect(
+            if (edges_cross(
                     vertices[idx], vertices[idx + 1], vertices[other], vertices[(other + 1) % count]))
                 return false;
         }
