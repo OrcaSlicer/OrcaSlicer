@@ -164,7 +164,13 @@ The **surface shift** is the distance from the centerline to the model surface
 the user sees, less a margin. Its nominal value is `d = w/2 - c - m`:
 
 - `w` is the region's nominal external perimeter width, the flow the perimeter
-  generator uses for the outer loop on that layer, first layer included.
+  generator uses for the outer loop on that layer, first layer included. A loop
+  of the classic generator takes the width of its own outer wall line instead
+  (`ExtrusionPath::width` of its first external perimeter path): with thin wall
+  detection off, an island too narrow for two lines and short enough is printed
+  with a thinner line, inset by half of that width. Bridged paths lie on the
+  same centerline with the overhang flow's width and are not asked; a loop
+  without an external perimeter path keeps the region's width.
 - `c` is the XY compensation that moved this wall away from the model,
   positive towards air: `xy_contour_compensation` for a contour and minus
   `xy_hole_compensation` for a hole (a positive value enlarges holes). It is
@@ -724,10 +730,8 @@ exceeded, one summary marker reports the total.
 
 ## Known limitations
 
-- **Where the shift is not measured, or only approximately.** On layers
-  without elephant foot compensation the classic generator keeps the nominal
-  shift, so its narrow loops, printed slightly thinner, get a surface a few
-  micrometers outside the model. A noisy loop without its smooth centerline
+- **Where the shift is not measured, or only approximately.** A noisy loop
+  without its smooth centerline
   (sliced data loaded from a cache) gets a surface that repeats the noise. A
   measured point moves along the normal of its
   edge by the depth projected on that normal: where elephant foot compensation
@@ -953,7 +957,8 @@ last modifier would.
   volumes and check the outer wall starts in the exported G-code: every strong
   mode under several seam positions and with a raft, a modifier reaching only
   0.1 mm into the model, contour and hole walls under positive and negative XY
-  compensation with both generators, a first layer with a wider line, the
+  compensation with both generators, a first layer with a wider line, a narrow
+  island the classic generator prints with a thinner line, the
   measured shift on elephant foot layers with both generators (the same
   modifier depth as above, flush and slightly deeper modifiers, a hole, a thin
   part they cannot shrink fully, a raft), XY compensation together with elephant
