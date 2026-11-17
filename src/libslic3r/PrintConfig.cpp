@@ -4120,7 +4120,7 @@ void PrintConfigDef::init_fff_params()
                      "the layers that are not affected and reaches the end speed on the last layer of the object. Acceleration and the travel "
                      "moves to the printed paths are slowed down the same way, but never sped up. Support, skirt and brim are not changed. "
                      "Volumetric speed limits and the printer's speed limits still apply.");
-    def->mode = comSimple;
+    def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("height_slowdown_initial_layers", coInt);
@@ -4129,18 +4129,19 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = L("layers"); // ORCA add side text
     def->min = 0;
     def->max = 1000;
-    def->mode = comAdvanced;
+    def->mode = comExpert;
     def->set_default_value(new ConfigOptionInt(3));
 
     def = this->add("height_slowdown_start_speed", coPercent);
     def->label = L("Start speed");
-    def->tooltip = L("Speed on the first layer that is affected, as a percentage of the normal speed. Values above 100% speed up; "
-                     "the speed is still limited by the volumetric speed of the filament and the printer's speed limits.");
+    def->tooltip = L("Speed on the first layer that is affected, as a percentage of the normal speed. The default of 100% starts at the "
+                     "normal speed. Values above 100% speed up; the speed is still limited by the volumetric speed of the filament "
+                     "and the printer's speed limits.");
     def->sidetext = "%";
     def->min = 10;
     def->max = 200;
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionPercent(120));
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionPercent(100));
 
     def = this->add("height_slowdown_end_speed", coPercent);
     def->label = L("End speed");
@@ -4149,7 +4150,7 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = "%";
     def->min = 10;
     def->max = 200;
-    def->mode = comAdvanced;
+    def->mode = comExpert;
     def->set_default_value(new ConfigOptionPercent(50));
 
     def = this->add("nozzle_temperature_initial_layer", coInts);
