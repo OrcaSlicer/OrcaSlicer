@@ -8374,7 +8374,7 @@ void GLCanvas3D::force_main_toolbar_left_action(int item_id)
 {
     // Pressing an invisible toggable item disables every other item with no pressed icon to show why, so a
     // hidden layer editing button only toggles layer editing.
-    if (item_id == get_main_toolbar_item_id("layersediting") && !m_main_toolbar.is_item_visible("layersediting")) {
+    if (item_id >= 0 && item_id == get_main_toolbar_item_id("layersediting") && !m_main_toolbar.is_item_visible("layersediting")) {
         if (m_canvas != nullptr)
             wxPostEvent(m_canvas, SimpleEvent(EVT_GLTOOLBAR_LAYERSEDITING));
         return;

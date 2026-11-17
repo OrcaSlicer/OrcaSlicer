@@ -327,7 +327,7 @@ bool GLGizmosManager::init()
     m_hover = Undefined;
     m_highlight = std::pair<EType, bool>(Undefined, false);
 
-    assert(gizmo_ids_in_etype_order().size() == size_t(EType::Undefined));
+    assert(gizmo_ids_in_etype_order().size() == static_cast<size_t>(EType::Undefined));
     set_bar_layout(parse_toolbar_layout(wxGetApp().app_config->get("toolbar", "layout")).gizmos);
 
     return true;
