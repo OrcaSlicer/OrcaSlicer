@@ -1,4 +1,5 @@
 #include "PublishSettingsDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
@@ -73,7 +74,7 @@ wxStaticText* add_checkbox_label(wxWindow* parent,
                                  const wxString& tooltip,
                                  int label_width = 0)
 {
-    check->SetToolTip(tooltip);
+    set_illustrated_tooltip(check, tooltip);
     sizer->Add(check, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, parent->FromDIP(2));
 
     auto* text = new wxStaticText(parent, wxID_ANY, label);
@@ -84,7 +85,7 @@ wxStaticText* add_checkbox_label(wxWindow* parent,
         text->SetMaxSize(wxSize(label_width, -1));
         text->Wrap(label_width);
     }
-    text->SetToolTip(tooltip);
+    set_illustrated_tooltip(text, tooltip);
     text->SetCursor(wxCURSOR_HAND);
     const auto toggle = [check]() {
         if (!check->IsEnabled())
@@ -551,7 +552,7 @@ public:
         auto make_chip = [&](const wxBitmap& bmp, const wxString& name) -> wxWindow* {
             if (bmp.IsOk()) {
                 auto* chip = new wxStaticBitmap(this, wxID_ANY, bmp);
-                chip->SetToolTip(name);
+                set_illustrated_tooltip(chip, name);
                 return chip;
             }
             auto* label = new wxStaticText(this, wxID_ANY, name);
@@ -763,14 +764,14 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent,
 
     auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
     auto wiki_url = "https://www.orcaslicer.com/wiki/publishing_3mf/publish_3mf";
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
     wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
 
     auto video_btn  = new Button(this, "", "toolbar_video_guide", 0, 15);
     auto video_url = "https://www.youtube.com/watch?v=-xt1N29UIOg";
-    video_btn->SetToolTip(_L("Video Guide") + "\n" + video_url);
+    set_illustrated_tooltip(video_btn, _L("Video Guide") + "\n" + video_url);
     video_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     video_btn->SetCanFocus(false);
     video_btn->Bind(wxEVT_LEFT_DOWN, ([video_url](auto& e) {wxLaunchDefaultBrowser(video_url);}));
@@ -1446,7 +1447,7 @@ void PublishSettingsDialog::add_row_ui(const std::string& key,
     current.value_label = new wxStaticText(category.scroll, wxID_ANY, value, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
     current.value_label->SetFont(Label::Body_14);
     current.value_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
-    current.value_label->SetToolTip(unit.IsEmpty() ? value : value + " " + unit);
+    set_illustrated_tooltip(current.value_label, unit.IsEmpty() ? value : value + " " + unit);
     if (kind == RowKind::Color && !value.IsEmpty()) {
         // The colour swatch carries this slot's 1-based number, like the main GUI swatches.
         const std::string chip_label = std::to_string(category.filament_slot + 1);

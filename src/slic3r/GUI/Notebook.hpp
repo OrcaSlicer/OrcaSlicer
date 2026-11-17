@@ -47,6 +47,8 @@ public:
     wxString GetPageText(size_t n) const;
     // ORCA: the full page label, unaffected by SetCompact() blanking the button text.
     wxString GetPageLabel(size_t n) const;
+    // The button of page n, for its tooltip; nullptr when out of range.
+    wxWindow* GetPageButton(size_t n) const;
     // Resource name the page was inserted with (empty for plugin pages, which pass a wxBitmap).
     const std::string& GetPageIcon(size_t n) const
     {

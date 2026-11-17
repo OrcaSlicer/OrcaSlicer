@@ -1,4 +1,5 @@
 #include "GUI_ObjectSettings.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "GUI_ObjectList.hpp"
 #include "Tab.hpp"
 #include "MainFrame.hpp"
@@ -124,7 +125,7 @@ bool ObjectSettings::update_settings_list()
 
 			auto btn = new ScalableButton(parent, wxID_ANY, m_bmp_delete);
             btn->SetBackgroundColour(parent->GetBackgroundColour());
-            btn->SetToolTip(_(L("Remove parameter")));
+            set_illustrated_tooltip(btn, _(L("Remove parameter")));
 
             btn->SetBitmapFocus(m_bmp_delete_focus.bmp());
             btn->SetBitmapHover(m_bmp_delete_focus.bmp());

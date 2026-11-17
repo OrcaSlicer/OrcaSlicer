@@ -1,4 +1,5 @@
 #include "PresetComboBoxes.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include <climits>
 #include <boost/log/trivial.hpp>
@@ -933,7 +934,7 @@ PlaterPresetComboBox::PlaterPresetComboBox(wxWindow *parent, Preset::Type preset
         int em = wxGetApp().em_unit();
         clr_picker = new wxBitmapButton(parent, wxID_ANY, {}, wxDefaultPosition, wxSize(FromDIP(20), FromDIP(20)), wxBU_EXACTFIT | wxBU_AUTODRAW | wxBORDER_NONE);
         clr_picker->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
-        clr_picker->SetToolTip(_L("Click to select filament color"));
+        set_illustrated_tooltip(clr_picker, _L("Click to select filament color"));
 #ifdef __WXGTK__
         RemoveButtonBorder(clr_picker);
 #endif
@@ -998,7 +999,7 @@ PlaterPresetComboBox::PlaterPresetComboBox(wxWindow *parent, Preset::Type preset
     }
     else {
         edit_btn = new ScalableButton(parent, wxID_ANY, "cog");
-        edit_btn->SetToolTip(_L("Click to edit preset"));
+        set_illustrated_tooltip(edit_btn, _L("Click to edit preset"));
 
         edit_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent)
             {
@@ -1996,7 +1997,7 @@ GUI::CalibrateFilamentComboBox::CalibrateFilamentComboBox(wxWindow *parent)
 : PlaterPresetComboBox(parent, Preset::TYPE_FILAMENT)
 {
     clr_picker->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
-    clr_picker->SetToolTip("");
+    set_illustrated_tooltip(clr_picker, wxEmptyString);
     clr_picker->Bind(wxEVT_BUTTON, [](wxCommandEvent& e) {});
 }
 
