@@ -37,6 +37,7 @@ namespace GUI {
 
 class GLCanvas3D;
 class ClippingPlane;
+struct ToolbarGroupLayout;
 enum class SLAGizmoEventType : unsigned char;
 class CommonGizmosDataPool;
 //BBS: GUI refactor: add object manipulation
@@ -142,11 +143,15 @@ private:
     EType m_current;
     EType m_hover;
     std::pair<EType, bool> m_highlight; // bool true = higlightedShown, false = highlightedHidden
+    // The user's gizmo bar order (EType indices; empty = stock) and hidden flags, from the saved toolbar layout.
+    std::vector<size_t> m_bar_order;
+    std::vector<bool> m_bar_hidden;
 
     //BBS: GUI refactor: add object manipulation
     GizmoObjectManipulation m_object_manipulation;
 
     std::vector<size_t> get_selectable_idxs() const;
+    bool is_hidden_in_bar(size_t idx) const { return idx < m_bar_hidden.size() && m_bar_hidden[idx]; }
     EType get_gizmo_from_mouse(const Vec2d &mouse_pos) const;
 
     bool activate_gizmo(EType type);
@@ -232,6 +237,12 @@ public:
     void switch_gizmos_icon_filename();
 
     bool init();
+
+    // Applies the user's gizmo bar order and hidden set; ids that name no gizmo are ignored.
+    void set_bar_layout(const ToolbarGroupLayout& layout);
+    // The stock rule only (not the user's choice): true when the gizmos are not created yet.
+    bool is_bar_item_available(EType type) const;
+    static std::string gizmo_id(EType type);
 
     bool init_icon_textures();
 
