@@ -1,4 +1,5 @@
 #include "MixedFilamentDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -1073,10 +1074,17 @@ wxBoxSizer* MixedFilamentDialog::create_gradient_section()
     m_chk_gradient->SetValue(m_result.gradient_enabled);
     m_chk_gradient->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) { e.Skip(); on_gradient_toggled(); });
     m_gradient_sizer->Add(m_chk_gradient, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(2));
+    set_illustrated_tooltip(m_chk_gradient,
+                            _L("Blend from one filament to the other over the height of the print, instead of keeping one "
+                               "ratio throughout."),
+                            {{"settings/filament/mixed_gradient_off.png", _L("Off")},
+                             {"settings/filament/mixed_gradient_on.png", _L("On")}});
 
     m_combo_gradient_dir = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
                                         wxSize(FromDIP(152), FromDIP(24)), 0, nullptr, wxCB_READONLY);
     m_combo_gradient_dir->SetKeepDropArrow(true);
+    set_illustrated_tooltip(m_combo_gradient_dir, _L("Which filament the blend starts from at the bottom, and which it ends with "
+                                                     "at the top."));
     update_gradient_direction_items();
     m_combo_gradient_dir->SetSelection(m_result.gradient_direction);
     m_combo_gradient_dir->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { on_gradient_direction_changed(); });
@@ -1112,6 +1120,11 @@ wxBoxSizer* MixedFilamentDialog::create_gradient_section()
         [this](wxCommandEvent& e) { e.Skip(); on_per_part_gradient_toggled(); });
     m_per_part_gradient_sizer->Add(m_chk_per_part_gradient, 0,
         wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(2));
+    set_illustrated_tooltip(m_chk_per_part_gradient,
+                            _L("Run the blend over the height of each part on its own, instead of once over the height of "
+                               "the whole object."),
+                            {{"settings/filament/mixed_gradient_on.png", _L("Off")},
+                             {"settings/filament/mixed_gradient_per_part.png", _L("On")}});
 
     outer->Add(m_per_part_gradient_sizer, 0, wxEXPAND | wxTOP, FromDIP(2));
     m_per_part_gradient_sizer->ShowItems(m_result.gradient_enabled);
