@@ -73,7 +73,7 @@ on:
 concurrency:
   # cancel_closed_pr_builds.yml joins this group by name, so update that file
   # with any change here.
-  group: build-all-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
+  group: build-all-${{ github.event_name }}-${{ github.ref }}
   # Pushes don't cancel a running build, because only a finished branch build
   # saves caches every pull request can restore.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
