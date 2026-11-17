@@ -1309,6 +1309,7 @@ static std::vector<std::string> s_Preset_print_options{
     "internal_solid_filament_id",
     "top_surface_filament_id",
     "bottom_surface_filament_id",
+    "brim_filament_id",
     "support_filament",
     "support_interface_filament",
     "support_interface_not_for_body",
