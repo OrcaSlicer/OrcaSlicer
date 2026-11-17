@@ -66,6 +66,10 @@ public:
 
     void select_page(const PluginCapabilityId& id);
 
+    // How many of `total` tabs of `tab_width` fit in `room`, leaving room for the overflow button
+    // when not all of them fit.
+    static int fitting_tabs(int room, int total, int tab_width, int overflow_width);
+
 private:
     std::shared_ptr<PagesPluginCapability> get_pages_cap(const PluginCapabilityId& id, bool is_enabled) const;
     bool create_page(const PluginCapabilityId& id);

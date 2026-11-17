@@ -412,12 +412,15 @@ int PluginPages::fitting_page_count() const
         if (!Notebook::IsPluginPageId(m_parent->GetPageName(i)))
             room -= bar->GetTabWidth(m_parent->GetPageLabel(i).empty());
 
-    const int tab   = bar->GetTabWidth(false);
-    const int total = static_cast<int>(m_order.size());
-    if (room >= total * tab)
-        return total;
     // The overflow button takes an icon-only tab's width.
-    return (room - bar->GetTabWidth(true)) / tab;
+    return fitting_tabs(room, static_cast<int>(m_order.size()), bar->GetTabWidth(false), bar->GetTabWidth(true));
+}
+
+int PluginPages::fitting_tabs(int room, int total, int tab_width, int overflow_width)
+{
+    if (room >= total * tab_width)
+        return total;
+    return std::max(0, (room - overflow_width) / tab_width);
 }
 
 void PluginPages::select_page(const PluginCapabilityId& id)

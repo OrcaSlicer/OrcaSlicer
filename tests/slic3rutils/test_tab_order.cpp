@@ -3,6 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <slic3r/GUI/Notebook.hpp>
+#include <slic3r/plugin/host/PluginPages.hpp>
 
 using Order = std::vector<wxString>;
 
@@ -38,4 +39,19 @@ TEST_CASE("Tab order places a page among the pages already in the bar", "[TabOrd
     // Pages without a place in the order do not pin the position.
     CHECK(Notebook::OrderedPosition(order, {"home", "plugin.new", "project"}, "device", 2) == 2);
     CHECK(Notebook::OrderedPosition(order, {"home", "plugin.new", "project"}, "device", 0) == 1);
+}
+
+TEST_CASE("Plugin tabs that fit follow the bar width", "[TabOrder]")
+{
+    // macOS at 100 %: tabs are 136 px, the overflow button and the icon-only Home tab 40 px, so six
+    // built-in tabs take 40 + 5 * 136 = 720 px. Slice/Print with their dropdowns and spacers take
+    // about 456 px, plus the 15 px margin.
+    auto fit = [](int window, int plugins) { return Slic3r::PluginPages::fitting_tabs(window - 471 - 720, plugins, 136, 40); };
+
+    CHECK(fit(1400, 7) == 1);
+    CHECK(fit(1920, 7) == 5);
+    CHECK(fit(2600, 7) == 7);
+    CHECK(fit(2723, 7) == 7);
+    CHECK(fit(2723, 15) == 10);
+    CHECK(fit(1100, 7) == 0);
 }
