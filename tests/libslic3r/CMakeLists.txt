@@ -51,6 +51,7 @@ add_executable(${_TEST_NAME}_tests
     test_fill_plane_path.cpp
     test_adaptive_infill_field.cpp
     test_geometry.cpp
+    test_measure.cpp
     test_kdtree.cpp
     test_lightning.cpp
     test_imex_arrange.cpp
@@ -65,6 +66,7 @@ add_executable(${_TEST_NAME}_tests
     test_minimum_spanning_tree.cpp
     test_nozzle_volume_type.cpp
     test_obj.cpp
+    test_painted_modifier.cpp
     test_step.cpp
     test_stl.cpp
     test_triangle_mesh_deal.cpp

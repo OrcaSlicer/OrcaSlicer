@@ -8,7 +8,7 @@ SCRIPT_PATH=$(dirname "$(readlink -f "${0}")")
 pushd "${SCRIPT_PATH}" > /dev/null
 
 function usage() {
-    echo "Usage: ./${SCRIPT_NAME} [-1][-b][-c][-d][-D][-e][-F][-g][-h][-i][-j N][-J N][-p][-r][-s][-t][-u][-l][-L] [-- CMAKE_ARGS...]"
+    echo "Usage: ./${SCRIPT_NAME} [-1][-b][-c][-d][-D][-e][-F][-g][-h][-i][-j N][-J N][-p][-P][-r][-s][-t][-u][-l][-L] [-- CMAKE_ARGS...]"
     echo "   -1: limit builds to one core (where possible)"
     echo "   -j N: limit builds to N cores (where possible)"
     echo "   -J N: build up to N dependencies at a time, each still using -j jobs (default: 1)"
@@ -23,6 +23,7 @@ function usage() {
     echo "   -h: prints this help text"
     echo "   -i: build the Orca Slicer AppImage (optional)"
     echo "   -p: disable precompiled headers (on by default): more ccache hits after header changes, slower misses"
+    echo "   -P: ship the system preset caches in the package and AppImage, deleting the preset JSONs they replace (CI packaging)"
     echo "   -r: skip RAM and disk checks (low RAM compiling)"
     echo "   -s: build the Orca Slicer (optional)"
     echo "   -t: build tests (optional), requires -s flag"
@@ -47,7 +48,7 @@ unset name
 BUILD_DIR=build
 BUILD_CONFIG=Release
 FORWARDED_ARGS=()
-while getopts ":1j:J:bcCdDeFghiprstulL" opt ; do
+while getopts ":1j:J:bcCdDeFghipPrstulL" opt ; do
   case ${opt} in
     1 )
         export CMAKE_BUILD_PARALLEL_LEVEL=1
@@ -103,6 +104,10 @@ while getopts ":1j:J:bcCdDeFghiprstulL" opt ; do
     p )
         SLIC3R_PRECOMPILED_HEADERS="OFF"
         FORWARDED_ARGS+=("-p")
+        ;;
+    P )
+        SHIP_PRESET_CACHES="1"
+        FORWARDED_ARGS+=("-P")
         ;;
     r )
         SKIP_RAM_CHECK="1"
@@ -648,11 +653,14 @@ if [[ -n "${BUILD_IMAGE}" || -n "${BUILD_ORCA}" ]] ; then
     pushd $BUILD_DIR > /dev/null
     build_linux_image="./src/build_linux_image.sh"
     if [[ -e ${build_linux_image} ]] ; then
-        extra_script_args=""
+        extra_script_args=()
         if [[ -n "${BUILD_IMAGE}" ]] ; then
-            extra_script_args="-i"
+            extra_script_args+=("-i")
         fi
-        print_and_run ${build_linux_image} ${extra_script_args} -R "${BUILD_CONFIG}"
+        if [[ -n "${SHIP_PRESET_CACHES}" ]] ; then
+            extra_script_args+=("-c")
+        fi
+        print_and_run ${build_linux_image} "${extra_script_args[@]}" -R "${BUILD_CONFIG}"
 
         echo "done"
     fi
