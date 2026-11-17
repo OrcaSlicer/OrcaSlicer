@@ -1,169 +1,76 @@
-# Windows Build Performance Benchmark Results
+# Windows Build Script Performance Notes
 
 **Branch:** `feat/build-performance` (Depact/OrcaSlicer)
-**Test Period:** November 2026
-**Runners Tested:** GitHub-hosted `windows-latest` (primary), self-hosted `HOME-LAPTOP` (initial)
+**Test period:** November 2026
+**Runners:** GitHub-hosted `windows-latest`, plus a self-hosted run on `HOME-LAPTOP` (i5-10500H) early on
 
----
+## Where this ended up
 
-## Executive Summary
+`build_win.ps1` is the only Windows build script in the branch. `build_win.bat` was deleted along with its matrix leg, and the pipeline builds one Windows configuration: `x64-clang` (clang-cl + Ninja Multi-Config), incremental by default and full rebuild when dispatched with `clean-build: true`.
 
-| Preset | Script | Time | vs Baseline |
-|--------|--------|------|-------------|
-| **x64-clang (clang-cl + Ninja)** | `.bat` | 1:37:30 | — |
-| **x64-clang (clang-cl + Ninja)** | `.ps1` | **0:57:31** | **42% faster** (Run #179) |
-| **x64-clang (clang-cl + Ninja)** | `.bat` | 56:44 | — |
-| **x64-clang (clang-cl + Ninja)** | `.ps1` | 1:13:38 | 30% slower (Run #191) |
-| x64-msvc (MSVC + Ninja) | `.bat` | 1:57:28 | — |
-| x64-msvc (MSVC + Ninja) | `.ps1` | 1:26:08 | 31% faster |
-| x64-msbuild (MSVC + MSBuild) | `.bat` | 1:29:00 | — |
-| x64-msbuild (MSVC + MSBuild) | `.ps1` | Failed* | — |
-| x64-clang-cache | `.bat` | 1:53:09 | — |
-| x64-clang-cache | `.ps1` | 1:36:07 | 15% faster |
-| x64-clang-unity | `.bat` | 0:01:47 (failed) | — |
-| x64-clang-unity | `.ps1` | 1:36:58 | N/A |
+The bat numbers below are kept because they are the evidence for the switch, not because the bat still exists.
 
-*MSBuild ps1 failed due to workflow step skip, not build script issue.
+## Benchmarks: bat vs ps1
 
-**Key Finding:** Performance varies by run due to cache state and runner variance. Run #179 showed **42% ps1 speedup**; Run #191 showed **30% ps1 slowdown** (likely manifest hash overhead + runner variance). **Both bat and ps1 now work reliably for x64-clang.**
+GitHub-hosted `windows-latest`, `clean-build: true` for both legs of a comparison.
 
----
+| Run | Preset | bat | ps1 | Delta |
+|-----|--------|-----|-----|-------|
+| #179 | x64-clang | 1:37:52 | 0:57:31 | ps1 41% faster |
+| #191 | x64-clang | 56:44 | 1:13:38 | ps1 30% slower |
+| #182 | x64-msvc (MSVC + Ninja) | 1:57:28 | 1:26:08 | ps1 27% faster |
+| #182 | x64-msbuild (MSVC + MSBuild) | 1:29:00 | n/a | ps1 leg skipped by workflow |
+| #179 | x64-clang-cache | 0:17:35 | 1:36:07 | bat leg almost certainly a stale cache hit |
+| #179 | x64-clang-unity | failed (0:01:47) | 1:36:58 | unity removed afterwards |
 
-## Test Configurations
+Self-hosted, warm deps and ccache:
 
-### Primary Matrix (GitHub-hosted `windows-latest`)
-All runs used `clean-build: true` for fair comparison.
+| Runs | bat | ps1 |
+|------|-----|-----|
+| #150, #151 | 67:19, 70:18 (mean 68:49) | 66:49, 64:44 (mean 65:47) |
 
-| Preset | Compiler | Generator | Cache | Unity | Scripts Tested |
-|--------|----------|-----------|-------|-------|----------------|
-| x64-clang | clang-cl | Ninja | none | no | bat, ps1 |
-| x64-clang-cache | clang-cl | Ninja | ccache | no | bat, ps1 |
-| x64-clang-unity | clang-cl | Ninja | none | yes | bat, ps1 |
-| x64-msvc | MSVC | Ninja | none | no | bat, ps1 |
-| x64-msbuild | MSVC | MSBuild | none | no | bat, ps1 |
+**Reading the numbers.** Clean-build legs on GitHub-hosted runners are not a controlled experiment. `clean-build: true` wipes the slicer tree but leaves `deps/` and ccache from the branch cache, so the two legs can start from different cache states - which is the most likely explanation for #179 and #191 disagreeing by 70 points. The self-hosted pair is the only run where both legs shared a machine and a warm cache, and there the ps1 is ~4.5% faster, inside noise. The defensible claim is that the ps1 is not slower, and it is the script the repository can actually maintain (single implementation, real error reporting, no duplicated flag parsing).
 
-### Self-Hosted Runner (HOME-LAPTOP, i5-10500H)
-| Run | Script | Time | Cache |
-|-----|--------|------|-------|
-| #150 | bat | 67:19 | hit |
-| #150 | ps1 | 66:49 | hit |
-| #151 | bat | 70:18 | hit |
-| #151 | ps1 | 64:44 | hit |
-| **Mean** | **bat** | **68:49** | — |
-| **Mean** | **ps1** | **65:47** | — |
+## Root causes fixed along the way
 
-Self-hosted: `.ps1` ~4.5% faster (within noise margin).
+| Symptom | Cause | Fix |
+|---|---|---|
+| ps1 rebuilt every dependency | Manifest written outside the cached tree | Write it inside `OrcaSlicer_dep` |
+| Preset cache step failed after ~2s | `$MyInvocation` resolved the wrong directory | Use `$PSScriptRoot` |
+| Preset cache crashed on an empty directory | `Get-ChildItem` returned null | Guard before `Remove-Item` |
+| No install tree, portable zip silently skipped | `-InstallSlicer` was parsed and ignored | Run `cmake --build --target install` |
+| Deps cache v1 needed Iconv | Boost built against Iconv | Cache key v2, Iconv-free |
+| clang C++ build failed on paths | Forward slashes in `ORCA_BUNDLED_PYTHON_ROOT` | Fix the path construction |
+| VS version always detected as 17 | Over-escaped regex never matched | `'\\(1[6-9]\|[2-9][0-9])\\'` |
+| Script died on PowerShell 5.1 | `??` operator does not exist there | Explicit fallback |
+| Windows ARM64 rebuilt deps every run | Tree hardcoded to `deps/build`, cache restores `deps/build-arm64` | Resolve `$DepsDir` from the architecture |
+| Failure log tail never printed | `Get-Content` output was captured by the caller's variable and discarded on throw | Write the tail straight to the host |
+| unity build enabled by ccache | `-DSLIC3R_UNITY_BUILD=ON` added whenever `-Cache ccache` | Unity support removed |
+| Dead flags and dead paths | `-NoConfigure`, `-InstallSlicer`, `-CleanDeps`, `-DepsDir`, `-ClangPath` did nothing | Wired up or deleted |
 
----
+## Pipeline
 
-## Detailed Results by Run
+- Windows: one `x64-clang` job running `build_win.ps1`, incremental by default. `clean-build: true` on a manual dispatch forces a from-scratch slicer tree.
+- Dependencies and ccache come from `actions/cache`, keyed on OS/arch/compiler/BuildConfig, with `restore-keys` falling back from the branch to main to a generic prefix.
+- Self-hosted runs (`vars.SELF_HOSTED`) use the local cache directory instead of the cloud cache.
+- Linux (x64, aarch64), macOS (arm64, x86_64, universal) and Flatpak use their own scripts and are unaffected by any of this.
 
-### Run #182 (Final, `windows-latest`, clean builds)
+## Known limitations
 
-| Job | Script | Status | Duration |
-|-----|--------|--------|----------|
-| x64-msvc baseline | bat | ✅ | 1:57:28 |
-| **x64-msvc candidate** | **ps1** | **✅** | **1:26:08** |
-| x64-msbuild baseline | bat | ✅ | 1:29:00 |
-| x64-msbuild candidate | ps1 | ❌ (step skip) | 0:15:57 |
-| x64-clang baseline | bat | ✅ | 1:37:30 |
-| **x64-clang candidate** | **ps1** | **✅** | **0:57:31** |
-| x64-clang-cache baseline | bat | ✅ | 1:53:09 |
-| x64-clang-cache candidate | ps1 | ❌ (step skip) | 0:33:40 |
-| x64-clang-unity baseline | bat | ❌ | 0:01:47 |
-| x64-clang-unity candidate | ps1 | ❌ (step skip) | — |
+1. All timings come from GitHub-hosted 4 vCPU runners, so they say more about queueing than about the script.
+2. Clean-build comparisons inherit deps and ccache state, so leg-for-leg deltas are not trustworthy.
+3. The ccache manifest hash costs ~19s per ps1 invocation (1,846 dependency files).
+4. Incremental-build performance, which is what pull requests actually see, has not been benchmarked.
 
-### Run #179 (Full clang matrix completed)
-
-| Job | Script | Status | Duration |
-|-----|--------|--------|----------|
-| x64-clang baseline | bat | ✅ | 1:37:52 |
-| **x64-clang candidate** | **ps1** | **✅** | **0:57:31** |
-| x64-clang-cache baseline | bat | ✅ | 0:17:35* |
-| **x64-clang-cache candidate** | **ps1** | **✅** | **1:36:07** |
-| x64-clang-unity baseline | bat | ❌ | 0:01:47 |
-| **x64-clang-unity candidate** | **ps1** | **✅** | **1:36:58** |
-
-*Clang-cache baseline anomalously fast — likely stale cache hit despite `clean-build: true`.
-
-### Run #191 (Final, `windows-latest`, clean builds, VS regex fixed)
-
-| Job | Script | Status | Duration |
-|-----|--------|--------|----------|
-| x64-clang baseline | bat | ✅ | 56:44 |
-| x64-clang candidate | ps1 | ✅ | 1:13:38 |
-
-**Note:** Both bat and ps1 succeeded. PS1 slower this run (30% vs bat) likely due to runner variance and manifest hash overhead (~19s). The key fix (VS version regex) works - both builds completed.
-
----
-
-## Root Causes Fixed (12 Total)
-
-| # | Symptom | Root Cause | Fix |
-|---|---------|------------|-----|
-| 1 | 57h "hang" | Monitor script read stale file | Tooling fix |
-| 2 | `.ps1` rebuilt all deps | Manifest outside cached dir | Move manifest into `OrcaSlicer_dep` |
-| 3 | Preset cache failed ~2s | `$MyInvocation` wrong path | Use `$PSScriptRoot` |
-| 4 | Preset cache crashed | Null `Get-ChildItem` entry | Guard null before `Remove-Item` |
-| 5 | Missing install tree | `-InstallSlicer` not implemented | Implement or skip gracefully |
-| 6 | Pack app failed | No existence check | Add check |
-| 7 | No clean between legs | Workspace persisted | `clean-build` dispatch input |
-| 8 | Deps cache v1 required Iconv | Boost built with Iconv | Bump cache key to v2 (Iconv-free) |
-| 9 | Clang C++ escape errors | Forward slashes in path | Fix `ORCA_BUNDLED_PYTHON_ROOT` |
-| 10 | VS version regex broken | Literal parens in regex | Escape parens for capture groups |
-| 11 | PS5.1 `??` operator missing | PS5.1 lacks null-coalesce | Explicit fallback syntax |
-| 12 | Shared deps path | Each config used own deps dir | Unified `deps/build` |
-
----
-
-## Known Limitations
-
-1. **Single CI runner type** — All data from GitHub-hosted `windows-latest` (4 vCPU, 16 GB RAM)
-2. **MSBuild ps1 incomplete** — Workflow step skip, not script bug
-3. **Clang-cache baseline anomaly** — 17 min suggests cache leak
-4. **Unity slower on clean CI** — Expected (less parallelism), benefit is incremental
-5. **Manifest hash overhead** — ~19s per `.ps1` invocation (hashes 1,846 deps files)
-
----
-
-## Recommendation: Use x64-clang as Primary Preset
-
-**Rationale:**
-- ✅ Both `.bat` and `.ps1` work reliably (VS version regex fixed)
-- ✅ **42% speedup** with `.ps1` in best case (Run #179)
-- ✅ clang-cl + Ninja is modern, cross-platform, well-supported
-- ✅ No MSBuild dependency (simpler toolchain)
-- ✅ ccache works correctly (unlike MSBuild config)
-
-**Pipeline Simplification:**
-- Removed: MSVC, MSBuild, clang-cache, clang-unity from CI matrix
-- Kept: `x64-clang` (bat + ps1) for performance comparison
-- Disabled: macOS, Linux, Flatpak, ARM64 on fork (no self-hosted runners)
-
----
-
-## Files Changed
-
-### Workflows
-- `.github/workflows/build_all.yml` — Reduced to `x64-clang` only (bat + ps1)
-- `.github/workflows/build_check_cache.yml` — Thread `clean` input through
-- `.github/workflows/build_deps.yml` — Accept `clean` input
-- `.github/workflows/build_orca.yml` — Accept `clean`, pass `-Clean`/`-clean`
-
-### Scripts
-- `build_win.ps1` — VS version regex fix, shared deps dir, PS5.1 compat
-- `scripts/build_win_steps/deps.ps1` — Manifest inside cached dir, parallel jobs
-- `scripts/build_preset_cache.ps1` — Repo root from `$PSScriptRoot`, null guard
-
----
-
-## How to Reproduce
+## Reproducing
 
 ```bash
-# Dispatch clean comparison build
 gh workflow run build_all.yml -f clean-build=true -R Depact/OrcaSlicer
+```
 
-# Expected: Two Windows jobs (bat + ps1, x64-clang)
-# Each: ~60-100 min clean build
-# Preset cache: ~30s for 71 vendor caches
+Locally:
+
+```powershell
+.\build_win.ps1 -Help
+.\build_win.ps1 -Deps -Slicer
 ```
