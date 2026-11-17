@@ -6,6 +6,8 @@
 
 #include <cmath>
 #include <cstddef>
+#include <cstdlib>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -208,7 +210,8 @@ TEST_CASE("Slicing rejects flow model entries without a number in either of the 
     GCodeConfig config;
     const std::string point = GENERATE(as<std::string>{}, "bad,0.5", "5,bad", "5,,0.5", "5, ", "5,\n", "+-5,0.5", "5,mm0.5",
                                        "bad", "bad,", " bad ,", "x5", "-+5,0.5", "--5,0.5", "5,+-0.5", "+,0.5", "5,-",
-                                       ".,0.5", "5,e1", "5,x0.5", "1e999,0.5", "5,-0x1p9999");
+                                       ".,0.5", "5,e1", "5,x0.5", "1e999,0.5", "5,-0x1p9999",
+                                       "5,0x1.fffffffffffff8p1023");
     CAPTURE(point);
     config.small_area_infill_flow_compensation_model.values = {"0,0", point, "10,1"};
     REQUIRE_THROWS_AS(SmallAreaInfillFlowCompensator(config), InvalidArgument);
@@ -231,6 +234,39 @@ TEST_CASE("Slicing reads the number at the start of a field in each form std::st
     // As a factor, negated to lie between -1e6 and 1.
     config.small_area_infill_flow_compensation_model.values = {"0,-1e6", "5,-" + number.text, "10,1"};
     CHECK_THAT(SmallAreaInfillFlowCompensator(config).modify_flow(5.0, 1.0, erSolidInfill), WithinAbs(-number.value, 1e-9));
+}
+
+TEST_CASE("Slicing rounds a hexadecimal number once, as std::strtod does", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    // Rounding to 53 bits and then scaling rounds twice: a tie that only the digits beyond 53 bits
+    // break, or a subnormal value, comes out one step off.
+    const std::string text = GENERATE(as<std::string>{}, "0x1.00000000000008p0", "0x1.000000000000080000001p0",
+                                      "0x100000000000008000000001p-92", "0x00000000000000000000001.00000000000008p0",
+                                      "0x0.000000000000000000000100000000000008000000001p88", "0x1.8p-1074", "0x1.00000000000001p-1075",
+                                      "0x1p-1075", "0x1p-1076", "0x1.fffffffffffff7p-1");
+    CAPTURE(text);
+    GCodeConfig config;
+    // At its own length the curve gives the factor exactly. Negated to lie between -2 and the last factor 1.
+    config.small_area_infill_flow_compensation_model.values = {"0,-2", "5,-" + text, "10,1"};
+    CHECK(SmallAreaInfillFlowCompensator(config).modify_flow(5.0, 1.0, erSolidInfill) == -std::strtod(text.c_str(), nullptr));
+}
+
+TEST_CASE("A hexadecimal subnormal number that rounds up to the smallest normal one is read exactly", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    // Not compared with std::strtod: the one of the Windows UCRT reads this text as 2^-1019.
+    GCodeConfig config;
+    config.small_area_infill_flow_compensation_model.values = {"0,-2", "5,-0x1.ffffffffffffffp-1023", "10,1"};
+    CHECK(SmallAreaInfillFlowCompensator(config).modify_flow(5.0, 1.0, erSolidInfill) == -std::numeric_limits<double>::min());
+}
+
+TEST_CASE("A hexadecimal factor just above half of the smallest double is not read as 0", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    GCodeConfig config;
+    config.small_area_infill_flow_compensation_model.values = {"0,0", "5,0x1.00000000000001p-1075", "10,1"};
+    CHECK(SmallAreaInfillFlowCompensator(config).modify_flow(5.0, 1.0, erSolidInfill) == std::numeric_limits<double>::denorm_min());
+    // Exactly half of it is a tie, rounded to the even 0, which repeats the first factor.
+    config.small_area_infill_flow_compensation_model.values = {"0,0", "5,0x1p-1075", "10,1"};
+    CHECK_THROWS_AS(SmallAreaInfillFlowCompensator(config), InvalidArgument);
 }
 
 TEST_CASE("The graph shows the points slicing reads from an entry with more than two fields", "[SmallAreaInfillFlowCompensation][Regression]")
