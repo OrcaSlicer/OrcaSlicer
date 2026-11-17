@@ -204,10 +204,13 @@ rectangle no longer fits, and the dialog keeps its corner and scales its current
 gives a window the DPI of the monitor that has the largest part of it, so the final rectangle
 must stay on the monitor that owns the suggested rectangle, or the window when no rectangle is
 suggested. Where the scaled size or the minimum size would leave its largest part on another
-monitor, the dialog moves into the work area of the owning one; otherwise it keeps its corner. On
-macOS the base class does not handle the DPI event, and logical sizes do not change there; the
-widgets with icons rescale from their own handlers on every platform. Escape is decided by the
-dialog's key hook, which runs before the one of the base class.
+monitor, the dialog shrinks to the work area of the owning one, no smaller than its minimum size
+(its content scrolls), and moves into that area; otherwise it keeps its corner and size. Only a
+minimum size larger than the work area can still overflow it: the overflow goes right and down,
+or left and up where that keeps the largest part on the owning monitor and the title bar on a
+monitor. On macOS the base class does not handle the DPI event, and logical sizes do not change
+there; the widgets with icons rescale from their own handlers on every platform. Escape is decided
+by the dialog's key hook, which runs before the one of the base class.
 
 Its size and position are stored under a key given by the dialog that derives from it, not under
 the window name, and are brought back onto a display when restored.
