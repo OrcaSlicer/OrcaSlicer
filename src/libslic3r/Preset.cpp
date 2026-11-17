@@ -1205,6 +1205,8 @@ static std::vector<std::string> s_Preset_print_options{
     "reduce_crossing_wall",
     "detect_thin_wall",
     "detect_overhang_wall",
+    "smooth_speed_discontinuity_area",
+    "smooth_coefficient",
     "unsupported_wall_last",
     "overhang_reverse",
     "overhang_reverse_threshold",
