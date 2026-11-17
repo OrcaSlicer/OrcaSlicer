@@ -39,6 +39,7 @@
 
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/AnimatedTexture.hpp"
+#include "slic3r/GUI/IllustratedTooltip.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include <functional>
 #include <wx/defs.h>
@@ -1048,8 +1049,11 @@ void show_now()
     if (st.owner == nullptr || st.popup == nullptr)
         return;
     TipWindow &popup = *st.popup;
-    // Pictures given as a source are worked out now, when the tooltip opens, never per mouse move.
-    const std::vector<TipMedia> media = st.tip.source ? st.tip.source() : st.tip.media;
+    // Pictures given as a source are worked out now, when the tooltip opens, never per mouse move, and
+    // not at all when the preference leaves tooltips without them.
+    const std::vector<TipMedia> media = !IllustratedTooltip::pictures_shown() ? std::vector<TipMedia>() :
+                                        st.tip.source                          ? st.tip.source() :
+                                                                                 st.tip.media;
     // The source ran user code: make sure the control and the popup are both still there.
     if (st.owner == nullptr || st.popup != &popup)
         return;
