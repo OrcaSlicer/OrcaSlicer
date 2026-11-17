@@ -4130,7 +4130,6 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Number of layers at the start of the object that keep their normal speed. The slowdown starts on the layer after them.");
     def->sidetext = L("layers"); // ORCA add side text
     def->min = 0;
-    def->max = 1000;
     def->mode = comExpert;
     def->set_default_value(new ConfigOptionInt(3));
 
