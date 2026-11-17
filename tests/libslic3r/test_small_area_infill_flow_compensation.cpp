@@ -103,6 +103,126 @@ TEST_CASE("Documented semicolon-terminated point text imports without empty cell
     CHECK_FALSE(model.is_modified());
 }
 
+TEST_CASE("One-line point text imports with or without a semicolon after the last pair", "[SmallAreaInfillFlowCompensation][CurveModel][CSV][Regression]")
+{
+    const std::string text = GENERATE(as<std::string>{}, "0,0; 5,0.5; 10,1", "0,0;5,0.5;10,1\n", "0,0;\n5,0.5; 10,1");
+    FlowModel model;
+    CurveModel::Rows rows;
+    int line = -1;
+    REQUIRE(model.read_csv(text, rows, line) == nullptr);
+    CHECK(rows == CurveModel::Rows{{"0", "0"}, {"5", "0.5"}, {"10", "1"}});
+}
+
+TEST_CASE("CSV headers match in any letter case", "[SmallAreaInfillFlowCompensation][CurveModel][CSV][Regression]")
+{
+    const std::string header = GENERATE(as<std::string>{}, "X,Y", "x,Y", "Extrusion_Length,FLOW_CORRECTION_FACTOR", "X;Y");
+    const char separator = header.find(';') == std::string::npos ? ',' : ';';
+    FlowModel model;
+    CurveModel::Rows rows;
+    int line = -1;
+    REQUIRE(model.read_csv(header + "\n0" + separator + "0\n10" + separator + "1\n", rows, line) == nullptr);
+    CHECK(rows == CurveModel::Rows{{"0", "0"}, {"10", "1"}});
+}
+
+TEST_CASE("Accepting a blank saved model unchanged keeps its saved entries", "[SmallAreaInfillFlowCompensation][CurveModel][Regression]")
+{
+    const std::vector<std::string> values =
+        GENERATE(std::vector<std::string>{}, std::vector<std::string>{""}, std::vector<std::string>{"\n"},
+                 std::vector<std::string>{" ", "\t\n"});
+    FlowModel model(values);
+    const auto rows = model.rows();
+    REQUIRE(rows.empty());
+    model.accept_rows(rows);
+    CHECK(model.parameters() == values);
+    CHECK_FALSE(model.is_modified());
+    model.accept_rows({{"0", "0"}, {"10", "1"}});
+    CHECK(model.parameters() == std::vector<std::string>{"0,0", "\n10,1"});
+    CHECK(model.is_modified());
+}
+
+TEST_CASE("The editor flags entries that slicing reads leniently", "[SmallAreaInfillFlowCompensation][CurveModel][Regression]")
+{
+    const std::string entry = GENERATE(as<std::string>{}, "5", "1,", " ,0.5", "0.2,0.44,x", "5,0.5 mm", "5junk,0.5",
+                                       "0.2,0.4444\n0.4,0.6145");
+    const FlowModel model({"0,0", entry, "10,1"});
+    const auto rows = model.rows();
+    REQUIRE(rows.size() == 3);
+    std::vector<double> x, y;
+    int row = -1;
+    CHECK(model.read_points(rows, x, y, row) != nullptr);
+    CHECK(row == 1);
+}
+
+TEST_CASE("A point is added beside a lone point", "[SmallAreaInfillFlowCompensation][CurveModel][Regression]")
+{
+    struct Lone { CurveModel::Row point; int row; CurveModel::Row added; };
+    // The first length must be 0 and the last factor 1, so the missing end goes to the right
+    // of a first point and to the left of a last one.
+    const auto lone = GENERATE(Lone{{"0", "0.3"}, 1, {"10", "1"}},
+                               Lone{{"0", "0"}, 1, {"10", "1"}},
+                               Lone{{"0", "-0,5"}, 1, {"10", "1"}},
+                               Lone{{"5", "1"}, 0, {"0", "0"}},
+                               Lone{{"20", "1"}, 0, {"0", "0"}});
+    const FlowModel model;
+    CurveModel::Rows rows = {lone.point};
+    // The requested position does not matter beside a lone point.
+    int row = GENERATE(0, 1);
+    REQUIRE(model.insert_point(rows, row));
+    CHECK(row == lone.row);
+    REQUIRE(rows.size() == 2);
+    CHECK(rows[row] == lone.added);
+    CHECK(rows[1 - row] == lone.point);
+    std::vector<double> x, y;
+    int error_row = -1;
+    CHECK(model.read_points(rows, x, y, error_row) == nullptr);
+}
+
+TEST_CASE("A lone point that no second point can complete stays alone", "[SmallAreaInfillFlowCompensation][CurveModel][Regression]")
+{
+    // Nothing can follow a factor of 1 at length 0, a point amid the curve is neither end, and text is no point.
+    const auto point = GENERATE(CurveModel::Row{"0", "1"}, CurveModel::Row{"3", "0.5"}, CurveModel::Row{"0", ""},
+                                CurveModel::Row{"text", "1"});
+    const FlowModel model;
+    CurveModel::Rows rows = {point};
+    int row = 1;
+    CHECK_FALSE(model.insert_point(rows, row));
+    CHECK(row == 1);
+    CHECK(rows == CurveModel::Rows{point});
+    const LimitedPointModel full(1);
+    rows = {CurveModel::Row{"0", "0"}};
+    CHECK_FALSE(full.insert_point(rows, row));
+    CHECK(rows.size() == 1);
+}
+
+TEST_CASE("A point added beside a lone point stays within the editing bounds", "[SmallAreaInfillFlowCompensation][CurveModel][Regression]")
+{
+    // The seed length of 10 lies past the lengths that a bed with a diagonal of 5 lets the editor reach.
+    const FlowModel small_bed({}, 5.0);
+    const double maximum = small_bed.view_limits().bounds.max_x;
+    REQUIRE(maximum < 10.0);
+    CurveModel::Rows rows = {CurveModel::Row{"0", "0"}};
+    int row = 0;
+    REQUIRE(small_bed.insert_point(rows, row));
+    CHECK(row == 1);
+    REQUIRE(rows.size() == 2);
+    double length = 0.0;
+    REQUIRE(CurveModel::read_number(rows[1].first, length));
+    CHECK(length > 0.0);
+    CHECK(length <= maximum);
+    CHECK(rows[1].second == "1");
+
+    // A model without ordering rules takes the last seed to the right, or the first seed
+    // to the left when its bounds leave no room on the right.
+    const NonmonotoneModel free_model;
+    rows = {CurveModel::Row{"1", "0.5"}};
+    REQUIRE(free_model.insert_point(rows, row));
+    CHECK(rows == CurveModel::Rows{{"1", "0.5"}, {"2", "1"}});
+    rows = {CurveModel::Row{"2", "0.25"}};
+    REQUIRE(free_model.insert_point(rows, row));
+    CHECK(rows == CurveModel::Rows{{"0", "1"}, {"2", "0.25"}});
+    CHECK(row == 0);
+}
+
 TEST_CASE("Saved curve rows skip blank delimiter entries without losing unchanged precision", "[SmallAreaInfillFlowCompensation][CurveModel][Regression]")
 {
     const std::vector<std::string> values = {"", " 0,0.0000 ", "\t", "\n10,1.0000", "", " \n"};
@@ -128,6 +248,9 @@ TEST_CASE("Saved curve rows skip blank delimiter entries without losing unchange
 TEST_CASE("Generated point numbers use short round-trip text without collapsing adjacent doubles", "[SmallAreaInfillFlowCompensation][CurveModel][Regression]")
 {
     CHECK(CurveModel::format_number(0.1) == "0.1");
+    // The curve's number text is the shortest float text of LocalesUtils, covered in test_locales_utils.cpp.
+    CHECK(CurveModel::format_number(1234567.0) == "1.234567e+06");
+    CHECK(CurveModel::format_number(-2.125) == "-2.125");
     const double value = GENERATE(0.1, std::nextafter(0.1, 1.0), 1e-100, std::numeric_limits<double>::max());
     double parsed;
     REQUIRE(CurveModel::read_number(CurveModel::format_number(value), parsed));
@@ -1019,7 +1142,7 @@ TEST_CASE("Reading numeric visible bounds validates the complete range before ap
     CHECK_FALSE(model.is_modified());
 }
 
-TEST_CASE("Fitting an oversized legacy curve includes every point without changing the model", "[SmallAreaInfillFlowCompensation][Regression]")
+TEST_CASE("Fitting an oversized legacy curve clamps the view to its limits without changing the model", "[SmallAreaInfillFlowCompensation][Regression]")
 {
     const std::vector<std::string> parameters = {"0,-3", "\n100000000,1"};
     FlowModel model(parameters);

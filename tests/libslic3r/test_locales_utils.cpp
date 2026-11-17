@@ -13,6 +13,7 @@
 #include <boost/lexical_cast/bad_lexical_cast.hpp>
 
 #include <cstddef>
+#include <limits>
 #include <string>
 
 using namespace Slic3r;
@@ -31,6 +32,20 @@ TEST_CASE("Floats print as printf prints them in the C locale", "[LocalesUtils]"
         {1e21, 2, "1000000000000000000000.00"},
     }));
     CHECK(float_to_string_decimal_point(value, precision) == text);
+}
+
+TEST_CASE("The stream fallback prints the shortest float text as std::to_chars does", "[LocalesUtils][Regression]")
+{
+    // The fallback serves the platforms without a floating-point std::to_chars, so it is called directly here.
+    const auto [value, text] = GENERATE(table<double, std::string>({
+        {0.0, "0"}, {-0.0, "-0"}, {1.0, "1"}, {10.0, "10"}, {100.0, "100"}, {150.0, "150"}, {1000.0, "1000"},
+        {123456.0, "123456"}, {999999.0, "999999"}, {1e6, "1e+06"}, {1234567.0, "1.234567e+06"}, {1e21, "1e+21"},
+        {0.5, "0.5"}, {0.1, "0.1"}, {0.952, "0.952"}, {-2.125, "-2.125"}, {1500.5, "1500.5"},
+        {0.0001, "0.0001"}, {0.00015, "0.00015"}, {0.00001, "1e-05"}, {1.5e-7, "1.5e-07"}, {1e-100, "1e-100"},
+        {1.0 / 3.0, "0.3333333333333333"}, {3.0000000000000004, "3.0000000000000004"},
+        {std::numeric_limits<double>::max(), "1.7976931348623157e+308"}}));
+    CHECK(shortest_float_to_string_decimal_point(value) == text);
+    CHECK(float_to_string_decimal_point(value, -1, true) == text);
 }
 
 TEST_CASE("Floats print with a decimal point in a locale whose decimal separator is a comma", "[LocalesUtils]")

@@ -6,8 +6,10 @@
 #include <string>
 #include <ios>
 
+#include <algorithm>
 #include <charconv>
 #include <cmath>
+#include <cstdlib>
 #include <limits>
 #include <locale>
 #include <iomanip>
@@ -140,6 +142,29 @@ std::string float_to_string_decimal_point(double value, int precision/* = -1*/)
     return float_to_string_decimal_point(value, precision, false);
 }
 
+std::string shortest_float_to_string_decimal_point(double value)
+{
+    std::stringstream buf;
+    buf.imbue(std::locale::classic());
+    const int max_digits = std::numeric_limits<double>::max_digits10;
+    for (int digits = 1; digits <= max_digits; ++digits) {
+        buf.str("");
+        buf << std::scientific << std::setprecision(digits - 1) << value;
+        const std::string text = buf.str();
+        double parsed;
+        if (digits < max_digits && !(try_parse_double_decimal_point(text, parsed) && parsed == value))
+            continue;
+        // The general format of to_chars prints exponents from -4 to 5 in fixed notation.
+        const int exponent = std::atoi(text.c_str() + text.find('e') + 1);
+        if (exponent < -4 || exponent >= 6)
+            return text;
+        buf.str("");
+        buf << std::fixed << std::setprecision(std::max(0, digits - 1 - exponent)) << value;
+        break;
+    }
+    return buf.str();
+}
+
 std::string float_to_string_decimal_point(double value, int precision, bool shortest)
 {
     // Every branch prints the same digits in the classic locale as the stream at the end, which takes over when a branch
@@ -169,19 +194,11 @@ std::string float_to_string_decimal_point(double value, int precision, bool shor
             return std::string(out, length);
     }
 #endif
+    // Older libc++ lacks the floating-point to_chars.
+    if (shortest && precision < 0 && std::isfinite(value))
+        return shortest_float_to_string_decimal_point(value);
     std::stringstream buf;
     buf.imbue(std::locale::classic());
-    if (shortest && precision < 0 && std::isfinite(value)) {
-        // Older libc++ lacks floating-point to_chars. Find the first significant-digit
-        // representation that the shared parser reads back as the same double.
-        for (int digits = 1; digits <= std::numeric_limits<double>::max_digits10; ++digits) {
-            buf.str("");
-            buf.clear();
-            buf << std::setprecision(digits) << value;
-            double parsed;
-            if (try_parse_double_decimal_point(buf.str(), parsed) && parsed == value) return buf.str();
-        }
-    }
     if (precision >= 0)
         buf << std::fixed << std::setprecision(precision);
     buf << value;
