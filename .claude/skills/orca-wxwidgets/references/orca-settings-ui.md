@@ -28,9 +28,10 @@ Contents: [Rules](#rules) · [Pipeline](#pipeline-at-a-glance) · [ConfigOptionD
 6. Page titles, group titles, `Line` labels and tooltips are English `L()` strings; translation happens at
    display time. → [Localization](#localization-of-option-definitions)
 7. Do not rely on `L_CONTEXT` in a def: the display path translates without context. → [Localization](#localization-of-option-definitions)
-8. A row built from a custom widget has no `Field`; give its key name branches in `Tab::decorate`,
-   `Tab::on_roll_back_value` and `ConfigOptionsGroup::back_to_config_value` (plus `Tab::options_list_storage_key`
-   for a vector key). → [Custom widgets](#custom-widgets-on-a-line)
+8. A row built from a custom widget has no `Field`: its `Line` carries the label colour and undo icons, and a revert
+   hands the config value to `change_opt_value`. A widget that displays the value must be refreshed after a revert
+   by its own branch in `Tab::on_roll_back_value`; a vector key kept as one value must be known to
+   `is_edited_as_whole_list`. → [Custom widgets](#custom-widgets-on-a-line)
 9. In a `Field::BUILD()`, create controls through a `static Builder<T>` per construction style, re-set every
    property, and bind every handler with the control's id. → [Pooling](#field-control-pooling)
 10. Bind with an id only events the widget emits with its id; `::ComboBox` sends `wxEVT_COMBOBOX_DROPDOWN/CLOSEUP`
@@ -305,21 +306,36 @@ layout, no `OG_CustomCtrl`, no search registration. The owner calls `activate()`
 
 `Tab::create_line_with_widget(optgroup, key, wiki_path, widget)` makes a row whose `widget` (a
 `std::function<wxSizer*(wxWindow*)>`) replaces the field — bed shape (`printable_area`), `compatible_printers`,
-`compatible_prints`, `filament_ramming_parameters`. It presets white-bullet undo icons and the default label colour.
+`compatible_prints`, `filament_ramming_parameters`, the curve of `small_area_infill_flow_compensation_model`. It
+presets white-bullet undo icons and the default label colour.
 `Line::full_width` with `widget`/extra widgets builds a description row that `append_line` does not register as
 options. `near_label_widget` draws a window before the label (in tab groups `activate_line` creates it as a child of
 the `OG_CustomCtrl`, which positions it); the group's `rescale_near_label_widget` / `rescale_extra_column_item`
 callbacks rescale them on DPI change.
 
+**A widget row has no `Field`, so its `Line` stands in for it.** `Tab::decorate` and `Tab::update_label_colours` look
+the key up with `get_field()` and, when there is none, fall back to `get_line(key)` if that line has a `widget`: the
+modified colour, the undo/lock icons and their tooltips are set on the `Line`. No per-key branch is needed. The search
+highlight also lands on the `Line` (`OG_CustomCtrl::CtrlLine::render` checks `og_line.blink()` for a widget row), and
+`Tab::activate_option` focuses and scrolls to the first shown control of `line->widget_sizer`.
+
+`Line::has_undo_ui()` decides whether the icons are drawn and clickable. For a widget row it is true only when the
+line has one option whose `gui_flags` is `"serialized"` (a list kept as one value), because that is what the group
+can revert without a `Field`: `ConfigOptionsGroup::back_to_config_value` finds no field for `set_value` and passes
+the config-side value (`get_config_value2`) to `on_change_OG`, hence to `change_opt_value`. Other widget rows show
+no undo icons; their widgets own the revert.
+
 Pitfalls:
-- **Rule:** When a key is edited by a custom widget, add it to the name branches in `Tab::decorate` (the
-  `option_without_field` keys), `Tab::on_roll_back_value` (keyed by group title, then `load_key_value` to refresh
-  the widget), `ConfigOptionsGroup::back_to_config_value` and, for a vector key stored whole,
-  `Tab::options_list_storage_key`.
-  **Why:** `decorate` looks the key up with `get_field()` and skips it when there is none, so the row's modified
-  colour and undo/lock icons never update; the revert paths have no field to push the restored value into, so the
-  widget keeps showing the old value [source].
-  Cite: `Tab::decorate`, `Tab::on_roll_back_value` (`printable_area`, `compatible_prints`, `compatible_printers`).
+- **Rule:** A custom widget that displays the value (not just a button that reads the config when clicked) needs
+  its own branch in `Tab::on_roll_back_value` (keyed by group title, then `load_key_value(key, …, true)` to refresh
+  the widget).
+  **Why:** the revert paths have no field to push the restored value into, so the widget keeps showing the old
+  value [source].
+  Cite: `Tab::on_roll_back_value` (`printable_area`, `compatible_prints`, `compatible_printers`).
+- **Rule:** A vector key edited as one value must make `is_edited_as_whole_list()` (`Preset.cpp`) true: by
+  `gui_flags = "serialized"`, the `plugin_picker` gui type, or its name in that function.
+  **Why:** `Tab::options_list_storage_key`, `SettingsIndex` and the dirty-option diff otherwise register one
+  `key#idx` entry per element, and the row's status and its unsaved-changes entry are looked up under the wrong key.
 
 ## OptionsGroup::build_field
 
@@ -392,7 +408,7 @@ ints and enums, `Vec2d` for points.
 | Option type | `any` holds |
 |---|---|
 | `coFloat(s)`, `coPercent(s)` | `double` |
-| `coFloatOrPercent(s)`, `coString`, single `coStrings` element | `std::string` (`"serialized"` `coStrings`: the whole `;`-joined string; `compatible_printers`/`compatible_prints`: `std::vector<std::string>`) |
+| `coFloatOrPercent(s)`, `coString`, single `coStrings` element | `std::string` (`"serialized"` `coStrings`: the whole `;`-joined string from its text field, or a `std::vector<std::string>` of the entries as they are, which a row without a text field passes; `compatible_printers`/`compatible_prints`: `std::vector<std::string>`) |
 | `coInt(s)`, `coEnum(s)` | `int` |
 | `coBool` | `bool` |
 | `coBools` (incl. nullable) | `unsigned char` (`ConfigOptionBoolsNullable::nil_value()` = nil) |
@@ -719,7 +735,7 @@ ObjectList and its data model: `references/controls-dataview.md`.
 6. **Optional GUI:** dependencies in `ConfigManipulation::toggle_*_options` / `update_*_config` (+ `TabX::toggle_options`);
    Object Table exposure in `SettingsFactory::OBJECT_CATEGORY_SETTINGS` / `PART_CATEGORY_SETTINGS`; a runtime list
    via `Choice::register_dynamic_list`; enum icons `resources/images/param_<value>.svg`; a custom widget row via
-   `Tab::create_line_with_widget` plus the name branches in [Custom widgets](#custom-widgets-on-a-line).
+   `Tab::create_line_with_widget`, with the revert rules in [Custom widgets](#custom-widgets-on-a-line).
 7. **Compatibility** — a renamed or removed key needs `PrintConfigDef::handle_legacy` (old key/value → new;
    `PrintConfigDef::handle_legacy_composite` when the migration needs other keys of the loaded config); the
    default must keep existing profiles and 3MF projects slicing as before; profile edits follow the `orca-profiles`

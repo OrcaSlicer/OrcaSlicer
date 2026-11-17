@@ -22,7 +22,6 @@
 #include <wx/textctrl.h>
 #include <wx/init.h>
 #include <wx/string.h>
-#include <wx/strconv.h>
 #include <wx/stopwatch.h>
 #include <wx/utils.h>
 
@@ -45,6 +44,8 @@ public:
 
 struct EditorHooks : CurveEditorDialog {
     using CurveEditorDialog::cancel_cell_edit;
+    using CurveEditorDialog::read_csv_file;
+    using CurveEditorDialog::write_csv_file;
 };
 
 class WxRuntime
@@ -118,6 +119,8 @@ public:
     }
     ~Fixture()
     {
+        // A test's callback may refer to locals that are gone by now.
+        panel->after_drag = {};
         panel->finish_drag();
         panel->on_pan  = {};
         panel->on_zoom = {};
@@ -647,6 +650,7 @@ TEST_CASE("Native diagonal panning preserves the scale and moves both coordinate
     Fixture f;
     f.panel->set_touchpad_controls(true);
     wxPanGestureEvent pan;
+    pan.SetGestureStart(true);
     pan.SetDelta({20, 10});
     f.panel->GetEventHandler()->ProcessEvent(pan);
     f.drain(true);
@@ -876,6 +880,72 @@ TEST_CASE("A gesture ending during mouse dragging does not block later wheel nav
     CHECK(f.pan_frames == 1);
 }
 
+TEST_CASE("A gesture that starts during point dragging stays ignored after the drag ends", "[CurveEditorGUI][RequiresDisplay][Regression]")
+{
+    const bool zoom_gesture = GENERATE(false, true);
+    Fixture f;
+    f.panel->set_touchpad_controls(true);
+    f.panel->set_data({20, 30, 40}, {.2, .5, .8}, {"first", "middle", "last"}, [](double) { return .5; });
+    const auto position = f.middle_point();
+    f.mouse(wxEVT_LEFT_DOWN, position, false, true);
+    REQUIRE(f.panel->HasCapture());
+    wxPanGestureEvent pan;
+    pan.SetDelta({20, 10});
+    pan.SetGestureStart(true);
+    if (zoom_gesture)
+        f.pinch(1, true);
+    else
+        f.panel->GetEventHandler()->ProcessEvent(pan);
+    f.mouse(wxEVT_LEFT_UP, position);
+    REQUIRE_FALSE(f.panel->HasCapture());
+    // The rest of that gesture neither navigates nor claims the wheel.
+    pan.SetGestureStart(false);
+    if (zoom_gesture)
+        f.pinch(1.5);
+    else
+        f.panel->GetEventHandler()->ProcessEvent(pan);
+    f.drain();
+    CHECK(f.zooms.empty());
+    CHECK(f.pans.empty());
+    f.wheel(120);
+    CHECK(f.pan_frames == 1);
+}
+
+TEST_CASE("The end of a point drag is reported once, however the drag ends", "[CurveEditorGUI][RequiresDisplay][Regression]")
+{
+    const int ending = GENERATE(0, 1, 2, 3);
+    Fixture f;
+    f.panel->set_data({20, 30, 40}, {.2, .5, .8}, {"first", "middle", "last"}, [](double) { return .5; });
+    const auto position = f.middle_point();
+    int ended = 0;
+    f.panel->after_drag = [&] { ++ended; };
+    // Neither a press beside the points nor a middle-button pan is a point drag.
+    f.mouse(wxEVT_LEFT_DOWN, position + wxPoint(0, 60), false, true);
+    f.mouse(wxEVT_LEFT_UP, position + wxPoint(0, 60));
+    f.mouse(wxEVT_MIDDLE_DOWN, position, true);
+    f.mouse(wxEVT_MIDDLE_UP, position);
+    CHECK(ended == 0);
+    f.mouse(wxEVT_LEFT_DOWN, position, false, true);
+    REQUIRE(f.panel->HasCapture());
+    f.mouse(wxEVT_MOTION, position + wxPoint(20, 10), false, true);
+    CHECK(ended == 0);
+    switch (ending) {
+    case 0: f.mouse(wxEVT_LEFT_UP, position + wxPoint(20, 10)); break;
+    case 1: {
+        wxMouseCaptureLostEvent lost;
+        f.panel->GetEventHandler()->ProcessEvent(lost);
+        break;
+    }
+    // A motion event that reports the button released, as after a release outside the window.
+    case 2: f.mouse(wxEVT_MOTION, position + wxPoint(30, 10)); break;
+    case 3: f.panel->finish_drag(); break;
+    }
+    CHECK(ended == 1);
+    CHECK_FALSE(f.panel->HasCapture());
+    f.panel->finish_drag();
+    CHECK(ended == 1);
+}
+
 TEST_CASE("Alternative wheel modifiers do not navigate the graph", "[CurveEditorGUI][RequiresDisplay]")
 {
     Fixture f;
@@ -905,7 +975,7 @@ struct CsvFile
 };
 } // namespace
 
-TEST_CASE("CSV file IO retains Unicode filenames and complete UTF8 contents", "[CurveEditorGUI][CSV]")
+TEST_CASE("CSV export replaces a file with a Unicode name and import reads its complete text back", "[CurveEditorGUI][CSV]")
 {
     CsvFile file;
     REQUIRE_FALSE(file.path.empty());
@@ -914,33 +984,12 @@ TEST_CASE("CSV file IO retains Unicode filenames and complete UTF8 contents", "[
     std::string csv;
     int row;
     REQUIRE(model.write_csv(rows, csv, row) == nullptr);
-    wxTempFile output(file.path);
-    REQUIRE(output.IsOpened());
-    REQUIRE(output.Write(wxString::FromUTF8(csv), wxConvUTF8));
-    REQUIRE(output.Commit());
-    wxFile input(file.path);
-    wxString text;
-    REQUIRE(input.ReadAll(&text, wxConvUTF8));
-    CHECK(text.utf8_string() == csv);
-}
-
-TEST_CASE("Discarding a failed CSV replacement preserves an existing file", "[CurveEditorGUI][CSV][Regression]")
-{
-    CsvFile file;
-    {
-        wxFile original(file.path, wxFile::write);
-        REQUIRE(original.Write("original", wxConvUTF8));
-    }
-    {
-        wxTempFile replacement(file.path);
-        REQUIRE(replacement.IsOpened());
-        REQUIRE(replacement.Write("partial", wxConvUTF8));
-        replacement.Discard();
-    }
-    wxFile restored(file.path);
-    wxString text;
-    REQUIRE(restored.ReadAll(&text, wxConvUTF8));
-    CHECK(text == "original");
+    // A longer earlier export leaves no tail behind the new one.
+    REQUIRE(EditorHooks::write_csv_file(file.path, csv + csv));
+    REQUIRE(EditorHooks::write_csv_file(file.path, csv));
+    std::string text;
+    REQUIRE(EditorHooks::read_csv_file(file.path, text));
+    CHECK(text == csv);
 }
 
 TEST_CASE("CSV file reading retains embedded nulls so validation rejects partial data", "[CurveEditorGUI][CSV][Regression]")
@@ -953,14 +1002,13 @@ TEST_CASE("CSV file reading retains embedded nulls so validation rejects partial
         wxFile output(file.path, wxFile::write);
         REQUIRE(output.Write(binary.data(), binary.size()) == binary.size());
     }
-    wxFile input(file.path);
-    wxString text;
-    REQUIRE(input.ReadAll(&text, wxConvUTF8));
-    CHECK(text.utf8_string().size() == binary.size());
+    std::string text;
+    REQUIRE(EditorHooks::read_csv_file(file.path, text));
+    CHECK(text.size() == binary.size());
     InputModel model;
     CurveModel::Rows rows = {{"20", "0.2"}, {"40", "0.8"}};
     const auto original   = rows;
     int line;
-    CHECK(model.read_csv(text.utf8_string(), rows, line) != nullptr);
+    CHECK(model.read_csv(text, rows, line) != nullptr);
     CHECK(rows == original);
 }

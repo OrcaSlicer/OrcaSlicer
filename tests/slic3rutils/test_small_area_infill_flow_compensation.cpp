@@ -33,14 +33,14 @@ TEST_CASE("The curve editor GUI value updates every model point and reports unsa
     model.accept_rows(rows);
     const auto& points = model.parameters();
 
-    GUI::change_opt_value(edited.config, key, model.serialized_parameters());
+    GUI::change_opt_value(edited.config, key, points);
     CHECK(model.is_modified());
     CHECK(edited.config.option<ConfigOptionStrings>(key)->values == points);
     CHECK_FALSE(edited.config.opt_bool("small_area_infill_flow_compensation"));
     CHECK(PresetCollection::dirty_options(&edited, &saved, true) == std::vector<std::string>{key});
 
-    // The widget's revert path uses the same serialized value, with no Field to read back.
-    GUI::change_opt_value(edited.config, key, FlowModel::serialize_parameters(parameters));
+    // The widget row has no Field to read back: reverting hands over the saved entries the same way.
+    GUI::change_opt_value(edited.config, key, parameters);
     CHECK(edited.config.option<ConfigOptionStrings>(key)->values == parameters);
     CHECK(PresetCollection::dirty_options(&edited, &saved, true).empty());
 }
@@ -69,7 +69,7 @@ TEST_CASE("Unsaved curve changes resolve to one indexed setting regardless of po
                                 change == 1 ? FlowModel::Rows{{"0", "0"}, {"5", "0.5"}, {"10", "1"}} : FlowModel::Rows{};
     FlowModel model(saved.config.opt<ConfigOptionStrings>(key)->values);
     model.accept_rows(rows);
-    GUI::change_opt_value(edited.config, key, model.serialized_parameters());
+    GUI::change_opt_value(edited.config, key, model.parameters());
 
     Search::SettingsIndex index;
     index.add_key(key, Preset::TYPE_PRINT, "Walls and surfaces", "Quality");
@@ -114,7 +114,7 @@ TEST_CASE("Settings indexing retains individual printer vector entries alongside
     CHECK(keys == std::vector<std::string>{"nozzle_diameter#0", "nozzle_diameter#1", key});
 }
 
-TEST_CASE("Generic widget rows only expose curve undo controls", "[SmallAreaInfillFlowCompensation][Regression]")
+TEST_CASE("Widget rows show undo controls only for a list kept as one value", "[SmallAreaInfillFlowCompensation][Regression]")
 {
     const std::string key = GENERATE(as<std::string>{}, "small_area_infill_flow_compensation_model", "printable_area", "compatible_printers", "compatible_prints", "filament_ramming_parameters");
     GUI::Line line("", "");
@@ -122,7 +122,8 @@ TEST_CASE("Generic widget rows only expose curve undo controls", "[SmallAreaInfi
     line.widget = [](wxWindow*) -> wxSizer* { return nullptr; };
     const ScalableBitmap icon;
     line.set_undo_bitmap(&icon);
-    CHECK(line.has_undo_ui() == print_config_def.get(key)->is_curve());
+    CHECK(line.has_undo_ui() == (print_config_def.get(key)->gui_flags == "serialized"));
+    CHECK(line.has_undo_ui() == (key == "small_area_infill_flow_compensation_model"));
 }
 
 TEST_CASE("The curve editor GUI value clears and restores an empty model", "[SmallAreaInfillFlowCompensation][Regression]")
@@ -130,8 +131,27 @@ TEST_CASE("The curve editor GUI value clears and restores an empty model", "[Sma
     const std::string key = "small_area_infill_flow_compensation_model";
     DynamicPrintConfig config;
     config.set_key_value(key, new ConfigOptionStrings{"0,0", "\n10,1"});
-    GUI::change_opt_value(config, key, FlowModel::serialize_parameters({}));
+    GUI::change_opt_value(config, key, std::vector<std::string>{});
     CHECK(config.option<ConfigOptionStrings>(key)->values.empty());
-    GUI::change_opt_value(config, key, FlowModel::serialize_parameters({"0,0", "\n10,1"}));
+    GUI::change_opt_value(config, key, std::vector<std::string>{"0,0", "\n10,1"});
     CHECK(config.option<ConfigOptionStrings>(key)->values == std::vector<std::string>{"0,0", "\n10,1"});
+    // Reverting to a saved model without entries hands over an empty string.
+    GUI::change_opt_value(config, key, std::string());
+    CHECK(config.option<ConfigOptionStrings>(key)->values.empty());
+}
+
+TEST_CASE("Curve entries reach the config as they are, blank ones included", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    const std::string key = "small_area_infill_flow_compensation_model";
+    const auto parameters = GENERATE(std::vector<std::string>{""}, std::vector<std::string>{"\n"},
+                                     std::vector<std::string>{"0,0", "", "\n10,1"});
+    Preset saved(Preset::TYPE_PRINT, "saved");
+    saved.config.set_key_value(key, new ConfigOptionStrings(parameters));
+    Preset edited = saved;
+    // An editor accepted without changes returns the saved entries, which joined text would not keep.
+    FlowModel model(parameters);
+    model.accept_rows(model.rows());
+    GUI::change_opt_value(edited.config, key, model.parameters());
+    CHECK(edited.config.option<ConfigOptionStrings>(key)->values == parameters);
+    CHECK(PresetCollection::dirty_options(&edited, &saved, true).empty());
 }

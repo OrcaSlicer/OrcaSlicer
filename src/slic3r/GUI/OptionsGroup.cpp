@@ -21,7 +21,6 @@
 #include "slic3r/plugin/PluginDescriptor.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "libslic3r/PrintConfig.hpp"
-#include "libslic3r/CurveModel.hpp"
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <string>
 #include <utility>
@@ -844,15 +843,6 @@ void ConfigOptionsGroup::back_to_config_value(const DynamicPrintConfig& config, 
         OptionsGroup::on_change_OG(opt_key, saved_id);
         return;
     }
-    else if (const auto* definition = config.def()->get(opt_key); definition && definition->is_curve()) {
-        // The curve widget has no Field to read back. Restore the whole model through
-        // the serialized GUI value path, including empty models and every point.
-        const auto& points = config.option<ConfigOptionStrings>(opt_key)->values;
-        const std::string serialized = CurveModel::serialize_parameters(points);
-        this->change_opt_value(opt_key, serialized);
-        OptionsGroup::on_change_OG(opt_key, serialized);
-        return;
-    }
     else if (m_opt_map.find(opt_key) == m_opt_map.end() ||
              // This option don't have corresponded field
              opt_key == "printable_area" || opt_key == "compatible_printers" || opt_key == "compatible_prints" || opt_key == "thumbnails" ||
@@ -870,6 +860,7 @@ void ConfigOptionsGroup::back_to_config_value(const DynamicPrintConfig& config, 
     }
 
     // BBS: restore all pages in preset
+    // An option without a Field (a page not built yet, or a widget row) takes the config value as it is.
     if (set_value(opt_key, value))
         on_change_OG(opt_key, get_value(opt_key));
     else if (m_opt_map.find(opt_key) != m_opt_map.end()) {

@@ -24,7 +24,7 @@ void CurveEditorPanel::paint_chart()
     dc.Clear();
     dc.SetTextForeground(GetForegroundColour());
     dc.SetFont(GetFont());
-    const wxRect plot = chart_rect();
+    const wxRect plot = chart_rect(&dc);
     const int left = plot.x, top = plot.y, width = plot.width, height = plot.height;
     if (width <= 0 || height <= 0)
         return;
@@ -56,14 +56,31 @@ void CurveEditorPanel::paint_chart()
         };
         // Preblend with the background: plain wxDC alpha drawing differs across platforms.
         // Tint follows Y in the configured color range; the grid remains readable above it.
+        // Neighbouring pixel columns of one colour are filled together, as one polygon stepped along them.
+        const wxColour background = GetBackgroundColour();
+        std::vector<wxPoint> area;
+        wxColour area_colour;
+        auto fill_area = [&] {
+            if (area.empty()) return;
+            const int first = area.front().x, last = area.back().x;
+            area.emplace_back(last, bottom);
+            area.emplace_back(first, bottom);
+            dc.SetBrush(wxBrush(area_colour));
+            dc.DrawPolygon(int(area.size()), area.data());
+            area.clear();
+        };
+        dc.SetPen(*wxTRANSPARENT_PEN);
         for (size_t i = 0; i < curve.size(); ++i) {
-            const wxPoint& point = curve[i];
             const double factor = m_appearance.fill_max > m_appearance.fill_min ?
                 std::clamp((curve_factors[i] - m_appearance.fill_min) / (m_appearance.fill_max - m_appearance.fill_min), 0.0, 1.0) : 0.0;
-            const wxColour tint = blend(accent, colour, factor);
-            dc.SetPen(wxPen(blend(tint, GetBackgroundColour(), dark ? 0.22 : 0.14), 1));
-            dc.DrawLine(point.x, std::clamp(point.y, top, bottom), point.x, bottom);
+            const wxColour fill = blend(blend(accent, colour, factor), background, dark ? 0.22 : 0.14);
+            if (!area.empty() && fill != area_colour) fill_area();
+            area_colour = fill;
+            const int y = std::clamp(curve[i].y, top, bottom);
+            area.emplace_back(curve[i].x, y);
+            area.emplace_back(curve[i].x + 1, y);
         }
+        fill_area();
     }
     dc.DrawText(m_appearance.y_label, left, 0);
     const wxString& x_label = m_appearance.x_label;

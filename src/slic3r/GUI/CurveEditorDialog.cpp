@@ -19,7 +19,6 @@
 #include <wx/dialog.h>
 #include <wx/display.h>
 #include <wx/event.h>
-#include <wx/file.h>
 #include <wx/filedlg.h>
 #include <wx/gdicmn.h>
 #include <wx/grid.h>
@@ -31,7 +30,6 @@
 #include <wx/sizer.h>
 #include <wx/spinbutt.h>
 #include <wx/stattext.h>
-#include <wx/strconv.h>
 #include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/tglbtn.h>
@@ -157,6 +155,8 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     m_chart->SetFont(Label::Body_12);
     m_chart->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
     m_chart->before_drag = [this] { finish_edit(); update_preview(); };
+    // Dragging refreshes only the graph. What depends on the rows, such as whether a point can be added, follows here.
+    m_chart->after_drag = [this] { update_preview(); };
     m_chart->on_select = [this](int row) {
         m_grid->SetGridCursor(row, 0);
         if (m_table_panel->IsShown()) m_grid->MakeCellVisible(row, 0);
@@ -473,18 +473,16 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         auto rows = read_rows();
         if (rows.empty()) {
             const auto seeds = m_model->seed_rows();
-            if (seeds.size() > m_model->maximum_point_count()) return;
-            load_points(seeds);
-        } else {
-            // Insert only a valid interpolated point; the edit committed above may have invalidated the table.
-            int row = m_grid->GetGridCursorRow() + 1;
-            if (!m_model->insert_point(rows, row)) return;
+            if (seeds.size() <= m_model->maximum_point_count()) load_points(seeds);
+        } else if (int row = m_grid->GetGridCursorRow() + 1; m_model->insert_point(rows, row)) {
+            // The model chooses the place: in an interval, or beside a lone point on either side.
             m_grid->InsertRows(row);
             m_grid->SetCellValue(row, 0, wxString::FromUTF8(rows[row].first));
             m_grid->SetCellValue(row, 1, wxString::FromUTF8(rows[row].second));
             m_grid->SetGridCursor(row, 0);
             if (m_table_panel->IsShown()) m_grid->MakeCellVisible(row, 0);
         }
+        // Also when nothing was added: the edit committed above may have left no room for a point.
         update_preview();
     });
     m_add_point->SetToolTip(point_limit);
@@ -637,6 +635,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
 
 CurveEditorDialog::~CurveEditorDialog()
 {
+    m_chart->after_drag = {};
     m_chart->finish_drag();
     m_chart->before_drag = {};
     m_chart->on_select = {};
@@ -653,7 +652,7 @@ void CurveEditorDialog::update_grid_metrics()
     m_grid->SetLabelFont(m_grid->GetFont());
     m_grid->SetDefaultRowSize(std::max(FromDIP(22), m_grid->GetCharHeight() + FromDIP(6)), true);
     m_grid->SetRowLabelSize(FromDIP(32));
-    wxClientDC dc(m_grid);
+    wxInfoDC dc(m_grid);
     dc.SetFont(m_grid->GetLabelFont());
     // Reserve enough room for full-precision values, headers and the scrollbar.
     const int number_width = dc.GetTextExtent(wxString::FromUTF8(
@@ -688,15 +687,14 @@ void CurveEditorDialog::import_csv()
     wxFileDialog dialog(this, _L("Import CSV"), wxEmptyString, wxEmptyString,
                         _L("CSV files (*.csv)|*.csv"), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     if (dialog.ShowModal() != wxID_OK) return;
-    wxFile file(dialog.GetPath());
-    wxString text;
-    if (!file.IsOpened() || !file.ReadAll(&text, wxConvUTF8)) {
+    std::string text;
+    if (!read_csv_file(dialog.GetPath(), text)) {
         show_error(this, _L("Could not read the CSV file."));
         return;
     }
     Rows rows;
     int line = 0;
-    if (const char* message = m_model->read_csv(text.utf8_string(), rows, line)) {
+    if (const char* message = m_model->read_csv(text, rows, line)) {
         wxString error = _L(message);
         if (line > 0) error = wxString::Format(_L("CSV line %d: %s"), line, error);
         show_error(this, error);
@@ -719,9 +717,7 @@ void CurveEditorDialog::export_csv()
     wxFileDialog dialog(this, _L("Export CSV"), wxEmptyString, "curve.csv",
                         _L("CSV files (*.csv)|*.csv"), wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
     if (dialog.ShowModal() != wxID_OK) return;
-    // Commit a complete temporary file so failed writes preserve an existing CSV.
-    wxTempFile file(dialog.GetPath());
-    if (!file.IsOpened() || !file.Write(wxString::FromUTF8(text), wxConvUTF8) || !file.Commit())
+    if (!write_csv_file(dialog.GetPath(), text))
         show_error(this, _L("Could not write the CSV file."));
 }
 
@@ -730,7 +726,8 @@ void CurveEditorDialog::paste_points()
     wxTextDataObject data;
     {
         wxClipboardLocker clipboard;
-        if (!clipboard || !wxTheClipboard->IsSupported(wxDF_TEXT) || !wxTheClipboard->GetData(data)) return;
+        // The format wxTextDataObject reads. On GTK this check also accepts a source offering only a plain STRING.
+        if (!clipboard || !wxTheClipboard->IsSupported(wxDF_UNICODETEXT) || !wxTheClipboard->GetData(data)) return;
     }
     Rows rows;
     int line = 0;
