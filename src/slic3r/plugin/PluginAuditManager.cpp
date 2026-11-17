@@ -15,6 +15,13 @@
 #include <boost/log/trivial.hpp>
 #include <boost/system/error_code.hpp>
 
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
 #include <algorithm>
 #include <cassert>
 #include <chrono>
@@ -488,10 +495,93 @@ private:
     wxSize m_content_dip;
 };
 
+#ifdef _WIN32
+// True when a status error only says the path does not exist. Boost clears `ec` for that case on
+// POSIX, but its Windows status path (process_status_failure()) always stores the Win32 error, so
+// ERROR_FILE_NOT_FOUND and ERROR_PATH_NOT_FOUND mean "just missing" there too. Anything else
+// (access denied, sharing violation, invalid name) is a real failure.
+bool missing_path_error(const boost::system::error_code& ec)
+{
+    return !ec || ec.value() == ERROR_FILE_NOT_FOUND || ec.value() == ERROR_PATH_NOT_FOUND;
+}
+
+// Windows can spell one directory with either its long name or its 8.3 short name, and both name
+// the same location. Python reports long names (os.path.realpath() and os.scandir()), while an
+// allowed root is registered with whatever spelling the process was given, so the two spellings
+// must compare equal. weakly_canonical() does not unify them: boost resolves symlinks and "."/".."
+// but keeps every component as written, so link resolution stays exactly Boost's and this helper
+// only re-spells the path it produced.
+//
+// GetLongPathNameW is a name-conversion API: it requires an existing path, can fail (for example
+// when a parent cannot be read), and its documentation makes no promise about symbolic links. A
+// caller that must keep a final link entry therefore must not hand a link to it (see
+// delete_entry_names_subtree_root). Components below the longest existing prefix do not exist yet
+// and have no short name, so they are appended as written. On failure `out` keeps the unexpanded
+// canonical path and the caller decides whether to fail closed.
+bool expand_short_name_prefix(const boost::filesystem::path& canonical, boost::filesystem::path& out)
+{
+    namespace fs = boost::filesystem;
+
+    out = canonical;
+    if (canonical.empty() || !canonical.is_absolute())
+        return false;
+
+    // No cheap test says whether a spelling is short: Windows does not guarantee that an 8.3 alias
+    // contains '~' (or matches any other shape), so every comparison has to ask the file system.
+    // Split off the components that do not exist yet; only an existing prefix has a long form.
+    fs::path existing = canonical;
+    fs::path tail;
+    boost::system::error_code ec;
+    for (;;) {
+        if (fs::exists(existing, ec) && !ec)
+            break;
+        // A missing component is exactly the tail this function appends as written; any other
+        // status error (access denied, sharing violation, invalid name) fails closed.
+        if (!missing_path_error(ec) || !existing.has_relative_path())
+            return false;
+        const fs::path component = existing.filename();
+        if (component.empty())
+            return false;
+        tail = tail.empty() ? component : component / tail;
+        existing = existing.parent_path();
+    }
+
+    std::wstring buffer(static_cast<std::size_t>(MAX_PATH) + 1, L'\0');
+    for (;;) {
+        const DWORD length = ::GetLongPathNameW(existing.c_str(), buffer.data(),
+                                                static_cast<DWORD>(buffer.size()));
+        if (length == 0)
+            return false;
+        if (length < buffer.size()) {
+            buffer.resize(length);
+            break;
+        }
+        buffer.resize(static_cast<std::size_t>(length) + 1);
+    }
+
+    const fs::path expanded(buffer);
+    if (!expanded.is_absolute())
+        return false;
+
+    out = tail.empty() ? expanded : expanded / tail;
+    return true;
+}
+#else
+// 8.3 short names are a Windows-only alias; elsewhere the canonical path is already comparable.
+bool expand_short_name_prefix(const boost::filesystem::path& canonical, boost::filesystem::path& out)
+{
+    out = canonical;
+    return true;
+}
+#endif
+
 // Canonicalize a path for containment comparison.  weakly_canonical resolves symlinks but does
 // NOT require the path to exist — it canonicalizes the prefix that exists and appends the
-// non-existing tail lexically.
-boost::filesystem::path canonical_for_comparison(const boost::filesystem::path& path)
+// non-existing tail lexically. The result then has its Windows 8.3 short names expanded, so both
+// sides of a comparison are spelled the same way.
+// Returns false when the short-name expansion failed; `out` then holds the unexpanded canonical
+// path, and a caller that must fail closed instead of comparing two spellings has to check it.
+bool canonicalize_for_comparison(const boost::filesystem::path& path, boost::filesystem::path& out)
 {
     namespace fs = boost::filesystem;
 
@@ -503,7 +593,16 @@ boost::filesystem::path canonical_for_comparison(const boost::filesystem::path& 
         if (ec)
             canon = path;
     }
-    return canon;
+    return expand_short_name_prefix(canon, out);
+}
+
+// Best-effort form for checks that need one canonical path only, e.g. the denied-keyword scan:
+// when the expansion fails the plain canonical spelling is used, as it was before it existed.
+boost::filesystem::path canonical_for_comparison(const boost::filesystem::path& path)
+{
+    boost::filesystem::path out;
+    canonicalize_for_comparison(path, out);
+    return out;
 }
 
 // True when the final component of `path` is a symlink whose target does not exist.
@@ -558,7 +657,8 @@ bool same_canonical_path(const boost::filesystem::path& lhs, const boost::filesy
 
 // Component-wise containment: the whole of canonical_root must be a prefix of
 // canonical_candidate, and the remaining components must not traverse upward. Both arguments are
-// expected to come from canonical_for_comparison(). On a match, suffix receives the candidate's
+// expected to come from canonicalize_for_comparison()/canonical_folder(), i.e. expanded to long
+// names where the platform has 8.3 aliases. On a match, suffix receives the candidate's
 // components below the root (empty when the two paths are equal).
 bool suffix_inside_root(const boost::filesystem::path& canonical_candidate,
                         const boost::filesystem::path& canonical_root,
@@ -596,7 +696,13 @@ bool suffix_inside_root(const boost::filesystem::path& canonical_candidate,
 
 bool is_inside_allowed_root(const boost::filesystem::path& candidate, const boost::filesystem::path& allowed_root)
 {
-    const boost::filesystem::path canonical_candidate = canonical_for_comparison(candidate);
+    // Both sides are canonicalized identically, including the expansion of Windows 8.3 short
+    // names, so a root registered under one spelling still contains a target reported under the
+    // other. A side that cannot be normalized fails closed: comparing differently spelled paths
+    // could otherwise report containment that does not hold.
+    boost::filesystem::path canonical_candidate;
+    if (!canonicalize_for_comparison(candidate, canonical_candidate))
+        return false;
 
     // Fail closed on a dangling final symlink instead of comparing the path it is spelled as: the
     // grant describes the link, not the destination a write through it would create. The test is
@@ -605,8 +711,12 @@ bool is_inside_allowed_root(const boost::filesystem::path& candidate, const boos
     if (ends_in_dangling_symlink(canonical_candidate))
         return false;
 
+    boost::filesystem::path canonical_root;
+    if (!canonicalize_for_comparison(allowed_root, canonical_root))
+        return false;
+
     boost::filesystem::path suffix;
-    return suffix_inside_root(canonical_candidate, canonical_for_comparison(allowed_root), suffix);
+    return suffix_inside_root(canonical_candidate, canonical_root, suffix);
 }
 
 // ---------------------------------------------------------------------------
@@ -1720,8 +1830,8 @@ std::string absolute_tree_grant(const std::string& grant)
 // could equate different files across unresolved symlinks and "..". A target whose final
 // component is a dangling symlink is not matched by equivalence, and neither is a grant ending in
 // one. Windows compares case-insensitively and accepts either separator; POSIX stays
-// case-sensitive and treats "\" as an ordinary name character. Hardlinks, 8.3 short names and
-// extended-length paths remain distinct paths.
+// case-sensitive and treats "\" as an ordinary name character. 8.3 short names of the same file are
+// unified on Windows; hardlinks and extended-length spellings remain distinct paths.
 bool exact_grant_covers(const std::string& grant, const std::string& target)
 {
     if (grant == target)
@@ -1753,7 +1863,16 @@ bool exact_grant_covers(const std::string& grant, const std::string& target)
     if (ec || !canonical_target.is_absolute() || ends_in_dangling_symlink(canonical_target))
         return false;
 
-    return same_canonical_path(canonical_grant, canonical_target);
+    // Expand 8.3 short names on both sides exactly like the create/delete comparisons, or a grant
+    // saved under one spelling would not cover the same file named the other way and the user
+    // would be asked again. Any expansion failure fails closed, as the canonicalization above does.
+    fs::path expanded_grant;
+    fs::path expanded_target;
+    if (!expand_short_name_prefix(canonical_grant, expanded_grant) ||
+        !expand_short_name_prefix(canonical_target, expanded_target))
+        return false;
+
+    return same_canonical_path(expanded_grant, expanded_target);
 }
 
 // True when a filesystem grant covers a target: the exact string, an equivalent spelling of the
@@ -1824,7 +1943,12 @@ bool canonical_folder(const boost::filesystem::path& folder, boost::filesystem::
     if (ec || !canonical.is_absolute() || ends_in_dangling_symlink(canonical))
         return false;
 
-    out = canonical;
+    // Both sides of every grant comparison come through here or through
+    // is_inside_allowed_root(), so expanding Windows 8.3 short names keeps a stored grant
+    // spelled one way comparable to a target spelled the other. Failing closed on an expansion
+    // error keeps an unresolvable spelling from authorizing anything.
+    if (!expand_short_name_prefix(canonical, out))
+        return false;
     return true;
 }
 
@@ -1891,7 +2015,8 @@ bool create_delete_target_folder(const std::string& target, boost::filesystem::p
 // an outside link pointing into the subtree must not be treated as the subtree root. The parent is
 // canonicalized, which resolves intermediate symlinks and ".." with the operating system's
 // semantics; the path is never lexically folded first, because "link/.." must follow the link
-// before stepping up. The final component is compared by name, and a final ".." fails closed.
+// before stepping up. The final component is compared by name -- with an 8.3 short name of a
+// non-link entry expanded to its long spelling -- and a final ".." fails closed.
 bool delete_entry_names_subtree_root(const std::string& target, const boost::filesystem::path& canonical_subtree)
 {
     namespace fs = boost::filesystem;
@@ -1920,7 +2045,26 @@ bool delete_entry_names_subtree_root(const std::string& target, const boost::fil
     if (ec || !parent.is_absolute() || !fs::is_directory(parent, ec) || ec)
         return false;
 
-    return same_canonical_path(parent / entry.filename(), canonical_subtree);
+    fs::path expanded_parent;
+    if (!expand_short_name_prefix(parent, expanded_parent))
+        return false;
+
+    // The final component stays compared by name, so the expanded parent alone is enough for a link
+    // entry: its destination is never followed. Spelling the component long is only safe when it is
+    // not a link, because GetLongPathNameW's documentation does not promise to leave a link
+    // unresolved; it is needed when a target names the root through the root's own 8.3 alias. A
+    // missing entry has no alias and stays as written.
+    const fs::path entry_path = expanded_parent / entry.filename();
+    boost::system::error_code status_ec;
+    const fs::file_status status = fs::symlink_status(entry_path, status_ec);
+    if (status_ec || fs::is_symlink(status))
+        return same_canonical_path(entry_path, canonical_subtree);
+
+    fs::path expanded_entry;
+    if (!expand_short_name_prefix(entry_path, expanded_entry))
+        return false;
+
+    return same_canonical_path(expanded_entry, canonical_subtree);
 }
 
 // True when deleting `target` acts on an entry inside `canonical_subtree`. The containing folder

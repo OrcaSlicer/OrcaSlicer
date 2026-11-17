@@ -62,9 +62,11 @@ enum class AuditEventCategory {
 };
 
 // Returns true if candidate resolves to a path inside allowed_root.
-// Uses weakly_canonical and component-wise comparison to reject traversal attacks. A candidate
-// whose final component is a dangling symlink is never inside: containment fails closed rather
-// than authorizing the destination a write through it would create.
+// Uses weakly_canonical and component-wise comparison to reject traversal attacks. On Windows both
+// sides also have their 8.3 short names expanded, so the same directory spelled either way still
+// compares equal. A candidate whose final component is a dangling symlink, or a path that cannot be
+// normalized, is never inside: containment fails closed rather than authorizing the destination a
+// write through it would create.
 bool is_inside_allowed_root(const boost::filesystem::path& candidate,
                             const boost::filesystem::path& allowed_root);
 

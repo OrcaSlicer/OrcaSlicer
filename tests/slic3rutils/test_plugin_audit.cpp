@@ -51,6 +51,16 @@
 #include <utility>
 #include <vector>
 
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#endif
+
 using namespace Slic3r;
 namespace fs = boost::filesystem;
 namespace py = pybind11;
@@ -83,6 +93,29 @@ std::string read_text_file(const fs::path& path)
     std::ifstream in(path.string(), std::ios::binary);
     return std::string(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
 }
+
+#ifdef _WIN32
+// The 8.3 short form of an existing path. Empty when the volume does not generate short names
+// (the conversion then returns the input unchanged) or the call fails. Whether a machine spells a
+// path short is environment-dependent, so tests build the alias here instead of assuming one.
+fs::path short_name_alias(const fs::path& long_path)
+{
+    const std::wstring native = long_path.native();
+    std::wstring       buffer(native.size() + 1, L'\0');
+    for (;;) {
+        const DWORD length = ::GetShortPathNameW(native.c_str(), buffer.data(), static_cast<DWORD>(buffer.size()));
+        if (length == 0)
+            return {};
+        if (length < buffer.size()) {
+            buffer.resize(length);
+            break;
+        }
+        buffer.resize(static_cast<std::size_t>(length) + 1);
+    }
+    const fs::path alias(buffer);
+    return alias == long_path ? fs::path() : alias;
+}
+#endif
 
 } // namespace
 
@@ -2572,6 +2605,45 @@ forward_slash_outcome = attempt(lambda: open(FORWARD_SLASH_FILE).read())
     CHECK_FALSE(fs::exists(outside / "not-created.txt"));
 }
 
+TEST_CASE("A saved exact file grant covers the file's 8.3 alias without another prompt", "[audit][Python]")
+{
+#ifndef _WIN32
+    SKIP("Windows 8.3 short names exist only on Windows");
+#else
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    // No symlink is involved, so this check does not depend on the privilege to create one. The
+    // file name and the temp folder both need their long spelling, so the alias differs from the
+    // grant even where the volume names the temp root short.
+    python.exec(R"PY(
+GRANTED_FILE = os.path.join(OUTSIDE, "short-name-granted-file.txt")
+with open(GRANTED_FILE, "w") as f:
+    f.write("x")
+)PY");
+
+    const fs::path file  = python.str("GRANTED_FILE");
+    const fs::path alias = short_name_alias(file);
+    if (alias.empty())
+        SKIP("This volume does not expose an 8.3 alias for the granted file");
+
+    PluginPermissions permissions;
+    permissions.fs_read = {file.string()};
+    harness.save_permissions(PLUGIN, permissions);
+
+    python.globals["ALIAS_FILE"] = alias.string();
+    python.run_as(PLUGIN, "alias_outcome = attempt(lambda: open(ALIAS_FILE).read())");
+
+    // The grant was saved under the long spelling; reading through the alias must not ask again.
+    CHECK(python.str("alias_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+#endif
+}
+
 TEST_CASE("A saved exact file grant covers an equivalent spelling in a permission request", "[audit]")
 {
     AuditHarness harness;
@@ -4505,6 +4577,117 @@ TEST_CASE("A delete is scoped by the entry, not by a final symlink's destination
     fs::create_directory_symlink(outside, approved / "link_to_outside", ec);
     REQUIRE_FALSE(ec);
     CHECK(PluginAuditManager::delete_target_inside_subtree_for_testing((approved / "link_to_outside").string(), subtree));
+}
+
+TEST_CASE("An implicit writable root contains a target whose tail does not exist yet", "[audit]")
+{
+#ifndef _WIN32
+    SKIP("Covers the Windows status errors for a missing path; POSIX reports it without an error");
+#else
+    ScopedTemporaryDir temp{"orca-plugin-audit-missing-tail"};
+    const fs::path     root    = temp.path() / "root";
+    const fs::path     outside = temp.path() / "outside";
+    fs::create_directories(root);
+    fs::create_directories(outside);
+
+    PluginAuditManager& mgr = PluginAuditManager::instance();
+    ScopedPluginAuditContext ctx("test_plugin", "");
+    mgr.add_scoped_allowed_root(root);
+
+    // Windows reports a missing path as a status error (ERROR_FILE_NOT_FOUND or
+    // ERROR_PATH_NOT_FOUND), not as a successful "does not exist" check, so the existing-prefix walk
+    // has to keep the missing tail as written instead of failing. No 8.3 alias is needed here.
+    CHECK(is_inside_allowed_root(root / "missing-leaf", root));
+    CHECK(is_inside_allowed_root(root / "missing" / "nested" / "file.txt", root));
+    CHECK(mgr.delete_target_inside_writable_allowed_root((root / "missing" / "nested" / "file.txt").string()));
+
+    // A missing tail outside the root stays outside.
+    CHECK_FALSE(is_inside_allowed_root(outside / "missing-leaf", root));
+    CHECK_FALSE(mgr.delete_target_inside_writable_allowed_root((outside / "missing" / "nested").string()));
+#endif
+}
+
+TEST_CASE("An implicit writable root matches a target spelled with the other 8.3 name form", "[audit]")
+{
+#ifndef _WIN32
+    SKIP("Windows 8.3 short names exist only on Windows");
+#else
+    ScopedTemporaryDir temp{"orca-plugin-audit-short-names"};
+    const fs::path     long_root    = temp.path() / "OrcaAuditShortNameRoot";
+    const fs::path     long_sibling = temp.path() / "OrcaAuditShortNameSibling";
+    const fs::path     outside      = temp.path() / "outside";
+    fs::create_directories(long_root / "sub");
+    fs::create_directories(long_sibling);
+    fs::create_directories(outside);
+
+    // Python names a path in its long form (os.path.realpath() and os.scandir() both report long
+    // names), while the C++ side may hold the short spelling it was started with. Whether a machine
+    // spells its temp root short is environment-dependent, so build the alias here and skip when the
+    // volume offers none: there is nothing to compare in that case.
+    const fs::path short_root = short_name_alias(long_root);
+    if (short_root.empty())
+        SKIP("This volume does not expose an 8.3 short name for the test folder");
+    // An alias on an ancestor alone would not exercise the final-component comparison, so require
+    // the test folder itself to have its own alias.
+    if (short_root.filename() == long_root.filename())
+        SKIP("The test folder has no 8.3 alias of its own on this volume");
+
+    PluginAuditManager& mgr = PluginAuditManager::instance();
+
+    SECTION("a root registered under its short name contains long-spelled targets")
+    {
+        ScopedPluginAuditContext ctx("test_plugin", "");
+        mgr.add_scoped_allowed_root(short_root);
+
+        CHECK(mgr.delete_target_inside_writable_allowed_root((long_root / "sub").string()));
+        CHECK(mgr.delete_target_inside_writable_allowed_root(long_root.string()));
+        // The same folder spelled short throughout was already comparable before normalization;
+        // keep that working rather than trading one spelling pair for the other.
+        CHECK(mgr.delete_target_inside_writable_allowed_root(short_root.string()));
+        // The tail below an existing prefix has no short name of its own; the existing prefix must
+        // still match, so an rmtree target that does not exist yet is judged the same way.
+        CHECK(mgr.delete_target_inside_writable_allowed_root((long_root / "not-created-yet").string()));
+        CHECK(mgr.delete_target_inside_writable_allowed_root((long_root / "not-created-yet" / "file.txt").string()));
+
+        // Outside stays outside, including a path that only shares the root's name prefix.
+        CHECK_FALSE(mgr.delete_target_inside_writable_allowed_root(outside.string()));
+        CHECK_FALSE(mgr.delete_target_inside_writable_allowed_root((outside / "not-created-yet").string()));
+        CHECK_FALSE(mgr.delete_target_inside_writable_allowed_root(long_sibling.string()));
+        CHECK_FALSE(mgr.delete_target_inside_writable_allowed_root(
+            (temp.path() / "OrcaAuditShortNameRoot-sibling").string()));
+    }
+
+    SECTION("a root registered under its long name contains short-spelled targets")
+    {
+        ScopedPluginAuditContext ctx("test_plugin", "");
+        mgr.add_scoped_allowed_root(long_root);
+
+        CHECK(mgr.delete_target_inside_writable_allowed_root((short_root / "sub").string()));
+        CHECK(mgr.delete_target_inside_writable_allowed_root(short_root.string()));
+        CHECK(mgr.delete_target_inside_writable_allowed_root((short_root / "not-created-yet").string()));
+        CHECK_FALSE(mgr.delete_target_inside_writable_allowed_root(short_name_alias(long_sibling).string()));
+    }
+
+    SECTION("the final symlink entry is still judged by where the entry lives")
+    {
+        ScopedPluginAuditContext ctx("test_plugin", "");
+        mgr.add_scoped_allowed_root(short_root);
+
+        boost::system::error_code ec;
+        fs::create_directory_symlink(outside, long_root / "link_to_outside", ec);
+        if (ec)
+            SKIP("Cannot create a directory symlink here");
+        fs::create_directory_symlink(long_root, outside / "link_to_root", ec);
+        REQUIRE_FALSE(ec);
+
+        // Deleting the link acts on its entry inside the long-spelled root, not on the outside
+        // folder it points at, and the short root spelling does not change that.
+        CHECK(mgr.delete_target_inside_writable_allowed_root((long_root / "link_to_outside").string()));
+        // The reverse link lives outside, so its destination being the root does not make it
+        // implicit.
+        CHECK_FALSE(mgr.delete_target_inside_writable_allowed_root((outside / "link_to_root").string()));
+    }
+#endif
 }
 
 TEST_CASE("An asynchronous recursive delete approval is single-use and bound to its plugin and target", "[audit][Python]")
