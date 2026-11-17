@@ -4067,19 +4067,60 @@ void GUI_App::ensure_oss_network_plugin()
         }
     }
 
-    // Ensure obn.conf enables Option B (Cloud mode without Developer Mode)
+    // Ensure obn.conf enables Option B (Cloud mode without Developer Mode).
+    // Seed missing keys only: rewriting the whole file on every startup
+    // destroyed user-tuned values (cloud_print, prefer_lan_over_tutk).
     fs::path obn_conf = fs::path(data_dir()) / "obn.conf";
     try {
-        boost::nowide::ofstream out(obn_conf.string(), std::ios::binary);
-        if (out) {
-            out << "# Open Bamboo Networking Configuration\n"
-                << "# Option B: Cloud mode without Developer Mode\n"
-                << "block_cloud = 0\n"
-                << "client_name = BambuStudio\n"
-                << "cloud_print = cloud_only\n"
-                << "lan_tls_skip_verify = 1\n";
-            out.close();
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": written obn.conf (Option B cloud mode) to " << obn_conf;
+        static const char* kObnDefaults[] = {
+            "block_cloud = 0",
+            "client_name = BambuStudio",
+            "cloud_print = cloud_only",
+            "lan_tls_skip_verify = 1",
+        };
+        std::string existing;
+        {
+            boost::nowide::ifstream in(obn_conf.string(), std::ios::binary);
+            if (in)
+                existing.assign(std::istreambuf_iterator<char>(in),
+                                std::istreambuf_iterator<char>());
+        }
+        auto has_key = [&existing](const std::string& key) {
+            const std::string blob = '\n' + existing;
+            for (size_t i = blob.find('\n'); i != std::string::npos;
+                 i = blob.find('\n', i + 1)) {
+                const size_t s = i + 1;
+                if (blob.compare(s, key.size(), key) == 0 &&
+                    (s + key.size() >= blob.size() ||
+                     blob[s + key.size()] == ' ' || blob[s + key.size()] == '='))
+                    return true;
+            }
+            return false;
+        };
+        std::string add;
+        for (const char* d : kObnDefaults) {
+            const std::string line(d);
+            std::string key = line.substr(0, line.find('='));
+            while (!key.empty() && key.back() == ' ') key.pop_back();
+            if (!has_key(key)) add += line + '\n';
+        }
+        if (existing.empty()) {
+            boost::nowide::ofstream out(obn_conf.string(), std::ios::binary);
+            if (out) {
+                out << "# Open Bamboo Networking Configuration\n"
+                    << "# Option B: Cloud mode without Developer Mode\n";
+                for (const char* d : kObnDefaults) out << d << '\n';
+                out.close();
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": written obn.conf (Option B cloud mode) to " << obn_conf;
+            }
+        } else if (!add.empty()) {
+            boost::nowide::ofstream out(obn_conf.string(),
+                                        std::ios::app | std::ios::binary);
+            if (out) {
+                out << add;
+                out.close();
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": seeded missing obn.conf keys to " << obn_conf;
+            }
         }
     } catch (const std::exception& e) {
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": failed to write obn.conf: " << e.what();
