@@ -25,8 +25,6 @@
 
 //BBS: add bbs 3mf
 #include "Format/bbs_3mf.hpp"
-//BBS: add step
-#include "Format/STEP.hpp"
 //BBS: add stl
 #include "Format/STL.hpp"
 #include "Format/OBJ.hpp"
@@ -78,6 +76,12 @@ class BBLProject;
 
 class KeyStore;
 struct MeshRepairStats;
+
+// From Format/STEP.hpp, which pulls in OpenCASCADE; declared here so only STEP code includes it.
+// The typedefs must stay identical to the ones there.
+class Step;
+typedef std::function<void(int load_stage, int current, int total, bool& cancel)> ImportStepProgressFn;
+typedef std::function<void(bool isUtf8)> StepIsUtf8Fn;
 
 namespace UndoRedo {
 	class StackImpl;

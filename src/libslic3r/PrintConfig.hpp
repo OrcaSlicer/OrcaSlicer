@@ -1335,12 +1335,14 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Spacing between interface lines (the hatching distance). Set zero to get a solid interface.
     ((ConfigOptionFloat,               support_interface_spacing))
     ((ConfigOptionFloatsNullable,      support_interface_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, support_interface_volumetric_flow))
     ((ConfigOptionEnum<SupportMaterialPattern>, support_base_pattern))
     ((ConfigOptionEnum<SupportMaterialInterfacePattern>, support_interface_pattern))
     // Spacing between support material lines (the hatching distance).
     ((ConfigOptionFloat,               support_base_pattern_spacing))
     ((ConfigOptionFloat,               support_expansion))
     ((ConfigOptionFloatsNullable,      support_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, support_volumetric_flow))
     ((ConfigOptionEnum<SupportMaterialStyle>, support_style))
 
     // Orca: a flag enabling the ability to override flow ratios
@@ -1466,6 +1468,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                internal_bridge_flow))
     ((ConfigOptionFloatsNullable,       bridge_speed))
     ((ConfigOptionFloatsOrPercentsNullable, internal_bridge_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, bridge_volumetric_flow))
+    ((ConfigOptionFloatsOrPercentsNullable, internal_bridge_volumetric_flow))
     ((ConfigOptionEnum<EnsureVerticalShellThickness>,   ensure_vertical_shell_thickness))
     ((ConfigOptionPercent,              top_surface_density))
     ((ConfigOptionPercent,               bottom_surface_density))
@@ -1476,6 +1480,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionEnum<InfillPattern>, internal_solid_infill_pattern))
     ((ConfigOptionFloatOrPercent,       outer_wall_line_width))
     ((ConfigOptionFloatsNullable,       outer_wall_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, outer_wall_volumetric_flow))
     ((ConfigOptionFloat,                infill_direction))
     ((ConfigOptionFloat,                solid_infill_direction))
     ((ConfigOptionFloat,                top_layer_direction))
@@ -1511,11 +1516,13 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionPercent,              fuzzy_skin_ripple_offset))
     ((ConfigOptionInt,                  fuzzy_skin_layers_between_ripple_offset))
     ((ConfigOptionFloatsNullable,       gap_infill_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, gap_infill_volumetric_flow))
     ((ConfigOptionInt,                  sparse_infill_filament_id))
     ((ConfigOptionFloatOrPercent,       sparse_infill_line_width))
     ((ConfigOptionPercent,              infill_wall_overlap))
     ((ConfigOptionPercent,              top_bottom_infill_wall_overlap))
     ((ConfigOptionFloatsNullable,       sparse_infill_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, sparse_infill_volumetric_flow))
     ((ConfigOptionPercent, skeleton_infill_density))
     ((ConfigOptionPercent, skin_infill_density))
     ((ConfigOptionFloat, infill_lock_depth))
@@ -1552,6 +1559,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt, inner_wall_filament_id))
     ((ConfigOptionFloatOrPercent, inner_wall_line_width))
     ((ConfigOptionFloatsNullable, inner_wall_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, inner_wall_volumetric_flow))
     // Total number of perimeters.
     ((ConfigOptionInt, wall_loops))
     ((ConfigOptionBool, alternate_extra_wall))
@@ -1561,6 +1569,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt, bottom_surface_filament_id))
     ((ConfigOptionFloatOrPercent, internal_solid_infill_line_width))
     ((ConfigOptionFloatsNullable, internal_solid_infill_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, internal_solid_infill_volumetric_flow))
     // Detect thin walls.
     ((ConfigOptionBool, detect_thin_wall))
     ((ConfigOptionFloatOrPercent, top_surface_line_width))
@@ -1571,6 +1580,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat, top_surface_expansion_margin))
     ((ConfigOptionEnum<TopSurfaceExpansionDirection>, top_surface_expansion_direction))
     ((ConfigOptionFloatsNullable, top_surface_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, top_surface_volumetric_flow))
     //BBS
     ((ConfigOptionBoolsNullable,            enable_overhang_speed))
     ((ConfigOptionFloatsOrPercentsNullable, overhang_1_4_speed))
@@ -1757,6 +1767,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionStrings,             default_filament_colour))
     ((ConfigOptionInts,                temperature_vitrification))  //BBS
     ((ConfigOptionFloats,              filament_max_volumetric_speed))
+    ((ConfigOptionFloats,              filament_max_external_volumetric_speed))
     ((ConfigOptionInts,                required_nozzle_HRC))
     ((ConfigOptionEnum<FilamentMapMode>, filament_map_mode))
     ((ConfigOptionInts,                filament_map))
@@ -2049,9 +2060,12 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionFloatOrPercent,     initial_layer_line_width))
     ((ConfigOptionFloat,              initial_layer_print_height))
     ((ConfigOptionFloatsNullable,     initial_layer_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, initial_layer_volumetric_flow))
 
     //BBS
     ((ConfigOptionFloatsNullable,     initial_layer_infill_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, initial_layer_infill_volumetric_flow))
+    ((ConfigOptionBool,               enable_volumetric_speeds))
     ((ConfigOptionInts,               nozzle_temperature_initial_layer))
     ((ConfigOptionInts,               full_fan_speed_layer))
     // ORCA: explicit override for the part cooling fan speed on the first printed layer.
@@ -2581,7 +2595,8 @@ int bed_exclusion_extruder_for_filament(size_t filament_id, const std::vector<in
                                         FilamentMapMode map_mode, bool is_bambu, bool automatic_map_resolved,
                                         size_t extruder_count);
 bool is_bed_exclusion_volume_syntax(const std::string &value);
-// Bed exclusion areas must be simple polygons with non-zero area.
+// Allow legacy compound bed exclusion paths with repeated vertices and
+// retraced edges. Reject zero-area paths and proper edge crossings.
 bool is_valid_bed_exclude_area(const Pointfs &points);
 bool is_valid_bed_exclude_volumes_string(const std::string &value, double printable_height);
 // Add shared definitions without replacing existing volumes or changing the

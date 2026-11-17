@@ -1,8 +1,8 @@
 #include "PluginAuditManager.hpp"
 
 #include "../Utils/OrcaCloudServiceAgent.hpp"
-#include "libslic3r/Utils.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Utils.hpp"
 #include "libslic3r/libslic3r.h" // GCODEVIEWER_APP_KEY, and SLIC3R_APP_KEY via libslic3r_version.h
 #include "libslic3r_version.h"
 
@@ -21,7 +21,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <deque>
 #include <exception>
+#include <functional>
 #include <future>
 #include <mutex>
 #include <memory>
@@ -29,6 +31,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #endif
+#include <optional>
 #include <slic3r/GUI/BindDialog.hpp>
 #include <slic3r/GUI/GUI_App.hpp>
 #include <slic3r/GUI/MsgDialog.hpp>
@@ -42,8 +45,9 @@
 #include <vector>
 #include <wx/app.h>
 #include <wx/colour.h>
-#include <wx/event.h>
 #include <wx/dcclient.h>
+#include <wx/event.h>
+#include <wx/font.h>
 #include <wx/gdicmn.h>
 #include <wx/html/htmlwin.h>
 #include <wx/msgdlg.h>
@@ -51,6 +55,7 @@
 #include <wx/sizer.h>
 #include <wx/string.h>
 #include <wx/thread.h>
+#include <wx/window.h>
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/plugin/PluginDescriptor.hpp"
 #include <Python.h>
@@ -403,8 +408,8 @@ struct PermissionMessage {
 class PermissionDialog : public GUI::MsgDialog
 {
 public:
-    PermissionDialog(const PermissionMessage& message, const wxString& title, bool show_tip)
-        : MsgDialog(nullptr, title, wxEmptyString, wxYES_NO | wxICON_WARNING)
+    PermissionDialog(wxWindow* parent, const PermissionMessage& message, const wxString& title, bool show_tip)
+        : MsgDialog(parent, title, wxEmptyString, wxYES_NO | wxICON_WARNING)
     {
         auto* html = new wxHtmlWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHW_SCROLLBAR_AUTO);
         const wxFont prose = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
@@ -910,6 +915,14 @@ AuditDecision PluginAuditManager::check_open(const std::string& path_str, const 
 
 namespace {
 
+// A live top-level window keeps the audit dialog ordered with the app and lets wx tear it down
+// with its parent on shutdown. Null only before the main window exists or after it is gone; the
+// callers check is_closing() first.
+wxWindow* audit_prompt_parent()
+{
+    return wxTheApp != nullptr ? wxTheApp->GetTopWindow() : nullptr;
+}
+
 // A complete sentence of its own, so a translator can place it independently of the request
 // body. Informational only: a prompt never navigates to, or opens, the Plugins dialog.
 void append_permission_dialog_tip(wxString& message)
@@ -927,11 +940,17 @@ bool show_permission_dialog(PermissionMessage message, const wxString& title)
     if (show_tip)
         append_permission_dialog_tip(message.text);
 
-    PermissionDialog dialog(message, title, show_tip);
+    PermissionDialog dialog(audit_prompt_parent(), message, title, show_tip);
     const int result = dialog.ShowModal();
     if (show_tip && config != nullptr && (result == wxID_YES || result == wxID_NO) && dialog.get_checkbox_state()) {
-        config->set("hide_plugin_permission_tip", "1");
-        config->save();
+        try {
+            config->set("hide_plugin_permission_tip", "1");
+            config->save();
+        } catch (const std::exception& ex) {
+            BOOST_LOG_TRIVIAL(warning) << "[AUDIT PROMPT] Failed to save the permission-tip preference: " << ex.what();
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(warning) << "[AUDIT PROMPT] Failed to save the permission-tip preference: unknown exception";
+        }
     }
     return result == wxID_YES;
 }
@@ -1018,6 +1037,10 @@ bool PluginAuditManager::last_violation(AuditViolation& violation) const
 
 namespace PluginAuditDetail {
 
+// Defined below: the process-wide serialized prompt queue. Declared here because invalidating a
+// plugin's recursive-delete state also drops its queued consents.
+AuditPromptQueue& runtime_audit_prompts();
+
 // A one-time consent for a recursive delete whose prompt could not run inline. It is deliberately
 // in-memory only: no sidecar grant is written, so the approval cannot widen future delete access.
 // The plugin key and canonical subtree root bind it to exactly one retry, and the short lifetime
@@ -1048,6 +1071,9 @@ struct RecursiveDeletePromptKey
 };
 
 std::vector<RecursiveDeletePromptKey>    s_pending_recursive_delete_prompts;
+// Bounds the recursive-delete consents that may be waiting for an answer at once, for both the
+// test seam's pending set and the serialized production queue. A plugin retry loop can name many
+// distinct targets; at capacity the new consent is rejected rather than queued.
 constexpr std::size_t                    kMaxRecursiveDeletePrompts = 16;
 
 // Incremented whenever a plugin's permission state is edited, revoked, or reinstalled. Posted
@@ -1070,24 +1096,30 @@ void invalidate_recursive_delete_state(const std::string& plugin_key)
     if (plugin_key.empty())
         return;
 
-    std::lock_guard<std::mutex> lock(s_recursive_delete_approval_mutex);
-    ++s_recursive_delete_generations[plugin_key];
+    {
+        std::lock_guard<std::mutex> lock(s_recursive_delete_approval_mutex);
+        ++s_recursive_delete_generations[plugin_key];
 
-    // Any approval or dedup key was granted for the previous permission state. Erase both so a
-    // later retry starts from the current state. A dialog already posted cannot be withdrawn;
-    // its callback becomes a no-op through the generation token it captured.
-    s_recursive_delete_approvals.erase(
-        std::remove_if(s_recursive_delete_approvals.begin(), s_recursive_delete_approvals.end(),
-                       [&plugin_key](const RecursiveDeleteApproval& approval) {
-                           return approval.plugin_key == plugin_key;
-                       }),
-        s_recursive_delete_approvals.end());
-    s_pending_recursive_delete_prompts.erase(
-        std::remove_if(s_pending_recursive_delete_prompts.begin(), s_pending_recursive_delete_prompts.end(),
-                       [&plugin_key](const RecursiveDeletePromptKey& prompt) {
-                           return prompt.plugin_key == plugin_key;
-                       }),
-        s_pending_recursive_delete_prompts.end());
+        // Any approval or dedup key was granted for the previous permission state. Erase both so
+        // a later retry starts from the current state. A dialog already posted cannot be
+        // withdrawn; its callback becomes a no-op through the generation token it captured.
+        s_recursive_delete_approvals.erase(
+            std::remove_if(s_recursive_delete_approvals.begin(), s_recursive_delete_approvals.end(),
+                           [&plugin_key](const RecursiveDeleteApproval& approval) {
+                               return approval.plugin_key == plugin_key;
+                           }),
+            s_recursive_delete_approvals.end());
+        s_pending_recursive_delete_prompts.erase(
+            std::remove_if(s_pending_recursive_delete_prompts.begin(), s_pending_recursive_delete_prompts.end(),
+                           [&plugin_key](const RecursiveDeletePromptKey& prompt) {
+                               return prompt.plugin_key == plugin_key;
+                           }),
+            s_pending_recursive_delete_prompts.end());
+    }
+
+    // Queued production consents for the old permission state are dropped too. An active dialog
+    // cannot be withdrawn; the generation it captured makes its late answer a no-op.
+    runtime_audit_prompts().discard_recursive_delete_consents(plugin_key);
 }
 
 // Caller holds s_recursive_delete_approval_mutex.
@@ -2452,6 +2484,45 @@ bool prompt_for_permission_message(const PermissionMessage& message)
     return show_permission_dialog(message, _L("Plugin permissions"));
 }
 
+// Builds the combined body for a load-time declaration. Each bucket keeps its own formatted target
+// block, so a translated sentence can place its target list independently. A create/delete
+// bucket keeps the scope disclosure the declaration prompt has always shown: a sole "*" is
+// unrestricted scope, and a tree grant ("<folder>/*") also covers every subfolder.
+PermissionMessage build_permission_message(const std::string& plugin_name, const std::vector<AuditPromptBucket>& buckets)
+{
+    PermissionMessage message;
+    for (const AuditPromptBucket& bucket : buckets) {
+        const bool full_fs_scope = is_create_delete_category(bucket.category) && bucket.targets.size() == 1 &&
+                                   bucket.targets.front() == "*";
+        const bool tree_scope =
+            is_create_delete_category(bucket.category) &&
+            std::any_of(bucket.targets.begin(), bucket.targets.end(), [](const std::string& target) {
+                boost::filesystem::path root;
+                return tree_grant_root(target, root);
+            });
+        const bool root_tree_scope =
+            tree_scope && std::any_of(bucket.targets.begin(), bucket.targets.end(), [](const std::string& target) {
+                boost::filesystem::path root;
+                return tree_grant_root(target, root) && is_filesystem_root(root);
+            });
+
+        wxString targets;
+        if (!full_fs_scope)
+            for (const std::string& target : bucket.targets)
+                targets += wxString::FromUTF8(target.c_str()) + "\n";
+
+        if (!message.text.IsEmpty())
+            message.text += "\n\n";
+        PermissionMessage part = formatted_audit_message(bucket.category, wxString::FromUTF8(plugin_name.c_str()),
+                                                          wxEmptyString, targets, bucket.targets.size(),
+                                                          full_fs_scope, tree_scope, root_tree_scope);
+        for (const auto& range : part.targets)
+            message.targets.emplace_back(message.text.length() + range.first, range.second);
+        message.text += part.text;
+    }
+    return message;
+}
+
 // A recursive delete consent shows the canonical subtree root and states that the approval lasts
 // only for this operation (or, when posted asynchronously, for one next matching attempt). That
 // scope cannot be expressed by the persistent create/delete grant prompt, so it has its own
@@ -2510,12 +2581,18 @@ bool prompt_for_recursive_delete(const std::string& plugin_name, const std::stri
         _L("Plugin permission request"));
 }
 
+// Defined below: the drain scheduler and the completion helper. A recursive-delete consent joins
+// the same serialization as every other audit prompt.
+bool schedule_runtime_prompt_drain_checked();
+bool finish_audit_prompt(const std::shared_ptr<AuditPromptCompletion>& completion, bool satisfied);
+
 // Asks for one-time consent to delete the canonical `target` subtree. On the wx main thread the
 // answer is available before the operation returns, so a Yes lets this attempt proceed. Off that
-// thread the modal is posted and the current attempt is denied; a Yes records a short-lived
-// single-use approval that only the same plugin and target can consume on a retry. A pending
-// prompt for the same plugin/target is not posted again, so a plugin retry loop cannot flood the
-// user with duplicate modals.
+// thread, or while another audit prompt is active, the modal is serialized through
+// AuditPromptQueue and the current attempt is denied; a Yes records a short-lived single-use
+// approval that only the same plugin and target can consume on a retry. A pending prompt for the
+// same plugin/target is not queued again, so a plugin retry loop cannot flood the user with
+// duplicate modals.
 bool request_recursive_delete_consent(const std::string& plugin_key, const std::string& plugin_name,
                                       const std::string& target, bool root_scope)
 {
@@ -2541,28 +2618,51 @@ bool request_recursive_delete_consent(const std::string& plugin_key, const std::
         return s_recursive_delete_prompt_for_testing(plugin_name, target);
     }
 
-    if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
+    if (wxTheApp == nullptr || GUI::wxGetApp().is_closing() || PluginManager::instance().is_shutting_down() ||
+        PluginManager::instance().is_plugin_load_cancelled(plugin_key))
         return false;
 
-    if (!s_recursive_delete_prompt_background_for_testing && wxIsMainThread()) {
-        const bool granted =
-            prompt_for_recursive_delete(plugin_name, target, root_scope, /*background=*/false);
-        return granted && recursive_delete_generation(plugin_key) == generation;
+    // A recursive-delete consent joins the same serialized prompt queue as every other audit
+    // prompt, so it cannot open a second dialog inside another permission dialog's modal loop.
+    // On the GUI thread an idle queue shows it inline and its answer can authorize this attempt;
+    // any queued request was raised off the GUI thread (or behind another prompt), so the current
+    // attempt is denied and a Yes becomes a one-time retry approval.
+    AuditPromptRequest request;
+    request.kind                        = AuditPromptKind::RecursiveDeleteConsent;
+    request.plugin_key                  = plugin_key;
+    request.plugin_name                 = plugin_name;
+    request.event_name                  = "shutil.rmtree";
+    request.shown                       = {target};
+    request.root_scope                  = root_scope;
+    request.recursive_delete_generation = generation;
+
+    const AuditPromptQueue::Admission admission = runtime_audit_prompts().admit(request, wxIsMainThread() != 0);
+    if (admission == AuditPromptQueue::Admission::Duplicate || admission == AuditPromptQueue::Admission::Rejected)
+        return false;
+    if (admission == AuditPromptQueue::Admission::Queued) {
+        schedule_runtime_prompt_drain_checked();
+        return false;
     }
 
-    if (!begin_recursive_delete_prompt(plugin_key, target, generation))
-        return false;
+    // A permission edit may have landed between reading the generation and claiming the queue
+    // slot. Do not show consent for a stale state; the retry will ask again with the new one.
+    if (recursive_delete_generation(plugin_key) != generation)
+        return finish_audit_prompt(nullptr, false);
 
-    GUI::wxGetApp().CallAfter([plugin_key, plugin_name, target, root_scope, generation]() {
-        RecursiveDeletePromptGuard guard(plugin_key, target, generation);
-        if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
-            return;
-        const bool granted = prompt_for_recursive_delete(plugin_name, target, root_scope, /*background=*/true);
-        // A permission edit or reinstall while the dialog was open invalidates the consent.
-        if (granted && recursive_delete_generation(plugin_key) == generation)
-            PluginAuditManager::instance().add_recursive_delete_approval(plugin_key, target);
-    });
-    return false;
+    // ShowNow: no other audit prompt is active, so present this consent synchronously.
+    bool granted = false;
+    try {
+        const bool alive = !PluginManager::instance().is_shutting_down() &&
+                           !PluginManager::instance().is_plugin_load_cancelled(plugin_key);
+        granted = alive && prompt_for_recursive_delete(plugin_name, target, root_scope, /*background=*/false);
+    } catch (const std::exception& ex) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Failed to show recursive-delete prompt for plugin=" << plugin_key
+                                 << ": " << ex.what();
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Failed to show recursive-delete prompt for plugin=" << plugin_key
+                                 << ": unknown exception";
+    }
+    return finish_audit_prompt(nullptr, granted && recursive_delete_generation(plugin_key) == generation);
 }
 
 // Records a grant in the plugin's sidecar so it is not asked again. Each persist helper re-reads
@@ -2586,8 +2686,243 @@ bool persist_grant(const std::string& plugin_key, AuditEventCategory category, b
     return persisted;
 }
 
+// Persists every missing target of a declaration in one sidecar write. Takes the shared lock and
+// re-reads the sidecar so a grant saved while the queued dialog was open is kept. The
+// sidecar_was_readable flag records the status seen when the declaration was read: a sidecar that
+// was readable then and is absent now must not be recreated, since that is lost state rather than
+// a new install. Only a sidecar absent at both reads is seeded. Notifies an existing Plugins
+// dialog when a write succeeded; a failed write leaves its Permissions tab accurate.
+bool persist_declared_permissions(const std::string& plugin_key, const std::vector<AuditPromptBucket>& buckets,
+                                  bool sidecar_was_readable)
+{
+    PluginDescriptor descriptor;
+    if (!PluginManager::instance().try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
+        return false;
+
+    bool persisted = false;
+    {
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+
+        PluginInstallState state;
+        const boost::filesystem::path root(descriptor.plugin_root);
+        const InstallStateReadStatus status = read_install_state_status(root, state);
+        // A malformed file is never replaced, and a sidecar that disappeared after a readable read
+        // is treated as lost state, not as a new install.
+        if (status == InstallStateReadStatus::Unreadable)
+            return false;
+        if (status == InstallStateReadStatus::Absent && sidecar_was_readable)
+            return false;
+
+        seed_install_metadata(descriptor, state);
+        for (const AuditPromptBucket& bucket : buckets) {
+            if (bucket.category == AuditEventCategory::Threading) {
+                state.permissions.threading = true;
+                continue;
+            }
+            std::vector<std::string>* permission_list =
+                permission_list_for(bucket.category, /*by_event=*/false, state.permissions);
+            if (!permission_list)
+                continue;
+            if (is_create_delete_category(bucket.category)) {
+                // A full grant added by another writer while the dialog was open already covers
+                // every folder; adding a folder beside it would stop it reading as the full form.
+                if (create_delete_grant_full(*permission_list))
+                    continue;
+                if (std::find(bucket.targets.begin(), bucket.targets.end(), "*") != bucket.targets.end()) {
+                    // Unrestricted create/delete is the one-element form; drop folder grants it covers.
+                    permission_list->assign(1, "*");
+                    continue;
+                }
+            }
+            for (const std::string& target : bucket.targets) {
+                // Another writer may have added an exact grant or a tree grant that already covers
+                // this entry while the dialog was open; do not store a redundant duplicate.
+                if (is_create_delete_category(bucket.category) &&
+                    create_delete_grant_covers_grant(*permission_list, target))
+                    continue;
+                if (std::find(permission_list->begin(), permission_list->end(), target) == permission_list->end())
+                    permission_list->push_back(target);
+            }
+        }
+
+        persisted = write_install_state(root, state);
+    }
+
+    // Notify outside the lock: the refresh is posted to the GUI thread, and a dialog must not wait
+    // on a sidecar writer. A failed write changed nothing, so only a stored grant notifies.
+    if (persisted)
+        post_permission_changed_notification(plugin_key);
+    return persisted;
+}
+
 static PluginAuditManager::PermissionPrompt s_permission_prompt_for_testing;
 static PluginAuditManager::PermissionMessagePrompt s_permission_message_prompt_for_testing;
+
+AuditPromptQueue& runtime_audit_prompts()
+{
+    // Deliberately leaked. A worker can be waiting on a queued prompt while static destructors
+    // run; the queue itself must stay valid until process exit, and its destructor has no work
+    // that is safe to order against wx teardown.
+    static AuditPromptQueue* queue = new AuditPromptQueue();
+    return *queue;
+}
+
+bool show_queued_prompt(const AuditPromptRequest& request)
+{
+    switch (request.kind) {
+    case AuditPromptKind::RuntimeEvent:
+        return prompt_for_targets(request.category, request.plugin_name, request.event_name, request.shown,
+                                  request.entries);
+    case AuditPromptKind::DeclaredPermissions:
+        return prompt_for_permission_message(build_permission_message(request.plugin_name, request.buckets));
+    case AuditPromptKind::RecursiveDeleteConsent:
+        // The request is shown only after the attempt that raised it was denied, so the consent
+        // must describe itself as applying to the next matching attempt.
+        return !request.shown.empty() &&
+               prompt_for_recursive_delete(request.plugin_name, request.shown.front(), request.root_scope,
+                                           /*background=*/true);
+    }
+    return false;
+}
+
+void drain_runtime_prompts();
+
+void schedule_runtime_prompt_drain()
+{
+    if (wxTheApp == nullptr || GUI::wxGetApp().is_closing()) {
+        runtime_audit_prompts().discard_all();
+        return;
+    }
+    GUI::wxGetApp().CallAfter([]() { drain_runtime_prompts(); });
+}
+
+// Schedules the next prompt. A failure here cannot be allowed to strand queued workers: discard
+// everything still waiting and log why, so every completion is released with a denial.
+bool schedule_runtime_prompt_drain_checked()
+{
+    try {
+        schedule_runtime_prompt_drain();
+        return true;
+    } catch (const std::exception& ex) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Failed to schedule the next prompt: " << ex.what();
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Failed to schedule the next prompt: unknown exception";
+    }
+    runtime_audit_prompts().discard_all();
+    return false;
+}
+
+// Ends the active prompt exactly once, in queue order: complete first, then release the waiting
+// worker, then schedule the next prompt. Used from normal and exceptional paths alike.
+bool finish_audit_prompt(const std::shared_ptr<AuditPromptCompletion>& completion, bool satisfied)
+{
+    if (runtime_audit_prompts().complete())
+        satisfied = false;
+    if (completion)
+        completion->resolve(satisfied);
+    if (runtime_audit_prompts().has_pending())
+        schedule_runtime_prompt_drain_checked();
+    return satisfied;
+}
+
+// Shows the oldest queued prompt. The next one is scheduled only after this dialog has returned,
+// so its modal event loop cannot deliver another prompt that opens a second dialog.
+void drain_runtime_prompts()
+{
+    if (wxTheApp == nullptr || GUI::wxGetApp().is_closing()) {
+        runtime_audit_prompts().discard_all();
+        return;
+    }
+
+    std::optional<AuditPromptRequest> request = runtime_audit_prompts().take_next();
+    if (!request)
+        return;
+
+    // A request may have been enqueued concurrently with plugin unload, after its queued
+    // requests were discarded. Keep requests raised during plugin loading valid as well: plugin
+    // code can run before the manager commits it as loaded. A cancelled load keeps its in-progress
+    // slot until its worker unwinds, but an observed cancellation makes it ineligible for a new
+    // prompt or a grant that has not begun committing; the queue cancels a dialog already up.
+    // An ordinary load failure is different: its queued runtime prompt survives so the user can
+    // approve the event whose denial aborted the load and then retry with the saved grant.
+    PluginManager& manager = PluginManager::instance();
+    const auto plugin_available = [&manager](const AuditPromptRequest& prompt) {
+        AuditPromptPluginState state;
+        state.loaded           = manager.is_plugin_loaded(prompt.plugin_key);
+        state.load_in_progress = manager.is_plugin_load_in_progress(prompt.plugin_key);
+        state.load_cancelled   = manager.is_plugin_load_cancelled(prompt.plugin_key);
+        state.load_failed      = manager.is_plugin_load_failed(prompt.plugin_key);
+        state.shutting_down    = manager.is_shutting_down();
+        return prompt_plugin_is_available(state, prompt.kind);
+    };
+
+    bool satisfied = false;
+    try {
+        const bool alive = plugin_available(*request);
+        // A permission edit racing the enqueue can leave a consent queued with the previous
+        // generation. Do not show it: its Yes could not store anything, and a fresh retry should
+        // be the prompt the user sees.
+        const bool stale_consent =
+            request->kind == AuditPromptKind::RecursiveDeleteConsent &&
+            recursive_delete_generation(request->plugin_key) != request->recursive_delete_generation;
+        const bool granted = alive && !stale_consent && show_queued_prompt(*request);
+
+        // Decide under the still-active queue entry so a shutdown/unload that arrives before the
+        // sidecar write cancels this request. begin_commit() makes an accepted answer atomic
+        // against cancellation: if cancel wins, nothing is persisted; if commit wins, the answer is
+        // valid and complete() cannot report it as cancelled afterwards.
+        const bool alive_after_prompt = plugin_available(*request);
+        satisfied = granted && alive_after_prompt && !PluginManager::instance().is_shutting_down() &&
+                    runtime_audit_prompts().begin_commit();
+
+        if (satisfied) {
+            switch (request->kind) {
+            case AuditPromptKind::RuntimeEvent:
+                persist_grant(request->plugin_key, request->category, request->by_event, request->keys);
+                break;
+            case AuditPromptKind::DeclaredPermissions:
+                satisfied = persist_declared_permissions(request->plugin_key, request->buckets,
+                                                         request->sidecar_was_readable);
+                if (!satisfied)
+                    BOOST_LOG_TRIVIAL(warning) << "[AUDIT PROMPT] Failed to persist declared permissions for "
+                                               << request->plugin_key;
+                break;
+            case AuditPromptKind::RecursiveDeleteConsent:
+                // One-time consent is never persisted. A permission edit or reinstall while the
+                // dialog was open invalidated the generation, so a stale Yes stores nothing.
+                if (!request->shown.empty() &&
+                    recursive_delete_generation(request->plugin_key) == request->recursive_delete_generation)
+                    PluginAuditManager::instance().add_recursive_delete_approval(request->plugin_key,
+                                                                                request->shown.front());
+                else
+                    satisfied = false;
+                break;
+            }
+        }
+    } catch (const std::exception& ex) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Permission prompt failed for plugin=" << request->plugin_key
+                                 << ": " << ex.what();
+        satisfied = false;
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Permission prompt failed for plugin=" << request->plugin_key
+                                 << ": unknown exception";
+        satisfied = false;
+    }
+
+    // While a commit is active, discards above leave it alone; finish_audit_prompt() completes
+    // first, then resolves the worker, then schedules the next prompt.
+    finish_audit_prompt(request->completion, satisfied);
+}
+
+void discard_runtime_prompts()
+{
+    runtime_audit_prompts().discard_all();
+}
+
+void discard_runtime_prompts_for(const std::string& plugin_key)
+{
+    runtime_audit_prompts().discard_plugin(plugin_key);
+}
 
 static const char* audit_category_name(AuditEventCategory category)
 {
@@ -2622,10 +2957,11 @@ static const char* audit_category_name(AuditEventCategory category)
 // prompt); the grant is persisted once the user accepts, so a later attempt succeeds without
 // re-prompting.
 //
-// Create and delete now persist a folder grant. On the GUI thread the inline prompt is answered
-// before the operation returns, so approval lets it proceed immediately. Off the main thread the
-// prompt is posted and the current operation is denied, so the plugin has to retry it after the
-// approval has stored the folder.
+// Runtime prompts are serialized by AuditPromptQueue: at most one is modal at a time, and the next
+// is scheduled only after the active dialog has closed. An event delivered inside that dialog's
+// nested event loop is queued and denied instead of opening a second dialog. Create and delete
+// keep the request's target entries and persist the approved folder, so a queued approval still
+// grants what a retry needs; only the inline GUI-thread prompt lets the current operation proceed.
 bool request_permission(AuditEventCategory category, const std::string& plugin_key, const std::string& plugin_name,
                         const std::string& event_name, bool by_event, const std::vector<std::string>& keys,
                         const std::vector<PluginAuditManager::PermissionPromptEntry>& entries = {})
@@ -2645,19 +2981,51 @@ bool request_permission(AuditEventCategory category, const std::string& plugin_k
     if (s_permission_prompt_for_testing)
         return s_permission_prompt_for_testing(event_name, shown, entries);
 
-    if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
+    if (wxTheApp == nullptr || GUI::wxGetApp().is_closing() || PluginManager::instance().is_shutting_down() ||
+        PluginManager::instance().is_plugin_load_cancelled(plugin_key))
         return false;
 
-    if (wxIsMainThread())
-        return prompt_for_targets(category, plugin_name, event_name, shown, entries);
+    const bool on_gui_thread = wxIsMainThread() != 0;
 
-    GUI::wxGetApp().CallAfter([category, plugin_key, plugin_name, event_name, by_event, keys, shown, entries]() {
-        if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
-            return;
-        if (prompt_for_targets(category, plugin_name, event_name, shown, entries))
-            persist_grant(plugin_key, category, by_event, keys);
-    });
-    return false;
+    AuditPromptRequest request;
+    request.kind        = AuditPromptKind::RuntimeEvent;
+    request.category    = category;
+    request.plugin_key  = plugin_key;
+    request.plugin_name = plugin_name;
+    request.event_name  = event_name;
+    request.by_event    = by_event;
+    request.keys        = keys;
+    request.shown       = shown;
+    request.entries     = entries;
+
+    const AuditPromptQueue::Admission admission = runtime_audit_prompts().admit(request, on_gui_thread);
+    if (admission == AuditPromptQueue::Admission::Duplicate || admission == AuditPromptQueue::Admission::Rejected)
+        return false;
+
+    if (admission == AuditPromptQueue::Admission::Queued) {
+        // A prompt is already active (this event arrived inside its modal loop) or an earlier one
+        // is waiting. The current operation stays denied, as for an unanswered prompt; the
+        // queued prompt is shown once the active dialog has fully closed, and a Yes persists the
+        // same grant an inline answer would.
+        schedule_runtime_prompt_drain_checked();
+        return false;
+    }
+
+    // ShowNow: no other audit prompt is active, so present this one synchronously. The event is
+    // approved only when the user says Yes to it and no unload cancelled it while it was up.
+    bool granted = false;
+    try {
+        const bool alive = !PluginManager::instance().is_shutting_down() &&
+                           !PluginManager::instance().is_plugin_load_cancelled(plugin_key);
+        granted = alive && show_queued_prompt(request);
+    } catch (const std::exception& ex) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Failed to show permission prompt for plugin=" << plugin_key
+                                 << ": " << ex.what();
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Failed to show permission prompt for plugin=" << plugin_key
+                                 << ": unknown exception";
+    }
+    return finish_audit_prompt(request.completion, granted);
 }
 
 // Decides an event that no allowed root or running operation covers: a saved grant allows it,
@@ -2797,6 +3165,8 @@ int decide_audited_event(PluginAuditManager&             mgr,
     if (!request_permission(category, plugin_key, plugin_name, event_name, by_event, unresolved, prompt_entries))
         return report_denied(mgr, event_name, {false, "audit permission required"});
 
+    // persist_grant re-reads the sidecar under the shared lock and handles the threading
+    // boolean; it notifies an existing Plugins dialog only when a write succeeded.
     if (threading_category || permission_list) {
         persist_grant(plugin_key, category, by_event, unresolved);
     }
@@ -2995,6 +3365,213 @@ void PluginAuditManager::add_recursive_delete_approval(const std::string& plugin
     PluginAuditDetail::store_recursive_delete_approval(plugin_key, canonical_root);
 }
 
+AuditPromptQueue& runtime_prompt_queue_for_testing() { return PluginAuditDetail::runtime_audit_prompts(); }
+
+bool prompt_plugin_is_available(const AuditPromptPluginState& state, AuditPromptKind kind)
+{
+    if (state.shutting_down || state.load_cancelled)
+        return false;
+
+    if (state.loaded || state.load_in_progress)
+        return true;
+
+    // No worker is left to answer a load-time declaration after its load failed. A runtime event
+    // or a one-time recursive-delete consent has no worker: its denial may be what aborted the
+    // load, so an ordinary failure keeps it actionable.
+    return (kind == AuditPromptKind::RuntimeEvent || kind == AuditPromptKind::RecursiveDeleteConsent) &&
+           state.load_failed;
+}
+
+bool AuditPromptBucket::operator==(const AuditPromptBucket& other) const
+{
+    return category == other.category && targets == other.targets;
+}
+
+void AuditPromptCompletion::resolve(bool value)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_resolved)
+        return;
+    m_resolved = true;
+    m_promise.set_value(value);
+}
+
+std::future<bool> AuditPromptCompletion::get_future() { return m_promise.get_future(); }
+
+AuditPromptQueue::Admission AuditPromptQueue::admit_synchronous(AuditPromptRequest request)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_active || !m_pending.empty())
+        return Admission::Rejected;
+
+    m_active = std::move(request);
+    m_active_cancelled  = false;
+    m_active_committing = false;
+    return Admission::ShowNow;
+}
+
+AuditPromptQueue::Admission AuditPromptQueue::admit(AuditPromptRequest request, bool may_show_now)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    if (may_show_now && !m_active && m_pending.empty()) {
+        m_active = std::move(request);
+        m_active_cancelled  = false;
+        m_active_committing = false;
+        return Admission::ShowNow;
+    }
+
+    if (contains_locked(request))
+        return Admission::Duplicate;
+
+    // A recursive-delete consent is a modal per target, and a plugin retry loop can name many
+    // distinct targets. Keep that set bounded, as the direct-prompt path did: at capacity, reject
+    // the new consent instead of letting pending dialogs grow without limit. The count includes
+    // the active prompt because its dialog is still on screen.
+    if (request.kind == AuditPromptKind::RecursiveDeleteConsent) {
+        const auto is_consent = [](const AuditPromptRequest& queued) {
+            return queued.kind == AuditPromptKind::RecursiveDeleteConsent;
+        };
+        std::size_t consent_count = std::count_if(m_pending.begin(), m_pending.end(), is_consent);
+        if (m_active && is_consent(*m_active))
+            ++consent_count;
+        if (consent_count >= PluginAuditDetail::kMaxRecursiveDeletePrompts)
+            return Admission::Rejected;
+    }
+
+    m_pending.push_back(std::move(request));
+    return Admission::Queued;
+}
+
+std::optional<AuditPromptRequest> AuditPromptQueue::take_next()
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_active || m_pending.empty())
+        return std::nullopt;
+
+    m_active = std::move(m_pending.front());
+    m_pending.pop_front();
+    m_active_cancelled  = false;
+    m_active_committing = false;
+    return m_active;
+}
+
+bool AuditPromptQueue::begin_commit()
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (!m_active || m_active_cancelled)
+        return false;
+    m_active_committing = true;
+    return true;
+}
+
+bool AuditPromptQueue::complete()
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    const bool cancelled = m_active_cancelled;
+    m_active.reset();
+    m_active_cancelled  = false;
+    m_active_committing = false;
+    return cancelled;
+}
+
+bool AuditPromptQueue::has_pending() const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return !m_pending.empty();
+}
+
+bool AuditPromptQueue::idle() const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return !m_active && m_pending.empty();
+}
+
+std::size_t AuditPromptQueue::pending_count() const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_pending.size();
+}
+
+void AuditPromptQueue::discard_all()
+{
+    const std::vector<std::shared_ptr<AuditPromptCompletion>> completions =
+        discard_matching([](const AuditPromptRequest&) { return true; });
+
+    // Never resolve under the queue lock: the wake-up is another thread that may re-enter.
+    for (const auto& completion : completions)
+        completion->resolve(false);
+}
+
+void AuditPromptQueue::discard_plugin(const std::string& plugin_key)
+{
+    const std::vector<std::shared_ptr<AuditPromptCompletion>> completions =
+        discard_matching([&plugin_key](const AuditPromptRequest& request) { return request.plugin_key == plugin_key; });
+
+    for (const auto& completion : completions)
+        completion->resolve(false);
+}
+
+void AuditPromptQueue::discard_recursive_delete_consents(const std::string& plugin_key)
+{
+    // No worker ever waits on a consent, so the returned completions are always empty; ignore
+    // them. The active consent, if any, is marked cancelled so its answer stores nothing.
+    discard_matching([&plugin_key](const AuditPromptRequest& request) {
+        return request.kind == AuditPromptKind::RecursiveDeleteConsent && request.plugin_key == plugin_key;
+    });
+}
+
+std::vector<std::shared_ptr<AuditPromptCompletion>>
+AuditPromptQueue::discard_matching(const std::function<bool(const AuditPromptRequest&)>& matches)
+{
+    std::vector<std::shared_ptr<AuditPromptCompletion>> completions;
+    std::lock_guard<std::mutex>                         lock(m_mutex);
+
+    // Collect before erasing so the workers are released oldest first.
+    for (const AuditPromptRequest& request : m_pending)
+        if (matches(request) && request.completion)
+            completions.push_back(request.completion);
+    m_pending.erase(std::remove_if(m_pending.begin(), m_pending.end(), matches), m_pending.end());
+
+    // A commit already begun is left to finish, matching the active prompt's contract.
+    if (m_active && matches(*m_active) && !m_active_committing) {
+        m_active_cancelled = true;
+        if (m_active->completion)
+            completions.push_back(m_active->completion);
+    }
+    return completions;
+}
+
+bool AuditPromptQueue::same_request(const AuditPromptRequest& a, const AuditPromptRequest& b)
+{
+    if (a.kind != b.kind || a.plugin_key != b.plugin_key)
+        return false;
+
+    switch (a.kind) {
+    case AuditPromptKind::RuntimeEvent:
+        // The entries are what the dialog shows for a create/delete target, so two requests that
+        // trigger on different paths are not equivalent even when they save the same folder.
+        return a.category == b.category && a.by_event == b.by_event && a.keys == b.keys && a.shown == b.shown &&
+               a.entries == b.entries;
+    case AuditPromptKind::DeclaredPermissions:
+        return a.buckets == b.buckets;
+    case AuditPromptKind::RecursiveDeleteConsent:
+        // One pending consent per plugin and canonical subtree within one permission generation.
+        // A permission edit or revocation starts a new generation: the stale prompt's Yes is
+        // ignored, and a retry after the edit must not be coalesced into that dead request.
+        return a.shown == b.shown && a.recursive_delete_generation == b.recursive_delete_generation;
+    }
+    return false;
+}
+
+bool AuditPromptQueue::contains_locked(const AuditPromptRequest& request) const
+{
+    if (m_active && same_request(*m_active, request))
+        return true;
+    return std::any_of(m_pending.begin(), m_pending.end(),
+                       [&request](const AuditPromptRequest& pending) { return same_request(pending, request); });
+}
+
 bool PluginAuditManager::request_permissions(const std::string& plugin_key, const PluginPermissions& requested)
 {
     if (plugin_key.empty())
@@ -3025,11 +3602,7 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
 
     // Per bucket, keep only the targets that no earlier grant already covers. Dropping these
     // before prompting keeps a repeated declaration from asking again for what is on disk.
-    struct MissingBucket {
-        AuditEventCategory       category;
-        std::vector<std::string> targets;
-    };
-    std::vector<MissingBucket> missing_buckets;
+    std::vector<AuditPromptBucket> missing_buckets;
 
     // A network target counts as granted when either network list covers it, matched the same
     // way the audit hook matches it (canonical scheme://host, bare host, legacy address tuple),
@@ -3041,7 +3614,7 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
         // remaining buckets verbatim.
         const bool tree_grant_bucket =
             category == AuditEventCategory::FsRead || category == AuditEventCategory::FsReadWrite;
-        MissingBucket bucket{category, {}};
+        AuditPromptBucket bucket{category, {}};
         for (const std::string& requested_target : requested_targets) {
             if (requested_target.empty())
                 continue;
@@ -3079,7 +3652,7 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
             const size_t requested_count = static_cast<size_t>(
                 std::count_if(requested_folders.begin(), requested_folders.end(),
                               [](const std::string& folder) { return !folder.empty(); }));
-            MissingBucket bucket{category, {}};
+            AuditPromptBucket bucket{category, {}};
             for (const std::string& requested_folder : requested_folders) {
                 if (requested_folder.empty())
                     continue;
@@ -3123,125 +3696,117 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     if (missing_buckets.empty())
         return true;
 
-    const auto build_message = [](const std::string& plugin_name, const std::vector<MissingBucket>& buckets) {
-        PermissionMessage message;
-        for (const MissingBucket& bucket : buckets) {
-            // A sole "*" is the unrestricted form: describe the scope instead of listing it as a
-            // folder.
-            const bool full_fs_scope = is_create_delete_category(bucket.category) &&
-                                       bucket.targets.size() == 1 && bucket.targets.front() == "*";
-            // A create/delete bucket with a tree grant shows "<folder>/*" and must disclose that
-            // its approval also covers every subfolder.
-            const bool tree_scope =
-                is_create_delete_category(bucket.category) &&
-                std::any_of(bucket.targets.begin(), bucket.targets.end(), [](const std::string& target) {
-                    boost::filesystem::path root;
-                    return PluginAuditDetail::tree_grant_root(target, root);
-                });
-            // A tree grant at a filesystem, drive, or network share root covers everything on it;
-            // its prompt must say so explicitly rather than describing it as a routine nested folder.
-            const bool root_tree_scope =
-                tree_scope && std::any_of(bucket.targets.begin(), bucket.targets.end(), [](const std::string& target) {
-                    boost::filesystem::path root;
-                    return PluginAuditDetail::tree_grant_root(target, root) &&
-                           is_filesystem_root(root);
-                });
-            wxString targets;
-            if (!full_fs_scope)
-                for (const std::string& target : bucket.targets)
-                    targets += wxString::FromUTF8(target.c_str()) + "\n";
+    // A cancelled load no longer represents a live plugin: do not ask, and do not save a grant
+    // that the discarded load would otherwise leave behind. Re-checked after enqueue below.
+    if (PluginManager::instance().is_plugin_load_cancelled(plugin_key))
+        return false;
 
-            if (!message.text.IsEmpty())
-                message.text += "\n\n";
-            PermissionMessage part = PluginAuditDetail::formatted_audit_message(
-                bucket.category, wxString::FromUTF8(plugin_name.c_str()), wxEmptyString, targets, bucket.targets.size(),
-                full_fs_scope, tree_scope, root_tree_scope);
-            for (const auto& range : part.targets)
-                message.targets.emplace_back(message.text.length() + range.first, range.second);
-            message.text += part.text;
-        }
-        return message;
-    };
-
-    bool granted = false;
     if (PluginAuditDetail::s_permission_message_prompt_for_testing) {
         // Tests run without a wxApp to host the dialog: hand the seam the message it would show.
-        wxString message = build_message(descriptor.name, missing_buckets).text;
-        append_permission_dialog_tip(message);
-        granted = PluginAuditDetail::s_permission_message_prompt_for_testing(message.utf8_string());
-    } else if (wxTheApp == nullptr || GUI::wxGetApp().is_closing()) {
-        return false;
-    } else if (wxIsMainThread()) {
-        granted = PluginAuditDetail::prompt_for_permission_message(build_message(descriptor.name, missing_buckets));
-    } else {
-        auto result = std::make_shared<std::promise<bool>>();
-        auto future = result->get_future();
-        GUI::wxGetApp().CallAfter([result, plugin_name = descriptor.name, missing_buckets, build_message]() {
-            result->set_value(PluginAuditDetail::prompt_for_permission_message(build_message(plugin_name, missing_buckets)));
-        });
-        granted = future.get();
-    }
-
-    if (!granted)
-        return false;
-
-    // The dialog can stay open while another grant is persisted; take the shared lock and re-read
-    // before saving so this request adds to the current state instead of replacing it.
-    bool persisted = false;
-    {
-        std::lock_guard<std::mutex> state_lock(install_state_mutex());
-        PluginInstallState     latest_state;
-        InstallStateReadStatus latest_status =
-            read_install_state_status(boost::filesystem::path(descriptor.plugin_root), latest_state);
-        // A malformed file is never replaced. A sidecar that was readable when prompting started
-        // must not be recreated if it disappears meanwhile: that is lost state, not a new install.
-        // Only a sidecar absent at both reads is seeded.
-        if (latest_status == InstallStateReadStatus::Unreadable)
-            return false;
-        if (latest_status == InstallStateReadStatus::Absent && state_status == InstallStateReadStatus::Readable)
-            return false;
-        state = std::move(latest_state);
-
-        PluginAuditDetail::seed_install_metadata(descriptor, state);
-
-        for (const MissingBucket& bucket : missing_buckets) {
-            if (bucket.category == AuditEventCategory::Threading) {
-                state.permissions.threading = true;
-                continue;
-            }
-            std::vector<std::string>* permission_list =
-                PluginAuditDetail::permission_list_for(bucket.category, /*by_event=*/false, state.permissions);
-            if (!permission_list)
-                continue;
-            if (is_create_delete_category(bucket.category)) {
-                // A full grant added by another writer while the dialog was open already covers
-                // every folder; adding a folder beside it would stop it reading as the full form.
-                if (PluginAuditDetail::create_delete_grant_full(*permission_list))
-                    continue;
-                if (std::find(bucket.targets.begin(), bucket.targets.end(), "*") != bucket.targets.end()) {
-                    // Unrestricted create/delete is the one-element form; drop folder grants it covers.
-                    permission_list->assign(1, "*");
-                    continue;
-                }
-            }
-            for (const std::string& target : bucket.targets) {
-                // Another writer may have added an exact grant or a tree grant that already covers
-                // this entry while the dialog was open; do not store a redundant duplicate.
-                if (is_create_delete_category(bucket.category) &&
-                    PluginAuditDetail::create_delete_grant_covers_grant(*permission_list, target))
-                    continue;
-                if (std::find(permission_list->begin(), permission_list->end(), target) == permission_list->end())
-                    permission_list->push_back(target);
-            }
+        try {
+            PermissionMessage message = PluginAuditDetail::build_permission_message(descriptor.name, missing_buckets);
+            append_permission_dialog_tip(message.text);
+            if (!PluginAuditDetail::s_permission_message_prompt_for_testing(message.text.utf8_string()))
+                return false;
+            return PluginAuditDetail::persist_declared_permissions(plugin_key, missing_buckets,
+                                                                  state_status == InstallStateReadStatus::Readable);
+        } catch (const std::exception& ex) {
+            BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Failed to handle permission test seam for plugin=" << plugin_key
+                                     << ": " << ex.what();
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Failed to handle permission test seam for plugin=" << plugin_key
+                                     << ": unknown exception";
         }
-
-        persisted = write_install_state(boost::filesystem::path(descriptor.plugin_root), state);
+        return false;
     }
 
-    // Only a stored grant changes what the dialog would read back; a failed write changed nothing.
-    if (persisted)
-        post_permission_changed_notification(plugin_key);
-    return persisted;
+    if (wxTheApp == nullptr || GUI::wxGetApp().is_closing() || PluginManager::instance().is_shutting_down() ||
+        PluginManager::instance().is_plugin_load_cancelled(plugin_key))
+        return false;
+
+    const bool on_gui_thread = wxIsMainThread() != 0;
+
+    const bool sidecar_was_readable = state_status == InstallStateReadStatus::Readable;
+
+    AuditPromptRequest request;
+    request.kind                 = AuditPromptKind::DeclaredPermissions;
+    request.plugin_key           = plugin_key;
+    request.plugin_name          = descriptor.name;
+    request.buckets              = missing_buckets;
+    request.sidecar_was_readable = sidecar_was_readable;
+
+    // A load worker blocks on this completion. A GUI-thread caller cannot wait inside another
+    // modal dialog, so it is admitted synchronously or rejected without leaving a deferred prompt
+    // that could later grant a permission for a load that already failed.
+    std::shared_ptr<AuditPromptCompletion> completion;
+    std::future<bool>                      future;
+    AuditPromptQueue::Admission            admission;
+    if (on_gui_thread) {
+        admission = PluginAuditDetail::runtime_audit_prompts().admit_synchronous(std::move(request));
+    } else {
+        completion = std::make_shared<AuditPromptCompletion>();
+        future     = completion->get_future();
+        request.completion = completion;
+        admission = PluginAuditDetail::runtime_audit_prompts().admit(std::move(request), /*may_show_now=*/false);
+    }
+
+    if (admission == AuditPromptQueue::Admission::Duplicate || admission == AuditPromptQueue::Admission::Rejected)
+        return false;
+
+    if (admission == AuditPromptQueue::Admission::ShowNow) {
+        bool satisfied = false;
+        try {
+            const bool alive = !PluginManager::instance().is_shutting_down() &&
+                               !PluginManager::instance().is_plugin_load_cancelled(plugin_key);
+            const bool granted =
+                alive && PluginAuditDetail::prompt_for_permission_message(
+                             PluginAuditDetail::build_permission_message(descriptor.name, missing_buckets));
+            satisfied = granted && !PluginManager::instance().is_shutting_down() &&
+                        !PluginManager::instance().is_plugin_load_cancelled(plugin_key) &&
+                        PluginAuditDetail::runtime_audit_prompts().begin_commit();
+            if (satisfied) {
+                satisfied = PluginAuditDetail::persist_declared_permissions(
+                    plugin_key, missing_buckets, sidecar_was_readable);
+                if (!satisfied)
+                    BOOST_LOG_TRIVIAL(warning) << "[AUDIT PROMPT] Failed to store declared permissions for plugin="
+                                               << plugin_key;
+            }
+        } catch (const std::exception& ex) {
+            BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Failed to handle declared permissions for plugin=" << plugin_key
+                                     << ": " << ex.what();
+            satisfied = false;
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Failed to handle declared permissions for plugin=" << plugin_key
+                                     << ": unknown exception";
+            satisfied = false;
+        }
+        return PluginAuditDetail::finish_audit_prompt(nullptr, satisfied);
+    }
+
+    // Queued: only a load worker reaches this branch. The GUI callback will answer, persist, and
+    // release the worker.
+    if (!PluginAuditDetail::schedule_runtime_prompt_drain_checked())
+        return false;
+
+    // A load that began before shutdown or was cancelled by unload must not wait forever on a
+    // prompt that will not open. Re-check after enqueue so a discard racing this admission cannot
+    // strand the worker, and a request admitted after unload's discard still learns it is dead.
+    if (PluginManager::instance().is_shutting_down() ||
+        PluginManager::instance().is_plugin_load_cancelled(plugin_key)) {
+        PluginAuditDetail::discard_runtime_prompts_for(plugin_key);
+        return false;
+    }
+
+    try {
+        return future.get();
+    } catch (const std::exception& ex) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Permission wait failed for plugin=" << plugin_key << ": " << ex.what();
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Permission wait failed for plugin=" << plugin_key
+                                 << ": unknown exception";
+    }
+    PluginAuditDetail::discard_runtime_prompts_for(plugin_key);
+    return false;
 }
 
 bool PluginAuditManager::is_create_delete_tree_grant(const std::string& target)
@@ -3483,6 +4048,16 @@ std::string PluginAuditManager::format_create_delete_permission_prompt_for_testi
 void PluginAuditManager::set_permission_message_prompt_for_testing(PermissionMessagePrompt prompt)
 {
     PluginAuditDetail::s_permission_message_prompt_for_testing = std::move(prompt);
+}
+
+void PluginAuditManager::discard_pending_permission_prompts()
+{
+    PluginAuditDetail::discard_runtime_prompts();
+}
+
+void PluginAuditManager::discard_pending_permission_prompts_for(const std::string& plugin_key)
+{
+    PluginAuditDetail::discard_runtime_prompts_for(plugin_key);
 }
 
 int PluginAuditManager::audit_hook(const char* event, PyObject* args, void* user_data)

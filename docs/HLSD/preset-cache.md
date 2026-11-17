@@ -358,7 +358,8 @@ step, not something a build should do to a working tree by surprise: the Windows
 refuses that target unless given `--prune-source`, and CI passes it.
 
 Generation runs after the build, in the same job, so the caches ship with a build that
-can read them.
+can read them. On Linux it runs while the package tree is staged (`build_linux.sh -P`), so
+the AppImage is packed from a tree that already holds them.
 
 The flatpak differs only in where the script is called from. Nothing outside
 flatpak-builder ever builds it, so there is no packaged tree for the workflow to point
