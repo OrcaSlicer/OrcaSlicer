@@ -81,6 +81,7 @@ set(lisbslic3r_sources
     Arrange.hpp
     BlacklistedLibraryCheck.cpp
     BlacklistedLibraryCheck.hpp
+    BoostPolygonTraits.hpp
     BoundingBox.cpp
     BoundingBox.hpp
     BridgeDetector.cpp
@@ -815,6 +816,8 @@ endif ()
 
 if (TARGET OpenVDB::openvdb)
     target_link_libraries(libslic3r PRIVATE OpenVDB::openvdb)
+    # PUBLIC so code linking libslic3r (e.g. the SLA tests) can tell whether hollowing works.
+    target_compile_definitions(libslic3r PUBLIC SLIC3R_HAS_OPENVDB)
 endif()
 
 if (SLIC3R_CAD)
