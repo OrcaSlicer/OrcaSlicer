@@ -69,7 +69,6 @@
 #include "IllustratedTipPopup.hpp"
 
 #include "PresetComboBoxes.hpp"
-#include "Widgets/CheckBox.hpp"
 #include "Widgets/DialogButtons.hpp"
 
 #ifdef __linux__
@@ -931,7 +930,7 @@ inline int UnsavedChangesDialog::ShowModal()
         }
     }
     int r = DPIDialog::ShowModal();
-    if (r != wxID_CANCEL && dynamic_cast<::CheckBox*>(FindWindowById(wxID_APPLY))->GetValue()) {
+    if (r != wxID_CANCEL && dynamic_cast<::LabeledCheckBox*>(FindWindowById(wxID_APPLY))->GetValue()) {
         wxGetApp().app_config->set(choise_key, std::to_string(int(m_exit_action)));
     }
     return r;
@@ -1118,21 +1117,14 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
 
     wxBoxSizer *m_sizer_button = new wxBoxSizer(wxHORIZONTAL);
 
-    auto checkbox_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto checkbox       = new ::CheckBox(this, wxID_APPLY);
-    checkbox_sizer->Add(checkbox, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+    auto checkbox       = new LabeledCheckBox(this, _L("Remember my choice."));
+    checkbox->SetId(wxID_APPLY);
 
-    auto checkbox_text = new wxStaticText(this, wxID_ANY, _L("Remember my choice."), wxDefaultPosition, wxDefaultSize, 0);
-    checkbox_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
-    checkbox_text->SetFont(::Label::Body_13);
-    checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
-    m_sizer_button->Add(checkbox_sizer, 0, wxLEFT, FromDIP(22));
+    m_sizer_button->Add(checkbox, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(22));
     // The choice is kept in "save_preset_choise", which Preferences > Clear my choice on... > Unsaved presets clears.
-    const wxString remember_tip = _L("Applies the button you click now to unsaved preset changes from then on, without asking. "
-                                     "To be asked again, clear it in Preferences, under Clear my choice on.");
-    set_illustrated_tooltip(checkbox, remember_tip);
-    set_illustrated_tooltip(checkbox_text, remember_tip);
-    checkbox_sizer->Show(bool(m_buttons & REMEMBER_CHOISE));
+    set_illustrated_tooltip(checkbox, _L("Applies the button you click now to unsaved preset changes from then on, without asking. "
+                                         "To be asked again, clear it in Preferences, under Clear my choice on."));
+    checkbox->Show(bool(m_buttons & REMEMBER_CHOISE));
 
     if (dependent_presets != nullptr) {
         auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
@@ -2206,7 +2198,7 @@ void DiffPresetDialog::create_presets_sizer()
 
 void DiffPresetDialog::create_show_all_presets_chb()
 {
-    m_show_all_presets = new wxCheckBox(this, wxID_ANY, _L("Show all presets (including incompatible)"));
+    m_show_all_presets = new LabeledCheckBox(this, _L("Show all presets (including incompatible)"));
     m_show_all_presets->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
         bool show_all = m_show_all_presets->GetValue();
         for (auto preset_combos : m_preset_combos) {
@@ -2311,7 +2303,7 @@ void DiffPresetDialog::create_buttons()
 void DiffPresetDialog::create_edit_sizer()
 {
     // Add check box for the edit mode
-    m_use_for_transfer = new wxCheckBox(this, wxID_ANY, _L("Transfer values from left to right"));
+    m_use_for_transfer = new LabeledCheckBox(this, _L("Transfer values from left to right"));
     m_use_for_transfer->SetToolTip(_L("If enabled, this dialog can be used for transfer selected values from left to right preset."));
     m_use_for_transfer->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
         bool use = m_use_for_transfer->GetValue();
