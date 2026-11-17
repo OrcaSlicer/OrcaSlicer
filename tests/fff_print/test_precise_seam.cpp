@@ -1941,6 +1941,31 @@ TEST_CASE("Weak modifiers move the exported seam into or out of their zone", "[P
     CHECK(fixture.warning().empty());
 }
 
+TEST_CASE("Alignment keeps the seam inside an Enforced zone whose end steps between layers", "[PreciseSeam][Regression]")
+{
+    // A 20 x 20 x 2 mm cube at 0.2 mm layers: ten layers.
+    ExportFixture fixture("back");
+    // Zones on the right face from y = 4 mm: to 6 mm on the lower five layers, to 6.5 mm on the upper five. The
+    // back seam takes the rear end of each zone, and the curve fitted through the layers smooths the step, so its
+    // targets pass the end of a zone on some layers.
+    fixture.add(ModelVolumeType::PRECISE_SEAM_ENFORCED, make_cube(6, 2, 2), Vec3d(17, 4, -1), "lower zone");
+    fixture.add(ModelVolumeType::PRECISE_SEAM_ENFORCED, make_cube(6, 2.5, 2), Vec3d(17, 4, 1), "upper zone");
+    const auto loops = outer_wall_loops(fixture.export_gcode());
+    REQUIRE(loops.size() == 10);
+    size_t lower = 0;
+    for (const OuterLoop &loop : loops) {
+        CAPTURE(loop.z, loop.seam.x(), loop.seam.y());
+        const bool in_lower = loop.z < 1.1f;
+        lower += in_lower ? 1 : 0;
+        CHECK_THAT(loop.seam.x(), Catch::Matchers::WithinAbs(loop.bounds.max.x() - loop.bounds.center().x(), 0.01));
+        // From the cube's centre the zones span y = -6 to -4 mm and -6 to -3.5 mm.
+        CHECK(loop.seam.y() >= -6.01);
+        CHECK(loop.seam.y() <= (in_lower ? -3.99 : -3.49));
+    }
+    CHECK(lower == 5);
+    CHECK(fixture.warning().empty());
+}
+
 TEST_CASE("A higher-priority Enforced band suppresses the whole-perimeter Blocked export warning", "[PreciseSeam][Regression]")
 {
     ExportFixture fixture("back");
