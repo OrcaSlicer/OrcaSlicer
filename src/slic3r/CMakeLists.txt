@@ -686,6 +686,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/CurveEditorPanel.hpp
     GUI/CurveEditorDialog.cpp
     GUI/CurveEditorDialog.hpp
+    GUI/CurveEditorUtils.hpp
     GUI/SmallAreaInfillFlowCompensationDialog.hpp
     GUI/wxExtensions.cpp
     GUI/wxExtensions.hpp

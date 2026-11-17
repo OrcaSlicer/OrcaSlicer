@@ -35,10 +35,11 @@
 #include <wx/tglbtn.h>
 #include <wx/toplevel.h>
 #include <wx/window.h>
-#include <wx/wupdlock.h>
 #include "libslic3r/CurveModel.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "CurveEditorPanel.hpp"
+#include "CurveEditorUtils.hpp"
+#include "format.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
 #include "GUI_Utils.hpp"
@@ -113,7 +114,7 @@ private:
 CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, const wxString& help_text,
                                      const CurveEditorAppearance& appearance, std::unique_ptr<CurveModel> model,
                                      std::string geometry_key)
-    : wxDialog(parent, wxID_ANY, title, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
+    : DPIDialog(parent, wxID_ANY, title, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
       m_appearance(appearance), m_model(std::move(model)), m_geometry_key(std::move(geometry_key))
 {
     SetBackgroundColour(*wxWHITE);
@@ -181,9 +182,10 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent& event) { m_chart->finish_drag(); event.Skip(); });
     Bind(wxEVT_BUTTON, [this](wxCommandEvent& event) { m_chart->finish_drag(); event.Skip(); }, wxID_CANCEL);
     SetEscapeId(wxID_CANCEL);
+    // Bound after DPIDialog's own hook, so this one runs first and decides what Escape does.
     Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& event) {
         if (event.GetKeyCode() == WXK_ESCAPE) {
-            if (cancel_cell_edit(*m_grid)) return;
+            if (CurveEditorUtils::cancel_cell_edit(*m_grid)) return;
             m_chart->finish_drag();
             if (IsModal()) EndModal(wxID_CANCEL);
             else Close();
@@ -198,7 +200,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     plot_sizer->Add(m_chart, 1, wxEXPAND);
 
     // Orca widgets rasterise their icons and pick theme-dependent styles when rescaled.
-    // Rescale each one on DPI changes, and again from the theme handler below.
+    // Rescale each one on DPI changes, and again when the theme changes.
     auto rescale_on_change = [this](wxWindow* widget, std::function<void()> rescale) {
         widget->Bind(wxEVT_DPI_CHANGED, [rescale](wxDPIChangedEvent& event) {
             rescale();
@@ -219,7 +221,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
 
     auto* range_panel = new_panel(plot_panel);
     auto* range_sizer = new wxBoxSizer(wxVERTICAL);
-    auto* ranges = new wxFlexGridSizer(4, FromDIP(6), FromDIP(8));
+    auto* ranges = m_ranges = new wxFlexGridSizer(4, FromDIP(6), FromDIP(8));
     ranges->AddGrowableCol(1, 1);
     ranges->AddGrowableCol(2, 1);
     auto* apply_btn_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -368,6 +370,8 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     const wxString ctrl = wxString::FromUTF8(KeyChord::modifier_name(wxMOD_CONTROL));
     const wxString shift = wxString::FromUTF8(KeyChord::modifier_name(wxMOD_SHIFT));
     const wxString controls_help = wxString::Format(
+        // TRN The four %s are names of modifier keys, in this order: Shift (move vertically), Ctrl (zoom horizontally),
+        // then Ctrl and Shift (zoom vertically). Ctrl is the Command key on macOS. Keep the placeholders in this order.
         _L("Drag a point to move it, or edit its values in the table.\n\n"
            "Mouse wheel: move horizontally.\n"
            "%s + mouse wheel: move vertically.\n"
@@ -558,20 +562,6 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     SetSizerAndFit(main_sizer);
     wxGetApp().UpdateDlgDarkUI(this);
     update_grid_colours();
-    Bind(wxEVT_SYS_COLOUR_CHANGED, [this](wxSysColourChangedEvent& event) {
-        event.Skip();
-        // The main frame recolours every window, this dialog included, from its own handler.
-        // Redraw icons and reapply the grid's colours once all windows have handled the event.
-        CallAfter([this] {
-            for (const auto& rescale : m_theme_rescales)
-                rescale();
-            update_grid_colours();
-            // Button::Rescale() reapplies the button style, which also resets an icon button's size.
-            m_table_panel->Layout();
-            m_actions_panel->Layout();
-            Refresh();
-        });
-    });
 
     Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         finish_edit();
@@ -580,37 +570,6 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         m_model->accept_rows(read_rows());
         EndModal(wxID_OK);
     }, wxID_OK);
-
-    Bind(wxEVT_DPI_CHANGED, [this, ranges, actions_area, plot_panel](wxDPIChangedEvent& event) {
-        event.Skip();
-        // wx 3.3 updates native fonts, window constraints and sizer borders before
-        // this event. Complete its lifecycle for custom widgets and cached metrics,
-        // without scaling those native values a second time.
-        wxWindowUpdateLocker freeze(this);
-        m_chart->finish_drag();
-        m_content->SetScrollRate(FromDIP(10), FromDIP(10));
-        ranges->SetVGap(FromDIP(6));
-        ranges->SetHGap(FromDIP(8));
-        for (int index = 0; index < 4; ++index) {
-            auto* field = m_range_fields[index];
-            auto* text = field->GetTextCtrl();
-            text->SetMinSize(wxDefaultSize);
-            text->SetInitialSize(wxDefaultSize);
-            field->Rescale();
-            const wxSize size(FromDIP(78), std::max(FromDIP(26), text->GetSize().y + FromDIP(8)));
-            field->SetMinSize(size);
-            m_range_arrows[index]->SetMinSize(wxSize(FromDIP(18), size.y));
-        }
-        update_grid_metrics();
-        m_actions_panel->SetMinSize(m_actions_panel->GetSizer()->GetMinSize());
-        m_actions_panel->GetSizer()->Fit(m_actions_panel);
-        actions_area->SetMinSize(m_actions_panel->GetMinSize());
-        plot_panel->SetMinSize(wxSize(std::max(m_chart->GetMinSize().x, m_actions_panel->GetMinSize().x), -1));
-        GetSizer()->SetSizeHints(this);
-        Layout();
-        m_content->SendSizeEvent();
-        Refresh();
-    });
 
     load_points(m_model->rows());
     update_preview();
@@ -644,6 +603,58 @@ CurveEditorDialog::~CurveEditorDialog()
     m_chart->on_zoom = {};
     // Modal OK/Cancel/Escape hide the window without sending a close event.
     wxGetApp().window_pos_save(this, m_geometry_key);
+}
+
+void CurveEditorDialog::on_dpi_changed(const wxRect&)
+{
+    // wx 3.3 updates native fonts, window constraints and sizer borders before the DPI event.
+    // Complete its lifecycle for custom widgets and cached metrics, without scaling those
+    // native values a second time. DPIDialog freezes the window and lays it out afterwards.
+#ifdef __WXMSW__
+    // wx leaves the size of a window whose DPI event was handled, as DPIDialog does, to the window.
+    const wxSize scaled_size = GetSize() * (double(scale_factor()) / prev_scale_factor());
+#endif
+    m_chart->finish_drag();
+    m_content->SetScrollRate(FromDIP(10), FromDIP(10));
+    m_ranges->SetVGap(FromDIP(6));
+    m_ranges->SetHGap(FromDIP(8));
+    for (int index = 0; index < 4; ++index) {
+        auto* field = m_range_fields[index];
+        auto* text = field->GetTextCtrl();
+        text->SetMinSize(wxDefaultSize);
+        text->SetInitialSize(wxDefaultSize);
+        field->Rescale();
+        const wxSize size(FromDIP(78), std::max(FromDIP(26), text->GetSize().y + FromDIP(8)));
+        field->SetMinSize(size);
+        m_range_arrows[index]->SetMinSize(wxSize(FromDIP(18), size.y));
+    }
+    update_grid_metrics();
+    m_actions_panel->SetMinSize(m_actions_panel->GetSizer()->GetMinSize());
+    m_actions_panel->GetSizer()->Fit(m_actions_panel);
+    m_actions_panel->GetParent()->SetMinSize(m_actions_panel->GetMinSize());
+    m_chart->GetParent()->SetMinSize(wxSize(std::max(m_chart->GetMinSize().x, m_actions_panel->GetMinSize().x), -1));
+    GetSizer()->SetSizeHints(this);
+#ifdef __WXMSW__
+    SetSize(wxSize(std::max(scaled_size.x, GetMinSize().x), std::max(scaled_size.y, GetMinSize().y)));
+#endif
+    Layout();
+    m_content->SendSizeEvent();
+    Refresh();
+}
+
+void CurveEditorDialog::on_sys_color_changed()
+{
+    // The main frame recolours every window, this dialog included, from its own handler.
+    // Redraw icons and reapply the grid's colours once all windows have handled the event.
+    CallAfter([this] {
+        for (const auto& rescale : m_theme_rescales)
+            rescale();
+        update_grid_colours();
+        // Button::Rescale() reapplies the button style, which also resets an icon button's size.
+        m_table_panel->Layout();
+        m_actions_panel->Layout();
+        Refresh();
+    });
 }
 
 void CurveEditorDialog::update_grid_metrics()
@@ -688,7 +699,7 @@ void CurveEditorDialog::import_csv()
                         _L("CSV files (*.csv)|*.csv"), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     if (dialog.ShowModal() != wxID_OK) return;
     std::string text;
-    if (!read_csv_file(dialog.GetPath(), text)) {
+    if (!CurveEditorUtils::read_csv_file(dialog.GetPath(), text)) {
         show_error(this, _L("Could not read the CSV file."));
         return;
     }
@@ -696,6 +707,7 @@ void CurveEditorDialog::import_csv()
     int line = 0;
     if (const char* message = m_model->read_csv(text, rows, line)) {
         wxString error = _L(message);
+        // TRN %d is a one-based line number of the CSV text, %s is the error found in that line.
         if (line > 0) error = wxString::Format(_L("CSV line %d: %s"), line, error);
         show_error(this, error);
         return;
@@ -717,7 +729,7 @@ void CurveEditorDialog::export_csv()
     wxFileDialog dialog(this, _L("Export CSV"), wxEmptyString, "curve.csv",
                         _L("CSV files (*.csv)|*.csv"), wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
     if (dialog.ShowModal() != wxID_OK) return;
-    if (!write_csv_file(dialog.GetPath(), text))
+    if (!CurveEditorUtils::write_csv_file(dialog.GetPath(), text))
         show_error(this, _L("Could not write the CSV file."));
 }
 
@@ -800,10 +812,12 @@ void CurveEditorDialog::refresh_chart_data(const std::vector<double>& x, const s
         m_chart->set_view_limits(m_model->view_limits());
         update_range_tooltips();
     }
+    // TRN A line of the tooltip of a graph point. %1% is the name of an axis, e.g. "Extrusion length (mm)", %2% is the point's value on that axis.
+    const wxString tooltip_line = _L("%1%: %2%");
     std::vector<wxString> tooltips;
     for (size_t row = 0; row < x.size(); ++row)
-        tooltips.push_back(m_appearance.x_label + ": " + m_grid->GetCellValue(row, 0).Trim().Trim(false) + "\n" +
-                           m_appearance.y_label + ": " + m_grid->GetCellValue(row, 1).Trim().Trim(false));
+        tooltips.push_back(format_wxstr(tooltip_line, m_appearance.x_label, m_grid->GetCellValue(row, 0).Trim().Trim(false)) + "\n" +
+                           format_wxstr(tooltip_line, m_appearance.y_label, m_grid->GetCellValue(row, 1).Trim().Trim(false)));
     m_chart->set_data(x, y, tooltips, x.empty() ? CurveEditorPanel::Interpolator{} : m_model->make_interpolator(x, y));
     m_chart->select_point(m_grid->GetGridCursorRow());
 }

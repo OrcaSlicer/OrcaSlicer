@@ -25,6 +25,7 @@ the preset either.
 | `CurveEditorPanel` | `src/slic3r/GUI/CurveEditorPanel.cpp` | The graph: geometry, selection, dragging, pan and zoom input. |
 | `CurveEditorPanelPaint.cpp`, `CurveEditorPanelMac.mm` | `src/slic3r/GUI/` | Drawing of the graph, and reading of the macOS scroll event. |
 | `CurveEditorDialog` | `src/slic3r/GUI/CurveEditorDialog.*` | The table, the buttons, validation messages, layout, file dialogs. |
+| `CurveEditorUtils` | `src/slic3r/GUI/CurveEditorUtils.hpp` | Steps of the dialog that need no application: cancelling a cell edit, reading and writing a CSV file. |
 | `SmallAreaInfillFlowCompensationDialog` | `src/slic3r/GUI/` | Titles, axis labels and the model for the flow compensation setting. |
 
 The split follows one rule: everything that decides whether a number or a view is acceptable lives
@@ -49,6 +50,9 @@ not as numbers:
   parsed and written independently of the locale; a decimal comma is accepted on input.
 - Entries that are blank in the saved value are not shown as rows. They stay in the value as long as
   the rows are not changed.
+- A row shows the first two comma-separated fields of its saved entry, which are the fields slicing
+  reads. A decimal comma is therefore never read from a saved entry: `0,0,5` is the point (0, 0),
+  not (0, 0.5). Only a typed or imported cell can hold a decimal comma, and it is saved with a point.
 
 On OK the dialog hands the list of strings itself to the config: `change_opt_value` accepts a
 `std::vector<std::string>` for an option kept as one value. The text form `x,y;x,y;` that a text field
@@ -73,10 +77,11 @@ An empty table is valid and means that no compensation is applied; the dialog sa
 place where it shows errors. A saved value with only blank entries opens as an empty table and means
 the same.
 
-The editor is strict: every row must hold two numbers and nothing else. Slicing reads the same saved
-entries leniently, see [Use in slicing](#use-in-slicing), so a value written by hand that sliced
-before the editor existed still slices. Opened in the editor, such a value shows its errors and can
-be corrected, and OK stays disabled until it is.
+The editor is strict: each of the two cells of a row must hold a number and nothing else. Slicing
+reads the same two fields of a saved entry leniently, see [Use in slicing](#use-in-slicing), so a
+value written by hand that sliced before the editor existed still slices. Opened in the editor, such
+a value shows its errors and can be corrected, and OK stays disabled until it is. A value the editor
+shows as valid has the points that slicing uses.
 
 ## Editing
 
@@ -106,7 +111,10 @@ new point.
 **CSV and paste.** Export writes a header with the model's column names and the values as typed,
 with a decimal point. Import accepts comma or semicolon as the separator (a semicolon file may use
 decimal commas), quoted cells, an optional header (the model's column names, or `x,y`) and a UTF-8
-byte order mark. It also accepts the setting's own text form, `x,y;x,y;`. A file that does not
+byte order mark. It also accepts the setting's own text form, `x,y;x,y;`, with or without the last
+semicolon. Two pairs on the only line, `x,y;x,y`, could also be one semicolon row of two decimal
+comma numbers; they are read as two pairs unless that one row is a valid curve of the model by
+itself. A file that does not
 parse, breaks validation or has more points than the limit is rejected as a whole with the number
 of the offending line, and the current points stay. Paste (the button, or Ctrl/Cmd+V with the graph
 focused) reads the clipboard through the same parser. A click anywhere on the graph gives it the
@@ -160,10 +168,11 @@ Pan input is collected and applied once per frame, so the horizontal and vertica
 gesture move the view together. While a native pan or zoom gesture is active, the wheel events the
 system sends for compatibility are ignored, otherwise the gesture would be applied twice.
 
-Native gestures are enabled per platform. Windows uses the pan and the zoom gesture. GTK uses only
-the zoom (pinch) gesture: its pan recognizer also fires for a drag with the left mouse button, which
-would pan the view from an empty part of the plot, and two-finger scrolling reaches the panel as
-scroll events anyway. macOS needs none, it delivers scrolling and magnification directly.
+Native gestures are enabled per platform. Windows and GTK use the pan and the zoom gesture. GTK's
+pan recognizer also fires for a drag with the left mouse button, which must not pan the view from an
+empty part of the plot, so on GTK a pan gesture is accepted only when the GDK event being dispatched
+at its start comes from a touchscreen; two-finger scrolling on a touchpad reaches the panel as
+scroll events. macOS needs no gestures, it delivers scrolling and magnification directly.
 
 A gesture counts from its start event to its end event. A gesture that starts while a point is
 dragged or the middle button pans is ignored as a whole, also after the drag has ended, so it never
@@ -183,8 +192,17 @@ are stacked. The table is as tall as its rows up to 12 rows and scrolls beyond t
 
 Escape while a cell is being edited cancels only that edit; the next Escape cancels the dialog.
 
-The dialog follows DPI and theme changes while open. Its size and position are stored under a key
-given by the dialog that derives from it, and are brought back onto a display when restored.
+The dialog is a `DPIDialog`, like the other dialogs of the application. It is therefore on the
+application's stack of modal dialogs, which is what ends the open dialogs when the system session
+ends, and it takes DPI and theme changes from the base class (`on_dpi_changed()`,
+`on_sys_color_changed()`) without binding these events on itself a second time. On a DPI change it
+scales its own size on Windows, because wxWidgets leaves the size to a window that handles the
+event. On macOS the base class does not handle the DPI event, and logical sizes do not change
+there; the widgets with icons rescale from their own handlers on every platform. Escape is decided
+by the dialog's key hook, which runs before the one of the base class.
+
+Its size and position are stored under a key given by the dialog that derives from it, not under
+the window name, and are brought back onto a display when restored.
 
 ## Use in slicing
 
@@ -193,9 +211,12 @@ its interpolator with the model's `make_interpolator()` (PCHIP by default), so t
 draws is the curve the slicer applies.
 
 It reads the saved entries more leniently than the editor, the way they were read before the editor
-existed, so that every value that sliced then gives the same points now: an entry without a first
-or a second field is skipped, and text after a number or after the second field is ignored. Numbers
-are still read independently of the locale and must be finite. What remains must pass the same
+existed, so that every value that sliced then gives the same points now. An entry is split at its
+commas and checked in this order: a blank first field skips the entry, a first field that does not
+start with a number is an error, nothing after the first comma skips the entry, and a second field
+that does not start with a number is an error. Text after a number or after the second field is
+ignored. A number may have leading whitespace and a sign and be decimal or hexadecimal (`0x1p-1`).
+Numbers are read independently of the locale and must be finite. What remains must pass the same
 validation as in the editor, otherwise slicing stops with an error that names the entry.
 
 A value with no entries, or with only blank ones, applies no compensation.
@@ -210,7 +231,8 @@ A value with no entries, or with only blank ones, applies no compensation.
   the GUI value conversion.
 - `tests/slic3rutils/curve_editor_gui/`: the `curve_editor_gui_tests` executable, which drives the
   panel with native wxWidgets events (mouse, wheel, gestures, capture) and checks the dialog's CSV
-  file reading and writing. The dialog as a whole needs the application and is not built there.
+  file reading and writing through `CurveEditorUtils.hpp`. The dialog as a whole needs the
+  application and is not built there, and its header is not included either.
 
 What the tests do not show: how the graph looks, and how a real driver delivers gestures. Synthetic
 events cannot establish which device the platform reports.
@@ -232,7 +254,8 @@ need a display. On Windows and macOS there always is one. On Linux without `DISP
 xvfb-run -a ctest --test-dir build/tests -C Release -L CurveEditorGUI --output-on-failure
 ```
 
-`scripts/run_unit_tests.sh` does this by itself. If the machine has neither a display nor
+`scripts/run_unit_tests.sh` does this by itself. It counts `WAYLAND_DISPLAY` as a display only when
+`GDK_BACKEND` is unset or its list contains `wayland` or `*`. If the machine has neither a display nor
 `xvfb-run`, the script leaves the `RequiresDisplay` tests out and prints a warning; `ctest` run
 directly fails them.
 

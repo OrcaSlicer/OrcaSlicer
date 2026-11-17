@@ -27,7 +27,7 @@
 
 #include "libslic3r/CurveModel.hpp"
 #include "slic3r/GUI/CurveEditorPanel.hpp"
-#include "slic3r/GUI/CurveEditorDialog.hpp"
+#include "slic3r/GUI/CurveEditorUtils.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;
@@ -40,12 +40,6 @@ class InputApp : public wxApp
 {
 public:
     bool OnInit() override { return true; }
-};
-
-struct EditorHooks : CurveEditorDialog {
-    using CurveEditorDialog::cancel_cell_edit;
-    using CurveEditorDialog::read_csv_file;
-    using CurveEditorDialog::write_csv_file;
 };
 
 class WxRuntime
@@ -256,11 +250,11 @@ TEST_CASE("Escape abandons only the active table cell edit and preserves other d
     editor->DecRef();
     REQUIRE(text);
     text->ChangeValue("pending edit");
-    REQUIRE(EditorHooks::cancel_cell_edit(grid));
+    REQUIRE(CurveEditorUtils::cancel_cell_edit(grid));
     CHECK_FALSE(grid.IsCellEditControlEnabled());
     CHECK(grid.GetCellValue(1, 1) == "saved cell");
     CHECK(grid.GetCellValue(0, 0) == "earlier change");
-    CHECK_FALSE(EditorHooks::cancel_cell_edit(grid));
+    CHECK_FALSE(CurveEditorUtils::cancel_cell_edit(grid));
 }
 
 TEST_CASE("Cached graph geometry follows changes to its font size and navigation limits", "[CurveEditorGUI][RequiresDisplay][Regression]")
@@ -985,10 +979,10 @@ TEST_CASE("CSV export replaces a file with a Unicode name and import reads its c
     int row;
     REQUIRE(model.write_csv(rows, csv, row) == nullptr);
     // A longer earlier export leaves no tail behind the new one.
-    REQUIRE(EditorHooks::write_csv_file(file.path, csv + csv));
-    REQUIRE(EditorHooks::write_csv_file(file.path, csv));
+    REQUIRE(CurveEditorUtils::write_csv_file(file.path, csv + csv));
+    REQUIRE(CurveEditorUtils::write_csv_file(file.path, csv));
     std::string text;
-    REQUIRE(EditorHooks::read_csv_file(file.path, text));
+    REQUIRE(CurveEditorUtils::read_csv_file(file.path, text));
     CHECK(text == csv);
 }
 
@@ -1003,7 +997,7 @@ TEST_CASE("CSV file reading retains embedded nulls so validation rejects partial
         REQUIRE(output.Write(binary.data(), binary.size()) == binary.size());
     }
     std::string text;
-    REQUIRE(EditorHooks::read_csv_file(file.path, text));
+    REQUIRE(CurveEditorUtils::read_csv_file(file.path, text));
     CHECK(text.size() == binary.size());
     InputModel model;
     CurveModel::Rows rows = {{"20", "0.2"}, {"40", "0.8"}};
