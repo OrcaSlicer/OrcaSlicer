@@ -9207,8 +9207,13 @@ HeightSlowdownFactors GCode::height_slowdown_factors(ExtrusionRole role) const
     if (layers.size() <= initial)
         return {};
 
-    return Slic3r::height_slowdown_factors(m_layer->print_z, layers[initial]->print_z, layers.back()->print_z,
-                                           object_config.height_slowdown_start_speed.value / 100., object_config.height_slowdown_end_speed.value / 100.);
+    HeightSlowdownFactors factors = Slic3r::height_slowdown_factors(m_layer->print_z, layers[initial]->print_z, layers.back()->print_z,
+                                                                    object_config.height_slowdown_start_speed.value / 100.,
+                                                                    object_config.height_slowdown_end_speed.value / 100.,
+                                                                    object_config.height_slowdown_end_travel_acceleration.value / 100.);
+    factors.min_speed        = object_config.height_slowdown_min_speed.value;
+    factors.min_acceleration = object_config.height_slowdown_min_acceleration.value;
+    return factors;
 }
 
 std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_description, double speed)
@@ -9254,7 +9259,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
             v *= height_slowdown.motion;
         for (double &v : m_writer.config.travel_speed_z.values)
             v *= height_slowdown.motion;
-        m_height_slowdown_travel_factor = height_slowdown.motion;
+    }
+    if (height_slowdown.travel_acceleration < 1.) {
+        m_height_slowdown_travel_factor           = height_slowdown.travel_acceleration;
+        m_height_slowdown_min_travel_acceleration = height_slowdown.min_acceleration;
     }
     // Move to first point of extrusion path
     // path is 2D. But in slope lift case, lift z is done in travel_to function.
@@ -9306,7 +9314,8 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
     gcode += this->unretract();
     m_writer.config.travel_speed.values   = normal_travel_speed;
     m_writer.config.travel_speed_z.values = normal_travel_speed_z;
-    m_height_slowdown_travel_factor       = 1.;
+    m_height_slowdown_travel_factor           = 1.;
+    m_height_slowdown_min_travel_acceleration = 0.;
     m_config.apply(m_calib_config);
 
     // Orca: optimize for Klipper, set acceleration and jerk in one command
@@ -9344,7 +9353,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
         } else {
             acceleration = m_config.default_acceleration.get_at(nozzle);
         }
-        acceleration_i = (unsigned int)floor((acceleration * height_slowdown.motion) + 0.5);
+        acceleration_i = (unsigned int)floor(height_slowdown_limited(acceleration * height_slowdown.motion, acceleration, height_slowdown.min_acceleration) + 0.5);
     }
 
     // adjust X Y jerk
@@ -9587,7 +9596,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
     // Slow down by model height. Speeding up is limited by the volumetric flow and machine speed limits and is
     // skipped for bridges and paths that move in Z, as those are limited for quality rather than throughput.
     if (height_slowdown.speed < 1.) {
-        speed *= height_slowdown.speed;
+        speed = height_slowdown_limited(speed * height_slowdown.speed, speed, height_slowdown.min_speed);
     } else if (height_slowdown.speed > 1. && !is_bridge(path.role()) && sloped == nullptr && !path.z_contoured) {
         // A speed-up needs known limits: a missing or zero limit keeps the normal speed.
         const size_t limit_idx = size_t(m_writer.filament()->extruder_id()) * 2;
@@ -10476,7 +10485,8 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
     }
     
     if (acceleration_to_set > 0)
-        acceleration_to_set = (unsigned int) floor(acceleration_to_set * m_height_slowdown_travel_factor + 0.5);
+        acceleration_to_set = (unsigned int) floor(height_slowdown_limited(acceleration_to_set * m_height_slowdown_travel_factor, acceleration_to_set,
+                                                                           m_height_slowdown_min_travel_acceleration) + 0.5);
 
     if (m_writer.get_gcode_flavor() == gcfKlipper) {
         gcode += m_writer.set_accel_and_jerk(acceleration_to_set, jerk_to_set);

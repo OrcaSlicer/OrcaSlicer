@@ -123,7 +123,9 @@ std::map<std::string, std::vector<SimpleSettingData>>  SettingsFactory::OBJECT_C
                     }},
     { L("Speed"), {{"support_speed", "",12}, {"support_interface_speed", "",13},
                    {"automatic_height_slowdown", "",14}, {"height_slowdown_initial_layers", "",15},
-                   {"height_slowdown_start_speed", "",16}, {"height_slowdown_end_speed", "",17}
+                   {"height_slowdown_start_speed", "",16}, {"height_slowdown_end_speed", "",17},
+                   {"height_slowdown_end_travel_acceleration", "",18}, {"height_slowdown_min_speed", "",19},
+                   {"height_slowdown_min_acceleration", "",20}
                   }}
 };
 

@@ -1854,7 +1854,10 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "automatic_height_slowdown"
             || opt_key == "height_slowdown_initial_layers"
             || opt_key == "height_slowdown_start_speed"
-            || opt_key == "height_slowdown_end_speed") {
+            || opt_key == "height_slowdown_end_speed"
+            || opt_key == "height_slowdown_end_travel_acceleration"
+            || opt_key == "height_slowdown_min_speed"
+            || opt_key == "height_slowdown_min_acceleration") {
             invalidated |= m_print->invalidate_step(psGCodeExport);
         } else if (
                opt_key == "flush_into_infill"

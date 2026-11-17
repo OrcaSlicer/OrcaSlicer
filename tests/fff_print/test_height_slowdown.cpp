@@ -5,9 +5,13 @@
 #include <algorithm>
 #include <map>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "libslic3r/GCode/HeightSlowdown.hpp"
 #include "libslic3r/GCodeReader.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "test_helpers.hpp"
@@ -36,6 +40,27 @@ TEST_CASE("Height slowdown factors follow the ramp", "[HeightSlowdown]")
     CHECK_THAT(height_slowdown_factors(1., 1., 1., 1.2, 0.5).speed, WithinAbs(0.5, 1e-9));
 }
 
+TEST_CASE("Height slowdown ramps the travel acceleration on its own", "[HeightSlowdown]")
+{
+    const auto at = [](double z) { return height_slowdown_factors(z, 1., 11., 1., 0.5, 0.2); };
+
+    CHECK_THAT(at(1.).travel_acceleration, WithinAbs(1., 1e-9));
+    CHECK_THAT(at(6.).travel_acceleration, WithinAbs(0.6, 1e-9));
+    CHECK_THAT(at(11.).travel_acceleration, WithinAbs(0.2, 1e-9));
+    CHECK_THAT(at(11.).motion, WithinAbs(0.5, 1e-9));
+    // The travel acceleration is never raised, and is not changed unless asked for.
+    CHECK(height_slowdown_factors(11., 1., 11., 1., 0.5, 1.5).travel_acceleration == 1.);
+    CHECK(height_slowdown_factors(11., 1., 11., 1., 0.5).travel_acceleration == 1.);
+}
+
+TEST_CASE("Height slowdown does not go below the minimum unless the value was below it already", "[HeightSlowdown]")
+{
+    CHECK_THAT(height_slowdown_limited(25., 50., 40.), WithinAbs(40., 1e-9));
+    CHECK_THAT(height_slowdown_limited(45., 50., 40.), WithinAbs(45., 1e-9));
+    CHECK_THAT(height_slowdown_limited(15., 30., 40.), WithinAbs(30., 1e-9));
+    CHECK_THAT(height_slowdown_limited(25., 50., 0.), WithinAbs(25., 1e-9));
+}
+
 namespace {
 
 // The highest feedrate of the extrusion moves (or of the travel moves) of every layer, by Z.
@@ -53,7 +78,7 @@ std::map<double, double> top_feedrate_per_layer(const PrintConfig &config, const
     return out;
 }
 
-std::map<double, double> slice_cube_feedrates(bool slowdown, bool travel = false)
+std::map<double, double> slice_cube_feedrates(bool slowdown, bool travel = false, const std::vector<std::pair<std::string, std::string>> &extra = {})
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
@@ -64,6 +89,8 @@ std::map<double, double> slice_cube_feedrates(bool slowdown, bool travel = false
         { "height_slowdown_start_speed", "100" },
         { "height_slowdown_end_speed", "50" },
     });
+    for (const auto &[key, value] : extra)
+        config.set_deserialize_strict(key, value);
     const std::string gcode = slice({ cube(20) }, config);
     PrintConfig print_config;
     print_config.apply(config, true);
@@ -92,4 +119,42 @@ TEST_CASE("Height slowdown slows the upper layers only when enabled", "[HeightSl
     REQUIRE_FALSE(travel_off.empty());
     REQUIRE_FALSE(travel_on.empty());
     CHECK(travel_on.rbegin()->second < 0.75 * travel_off.rbegin()->second);
+}
+
+TEST_CASE("Height slowdown keeps the speed above the minimum speed", "[HeightSlowdown]")
+{
+    const std::map<double, double> off = slice_cube_feedrates(false);
+    const std::map<double, double> on  = slice_cube_feedrates(true);
+    // A minimum above every normal speed keeps all of them, as they are below it already.
+    const std::map<double, double> kept = slice_cube_feedrates(true, false, {{ "height_slowdown_min_speed", "1000" }});
+    REQUIRE(off.size() == kept.size());
+    CHECK_THAT(kept.rbegin()->second, WithinAbs(off.rbegin()->second, 1e-6));
+    CHECK(on.rbegin()->second < kept.rbegin()->second);
+}
+
+TEST_CASE("Height slowdown can be set for a single object", "[HeightSlowdown]")
+{
+    const auto top_layer_feedrate = [](bool global, bool object) {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({
+            { "layer_height", "0.2" },
+            { "initial_layer_print_height", "0.2" },
+            { "automatic_height_slowdown", global ? "1" : "0" },
+            { "height_slowdown_initial_layers", "3" },
+            { "height_slowdown_start_speed", "100" },
+            { "height_slowdown_end_speed", "50" },
+        });
+        const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{{{ "automatic_height_slowdown", object ? "1" : "0" }}};
+        Print print;
+        Model model;
+        init_print(std::vector<TriangleMesh>{ cube(20) }, print, model, config, &overrides);
+        PrintConfig print_config;
+        print_config.apply(config, true);
+        return top_feedrate_per_layer(print_config, gcode(print)).rbegin()->second;
+    };
+
+    const double normal = top_layer_feedrate(false, false);
+    // The object setting wins over the project setting, in both directions.
+    CHECK(top_layer_feedrate(false, true) < 0.75 * normal);
+    CHECK_THAT(top_layer_feedrate(true, false), WithinAbs(normal, 1e-6));
 }

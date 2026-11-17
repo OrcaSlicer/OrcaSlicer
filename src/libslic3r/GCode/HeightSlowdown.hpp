@@ -12,14 +12,26 @@ struct HeightSlowdownFactors
     double speed{1.};
     // Applies to acceleration. Never above 1.
     double motion{1.};
+    // Applies to the acceleration of travel moves. Never above 1.
+    double travel_acceleration{1.};
+    // The slowdown does not take the printing speed or the acceleration below these. A normal value that is already
+    // lower is kept. Set by the caller from the config, 0 for no limit.
+    double min_speed{0.};
+    double min_acceleration{0.};
 };
+
+// A scaled value that is not taken below `min_value`, unless the `normal` value was below it already.
+inline double height_slowdown_limited(double scaled, double normal, double min_value)
+{
+    return std::max(scaled, std::min(normal, min_value));
+}
 
 // The ramp of an object runs from `ramp_first_z` (the first layer that is not kept as it is) to
 // `ramp_last_z` (its last layer), both print heights of model layers (support and raft layers are not
 // part of it). Below the ramp the normal values are kept. If the ramp has a single layer, it gets
 // `end_factor`.
 inline HeightSlowdownFactors height_slowdown_factors(double print_z, double ramp_first_z, double ramp_last_z,
-                                                     double start_factor, double end_factor)
+                                                     double start_factor, double end_factor, double end_travel_acceleration_factor = 1.)
 {
     HeightSlowdownFactors out;
     if (print_z < ramp_first_z)
@@ -29,6 +41,7 @@ inline HeightSlowdownFactors height_slowdown_factors(double print_z, double ramp
     const double progress = ramp ? std::clamp((print_z - ramp_first_z) / (ramp_last_z - ramp_first_z), 0., 1.) : 1.;
     out.speed  = ramp ? start_factor + (end_factor - start_factor) * progress : end_factor;
     out.motion = 1. + (std::min(end_factor, 1.) - 1.) * progress;
+    out.travel_acceleration = 1. + (std::min(end_travel_acceleration_factor, 1.) - 1.) * progress;
     return out;
 }
 

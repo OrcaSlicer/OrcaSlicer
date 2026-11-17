@@ -976,6 +976,7 @@ protected:
     HeightSlowdownFactors height_slowdown_factors(ExtrusionRole role) const;
     // Acceleration factor of the travel to the path being printed, see height_slowdown_factors().
     double                m_height_slowdown_travel_factor{1.};
+    double                m_height_slowdown_min_travel_acceleration{0.};
     std::string _extrude(const ExtrusionPath &path, const std::string &path_description = "", double speed = -1);
     bool _needSAFC(const ExtrusionPath &path);
     void print_machine_envelope(GCodeOutputStream& file, Print& print);

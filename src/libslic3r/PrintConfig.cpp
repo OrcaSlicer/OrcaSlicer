@@ -4153,6 +4153,34 @@ void PrintConfigDef::init_fff_params()
     def->mode = comExpert;
     def->set_default_value(new ConfigOptionPercent(50));
 
+    def = this->add("height_slowdown_end_travel_acceleration", coPercent);
+    def->label = L("End travel acceleration");
+    def->tooltip = L("Travel acceleration on the last layer of the object, as a percentage of the normal travel acceleration. Travel moves "
+                     "change faster than printing moves because the toolhead swings the most there. The value changes linearly from the "
+                     "first layer that is affected.");
+    def->sidetext = "%";
+    def->min = 10;
+    def->max = 100;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionPercent(25));
+
+    def = this->add("height_slowdown_min_speed", coFloat);
+    def->label = L("Minimum speed");
+    def->tooltip = L("The slowdown does not take the printing speed below this. A path that is already slower keeps its speed.");
+    def->sidetext = L("mm/s");
+    def->min = 0;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(10));
+
+    def = this->add("height_slowdown_min_acceleration", coFloat);
+    def->label = L("Minimum acceleration");
+    def->tooltip = L("The slowdown does not take the acceleration, including the travel acceleration, below this. A value that is already "
+                     "lower keeps its value.");
+    def->sidetext = L("mm/s²");
+    def->min = 0;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(500));
+
     def = this->add("nozzle_temperature_initial_layer", coInts);
     def->label = L("First layer");
     def->full_label = L("First layer nozzle temperature");
