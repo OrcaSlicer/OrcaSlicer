@@ -510,13 +510,9 @@ TEST_CASE("Skirt height is honored", "[SkirtBrim]") {
         { "wall_loops",   0 },
     });
 
-    std::string gcode;
-    SECTION("printing a single object") {
-        gcode = slice({ cube(20) }, config);
-    }
-    SECTION("printing multiple objects") {
-        gcode = slice({ cube(20), cube(20) }, config);
-    }
+    const int objects = GENERATE(1, 2);
+    CAPTURE(objects);
+    const std::string gcode = objects == 1 ? slice({ cube(20) }, config) : slice({ cube(20), cube(20) }, config);
 
     REQUIRE(layers_with_role(gcode, "skirt").size() == (size_t) config.opt_int("skirt_height"));
 }

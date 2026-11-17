@@ -4,13 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>喷嘴选择表格</title>
+    <script>
+      // Apply Orca's theme before the page is painted.
+      if (new URLSearchParams(window.location.search).get('dark') === '1')
+        document.documentElement.classList.add('darkmode');
+    </script>
     <style>
       html, body {
         margin: 0;
         padding: 0;
         height: 100%;
         background-color: #ffffff;
-        transition: background-color 0.3s ease;
       }
 
       html {
@@ -39,7 +43,7 @@
       th, td {
         padding: 10px;
         vertical-align: middle;
-        transition: border-color 0.3s ease, background-color 0.3s ease;
+        transition: border-color 0.3s ease;
         border: 1px solid #ddd; /* 所有单元格边框 */
       }
 
@@ -96,7 +100,8 @@
       }
 
       /* 暗黑模式样式 */
-      html.darkmode {
+      html.darkmode,
+      html.darkmode body {
         background-color: #1a1a1a;
       }
 
@@ -180,26 +185,39 @@
         var data = JSON.stringify({
           msg: 'init',
         })
-        window.nozzleListTable.postMessage(data);
+        window.wx.postMessage(data);
       });
 
-      function sendLayoutMessage() {
-        const table = document.querySelector('table');
-        // getBoundingClientRect() reflects CSS `zoom`, so the reported size
-        // matches the visible pixels the webview needs on the C++ side.
-        const rect = table.getBoundingClientRect();
-        const tableWidth = Math.ceil(rect.width);
-        const tableHeight = Math.ceil(rect.height);
-
-        const layoutMsg = JSON.stringify({
-          msg: 'layout',
-          height:tableHeight,
-          width: tableWidth
-        });
-
-        console.log('发送layout消息:', layoutMsg);
-        window.nozzleListTable.postMessage(layoutMsg);
+      let measurementId = null;
+      let lastViewportWidth = 0;
+      let measurementSequence = 0;
+      function measureTable(id) {
+        if (measurementId !== null && id < measurementId) return;
+        measurementId = id;
+        const sequence = ++measurementSequence;
+        // innerWidth does not shrink when the body's scrollbar appears.
+        const width = window.innerWidth;
+        lastViewportWidth = width;
+        if (width <= 1) return;
+        // Wait for the viewport to settle after native layout. Height-only
+        // resizes do not start another measurement.
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          if (measurementId !== id || measurementSequence !== sequence || window.innerWidth !== width) return;
+          const rect = document.querySelector('table').getBoundingClientRect();
+          window.wx.postMessage(JSON.stringify({
+            msg: 'layout',
+            id: id,
+            sequence: sequence,
+            height: Math.ceil(rect.height),
+            width: width
+          }));
+        }));
       }
+      window.addEventListener('resize', () => {
+        if (measurementId !== null && window.innerWidth !== lastViewportWidth) {
+          measureTable(measurementId);
+        }
+      });
 
       function initText(data){
         document.getElementById("nozzle-selection").innerText = data.nozzle_selection_label
@@ -225,7 +243,7 @@
           if (e.target.type === 'radio' && e.target.name === 'nozzle') {
             const selectedIdx = e.target.getAttribute('data-index');
             // 通过wxWebView的消息机制发送给C++
-            window.nozzleListTable.postMessage({
+            window.wx.postMessage({
               msg: 'onSelect',
               index: parseInt(selectedIdx)
             });
@@ -279,7 +297,6 @@
       tableBody.appendChild(row);
     });
 
-    sendLayoutMessage()
   }
   
 </script>
