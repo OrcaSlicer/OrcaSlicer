@@ -2175,7 +2175,6 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
             update_cloud_user = m_cloud_user_id;
     }
     if (!error.empty()) {
-        set_plugin_error(plugin_key, error);
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": " << error;
         return false;
     }

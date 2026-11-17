@@ -554,11 +554,19 @@ TEST_CASE("An update is refused while the plugin is still loading", "[PluginUpda
     manager.load_plugin(uuid, /*skip_deps=*/true);
     REQUIRE(manager.is_plugin_load_in_progress(uuid));
 
+    PluginDescriptor before;
+    REQUIRE(manager.try_get_plugin_descriptor(uuid, before));
+    REQUIRE_FALSE(before.has_error());
+
     // The update check runs before the download. No cloud service is configured, so any request
     // that got that far would fail for a different reason; the load refusal must win.
     std::string error;
     CHECK_FALSE(manager.update_cloud_plugin(uuid, error, "2.0"));
     CHECK(error.find("still in progress") != std::string::npos);
+
+    PluginDescriptor after;
+    REQUIRE(manager.try_get_plugin_descriptor(uuid, after));
+    CHECK_FALSE(after.has_error());
 
     // The refused update did not delete or unload the loading package.
     check_untouched_state(plugin_dir, entry_path, /*expected_enabled=*/true);
