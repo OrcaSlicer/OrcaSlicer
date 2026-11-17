@@ -85,9 +85,10 @@ function(orcaslicer_copy_test_dlls)
 endfunction()
 
 # Register Catch2 tags as CTest labels so `ctest -L`/`-LE` can filter by tag. A case or section
-# that runs no assertion fails.
+# that runs no assertion fails. Further arguments go to catch_discover_tests() as they are, e.g.
+# PROPERTIES RESOURCE_LOCK <name>.
 function(orcaslicer_discover_tests TARGET)
-    catch_discover_tests(${TARGET} ADD_TAGS_AS_LABELS EXTRA_ARGS --warn NoAssertions ${CATCH_EXTRA_ARGS_LIST})
+    catch_discover_tests(${TARGET} ADD_TAGS_AS_LABELS EXTRA_ARGS --warn NoAssertions ${CATCH_EXTRA_ARGS_LIST} ${ARGN})
 endfunction()
 
 add_subdirectory(libnest2d)
