@@ -946,17 +946,11 @@ void Tab::update_label_colours()
             else
                 color = &m_modified_label_clr;
         }
-        const auto* definition = m_config->def()->get(opt.first);
-        if (opt.first == "printable_area" || (definition && definition->is_curve()) ||
-            opt.first == "compatible_prints"    || opt.first == "compatible_printers"           ) {
-            if (Line* line = get_line(opt.first))
-                line->set_label_colour(color);
-            continue;
-        }
-
-        Field* field = get_field(opt.first);
-        if (field == nullptr) continue;
-        field->set_label_colour(color);
+        if (Field* field = get_field(opt.first))
+            field->set_label_colour(color);
+        // A widget row has no Field, its Line holds the label colour.
+        else if (Line* line = get_line(opt.first); line && line->widget)
+            line->set_label_colour(color);
     }
 
     auto cur_item = m_tabctrl->GetFirstVisibleItem();
@@ -988,19 +982,11 @@ void Tab::decorate()
 {
     for (const auto& opt : m_options_list)
     {
-        Field*      field = nullptr;
-        bool        option_without_field = false;
-
-        const auto* definition = m_config->def()->get(opt.first);
-        if (opt.first == "printable_area" || (definition && definition->is_curve()) ||
-            opt.first == "compatible_prints" || opt.first == "compatible_printers")
-            option_without_field = true;
-
-        if (!option_without_field) {
-            field = get_field(opt.first);
-            if (!field)
-                continue;
-        }
+        Field*      field = get_field(opt.first);
+        // A widget row has no Field, its Line holds the label colour and the undo icons.
+        Line*       widget_line = field ? nullptr : get_line(opt.first);
+        if (!field && !(widget_line && widget_line->widget))
+            continue;
 
         bool is_nonsys_value = false;
         bool is_modified_value = true;
@@ -1067,14 +1053,12 @@ void Tab::decorate()
 
         }
 
-        if (option_without_field) {
-            if (Line* line = get_line(opt.first)) {
-                line->set_undo_bitmap(icon);
-                line->set_undo_to_sys_bitmap(sys_icon);
-                line->set_undo_tooltip(tt);
-                line->set_undo_to_sys_tooltip(sys_tt);
-                line->set_label_colour(color);
-            }
+        if (!field) {
+            widget_line->set_undo_bitmap(icon);
+            widget_line->set_undo_to_sys_bitmap(sys_icon);
+            widget_line->set_undo_tooltip(tt);
+            widget_line->set_undo_to_sys_tooltip(sys_tt);
+            widget_line->set_label_colour(color);
             continue;
         }
 
@@ -2764,24 +2748,32 @@ void Tab::activate_option(const std::string& opt_key, const wxString& category)
 #endif // WIN32
     };
 
+    // Focusing a window makes the page scroll to it; ask for the scroll when the focus did not get there.
+    auto scroll_to_unfocused = [this](wxWindow* win) {
+        if (!win->HasFocus()) {
+            wxScrollEvent evt(wxEVT_SCROLL_CHANGED);
+            evt.SetEventObject(win);
+            wxPostEvent(m_page_view, evt);
+        }
+    };
+
     Field* field = get_field(opt_key);
 
     // focused selected field
     if (field) {
         set_focus(field->getWindow());
-        if (!field->getWindow()->HasFocus()) {
-            wxScrollEvent evt(wxEVT_SCROLL_CHANGED);
-            evt.SetEventObject(field->getWindow());
-            wxPostEvent(m_page_view, evt);
-        }
+        scroll_to_unfocused(field->getWindow());
     }
     else if (Line* line = get_line(opt_key); line && line->widget_sizer) {
-        // Focusing a widget also lets wxScrolledWindow bring the setting into view.
+        // A widget row has no Field: use its first shown control instead.
         for (auto* child : line->widget_sizer->GetChildren()) {
-            if (child->IsWindow() && child->GetWindow()->IsShown() && child->GetWindow()->IsEnabled()) {
-                set_focus(child->GetWindow());
-                break;
-            }
+            wxWindow* win = child->IsWindow() ? child->GetWindow() : nullptr;
+            if (win == nullptr || !win->IsShown())
+                continue;
+            if (win->IsEnabled())
+                set_focus(win);
+            scroll_to_unfocused(win);
+            break;
         }
     }
     else if (category == "Single extruder MM setup") {

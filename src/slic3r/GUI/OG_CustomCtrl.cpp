@@ -867,6 +867,9 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
     bool is_url_string = false;
     if (ctrl->opt_group->label_width != 0 && !label.IsEmpty()) {
         const wxColour* text_clr = field ? field->label_color() : og_line.label_color();
+        // A widget row has no Field, the search highlights the Line itself.
+        if (og_line.widget && og_line.blink())
+            text_clr = &blink_color;
         for (const Option& opt : option_set) {
             Field* field = ctrl->opt_group->get_field(opt.opt_id);
             if (field && field->blink()) {

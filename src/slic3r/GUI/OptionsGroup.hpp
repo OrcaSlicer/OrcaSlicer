@@ -105,10 +105,13 @@ public:
 
 	bool is_separator() const { return m_is_separator; }
 	bool has_only_option(const std::string& opt_key) const { return m_options.size() == 1 && m_options[0].opt_id == opt_key; }
-    // Other custom widgets own their revert behavior and have no generic Field value.
+    // A widget row has no Field, so the Line holds its label colour, undo icons and search highlight.
+    // Narrower than UndoValueUIManager::has_undo_ui(), which it hides on purpose: a widget row shows
+    // the icons only when the group can revert it without a Field, that is a list kept as one value
+    // (gui_flags "serialized"). Other custom widgets own their revert behavior.
     bool has_undo_ui() const {
         return UndoValueUIManager::has_undo_ui() &&
-            (!widget || (m_options.size() == 1 && m_options.front().opt.is_curve()));
+            (!widget || (m_options.size() == 1 && m_options.front().opt.gui_flags == "serialized"));
     }
 
     const std::vector<widget_t>&	get_extra_widgets() const {return m_extra_widgets;}

@@ -7,8 +7,10 @@
 #include <string>
 #include <vector>
 #include <wx/dialog.h>
+#include <wx/file.h>
 #include <wx/grid.h>
 #include <wx/recguard.h>
+#include <wx/strconv.h>
 #include <wx/string.h>
 #include "libslic3r/CurveModel.hpp"
 
@@ -28,7 +30,7 @@ class CurveEditorDialog : public wxDialog
 public:
     using Rows = CurveModel::Rows;
     ~CurveEditorDialog() override;
-    const std::string& get_parameters() const { return m_model->serialized_parameters(); }
+    const std::vector<std::string>& get_parameters() const { return m_model->parameters(); }
     bool is_modified() const { return m_model->is_modified(); }
 
 protected:
@@ -41,6 +43,19 @@ protected:
         grid.DisableCellEditControl();
         grid.SetFocus();
         return true;
+    }
+    // The file steps of CSV import and export, apart from the dialogs that choose the path.
+    static bool read_csv_file(const wxString& path, std::string& text) {
+        wxFile file(path);
+        wxString content;
+        if (!file.IsOpened() || !file.ReadAll(&content, wxConvUTF8)) return false;
+        text = content.utf8_string();
+        return true;
+    }
+    // Commit a complete temporary file so a failed write preserves an existing CSV.
+    static bool write_csv_file(const wxString& path, const std::string& text) {
+        wxTempFile file(path);
+        return file.IsOpened() && file.Write(wxString::FromUTF8(text), wxConvUTF8) && file.Commit();
     }
     // Use a stable, non-localized geometry key for each dialog; an empty key disables persistence.
     CurveEditorDialog(wxWindow* parent, const wxString& title, const wxString& help,

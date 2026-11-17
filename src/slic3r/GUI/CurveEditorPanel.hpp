@@ -13,7 +13,7 @@
 #include <wx/window.h>
 #include "libslic3r/CurveModel.hpp"
 
-class wxDC;
+class wxReadOnlyDC;
 
 namespace Slic3r::GUI {
 
@@ -46,6 +46,8 @@ public:
     bool has_automatic_touchpad_controls() const { return m_automatic_touchpad_controls; }
 
     std::function<void()> before_drag;
+    // A point drag has ended: released, cancelled, or its capture was lost.
+    std::function<void()> after_drag;
     std::function<void(int)> on_select;
     std::function<void(int, double, double)> on_move;
     // Apply both offsets in model units together, once per navigation frame.
@@ -57,14 +59,16 @@ private:
         double value;
         wxString label;
     };
-    static std::vector<AxisTick> axis_ticks(double minimum, double maximum, int pixels, wxDC& dc, bool horizontal, int gap);
-    static int axis_label_width(double minimum, double maximum, double minimum_span, int pixels, wxDC& dc, int gap);
+    static std::vector<AxisTick> axis_ticks(double minimum, double maximum, int pixels, const wxReadOnlyDC& dc, bool horizontal, int gap);
+    static int axis_label_width(double minimum, double maximum, double minimum_span, int pixels, const wxReadOnlyDC& dc, int gap);
     void on_activate(wxActivateEvent& event);
-    wxRect chart_rect() const;
+    // A paint handler passes its DC, with the panel's font set: it must not create another one.
+    wxRect chart_rect(const wxReadOnlyDC* paint_dc = nullptr) const;
     wxPoint chart_point(double x, double y, const wxRect& plot) const;
     bool point_visible(double x, double y) const;
     int hit_test(const wxPoint& position) const;
     void drag_point(const wxPoint& position);
+    void set_cursor(wxStockCursor cursor);
     void zoom_view(double steps, bool vertical, const wxPoint& position);
     void pinch_zoom(double factor, const wxPoint& position);
     struct NativeScroll {
@@ -91,6 +95,7 @@ private:
     int m_selected_point = -1;
     int m_dragged_point = -1;
     int m_hovered_point = -1;
+    wxStockCursor m_cursor = wxCURSOR_ARROW;
     wxPoint m_drag_start;
     wxPoint m_drag_previous;
     double m_drag_x = 0.0;
