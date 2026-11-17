@@ -35,6 +35,9 @@
 #include <wx/tglbtn.h>
 #include <wx/toplevel.h>
 #include <wx/window.h>
+#ifdef __WXMSW__
+#include <wx/msw/wrapwin.h>
+#endif
 #include "libslic3r/CurveModel.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "CurveEditorPanel.hpp"
@@ -611,8 +614,13 @@ void CurveEditorDialog::on_dpi_changed(const wxRect&)
     // Complete its lifecycle for custom widgets and cached metrics, without scaling those
     // native values a second time. DPIDialog freezes the window and lays it out afterwards.
 #ifdef __WXMSW__
-    // wx leaves the size of a window whose DPI event was handled, as DPIDialog does, to the window.
-    const wxSize scaled_size = GetSize() * (double(scale_factor()) / prev_scale_factor());
+    // wx leaves the rect of a window whose DPI event was handled, as DPIDialog does, to the window.
+    // Take the position Windows suggests too: the old top-left can leave the window mostly on the
+    // previous monitor, which changes the DPI back. A drag rescales at the drop, so the rect follows it.
+    wxRect rect(GetPosition(), GetSize() * (double(scale_factor()) / prev_scale_factor()));
+    if (!m_dpi_suggested_rect.IsEmpty())
+        rect = wxRect(GetPosition() + m_dpi_suggested_rect.GetPosition(), m_dpi_suggested_rect.GetSize());
+    m_dpi_suggested_rect = wxRect();
 #endif
     m_chart->finish_drag();
     m_content->SetScrollRate(FromDIP(10), FromDIP(10));
@@ -635,12 +643,26 @@ void CurveEditorDialog::on_dpi_changed(const wxRect&)
     m_chart->GetParent()->SetMinSize(wxSize(std::max(m_chart->GetMinSize().x, m_actions_panel->GetMinSize().x), -1));
     GetSizer()->SetSizeHints(this);
 #ifdef __WXMSW__
-    SetSize(wxSize(std::max(scaled_size.x, GetMinSize().x), std::max(scaled_size.y, GetMinSize().y)));
+    rect.SetSize(wxSize(std::max(rect.width, GetMinSize().x), std::max(rect.height, GetMinSize().y)));
+    SetSize(rect);
 #endif
     Layout();
     m_content->SendSizeEvent();
     Refresh();
 }
+
+#ifdef __WXMSW__
+WXLRESULT CurveEditorDialog::MSWWindowProc(WXUINT message, WXWPARAM wParam, WXLPARAM lParam)
+{
+    // wxDPIChangedEvent carries no rect. Keep it relative to the window, which a drag only moves.
+    if (message == WM_DPICHANGED) {
+        const RECT& rect = *reinterpret_cast<const RECT*>(lParam);
+        m_dpi_suggested_rect = wxRect(wxPoint(rect.left, rect.top) - GetPosition(),
+                                      wxSize(rect.right - rect.left, rect.bottom - rect.top));
+    }
+    return DPIDialog::MSWWindowProc(message, wParam, lParam);
+}
+#endif
 
 void CurveEditorDialog::on_sys_color_changed()
 {

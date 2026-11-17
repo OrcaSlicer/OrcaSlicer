@@ -93,6 +93,8 @@ constexpr int touch_gestures = wxTOUCH_PAN_GESTURES | wxTOUCH_ZOOM_GESTURE;
 // plot area as a finger on a touchscreen does. GTK reports a pan while it dispatches the pointer or
 // touch event that moved it, so that event names the device. A pan event that arrives outside
 // such a dispatch was sent by the program and follows no mouse.
+// wx sends gesture events only from GTK 3.14 on, so older GTK, GTK2 included, has no pan to check.
+#if GTK_CHECK_VERSION(3, 14, 0)
 bool gtk_pan_from_touchscreen()
 {
     const auto event = std::unique_ptr<GdkEvent, decltype(&gdk_event_free)>(gtk_get_current_event(), gdk_event_free);
@@ -100,6 +102,7 @@ bool gtk_pan_from_touchscreen()
     auto* device = gdk_event_get_source_device(event.get());
     return device && gdk_device_get_source(device) == GDK_SOURCE_TOUCHSCREEN;
 }
+#endif
 
 #if GTK_CHECK_VERSION(3, 20, 0)
 bool gtk_has_touchpad()
@@ -350,7 +353,9 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
         if (event.IsGestureStart()) {
             m_pan_gesture_active = !mouse_drag;
 #ifdef __WXGTK__
+#if GTK_CHECK_VERSION(3, 14, 0)
             m_pan_gesture_active = m_pan_gesture_active && gtk_pan_from_touchscreen();
+#endif
 #endif
             if (m_pan_gesture_active) cancel_pan();
         }
