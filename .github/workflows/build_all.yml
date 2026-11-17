@@ -89,7 +89,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          lfs: 'false'
+          lfs: false
 
       - name: Run the exception throw info check tests
         timeout-minutes: 5
@@ -135,7 +135,7 @@ jobs:
     if: ${{ !cancelled() && needs.check_build_script.result == 'success' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
-      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
+      os: macos-15
       arch: ${{ matrix.arch }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
       clean: ${{ inputs.clean-build || false }}
@@ -148,7 +148,7 @@ jobs:
     if: ${{ !cancelled() && needs.build_macos_arch.result == 'success' && !inputs.build-deps-only && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_orca.yml
     with:
-      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
+      os: macos-15
       arch: universal
       macos-combine-only: true
     secrets: inherit
@@ -188,13 +188,13 @@ jobs:
     if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests.yml
     with:
-      os: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }}
+      os: ubuntu-24.04
       artifact: ${{ github.sha }}-tests-linux-x86_64
   
   unit_tests_linux_aarch64:
     name: Linux aarch64
     needs: build_linux
-    if: ${{ !cancelled() && success() && !vars.SELF_HOSTED }}
+    if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests.yml
     with:
       os: ubuntu-24.04-arm
@@ -206,13 +206,13 @@ jobs:
     if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests.yml
     with:
-      os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-latest' }}
+      os: windows-latest
       artifact: ${{ github.sha }}-tests-windows-x64-x64-clang
   
   unit_tests_windows_arm64:
     name: Windows arm64
     needs: build_windows
-    if: ${{ !cancelled() && success() && !vars.SELF_HOSTED }}
+    if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests.yml
     with:
       os: windows-11-vs2026-arm
@@ -225,7 +225,7 @@ jobs:
     if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests.yml
     with:
-      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
+      os: macos-15
       artifact: ${{ github.sha }}-tests-macos-arm64
       test-dir: build/arm64/tests
   
@@ -235,7 +235,7 @@ jobs:
     if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests.yml
     with:
-      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
+      os: macos-15
       artifact: ${{ github.sha }}-tests-macos-x86_64
       test-dir: build/x86_64/tests
 
@@ -247,18 +247,18 @@ jobs:
   # Profile-only PRs are covered by check_profiles.yml's nightly binary; this
   # covers src/engine PRs with the PR-built binary.
   slice_check_linux:
-    name: Slice check (Linux ${{ vars.SELF_HOSTED && 'x86_64' || 'aarch64' }})
+    name: Slice check (Linux aarch64)
     needs: build_linux
     if: ${{ !cancelled() && success() }}
     # Follows whichever Linux leg built the validator.
-    runs-on: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04-arm' }}
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
       - name: Download profile validator
         uses: actions/download-artifact@v8
         with:
-          name: ${{ github.sha }}-profile-validator-linux-${{ vars.SELF_HOSTED && 'x86_64' || 'aarch64' }}
+          name: ${{ github.sha }}-profile-validator-linux-aarch64
           path: validator-bin
       - name: Validate slice (expand custom g-code)
         timeout-minutes: 60
