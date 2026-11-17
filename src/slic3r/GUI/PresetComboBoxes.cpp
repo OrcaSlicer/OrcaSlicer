@@ -18,6 +18,7 @@
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/EncodedFilament.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 #include <unordered_set>
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/CalibrationWizardPage.hpp"
@@ -238,13 +239,7 @@ void PresetComboBox::update_selection()
         m_last_selected = 1;
 
     SetSelection(m_last_selected);
-#ifdef __WXMSW__
-    // From the Windows 2004 the tooltip for preset combobox doesn't work after next call of SetTooltip()
-    // (There was an issue, when tooltip doesn't appears after changing of the preset selection)
-    // But this workaround seems to work: We should to kill tooltip and than set new tooltip value
-    SetToolTip(NULL);
-#endif
-    SetToolTip(GetString(m_last_selected));
+    set_tooltip_text(GetString(m_last_selected));
 
 // A workaround for a set of issues related to text fitting into gtk widgets:
 #if defined(__WXGTK20__) || defined(__WXGTK3__)
@@ -393,6 +388,28 @@ wxString PresetComboBox::get_tooltip(const Preset &preset)
     }
 #endif
     return tooltip;
+}
+
+void PresetComboBox::set_tooltip_text(const wxString &text)
+{
+    wxString role;
+    switch (m_type) {
+    case Preset::TYPE_PRINT: role = _L("Process preset: the slicing settings, such as layer height, walls, infill, supports and speeds."); break;
+    case Preset::TYPE_FILAMENT: role = _L("Filament preset: the temperatures, cooling, flow and other settings of the material."); break;
+    case Preset::TYPE_PRINTER:
+        role = _L("Printer preset: the bed, nozzle, motion limits and G-code of the printer. "
+                  "Choosing another printer changes which process and filament presets are offered.");
+        break;
+    default: break;
+    }
+#ifdef __WXMSW__
+    // From the Windows 2004 the tooltip for preset combobox doesn't work after next call of SetTooltip()
+    // (There was an issue, when tooltip doesn't appears after changing of the preset selection)
+    // But this workaround seems to work: We should to kill tooltip and than set new tooltip value
+    // See, https://groups.google.com/g/wx-users/c/mOEe3fgHrzk
+    SetToolTip(NULL);
+#endif
+    set_illustrated_tooltip(this, text.IsEmpty() || role.IsEmpty() ? text + role : text + "\n\n" + role);
 }
 
 wxString PresetComboBox::get_preset_item_name(unsigned int index)
@@ -1552,16 +1569,8 @@ void PlaterPresetComboBox::update()
     }
     Thaw();
 
-    if (!tooltip.IsEmpty()) {
-#ifdef __WXMSW__
-        // From the Windows 2004 the tooltip for preset combobox doesn't work after next call of SetTooltip()
-        // (There was an issue, when tooltip doesn't appears after changing of the preset selection)
-        // But this workaround seems to work: We should to kill tooltip and than set new tooltip value
-        // See, https://groups.google.com/g/wx-users/c/mOEe3fgHrzk
-        SetToolTip(NULL);
-#endif
-        SetToolTip(tooltip);
-    }
+    if (!tooltip.IsEmpty())
+        set_tooltip_text(tooltip);
 
 #ifdef __WXMSW__
     // Use this part of code just on Windows to avoid of some layout issues on Linux
@@ -1971,7 +1980,7 @@ void TabPresetComboBox::update_dirty()
             if (old_label != new_label) {
                 SetString(ui_id, from_u8(new_label));
                 SetItemBitmap(ui_id, *get_bmp(*preset));
-                if (ui_id == GetSelection()) SetToolTip(wxString::FromUTF8(new_label.c_str())); // BBS
+                if (ui_id == GetSelection()) set_tooltip_text(wxString::FromUTF8(new_label.c_str())); // BBS
             }
         }
     }
@@ -2127,7 +2136,7 @@ void GUI::CalibrateFilamentComboBox::update()
     update_selection();
     Thaw();
 
-    SetToolTip(NULL);
+    set_illustrated_tooltip(this, wxEmptyString);
 }
 
 void GUI::CalibrateFilamentComboBox::msw_rescale()

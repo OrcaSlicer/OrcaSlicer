@@ -52,6 +52,8 @@ public:
     virtual void Rescale();
 
     wxString GetItemText(unsigned int item) const;
+    // The button that draws an item, for giving it a tooltip; nullptr for an item that does not exist.
+    Button* GetItemButton(unsigned int item) const { return item < btns.size() ? btns[item] : nullptr; }
     void SetItemText(unsigned int item, wxString const& value);
     void SetItemBitmap(unsigned int item, const wxBitmap& bitmap);
 
