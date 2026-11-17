@@ -10216,7 +10216,7 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         "z_hop_type", "z_lift_type", "bed_temperature_difference","long_retraction_when_cut",
         "retraction_distance_when_cut",
         "internal_bridge_support_thickness", "top_area_threshold", "reduce_wall_solid_infill","filament_load_time","filament_unload_time",
-        "smooth_coefficient", "overhang_totally_speed", "silent_mode",
+        "overhang_totally_speed", "silent_mode",
         "overhang_speed_classic",
         "anisotropic_surfaces", // superseded by top_surface_fill_order / bottom_surface_fill_order
         // Belt printer keys retired before the first release: the global-mode and
