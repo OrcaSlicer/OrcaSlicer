@@ -73,6 +73,7 @@ Contents: [Rules](#rules) · [Native vs generic](#native-vs-generic-and-silent-a
     constructor, so bind on the combo (or `SetId()` after construction if an id filter is unavoidable).
     → [Orca widgets](#orca-replacement-widgets-event-contracts)
 26. `::CheckBox`/`SwitchButton` emit `wxEVT_TOGGLEBUTTON`, and a handler bound on the widget itself must `Skip()`;
+    `LabeledCheckBox` sends `wxEVT_CHECKBOX` and `wxEVT_TOGGLEBUTTON` from itself — bind one;
     `RadioGroup::SetSelection` always emits; `SpinInput`'s `wxEVT_SPINCTRL` is a plain `wxCommandEvent`.
     → [Orca widgets](#orca-replacement-widgets-event-contracts)
 27. Expect Orca's colours on every generic data view and `RenderText` on MSW: `ObjectList` installs a
@@ -300,8 +301,8 @@ Contract:
 - `wxRadioBox::SetSelection(n)` needs a valid `n`, never `wxNOT_FOUND` (`interface/wx/radiobox.h:292-295`), and
   sends no event.
 
-OrcaSlicer: interactive check boxes are `::CheckBox`/`SwitchButton`, radio rows are `::RadioGroup`; their event
-contracts differ from these ([below](#checkbox-and-switchbutton)).
+OrcaSlicer: interactive check boxes are `::CheckBox`/`LabeledCheckBox`/`SwitchButton`, radio rows are
+`::RadioGroup`; their event contracts differ from these ([below](#checkbox-and-switchbutton)).
 
 Pitfalls:
 - **Rule:** Put `wxRB_GROUP` on the first button of *every* group.
@@ -751,6 +752,7 @@ Bind column means an ancestor bound by event type; binding an ancestor by the wi
 | `::ComboBox` | `wxComboBox`/`wxChoice` | `wxEVT_COMBOBOX` (int = index, string = text); DROPDOWN/CLOSEUP | COMBOBOX: combo's auto-generated id (the ctor `id` is ignored) and object; DROPDOWN/CLOSEUP: id 0, no object | `SetSelection`/`SetValue` → `wxEVT_TEXT` when the text ctrl is shown or `CB_NO_TEXT`; `SelectAndNotify` → `wxEVT_COMBOBOX` | COMBOBOX on the combo (or an ancestor); DROPDOWN/CLOSEUP on the combo without id |
 | `::SpinInput` | `wxSpinCtrl` | `wxEVT_SPINCTRL` (a `wxCommandEvent`); `EVT_SPINCTRL_TEXT` per parsable keystroke; inner `wxEVT_TEXT` | SPINCTRL / SPINCTRL_TEXT: spinner id/object | `SetValue(int)` → `EVT_SPINCTRL_TEXT` + `wxEVT_TEXT`, no `wxEVT_SPINCTRL` | SPINCTRL on the spinner or an ancestor, handler takes `wxCommandEvent&` |
 | `::CheckBox`, `SwitchButton` | `wxCheckBox` | `wxEVT_TOGGLEBUTTON` | native | `SetValue` silent | on the widget (with `Skip()`) or an ancestor; never `wxEVT_CHECKBOX` |
+| `LabeledCheckBox` | `wxCheckBox` with its own label on the right side | `wxEVT_CHECKBOX`, then `wxEVT_TOGGLEBUTTON` | control id/object | `SetValue` silent | on the control or an ancestor, **one** of the two |
 | `::RadioGroup` | `wxRadioBox` | `wxEVT_COMMAND_RADIOBOX_SELECTED` | group id, no object | **every** `SetSelection` emits | on the group or an ancestor |
 | `::TabCtrl` | tab bar | `wxEVT_TAB_SEL_CHANGING` then `wxEVT_TAB_SEL_CHANGED` (plain `wxCommandEvent`) | tab ctrl id/object; CHANGING carries the old index | `SelectItem(i)` emits both when `i` changes | on the ctrl or an ancestor; cannot veto |
 | `Button` | `wxButton` | `wxEVT_BUTTON` | button id/object | — | on the button or an ancestor |
@@ -815,9 +817,10 @@ two arrow `Button`s with key-repeat; `SetValue/GetValue/SetRange/SetStep`.
 
 ### CheckBox and SwitchButton
 
-`::CheckBox` (ctor `CheckBox(parent, id = wxID_ANY)`, no label — pair it with a `wxStaticText`/`Label`, as
-`CloneDialog` does) and `SwitchButton` are `wxBitmapToggleButton`s. They emit `wxEVT_TOGGLEBUTTON`, never
-`wxEVT_CHECKBOX`; `SetValue` sends nothing. The half state is drawn only (`SetHalfChecked`/`IsHalfChecked`); any click
+`::CheckBox` (ctor `CheckBox(parent, id = wxID_ANY)`, no label — when the label is on the right side of the check
+box and belongs to it, use `LabeledCheckBox`, `references/orca-widgets.md §LabeledCheckBox`) and `SwitchButton` are
+`wxBitmapToggleButton`s. They emit `wxEVT_TOGGLEBUTTON`, never `wxEVT_CHECKBOX`; `SetValue` sends nothing. The half
+state is drawn only (`SetHalfChecked`/`IsHalfChecked`); any click
 clears it via the widget's own `wxEVT_TOGGLEBUTTON` handler (bound in the constructor), which also swaps the on/off
 bitmap. Handlers bound later on the same widget run first, so they must `Skip()`, or the bitmap keeps showing the old
 state and the half state is never cleared (`PreferencesDialog::create_item_bambu_cloud` marks this with "let

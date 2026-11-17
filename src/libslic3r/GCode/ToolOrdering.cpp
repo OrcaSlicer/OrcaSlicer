@@ -157,7 +157,9 @@ static unsigned int region_filament(const ExtrusionEntityCollection &extrusions,
             return config.bottom_surface_filament_id.value;
         return config.internal_solid_filament_id.value;
     }
-    // Walls, and the gap fill between them.
+    // Orca: Classic gap fill lies inside the outer wall. With one wall, the inner wall filament is not in use.
+    if (extrusions.role() == erGapFill)
+        return config.wall_loops.value > 1 ? config.inner_wall_filament_id.value : config.outer_wall_filament_id.value;
     const ExtrusionEntitiesPtr &walls = extrusions.entities;
     return !walls.empty() && std::all_of(walls.begin(), walls.end(), [](const ExtrusionEntity *ee) { return is_inner_wall(*ee); }) ?
         config.inner_wall_filament_id.value : config.outer_wall_filament_id.value;
@@ -190,6 +192,14 @@ static double calc_max_layer_height(const PrintConfig &config, double max_object
     // The Prusa3D Fast (0.35mm layer height) print profile sets a higher layer height than what is normally allowed
     // by the nozzle. This is a hack and it works by increasing extrusion width. See GH #3919.
     return std::max(max_layer_height, max_object_layer_height);
+}
+
+static double calc_min_layer_height(const PrintConfig &config)
+{
+    double min_layer_height = std::numeric_limits<double>::max();
+    for (size_t i = 0; i < config.nozzle_diameter.values.size(); ++ i)
+        min_layer_height = std::min(min_layer_height, config.min_layer_height.get_at(i));
+    return config.nozzle_diameter.values.empty() ? 0. : min_layer_height;
 }
 
 //calculate the flush weight (first value) and filament change count(second value)
@@ -1233,13 +1243,48 @@ void ToolOrdering::fill_wipe_tower_partitions(const PrintConfig &config, coordf_
             }
     }
 
-    // Calculate the wipe_tower_layer_height values.
-    coordf_t wipe_tower_print_z_last = 0.;
-    for (LayerTools &lt : m_layer_tools)
-        if (lt.has_wipe_tower) {
+    // Calculate the wipe_tower_layer_height values. Precise Z height ends each object at its exact
+    // top, so another object's layers can sit above these by less than the printer's minimum layer
+    // height. A tower layer that thin cannot be printed, and a purge sized for it runs up to hundreds
+    // of mm long, so it joins the tower layer below. The floor matches the towers' own WT_EPSILON
+    // merge, which would otherwise size the joined tool changes with the sliver's height. The EPSILON
+    // margin keeps layers sliced at exactly the minimum height, whose sums round below it, apart.
+    const double min_tower_layer_height = std::max(calc_min_layer_height(config), 1e-3);
+    coordf_t     wipe_tower_print_z_last = 0.;
+    // The layer that finishes the current tower layer, and whether any layer of it changes tools.
+    LayerTools  *tower_layer_end         = nullptr;
+    bool         tower_layer_changes     = false;
+    unsigned int current_extruder        = (unsigned int) -1;
+    for (LayerTools &lt : m_layer_tools) {
+        lt.wipe_tower_layer_ends = true;
+        // The G-code takes one tower result per tool change, so a layer that changes tools always
+        // takes one; a layer that does not takes one only when it finishes the tower layer.
+        const bool changes = ! lt.extruders.empty() &&
+            (current_extruder == (unsigned int) -1 || lt.extruders.size() > 1 || lt.extruders.front() != current_extruder);
+        if (! lt.extruders.empty())
+            current_extruder = lt.extruders.back();
+        if (! lt.has_wipe_tower)
+            continue;
+        // Only a layer that prints joins, so the tower layer is always finished by a printing layer.
+        if (tower_layer_end != nullptr && ! lt.extruders.empty() && lt.print_z - wipe_tower_print_z_last + EPSILON < min_tower_layer_height) {
+            lt.wipe_tower_print_z      = tower_layer_end->wipe_tower_print_z;
+            lt.wipe_tower_layer_height = tower_layer_end->wipe_tower_layer_height;
+            // The finish rides on the last tool change of the joined layers, as it does on its own
+            // layer: one that takes over after the last result is gone has nothing left to print.
+            if (changes || ! tower_layer_changes) {
+                tower_layer_end->wipe_tower_layer_ends = false;
+                tower_layer_end                        = &lt;
+            } else
+                lt.wipe_tower_layer_ends = false;
+            tower_layer_changes |= changes;
+        } else {
+            lt.wipe_tower_print_z      = lt.print_z;
             lt.wipe_tower_layer_height = lt.print_z - wipe_tower_print_z_last;
-            wipe_tower_print_z_last = lt.print_z;
+            wipe_tower_print_z_last    = lt.print_z;
+            tower_layer_end            = &lt;
+            tower_layer_changes        = changes;
         }
+    }
 }
 
 void ToolOrdering::collect_extruder_statistics(bool prime_multi_material)
@@ -1672,13 +1717,13 @@ static FilamentGroupContext build_filament_group_context(
     return context;
 }
 
-// Orca: restore the master-extruder preference. Orca historically ran
-// optimize_group_for_master_extruder / can_swap_groups after grouping so a light-filament print stays
-// on the primary/master extruder. A weak in-enum penalty alone cannot overcome a pre-existing
-// non-zero right-extruder self-flush term in the flush matrix (which otherwise pulls a lone filament
-// onto the non-master extruder and changes H2D/H2C g-code). We re-apply the preference ONLY in this
-// slicing wrapper — never in the FilamentGroup engine or the test harness — so existing prints keep
-// their extruder assignment while the new engine's genuine multi-filament grouping deltas still land.
+// Orca: the master-extruder preference for flush-mode grouping on two-extruder machines. It keeps a
+// light-filament print on the master extruder, which the engine's own in-enum penalty is too weak to
+// do against a non-zero right-extruder self-flush term in the flush matrix (that term pulls a lone
+// filament onto the non-master extruder). It lives in this slicing wrapper, not in the FilamentGroup
+// engine, so the engine and its golden tests stay comparable with BambuStudio's. It only breaks ties
+// against the filaments loaded in the printer: get_recommended_filament_maps keeps the engine's
+// grouping when that matches them better.
 static bool can_swap_extruder_groups(int extruder_id_0, const std::set<int>& group_0, int extruder_id_1, const std::set<int>& group_1, const FilamentGroupContext& ctx)
 {
     using namespace FilamentGroupUtils;
@@ -1839,11 +1884,20 @@ MultiNozzleUtils::LayeredNozzleGroupResult ToolOrdering::get_recommended_filamen
                 if (!has_multiple_nozzle)
                     fg.get_custom_seq = get_custom_seq;
                 ret = fg.calc_filament_group();
-                // Flush-mode auto grouping: restore the master-extruder preference
-                // (optimize_group_for_master_extruder). Match mode assigns by AMS colour and never had
-                // it. Kept out of the FilamentGroup engine so the test harness is unaffected.
-                if (context.group_info.mode == FGMode::FlushMode)
-                    ret = apply_master_extruder_preference(context, used_filaments, ret);
+                // Flush mode prefers the master extruder; match mode groups by the AMS colours alone.
+                // select_best_group_for_ams keeps the first candidate on a tie and when the printer
+                // reports no filaments, so the preferred grouping loses only to one that matches the
+                // loaded filaments strictly better.
+                if (context.group_info.mode == FGMode::FlushMode) {
+                    std::vector<int> preferred = apply_master_extruder_preference(context, used_filaments, ret);
+                    std::vector<FilamentGroupUtils::FilamentInfo> used_filament_info;
+                    for (auto f : used_filaments)
+                        used_filament_info.emplace_back(context.model_info.filament_info[f]);
+                    // The context's nozzle list, which the nozzle ids in ret index (one entry per
+                    // physical nozzle), not the one-per-extruder nozzle_list above.
+                    ret = select_best_group_for_ams({preferred, ret}, context.nozzle_info.nozzle_list, used_filaments, used_filament_info,
+                                                    context.machine_info.machine_filament_info, context.group_info.has_filament_switcher);
+                }
             }
         }
 

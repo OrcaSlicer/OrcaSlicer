@@ -1,4 +1,5 @@
 #pragma once
+#include <chrono>
 #include <map>
 #include <mutex>
 #include "libslic3r/CommonDefs.hpp"
@@ -34,6 +35,8 @@ private:
     bool m_enable_mutil_machine = false;
 
     std::mutex listMutex;
+    bool m_restore_last_machine{ false };                       /* see restore_last_machine() */
+    std::chrono::steady_clock::time_point m_lan_connect_started; /* the selected LAN machine's last connect */
     std::string selected_machine;                               /* dev_id */
     std::string local_selected_machine;                         /* dev_id */
     std::map<std::string, MachineObject*> localMachineList;     /* dev_id -> MachineObject*, localMachine SSDP   */
@@ -86,6 +89,11 @@ public:
     void clear_other_devices();
 
     void load_last_machine();
+    // Selects the printer last selected under the live agent: now when it is one of the agent's
+    // machines, else once an accepted cloud machine list holds it. Any selection, and logging out,
+    // settle a pending restore.
+    void restore_last_machine();
+    bool has_pending_last_machine_restore() const { return m_restore_last_machine; }
     void update_user_machine_list_info(const std::string& provider);
     void parse_user_print_info(std::string body);
     void reload_printer_settings();
@@ -125,6 +133,10 @@ private:
     // once a real agent finally arrives - so paired printers survive a plugin install/hot
     // reload without an app restart.
     void load_local_machines_from_config();
+
+    // Applies a cloud machine list under listMutex; false when the response is stale, holds no
+    // device list or can't be parsed.
+    bool read_user_print_info(const std::string& body);
 
     void keep_alive();
     void check_pushing();
