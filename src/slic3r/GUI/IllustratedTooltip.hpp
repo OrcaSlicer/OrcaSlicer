@@ -57,6 +57,10 @@ public:
     // ready() for a frame does the same, so owners that call it only while hovered need not call this.
     void reset() { m_item = ImVec2(-1.f, -1.f); }
 
+    // Whether tooltips carry their pictures, the "show_tooltip_pictures" preference. Without them a
+    // tooltip is its text alone, placed where it would be with them.
+    static bool pictures_shown();
+
     // The width a tooltip needs, padding included. One carrying pictures takes the full `wrap`, since a
     // picture has to be laid out against something; a plain one takes what its text needs.
     static float width(const std::string &text, bool with_media, float wrap);
