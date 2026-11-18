@@ -269,8 +269,8 @@ bool is_valid_entry_package(const std::string& entry_package);
 std::string install_dir(const std::string& plugin_root, const std::string& entry_package);
 
 // True when the target exists and the marker proves it was installed from the current entry wheel
-// for this interpreter and entry package. An empty reason means "reusable".
-bool is_installed(const PluginDescriptor& descriptor, std::string* reason = nullptr);
+// for this interpreter and entry package.
+bool is_installed(const PluginDescriptor& descriptor);
 
 // Install the plugin's entry wheel with uv into the legacy extraction path
 // <plugin_root>/__whl_extracted__/<entry package> unless a matching installation already exists.

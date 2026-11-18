@@ -1362,7 +1362,25 @@ bool read_python_plugin_metadata(const boost::filesystem::path& py_path, PluginD
     return true;
 }
 
-bool read_wheel_plugin_metadata(const boost::filesystem::path& whl_path, PluginDescriptor& descriptor, std::string& error)
+namespace {
+
+// The archive, METADATA and WHEEL contents shared by the two wheel metadata readers. The reader is
+// kept open so a caller can read further .dist-info files (RECORD, top_level.txt).
+struct WheelPrologue
+{
+    ZipReaderGuard           reader;
+    std::string              dist_info_dir;
+    std::string              wheel;
+    std::string              name;
+    std::string              version;
+    std::string              summary;
+    std::string              author;
+    std::string              import_name;
+    std::vector<std::string> requires_dist;
+};
+
+// Open the wheel, locate its single .dist-info directory, and read METADATA and WHEEL.
+bool read_wheel_prologue(const boost::filesystem::path& whl_path, WheelPrologue& out, std::string& error)
 {
     namespace fs = boost::filesystem;
 
@@ -1371,53 +1389,56 @@ bool read_wheel_plugin_metadata(const boost::filesystem::path& whl_path, PluginD
         return false;
     }
 
-    ZipReaderGuard reader;
-    if (!open_zip_reader(&reader.archive, whl_path.string())) {
-        error = "Failed to open wheel as zip: " + MZ_Archive::get_errorstr(mz_zip_get_last_error(&reader.archive));
+    if (!open_zip_reader(&out.reader.archive, whl_path.string())) {
+        error = "Failed to open wheel as zip: " + MZ_Archive::get_errorstr(mz_zip_get_last_error(&out.reader.archive));
         return false;
     }
-    reader.opened = true;
+    out.reader.opened = true;
 
-    // Find the single .dist-info directory.
-    std::string dist_info_dir;
-    if (!find_wheel_dist_info_dir(reader.archive, dist_info_dir, error))
+    if (!find_wheel_dist_info_dir(out.reader.archive, out.dist_info_dir, error))
         return false;
 
-    // Read METADATA.
-    const std::string metadata_path = dist_info_dir + "METADATA";
-    std::string meta_content;
-    if (!read_zip_text_file(reader.archive, metadata_path.c_str(), meta_content, error))
+    std::string metadata_content;
+    if (!read_zip_text_file(out.reader.archive, (out.dist_info_dir + "METADATA").c_str(), metadata_content, error))
         return false;
 
-    std::string meta_name, meta_version, meta_summary, meta_author, meta_requires_python, meta_import_name;
-    std::vector<std::string> requires_dist;
+    std::string requires_python;
     std::string meta_error;
-    parse_metadata_rfc822(meta_content, meta_name, meta_version, meta_summary, meta_author,
-                          meta_requires_python, meta_import_name, requires_dist, meta_error);
+    parse_metadata_rfc822(metadata_content, out.name, out.version, out.summary, out.author, requires_python,
+                          out.import_name, out.requires_dist, meta_error);
 
-    if (meta_name.empty()) {
+    if (out.name.empty()) {
         error = "Wheel METADATA missing required Name field";
         return false;
     }
-    if (meta_version.empty()) {
+    if (out.version.empty()) {
         error = "Wheel METADATA missing required Version field";
         return false;
     }
 
-    // Read WHEEL (verify existence and Wheel-Version).
-    const std::string wheel_path = dist_info_dir + "WHEEL";
-    std::string wheel_content;
-    if (!read_zip_text_file(reader.archive, wheel_path.c_str(), wheel_content, error))
+    if (!read_zip_text_file(out.reader.archive, (out.dist_info_dir + "WHEEL").c_str(), out.wheel, error))
         return false;
+
+    return true;
+}
+
+} // namespace
+
+bool read_wheel_plugin_metadata(const boost::filesystem::path& whl_path, PluginDescriptor& descriptor, std::string& error)
+{
+    WheelPrologue wheel;
+    if (!read_wheel_prologue(whl_path, wheel, error))
+        return false;
+
     // Verify there's at least a Wheel-Version header line.
-    if (wheel_content.find("Wheel-Version:") == std::string::npos) {
+    if (wheel.wheel.find("Wheel-Version:") == std::string::npos) {
         error = "Wheel WHEEL file missing Wheel-Version header";
         return false;
     }
 
     // Parse and validate wheel platform tags.
     {
-        const std::vector<std::string> wheel_tags = parse_wheel_tags(wheel_content);
+        const std::vector<std::string> wheel_tags = parse_wheel_tags(wheel.wheel);
         if (!wheel_tags.empty()) {
             bool compatible = false;
             const std::string abi_tag = PythonInterpreter::python_abi_tag();
@@ -1455,9 +1476,9 @@ bool read_wheel_plugin_metadata(const boost::filesystem::path& whl_path, PluginD
     }
 
     // Read RECORD (verify existence).
-    const std::string record_path = dist_info_dir + "RECORD";
+    const std::string record_path = wheel.dist_info_dir + "RECORD";
     std::string record_content;
-    if (!read_zip_text_file(reader.archive, record_path.c_str(), record_content, error))
+    if (!read_zip_text_file(wheel.reader.archive, record_path.c_str(), record_content, error))
         return false;
     if (record_content.empty()) {
         error = "Wheel RECORD file is empty";
@@ -1466,9 +1487,9 @@ bool read_wheel_plugin_metadata(const boost::filesystem::path& whl_path, PluginD
 
     // Parse top_level.txt if present.
     std::string top_level;
-    const std::string top_level_path = dist_info_dir + "top_level.txt";
+    const std::string top_level_path = wheel.dist_info_dir + "top_level.txt";
     std::string top_level_content;
-    if (read_zip_text_file(reader.archive, top_level_path.c_str(), top_level_content, error)) {
+    if (read_zip_text_file(wheel.reader.archive, top_level_path.c_str(), top_level_content, error)) {
         // top_level.txt contains one package name per line.
         std::istringstream tl_stream(top_level_content);
         std::string tl_line;
@@ -1493,75 +1514,38 @@ bool read_wheel_plugin_metadata(const boost::filesystem::path& whl_path, PluginD
     // 2. Core Metadata Import-Name.
     // 3. top_level.txt if unambiguous.
     // 4. Normalized Name as fallback.
-    if (!meta_import_name.empty()) {
-        descriptor.entry_package = meta_import_name;
+    if (!wheel.import_name.empty()) {
+        descriptor.entry_package = wheel.import_name;
     } else if (!top_level.empty()) {
         descriptor.entry_package = top_level;
     } else {
-        descriptor.entry_package = normalize_package_name(meta_name);
+        descriptor.entry_package = normalize_package_name(wheel.name);
     }
 
-    descriptor.dependencies = std::move(requires_dist);
+    descriptor.dependencies = std::move(wheel.requires_dist);
 
     // Populate local identity fallbacks from wheel metadata.
     // Cloud metadata will override these when available.
-    descriptor.name       = sanitize_plugin_name(meta_name);
-    descriptor.version    = meta_version;
-    descriptor.description = meta_summary;
-    descriptor.author     = meta_author;
+    descriptor.name       = sanitize_plugin_name(wheel.name);
+    descriptor.version    = wheel.version;
+    descriptor.description = wheel.summary;
+    descriptor.author     = wheel.author;
 
     return true;
 }
 
 bool read_wheel_install_metadata(const boost::filesystem::path& whl_path, WheelInstallMetadata& out, std::string& error)
 {
-    namespace fs = boost::filesystem;
-
     out = {};
     error.clear();
 
-    if (!fs::exists(whl_path) || !fs::is_regular_file(whl_path)) {
-        error = "Wheel plugin file does not exist: " + whl_path.string();
-        return false;
-    }
-
-    ZipReaderGuard reader;
-    if (!open_zip_reader(&reader.archive, whl_path.string())) {
-        error = "Failed to open wheel as zip: " + MZ_Archive::get_errorstr(mz_zip_get_last_error(&reader.archive));
-        return false;
-    }
-    reader.opened = true;
-
-    std::string dist_info_dir;
-    if (!find_wheel_dist_info_dir(reader.archive, dist_info_dir, error))
+    WheelPrologue wheel;
+    if (!read_wheel_prologue(whl_path, wheel, error))
         return false;
 
-    std::string meta_content;
-    if (!read_zip_text_file(reader.archive, (dist_info_dir + "METADATA").c_str(), meta_content, error))
-        return false;
-
-    std::string              meta_name, meta_version, meta_summary, meta_author, meta_requires_python, meta_import_name;
-    std::vector<std::string> requires_dist;
-    std::string              meta_error;
-    parse_metadata_rfc822(meta_content, meta_name, meta_version, meta_summary, meta_author, meta_requires_python, meta_import_name,
-                          requires_dist, meta_error);
-
-    if (meta_name.empty()) {
-        error = "Wheel METADATA missing required Name field";
-        return false;
-    }
-    if (meta_version.empty()) {
-        error = "Wheel METADATA missing required Version field";
-        return false;
-    }
-
-    std::string wheel_content;
-    if (!read_zip_text_file(reader.archive, (dist_info_dir + "WHEEL").c_str(), wheel_content, error))
-        return false;
-
-    out.name    = std::move(meta_name);
-    out.version = std::move(meta_version);
-    out.tags    = parse_wheel_tags(wheel_content);
+    out.name    = std::move(wheel.name);
+    out.version = std::move(wheel.version);
+    out.tags    = parse_wheel_tags(wheel.wheel);
     return true;
 }
 
@@ -2262,43 +2246,34 @@ std::string install_dir(const std::string& plugin_root, const std::string& entry
     return (fs::path(plugin_root) / EXTRACTED_DIR_NAME / entry_package).string();
 }
 
-bool is_installed(const PluginDescriptor& descriptor, std::string* reason)
+bool is_installed(const PluginDescriptor& descriptor)
 {
-    if (reason != nullptr)
-        reason->clear();
-
-    auto fail = [reason](std::string message) {
-        if (reason != nullptr)
-            *reason = std::move(message);
-        return false;
-    };
-
     if (descriptor.plugin_root.empty())
-        return fail("plugin has no installation directory");
+        return false;
     if (descriptor.entry_path.empty())
-        return fail("plugin has no entry file");
+        return false;
     if (descriptor.entry_package.empty())
-        return fail("plugin has no entry package");
+        return false;
     if (!is_valid_entry_package(descriptor.entry_package))
-        return fail("entry package is not a safe package path");
+        return false;
 
     const fs::path target = fs::path(install_dir(descriptor.plugin_root, descriptor.entry_package));
     if (!fs::is_directory(target))
-        return fail("no installed wheel target");
+        return false;
 
     const fs::path marker_path = target / MARKER_FILE_NAME;
     if (!fs::is_regular_file(marker_path))
-        return fail("missing wheel installation marker");
+        return false;
 
     nlohmann::json marker;
     {
         boost::nowide::ifstream file(marker_path.string());
         if (!file)
-            return fail("unreadable wheel installation marker");
+            return false;
         marker = nlohmann::json::parse(file, nullptr, false, true);
     }
     if (marker.is_discarded() || !marker.is_object())
-        return fail("malformed wheel installation marker");
+        return false;
 
     const auto int_field    = [&marker](const char* key) -> long long {
         return marker.contains(key) && marker[key].is_number_integer() ? marker[key].get<long long>() : -1;
@@ -2321,26 +2296,26 @@ bool is_installed(const PluginDescriptor& descriptor, std::string* reason)
     };
 
     if (int_field("format") != INSTALL_FORMAT)
-        return fail("installation format changed");
+        return false;
     if (string_field("abi") != PythonInterpreter::python_abi_tag())
-        return fail("interpreter ABI changed");
+        return false;
     if (string_field("entry_package") != descriptor.entry_package)
-        return fail("entry package changed");
+        return false;
 
     std::string    fingerprint;
     std::uint64_t  size = 0;
     std::string    fingerprint_error;
     if (!fingerprint_file(descriptor.entry_path, fingerprint, size, fingerprint_error))
-        return fail(fingerprint_error);
+        return false;
 
     std::uint64_t recorded_size = 0;
     if (!size_field("size", recorded_size))
-        return fail("malformed wheel installation marker");
+        return false;
     if (string_field("fingerprint") != fingerprint || recorded_size != size)
-        return fail("wheel content changed");
+        return false;
 
     if (!entry_package_present(target, descriptor.entry_package))
-        return fail("installed target is incomplete");
+        return false;
 
     return true;
 }
@@ -2376,8 +2351,10 @@ bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, co
         return false;
     }
 
-    const fs::path plugin_root = fs::path(descriptor.plugin_root);
-    const fs::path entry       = fs::path(descriptor.entry_path);
+    const fs::path    plugin_root = fs::path(descriptor.plugin_root);
+    const fs::path    entry       = fs::path(descriptor.entry_path);
+    const std::string target_path = install_dir(descriptor.plugin_root, descriptor.entry_package);
+    const fs::path    target(target_path);
 
     // __whl_extracted__/ is shared with dependency extractions. Never take over a directory that
     // belongs to a dependency wheel: the two would fight over the same directory and import name.
@@ -2390,10 +2367,9 @@ bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, co
         return false;
     }
 
-    std::string reuse_reason;
-    if (is_installed(descriptor, &reuse_reason)) {
+    if (is_installed(descriptor)) {
         BOOST_LOG_TRIVIAL(info) << "[plugin_wheel_install] reusing installation for " << descriptor.plugin_key << " ("
-                                << install_dir(descriptor.plugin_root, descriptor.entry_package) << ")";
+                                << target_path << ")";
         return true;
     }
 
@@ -2403,9 +2379,9 @@ bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, co
     std::lock_guard<std::mutex> install_lock(install_mutex);
 
     // Another caller may have completed the same install while this one waited.
-    if (is_installed(descriptor, &reuse_reason)) {
+    if (is_installed(descriptor)) {
         BOOST_LOG_TRIVIAL(info) << "[plugin_wheel_install] reusing installation for " << descriptor.plugin_key << " ("
-                                << install_dir(descriptor.plugin_root, descriptor.entry_package) << ")";
+                                << target_path << ")";
         return true;
     }
 
@@ -2416,11 +2392,9 @@ bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, co
     // reinstall path above, so a stale or invalid uv installation is still rebuilt.
     if (has_legacy_entry_extraction(descriptor)) {
         BOOST_LOG_TRIVIAL(info) << "[plugin_wheel_install] reusing legacy extraction for " << descriptor.plugin_key << " ("
-                                << install_dir(descriptor.plugin_root, descriptor.entry_package) << ")";
+                                << target_path << ")";
         return true;
     }
-
-    const fs::path target = fs::path(install_dir(plugin_root.string(), descriptor.entry_package));
 
     std::string staged_name = entry.filename().string();
     if (!is_valid_wheel_filename(staged_name)) {
@@ -2504,7 +2478,7 @@ bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, co
     if (!uv_runner(args, INSTALL_TIMEOUT, uv_error)) {
         if (uv_error.empty())
             uv_error = "uv pip install failed";
-        return fail("Failed to install plugin wheel: " + uv_error);
+        return fail(uv_error);
     }
 
     if (!fs::is_directory(staging_target, ec))
@@ -2521,7 +2495,6 @@ bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, co
     {
         nlohmann::json marker;
         marker["format"]        = INSTALL_FORMAT;
-        marker["wheel"]         = entry.filename().string();
         marker["size"]          = wheel_size;
         marker["fingerprint"]   = fingerprint;
         marker["abi"]           = PythonInterpreter::python_abi_tag();
