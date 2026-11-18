@@ -13,6 +13,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/nowide/convert.hpp>
 #include <boost/nowide/cstdio.hpp>
 #include <boost/nowide/fstream.hpp>
 
@@ -55,6 +56,22 @@
 namespace Slic3r {
 
 const char* const INSTALL_STATE_FILE = ".install_state.json";
+
+namespace {
+
+// Narrow path for boost::nowide streams and C stdio. On Windows the extended-length ("\\?\") form
+// reaches past MAX_PATH even with LongPathsEnabled off; elsewhere the path is unchanged. Keep this
+// out of boost::filesystem::path::generic_string(), which rewrites the separators the prefix needs.
+std::string io_path_string(const boost::filesystem::path& path)
+{
+#ifdef _WIN32
+    return boost::nowide::narrow(extended_path(path).wstring());
+#else
+    return path.string();
+#endif
+}
+
+} // namespace
 
 std::mutex& install_state_mutex()
 {
@@ -283,17 +300,21 @@ void scan_plugin_directory(const std::string& dir_path, std::vector<PluginDescri
 {
     namespace fs = boost::filesystem;
 
-    if (!fs::exists(dir_path) || !fs::is_directory(dir_path))
+    // Enumerate through the extended-length form so a package folder whose own path passes MAX_PATH
+    // is still listed, then rebuild each child from `dir_path`: descriptor paths feed uv, sys.path,
+    // audit grants and the UI and must keep their normal spelling.
+    const fs::path io_dir_path = extended_path(fs::path(dir_path));
+    if (!fs::exists(io_dir_path) || !fs::is_directory(io_dir_path))
         return;
 
     BOOST_LOG_TRIVIAL(debug) << "Scanning plugin directory: " << dir_path;
 
     try {
-        for (fs::directory_iterator it(dir_path); it != fs::directory_iterator(); ++it) {
+        for (fs::directory_iterator it(io_dir_path); it != fs::directory_iterator(); ++it) {
             if (!fs::is_directory(it->status()))
                 continue;
 
-            const fs::path plugin_dir = it->path();
+            const fs::path plugin_dir = fs::path(dir_path) / it->path().filename();
             if (is_ignored_plugin_directory(plugin_dir))
                 continue;
 
@@ -365,12 +386,13 @@ std::vector<std::string> get_plugin_directories(const std::string& cloud_user_id
 
     // Creates the directory when missing — callers (notably the install path) rely on it existing.
     auto add_or_create_dir = [&dirs](const fs::path& path) {
-        if (fs::exists(path) && fs::is_directory(path)) {
+        const fs::path io_path = extended_path(path);
+        if (fs::exists(io_path) && fs::is_directory(io_path)) {
             dirs.push_back(path.string());
             return;
         }
         try {
-            fs::create_directories(path);
+            fs::create_directories(io_path);
             dirs.push_back(path.string());
             BOOST_LOG_TRIVIAL(info) << "Created plugin directory: " << path.string();
         } catch (const std::exception& ex) {
@@ -994,8 +1016,9 @@ InstallStateReadStatus read_install_state_status(const boost::filesystem::path& 
     // unreadable parent be told apart from a genuinely missing sidecar. Only "no entry" means a
     // new plugin whose metadata may be seeded; anything else that cannot be read must be
     // preserved.
+    const fs::path            io_sidecar_path = extended_path(sidecar_path);
     boost::system::error_code ec;
-    const fs::file_status     link_status = fs::symlink_status(sidecar_path, ec);
+    const fs::file_status     link_status = fs::symlink_status(io_sidecar_path, ec);
     if (ec) {
         if (ec == boost::system::errc::no_such_file_or_directory)
             return InstallStateReadStatus::Absent;
@@ -1004,11 +1027,11 @@ InstallStateReadStatus read_install_state_status(const boost::filesystem::path& 
     if (!fs::exists(link_status))
         return InstallStateReadStatus::Absent;
 
-    const fs::file_status status = fs::status(sidecar_path, ec);
+    const fs::file_status status = fs::status(io_sidecar_path, ec);
     if (ec || !fs::is_regular_file(status))
         return InstallStateReadStatus::Unreadable;
 
-    boost::nowide::ifstream f(sidecar_path.string());
+    boost::nowide::ifstream f(io_path_string(io_sidecar_path));
     if (!f)
         return InstallStateReadStatus::Unreadable;
 
@@ -1019,7 +1042,13 @@ InstallStateReadStatus read_install_state_status(const boost::filesystem::path& 
             // would look malformed too. They count as malformed only when the entry itself is a
             // regular file, not a link that a move could follow on Windows, and a second read gets
             // every byte on disk (load_string_file throws otherwise, caught below) that still
-            // does not parse.
+            // does not parse. That second read stays on load_string_file() because only it proves a
+            // full read: copying the streambuf into a stream reports a short or failed read as
+            // end-of-stream, and a truncated prefix that fails to parse would be misclassified as
+            // malformed and set aside. It is called with the plain path: load_string_file() goes
+            // through path::generic_string(), whose forward slashes the "\\?\" prefix does not
+            // accept, so a sidecar past MAX_PATH fails that read and stays Unreadable, never
+            // malformed.
             if (malformed != nullptr && fs::is_regular_file(link_status)) {
                 std::string contents;
                 load_string_file(sidecar_path, contents);
@@ -1131,14 +1160,19 @@ bool replace_install_state_file(const boost::filesystem::path& target, const std
         (target.filename().string() + "." + std::to_string(get_current_pid()) + "." +
          std::to_string(counter.fetch_add(1, std::memory_order_relaxed)) + ".tmp");
 
-    const auto fail = [&tmp_path, &error](const std::string& reason) {
+    // Every file operation below uses the extended-length form, so a sidecar past MAX_PATH is still
+    // replaced atomically; the plain paths stay for the error messages.
+    const fs::path io_tmp_path    = extended_path(tmp_path);
+    const fs::path io_target_path = extended_path(target);
+
+    const auto fail = [&io_tmp_path, &error](const std::string& reason) {
         boost::system::error_code remove_ec;
-        fs::remove(tmp_path, remove_ec);
+        fs::remove(io_tmp_path, remove_ec);
         error = reason;
         return false;
     };
 
-    boost::nowide::ofstream out(tmp_path.string(), std::ios::out | std::ios::trunc);
+    boost::nowide::ofstream out(io_path_string(io_tmp_path), std::ios::out | std::ios::trunc);
     if (!out)
         return fail("cannot open temporary for writing");
 
@@ -1157,14 +1191,14 @@ bool replace_install_state_file(const boost::filesystem::path& target, const std
     // Keep the replaced file's mode where the platform has one. Best effort, matching the previous
     // writer; a failure here does not turn a successful replace into a failed one.
     boost::system::error_code perm_ec;
-    const fs::file_status   target_status = fs::status(target, perm_ec);
+    const fs::file_status   target_status = fs::status(io_target_path, perm_ec);
     if (!perm_ec && fs::exists(target_status))
-        fs::permissions(tmp_path, target_status.permissions(), perm_ec);
+        fs::permissions(io_tmp_path, target_status.permissions(), perm_ec);
 #endif
 
 #ifdef _WIN32
-    const std::wstring wide_tmp    = tmp_path.wstring();
-    const std::wstring wide_target = target.wstring();
+    const std::wstring wide_tmp    = io_tmp_path.wstring();
+    const std::wstring wide_target = io_target_path.wstring();
     // A scanner or a reader holding the target open makes MoveFileExW fail transiently with a
     // sharing or access error. Retry the same replace primitive a bounded number of times; any
     // other error, or the last attempt, reports the last error and removes the temporary.
@@ -1181,7 +1215,7 @@ bool replace_install_state_file(const boost::filesystem::path& target, const std
         ::Sleep(10);
     }
 #else
-    if (boost::nowide::rename(tmp_path.string().c_str(), target.string().c_str()) != 0)
+    if (boost::nowide::rename(io_tmp_path.string().c_str(), io_target_path.string().c_str()) != 0)
         return fail(std::error_code(errno, std::generic_category()).message());
 #endif
 
@@ -1281,12 +1315,13 @@ bool read_python_plugin_metadata(const boost::filesystem::path& py_path, PluginD
 {
     namespace fs = boost::filesystem;
 
-    if (!fs::exists(py_path) || !fs::is_regular_file(py_path)) {
+    const fs::path io_py_path = extended_path(py_path);
+    if (!fs::exists(io_py_path) || !fs::is_regular_file(io_py_path)) {
         error = "Python plugin file does not exist: " + py_path.string();
         return false;
     }
 
-    boost::nowide::ifstream f(py_path.string());
+    boost::nowide::ifstream f(io_path_string(py_path));
     if (!f) {
         error = "Failed to open Python plugin file: " + py_path.string();
         return false;
@@ -1384,7 +1419,8 @@ bool read_wheel_prologue(const boost::filesystem::path& whl_path, WheelPrologue&
 {
     namespace fs = boost::filesystem;
 
-    if (!fs::exists(whl_path) || !fs::is_regular_file(whl_path)) {
+    const fs::path io_whl_path = extended_path(whl_path);
+    if (!fs::exists(io_whl_path) || !fs::is_regular_file(io_whl_path)) {
         error = "Wheel plugin file does not exist: " + whl_path.string();
         return false;
     }
@@ -1553,7 +1589,12 @@ boost::filesystem::path find_installed_plugin_entry(const boost::filesystem::pat
 {
     namespace fs = boost::filesystem;
 
-    if (!fs::exists(plugin_dir) || !fs::is_directory(plugin_dir)) {
+    // The entry file is a direct child, so it can pass MAX_PATH while the plugin folder itself still
+    // resolves. Probe the folder and its children in extended form, then return children joined to
+    // the caller's `plugin_dir`: that path is stored in the descriptor, passed to uv, and shown in
+    // the UI, and must keep its normal spelling.
+    const fs::path io_plugin_dir = extended_path(plugin_dir);
+    if (!fs::exists(io_plugin_dir) || !fs::is_directory(io_plugin_dir)) {
         error = GUI::format(_u8L("Plugin directory does not exist: %1%"), plugin_dir.string());
         return {};
     }
@@ -1561,29 +1602,30 @@ boost::filesystem::path find_installed_plugin_entry(const boost::filesystem::pat
     fs::path py_entry;
     fs::path whl_entry;
 
-    for (fs::directory_iterator it(plugin_dir); it != fs::directory_iterator(); ++it) {
-        if (is_ignored_plugin_directory(it->path()))
+    for (fs::directory_iterator it(io_plugin_dir); it != fs::directory_iterator(); ++it) {
+        const fs::path entry = plugin_dir / it->path().filename();
+        if (is_ignored_plugin_directory(entry))
             continue;
         if (!fs::is_regular_file(it->status()))
             continue;
 
-        const fs::path ext = it->path().extension();
+        const fs::path ext = entry.extension();
         if (ext == ".py") {
             if (!py_entry.empty()) {
                 // TRN %1% and %2% are file names.
                 error = GUI::format(_u8L("Plugin directory contains multiple .py files: %1% and %2%"),
-                                    py_entry.filename().string(), it->path().filename().string());
+                                    py_entry.filename().string(), entry.filename().string());
                 return {};
             }
-            py_entry = it->path();
+            py_entry = entry;
         } else if (ext == ".whl") {
             if (!whl_entry.empty()) {
                 // TRN %1% and %2% are file names.
                 error = GUI::format(_u8L("Plugin directory contains multiple .whl files: %1% and %2%"),
-                                    whl_entry.filename().string(), it->path().filename().string());
+                                    whl_entry.filename().string(), entry.filename().string());
                 return {};
             }
-            whl_entry = it->path();
+            whl_entry = entry;
         }
     }
 
@@ -1831,17 +1873,19 @@ bool dependency_extraction_collides(const fs::path& entry_path, const std::strin
     // Mirror add_wheel_dependencies_to_sys_path(): it scans the entry's parent directory (or the
     // entry path itself when it has no extension) and recognizes only lowercase ".whl" files.
     // Keep the same rules here so this guard protects exactly the directories that loader uses.
-    const fs::path           plugin_dir = entry_path.has_extension() ? entry_path.parent_path() : entry_path;
+    const fs::path            plugin_dir    = entry_path.has_extension() ? entry_path.parent_path() : entry_path;
+    const fs::path            io_plugin_dir = extended_path(plugin_dir);
+    const fs::path            io_entry_path = extended_path(entry_path);
     boost::system::error_code ec;
-    if (!fs::is_directory(plugin_dir, ec))
+    if (!fs::is_directory(io_plugin_dir, ec))
         return false;
 
-    for (fs::directory_iterator it(plugin_dir, ec); !ec && it != fs::directory_iterator(); ++it) {
+    for (fs::directory_iterator it(io_plugin_dir, ec); !ec && it != fs::directory_iterator(); ++it) {
         if (!fs::is_regular_file(it->status()))
             continue;
 
         const fs::path candidate = it->path();
-        if (candidate == entry_path)
+        if (candidate == io_entry_path)
             continue;
         if (candidate.extension() != ".whl")
             continue;
@@ -1857,6 +1901,10 @@ bool entry_package_present(const fs::path& target, const std::string& entry_pack
     if (!is_valid_entry_package(entry_package))
         return false;
 
+    // The target is the wheel cache directory, which sits below the plugin folder and is the path
+    // most likely to pass MAX_PATH, so every probe here uses its extended-length form.
+    const fs::path io_target = extended_path(target);
+
     // Dotted import names ("pkg.sub") map onto nested components; the wheel installs
     // top-level distributions, so this is only a sanity check that the root exists.
     fs::path relative;
@@ -1871,13 +1919,13 @@ bool entry_package_present(const fs::path& target, const std::string& entry_pack
     }
     relative /= component;
 
-    if (fs::is_directory(target / relative))
+    if (fs::is_directory(io_target / relative))
         return true;
-    if (fs::is_regular_file(target / relative.parent_path() / (relative.filename().string() + ".py")))
+    if (fs::is_regular_file(io_target / relative.parent_path() / (relative.filename().string() + ".py")))
         return true;
 
     // A compiled top-level module (<pkg>.cpython-312-x86_64-linux-gnu.so / <pkg>.pyd).
-    const fs::path parent = target / relative.parent_path();
+    const fs::path parent = io_target / relative.parent_path();
     if (fs::is_directory(parent)) {
         const std::string leaf = relative.filename().string() + ".";
         for (fs::directory_iterator it(parent); it != fs::directory_iterator(); ++it) {
@@ -1910,7 +1958,8 @@ bool has_legacy_entry_extraction(const PluginDescriptor& descriptor)
     if (target_path.empty())
         return false;
 
-    const fs::path target(target_path);
+    // The cache target is the path MAX_PATH is reached first, so probe it in extended form.
+    const fs::path            target = extended_path(fs::path(target_path));
     boost::system::error_code ec;
     if (!fs::is_directory(target, ec))
         return false;
@@ -1931,7 +1980,7 @@ bool has_legacy_entry_extraction(const PluginDescriptor& descriptor)
 // cache hint, not a trust decision.
 bool fingerprint_file(const fs::path& path, std::string& fingerprint, std::uint64_t& size, std::string& error)
 {
-    boost::nowide::ifstream file(path.string(), std::ios::binary);
+    boost::nowide::ifstream file(io_path_string(path), std::ios::binary);
     if (!file) {
         error = "Failed to read plugin wheel: " + path.string();
         return false;
@@ -1964,7 +2013,7 @@ bool fingerprint_file(const fs::path& path, std::string& fingerprint, std::uint6
 void remove_tree_quietly(const fs::path& path)
 {
     boost::system::error_code ec;
-    fs::remove_all(path, ec);
+    fs::remove_all(extended_path(path), ec);
     if (ec)
         BOOST_LOG_TRIVIAL(warning) << "Failed to remove plugin wheel installation directory " << path.string() << ": " << ec.message();
 }
@@ -1981,14 +2030,17 @@ bool is_install_scratch_dir(const fs::path& path)
 // noise. Best effort: a failure to remove one is logged, not fatal.
 void remove_stale_scratch_dirs(const fs::path& plugin_root)
 {
+    const fs::path            io_plugin_root = extended_path(plugin_root);
     boost::system::error_code ec;
-    if (!fs::is_directory(plugin_root, ec))
+    if (!fs::is_directory(io_plugin_root, ec))
         return;
 
     std::vector<fs::path> stale;
-    for (fs::directory_iterator it(plugin_root, ec); !ec && it != fs::directory_iterator(); ++it) {
+    for (fs::directory_iterator it(io_plugin_root, ec); !ec && it != fs::directory_iterator(); ++it) {
+        // Rebuild the entry from the plain plugin root so the paths handed to cleanup, and the
+        // paths it logs, keep their normal form.
         if (is_install_scratch_dir(it->path()))
-            stale.push_back(it->path());
+            stale.push_back(plugin_root / it->path().filename());
     }
     for (const fs::path& path : stale)
         remove_tree_quietly(path);
@@ -2257,7 +2309,10 @@ bool is_installed(const PluginDescriptor& descriptor)
     if (!is_valid_entry_package(descriptor.entry_package))
         return false;
 
-    const fs::path target = fs::path(install_dir(descriptor.plugin_root, descriptor.entry_package));
+    // The installed target is the path most likely to pass MAX_PATH, so it is probed and read in
+    // extended-length form. Only local path objects carry the prefix; marker fields and the
+    // descriptor's paths stay unprefixed.
+    const fs::path target      = extended_path(fs::path(install_dir(descriptor.plugin_root, descriptor.entry_package)));
     if (!fs::is_directory(target))
         return false;
 
@@ -2267,7 +2322,7 @@ bool is_installed(const PluginDescriptor& descriptor)
 
     nlohmann::json marker;
     {
-        boost::nowide::ifstream file(marker_path.string());
+        boost::nowide::ifstream file(io_path_string(marker_path));
         if (!file)
             return false;
         marker = nlohmann::json::parse(file, nullptr, false, true);
@@ -2356,6 +2411,12 @@ bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, co
     const std::string target_path = install_dir(descriptor.plugin_root, descriptor.entry_package);
     const fs::path    target(target_path);
 
+    // Every filesystem step below runs on the extended-length form: the staging root and the
+    // installed cache sit below the plugin folder and are where MAX_PATH is reached first. The
+    // plain paths stay for messages and for the uv arguments (see below).
+    const fs::path io_entry  = extended_path(entry);
+    const fs::path io_target = extended_path(target);
+
     // __whl_extracted__/ is shared with dependency extractions. Never take over a directory that
     // belongs to a dependency wheel: the two would fight over the same directory and import name.
     // Checked before reuse so a marker in a coincidentally named dependency directory cannot make
@@ -2431,10 +2492,12 @@ bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, co
     remove_stale_scratch_dirs(plugin_root);
 
     boost::system::error_code ec;
-    const std::string        unique        = fs::unique_path("%%%%-%%%%-%%%%").string();
-    const fs::path           staging_root  = plugin_root / (std::string(STAGING_DIR_PREFIX) + unique);
-    const fs::path           staging_input = staging_root / "input";
-    const fs::path           staging_target = staging_root / "target";
+    const std::string        unique            = fs::unique_path("%%%%-%%%%-%%%%").string();
+    const fs::path           staging_root      = plugin_root / (std::string(STAGING_DIR_PREFIX) + unique);
+    const fs::path           staging_input     = staging_root / "input";
+    const fs::path           staging_target    = staging_root / "target";
+    const fs::path           io_staging_input  = extended_path(staging_input);
+    const fs::path           io_staging_target = extended_path(staging_target);
 
     auto fail = [&error, &staging_root](const std::string& message) {
         remove_tree_quietly(staging_root);
@@ -2442,12 +2505,12 @@ bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, co
         return false;
     };
 
-    fs::create_directories(staging_input, ec);
+    fs::create_directories(io_staging_input, ec);
     if (ec)
         return fail("Failed to create wheel staging directory " + staging_input.string() + ": " + ec.message());
 
     const fs::path staged_wheel = staging_input / staged_name;
-    fs::copy_file(entry, staged_wheel, ec);
+    fs::copy_file(io_entry, extended_path(staged_wheel), ec);
     if (ec)
         return fail("Failed to stage plugin wheel " + entry.string() + ": " + ec.message());
 
@@ -2455,6 +2518,10 @@ bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, co
     if (python_executable.empty())
         return fail("Bundled Python executable not found. Plugin wheel installation is unavailable.");
 
+    // uv receives the plain absolute paths, not the extended-length form: uv is a Rust program whose
+    // standard library qualifies and verbatim-prefixes a long path itself, and a "\\?\" argument
+    // would change how it interprets the path. Only this process's own filesystem calls need the
+    // prefix.
     const std::vector<std::string> args = {"--no-config",
                                            "pip",
                                            "install",
@@ -2481,7 +2548,7 @@ bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, co
         return fail(uv_error);
     }
 
-    if (!fs::is_directory(staging_target, ec))
+    if (!fs::is_directory(io_staging_target, ec))
         return fail("uv reported success but did not create the plugin target.");
     if (!entry_package_present(staging_target, descriptor.entry_package))
         return fail("uv reported success but did not install the entry package '" + descriptor.entry_package + "'.");
@@ -2500,7 +2567,7 @@ bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, co
         marker["abi"]           = PythonInterpreter::python_abi_tag();
         marker["entry_package"] = descriptor.entry_package;
 
-        boost::nowide::ofstream file((staging_target / MARKER_FILE_NAME).string());
+        boost::nowide::ofstream file(io_path_string(io_staging_target / MARKER_FILE_NAME));
         if (!file)
             return fail("Failed to write the wheel installation marker.");
         file << marker.dump(2, ' ', false, nlohmann::json::error_handler_t::replace);
@@ -2513,20 +2580,21 @@ bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, co
     // The target's parent (__whl_extracted__) also holds dependency extractions, so creating it is
     // safe; only the entry package's own subdirectory is replaced.
     ec.clear();
-    fs::create_directories(target.parent_path(), ec);
+    fs::create_directories(io_target.parent_path(), ec);
     if (ec)
         return fail("Failed to create the plugin wheel extraction directory " + target.parent_path().string() +
                     ": " + ec.message());
 
-    const fs::path previous = plugin_root / (std::string(PREVIOUS_DIR_PREFIX) + unique);
+    const fs::path previous    = plugin_root / (std::string(PREVIOUS_DIR_PREFIX) + unique);
+    const fs::path io_previous = extended_path(previous);
     ec.clear();
-    const bool had_target = fs::exists(target, ec);
+    const bool had_target = fs::exists(io_target, ec);
     // Boost's exists() reports an absent path through ec as not-found; a fresh install legitimately
     // has no target. Only a different error means the probe itself failed.
     if (ec && ec != boost::system::errc::no_such_file_or_directory)
         return fail("Failed to inspect the existing wheel installation target: " + ec.message());
     if (had_target) {
-        fs::rename(target, previous, ec);
+        fs::rename(io_target, io_previous, ec);
         if (ec) {
             std::string message = "Failed to move the previous wheel installation aside: " + ec.message();
             remove_tree_quietly(staging_root);
@@ -2535,12 +2603,12 @@ bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, co
         }
     }
 
-    fs::rename(staging_target, target, ec);
+    fs::rename(io_staging_target, io_target, ec);
     if (ec) {
         std::string message = "Failed to activate the new wheel installation: " + ec.message();
         if (had_target) {
             boost::system::error_code restore_ec;
-            fs::rename(previous, target, restore_ec);
+            fs::rename(io_previous, io_target, restore_ec);
             if (restore_ec) {
                 // Keep the retired target: it may still be the only usable copy.
                 message += " The previous installation could not be restored and was kept at " + previous.string() + ": " +

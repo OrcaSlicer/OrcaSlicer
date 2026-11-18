@@ -192,6 +192,41 @@ std::string executable_name(const char* base)
 #endif
 }
 
+// True when the interpreter can reach `pkg_name`'s entry file through the plain spelling of its
+// sys.path entry `dir`. A directory below the legacy Windows MAX_PATH can still hold package files
+// above it, and the finder then silently treats the package as a namespace package: an
+// unreachable __init__.py reads exactly like a missing one, so probing the directory alone cannot
+// tell the two apart. Conservative by design: only a visible package __init__.py or a
+// single-module .py file keeps the plain spelling; anything else (a compiled-only or namespace
+// entry) takes the extended-length form, which imports it just as well.
+bool module_entry_reachable(const boost::filesystem::path& dir, const std::string& pkg_name)
+{
+    namespace fs = boost::filesystem;
+
+    fs::path    relative;
+    std::string component;
+    for (const char ch : pkg_name) {
+        if (ch == '.') {
+            relative /= component;
+            component.clear();
+        } else {
+            component += ch;
+        }
+    }
+    if (component.empty())
+        return false;
+    relative /= component;
+
+    // A path past MAX_PATH fails these probes with an error, which reads as "not reachable".
+    boost::system::error_code ec;
+    if (fs::is_regular_file(dir / relative / "__init__.py", ec) && !ec)
+        return true;
+
+    ec.clear();
+    const fs::path parent = relative.parent_path().empty() ? dir : dir / relative.parent_path();
+    return fs::is_regular_file(parent / (relative.filename().string() + ".py"), ec) && !ec;
+}
+
 bool add_sys_path_entry(const boost::filesystem::path& path, std::string& error, bool* inserted = nullptr)
 {
     if (inserted)
@@ -1271,9 +1306,19 @@ PyObject* PythonInterpreter::load_module_from_directory(const std::string& dir_p
     }
 
     namespace fs = boost::filesystem;
-    fs::path dir(dir_path);
+    // A wheel cache below the data directory can pass the legacy Windows MAX_PATH, in the
+    // directory itself or in the package files below it, where boost::filesystem and the
+    // interpreter's finder cannot reach either. The plain spelling is what the plugin then sees as
+    // __file__ and sys.path, and what the host compares against the plain plugin root, so it is
+    // kept while the entry module is reachable through it; otherwise the extended-length form is
+    // used for the probe and for sys.path, and the recorded entry matches what is on it.
+    // extended_path() is the identity off Windows.
+    fs::path io_dir(dir_path);
+    if (!io_dir.empty() && !module_entry_reachable(io_dir, pkg_name))
+        io_dir = extended_path(io_dir);
 
-    if (!fs::exists(dir) || !fs::is_directory(dir)) {
+    boost::system::error_code ec;
+    if (!fs::is_directory(io_dir, ec) || ec) {
         error = "Directory does not exist: " + dir_path;
         return nullptr;
     }
@@ -1284,7 +1329,7 @@ PyObject* PythonInterpreter::load_module_from_directory(const std::string& dir_p
         return nullptr;
     }
 
-    const std::string directory = dir.string();
+    const std::string directory = io_dir.string();
     if (!add_plugin_sys_path_locked(directory, error))
         return nullptr;
     if (plugin_paths)

@@ -1,9 +1,12 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/nowide/convert.hpp>
+#include <boost/nowide/fstream.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <ios>
 #include <libslic3r/LifecycleEvents.hpp>
+#include <libslic3r/Utils.hpp>
 #include <memory>
 #include <slic3r/Utils/Http.hpp>
 #include <slic3r/Utils/NetworkAgentFactory.hpp>
@@ -27,6 +30,7 @@
 #include <algorithm>
 #include <chrono>
 #include <condition_variable>
+#include <cstddef>
 #include <fstream>
 #include <mutex>
 #include "slic3r/plugin/PythonPluginInterface.hpp"
@@ -215,6 +219,84 @@ fs::path write_plugin(const ScopedDataDir& data_dir_guard, const std::string& st
     out.close();
 
     return plugin_dir;
+}
+
+// Path forms for a tree past the legacy Windows MAX_PATH (260): the extended-length form reaches
+// it and is the identity elsewhere, while the UTF-8 spelling is what the interpreter's filesystem
+// encoding and boost::nowide expect on Windows.
+fs::path long_path(const fs::path& path)
+{
+    return extended_path(path);
+}
+
+std::string path_utf8(const fs::path& path)
+{
+#ifdef _WIN32
+    return boost::nowide::narrow(path.wstring());
+#else
+    return path.string();
+#endif
+}
+
+// Writes <package_dir>/__init__.py, creating the tree through the extended-length form so the
+// fixture is buildable past MAX_PATH on Windows.
+void write_long_path_package(const fs::path& package_dir)
+{
+    boost::system::error_code ec;
+    fs::create_directories(long_path(package_dir), ec);
+    REQUIRE_FALSE(ec);
+
+    boost::nowide::ofstream init(path_utf8(long_path(package_dir) / "__init__.py"));
+    init << "VALUE = \"long\"\n";
+    REQUIRE(init.good());
+}
+
+// Loads the package the way the wheel loader does and checks that its body ran, that the recorded
+// sys.path entry is exactly the one on sys.path, and that unloading removes it again.
+void check_package_import(const fs::path& package_parent, const std::string& pkg_name)
+{
+    PythonInterpreter&       interpreter = PythonInterpreter::instance();
+    std::vector<std::string> paths;
+    std::vector<std::string> modules;
+    std::string              error;
+    // The plain path goes in: reaching the files is the loader's job, not the caller's.
+    PyObject* module = interpreter.load_module_from_directory(path_utf8(package_parent), pkg_name, error, &paths, &modules);
+    INFO("module load error: " << error);
+    REQUIRE(module != nullptr);
+    REQUIRE(error.empty());
+    REQUIRE(paths.size() == 1);
+
+    {
+        PythonGILState gil;
+        REQUIRE(gil);
+        PyObjectPtr value(PyObject_GetAttrString(module, "VALUE"));
+        REQUIRE(value);
+        REQUIRE(PyUnicode_Check(value.get()));
+        CHECK(std::string(PyUnicode_AsUTF8(value.get())) == "long");
+
+        PyObject* sys_path = PySys_GetObject("path");
+        REQUIRE(sys_path != nullptr);
+        PyObjectPtr entry(PyUnicode_DecodeFSDefault(paths.front().c_str()));
+        REQUIRE(entry);
+        CHECK(PySequence_Contains(sys_path, entry.get()) == 1);
+    }
+
+    Plugin loaded;
+    loaded.module           = module;
+    loaded.module_name      = pkg_name;
+    loaded.plugin_sys_paths = paths;
+    loaded.plugin_modules   = modules;
+    loaded.release_module();
+
+    {
+        PythonGILState gil;
+        REQUIRE(gil);
+        PyObject* sys_path = PySys_GetObject("path");
+        REQUIRE(sys_path != nullptr);
+        PyObjectPtr entry(PyUnicode_DecodeFSDefault(paths.front().c_str()));
+        REQUIRE(entry);
+        CHECK(PySequence_Contains(sys_path, entry.get()) == 0);
+    }
 }
 
 // Loads a plugin and blocks until the detached worker thread is done with it.
@@ -736,6 +818,61 @@ TEST_CASE("Python module release removes package submodules and owned sys.path",
     loaded.plugin_sys_paths = paths;
     loaded.plugin_modules   = modules;
     loaded.release_module();
+}
+
+TEST_CASE("A package imports from a plugin directory longer than MAX_PATH", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedTemporaryDir dir("long-path-import-dir");
+
+    // The sys.path entry itself — the wheel cache — is past the legacy Windows MAX_PATH, so it can
+    // be neither probed nor imported from through the plain spelling. Components stay short enough
+    // for NAME_MAX on every platform, so the same tree is valid off Windows.
+    fs::path package_parent = dir.path();
+    while (path_utf8(package_parent).size() < 280)
+        package_parent /= "deep_plugin_directory_component";
+    REQUIRE(path_utf8(package_parent).size() > 260);
+
+    write_long_path_package(package_parent / "long_path_package");
+    check_package_import(package_parent, "long_path_package");
+
+    // Only the extended-length form can remove the deep tree on Windows; the guard then removes
+    // the shallow remainder.
+    boost::system::error_code cleanup_ec;
+    fs::remove_all(long_path(package_parent), cleanup_ec);
+}
+
+TEST_CASE("A package imports when only its files pass MAX_PATH", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedTemporaryDir dir("long-path-import-files");
+
+    // The sys.path entry stays below the limit, so a directory probe alone would accept it, but the
+    // package file below it does not. The finder reads the unreachable __init__.py as absent and
+    // accepts the directory as a namespace package, so the loader has to check the entry file
+    // instead of the directory.
+    fs::path package_parent = dir.path();
+    const std::size_t base_len = path_utf8(package_parent).size() + 1; // the separator before padding
+    const std::size_t target_len = 250;
+    if (base_len >= target_len)
+        SKIP("Temporary directory is too long for a below-MAX_PATH parent");
+    package_parent /= std::string(target_len - base_len, 'd');
+    REQUIRE(path_utf8(package_parent).size() == target_len);
+
+    const fs::path package_dir = package_parent / "long_path_package";
+    REQUIRE(path_utf8(package_dir / "__init__.py").size() > 260);
+
+    write_long_path_package(package_dir);
+    check_package_import(package_parent, "long_path_package");
+
+    boost::system::error_code cleanup_ec;
+    fs::remove_all(long_path(package_parent), cleanup_ec);
 }
 
 TEST_CASE("A capability disabled in the sidecar loads disabled", "[PluginLifecycle][Python]")

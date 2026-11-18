@@ -76,6 +76,25 @@ fs::path to_extended_path(const fs::path& p)
     return Slic3r::extended_path(p);
 }
 
+// A minimal installable wheel: one dist-info directory holding METADATA, WHEEL and RECORD, plus a
+// module. install_plugin only caches the archive, so the module body is never imported.
+void write_wheel(const fs::path& path, const std::string& dist_name)
+{
+    fs::create_directories(path.parent_path());
+
+    Zipper zipper(path.string(), Zipper::NO_COMPRESSION);
+    const std::string module   = "VALUE = 1\n";
+    const std::string metadata = "Metadata-Version: 2.1\nName: " + dist_name + "\nVersion: 1.0\n\n";
+    const std::string wheel    = "Wheel-Version: 1.0\nGenerator: test\nRoot-Is-Purelib: true\nTag: py3-none-any\n";
+    const std::string record   = "demo_pkg/__init__.py,,\n";
+    const std::string info     = dist_name + "-1.0.dist-info/";
+    zipper.add_entry("demo_pkg/__init__.py", module.data(), module.size());
+    zipper.add_entry(info + "METADATA", metadata.data(), metadata.size());
+    zipper.add_entry(info + "WHEEL", wheel.data(), wheel.size());
+    zipper.add_entry(info + "RECORD", record.data(), record.size());
+    zipper.finalize();
+}
+
 // Brings the plugin system up for a case that drives a real plugin load, and tears it down
 // afterwards. Declare it first in the test so it is destroyed last; the interpreter itself is
 // process-wide and finalized once by the suite's run-end handler.
@@ -193,6 +212,44 @@ TEST_CASE("install_plugin accepts a side-loaded .py with complete PEP 723 metada
     // Positive control: a complete side-loaded .py must still install (guards against over-rejection).
     REQUIRE(installed);
     CHECK(error.empty());
+}
+
+TEST_CASE("install_plugin caches a wheel whose destination passes MAX_PATH", "[PluginInstall][Regression]")
+{
+    ScopedDataDir      data_dir_guard("long-path-install");
+    ScopedTemporaryDir wheel_source("long-path-wheel-source");
+
+    // data_dir()/orca_plugins/<escaped filename>/<filename> is the cached copy. A long distribution
+    // name in the wheel filename pushes that copy past MAX_PATH while the plugin root stays well
+    // below it, and the Win32 APIs then refuse to create, copy or read the cache unless every
+    // operation goes through the extended-length form.
+    fs::path deep_data_dir = data_dir_guard.dir;
+    while (deep_data_dir.string().size() < 140)
+        deep_data_dir /= "deep_component";
+    fs::create_directories(to_extended_path(deep_data_dir));
+    set_data_dir(deep_data_dir.string());
+
+    const std::string dist_name = "demo_plugin_with_a_distribution_name_long_enough_to_push_the_cached_copy_past_max_path";
+    const fs::path    wheel     = wheel_source.path() / (dist_name + "-1.0-py3-none-any.whl");
+    write_wheel(wheel, dist_name);
+    if (wheel.string().size() >= 260)
+        SKIP("Temporary directory is too long for a below-MAX_PATH wheel source");
+
+    PluginDescriptor descriptor;
+    std::string      error;
+    REQUIRE(plugin_loader::install_plugin(wheel, /*cloud_user_id=*/"", descriptor, error));
+    CHECK(error.empty());
+
+    // The installed package, its descriptor identity and the sidecar beside it are all below the
+    // deep plugin folder, so each of them has to be reachable past the limit.
+    const fs::path installed = fs::path(descriptor.entry_path);
+    REQUIRE(installed.string().size() > 260);
+    CHECK(fs::is_regular_file(to_extended_path(installed)));
+    CHECK(fs::is_regular_file(to_extended_path(fs::path(descriptor.plugin_root) / INSTALL_STATE_FILE)));
+
+    // ScopedDataDir's plain remove_all cannot reach past MAX_PATH on Windows.
+    boost::system::error_code cleanup_ec;
+    fs::remove_all(to_extended_path(deep_data_dir), cleanup_ec);
 }
 
 TEST_CASE("a .py plugin's PEP 723 dependencies split only at the commas between items", "[PluginInstall][PluginFsUtils]")

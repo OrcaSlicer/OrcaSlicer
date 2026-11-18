@@ -2,10 +2,13 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/nowide/convert.hpp>
+#include <boost/nowide/fstream.hpp>
 #include <catch2/catch_all.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <cstddef>
+#include <libslic3r/Utils.hpp>
 #include <libslic3r/Zipper.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
@@ -13,6 +16,7 @@
 #include <algorithm>
 #include <chrono>
 #include <fstream>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -26,14 +30,32 @@ namespace wheel_install = Slic3r::plugin_wheel_install;
 
 namespace {
 
+// The long-path-capable form of a path, which the production code and a real uv (Rust std) use on
+// Windows past MAX_PATH. A test that reaches a deep cache has to reach it the same way; on other
+// platforms both helpers are the identity.
+fs::path long_path(const fs::path& path)
+{
+    return extended_path(path);
+}
+
+std::string long_path_utf8(const fs::path& path)
+{
+#ifdef _WIN32
+    return boost::nowide::narrow(extended_path(path).wstring());
+#else
+    return path.string();
+#endif
+}
+
 void write_wheel(const fs::path& path,
                  const std::string& tag,
                  const std::string& module_payload,
                  const std::string& dist_name = "demo_pkg",
                  const std::string& version = "1.0")
 {
-    if (fs::exists(path))
-        fs::remove(path);
+    const fs::path io_path = long_path(path);
+    if (fs::exists(io_path))
+        fs::remove(io_path);
 
     Zipper zipper(path.string(), Zipper::NO_COMPRESSION);
 
@@ -93,26 +115,54 @@ wheel_install::UvRunner fake_uv(std::vector<std::string>* captured, int* call_co
 
         // The staged wheel must be a real file with a PEP 427 filename, not the stored name.
         const fs::path staged(args.back());
-        if (!fs::is_regular_file(staged)) {
+        if (!fs::is_regular_file(long_path(staged))) {
             error = "fake uv: staged wheel missing";
             return false;
         }
 
-        fs::create_directories(target / "demo_pkg");
-        std::ofstream init((target / "demo_pkg" / "__init__.py").string());
+        // A real uv writes the target even when it is past MAX_PATH, so this stand-in must too.
+        fs::create_directories(long_path(target / "demo_pkg"));
+        boost::nowide::ofstream init(long_path_utf8(target / "demo_pkg" / "__init__.py"));
         init << "VALUE = 1\n";
         return true;
     };
 }
 
-bool has_staging_leftovers(const fs::path& plugin_root)
+// Neither a staging directory nor a retired-previous directory may outlive a successful install.
+bool has_install_scratch_leftovers(const fs::path& plugin_root)
 {
-    for (fs::directory_iterator it(plugin_root); it != fs::directory_iterator(); ++it) {
+    for (fs::directory_iterator it(long_path(plugin_root)); it != fs::directory_iterator(); ++it) {
         const std::string name = it->path().filename().string();
-        if (name.rfind(wheel_install::STAGING_DIR_PREFIX, 0) == 0)
+        if (name.rfind(wheel_install::STAGING_DIR_PREFIX, 0) == 0 ||
+            name.rfind(wheel_install::PREVIOUS_DIR_PREFIX, 0) == 0)
             return true;
     }
     return false;
+}
+
+// A plugin folder deep enough that its install cache and staging paths exceed the legacy Windows
+// MAX_PATH (260), while every component stays far below NAME_MAX so the path is also valid on
+// Linux and macOS.
+fs::path make_deep_plugin_root(const fs::path& base)
+{
+    fs::path path = base;
+    while (path.string().size() < 300)
+        path /= "deep_plugin_directory_component";
+    return path / "plugin";
+}
+
+// A parent directory that still fits below MAX_PATH (260) while <parent>/plugin and a standard
+// wheel file name inside it do not: discovery has to enumerate the entry past that limit.
+fs::path make_boundary_plugin_parent(const fs::path& base)
+{
+    constexpr std::size_t parent_length = 230;
+    const std::string     component     = "boundary_plugin_directory";
+    fs::path              path          = base;
+    while (path.string().size() + 1 + component.size() < parent_length)
+        path /= component;
+    if (path.string().size() + 1 < parent_length)
+        path /= std::string(parent_length - path.string().size() - 1, 'p');
+    return path;
 }
 
 } // namespace
@@ -249,7 +299,7 @@ TEST_CASE("a markerless legacy extraction is used directly without running uv", 
 
     // Dependency extractions under the same parent are untouched.
     CHECK(fs::is_regular_file(dep_dir / "sentinel.txt"));
-    CHECK_FALSE(has_staging_leftovers(plugin_root));
+    CHECK_FALSE(has_install_scratch_leftovers(plugin_root));
 }
 
 TEST_CASE("a markerless entry target without the entry package is replaced", "[PluginWheelInstall]")
@@ -463,7 +513,7 @@ TEST_CASE("a failed uv install leaves the previous extraction in place", "[Plugi
     // uv failed before promotion, so the previous directory is still the only cache copy.
     CHECK(fs::is_regular_file(target / "sentinel.txt"));
     CHECK_FALSE(fs::exists(target / "demo_pkg"));
-    CHECK_FALSE(has_staging_leftovers(plugin_root));
+    CHECK_FALSE(has_install_scratch_leftovers(plugin_root));
 }
 
 TEST_CASE("a wheel with an invalid stored name is staged under a valid name", "[PluginWheelInstall]")
@@ -500,7 +550,7 @@ TEST_CASE("a wheel with an invalid stored name is staged under a valid name", "[
     CHECK(fs::is_directory(installed_dir));
     CHECK(fs::path(installed_dir) == plugin_root / "__whl_extracted__" / "demo_pkg");
     CHECK(fs::is_regular_file(fs::path(installed_dir) / wheel_install::MARKER_FILE_NAME));
-    CHECK_FALSE(has_staging_leftovers(plugin_root));
+    CHECK_FALSE(has_install_scratch_leftovers(plugin_root));
 }
 
 TEST_CASE("a wheel with a valid stored name is passed to uv unchanged", "[PluginWheelInstall]")
@@ -597,7 +647,7 @@ TEST_CASE("a failed uv install leaves no importable target behind", "[PluginWhee
     CHECK_THAT(error, Catch::Matchers::ContainsSubstring("simulated uv failure"));
 
     CHECK_FALSE(fs::exists(wheel_install::install_dir(plugin_root.string(), "demo_pkg")));
-    CHECK_FALSE(has_staging_leftovers(plugin_root));
+    CHECK_FALSE(has_install_scratch_leftovers(plugin_root));
 }
 
 TEST_CASE("a declared wheel tag is used unchanged in the staged filename", "[PluginWheelInstall]")
@@ -618,4 +668,122 @@ TEST_CASE("a declared wheel tag is used unchanged in the staged filename", "[Plu
     REQUIRE(wheel_install::ensure_installed(descriptor, error, fake_uv(&captured, &calls, "")));
     CHECK(calls == 1);
     CHECK(fs::path(captured.back()).filename().string() == "demo_pkg-1.0-py2-none-any.whl");
+}
+
+TEST_CASE("a wheel installs into a plugin path longer than MAX_PATH", "[PluginWheelInstall][Regression]")
+{
+    ScopedTemporaryDir dir("wheel-install-long-path");
+    const fs::path      plugin_root = make_deep_plugin_root(dir.path());
+    // Past the legacy Windows MAX_PATH (260): the staging, cache, marker and promotion paths are
+    // all deeper still, so none of them is reachable without the extended-length form there. The
+    // same tree is valid on Linux and macOS.
+    REQUIRE(plugin_root.string().size() > 260);
+    fs::create_directories(long_path(plugin_root));
+
+    const fs::path wheel = plugin_root / "plugin.whl";
+    write_wheel(wheel, "py3-none-any", "VALUE = 1\n");
+
+    const PluginDescriptor descriptor = make_descriptor(plugin_root, wheel);
+
+    // An incomplete previous extraction: the install has to retire and replace it, so the
+    // promotion renames and the cleanup of the retired directory run on deep paths too.
+    const fs::path target = long_path(fs::path(wheel_install::install_dir(plugin_root.string(), "demo_pkg")));
+    fs::create_directories(target);
+    {
+        boost::nowide::ofstream sentinel(long_path_utf8(target / "sentinel.txt"));
+        sentinel << "previous contents\n";
+    }
+
+    std::vector<std::string> captured;
+    int                      calls = 0;
+    std::string              error;
+    REQUIRE(wheel_install::ensure_installed(descriptor, error, fake_uv(&captured, &calls, "")));
+    CHECK(error.empty());
+    CHECK(calls == 1);
+    // The wheel's stored name is invalid, so it is staged under a PEP 427 name read from the
+    // metadata of the deep wheel.
+    CHECK(fs::path(captured.back()).filename().string() == "demo_pkg-1.0-py3-none-any.whl");
+
+    // The new extraction, its marker and the entry package are all readable at the deep cache
+    // path, and the retired previous extraction is gone.
+    CHECK(fs::is_directory(target / "demo_pkg"));
+    CHECK(fs::is_regular_file(target / "demo_pkg" / "__init__.py"));
+    CHECK(fs::is_regular_file(target / wheel_install::MARKER_FILE_NAME));
+    CHECK_FALSE(fs::exists(target / "sentinel.txt"));
+    CHECK_FALSE(has_install_scratch_leftovers(plugin_root));
+
+    // The marker and the entry wheel fingerprint are read back from the deep paths, so no uv run
+    // and no rewrite happens on the next load.
+    REQUIRE(wheel_install::ensure_installed(descriptor, error, fake_uv(nullptr, &calls, "should not run")));
+    CHECK(calls == 1);
+
+    // The scoped temp guard removes the base directory best-effort, but a path past MAX_PATH needs
+    // the extended form to be removed at all.
+    boost::system::error_code cleanup_ec;
+    fs::remove_all(long_path(plugin_root), cleanup_ec);
+}
+
+TEST_CASE("a wheel is discovered under a plugin folder just below MAX_PATH", "[PluginWheelInstall][Regression]")
+{
+    ScopedTemporaryDir dir("wheel-install-discovery-boundary");
+    const fs::path      plugin_parent = make_boundary_plugin_parent(dir.path());
+    const fs::path      plugin_root   = plugin_parent / "plugin";
+    const fs::path      wheel         = plugin_root / "demo_pkg-1.0-py3-none-any.whl";
+    // The plugin folder fits below MAX_PATH; the entry wheel inside it does not, so discovery has to
+    // probe the children in extended form or the package looks like it has no entry file at all.
+    REQUIRE(plugin_root.string().size() < 260);
+    REQUIRE(wheel.string().size() > 260);
+    fs::create_directories(long_path(plugin_root));
+    write_wheel(wheel, "py3-none-any", "VALUE = 1\n");
+
+    std::string error;
+    const std::vector<PluginDescriptor> discovered = discover_plugin_packages({plugin_parent.string()}, error);
+    REQUIRE(error.empty());
+    REQUIRE(discovered.size() == 1);
+    CHECK(discovered.front().is_metadata_valid());
+    CHECK(discovered.front().entry_package == "demo_pkg");
+    // The discovered paths keep their normal spelling; only the probes use the extended form.
+    CHECK(discovered.front().plugin_root == plugin_root.string());
+    CHECK(discovered.front().entry_path == wheel.string());
+
+    // The install stages one level deeper still, and the next load reuses it from the marker.
+    int         calls = 0;
+    std::string install_error;
+    REQUIRE(wheel_install::ensure_installed(discovered.front(), install_error, fake_uv(nullptr, &calls, "")));
+    CHECK(calls == 1);
+
+    const fs::path target = long_path(fs::path(wheel_install::install_dir(plugin_root.string(), "demo_pkg")));
+    CHECK(fs::is_regular_file(target / wheel_install::MARKER_FILE_NAME));
+    REQUIRE(wheel_install::ensure_installed(discovered.front(), install_error, fake_uv(nullptr, &calls, "should not run")));
+    CHECK(calls == 1);
+
+    boost::system::error_code cleanup_ec;
+    fs::remove_all(long_path(plugin_root), cleanup_ec);
+}
+
+TEST_CASE("the install-state marker round-trips at a path longer than MAX_PATH", "[PluginWheelInstall][Regression]")
+{
+    ScopedTemporaryDir dir("plugin-state-long-path");
+    const fs::path      plugin_root = make_deep_plugin_root(dir.path());
+    REQUIRE(plugin_root.string().size() > 260);
+    fs::create_directories(long_path(plugin_root));
+
+    PluginDescriptor descriptor = make_descriptor(plugin_root, plugin_root / "plugin.whl");
+    descriptor.name             = "Demo Plugin";
+
+    // The sidecar is written through a temporary in the same deep directory and moved into place
+    // with the platform replace primitive, then read back through the same extended paths.
+    PluginInstallState state;
+    {
+        // The sidecar API expects the install-state lock across its read-modify-write callers.
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        REQUIRE(write_install_state(plugin_root, descriptor));
+        REQUIRE(read_install_state(plugin_root, state));
+    }
+    CHECK(fs::is_regular_file(long_path(plugin_root / INSTALL_STATE_FILE)));
+    CHECK(state.plugin_name == "Demo Plugin");
+    CHECK(state.installed_from == "local");
+
+    boost::system::error_code cleanup_ec;
+    fs::remove_all(long_path(plugin_root), cleanup_ec);
 }
