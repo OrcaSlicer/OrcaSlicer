@@ -92,8 +92,13 @@ jobs:
           # this runner cannot satisfy, so the slicer configure fails before any
           # compilation. A Boost built here reports "Boost.Locale: iconv OFF" and
           # carries no Iconv dependency.
-          echo cache-key=${{ env.cache-os }}-cache-orcaslicer_deps-build-v3 >> ${{ env.output-cmd }}
-          echo cache-prefix=${{ env.cache-os }}-cache-orcaslicer_deps-build-v3- >> ${{ env.output-cmd }}
+          # -v4: v3 caches hold a libpng whose Apple build also installed a
+          # png.framework. Drop them with the framework (deps/PNG/PNG.cmake).
+          #
+          # -v4 also adds hashFiles('deps/**') to the key so any deps/ change
+          # invalidates the cache. This matches upstream/main.
+          echo cache-key=${{ env.cache-os }}-cache-orcaslicer_deps-build-v4-${{ hashFiles('deps/**') }} >> ${{ env.output-cmd }}
+          echo cache-prefix=${{ env.cache-os }}-cache-orcaslicer_deps-build-v4- >> ${{ env.output-cmd }}
           # Relative to the workspace, which differs from the build's when this job runs on Linux.
           echo cache-path=deps/build${{ env.dep-folder-name }} >> ${{ env.output-cmd }}
             
