@@ -720,8 +720,6 @@ const ModelObjectPtrs& Cut::perform_with_groove(const Groove&       groove,
     // Compute same slot outer width used in preview plane
     const float  groove_width     = calculate_groove_width(groove, m_radius);
 
-    ModelObject* groove_object{nullptr};
-
     // multiple cuts
     for (int i = 0; i < groove_count; i++) {
         bool is_first_groove = i == 0; 
@@ -734,11 +732,11 @@ const ModelObjectPtrs& Cut::perform_with_groove(const Groove&       groove,
         float offset_x = groove_offset_factor * (groove_gap + groove_width);
 
 
-        tmp_object->clone_for_cut(&groove_object);
-        for (ModelVolume* volume : tmp_object->volumes) {
-            ModelVolume* new_vol = groove_object->add_volume(*volume);
-            new_vol->reset_from_upper();
-        }
+        // Owned by a model of its own, so it is freed after this groove.
+        Model        groove_model;
+        ModelObject* groove_object = groove_model.add_object(*tmp_object);
+        for (ModelVolume* volume : groove_object->volumes)
+            volume->reset_from_upper();
 
         // isolate area of current groove
         if (!is_first_groove) {
@@ -799,8 +797,6 @@ const ModelObjectPtrs& Cut::perform_with_groove(const Groove&       groove,
         }
 
         add_volumes_from_cut(upper, ModelObjectCutAttribute::KeepLower, tmp_model_for_cut);
-
-        groove_object->clear_volumes();
     }
 
     ModelObjectPtrs cut_object_ptrs;
