@@ -13370,8 +13370,10 @@ msgstr "Rychlost ostatních vrstev"
 msgid "Overhang speed"
 msgstr "Rychlost převisů"
 
-msgid "This is the speed for various overhang degrees. Overhang degrees are expressed as a percentage of line width. 0 speed means no slowing down for the overhang degree range and wall speed is used"
-msgstr "Toto je rychlost pro různé stupně převisů. Stupně převisů jsou vyjádřeny jako procento šířky čáry. Rychlost 0 znamená, že v daném rozsahu převisu nedochází ke zpomalení a použije se rychlost stěny"
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Overhang is the unsupported fraction of the wall line width. Speeds are interpolated between targets at 10%, 25%, 50%, 75% and 87%. The reference speed is the outer or inner wall speed after volumetric and scarf-seam limits; percentage values use this reference. Targets above it print faster only with Allow overhang speeds above wall speed enabled; other targets retain existing path-speed limits. Setting the first target to 0 disables interpolation below 10%. For the remaining targets, 0 uses wall speed at that point; neighboring targets can still change speed in between."
+msgstr "Převis je část šířky čáry stěny, která nemá oporu. Rychlost se interpoluje mezi cílovými hodnotami při 10%, 25%, 50%, 75% a 87%. Referenční rychlost je rychlost vnější nebo vnitřní stěny po uplatnění omezení objemové rychlosti a šikmého spoje švu; procentuální hodnoty jsou vztaženy k ní. Cílové rychlosti vyšší než referenční zrychlí tisk jen při zapnuté možnosti „Povolit rychlost převisů vyšší než rychlost stěn“; ostatní cílové rychlosti zachovávají stávající omezení rychlosti dráhy. Nastavení první cílové rychlosti na 0 vypne interpolaci pod 10%. U ostatních cílových rychlostí znamená 0 rychlost stěny v daném bodě; sousední cílové rychlosti mohou rychlost mezi body přesto měnit."
 
 msgid "Set speed for external and internal bridges"
 msgstr "Nastavit rychlost pro vnější a vnitřní mosty"
@@ -16925,7 +16927,7 @@ msgid ""
 "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge.\n"
-"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75% overhang speed will be applied, limited by the bridge speed."
+"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75–100% overhang speed will be applied, limited by the bridge speed."
 msgstr ""
 "Zapněte tuto volbu, chcete-li zpomalit tisk v místech, kde se mohly obvody zkroutit nahoru.\n"
 "Například při tisku převisů na ostrých rozích, jako je příď trupu modelu Benchy, se použije dodatečné zpomalení, které omezí kroucení narůstající přes více vrstev.\n"
@@ -16940,10 +16942,47 @@ msgstr ""
 "3. Pokud se artefakty stále objevují, zapněte Vyhlazování rychlosti extruze (ERS), které přechody průtoku dále vyhladí.\n"
 "\n"
 "Poznámka: Je-li tato volba zapnutá, jsou obvody převisů považovány za převisy, takže se rychlost pro převisy použije i tehdy, když je převislý obvod součástí můstku.\n"
-"Například pokud jsou obvody ze 100 % převislé a zespodu je nic nepodpírá, použije se rychlost pro 75% převis, omezená rychlostí můstků."
+"Například pokud jsou obvody ze 100 % převislé a zespodu je nic nepodpírá, použije se rychlost pro 75–100% převis, omezená rychlostí můstků."
+
+# AI Translated
+msgid "Allow overhang speeds above wall speed"
+msgstr "Povolit rychlost převisů vyšší než rychlost stěn"
+
+# AI Translated
+msgid ""
+"Print overhanging outer and inner walls faster when their overhang speed is set above the wall speed, up to the maximum volumetric speed of the filament. When disabled, overhang speeds never make a wall print faster than it would without the overhang.\n"
+"Bridges, overhang walls, fully unsupported walls, scarf seams and walls whose speed other settings change, such as small perimeters or resonance avoidance, are never sped up."
+msgstr ""
+"Tiskne převislé vnější a vnitřní stěny rychleji, pokud je jejich rychlost převisu nastavena nad rychlost stěny, a to v mezích maximální objemové rychlosti filamentu. Je-li vypnuto, rychlosti převisů nikdy nezrychlí tisk stěny oproti tisku bez převisu.\n"
+"Můstky, stěny převisů, zcela nepodepřené stěny, šikmé spoje švu a stěny, jejichž rychlost mění jiná nastavení, například „Malé obvody“ nebo „Vyhýbání rezonancím“, se nikdy nezrychlují."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 10% of the wall line width is unsupported. Between 0% and 10%, speed is linearly interpolated from the actual wall speed to this value. For example, a wall speed of 60 mm/s and a target of 30 mm/s give 45 mm/s at 5% overhang. A value of 0 disables this initial interpolation. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Cílová rychlost, když 10% šířky čáry stěny nemá oporu. Mezi 0% a 10% se rychlost lineárně mění od skutečné rychlosti stěny k této hodnotě. Například při rychlosti stěny 60 mm/s a cílové rychlosti 30 mm/s vychází při převisu 5% rychlost 45 mm/s. Hodnota 0 tuto počáteční interpolaci vypne. Hodnoty v % jsou vztaženy k referenční rychlosti stěny. Cílové rychlosti vyšší než referenční zrychlí tisk jen při zapnuté možnosti „Povolit rychlost převisů vyšší než rychlost stěn“, s ohledem na objemovou rychlost, chlazení a zpomalení pro zkroucené obvody."
 
 msgid "mm/s or %"
 msgstr "mm/s nebo %"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 25% of the wall line width is unsupported. Between 10% and 25%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Cílová rychlost, když 25% šířky čáry stěny nemá oporu. Mezi 10% a 25% se rychlost lineárně mění od předchozího řídicího bodu k této hodnotě. Hodnota 0 použije v tomto řídicím bodě rychlost stěny při zachování stávajících omezení rychlosti. Sousední cílové rychlosti mohou rychlost mezi řídicími body přesto měnit. Hodnoty v % jsou vztaženy k referenční rychlosti stěny. Cílové rychlosti vyšší než referenční zrychlí tisk jen při zapnuté možnosti „Povolit rychlost převisů vyšší než rychlost stěn“, s ohledem na objemovou rychlost, chlazení a zpomalení pro zkroucené obvody."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 50% of the wall line width is unsupported. Between 25% and 50%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Cílová rychlost, když 50% šířky čáry stěny nemá oporu. Mezi 25% a 50% se rychlost lineárně mění od předchozího řídicího bodu k této hodnotě. Hodnota 0 použije v tomto řídicím bodě rychlost stěny při zachování stávajících omezení rychlosti. Sousední cílové rychlosti mohou rychlost mezi řídicími body přesto měnit. Hodnoty v % jsou vztaženy k referenční rychlosti stěny. Cílové rychlosti vyšší než referenční zrychlí tisk jen při zapnuté možnosti „Povolit rychlost převisů vyšší než rychlost stěn“, s ohledem na objemovou rychlost, chlazení a zpomalení pro zkroucené obvody."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 75% of the wall line width is unsupported. Between 50% and 75%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Cílová rychlost, když 75% šířky čáry stěny nemá oporu. Mezi 50% a 75% se rychlost lineárně mění od předchozího řídicího bodu k této hodnotě. Hodnota 0 použije v tomto řídicím bodě rychlost stěny při zachování stávajících omezení rychlosti. Sousední cílové rychlosti mohou rychlost mezi řídicími body přesto měnit. Hodnoty v % jsou vztaženy k referenční rychlosti stěny. Cílové rychlosti vyšší než referenční zrychlí tisk jen při zapnuté možnosti „Povolit rychlost převisů vyšší než rychlost stěn“, s ohledem na objemovou rychlost, chlazení a zpomalení pro zkroucené obvody."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 87% of the wall line width is unsupported. Between 75% and 87%, speed is linearly interpolated from the preceding control point to this value. With Slow down for curled perimeters disabled, speed is interpolated from this value at 87% to the external bridge speed at 100%; the bridge target is limited to the original path speed. With it enabled, this value is used throughout the 87% to 100% range, except that a value above the wall speed falls back to the original path speed at 100%. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Cílová rychlost, když 87% šířky čáry stěny nemá oporu. Mezi 75% a 87% se rychlost lineárně mění od předchozího řídicího bodu k této hodnotě. Je-li možnost „Zpomalit pro zkroucené obvody“ vypnutá, rychlost se mění od této hodnoty při 87% k rychlosti vnějších můstků při 100%; cílová rychlost můstku je přitom omezena původní rychlostí dráhy. Je-li zapnutá, platí tato hodnota v celém rozsahu od 87% do 100%, jen hodnota vyšší než rychlost stěny se při 100% vrací na původní rychlost dráhy. Hodnota 0 použije v tomto řídicím bodě rychlost stěny při zachování stávajících omezení rychlosti. Sousední cílové rychlosti mohou rychlost mezi řídicími body přesto měnit. Hodnoty v % jsou vztaženy k referenční rychlosti stěny. Cílové rychlosti vyšší než referenční zrychlí tisk jen při zapnuté možnosti „Povolit rychlost převisů vyšší než rychlost stěn“, s ohledem na objemovou rychlost, chlazení a zpomalení pro zkroucené obvody."
 
 # AI Translated
 msgid ""
