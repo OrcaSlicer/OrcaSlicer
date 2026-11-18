@@ -18719,14 +18719,22 @@ void Plater::load_gcode(const wxString& filename)
     //BBS: add cost info when drag in gcode
     auto& ps = current_result->print_statistics;
     double total_cost = 0.0;
+    double total_used_filament = 0.0;
+    double total_weight = 0.0;
     for (auto volume : ps.total_volumes_per_extruder) {
         size_t extruder_id = volume.first;
         double density = current_result->filament_densities.at(extruder_id);
         double cost = current_result->filament_costs.at(extruder_id);
+        double diameter = current_result->filament_diameters.at(extruder_id);
         double weight = volume.second * density * 0.001;
+        total_used_filament += volume.second / (PI * sqr(0.5 * diameter));
+        total_weight += weight;
         total_cost += weight * cost * 0.001;
     }
     current_print.print_statistics().total_cost = total_cost;
+    // The legend shows these too, and subtracts the support and tower filament from them.
+    current_print.print_statistics().total_used_filament = total_used_filament;
+    current_print.print_statistics().total_weight = total_weight;
 
     current_print.set_gcode_file_ready();
 
