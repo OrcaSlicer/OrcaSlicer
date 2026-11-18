@@ -41,15 +41,6 @@ struct KeyChord;
 bool get_data_from_svg(const std::string &filename, unsigned int max_size_px, ThumbnailData &thumbnail_data);
 
 bool slider_behavior(ImGuiID id, const ImRect& region, const ImS32 v_min, const ImS32 v_max, ImS32* out_value, ImRect* out_handle, ImGuiSliderFlags flags = 0, const int fixed_value = -1, const ImVec4& fixed_rect = ImVec4());
-bool button_with_pos(ImTextureID   user_texture_id,
-                     const ImVec2 &size,
-                     const ImVec2 &pos,
-                     const ImVec2 &uv0           = ImVec2(0, 0),
-                     const ImVec2 &uv1           = ImVec2(1, 1),
-                     int           frame_padding = -1,
-                     const ImVec4 &bg_col        = ImVec4(0, 0, 0, 0),
-                     const ImVec4 &tint_col      = ImVec4(1, 1, 1, 1),
-                     const ImVec2 &margin        = ImVec2(0, 0));
 bool begin_menu(const char *label, bool enabled = true);
 void end_menu();
 bool menu_item_with_icon(const char *label, const char *shortcut, ImVec2 icon_size = ImVec2(0, 0), ImU32 icon_color = 0, bool selected = false, bool enabled = true, bool* hovered = nullptr);
