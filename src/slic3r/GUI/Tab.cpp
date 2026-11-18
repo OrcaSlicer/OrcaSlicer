@@ -8669,7 +8669,6 @@ wxSizer* Tab::compatible_widget_create(wxWindow* parent, PresetDependencies &dep
         _L("Ticked, this profile can be used with every process profile that passes the condition below. Unticked, only with the "
            "process profiles picked with Set...");
     set_illustrated_tooltip(deps.checkbox, all_tip);
-    set_illustrated_tooltip(deps.checkbox_title, all_tip);
     set_illustrated_tooltip(btn, for_printers ?
         _L("Pick the printer profiles this profile can be used with. Picking all of them is the same as ticking All.") :
         _L("Pick the process profiles this profile can be used with. Picking all of them is the same as ticking All."));
