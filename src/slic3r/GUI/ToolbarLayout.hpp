@@ -105,4 +105,26 @@ std::string default_group_name(const ToolbarLayout& layout, const std::function<
 // member is removed.
 bool move_gizmo_row(ToolbarLayout& layout, const ToolbarGizmoRow& row, int step);
 
+// One gizmo bar slot: the gizmo id it shows and, for a group slot, the group's members on the bar and its index.
+struct ToolbarBarSlot
+{
+    std::string              shown;
+    std::vector<std::string> members;
+    int                      group = -1;
+
+    bool operator==(const ToolbarBarSlot& rhs) const { return shown == rhs.shown && members == rhs.members && group == rhs.group; }
+};
+
+// bar_ids are the visible, selectable gizmo ids in bar order. A group with at least two of them is one slot at the
+// first one's place. It shows the open member; else the most recent member (recent_ids, most recent first) that can
+// be opened; else the first that can; else, when none can, the most recent or first member. So the slot greys only
+// when no member can be opened.
+std::vector<ToolbarBarSlot> compute_gizmo_bar_slots(const std::vector<std::string>&       bar_ids,
+                                                    const std::vector<ToolbarGizmoGroup>& groups,
+                                                    const std::string&                    open_id,
+                                                    const std::vector<std::string>&       recent_ids,
+                                                    const std::set<std::string>&          cannot_open = {});
+// The id shown by the slot holding id (itself or as a group member), or "" when no slot holds it.
+std::string bar_slot_shown_for(const std::vector<ToolbarBarSlot>& slots, const std::string& id);
+
 }} // namespace Slic3r::GUI

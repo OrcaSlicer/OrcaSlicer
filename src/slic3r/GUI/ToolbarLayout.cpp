@@ -356,4 +356,68 @@ bool move_gizmo_row(ToolbarLayout& layout, const ToolbarGizmoRow& row, int step)
     return true;
 }
 
+std::vector<ToolbarBarSlot> compute_gizmo_bar_slots(const std::vector<std::string>&       bar_ids,
+                                                    const std::vector<ToolbarGizmoGroup>& groups,
+                                                    const std::string&                    open_id,
+                                                    const std::vector<std::string>&       recent_ids,
+                                                    const std::set<std::string>&          cannot_open)
+{
+    // Each group's members on the bar; a group with fewer than two is no group here.
+    std::vector<std::vector<std::string>> on_bar(groups.size());
+    for (size_t g = 0; g < groups.size(); ++g) {
+        for (const std::string& id : bar_ids)
+            if (contains(groups[g].members, id))
+                on_bar[g].push_back(id);
+        if (on_bar[g].size() < 2)
+            on_bar[g].clear();
+    }
+    const auto group_on_bar = [&on_bar](const std::string& id) {
+        for (size_t g = 0; g < on_bar.size(); ++g)
+            if (contains(on_bar[g], id))
+                return static_cast<int>(g);
+        return -1;
+    };
+
+    std::vector<ToolbarBarSlot> slots;
+    for (const std::string& id : bar_ids) {
+        const int g = group_on_bar(id);
+        if (g < 0) {
+            slots.push_back({id, {}, -1});
+            continue;
+        }
+        const std::vector<std::string>& members = on_bar[static_cast<size_t>(g)];
+        if (id != members.front())
+            continue;
+        const auto openable = [&cannot_open](const std::string& m) { return cannot_open.count(m) == 0; };
+        const auto is_member = [&members](const std::string& m) { return contains(members, m); };
+        std::string shown;
+        if (is_member(open_id))
+            shown = open_id;
+        if (shown.empty())
+            for (const std::string& r : recent_ids)
+                if (is_member(r) && openable(r)) {
+                    shown = r;
+                    break;
+                }
+        if (shown.empty())
+            if (const auto it = std::find_if(members.begin(), members.end(), openable); it != members.end())
+                shown = *it;
+        if (shown.empty())
+            if (const auto it = std::find_if(recent_ids.begin(), recent_ids.end(), is_member); it != recent_ids.end())
+                shown = *it;
+        if (shown.empty())
+            shown = members.front();
+        slots.push_back({shown, members, g});
+    }
+    return slots;
+}
+
+std::string bar_slot_shown_for(const std::vector<ToolbarBarSlot>& slots, const std::string& id)
+{
+    for (const ToolbarBarSlot& slot : slots)
+        if (slot.shown == id || contains(slot.members, id))
+            return slot.shown;
+    return {};
+}
+
 }} // namespace Slic3r::GUI
