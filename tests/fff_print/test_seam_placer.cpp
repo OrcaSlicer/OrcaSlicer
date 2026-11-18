@@ -1539,11 +1539,10 @@ TEST_CASE("Seam extraction preserves unknown boundary roles for open extrusion p
     CHECK(perimeters.front().contour_reliable == !open);
 }
 
-TEST_CASE("Seams are picked on every object when the seam map rehashes as init() adds the objects", "[SeamPlacer]")
+TEST_CASE("Seams are picked on every loop of every object when init() places several objects at once", "[SeamPlacer]")
 {
-    // init() adds an entry to m_seam_per_object for each object and keeps a pointer to it, which the objects' workers
-    // pick the seams through. Random seams are picked by the workers alone, and they finalize every loop.
-    // Sixteen objects: with one entry, the map has 13 buckets on libstdc++ and 8 on MSVC.
+    // Random seams are picked by the workers of each object alone, and they finalize every loop. Sixteen objects make
+    // four tasks of four objects each.
     const size_t object_count = 16;
     std::vector<TriangleMesh> meshes;
     for (size_t i = 0; i < object_count; ++ i)
@@ -1558,11 +1557,6 @@ TEST_CASE("Seams are picked on every object when the seam map rehashes as init()
 
     SeamPlacer placer;
     placer.init(print, [] {});
-
-    // init() took the first pointer when the map held one entry. It has more buckets now, so it rehashed meanwhile.
-    decltype(placer.m_seam_per_object) one_entry;
-    one_entry[nullptr];
-    REQUIRE(placer.m_seam_per_object.bucket_count() > one_entry.bucket_count());
 
     size_t loops = 0, picked = 0;
     for (const PrintObject *object : print.objects()) {

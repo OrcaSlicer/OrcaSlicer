@@ -68,6 +68,7 @@
 #include "Geometry/ConvexHull.hpp"
 #include "I18N.hpp"
 #include "LifecycleEvents.hpp"
+#include "ParallelForFirstError.hpp"
 #include "ShortestPath.hpp"
 #include "Thread.hpp"
 #include "Time.hpp"
@@ -3606,6 +3607,9 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
     // the print's configuration only, which the support step has always relied on, so the objects run the step
     // together: one after another, each object's serial parts and slowest layers kept most of the cores idle.
     // A slicing pipeline plugin runs its hook between the objects, so with one active they keep their order.
+    // Nothing enforces that rule. In particular, the PrintObjects made from one ModelObject, one per distinct instance
+    // transformation, share its ModelVolumes, whose lazily filled caches are not guarded: a step must not fill them
+    // (ModelVolume::is_splittable() is the exception, under a lock).
     auto for_each_object_step = [this](auto &&needs, auto &&process, auto &&skip) {
         std::vector<PrintObject*> objects;
         for (PrintObject *obj : m_objects)
@@ -3617,21 +3621,8 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 objects.push_back(obj);
         if (objects.size() == 1)
             process(objects.front());
-        else if (objects.size() > 1) {
-            // Throw the error of the first object, the one processing them one by one stops at.
-            std::vector<std::exception_ptr> errors(objects.size());
-            tbb::parallel_for(tbb::blocked_range<size_t>(0, objects.size(), 1), [&](const tbb::blocked_range<size_t> &range) {
-                for (size_t i = range.begin(); i < range.end(); ++ i)
-                    try {
-                        process(objects[i]);
-                    } catch (...) {
-                        errors[i] = std::current_exception();
-                    }
-            });
-            for (const std::exception_ptr &error : errors)
-                if (error)
-                    std::rethrow_exception(error);
-        }
+        else if (objects.size() > 1)
+            parallel_for_first_error(objects.size(), 1, [&process, &objects](size_t i) { process(objects[i]); });
     };
     if (!use_cache) {
         // Fire the SlicingPipeline hook for `obj` iff it just (re)computed `pstep` this pass.

@@ -139,7 +139,8 @@ TEST_CASE("Splitting a part drops pieces enclosing no volume and keeps the part 
 TEST_CASE("A part asked from several threads at once whether it can be split answers the same for all", "[Model]")
 {
     // The PrintObjects made from one ModelObject prepare their infill at the same time, and each asks the object's first
-    // part whether it can be split, which fills a cache in the part.
+    // part whether it can be split, which fills a cache in the part. Without the lock around the cache the answers
+    // still agree on most runs: ThreadSanitizer is what reports the race.
     Model model;
     ModelObject *object = model.add_object();
     const ModelVolume *volume = object->add_volume(flat_triangle_then_cubes({0., 30.}), ModelVolumeType::MODEL_PART, false);

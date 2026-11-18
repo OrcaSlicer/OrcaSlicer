@@ -11,14 +11,13 @@
 #include "libslic3r/PrintBase.hpp"
 #include "PrintConfig.hpp"
 #include "libslic3r/libslic3r.h"
+#include "libslic3r/ParallelForFirstError.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/TriangleSelector.hpp"
 #include "tbb/parallel_for.h"
 #include "tbb/blocked_range.h"
 #include "tbb/parallel_reduce.h"
-#include "tbb/partitioner.h"
 #include <atomic>
-#include <exception>
 #include <Eigen/Geometry>
 #include <boost/log/trivial.hpp>
 #include <boost/format.hpp>
@@ -2228,21 +2227,7 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
     // as each holds its sampled mesh until it is done.
     constexpr size_t max_objects_at_once = 4;
     const size_t     objects_per_task    = (objects.size() + max_objects_at_once - 1) / max_objects_at_once;
-    // Throw the error of the first object, the one placing the seams object by object stops at.
-    std::vector<std::exception_ptr> errors(objects.size());
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, objects.size(), objects_per_task),
-                      [&objects, &errors, &place_seams](const tbb::blocked_range<size_t> &range) {
-                        for (size_t i = range.begin(); i < range.end(); ++ i)
-                          try {
-                            place_seams(objects[i]);
-                          } catch (...) {
-                            errors[i] = std::current_exception();
-                          }
-                      },
-                      tbb::simple_partitioner());
-    for (const std::exception_ptr &error : errors)
-      if (error)
-        std::rethrow_exception(error);
+    parallel_for_first_error(objects.size(), objects_per_task, [&objects, &place_seams](size_t i) { place_seams(objects[i]); });
   }
 
   // Prepare one combined Precise Seam warning; G-code export issues it. Keep it single: separate

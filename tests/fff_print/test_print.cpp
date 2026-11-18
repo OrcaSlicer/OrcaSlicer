@@ -36,6 +36,8 @@
 #include "libslic3r/Support/BeltFloorContext.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/Point.hpp"
 #include "libslic3r/Polyline.hpp"
 #include <limits>
 #include <cmath>
@@ -64,6 +66,7 @@
 #include <iterator>
 #include <ios>
 #include <memory>
+#include <optional>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -3555,6 +3558,44 @@ std::string fresh_slice_toolpaths(const DynamicPrintConfig &config)
     return toolpaths(Test::gcode(print));
 }
 
+// Copies of a model of a cube with a hole, one at each scale, sliced together. Each scale gets a PrintObject of its
+// own, all of them made from the one ModelObject. With `only` set, the other copies stay in the model but do not
+// print, so that copy's PrintObject is the only one and keeps the coordinates it has among the others.
+void slice_copies_at_scales(const std::vector<double> &scales, const DynamicPrintConfig &config, Model &model, Print &print,
+                            std::optional<size_t> only = std::nullopt)
+{
+    ModelObject *object = model.add_object();
+    object->add_volume(Test::mesh(TestMesh::cube_with_hole));
+    for (size_t i = 0; i < scales.size(); ++ i) {
+        ModelInstance *instance = object->add_instance();
+        instance->set_scaling_factor(Vec3d(scales[i], scales[i], scales[i]));
+        instance->set_offset(Vec3d(40. + 30. * double(i), 100., 0.));
+        instance->printable = ! only || *only == i;
+    }
+    object->ensure_on_bed();
+    print.auto_assign_extruders(object);
+    print.apply(model, config);
+    print.set_status_silent();
+    print.process();
+}
+
+// The perimeters and the infill of every layer of a PrintObject, in its own coordinates.
+std::string layer_extrusions(const PrintObject &object)
+{
+    std::ostringstream out;
+    for (const Layer *layer : object.layers()) {
+        out << "layer " << layer->print_z << '\n';
+        for (const LayerRegion *layerm : layer->regions())
+            for (const ExtrusionEntityCollection *extrusions : { &layerm->perimeters, &layerm->fills })
+                for (const ExtrusionEntity *extrusion : extrusions->flatten().entities) {
+                    for (const Point &point : extrusion->as_polyline().points)
+                        out << point.x() << ',' << point.y() << ' ';
+                    out << '\n';
+                }
+    }
+    return out.str();
+}
+
 // One tray of the device AMS inventory, with the keys build_filament_ams_list() puts in the payload.
 DynamicPrintConfig loaded_filament_tray(const std::string &colour, const std::string &type, const std::string &tray_name)
 {
@@ -3694,6 +3735,34 @@ TEST_CASE("Slicing several objects calls the status callback one status at a tim
 
     REQUIRE(calls > 1);
     CHECK_FALSE(overlapped);
+}
+
+TEST_CASE("Slicing copies of one object at different scales gives each copy the layers it gets alone", "[Print]")
+{
+    // The PrintObjects of the copies share the volumes of their ModelObject and run each slicing step together, while
+    // a copy that is the only one printing runs its steps by itself.
+    const std::vector<double> scales { 1., 0.9, 0.8, 0.7 };
+    const DynamicPrintConfig  config = DynamicPrintConfig::full_print_config();
+    Model                     model;
+    Print                     print;
+    slice_copies_at_scales(scales, config, model, print);
+    REQUIRE(print.objects().size() == scales.size());
+
+    for (size_t i = 0; i < scales.size(); ++ i) {
+        const double scale = scales[i];
+        INFO("scale " << scale);
+        Model alone_model;
+        Print alone;
+        slice_copies_at_scales(scales, config, alone_model, alone, i);
+        REQUIRE(alone.objects().size() == 1);
+        const auto copy = std::find_if(print.objects().begin(), print.objects().end(), [scale](const PrintObject *object) {
+            return std::abs(object->instances().front().model_instance->get_scaling_factor().x() - scale) < EPSILON;
+        });
+        REQUIRE(copy != print.objects().end());
+        const std::string extrusions = layer_extrusions(**copy);
+        REQUIRE(! extrusions.empty());
+        CHECK(extrusions == layer_extrusions(*alone.objects().front()));
+    }
 }
 
 // The AMS inventory is device state that only feeds filament grouping. A changed inventory has to
