@@ -197,6 +197,7 @@ src/slic3r/GUI/SendToPrinter.cpp
 src/slic3r/GUI/SlicingProgressNotification.cpp
 src/slic3r/GUI/BindDialog.cpp
 src/slic3r/GUI/Tab.cpp
+src/slic3r/GUI/PlateFilamentNozzles.cpp
 src/slic3r/GUI/Tab.hpp
 src/slic3r/GUI/UnsavedChangesDialog.cpp
 src/slic3r/GUI/Auxiliary.cpp
