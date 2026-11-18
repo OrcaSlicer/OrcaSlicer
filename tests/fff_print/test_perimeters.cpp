@@ -20,6 +20,7 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/Config.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
@@ -136,6 +137,26 @@ double max_difference(const std::vector<double> &a, const std::vector<double> &b
 // density of 0% leaves the top layer with walls only. The last section is the control - the same
 // expansion on the same model does change the slice once a top fill exists - without which the two
 // equality checks above it would hold for an unrelated reason.
+// Overhang walls print at the bridge speed, so regions that differ in it can't share their walls.
+TEST_CASE("Regions with a different bridge speed or flow get walls of their own", "[Perimeters]")
+{
+    const bool flow = GENERATE(false, true);
+    CAPTURE(flow);
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model);
+    const PrintRegionConfig &config = print.objects().front()->printing_region(0).config();
+    PrintRegionConfig changed = config;
+    if (flow)
+        for (FloatOrPercent &value : changed.bridge_volumetric_flow.values)
+            value.value += 10.;
+    else
+        for (double &value : changed.bridge_speed.values)
+            value += 10.;
+    CHECK(Layer::is_perimeter_compatible(print, PrintRegion(config), PrintRegion(config)));
+    CHECK_FALSE(Layer::is_perimeter_compatible(print, PrintRegion(config), PrintRegion(changed)));
+}
+
 // The area every layer of the object keeps clear of the walls for gap fill and concentric infill.
 static double no_overlap_fill_area(const Print &print)
 {
