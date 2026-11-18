@@ -1127,6 +1127,26 @@ TEST_CASE("Only a cone wall gives the tower a stabilization cone", "[WipeTower]"
     }
 }
 
+TEST_CASE("The conflict check finds a Type 2 tower over an object on every plate", "[WipeTower][Regression]")
+{
+    const double plate_offset = GENERATE(0., 300.);
+    CAPTURE(plate_offset);
+    DynamicPrintConfig config = wipe_tower_toolchange_config("marlin");
+    config.set_deserialize_strict({ { "wipe_tower_type", "type2" } });
+    // The cube stands on the tower, which is at (50, 50) on the plate.
+    TriangleMesh cube = make_cube(20., 20., 10.);
+    cube.translate(float(plate_offset) + 55.f, float(plate_offset) + 55.f, 0.f);
+
+    Print print;
+    Model model;
+    init_print({ std::move(cube) }, print, model, config, nullptr, false);
+    print.apply(model, config);
+    print.set_plate_origin(Vec3d(plate_offset, plate_offset, 0.));
+    print.process();
+    REQUIRE(print.has_wipe_tower());
+    CHECK(print.get_conflict_result().has_value());
+}
+
 TEST_CASE("Without sparse layers the filament change starts at the tallest printed layer", "[WipeTower]")
 {
     // Filament 2 on top surfaces only, so the layers between the short cube's top and the tall

@@ -5821,7 +5821,7 @@ void Print::_make_wipe_tower()
                                          config().wipe_tower_wall_type.value == WipeTowerWallType::wtwRib,
                                          wipe_tower.get_rib_width(), wipe_tower.get_rib_length(),
                                          config().wipe_tower_fillet_wall.value, cone_angle);
-        const Vec3d origin                      = Vec3d::Zero();
+        const Vec3d origin                      = this->get_plate_origin();
         // FakeWipeTower::pos is a bed-frame translation applied after rotation
         // (getFakeExtrusionPathsFromWipeTower2 rotates about the local origin), so the
         // tower-local rib offset must be rotated into the bed frame first.
