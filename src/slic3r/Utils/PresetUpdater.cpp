@@ -1386,10 +1386,9 @@ void PresetUpdater::sync(std::string http_url, std::string language, std::string
 	if (!p->enabled_version_check && !p->enabled_config_update) { return; }
 
 	// read on the main thread, wxGetApp() is null during shutdown
+	bool is_arm64 = false;
 #if defined(__WINDOWS__)
-	const bool is_arm64          = GUI::wxGetApp().is_running_on_arm64();
-#else
-	const bool is_arm64          = false;
+	is_arm64 = GUI::wxGetApp().is_running_on_arm64();
 #endif
 	const bool use_legacy_plugin = GUI::wxGetApp().use_legacy_network_plugin();
 	p->thread = std::thread([this, http_url, language, plugin_version, is_arm64, use_legacy_plugin]() {
