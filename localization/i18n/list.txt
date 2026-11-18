@@ -197,6 +197,7 @@ src/slic3r/GUI/SendToPrinter.cpp
 src/slic3r/GUI/SlicingProgressNotification.cpp
 src/slic3r/GUI/BindDialog.cpp
 src/slic3r/GUI/Tab.cpp
+src/slic3r/GUI/PlateFilamentNozzles.cpp
 src/slic3r/GUI/Tab.hpp
 src/slic3r/GUI/UnsavedChangesDialog.cpp
 src/slic3r/GUI/Auxiliary.cpp
@@ -277,6 +278,8 @@ src/slic3r/GUI/MultiMachine.cpp
 src/slic3r/GUI/FilamentMapDialog.cpp
 src/slic3r/GUI/FilamentGroupPopup.cpp
 src/slic3r/GUI/FilamentMapPanel.cpp
+src/slic3r/GUI/FilamentInventoryEditor.cpp
+src/slic3r/GUI/SlotGridPanel.cpp
 src/slic3r/Utils/Obico.cpp
 src/slic3r/Utils/SimplyPrint.cpp
 src/slic3r/Utils/Flashforge.cpp

@@ -293,6 +293,14 @@ set(SLIC3R_GUI_SOURCES
     GUI/FilamentMapPanel.hpp
     GUI/FilamentMapDialog.cpp
     GUI/FilamentMapDialog.hpp
+    GUI/ActivePrinterSession.cpp
+    GUI/ActivePrinterSession.hpp
+    GUI/FilamentInventoryStore.cpp
+    GUI/FilamentInventoryStore.hpp
+    GUI/FilamentInventoryEditor.cpp
+    GUI/FilamentInventoryEditor.hpp
+    GUI/SlotGridPanel.cpp
+    GUI/SlotGridPanel.hpp
     GUI/IconManager.cpp
     GUI/IconManager.hpp
     GUI/IMEXFilamentPickerPopover.cpp
@@ -562,6 +570,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/TabButton.cpp
     GUI/TabButton.hpp
     GUI/Tab.cpp
+    GUI/PlateFilamentNozzles.cpp
+    GUI/PlateFilamentNozzles.hpp
     GUI/Tab.hpp
     GUI/TaskManager.cpp
     GUI/TaskManager.hpp

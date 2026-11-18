@@ -58,6 +58,13 @@ public:
 
     std::string              id;
     std::string              tag_uid;             // tag_uid
+    std::string              slot_name;           // Orca: the printer's own slot name (AFC lane key), "" = none
+    std::string              unit;                // Orca: changer unit the slot sits in (stable id), "" = flat
+    std::string              unit_label;          // Orca: the unit's display name
+    std::string              head;                // Orca: Klipper extruder the slot feeds (display name), "" = unknown
+    int                      slot = 0;            // Orca: position within its unit
+    int                      extruder = -1;       // Orca: 0-based extruder it feeds, -1 = unknown
+    int                      virtual_tool = -1;   // Orca: the T<n> the printer maps the slot to now, -1 = unknown
     std::string              setting_id;          // tray_info_idx, map to the filament_id
     std::string              filament_setting_id; // setting_id
     std::string              m_fila_type;
@@ -146,6 +153,7 @@ public:
     static constexpr AmsType N3F = DevAmsType::N3F;
     static constexpr AmsType N3S = DevAmsType::N3S;
     static constexpr AmsType AMS_LITE_MIXED = DevAmsType::AMS_LITE_MIXED;
+    static constexpr AmsType TOOLCHANGER = DevAmsType::TOOLCHANGER;
 
 public:
 
@@ -339,10 +347,13 @@ public:
 
     bool        HasAms() const { return !amsList.empty(); }
     bool        IsAmsSettingUp() const;
+    bool        IsAllToolchanger() const;
 
     /* ams */
     DevAms*                         GetAmsById(const std::string& ams_id) const;
     std::map<std::string, DevAms*, NumericStrCompare>& GetAmsList() { return amsList; }
+    // Orca: "afc", "happy_hare", or "" for none.
+    const std::string& GetChangerDialect() const { return m_changer_dialect; }
     int                             GetAmsCount() const { return amsList.size(); }
 
     /* tray*/
@@ -394,6 +405,7 @@ private:
     std::vector<DevFilamentStep> m_filament_change_steps;
 
     std::map<std::string, DevAms*, NumericStrCompare> amsList;// key: ams[id], start with 0
+    std::string m_changer_dialect;
 
     DevAmsSystemSetting m_ams_system_setting{ this };
     std::shared_ptr<DevAmsSystemFirmwareSwitch> m_ams_firmware_switch = DevAmsSystemFirmwareSwitch::Create(this);
