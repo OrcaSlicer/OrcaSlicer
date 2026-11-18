@@ -360,6 +360,9 @@ private:
 	template<class Archive> void serialize(Archive & ar) { ar(this->value); }
 };
 
+// Logs, once per process, that get_at() read an empty option vector and returned a default value.
+void log_get_at_on_empty_vector();
+
 // Value of a vector valued option (bools, ints, floats, strings, points)
 class ConfigOptionVectorBase : public ConfigOption {
 public:
@@ -680,6 +683,7 @@ public:
     {
         assert(! this->values.empty());
         if (this->values.empty()) {
+            log_get_at_on_empty_vector();
             static const T empty_default = default_element();
             return empty_default;
         }
@@ -692,6 +696,7 @@ public:
     {
         assert(! this->values.empty());
         if (this->values.empty()) {
+            log_get_at_on_empty_vector();
             static thread_local T scratch;
             scratch = default_element();
             return scratch;
@@ -2015,6 +2020,7 @@ public:
     bool& get_at(size_t i) {
         assert(! this->values.empty());
         if (this->values.empty()) {
+            log_get_at_on_empty_vector();
             // Per-thread scratch, reset on each call, so writes through the reference are discarded.
             static thread_local unsigned char scratch;
             scratch = 0;
@@ -2027,8 +2033,10 @@ public:
     bool get_at(size_t i) const
     {
         assert(! this->values.empty());
-        if (this->values.empty())
+        if (this->values.empty()) {
+            log_get_at_on_empty_vector();
             return false;
+        }
         return ((i < this->values.size()) ? this->values[i] : this->values.front()) != 0;
     }
 

@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <assert.h>
+#include <atomic>
 #include <cmath>
 #include <boost/algorithm/string/join.hpp>
 #include <cstdlib>
@@ -62,6 +63,15 @@ using namespace nlohmann;
 namespace Slic3r {
 
 std::function<std::string(std::string, std::string)> ConfigBase::resolve_capability_fn = nullptr;
+
+void log_get_at_on_empty_vector()
+{
+    // get_at() runs in slicing loops, so only the first read is logged.
+    static std::atomic<bool> logged{false};
+    if (!logged.exchange(true))
+        BOOST_LOG_TRIVIAL(error) << "ConfigOptionVector::get_at() read an empty option vector and returned a default value. "
+                                    "Whatever left the option empty is a bug.";
+}
 
 //BBS: add json support
 //static const std::string CONFIG_VERSION_KEY = "version";
