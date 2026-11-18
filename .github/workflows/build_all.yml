@@ -129,12 +129,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [arm64, x86_64]
+        include:
+          # arm64 is the scarce hosted pool: a job that cannot get a runner
+          # within 15 minutes is cancelled. The Intel images are separate
+          # capacity, so the x86_64 leg does not compete with arm64 for slots.
+          - arch: arm64
+            os: macos-15
+          - arch: x86_64
+            os: macos-15-intel
     needs: check_build_script
     if: ${{ !cancelled() && needs.check_build_script.result == 'success' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
-      os: macos-15
+      os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
       clean: ${{ inputs.clean-build || false }}
@@ -224,7 +231,7 @@ jobs:
     if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests.yml
     with:
-      os: macos-15
+      os: macos-15-intel
       artifact: ${{ github.sha }}-tests-macos-x86_64
       test-dir: build/x86_64/tests
 
