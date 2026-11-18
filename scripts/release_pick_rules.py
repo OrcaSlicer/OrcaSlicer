@@ -3,7 +3,8 @@
 status each one has. Pure functions only; release_pick_sync.py reads the data and applies the result.
 
 - The release-pick label is the only way in. A labelled item is added when its milestone is open or it
-  has none; an unlabelled item is removed unless it is already Picked.
+  has none; an unlabelled item is removed unless it is Picked or already on its release branch.
+- Items in a status column other than the four below are left alone.
 - Archived project items are never touched.
 - Statuses only move forward: Proposed, In progress, Ready to pick, Picked.
 - An item is Picked when its merged pull request is on a release branch of its own milestone.
@@ -112,14 +113,14 @@ def plan_changes(project, labelled, picks, open_milestones):
             statuses.append(Change("set_status", item.number, item.content_id, None, None, *derived))
 
     for item in project:
-        if item.archived:
-            continue
-        if not item.labelled:
-            if item.status != "Picked":
-                removes.append(Change("remove", item.number, item.content_id, item.item_id, item.status, None,
-                                      "no release-pick label"))
+        # A status outside the four is a column a maintainer added by hand; leave those items alone.
+        if item.archived or (item.status is not None and item.status not in STATUSES):
             continue
         derived = derived_status(item, picks, open_milestones)
+        if not item.labelled and item.status != "Picked" and not (derived and derived[0] == "Picked"):
+            removes.append(Change("remove", item.number, item.content_id, item.item_id, item.status, None,
+                                  "no release-pick label"))
+            continue
         if derived and _rank(derived[0]) > _rank(item.status):
             statuses.append(Change("set_status", item.number, item.content_id, item.item_id, item.status,
                                    *derived))

@@ -84,6 +84,15 @@ class PlanChangesTest(unittest.TestCase):
         ahead = in_project(pr(10), "Ready to pick")
         self.assertEqual(plan_changes([picked, ahead], [picked, ahead], {}, OPEN), [])
 
+    def test_unknown_status_is_left_alone(self):
+        item = in_project(pr(14, state="MERGED"), "On hold")
+        self.assertEqual(plan_changes([item], [item], {}, OPEN), [])
+
+    def test_unlabelled_item_already_on_release_branch_is_kept_as_picked(self):
+        item = in_project(pr(15, state="MERGED", labelled=False), "Ready to pick")
+        changes = plan_changes([item], [], {"2.5.2": {15: "rc/v2.5.2"}}, OPEN)
+        self.assertEqual(summary(changes), [("set_status", 15, "Picked")])
+
     def test_status_moves_forward(self):
         item = in_project(pr(11, state="MERGED"), "In progress")
         changes = plan_changes([item], [item], {}, OPEN)

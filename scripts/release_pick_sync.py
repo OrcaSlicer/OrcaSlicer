@@ -141,8 +141,9 @@ def main():
     args = parser.parse_args()
     token = os.environ.get("RELEASE_PROJECT_TOKEN")
     if not token:
-        print("RELEASE_PROJECT_TOKEN is not set", file=sys.stderr)
-        return 1
+        # Expected until the secret is added, and on runs that get no secrets: skip instead of failing.
+        print("::notice::RELEASE_PROJECT_TOKEN is not set; skipping the release-pick sync.")
+        return 0
 
     class Tee:
         def __init__(self):

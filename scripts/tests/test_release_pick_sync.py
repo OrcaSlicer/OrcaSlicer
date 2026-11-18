@@ -75,6 +75,15 @@ def git_stubs(picks=(), reverted=(), matches=None):
     ]
 
 
+class MainTest(unittest.TestCase):
+    def test_missing_token_skips_with_notice(self):
+        out = io.StringIO()
+        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(sys, "stdout", out), \
+                mock.patch.object(sys, "argv", ["sync", "--owner", "o", "--project", "1", "--repo", "o/r"]):
+            self.assertEqual(sync.main(), 0)
+        self.assertIn("::notice::RELEASE_PROJECT_TOKEN is not set", out.getvalue())
+
+
 class RunTest(unittest.TestCase):
     def run_sync(self, gh, apply=False, **git):
         out = io.StringIO()
