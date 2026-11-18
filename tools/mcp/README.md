@@ -340,24 +340,19 @@ refusals that leave the project as it was (modified presets without `preset_chan
 does not take), `preset_changes: "keep"` keeping an edit, and `project_new` dropping the test's settings. It
 starts from the harness's default printer and reruns on the same datadir.
 
-`tests/ops_*.json` drive each operation of the operations layer (`docs/HLSD/mcp-server.md`, "The
-operations layer") through the routes that reach it: the command, a Speed Dial action run with `action_run`
+`tests/ops_open_project.json`, `ops_select_preset.json`, `ops_assign_filament_preset_one_slot.json` and
+`ops_assign_filament_preset_multi_slot.json` drive an operation of the operations layer (`docs/HLSD/mcp-server.md`,
+"The operations layer") through the routes that reach it: the command, a Speed Dial action run with `action_run`
 where one runs it from a call, and, for presets, a pick in the sidebar and the plugin API called from a
-`script_run` step. One replay per operation, named after it: G-code, sliced 3MF, model 3MF and STL exports, a model
-import, a project opened, started anew and saved, a plate selected and locked, arrange, slice, the
-Preview's layer range, a printer or process preset selected (`ops_select_preset`), a filament assigned
-to a slot on a printer with one slot and with several (`ops_assign_filament_preset_one_slot`,
-`_multi_slot`), presets imported, an object's instance count, and the refusals of `printer_send`'s action,
-whose id is `send_gcode`, which never sets a print host, so nothing is sent. Each records what a call leaves: its reply or its
-refusal's text, the state read back after it, and the undo snapshots it took, which
-`tests/fixtures/ops_undo.py` reads from the app's log since no tool lists the undo history. Their
-`expect`s are on the setup and on what is read back. A replay cannot assert a refusal's text, so a
-call that a route refuses is `optional`, and `result.json` is the record of those texts, to compare
-between two builds.
+`script_run` step. They open a project, select a printer or process preset, and assign a filament to a slot on a
+printer with one slot and with several. Each records what a call leaves: its reply or its refusal's text, the
+state read back after it, and the undo snapshots it took, which `tests/fixtures/ops_undo.py` reads from the app's
+log since no tool lists the undo history. Their `expect`s are on the setup and on what is read back. A replay
+cannot assert a refusal's text, so a call that a route refuses is `optional`, and `result.json` is the record of
+those texts.
 The preset replays share `tests/fixtures/ops_presets.py`, which sets the slots, colours and flushing
 volumes to known values before each case, and each needs a freshly launched app, since a hidden
-preset that `preset_select` shows stays shown until a restart. The replays whose calls write files
-need a fresh `--out`, since some of those calls write without `overwrite`. Launch the app from a folder that
+preset that `preset_select` shows stays shown until a restart. Launch the app from a folder that
 holds no `.py` files, since the app's working directory is on Python's module path and a file there can
 shadow a standard module that `script_run` needs.
 
@@ -688,3 +683,7 @@ An entry's keys:
 - `timeout_s`: how long the test may run (900 by default).
 
 `test_run_sweep.py` checks the runner without the app, and that `sweep.json` lists every test there is.
+
+`TESTS.md` holds the rules the sweep's tests follow and the index of all of them, and `test-entries/` an entry for
+each test, by area: what it tests, how it decides pass or fail, and what it leaves unchecked. A new test starts as
+an entry there, reviewed before the test is written.
