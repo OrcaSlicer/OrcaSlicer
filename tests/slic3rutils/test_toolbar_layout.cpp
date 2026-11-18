@@ -135,3 +135,129 @@ TEST_CASE("ToolbarLayout bad groups keep other settings", "[ToolbarLayout]")
     CHECK(l.gizmos.hidden.count("move") == 1);
     CHECK(l.main.order.front() == "layersediting");
 }
+
+namespace {
+
+// A short gizmo order so the edit rules are easy to follow.
+ToolbarLayout six_gizmos()
+{
+    ToolbarLayout l   = stock_toolbar_layout();
+    l.gizmos.order    = {"move", "rotate", "scale", "seam", "fdm_supports", "fuzzy_skin"};
+    return l;
+}
+
+using Order = std::vector<std::string>;
+
+ToolbarGizmoRow plain(const std::string& id) { return {ToolbarRowKind::Plain, id, -1}; }
+ToolbarGizmoRow member(const std::string& id, int group) { return {ToolbarRowKind::Member, id, group}; }
+ToolbarGizmoRow header(int group) { return {ToolbarRowKind::Header, "", group}; }
+
+} // namespace
+
+TEST_CASE("Gizmo groups: grouping gathers members under a header", "[ToolbarLayout]")
+{
+    ToolbarLayout l = six_gizmos();
+    REQUIRE(group_gizmos(l, {"scale", "move"}, "G"));
+    CHECK(gizmo_rows(l) == std::vector<ToolbarGizmoRow>{header(0), member("move", 0), member("scale", 0), plain("rotate"), plain("seam"),
+                                                         plain("fdm_supports"), plain("fuzzy_skin")});
+    CHECK(l.groups[0] == ToolbarGizmoGroup{"G", {"move", "scale"}});
+    CHECK_FALSE(group_gizmos(l, {"seam"}, "One"));
+    CHECK_FALSE(group_gizmos(l, {"move", "rotate"}, "Taken"));
+    CHECK_FALSE(group_gizmos(l, {"svg", "rotate"}, "Not on the bar"));
+    CHECK(l.groups.size() == 1);
+}
+
+TEST_CASE("Gizmo groups: adding puts rows after the group's last member", "[ToolbarLayout]")
+{
+    ToolbarLayout l = six_gizmos();
+    REQUIRE(group_gizmos(l, {"move", "scale"}, "G"));
+    REQUIRE(add_to_group(l, 0, {"fuzzy_skin"}));
+    CHECK(l.gizmos.order == Order{"move", "scale", "fuzzy_skin", "rotate", "seam", "fdm_supports"});
+    CHECK(l.groups[0].members == Order{"move", "scale", "fuzzy_skin"});
+}
+
+TEST_CASE("Gizmo groups: adding rejects a row of another group", "[ToolbarLayout]")
+{
+    ToolbarLayout l = six_gizmos();
+    REQUIRE(group_gizmos(l, {"move", "rotate"}, "A"));
+    REQUIRE(group_gizmos(l, {"seam", "fdm_supports"}, "B"));
+    CHECK_FALSE(add_to_group(l, 0, {"seam"}));
+    CHECK(l.groups[1].members == Order{"seam", "fdm_supports"});
+}
+
+TEST_CASE("Gizmo groups: ungrouping keeps the order", "[ToolbarLayout]")
+{
+    ToolbarLayout l = six_gizmos();
+    REQUIRE(group_gizmos(l, {"move", "scale"}, "G"));
+    REQUIRE(ungroup_gizmos(l, 0));
+    CHECK(l.groups.empty());
+    CHECK(l.gizmos.order == Order{"move", "scale", "rotate", "seam", "fdm_supports", "fuzzy_skin"});
+}
+
+TEST_CASE("Gizmo groups: renaming trims, and a blank name falls back", "[ToolbarLayout]")
+{
+    ToolbarLayout l = six_gizmos();
+    REQUIRE(group_gizmos(l, {"move", "scale"}, "G"));
+    REQUIRE(rename_group(l, 0, "  X "));
+    CHECK(l.groups[0].name == "X");
+    CHECK_FALSE(rename_group(l, 0, "   "));
+    CHECK(l.groups[0].name == "X");
+    CHECK_FALSE(rename_group(l, 5, "Y"));
+    CHECK_FALSE(ungroup_gizmos(l, 5));
+    CHECK_FALSE(add_to_group(l, 5, {"seam"}));
+}
+
+TEST_CASE("Gizmo groups: the default name takes the lowest free number", "[ToolbarLayout]")
+{
+    ToolbarLayout l = six_gizmos();
+    l.groups        = {{"Group 1", {"move", "rotate"}}, {"Group 3", {"seam", "fdm_supports"}}};
+    CHECK(default_group_name(l, [](int n) { return "Group " + std::to_string(n); }) == "Group 2");
+}
+
+TEST_CASE("Gizmo groups: a header moves the whole group", "[ToolbarLayout]")
+{
+    ToolbarLayout l = six_gizmos();
+    REQUIRE(group_gizmos(l, {"move", "rotate"}, "G"));
+    CHECK_FALSE(move_gizmo_row(l, header(0), -1));
+    REQUIRE(move_gizmo_row(l, header(0), 1));
+    CHECK(l.gizmos.order == Order{"scale", "move", "rotate", "seam", "fdm_supports", "fuzzy_skin"});
+}
+
+TEST_CASE("Gizmo groups: a header jumps a whole neighbouring group", "[ToolbarLayout]")
+{
+    ToolbarLayout l = six_gizmos();
+    REQUIRE(group_gizmos(l, {"move", "rotate"}, "A"));
+    REQUIRE(group_gizmos(l, {"scale", "seam"}, "B"));
+    REQUIRE(move_gizmo_row(l, header(0), 1));
+    CHECK(l.gizmos.order == Order{"scale", "seam", "move", "rotate", "fdm_supports", "fuzzy_skin"});
+    CHECK(l.groups[0].name == "B");
+}
+
+TEST_CASE("Gizmo groups: a plain row jumps a whole group", "[ToolbarLayout]")
+{
+    ToolbarLayout l = six_gizmos();
+    REQUIRE(group_gizmos(l, {"rotate", "scale"}, "G"));
+    REQUIRE(move_gizmo_row(l, plain("seam"), -1));
+    CHECK(l.gizmos.order == Order{"move", "seam", "rotate", "scale", "fdm_supports", "fuzzy_skin"});
+    CHECK(l.groups[0].members == Order{"rotate", "scale"});
+}
+
+TEST_CASE("Gizmo groups: a member swaps inside its group", "[ToolbarLayout]")
+{
+    ToolbarLayout l = six_gizmos();
+    REQUIRE(group_gizmos(l, {"move", "rotate", "scale"}, "G"));
+    REQUIRE(move_gizmo_row(l, member("rotate", 0), 1));
+    CHECK(l.groups[0].members == Order{"move", "scale", "rotate"});
+}
+
+TEST_CASE("Gizmo groups: a member leaves at either edge, and a group of one dissolves", "[ToolbarLayout]")
+{
+    ToolbarLayout l = six_gizmos();
+    REQUIRE(group_gizmos(l, {"rotate", "scale", "seam"}, "G"));
+    REQUIRE(move_gizmo_row(l, member("rotate", 0), -1));
+    CHECK(l.groups[0].members == Order{"scale", "seam"});
+    CHECK(gizmo_rows(l)[1] == plain("rotate"));
+    REQUIRE(move_gizmo_row(l, member("seam", 0), 1));
+    CHECK(l.groups.empty());
+    CHECK(l.gizmos.order == Order{"move", "rotate", "scale", "seam", "fdm_supports", "fuzzy_skin"});
+}

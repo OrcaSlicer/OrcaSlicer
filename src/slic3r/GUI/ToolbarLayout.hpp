@@ -2,6 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <functional>
 #include <set>
 #include <string>
 #include <vector>
@@ -76,5 +77,32 @@ std::string serialize_toolbar_layout(const ToolbarLayout& layout);
 // than two members; then moves each group's members next to its first one in gizmos.order and keeps the groups and
 // their members in bar order.
 void normalize_gizmo_groups(ToolbarLayout& layout);
+
+// The gizmo list as the Customize Toolbar dialog shows it: a header row before each group's members.
+enum class ToolbarRowKind { Plain, Header, Member };
+struct ToolbarGizmoRow
+{
+    ToolbarRowKind kind;
+    std::string    id;         // empty for a header
+    int            group = -1; // the group of a header or member
+
+    bool operator==(const ToolbarGizmoRow& rhs) const { return kind == rhs.kind && id == rhs.id && group == rhs.group; }
+};
+std::vector<ToolbarGizmoRow> gizmo_rows(const ToolbarLayout& layout);
+
+// The dialog's edits. Each returns false and changes nothing when it does not apply (fewer than two ids, an id
+// already grouped or not on the bar, a group index out of range, a blank name, a row that cannot move).
+// Makes a group of ungrouped ids, gathered where the first of them is in the bar order.
+bool group_gizmos(ToolbarLayout& layout, const std::vector<std::string>& ids, const std::string& name);
+// Moves ungrouped ids into a group, right after its last member.
+bool add_to_group(ToolbarLayout& layout, int group, const std::vector<std::string>& ids);
+bool ungroup_gizmos(ToolbarLayout& layout, int group);
+bool rename_group(ToolbarLayout& layout, int group, const std::string& name);
+// name_for(n) for the lowest n >= 1 that no group is named.
+std::string default_group_name(const ToolbarLayout& layout, const std::function<std::string(int)>& name_for);
+// Moves a row one step (-1 up, +1 down). A header moves its whole group past the next row or group; a plain row
+// jumps a whole group; a member moves within its group and leaves it at the group's edge, and a group left with one
+// member is removed.
+bool move_gizmo_row(ToolbarLayout& layout, const ToolbarGizmoRow& row, int step);
 
 }} // namespace Slic3r::GUI
