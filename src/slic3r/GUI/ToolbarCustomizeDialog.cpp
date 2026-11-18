@@ -1,9 +1,11 @@
 #include "ToolbarCustomizeDialog.hpp"
 
 #include "GLCanvas3D.hpp"
+#include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "GUI_Utils.hpp"
 #include "I18N.hpp"
+#include "KeyChord.hpp"
 #include "MainFrame.hpp"
 #include "Plater.hpp"
 #include "ToolbarLayout.hpp"
@@ -12,9 +14,11 @@
 #include "Widgets/DialogButtons.hpp"
 #include "Widgets/Label.hpp"
 #include "Widgets/StateColor.hpp"
+#include "format.hpp"
 #include "libslic3r/AppConfig.hpp"
 
 #include <wx/colour.h>
+#include <wx/defs.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/panel.h>
@@ -23,11 +27,13 @@
 #include <wx/tglbtn.h>
 #include <wx/toplevel.h>
 #include <wx/window.h>
+#include <wx/wupdlock.h>
 
 #include <algorithm>
 #include <cstddef>
 #include <iterator>
 #include <map>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -94,25 +100,10 @@ public:
         auto* hint  = new Label(this, _L("Uncheck an icon to hide it. Select a row and move it to change the order."));
         sizer->Add(hint, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(12));
 
-        auto* body   = new wxBoxSizer(wxHORIZONTAL);
-        auto* arrows = new wxBoxSizer(wxVERTICAL);
-        auto  add_arrow = [this, arrows](const char* icon, const wxString& tip, int step) {
-            auto* btn = new Button(this, "", icon, 0, 16);
-            btn->SetStyle(ButtonStyle::Regular, ButtonType::Icon);
-            btn->SetToolTip(tip);
-            btn->Bind(wxEVT_BUTTON, [this, step](wxCommandEvent&) { move_selected(step); });
-            arrows->Add(btn, 0, wxBOTTOM, FromDIP(6));
-            return btn;
-        };
-        m_up_button   = add_arrow("toolbar_row_up_disabled", _L("Move up"), -1);
-        m_down_button = add_arrow("toolbar_row_down_disabled", _L("Move down"), 1);
-        body->Add(arrows, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(12));
-
         auto* lists = new wxBoxSizer(wxHORIZONTAL);
         m_main_panel  = add_list(lists, _L("Object tools"));
         m_gizmo_panel = add_list(lists, _L("Gizmos"));
-        body->Add(lists, 1, wxEXPAND);
-        sizer->Add(body, 1, wxEXPAND | wxALL, FromDIP(12));
+        sizer->Add(lists, 1, wxEXPAND | wxALL, FromDIP(12));
 
         auto* btns = new DialogButtons(this, {L("Reset to default"), "OK", "Cancel"}, "", 1 /*left_aligned*/);
         btns->GetButtonFromIndex(0)->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
@@ -123,6 +114,22 @@ public:
         btns->GetOK()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_OK); });
         btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
         sizer->Add(btns, 0, wxEXPAND);
+
+        // Alt+Up and Alt+Down move the selected row, so rows can be reordered without the mouse; Tab selects a
+        // row by focusing its box.
+        Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& e) {
+            if (e.GetKeyCode() == WXK_TAB)
+                m_tabbing = true;
+            const KeyChord chord = KeyChord::from_event(e);
+            if (chord == move_up_key() || chord == move_down_key()) {
+                // The dialog opens with focus on a box but nothing selected; act on that box's row.
+                if (m_selected.empty() && m_rows.count(m_focused_row) != 0)
+                    select_row(m_focused_row);
+                move_selected(chord == move_up_key() ? -1 : 1);
+            }
+            else
+                e.Skip();
+        });
 
         rebuild_rows();
         SetSizerAndFit(sizer);
@@ -136,8 +143,6 @@ public:
 protected:
     void on_dpi_changed(const wxRect&) override
     {
-        m_up_button->Rescale();
-        m_down_button->Rescale();
         rebuild_rows();
         GetSizer()->SetSizeHints(this);
         Refresh();
@@ -155,6 +160,9 @@ private:
         lists->Add(column, 1, wxEXPAND | wxRIGHT, FromDIP(16));
         return panel;
     }
+
+    static KeyChord move_up_key() { return {WXK_UP, wxMOD_ALT}; }
+    static KeyChord move_down_key() { return {WXK_DOWN, wxMOD_ALT}; }
 
     ToolbarGroupLayout& group_of(const std::string& id)
     {
@@ -185,21 +193,26 @@ private:
         update_arrows();
     }
 
-    // The arrows are enabled only when the selected row can move that way.
+    // Only the selected row shows its arrows, so they plainly move that row; each is enabled only when the
+    // row can move that way.
     void update_arrows()
     {
-        bool up = false, down = false;
-        if (!m_selected.empty()) {
-            const std::vector<std::string>& order = group_of(m_selected).order;
-            const auto it = std::find(order.begin(), order.end(), m_selected);
-            up   = it != order.end() && it != order.begin();
-            down = it != order.end() && std::next(it) != order.end();
+        for (const auto& [id, row] : m_rows) {
+            const bool selected = id == m_selected;
+            row.up->Show(selected);
+            row.down->Show(selected);
+            if (!selected)
+                continue;
+            const std::vector<std::string>& order = group_of(id).order;
+            const auto it   = std::find(order.begin(), order.end(), id);
+            const bool up   = it != order.end() && it != order.begin();
+            const bool down = it != order.end() && std::next(it) != order.end();
+            // Button draws its icon the same when disabled, so the icon shows the state.
+            row.up->Enable(up);
+            row.up->SetIcon(up ? "toolbar_row_up" : "toolbar_row_up_disabled");
+            row.down->Enable(down);
+            row.down->SetIcon(down ? "toolbar_row_down" : "toolbar_row_down_disabled");
         }
-        // Button draws its icon the same when disabled, so the icon shows the state.
-        m_up_button->Enable(up);
-        m_up_button->SetIcon(up ? "toolbar_row_up" : "toolbar_row_up_disabled");
-        m_down_button->Enable(down);
-        m_down_button->SetIcon(down ? "toolbar_row_down" : "toolbar_row_down_disabled");
     }
 
     // Keeps Tab moving through the rows in the order they are shown.
@@ -241,6 +254,7 @@ private:
     // 1px taller on GTK, so rebuilding them here would push the last row out of the dialog.
     void show_working_layout()
     {
+        const wxWindowUpdateLocker no_repaint(this);
         for (const auto& [panel, group] : {std::make_pair(m_main_panel, &m_working.main), std::make_pair(m_gizmo_panel, &m_working.gizmos)}) {
             wxSizer* rows = panel->GetSizer();
             if (rows->GetItemCount() != group->order.size()) {
@@ -300,6 +314,13 @@ private:
                 select_row(id);
                 e.Skip();
             });
+            // Not for the focus the dialog gives its first box on opening, so it opens with nothing selected.
+            check->Bind(wxEVT_SET_FOCUS, [this, id](wxFocusEvent& e) {
+                m_focused_row = id;
+                if (m_tabbing)
+                    select_row(id);
+                e.Skip();
+            });
             row_sizer->Add(check, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(6));
 
             // Sized for the bold font, so selecting the row does not clip its name.
@@ -314,6 +335,41 @@ private:
                 note->SetForegroundColour(wxColour(144, 144, 144));
                 row_sizer->Add(note, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
             }
+
+            // Hidden until the row is selected; their space is kept so the row does not shift when they show.
+            auto add_arrow = [this, row, row_sizer](const char* icon, const wxString& tip, int step) {
+                auto* btn = new Button(row, "", icon, 0, 16);
+                btn->SetStyle(ButtonStyle::Regular, ButtonType::Icon);
+                btn->SetPaddingSize(FromDIP(wxSize(2, 2)));
+                btn->SetMinSize(FromDIP(wxSize(22, 22)));
+                btn->SetCornerRadius(FromDIP(3));
+                btn->SetToolTip(tip);
+                // Mouse only: a focused arrow that gets disabled at the end of a list would hand the focus to
+                // another control on Windows, and the next Space would act on that control.
+                btn->SetCanFocus(false);
+                btn->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& e) {
+                    m_arrow_click = e.GetPosition();
+                    e.Skip();
+                });
+                btn->Bind(wxEVT_BUTTON, [this, row, btn, step](wxCommandEvent&) {
+                    move_selected(step);
+                    // The row moved away from the pointer; follow it so further clicks keep moving the same row.
+                    // Only after a mouse press: an accessibility "press" must not move the pointer. The target is
+                    // taken from positions in the list, which does not move.
+                    if (!m_arrow_click)
+                        return;
+                    row->GetParent()->WarpPointer(row->GetPosition().x + btn->GetPosition().x + m_arrow_click->x,
+                                                  row->GetPosition().y + btn->GetPosition().y + m_arrow_click->y);
+                    m_arrow_click.reset();
+                });
+                btn->Hide();
+                row_sizer->Add(btn, wxSizerFlags().CenterVertical().Border(wxRIGHT, FromDIP(4)).ReserveSpaceEvenIfHidden());
+                return btn;
+            };
+            // TRN Tooltip of a row's arrow in the Customize Toolbar dialog. %1% is a key chord such as "Alt+Arrow Up".
+            Button* up = add_arrow("toolbar_row_up_disabled", format_wxstr(_L("Move up (%1%)"), from_u8(move_up_key().display())), -1);
+            // TRN Tooltip of a row's arrow in the Customize Toolbar dialog. %1% is a key chord such as "Alt+Arrow Down".
+            Button* down = add_arrow("toolbar_row_down_disabled", format_wxstr(_L("Move down (%1%)"), from_u8(move_down_key().display())), 1);
             row->SetSizer(row_sizer);
 
             const auto on_click = [this, id](wxMouseEvent& e) {
@@ -322,12 +378,12 @@ private:
             };
             row->Bind(wxEVT_LEFT_DOWN, on_click);
             for (wxWindow* child : row->GetChildren())
-                if (child != check)
+                if (child != check && child != up && child != down)
                     child->Bind(wxEVT_LEFT_DOWN, on_click);
 
             style_row(row, id == m_selected);
             rows->Add(row, row_flags());
-            m_rows[id] = {row, check};
+            m_rows[id] = {row, check, up, down};
         }
         panel->Layout();
     }
@@ -335,14 +391,17 @@ private:
     ToolbarLayout m_loaded;
     ToolbarLayout m_working;
     std::string   m_selected;
+    std::string            m_focused_row; // the row whose box last took the focus
+    bool                   m_tabbing{false}; // Tab has been pressed, so focusing a box selects its row
+    std::optional<wxPoint> m_arrow_click; // where a mouse press on an arrow landed, in the arrow's coordinates
     wxPanel*      m_main_panel{nullptr};
     wxPanel*      m_gizmo_panel{nullptr};
-    Button*       m_up_button{nullptr};
-    Button*       m_down_button{nullptr};
     struct Row
     {
         wxPanel*    panel{nullptr};
         ::CheckBox* check{nullptr};
+        Button*     up{nullptr};
+        Button*     down{nullptr};
     };
     std::map<std::string, Row> m_rows;
 };
