@@ -11,6 +11,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_message.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include <catch2/generators/catch_generators_range.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/MeshRepair.hpp"
@@ -602,4 +603,24 @@ TEST_CASE("Converting a part's units keeps an id whose material is missing", "[M
     // convert_units() hands its objects to the caller unowned; give them to a model so they are freed.
     Model owner;
     owner.objects = std::move(converted);
+}
+
+TEST_CASE("Imported vertex colors paint every face that touches another filament", "[Model][Regression]")
+{
+    // Filament 1 everywhere but one corner of the cube, in filament 2.
+    const int corner = GENERATE(range(0, 8));
+    Model model;
+    model.add_object()->add_volume(make_cube(10., 10., 10.));
+    const ModelVolume &volume = *model.objects.front()->volumes.front();
+    const indexed_triangle_set &its = volume.mesh().its;
+    REQUIRE(its.vertices.size() == 8);
+    std::vector<unsigned char> vertex_filaments(its.vertices.size(), 1);
+    vertex_filaments[corner] = 2;
+    REQUIRE(Model::obj_import_vertex_color_deal(vertex_filaments, 1, &model));
+    for (size_t i = 0; i < its.indices.size(); ++i) {
+        const auto &face = its.indices[i];
+        const bool touches_corner = face[0] == corner || face[1] == corner || face[2] == corner;
+        CAPTURE(corner, i);
+        CHECK(volume.mmu_segmentation_facets.get_triangle_as_string(int(i)).empty() == ! touches_corner);
+    }
 }

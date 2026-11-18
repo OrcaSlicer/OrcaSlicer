@@ -3540,7 +3540,7 @@ bool Model::obj_import_vertex_color_deal(const std::vector<unsigned char> &verte
                 auto filament_id0 = vertex_filament_ids[face[0]];
                 auto filament_id1 = vertex_filament_ids[face[1]];
                 auto filament_id2 = vertex_filament_ids[face[2]];
-                if (filament_id0 <= 1 && filament_id1 <= 1 && filament_id2 <= 2) {
+                if (filament_id0 == first_extruder_id && filament_id1 == first_extruder_id && filament_id2 == first_extruder_id) {
                     continue;
                 }
                 VertexColorCase vertex_color_case;
