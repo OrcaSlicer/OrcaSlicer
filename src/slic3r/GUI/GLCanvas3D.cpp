@@ -2823,6 +2823,9 @@ BoundingBoxf3 GLCanvas3D::volumes_bounding_box(bool current_plate_only) const
     for (const GLVolume *volume : m_volumes.volumes) {
         if (!m_apply_zoom_to_volumes_filter || ((volume != nullptr) && volume->zoom_to_volumes)) {
             const auto v_bb     = volume->transformed_bounding_box();
+            // A broken transformation must not blow the box up and blank the view; 1e8 mm is 100 km.
+            if (!v_bb.min.allFinite() || !v_bb.max.allFinite() || v_bb.min.cwiseAbs().maxCoeff() > 1e8 || v_bb.max.cwiseAbs().maxCoeff() > 1e8)
+                continue;
             if (is_limit && !expand_part_plate_list_box.overlap(v_bb))
                 continue;
             bb.merge(v_bb);
