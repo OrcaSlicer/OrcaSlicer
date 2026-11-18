@@ -1682,9 +1682,9 @@ TEST_CASE("A freshly approved operation covers its nested events", "[audit][Pyth
         const char* prompts;
         const char* code;
     };
-    // Each operation names targets no earlier one saved, so each is asked once. FsCreate and
-    // FsDelete grants are never saved, so those operations are asked every time. Only the
-    // expected prompts are approved, so a nested event left uncovered fails the operation.
+    // Each operation is asked once, except pty.spawn, which shares the earlier process grant.
+    // FsCreate and FsDelete grants are never saved, so those operations are asked every time.
+    // Only the expected prompts are approved, so a nested event left uncovered fails the operation.
     std::vector<Case> cases = {
         {"shutil.copytree", "shutil.copytree(TREE, os.path.join(OUTSIDE, 'copy'))"},
         {"shutil.copyfile", "shutil.copyfile(APPROVED, os.path.join(OUTSIDE, 'copied.txt'))"},
@@ -1708,7 +1708,7 @@ TEST_CASE("A freshly approved operation covers its nested events", "[audit][Pyth
     cases.push_back({"os.fwalk", "list(os.fwalk(os.path.join(OUTSIDE, 'unpacked')))"});
     // The forked child's exec is covered by the spawn too: had it prompted, the child's own
     // denial would end it with status 1.
-    cases.push_back({"pty.spawn", "spawn_status = spawn_checked(TRUE_COMMAND + ['spawned'])"});
+    cases.push_back({"", "spawn_status = spawn_checked(TRUE_COMMAND + ['spawned'])"});
 #endif
 
     for (const Case& operation : cases) {
