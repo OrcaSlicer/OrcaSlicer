@@ -4639,7 +4639,8 @@ checks every gizmo through the GUI tools,
 reading and comparing presets, explaining settings, per-variant entries, `changed`, reverting keys, answering the
 unsaved-changes prompts of a preset switch and a new project, deleting presets, exporting and importing
 presets with a path, and reading a preference changed in the Preferences dialog,
-`tools/mcp/tests/plates.json` a plate's settings, name and lock, `plate_list` and the filament slot commands,
+`tools/mcp/test_plates.py` plates added, duplicated, named, locked, selected and deleted, what a lock keeps
+Arrange and Auto-Orient from doing, a plate's settings, the filament slot commands and the plate icons and menu,
 `tools/mcp/tests/calibration.json` every calibration test and its preset answers,
 `tools/mcp/tests/dialogs_canvas_input.json` auto-answers that run a button's handler and canvas
 targets on negative parts and from below the bed, `tools/mcp/tests/slice_stats.json` the slice
@@ -4649,8 +4650,7 @@ and button menus listed and run without one ever showing, and the Edit menu's Un
 their paths, `tools/mcp/tests/rows.json` object list
 rows, checklist rows, the object settings table and the print button's popup,
 `tools/mcp/tests/recording.json` a recording with clicks, a dialog and a slice, stopped and encoded,
-and one a replay ends, `tools/mcp/tests/plate_icons.json` plate icons (lock, settings, arrange, the plate menu, move to
-front), `tools/mcp/test_webview_modal.py` JavaScript in modal dialogs' web views, the ones
+and one a replay ends, `tools/mcp/test_webview_modal.py` JavaScript in modal dialogs' web views, the ones
 `webview_run_javascript` is refused in and a page that closes its dialog, `tools/mcp/tests/web_dialogs.json` the preset bundle dialog, the colour picker
 (hex field and spectrum) and the setup wizard's first steps through the GUI tools alone,
 `tools/mcp/test_web_ui.py` every page control kind, action, refusal, locator, timeout and close of
@@ -4681,9 +4681,9 @@ instruments going off with the server,
 connection. See `tools/mcp/README.md`.
 
 The commands that do a menu item's job by index, and the gaps they close, have their checks on the app. The
-replays `tools/mcp/tests/menu_items_objects.json`, `menu_items_structure.json`, `menu_items_placement.json` and
-`menu_items_plates.json` call the commands made from menu items by index and on the selection, and read each
-back; `objects_state.json` (printable, Fix Model, Auto Drop), `objects_files.json` (clone, reload, replace),
+replays `tools/mcp/tests/menu_items_objects.json`, `menu_items_structure.json` and `menu_items_placement.json`,
+and for the plates `tools/mcp/test_plates.py`, call the commands made from menu items by index and on the
+selection, and read each back; `objects_state.json` (printable, Fix Model, Auto Drop), `objects_files.json` (clone, reload, replace),
 `objects_order.json` (`object_order {order}`), `filaments_and_files.json` (slots merged and mixed, exports of
 some objects, a ZIP's entries), `settings_targets.json` (`settings_list` and the targets of the settings
 commands), `presets_and_plate_map.json` (`preset_list`'s filters, a plate's filament map, a nozzle variant),

@@ -500,8 +500,8 @@ ArrangeStart start_arrange(Plater& plater, const json& args)
     }
     const std::string plate_name = "Plate " + std::to_string(plate);
     if (plate >= 0 && plates.get_plate(plate)->is_locked())
-        throw ToolFailure(plate_name + " is locked; unlock it first (plate_select {\"plate\": " + std::to_string(plate) +
-                          "}, then plate_lock)");
+        throw ToolFailure(plate_name + " is locked; unlock it first (plate_lock {\"plate\": " + std::to_string(plate) +
+                          ", \"locked\": false})");
     if (plate >= 0 && plates.get_plate(plate)->empty())
         throw ToolFailure(plate_name + " has no objects to arrange");
 

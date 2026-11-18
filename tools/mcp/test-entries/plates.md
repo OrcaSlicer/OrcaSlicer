@@ -4,7 +4,7 @@ The design of this area's sweep tests. The rules every entry follows, the grades
 in [TESTS.md](../TESTS.md).
 
 ## `test_plates`
-`test_plates.py` · Python · takes the place of `plates.json`, `menu_items_plates.json` and `plate_icons.json`
+`test_plates.py` · Python, 211 checks · in `sweep.json` as `{"path": "test_plates.py"}`
 
 **Tests:** The plates of the Prepare view: adding, duplicating, naming, locking, selecting and deleting plates, and
 undoing that; what a lock keeps Arrange and Auto-Orient from doing; the settings a plate sets for itself; the
@@ -34,7 +34,7 @@ whole.
 | 6 | `plate_delete {plate: 0}` | `"Left" 0 *` · `"" 0 L` | the plates after it move down; the current plate stays current |
 | 7 | `undo` | `"" 0` · `"Left" 0 *` · `"" 0 L` | the delete is one undo step |
 | 8 | `redo` | `"Left" 0 *` · `"" 0 L` | |
-| 9 | `project_save` to a new file, `project_new`, `project_open` of the file | `"Left" 0 *` · `"" 0 L` | names and locks are kept in the project file |
+| 9 | `project_save` to a new file, `project_new`, `project_open` of the file | `"Left" 0 *` · `"" 0 L` | names and locks are kept in the project file; the open first shows the app's warning "The file does not contain any geometry data.", answered OK |
 
 **Scenario: by index, and on the current plate**
 
@@ -85,13 +85,14 @@ Two cubes of 20 × 20 × 10 mm are turned onto their side with `object_transform
 "absolute"}`, so that each stands 20 mm tall (`bbox.size` `[10, 20, 20]`) and Auto-Orient would lay it flat. A is
 added on plate 0 and B on plate 1, each with `position` 30 mm in from its plate's front left corner (the plate's
 `origin` from `plate_list`). Objects are read from `object_list` as their plate, `offset`, `rotation_deg` and
-`bbox.size`.
+`bbox.size`. A turn is compared as the rotation its `rotation_deg` composes, since `object_list` can name one turn by
+other angles: it reports A's `[0, 90, 0]` as `[180, 90, 180]`.
 
 | # | Step | Plates after | Also checked |
 |---|---|---|---|
 | 1 | A and B added and turned, then `plate_lock {plate: 0, locked: true}` | `"" 1 L` · `"" 1 *` | A at its corner, standing |
 | 2 | `object_arrange` | `"" 1 L` · `"" 1 *` | A's `offset` and `rotation_deg` as after 1; B on plate 1; the reply lists plate 0 among the plates it skipped |
-| 3 | `object_arrange {plates: 0}` | as after 2 | refused, saying plate 0 is locked; A as after 1 |
+| 3 | `object_arrange {plates: 0}` | as after 2 | refused with `Plate 0 is locked; unlock it first (plate_lock {"plate": 0, "locked": false})`; A as after 1 |
 | 4 | `object_auto_orient {plates: [0]}` | as after 2 | refused, `plate_locked`; A still standing, `rotation_deg` `[0, 90, 0]` |
 | 5 | `object_auto_orient {objects: [0, 1]}` | as after 2 | B lies flat (`bbox.size` z 10) and A still stands; the reply names B alone |
 | 6 | `object_transform {object: 0, translate: [5, 0, 0]}` | as after 2 | A is 5 mm further along x: a lock does not stop a move by hand |
@@ -149,7 +150,7 @@ Each step is a `widget_click` on `{plate_icon, plate}` unless it says otherwise.
 
 | # | Step | Plates after | Also checked |
 |---|---|---|---|
-| 1 | `widget_list {query: "plate_icon"}` | `"" 0 *` | plate 0 shows exactly the icons `plate`, `orient`, `arrange`, `lock`, `settings` and `name` |
+| 1 | `widget_list {query: "plate_icon"}` | `"" 0 *` | plate 0 shows exactly the icons `plate`, `delete`, `orient`, `arrange`, `lock`, `settings`, `name` and `move_to_front`: the app draws the delete and move-to-front icons on every plate, a lone plate too |
 | 2 | `lock` on plate 0 | `"" 0 * L` | |
 | 3 | `lock` on plate 0 | `"" 0 *` | |
 | 4 | `settings` on plate 0, answered Cancel | `"" 0 *` | the dialog is titled Plate Settings; plate 0's settings are the project's afterwards |
@@ -162,26 +163,21 @@ Each step is a `widget_click` on `{plate_icon, plate}` unless it says otherwise.
 | 11 | `move_to_front` on plate 1 | `"" 2 *` · `"" 0` | both cubes on plate 0 |
 | 12 | `app_state` | as after 11 | no dialog open and no menu left open |
 
-**To settle in review:**
-- After undoing a delete, the plate that was current before the delete is current again (a plate's life, step 7;
-  by index, step 22). Selecting a plate takes an undo snapshot of its own, so this is what undo is expected to give.
+**Notes:**
+- Undoing a delete makes the plate that was current before the delete current again (a plate's life, step 7; by
+  index, step 22): selecting a plate takes an undo snapshot of its own.
 - The plate commands refuse with codes from the operations layer (`last_plate`, `no_such_plate`), but most of
-  `plate_set_settings`'s refusals carry no code, so steps 5 to 8 of the settings scenario match their words. Giving
-  them codes is a change to the app.
-- The icons plate 0 shows on its own (icons, step 1): the replay this takes the place of counted at least seven
-  nodes, one more than the six named here.
+  `plate_set_settings`'s refusals carry no code, so steps 5 to 8 of the settings scenario match their words.
+- Arranging only a locked plate is refused by `object_arrange` with words and no code, while Auto-Orient refuses a
+  locked plate with `plate_locked` (lock, steps 3 and 4).
+- What a duplicate leaves out: the new plate gets the objects, but not the source plate's name, lock or own settings
+  (a copy of a named plate is unnamed).
+- An arrange packs the objects onto the first unlocked plates, keeps every plate, and leaves the current plate as it
+  was (lock, step 8).
 - An object with instances on two plates, which no step uses. A duplicate copies each object that has an instance on
   the source plate, with all of its instances, and moves the copy by the distance between the two plates, so the copy
   of an instance that stood on another plate lands beside that plate or on a third one. This is the app's own plate
-  code (`PartPlateList::duplicate_plate()`), left as it is: a bug for a fix of its own.
-- What a duplicate leaves out: the new plate gets the objects, but not the source plate's name, lock or own
-  settings. The scenarios expect that (a copy of a named plate is unnamed).
-- Arranging only a locked plate (lock, step 3): `object_arrange` refuses it with "Plate 0 is locked; unlock it first
-  …" and no code, while Auto-Orient refuses a locked plate with `plate_locked`, so the step matches the words "Plate 0
-  is locked". The refusal's advice says to select the plate before `plate_lock`, although `plate_lock` takes the
-  plate; that is a bug in the MCP code (`McpToolsScene.cpp`, `object_arrange`), fixed with this test.
-- Where the last arrange leaves things (lock, step 8): both cubes packed on plate 0 and plate 1 left empty, with
-  plate 1 still current. An arrange never removes a plate, but which plate is current afterwards is to confirm.
+  code (`PartPlateList::duplicate_plate()`), a bug for a fix of its own.
 
 **Not checked:**
 - The refusals of a plate index the project lacks for each plate command, and Rename Plate's name dialog: they are
@@ -189,64 +185,6 @@ Each step is a `widget_click` on `{plate_icon, plate}` unless it says otherwise.
 - How the plates and icons look: no screenshot is taken.
 - The plate's `wipe_tower` position and `origin` and `size` themselves, beyond containing the arranged cubes.
 
-## Replays this area replaces
-
-Each leaves the sweep, with its entry, in the commit that adds the tests above.
-
-### `plates`
-`tests/plates.json` · replay, 69 steps, 35 expects, 13 optional
-
-**Tests:** `plate_set_settings`, `plate_lock` and `plate_rename` as the Plate Settings dialog and plate icons do, read back with `plate_list` and `plate_get_settings`: a per-plate plate type and print sequence with undo/redo, first- and other-layer filament orders, spiral vase, an idempotent lock and a name; the `filament_add`/`filament_delete` commands; and a mixed filament whose slot cannot be deleted, ahead of which a new slot goes, and which blocks custom filament orders.
-
-**Decides by:** Fails when a non-optional call errors or one of its 80 matchers misses.
-- Slots: one slot after the optional deletes; `filament_add` messages "Added filament slot 2." and "3."; `filament_delete {filament_slot: 2}` message; `filament_is_mixed` = `"0,0"`.
-- Start state: `plate_list` totals, object counts, empty overrides, `by layer`, unlocked, no layer G-code.
-- Per-plate settings: applied and changed values; plate 1 `overrides` exactly `["curr_bed_type", "print_sequence"]`, plate 0 none; `plate_get_settings` value, effective and offered; undo empties overrides, redo restores `by object`; `null` gives effective `by layer`.
-- Refusals: after five optional refused calls, plate 1 unlocked with overrides exactly `["curr_bed_type"]` and plate 0's empty.
-- Filament orders: applied orders exact and sorted (open-ended range has no `to`), overrides exact, cleared with `null`.
-- Spiral, lock, name, slice: exact values; locking twice reports `changed` true then false; plate 1 `sliced` true with no layer G-code.
-- Mixed filament: dialog title exact; `filament_is_mixed` `"0,0,1"`; after the refused delete and order, plate 0's first-layer order is still null and a new slot gives `"0,0,0,1"`; delete and "Remove last mixed filament" return it to `"0,0"`.
-
-**Not checked:**
-- The refused `curr_bed_type: "Glass Plate"` + `by object` call: the read-back checks `overrides`, not plate 1's `curr_bed_type`, so accepting the bed type alone would pass.
-- Redo is read back by `print_sequence` only, not `curr_bed_type`.
-- The spiral-mode question is auto-answered; nothing confirms it was asked.
-- `/items/0/wipe_tower` is `exists` only.
-
-**Strength:** Strong — nearly every setting is read back exactly, and most refusals are followed by a read that would catch them.
-
-### `menu_items_plates`
-`tests/menu_items_plates.json` · replay, 37 steps, 58 expects, 0 optional
-
-**Tests:** The plate commands by index and with no plate: `plate_duplicate`, `plate_rename` (which makes the plate current), `plate_lock`, `plate_select`, `plate_delete` (the deleted plate's object left outside), and undo of a delete.
-
-**Decides by:** Fails when a call errors or an expect misses.
-- Each reply's `plate`, `new_plate`, `current`, `name`, `locked`, `changed` and per-plate object counts are exact.
-- `plate_list` after each: `total`, which plate is `current`, `name` (including an unnamed plate's ""), `locked`, object counts.
-- `object_list`: duplicated plates hold "second" and "first"; after deleting plate 1 its object "second" is listed outside.
-- Undo of the last delete gives `total` 3.
-
-**Not checked:**
-- The undo is checked by plate count only; the restored plate's object and name are not read.
-
-**Strength:** Strong — every reply and the plate list are matched exactly after each command.
-
-### `plate_icons`
-`tests/plate_icons.json` · replay, 27 steps, 15 expects, 0 optional
-
-**Tests:** `{plate_icon, plate}` locators doing what a click on the Prepare view's plate icon does: lock twice, Plate Settings opened and cancelled, a second plate's arrange icon spreading two stacked cubes, the plate's right-click menu listed and run, and move to front.
-
-**Decides by:** Fails when a call errors or one of its 26 matchers misses.
-- Listing: `widget_list {query: plate_icon}` `/nodes` ≥ 7.
-- Lock: `/locked` true, then false.
-- Settings: reply `/dialogs/0/title` contains `Plate`; `dialog_answer` must find "Plate Settings".
-- Arrange: before, both cubes on plate 1 at Y offset 128.0; after the icon (`/started`, `/done` true, idle within 2 s), both still on plate 1 with Y offset ≠ 128.0.
-- Menu: the listing contains `Edit Plate Name`; running `Lock` gives `/ran` = `Lock`, and the lock icon then reads `/locked` = false, showing the menu had locked it.
-- Move to front: `/current` = 0; `app_state` current plate 0 of 2; both cubes on plate 0; no dialog open, no unseen menu.
-
-**Not checked:**
-- Arrange is checked only as "Y moved off 128"; the cubes could still overlap, and X is not read.
-- The icon count is `ge 7`, not the known set of icons.
-- Cancelling Plate Settings is not checked to leave the plate unchanged.
-
-**Strength:** Strong — each icon's effect is read back from plate or object state.
+**Strength:** Strong — after every step it reads the plates back through `plate_list` and compares them whole with
+values written out here, asserts each refusal by its code or its words, and checks a lock, a duplicate and a plate's
+settings by their effect.

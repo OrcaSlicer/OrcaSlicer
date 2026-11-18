@@ -325,13 +325,11 @@ control's name, and reads it back with `preferences_get`. It starts from the har
 filament slot in Simple mode, deleting slots and selecting the mode first, and reruns on the same
 datadir.
 
-`tests/plates.json` sets a plate type and print sequence on one plate only (with undo and redo), the
-first and other layers' filament orders and spiral vase through `plate_set_settings`, the lock (twice,
-which leaves it locked) through `plate_lock` and a name through `plate_rename`, and reads them back
-with `plate_list` and `plate_get_settings`.
-It brings the filament list to two slots with the `filament_add` and `filament_delete` commands first,
-and ends with a mixed filament, whose slot the delete command refuses and ahead of which a new slot
-goes. It reruns on the same datadir.
+`test_plates.py` checks the plates of the Prepare view: plates added, duplicated, named, locked, selected and
+deleted by index and on the current plate, with undo; what a lock keeps Arrange and Auto-Orient from doing; a
+plate's own settings through `plate_set_settings`; the filament slots its filament orders count on; and the plate
+icons and the plate menu. After every step it reads the plates back with `plate_list` and compares them whole with
+the state its entry in `test-entries/plates.md` writes out.
 
 `tests/calibration.json` makes every calibration test with `calibration_generate_test` (each pressure advance method,
 a 2 x 2 pattern batch, the four flow ratio passes) and checks the objects it added, the parameters
@@ -495,10 +493,6 @@ to add a row, the Printable column, a double click), the object's and a part's m
 rows, Compare presets' rows, the object settings table, the print button's popup and the plate type
 drop-down list. On Linux run it with `--headless`: under Xvfb those popups close as soon as they open.
 
-`tests/plate_icons.json` clicks the Prepare view's plate icons by `{plate_icon, plate}`: lock twice,
-Plate Settings opened and cancelled, arrange of a second plate's two cubes (the reply waits for the
-job), the plate menu from a right click, and move to front.
-
 `test_webview_modal.py` runs JavaScript in the web views of modal dialogs: the preset bundle dialog's
 page takes it by default and by locator, `webview_run_javascript` is refused in the Home tab's web view behind a
 modal and in a dialog under the topmost, the Flushing volumes dialog's page takes it as any topmost
@@ -614,9 +608,8 @@ the settings a project was saved with all the same.
 
 The commands that do a menu item's job take their targets by index, and the replays call them so and read each
 back: `tests/menu_items_objects.json` (rename, instances, separate, delete, height ranges),
-`menu_items_structure.json` (split, assemble, change type, order), `menu_items_placement.json` (add a
-primitive by numbers, mirror, drop, centre, scale to fit, auto-orient) and `menu_items_plates.json`
-(duplicate, rename, lock, select and delete a plate);
+`menu_items_structure.json` (split, assemble, change type, order) and `menu_items_placement.json` (add a
+primitive by numbers, mirror, drop, centre, scale to fit, auto-orient), and `test_plates.py` the plate ones;
 `objects_state.json` (`object_set_printable`, `object_fix`, `object_set_auto_drop`), `objects_files.json`
 (`object_clone`, `object_reload_from_disk`, `part_replace`, with the files `tests/fixtures/objects_files.py`
 writes), `objects_order.json` (`object_order {order}`), `filaments_and_files.json` (a slot merged into

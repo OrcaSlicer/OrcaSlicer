@@ -57,6 +57,8 @@ tests lists the ones the sweep runs.
   scenario under its name, and the next scenario still runs.
 - `refused(call, code=None, words=None)` passes only when the call is refused with exactly that code, or, for a
   refusal without one, with text that holds those words; it returns the refusal's text.
+- `run(client, tool, **args)` makes a call and follows its job to the end, and fails at once, naming the dialog,
+  when a dialog the test does not answer holds the call.
 - `wait(client, condition, timeout_s)` fails when the wait runs out of time.
 - Readers give the state a scenario checks in a fixed shape, such as `plates()`: a list of `{name, current, locked,
   objects}`, one per plate.
@@ -109,7 +111,7 @@ until they leave the sweep.
 
 | Area | Python tests | Replays still in the sweep |
 |---|---|---|
-| [Plates](test-entries/plates.md) | [`test_plates`](test-entries/plates.md#test_plates) | [`plates`](test-entries/plates.md#plates), [`menu_items_plates`](test-entries/plates.md#menu_items_plates), [`plate_icons`](test-entries/plates.md#plate_icons) |
+| [Plates](test-entries/plates.md) | [`test_plates`](test-entries/plates.md#test_plates) | — |
 | [Objects](test-entries/objects.md) | [`test_objects`](test-entries/objects.md#test_objects), [`test_object_structure`](test-entries/objects.md#test_object_structure) | [`menu_items_objects`](test-entries/objects.md#menu_items_objects), [`menu_items_placement`](test-entries/objects.md#menu_items_placement), [`menu_items_structure`](test-entries/objects.md#menu_items_structure), [`objects_state`](test-entries/objects.md#objects_state), [`objects_order`](test-entries/objects.md#objects_order), [`objects_files`](test-entries/objects.md#objects_files), [`scene`](test-entries/objects.md#scene) |
 | [Presets and calibration](test-entries/presets.md) | [`test_presets`](test-entries/presets.md#test_presets), [`test_calibration`](test-entries/presets.md#test_calibration) | [`presets`](test-entries/presets.md#presets), [`presets_and_plate_map`](test-entries/presets.md#presets_and_plate_map), [`ops_select_preset`](test-entries/presets.md#ops_select_preset), [`calibration`](test-entries/presets.md#calibration) |
 | [Filaments and settings](test-entries/filaments_settings.md) | [`test_filaments`](test-entries/filaments_settings.md#test_filaments), [`test_settings`](test-entries/filaments_settings.md#test_settings) | [`ops_assign_filament_preset_one_slot`](test-entries/filaments_settings.md#ops_assign_filament_preset_one_slot), [`ops_assign_filament_preset_multi_slot`](test-entries/filaments_settings.md#ops_assign_filament_preset_multi_slot), [`multicolor`](test-entries/filaments_settings.md#multicolor), [`settings_targets`](test-entries/filaments_settings.md#settings_targets) |
@@ -124,13 +126,11 @@ until they leave the sweep.
 
 ## All tests
 
-The 80 tests `sweep.json` lists: 48 Strong, 27 Partial, 5 Smoke.
+The 78 tests `sweep.json` lists: 46 Strong, 27 Partial, 5 Smoke.
 
 | Test | Area | Kind | Strength |
 |---|---|---|---|
-| [`plates`](test-entries/plates.md#plates) | [Plates](test-entries/plates.md) | replay | Strong |
-| [`menu_items_plates`](test-entries/plates.md#menu_items_plates) | [Plates](test-entries/plates.md) | replay | Strong |
-| [`plate_icons`](test-entries/plates.md#plate_icons) | [Plates](test-entries/plates.md) | replay | Strong |
+| [`test_plates`](test-entries/plates.md#test_plates) | [Plates](test-entries/plates.md) | Python | Strong |
 | [`menu_items_objects`](test-entries/objects.md#menu_items_objects) | [Objects](test-entries/objects.md) | replay | Strong |
 | [`menu_items_placement`](test-entries/objects.md#menu_items_placement) | [Objects](test-entries/objects.md) | replay | Strong |
 | [`menu_items_structure`](test-entries/objects.md#menu_items_structure) | [Objects](test-entries/objects.md) | replay | Strong |
