@@ -496,15 +496,31 @@ bool PythonInterpreter::run_uv(const std::vector<std::string>& args, std::chrono
         namespace process = boost::process;
 
         process::ipstream std_err;
-        process::child    child(uv_path, process::args(args),
 #ifdef _WIN32
-                                // uv.exe (and the python.exe it spawns) are console-subsystem programs.
-                                // OrcaSlicer is a GUI app with no console of its own, so without this flag
-                                // Windows allocates a fresh console window for the child that flashes on
-                                // screen during startup plugin loading. Matches ProcessRunner/MediaPlayCtrl.
-                                process::windows::create_no_window,
+        // boost::process' narrow overload spawns through CreateProcessA, which interprets the
+        // executable and arguments in the active ANSI codepage. The uv path and every argument
+        // here are UTF-8 (boost::nowide::nowide_filesystem makes path::string() UTF-8), so hand
+        // Boost UTF-16 strings and let it spawn through CreateProcessW instead.
+        const std::wstring        uv_path_wide = boost::nowide::widen(uv_path);
+        std::vector<std::wstring> args_wide;
+        args_wide.reserve(args.size());
+        for (const std::string& arg : args)
+            args_wide.emplace_back(boost::nowide::widen(arg));
 #endif
-                                process::std_err > std_err);
+        process::child child(
+#ifdef _WIN32
+            uv_path_wide, process::args(args_wide),
+#else
+            uv_path, process::args(args),
+#endif
+#ifdef _WIN32
+            // uv.exe (and the python.exe it spawns) are console-subsystem programs.
+            // OrcaSlicer is a GUI app with no console of its own, so without this flag
+            // Windows allocates a fresh console window for the child that flashes on
+            // screen during startup plugin loading. Matches ProcessRunner/MediaPlayCtrl.
+            process::windows::create_no_window,
+#endif
+            process::std_err > std_err);
 
         std::string err_output;
         std::thread stderr_reader([&std_err, &err_output]() {
