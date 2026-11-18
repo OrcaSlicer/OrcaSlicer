@@ -2689,13 +2689,16 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
                "Approval covers raw network connections to the listed hosts. It does not restrict ports."),
             plugin_name, target_list);
     case AuditEventCategory::ProcessCreate:
-        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to run the following command:\n%s",
-                                          "Plugin \"%s\" is requesting to run the following commands:\n%s", target_count),
+        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to run the following command:\n%s\n\n"
+                                          "Approval covers any arguments. Approving a shell allows it to run any command.",
+                                          "Plugin \"%s\" is requesting to run the following commands:\n%s\n\n"
+                                          "Approval covers any arguments. Approving a shell allows it to run any command.", target_count),
                                 plugin_name, target_list);
     case AuditEventCategory::Threading:
         return wxString::Format(_L("Plugin \"%s\" is requesting permission to create a thread."), plugin_name);
     case AuditEventCategory::ProcessReplace:
-        return wxString::Format(_L("Plugin \"%s\" is requesting to replace the running application with:\n%s"), plugin_name, target_list);
+        return wxString::Format(_L("Plugin \"%s\" is requesting to replace the running application with:\n%s\n\n"
+                                   "Approval covers any arguments. Approving a shell allows it to run any command."), plugin_name, target_list);
     default:
         return wxString::Format(_L("Plugin \"%s\" is requesting permission for the Python audit event \"%s\"."), plugin_name, event_name);
     }
