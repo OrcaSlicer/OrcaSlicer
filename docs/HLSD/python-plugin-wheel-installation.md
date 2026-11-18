@@ -46,7 +46,7 @@ A marker inside the installed target records the installation format, interprete
 
 Legacy acceptance and uv installation take the same lock, so a load never accepts a markerless target while another load is rebuilding it.
 
-The local plugin cache-clear action removes `__whl_extracted__/`, including the entry installation and all dependency extractions, plus the obsolete `__wheel_install__/` target from older builds when present. It does not remove the stored wheel, the sidecar or the separate plugin data directory.
+The local plugin cache-clear action removes `__whl_extracted__/`, including the entry installation and all dependency extractions. It does not remove the stored wheel, the sidecar or the separate plugin data directory.
 
 ## Failure and lifecycle
 

@@ -1738,37 +1738,21 @@ bool is_tag_char(char ch)
     return std::isalnum(uch) || ch == '.' || ch == '_' || ch == '+';
 }
 
-// PEP 427: runs of characters outside [A-Za-z0-9._] become a single '_' in the escaped name.
-std::string escape_wheel_name(const std::string& name)
+// PEP 427: runs of characters outside the allowed set become a single '_' in the escaped
+// component. Both keep [A-Za-z0-9.] plus `extra_chars`: a name '_', a version the characters a
+// PEP 440 version may contain, including the '!' epoch separator.
+std::string escape_wheel_component(const std::string& value, const std::string& extra_chars)
 {
     std::string escaped;
-    escaped.reserve(name.size());
+    escaped.reserve(value.size());
     bool pending_separator = false;
-    for (unsigned char ch : name) {
-        if (std::isalnum(ch) || ch == '.' || ch == '_') {
+    for (unsigned char ch : value) {
+        const char c = static_cast<char>(ch);
+        if (std::isalnum(ch) || ch == '.' || extra_chars.find(c) != std::string::npos) {
             if (pending_separator && !escaped.empty())
                 escaped += '_';
             pending_separator = false;
-            escaped += static_cast<char>(ch);
-        } else {
-            pending_separator = true;
-        }
-    }
-    return escaped;
-}
-
-// Versions keep the characters a PEP 440 version may contain; everything else collapses to '_'.
-std::string escape_wheel_version(const std::string& version)
-{
-    std::string escaped;
-    escaped.reserve(version.size());
-    bool pending_separator = false;
-    for (unsigned char ch : version) {
-        if (std::isalnum(ch) || ch == '.' || ch == '+' || ch == '!') {
-            if (pending_separator && !escaped.empty())
-                escaped += '_';
-            pending_separator = false;
-            escaped += static_cast<char>(ch);
+            escaped += c;
         } else {
             pending_separator = true;
         }
@@ -2095,8 +2079,8 @@ bool is_valid_wheel_filename(const std::string& filename)
 
 std::string make_wheel_filename(const std::string& name, const std::string& version, const std::string& tag)
 {
-    const std::string escaped_name    = escape_wheel_name(name);
-    const std::string escaped_version = escape_wheel_version(version);
+    const std::string escaped_name    = escape_wheel_component(name, "_");
+    const std::string escaped_version = escape_wheel_component(version, "+!");
     if (escaped_name.empty() || escaped_version.empty() || tag.empty())
         return {};
 

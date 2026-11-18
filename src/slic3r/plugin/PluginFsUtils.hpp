@@ -227,10 +227,6 @@ namespace Slic3r::plugin_wheel_install {
 // keeps discovery from treating it as a plugin package (see is_ignored_plugin_directory()).
 inline constexpr const char* EXTRACTED_DIR_NAME = "__whl_extracted__";
 
-// Obsolete private uv target from before the entry wheel moved into EXTRACTED_DIR_NAME. Only the
-// cache-clear action refers to it, to remove leftovers from older builds.
-inline constexpr const char* LEGACY_INSTALL_DIR_NAME = "__wheel_install__";
-
 // Staging and retirement directories, also inside the plugin root and ignored by discovery.
 inline constexpr const char* STAGING_DIR_PREFIX  = "__wheel_staging__-";
 inline constexpr const char* PREVIOUS_DIR_PREFIX = "__wheel_prev__-";

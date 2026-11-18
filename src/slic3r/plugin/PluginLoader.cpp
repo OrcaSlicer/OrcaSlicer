@@ -229,8 +229,13 @@ PyObject* import_plugin_module(const PluginDescriptor& descriptor,
     if (descriptor.entry_package.empty())
         return interpreter.load_module_from_file(descriptor.entry_path, error, &plugin_paths, &plugin_modules);
 
+    // A wheel entry is imported from the directory its installation lives in; a .py entry in place.
+    const std::string dir_path = has_wheel_extension(descriptor.entry_path) ?
+        plugin_wheel_install::install_dir(descriptor.plugin_root, descriptor.entry_package) :
+        descriptor.entry_path;
+
     return interpreter.load_module_from_directory(
-        descriptor.entry_path, descriptor.entry_package, error, &plugin_paths, &plugin_modules);
+        dir_path, descriptor.entry_package, error, &plugin_paths, &plugin_modules);
 }
 
 std::string plugin_module_name(const PluginDescriptor& descriptor)
@@ -352,14 +357,7 @@ bool load(const PluginDescriptor&                          descriptor,
     }
 
     std::string load_error;
-    PyObject*   module = nullptr;
-    if (has_entry_wheel) {
-        module = interpreter.load_module_from_directory(
-            plugin_wheel_install::install_dir(descriptor.plugin_root, descriptor.entry_package), descriptor.entry_package,
-            load_error, &plugin.plugin_sys_paths, &plugin.plugin_modules);
-    } else {
-        module = import_plugin_module(descriptor, plugin.plugin_sys_paths, plugin.plugin_modules, load_error);
-    }
+    PyObject*   module = import_plugin_module(descriptor, plugin.plugin_sys_paths, plugin.plugin_modules, load_error);
     if (module == nullptr) {
         bridge.cancel_plugin_capture(descriptor.entry_path);
         error = GUI::format(_u8L("Failed to load plugin module: %1%"), load_error);
