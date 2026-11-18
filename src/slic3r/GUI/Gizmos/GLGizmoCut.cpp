@@ -854,17 +854,10 @@ indexed_triangle_set GLGizmoCut3D::its_make_groove_plane()
     const float plane_half_height   = 0.5f * cut_plane_length;  // y
 
     const float slot_half_depth   = 0.5f * m_groove.depth;    // z
-    float slot_front_z          = slot_half_depth;
-    float slot_back_z           = -slot_half_depth;
 
     const float flap_taper_offset = plane_half_height * tan(m_groove.angle);
 
-    float slot_mouth_outer_x = slot_neck_half_width + flap_taper_offset; // upper_x extension
-    float slot_neck_outer_x = slot_mouth_half_width + flap_taper_offset; // lower_x extension
-    float slot_outer_x_max   = std::max(slot_neck_outer_x, slot_mouth_outer_x);  // max x extension
-
-    float slot_neck_inner_x = slot_neck_half_width - flap_taper_offset; // upper_x narrowing
-    float slot_mouth_inner_x = slot_mouth_half_width - flap_taper_offset; // lower_x narrowing
+    const float slot_outer_x_max  = std::max(slot_mouth_half_width, slot_neck_half_width) + flap_taper_offset;  // max x extension
 
     const float wall_thickness = 0.02f; // 0.02f * (float)get_grabber_mean_size(m_bounding_box);   // cut_plane_thiknes
 
@@ -880,6 +873,14 @@ indexed_triangle_set GLGizmoCut3D::its_make_groove_plane()
         bool is_first_groove = i == 0; // when a groove is not the last groove, then limit the extent of the right plane so that it doesnt overlap the next groove 
         bool is_last_groove  = i == groove_count - 1; // do the same in reverse if a groove is not the first groove
         size_t vertex_index_offset      = mesh.vertices.size();
+
+        // The back face below shifts these, so each groove starts from its own copy.
+        float slot_front_z       = slot_half_depth;
+        float slot_back_z        = -slot_half_depth;
+        float slot_mouth_outer_x = slot_neck_half_width + flap_taper_offset; // upper_x extension
+        float slot_neck_outer_x  = slot_mouth_half_width + flap_taper_offset; // lower_x extension
+        float slot_neck_inner_x  = slot_neck_half_width - flap_taper_offset; // upper_x narrowing
+        float slot_mouth_inner_x = slot_mouth_half_width - flap_taper_offset; // lower_x narrowing
 
         // Calculate the x-axis offset for this dovetail
         float groove_offset_factor_start = -.5 * ((groove_count - 1));
