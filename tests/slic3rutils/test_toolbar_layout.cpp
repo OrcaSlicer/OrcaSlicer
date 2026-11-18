@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <cstddef>
 #include <set>
 #include <string>
 #include <vector>
@@ -58,12 +59,12 @@ TEST_CASE("ToolbarLayout round-trips a change and writes only differing parts", 
 
 TEST_CASE("ToolbarLayout keeps unknown fields and a newer version", "[ToolbarLayout]")
 {
-    ToolbarLayout l = parse_toolbar_layout(R"({"version":2,"groups":[{"id":"paint"}],"gizmos_hidden":["seam"]})");
+    ToolbarLayout l = parse_toolbar_layout(R"({"version":2,"future":[{"id":"x"}],"gizmos_hidden":["seam"]})");
     CHECK(l.version == 2);
     l.gizmos.hidden.insert("cut");
     const nlohmann::json j = nlohmann::json::parse(serialize_toolbar_layout(l));
     CHECK(j["version"] == 2);
-    CHECK(j["groups"][0]["id"] == "paint");
+    CHECK(j["future"][0]["id"] == "x");
 
     // Stock lists with unknown fields still serialise, so a newer build's data is never dropped silently.
     ToolbarLayout s = stock_toolbar_layout();
@@ -86,4 +87,51 @@ TEST_CASE("ToolbarLayout gizmo ids cover the bar without svg and simplify", "[To
     CHECK(stock_gizmo_bar_ids().size() == 16);
     CHECK(std::count(stock_gizmo_bar_ids().begin(), stock_gizmo_bar_ids().end(), "svg") == 0);
     CHECK(parse_toolbar_layout(R"({"gizmos":["simplify","move"]})").gizmos.order.front() == "move");
+}
+
+TEST_CASE("ToolbarLayout user groups round-trip", "[ToolbarLayout]")
+{
+    ToolbarLayout l = stock_toolbar_layout();
+    l.groups.push_back({"Surface", {"fuzzy_skin", "texture_displacement"}});
+    normalize_gizmo_groups(l);
+    const ToolbarLayout back = parse_toolbar_layout(serialize_toolbar_layout(l));
+    CHECK(back == l);
+    REQUIRE(back.groups.size() == 1);
+    CHECK(back.groups[0].name == "Surface");
+}
+
+TEST_CASE("ToolbarLayout user groups drop bad members", "[ToolbarLayout]")
+{
+    const ToolbarLayout l = parse_toolbar_layout(R"({"version":1,"groups":[
+        {"name":"A","members":["seam","nope","fdm_supports"]},
+        {"name":"B","members":["seam","fuzzy_skin"]},
+        {"name":"C","members":["move","svg"]}]})");
+    // B loses seam to A and keeps one member, so it is dropped; svg is not a bar id, so C is dropped too.
+    REQUIRE(l.groups.size() == 1);
+    CHECK(l.groups[0] == ToolbarGizmoGroup{"A", {"fdm_supports", "seam"}});
+}
+
+TEST_CASE("ToolbarLayout user group members are made contiguous", "[ToolbarLayout]")
+{
+    const ToolbarLayout l = parse_toolbar_layout(R"({"version":1,"groups":[{"name":"G","members":["move","brim_ears"]}]})");
+    const std::vector<std::string>& o = l.gizmos.order;
+    const auto at = std::find(o.begin(), o.end(), "move") - o.begin();
+    CHECK(o[static_cast<size_t>(at) + 1] == "brim_ears");
+}
+
+TEST_CASE("ToolbarLayout keeps other group entries and writes no empty groups", "[ToolbarLayout]")
+{
+    const ToolbarLayout l = parse_toolbar_layout(R"({"version":1,"groups":[{"id":"paint"}]})");
+    CHECK(l.groups.empty());
+    CHECK(serialize_toolbar_layout(l).find("\"paint\"") != std::string::npos);
+    CHECK(serialize_toolbar_layout(stock_toolbar_layout()).empty());
+}
+
+TEST_CASE("ToolbarLayout bad groups keep other settings", "[ToolbarLayout]")
+{
+    const ToolbarLayout l = parse_toolbar_layout(R"({"version":1,"main":["layersediting","add"],"gizmos_hidden":["move"],
+        "groups":[{"name":"X","members":["nope","svg"]},{"name":"Y","members":"seam"}]})");
+    CHECK(l.groups.empty());
+    CHECK(l.gizmos.hidden.count("move") == 1);
+    CHECK(l.main.order.front() == "layersediting");
 }
