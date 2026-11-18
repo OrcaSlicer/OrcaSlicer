@@ -1123,10 +1123,12 @@ public:
     // already invalidates those. False before any plugin fill exists. Safe to read while a job is
     // running.
     bool plugin_infill_identity_changed() const;
-    // Invalidate fills for the objects that select plugin patterns, cascading to ironing,
-    // contouring, simplify, skirt/brim, wipe tower and G-code export. Returns true when any step
-    // actually changed; objects using only built-in patterns are untouched. On success the recorded
-    // provider identity is forgotten, because the fills it described no longer exist.
+    // Invalidate fills for the objects that select plugin patterns. An object whose sparse pattern
+    // is plugin-backed also invalidates prepare_infill(), so bridge preparation anchored on the
+    // previous plugin paths is regenerated; both paths cascade to ironing, contouring, simplify,
+    // skirt/brim, wipe tower and G-code export. Returns true when any step actually changed;
+    // objects using only built-in patterns are untouched. On success the recorded provider identity
+    // is forgotten, because the fills it described no longer exist.
     //
     // Call only while no background slicing or export is running. This uses the normal
     // invalidation path, which cancels a running job, and it is not a deferred request.
@@ -1568,8 +1570,9 @@ private:
     // Validate every plugin infill pattern the job will use and pin its provider for the whole
     // process() run. Pinned once, before any slicing, so an unload between two objects cannot tear
     // down a provider that a later object still needs. Throws SlicingError before the job starts
-    // when a pattern is unavailable, differently owned, or selected for an unsupported surface.
-    // Returns the identity of the pinned providers, which process() records once the job has run.
+    // when a pattern is unavailable or selected for a surface the registered provider does not
+    // declare. Returns the identity of the pinned providers, which process() records once the job
+    // has run.
     std::map<std::string, PluginInfillDependency>
                         prepare_plugin_infills(const std::vector<PrintObject *> &objects);
     // Release the pins taken by prepare_plugin_infills(). Only process() (and Print::clear() after

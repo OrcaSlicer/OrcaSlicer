@@ -613,12 +613,13 @@ struct ScopedTestInfillPattern
     std::string plugin_key;
     std::string capability;
 
-    ScopedTestInfillPattern(std::string id, std::string plugin_key_, std::string capability_)
+    ScopedTestInfillPattern(std::string id, std::string plugin_key_, std::string capability_,
+                            std::vector<Slic3r::InfillSurfacePurpose> purposes = {Slic3r::InfillSurfacePurpose::Sparse})
         : plugin_key(std::move(plugin_key_)), capability(std::move(capability_))
     {
         REQUIRE(Slic3r::InfillFactory::register_plugin_infill(
             id, "Cleanup Test Pattern", plugin_key, capability,
-            {Slic3r::InfillSurfacePurpose::Sparse}, {},
+            std::move(purposes), {},
             []() -> std::unique_ptr<Slic3r::Fill> { return std::make_unique<NoopFill>(); }));
     }
     ~ScopedTestInfillPattern() { Slic3r::InfillFactory::unregister_plugin_infills(plugin_key, capability); }
@@ -785,29 +786,53 @@ TEST_CASE("Plugin infill identity follows the provider behind a selected pattern
 
 TEST_CASE("Plugin infill invalidation only invalidates objects using a plugin pattern", "[slicing_pipeline]") {
     ScopedTestInfillPattern pattern("targeted-pattern", "TargetedPlugin", "Targeted Infill");
+    // A plugin pattern outside sparse infill: its provider change must not take back bridge
+    // preparation, which only consumes sparse plugin paths.
+    ScopedTestInfillPattern surface_pattern("targeted-surface-pattern", "TargetedPlugin", "Targeted Surface Infill",
+                                            {Slic3r::InfillSurfacePurpose::TopSurface});
 
     std::vector<Slic3r::TriangleMesh> meshes;
     meshes.push_back(cube(20));
     meshes.push_back(cube(20));
-    // Object 0 inherits the print-wide plugin pattern; object 1 keeps a built-in pattern.
-    std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> overrides(2);
+    meshes.push_back(cube(20));
+    // Object 0 inherits the print-wide sparse plugin pattern; object 1 keeps a built-in sparse
+    // pattern; object 2 uses a built-in sparse pattern and a plugin top-surface pattern.
+    std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> overrides(3);
     overrides[1] = {{"sparse_infill_pattern", "rectilinear"}};
+    overrides[2] = {{"sparse_infill_pattern", "rectilinear"}, {"top_surface_pattern", "targeted-surface-pattern"}};
 
-    const Slic3r::DynamicPrintConfig config =
+    Slic3r::DynamicPrintConfig config =
         cleanup_config("TargetedPlugin", "Targeted Infill", "targeted-pattern");
+    config.set_key_value("plugins", new Slic3r::ConfigOptionStrings(
+        {"TargetedPlugin;;Targeted Infill", "TargetedPlugin;;Targeted Surface Infill"}));
 
     Slic3r::Print print;
     Slic3r::Model model;
     init_print(std::move(meshes), print, model, config, &overrides);
     print.process();
+    // Mark the cached export done as the GUI does after writing G-code, so its invalidation is
+    // observable without exporting through the plugin fills.
+    print.set_gcode_file_ready();
 
     const auto objects = print.objects();
-    REQUIRE(objects.size() == 2);
-    REQUIRE(objects[0]->is_step_done(posInfill));
-    REQUIRE(objects[1]->is_step_done(posInfill));
+    REQUIRE(objects.size() == 3);
+    for (const Slic3r::PrintObject* object : objects) {
+        REQUIRE(object->is_step_done(posPrepareInfill));
+        REQUIRE(object->is_step_done(posInfill));
+    }
+    REQUIRE(print.is_step_done(psSkirtBrim));
+    REQUIRE(print.is_step_done(psGCodeExport));
 
     CHECK(print.invalidate_plugin_infill());
+    // prepare_infill() anchors bridges on sparse plugin paths, so the sparse provider change takes
+    // back the bridge preparation and everything derived from it, not just the fills.
+    CHECK_FALSE(objects[0]->is_step_done(posPrepareInfill));
     CHECK_FALSE(objects[0]->is_step_done(posInfill));
+    CHECK(objects[1]->is_step_done(posPrepareInfill));
     CHECK(objects[1]->is_step_done(posInfill));
+    CHECK(objects[2]->is_step_done(posPrepareInfill));
+    CHECK_FALSE(objects[2]->is_step_done(posInfill));
+    CHECK_FALSE(print.is_step_done(psSkirtBrim));
+    CHECK_FALSE(print.is_step_done(psGCodeExport));
     CHECK_FALSE(print.invalidate_plugin_infill());
 }

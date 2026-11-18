@@ -1929,6 +1929,11 @@ public:
     // their plugin references into the print-wide "plugins" manifest, so they share this traversal.
     std::vector<const ConfigBase*> object_and_volume_configs() const;
 
+    // Configs of the materials referenced by model volumes, without duplicates. Material settings
+    // are applied to a volume's region after the object and volume configs (see
+    // region_config_from_model_volume), so a plugin-backed setting can be selected there too.
+    std::vector<const ConfigBase*> referenced_material_configs() const;
+
     // BBS: backup
     std::string   get_backup_path();
     std::string   get_backup_path(const std::string &sub_path);

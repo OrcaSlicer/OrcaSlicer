@@ -3517,20 +3517,35 @@ bool Print::invalidate_plugin_infill()
     bool invalidated = false;
     for (PrintObject *object : m_objects) {
         bool selects_plugin_pattern = false;
+        bool selects_plugin_sparse  = false;
         for (const PrintRegion &region : object->all_regions()) {
             const PrintRegionConfig &config = region.config();
             for (const InfillPatternSetting &setting : infill_pattern_settings) {
                 const std::string key = config.option<ConfigOptionString>(std::string(setting.option_key))->value;
                 if (is_plugin_infill_pattern_key(key)) {
                     selects_plugin_pattern = true;
-                    break;
+                    if (setting.purpose == InfillSurfacePurpose::Sparse)
+                        selects_plugin_sparse = true;
                 }
             }
-            if (selects_plugin_pattern)
-                break;
         }
-        if (selects_plugin_pattern)
+        if (selects_plugin_sparse) {
+            // prepare_infill() runs bridge_over_infill(), which generates sparse plugin paths to
+            // anchor bridges. Invalidating posPrepareInfill takes back that bridge preparation
+            // together with its dependent steps (infill, ironing, contouring, simplify), so a
+            // provider change cannot leave bridges placed for the previous plugin's paths.
+            if (object->invalidate_step(posPrepareInfill)) {
+                invalidated = true;
+                // posInfill's dependency on the skirt/brim step (flush into infill) is not reached
+                // through posPrepareInfill's own propagation, so keep the invalidation posInfill
+                // used to perform.
+                invalidated |= this->invalidate_steps({psSkirtBrim});
+            }
+        } else if (selects_plugin_pattern) {
+            // A plugin pattern outside sparse infill does not feed bridge anchoring, so its cached
+            // preparation is still valid and only the fills it selected are regenerated.
             invalidated |= object->invalidate_step(posInfill);
+        }
     }
     // The fills those identities described no longer exist, so nothing can be stale about them.
     if (invalidated)
@@ -3569,18 +3584,6 @@ Print::prepare_plugin_infills(const std::vector<PrintObject *> &objects)
     if (selected.empty())
         return {}; // Built-in fills do not invalidate the recorded identity of still-selected patterns.
 
-    // Every reference the project manifest stores. A plugin-backed option keeps only the bare
-    // pattern ID, so the full identity has to be recovered from the manifest and matched against
-    // the registry's owning capability.
-    std::vector<PluginCapabilityRef> manifest_refs;
-    if (const auto *manifest = this->full_print_config().option<ConfigOptionStrings>("plugins"))
-        for (const std::string &entry : manifest->values)
-            if (auto ref = parse_capability_ref(entry))
-                manifest_refs.emplace_back(std::move(*ref));
-
-    const auto plugin_key_of = [](const PluginCapabilityRef &ref) {
-        return ref.uuid.empty() ? ref.name : ref.uuid;
-    };
     // Name the pattern in the user-facing error: it is the one value the user can locate in the
     // project. The cause and provider identity stay in the log and in plugin diagnostics.
     const auto unavailable_error = [](const std::string &key) {
@@ -3601,27 +3604,16 @@ Print::prepare_plugin_infills(const std::vector<PrintObject *> &objects)
             throw SlicingError(unavailable_error(key));
         }
 
-        // The selected ID must belong to a capability the project actually references. This is the
-        // exact-identity check: a loaded provider with the same pattern ID but a different plugin or
-        // capability must never satisfy the project.
-        const bool referenced = std::any_of(manifest_refs.begin(), manifest_refs.end(),
-            [&info, &plugin_key_of](const PluginCapabilityRef &ref) {
-                return ref.capability_name == info->capability_name &&
-                       plugin_key_of(ref) == info->plugin_key;
-            });
-        if (!referenced) {
-            BOOST_LOG_TRIVIAL(error) << "Plugin infill pattern '" << key << "' is owned by '"
-                                     << info->plugin_key << '/' << info->capability_name
-                                     << "', which the project manifest does not reference";
-            throw SlicingError(unavailable_error(key));
-        }
-
-        // select_infill() re-resolves the entry under the registry lock and repeats the checks that
-        // need the entry it is about to pin: still registered and active, plugin-provided, owned by
-        // this exact capability, and advertising every selected surface purpose. A project may be
-        // saved with a pattern in a setting the provider did not advertise (an older manifest, or a
-        // descriptor change); that is refused there instead of dispatching the pattern for a surface
-        // it was not written for. The manifest ownership check above is the one it cannot make.
+        // The factory is the authority for what a selected pattern ID resolves to. The project
+        // manifest supports plugin management and diagnostics but does not bind the ID to a
+        // provider: if another provider advertises the same ID, that provider is used.
+        //
+        // select_infill() re-resolves the entry under the registry lock and checks what needs the
+        // entry it is about to pin: still registered and active, plugin-provided, owned by this
+        // capability, and advertising every selected surface purpose. A project may be saved with a
+        // pattern in a setting the provider did not advertise (an older manifest, or a descriptor
+        // change); that is refused there instead of dispatching the pattern for a surface it was
+        // not written for.
         std::string error;
         InfillFactory::Selection selection =
             InfillFactory::select_infill(key, info->plugin_key, info->capability_name, purposes, error);

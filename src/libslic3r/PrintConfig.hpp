@@ -833,8 +833,8 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillPattern)
 // provider identity in the project manifest; the pattern ID is the selection value. The plugin
 // registry needed to confirm that a pattern exists is not available in this layer, so any nonempty
 // key that does not name a built-in pattern is treated as plugin-provided; it has no InfillPattern
-// value. Existence, provider ownership and surface purpose are validated by the infill registry
-// before slicing.
+// value. Slicing resolves the ID through InfillFactory and validates the registered provider's
+// surface purposes; the project manifest does not bind the ID to a provider.
 inline bool is_builtin_infill_pattern_key(const std::string &key)
 {
     const t_config_enum_values &builtin = ConfigOptionEnum<InfillPattern>::get_enum_values();

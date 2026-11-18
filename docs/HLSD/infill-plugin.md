@@ -17,13 +17,14 @@ A pattern is selectable only in the settings whose purpose it declares (`Sparse`
 within the capability, across loaded capabilities, and against built-in pattern keys. A capability's
 name remains the provider identity used in the project manifest.
 
-Saving a preset or project records the owning capability's full plugin reference, including local or
-cloud plugin identity, for every plugin-backed pattern setting that holds a plugin ID. Slicing resolves
-each selected pattern ID to its registry entry and requires that entry's owning capability to match the
-project reference exactly and to support the purpose of the setting that selected it. It does not
-substitute another loaded provider with the same pattern ID, it does not dispatch the pattern for a
-purpose it did not declare, and it does not fall back to a built-in pattern. Existing built-in setting
-values remain unchanged.
+Saving a preset or project records the currently resolved capability's full plugin reference, including
+local or cloud plugin identity, for plugin-backed pattern settings. The manifest supports plugin
+management and diagnostics; it does not bind a pattern ID to a particular provider for slicing.
+`InfillFactory` is the authority for resolving a selected pattern ID. Slicing uses its currently
+registered provider, provided the pattern supports the selected surface purpose, and never falls back
+to a built-in pattern. If a different provider registers the same ID while the original provider is
+unavailable, that provider is used. Users are responsible for ensuring that the installed provider is
+the one they intend to use. Existing built-in setting values remain unchanged.
 
 ## Slicing path
 
@@ -34,14 +35,14 @@ when an enabled infill capability loads and removed when it is disabled or unloa
 carries the owning plugin and capability, so creation never needs a provider reference from its caller.
 
 Before any object is sliced, `Print::process()` collects the plugin IDs stored in all four pattern
-settings with the purpose each setting drives, validates each against the project manifest and the
+settings with the purpose each setting drives, resolves each through `InfillFactory` and validates the
 registry entry's supported surfaces, then pins every registry entry the job will use. Pinning is
 job-scoped rather than per object or per prepare/infill step, so an unload between two objects cannot
 tear down a provider that a later object still needs, and a throwing pipeline hook, cancellation or
 step invalidation cannot drop a pin while a fill worker may still create a Fill. A pinned entry cannot
 be replaced or reused by another provider: unloading the plugin retires it for new selections while the
-already-validated job may still try to create its Fill. A missing, disabled, unloaded, differently
-owned, or purpose-mismatched provider fails the slice before any fill worker runs.
+already-validated job may still try to create its Fill. An unavailable pattern or a purpose-mismatched
+provider fails the slice before any fill worker runs.
 
 A pin is also a provider lifecycle lease: while a job holds one, the registry keeps the exact provider
 instance (and therefore its Python module) alive. An unload request therefore drains pinned infill
@@ -119,12 +120,14 @@ angle; fractions in `<0, 1>` for densities and the smooth factor.
 
 ## Failure and diagnostics
 
-Unresolvable pattern ownership and failures in any per-surface callback (`generate`, `no_sort`,
+Unavailable patterns and failures in any per-surface callback (`generate`, `no_sort`,
 `aligned_to_origin`) abort the slice as noncritical slicing errors rather than crash-style critical
 errors. Every callback reports through the same path: the user-facing message stays generic, while the
 failing callback and its exception are recorded in plugin diagnostics and logs, retained until plugin
-reload or explicit error clearing. Preflight errors identify the unavailable pattern ID. Cancellation
-remains a cancellation, not a plugin error.
+reload or explicit error clearing. The GUI checks selected plugin pattern IDs through `InfillFactory`
+during slicing validation and reports unavailable patterns through the plater's slicing-blocked
+notification, identifying the pattern ID. Preflight also rejects unavailable patterns, including in
+non-GUI paths. Cancellation remains a cancellation, not a plugin error.
 
 ## Lifecycle and UI
 
@@ -180,9 +183,9 @@ The four pattern settings accept a built-in key or any other nonempty value as a
 Load-time validation cannot reject an unknown ID: it may name a provider that is not installed on this
 computer, and failing the load would replace the missing-plugin guidance with an unreadable project.
 `validate()` therefore accepts an unknown value that is not one of the option's built-in keys, preset
-and project loading preserve it verbatim, and the infill preflight refuses the slice with the pattern ID
-in the error once it has checked the registry and the project manifest. The CLI takes the same path: it
-has no interactive installation step, so the preflight error is the report. A built-in key that the
+and project loading preserve it verbatim, and slicing validation and preflight refuse an unavailable
+pattern with its ID in the error after checking the factory. The CLI has no interactive installation
+step, so the preflight error is the report. A built-in key that the
 option does not offer (for example `gyroid` in `top_surface_pattern`) and an empty value are still
 rejected at validation, as on main.
 
@@ -197,8 +200,8 @@ rejected at validation, as on main.
 - A project saved by this version and opened by an older one loses plugin pattern IDs in the four
   pattern settings (they fall back to each option's built-in default) and loses the plugin reference
   from the manifest. Downgrade support is not attempted.
-- Pattern IDs carry no owner information: a setting stores the ID alone, and the mapping back to the
-  owning capability needs the provider itself. Two providers advertising the same pattern ID cannot be
-  told apart while one of them is unavailable, so a value saved with an unavailable provider may be
-  attributed to the wrong one, and missing-provider guidance for an object, volume or layer-range
-  override has no setting to jump to.
+- Pattern IDs carry no owner information. The factory cannot identify the original provider when it is
+  unavailable, and another provider of the same ID is accepted if registered. Missing-pattern guidance
+  cannot reliably name the original plugin or offer its installation or activation without additional
+  saved ownership information. An object, volume or layer-range override may also have no setting to
+  jump to.

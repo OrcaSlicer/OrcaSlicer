@@ -12710,9 +12710,10 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
     // --infill-pattern options
     // Each of the four plugin-backed pattern settings stores a built-in key or a raw plugin
     // pattern ID, with no reserved identifier syntax. Accept any nonempty value that does not name
-    // one of the option's built-in keys as a plugin pattern ID; the infill registry confirms
-    // existence, provider ownership and surface purpose before slicing. Empty values, and built-in
-    // keys the option does not offer, are rejected.
+    // one of the option's built-in keys as a plugin pattern ID. InfillFactory is authoritative:
+    // slicing resolves the ID to its currently registered provider and checks that the provider
+    // declares the selected surface purpose. The project manifest does not bind the ID to a
+    // provider. Empty values, and built-in keys the option does not offer, are rejected.
     for (const InfillPatternSetting &setting : infill_pattern_settings) {
         const std::string option_key(setting.option_key);
         const std::string value      = cfg.option<ConfigOptionString>(option_key)->value;

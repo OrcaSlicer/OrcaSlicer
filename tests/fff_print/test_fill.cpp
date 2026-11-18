@@ -311,6 +311,56 @@ TEST_CASE("A plugin pattern selected for a surface it does not declare fails the
     CHECK_THROWS_AS(print.process(), Slic3r::SlicingError);
 }
 
+TEST_CASE("A registered provider supplies a selected pattern ID regardless of the saved manifest owner", "[Fill][InfillPlugin]")
+{
+    // InfillFactory is authoritative for pattern resolution. A project can reference a provider that
+    // is not loaded while another loaded provider advertises the same pattern ID; slicing uses the
+    // loaded provider. The manifest only supports plugin management and diagnostics.
+    const std::string id         = "fff-substituted-pattern";
+    const std::string plugin_key = "fff-substituted-plugin";
+    const std::string capability = "FFF Substituted Infill";
+    ScopedPluginInfill cleanup{plugin_key, capability};
+
+    std::vector<InfillSurfacePurpose> recorded;
+    std::mutex                        mutex;
+    REQUIRE(InfillFactory::register_plugin_infill(
+        id, "Substituted Pattern", plugin_key, capability, {InfillSurfacePurpose::Sparse}, {},
+        [&recorded, &mutex]() -> std::unique_ptr<Fill> {
+            return std::make_unique<PurposeRecordingFill>(recorded, mutex);
+        }));
+
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"sparse_infill_pattern", id},
+        {"sparse_infill_density", "15%"},
+        {"top_shell_layers", 0},
+        {"bottom_shell_layers", 0},
+        {"top_shell_thickness", 0},
+        {"bottom_shell_thickness", 0},
+        {"ensure_vertical_shell_thickness", "none"},
+        {"layer_height", 0.2},
+        {"initial_layer_print_height", 0.2},
+    });
+    // The manifest still names the provider the project was saved with, which is not loaded here.
+    config.set_key_value("plugins", new ConfigOptionStrings({"UnavailableOwner;;Other Infill"}));
+
+    Print print;
+    Model model;
+    Slic3r::Test::init_print({Slic3r::Test::cube(20.)}, print, model, config);
+    print.process();
+
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        CHECK(std::find(recorded.begin(), recorded.end(), InfillSurfacePurpose::Sparse) != recorded.end());
+    }
+
+    const std::vector<Print::PluginInfillDependency> dependencies = print.sliced_plugin_infill_dependencies();
+    REQUIRE(dependencies.size() == 1);
+    CHECK(dependencies.front().pattern_id == id);
+    CHECK(dependencies.front().plugin_key == plugin_key);
+    CHECK(dependencies.front().capability_name == capability);
+}
+
 TEST_CASE("Pattern path length", "[Fill]") {
     std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("rectilinear"));
     filler->angle = float(-(PI)/2.0);

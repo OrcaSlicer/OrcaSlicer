@@ -1209,6 +1209,24 @@ std::vector<const ConfigBase*> Model::object_and_volume_configs() const
     return configs;
 }
 
+std::vector<const ConfigBase*> Model::referenced_material_configs() const
+{
+    std::vector<const ConfigBase*> configs;
+    std::set<const ModelMaterial*> seen;
+    for (const ModelObject* object : this->objects) {
+        if (object == nullptr)
+            continue;
+        for (const ModelVolume* volume : object->volumes) {
+            if (volume == nullptr)
+                continue;
+            const ModelMaterial* material = volume->material();
+            if (material != nullptr && seen.insert(material).second)
+                configs.emplace_back(&material->config.get());
+        }
+    }
+    return configs;
+}
+
 // BBS: backup dir
 std::string Model::get_backup_path()
 {

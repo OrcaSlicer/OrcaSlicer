@@ -3163,22 +3163,22 @@ void GUI_App::init_plugin_gui_wiring()
         });
     // A plugin that finished loading, or went away, can resolve or raise a missing-plugin notice. A fresh
     // load fires no capability-load callback, and nothing above re-checks on unload or disable.
-    const auto refresh_missing_plugin_notifications = []() {
+    const auto refresh_missing_plugin_notifications = [](const std::string& plugin_key) {
         if (wxTheApp == nullptr || wxGetApp().is_closing())
             return;
-        wxGetApp().CallAfter([]() {
+        wxGetApp().CallAfter([plugin_key]() {
             if (wxGetApp().is_closing())
                 return;
             if (Plater* plater = wxGetApp().plater())
-                plater->refresh_missing_plugin_notifications();
+                plater->refresh_missing_plugin_notifications(plugin_key);
         });
     };
-    plugin_mgr.subscribe_on_load_callback([refresh_missing_plugin_notifications](const std::string&) { refresh_missing_plugin_notifications(); });
-    plugin_mgr.subscribe_on_unload_callback([refresh_missing_plugin_notifications](const std::string&) { refresh_missing_plugin_notifications(); });
+    plugin_mgr.subscribe_on_load_callback([refresh_missing_plugin_notifications](const std::string& key) { refresh_missing_plugin_notifications(key); });
+    plugin_mgr.subscribe_on_unload_callback([refresh_missing_plugin_notifications](const std::string& key) { refresh_missing_plugin_notifications(key); });
     plugin_mgr.subscribe_on_capability_load_callback(
-        [refresh_missing_plugin_notifications](const PluginCapabilityId&) { refresh_missing_plugin_notifications(); });
+        [refresh_missing_plugin_notifications](const PluginCapabilityId& capability) { refresh_missing_plugin_notifications(capability.plugin_key); });
     plugin_mgr.subscribe_on_capability_unload_callback(
-        [refresh_missing_plugin_notifications](const PluginCapabilityId&) { refresh_missing_plugin_notifications(); });
+        [refresh_missing_plugin_notifications](const PluginCapabilityId& capability) { refresh_missing_plugin_notifications(capability.plugin_key); });
     plugin_mgr.subscribe_on_load_callback([](const std::string& plugin_key) {
         if (wxTheApp == nullptr || wxGetApp().is_closing())
             return;
