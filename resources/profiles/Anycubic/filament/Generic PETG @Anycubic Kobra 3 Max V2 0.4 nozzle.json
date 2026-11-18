@@ -1,0 +1,15 @@
+{
+	"type": "filament",
+	"name": "Generic PETG @Anycubic Kobra 3 Max V2 0.4 nozzle",
+	"inherits": "Anycubic PETG @Anycubic Kobra 3 Max V2 0.4 nozzle",
+	"from": "system",
+	"setting_id": "McU40ysmhrHhdvGr",
+	"filament_id": "OFYPdQJh",
+	"instantiation": "true",
+	"filament_vendor": [
+		"Generic"
+	],
+	"compatible_printers": [
+		"Anycubic Kobra 3 Max V2 0.4 nozzle"
+	]
+}
