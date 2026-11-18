@@ -60,6 +60,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <cerrno>
 #include <cfloat>
 #include <climits>
 #include <cmath>
@@ -2942,10 +2943,12 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
         this->_do_export(*print, file, thumbnail_cb);
         file.flush();
         if (file.is_error()) {
+            const std::string os_error = file.last_error();
             file.close();
             boost::nowide::remove(path_tmp.c_str());
             // TRN %1% is a file path.
-            throw Slic3r::RuntimeError(Slic3r::format(_(L("G-code export to %1% failed.\nIs the disk full?")), path) + "\n");
+            throw Slic3r::RuntimeError(Slic3r::format(_(L("G-code export to %1% failed.\nIs the disk full?")), path) + "\n" +
+                                       (os_error.empty() ? std::string() : os_error + "\n"));
         }
     } catch (std::exception &ex) {
         // Rethrow on any exception. std::runtime_exception and CanceledException are expected to be thrown.
@@ -9163,9 +9166,15 @@ bool GCode::GCodeOutputStream::is_error() const
     return ::ferror(this->f);
 }
 
+std::string GCode::GCodeOutputStream::last_error() const
+{
+    return m_write_errno == 0 ? std::string() : std::string(::strerror(m_write_errno));
+}
+
 void GCode::GCodeOutputStream::flush()
 {
-    ::fflush(this->f);
+    if (::fflush(this->f) != 0 && m_write_errno == 0)
+        m_write_errno = errno;
 }
 
 void GCode::GCodeOutputStream::close()
@@ -9181,7 +9190,9 @@ void GCode::GCodeOutputStream::write(const char *what)
     if (what != nullptr) {
         const char* gcode = what;
         // writes string to file
-        fwrite(gcode, 1, ::strlen(gcode), this->f);
+        const size_t len = ::strlen(gcode);
+        if (::fwrite(gcode, 1, len, this->f) != len && m_write_errno == 0)
+            m_write_errno = errno;
         //FIXME don't allocate a string, maybe process a batch of lines?
         m_processor.process_buffer(std::string(gcode));
     }
