@@ -73,6 +73,13 @@ std::string io_path_string(const boost::filesystem::path& path)
 
 } // namespace
 
+bool has_wheel_extension(const boost::filesystem::path& path)
+{
+    std::string ext = path.extension().string();
+    boost::algorithm::to_lower(ext);
+    return ext == ".whl";
+}
+
 std::mutex& install_state_mutex()
 {
     // Function-local static: safe to use from any writer regardless of static initialization order.
@@ -339,7 +346,7 @@ void scan_plugin_directory(const std::string& dir_path, std::vector<PluginDescri
             }
 
             std::string meta_error;
-            const bool  is_wheel = entry_path.extension() == ".whl";
+            const bool  is_wheel = has_wheel_extension(entry_path);
             const bool  parsed   = is_wheel ? read_wheel_plugin_metadata(entry_path, descriptor, meta_error) :
                                               read_python_plugin_metadata(entry_path, descriptor, meta_error);
             if (!parsed) {
@@ -1618,7 +1625,7 @@ boost::filesystem::path find_installed_plugin_entry(const boost::filesystem::pat
                 return {};
             }
             py_entry = entry;
-        } else if (ext == ".whl") {
+        } else if (has_wheel_extension(entry)) {
             if (!whl_entry.empty()) {
                 // TRN %1% and %2% are file names.
                 error = GUI::format(_u8L("Plugin directory contains multiple .whl files: %1% and %2%"),
@@ -1871,8 +1878,9 @@ bool dependency_extraction_collides(const fs::path& entry_path, const std::strin
         return false;
 
     // Mirror add_wheel_dependencies_to_sys_path(): it scans the entry's parent directory (or the
-    // entry path itself when it has no extension) and recognizes only lowercase ".whl" files.
-    // Keep the same rules here so this guard protects exactly the directories that loader uses.
+    // entry path itself when it has no extension) and recognizes wheel files by extension in any
+    // case. Keep the same rules here so this guard protects exactly the directories that loader
+    // uses.
     const fs::path            plugin_dir    = entry_path.has_extension() ? entry_path.parent_path() : entry_path;
     const fs::path            io_plugin_dir = extended_path(plugin_dir);
     const fs::path            io_entry_path = extended_path(entry_path);
@@ -1887,7 +1895,7 @@ bool dependency_extraction_collides(const fs::path& entry_path, const std::strin
         const fs::path candidate = it->path();
         if (candidate == io_entry_path)
             continue;
-        if (candidate.extension() != ".whl")
+        if (!has_wheel_extension(candidate))
             continue;
 
         if (names_equal_case_insensitive(candidate.stem().string(), entry_package))
@@ -2387,9 +2395,7 @@ bool ensure_installed(const PluginDescriptor& descriptor, std::string& error, co
         error = "Plugin has no entry file.";
         return false;
     }
-    std::string extension = fs::path(descriptor.entry_path).extension().string();
-    boost::algorithm::to_lower(extension);
-    if (extension != ".whl") {
+    if (!has_wheel_extension(descriptor.entry_path)) {
         error = "uv wheel installation is only available for .whl plugins.";
         return false;
     }

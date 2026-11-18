@@ -184,7 +184,7 @@ bool add_wheel_dependencies_to_sys_path(const PluginDescriptor& descriptor,
 
     PythonInterpreter& interpreter = PythonInterpreter::instance();
     for (fs::directory_iterator it(scan_dir); it != fs::directory_iterator(); ++it) {
-        if (!fs::is_regular_file(it->status()) || it->path().extension() != ".whl")
+        if (!fs::is_regular_file(it->status()) || !has_wheel_extension(it->path()))
             continue;
         // Skip the entry file itself — it is loaded by its own path. Both sides carry the same
         // spelling, so the comparison holds in the extended form too.

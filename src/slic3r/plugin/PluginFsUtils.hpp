@@ -138,6 +138,11 @@ struct WheelInstallMetadata
 };
 bool read_wheel_install_metadata(const boost::filesystem::path& whl_path, WheelInstallMetadata& out, std::string& error);
 
+// True when the path carries the wheel package extension, compared case-insensitively: a package
+// stored on a case-insensitive filesystem can end in ".WHL". Only uv requires the lower-case
+// spelling for the file it is handed, so the staged copy is normalized instead of rejecting it.
+bool has_wheel_extension(const boost::filesystem::path& path);
+
 // Find the single plugin entry file (.py or .whl) in a directory.
 // Ignores __whl_extracted__ and hidden files/dirs.
 // Returns the path to the entry file, or an empty path with error set if zero or multiple candidates.

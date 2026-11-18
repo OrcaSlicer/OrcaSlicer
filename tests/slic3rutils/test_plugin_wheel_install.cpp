@@ -435,24 +435,25 @@ TEST_CASE("the entry wheel itself is not treated as a dependency collision", "[P
     CHECK(fs::is_directory(plugin_root / wheel_install::EXTRACTED_DIR_NAME / "demo_pkg"));
 }
 
-TEST_CASE("an uppercase dependency wheel extension is not treated as a collision", "[PluginWheelInstall]")
+TEST_CASE("an uppercase dependency wheel extension is treated as a wheel", "[PluginWheelInstall]")
 {
     ScopedTemporaryDir dir("wheel-install-uppercase-dependency");
     const fs::path      plugin_root = dir.path() / "plugin";
     fs::create_directories(plugin_root);
     const fs::path wheel = plugin_root / "plugin.whl";
     write_wheel(wheel, "py3-none-any", "VALUE = 1\n");
-    // The dependency loader extracts only lowercase ".whl" files, so this one is ignored and the
-    // entry may use the same directory stem.
+    // The extension is matched case-insensitively everywhere a wheel is recognized, so this
+    // dependency maps to the same extraction directory as the entry package and must be refused.
     write_wheel(plugin_root / "demo_pkg.WHL", "py3-none-any", "DEPENDENCY = 1\n");
 
     const PluginDescriptor descriptor = make_descriptor(plugin_root, wheel);
 
     int         calls = 0;
     std::string error;
-    REQUIRE(wheel_install::ensure_installed(descriptor, error, fake_uv(nullptr, &calls, "")));
-    CHECK(calls == 1);
-    CHECK(fs::is_directory(plugin_root / wheel_install::EXTRACTED_DIR_NAME / "demo_pkg"));
+    CHECK_FALSE(wheel_install::ensure_installed(descriptor, error, fake_uv(nullptr, &calls, "should not run")));
+    CHECK(calls == 0);
+    CHECK_THAT(error, Catch::Matchers::ContainsSubstring("collides"));
+    CHECK_FALSE(fs::exists(plugin_root / wheel_install::EXTRACTED_DIR_NAME / "demo_pkg"));
 }
 
 TEST_CASE("non-ASCII entry package names are accepted", "[PluginWheelInstall]")
@@ -721,6 +722,26 @@ TEST_CASE("a wheel installs into a plugin path longer than MAX_PATH", "[PluginWh
     // the extended form to be removed at all.
     boost::system::error_code cleanup_ec;
     fs::remove_all(long_path(plugin_root), cleanup_ec);
+}
+
+TEST_CASE("an uppercase wheel extension is discovered as a wheel plugin", "[PluginWheelInstall]")
+{
+    ScopedTemporaryDir dir("wheel-install-uppercase-discovery");
+    const fs::path      plugin_parent = dir.path() / "plugins";
+    const fs::path      plugin_root   = plugin_parent / "demo_plugin";
+    fs::create_directories(plugin_root);
+    // A package stored with an upper-case extension is still a wheel: discovery has to read its
+    // metadata instead of reporting a .py entry that does not exist.
+    const fs::path wheel = plugin_root / "demo_pkg-1.0-py3-none-any.WHL";
+    write_wheel(wheel, "py3-none-any", "VALUE = 1\n");
+
+    std::string error;
+    const std::vector<PluginDescriptor> discovered = discover_plugin_packages({plugin_parent.string()}, error);
+    REQUIRE(error.empty());
+    REQUIRE(discovered.size() == 1);
+    CHECK(discovered.front().is_metadata_valid());
+    CHECK(discovered.front().entry_package == "demo_pkg");
+    CHECK(discovered.front().entry_path == wheel.string());
 }
 
 TEST_CASE("a wheel is discovered under a plugin folder just below MAX_PATH", "[PluginWheelInstall][Regression]")
