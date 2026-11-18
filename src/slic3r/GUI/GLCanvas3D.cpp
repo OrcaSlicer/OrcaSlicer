@@ -2647,6 +2647,14 @@ void GLCanvas3D::toggle_selected_volume_visibility(bool selected_visible)
             }
         }
     }
+
+    // A scene reloaded while the other volumes were hidden registered their raycasters as inactive.
+    if (auto *raycasters = get_raycasters_for_picking(SceneRaycaster::EType::Volume))
+        for (const std::shared_ptr<SceneRaycasterItem> &item : *raycasters) {
+            const int i = SceneRaycaster::decode_id(SceneRaycaster::EType::Volume, item->get_id());
+            if (0 <= i && i < int(m_volumes.volumes.size()))
+                item->set_active(m_volumes.volumes[i]->is_active);
+        }
 }
 
 void GLCanvas3D::toggle_sla_auxiliaries_visibility(bool visible, const ModelObject *mo, int instance_idx)
