@@ -2004,7 +2004,7 @@ void PrintConfigDef::init_fff_params()
                      "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n\n"
                      "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is "
                      "applied even if the overhanging perimeter is part of a bridge.\n"
-                     "For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75% overhang speed will be applied, limited by the bridge speed.");
+                     "For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75–100% overhang speed will be applied, limited by the bridge speed.");
     def->mode = comAdvanced;
     def->nullable = true;
     def->set_default_value(new ConfigOptionBoolsNullable{ false });
@@ -2022,9 +2022,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBoolsNullable{ false });
 
     def = this->add("overhang_0_4_speed", coFloatsOrPercents);
-    def->label = "0%";
+    def->label = u8"0–10%";
     def->category = L("Speed");
-    def->full_label = "0%";
+    def->full_label = u8"0–10%";
     // xgettext:no-c-format, no-boost-format
     def->tooltip = L("Target speed when 10% of the wall line width is unsupported. Between 0% and 10%, "
                      "speed is linearly interpolated from the actual wall speed to this value. "
@@ -2041,9 +2041,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(0, false)});
 
     def = this->add("overhang_1_4_speed", coFloatsOrPercents);
-    def->label = "10%";
+    def->label = u8"10–25%";
     def->category = L("Speed");
-    def->full_label = "10%";
+    def->full_label = u8"10–25%";
     // xgettext:no-c-format, no-boost-format
     def->tooltip = L("Target speed when 25% of the wall line width is unsupported. Between 10% and 25%, "
                      "speed is linearly interpolated from the preceding control point to this value. "
@@ -2060,9 +2060,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(0, false)});
 
     def = this->add("overhang_2_4_speed", coFloatsOrPercents);
-    def->label = "25%";
+    def->label = u8"25–50%";
     def->category = L("Speed");
-    def->full_label = "25%";
+    def->full_label = u8"25–50%";
     // xgettext:no-c-format, no-boost-format
     def->tooltip = L("Target speed when 50% of the wall line width is unsupported. Between 25% and 50%, "
                      "speed is linearly interpolated from the preceding control point to this value. "
@@ -2079,9 +2079,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(0, false)});
 
     def = this->add("overhang_3_4_speed", coFloatsOrPercents);
-    def->label = "50%";
+    def->label = u8"50–75%";
     def->category = L("Speed");
-    def->full_label = "50%";
+    def->full_label = u8"50–75%";
     // xgettext:no-c-format, no-boost-format
     def->tooltip = L("Target speed when 75% of the wall line width is unsupported. Between 50% and 75%, "
                      "speed is linearly interpolated from the preceding control point to this value. "
@@ -2098,9 +2098,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(0, false)});
 
     def = this->add("overhang_4_4_speed", coFloatsOrPercents);
-    def->label = "75%";
+    def->label = u8"75–100%";
     def->category = L("Speed");
-    def->full_label = "75%";
+    def->full_label = u8"75–100%";
     // xgettext:no-c-format, no-boost-format
     def->tooltip = L("Target speed when 87% of the wall line width is unsupported. Between 75% and 87%, "
                      "speed is linearly interpolated from the preceding control point to this value. "

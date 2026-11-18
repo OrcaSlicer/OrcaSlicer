@@ -855,7 +855,7 @@ TEST_CASE("Only outer and inner walls are sped up", "[ExtrusionProcessor][Regres
         CHECK_THAT(points[i].speed, Catch::Matchers::WithinAbs(wall ? 120.f : 60.f, 0.1));
 }
 
-// Orca: With the slowdown for curled perimeters, the 75% overhang speed reaches on to 100% unsupported. Above the
+// Orca: With the slowdown for curled perimeters, the 75–100% overhang speed reaches on to 100% unsupported. Above the
 // wall speed it speeds up the overhang before that, but a fully unsupported wall keeps its path speed.
 TEST_CASE("Fully unsupported walls are not sped up", "[ExtrusionProcessor][Regression]")
 {
@@ -1459,7 +1459,7 @@ TEST_CASE("Bridge infill keeps bridge speed with curled perimeter slowdown", "[E
 }
 
 // Overhang speed-ups are for walls. Bridges and fully unsupported overhang walls keep the bridge speed, also with the
-// slowdown for curled perimeters, which extends the 75% overhang speed across the unsupported span.
+// slowdown for curled perimeters, which extends the 75–100% overhang speed across the unsupported span.
 TEST_CASE("Allowed overhang speed-ups leave bridges at the bridge speed", "[ExtrusionProcessor][Regression]")
 {
     const bool curled = GENERATE(false, true);
