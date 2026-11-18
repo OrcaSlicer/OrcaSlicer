@@ -1756,10 +1756,11 @@ bool is_valid_wheel_filename(const std::string& filename)
     if (parts.size() != 5 && parts.size() != 6)
         return false;
 
-    for (const std::string& part : parts) {
+    for (std::size_t i = 0; i < parts.size(); ++i) {
+        const std::string& part = parts[i];
         if (part.empty())
             return false;
-        if (std::any_of(part.begin(), part.end(), [](char ch) { return !is_tag_char(ch); }))
+        if (std::any_of(part.begin(), part.end(), [i](char ch) { return !is_tag_char(ch) && !(i == 1 && ch == '!'); }))
             return false;
     }
 

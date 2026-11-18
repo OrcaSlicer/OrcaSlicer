@@ -122,6 +122,8 @@ TEST_CASE("wheel filenames are validated by their PEP 427 shape", "[PluginWheelI
     CHECK(wheel_install::is_valid_wheel_filename("demo-1.0-py3-none-any.whl"));
     CHECK(wheel_install::is_valid_wheel_filename("demo_pkg-1.0-1build-py3-none-any.whl"));
     CHECK(wheel_install::is_valid_wheel_filename("demo-1.0+local-cp312-cp312-manylinux_2_17_x86_64.whl"));
+    CHECK(wheel_install::is_valid_wheel_filename("demo-1!2.0-py3-none-any.whl"));
+    CHECK_FALSE(wheel_install::is_valid_wheel_filename("demo-1.0-py3-none-any!.whl"));
 
     // Too few or too many components, a non-.whl extension, an empty component, or a path separator
     // is not a wheel filename uv would accept.
@@ -141,6 +143,8 @@ TEST_CASE("a missing wheel filename is rebuilt from metadata", "[PluginWheelInst
 {
     CHECK(wheel_install::make_wheel_filename("My Plugin", "1.0.0", "py3-none-any") ==
           "My_Plugin-1.0.0-py3-none-any.whl");
+    CHECK(wheel_install::make_wheel_filename("demo", "1!2.0", "py3-none-any") ==
+          "demo-1!2.0-py3-none-any.whl");
 
     // The tag is a python-abi-platform triple, so its two '-' separators are part of the tag and
     // must survive into the filename, which then has to pass the wheel-filename check.
