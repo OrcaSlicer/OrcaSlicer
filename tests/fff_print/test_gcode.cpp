@@ -956,3 +956,43 @@ TEST_CASE("Resonance avoidance keeps outer walls within their volumetric speed l
         CHECK_THAT(speed, Catch::Matchers::WithinAbs(expected_speed, 0.5));
     }
 }
+
+TEST_CASE("The layer count leaves out layers that print nothing", "[GCode][Regression]")
+{
+    const std::string sequence = GENERATE(as<std::string>{}, "by layer", "by object");
+    CAPTURE(sequence);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"print_sequence", sequence},
+                                   {"layer_height", 0.2},
+                                   {"initial_layer_print_height", 0.2},
+                                   {"wall_generator", "classic"},
+                                   {"detect_thin_wall", false},
+                                   {"extruder_clearance_radius", 20},
+                                   {"machine_start_gcode", ";TOTAL_LAYERS=[total_layer_count]\n"}});
+    Print print;
+    Model model;
+    // The top layer of each 10 mm cone slices to a circle 0.2 mm wide, too narrow for a wall, so it prints nothing.
+    Slic3r::Test::init_print({make_cone(10., 10.), make_cone(10., 10.)}, print, model, config, nullptr, false);
+    model.objects[0]->instances.front()->set_offset(Vec3d(60., 100., 0.));
+    model.objects[1]->instances.front()->set_offset(Vec3d(140., 100., 0.));
+    print.apply(model, config);
+    const std::string gcode = Slic3r::Test::gcode(print);
+
+    long layer_changes = 0;
+    long placeholder   = -1;
+    long trailer       = -1;
+    std::istringstream lines(gcode);
+    for (std::string line; std::getline(lines, line);) {
+        if (line.rfind(";LAYER_CHANGE", 0) == 0)
+            ++layer_changes;
+        else if (line.rfind(";TOTAL_LAYERS=", 0) == 0)
+            placeholder = std::stol(line.substr(14));
+        else if (line.rfind("; total layers count = ", 0) == 0)
+            trailer = std::stol(line.substr(23));
+    }
+    const long object_layers = long(print.objects().front()->layer_count()) * (sequence == "by object" ? 2 : 1);
+    REQUIRE(layer_changes > 0);
+    REQUIRE(layer_changes < object_layers);
+    CHECK(placeholder == layer_changes);
+    CHECK(trailer == layer_changes);
+}

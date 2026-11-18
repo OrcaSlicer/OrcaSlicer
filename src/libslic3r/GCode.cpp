@@ -3505,11 +3505,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     // object's empty lead-in), so they must not be counted here either or the layer
     // count in the file disagrees with its layer changes.
     const bool belt = print.config().belt_printer.value;
-    if (print.config().print_sequence == PrintSequence::ByObject) {
-        // Add each of the object's layers separately.
-        for (auto object : print.objects()) {
-            std::vector<coordf_t> zs;
-            zs.reserve(object->layers().size() + object->support_layers().size());
+    // Elsewhere process_layer() skips a layer its tool ordering gives no extruder, such as a tip too thin to print.
+    const auto count_printed_layers = [belt](const auto &objects, const ToolOrdering &tool_ordering) {
+        std::vector<coordf_t> zs;
+        for (const PrintObject *object : objects) {
+            zs.reserve(zs.size() + object->layers().size() + object->support_layers().size());
             for (auto layer : object->layers())
                 if (! belt || belt_object_layer_prints_something(*object, *layer))
                     zs.push_back(layer->print_z);
@@ -3519,45 +3519,24 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             // Belt brim apron bands each get their own change_layer() call.
             for (const BeltBrimBand &band : object->belt_brim_prologue())
                 zs.push_back(band.print_z);
-            if (zs.empty())
-                continue;
-            std::sort(zs.begin(), zs.end());
-            //BBS: merge numerically very close Z values.
-            auto end_it = std::unique(zs.begin(), zs.end());
-            unsigned int temp_layer_count = (unsigned int)(end_it - zs.begin());
-            for (auto it = zs.begin(); it != end_it - 1; it++) {
-                if (abs(*it - *(it + 1)) < EPSILON)
-                    temp_layer_count--;
-            }
-            m_layer_count += (unsigned int)(object->instances().size() * temp_layer_count);
         }
-    } else {
-        // Print all objects with the same print_z together.
-        std::vector<coordf_t> zs;
-        for (auto object : print.objects()) {
-            zs.reserve(zs.size() + object->layers().size() + object->support_layers().size());
-            for (auto layer : object->layers())
-                if (! belt || belt_object_layer_prints_something(*object, *layer))
-                    zs.push_back(layer->print_z);
-            for (auto layer : object->support_layers())
-                if (! belt || layer->has_extrusions())
-                    zs.push_back(layer->print_z);
-            // See the ByObject branch: apron bands are real printed layers.
-            for (const BeltBrimBand &band : object->belt_brim_prologue())
-                zs.push_back(band.print_z);
+        if (! belt)
+            zs.erase(std::remove_if(zs.begin(), zs.end(), [&tool_ordering](coordf_t z) {
+                         return tool_ordering.empty() || tool_ordering.tools_for_layer(z).extruders.empty();
+                     }),
+                     zs.end());
+        if (zs.empty())
+            return 0u;
+        std::sort(zs.begin(), zs.end());
+        //BBS: merge numerically very close Z values.
+        auto end_it = std::unique(zs.begin(), zs.end());
+        unsigned int layer_count = (unsigned int)(end_it - zs.begin());
+        for (auto it = zs.begin(); it != end_it - 1; it++) {
+            if (abs(*it - *(it + 1)) < EPSILON)
+                layer_count--;
         }
-        if (!zs.empty())
-        {
-            std::sort(zs.begin(), zs.end());
-            //BBS: merge numerically very close Z values.
-            auto end_it = std::unique(zs.begin(), zs.end());
-            m_layer_count = (unsigned int)(end_it - zs.begin());
-            for (auto it = zs.begin(); it != end_it - 1; it++) {
-                if (abs(*it - *(it + 1)) < EPSILON)
-                    m_layer_count--;
-            }
-        }
-    }
+        return layer_count;
+    };
     print.throw_if_canceled();
 
     m_enable_cooling_markers = true;
@@ -3629,6 +3608,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 tool_ordering = ToolOrdering(*(*print_object_instance_sequential_active)->print_object, initial_extruder_id);
                 tool_ordering.sort_and_build_data(*(*print_object_instance_sequential_active)->print_object,initial_extruder_id);
             }
+            // Each instance prints the object's layers separately.
+            m_layer_count += count_printed_layers(std::vector<const PrintObject *>{(*print_object_instance_sequential_active)->print_object}, tool_ordering);
             float temp_max_additional_fan = tool_ordering.cal_max_additional_fan(print.config());
             if(temp_max_additional_fan > max_additional_fan )
                         max_additional_fan = temp_max_additional_fan;
@@ -3655,6 +3636,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         // If the tool ordering has been pre-calculated by Print class for wipe tower already, reuse it.
         tool_ordering = print.tool_ordering();
         tool_ordering.assign_custom_gcodes(print);
+        // All objects with the same print_z print together.
+        m_layer_count = count_printed_layers(print.objects(), tool_ordering);
         float temp_max_additional_fan = tool_ordering.cal_max_additional_fan(print.config());
         if(temp_max_additional_fan > max_additional_fan )
                         max_additional_fan = temp_max_additional_fan;
