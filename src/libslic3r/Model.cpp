@@ -2426,10 +2426,13 @@ void ModelObject::split(ModelObjectPtrs* new_objects, const bool remap_paint)
     std::optional<TriangleSelector::SavedPainting> saved_painting;
     struct Piece
     {
-        ModelObject  *object;
+        ModelObject       *object;
+        const ModelVolume *part;
+        // The part of this object the piece was made from.
+        ObjectID           source;
         // The offset of the part, which the instances of the new object took over.
-        Vec3d         offset;
-        BoundingBoxf3 bbox;
+        Vec3d              offset;
+        BoundingBoxf3      bbox;
     };
     std::vector<Piece> pieces;
 
@@ -2546,7 +2549,7 @@ void ModelObject::split(ModelObjectPtrs* new_objects, const bool remap_paint)
                 model_instance->set_offset_to_assembly(new_vol->get_offset());
             }
 
-            pieces.push_back({ new_object, new_vol->get_offset(), piece_bbox });
+            pieces.push_back({ new_object, new_vol, volume->id(), new_vol->get_offset(), piece_bbox });
             new_vol->set_offset(Vec3d::Zero());
             // reset the source to disable reload from disk
             new_vol->source = ModelVolume::Source();
@@ -2554,21 +2557,35 @@ void ModelObject::split(ModelObjectPtrs* new_objects, const bool remap_paint)
         }
     }
 
-    // Give every other volume to the piece it overlaps most, or to the first piece, where it stands.
-    if (! pieces.empty())
-        for (const ModelVolume *volume : this->volumes) {
-            if (volume->is_model_part() || volume->mesh().empty())
-                continue;
-            const BoundingBoxf3 bbox   = volume->mesh().bounding_box().transformed(volume->get_matrix());
-            const Piece        *target = &pieces.front();
-            double              max_overlap = 0.;
-            for (const Piece &piece : pieces)
-                if (const double overlap = bbox_overlap_volume(bbox, piece.bbox); overlap > max_overlap) {
-                    target      = &piece;
-                    max_overlap = overlap;
-                }
-            target->object->add_volume(*volume)->set_transformation(Geometry::translation_transform(-target->offset) * volume->get_matrix());
+    auto has_paint_on = [](const ModelVolume &painted_modifier, const Piece &piece) {
+        const Transform3d piece_to_modifier = painted_modifier.get_matrix().inverse() * Geometry::translation_transform(piece.offset) *
+                                              piece.part->get_matrix();
+        return ! TriangleSelector::remap_painting(painted_modifier.mesh().its, painted_modifier.painted_modifier_facets.get_data(),
+                                                  piece.part->mesh().its, piece_to_modifier, {}).triangles_to_split.empty();
+    };
+    // A painted modifier goes to the pieces of its part that hold its paint, any other volume to every piece it overlaps.
+    for (const ModelVolume *volume : this->volumes) {
+        if (volume->is_model_part() || volume->mesh().empty())
+            continue;
+        const BoundingBoxf3       bbox = volume->mesh().bounding_box().transformed(volume->get_matrix());
+        std::vector<const Piece*> targets;
+        for (const Piece &piece : pieces)
+            if (volume->is_painted_modifier() ? piece.source == volume->painted_modifier_host && has_paint_on(*volume, piece) :
+                                                bbox_overlap_volume(bbox, piece.bbox) > 0.)
+                targets.push_back(&piece);
+        // A volume away from every piece stays where it stands, on the first piece.
+        if (targets.empty() && ! volume->is_painted_modifier() && ! pieces.empty())
+            targets.push_back(&pieces.front());
+        for (const Piece *piece : targets) {
+            ModelVolume *copy = piece->object->add_volume(*volume);
+            copy->set_transformation(Geometry::translation_transform(-piece->offset) * volume->get_matrix());
+            if (copy->is_painted_modifier())
+                copy->painted_modifier_host = piece->part->id();
         }
+    }
+    // Moves the paint of each painted modifier onto the mesh of its piece.
+    for (const Piece &piece : pieces)
+        piece.object->sync_painted_modifiers();
 }
 
 

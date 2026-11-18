@@ -17,6 +17,7 @@
 #include "libslic3r/MeshRepair.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/ObjectID.hpp"
+#include "libslic3r/TriangleSelector.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/libslic3r.h"
 
@@ -163,7 +164,7 @@ TEST_CASE("Splitting a part made only of pieces enclosing no volume leaves it wh
     CHECK(volume->mesh().facets_count() == 2);
 }
 
-TEST_CASE("Splitting an object gives each negative part and modifier to the piece it overlaps", "[Model]")
+TEST_CASE("Splitting an object gives each negative part and modifier to the pieces it overlaps", "[Model]")
 {
     // Two cubes 30 mm apart, in one part or in two.
     const bool two_parts = GENERATE(false, true);
@@ -186,6 +187,9 @@ TEST_CASE("Splitting an object gives each negative part and modifier to the piec
     TriangleMesh block = make_cube(4, 4, 4);
     block.translate(33.f, 3.f, 3.f);
     const ModelVolume *modifier = object->add_volume(std::move(block), ModelVolumeType::PARAMETER_MODIFIER, false);
+    TriangleMesh bar = make_cube(30, 2, 2);
+    bar.translate(5.f, 4.f, 4.f);
+    const ModelVolume *spanning = object->add_volume(std::move(bar), ModelVolumeType::PARAMETER_MODIFIER, false);
     object->add_instance()->set_offset(Vec3d(100., 50., 0.));
 
     auto world_bbox = [](const ModelObject &object, const ModelVolume &volume) {
@@ -193,21 +197,74 @@ TEST_CASE("Splitting an object gives each negative part and modifier to the piec
     };
     const BoundingBoxf3 negative_bbox = world_bbox(*object, *negative);
     const BoundingBoxf3 modifier_bbox = world_bbox(*object, *modifier);
+    const BoundingBoxf3 spanning_bbox = world_bbox(*object, *spanning);
 
     ModelObjectPtrs new_objects;
     object->split(&new_objects, false);
     REQUIRE(new_objects.size() == 2);
     for (const ModelObject *piece : new_objects) {
-        REQUIRE(piece->volumes.size() == 2);
+        REQUIRE(piece->volumes.size() == 3);
         const bool is_left = world_bbox(*piece, *piece->volumes.front()).min.x() < 120.;
         CAPTURE(is_left);
-        const ModelVolume &other = *piece->volumes.back();
-        CHECK(other.type() == (is_left ? ModelVolumeType::NEGATIVE_VOLUME : ModelVolumeType::PARAMETER_MODIFIER));
-        // It stays where it was.
+        // Each stays where it was, and the bar across both pieces goes to both.
+        const ModelVolume  &own      = *piece->volumes[1];
         const BoundingBoxf3 expected = is_left ? negative_bbox : modifier_bbox;
-        const BoundingBoxf3 bbox     = world_bbox(*piece, other);
-        CHECK((bbox.min - expected.min).norm() < 1e-4);
-        CHECK((bbox.max - expected.max).norm() < 1e-4);
+        CHECK(own.type() == (is_left ? ModelVolumeType::NEGATIVE_VOLUME : ModelVolumeType::PARAMETER_MODIFIER));
+        CHECK((world_bbox(*piece, own).min - expected.min).norm() < 1e-4);
+        CHECK((world_bbox(*piece, own).max - expected.max).norm() < 1e-4);
+        const ModelVolume &bar_copy = *piece->volumes[2];
+        CHECK(bar_copy.type() == ModelVolumeType::PARAMETER_MODIFIER);
+        CHECK((world_bbox(*piece, bar_copy).min - spanning_bbox.min).norm() < 1e-4);
+        CHECK((world_bbox(*piece, bar_copy).max - spanning_bbox.max).norm() < 1e-4);
+    }
+}
+
+TEST_CASE("Splitting an object gives a painted modifier to the pieces of its part that hold its paint", "[Model]")
+{
+    // Two cubes 30 mm apart, in one part or in two, with paint on the right cube only.
+    const bool two_parts = GENERATE(false, true);
+    CAPTURE(two_parts);
+    Model model;
+    ModelObject *object = model.add_object();
+    TriangleMesh left  = make_cube(10, 10, 10);
+    TriangleMesh right = make_cube(10, 10, 10);
+    right.translate(30.f, 0.f, 0.f);
+    const ModelVolume *host = nullptr;
+    if (two_parts) {
+        object->add_volume(std::move(left), ModelVolumeType::MODEL_PART, false);
+        host = object->add_volume(std::move(right), ModelVolumeType::MODEL_PART, false);
+    } else {
+        left.merge(right);
+        host = object->add_volume(std::move(left), ModelVolumeType::MODEL_PART, false);
+    }
+    ModelVolume *painted_modifier = object->add_painted_modifier(*host);
+    const indexed_triangle_set &its = painted_modifier->mesh().its;
+    TriangleSelector selector(painted_modifier->mesh());
+    for (int facet_idx = 0; facet_idx < int(its.indices.size()); ++facet_idx)
+        if (its.vertices[its.indices[facet_idx][0]].x() > 20.f)
+            selector.set_facet(facet_idx, EnforcerBlockerType::ENFORCER);
+    painted_modifier->painted_modifier_facets.set(selector);
+    object->add_instance()->set_offset(Vec3d(100., 50., 0.));
+
+    ModelObjectPtrs new_objects;
+    object->split(&new_objects, false);
+    REQUIRE(new_objects.size() == 2);
+    for (const ModelObject *piece : new_objects) {
+        const BoundingBoxf3 part_bbox = piece->volumes.front()->mesh().bounding_box().transformed(
+            piece->instances.front()->get_matrix() * piece->volumes.front()->get_matrix());
+        const bool is_left = part_bbox.min.x() < 120.;
+        CAPTURE(is_left);
+        if (is_left) {
+            CHECK(piece->volumes.size() == 1);
+            continue;
+        }
+        REQUIRE(piece->volumes.size() == 2);
+        const ModelVolume &copy = *piece->volumes.back();
+        REQUIRE(copy.is_painted_modifier());
+        CHECK(piece->painted_modifier_host(copy) == piece->volumes.front());
+        CHECK(copy.mesh_ptr() == piece->volumes.front()->mesh_ptr());
+        // Every face of the right cube stays painted.
+        CHECK(copy.painted_modifier_facets.get_facets_strict(copy, EnforcerBlockerType::ENFORCER).indices.size() == 12);
     }
 }
 
