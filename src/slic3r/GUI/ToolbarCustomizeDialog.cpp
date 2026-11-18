@@ -33,7 +33,6 @@
 #include <cstddef>
 #include <iterator>
 #include <map>
-#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -347,21 +346,7 @@ private:
                 // Mouse only: a focused arrow that gets disabled at the end of a list would hand the focus to
                 // another control on Windows, and the next Space would act on that control.
                 btn->SetCanFocus(false);
-                btn->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& e) {
-                    m_arrow_click = e.GetPosition();
-                    e.Skip();
-                });
-                btn->Bind(wxEVT_BUTTON, [this, row, btn, step](wxCommandEvent&) {
-                    move_selected(step);
-                    // The row moved away from the pointer; follow it so further clicks keep moving the same row.
-                    // Only after a mouse press: an accessibility "press" must not move the pointer. The target is
-                    // taken from positions in the list, which does not move.
-                    if (!m_arrow_click)
-                        return;
-                    row->GetParent()->WarpPointer(row->GetPosition().x + btn->GetPosition().x + m_arrow_click->x,
-                                                  row->GetPosition().y + btn->GetPosition().y + m_arrow_click->y);
-                    m_arrow_click.reset();
-                });
+                btn->Bind(wxEVT_BUTTON, [this, step](wxCommandEvent&) { move_selected(step); });
                 btn->Hide();
                 row_sizer->Add(btn, wxSizerFlags().CenterVertical().Border(wxRIGHT, FromDIP(4)).ReserveSpaceEvenIfHidden());
                 return btn;
@@ -372,8 +357,12 @@ private:
             Button* down = add_arrow("toolbar_row_down_disabled", format_wxstr(_L("Move down (%1%)"), from_u8(move_down_key().display())), 1);
             row->SetSizer(row_sizer);
 
-            const auto on_click = [this, id](wxMouseEvent& e) {
-                select_row(id);
+            const auto on_click = [this, id, row, up](wxMouseEvent& e) {
+                // A click where the hidden arrows sit does nothing: after a move the row slides out from under the
+                // pointer, and a second click there would select the neighbour and a third would move it back.
+                const bool on_arrows = e.GetEventObject() == row && e.GetX() >= up->GetPosition().x;
+                if (!on_arrows)
+                    select_row(id);
                 e.Skip();
             };
             row->Bind(wxEVT_LEFT_DOWN, on_click);
@@ -391,9 +380,8 @@ private:
     ToolbarLayout m_loaded;
     ToolbarLayout m_working;
     std::string   m_selected;
-    std::string            m_focused_row; // the row whose box last took the focus
-    bool                   m_tabbing{false}; // Tab has been pressed, so focusing a box selects its row
-    std::optional<wxPoint> m_arrow_click; // where a mouse press on an arrow landed, in the arrow's coordinates
+    std::string   m_focused_row;    // the row whose box last took the focus
+    bool          m_tabbing{false}; // Tab has been pressed, so focusing a box selects its row
     wxPanel*      m_main_panel{nullptr};
     wxPanel*      m_gizmo_panel{nullptr};
     struct Row
