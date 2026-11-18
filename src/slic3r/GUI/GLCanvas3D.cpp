@@ -5566,6 +5566,10 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
 
     Point pos(evt.GetX(), evt.GetY());
 
+    // A press anywhere but the open group list or its button closes the list, whichever part of the canvas takes it.
+    if (evt.LeftDown() || evt.RightDown())
+        m_gizmos.close_group_list_unless_at(pos.cast<double>());
+
     ImGuiWrapper* imgui = wxGetApp().imgui();
     if (m_tooltip.is_in_imgui() && evt.LeftUp())
         // ignore left up events coming from imgui windows and not processed by them
@@ -8411,7 +8415,7 @@ void GLCanvas3D::apply_toolbar_layout()
     m_toolbar_highlighter.invalidate();
     _init_main_toolbar();
     m_main_toolbar.set_icon_dirty();
-    m_gizmos.set_bar_layout(layout.gizmos);
+    m_gizmos.set_bar_layout(layout.gizmos, layout.groups);
 
     set_as_dirty();
     request_extra_frame();
