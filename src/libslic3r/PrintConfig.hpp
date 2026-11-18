@@ -179,10 +179,40 @@ inline bool is_octree_infill_pattern(InfillPattern pattern) { return pattern == 
 // Orca: Infill patterns graded by the "adaptive_infill_mode" option.
 inline bool is_adaptive_infill_pattern(InfillPattern pattern) { return pattern == ipGyroid || pattern == ipTpmsD || pattern == ipTpmsFK; }
 
+// Orca: whether the sparse infill lines run across each other or turn back where they cross.
+enum class InfillStrategy {
+    Default,
+    Crossing,
+    NonCrossing,
+};
+
+// Orca: Infill patterns whose lines can either cross or turn back at the crossings.
+inline bool has_infill_strategy(InfillPattern pattern)
+{
+    switch (pattern) {
+    case ipGrid:
+    case ipTriangles:
+    case ipStars:
+    case ipCubic:
+    case ipQuarterCubic:
+    case ipAdaptiveCubic:
+    case ipSupportCubic:
+        return true;
+    default:
+        return false;
+    }
+}
+
+// Orca: The default strategy crosses with a single line per infill wall and turns back with more.
+inline bool is_non_crossing_strategy(InfillStrategy strategy, int multiline)
+{
+    return strategy == InfillStrategy::Default ? multiline > 1 : strategy == InfillStrategy::NonCrossing;
+}
+
 // Orca: Infill patterns that round their corners by the "sparse_infill_smooth_factor" option.
-// Grid, Triangles and Tri-hexagon only do so in their trapezoidal form, which is generated with more
-// than one line per infill wall; a single line makes them plain crossing lines with nothing to round.
-inline bool is_smoothable_infill_pattern(InfillPattern pattern, int multiline = 1)
+// Grid, Triangles, Tri-hexagon, Cubic and Quarter Cubic only do so with the non-crossing strategy;
+// crossing makes them straight lines with nothing to round.
+inline bool is_smoothable_infill_pattern(InfillPattern pattern, int multiline = 1, InfillStrategy strategy = InfillStrategy::Default)
 {
     switch (pattern) {
     case ipHilbertCurve:
@@ -198,7 +228,7 @@ inline bool is_smoothable_infill_pattern(InfillPattern pattern, int multiline = 
     case ipStars:
     case ipCubic:
     case ipQuarterCubic:
-        return multiline > 1;
+        return is_non_crossing_strategy(strategy, multiline);
     default:
         return false;
     }
@@ -890,6 +920,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ToolChangeOrderingType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ArcFittingMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SurfaceFillOrder)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillStrategy)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(AdaptiveInfillMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(AdaptiveInfillGradient)
 
@@ -1341,6 +1372,7 @@ PRINT_CONFIG_CLASS_DEFINE(
 
     ((ConfigOptionFloat,               brim_object_gap))
     ((ConfigOptionFloat,               brim_flow_ratio))
+    ((ConfigOptionInt,                 brim_filament_id))
     ((ConfigOptionBool,                brim_use_efc_outline))
     ((ConfigOptionEnum<BrimType>,      brim_type))
     ((ConfigOptionFloat,               brim_width))
@@ -1589,6 +1621,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Orca:
     ((ConfigOptionFloatOrPercent,                infill_combination_max_layer_height))
     ((ConfigOptionInt,                  fill_multiline))
+    ((ConfigOptionEnum<InfillStrategy>, sparse_infill_strategy))
     ((ConfigOptionEnum<AdaptiveInfillMode>, adaptive_infill_mode))
     ((ConfigOptionPercent,              adaptive_infill_interior_density))
     ((ConfigOptionEnum<AdaptiveInfillGradient>, adaptive_infill_gradient))
