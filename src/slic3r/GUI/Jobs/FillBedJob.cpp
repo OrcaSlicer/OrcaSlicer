@@ -322,6 +322,8 @@ void FillBedJob::process(Ctl &ctl)
             if (cell_index < empty_cells.size()) {
                 item.translation = scaled<coord_t>(empty_cells[cell_index++]);
                 item.bed_idx = 0;
+                // numbers the copy in its object name
+                item.itemid = static_cast<int>(cell_index);
             } else {
                 item.bed_idx = arrangement::UNARRANGED;
             }
