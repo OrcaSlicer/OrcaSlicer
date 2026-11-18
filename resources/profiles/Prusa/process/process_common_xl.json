@@ -37,8 +37,6 @@
 	"tree_support_branch_angle_organic": "40",
 	"tree_support_angle_slow": "30",
 	"tree_support_branch_diameter_organic": "2",
-	"tree_support_bramch_diameter_angle": "3",
-	"tree_support_branch_diameter_double_wall": "3",
 	"tree_support_tip_diameter": "0.6",
 	"tree_support_top_rate": "30%",
 	"tree_support_branch_distance_organic": "1",

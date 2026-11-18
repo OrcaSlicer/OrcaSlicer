@@ -495,13 +495,15 @@ TEST_CASE("Starting a print gives a silent printer no more than its deadlines", 
 
 TEST_CASE("Starting a print sends each command with the G-code path in a text frame", "[CrealityPrint]")
 {
-    // F008 is a multi-color model and F001 a plain one. K1-family models keep their G-code under /usr/data.
+    // F008 is a multi-color model and F018 a plain one. K1C, F005 (Ender-3 V3 KE) and F016 (K2 SE) keep their G-code under /usr/data.
     // Only a mapping onto CFS slots starts a multi-color print; a printer that listed no slots starts plainly.
     const std::map<std::string, std::string> cfs_mapping = {{"enableSelfTest", "0"}, {"colorMatch_0", "T1A\tPLA\t#FF0000\t1\t0"}};
     const auto [model, extended_info, commands, gcode] = GENERATE_REF(table<std::string, std::map<std::string, std::string>, std::vector<std::string>, std::string>({
         {"F008", cfs_mapping, {"colorMatch", "multiColorPrint"}, "/mnt/UDISK/printer_data/gcodes/test.gcode"},
         {"F008", {}, {"opGcodeFile"}, "printprt:/mnt/UDISK/printer_data/gcodes/test.gcode"},
-        {"F001", {}, {"opGcodeFile"}, "printprt:/mnt/UDISK/printer_data/gcodes/test.gcode"},
+        {"F018", {}, {"opGcodeFile"}, "printprt:/mnt/UDISK/printer_data/gcodes/test.gcode"},
+        {"F005", {}, {"opGcodeFile"}, "printprt:/usr/data/printer_data/gcodes/test.gcode"},
+        {"F016", cfs_mapping, {"colorMatch", "multiColorPrint"}, "/usr/data/printer_data/gcodes/test.gcode"},
         {"K1C", cfs_mapping, {"colorMatch", "multiColorPrint"}, "/usr/data/printer_data/gcodes/test.gcode"},
         {"K1C", {}, {"opGcodeFile"}, "printprt:/usr/data/printer_data/gcodes/test.gcode"},
     }));

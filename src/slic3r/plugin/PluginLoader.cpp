@@ -255,6 +255,32 @@ bool load(const PluginDescriptor&                          descriptor,
     static std::mutex           load_serializer;
     std::lock_guard<std::mutex> load_lock(load_serializer);
 
+    // A sidecar whose contents do not parse (cut short by a crash, or broken by a hand edit) would
+    // make every writer refuse it, so a plugin that declares permissions could never load and no
+    // grant or capability choice could be saved. Set it aside before any plugin code runs, so this
+    // load treats the plugin as having no sidecar: request_permissions asks again and the on-load
+    // writer creates a fresh one, as for a new plugin. The old bytes stay beside it for manual
+    // recovery, and the denied-filename prefix keeps the backup out of the plugin's reach too.
+    // Anything else at the sidecar path (a link, a directory, a file that cannot be opened or read
+    // in full) is left alone, so its writers keep refusing.
+    if (!descriptor.plugin_root.empty()) {
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        const boost::filesystem::path plugin_root(descriptor.plugin_root);
+        PluginInstallState            unused_state;
+        bool                          malformed = false;
+        if (read_install_state_status(plugin_root, unused_state, &malformed) == InstallStateReadStatus::Unreadable &&
+            malformed) {
+            const std::string sidecar = (plugin_root / INSTALL_STATE_FILE).string();
+            const std::string backup  = sidecar + ".corrupt";
+            if (const std::error_code ec = rename_file(sidecar, backup))
+                BOOST_LOG_TRIVIAL(warning) << "[plugin_loader::load] Cannot set aside unparsable " << sidecar << ": "
+                                           << ec.message();
+            else
+                BOOST_LOG_TRIVIAL(warning) << "[plugin_loader::load] Install state of " << descriptor.plugin_key
+                                           << " could not be parsed; moved it to " << backup << " and starting fresh";
+        }
+    }
+
     Plugin plugin;
     plugin.descriptor  = descriptor;
     plugin.module_name = plugin_module_name(descriptor);
@@ -334,8 +360,12 @@ bool load(const PluginDescriptor&                          descriptor,
     // The user's per-capability enable choices live in the sidecar — the only durable record, since
     // a capability has no state (and no existence) while the package is not loaded.
     PluginInstallState install_state;
-    const bool         have_install_state = !descriptor.plugin_root.empty() &&
-                                    read_install_state(boost::filesystem::path(descriptor.plugin_root), install_state);
+    bool have_install_state = false;
+    {
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        have_install_state = !descriptor.plugin_root.empty() &&
+                             read_install_state(boost::filesystem::path(descriptor.plugin_root), install_state);
+    }
 
     // get_name()/get_type() are read exactly once — here, under the GIL this block already holds —
     // and cached on the capability, which is the only place capability state lives.
@@ -571,9 +601,14 @@ bool install_plugin(const boost::filesystem::path& filepath, const std::string& 
 bool install_plugin(const boost::filesystem::path& filepath,
                     const std::string&             cloud_user_id,
                     PluginDescriptor&              plugin_descriptor,
-                    std::string&                   error)
+                    std::string&                   error,
+                    bool*                          install_target_intact,
+                    const PluginInstallState*      preserved_state)
 {
     namespace fs = boost::filesystem;
+
+    if (install_target_intact != nullptr)
+        *install_target_intact = true;
 
     const std::string cloud_uuid       = plugin_descriptor.cloud_uuid();
     const bool        is_cloud_install = !cloud_uuid.empty();
@@ -643,9 +678,33 @@ bool install_plugin(const boost::filesystem::path& filepath,
     else
         assign_local_plugin_key(plugin_descriptor, source_path);
 
-    // Backup existing installation if present.
+    // Remove whatever the failed attempt left at final_dir, then move the backup back. On a failed
+    // sidecar write final_dir holds the new package and must go; on a create-directory failure it
+    // may hold a partially created directory, which would make the rename fail if left in place.
+    auto restore_backup = [&]() {
+        // A fresh install has no backup, but its partial destination must still be removed.
+        boost::system::error_code restore_ec;
+        fs::remove_all(final_dir, restore_ec);
+        if (!backup_created)
+            return;
+
+        restore_ec.clear();
+        fs::rename(backup_dir, final_dir, restore_ec);
+        if (restore_ec) {
+            BOOST_LOG_TRIVIAL(error) << "Failed to restore plugin backup " << backup_dir.string() << " to "
+                                     << final_dir.string() << ": " << restore_ec.message();
+            // The old package survives only under the backup name, where it is not usable as the
+            // installed package.
+            if (install_target_intact != nullptr)
+                *install_target_intact = false;
+        }
+    };
+
+    // Backup existing installation if present. The "__" prefix keeps an abandoned backup out of
+    // discovery if the process dies or the final cleanup below cannot remove it.
     if (fs::exists(final_dir, ec)) {
-        backup_dir = plugin_root / (final_dir.filename().string() + ".backup-" + fs::unique_path("%%%%-%%%%-%%%%").string());
+        backup_dir = plugin_root /
+            ("__" + final_dir.filename().string() + ".backup-" + fs::unique_path("%%%%-%%%%-%%%%").string());
         fs::rename(final_dir, backup_dir, ec);
         if (ec)
             // TRN %1% is a folder path, %2% the system error message.
@@ -656,20 +715,13 @@ bool install_plugin(const boost::filesystem::path& filepath,
     // Create the plugin directory and copy the file.
     fs::create_directories(final_dir, ec);
     if (ec) {
-        if (backup_created) {
-            boost::system::error_code restore_ec;
-            fs::rename(backup_dir, final_dir, restore_ec);
-        }
+        restore_backup();
         return fail(GUI::format(_u8L("Failed to create plugin directory %1%: %2%"), final_dir.string(), ec.message()));
     }
 
     fs::copy_file(source_path, dest_file, ec);
     if (ec) {
-        if (backup_created) {
-            boost::system::error_code restore_ec;
-            fs::remove_all(final_dir, restore_ec);
-            fs::rename(backup_dir, final_dir, restore_ec);
-        }
+        restore_backup();
         // TRN %1% is a file path, %2% the system error message.
         return fail(GUI::format(_u8L("Failed to copy plugin file to %1%: %2%"), dest_file.string(), ec.message()));
     }
@@ -680,20 +732,32 @@ bool install_plugin(const boost::filesystem::path& filepath,
     plugin_descriptor.set_metadata_valid(true);
     plugin_descriptor.clear_error();
 
-    // Write install state sidecar before removing the backup.
+    // Write install state sidecar before removing the backup. The write takes the shared
+    // install-state mutex so it cannot interleave with an in-process read-modify-write writer.
     {
-        PluginDescriptor installed_entry = plugin_descriptor;
-        if (is_cloud_install)
-            installed_entry.cloud = CloudPluginState{cloud_uuid, true, false, false, plugin_descriptor.cloud->is_mine};
-        if (!write_install_state(final_dir, installed_entry)) {
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+
+        // Seed the metadata of the package being installed. An update supplies the previous
+        // activation and capability choices; permissions are always reset because the new
+        // executable code must request them again.
+        PluginInstallState state;
+        seed_install_metadata(state, plugin_descriptor);
+        if (preserved_state != nullptr) {
+            state.enabled      = preserved_state->enabled;
+            state.capabilities = preserved_state->capabilities;
+        }
+
+        if (!write_install_state(final_dir, state)) {
             // Roll back: remove new files and restore backup.
-            boost::system::error_code rollback_ec;
-            fs::remove_all(final_dir, rollback_ec);
-            if (backup_created)
-                fs::rename(backup_dir, final_dir, rollback_ec);
+            restore_backup();
             return fail(GUI::format(_u8L("Failed to write plugin install state: %1%"), (final_dir / INSTALL_STATE_FILE).string()));
         }
     }
+
+    // The replacement is committed: the package that was installed before this call no longer
+    // occupies its recorded location.
+    if (install_target_intact != nullptr)
+        *install_target_intact = false;
 
     if (backup_created) {
         boost::system::error_code remove_ec;

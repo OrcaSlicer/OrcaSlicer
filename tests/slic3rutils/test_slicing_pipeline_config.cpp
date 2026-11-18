@@ -107,6 +107,19 @@ fs::path write_plugin(const std::string& stem, const std::string& source)
     return plugin_dir;
 }
 
+void load_config_probe(PluginManager& manager)
+{
+    write_plugin("ConfigProbe", CONFIG_PROBE_SOURCE);
+    manager.get_config().load(); // reset the singleton's store against the empty temp data dir
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    manager.load_plugin("ConfigProbe", /*skip_deps=*/true, {});
+    REQUIRE(manager.wait_for_plugin_load("ConfigProbe", std::chrono::seconds(120), error));
+    INFO("load error: " << error);
+    REQUIRE(manager.is_plugin_loaded("ConfigProbe"));
+}
+
 } // namespace
 
 TEST_CASE("slicing-pipeline dispatch delivers the stored config to self.get_config()", "[slicing_pipeline][PluginConfig][Python]")
@@ -116,17 +129,8 @@ TEST_CASE("slicing-pipeline dispatch delivers the stored config to self.get_conf
         SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
 
     ScopedDataDir data_dir_guard("pipeline-config");
-    write_plugin("ConfigProbe", CONFIG_PROBE_SOURCE);
-
     PluginManager& manager = PluginManager::instance();
-    manager.get_config().load(); // reset the singleton's store against the empty temp data dir
-    manager.discover_plugins(/*async=*/false, /*clear=*/true);
-
-    std::string error;
-    manager.load_plugin("ConfigProbe", /*skip_deps=*/true, {});
-    REQUIRE(manager.wait_for_plugin_load("ConfigProbe", std::chrono::seconds(120), error));
-    INFO("load error: " << error);
-    REQUIRE(manager.is_plugin_loaded("ConfigProbe"));
+    load_config_probe(manager);
 
     const PluginCapabilityId id{PluginCapabilityType::SlicingPipeline, "ConfigEcho", "ConfigProbe"};
 
@@ -161,6 +165,42 @@ TEST_CASE("slicing-pipeline dispatch delivers the stored config to self.get_conf
     CHECK(observed.find("'alpha', '9.5'") != std::string::npos);
     CHECK(observed.find("'beta', 'hello'") != std::string::npos);
     CHECK(observed.find("1.25") == std::string::npos);
+
+    manager.unload_plugin("ConfigProbe");
+}
+
+TEST_CASE("slicing-pipeline dispatch runs a selected capability missing from the plugins manifest", "[slicing_pipeline][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("pipeline-no-manifest");
+    PluginManager& manager = PluginManager::instance();
+    load_config_probe(manager);
+
+    // The interpreter outlives each test case, so clear what an earlier run of the probe left behind.
+    {
+        PythonGILState gil;
+        REQUIRE(static_cast<bool>(gil));
+        pybind11::module_ orca = pybind11::module_::import("orca");
+        if (pybind11::hasattr(orca, "_probe_config"))
+            pybind11::delattr(orca, "_probe_config");
+    }
+
+    Print print;
+    Model model;
+    auto  config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("slicing_pipeline_plugin", new ConfigOptionStrings({"ConfigEcho"}));
+    config.set_key_value("plugins", new ConfigOptionStrings());
+    init_print({cube(20)}, print, model, config);
+    print.process();
+
+    {
+        PythonGILState gil;
+        REQUIRE(static_cast<bool>(gil));
+        CHECK(pybind11::hasattr(pybind11::module_::import("orca"), "_probe_config"));
+    }
 
     manager.unload_plugin("ConfigProbe");
 }
