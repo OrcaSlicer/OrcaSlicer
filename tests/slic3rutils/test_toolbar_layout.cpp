@@ -261,3 +261,78 @@ TEST_CASE("Gizmo groups: a member leaves at either edge, and a group of one diss
     CHECK(l.groups.empty());
     CHECK(l.gizmos.order == Order{"move", "rotate", "scale", "seam", "fdm_supports", "fuzzy_skin"});
 }
+
+TEST_CASE("Gizmo bar slots without groups are one per id", "[ToolbarLayout]")
+{
+    const auto slots = compute_gizmo_bar_slots({"move", "seam"}, {}, "", {});
+    REQUIRE(slots.size() == 2);
+    CHECK(slots[1] == ToolbarBarSlot{"seam", {}, -1});
+}
+
+TEST_CASE("Gizmo bar group slot sits at its first member and lists members in bar order", "[ToolbarLayout]")
+{
+    const auto slots = compute_gizmo_bar_slots({"move", "seam", "rotate", "fdm_supports", "fuzzy_skin"},
+                                               {{"P", {"seam", "fdm_supports", "fuzzy_skin"}}}, "", {});
+    REQUIRE(slots.size() == 3);
+    CHECK(slots[0].shown == "move");
+    CHECK(slots[1] == ToolbarBarSlot{"seam", {"seam", "fdm_supports", "fuzzy_skin"}, 0});
+    CHECK(slots[2].shown == "rotate");
+}
+
+TEST_CASE("Gizmo bar adjacent groups stay separate slots", "[ToolbarLayout]")
+{
+    const auto slots = compute_gizmo_bar_slots({"move", "rotate", "scale", "seam"}, {{"A", {"move", "rotate"}}, {"B", {"scale", "seam"}}}, "", {});
+    REQUIRE(slots.size() == 2);
+    CHECK(slots[0] == ToolbarBarSlot{"move", {"move", "rotate"}, 0});
+    CHECK(slots[1] == ToolbarBarSlot{"scale", {"scale", "seam"}, 1});
+}
+
+TEST_CASE("Gizmo bar hidden member between groups", "[ToolbarLayout]")
+{
+    const auto slots = compute_gizmo_bar_slots({"move", "scale", "seam", "fdm_supports"},
+                                               {{"A", {"move", "rotate", "scale"}}, {"B", {"seam", "fdm_supports"}}}, "", {});
+    REQUIRE(slots.size() == 2);
+    CHECK(slots[0] == ToolbarBarSlot{"move", {"move", "scale"}, 0});
+    CHECK(slots[1] == ToolbarBarSlot{"seam", {"seam", "fdm_supports"}, 1});
+}
+
+TEST_CASE("Gizmo bar group with one bar member is a plain icon", "[ToolbarLayout]")
+{
+    const auto slots = compute_gizmo_bar_slots({"move", "scale"}, {{"A", {"move", "rotate"}}}, "", {});
+    REQUIRE(slots.size() == 2);
+    CHECK(slots[0] == ToolbarBarSlot{"move", {}, -1});
+}
+
+TEST_CASE("Gizmo bar group slot shows the open, then the recent openable, then the first openable member", "[ToolbarLayout]")
+{
+    const std::vector<std::string>       ids{"seam", "fdm_supports", "fuzzy_skin"};
+    const std::vector<ToolbarGizmoGroup> groups{{"P", ids}};
+    CHECK(compute_gizmo_bar_slots(ids, groups, "fuzzy_skin", {"fdm_supports"}, {"fuzzy_skin"})[0].shown == "fuzzy_skin");
+    CHECK(compute_gizmo_bar_slots(ids, groups, "move", {"fdm_supports"})[0].shown == "fdm_supports");
+    CHECK(compute_gizmo_bar_slots(ids, groups, "", {"fuzzy_skin", "fdm_supports"}, {"fuzzy_skin"})[0].shown == "fdm_supports");
+    CHECK(compute_gizmo_bar_slots(ids, groups, "", {}, {"seam"})[0].shown == "fdm_supports");
+    CHECK(compute_gizmo_bar_slots(ids, groups, "", {"fdm_supports"}, {"seam", "fdm_supports", "fuzzy_skin"})[0].shown == "fdm_supports");
+}
+
+TEST_CASE("Gizmo bar group slot ignores a recent member that is not on the bar", "[ToolbarLayout]")
+{
+    const auto slots = compute_gizmo_bar_slots({"seam", "fdm_supports"}, {{"P", {"seam", "fdm_supports", "fuzzy_skin"}}}, "", {"fuzzy_skin"});
+    CHECK(slots[0].shown == "seam");
+}
+
+TEST_CASE("Gizmo bar slot lookup maps a grouped member to the group slot", "[ToolbarLayout]")
+{
+    const auto slots = compute_gizmo_bar_slots({"move", "seam", "fdm_supports"}, {{"P", {"seam", "fdm_supports"}}}, "", {});
+    CHECK(bar_slot_shown_for(slots, "fdm_supports") == "seam");
+    CHECK(bar_slot_shown_for(slots, "move") == "move");
+    CHECK(bar_slot_shown_for(slots, "cut").empty());
+}
+
+TEST_CASE("ToolbarLayout user groups survive a saved groups value that is not an array", "[ToolbarLayout]")
+{
+    ToolbarLayout l = parse_toolbar_layout(R"({"version":1,"groups":"weird"})");
+    REQUIRE(group_gizmos(l, {"seam", "fuzzy_skin"}, "G"));
+    const ToolbarLayout back = parse_toolbar_layout(serialize_toolbar_layout(l));
+    REQUIRE(back.groups.size() == 1);
+    CHECK(back.groups[0].name == "G");
+}
