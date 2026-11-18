@@ -3207,6 +3207,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("sparse_infill_density", "strength_settings_infill#sparse-infill-density");
         optgroup->append_single_option_line("fill_multiline", "strength_settings_infill#fill-multiline");
         optgroup->append_single_option_line("sparse_infill_pattern", "strength_settings_infill#sparse-infill-pattern");
+        optgroup->append_single_option_line("sparse_infill_strategy", "strength_settings_infill#strategy");
         optgroup->append_single_option_line("adaptive_infill_mode", "strength_settings_patterns#adaptive-density");
         optgroup->append_single_option_line("adaptive_infill_interior_density", "strength_settings_patterns#interior-density");
         optgroup->append_single_option_line("adaptive_infill_gradient", "strength_settings_patterns#adaptive-gradient");
@@ -3443,6 +3444,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("internal_solid_filament_id", "multimaterial_settings_filament_for_features#internal-solid-infill");
         optgroup->append_single_option_line("top_surface_filament_id", "multimaterial_settings_filament_for_features#top-surface");
         optgroup->append_single_option_line("bottom_surface_filament_id", "multimaterial_settings_filament_for_features#bottom-surface");
+        optgroup->append_single_option_line("brim_filament_id", "multimaterial_settings_filament_for_features#brim");
         optgroup->append_single_option_line("wipe_tower_filament", "multimaterial_settings_filament_for_features#wipe-tower");
 
         optgroup = page->new_optgroup(L("Ooze prevention"), L"param_ooze_prevention");
