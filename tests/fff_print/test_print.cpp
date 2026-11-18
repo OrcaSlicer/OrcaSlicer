@@ -75,6 +75,7 @@
 #include "libslic3r/SurfaceCollection.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Geometry.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Test;
@@ -3596,6 +3597,55 @@ std::string layer_extrusions(const PrintObject &object)
     return out.str();
 }
 
+// The project of an Assembly crash report: one object of a 27 mm cube and a cylinder of the same size lying along X,
+// in an instance scaled 2x along X, on the bed.
+ModelObject *add_cube_and_lying_cylinder(Model &model)
+{
+    ModelObject *object = model.add_object();
+    object->add_volume(cube(27.))->set_offset(Vec3d(0., 18., 0.));
+    ModelVolume *cylinder = object->add_volume(make_cylinder(13.5, 27.));
+    cylinder->set_rotation(Vec3d(0., 0.5 * PI, 0.));
+    cylinder->set_offset(Vec3d(0., -18., 0.));
+    ModelInstance *instance = object->add_instance();
+    instance->set_scaling_factor(Vec3d(2., 1., 1.));
+    instance->set_offset(Vec3d(100., 100., 13.5));
+    return object;
+}
+
+// The Assembly tool's Parallel with the cube's top face picked first and an end face of the cylinder second, which
+// GLGizmoMeasure::set_to_parallel() does by turning the cylinder until that end face points down.
+// - Turning its whole world transformation about its origin, as set_to_parallel() does now, keeps the cylinder round
+//   and 54 mm long. It stands about its centre, 13.5 mm above the bed, so 13.5 mm of it goes below the bed.
+// - Setting its rotation only, as the crash build's set_to_parallel() did, lets the instance's scaling stretch it
+//   along X instead: it stands 27 mm tall on the bed, an ellipse twice as wide as it is deep.
+void turn_cylinder_end_face_down(ModelObject &object, const Vec3d &end_face_normal, bool whole_transformation)
+{
+    ModelVolume      &cylinder = *object.volumes.back();
+    const Transform3d instance = object.instances.front()->get_matrix();
+    Transform3d       world    = instance * cylinder.get_matrix();
+    Vec3d             axis;
+    double            angle;
+    Matrix3d          rotation;
+    Geometry::rotation_from_two_vectors(end_face_normal, -Vec3d::UnitZ(), axis, angle, &rotation);
+    if (whole_transformation) {
+        world.linear() = rotation * world.linear().eval();
+        cylinder.set_transformation(instance.inverse() * world);
+    } else {
+        const Transform3d turned            = Transform3d(rotation) * Geometry::Transformation(world).get_rotation_matrix();
+        const Transform3d instance_rotation = object.instances.front()->get_transformation().get_rotation_matrix();
+        cylinder.set_rotation(Geometry::extract_euler_angles(instance_rotation.inverse() * turned));
+    }
+    object.invalidate_bounding_box();
+}
+
+// The area of the islands of the lowest layer at or above z, in mm².
+double island_area_at(const PrintObject &object, double z)
+{
+    const auto it = std::find_if(object.layers().begin(), object.layers().end(), [z](const Layer *layer) { return layer->print_z >= z; });
+    REQUIRE(it != object.layers().end());
+    return area((*it)->lslices) * SCALING_FACTOR * SCALING_FACTOR;
+}
+
 // One tray of the device AMS inventory, with the keys build_filament_ams_list() puts in the payload.
 DynamicPrintConfig loaded_filament_tray(const std::string &colour, const std::string &type, const std::string &tray_name)
 {
@@ -3765,6 +3815,56 @@ TEST_CASE("Slicing copies of one object at different scales gives each copy the 
         }));
         CHECK(layer_extrusions(**copy) == layer_extrusions(*alone.objects().front()));
     }
+}
+
+TEST_CASE("Slicing after the Assembly tool's Parallel turns a part of a scaled object gives the toolpaths of a fresh slice", "[Print]")
+{
+    // The steps of a crash report: Parallel turns the cylinder, and the GUI applies and validates the changed model.
+    // The GUI processes the print only while the Preview is open, so it may have been processed before or not. The
+    // crash build set the cylinder's rotation only, and either end face can be the one picked.
+    const bool   whole_transformation = GENERATE(false, true);
+    const double end_face             = GENERATE(1., -1.);
+    const bool   processed_before     = GENERATE(false, true);
+    INFO((whole_transformation ? "whole transformation" : "rotation only") << ", end face normal " << end_face << " * X, "
+         << (processed_before ? "processed" : "not processed") << " before");
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "layer_height",               "0.2" },
+        { "initial_layer_print_height", "0.2" },
+        // validate() wants the extruder position reset at each layer for the default relative extrusion.
+        { "layer_change_gcode",         "G92 E0" },
+    });
+    Model        model;
+    ModelObject *object = add_cube_and_lying_cylinder(model);
+    Print        print;
+    print.apply(model, config);
+    REQUIRE_THAT(print.validate().string, Catch::Matchers::Equals(std::string()));
+    if (processed_before)
+        Test::gcode(print);
+
+    turn_cylinder_end_face_down(*object, end_face * Vec3d::UnitX(), whole_transformation);
+    print.apply(model, config);
+    CHECK_THAT(print.validate().string, Catch::Matchers::Equals(std::string()));
+    const std::string sliced = toolpaths(Test::gcode(print));
+
+    // Only what is above the bed prints. Up to the cube's top at 27 mm, that is its 54 x 27 mm and the cylinder's
+    // cross-section: the round cylinder's circle of radius 13.5 mm, alone above the cube up to 40.5 mm, or the stretched
+    // cylinder's ellipse, twice as wide, which ends at 27 mm.
+    REQUIRE(print.objects().size() == 1);
+    const PrintObject &print_object = *print.objects().front();
+    REQUIRE(! print_object.layers().empty());
+    const double cylinder_area = whole_transformation ? PI * 13.5 * 13.5 : PI * 27. * 13.5;
+    CHECK_THAT(print_object.layers().back()->print_z, Catch::Matchers::WithinAbs(whole_transformation ? 40.5 : 27., 0.2));
+    CHECK_THAT(island_area_at(print_object, 13.5), Catch::Matchers::WithinRel(54. * 27. + cylinder_area, 0.01));
+    if (whole_transformation)
+        CHECK_THAT(island_area_at(print_object, 34.), Catch::Matchers::WithinRel(cylinder_area, 0.01));
+
+    Model fresh_model;
+    turn_cylinder_end_face_down(*add_cube_and_lying_cylinder(fresh_model), end_face * Vec3d::UnitX(), whole_transformation);
+    Print fresh;
+    fresh.apply(fresh_model, config);
+    REQUIRE(! sliced.empty());
+    CHECK(sliced == toolpaths(Test::gcode(fresh)));
 }
 
 // The AMS inventory is device state that only feeds filament grouping. A changed inventory has to
