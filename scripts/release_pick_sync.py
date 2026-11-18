@@ -151,39 +151,45 @@ def run(gh, repo_dir, owner, number, repo, apply, out, discord=None, post_id=Non
     unmatched = [pick for pick, number in resolved if number is None or number not in tracked]
 
     lines = _report(changes, needs_attention(project.items), reverted, unmatched)
-    payload = None
-    if discord:
-        now = now or datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
-        payload = _discord_payload(project, labelled, changes, reverted, unmatched, milestones, owner, number,
-                                   repo, now)
+    now = now or datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+
+    def payload():
+        return _discord_payload(project, labelled, changes, reverted, unmatched, milestones, owner, number, repo,
+                                now)
+
     if apply:
         applied, error = _apply(gh, project, changes)
         if error:
             lines += ["", f"Failed: {error}"]
         lines += ["", f"Applied {applied} of {len(changes)} changes."]
         code = 1 if error else 0
-        if payload and not error:
-            # Discord is a view of the project: a failure there is a warning, never a failed sync.
+        if discord and not error:
+            # Discord is a view of the project: any failure there is a warning, never a failed sync. Errors
+            # from Discord itself never carry the webhook URL.
             try:
                 if post_id:
-                    discord.edit_post(post_id, payload)
+                    discord.edit_post(post_id, payload())
                     lines.append("Updated the Discord status post.")
                 elif allow_create:
-                    new_id = discord.create_post(DISCORD_POST_TITLE, payload)
+                    new_id = discord.create_post(DISCORD_POST_TITLE, payload())
                     lines.append(f"Created the Discord status post. Set the repository variable "
                                  f"RELEASE_STATUS_MESSAGE_ID to {new_id} so later runs edit it.")
                 else:
                     lines.append("::notice::No RELEASE_STATUS_MESSAGE_ID yet: run the workflow by hand once to "
                                  "create the Discord status post.")
-            except DiscordError as discord_error:
+            except Exception as discord_error:  # noqa: BLE001
                 lines.append(f"::warning::Discord update failed: {discord_error}")
     else:
         lines += ["", "Dry run: no changes applied."]
         code = 0
-        if payload:
-            lines += ["", "## Discord post (preview, not sent)"]
-            for embed in payload["embeds"]:
-                lines += ["", f"### {embed['title']}", embed["description"]]
+        if discord:
+            try:
+                embeds = payload()["embeds"]
+                lines += ["", "## Discord post (preview, not sent)"]
+                for embed in embeds:
+                    lines += ["", f"### {embed['title']}", embed["description"]]
+            except Exception as discord_error:  # noqa: BLE001
+                lines.append(f"::warning::Discord preview failed: {discord_error}")
     print("\n".join(lines), file=out)
     return code
 
@@ -219,8 +225,11 @@ def main():
                allow_create=os.environ.get("GITHUB_EVENT_NAME", "workflow_dispatch") == "workflow_dispatch")
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary:
+        # Workflow commands only mean something in the log; the summary page shows plain words.
+        text = re.sub(r"(?m)^::warning::", "Warning: ", "".join(out.parts))
+        text = re.sub(r"(?m)^::notice::", "Note: ", text)
         with open(summary, "a", encoding="utf-8") as f:
-            f.write("".join(out.parts))
+            f.write(text)
     return code
 
 

@@ -13,7 +13,8 @@
 # Optional Discord status post: the secret RELEASE_STATUS_DISCORD_WEBHOOK, a webhook on a forum channel
 # that allows posts without tags. Run the workflow by hand once with RELEASE_PICK_APPLY on: it creates the
 # post and prints its id. Put that id in the repository variable RELEASE_STATUS_MESSAGE_ID and pin the
-# post; later runs edit it in place. Scheduled and event runs never create a post. The post never
+# post; later runs edit it in place. Each manual run before the variable is set makes another post, so
+# delete any extra ones. Scheduled and event runs never create a post. The post never
 # mentions anyone, and a Discord failure (an archived post, an outage) is a warning in the run summary.
 #
 # pull_request_target gives this workflow secrets on pull requests from forks, so it must never check

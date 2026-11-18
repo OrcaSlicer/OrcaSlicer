@@ -10,10 +10,11 @@ import re
 from release_pick_github import _urllib_transport
 from release_pick_rules import STATUSES, parse_version
 
-# Discord limits: 4096 characters per embed description, 6000 for the whole message (a margin is kept
-# for the footer and timestamp), 10 embeds, 256 per embed title.
+# Discord limits: 4096 characters per embed description, 6000 for the whole message, 10 embeds, 256 per
+# embed title. Lengths here are code points; the margin below 6000 covers the timestamp and a few
+# characters that count double in UTF-16, not a message made mostly of emoji.
 _DESCRIPTION_LIMIT = 4096
-_MESSAGE_LIMIT = 5900
+_MESSAGE_LIMIT = 5800
 _MAX_EMBEDS = 10
 _NAME_LENGTH = 100
 _TITLE_LENGTH = 100
@@ -118,7 +119,7 @@ def build_message(items, attention, unmatched, open_milestones, project_url, rep
         if milestone is None or milestone in shown:
             notes.setdefault(milestone, []).append((number, kind, reason))
     keys = set(releases) | set(notes) | {m for m in unmatched if m in shown}
-    versions = sorted((m for m in keys if m is not None), key=lambda m: parse_version(m) or ())
+    versions = sorted((m for m in keys if m is not None), key=parse_version)
     slots = _MAX_EMBEDS - (1 if None in keys else 0)
     order = versions[-slots:] + ([None] if None in keys else [])
 

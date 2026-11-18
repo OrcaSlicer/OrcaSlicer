@@ -104,6 +104,20 @@ class MainTest(unittest.TestCase):
                 sync.main()
             self.assertEqual(run.call_args.kwargs["allow_create"], allowed, event)
 
+    def test_summary_drops_workflow_command_prefixes(self):
+        import tempfile
+        with tempfile.NamedTemporaryFile("r", suffix=".md") as summary:
+            def fake_run(*args, **kwargs):
+                print("::warning::Discord update failed: HTTP 500", file=args[6])
+                return 0
+            env = {"RELEASE_PROJECT_TOKEN": "t", "GITHUB_STEP_SUMMARY": summary.name}
+            with mock.patch.dict(os.environ, env, clear=True), mock.patch.object(sync, "run", fake_run), \
+                    mock.patch.object(sys, "stdout", io.StringIO()) as stdout, \
+                    mock.patch.object(sys, "argv", ["sync", "--owner", "o", "--project", "1", "--repo", "o/r"]):
+                sync.main()
+            self.assertIn("::warning::Discord update failed", stdout.getvalue())
+            self.assertEqual(summary.read().strip(), "Warning: Discord update failed: HTTP 500")
+
     def test_no_webhook_means_no_discord(self):
         with mock.patch.dict(os.environ, {"RELEASE_PROJECT_TOKEN": "t"}, clear=True), \
                 mock.patch.object(sync, "run", return_value=0) as run, \
@@ -167,6 +181,20 @@ class RunTest(unittest.TestCase):
         code, out = self.run_sync(FakeGitHub([], []), apply=True, discord=discord, allow_create=False)
         self.assertEqual((code, discord.calls), (0, []))
         self.assertIn("run the workflow by hand once", out)
+
+    def test_a_crash_building_the_post_never_blocks_the_sync(self):
+        gh = FakeGitHub([item(2, labelled=False, status="Proposed", item_id="P2")], [])
+        with mock.patch.object(sync, "build_message", side_effect=RuntimeError("boom")):
+            code, out = self.run_sync(gh, apply=True, discord=FakeDiscord(), post_id="999")
+        self.assertEqual(code, 0)
+        self.assertEqual([c[0] for c in gh.calls], ["archive_item"])
+        self.assertIn("::warning::Discord update failed", out)
+
+    def test_a_crash_building_the_preview_is_a_warning(self):
+        with mock.patch.object(sync, "build_message", side_effect=RuntimeError("boom")):
+            code, out = self.run_sync(FakeGitHub([], []), discord=FakeDiscord(), post_id="999")
+        self.assertEqual(code, 0)
+        self.assertIn("::warning::Discord preview failed: boom", out)
 
     def test_discord_failure_is_a_warning(self):
         code, out = self.run_sync(FakeGitHub([], []), apply=True, discord=FakeDiscord(fail=True), post_id="999")

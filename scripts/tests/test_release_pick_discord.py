@@ -123,7 +123,7 @@ class BuildMessageTest(unittest.TestCase):
                 attention.append((milestone, number, "PullRequest", "closed without a merge " * 3))
             unmatched[milestone] = [(f"rc/v{milestone}", "abcdef123 " + "subject " * 30)] * 20
         message = build(items, attention, unmatched, milestones)
-        self.assertLessEqual(total(message), 6000)
+        self.assertLessEqual(total(message), 5800)  # margin for clients counting UTF-16 units
         for embed in message["embeds"]:
             self.assertLessEqual(len(embed["description"]), 4096)
             for line in embed["description"].split("\n"):
