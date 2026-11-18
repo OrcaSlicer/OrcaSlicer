@@ -865,7 +865,7 @@ void ObjectList::update_filament_values_for_items_when_delete_filament(const siz
                         else {
                             int new_value = object->volumes[id]->config.opt_int(key) > filament_id ? object->volumes[id]->config.opt_int(key) - 1 :
                                                                                                      object->volumes[id]->config.opt_int(key);
-                            object->config.set_key_value(key, new ConfigOptionInt(new_value));
+                            object->volumes[id]->config.set_key_value(key, new ConfigOptionInt(new_value));
                         }
                     }
                 }
@@ -875,6 +875,7 @@ void ObjectList::update_filament_values_for_items_when_delete_filament(const siz
                 }
                 else if (size_t(object->volumes[id]->config.extruder()) == filament_id + 1) {
                     object->volumes[id]->config.set_key_value("extruder", new ConfigOptionInt(replace_filament_id));
+                    extruder = std::to_string(replace_filament_id);
                 } else {
                     int new_extruder = object->volumes[id]->config.extruder() > filament_id ? object->volumes[id]->config.extruder() - 1 : object->volumes[id]->config.extruder();
                     extruder = wxString::Format("%d", new_extruder);
