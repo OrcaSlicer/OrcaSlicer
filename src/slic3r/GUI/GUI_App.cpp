@@ -5295,7 +5295,7 @@ void GUI_App::load_project(wxWindow *parent, wxString& input_file) const
     input_file.Clear();
     wxFileDialog dialog(parent ? parent : GetTopWindow(),
         _L("Choose one file (3MF):"),
-        app_config->get_last_dir(), "",
+        from_u8(app_config->get_last_dir()), "",
         file_wildcards(FT_PROJECT), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 
     if (dialog.ShowModal() == wxID_OK)
@@ -5334,7 +5334,7 @@ void GUI_App::load_gcode(wxWindow* parent, wxString& input_file) const
     input_file.Clear();
     wxFileDialog dialog(parent ? parent : GetTopWindow(),
         _L("Choose one file (GCODE/3MF):"),
-        app_config->get_last_dir(), "",
+        from_u8(app_config->get_last_dir()), "",
         file_wildcards(FT_GCODE), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 
     if (dialog.ShowModal() == wxID_OK)
