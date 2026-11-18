@@ -193,6 +193,38 @@ TEST_CASE("Combine brims merges touching brims", "[SkirtBrim]")
     }
 }
 
+TEST_CASE("Combine brims keeps brims of different chosen filaments apart", "[SkirtBrim]")
+{
+    auto [first_filament, second_filament, expected_brims] = GENERATE(table<int, int, int>({
+        { 1, 2, 2 },   // different chosen filaments -> separate
+        { 2, 2, 1 },   // same chosen filament -> merged
+        { 0, 2, 2 },   // default and chosen -> separate
+    }));
+    DYNAMIC_SECTION("brim filaments " << first_filament << " and " << second_filament) {
+        TriangleMesh a = cube(20);
+        a.translate(80, 80, 0);
+        TriangleMesh b = cube(20);
+        b.translate(80 + 20 + 5, 80, 0); // 5 mm apart, so the 5 mm brims touch
+        std::vector<TriangleMesh> meshes;
+        meshes.push_back(std::move(a));
+        meshes.push_back(std::move(b));
+        const std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> overrides {
+            { { "brim_filament_id", first_filament } },
+            { { "brim_filament_id", second_filament } },
+        };
+        Print print;
+        Model model;
+        init_print(std::move(meshes), print, model, multifilament_config(2, {
+            { "skirt_loops",   0 },
+            { "brim_type",     "outer_only" },
+            { "brim_width",    5 },
+            { "combine_brims", 1 },
+        }), &overrides, /*arrange=*/false);
+        print.process();
+        CHECK(brim_count(print) == expected_brims);
+    }
+}
+
 TEST_CASE("Object brims are generated per instance", "[SkirtBrim]")
 {
     Print print;
