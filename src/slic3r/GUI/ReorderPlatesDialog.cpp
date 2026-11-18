@@ -21,6 +21,7 @@
 #include <wx/grid.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/toplevel.h>
 
 namespace Slic3r { namespace GUI {
