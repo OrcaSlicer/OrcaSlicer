@@ -9288,6 +9288,9 @@ public:
     void set_post_callback(std::function<void(int)> c) {
         boost::lock_guard lock(m_mutex);
         m_post_callback = c;
+        // Tasks queued while there was no callback were never announced.
+        if (m_post_callback && !m_ui_tasks.empty())
+            m_post_callback(0);
     }
 
     void run_ui_tasks() {
