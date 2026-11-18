@@ -14,6 +14,7 @@ from release_pick_rules import parse_version
 
 _TRAILING_NUMBER = re.compile(r"\(#(\d+)\)\s*$")
 _REVERT = re.compile(r'^Revert "(.*)"')
+_REVERTED_SHA = re.compile(r"This reverts commit ([0-9a-f]{7,40})")
 _VERSION_BUMP = re.compile(r"^set the version to ", re.IGNORECASE)
 
 
@@ -70,18 +71,45 @@ def branch_base(repo_dir, milestone, branch):
 
 
 def branch_picks(repo_dir, base, branch):
-    """(picks, reverted): the commits on the branch since base, without merges and version bumps, and
-    the picks whose pull request a later revert on the same branch undid."""
-    log = _git(repo_dir, "log", "--no-merges", "--format=%H%x1f%s", f"{base}..origin/{branch}")
-    commits = [line.split("\x1f", 1) for line in log.splitlines() if line]
-    undone = {n for _, subject in commits if (n := reverted_number(subject)) is not None}
+    """(picks, reverted), newest first: the commits on the branch since base, without merges and version
+    bumps, and the picks a later revert on the same branch undid. A revert undoes the commit its message
+    names ("This reverts commit ..."), or else the latest pick of the pull request in its subject, so a
+    pull request picked again after a revert counts as picked. Reverting that revert restores the pick."""
+    log = _git(repo_dir, "log", "--reverse", "--no-merges", "--format=%H%x1f%s%x1f%b%x1e",
+               f"{base}..origin/{branch}")
     picks, reverted = [], []
-    for sha, subject in commits:
-        if _REVERT.match(subject) or _VERSION_BUMP.match(subject):
+    undid = {}  # revert sha -> the pick it undid
+    redid = {}  # sha of a commit reverting such a revert -> the pick it restored
+    for record in log.split("\x1e"):
+        if not record.strip():
             continue
-        pick = Pick(sha, subject, pr_number_from_subject(subject), branch)
-        (reverted if pick.pr in undone else picks).append(pick)
-    return picks, reverted
+        sha, subject, body = record.strip("\n").split("\x1f", 2)
+        if _VERSION_BUMP.match(subject):
+            continue
+        target = _REVERTED_SHA.search(body)
+        # Reverting a revert ('Revert "Revert ..."', or 'Reapply "..."' since git 2.43) restores the pick.
+        restored = next((s for s, p in undid.items() if target and s.startswith(target.group(1)) and p in reverted),
+                        None)
+        if restored:
+            pick = undid.pop(restored)
+            reverted.remove(pick)
+            picks.append(pick)
+            redid[sha] = pick
+            continue
+        if _REVERT.match(subject):
+            number = reverted_number(subject)
+            undone = next((p for s, p in redid.items() if target and s.startswith(target.group(1)) and p in picks),
+                          None)
+            undone = undone or next((p for p in reversed(picks) if target and p.sha.startswith(target.group(1))),
+                                    None)
+            undone = undone or next((p for p in reversed(picks) if number is not None and p.pr == number), None)
+            if undone:
+                picks.remove(undone)
+                reverted.append(undone)
+                undid[sha] = undone
+            continue
+        picks.append(Pick(sha, subject, pr_number_from_subject(subject), branch))
+    return picks[::-1], reverted[::-1]
 
 
 def _patch_id(repo_dir, sha):

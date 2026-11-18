@@ -52,6 +52,10 @@ class ScratchRepoTest(unittest.TestCase):
         git(self.work, "commit", "-qm", subject)
         return git(self.work, "rev-parse", "HEAD")
 
+    def push_rc(self):
+        git(self.work, "push", "-q", "origin", "rc/v1.0.1")
+        git(self.work, "fetch", "-q", "origin")
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
@@ -109,16 +113,95 @@ class ScratchRepoTest(unittest.TestCase):
                          {("Fix A for the release", None)})
         self.assertEqual(reverted, [])
         self.assertTrue(all(p.branch == "rc/v1.0.1" for p in picks))
+        newest_first = git(self.work, "log", "--no-merges", "--format=%H", "v1.0.0..origin/rc/v1.0.1").split()
+        bump = git(self.work, "log", "--format=%H", "--grep=^Set the version", "-n1", "origin/rc/v1.0.1")
+        self.assertEqual([p.sha for p in picks], [s for s in newest_first if s != bump])
 
     def test_reverted_pick_is_not_picked(self):
         git(self.work, "checkout", "-q", "rc/v1.0.1")
         fix_b_pick = git(self.work, "log", "--format=%H", "--grep=^Fix B", "-n1")
         git(self.work, "revert", "--no-edit", fix_b_pick)
-        git(self.work, "push", "-q", "origin", "rc/v1.0.1")
-        git(self.work, "fetch", "-q", "origin")
+        self.push_rc()
         picks, reverted = branch_picks(self.work, "v1.0.0", "rc/v1.0.1")
         self.assertNotIn(6, [p.pr for p in picks])
         self.assertEqual([p.pr for p in reverted], [6])
+
+    def test_reverted_reworded_pick_is_matched_by_commit(self):
+        git(self.work, "checkout", "-q", "rc/v1.0.1")
+        reworded = git(self.work, "log", "--format=%H", "--grep=^Fix A for the release", "-n1")
+        git(self.work, "revert", "--no-edit", reworded)
+        self.push_rc()
+        picks, reverted = branch_picks(self.work, "v1.0.0", "rc/v1.0.1")
+        self.assertNotIn(reworded, [p.sha for p in picks])
+        self.assertEqual([p.sha for p in reverted], [reworded])
+
+    def test_pick_again_after_revert_counts_as_picked(self):
+        git(self.work, "checkout", "-q", "rc/v1.0.1")
+        fix_b_pick = git(self.work, "log", "--format=%H", "--grep=^Fix B", "-n1")
+        git(self.work, "revert", "--no-edit", fix_b_pick)
+        git(self.work, "cherry-pick", self.fix_b)
+        self.push_rc()
+        picks, reverted = branch_picks(self.work, "v1.0.0", "rc/v1.0.1")
+        self.assertEqual([p.sha for p in reverted], [fix_b_pick])
+        self.assertIn(6, [p.pr for p in picks])
+
+    def test_revert_without_commit_line_is_matched_by_number(self):
+        git(self.work, "checkout", "-q", "rc/v1.0.1")
+        fix_b_pick = git(self.work, "log", "--format=%H", "--grep=^Fix B", "-n1")
+        git(self.work, "revert", "--no-commit", fix_b_pick)
+        git(self.work, "commit", "-qm", 'Revert "Fix B (#6)"')
+        self.push_rc()
+        picks, reverted = branch_picks(self.work, "v1.0.0", "rc/v1.0.1")
+        self.assertEqual([p.sha for p in reverted], [fix_b_pick])
+        self.assertNotIn(6, [p.pr for p in picks])
+
+    def test_reverting_the_revert_restores_the_pick(self):
+        git(self.work, "checkout", "-q", "rc/v1.0.1")
+        fix_b_pick = git(self.work, "log", "--format=%H", "--grep=^Fix B", "-n1")
+        git(self.work, "revert", "--no-edit", fix_b_pick)
+        git(self.work, "revert", "--no-edit", "HEAD")
+        self.push_rc()
+        picks, reverted = branch_picks(self.work, "v1.0.0", "rc/v1.0.1")
+        self.assertEqual(reverted, [])
+        self.assertIn(fix_b_pick, [p.sha for p in picks])
+
+    def test_reverting_the_reapply_reverts_the_pick_again(self):
+        git(self.work, "checkout", "-q", "rc/v1.0.1")
+        fix_b_pick = git(self.work, "log", "--format=%H", "--grep=^Fix B", "-n1")
+        git(self.work, "revert", "--no-edit", fix_b_pick)
+        git(self.work, "revert", "--no-edit", "HEAD")
+        git(self.work, "revert", "--no-edit", "HEAD")
+        self.push_rc()
+        picks, reverted = branch_picks(self.work, "v1.0.0", "rc/v1.0.1")
+        self.assertEqual([p.sha for p in reverted], [fix_b_pick])
+        self.assertNotIn(fix_b_pick, [p.sha for p in picks])
+
+    def test_revert_of_a_reapply_already_undone_by_number_is_ignored(self):
+        git(self.work, "checkout", "-q", "rc/v1.0.1")
+        fix_b_pick = git(self.work, "log", "--format=%H", "--grep=^Fix B", "-n1")
+        git(self.work, "revert", "--no-edit", fix_b_pick)
+        git(self.work, "revert", "--no-edit", "HEAD")
+        reapply = git(self.work, "rev-parse", "HEAD")
+        git(self.work, "revert", "--no-commit", reapply)
+        git(self.work, "commit", "-qm", 'Revert "Fix B (#6)"')
+        # The change is already gone, so the revert of the reapply is empty; only its message matters here.
+        git(self.work, "commit", "-q", "--allow-empty", "-m", 'Revert "Reapply "Fix B (#6)""',
+            "-m", f"This reverts commit {reapply}.")
+        self.push_rc()
+        picks, reverted = branch_picks(self.work, "v1.0.0", "rc/v1.0.1")
+        self.assertEqual([p.sha for p in reverted], [fix_b_pick])
+        self.assertNotIn(6, [p.pr for p in picks])
+
+    def test_reverted_picks_are_newest_first(self):
+        git(self.work, "checkout", "-q", "rc/v1.0.1")
+        picks, _ = branch_picks(self.work, "v1.0.0", "rc/v1.0.1")
+        fix_b_pick = next(p.sha for p in picks if p.pr == 6)
+        reworded = next(p.sha for p in picks if p.subject == "Fix A for the release")
+        git(self.work, "revert", "--no-edit", reworded)
+        git(self.work, "revert", "--no-edit", fix_b_pick)
+        self.push_rc()
+        _, reverted = branch_picks(self.work, "v1.0.0", "rc/v1.0.1")
+        self.assertEqual([p.sha for p in reverted], [fix_b_pick, reworded])
 
     def test_patch_id_matches_reworded_cherry_pick(self):
         picks, _ = branch_picks(self.work, "v1.0.0", "rc/v1.0.1")

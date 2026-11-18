@@ -51,16 +51,18 @@ query($owner: String!, $name: String!, $labels: [String!], $after: String) {
 }"""
 
 _MILESTONES_QUERY = """
-query($owner: String!, $name: String!) {
-  repository(owner: $owner, name: $name) { milestones(first: 100, states: OPEN) { nodes { title } } }
+query($owner: String!, $name: String!, $after: String) {
+  repository(owner: $owner, name: $name) {
+    milestones(first: 100, after: $after, states: OPEN) { pageInfo { hasNextPage endCursor } nodes { title } }
+  }
 }"""
 
 _ADD = """mutation($project: ID!, $content: ID!) {
   addProjectV2ItemById(input: {projectId: $project, contentId: $content}) { item { id } }
 }"""
 
-_REMOVE = """mutation($project: ID!, $item: ID!) {
-  deleteProjectV2Item(input: {projectId: $project, itemId: $item}) { deletedItemId }
+_ARCHIVE = """mutation($project: ID!, $item: ID!) {
+  archiveProjectV2Item(input: {projectId: $project, itemId: $item}) { item { id } }
 }"""
 
 _SET_STATUS = """mutation($project: ID!, $item: ID!, $field: ID!, $option: String!) {
@@ -189,8 +191,8 @@ class GitHub:
 
     def open_milestones(self, repo):
         owner, name = repo.split("/")
-        nodes = self.graphql(_MILESTONES_QUERY, {"owner": owner, "name": name})["repository"]["milestones"]["nodes"]
-        return [n["title"] for n in nodes if parse_version(n["title"])]
+        pages = self._pages(_MILESTONES_QUERY, {"owner": owner, "name": name}, ("repository", "milestones"))
+        return [n["title"] for page in pages for n in page["nodes"] if parse_version(n["title"])]
 
     def prs_for_commit(self, repo, sha):
         pulls = self._request("GET", f"{API}/repos/{repo}/commits/{sha}/pulls")
@@ -200,8 +202,8 @@ class GitHub:
         data = self.graphql(_ADD, {"project": project_id, "content": content_id})
         return data["addProjectV2ItemById"]["item"]["id"]
 
-    def remove_item(self, project_id, item_id):
-        self.graphql(_REMOVE, {"project": project_id, "item": item_id})
+    def archive_item(self, project_id, item_id):
+        self.graphql(_ARCHIVE, {"project": project_id, "item": item_id})
 
     def set_status(self, project_id, item_id, field_id, option_id):
         self.graphql(_SET_STATUS, {"project": project_id, "item": item_id, "field": field_id, "option": option_id})

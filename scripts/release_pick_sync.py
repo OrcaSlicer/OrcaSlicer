@@ -12,8 +12,10 @@ The clone needs origin/main, origin/rc/*, origin/release/* and the release tags.
 
 import argparse
 import os
+import re
 import subprocess
 import sys
+from dataclasses import replace
 
 from release_pick_git import branch_base, branch_picks, patch_id_matches, release_branches, remote_branches
 from release_pick_github import GitHub, GitHubError
@@ -30,16 +32,23 @@ def collect_picks(gh, repo_dir, repo, milestones):
     for milestone in milestones:
         for branch in release_branches(milestone, branches):
             found, undone = branch_picks(repo_dir, branch_base(repo_dir, milestone, branch), branch)
-            reverted.extend(undone)
-            matches = patch_id_matches(repo_dir, found)
-            for pick in found:
-                number = pick.pr
-                if number is None and pick.sha in matches:
+            matches = patch_id_matches(repo_dir, found + undone)
+
+            def number_of(pick):
+                if pick.pr is None and pick.sha in matches:
                     prs = gh.prs_for_commit(repo, matches[pick.sha])
-                    number = prs[0] if prs else None
+                    return prs[0] if prs else None
+                return pick.pr
+
+            for pick in found:
+                number = number_of(pick)
                 resolved.append((pick, number))
                 if number is not None:
                     picks.setdefault(milestone, {}).setdefault(number, branch)
+            # A reverted pick with no pull request found cancels out on the branch; there is nothing to report.
+            reverted += [replace(pick, pr=number) for pick in undone if (number := number_of(pick)) is not None]
+    # A pull request picked again after its revert is on the release; the revert needs no attention.
+    reverted = [p for p in reverted if p.pr not in picks.get(_release_of(p.branch), {})]
     return picks, resolved, reverted
 
 
@@ -57,14 +66,19 @@ def _short(pick):
     return f"{pick.sha[:9]} {pick.subject}"
 
 
+def _release_of(branch):
+    match = re.search(r"v(\d+\.\d+\.\d+)$", branch)
+    return match.group(1) if match else None
+
+
 def _report(changes, attention, reverted, unmatched):
     lines = ["## Planned changes"]
     new_status = {c.number: c.status for c in changes if c.action == "set_status" and c.item_id is None}
     for change in changes:
         if change.action == "add":
             lines.append(f"- #{change.number}: added as {new_status.get(change.number, 'no status')}")
-        elif change.action == "remove":
-            lines.append(f"- #{change.number}: removed ({change.reason})")
+        elif change.action == "archive":
+            lines.append(f"- #{change.number}: archived ({change.reason})")
         elif change.item_id is not None:
             lines.append(f"- #{change.number}: {change.old_status or 'no status'} → {change.status} ({change.reason})")
     if not changes:
@@ -92,8 +106,8 @@ def _apply(gh, project, changes):
         try:
             if change.action == "add":
                 new_ids[change.number] = gh.add_item(project.id, change.content_id)
-            elif change.action == "remove":
-                gh.remove_item(project.id, change.item_id)
+            elif change.action == "archive":
+                gh.archive_item(project.id, change.item_id)
             else:
                 item_id = change.item_id or new_ids[change.number]
                 gh.set_status(project.id, item_id, project.status_field_id, project.status_options[change.status])
@@ -113,7 +127,8 @@ def run(gh, repo_dir, owner, number, repo, apply, out):
         print(f"Reading failed, nothing changed: {detail}", file=out)
         return 1
 
-    changes = plan_changes(project.items, labelled, picks, milestones)
+    reverted_prs = {(_release_of(p.branch), p.pr) for p in reverted}
+    changes = plan_changes(project.items, labelled, picks, milestones, reverted_prs)
     tracked = _tracked_prs(project.items + labelled)
     unmatched = [pick for pick, number in resolved if number is None or number not in tracked]
 
@@ -141,7 +156,7 @@ def main():
     args = parser.parse_args()
     token = os.environ.get("RELEASE_PROJECT_TOKEN")
     if not token:
-        # Expected until the secret is added, and on runs that get no secrets: skip instead of failing.
+        # The workflow skips before this until the app is set up; a local run without a token reads nothing.
         print("::notice::RELEASE_PROJECT_TOKEN is not set; skipping the release-pick sync.")
         return 0
 

@@ -62,12 +62,12 @@ class PlanChangesTest(unittest.TestCase):
         old = pr(3, state="MERGED", milestone="2.5.1", milestone_open=False)
         self.assertEqual(plan_changes([], [old], {}, OPEN), [])
 
-    def test_unlabelled_item_is_removed_even_on_closed_milestone(self):
+    def test_unlabelled_item_is_archived_even_on_closed_milestone(self):
         open_one = in_project(issue(4, labelled=False, milestone=None, milestone_open=False), "Proposed")
         old_one = in_project(pr(5, state="MERGED", labelled=False, milestone="2.5.1", milestone_open=False),
                              "Ready to pick")
         changes = plan_changes([open_one, old_one], [], {}, OPEN)
-        self.assertEqual(summary(changes), [("remove", 4, None), ("remove", 5, None)])
+        self.assertEqual(summary(changes), [("archive", 4, None), ("archive", 5, None)])
         self.assertEqual(changes[0].item_id, "PVTI_4")
 
     def test_picked_item_without_label_is_kept(self):
@@ -93,6 +93,34 @@ class PlanChangesTest(unittest.TestCase):
         changes = plan_changes([item], [], {"2.5.2": {15: "rc/v2.5.2"}}, OPEN)
         self.assertEqual(summary(changes), [("set_status", 15, "Picked")])
 
+    def test_reverted_pick_moves_back_from_picked(self):
+        item = in_project(pr(16, state="MERGED"), "Picked")
+        changes = plan_changes([item], [item], {}, OPEN, {("2.5.2", 16)})
+        self.assertEqual(summary(changes), [("set_status", 16, "Ready to pick")])
+        self.assertEqual(changes[0].reason, "pick reverted")
+
+    def test_issue_whose_pr_pick_was_reverted_moves_back(self):
+        item = in_project(issue(17, state="CLOSED", linked_prs=(LinkedPr(18, "MERGED"),)), "Picked")
+        changes = plan_changes([item], [item], {}, OPEN, {("2.5.2", 18)})
+        self.assertEqual(summary(changes), [("set_status", 17, "Ready to pick")])
+
+    def test_revert_on_another_release_leaves_picked_alone(self):
+        item = in_project(pr(19, state="MERGED", milestone="2.5.1", milestone_open=False), "Picked")
+        self.assertEqual(plan_changes([item], [item], {}, OPEN, {("2.5.2", 19)}), [])
+
+    def test_picked_again_after_revert_stays_picked(self):
+        item = in_project(pr(21, state="MERGED"), "Picked")
+        self.assertEqual(plan_changes([item], [item], {"2.5.2": {21: "rc/v2.5.2"}}, OPEN, {("2.5.2", 21)}), [])
+
+    def test_unlabelled_reverted_pick_is_archived(self):
+        item = in_project(pr(22, state="MERGED", labelled=False), "Picked")
+        self.assertEqual(summary(plan_changes([item], [], {}, OPEN, {("2.5.2", 22)})), [("archive", 22, None)])
+
+    def test_revert_does_not_touch_an_item_short_of_picked(self):
+        item = in_project(pr(23, state="MERGED"), "In progress")
+        changes = plan_changes([item], [item], {}, OPEN, {("2.5.2", 23)})
+        self.assertEqual([(c.status, c.reason) for c in changes], [("Ready to pick", "#23 merged")])
+
     def test_status_moves_forward(self):
         item = in_project(pr(11, state="MERGED"), "In progress")
         changes = plan_changes([item], [item], {}, OPEN)
@@ -103,17 +131,17 @@ class PlanChangesTest(unittest.TestCase):
         item = in_project(pr(12, state="MERGED", milestone="2.5.3"), "Ready to pick")
         self.assertEqual(plan_changes([item], [item], {"2.5.2": {12: "rc/v2.5.2"}}, OPEN), [])
 
-    def test_non_version_milestone_is_skipped(self):
+    def test_non_version_milestone_counts_as_open(self):
         item = issue(13, milestone="1.9.0 beta")
         changes = plan_changes([], [item], {}, ["1.9.0 beta", "2.5.2"])
         self.assertEqual(summary(changes), [("add", 13, None), ("set_status", 13, "Proposed")])
 
-    def test_adds_then_removes_then_statuses(self):
+    def test_adds_then_archives_then_statuses(self):
         new = issue(30)
         gone = in_project(issue(20, labelled=False), "Proposed")
         moved = in_project(pr(10, state="MERGED"), "In progress")
         changes = plan_changes([gone, moved], [new, moved], {}, OPEN)
-        self.assertEqual([c.action for c in changes], ["add", "remove", "set_status", "set_status"])
+        self.assertEqual([c.action for c in changes], ["add", "archive", "set_status", "set_status"])
         self.assertEqual([c.number for c in changes[2:]], [10, 30])
 
 

@@ -108,10 +108,14 @@ class ReadTest(unittest.TestCase):
         self.assertEqual(transport.requests[0][2]["variables"]["labels"], ["release-pick"])
         self.assertTrue(all(i.item_id is None for i in items))
 
-    def test_open_milestones_skip_non_versions(self):
-        transport = FakeTransport([(200, {"data": {"repository": {"milestones": {"nodes": [
-            {"title": "2.6.0"}, {"title": "1.9.0 beta"}, {"title": "2.5.2"}]}}}})])
+    def test_open_milestones_skip_non_versions_and_follow_pagination(self):
+        transport = FakeTransport([
+            connection_page("milestones", [{"title": "2.6.0"}, {"title": "1.9.0 beta"}], "c1"),
+            connection_page("milestones", [{"title": "2.5.2"}]),
+        ])
         self.assertEqual(GitHub("t", transport).open_milestones(REPO), ["2.6.0", "2.5.2"])
+        self.assertEqual(transport.requests[1][2]["variables"]["after"], "c1")
+        self.assertIn("after: $after", transport.requests[0][2]["query"])
 
     def test_prs_for_commit_keeps_merged_only(self):
         transport = FakeTransport([(200, [{"number": 7, "merged_at": "2026-11-01T00:00:00Z"},
@@ -126,19 +130,19 @@ class WriteTest(unittest.TestCase):
     def test_mutation_payloads(self):
         transport = FakeTransport([
             (200, {"data": {"addProjectV2ItemById": {"item": {"id": "NEW"}}}}),
-            (200, {"data": {"deleteProjectV2Item": {"deletedItemId": "OLD"}}}),
+            (200, {"data": {"archiveProjectV2Item": {"item": {"id": "OLD"}}}}),
             (200, {"data": {"updateProjectV2ItemFieldValue": {"projectV2Item": {"id": "NEW"}}}}),
         ])
         gh = GitHub("t", transport)
         self.assertEqual(gh.add_item("PVT_1", "I_1"), "NEW")
-        gh.remove_item("PVT_1", "OLD")
+        gh.archive_item("PVT_1", "OLD")
         gh.set_status("PVT_1", "NEW", "FIELD_1", "o4")
         variables = [r[2]["variables"] for r in transport.requests]
         self.assertEqual(variables[0], {"project": "PVT_1", "content": "I_1"})
         self.assertEqual(variables[1], {"project": "PVT_1", "item": "OLD"})
         self.assertEqual(variables[2], {"project": "PVT_1", "item": "NEW", "field": "FIELD_1", "option": "o4"})
         self.assertIn("addProjectV2ItemById", transport.requests[0][2]["query"])
-        self.assertIn("deleteProjectV2Item", transport.requests[1][2]["query"])
+        self.assertIn("archiveProjectV2Item", transport.requests[1][2]["query"])
         self.assertIn("singleSelectOptionId", transport.requests[2][2]["query"])
 
 

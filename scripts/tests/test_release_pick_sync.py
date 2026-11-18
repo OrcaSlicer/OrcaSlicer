@@ -58,8 +58,8 @@ class FakeGitHub:
         self._mutate("add_item", project_id, content_id)
         return f"NEW_{content_id}"
 
-    def remove_item(self, project_id, item_id):
-        self._mutate("remove_item", project_id, item_id)
+    def archive_item(self, project_id, item_id):
+        self._mutate("archive_item", project_id, item_id)
 
     def set_status(self, project_id, item_id, field_id, option_id):
         self._mutate("set_status", project_id, item_id, field_id, option_id)
@@ -102,7 +102,7 @@ class RunTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(gh.calls, [])
         self.assertIn("- #1: Ready to pick → Picked (on rc/v2.5.2)", out)
-        self.assertIn("- #2: removed (no release-pick label)", out)
+        self.assertIn("- #2: archived (no release-pick label)", out)
         self.assertIn("- #3: added as Proposed", out)
         self.assertTrue(out.rstrip().endswith("Dry run: no changes applied."))
 
@@ -123,10 +123,10 @@ class RunTest(unittest.TestCase):
     def test_stops_at_first_failed_mutation(self):
         gh = FakeGitHub([item(2, labelled=False, status="Proposed", item_id="P2"),
                          item(4, labelled=False, status="Proposed", item_id="P4")],
-                        [item(3, kind="Issue")], fail_on="remove_item")
+                        [item(3, kind="Issue")], fail_on="archive_item")
         code, out = self.run_sync(gh, apply=True)
         self.assertEqual(code, 1)
-        self.assertEqual([c[0] for c in gh.calls], ["add_item", "remove_item"])
+        self.assertEqual([c[0] for c in gh.calls], ["add_item", "archive_item"])
         self.assertIn("Applied 1 of 4 changes.", out)
 
     def test_unmatched_and_reverted_picks_are_reported(self):
@@ -138,6 +138,29 @@ class RunTest(unittest.TestCase):
         self.assertIn("- aaaaaaaaa Translations refresh", out)
         self.assertIn("- bbbbbbbbb Fix other (#99)", out)
         self.assertIn("- #1: reverted on rc/v2.5.2 (ccccccccc Fix one (#1))", out)
+        self.assertIn("- #1: Picked → Ready to pick (pick reverted)", out)
+
+    def test_reverted_reworded_pick_resolves_pr_through_commit_api(self):
+        gh = FakeGitHub([item(9, state="MERGED", status="Picked", item_id="P9")], [item(9, state="MERGED")],
+                        commit_prs={"mainsha": [9]})
+        code, out = self.run_sync(gh, reverted=[Pick("ffffffffffff", "Fix reworded", None, "rc/v2.5.2")],
+                                  matches={"ffffffffffff": "mainsha"})
+        self.assertIn("- #9: reverted on rc/v2.5.2 (fffffffff Fix reworded)", out)
+        self.assertIn("- #9: Picked → Ready to pick (pick reverted)", out)
+        self.assertIn("ffffffffffff", [p.sha for p in sync.patch_id_matches.call_args.args[1]])
+
+    def test_unresolved_reverted_pick_is_dropped(self):
+        gh = FakeGitHub([item(9, state="MERGED", status="Picked", item_id="P9")], [item(9, state="MERGED")])
+        code, out = self.run_sync(gh, reverted=[Pick("ffffffffffff", "Fix reworded", None, "rc/v2.5.2")])
+        self.assertNotIn("reverted on", out)
+        self.assertIn("## Planned changes\nnone", out)
+
+    def test_pr_picked_again_after_revert_needs_no_attention(self):
+        gh = FakeGitHub([item(1, state="MERGED", status="Picked", item_id="P1")], [item(1, state="MERGED")])
+        code, out = self.run_sync(gh, picks=[Pick("dddddddddddd", "Fix one (#1)", 1, "rc/v2.5.2")],
+                                  reverted=[Pick("cccccccccccc", "Fix one (#1)", 1, "rc/v2.5.2")])
+        self.assertNotIn("reverted on", out)
+        self.assertIn("## Planned changes\nnone", out)
 
     def test_pick_matched_through_linked_issue_is_not_unmatched(self):
         issue = item(5, kind="Issue", state="CLOSED", status="Ready to pick", item_id="P5",

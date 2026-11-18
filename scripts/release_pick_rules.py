@@ -3,10 +3,12 @@
 status each one has. Pure functions only; release_pick_sync.py reads the data and applies the result.
 
 - The release-pick label is the only way in. A labelled item is added when its milestone is open or it
-  has none; an unlabelled item is removed unless it is Picked or already on its release branch.
+  has none; an unlabelled item is archived unless it is on its release branch, or Picked and its pick
+  was not reverted.
 - Items in a status column other than the four below are left alone.
-- Archived project items are never touched.
-- Statuses only move forward: Proposed, In progress, Ready to pick, Picked.
+- Archived project items are never touched, even when labelled again; a maintainer unarchives them.
+- Statuses only move forward: Proposed, In progress, Ready to pick, Picked. The one exception is a
+  Picked item whose pick was reverted on its release branch, which goes back to the status it now has.
 - An item is Picked when its merged pull request is on a release branch of its own milestone.
 """
 
@@ -43,7 +45,7 @@ class Item:
 
 @dataclass(frozen=True)
 class Change:
-    action: str  # add, remove or set_status
+    action: str  # add, archive or set_status
     number: int
     content_id: str
     item_id: str | None
@@ -61,11 +63,15 @@ def _rank(status):
     return STATUSES.index(status) if status in STATUSES else -1
 
 
-def _picked_branch(pr_number, milestones, picks, open_milestones):
-    """The branch the pull request was picked onto, looking only at the first milestone that is a
-    version, or at every open milestone when there is none."""
+def _release_milestones(milestones, open_milestones):
+    """The first of milestones that is a version, or every open milestone when there is none."""
     own = next((m for m in milestones if parse_version(m)), None)
-    for milestone in [own] if own else [m for m in open_milestones if parse_version(m)]:
+    return [own] if own else [m for m in open_milestones if parse_version(m)]
+
+
+def _picked_branch(pr_number, milestones, picks, open_milestones):
+    """The branch the pull request was picked onto, on a release of _release_milestones."""
+    for milestone in _release_milestones(milestones, open_milestones):
         branch = picks.get(milestone, {}).get(pr_number)
         if branch:
             return branch
@@ -100,9 +106,17 @@ def _wanted(item):
     return item.labelled and (item.milestone_open or item.milestone is None)
 
 
-def plan_changes(project, labelled, picks, open_milestones):
+def _reverted(item, reverted, open_milestones):
+    prs = [LinkedPr(item.number, item.state, item.milestone)] if item.kind == "PullRequest" else item.linked_prs
+    return any((milestone, linked.number) in reverted
+               for linked in prs for milestone in _release_milestones([item.milestone, linked.milestone],
+                                                                       open_milestones))
+
+
+def plan_changes(project, labelled, picks, open_milestones, reverted=frozenset()):
+    """reverted: (milestone, pull request number) of each pick a revert undid on that release's branch."""
     in_project = {(i.kind, i.number) for i in project}
-    adds, removes, statuses = [], [], []
+    adds, archives, statuses = [], [], []
 
     for item in labelled:
         if (item.kind, item.number) in in_project or not _wanted(item):
@@ -117,18 +131,24 @@ def plan_changes(project, labelled, picks, open_milestones):
         if item.archived or (item.status is not None and item.status not in STATUSES):
             continue
         derived = derived_status(item, picks, open_milestones)
-        if not item.labelled and item.status != "Picked" and not (derived and derived[0] == "Picked"):
-            removes.append(Change("remove", item.number, item.content_id, item.item_id, item.status, None,
-                                  "no release-pick label"))
+        picked_now = bool(derived) and derived[0] == "Picked"
+        pick_reverted = (item.status == "Picked" and bool(derived) and not picked_now
+                  and _reverted(item, reverted, open_milestones))
+        if not item.labelled and (item.status != "Picked" or pick_reverted) and not picked_now:
+            archives.append(Change("archive", item.number, item.content_id, item.item_id, item.status, None,
+                                   "no release-pick label"))
             continue
-        if derived and _rank(derived[0]) > _rank(item.status):
+        if pick_reverted:
+            statuses.append(Change("set_status", item.number, item.content_id, item.item_id, item.status,
+                                   derived[0], "pick reverted"))
+        elif derived and _rank(derived[0]) > _rank(item.status):
             statuses.append(Change("set_status", item.number, item.content_id, item.item_id, item.status,
                                    *derived))
 
     def by_number(change):
         return change.number
 
-    return sorted(adds, key=by_number) + sorted(removes, key=by_number) + sorted(statuses, key=by_number)
+    return sorted(adds, key=by_number) + sorted(archives, key=by_number) + sorted(statuses, key=by_number)
 
 
 def needs_attention(project):
