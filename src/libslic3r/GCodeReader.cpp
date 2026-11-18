@@ -137,12 +137,22 @@ void GCodeReader::update_coordinates(GCodeLine &gline, std::pair<const char*, co
     PROFILE_FUNC();
     if (*command.first == 'G') {
         int cmd_len = int(command.second - command.first);
+        if (cmd_len == 3 && command.first[1] == '9' && (command.first[2] == '0' || command.first[2] == '1')) {
+            m_relative_xyz = command.first[2] == '1';
+            return;
+        }
+        const bool set_position = cmd_len == 3 && command.first[1] == '9' && command.first[2] == '2';
         //BBS: add support of G2 and G3
         if ((cmd_len == 2 && (command.first[1] == '0' || command.first[1] == '1' || command.first[1] == '2' || command.first[1] == '3')) ||
-            (cmd_len == 3 &&  command.first[1] == '9' && command.first[2] == '2')) {
+            set_position) {
             for (size_t i = 0; i < NUM_AXES; ++ i)
-                if (gline.has(Axis(i)))
-                    m_position[i] = gline.value(Axis(i));
+                if (gline.has(Axis(i))) {
+                    // G92 sets the position even in relative mode.
+                    if (m_relative_xyz && ! set_position && i <= size_t(Z))
+                        m_position[i] += gline.value(Axis(i));
+                    else
+                        m_position[i] = gline.value(Axis(i));
+                }
         }
     }
 }
