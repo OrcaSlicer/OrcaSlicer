@@ -25,6 +25,7 @@
 #include <boost/log/trivial.hpp>
 #include "slic3r/plugin/PluginDescriptor.hpp"
 #include <optional>
+#include <system_error>
 #include <vector>
 #include <memory>
 #include "slic3r/plugin/PythonPluginInterface.hpp"
