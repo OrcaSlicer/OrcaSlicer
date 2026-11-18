@@ -10,6 +10,7 @@
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/IMEXHelpers.hpp"
+#include "libslic3r/PhysicalExtruderMap.hpp"
 #include "libslic3r/IMEXZones.hpp"
 //BBS: add convex hull logic for toolpath check
 

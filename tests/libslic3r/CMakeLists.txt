@@ -58,6 +58,7 @@ add_executable(${_TEST_NAME}_tests
     test_imex_helpers.cpp
     test_imex_zones.cpp
     test_multimaterial_segmentation.cpp
+    test_physical_extruder_map.cpp
     test_placeholder_parser.cpp
     test_png_read_write.cpp
     test_polygon.cpp
