@@ -220,7 +220,7 @@ std::optional<TriangleSelector::SavedPainting> VolumeInfo::save_painting() const
     if (wxGetApp().app_config->get_bool("keep_painting")) {
         std::optional<TriangleSelector::SavedPainting> saved_painting = mv->save_painting();
         if (saved_painting) {
-            saved_painting->mesh.transform(trafo);
+            saved_painting->transform(trafo);
         }
         return saved_painting;
     }

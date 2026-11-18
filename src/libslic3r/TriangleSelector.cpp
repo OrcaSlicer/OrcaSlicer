@@ -2383,7 +2383,7 @@ public:
     {}
     ~TriangleCursor() override = default;
 
-    static std::unique_ptr<Cursor> build_cursor(const TriangleSelector& source_selector, const TriangleSelector::Triangle& tri)
+    static std::unique_ptr<Cursor> build_cursor(const TriangleSelector& source_selector, const TriangleSelector::Triangle& tri, const Vec3f& norm)
     {
         const Vec3f& pv0 = source_selector.m_vertices[tri.verts_idxs[0]].v;
         const Vec3f& pv1 = source_selector.m_vertices[tri.verts_idxs[1]].v;
@@ -2391,9 +2391,6 @@ public:
 
         // Calculate the centroid of the triangle
         const Vec3f center = (pv0 + pv1 + pv2) / 3.f;
-
-        // Calculate the norm of the plane
-        const Vec3f& norm = source_selector.m_face_normals[tri.source_triangle];
 
         // Calculate the min distance from the centroid to every edges
         const float radius = std::max(std::min(std::min(point_to_line_dist(center, pv0, pv1), point_to_line_dist(center, pv0, pv2)),
@@ -2502,7 +2499,8 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
     const TriangleSplittingData& source_painting,
     const indexed_triangle_set& target_its,
     const Transform3d& target_transform,
-    const std::optional<std::reference_wrapper<const TriangleSplittingData>>& existing_painting)
+    const std::optional<std::reference_wrapper<const TriangleSplittingData>>& existing_painting,
+    bool source_inside_out)
 {
     TriangleSelector::TriangleSplittingData result;
     if (source_painting.bitstream.empty())
@@ -2512,6 +2510,7 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
     TriangleMesh source_mesh(source_its);
     TriangleSelector source_selector(source_mesh);
     source_selector.deserialize(source_painting, false);
+    const float source_facing = source_inside_out ? -1.f : 1.f;
 
     // 2. Extract painted geometry
     std::vector<std::reference_wrapper<const Triangle>> painted_triangles;
@@ -2596,7 +2595,7 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
             if (face_idx >= target_mesh.its.indices.size())
                 return true;
 
-            const Vec3f& norm_a = source_selector.m_face_normals[tri.source_triangle];
+            const Vec3f  norm_a = source_facing * source_selector.m_face_normals[tri.source_triangle];
             const Vec3f& norm_b = target_selector.m_face_normals[face_idx];
 
             const Vec3i32& face = target_mesh.its.indices[face_idx];
@@ -2606,7 +2605,7 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
 
             if (TriangleCursor::check_normal(norm_b, -norm_a) && check_overlap(pv0, pv1, pv2, ta, tb, tc)) {
                 // Paint this face
-                target_selector.select_patch(face_idx, TriangleCursor::build_cursor(source_selector, tri), tri.get_state(),
+                target_selector.select_patch(face_idx, TriangleCursor::build_cursor(source_selector, tri, norm_a), tri.get_state(),
                                              Transform3d::Identity(), true, 0.f, Vec3f::UnitZ(), true);
             }
             return true; // continue traversal
@@ -2614,6 +2613,14 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
     }
 
     return target_selector.serialize();
+}
+
+void TriangleSelector::SavedPainting::transform(const Transform3d &trafo)
+{
+    // Flipping the facets of a mirrored mesh would swap the vertices the paint is split against.
+    mesh.transform(trafo);
+    if (trafo.matrix().block<3, 3>(0, 0).determinant() < 0.)
+        inside_out = !inside_out;
 }
 
 } // namespace Slic3r

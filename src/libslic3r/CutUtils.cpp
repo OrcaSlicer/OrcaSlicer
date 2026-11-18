@@ -355,7 +355,7 @@ const ModelObjectPtrs& Cut::perform_with_plane()
             saved_paintings.emplace_back(volume->save_painting());
             if (saved_paintings.back()) {
                 // Transform mesh to cut space (same transform as process_volume_cut applies)
-                saved_paintings.back()->mesh.transform(instance_matrix * volume->get_matrix(), true);
+                saved_paintings.back()->transform(instance_matrix * volume->get_matrix());
             }
         }
 
@@ -558,7 +558,7 @@ const ModelObjectPtrs& Cut::perform_by_contour(const ModelObject* src_object, st
             saved_paintings.emplace_back(volume->save_painting());
             if (saved_paintings.back()) {
                 // Transform mesh to cut space (same transform as process_volume_cut applies)
-                saved_paintings.back()->mesh.transform(instance_matrix * volume->get_matrix(), true);
+                saved_paintings.back()->transform(instance_matrix * volume->get_matrix());
             }
         }
     }
@@ -663,7 +663,7 @@ const ModelObjectPtrs& Cut::perform_with_groove(const Groove&       groove,
             saved_paintings.emplace_back(volume->save_painting());
             if (saved_paintings.back()) {
                 // Transform mesh to cut space (same transform as process_volume_cut applies)
-                saved_paintings.back()->mesh.transform(instance_matrix * volume->get_matrix(), true);
+                saved_paintings.back()->transform(instance_matrix * volume->get_matrix());
             }
         }
     }
