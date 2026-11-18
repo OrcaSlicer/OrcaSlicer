@@ -289,6 +289,8 @@ void PluginPages::remove_page(const PluginCapabilityId& id)
         built->detach_capability();
 
     m_pages.erase(it);
+    if (m_swapped_in_id == id)
+        m_swapped_in_id.reset();
     m_order.erase(std::remove(m_order.begin(), m_order.end(), id), m_order.end());
 
     const int idx = m_parent != nullptr ? m_parent->FindPage(page) : wxNOT_FOUND;
@@ -328,9 +330,9 @@ void PluginPages::relayout()
     const bool need_overflow = static_cast<int>(m_order.size()) > visible_slots;
 
     // When there's overflow, the last slot shows the page the user picked from the overflow menu
-    // (or through select_page()), else the first page in the overflow.
-    if (!need_overflow || (m_swapped_in_id && std::find(m_order.begin() + (visible_slots - 1), m_order.end(), *m_swapped_in_id) == m_order.end()))
-        m_swapped_in_id.reset();
+    // (or through select_page()) while it is in the overflow, else the first page there. The pick is
+    // kept while it shows in a normal slot, e.g. on a tab without Slice/Print where all pages fit,
+    // and is dropped only for another pick or when its page is removed.
     const std::vector<PluginCapabilityId> tab_ids = plugin_tab_ids(m_order, visible_slots, m_swapped_in_id);
 
     // MainFrame::show_device() relayouts on every printer change and most of those change

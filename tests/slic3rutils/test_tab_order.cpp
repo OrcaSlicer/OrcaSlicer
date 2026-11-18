@@ -87,4 +87,10 @@ TEST_CASE("Plugin tabs shown before the overflow button follow the saved order",
     CHECK(Slic3r::PluginPages::plugin_tab_ids(order, 5, charlie) == Ids{golf, charlie, delta, foxtrot, bravo});
     CHECK(Slic3r::PluginPages::plugin_tab_ids(order, 7, alpha) == order);
     CHECK(Slic3r::PluginPages::plugin_tab_ids(order, 1, std::nullopt) == Ids{golf});
+
+    // Echo picked from the overflow menu, then a tab without Slice/Print where all pages fit: Echo
+    // shows in its own slot and stays picked, so back on Prepare it takes the last slot again.
+    const std::optional<PluginCapabilityId> picked = echo;
+    CHECK(Slic3r::PluginPages::plugin_tab_ids(order, 7, picked) == order);
+    CHECK(Slic3r::PluginPages::plugin_tab_ids(order, 5, picked) == Ids{golf, charlie, delta, foxtrot, echo});
 }

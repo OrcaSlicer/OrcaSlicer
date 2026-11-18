@@ -223,6 +223,10 @@ bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /*
     btn->Bind(wxEVT_LEFT_DOWN, [this, btn](wxMouseEvent& evt) { OnTabLeftDown(evt, btn); });
     Slic3r::GUI::wxGetApp().UpdateDarkUI(btn);
     m_pageButtons.insert(m_pageButtons.begin() + n, btn);
+    // ORCA: keep the selection on the same button, or SetSelection() later resets the wrong one and
+    // the selected colour stays on a tab that is no longer selected.
+    if (m_selection >= static_cast<int>(n))
+        ++m_selection;
     m_pageLabels.insert(m_pageLabels.begin() + n, text); // ORCA
     m_pageIcons.insert(m_pageIcons.begin() + n, bmp_name);
     m_buttons_sizer->Insert(n, new wxSizerItem(btn));

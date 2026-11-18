@@ -218,6 +218,11 @@ public:
         n = OrderedPosition(m_pageOrder, m_pageNames, id, n);
         if (!wxBookCtrlBase::InsertPage(n, page, text, bSelect))
             return false;
+        // ORCA: the base keeps the selected index, so a page inserted before the selected one would
+        // leave it on the page to the left. Tabs now go before the selected one routinely, e.g. a
+        // plugin tab dragged between built-in tabs.
+        if (m_selection != wxNOT_FOUND && static_cast<int>(n) <= m_selection)
+            ++m_selection;
 
         m_pageNames.insert(m_pageNames.begin() + n, id);
         GetBtnsListCtrl()->InsertPage(n, text, bSelect, bmp_name, bmp);

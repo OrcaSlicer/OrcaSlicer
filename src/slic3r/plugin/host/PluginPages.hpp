@@ -96,7 +96,7 @@ private:
 
     int m_visible_slots{1};
 
-    std::optional<PluginCapabilityId> m_swapped_in_id; // picked by the user, never a default
+    std::optional<PluginCapabilityId> m_swapped_in_id; // picked by the user, never a default; kept until another pick or its page is removed
     wxWindow* m_overflow_button{nullptr};
 };
 
