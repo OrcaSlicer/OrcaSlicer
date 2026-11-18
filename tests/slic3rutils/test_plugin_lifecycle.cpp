@@ -19,6 +19,7 @@
 
 #include <boost/filesystem.hpp>
 #include <pybind11/cast.h>
+#include <pybind11/eval.h>
 #include <pybind11/gil.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes.h>
@@ -91,6 +92,26 @@ class Echo(orca.script.ScriptPluginCapabilityBase):
 class EchoPackage(orca.base):
     def register_capabilities(self):
         orca.register_capability(Echo)
+)PY";
+
+// A plugin whose registration always fails after the module imported. The failure is ordinary:
+// neither cancellation nor unload, so its queued runtime prompts stay actionable for a retry.
+const char* const BROKEN_PLUGIN_SOURCE = R"PY(# /// script
+# requires-python = ">=3.12"
+#
+# [tool.orcaslicer.plugin]
+# name = "Broken Plugin"
+# description = "Plugin whose registration always fails."
+# author = "tests"
+# version = "1.0"
+# type = "script"
+# ///
+import orca
+
+@orca.plugin
+class BrokenPackage(orca.base):
+    def register_capabilities(self):
+        raise RuntimeError("registration failed")
 )PY";
 
 // A minimal printer-agent plugin exposing exactly one PrinterConnection capability.
@@ -1002,6 +1023,7 @@ class SlowPackage(orca.base):
     // The key is registered before the worker is spawned, so this is not a race.
     REQUIRE(manager.is_plugin_load_in_progress("Slow_Load_Plugin"));
     REQUIRE(manager.cancel_plugin_load("Slow_Load_Plugin"));
+    CHECK(manager.is_plugin_load_cancelled("Slow_Load_Plugin"));
 
     // Cancelling must not release the worker's slot. shutdown() unloads everything and GUI_App
     // finalizes the interpreter as soon as this wait returns, so reporting "no loads in progress"
@@ -1012,7 +1034,10 @@ class SlowPackage(orca.base):
     // The worker releases the slot itself, once it has unwound.
     CHECK(manager.wait_for_all_plugin_loads(std::chrono::seconds(60)));
     CHECK_FALSE(manager.is_plugin_load_in_progress("Slow_Load_Plugin"));
+    CHECK_FALSE(manager.is_plugin_load_cancelled("Slow_Load_Plugin"));
     CHECK_FALSE(manager.is_plugin_loaded("Slow_Load_Plugin"));
+    // A cancellation is not an ordinary failure, so no prompt is kept actionable for a retry.
+    CHECK_FALSE(manager.is_plugin_load_failed("Slow_Load_Plugin"));
 }
 
 TEST_CASE("Loading an unknown plugin key records an error instead of crashing", "[PluginLifecycle][Python]")
@@ -1034,6 +1059,62 @@ TEST_CASE("Loading an unknown plugin key records an error instead of crashing", 
     CHECK_FALSE(manager.is_plugin_loaded("No_Such_Plugin"));
     CHECK(manager.get_plugin_load_error("No_Such_Plugin") == "Plugin not found: No_Such_Plugin");
     CHECK(manager.get_plugin_capabilities("No_Such_Plugin").empty());
+}
+
+TEST_CASE("An ordinary load failure stays recorded until the plugin is unloaded", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    // Registration raises after the module imported, which is an ordinary failure: the user can
+    // approve a queued runtime prompt and retry. Cancelling or unloading is different.
+    ScopedDataDir data_dir_guard("lifecycle-load-failed");
+    write_plugin(data_dir_guard, "Broken_Plugin", BROKEN_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    CHECK_FALSE(load_and_wait(manager, "Broken_Plugin", error));
+    INFO("load error: " << error);
+    CHECK_FALSE(error.empty());
+    CHECK_FALSE(manager.is_plugin_loaded("Broken_Plugin"));
+    CHECK_FALSE(manager.is_plugin_load_in_progress("Broken_Plugin"));
+    CHECK_FALSE(manager.is_plugin_load_cancelled("Broken_Plugin"));
+    CHECK(manager.is_plugin_load_failed("Broken_Plugin"));
+
+    // An explicit unload clears the state a queued prompt would otherwise rely on.
+    REQUIRE(manager.unload_plugin("Broken_Plugin"));
+    CHECK_FALSE(manager.is_plugin_load_failed("Broken_Plugin"));
+}
+
+TEST_CASE("Rediscovering a removed failed plugin does not revive its failure state", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("lifecycle-failed-removed");
+    const fs::path plugin_dir = write_plugin(data_dir_guard, "Removed_Plugin", BROKEN_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE_FALSE(load_and_wait(manager, "Removed_Plugin", error));
+    REQUIRE(manager.is_plugin_load_failed("Removed_Plugin"));
+
+    // Removing the missing package must drop the state, not leave it keyed by the old package.
+    fs::remove_all(plugin_dir);
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    manager.remove_missing_plugins({"Removed_Plugin"});
+    CHECK_FALSE(manager.is_plugin_load_failed("Removed_Plugin"));
+
+    // Rediscovery starts from a clean failure state even when the key is reused.
+    write_plugin(data_dir_guard, "Removed_Plugin", BROKEN_PLUGIN_SOURCE);
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    CHECK_FALSE(manager.is_plugin_load_failed("Removed_Plugin"));
 }
 
 TEST_CASE("The startup auto-load list only contains packages whose sidecar enables them", "[PluginLifecycle][Python]")
@@ -1209,6 +1290,38 @@ TEST_CASE("Waiting for Python threads at shutdown ends idle concurrent.futures w
     release.attr("set")();
     CHECK(PythonInterpreter::join_non_daemon_threads(std::chrono::seconds(5)) == 0);
     allow_new_tasks();
+}
+
+TEST_CASE("Waiting for Python threads at shutdown counts the hooks an earlier wait gave up on", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    pybind11::gil_scoped_acquire gil;
+
+    const pybind11::module_ threading = pybind11::module_::import("threading");
+    REQUIRE(pybind11::hasattr(threading, "_threading_atexits"));
+    // A hook that holds only the first thread to run it: a later wait that starts its own hook
+    // thread would find nothing left running, and Py_Finalize would start under the first one.
+    pybind11::dict scope;
+    pybind11::exec("import threading\n"
+                   "release = threading.Event()\n"
+                   "runs = 0\n"
+                   "def hold():\n"
+                   "    global runs\n"
+                   "    runs += 1\n"
+                   "    if runs == 1:\n"
+                   "        release.wait()\n",
+                   scope);
+    pybind11::list hooks = threading.attr("_threading_atexits");
+    hooks.append(scope["hold"]);
+
+    CHECK(PythonInterpreter::join_non_daemon_threads(std::chrono::milliseconds(200)) == 1);
+    CHECK(PythonInterpreter::join_non_daemon_threads(std::chrono::milliseconds(200)) == 1);
+
+    scope["release"].attr("set")();
+    CHECK(PythonInterpreter::join_non_daemon_threads(std::chrono::seconds(5)) == 0);
+    hooks.attr("remove")(scope["hold"]);
 }
 
 #ifndef _WIN32 // Windows adds its system store whatever SSL_CERT_FILE names.
