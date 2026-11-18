@@ -1937,6 +1937,105 @@ unquoted_outcome = raise_popen(None, r"plain-tool.exe --flag")
           "subprocess.Popen: plain-tool.exe\n");
 }
 
+TEST_CASE("A Windows command line grant names one quoted executable, not another path", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    // The event _winapi.CreateProcess raises, with application_name left out as it may be, so no
+    // process is created. The quoted paths contain spaces, which a whitespace split would cut.
+    python.run_as(PLUGIN, R"PY(
+def raise_create_process(application_name, command_line):
+    try:
+        sys.audit("_winapi.CreateProcess", application_name, command_line, None)
+        return "ok"
+    except PermissionError:
+        return "denied"
+
+first_outcome = raise_create_process(None, r'"C:\Program Files\ToolA\a.exe" --one')
+other_outcome = raise_create_process(None, r'"C:\Program Files\ToolB\b.exe" --one')
+explicit_outcome = raise_create_process(r"D:\tools\other.exe", r'"C:\Program Files\ToolA\a.exe" --one')
+)PY");
+    CHECK(python.str("first_outcome") == "denied");
+    CHECK(python.str("other_outcome") == "denied");
+    CHECK(python.str("explicit_outcome") == "denied");
+    CHECK(describe(harness.prompts) ==
+          "_winapi.CreateProcess: C:\\Program Files\\ToolA\\a.exe\n"
+          "_winapi.CreateProcess: C:\\Program Files\\ToolB\\b.exe\n"
+          "_winapi.CreateProcess: D:\\tools\\other.exe\n");
+
+    // A grant for one quoted path covers that executable with other arguments, never another path.
+    harness.approve = [](const Prompt& prompt) {
+        return prompt.targets == std::vector<std::string>{R"(C:\Program Files\ToolA\a.exe)"};
+    };
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+repeat_outcome = raise_create_process(None, r'"C:\Program Files\ToolA\a.exe" --two')
+distinct_outcome = raise_create_process(None, r'"C:\Program Files\ToolB\b.exe" --one')
+)PY");
+    CHECK(python.str("repeat_outcome") == "ok");
+    CHECK(python.str("distinct_outcome") == "denied");
+    CHECK(describe(harness.prompts) ==
+          "_winapi.CreateProcess: C:\\Program Files\\ToolA\\a.exe\n"
+          "_winapi.CreateProcess: C:\\Program Files\\ToolB\\b.exe\n");
+    CHECK(harness.saved_permissions(PLUGIN).process ==
+          std::vector<std::string>{R"(C:\Program Files\ToolA\a.exe)"});
+
+    // The saved grant covers the same executable again, still without spanning to ToolB.
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+saved_outcome = raise_create_process(None, r'"C:\Program Files\ToolA\a.exe" --three')
+other_saved_outcome = raise_create_process(None, r'"C:\Program Files\ToolB\b.exe" --two')
+)PY");
+    CHECK(python.str("saved_outcome") == "ok");
+    CHECK(python.str("other_saved_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "_winapi.CreateProcess: C:\\Program Files\\ToolB\\b.exe\n");
+}
+
+TEST_CASE("An os.system grant extracts the platform-specific command target", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    // Raising the event directly exercises the target the hook reads without running the command.
+    python.run_as(PLUGIN, R"PY(
+def raise_system(command):
+    try:
+        sys.audit("os.system", command)
+        return "ok"
+    except PermissionError:
+        return "denied"
+)PY");
+
+#ifdef _WIN32
+    // The Windows command interpreter keeps a quoted path together, so each names its own tool.
+    python.run_as(PLUGIN, R"PY(
+first_outcome = raise_system(r'"C:\Program Files\ToolA\a.exe" --one')
+other_outcome = raise_system(r'"C:\Program Files\ToolB\b.exe" --one')
+)PY");
+    CHECK(python.str("first_outcome") == "denied");
+    CHECK(python.str("other_outcome") == "denied");
+    CHECK(describe(harness.prompts) ==
+          "os.system: C:\\Program Files\\ToolA\\a.exe\n"
+          "os.system: C:\\Program Files\\ToolB\\b.exe\n");
+#else
+    // POSIX keeps its whitespace split, so a plain command still names only its first token.
+    python.run_as(PLUGIN, R"PY(
+plain_outcome = raise_system("plain-tool --one")
+)PY");
+    CHECK(python.str("plain_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "os.system: plain-tool\n");
+#endif
+}
+
 TEST_CASE("A finalizer run when a root frame is let go is judged as the plugin without a prompt", "[audit][Python]")
 {
     AuditHarness harness;

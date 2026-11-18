@@ -1221,6 +1221,15 @@ struct ProcessTargetSource {
     ProcessTargetFormat format;
 };
 
+// os.system hands its string to the platform's shell, which parses it differently. Keep the
+// existing whitespace-token split on POSIX; on Windows the command interpreter keeps a quoted path
+// that contains spaces together, so read the first argument by the Windows command-line rules.
+#ifdef _WIN32
+static constexpr ProcessTargetFormat system_target_format = ProcessTargetFormat::WindowsCommandLine;
+#else
+static constexpr ProcessTargetFormat system_target_format = ProcessTargetFormat::FirstToken;
+#endif
+
 static const std::unordered_map<std::string, std::vector<ProcessTargetSource>> process_target_sources{
     {"os.exec",                    {{0, ProcessTargetFormat::Path}}},
     {"os.posix_spawn",             {{0, ProcessTargetFormat::Path}}},
@@ -1230,9 +1239,10 @@ static const std::unordered_map<std::string, std::vector<ProcessTargetSource>> p
     // executable is unresolved when the caller did not pass one, as on Windows, where args is
     // then a single command line; on POSIX args is an argv sequence and executable is always set.
     {"subprocess.Popen",           {{0, ProcessTargetFormat::Path}, {1, ProcessTargetFormat::WindowsCommandLine}}},
-    // application_name may be omitted, leaving the executable at the start of command_line.
-    {"_winapi.CreateProcess",      {{0, ProcessTargetFormat::Path}, {1, ProcessTargetFormat::FirstToken}}},
-    {"os.system",                  {{0, ProcessTargetFormat::FirstToken}}},
+    // application_name wins when it is given, so its source comes first; when it is omitted
+    // command_line is a Windows command line whose first argument names the executable.
+    {"_winapi.CreateProcess",      {{0, ProcessTargetFormat::Path}, {1, ProcessTargetFormat::WindowsCommandLine}}},
+    {"os.system",                  {{0, system_target_format}}},
     {"pty.spawn",                  {{0, ProcessTargetFormat::FirstToken}}},
     // The first argument is argv; its first element names the program.
     {"_posixsubprocess.fork_exec", {{0, ProcessTargetFormat::FirstToken}}},
