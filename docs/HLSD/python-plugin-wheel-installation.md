@@ -28,6 +28,12 @@ Declared dependencies continue to use the existing shared installation policy: t
 
 The installed directory provides real filesystem paths for package resources. Wheel installation can relocate files compared with literal extraction, especially files in a wheel's `.data` directory. Plugins that derive resource paths from their package location should be checked against the installed layout.
 
+## Path spelling on Windows
+
+The plugin root, its `__whl_extracted__/` caches and the files below them can pass the legacy 260-character `MAX_PATH`. Filesystem probes and operations use the extended-length (`\\?\`) spelling where the plain spelling cannot reach a path; uv receives plain paths and qualifies them itself, and a `sys.path` entry keeps the plain spelling it was given whenever the import can be served through it. For an imported package or module that is decided from the entry files the finder probes: the plain spelling is kept while `<entry>/__init__.py`, a compiled `__init__` initializer, or the single-module `<entry>.py`/compiled extension also fit below the limit. A package with no `.py` entry, such as a namespace or compiled-only package, therefore keeps the plain spelling instead of being prefixed for lack of a file to probe, while any entry file past the limit selects the extended-length form. Dependency extraction roots follow the same rule, decided by whether the extraction root itself is reachable through the plain spelling.
+
+One limit remains: files nested below the entry are not probed individually. They are reached through the recorded `sys.path` entry, so a submodule that itself lies past the limit is only reached when the entry above it already selected the extended-length form.
+
 ## Wheel filename reconstruction
 
 uv requires a valid PEP 427 wheel filename. A stored cloud download or a locally renamed wheel may not have one, so installation stages a copy under a name built from the wheel's own `METADATA` name and version and its declared `WHEEL` tags. The stored entry filename is not changed. The tag is selected from the tags the wheel declares; it is never invented, and uv performs the final interpreter/platform compatibility check.

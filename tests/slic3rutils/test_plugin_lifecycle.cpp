@@ -875,6 +875,87 @@ TEST_CASE("A package imports when only its files pass MAX_PATH", "[PluginLifecyc
     fs::remove_all(long_path(package_parent), cleanup_ec);
 }
 
+TEST_CASE("A namespace package imports through its plain directory path", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedTemporaryDir dir("plain-import-namespace");
+    const fs::path      package_parent = dir.path();
+    const std::string   pkg_name       = "orca_test_namespace_package";
+    fs::create_directories(package_parent / pkg_name);
+    {
+        std::ofstream submodule((package_parent / pkg_name / "submodule.py").string(), std::ios::binary);
+        submodule << "VALUE = \"namespace\"\n";
+        REQUIRE(submodule.good());
+    }
+
+    PythonInterpreter&       interpreter = PythonInterpreter::instance();
+    std::vector<std::string> paths;
+    std::vector<std::string> modules;
+    std::string              error;
+    PyObject* module = interpreter.load_module_from_directory(path_utf8(package_parent), pkg_name, error, &paths, &modules);
+    INFO("module load error: " << error);
+    REQUIRE(module != nullptr);
+    REQUIRE(paths.size() == 1);
+
+    // The directory is short enough for the plain Win32 APIs, and a namespace package has no
+    // __init__.py to probe, so the spelling the caller passed must be the one recorded rather than
+    // an extended-length path.
+    CHECK(paths.front() == path_utf8(package_parent));
+
+    Plugin loaded;
+    loaded.module           = module;
+    loaded.module_name      = pkg_name;
+    loaded.plugin_sys_paths = paths;
+    loaded.plugin_modules   = modules;
+    loaded.release_module();
+}
+
+TEST_CASE("A compiled-only package keeps its plain directory path", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedTemporaryDir dir("plain-import-compiled");
+    const fs::path      package_parent = dir.path();
+    const std::string   pkg_name       = "orca_test_compiled_package";
+    fs::create_directories(package_parent / pkg_name);
+    // A package with no .py entry at all: only a compiled initializer the finder probes by name.
+    // The fixture is not a loadable extension module, so the import itself fails; the recorded
+    // sys.path entry is what this test protects. A short directory must not gain the extended-length
+    // prefix just because there is no .py file to probe.
+#ifdef _WIN32
+    const fs::path compiled_init = package_parent / pkg_name / "__init__.pyd";
+#else
+    const fs::path compiled_init = package_parent / pkg_name / "__init__.so";
+#endif
+    {
+        std::ofstream compiled(compiled_init.string(), std::ios::binary);
+        compiled << "not a real extension module\n";
+        REQUIRE(compiled.good());
+    }
+
+    PythonInterpreter&       interpreter = PythonInterpreter::instance();
+    std::vector<std::string> paths;
+    std::vector<std::string> modules;
+    std::string              error;
+    PyObject* module = interpreter.load_module_from_directory(path_utf8(package_parent), pkg_name, error, &paths, &modules);
+    CHECK(module == nullptr);
+    CHECK_FALSE(error.empty());
+    REQUIRE(paths.size() == 1);
+    CHECK(paths.front() == path_utf8(package_parent));
+
+    Plugin loaded;
+    loaded.module           = module;
+    loaded.module_name      = pkg_name;
+    loaded.plugin_sys_paths = paths;
+    loaded.plugin_modules   = modules;
+    loaded.release_module();
+}
+
 TEST_CASE("A capability disabled in the sidecar loads disabled", "[PluginLifecycle][Python]")
 {
     ScopedPluginManager plugin_system;

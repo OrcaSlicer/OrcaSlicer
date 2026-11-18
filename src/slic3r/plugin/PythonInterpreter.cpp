@@ -6,8 +6,10 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <cstddef>
 #include <cstdlib>
 #include <memory>
 #include <exception>
@@ -192,13 +194,55 @@ std::string executable_name(const char* base)
 #endif
 }
 
-// True when the interpreter can reach `pkg_name`'s entry file through the plain spelling of its
-// sys.path entry `dir`. A directory below the legacy Windows MAX_PATH can still hold package files
+// The plain Win32 APIs refuse paths at MAX_PATH (260) unless long paths are enabled;
+// extended_path() is what reaches past it. Off Windows there is no such limit.
+bool fits_plain_windows_path(const boost::filesystem::path& path)
+{
+#ifdef _WIN32
+    constexpr std::size_t kLegacyWindowsPathLimit = 260;
+    return path.wstring().size() < kLegacyWindowsPathLimit;
+#else
+    (void) path;
+    return true;
+#endif
+}
+
+// True when `directory` can be listed through its plain spelling and every entry file the finder
+// would probe for `stem` also fits there: "<stem>.py" or a compiled "<stem>.<tag>.pyd"/".so".
+// A namespace package has none of them, so being able to list the directory is all its import
+// needs.
+bool plain_path_reaches_entry_files(const boost::filesystem::path& directory, const std::string& stem)
+{
+    namespace fs = boost::filesystem;
+
+    const std::string leaf = stem + ".";
+    boost::system::error_code ec;
+    fs::directory_iterator it(directory, ec);
+    const fs::directory_iterator end;
+    for (; !ec && it != end; it.increment(ec)) {
+        const fs::path&   candidate = it->path();
+        const std::string filename  = candidate.filename().string();
+        if (filename.compare(0, leaf.size(), leaf) != 0)
+            continue;
+
+        const std::string ext = candidate.extension().string();
+        if (ext != ".py" && ext != ".pyd" && ext != ".so" && ext != ".dll")
+            continue;
+        if (!fits_plain_windows_path(candidate))
+            return false;
+    }
+
+    // An unreadable directory cannot be probed; the extended-length form may still reach it.
+    return !ec;
+}
+
+// True when the plain spelling of the sys.path entry `dir` reaches everything the import of
+// `pkg_name` needs. A directory below the legacy Windows MAX_PATH can still hold package files
 // above it, and the finder then silently treats the package as a namespace package: an
-// unreachable __init__.py reads exactly like a missing one, so probing the directory alone cannot
-// tell the two apart. Conservative by design: only a visible package __init__.py or a
-// single-module .py file keeps the plain spelling; anything else (a compiled-only or namespace
-// entry) takes the extended-length form, which imports it just as well.
+// unreachable __init__.py reads exactly like a missing one. The probes here therefore check the
+// entry files themselves, so a namespace package and a compiled-only package keep the plain
+// spelling, while any entry file past the limit gets the extended-length form, which imports it
+// just as well.
 bool module_entry_reachable(const boost::filesystem::path& dir, const std::string& pkg_name)
 {
     namespace fs = boost::filesystem;
@@ -217,14 +261,17 @@ bool module_entry_reachable(const boost::filesystem::path& dir, const std::strin
         return false;
     relative /= component;
 
-    // A path past MAX_PATH fails these probes with an error, which reads as "not reachable".
     boost::system::error_code ec;
-    if (fs::is_regular_file(dir / relative / "__init__.py", ec) && !ec)
-        return true;
+    if (fs::is_directory(dir / relative, ec))
+        return plain_path_reaches_entry_files(dir / relative, "__init__");
+    // A probe that fails cannot be told apart from an entry past MAX_PATH, so take the
+    // extended-length form to be safe.
+    if (ec)
+        return false;
 
-    ec.clear();
+    // A single module: <pkg>.py or a compiled <pkg>.<tag>.pyd/.so next to the package path.
     const fs::path parent = relative.parent_path().empty() ? dir : dir / relative.parent_path();
-    return fs::is_regular_file(parent / (relative.filename().string() + ".py"), ec) && !ec;
+    return plain_path_reaches_entry_files(parent, relative.filename().string());
 }
 
 bool add_sys_path_entry(const boost::filesystem::path& path, std::string& error, bool* inserted = nullptr)
