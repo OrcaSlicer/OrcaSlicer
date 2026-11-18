@@ -29,7 +29,7 @@ Permissions are stored per plugin key. A plugin can hold:
 | `fs_delete` | folder list | Filesystem delete events such as `os.remove` and `shutil.rmtree`. |
 | `network_http` | target list | Network targets, consulted together with `network_socket` for both HTTP and socket events. A canonical `scheme://host` entry is host-wide and covers both layers; a URL with a path, port, query or trailing slash is exact; a bare host or legacy address tuple covers raw sockets. |
 | `network_socket` | target list | The same network matching, kept as a separate list so a plugin can declare socket access without an HTTP URL. |
-| `process` | target list | Process creation and process replacement: `os.system`, `subprocess.Popen`, `os.spawn*`, `os.exec*`, `pty.spawn`, `_winapi.CreateProcess`, and similar. Targets name the tool, not its arguments. |
+| `process` | target list | Process creation and process replacement: `subprocess.Popen`, `os.spawn*`, `os.exec*`, `pty.spawn`, `_winapi.CreateProcess`, and similar. Targets name the tool, not its arguments. `os.system` names the shell it runs (see "Target matching"). |
 | `threading` | boolean | Permission to start a Python thread with `_thread.start_new_thread`. |
 | `events` | target list | Audited events that expose no target, keyed as `<Category>:<event>`, for example `Socket:socket.__new__`. Matched verbatim. |
 | `full_access` | boolean | Turns off the permission decision for the plugin. See "Full access". |
@@ -92,7 +92,14 @@ that requested it and the nested deletes it performs inside that subtree.
 - Process entries name the tool an event runs, compared verbatim. When the event exposes
   the executable or path, that argument is the target. For a command string or argv, the
   first token or element is the target. Arguments after the tool are ignored, so one grant
-  covers repeated runs of the tool with different arguments.
+  covers repeated runs of the tool with different arguments. `os.system` is the exception:
+  Python hands its whole string to the platform shell, so the target is the shell. On POSIX
+  that is `/bin/sh`; on Windows it is the interpreter named by `COMSPEC`, or `cmd.exe` when
+  `COMSPEC` is unset or empty. The command string is not parsed, and approving the shell
+  covers every command and argument the plugin passes to `os.system`. The target is read
+  when the event is raised, so a grant saved under one `COMSPEC` value does not cover a run
+  under another. Direct process creation, such as `subprocess.Popen`, still names its
+  executable.
 - An event with no target is granted by the `events` entry for its category and name. A
   targetless network event, such as `http.client.send`, is covered by any recorded
   network grant instead.
@@ -363,6 +370,9 @@ never treated as an opt-out.
   context, so its events are not attributed or restricted.
 - **Subprocesses leave the policy.** A process created by a granted or full-access
   plugin runs with the user's rights and is not covered by the parent's audit scope.
+- **An `os.system` grant is a shell grant.** It authorizes every command string the plugin
+  passes to `os.system`, not only the one that triggered the prompt, because the shell
+  parses and runs the whole string. Arguments are not inspected or restricted.
 - **Host APIs are not audit events.** Calls into OrcaSlicer's Python host APIs, such as
   preset updates or UI actions, execute C++ host code and follow that API's contract. The
   audit hook judges the Python-level filesystem, network, process and thread events it is

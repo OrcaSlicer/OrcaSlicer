@@ -2028,7 +2028,7 @@ fd_outcomes = [attempt(lambda: open(READ_FD, "r", closefd=False).close()),
     CHECK(describe(harness.prompts) == "open:\nopen:\n");
     CHECK(harness.saved_permissions(PLUGIN).events == std::vector<std::string>{"FsRead:open"});
 
-    // A saved os.fork event grant is not an os.system command named "os.fork".
+    // A saved os.fork event grant is not the shell os.system runs.
     PluginPermissions permissions;
     permissions.events = {"FsRead:open", "ProcessCreate:os.fork"};
     harness.save_permissions(PLUGIN, permissions);
@@ -2055,8 +2055,10 @@ TEST_CASE("A process grant names the executable and ignores its arguments", "[au
     py::gil_scoped_acquire gil;
     PythonSide python(harness);
     const std::string executable = python.eval("TRUE_COMMAND[0]");
+    const std::string shell = python.eval("(os.environ.get('COMSPEC') or 'cmd.exe') if os.name == 'nt' else '/bin/sh'");
 
-    // Refused, so nothing runs: the prompts show the target each event reports.
+    // Refused, so nothing runs: the prompts show the target each event reports. A direct process
+    // event names the executable, while os.system names the shell that parses its command string.
     python.run_as(PLUGIN, R"PY(
 popen_outcome = attempt(lambda: subprocess.run(TRUE_COMMAND, check=True))
 system_outcome = attempt(lambda: os.system(" ".join(TRUE_COMMAND) + " ignored"))
@@ -2064,7 +2066,7 @@ system_outcome = attempt(lambda: os.system(" ".join(TRUE_COMMAND) + " ignored"))
     CHECK(python.str("popen_outcome") == "denied");
     CHECK(python.str("system_outcome") == "denied");
     CHECK(describe(harness.prompts) ==
-          "subprocess.Popen: " + executable + "\nos.system: " + executable + "\n");
+          "subprocess.Popen: " + executable + "\nos.system: " + shell + "\n");
 
 #ifndef _WIN32
     harness.prompts.clear();
@@ -2073,7 +2075,8 @@ system_outcome = attempt(lambda: os.system(" ".join(TRUE_COMMAND) + " ignored"))
     CHECK(describe(harness.prompts) == "pty.spawn: " + executable + "\n");
 #endif
 
-    // Approving names only the executable, so a later call with other arguments is covered.
+    // Approving a direct process grant names only the executable; that is not a shell grant, so a
+    // later os.system is asked for on its own.
     harness.approve = [](const Prompt&) { return true; };
     harness.prompts.clear();
     python.run_as(PLUGIN, "popen_outcome = attempt(lambda: subprocess.run(TRUE_COMMAND, check=True))");
@@ -2087,6 +2090,16 @@ system_outcome = attempt(lambda: os.system(" ".join(TRUE_COMMAND) + " ignored"))
 system_outcome = attempt(lambda: os.system(" ".join(TRUE_COMMAND) + " ignored"))
 )PY");
     CHECK(python.str("system_outcome") == "ok");
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{shell});
+    CHECK(harness.saved_permissions(PLUGIN).process == std::vector<std::string>{executable, shell});
+
+    // The shell grant covers a different command string, arguments included.
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+repeat_outcome = attempt(lambda: os.system(" ".join(TRUE_COMMAND) + " another argument"))
+)PY");
+    CHECK(python.str("repeat_outcome") == "ok");
     CHECK(describe(harness.prompts).empty());
 }
 
@@ -2182,7 +2195,7 @@ other_saved_outcome = raise_create_process(None, r'"C:\Program Files\ToolB\b.exe
     CHECK(describe(harness.prompts) == "_winapi.CreateProcess: C:\\Program Files\\ToolB\\b.exe\n");
 }
 
-TEST_CASE("An os.system grant extracts the platform-specific command target", "[audit][Python]")
+TEST_CASE("An os.system grant names the shell and covers every command", "[audit][Python]")
 {
     AuditHarness harness;
     if (!harness.initialized)
@@ -2190,8 +2203,10 @@ TEST_CASE("An os.system grant extracts the platform-specific command target", "[
     harness.add_plugin(PLUGIN);
     py::gil_scoped_acquire gil;
     PythonSide python(harness);
+    const std::string shell = python.eval("(os.environ.get('COMSPEC') or 'cmd.exe') if os.name == 'nt' else '/bin/sh'");
 
     // Raising the event directly exercises the target the hook reads without running the command.
+    // The grant names the shell, not the command string's first token, on every platform.
     python.run_as(PLUGIN, R"PY(
 def raise_system(command):
     try:
@@ -2199,27 +2214,36 @@ def raise_system(command):
         return "ok"
     except PermissionError:
         return "denied"
-)PY");
 
-#ifdef _WIN32
-    // The Windows command interpreter keeps a quoted path together, so each names its own tool.
-    python.run_as(PLUGIN, R"PY(
-first_outcome = raise_system(r'"C:\Program Files\ToolA\a.exe" --one')
-other_outcome = raise_system(r'"C:\Program Files\ToolB\b.exe" --one')
-)PY");
-    CHECK(python.str("first_outcome") == "denied");
-    CHECK(python.str("other_outcome") == "denied");
-    CHECK(describe(harness.prompts) ==
-          "os.system: C:\\Program Files\\ToolA\\a.exe\n"
-          "os.system: C:\\Program Files\\ToolB\\b.exe\n");
-#else
-    // POSIX keeps its whitespace split, so a plain command still names only its first token.
-    python.run_as(PLUGIN, R"PY(
 plain_outcome = raise_system("plain-tool --one")
+quoted_outcome = raise_system(r'"C:\Program Files\ToolA\a.exe" --one')
+other_outcome = raise_system("other-tool")
 )PY");
     CHECK(python.str("plain_outcome") == "denied");
-    CHECK(describe(harness.prompts) == "os.system: plain-tool\n");
-#endif
+    CHECK(python.str("quoted_outcome") == "denied");
+    CHECK(python.str("other_outcome") == "denied");
+    CHECK(describe(harness.prompts) ==
+          "os.system: " + shell + "\nos.system: " + shell + "\nos.system: " + shell + "\n");
+
+    // Approving the shell covers every command string, arguments included.
+    harness.approve = [](const Prompt&) { return true; };
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+repeat_outcome = raise_system("plain-tool --two")
+)PY");
+    CHECK(python.str("repeat_outcome") == "ok");
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{shell});
+    CHECK(harness.saved_permissions(PLUGIN).process == std::vector<std::string>{shell});
+
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+quoted_repeat_outcome = raise_system(r'"C:\Program Files\ToolB\b.exe" --flag')
+other_repeat_outcome = raise_system("third-tool --three")
+)PY");
+    CHECK(python.str("quoted_repeat_outcome") == "ok");
+    CHECK(python.str("other_repeat_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
 }
 
 TEST_CASE("A finalizer run when a root frame is let go is judged as the plugin without a prompt", "[audit][Python]")

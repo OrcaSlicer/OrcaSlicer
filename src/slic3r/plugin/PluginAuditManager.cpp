@@ -1665,13 +1665,33 @@ struct ProcessTargetSource {
     ProcessTargetFormat format;
 };
 
-// os.system hands its string to the platform's shell, which parses it differently. Keep the
-// existing whitespace-token split on POSIX; on Windows the command interpreter keeps a quoted path
-// that contains spaces together, so read the first argument by the Windows command-line rules.
+// os.system does not run a program named by its first token: it hands the whole string to the
+// platform shell. POSIX passes it to /bin/sh, and the Windows C runtime runs the command
+// interpreter named by COMSPEC, falling back to cmd.exe. The grant therefore names the shell, and
+// approving it covers every command string the plugin passes to os.system: the shell parses and
+// executes all of the string, arguments included.
 #ifdef _WIN32
-static constexpr ProcessTargetFormat system_target_format = ProcessTargetFormat::WindowsCommandLine;
+static std::string system_shell_target()
+{
+    std::wstring buffer(static_cast<std::size_t>(MAX_PATH) + 1, L'\0');
+    for (;;) {
+        const DWORD length = ::GetEnvironmentVariableW(L"COMSPEC", buffer.data(),
+                                                       static_cast<DWORD>(buffer.size()));
+        // An unset COMSPEC falls back to the runtime's default interpreter name.
+        if (length == 0)
+            return "cmd.exe";
+        if (length < buffer.size()) {
+            buffer.resize(length);
+            return wxString(buffer.c_str()).ToUTF8().data();
+        }
+        buffer.resize(static_cast<std::size_t>(length) + 1);
+    }
+}
 #else
-static constexpr ProcessTargetFormat system_target_format = ProcessTargetFormat::FirstToken;
+static std::string system_shell_target()
+{
+    return "/bin/sh";
+}
 #endif
 
 static const std::unordered_map<std::string, std::vector<ProcessTargetSource>> process_target_sources{
@@ -1686,7 +1706,6 @@ static const std::unordered_map<std::string, std::vector<ProcessTargetSource>> p
     // application_name wins when it is given, so its source comes first; when it is omitted
     // command_line is a Windows command line whose first argument names the executable.
     {"_winapi.CreateProcess",      {{0, ProcessTargetFormat::Path}, {1, ProcessTargetFormat::WindowsCommandLine}}},
-    {"os.system",                  {{0, system_target_format}}},
     {"pty.spawn",                  {{0, ProcessTargetFormat::FirstToken}}},
     // The first argument is argv; its first element names the program.
     {"_posixsubprocess.fork_exec", {{0, ProcessTargetFormat::FirstToken}}},
@@ -1817,6 +1836,11 @@ std::vector<std::string> audit_targets(const std::string& event_name, AuditEvent
     }
     case AuditEventCategory::ProcessCreate:
     case AuditEventCategory::ProcessReplace: {
+        // The shell a command string runs in, not the command itself.
+        if (event_name == "os.system") {
+            targets.emplace_back(system_shell_target());
+            return targets;
+        }
         const auto it = process_target_sources.find(event_name);
         if (it == process_target_sources.end())
             return targets;
