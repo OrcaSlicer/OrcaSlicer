@@ -111,11 +111,14 @@ compacted z for the same reason.
 Reaching down is only safe if nothing tall stands near the tower. `Print.hpp`
 carries the clearance rule: a keep-out zone grown from the tower's footprint by
 the spiral z-hop envelope, and a per-object limit on how high an object may rise
-near it, tiered by the nozzle cone, the head body, the rod and the lid. The same
-rule serves the precise check on real extrusions, the pre-slice estimate that
-feeds the plater, and the outlines the plater draws while an object is dragged,
-so that the ring the user sees touches the object's outline exactly when the
-check trips.
+near it, tiered by the nozzle cone, the head body, the rod and the lid. The
+precise check applies all four to the real extrusions, measuring an object's
+rise from the tower as printed by then. Before slicing that height is unknown,
+so the pre-slice estimate that feeds the plater, and the outlines the plater
+draws while an object is dragged, measure the rise from the plate and apply only
+the nozzle cone and the head body. An object away from the toolhead, which only
+the rod or the lid can reach, is left to the precise check. The ring the user
+sees touches the object's outline exactly when the pre-slice check trips.
 
 ## Merging sparse layers
 
@@ -167,18 +170,12 @@ its accumulation points; Type 2 guards the equivalent block in `finish_layer`,
 which also stops a merged-away layer from adding height of its own — the layer
 that prints the run carries all of it.
 
-A merged layer is the only case where the tower's layer height differs from the
-object layer it sits on, and therefore the only case where the height the
-exporter already emitted for that layer is wrong for the tower. Both generators
-do declare a height, but each hardcodes a tag dialect — the block tower forces
-the BBL tag, the other writes the compatible one — while the G-code processor
-reads only the tag its printer uses. On a non-BBL printer with a Type 1 tower the
-declaration is dropped, and the merged layer is drawn and costed as a thin one.
-`WipeTowerIntegration::tower_height_tag` therefore declares it at export time,
-where the printer is known, and only when the tower's own G-code does not already
-carry the tag that will be read. The object's height returns on the next object
-path, because emission forces the processor role to the tower on any layer that
-carries one.
+A merged tower layer can be thicker than the object layer it sits on. Both
+generators declare the tower's layer height in their own G-code blocks.
+`Print::_make_wipe_tower` selects the printer's tag format before either
+generator runs, so the G-code processor recognises the tower's height and
+extrusion role. The object's height returns on the next object path, because
+emission forces the processor role to the tower on any layer that carries one.
 
 ## Constraints
 

@@ -157,7 +157,9 @@ static unsigned int region_filament(const ExtrusionEntityCollection &extrusions,
             return config.bottom_surface_filament_id.value;
         return config.internal_solid_filament_id.value;
     }
-    // Walls, and the gap fill between them.
+    // Orca: Classic gap fill lies inside the outer wall. With one wall, the inner wall filament is not in use.
+    if (extrusions.role() == erGapFill)
+        return config.wall_loops.value > 1 ? config.inner_wall_filament_id.value : config.outer_wall_filament_id.value;
     const ExtrusionEntitiesPtr &walls = extrusions.entities;
     return !walls.empty() && std::all_of(walls.begin(), walls.end(), [](const ExtrusionEntity *ee) { return is_inner_wall(*ee); }) ?
         config.inner_wall_filament_id.value : config.outer_wall_filament_id.value;
@@ -954,6 +956,11 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
 
     sort_remove_duplicates(firstLayerExtruders);
     const_cast<PrintObject&>(object).object_first_layer_wall_extruders = firstLayerExtruders;
+
+    // A chosen brim filament prints the plate brim on the object's first layer.
+    if (object.config().brim_filament_id.value > 0 && object.has_brim() && !object.print()->config().belt_printer.value &&
+        !object.layers().empty())
+        this->tools_for_layer(object.layers().front()->print_z).extruders.push_back(object.config().brim_filament_id.value);
 
     // Collect the support extruders.
     for (auto support_layer : object.support_layers()) {

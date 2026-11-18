@@ -9,15 +9,35 @@ spacing (so the density holds), and `multiline_fill()` then replaces each
 centerline by the lines of that wall: the centerline itself when N is odd, and
 closed outlines around it at every `spacing` out to `d1 / 2`. The outlines are
 clipped to the fill region contracted by half a line width, then connected like
-any other infill.
+any other infill. Clipping also cuts an outline at its first point, which may be
+anywhere along a line, so `join_cut_outlines()` joins the pieces back first.
 
 Outlines of centerlines that cross each other overlap at every crossing, which
-over-extrudes the wall intersections. The line-crossing patterns Grid,
-Triangles, Tri-hexagon and Cubic therefore build centerlines that never cross
-(`FillRectilinear::fill_surface_trapezoidal()`), and so do Adaptive Cubic and
-Support Cubic (`FillAdaptive`). 3D Honeycomb skips `multiline_fill()` and draws
+over-extrudes the wall intersections. `sparse_infill_strategy` chooses what the
+line-crossing patterns Grid, Triangles, Tri-hexagon, Cubic, Quarter Cubic,
+Adaptive Cubic and Support Cubic do about it. Non-crossing builds centerlines
+that never cross (`FillRectilinear::fill_surface_trapezoidal()`, and `FillAdaptive`
+for the two octree patterns). With a single line, `d1 = spacing` and those
+centerlines are printed as they are. Crossing keeps the straight lines of the
+single-line pattern and prints each wall as N copies of its line, `spacing`
+apart: the `FillRectilinear` patterns slice the region with the copies, as
+Rectilinear does, and `FillAdaptive` shifts copies of each octree segment. The
+walls overlap where they cross.
+Default crosses with one line and turns back with more. `make_fills()` resolves
+Default per region before grouping the surfaces, so regions that print the same
+paths share a fill. 3D Honeycomb skips `multiline_fill()` and draws
 its N lines itself as parallel copies of each wave, which never cross
-(`Fill3DHoneycomb`). The other patterns outline their usual centerlines.
+(`Fill3DHoneycomb`). Rectilinear, Aligned Rectilinear, Lateral Lattice and
+Lateral Honeycomb have only parallel lines, so they skip `multiline_fill()` too:
+`FillRectilinear::fill_surface_by_multilines()` slices the region with N copies
+of each line, `spacing` apart, and the clipping leaves no outline to join. The
+two families of the lateral patterns run in one direction and slide over each
+other with z, so their walls overlap on some layers. The walls of one direction
+are therefore laid out together: walls that overlap print as one wall, of as
+many lines `spacing` apart as its width holds, centered on it. Neither a gap nor
+overlapping lines show where two walls meet, and the layout is the same as two
+walls where they just touch and as one where they coincide. The other patterns
+outline their usual centerlines.
 
 ## Non-crossing centerlines
 
@@ -39,7 +59,8 @@ Cubic run at 0°, 60° and 120°. Those rows rotate by 120° every layer about a
 3-fold center of the arrangement, so each family takes every role in turn.
 The pattern is phased on fixed positions, so it lines up across layers and
 across the regions of one layer. Rounding the corners with
-`sparse_infill_smooth_factor` happens before `multiline_fill()`.
+`sparse_infill_smooth_factor` happens before `multiline_fill()`, and only these
+paths have corners to round: the crossing lines are straight.
 
 Each region builds only the rows over its bounding box in that frame, and
 outlines only the centerlines within `d1 / 2` of it, the ones whose outlines
@@ -80,6 +101,35 @@ flattens toward its base line and lies on it once the triangle is under `d1 / 2`
 high, and the paths beside it are pushed `d1` away. The layout thus reaches the
 Triangles one where the families meet. Adjacent paths stay at least `d1` apart
 at every `tau` and at every density up to 100%.
+
+## Quarter Cubic
+
+Single-line Quarter Cubic draws two pairs of parallel lines, one pair
+perpendicular to the other. With `u` and `v` along the two directions, the lines
+lie at `u = +-a` and `v = +-b` modulo the period `P = 4 * d1 / density`, and `a`
+and `b` change with z in different phases. The multiline paths follow the same
+lines.
+
+The rows run at 45° to the lines, like those of Grid, and transpose on alternate
+layers, which maps the lines onto themselves. Along a row, a path is a staircase:
+it rises along a line of `u` to a crossing, falls along a line of `v` to the next
+one, and so on. Every crossing is a peak of one staircase and a valley of another,
+each cut `d1 / 2` from it, so their walls touch there. There are two shapes of
+staircase, one with the gaps between the lines in the order `2 * b`, `2 * a`,
+`P - 2 * b`, `P - 2 * a`, and the other in the order `P - 2 * b`, `2 * a`, `2 * b`,
+`P - 2 * a`. A period along `u` moves each staircase onto the next of its shape.
+
+Like the single-line pattern, `a` and `b` stay `d1 / 2` from `0` and `P / 2`, so
+two parallel lines come together until their walls touch. The cuts take
+`d1 / sqrt(2)` from each end of a segment between two bends, which does not fit
+on a segment shorter than `sqrt(2) * d1`, between lines that close. The two
+crossings of such a segment then move apart along y, each by half of what it
+lacks, until the bends of its staircase are level. That staircase runs straight
+from one line to the other, the flats of the staircases above and below it stay
+`d1` away from it, and everything else stays on the lines. A move along one
+direction leaves the segments along the other unchanged, so the moves of both
+directions add up where both pairs are close, at high density. The longer gap
+of a pair has room for them, as `P` is at least `4 * d1`.
 
 ## Adaptive Cubic
 

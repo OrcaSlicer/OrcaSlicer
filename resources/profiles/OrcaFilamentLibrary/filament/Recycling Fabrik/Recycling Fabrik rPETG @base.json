@@ -1,0 +1,61 @@
+{
+	"type": "filament",
+	"name": "Recycling Fabrik rPETG @base",
+	"inherits": "fdm_filament_pet",
+	"from": "system",
+	"filament_id": "OFYrEVZ4",
+	"instantiation": "false",
+	"description": "Recycled PETG (post-consumer and post-industrial plastic), made in Germany. Hygroscopic, dry at 50 °C for 4-6 h before printing.",
+	"filament_vendor": [
+		"Recycling Fabrik"
+	],
+	"filament_cost": [
+		"22"
+	],
+	"filament_density": [
+		"1.275"
+	],
+	"filament_flow_ratio": [
+		"0.95"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"nozzle_temperature": [
+		"255"
+	],
+	"nozzle_temperature_initial_layer": [
+		"245"
+	],
+	"nozzle_temperature_range_low": [
+		"230"
+	],
+	"nozzle_temperature_range_high": [
+		"260"
+	],
+	"hot_plate_temp": [
+		"70"
+	],
+	"hot_plate_temp_initial_layer": [
+		"70"
+	],
+	"textured_plate_temp": [
+		"70"
+	],
+	"textured_plate_temp_initial_layer": [
+		"70"
+	],
+	"fan_min_speed": [
+		"10"
+	],
+	"fan_max_speed": [
+		"40"
+	],
+	"close_fan_the_first_x_layers": [
+		"3"
+	],
+	"temperature_vitrification": [
+		"70"
+	],
+	"compatible_printers": []
+}

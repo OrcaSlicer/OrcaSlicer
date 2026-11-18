@@ -38,7 +38,7 @@ TempInput::TempInput()
     , text_color(std::make_pair(wxColour(0xAC,0xAC,0xAC), (int) StateColor::Disabled), std::make_pair(0x6B6B6B, (int) StateColor::Normal))
 {
     hover  = false;
-    radius = 0;
+    input_corner_radius = true;
     border_color = StateColor(std::make_pair(*wxWHITE, (int) StateColor::Disabled), std::make_pair(0x009688, (int) StateColor::Focused), std::make_pair(0x009688, (int) StateColor::Hovered),
                  std::make_pair(*wxWHITE, (int) StateColor::Normal));
     background_color = StateColor(std::make_pair(*wxWHITE, (int) StateColor::Disabled), std::make_pair(*wxWHITE, (int) StateColor::Normal));
@@ -96,6 +96,7 @@ bool TempInput::CheckIsValidVal(bool show_warning)
 void TempInput::Create(wxWindow *parent, wxString text, wxString label, wxString normal_icon, wxString actice_icon, const wxPoint &pos, const wxSize &size, long style)
 {
     StaticBox::Create(parent, wxID_ANY, pos, size, style);
+    apply_input_corner_radius();
     wxWindow::SetLabel(label);
     style &= ~wxALIGN_CENTER_HORIZONTAL;
     state_handler.attach({&label_color, &text_color});
@@ -346,6 +347,7 @@ void TempInput::Rescale()
     if (this->actice_icon.bmp().IsOk()) this->actice_icon.msw_rescale();
     if (this->degree_icon.bmp().IsOk()) this->degree_icon.msw_rescale();
     if (this->round_scale_hint_icon.bmp().IsOk()) this->round_scale_hint_icon.msw_rescale();
+    apply_input_corner_radius();
     messureSize();
 }
 

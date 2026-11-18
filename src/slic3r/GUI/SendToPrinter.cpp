@@ -741,6 +741,9 @@ void SendToPrinterDialog::show_print_failed_info(bool show, int code, wxString d
             m_st_txt_error_code->Wrap(FromDIP(260));
             m_st_txt_error_desc->Wrap(FromDIP(260));
             m_st_txt_extra_info->Wrap(FromDIP(260));
+
+            // Lays out the fixed-size panel, which gets no size event on macOS
+            m_sw_print_failed_info->FitInside();
         }
         else {
             m_sw_print_failed_info->Show(false);

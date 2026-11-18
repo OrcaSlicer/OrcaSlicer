@@ -69,6 +69,7 @@
 #include <wx/listbook.h>
 #include <wx/tokenzr.h>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/format.hpp>
 #include <wx/types.h>
 #include "OG_CustomCtrl.hpp"
 #include "MsgDialog.hpp"
@@ -797,6 +798,15 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                 show_error(m_parent, format_wxstr(_L("Invalid format. Expected vector format: \"%1%\""), "XxY, XxY, ..."));
                 break;
             }
+        }
+
+        if (m_opt_id == "bed_exclude_area" && out_values.size() > 1 && !is_valid_bed_exclude_area(out_values)) {
+            wxString text_value;
+            if (const auto *previous_values = boost::any_cast<std::vector<Vec2d>>(&m_value); previous_values != nullptr)
+                text_value = from_u8(ConfigOptionPoints(*previous_values).serialize());
+            set_value(text_value, true);
+            show_error(m_parent, _L("The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."));
+            break;
         }
 
         m_value = out_values;

@@ -1,0 +1,53 @@
+{
+	"type": "filament",
+	"name": "PrintaLot PETG @BBL X2D 0.4 nozzle",
+	"inherits": "PrintaLot PETG @base",
+	"from": "system",
+	"setting_id": "437fn5z3L80cGHkX",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive E3D High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden E3D High Flow"
+	],
+	"filament_tower_interface_print_temp": [
+		"255"
+	],
+	"first_x_layer_fan_speed": [
+		"40"
+	],
+	"hot_plate_temp": [
+		"70"
+	],
+	"hot_plate_temp_initial_layer": [
+		"70"
+	],
+	"long_retractions_when_ec": [
+		"1",
+		"1",
+		"1",
+		"1",
+		"1",
+		"1"
+	],
+	"retraction_distances_when_ec": [
+		"3",
+		"3",
+		"3",
+		"4",
+		"4",
+		"4"
+	],
+	"textured_plate_temp": [
+		"70"
+	],
+	"textured_plate_temp_initial_layer": [
+		"70"
+	],
+	"compatible_printers": [
+		"Bambu Lab X2D 0.4 nozzle"
+	]
+}
