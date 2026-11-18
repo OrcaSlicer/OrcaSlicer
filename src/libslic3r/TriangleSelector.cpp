@@ -310,14 +310,16 @@ void TriangleSelector::select_patch(int facet_start, std::unique_ptr<Cursor> &&c
     // It is necessary to compare the internal radius in m_cursor! radius is in
     // world coords and does not change after scaling.
     if (m_old_cursor_radius_sqr != m_cursor->radius_sqr) {
+        // The caps are in millimetres, but edges are measured in mesh units, which are smaller than a millimetre on a scaled-down mesh.
+        const float cap_scale = m_cursor->uniform_scaling ? std::max(1.f / m_cursor->trafo.linear().col(0).norm(), 1.f) : 1.f;
         // BBS: improve details for large cursor radius
         TriangleSelector::HeightRange* hr_cursor = dynamic_cast<TriangleSelector::HeightRange*>(m_cursor.get());
         if (hr_cursor == nullptr) {
-            set_edge_limit(std::min(std::sqrt(m_cursor->radius_sqr) / 5.f, 0.05f));
+            set_edge_limit(std::min(std::sqrt(m_cursor->radius_sqr) / 5.f, 0.05f * cap_scale));
             m_old_cursor_radius_sqr = m_cursor->radius_sqr;
         }
         else {
-            set_edge_limit(0.1);
+            set_edge_limit(0.1f * cap_scale);
             m_old_cursor_radius_sqr = 0.1;
         }
     }
