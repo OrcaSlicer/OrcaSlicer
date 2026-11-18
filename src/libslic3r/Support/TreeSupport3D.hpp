@@ -335,6 +335,10 @@ void organic_draw_branches(
 
     std::function<void()> throw_on_cancel);
 
+// Grows me by distance in steps of safe_step_size, so it cannot cross a collision thinner than a step.
+[[nodiscard]] Polygons safe_offset_inc(const Polygons &me, coord_t distance, const Polygons &collision, coord_t safe_step_size,
+                                       coord_t last_step_offset_without_check, size_t min_amount_offset);
+
 } // namespace TreeSupport3D
 
 void generate_tree_support_3D(PrintObject &print_object, TreeSupport* tree_support, std::function<void()> throw_on_cancel = []{});

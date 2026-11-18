@@ -12,6 +12,7 @@
 #include "libslic3r/Support/SupportLayer.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "SupportCommon.hpp"
+#include "TreeSupport3D.hpp"
 #include "BeltFloorContext.hpp"
 #include "Geometry.hpp"
 #include "Point.hpp"
@@ -1605,7 +1606,11 @@ static inline ExPolygons detect_overhangs(
             if (diff_polygons.empty() || offset(diff_polygons, -0.1 * fw).empty())
                 continue;
 
-            if (xy_expansion != 0) { diff_polygons = expand(diff_polygons, xy_expansion, SUPPORT_SURFACES_OFFSET_PARAMETERS); }
+            // Grow in steps against the layer below, so the expansion does not jump over a thin wall.
+            if (xy_expansion > 0)
+                diff_polygons = TreeSupport3D::safe_offset_inc(diff_polygons, coord_t(xy_expansion), *effective_lower, scaled<coord_t>(0.5), 0, 1);
+            else if (xy_expansion < 0)
+                diff_polygons = expand(diff_polygons, xy_expansion, SUPPORT_SURFACES_OFFSET_PARAMETERS);
 
             polygons_append(overhang_polygons, diff_polygons);
         } // for each layer.region
