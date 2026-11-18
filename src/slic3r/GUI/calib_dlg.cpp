@@ -206,6 +206,10 @@ CalibFilamentSelector::CalibFilamentSelector(wxWindow* parent) : m_parent(parent
                                  wxCB_READONLY);
     m_sizer->Add(label, 0, wxALL | wxALIGN_CENTER_VERTICAL, parent->FromDIP(2));
     m_sizer->Add(m_combo, 1, wxALL | wxALIGN_CENTER_VERTICAL, parent->FromDIP(2));
+    const wxString tip = _L("The filament of the project the test prints with, and whose settings it uses. Shown when the project has "
+                            "more than one filament.");
+    set_illustrated_tooltip(label, tip);
+    set_illustrated_tooltip(m_combo, tip);
     refresh();
     m_combo->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& event) {
         if (m_on_change)
@@ -650,7 +654,6 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     set_input_tooltip(m_tiEnd, _L("The nozzle temperature of the top block. It has to be at least 5 degrees below the start temperature."),
                       calib_tip("temp", "end"));
     set_input_tooltip(m_tiStep, _L("The temperature difference between neighboring blocks, fixed at 5 degrees."));
-    set_radio_tooltips(m_rbFilamentType, 8, _L("Fills in a start and end temperature that suit this kind of filament. You can still change them."));
     m_rbModel->SetRadioIllustratedTooltip(0, _L("A tower of blocks, one for each temperature."), {{"app_ui/calib_temp_standard.png", {}}});
     m_rbModel->SetRadioIllustratedTooltip(1, _L("A row of small test pieces with an overhang, one for each temperature, to compare how the overhangs come out."),
                                          {{"app_ui/calib_temp_overhang.png", {}}});
