@@ -13,6 +13,9 @@
 
 #include "WallToolPaths.hpp"
 
+#include "../AABBTreeLines.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Polyline.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
@@ -566,6 +569,8 @@ const std::vector<VariableWidthLines> &WallToolPaths::generate()
 
     removeSmallLines(toolpaths);
 
+    applyOverhangWallOverlap();
+
     separateOutInnerContour();
 
     simplifyToolPaths(toolpaths, m_params);
@@ -578,6 +583,437 @@ const std::vector<VariableWidthLines> &WallToolPaths::generate()
                           }) && "WallToolPaths should be sorted from the outer 0th to inner_walls");
     toolpaths_generated = true;
     return toolpaths;
+}
+
+namespace {
+
+struct WallSupportSample {
+    double distance;
+    double unsupported;
+};
+
+struct WallOverlapPoint {
+    double distance;
+    double overlap;
+};
+
+using WallSupport = std::vector<WallSupportSample>;
+using WallOverlapProfile = std::vector<WallOverlapPoint>;
+using WallDistancer = AABBTreeLines::LinesDistancer<ThickLine>;
+
+struct WallOverlapRegion {
+    double begin, end;
+    size_t first_target, last_target;
+    WallOverlapPoint entry, exit;
+};
+
+// Support and overlap are separate scalar fields on the original wall's arc length.
+template<class Sample>
+double profile_value(const std::vector<Sample> &profile, double distance, double Sample::*value)
+{
+    auto right = std::upper_bound(profile.begin(), profile.end(), distance,
+                                 [](double s, const Sample &point) { return s < point.distance; });
+    if (right == profile.begin())
+        return (*right).*value;
+    if (right == profile.end())
+        return profile.back().*value;
+    const Sample &left = *(right - 1);
+    const double t = (distance - left.distance) / (right->distance - left.distance);
+    return left.*value + t * ((*right).*value - left.*value);
+}
+
+double overlap_factor(double unsupported, double start, double full)
+{
+    return full > start ? std::clamp((unsupported - start) / (full - start), 0., 1.) : double(unsupported > start);
+}
+
+WallSupport insert_support_thresholds(const WallSupport &support, double start, double full)
+{
+    std::vector<double> thresholds{0., start, full};
+    std::sort(thresholds.begin(), thresholds.end());
+    thresholds.erase(std::unique(thresholds.begin(), thresholds.end()), thresholds.end());
+    WallSupport samples;
+    samples.reserve(support.size());
+    samples.push_back(support.front());
+    for (size_t i = 1; i < support.size(); ++i) {
+        const WallSupportSample &a = support[i - 1];
+        const WallSupportSample &b = support[i];
+        // Append crossings in path order, without a temporary array for each segment.
+        for (size_t j = 0; j < thresholds.size(); ++j) {
+            const double threshold = thresholds[b.unsupported > a.unsupported ? j : thresholds.size() - 1 - j];
+            if ((a.unsupported < threshold && threshold < b.unsupported) ||
+                (b.unsupported < threshold && threshold < a.unsupported)) {
+                const double t = (threshold - a.unsupported) / (b.unsupported - a.unsupported);
+                samples.push_back({a.distance + t * (b.distance - a.distance), threshold});
+            }
+        }
+        samples.push_back(b);
+    }
+    return samples;
+}
+
+std::vector<WallOverlapRegion> find_overlap_regions(const WallSupport &samples, double start, double full, double max_length)
+{
+    std::vector<double> zero_positions;
+    for (const WallSupportSample &sample : samples)
+        if (sample.unsupported <= 0.)
+            zero_positions.push_back(sample.distance);
+
+    std::vector<WallOverlapRegion> regions;
+    for (size_t i = 0; i < samples.size();) {
+        if (samples[i].unsupported <= start) {
+            ++i;
+            continue;
+        }
+        const size_t first = i;
+        double peak = samples[i].unsupported;
+        while (i + 1 < samples.size() && samples[i + 1].unsupported > start)
+            peak = std::max(peak, samples[++i].unsupported);
+        const size_t last = i++;
+        const size_t begin = first > 0 ? first - 1 : first;
+        const size_t end = last + 1 < samples.size() ? last + 1 : last;
+        const double target = std::min(full, peak);
+        size_t first_target = begin, last_target = end;
+        while (first_target < last && samples[first_target].unsupported < target)
+            ++first_target;
+        while (last_target > first && samples[last_target].unsupported < target)
+            --last_target;
+        // Open endpoints stop extension without forcing an active wall to zero overlap.
+        if (first == 0)
+            first_target = first;
+        if (last + 1 == samples.size())
+            last_target = last;
+
+        double entry = std::max(samples.front().distance, samples[begin].distance - max_length);
+        double exit = std::min(samples.back().distance, samples[end].distance + max_length);
+        const auto previous_zero = std::upper_bound(zero_positions.begin(), zero_positions.end(), samples[begin].distance);
+        if (previous_zero != zero_positions.begin())
+            entry = std::max(entry, *(previous_zero - 1));
+        const auto next_zero = std::lower_bound(zero_positions.begin(), zero_positions.end(), samples[end].distance);
+        if (next_zero != zero_positions.end())
+            exit = std::min(exit, *next_zero);
+        regions.push_back({samples[begin].distance, samples[end].distance, first_target, last_target, {entry, 0.}, {exit, 0.}});
+    }
+    return regions;
+}
+
+double minimum_support_position(const WallSupport &samples, double begin, double end)
+{
+    WallSupport candidates{{begin, std::max(0., profile_value(samples, begin, &WallSupportSample::unsupported))}};
+    auto it = std::upper_bound(samples.begin(), samples.end(), begin,
+                               [](double s, const WallSupportSample &sample) { return s < sample.distance; });
+    for (; it != samples.end() && it->distance < end; ++it)
+        candidates.push_back({it->distance, std::max(0., it->unsupported)});
+    candidates.push_back({end, std::max(0., profile_value(samples, end, &WallSupportSample::unsupported))});
+    const double minimum = std::min_element(candidates.begin(), candidates.end(),
+        [](const WallSupportSample &a, const WallSupportSample &b) { return a.unsupported < b.unsupported; })->unsupported;
+    const double middle = 0.5 * (begin + end);
+    double handoff = begin, best_distance = std::numeric_limits<double>::max();
+    // For disjoint equal minima, choose the minimum plateau closest to the middle.
+    constexpr double support_tolerance = 1e-9;
+    for (size_t i = 0; i < candidates.size(); ++i) {
+        if (std::abs(candidates[i].unsupported - minimum) > support_tolerance)
+            continue;
+        const double plateau_begin = candidates[i].distance;
+        while (i + 1 < candidates.size() && std::abs(candidates[i + 1].unsupported - minimum) <= support_tolerance)
+            ++i;
+        const double midpoint = 0.5 * (plateau_begin + candidates[i].distance);
+        if (std::abs(midpoint - middle) < best_distance) {
+            handoff = midpoint;
+            best_distance = std::abs(midpoint - middle);
+        }
+    }
+    return handoff;
+}
+
+void merge_overlap_transitions(std::vector<WallOverlapRegion> &regions, const WallSupport &samples, double start, double full)
+{
+    for (size_t i = 1; i < regions.size(); ++i) {
+        WallOverlapRegion &left = regions[i - 1];
+        WallOverlapRegion &right = regions[i];
+        const double begin = std::max(left.end, right.entry.distance);
+        const double end = std::min(right.begin, left.exit.distance);
+        if (begin > end)
+            continue;
+
+        const double handoff = minimum_support_position(samples, begin, end);
+        const WallSupportSample &left_target = samples[left.last_target];
+        const WallSupportSample &right_target = samples[right.first_target];
+        const double left_height = full <= start ? 1. : overlap_factor(left_target.unsupported, start, full);
+        const double right_height = full <= start ? 1. : overlap_factor(right_target.unsupported, start, full);
+        const double left_value = left.exit.distance > left_target.distance ?
+            left_height * std::clamp((left.exit.distance - handoff) / (left.exit.distance - left_target.distance), 0., 1.) : left_height;
+        const double right_value = right_target.distance > right.entry.distance ?
+            right_height * std::clamp((handoff - right.entry.distance) / (right_target.distance - right.entry.distance), 0., 1.) : right_height;
+        left.exit = right.entry = {handoff, 0.5 * (left_value + right_value)};
+    }
+}
+
+WallOverlapProfile make_overlap_profile(const WallSupport &support, double start, double full, double max_length)
+{
+    const WallSupport samples = insert_support_thresholds(support, start, full);
+    std::vector<WallOverlapRegion> regions = find_overlap_regions(samples, start, full, max_length);
+    merge_overlap_transitions(regions, samples, start, full);
+
+    WallOverlapProfile profile;
+    auto append = [&profile](WallOverlapPoint point) {
+        if (!profile.empty() && point.distance == profile.back().distance)
+            profile.back() = point;
+        else
+            profile.push_back(point);
+    };
+    append({samples.front().distance, overlap_factor(samples.front().unsupported, start, full)});
+    for (const WallOverlapRegion &region : regions) {
+        if (region.entry.distance < samples[region.first_target].distance)
+            append(region.entry);
+        for (size_t i = region.first_target; i <= region.last_target; ++i)
+            append({samples[i].distance, full <= start ? 1. : overlap_factor(samples[i].unsupported, start, full)});
+        if (region.exit.distance > samples[region.last_target].distance)
+            append(region.exit);
+    }
+    append({samples.back().distance, overlap_factor(samples.back().unsupported, start, full)});
+    return profile;
+}
+
+WallOverlapProfile wall_overlap_profile(const WallSupport &support, bool closed, double start, double full, double max_length)
+{
+    if (!closed)
+        return make_overlap_profile(support, start, full, max_length);
+
+    // A loop above the trigger everywhere has no entry/exit to extend.
+    if (std::all_of(support.begin(), support.end(), [start](const WallSupportSample &sample) { return sample.unsupported > start; })) {
+        WallOverlapProfile profile;
+        profile.reserve(support.size());
+        for (const WallSupportSample &sample : support)
+            profile.push_back({sample.distance, overlap_factor(sample.unsupported, start, full)});
+        return profile;
+    }
+
+    // Three periods let the same linear algorithm handle the seam. Keep the middle one.
+    const double length = support.back().distance;
+    WallSupport periodic;
+    periodic.reserve(3 * support.size());
+    for (size_t period = 0; period < 3; ++period)
+        for (size_t i = 0; i + 1 < support.size(); ++i)
+            periodic.push_back({support[i].distance + period * length, support[i].unsupported});
+    periodic.push_back({3 * length, support.front().unsupported});
+    const WallOverlapProfile expanded = make_overlap_profile(periodic, start, full, std::min(max_length, length));
+    WallOverlapProfile profile{{0., profile_value(expanded, length, &WallOverlapPoint::overlap)}};
+    for (const WallOverlapPoint &point : expanded)
+        if (point.distance > length && point.distance < 2 * length)
+            profile.push_back({point.distance - length, point.overlap});
+    profile.push_back({length, profile.front().overlap});
+    return profile;
+}
+
+ThickLines overlap_wall_segments(const VariableWidthLines &walls)
+{
+    ThickLines segments;
+    for (const ExtrusionLine &wall : walls)
+        if (!wall.is_odd && wall.junctions.size() >= 2)
+            append(segments, to_thick_polyline(wall).thicklines());
+    return segments;
+}
+
+ExtrusionJunctions sample_overlap_wall(const ExtrusionJunctions &junctions)
+{
+    ExtrusionJunctions sampled;
+    sampled.reserve(junctions.size());
+    for (size_t i = 1; i < junctions.size(); ++i) {
+        const ExtrusionJunction &a = junctions[i - 1];
+        const ExtrusionJunction &b = junctions[i];
+        sampled.push_back(a);
+        const size_t segments = size_t(std::ceil((b.p - a.p).cast<double>().norm() / scale_(0.2)));
+        for (size_t j = 1; j < segments; ++j) {
+            const double t = double(j) / segments;
+            sampled.emplace_back((a.p.cast<double>() + t * (b.p - a.p).cast<double>()).cast<coord_t>(),
+                                 coord_t(a.w + t * (b.w - a.w)), a.perimeter_index);
+        }
+    }
+    sampled.push_back(junctions.back());
+    return sampled;
+}
+
+WallSupport sample_wall_support(const ExtrusionJunctions &junctions, const WallDistancer &outer,
+                               const AABBTreeLines::LinesDistancer<Line> &support, double reach)
+{
+    WallSupport samples;
+    samples.reserve(junctions.size());
+    double position = 0.;
+    for (size_t i = 0; i < junctions.size(); ++i) {
+        const Point &point = junctions[i].p;
+        if (i > 0)
+            position += (point - junctions[i - 1].p).cast<double>().norm();
+        const auto [distance, source_idx, nearest] = outer.distance_from_lines_extra<false>(point);
+        double unsupported = 0.;
+        // Only paired walls within reach contribute support and overlap.
+        if (distance > 0 && distance < reach) {
+            const ThickLine &source = outer.get_line(source_idx);
+            const Vec2d direction = (source.b - source.a).cast<double>();
+            const double t = direction.squaredNorm() > 0 ?
+                std::clamp((nearest - source.a.cast<double>()).dot(direction) / direction.squaredNorm(), 0., 1.) : 0.;
+            const double width = source.a_width + t * (source.b_width - source.a_width);
+            if (width > 0) {
+                const double support_distance = support.distance_from_lines<true>(nearest.cast<coord_t>());
+                // Retain negative values until the zero crossings have been interpolated.
+                unsupported = std::min(1., 0.5 + support_distance / width);
+            }
+        }
+        samples.push_back({position, unsupported});
+    }
+    return samples;
+}
+
+// Insert profile control points into the geometry and return one overlap factor per junction.
+std::vector<double> apply_overlap_profile(ExtrusionJunctions &junctions, const WallSupport &support, const WallOverlapProfile &profile)
+{
+    ExtrusionJunctions sampled;
+    sampled.reserve(junctions.size() + profile.size());
+    std::vector<double> factors;
+    factors.reserve(sampled.capacity());
+    sampled.push_back(junctions.front());
+    factors.push_back(profile_value(profile, 0., &WallOverlapPoint::overlap));
+    size_t control = 0;
+    for (size_t i = 1; i < junctions.size(); ++i) {
+        const ExtrusionJunction &a = junctions[i - 1];
+        const ExtrusionJunction &b = junctions[i];
+        const double begin = support[i - 1].distance, end = support[i].distance;
+        while (control < profile.size() && profile[control].distance < end) {
+            const WallOverlapPoint &point = profile[control++];
+            if (point.distance <= begin)
+                continue;
+            const double t = (point.distance - begin) / (end - begin);
+            sampled.emplace_back(lerp(a.p, b.p, t), coord_t(a.w + t * (double(b.w) - a.w)), a.perimeter_index);
+            factors.push_back(point.overlap);
+        }
+        sampled.push_back(b);
+        factors.push_back(profile_value(profile, end, &WallOverlapPoint::overlap));
+    }
+    junctions.swap(sampled);
+    return factors;
+}
+
+bool move_wall_towards_outer(ExtrusionLine &wall, const WallDistancer &original_outer, const WallDistancer &current_outer,
+                            const std::vector<double> &overlap_factors, double extra_overlap, double cumulative_overlap, double reach)
+{
+    const ExtrusionJunctions unshifted = wall.junctions;
+    const size_t vertex_count = wall.is_closed && unshifted.front().p == unshifted.back().p ? unshifted.size() - 1 : unshifted.size();
+    bool moved = false;
+    for (size_t point_idx = 0; point_idx < wall.junctions.size(); ++point_idx) {
+        ExtrusionJunction &junction = wall.junctions[point_idx];
+        const auto [distance, line_idx, nearest] = current_outer.distance_from_lines_extra<false>(junction.p);
+        if (distance <= 0 || distance >= reach)
+            continue;
+        const double original_distance = original_outer.distance_from_lines<false>(junction.p);
+        const double shift = std::clamp(distance - original_distance + extra_overlap * overlap_factors[point_idx], 0., cumulative_overlap);
+        if (shift <= 0)
+            continue;
+
+        const Vec2d position = junction.p.cast<double>();
+        const Vec2d first_direction = (nearest - position) / distance;
+        Vec2d displacement = first_direction * shift;
+        const size_t vertex_idx = point_idx == vertex_count ? 0 : point_idx;
+        if (vertex_count >= 3 && (wall.is_closed || (vertex_idx > 0 && vertex_idx + 1 < vertex_count))) {
+            const Vec2d incoming = (unshifted[vertex_idx].p - unshifted[(vertex_idx + vertex_count - 1) % vertex_count].p).cast<double>();
+            const Vec2d outgoing = (unshifted[(vertex_idx + 1) % vertex_count].p - unshifted[vertex_idx].p).cast<double>();
+            if (incoming.norm() > 0 && outgoing.norm() > 0) {
+                const double turn_cos = incoming.normalized().dot(outgoing.normalized());
+                if (turn_cos < 0.95 && turn_cos > -0.95) {
+                    // At corners, move along the miter of connected outer edges.
+                    const Line &first_line = current_outer.get_line(line_idx);
+                    const double corner_tolerance = scale_(0.1);
+                    double best_difference = corner_tolerance;
+                    for (size_t candidate_idx : current_outer.all_lines_in_radius(junction.p, distance + corner_tolerance)) {
+                        if (candidate_idx == line_idx)
+                            continue;
+                        const Line &candidate = current_outer.get_line(candidate_idx);
+                        if (candidate.a != first_line.a && candidate.a != first_line.b &&
+                            candidate.b != first_line.a && candidate.b != first_line.b)
+                            continue;
+                        if (candidate.a == candidate.b)
+                            continue;
+                        const Vec2d second_direction = junction.p.projection_onto(candidate).cast<double>() - position;
+                        const double second_distance = second_direction.norm();
+                        const double difference = std::abs(second_distance - distance);
+                        if (second_distance == 0 || difference >= best_difference)
+                            continue;
+                        const Vec2d second_unit = second_direction / second_distance;
+                        const double directions_dot = first_direction.dot(second_unit);
+                        if (directions_dot >= 0.9 || directions_dot <= -0.5)
+                            continue;
+                        displacement = shift * (first_direction + second_unit) / (1. + directions_dot);
+                        best_difference = difference;
+                    }
+                }
+            }
+        }
+        junction.p = (position + displacement).cast<coord_t>();
+        moved = true;
+    }
+    return moved;
+}
+
+} // namespace
+
+void WallToolPaths::applyOverhangWallOverlap()
+{
+    if (m_params.overhang_support == nullptr || m_params.overhang_wall_overlap <= 0 || toolpaths.empty())
+        return;
+
+    // Snapshot the original geometry, including the zero-width fill-boundary marker.
+    // ThickLine keeps endpoint widths attached to the segments indexed by the AABB tree.
+    std::vector<ThickLines> original_walls;
+    original_walls.reserve(toolpaths.size());
+    for (const VariableWidthLines &walls : toolpaths)
+        original_walls.push_back(overlap_wall_segments(walls));
+    const ThickLines anchor = overlap_wall_segments(m_params.outer_wall_anchor);
+    const AABBTreeLines::LinesDistancer<Line> support_lines(to_lines(*m_params.overhang_support));
+
+    double cumulative_overlap = 0.;
+    bool outer_shifted = false;
+    for (size_t inset = 0; inset < toolpaths.size(); ++inset) {
+        if (inset == 0 && anchor.empty())
+            continue; // The actual outer contour stays in place.
+        const ThickLines &original_outer = inset == 0 ? anchor : original_walls[inset - 1];
+        if (original_outer.empty() || original_walls[inset].empty()) {
+            cumulative_overlap = 0.;
+            outer_shifted = false;
+            continue;
+        }
+
+        const bool is_inner_contour = original_walls[inset].front().a_width == 0.;
+        const double outer_spacing = inset == 0 ? m_params.outer_wall_anchor_spacing : inset == 1 ? bead_width_0 : bead_width_x;
+        const double inner_spacing = inset == 0 ? bead_width_0 : bead_width_x;
+        const double wall_spacing = 0.5 * (outer_spacing + inner_spacing);
+        const double extra_overlap = is_inner_contour ? 0. : m_params.overhang_wall_overlap * std::min(outer_spacing, inner_spacing);
+        cumulative_overlap += extra_overlap;
+        if (is_inner_contour && !outer_shifted)
+            continue;
+
+        const WallDistancer original_outer_lines(original_outer);
+        const WallDistancer current_outer_lines(inset == 0 ? anchor : overlap_wall_segments(toolpaths[inset - 1]));
+        const double reach = wall_spacing + cumulative_overlap + scale_(0.5);
+        bool inner_shifted = false;
+        for (ExtrusionLine &wall : toolpaths[inset]) {
+            if (wall.is_odd || wall.junctions.size() < 2)
+                continue;
+            wall.junctions = sample_overlap_wall(wall.junctions);
+            std::vector<double> overlap_factors(wall.junctions.size(), 0.);
+            if (!is_inner_contour) {
+                const WallSupport support = sample_wall_support(wall.junctions, original_outer_lines, support_lines, reach);
+                if (support.back().distance <= 0.)
+                    continue;
+                const WallOverlapProfile profile = wall_overlap_profile(support, wall.is_closed,
+                    m_params.overhang_wall_overlap_start, m_params.overhang_wall_overlap_full,
+                    scale_(m_params.overhang_wall_overlap_transition_length));
+                overlap_factors = apply_overlap_profile(wall.junctions, support, profile);
+            }
+            if (move_wall_towards_outer(wall, original_outer_lines, current_outer_lines, overlap_factors,
+                                       extra_overlap, cumulative_overlap, reach))
+                inner_shifted = true;
+        }
+        outer_shifted = inner_shifted;
+    }
 }
 
 void WallToolPaths::stitchToolPaths(std::vector<VariableWidthLines> &toolpaths, const coord_t bead_width_x)

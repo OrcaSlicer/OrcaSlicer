@@ -15,6 +15,7 @@
 #include "libslic3r/Point.hpp"
 #include "utils/ExtrusionLine.hpp"
 #include "../Polygon.hpp"
+#include "../ExPolygon.hpp"
 #include "../PrintConfig.hpp"
 
 namespace Slic3r::Arachne
@@ -36,6 +37,16 @@ public:
     float   wall_transition_filter_deviation = 0.f;
     int     wall_distribution_count          = 1;
     bool    is_top_or_bottom_layer           = false;
+
+    // Optional support-aware spacing for actual part walls. The anchor is used when
+    // a separate Arachne pass generates inner walls behind a single outer wall.
+    const ExPolygons *overhang_support = nullptr;
+    double overhang_wall_overlap = 0.;
+    double overhang_wall_overlap_start = 0.25;
+    double overhang_wall_overlap_full = 0.75;
+    double overhang_wall_overlap_transition_length = 0.; // Maximum extension at each end, in mm.
+    VariableWidthLines outer_wall_anchor;
+    coord_t outer_wall_anchor_spacing = 0;
 
     coord_t wall_maximum_resolution = meshfix_maximum_resolution();
     coord_t wall_maximum_deviation  = meshfix_maximum_deviation();
@@ -129,6 +140,8 @@ protected:
      * \return
      */
     static void simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths, const WallToolPathsParams& params);
+
+    void applyOverhangWallOverlap();
 
 private:
     const Polygons& outline; //<! A reference to the outline polygon that is the designated area
