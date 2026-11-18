@@ -3,8 +3,8 @@
 
 Reads everything first, prints the planned changes as Markdown (also to $GITHUB_STEP_SUMMARY), and
 changes the project only with --apply. With RELEASE_STATUS_DISCORD_WEBHOOK set, an applied run also
-edits the Discord status post (RELEASE_STATUS_MESSAGE_ID), or creates it when no id is set; a dry run
-prints a preview. Run by .github/workflows/release_pick.yml.
+edits the Discord status post (RELEASE_STATUS_MESSAGE_ID), or creates it on a manual run when no id is
+set; a dry run prints a preview. A Discord failure is a warning, not a failed run. Run by .github/workflows/release_pick.yml.
 
   RELEASE_PROJECT_TOKEN=... python3 scripts/release_pick_sync.py --owner OrcaSlicer --project 15 \\
       --repo OrcaSlicer/OrcaSlicer --repo-dir . [--apply]
@@ -71,11 +71,6 @@ def _short(pick):
     return f"{pick.sha[:9]} {pick.subject}"
 
 
-def _release_of(branch):
-    match = re.search(r"v(\d+\.\d+\.\d+)$", branch)
-    return match.group(1) if match else None
-
-
 def _report(changes, attention, reverted, unmatched):
     lines = ["## Planned changes"]
     new_status = {c.number: c.status for c in changes if c.action == "set_status" and c.item_id is None}
@@ -121,19 +116,25 @@ def _apply(gh, project, changes):
     return len(changes), None
 
 
-def _discord_payload(project, labelled, changes, reverted, unmatched, owner, number, repo, now):
-    attention = [(n, "closed without a merge") for n in needs_attention(project.items)]
-    attention += [(p.pr, f"reverted on {p.branch} ({_short(p)})") for p in reverted]
-    by_milestone = {}
+def _release_of(branch):
+    match = re.search(r"v(\d+\.\d+\.\d+)$", branch)
+    return match.group(1) if match else None
+
+
+def _discord_payload(project, labelled, changes, reverted, unmatched, milestones, owner, number, repo, now):
+    by_number = {i.number: i for i in project.items}
+    attention = [(by_number[n].milestone, n, by_number[n].kind, "closed without a merge")
+                 for n in needs_attention(project.items)]
+    attention += [(_release_of(p.branch), p.pr, "PullRequest", f"reverted on {p.branch} ({_short(p)})")
+                  for p in reverted]
+    by_release = {}
     for pick in unmatched:
-        match = re.search(r"v(\d+\.\d+\.\d+)$", pick.branch)
-        if match:
-            by_milestone.setdefault(match.group(1), []).append((pick.branch, _short(pick)))
-    return build_message(project_after(project.items, labelled, changes), attention, by_milestone,
+        by_release.setdefault(_release_of(pick.branch), []).append((pick.branch, _short(pick)))
+    return build_message(project_after(project.items, labelled, changes), attention, by_release, milestones,
                          f"https://github.com/orgs/{owner}/projects/{number}", repo, now)
 
 
-def run(gh, repo_dir, owner, number, repo, apply, out, discord=None, post_id=None, now=None):
+def run(gh, repo_dir, owner, number, repo, apply, out, discord=None, post_id=None, allow_create=True, now=None):
     try:
         project = gh.project(owner, number, repo)
         labelled = gh.labelled_items(repo, LABEL)
@@ -153,7 +154,8 @@ def run(gh, repo_dir, owner, number, repo, apply, out, discord=None, post_id=Non
     payload = None
     if discord:
         now = now or datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
-        payload = _discord_payload(project, labelled, changes, reverted, unmatched, owner, number, repo, now)
+        payload = _discord_payload(project, labelled, changes, reverted, unmatched, milestones, owner, number,
+                                   repo, now)
     if apply:
         applied, error = _apply(gh, project, changes)
         if error:
@@ -161,17 +163,20 @@ def run(gh, repo_dir, owner, number, repo, apply, out, discord=None, post_id=Non
         lines += ["", f"Applied {applied} of {len(changes)} changes."]
         code = 1 if error else 0
         if payload and not error:
+            # Discord is a view of the project: a failure there is a warning, never a failed sync.
             try:
                 if post_id:
                     discord.edit_post(post_id, payload)
                     lines.append("Updated the Discord status post.")
-                else:
+                elif allow_create:
                     new_id = discord.create_post(DISCORD_POST_TITLE, payload)
                     lines.append(f"Created the Discord status post. Set the repository variable "
                                  f"RELEASE_STATUS_MESSAGE_ID to {new_id} so later runs edit it.")
+                else:
+                    lines.append("::notice::No RELEASE_STATUS_MESSAGE_ID yet: run the workflow by hand once to "
+                                 "create the Discord status post.")
             except DiscordError as discord_error:
-                lines.append(f"Discord update failed: {discord_error}")
-                code = 1
+                lines.append(f"::warning::Discord update failed: {discord_error}")
     else:
         lines += ["", "Dry run: no changes applied."]
         code = 0
@@ -209,7 +214,9 @@ def main():
     webhook = os.environ.get("RELEASE_STATUS_DISCORD_WEBHOOK")
     code = run(GitHub(token, label=LABEL), args.repo_dir, args.owner, args.project, args.repo, args.apply, out,
                discord=Discord(webhook) if webhook else None,
-               post_id=os.environ.get("RELEASE_STATUS_MESSAGE_ID") or None)
+               post_id=os.environ.get("RELEASE_STATUS_MESSAGE_ID") or None,
+               # Only a manual run creates the post, so scheduled and event runs cannot add one each.
+               allow_create=os.environ.get("GITHUB_EVENT_NAME", "workflow_dispatch") == "workflow_dispatch")
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary:
         with open(summary, "a", encoding="utf-8") as f:

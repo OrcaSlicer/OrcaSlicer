@@ -92,6 +92,17 @@ class MainTest(unittest.TestCase):
         kwargs = run.call_args.kwargs
         self.assertIsInstance(kwargs["discord"], sync.Discord)
         self.assertEqual(kwargs["post_id"], "999")
+        self.assertTrue(kwargs["allow_create"])  # no GITHUB_EVENT_NAME: a local run
+
+    def test_only_a_manual_workflow_run_may_create_the_post(self):
+        for event, allowed in (("schedule", False), ("issues", False), ("workflow_dispatch", True)):
+            env = {"RELEASE_PROJECT_TOKEN": "t", "RELEASE_STATUS_DISCORD_WEBHOOK": "https://discord.invalid/h",
+                   "GITHUB_EVENT_NAME": event}
+            with mock.patch.dict(os.environ, env, clear=True), \
+                    mock.patch.object(sync, "run", return_value=0) as run, \
+                    mock.patch.object(sys, "argv", ["sync", "--owner", "o", "--project", "1", "--repo", "o/r"]):
+                sync.main()
+            self.assertEqual(run.call_args.kwargs["allow_create"], allowed, event)
 
     def test_no_webhook_means_no_discord(self):
         with mock.patch.dict(os.environ, {"RELEASE_PROJECT_TOKEN": "t"}, clear=True), \
@@ -117,14 +128,14 @@ class FakeDiscord:
 
 
 class RunTest(unittest.TestCase):
-    def run_sync(self, gh, apply=False, discord=None, post_id=None, **git):
+    def run_sync(self, gh, apply=False, discord=None, post_id=None, allow_create=True, **git):
         out = io.StringIO()
         patches = git_stubs(**git)
         for p in patches:
             p.start()
         self.addCleanup(lambda: [p.stop() for p in patches])
         code = sync.run(gh, ".", "OrcaSlicer", 15, REPO, apply, out, discord=discord, post_id=post_id,
-                        now="2026-11-18T17:30:00+00:00")
+                        allow_create=allow_create, now="2026-11-18T17:30:00+00:00")
         return code, out.getvalue()
 
     def test_apply_edits_the_discord_post_with_the_new_state(self):
@@ -151,10 +162,16 @@ class RunTest(unittest.TestCase):
         self.assertIn("## Discord post (preview, not sent)", out)
         self.assertIn("2.5.2 · 1 item", out)
 
-    def test_discord_failure_fails_the_run(self):
+    def test_scheduled_run_without_post_id_does_not_create_one(self):
+        discord = FakeDiscord()
+        code, out = self.run_sync(FakeGitHub([], []), apply=True, discord=discord, allow_create=False)
+        self.assertEqual((code, discord.calls), (0, []))
+        self.assertIn("run the workflow by hand once", out)
+
+    def test_discord_failure_is_a_warning(self):
         code, out = self.run_sync(FakeGitHub([], []), apply=True, discord=FakeDiscord(fail=True), post_id="999")
-        self.assertEqual(code, 1)
-        self.assertIn("Discord update failed", out)
+        self.assertEqual(code, 0)
+        self.assertIn("::warning::Discord update failed", out)
 
     def test_no_discord_update_after_a_failed_mutation(self):
         discord = FakeDiscord()
