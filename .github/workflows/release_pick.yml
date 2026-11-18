@@ -1,6 +1,7 @@
 # Keeps the OrcaSlicer Releases project in line with the release-pick label and the release branches:
-# labelled issues and pull requests are added, unlabelled ones removed (unless already Picked), and
-# statuses move Proposed -> In progress -> Ready to pick -> Picked. See scripts/release_pick_sync.py.
+# labelled issues and pull requests are added, unlabelled ones removed (unless Picked or already on
+# their release branch), and statuses move Proposed -> In progress -> Ready to pick -> Picked. See
+# scripts/release_pick_sync.py.
 #
 # Needs the secret RELEASE_PROJECT_TOKEN (organization Projects read/write; repository Issues and Pull
 # requests read). It changes the project only when the repository variable RELEASE_PICK_APPLY is
