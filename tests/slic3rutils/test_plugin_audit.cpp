@@ -1904,6 +1904,39 @@ system_outcome = attempt(lambda: os.system(" ".join(TRUE_COMMAND) + " ignored"))
     CHECK(describe(harness.prompts).empty());
 }
 
+TEST_CASE("A subprocess grant names the executable from a Windows command line", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    // The event Windows subprocess.Popen raises: the executable is unresolved unless the caller
+    // passed one, and the arguments are a single command line. Raising it directly checks the
+    // target the hook reads without creating a process.
+    python.run_as(PLUGIN, R"PY(
+def raise_popen(executable, command_line):
+    try:
+        sys.audit("subprocess.Popen", executable, command_line, None, None)
+        return "ok"
+    except PermissionError:
+        return "denied"
+
+quoted_outcome = raise_popen(None, r'"C:\Program Files\Tool\tool.exe" --flag')
+explicit_outcome = raise_popen(r"D:\other\tool.exe", r'"C:\Program Files\Tool\tool.exe" --flag')
+unquoted_outcome = raise_popen(None, r"plain-tool.exe --flag")
+)PY");
+    CHECK(python.str("quoted_outcome") == "denied");
+    CHECK(python.str("explicit_outcome") == "denied");
+    CHECK(python.str("unquoted_outcome") == "denied");
+    CHECK(describe(harness.prompts) ==
+          "subprocess.Popen: C:\\Program Files\\Tool\\tool.exe\n"
+          "subprocess.Popen: D:\\other\\tool.exe\n"
+          "subprocess.Popen: plain-tool.exe\n");
+}
+
 TEST_CASE("A finalizer run when a root frame is let go is judged as the plugin without a prompt", "[audit][Python]")
 {
     AuditHarness harness;

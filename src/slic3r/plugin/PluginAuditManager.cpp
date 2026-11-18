@@ -1211,8 +1211,9 @@ static const std::unordered_map<std::string, std::vector<Py_ssize_t>> network_ta
 // Process events each expose the executable in a different argument, and some pass the whole
 // command line or argv. A grant names the tool only, so the arguments are dropped.
 enum class ProcessTargetFormat {
-    Path,       // the argument is the executable path or name
-    FirstToken, // a command string or argv sequence: its first token or element
+    Path,               // the argument is the executable path or name
+    FirstToken,         // a command string or argv sequence: its first token or element
+    WindowsCommandLine, // a Windows command line: its first argument, possibly a quoted path
 };
 
 struct ProcessTargetSource {
@@ -1226,7 +1227,9 @@ static const std::unordered_map<std::string, std::vector<ProcessTargetSource>> p
     {"os.spawn",                   {{1, ProcessTargetFormat::Path}}},
     {"os.startfile",               {{0, ProcessTargetFormat::Path}}},
     {"os.startfile/2",             {{0, ProcessTargetFormat::Path}}},
-    {"subprocess.Popen",           {{0, ProcessTargetFormat::Path}}},
+    // executable is unresolved when the caller did not pass one, as on Windows, where args is
+    // then a single command line; on POSIX args is an argv sequence and executable is always set.
+    {"subprocess.Popen",           {{0, ProcessTargetFormat::Path}, {1, ProcessTargetFormat::WindowsCommandLine}}},
     // application_name may be omitted, leaving the executable at the start of command_line.
     {"_winapi.CreateProcess",      {{0, ProcessTargetFormat::Path}, {1, ProcessTargetFormat::FirstToken}}},
     {"os.system",                  {{0, ProcessTargetFormat::FirstToken}}},
@@ -1272,12 +1275,73 @@ std::string first_process_token(PyObject* object)
     return value;
 }
 
+// The executable named by a Windows command line. Windows does not split it like a POSIX shell: a
+// path that contains spaces is enclosed in double quotes, and backslashes before a quote follow
+// the CommandLineToArgvW rules (2n backslashes and a quote give n backslashes and end the
+// argument, 2n+1 give n backslashes and a literal quote). The audit event reports the command line
+// before the executable is resolved, so this first argument is the program to name in the grant.
+std::string windows_command_line_target(const std::string& command_line)
+{
+    size_t index = command_line.find_first_not_of(" \t");
+    if (index == std::string::npos)
+        return {};
+
+    if (command_line[index] != '"') {
+        const size_t end = command_line.find_first_of(" \t", index);
+        return command_line.substr(index, end == std::string::npos ? std::string::npos : end - index);
+    }
+
+    std::string token;
+    ++index; // the opening quote is not part of the argument
+    while (index < command_line.size()) {
+        if (command_line[index] == '\\') {
+            size_t backslashes = 0;
+            while (index < command_line.size() && command_line[index] == '\\') {
+                ++backslashes;
+                ++index;
+            }
+            if (index < command_line.size() && command_line[index] == '"') {
+                token.append(backslashes / 2, '\\');
+                if (backslashes % 2) {
+                    token.push_back('"');
+                    ++index;
+                } else {
+                    ++index; // the closing quote
+                    break;
+                }
+            } else {
+                token.append(backslashes, '\\');
+            }
+            continue;
+        }
+        if (command_line[index] == '"') {
+            ++index; // the closing quote
+            break;
+        }
+        token.push_back(command_line[index]);
+        ++index;
+    }
+    return token;
+}
+
 std::string process_target(const ProcessTargetSource& source, PyObject* args)
 {
     PyObject* const item = tuple_item(args, source.index);
     if (!item || item == Py_None)
         return {};
-    return source.format == ProcessTargetFormat::FirstToken ? first_process_token(item) : python_path(item);
+    switch (source.format) {
+    case ProcessTargetFormat::Path:
+        return python_path(item);
+    case ProcessTargetFormat::FirstToken:
+        return first_process_token(item);
+    case ProcessTargetFormat::WindowsCommandLine: {
+        std::string command_line;
+        if (python_text(item, command_line))
+            return windows_command_line_target(command_line);
+        return first_process_token(item);
+    }
+    }
+    return {};
 }
 
 std::vector<std::string> audit_targets(const std::string& event_name, AuditEventCategory category, PyObject* args)
