@@ -783,6 +783,10 @@ jobs:
           appimage=$(find build -maxdepth 1 -name "OrcaSlicer_Linux_AppImage*.AppImage" | head -1)
           chmod +x "$appimage"
           "$appimage" --appimage-extract
+          # The AppDir root takes the packaging umask, which is 077 on the hosted
+          # runners, and appimagetool refuses to repack a directory other users
+          # cannot read.
+          chmod a+rx squashfs-root
           ./scripts/build_preset_cache.sh -b build build/package/resources/profiles squashfs-root/resources/profiles
           appimagetool=$(find build -name "appimagetool.AppImage" | head -1)
           ARCH=$(uname -m) "$appimagetool" --appimage-extract-and-run squashfs-root "$appimage"

@@ -69,7 +69,14 @@ on:
         description: 'Remove the slicer build tree first, so each leg times a full build'
         type: boolean
         default: false
-  
+
+concurrency:
+  # cancel_closed_pr_builds.yml joins this group by name, so update that file
+  # with any change here.
+  group: build-all-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  # Pushes don't cancel a running build, because only a finished branch build
+  # saves caches every pull request can restore.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # The build scripts that stay in the repo ship test suites. Run them before
@@ -79,7 +86,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           lfs: false
 
@@ -246,7 +253,7 @@ jobs:
     runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Download profile validator
         uses: actions/download-artifact@v8
         with:
