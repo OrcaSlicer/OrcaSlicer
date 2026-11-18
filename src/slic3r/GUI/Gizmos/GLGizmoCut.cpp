@@ -1425,10 +1425,13 @@ void GLGizmoCut3D::on_load(cereal::BinaryInputArchive& ar)
     float groove_angle;
     float groove_depth_tolerance;
     float groove_width_tolerance;
+    int   groove_count;
+    float groove_gap;
 
     ar( m_keep_upper, m_keep_lower, m_rotate_lower, m_rotate_upper, m_hide_cut_plane, mode, m_connectors_editing,
         m_ar_plane_center, m_rotation_m,
-        groove_depth, groove_width, groove_flaps_angle, groove_angle, groove_depth_tolerance, groove_width_tolerance);
+        groove_depth, groove_width, groove_flaps_angle, groove_angle, groove_depth_tolerance, groove_width_tolerance,
+        groove_count, groove_gap);
 
     m_start_dragging_m = m_rotation_m;
 
@@ -1443,7 +1446,9 @@ void GLGizmoCut3D::on_load(cereal::BinaryInputArchive& ar)
             !is_approx(m_groove.flaps_angle    , groove_flaps_angle) ||
             !is_approx(m_groove.angle          , groove_angle) ||
             !is_approx(m_groove.depth_tolerance, groove_depth_tolerance) ||
-            !is_approx(m_groove.width_tolerance, groove_width_tolerance) ) 
+            !is_approx(m_groove.width_tolerance, groove_width_tolerance) ||
+            m_groove_count != groove_count ||
+            !is_approx(m_groove_gap, groove_gap) )
         {
             m_groove.depth          = groove_depth;
             m_groove.width          = groove_width;
@@ -1451,6 +1456,8 @@ void GLGizmoCut3D::on_load(cereal::BinaryInputArchive& ar)
             m_groove.angle          = groove_angle;
             m_groove.depth_tolerance= groove_depth_tolerance;
             m_groove.width_tolerance= groove_width_tolerance;
+            m_groove_count          = groove_count;
+            m_groove_gap            = groove_gap;
             update_plane_model();
         }
         reset_cut_by_contours();
@@ -1463,7 +1470,8 @@ void GLGizmoCut3D::on_save(cereal::BinaryOutputArchive& ar) const
 { 
     ar( m_keep_upper, m_keep_lower, m_rotate_lower, m_rotate_upper, m_hide_cut_plane, m_mode, m_connectors_editing,
         m_ar_plane_center, m_start_dragging_m,
-        m_groove.depth, m_groove.width, m_groove.flaps_angle, m_groove.angle, m_groove.depth_tolerance, m_groove.width_tolerance);
+        m_groove.depth, m_groove.width, m_groove.flaps_angle, m_groove.angle, m_groove.depth_tolerance, m_groove.width_tolerance,
+        m_groove_count, m_groove_gap);
 }
 
 std::string GLGizmoCut3D::on_get_name() const
@@ -2797,6 +2805,8 @@ void GLGizmoCut3D::render_groove_int_input(const std::string& label, int& in_val
         val = std::clamp(val, min_val, max_val);
         // ORCA Holding +/- at the limit clamps back to the same value, don't rebuild for that.
         if (val != in_val) {
+            Plater::TakeSnapshot snapshot(wxGetApp().plater(), GUI::format("%1%: %2%", _u8L("Groove change"), label),
+                                          UndoRedo::SnapshotType::GizmoAction);
             in_val     = val;
             is_changed = true;
         }
