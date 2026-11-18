@@ -175,7 +175,7 @@ class TestVariantScheme(unittest.TestCase):
     def test_the_variant_names_are_read_from_the_engine(self):
         extruder_types, volume_types, legacy, extruder_legacy = apt._variant_names()
         self.assertEqual(extruder_types, {"Direct Drive", "Bowden"})
-        self.assertEqual(volume_types, {"Standard", "High Flow", "TPU High Flow", "E3D High Flow", "Extra High Flow"})
+        self.assertEqual(volume_types, {"Standard", "High Flow", "TPU High Flow", "TPU285", "E3D High Flow", "Extra High Flow"})
         # Hybrid is an enum value no variant string may name.
         self.assertNotIn("Hybrid", volume_types)
         self.assertEqual(legacy, {"Normal": "Standard", "Big Traffic": "High Flow"})
@@ -660,7 +660,7 @@ class TestCheck(TreeCase):
         self.run_command("update-index")
         rc, out = self.run_command("check")
         self.assertEqual(rc, 1, out)  # normalization also rejects the obsolete key
-        self.assertIn("Obsolete key: 'silent_mode' found in V/filament/A.json", out)
+        self.assertIn("Obsolete key: 'silent_mode' found in V/filament/A.json", out.replace("\\", "/"))
         self.assertIn("Files with warnings : 1", out)
 
     def test_a_default_material_must_exist_somewhere(self):
@@ -1211,18 +1211,28 @@ class TestVariantNames(TreeCase):
         self.assertIn('default_nozzle_volume_type names "Hybrid"', out)
 
     def test_bbl_is_held_to_the_enums_like_every_bundle(self):
-        # E3D High Flow passes because the engine's enum has it; TPU285 is a name no enum has.
+        # E3D High Flow passes because the engine's enum has it; Turbo is not an enum value.
         self.preset("machine/M.json", vendor="BBL", extruder_type=["Direct Drive"],
                     extruder_variant_list=["Direct Drive Standard,Direct Drive E3D High Flow"],
                     printer_extruder_id=["1", "1"],
                     printer_extruder_variant=["Direct Drive Standard",
                                               "Direct Drive E3D High Flow"])
         self.preset("process/P.json", vendor="BBL", instantiation="true",
-                    print_extruder_variant=["Direct Drive TPU285"])
+                    print_extruder_variant=["Direct Drive Turbo"])
         errors, out = self.names("BBL")
         self.assertEqual(errors, 1, out)
         self.assertNotIn('holds "Direct Drive E3D High Flow"', out)
-        self.assertIn('"TPU285" is not a nozzle volume type the enum has', out)
+        self.assertIn('"Turbo" is not a nozzle volume type the enum has', out)
+
+    def test_tpu285_is_a_valid_physical_nozzle_variant(self):
+        self.preset("machine/M.json", nozzle_volume_type=["TPU285"],
+                    default_nozzle_volume_type=["TPU285"],
+                    extruder_variant_list=["Direct Drive TPU285"],
+                    printer_extruder_variant=["Direct Drive TPU285"])
+        self.preset("process/P.json", print_extruder_variant=["Direct Drive TPU285"])
+        self.preset("filament/F.json", filament_extruder_variant=["Direct Drive TPU285"])
+        errors, out = self.names()
+        self.assertEqual(errors, 0, out)
 
     def test_a_list_may_not_name_one_variant_twice(self):
         self.preset("filament/F.json",
@@ -1258,9 +1268,9 @@ class TestVariantNames(TreeCase):
         self.assertIn('extruder_type "Magnetic Drive" is not one of (Bowden, Direct Drive)',
                       out)
         self.assertIn('V/machine/M.json: nozzle_volume_type "Turbo" is not one of (E3D High '
-                      "Flow, Extra High Flow, High Flow, Standard, TPU High Flow)", out)
+                      "Flow, Extra High Flow, High Flow, Standard, TPU High Flow, TPU285)", out)
         self.assertIn('default_nozzle_volume_type "Fast Flow" is not one of (E3D High Flow, '
-                      "Extra High Flow, High Flow, Standard, TPU High Flow)", out)
+                      "Extra High Flow, High Flow, Standard, TPU High Flow, TPU285)", out)
 
     def test_a_file_no_list_references_is_not_judged(self):
         # It never loads, so its variant names cannot reach anything;

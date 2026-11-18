@@ -9225,3 +9225,18 @@ TEST_CASE("The cloud diff force-emits a disabled override only where the cloud w
     // An ironing override defaults to nil: an absent key stays nil, so it is not sent.
     CHECK(key_values.count("filament_ironing_flow") == 0);
 }
+
+TEST_CASE("A printer with mixed default rack counts starts in Hybrid flow mode", "[Preset][Bundle][H3C]")
+{
+    PresetBundle bundle;
+    select_multi_nozzle_printer(bundle, 1, true);
+    auto &config = bundle.printers.get_edited_preset().config;
+    config.option<ConfigOptionEnumsGeneric>("default_nozzle_volume_type", true)->values = {nvtStandard};
+    config.option<ConfigOptionStrings>("default_extruder_nozzle_stats", true)->values = {"Standard#8|TPU285#1"};
+    bundle.reset_default_nozzle_volume_type();
+    CHECK(bundle.project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values == std::vector<int>{nvtHybrid});
+    CHECK(config.option<ConfigOptionStrings>("extruder_nozzle_stats")->values == std::vector<std::string>{"Standard#8|TPU285#1"});
+    config.option<ConfigOptionStrings>("default_extruder_nozzle_stats")->values.clear();
+    bundle.reset_default_nozzle_volume_type();
+    CHECK(bundle.project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values == std::vector<int>{nvtStandard});
+}

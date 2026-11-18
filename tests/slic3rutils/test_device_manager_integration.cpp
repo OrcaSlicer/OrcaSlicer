@@ -4,6 +4,10 @@
 
 #include <slic3r/GUI/DeviceCore/DevManager.h>
 #include <slic3r/GUI/DeviceManager.hpp>
+#include <slic3r/GUI/DeviceCore/DevFilaSystem.h>
+#include <slic3r/GUI/DeviceCore/DevNozzleSystem.h>
+#include <slic3r/GUI/DeviceCore/DevDefs.h>
+#include <libslic3r/PrintConfig.hpp>
 #include <libslic3r/AppConfig.hpp>
 #include "slic3r/Utils/IPrinterAgent.hpp"
 #include "slic3r/Utils/CloudProvider.hpp"
@@ -381,4 +385,49 @@ TEST_CASE("AMS filament settings default a supplied single-color list to type tw
     const json& payload = agent->published_message.at("print");
     CHECK(payload.at("cols").get<std::vector<std::string>>() == colors);
     CHECK(payload.at("ctype") == 2);
+}
+
+TEST_CASE("H3C AMS 3H status preserves all nine tray presence bits", "[H3C][DeviceManager][integration]")
+{
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+    MachineObject object(&manager, &network, "Test H3C", "integration-device", "192.0.2.10");
+    object.printer_type = "N10";
+    const bool second_unit = GENERATE(false, true);
+    const std::string unit_id = second_unit ? "33" : "32";
+    const std::string presence = second_unit ? "208000000000" : "1040000000";
+    json trays = json::array();
+    for (int slot = 0; slot < 9; ++slot)
+        trays.push_back({{"id", std::to_string(slot)}}); // Presence-only status avoids the GUI preset lookup.
+    const json payload = {{"ams", {
+        {"ams_exist_bits", second_unit ? "4000" : "2000"}, {"tray_exist_bits", presence},
+        {"tray_is_bbl_bits", presence}, {"tray_read_done_bits", presence},
+        {"tray_reading_bits", "0"},
+        {"ams", json::array({{{"id", unit_id}, {"info", second_unit ? "240002007" : "240002006"}, {"tray", trays}}})}
+    }}};
+    auto system = object.GetFilaSystem();
+    DevFilaSystemParser::ParseV1_0(payload, &object, system.get(), false);
+    CHECK(object.tray_exist_bits == (second_unit ? UINT64_C(0x208000000000) : UINT64_C(0x1040000000)));
+    const auto &units = system->GetAmsList();
+    REQUIRE(units.count(unit_id) == 1);
+    const auto *unit = units.at(unit_id);
+    REQUIRE(unit != nullptr);
+    CHECK(unit->IsExist());
+    CHECK(unit->GetSlotCount() == 9);
+    REQUIRE(unit->GetTrays().size() == 9);
+    CHECK(unit->GetTray("2")->is_exists);
+    CHECK(unit->GetTray("8")->is_exists);
+    CHECK_FALSE(unit->GetTray("0")->is_exists);
+    CHECK(unit->GetTrayBitIndex(8) == (second_unit ? 45 : 36));
+    CHECK(DevNozzle::ToNozzleVolumeType(NozzleFlowType::T_FLOW) == nvtTPU285);
+    CHECK(DevNozzle::ToNozzleFlowString(NozzleFlowType::T_FLOW) == "TPU285");
+    object.vt_slot.emplace_back("248");
+    CHECK(object.contains_tray("248", "0"));
+    CHECK(object.get_tray("248", "0").id == "248");
+    CHECK(system->GetExtruderIdByAmsId("248") == MAIN_EXTRUDER_ID);
+    CHECK(system->GetTrayIndexMap().count(248) == 1);
+    CHECK(system->GetTrayIndexMap().count(second_unit ? 45 : 36) == 1);
+
 }

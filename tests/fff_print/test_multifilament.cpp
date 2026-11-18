@@ -6,6 +6,8 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/GCode/ToolOrdering.hpp"
+#include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/TriangleSelector.hpp"
 #include "libslic3r/MultiMaterialSegmentation.hpp"
@@ -2461,4 +2463,59 @@ TEST_CASE("Custom M104 in filament start G-code wins on a T0-only print", "[Mult
     REQUIRE(temps_after_t0.size() >= 2);
     CHECK(temps_after_t0.front() == slicer_temp);
     CHECK(temps_after_t0.back() == custom_temp);
+}
+
+TEST_CASE("H3C keeps filament diameters on their dedicated nozzle paths", "[H3C][MultiFilament]")
+{
+    const bool h3c = GENERATE(false, true);
+    auto config = multifilament_config(2, {
+        {"enable_prime_tower", "0"},
+        {"handle_hotend_as_extruder", h3c},
+        {"filament_diameter", "1.75,2.85"},
+        {"filament_extruder_variant", ""},
+        {"filament_self_index", "1"}
+    });
+    Print print;
+    Model model;
+    init_print({cube(10)}, print, model, config);
+    const auto blocked = print.get_filament_unprintable_flow({0, 1});
+    if (h3c) {
+        REQUIRE(blocked.count(0) == 1);
+        REQUIRE(blocked.count(1) == 1);
+        CHECK(blocked.at(0).count(nvtTPU285) == 1);
+        CHECK(blocked.at(1).count(nvtStandard) == 1);
+        CHECK(blocked.at(1).count(nvtHighFlow) == 1);
+        CHECK(blocked.at(1).count(nvtTPU285) == 0);
+    } else {
+        CHECK(blocked.empty());
+    }
+}
+
+TEST_CASE("H3C grouping assigns each filament to a nozzle with the matching diameter path", "[H3C][MultiFilament]")
+{
+    auto config = multifilament_config(2, {
+        {"enable_prime_tower", false},
+        {"handle_hotend_as_extruder", true},
+        {"extruder_max_nozzle_count", "9"},
+        {"extruder_nozzle_stats", "Standard#8|TPU285#1"},
+        {"nozzle_volume_type", "Hybrid"},
+        {"filament_diameter", "1.75,2.85"},
+        {"filament_type", "PLA;TPU"},
+        {"filament_map", "1,1"}
+    });
+    // Physical diameter must select the dedicated path without a preset restriction.
+    config.erase("filament_extruder_variant");
+    Print print;
+    Model model;
+    init_print({cube(10)}, print, model, config);
+    const auto result = ToolOrdering::get_recommended_filament_maps(
+        {{0, 1}}, &print, FilamentMapMode::fmmAutoForFlush, {}, {}, print.get_filament_unprintable_flow({0, 1}));
+    const auto ordinary = result.get_first_nozzle_for_filament(0);
+    const auto flexible = result.get_first_nozzle_for_filament(1);
+    REQUIRE(ordinary.has_value());
+    REQUIRE(flexible.has_value());
+    CHECK(ordinary->extruder_id == 0);
+    CHECK(flexible->extruder_id == 0);
+    CHECK(ordinary->volume_type == nvtStandard);
+    CHECK(flexible->volume_type == nvtTPU285);
 }

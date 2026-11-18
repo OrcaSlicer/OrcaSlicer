@@ -385,6 +385,12 @@
       "type": "PE-CF",
       "vendor": "Generic"
     },
+    "OFdcTYDD": {
+      "bambu_id": "GFU06",
+      "name": "Bambu TPU 75A(2.85mm)",
+      "type": "TPU",
+      "vendor": "Bambu Lab"
+    },
     "OFdyfQvU": {
       "bambu_id": "GFG03",
       "name": "Bambu PETG Matte",

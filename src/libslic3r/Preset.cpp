@@ -1548,7 +1548,7 @@ static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", 
     "cool_plate_temp", "textured_cool_plate_temp", "eng_plate_temp", "hot_plate_temp", "textured_plate_temp", "cool_plate_temp_initial_layer", "textured_cool_plate_temp_initial_layer", "eng_plate_temp_initial_layer", "hot_plate_temp_initial_layer", "textured_plate_temp_initial_layer", "supertack_plate_temp_initial_layer", "supertack_plate_temp",
     // "bed_type",
     //BBS:temperature_vitrification
-    "temperature_vitrification", "reduce_fan_stop_start_freq","dont_slow_down_outer_wall", "slow_down_for_layer_cooling", "fan_min_speed",
+    "fins_extrude_safe_temp", "temperature_vitrification", "reduce_fan_stop_start_freq","dont_slow_down_outer_wall", "slow_down_for_layer_cooling", "fan_min_speed",
     "fan_max_speed", "enable_overhang_bridge_fan", "overhang_fan_speed", "overhang_fan_threshold", "close_fan_the_first_x_layers", "close_additional_fan_first_x_layers", "first_x_layer_fan_speed", "full_fan_speed_layer", "initial_layer_fan_speed", "additional_fan_full_speed_layer", "fan_cooling_layer_time", "slow_down_layer_time", "slow_down_min_speed",
     "filament_start_gcode", "filament_end_gcode", "filament_change_extrusion_role_gcode",
     //exhaust fan control
@@ -1629,7 +1629,7 @@ static std::vector<std::string> s_Preset_printer_options {
     "gcode_flavor", "gcode_skip_config_block",
     "fan_kickstart", "part_cooling_fan_min_pwm", "fan_speedup_time", "fan_speedup_overhangs",
     "single_extruder_multi_material", "manual_filament_change", "file_start_gcode", "machine_start_gcode", "machine_end_gcode", "before_layer_change_gcode", "printing_by_object_gcode", "layer_change_gcode", "time_lapse_gcode", "wrapping_detection_gcode", "change_filament_gcode", "change_extrusion_role_gcode",
-    "printer_model", "printer_variant", "printer_extruder_id", "printer_extruder_variant", "extruder_variant_list", "default_nozzle_volume_type",
+    "printer_model", "printer_variant", "printer_extruder_id", "printer_extruder_variant", "extruder_variant_list", "default_nozzle_volume_type", "default_extruder_nozzle_stats",
     "printable_height", "extruder_printable_height", "extruder_clearance_radius", "extruder_clearance_height_to_lid", "extruder_clearance_height_to_rod", "extruder_clearance_dist_to_rod",
     "nozzle_height", "master_extruder_id",
     "default_print_profile", "inherits",
@@ -1653,7 +1653,7 @@ static std::vector<std::string> s_Preset_printer_options {
     "imex_nozzle_clearance_x", "imex_nozzle_clearance_y", "imex_carriage_margin", "imex_viz_theme",
     "imex_mode_names", "imex_mode_active_tools", "imex_mode_gcodes",
     // Multi-nozzle count + pre-heat model printer options
-    "extruder_max_nozzle_count", "group_algo_with_time", "enable_pre_heating", "hotend_heating_rate", "hotend_cooling_rate",
+    "extruder_max_nozzle_count", "handle_hotend_as_extruder", "group_algo_with_time", "enable_pre_heating", "hotend_heating_rate", "hotend_cooling_rate",
     "machine_hotend_change_time", "machine_prepare_compensation_time",
     // Fast-purge printer flag + device/firmware-facing per-variant extruder-change
     // deretraction speed (unconsumed by the slicer; carried by H2D/A2L/X2D/P2S machine profiles).

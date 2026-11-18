@@ -43,6 +43,7 @@
 #include "slic3r/GUI/CalibrationWizardPage.hpp"
 #include "slic3r/GUI/SelectMachine.hpp"
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/DeviceCore/DevUtil.h"
 #include <cstdlib>
 #include "libslic3r/ProjectTask.hpp"
 #include "slic3r/GUI/GUI.hpp"
@@ -3503,7 +3504,9 @@ void StatusPanel::update_ams(MachineObject *obj)
 
     AMSModel ams_mode = AMSModel::GENERIC_AMS;
     if ((obj->is_enable_np || obj->is_enable_ams_np) && obj->GetFilaSystem()->GetAmsList().size() > 0) {
-        ams_mode = AMSModel(obj->GetFilaSystem()->GetAmsList().begin()->second->GetAmsType());
+        const auto type = obj->GetFilaSystem()->GetAmsList().begin()->second->GetAmsType();
+        ams_mode = type == DevAmsType::ZMULTI_A || type == DevAmsType::ZMULTI_B
+                       ? AMSModel::GENERIC_AMS : AMSModel(type);
     } else if (obj->get_printer_ams_type() == "f1") {
         ams_mode = AMSModel::AMS_LITE; // STUDIO-14066
     }
@@ -3636,28 +3639,10 @@ void StatusPanel::update_ams(MachineObject *obj)
             for (auto tray_it = ams_it->second->GetTrays().begin(); tray_it != ams_it->second->GetTrays().end(); tray_it++) {
                 std::string tray_id     = tray_it->first;
                 int         tray_id_int = atoi(tray_id.c_str());
-                // new protocol
-                if (ams_id_int < 128) {
-                    if (ams_it->second->IsAmsLiteMixed()) {
-                        // Mixed AMS-Lite (A2L / N9) RFID-reading bits occupy positions 24..27.
-                        if ((obj->tray_reading_bits & (1 << (AMS_LITE_MIXED_TRAY_INDEX_OFFSET + tray_id_int))) != 0) {
-                            m_ams_control->PlayRridLoading(ams_id, tray_id);
-                        } else {
-                            m_ams_control->StopRridLoading(ams_id, tray_id);
-                        }
-                    } else if ((obj->tray_reading_bits & (1 << (ams_id_int * 4 + tray_id_int))) != 0) {
-                        m_ams_control->PlayRridLoading(ams_id, tray_id);
-                    } else {
-                        m_ams_control->StopRridLoading(ams_id, tray_id);
-                    }
-                } else {
-                    int check_flag = (1 << (16 + ams_id_int - 128));
-                    if ((obj->tray_reading_bits & check_flag) != 0) {
-                        m_ams_control->PlayRridLoading(ams_id, tray_id);
-                    } else {
-                        m_ams_control->StopRridLoading(ams_id, tray_id);
-                    }
-                }
+                if (DevUtil::get_flag_bits(obj->tray_reading_bits, ams_it->second->GetTrayBitIndex(tray_id_int)))
+                    m_ams_control->PlayRridLoading(ams_id, tray_id);
+                else
+                    m_ams_control->StopRridLoading(ams_id, tray_id);
             }
         } catch (...) {}
     }

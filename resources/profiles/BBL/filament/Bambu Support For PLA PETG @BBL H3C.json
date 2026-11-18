@@ -1,0 +1,50 @@
+{
+	"type": "filament",
+	"name": "Bambu Support For PLA/PETG @BBL H3C",
+	"inherits": "Bambu Support For PLA/PETG @BBL H3C base",
+	"from": "system",
+	"setting_id": "GFSS05_25",
+	"instantiation": "true",
+	"additional_cooling_fan_speed": [
+		"70",
+		"70"
+	],
+	"fan_max_speed": [
+		"15",
+		"15"
+	],
+	"fan_min_speed": [
+		"10",
+		"10"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_flush_volumetric_speed": [
+		"0",
+		"0"
+	],
+	"filament_max_volumetric_speed": [
+		"6",
+		"6"
+	],
+	"filament_change_length": [
+		"10"
+	],
+	"nozzle_temperature": [
+		"230",
+		"230"
+	],
+	"overhang_fan_speed": [
+		"100"
+	],
+	"reduce_fan_stop_start_freq": [
+		"1"
+	],
+	"compatible_printers": [
+		"Bambu Lab H3C 0.4 nozzle",
+		"Bambu Lab H3C 0.6 nozzle",
+		"Bambu Lab H3C 0.8 nozzle"
+	]
+}

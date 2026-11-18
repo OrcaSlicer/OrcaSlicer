@@ -1826,6 +1826,13 @@ MultiNozzleUtils::LayeredNozzleGroupResult ToolOrdering::get_recommended_filamen
 
     // Fully-manual mode: build the nozzle-granular result from the config nozzle map.
     if (mode == FilamentMapMode::fmmNozzleManual) {
+        for (unsigned int filament : used_filaments) {
+            const auto blocked = unprintable_volumes.find(int(filament));
+            if (filament >= print_config.filament_volume_map.values.size() ||
+                (blocked != unprintable_volumes.end() &&
+                 blocked->second.count(NozzleVolumeType(print_config.filament_volume_map.values[filament])) != 0))
+                return LayeredNozzleGroupResult();
+        }
         auto manual_filament_map = print_config.filament_map.values;
         std::transform(manual_filament_map.begin(), manual_filament_map.end(), manual_filament_map.begin(), [](int v) { return v - 1; });
         float diameter = print_config.nozzle_diameter.values.empty() ? 0.4f : (float)print_config.nozzle_diameter.values.front();

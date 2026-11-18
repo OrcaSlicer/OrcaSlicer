@@ -732,6 +732,7 @@ static const t_config_enum_values s_keys_map_NozzleVolumeType = {
     { "Standard",  nvtStandard },
     { "High Flow", nvtHighFlow },
     { "TPU High Flow", nvtTPUHighFlow },
+    { "TPU285", nvtTPU285 },
     { "Hybrid", nvtHybrid },
     { "E3D High Flow", nvtE3DHighFlow },
     { "Extra High Flow", nvtExtraHighFlow }
@@ -3806,6 +3807,16 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInts{0});
 
     // BBS
+    // Bambu H3C firmware uses this per-filament threshold in its fin-extrusion commands.
+    def = this->add("fins_extrude_safe_temp", coInts);
+    def->label = L("Fin extrusion safe temperature");
+    def->tooltip = L("Safe hotend temperature for fin extrusion. Zero disables this firmware feature.");
+    def->sidetext = u8"?C";
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 350;
+    def->set_default_value(new ConfigOptionInts{0});
+
     def = this->add("temperature_vitrification", coInts);
     def->label = L("Softening temperature");
     def->tooltip = L("The material softens at this temperature, so when the bed temperature is equal to or greater than this, it\'s highly recommended to open the front door and/or remove the upper glass to avoid clogs.");
@@ -6495,18 +6506,20 @@ void PrintConfigDef::init_fff_params()
     def->label = "Nozzle Volume Type";
     def->tooltip = "Nozzle volume type for extruders.";
     def->enum_keys_map = &ConfigOptionEnum<NozzleVolumeType>::get_enum_values();
-    // Listed in display order. A position is not the enum value (E3D High Flow is 5, after the reserved 4),
+    // Listed in display order. A position is not the enum value (TPU285 is 4 and E3D High Flow is 5),
     // so map a position to its NozzleVolumeType through enum_keys_map.
     def->enum_values.push_back(L("Standard"));
     def->enum_values.push_back(L("High Flow"));
     def->enum_values.push_back(L("Hybrid"));
     def->enum_values.push_back(L("TPU High Flow"));
+    def->enum_values.push_back(L("TPU285"));
     def->enum_values.push_back(L("E3D High Flow"));
     def->enum_values.push_back(L("Extra High Flow"));
     def->enum_labels.push_back(L("Standard"));
     def->enum_labels.push_back(L("High Flow"));
     def->enum_labels.push_back(L("Hybrid"));
     def->enum_labels.push_back(L("TPU High Flow"));
+    def->enum_labels.push_back(L("TPU285"));
     def->enum_labels.push_back(L("E3D High Flow"));
     def->enum_labels.push_back(L("Extra High Flow"));
     def->mode = comSimple;
@@ -6521,12 +6534,14 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back(L("High Flow"));
     def->enum_values.push_back(L("Hybrid"));
     def->enum_values.push_back(L("TPU High Flow"));
+    def->enum_values.push_back(L("TPU285"));
     def->enum_values.push_back(L("E3D High Flow"));
     def->enum_values.push_back(L("Extra High Flow"));
     def->enum_labels.push_back(L("Standard"));
     def->enum_labels.push_back(L("High Flow"));
     def->enum_labels.push_back(L("Hybrid"));
     def->enum_labels.push_back(L("TPU High Flow"));
+    def->enum_labels.push_back(L("TPU285"));
     def->enum_labels.push_back(L("E3D High Flow"));
     def->enum_labels.push_back(L("Extra High Flow"));
     def->mode = comDevelop;
@@ -6547,6 +6562,9 @@ void PrintConfigDef::init_fff_params()
 
     // Multi-nozzle: per-extruder physical nozzle inventory by volume type,
     // "<volume_type>#<count>" tokens joined by "|". Internal use only, no translation.
+    def = this->add("default_extruder_nozzle_stats", coStrings);
+    def->set_default_value(new ConfigOptionStrings{});
+
     def = this->add("extruder_nozzle_stats", coStrings);
     def->label = "Extruder nozzle stats";
     def->tooltip = "Physical nozzle counts per extruder, keyed by nozzle volume type.";
@@ -6576,11 +6594,13 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("Standard");
     def->enum_values.push_back("High Flow");
     def->enum_values.push_back("TPU High Flow");
+    def->enum_values.push_back("TPU285");
     def->enum_values.push_back("E3D High Flow");
     def->enum_values.push_back("Extra High Flow");
     def->enum_labels.push_back("Standard");
     def->enum_labels.push_back("High Flow");
     def->enum_labels.push_back("TPU High Flow");
+    def->enum_labels.push_back("TPU285");
     def->enum_labels.push_back("E3D High Flow");
     def->enum_labels.push_back("Extra High Flow");
     def->mode = comDevelop;
@@ -13586,6 +13606,7 @@ OtherSlicingStatesConfigDef::OtherSlicingStatesConfigDef()
     def->tooltip = L("Are the extra multi-material priming regions used in this print?");
 
     new_def("initial_no_support_extruder", coInt, L("Initial no support extruder"), L("Zero-based index of the first extruder used for printing without support. Same as initial_no_support_tool."));
+    new_def("initial_no_support_nozzle_id", coInt, L("Initial non-support nozzle"), L("Zero-based logical nozzle index used first for printing the object without support."));
     new_def("in_head_wrap_detect_zone", coBool, L("In head wrap detect zone"), L("Indicates if the first layer overlaps with the head wrap zone."));
     new_def("curr_bed_type", coString, L("Current bed type"), L("Name of the currently selected bed plate type (e.g. 'Textured PEI Plate', 'Smooth High Temp Plate')."));
     new_def("imex_mode", coString, L("IDEX/IQEX active mode"), L("Name of the active IDEX/IQEX parallel print mode for this plate (e.g. 'primary', 'mirror', 'copy'). Empty string if IDEX/IQEX is not enabled."));

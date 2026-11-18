@@ -5148,9 +5148,7 @@ std::map<int, std::set<NozzleVolumeType>> Print::get_filament_unprintable_flow(c
     std::vector<std::string> extruder_variant_list = m_config.printer_extruder_variant.values;
     // A filament that declares no extruder variants carries no flow restriction.
     const ConfigOptionStrings *filament_variant_opt = m_ori_full_print_config.option<ConfigOptionStrings>("filament_extruder_variant");
-    if (filament_variant_opt == nullptr)
-        return ret;
-    std::vector<std::string> filament_variant_list = filament_variant_opt->values;
+    std::vector<std::string> filament_variant_list = filament_variant_opt ? filament_variant_opt->values : std::vector<std::string>{};
     std::vector<int> filament_self_index;
     if (!m_ori_full_print_config.has("filament_self_index"))
         filament_self_index.resize(filament_variant_list.size(), 1);
@@ -5172,6 +5170,20 @@ std::map<int, std::set<NozzleVolumeType>> Print::get_filament_unprintable_flow(c
             auto exd_volume = convert_to_nvt_type(extruder_variant_list[exd_idx]);
             assert(exd_volume != nvtHybrid);
             if (volumes.find(exd_volume) == volumes.end() && exd_volume != nvtHybrid) ret[fil_idx].insert(exd_volume);
+        }
+    }
+    const auto *hotend_as_extruder = m_ori_full_print_config.option<ConfigOptionBool>("handle_hotend_as_extruder");
+    if (!hotend_as_extruder || !hotend_as_extruder->value)
+        return ret;
+    const auto *diameters = m_ori_full_print_config.option<ConfigOptionFloats>("filament_diameter");
+    for (unsigned int filament : used_filaments) {
+        const bool uses_285 = diameters && !diameters->values.empty() && diameters->get_at(filament) > 2.0;
+        if (uses_285) {
+            for (NozzleVolumeType flow : get_valid_nozzle_volume_type())
+                if (flow != nvtTPU285)
+                    ret[int(filament)].insert(flow);
+        } else {
+            ret[int(filament)].insert(nvtTPU285);
         }
     }
     return ret;

@@ -1572,6 +1572,8 @@ bool SyncAmsInfoDialog::is_nozzle_type_match(DevExtderSystem data, wxString &err
             NozzleVolumeType nozzle_volume_type = (NozzleVolumeType) (nozzle_volume_type_opt->get_at(used_extruders[i]));
             if (nozzle_volume_type == NozzleVolumeType::nvtStandard) {
                 used_extruders_flow[used_extruders[i]] = L("Standard");
+            } else if (nozzle_volume_type == NozzleVolumeType::nvtTPU285) {
+                used_extruders_flow[used_extruders[i]] = L("TPU285");
             } else if (nozzle_volume_type == NozzleVolumeType::nvtTPUHighFlow) {
                 used_extruders_flow[used_extruders[i]] = L("TPU High Flow");
             } else if (nozzle_volume_type == NozzleVolumeType::nvtE3DHighFlow) {
@@ -1593,6 +1595,8 @@ bool SyncAmsInfoDialog::is_nozzle_type_match(DevExtderSystem data, wxString &err
             flow_type_of_machine.push_back(L("Standard"));
         } else if (it->GetNozzleFlowType() == NozzleFlowType::U_FLOW) {
             flow_type_of_machine.push_back(L("TPU High Flow"));
+        } else if (it->GetNozzleFlowType() == NozzleFlowType::T_FLOW) {
+            flow_type_of_machine.push_back(L("TPU285"));
         } else if (it->GetNozzleFlowType() == NozzleFlowType::E_FLOW) {
             flow_type_of_machine.push_back(L("E3D High Flow"));
         }

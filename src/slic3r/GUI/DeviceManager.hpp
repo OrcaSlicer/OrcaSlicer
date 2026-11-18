@@ -308,11 +308,11 @@ public:
     bool is_tunnel_mqtt = false;
 
     //AmsTray vt_tray;                        // virtual tray
-    long  ams_exist_bits = 0;
-    long  tray_exist_bits = 0;
-    long  tray_is_bbl_bits = 0;
-    long  tray_read_done_bits = 0;
-    long  tray_reading_bits = 0;
+    uint64_t ams_exist_bits = 0;
+    uint64_t tray_exist_bits = 0;
+    uint64_t tray_is_bbl_bits = 0;
+    uint64_t tray_read_done_bits = 0;
+    uint64_t tray_reading_bits = 0;
     bool  ams_air_print_status { false };
     /** Whether this printer supports virtual trays (external/manual filament loading).
      *  When true, vt_slot data is used by build_filament_ams_list() to include external filaments. */

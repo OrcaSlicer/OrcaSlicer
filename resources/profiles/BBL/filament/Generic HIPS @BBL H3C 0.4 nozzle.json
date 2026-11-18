@@ -1,0 +1,25 @@
+{
+	"type": "filament",
+	"name": "Generic HIPS @BBL H3C 0.4 nozzle",
+	"inherits": "Generic HIPS @BBL H3C base",
+	"from": "system",
+	"setting_id": "GFSS98_23",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_flush_volumetric_speed": [
+		"0",
+		"0"
+	],
+	"filament_max_volumetric_speed": [
+		"8",
+		"8"
+	],
+	"compatible_printers": [
+		"Bambu Lab H3C 0.4 nozzle",
+		"Bambu Lab H3C 0.6 nozzle",
+		"Bambu Lab H3C 0.8 nozzle"
+	]
+}

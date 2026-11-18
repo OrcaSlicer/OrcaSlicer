@@ -1,0 +1,30 @@
+{
+	"type": "filament",
+	"name": "Bambu TPU 75A(2.85mm) @BBL H3C 0.6 nozzle",
+	"inherits": "Bambu TPU 75A(2.85mm) @BBL H3C",
+	"from": "system",
+	"setting_id": "GFSU06_01",
+	"filament_id": "OFdcTYDD",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"1.08"
+	],
+	"filament_max_volumetric_speed": [
+		"13"
+	],
+	"filament_prime_volume_nc": [
+		"60"
+	],
+	"nozzle_temperature": [
+		"230"
+	],
+	"nozzle_temperature_initial_layer": [
+		"230"
+	],
+	"slow_down_min_speed": [
+		"30"
+	],
+	"compatible_printers": [
+		"Bambu Lab H3C 0.6 nozzle"
+	]
+}

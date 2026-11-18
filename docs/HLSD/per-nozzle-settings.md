@@ -17,8 +17,18 @@ one string such as "Direct Drive Standard" or "Direct Drive High Flow". The
 printer's `extruder_variant_list` holds, per extruder, the comma-separated
 variants that extruder can take. Which one is in use comes from the project's
 `nozzle_volume_type`, one entry per extruder, set in the sidebar. A Hybrid
-extruder carries both Standard and High Flow nozzles, and each filament's own
-volume type picks between them.
+extruder carries several concrete nozzle types, and each filament's own volume
+type selects one. Its process and filament tabs enumerate the installed types
+from `extruder_nozzle_stats`, including TPU285 when present.
+
+The H3C retains one physical extruder and SEMM, with nine interchangeable nozzles.
+Its 0.4, 0.6 and 0.8 mm presets offer Standard, High Flow and TPU285 variants;
+0.2 mm has no TPU285 variant. `default_extruder_nozzle_stats` seeds a fresh rack
+selection, while device synchronization replaces that selection with reported
+counts. TPU285 uses the dedicated 2.85 mm filament path. For printers that treat
+swappable hotends as tools, filament grouping excludes 1.75 mm filaments from
+TPU285 and excludes thicker filaments from the other nozzle types. Ordinary
+printers using 2.85 mm filament retain their existing behavior.
 
 Each per-variant setting is a vector with one value per *column*. Two parallel
 vectors describe the columns of a preset:

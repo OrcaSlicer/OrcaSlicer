@@ -6180,7 +6180,8 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
         int extruder = 0x10000; // Main (first) extruder at right
         for (auto & vt_tray : obj->vt_slot) {
             filament_ams_list.emplace(extruder + stoi(vt_tray.id), build_tray_config(vt_tray, "Ext",vt_tray.id, "0"));//254 or 255
-            extruder = 0;
+            if (obj->is_multi_extruders())
+                extruder = 0;
         }
     }
 
@@ -6188,6 +6189,8 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
         if (ams_id >= 0 && ams_id < 26) {
             char slot_name = slot_id + '1';
             return std::string(1, 'A' + ams_id) + std::string(1, slot_name);
+        } else if (ams_id == 32 || ams_id == 33) {
+            return "AMS 3H-" + std::to_string(ams_id - 31) + "-" + std::to_string(slot_id + 1);
         } else if (ams_id >= 128 && ams_id < 153) {
             return "HT-" + std::string(1, 'A' + (ams_id - 128));
         } else {
@@ -6202,7 +6205,10 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
         int extruder = ams.second->GetExtruderId() ? 0 : 0x10000; // Main (first) extruder at right
         for (auto tray : ams.second->GetTrays()) {
             int  slot_id = std::stoi(tray.first);
-            filament_ams_list.emplace(extruder + (ams_id * 4 + slot_id),
+            const int tray_index = ams.second->GetAmsType() == DevAmsType::ZMULTI_A ||
+                                   ams.second->GetAmsType() == DevAmsType::ZMULTI_B
+                                       ? ams.second->GetTrayBitIndex(slot_id) : ams_id * 4 + slot_id;
+            filament_ams_list.emplace(extruder + tray_index,
                                       build_tray_config(*tray.second, get_ams_name(ams_id, slot_id), std::to_string(ams_id), std::to_string(slot_id)));
         }
     }
