@@ -548,8 +548,9 @@ static bool validate_expoly_orientation(const ExPolygon &expoly)
 }
 #endif /* NDEBUG */
 
-ExPolygon elephant_foot_compensation(const ExPolygon &input_expoly, double min_contour_width, const double compensation)
-{	
+// The contour distances are measured on simplified, a simplification of input_expoly.
+static ExPolygon compensate(const ExPolygon &input_expoly, const ExPolygon &simplified, double min_contour_width, const double compensation)
+{
 	assert(validate_expoly_orientation(input_expoly));
 
 	double scaled_compensation = scale_(compensation);
@@ -571,7 +572,6 @@ ExPolygon elephant_foot_compensation(const ExPolygon &input_expoly, double min_c
 	else
 	{
 		EdgeGrid::Grid grid;
-		ExPolygon simplified = input_expoly.simplify(SCALED_EPSILON).front();
 		assert(validate_expoly_orientation(simplified));
 		BoundingBox bbox = get_extents(simplified.contour);
 		bbox.offset(SCALED_EPSILON);
@@ -625,28 +625,44 @@ ExPolygon elephant_foot_compensation(const ExPolygon &input_expoly, double min_c
 	return out;
 }
 
+ExPolygon elephant_foot_compensation(const ExPolygon &input_expoly, double min_contour_width, const double compensation)
+{
+	// A polygon that simplifies to several pieces is left as it is. The ExPolygons overloads compensate each piece.
+	const ExPolygons simplified = input_expoly.simplify(SCALED_EPSILON);
+	return simplified.size() == 1 ? compensate(input_expoly, simplified.front(), min_contour_width, compensation) : input_expoly;
+}
+
+// The contour shall be wide enough to apply the external perimeter plus compensation on both sides.
+static double flow_min_contour_width(const Flow &external_perimeter_flow)
+{
+    return double(external_perimeter_flow.width() + external_perimeter_flow.spacing());
+}
+
 ExPolygon  elephant_foot_compensation(const ExPolygon  &input, const Flow &external_perimeter_flow, const double compensation)
 {
-    // The contour shall be wide enough to apply the external perimeter plus compensation on both sides.
-    double min_contour_width = double(external_perimeter_flow.width() + external_perimeter_flow.spacing());
-    return elephant_foot_compensation(input, min_contour_width, compensation);
+    return elephant_foot_compensation(input, flow_min_contour_width(external_perimeter_flow), compensation);
 }
 
 ExPolygons elephant_foot_compensation(const ExPolygons &input, const Flow &external_perimeter_flow, const double compensation)
 {
-	ExPolygons out;
-	out.reserve(input.size());
-	for (const ExPolygon &expoly : input)
-		out.emplace_back(elephant_foot_compensation(expoly, external_perimeter_flow, compensation));
-	return out;
+	return elephant_foot_compensation(input, flow_min_contour_width(external_perimeter_flow), compensation);
 }
 
 ExPolygons elephant_foot_compensation(const ExPolygons &input, double min_contour_width, const double compensation)
 {
 	ExPolygons out;
 	out.reserve(input.size());
-	for (const ExPolygon &expoly : input)
-		out.emplace_back(elephant_foot_compensation(expoly, min_contour_width, compensation));
+	for (const ExPolygon &expoly : input) {
+		const ExPolygons simplified = expoly.simplify(SCALED_EPSILON);
+		if (simplified.size() == 1)
+			out.emplace_back(compensate(expoly, simplified.front(), min_contour_width, compensation));
+		else if (simplified.empty())
+			out.emplace_back(expoly);
+		else
+			// Simplification split the polygon, so compensate every piece instead of the first one only.
+			for (const ExPolygon &piece : simplified)
+				out.emplace_back(compensate(piece, piece, min_contour_width, compensation));
+	}
 	return out;
 }
 
