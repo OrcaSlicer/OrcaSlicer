@@ -3113,7 +3113,7 @@ bool FillRectilinear::fill_surface_trapezoidal(
     Polylines&                                polylines_out,
     int                                       Pattern_type) // 0=grid, 1=triangular, 2=stars, 3=cubic, 4=quarter cubic
 {
-    assert(params.multiline > 1);
+    assert(params.non_crossing());
 
     Polylines polylines;
 
@@ -3163,7 +3163,7 @@ bool FillRectilinear::fill_surface_trapezoidal(
     switch (Pattern_type) {
     case 0: // Grid / Trapezoidal
     {
-        // Generate a non-crossing trapezoidal pattern to avoid overextrusion at intersections when `multiline > 1`.
+        // Generate a non-crossing trapezoidal pattern to avoid overextrusion at intersections.
         /*
          *         P2--P3
          *        /      \
@@ -3606,7 +3606,7 @@ Polylines FillGrid::fill_surface(const Surface *surface, const FillParams &param
 {
     Polylines polylines_out;
 
-    if (params.multiline > 1) {
+    if (params.non_crossing()) {
         // Experimental trapezoidal grid
         if (!this->fill_surface_trapezoidal(
                  surface, params, polylines_out, 0))
@@ -3646,7 +3646,7 @@ Polylines FillLateralLattice::fill_surface(const Surface *surface, const FillPar
 
 Polylines FillTriangles::fill_surface(const Surface *surface, const FillParams &params){
     Polylines polylines_out;
-        if (params.multiline > 1) {
+        if (params.non_crossing()) {
         // Experimental trapezoidal grid
         if (!this->fill_surface_trapezoidal(
                  surface, params, polylines_out, 1))
@@ -3666,7 +3666,7 @@ Polylines FillTriangles::fill_surface(const Surface *surface, const FillParams &
 Polylines FillStars::fill_surface(const Surface *surface, const FillParams &params)
 {
     Polylines polylines_out;
-    if (params.multiline > 1) {
+    if (params.non_crossing()) {
         if (!this->fill_surface_trapezoidal(
                  surface, params, polylines_out, 2))
             BOOST_LOG_TRIVIAL(error) << "FillStars::fill_surface_trapezoidal() failed.";
@@ -3683,7 +3683,7 @@ Polylines FillStars::fill_surface(const Surface *surface, const FillParams &para
 Polylines FillCubic::fill_surface(const Surface *surface, const FillParams &params)
 {
     Polylines polylines_out;
-    if (params.multiline > 1) {
+    if (params.non_crossing()) {
         if (!this->fill_surface_trapezoidal(surface, params, polylines_out, 3))
             BOOST_LOG_TRIVIAL(error) << "FillCubic::fill_surface_trapezoidal() failed.";
         return polylines_out;
@@ -3700,7 +3700,7 @@ Polylines FillCubic::fill_surface(const Surface *surface, const FillParams &para
 Polylines FillQuarterCubic::fill_surface(const Surface* surface, const FillParams& params)
 {
     Polylines polylines_out;
-    if (params.multiline > 1) {
+    if (params.non_crossing()) {
         if (!this->fill_surface_trapezoidal(surface, params, polylines_out, 4))
             BOOST_LOG_TRIVIAL(error) << "FillQuarterCubic::fill_surface_trapezoidal() failed.";
         return polylines_out;
