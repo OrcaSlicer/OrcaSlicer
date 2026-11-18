@@ -1636,20 +1636,20 @@ static std::vector<std::string> create_permission_targets(const std::string& eve
 }
 
 // Network events name their target directly: a host, an address tuple or a URL.
-static const std::unordered_map<std::string, std::vector<Py_ssize_t>> network_target_arg_indices{
-    {"http.client.connect", {1}},
-    {"urllib.Request", {0}},
+static const std::unordered_map<std::string, Py_ssize_t> network_target_arg_indices{
+    {"http.client.connect", 1},
+    {"urllib.Request", 0},
 
-    {"socket.connect", {1}},
-    {"socket.bind", {1}},
-    {"socket.getaddrinfo", {0}},
-    {"socket.gethostbyname", {0}},
-    {"socket.gethostbyaddr", {0}},
-    {"socket.getnameinfo", {0}},
-    {"socket.getservbyname", {0}},
-    {"socket.getservbyport", {0}},
-    {"socket.sendto", {1}},
-    {"socket.sendmsg", {1}},
+    {"socket.connect", 1},
+    {"socket.bind", 1},
+    {"socket.getaddrinfo", 0},
+    {"socket.gethostbyname", 0},
+    {"socket.gethostbyaddr", 0},
+    {"socket.getnameinfo", 0},
+    {"socket.getservbyname", 0},
+    {"socket.getservbyport", 0},
+    {"socket.sendto", 1},
+    {"socket.sendmsg", 1},
 };
 
 // Process events each expose the executable in a different argument, and some pass the whole
@@ -1850,11 +1850,8 @@ std::vector<std::string> audit_targets(const std::string& event_name, AuditEvent
     case AuditEventCategory::ProcessReplace: {
         // The shells a command string may run in, not the command itself. Every possible
         // interpreter has to be granted before the event is allowed.
-        if (event_name == "os.system") {
-            for (std::string& shell : system_shell_targets())
-                targets.push_back(std::move(shell));
-            return targets;
-        }
+        if (event_name == "os.system")
+            return system_shell_targets();
         const auto it = process_target_sources.find(event_name);
         if (it == process_target_sources.end())
             return targets;
@@ -1879,16 +1876,12 @@ std::vector<std::string> audit_targets(const std::string& event_name, AuditEvent
 
     const auto it = network_target_arg_indices.find(event_name);
     if (it != network_target_arg_indices.end()) {
-        for (const Py_ssize_t index : it->second) {
-            // None is an argument left out (sendmsg without an address), not a target named "None".
-            PyObject* const item = tuple_item(args, index);
-            if (item == Py_None)
-                continue;
+        // None is an argument left out (sendmsg without an address), not a target named "None".
+        PyObject* const item = tuple_item(args, it->second);
+        if (item != Py_None) {
             std::string value = python_str(item);
-            if (!value.empty()) {
+            if (!value.empty())
                 targets.push_back(std::move(value));
-                break;
-            }
         }
     }
 
