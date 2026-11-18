@@ -163,6 +163,54 @@ TEST_CASE("Splitting a part made only of pieces enclosing no volume leaves it wh
     CHECK(volume->mesh().facets_count() == 2);
 }
 
+TEST_CASE("Splitting an object gives each negative part and modifier to the piece it overlaps", "[Model]")
+{
+    // Two cubes 30 mm apart, in one part or in two.
+    const bool two_parts = GENERATE(false, true);
+    CAPTURE(two_parts);
+    Model model;
+    ModelObject *object = model.add_object();
+    TriangleMesh left  = make_cube(10, 10, 10);
+    TriangleMesh right = make_cube(10, 10, 10);
+    right.translate(30.f, 0.f, 0.f);
+    if (two_parts) {
+        object->add_volume(std::move(left), ModelVolumeType::MODEL_PART, false);
+        object->add_volume(std::move(right), ModelVolumeType::MODEL_PART, false);
+    } else {
+        left.merge(right);
+        object->add_volume(std::move(left), ModelVolumeType::MODEL_PART, false);
+    }
+    TriangleMesh hole = make_cube(2, 2, 12);
+    hole.translate(4.f, 4.f, -1.f);
+    const ModelVolume *negative = object->add_volume(std::move(hole), ModelVolumeType::NEGATIVE_VOLUME, false);
+    TriangleMesh block = make_cube(4, 4, 4);
+    block.translate(33.f, 3.f, 3.f);
+    const ModelVolume *modifier = object->add_volume(std::move(block), ModelVolumeType::PARAMETER_MODIFIER, false);
+    object->add_instance()->set_offset(Vec3d(100., 50., 0.));
+
+    auto world_bbox = [](const ModelObject &object, const ModelVolume &volume) {
+        return volume.mesh().bounding_box().transformed(object.instances.front()->get_matrix() * volume.get_matrix());
+    };
+    const BoundingBoxf3 negative_bbox = world_bbox(*object, *negative);
+    const BoundingBoxf3 modifier_bbox = world_bbox(*object, *modifier);
+
+    ModelObjectPtrs new_objects;
+    object->split(&new_objects, false);
+    REQUIRE(new_objects.size() == 2);
+    for (const ModelObject *piece : new_objects) {
+        REQUIRE(piece->volumes.size() == 2);
+        const bool is_left = world_bbox(*piece, *piece->volumes.front()).min.x() < 120.;
+        CAPTURE(is_left);
+        const ModelVolume &other = *piece->volumes.back();
+        CHECK(other.type() == (is_left ? ModelVolumeType::NEGATIVE_VOLUME : ModelVolumeType::PARAMETER_MODIFIER));
+        // It stays where it was.
+        const BoundingBoxf3 expected = is_left ? negative_bbox : modifier_bbox;
+        const BoundingBoxf3 bbox     = world_bbox(*piece, other);
+        CHECK((bbox.min - expected.min).norm() < 1e-4);
+        CHECK((bbox.max - expected.max).norm() < 1e-4);
+    }
+}
+
 TEST_CASE("Replacing a part's mesh updates whether it can be split", "[Model]")
 {
     Model model;

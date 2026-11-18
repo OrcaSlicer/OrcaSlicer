@@ -2407,14 +2407,31 @@ static void invalidate_translations(ModelObject* object, const ModelInstance* sr
     }
 }
 
+// The volume of the intersection of two bounding boxes, 0 if they don't overlap.
+static double bbox_overlap_volume(const BoundingBoxf3 &a, const BoundingBoxf3 &b)
+{
+    const Vec3d size = a.max.cwiseMin(b.max) - a.min.cwiseMax(b.min);
+    return size.minCoeff() > 0. ? size.prod() : 0.;
+}
+
 void ModelObject::split(ModelObjectPtrs* new_objects, const bool remap_paint)
 {
     std::vector<TriangleMesh> all_meshes;
     std::vector<Transform3d> all_transfos;
     std::vector<std::pair<int, int>> volume_mesh_counts;
     all_meshes.reserve(this->volumes.size() * 5);
-    bool is_multi_volume_object = (this->volumes.size() > 1);
+    // Negative parts, modifiers, support blockers and enforcers don't make objects of their own.
+    const bool is_multi_volume_object = std::count_if(this->volumes.begin(), this->volumes.end(),
+        [](const ModelVolume *volume) { return volume->is_model_part(); }) > 1;
     std::optional<TriangleSelector::SavedPainting> saved_painting;
+    struct Piece
+    {
+        ModelObject  *object;
+        // The offset of the part, which the instances of the new object took over.
+        Vec3d         offset;
+        BoundingBoxf3 bbox;
+    };
+    std::vector<Piece> pieces;
 
     for (int volume_idx = 0; volume_idx < this->volumes.size(); volume_idx++) {
         ModelVolume* volume = this->volumes[volume_idx];
@@ -2472,6 +2489,7 @@ void ModelObject::split(ModelObjectPtrs* new_objects, const bool remap_paint)
             if (mesh.facets_count() < 3)
                 continue;
 
+            const BoundingBoxf3 piece_bbox = mesh.bounding_box().transformed(volume->get_matrix());
             // XXX: this seems to be the only real usage of m_model, maybe refactor this so that it's not needed?
             ModelObject* new_object = m_model->add_object();
             //BBS: refine the config logic
@@ -2528,12 +2546,29 @@ void ModelObject::split(ModelObjectPtrs* new_objects, const bool remap_paint)
                 model_instance->set_offset_to_assembly(new_vol->get_offset());
             }
 
+            pieces.push_back({ new_object, new_vol->get_offset(), piece_bbox });
             new_vol->set_offset(Vec3d::Zero());
             // reset the source to disable reload from disk
             new_vol->source = ModelVolume::Source();
             new_objects->emplace_back(new_object);
         }
     }
+
+    // Give every other volume to the piece it overlaps most, or to the first piece, where it stands.
+    if (! pieces.empty())
+        for (const ModelVolume *volume : this->volumes) {
+            if (volume->is_model_part() || volume->mesh().empty())
+                continue;
+            const BoundingBoxf3 bbox   = volume->mesh().bounding_box().transformed(volume->get_matrix());
+            const Piece        *target = &pieces.front();
+            double              max_overlap = 0.;
+            for (const Piece &piece : pieces)
+                if (const double overlap = bbox_overlap_volume(bbox, piece.bbox); overlap > max_overlap) {
+                    target      = &piece;
+                    max_overlap = overlap;
+                }
+            target->object->add_volume(*volume)->set_transformation(Geometry::translation_transform(-target->offset) * volume->get_matrix());
+        }
 }
 
 
