@@ -1017,7 +1017,7 @@ void ActionRegistry::materialize_design_actions()
     // The tiles act on the Design tab a person is looking at, so they are there only while it is shown, and
     // only those of the mode it is in, the tools its right-click menu offers there; none while the CAD feature
     // is off, though the tab stays until a restart (Mcp::design_tiles()). The catalog holds the Design commands
-    // only when the CAD feature was on at startup. A folded row's tile runs its command with the row's arguments.
+    // only when the CAD feature was on at startup. A folded item's tile runs its command with the item's arguments.
     const MainFrame*   frame = wxTheApp ? wxGetApp().mainframe : nullptr;
     const DesignPanel* panel = frame != nullptr ? frame->shown_design_panel() : nullptr;
     std::unordered_set<std::string> seen;

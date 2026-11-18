@@ -27,9 +27,9 @@ struct CatalogOptions
 };
 
 // Adds the built-in commands to `catalog`, family by family (Mcp::register_app_tools() and the others): the typed
-// tools and the commands made from menu rows (Rows, NativeCommandRows.hpp), whose rows are their tiles, eight of them
+// tools and the commands made from menu items (MenuItems, NativeCommandMenuItems.hpp), whose items are their tiles, eight of them
 // with a tile of their own (in_palette). Each is in the group of its place (place_heading()) and is listed, as it runs
-// from its arguments, but for the three rows that take none (window_save_screenshot, script_toggle_panel,
+// from its arguments, but for the three menu items that take none (window_save_screenshot, script_toggle_panel,
 // settings_toggle_developer_mode). They come in the order tools/list gives them: tool_search, tool_call and app_state,
 // then place by place (Tools and actions, The app, The project, Objects, Parts, Plates and on), each place's commands
 // in the order their families declare them, and Driving the GUI last. Before Driving the GUI, with options.cad, the Design tab's commands
@@ -56,9 +56,9 @@ void build(const CatalogOptions& options);
 // switch. Any thread.
 const CommandCatalog& instance();
 
-// An item of a command's `tiles`: a menu row folded into the command, which runs it with `args`. `title` and `group`
+// An item of a command's `tiles`: a menu item folded into the command, which runs it with `args`. `title` and `group`
 // (its Speed Dial section) are untranslated msgids, L()-marked by the caller. `input` is the Speed Dial's token for
-// the value the row's second phase collects ("percent", "tab"), and `input_arg` the command's argument that value
+// the value the item's second phase collects ("percent", "tab"), and `input_arg` the command's argument that value
 // goes to where it is not named as the token. The item has `group`, `input` and `input_arg` only when they are
 // given: without a group it is in its command's section.
 nlohmann::json tile(std::string key, std::string title, std::string group, std::string icon, nlohmann::json args,
@@ -97,7 +97,7 @@ NativeCommand long_command(std::string key, std::string title, std::string group
 // tiles), with its person's forms (Mcp::person_forms()): {} for its own tile, and the args of each item that collects
 // no value. A call that is one of them (Mcp::person_form(tool, args)) is the person's form: `person` given those
 // arguments, on the UI thread, as ui_command() runs a function. Any other call is the tool's own function, given the
-// arguments as they are. `own_forms` are the tiles whose row does what the tool does (view_set's camera tiles): an
+// arguments as they are. `own_forms` are the tiles whose menu item does what the tool does (view_set's camera tiles): an
 // automated call whose arguments, null as {}, are one of them is the tool's own function, and a person's pick of one
 // is `person`, which runs the same function in place; they stay person's forms (Mcp::person_form()) for what reads a
 // call as a tile's. A person's pick of a tile that collects a value is `person` too, given the tile's call (its args
@@ -106,9 +106,9 @@ NativeCommand long_command(std::string key, std::string title, std::string group
 // guard lets it run behind dialogs, unless `person_form_behind_dialogs` says the form opens nothing and may run where
 // the tool does. The tool's schema stays as it is: it takes its tiles' arguments, and its own function needs nothing a
 // tile leaves out.
-NativeCommand with_row_forms(NativeCommand tool, std::function<AppActionRunResult(const nlohmann::json& tile_args)> person,
+NativeCommand with_menu_item_forms(NativeCommand tool, std::function<AppActionRunResult(const nlohmann::json& tile_args)> person,
                              bool person_form_behind_dialogs = false, std::vector<nlohmann::json> own_forms = {});
-// with_row_forms() for a tool whose own function requires what its person's forms leave out (a path a dialog asks
+// with_menu_item_forms() for a tool whose own function requires what its person's forms leave out (a path a dialog asks
 // for): its schema goes through Mcp::with_silent() with them, so it also takes silent: true, and a call with silent is
 // the tool's own function, given silent with the other arguments, so that what the function journals keeps it.
 NativeCommand with_person_form(NativeCommand tool, std::function<AppActionRunResult(const nlohmann::json& tile_args)> person,
@@ -156,7 +156,7 @@ bool recording_active();
 const NativeCommand* find(const std::string& key);
 
 // A command's title as its tile shows it, in the UI's language, translated in its title_context(): a Design
-// command's, its entry's name, in the Design context, as the right-click menu names a row; any other command's
+// command's, its entry's name, in the Design context, as the right-click menu names an item; any other command's
 // title with no context. The Speed Dial's tiles, the replay and script editors and the notice of a job a person
 // started show a command's title with it; a recording's caption translates the title in the same context on its
 // own (title_context()). UI thread only.

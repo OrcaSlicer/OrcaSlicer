@@ -44,7 +44,7 @@ from cad_gui import CANVAS, CadGui, until  # noqa: E402
 
 gui = None  # the CadGui main() starts
 
-# The offer's header for each sketch selection: its first item, greyed, naming what the rows act
+# The offer's header for each sketch selection: its first item, greyed, naming what the items act
 # on (DesignPanel::offer_header). Keyed by the selection kinds of the offer table (OfferSel).
 HEADER = {"SkNone": "Sketch — nothing selected", "SkLine": "Sketch line", "SkArc": "Sketch curve",
           "SkPoint": "Sketch point", "Sk2Ent": "2 sketch entities"}
@@ -326,7 +326,7 @@ def rung_vocabulary():
                   f"table only {sorted(want - got)}; greyed {sorted(o.disabled)} vs {sorted(want_grey)}")
         seen[name] = offered(o, verbs)
 
-    # The sets differ: an offer that adapts does not show the same rows everywhere.
+    # The sets differ: an offer that adapts does not show the same items everywhere.
     gui.check("vocabulary: every selection offers a different set",
               len(set(map(frozenset, seen.values()))) == len(seen),
               ", ".join(f"{k}={len(v)}" for k, v in seen.items()))

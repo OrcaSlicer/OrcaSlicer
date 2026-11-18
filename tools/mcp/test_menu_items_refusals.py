@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Checks what the object commands made from menu rows refuse, and that each refusal says its reason.
+"""Checks what the object commands made from menu items refuse, and that each refusal says its reason.
 
     tools/mcp/orca_mcp.py launch
-    tools/mcp/test_rows_refusals.py
+    tools/mcp/test_menu_items_refusals.py
 
 Set as Individual Objects on an object of one instance is refused, saying it has one instance. Select All (object_select
 {all: true}) selects every object while the Move gizmo is open, which lets it, and is refused while the Place on face
@@ -13,9 +13,9 @@ and object_delete by index leaves the view shown (the assemble view).
 
 A selection of a kind a command does not take: object_rename with an instance selected is refused as wrong_selection,
 and a pick of Rename from the Speed Dial (Space on the 3D view, the search field, a click on the tile) says to select
-one object or part, as its row did, and opens no dialog. A pick of Set as Individual Objects with a part selected
+one object or part, as its menu item did, and opens no dialog. A pick of Set as Individual Objects with a part selected
 separates that part's instance alone. A pick of Delete with an object's last solid part selected shows the object
-list's message, as the row did, where object_delete of that part by index is refused as last_solid_part; object_delete
+list's message, as the menu item did, where object_delete of that part by index is refused as last_solid_part; object_delete
 with no arguments on both solid parts of an object with a modifier deletes the second, shows that message for the first,
 and replies with the part deleted and, under kept, the part that stayed. A cube cut
 with the Cut gizmo: object_delete of a half by index is refused as cut_object; with no arguments it asks the object
@@ -25,7 +25,7 @@ and cancelled shows no notice.
 Split: object_split of a mesh of one shell is refused as one_shell, and a pick of Split to Objects on it says it is one
 piece; a split into objects that would leave a piece floating above the bed is refused with the Auto-Drop question
 (auto_drop_question) unless keep_z answers it, while a pick of Split to Objects asks it. A pick of Change Type with an
-object selected, and of Assemble with one object selected, say what to select, in their rows' words.
+object selected, and of Assemble with one object selected, say what to select, in their menu items' words.
 
 Placement: object_mirror with no axis is refused by its schema, and object_center and object_add_primitive on a plate the
 project lacks as no_such_plate. A pick of Mirror X with two objects selected says Mirror takes one instance, a pick of Drop to Bed on an
@@ -39,12 +39,12 @@ and Change Type to Negative Part on every solid part row says the last solid par
 instance rows, and Split to Parts on every part row, say they take one row. object_auto_orient of a plate with no
 objects is refused as no_objects_to_orient and turns nothing, and its reply leaves out an object on a locked plate.
 Named objects, or a plate, of which nothing is printable (an Assembly of a cube made not printable) are refused as
-not_printable and turn no other object, while a pick of Auto-Orient on that object turns the other object, as its row's
+not_printable and turn no other object, while a pick of Auto-Orient on that object turns the other object, as its menu item's
 job did, and names it.
 
 The plates: a pick of Duplicate Plate is one undo step, which Undo takes back alone. The Rename Plate tile run with its
 name dialog cancelled is told the plate was not renamed (not_renamed), while a pick of it, cancelled, shows nothing, as
-its row did. plate_delete, plate_duplicate, plate_rename, plate_lock and plate_select of a plate the project lacks are
+its menu item did. plate_delete, plate_duplicate, plate_rename, plate_lock and plate_select of a plate the project lacks are
 refused as no_such_plate, each leaving the plates as they were; a rename of a plate to the name it has changes neither
 the current plate nor the undo history.
 
@@ -174,7 +174,7 @@ def main():
     check("object_delete by index leaves the assemble view shown", shown == "assemble", shown)
     client.call("view_set", canvas="3d")
 
-    # ---- A selection of a kind Rename does not take: an instance, which a pick of Rename refuses as its row did ----
+    # ---- A selection of a kind Rename does not take: an instance, which a pick of Rename refuses as its menu item did ----
     client.call("object_set_instances", object=0, count=2)
     client.call("object_select", instances=[[0, 1]])
     refused("object_rename with an instance selected is refused", "object_rename", {"name": "x"}, "Select one object or part first",
@@ -205,7 +205,7 @@ def main():
     check("and the new object is the part's instance, instance 0",
           len(objects) == 2 and objects[1]["instances"][0]["offset"] == offsets[0], (offsets, objects[-1]["instances"]))
 
-    # ---- A pick of Delete with an object's last solid part selected: the object list says why, as for the row ----
+    # ---- A pick of Delete with an object's last solid part selected: the object list says why, as for the menu item ----
     client.call("project_new", discard_changes=True)
     client.call("object_add_primitive", shape="cube", size=[20, 20, 20])
     client.call("part_add", object=0, type="modifier", shape="cube", size=[5, 5, 5])
@@ -331,7 +331,7 @@ def main():
     check("and, answered No, the pieces drop", len(lowest) == 2 and lowest[1] < 1, lowest)
     client.call("dialog_auto_answer", rules=[])
 
-    # ---- Change Type and Assemble picked with a selection their rows refused, in the rows' words ----
+    # ---- Change Type and Assemble picked with a selection their menu items refused, in the items' words ----
     client.call("object_select", objects=[0])
     dial_pick("Change Type to Modifier")
     state = settled()
@@ -344,7 +344,7 @@ def main():
           any("Select two or more objects first" in text for text in notices(state)), notices(state))
     check("and assembles nothing", total() == 2, total())
 
-    # ---- Mirror needs its axis, a plate the project lacks is named, and picks refused as their rows were ----
+    # ---- Mirror needs its axis, a plate the project lacks is named, and picks refused as their menu items were ----
     refused("object_mirror with no axis is refused by its schema", "object_mirror", {"objects": [0]}, "axis")
     refused("object_center on a plate the project lacks is refused", "object_center", {"plate": 9}, "plate", "no_such_plate")
     refused("object_add_primitive on a plate the project lacks is refused", "object_add_primitive",
@@ -421,7 +421,7 @@ def main():
     list_rows("left>left", "left>Generic-Cube")
     dial_pick("Assemble")
     state = settled()
-    check("a pick of Assemble on every part row of an object says to select two or more objects, as its row did",
+    check("a pick of Assemble on every part row of an object says to select two or more objects, as its menu item did",
           any("Select two or more objects first" in text for text in notices(state)), notices(state))
     check("and assembles nothing", objects_named() == [("left", 2), ("right", 2)], objects_named())
 
@@ -504,7 +504,7 @@ def main():
     refused("object_auto_orient of a plate whose only object is not printable is refused, saying why", "object_auto_orient",
             {"plates": [1]}, "not printable", "not_printable")
     check("and turns no other object", edge_rotation() == before, (before, edge_rotation()))
-    # With the object that is not printable selected, the job turns every other object, as the row's did, and the
+    # With the object that is not printable selected, the job turns every other object, as the menu item's did, and the
     # reply names what it turned.
     client.call("object_select", objects=[0])
     reply = client.call("action_run", id="orca_command:obj_orient:orca")

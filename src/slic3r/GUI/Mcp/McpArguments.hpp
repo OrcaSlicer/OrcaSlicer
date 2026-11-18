@@ -25,7 +25,7 @@ std::string resolve_call(const CommandCatalog& catalog, std::shared_ptr<const Na
 std::string validate_arguments(const nlohmann::json& schema, const nlohmann::json& args);
 
 // Whether `args` is a call with no arguments: an object with no members, or null. A Design command and a menu
-// row's function do their person's form then (they ask, as a person's pick does).
+// item's function do their person's form then (they ask, as a person's pick does).
 bool person_form(const nlohmann::json& args);
 // The arguments of each of `command`'s person's forms: {} for its own tile (in_palette), and the args of each item
 // of its tiles that collects no value (no input), in their order.

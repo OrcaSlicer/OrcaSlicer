@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Checks that a call with exactly a tile's arguments asks as a person's pick does, that one with a path does not, and
-that a person's pick of a view tile or Deselect All runs in place, as its row did.
+that a person's pick of a view tile or Deselect All runs in place, as its menu item did.
 
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_person_forms.py
@@ -233,12 +233,12 @@ def main():
     check("and the journal keeps it with the settings in force", step.get("tool") == "object_arrange"
           and "spacing" in step.get("args", {}), step)
 
-    # action_run names the tile it ran in ran, whatever the command replies; the row replied level besides.
+    # action_run names the tile it ran in ran, whatever the command replies; the menu item replied level besides.
     cube_off_plate("action_run of Auto-Arrange")
     arranged = client.await_job(client.call("action_run", id="orca_command:obj_arrange:orca"))
     check("action_run of Auto-Arrange replies with the settings in force and what it left off the plates",
           "settings" in arranged and arranged.get("off_plate") == [], arranged)
-    check("and not with the row's level", "level" not in arranged, arranged)
+    check("and not with the menu item's level", "level" not in arranged, arranged)
     check("and with ran, the tile's id", arranged.get("ran") == "orca_command:obj_arrange:orca", arranged)
     check("and puts the cube back on the plate", outside() == [], outside())
     # action_run takes the tile with its own arguments alone, none here, so the journal keeps those in place of the
@@ -280,7 +280,7 @@ def main():
     chosen = client.call("action_run", id="orca_command:select_all:orca")
     check("action_run of Select All Objects replies with the selection, the three cubes", chosen.get("objects") == [0, 1, 2],
           chosen)
-    check("and not with the row's level", "level" not in chosen, chosen)
+    check("and not with the menu item's level", "level" not in chosen, chosen)
     check("and with ran, the tile's id", chosen.get("ran") == "orca_command:select_all:orca", chosen)
 
     client.call("view_set", canvas="assemble")
@@ -323,7 +323,7 @@ def main():
           state.get("selection"))
 
     # Where the pick and the call differ: picked while the assemble view is shown, Select All Objects shows Prepare and
-    # selects there, as its row did, where the call selects in the assemble view.
+    # selects there, as its menu item did, where the call selects in the assemble view.
     client.call("object_select", none=True)
     client.call("view_set", canvas="assemble")
     client.call("object_select", none=True)

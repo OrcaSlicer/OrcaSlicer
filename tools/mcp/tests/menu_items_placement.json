@@ -1,14 +1,14 @@
-// The placement commands made from rows, called by index: object_add_primitive on a plate, at a position and with a
+// The placement commands made from menu items, called by index: object_add_primitive on a plate, at a position and with a
 // name while another object is selected, in one undo step (the snapshots read from the log, fixtures/ops_undo.py);
 // object_mirror, object_drop, object_center (each plate's objects on their own plate, then all on one),
 // object_scale_to_fit and object_auto_orient (a cube on its edge laid on a face), each read back through object_list;
 // and the Center, Drop, Scale to Fit and Auto-Orient tiles on the selection. Plate positions are those of the sweep's printer, a
 // Bambu Lab X1 Carbon (a 256 mm bed): with three plates, plate 1's centre is at x 435.2, y 128 and plate 2's at x 128,
 // y -179.2. Run it with
-//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/rows_placement.json --out <dir>
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/menu_items_placement.json --out <dir>
 {
   "orca_replay_version": "0.2.0",
-  "name": "placement rows by index",
+  "name": "placement menu items by index",
   "vars": {"undo": "${replay_dir}/fixtures/ops_undo.py"},
   "steps": [
     {"tool": "app_wait", "args": {"for": "ready"}},

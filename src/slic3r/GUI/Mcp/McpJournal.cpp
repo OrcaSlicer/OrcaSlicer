@@ -32,7 +32,7 @@ std::size_t serialized_size(const json& args) { return args.dump(-1, ' ', false,
 // The name a journaled call of `tool` with `args` runs under, and the arguments it runs with: the call's own, or, for
 // action_run of a command's tile, by its full id or the key inside it, that key and the arguments inside the tile's
 // {id, args}. A command's own tile is under its command's key, so a Design command's tile is rewritten as its command
-// is; a tile of a row folded into a command is under a key of its own, and its call's arguments, none, the tile's own
+// is; a tile of a menu item folded into a command is under a key of its own, and its call's arguments, none, the tile's own
 // or the value it collects, hold no path to rewrite.
 std::pair<std::string, json*> called_command(const std::string& tool, json& args)
 {

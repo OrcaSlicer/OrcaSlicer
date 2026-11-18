@@ -144,7 +144,7 @@ std::string first_difference(const std::string& actual, const std::string& expec
 
 // The design's command set outside the Design tab, heading by heading in the order tools/list gives them, Driving the
 // GUI last, after the Design tab's commands: the 118 commands of the catalog, its typed tools, the commands made from
-// menu rows, the seven Parts 4a to 4c add (Printable, Fix Model, Auto Drop, Clone, Reload from disk, Replace 3D file,
+// menu items, the seven Parts 4a to 4c add (Printable, Fix Model, Auto Drop, Clone, Reload from disk, Replace 3D file,
 // Add Mixed Filament), the three of Part 5a (the Printer Selection dialog's list, install and uninstall), the two of
 // Part 5b (the System Filaments dialog's install and uninstall), Part 5c's write of the Preferences dialog's preferences
 // and the four of Part 5d (the Plugins window's list, a switch, Delete or Unsubscribe, and Reload).
@@ -248,14 +248,14 @@ TEST_CASE("every Speed Dial tile of today is still a tile", "[CommandCatalog][Sp
     CHECK(tiles == expected);
 }
 
-TEST_CASE("a row's id is a tile's key, not a command", "[CommandCatalog][SpeedDial]")
+TEST_CASE("a menu item's id is a tile's key, not a command", "[CommandCatalog][SpeedDial]")
 {
     const CommandCatalog& catalog = NativeCommands::instance();
-    REQUIRE(kRetiredRows.size() == 121);
-    for (const std::string& row : kRetiredRows) {
-        INFO(row);
-        CHECK(catalog.find(row) == nullptr);
-        const auto [command, tile] = Slic3r::GUI::find_tile(catalog, row);
+    REQUIRE(kRetiredMenuItems.size() == 121);
+    for (const std::string& item : kRetiredMenuItems) {
+        INFO(item);
+        CHECK(catalog.find(item) == nullptr);
+        const auto [command, tile] = Slic3r::GUI::find_tile(catalog, item);
         CHECK(command != nullptr);
         CHECK(tile != nullptr);
     }
@@ -263,7 +263,7 @@ TEST_CASE("a row's id is a tile's key, not a command", "[CommandCatalog][SpeedDi
 
 TEST_CASE("every tile is its command's, with the design's arguments, and they fit its schema", "[CommandCatalog][SpeedDial]")
 {
-    // Each of the 129 tiles with the command the design folds its row into and the arguments it runs it with.
+    // Each of the 129 tiles with the command the design folds its menu item into and the arguments it runs it with.
     std::ifstream in(std::string(TEST_DATA_DIR) + "/speed_dial_tile_calls.json", std::ios::binary);
     REQUIRE(in.is_open());
     const json fixture = json::parse(in);
@@ -304,7 +304,7 @@ TEST_CASE("every tile is its command's, with the design's arguments, and they fi
         json call = Slic3r::GUI::tile_call_args(tile, value);
         CHECK(Mcp::argument_error(*command, call).empty());
     }
-    // Every tile of today, under the command the design folds its row into.
+    // Every tile of today, under the command the design folds its menu item into.
     CHECK(folded == 129);
 
     // The tiles that ask need none of what the silent form requires; one more argument is the silent form.
@@ -326,7 +326,7 @@ TEST_CASE("every tile is its command's, with the design's arguments, and they fi
     CHECK_THAT(Mcp::argument_error(*export_, gcode_overwrite), ContainsSubstring("path"));
 }
 
-TEST_CASE("a row's tile runs its command with the row's arguments", "[SpeedDial]")
+TEST_CASE("a menu item's tile runs its command with the item's arguments", "[SpeedDial]")
 {
     // One tile of each command that has tiles, and each of view_set's kinds of tile: a tile's key, its command, the
     // arguments it runs it with, and the Speed Dial's token for the value it collects with the argument that takes it.
@@ -444,10 +444,10 @@ TEST_CASE("outside the Design tab the catalog has its commands and 129 tiles", "
         // An own tile is in the section the Speed Dial shows its key in.
         CHECK(c.tile_group == section.at(c.key));
     }
-    // The commands outside the Design tab: the typed tools, the commands made from menu rows, the seven Parts 4a to 4c
+    // The commands outside the Design tab: the typed tools, the commands made from menu items, the seven Parts 4a to 4c
     // add, Part 5a's three, Part 5b's two, Part 5c's one and Part 5d's four.
     CHECK(commands == 118);
-    // The eight commands named as their rows keep a tile of their own; the other 121 tiles are items.
+    // The eight commands named as their menu items keep a tile of their own; the other 121 tiles are items.
     CHECK(own == std::set<std::string>{"plate_add", "plate_delete", "plate_duplicate", "plate_rename", "filament_add", "filament_delete",
                                        "undo", "redo"});
     CHECK(items == 121);
@@ -491,7 +491,7 @@ TEST_CASE("the commands outside the Design tab are the design's, under its headi
     CHECK(heading_of("window_screenshot") == "Recordings, replays and scripts");
     CHECK(heading_of("window_save_screenshot") == "Recordings, replays and scripts");
     CHECK(heading_of("window_list") == "View and windows");
-    // undo and redo are a place's word of their own; a row's id and a word that is no place have none.
+    // undo and redo are a place's word of their own; a menu item's id and a word that is no place have none.
     CHECK(heading_of("undo") == "The app");
     CHECK(heading_of("obj_mirror_x") == "(none)");
     CHECK(heading_of("objects_list") == "(none)");
@@ -511,7 +511,7 @@ TEST_CASE("every command that runs from arguments is in the tool list, by place"
         else
             unlisted.insert(c.key);
     }
-    // The three menu rows with no argument form, which tool_search finds and tool_call runs.
+    // The three menu items with no argument form, which tool_search finds and tool_call runs.
     CHECK(unlisted == std::set<std::string>{"window_save_screenshot", "script_toggle_panel", "settings_toggle_developer_mode"});
     // Task 3's 98, the seven Parts 4a to 4c add, Part 5a's three, Part 5b's two, Part 5c's one and Part 5d's four.
     CHECK(listed.size() == 115);
@@ -544,9 +544,9 @@ TEST_CASE("only deleting a preset and uninstalling a plugin are labelled destruc
                                       "plate_get_settings", "project_get_settings", "plate_list", "object_list",
                                       "window_screenshot",  "plate_slice_stats",    "script_search_api", "action_search",
                                       "window_list",        "widget_list",          "printer_list_models", "plugin_list"};
-    // The commands made from menu rows whose row reaches a printer, the cloud account or the network.
-    const std::set<std::string> rows_reaching_out{"printer_send",          "preset_sync",       "filament_sync_ams",
-                                                  "app_check_for_updates", "app_open_web_page", "plugin_refresh"};
+    // The commands made from menu items whose item reaches a printer, the cloud account or the network.
+    const std::set<std::string> menu_items_reaching_out{"printer_send",          "preset_sync",       "filament_sync_ams",
+                                                        "app_check_for_updates", "app_open_web_page", "plugin_refresh"};
     // The plugin commands that run a plugin's code or reach the cloud account: a plugin switched on or loaded again
     // runs its code, a cloud plugin is downloaded, and Unsubscribe ends a subscription.
     const std::set<std::string> plugins_reaching_out{"plugin_enable", "plugin_reload", "plugin_uninstall"};
@@ -566,7 +566,7 @@ TEST_CASE("only deleting a preset and uninstalling a plugin are labelled destruc
     }
     CHECK(destructive == std::set<std::string>{"preset_delete", "plugin_uninstall"});
     CHECK(read_only == reads);
-    std::set<std::string> reaching_out = rows_reaching_out;
+    std::set<std::string> reaching_out = menu_items_reaching_out;
     reaching_out.insert(plugins_reaching_out.begin(), plugins_reaching_out.end());
     for (const std::string& key : reaching_out) {
         INFO(key);
@@ -646,14 +646,14 @@ TEST_CASE("every key of the process catalog is unique, tools and commands togeth
         INFO(c.key);
         CHECK(keys.insert(c.key).second);
     }
-    // The commands made from menu rows and the typed tools are both there.
+    // The commands made from menu items and the typed tools are both there.
     CHECK(keys.count("object_mirror") == 1);
     CHECK(keys.count("app_state") == 1);
 }
 
 TEST_CASE("the typed tools are listed and the merged commands are both", "[CommandCatalog]")
 {
-    // A tool whose row is an item of its tiles, with the row's title, section and icon.
+    // A tool whose menu item is one of its tiles, with the item's title, section and icon.
     for (const auto& [key, tile_key, title] : {std::make_tuple("project_new", "new_project", "New Project"),
                                                std::make_tuple("project_save", "save_project", "Save Project"),
                                                std::make_tuple("recording_start", "start_recording", "Start Recording"),
@@ -676,17 +676,17 @@ TEST_CASE("the typed tools are listed and the merged commands are both", "[Comma
     CHECK(tool->listed);
     CHECK_FALSE(tool->in_palette);
 
-    // A command made from menu rows is listed too, as it runs from its arguments: its rows are its tiles.
-    const NativeCommand* rows = NativeCommands::find("object_mirror");
-    REQUIRE(rows != nullptr);
-    CHECK(rows->listed);
-    CHECK_FALSE(rows->in_palette);
-    CHECK(rows->tiles.size() == 3);
+    // A command made from menu items is listed too, as it runs from its arguments: its menu items are its tiles.
+    const NativeCommand* menu_items = NativeCommands::find("object_mirror");
+    REQUIRE(menu_items != nullptr);
+    CHECK(menu_items->listed);
+    CHECK_FALSE(menu_items->in_palette);
+    CHECK(menu_items->tiles.size() == 3);
 }
 
-TEST_CASE("the palette's tiles are under the rows' keys, not the tools' names", "[CommandCatalog]")
+TEST_CASE("the palette's tiles are under the menu items' keys, not the tools' names", "[CommandCatalog]")
 {
-    // Every tile of the Speed Dial by its key: a typed tool is there only through its rows' tiles.
+    // Every tile of the Speed Dial by its key: a typed tool is there only through its menu items' tiles.
     const std::set<std::string> tiles{
         "add_handy_3dbenchy", "add_handy_autodesk_fdm_test", "add_handy_cali_cat", "add_handy_orca_badge",
         "add_handy_orca_cube", "add_handy_orca_string_hell", "add_handy_orca_tolerance_test", "add_handy_orcasliced_combo",
@@ -779,7 +779,7 @@ TEST_CASE("a merged command's call with a tile's arguments is the person's form"
     CHECK(given.data["tool"] == true);
 }
 
-TEST_CASE("a pick of a tile whose row and tool are one function runs it in place, and a call runs the tool", "[CommandCatalog]")
+TEST_CASE("a pick of a tile whose menu item and tool are one function runs it in place, and a call runs the tool", "[CommandCatalog]")
 {
     int  tool_calls = 0;
     json person_args = json::array(); // what each run of the shared function for a pick was given
@@ -787,26 +787,26 @@ TEST_CASE("a pick of a tile whose row and tool are one function runs it in place
         ++tool_calls;
         return ToolResult::ok({{"tool", true}});
     });
-    tool.tiles = json::array({NativeCommands::tile("k_row", "Row", "View", "", {{"row", true}}, "The row's function."),
+    tool.tiles = json::array({NativeCommands::tile("k_item", "Item", "View", "", {{"item", true}}, "The menu item's function."),
                               NativeCommands::tile("k_tool", "Tool", "View", "", {{"camera", "top"}}, "The tool's function."),
                               NativeCommands::tile("k_input", "Input", "View", "", json::object(), "A value it collects.", "percent",
                                                    "level")});
-    const NativeCommand merged = NativeCommands::with_row_forms(
+    const NativeCommand merged = NativeCommands::with_menu_item_forms(
         tool,
         [&person_args](const json& tile_args) {
             person_args.push_back(tile_args);
             return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         },
         /*person_form_behind_dialogs=*/false, std::vector<json>{json{{"camera", "top"}}});
-    // The row's tile and the tool's are person's forms of the command; the tile that collects a value is not.
-    CHECK(Mcp::person_form(merged, {{"row", true}}));
+    // The menu item's tile and the tool's are person's forms of the command; the tile that collects a value is not.
+    CHECK(Mcp::person_form(merged, {{"item", true}}));
     CHECK(Mcp::person_form(merged, {{"camera", "top"}}));
     CHECK_FALSE(Mcp::person_form(merged, {{"level", 50}}));
 
-    // An automated call: the row's tile runs the row, the tool's own form and the input tile's call run the tool.
+    // An automated call: the menu item's tile runs the item, the tool's own form and the input tile's call run the tool.
     TestContext agent;
-    merged.run({{"row", true}}, agent);
-    CHECK(person_args == json::array({{{"row", true}}}));
+    merged.run({{"item", true}}, agent);
+    CHECK(person_args == json::array({{{"item", true}}}));
     CHECK(merged.run({{"camera", "top"}}, agent).data["tool"] == true);
     CHECK(merged.run({{"level", 50}}, agent).data["tool"] == true);
     CHECK(tool_calls == 2);
@@ -820,7 +820,7 @@ TEST_CASE("a pick of a tile whose row and tool are one function runs it in place
     REQUIRE(picked.notice != nullptr);
     CHECK(picked.notice->level == AppActionRunResult::Level::Succeeded);
     merged.run({{"level", 50}}, person);
-    CHECK(person_args == json::array({{{"row", true}}, {{"camera", "top"}}, {{"level", 50}}}));
+    CHECK(person_args == json::array({{{"item", true}}, {{"camera", "top"}}, {{"level", 50}}}));
     CHECK(person.submitted.empty());
     CHECK(tool_calls == 2);
     // Any other call of a person is the tool's, which a long command starts as a job.
@@ -898,11 +898,11 @@ TEST_CASE("the catalog needs no runtime", "[CommandCatalog]")
     CHECK(names.count("app_state") == 1);
     CHECK(names.count("tool_call") == 1);
     CHECK(names.count("object_mirror") == 1);
-    // A menu row with no argument form is not.
+    // A menu item with no argument form is not.
     CHECK(names.count("settings_toggle_developer_mode") == 0);
 }
 
-TEST_CASE("a command made from menu rows is found by the one lookup", "[CommandCatalog]")
+TEST_CASE("a command made from menu items is found by the one lookup", "[CommandCatalog]")
 {
     const CommandCatalog& catalog = NativeCommands::instance();
     CHECK(catalog.lookup("object_mirror") != nullptr);

@@ -11,7 +11,7 @@ repository: every tile a person can pick, section by section in the order the ca
 Outside the Design tab a section is a Speed Dial section (a tile's group, or the tile_group of a
 command's own tile), and each tile has a row with its key, its title, the command and arguments it
 runs and its description. In the Design section a command with a tile of its own (in_palette) has a
-row with its key, title, arguments and description, and each Design menu row folded into a command
+row with its key, title, arguments and description, and each Design menu item folded into a command
 (its tiles) a row after it, with the command's key, the tile's title, the arguments that open it and
 its description. The file is generated: edit the commands in OrcaSlicer and regenerate it. A header
 that names a command the reference does not have is an error, so that a renamed or removed command
@@ -48,12 +48,12 @@ YouTube links, About, the plugin hub and the configuration folder (`app_open_web
 
 A call with exactly a tile's arguments is the tile's own call: where the tile asks in a dialog, the call opens
 it, which it reports as `blocked_by_dialog`, and where the tile acts on the selection, so does the call. A
-tile whose row does what its command does (a camera view, Select All, Deselect All, Auto-Arrange, Auto-Orient,
-Refresh Plugins) runs the command's own function and replies as the command does. Any other arguments, or
-`silent: true` where the schema has `silent`, run the command without asking, with the arguments its schema
-marks required. Go to tab and Go to layer collect their value in the Speed Dial: `action_run` gives such a
-tile its one value (`{"tab": "preview"}`, `{"percent": 50}`), and the command takes it as the argument its
-row names. A command whose dialog is what it does opens it with arguments too
+tile whose menu item does what its command does (a camera view, Select All, Deselect All, Auto-Arrange,
+Auto-Orient, Refresh Plugins) runs the command's own function and replies as the command does. Any other
+arguments, or `silent: true` where the schema has `silent`, run the command without asking, with the arguments
+its schema marks required. Go to tab and Go to layer collect their value in the Speed Dial: `action_run` gives
+such a tile its one value (`{"tab": "preview"}`, `{"percent": 50}`), and the command takes it as the argument
+its row names. A command whose dialog is what it does opens it with arguments too
 (`preset_export {"path": "/abs/dir"}` only spares it the folder question).
 
 The Design section lists the Design tab's commands that have a tile; `tool_search {"group": "Design"}` lists
@@ -62,8 +62,8 @@ in Preferences > Features before restarting OrcaSlicer: `app_state.design_tab` s
 is on, and `cad_note`, while its commands cannot run, how to turn it on (a test instance gets it with
 `tools/mcp/orca_mcp.py launch --cad`). A Design tile is in the Speed Dial, and `action_run` runs it, only while
 the Design tab is shown in the tile's mode (in a sketch or outside one); `tool_call` runs its command from any
-tab. Called with no arguments, a tile's command does what its right-click menu row does, which may be to act
-at once (a Delete row deletes what is selected) or to decline.
+tab. Called with no arguments, a tile's command does what its right-click menu item does, which may be to act
+at once (a Delete item deletes what is selected) or to decline.
 
 A Design row whose arguments are written as a call's own (`{"type": "linear"}`, or `{}`) is one tool of its
 command: `tool_call` given exactly those arguments opens that tool, as a person's pick of its tile does, and any
@@ -126,7 +126,7 @@ def header(design, unlisted):
     if needs:
         facts.append("%s %s." % (names(needs), "needs its value" if len(needs) == 1 else "need their value"))
     if unlisted:
-        facts.append("The tool list does not show %s, menu rows that take no arguments: call %s with `tool_call`." %
+        facts.append("The tool list does not show %s, menu items that take no arguments: call %s with `tool_call`." %
                      (names(unlisted), "it" if len(unlisted) == 1 else "them"))
     if not facts:
         return HEADER

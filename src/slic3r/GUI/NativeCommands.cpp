@@ -1,5 +1,5 @@
 #include "NativeCommands.hpp"
-#include "NativeCommandRows.hpp"
+#include "NativeCommandMenuItems.hpp"
 
 #include "ActionIds.hpp"
 #include "calib_dlg.hpp"
@@ -460,11 +460,11 @@ constexpr std::pair<const char*, PreferencesTab> kPreferencesTabs[] = {{"general
 
 } // namespace
 
-// ---- The rows that are tiles of a command (NativeCommandRows.hpp) ----
+// ---- The menu items that are tiles of a command (NativeCommandMenuItems.hpp) ----
 
-json Rows::input_file(const char* what) { return Mcp::prop("string", std::string("Absolute path of ") + what + "."); }
+json MenuItems::input_file(const char* what) { return Mcp::prop("string", std::string("Absolute path of ") + what + "."); }
 
-AppActionRunResult Rows::load_project()
+AppActionRunResult MenuItems::load_project()
 {
     Plater* plater = wxGetApp().plater();
     if (plater == nullptr)
@@ -473,7 +473,7 @@ AppActionRunResult Rows::load_project()
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 
-AppActionRunResult Rows::save_project_as()
+AppActionRunResult MenuItems::save_project_as()
 {
     Plater* plater = wxGetApp().plater();
     if (plater == nullptr)
@@ -481,7 +481,7 @@ AppActionRunResult Rows::save_project_as()
     return NativeCommands::project_save_result(plater->save_project(true));
 }
 
-AppActionRunResult Rows::export_gcode()
+AppActionRunResult MenuItems::export_gcode()
 {
     Plater* plater = wxGetApp().plater();
     if (plater == nullptr)
@@ -490,7 +490,7 @@ AppActionRunResult Rows::export_gcode()
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 
-AppActionRunResult Rows::export_stl()
+AppActionRunResult MenuItems::export_stl()
 {
     Plater* plater = wxGetApp().plater();
     if (plater == nullptr)
@@ -499,7 +499,7 @@ AppActionRunResult Rows::export_stl()
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 
-AppActionRunResult Rows::export_3mf()
+AppActionRunResult MenuItems::export_3mf()
 {
     Plater* plater = wxGetApp().plater();
     if (plater == nullptr)
@@ -508,7 +508,7 @@ AppActionRunResult Rows::export_3mf()
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 
-AppActionRunResult Rows::export_sliced_file(bool all_plates)
+AppActionRunResult MenuItems::export_sliced_file(bool all_plates)
 {
     Plater* plater = wxGetApp().plater();
     if (plater == nullptr)
@@ -517,13 +517,13 @@ AppActionRunResult Rows::export_sliced_file(bool all_plates)
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 
-AppActionRunResult Rows::calib(CalibKind kind) { return calib_command(kind); }
+AppActionRunResult MenuItems::calib(CalibKind kind) { return calib_command(kind); }
 
 // ---- Object ----
-AppActionRunResult Rows::obj_arrange() { return arrange_all(wxGetApp().plater()); }
+AppActionRunResult MenuItems::obj_arrange() { return arrange_all(wxGetApp().plater()); }
 
 // ---- Add Primitive ---- (the Add > Add Primitive submenu's Text and SVG)
-AppActionRunResult Rows::add_primitive_text()
+AppActionRunResult MenuItems::add_primitive_text()
 {
     Plater* plater = wxGetApp().plater();
     if (plater) {
@@ -535,7 +535,7 @@ AppActionRunResult Rows::add_primitive_text()
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 
-AppActionRunResult Rows::add_primitive_svg(const json& args)
+AppActionRunResult MenuItems::add_primitive_svg(const json& args)
 {
     Plater* plater = wxGetApp().plater();
     if (plater == nullptr)
@@ -561,7 +561,7 @@ AppActionRunResult Rows::add_primitive_svg(const json& args)
 }
 
 // ---- Add Handy models ---- (the Add > Add Handy models submenu)
-AppActionRunResult Rows::add_handy(std::size_t index)
+AppActionRunResult MenuItems::add_handy(std::size_t index)
 {
     if (Plater* plater = wxGetApp().plater())
         ensure_3d_view(plater);
@@ -570,7 +570,7 @@ AppActionRunResult Rows::add_handy(std::size_t index)
 }
 
 // ---- Plate ----
-AppActionRunResult Rows::plate_add()
+AppActionRunResult MenuItems::plate_add()
 {
     Plater* plater = wxGetApp().plater();
     if (!is_fff_plater(plater))
@@ -582,7 +582,7 @@ AppActionRunResult Rows::plate_add()
 }
 
 // ---- Import ----
-AppActionRunResult Rows::import_file()
+AppActionRunResult MenuItems::import_file()
 {
     Plater* plater = wxGetApp().plater();
     if (plater == nullptr)
@@ -595,7 +595,7 @@ AppActionRunResult Rows::import_file()
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 
-AppActionRunResult Rows::import_zip_archive()
+AppActionRunResult MenuItems::import_zip_archive()
 {
     if (Plater* plater = wxGetApp().plater())
         plater->import_zip_archive();
@@ -603,7 +603,7 @@ AppActionRunResult Rows::import_zip_archive()
 }
 
 // ---- Export extras ----
-AppActionRunResult Rows::export_stl_multi()
+AppActionRunResult MenuItems::export_stl_multi()
 {
     Plater* plater = wxGetApp().plater();
     if (plater == nullptr)
@@ -614,14 +614,14 @@ AppActionRunResult Rows::export_stl_multi()
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 
-AppActionRunResult Rows::export_drc_single()
+AppActionRunResult MenuItems::export_drc_single()
 {
     if (Plater* plater = wxGetApp().plater())
         plater->export_stl(false, false, false, FT_DRC);
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 
-AppActionRunResult Rows::export_drc_multi()
+AppActionRunResult MenuItems::export_drc_multi()
 {
     Plater* plater = wxGetApp().plater();
     if (plater == nullptr)
@@ -632,7 +632,7 @@ AppActionRunResult Rows::export_drc_multi()
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 
-AppActionRunResult Rows::export_toolpaths_obj()
+AppActionRunResult MenuItems::export_toolpaths_obj()
 {
     Plater* plater = wxGetApp().plater();
     if (plater == nullptr)
@@ -644,7 +644,7 @@ AppActionRunResult Rows::export_toolpaths_obj()
 }
 
 // ---- Presets and settings ----
-AppActionRunResult Rows::import_configs(const json& args)
+AppActionRunResult MenuItems::import_configs(const json& args)
 {
     MainFrame* mf = wxGetApp().mainframe;
     if (mf == nullptr)
@@ -671,7 +671,7 @@ AppActionRunResult Rows::import_configs(const json& args)
                               "Not a preset file: give a .json, .zip, .orca_printer, .orca_filament, .orca_bundle or .gcode"};
 }
 
-AppActionRunResult Rows::export_config(const json& args)
+AppActionRunResult MenuItems::export_config(const json& args)
 {
     if (Mcp::person_form(args)) {
         if (MainFrame* mf = wxGetApp().mainframe)
@@ -689,13 +689,13 @@ AppActionRunResult Rows::export_config(const json& args)
     return AppActionRunResult{AppActionRunResult::Level::Succeeded, from_path(*dir)};
 }
 
-AppActionRunResult Rows::migrate_filament_presets()
+AppActionRunResult MenuItems::migrate_filament_presets()
 {
     wxGetApp().check_legacy_user_filament_presets(true);
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 
-AppActionRunResult Rows::set_mode(const std::string& mode)
+AppActionRunResult MenuItems::set_mode(const std::string& mode)
 {
     static const std::pair<const char*, ConfigOptionMode> modes[] = {{"simple", comSimple}, {"advanced", comAdvanced}, {"expert", comExpert}};
     for (const auto& [name, value] : modes)
@@ -707,7 +707,7 @@ AppActionRunResult Rows::set_mode(const std::string& mode)
 }
 
 // What Preferences > Developer > Developer mode does: flip the flag, keep it, refresh the UI.
-AppActionRunResult Rows::toggle_developer_mode()
+AppActionRunResult MenuItems::toggle_developer_mode()
 {
     GUI_App&   app = wxGetApp();
     const bool on  = !app.app_config->get_bool("developer_mode");
@@ -721,7 +721,7 @@ AppActionRunResult Rows::toggle_developer_mode()
 // The Design tab's history is "design", else "project". Without args.history it is the shown tab's, as the Edit menu's
 // Undo and Redo choose it. The reply says which history it was and, for the Design tab's, what Mcp::cad_undo_redo()
 // replies.
-AppActionRunResult Rows::undo_redo(const json& args, bool redo)
+AppActionRunResult MenuItems::undo_redo(const json& args, bool redo)
 {
     std::string history = args.value("history", std::string());
     if (history.empty()) {
@@ -744,7 +744,7 @@ AppActionRunResult Rows::undo_redo(const json& args, bool redo)
 
 // Through the function the menu calls. It shows nothing: where the menu's item would be greyed it does nothing, and
 // otherwise the Design tab's status line or the canvas shows what changed, as after the menu's.
-AppActionRunResult Rows::picked_undo_redo(const json& args, bool redo)
+AppActionRunResult MenuItems::picked_undo_redo(const json& args, bool redo)
 {
     const std::string history = args.value("history", std::string());
     // What a pick that does nothing shows: nothing.
@@ -775,7 +775,7 @@ AppActionRunResult Rows::picked_undo_redo(const json& args, bool redo)
     return project_undo_redo(redo, /*agent=*/false);
 }
 
-AppActionRunResult Rows::open_web_page(const std::string& page)
+AppActionRunResult MenuItems::open_web_page(const std::string& page)
 {
     if (page == "wiki")
         wxLaunchDefaultBrowser("https://www.orcaslicer.com/wiki/", wxBROWSER_NEW_WINDOW);
@@ -788,40 +788,40 @@ AppActionRunResult Rows::open_web_page(const std::string& page)
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 
-AppActionRunResult Rows::check_for_updates()
+AppActionRunResult MenuItems::check_for_updates()
 {
     wxGetApp().check_new_version_sf(true, 1);
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 
-AppActionRunResult Rows::show_config_folder()
+AppActionRunResult MenuItems::show_config_folder()
 {
     Slic3r::GUI::desktop_open_datadir_folder();
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 
-AppActionRunResult Rows::benchmark_3d_scene()
+AppActionRunResult MenuItems::benchmark_3d_scene()
 {
     run_scene_benchmark();
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 
 // ---- View and windows ----
-AppActionRunResult Rows::toggle_perspective()
+AppActionRunResult MenuItems::toggle_perspective()
 {
     if (Plater* plater = wxGetApp().plater())
         plater->get_camera().select_next_type();
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 
-AppActionRunResult Rows::reset_window_layout()
+AppActionRunResult MenuItems::reset_window_layout()
 {
     if (Plater* plater = wxGetApp().plater())
         plater->reset_window_layout();
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 
-std::vector<std::string> Rows::preferences_tabs()
+std::vector<std::string> MenuItems::preferences_tabs()
 {
     std::vector<std::string> names;
     for (const auto& [name, tab] : kPreferencesTabs)
@@ -829,7 +829,7 @@ std::vector<std::string> Rows::preferences_tabs()
     return names;
 }
 
-AppActionRunResult Rows::open_window(const std::string& window, const json& args)
+AppActionRunResult MenuItems::open_window(const std::string& window, const json& args)
 {
     GUI_App& app = wxGetApp();
     if (window == "preferences") {
@@ -875,7 +875,7 @@ AppActionRunResult Rows::open_window(const std::string& window, const json& args
 }
 
 // A PNG of the main window, saved where the person's recordings go, as the MCP screenshot tool's default.
-AppActionRunResult Rows::take_screenshot()
+AppActionRunResult MenuItems::take_screenshot()
 {
     MainFrame* mf = wxGetApp().mainframe;
     if (mf == nullptr)
@@ -894,7 +894,7 @@ AppActionRunResult Rows::take_screenshot()
 }
 
 // ---- Filaments, printers and plugins ----
-AppActionRunResult Rows::sync_ams()
+AppActionRunResult MenuItems::sync_ams()
 {
     Plater* plater = wxGetApp().plater();
     if (plater == nullptr)
@@ -902,7 +902,7 @@ AppActionRunResult Rows::sync_ams()
     const std::optional<Ops::Refusal> refusal = plater->sidebar().sync_ams_list();
     if (!refusal)
         return AppActionRunResult{AppActionRunResult::Level::Succeeded};
-    // With no printer the row says so; otherwise the warning it showed said why.
+    // With no printer the menu item says so; otherwise the warning it showed said why.
     if (std::string(refusal->code) == "no_printer")
         return refused(*refusal, AppActionRunResult::Level::Info);
     return Mcp::quiet_refusal(*refusal);
@@ -910,7 +910,7 @@ AppActionRunResult Rows::sync_ams()
 
 // The Print button's send for a printer with a print host: the Send G-code dialog, then the upload queue. Where the
 // button would not send to a print host, it says why instead of doing nothing.
-AppActionRunResult Rows::send_gcode()
+AppActionRunResult MenuItems::send_gcode()
 {
     if (wxGetApp().plater() == nullptr)
         return AppActionRunResult{};
@@ -919,7 +919,7 @@ AppActionRunResult Rows::send_gcode()
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 
-AppActionRunResult Rows::install_local_plugin(const json& args)
+AppActionRunResult MenuItems::install_local_plugin(const json& args)
 {
     MainFrame* mf = wxGetApp().mainframe;
     if (mf == nullptr)
@@ -952,14 +952,14 @@ AppActionRunResult Rows::install_local_plugin(const json& args)
     return AppActionRunResult{installed ? AppActionRunResult::Level::Succeeded : AppActionRunResult::Level::Error, message};
 }
 
-AppActionRunResult Rows::refresh_plugins()
+AppActionRunResult MenuItems::refresh_plugins()
 {
     wxGetApp().refresh_plugins();
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 
 // ---- Scripts ----
-AppActionRunResult Rows::toggle_run_script_panel()
+AppActionRunResult MenuItems::toggle_run_script_panel()
 {
     if (wxGetApp().mainframe != nullptr)
         wxGetApp().run_script_panel().toggle();
@@ -1001,7 +1001,7 @@ constexpr std::pair<const char*, const char*> kPlaceWords[] = {
     {"replay", kRecordings},     {"script", kRecordings}};
 
 // The commands grouped apart from their first word, looked up before it: a screenshot is a recording's still, so the
-// agent's capture and the person's row are with the recordings, not with the windows.
+// agent's capture and the person's menu item are with the recordings, not with the windows.
 constexpr std::pair<const char*, const char*> kPlaceExceptions[] = {{"window_screenshot", kRecordings},
                                                                     {"window_save_screenshot", kRecordings}};
 
@@ -1257,10 +1257,10 @@ NativeCommand NativeCommands::with_person_form(NativeCommand tool, std::function
                                                bool person_form_behind_dialogs)
 {
     tool.input_schema = Mcp::with_silent(std::move(tool.input_schema), Mcp::person_forms(tool));
-    return with_row_forms(std::move(tool), std::move(person), person_form_behind_dialogs);
+    return with_menu_item_forms(std::move(tool), std::move(person), person_form_behind_dialogs);
 }
 
-NativeCommand NativeCommands::with_row_forms(NativeCommand tool, std::function<AppActionRunResult(const json& tile_args)> person,
+NativeCommand NativeCommands::with_menu_item_forms(NativeCommand tool, std::function<AppActionRunResult(const json& tile_args)> person,
                                              bool person_form_behind_dialogs, std::vector<json> own_forms)
 {
     // The tiles a call's arguments are matched against, kept apart from the tool this returns.
@@ -1278,8 +1278,8 @@ NativeCommand NativeCommands::with_row_forms(NativeCommand tool, std::function<A
     tool.run = [key = tool.key, forms = std::move(forms), own_forms = std::move(own_forms), person = std::move(person), given, asks,
                 checked, silent = std::move(tool.run)](const json& args, ToolContext& ctx) {
         const bool own = std::find(own_forms.begin(), own_forms.end(), given(args)) != own_forms.end();
-        // A person's pick of a tile whose row is the tool's own function, or of a tile that collects a value, runs that
-        // function in place, as a row does: no job.
+        // A person's pick of a tile whose menu item is the tool's own function, or of a tile that collects a value, runs that
+        // function in place, as a menu item does: no job.
         if (ctx.person() && (own || tile_with_input(forms, args) != nullptr))
             return asks(args, ctx);
         if (own || !Mcp::person_form(forms, args))

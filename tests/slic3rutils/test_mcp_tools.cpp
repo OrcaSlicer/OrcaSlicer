@@ -186,7 +186,7 @@ TEST_CASE("action_run refuses arguments for an action that takes none", "[Mcp][S
     CHECK(action_args_error(*own, json::object()).empty());
     const std::string refused = action_args_error(*own, {{"filament_slot", 2}});
     CHECK_THAT(refused, Catch::Matchers::ContainsSubstring("filament_delete"));
-    // A row's tile takes no arguments, or exactly its own; a row's former arguments are refused, naming the command.
+    // A menu item's tile takes no arguments, or exactly its own; an item's former arguments are refused, naming the command.
     const auto [export_command, export_gcode] = find_tile(NativeCommands::instance(), "export_gcode");
     REQUIRE(export_gcode != nullptr);
     const std::unique_ptr<Slic3r::GUI::AppAction> gcode = NativeCommands::make_action(*export_command, *export_gcode);
@@ -259,7 +259,7 @@ TEST_CASE("what action_run journals for a tile of fixed arguments is a call it t
 
 TEST_CASE("a call with a tile's arguments asks, and one more argument runs", "[Mcp]")
 {
-    // The commands whose tiles ask, as the design's table "When a call does what a row does" lists them: called with
+    // The commands whose tiles ask, as the design's table "When a call does what a menu item does" lists them: called with
     // exactly a tile's arguments a command is its person's form, and with silent beside them its silent form.
     const CommandCatalog& catalog = NativeCommands::instance();
     for (const char* key : {"project_open", "project_import", "project_save", "project_export", "object_add_primitive", "object_rename",
@@ -484,7 +484,7 @@ TEST_CASE("action_run says where an action it cannot find is", "[Mcp][SpeedDial]
                                   "--cad");
             }
         }
-        // A folded row's tile names the call of its command that runs it; with the feature off at startup, there is
+        // A folded item's tile names the call of its command that runs it; with the feature off at startup, there is
         // neither, as for any other tile.
         const std::string folded = "orca_command:sk_array:orca";
         INFO(folded << (cad ? ", the CAD feature on" : ", the CAD feature off"));
@@ -534,7 +534,7 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
     };
     static const Renamed renamed[] = {
         {"search_tools", "tool_search", "Find what does something, in one search, or look up one command."},
-        {"call_tool", "tool_call", "Call any command by name with its arguments: a tool, or one the tool list does not show, a menu row "
+        {"call_tool", "tool_call", "Call any command by name with its arguments: a tool, or one the tool list does not show, a menu item "
                                    "that takes no arguments, a Design tab command or an operation a plugin offers (see tool_search)."},
         {"generate_calibration_test", "calibration_generate_test",
          "Generate a Calibration menu test as its dialog's OK does: a new project named after the test with the test model, and the "
@@ -650,7 +650,7 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
     }
 
     // Outside the Design group 115 commands are listed: every one that runs from its arguments, all but the three menu
-    // rows that take none (Task 3's 98, the seven Parts 4a to 4c add, Part 5a's three, Part 5b's two, Part 5c's one and
+    // items that take none (Task 3's 98, the seven Parts 4a to 4c add, Part 5a's three, Part 5b's two, Part 5c's one and
     // Part 5d's four).
     std::size_t listed = 0;
     for (const NativeCommand& c : catalog.commands())
@@ -882,7 +882,7 @@ TEST_CASE("a guessed type is read as a command's one variant argument", "[Mcp]")
     CHECK(either == json{{"type", "stl"}});
 }
 
-TEST_CASE("tool_search finds a Design command by the name of a row folded into it", "[Mcp][CAD]")
+TEST_CASE("tool_search finds a Design command by the name of a menu item folded into it", "[Mcp][CAD]")
 {
     CommandCatalog catalog;
     NativeCommands::register_all_commands(catalog, {true});

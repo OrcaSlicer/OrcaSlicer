@@ -86,7 +86,7 @@ TEST_CASE("a tile's journal update stays inside action_run's envelope", "[Mcp]")
 
 TEST_CASE("a tile of fixed arguments is journaled with the arguments action_run takes for it", "[Mcp]")
 {
-    // What action_run takes for the tile: a folded row's own arguments, none for a command's own tile outside the
+    // What action_run takes for the tile: a folded item's own arguments, none for a command's own tile outside the
     // Design tab, or the value a tile with an input collects.
     const json tile_args = GENERATE(json{{"type", "circular"}}, json::object(), json{{"percent", 50}});
     Harness    h;

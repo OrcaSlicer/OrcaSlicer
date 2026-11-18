@@ -26,7 +26,7 @@ const char* kInstructions =
     "- script_run runs Python against orca.host, the plugin API (script_search_api searches it), to compute over "
     "meshes and settings and call tools (orca.host.tools); its file, program, thread and network use is restricted "
     "unless app_state.python.scripts_unrestricted.\n"
-    "- tool_search {query} searches every catalog: the commands, those the tool list does not show too (menu rows "
+    "- tool_search {query} searches every catalog: the commands, those the tool list does not show too (menu items "
     "with no arguments, the Design tab's, plugin operations as plugin.<plugin>.<name>; tool_call runs them), the "
     "Speed Dial's other actions, settings and the Python API.\n"
     "Acting on project data by index and name, JSON in and out; prefer these:\n"

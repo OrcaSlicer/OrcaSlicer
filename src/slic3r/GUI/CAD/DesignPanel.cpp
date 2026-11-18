@@ -29,7 +29,7 @@
 #include <wx/stopwatch.h>
 
 #include <cassert>
-#include <cstdarg>                        // offer_trace: the offer menu's rows on stderr under ORCA_CAD_KEYTRACE
+#include <cstdarg>                        // offer_trace: the offer menu's items on stderr under ORCA_CAD_KEYTRACE
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -521,9 +521,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // Constrain (finish the live sketch + enter constrain), and Construction toggle.
     // V for Value: type the defining number of whatever is selected — a line's length, an arc's
     // radius, a circle's diameter, the angle between two lines. One handler behind three offer
-    // rows, because the quantity comes from the selection, not from which row was clicked.
+    // items, because the quantity comes from the selection, not from which item was clicked.
     //
-    // It needs a KEY, not just a menu row. The deck profile in VSD_n1_streamcontroller is
+    // It needs a KEY, not just a menu item. The deck profile in VSD_n1_streamcontroller is
     // generated from these two key tables, so a verb with no shortcut cannot be put on a
     // physical button at all — which is the whole point of that profile for a user who drives
     // the app from buttons rather than a menu.
@@ -625,7 +625,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // the addresses are created inside the widget-building loops, so not building would silently
     // delete 42 verbs from the offer while they still rendered. 7ih records the cleanup
     // that lets the construction go away too.
-    // What stays: the view controls, which are chrome_only in the atlas and so have no offer row
+    // What stays: the view controls, which are chrome_only in the atlas and so have no offer item
     // to fall back on, and Sketch, the group's lead. All four are built with the doc buttons.
     static const std::set<std::string> kBarKeep = { "place", "section", "flip" };
     auto fadd = [&tb_slot](const char* id, wxWindow* w) {
@@ -651,7 +651,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
             // owner. Doing this before any wxWindow exists is what lets the build below be skipped
             // outright for a family the bar no longer carries. Registered INSIDE the build loop,
             // a retired family would still have to be constructed and then Hide()n, since skipping
-            // it would delete its verbs from the offer while their rows still rendered and do
+            // it would delete its verbs from the offer while their items still rendered and do
             // nothing when picked.
             // Keyed on "fly:<family>#<row>" so the generated table can name a variant without the
             // item struct growing a field at 26 call sites.
@@ -855,7 +855,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // Surface: sheet-body tools (extrude / revolve / loft / fill / offset / thicken)
         // The drawer BUTTON is design_surface, not design_extrude: sharing a face with the
         // Add-material drawer made the two buttons indistinguishable in the bar. The entries
-        // inside may reuse the solid glyphs — a menu row carries its own text label.
+        // inside may reuse the solid glyphs — a menu item carries its own text label.
         feat_dropdown("surface", "design_surface", _L("Surface (extrude / revolve / loft / fill / offset / thicken)"), {
             {"design_extrude", _L("Surface Extrude"), _L("Extrude a sketch into a sheet body (no end caps)"),
              [this] {
@@ -1089,7 +1089,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // Reachable from the offer menu on a SELECTED SKETCH, not only from the toolbar icon.
         // A user evaluating against Onshape reported that "adding constraints seems to be
         // missing" — with nineteen constraint types and a solver shipped. The only paths in
-        // were an icon-only button and a sketch-mode-only offer row filed under "Reference",
+        // were an icon-only button and a sketch-mode-only offer item filed under "Reference",
         // so after finishing a sketch there was no affordance where users actually look.
         m_verb_actions["btn:constrain"] = [this] {
             on_begin_constrain();
@@ -1493,7 +1493,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // STAYS on the bar. Construction is not a tool, it is a persistent MODE — the same kind
         // of thing as the Feature tree's Bed row — and the sketch bar is already shown only in
         // Sketch mode, so it appears exactly while it can apply. Hiding it left Q and the offer's
-        // Construction row still toggling a checkbox nobody could see: you could not tell whether
+        // Construction item still toggling a checkbox nobody could see: you could not tell whether
         // the next line would be construction geometry. A stateful toggle has to show its state.
         sadd_bar(m_construction);
         add_sep(m_tb_sketch);
@@ -2157,7 +2157,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         auto* bform = two_col_form();
 
         m_bool_op = make_combo(m_cards);
-        m_bool_op->Append(_L_CONTEXT("Join", "Boolean Mode"));   // the Extrude result word; the offer row says the same
+        m_bool_op->Append(_L_CONTEXT("Join", "Boolean Mode"));   // the Extrude result word; the offer item says the same
         m_bool_op->Append(_L("Subtract"));
         m_bool_op->Append(_L("Intersect"));
         m_bool_op->SetSelection(0);
@@ -4417,7 +4417,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     SetSizer(outer);
 
     // The atlas says a verb is wired; the registrations above say what it runs. Nothing else checks
-    // that the two agree, and a broken join is INVISIBLE — the row renders, is enabled, and does
+    // that the two agree, and a broken join is INVISIBLE — the item renders, is enabled, and does
     // nothing when picked — and cannot be seen by reading either side alone. Verify the join once,
     // here, where every registration is complete. Cheap: 89 map lookups, once per panel.
     {
@@ -4425,7 +4425,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         for (int i = 0; i < kDesignToolCount; ++i) {
             const DesignTool& v = kDesignTools[i];
             if (v.action == nullptr || *v.action == '\0')
-                continue;               // kernel support, no GUI path — the row shows disabled
+                continue;               // kernel support, no GUI path — the item shows disabled
             const std::string a(v.action);
             bool ok = false;
             if (a.rfind("key:", 0) == 0) {   // resolved exactly as run_offer_action() resolves it
@@ -6255,7 +6255,7 @@ void DesignPanel::on_check_interference()
 void DesignPanel::on_mass_properties()
 {
     // This bounds check is not defensive padding — it is what makes the verb safe to fire from
-    // its Design command or Speed Dial tile, which have no offer menu to grey the row out.
+    // its Design command or Speed Dial tile, which have no offer menu to grey the item out.
     if (m_sel_solid_body < 0 || m_sel_solid_body >= int(m_doc.bodies.size())) {
         set_status(StatusKind::Info, _L("Select a body to measure it"));
         return;
@@ -6525,7 +6525,7 @@ bool DesignPanel::sketch_plane_target(wxString& what) const
 // ---------------------------------------------------------------------------------------------
 // The object-driven offer (charter §4.1). Right-click the geometry and get a vertical list in the
 // ratified row order, with the verbs that do not apply DISABLED IN PLACE carrying their reason.
-// The rows come from DesignOffer.hpp, generated from scripts/CAD/tool_atlas.json — the same file the
+// The items come from DesignOffer.hpp, generated from scripts/CAD/tool_atlas.json — the same file the
 // mockups are drawn from, so a drawing and the product cannot drift apart.
 // ---------------------------------------------------------------------------------------------
 
@@ -6594,7 +6594,7 @@ int DesignPanel::offer_selection_kind() const
     return int(OfferSel::None);
 }
 
-// Route a row to the code that already implements the verb. Nothing here re-implements a tool:
+// Route an item to the code that already implements the verb. Nothing here re-implements a tool:
 // the offer is a second door onto the same room, which is what keeps the toolbar, the shortcuts
 // and the menu from drifting into three behaviours.
 void DesignPanel::run_offer_action(const char* action)
@@ -6646,9 +6646,9 @@ wxPoint DesignPanel::offer_anchor() const
     return wxPoint(r.x + r.width / 2, r.y + r.height / 2);
 }
 
-// Append a verb row carrying the same glyph its toolbar button shows. The icon name comes from
+// Append a verb item carrying the same glyph its toolbar button shows. The icon name comes from
 // the atlas, so a verb and its icon are declared in one place; a null or unknown name leaves
-// the row text-only rather than drawing a blank square.
+// the item text-only rather than drawing a blank square.
 //
 // THE BITMAP MUST BE SET BEFORE Append(). wxGTK builds the GtkMenuItem inside Append and reads
 // GetBitmap() right there (gtk/menu.cpp) — it makes a gtk_image_menu_item only if a bitmap is
@@ -6920,8 +6920,8 @@ wxMenuItem* DesignPanel::append_offer_item(wxMenu* menu, int id, const wxString&
     return item;
 }
 
-// Diagnostic only: when ORCA_CAD_KEYTRACE is set, what the offer is about to show, a line per row,
-// on stderr. It is printed from the loop that builds the rows, so it lists the rows the menu shows.
+// Diagnostic only: when ORCA_CAD_KEYTRACE is set, what the offer is about to show, a line per item,
+// on stderr. It is printed from the loop that builds the items, so it lists the items the menu shows.
 // The variable is read once, so the trace costs nothing when off.
 static void offer_trace(const char* fmt, ...)
 {
@@ -6979,7 +6979,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
     const uint32_t bit  = offer_bit(OfferSel(kind));
     // Which verb MAP applies is a question about the MODE, not about whether a session is
     // running — the same distinction the keyboard map makes. Gated on is_sketching(), the offer
-    // would open on entering a sketch showing the FEATURE rows, every one of them refusing the
+    // would open on entering a sketch showing the FEATURE items, every one of them refusing the
     // sketch selection: a menu of dead entries.
     const bool     sketching = sketch_map_applies();
     // The trace is printed from the same loop that builds the menu, so it cannot drift from what
@@ -7027,7 +7027,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
     std::vector<const DesignTool*> bound;      // menu id offset -> verb
     const int base = wxID_HIGHEST + 4200;
 
-    // Header: WHAT the rows below act on, named the way the tree and the cards name it. The rows
+    // Header: WHAT the items below act on, named the way the tree and the cards name it. The items
     // only make sense against the selection, and the selection is not always visible under the
     // cursor that opened the menu. Greyed, so it reads as a title and cannot be run.
     {
@@ -7168,8 +7168,8 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
     // Fed by CadDocument::mate_options() so the offer can never disagree with the kernel about
     // which assembly mates a connector pair admits. Shown only when the document holds at least
     // two ENABLED CoordSys features: below that the whole section would be one permanently dead
-    // row, which is noise rather than information.
-    // Set while a hovered mate row is showing its ghost, so the cleanup after PopupMenu can tell
+    // item, which is noise rather than information.
+    // Set while a hovered mate item is showing its ghost, so the cleanup after PopupMenu can tell
     // "I put that there" from "some other tool's preview was already on screen".
     bool             mate_ghost = false;
     std::vector<int> cs_features;
@@ -7179,7 +7179,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
     if (cs_features.size() >= 2) {
         // Which two connectors the types would apply to. The Mate card's combos when it is open —
         // so the offer and the card can never disagree about the pair — otherwise the first two
-        // enabled CoordSys features, which is a defensible default precisely because the header row
+        // enabled CoordSys features, which is a defensible default precisely because the header item
         // below NAMES it. An offer that acts on an unnamed pair would be worse than no offer.
         int cs_a = -1, cs_b = -1;
         if (m_active == Tool::Mate && m_mate_cs_a && m_mate_cs_b
@@ -7190,8 +7190,8 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
         }
         if (cs_a < 0 || cs_b < 0) { cs_a = cs_features[0]; cs_b = cs_features[1]; }
 
-        // The generated verb rows own [base, base + bound.size()); the table has 92 entries with a
-        // row (kDesignToolCount, 127, counts the commands with none too), so a gap of 500 keeps this
+        // The generated verb items own [base, base + bound.size()); the table has 92 entries with a
+        // menu item (kDesignToolCount, 127, counts the commands with none too), so a gap of 500 keeps this
         // section's ids clear of that range and lets its own handler index by a distinct offset.
         const int mate_base = base + 500;
 
@@ -7216,7 +7216,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
             default: return _L("Cylindrical");
             }
         };
-        // Five rows, always, in kind order. Never reordered, never filtered — a menu that changes
+        // Five items, always, in kind order. Never reordered, never filtered — a menu that changes
         // shape between invocations destroys the motor memory experts rely on.
         const std::vector<CadDocument::MateOption> opts = m_doc.mate_options(cs_a, cs_b);
         for (int i = 0; i < int(opts.size()); ++i) {
@@ -7227,7 +7227,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
             menu.Append(mate_base + 1 + i, label)->Enable(o.viable);
         }
 
-        // Hovering a row shows the RESULT, not a description of it (epic gap G3). preview() moves
+        // Hovering an item shows the RESULT, not a description of it (epic gap G3). preview() moves
         // the body on a throwaway copy of the document, so nothing is written until the click —
         // the "commit nothing until you choose" behaviour the palette was asked for.
         auto drop_ghost = [this, &mate_ghost]() {
@@ -7240,7 +7240,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
         menu.Bind(wxEVT_MENU_HIGHLIGHT,
                   [this, cs_a, cs_b, opts, &mate_ghost, drop_ghost](wxMenuEvent& e) {
             const int i = e.GetMenuId() - (mate_base + 1);
-            // Off the palette (a verb row, the header, or nothing) — a stale ghost from the row
+            // Off the palette (a verb item, the header, or nothing) — a stale ghost from the item
             // you just left is worse than none, so it goes as soon as the cursor does.
             if (i < 0 || i >= int(opts.size()) || !opts[i].viable) { drop_ghost(); return; }
             std::string err;
@@ -7267,11 +7267,11 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
         });
     }
 
-    // Hovering a row explains it. The offer is the only door to these tools now, so a bare
+    // Hovering an item explains it. The offer is the only door to these tools now, so a bare
     // name is not enough — and the hint arrives while you are still choosing.
     // BOUND TO THE VERB ID RANGE, NOT THE WHOLE MENU. wxWidgets pushes dynamic entries to the
     // FRONT of the handler list, so these two, bound LAST, run FIRST; unfiltered, they would run
-    // for every id, the mate rows at mate_base+1 (base+501) above included. Both fall out of
+    // for every id, the mate items at mate_base+1 (base+501) above included. Both fall out of
     // `bound`'s range there and return WITHOUT e.Skip(), which wx reads as "handled", so the mate
     // handlers would never run: hovering a mate kind would show no ghost and leave the previous
     // status message on screen, and clicking one would create nothing at all. Restricting the
@@ -11916,7 +11916,7 @@ void DesignPanel::begin_sketch_session(const SketchPlane& plane, const wxString&
     // Hand over the tools rather than naming them in a status line: the sketch bar carries none.
     // CallAfter so the mode change has settled, and the pick that got here has returned, before a
     // modal menu takes the loop; the menu carries each tool's shortcut, so pressing the key
-    // instead of picking a row costs nothing.
+    // instead of picking an item costs nothing.
     if (offer_tools)
         CallAfter([this] { show_offer_menu(offer_anchor()); });
 }

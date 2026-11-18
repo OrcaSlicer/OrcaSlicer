@@ -2148,7 +2148,7 @@
     {
       "id": "rename_selected",
       "name": "Rename…",
-      "section": "Menu rows",
+      "section": "Menu items",
       "slot": "top",
       "key": "F2",
       "feature": "Tree",
@@ -2238,7 +2238,7 @@
     {
       "id": "zoom_to_selection",
       "name": "Zoom to selection",
-      "section": "Menu rows",
+      "section": "Menu items",
       "slot": "top",
       "key": null,
       "feature": null,
@@ -2894,7 +2894,7 @@
     {
       "id": "sketch_polygon_inscribed",
       "name": "Inscribed",
-      "section": "Menu rows",
+      "section": "Menu items",
       "slot": "create",
       "key": null,
       "feature": "Sketch",
@@ -2917,7 +2917,7 @@
     {
       "id": "sketch_polygon_circumscribed",
       "name": "Circumscribed",
-      "section": "Menu rows",
+      "section": "Menu items",
       "slot": "create",
       "key": null,
       "feature": "Sketch",
@@ -3525,7 +3525,7 @@
     {
       "id": "sketch_constrain_selected",
       "name": "Constrain sketch",
-      "section": "Menu rows",
+      "section": "Menu items",
       "slot": "reference",
       "key": null,
       "feature": "Sketch",
@@ -3544,7 +3544,7 @@
       "feature_row": true,
       "note": [
         "Same verb, model-mode vocabulary: offered when a SKETCH is selected (bit 14, SkLoop), the",
-        "state a user is in right after finishing one. Without this row the only way in was the",
+        "state a user is in right after finishing one. Without this item the only way in was the",
         "toolbar icon, and constraints read as absent — see the Onshape-comparison report.",
         "It sits in the Reference row, the address the sketch-mode Constrain has: one verb, one row."
       ]
@@ -3700,7 +3700,7 @@
       "icon": "design_dimension",
       "hint": "Type the length of this line",
       "note": [
-        "Typing the defining number of the element you pointed at. Three rows rather than one so",
+        "Typing the defining number of the element you pointed at. Three items rather than one so",
         "each names the quantity in the drawing-office word for THAT element; all three land on",
         "the same handler, because dimension_kind() already resolves the quantity from the",
         "selection. Without these, an element's own numbers were reachable only by arming the",
@@ -4872,7 +4872,7 @@
         "ok_false": false,
         "closed": true,
         "summary": "Select a body, a face, edges, a vertex, a reference plane, a sketch's loop or a feature by id, as a click selects it.",
-        "details": "One form: body; body with face, edges (the last the current edge, as in a Shift+click set) or vertex; plane; sketch with loop; feature; or nothing, which clears the selection. A body is selected as a click on its row of the Bodies list selects it, a face, edges or a vertex as a click in the view picks them, a loop as a click on it, which also selects its Sketch's row, and a feature as a click on its row of the Feature list. A plane is picked only where a click can pick one: while the Origin row shows the planes, or while Sketch waits for its plane (sketch_create {}), where picking it opens the sketch. A loop is numbered as sketch_describe {sketch} numbers closed_loops and extrude {sketch, loop} takes it, and is selected only while the view shows it: an extrude that takes the whole sketch hides the sketch, and one that takes a loop hides that loop. Whatever was selected goes first, of every kind. The menu-row forms then act on the selection: feature_edit, rename_selected, feature_delete and sketch_constrain_selected called with no arguments act on the selected row of the Feature list while nothing is picked in the view, and zoom_to_selection acts on what is picked in the view, so a sketch is zoomed to through sketch with loop, not through feature. Refused, changing nothing, for an id the model does not have, and while a card, a sketch, Constrain mode, a body Move or the Text dialog is open, where a click means something else. Reply: selection {kind, id}, plane and feature, as describe_design reports selection, picked_plane and feature_row; for a vertex also point, as body_describe gives it, and placed_point, where the view draws it (the same unless the body was moved).",
+        "details": "One form: body; body with face, edges (the last the current edge, as in a Shift+click set) or vertex; plane; sketch with loop; feature; or nothing, which clears the selection. A body is selected as a click on its row of the Bodies list selects it, a face, edges or a vertex as a click in the view picks them, a loop as a click on it, which also selects its Sketch's row, and a feature as a click on its row of the Feature list. A plane is picked only where a click can pick one: while the Origin row shows the planes, or while Sketch waits for its plane (sketch_create {}), where picking it opens the sketch. A loop is numbered as sketch_describe {sketch} numbers closed_loops and extrude {sketch, loop} takes it, and is selected only while the view shows it: an extrude that takes the whole sketch hides the sketch, and one that takes a loop hides that loop. Whatever was selected goes first, of every kind. The menu-item forms then act on the selection: feature_edit, rename_selected, feature_delete and sketch_constrain_selected called with no arguments act on the selected row of the Feature list while nothing is picked in the view, and zoom_to_selection acts on what is picked in the view, so a sketch is zoomed to through sketch with loop, not through feature. Refused, changing nothing, for an id the model does not have, and while a card, a sketch, Constrain mode, a body Move or the Text dialog is open, where a click means something else. Reply: selection {kind, id}, plane and feature, as describe_design reports selection, picked_plane and feature_row; for a vertex also point, as body_describe gives it, and placed_point, where the view draws it (the same unless the body was moved).",
         "params": [
           {"name": "body", "type": "integer", "default": null, "min": 0, "description": "body index (describe_design); alone, the whole body"},
           {"name": "face", "type": "integer", "default": null, "min": 0, "description": "a face id of body (body_describe)"},

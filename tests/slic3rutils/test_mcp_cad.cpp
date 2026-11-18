@@ -240,11 +240,11 @@ std::vector<GUI::OfferSel> reported_kinds(bool sketching)
     return {S::None, S::FacePlanar, S::FaceCyl, S::FaceOther, S::EdgeStr, S::EdgeCirc, S::Vertex, S::BodySolid, S::BodySheet, S::SkLoop};
 }
 
-// The id of the row a call of `entry`'s command with `args` opens, or "" when the call runs.
+// The id of the item a call of `entry`'s command with `args` opens, or "" when the call runs.
 std::string opened_id(const GUI::DesignTool& entry, const json& args)
 {
-    const GUI::DesignTool* row = GUI::Mcp::opened_row(entry, args);
-    return row != nullptr ? row->id : "";
+    const GUI::DesignTool* item = GUI::Mcp::opened_item(entry, args);
+    return item != nullptr ? item->id : "";
 }
 
 // Whether a param by this name takes face or edge ids.
@@ -276,15 +276,15 @@ struct JournalContext final : GUI::ToolContext
 };
 
 // An id of the Design commands' old vocabulary, which names no command, and whether its entry stays in the
-// Design table as a menu row.
+// Design table as a menu item.
 struct Retired
 {
     const char* id;
-    bool        row;
+    bool        menu_item;
 };
 
-// Ids of the old vocabulary: entries renamed, rows merged with the argument command for their job, the entry that
-// did two jobs, and rows folded into their command.
+// Ids of the old vocabulary: entries renamed, menu items merged with the argument command for their job, the entry that
+// did two jobs, and items folded into their command.
 const Retired kRetired[] = {
     // Renamed.
     {"describe_scene", false}, {"describe_feature", false}, {"query_topology", false}, {"slice_body", false},
@@ -295,7 +295,7 @@ const Retired kRetired[] = {
     {"coordsys_v", false}, {"rename", false}, {"zoom_to", false}, {"constrain", false}, {"sk_poly_inscribed", false},
     {"sk_poly_circumscribed", false}, {"sk_text", false}, {"sk_svg", false}, {"sk_dimension", false},
     {"sk_extend", false}, {"mate", false},
-    // A row and its argument command, merged.
+    // A menu item and its argument command, merged.
     {"sketch", false}, {"sketch_begin", false}, {"cut", false}, {"delete", false}, {"delete_body", false},
     {"sk_offset", false}, {"sk_trim", false}, {"sk_fillet", false}, {"sk_chamfer", false}, {"sk_mirror", false},
     {"sk_construct", false}, {"sketch_construction", false}, {"sk_delete", false}, {"sk_constrain", false},
@@ -313,13 +313,13 @@ const Retired kRetired[] = {
     {"sk_poly_5", true}, {"sk_polygon", true}, {"sk_poly_8", true}, {"sk_poly_12", true}, {"sk_polyline", true},
     {"sk_rect_center", true}, {"sk_rect_oblique", true}, {"sk_rect_rounded", true}, {"sk_circle_2pt", true},
     {"sk_circle_3pt", true}, {"sk_arc_t", true}, {"sk_arc_tangent", true}, {"sk_slot_arc", true},
-    // pattern's type curve: the row stays, greyed.
+    // pattern's type curve: the item stays, greyed.
     {"pat_curve", true},
 };
 
 } // namespace
 
-TEST_CASE("the CAD commands are the Design table's entries but its greyed and folded rows", "[Mcp][CAD]")
+TEST_CASE("the CAD commands are the Design table's entries but its greyed and folded items", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
     std::set<std::string>     keys;
@@ -328,7 +328,7 @@ TEST_CASE("the CAD commands are the Design table's entries but its greyed and fo
         CHECK(keys.insert(c.key).second);
         CHECK(c.group == "Design");
         CHECK_FALSE(c.listed);
-        // Its title is the row's name, the one the right-click menu and its tile show.
+        // Its title is the item's name, the one the right-click menu and its tile show.
         CHECK(c.title == design_row(c.key).name);
     }
     CHECK(keys.size() == 88);
@@ -353,11 +353,11 @@ TEST_CASE("a name of the old vocabulary is no command", "[Mcp][CAD]")
         CHECK(listed.insert(retired.id).second);
         CHECK(catalog.find(retired.id) == nullptr);
         const GUI::DesignTool* entry = GUI::Mcp::find_design_tool(retired.id);
-        if (!retired.row) {
+        if (!retired.menu_item) {
             CHECK(entry == nullptr);
             continue;
         }
-        // A row that stays keeps its entry and its place in the menu, and is no command.
+        // An item that stays keeps its entry and its place in the menu, and is no command.
         REQUIRE(entry != nullptr);
         CHECK(entry->row != -1);
     }
@@ -365,7 +365,7 @@ TEST_CASE("a name of the old vocabulary is no command", "[Mcp][CAD]")
     CHECK(std::size(kRetired) == 89);
 }
 
-TEST_CASE("a menu row and the command that runs its job are one command", "[Mcp][CAD]")
+TEST_CASE("a menu item and the command that runs its job are one command", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
     for (const char* key : {"sketch_create", "split", "feature_delete", "body_delete", "sketch_offset", "sketch_trim",
@@ -382,14 +382,14 @@ TEST_CASE("a menu row and the command that runs its job are one command", "[Mcp]
     }
 }
 
-TEST_CASE("a renamed entry keeps its row", "[Mcp][CAD]")
+TEST_CASE("a renamed entry keeps its menu item", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
     const GUI::DesignTool&    plane   = design_row("construct_plane");
     REQUIRE(plane.key != nullptr);
     CHECK(std::string(plane.key) == "Shift+P");
     CHECK(std::string(plane.action) == "key:S+P");
-    // The mate command takes the id align; the unbuilt Align to row stays, greyed, as align_to.
+    // The mate command takes the id align; the unbuilt Align to item stays, greyed, as align_to.
     const GUI::DesignTool& align = design_row("align");
     REQUIRE(align.action != nullptr);
     CHECK(std::string(align.action) == "fly:placement#2");
@@ -399,7 +399,7 @@ TEST_CASE("a renamed entry keeps its row", "[Mcp][CAD]")
     CHECK(align_to.action == nullptr);
     CHECK(align_to.doc == nullptr);
     CHECK(catalog.find("align_to") == nullptr);
-    // split takes the Cut card as its row, and the greyed Split row goes.
+    // split takes the Cut card as its menu item, and the greyed Split item goes.
     const GUI::DesignTool& split = design_row("split");
     REQUIRE(split.action != nullptr);
     CHECK(std::string(split.action) == "key:S+X");
@@ -455,7 +455,7 @@ TEST_CASE("every block has a silent function and every silent function a block",
     CHECK(blocks == functions);
 }
 
-TEST_CASE("a row with no slot is in no menu row", "[Mcp][CAD]")
+TEST_CASE("a row with no slot has no menu item", "[Mcp][CAD]")
 {
     std::size_t commands_only = 0;
     for (int i = 0; i < GUI::kDesignToolCount; ++i) {
@@ -502,15 +502,15 @@ TEST_CASE("a command has silent when a call with no arguments opens a tool", "[M
         INFO(c.key);
         const GUI::DesignTool& entry = design_row(c.key);
         if (entry.doc != nullptr)
-            CHECK(two_forms(c) == (GUI::Mcp::opened_row(entry, json::object()) != nullptr));
-        // A command that has a tile is the one whose entry has an action, and it carries the row's icon.
+            CHECK(two_forms(c) == (GUI::Mcp::opened_item(entry, json::object()) != nullptr));
+        // A command that has a tile is the one whose entry has an action, and it carries the item's icon.
         CHECK(c.in_palette == (entry.action != nullptr));
         CHECK(c.icon == (entry.icon != nullptr ? entry.icon : ""));
         // A tile with no icon would be a blank square in the Speed Dial.
         if (c.in_palette)
             CHECK_FALSE(c.icon.empty());
     }
-    // Their rows are folded into them, and their tiles are the rows'.
+    // Their items are folded into them, and their tiles are the items'.
     for (const char* key : {"body_set", "sketch_set_value"}) {
         INFO(key);
         CHECK(two_forms(command_of(catalog, key)));
@@ -525,62 +525,62 @@ TEST_CASE("a command has silent when a call with no arguments opens a tool", "[M
     CHECK(GUI::Mcp::argument_error(command_of(catalog, "sketch_polygon_inscribed"), none).empty());
 }
 
-TEST_CASE("a folded row is no command, and its command opens it", "[Mcp][CAD]")
+TEST_CASE("a folded item is no command, and its command opens it", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
     std::size_t               folded = 0;
     std::set<std::string>     commands;
     for (int i = 0; i < GUI::kDesignToolCount; ++i) {
-        const GUI::DesignTool& row = GUI::kDesignTools[i];
-        if (row.fold_into == nullptr)
+        const GUI::DesignTool& item = GUI::kDesignTools[i];
+        if (item.fold_into == nullptr)
             continue;
-        INFO(row.id);
+        INFO(item.id);
         ++folded;
-        commands.insert(row.fold_into);
-        CHECK(catalog.find(row.id) == nullptr);
-        CHECK_FALSE(GUI::Mcp::is_design_command(row));
-        const GUI::NativeCommand& command = command_of(catalog, row.fold_into);
-        CHECK_THAT(command.description, ContainsSubstring(row.name));
-        // The call with the row's arguments is one its command takes, and it opens the row's tool.
-        REQUIRE(row.args != nullptr);
-        json args = json::parse(row.args);
+        commands.insert(item.fold_into);
+        CHECK(catalog.find(item.id) == nullptr);
+        CHECK_FALSE(GUI::Mcp::is_design_command(item));
+        const GUI::NativeCommand& command = command_of(catalog, item.fold_into);
+        CHECK_THAT(command.description, ContainsSubstring(item.name));
+        // The call with the item's arguments is one its command takes, and it opens the item's tool.
+        REQUIRE(item.args != nullptr);
+        json args = json::parse(item.args);
         CHECK(GUI::Mcp::argument_error(command, args).empty());
-        const GUI::DesignTool* entry = GUI::Mcp::find_design_tool(row.fold_into);
+        const GUI::DesignTool* entry = GUI::Mcp::find_design_tool(item.fold_into);
         REQUIRE(entry != nullptr);
-        const GUI::DesignTool* opened = GUI::Mcp::opened_row(*entry, args);
+        const GUI::DesignTool* opened = GUI::Mcp::opened_item(*entry, args);
         REQUIRE(opened != nullptr);
         REQUIRE(opened->action != nullptr);
-        CHECK(std::string(opened->action) == row.action);
+        CHECK(std::string(opened->action) == item.action);
     }
-    // The Color row, into body_set; the three value rows, into sketch_set_value; Subtract and Intersect, into
+    // The Color item, into body_set; the three value items, into sketch_set_value; Subtract and Intersect, into
     // boolean; Thicken Surface, into thicken; Circular pattern, into pattern; the two arrays, into sketch_pattern;
-    // Move, Rotate and Scale, into sketch_transform; the twenty-four drawing rows, into sketch_draw.
+    // Move, Rotate and Scale, into sketch_transform; the twenty-four drawing items, into sketch_draw.
     CHECK(folded == 37);
     CHECK(commands.size() == 8);
 }
 
 TEST_CASE("a call opens a tool only with the arguments that choose it", "[Mcp][CAD]")
 {
-    // body_set's Color row opens with no arguments, and any argument runs the command.
+    // body_set's Color item opens with no arguments, and any argument runs the command.
     const GUI::DesignTool& body_set = design_row("body_set");
-    const GUI::DesignTool* colour   = GUI::Mcp::opened_row(body_set, json::object());
+    const GUI::DesignTool* colour   = GUI::Mcp::opened_item(body_set, json::object());
     REQUIRE(colour != nullptr);
     CHECK(std::string(colour->id) == "colour");
-    CHECK(GUI::Mcp::opened_row(body_set, json()) == colour);
+    CHECK(GUI::Mcp::opened_item(body_set, json()) == colour);
     for (const json& runs : {json{{"body", 0}}, json{{"silent", true}}, json{{"generation", 1}}}) {
         INFO(runs.dump());
-        CHECK(GUI::Mcp::opened_row(body_set, runs) == nullptr);
+        CHECK(GUI::Mcp::opened_item(body_set, runs) == nullptr);
     }
-    // sketch_set_value's three value rows are one action.
-    const GUI::DesignTool* value = GUI::Mcp::opened_row(design_row("sketch_set_value"), json::object());
+    // sketch_set_value's three value items are one action.
+    const GUI::DesignTool* value = GUI::Mcp::opened_item(design_row("sketch_set_value"), json::object());
     REQUIRE(value != nullptr);
     REQUIRE(value->action != nullptr);
     CHECK(std::string(value->action) == "key:V");
-    // A command with a row of its own opens it; one with no row and none folded into it opens nothing.
+    // A command with a menu item of its own opens it; one with no menu item and none folded into it opens nothing.
     const GUI::DesignTool& trim = design_row("sketch_trim");
-    CHECK(GUI::Mcp::opened_row(trim, json::object()) == &trim);
-    CHECK(GUI::Mcp::opened_row(design_row("sketch_draw"), json::object()) == nullptr);
-    // boolean's own row, Join, opens with no arguments and with its own; each operation opens the row that does it,
+    CHECK(GUI::Mcp::opened_item(trim, json::object()) == &trim);
+    CHECK(GUI::Mcp::opened_item(design_row("sketch_draw"), json::object()) == nullptr);
+    // boolean's own item, Join, opens with no arguments and with its own; each operation opens the item that does it,
     // and anything beside the operation runs the command.
     const GUI::DesignTool& boolean = design_row("boolean");
     CHECK(opened_id(boolean, json::object()) == "boolean");
@@ -589,14 +589,14 @@ TEST_CASE("a call opens a tool only with the arguments that choose it", "[Mcp][C
     CHECK(opened_id(boolean, {{"operation", "intersect"}}) == "bool_intersect");
     CHECK(opened_id(boolean, {{"operation", "cut"}, {"target", 0}}).empty());
     CHECK(opened_id(boolean, {{"operation", "cut"}, {"silent", true}}).empty());
-    // pattern's own row is the linear one and Circular pattern is folded into it; a curve pattern has no row.
+    // pattern's own item is the linear one and Circular pattern is folded into it; a curve pattern has no item.
     const GUI::DesignTool& pattern = design_row("pattern");
     CHECK(opened_id(pattern, json::object()) == "pattern");
     CHECK(opened_id(pattern, {{"type", "linear"}}) == "pattern");
     CHECK(opened_id(pattern, {{"type", "circular"}}) == "pattern_circular");
     CHECK(opened_id(pattern, {{"type", "curve"}}).empty());
     CHECK(opened_id(design_row("thicken"), {{"type", "surface"}}) == "thicken_surf");
-    // A sketch command with no row of its own opens a folded row only with its type, and nothing with no arguments.
+    // A sketch command with no menu item of its own opens a folded item only with its type, and nothing with no arguments.
     const GUI::DesignTool& sketch_pattern = design_row("sketch_pattern");
     CHECK(opened_id(sketch_pattern, {{"type", "linear"}}) == "sk_array");
     CHECK(opened_id(sketch_pattern, {{"type", "circular"}}) == "sk_array_polar");
@@ -605,7 +605,7 @@ TEST_CASE("a call opens a tool only with the arguments that choose it", "[Mcp][C
     const GUI::DesignTool& sketch_transform = design_row("sketch_transform");
     CHECK(opened_id(sketch_transform, {{"type", "scale"}}) == "sk_scale");
     CHECK(opened_id(sketch_transform, json::object()).empty());
-    // sketch_draw opens a drawing row with the row's type alone, a polygon row with its sides too; a type with its
+    // sketch_draw opens a drawing item with the item's type alone, a polygon item with its sides too; a type with its
     // shape's fields draws it.
     const GUI::DesignTool& sketch_draw = design_row("sketch_draw");
     CHECK(opened_id(sketch_draw, {{"type", "circle_center"}}) == "sk_circle");
@@ -614,12 +614,12 @@ TEST_CASE("a call opens a tool only with the arguments that choose it", "[Mcp][C
     CHECK(opened_id(sketch_draw, {{"type", "circle_center"}, {"center", {0, 0}}, {"radius", 1}}).empty());
     CHECK(opened_id(sketch_draw, {{"type", "rectangle_rounded"}}) == "sk_rect_rounded");
     CHECK(opened_id(sketch_draw, {{"type", "arc_3_point"}}) == "sk_arc_t");
-    // The Extend and Dimension rows are their commands' own.
+    // The Extend and Dimension items are their commands' own.
     CHECK(opened_id(design_row("sketch_extend"), json::object()) == "sketch_extend");
     CHECK(opened_id(design_row("sketch_dimension"), json::object()) == "sketch_dimension");
 }
 
-TEST_CASE("a folded row opens only in its own mode", "[Mcp][CAD]")
+TEST_CASE("a folded item opens only in its own mode", "[Mcp][CAD]")
 {
     const GUI::DesignTool&                colour    = design_row("colour");
     const std::optional<GUI::ToolFailure> in_sketch = GUI::Mcp::open_refusal(colour, true, int(GUI::OfferSel::SkNone));
@@ -630,7 +630,7 @@ TEST_CASE("a folded row opens only in its own mode", "[Mcp][CAD]")
     const std::optional<GUI::ToolFailure> nothing = GUI::Mcp::open_refusal(colour, false, int(GUI::OfferSel::None));
     REQUIRE(nothing.has_value());
     CHECK(std::string(nothing->what()) == "This tool does not apply to what is selected");
-    // The command's silent says the mode of the row a call with no arguments opens.
+    // The command's silent says the mode of the item a call with no arguments opens.
     const GUI::CommandCatalog catalog = cad_catalog();
     CHECK_THAT(property_of(command_of(catalog, "sketch_set_value"), "silent").value("description", std::string()),
                ContainsSubstring("Called with no arguments, it runs only in an open sketch"));
@@ -700,7 +700,7 @@ TEST_CASE("a Design command is named by its verb's id", "[Mcp][CAD]")
             }
 }
 
-TEST_CASE("a Design command carries its row's icon", "[Mcp][CAD]")
+TEST_CASE("a Design command carries its menu item's icon", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
     CHECK(command_of(catalog, "sketch_create").icon == "design_sketch");
@@ -719,7 +719,7 @@ TEST_CASE("a Design command carries its row's icon", "[Mcp][CAD]")
 
 TEST_CASE("the Design tiles' icons resolve to shipped SVGs", "[Mcp][CAD][SpeedDial]")
 {
-    // An icon comes from a hand-edited atlas row, so a typo would be a blank tile and a blank menu row.
+    // An icon comes from a hand-edited atlas row, so a typo would be a blank tile and a blank menu item.
     const boost::filesystem::path images = boost::filesystem::path(PROFILES_DIR).parent_path() / "images";
     const GUI::CommandCatalog     catalog = catalog_with_cad();
     std::size_t                   tiles   = 0;
@@ -741,14 +741,14 @@ TEST_CASE("the Design tiles' icons resolve to shipped SVGs", "[Mcp][CAD][SpeedDi
             ++tiles;
         }
     }
-    // One per entry with an action: the 52 commands' own and the 37 folded rows'.
+    // One per entry with an action: the 52 commands' own and the 37 folded items'.
     CHECK(tiles == 89);
 }
 
 TEST_CASE("a tool refused for the selection says it does not apply and what it takes", "[Mcp][CAD]")
 {
     // Delete Face takes a picked face. With nothing picked, the obstacle is the selection, not the document its
-    // row's refusal speaks of.
+    // item's refusal speaks of.
     const GUI::DesignTool&                     delete_face = design_row("delete_face");
     const int                                  none        = int(GUI::OfferSel::None);
     const std::optional<GUI::ToolFailure>      refused     = GUI::Mcp::open_refusal(delete_face, false, none);
@@ -759,8 +759,8 @@ TEST_CASE("a tool refused for the selection says it does not apply and what it t
     CHECK(refused->details.at("selection") == "none");
     CHECK(refused->details.at("accepts") == json::array({"face_planar", "face_cyl", "face_other"}));
     CHECK_FALSE(GUI::Mcp::open_refusal(delete_face, false, int(GUI::OfferSel::FacePlanar)).has_value());
-    // Every row only the menu reaches says the same for a selection the tab reports in the row's mode and the row
-    // does not take. A row that takes none of those is never greyed for the selection there, and opens whatever is
+    // Every item only the menu reaches says the same for a selection the tab reports in the item's mode and the item
+    // does not take. An item that takes none of those is never greyed for the selection there, and opens whatever is
     // selected.
     std::size_t greyed = 0, never_greyed = 0;
     for (int i = 0; i < GUI::kDesignToolCount; ++i) {
@@ -790,10 +790,10 @@ TEST_CASE("a tool refused for the selection says it does not apply and what it t
     CHECK_FALSE(GUI::Mcp::open_refusal(design_row("shell"), false, int(GUI::OfferSel::None)).has_value());
 }
 
-TEST_CASE("a row for a selection the tab never reports opens as its button does", "[Mcp][CAD]")
+TEST_CASE("a menu item for a selection the tab never reports opens as its button does", "[Mcp][CAD]")
 {
-    // Boolean's three rows take two bodies and Rib a sketch line, which the model never reports as the selection:
-    // their toolbar buttons open the card with nothing selected, and so do the rows.
+    // Boolean's three items take two bodies and Rib a sketch line, which the model never reports as the selection:
+    // their toolbar buttons open the card with nothing selected, and so do the items.
     for (const char* id : {"boolean", "bool_subtract", "bool_intersect", "rib"}) {
         INFO(id);
         CHECK_FALSE(GUI::Mcp::open_refusal(design_row(id), false, int(GUI::OfferSel::None)).has_value());
@@ -805,7 +805,7 @@ TEST_CASE("a row for a selection the tab never reports opens as its button does"
     CHECK(std::string(refused->what()) == "This tool does not apply to what is selected");
 }
 
-TEST_CASE("the rows that act on the Feature list's row are not refused for the selection when a call targets that row", "[Mcp][CAD]")
+TEST_CASE("the menu items that act on the Feature list's row are not refused for the selection when a call targets that row", "[Mcp][CAD]")
 {
     const std::set<std::string> feature_rows = {"feature_edit", "rename_selected", "feature_delete", "sketch_constrain_selected"};
     for (int i = 0; i < GUI::kDesignToolCount; ++i) {
@@ -821,21 +821,21 @@ TEST_CASE("the rows that act on the Feature list's row are not refused for the s
         REQUIRE(refused.has_value());
         CHECK(std::string(refused->what()) == "This tool does not apply to what is selected");
         CHECK_FALSE(GUI::Mcp::open_refusal(design_row(id), false, none, true).has_value());
-        // Still only in the mode its row belongs to.
+        // Still only in the mode its item belongs to.
         CHECK(GUI::Mcp::open_refusal(design_row(id), true, int(GUI::OfferSel::SkNone), true).has_value());
     }
     // Zoom to selection frames what is picked in the view, so a Feature list row is nothing to it.
     CHECK(GUI::Mcp::open_refusal(design_row("zoom_to_selection"), false, none).has_value());
     CHECK(GUI::Mcp::open_refusal(design_row("zoom_to_selection"), false, none, true).has_value());
-    // A pick in the view, a card's included, is checked against the row's accepts.
+    // A pick in the view, a card's included, is checked against the item's accepts.
     CHECK(GUI::Mcp::open_refusal(design_row("rename_selected"), false, int(GUI::OfferSel::FacePlanar)).has_value());
 }
 
-TEST_CASE("a Design tool opens only in the mode its row belongs to", "[Mcp][CAD]")
+TEST_CASE("a Design tool opens only in the mode its menu item belongs to", "[Mcp][CAD]")
 {
     const std::string in_sketch = "This tool works in a sketch: open a sketch first";
     const std::string on_model  = "This tool works on the model: finish or cancel the sketch first";
-    std::size_t       sketch_rows = 0, model_rows = 0;
+    std::size_t       sketch_items = 0, model_items = 0;
     for (int i = 0; i < GUI::kDesignToolCount; ++i) {
         const GUI::DesignTool& t = GUI::kDesignTools[i];
         if (t.action == nullptr)
@@ -852,10 +852,10 @@ TEST_CASE("a Design tool opens only in the mode its row belongs to", "[Mcp][CAD]
             CHECK(refused->details.at("code") == -32000);
             CHECK(refused->details.at("mode") == (t.sketch_mode ? "sketch" : "model"));
         }
-        ++(t.sketch_mode ? sketch_rows : model_rows);
+        ++(t.sketch_mode ? sketch_items : model_items);
     }
-    CHECK(sketch_rows == 46);
-    CHECK(model_rows == 43);
+    CHECK(sketch_items == 46);
+    CHECK(model_items == 43);
     // Shell opens on the model whatever is picked, and never over an open sketch.
     CHECK_FALSE(GUI::Mcp::open_refusal(design_row("shell"), false, int(GUI::OfferSel::None)).has_value());
     CHECK(GUI::Mcp::open_refusal(design_row("shell"), true, int(GUI::OfferSel::SkNone)).has_value());
@@ -866,15 +866,15 @@ TEST_CASE("a pinned Design tile stays pinned while its tile is not shown", "[Mcp
 {
     CHECK(GUI::is_design_tile_id("orca_command:shell:orca"));
     CHECK(GUI::is_design_tile_id("orca_command:sk_rect:orca"));
-    CHECK(GUI::is_design_tile_id("orca_command:sk_array:orca"));                // a folded row's, which runs sketch_pattern
+    CHECK(GUI::is_design_tile_id("orca_command:sk_array:orca"));                // a folded item's, which runs sketch_pattern
     CHECK_FALSE(GUI::is_design_tile_id("orca_command:describe_design:orca"));   // a Design command with no tile
     CHECK_FALSE(GUI::is_design_tile_id("orca_command:align_to:orca"));          // an entry with no command
-    CHECK_FALSE(GUI::is_design_tile_id("orca_command:sk_trim:orca"));           // no entry's: the Trim row is sketch_trim's
+    CHECK_FALSE(GUI::is_design_tile_id("orca_command:sk_trim:orca"));           // no entry's: the Trim item is sketch_trim's
     CHECK_FALSE(GUI::is_design_tile_id("orca_command:save_project:orca"));
     CHECK_FALSE(GUI::is_design_tile_id("orca_plate_goto:shell:orca"));
     CHECK_FALSE(GUI::is_design_tile_id("shell"));
     // On the Prepare tab no Design tile is live, and the third plate is gone. A pin under an id no entry has, as
-    // the Trim row's tile had before it took sketch_trim's key, has no live action either: it is dropped, and the
+    // the Trim item's tile had before it took sketch_trim's key, has no live action either: it is dropped, and the
     // pins on either side of it stay.
     const std::string           shell = "orca_command:shell:orca", rect = "orca_command:sk_rect:orca";
     const std::string           array = "orca_command:sk_array:orca", trim = "orca_command:sk_trim:orca";
@@ -922,7 +922,7 @@ TEST_CASE("the Design tab's tiles are its mode's tools, and none with the CAD fe
             INFO(id);
             const GUI::DesignTool& entry = design_row(id);
             if (entry.fold_into != nullptr) {
-                // A folded row's tile runs the command it is folded into with the row's arguments.
+                // A folded item's tile runs the command it is folded into with the item's arguments.
                 REQUIRE(tile.tile != nullptr);
                 CHECK(tile.command->key == entry.fold_into);
                 CHECK(tile.tile->at("args") == json::parse(entry.args));
@@ -947,14 +947,14 @@ TEST_CASE("the Design tab's tiles are its mode's tools, and none with the CAD fe
     }
 }
 
-TEST_CASE("a folded row's tile runs its command with the row's arguments", "[Mcp][CAD][SpeedDial]")
+TEST_CASE("a folded item's tile runs its command with the item's arguments", "[Mcp][CAD][SpeedDial]")
 {
     const GUI::CommandCatalog catalog        = cad_catalog();
     const GUI::NativeCommand& sketch_pattern = command_of(catalog, "sketch_pattern");
     const auto [pattern_owner, array]        = GUI::find_tile(catalog, "sk_array");
     REQUIRE(pattern_owner == &sketch_pattern);
     REQUIRE(array != nullptr);
-    // The Linear array row's tile, under the id it has had, titled and pictured as the row, in the tests' English UI.
+    // The Linear array item's tile, under the id it has had, titled and pictured as the item, in the tests' English UI.
     const std::unique_ptr<GUI::AppAction> action = GUI::NativeCommands::make_action(sketch_pattern, *array);
     REQUIRE(action != nullptr);
     CHECK(action->id() == "orca_command:sk_array:orca");
@@ -967,16 +967,16 @@ TEST_CASE("a folded row's tile runs its command with the row's arguments", "[Mcp
     CHECK(action->input_schema.at("properties").empty());
     CHECK_THAT(action->automation_description, ContainsSubstring("Pick entities, drag the spacing handle"));
     CHECK_THAT(action->automation_description, ContainsSubstring("It runs only in an open sketch"));
-    // An agent runs it with no arguments, or with exactly the row's.
+    // An agent runs it with no arguments, or with exactly the item's.
     CHECK(GUI::Mcp::action_args_error(*action, json::object()).empty());
     CHECK(GUI::Mcp::action_args_error(*action, {{"type", "linear"}}).empty());
     CHECK_FALSE(GUI::Mcp::action_args_error(*action, {{"count", 3}}).empty());
     CHECK_FALSE(GUI::Mcp::action_args_error(*action, {{"type", "circular"}}).empty());
-    // A call of the command with the row's arguments is titled as the row's tile; with any other, as the command.
+    // A call of the command with the item's arguments is titled as the item's tile; with any other, as the command.
     CHECK(GUI::call_title(sketch_pattern, {{"type", "linear"}}) == "Linear array");
     CHECK(GUI::call_title(sketch_pattern, {{"type", "linear"}, {"count", 3}}) == sketch_pattern.title);
 
-    // The Color row runs body_set with no arguments: its preset is an empty object, not null.
+    // The Color item runs body_set with no arguments: its preset is an empty object, not null.
     const GUI::NativeCommand& body_set     = command_of(catalog, "body_set");
     const auto [colour_owner, colour_tile] = GUI::find_tile(catalog, "colour");
     REQUIRE(colour_owner == &body_set);
@@ -986,7 +986,7 @@ TEST_CASE("a folded row's tile runs its command with the row's arguments", "[Mcp
     CHECK(colour->preset.is_object());
     CHECK(colour->preset.empty());
     CHECK(GUI::call_title(body_set, json::object()) == "Color");
-    // The three value rows are one action under three labels, all with no arguments: a call with none is titled as
+    // The three value items are one action under three labels, all with no arguments: a call with none is titled as
     // the first of them.
     CHECK(GUI::call_title(command_of(catalog, "sketch_set_value"), json::object()) == "Length\xE2\x80\xA6");
 
@@ -998,7 +998,7 @@ TEST_CASE("a folded row's tile runs its command with the row's arguments", "[Mcp
     CHECK(none == nullptr);
     CHECK(none_tile == nullptr);
 
-    // Every tile's arguments are a call its command takes, and that call opens the tile's row.
+    // Every tile's arguments are a call its command takes, and that call opens the tile's item.
     std::size_t tiles = 0;
     for (const GUI::NativeCommand& c : catalog.commands()) {
         if (c.tiles.is_null())
@@ -1009,21 +1009,21 @@ TEST_CASE("a folded row's tile runs its command with the row's arguments", "[Mcp
             INFO(c.key << " / " << tile.at("key"));
             json args = tile.at("args");
             CHECK(GUI::Mcp::argument_error(c, args).empty());
-            const GUI::DesignTool* row = GUI::Mcp::opened_row(*entry, tile.at("args"));
-            REQUIRE(row != nullptr);
-            CHECK(std::string(row->action) == design_row(tile.at("key").get<std::string>()).action);
+            const GUI::DesignTool* item = GUI::Mcp::opened_item(*entry, tile.at("args"));
+            REQUIRE(item != nullptr);
+            CHECK(std::string(item->action) == design_row(tile.at("key").get<std::string>()).action);
             ++tiles;
         }
     }
-    CHECK(tiles == 37);   // one per folded row
+    CHECK(tiles == 37);   // one per folded item
 }
 
-TEST_CASE("the Action Replay window titles a step that calls a folded row's tile as that row", "[Mcp][CAD][SpeedDial]")
+TEST_CASE("the Action Replay window titles a step that calls a folded item's tile as that item", "[Mcp][CAD][SpeedDial]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
     const std::string         pattern = command_of(catalog, "sketch_pattern").title;
     const json                step{{"kind", "command"}, {"key", "sketch_pattern"}};
-    // describe_step()'s `what` for a call of sketch_pattern with the Linear array row's arguments names the row's tile:
+    // describe_step()'s `what` for a call of sketch_pattern with the Linear array item's arguments names the item's tile:
     // the window shows that tile's title, in the tests' English UI.
     json tiled    = step;
     tiled["tile"] = "sk_array";
@@ -1049,7 +1049,7 @@ TEST_CASE("a Design command with a read block is read-only", "[Mcp][CAD]")
 
 TEST_CASE("select_geometry selects in the model at rest, as a command that changes it", "[Mcp][CAD]")
 {
-    // A command with no row of its own, under Document, with the access of one that edits, so that it is refused
+    // A command with no menu item of its own, under Document, with the access of one that edits, so that it is refused
     // where a click means something else: under a card, a sketch, Constrain mode, a body Move or the Text dialog.
     const GUI::DesignTool& entry = design_row("select_geometry");
     CHECK(entry.access == GUI::CadAccess::Change);
@@ -1082,7 +1082,7 @@ TEST_CASE("select_geometry selects in the model at rest, as a command that chang
 
 TEST_CASE("confirm_tool and cancel_tool act on what the tab has open, which only a rebuild refuses", "[Mcp][CAD]")
 {
-    // Commands with no row of their own, under Document, with the access ui: what is open in the tab (a card, a
+    // Commands with no menu item of their own, under Document, with the access ui: what is open in the tab (a card, a
     // sketch, a Move) refuses a command that changes the document, but these act on it. They commit or discard it, so
     // neither is read-only.
     const GUI::CommandCatalog catalog = cad_catalog();
@@ -1120,7 +1120,7 @@ TEST_CASE("confirm_tool and cancel_tool act on what the tab has open, which only
 
 TEST_CASE("body_place places a body outside the history, under Bodies", "[Mcp][CAD]")
 {
-    // A command with no row of its own, with the access of one that edits: where a body stands is refused under what a
+    // A command with no menu item of its own, with the access of one that edits: where a body stands is refused under what a
     // click would feed, as the Move it does from arguments is.
     const GUI::DesignTool& entry = design_row("body_place");
     CHECK(entry.access == GUI::CadAccess::Change);
@@ -1522,15 +1522,15 @@ TEST_CASE("hole and pattern refuse an argument the type they are given does not 
     CHECK(doc.features[p].pattern_dir == 1);
 }
 
-TEST_CASE("a command's description gives each argument set that opens a tool once, with its rows' names", "[Mcp][CAD]")
+TEST_CASE("a command's description gives each argument set that opens a tool once, with its items' names", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
-    // The three value rows are one tool under three names, opened with no arguments.
+    // The three value items are one tool under three names, opened with no arguments.
     const std::string& value = command_of(catalog, "sketch_set_value").description;
     CHECK_THAT(value, ContainsSubstring(std::string(": {} (") + design_row("sk_length").name + ", " + design_row("sk_radius").name +
                                         ", " + design_row("sk_angdist").name + ")."));
     CHECK(value.find("{}") == value.rfind("{}"));
-    // boolean's own row and the two folded into it, one argument set each.
+    // boolean's own item and the two folded into it, one argument set each.
     CHECK_THAT(command_of(catalog, "boolean").description,
                ContainsSubstring(": {\"operation\":\"join\"} (Join), {\"operation\":\"cut\"} (Subtract), "
                                  "{\"operation\":\"intersect\"} (Intersect)."));
@@ -1550,7 +1550,7 @@ TEST_CASE("a CAD command's summary is one sentence of at most 120 characters", "
     CHECK_THAT(command_of(catalog, "sketch_transform").description, ContainsSubstring("pivot"));
     CHECK_THAT(command_of(catalog, "shell").description, ContainsSubstring("ok is false"));
     CHECK_THAT(command_of(catalog, "extrude").description, !ContainsSubstring("ok is false"));
-    // One with an action only does what its row does, which for Zoom to selection is to act at once.
+    // One with an action only does what its menu item does, which for Zoom to selection is to act at once.
     CHECK_THAT(command_of(catalog, "zoom_to_selection").description, ContainsSubstring("act at once"));
     CHECK_THAT(command_of(catalog, "zoom_to_selection").description, !ContainsSubstring("opens the tool"));
 }
@@ -1561,17 +1561,17 @@ TEST_CASE("a Design command with a person's form says which mode it runs in", "[
     const GUI::CommandCatalog catalog = cad_catalog();
     std::size_t               told    = 0;
     for (const GUI::NativeCommand& c : catalog.commands()) {
-        const GUI::DesignTool& row = design_row(c.key);
-        if (row.action == nullptr)
+        const GUI::DesignTool& item = design_row(c.key);
+        if (item.action == nullptr)
             continue;
         INFO(c.key);
         // An action only: its description says it of the command, which takes no arguments. Both forms: the `silent`
-        // property says it of the call with no arguments, whose row's mode the argument form need not share.
-        const bool        both = row.doc != nullptr;
+        // property says it of the call with no arguments, whose item's mode the argument form need not share.
+        const bool        both = item.doc != nullptr;
         const std::string text = both ? property_of(c, "silent").value("description", std::string()) : c.description;
         const std::string lead = both ? "Called with no arguments, it " : "It ";
-        CHECK_THAT(text, ContainsSubstring(lead + (row.sketch_mode ? in_sketch : outside)));
-        CHECK_THAT(text, !ContainsSubstring(row.sketch_mode ? outside : in_sketch));
+        CHECK_THAT(text, ContainsSubstring(lead + (item.sketch_mode ? in_sketch : outside)));
+        CHECK_THAT(text, !ContainsSubstring(item.sketch_mode ? outside : in_sketch));
         if (both)
             CHECK_THAT(text, !ContainsSubstring("It runs only"));
         ++told;
@@ -1581,7 +1581,7 @@ TEST_CASE("a Design command with a person's form says which mode it runs in", "[
     CHECK_THAT(command_of(catalog, "zoom_to_selection").description, ContainsSubstring("It " + outside));
     CHECK_THAT(property_of(command_of(catalog, "shell"), "silent").value("description", std::string()),
                ContainsSubstring("opens nothing"));
-    // The argument forms of these run where their row does not: the note says which call it is about.
+    // The argument forms of these run where their menu item does not: the note says which call it is about.
     for (const char* key : {"sketch_text", "sketch_insert_svg", "sketch_project", "body_mass_properties", "interference"}) {
         INFO(key);
         CHECK_THAT(property_of(command_of(catalog, key), "silent").value("description", std::string()),
@@ -1672,7 +1672,7 @@ TEST_CASE("the Design commands are the design's 88, under its headings", "[Mcp][
         {"History",
          {"feature_describe", "feature_edit", "feature_set_expression", "feature_suppress", "feature_move", "feature_rename",
           "feature_delete"}},
-        {"Menu rows",
+        {"Menu items",
          {"rename_selected", "zoom_to_selection", "sketch_polygon_inscribed", "sketch_polygon_circumscribed",
           "sketch_constrain_selected"}},
     };
@@ -1689,16 +1689,16 @@ TEST_CASE("the Design commands are the design's 88, under its headings", "[Mcp][
         REQUIRE(t.section != nullptr);
         table[t.section].insert(id);
         ++commands;
-        // A command that only does what its menu row does is one of the menu rows.
-        const bool row_only = t.action != nullptr && t.doc == nullptr;
-        CHECK(row_only == (std::string(t.section) == "Menu rows"));
+        // A command that only does what its menu item does is one of the menu items.
+        const bool item_only = t.action != nullptr && t.doc == nullptr;
+        CHECK(item_only == (std::string(t.section) == "Menu items"));
     }
     CHECK(table == design);
     CHECK(commands == 88);
     // The headings, in the order the index gives them.
     CHECK(std::vector<std::string>(std::begin(GUI::kDesignSections), std::end(GUI::kDesignSections)) ==
           std::vector<std::string>{"Document", "Sketch", "Solid", "Surface", "Construct", "Inspect", "Bodies", "History",
-                                   "Menu rows"});
+                                   "Menu items"});
 }
 
 TEST_CASE("the tool_search description names every Design command under its heading", "[Mcp][CAD]")
@@ -1733,8 +1733,8 @@ TEST_CASE("the tool_search description names every Design command under its head
     const std::string index = told.substr(plain.size());
     CHECK_THAT(index, ContainsSubstring("CAD"));
     CHECK_THAT(index, ContainsSubstring("look one up with tool"));
-    // A command with silent does what its menu row does when it is given no arguments.
-    CHECK_THAT(index, ContainsSubstring("silent does what its menu row does when called with no arguments, unless silent is true"));
+    // A command with silent does what its menu item does when it is given no arguments.
+    CHECK_THAT(index, ContainsSubstring("silent does what its menu item does when called with no arguments, unless silent is true"));
 
     // Each heading starts a sentence once, in the design's order, and its names follow its colon to the full stop,
     // apart by ", ", in the table's order.
@@ -1770,8 +1770,8 @@ TEST_CASE("the tool_search description names every Design command under its head
         at = stop;
     }
     CHECK(named == 88);
-    // The menu rows' heading says they take no arguments.
-    CHECK_THAT(index, ContainsSubstring(". Menu rows, which take no arguments"));
+    // The menu items' heading says they take no arguments.
+    CHECK_THAT(index, ContainsSubstring(". Menu items, which take no arguments"));
 }
 
 TEST_CASE("a CAD call is journaled without its generation and with its silent", "[Mcp][CAD]")
@@ -1810,13 +1810,13 @@ TEST_CASE("a CAD call is journaled without its generation and with its silent", 
     JournalContext read;
     fillet.run({{"generation", 4}}, read);
     CHECK(read.journaled == json::object());
-    // body_set's Color row opens with no arguments. The call is journaled before it runs, and it fails here, where
+    // body_set's Color item opens with no arguments. The call is journaled before it runs, and it fails here, where
     // there is no Design tab.
     const GUI::CommandCatalog catalog = cad_catalog();
     JournalContext            body;
     CHECK_THROWS_AS(command_of(catalog, "body_set").run({{"generation", 1}}, body), GUI::ToolFailure);
     CHECK(body.journaled == json{{"silent", true}});
-    // boolean's operation alone opens the row that does it, so a cut given its generation is replayed as a cut.
+    // boolean's operation alone opens the item that does it, so a cut given its generation is replayed as a cut.
     JournalContext cut;
     CHECK_THROWS_AS(command_of(catalog, "boolean").run({{"operation", "cut"}, {"generation", 1}}, cut), GUI::ToolFailure);
     CHECK(cut.journaled == json{{"operation", "cut"}, {"silent", true}});
@@ -1831,7 +1831,7 @@ TEST_CASE("a CAD call is journaled without its generation and with its silent", 
 
 TEST_CASE("a CAD command tells its function a person's pick from a call", "[Mcp][CAD]")
 {
-    // The four rows that act on the Feature list's row are not refused for the selection on a call, and a person's
+    // The four menu items that act on the Feature list's row are not refused for the selection on a call, and a person's
     // pick keeps the menu's rule: the function is told which it runs for.
     std::vector<bool>        told;
     const GUI::NativeCommand rename = GUI::Mcp::cad_command("rename_selected", "Rename", json{{"type", "object"}, {"properties", json::object()}},
@@ -2973,7 +2973,7 @@ TEST_CASE("sketch_edit re-opens a committed sketch by its index, as a sketch com
     const GUI::CommandCatalog catalog = cad_catalog();
     const GUI::NativeCommand& command = command_of(catalog, "sketch_edit");
     const GUI::DesignTool&    entry   = design_row("sketch_edit");
-    // A command with no row of its own: no menu row, no tile and no person's form.
+    // A command with no menu item of its own: no menu item, no tile and no person's form.
     CHECK(entry.row == -1);
     CHECK(entry.action == nullptr);
     CHECK_FALSE(command.in_palette);
@@ -6098,7 +6098,7 @@ TEST_CASE("a sketch command's type names its variant", "[Mcp][CAD]")
     CHECK(GUI::Mcp::argument_error(command_of(catalog, "sketch_dimension"), dimension).empty());
     json lock{{"type", "lock_x"}, {"entities", {0}}, {"value", 5}};
     CHECK(GUI::Mcp::argument_error(command_of(catalog, "sketch_constrain"), lock).empty());
-    // sketch_extend is the Extend row and Extend's argument form.
+    // sketch_extend is the Extend item and Extend's argument form.
     const GUI::NativeCommand& extend = command_of(catalog, "sketch_extend");
     CHECK(property_of(extend, "at").is_object());
     CHECK(property_of(extend, "tolerance").at("default") == 0.05);

@@ -1012,7 +1012,7 @@ TEST_CASE("a caption keeps the context its title is translated in", "[Mcp][Recor
 
 TEST_CASE("a call with a tile's arguments is captioned with the tile's title", "[Mcp][Recording]")
 {
-    // A Design command whose Linear array row is folded into it: the call that row's tile makes is titled as the
+    // A Design command whose Linear array item is folded into it: the call that item's tile makes is titled as the
     // tile, untranslated and in the command's context, as McpRecorder::call_started() hands it to the board.
     NativeCommand pattern;
     pattern.key   = "sketch_pattern";
@@ -1190,7 +1190,7 @@ TEST_CASE("captions name what a call acts on and never show secrets", "[Mcp][Rec
     CHECK(settings.find("s3cret") == std::string::npos);
     CHECK(settings.find("nozzle_diameter = 0.4") != std::string::npos);
     CHECK(caption_detail("project_import", {{"paths", {"C:/models/part.stl", "/tmp/b.3mf"}}}) == "part.stl, b.3mf");
-    // A row's tile is its command's call; a command's own tile given arguments shows them.
+    // A menu item's tile is its command's call; a command's own tile given arguments shows them.
     CHECK(caption_detail("action_run", {{"id", "orca_command:obj_arrange:orca"}}) == "object_arrange");
     CHECK(caption_detail("action_run", {{"id", "orca_command:undo:orca"}, {"args", {{"history", "design"}}}}) == "undo history: design");
     CHECK(caption_detail("webview_run_javascript", {{"code", "login('s3cret')"}}).empty());

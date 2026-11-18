@@ -34,9 +34,9 @@ ENUM = {
 ACCESS = {"read": "Read", "change": "Change", "sketch": "Sketch", "ui": "Ui"}
 
 # The headings of tool_search's index of the Design commands (Mcp::design_command_index()), in its order: every
-# command's `section` is one of them. Menu rows holds the commands that take no arguments and only do what their row
+# command's `section` is one of them. Menu items holds the commands that take no arguments and only do what their menu item
 # does.
-SECTIONS = ("Document", "Sketch", "Solid", "Surface", "Construct", "Inspect", "Bodies", "History", "Menu rows")
+SECTIONS = ("Document", "Sketch", "Solid", "Surface", "Construct", "Inspect", "Bodies", "History", "Menu items")
 
 # The keys of a tool block that its command's description, schema and examples are made from.
 DOC_KEYS = ("summary", "details", "params", "examples", "ids")
@@ -90,9 +90,9 @@ def doc_literal(block, indent):
 
 
 def arg_faults(vid, args, into):
-    """Why `args`, the arguments that choose entry `vid`'s row, are not arguments `into`'s block takes."""
+    """Why `args`, the arguments that choose entry `vid`'s item, are not arguments `into`'s block takes."""
     if not isinstance(args, dict):
-        return [f"{vid}: args must be an object of the arguments that choose its row, not {args!r}"]
+        return [f"{vid}: args must be an object of the arguments that choose its item, not {args!r}"]
     params = {p.get("name"): p for p in into["tool"].get("params", [])}
     out = []
     for name, value in args.items():
@@ -106,27 +106,27 @@ def arg_faults(vid, args, into):
 
 def faults(A):
     """Every fault of the atlas A, each naming its entry: what the header cannot represent, and what would leave
-    a call of a command unable to tell which of its rows it opens.
+    a call of a command unable to tell which of its items it opens.
 
     An unknown slot or selection would surface as a bare ValueError from .index() below, and a
     duplicate verb id would not surface at all: a verb is looked up by id (DesignPanel::mcp_run_verb,
-    the catalog's command keys) and the first match taken, so the second row would be unreachable.
-    An entry with no row, no action and no tool block is nothing; a row with neither is greyed (Align to,
+    the catalog's command keys) and the first match taken, so the second item would be unreachable.
+    An entry with no menu item, no action and no tool block is nothing; an item with neither is greyed (Align to,
     until it has a GUI path), and no command.
 
-    A folded row (`fold`) is a way of calling the command `into` names with `args`: it keeps its row and
+    A folded item (`fold`) is a way of calling the command `into` names with `args`: it keeps its row and
     its action and has no block of its own, and its command is an entry with a block that is no folded
-    row. An entry with an action and a block may name the `args` that choose its own row. The arguments
-    that choose a row are ones its command takes, and choose that row only (Mcp::opened_row()): no two
-    rows of one command with equal args and different actions, and no folded row with the args its
-    command's own row takes, which a call with none also gives. A command's rows are in one mode.
+    item. An entry with an action and a block may name the `args` that choose its own item. The arguments
+    that choose an item are ones its command takes, and choose that item only (Mcp::opened_item()): no two
+    items of one command with equal args and different actions, and no folded item with the args its
+    command's own item takes, which a call with none also gives. A command's items are in one mode.
 
-    Every command, an entry with an action or a block that is no folded row, has a `section`, its heading in
-    tool_search's index (SECTIONS); a folded or greyed row, which is no command, has none.
+    Every command, an entry with an action or a block that is no folded item, has a `section`, its heading in
+    tool_search's index (SECTIONS); a folded or greyed item, which is no command, has none.
 
-    `feature_row` marks a row whose action acts on the selected row of the Feature list, which a call of its
-    command takes as its target when nothing is picked in the view (Mcp::open_refusal()): only a command with a row
-    of its own has one, an entry with an action that is no folded row.
+    `feature_row` marks an item whose action acts on the selected row of the Feature list, which a call of its
+    command takes as its target when nothing is picked in the view (Mcp::open_refusal()): only a command with a menu item
+    of its own has one, an entry with an action that is no folded item.
     """
     slot_ids = {s["id"] for s in A["slots"]}
     sel_ids = {s["id"] for s in A["selections"]}
@@ -134,7 +134,7 @@ def faults(A):
     for v in A["verbs"]:
         vid = v["id"]
         if v["slot"] is None:
-            # A command only: no menu row, so no action the menu could run either.
+            # A command only: no menu item, so no action the menu could run either.
             if v.get("action"):
                 errs.append(f"{vid}: an action needs a slot")
         elif v["slot"] not in slot_ids:
@@ -147,18 +147,18 @@ def faults(A):
         seen.add(vid)
         block = v.get("tool")
         if v["slot"] is None and not v.get("action") and block is None:
-            errs.append(f"{vid}: neither a row, an action nor a tool block")
+            errs.append(f"{vid}: neither a menu item, an action nor a tool block")
         if v.get("modal") and not v.get("action"):
             errs.append(f"{vid}: modal without an action")
         command = (v.get("action") or block is not None) and "fold" not in v
         if not command and "section" in v:
-            errs.append(f"{vid}: a folded or greyed row is no command and has no section")
+            errs.append(f"{vid}: a folded or greyed item is no command and has no section")
         elif command and "section" not in v:
             errs.append(f"{vid}: a command needs a section, its heading in tool_search's index: one of {list(SECTIONS)}")
         elif command and v["section"] not in SECTIONS:
             errs.append(f'{vid}: section {v["section"]!r} is not one of {list(SECTIONS)}')
         if v.get("feature_row") and (not v.get("action") or "fold" in v):
-            errs.append(f"{vid}: feature_row needs a row of its own: an action, and no fold")
+            errs.append(f"{vid}: feature_row needs a menu item of its own: an action, and no fold")
         if block is not None:
             if block.get("access") not in ACCESS:
                 errs.append(f'{vid}: tool access {block.get("access")!r} is not one of {sorted(ACCESS)}')
@@ -184,7 +184,7 @@ def faults(A):
     by_id = {}
     for v in A["verbs"]:
         by_id.setdefault(v["id"], v)
-    folded = {}   # a command's id -> the rows folded into it so far
+    folded = {}   # a command's id -> the items folded into it so far
     for v in A["verbs"]:
         if "fold" not in v:
             continue
@@ -193,15 +193,15 @@ def faults(A):
             errs.append(f"{vid}: fold must be an object {{into, args}}, not {fold!r}")
             continue
         if not v.get("action"):
-            errs.append(f"{vid}: a fold needs an action, the row's own")
+            errs.append(f"{vid}: a fold needs an action, the item's own")
         if v.get("tool") is not None:
-            errs.append(f"{vid}: a folded row has no tool block: its command has it")
+            errs.append(f"{vid}: a folded item has no tool block: its command has it")
         into = by_id.get(fold.get("into"))
         if into is None:
             errs.append(f"{vid}: fold's into {fold.get('into')!r} names no entry")
             continue
         if "fold" in into:
-            errs.append(f"{vid}: fold's into {into['id']} is itself a folded row")
+            errs.append(f"{vid}: fold's into {into['id']} is itself a folded item")
             continue
         if into.get("tool") is None:
             errs.append(f"{vid}: fold's into {into['id']} has no tool block")
@@ -212,9 +212,9 @@ def faults(A):
         if bad:
             continue
         if into.get("action") and (same(args, {}) or ("args" in into and same(args, into["args"]))):
-            errs.append(f"{vid}: its args are the args {into['id']}'s own row takes")
+            errs.append(f"{vid}: its args are the args {into['id']}'s own item takes")
         if into["slot"] is not None and mode_of(v) != mode_of(into):
-            errs.append(f"{vid}: in another mode than {into['id']}'s own row")
+            errs.append(f"{vid}: in another mode than {into['id']}'s own item")
         for other in folded.get(into["id"], []):
             if mode_of(other) != mode_of(v):
                 errs.append(f"{vid}: in another mode than {other['id']}, folded into {into['id']} too")
@@ -249,11 +249,11 @@ def main():
         "// ratified 2026-07-31; changing an index is a breaking change to every user's muscle memory.",
         "// An entry with an action or a tool block, and no fold_into, is a command of the catalog's group Design",
         "// (Mcp::register_cad_commands(), Mcp::is_design_command()), under its section in tool_search's index. A",
-        "// call whose arguments are exactly those that choose one of its rows opens that row's tool for a person",
-        "// (Mcp::opened_row()): none choose the entry's own row where it has an action, else the rows folded into it",
-        "// with {}; a folded row's args, or the entry's own, choose that row. Any other call runs its tool block's",
-        "// silent form. A folded row (fold_into) is no command: it is a way of calling the command it names. A row",
-        "// with neither an action nor a tool block is greyed, and no command. An entry with no row is a command only.",
+        "// call whose arguments are exactly those that choose one of its items opens that item's tool for a person",
+        "// (Mcp::opened_item()): none choose the entry's own item where it has an action, else the items folded into it",
+        "// with {}; a folded item's args, or the entry's own, choose that item. Any other call runs its tool block's",
+        "// silent form. A folded item (fold_into) is no command: it is a way of calling the command it names. An item",
+        "// with neither an action nor a tool block is greyed, and no command. An entry with no menu item is a command only.",
         "#ifndef slic3r_GUI_DesignOffer_hpp_",
         "#define slic3r_GUI_DesignOffer_hpp_",
         "",
@@ -303,15 +303,15 @@ def main():
         '//   "key:L"          -> m_keys_sketch[\'L\']',
         '//   "fly:material#4" -> row 4 of the "material" feature flyout',
         '//   "btn:delete"     -> a standalone toolbar button',
-        "//   nullptr          -> no GUI path (the row, if it has one, shows disabled)",
+        "//   nullptr          -> no GUI path (the item, if it has one, shows disabled)",
         "struct DesignTool {",
         "    const char* id;          // also the key of its Design command",
         "    const char* name;        // drawing-office word (L10); msgctxt \"Design\", translated at use",
         "    int         row;         // index into kOfferRowNames, the ratified address — NEVER reorder;",
-        "                             // -1: no menu row, a command only",
-        "    const char* key;         // shortcut shown in the row, or nullptr",
+        "                             // -1: no menu item, a command only",
+        "    const char* key;         // shortcut shown in the item, or nullptr",
         "    const char* action;",
-        "    const char* refusal;     // why this row is greyed, in the product's own words",
+        "    const char* refusal;     // why this item is greyed, in the product's own words",
         "    uint32_t    accepts;     // bitmask over OfferSel",
         "    int         need_bodies;",
         "    int         need_sketches;",
@@ -322,7 +322,7 @@ def main():
         "    // address fixed (L4.1) while the variants hang one level below it, mirroring the toolbar's",
         "    // grouping instead of flattening 19 create tools into one wall.",
         "    const char* family;",
-        "    const char* icon;         // resources/images name, or nullptr — the offer draws it beside the row",
+        "    const char* icon;         // resources/images name, or nullptr — the offer draws it beside the item",
         "    const char* hint;         // what the verb does / what to click; shown on hover",
         "    bool        modal;        // its action opens a dialog that waits for an answer: a modal one, which holds",
         "                              // the call until it is answered, or Text's, which is modeless and does not",
@@ -330,22 +330,22 @@ def main():
         "    bool        ok_false;     // its silent form reports a rejected rebuild in its reply (ok false)",
         "    // Its silent form's summary, details, params, examples and ids as JSON text, the parameter",
         "    // schema of record, and closed when its schema refuses an argument it does not name; nullptr for an",
-        "    // entry whose command only does what its row does.",
+        "    // entry whose command only does what its menu item does.",
         "    const char* doc;",
-        "    const char* fold_into;    // the id of the command this row is a variant of, or nullptr",
-        "    // The arguments that choose this row, as JSON text: a folded row's, or those that choose the own row of",
+        "    const char* fold_into;    // the id of the command this item is a variant of, or nullptr",
+        "    // The arguments that choose this item, as JSON text: a folded item's, or those that choose the own item of",
         "    // an entry with an action and a tool block as a call with none does; nullptr for none.",
         "    const char* args;",
         "    // The heading its command is listed under in tool_search's index (kDesignSections,",
         "    // Mcp::design_command_index()); nullptr for an entry that is no command.",
         "    const char* section;",
         "    // Its action acts on the selected row of the Feature list, which a call of its command, not a person's",
-        "    // pick, takes as what the row is for while nothing is picked in the view (Mcp::open_refusal()).",
+        "    // pick, takes as what the item is for while nothing is picked in the view (Mcp::open_refusal()).",
         "    bool        feature_row;",
         "};",
         "",
-        "// The headings of tool_search's index of the Design commands, in its order. Menu rows holds the commands",
-        "// that take no arguments and only do what their row does.",
+        "// The headings of tool_search's index of the Design commands, in its order. Menu items holds the commands",
+        "// that take no arguments and only do what their menu item does.",
         "static const char* const kDesignSections[] = {",
     ]
     for s in SECTIONS:
@@ -391,9 +391,9 @@ def main():
         n = v.get("needs") or {}
         block = v.get("tool")
         in_menu = v["slot"] is not None
-        # Every name is marked, an entry's with no row too: it is its command's title, which a person
+        # Every name is marked, an entry's with no menu item too: it is its command's title, which a person
         # sees translated in the Design context in the Action Replay window and a recording's caption,
-        # and on the tile of an entry with a row. A table with an unmarked name is refused, written or
+        # and on the tile of an entry with a menu item. A table with an unmarked name is refused, written or
         # checked, since nothing at run time can tell (L_CONTEXT compiles to the bare string).
         name = tstr_design(v["name"])
         if not (name.startswith('L_CONTEXT("') and name.endswith('", "Design")')):

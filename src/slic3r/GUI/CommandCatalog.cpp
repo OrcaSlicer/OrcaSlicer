@@ -129,7 +129,7 @@ const nlohmann::json* tile_with_args(const NativeCommand& command, const nlohman
 {
     if (!command.tiles.is_array())
         return nullptr;
-    // A call with no arguments gives none, null as {}, as Mcp::opened_row() reads it.
+    // A call with no arguments gives none, null as {}, as Mcp::opened_item() reads it.
     const nlohmann::json given = Mcp::person_form(args) ? nlohmann::json::object() : args;
     // A tile that collects a value is called with that value besides its own arguments, never with these alone.
     for (const nlohmann::json& tile : command.tiles)

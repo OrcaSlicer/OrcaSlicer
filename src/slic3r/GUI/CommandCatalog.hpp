@@ -58,14 +58,14 @@ struct NativeCommand
     nlohmann::json input_schema = {{"type", "object"}, {"properties", nlohmann::json::object()}};
     // Calls that document the command: [{title, calls: [{tool, args}], needs?}], or null.
     nlohmann::json examples;
-    // The tiles of the menu rows folded into the command, [{key, title, group?, icon, description, args, input?,
+    // The tiles of the menu items folded into the command, [{key, title, group?, icon, description, args, input?,
     // input_arg?}] (NativeCommands::tile()), or null: each, under the id of its key, runs the command with `args`
     // (NativeCommands::make_action()). Its title is an untranslated msgid in title_context(), as the command's is.
     // group is its Speed Dial section, an untranslated msgid; a Design tile has none and is in the command's group.
     // input is the Speed Dial's token for the value its second phase collects ("percent", "tab"), which the tile
     // passes on under input_arg, the command's argument, or under the token where it has no input_arg.
     nlohmann::json tiles;
-    // shown in tools/list: every command outside the Design tab that runs from its arguments, all but three menu rows
+    // shown in tools/list: every command outside the Design tab that runs from its arguments, all but three menu items
     bool listed     = false;
     bool in_palette = false; // a person can pick it: it has a tile of its own, under its key
     // The access labels sent as MCP's annotations. Clients act on them: Codex asks a person before every call
@@ -78,9 +78,9 @@ struct NativeCommand
     // arguments name (widget_click and the other input tools, action_run, tool_call, replay_run, script_run), though
     // what it runs may be. The client sees both in the arguments, and the label would ask on every call. Nor is
     // recording_encode, which deletes only a recording this session made, once its MP4 has replaced it, nor a command
-    // whose deletion has undo (object_delete, plate_delete). A command made from menu rows is neither read_only nor
+    // whose deletion has undo (object_delete, plate_delete). A command made from menu items is neither read_only nor
     // destructive. open_world: it can reach outside OrcaSlicer (a printer, the cloud account, the network, or anything
-    // the computer allows), including through what it runs: of the commands made from rows, printer_send, preset_sync,
+    // the computer allows), including through what it runs: of the commands made from menu items, printer_send, preset_sync,
     // filament_sync_ams, app_check_for_updates, app_open_web_page and plugin_refresh; and plugin_enable and plugin_reload,
     // which run a plugin's code and download a cloud plugin, and plugin_uninstall, whose Unsubscribe reaches the account.
     bool       read_only = false, destructive = false, idempotent = false, open_world = false;
@@ -105,7 +105,7 @@ struct NativeCommand
 
 // The context a command's title is translated in, or nullptr for none: "Design" for a Design command, whose
 // title is its entry's name, which the Design table marks in that context for every entry (DesignOffer.hpp), with
-// a menu row or without, the context the Design tab's right-click menu translates a row's name in. Every place
+// a menu item or without, the context the Design tab's right-click menu translates an item's name in. Every place
 // that shows a command's title translates it with this (NativeCommands::tile_title(), a recording's caption).
 inline const char* title_context(const NativeCommand& command)
 {

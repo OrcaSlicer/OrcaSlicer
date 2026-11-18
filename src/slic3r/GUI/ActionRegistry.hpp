@@ -171,7 +171,7 @@ inline bool requires_mode_switch(ConfigOptionMode setting_mode, ConfigOptionMode
 std::vector<std::string> cap_favourites(const std::vector<std::string>& ids, size_t limit);
 
 // Whether `id` is the id of a Design tab tile, that of an entry of the Design table with an action: a Design
-// command's own tile, or a folded row's, which runs the command it is folded into. Such a tile is live only while
+// command's own tile, or a folded item's, which runs the command it is folded into. Such a tile is live only while
 // that tab is shown, in its entry's mode. The Design table tells it apart, so it does even when the catalog holds
 // no Design command (the CAD feature off at startup). A build without CAD has no table, and there it is never one.
 bool is_design_tile_id(const std::string& id);
@@ -330,7 +330,7 @@ private:
 
     // (Re)materialise the Design tab's tiles: while the tab is shown with the CAD feature on, one per entry of the
     // Design table with an action offered in the tab's mode (Mcp::design_tiles()), a Design command's own or a
-    // folded row's, titled as the right-click menu names the entry (the "Design" context) with the entry's icon;
+    // folded item's, titled as the right-click menu names the entry (the "Design" context) with the entry's icon;
     // otherwise none. A build without CAD has none.
     void materialize_design_actions();
 

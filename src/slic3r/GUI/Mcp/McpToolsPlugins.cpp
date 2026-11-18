@@ -1,5 +1,5 @@
 // The plugin commands: what the Plugins window lists and does (plugin_list, plugin_enable, plugin_uninstall,
-// plugin_reload) on the operations of GUI/Operations/PluginOps.hpp, and the Plugins menu's rows (plugin_install_local,
+// plugin_reload) on the operations of GUI/Operations/PluginOps.hpp, and the Plugins menu's items (plugin_install_local,
 // plugin_refresh).
 
 #include "McpArguments.hpp"
@@ -9,7 +9,7 @@
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
-#include "slic3r/GUI/NativeCommandRows.hpp"
+#include "slic3r/GUI/NativeCommandMenuItems.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/Operations/Outcome.hpp"
 #include "slic3r/GUI/Operations/PluginOps.hpp"
@@ -290,19 +290,19 @@ void register_plugin_tools(CommandCatalog& catalog)
     // The file its dialog asks for, which every call but the tile's gives.
     const std::string replacing = "A plugin of that name installed already is replaced only with overwrite true; without it the "
                                   "call is refused with the question the dialog asks.";
-    NativeCommand local = row_command(
+    NativeCommand local = menu_command(
         "plugin_install_local", L("Install Local Plugin"),
         "Install a plugin from a .py or .whl file by absolute path, as the Plugins dialog's Install local plugin does, without its "
         "file dialog. " + replacing + " Called with no arguments, the file dialog asks for the file (blocked_by_dialog), and "
         "replacing an installed plugin asks first (dialog_answer).",
-        object_schema({{"path", Rows::input_file("a .py or .whl plugin package")},
+        object_schema({{"path", MenuItems::input_file("a .py or .whl plugin package")},
                        {"overwrite", prop("boolean", "Replace a plugin of that name installed already. Default false.")}},
                       {"path"}),
         json::array({tile("install_local_plugin", L("Install Local Plugin"), L("Plugins"), "", json::object(),
                           "Install a plugin from the .py or .whl file a dialog asks for, as the Plugins dialog's Install local "
                           "plugin does, asking before it replaces one installed; plugin_install_local with a path installs that "
                           "file without a dialog. " + replacing)}),
-        [](const json& args) { return Rows::install_local_plugin(args); });
+        [](const json& args) { return MenuItems::install_local_plugin(args); });
     local.input_schema = with_silent(std::move(local.input_schema), person_forms(local));
     catalog.add(std::move(local));
 
@@ -388,8 +388,8 @@ void register_plugin_tools(CommandCatalog& catalog)
     refresh_command.tiles =
         json::array({tile("refresh_plugins", L("Refresh Plugins"), L("Plugins"), "", json::object(), "Reload plugins.")});
     // A person's pick starts the refresh and returns, its notification saying how it went; a call waits for it.
-    catalog.add(NativeCommands::with_row_forms(
-        std::move(refresh_command), [](const json&) { return Rows::refresh_plugins(); }, /*person_form_behind_dialogs=*/false,
+    catalog.add(NativeCommands::with_menu_item_forms(
+        std::move(refresh_command), [](const json&) { return MenuItems::refresh_plugins(); }, /*person_form_behind_dialogs=*/false,
         std::vector<json>{json::object()}));
 }
 

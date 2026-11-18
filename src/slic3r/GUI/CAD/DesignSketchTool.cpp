@@ -10688,7 +10688,7 @@ static void translate_entity(SketchEntity& e, const Vec2d& d)
 // Select whatever the cursor is over, for a RIGHT-click. In every CAD application the context
 // menu belongs to the thing you pointed at; here the menu was built from whatever happened to be
 // selected already, so right-clicking a line you had not left-clicked first offered the empty-
-// selection vocabulary and its own Delete/Length/Trim rows were nowhere. The offer table already
+// selection vocabulary and its own Delete/Length/Trim items were nowhere. The offer table already
 // described all of those for SkLine/SkArc/SkPoint — the pick was the missing half.
 //
 // Nothing is stolen from an existing selection: if the entity under the cursor is already part
@@ -11265,7 +11265,7 @@ bool DesignSketchTool::select_at_screen(GLCanvas3D& canvas, int sx, int sy)
         // A Point ENTITY is its own handle: there is nothing else to select there. Taking the
         // handle branch for it filled m_point_sel and left m_selection empty — and the offer
         // counts only m_selection, so right-clicking a sketch point produced the EMPTY
-        // vocabulary and every SkPoint row in the atlas was unreachable from the menu. Other
+        // vocabulary and every SkPoint item in the atlas was unreachable from the menu. Other
         // entities keep the handle pick: a line's endpoint is a drag target, not a thing with a
         // vocabulary of its own. lnri.
         if (ei >= 0 && ei < int(m_entities.size())
@@ -11341,7 +11341,7 @@ std::vector<int> DesignSketchTool::connected_loop(int seed) const
 }
 
 // Right-click has two jobs in a sketch: end a polyline chain, abandon an anchor or exit a tool,
-// and open the offer. Excluding the offer in sketch mode wholesale would make every sketch row in
+// and open the offer. Excluding the offer in sketch mode wholesale would make every sketch item in
 // the atlas unreachable. The honest test is not "which mode are we in" but "did the tool actually
 // USE this right-click", and only the tool knows: take_right_click returns it for every
 // terminator, from the twenty-odd sites that consume a RightDown.

@@ -1,8 +1,8 @@
 // The Design tab's commands. The Design table (kDesignTools, generated from scripts/CAD/tool_atlas.json)
-// declares every one, its menu row, action, access, tool block and the rows folded into it; kSilentForms binds a
+// declares every one, its menu item, action, access, tool block and the items folded into it; kSilentForms binds a
 // block to the function that runs it. register_cad_commands() makes a command of each entry that is one
-// (is_design_command()): a call with the arguments that choose one of its rows does what that menu row does
-// (opened_row(), open_tool()), and any other has run_cad_tool() run its silent form on the UI thread, through the
+// (is_design_command()): a call with the arguments that choose one of its items does what that menu item does
+// (opened_item(), open_tool()), and any other has run_cad_tool() run its silent form on the UI thread, through the
 // GUI's own CadDocument and DesignPanel's mcp_* hooks, behind the Design tab's busy and stale-id checks
 // (cad_gate()).
 
@@ -55,7 +55,7 @@
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
 #include "slic3r/GUI/CAD/DesignCanvas.hpp"
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
-#include "slic3r/GUI/CAD/DesignOffer.hpp"   // the Design table: every command's row, action and tool block
+#include "slic3r/GUI/CAD/DesignOffer.hpp"   // the Design table: every command's menu item, action and tool block
 
 #include "libslic3r/CAD/CadDocument.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"
@@ -166,15 +166,15 @@ const char* const kFailureNote = "A rejected rebuild is reported in the reply: o
 // The rest of the description of a command whose entry has an action and no silent form, after its hint and
 // before mode_note().
 const char* const kOpensToolNote =
-    "It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open "
+    "It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open "
     "a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the "
     "tab's status line shows then.";
 
 // The `silent` property of a command whose call with no arguments opens a tool, before mode_note() of that tool's
-// row.
+// item.
 const char* const kSilentNote =
     "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design "
-    "tab's menu row does, as a person's pick does.";
+    "tab's menu item does, as a person's pick does.";
 
 // The mode an entry with an action runs in, as the Design tab's right-click menu offers it (offered_in_mode()).
 // A sketch being constrained counts as open, and refuses sketch_finish and sketch_cancel: the tab's own Confirm
@@ -218,7 +218,7 @@ json picked_plane_json(const DesignPanel& panel)
     return plane >= 0 ? json(names[plane]) : json();
 }
 
-// The selected row of the Feature list, a feature index, which the rows that act on it take while nothing is picked
+// The selected row of the Feature list, a feature index, which the menu items that act on it take while nothing is picked
 // in the view; or null.
 json feature_row_json(const DesignPanel& panel)
 {
@@ -1863,8 +1863,8 @@ json action_sketch_describe(DesignPanel* panel, const json& params)
     for (int i = 0; i < int(t.entities().size()); ++i)
         ents.push_back(sketch_entity_to(t.entities()[i], i));
     // The armed TOOL and its pending anchors. Without these the only way to tell which tool a
-    // menu row actually armed is to draw with it and infer from what came out — which is how a
-    // menu walk that lands one row off gets diagnosed as "the tool is broken".
+    // menu item actually armed is to draw with it and infer from what came out — which is how a
+    // menu walk that lands one item off gets diagnosed as "the tool is broken".
     static const char* const kModeNames[] = {
         "select", "dimension", "polyline", "line", "rect_corner", "rect_center", "rect_oblique",
         "rect_rounded", "circle_center", "circle_2pt", "point",
@@ -3989,7 +3989,7 @@ json run_guarded(const std::function<json()>& run)
 }
 
 // Why a menu-only entry (a btn: or fly: action) is refused for a selection it does not accept.
-// TRN Refusal of a Design tab tool picked for a selection its right-click menu row is greyed for (Constrain
+// TRN Refusal of a Design tab tool picked for a selection its right-click menu item is greyed for (Constrain
 // sketch with a face selected).
 const char* const kDoesNotApply = L("This tool does not apply to what is selected");
 // Why an entry of the sketch's vocabulary is refused outside a sketch, and one of the model's inside one.
@@ -4000,7 +4000,7 @@ const char* const kModelTool = L("This tool works on the model: finish or cancel
 
 // The selection kinds the Design tab reports as what is selected (DesignPanel::offer_selection_kind()), as OfferSel
 // bits: in a sketch, what is picked there; on the model, nothing, a face, an edge, a vertex, a body or a committed
-// sketch's loop. Rows accept other kinds too (two bodies, a datum, art, a sketch line on the model), which the tab
+// sketch's loop. Menu items accept other kinds too (two bodies, a datum, art, a sketch line on the model), which the tab
 // never reports, so no selection can be one of them.
 uint32_t reported_kinds(bool sketching)
 {
@@ -4016,31 +4016,31 @@ uint32_t reported_kinds(bool sketching)
     return bits;
 }
 
-// Row `row`'s action, for a call of `command` that opens it (opened_row()), as a person's pick of the row or its
+// Item `item`'s action, for a call of `command` that opens it (opened_item()), as a person's pick of the item or its
 // tile runs it: past cad_gate() with no access of its own, so that only a rebuild refuses it, as the Design tab's
 // keys and menu are refused by nothing; each tool decides for itself what an open card means to it. The action
 // runs in place, so a modal dialog it opens holds the call, which the core reports as blocked by that dialog. It
-// is refused, as open_refusal() says, in the mode the row does not belong to, where the right-click menu does not
-// offer it, and for a btn: or fly: action a selection the menu greys the row for. The reply claims nothing about
+// is refused, as open_refusal() says, in the mode the item does not belong to, where the right-click menu does not
+// offer it, and for a btn: or fly: action a selection the menu greys the item for. The reply claims nothing about
 // what the action did, which may be to open a card, start a sketch tool, act at once or tell the person why it
 // cannot: it says what the tab shows after it, its busy reason (a card, a dialog or a sketch now open) and its
 // status line. Its `tool` is the command called. A call that is not a person's pick, made while a row of the Feature
-// list is selected and nothing is picked in the view, targets that row: a row whose action acts on it (feature_row)
-// is not refused for the selection then, and applies. A person's pick keeps the menu's rule, which greys the row.
-json open_tool(const DesignTool& row, const char* command, const json& args, bool person)
+// list is selected and nothing is picked in the view, targets that row: an item whose action acts on it (feature_row)
+// is not refused for the selection then, and applies. A person's pick keeps the menu's rule, which greys the item.
+json open_tool(const DesignTool& item, const char* command, const json& args, bool person)
 {
     DesignPanel* panel      = cad_gate(CadAccess::None, args);
     const int    kind       = panel->mcp_offer_selection_kind();
     const bool   row_target = !person && panel->mcp_feature_row() >= 0 && kind == int(OfferSel::None) &&
                             panel->mcp_picked_plane() < 0;
-    const bool applies = (row_target && row.feature_row) || (row.accepts & offer_bit(OfferSel(kind))) != 0;
-    if (std::optional<ToolFailure> refused = open_refusal(row, panel->mcp_sketch_map_applies(), kind, row_target))
+    const bool applies = (row_target && item.feature_row) || (item.accepts & offer_bit(OfferSel(kind))) != 0;
+    if (std::optional<ToolFailure> refused = open_refusal(item, panel->mcp_sketch_map_applies(), kind, row_target))
         throw *refused;
     const bool text_was_open = panel->mcp_text_dialog_open();
-    panel->mcp_run_verb(row.id);
+    panel->mcp_run_verb(item.id);
     // A dialog the action opened held the call until it was answered, unless the action opened the Text dialog,
     // which is modeless: the call returns with it open. A Text dialog open before the action is not its dialog.
-    const bool modal = row.modal && !(panel->mcp_text_dialog_open() && !text_was_open);
+    const bool modal = item.modal && !(panel->mcp_text_dialog_open() && !text_was_open);
     std::string why;
     const bool  busy = panel->mcp_busy(false, false, why);
     return json{{"interactive", true},
@@ -4052,37 +4052,37 @@ json open_tool(const DesignTool& row, const char* command, const json& args, boo
                 {"status", into_u8(panel->mcp_status())}};
 }
 
-// The end of the description of entry `t`'s command: the argument sets that name a row, its own args and those of
-// the rows folded into it, each once with the names of the rows it opens (rows folded in with one set are one tool
-// under several labels, as the value rows are with {}), so that a search for a row's name finds the command; empty
+// The end of the description of entry `t`'s command: the argument sets that name a menu item, its own args and those of
+// the items folded into it, each once with the names of the items it opens (items folded in with one set are one tool
+// under several labels, as the value items are with {}), so that a search for an item's name finds the command; empty
 // when there are none.
 std::string opening_calls(const DesignTool& t)
 {
-    std::vector<std::pair<std::string, std::string>> sets;   // an argument set as JSON text, and its rows' names
-    const auto add = [&sets](const DesignTool& row) {
-        const std::string args = json::parse(row.args).dump();
+    std::vector<std::pair<std::string, std::string>> sets;   // an argument set as JSON text, and its items' names
+    const auto add = [&sets](const DesignTool& item) {
+        const std::string args = json::parse(item.args).dump();
         const auto same = std::find_if(sets.begin(), sets.end(), [&args](const auto& set) { return set.first == args; });
         if (same == sets.end())
-            sets.emplace_back(args, row.name);
+            sets.emplace_back(args, item.name);
         else
-            same->second += std::string(", ") + row.name;
+            same->second += std::string(", ") + item.name;
     };
     if (t.action != nullptr && t.args != nullptr)
         add(t);
-    for (const DesignTool& row : kDesignTools)
-        if (row.fold_into != nullptr && std::strcmp(row.fold_into, t.id) == 0)
-            add(row);
+    for (const DesignTool& item : kDesignTools)
+        if (item.fold_into != nullptr && std::strcmp(item.fold_into, t.id) == 0)
+            add(item);
     if (sets.empty())
         return {};
     std::string calls;
     for (const auto& [args, names] : sets)
         calls += (calls.empty() ? "" : ", ") + args + " (" + names + ")";
-    return " Called with exactly one of these argument sets and nothing else, it opens that row's tool of the Design "
-           "tab for a person, as the menu row does: " +
+    return " Called with exactly one of these argument sets and nothing else, it opens that item's tool of the Design "
+           "tab for a person, as the menu item does: " +
            calls + ".";
 }
 
-// The command of the Design table's entry `t`, which has an action, a tool block or both, and is no folded row.
+// The command of the Design table's entry `t`, which has an action, a tool block or both, and is no folded item.
 NativeCommand design_command(const DesignTool& t)
 {
     const json doc = t.doc != nullptr ? json::parse(t.doc) : json();
@@ -4091,34 +4091,34 @@ NativeCommand design_command(const DesignTool& t)
         schema = {{"type", "object"}, {"properties", json::object()}, {"additionalProperties", false}};
     else
         schema = cad_input_schema(doc);
-    // The person's form is the call with no arguments where that opens a row's tool, the entry's own or one folded
-    // into it: it requires nothing (with_silent()), and runs in that row's mode only.
-    const DesignTool* person_row = opened_row(t, json::object());
-    if (person_row != nullptr && !doc.is_null()) {
+    // The person's form is the call with no arguments where that opens an item's tool, the entry's own or one folded
+    // into it: it requires nothing (with_silent()), and runs in that item's mode only.
+    const DesignTool* person_item = opened_item(t, json::object());
+    if (person_item != nullptr && !doc.is_null()) {
         schema = with_silent(std::move(schema));
-        schema["properties"]["silent"]["description"] = std::string(kSilentNote) + " " + mode_note(*person_row, true);
+        schema["properties"]["silent"]["description"] = std::string(kSilentNote) + " " + mode_note(*person_item, true);
     }
 
     const DesignTool* entry = &t;
     NativeCommand     c     = cad_command(
         t.id, t.name, std::move(schema),
         [entry](const json& args, bool person) {
-            if (const DesignTool* row = opened_row(*entry, args))
-                return open_tool(*row, entry->id, args, person);
+            if (const DesignTool* item = opened_item(*entry, args))
+                return open_tool(*item, entry->id, args, person);
             return run_cad_tool(entry->id, silent_args(args));
         },
-        [entry](const json& args) { return opened_row(*entry, args) != nullptr; });
+        [entry](const json& args) { return opened_item(*entry, args) != nullptr; });
     c.in_palette = t.action != nullptr;
     c.icon       = t.icon != nullptr ? t.icon : "";
-    // The rows folded into the command keep their tiles, each a call of the command with the row's arguments, and
+    // The items folded into the command keep their tiles, each a call of the command with the item's arguments, and
     // say what a pick does as a command with an action only does.
-    for (const DesignTool& row : kDesignTools)
-        if (row.fold_into != nullptr && std::strcmp(row.fold_into, t.id) == 0)
-            c.tiles.push_back({{"key", row.id},
-                               {"title", row.name},
-                               {"icon", row.icon != nullptr ? row.icon : ""},
-                               {"description", std::string(row.hint) + ". " + kOpensToolNote + " " + mode_note(row)},
-                               {"args", json::parse(row.args)}});
+    for (const DesignTool& item : kDesignTools)
+        if (item.fold_into != nullptr && std::strcmp(item.fold_into, t.id) == 0)
+            c.tiles.push_back({{"key", item.id},
+                               {"title", item.name},
+                               {"icon", item.icon != nullptr ? item.icon : ""},
+                               {"description", std::string(item.hint) + ". " + kOpensToolNote + " " + mode_note(item)},
+                               {"args", json::parse(item.args)}});
     if (doc.is_null()) {
         c.description = std::string(t.hint) + ". " + kOpensToolNote + " " + mode_note(t);
         return c;
@@ -4149,16 +4149,16 @@ const DesignTool* find_design_tool(const std::string& id)
 
 bool is_design_command(const DesignTool& t) { return (t.action != nullptr || t.doc != nullptr) && t.fold_into == nullptr; }
 
-const DesignTool* opened_row(const DesignTool& entry, const json& args)
+const DesignTool* opened_item(const DesignTool& entry, const json& args)
 {
     // A call with no arguments gives none, null as {}.
     const json given = person_form(args) ? json::object() : args;
     if (entry.action != nullptr && (given.empty() || (entry.args != nullptr && json::parse(entry.args) == given)))
         return &entry;
-    for (const DesignTool& row : kDesignTools)
-        if (row.fold_into != nullptr && std::strcmp(row.fold_into, entry.id) == 0 && row.args != nullptr &&
-            json::parse(row.args) == given)
-            return &row;
+    for (const DesignTool& item : kDesignTools)
+        if (item.fold_into != nullptr && std::strcmp(item.fold_into, entry.id) == 0 && item.args != nullptr &&
+            json::parse(item.args) == given)
+            return &item;
     return nullptr;
 }
 
@@ -4181,19 +4181,19 @@ std::optional<ToolFailure> open_refusal(const DesignTool& t, bool sketching, int
     if (!offered_in_mode(t, sketching))
         return ToolFailure(t.sketch_mode ? kSketchTool : kModelTool,
                            {{"code", -32000}, {"mode", t.sketch_mode ? "sketch" : "model"}});
-    // The row's action acts on the Feature list's selected row, and says itself what it cannot do with it.
+    // The item's action acts on the Feature list's selected row, and says itself what it cannot do with it.
     if (row_target && t.feature_row)
         return std::nullopt;
     const std::string action(t.action);
     const bool applies = (t.accepts & offer_bit(OfferSel(kind))) != 0;
-    // Only a row that accepts a kind the tab can report in its mode is greyed for the others; one that accepts none
-    // (Boolean's rows take two bodies, Rib a sketch line) opens as its toolbar button does, whatever is selected.
+    // Only an item that accepts a kind the tab can report in its mode is greyed for the others; one that accepts none
+    // (Boolean's items take two bodies, Rib a sketch line) opens as its toolbar button does, whatever is selected.
     const bool greyable = (action.rfind("btn:", 0) == 0 || action.rfind("fly:", 0) == 0) &&
                           (t.accepts & reported_kinds(t.sketch_mode)) != 0;
     if (applies || !greyable)
         return std::nullopt;
-    // The row's own refusal is about the document (no body, no second sketch), which the menu shows only for
-    // a row that takes the selection; here the selection is the obstacle, so the reply names what to pick.
+    // The item's own refusal is about the document (no body, no second sketch), which the menu shows only for
+    // an item that takes the selection; here the selection is the obstacle, so the reply names what to pick.
     json accepts = json::array();
     for (int sel = 0; sel < int(OfferSel::Count); ++sel)
         if ((t.accepts & offer_bit(OfferSel(sel))) != 0)
@@ -4342,7 +4342,7 @@ NativeCommand cad_command(std::string key, std::string title, json schema,
                 return ToolResult::ok({{"result", fn(args, true)}});
             } catch (const ToolFailure& refused) {
                 // What the person reads, in the UI's language where the text is a msgid (an entry's refusal). Looked
-                // up in the application's catalogue only, as the right-click menu's rows are (show_offer_menu()), so
+                // up in the application's catalogue only, as the right-click menu's items are (show_offer_menu()), so
                 // that a wxWidgets entry cannot answer for it.
                 throw ToolFailure(into_u8(wxGetTranslation(wxString::FromUTF8(refused.what()), SLIC3R_APP_KEY)), refused.details);
             }
@@ -4373,7 +4373,7 @@ void register_cad_commands(CommandCatalog& catalog)
 
 void leave_out_cad_commands(CommandCatalog& catalog)
 {
-    // A folded row's id too, which is no command but names a tile.
+    // A folded item's id too, which is no command but names a tile.
     for (const DesignTool& t : kDesignTools)
         if (t.action != nullptr || t.doc != nullptr)
             catalog.leave_out(t.id, kCadOffAtStartup);
@@ -4398,15 +4398,15 @@ std::string design_command_index()
 {
     std::string index = " The Design tab's CAD commands follow by heading (sketches, solid and surface features, bodies, "
                         "measurements); look one up with tool before calling it. A command whose schema has silent does what "
-                        "its menu row does when called with no arguments, unless silent is true.";
+                        "its menu item does when called with no arguments, unless silent is true.";
     for (const char* section : kDesignSections) {
         std::string names;
         for (const DesignTool& t : kDesignTools)
             if (t.section != nullptr && std::strcmp(t.section, section) == 0)
                 names += (names.empty() ? "" : ", ") + std::string(t.id);
         index += std::string(" ") + section;
-        if (std::strcmp(section, "Menu rows") == 0)
-            index += ", which take no arguments and do what their row of the right-click menu does";
+        if (std::strcmp(section, "Menu items") == 0)
+            index += ", which take no arguments and do what their item of the right-click menu does";
         index += ": " + names + ".";
     }
     return index;

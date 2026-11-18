@@ -185,7 +185,7 @@ public:
     // line), which is what a profile is drawn around, or -1 for the plane axis.
     static int default_revolve_axis_entity(const std::vector<SketchEntity>& ents);
     // The offer table's verbs without a right-click: a Design command with no arguments, a Speed Dial
-    // tile or an agent's call, fires one by id, so every verb is reachable — including the rows with
+    // tile or an agent's call, fires one by id, so every verb is reachable — including the items with
     // no keyboard shortcut, which are otherwise invisible to anything that parses key tables.
     int  mcp_offer_selection_kind() const { return offer_selection_kind(); }  // OfferSel as int
     // Whether the right-click menu offers the sketch's verbs now, not the model's (sketch_map_applies()).
@@ -564,7 +564,7 @@ private:
     // body has been moved.
     TriangleMesh ghost_from_bodies(const std::vector<TriangleMesh>& per_body) const;
     // A mate makes no new geometry but it MOVES a body, and the moved assembly is the ghost worth
-    // showing. Used both by the Mate card and by hovering a row of the offer's mate palette.
+    // showing. Used both by the Mate card and by hovering an item of the offer's mate palette.
     bool       show_mate_ghost(int kind, int cs_a, int cs_b,
                                double offset, double angle_deg, bool flip, std::string& err);
     int        resolve_extrude_sketch() const;
@@ -1086,11 +1086,11 @@ private:
     wxString          m_sketch_on;
     // --- the object-driven offer (charter 4.1) ---------------------------------------------
     // Right-click the geometry -> a vertical list in ratified row order, verbs that do not
-    // apply disabled IN PLACE with their reason. The rows come from the generated table in
-    // DesignOffer.hpp; this map is how a row reaches the code that already implements it, for
+    // apply disabled IN PLACE with their reason. The items come from the generated table in
+    // DesignOffer.hpp; this map is how an item reaches the code that already implements it, for
     // the verbs that have no keyboard shortcut to route through.
     std::map<std::string, std::function<void()>> m_verb_actions;
-    // Append an offer row with its toolbar glyph. The bitmap must be set BEFORE Append —
+    // Append an offer item with its toolbar glyph. The bitmap must be set BEFORE Append —
     // wxGTK builds the GtkMenuItem there and only makes an image item if one is present.
     // Every status write goes through here so long hints wrap instead of clipping. The kind
     // sets the colour AND a leading glyph, so a message's meaning never rests on colour alone

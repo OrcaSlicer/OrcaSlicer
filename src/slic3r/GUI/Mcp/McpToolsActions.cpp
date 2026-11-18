@@ -119,7 +119,7 @@ std::string unknown_action(const std::string& id, const CommandCatalog& catalog)
     if (is_design_tile_id(tile)) {
         if (const std::string* why = catalog.left_out(short_id(tile)))
             return id + " is a Design tab tile, and " + *why;
-        // A folded row's tile is a call of the command it is folded into with the row's arguments, written as the
+        // A folded item's tile is a call of the command it is folded into with the item's arguments, written as the
         // rest of the call is, a space after each colon and comma.
         const auto [command, folded] = find_tile(catalog, short_id(tile));
         std::string call = "{\"tool\": \"" + (command != nullptr ? command->key : short_id(tile)) + "\"";

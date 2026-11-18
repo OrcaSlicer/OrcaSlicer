@@ -4,9 +4,9 @@
 // settings change through the Tab's own transaction (strict parsing, on_change callbacks, rollback on failure), or
 // for the project's and the plates' own settings through the code of their sidebar controls and dialogs, so the UI
 // and the project stay consistent. The preferences have commands of their own (McpToolsPreferences.cpp). The plate
-// commands made from menu rows act on the plate a call names, else on the
-// current plate, through the plate operations (Operations/PlateOps.hpp); plate_add runs its row's function
-// (NativeCommandRows.hpp).
+// commands made from menu items act on the plate a call names, else on the
+// current plate, through the plate operations (Operations/PlateOps.hpp); plate_add runs its menu item's function
+// (NativeCommandMenuItems.hpp).
 
 #include "slic3r/GUI/I18N.hpp"
 #include "McpArguments.hpp"
@@ -24,7 +24,7 @@
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/IMSlider.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
-#include "slic3r/GUI/NativeCommandRows.hpp"
+#include "slic3r/GUI/NativeCommandMenuItems.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/ObjectDataViewModel.hpp"
 #include "slic3r/GUI/Operations/Outcome.hpp"
@@ -861,9 +861,9 @@ json list_plates(const json& args)
     return page(items, args, 100);
 }
 
-// ---- The plate commands made from menu rows ----
+// ---- The plate commands made from menu items ----
 
-// What a plate command made from rows answers for a refusal: as information where its row told it so (no plates to
+// What a plate command made from menu items answers for a refusal: as information where its item told it so (no plates to
 // edit, the only plate, no room for another, a slice running), else as an error.
 AppActionRunResult plate_refused(const Ops::Refusal& refusal)
 {
@@ -899,7 +899,7 @@ AppActionRunResult plate_delete_command(const json& args)
         return plate_refused(deleted.refusal());
     json reply     = plates_reply();
     reply["plate"] = deleted.value();
-    return row_reply(reply);
+    return menu_reply(reply);
 }
 
 AppActionRunResult plate_duplicate_command(const json& args)
@@ -910,10 +910,10 @@ AppActionRunResult plate_duplicate_command(const json& args)
     json reply         = plates_reply();
     reply["plate"]     = made.value().plate;
     reply["new_plate"] = made.value().copy;
-    return row_reply(reply);
+    return menu_reply(reply);
 }
 
-// plate_rename: a call with no arguments asks for the current plate's name in its name dialog, as the row does; any
+// plate_rename: a call with no arguments asks for the current plate's name in its name dialog, as the menu item does; any
 // other gives it.
 AppActionRunResult plate_rename_command(const json& args)
 {
@@ -935,7 +935,7 @@ AppActionRunResult plate_rename_command(const json& args)
     if (!renamed)
         return plate_refused(renamed.refusal());
     const PartPlate& plate = *ui_plater().get_partplate_list().get_plate(renamed.value());
-    return row_reply({{"plate", renamed.value()}, {"name", plate.get_plate_name()}});
+    return menu_reply({{"plate", renamed.value()}, {"name", plate.get_plate_name()}});
 }
 
 AppActionRunResult plate_lock_command(const json& args)
@@ -947,10 +947,10 @@ AppActionRunResult plate_lock_command(const json& args)
     const Ops::Outcome<Ops::PlateLocked> locked = Ops::set_plate_locked(op);
     if (!locked)
         return plate_refused(locked.refusal());
-    return row_reply({{"plate", locked.value().plate}, {"locked", locked.value().locked}, {"changed", locked.value().changed}});
+    return menu_reply({{"plate", locked.value().plate}, {"locked", locked.value().locked}, {"changed", locked.value().changed}});
 }
 
-// plate_select: Ops::select_plate() also serves the commands that select a plate on the way, so the check of the rows,
+// plate_select: Ops::select_plate() also serves the commands that select a plate on the way, so the check of the menu items,
 // that the project has plates to select, is made here.
 AppActionRunResult plate_select_command(const json& args)
 {
@@ -960,12 +960,12 @@ AppActionRunResult plate_select_command(const json& args)
     op.plate = arg_int(args, "plate", ui_plater().get_partplate_list().get_curr_plate_index());
     if (const Ops::Outcome<Ops::Done> selected = Ops::select_plate(op); !selected)
         return plate_refused(selected.refusal());
-    return row_reply({{"plate", op.plate}});
+    return menu_reply({{"plate", op.plate}});
 }
 
-// ---- The filament slot commands made from menu rows, and Sync Presets ----
+// ---- The filament slot commands made from menu items, and Sync Presets ----
 
-// What a filament slot command answers for a refusal: as information where its row told it so (no slots to change, no
+// What a filament slot command answers for a refusal: as information where its menu item told it so (no slots to change, no
 // + and - buttons for the printer, no room for another slot, the only slot), else as an error.
 AppActionRunResult filament_refused(const Ops::Refusal& refusal)
 {
@@ -1016,7 +1016,7 @@ AppActionRunResult filament_delete_command(const json& args)
 AppActionRunResult sync_ams_command(const json& args)
 {
     if (!args.contains("mode"))
-        return Rows::sync_ams();
+        return MenuItems::sync_ams();
     const Ops::AmsSyncMode             mode   = arg_string(args, "mode") == "map" ? Ops::AmsSyncMode::Map : Ops::AmsSyncMode::Overwrite;
     const Ops::Outcome<Ops::AmsSynced> synced = Ops::sync_filaments_from_ams(mode);
     if (!synced)
@@ -1031,10 +1031,10 @@ AppActionRunResult sync_ams_command(const json& args)
     json reply{{"mode", arg_string(args, "mode")}, {"filaments", std::move(slots)}};
     if (!synced.value().unknowns.empty())
         reply["mapped_to_generic"] = synced.value().unknowns;
-    return row_reply(reply);
+    return menu_reply(reply);
 }
 
-// preset_sync: signed out, a pick says to sign in, as its row did, and a call is refused.
+// preset_sync: signed out, a pick says to sign in, as its menu item did, and a call is refused.
 AppActionRunResult preset_sync_command(const json&)
 {
     if (const Ops::Outcome<Ops::Done> synced = Ops::sync_presets(); !synced)
@@ -3311,8 +3311,8 @@ void register_config_tools(CommandCatalog& catalog)
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
         [](const json& args, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return list_plates(args); })); }));
 
-    // The plate commands made from menu rows: each acts on the plate the call names, else on the current plate, as its row
-    // does, and its reply names the plate. A command named as its row is that row's tile, in the Speed Dial's section
+    // The plate commands made from menu items: each acts on the plate the call names, else on the current plate, as its item
+    // does, and its reply names the plate. A command named as its item is that item's tile, in the Speed Dial's section
     // `section`.
     const auto own_tile = [](NativeCommand command, std::string section, std::string icon) {
         command.in_palette = true;
@@ -3322,11 +3322,11 @@ void register_config_tools(CommandCatalog& catalog)
     };
     const std::string plates_after = "plates (each plate afterwards: index, name and objects, how many stand on it) and current "
                                      "(the current plate)";
-    catalog.add(own_tile(row_command("plate_add", L("Add Plate"), "Add a plate.", object_schema({}), json(),
-                                     [](const json&) { return Rows::plate_add(); }),
+    catalog.add(own_tile(menu_command("plate_add", L("Add Plate"), "Add a plate.", object_schema({}), json(),
+                                     [](const json&) { return MenuItems::plate_add(); }),
                          L("Plate"), "toolbar_add_plate"));
     catalog.add(reaching({"delete_plate"},
-                         own_tile(row_command("plate_delete", L("Delete Plate"),
+                         own_tile(menu_command("plate_delete", L("Delete Plate"),
                                               "Delete a plate (plate, else the current one), as Delete Plate does. The objects on it "
                                               "stay in the project, outside the plates, and the plates after it move down one. The "
                                               "only plate is refused. One undo step. Reply: plate (the index it had), " +
@@ -3334,7 +3334,7 @@ void register_config_tools(CommandCatalog& catalog)
                                               object_schema({{"plate", plate_prop}}), json(), plate_delete_command),
                                   L("Plate"), "delete")));
     catalog.add(reaching({"duplicate_plate"},
-                         own_tile(row_command("plate_duplicate", L("Duplicate Plate"),
+                         own_tile(menu_command("plate_duplicate", L("Duplicate Plate"),
                                               "Add a plate with a copy of each object on the plate (plate, else the current one), "
                                               "placed on it as on that plate, as Duplicate Current Plate does. The new "
                                               "plate comes last, and the current plate stays current. Refused when the project "
@@ -3344,7 +3344,7 @@ void register_config_tools(CommandCatalog& catalog)
                                               object_schema({{"plate", plate_prop}}), json(), plate_duplicate_command),
                                   L("Plate"), "menu_copy")));
     // The name dialog's name, which every call but the tile's gives.
-    NativeCommand rename = own_tile(row_command("plate_rename", L("Rename Plate"),
+    NativeCommand rename = own_tile(menu_command("plate_rename", L("Rename Plate"),
                                                 "Name a plate (plate, else the current one), as its name icon does: a plate other "
                                                 "than the current one is made current first. name \"\" leaves it unnamed. With no "
                                                 "arguments, as its tile, the name dialog asks for the current plate's name "
@@ -3360,7 +3360,7 @@ void register_config_tools(CommandCatalog& catalog)
     catalog.add(reaching({"rename_plate", "select_plate"}, std::move(rename)));
     catalog.add(reaching(
         {"set_plate_locked"},
-        row_command("plate_lock", L("Toggle Plate Lock"),
+        menu_command("plate_lock", L("Toggle Plate Lock"),
                     "Lock or unlock a plate (plate, else the current one), as its lock icon does: locked true locks it and false "
                     "unlocks it; without locked it toggles, as its tile does. An arrange of every plate leaves a locked one as "
                     "it is. One undo step, none when the plate is in that state already. Reply: plate, locked, and changed "
@@ -3372,7 +3372,7 @@ void register_config_tools(CommandCatalog& catalog)
                     plate_lock_command)));
     catalog.add(reaching(
         {"select_plate"},
-        row_command("plate_select", L("Go to Plate"),
+        menu_command("plate_select", L("Go to Plate"),
                     "Make a plate the current one, as a click on it does: plate; without it, the current plate stays current. "
                     "An index the project lacks is an error. Reply: plate.",
                     object_schema({{"plate", plate_prop}}),
@@ -3380,23 +3380,23 @@ void register_config_tools(CommandCatalog& catalog)
                                                       "Make the first plate the current one.")}),
                     plate_select_command)));
 
-    // ---- The presets and settings commands made from menu rows ----
+    // ---- The presets and settings commands made from menu items ----
     using NativeCommands::tile;
     const std::string preset_file = "a preset .json, a .zip of them, an .orca_printer, .orca_filament or .orca_bundle, or a .gcode";
     const std::string imported    = "and the message names the presets imported, replaced and kept; a .gcode loads the settings it was "
                                     "sliced with.";
     NativeCommand import_configs = reaching(
         {"import_presets"},
-        row_command("preset_import", L("Import Configs"),
+        menu_command("preset_import", L("Import Configs"),
                     "Import presets from " + preset_file + " by absolute path, without a dialog, " + imported +
                         " Called with no arguments it is Import Configs: the file dialog asks for the file (blocked_by_dialog).",
-                    object_schema({{"path", Rows::input_file(preset_file.c_str())},
+                    object_schema({{"path", MenuItems::input_file(preset_file.c_str())},
                                    {"on_conflict", enum_prop({"skip", "overwrite"}, "What happens to a preset that exists already. Default skip.")}},
                                   {"path"}),
                     json::array({tile("import_configs", L("Import Configs"), L("Import"), "menu_open", json::object(),
                                       "Import presets from the file a dialog asks for. preset_import with a path imports " + preset_file +
                                           " without a dialog, " + imported)}),
-                    [](const json& args) { return Rows::import_configs(args); }));
+                    [](const json& args) { return MenuItems::import_configs(args); }));
     import_configs.input_schema = with_silent(std::move(import_configs.input_schema), person_forms(import_configs));
     catalog.add(std::move(import_configs));
 
@@ -3404,18 +3404,18 @@ void register_config_tools(CommandCatalog& catalog)
     const std::string export_dialog = "Export presets as a bundle or ZIP archives through the Export Preset Bundle dialog: click the "
                                       "label of the kind to export, check its rows (each named after a printer preset or a "
                                       "filament), press OK, then answer the result message.";
-    catalog.add(row_command(
+    catalog.add(menu_command(
         "preset_export", L("Export Preset Bundle"),
         export_dialog + " Every call opens the dialog (blocked_by_dialog). With path, OK writes into that folder instead of "
                         "asking for one, and a cancelled dialog is an error: nothing was exported.",
         object_schema({{"path", prop("string", "Absolute path of an existing folder, which the dialog's OK writes into.")}}),
         json::array({tile("export_config", L("Export Preset Bundle"), L("Export"), "save", json::object(),
                           export_dialog + " preset_export with a folder as path has OK write there instead of asking for one.")}),
-        [](const json& args) { return Rows::export_config(args); }));
+        [](const json& args) { return MenuItems::export_config(args); }));
 
     const std::string sync = "Synchronize user presets with the cloud account.";
     NativeCommand preset_sync = reaching({"sync_presets"},
-                                         row_command("preset_sync", L("Sync Presets"), sync + " Refused while no account is signed in.",
+                                         menu_command("preset_sync", L("Sync Presets"), sync + " Refused while no account is signed in.",
                                                      object_schema({}),
                                                      json::array({tile("sync_presets", L("Sync Presets"), L("Presets"), "printer_sync_ok",
                                                                        json::object(), sync)}),
@@ -3425,47 +3425,47 @@ void register_config_tools(CommandCatalog& catalog)
     catalog.add(std::move(preset_sync));
 
     const std::string migrate = "Migrate legacy user filament presets.";
-    catalog.add(row_command("preset_migrate_filaments", L("Migrate Filament Presets"), migrate, object_schema({}),
+    catalog.add(menu_command("preset_migrate_filaments", L("Migrate Filament Presets"), migrate, object_schema({}),
                             json::array({tile("help_migrate_filament_presets", L("Migrate Filament Presets"), L("Help"), "",
                                               json::object(), migrate)}),
-                            [](const json&) { return Rows::migrate_filament_presets(); }));
+                            [](const json&) { return MenuItems::migrate_filament_presets(); }));
 
-    // The Mode rows; titles are L("...")-marked here so xgettext extracts them.
-    struct ModeRow
+    // The Mode menu items; titles are L("...")-marked here so xgettext extracts them.
+    struct ModeMenuItem
     {
         const char* key;
         const char* title;
         const char* mode;
         const char* name;
     };
-    static const ModeRow mode_rows[] = {{"mode_simple", L("Mode: Simple"), "simple", "Simple"},
+    static const ModeMenuItem mode_menu_items[] = {{"mode_simple", L("Mode: Simple"), "simple", "Simple"},
                                         {"mode_advanced", L("Mode: Advanced"), "advanced", "Advanced"},
                                         {"mode_expert", L("Mode: Expert"), "expert", "Expert"}};
     json mode_tiles = json::array();
-    for (const ModeRow& row : mode_rows)
-        mode_tiles.push_back(tile(row.key, row.title, L("Mode"), "advanced", {{"mode", row.mode}},
-                                  std::string("Switch the settings view to ") + row.name + " mode."));
-    catalog.add(row_command("settings_set_mode", L("Set the settings mode"),
+    for (const ModeMenuItem& item : mode_menu_items)
+        mode_tiles.push_back(tile(item.key, item.title, L("Mode"), "advanced", {{"mode", item.mode}},
+                                  std::string("Switch the settings view to ") + item.name + " mode."));
+    catalog.add(menu_command("settings_set_mode", L("Set the settings mode"),
                             "Switch the settings view to Simple, Advanced or Expert mode, which decides which settings the settings "
                             "pages show.",
                             object_schema({{"mode", enum_prop({"simple", "advanced", "expert"}, "The mode.")}}, {"mode"}),
-                            std::move(mode_tiles), [](const json& args) { return Rows::set_mode(arg_string(args, "mode")); }));
+                            std::move(mode_tiles), [](const json& args) { return MenuItems::set_mode(arg_string(args, "mode")); }));
 
     const std::string developer = "Turn Developer mode on or off.";
-    NativeCommand developer_mode = row_command("settings_toggle_developer_mode", L("Toggle Developer Mode"), developer, object_schema({}),
+    NativeCommand developer_mode = menu_command("settings_toggle_developer_mode", L("Toggle Developer Mode"), developer, object_schema({}),
                                                json::array({tile("toggle_developer_mode", L("Toggle Developer Mode"), L("Mode"),
                                                                  "advanced", json::object(), developer)}),
-                                               [](const json&) { return Rows::toggle_developer_mode(); });
-    // A menu row with no argument form: tool_search finds it and tool_call runs it, the tool list does not show it.
+                                               [](const json&) { return MenuItems::toggle_developer_mode(); });
+    // A menu item with no argument form: tool_search finds it and tool_call runs it, the tool list does not show it.
     developer_mode.listed = false;
     catalog.add(std::move(developer_mode));
 
-    // ---- The filament slot and printer commands made from menu rows ----
-    // The + and - buttons above the filament list and a slot's Delete menu item, each named as its row, in the Speed
+    // ---- The filament slot and printer commands made from menu items ----
+    // The + and - buttons above the filament list and a slot's Delete menu item, each named as the button or menu item is, in the Speed
     // Dial's section Filament.
     const std::string slot_buttons = "Refused for a printer that has one filament per extruder, which shows no + and - buttons.";
     catalog.add(reaching({"add_filament_slot"},
-                         own_tile(row_command("filament_add", L("Add Filament Slot"),
+                         own_tile(menu_command("filament_add", L("Add Filament Slot"),
                                               "Add a filament slot, as the + button above the filament list does. It takes the next "
                                               "colour and the last slot's preset (change them with preset_select filament_slot and "
                                               "project_set_settings filament_colour). It goes after the physical slots: mixed "
@@ -3476,7 +3476,7 @@ void register_config_tools(CommandCatalog& catalog)
                                   L("Filament"), "add_filament")));
     catalog.add(reaching(
         {"delete_filament_slot"},
-        own_tile(row_command("filament_delete", L("Delete Filament Slot"),
+        own_tile(menu_command("filament_delete", L("Delete Filament Slot"),
                              "Delete a filament slot, as its Delete menu item does, the objects on it taking the first filament; "
                              "with merge_into, as its Merge with item does, the objects on it taking that slot. The slots after "
                              "it move down by one. The only physical slot and a mixed filament (project_get_settings "
@@ -3537,7 +3537,7 @@ void register_config_tools(CommandCatalog& catalog)
     const std::string ams = "Synchronize the filament list from the connected printer's AMS.";
     NativeCommand     sync_ams = reaching(
         {"sync_filaments_from_ams"},
-        row_command("filament_sync_ams", L("Synchronize Filament List from AMS"),
+        menu_command("filament_sync_ams", L("Synchronize Filament List from AMS"),
                     ams + " With mode, as the sync dialog's Synchronize now does with that choice, without the dialog: map maps "
                           "each of the project's filaments to a slot, as the dialog's Mapping first does, which takes a project "
                           "with objects; overwrite replaces the filament list with the slots' filaments. Called with no arguments, "
@@ -3560,10 +3560,10 @@ void register_config_tools(CommandCatalog& catalog)
         "row's state, and a failed upload also opens an error dialog. A replay uploads again. Fails for a printer without a "
         "print host, or one that prints through the Bambu network or printer agents.";
     NativeCommand printer_send = reaching({"send_gcode_to_host"},
-                                          row_command("printer_send", L("Send G-code to printer host"), send, object_schema({}),
+                                          menu_command("printer_send", L("Send G-code to printer host"), send, object_schema({}),
                                                       json::array({tile("send_gcode", L("Send G-code to printer host"),
                                                                         L("Slice & Export"), "printer", json::object(), send)}),
-                                                      [](const json&) { return Rows::send_gcode(); }));
+                                                      [](const json&) { return MenuItems::send_gcode(); }));
     // It uploads to the printer's print host.
     printer_send.open_world = true;
     catalog.add(std::move(printer_send));

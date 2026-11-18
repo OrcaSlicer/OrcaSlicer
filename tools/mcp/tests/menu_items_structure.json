@@ -1,10 +1,10 @@
-// The object structure commands made from rows, called by index: object_split into objects and into parts,
+// The object structure commands made from menu items, called by index: object_split into objects and into parts,
 // object_assemble, part_change_type and object_order name what they made or renumbered in their replies, which
 // object_list reads back; the Split to Objects tile splits the selected object. Run it with
-//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/rows_structure.json --out <dir>
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/menu_items_structure.json --out <dir>
 {
   "orca_replay_version": "0.2.0",
-  "name": "object structure rows by index",
+  "name": "object structure menu items by index",
   "vars": {"two_shells": "${replay_dir}/../../../tests/data/two_hollow_squares.obj"},
   "steps": [
     {"tool": "app_wait", "args": {"for": "ready"}},

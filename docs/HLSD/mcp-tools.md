@@ -6,25 +6,25 @@ OrcaSlicer's MCP server gives a client 118 commands, its MCP tools: for the app,
 parts and plates, presets and settings, filaments, printers, plugins, the view and windows, recordings,
 replays and scripts, and for driving the GUI itself. An agent calls them by name. A person's Speed Dial tiles
 run them, Action Replay and recordings show them, and the journal records and replays them. A client that
-knows the app's menus can guess the command that does a row's job and the argument that picks the row, and
-can do from arguments what a person does through the row and its dialog.
+knows the app's menus can guess the command that does a menu item's job and the argument that picks the
+item, and can do from arguments what a person does through the item and its dialog.
 
 This document is that command set: how the commands are named and grouped, what each does and takes, which
-menu rows are tiles of which command, which calls ask in a dialog, and the behaviour a caller relies on
+menu items are tiles of which command, which calls ask in a dialog, and the behaviour a caller relies on
 across the commands. How the server serves them (the catalog, the guards, jobs, the journal, the operations
 layer) is in [mcp-server.md](mcp-server.md).
 
 The Design tab, OrcaSlicer's optional CAD component, adds 88 commands of its own while the CAD feature is
-on. They run on the same server and keep the same rule for menu rows, but are named and grouped as CAD
+on. They run on the same server and keep the same rule for menu items, but are named and grouped as CAD
 programs name theirs, so they have a section of their own at the end, The Design tab's commands.
 
 Each place's commands are written in its family's file, `src/slic3r/GUI/Mcp/McpTools*.cpp`, and gathered by
-`register_all_commands()`. A menu row's function is in namespace `Rows` (`NativeCommandRows.hpp`), and what a
-command does that a dialog or another interface does too is an operation of `src/slic3r/GUI/Operations/`.
-What every command takes and replies is in its description and input schema, which `tools/list` gives a
-client and `tool_search {tool}` gives for any command. `tests/data/command_catalog.json` holds every command's
-schema, tiles, labels and examples as an agent sees them, and `tests/data/speed_dial_tiles.json` the tiles as
-a person sees them.
+`register_all_commands()`. A menu item's function is in namespace `MenuItems` (`NativeCommandMenuItems.hpp`),
+and what a command does that a dialog or another interface does too is an operation of
+`src/slic3r/GUI/Operations/`. What every command takes and replies is in its description and input schema,
+which `tools/list` gives a client and `tool_search {tool}` gives for any command.
+`tests/data/command_catalog.json` holds every command's schema, tiles, labels and examples as an agent sees
+them, and `tests/data/speed_dial_tiles.json` the tiles as a person sees them.
 
 ## Naming
 
@@ -38,9 +38,9 @@ a person sees them.
    runs the Variable layer height panel, and `replay_run` runs what Action Replay calls a replay file. Where
    the GUI has no name for the thing, the words are plain (`widget_list`, `dialog_answer`). A word the GUI
    uses for something else is avoided: the `script_` commands run Python, as the Run Script panel does.
-3. **One job, one command, and one argument for its variants.** A menu row and the command that does its job
-   are one command, and the row is a tile of it. Where the GUI has a row for each variant, one argument picks
-   it: `format`, `shape`, `axis`, `type`, `mode`, `window`, `page`, `camera`.
+3. **One job, one command, and one argument for its variants.** A menu item and the command that does its job
+   are one command, and the item is a tile of it. Where the GUI has an item for each variant, one argument
+   picks it: `format`, `shape`, `axis`, `type`, `mode`, `window`, `page`, `camera`.
 4. **An argument's name means one thing across the commands**, so what an agent learns from one holds for
    the next:
 
@@ -89,7 +89,7 @@ only; every argument, its default and its range are in the command's schema. "Ta
 targets of a command of several (`objects`, `instances`, `parts`), which default to the selection (see
 Targets and the selection).
 
-Every command is in `tools/list` but three, the menu rows that take no arguments:
+Every command is in `tools/list` but three, the menu items that take no arguments:
 `settings_toggle_developer_mode`, `window_save_screenshot` and `script_toggle_panel`. `tool_search` finds
 them and `tool_call` runs them.
 
@@ -204,7 +204,7 @@ them and `tool_call` runs them.
 | `preset_sync` | Synchronize user presets with the cloud account |  |
 | `preset_migrate_filaments` | Migrate legacy user filament presets |  |
 | `settings_set_mode` | Switch the settings view to Simple, Advanced or Expert | `mode`: simple, advanced, expert |
-| `settings_toggle_developer_mode` | Turn Developer mode on or off; a menu row, not listed |  |
+| `settings_toggle_developer_mode` | Turn Developer mode on or off; a menu item, not listed |  |
 
 ### Filaments
 
@@ -242,7 +242,7 @@ them and `tool_call` runs them.
 | Command | What it does | Variants and main arguments |
 |---|---|---|
 | `view_set` | Set what the window shows: the tab, the 3D view and its camera, the Preview's colour scheme, legend and layers, the section view, the display switches and the sidebar | `tab`, `canvas`; `camera`, `look_at`, `orbit`, `zoom`, `projection`; `view_type`, `time_mode`, `layer`, `layer_range`, `layer_z`, `layer_percent`; `section`; the switches; `layout` |
-| `window_open` | Open one of the app's windows or dialogs for a person, as its menu row does | `window`: preferences, plugins, action_replay, preset_bundle, keyboard_shortcuts, setup_wizard, network_test, troubleshoot, tip_of_the_day, about; `tab` and `key` for preferences |
+| `window_open` | Open one of the app's windows or dialogs for a person, as its menu item does | `window`: preferences, plugins, action_replay, preset_bundle, keyboard_shortcuts, setup_wizard, network_test, troubleshoot, tip_of_the_day, about; `tab` and `key` for preferences |
 | `window_list` | The open windows: the main window, then those that don't block the app, then the modal dialogs, the topmost last |  |
 | `window_set` | Size, move, maximize, minimize or raise a window | `target`; `size`, `position`; `state`: normal, maximized, minimized; `raise` |
 
@@ -251,12 +251,12 @@ them and `tool_call` runs them.
 | Command | What it does | Variants and main arguments |
 |---|---|---|
 | `window_screenshot` | Capture the main window, the 3D view as rendered, the topmost dialog or one window, as an image and a PNG | `target`, `max_dim`; `save_path`, `overwrite` |
-| `window_save_screenshot` | Save a PNG of the main window where recordings are saved, and tell the person; a menu row, not listed |  |
+| `window_save_screenshot` | Save a PNG of the main window where recordings are saved, and tell the person; a menu item, not listed |  |
 | `replay_run` | Run a replay, a list of calls, and report each step | `path` or `replay`; `vars`, `out_dir` |
 | `replay_export` | Turn this session's calls into a replay | `path`, `overwrite`, `name`; `clear` |
 | `script_run` | Run Python inside the app as its main program, against the orca API | `code`; `args`, `filename`, `timeout_s` |
 | `script_search_api` | Search the orca Python API of the running build | `query` |
-| `script_toggle_panel` | Show or hide the Run Script panel; a menu row, not listed |  |
+| `script_toggle_panel` | Show or hide the Run Script panel; a menu item, not listed |  |
 | `recording_start` | Record a video of the main window or the 3D view | `target`: main, canvas; `captions`, `pointer`; `max_seconds`, `fps`, `max_dim`; `encode` and the encoder's options; `save_path`, `overwrite` |
 | `recording_stop` | Stop the recording; with `silent: true`, wait for its file and report it | `silent` |
 | `recording_encode` | Encode a recording into an H.265 or H.264 MP4 with the system ffmpeg | `path`, `save_path`, `overwrite`; `codec`, `crf`, `speed`, `profile`; `keep_raw_video_file` |
@@ -330,7 +330,7 @@ for every command (`Mcp::resolve_targets()`, `McpTargets.hpp`):
   Every instance of an object selected is the object, and an instance or a part stands for its object only
   where the command says so. Nothing selected is refused (`nothing_selected`), a selection of a kind the
   command does not take is refused (`wrong_selection`), and a command of one target refuses a selection of
-  several (`one_object_only`). Where a row acts on the object list's own rows (`object_assemble`,
+  several (`one_object_only`). Where a menu item acts on the object list's own rows (`object_assemble`,
   `part_change_type`, `object_split`, and `object_delete`'s person's form), a call that names no targets
   reads those rows, since the list and the 3D selection disagree when every instance, or every part, of an
   object is selected.
@@ -384,8 +384,8 @@ One rule holds for every command: **a call whose arguments are exactly those of 
 is the person's form, and does what a person's pick of that tile does; any other call runs from its arguments
 and opens nothing.** A command's own tile is `{}`.
 
-- The person's form may ask in a dialog, as the row does, or act on the selection. An agent's call of it
-  replies `blocked_by_dialog` where the row asks.
+- The person's form may ask in a dialog, as the menu item does, or act on the selection. An agent's call of it
+  replies `blocked_by_dialog` where the item asks.
 - Where the command's own function needs nothing more than a tile gives, `silent: true` runs it from its
   arguments without asking, with its defaults: `object_add_primitive {shape: "cube", silent: true}` adds the
   cube at its built-in size, where `{shape: "cube"}` asks for the size. Sixteen commands take `silent`:
@@ -393,13 +393,13 @@ and opens nothing.** A command's own tile is `{}`.
   `object_delete`, `object_rename`, `object_set_instances`, `object_split`, `calibration_generate_test`,
   `plate_rename`, `preset_import`, `plugin_install_local`, `recording_start` and `recording_stop`. The
   journal keeps `silent`, so a replay of such a call asks nothing either.
-- A call that runs from its arguments and meets on its way the question a row asks takes the answer as an
-  argument, or refuses with the question as its reason: Split's Auto-Drop question (`keep_z`, else
+- A call that runs from its arguments and meets on its way the question a menu item asks takes the answer as
+  an argument, or refuses with the question as its reason: Split's Auto-Drop question (`keep_z`, else
   `auto_drop_question`), deleting part of a cut object, replacing an installed plugin (`overwrite`), the
   presets' unsaved changes (`preset_changes`).
-- Where a row does just what the command does, its tile is the command's own form and a call of it replies
-  as any call: the camera tiles of `view_set`, Select All and Deselect All, Auto-Arrange, Auto-Orient and
-  Refresh Plugins.
+- Where a menu item does just what the command does, its tile is the command's own form and a call of it
+  replies as any call: the camera tiles of `view_set`, Select All and Deselect All, Auto-Arrange, Auto-Orient
+  and Refresh Plugins.
 - A call of the person's form is refused while a modal dialog is open or another call's nested loop runs,
   unless that form opens nothing: `recording_stop {}` stops the recording wherever the command runs.
 
@@ -438,9 +438,9 @@ These open a dialog or a gizmo whatever their arguments, and the caller answers 
 
 ### Every tile and the call it makes
 
-56 commands have tiles, 129 in all. A tile's id is `orca_command:<key>:orca`, under the key of the row it
-was: a command's own tile under the command's key (eight: `undo`, `redo`, `plate_add`, `plate_delete`,
-`plate_duplicate`, `plate_rename`, `filament_add`, `filament_delete`), any other under the row's id, which
+56 commands have tiles, 129 in all. A tile's id is `orca_command:<key>:orca`, under the key of the menu item
+it was: a command's own tile under the command's key (eight: `undo`, `redo`, `plate_add`, `plate_delete`,
+`plate_duplicate`, `plate_rename`, `filament_add`, `filament_delete`), any other under the item's id, which
 `tests/data/speed_dial_tiles.json` lists.
 
 | Command | Its tiles, and the call each makes |
@@ -503,15 +503,15 @@ was: a command's own tile under the command's key (eight: `undo`, `redo`, `plate
 | `recording_stop` | Stop Recording `{}` |
 
 Go to tab and Go to layer collect a value in the Speed Dial's second phase, which the tile passes on under
-`tab` or `layer_percent`; `action_run` takes it under the tile's own name for it, `tab` or `percent`. Go to Plate goes to the first plate, as its row did, and the Speed Dial's plate
+`tab` or `layer_percent`; `action_run` takes it under the tile's own name for it, `tab` or `percent`. Go to Plate goes to the first plate, as its menu item did, and the Speed Dial's plate
 family calls `plate_select` with each plate. A tile of `object_order` reverses the order the objects already
 have, as Order By does; `descending` says which way.
 
 ## Tiles, titles, the journal and replays
 
-- A tile's id is what a person's pins and run counts are stored under, and the ids of the rows a released
-  build stored stay the ids of tiles, whatever their command is called. The unit test "every Speed Dial tile
-  of today is still a tile" holds each one to its title, section, icon and value.
+- A tile's id is what a person's pins and run counts are stored under, and the ids of the menu items a
+  released build stored stay the ids of tiles, whatever their command is called. The unit test "every Speed
+  Dial tile of today is still a tile" holds each one to its title, section, icon and value.
 - A tile runs its command with its arguments, with the MCP server on or off. `action_run` takes no `args` for
   a tile, or exactly the tile's, or the value of a tile that collects one, and journals the step as that
   `action_run`, so a replay runs it again.
@@ -633,7 +633,7 @@ what the journal records and replays. No listing shows them: `tool_search`' desc
 heading, `tool_search {tool}` gives its schema, and `tool_call` runs it.
 
 This section is their command set: how they are named and grouped, what each does and takes, how a call
-opens a tool for a person instead of running, and how the commands relate to the right-click menu's rows.
+opens a tool for a person instead of running, and how the commands relate to the right-click menu's items.
 How the server holds them (the catalog with the CAD feature on, the gate) is in
 [mcp-server.md](mcp-server.md), "Design tab: the Design commands", and the tab itself in
 [design-tab.md](design-tab.md).
@@ -667,8 +667,8 @@ variable, body and feature.
 3. **`operation` says what the result does to the bodies already there**, in four words: `new_body`,
    `join`, `cut`, `intersect`. `extrude`, `revolve`, `sweep`, `loft`, `mirror` and `boolean` take it.
 4. **Full words**: no abbreviations such as `sk_`, `surf_` or `props`.
-5. **A menu row is a way to call a command, not a second command.** A call that gives only the arguments
-   choosing a row opens that row's tool for a person; a call that gives more runs it.
+5. **A menu item is a way to call a command, not a second command.** A call that gives only the arguments
+   choosing an item opens that item's tool for a person; a call that gives more runs it.
 
 **Body, solid and sheet.** A body is what the Bodies list shows: a solid body, which encloses a volume, or a
 sheet body, which is open faces. "Solid" and "Surface" in the headings below are groups of commands, not
@@ -678,7 +678,7 @@ whole bodies.
 ### The command set
 
 The commands are listed under the headings `tool_search`' description names them under, in its order:
-Document, Sketch, Solid, Surface, Construct, Inspect, Bodies, History and Menu rows. Main arguments only;
+Document, Sketch, Solid, Surface, Construct, Inspect, Bodies, History and Menu items. Main arguments only;
 every argument, its default and its range are in the command's schema.
 
 #### Document
@@ -692,7 +692,7 @@ every argument, its default and its range are in the command's schema.
 | `export_step` | Write every body to a STEP file, at its placement | `path`, `overwrite` |
 | `commit_to_plate` | Send the visible bodies to Prepare at their placement, in one Prepare undo step | `mode`: assembly, bodies (left out, the Commit button's mode); `replace` |
 | `set_variable` | Set a design variable to an expression, or remove it | `name`, `expr` |
-| `select_geometry` | Select a body, a face, edges, a vertex, a reference plane, a sketch's loop or a feature by id, as a click selects it, for the menu-row forms to act on | one of: `body`; `body` with `face`, `edges` or `vertex`; `plane`; `sketch` with `loop`; `feature`; nothing, which clears |
+| `select_geometry` | Select a body, a face, edges, a vertex, a reference plane, a sketch's loop or a feature by id, as a click selects it, for the menu-item forms to act on | one of: `body`; `body` with `face`, `edges` or `vertex`; `plane`; `sketch` with `loop`; `feature`; nothing, which clears |
 | `confirm_tool` | Confirm what is open, as its Confirm button and Enter do |  |
 | `cancel_tool` | Cancel what is open, as its Cancel button does |  |
 
@@ -828,9 +828,9 @@ every argument, its default and its range are in the command's schema.
 | `feature_rename` | Rename a feature | `feature`, `name` |
 | `feature_delete` | Delete a feature, with what is built on it | `feature` |
 
-#### Menu rows
+#### Menu items
 
-These take no arguments and do what their row of the right-click menu does.
+These take no arguments and do what their right-click menu item does.
 
 | Command | What it does |
 |---|---|
@@ -939,11 +939,11 @@ and a pattern's layout as `type` in the commands' words. A feature's type name (
   `feature_suppress`, `fillet`, `hole`, `loft`, `mirror`, `pattern`, `revolve`, `select_geometry`,
   `sketch_constrain`, `sketch_dimension`, `sketch_draw`, `sketch_extend`, `sketch_insert_svg`,
   `sketch_pattern`, `sketch_text`, `sketch_transform`, `sketch_trim`, `sweep`, `thicken`, and the five
-  menu-row commands (`closed` in the tool block). The others have open schemas.
-- **`generation`.** Every command but the menu-row ones takes `generation`, the generation (`describe_design`,
-  `body_describe`) the face and edge ids it passes were read at. Ids expire when a feature rebuilds the model,
-  and a stale id can still name a real face or edge, so a call whose ids were read before the model changed
-  is refused.
+  menu-item commands (`closed` in the tool block). The others have open schemas.
+- **`generation`.** Every command but the menu-item ones takes `generation`, the generation
+  (`describe_design`, `body_describe`) the face and edge ids it passes were read at. Ids expire when a feature
+  rebuilds the model, and a stale id can still name a real face or edge, so a call whose ids were read before
+  the model changed is refused.
 
 #### How a failure shows
 
@@ -958,36 +958,37 @@ description.
 
 ### When a call opens a tool
 
-One rule holds for every Design command: **a call whose arguments are exactly those that choose a menu row
-opens that row's tool for a person, as a pick of the row does; any other call runs from its arguments.**
+One rule holds for every Design command: **a call whose arguments are exactly those that choose a menu item
+opens that item's tool for a person, as a pick of the item does; any other call runs from its arguments.**
 
-- No arguments choose the command's own row. A command with no row of its own is chosen with no arguments
-  by the rows folded into it with `{}`: Color for `body_set`, and the three value rows for
+- No arguments choose the command's own menu item. A command with no menu item of its own is chosen with no
+  arguments by the items folded into it with `{}`: Color for `body_set`, and the three value items for
   `sketch_set_value`.
-- A row may be chosen by arguments: `boolean {operation: "join"}`, `pattern {type: "circular"}`,
+- A menu item may be chosen by arguments: `boolean {operation: "join"}`, `pattern {type: "circular"}`,
   `sketch_draw {type: "slot"}`, `sketch_draw {type: "polygon", sides: 6}`. All of a command's variants open
   the same way.
 - A command that a call with no arguments opens has `silent` in its schema. `silent: true` beside the
   choosing arguments, or beside none, runs the command with its defaults. `sketch_draw`, `sketch_transform`
-  and `sketch_pattern` have no `silent`: their rows are chosen by `type`, and `silent` beside it is refused.
+  and `sketch_pattern` have no `silent`: their items are chosen by `type`, and `silent` beside it is refused.
 - Arguments are compared after the server normalizes them, as JSON values. `generation`, or anything else
   beside the choosing arguments, makes the call run.
-- The tool opens through `open_tool()` on the row's entry, only in the mode the row belongs to (a sketch row
-  in a sketch, a model row outside one); in the other the call is refused, naming the mode. A row the menu
-  greys for the selection is refused for it, naming the selection and the kinds the row accepts. A call made
-  while a row of the Feature list is selected and nothing is picked in the view takes that row as what four
-  rows act on: `feature_edit`, `rename_selected`, `feature_delete` and `sketch_constrain_selected`.
+- The tool opens through `open_tool()` on the menu item's entry, only in the mode the item belongs to (a
+  sketch item in a sketch, a model item outside one); in the other the call is refused, naming the mode. An
+  item the menu greys for the selection is refused for it, naming the selection and the kinds the item
+  accepts. A call made while a row of the Feature list is selected and nothing is picked in the view takes
+  that row as what four menu items act on: `feature_edit`, `rename_selected`, `feature_delete` and
+  `sketch_constrain_selected`.
 - The reply is `{"result": {"interactive": true, "tool", "applies", "modal", "selection_kind", "busy",
-  "status"}}`: the command called, whether the row accepts the selection, whether a dialog the action
+  "status"}}`: the command called, whether the menu item accepts the selection, whether a dialog the action
   opened held the call until it was answered, the selection's kind, what the tab has open after the action,
   and its status line. It claims nothing about what the action did, which may be to open a card, arm a
   sketch tool, act at once, or say on the status line why it cannot.
-- A command's description ends with the calls that open a tool, each with its row's name, so that a search
-  for "rounded rectangle" or "polar array" finds the command.
+- A command's description ends with the calls that open a tool, each with its menu item's name, so that a
+  search for "rounded rectangle" or "polar array" finds the command.
 
-#### The menu rows and the calls they make
+#### The menu items and the calls they make
 
-| Command | Mode | Its rows, and the call each makes |
+| Command | Mode | Its items, and the call each makes |
 |---|---|---|
 | `sketch_create` | model | Sketch `{}` |
 | `extrude` | model | Extrude `{}` |
@@ -1047,25 +1048,25 @@ opens that row's tool for a person, as a pick of the row does; any other call ru
 | `sketch_pattern` | sketch | Linear array `{"type": "linear"}`; Polar array `{"type": "circular"}` |
 | `sketch_draw` | sketch | Line `{"type": "line"}`; Polyline `{"type": "polyline"}`; Corner rectangle `{"type": "rectangle_2_point"}`; Center rectangle `{"type": "rectangle_center"}`; Oblique rectangle `{"type": "rectangle_3_point"}`; Rounded rectangle `{"type": "rectangle_rounded"}`; Center circle `{"type": "circle_center"}`; 2-point circle `{"type": "circle_2_point"}`; 3-point circle `{"type": "circle_3_point"}`; 3-point arc `{"type": "arc_3_point"}`; Tangent arc `{"type": "arc_tangent"}`; Center-point arc `{"type": "arc_center"}`; Slot `{"type": "slot"}`; Arc slot `{"type": "slot_arc"}`; Ellipse `{"type": "ellipse"}`; Elliptical arc `{"type": "ellipse_arc"}`; Spline `{"type": "spline"}`; Triangle `{"type": "polygon", "sides": 3}`; Square `{"type": "polygon", "sides": 4}`; Pentagon `{"type": "polygon", "sides": 5}`; Hexagon `{"type": "polygon", "sides": 6}`; Octagon `{"type": "polygon", "sides": 8}`; Dodecagon `{"type": "polygon", "sides": 12}`; Point `{"type": "point"}` |
 
-`sketch_text {}` opens the Text dialog in a sketch, where its row is; its argument form runs on the model
-and is refused while a sketch is open.
+`sketch_text {}` opens the Text dialog in a sketch, where its menu item is; its argument form runs on the
+model and is refused while a sketch is open.
 
 ### The Design table's entries
 
 `tool_atlas.json` has 127 entries. Each is one of these:
 
-- **A command with a row**: the row's slot, key, action, accepts, mode, name, icon and hint, and the
+- **A command with a menu item**: the item's slot, key, action, accepts, mode, name, icon and hint, and the
   command's tool block, under the command's name. 47 commands.
-- **An argument-only command**: a tool block and no action. 36 commands: 35 have no row, and `measure`'s
-  row, which has no action, is shown disabled.
-- **A menu-only command**: an action and no tool block. Five, under Menu rows.
-- **A folded row**: a row that is no command. It keeps its id, which the menu, the keys, the toolbar, the
-  tiles and the GUI tests use, and names its command and the arguments that choose it: `"fold": {"into":
-  "sketch_draw", "args": {"type": "circle_center"}}`. 37 rows, folded into eight commands.
-- **A greyed row**: a row with neither, shown disabled. Two: Pattern on Curve (`pat_curve`), whose function
+- **An argument-only command**: a tool block and no action. 36 commands: 35 have no menu item, and `measure`'s
+  item, which has no action, is shown disabled.
+- **A menu-only command**: an action and no tool block. Five, under Menu items.
+- **A folded item**: a menu item that is no command. It keeps its id, which the menu, the keys, the toolbar,
+  the tiles and the GUI tests use, and names its command and the arguments that choose it: `"fold": {"into":
+  "sketch_draw", "args": {"type": "circle_center"}}`. 37 items, folded into eight commands.
+- **A greyed item**: an item with neither, shown disabled. Two: Pattern on Curve (`pat_curve`), whose function
   is `pattern {type: "curve"}`, and Align to (`align_to`), which is not built.
 
-That is 88 commands and 89 rows with an action, each of which has a Speed Dial tile.
+That is 88 commands and 89 menu items with an action, each of which has a Speed Dial tile.
 
 The right-click menu's rows and their order are ratified (`_ratified` in the atlas): a row's index is its
 address, and changing one is a breaking change.
@@ -1073,13 +1074,13 @@ address, and changing one is a breaking change.
 ### Tiles, titles, the journal and replays
 
 - Every entry with an action has a Speed Dial tile while the Design tab is shown, in its mode. A command's
-  own row's tile is under the command's key (`orca_command:sketch_trim:orca`); a folded row keeps its tile
-  under its own id (`orca_command:sk_array:orca`) with its row's title and icon.
-- A pick of a folded row's tile runs its command with the row's arguments, with the MCP server on or off.
-  Its action shows an agent no arguments, and `action_run` takes none for it, or exactly the row's; that is
+  own menu item's tile is under the command's key (`orca_command:sketch_trim:orca`); a folded item keeps its
+  tile under its own id (`orca_command:sk_array:orca`) with the item's title and icon.
+- A pick of a folded item's tile runs its command with the item's arguments, with the MCP server on or off.
+  Its action shows an agent no arguments, and `action_run` takes none for it, or exactly the item's; that is
   what the journal records, so a replay runs it again.
-- A call of a command with a row's arguments is titled as that row's tile wherever a person is shown the
-  call: a job notice, a recording's caption, an Action Replay step (`replay_what_text()`).
+- A call of a command with a menu item's arguments is titled as that item's tile wherever a person is shown
+  the call: a job notice, a recording's caption, an Action Replay step (`replay_what_text()`).
 - A folded tile that is not shown is named, when a call asks for it, with the call that runs it from any
   tab: `tool_call {"tool": "sketch_pattern", "args": {"type": "linear"}}`.
 - The MCP skill's reference (`tools/mcp/gen_skill_reference.py`) gives a command a row of its own only when
@@ -1149,12 +1150,12 @@ command a call names.
 
 | Where | The app says | Command |
 |---|---|---|
-| Sketch, Repeat row | Linear array, Polar array | `sketch_pattern {type: linear}`, `{type: circular}` |
-| Remove row | Cut, which divides a body with a plane | `split` |
-| Boolean card and rows | Join, Subtract, Intersect | `boolean {operation: join}`, `{operation: cut}`, `{operation: intersect}` |
+| Sketch, Repeat submenu | Linear array, Polar array | `sketch_pattern {type: linear}`, `{type: circular}` |
+| Remove submenu | Cut, which divides a body with a plane | `split` |
+| Boolean card and menu items | Join, Subtract, Intersect | `boolean {operation: join}`, `{operation: cut}`, `{operation: intersect}` |
 | Surface flyout | Surface Fill | `surface_patch` |
-| Reference row | Volume and area | `body_mass_properties` |
+| Reference submenu | Volume and area | `body_mass_properties` |
 | Rectangle flyout | Corner rectangle, Oblique rectangle | `sketch_draw {type: rectangle_2_point}`, `{type: rectangle_3_point}` |
-| Transform row | Move on the menu row, Transform on the toolbar and the card | `body_transform` |
+| Transform submenu | Move in the menu, Transform on the toolbar and the card | `body_transform` |
 | Placement flyout | Mate | `align` |
 | Feature row | the eye, show or hide | `feature_suppress` |

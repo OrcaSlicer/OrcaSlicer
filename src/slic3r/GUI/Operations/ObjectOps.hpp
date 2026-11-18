@@ -111,7 +111,7 @@ Refusal nothing_deleted();
 // dialog leaves unchanged, and a character a file name cannot hold (invalid_name), which the object list refuses.
 std::optional<Refusal> rename_refusal(const std::string& name);
 
-// The refusal of Rename with a selection it does not rename, such as an instance, in the object menu row's words
+// The refusal of Rename with a selection it does not rename, such as an instance, in the object menu item's words
 // (wrong_selection).
 Refusal rename_wrong_selection();
 
@@ -191,7 +191,7 @@ Outcome<int> assemble_objects(const Targets& targets);
 std::optional<Refusal> part_type_refusal(const Model& model, const Targets& targets, ModelVolumeType type,
                                          std::optional<ModelVolumeType> subtype);
 
-// The refusal of Change Type with a selection of anything but parts, in the row's words (wrong_selection).
+// The refusal of Change Type with a selection of anything but parts, in the menu item's words (wrong_selection).
 Refusal part_wrong_selection();
 
 struct ChangePartTypeArgs
@@ -231,8 +231,8 @@ struct ReorderObjectsArgs
 Outcome<std::vector<int>> reorder_objects(const ReorderObjectsArgs& args);
 
 // ---- Mirror, centre, scale to fit, drop, orient ----
-// Each runs the function of its row on the targets selected in the Prepare view, the view shown first, and leaves them
-// selected. Targets read from the selection are the selection, which it acts on as it is, as the row does.
+// Each runs the function of its menu item on the targets selected in the Prepare view, the view shown first, and leaves them
+// selected. Targets read from the selection are the selection, which it acts on as it is, as the menu item does.
 
 // What keeps `targets` from being mirrored, or none: a cut object (cut_object).
 std::optional<Refusal> mirror_refusal(const Model& model, const Targets& targets);

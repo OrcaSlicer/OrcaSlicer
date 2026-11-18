@@ -11,7 +11,7 @@
 
 #include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
-#include "slic3r/GUI/NativeCommandRows.hpp"
+#include "slic3r/GUI/NativeCommandMenuItems.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -448,14 +448,14 @@ void register_python_tools(CommandCatalog& catalog)
             return ToolResult::ok(std::move(out));
         }));
 
-    // The Run Script panel's menu row, which has no argument form.
+    // The Run Script panel's menu item, which has no argument form.
     const std::string panel = "Show or hide the Run Script panel, where a person writes and runs Python scripts cell by cell. Agents "
                               "run Python with the script_run tool instead.";
-    NativeCommand toggle_panel = row_command("script_toggle_panel", L("Run Script"), panel, object_schema({}),
+    NativeCommand toggle_panel = menu_command("script_toggle_panel", L("Run Script"), panel, object_schema({}),
                                              json::array({NativeCommands::tile("toggle_run_script_panel", L("Run Script"),
                                                                                L("Commands"), "media_play", json::object(), panel)}),
-                                             [](const json&) { return Rows::toggle_run_script_panel(); });
-    // A menu row with no argument form: tool_search finds it and tool_call runs it, the tool list does not show it.
+                                             [](const json&) { return MenuItems::toggle_run_script_panel(); });
+    // A menu item with no argument form: tool_search finds it and tool_call runs it, the tool list does not show it.
     toggle_panel.listed = false;
     catalog.add(std::move(toggle_panel));
 }

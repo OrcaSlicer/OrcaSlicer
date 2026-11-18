@@ -1,11 +1,11 @@
-// The object commands made from rows, called by index, and with no target on the selection: object_rename,
+// The object commands made from menu items, called by index, and with no target on the selection: object_rename,
 // object_set_instances, object_separate_instances and object_delete name what they act on in their replies, which
 // object_list reads back; the Delete Selected tile deletes the selection; object_set_height_ranges and
 // object_set_variable_layer_height without object act on the selected object and name it. Run it with
-//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/rows_objects.json --out <dir>
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/menu_items_objects.json --out <dir>
 {
   "orca_replay_version": "0.2.0",
-  "name": "object rows by index",
+  "name": "object menu items by index",
   "steps": [
     {"tool": "app_wait", "args": {"for": "ready"}},
     {"tool": "project_new", "args": {"discard_changes": true, "preset_changes": "discard"}},

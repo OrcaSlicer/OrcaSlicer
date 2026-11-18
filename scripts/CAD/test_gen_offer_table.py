@@ -28,7 +28,7 @@ def block(params=None, **extra):
 
 
 def atlas():
-    """One slot, two selections, a command with a block and a row (paint), and a second row (tint), a command with
+    """One slot, two selections, a command with a block and a menu item (paint), and a second item (tint), a command with
     an action only; each under its heading."""
     return {
         "slots": [{"id": "make", "label": "Make"}],
@@ -37,7 +37,7 @@ def atlas():
             {"id": "paint", "name": "Paint", "section": "Solid", "slot": "make", "key": None,
              "accepts": ["none", "body_solid"], "action": "btn:paint", "icon": "paint", "hint": "Paint the body",
              "tool": block()},
-            {"id": "tint", "name": "Tint", "section": "Menu rows", "slot": "make", "key": None, "accepts": ["body_solid"],
+            {"id": "tint", "name": "Tint", "section": "Menu items", "slot": "make", "key": None, "accepts": ["body_solid"],
              "action": "btn:tint", "icon": "tint", "hint": "Tint the body"},
         ],
     }
@@ -47,7 +47,7 @@ def entry(A, vid):
     return next(v for v in A["verbs"] if v["id"] == vid)
 
 
-def row(vid, action, **extra):
+def item(vid, action, **extra):
     v = {"id": vid, "name": vid.title(), "slot": "make", "key": None, "accepts": ["body_solid"],
          "action": action, "icon": vid, "hint": "Do " + vid}
     v.update(extra)
@@ -70,25 +70,25 @@ class Faults(unittest.TestCase):
         with open(gen.ATLAS, encoding="utf-8") as f:
             self.assertEqual(gen.faults(json.load(f)), [])
 
-    def test_a_folded_row_with_args_its_command_takes_passes(self):
+    def test_a_folded_item_with_args_its_command_takes_passes(self):
         A = atlas()
         entry(A, "tint")["fold"] = {"into": "paint", "args": {"shade": "blue"}}
         del entry(A, "tint")["section"]
         entry(A, "paint")["args"] = {"shade": "red"}
         self.assertEqual(gen.faults(A), [])
 
-    def test_a_greyed_row_passes_whatever_its_id(self):
+    def test_a_greyed_item_passes_whatever_its_id(self):
         A = atlas()
         del entry(A, "tint")["action"]
         del entry(A, "tint")["section"]
         entry(A, "tint")["id"] = "anything"
         self.assertEqual(gen.faults(A), [])
 
-    def test_rows_of_one_command_with_equal_args_and_one_action_pass(self):
+    def test_items_of_one_command_with_equal_args_and_one_action_pass(self):
         A = atlas()
         entry(A, "tint")["fold"] = {"into": "paint", "args": {"shade": "blue"}}
         del entry(A, "tint")["section"]
-        A["verbs"].append(row("tint_again", "btn:tint", fold={"into": "paint", "args": {"shade": "blue"}}))
+        A["verbs"].append(item("tint_again", "btn:tint", fold={"into": "paint", "args": {"shade": "blue"}}))
         self.assertEqual(gen.faults(A), [])
 
     def test_a_block_with_access_ui_passes(self):
@@ -115,7 +115,7 @@ class Faults(unittest.TestCase):
         A = atlas()
         entry(A, "tint")["tool"] = block()
         entry(A, "tint")["fold"] = {"into": "paint", "args": {}}
-        self.assertFault(A, "tint", "a folded row has no tool block")
+        self.assertFault(A, "tint", "a folded item has no tool block")
 
     def test_a_fold_that_is_no_object(self):
         A = atlas()
@@ -129,16 +129,16 @@ class Faults(unittest.TestCase):
 
     def test_an_into_that_names_an_entry_with_no_block(self):
         A = atlas()
-        A["verbs"].append(row("wash", "btn:wash", fold={"into": "tint", "args": {}}))
+        A["verbs"].append(item("wash", "btn:wash", fold={"into": "tint", "args": {}}))
         self.assertFault(A, "wash", "has no tool block")
 
-    def test_an_into_that_names_a_folded_row(self):
+    def test_an_into_that_names_a_folded_item(self):
         A = atlas()
         entry(A, "tint")["fold"] = {"into": "paint", "args": {"shade": "blue"}}
-        A["verbs"].append(row("wash", "btn:wash", fold={"into": "tint", "args": {}}))
-        self.assertFault(A, "wash", "is itself a folded row")
+        A["verbs"].append(item("wash", "btn:wash", fold={"into": "tint", "args": {}}))
+        self.assertFault(A, "wash", "is itself a folded item")
 
-    # --- the arguments that choose a row ---------------------------------------------------------
+    # --- the arguments that choose an item -------------------------------------------------------
 
     def test_a_folds_args_that_are_no_object(self):
         A = atlas()
@@ -170,23 +170,23 @@ class Faults(unittest.TestCase):
         entry(A, "paint")["args"] = {"shade": "green"}
         self.assertFault(A, "paint", "'green'")
 
-    def test_two_rows_of_one_command_with_equal_args_and_different_actions(self):
+    def test_two_items_of_one_command_with_equal_args_and_different_actions(self):
         A = atlas()
         entry(A, "tint")["fold"] = {"into": "paint", "args": {"shade": "blue"}}
-        A["verbs"].append(row("wash", "btn:wash", fold={"into": "paint", "args": {"shade": "blue"}}))
+        A["verbs"].append(item("wash", "btn:wash", fold={"into": "paint", "args": {"shade": "blue"}}))
         self.assertFault(A, "wash", "the same args as tint")
 
-    def test_a_rows_args_equal_to_its_commands_own(self):
+    def test_an_items_args_equal_to_its_commands_own(self):
         A = atlas()
         entry(A, "paint")["args"] = {"shade": "blue"}
         entry(A, "tint")["fold"] = {"into": "paint", "args": {"shade": "blue"}}
-        self.assertFault(A, "tint", "the args paint's own row takes")
+        self.assertFault(A, "tint", "the args paint's own item takes")
 
-    def test_no_args_for_a_row_of_a_command_with_a_row_of_its_own(self):
-        # A call with none opens the command's own row.
+    def test_no_args_for_an_item_of_a_command_with_a_menu_item_of_its_own(self):
+        # A call with none opens the command's own item.
         A = atlas()
         entry(A, "tint")["fold"] = {"into": "paint", "args": {}}
-        self.assertFault(A, "tint", "the args paint's own row takes")
+        self.assertFault(A, "tint", "the args paint's own item takes")
 
     def test_own_args_on_an_entry_with_no_action(self):
         A = atlas()
@@ -205,18 +205,18 @@ class Faults(unittest.TestCase):
 
     # --- modes -----------------------------------------------------------------------------------
 
-    def test_rows_of_one_command_in_different_modes(self):
+    def test_items_of_one_command_in_different_modes(self):
         A = atlas()
         A["verbs"].append({"id": "rinse", "name": "Rinse", "slot": None, "tool": block()})
         entry(A, "tint")["fold"] = {"into": "rinse", "args": {"shade": "blue"}}
-        A["verbs"].append(row("wash", "btn:wash", mode="sketch", fold={"into": "rinse", "args": {"shade": "red"}}))
+        A["verbs"].append(item("wash", "btn:wash", mode="sketch", fold={"into": "rinse", "args": {"shade": "red"}}))
         self.assertFault(A, "wash", "in another mode than tint")
 
-    def test_a_row_in_another_mode_than_its_commands_own_row(self):
+    def test_an_item_in_another_mode_than_its_commands_own_item(self):
         A = atlas()
         entry(A, "tint")["mode"] = "sketch"
         entry(A, "tint")["fold"] = {"into": "paint", "args": {"shade": "blue"}}
-        self.assertFault(A, "tint", "in another mode than paint's own row")
+        self.assertFault(A, "tint", "in another mode than paint's own item")
 
     # --- headings --------------------------------------------------------------------------------
 
@@ -230,19 +230,19 @@ class Faults(unittest.TestCase):
         entry(A, "paint")["section"] = "Painting"
         self.assertFault(A, "paint", "section 'Painting' is not one of")
 
-    def test_a_section_on_a_folded_row(self):
+    def test_a_section_on_a_folded_item(self):
         A = atlas()
         entry(A, "tint")["fold"] = {"into": "paint", "args": {"shade": "blue"}}
         self.assertFault(A, "tint", "is no command and has no section")
 
-    def test_a_section_on_a_greyed_row(self):
+    def test_a_section_on_a_greyed_item(self):
         A = atlas()
         del entry(A, "tint")["action"]
         self.assertFault(A, "tint", "is no command and has no section")
 
-    # --- the rows that act on the Feature list's row ---------------------------------------------
+    # --- the items that act on the Feature list's row --------------------------------------------
 
-    def test_feature_row_on_a_command_with_a_row_of_its_own_passes(self):
+    def test_feature_row_on_a_command_with_a_menu_item_of_its_own_passes(self):
         A = atlas()
         entry(A, "tint")["feature_row"] = True
         entry(A, "paint")["feature_row"] = True
@@ -252,21 +252,21 @@ class Faults(unittest.TestCase):
         A = atlas()
         A["verbs"].append({"id": "rinse", "name": "Rinse", "section": "Solid", "slot": None, "tool": block(),
                            "feature_row": True})
-        self.assertFault(A, "rinse", "feature_row needs a row of its own")
+        self.assertFault(A, "rinse", "feature_row needs a menu item of its own")
 
-    def test_feature_row_on_a_folded_row(self):
+    def test_feature_row_on_a_folded_item(self):
         A = atlas()
         entry(A, "tint")["fold"] = {"into": "paint", "args": {"shade": "blue"}}
         del entry(A, "tint")["section"]
         entry(A, "tint")["feature_row"] = True
-        self.assertFault(A, "tint", "feature_row needs a row of its own")
+        self.assertFault(A, "tint", "feature_row needs a menu item of its own")
 
     # --- entries and blocks ----------------------------------------------------------------------
 
     def test_an_entry_with_no_slot_no_action_and_no_block(self):
         A = atlas()
         A["verbs"].append({"id": "nothing", "name": "Nothing", "slot": None})
-        self.assertFault(A, "nothing", "neither a row, an action nor a tool block")
+        self.assertFault(A, "nothing", "neither a menu item, an action nor a tool block")
 
     def test_a_closed_that_is_no_boolean(self):
         A = atlas()

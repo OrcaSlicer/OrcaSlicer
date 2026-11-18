@@ -147,7 +147,7 @@ def main():
         exported = run_plugin_script(orca, plugin_dir, "export", CAPABILITIES[3])
         check("a plugin is refused replay_export", exported.get("ok") is False and "agent's session" in exported.get("error", ""),
               exported)
-        # tool_search's one search: a command the tool list does not show (an operation, a menu row) with
+        # tool_search's one search: a command the tool list does not show (an operation, a menu item) with
         # its schema, a listed tool with its summary (its schema is in tools/list), and beside them the other
         # catalogs' best matches.
         found = orca.call("tool_search", query="fixture measure")
@@ -163,7 +163,7 @@ def main():
               found)
         found = orca.call("tool_search", query="developer mode")
         command = next((i for i in found["items"] if i["name"] == "settings_toggle_developer_mode"), {})
-        check("tool_search's search finds a menu row's command among the commands, with its schema",
+        check("tool_search's search finds a menu item's command among the commands, with its schema",
               command.get("listed") is False and "input_schema" in command, found)
         check("and not its tile among the actions",
               not any("toggle_developer_mode" in a["id"] for a in found.get("actions", {}).get("items", [])), found)
@@ -171,8 +171,8 @@ def main():
         check("tool_search's search finds the Speed Dial's other actions",
               any("fixture" in a.get("title", "").lower() for a in found.get("actions", {}).get("items", [])), found)
         described = orca.call_raw("tool_search", {"tool": "script_toggle_panel"})
-        row = {} if described.get("isError") else json.loads(described["content"][0]["text"])
-        check("tool_search describes a menu row's command", row.get("listed") is False and "input_schema" in row, described)
+        item = {} if described.get("isError") else json.loads(described["content"][0]["text"])
+        check("tool_search describes a menu item's command", item.get("listed") is False and "input_schema" in item, described)
         names = orca.call("tool_search", group="objects").get("names", [])
         check("tool_search's group is any case, a place's heading", "object_arrange" in names, names)
         unknown = orca.call_raw("tool_search", {"group": "commandz"})
@@ -180,7 +180,7 @@ def main():
               unknown.get("isError") and "Objects" in unknown["content"][0]["text"], unknown)
         # It shows the Run Script panel; the second call hides it again.
         ran = orca.call_raw("tool_call", {"tool": "script_toggle_panel"})
-        check("tool_call runs a menu row's command", not ran.get("isError"), ran)
+        check("tool_call runs a menu item's command", not ran.get("isError"), ran)
         orca.call_raw("tool_call", {"tool": "script_toggle_panel"})
         found = orca.call("tool_search", query="mesh normals")
         check("tool_search's search finds the Python API", found.get("python", {}).get("items", [{}])[0].get("name") ==

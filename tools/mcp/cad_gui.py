@@ -930,7 +930,7 @@ class CadGui:
         for now (describe_design's selection): those of the sketch vocabulary, or with sketch_mode False of the
         model one, or with None both. Each has id, name, row, row_name, family (its submenu within the row,
         or None), key, action, sketch_mode, applies (it accepts the selection), modal and hint, as the table
-        has them; entries with no menu row (commands only) are left out."""
+        has them; entries with no menu item (commands only) are left out."""
         with open(ATLAS, encoding="utf-8") as f:
             atlas = json.load(f)
         slots = atlas["slots"]

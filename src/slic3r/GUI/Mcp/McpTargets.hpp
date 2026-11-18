@@ -31,7 +31,7 @@ enum TargetKind : unsigned {
     kParts     = 4,
     // An instance or a part selected stands for its object, for a command that takes objects and not them. Asked for by
     // object_set_instances, whose items read the selected object so (Plater::get_selected_object_idx()), and by the
-    // commands of one object that have no row: part_add, object_set_variable_layer_height and object_set_height_ranges.
+    // commands of one object that have no menu item: part_add, object_set_variable_layer_height and object_set_height_ranges.
     kObjectOfSelection = 8,
     // A part selected stands for its instance, for a command that takes instances and not parts. Asked for by
     // object_separate_instances, as Set as Individual Objects reads it (ObjectList::split_instances()).

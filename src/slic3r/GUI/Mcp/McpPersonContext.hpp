@@ -44,7 +44,7 @@ public:
 // What action_run runs a command's tile with: the context of action_run's own call, except that a command
 // that rewrites its journal entry does so inside action_run's, as {"id": <the tile's action id>, "args": ...},
 // so that a replay runs the tile again through action_run. A tile of fixed arguments (an item of a command's tiles, a
-// Design command's folded rows among them, or a command's own tile outside the Design tab) records `tile_args` there in
+// Design command's folded items among them, or a command's own tile outside the Design tab) records `tile_args` there in
 // place of the command's rewrite: what action_run takes for it (tile_journal_args()). action_run refuses any other
 // arguments for such a tile, and so would refuse the replay of a rewrite (object_arrange's adds the settings in
 // force). A Design command's own tile, which takes its command's arguments, has none, and the command's rewrite stands.

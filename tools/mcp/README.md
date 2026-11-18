@@ -129,7 +129,7 @@ the tool list does not show. Outside the Design tab a section is a Speed Dial se
 the `tile_group` of a command's own tile), and each tile has a row with its key, its title, the command and
 arguments it runs (`project_export {"format": "gcode"}` for Export G-code) and its description. In the
 Design section a command has a row of its own when it has a tile of its own (`in_palette`), and each Design
-menu row folded into a command follows it as a row with the command's key, the row's title and the
+menu item folded into a command follows it as a row with the command's key, the item's title and the
 arguments that open its tool (`sketch_pattern` with `{"type": "linear"}` for Linear array). It needs no
 running app. With `--check` it writes
 nothing, prints the difference and exits 1 when the file is not what it would write. When a command
@@ -180,7 +180,7 @@ the run that outlives its reply budget runs with the budget capped at 4 s (`ORCA
 `test_plugin_tools.py` checks a plugin's calls into the tools in the running app: it side-loads
 `tests/plugins/mcp_tools_fixture` into a fresh data folder and launches twice: over MCP, with the Design tab
 on (its operation is in the group Plugins, reached through `tool_search` and `tool_call` and out of
-`tools/list`; a menu row's command is found among `tool_search`'s commands with its schema and its tile not
+`tools/list`; a menu item's command is found among `tool_search`'s commands with its schema and its tile not
 among its actions, and `tool_call` runs it; a group is a place's heading, in any case; a Design command is
 found there too, in no section of its own; calls from its Script worker
 and a thread it starts reach the tools, an auto-answer rule it sets is the plugin's, `replay_export` is
@@ -437,7 +437,7 @@ constraints, loops and degrees of freedom; `sketch_edit` and its replace, cancel
 `sketch_project` with and without an open sketch, `sketch_text`, `sketch_insert_svg` and Scale artwork;
 `feature_edit`'s `refs` and a card's picks while it edits a feature; `view_set`'s Design options;
 `select_geometry`, `confirm_tool`, `cancel_tool` and `body_place`; the Boolean card a call opens; and a
-pick of a folded row's tile from the Speed Dial, and its replay. Its docstring lists the rungs.
+pick of a folded item's tile from the Speed Dial, and its replay. Its docstring lists the rungs.
 
 Three more harness tests on a `--cad` instance drive the Design tab the way a person does. Every action goes
 through the UI tools (`view_set`, `widget_click`, `mouse_gesture`, `keyboard_press`, `widget_set_value`,
@@ -617,10 +617,11 @@ Select All Objects run in place (the script). `test_project_open_settings.py`
 launches its own app, whose Preferences load a project's geometry only, and checks that `project_open` loads
 the settings a project was saved with all the same.
 
-The commands that do a menu row's job take their targets by index, and the replays call them so and read each
-back: `tests/rows_objects.json` (rename, instances, separate, delete, height ranges), `rows_structure.json`
-(split, assemble, change type, order), `rows_placement.json` (add a primitive by numbers, mirror, drop, centre,
-scale to fit, auto-orient) and `rows_plates.json` (duplicate, rename, lock, select and delete a plate);
+The commands that do a menu item's job take their targets by index, and the replays call them so and read each
+back: `tests/menu_items_objects.json` (rename, instances, separate, delete, height ranges),
+`menu_items_structure.json` (split, assemble, change type, order), `menu_items_placement.json` (add a
+primitive by numbers, mirror, drop, centre, scale to fit, auto-orient) and `menu_items_plates.json`
+(duplicate, rename, lock, select and delete a plate);
 `objects_state.json` (`object_set_printable`, `object_fix`, `object_set_auto_drop`), `objects_files.json`
 (`object_clone`, `object_reload_from_disk`, `part_replace`, with the files `tests/fixtures/objects_files.py`
 writes), `objects_order.json` (`object_order {order}`), `filaments_and_files.json` (a slot merged into
@@ -629,8 +630,9 @@ another, a mixed filament, exports of some objects and of each object, a ZIP's e
 `presets_and_plate_map.json` (`preset_list`'s filters, a plate's filament map, a nozzle variant) and
 `view_switches.json` (`view_set`'s display switches, sidebar and legend, and an object placed by a plate's
 `origin` and `size`). A replay cannot expect an error, so the refusals are Python tests:
-`test_rows_refusals.py` checks that each object command made from rows refuses with its own reason, and
-`test_additions_refusals.py` the filament, preset, export and import commands'. `test_preferences.py` checks
+`test_menu_items_refusals.py` checks that each object command made from menu items refuses with its own
+reason, and `test_additions_refusals.py` the filament, preset, export and import commands'.
+`test_preferences.py` checks
 `preferences_get` and `preferences_set` against the Preferences dialog, tab by tab. Some launch their own app,
 on a fresh data folder and printers the sweep does not seed: `test_install_printers.py` and
 `test_install_filaments.py` (installs and uninstalls, read back after a restart), `test_plugin_commands.py`
@@ -640,7 +642,7 @@ on a fresh data folder and printers the sweep does not seed: `test_install_print
 
 `test_every_tile.py` runs each of the 129 Speed Dial tiles of `tests/data/speed_dial_tiles.json` through
 `action_run`, each from a state its table sets up afresh, answers the dialog or file picker it opens, and reads what
-its row's job leaves: a change only that tile makes, the window it opens, the file it writes, or the refusal of a
+its menu item's job leaves: a change only that tile makes, the window it opens, the file it writes, or the refusal of a
 tile that needs a printer or an account. It also checks the reply's `ran` and the step `replay_export` keeps against
 `tests/data/speed_dial_tile_calls.json`. Its web-page and configuration-folder tiles hand over to the system's
 browser and file manager, so the sweep runs it on its own.

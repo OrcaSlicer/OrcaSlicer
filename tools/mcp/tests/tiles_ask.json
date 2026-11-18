@@ -1,4 +1,4 @@
-// A call with exactly a tile's arguments does what a person's pick of the tile does, and a tile whose row and tool do
+// A call with exactly a tile's arguments does what a person's pick of the tile does, and a tile whose menu item and tool do
 // the same thing runs the tool's function: calibration_generate_test with test alone asks in the test's dialog, and
 // with silent runs with its defaults; View: Top turns the Design tab's camera; Go to tab and Go to layer take their
 // value through action_run; plate_slice {preview: true} and Slice and Preview slice and show the Preview tab; Deselect

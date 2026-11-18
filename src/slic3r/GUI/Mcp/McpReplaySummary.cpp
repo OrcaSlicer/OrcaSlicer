@@ -183,8 +183,8 @@ void describe_action(Builder& b, const CommandCatalog& catalog, const json& args
 {
     const std::string id    = args.contains("id") && args["id"].is_string() ? args["id"].get<std::string>() : std::string();
     const json        given = args.contains("args") ? args["args"] : json();
-    // A command's tile, by its full id or by the key inside it, as action_run takes either: a folded row's tile runs its
-    // command with the row's arguments, and the value it collects when it has one, as a person's pick of it does.
+    // A command's tile, by its full id or by the key inside it, as action_run takes either: a folded item's tile runs its
+    // command with the item's arguments, and the value it collects when it has one, as a person's pick of it does.
     if (const auto [command, tile] = find_tile(catalog, command_tile_key(id)); command != nullptr) {
         describe_command(b, catalog, command->key, tile_call_args(tile, given), tile);
         return;
@@ -208,7 +208,7 @@ void describe_action(Builder& b, const CommandCatalog& catalog, const json& args
     }
 }
 
-// A command of `catalog` called as one of its tiles: with the arguments of a tile that runs it with them (a menu row
+// A command of `catalog` called as one of its tiles: with the arguments of a tile that runs it with them (a menu item
 // folded into it), or with none, as its tile of its own (plate_delete). A command with a tile of its own that the tool
 // list does not show (a Design command) is its tile's call whatever its arguments. Called so, it does what action_run
 // of that tile does.

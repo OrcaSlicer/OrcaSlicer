@@ -25,7 +25,7 @@ using Flags = std::vector<std::string>;
 const Flags kEveryFlag{"writes_file", "changes_presets", "replaces_project", "sends_to_printer"};
 
 // The commands the cases call by their key, with tiles and places in the tool list as the app's catalog has them:
-// commands whose menu rows are items of their tiles, view_set's two among them collecting a value, and object_mirror's
+// commands whose menu items are their tiles, view_set's two among them collecting a value, and object_mirror's
 // two, one of which has a Speed Dial section of its own; plate_delete, with a tile of its own; all of them listed, as
 // they run from their arguments. And export_drawing, made up, with a tile of its own and one that runs it with
 // {"format": "pdf"}, which the tool list does not show, as a Design command. Every other tool the cases name is a
@@ -220,7 +220,7 @@ TEST_CASE("a call with other arguments than a tile's is described by its argumen
     // The command's own tile with the other tile's arguments is that tile.
     CHECK(describe(action("orca_command:export_drawing:orca", {{"format", "pdf"}})).what ==
           json{{"kind", "command"}, {"key", "export_drawing"}, {"tile", "export_drawing_pdf"}});
-    // A command made from rows called with arguments no tile has is described as a typed tool's call, with what it
+    // A command made from menu items called with arguments no tile has is described as a typed tool's call, with what it
     // does whichever way it is called.
     const StepDescription exported = describe(json{{"tool", "preset_export"}, {"args", {{"path", abs_path("presets")}}}}.dump());
     CHECK(exported.what == json{{"kind", "files"}, {"names", {"presets"}}});

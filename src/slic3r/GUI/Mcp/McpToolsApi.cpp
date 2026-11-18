@@ -1,5 +1,5 @@
 // tool_search and tool_call: a generic way to every command of the catalog, those tools/list does not show among
-// them: the menu rows that take no arguments, the Design tab's commands and the operations plugins offer
+// them: the menu items that take no arguments, the Design tab's commands and the operations plugins offer
 // (plugin.<key>.<name>). tool_search's search also reaches the other catalogs an agent calls into: the Speed Dial's
 // other actions, settings and the Python API.
 
@@ -281,7 +281,7 @@ void register_api_tools(CommandCatalog& catalog, const std::string& design_index
         "tool_search", L("Find tools, actions, settings and APIs"),
         "Find what does something, in one search, or look up one command. With query: the commands that match, best "
         "first, each with its group, the first sentence of its description and listed, whether the tool list shows it; "
-        "one that is not listed (a menu row that takes no arguments, a Design tab command, or an operation a plugin "
+        "one that is not listed (a menu item that takes no arguments, a Design tab command, or an operation a plugin "
         "offers, plugin.<plugin>.<name>) comes with its input schema, and its description when that says more, which "
         "nothing else shows. Beside them, the best few matches of each other catalog, with its total and how to use it: "
         "actions (the Speed Dial's plates, recent projects and plugin scripts and pages), settings, and python (the orca "
@@ -323,7 +323,7 @@ void register_api_tools(CommandCatalog& catalog, const std::string& design_index
     // mode, budget and journal flag, and is journaled as the target's call. This handler is never reached.
     NativeCommand call = mutate_tool(
         "tool_call", L("Call a tool or plugin operation"),
-        "Call any command by name with its arguments: a tool, or one the tool list does not show, a menu row that takes no "
+        "Call any command by name with its arguments: a tool, or one the tool list does not show, a menu item that takes no "
         "arguments, a Design tab command or an operation a plugin offers (see tool_search). It runs and is recorded as "
         "that command's own call, with its guards and reply budget.",
         object_schema({{"tool", prop("string", "The command to call.")},

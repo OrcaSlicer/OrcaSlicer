@@ -23,7 +23,7 @@ sidebar is off, and view_set of it is refused.
 
 filament_delete of the only filament slot is refused. With a mixed filament of slots 1 and 2, a merge of slot 1 into it
 is refused with the question Merge with asks, and filament_delete of the mixed slot is refused. filament_add once the
-project holds as many filament slots as it can is refused, and a pick of Add Filament Slot then says so, as its row did.
+project holds as many filament slots as it can is refused, and a pick of Add Filament Slot then says so, as its menu item did.
 
 object_order with an order that leaves out an object of the plate is refused, naming it, and leaves the order as it was.
 

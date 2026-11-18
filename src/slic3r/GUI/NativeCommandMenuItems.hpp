@@ -13,13 +13,13 @@ namespace GUI {
 
 enum class CalibKind : int;
 
-// The functions of the Speed Dial's menu rows that are tiles of a command: each does what its row does, as a
-// person's pick of the row does it: on what is selected in the Prepare view, on the current plate, or on the app and
-// its windows. A command made from rows calls the function of the row its variant argument names, and a typed tool
-// calls one when a call's arguments are that row's tile's (Mcp::person_form()), or, where the row does what the tool
-// does (Auto-Arrange), for a person's pick of the tile alone (NativeCommands::with_row_forms()). They are defined in
-// NativeCommands.cpp, beside the helpers the rows share. UI thread.
-namespace Rows {
+// The functions of the Speed Dial's menu items that are tiles of a command: each does what its item does, as a
+// person's pick of the item does it: on what is selected in the Prepare view, on the current plate, or on the app and
+// its windows. A command made from menu items calls the function of the menu item its variant argument names, and a typed tool
+// calls one when a call's arguments are that item's tile's (Mcp::person_form()), or, where the item does what the tool
+// does (Auto-Arrange), for a person's pick of the tile alone (NativeCommands::with_menu_item_forms()). They are defined in
+// NativeCommands.cpp, beside the helpers the menu items share. UI thread.
+namespace MenuItems {
 
 // ---- The project ----
 AppActionRunResult load_project();
@@ -101,7 +101,7 @@ AppActionRunResult toggle_run_script_panel();
 // of `what`.
 nlohmann::json input_file(const char* what);
 
-} // namespace Rows
+} // namespace MenuItems
 
 } // namespace GUI
 } // namespace Slic3r

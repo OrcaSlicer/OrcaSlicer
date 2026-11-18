@@ -163,7 +163,7 @@ TEST_CASE("the commands that replace a dialog take the arguments the table gives
     REQUIRE(names("preset_import") == Names{"path", "on_conflict", "silent"});
     REQUIRE(names("plugin_install_local") == Names{"path", "overwrite", "silent"});
     REQUIRE(names("window_open") == Names{"window", "tab", "key"});
-    // The object commands made from rows take their targets, by index or by the ids object_list reports.
+    // The object commands made from menu items take their targets, by index or by the ids object_list reports.
     REQUIRE(names("object_rename") == Names{"object", "object_id", "part", "part_id", "name", "silent"});
     REQUIRE(names("object_set_instances") == Names{"object", "object_id", "count", "delta", "silent"});
     REQUIRE(names("object_delete") ==
@@ -185,7 +185,7 @@ TEST_CASE("the commands that replace a dialog take the arguments the table gives
     REQUIRE(names("object_clone") == Names{"objects", "object_ids", "count", "arrange"});
     REQUIRE(names("object_reload_from_disk") == Names{"objects", "object_ids", "parts", "part_ids", "all"});
     REQUIRE(names("part_replace") == Names{"object", "object_id", "part", "part_id", "path"});
-    // The plate commands made from rows take the plate, and what their dialog or icon gives.
+    // The plate commands made from menu items take the plate, and what their dialog or icon gives.
     REQUIRE(names("plate_select") == Names{"plate"});
     REQUIRE(names("plate_delete") == Names{"plate"});
     REQUIRE(names("plate_duplicate") == Names{"plate"});
@@ -1118,7 +1118,7 @@ TEST_CASE("a shape's size needs one positive number per field of the size dialog
     }
 }
 
-// The object list's context-menu rows are tiles of commands beside the other object and part commands.
+// The object list's context-menu items are tiles of commands beside the other object and part commands.
 TEST_CASE("the object structure commands sit beside the other object commands", "[Mcp][Scene]")
 {
     const NativeCommand* objects = NativeCommands::find("object_delete");

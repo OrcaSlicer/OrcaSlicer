@@ -88,7 +88,7 @@ NativeCommand mutate_tool(std::string name, std::string title, std::string descr
     return d;
 }
 
-NativeCommand row_command(std::string name, std::string title, std::string description, json schema, json tiles,
+NativeCommand menu_command(std::string name, std::string title, std::string description, json schema, json tiles,
                           std::function<AppActionRunResult(const json& args)> fn)
 {
     NativeCommand d = NativeCommands::ui_command(std::move(name), std::move(title), {}, std::move(schema), std::move(fn));
@@ -98,7 +98,7 @@ NativeCommand row_command(std::string name, std::string title, std::string descr
     return d;
 }
 
-AppActionRunResult row_reply(const json& reply)
+AppActionRunResult menu_reply(const json& reply)
 {
     AppActionRunResult result{AppActionRunResult::Level::Succeeded};
     result.reply = reply.dump();

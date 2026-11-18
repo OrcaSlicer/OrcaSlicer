@@ -103,7 +103,7 @@ public:
                       Constrain };
     // Which tool is armed, and how many anchors it has down. Read-only, for the offer ladder:
     // "the menu armed the verb I chose" is otherwise unassertable, and a menu walk that lands one
-    // row off arms a NEIGHBOURING tool and then grades whatever that drew. ekt9.
+    // item off arms a NEIGHBOURING tool and then grades whatever that drew. ekt9.
     Mode mode() const { return m_mode; }
     int  pending_points() const { return int(m_points.size()); }
     // Picks the armed tool is holding that are not yet an entity or a constraint: the Dimension

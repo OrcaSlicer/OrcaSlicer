@@ -2051,14 +2051,14 @@ const std::set<std::string> kOperations = {
 };
 
 // What an exception is, so that the reason reads the same for every entry of a kind.
-constexpr const char* kRunsWhatItIsGiven = "runs what its arguments name, which is classified where it is defined";
-constexpr const char* kDrivesTheGui      = "drives the GUI as a person does: the widget it acts on decides what happens";
-constexpr const char* kSessionState      = "changes the automation session (jobs, the journal, recordings), not the project";
-constexpr const char* kOneEntryPoint     = "its function has one automation entry point, so no second caller can drift from it";
-constexpr const char* kHistory           = "it calls the undo and redo of the history it names, which no operation stands for";
-constexpr const char* kRowAdds           = "it runs its menu row's function, which adds an object, a part, a plate or a filament slot";
-constexpr const char* kRowOpens          = "it runs its menu row's function, which opens a window, a panel or a web page for a person";
-constexpr const char* kRowAppSetting     = "it runs its menu row's function, which changes a setting of the app, not the project";
+constexpr const char* kRunsWhatItIsGiven  = "runs what its arguments name, which is classified where it is defined";
+constexpr const char* kDrivesTheGui       = "drives the GUI as a person does: the widget it acts on decides what happens";
+constexpr const char* kSessionState       = "changes the automation session (jobs, the journal, recordings), not the project";
+constexpr const char* kOneEntryPoint      = "its function has one automation entry point, so no second caller can drift from it";
+constexpr const char* kHistory            = "it calls the undo and redo of the history it names, which no operation stands for";
+constexpr const char* kMenuItemAdds       = "it runs its menu item's function, which adds an object, a part, a plate or a filament slot";
+constexpr const char* kMenuItemOpens      = "it runs its menu item's function, which opens a window, a panel or a web page for a person";
+constexpr const char* kMenuItemAppSetting = "it runs its menu item's function, which changes a setting of the app, not the project";
 
 const std::map<std::string, const char*> kExceptions = {
     // The typed tools.
@@ -2092,25 +2092,25 @@ const std::map<std::string, const char*> kExceptions = {
     {"settings_set", kOneEntryPoint},
     {"plate_set_settings", kOneEntryPoint},
     {"project_set_settings", kOneEntryPoint},
-    // The commands made from menu rows, which run their rows' functions.
-    {"object_add_handy_model", kRowAdds},
-    {"object_add_text", kRowAdds},
-    {"object_add_svg", kRowAdds},
-    {"plate_add", kRowAdds},
-    {"window_open", kRowOpens},
-    {"app_open_web_page", kRowOpens},
-    {"app_show_config_folder", kRowOpens},
-    {"script_toggle_panel", "it runs its menu row's function, which shows or hides the Run Script panel for a person"},
-    {"settings_set_mode", kRowAppSetting},
-    {"settings_toggle_developer_mode", kRowAppSetting},
+    // The commands made from menu items, which run their items' functions.
+    {"object_add_handy_model", kMenuItemAdds},
+    {"object_add_text", kMenuItemAdds},
+    {"object_add_svg", kMenuItemAdds},
+    {"plate_add", kMenuItemAdds},
+    {"window_open", kMenuItemOpens},
+    {"app_open_web_page", kMenuItemOpens},
+    {"app_show_config_folder", kMenuItemOpens},
+    {"script_toggle_panel", "it runs its menu item's function, which shows or hides the Run Script panel for a person"},
+    {"settings_set_mode", kMenuItemAppSetting},
+    {"settings_toggle_developer_mode", kMenuItemAppSetting},
     {"undo", kHistory},
     {"redo", kHistory},
     {"preset_export", kOneEntryPoint},
     {"plugin_install_local", kOneEntryPoint},
-    {"preset_migrate_filaments", "it runs its menu row's function, which asks before it migrates the legacy user filament presets"},
-    {"app_check_for_updates", "it runs its menu row's function, which asks the update server and shows its answer"},
-    {"app_benchmark_3d_scene", "it runs its menu row's function, which times the 3D views on a test model in place of the project"},
-    {"window_save_screenshot", "it runs its menu row's function, which saves a picture of the main window where recordings go"},
+    {"preset_migrate_filaments", "it runs its menu item's function, which asks before it migrates the legacy user filament presets"},
+    {"app_check_for_updates", "it runs its menu item's function, which asks the update server and shows its answer"},
+    {"app_benchmark_3d_scene", "it runs its menu item's function, which times the 3D views on a test model in place of the project"},
+    {"window_save_screenshot", "it runs its menu item's function, which saves a picture of the main window where recordings go"},
 };
 
 } // namespace

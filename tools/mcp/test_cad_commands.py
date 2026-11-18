@@ -16,7 +16,7 @@ suppresses a feature, which describe_design and feature_describe say as suppress
 cannot both hold, which describe_design lists in align_conflicts; and it calls the open sketch's commands by
 their type, sketch_extend, sketch_pattern, sketch_transform and sketch_dimension, through their silent forms.
 shapes_match_tools draws twelve shapes twice, each in a sketch of its own: once with its drawing tool, its
-right-click menu row chosen and its points clicked on the canvas, and once with sketch_draw, from the geometry
+right-click menu item chosen and its points clicked on the canvas, and once with sketch_draw, from the geometry
 the tool's shape reads back with; the 3-point rectangle, the tangent arc, the slot and the square are drawn at a
 slant. The two sketches agree in their entities' types and geometry, their constraints' count and kinds (as
 sketch_list_constraints reads them), their loops and their degrees of freedom, and again after one undo of each,
@@ -65,7 +65,7 @@ editor; a face, an edge and a vertex, at the point body_describe gives it; the s
 rename_selected renames and zoom_to_selection frames; and each feature, which rename_selected, feature_delete,
 feature_edit and sketch_constrain_selected then act on, as zoom_to_selection does not. {} clears it all. Under an open
 card or sketch, and for an id the model lacks or a plane no click could pick, it is refused and the selection stays
-as it was. With an edge, a face, a body and a vertex selected, the menu rows that take them apply; the canvas draws a
+as it was. With an edge, a face, a body and a vertex selected, the menu items that take them apply; the canvas draws a
 face, an edge and a vertex selected, each differently. A plane is selected while the Origin row shows the planes, and
 starts the sketch Sketch waits for, on XY as its sketch_normal camera reads it.
 select_loops extrudes loop 0 of a sketch of three squares alone: select_geometry's loop 1 is then the loop
@@ -92,9 +92,9 @@ where it stands. place_follows deletes the feature that made the first of two pl
 placement as it becomes body 0, a box added afterwards has none, and undo brings the first back where it stood.
 boolean_opens calls boolean {} and boolean {operation: "cut"} with two bodies and nothing selected: each replies that
 a tool is open, and the card it opened, confirmed with confirm_tool, adds a join and a cut; with target and tool the
-cut runs. tile_pick opens the Speed Dial in a sketch with a line selected and picks the Polar array tile, a row folded
+cut runs. tile_pick opens the Speed Dial in a sketch with a line selected and picks the Polar array tile, an item folded
 into sketch_pattern, which arms the polar array tool, and the Trim tile, sketch_trim's own, which arms the trim tool.
-tile_replay runs the Polar array tile with action_run, exports the session, whose step carries the row's arguments
+tile_replay runs the Polar array tile with action_run, exports the session, whose step carries the item's arguments
 {"type": "circular"}, and replays it in a new project to the same armed tool.
 """
 
@@ -249,7 +249,7 @@ def rung_words():
 
 # ---------------------------------------------------------------- the shapes
 
-# The tool each drawing row arms, as sketch_describe names it, so that a row chosen one off is caught where it is.
+# The tool each drawing item arms, as sketch_describe names it, so that an item chosen one off is caught where it is.
 ARMS = {"sk_rect": "rect_corner", "sk_polyline": "polyline", "sk_rect_center": "rect_center",
         "sk_rect_oblique": "rect_oblique", "sk_rect_rounded": "rect_rounded", "sk_circle_2pt": "circle_2pt",
         "sk_circle_3pt": "circle_3pt", "sk_arc_t": "arc_3pt", "sk_arc_tangent": "arc_tangent", "sk_slot_arc": "slot_arc",
@@ -257,7 +257,7 @@ ARMS = {"sk_rect": "rect_corner", "sk_polyline": "polyline", "sk_rect_center": "
 
 
 def menu_path(verb):
-    """The label path of the drawing row `verb` in the offer a right-click on empty space in a sketch opens: its
+    """The label path of the drawing item `verb` in the offer a right-click on empty space in a sketch opens: its
     row, its family when it has one, and its name, as DesignPanel::show_offer_menu lays out a row of many verbs."""
     v = next(v for v in gui.verbs() if v["id"] == verb)
     return ">".join([v["row_name"]] + ([v["family"]] if v["family"] else []) + [v["name"]])
@@ -307,7 +307,7 @@ def disagreement(by_tool, by_command):
 
 
 def shapes(box):
-    """The shapes shapes_match_tools draws: for each, its row, what both sketches get first by sketch_draw, the tool's
+    """The shapes shapes_match_tools draws: for each, its menu item, what both sketches get first by sketch_draw, the tool's
     clicks (mm), how many entities it adds and how many an undo leaves of them, and the sketch_draw arguments that
     draw it again, from what the tool drew (the entities after the first ones). Positions are shares of the
     calibrated region `box` (x0, x1, y0, y1), so that every click lands in it whatever the window, and none falls
@@ -585,7 +585,7 @@ def failing_edit():
 
 
 def rung_sketch_edit_failed_leave():
-    # sketch_text {}, the Text row, and K, Constrain, finish the open sketch before they open the Text dialog or
+    # sketch_text {}, the Text item, and K, Constrain, finish the open sketch before they open the Text dialog or
     # Constrain mode on it. A re-opened sketch whose replace fails stops each there: nothing opens on the sketch as it
     # was, and the status line says why.
     for route, leave in (("sketch_text {}", lambda: gui.cad("sketch_text")),
@@ -810,7 +810,7 @@ def rung_surface_revolve_flip():
     gui.cad("sketch_create", plane="XZ")
     gui.cad("sketch_draw", type="rectangle_2_point", p0=[10, 0], p1=[14, 20])
     sketch = gui.cad("sketch_finish")["sketch_index"]
-    # Its menu row takes a picked loop, and the card revolves the sketch the loop is of.
+    # Its menu item takes a picked loop, and the card revolves the sketch the loop is of.
     gui.cad("select_geometry", sketch=sketch, loop=0)
     opened = gui.cad("surface_revolve")
     shown = until(lambda: any(w.kind == "toggle" and w.label == "Flip direction" for w in gui.widgets()))
@@ -1002,7 +1002,7 @@ def rung_select():
     r = gui.cad("zoom_to_selection")
     gui.check("select: zoom_to_selection applies to the loop", r.get("applies") is True, r)
 
-    # Features of the Feature list, straight after the loop, which the four rows that act on its row act on.
+    # Features of the Feature list, straight after the loop, which the four menu items that act on its row act on.
     r = select(feature=f["box"])
     gui.check("select: {feature} reads back the feature's row, and nothing picked in the view",
               r["feature"] == f["box"] and r["selection"]["id"] == "none" and selected() == ("none", None, f["box"]), r)
@@ -1073,7 +1073,7 @@ def rung_select():
     why = refused("select_geometry", body=0, face=top, generation=gen + 1)
     gui.check("select: a stale generation is refused", "-32010" in why, why)
 
-    # The menu rows that take what is selected apply to it.
+    # The menu items that take what is selected apply to it.
     select(body=0, edges=[edge], generation=gen)
     r = gui.cad("fillet")
     gui.check("select: with an edge selected fillet {} applies and opens its card",
@@ -1778,7 +1778,7 @@ def rung_shapes_match_tools():
     for shape in shapes(gui.safe):
         name, setup = shape["type"], shape["setup"]
 
-        # With the tool: its row chosen from the offer on empty space, its points clicked.
+        # With the tool: its item chosen from the offer on empty space, its points clicked.
         gui.enter_sketch()
         if setup:
             gui.cad("sketch_draw", entities=setup)
@@ -1844,7 +1844,7 @@ def boolean_card(rung, args, operation):
 
 
 def rung_boolean_opens():
-    # The Boolean rows take two bodies, which the tab never reports as what is selected, so a call opens the card as
+    # The Boolean items take two bodies, which the tab never reports as what is selected, so a call opens the card as
     # the toolbar button does, whatever is selected.
     two_bodies()
     boolean_card("boolean_opens", {}, "join")
@@ -1872,7 +1872,7 @@ def line_selected():
 
 
 def rung_tile_pick():
-    # A pick from the Speed Dial runs its tile's action: a folded row's with the row's arguments, a merged row's as its
+    # A pick from the Speed Dial runs its tile's action: a folded item's with the item's arguments, a merged item's as its
     # command's own tile.
     line_selected()
     dial_pick("Polar array")
@@ -1885,7 +1885,7 @@ def rung_tile_pick():
 
 
 def rung_tile_replay():
-    # action_run of a folded row's tile is journaled with the row's arguments, so the exported session replays the pick.
+    # action_run of a folded item's tile is journaled with the item's arguments, so the exported session replays the pick.
     gui.new_design()
     gui.client.call("replay_export", clear=True)
     gui.cad("sketch_create", plane="XY")
@@ -1898,7 +1898,7 @@ def rung_tile_replay():
     path = os.path.join(out_dir, "session.json")
     gui.client.call("replay_export", path=path, overwrite=True)
     picks = [s for s in steps_of(path) if s["tool"] == "action_run"]
-    gui.check("tile_replay: the export keeps the pick with the row's arguments",
+    gui.check("tile_replay: the export keeps the pick with the item's arguments",
               len(picks) == 1 and picks[0]["args"].get("id") == "orca_command:sk_array_polar:orca"
               and picks[0]["args"].get("args") == {"type": "circular"}, picks)
     gui.cad("sketch_cancel")

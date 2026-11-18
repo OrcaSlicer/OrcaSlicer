@@ -7,11 +7,11 @@
 // ratified 2026-07-31; changing an index is a breaking change to every user's muscle memory.
 // An entry with an action or a tool block, and no fold_into, is a command of the catalog's group Design
 // (Mcp::register_cad_commands(), Mcp::is_design_command()), under its section in tool_search's index. A
-// call whose arguments are exactly those that choose one of its rows opens that row's tool for a person
-// (Mcp::opened_row()): none choose the entry's own row where it has an action, else the rows folded into it
-// with {}; a folded row's args, or the entry's own, choose that row. Any other call runs its tool block's
-// silent form. A folded row (fold_into) is no command: it is a way of calling the command it names. A row
-// with neither an action nor a tool block is greyed, and no command. An entry with no row is a command only.
+// call whose arguments are exactly those that choose one of its items opens that item's tool for a person
+// (Mcp::opened_item()): none choose the entry's own item where it has an action, else the items folded into it
+// with {}; a folded item's args, or the entry's own, choose that item. Any other call runs its tool block's
+// silent form. A folded item (fold_into) is no command: it is a way of calling the command it names. An item
+// with neither an action nor a tool block is greyed, and no command. An entry with no menu item is a command only.
 #ifndef slic3r_GUI_DesignOffer_hpp_
 #define slic3r_GUI_DesignOffer_hpp_
 
@@ -93,15 +93,15 @@ enum class CadAccess { None, Read, Change, Sketch, Ui };
 //   "key:L"          -> m_keys_sketch['L']
 //   "fly:material#4" -> row 4 of the "material" feature flyout
 //   "btn:delete"     -> a standalone toolbar button
-//   nullptr          -> no GUI path (the row, if it has one, shows disabled)
+//   nullptr          -> no GUI path (the item, if it has one, shows disabled)
 struct DesignTool {
     const char* id;          // also the key of its Design command
     const char* name;        // drawing-office word (L10); msgctxt "Design", translated at use
     int         row;         // index into kOfferRowNames, the ratified address — NEVER reorder;
-                             // -1: no menu row, a command only
-    const char* key;         // shortcut shown in the row, or nullptr
+                             // -1: no menu item, a command only
+    const char* key;         // shortcut shown in the item, or nullptr
     const char* action;
-    const char* refusal;     // why this row is greyed, in the product's own words
+    const char* refusal;     // why this item is greyed, in the product's own words
     uint32_t    accepts;     // bitmask over OfferSel
     int         need_bodies;
     int         need_sketches;
@@ -112,7 +112,7 @@ struct DesignTool {
     // address fixed (L4.1) while the variants hang one level below it, mirroring the toolbar's
     // grouping instead of flattening 19 create tools into one wall.
     const char* family;
-    const char* icon;         // resources/images name, or nullptr — the offer draws it beside the row
+    const char* icon;         // resources/images name, or nullptr — the offer draws it beside the item
     const char* hint;         // what the verb does / what to click; shown on hover
     bool        modal;        // its action opens a dialog that waits for an answer: a modal one, which holds
                               // the call until it is answered, or Text's, which is modeless and does not
@@ -120,22 +120,22 @@ struct DesignTool {
     bool        ok_false;     // its silent form reports a rejected rebuild in its reply (ok false)
     // Its silent form's summary, details, params, examples and ids as JSON text, the parameter
     // schema of record, and closed when its schema refuses an argument it does not name; nullptr for an
-    // entry whose command only does what its row does.
+    // entry whose command only does what its menu item does.
     const char* doc;
-    const char* fold_into;    // the id of the command this row is a variant of, or nullptr
-    // The arguments that choose this row, as JSON text: a folded row's, or those that choose the own row of
+    const char* fold_into;    // the id of the command this item is a variant of, or nullptr
+    // The arguments that choose this item, as JSON text: a folded item's, or those that choose the own item of
     // an entry with an action and a tool block as a call with none does; nullptr for none.
     const char* args;
     // The heading its command is listed under in tool_search's index (kDesignSections,
     // Mcp::design_command_index()); nullptr for an entry that is no command.
     const char* section;
     // Its action acts on the selected row of the Feature list, which a call of its command, not a person's
-    // pick, takes as what the row is for while nothing is picked in the view (Mcp::open_refusal()).
+    // pick, takes as what the item is for while nothing is picked in the view (Mcp::open_refusal()).
     bool        feature_row;
 };
 
-// The headings of tool_search's index of the Design commands, in its order. Menu rows holds the commands
-// that take no arguments and only do what their row does.
+// The headings of tool_search's index of the Design commands, in its order. Menu items holds the commands
+// that take no arguments and only do what their menu item does.
 static const char* const kDesignSections[] = {
     "Document",
     "Sketch",
@@ -145,7 +145,7 @@ static const char* const kDesignSections[] = {
     "Inspect",
     "Bodies",
     "History",
-    "Menu rows",
+    "Menu items",
 };
 
 // Row labels, in ratified order.
@@ -832,7 +832,7 @@ static const DesignTool kDesignTools[] = {
      ",\"args\":{\"diameter\":5,\"through\":true}},{\"tool\":\"feature_edit\",\"args\":{\"feature\":2,\"fields\":{\"hol"
      "e_diameter\":8}}}]}],\"ids\":false}", nullptr, nullptr, "History", true},
     {"rename_selected", L_CONTEXT("Rename…", "Design"), 8, "F2", "btn:rename", L("Select a feature, or a body, to rename it"), 0x00004080u, 0, 0, false, false, nullptr, "rename_edit", L("Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"), false, CadAccess::None, false,
-     nullptr, nullptr, nullptr, "Menu rows", true},
+     nullptr, nullptr, nullptr, "Menu items", true},
     {"delete_face", L_CONTEXT("Delete Face", "Design"), 7, nullptr, "fly:dressup#3", L("Delete Face needs a body — add or import one first"), 0x0000000eu, 1, 0, false, false, nullptr, "design_delete", L("Remove faces from a body and heal the solid"), false, CadAccess::Change, true,
      "{\"summary\":\"Remove faces from a solid, healing the gap via OCCT defeaturing.\",\"details\":\"\",\"para"
      "ms\":[{\"name\":\"body\",\"type\":\"integer\",\"default\":-1,\"description\":\"target body; omit for the last "
@@ -844,7 +844,7 @@ static const DesignTool kDesignTools[] = {
     {"colour", L_CONTEXT("Color", "Design"), 8, nullptr, "btn:colour", nullptr, 0x000001feu, 1, 0, false, false, nullptr, "color_palette", L("Set the selected body's display color"), true, CadAccess::None, false,
      nullptr, "body_set", "{}", nullptr, false},
     {"zoom_to_selection", L_CONTEXT("Zoom to selection", "Design"), 8, nullptr, "btn:zoom_to", nullptr, 0x000041feu, 0, 0, false, false, nullptr, "design_zoom", L("Frame the selection in the view, keeping the view direction"), false, CadAccess::None, false,
-     nullptr, nullptr, nullptr, "Menu rows", false},
+     nullptr, nullptr, nullptr, "Menu items", false},
     {"feature_delete", L_CONTEXT("Delete", "Design"), 7, "Del", "btn:delete", nullptr, 0x000f7c00u, 0, 0, false, false, nullptr, "design_delete", L("Delete what is selected"), false, CadAccess::Change, false,
      "{\"summary\":\"Delete a feature as its tree row's Delete does; deleting a sketch also deletes the f"
      "eatures built on it.\",\"details\":\"One undo step. Later indices shift. Reply: removed (how many fe"
@@ -911,9 +911,9 @@ static const DesignTool kDesignTools[] = {
     {"sk_poly_12", L_CONTEXT("Dodecagon", "Design"), 0, nullptr, "btn:poly#12", nullptr, 0x000f8000u, 0, 0, false, true, L_CONTEXT("Polygon", "Design"), "design_polygon", L("Dodecagon — click center, then a vertex"), false, CadAccess::None, false,
      nullptr, "sketch_draw", "{\"type\":\"polygon\",\"sides\":12}", nullptr, false},
     {"sketch_polygon_inscribed", L_CONTEXT("Inscribed", "Design"), 0, nullptr, "btn:polyfit#0", nullptr, 0x000f8000u, 0, 0, false, true, L_CONTEXT("Polygon", "Design"), "design_polygon", L("Measure the polygon to its corners (inscribed)"), false, CadAccess::None, false,
-     nullptr, nullptr, nullptr, "Menu rows", false},
+     nullptr, nullptr, nullptr, "Menu items", false},
     {"sketch_polygon_circumscribed", L_CONTEXT("Circumscribed", "Design"), 0, nullptr, "btn:polyfit#1", nullptr, 0x000f8000u, 0, 0, false, true, L_CONTEXT("Polygon", "Design"), "design_polygon", L("Measure the polygon to its flats (circumscribed)"), false, CadAccess::None, false,
-     nullptr, nullptr, nullptr, "Menu rows", false},
+     nullptr, nullptr, nullptr, "Menu items", false},
     {"sk_point_t", L_CONTEXT("Point", "Design"), 0, "P", "key:P", nullptr, 0x000f8000u, 0, 0, false, true, nullptr, "design_point", L("Point — click to place"), false, CadAccess::None, false,
      nullptr, "sketch_draw", "{\"type\":\"point\"}", nullptr, false},
     {"sketch_text", L_CONTEXT("Text", "Design"), 0, nullptr, "btn:text", nullptr, 0x000f8000u, 0, 0, false, true, nullptr, "design_text", L("Type text; it becomes a Text feature on this sketch's plane, editable later"), true, CadAccess::Change, false,
@@ -1079,11 +1079,11 @@ static const DesignTool kDesignTools[] = {
      "strain\",\"args\":{\"refs\":[{\"entity\":0,\"role\":\"p0\"}],\"type\":\"lock_x\",\"value\":5}}]}],\"ids\":false,\"cl"
      "osed\":true}", nullptr, nullptr, "Sketch", false},
     // Same verb, model-mode vocabulary: offered when a SKETCH is selected (bit 14, SkLoop), the
-    // state a user is in right after finishing one. Without this row the only way in was the
+    // state a user is in right after finishing one. Without this item the only way in was the
     // toolbar icon, and constraints read as absent — see the Onshape-comparison report.
     // It sits in the Reference row, the address the sketch-mode Constrain has: one verb, one row.
     {"sketch_constrain_selected", L_CONTEXT("Constrain sketch", "Design"), 6, nullptr, "btn:constrain", L("Select a sketch to constrain it"), 0x00004000u, 0, 1, false, false, nullptr, "design_constrain", L("Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"), false, CadAccess::None, false,
-     nullptr, nullptr, nullptr, "Menu rows", true},
+     nullptr, nullptr, nullptr, "Menu items", true},
     {"sketch_toggle_construction", L_CONTEXT("Construction", "Design"), 6, "Q", "key:Q", nullptr, 0x000b8000u, 0, 0, false, true, nullptr, "design_construction", L("Toggle construction: geometry that guides but is never built"), false, CadAccess::Sketch, false,
      "{\"summary\":\"Toggle construction on sketch entities.\",\"details\":\"Reply: changed, how many, and ok"
      ", false when none did.\",\"params\":[{\"name\":\"entities\",\"type\":\"array\",\"default\":[],\"description\":\""
@@ -1112,7 +1112,7 @@ static const DesignTool kDesignTools[] = {
      ":[{\"tool\":\"sketch_create\",\"args\":{\"plane\":\"XY\"}},{\"tool\":\"sketch_draw\",\"args\":{\"p0\":[-15,-10],\"p"
      "1\":[15,10],\"type\":\"rectangle_2_point\"}},{\"tool\":\"sketch_select\",\"args\":{\"entities\":[1,3]}},{\"too"
      "l\":\"sketch_delete\",\"args\":{\"silent\":true}}]}],\"ids\":false}", nullptr, nullptr, "Sketch", false},
-    // Typing the defining number of the element you pointed at. Three rows rather than one so
+    // Typing the defining number of the element you pointed at. Three items rather than one so
     // each names the quantity in the drawing-office word for THAT element; all three land on
     // the same handler, because dimension_kind() already resolves the quantity from the
     // selection. Without these, an element's own numbers were reachable only by arming the
@@ -1594,34 +1594,34 @@ static const DesignTool kDesignTools[] = {
      "d as sketch_describe {sketch} numbers closed_loops and extrude {sketch, loop} takes it, and is s"
      "elected only while the view shows it: an extrude that takes the whole sketch hides the sketch, a"
      "nd one that takes a loop hides that loop. Whatever was selected goes first, of every kind. The m"
-     "enu-row forms then act on the selection: feature_edit, rename_selected, feature_delete and sketc"
-     "h_constrain_selected called with no arguments act on the selected row of the Feature list while "
-     "nothing is picked in the view, and zoom_to_selection acts on what is picked in the view, so a sk"
-     "etch is zoomed to through sketch with loop, not through feature. Refused, changing nothing, for "
-     "an id the model does not have, and while a card, a sketch, Constrain mode, a body Move or the Te"
-     "xt dialog is open, where a click means something else. Reply: selection {kind, id}, plane and fe"
-     "ature, as describe_design reports selection, picked_plane and feature_row; for a vertex also poi"
-     "nt, as body_describe gives it, and placed_point, where the view draws it (the same unless the bo"
-     "dy was moved).\",\"params\":[{\"name\":\"body\",\"type\":\"integer\",\"default\":null,\"min\":0,\"description\":\""
-     "body index (describe_design); alone, the whole body\"},{\"name\":\"face\",\"type\":\"integer\",\"default\":"
-     "null,\"min\":0,\"description\":\"a face id of body (body_describe)\"},{\"name\":\"edges\",\"type\":\"array\",\""
-     "default\":null,\"description\":\"edge ids of body (body_describe), one or more\"},{\"name\":\"vertex\",\"t"
-     "ype\":\"integer\",\"default\":null,\"min\":0,\"description\":\"a vertex id of body (body_describe {vertice"
-     "s: true})\"},{\"name\":\"plane\",\"type\":\"string\",\"default\":null,\"enum\":[\"XY\",\"XZ\",\"YZ\"],\"description\""
-     ":\"a reference plane\"},{\"name\":\"sketch\",\"type\":\"integer\",\"default\":null,\"min\":0,\"description\":\"fe"
-     "ature index of a committed sketch\"},{\"name\":\"loop\",\"type\":\"integer\",\"default\":null,\"min\":0,\"desc"
-     "ription\":\"a closed loop of sketch: its index in sketch_describe's closed_loops\"},{\"name\":\"featur"
-     "e\",\"type\":\"integer\",\"default\":null,\"min\":0,\"description\":\"feature index (describe_design): its r"
-     "ow of the Feature list\"}],\"examples\":[{\"title\":\"A plate selected whole, as a click on its row of"
-     " the Bodies list selects it\",\"calls\":[{\"tool\":\"extrude\",\"args\":{\"distance\":5,\"height\":20,\"width\""
-     ":20}},{\"tool\":\"select_geometry\",\"args\":{\"body\":0}}]},{\"title\":\"A plate's top face selected, as a"
-     " click on it selects it\",\"calls\":[{\"tool\":\"extrude\",\"args\":{\"distance\":5,\"height\":20,\"width\":20}"
-     "},{\"tool\":\"body_describe\",\"args\":{\"at_extreme\":\"+z\",\"body\":0}},{\"tool\":\"select_geometry\",\"args\":"
-     "{\"body\":0,\"face\":5,\"generation\":{\"from_call\":1,\"key\":\"generation\"}}}]},{\"title\":\"A sketched squa"
-     "re's loop selected, which selects its Sketch's row too\",\"calls\":[{\"tool\":\"sketch_create\",\"args\":"
-     "{\"plane\":\"XY\"}},{\"tool\":\"sketch_draw\",\"args\":{\"p0\":[-10,-10],\"p1\":[10,10],\"type\":\"rectangle_2_po"
-     "int\"}},{\"tool\":\"sketch_finish\",\"args\":{}},{\"tool\":\"select_geometry\",\"args\":{\"loop\":0,\"sketch\":0}"
-     "}]}],\"ids\":true,\"closed\":true}", nullptr, nullptr, "Document", false},
+     "enu-item forms then act on the selection: feature_edit, rename_selected, feature_delete and sket"
+     "ch_constrain_selected called with no arguments act on the selected row of the Feature list while"
+     " nothing is picked in the view, and zoom_to_selection acts on what is picked in the view, so a s"
+     "ketch is zoomed to through sketch with loop, not through feature. Refused, changing nothing, for"
+     " an id the model does not have, and while a card, a sketch, Constrain mode, a body Move or the T"
+     "ext dialog is open, where a click means something else. Reply: selection {kind, id}, plane and f"
+     "eature, as describe_design reports selection, picked_plane and feature_row; for a vertex also po"
+     "int, as body_describe gives it, and placed_point, where the view draws it (the same unless the b"
+     "ody was moved).\",\"params\":[{\"name\":\"body\",\"type\":\"integer\",\"default\":null,\"min\":0,\"description\":"
+     "\"body index (describe_design); alone, the whole body\"},{\"name\":\"face\",\"type\":\"integer\",\"default\""
+     ":null,\"min\":0,\"description\":\"a face id of body (body_describe)\"},{\"name\":\"edges\",\"type\":\"array\","
+     "\"default\":null,\"description\":\"edge ids of body (body_describe), one or more\"},{\"name\":\"vertex\",\""
+     "type\":\"integer\",\"default\":null,\"min\":0,\"description\":\"a vertex id of body (body_describe {vertic"
+     "es: true})\"},{\"name\":\"plane\",\"type\":\"string\",\"default\":null,\"enum\":[\"XY\",\"XZ\",\"YZ\"],\"description"
+     "\":\"a reference plane\"},{\"name\":\"sketch\",\"type\":\"integer\",\"default\":null,\"min\":0,\"description\":\"f"
+     "eature index of a committed sketch\"},{\"name\":\"loop\",\"type\":\"integer\",\"default\":null,\"min\":0,\"des"
+     "cription\":\"a closed loop of sketch: its index in sketch_describe's closed_loops\"},{\"name\":\"featu"
+     "re\",\"type\":\"integer\",\"default\":null,\"min\":0,\"description\":\"feature index (describe_design): its "
+     "row of the Feature list\"}],\"examples\":[{\"title\":\"A plate selected whole, as a click on its row o"
+     "f the Bodies list selects it\",\"calls\":[{\"tool\":\"extrude\",\"args\":{\"distance\":5,\"height\":20,\"width"
+     "\":20}},{\"tool\":\"select_geometry\",\"args\":{\"body\":0}}]},{\"title\":\"A plate's top face selected, as "
+     "a click on it selects it\",\"calls\":[{\"tool\":\"extrude\",\"args\":{\"distance\":5,\"height\":20,\"width\":20"
+     "}},{\"tool\":\"body_describe\",\"args\":{\"at_extreme\":\"+z\",\"body\":0}},{\"tool\":\"select_geometry\",\"args\""
+     ":{\"body\":0,\"face\":5,\"generation\":{\"from_call\":1,\"key\":\"generation\"}}}]},{\"title\":\"A sketched squ"
+     "are's loop selected, which selects its Sketch's row too\",\"calls\":[{\"tool\":\"sketch_create\",\"args\""
+     ":{\"plane\":\"XY\"}},{\"tool\":\"sketch_draw\",\"args\":{\"p0\":[-10,-10],\"p1\":[10,10],\"type\":\"rectangle_2_p"
+     "oint\"}},{\"tool\":\"sketch_finish\",\"args\":{}},{\"tool\":\"select_geometry\",\"args\":{\"loop\":0,\"sketch\":0"
+     "}}]}],\"ids\":true,\"closed\":true}", nullptr, nullptr, "Document", false},
     {"confirm_tool", L_CONTEXT("Confirm tool", "Design"), -1, nullptr, nullptr, nullptr, 0x00000000u, 0, 0, false, false, nullptr, nullptr, nullptr, false, CadAccess::Ui, false,
      "{\"summary\":\"Confirm what is open in the Design tab, as its Confirm button and Enter do.\",\"detail"
      "s\":\"What is open, in the order Confirm takes it: the Text dialog (text), a value field (value), "

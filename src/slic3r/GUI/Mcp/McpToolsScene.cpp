@@ -1,9 +1,9 @@
 // object_list, object_select, object_transform, part_add, object_arrange, plate_slice and job_cancel: the model on the plates, the
 // arrange and Fill bed jobs, and the slice operation, which reports its own outcome per plate (see
-// Operations/RunStatus). The object and part commands made from menu rows: those that add a primitive, delete, rename,
+// Operations/RunStatus). The object and part commands made from menu items: those that add a primitive, delete, rename,
 // set the number of instances, make instances separate objects, split, assemble, order, mirror, centre, scale to fit,
 // drop and orient objects and change a part's type take their targets (McpTargets.hpp) and run their operations
-// (Operations/ObjectOps, ProjectOps); the others run their rows' functions (NativeCommandRows.hpp) on the selection.
+// (Operations/ObjectOps, ProjectOps); the others run their menu items' functions (NativeCommandMenuItems.hpp) on the selection.
 // The object and part commands of menu items with no Speed Dial tile, which mark objects printable, turn their Auto Drop
 // on or off, repair their meshes, clone them, reload them from their files and replace a part's mesh, take their targets
 // and run their operations too.
@@ -34,7 +34,7 @@
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include "slic3r/GUI/Jobs/Worker.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
-#include "slic3r/GUI/NativeCommandRows.hpp"
+#include "slic3r/GUI/NativeCommandMenuItems.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
 #include "slic3r/GUI/ObjectDataViewModel.hpp"
@@ -1011,16 +1011,16 @@ json plate_summary(const json& statistics, const GCodeProcessorResult& result)
 
 namespace {
 
-// The Prepare view's selection, the view shown first when another is, as the object rows read it: what a command made
-// from rows acts on when it is given no target. Null for a call that names its targets, which leaves the view shown.
+// The Prepare view's selection, the view shown first when another is, as the object menu items read it: what a command made
+// from menu items acts on when it is given no target. Null for a call that names its targets, which leaves the view shown.
 const Selection* prepare_selection(const json& args)
 {
     return names_targets(args) ? nullptr : &Ops::shown_prepare_canvas().get_selection();
 }
 
-// What a command made from rows answers for a refusal: as information where the person can select something else or
-// wait and pick it again, as the rows told those, else as an error.
-AppActionRunResult row_refused(const Ops::Refusal& refusal)
+// What a command made from menu items answers for a refusal: as information where the person can select something else or
+// wait and pick it again, as the items told those, else as an error.
+AppActionRunResult menu_refused(const Ops::Refusal& refusal)
 {
     const std::string code  = refusal.code;
     const bool        again = refusal.kind == Ops::RefusalKind::Busy || code == "nothing_selected" || code == "wrong_selection" ||
@@ -1028,14 +1028,14 @@ AppActionRunResult row_refused(const Ops::Refusal& refusal)
     return NativeCommands::refused(refusal, again ? AppActionRunResult::Level::Info : AppActionRunResult::Level::Error);
 }
 
-// A refusal a command made from rows answers as information, where its row told that refusal, or the check it stands
+// A refusal a command made from menu items answers as information, where its item told that refusal, or the check it stands
 // for, as information.
-AppActionRunResult row_info(const Ops::Refusal& refusal) { return NativeCommands::refused(refusal, AppActionRunResult::Level::Info); }
+AppActionRunResult menu_info(const Ops::Refusal& refusal) { return NativeCommands::refused(refusal, AppActionRunResult::Level::Info); }
 
 constexpr unsigned kEveryTarget = kObjects | kInstances | kParts;
 
-// The object list's selected rows as targets, for a command whose row acted on them (Assemble, Change Type), read in
-// the Prepare view, shown first, as the row read them: an object row as its object, an instance row as [object,
+// The object list's selected rows as targets, for a command whose menu item acted on them (Assemble, Change Type), read in
+// the Prepare view, shown first, as the menu item read them: an object row as its object, an instance row as [object,
 // instance] and a part row as [object, part], by the part's index in the model. Refuses nothing_selected for no row and
 // wrong_selection for a row of none of `types` (ItemType bits). UI thread.
 Ops::Outcome<Targets> listed_rows(int types)
@@ -1165,7 +1165,7 @@ AppActionRunResult delete_command(const json& args)
     } else if (!all) {
         const Ops::Outcome<Targets> found = resolve_targets(model, prepare_selection(args), args, kEveryTarget, false);
         if (!found)
-            return row_refused(found.refusal());
+            return menu_refused(found.refusal());
         op.targets = found.value();
     }
     // Named before the delete renumbers what follows.
@@ -1177,7 +1177,7 @@ AppActionRunResult delete_command(const json& args)
     const Ops::Outcome<Ops::DeletedTargets> deleted = Ops::delete_objects(op);
     if (!deleted) {
         if (std::string(deleted.refusal().code) != "nothing_deleted")
-            return row_refused(deleted.refusal());
+            return menu_refused(deleted.refusal());
         // The object list told the person why, or they answered its question themself: the pick shows nothing more,
         // and a call learns that nothing was deleted.
         AppActionRunResult kept{AppActionRunResult::Level::Info, {}, false};
@@ -1188,11 +1188,11 @@ AppActionRunResult delete_command(const json& args)
     if (const json kept = targets_reply(model, deleted.value().kept); !kept.empty())
         reply["kept"] = kept;
     reply["object_count"] = model.objects.size();
-    return row_reply(reply);
+    return menu_reply(reply);
 }
 
 // object_rename: the object or part the call names, else the one selected. A call with no arguments asks for the name
-// in the Rename dialog, as the row does; any other gives it.
+// in the Rename dialog, as the menu item does; any other gives it.
 AppActionRunResult rename_command(const json& args)
 {
     const bool        asks = person_form(args);
@@ -1200,17 +1200,17 @@ AppActionRunResult rename_command(const json& args)
     // Before anything is read, so a name that cannot be given leaves the view as it is.
     if (!asks)
         if (const std::optional<Ops::Refusal> refusal = Ops::rename_refusal(name))
-            return row_refused(*refusal);
+            return menu_refused(*refusal);
     Plater&                     plater = ui_plater();
     const Ops::Outcome<Targets> found  = resolve_targets(plater.model(), prepare_selection(args), args, kObjects | kParts, true);
     if (!found)
-        return row_refused(std::string(found.refusal().code) == "wrong_selection" ? Ops::rename_wrong_selection() : found.refusal());
+        return menu_refused(std::string(found.refusal().code) == "wrong_selection" ? Ops::rename_wrong_selection() : found.refusal());
     const Targets& target = found.value();
     const int      object = target.parts.empty() ? target.objects.front() : target.parts.front().first;
     const int      part   = target.parts.empty() ? -1 : target.parts.front().second;
     if (asks) {
         if (const std::optional<Ops::Refusal> refusal = Ops::unlisted_part_refusal(plater.model(), object, part))
-            return row_refused(*refusal);
+            return menu_refused(*refusal);
         // The dialog renames the object list's selected row, which is the target's once every instance of an object
         // selected stands for it. A part's row is by its place among the rows, which leave a cut's connectors out.
         ObjectList*           list  = wxGetApp().obj_list();
@@ -1222,9 +1222,9 @@ AppActionRunResult rename_command(const json& args)
             select_rows(owner, part < 0 ? nullptr : owner->volumes[std::size_t(part)]);
         list->rename_item();
     } else if (const Ops::Outcome<std::string> renamed = Ops::rename_object({object, part, name}); !renamed) {
-        return row_refused(renamed.refusal());
+        return menu_refused(renamed.refusal());
     }
-    return row_reply(targets_reply(plater.model(), target));
+    return menu_reply(targets_reply(plater.model(), target));
 }
 
 // object_set_instances: the object the call names, else the one selected, or the object of the selected instance or
@@ -1241,25 +1241,25 @@ AppActionRunResult instances_command(const json& args)
     const Ops::Outcome<Targets> found =
         resolve_targets(plater.model(), prepare_selection(args), args, kObjects | kObjectOfSelection, true);
     if (!found)
-        return row_refused(found.refusal());
+        return menu_refused(found.refusal());
     const int         object = found.value().objects.front();
     const std::size_t had    = plater.model().objects[std::size_t(object)]->instances.size();
     if (asks) {
         // The asking path: the item's dialog, on the selected object, enabled as the menu enables it.
         if (const std::optional<Ops::Refusal> refusal = Ops::add_instances_refusal(plater.model(), object))
-            return row_refused(*refusal);
+            return menu_refused(*refusal);
         if (const std::optional<Ops::Refusal> refusal = Ops::instance_change_blocked())
-            return row_refused(*refusal);
+            return menu_refused(*refusal);
         plater.set_number_of_copies();
     } else {
         const int count = args.contains("count") ? args.at("count").get<int>() : int(had) + args.at("delta").get<int>();
         if (const Ops::Outcome<Ops::InstanceCount> set = Ops::set_instance_count({object, count}); !set)
-            return row_refused(set.refusal());
+            return menu_refused(set.refusal());
     }
     json reply         = targets_reply(plater.model(), found.value());
     reply["object"]    = object;
     reply["instances"] = plater.model().objects[std::size_t(object)]->instances.size();
-    return row_reply(reply);
+    return menu_reply(reply);
 }
 
 // object_separate_instances: the object the call names or the instances of one object, else the selection, where a part
@@ -1270,16 +1270,16 @@ AppActionRunResult separate_command(const json& args)
     const Ops::Outcome<Targets> found  = resolve_targets(plater.model(), prepare_selection(args), args,
                                                          kObjects | kInstances | kInstanceOfSelectedPart, false);
     if (!found)
-        return row_refused(found.refusal());
+        return menu_refused(found.refusal());
     const Ops::Outcome<Targets> holders = Ops::separate_instances(found.value());
     if (!holders)
-        return row_refused(holders.refusal());
-    return row_reply(targets_reply(plater.model(), holders.value()));
+        return menu_refused(holders.refusal());
+    return menu_reply(targets_reply(plater.model(), holders.value()));
 }
 
-// object_split: the object the call names, else the object list's one selected row (split_row()), as the Split rows
+// object_split: the object the call names, else the object list's one selected row (split_row()), as the Split menu items
 // read it. A call with a tile's arguments asks what Split asks (the Auto-Drop question, a message for an object of one
-// piece); any other answers the question with keep_z, and is refused without it. The rows told every refusal of theirs
+// piece); any other answers the question with keep_z, and is refused without it. The menu items told every refusal of theirs
 // as information.
 AppActionRunResult split_command(const json& args)
 {
@@ -1291,12 +1291,12 @@ AppActionRunResult split_command(const json& args)
     if (names_targets(args)) {
         const Ops::Outcome<Targets> found = resolve_targets(plater.model(), nullptr, args, kObjects, true);
         if (!found)
-            return row_info(found.refusal());
+            return menu_info(found.refusal());
         op.target = found.value();
     } else {
         const Ops::Outcome<SplitRow> found = split_row(to_objects);
         if (!found)
-            return row_info(found.refusal());
+            return menu_info(found.refusal());
         op.target = found.value().target;
         op.expand = found.value().object_row;
     }
@@ -1306,14 +1306,14 @@ AppActionRunResult split_command(const json& args)
         op.keep_z = args.at("keep_z").get<bool>();
     const Ops::Outcome<Targets> made = Ops::split_object(op);
     if (!made)
-        return asks && std::string(made.refusal().code) == "one_piece" ? quiet_refusal(made.refusal()) : row_info(made.refusal());
+        return asks && std::string(made.refusal().code) == "one_piece" ? quiet_refusal(made.refusal()) : menu_info(made.refusal());
     json reply            = targets_reply(plater.model(), made.value());
     reply["object_count"] = plater.model().objects.size();
-    return row_reply(reply);
+    return menu_reply(reply);
 }
 
 // object_assemble: the objects the call names, else the object and instance rows selected in the object list, which
-// the Assemble row merged. The row told a selection of fewer than two, or of parts, as information, and a cut object as
+// the Assemble menu item merged. The menu item told a selection of fewer than two, or of parts, as information, and a cut object as
 // an error.
 AppActionRunResult assemble_command(const json& args)
 {
@@ -1322,22 +1322,24 @@ AppActionRunResult assemble_command(const json& args)
     const Ops::Outcome<Targets> found  = names_targets(args) ? resolve_targets(model, nullptr, args, kObjects | kInstances, false) :
                                                                listed_rows(itObject | itInstance);
     if (!found)
-        return row_info(std::string(found.refusal().code) == "wrong_selection" ? *Ops::assemble_refusal(model, Targets{}) : found.refusal());
+        return menu_info(std::string(found.refusal().code) == "wrong_selection" ? *Ops::assemble_refusal(model, Targets{}) :
+                                                                                  found.refusal());
     const Ops::Outcome<int> assembled = Ops::assemble_objects(found.value());
     if (!assembled)
-        return std::string(assembled.refusal().code) == "too_few_objects" ? row_info(assembled.refusal()) : row_refused(assembled.refusal());
+        return std::string(assembled.refusal().code) == "too_few_objects" ? menu_info(assembled.refusal()) :
+                                                                            menu_refused(assembled.refusal());
     const int index = assembled.value();
     Targets   made;
     made.objects    = {index};
     json reply      = targets_reply(model, made);
     reply["object"] = index;
     reply["name"]   = model.objects[std::size_t(index)]->name;
-    return row_reply(reply);
+    return menu_reply(reply);
 }
 
 // part_change_type: the parts the call names, else the part rows selected in the object list, which the Change Type
-// rows changed. The row told a selection of anything but parts as information, in its own words, and why a part keeps
-// its type as an error.
+// menu items changed. The menu item told a selection of anything but parts as information, in its own words, and why a
+// part keeps its type as an error.
 AppActionRunResult part_type_command(const json& args)
 {
     std::optional<ModelVolumeType> subtype;
@@ -1347,16 +1349,16 @@ AppActionRunResult part_type_command(const json& args)
     const Ops::Outcome<Targets> found  = names_targets(args) ? resolve_targets(plater.model(), nullptr, args, kParts, false) :
                                                                listed_rows(itVolume);
     if (!found)
-        return row_info(std::string(found.refusal().code) == "wrong_selection" ? Ops::part_wrong_selection() : found.refusal());
+        return menu_info(std::string(found.refusal().code) == "wrong_selection" ? Ops::part_wrong_selection() : found.refusal());
     const Ops::Outcome<Targets> changed = Ops::change_part_type({found.value(), volume_type_from_name(arg_string(args, "type")), subtype});
     if (!changed)
-        return row_refused(changed.refusal());
+        return menu_refused(changed.refusal());
     json reply = targets_reply(plater.model(), changed.value());
     for (json& part : reply["parts"]) {
         const ModelVolume& volume = *plater.model().objects[part["object"].get<std::size_t>()]->volumes[part["part"].get<std::size_t>()];
         part["type"]              = volume_type_name(volume.type());
     }
-    return row_reply(reply);
+    return menu_reply(reply);
 }
 
 // object_order's arguments, checked before the call reads the app: by, or the objects in order, which names one plate's.
@@ -1394,7 +1396,7 @@ json plate_objects(int sorted, bool all)
 // object_order: the current plate, the plate the call names, or every plate with all. Its tile's call ({by}) shows
 // the Prepare view and reverses an order the objects already have, as the plate menu's Order By does; any other call
 // with by is ascending unless descending says otherwise. With order, the plate's objects go in that order, as drags in
-// the object list put them. The row told a plate with no objects as information.
+// the object list put them. The menu item told a plate with no objects as information.
 AppActionRunResult order_command(const json& args)
 {
     if (const auto order = args.find("order"); order != args.end()) {
@@ -1404,9 +1406,9 @@ AppActionRunResult order_command(const json& args)
             op.plate = arg_int(args, "plate", 0);
         const Ops::Outcome<std::vector<int>> ordered = Ops::reorder_objects(op);
         if (!ordered)
-            return row_refused(ordered.refusal());
+            return menu_refused(ordered.refusal());
         const int plate = op.plate.value_or(ui_plater().get_partplate_list().get_curr_plate_index());
-        return row_reply({{"order", plate_objects(plate, false)}});
+        return menu_reply({{"order", plate_objects(plate, false)}});
     }
     const std::string by  = arg_string(args, "by");
     const bool        all = arg_bool(args, "all", false);
@@ -1426,30 +1428,31 @@ AppActionRunResult order_command(const json& args)
         op.descending = arg_bool(args, "descending", false);
     const Ops::Outcome<bool> ordered = Ops::order_objects(op);
     if (!ordered)
-        return std::string(ordered.refusal().code) == "no_objects_to_order" ? row_info(ordered.refusal()) : row_refused(ordered.refusal());
+        return std::string(ordered.refusal().code) == "no_objects_to_order" ? menu_info(ordered.refusal()) :
+                                                                              menu_refused(ordered.refusal());
 
     // The sorted plates' objects in their new order.
     const int sorted = op.plate.value_or(ui_plater().get_partplate_list().get_curr_plate_index());
-    return row_reply({{"order", plate_objects(sorted, all)}, {"descending", ordered.value()}});
+    return menu_reply({{"order", plate_objects(sorted, all)}, {"descending", ordered.value()}});
 }
 
 // object_mirror: the objects and parts the call names, else the selection, which Mirror takes of one instance or parts
-// of one. The row told every refusal as information.
+// of one. The menu item told every refusal as information.
 AppActionRunResult mirror_command(const json& args)
 {
     const std::string           axis   = arg_string(args, "axis");
     Plater&                     plater = ui_plater();
     const Ops::Outcome<Targets> found  = resolve_targets(plater.model(), prepare_selection(args), args, kEveryTarget, false);
     if (!found)
-        return row_info(found.refusal());
+        return menu_info(found.refusal());
     const Ops::Outcome<Ops::Done> mirrored = Ops::mirror_objects({found.value(), axis == "x" ? Axis::X : axis == "y" ? Axis::Y : Axis::Z});
     if (!mirrored)
-        return row_info(mirrored.refusal());
-    return row_reply(targets_reply(plater.model(), found.value()));
+        return menu_info(mirrored.refusal());
+    return menu_reply(targets_reply(plater.model(), found.value()));
 }
 
 // object_center: the objects the call names, else the selection; on the plate each stands on, or on plate. Its tile's
-// call ({}) is Center on the selection. The row told a selection to make as information.
+// call ({}) is Center on the selection. The menu item told a selection to make as information.
 AppActionRunResult center_command(const json& args)
 {
     Plater&            plater = ui_plater();
@@ -1458,32 +1461,32 @@ AppActionRunResult center_command(const json& args)
         plate = arg_int(args, "plate", 0);
         // Before the selection is read, so a plate the project lacks is named whatever is selected.
         if (const int count = plater.get_partplate_list().get_plate_count(); *plate >= count)
-            return row_refused(Ops::no_such_plate(*plate, count));
+            return menu_refused(Ops::no_such_plate(*plate, count));
     }
     const Ops::Outcome<Targets> found = resolve_targets(plater.model(), prepare_selection(args), args, kEveryTarget, false);
     if (!found)
-        return row_info(found.refusal());
+        return menu_info(found.refusal());
     const Ops::Outcome<std::map<int, std::vector<int>>> centred = Ops::center_objects({found.value(), plate});
     if (!centred)
-        return row_refused(centred.refusal());
+        return menu_refused(centred.refusal());
     json reply  = targets_reply(plater.model(), found.value());
     json plates = json::array();
     for (const auto& [on, objects] : centred.value())
         plates.push_back({{"plate", on}, {"objects", objects}});
     reply["plates"] = std::move(plates);
-    return row_reply(reply);
+    return menu_reply(reply);
 }
 
 // object_scale_to_fit: the objects the call names, else the objects and instances selected, as Scale to Fit Print Volume
-// takes them. The row told every refusal as information.
+// takes them. The menu item told every refusal as information.
 AppActionRunResult scale_to_fit_command(const json& args)
 {
     Plater&                     plater = ui_plater();
     const Ops::Outcome<Targets> found  = resolve_targets(plater.model(), prepare_selection(args), args, kObjects | kInstances, false);
     if (!found)
-        return row_info(found.refusal());
+        return menu_info(found.refusal());
     if (const Ops::Outcome<Ops::Done> fitted = Ops::scale_to_fit(found.value()); !fitted)
-        return row_info(fitted.refusal());
+        return menu_info(fitted.refusal());
     const Model& model = plater.model();
     std::vector<std::pair<int, int>> instances = found.value().instances;
     for (int object : found.value().objects)
@@ -1496,7 +1499,7 @@ AppActionRunResult scale_to_fit_command(const json& args)
                           {"scale", vec3(model.objects[std::size_t(object)]->instances[std::size_t(instance)]->get_scaling_factor())}});
     json reply      = targets_reply(model, found.value());
     reply["scales"] = std::move(scales);
-    return row_reply(reply);
+    return menu_reply(reply);
 }
 
 // object_drop: the objects and parts the call names, else the selection. What already rests on the bed is no error: the
@@ -1506,15 +1509,15 @@ AppActionRunResult drop_command(const json& args)
     Plater&                     plater = ui_plater();
     const Ops::Outcome<Targets> found  = resolve_targets(plater.model(), prepare_selection(args), args, kEveryTarget, false);
     if (!found)
-        return row_info(found.refusal());
+        return menu_info(found.refusal());
     const Ops::Outcome<bool> dropped = Ops::drop_objects(found.value());
     if (!dropped)
-        return row_info(dropped.refusal());
+        return menu_info(dropped.refusal());
     json reply     = targets_reply(plater.model(), found.value());
     reply["moved"] = dropped.value();
     if (dropped.value())
-        return row_reply(reply);
-    AppActionRunResult resting = row_info(Ops::already_on_bed());
+        return menu_reply(reply);
+    AppActionRunResult resting = menu_info(Ops::already_on_bed());
     resting.done               = true;
     resting.reply              = reply.dump();
     return resting;
@@ -1603,7 +1606,7 @@ AppActionRunResult add_primitive_command(const json& args)
     const Ops::Outcome<int> added  = Ops::add_primitive(op);
     if (!added)
         // The size dialog cancelled told the person nothing more is to come.
-        return op.ask && std::string(added.refusal().code) == "not_added" ? quiet_refusal(added.refusal()) : row_refused(added.refusal());
+        return op.ask && std::string(added.refusal().code) == "not_added" ? quiet_refusal(added.refusal()) : menu_refused(added.refusal());
     const int index = added.value();
     Targets made;
     made.objects    = {index};
@@ -1611,14 +1614,14 @@ AppActionRunResult add_primitive_command(const json& args)
     reply["object"] = index;
     reply["plate"]  = instance_plate(plater.get_partplate_list(), index, 0);
     reply["offset"] = vec3(plater.model().objects[std::size_t(index)]->instances.front()->get_offset());
-    return row_reply(reply);
+    return menu_reply(reply);
 }
 
-// The object and part commands made from menu rows: each acts on the targets it is given or, given none, on what is
-// selected in the Prepare view, as a person's pick of the row does. Those of the object's and part's menus read their
-// targets through resolve_targets() and run their operations; the handy models, Text and SVG run the row their
-// variant argument names. Their tiles are the rows, under the rows' ids, titles, sections and icons.
-void register_object_rows(CommandCatalog& catalog)
+// The object and part commands made from menu items: each acts on the targets it is given or, given none, on what is
+// selected in the Prepare view, as a person's pick of the item does. Those of the object's and part's menus read their
+// targets through resolve_targets() and run their operations; the handy models, Text and SVG run the menu item their
+// variant argument names. Their tiles are the menu items, under the items' ids, titles, sections and icons.
+void register_object_menu_commands(CommandCatalog& catalog)
 {
     using NativeCommands::tile;
     const char* const object_section = L("Object");
@@ -1637,7 +1640,7 @@ void register_object_rows(CommandCatalog& catalog)
                         (turns ? turned : std::string()));
     };
     // With shape alone the size dialog asks, as the tiles do; a size or silent skips it.
-    NativeCommand add_primitive = row_command(
+    NativeCommand add_primitive = menu_command(
         "object_add_primitive", L("Add a primitive"),
         "Add a primitive shape (cube, cylinder, sphere, cone, disc or torus) as a new object, as Add Primitive does: on the "
         "current plate, or on plate, which becomes the current one; at position, in the bed coordinates object_list and "
@@ -1681,7 +1684,7 @@ void register_object_rows(CommandCatalog& catalog)
         handy_tiles.push_back(tile("add_handy_" + models.back(), model.label, L("Add Handy models"), "", {{"model", model.key}},
                                    description));
     }
-    catalog.add(row_command(
+    catalog.add(menu_command(
         "object_add_handy_model", L("Add a handy model"),
         "Add one of the test models OrcaSlicer ships to the current plate, as Add Handy models does; orca_cube and "
         "orcasliced_combo, of several files, then arrange the objects as the toolbar's Arrange does, which moves the others too.",
@@ -1689,28 +1692,28 @@ void register_object_rows(CommandCatalog& catalog)
             const std::string                           model = arg_string(args, "model");
             const std::vector<MenuFactory::HandyModel>& all   = MenuFactory::handy_models();
             const auto it = std::find_if(all.begin(), all.end(), [&model](const MenuFactory::HandyModel& m) { return model == m.key; });
-            return Rows::add_handy(std::size_t(it - all.begin()));
+            return MenuItems::add_handy(std::size_t(it - all.begin()));
         }));
 
     const std::string text = "Add a text: a part on the selected object, or a new object when nothing is selected. It is created "
                              "in the background (app_wait {for: \"idle\"} waits for it), and the Text gizmo opens on it.";
-    catalog.add(row_command("object_add_text", L("Text"), text, object_schema({}),
+    catalog.add(menu_command("object_add_text", L("Text"), text, object_schema({}),
                             json::array({tile("add_primitive_text", L("Text"), L("Add Primitive"), "menu_obj_text", json::object(), text)}),
-                            [](const json&) { return Rows::add_primitive_text(); }));
+                            [](const json&) { return MenuItems::add_primitive_text(); }));
 
-    catalog.add(row_command(
+    catalog.add(menu_command(
         "object_add_svg", L("SVG"),
         "Add an SVG as a new object, or as a part of the selected object. With a path, uses that file without a dialog; the "
         "part is created in the background (app_wait {for: \"idle\"} waits for it), and the SVG gizmo opens on it.",
-        object_schema({{"path", Rows::input_file("an .svg file")}}),
+        object_schema({{"path", MenuItems::input_file("an .svg file")}}),
         json::array({tile("add_primitive_svg", L("SVG"), L("Add Primitive"), "menu_obj_svg", json::object(),
                           "Add an SVG as a new object, or as a part of the selected object, from the file a dialog asks for; "
                           "object_add_svg with a path uses that file without one. The part is created in the background "
                           "(app_wait {for: \"idle\"} waits for it), and the SVG gizmo opens on it.")}),
-        [](const json& args) { return Rows::add_primitive_svg(args); }));
+        [](const json& args) { return MenuItems::add_primitive_svg(args); }));
 
     // ---- Object ---- (the object's context menu and the Edit menu)
-    NativeCommand del = row_command(
+    NativeCommand del = menu_command(
         "object_delete", L("Delete objects"),
         "Delete objects, instances or parts, as Delete does: those named (objects, instances, parts), what stands on a plate "
         "(plate: its objects, or the instances on it of an object on two plates), every object (all, as Delete All does), or "
@@ -1731,7 +1734,7 @@ void register_object_rows(CommandCatalog& catalog)
     catalog.add(reaching({"delete_objects"}, with_expected_ids(std::move(del))));
 
     // The Rename dialog's name, which every call but the tile's gives.
-    NativeCommand rename = row_command(
+    NativeCommand rename = menu_command(
         "object_rename", L("Rename"),
         "Rename an object, or a part of it (object and part), or with neither the object or part selected in the Prepare "
         "view. With a name, skips the Rename dialog; an empty name, or one with characters a file name cannot hold, is "
@@ -1744,7 +1747,7 @@ void register_object_rows(CommandCatalog& catalog)
     catalog.add(reaching({"rename_object"}, with_expected_ids(std::move(rename))));
 
     // The count the dialog asks for, which every call but the tiles' gives; delta is the toolbar's + and -.
-    NativeCommand instances = row_command(
+    NativeCommand instances = menu_command(
         "object_set_instances", L("Set the number of instances"),
         "Give an object this many instances (count), as Set Number of Instances does, or one more or one fewer (delta 1 "
         "or -1), as the toolbar's + and - do: the object named, else the one selected in the Prepare view, or the object "
@@ -1774,7 +1777,7 @@ void register_object_rows(CommandCatalog& catalog)
         "tile's arguments, does what a person's pick of that tile does.";
     catalog.add(reaching({"set_instance_count"}, with_expected_ids(std::move(instances))));
 
-    NativeCommand separate = row_command(
+    NativeCommand separate = menu_command(
         "object_separate_instances", L("Set as Individual Objects"),
         "Make each instance of an object a separate object (object), or some instances of one object one new object "
         "(instances), as Set as Individual Objects does; with neither, what is selected in the Prepare view: an object, or "
@@ -1789,7 +1792,7 @@ void register_object_rows(CommandCatalog& catalog)
     catalog.add(reaching({"separate_instances"}, with_expected_ids(std::move(separate))));
 
     // The answer to Split's Auto-Drop question, which every call but the tiles' gives where the split asks it.
-    NativeCommand split = row_command(
+    NativeCommand split = menu_command(
         "object_split", L("Split an object"),
         "Split an object into separate objects, or into parts of it, as Split > To Objects and To Parts do: the object named, "
         "else the one row selected in the object list, as Split reads it: an object's row, into objects also a row of the "
@@ -1816,7 +1819,7 @@ void register_object_rows(CommandCatalog& catalog)
 
     catalog.add(reaching(
         {"assemble_objects"},
-        with_expected_ids(row_command(
+        with_expected_ids(menu_command(
             "object_assemble", L("Assemble"),
             "Assemble two or more objects into one object of parts named Assembly, as Assemble does: those named, else the "
             "object and instance rows selected in the object list, an instance becoming an object of its own first. Cut objects "
@@ -1829,7 +1832,7 @@ void register_object_rows(CommandCatalog& catalog)
             assemble_command))));
 
     // The plate menu's Order By.
-    struct OrderRow
+    struct OrderMenuItem
     {
         const char* key;
         const char* title;
@@ -1837,22 +1840,22 @@ void register_object_rows(CommandCatalog& catalog)
         const char* what;
     };
     // Titles are L("...")-marked here so xgettext extracts them.
-    static const OrderRow order_rows[] = {
+    static const OrderMenuItem order_menu_items[] = {
         {"obj_order_by_name", L("Order by Name"), "name", "name"},
         {"obj_order_by_filament", L("Order by Filament"), "filament", "filament"},
         {"obj_order_by_height", L("Order by Height"), "height", "height"},
         {"obj_order_by_size", L("Order by Size"), "size", "size (bounding box volume)"},
     };
     json order_tiles = json::array();
-    for (const OrderRow& row : order_rows)
-        order_tiles.push_back(tile(row.key, row.title, object_section, "", {{"by", row.by}},
-                                   std::string("Order the current plate's objects by ") + row.what +
+    for (const OrderMenuItem& item : order_menu_items)
+        order_tiles.push_back(tile(item.key, item.title, object_section, "", {{"by", item.by}},
+                                   std::string("Order the current plate's objects by ") + item.what +
                                        ", which sets the object list and print order, as the plate menu's Order By does. "
                                        "Choosing the order they already have reverses it. Object indices change; the reply "
                                        "lists the new order (order: [{object, name, plate}]) and descending."));
     NativeCommand order = reaching(
         {"order_objects", "reorder_objects"},
-        row_command("object_order", L("Order objects"),
+        menu_command("object_order", L("Order objects"),
                     "Order the objects of a plate (the current one, or plate), or with all of every plate, by name, filament, "
                     "height or size (bounding box volume), which sets the object list and print order, as the plate menu's "
                     "Order By does: ascending, or with descending true descending. Called with by alone, as its tiles, it shows "
@@ -1880,7 +1883,7 @@ void register_object_rows(CommandCatalog& catalog)
 
     catalog.add(reaching(
         {"drop_objects"},
-        with_expected_ids(row_command(
+        with_expected_ids(menu_command(
             "object_drop", L("Drop to Bed"),
             "Drop objects or parts onto the bed, as Drop does: those named, each instance and each part that does not rest on "
             "the bed dropped on its own, else what is selected in the Prepare view, dropped as one by its lowest point. What "
@@ -1892,7 +1895,7 @@ void register_object_rows(CommandCatalog& catalog)
 
     catalog.add(reaching(
         {"mirror_objects"},
-        with_expected_ids(row_command(
+        with_expected_ids(menu_command(
             "object_mirror", L("Mirror objects"),
             "Mirror objects or parts along an axis, as Mirror > Along X Axis, Y Axis and Z Axis do: those named, each instance "
             "of an object and the parts of each object in turn, else what is selected in the Prepare view, which Mirror takes "
@@ -1906,7 +1909,7 @@ void register_object_rows(CommandCatalog& catalog)
 
     catalog.add(reaching(
         {"center_objects"},
-        with_expected_ids(row_command(
+        with_expected_ids(menu_command(
             "object_center", L("Center Selected on Plate"),
             "Centre objects on their plate, as Center does: those named, each plate's as one group on the plate it stands on (an "
             "object on no plate goes with the current plate's), or all on plate; with none named, what is selected in the "
@@ -1921,7 +1924,7 @@ void register_object_rows(CommandCatalog& catalog)
 
     catalog.add(reaching(
         {"scale_to_fit"},
-        with_expected_ids(row_command(
+        with_expected_ids(menu_command(
             "object_scale_to_fit", L("Scale to Fit Print Volume"),
             "Scale objects as one to fit the current plate's print volume and move them into it, as Scale to build volume does: "
             "those named, else the objects and instances selected in the Prepare view. Cut objects and a bed of another shape "
@@ -1983,7 +1986,7 @@ void register_object_rows(CommandCatalog& catalog)
     // A person's pick of the tile starts the orientation in place and returns while it runs; an automated call of the
     // tile's arguments is the command's own function, which waits and replies. Both are orient_objects() on the same
     // targets.
-    catalog.add(NativeCommands::with_row_forms(
+    catalog.add(NativeCommands::with_menu_item_forms(
         std::move(orient),
         [](const json&) {
             Plater* plater = wxGetApp().plater();
@@ -1991,15 +1994,15 @@ void register_object_rows(CommandCatalog& catalog)
                 return AppActionRunResult{};
             const Ops::Outcome<Ops::OrientObjectsArgs> found = orient_args(*plater, json::object());
             if (!found)
-                return row_info(found.refusal());
+                return menu_info(found.refusal());
             if (const Ops::Outcome<Ops::Done> started = Ops::orient_objects(found.value()); !started)
-                return row_info(started.refusal());
+                return menu_info(started.refusal());
             return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         },
         /*person_form_behind_dialogs=*/false, std::vector<json>{json::object()}));
 
     // ---- Parts ---- (Change Type, in the part menus only)
-    struct TypeRow
+    struct TypeMenuItem
     {
         const char* key;
         const char* title;
@@ -2007,7 +2010,7 @@ void register_object_rows(CommandCatalog& catalog)
         const char* description;
     };
     // Titles are L("...")-marked here so xgettext extracts them.
-    const TypeRow type_rows[] = {
+    const TypeMenuItem type_menu_items[] = {
         {"obj_type_part", L("Change Type to Part"), "part",
          "Make the selected parts (object_select {parts} first) solid parts, as Change Type does. Parts are listed by type, so "
          "part indices change."},
@@ -2028,11 +2031,11 @@ void register_object_rows(CommandCatalog& catalog)
          "solid part, nor a text or SVG part. Parts are listed by type, so part indices change."},
     };
     json type_tiles = json::array();
-    for (const TypeRow& row : type_rows)
-        type_tiles.push_back(tile(row.key, row.title, object_section, "", {{"type", row.type}}, row.description));
+    for (const TypeMenuItem& item : type_menu_items)
+        type_tiles.push_back(tile(item.key, item.title, object_section, "", {{"type", item.type}}, item.description));
     catalog.add(reaching(
         {"change_part_type"},
-        with_expected_ids(row_command(
+        with_expected_ids(menu_command(
             "part_change_type", L("Change a part's type"),
             "Change what parts are, as Change Type does: those named, else the part rows selected in the object list. type is "
             "part, negative, modifier, support_blocker, support_enforcer, or precise_seam, a Center precise seam where a seam "
@@ -2502,11 +2505,11 @@ void register_scene_tools(CommandCatalog& catalog)
                                                      "Clear the selection in the 3D view (the assemble view while it is shown, "
                                                      "else Prepare, switching to it), close the open gizmo, and reply with the "
                                                      "selection. A person's pick clears it where it is, switching no tab.")});
-    // A person's pick runs in place, as its row did: Select All shows Prepare and select_everything() selects there,
+    // A person's pick runs in place, as its menu item did: Select All shows Prepare and select_everything() selects there,
     // Deselect All is clear_selection() on the view shown, switching no tab. An automated call of either tile's
     // arguments is object_select's own function, which the two functions serve too, on the view shown, and replies
     // with the selection.
-    catalog.add(NativeCommands::with_row_forms(
+    catalog.add(NativeCommands::with_menu_item_forms(
         std::move(select),
         [](const json& tile_args) {
             Plater* plater = wxGetApp().plater();
@@ -2622,7 +2625,7 @@ void register_scene_tools(CommandCatalog& catalog)
             return ToolResult::ok(out);
         })));
 
-    register_object_rows(catalog);
+    register_object_menu_commands(catalog);
     register_object_tools(catalog);
 
     NativeCommand arrange = reaching({"start_arrange"}, mutate_tool(
@@ -2682,8 +2685,8 @@ void register_scene_tools(CommandCatalog& catalog)
     // A person's pick starts the arrangement in place as the toolbar does, and returns while it runs; an automated call
     // of the tile's arguments is object_arrange's own function, which waits and replies. Both are Ops::start_arrange()
     // on every unlocked plate with the panel's settings.
-    catalog.add(NativeCommands::with_row_forms(
-        std::move(arrange), [](const json&) { return Rows::obj_arrange(); }, /*person_form_behind_dialogs=*/false,
+    catalog.add(NativeCommands::with_menu_item_forms(
+        std::move(arrange), [](const json&) { return MenuItems::obj_arrange(); }, /*person_form_behind_dialogs=*/false,
         std::vector<json>{json::object()}));
 
     NativeCommand slice = reaching({"start_slice"}, mutate_tool(

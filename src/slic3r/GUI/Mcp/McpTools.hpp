@@ -138,15 +138,15 @@ NativeCommand reaching(std::vector<std::string> operations, NativeCommand comman
 // Anything that changes the app: a job under the mutate guard, journaled.
 NativeCommand mutate_tool(std::string name, std::string title, std::string description, nlohmann::json schema, CommandFn handler,
                           bool destructive = false);
-// A command made from menu rows (NativeCommandRows.hpp): NativeCommands::ui_command(), listed, with `description` and
-// the rows as its `tiles`. `fn` does what the row a call's variant argument names does, as a person's pick of that row
-// does: on the targets the call names (McpTargets.hpp) where the command takes them, else on what is selected. A row
+// A command made from menu items (NativeCommandMenuItems.hpp): NativeCommands::ui_command(), listed, with `description` and
+// the items as its `tiles`. `fn` does what the menu item a call's variant argument names does, as a person's pick of that item
+// does: on the targets the call names (McpTargets.hpp) where the command takes them, else on what is selected. A menu item
 // with no argument form is no command of the tool list: its declaration sets listed false.
-NativeCommand row_command(std::string name, std::string title, std::string description, nlohmann::json schema, nlohmann::json tiles,
+NativeCommand menu_command(std::string name, std::string title, std::string description, nlohmann::json schema, nlohmann::json tiles,
                           std::function<AppActionRunResult(const nlohmann::json& args)> fn);
-// What a command made from rows replies to a call, which a pick does not show: `reply`.
-AppActionRunResult row_reply(const nlohmann::json& reply);
-// What a command made from rows answers for a refusal after a dialog the person answered or read, which told them why:
+// What a command made from menu items replies to a call, which a pick does not show: `reply`.
+AppActionRunResult menu_reply(const nlohmann::json& reply);
+// What a command made from menu items answers for a refusal after a dialog the person answered or read, which told them why:
 // a pick shows nothing more, and a call learns the refusal.
 AppActionRunResult quiet_refusal(const Ops::Refusal& refusal);
 
@@ -211,7 +211,7 @@ nlohmann::json rank_actions(const nlohmann::json& listed, const std::vector<std:
 
 // Why action_run refuses `args` for `action`, or empty when it does not: a tile that collects a value (input) takes
 // exactly that value, a command's own tile takes its command's arguments, which the command checks, an item of a
-// command's tiles (a folded row's, with a preset) takes none or exactly its preset, and every other action (a
+// command's tiles (a folded item's, with a preset) takes none or exactly its preset, and every other action (a
 // plugin's script or page, a plate's, a setting's or a recent project's) takes none.
 std::string action_args_error(const AppAction& action, const nlohmann::json& args);
 // The arguments action_run's journal step keeps for a command's tile of fixed arguments (AppAction::preset), run with
@@ -222,7 +222,7 @@ nlohmann::json tile_journal_args(const AppAction& action, const nlohmann::json& 
 
 // What action_run answers for `id`, an action id or the name inside one, that no action of the app's state has:
 // for a Design tab tile's, when that tile is there and the tool_call that runs it from any tab (its command, with
-// the row's arguments for a folded row's tile), or, when `catalog` leaves the tile's command out
+// the item's arguments for a folded item's tile), or, when `catalog` leaves the tile's command out
 // (CommandCatalog::leave_out()), why; for any other, where an action or a command is found.
 std::string unknown_action(const std::string& id, const CommandCatalog& catalog);
 

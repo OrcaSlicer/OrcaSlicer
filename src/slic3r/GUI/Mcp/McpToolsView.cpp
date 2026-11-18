@@ -1,5 +1,5 @@
 // window_screenshot, plate_slice_stats and view_set: what the agent looks at and reads off the Preview, and
-// pointing the view before looking; and the window commands made from menu rows, window_open and
+// pointing the view before looking; and the window commands made from menu items, window_open and
 // window_save_screenshot.
 
 #include "libvgcode/include/ColorRange.hpp"
@@ -23,7 +23,7 @@
 #include "slic3r/GUI/IMSlider.hpp"
 #include "slic3r/GUI/LibVGCode/LibVGCodeWrapper.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
-#include "slic3r/GUI/NativeCommandRows.hpp"
+#include "slic3r/GUI/NativeCommandMenuItems.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/Notebook.hpp"
 #include "slic3r/GUI/Operations/Outcome.hpp"
@@ -425,7 +425,7 @@ Ops::Outcome<Ops::ShownLayers> show_layer_percent(double percent)
     return Ops::show_layer_range(range);
 }
 
-// A person's pick of one of view_set's tiles, in place on the UI thread as its row ran: for each argument the function
+// A person's pick of one of view_set's tiles, in place on the UI thread as its menu item ran: for each argument the function
 // a call's UI closure runs, and a refusal in the UI's language, Go to tab's as an error and the others, which say that
 // the view has nothing to show it, as information.
 AppActionRunResult picked_view(const json& tile_args)
@@ -435,9 +435,9 @@ AppActionRunResult picked_view(const json& tile_args)
     if (plater == nullptr || frame == nullptr)
         return AppActionRunResult{};
     if (tile_args.contains("layout"))
-        return Rows::reset_window_layout();
+        return MenuItems::reset_window_layout();
     if (tile_args.contains("projection"))
-        return Rows::toggle_perspective();
+        return MenuItems::toggle_perspective();
     if (tile_args.contains("tab")) {
         if (const std::optional<Ops::Refusal> refusal = show_tab(*frame, arg_string(tile_args, "tab")))
             return NativeCommands::refused(*refusal);
@@ -1264,29 +1264,33 @@ void register_view_tools(CommandCatalog& catalog)
                 }));
             return ToolResult::ok(out);
         }));
-    // The View menu's rows and the Speed Dial's Go to tab and Go to layer, whose value its second phase collects. Titles
+    // The View menu's items and the Speed Dial's Go to tab and Go to layer, whose value its second phase collects. Titles
     // are L("...")-marked here so xgettext extracts them.
-    struct CameraRow
+    struct CameraMenuItem
     {
         const char* key;
         const char* title;
         const char* camera;
     };
-    static const CameraRow camera_rows[] = {{"view_top", L("View: Top"), "top"},           {"view_bottom", L("View: Bottom"), "bottom"},
-                                            {"view_front", L("View: Front"), "front"},     {"view_rear", L("View: Rear"), "rear"},
-                                            {"view_left", L("View: Left"), "left"},        {"view_right", L("View: Right"), "right"},
-                                            {"view_iso", L("View: Isometric"), "iso"},     {"view_default", L("View: Default"), "default"},
-                                            {"view_fit_bed", L("Fit Bed to View"), "fit_bed"}};
+    static const CameraMenuItem camera_menu_items[] = {{"view_top", L("View: Top"), "top"},
+                                                       {"view_bottom", L("View: Bottom"), "bottom"},
+                                                       {"view_front", L("View: Front"), "front"},
+                                                       {"view_rear", L("View: Rear"), "rear"},
+                                                       {"view_left", L("View: Left"), "left"},
+                                                       {"view_right", L("View: Right"), "right"},
+                                                       {"view_iso", L("View: Isometric"), "iso"},
+                                                       {"view_default", L("View: Default"), "default"},
+                                                       {"view_fit_bed", L("Fit Bed to View"), "fit_bed"}};
     view.tiles = json::array();
     std::vector<json> camera_forms;
-    for (const CameraRow& row : camera_rows) {
-        const std::string camera = row.camera;
+    for (const CameraMenuItem& item : camera_menu_items) {
+        const std::string camera = item.camera;
         std::string       does   = "Turn the camera of the view shown, the Design tab's too, to the " + camera + " view.";
         if (camera == "default")
             does = "Turn the camera of the view shown to the default view and fit the plate; on the Design tab, its Home view.";
         else if (camera == "fit_bed")
             does = "Fit the build plate in the 3D view shown; refused on the Design tab, which has no bed to fit.";
-        view.tiles.push_back(NativeCommands::tile(row.key, row.title, L("View"), "", {{"camera", camera}}, does));
+        view.tiles.push_back(NativeCommands::tile(item.key, item.title, L("View"), "", {{"camera", camera}}, does));
         camera_forms.push_back({{"camera", camera}});
     }
     view.tiles.push_back(NativeCommands::tile("view_toggle_perspective", L("Toggle Perspective"), L("View"), "", {{"projection", "toggle"}},
@@ -1301,14 +1305,14 @@ void register_view_tools(CommandCatalog& catalog)
                                               "while the Preview has no layers (slice first).",
                                               "percent", "layer_percent"));
     // A person's pick of any of these tiles runs in place (picked_view()): Toggle Perspective and Reset Window Layout
-    // their rows, the camera tiles, Go to tab and Go to layer the camera, tab and layer functions view_set's UI closure
+    // their menu items, the camera tiles, Go to tab and Go to layer the camera, tab and layer functions view_set's UI closure
     // runs for a call, so a camera tile turns the Design tab's camera too. An automated call of a camera tile, Go to tab
     // or Go to layer is view_set's own function.
-    catalog.add(NativeCommands::with_row_forms(std::move(view), picked_view, /*person_form_behind_dialogs=*/false,
+    catalog.add(NativeCommands::with_menu_item_forms(std::move(view), picked_view, /*person_form_behind_dialogs=*/false,
                                                std::move(camera_forms)));
 
-    // ---- The window commands made from menu rows ----
-    struct WindowRow
+    // ---- The window commands made from menu items ----
+    struct WindowMenuItem
     {
         const char* key;
         const char* title;
@@ -1318,7 +1322,7 @@ void register_view_tools(CommandCatalog& catalog)
         const char* description;
     };
     // Titles are L("...")-marked here so xgettext extracts them.
-    static const WindowRow window_rows[] = {
+    static const WindowMenuItem window_menu_items[] = {
         {"open_preferences", L("Preferences"), L("Commands"), "cog", "preferences",
          "Open the Preferences dialog. window_open with a tab, and a key on it, opens it on that tab with that preference's "
          "control scrolled into view and focused (shown on its own tab)."},
@@ -1336,13 +1340,14 @@ void register_view_tools(CommandCatalog& catalog)
     };
     std::vector<std::string> windows;
     json                     window_tiles = json::array();
-    for (const WindowRow& row : window_rows) {
-        windows.emplace_back(row.window);
-        window_tiles.push_back(NativeCommands::tile(row.key, row.title, row.group, row.icon, {{"window", row.window}}, row.description));
+    for (const WindowMenuItem& item : window_menu_items) {
+        windows.emplace_back(item.window);
+        window_tiles.push_back(
+            NativeCommands::tile(item.key, item.title, item.group, item.icon, {{"window", item.window}}, item.description));
     }
-    catalog.add(row_command(
+    catalog.add(menu_command(
         "window_open", L("Open a window"),
-        "Open one of OrcaSlicer's windows or dialogs for a person, as its menu row does: preferences, the Preferences dialog, "
+        "Open one of OrcaSlicer's windows or dialogs for a person, as its menu item does: preferences, the Preferences dialog, "
         "with tab, and key on it, on that tab with that preference's control scrolled into view and focused (its controls are "
         "named after their preference keys: preferences_get reads them and preferences_set writes those it does not refuse, "
         "and widget_set_value {\"target\": {\"name\": key, \"within\": \"Preferences\"}} changes one through the "
@@ -1351,7 +1356,7 @@ void register_view_tools(CommandCatalog& catalog)
         "bundle manager; keyboard_shortcuts; setup_wizard; network_test; troubleshoot, the troubleshooting center; "
         "tip_of_the_day; about. A modal one replies blocked_by_dialog.",
         object_schema({{"window", enum_prop(windows, "The window.")},
-                       {"tab", enum_prop(Rows::preferences_tabs(), "preferences: the tab to show.")},
+                       {"tab", enum_prop(MenuItems::preferences_tabs(), "preferences: the tab to show.")},
                        {"key", prop("string", "preferences, with tab: a preference on that tab, e.g. auto_arrange on behaviour: "
                                               "its control is scrolled into view and focused.")}},
                       {"window"}),
@@ -1361,17 +1366,17 @@ void register_view_tools(CommandCatalog& catalog)
                 return AppActionRunResult{AppActionRunResult::Level::Error, from_u8("tab and key go with window preferences"), false};
             json preferences = args;
             preferences.erase("window");
-            return Rows::open_window(window, preferences);
+            return MenuItems::open_window(window, preferences);
         }));
 
     const std::string saved = "Save a PNG of the main window in the folder Start Recording saves in (the person's Downloads unless "
                               "they chose another) and show the person a notification naming it; the reply has its path. Agents use "
                               "the window_screenshot tool, which returns the image.";
-    NativeCommand save_screenshot = row_command("window_save_screenshot", L("Take Screenshot"), saved, object_schema({}),
+    NativeCommand save_screenshot = menu_command("window_save_screenshot", L("Take Screenshot"), saved, object_schema({}),
                                                 json::array({NativeCommands::tile("take_screenshot", L("Take Screenshot"),
                                                                                   L("Commands"), "screenshot", json::object(), saved)}),
-                                                [](const json&) { return Rows::take_screenshot(); });
-    // A menu row with no argument form: tool_search finds it and tool_call runs it, the tool list does not show it.
+                                                [](const json&) { return MenuItems::take_screenshot(); });
+    // A menu item with no argument form: tool_search finds it and tool_call runs it, the tool list does not show it.
     save_screenshot.listed = false;
     catalog.add(std::move(save_screenshot));
 }

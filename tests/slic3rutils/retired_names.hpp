@@ -26,10 +26,10 @@ inline const std::vector<std::string> kRetiredTools{
     "pick_gizmo_file",     "run_javascript",     "open_files",                "get_settings",
     "set_settings"};
 
-// The ids of the menu rows that are a tile of a command of another name (the design's Mapping), each the key of
+// The ids of the menu items that are a tile of a command of another name (the design's Mapping), each the key of
 // its tile: those of the project, the objects, the parts and the plates, then those of the presets, the app, the view
 // and the rest.
-inline const std::vector<std::string> kRetiredRows{
+inline const std::vector<std::string> kRetiredMenuItems{
     "new_project",              "load_project",               "import_file",                   "import_zip_archive",
     "save_project",             "save_project_as",            "export_gcode",                  "export_sliced_file",
     "export_all_sliced_file",   "export_3mf",                 "export_stl",                    "export_stl_multi",
@@ -62,7 +62,7 @@ inline const std::vector<std::string> kRetiredRows{
     "install_local_plugin",     "refresh_plugins",            "start_recording",               "stop_recording",
     "toggle_run_script_panel"};
 
-// The names of kRetiredTools and kRetiredRows that are words of `text`, as a text an agent reads would name a command:
+// The names of kRetiredTools and kRetiredMenuItems that are words of `text`, as a text an agent reads would name a command:
 // a word is a run of letters, digits, underscores and hyphens, compared in its case, so project_export holds no export
 // and a right-click menu no click.
 inline std::set<std::string> retired_names_in(const std::string& text)
@@ -73,7 +73,7 @@ inline std::set<std::string> retired_names_in(const std::string& text)
         const auto named = [&word](const std::vector<std::string>& names) {
             return std::find(names.begin(), names.end(), word) != names.end();
         };
-        if (named(kRetiredTools) || named(kRetiredRows))
+        if (named(kRetiredTools) || named(kRetiredMenuItems))
             found.insert(word);
         word.clear();
     };

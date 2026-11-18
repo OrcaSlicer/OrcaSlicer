@@ -2,7 +2,7 @@
  "commands": [
   {
    "completion": "immediate",
-   "description": "Find what does something, in one search, or look up one command. With query: the commands that match, best first, each with its group, the first sentence of its description and listed, whether the tool list shows it; one that is not listed (a menu row that takes no arguments, a Design tab command, or an operation a plugin offers, plugin.<plugin>.<name>) comes with its input schema, and its description when that says more, which nothing else shows. Beside them, the best few matches of each other catalog, with its total and how to use it: actions (the Speed Dial's plates, recent projects and plugin scripts and pages), settings, and python (the orca API a script calls). The reply says how to call each kind of match. With tool: that command's description and input schema, and its examples when it has some (the Design commands do). With neither: every command's name. group keeps the names and the command matches to one group; the other catalogs' matches stay as they are. The Design tab's CAD commands follow by heading (sketches, solid and surface features, bodies, measurements); look one up with tool before calling it. A command whose schema has silent does what its menu row does when called with no arguments, unless silent is true. Document: describe_design, import_step, import_mesh, set_variable, commit_to_plate, new_design, export_step, select_geometry, confirm_tool, cancel_tool. Sketch: sketch_create, sketch_project, sketch_text, sketch_insert_svg, sketch_offset, sketch_trim, sketch_fillet, sketch_chamfer, sketch_mirror, sketch_dimension, sketch_constrain, sketch_toggle_construction, sketch_extend, sketch_delete, sketch_describe, sketch_validate, sketch_list_constraints, sketch_blend_curve, sketch_finish, sketch_cancel, sketch_edit, sketch_draw, sketch_select, sketch_repair, sketch_set_value, sketch_transform, sketch_pattern, sketch_delete_constraint. Solid: extrude, revolve, sweep, loft, thicken, rib, boolean, hole, thread, shell, split, fillet, chamfer, draft, pattern, mirror, align, delete_face, list_align_types. Surface: surface_extrude, surface_revolve, surface_loft, surface_patch, surface_offset. Construct: construct_plane, construct_axis, construct_coordinate_system, helix. Inspect: measure, body_mass_properties, interference, body_describe, body_section, body_compare. Bodies: body_transform, body_delete, body_set, body_place. History: feature_edit, feature_delete, feature_describe, feature_set_expression, feature_move, feature_suppress, feature_rename. Menu rows, which take no arguments and do what their row of the right-click menu does: rename_selected, zoom_to_selection, sketch_polygon_inscribed, sketch_polygon_circumscribed, sketch_constrain_selected.",
+   "description": "Find what does something, in one search, or look up one command. With query: the commands that match, best first, each with its group, the first sentence of its description and listed, whether the tool list shows it; one that is not listed (a menu item that takes no arguments, a Design tab command, or an operation a plugin offers, plugin.<plugin>.<name>) comes with its input schema, and its description when that says more, which nothing else shows. Beside them, the best few matches of each other catalog, with its total and how to use it: actions (the Speed Dial's plates, recent projects and plugin scripts and pages), settings, and python (the orca API a script calls). The reply says how to call each kind of match. With tool: that command's description and input schema, and its examples when it has some (the Design commands do). With neither: every command's name. group keeps the names and the command matches to one group; the other catalogs' matches stay as they are. The Design tab's CAD commands follow by heading (sketches, solid and surface features, bodies, measurements); look one up with tool before calling it. A command whose schema has silent does what its menu item does when called with no arguments, unless silent is true. Document: describe_design, import_step, import_mesh, set_variable, commit_to_plate, new_design, export_step, select_geometry, confirm_tool, cancel_tool. Sketch: sketch_create, sketch_project, sketch_text, sketch_insert_svg, sketch_offset, sketch_trim, sketch_fillet, sketch_chamfer, sketch_mirror, sketch_dimension, sketch_constrain, sketch_toggle_construction, sketch_extend, sketch_delete, sketch_describe, sketch_validate, sketch_list_constraints, sketch_blend_curve, sketch_finish, sketch_cancel, sketch_edit, sketch_draw, sketch_select, sketch_repair, sketch_set_value, sketch_transform, sketch_pattern, sketch_delete_constraint. Solid: extrude, revolve, sweep, loft, thicken, rib, boolean, hole, thread, shell, split, fillet, chamfer, draft, pattern, mirror, align, delete_face, list_align_types. Surface: surface_extrude, surface_revolve, surface_loft, surface_patch, surface_offset. Construct: construct_plane, construct_axis, construct_coordinate_system, helix. Inspect: measure, body_mass_properties, interference, body_describe, body_section, body_compare. Bodies: body_transform, body_delete, body_set, body_place. History: feature_edit, feature_delete, feature_describe, feature_set_expression, feature_move, feature_suppress, feature_rename. Menu items, which take no arguments and do what their item of the right-click menu does: rename_selected, zoom_to_selection, sketch_polygon_inscribed, sketch_polygon_circumscribed, sketch_constrain_selected.",
    "destructive": false,
    "group": "Tools and actions",
    "guard": "inspect",
@@ -41,7 +41,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Call any command by name with its arguments: a tool, or one the tool list does not show, a menu row that takes no arguments, a Design tab command or an operation a plugin offers (see tool_search). It runs and is recorded as that command's own call, with its guards and reply budget.",
+   "description": "Call any command by name with its arguments: a tool, or one the tool list does not show, a menu item that takes no arguments, a Design tab command or an operation a plugin offers (see tool_search). It runs and is recorded as that command's own call, with its guards and reply budget.",
    "destructive": false,
    "group": "Tools and actions",
    "guard": "mutate",
@@ -457,7 +457,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Open one of OrcaSlicer's web pages in the default web browser, as its menu row does: wiki, the OrcaSlicer wiki; youtube, the OrcaSlicer YouTube channel; plugin_hub, the plugin hub's page, where a person picks a plugin to install. Nothing opens in OrcaSlicer.",
+   "description": "Open one of OrcaSlicer's web pages in the default web browser, as its menu item does: wiki, the OrcaSlicer wiki; youtube, the OrcaSlicer YouTube channel; plugin_hub, the plugin hub's page, where a person picks a plugin to install. Nothing opens in OrcaSlicer.",
    "destructive": false,
    "group": "The app",
    "guard": "mutate",
@@ -1016,7 +1016,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Write the project to a file without a dialog. gcode: the plate's G-code (slice first; it is written in the background, and the call returns once it is). sliced_3mf: the sliced plate, or all plates, as .gcode.3mf (slice first: a plate that is not sliced is written without G-code). 3mf: the model without slicing data. stl and drc (Draco): the objects as one file, or with per_object each in a file of its own, named after it, into the folder path names; every object of every plate, or those objects names. toolpaths_obj: the toolpaths the Preview shows, as an OBJ, refused while it shows none (slice the plate and show the Preview first). Without format, the path's extension (.gcode, .gcode.3mf, .3mf, .stl, .drc, .obj) says which. Called with exactly the arguments of one of the File > Export rows (format alone, sliced_3mf with plates \"all\", stl or drc with per_object), it asks for the file or folder in the dialog that row opens (blocked_by_dialog). A file per object of a project with no objects, and the toolpaths while the Preview shows none, are refused in either form. Reply: path and bytes; for gcode, path and export (ok, or superseded with a note when the project changed while it was written); for per_object, path and files (each file written); for stl and drc, objects (those written).",
+   "description": "Write the project to a file without a dialog. gcode: the plate's G-code (slice first; it is written in the background, and the call returns once it is). sliced_3mf: the sliced plate, or all plates, as .gcode.3mf (slice first: a plate that is not sliced is written without G-code). 3mf: the model without slicing data. stl and drc (Draco): the objects as one file, or with per_object each in a file of its own, named after it, into the folder path names; every object of every plate, or those objects names. toolpaths_obj: the toolpaths the Preview shows, as an OBJ, refused while it shows none (slice the plate and show the Preview first). Without format, the path's extension (.gcode, .gcode.3mf, .3mf, .stl, .drc, .obj) says which. Called with exactly the arguments of one of the File > Export menu items (format alone, sliced_3mf with plates \"all\", stl or drc with per_object), it asks for the file or folder in the dialog that item opens (blocked_by_dialog). A file per object of a project with no objects, and the toolpaths while the Preview shows none, are refused in either form. Reply: path and bytes; for gcode, path and export (ok, or superseded with a note when the project changed while it was written); for per_object, path and files (each file written); for stl and drc, objects (those written).",
    "destructive": false,
    "group": "The project",
    "guard": "mutate",
@@ -6423,7 +6423,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Open one of OrcaSlicer's windows or dialogs for a person, as its menu row does: preferences, the Preferences dialog, with tab, and key on it, on that tab with that preference's control scrolled into view and focused (its controls are named after their preference keys: preferences_get reads them and preferences_set writes those it does not refuse, and widget_set_value {\"target\": {\"name\": key, \"within\": \"Preferences\"}} changes one through the dialog); plugins, the Plugins window; action_replay, the Action Replay window, where a person replays a replay file (agents run one with replay_run); preset_bundle, the preset bundle manager; keyboard_shortcuts; setup_wizard; network_test; troubleshoot, the troubleshooting center; tip_of_the_day; about. A modal one replies blocked_by_dialog.",
+   "description": "Open one of OrcaSlicer's windows or dialogs for a person, as its menu item does: preferences, the Preferences dialog, with tab, and key on it, on that tab with that preference's control scrolled into view and focused (its controls are named after their preference keys: preferences_get reads them and preferences_set writes those it does not refuse, and widget_set_value {\"target\": {\"name\": key, \"within\": \"Preferences\"}} changes one through the dialog); plugins, the Plugins window; action_replay, the Action Replay window, where a person replays a replay file (agents run one with replay_run); preset_bundle, the preset bundle manager; keyboard_shortcuts; setup_wizard; network_test; troubleshoot, the troubleshooting center; tip_of_the_day; about. A modal one replies blocked_by_dialog.",
    "destructive": false,
    "group": "View and windows",
    "guard": "mutate",
@@ -7275,7 +7275,7 @@
       ]
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -7488,7 +7488,7 @@
       "type": "array"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -7691,7 +7691,7 @@
       "type": "array"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -7873,7 +7873,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -8020,7 +8020,7 @@
       "type": "boolean"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -8043,7 +8043,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Thicken a face of a body, or a whole sheet body, into a new solid body by a wall thickness. type face offsets one face of a body into a thin plate. type surface thickens a sheet body: a sheet of several faces whose free rims close into planar loops (the walls of a box with no lids) is capped at them and grows inward, into the closed shape that makes, whatever flip says; one whose rim can't be capped is refused. A single face or a closed shell is offset face by face along each face's normal, the one body_describe gives, or against it with flip; a closed shell can fail to thicken this way. Reply: thicken_index, bodies. Called with exactly one of these argument sets and nothing else, it opens that row's tool of the Design tab for a person, as the menu row does: {\"type\":\"face\"} (Thicken), {\"type\":\"surface\"} (Thicken Surface).",
+   "description": "Thicken a face of a body, or a whole sheet body, into a new solid body by a wall thickness. type face offsets one face of a body into a thin plate. type surface thickens a sheet body: a sheet of several faces whose free rims close into planar loops (the walls of a box with no lids) is capped at them and grows inward, into the closed shape that makes, whatever flip says; one whose rim can't be capped is refused. A single face or a closed shell is offset face by face along each face's normal, the one body_describe gives, or against it with flip; a closed shell can fail to thicken this way. Reply: thicken_index, bodies. Called with exactly one of these argument sets and nothing else, it opens that item's tool of the Design tab for a person, as the menu item does: {\"type\":\"face\"} (Thicken), {\"type\":\"surface\"} (Thicken Surface).",
    "destructive": false,
    "examples": [
     {
@@ -8198,7 +8198,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -8235,7 +8235,7 @@
      "args": {
       "type": "surface"
      },
-     "description": "Thicken a sheet body into a solid. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+     "description": "Thicken a sheet body into a solid. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
      "icon": "design_thicken",
      "key": "thicken_surf",
      "title": "Thicken Surface"
@@ -8343,7 +8343,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -8376,7 +8376,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Combine two bodies: join them, cut the tool from the target, or keep where they intersect. A rejected rebuild is reported in the reply: ok is false or error is not empty. Called with exactly one of these argument sets and nothing else, it opens that row's tool of the Design tab for a person, as the menu row does: {\"operation\":\"join\"} (Join), {\"operation\":\"cut\"} (Subtract), {\"operation\":\"intersect\"} (Intersect).",
+   "description": "Combine two bodies: join them, cut the tool from the target, or keep where they intersect. A rejected rebuild is reported in the reply: ok is false or error is not empty. Called with exactly one of these argument sets and nothing else, it opens that item's tool of the Design tab for a person, as the menu item does: {\"operation\":\"join\"} (Join), {\"operation\":\"cut\"} (Subtract), {\"operation\":\"intersect\"} (Intersect).",
    "destructive": false,
    "examples": [
     {
@@ -8486,7 +8486,7 @@
       "type": "string"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -8523,7 +8523,7 @@
      "args": {
       "operation": "cut"
      },
-     "description": "Cut the tool body out of the target. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+     "description": "Cut the tool body out of the target. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
      "icon": "design_boolean",
      "key": "bool_subtract",
      "title": "Subtract"
@@ -8532,7 +8532,7 @@
      "args": {
       "operation": "intersect"
      },
-     "description": "Keep only where the two bodies overlap. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+     "description": "Keep only where the two bodies overlap. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
      "icon": "design_boolean",
      "key": "bool_intersect",
      "title": "Intersect"
@@ -8644,7 +8644,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -8799,7 +8799,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -8928,7 +8928,7 @@
       "type": "boolean"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -9042,7 +9042,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -9242,7 +9242,7 @@
       ]
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -9504,7 +9504,7 @@
       ]
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -9610,7 +9610,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -9778,7 +9778,7 @@
       ]
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -9914,7 +9914,7 @@
       "type": "number"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -10015,7 +10015,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -10108,7 +10108,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -10243,7 +10243,7 @@
       "type": "number"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -10261,7 +10261,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Replicate a body in a row, around the plane's normal, or along a sketch curve. linear places count copies along a plane axis at spacing; circular spreads them over angle about the plane's normal through its origin; curve places them at equal-parameter points on a sketch entity, each translated by (P_i - P_0). An argument of one type is refused with another. Reply: pattern_index, bodies, and for linear and circular the frame. Called with exactly one of these argument sets and nothing else, it opens that row's tool of the Design tab for a person, as the menu row does: {\"type\":\"linear\"} (Linear pattern), {\"type\":\"circular\"} (Circular pattern).",
+   "description": "Replicate a body in a row, around the plane's normal, or along a sketch curve. linear places count copies along a plane axis at spacing; circular spreads them over angle about the plane's normal through its origin; curve places them at equal-parameter points on a sketch entity, each translated by (P_i - P_0). An argument of one type is refused with another. Reply: pattern_index, bodies, and for linear and circular the frame. Called with exactly one of these argument sets and nothing else, it opens that item's tool of the Design tab for a person, as the menu item does: {\"type\":\"linear\"} (Linear pattern), {\"type\":\"circular\"} (Circular pattern).",
    "destructive": false,
    "examples": [
     {
@@ -10440,7 +10440,7 @@
       ]
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -10482,7 +10482,7 @@
      "args": {
       "type": "circular"
      },
-     "description": "Repeat the body around an axis — set the count and sweep. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+     "description": "Repeat the body around an axis — set the count and sweep. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
      "icon": "design_polararray",
      "key": "pattern_circular",
      "title": "Circular pattern"
@@ -10608,7 +10608,7 @@
       ]
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -10738,7 +10738,7 @@
       "type": "number"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -10884,7 +10884,7 @@
       "type": "number"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -11089,7 +11089,7 @@
       "type": "number"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -11289,7 +11289,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -11393,7 +11393,7 @@
       "type": "array"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -11503,7 +11503,7 @@
       "type": "number"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -11667,7 +11667,7 @@
       ]
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -11889,7 +11889,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -11957,7 +11957,7 @@
       "type": "number"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -12060,7 +12060,7 @@
       "type": "object"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -12083,7 +12083,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it). It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+   "description": "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it). It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -12175,7 +12175,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -12198,7 +12198,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Frame the selection in the view, keeping the view direction. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+   "description": "Frame the selection in the view, keeping the view direction. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -12311,7 +12311,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -12402,7 +12402,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -12425,7 +12425,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Measure the polygon to its corners (inscribed). It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+   "description": "Measure the polygon to its corners (inscribed). It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -12446,7 +12446,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Measure the polygon to its flats (circumscribed). It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+   "description": "Measure the polygon to its flats (circumscribed). It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -12576,7 +12576,7 @@
       "type": "array"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
       "enum": [
        true
       ],
@@ -12686,7 +12686,7 @@
       "type": "number"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
       "enum": [
        true
       ],
@@ -12804,7 +12804,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
       "enum": [
        true
       ],
@@ -12901,7 +12901,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
       "enum": [
        true
       ],
@@ -12993,7 +12993,7 @@
       "type": "number"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
       "enum": [
        true
       ],
@@ -13080,7 +13080,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
       "enum": [
        true
       ],
@@ -13271,7 +13271,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
       "enum": [
        true
       ],
@@ -13402,7 +13402,7 @@
       "type": "array"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
       "enum": [
        true
       ],
@@ -13599,7 +13599,7 @@
       "type": "array"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
       "enum": [
        true
       ],
@@ -13656,7 +13656,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+   "description": "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -13750,7 +13750,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
       "enum": [
        true
       ],
@@ -13842,7 +13842,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
       "enum": [
        true
       ],
@@ -13965,7 +13965,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
       "enum": [
        true
       ],
@@ -15462,7 +15462,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Rename, colour or show/hide a body, as its Bodies row and the Color button do; give one or more. Not in the undo history. The name and colour are saved with the project and the name names its committed object; visibility is view state, and commit_to_plate leaves hidden bodies out. Reply: name, color, visible. Called with exactly one of these argument sets and nothing else, it opens that row's tool of the Design tab for a person, as the menu row does: {} (Color).",
+   "description": "Rename, colour or show/hide a body, as its Bodies row and the Color button do; give one or more. Not in the undo history. The name and colour are saved with the project and the name names its committed object; visibility is view state, and commit_to_plate leaves hidden bodies out. Reply: name, color, visible. Called with exactly one of these argument sets and nothing else, it opens that item's tool of the Design tab for a person, as the menu item does: {} (Color).",
    "destructive": false,
    "examples": [
     {
@@ -15567,7 +15567,7 @@
       ]
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
       "enum": [
        true
       ],
@@ -15596,7 +15596,7 @@
    "tiles": [
     {
      "args": {},
-     "description": "Set the selected body's display color. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+     "description": "Set the selected body's display color. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
      "icon": "color_palette",
      "key": "colour",
      "title": "Color"
@@ -16065,7 +16065,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Draw a shape in the open sketch from its fields beside `type`, or a list of shapes as `entities`. Each type, and the fields it takes: line {p0, p1}; polyline {points: 2 or more, a loop when the last is the first}; rectangle_2_point {p0, p1: opposite corners}; rectangle_center {center, corner}; rectangle_3_point {p0, p1: one side; width: signed, to the left of p0 to p1}; rectangle_rounded {p0, p1: opposite corners; radius: of the corners}; circle_center {center, radius}; circle_2_point {p0, p1: the ends of a diameter}; circle_3_point {p0, p1, p2: on the circle}; arc_3_point {p0: start; p1: end; on_arc}; arc_center {center, radius, start_angle, end_angle}; arc_tangent {end; entity: the line or arc it leaves, the sketch's or one an item before it adds, at that one's end, along its direction there, left out the one added last}; slot {c0, c1, width}; slot_arc {center, start, end: its direction from the centre, width}; ellipse {center, radius (semi-major), rminor, rotation}; ellipse_arc {the ellipse's fields, start_angle, end_angle: parametric, counter-clockwise}; spline {ctrl: 2 or more poles}; polygon {center, sides, radius (to a vertex) or across_flats, angle (of that vertex, or of the first edge's midpoint)}; point {p}. A type refuses a field it does not take. Each is built as its drawing tool builds it: a rectangle, a slot or a polygon is one shape, which one undo of the sketch takes off whole, and a polyline is its lines, as its tool leaves them; the constraints are inferred exactly, so that none moves what is given. Each shape carries the constraints its tool gives it, at any slant; a constraint between a shape and the sketch's axes or what is already in the sketch, or between plain lines, is inferred only where it holds exactly, so a square on the axes is level only on a side lying exactly on one, with right angles holding the others. Each item of entities may carry its own construction; the top-level construction is the single-type form's, and beside entities each item's that gives none. Beside entities a shape's field, type among them, is refused: it belongs in its item. Points are [x, y] in the sketch plane (mm); angles are radians, or degrees as start_angle_deg and the like. A polygon is lines; its side count is not kept once committed. Reply: first_index, added, shapes [{first, count}] per item, entities, dof. Called with exactly one of these argument sets and nothing else, it opens that row's tool of the Design tab for a person, as the menu row does: {\"type\":\"line\"} (Line), {\"type\":\"polyline\"} (Polyline), {\"type\":\"rectangle_2_point\"} (Corner rectangle), {\"type\":\"rectangle_center\"} (Center rectangle), {\"type\":\"rectangle_3_point\"} (Oblique rectangle), {\"type\":\"rectangle_rounded\"} (Rounded rectangle), {\"type\":\"circle_center\"} (Center circle), {\"type\":\"circle_2_point\"} (2-point circle), {\"type\":\"circle_3_point\"} (3-point circle), {\"type\":\"arc_3_point\"} (3-point arc), {\"type\":\"arc_tangent\"} (Tangent arc), {\"type\":\"arc_center\"} (Center-point arc), {\"type\":\"slot\"} (Slot), {\"type\":\"slot_arc\"} (Arc slot), {\"type\":\"ellipse\"} (Ellipse), {\"type\":\"ellipse_arc\"} (Elliptical arc), {\"type\":\"spline\"} (Spline), {\"sides\":3,\"type\":\"polygon\"} (Triangle), {\"sides\":4,\"type\":\"polygon\"} (Square), {\"sides\":5,\"type\":\"polygon\"} (Pentagon), {\"sides\":6,\"type\":\"polygon\"} (Hexagon), {\"sides\":8,\"type\":\"polygon\"} (Octagon), {\"sides\":12,\"type\":\"polygon\"} (Dodecagon), {\"type\":\"point\"} (Point).",
+   "description": "Draw a shape in the open sketch from its fields beside `type`, or a list of shapes as `entities`. Each type, and the fields it takes: line {p0, p1}; polyline {points: 2 or more, a loop when the last is the first}; rectangle_2_point {p0, p1: opposite corners}; rectangle_center {center, corner}; rectangle_3_point {p0, p1: one side; width: signed, to the left of p0 to p1}; rectangle_rounded {p0, p1: opposite corners; radius: of the corners}; circle_center {center, radius}; circle_2_point {p0, p1: the ends of a diameter}; circle_3_point {p0, p1, p2: on the circle}; arc_3_point {p0: start; p1: end; on_arc}; arc_center {center, radius, start_angle, end_angle}; arc_tangent {end; entity: the line or arc it leaves, the sketch's or one an item before it adds, at that one's end, along its direction there, left out the one added last}; slot {c0, c1, width}; slot_arc {center, start, end: its direction from the centre, width}; ellipse {center, radius (semi-major), rminor, rotation}; ellipse_arc {the ellipse's fields, start_angle, end_angle: parametric, counter-clockwise}; spline {ctrl: 2 or more poles}; polygon {center, sides, radius (to a vertex) or across_flats, angle (of that vertex, or of the first edge's midpoint)}; point {p}. A type refuses a field it does not take. Each is built as its drawing tool builds it: a rectangle, a slot or a polygon is one shape, which one undo of the sketch takes off whole, and a polyline is its lines, as its tool leaves them; the constraints are inferred exactly, so that none moves what is given. Each shape carries the constraints its tool gives it, at any slant; a constraint between a shape and the sketch's axes or what is already in the sketch, or between plain lines, is inferred only where it holds exactly, so a square on the axes is level only on a side lying exactly on one, with right angles holding the others. Each item of entities may carry its own construction; the top-level construction is the single-type form's, and beside entities each item's that gives none. Beside entities a shape's field, type among them, is refused: it belongs in its item. Points are [x, y] in the sketch plane (mm); angles are radians, or degrees as start_angle_deg and the like. A polygon is lines; its side count is not kept once committed. Reply: first_index, added, shapes [{first, count}] per item, entities, dof. Called with exactly one of these argument sets and nothing else, it opens that item's tool of the Design tab for a person, as the menu item does: {\"type\":\"line\"} (Line), {\"type\":\"polyline\"} (Polyline), {\"type\":\"rectangle_2_point\"} (Corner rectangle), {\"type\":\"rectangle_center\"} (Center rectangle), {\"type\":\"rectangle_3_point\"} (Oblique rectangle), {\"type\":\"rectangle_rounded\"} (Rounded rectangle), {\"type\":\"circle_center\"} (Center circle), {\"type\":\"circle_2_point\"} (2-point circle), {\"type\":\"circle_3_point\"} (3-point circle), {\"type\":\"arc_3_point\"} (3-point arc), {\"type\":\"arc_tangent\"} (Tangent arc), {\"type\":\"arc_center\"} (Center-point arc), {\"type\":\"slot\"} (Slot), {\"type\":\"slot_arc\"} (Arc slot), {\"type\":\"ellipse\"} (Ellipse), {\"type\":\"ellipse_arc\"} (Elliptical arc), {\"type\":\"spline\"} (Spline), {\"sides\":3,\"type\":\"polygon\"} (Triangle), {\"sides\":4,\"type\":\"polygon\"} (Square), {\"sides\":5,\"type\":\"polygon\"} (Pentagon), {\"sides\":6,\"type\":\"polygon\"} (Hexagon), {\"sides\":8,\"type\":\"polygon\"} (Octagon), {\"sides\":12,\"type\":\"polygon\"} (Dodecagon), {\"type\":\"point\"} (Point).",
    "destructive": false,
    "examples": [
     {
@@ -16449,7 +16449,7 @@
      "args": {
       "type": "line"
      },
-     "description": "Line — click start, then end. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Line — click start, then end. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_line",
      "key": "sk_line_t",
      "title": "Line"
@@ -16458,7 +16458,7 @@
      "args": {
       "type": "polyline"
      },
-     "description": "Click points; click the first point to close the loop, right-click to end it open. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Click points; click the first point to close the loop, right-click to end it open. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_polyline",
      "key": "sk_polyline",
      "title": "Polyline"
@@ -16467,7 +16467,7 @@
      "args": {
       "type": "rectangle_2_point"
      },
-     "description": "Rectangle — click two opposite corners. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Rectangle — click two opposite corners. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_rect",
      "key": "sk_rect",
      "title": "Corner rectangle"
@@ -16476,7 +16476,7 @@
      "args": {
       "type": "rectangle_center"
      },
-     "description": "Click center, then a corner. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Click center, then a corner. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_crect",
      "key": "sk_rect_center",
      "title": "Center rectangle"
@@ -16485,7 +16485,7 @@
      "args": {
       "type": "rectangle_3_point"
      },
-     "description": "Click two corners of one edge, then a point for the width. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Click two corners of one edge, then a point for the width. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_rect_oblique",
      "key": "sk_rect_oblique",
      "title": "Oblique rectangle"
@@ -16494,7 +16494,7 @@
      "args": {
       "type": "rectangle_rounded"
      },
-     "description": "Click two opposite corners, then a point for the corner radius. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Click two opposite corners, then a point for the corner radius. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_rect_rounded",
      "key": "sk_rect_rounded",
      "title": "Rounded rectangle"
@@ -16503,7 +16503,7 @@
      "args": {
       "type": "circle_center"
      },
-     "description": "Circle — click center, then radius. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Circle — click center, then radius. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_circle",
      "key": "sk_circle",
      "title": "Center circle"
@@ -16512,7 +16512,7 @@
      "args": {
       "type": "circle_2_point"
      },
-     "description": "Click two ends of the diameter. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Click two ends of the diameter. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_circle2pt",
      "key": "sk_circle_2pt",
      "title": "2-point circle"
@@ -16521,7 +16521,7 @@
      "args": {
       "type": "circle_3_point"
      },
-     "description": "Click three points on the circle. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Click three points on the circle. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_circle3pt",
      "key": "sk_circle_3pt",
      "title": "3-point circle"
@@ -16530,7 +16530,7 @@
      "args": {
       "type": "arc_3_point"
      },
-     "description": "Arc — click start, end, then a point. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Arc — click start, end, then a point. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_arc3pt",
      "key": "sk_arc_t",
      "title": "3-point arc"
@@ -16539,7 +16539,7 @@
      "args": {
       "type": "arc_tangent"
      },
-     "description": "Click start (on the last entity) then end. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Click start (on the last entity) then end. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_tangentarc",
      "key": "sk_arc_tangent",
      "title": "Tangent arc"
@@ -16548,7 +16548,7 @@
      "args": {
       "type": "arc_center"
      },
-     "description": "Click center, then start, then a point for the end angle. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Click center, then start, then a point for the end angle. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_arc_center",
      "key": "sk_arc_center",
      "title": "Center-point arc"
@@ -16557,7 +16557,7 @@
      "args": {
       "type": "slot"
      },
-     "description": "Slot — two centerline ends, then the width. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Slot — two centerline ends, then the width. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_slot",
      "key": "sk_slot",
      "title": "Slot"
@@ -16566,7 +16566,7 @@
      "args": {
       "type": "slot_arc"
      },
-     "description": "Click center, start, end, then a point for the width. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Click center, start, end, then a point for the width. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_slot_arc",
      "key": "sk_slot_arc",
      "title": "Arc slot"
@@ -16575,7 +16575,7 @@
      "args": {
       "type": "ellipse"
      },
-     "description": "Ellipse — center, major end, minor point. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Ellipse — center, major end, minor point. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_ellipse",
      "key": "sk_ellipse",
      "title": "Ellipse"
@@ -16584,7 +16584,7 @@
      "args": {
       "type": "ellipse_arc"
      },
-     "description": "Click center, major-axis end, minor point, then arc start and end. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Click center, major-axis end, minor point, then arc start and end. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_ellipse_arc",
      "key": "sk_ellipse_arc",
      "title": "Elliptical arc"
@@ -16593,7 +16593,7 @@
      "args": {
       "type": "spline"
      },
-     "description": "Spline — click control points. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Spline — click control points. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_bspline",
      "key": "sk_spline",
      "title": "Spline"
@@ -16603,7 +16603,7 @@
       "sides": 3,
       "type": "polygon"
      },
-     "description": "Triangle — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Triangle — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_polygon",
      "key": "sk_poly_3",
      "title": "Triangle"
@@ -16613,7 +16613,7 @@
       "sides": 4,
       "type": "polygon"
      },
-     "description": "Square — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Square — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_polygon",
      "key": "sk_poly_4",
      "title": "Square"
@@ -16623,7 +16623,7 @@
       "sides": 5,
       "type": "polygon"
      },
-     "description": "Pentagon — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Pentagon — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_polygon",
      "key": "sk_poly_5",
      "title": "Pentagon"
@@ -16633,7 +16633,7 @@
       "sides": 6,
       "type": "polygon"
      },
-     "description": "Hexagon — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Hexagon — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_polygon",
      "key": "sk_polygon",
      "title": "Hexagon"
@@ -16643,7 +16643,7 @@
       "sides": 8,
       "type": "polygon"
      },
-     "description": "Octagon — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Octagon — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_polygon",
      "key": "sk_poly_8",
      "title": "Octagon"
@@ -16653,7 +16653,7 @@
       "sides": 12,
       "type": "polygon"
      },
-     "description": "Dodecagon — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Dodecagon — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_polygon",
      "key": "sk_poly_12",
      "title": "Dodecagon"
@@ -16662,7 +16662,7 @@
      "args": {
       "type": "point"
      },
-     "description": "Point — click to place. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Point — click to place. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_point",
      "key": "sk_point_t",
      "title": "Point"
@@ -16870,7 +16870,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Set the dimension of the selected sketch entities, as the value field does. A line's length, a circle's diameter, an arc's radius, or the angle or distance between two. Select them with sketch_select first. Reply: kind, before, value, dof and the loops. Called with exactly one of these argument sets and nothing else, it opens that row's tool of the Design tab for a person, as the menu row does: {} (Length…, Radius / diameter…, Angle / distance…).",
+   "description": "Set the dimension of the selected sketch entities, as the value field does. A line's length, a circle's diameter, an arc's radius, or the angle or distance between two. Select them with sketch_select first. Reply: kind, before, value, dof and the loops. Called with exactly one of these argument sets and nothing else, it opens that item's tool of the Design tab for a person, as the menu item does: {} (Length…, Radius / diameter…, Angle / distance…).",
    "destructive": false,
    "examples": [
     {
@@ -16968,7 +16968,7 @@
       "type": "integer"
      },
      "silent": {
-      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu row does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
+      "description": "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design tab's menu item does, as a person's pick does. Called with no arguments, it runs only in an open sketch (sketch_create opens one).",
       "enum": [
        true
       ],
@@ -16994,21 +16994,21 @@
    "tiles": [
     {
      "args": {},
-     "description": "Type the length of this line. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Type the length of this line. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_dimension",
      "key": "sk_length",
      "title": "Length…"
     },
     {
      "args": {},
-     "description": "Type the radius of this arc, or the diameter of this circle. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Type the radius of this arc, or the diameter of this circle. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_dimension",
      "key": "sk_radius",
      "title": "Radius / diameter…"
     },
     {
      "args": {},
-     "description": "Type the angle between two lines, or the distance between the two picks. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Type the angle between two lines, or the distance between the two picks. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_dimension",
      "key": "sk_angdist",
      "title": "Angle / distance…"
@@ -17018,7 +17018,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Move, rotate or scale entities of the open sketch, as the transform tools' Confirm does. move {dx, dy}, rotate {angle, pivot} and scale {scale, pivot} change the entities and release the constraints that no longer hold. pivot defaults to the entities' centroid. Angles are radians, or degrees as angle_deg. Reply: type, moved, released_constraints, pivot, entities, dof. Called with exactly one of these argument sets and nothing else, it opens that row's tool of the Design tab for a person, as the menu row does: {\"type\":\"move\"} (Move), {\"type\":\"rotate\"} (Rotate), {\"type\":\"scale\"} (Scale).",
+   "description": "Move, rotate or scale entities of the open sketch, as the transform tools' Confirm does. move {dx, dy}, rotate {angle, pivot} and scale {scale, pivot} change the entities and release the constraints that no longer hold. pivot defaults to the entities' centroid. Angles are radians, or degrees as angle_deg. Reply: type, moved, released_constraints, pivot, entities, dof. Called with exactly one of these argument sets and nothing else, it opens that item's tool of the Design tab for a person, as the menu item does: {\"type\":\"move\"} (Move), {\"type\":\"rotate\"} (Rotate), {\"type\":\"scale\"} (Scale).",
    "destructive": false,
    "examples": [
     {
@@ -17171,7 +17171,7 @@
      "args": {
       "type": "move"
      },
-     "description": "Pick entities, then drag the handle or click the distance; click empty to apply. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Pick entities, then drag the handle or click the distance; click empty to apply. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_move",
      "key": "sk_move",
      "title": "Move"
@@ -17180,7 +17180,7 @@
      "args": {
       "type": "rotate"
      },
-     "description": "Pick entities, then drag around the pivot or click the angle; click empty to apply. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Pick entities, then drag around the pivot or click the angle; click empty to apply. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_rotate",
      "key": "sk_rotate",
      "title": "Rotate"
@@ -17189,7 +17189,7 @@
      "args": {
       "type": "scale"
      },
-     "description": "Pick entities, then drag the handle or click the factor; click empty to apply. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Pick entities, then drag the handle or click the factor; click empty to apply. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_scale",
      "key": "sk_scale",
      "title": "Scale"
@@ -17199,7 +17199,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Repeat entities of the open sketch in a row or around a point, as the Linear and Polar array tools do. linear adds copies stepped by dx, dy; circular adds copies every angle/count about pivot (angle is the whole sweep, default 360 degrees). count includes the original, and each copy is bound to its source (equal length and parallel, or its radius). Angles are radians, or degrees as angle_deg. Reply: type, first_index, added, bound, pivot (circular), entities, dof. Called with exactly one of these argument sets and nothing else, it opens that row's tool of the Design tab for a person, as the menu row does: {\"type\":\"linear\"} (Linear array), {\"type\":\"circular\"} (Polar array).",
+   "description": "Repeat entities of the open sketch in a row or around a point, as the Linear and Polar array tools do. linear adds copies stepped by dx, dy; circular adds copies every angle/count about pivot (angle is the whole sweep, default 360 degrees). count includes the original, and each copy is bound to its source (equal length and parallel, or its radius). Angles are radians, or degrees as angle_deg. Reply: type, first_index, added, bound, pivot (circular), entities, dof. Called with exactly one of these argument sets and nothing else, it opens that item's tool of the Design tab for a person, as the menu item does: {\"type\":\"linear\"} (Linear array), {\"type\":\"circular\"} (Polar array).",
    "destructive": false,
    "examples": [
     {
@@ -17353,7 +17353,7 @@
      "args": {
       "type": "linear"
      },
-     "description": "Pick entities, drag the spacing handle, click the count; click empty to apply. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Pick entities, drag the spacing handle, click the count; click empty to apply. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_array",
      "key": "sk_array",
      "title": "Linear array"
@@ -17362,7 +17362,7 @@
      "args": {
       "type": "circular"
      },
-     "description": "Pick entities, drag the sweep handle, click the count; click empty to apply. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
+     "description": "Pick entities, drag the sweep handle, click the count; click empty to apply. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_create opens one).",
      "icon": "design_polararray",
      "key": "sk_array_polar",
      "title": "Polar array"
@@ -17563,7 +17563,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Select a body, a face, edges, a vertex, a reference plane, a sketch's loop or a feature by id, as a click selects it. One form: body; body with face, edges (the last the current edge, as in a Shift+click set) or vertex; plane; sketch with loop; feature; or nothing, which clears the selection. A body is selected as a click on its row of the Bodies list selects it, a face, edges or a vertex as a click in the view picks them, a loop as a click on it, which also selects its Sketch's row, and a feature as a click on its row of the Feature list. A plane is picked only where a click can pick one: while the Origin row shows the planes, or while Sketch waits for its plane (sketch_create {}), where picking it opens the sketch. A loop is numbered as sketch_describe {sketch} numbers closed_loops and extrude {sketch, loop} takes it, and is selected only while the view shows it: an extrude that takes the whole sketch hides the sketch, and one that takes a loop hides that loop. Whatever was selected goes first, of every kind. The menu-row forms then act on the selection: feature_edit, rename_selected, feature_delete and sketch_constrain_selected called with no arguments act on the selected row of the Feature list while nothing is picked in the view, and zoom_to_selection acts on what is picked in the view, so a sketch is zoomed to through sketch with loop, not through feature. Refused, changing nothing, for an id the model does not have, and while a card, a sketch, Constrain mode, a body Move or the Text dialog is open, where a click means something else. Reply: selection {kind, id}, plane and feature, as describe_design reports selection, picked_plane and feature_row; for a vertex also point, as body_describe gives it, and placed_point, where the view draws it (the same unless the body was moved).",
+   "description": "Select a body, a face, edges, a vertex, a reference plane, a sketch's loop or a feature by id, as a click selects it. One form: body; body with face, edges (the last the current edge, as in a Shift+click set) or vertex; plane; sketch with loop; feature; or nothing, which clears the selection. A body is selected as a click on its row of the Bodies list selects it, a face, edges or a vertex as a click in the view picks them, a loop as a click on it, which also selects its Sketch's row, and a feature as a click on its row of the Feature list. A plane is picked only where a click can pick one: while the Origin row shows the planes, or while Sketch waits for its plane (sketch_create {}), where picking it opens the sketch. A loop is numbered as sketch_describe {sketch} numbers closed_loops and extrude {sketch, loop} takes it, and is selected only while the view shows it: an extrude that takes the whole sketch hides the sketch, and one that takes a loop hides that loop. Whatever was selected goes first, of every kind. The menu-item forms then act on the selection: feature_edit, rename_selected, feature_delete and sketch_constrain_selected called with no arguments act on the selected row of the Feature list while nothing is picked in the view, and zoom_to_selection acts on what is picked in the view, so a sketch is zoomed to through sketch with loop, not through feature. Refused, changing nothing, for an id the model does not have, and while a card, a sketch, Constrain mode, a body Move or the Text dialog is open, where a click means something else. Reply: selection {kind, id}, plane and feature, as describe_design reports selection, picked_plane and feature_row; for a vertex also point, as body_describe gives it, and placed_point, where the view draws it (the same unless the body was moved).",
    "destructive": false,
    "examples": [
     {

@@ -1,13 +1,13 @@
-// Runs the plate commands made from menu rows by index, as a call gives them, and reads each back from plate_list:
+// Runs the plate commands made from menu items by index, as a call gives them, and reads each back from plate_list:
 // plate_duplicate copies plate 1 while plate 0 is current, plate_rename names plate 2 (which its name icon makes
 // current), plate_lock locks plate 3 and toggles it back, plate_select makes plate 2 current, and plate_delete
 // deletes plate 1 while plate 2 is current, whose index drops to 1, leaving the objects of the deleted plate outside
 // the plates. Each is called once with no plate too, and its reply names the current plate. Last, undo gives back the
 // plate the last delete took. The project starts with a cube on each of two plates. Run it with
-//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/rows_plates.json --out <dir>
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/menu_items_plates.json --out <dir>
 {
   "orca_replay_version": "0.2.0",
-  "name": "rows plates",
+  "name": "menu items plates",
   "steps": [
     {"tool": "app_wait", "args": {"for": "ready"}},
     {"tool": "project_new", "args": {"discard_changes": true, "preset_changes": "discard"}},

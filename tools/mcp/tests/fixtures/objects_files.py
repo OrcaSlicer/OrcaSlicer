@@ -53,7 +53,7 @@ def import_cube(args):
 
 
 def repair_notices():
-    """The notifications Fix Model's menu row ends in (the object list's fix_through_cgal()), and the open dialogs.
+    """The notifications Fix Model's menu item ends in (the object list's fix_through_cgal()), and the open dialogs.
     The object info notification of a selected object, which offers Fix Model, is not one."""
     state = call("app_state", {})
     ends = ("has been repaired", "have been repaired", "needed no repair", "Failed to repair", "Repairing was canceled")
@@ -70,7 +70,7 @@ def mesh_errors(index):
 
 def wait_repaired(args):
     """Waits up to 30 s for object args["object"] to have no open edge and for Fix Model's notification, since the
-    command of a menu row that a mouse_gesture picks runs after the gesture's reply, and its progress dialog lets
+    command of a menu item that a mouse_gesture picks runs after the gesture's reply, and its progress dialog lets
     calls in while it repairs, before the notification is pushed; returns its mesh errors and repair_notices()."""
     deadline = time.monotonic() + 30
     errors = mesh_errors(args["object"])

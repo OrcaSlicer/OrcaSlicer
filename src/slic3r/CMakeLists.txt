@@ -145,7 +145,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/ActionRegistry.hpp
     GUI/ActionReplayDialog.cpp
     GUI/ActionReplayDialog.hpp
-    GUI/NativeCommandRows.hpp
+    GUI/NativeCommandMenuItems.hpp
     GUI/NativeCommands.cpp
     GUI/NativeCommands.hpp
     GUI/Operations/ExportOps.cpp

@@ -200,7 +200,7 @@ TEST_CASE("A pin with no live action is dropped, the others keep their order", "
 #endif
 }
 
-TEST_CASE("A pin under a row's id is kept, as its tile's", "[ActionSource][SpeedDial]")
+TEST_CASE("A pin under a menu item's id is kept, as its tile's", "[ActionSource][SpeedDial]")
 {
     // The ids the registry holds of the palette's tiles, which it makes as the Speed Dial starts.
     std::set<std::string> held;
@@ -209,7 +209,7 @@ TEST_CASE("A pin under a row's id is kept, as its tile's", "[ActionSource][Speed
                                          Slic3r::GUI::NativeCommands::make_action(*t.command))
                         ->id());
     const auto live = [&held](const std::string& id) { return held.count(id) != 0; };
-    // Delete Selected and New Project, whose rows are tiles of object_delete and project_new.
+    // Delete Selected and New Project, whose menu items are tiles of object_delete and project_new.
     const std::vector<std::string> pinned{"orca_command:obj_delete:orca", "orca_command:new_project:orca"};
     std::vector<std::string>       stored, shown;
     Slic3r::GUI::prune_favourites(pinned, live, stored, shown);
@@ -357,8 +357,8 @@ TEST_CASE("the palette's own tiles leave the Design group out", "[ActionSource][
         c.group      = group;
         c.listed     = c.group != Slic3r::GUI::kDesignGroup;
         c.in_palette = true;
-        c.tiles      = nlohmann::json::array({nlohmann::json{{"key", std::string(group) + "_row"}, {"title", group}, {"icon", ""},
-                                                             {"description", ""}, {"args", {{"row", true}}}}});
+        c.tiles      = nlohmann::json::array({nlohmann::json{{"key", std::string(group) + "_item"}, {"title", group}, {"icon", ""},
+                                                             {"description", ""}, {"args", {{"item", true}}}}});
         catalog.add(std::move(c));
     }
     catalog.seal();
@@ -367,7 +367,7 @@ TEST_CASE("the palette's own tiles leave the Design group out", "[ActionSource][
     CHECK(palette[0].command->key == "Objects_tile");
     CHECK(palette[0].tile == nullptr);
     REQUIRE(palette[1].tile != nullptr);
-    CHECK(palette[1].tile->at("key") == "Objects_row");
+    CHECK(palette[1].tile->at("key") == "Objects_item");
 }
 
 // The Help-menu tiles, wiki/YouTube links and the developer-mode toggle are part of the palette.

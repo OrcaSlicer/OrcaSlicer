@@ -6,9 +6,9 @@
 # Generate candidates with: python3 scripts/check_operation_calls.py --print
 
 [src/slic3r/GUI/NativeCommands.cpp]
-# The asking path of a command, its menu row's tile (Rows): the row's function calls the owner's method, which asks
-# the person what an operation would be told (project_open {}, project_save {save_as: true}, project_import {archive:
-# true}, project_export with a tile's arguments, filament_sync_ams {}).
+# The asking path of a command, its menu item's tile (MenuItems): the item's function calls the owner's method, which
+# asks the person what an operation would be told (project_open {}, project_save {save_as: true}, project_import
+# {archive: true}, project_export with a tile's arguments, filament_sync_ams {}).
 plater->load_project();
 return NativeCommands::project_save_result(plater->save_project(true));
 plater->import_zip_archive();

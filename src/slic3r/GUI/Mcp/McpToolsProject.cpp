@@ -1,5 +1,5 @@
 // project_new, project_open, project_import, project_save and project_export: the project's files in and out without
-// file dialogs, and called as their menu rows' tiles, with them. calibration_generate_test: the Calibration menu's
+// file dialogs, and called as their menu items' tiles, with them. calibration_generate_test: the Calibration menu's
 // tests, which start a new project.
 
 #include "slic3r/GUI/I18N.hpp"
@@ -14,7 +14,7 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
-#include "slic3r/GUI/NativeCommandRows.hpp"
+#include "slic3r/GUI/NativeCommandMenuItems.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/Operations/ExportOps.hpp"
 #include "slic3r/GUI/Operations/ObjectOps.hpp"
@@ -445,7 +445,7 @@ void register_project_tools(CommandCatalog& catalog)
                                                    "Open a project through the Open dialog (it asks first if the current project "
                                                    "has unsaved changes); project_open with a path opens that file without a "
                                                    "dialog.")});
-    catalog.add(NativeCommands::with_person_form(std::move(open), [](const json&) { return Rows::load_project(); }));
+    catalog.add(NativeCommands::with_person_form(std::move(open), [](const json&) { return MenuItems::load_project(); }));
 
     NativeCommand import_ = reaching({"import_models"}, mutate_tool(
         "project_import", L("Import models"),
@@ -525,10 +525,10 @@ void register_project_tools(CommandCatalog& catalog)
          NativeCommands::tile("import_zip_archive", L("Import ZIP Archive"), L("Import"), "menu_open", {{"archive", true}},
                               "Import models from a ZIP archive (opens a file dialog).")});
     catalog.add(NativeCommands::with_person_form(std::move(import_), [](const json& tile_args) {
-        return tile_args.value("archive", false) ? Rows::import_zip_archive() : Rows::import_file();
+        return tile_args.value("archive", false) ? MenuItems::import_zip_archive() : MenuItems::import_file();
     }));
 
-    // New Project's row is its tile: with no arguments it asks as the row does.
+    // New Project's menu item is its tile: with no arguments it asks as the item does.
     NativeCommand project_new = reaching({"new_project"}, mutate_tool(
         "project_new", L("New Project"),
         "Start a new, empty project. Called with no arguments, it asks as New Project does, about the unsaved changes "
@@ -722,9 +722,9 @@ void register_project_tools(CommandCatalog& catalog)
             settle(ctx);
             return ToolResult::ok(out);
         });
-    // The Calibration menu's rows, each the dialog of its test. The tab strip's calib_sf glyph is drawn white for the dark
-    // tab bar and vanishes on the palette's light tile, so each row borrows the matching settings-group icon instead.
-    struct CalibrationRow
+    // The Calibration menu's items, each the dialog of its test. The tab strip's calib_sf glyph is drawn white for the dark
+    // tab bar and vanishes on the palette's light tile, so each item borrows the matching settings-group icon instead.
+    struct CalibrationMenuItem
     {
         const char* key;
         const char* title;
@@ -733,7 +733,7 @@ void register_project_tools(CommandCatalog& catalog)
         CalibKind   kind;
     };
     // Titles are L("...")-marked here so xgettext extracts them.
-    static const CalibrationRow calibration_rows[] = {
+    static const CalibrationMenuItem calibration_menu_items[] = {
         {"calib_temperature", L("Temperature Calibration"), "param_temperature", "temperature", CalibKind::Temperature},
         {"calib_max_volumetric", L("Max Volumetric Speed Calibration"), "param_volumetric_speed", "max_volumetric",
          CalibKind::MaxVolumetric},
@@ -749,21 +749,21 @@ void register_project_tools(CommandCatalog& catalog)
         {"calib_vfa", L("VFA Calibration"), "param_speed", "vfa", CalibKind::VFA},
     };
     calibration.tiles = json::array();
-    for (const CalibrationRow& row : calibration_rows)
-        calibration.tiles.push_back(NativeCommands::tile(row.key, row.title, L("Calibration"), row.icon, {{"test", row.test}},
-                                                         std::string("Open the ") + row.title +
+    for (const CalibrationMenuItem& item : calibration_menu_items)
+        calibration.tiles.push_back(NativeCommands::tile(item.key, item.title, L("Calibration"), item.icon, {{"test", item.test}},
+                                                         std::string("Open the ") + item.title +
                                                              " dialog; calibration_generate_test with the test's parameters, or "
                                                              "silent, runs it with no dialog."));
     catalog.add(NativeCommands::with_person_form(std::move(calibration), [](const json& tile_args) {
         const std::string test = tile_args.at("test");
-        for (const CalibrationRow& row : calibration_rows)
-            if (test == row.test)
-                return Rows::calib(row.kind);
+        for (const CalibrationMenuItem& item : calibration_menu_items)
+            if (test == item.test)
+                return MenuItems::calib(item.kind);
         return AppActionRunResult{AppActionRunResult::Level::Error, from_u8("Unknown test \"" + test + "\""), false};
     }));
 
-    // Save Project's and Save Project As's rows are its tiles: with no arguments, or with save_as alone, it saves as the
-    // row does.
+    // Save Project's and Save Project As's menu items are its tiles: with no arguments, or with save_as alone, it saves as the
+    // item does.
     NativeCommand save = reaching({"save_project_as"}, mutate_tool(
         "project_save", L("Save Project"),
         "Save the project. Called with no arguments, it saves as Save Project does: to the project's file (reply: ran, "
@@ -807,7 +807,7 @@ void register_project_tools(CommandCatalog& catalog)
                               "writes that).")});
     save = NativeCommands::with_person_form(std::move(save), [](const json& tile_args) {
         if (tile_args.value("save_as", false))
-            return Rows::save_project_as();
+            return MenuItems::save_project_as();
         if (Plater* plater = wxGetApp().plater())
             return NativeCommands::project_save_result(plater->save_project(false));
         return AppActionRunResult{AppActionRunResult::Level::Succeeded};
@@ -829,8 +829,8 @@ void register_project_tools(CommandCatalog& catalog)
         "path names; every object of every plate, or those objects names. toolpaths_obj: the toolpaths the Preview shows, "
         "as an OBJ, refused while it shows none (slice the plate and show the Preview first). Without format, the path's "
         "extension (.gcode, .gcode.3mf, .3mf, .stl, .drc, .obj) says which. Called with exactly the arguments of one of the "
-        "File > Export rows (format alone, sliced_3mf with plates \"all\", stl or drc with per_object), it asks for the file "
-        "or folder in the dialog that row opens (blocked_by_dialog). A file per object of a project with no objects, and the "
+        "File > Export menu items (format alone, sliced_3mf with plates \"all\", stl or drc with per_object), it asks for the file "
+        "or folder in the dialog that item opens (blocked_by_dialog). A file per object of a project with no objects, and the "
         "toolpaths while the Preview shows none, are refused in either form. Reply: path and bytes; for gcode, path and "
         "export (ok, or superseded with a note when the project changed while it was written); for per_object, path and "
         "files (each file written); for stl and drc, objects (those written).",
@@ -946,7 +946,7 @@ void register_project_tools(CommandCatalog& catalog)
             reply.update(written);
             return ToolResult::ok(reply);
         })));
-    // The File > Export rows, each with the dialog it asks for the file or folder in.
+    // The File > Export menu items, each with the dialog it asks for the file or folder in.
     export_.tiles = json::array({
         NativeCommands::tile("export_gcode", L("Export G-code"), L("Slice & Export"), "custom-gcode_gcode", {{"format", "gcode"}},
                              "Export the current plate's G-code through the export dialog, in the background. project_export "
@@ -979,16 +979,16 @@ void register_project_tools(CommandCatalog& catalog)
         const std::string format     = tile_args.at("format");
         const bool        per_object = tile_args.value("per_object", false);
         if (format == "gcode")
-            return Rows::export_gcode();
+            return MenuItems::export_gcode();
         if (format == "sliced_3mf")
-            return Rows::export_sliced_file(tile_args.value("plates", std::string()) == "all");
+            return MenuItems::export_sliced_file(tile_args.value("plates", std::string()) == "all");
         if (format == "3mf")
-            return Rows::export_3mf();
+            return MenuItems::export_3mf();
         if (format == "stl")
-            return per_object ? Rows::export_stl_multi() : Rows::export_stl();
+            return per_object ? MenuItems::export_stl_multi() : MenuItems::export_stl();
         if (format == "drc")
-            return per_object ? Rows::export_drc_multi() : Rows::export_drc_single();
-        return Rows::export_toolpaths_obj();
+            return per_object ? MenuItems::export_drc_multi() : MenuItems::export_drc_single();
+        return MenuItems::export_toolpaths_obj();
     }));
 }
 
