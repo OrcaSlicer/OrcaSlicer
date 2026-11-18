@@ -220,7 +220,7 @@ TEST_CASE("Ctrl in a chord is the platform's command key on a page", "[Mcp]")
 {
     const json mods = web_key("Ctrl+S")["mods"];
 #ifdef __APPLE__
-    // Command on macOS, as press_keys's Ctrl is for widgets; RawCtrl is the Control key.
+    // Command on macOS, as keyboard_press's Ctrl is for widgets; RawCtrl is the Control key.
     CHECK(mods["meta"] == true);
     CHECK(mods["ctrl"] == false);
     const json raw = web_key("RawCtrl+S")["mods"];

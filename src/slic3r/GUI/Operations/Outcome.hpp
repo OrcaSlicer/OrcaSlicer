@@ -55,4 +55,8 @@ private:
 struct Done
 {};
 
+// The names of `candidates` closest to `name`, for a refusal of a name none has: those holding more of its words
+// first, then those fewer edits away, at most eight. Any case.
+std::vector<std::string> closest_names(std::vector<std::string> candidates, const std::string& name);
+
 }}} // namespace Slic3r::GUI::Ops

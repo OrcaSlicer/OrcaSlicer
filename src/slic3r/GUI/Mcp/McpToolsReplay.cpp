@@ -1,4 +1,4 @@
-// run_replay and export_replay: deterministic replays of tool calls, and turning a session into one.
+// replay_run and replay_export: deterministic replays of tool calls, and turning a session into one.
 
 #include "JobRegistry.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
@@ -111,7 +111,7 @@ json run_replay_job(AutomationRuntime& runtime, ToolContext& ctx, const Replay& 
 void register_replay_tools(CommandCatalog& catalog)
 {
     NativeCommand run = mutate_tool(
-        "core", "run_replay", L("Run a replay"),
+        "replay_run", L("Run a replay"),
         std::string("Replay a list of tool calls in order and report each step: {orca_replay_version:\"") + REPLAY_VERSION +
             "\", name, vars, steps:[{tool, args, expect, "
         "optional, await, save_as, timeout_s}]}, JSON with comments. Strings may use ${replay_dir}, ${out_dir}, ${env:NAME}, "
@@ -120,7 +120,7 @@ void register_replay_tools(CommandCatalog& catalog)
         "matchers (eq ne gt ge lt le contains regex exists empty); the first failed step or expectation stops the run unless "
         "the step is optional. Writes result.json to out_dir (default: the replay file's name with .out, beside it; for an "
         "inline replay, replay-<timestamp> in the session's output folder). Reply: passed, steps, failed_step, out_dir and "
-        "result_file. auto_answer_dialogs rules a replay registers end with it. export_replay turns this session into one.",
+        "result_file. dialog_auto_answer rules a replay registers end with it. replay_export turns this session into one.",
         object_schema({{"path", prop("string", "Absolute path of a replay file.")},
                        {"replay", {{"type", json::array({"object", "string"})},
                                    {"description", "The replay itself, as an object or as its JSON text, instead of path."}}},
@@ -171,16 +171,16 @@ void register_replay_tools(CommandCatalog& catalog)
             json result = run_replay_job(runtime, ctx, *replay, sctx, ReplayRunOptions{});
             return ToolResult::ok(std::move(result));
         });
-    // Its steps call any tool, run_script included.
+    // Its steps call any tool, script_run included.
     run.open_world = true;
     catalog.add(run);
 
     NativeCommand exp = inspect_tool(
-        "core", "export_replay", L("Export this session as a replay"),
-        "Turn the calls this session made into a replay that run_replay runs: mutating calls, wait, screenshot and the "
-        "recording tools, in order, with refs replaced by locators, job replies replayed with await:false, and screenshot "
+        "replay_export", L("Export this session as a replay"),
+        "Turn the calls this session made into a replay that replay_run runs: mutating calls, app_wait, window_screenshot and the "
+        "recording tools, in order, with refs replaced by locators, job replies replayed with await:false, and window_screenshot "
         "and recording paths moved under ${out_dir}. "
-        "Calls that failed, at once or as a job later, are left out (a run_script that raised or timed out replied, so it "
+        "Calls that failed, at once or as a job later, are left out (a script_run that raised or timed out replied, so it "
         "stays); so is a call whose job is still running (unless it "
         "waits on a dialog), which left_out_running lists as {tool, job}. "
         "Reply: the replay, which with path is also written there. clear:true then forgets the calls made so far.",
@@ -191,7 +191,7 @@ void register_replay_tools(CommandCatalog& catalog)
         [](const json& args, ToolContext& ctx) {
             AutomationRuntime& runtime = ctx.runtime();
             if (!ctx.caller_plugin().empty())
-                throw ToolFailure("export_replay exports the agent's session, which a plugin's calls are not part of");
+                throw ToolFailure("replay_export exports the agent's session, which a plugin's calls are not part of");
             json running;
             json replay = runtime.journal().to_replay(arg_string(args, "name", "session " + timestamp()), &running);
             json out{{"steps", replay["steps"].size()}};

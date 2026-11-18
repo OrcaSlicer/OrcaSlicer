@@ -1,0 +1,61 @@
+// The object commands made from rows, called by index, and with no target on the selection: object_rename,
+// object_set_instances, object_separate_instances and object_delete name what they act on in their replies, which
+// object_list reads back; the Delete Selected tile deletes the selection; object_set_height_ranges and
+// object_set_variable_layer_height without object act on the selected object and name it. Run it with
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/rows_objects.json --out <dir>
+{
+  "orca_replay_version": "0.2.0",
+  "name": "object rows by index",
+  "steps": [
+    {"tool": "app_wait", "args": {"for": "ready"}},
+    {"tool": "project_new", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "view_set", "args": {"tab": "prepare"}},
+    {"tool": "object_add_primitive", "args": {"shape": "cube", "size": [20, 20, 20]}},
+    {"tool": "object_select", "args": {"none": true}},
+    {"tool": "object_add_primitive", "args": {"shape": "cube", "size": [20, 20, 20]}},
+    {"tool": "object_select", "args": {"none": true}},
+    {"tool": "object_add_primitive", "args": {"shape": "cube", "size": [20, 20, 20]}},
+    {"tool": "object_select", "args": {"none": true}},
+    {"tool": "object_list", "expect": {"/total": {"eq": 3}}},
+
+    // ---- By index: rename the second, give the first three instances and make one of them an object ----
+    {"tool": "object_rename", "args": {"object": 1, "name": "middle"},
+     "expect": {"/objects/0/index": {"eq": 1}, "/objects/0/name": {"eq": "middle"}}},
+    {"tool": "object_list", "expect": {"/plates/0/objects/1/name": {"eq": "middle"}, "/plates/0/objects/0/name": {"ne": "middle"}}},
+    {"tool": "object_set_instances", "args": {"object": 0, "count": 3},
+     "expect": {"/object": {"eq": 0}, "/instances": {"eq": 3}, "/objects/0/index": {"eq": 0}}},
+    {"tool": "object_separate_instances", "args": {"instances": [[0, 2]]},
+     "expect": {"/objects/0/index": {"eq": 3}, "/objects/1": {"exists": false}}},
+    {"tool": "object_list", "expect": {"/total": {"eq": 4}, "/plates/0/objects/0/instances/1": {"exists": true},
+                                       "/plates/0/objects/0/instances/2": {"exists": false},
+                                       "/plates/0/objects/3/instances/0": {"exists": true}}},
+
+    // ---- Delete by index, then the selection, by the command and by its Delete Selected tile ----
+    {"tool": "object_delete", "args": {"objects": [0]}, "expect": {"/objects/0/index": {"eq": 0}, "/object_count": {"eq": 3}}},
+    {"tool": "object_list", "expect": {"/total": {"eq": 3}, "/plates/0/objects/0/name": {"eq": "middle"}}},
+    {"tool": "object_select", "args": {"objects": [0]}},
+    {"tool": "object_delete", "args": {}, "expect": {"/objects/0/index": {"eq": 0}, "/objects/0/name": {"eq": "middle"},
+                                                     "/object_count": {"eq": 2}}},
+    {"tool": "object_list", "expect": {"/total": {"eq": 2}, "/plates/0/objects/0/name": {"ne": "middle"}}},
+    {"tool": "object_select", "args": {"objects": [0]}},
+    {"tool": "action_run", "args": {"id": "orca_command:obj_delete:orca"},
+     "expect": {"/objects/0/index": {"eq": 0}, "/object_count": {"eq": 1}}},
+    {"tool": "object_list", "expect": {"/total": {"eq": 1}}},
+
+    // ---- With no object, the layer commands act on the selected one and name it ----
+    {"tool": "object_select", "args": {"none": true}},
+    {"tool": "object_add_primitive", "args": {"shape": "cube", "size": [20, 20, 20]}},
+    {"tool": "object_rename", "args": {"object": 1, "name": "layered"}},
+    {"tool": "object_select", "args": {"objects": [1]}},
+    {"tool": "object_set_height_ranges", "args": {"ranges": [{"min_z": 0, "max_z": 5}]},
+     "expect": {"/object": {"eq": 1}, "/objects/0/index": {"eq": 1}, "/objects/0/name": {"eq": "layered"},
+                "/layer_config_ranges/0/max_z": {"eq": 5}}},
+    {"tool": "object_list", "expect": {"/plates/0/objects/1/layer_config_ranges/0/max_z": {"eq": 5},
+                                       "/plates/0/objects/0/layer_config_ranges": {"exists": false}}},
+    {"tool": "object_set_variable_layer_height", "args": {"action": "adaptive"},
+     "expect": {"/object": {"eq": 1}, "/objects/0/index": {"eq": 1}, "/objects/0/name": {"eq": "layered"},
+                "/layer_height_profile": {"exists": true}}},
+
+    {"tool": "project_new", "args": {"discard_changes": true}}
+  ]
+}

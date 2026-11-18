@@ -654,7 +654,7 @@ TEST_CASE("a script reads the catalog", "[PluginHost][Python]")
         py::exec(R"PY(
 import orca
 tools = orca.host.tools
-state = tools.describe("get_app_state")
+state = tools.describe("app_state")
 commands = tools.list()
 names = [entry["name"] for entry in commands]
 fields = sorted(commands[0])
@@ -666,7 +666,7 @@ try:
 except tools.ToolError as error:
     unknown = (str(error), error.details)
 try:
-    tools.describe("get_app_stat")
+    tools.describe("app_stat")
     mistyped = None
 except tools.ToolError as error:
     mistyped = error.details
@@ -679,18 +679,18 @@ except tools.ToolError as error:
     Slic3r::PluginOperations::instance().remove_plugin("catalog_reader");
 
     CHECK(scope["state"]["read_only"].cast<bool>());
-    CHECK(scope["state"]["key"].cast<std::string>() == "get_app_state");
+    CHECK(scope["state"]["key"].cast<std::string>() == "app_state");
     CHECK(scope["state"].contains("input_schema"));
     CHECK(py::len(scope["commands"]) >= 53);
     const std::vector<std::string> list_fields{"description", "group", "listed", "name", "read_only", "title"};
     CHECK(scope["fields"].cast<std::vector<std::string>>() == list_fields);
     CHECK(scope["plugin_fields"].cast<std::vector<std::string>>() == list_fields);
     const auto names = scope["names"].cast<std::vector<std::string>>();
-    for (const char* name : {"get_app_state", "obj_arrange", "plugin.catalog_reader.measure"}) {
+    for (const char* name : {"app_state", "object_mirror", "plugin.catalog_reader.measure"}) {
         CAPTURE(name);
         CHECK(std::count(names.begin(), names.end(), name) == 1);
     }
-    CHECK(scope["operation"]["group"].cast<std::string>() == "api");
+    CHECK(scope["operation"]["group"].cast<std::string>() == "Plugins");
     CHECK(scope["operation"]["read_only"].cast<bool>());
     REQUIRE_FALSE(scope["unknown"].is_none());
     CHECK(scope["unknown"].cast<py::tuple>()[0].cast<std::string>() == "Unknown tool: nope");
@@ -700,9 +700,9 @@ except tools.ToolError as error:
     REQUIRE_FALSE(scope["mistyped"].is_none());
     const auto close = scope["mistyped"]["did_you_mean"].cast<std::vector<std::string>>();
     REQUIRE_FALSE(close.empty());
-    CHECK(close.front() == "get_app_state");
+    CHECK(close.front() == "app_state");
 
-    // search_python_api documents both, as it does every function of the package.
+    // script_search_api documents both, as it does every function of the package.
     std::set<std::string> documented;
     for (const nlohmann::json& entry : Slic3r::GUI::Mcp::python_api_reference())
         if (entry["kind"] == "function" && !entry["doc"].get<std::string>().empty())
@@ -713,7 +713,7 @@ except tools.ToolError as error:
 
 TEST_CASE("every public member of the orca package has documentation and named parameters", "[PluginHost][Python]")
 {
-    // search_python_api serves this documentation to agents writing scripts and plugins: a member without it, or
+    // script_search_api serves this documentation to agents writing scripts and plugins: a member without it, or
     // with a parameter pybind11 names argN, is one they can only guess at. A constant's documentation is
     // the documentation that names it, and a class's goes on with what its constructors say; an enum's
     // constructor takes one of the values its documentation lists.

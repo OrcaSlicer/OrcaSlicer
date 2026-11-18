@@ -9,10 +9,10 @@ Standard library only. Two halves:
 
     tools/mcp/orca_mcp.py launch --headless         # fresh datadir on a private headless desktop (Linux), wait until ready
     tools/mcp/orca_mcp.py launch --xvfb             # on a private Xvfb display, for a Linux machine without a desktop
-    tools/mcp/orca_mcp.py launch --cad              # with the Design (CAD) tab on, for its commands (search_tools group Design)
-    tools/mcp/orca_mcp.py launch --unrestricted-scripts  # with Python scripts (run_script) unrestricted
-    tools/mcp/orca_mcp.py call get_app_state
-    tools/mcp/orca_mcp.py call open_files '{"paths": ["/abs/model.stl"]}'
+    tools/mcp/orca_mcp.py launch --cad              # with the Design (CAD) tab on, for its commands (tool_search group Design)
+    tools/mcp/orca_mcp.py launch --unrestricted-scripts  # with Python scripts (script_run) unrestricted
+    tools/mcp/orca_mcp.py call app_state
+    tools/mcp/orca_mcp.py call project_import '{"paths": ["/abs/model.stl"]}'
     tools/mcp/orca_mcp.py screenshot /tmp/shot.png --target canvas
     tools/mcp/orca_mcp.py widgets
     tools/mcp/orca_mcp.py run-replay tools/mcp/smoke_test.json --out /tmp/smoke
@@ -180,11 +180,11 @@ class OrcaMcp:
         """Call a tool and return its JSON result; raise McpError when the tool reports an error.
 
         A call that returns a job envelope (running / blocked_by_dialog) is returned as is. The tool
-        name is positional-only, so an argument named tool (call_tool's) goes to the tool."""
+        name is positional-only, so an argument named tool (tool_call's) goes to the tool."""
         return self.call_with_text(tool, _timeout, **args)[0]
 
     def call_with_text(self, tool, /, _timeout=None, **args):
-        """Like call(), plus the text blocks after the JSON one (list_widgets's tree)."""
+        """Like call(), plus the text blocks after the JSON one (widget_list's tree)."""
         result = self.call_raw(tool, args, timeout=_timeout)
         texts = [c["text"] for c in result.get("content", []) if c.get("type") == "text"]
         text = texts[0] if texts else ""
@@ -215,21 +215,21 @@ class OrcaMcp:
         while isinstance(result, dict) and result.get("status") in ("running", "blocked_by_dialog") and "job" in result:
             if time.time() > deadline:
                 raise McpError(f"job {result['job']} did not finish in {timeout} s", result)
-            result = self.call("wait", **{"for": "job", "job": result["job"], "timeout_s": 45})
+            result = self.call("app_wait", **{"for": "job", "job": result["job"], "timeout_s": 45})
         return result
 
     def call_command(self, tool, /, **args):
         """Call one command, a tool or one the tool list does not show (a Design command), through
-        call_tool and return its whole reply; a Design command's result is the reply's "result".
+        tool_call and return its whole reply; a Design command's result is the reply's "result".
 
         A running job is followed to its end. A call whose first reply is blocked_by_dialog fails at
         once, since a script that waited would wait on a dialog nobody answers. A call that first
-        replied running and opens a dialog later is waited on up to await_job's timeout, since wait
+        replied running and opens a dialog later is waited on up to await_job's timeout, since app_wait
         reports only that its job is still running. Every McpError's message starts "<tool>: ", with
         the original error as its cause. The command's name is positional-only, so its own argument
         named tool goes to the command."""
         try:
-            reply = self.call("call_tool", _timeout=600, tool=tool, args=args)
+            reply = self.call("tool_call", _timeout=600, tool=tool, args=args)
             if reply.get("status") == "blocked_by_dialog":
                 titles = ", ".join(f"\"{d.get('title', '')}\"" for d in reply.get("dialogs", []))
                 raise McpError(f"blocked by a dialog: {titles} (job {reply.get('job')} goes on once it is answered)", reply)
@@ -241,7 +241,7 @@ class OrcaMcp:
         deadline = time.time() + timeout
         while time.time() < deadline:
             try:
-                if self.call("wait", **{"for": "ready", "timeout_s": 5}).get("satisfied"):
+                if self.call("app_wait", **{"for": "ready", "timeout_s": 5}).get("satisfied"):
                     return True
             except (McpError, OSError):
                 time.sleep(0.5)
@@ -387,7 +387,7 @@ def start_display(args, datadir):
                 continue
             if name == "mutter":
                 print("headless mutter is not tested yet (test required): check the window, input, screenshots "
-                      "and that get_log reports the GPU's OpenGL driver", file=sys.stderr)
+                      "and that app_log reports the GPU's OpenGL driver", file=sys.stderr)
             started = start_headless(name, args.width, args.height, datadir)
             if started:
                 return (name,) + started
@@ -501,13 +501,13 @@ def answer_certificate_prompt(client):
     window when it has to find a CA bundle itself, and the endpoint serves by then, so a launch nobody
     watches answers it here. True when it pressed the button."""
     try:
-        dialogs = client.call("get_app_state").get("dialogs") or []
+        dialogs = client.call("app_state").get("dialogs") or []
     except (McpError, OSError):
         return False
     for dialog in dialogs:
         if "system certificate" in (dialog.get("message") or ""):
             try:
-                client.call("answer_dialog", dialog={"title": dialog.get("title", "")}, button="yes")
+                client.call("dialog_answer", dialog={"title": dialog.get("title", "")}, button="yes")
             except (McpError, OSError):
                 return False
             return True
@@ -520,7 +520,7 @@ def wait_ready(client, timeout):
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
-            if client.call("wait", **{"for": "ready", "timeout_s": 2}).get("satisfied"):
+            if client.call("app_wait", **{"for": "ready", "timeout_s": 2}).get("satisfied"):
                 return True
         except (McpError, OSError):
             time.sleep(0.5)
@@ -611,9 +611,9 @@ def main():
     p.add_argument("--vendor", default="BBL")
     p.add_argument("--filament")
     p.add_argument("--cad", action="store_true",
-                   help="start the app with --cad: the Design (CAD) tab on for this run, for its commands (search_tools group Design)")
+                   help="start the app with --cad: the Design (CAD) tab on for this run, for its commands (tool_search group Design)")
     p.add_argument("--unrestricted-scripts", action="store_true",
-                   help="start the app with --unrestricted-scripts: Python scripts (run_script) unrestricted for this run")
+                   help="start the app with --unrestricted-scripts: Python scripts (script_run) unrestricted for this run")
     p.add_argument("--timeout", type=int, default=120)
     p.add_argument("--print-config", action="store_true", help="print client setup commands")
     p.add_argument("extra", nargs="*", help="extra orca-slicer arguments after --")
@@ -626,8 +626,8 @@ def main():
     p.add_argument("--wait", action="store_true", help="follow a returned job to its result")
 
     sub.add_parser("tools", help="list tools")
-    p = sub.add_parser("widgets", help="print the list_widgets tree")
-    p.add_argument("args", nargs="?", help="list_widgets arguments as JSON")
+    p = sub.add_parser("widgets", help="print the widget_list tree")
+    p.add_argument("args", nargs="?", help="widget_list arguments as JSON")
 
     p = sub.add_parser("screenshot", help="save a screenshot")
     p.add_argument("out")
@@ -656,16 +656,16 @@ def main():
                 print(f"{t['name']:20} {t.get('description', '').splitlines()[0][:100]}")
         elif args.cmd == "widgets":
             a = json.loads(args.args) if getattr(args, "args", None) else {}
-            data, texts = client.call_with_text("list_widgets", **a)
+            data, texts = client.call_with_text("widget_list", **a)
             print("\n".join(texts) or json.dumps(data, indent=2))
         elif args.cmd == "screenshot":
             out = os.path.abspath(args.out)
-            print(json.dumps(client.call("screenshot", target=args.target, save_path=out, overwrite=True, include_image=False), indent=2))
+            print(json.dumps(client.call("window_screenshot", target=args.target, save_path=out, overwrite=True, include_image=False), indent=2))
         elif args.cmd == "run-replay":
             a = {"path": os.path.abspath(args.replay)}
             if args.out:
                 a["out_dir"] = os.path.abspath(args.out)
-            result = client.await_job(client.call("run_replay", **a), timeout=3600)
+            result = client.await_job(client.call("replay_run", **a), timeout=3600)
             print(json.dumps(result, indent=2))
             return 0 if result.get("passed") else 1
     except McpError as e:

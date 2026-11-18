@@ -374,7 +374,7 @@ public:
 
     // How this tab's preset switches answer their unsaved-changes prompts: by a person in
     // UnsavedChangesDialog (Ask), or with the dialog's Transfer or Discard without showing it, for a
-    // caller that already has the answer (MCP's select_preset). A caller sets it around one switch.
+    // caller that already has the answer (MCP's preset_select). A caller sets it around one switch.
     enum class DirtyPresetAnswer { Ask, Transfer, Discard };
     DirtyPresetAnswer m_dirty_preset_answer = DirtyPresetAnswer::Ask;
 
@@ -602,6 +602,10 @@ protected:
 // Resolves the same object/global settings owner for navigation and availability descriptions.
 Tab* get_tab_for_option(const std::string& opt_key, Preset::Type type);
 
+// The unsaved changes of `presets`' edited preset that UnsavedChangesDialog lists, all of which its Transfer moves:
+// the changed options (key#index for one entry of a vector) that a settings page shows in the current mode.
+std::vector<std::string> listed_dirty_options(const PresetCollection& presets);
+
 class TabPrint : public Tab
 {
 public:
@@ -801,6 +805,9 @@ public:
     void        update_pages(); // update m_pages according to printer technology
 	void        on_gcode_flavor_changed();
 	void		extruders_count_changed(size_t extruders_count);
+	// What a change of the Extruders field (Multimaterial page) does: the count, then the options list, the dirty
+	// marks and the variant switches that follow it.
+	void		change_extruders_count(size_t extruders_count);
 	PageShp		build_kinematics_page();
 	void		build_unregular_pages(bool from_initial_build = false);
 	void		on_preset_loaded() override;

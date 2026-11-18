@@ -103,7 +103,6 @@ public:
     void init_guide_paths();
     void on_profile_loaded();
     void notify_profile_loaded();
-    bool BuildProfileJson(const PresetBundle& bundle, bool require_all_resource_vendors);
     bool BuildProfileDataFromPresetBundle();
     bool BuildProfileDataFromVendors();
     void reset_profile_json();
@@ -111,7 +110,7 @@ public:
     int GetFilamentInfo( std::string VendorDirectory,json & pFilaList, std::string filepath, std::string &sVendor, std::string &sType);
 
 
-    bool apply_config(AppConfig *app_config, PresetBundle *preset_bundle, const PresetUpdater *updater, bool& apply_keeped_changes);
+    bool apply_config();
     bool run();
 
     void        StrReplace(std::string &strBase, std::string strSrc, std::string strDes);

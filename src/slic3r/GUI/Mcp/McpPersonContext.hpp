@@ -11,7 +11,7 @@
 #include <utility>
 
 // The contexts a command runs with besides the MCP core's own: a person's pick, and a Speed Dial tile that
-// run_action runs. No wx here, so that unit tests can include it (the slic3rutils tile case does).
+// action_run runs. No wx here, so that unit tests can include it (the slic3rutils tile case does).
 namespace Slic3r { namespace GUI { namespace Mcp {
 
 // A person's pick from the Speed Dial or a menu, on the UI thread and outside the automation runtime's dispatch
@@ -41,13 +41,19 @@ public:
     void                  begin_operation() override {}
 };
 
-// What run_action runs a command's tile with: the context of run_action's own call, except that a command
-// that rewrites its journal entry does so inside run_action's, as {"id": <the tile's action id>, "args": ...},
-// so that a replay runs the tile again through run_action.
+// What action_run runs a command's tile with: the context of action_run's own call, except that a command
+// that rewrites its journal entry does so inside action_run's, as {"id": <the tile's action id>, "args": ...},
+// so that a replay runs the tile again through action_run. A tile of fixed arguments (an item of a command's tiles, a
+// Design command's folded rows among them, or a command's own tile outside the Design tab) records `tile_args` there in
+// place of the command's rewrite: what action_run takes for it (tile_journal_args()). action_run refuses any other
+// arguments for such a tile, and so would refuse the replay of a rewrite (object_arrange's adds the settings in
+// force). A Design command's own tile, which takes its command's arguments, has none, and the command's rewrite stands.
 class TileContext final : public ToolContext
 {
 public:
-    TileContext(ToolContext& call, std::string action_id) : m_call(call), m_id(std::move(action_id)) {}
+    TileContext(ToolContext& call, std::string action_id, nlohmann::json tile_args = nullptr)
+        : m_call(call), m_id(std::move(action_id)), m_tile_args(std::move(tile_args))
+    {}
 
     bool               person() const override { return m_call.person(); }
     AutomationRuntime& runtime() override { return m_call.runtime(); }
@@ -60,15 +66,16 @@ public:
     std::set<std::string> lineage() const override { return m_call.lineage(); }
     void                  set_journal_args(nlohmann::json args) override
     {
-        m_call.set_journal_args({{"id", m_id}, {"args", std::move(args)}});
+        m_call.set_journal_args({{"id", m_id}, {"args", m_tile_args.is_null() ? std::move(args) : m_tile_args}});
     }
     void               begin_operation() override { m_call.begin_operation(); }
     void               works_in_dialog(std::uint64_t dialog) override { m_call.works_in_dialog(dialog); }
     const std::string& caller_plugin() const override { return m_call.caller_plugin(); }
 
 private:
-    ToolContext& m_call;
-    std::string  m_id;
+    ToolContext&   m_call;
+    std::string    m_id;
+    nlohmann::json m_tile_args;
 };
 
 }}} // namespace Slic3r::GUI::Mcp

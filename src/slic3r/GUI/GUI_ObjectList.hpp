@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <functional>
 #include <map>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -21,6 +22,7 @@
 
 #include "Event.hpp"
 #include "ObjectDataViewModel.hpp"
+#include "Operations/Outcome.hpp"
 #include "SyntheticInput.hpp"
 
 #include "libslic3r/PrintConfig.hpp"
@@ -64,6 +66,29 @@ enum class ObjectOrder { Name, Filament, Height, Size };
 
 // Stable sort by natural name order, filament, top Z, or bounding box volume of the first instance.
 void sort_objects(std::vector<ModelObject*>& objects, ObjectOrder order, bool descending = false);
+
+// The order Order By gives `objects`, the project's: the objects of plate `plate`, or of every plate with -1, sorted
+// (sort_objects()) within the list positions they hold, so that the objects of the other plates, and those on no plate,
+// keep theirs. `plate_of` is the plate an object's first instance is on, -1 for none.
+std::vector<ModelObject*> plate_order(const std::vector<ModelObject*>& objects, const std::function<int(std::size_t)>& plate_of, int plate,
+                                      ObjectOrder order, bool descending);
+
+// A drop of the object at list position `from` onto the one at `to`, as dragging an object in the object list makes it.
+struct ObjectMove
+{
+    int from = 0;
+    int to   = 0;
+};
+
+// Moves the object at `from` to `to`, those between shifting by one toward `from`, as a drop in the object list does.
+void move_object_in_list(std::vector<ModelObject*>& objects, int from, int to);
+
+// The drops that put the objects of plate `plate` in `order` (their indices), each dropped in turn on the object in its
+// place, as a person drags them in the object list: the plate's objects take their list positions in that order, and
+// the objects between them, of other plates or of none, move by one with each drop, keeping their own order.
+// `plate_of` is the plate each object's first instance is on, -1 for none. No drop where they are in that order.
+// Refuses: no_such_object, object_not_on_plate, order_repeats_object, order_misses_object (with the objects left out).
+Ops::Outcome<std::vector<ObjectMove>> object_order_moves(const std::vector<int>& plate_of, int plate, const std::vector<int>& order);
 
 // Set import-only presentation ranks without changing part order used by slicing.
 void set_import_volume_order(ModelObject& object, bool sort_names);
@@ -343,8 +368,10 @@ public:
     // dialog after adding a part.
     void                load_generic_subobject(const std::string& type_name, const ModelVolumeType type, bool interactive = true,
                                                const std::vector<double>& size = {});
+    // Adds the shape as a new object, whatever is selected.
     void                load_shape_object(const std::string &type_name, bool interactive, const std::vector<double>& size = {});
-    // Whether load_shape_object() adds an object now: not while an object is selected, whose Add Part menu adds shapes.
+    // Whether Add Primitive (load_generic_subobject() of no part type) adds an object now: not while an object is
+    // selected, whose Add Part menu adds shapes.
     bool                can_add_shape_object() const;
     void                load_mesh_object(const TriangleMesh &mesh, const wxString &name, bool center = true);
     // One object holding one part per mesh; the parts keep their placement relative to each other.
@@ -360,8 +387,16 @@ public:
     bool                del_from_cut_object(bool is_connector, bool is_model_part = false, bool is_negative_volume = false);
     bool                del_subobject_from_object(const int obj_idx, const int idx, const int type);
     void                del_info_item(const int obj_idx, InfoItemType type);
+    // Split > To Parts on the selected object or part.
     void                split();
-    void                merge(bool to_multipart_object);
+    // Splits part `volume_idx` of object `obj_idx` into parts by its shells, or with -1 the object's one part, or shows
+    // the bodies of an import shown as one part. The caller has checked that the part is of several shells. With
+    // `expand` the object's row is opened on its parts, as a split from that row opens it.
+    void                split(int obj_idx, int volume_idx, bool expand);
+    // With `to_multipart_object`, assembles the objects and instances of `items`, rows of the list, else the selected
+    // ones, into one object of parts added last, as Assemble does: the rows are selected first, and each instance of
+    // them becomes an object of its own. Without it, merges the selected object's parts into one.
+    void                merge(bool to_multipart_object, const wxDataViewItemArray& items = {});
     // void                merge_volumes(); // BBS: merge parts to single part
     void                layers_editing();
 
@@ -484,9 +519,11 @@ public:
 	//   generic "Change type → Precise Seam" entry where CENTER is a default fallback.
 	// preserve_ps_subtype = false: no preservation — target type is applied verbatim. Used
 	//   by the "Precise Seam Type" subtype picker where the user explicitly wants CENTER.
-	// Returns why the selected parts kept their type, empty when they changed or already had it.
+	// The parts changed are `parts`, [object, part] by their index in the model, else the selected ones.
+	// Returns why the parts kept their type, empty when they changed or already had it.
 	// show_errors shows that reason as the menu always has; automation passes false and reports it.
-	wxString set_volume_type(ModelVolumeType new_type, bool preserve_ps_subtype = true, bool show_errors = true);
+	wxString set_volume_type(ModelVolumeType new_type, bool preserve_ps_subtype = true, bool show_errors = true,
+	                         const std::vector<std::pair<int, int>>& parts = {});
     ModelVolumeType get_selected_volume_type();
 
     void last_volume_is_deleted(const int obj_idx);
@@ -549,11 +586,17 @@ public:
     void on_plate_added(PartPlate* part_plate);
     void on_plate_deleted(int plate_index);
     void reload_all_plates(bool notify_partplate = false);
-    // Sorts the selected plate or every plate, which sets the print order; repeating a sort reverses it.
-    void order_objects(ObjectOrder order, bool all_plates);
+    // Sorts plate `plate` (-1: the selected one) or every plate, which sets the print order (plate_order()). With
+    // `descending` none, choosing the order the objects already have reverses it, as the plate menu's Order By does.
+    void order_objects(ObjectOrder order, bool all_plates, int plate = -1, std::optional<bool> descending = std::nullopt);
+    // Drops the object at list position `from` onto the one at `to`, both on plate `plate`, as a drag in the list does
+    // (move_object_in_list()), and selects it. The caller takes the undo snapshot.
+    void move_object(int from, int to, int plate);
     void on_plate_selected(int plate_index);
     void notify_instance_updated(int obj_idx);
-    void object_config_options_changed(const ObjectVolumeID& ov_id);
+    // Marks the row of the object or part `ov_id` names, or with `range` the row of that height range of the object,
+    // with the icon of its own settings, or takes the icon away when it has none.
+    void object_config_options_changed(const ObjectVolumeID& ov_id, const t_layer_height_range* range = nullptr);
     void printable_state_changed(const std::vector<ModelObject*> model_objects);
     void printable_state_changed(const std::vector<ObjectVolumeID>& ov_ids);
 

@@ -29,21 +29,19 @@ namespace {
 // counted as replacement characters rather than thrown on: the journal only needs the size.
 std::size_t serialized_size(const json& args) { return args.dump(-1, ' ', false, json::error_handler_t::replace).size(); }
 
-// The command a journaled call of `tool` with `args` runs, and the arguments it runs it with: the call's own, or,
-// for run_action of a command's tile, named by the command's key or by the tile's full id, that command and the
-// arguments inside the tile's {id, args}.
+// The name a journaled call of `tool` with `args` runs under, and the arguments it runs with: the call's own, or, for
+// action_run of a command's tile, by its full id or the key inside it, that key and the arguments inside the tile's
+// {id, args}. A command's own tile is under its command's key, so a Design command's tile is rewritten as its command
+// is; a tile of a row folded into a command is under a key of its own, and its call's arguments, none, the tile's own
+// or the value it collects, hold no path to rewrite.
 std::pair<std::string, json*> called_command(const std::string& tool, json& args)
 {
-    if (tool != "run_action" || !args.is_object() || !args.value("id", json()).is_string() || !args.value("args", json()).is_object())
+    if (tool != "action_run" || !args.is_object() || !args.value("id", json()).is_string() || !args.value("args", json()).is_object())
         return {tool, &args};
-    const std::string id     = args["id"];
-    const std::string prefix = std::string(kCommandPrefix) + ':', suffix = std::string(":") + kOrcaSourceKey;
-    if (id.find(':') == std::string::npos)
-        return {id, &args["args"]};
-    if (id.size() > prefix.size() + suffix.size() && id.compare(0, prefix.size(), prefix) == 0 &&
-        id.compare(id.size() - suffix.size(), suffix.size(), suffix) == 0)
-        return {id.substr(prefix.size(), id.size() - prefix.size() - suffix.size()), &args["args"]};
-    return {tool, &args};
+    const std::string key = command_tile_key(args["id"].get<std::string>());
+    if (key.empty())
+        return {tool, &args};
+    return {key, &args["args"]};
 }
 
 } // namespace
@@ -52,12 +50,12 @@ json without_expected_ids(const CommandCatalog& catalog, const std::string& comm
 {
     if (!args.is_object())
         return args;
-    if (command == "call_tool") {
+    if (command == "tool_call") {
         if (args.contains("args") && args["args"].is_object())
             args["args"] = without_expected_ids(catalog, args.value("tool", std::string()), std::move(args["args"]));
         return args;
     }
-    if (command == "run_replay") {
+    if (command == "replay_run") {
         // An inline replay given as JSON text is recorded as the object it parses to, so its steps are
         // stripped too. Text that doesn't parse stays as given: the call fails, and no replay keeps it.
         if (args.contains("replay") && args["replay"].is_string()) {
@@ -106,7 +104,7 @@ void Journal::set_args(uint64_t seq, nlohmann::json args)
     const std::size_t bytes = serialized_size(args);
 
     std::lock_guard<std::mutex> lock(m_mutex);
-    // export_replay {clear:true} may have emptied the journal meanwhile.
+    // replay_export {clear:true} may have emptied the journal meanwhile.
     const auto it = std::find_if(m_entries.begin(), m_entries.end(), [seq](const Entry& e) { return e.seq == seq; });
     if (it == m_entries.end())
         return;
@@ -125,7 +123,7 @@ void Journal::end(uint64_t seq, const ToolResult& result)
             e.finished    = true;
             e.failed      = e.failed || result.is_error;
             e.menu_listed = !result.is_error && result.data.is_object() && result.data.contains("popup_menu");
-            // The envelope names the call's own job; a `wait` that timed out names another one.
+            // The envelope names the call's own job; an `app_wait` that timed out names another one.
             if (result.is_error || e.job.empty() || !result.data.is_object())
                 continue;
             const auto job    = result.data.find("job");
@@ -167,7 +165,7 @@ void Journal::clear()
 void Journal::trim()
 {
     // A session kept open for days, or one that sends thousands of large calls (a CAD run's sketch_draw),
-    // must not grow without bound; a replay is exported from the recent calls anyway (export_replay
+    // must not grow without bound; a replay is exported from the recent calls anyway (replay_export
     // {clear:true} starts afresh). The oldest calls whose outcome is known go first; a call still
     // waiting for its reply or its job keeps its place, even when that holds the journal over a bound
     // until it finishes. One pass moves the kept calls forward and one erase drops the rest, so a large
@@ -220,14 +218,14 @@ nlohmann::json Journal::to_replay(const std::string& name, nlohmann::json* left_
         if (e.menu_listed && repeated_with_item(it))
             continue;
         nlohmann::json step{{"tool", e.tool}, {"args", e.args}};
-        if (e.tool == "wait" && e.args.value("for", "") == "job") {
+        if (e.tool == "app_wait" && e.args.value("for", "") == "job") {
             auto it = job_names.find(e.args.value("job", ""));
             if (it == job_names.end())
                 continue; // waits on a job the journal did not see start
             step["args"]["job"] = "${jobs." + it->second + "}";
         }
-        // The command the step calls and its arguments: run_action of a command's tile calls the tile's command
-        // with the arguments inside the tile's {id, args}, which the step keeps.
+        // The name the step runs under and its arguments: action_run of a command's tile runs as the tile's key, with
+        // the arguments inside the tile's {id, args}, which the step keeps, so that its replay runs the tile again.
         const auto [tool, called_args] = called_command(e.tool, step["args"]);
         nlohmann::json& args           = *called_args;
         auto in_out_dir = [&](const char* key) {
@@ -235,16 +233,16 @@ nlohmann::json Journal::to_replay(const std::string& name, nlohmann::json* left_
             return "${out_dir}/" + file;
         };
         auto has_path = [&](const char* key) { return args.contains(key) && args[key].is_string(); };
-        if ((tool == "screenshot" || tool == "encode_recording") && has_path("save_path"))
+        if ((tool == "window_screenshot" || tool == "recording_encode") && has_path("save_path"))
             args["save_path"] = in_out_dir("save_path");
-        if (tool == "start_recording" && has_path("save_path")) {
+        if (tool == "recording_start" && has_path("save_path")) {
             const std::string key = path_compare_key(path_from_utf8(args["save_path"].get<std::string>()));
             args["save_path"]     = in_out_dir("save_path");
             recordings[key]       = args["save_path"];
         }
         // An encode of a recording this replay makes reads it where the replay writes it; any other
         // source stays where it is.
-        if (tool == "encode_recording" && has_path("path"))
+        if (tool == "recording_encode" && has_path("path"))
             if (auto it = recordings.find(path_compare_key(path_from_utf8(args["path"].get<std::string>()))); it != recordings.end())
                 args["path"] = it->second;
         if (e.unawaited()) {
@@ -254,7 +252,7 @@ nlohmann::json Journal::to_replay(const std::string& name, nlohmann::json* left_
             step["save_as"]            = job_name;
         }
         if (e.answers_dialog)
-            steps.push_back({{"tool", "wait"}, {"args", {{"for", "dialog"}, {"timeout_s", 50}}}, {"expect", {{"/satisfied", {{"eq", true}}}}}});
+            steps.push_back({{"tool", "app_wait"}, {"args", {{"for", "dialog"}, {"timeout_s", 50}}}, {"expect", {{"/satisfied", {{"eq", true}}}}}});
         steps.push_back(std::move(step));
     }
     return {{"orca_replay_version", REPLAY_VERSION}, {"name", name}, {"steps", std::move(steps)}};

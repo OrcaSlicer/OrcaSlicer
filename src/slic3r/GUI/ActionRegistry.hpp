@@ -120,11 +120,13 @@ struct AppAction
     std::string    automation_description;
     nlohmann::json input_schema;
     bool           completes_in_background = false;
-    // The catalog key of a command's tile (NativeCommands), whose own function run_action runs; empty for
+    // The catalog key of a command's tile (NativeCommands), whose own function action_run runs; empty for
     // every other action.
     std::string command;
-    // The arguments the tile of a menu row folded into `command` runs it with, an object that may be empty
-    // (NativeCommands::make_action()); null for every other action, which runs with the arguments it is given.
+    // The arguments a tile of `command` runs it with, an object that may be empty: an item of its tiles' args, to which a
+    // tile that collects a value (input) adds that value (tile_call_args(), CommandCatalog.hpp), or {} for the command's
+    // own tile outside the Design tab. Null for every other action, a Design command's own tile among them, which runs
+    // with the arguments it is given.
     nlohmann::json preset;
 
     virtual ~AppAction() = default;
@@ -240,7 +242,7 @@ public:
     const AppAction* by_id(const std::string& id) const;
     // The action `id` as the app is now: by_id() after the families whose membership follows live state
     // (plates, recent projects, the Design tab's tiles) are re-materialised, for a caller that may have
-    // changed that state since the last snapshot() or describe(), such as an automated run_action after a
+    // changed that state since the last snapshot() or describe(), such as an automated action_run after a
     // sketch was opened or the tab switched. Settings are not, being thousands: snapshot() and describe()
     // with include_settings materialise them. UI thread only.
     const AppAction* find_live(const std::string& id);

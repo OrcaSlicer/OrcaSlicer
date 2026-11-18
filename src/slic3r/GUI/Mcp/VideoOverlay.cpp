@@ -566,7 +566,7 @@ void scalars(const json& value, std::vector<std::string>& out)
             scalars(v, out);
 }
 
-// The values of sensitive keys anywhere in `args` (set_settings' values, a per-variant entry's value).
+// The values of sensitive keys anywhere in `args` (settings_set's values, a per-variant entry's value).
 void sensitive_values(const json& args, std::vector<std::string>& out)
 {
     if (args.is_object()) {
@@ -589,15 +589,15 @@ std::vector<std::string> hidden_values(const std::string& tool, const json& args
     sensitive_values(args, out);
     if (!args.is_object())
         return out;
-    if (tool == "set_widget_value") {
+    if (tool == "widget_set_value") {
         const json&       target = args.contains("target") ? args["target"] : json();
         const std::string option = target.is_object() ? str(target, "option") : std::string();
         if ((option.empty() || is_sensitive_key(option)) && args.contains("value"))
             scalars(args["value"], out);
     }
-    if (tool == "press_keys" && args.contains("text"))
+    if (tool == "keyboard_press" && args.contains("text"))
         scalars(args["text"], out);
-    if (tool == "run_javascript")
+    if (tool == "webview_run_javascript")
         scalars(args, out);
     return out;
 }
@@ -640,7 +640,7 @@ std::string caption_detail(const std::string& tool, const json& args)
 {
     if (!args.is_object())
         return {};
-    if (tool == "set_widget_value") {
+    if (tool == "widget_set_value") {
         std::string out = target_text(args.value("target", json()));
         // Only a setting field's value: a field found by its label, or a ref not yet resolved, may be a
         // password box.
@@ -650,23 +650,23 @@ std::string caption_detail(const std::string& tool, const json& args)
             out += " = " + scalar_text(args["value"]);
         return out;
     }
-    if (tool == "press_keys") {
+    if (tool == "keyboard_press") {
         // Typed text shows as keys in the input caption, masked where it goes into a password field.
         const std::string keys   = str(args, "keys");
         const std::string target = target_text(args.value("target", json()));
         return keys.empty() ? target : (target.empty() ? keys : keys + " - " + target);
     }
-    if (tool == "click" || tool == "mouse_gesture" || tool == "answer_dialog") {
+    if (tool == "widget_click" || tool == "mouse_gesture" || tool == "dialog_answer") {
         std::string out = target_text(args.value("target", json()));
         if (tool == "mouse_gesture")
             out = str(args, "action");
-        if (tool == "answer_dialog")
+        if (tool == "dialog_answer")
             out = str(args, "button");
         if (const std::string item = str(args, "popup_item"); !item.empty())
             out += (out.empty() ? "" : " > ") + path_text(item);
         return out;
     }
-    if (tool == "run_javascript")
+    if (tool == "webview_run_javascript")
         return {}; // the code may carry anything
     if (args.contains("values") && args["values"].is_object()) {
         std::vector<std::string> pairs;

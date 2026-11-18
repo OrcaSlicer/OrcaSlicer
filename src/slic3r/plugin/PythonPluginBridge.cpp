@@ -740,7 +740,7 @@ not a capability.)pbdoc");
         py::arg("changes") = true,
         R"pbdoc(Offer an operation to AI agents and scripts while OrcaSlicer loads your module.
 
-It is reached as "plugin.<plugin>.<name>" through call_tool and orca.host.tools.call once the plugin
+It is reached as "plugin.<plugin>.<name>" through tool_call and orca.host.tools.call once the plugin
 has loaded. handler, which is required, is called as handler(args) with the arguments as a dict,
 validated against schema (a JSON Schema object, or None for an operation that takes no arguments); it
 runs under the plugin's identity and permissions and returns a JSON value. Pass handler by position

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Checks where run_javascript runs while a modal dialog is open, where a script cannot look.
+"""Checks where webview_run_javascript runs while a modal dialog is open, where a script cannot look.
 
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_webview_modal.py
@@ -28,13 +28,13 @@ def main():
 
     def refusal(**args):
         try:
-            client.call("run_javascript", **args)
+            client.call("webview_run_javascript", **args)
             return ""
         except orca_mcp.McpError as e:
             return str(e)
 
     def dialogs():
-        return [d["title"] for d in client.call("get_app_state")["dialogs"]]
+        return [d["title"] for d in client.call("app_state")["dialogs"]]
 
     def wait_dialogs(count):
         for _ in range(100):
@@ -44,50 +44,50 @@ def main():
         return False
 
     def home_webview():
-        snap, texts = client.call_with_text("list_widgets", target="main", query="webview")
+        snap, texts = client.call_with_text("widget_list", target="main", query="webview")
         for line in (texts[0] if texts else "").splitlines():
             if "webview" in line and "[" in line:
                 return line.split("[", 1)[1].split("]", 1)[0]
         return None
 
-    client.call("new_project", discard_changes=True)
+    client.call("project_new", discard_changes=True)
 
     # ---- The Home tab's web view, without and with a modal open ----
-    client.call("set_view", tab="home")
+    client.call("view_set", tab="home")
     home = home_webview()
     check("the Home tab shows a web view", home is not None)
     try:
-        value = client.call("run_javascript", code="1 + 1")["result"]
+        value = client.call("webview_run_javascript", code="1 + 1")["result"]
     except orca_mcp.McpError as e:
         value = str(e)
     check("without a modal, the only web view takes a script", value == 2, value)
-    bundle = client.call("run_action", id="orca_command:preset_bundle:orca")
+    bundle = client.call("action_run", id="orca_command:preset_bundle:orca")
     check("the bundle dialog opens", wait_dialogs(1), dialogs())
     message = refusal(code="1", target=home)
     check("a web view behind the modal is refused", "modal dialog is open" in message, message)
-    check("the bundle dialog's page takes a script", client.call("run_javascript", code="document.title")["result"] == "Preset Bundle")
-    found = client.call("run_javascript", code="!!document.getElementById('close_btn')",
+    check("the bundle dialog's page takes a script", client.call("webview_run_javascript", code="document.title")["result"] == "Preset Bundle")
+    found = client.call("webview_run_javascript", code="!!document.getElementById('close_btn')",
                         target={"class": "webview", "within": "Preset Bundle"})["result"]
     check("and takes one by locator", found is True, found)
 
     # ---- A bundle dialog under the export bundle dialog ----
-    client.call("run_javascript", code="SendWXMessage(JSON.stringify({command: 'export_page'}))")
+    client.call("webview_run_javascript", code="SendWXMessage(JSON.stringify({command: 'export_page'}))")
     check("the export bundle dialog opens above it", wait_dialogs(2), dialogs())
     # Its web view shows about:blank until its first navigation starts.
     for _ in range(50):
-        if "ExportPresetDialog" in client.call_with_text("list_widgets", target="dialog", query="webview")[1][0]:
+        if "ExportPresetDialog" in client.call_with_text("widget_list", target="dialog", query="webview")[1][0]:
             break
         time.sleep(0.1)
     message = refusal(code="1", target={"class": "webview", "within": "Preset Bundle"})
     check("the dialog under the topmost is refused", "is under" in message, message)
-    url = client.call("run_javascript", code="1")["url"]
+    url = client.call("webview_run_javascript", code="1")["url"]
     check("without a target the topmost dialog's page is used", "ExportPresetDialog" in url, url)
-    client.call("answer_dialog", button="close")
+    client.call("dialog_answer", button="close")
     check("the export dialog closes", wait_dialogs(1), dialogs())
 
     # ---- A page that closes its dialog replies at once ----
     start = time.time()
-    reply = client.call("run_javascript", code="document.getElementById('close_btn').click()")
+    reply = client.call("webview_run_javascript", code="document.getElementById('close_btn').click()")
     elapsed = time.time() - start
     check("closing the dialog from its page replies closed", reply.get("closed") is True, reply)
     check("and does so within a second", elapsed < 1.0, f"{elapsed:.2f} s")
@@ -95,16 +95,16 @@ def main():
     check("no dialog is left", wait_dialogs(0), dialogs())
 
     # ---- The Flushing volumes dialog takes scripts as any topmost dialog does ----
-    client.call("set_view", tab="prepare")
-    client.call("click", target={"label": "Add one filament"})
-    flush = client.call("click", target={"label": "Flushing volumes"})
+    client.call("view_set", tab="prepare")
+    client.call("widget_click", target={"label": "Add one filament"})
+    flush = client.call("widget_click", target={"label": "Flushing volumes"})
     check("the Flushing volumes dialog opens", wait_dialogs(1), dialogs())
     try:
-        title = client.call("run_javascript", code="typeof document.title")["result"]
+        title = client.call("webview_run_javascript", code="typeof document.title")["result"]
     except orca_mcp.McpError as e:
         title = str(e)
     check("its page takes a script", title == "string", title)
-    client.call("answer_dialog", button="close")
+    client.call("dialog_answer", button="close")
     client.await_job(flush)
     check("no dialog is left at the end", wait_dialogs(0), dialogs())
 

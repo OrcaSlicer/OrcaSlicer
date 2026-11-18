@@ -41,6 +41,7 @@
 #include "slic3r/GUI/Mcp/McpTools.hpp"
 #include "slic3r/GUI/Mcp/McpToolsCad.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
+#include "retired_names.hpp"
 #include "test_utils.hpp"
 
 #include <BRepAdaptor_Surface.hxx>
@@ -62,6 +63,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cctype>
 #include <cstddef>
 #include <fstream>
 #include <functional>
@@ -334,7 +336,7 @@ TEST_CASE("the CAD commands are the Design table's entries but its greyed and fo
         INFO(GUI::kDesignTools[i].id);
         CHECK(keys.count(GUI::kDesignTools[i].id) == (GUI::Mcp::is_design_command(GUI::kDesignTools[i]) ? 1u : 0u));
     }
-    // The body's move is named apart from the Prepare tool transform; undo and redo are the shared commands.
+    // The body's move is named apart from the Prepare tool object_transform; undo and redo are the shared commands.
     CHECK(keys.count("body_transform") == 1);
     for (const char* gone : {"transform", "undo", "redo", "align_to", "colour", "sk_length"}) {
         INFO(gone);
@@ -1699,20 +1701,35 @@ TEST_CASE("the Design commands are the design's 88, under its headings", "[Mcp][
                                    "Menu rows"});
 }
 
-TEST_CASE("the search_tools description names every Design command under its heading", "[Mcp][CAD]")
+TEST_CASE("the tool_search description names every Design command under its heading", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog with = catalog_with_cad();
     GUI::CommandCatalog       without;
     GUI::NativeCommands::register_all_commands(without, {false});
     without.seal();
-    const std::string told  = command_of(with, "search_tools").description;
-    const std::string plain = command_of(without, "search_tools").description;
+    const std::string told  = command_of(with, "tool_search").description;
+    const std::string plain = command_of(without, "tool_search").description;
 
     // With the feature off the description says nothing of them; with it on, the index follows that text.
     REQUIRE(told.size() > plain.size());
     CHECK(told.compare(0, plain.size(), plain) == 0);
     // The most a client is known to keep of a description.
     CHECK(told.size() <= 4096);
+    // An agent reads it before it calls anything: no word of it is a retired command's name, and before the Design tab's
+    // index it names no command, as the tool list shows them all.
+    CHECK(retired_names_in(told) == std::set<std::string>{});
+    std::set<std::string> commands_named;
+    std::string           word;
+    for (const char ch : plain + ' ') {
+        if (std::isalnum(static_cast<unsigned char>(ch)) || ch == '_') {
+            word += ch;
+            continue;
+        }
+        if (without.find(word) != nullptr)
+            commands_named.insert(word);
+        word.clear();
+    }
+    CHECK(commands_named == std::set<std::string>{});
     const std::string index = told.substr(plain.size());
     CHECK_THAT(index, ContainsSubstring("CAD"));
     CHECK_THAT(index, ContainsSubstring("look one up with tool"));
@@ -1931,8 +1948,11 @@ TEST_CASE("every example passes its command's schema", "[Mcp][CAD]")
             CHECK(calls.back().at("tool") == c.key);
         }
     }
-    // The 83 Design commands with a silent form, undo and redo.
-    CHECK(described == 85);
+    // The 83 Design commands with a silent form, undo and redo, the six object and part commands of Parts 4a and 4b,
+    // Part 4c's filament_add_mixed, Part 5a's printer_list_models, printer_install and printer_uninstall, Part 5b's
+    // filament_install and filament_uninstall, Part 5c's preferences_set, and Part 5d's plugin_list, plugin_enable,
+    // plugin_reload and plugin_uninstall.
+    CHECK(described == 102);
 }
 
 TEST_CASE("an example's argument goes by a name its command takes", "[Mcp][CAD]")

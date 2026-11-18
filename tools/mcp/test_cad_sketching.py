@@ -23,7 +23,7 @@ constraint produced and that it survives committing the sketch and opening it ag
 checks that a button that cannot apply stores nothing. badge clicks a constraint's badge, which
 selects it and deletes nothing, as does a double-click, then deletes it with Delete. undo and
 feature_undo undo inside a sketch and across its commit, from the keyboard. roundtrip saves the project and opens it again through
-the File menu, its file pickers answered by auto_answer_dialogs rules with the path (skipped on
+the File menu, its file pickers answered by dialog_auto_answer rules with the path (skipped on
 Linux, where a GTK picker can't take one). scale draws on top of a sketch holding 1204 entities,
 which it loads with one sketch_draw command while a tool is armed; the call says why.
 calibration_cache checks the harness itself: a sketch's plane-to-pixel map is reused in the view it
@@ -128,16 +128,16 @@ def rung_calibration_cache():
     gui.check("calibration_cache: the same view reuses its map", gui.full_calibrations == n,
               f"{gui.full_calibrations - n} more fit(s)")
     gui.cancel()
-    width, height = gui.client.call("get_app_state")["window"]["size"]
+    width, height = gui.client.call("app_state")["window"]["size"]
     # Shorter, not narrower: the ribbon's Cancel needs the width start() gave the window.
-    gui.client.call("set_window", size=[width, height - 120])
+    gui.client.call("window_set", size=[width, height - 120])
     try:
         gui.enter_sketch()
         gui.check("calibration_cache: a resized canvas is fitted again", gui.full_calibrations == n + 1,
                   f"{gui.full_calibrations - n} more fit(s)")
         gui.cancel()
     finally:
-        gui.client.call("set_window", size=[width, height])
+        gui.client.call("window_set", size=[width, height])
     gui.enter_sketch("l")
     reused = gui.full_calibrations == n + 1
     gui.click_mm(-20, 0)
@@ -1497,7 +1497,7 @@ def rung_roundtrip():
         # The pickers are matched by their prompts, unanchored: a picker answered unshown has no
         # title. Save Project as, not Save: once the project has a path, Save writes to it with no
         # picker.
-        gui.client.call("auto_answer_dialogs",
+        gui.client.call("dialog_auto_answer",
                         rules=[{"match": "Save file as", "button": "ok", "path": path, "overwrite": True}])
         unanswered(gui.menu("File>Save Project as..."), "saving")
         size = os.path.getsize(path) if os.path.isfile(path) else 0
@@ -1505,12 +1505,12 @@ def rung_roundtrip():
         gui.new_design()  # empty the tree, then read it back from the file
         # Opening asks first whether to save the current project when it has unsaved changes. No:
         # saving would write the emptied design over the file about to be opened.
-        gui.client.call("auto_answer_dialogs",
+        gui.client.call("dialog_auto_answer",
                         rules=[{"match": "Choose one file", "button": "ok", "path": path},
                                {"match": "unsaved changes", "button": "no"}])
         unanswered(gui.menu("File>Open Project..."), "opening")
     finally:
-        gui.client.call("auto_answer_dialogs", rules=[])
+        gui.client.call("dialog_auto_answer", rules=[])
         shutil.rmtree(folder, ignore_errors=True)
     # Opening a project lands on Prepare, and leaves the Design view fitted to the plates.
     gui.show_design()

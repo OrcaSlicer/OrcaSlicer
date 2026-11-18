@@ -193,7 +193,7 @@ bool McpEndpoint::listen(int port, std::string& err)
                           {"token", token}},
                          m_discovery_error))
         // Serving anyway: clients configured with the URL and token still connect; the stdio
-        // bridge and the harness, which need the file, see the reason in get_app_state.
+        // bridge and the harness, which need the file, see the reason in app_state.
         BOOST_LOG_TRIVIAL(warning) << "MCP server: " << m_discovery_error;
     BOOST_LOG_TRIVIAL(info) << "MCP server listening on http://127.0.0.1:" << m_http->port() << "/mcp";
     return true;

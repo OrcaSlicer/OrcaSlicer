@@ -4,7 +4,7 @@ Launches OrcaSlicer on a fresh data folder with the Design tab on (in a build wi
 tests/plugins/mcp_tools_fixture side-loaded, and tests/plugins/mcp_tools_broken, whose load fails after declaring an
 operation: over MCP, then once without MCP, running a replay with --run, so the plugin's calls go to the
 runtime started without its endpoint. The first launch also checks that the plugin is sent the NewProject event when
-the new_project tool or command starts a project, and ends by unticking the fixture in the Plugins dialog, as a person
+project_new or its Speed Dial tile starts a project, and ends by unticking the fixture in the Plugins dialog, as a person
 unloads it.
 Run it as python tools/mcp/test_plugin_tools.py [--bin PATH].
 """
@@ -93,7 +93,7 @@ def run_plugin_script(orca, plugin_dir, name, capability):
     out = os.path.join(plugin_dir, f"out_{name}.json")
     if os.path.exists(out):
         os.remove(out)
-    orca.call("run_action", id=f"plugin_script_action:{capability}:{PLUGIN}")
+    orca.call("action_run", id=f"plugin_script_action:{capability}:{PLUGIN}")
     deadline = time.time() + 60
     while time.time() < deadline:
         if os.path.exists(out):
@@ -125,16 +125,16 @@ def main():
         # --- Over MCP: the plugin's operation and its tool calls, beside a plugin whose load fails. ---
         plugin_dir = install(datadir)
         install_broken(datadir)
-        # The Design tab on, so that its commands are among search_tools' commands; a build without CAD has none.
+        # The Design tab on, so that its commands are among tool_search's commands; a build without CAD has none.
         orca = launch(env, datadir, ["--cad", *extra])
-        described = orca.call_raw("search_tools", {"tool": f"plugin.{PLUGIN}.measure"})
-        check("search_tools describes the plugin's operation", not described.get("isError") and
+        described = orca.call_raw("tool_search", {"tool": f"plugin.{PLUGIN}.measure"})
+        check("tool_search describes the plugin's operation", not described.get("isError") and
               "\"a\"" in described["content"][0]["text"], described)
         operation = {} if described.get("isError") else json.loads(described["content"][0]["text"])
-        check("the operation is in the api group, its description saying a plugin offers it",
-              operation.get("group") == "api" and operation.get("description", "").startswith("Offered by a plugin."), operation)
-        called = orca.call_raw("call_tool", {"tool": f"plugin.{PLUGIN}.measure", "args": {"a": 2}})
-        check("call_tool runs the plugin's operation", not called.get("isError") and
+        check("the operation is in the Plugins group, its description saying a plugin offers it",
+              operation.get("group") == "Plugins" and operation.get("description", "").startswith("Offered by a plugin."), operation)
+        called = orca.call_raw("tool_call", {"tool": f"plugin.{PLUGIN}.measure", "args": {"a": 2}})
+        check("tool_call runs the plugin's operation", not called.get("isError") and
               json.loads(called["content"][0]["text"]) == {"twice": 4}, called)
         listed = [t["name"] for t in orca.request("tools/list")["tools"]]
         check("the operation is not in tools/list", f"plugin.{PLUGIN}.measure" not in listed)
@@ -145,80 +145,82 @@ def main():
         rule = run_plugin_script(orca, plugin_dir, "rule", CAPABILITIES[2])
         check("an auto-answer rule a plugin sets is owned by the plugin", rule == {"ok": True, "result": "plugin"}, rule)
         exported = run_plugin_script(orca, plugin_dir, "export", CAPABILITIES[3])
-        check("a plugin is refused export_replay", exported.get("ok") is False and "agent's session" in exported.get("error", ""),
+        check("a plugin is refused replay_export", exported.get("ok") is False and "agent's session" in exported.get("error", ""),
               exported)
-        # search_tools's one search: a command the tool list does not show (an operation, a Speed Dial command) with
+        # tool_search's one search: a command the tool list does not show (an operation, a menu row) with
         # its schema, a listed tool with its summary (its schema is in tools/list), and beside them the other
         # catalogs' best matches.
-        found = orca.call("search_tools", query="fixture measure")
+        found = orca.call("tool_search", query="fixture measure")
         operation = next((i for i in found["items"] if i["name"] == f"plugin.{PLUGIN}.measure"), {})
-        check("search_tools's search finds the plugin's operation with its schema",
+        check("tool_search's search finds the plugin's operation with its schema",
               operation.get("listed") is False and "input_schema" in operation, found)
-        found = orca.call("search_tools", query="slice plate")
-        tool = next((i for i in found["items"] if i["name"] == "slice"), {})
-        check("search_tools's search names a listed tool with its summary",
+        found = orca.call("tool_search", query="slice plate")
+        tool = next((i for i in found["items"] if i["name"] == "plate_slice"), {})
+        check("tool_search's search names a listed tool with its summary",
               tool.get("listed") is True and tool.get("summary") and "input_schema" not in tool, found)
-        found = orca.call("search_tools", query="brim width")
-        check("search_tools's search finds settings", any(s["key"] == "brim_width" for s in found.get("settings", {}).get("items", [])),
+        found = orca.call("tool_search", query="brim width")
+        check("tool_search's search finds settings", any(s["key"] == "brim_width" for s in found.get("settings", {}).get("items", [])),
               found)
-        found = orca.call("search_tools", query="arrange")
-        command = next((i for i in found["items"] if i["name"] == "obj_arrange"), {})
-        check("search_tools's search finds a Speed Dial command among the commands, with its schema",
+        found = orca.call("tool_search", query="developer mode")
+        command = next((i for i in found["items"] if i["name"] == "settings_toggle_developer_mode"), {})
+        check("tool_search's search finds a menu row's command among the commands, with its schema",
               command.get("listed") is False and "input_schema" in command, found)
-        check("and not a second time among the actions",
-              not any("obj_arrange" in a["id"] for a in found.get("actions", {}).get("items", [])), found)
-        found = orca.call("search_tools", query="fixture")
-        check("search_tools's search finds the Speed Dial's other actions",
+        check("and not its tile among the actions",
+              not any("toggle_developer_mode" in a["id"] for a in found.get("actions", {}).get("items", [])), found)
+        found = orca.call("tool_search", query="fixture")
+        check("tool_search's search finds the Speed Dial's other actions",
               any("fixture" in a.get("title", "").lower() for a in found.get("actions", {}).get("items", [])), found)
-        described = orca.call_raw("search_tools", {"tool": "view_front"})
-        view = {} if described.get("isError") else json.loads(described["content"][0]["text"])
-        check("search_tools describes a Speed Dial command", view.get("listed") is False and "input_schema" in view, described)
-        names = orca.call("search_tools", group="object").get("names", [])
-        check("search_tools's group is any case, a Speed Dial section among the groups", "obj_arrange" in names, names)
-        unknown = orca.call_raw("search_tools", {"group": "commandz"})
+        described = orca.call_raw("tool_search", {"tool": "script_toggle_panel"})
+        row = {} if described.get("isError") else json.loads(described["content"][0]["text"])
+        check("tool_search describes a menu row's command", row.get("listed") is False and "input_schema" in row, described)
+        names = orca.call("tool_search", group="objects").get("names", [])
+        check("tool_search's group is any case, a place's heading", "object_arrange" in names, names)
+        unknown = orca.call_raw("tool_search", {"group": "commandz"})
         check("a group no command has is refused, naming the groups there are",
-              unknown.get("isError") and "Object" in unknown["content"][0]["text"], unknown)
-        ran = orca.call_raw("call_tool", {"tool": "view_front"})
-        check("call_tool runs a Speed Dial command", not ran.get("isError"), ran)
-        found = orca.call("search_tools", query="mesh normals")
-        check("search_tools's search finds the Python API", found.get("python", {}).get("items", [{}])[0].get("name") ==
+              unknown.get("isError") and "Objects" in unknown["content"][0]["text"], unknown)
+        # It shows the Run Script panel; the second call hides it again.
+        ran = orca.call_raw("tool_call", {"tool": "script_toggle_panel"})
+        check("tool_call runs a menu row's command", not ran.get("isError"), ran)
+        orca.call_raw("tool_call", {"tool": "script_toggle_panel"})
+        found = orca.call("tool_search", query="mesh normals")
+        check("tool_search's search finds the Python API", found.get("python", {}).get("items", [{}])[0].get("name") ==
               "orca.host.TriangleMesh.face_normals", found)
-        found = orca.call("search_tools", query="extrude")
-        if orca.call("get_app_state").get("design_tab"):
+        found = orca.call("tool_search", query="extrude")
+        if orca.call("app_state").get("design_tab"):
             extrude = next((i for i in found["items"] if i["name"] == "extrude"), {})
-            check("search_tools's search finds a Design command among the commands, with its schema",
+            check("tool_search's search finds a Design command among the commands, with its schema",
                   extrude.get("group") == "Design" and extrude.get("listed") is False and "input_schema" in extrude, found)
         else:
-            check("without the Design tab, search_tools's search finds no Design command",
+            check("without the Design tab, tool_search's search finds no Design command",
                   not any(i.get("group") == "Design" for i in found["items"]), found)
         check("and in no section of its own", "cad" not in found, found)
-        found = orca.call("search_tools", query="?")
+        found = orca.call("tool_search", query="?")
         check("a query with no words to search for matches nothing", found.get("total") == 0 and "names" not in found, found)
-        journal = orca.call("export_replay")["replay"]["steps"]
-        check("a plugin's calls are not in the agent's journal", not any(s["tool"] == "auto_answer_dialogs" for s in journal),
+        journal = orca.call("replay_export")["replay"]["steps"]
+        check("a plugin's calls are not in the agent's journal", not any(s["tool"] == "dialog_auto_answer" for s in journal),
               journal)
-        broken = orca.call_raw("search_tools", {"tool": f"plugin.{BROKEN}.measure"})
+        broken = orca.call_raw("tool_search", {"tool": f"plugin.{BROKEN}.measure"})
         check("a plugin whose load failed offers none of its operations", broken.get("isError"), broken)
-        # A project started by the tool or by the command tells plugins, as File > New Project does.
+        # A project started by project_new or by its tile tells plugins, as File > New Project does.
         started = lambda: lines_of(os.path.join(plugin_dir, "new_projects.txt"))
         before = started()
-        orca.call("new_project", discard_changes=True)
-        check("the new_project tool sends plugins the NewProject event", wait_for(lambda: started() == before + 1, 10), started())
-        orca.call("run_action", id="orca_command:new_project:orca")
-        check("and so does the new_project command", wait_for(lambda: started() == before + 2, 10), started())
+        orca.call("project_new", discard_changes=True)
+        check("project_new sends plugins the NewProject event", wait_for(lambda: started() == before + 1, 10), started())
+        orca.call("action_run", id="orca_command:new_project:orca")
+        check("and so does its tile, new_project", wait_for(lambda: started() == before + 2, 10), started())
         held = run_plugin_script(orca, plugin_dir, "handle", CAPABILITIES[4])
         check("the plugin opens a progress dialog and keeps its handle", held.get("ok") is True, held)
-        grab = orca.await_job(orca.call("run_script", code=GRAB_HANDLE))
+        grab = orca.await_job(orca.call("script_run", code=GRAB_HANDLE))
         check("a script that finds a plugin's handle can use its methods", grab.get("result") is True, grab)
 
         # --- The plugin unloads, as a person unticks it in the Plugins dialog. ---
-        rules = lambda: json.dumps(orca.call("get_app_state").get("auto_answer_rules"))
+        rules = lambda: json.dumps(orca.call("app_state").get("auto_answer_rules"))
         check("the auto-answer rule the plugin set lasts while it is loaded", RULE in rules(), rules())
-        orca.call("run_action", id="orca_command:open_plugins:orca")
-        untick = orca.call_raw("click", {"target": {"css": f'label.plugin-checkbox:has(input[data-plugin-key="{PLUGIN}"])',
+        orca.call("action_run", id="orca_command:open_plugins:orca")
+        untick = orca.call_raw("widget_click", {"target": {"css": f'label.plugin-checkbox:has(input[data-plugin-key="{PLUGIN}"])',
                                                        "within": "Plugins"}})
         check("the Plugins dialog unticks the plugin", not untick.get("isError"), untick)
-        withdrawn = lambda: orca.call_raw("search_tools", {"tool": f"plugin.{PLUGIN}.measure"}).get("isError")
+        withdrawn = lambda: orca.call_raw("tool_search", {"tool": f"plugin.{PLUGIN}.measure"}).get("isError")
         check("an unloaded plugin's operation is withdrawn", wait_for(withdrawn, 15))
         check("and the auto-answer rule it set ends with it", wait_for(lambda: RULE not in rules(), 15), rules())
         harness(env, "stop")
@@ -228,9 +230,9 @@ def main():
         install(datadir)  # enabled again: unticking it saved it disabled
         steps = os.path.join(datadir, "plugin_rule.json")
         with open(steps, "w", encoding="utf-8") as f:
-            json.dump({"orca_replay_version": "0.1.0", "name": "a plugin's rule without MCP", "steps": [
-                {"tool": "run_action", "args": {"id": f"plugin_script_action:{CAPABILITIES[2]}:{PLUGIN}"}},
-                {"tool": "wait", "args": {"for": "dialog", "timeout_s": 10}}]}, f)
+            json.dump({"orca_replay_version": "0.2.0", "name": "a plugin's rule without MCP", "steps": [
+                {"tool": "action_run", "args": {"id": f"plugin_script_action:{CAPABILITIES[2]}:{PLUGIN}"}},
+                {"tool": "app_wait", "args": {"for": "dialog", "timeout_s": 10}}]}, f)
         out = os.path.join(plugin_dir, "out_rule.json")
         if os.path.exists(out):
             os.remove(out)

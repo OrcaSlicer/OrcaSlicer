@@ -73,6 +73,8 @@
 #include <miniz.h>
 #include "slic3r/GUI/Monitor.hpp"
 #include "slic3r/GUI/OpenGLManager.hpp"
+#include "slic3r/GUI/Operations/PluginOps.hpp"
+#include "slic3r/GUI/Operations/PreferenceOps.hpp"
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include <optional>
 #include "slic3r/GUI/UserNotification.hpp"
@@ -3360,7 +3362,7 @@ bool GUI_App::on_init_inner()
 //     Slic3r::debugf "wxWidgets version %s, Wx version %s\n", wxVERSION_STRING, wxVERSION;
     // The command catalog, before anything that runs or lists a command: the automation runtime below and the
     // Speed Dial's action registry. Then the Python scripts setting's value in force, before the endpoint opens and
-    // the command line's run starts, so that get_app_state and the first script read it. Each value in force is the
+    // the command line's run starts, so that app_state and the first script read it. Each value in force is the
     // preference, or the command line's flag (--cad, --unrestricted-scripts). The CAD feature's is read here from the
     // config and the launch parameters, since is_enable_cad_feature() is in a CAD build only.
     const bool cad_in_force = app_config->get_bool("enable_cad_feature") || (init_params != nullptr && init_params->cad);
@@ -9202,20 +9204,14 @@ void GUI_App::notify_plugin_permissions_changed(const std::string& plugin_key)
     m_plugins_dlg->refresh_permissions_if_visible();
 }
 
-void GUI_App::refresh_plugins()
+Ops::RefreshTicket GUI_App::refresh_plugins()
 {
-    // The metadata refresh blocks on disc discovery and a cloud round-trip, so run it on a worker
-    // and report completion through the notification manager -- the speed dial needs no dialog.
-    std::thread([]() {
-        wxString error;
-        bool unknown_error = false;
-        try {
-            refresh_plugin_metadata_blocking(/*fetch_cloud=*/true);
-        } catch (const std::exception& ex) {
-            error = from_u8(ex.what());
-        } catch (...) {
-            unknown_error = true; // translated in CallAfter: wx translation isn't safe off the UI thread
-        }
+    // The metadata refresh blocks on disc discovery and a cloud round-trip, so it runs off the UI thread, after
+    // the refreshes asked for before it, and the notification manager reports its end -- the speed dial needs no
+    // dialog.
+    return Ops::start_plugin_refresh([](const std::string& what, bool unknown_error) {
+        // An unknown failure's text is translated in CallAfter: wx translation isn't safe off the UI thread.
+        const wxString error = from_u8(what);
         if (!wxTheApp)
             return;
         wxTheApp->CallAfter([error, unknown_error]() {
@@ -9236,7 +9232,7 @@ void GUI_App::refresh_plugins()
                     NotificationManager::NotificationLevel::ErrorNotificationLevel,
                     into_u8(wxString::Format(_L("Failed to refresh plugins: %s"), unknown_error ? _L("Unknown error") : error)));
         });
-    }).detach();
+    });
 }
 
 void GUI_App::update_plugins_dialog()
@@ -9311,14 +9307,9 @@ void GUI_App::open_preferences() { open_preferences(PreferencesTab::General); }
 void GUI_App::open_preferences(PreferencesTab tab, const std::string& highlight_option)
 {
     // Render settings the canvas reads every frame; a change needs one redraw to show.
-    static constexpr const char* opengl_render_setting_keys[] = {
-        SETTING_OPENGL_FXAA_ENABLED, SETTING_OPENGL_FPS_CAP, SETTING_OPENGL_SHOW_FPS_OVERLAY, SETTING_OPENGL_SHOW_RENDER_TIMINGS,
-        SETTING_OPENGL_SCENE_CACHE, SETTING_OPENGL_SKIP_IDENTICAL_FRAMES, SETTING_OPENGL_REALISTIC_SHADOWS,
-        SETTING_OPENGL_REALISTIC_GLOSS, SETTING_OPENGL_OUTLINE_PERSISTENT, SETTING_OPENGL_OUTLINE_COLOR,
-        SETTING_OPENGL_SELECTION_OUTLINE_COLOR
-    };
+    const std::vector<std::string>& opengl_render_setting_keys = Ops::canvas_preferences();
     std::vector<std::string> previous_opengl_render_settings;
-    for (const char* key : opengl_render_setting_keys)
+    for (const std::string& key : opengl_render_setting_keys)
         previous_opengl_render_settings.emplace_back(app_config->get(key));
 
     bool need_recreate_gui = false;

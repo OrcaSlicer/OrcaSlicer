@@ -75,7 +75,7 @@ std::optional<json> resolve_placeholder(const std::string& key, const Replay& re
 }
 
 // How a substitution went: in lenient mode an unresolvable placeholder is kept as written; otherwise
-// the first one fails the substitution and is recorded here, so run_replay can say why.
+// the first one fails the substitution and is recorded here, so replay_run can say why.
 struct Substitution
 {
     bool        lenient = false;
@@ -315,7 +315,7 @@ std::optional<Replay> parse_replay(const std::string& text, std::string& err)
 }
 
 // A step's arguments with their placeholders filled in, except Python source, which runs as written (D7):
-// the code of a run_script call, of one a call_tool makes, and of the Python steps of an inline replay.
+// the code of a script_run call, of one a tool_call makes, and of the Python steps of an inline replay.
 json substitute_args(const std::string& tool, const json& args, const Replay& replay, const ReplayContext& ctx, Substitution& sub)
 {
     if (!args.is_object())
@@ -323,12 +323,12 @@ json substitute_args(const std::string& tool, const json& args, const Replay& re
     json out = json::object();
     for (auto it = args.begin(); it != args.end(); ++it) {
         const std::string& key = it.key();
-        if (tool == "run_script" && key == "code") {
+        if (tool == "script_run" && key == "code") {
             out[key] = it.value();
-        } else if (tool == "call_tool" && key == "args" && it.value().is_object()) {
+        } else if (tool == "tool_call" && key == "args" && it.value().is_object()) {
             const json target = substitute_value(args.value("tool", json()), replay, ctx, sub, 0);
             out[key]          = substitute_args(target.is_string() ? target.get<std::string>() : std::string(), it.value(), replay, ctx, sub);
-        } else if (tool == "run_replay" && key == "replay" && it.value().is_object() && it.value().contains("steps") &&
+        } else if (tool == "replay_run" && key == "replay" && it.value().is_object() && it.value().contains("steps") &&
                    it.value()["steps"].is_array()) {
             json nested = json::object();
             for (auto field = it.value().begin(); field != it.value().end(); ++field) {
@@ -472,7 +472,7 @@ json run_replay(const Replay& replay, ReplayContext& ctx, const ReplayHost& host
                     if (const json dialogs = host.open_dialogs ? host.open_dialogs() : json::array();
                         dialogs.is_array() && !dialogs.empty()) {
                         message += " with the dialog \"" + dialogs.back().value("title", std::string()) +
-                                   "\" open: a step can't answer a dialog it opens, so register an auto_answer_dialogs rule for it "
+                                   "\" open: a step can't answer a dialog it opens, so register a dialog_auto_answer rule for it "
                                    "before the step, or give the step \"await\": false and answer the dialog in the steps after it";
                         details["dialogs"] = dialogs;
                     }
@@ -488,11 +488,11 @@ json run_replay(const Replay& replay, ReplayContext& ctx, const ReplayHost& host
         bool ok       = !result.is_error;
         if (ok) {
             entry["result"] = result.data;
-            // run_script reports a script that raised, was cancelled or ran out of time in a successful
-            // result, as run_replay reports a failed step; inside a replay that fails the step, also when an
-            // call_tool made the call. A job left running (await: false) has no outcome yet.
-            const std::string target = step.tool == "call_tool" ? args.value("tool", std::string()) : step.tool;
-            if (target == "run_script" && !is_job_envelope(result) && result.data.value("status", "") != "finished") {
+            // script_run reports a script that raised, was cancelled or ran out of time in a successful
+            // result, as replay_run reports a failed step; inside a replay that fails the step, also when an
+            // tool_call made the call. A job left running (await: false) has no outcome yet.
+            const std::string target = step.tool == "tool_call" ? args.value("tool", std::string()) : step.tool;
+            if (target == "script_run" && !is_job_envelope(result) && result.data.value("status", "") != "finished") {
                 entry["error"] = result.data.value("message", "the Python script did not finish");
                 reason         = {{"kind", "python"}, {"status", result.data.value("status", "")}};
                 ok             = false;

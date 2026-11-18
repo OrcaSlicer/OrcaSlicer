@@ -23,6 +23,7 @@
 #include <cassert>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <wx/thread.h>
 
@@ -30,12 +31,14 @@ namespace Slic3r { namespace GUI { namespace Ops {
 
 namespace {
 
+Refusal file_not_written() { return {RefusalKind::Failed, "file_not_written", L("The file was not written.")}; }
+
 // The one success check of an export that writes its file before it returns.
 Outcome<Done> written(const boost::filesystem::path& path)
 {
     boost::system::error_code ec;
     if (!boost::filesystem::exists(path, ec))
-        return Refusal{RefusalKind::Failed, "file_not_written", L("The file was not written.")};
+        return file_not_written();
     return Done{};
 }
 
@@ -126,15 +129,60 @@ Outcome<Done> export_model_3mf(const ExportFileArgs& args)
     return written(args.path);
 }
 
-Outcome<Done> export_stl(const ExportFileArgs& args)
+std::optional<Refusal> export_objects_refusal(const std::string& format, const std::vector<int>& objects, bool per_object,
+                                              const Model& model)
+{
+    if (!objects.empty() && format != "stl" && format != "drc")
+        // TRN %1% is a file format, as project_export names it: gcode, sliced_3mf, 3mf or toolpaths_obj.
+        return Refusal{RefusalKind::Precondition, "objects_not_taken", L("Only an STL or a DRC export takes objects, not %1%."), {format}};
+    if ((per_object || !objects.empty()) && model.objects.empty())
+        return no_objects();
+    for (int object : objects)
+        if (object < 0 || object >= int(model.objects.size()))
+            // TRN %1% is the object index asked for, %2% the index of the project's last object.
+            return Refusal{RefusalKind::Precondition, "no_such_object", L("Object %1% does not exist (the project has objects 0..%2%)"),
+                           {std::to_string(object), std::to_string(model.objects.size() - 1)}};
+    return std::nullopt;
+}
+
+Outcome<std::vector<boost::filesystem::path>> export_stl(const ExportStlArgs& args)
 {
     assert(wxThread::IsMain());
     Plater& plater = *wxGetApp().plater();
     if (plater.model().objects.empty())
         return no_objects();
+    if (std::optional<Refusal> refusal = export_objects_refusal(args.draco ? "drc" : "stl", args.objects, args.per_object, plater.model()))
+        return *refusal;
     if (std::optional<Refusal> refusal = select_named_plate(args.plate))
         return *refusal;
-    plater.export_stl(false, false, false, FT_STL, from_path(args.path));
+    std::vector<boost::filesystem::path> files;
+    for (const std::string& file :
+         plater.export_stl(false, false, args.per_object, args.draco ? FT_DRC : FT_STL, from_path(args.path), args.objects)) {
+        files.push_back(into_path(from_u8(file)));
+        if (!written(files.back()))
+            return file_not_written();
+    }
+    if (files.empty())
+        return file_not_written();
+    return files;
+}
+
+std::optional<Refusal> toolpaths_refusal()
+{
+    assert(wxThread::IsMain());
+    const Plater& plater = *wxGetApp().plater();
+    if (plater.printer_technology() != ptFFF || !plater.is_preview_loaded() || !plater.has_toolpaths_to_export())
+        return Refusal{RefusalKind::Precondition, "no_toolpaths",
+                       L("The Preview shows no toolpaths. Slice the plate and show it in the Preview first.")};
+    return std::nullopt;
+}
+
+Outcome<Done> export_toolpaths_obj(const ExportToolpathsArgs& args)
+{
+    assert(wxThread::IsMain());
+    if (std::optional<Refusal> refusal = toolpaths_refusal())
+        return *refusal;
+    wxGetApp().plater()->export_toolpaths_to_obj(from_path(args.path));
     return written(args.path);
 }
 

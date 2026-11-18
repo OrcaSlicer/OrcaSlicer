@@ -6,49 +6,53 @@
 # Generate candidates with: python3 scripts/check_operation_calls.py --print
 
 [src/slic3r/GUI/NativeCommands.cpp]
-# The asking path of a command: with no param, and for load_project with or without one, the command
-# calls the owner's method, which asks the person what an operation would be told.
+# The asking path of a command, its menu row's tile (Rows): the row's function calls the owner's method, which asks
+# the person what an operation would be told (project_open {}, project_save {save_as: true}, project_import {archive:
+# true}, project_export with a tile's arguments, filament_sync_ams {}).
 plater->load_project();
-plater->load_project(from_path(*path));
-return project_save_result(plater->save_project(true));
+return NativeCommands::project_save_result(plater->save_project(true));
+plater->import_zip_archive();
 plater->export_stl();
 plater->export_core_3mf();
-plater->export_gcode_3mf(all);
-plater->set_number_of_copies();
-# Another function that uses the same owner method: every object as its own STL, and the Draco exports.
+plater->export_gcode_3mf(all_plates);
+plater->export_toolpaths_to_obj();
+const std::optional<Ops::Refusal> refusal = plater->sidebar().sync_ams_list();
+# Another function that uses the same owner method: every object as its own STL, and the Draco exports, each asking
+# for its file or folder.
 plater->export_stl(false, false, true);
-plater->export_stl(false, false, true, FT_STL, from_path(*dir));
 plater->export_stl(false, false, false, FT_DRC);
 plater->export_stl(false, false, true, FT_DRC);
-# Another function that uses the same owner method: orient, which leaves a plate-only state behind as arrange does.
-plater->set_prepare_state(Job::PREPARE_STATE_DEFAULT);
 
 [src/slic3r/GUI/Mcp/McpToolsConfig.cpp]
-# The undo step of a tool whose function has one automation entry point (set_settings' object, plate
-# and project scopes).
+# The undo step of a tool whose function has one automation entry point (settings_set's object and part
+# targets, plate_set_settings and project_set_settings).
 plater.take_snapshot("Move object");
 plater.take_snapshot("Plate Settings");
 plater.take_snapshot("Change object settings");
 # A tool selecting the plate it was given before its own work, as the plate's settings icon does.
 plater.select_plate(index);
-# Another function that uses the same owner method: set_settings makes the filament tab edit a slot's
-# preset, and delete_preset selects the preset, deletes it and selects back.
+# Another function that uses the same owner method: settings_set makes the filament tab edit a slot's
+# preset, and preset_delete selects the preset, deletes it and selects back.
 if (!tab->select_preset(name))
 if (!tab->select_preset(name))
 tab->select_preset(selected);
 
 [src/slic3r/GUI/Mcp/McpToolsLayers.cpp]
-# The undo step of a tool whose function has one automation entry point (set_height_ranges).
+# The undo step of a tool whose function has one automation entry point (object_set_height_ranges).
 plater.take_snapshot("Edit height ranges");
 
 [src/slic3r/GUI/Mcp/McpToolsProject.cpp]
-# The asking path of a command, its person's form: new_project and save_project called with no arguments
+# The asking path of a command, its person's form: project_new and project_save called with no arguments
 # call the owner's method, which asks the person what an operation would be told.
 plater->new_project();
 return NativeCommands::project_save_result(plater->save_project(false));
 
 [src/slic3r/GUI/Mcp/McpToolsScene.cpp]
-# The undo step of a tool whose function has one automation entry point (transform).
+# The asking path of a command, its person's form: object_rename {} and object_set_instances {} call the owner's
+# method on the target they resolved from the selection, which asks the person what an operation would be told.
+list->rename_item();
+plater.set_number_of_copies();
+# The undo step of a tool whose function has one automation entry point (object_transform).
 plater.take_snapshot("Transform object");
 plater.take_snapshot("Transform part", UndoRedo::SnapshotType::GizmoAction);
 

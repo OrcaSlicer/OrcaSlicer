@@ -1,10 +1,12 @@
-// open_files, new_project, save_project and export: files in and out without file dialogs. generate_calibration_test: the
-// Calibration menu's tests, which start a new project.
+// project_new, project_open, project_import, project_save and project_export: the project's files in and out without
+// file dialogs, and called as their menu rows' tiles, with them. calibration_generate_test: the Calibration menu's
+// tests, which start a new project.
 
 #include "slic3r/GUI/I18N.hpp"
 #include "JobRegistry.hpp"
 #include "McpPaths.hpp"
 #include "AutomationRuntime.hpp"
+#include "McpTargets.hpp"
 #include "McpTools.hpp"
 #include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
@@ -12,8 +14,10 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/NativeCommandRows.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/Operations/ExportOps.hpp"
+#include "slic3r/GUI/Operations/ObjectOps.hpp"
 #include "slic3r/GUI/Operations/Outcome.hpp"
 #include "slic3r/GUI/Operations/PlateOps.hpp"
 #include "slic3r/GUI/Operations/ProjectOps.hpp"
@@ -75,7 +79,7 @@ json project_json(const Ops::ProjectSummary& project)
 Ops::UnsavedChanges unsaved_changes_answer(bool discard) { return discard ? Ops::UnsavedChanges::Discard : Ops::UnsavedChanges::Refuse; }
 
 // What a tool that replaces the project adds to the refusal of unsaved changes.
-constexpr const char* kUnsavedChangesHint = "save_project first, or pass discard_changes: true.";
+constexpr const char* kUnsavedChangesHint = "project_save first, or pass discard_changes: true.";
 
 // Fails when the project has unsaved changes the caller did not say to drop.
 void require_project_discardable(bool discard)
@@ -99,7 +103,7 @@ bool is_belt(const DynamicPrintConfig& printer)
     return belt != nullptr && belt->value;
 }
 
-// generate_calibration_test's test_model values, as each test's dialog lists its models.
+// calibration_generate_test's test_model values, as each test's dialog lists its models.
 std::vector<std::string> calib_test_models(CalibMode mode)
 {
     switch (mode) {
@@ -148,22 +152,22 @@ std::string calib_rule(CalibParamsError error, const Calib_Params& p, const Dyna
 json calib_result_keys(CalibMode mode, const DynamicPrintConfig& printer)
 {
     switch (mode) {
-    case CalibMode::Calib_Temp_Tower: return {{"scope", "filament"}, {"keys", {"nozzle_temperature", "nozzle_temperature_initial_layer"}}};
-    case CalibMode::Calib_Vol_speed_Tower: return {{"scope", "filament"}, {"keys", {"filament_max_volumetric_speed"}}};
+    case CalibMode::Calib_Temp_Tower: return {{"type", "filament"}, {"keys", {"nozzle_temperature", "nozzle_temperature_initial_layer"}}};
+    case CalibMode::Calib_Vol_speed_Tower: return {{"type", "filament"}, {"keys", {"filament_max_volumetric_speed"}}};
     case CalibMode::Calib_PA_Tower:
-    case CalibMode::Calib_PA_Line: return {{"scope", "filament"}, {"keys", {"enable_pressure_advance", "pressure_advance"}}};
+    case CalibMode::Calib_PA_Line: return {{"type", "filament"}, {"keys", {"enable_pressure_advance", "pressure_advance"}}};
     case CalibMode::Calib_PA_Pattern:
-        return {{"scope", "filament"},
+        return {{"type", "filament"},
                 {"keys", {"enable_pressure_advance", "pressure_advance", "adaptive_pressure_advance", "adaptive_pressure_advance_model"}}};
-    case CalibMode::Calib_Flow_Rate: return {{"scope", "filament"}, {"keys", {"filament_flow_ratio"}}};
-    case CalibMode::Calib_Retraction_tower: return {{"scope", "filament"}, {"keys", {"filament_retraction_length"}}};
+    case CalibMode::Calib_Flow_Rate: return {{"type", "filament"}, {"keys", {"filament_flow_ratio"}}};
+    case CalibMode::Calib_Retraction_tower: return {{"type", "filament"}, {"keys", {"filament_retraction_length"}}};
     case CalibMode::Calib_VFA_Tower:
-        return {{"scope", "printer"}, {"keys", {"resonance_avoidance", "min_resonance_avoidance_speed", "max_resonance_avoidance_speed"}}};
+        return {{"type", "printer"}, {"keys", {"resonance_avoidance", "min_resonance_avoidance_speed", "max_resonance_avoidance_speed"}}};
     case CalibMode::Calib_Cornering:
-        return {{"scope", "printer"},
+        return {{"type", "printer"},
                 {"keys", has_junction_deviation(printer) ? json{"machine_max_junction_deviation"} : json{"machine_max_jerk_x", "machine_max_jerk_y"}}};
     default:
-        return {{"scope", "printer"},
+        return {{"type", "printer"},
                 {"keys", {"input_shaping_emit", "input_shaping_type", "input_shaping_freq_x", "input_shaping_freq_y", "input_shaping_damp_x",
                           "input_shaping_damp_y"}}};
     }
@@ -199,14 +203,16 @@ json apply_vfa_fit(Calib_Params& params, bool auto_adjust, const PresetBundle& b
     }
 }
 
-// export's format for a path given without one, from its extension.
+// project_export's format for a path given without one, from its extension.
 std::string format_of(const std::string& path)
 {
-    static const std::pair<const char*, const char*> formats[]{{".gcode.3mf", "sliced_3mf"}, {".gcode", "gcode"}, {".3mf", "3mf"}, {".stl", "stl"}};
+    static const std::pair<const char*, const char*> formats[]{{".gcode.3mf", "sliced_3mf"}, {".gcode", "gcode"}, {".3mf", "3mf"},
+                                                               {".stl", "stl"},           {".drc", "drc"},     {".obj", "toolpaths_obj"}};
     for (const auto& [ext, format] : formats)
         if (boost::algorithm::iends_with(path, ext))
             return format;
-    throw ToolFailure("Give format (gcode, sliced_3mf, 3mf or stl), or a path ending in .gcode, .gcode.3mf, .3mf or .stl");
+    throw ToolFailure("Give format (gcode, sliced_3mf, 3mf, stl, drc or toolpaths_obj), or a path ending in .gcode, .gcode.3mf, "
+                      ".3mf, .stl, .drc or .obj");
 }
 
 } // namespace
@@ -214,7 +220,7 @@ std::string format_of(const std::string& path)
 Calib_Params calib_params_from_args(const json& args, const DynamicPrintConfig& printer, std::vector<std::string>& warnings)
 {
     const std::string test = arg_string(args, "test");
-    // The arguments each test takes, besides test, discard_changes and preset_changes.
+    // The arguments each test takes, besides test, silent, discard_changes and preset_changes.
     std::vector<std::string> takes{"start", "end", "step"};
     CalibMode                mode = CalibMode::Calib_None;
     std::string              method;
@@ -258,7 +264,7 @@ Calib_Params calib_params_from_args(const json& args, const DynamicPrintConfig& 
         throw ToolFailure("Unknown test \"" + test + "\"");
     }
     for (auto it = args.begin(); it != args.end(); ++it)
-        if (it.key() != "test" && it.key() != "discard_changes" && it.key() != "preset_changes" &&
+        if (it.key() != "test" && it.key() != "silent" && it.key() != "discard_changes" && it.key() != "preset_changes" &&
             std::find(takes.begin(), takes.end(), it.key()) == takes.end())
             throw ToolFailure(it.key() + " does not apply to " + test + (method.empty() ? "" : " with method " + method), {{"takes", takes}});
 
@@ -392,72 +398,141 @@ json calib_params_json(const json& args, const Calib_Params& p, const DynamicPri
 
 void register_project_tools(CommandCatalog& catalog)
 {
-    catalog.add(reaching({"open_project", "import_models"}, mutate_tool(
-        "api", "open_files", L("Open files"),
-        "Open model files (STL, 3MF, STEP, OBJ, AMF, SVG...), a project (.3mf) or G-code by absolute path, without a file "
-        "dialog. Models are added to the current project. A .3mf given alone opens as a project, replacing the current "
-        "one, unless as is \"geometry\"; when the current project has unsaved changes that fails, changing nothing, unless "
-        "discard_changes. Given with other paths, a .3mf adds its models only. A G-code given alone replaces the project "
-        "too, to show its toolpaths: with unsaved changes the app asks first (blocked_by_dialog), whatever discard_changes "
-        "says. Importing can open a dialog (STEP mesh options, for instance); the reply is then blocked_by_dialog.",
-        object_schema({{"paths", array_prop({{"type", "string"}}, "Absolute paths.")},
-                       {"as", enum_prop({"auto", "geometry", "project"}, "How a .3mf given alone opens: as a project (auto, the "
-                                                                         "default, and project) or adding its models only "
-                                                                         "(geometry).")},
-                       {"discard_changes", prop("boolean", "Drop the project's unsaved changes rather than fail when a .3mf "
+    NativeCommand open = reaching({"open_project"}, mutate_tool(
+        "project_open", L("Open a project"),
+        "Open a project (.3mf) by absolute path, without a file dialog, replacing the current project, with the settings it "
+        "was saved with whatever the Preferences' Load behavior says; when the current project has unsaved changes that "
+        "fails, changing nothing, unless discard_changes. A G-code file replaces the project too, to show its toolpaths: "
+        "with unsaved changes the app asks first (blocked_by_dialog), whatever discard_changes says. project_import adds "
+        "models, or a project's objects alone, to the current project. Called with no arguments it is Load Project: the "
+        "Open dialog asks for the file (blocked_by_dialog), after asking about the unsaved changes. Reply: opened (project "
+        "or gcode), and objects, names and plates for a project, path for a G-code.",
+        object_schema({{"path", prop("string", "Absolute path of a .3mf project, or of a G-code file (.gcode, .bgcode).")},
+                       {"discard_changes", prop("boolean", "Drop the project's unsaved changes rather than fail when a project "
                                                            "replaces it.")}},
-                      {"paths"}),
+                      {"path"}),
         [](const json& args, ToolContext& ctx) {
             AutomationRuntime& runtime = ctx.runtime();
+            std::string        err;
+            const auto         path = resolve_input_path(arg_string(args, "path"), err);
+            if (!path)
+                throw ToolFailure(err);
+            const bool gcode = has_extension(*path, {".gcode", ".bgcode"});
+            if (!gcode && !has_extension(*path, {".3mf"}))
+                throw ToolFailure("project_open opens a .3mf project or a G-code file; project_import adds models to the project");
+            // A run the user let drop unsaved changes (Run Script's "don't save") counts as discard_changes.
+            const bool discard = arg_bool(args, "discard_changes", false) || runtime.jobs().discard_allowed_in(ctx.lineage());
+            json out = ctx.run_ui([&]() -> json {
+                Plater& plater = ui_plater();
+                if (gcode) {
+                    plater.load_gcode(from_path(*path));
+                    return {{"opened", "gcode"}, {"path", path_to_utf8(*path)}};
+                }
+                Ops::OpenProjectArgs open;
+                open.path    = *path;
+                open.unsaved = unsaved_changes_answer(discard);
+                const Ops::Outcome<Ops::ProjectSummary> opened = Ops::open_project(open);
+                if (!opened)
+                    throw refused(opened.refusal(), kUnsavedChangesHint);
+                json o      = project_json(opened.value());
+                o["opened"] = "project";
+                return o;
+            });
+            settle(ctx);
+            return ToolResult::ok(out);
+        }));
+    open.tiles = json::array({NativeCommands::tile("load_project", L("Load Project"), L("Commands"), "menu_open", json::object(),
+                                                   "Open a project through the Open dialog (it asks first if the current project "
+                                                   "has unsaved changes); project_open with a path opens that file without a "
+                                                   "dialog.")});
+    catalog.add(NativeCommands::with_person_form(std::move(open), [](const json&) { return Rows::load_project(); }));
+
+    NativeCommand import_ = reaching({"import_models"}, mutate_tool(
+        "project_import", L("Import models"),
+        "Add the models of files (STL, 3MF, STEP, OBJ, AMF, SVG...) to the current project by absolute path, without a file "
+        "dialog, as one undo step; a .3mf adds its objects only, not its settings (project_open opens it as a project). A "
+        ".zip archive gives the model files it holds (STL, OBJ, AMF, 3MF, STEP; a .3mf its objects only, as above), as Import "
+        "ZIP Archive does: those entries names, by their paths in the archive, else all of them, in place of its file list; "
+        "an entry the archive lacks is refused with the names it has, before anything is imported. Importing can open a "
+        "dialog (STEP mesh options, for instance); the reply is then blocked_by_dialog. Called with no arguments it is "
+        "Import 3MF/STL/STEP/SVG/OBJ/AMF, and with archive: true alone Import ZIP Archive: a file dialog asks for the files, "
+        "or for the archive and then which of its files to import (blocked_by_dialog). Reply: opened (models), added (how "
+        "many objects), archives (each archive's path and the entries taken) and the project's objects, names and plates.",
+        object_schema({{"paths", array_prop({{"type", "string"}}, "Absolute paths of model files, or of a .zip archive of them.")},
+                       {"entries", {{"type", "array"},
+                                    {"items", {{"type", "string"}}},
+                                    {"minItems", 1},
+                                    {"description", "The files to take from the one .zip archive among paths, by their paths "
+                                                    "in it (\"parts/cube.stl\"). Default: every model file it holds."}}},
+                       {"archive", prop("boolean", "true, alone: ask for a ZIP archive in a file dialog and import the models "
+                                                   "it holds, as Import ZIP Archive does.")}},
+                      {"paths"}),
+        [](const json& args, ToolContext& ctx) {
+            if (arg_bool(args, "archive", false))
+                throw ToolFailure("archive asks for the archive in a file dialog, so it goes alone; paths imports files without one");
+            if (args.contains("entries")) {
+                const json& given = args["paths"];
+                const auto  zips  = std::count_if(given.begin(), given.end(), [](const json& p) {
+                    return boost::algorithm::iends_with(p.get<std::string>(), ".zip");
+                });
+                if (zips == 0)
+                    throw ToolFailure("entries names files of a .zip archive: give the archive in paths");
+                if (zips > 1)
+                    throw ToolFailure("entries names the files of one archive: give one .zip in paths");
+            }
             std::vector<fs::path> paths;
             for (const json& p : args["paths"]) {
                 std::string err;
                 auto        resolved = resolve_input_path(p.get<std::string>(), err);
                 if (!resolved)
                     throw ToolFailure(err);
+                if (has_extension(*resolved, {".gcode", ".bgcode"}))
+                    throw ToolFailure(p.get<std::string>() + " is a G-code file, which project_open opens to show its toolpaths");
                 paths.push_back(*resolved);
             }
             if (paths.empty())
                 throw ToolFailure("paths is empty");
-            const std::string as      = arg_string(args, "as", "auto");
-            // A run the user let drop unsaved changes (Run Script's "don't save") counts as discard_changes.
-            const bool        discard = arg_bool(args, "discard_changes", false) || runtime.jobs().discard_allowed_in(ctx.lineage());
             json out = ctx.run_ui([&]() -> json {
-                Plater& plater = ui_plater();
-                if (paths.size() == 1 && has_extension(paths[0], {".gcode", ".bgcode"})) {
-                    plater.load_gcode(from_path(paths[0]));
-                    return {{"opened", "gcode"}, {"path", path_to_utf8(paths[0])}};
-                }
-                if (paths.size() == 1 && as != "geometry" && has_extension(paths[0], {".3mf"})) {
-                    Ops::OpenProjectArgs open;
-                    open.path    = paths[0];
-                    open.unsaved = unsaved_changes_answer(discard);
-                    const Ops::Outcome<Ops::ProjectSummary> opened = Ops::open_project(open);
-                    if (!opened)
-                        throw refused(opened.refusal(), kUnsavedChangesHint);
-                    json o      = project_json(opened.value());
-                    o["opened"] = "project";
-                    return o;
-                }
+                Plater&               plater = ui_plater();
                 Ops::ImportModelsArgs models;
                 models.paths = paths;
+                if (args.contains("entries"))
+                    models.entries = args["entries"].get<std::vector<std::string>>();
                 const Ops::Outcome<Ops::ImportModelsResult> imported = Ops::import_models(models);
-                if (!imported)
-                    throw refused(imported.refusal(), "See get_log for the reason.");
+                if (!imported) {
+                    const bool nothing = std::string(imported.refusal().code) == "nothing_loaded";
+                    throw refused(imported.refusal(), nothing ? "See app_log for the reason." : "", "entries");
+                }
                 json o      = objects_summary(plater);
                 o["opened"] = "models";
                 o["added"]  = imported.value().added;
+                if (!imported.value().archives.empty()) {
+                    json archives = json::array();
+                    for (const Ops::ImportedArchive& archive : imported.value().archives)
+                        archives.push_back({{"path", path_to_utf8(archive.path)}, {"entries", archive.entries}});
+                    o["archives"] = std::move(archives);
+                }
                 return o;
             });
             settle(ctx);
             return ToolResult::ok(out);
-        })));
+        }));
+    import_.tiles = json::array(
+        {NativeCommands::tile("import_file", L("Import 3MF/STL/STEP/SVG/OBJ/AMF"), L("Import"), "menu_open", json::object(),
+                              "Import models (3MF/STL/STEP/SVG/OBJ/AMF) through a file dialog, as one undo step; a project "
+                              "file's settings are not loaded (project_open opens a project). project_import with paths adds "
+                              "files' geometry without a dialog."),
+         NativeCommands::tile("import_zip_archive", L("Import ZIP Archive"), L("Import"), "menu_open", {{"archive", true}},
+                              "Import models from a ZIP archive (opens a file dialog).")});
+    catalog.add(NativeCommands::with_person_form(std::move(import_), [](const json& tile_args) {
+        return tile_args.value("archive", false) ? Rows::import_zip_archive() : Rows::import_file();
+    }));
 
-    // The Speed Dial's New Project too: with no arguments it asks as the tile does.
-    catalog.add(NativeCommands::with_person_form(reaching({"new_project"}, mutate_tool(
-        {}, "new_project", {},
+    // New Project's row is its tile: with no arguments it asks as the row does.
+    NativeCommand project_new = reaching({"new_project"}, mutate_tool(
+        "project_new", L("New Project"),
         "Start a new, empty project. Called with no arguments, it asks as New Project does, about the unsaved changes "
-        "if there are any: the reply is then blocked_by_dialog, and answer_dialog answers it. With arguments, or silent: "
+        "if there are any: the reply is then blocked_by_dialog, and dialog_answer answers it. With arguments, or silent: "
         "true, it asks nothing: it fails, changing nothing, when the current project has unsaved changes, unless "
         "discard_changes. The presets' unsaved changes carry over to the new project unless preset_changes is \"discard\", as "
         "New Project's prompt offers. Reply, with arguments: objects, names, plates; when presets had or have unsaved "
@@ -486,28 +561,33 @@ void register_project_tools(CommandCatalog& catalog)
             });
             settle(ctx);
             return ToolResult::ok(out);
-        })),
-        L("New Project"), L("Commands"), "menu_open", [] {
-            if (Plater* plater = wxGetApp().plater())
-                plater->new_project();
-            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         }));
+    project_new.tiles = json::array({NativeCommands::tile("new_project", L("New Project"), L("Commands"), "menu_open", json::object(),
+                                                               "Runs project_new with no arguments, as New Project does: a new, empty "
+                                                               "project, after asking about the unsaved changes if there are any.")});
+    catalog.add(NativeCommands::with_person_form(std::move(project_new), [](const json&) {
+        if (Plater* plater = wxGetApp().plater())
+            plater->new_project();
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
+    }));
 
-    catalog.add(mutate_tool(
-        "api", "generate_calibration_test", L("Generate a calibration test"),
+    NativeCommand calibration = mutate_tool(
+        "calibration_generate_test", L("Generate a calibration test"),
         "Generate a Calibration menu test as its dialog's OK does: a new project named after the test with the test "
         "model, and the process, filament and printer presets changed as the test needs (presets_changed). The test prints "
         "with filament slot 1, so the filament tab is pointed at slot 1's preset. Omitted parameters take the dialog's "
         "defaults (pressure advance's by the printer's extruder type); temperatures are clamped to 155-500 °C and rounded "
         "down to 5 °C. Fails, changing nothing, when the project has unsaved changes (pass discard_changes) or presets do "
-        "(pass preset_changes). Reply: test, project, params (the values used, which the journal records), objects, names, "
-        "plates, presets_changed, result_keys (where the measured value belongs), warnings, adjusted (vfa), and discarded "
-        "and modified as new_project. Then slice and export. To save a measured value: new_project {discard_changes, "
-        "preset_changes: \"discard\"}, set_settings the value, save_preset.",
+        "(pass preset_changes). Called with test alone it opens that test's dialog, as the Calibration menu does "
+        "(blocked_by_dialog), and the dialog's OK runs the test; silent: true with test alone runs it with the dialog's "
+        "defaults. Reply: test, project, params (the values used, which the "
+        "journal records), objects, names, plates, presets_changed, result_keys (where the measured value belongs), "
+        "warnings, adjusted (vfa), and discarded and modified as project_new. Then plate_slice and project_export. To save "
+        "a measured value: project_new {discard_changes, preset_changes: \"discard\"}, settings_set the value, preset_save.",
         object_schema(
             {{"test", enum_prop({"temperature", "max_volumetric", "pressure_advance", "flow_ratio", "retraction", "vfa", "cornering",
                                  "input_shaping_freq", "input_shaping_damp"},
-                                "The test, named as the calib_* actions.")},
+                                "The test, as the Calibration menu names it.")},
              {"method", enum_prop({"tower", "line", "pattern", "pass1", "pass2", "yolo", "yolo_perfectionist"},
                                   "pressure_advance: tower (default), line or pattern; flow_ratio: pass1, pass2, yolo (default) or "
                                   "yolo_perfectionist.")},
@@ -617,7 +697,7 @@ void register_project_tools(CommandCatalog& catalog)
                 if (!switched_from.empty())
                     presets_changed["filament"]["tab_switched_from"] = switched_from;
                 if (plater.model().objects.empty())
-                    throw ToolFailure("The project was replaced but the test model was not added; see get_log",
+                    throw ToolFailure("The project was replaced but the test model was not added; see app_log",
                                       {{"presets_changed", presets_changed}});
 
                 json reply = calib_params_json(args, params, printer);
@@ -641,19 +721,64 @@ void register_project_tools(CommandCatalog& catalog)
             ctx.set_journal_args(std::move(recorded));
             settle(ctx);
             return ToolResult::ok(out);
-        }));
+        });
+    // The Calibration menu's rows, each the dialog of its test. The tab strip's calib_sf glyph is drawn white for the dark
+    // tab bar and vanishes on the palette's light tile, so each row borrows the matching settings-group icon instead.
+    struct CalibrationRow
+    {
+        const char* key;
+        const char* title;
+        const char* icon;
+        const char* test;
+        CalibKind   kind;
+    };
+    // Titles are L("...")-marked here so xgettext extracts them.
+    static const CalibrationRow calibration_rows[] = {
+        {"calib_temperature", L("Temperature Calibration"), "param_temperature", "temperature", CalibKind::Temperature},
+        {"calib_max_volumetric", L("Max Volumetric Speed Calibration"), "param_volumetric_speed", "max_volumetric",
+         CalibKind::MaxVolumetric},
+        {"calib_pressure_advance", L("Pressure Advance Calibration"), "param_flow_ratio_and_pressure_advance", "pressure_advance",
+         CalibKind::PressureAdvance},
+        {"calib_flow_ratio", L("Flow Ratio Calibration"), "param_flow_ratio_and_pressure_advance", "flow_ratio", CalibKind::FlowRatio},
+        {"calib_retraction", L("Retraction Calibration"), "param_retraction", "retraction", CalibKind::Retraction},
+        {"calib_cornering", L("Cornering Calibration"), "param_precision", "cornering", CalibKind::Cornering},
+        {"calib_input_shaping_freq", L("Input Shaping Frequency Calibration"), "param_resonance_avoidance", "input_shaping_freq",
+         CalibKind::InputShapingFreq},
+        {"calib_input_shaping_damp", L("Input Shaping Damping Calibration"), "param_resonance_avoidance", "input_shaping_damp",
+         CalibKind::InputShapingDamp},
+        {"calib_vfa", L("VFA Calibration"), "param_speed", "vfa", CalibKind::VFA},
+    };
+    calibration.tiles = json::array();
+    for (const CalibrationRow& row : calibration_rows)
+        calibration.tiles.push_back(NativeCommands::tile(row.key, row.title, L("Calibration"), row.icon, {{"test", row.test}},
+                                                         std::string("Open the ") + row.title +
+                                                             " dialog; calibration_generate_test with the test's parameters, or "
+                                                             "silent, runs it with no dialog."));
+    catalog.add(NativeCommands::with_person_form(std::move(calibration), [](const json& tile_args) {
+        const std::string test = tile_args.at("test");
+        for (const CalibrationRow& row : calibration_rows)
+            if (test == row.test)
+                return Rows::calib(row.kind);
+        return AppActionRunResult{AppActionRunResult::Level::Error, from_u8("Unknown test \"" + test + "\""), false};
+    }));
 
-    // The Speed Dial's Save Project too: with no arguments it saves as the tile does.
-    NativeCommand save = NativeCommands::with_person_form(reaching({"save_project_as"}, mutate_tool(
-        {}, "save_project", {},
+    // Save Project's and Save Project As's rows are its tiles: with no arguments, or with save_as alone, it saves as the
+    // row does.
+    NativeCommand save = reaching({"save_project_as"}, mutate_tool(
+        "project_save", L("Save Project"),
         "Save the project. Called with no arguments, it saves as Save Project does: to the project's file (reply: ran, "
-        "level), or, when it has none, through a file dialog (blocked_by_dialog; a native picker needs auto_answer_dialogs "
-        "registered first). With path, it saves a .3mf there without the file dialog, and the file becomes the project's "
-        "(reply: path, bytes); a name ending in .gcode.3mf is refused (export writes that). Either way the save can still "
-        "open a dialog (blocked_by_dialog): a warning when settings name a plugin OrcaSlicer cannot identify, or an error "
-        "when the file cannot be written. A save that writes nothing, its file dialog or that warning cancelled or the "
-        "write failed, fails with project_not_saved, and a file already there stays as it was.",
-        object_schema({{"path", prop("string", "Absolute .3mf path.")}, {"overwrite", prop("boolean", "Replace an existing file.")}}, {"path"}),
+        "level), or, when it has none, through a file dialog (blocked_by_dialog; a native picker needs dialog_auto_answer "
+        "registered first); with save_as: true alone, as Save Project As does, always through the file dialog. With path, "
+        "it saves a .3mf there without the file dialog, and the file becomes the project's (reply: path, bytes); a name "
+        "ending in .gcode.3mf is refused (project_export writes that). Either way the save can still open a dialog "
+        "(blocked_by_dialog): a warning when settings name a plugin OrcaSlicer cannot identify, or an error when the file "
+        "cannot be written. A save that writes nothing, its file dialog or that warning cancelled or the write failed, "
+        "fails with project_not_saved, and a file already there stays as it was.",
+        object_schema({{"path", prop("string", "Absolute .3mf path.")},
+                       {"overwrite", prop("boolean", "Replace an existing file.")},
+                       {"save_as", prop("boolean", "true, alone: ask for the file in the save dialog, as Save Project As does. With "
+                                                   "path it adds nothing: path is the new file.")}},
+                      {"path"}),
         [](const json& args, ToolContext& ctx) {
             std::string err;
             auto        path = resolve_output_path(arg_string(args, "path"), arg_bool(args, "overwrite", false), err);
@@ -665,42 +790,73 @@ void register_project_tools(CommandCatalog& catalog)
                 save.path = *path;
                 if (const Ops::Outcome<Ops::Done> saved = Ops::save_project_as(save); !saved)
                     throw refused(saved.refusal(), std::string(saved.refusal().code) == "sliced_file_name" ?
-                                                       "That is export {format: \"sliced_3mf\"} (plates \"all\" for every plate)." :
-                                                       "See get_log.");
+                                                       "That is project_export {format: \"sliced_3mf\"} (plates \"all\" for every plate)." :
+                                                       "See app_log.");
                 return json();
             });
             settle(ctx);
             return ToolResult::ok({{"path", path_to_utf8(*path)}, {"bytes", fs::file_size(*path)}});
-        })),
-        L("Save Project"), L("Commands"), "menu_save", [] {
-            if (Plater* plater = wxGetApp().plater())
-                return NativeCommands::project_save_result(plater->save_project(false));
-            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
-        });
-    // Any argument makes path required, and a call with path skips the file dialog: silent has nothing to add here.
+        }));
+    save.tiles = json::array(
+        {NativeCommands::tile("save_project", L("Save Project"), L("Commands"), "menu_save", json::object(),
+                              "Runs project_save with no arguments, as Save Project does: to the project's file, or through a "
+                              "file dialog when it has none."),
+         NativeCommands::tile("save_project_as", L("Save Project As"), L("Commands"), "menu_save", {{"save_as", true}},
+                              "Save the project as a .3mf file through the save dialog. project_save with a path saves there "
+                              "without a dialog; a name ending in .gcode.3mf is refused (project_export {format: \"sliced_3mf\"} "
+                              "writes that).")});
+    save = NativeCommands::with_person_form(std::move(save), [](const json& tile_args) {
+        if (tile_args.value("save_as", false))
+            return Rows::save_project_as();
+        if (Plater* plater = wxGetApp().plater())
+            return NativeCommands::project_save_result(plater->save_project(false));
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
+    });
+    // Every call but the two tiles' requires path, and a call with path skips the file dialog: silent has nothing to add.
     save.input_schema["properties"]["silent"]["description"] =
-        "Goes with path, which any argument makes required, and adds nothing to it: a call with path skips the file dialog already.";
+        "Goes with path, which every call but {} and {save_as: true} requires, and adds nothing to it: a call with path skips "
+        "the file dialog already.";
     catalog.add(save);
 
-    catalog.add(reaching({"start_gcode_export", "export_sliced_3mf", "export_model_3mf", "export_stl"}, mutate_tool(
-        "api", "export", L("Export"),
+    NativeCommand export_ = reaching(
+        {"start_gcode_export", "export_sliced_3mf", "export_model_3mf", "export_stl", "export_toolpaths_obj"},
+        with_expected_ids(mutate_tool(
+        "project_export", L("Export"),
         "Write the project to a file without a dialog. gcode: the plate's G-code (slice first; it is written in the "
         "background, and the call returns once it is). sliced_3mf: the sliced plate, or all plates, as .gcode.3mf (slice "
-        "first: a plate that is not sliced is written without G-code). 3mf: the model without slicing data. stl: all "
-        "objects as one STL. Both hold every plate's objects. Without format, the path's extension (.gcode, .gcode.3mf, "
-        ".3mf, .stl) says which. Reply: path and bytes; for gcode, path and export (ok, or superseded with a note when the "
-        "project changed while it was written).",
-        object_schema({{"format", enum_prop({"gcode", "sliced_3mf", "3mf", "stl"}, "What to write; default from the path's extension.")},
-                       {"path", prop("string", "Absolute output path.")},
-                       {"plates", {{"type", {"string", "integer"}},
-                                   {"description", "\"current\" (default), a plate index, which is selected first and is the plate "
-                                                   "gcode and sliced_3mf write, or \"all\" (sliced_3mf only)."}}},
-                       {"overwrite", prop("boolean", "Replace an existing file.")}},
-                      {"path"}),
+        "first: a plate that is not sliced is written without G-code). 3mf: the model without slicing data. stl and drc "
+        "(Draco): the objects as one file, or with per_object each in a file of its own, named after it, into the folder "
+        "path names; every object of every plate, or those objects names. toolpaths_obj: the toolpaths the Preview shows, "
+        "as an OBJ, refused while it shows none (slice the plate and show the Preview first). Without format, the path's "
+        "extension (.gcode, .gcode.3mf, .3mf, .stl, .drc, .obj) says which. Called with exactly the arguments of one of the "
+        "File > Export rows (format alone, sliced_3mf with plates \"all\", stl or drc with per_object), it asks for the file "
+        "or folder in the dialog that row opens (blocked_by_dialog). A file per object of a project with no objects, and the "
+        "toolpaths while the Preview shows none, are refused in either form. Reply: path and bytes; for gcode, path and "
+        "export (ok, or superseded with a note when the project changed while it was written); for per_object, path and "
+        "files (each file written); for stl and drc, objects (those written).",
+        with_targets(object_schema({{"format", enum_prop({"gcode", "sliced_3mf", "3mf", "stl", "drc", "toolpaths_obj"},
+                                                         "What to write; default from the path's extension.")},
+                                    {"path", prop("string", "Absolute output path: the file, or with per_object an existing folder.")},
+                                    {"plates", {{"type", {"string", "integer"}},
+                                                {"description", "\"current\" (default), a plate index, which is selected first and is "
+                                                                "the plate gcode and sliced_3mf write, or \"all\" (sliced_3mf only)."}}},
+                                    {"per_object", prop("boolean", "stl and drc: a file per object, into a folder. Default false.")},
+                                    {"overwrite", prop("boolean", "Replace an existing file.")}},
+                                   {"path"}),
+                     kObjects, false),
         [](const json& args, ToolContext& ctx) {
-            const std::string format = args.contains("format") ? arg_string(args, "format") : format_of(arg_string(args, "path"));
-            std::string       err;
-            auto              path = resolve_output_path(arg_string(args, "path"), arg_bool(args, "overwrite", false), err);
+            const std::string format     = args.contains("format") ? arg_string(args, "format") : format_of(arg_string(args, "path"));
+            const bool        per_object = arg_bool(args, "per_object", false);
+            const bool        meshes     = format == "stl" || format == "drc";
+            if (per_object && !meshes)
+                throw ToolFailure("per_object goes with format stl or drc");
+            if (per_object && (args.contains("plates") || args.contains("overwrite")))
+                throw ToolFailure("per_object writes every object into the folder path names: plates and overwrite go with one file");
+            if (format == "toolpaths_obj" && args.contains("plates"))
+                throw ToolFailure("toolpaths_obj writes the toolpaths the Preview shows: plates goes with the other formats");
+            std::string err;
+            const auto  path = per_object ? resolve_output_dir(arg_string(args, "path"), err) :
+                                            resolve_output_path(arg_string(args, "path"), arg_bool(args, "overwrite", false), err);
             if (!path)
                 throw ToolFailure(err);
             const json plate = args.value("plates", json("current"));
@@ -708,12 +864,53 @@ void register_project_tools(CommandCatalog& catalog)
             if (all && format != "sliced_3mf")
                 throw ToolFailure("plates \"all\" applies to sliced_3mf only");
             std::optional<Ops::ExportTicket> ticket;
+            json                             written = json::object(); // what the reply adds for stl and drc
             ctx.run_ui([&]() -> json {
                 // A G-code export finishes in the background: held from before it starts.
                 if (format == "gcode")
                     ctx.begin_operation();
-                ui_plater();
+                Plater& plater = ui_plater();
                 const std::optional<int> index = plate.is_number_integer() ? std::optional<int>(plate.get<int>()) : std::nullopt;
+                // The objects named, by index or id; none named: every object.
+                Targets named;
+                if (names_targets(args)) {
+                    const Ops::Outcome<Targets> found = resolve_targets(plater.model(), nullptr, args, kObjects, false);
+                    if (!found)
+                        throw refused(found.refusal());
+                    named = found.value();
+                }
+                if (const std::optional<Ops::Refusal> refusal =
+                        Ops::export_objects_refusal(format, named.objects, per_object, plater.model()))
+                    throw refused(*refusal);
+                if (meshes) {
+                    Ops::ExportStlArgs mesh;
+                    mesh.path       = *path;
+                    mesh.plate      = index;
+                    mesh.objects    = named.objects;
+                    mesh.per_object = per_object;
+                    mesh.draco      = format == "drc";
+                    const Ops::Outcome<std::vector<fs::path>> files = Ops::export_stl(mesh);
+                    if (!files)
+                        throw refused(files.refusal(), std::string(files.refusal().code) == "file_not_written" ? "See app_log." : "");
+                    Targets exported = named;
+                    if (exported.objects.empty())
+                        for (int o = 0; o < int(plater.model().objects.size()); ++o)
+                            exported.objects.push_back(o);
+                    written = targets_reply(plater.model(), exported);
+                    if (per_object) {
+                        written["files"] = json::array();
+                        for (const fs::path& file : files.value())
+                            written["files"].push_back(path_to_utf8(file));
+                    }
+                    return json();
+                }
+                if (format == "toolpaths_obj") {
+                    if (const Ops::Outcome<Ops::Done> drawn = Ops::export_toolpaths_obj({*path}); !drawn)
+                        throw refused(drawn.refusal(), std::string(drawn.refusal().code) == "no_toolpaths" ?
+                                                           "plate_slice {preview: true} slices the plate and shows it." :
+                                                           "See app_log.");
+                    return json();
+                }
                 if (format == "gcode") {
                     Ops::ExportGcodeArgs gcode;
                     gcode.path  = *path;
@@ -721,8 +918,8 @@ void register_project_tools(CommandCatalog& catalog)
                     const Ops::Outcome<Ops::ExportTicket> started = Ops::start_gcode_export(gcode);
                     if (!started) {
                         const std::string code = started.refusal().code;
-                        throw refused(started.refusal(), code == "slicing_in_progress" ? "wait {for:\"idle\"} waits for it." :
-                                                         code == "export_not_started"  ? "Check get_app_state.notifications." :
+                        throw refused(started.refusal(), code == "slicing_in_progress" ? "app_wait {for:\"idle\"} waits for it." :
+                                                         code == "export_not_started"  ? "Check app_state.notifications." :
                                                                                          "");
                     }
                     ticket = started.value();
@@ -735,18 +932,64 @@ void register_project_tools(CommandCatalog& catalog)
                 Ops::ExportFileArgs file;
                 file.path  = *path;
                 file.plate = index;
-                const Ops::Outcome<Ops::Done> written = format == "sliced_3mf" ? Ops::export_sliced_3mf(sliced) :
-                                                        format == "3mf"        ? Ops::export_model_3mf(file) :
-                                                                                 Ops::export_stl(file);
-                if (!written)
-                    throw refused(written.refusal(), std::string(written.refusal().code) == "file_not_written" ? "See get_log." : "");
+                const Ops::Outcome<Ops::Done> done = format == "sliced_3mf" ? Ops::export_sliced_3mf(sliced) : Ops::export_model_3mf(file);
+                if (!done)
+                    throw refused(done.refusal(), std::string(done.refusal().code) == "file_not_written" ? "See app_log." : "");
                 return json();
             });
             if (ticket)
                 return await_gcode_export(ctx, *ticket);
             settle(ctx);
-            return ToolResult::ok({{"path", path_to_utf8(*path)}, {"bytes", fs::file_size(*path)}});
+            json reply{{"path", path_to_utf8(*path)}};
+            if (!per_object)
+                reply["bytes"] = fs::file_size(*path);
+            reply.update(written);
+            return ToolResult::ok(reply);
         })));
+    // The File > Export rows, each with the dialog it asks for the file or folder in.
+    export_.tiles = json::array({
+        NativeCommands::tile("export_gcode", L("Export G-code"), L("Slice & Export"), "custom-gcode_gcode", {{"format", "gcode"}},
+                             "Export the current plate's G-code through the export dialog, in the background. project_export "
+                             "with a path exports the sliced plate there without a dialog, and the call returns when the file "
+                             "is written; a plate that is not sliced is refused (slice first)."),
+        NativeCommands::tile("export_sliced_file", L("Export Sliced File"), L("Slice & Export"), "save", {{"format", "sliced_3mf"}},
+                             "Export the current plate's sliced file (.gcode.3mf) through a file dialog; project_export with a "
+                             "path writes there without one."),
+        NativeCommands::tile("export_all_sliced_file", L("Export All Sliced Files"), L("Slice & Export"), "save",
+                             {{"format", "sliced_3mf"}, {"plates", "all"}},
+                             "Export every plate's sliced file into one .gcode.3mf through a file dialog; project_export with a "
+                             "path writes there without one."),
+        NativeCommands::tile("export_3mf", L("Export 3MF"), L("Slice & Export"), "menu_save", {{"format", "3mf"}},
+                             "Export the model as a .3mf without slicing data, through a file dialog; project_export with a path "
+                             "writes there without one."),
+        NativeCommands::tile("export_stl", L("Export STL"), L("Slice & Export"), "save", {{"format", "stl"}},
+                             "Export all objects as one STL through a file dialog; project_export with a path writes there "
+                             "without one."),
+        NativeCommands::tile("export_stl_multi", L("Export All Objects as STLs"), L("Export"), "save", {{"format", "stl"}, {"per_object", true}},
+                             "Export each object as its own STL into the folder a dialog asks for; project_export with a folder "
+                             "as path writes there without one."),
+        NativeCommands::tile("export_drc_single", L("Export All Objects as DRC (one file)"), L("Export"), "save", {{"format", "drc"}},
+                             "Export all objects as one Draco (.drc) file."),
+        NativeCommands::tile("export_drc_multi", L("Export All Objects as DRCs"), L("Export"), "save", {{"format", "drc"}, {"per_object", true}},
+                             "Export each object as its own Draco (.drc) file."),
+        NativeCommands::tile("export_toolpaths_obj", L("Export Toolpaths as OBJ"), L("Export"), "custom-gcode_gcode",
+                             {{"format", "toolpaths_obj"}}, "Export the sliced toolpaths as an OBJ."),
+    });
+    catalog.add(NativeCommands::with_person_form(std::move(export_), [](const json& tile_args) {
+        const std::string format     = tile_args.at("format");
+        const bool        per_object = tile_args.value("per_object", false);
+        if (format == "gcode")
+            return Rows::export_gcode();
+        if (format == "sliced_3mf")
+            return Rows::export_sliced_file(tile_args.value("plates", std::string()) == "all");
+        if (format == "3mf")
+            return Rows::export_3mf();
+        if (format == "stl")
+            return per_object ? Rows::export_stl_multi() : Rows::export_stl();
+        if (format == "drc")
+            return per_object ? Rows::export_drc_multi() : Rows::export_drc_single();
+        return Rows::export_toolpaths_obj();
+    }));
 }
 
 }}} // namespace Slic3r::GUI::Mcp

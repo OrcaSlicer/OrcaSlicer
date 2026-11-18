@@ -5,9 +5,9 @@
     tools/mcp/test_worker_admission.py
 
 Fills the bed with small cubes, so an arrange with rotation runs for many seconds, and starts it three
-ways: the typed `arrange`, `run_action obj_arrange`, and a click on the Arrange options panel's
-Arrange button, a recover input. While each runs, a `transform`, `press_keys Delete` on the canvas and a
-GL toolbar click are refused and `list_objects` answers; `cancel_job` stops it, the call reports it
+ways: `object_arrange` with arguments, `action_run obj_arrange`, and a click on the Arrange options panel's
+Arrange button, a recover input. While each runs, an `object_transform`, `keyboard_press Delete` on the canvas and a
+GL toolbar click are refused and `object_list` answers; `job_cancel` stops it, the call reports it
 cancelled, and a change is admitted once the worker is idle. Exits 0 when every check passes.
 """
 
@@ -19,12 +19,12 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
 
-# The typed arrange goes first: the rotation it saves, as the panel's checkbox does, makes the
+# object_arrange goes first: the rotation it saves, as the panel's checkbox does, makes the
 # others slow too.
 STARTERS = {
-    "arrange": ("arrange", {"rotate": True}),
-    "run_action": ("run_action", {"id": "orca_command:obj_arrange:orca"}),
-    "click": ("click", {"target": {"imgui": "Arrange", "window": "Arrange options"}}),
+    "object_arrange": ("object_arrange", {"rotate": True}),
+    "action_run": ("action_run", {"id": "orca_command:obj_arrange:orca"}),
+    "widget_click": ("widget_click", {"target": {"imgui": "Arrange", "window": "Arrange options"}}),
 }
 
 
@@ -50,18 +50,18 @@ def main():
         if not ok:
             failures.append(name)
 
-    c.call("wait", **{"for": "ready", "timeout_s": 50})
-    c.call("new_project", discard_changes=True)
-    c.call("set_view", tab="prepare")
+    c.call("app_wait", **{"for": "ready", "timeout_s": 50})
+    c.call("project_new", discard_changes=True)
+    c.call("view_set", tab="prepare")
     for size in [[6, 6, 6], [4, 9, 5], [7, 3, 5]]:
-        c.call("select_objects", none=True)
-        c.call("run_action", id="orca_command:add_primitive_cube:orca", args={"size": size})
+        c.call("object_select", none=True)
+        c.call("object_add_primitive", shape="cube", size=size)
     for o in range(3):
-        c.call("arrange", fill_object=o, spacing=0, rotate=False)
+        c.call("object_arrange", fill_object=o, spacing=0, rotate=False)
 
     for name, (tool, args) in STARTERS.items():
-        if name == "click" and c.call("list_widgets", query="Arrange options", include_menus=False).get("nodes", 0) == 0:
-            c.call("click", target={"gltoolbar": "arrange"})
+        if name == "widget_click" and c.call("widget_list", query="Arrange options", include_menus=False).get("nodes", 0) == 0:
+            c.call("widget_click", target={"gltoolbar": "arrange"})
         out = {}
 
         def run():
@@ -70,20 +70,20 @@ def main():
         starter = threading.Thread(target=run)
         starter.start()
         time.sleep(2.0)
-        ok, reply = attempt(c, "transform", object=0, translate=[1, 0, 0])
-        check(name + ": transform refused", not ok and "Busy: job" in reply, reply)
-        ok, reply = attempt(c, "list_objects", limit=1)
-        check(name + ": list_objects answers", ok, reply)
-        ok, reply = attempt(c, "press_keys", keys="Delete")
-        check(name + ": press_keys Delete refused", not ok and "Busy: job" in reply, reply)
-        ok, reply = attempt(c, "click", target={"gltoolbar": "orient"})
+        ok, reply = attempt(c, "object_transform", object=0, translate=[1, 0, 0])
+        check(name + ": object_transform refused", not ok and "Busy: job" in reply, reply)
+        ok, reply = attempt(c, "object_list", limit=1)
+        check(name + ": object_list answers", ok, reply)
+        ok, reply = attempt(c, "keyboard_press", keys="Delete")
+        check(name + ": keyboard_press Delete refused", not ok and "Busy: job" in reply, reply)
+        ok, reply = attempt(c, "widget_click", target={"gltoolbar": "orient"})
         check(name + ": GL toolbar click refused", not ok and "Busy: job" in reply, reply)
-        ok, reply = attempt(c, "cancel_job")
-        check(name + ": cancel_job stops it", ok and reply.get("was_running") and reply.get("job"), reply)
+        ok, reply = attempt(c, "job_cancel")
+        check(name + ": job_cancel stops it", ok and reply.get("was_running") and reply.get("job"), reply)
         starter.join(300)
         ok, reply = out.get("reply", (True, None))
         check(name + ": the call reports it cancelled", not ok and "cancelled" in reply, reply)
-        ok, reply = attempt(c, "transform", object=0, translate=[-1, 0, 0])
+        ok, reply = attempt(c, "object_transform", object=0, translate=[-1, 0, 0])
         check(name + ": a change is admitted afterwards", ok, reply)
 
     print("%d failed" % len(failures) if failures else "all passed")

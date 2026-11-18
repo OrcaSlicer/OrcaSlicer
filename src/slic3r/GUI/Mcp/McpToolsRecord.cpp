@@ -1,4 +1,4 @@
-// start_recording, stop_recording and encode_recording: a video of what OrcaSlicer shows, optionally captioned
+// recording_start, recording_stop and recording_encode: a video of what OrcaSlicer shows, optionally captioned
 // with the current tool call and its pointer highlighted, and its encode to MP4.
 
 #include "McpCore.hpp"
@@ -48,10 +48,9 @@ namespace {
 
 // The recording tools only read the app, so they run behind dialogs and during operations, but each
 // is a job: ownership is read from the job's ancestry, and an encode outlives the reply budget.
-NativeCommand record_tool(std::string group, std::string name, std::string title, std::string description, json schema, CommandFn handler)
+NativeCommand record_tool(std::string name, std::string title, std::string description, json schema, CommandFn handler)
 {
-    NativeCommand d = NativeCommands::long_command(std::move(name), std::move(title), std::move(group), std::move(schema),
-                                                   std::move(handler));
+    NativeCommand d = NativeCommands::long_command(std::move(name), std::move(title), {}, std::move(schema), std::move(handler));
     d.description   = std::move(description);
     d.listed        = true;
     d.guard         = GuardClass::Inspect;
@@ -99,30 +98,30 @@ std::vector<std::string> encode_preset_keys()
 
 ToolResult start_encode(AutomationRuntime& runtime, const json& args)
 {
-    const NativeCommand* encode = NativeCommands::instance().find("encode_recording");
+    const NativeCommand* encode = NativeCommands::instance().find("recording_encode");
     if (encode == nullptr || runtime.stopping())
         return ToolResult::error("OrcaSlicer is shutting down");
     NativeCommand def = *encode;
     def.journal   = false;
-    def.budget_ms = 0; // the envelope at once; the result comes from wait
+    def.budget_ms = 0; // the envelope at once; the result comes from app_wait
     return runtime.core().call(def, args);
 }
 
 void register_record_tools(CommandCatalog& catalog)
 {
-    // The Speed Dial's Start Recording too: with no arguments it opens the tile's dialog.
-    catalog.add(NativeCommands::with_person_form(record_tool(
-        {}, "start_recording", {},
-        "Record a video of OrcaSlicer until stop_recording: the main window with any modal dialog on it (target main), or "
+    // The Speed Dial's Start Recording is its tile: with no arguments it opens the tile's dialog.
+    NativeCommand start = record_tool(
+        "recording_start", L("Start Recording"),
+        "Record a video of OrcaSlicer until recording_stop: the main window with any modal dialog on it (target main), or "
         "the 3D view shown (canvas). Frames are MJPEG in a Matroska (.mkv) file with their real timestamps. With captions, "
         "the tool call acting on the app shows as a caption at the bottom (secret setting values never show); with pointer, "
         "the pointer is highlighted, its clicks rippling. Capture takes at most about a third of the UI thread, so "
         "the frame rate drops where capturing is slow. One recording at a time: one a replay or script starts ends with it, a "
-        "client's when the server is turned off. With encode, the stop_recording that reports it also encodes it to an MP4 "
-        "beside it, as the Start Recording command does, and the .mkv is deleted once the MP4 is written unless "
-        "keep_raw_video_file; encode_recording makes an MP4 of any recording later. Called with no "
-        "arguments, it opens the Start Recording dialog instead, as the Start Recording command does (blocked_by_dialog): "
-        "its controls are named after their settings for set_widget_value, answer_dialog \"Start recording\" starts the "
+        "client's when the server is turned off. With encode, the recording_stop that reports it also encodes it to an MP4 "
+        "beside it, as Start Recording does, and the .mkv is deleted once the MP4 is written unless "
+        "keep_raw_video_file; recording_encode makes an MP4 of any recording later. Called with no "
+        "arguments, it opens the Start Recording dialog instead, as Start Recording does (blocked_by_dialog): "
+        "its controls are named after their settings for widget_set_value, dialog_answer \"Start recording\" starts the "
         "person's recording, which neither the end of a replay or script nor the server turning off ends, and the dialog "
         "remembers the settings; silent: true starts one here at once with the defaults.",
         object_schema({{"target", enum_prop({"main", "canvas"}, "main (default): the main window and its dialogs; canvas: the 3D view shown.")},
@@ -225,23 +224,28 @@ void register_record_tools(CommandCatalog& catalog)
             recorded["save_path"] = out["path"];
             ctx.set_journal_args(std::move(recorded));
             return ToolResult::ok(out);
-        }),
-        L("Start Recording"), L("Commands"), "recording_start", NativeCommands::start_person_recording));
+        });
+    start.tiles = json::array({NativeCommands::tile("start_recording", L("Start Recording"), L("Commands"), "recording_start",
+                                                    json::object(),
+                                                    "Runs recording_start with no arguments, as Start Recording does: the Start "
+                                                    "Recording dialog, whose Start recording starts the person's recording, "
+                                                    "which neither the end of a replay or script nor the server turning off ends.")});
+    catalog.add(NativeCommands::with_person_form(std::move(start), [](const json&) { return NativeCommands::start_person_recording(); }));
 
-    // The Speed Dial's Stop Recording too: with no arguments it stops as the tile does.
-    NativeCommand stop = NativeCommands::with_person_form(record_tool({}, "stop_recording", {},
+    // The Speed Dial's Stop Recording is its tile: with no arguments it stops as the tile does.
+    NativeCommand stop = record_tool("recording_stop", L("Stop Recording"),
                         "Stop the running recording. Call it with silent: true for the report: it waits for the file and "
                         "returns it with its seconds, frames captured and "
                         "written, frames dropped when encoding fell behind, failed when they could not be encoded, or "
                         "skipped when the window could not be captured, "
                         "the size, the mean UI-thread time a capture took (capture_ms), and why it ended. A recording that ended on its own (max_seconds, the replay or script that started it ended, a "
-                        "write error) is reported once by the next stop_recording. For a recording started with encode, it then "
-                        "starts the MP4 encode and returns it under encode: a job, whose wait {for: \"job\"} returns "
-                        "encode_recording's result, whose raw_video_file_deleted says whether the .mkv was deleted. "
+                        "write error) is reported once by the next recording_stop. For a recording started with encode, it then "
+                        "starts the MP4 encode and returns it under encode: a job, whose app_wait {for: \"job\"} returns "
+                        "recording_encode's result, whose raw_video_file_deleted says whether the .mkv was deleted. "
                         "Called with no arguments, it stops "
-                        "the recording as the Stop Recording command does, whoever started it: without waiting for its "
+                        "the recording as Stop Recording does, whoever started it: without waiting for its "
                         "file, it shows the person a notification naming it and replies with its path; the next "
-                        "stop_recording with silent: true reports it as ended stopped_in_app.",
+                        "recording_stop with silent: true reports it as ended stopped_in_app.",
                         object_schema({}), [](const json&, ToolContext& ctx) {
                             AutomationRuntime& runtime = ctx.runtime();
                             // The last state too, even if the timer has not ticked since the last call. Without the
@@ -262,20 +266,26 @@ void register_record_tools(CommandCatalog& catalog)
                                 report["encode"]   = r.is_error ? json{{"error", r.message}} : r.data;
                             }
                             return ToolResult::ok(report);
-                        }),
-        // The person's stop opens nothing: like the silent one, it stops a recording behind a dialog.
-        L("Stop Recording"), L("Commands"), "recording_stop", NativeCommands::stop_recording_in_app, /*person_form_behind_dialogs=*/true);
+                        });
+    stop.tiles = json::array({NativeCommands::tile("stop_recording", L("Stop Recording"), L("Commands"), "recording_stop",
+                                                   json::object(),
+                                                   "Runs recording_stop with no arguments, as Stop Recording does: it stops the "
+                                                   "recording, whoever started it, and shows the person a notification naming its "
+                                                   "file.")});
+    // The person's stop opens nothing: like the silent one, it stops a recording behind a dialog.
+    stop = NativeCommands::with_person_form(std::move(stop), [](const json&) { return NativeCommands::stop_recording_in_app(); },
+                                            /*person_form_behind_dialogs=*/true);
     // It has no other argument, and neither form asks: silent picks the form that waits and reports.
     stop.input_schema["properties"]["silent"]["description"] =
         "true waits for the file and returns the report, and the encode job when the recording has one; a call with no "
-        "arguments stops as the Stop Recording command does.";
+        "arguments stops as Stop Recording does.";
     catalog.add(stop);
 
     NativeCommand encode = record_tool(
-        "ui", "encode_recording", L("Encode a recording"),
+        "recording_encode", L("Encode a recording"),
         "Encode a recording into an H.265 (or H.264) MP4 with the system ffmpeg (ORCA_FFMPEG, else ffmpeg on PATH; it "
         "needs libx265 or libx264), keeping its timing. Takes this session's last finished recording unless path names "
-        "one, and writes beside it unless save_path says where. A long encode returns a job: wait for it, or cancel_job {job} "
+        "one, and writes beside it unless save_path says where. A long encode returns a job: app_wait waits for it, or job_cancel {job} "
         "stops it. Once the MP4 is written, it deletes the .mkv if this session recorded it, unless keep_raw_video_file; "
         "any other .mkv is kept. raw_video_file_deleted in the reply says which.",
         object_schema({{"path", prop("string", "Absolute .mkv of a finished recording; default this session's last.")},

@@ -1,4 +1,5 @@
-// get_app_state, wait and get_log: what an agent reads before and after acting.
+// app_state, app_wait and app_log: what an agent reads before and after acting; undo and redo; and the app's
+// commands made from the Help menu's rows.
 
 #include "JobRegistry.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -13,6 +14,8 @@
 #include "ScreenCapture.hpp"
 #include "UiInspector.hpp"
 #include "WindowControl.hpp"
+#include "slic3r/GUI/ActionRegistry.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GCodeViewer.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
@@ -21,20 +24,25 @@
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include "slic3r/GUI/Jobs/Worker.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/NativeCommandRows.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/Notebook.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/PrintHostDialogs.hpp"
+#include "slic3r/Utils/CloudProvider.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
 #include "slic3r/plugin/PythonInterpreter.hpp"
 #ifdef SLIC3R_CAD
 #include "McpToolsCad.hpp"
-#include "slic3r/GUI/NativeCommands.hpp"
 #endif
 #if defined(__WXGTK__)
 #include "slic3r/GUI/LinuxDisplayBackend.hpp"
 #endif
 
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Utils.hpp"
@@ -53,6 +61,7 @@
 #include <chrono>
 #include <cstddef>
 #include <deque>
+#include <istream>
 #include <string>
 #include <set>
 #include <thread>
@@ -123,7 +132,7 @@ json app_state(AutomationRuntime& runtime)
                {"jobs", runtime.jobs().list()}};
     if (json recording = runtime.recorder().state(); !recording.is_null())
         state["recording"] = std::move(recording);
-    // Each display's work area, where set_window can place a window.
+    // Each display's work area, where window_set can place a window.
     json displays = json::array();
     for (unsigned i = 0; i < wxDisplay::GetCount(); ++i) {
         const wxDisplay display(i);
@@ -133,12 +142,24 @@ json app_state(AutomationRuntime& runtime)
         displays.push_back(std::move(area));
     }
     state["displays"] = std::move(displays);
+    // Whether a person is signed in to the Orca cloud and to Bambu Lab's, and the Bambu network plug-in as the app found
+    // it: installed (the setting that has the app load it), loaded, its version and why it did not load.
+    GUI_App& app = wxGetApp();
+    state["account"] = {{"signed_in", app.is_user_login(ORCA_CLOUD_PROVIDER)}, {"bambu_signed_in", app.is_user_login(BBL_CLOUD_PROVIDER)}};
+    const bool                    loaded     = NetworkAgent::is_network_module_loaded();
+    const NetworkLibraryLoadError load_error = NetworkAgent::get_load_error();
+    state["network_plugin"] = {{"installed", app.app_config->get_bool("installed_networking")},
+                               {"loaded", loaded},
+                               {"version", loaded ? NetworkAgent::get_version() : std::string()},
+                               {"error", load_error.has_error ? load_error.message : std::string()}};
+    // The folder Help > Show Configuration Folder opens: the presets, the app configuration and the logs.
+    state["config_folder"] = data_dir();
     MainFrame* frame  = wxGetApp().mainframe;
     Plater*    plater = wxGetApp().plater();
     if (frame == nullptr || plater == nullptr)
         return state;
 
-    // The size and state list_windows reports, and the place where the platform knows it.
+    // The size and state window_list reports, and the place where the platform knows it.
     const wxSize      size        = window_size(*frame);
     const std::string frame_state = window_state(*frame);
     state["window"]               = {{"title", into_u8(frame->GetTitle())},
@@ -188,6 +209,7 @@ json app_state(AutomationRuntime& runtime)
     // plater's while it is shown.
     if (GLCanvas3D* canvas = shown_canvas(); canvas != nullptr && canvas->get_wxglcanvas()->IsShownOnScreen())
         state["camera"] = camera_state(plater->get_camera(), canvas->get_scale());
+    state["view"] = view_state(*plater);
     // The open gizmo, on the canvas shown first.
     state["gizmo"] = nullptr;
     std::vector<GLCanvas3D*> canvases = live_canvases();
@@ -199,7 +221,7 @@ json app_state(AutomationRuntime& runtime)
         }
     state["objects"]      = plater->model().objects.size();
     state["slicing"]      = plater->is_slicing_any();
-    // The selection select_objects acts on: the assemble view's while it is shown, else Prepare's.
+    // The selection object_select acts on: the assemble view's while it is shown, else Prepare's.
     GLCanvas3D* assemble = plater->get_assmeble_canvas3D();
     GLCanvas3D* scene    = assemble != nullptr && plater->get_current_canvas3D() == assemble ? assemble : plater->get_view3D_canvas3D();
     state["selection"]   = scene != nullptr ? selection_state(*scene) : json();
@@ -248,30 +270,79 @@ bool condition_holds(AutomationRuntime& runtime, const std::string& condition, c
 
 } // namespace
 
-void register_app_tools(CommandCatalog& catalog)
+std::vector<std::string> log_tail(std::istream& in, const std::string& min_level, std::size_t lines)
+{
+    // The log file sink starts an entry with its level, "[error]\t" (set_log_path_and_level(), utils.cpp); a line
+    // without one continues the message of the entry above it.
+    static const std::vector<std::string> levels{"trace", "debug", "info", "warning", "error", "fatal"};
+    const auto level_of = [](const std::string& line) {
+        for (std::size_t i = 0; i < levels.size(); ++i)
+            if (const std::string field = "[" + levels[i] + "]\t"; line.compare(0, field.size(), field) == 0)
+                return int(i);
+        return -1;
+    };
+    const int min = int(std::find(levels.begin(), levels.end(), min_level) - levels.begin());
+    // The newest entries kept, each its first line and those that continue it, as many as fit in `lines`.
+    std::deque<std::vector<std::string>> entries;
+    std::size_t                          held = 0;
+    // Lines before the file's first entry, which continue an entry of an earlier file, have no level to filter by.
+    bool        keeping = min == 0;
+    std::string line;
+    while (std::getline(in, line)) {
+        if (const int level = level_of(line); level >= 0) {
+            keeping = level >= min;
+            if (keeping)
+                entries.emplace_back();
+        } else if (keeping && entries.empty()) {
+            entries.emplace_back();
+        }
+        if (!keeping)
+            continue;
+        entries.back().push_back(std::move(line));
+        ++held;
+        while (held > lines && entries.size() > 1) {
+            held -= entries.front().size();
+            entries.pop_front();
+        }
+    }
+    // An entry longer than `lines` gives its first lines.
+    std::vector<std::string> out;
+    for (std::vector<std::string>& entry : entries)
+        for (std::string& kept : entry)
+            if (out.size() < lines)
+                out.push_back(std::move(kept));
+    return out;
+}
+
+void register_app_tools(CommandCatalog& catalog, [[maybe_unused]] bool cad)
 {
     catalog.add(inspect_tool(
-        "core", "get_app_state", L("Get app state"),
+        "app_state", L("Get app state"),
         "Snapshot of OrcaSlicer. Call it first and whenever you are unsure what the app is doing. The app: version, platform "
         "and display backend, whether it is ready, the main window, the displays (each one's work area x, y, width and "
-        "height, as set_window takes positions, its scale and whether it is primary), the MCP endpoint (mcp), python "
+        "height, as window_set takes positions, its scale and whether it is primary), the MCP endpoint (mcp), python "
         "(available: Python runs "
         "in this build; scripts_unrestricted: a script's own file, network, process and thread access is not held to "
         "OrcaSlicer's folders, which only a person turns on, in Preferences > AI features > Python scripts or for one run "
         "with --unrestricted-scripts), design_tab "
-        "(the Design tab is on, and call_tool runs its commands, search_tools' group Design) and, when they do not run, "
-        "cad_note, how a person turns the CAD feature on. The project: current tab and mode, printer technology, name, path and unsaved changes, "
+        "(the Design tab is on, and tool_call runs its commands, tool_search's group Design) and, when they do not run, "
+        "cad_note, how a person turns the CAD feature on; account (signed_in to the Orca cloud, bambu_signed_in to Bambu "
+        "Lab's), network_plugin (installed, loaded, version, error: the Bambu network plug-in as the app found it) and "
+        "config_folder (presets, app configuration and logs). The view outside the Design tab (view: sidebar_collapsed, "
+        "sidebar_width, legend_collapsed, gcode_window, projection, section and the display switches labels, overhangs, "
+        "outline, wireframe, gridlines, axes and navigator, under the names view_set takes them). "
+        "The project: current tab and mode, printer technology, name, path and unsaved changes, "
         "selected printer/process/filament presets, plates (count, current), object count, the selection (objects, the "
         "instances [[object, instance]] they are selected in and, when parts rather than whole instances are selected, "
-        "parts [[object, part]], in the indices select_objects takes; wipe_tower when a prime tower is selected; canvas is the 3D "
+        "parts [[object, part]], in the indices object_select takes; wipe_tower when a prime tower is selected; canvas is the 3D "
         "view it belongs to), slicing state, "
         "the Preview's view type, time mode and layer range (1-based, with their Z), and the camera of the 3D view shown "
-        "(camera: type, look_at, position, zoom, click_px_per_mm, elevation and azimuth, as set_view replies with it). What "
+        "(camera: type, look_at, position, zoom, click_px_per_mm, elevation and azimuth, as view_set replies with it). What "
         "is going on: open modal "
         "dialogs, each with its title, buttons (enabled: false when disabled) and a message that reads it as shown: its "
         "text and its controls row by row, fields [value], choices [value ▾], checkboxes [x] / [ ] / [-], radio and "
         "selector options (*) / ( ), list rows \"- row | cells\", secrets [******], \" (disabled)\" after a disabled "
-        "control; menus closed unseen (a menu a call opened that no reply listed), auto_answer_dialogs rules in force, "
+        "control; menus closed unseen (a menu a call opened that no reply listed), dialog_auto_answer rules in force, "
         "notifications, print host uploads (state, progress, error), the open gizmo, running jobs and a running "
         "recording.",
         object_schema({}), [](const json&, ToolContext& ctx) {
@@ -280,9 +351,9 @@ void register_app_tools(CommandCatalog& catalog)
         }));
 
     NativeCommand wait = inspect_tool(
-        "core", "wait", L("Wait for a condition"),
+        "app_wait", L("Wait for a condition"),
         "Block until a condition holds or timeout_s passes (max 50). for: \"ready\" (startup finished), \"idle\" (no dialog, "
-        "no running job, nothing slicing or arranging, no gizmo working in the background; a run_script run counts only "
+        "no running job, nothing slicing or arranging, no gizmo working in the background; a script_run run counts only "
         "through the calls it makes), \"dialog\" / \"no_dialog\", or \"job\" with a job id an earlier call returned, whose "
         "result is then the reply. On timeout the reply is {satisfied: false}, or for a job {status: \"running\", job, "
         "note}: call it again.",
@@ -319,34 +390,124 @@ void register_app_tools(CommandCatalog& catalog)
     catalog.add(wait);
 
     catalog.add(inspect_tool(
-        "core", "get_log", L("Read the log"),
-        "The last lines of OrcaSlicer's current log file, optionally only those at or above a level.",
-        object_schema({{"lines", {{"type", "integer"}, {"minimum", 1}, {"maximum", 2000}, {"description", "Default 200."}}},
+        "app_log", L("Read the log"),
+        "The last lines of OrcaSlicer's current log file, optionally only those at or above a level. An entry's level is "
+        "the one its first line starts with ([error]); the lines of its message after the first come with it, and the "
+        "reply holds whole entries.",
+        object_schema({{"lines", {{"type", "integer"}, {"minimum", 1}, {"maximum", 2000},
+                                  {"description", "The most lines, of the newest whole entries; an entry longer than that gives its "
+                                                  "first lines. Default 200."}}},
                        {"level", enum_prop({"trace", "debug", "info", "warning", "error", "fatal"}, "Minimum level.")}}),
         [](const json& args, ToolContext&) {
             const boost::filesystem::path file = get_log_file_name();
             if (file.empty())
                 throw ToolFailure("No log file is open");
-            static const std::vector<std::string> levels{"trace", "debug", "info", "warning", "error", "fatal"};
-            const std::string min_level = arg_string(args, "level", "trace");
-            const auto        min_it    = std::find(levels.begin(), levels.end(), min_level);
-            const std::size_t lines     = std::size_t(arg_int(args, "lines", 200));
             flush_logs();
             boost::nowide::ifstream in(path_to_utf8(file).c_str());
-            std::deque<std::string> tail;
-            std::string             line;
-            while (std::getline(in, line)) {
-                bool keep = min_it == levels.begin();
-                for (auto it = min_it; !keep && it != levels.end(); ++it)
-                    keep = line.find("[" + *it + "]") != std::string::npos;
-                if (!keep)
-                    continue;
-                tail.push_back(line);
-                if (tail.size() > lines)
-                    tail.pop_front();
-            }
-            return ToolResult::ok({{"file", path_to_utf8(file)}, {"lines", json(std::vector<std::string>(tail.begin(), tail.end()))}});
+            const std::vector<std::string> tail = log_tail(in, arg_string(args, "level", "trace"),
+                                                           std::size_t(arg_int(args, "lines", 200)));
+            return ToolResult::ok({{"file", path_to_utf8(file)}, {"lines", json(tail)}});
         }));
+
+    // Undo and Redo act on the shown tab's history, as the Edit menu's do; history names one for automation, which acts
+    // whatever tab is shown. Each has a tile of its own, in the Speed Dial's section Commands.
+    const json history = object_schema(
+        {{"history", enum_prop({"design", "project"}, "The history: design, the Design tab's (with the CAD feature on), or project. "
+                                                      "Default: the Design tab's while it is shown, else the project's.")}});
+    // A person's pick does what the Edit menu's item does, and shows nothing where it would be greyed. An automated
+    // call, action_run of the tile included, acts on the history Rows::undo_redo() picks: the Design tab's through its
+    // gate, whose refusals say why, and the project's as the Edit menu's item does.
+    const auto history_command = [&history](std::string key, std::string title, std::string icon, std::string description, bool redo) {
+        NativeCommand command = row_command(std::move(key), std::move(title), std::move(description), history, json(),
+                                            [redo](const json& args) { return Rows::undo_redo(args, redo); });
+        const CommandFn picked = NativeCommands::ui_command(command.key, command.title, command.group, history,
+                                                            [redo](const json& args) { return Rows::picked_undo_redo(args, redo); })
+                                     .run;
+        command.run = [picked, automated = std::move(command.run)](const json& args, ToolContext& ctx) {
+            return ctx.person() ? picked(args, ctx) : automated(args, ctx);
+        };
+        command.in_palette = true;
+        command.tile_group = L("Commands");
+        command.icon       = std::move(icon);
+        return command;
+    };
+    NativeCommand undo = history_command(
+        "undo", L("Undo"), "menu_undo",
+        "Take back the last change of a history, as Edit > Undo does. history design is the Design tab's: the last feature "
+        "added, edited, deleted, moved, shown or hidden, or renamed, or variable changed, or in a sketch session the last "
+        "drawn shape; project is the project's. Without history, the Design tab's while it is shown, else the project's. "
+        "Reply: history and, for the Design tab's, result: scope (design or sketch), undo_depth, redo_depth, features, "
+        "bodies and generation; entities in a sketch.",
+        false);
+    NativeCommand redo = history_command("redo", L("Redo"), "menu_redo",
+                                         "Put back what undo took back, until the next change, as Edit > Redo does, in the history "
+                                         "undo takes. Reply as undo's.",
+                                         true);
+#ifdef SLIC3R_CAD
+    // An example calls Design commands, so only a catalog that holds them documents the Design history.
+    if (cad) {
+        undo.examples = json::parse(R"json([
+            {"title": "Take back an extrude, its sketch with it", "calls": [
+                {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                {"tool": "undo", "args": {"history": "design"}}]},
+            {"title": "Take back the last shape drawn in a sketch", "calls": [
+                {"tool": "sketch_create", "args": {"plane": "XY"}},
+                {"tool": "sketch_draw", "args": {"type": "rectangle_2_point", "p0": [-15, -10], "p1": [15, 10]}},
+                {"tool": "sketch_draw", "args": {"entities": [{"type": "circle_center", "center": [0, 0], "radius": 4}]}},
+                {"tool": "undo", "args": {"history": "design"}}]}])json");
+        redo.examples = json::parse(R"json([
+            {"title": "Put back an extrude undo took back", "calls": [
+                {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                {"tool": "undo", "args": {"history": "design"}},
+                {"tool": "redo", "args": {"history": "design"}}]},
+            {"title": "Put back the shape undo took off a sketch", "calls": [
+                {"tool": "sketch_create", "args": {"plane": "XY"}},
+                {"tool": "sketch_draw", "args": {"type": "rectangle_2_point", "p0": [-15, -10], "p1": [15, 10]}},
+                {"tool": "sketch_draw", "args": {"entities": [{"type": "circle_center", "center": [0, 0], "radius": 4}]}},
+                {"tool": "undo", "args": {"history": "design"}},
+                {"tool": "redo", "args": {"history": "design"}}]}])json");
+    }
+#endif
+    catalog.add(std::move(undo));
+    catalog.add(std::move(redo));
+
+    // ---- The app's commands made from the Help and Plugins menus' rows ----
+    using NativeCommands::tile;
+    NativeCommand web_page = row_command(
+        "app_open_web_page", L("Open a web page"),
+        "Open one of OrcaSlicer's web pages in the default web browser, as its menu row does: wiki, the OrcaSlicer wiki; "
+        "youtube, the OrcaSlicer YouTube channel; plugin_hub, the plugin hub's page, where a person picks a plugin to install. "
+        "Nothing opens in OrcaSlicer.",
+        object_schema({{"page", enum_prop({"wiki", "youtube", "plugin_hub"}, "The page.")}}, {"page"}),
+        json::array({tile("open_wiki", L("Open Wiki"), L("Help"), "link_wiki_img", {{"page", "wiki"}}, "Open the OrcaSlicer wiki in the browser."),
+                     tile("open_youtube", L("Open YouTube Channel"), L("Help"), "", {{"page", "youtube"}},
+                          "Open the OrcaSlicer YouTube channel in the browser."),
+                     tile("install_plugin", L("Install Plugin"), L("Plugins"), "", {{"page", "plugin_hub"}},
+                          "Open the plugin hub's page in the default web browser, where a person picks a plugin to install; "
+                          "nothing opens in OrcaSlicer.")}),
+        [](const json& args) { return Rows::open_web_page(arg_string(args, "page")); });
+    // The browser it opens reaches the network.
+    web_page.open_world = true;
+    catalog.add(std::move(web_page));
+    const std::string updates = "Check for a newer OrcaSlicer.";
+    NativeCommand check_updates = row_command("app_check_for_updates", L("Check for Updates"), updates, object_schema({}),
+                                              json::array({tile("help_check_updates", L("Check for Updates"), L("Help"), "refresh",
+                                                                json::object(), updates)}),
+                                              [](const json&) { return Rows::check_for_updates(); });
+    // It asks the update server.
+    check_updates.open_world = true;
+    catalog.add(std::move(check_updates));
+    const std::string folder = "Open the configuration folder in the file manager.";
+    catalog.add(row_command("app_show_config_folder", L("Show Configuration Folder"), folder, object_schema({}),
+                            json::array({tile("help_open_config_folder", L("Show Configuration Folder"), L("Help"), "open_project",
+                                              json::object(), folder)}),
+                            [](const json&) { return Rows::show_config_folder(); }));
+    const std::string benchmark = "Time the 3D views on a test model. It asks first (Start or Cancel), then replaces the project with "
+                                  "the OrcaSliced Combo as New Project does, which may ask about unsaved changes, slices it and shows "
+                                  "the results.";
+    catalog.add(row_command("app_benchmark_3d_scene", L("Benchmark 3D Scene"), benchmark, object_schema({}),
+                            json::array({tile("help_benchmark_3d_scene", L("Benchmark 3D Scene"), L("Help"), "", json::object(), benchmark)}),
+                            [](const json&) { return Rows::benchmark_3d_scene(); }));
 }
 
 }}} // namespace Slic3r::GUI::Mcp

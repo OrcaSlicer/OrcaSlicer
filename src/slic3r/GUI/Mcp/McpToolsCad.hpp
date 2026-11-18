@@ -2,8 +2,8 @@
 
 // The Design tab's commands, one per entry of its table (kDesignTools, DesignOffer.hpp, generated from
 // scripts/CAD/tool_atlas.json) that has an action or a tool block and is no folded row (is_design_command()): its
-// tools, sketches, features, measurements and edits, which an agent finds with search_tools (group Design) and
-// runs with call_tool, and a person picks as Speed Dial tiles while the Design tab is shown, those of the mode it
+// tools, sketches, features, measurements and edits, which an agent finds with tool_search (group Design) and
+// runs with tool_call, and a person picks as Speed Dial tiles while the Design tab is shown, those of the mode it
 // is in. A call with exactly the arguments that choose one of the command's rows (opened_row()) does what that
 // right-click menu row does, in the mode the row belongs to (open_refusal()); any other call, or one with
 // silent: true, runs the entry's tool block's silent form. They run on the UI thread through the GUI's own
@@ -80,7 +80,7 @@ void register_cad_commands(CommandCatalog& catalog);
 // started and how a person turns it on (CommandCatalog::leave_out()).
 void leave_out_cad_commands(CommandCatalog& catalog);
 
-// What search_tools' description says of the Design commands, which tools/list does not show, so that an agent
+// What tool_search's description says of the Design commands, which tools/list does not show, so that an agent
 // learns without a search that they exist and are CAD: a lead saying what they cover, that one is looked up with
 // tool before it is called, and that a command whose schema has silent does what its menu row does when called
 // with no arguments unless silent is true; then each heading of kDesignSections with the keys of its commands
@@ -169,7 +169,7 @@ nlohmann::json run_cad_tool(const std::string& id, const nlohmann::json& args);
 // generation. Fails (-32000) when there is nothing to take back or put back. UI thread only.
 nlohmann::json cad_undo_redo(bool redo);
 
-// get_app_state's cad_note: how a person turns the CAD feature on, in the editor while the Design commands
+// app_state's cad_note: how a person turns the CAD feature on, in the editor while the Design commands
 // cannot run, because `catalog` holds none of them (the feature was off at startup) or the feature is off
 // now; null otherwise. UI thread.
 nlohmann::json cad_note(const CommandCatalog& catalog);

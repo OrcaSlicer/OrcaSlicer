@@ -1,8 +1,9 @@
-// Scene tools: transform's size argument, the arguments of the commands that replace a dialog, the
-// notifications MCP operations raise before the 3D view has drawn, arrange's options, the admission that
-// holds a UI worker job a call starts, how list_objects describes objects, instances and parts,
-// add_part's type names and shape sizes, the object structure commands, the height
-// ranges set_height_ranges takes and list_objects reports, and set_custom_gcode_at_layer's edits of the layer slider.
+// Scene tools: object_transform's size argument, the arguments of the commands that replace a dialog, the
+// notifications MCP operations raise before the 3D view has drawn, object_arrange's options, the admission that
+// holds a UI worker job a call starts, how object_list describes objects, instances and parts,
+// part_add's type names and shape sizes, the object structure commands, the targets a command reads from its arguments
+// and the reply that names them, the height ranges object_set_height_ranges takes and object_list reports,
+// plate_set_custom_gcode's edits of the layer slider, view_set's display switches and a plate's place on the bed.
 // GLCanvas3D.hpp reaches wx's MSW headers after OCCT has hidden the USER and GDI declarations they need;
 // the Windows headers first keep them, as in test_plugin_host_api.cpp.
 #ifdef WIN32
@@ -22,6 +23,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include <admesh/stl.h>
 #include <imgui/imgui.h>
 #include <nlohmann/json.hpp>
 
@@ -31,13 +33,19 @@
 #include "slic3r/GUI/IMSlider.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/Mcp/JobRegistry.hpp"
+#include "slic3r/GUI/Mcp/McpArguments.hpp"
 #include "slic3r/GUI/Mcp/McpCore.hpp"
 #include "slic3r/GUI/Mcp/McpJournal.hpp"
+#include "slic3r/GUI/Mcp/McpTargets.hpp"
 #include "slic3r/GUI/Mcp/McpTools.hpp"
 #include "slic3r/GUI/Mcp/UiInvoker.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
+#include "slic3r/GUI/Operations/ObjectOps.hpp"
+#include "slic3r/GUI/Operations/Outcome.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
 
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/Model.hpp"
@@ -64,6 +72,7 @@
 #include <set>
 #include <string>
 #include <thread>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -123,8 +132,8 @@ TEST_CASE("the arrange options keep Align to Y axis off while auto rotation is o
     CHECK(settings.enable_rotation);
 }
 
-// A command that replaces a dialog takes, as JSON arguments, what the dialog asks; Go to layer and Go to tab
-// take the value of the Speed Dial's second phase, which they need.
+// A command that replaces a dialog takes, as JSON arguments, what the dialog asks; Go to layer and Go to tab, tiles of
+// view_set, take the value of the Speed Dial's second phase, which they need.
 TEST_CASE("the commands that replace a dialog take the arguments the table gives", "[Mcp][Scene]")
 {
     using Names       = std::set<std::string>;
@@ -135,39 +144,66 @@ TEST_CASE("the commands that replace a dialog take the arguments the table gives
                 out.insert(name);
         return out;
     };
-    const Names path{"path"}, output{"path", "overwrite"}, all{"all"}, size{"size"};
+    const Names path{"path"};
     const Names recording{"target", "fps",   "max_dim", "jpeg_quality", "max_seconds", "captions",  "pointer", "encode",
                           "encode_preset", "codec", "crf", "speed", "profile", "keep_raw_video_file", "save_path", "overwrite",
                           "silent"};
-    REQUIRE(names("go_to_layer") == Names{"percent"});
-    REQUIRE(names("go_to_tab") == Names{"tab"});
-    for (const char* key : {"load_project", "import_file", "add_primitive_svg", "install_local_plugin"})
+    for (const char* key : {"object_add_svg", "preset_export"})
         REQUIRE(names(key) == path);
-    for (const char* key : {"save_project_as", "export_gcode", "export_stl", "export_3mf", "export_sliced_file", "export_all_sliced_file"})
-        REQUIRE(names(key) == output);
-    for (const char* key : {"export_stl_multi", "export_config"})
-        REQUIRE(names(key) == path);
-    REQUIRE(names("import_configs") == Names{"path", "on_conflict"});
-    REQUIRE(names("open_preferences") == Names{"tab", "key"});
-    REQUIRE(names("obj_rename") == Names{"name"});
-    REQUIRE(names("obj_set_instances") == Names{"count"});
-    for (const char* key : {"obj_order_by_name", "obj_order_by_filament", "obj_order_by_height", "obj_order_by_size"})
-        REQUIRE(names(key) == all);
-    for (const char* key : {"add_primitive_cube", "add_primitive_cylinder", "add_primitive_sphere", "add_primitive_cone",
-                            "add_primitive_disc", "add_primitive_torus"})
-        REQUIRE(names(key) == size);
-    REQUIRE(names("plate_goto") == Names{"plate"});
-    REQUIRE(names("filament_delete") == Names{"filament_slot"});
-    REQUIRE(names("start_recording") == recording);
+    const Names view = names("view_set");
+    for (const char* name : {"tab", "layer_percent", "camera", "projection", "layout"}) {
+        INFO(name);
+        CHECK(view.count(name) == 1);
+    }
+    // A command whose tile asks takes, in its place, the arguments of the tile and silent.
+    REQUIRE(names("project_open") == Names{"path", "discard_changes", "silent"});
+    REQUIRE(names("project_import") == Names{"paths", "entries", "archive", "silent"});
+    REQUIRE(names("project_save") == Names{"path", "overwrite", "save_as", "silent"});
+    REQUIRE(names("project_export") == Names{"format", "path", "objects", "object_ids", "plates", "per_object", "overwrite", "silent"});
+    REQUIRE(names("preset_import") == Names{"path", "on_conflict", "silent"});
+    REQUIRE(names("plugin_install_local") == Names{"path", "overwrite", "silent"});
+    REQUIRE(names("window_open") == Names{"window", "tab", "key"});
+    // The object commands made from rows take their targets, by index or by the ids object_list reports.
+    REQUIRE(names("object_rename") == Names{"object", "object_id", "part", "part_id", "name", "silent"});
+    REQUIRE(names("object_set_instances") == Names{"object", "object_id", "count", "delta", "silent"});
+    REQUIRE(names("object_delete") ==
+            Names{"objects", "object_ids", "instances", "instance_object_ids", "parts", "part_ids", "plate", "all", "silent"});
+    REQUIRE(names("object_separate_instances") == Names{"object", "object_id", "instances", "instance_object_ids"});
+    REQUIRE(names("object_split") == Names{"object", "object_id", "into", "keep_z", "silent"});
+    REQUIRE(names("object_assemble") == Names{"objects", "object_ids"});
+    REQUIRE(names("part_change_type") == Names{"parts", "part_ids", "type", "subtype"});
+    REQUIRE(names("object_order") == Names{"plate", "by", "order", "descending", "all"});
+    REQUIRE(names("object_add_primitive") == Names{"shape", "size", "plate", "position", "name", "silent"});
+    REQUIRE(names("object_mirror") == Names{"objects", "object_ids", "parts", "part_ids", "axis"});
+    REQUIRE(names("object_center") == Names{"objects", "object_ids", "plate"});
+    REQUIRE(names("object_scale_to_fit") == Names{"objects", "object_ids"});
+    REQUIRE(names("object_drop") == Names{"objects", "object_ids", "parts", "part_ids"});
+    REQUIRE(names("object_auto_orient") == Names{"objects", "object_ids", "plates"});
+    REQUIRE(names("object_set_printable") == Names{"objects", "object_ids", "instances", "instance_object_ids", "printable"});
+    REQUIRE(names("object_set_auto_drop") == Names{"objects", "object_ids", "auto_drop"});
+    REQUIRE(names("object_fix") == Names{"objects", "object_ids", "parts", "part_ids", "plate", "all"});
+    REQUIRE(names("object_clone") == Names{"objects", "object_ids", "count", "arrange"});
+    REQUIRE(names("object_reload_from_disk") == Names{"objects", "object_ids", "parts", "part_ids", "all"});
+    REQUIRE(names("part_replace") == Names{"object", "object_id", "part", "part_id", "path"});
+    // The plate commands made from rows take the plate, and what their dialog or icon gives.
+    REQUIRE(names("plate_select") == Names{"plate"});
+    REQUIRE(names("plate_delete") == Names{"plate"});
+    REQUIRE(names("plate_duplicate") == Names{"plate"});
+    REQUIRE(names("plate_rename") == Names{"plate", "name", "silent"});
+    REQUIRE(names("plate_lock") == Names{"plate", "locked"});
+    REQUIRE(names("filament_delete") == Names{"filament_slot", "merge_into"});
+    REQUIRE(names("filament_add_mixed") == Names{"components", "ratios"});
+    REQUIRE(names("recording_start") == recording);
     // The object arrange fills a plate with is named as an object, not as a count.
-    CHECK(names("arrange").count("fill_object") == 1);
-    CHECK(names("arrange").count("fill") == 0);
+    CHECK(names("object_arrange").count("fill_object") == 1);
+    CHECK(names("object_arrange").count("fill") == 0);
 
-    // Of the tiles, only the two values of the second phase are required; every other tile does its person's
-    // form when it is given no arguments.
-    for (const NativeCommand* c : NativeCommands::palette_commands(NativeCommands::instance())) {
-        INFO(c->key);
-        CHECK(c->input_schema.contains("required") == (c->key == "go_to_layer" || c->key == "go_to_tab"));
+    // A command with a tile of its own requires nothing: it does its person's form when it is given no arguments.
+    for (const NativeCommands::PaletteTile& t : NativeCommands::palette_tiles(NativeCommands::instance())) {
+        if (t.tile != nullptr)
+            continue;
+        INFO(t.command->key);
+        CHECK_FALSE(t.command->input_schema.contains("required"));
     }
 }
 
@@ -177,10 +213,10 @@ TEST_CASE("the view, window and gesture tools are titled by all they do", "[Mcp]
         const NativeCommand* c = NativeCommands::find(key);
         return c != nullptr ? c->title : std::string();
     };
-    CHECK(title("set_view") == "Set up the view");
-    CHECK(title("set_window") == "Size, move or raise a window");
+    CHECK(title("view_set") == "Set up the view");
+    CHECK(title("window_set") == "Size, move or raise a window");
     CHECK(title("mouse_gesture") == "Mouse gesture on a 3D view or page element");
-    CHECK(title("pick_gizmo_file") == "Load or save the open gizmo's SVG or texture file");
+    CHECK(title("gizmo_pick_file") == "Load or save the open gizmo's SVG or texture file");
 }
 
 // The app opens on Home, so a slice or arrange an agent starts at once updates its progress
@@ -300,8 +336,8 @@ struct FakeWorker
     }
 };
 
-// A core with stand-ins for the tools that start an arrange (the typed arrange, run_action
-// obj_arrange, a click on a plate's Arrange icon, which queues its event), change the scene (a
+// A core with stand-ins for the tools that start an arrange (the typed object_arrange, action_run of the
+// obj_arrange tile, a click on a plate's Arrange icon, which queues its event), change the scene (a
 // mutate tool, a key on the canvas), answer a dialog, read, and cancel.
 struct Harness
 {
@@ -318,7 +354,7 @@ struct Harness
     Harness()
     {
         timing.soft_budget = 100ms;
-        add("arrange", GuardClass::Mutate, [this](const json&, ToolContext& ctx) {
+        add("object_arrange", GuardClass::Mutate, [this](const json&, ToolContext& ctx) {
             ctx.run_ui([&] {
                 worker.start(job_length);
                 return json();
@@ -327,14 +363,14 @@ struct Harness
                 std::this_thread::sleep_for(20ms);
             return ToolResult::ok({{"arranged", true}});
         });
-        add("run_action", GuardClass::Mutate, [this](const json&, ToolContext& ctx) {
+        add("action_run", GuardClass::Mutate, [this](const json&, ToolContext& ctx) {
             ctx.run_ui([&] {
                 worker.start(job_length);
                 return json();
             });
-            return ToolResult::ok({{"ran", "obj_arrange"}});
+            return ToolResult::ok({{"ran", "orca_command:obj_arrange:orca"}});
         });
-        add("click", GuardClass::Recover, [this](const json&, ToolContext& ctx) {
+        add("widget_click", GuardClass::Recover, [this](const json&, ToolContext& ctx) {
             ctx.run_ui([&] {
                 core->admit({}); // the target is outside any dialog
                 ui.post([this] { worker.start(job_length); });
@@ -343,19 +379,19 @@ struct Harness
             ctx.observe_ui([] { return json(); }); // settle
             return ToolResult::ok();
         });
-        add("press_keys", GuardClass::Recover, [this](const json&, ToolContext& ctx) {
+        add("keyboard_press", GuardClass::Recover, [this](const json&, ToolContext& ctx) {
             return ToolResult::ok(ctx.run_ui([&] {
                 core->admit({});
                 return json("deleted");
             }));
         });
-        add("answer_dialog", GuardClass::Recover,
+        add("dialog_answer", GuardClass::Recover,
             [](const json&, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([] { return json("pressed"); })); });
         add("edit", GuardClass::Mutate,
             [](const json&, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([] { return json("edited"); })); });
         add("read", GuardClass::Inspect,
             [this](const json&, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return json(worker.busy()); })); });
-        add("cancel_job", GuardClass::Recover, [this](const json&, ToolContext& ctx) {
+        add("job_cancel", GuardClass::Recover, [this](const json&, ToolContext& ctx) {
             return ToolResult::ok(ctx.run_ui([&] {
                 for (const std::string& op : jobs.running_operations())
                     if (core->cancel_worker(op))
@@ -378,7 +414,7 @@ struct Harness
         d.key                      = name;
         d.guard                    = guard;
         d.inline_call              = guard == GuardClass::Inspect;
-        d.allowed_during_operation = name == "cancel_job";
+        d.allowed_during_operation = name == "job_cancel";
         d.budget_ms                = 200;
         d.run                      = std::move(handler);
         registry.add(std::move(d));
@@ -410,14 +446,14 @@ TEST_CASE("a worker job a call starts holds admission past the reply budget unti
 {
     Harness h;
     h.start();
-    const std::string job = h.start_job("run_action");
+    const std::string job = h.start_job("action_run");
     CHECK(h.refused_by(h.call("edit"), job));
     CHECK_FALSE(h.call("read").is_error);
 
     const auto done = h.jobs.wait(job, 5000ms);
     REQUIRE(done.has_value());
     CHECK_FALSE(done->is_error);
-    CHECK(done->data["ran"] == "obj_arrange");
+    CHECK(done->data["ran"] == "orca_command:obj_arrange:orca");
     // The job ends only once the worker is idle, so a change right after it is admitted.
     CHECK_FALSE(h.worker.busy());
     CHECK_FALSE(h.call("edit").is_error);
@@ -428,11 +464,11 @@ TEST_CASE("a cancelled worker job keeps admission until the worker is really idl
     Harness h;
     h.job_length          = 10s;
     h.worker.cancel_delay = 800ms; // slower than the reply budget
-    SECTION("cancel_job")
+    SECTION("job_cancel")
     {
         h.start();
-        const std::string job       = h.start_job("arrange");
-        const ToolResult cancel      = h.call("cancel_job");
+        const std::string job       = h.start_job("object_arrange");
+        const ToolResult cancel      = h.call("job_cancel");
         REQUIRE_FALSE(cancel.is_error);
         CHECK(cancel.data == job);
         CHECK(h.refused_by(h.call("edit"), job));
@@ -449,7 +485,7 @@ TEST_CASE("a cancelled worker job keeps admission until the worker is really idl
     {
         h.timing.worker_timeout = 300ms;
         h.start();
-        const std::string job = h.start_job("run_action");
+        const std::string job = h.start_job("action_run");
         std::this_thread::sleep_for(500ms); // past the timeout, before the cancelled job stops
         CHECK(h.worker.cancels == 1);
         CHECK(h.worker.busy());
@@ -467,8 +503,8 @@ TEST_CASE("a cancelled worker job keeps admission until the worker is really idl
 
 TEST_CASE("a change is refused while an arrange an MCP call started runs, however it started", "[Mcp][Scene]")
 {
-    // The typed arrange, run_action obj_arrange, and a recover input whose click queues the job.
-    for (const char* starter : {"arrange", "run_action", "click"}) {
+    // The typed object_arrange, action_run of the obj_arrange tile, and a recover input whose click queues the job.
+    for (const char* starter : {"object_arrange", "action_run", "widget_click"}) {
         DYNAMIC_SECTION(starter)
         {
             Harness h;
@@ -488,12 +524,12 @@ TEST_CASE("a scene-changing input is refused while that job runs, and a dialog a
 {
     Harness h;
     h.start();
-    const std::string job = h.start_job("run_action");
-    CHECK(h.refused_by(h.call("press_keys"), job));   // Delete on the canvas
-    CHECK(h.refused_by(h.call("click"), job)); // a GL toolbar item
-    CHECK_FALSE(h.call("answer_dialog").is_error);
+    const std::string job = h.start_job("action_run");
+    CHECK(h.refused_by(h.call("keyboard_press"), job));   // Delete on the canvas
+    CHECK(h.refused_by(h.call("widget_click"), job)); // a GL toolbar item
+    CHECK_FALSE(h.call("dialog_answer").is_error);
     REQUIRE(h.jobs.wait(job, 5000ms).has_value());
-    CHECK_FALSE(h.call("press_keys").is_error);
+    CHECK_FALSE(h.call("keyboard_press").is_error);
 }
 
 TEST_CASE("a worker job that starts between a call's closures is the call's, whoever started it", "[Mcp][Scene]")
@@ -522,12 +558,12 @@ TEST_CASE("a worker job that starts between a call's closures is the call's, who
     CHECK_FALSE(h.worker.busy());
 }
 
-TEST_CASE("a worker job a person started refuses changes but not reads, and cancel_job leaves it", "[Mcp][Scene]")
+TEST_CASE("a worker job a person started refuses changes but not reads, and job_cancel leaves it", "[Mcp][Scene]")
 {
     Harness h;
     h.start();
     h.worker.start(800ms); // Text typing
-    for (const char* change : {"edit", "press_keys"}) {
+    for (const char* change : {"edit", "keyboard_press"}) {
         const ToolResult refused = h.call(change);
         CHECK(refused.is_error);
         CHECK(refused.message.find("Busy: a background job") != std::string::npos);
@@ -535,7 +571,7 @@ TEST_CASE("a worker job a person started refuses changes but not reads, and canc
     const ToolResult read = h.call("read");
     CHECK_FALSE(read.is_error);
     CHECK(read.data == true);
-    CHECK(h.call("cancel_job").data.is_null());
+    CHECK(h.call("job_cancel").data.is_null());
     CHECK(h.worker.cancels == 0);
     while (h.worker.busy())
         std::this_thread::sleep_for(20ms);
@@ -658,6 +694,267 @@ TEST_CASE("a precise seam reports its subtype, and an object its auto drop", "[M
     CHECK_FALSE(info["parts"][1].contains("filament"));
 }
 
+TEST_CASE("object_list reports an object's mesh errors: its open edges and what was repaired", "[Mcp][Scene]")
+{
+    Model model;
+    // A 20 mm cube with one triangle taken out, which leaves three open edges, and a closed one whose mesh the loader
+    // repaired: two edges fixed and a facet reversed.
+    indexed_triangle_set open = make_cube(20., 20., 20.).its;
+    open.indices.pop_back();
+    ModelObject* holed = model.add_object();
+    holed->add_volume(TriangleMesh(std::move(open)));
+    holed->add_instance();
+    RepairedMeshErrors repaired;
+    repaired.edges_fixed     = 2;
+    repaired.facets_reversed = 1;
+    ModelObject* closed      = model.add_object();
+    closed->add_volume(TriangleMesh(make_cube(20., 20., 20.).its, repaired));
+    closed->add_instance();
+
+    const json errors = Mcp::object_info(*holed, 0).at("mesh_errors");
+    CHECK(errors["open_edges"] == 3);
+    CHECK(errors["manifold"] == false);
+    CHECK(errors["edges_fixed"] == 0);
+    const json fixed = Mcp::object_info(*closed, 1).at("mesh_errors");
+    CHECK(fixed["open_edges"] == 0);
+    CHECK(fixed["manifold"] == true);
+    CHECK(fixed["edges_fixed"] == 2);
+    CHECK(fixed["facets_reversed"] == 1);
+    for (const char* count : {"degenerate_facets", "facets_removed", "backwards_edges"}) {
+        INFO(count);
+        CHECK(fixed[count] == 0);
+    }
+}
+
+TEST_CASE("Printable and Auto Drop take their state, and Fix Model all the objects or some", "[Mcp][Scene]")
+{
+    const auto command = [](const char* key) {
+        const NativeCommand* found = NativeCommands::find(key);
+        REQUIRE(found != nullptr);
+        return found;
+    };
+    // The state is a required boolean.
+    for (const auto& [key, state] : {std::pair<const char*, const char*>{"object_set_printable", "printable"},
+                                     std::pair<const char*, const char*>{"object_set_auto_drop", "auto_drop"}}) {
+        INFO(key);
+        json none{{"objects", json::array({0})}};
+        CHECK_THAT(Mcp::argument_error(*command(key), none), ContainsSubstring(state));
+        json word{{"objects", json::array({0})}, {state, "yes"}};
+        CHECK_THAT(Mcp::argument_error(*command(key), word), ContainsSubstring(state));
+        json given{{"objects", json::array({0})}, {state, false}};
+        CHECK(Mcp::argument_error(*command(key), given).empty());
+    }
+    json instance{{"instances", json::array({json::array({0, 1})})}, {"printable", false}};
+    CHECK(Mcp::argument_error(*command("object_set_printable"), instance).empty());
+
+    // all needs no other target; a plate, objects or parts name what is repaired.
+    for (json args : {json{{"all", true}}, json{{"plate", 1}}, json{{"objects", json::array({0, 2})}},
+                      json{{"parts", json::array({json::array({0, 1})})}}, json::object()}) {
+        INFO(args.dump());
+        CHECK(Mcp::argument_error(*command("object_fix"), args).empty());
+    }
+    // The repair is cancelled with job_cancel {job}.
+    CHECK(command("object_fix")->cancellable);
+}
+
+namespace {
+
+// A call's context that fails the case when the call reaches its UI closure.
+class NoUiContext final : public ToolContext
+{
+public:
+    json run_ui(const std::function<json()>& /*fn*/) override
+    {
+        FAIL("the call reached its UI closure");
+        return json();
+    }
+    json observe_ui(const std::function<json()>& /*fn*/) override
+    {
+        FAIL("the call reached its UI closure");
+        return json();
+    }
+    const std::string& job_id() const override { return m_job; }
+    bool               cancelled() const override { return false; }
+    ToolResult call_child(const std::string& /*tool*/, const json& /*args*/) override { return ToolResult::error("no child calls"); }
+    std::set<std::string> lineage() const override { return {}; }
+    void                  set_journal_args(json /*args*/) override {}
+    void                  begin_operation() override {}
+
+private:
+    std::string m_job;
+};
+
+} // namespace
+
+TEST_CASE("Fix Model and Reload refuse all or a plate given with targets, and Fix Model all with a plate", "[Mcp][Scene]")
+{
+    const NativeCommand* fix    = NativeCommands::find("object_fix");
+    const NativeCommand* reload = NativeCommands::find("object_reload_from_disk");
+    REQUIRE(fix != nullptr);
+    REQUIRE(reload != nullptr);
+    // Each passes the schema, and the command refuses it before it reads the app.
+    const std::vector<std::tuple<const NativeCommand*, json, std::string>> refused{
+        {fix, {{"all", true}, {"plate", 0}}, "Give all or plate, not both"},
+        {fix, {{"all", true}, {"objects", json::array({0})}}, "all repairs every object; leave the targets out"},
+        {fix, {{"plate", 0}, {"parts", json::array({json::array({0, 1})})}}, "plate repairs the objects on it; leave the targets out"},
+        {reload, {{"all", true}, {"objects", json::array({0})}}, "all reloads every object; leave the targets out"}};
+    for (const auto& [command, args, message] : refused) {
+        INFO(command->key << " " << args.dump());
+        json given = args;
+        CHECK(Mcp::argument_error(*command, given).empty());
+        NoUiContext ctx;
+        CHECK_THROWS_WITH(command->run(args, ctx), message);
+    }
+}
+
+TEST_CASE("an order of objects is by a key or the objects named, of one plate, and descending goes with a key", "[Mcp][Scene]")
+{
+    const NativeCommand* order = NativeCommands::find("object_order");
+    REQUIRE(order != nullptr);
+    // Each passes the schema, and the command refuses it before it reads the app.
+    const std::vector<std::pair<json, std::string>> refused{
+        {json::object(), "Give by, or the objects in order"},
+        {{{"by", "name"}, {"order", json::array({1, 0})}}, "Give by or order, not both"},
+        {{{"order", json::array({1, 0})}, {"all", true}}, "order names the objects of one plate: leave all out"},
+        {{{"order", json::array({1, 0})}, {"descending", true}}, "descending goes with by: order gives the objects in their order"},
+        {{{"by", "name"}, {"all", true}, {"plate", 0}}, "Give plate or all, not both"}};
+    for (const auto& [args, message] : refused) {
+        INFO(args.dump());
+        json given = args;
+        CHECK(Mcp::argument_error(*order, given).empty());
+        NoUiContext ctx;
+        CHECK_THROWS_WITH(order->run(args, ctx), message);
+    }
+    // An order names at least one object.
+    json empty{{"order", json::array()}};
+    CHECK_THAT(Mcp::argument_error(*order, empty), ContainsSubstring("order"));
+}
+
+TEST_CASE("Import takes entries with one ZIP archive, and an export a file per object in STL or DRC alone", "[Mcp][Scene]")
+{
+    const NativeCommand* import_ = NativeCommands::find("project_import");
+    const NativeCommand* export_ = NativeCommands::find("project_export");
+    REQUIRE(import_ != nullptr);
+    REQUIRE(export_ != nullptr);
+    // Each passes the schema, and the command refuses it before it reads the app or the files.
+    const json one_cube = json::array({"cube.stl"});
+    const std::vector<std::tuple<const NativeCommand*, json, std::string>> refused{
+        {import_, {{"paths", json::array({"/models/cube.stl"})}, {"entries", one_cube}},
+         "entries names files of a .zip archive: give the archive in paths"},
+        {import_, {{"paths", json::array({"/models/a.zip", "/models/b.zip"})}, {"entries", one_cube}},
+         "entries names the files of one archive: give one .zip in paths"},
+        {export_, {{"format", "gcode"}, {"path", "/out/plate.gcode"}, {"per_object", true}}, "per_object goes with format stl or drc"},
+        {export_, {{"format", "toolpaths_obj"}, {"path", "/out/toolpaths.obj"}, {"per_object", true}},
+         "per_object goes with format stl or drc"},
+        {export_, {{"format", "toolpaths_obj"}, {"path", "/out/toolpaths.obj"}, {"plates", 1}},
+         "toolpaths_obj writes the toolpaths the Preview shows: plates goes with the other formats"},
+        {export_, {{"format", "drc"}, {"path", "/out/objects"}, {"per_object", true}, {"plates", 1}},
+         "per_object writes every object into the folder path names: plates and overwrite go with one file"},
+        {export_, {{"format", "stl"}, {"path", "/out/objects"}, {"per_object", true}, {"overwrite", true}},
+         "per_object writes every object into the folder path names: plates and overwrite go with one file"}};
+    for (const auto& [command, args, message] : refused) {
+        INFO(command->key << " " << args.dump());
+        json given = args;
+        CHECK(Mcp::argument_error(*command, given).empty());
+        NoUiContext ctx;
+        CHECK_THROWS_WITH(command->run(args, ctx), message);
+    }
+    // entries names one file or more; an empty list is refused by the schema.
+    json no_entries{{"paths", json::array({"/models/a.zip"})}, {"entries", json::array()}};
+    CHECK(Mcp::argument_error(*import_, no_entries).find("entries must hold at least 1 item") != std::string::npos);
+}
+
+TEST_CASE("view_set takes the display switches, the sidebar, and the Preview's legend fold and G-code window", "[Mcp][Scene]")
+{
+    const NativeCommand* view = NativeCommands::find("view_set");
+    REQUIRE(view != nullptr);
+    const json& properties = view->input_schema.at("properties");
+    for (const char* name : {"sidebar_collapsed", "legend_collapsed", "gcode_window", "labels", "overhangs", "outline", "wireframe",
+                             "gridlines", "axes", "navigator"}) {
+        INFO(name);
+        REQUIRE(properties.contains(name));
+        CHECK(properties.at(name).at("type") == "boolean");
+    }
+    // The sidebar's width is pixels, or "default".
+    REQUIRE(properties.contains("sidebar_width"));
+    for (const json& width : {json(420), json("default")}) {
+        json args{{"sidebar_width", width}};
+        CHECK(Mcp::argument_error(*view, args).empty());
+    }
+    for (const json& width : {json(0), json(true), json(12.5)}) {
+        INFO(width.dump());
+        json args{{"sidebar_width", width}};
+        CHECK_THAT(Mcp::argument_error(*view, args), ContainsSubstring("sidebar_width"));
+    }
+    // Outside the Design tab the section view is Prepare's and the Preview's, which takes on alone.
+    json section{{"section", {{"on", true}}}, {"labels", true}};
+    CHECK(Mcp::argument_error(*view, section).empty());
+
+    // Each passes the schema, and the command refuses it before it changes anything: a width that is no number of pixels
+    // and the Design view's cut without the Design tab, also beside a switch the call would set.
+    const std::vector<std::pair<json, std::string>> refused{
+        {{{"sidebar_width", "wide"}, {"labels", true}}, "sidebar_width is a width in pixels or \"default\""},
+        {{{"section", {{"on", true}, {"z", 5}}}}, "z and keep are the Design view's cut"},
+        {{{"tab", "prepare"}, {"section", {{"on", true}, {"keep", "upper"}}}, {"axes", false}}, "z and keep are the Design view's cut"}};
+    for (const auto& [args, message] : refused) {
+        INFO(args.dump());
+        json given = args;
+        CHECK(Mcp::argument_error(*view, given).empty());
+        NoUiContext ctx;
+        CHECK_THROWS_WITH(view->run(args, ctx), ContainsSubstring(message));
+    }
+}
+
+TEST_CASE("a plate's origin and size are its rectangle on the bed, in bed coordinates", "[Mcp][Scene]")
+{
+    // The second plate of a row of 256 x 256 mm plates: the plate list moves the bed shape by the plate's position, which
+    // is neither the origin the plate was made with nor the box that holds its grabber in front.
+    PartPlate plate(nullptr, Vec3d(1000., 1000., 0.), 256, 256, 250., nullptr, nullptr);
+    plate.set_shape({{0., 0.}, {256., 0.}, {256., 256.}, {0., 256.}}, {}, {}, {}, Vec2d(307.2, 0.), 0.f, 0.f);
+    const json place = Mcp::plate_place(plate);
+    REQUIRE(place.at("origin").size() == 2);
+    REQUIRE(place.at("size").size() == 2);
+    CHECK_THAT(place["origin"][0].get<double>(), WithinAbs(307.2, 1e-9));
+    CHECK_THAT(place["origin"][1].get<double>(), WithinAbs(0., 1e-9));
+    CHECK_THAT(place["size"][0].get<double>(), WithinAbs(256., 1e-9));
+    CHECK_THAT(place["size"][1].get<double>(), WithinAbs(256., 1e-9));
+    // A cube placed at the origin plus half the size stands in the middle of the plate.
+    const BoundingBoxf3& box = plate.get_bounding_box();
+    CHECK_THAT(place["origin"][0].get<double>() + place["size"][0].get<double>() / 2., WithinAbs(box.center().x(), 1e-9));
+    CHECK_THAT(place["origin"][1].get<double>() + place["size"][1].get<double>() / 2., WithinAbs(box.center().y(), 1e-9));
+}
+
+TEST_CASE("Clone makes at least one copy, and Replace takes one part and the file it is replaced with", "[Mcp][Scene]")
+{
+    const auto command = [](const char* key) {
+        const NativeCommand* found = NativeCommands::find(key);
+        REQUIRE(found != nullptr);
+        return found;
+    };
+    // A count written as a string of digits is taken as that number, as every integer argument is.
+    for (json count : {json(0), json(-2), json(1.5), json("three")}) {
+        INFO(count.dump());
+        json args{{"objects", json::array({0})}, {"count", count}};
+        CHECK_THAT(Mcp::argument_error(*command("object_clone"), args), ContainsSubstring("count"));
+    }
+    json three{{"objects", json::array({0})}, {"count", 3}, {"arrange", false}};
+    CHECK(Mcp::argument_error(*command("object_clone"), three).empty());
+    // With no count, one copy, as the Clone dialog's field starts.
+    json selection = json::object();
+    CHECK(Mcp::argument_error(*command("object_clone"), selection).empty());
+
+    json no_path{{"object", 0}, {"part", 0}};
+    CHECK_THAT(Mcp::argument_error(*command("part_replace"), no_path), ContainsSubstring("path"));
+    json several{{"parts", json::array({json::array({0, 0})})}, {"path", "/models/cube.stl"}};
+    CHECK_THAT(Mcp::argument_error(*command("part_replace"), several), ContainsSubstring("parts"));
+    json one{{"object", 0}, {"part", 1}, {"path", "/models/cube.stl"}};
+    CHECK(Mcp::argument_error(*command("part_replace"), one).empty());
+
+    // A reload takes every object with all, which no other target goes with.
+    json all{{"all", true}};
+    CHECK(Mcp::argument_error(*command("object_reload_from_disk"), all).empty());
+}
+
 namespace {
 
 // Three objects of one cube each: "alone" on plate 0, "twice" with an instance on plate 0 and one on
@@ -688,7 +985,7 @@ struct PlatedModel
 
 } // namespace
 
-TEST_CASE("list_objects lists each plate's objects, then those on no plate", "[Mcp][Scene]")
+TEST_CASE("object_list lists each plate's objects, then those on no plate", "[Mcp][Scene]")
 {
     const PlatedModel scene;
     const json        out = scene.list();
@@ -723,7 +1020,7 @@ TEST_CASE("list_objects lists each plate's objects, then those on no plate", "[M
     CHECK_FALSE(out.contains("next_offset"));
 }
 
-TEST_CASE("list_objects with a plate lists that plate alone", "[Mcp][Scene]")
+TEST_CASE("object_list with a plate lists that plate alone", "[Mcp][Scene]")
 {
     const PlatedModel scene;
     const json        out = scene.list({{"plate", 1}});
@@ -737,7 +1034,7 @@ TEST_CASE("list_objects with a plate lists that plate alone", "[Mcp][Scene]")
     CHECK_THROWS_WITH(scene.list({{"plate", 3}}), ContainsSubstring("Plate 3 does not exist (the project has plates 0..2)"));
 }
 
-TEST_CASE("list_objects pages the objects, listing each under every plate it is on", "[Mcp][Scene]")
+TEST_CASE("object_list pages the objects, listing each under every plate it is on", "[Mcp][Scene]")
 {
     const PlatedModel scene;
     // The second of the three objects is the one on two plates.
@@ -760,7 +1057,7 @@ TEST_CASE("list_objects pages the objects, listing each under every plate it is 
     CHECK_FALSE(out.contains("next_offset"));
 }
 
-TEST_CASE("list_objects with a plate pages and counts that plate's objects", "[Mcp][Scene]")
+TEST_CASE("object_list with a plate pages and counts that plate's objects", "[Mcp][Scene]")
 {
     const PlatedModel scene;
     const json        out = scene.list({{"plate", 0}, {"offset", 1}, {"limit", 1}});
@@ -821,62 +1118,280 @@ TEST_CASE("a shape's size needs one positive number per field of the size dialog
     }
 }
 
-// The object list's context-menu commands are Speed Dial commands beside the other object commands.
+// The object list's context-menu rows are tiles of commands beside the other object and part commands.
 TEST_CASE("the object structure commands sit beside the other object commands", "[Mcp][Scene]")
 {
-    const NativeCommand* peer = NativeCommands::find("obj_delete");
-    REQUIRE(peer != nullptr);
-    for (const char* key : {"obj_type_part", "obj_type_negative", "obj_type_modifier", "obj_type_support_blocker",
-                            "obj_type_support_enforcer", "obj_type_precise_seam", "obj_rename", "obj_set_instances", "obj_assemble",
-                            "obj_instances_to_objects", "obj_order_by_name", "obj_order_by_filament", "obj_order_by_height",
-                            "obj_order_by_size"}) {
+    const NativeCommand* objects = NativeCommands::find("object_delete");
+    const NativeCommand* parts   = NativeCommands::find("part_add");
+    REQUIRE(objects != nullptr);
+    REQUIRE(parts != nullptr);
+    for (const char* key : {"part_change_type", "object_rename", "object_set_instances", "object_assemble", "object_separate_instances",
+                            "object_order"}) {
         INFO(key);
         const NativeCommand* c = NativeCommands::find(key);
         REQUIRE(c != nullptr);
-        CHECK(c->group == peer->group);
+        CHECK(c->group == (std::string(key).rfind("part_", 0) == 0 ? parts : objects)->group);
         CHECK_FALSE(c->description.empty());
+        REQUIRE(c->tiles.is_array());
+        for (const json& tile : c->tiles)
+            CHECK_FALSE(tile.at("description").get<std::string>().empty());
+    }
+}
+
+TEST_CASE("a split is into objects or parts, a subtype is a precise seam's, and an order is by name, filament, height or size", "[Mcp][Scene]")
+{
+    const auto command = [](const char* key) {
+        const NativeCommand* found = NativeCommands::find(key);
+        REQUIRE(found != nullptr);
+        return found;
+    };
+    const auto values = [&command](const char* key, const char* arg) {
+        std::set<std::string> out;
+        for (const json& value : command(key)->input_schema.at("properties").at(arg).at("enum"))
+            out.insert(value.get<std::string>());
+        return out;
+    };
+    CHECK(values("object_split", "into") == std::set<std::string>{"objects", "parts"});
+    for (const char* into : {"pieces", "object"}) {
+        INFO(into);
+        json args{{"object", 0}, {"into", into}};
+        CHECK_THAT(Mcp::argument_error(*command("object_split"), args), ContainsSubstring("into"));
+    }
+    json split{{"object", 0}, {"into", "parts"}, {"keep_z", true}};
+    CHECK(Mcp::argument_error(*command("object_split"), split).empty());
+
+    CHECK(values("object_order", "by") == std::set<std::string>{"name", "filament", "height", "size"});
+
+    // A subtype is one of a precise seam's, and with another type it is refused.
+    CHECK(values("part_change_type", "subtype") == std::set<std::string>{"center", "left", "right", "enforced", "blocked", "neutral"});
+    CHECK(Mcp::precise_seam_subtype("left") == ModelVolumeType::PRECISE_SEAM_LEFT);
+    CHECK(Mcp::precise_seam_subtype("neutral") == ModelVolumeType::PRECISE_SEAM_NEUTRAL);
+    CHECK(Mcp::precise_seam_subtype("part") == ModelVolumeType::INVALID);
+    Model        model;
+    ModelObject* object = model.add_object();
+    object->add_volume(make_cube(10., 10., 10.), ModelVolumeType::MODEL_PART, false);
+    object->add_volume(make_cube(5., 5., 5.), ModelVolumeType::PARAMETER_MODIFIER, false);
+    object->add_instance();
+    Ops::Targets modifier;
+    modifier.parts = {{0, 1}};
+    const std::optional<Ops::Refusal> refused =
+        Ops::part_type_refusal(model, modifier, ModelVolumeType::NEGATIVE_VOLUME, ModelVolumeType::PRECISE_SEAM_LEFT);
+    REQUIRE(refused);
+    CHECK(std::string(refused->code) == "subtype_without_seam");
+    CHECK_FALSE(Ops::part_type_refusal(model, modifier, ModelVolumeType::PRECISE_SEAM_CENTER, ModelVolumeType::PRECISE_SEAM_LEFT));
+}
+
+TEST_CASE("a mirror needs its axis, a centring takes a plate and no part, and a primitive its plate, position and name", "[Mcp][Scene]")
+{
+    const NativeCommand* mirror = NativeCommands::find("object_mirror");
+    REQUIRE(mirror != nullptr);
+    for (const json& axis : {json("x"), json("y"), json("z")}) {
+        json args{{"objects", json::array({0})}, {"axis", axis}};
+        CHECK(Mcp::argument_error(*mirror, args).empty());
+    }
+    json no_axis{{"objects", json::array({0})}};
+    CHECK_THAT(Mcp::argument_error(*mirror, no_axis), ContainsSubstring("axis"));
+    json bad_axis{{"axis", "w"}};
+    CHECK_THAT(Mcp::argument_error(*mirror, bad_axis), ContainsSubstring("axis"));
+
+    const NativeCommand* center = NativeCommands::find("object_center");
+    REQUIRE(center != nullptr);
+    json on_plate{{"objects", json::array({0, 2})}, {"plate", 1}};
+    CHECK(Mcp::argument_error(*center, on_plate).empty());
+    json parts{{"parts", json::array({json::array({0, 0})})}};
+    CHECK_THAT(Mcp::argument_error(*center, parts), ContainsSubstring("parts"));
+
+    const NativeCommand* primitive = NativeCommands::find("object_add_primitive");
+    REQUIRE(primitive != nullptr);
+    json placed{{"shape", "cube"}, {"size", json::array({20, 20, 20})}, {"plate", 1}, {"position", json::array({100, 100, 0})}, {"name", "block"}};
+    CHECK(Mcp::argument_error(*primitive, placed).empty());
+    // A call with more than a tile's shape is the silent form, which asks for no size.
+    CHECK_FALSE(Mcp::person_form(*primitive, placed));
+    // Its size is checked as part_add's is: the size dialog's fields, each above 0.
+    const std::vector<double> cylinder = Mcp::part_shape_size("cylinder", json::array({30, 10}));
+    REQUIRE(cylinder.size() == 2);
+    CHECK_THAT(cylinder[0], WithinAbs(30., 1e-9));
+    CHECK_THAT(cylinder[1], WithinAbs(10., 1e-9));
+    CHECK(Mcp::part_shape_size("cube", json()).empty());
+    CHECK_THROWS_WITH(Mcp::part_shape_size("cube", json::array({20, 20})), ContainsSubstring("[X, Y, Z]"));
+    CHECK_THROWS_AS(Mcp::part_shape_size("sphere", json::array({0})), ToolFailure);
+    // Its operation names the object, so it reaches the rename's as well.
+    CHECK(primitive->operations == std::vector<std::string>{"add_primitive", "rename_object"});
+}
+
+namespace {
+
+// Three objects of cubes, named for what they have: "first" with one instance and one part, "second" with two
+// instances and two parts, "third" with one of each.
+struct TargetModel
+{
+    Model model;
+
+    TargetModel()
+    {
+        for (const auto& [name, instances, parts] : std::vector<std::tuple<std::string, int, int>>{{"first", 1, 1}, {"second", 2, 2}, {"third", 1, 1}}) {
+            ModelObject* object = model.add_object();
+            object->name        = name;
+            for (int p = 0; p < parts; ++p)
+                object->add_volume(make_cube(10., 10., 10.), ModelVolumeType::MODEL_PART, false)->name = name + " part " + std::to_string(p);
+            for (int i = 0; i < instances; ++i)
+                object->add_instance();
+        }
+    }
+};
+
+constexpr unsigned kEveryKind = Mcp::kObjects | Mcp::kInstances | Mcp::kParts;
+
+// The targets a call's `args` name, with no selection to fall back on.
+Ops::Outcome<Ops::Targets> named_targets(const Model& model, const json& args, unsigned kinds, bool one = false)
+{
+    return Mcp::resolve_targets(model, nullptr, args, kinds, one);
+}
+
+json pairs(std::initializer_list<std::pair<int, int>> list)
+{
+    json out = json::array();
+    for (const auto& [a, b] : list)
+        out.push_back(json::array({a, b}));
+    return out;
+}
+
+} // namespace
+
+TEST_CASE("a command's targets are what its arguments name, else the selection", "[Mcp][Scene]")
+{
+    const TargetModel m;
+    const Model&      model = m.model;
+
+    const auto named = named_targets(model, {{"objects", json::array({0, 2})}}, Mcp::kObjects);
+    REQUIRE(named);
+    CHECK(named.value().objects == std::vector<int>{0, 2});
+    CHECK(named.value().instances.empty());
+    CHECK(named.value().parts.empty());
+    CHECK_FALSE(named.value().from_selection);
+
+    // One target, named in the singular: an instance of the second object, then one of its parts by index and id.
+    const auto instance = named_targets(model, {{"object", 1}, {"instance", 1}}, kEveryKind, true);
+    REQUIRE(instance);
+    CHECK(instance.value().instances == std::vector<std::pair<int, int>>{{1, 1}});
+    const auto part = named_targets(model, {{"object", 1}, {"part", 1}, {"part_id", model.objects[1]->volumes[1]->id().id}}, kEveryKind, true);
+    REQUIRE(part);
+    CHECK(part.value().parts == std::vector<std::pair<int, int>>{{1, 1}});
+
+    // Every index and every expected id is checked before anything is returned, and a miss is named.
+    CHECK_THROWS_WITH(named_targets(model, {{"objects", json::array({0, 3})}}, Mcp::kObjects), ContainsSubstring("object index 3"));
+    const std::size_t other = model.objects[1]->id().id;
+    CHECK_THROWS_WITH(named_targets(model, {{"objects", json::array({0})}, {"object_ids", json::array({other})}}, Mcp::kObjects),
+                      ContainsSubstring(std::to_string(other)));
+    CHECK_THROWS_WITH(named_targets(model, {{"parts", pairs({{1, 5}})}}, Mcp::kParts), ContainsSubstring("part 5"));
+    CHECK_THROWS_WITH(named_targets(model, {{"instances", pairs({{0, 1}})}}, Mcp::kInstances), ContainsSubstring("instance 1"));
+    // Both forms of one target at once.
+    CHECK_THROWS_AS(named_targets(model, {{"object", 1}, {"objects", json::array({0})}}, Mcp::kObjects), ToolFailure);
+
+    // With none named, the targets are the selection, and a null selection holds nothing.
+    const auto none = named_targets(model, json::object(), kEveryKind);
+    REQUIRE_FALSE(none);
+    CHECK(std::string(none.refusal().code) == "nothing_selected");
+    // A command of one target refuses two.
+    const auto two = named_targets(model, {{"objects", json::array({0, 2})}}, Mcp::kObjects, true);
+    REQUIRE_FALSE(two);
+    CHECK(std::string(two.refusal().code) == "one_object_only");
+
+    // A command's schema has the forms of the kinds it takes, and no other.
+    NativeCommand command;
+    command.input_schema = Mcp::with_targets(Mcp::object_schema({}), Mcp::kObjects, false);
+    json parts{{"parts", pairs({{1, 0}})}};
+    CHECK_THAT(Mcp::argument_error(command, parts), ContainsSubstring("parts"));
+    json objects{{"objects", json::array({1})}};
+    CHECK(Mcp::argument_error(command, objects).empty());
+    const auto names = [](const std::vector<Mcp::Property>& props) {
+        std::set<std::string> out;
+        for (const Mcp::Property& p : props)
+            out.insert(p.first);
+        return out;
+    };
+    CHECK(names(Mcp::target_props(kEveryKind, false)) ==
+          std::set<std::string>{"objects", "object_ids", "instances", "instance_object_ids", "parts", "part_ids"});
+    CHECK(names(Mcp::target_props(kEveryKind, true)) == std::set<std::string>{"object", "object_id", "instance", "part", "part_id"});
+}
+
+TEST_CASE("a reply names what the command acted on", "[Mcp][Scene]")
+{
+    const TargetModel m;
+    Ops::Targets      acted;
+    acted.objects = {0};
+    acted.parts   = {{1, 1}};
+    const json reply = Mcp::targets_reply(m.model, acted);
+    REQUIRE(reply.at("objects").size() == 1);
+    CHECK(reply["objects"][0] == json{{"index", 0}, {"object_id", m.model.objects[0]->id().id}, {"name", "first"}});
+    REQUIRE(reply.at("parts").size() == 1);
+    CHECK(reply["parts"][0] ==
+          json{{"object", 1}, {"part", 1}, {"part_id", m.model.objects[1]->volumes[1]->id().id}, {"name", "second part 1"}});
+    // Only the kinds it holds.
+    CHECK_FALSE(reply.contains("instances"));
+}
+
+TEST_CASE("a command's target is optional, and a plate defaults to the current one", "[Mcp][Scene]")
+{
+    const auto required = [](const json& schema) {
+        std::set<std::string> out;
+        for (const json* list : {&schema, schema.contains("then") ? &schema.at("then") : nullptr})
+            if (list != nullptr)
+                for (const json& name : list->value("required", json::array()))
+                    out.insert(name.get<std::string>());
+        return out;
+    };
+    // With no object, the object selected in the Prepare view.
+    for (const char* key : {"object_set_variable_layer_height", "object_set_height_ranges", "object_transform", "part_add"}) {
+        INFO(key);
+        const NativeCommand* command = NativeCommands::find(key);
+        REQUIRE(command != nullptr);
+        CHECK(command->input_schema.at("properties").contains("object"));
+        CHECK(required(command->input_schema).count("object") == 0);
+    }
+    // With no plate, the current plate.
+    for (const NativeCommand& command : NativeCommands::instance().commands()) {
+        INFO(command.key);
+        CHECK(required(command.input_schema).count("plate") == 0);
     }
 }
 
 namespace {
 
 // What the object list gives a new range: the object's layer height and its filament ("Default").
-DynamicPrintConfig new_range_config()
+DynamicPrintConfig new_range_config(double layer_height = 0.2)
 {
     DynamicPrintConfig config;
-    config.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+    config.set_key_value("layer_height", new ConfigOptionFloat(layer_height));
     config.set_key_value("extruder", new ConfigOptionInt(0));
     return config;
 }
 
-// set_height_ranges' parse on a two-filament printer whose layer heights are 0.08-0.28.
-t_layer_config_ranges parse_ranges(const json& ranges)
+// object_set_height_ranges' parse of `ranges` for an object that has `current`.
+t_layer_config_ranges parse_ranges(const json& ranges, const t_layer_config_ranges& current = {})
 {
-    return Mcp::layer_config_ranges_from_json(ranges, new_range_config(), 2, [](int) { return std::make_pair(0.08, 0.28); });
+    return Mcp::layer_config_ranges_from_json(ranges, current, new_range_config());
 }
 
-json range(double min_z, double max_z, json values = json::object())
+json range(double min_z, double max_z)
 {
-    return {{"min_z", min_z}, {"max_z", max_z}, {"values", std::move(values)}};
+    return {{"min_z", min_z}, {"max_z", max_z}};
 }
 
 } // namespace
 
 TEST_CASE("height ranges are checked before the object changes", "[Mcp][Scene][Layers]")
 {
-    // Sorted by height; touching ranges are fine; each starts from the new-range config.
-    const t_layer_config_ranges ranges = parse_ranges(
-        json::array({range(10, 20, {{"sparse_infill_density", "25%"}}), range(0, 10, {{"layer_height", 0.12}, {"extruder", "2"}})}));
+    // Sorted by height; touching ranges are fine; each new one starts from the new-range config.
+    const t_layer_config_ranges ranges = parse_ranges(json::array({range(10, 20), range(0, 10)}));
     REQUIRE(ranges.size() == 2);
     const auto& [low, low_config]   = *ranges.begin();
     const auto& [high, high_config] = *std::next(ranges.begin());
     CHECK(low == t_layer_height_range(0., 10.));
     CHECK(high == t_layer_height_range(10., 20.));
-    CHECK_THAT(low_config.opt_float("layer_height"), WithinAbs(0.12, 1e-9));
-    CHECK(low_config.opt_int("extruder") == 2);
-    CHECK_THAT(high_config.opt_float("layer_height"), WithinAbs(0.2, 1e-9));
-    CHECK(high_config.opt_int("extruder") == 0);
-    CHECK(high_config.opt_serialize("sparse_infill_density") == "25%");
+    CHECK_THAT(low_config.opt_float("layer_height"), WithinAbs(0.2, 1e-9));
+    CHECK(low_config.opt_int("extruder") == 0);
+    CHECK(high_config.get() == new_range_config());
     CHECK(parse_ranges(json::array()).empty());
 
     // An overlap names both ranges, whatever order they come in.
@@ -888,29 +1403,72 @@ TEST_CASE("height ranges are checked before the object changes", "[Mcp][Scene][L
     CHECK_THROWS_AS(parse_ranges(json::array({range(6, 5)})), ToolFailure);
     CHECK_THROWS_AS(parse_ranges(json::array({range(-1, 5)})), ToolFailure);
     CHECK_THROWS_AS(parse_ranges(json::array({json{{"min_z", 0}}})), ToolFailure);
+}
 
-    // A layer height given is checked against the printer's, with the range's filament.
-    int asked = -1;
+TEST_CASE("a range that stays keeps its settings, and a new one starts from the object's layer height", "[Mcp][Scene][Layers]")
+{
+    // A range is min_z and max_z; its settings are the settings tools' target height_range.
+    const NativeCommand* set_ranges = NativeCommands::find("object_set_height_ranges");
+    REQUIRE(set_ranges != nullptr);
+    const json& item = set_ranges->input_schema.at("properties").at("ranges").at("items");
+    CHECK(item.at("properties").contains("min_z"));
+    CHECK(item.at("properties").contains("max_z"));
+    CHECK_FALSE(item.at("properties").contains("values"));
+    json with_values{{"object", 0}, {"ranges", json::array({{{"min_z", 0}, {"max_z", 5}, {"values", {{"wall_loops", 3}}}}})}};
+    CHECK_THAT(Mcp::argument_error(*set_ranges, with_values), ContainsSubstring("unknown argument ranges[0].values"));
+
+    Model        model;
+    ModelObject* object = model.add_object();
+    object->add_volume(make_cube(20., 20., 20.), ModelVolumeType::MODEL_PART, false);
+    object->add_instance();
+    DynamicPrintConfig fine = new_range_config(0.12);
+    fine.set_key_value("sparse_infill_density", new ConfigOptionPercent(40));
+    fine.set_key_value("extruder", new ConfigOptionInt(2));
+    object->layer_config_ranges[{0., 5.}].assign_config(std::move(fine));
+    object->layer_config_ranges[{5., 10.}].assign_config(new_range_config(0.28));
+
+    // [0, 5] stays; [5, 10] goes and [5, 12] comes, at the object's layer height (0.16 here).
+    const t_layer_config_ranges after = Mcp::layer_config_ranges_from_json(json::array({range(0, 5), range(5, 12)}),
+                                                                           object->layer_config_ranges, new_range_config(0.16));
+    REQUIRE(after.size() == 2);
+    const auto& [kept, kept_config]   = *after.begin();
+    const auto& [added, added_config] = *std::next(after.begin());
+    CHECK(kept == t_layer_height_range(0., 5.));
+    CHECK(kept_config.get() == object->layer_config_ranges.at({0., 5.}).get());
+    CHECK_THAT(kept_config.opt_float("layer_height"), WithinAbs(0.12, 1e-9));
+    CHECK(kept_config.opt_serialize("sparse_infill_density") == "40%");
+    CHECK(kept_config.opt_int("extruder") == 2);
+    CHECK(added == t_layer_height_range(5., 12.));
+    CHECK(added_config.get() == new_range_config(0.16));
+}
+
+TEST_CASE("a height range's layer height is checked against the printer's for the range's filament", "[Mcp][Scene][Layers]")
+{
+    int        asked  = -1;
     const auto bounds = [&asked](int extruder) {
         asked = extruder;
         return std::make_pair(0.08, 0.28);
     };
-    CHECK_THROWS_WITH(Mcp::layer_config_ranges_from_json(json::array({range(0, 5, {{"layer_height", 0.4}, {"extruder", 2}})}),
-                                                         new_range_config(), 2, bounds),
+    DynamicPrintConfig range = new_range_config();
+    range.set_key_value("extruder", new ConfigOptionInt(2));
+    DynamicPrintConfig thick;
+    thick.set_key_value("layer_height", new ConfigOptionFloat(0.4));
+    CHECK_THROWS_WITH(Mcp::check_height_range_layer_height(thick, range, bounds),
                       ContainsSubstring("layer_height 0.4 is outside this printer's 0.08-0.28"));
     CHECK(asked == 2);
-    // The object's layer height a range starts from is not checked, as the range editor checks only what is typed.
-    DynamicPrintConfig thick = new_range_config();
-    thick.set_key_value("layer_height", new ConfigOptionFloat(0.4));
-    CHECK(Mcp::layer_config_ranges_from_json(json::array({range(0, 5)}), thick, 2, bounds).size() == 1);
-
-    // Filaments are 0 (the object's) up to the slot count.
-    CHECK_THROWS_WITH(parse_ranges(json::array({range(0, 5, {{"extruder", 3}})})), ContainsSubstring("1-2"));
-    CHECK_THROWS_AS(parse_ranges(json::array({range(0, 5, {{"extruder", -1}})})), ToolFailure);
-    // Values are parsed strictly.
-    CHECK_THROWS_WITH(parse_ranges(json::array({range(0, 5, {{"sparse_infill_density", "lots"}})})),
-                      ContainsSubstring("Invalid value for sparse_infill_density"));
-    CHECK_THROWS_AS(parse_ranges(json::array({range(0, 5, {{"wall_loops", nullptr}})})), ToolFailure);
+    // With the filament given beside it, that filament's.
+    thick.set_key_value("extruder", new ConfigOptionInt(1));
+    CHECK_THROWS_AS(Mcp::check_height_range_layer_height(thick, range, bounds), ToolFailure);
+    CHECK(asked == 1);
+    DynamicPrintConfig fine;
+    fine.set_key_value("layer_height", new ConfigOptionFloat(0.12));
+    CHECK_NOTHROW(Mcp::check_height_range_layer_height(fine, range, bounds));
+    // A call that gives no layer height checks none: the range editor checks only what is typed.
+    asked = -1;
+    DynamicPrintConfig infill;
+    infill.set_key_value("sparse_infill_density", new ConfigOptionPercent(40));
+    CHECK_NOTHROW(Mcp::check_height_range_layer_height(infill, new_range_config(0.4), bounds));
+    CHECK(asked == -1);
 }
 
 TEST_CASE("range settings take the keys the range settings page offers", "[Mcp][Scene][Layers]")
@@ -924,23 +1482,11 @@ TEST_CASE("range settings take the keys the range settings page offers", "[Mcp][
         CHECK_FALSE(has(two, key));
     // With one filament the object list offers no per-feature filament.
     CHECK_FALSE(has(Mcp::layer_range_option_keys(1), "sparse_infill_filament_id"));
-
-    try {
-        parse_ranges(json::array({range(0, 5, {{"enable_support", true}})}));
-        FAIL("an object setting was accepted for a range");
-    } catch (const ToolFailure& e) {
-        CHECK_THAT(e.what(), ContainsSubstring("not a height range setting"));
-    }
-    try {
-        parse_ranges(json::array({range(0, 5, {{"sparse_infill_dens", "20%"}})}));
-        FAIL("an unknown key was accepted");
-    } catch (const ToolFailure& e) {
-        REQUIRE(e.details.contains("similar"));
-        CHECK(std::find(e.details["similar"].begin(), e.details["similar"].end(), json("sparse_infill_density")) != e.details["similar"].end());
-    }
+    // What a height range takes as a target is these.
+    CHECK(Mcp::target_options("height_range", 2) == two);
 }
 
-TEST_CASE("list_objects reports an object's height ranges", "[Mcp][Scene][Layers]")
+TEST_CASE("object_list reports an object's height ranges", "[Mcp][Scene][Layers]")
 {
     Model        model;
     ModelObject* object = model.add_object();
@@ -948,7 +1494,10 @@ TEST_CASE("list_objects reports an object's height ranges", "[Mcp][Scene][Layers
     object->add_instance();
     CHECK_FALSE(Mcp::object_info(*object, 0).contains("layer_config_ranges"));
 
-    object->layer_config_ranges = parse_ranges(json::array({range(15, 30, {{"sparse_infill_density", "40%"}}), range(0, 15, {{"layer_height", 0.12}})}));
+    DynamicPrintConfig open = new_range_config();
+    open.set_key_value("sparse_infill_density", new ConfigOptionPercent(40));
+    object->layer_config_ranges[{15., 30.}].assign_config(std::move(open));
+    object->layer_config_ranges[{0., 15.}].assign_config(new_range_config(0.12));
     const json info = Mcp::object_info(*object, 0);
     REQUIRE(info["layer_config_ranges"].size() == 2);
     const json& low = info["layer_config_ranges"][0];
@@ -959,8 +1508,11 @@ TEST_CASE("list_objects reports an object's height ranges", "[Mcp][Scene][Layers
     // Ranges are not the object's own overrides.
     CHECK(info["overrides"].empty());
 
-    // What list_objects shows can be given back unchanged.
-    const t_layer_config_ranges again = parse_ranges(info["layer_config_ranges"]);
+    // Its ranges given back, each its min_z and max_z, keep every range with its settings.
+    json bounds = json::array();
+    for (const json& listed : info["layer_config_ranges"])
+        bounds.push_back(range(listed["min_z"].get<double>(), listed["max_z"].get<double>()));
+    const t_layer_config_ranges again = parse_ranges(bounds, object->layer_config_ranges);
     REQUIRE(again.size() == object->layer_config_ranges.size());
     for (auto a = again.cbegin(), b = object->layer_config_ranges.cbegin(); a != again.cend(); ++a, ++b) {
         CHECK(a->first == b->first);
@@ -968,7 +1520,7 @@ TEST_CASE("list_objects reports an object's height ranges", "[Mcp][Scene][Layers
     }
 }
 
-TEST_CASE("list_objects reports a variable layer height profile as the object list does", "[Mcp][Scene][Layers]")
+TEST_CASE("object_list reports a variable layer height profile as the object list does", "[Mcp][Scene][Layers]")
 {
     // [z0, h0, z1, h1, ...]: the object list marks no flat bottom-to-top pair as variable. Heights are
     // rounded to 0.001 mm.
@@ -1000,7 +1552,9 @@ TEST_CASE("list_objects reports a variable layer height profile as the object li
     // What Smooth stores on an object without a profile: the profile its height ranges give, smoothed,
     // so the ranges' heights bound it.
     object->layer_height_profile.clear();
-    object->layer_config_ranges = parse_ranges(json::array({range(0, 10, {{"layer_height", 0.1}}), range(10, 20, {{"layer_height", 0.25}})}));
+    object->layer_config_ranges.clear();
+    object->layer_config_ranges[{0., 10.}].assign_config(new_range_config(0.1));
+    object->layer_config_ranges[{10., 20.}].assign_config(new_range_config(0.25));
     std::vector<double> from_ranges;
     PrintObject::update_layer_height_profile(*object, params, from_ranges);
     object->layer_height_profile.set(smooth_height_profile(from_ranges, params, HeightProfileSmoothingParams()));
@@ -1012,7 +1566,7 @@ TEST_CASE("list_objects reports a variable layer height profile as the object li
     within(profile);
 }
 
-TEST_CASE("layer code types have the names list_plates reads", "[Mcp][Scene][Layers]")
+TEST_CASE("layer code types have the names plate_list reads", "[Mcp][Scene][Layers]")
 {
     for (const auto& [name, type] : std::vector<std::pair<std::string, CustomGCode::Type>>{{"pause", CustomGCode::PausePrint},
                                                                                          {"custom", CustomGCode::Custom},

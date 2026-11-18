@@ -126,17 +126,17 @@ std::pair<std::string, std::string> replay_what_text(const json& what, const Com
         const std::string               key     = what.value("key", "");
         const auto*       command = catalog.find(key);
         // Titled as its tile is, so a Design command's step reads as the Design tab names its tool; a call that is
-        // a folded row's tile, as that row.
+        // a folded row's tile, as that row, with the value a tile that collects one was given.
+        const std::string args = what.contains("args") ? join(what["args"]) : std::string();
         if (what.contains("tile")) {
             const auto [owner, tile] = find_tile(catalog, what.value("tile", ""));
             if (tile != nullptr && owner == command) {
                 const std::string title   = tile->at("title").get<std::string>();
                 const char*       context = title_context(*owner);
-                return {into_u8(context != nullptr ? I18N::translate(title, context) : I18N::translate(title)), {}};
+                return {into_u8(context != nullptr ? I18N::translate(title, context) : I18N::translate(title)), args};
             }
         }
-        return {command != nullptr ? into_u8(NativeCommands::tile_title(*command)) : key,
-                what.contains("args") ? join(what["args"]) : std::string()};
+        return {command != nullptr ? into_u8(NativeCommands::tile_title(*command)) : key, args};
     }
     if (kind == "recent_project" || kind == "preset")
         return {what.value("name", ""), {}};
@@ -855,7 +855,7 @@ json ActionReplayDialog::step_view(const json& entry) const
 
     const json result = entry.value("result", json());
     json       lines  = json::array();
-    if (tool == "run_script" && result.is_object()) {
+    if (tool == "script_run" && result.is_object()) {
         // What the script printed, then what it returned.
         std::istringstream output(result.value("output", std::string()));
         std::string        line;
@@ -891,7 +891,7 @@ json ActionReplayDialog::step_view(const json& entry) const
     json files = json::array();
     for (const std::string& path : Mcp::result_files(result))
         files.push_back({{"path", path}, {"name", Mcp::path_to_utf8(Mcp::path_from_utf8(path).filename())}});
-    if (tool == "screenshot" && !files.empty())
+    if (tool == "window_screenshot" && !files.empty())
         if (const std::string url = thumbnail(files[0]["path"].get<std::string>()); !url.empty())
             view["thumbnail"] = url;
     view["files"] = std::move(files);

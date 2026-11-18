@@ -72,26 +72,26 @@ def main():
         return predicate()
 
     def tree():
-        _, texts = client.call_with_text("list_widgets", max_nodes=3000)
+        _, texts = client.call_with_text("widget_list", max_nodes=3000)
         return "\n".join(texts)
 
     def switch_to(label, tab):
-        """Clicks Home's tab (the first, with no label), then the tab `label`, and waits for get_app_state's tab."""
+        """Clicks Home's tab (the first, with no label), then the tab `label`, and waits for app_state's tab."""
         tabs = tree()
         home = re.search(r"\[(w\d+)\] tab \[", tabs)
         page = re.search(rf'\[(w\d+)\] tab "{re.escape(label)}"', tabs)
-        client.call("click", target=home.group(1))
-        wait_for(lambda: client.call("get_app_state")["tab"] == "home", 10)
-        client.call("click", target=page.group(1))
-        return wait_for(lambda: client.call("get_app_state")["tab"] == tab, 10)
+        client.call("widget_click", target=home.group(1))
+        wait_for(lambda: client.call("app_state")["tab"] == "home", 10)
+        client.call("widget_click", target=page.group(1))
+        return wait_for(lambda: client.call("app_state")["tab"] == tab, 10)
 
     def dial():
-        """The Speed Dial as list_windows gives it: the shown web dialog with no title."""
-        return next((w for w in client.call("list_windows")["items"]
+        """The Speed Dial as window_list gives it: the shown web dialog with no title."""
+        return next((w for w in client.call("window_list")["items"]
                      if w.get("kind") == "dialog" and w.get("web") and not w.get("title")), None)
 
     pages = [("Prepare", "prepare")]
-    if client.call("get_app_state").get("design_tab"):
+    if client.call("app_state").get("design_tab"):
         pages.append(("Design", "design"))
     pages.append(("Preview", "preview"))
 
@@ -100,7 +100,7 @@ def main():
         check(f"{label}: the tab is shown", switch_to(label, tab))
         focused = [line.strip() for line in tree().splitlines() if "[focused]" in line]
         check(f"{label}: its 3D view holds the keyboard focus", focused and "name=OrcaSceneCanvas" in focused[0], focused)
-        client.call("press_keys", keys="Space")
+        client.call("keyboard_press", keys="Space")
         opened = wait_for(dial, 10)
         check(f"{label}: Space opens the Speed Dial", opened)
         if not opened:
@@ -118,7 +118,7 @@ def main():
                 # A title bar adds a few dozen pixels; the margin covers rounding at a fractional scale.
                 check("KWin draws no title bar on the dial", frame[2] <= opened["height"] + 2,
                       f"KWin's frame {frame}, the dial {opened['width']}x{opened['height']}")
-        client.call("press_keys", keys="Escape", target=opened["ref"])
+        client.call("keyboard_press", keys="Escape", target=opened["ref"])
         check(f"{label}: Escape closes the Speed Dial", wait_for(lambda: dial() is None, 10))
 
     failed = [c for c in checks if not c[1]]

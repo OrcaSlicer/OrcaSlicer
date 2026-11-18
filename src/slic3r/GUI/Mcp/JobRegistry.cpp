@@ -49,7 +49,7 @@ std::string JobRegistry::register_job(const std::string& tool, const std::string
     std::lock_guard<std::mutex> lock(m_mutex);
     const std::size_t running = std::count_if(m_jobs.begin(), m_jobs.end(), [](const auto& kv) { return !kv.second.finished; });
     if (running >= kMaxRunning)
-        throw ToolFailure("Too many running jobs; wait for some to finish (see get_app_state.jobs)");
+        throw ToolFailure("Too many running jobs; wait for some to finish (see app_state.jobs)");
     std::string id = "j" + std::to_string(m_next++);
     Job job;
     job.tool    = tool;

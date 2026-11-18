@@ -12,7 +12,7 @@
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
-// For a call of call_tool ({tool, args}): replaces `command` and `args` with its target's, normalized and
+// For a call of tool_call ({tool, args}): replaces `command` and `args` with its target's, normalized and
 // validated, so the call runs and is journaled as the target's own. Returns an error message, or "" (also
 // for any other command, which it leaves as it is).
 std::string resolve_call(const CommandCatalog& catalog, std::shared_ptr<const NativeCommand>& command, nlohmann::json& args);
@@ -20,22 +20,28 @@ std::string resolve_call(const CommandCatalog& catalog, std::shared_ptr<const Na
 // ---- arguments and name matching (McpArguments.cpp) ------------------------------------------
 
 // Validates `args` against the subset of JSON Schema the tool catalog uses (object properties with
-// type, enum, minimum/maximum, required, additionalProperties:false, array items, and the
-// "if": {"minProperties": 1}, "then": {"required": [...]} of with_silent()). Returns an empty string when
-// valid, else a message naming the offending property.
+// type, enum, minimum/maximum, required, additionalProperties:false, array items, and the "if" and "then"
+// of with_silent()). Returns an empty string when valid, else a message naming the offending property.
 std::string validate_arguments(const nlohmann::json& schema, const nlohmann::json& args);
 
-// Whether `args` asks for a command's person's form: an object with no members, or null. A command that has
-// a person's form and a silent one does the person's then (it asks, as a person's pick does), and the
-// silent one when it is given any argument.
+// Whether `args` is a call with no arguments: an object with no members, or null. A Design command and a menu
+// row's function do their person's form then (they ask, as a person's pick does).
 bool person_form(const nlohmann::json& args);
+// The arguments of each of `command`'s person's forms: {} for its own tile (in_palette), and the args of each item
+// of its tiles that collects no value (no input), in their order.
+std::vector<nlohmann::json> person_forms(const NativeCommand& command);
+// Whether `args`, null as {}, are a person's form of `command`: exactly the arguments of one of person_forms(). Such
+// a call does what a person's pick of that tile does, and may ask; any other call is its silent form.
+bool person_form(const NativeCommand& command, const nlohmann::json& args);
 // `args` without `silent`, which only chooses the silent form.
 nlohmann::json silent_args(nlohmann::json args);
 // The schema of a two-form command from its silent form's `schema`: it gains the property `silent`, which
-// takes only true and asks for the silent form with its defaults, and a top-level `required` list moves to
-// "if": {"minProperties": 1}, "then": {"required": [...]}, since the call with no arguments, the person's
-// form, needs none of them.
-nlohmann::json with_silent(nlohmann::json schema);
+// takes only true and asks for the silent form with its defaults, described by what that form still requires and by
+// which calls are the person's forms (none, a tile's arguments, or both), and a top-level `required` list moves under
+// "then", with an "if" that holds for every call but the person's forms, `person_args` (never empty), so that a
+// person's form needs none of them: {"minProperties": 1} where the only one is the call with no arguments, else
+// {"not": {"enum": [<each of person_args>]}}.
+nlohmann::json with_silent(nlohmann::json schema, const std::vector<nlohmann::json>& person_args = {nlohmann::json::object()});
 
 // Readies a call's arguments for `command`, as every caller of a command does: normalizes `args` in place
 // (normalize_arguments()) and returns why validate_arguments() refuses them; empty when they are valid.
@@ -45,10 +51,11 @@ std::string argument_error(const NativeCommand& command, nlohmann::json& args);
 // argument under a name the tool does not take but that stands for one it does, which the call leaves
 // out and the value fits (ref for target, key for keys, text for value, action for id or button, object for objects,
 // plate for plates, filter for query, settings for values, path for save_path, index for feature, params or
-// values for fields), a value written in
+// values for fields, and type for the one argument that picks a command's variant where that has another name, as
+// project_export's format, when it takes exactly one such and no type), a value written in
 // another JSON form (a number, boolean, array or object as a string, a single item for an array),
-// a value outside its argument's enum that only one omitted argument's enum takes (set_view's canvas
-// "front" as camera), and the x and y, or width and height, that list_windows reports, both given, as
+// a value outside its argument's enum that only one omitted argument's enum takes (view_set's canvas
+// "front" as camera), and the x and y, or width and height, that window_list reports, both given, as
 // the position or size array of a tool that takes that array, of integers, and neither part. Anything
 // that still does not fit is left for validate_arguments to report.
 void normalize_arguments(const nlohmann::json& schema, nlohmann::json& args);

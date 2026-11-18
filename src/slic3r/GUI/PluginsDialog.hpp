@@ -2,6 +2,7 @@
 #define slic3r_PluginsDialog_hpp_
 
 #include "Widgets/WebViewHostDialog.hpp"
+#include "Operations/Outcome.hpp"
 #include "PluginSort.hpp"
 
 #include <atomic>
@@ -55,7 +56,14 @@ void open_plugin_hub();
 // responsive by performing the install on a worker behind a modal progress dialog. `parent` owns
 // the overwrite prompt and the progress dialog. On success `message` carries the localized
 // confirmation; on a user-cancelled overwrite it is empty; on failure it carries the reason.
-bool install_local_plugin_package(const boost::filesystem::path& package_file, wxWindow* parent, wxString& message);
+// `overwrite` answers the overwrite prompt for a plugin installed already: none asks the person;
+// false installs nothing, with the prompt's question as the reason, in `message` and in `refused`
+// where it is given; true replaces the plugin.
+bool install_local_plugin_package(const boost::filesystem::path& package_file,
+                                  wxWindow*                      parent,
+                                  wxString&                      message,
+                                  std::optional<bool>            overwrite = std::nullopt,
+                                  std::optional<Ops::Refusal>*   refused   = nullptr);
 
 namespace detail {
 
@@ -287,6 +295,8 @@ private:
     void unsubscribe_cloud_plugin(const Slic3r::PluginDescriptor& plugin);
     void reload_local_plugin(const std::string& plugin_key, bool clear_cache);
     void reinstall_cloud_plugin(const Slic3r::PluginDescriptor& plugin);
+    // Runs a reload's `work` behind the Reloading plugin progress dialog; what it throws is its refusal.
+    Ops::Outcome<Ops::Done> run_reload(const std::function<Ops::Outcome<Ops::Done>()>& work);
 
     // In the future, we can allow users to choose which plugin version they want to install.
     template<typename Run, typename OnFinish>

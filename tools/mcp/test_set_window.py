@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Checks set_window: the size, position and state of the main window, a window that doesn't block, and a
-modal dialog, with the read side that list_windows and get_app_state give.
+"""Checks window_set: the size, position and state of the main window, a window that doesn't block, and a
+modal dialog, with the read side that window_list and app_state give.
 
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_set_window.py
@@ -12,7 +12,7 @@ minimized and restored, after which the 3D view still captures, and minimized wh
 state normal and a size both bring it back to normal; on Wayland those checks are skipped, as a compositor
 brings a minimized window back only by activating the app. A request that contradicts itself is
 refused before anything changes. The Plugins window is sized and moved by its ref, which fails, pointing to
-list_windows, once the window has closed. Preferences, a modal dialog, is sized as "dialog" and moved by its
+window_list, once the window has closed. Preferences, a modal dialog, is sized as "dialog" and moved by its
 {label} locator, and never minimized; on X11 the main window, minimized, restored and raised while it is
 open, stays under it in the X server's stacking order. A check that this window system or display can't run
 here is reported SKIP, with why, and doesn't fail the test: it exits 0 when no check fails.
@@ -101,7 +101,7 @@ def main():
         skipped.append((name, why))
 
     def windows():
-        return client.call("list_windows").get("items", [])
+        return client.call("window_list").get("items", [])
 
     def find(title):
         return next((w for w in windows() if w.get("title") == title), None)
@@ -119,34 +119,34 @@ def main():
         return predicate()
 
     def refusal(**args):
-        """The error message of a set_window call that fails, or None when it succeeds."""
+        """The error message of a window_set call that fails, or None when it succeeds."""
         try:
-            client.call("set_window", **args)
+            client.call("window_set", **args)
         except orca_mcp.McpError as e:
             return str(e)
         return None
 
-    client.call("new_project", discard_changes=True)
-    client.call("set_view", tab="prepare")
-    state = client.call("get_app_state")
+    client.call("project_new", discard_changes=True)
+    client.call("view_set", tab="prepare")
+    state = client.call("app_state")
     wayland = state.get("display_backend") == "wayland"
 
     # 1. Size.
-    sized = client.call("set_window", size=[1400, 900])
+    sized = client.call("window_set", size=[1400, 900])
     check("size: the reply has the size asked for", sized.get("size") == [1400, 900], sized)
     check("size: the window is in its normal state", sized.get("state") == "normal", sized)
     entry = main_entry()
-    check("size: list_windows reports it", (entry.get("width"), entry.get("height")) == (1400, 900), entry)
+    check("size: window_list reports it", (entry.get("width"), entry.get("height")) == (1400, 900), entry)
     # A second size from the normal state. Taking a normal window out of a maximize it isn't in makes a
     # Wayland compositor send it its current size, which replaced the one asked for.
-    again = client.call("set_window", size=[1300, 820])
+    again = client.call("window_set", size=[1300, 820])
     check("a second size: the reply has it", again.get("size") == [1300, 820], again)
     entry = main_entry()
-    check("a second size: list_windows reports it", (entry.get("width"), entry.get("height")) == (1300, 820), entry)
+    check("a second size: window_list reports it", (entry.get("width"), entry.get("height")) == (1300, 820), entry)
     if wayland:
         # The size is the window as the compositor shows it, which a window screenshot captures; the shadow
         # GTK draws around it is not part of it.
-        shot = client.call("screenshot", target="main", include_image=False)
+        shot = client.call("window_screenshot", target="main", include_image=False)
         scale = again.get("scale", 1)
         check("a second size: a window screenshot is that size", (shot.get("width"), shot.get("height")) ==
               (round(1300 * scale), round(820 * scale)), f"{shot} / {again}")
@@ -154,27 +154,27 @@ def main():
     # 2. Position.
     if wayland:
         skip("position: the window is moved and placed over its work area", "Wayland takes no position")
-        window = client.call("get_app_state").get("window", {})
-        check("position: get_app_state reports none on Wayland", "position" not in window, window)
+        window = client.call("app_state").get("window", {})
+        check("position: app_state reports none on Wayland", "position" not in window, window)
     else:
-        client.call("set_window", position=[40, 30])
-        window = client.call("get_app_state").get("window", {})
-        check("position: get_app_state reports it", window.get("position") == [40, 30], window)
+        client.call("window_set", position=[40, 30])
+        window = client.call("app_state").get("window", {})
+        check("position: app_state reports it", window.get("position") == [40, 30], window)
         # The display's work area, given as a place and a size, is taken as it is: a window manager keeps a
         # window that fits it there, and with none the window goes exactly there.
         area = sized.get("display", {})
-        filled = client.call("set_window", position=[area.get("x", 0), area.get("y", 0)],
+        filled = client.call("window_set", position=[area.get("x", 0), area.get("y", 0)],
                              size=[area.get("width", 0), area.get("height", 0)])
         check("position and size: the window fills the display's work area",
               filled.get("position") == [area.get("x"), area.get("y")] and filled.get("size") == [area.get("width"), area.get("height")],
               f"{filled} / {area}")
 
     # 3. Maximize.
-    maximized = client.call("set_window", state="maximized")
+    maximized = client.call("window_set", state="maximized")
     check("maximize: the reply says maximized", maximized.get("state") == "maximized", maximized)
 
     # 4. A size while maximized restores the window first.
-    resized = client.call("set_window", size=[1300, 850])
+    resized = client.call("window_set", size=[1300, 850])
     check("a size while maximized: the window is restored", resized.get("state") == "normal", resized)
     check("a size while maximized: and given the size", resized.get("size") == [1300, 850], resized)
 
@@ -189,32 +189,32 @@ def main():
         skip("a window minimized while maximized", why)
     else:
         start = time.time()
-        minimized = client.call("set_window", state="minimized")
+        minimized = client.call("window_set", state="minimized")
         took = time.time() - start
         check("minimize: returns within 5 s", took < 5, f"{took:.1f} s: {minimized}")
         check("minimize: the reply says minimized", minimized.get("state") == "minimized", minimized)
-        restored = client.call("set_window", state="normal")
+        restored = client.call("window_set", state="normal")
         check("restore: the reply says normal", restored.get("state") == "normal", restored)
         try:
-            shot = client.call("screenshot", target="canvas", include_image=False)
+            shot = client.call("window_screenshot", target="canvas", include_image=False)
             check("restore: the 3D view captures", shot.get("width", 0) > 0, shot)
         except orca_mcp.McpError as e:
             check("restore: the 3D view captures", False, str(e))
 
         # 5b. A window minimized while maximized comes back to normal, not to maximized: through state normal,
         # and through a size, which restores it first.
-        client.call("set_window", state="maximized")
-        client.call("set_window", state="minimized")
-        normal = client.call("set_window", state="normal")
+        client.call("window_set", state="maximized")
+        client.call("window_set", state="minimized")
+        normal = client.call("window_set", state="normal")
         check("maximized, minimized, then normal: the reply says normal", normal.get("state") == "normal", normal)
         check("without a note that the window manager kept the request waiting", "note" not in normal, normal)
         # On macOS the window comes back from the Dock zoomed and is un-zoomed once it is back, so it must not
         # turn maximized again after the reply.
         time.sleep(1)
-        check("and list_windows still reads it normal a second later", main_entry().get("state") == "normal", main_entry())
-        client.call("set_window", state="maximized")
-        client.call("set_window", state="minimized")
-        sized = client.call("set_window", size=[1350, 880])
+        check("and window_list still reads it normal a second later", main_entry().get("state") == "normal", main_entry())
+        client.call("window_set", state="maximized")
+        client.call("window_set", state="minimized")
+        sized = client.call("window_set", size=[1350, 880])
         check("maximized, minimized, then a size: the reply says normal", sized.get("state") == "normal", sized)
         check("and has the size", sized.get("size") == [1350, 880], sized)
 
@@ -227,13 +227,13 @@ def main():
           f"{before} / {after}")
 
     # 7. A window that doesn't block, by its ref.
-    client.call("run_action", id="orca_command:open_plugins:orca")
+    client.call("action_run", id="orca_command:open_plugins:orca")
     plugins = wait_for(lambda: find("Plugins"), 15) or {}
     check("the Plugins window is listed with a ref", plugins.get("ref"), plugins)
     ref = plugins.get("ref")
     if ref:
         # Wayland takes no position.
-        placed = client.call("set_window", target=ref, size=[900, 700], **({} if wayland else {"position": [100, 100]}))
+        placed = client.call("window_set", target=ref, size=[900, 700], **({} if wayland else {"position": [100, 100]}))
         # The window's minimum height, from its layout, can be above 700 (715 at 100 % scaling): the size is
         # then held to it, and the reply lists size as adjusted.
         size = placed.get("size") or [0, 0]
@@ -243,29 +243,29 @@ def main():
         entry = find("Plugins") or {}
         got = (entry.get("width"), entry.get("height")) if wayland else (entry.get("x"), entry.get("y"), entry.get("width"), entry.get("height"))
         want = tuple(size) if wayland else tuple(placed.get("position", []) + size)
-        check("Plugins: list_windows reports the place and size the reply gives", got == want, f"{entry} / {placed}")
-        client.call("press_keys", keys="Escape", target=ref)
-        check("Plugins: press_keys Escape closes it", wait_for(lambda: find("Plugins") is None, 10), windows())
+        check("Plugins: window_list reports the place and size the reply gives", got == want, f"{entry} / {placed}")
+        client.call("keyboard_press", keys="Escape", target=ref)
+        check("Plugins: keyboard_press Escape closes it", wait_for(lambda: find("Plugins") is None, 10), windows())
 
         # 8. A ref to a window that has closed.
         error = refusal(**{"target": ref, "raise": True})
         check("a closed window's ref is refused", error is not None, error)
-        check("pointing to list_windows", error is not None and "list_windows" in error, error)
+        check("pointing to window_list", error is not None and "window_list" in error, error)
 
     # 9. A modal dialog.
-    prefs = client.call("run_action", id="orca_command:open_preferences:orca")
+    prefs = client.call("action_run", id="orca_command:open_preferences:orca")
     modal = wait_for(lambda: find("Preferences"), 15)
     check("Preferences is open", modal, windows())
     if modal:
         try:
-            dialog = client.call("set_window", target="dialog", size=[1000, 760])
-            check("dialog: set_window sizes the topmost modal dialog", True)
+            dialog = client.call("window_set", target="dialog", size=[1000, 760])
+            check("dialog: window_set sizes the topmost modal dialog", True)
             check("dialog: the reply's kind is dialog", dialog.get("kind") == "dialog", dialog)
         except orca_mcp.McpError as e:
-            check("dialog: set_window sizes the topmost modal dialog", False, str(e))
+            check("dialog: window_set sizes the topmost modal dialog", False, str(e))
         # A replay records the dialog by this locator. Wayland takes no position, so the call sizes it there.
         try:
-            moved = client.call("set_window", target={"label": "Preferences"},
+            moved = client.call("window_set", target={"label": "Preferences"},
                                 **({"size": [1000, 760]} if wayland else {"position": [60, 60]}))
             check("dialog: a {label} locator finds it", True)
             check("dialog: the reply's title is Preferences", moved.get("title") == "Preferences", moved)
@@ -280,9 +280,9 @@ def main():
             skip("dialog: the main window, restored and raised, stays under it",
                  "a Wayland session has no X server stacking order to read")
         else:
-            client.call("set_window", state="minimized")
-            client.call("set_window", state="normal")
-            client.call("set_window", **{"raise": True})
+            client.call("window_set", state="minimized")
+            client.call("window_set", state="normal")
+            client.call("window_set", **{"raise": True})
             order = x11_stacking(session.get("display") or os.environ.get("DISPLAY"))
             if order is None:
                 skip("dialog: the main window, restored and raised, stays under it",
@@ -292,27 +292,27 @@ def main():
                 check("dialog: the main window, restored and raised, stays under it",
                       title in order and "Preferences" in order and order.index(title) < order.index("Preferences"),
                       order)
-        client.call("answer_dialog", dialog={"title": "Preferences"}, button="close")
+        client.call("dialog_answer", dialog={"title": "Preferences"}, button="close")
         client.await_job(prefs)
         check("Preferences closes", find("Preferences") is None, windows())
 
     # 10. The read side.
     listed = [w for w in windows() if w.get("ref")]
-    check("list_windows: each window with a ref has state and resizable",
+    check("window_list: each window with a ref has state and resizable",
           listed and all(w.get("state") in ("normal", "maximized", "minimized") and isinstance(w.get("resizable"), bool) for w in listed),
           listed)
-    displays = client.call("get_app_state").get("displays", [])
-    check("get_app_state: displays are listed", len(displays) > 0, displays)
-    check("get_app_state: exactly one is primary", sum(1 for d in displays if d.get("primary") is True) == 1, displays)
-    check("get_app_state: each display has its work area and scale",
+    displays = client.call("app_state").get("displays", [])
+    check("app_state: displays are listed", len(displays) > 0, displays)
+    check("app_state: exactly one is primary", sum(1 for d in displays if d.get("primary") is True) == 1, displays)
+    check("app_state: each display has its work area and scale",
           all(all(k in d for k in ("index", "x", "y", "width", "height", "scale")) for d in displays), displays)
 
-    # 11. The flat form list_windows reports.
-    flat = client.call("set_window", width=1500, height=950)
+    # 11. The flat form window_list reports.
+    flat = client.call("window_set", width=1500, height=950)
     check("flat form: width and height are read as size", flat.get("size") == [1500, 950], flat)
 
     # 12. Clean-up: the size a fresh launch gives.
-    client.call("set_window", size=list(orca_mcp.WINDOW_SIZE))
+    client.call("window_set", size=list(orca_mcp.WINDOW_SIZE))
 
     failed = [c for c in checks if not c[1]]
     for name, ok, detail in checks:

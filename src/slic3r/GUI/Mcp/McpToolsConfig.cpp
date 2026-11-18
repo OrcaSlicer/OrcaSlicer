@@ -1,15 +1,22 @@
-// list_presets, select_preset, save_preset, delete_preset, get_settings, set_settings and list_plates: presets
-// are selected through the same selectors a person uses, saved and deleted through the tab, and settings change
-// through the Tab's own transaction (strict parsing, on_change callbacks, rollback on failure), or for the
-// project's and the plates' own settings through the code of their sidebar controls, dialogs and plate icons,
-// so the UI and the project stay consistent. Preferences are only read here; they change in the Preferences
-// dialog, whose handlers carry their effects.
+// preset_list, preset_select, preset_save, preset_delete, settings_list, settings_get, settings_set,
+// plate_get_settings, plate_set_settings, project_get_settings, project_set_settings and
+// plate_list: presets are selected through the same selectors a person uses, saved and deleted through the tab, and
+// settings change through the Tab's own transaction (strict parsing, on_change callbacks, rollback on failure), or
+// for the project's and the plates' own settings through the code of their sidebar controls and dialogs, so the UI
+// and the project stay consistent. The preferences have commands of their own (McpToolsPreferences.cpp). The plate
+// commands made from menu rows act on the plate a call names, else on the
+// current plate, through the plate operations (Operations/PlateOps.hpp); plate_add runs its row's function
+// (NativeCommandRows.hpp).
 
 #include "slic3r/GUI/I18N.hpp"
 #include "McpArguments.hpp"
+#include "McpTargets.hpp"
 #include "McpTools.hpp"
+#include "slic3r/GUI/ActionRegistry.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/CreatePresetsDialog.hpp"
+#include "slic3r/GUI/FilamentMapPanel.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/GUI_Factories.hpp"
@@ -17,24 +24,30 @@
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/IMSlider.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/NativeCommandRows.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/ObjectDataViewModel.hpp"
 #include "slic3r/GUI/Operations/Outcome.hpp"
 #include "slic3r/GUI/Operations/PlateOps.hpp"
 #include "slic3r/GUI/Operations/PresetOps.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/PlateSettingsDialog.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/PresetComboBoxes.hpp"
 #include "slic3r/GUI/SavePresetDialog.hpp"
 #include "slic3r/GUI/SettingsIndex.hpp"
 #include "slic3r/GUI/Tab.hpp"
 #include "slic3r/GUI/WipeTowerDialog.hpp"
+#include "slic3r/GUI/format.hpp"
 
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/FlushVolCalc.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/ParameterUtils.hpp"
 #include "libslic3r/Point.hpp"
@@ -42,8 +55,10 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/libslic3r.h"
 
 #include <wx/dataview.h>
+#include <wx/defs.h>
 #include <wx/event.h>
 #include <wx/string.h>
 
@@ -55,6 +70,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <exception>
+#include <functional>
 #include <initializer_list>
 #include <iterator>
 #include <limits>
@@ -95,7 +111,7 @@ PresetCollection& collection(Preset::Type type)
     }
 }
 
-// The settings of a preset type, as its tab and set_settings take them.
+// The settings of a preset type, as its tab and settings_set take them.
 const std::vector<std::string>& preset_options(Preset::Type type)
 {
     return type == Preset::TYPE_PRINT ? Preset::print_options() : type == Preset::TYPE_FILAMENT ? Preset::filament_options() : Preset::printer_options();
@@ -141,7 +157,7 @@ const char* type_name(ConfigOptionType type)
     }
 }
 
-// Option keys whose key or label contains `query`, for "did you mean" and for get_settings' query.
+// Option keys whose key or label contains `query`, for "did you mean".
 std::vector<std::string> search_keys(const std::string& query, const std::vector<std::string>& within, std::size_t limit)
 {
     const std::string q = lower(query);
@@ -175,37 +191,26 @@ std::map<std::string, std::string> setting_places(Preset::Type type)
 // name no preset has.
 json similar_presets(const PresetCollection& presets, const std::string& name) { return Ops::similar_preset_names(presets, name); }
 
-// What select_preset replies when a preset operation refuses: the hint an agent can act on, and the names
-// under the key each refusal has had here.
-ToolFailure preset_refused(const Ops::Refusal& refusal)
-{
-    const std::string code = refusal.code;
-    if (code == "preset_not_offered")
-        return refused(refusal, "See list_presets.", "similar");
-    if (code == "ambiguous_hidden_preset")
-        return refused(refusal, "", "presets");
-    if (code == "preset_incompatible")
-        return refused(refusal, "list_presets include_incompatible lists such presets.");
-    if (code == "transfer_not_offered")
-        return refused(refusal, "Pass preset_changes: \"discard\", or save_preset first.");
-    return refused(refusal);
-}
-
+// The settings a call reads or writes: a type's preset (target global), an object's, a part's or a height range's
+// overrides, or the project's own settings.
 struct ConfigTarget
 {
-    Preset::Type        type = Preset::TYPE_INVALID; // preset scopes
+    Preset::Type        type = Preset::TYPE_INVALID; // a type's preset
     const Preset*       preset = nullptr;            // the preset read: the one being edited, or a saved one
     bool                edited = false;              // config is the edited preset's, unsaved changes included
-    ModelObject*        object = nullptr;            // object/volume scopes
+    std::string         target = "global";           // the targets object, part and height_range
+    ModelObject*        object = nullptr;
     ModelVolume*        volume = nullptr;
     int                 object_index = -1;
-    bool                project = false;             // the project scope, read from `owned`
+    std::optional<t_layer_height_range> range;       // the height range's heights, a key of the object's ranges
+    Targets             named;                       // what the reply names: the object, or the part
+    bool                project = false;             // the project's settings, read from `owned`
     std::shared_ptr<const DynamicPrintConfig> owned;
     const DynamicPrintConfig* config = nullptr;
-    std::vector<std::string>  options; // keys valid in this scope
+    std::vector<std::string>  options; // the keys these settings have
 };
 
-// The project scope: the project's own settings (PresetBundle::project_config) that a person sets in the
+// The project's settings: the project's own settings (PresetBundle::project_config) that a person sets in the
 // sidebar, on the canvas or in their dialogs, and the filament slot facts they depend on, which are set
 // elsewhere and listed for reading only.
 bool project_key_read_only(const std::string& key)
@@ -223,47 +228,55 @@ std::vector<std::string> project_options()
     return keys;
 }
 
-// The scopes get_settings looks through when keys or a query come without one: the process, filament and printer
+// The types settings_get looks through when keys or a query come without one: the process, filament and printer
 // settings being edited, since a question about an effect rarely knows which tab answers it.
-const char* const kSearchScopes[]{"process", "filament", "printer"};
+const char* const kSearchTypes[]{"process", "filament", "printer"};
 
-// The scope `key` is a setting of, for a call that named it where it isn't one: the first of kSearchScopes that has
-// it, else the project's; empty when none does. UI thread.
-std::string scope_of_key(const std::string& key)
+// Where `key` is a setting, for a call that named it where it isn't one: the first of kSearchTypes that has it, else
+// "project" for the project's own settings; empty when none does. UI thread, but for a key that names no config option,
+// which is no project setting either, and is answered without the app.
+std::string type_of_key(const std::string& key)
 {
-    for (const char* scope : kSearchScopes)
-        if (const std::vector<std::string>& options = preset_options(preset_type(scope));
+    for (const char* type : kSearchTypes)
+        if (const std::vector<std::string>& options = preset_options(preset_type(type));
             std::find(options.begin(), options.end(), key) != options.end())
-            return scope;
+            return type;
+    // The project's nozzle flow types, read and set with the printer's settings (resolve_target()).
+    if (key == "nozzle_volume_type")
+        return "printer";
+    if (!print_config_def.has(key))
+        return {};
     const std::vector<std::string> project = project_options();
     return std::find(project.begin(), project.end(), key) != project.end() ? "project" : "";
 }
 
-// Sets unknown_keys to the keys a read named that its scope lacks, and scope_of to the scope that has each of those
-// another scope has, so the agent can ask there. UI thread.
+// Sets unknown_keys to the keys a read named that its settings lack, and type_of to where each of those is a setting
+// elsewhere (type_of_key()), so the agent can ask there. UI thread.
 void add_unknown_keys(json& out, const json& unknown)
 {
     if (unknown.empty())
         return;
     out["unknown_keys"] = unknown;
-    json scopes         = json::object();
+    json types          = json::object();
     for (const json& key : unknown)
-        if (std::string scope = scope_of_key(key.get<std::string>()); !scope.empty())
-            scopes[key.get<std::string>()] = std::move(scope);
-    if (!scopes.empty())
-        out["scope_of"] = std::move(scopes);
+        if (std::string type = type_of_key(key.get<std::string>()); !type.empty())
+            types[key.get<std::string>()] = std::move(type);
+    if (!types.empty())
+        out["type_of"] = std::move(types);
 }
 
-// The refusal of a key that `scope` lacks: it names the scope that has the key when another does, since the usual
-// cause is a key passed to the wrong scope or to none (the process). UI thread.
-ToolFailure unknown_setting(const std::string& key, const std::string& scope, json details)
+// The refusal of a key that the settings `where` names (a type, "project" or "plate") lack: it says where the key is a
+// setting when it is one elsewhere, since the usual cause is a key passed with the wrong type or to none (the
+// process). UI thread.
+ToolFailure unknown_setting(const std::string& key, const std::string& where, json details)
 {
-    if (const std::string other = scope_of_key(key); !other.empty() && other != scope)
-        return ToolFailure("\"" + key + "\" is a " + other + " setting: pass scope \"" + other + "\"");
-    return ToolFailure("Unknown setting \"" + key + "\" for the " + scope + " scope", std::move(details));
+    if (const std::string other = type_of_key(key); !other.empty() && other != where)
+        return ToolFailure(other == "project" ? "\"" + key + "\" is one of the project's own settings: project_set_settings changes it" :
+                                                "\"" + key + "\" is a " + other + " setting: settings_set takes it with type \"" + other + "\"");
+    return ToolFailure("Unknown setting \"" + key + "\" for the " + where + " settings", std::move(details));
 }
 
-// The project scope's values: project_config's, with the wipe tower position one entry per plate and a
+// The project's settings: project_config's, with the wipe tower position one entry per plate and a
 // mixed flag per slot, since a project can store fewer of either. UI thread.
 DynamicPrintConfig project_settings()
 {
@@ -314,20 +327,17 @@ std::vector<std::string> project_offered(const std::string& key)
     return out;
 }
 
-// set_settings on the project scope. Every key is written by the code its control runs: the plate type
-// selector, a colour button's picker, the Flushing volumes and Purge mode dialogs' OK, a wipe tower drag.
-// Everything is checked before anything changes. Colours go first, in a closure of their own, so the
-// flushing volumes their change recalculates ("Auto flush after changing") are in place before a matrix
-// given in the same call replaces them.
+// project_set_settings. Every key is written by the code its control runs: the plate type selector, a colour
+// button's picker, the Flushing volumes and Purge mode dialogs' OK, a wipe tower drag. Everything is checked before
+// anything changes. Colours go first, in a closure of their own, so the flushing volumes their change recalculates
+// ("Auto flush after changing") are in place before a matrix given in the same call replaces them.
 ToolResult set_project_settings(const json& args, ToolContext& ctx)
 {
     const json values_in = args.value("values", json::object());
     if (values_in.empty())
         throw ToolFailure("values must be a non-empty object {key: value}");
-    if (args.contains("reset_all") || args.contains("reset_to"))
-        throw ToolFailure("reset_all and reset_to are for preset scopes; project settings always have a value");
     DynamicPrintConfig before;
-    DynamicPrintConfig values; // checked, in the form the scope reads them
+    DynamicPrintConfig values; // checked, in the form project_get_settings reads them
     // The matrix to write, given whole or as one entry of `basis`'s matrix.
     const auto checked_matrix = [&](const DynamicPrintConfig& basis) {
         const char* const  key = "flush_volumes_matrix";
@@ -481,14 +491,25 @@ ToolResult set_project_settings(const json& args, ToolContext& ctx)
     return ToolResult::ok(reply);
 }
 
-// The plate scope: what the Plate Settings dialog sets on one plate, and the plate's name and lock, which
-// its icons set.
-const char* const plate_scope_keys[] = {"curr_bed_type", "print_sequence", "spiral_mode", "first_layer_print_sequence",
-                                        "other_layers_print_sequence", "name", "locked"};
+bool is_plate_setting(const std::string& key)
+{
+    const std::vector<std::string>& keys = plate_setting_keys();
+    return std::find(keys.begin(), keys.end(), key) != keys.end();
+}
 
-bool is_plate_setting(const std::string& key) { return key != "name" && key != "locked"; }
+// The plate settings plate_list and an unnamed plate_get_settings show: the filament grouping only on a printer with
+// several extruders, whose plates show the filament map icon (a plate keeps a mode of its own on any printer). UI thread.
+std::vector<std::string> listed_plate_keys()
+{
+    std::vector<std::string> keys = plate_setting_keys();
+    if (wxGetApp().preset_bundle->get_printer_extruder_count() < 2)
+        keys.erase(std::remove_if(keys.begin(), keys.end(),
+                                  [](const std::string& key) { return key == "filament_map_mode" || key == "filament_map"; }),
+                   keys.end());
+    return keys;
+}
 
-// The plate the scope's `plate` argument names, the current one without it. UI thread.
+// The plate the call's `plate` argument names, the current one without it. UI thread.
 int scope_plate(const json& args)
 {
     PartPlateList& plates = ui_plater().get_partplate_list();
@@ -498,14 +519,71 @@ int scope_plate(const json& args)
     return index;
 }
 
-// A plate setting in the form set_settings takes: the plate's own value, null where it follows the
-// project's plate type, the process or Auto; or with `effective` what the plate prints with.
+// How many filaments the filament grouping dialog groups: one per slot of the project.
+int grouped_filaments()
+{
+    const auto* colours = ui_plater().config()->option<ConfigOptionStrings>("filament_colour");
+    return colours != nullptr ? int(colours->size()) : 0;
+}
+
+// The extruder of each filament as the plate's filament grouping dialog shows it: the plate's own map, else the
+// project's, extruder 1 for a filament it lacks. With `volumes`, the nozzle volume type of each filament the same way,
+// Standard for one it lacks.
+std::vector<int> shown_filament_map(const PartPlate& plate, bool volumes = false)
+{
+    const DynamicPrintConfig& project = wxGetApp().preset_bundle->project_config;
+    std::vector<int> map = volumes ? plate.get_real_filament_volume_maps(project) : plate.get_real_filament_maps(project);
+    map.resize(std::size_t(grouped_filaments()), volumes ? 0 : 1);
+    return map;
+}
+
+// The filament_map_mode values the plate's filament grouping dialog offers: none on a printer with one extruder, whose
+// plates show no filament map icon, and Auto For Match, which groups by the filaments a printer has loaded, once that
+// printer is synced and has no filament track switch ready. UI thread.
+std::vector<std::string> offered_map_modes()
+{
+    if (wxGetApp().preset_bundle->get_printer_extruder_count() < 2)
+        return {};
+    Plater&                  plater = ui_plater();
+    std::vector<std::string> modes{"Auto For Flush"};
+    if (plater.get_machine_sync_status() && !plater.sidebar().is_fila_switch_ready())
+        modes.push_back("Auto For Match");
+    modes.push_back("Manual");
+    return modes;
+}
+
+// A plate's filament_map_mode as plate_set_settings takes it: an offered mode, or null, no mode of the plate's own, so
+// that it follows the project's grouping (PartPlate::set_filament_map_mode() with fmmDefault; the plate's grouping
+// dialog offers no page for it). UI thread.
+FilamentMapMode filament_map_mode_value(const json& value)
+{
+    if (value.is_null())
+        return fmmDefault;
+    const std::vector<std::string> offered = offered_map_modes();
+    if (!value.is_string() || std::find(offered.begin(), offered.end(), value.get<std::string>()) == offered.end())
+        throw ToolFailure("filament_map_mode is a mode the plate's filament grouping offers (meta.offered of plate_get_settings), "
+                          "or null for the project's grouping" +
+                              std::string(value == "Auto For Match" ? "; Auto For Match groups by the filaments a printer has "
+                                                                      "loaded, and is offered once that printer is synced" :
+                                                                      ""),
+                          {{"offered", offered}});
+    return FilamentMapMode(ConfigOptionEnum<FilamentMapMode>::get_enum_values().at(value.get<std::string>()));
+}
+
+// A plate setting in the form plate_set_settings takes: the plate's own value, null where it follows the
+// project's plate type, the process, Auto or the project's filament grouping; or with `effective` what the plate
+// prints with.
 json plate_value(PartPlate& plate, const std::string& key, bool effective)
 {
-    if (key == "name")
-        return plate.get_plate_name();
-    if (key == "locked")
-        return plate.is_locked();
+    if (key == "filament_map_mode") {
+        const FilamentMapMode mode = effective ? plate.get_real_filament_map_mode(wxGetApp().preset_bundle->project_config) :
+                                                 plate.get_filament_map_mode();
+        return mode == fmmDefault ? json() : json(ConfigOptionEnum<FilamentMapMode>(mode).serialize());
+    }
+    if (key == "filament_map") {
+        const std::vector<int> own = plate.get_filament_maps();
+        return effective ? json(shown_filament_map(plate)) : own.empty() ? json() : json(own);
+    }
     if (key == "curr_bed_type") {
         const BedType type = plate.get_bed_type(effective);
         return type == btDefault ? json() : json(ConfigOptionEnum<BedType>(type).serialize());
@@ -524,30 +602,27 @@ json plate_value(PartPlate& plate, const std::string& key, bool effective)
     return ranges.empty() ? json() : layer_sequences_json(ranges);
 }
 
-// Every plate scope value of a plate: its own, or with `effective` what it prints with.
+// Every listed setting of a plate (listed_plate_keys()): its own value, or with `effective` what it prints with.
 json plate_values(PartPlate& plate, bool effective)
 {
     json out = json::object();
-    for (const char* key : plate_scope_keys)
+    for (const std::string& key : listed_plate_keys())
         out[key] = plate_value(plate, key, effective);
     return out;
 }
 
-// get_settings on the plate scope: every key, or those named, with the plate's own value and the one it
-// prints with. UI thread.
+// plate_get_settings: every key, or those named, with the plate's own value and the one it prints with. UI thread.
 json plate_settings(const json& args)
 {
-    if (args.contains("compare") || args.contains("preset"))
-        throw ToolFailure("preset and compare are for the process, filament and printer scopes");
-    const int  index = scope_plate(args);
-    PartPlate& plate = *ui_plater().get_partplate_list().get_plate(index);
-    std::vector<std::string> keys(std::begin(plate_scope_keys), std::end(plate_scope_keys));
+    const int                index = scope_plate(args);
+    PartPlate&               plate = *ui_plater().get_partplate_list().get_plate(index);
+    std::vector<std::string> keys  = listed_plate_keys();
     json                     unknown = json::array();
     if (args.contains("keys")) {
         keys.clear();
         for (const json& k : args["keys"]) {
             const std::string key = k.get<std::string>();
-            if (std::find(std::begin(plate_scope_keys), std::end(plate_scope_keys), key) != std::end(plate_scope_keys))
+            if (is_plate_setting(key))
                 keys.push_back(key);
             else
                 unknown.push_back(key);
@@ -555,14 +630,13 @@ json plate_settings(const json& args)
     }
     json items = json::array();
     for (const std::string& key : keys) {
-        json item{{"key", key}, {"value", plate_value(plate, key, false)}};
-        if (is_plate_setting(key)) {
-            item["effective"] = plate_value(plate, key, true);
-            if (arg_bool(args, "include_meta", true)) {
-                item["meta"] = option_meta(*print_config_def.get(key));
-                if (key == "curr_bed_type")
-                    item["meta"]["offered"] = project_offered(key);
-            }
+        json item{{"key", key}, {"value", plate_value(plate, key, false)}, {"effective", plate_value(plate, key, true)}};
+        if (arg_bool(args, "include_meta", true)) {
+            item["meta"] = option_meta(*print_config_def.get(key));
+            if (key == "curr_bed_type")
+                item["meta"]["offered"] = project_offered(key);
+            if (key == "filament_map_mode")
+                item["meta"]["offered"] = offered_map_modes();
         }
         items.push_back(std::move(item));
     }
@@ -572,19 +646,21 @@ json plate_settings(const json& args)
     return out;
 }
 
-// set_settings on the plate scope. The Plate Settings dialog's values go through its OK
-// (Plater::apply_plate_settings()) with the plate's other values as they are, after selecting the plate as
-// its settings icon does; the lock and the name as their icons do. Everything is checked before anything
-// changes, and the call is one undo step.
+// plate_set_settings. The Plate Settings dialog's values go through its OK (Plater::apply_plate_settings()) with the
+// plate's other values as they are, after selecting the plate as its settings icon does; the filament grouping's go
+// through the OK of the dialog the plate's filament map icon opens (Plater::open_filament_map_setting_dialog()), which
+// takes no undo snapshot of its own. Everything is checked before anything changes, a key a plate's settings lack
+// before the app is read, and the call is one undo step.
 ToolResult set_plate_settings(const json& args, ToolContext& ctx)
 {
     const json values_in = args.value("values", json::object());
     if (values_in.empty())
         throw ToolFailure("values must be a non-empty object {key: value}");
-    if (args.contains("reset_all") || args.contains("reset_to"))
-        throw ToolFailure("reset_all and reset_to are for preset scopes; here a null value takes the global setting or Auto");
     int  index = -1;
     json reply = ctx.run_ui([&]() -> json {
+        for (auto it = values_in.begin(); it != values_in.end(); ++it)
+            if (!is_plate_setting(it.key()))
+                throw unknown_setting(it.key(), "plate", {{"keys", plate_setting_keys()}});
         Plater& plater = ui_plater();
         if (plater.printer_technology() != ptFFF || plater.only_gcode_mode())
             throw ToolFailure("Plates are a filament (FFF) feature");
@@ -600,16 +676,14 @@ ToolResult set_plate_settings(const json& args, ToolContext& ctx)
         std::vector<int>                first_layer  = plate.get_first_layer_print_sequence();
         std::vector<LayerPrintSequence> other_layers = plate.get_other_layers_print_sequence();
         const int                       slots        = wxGetApp().filaments_cnt();
+        // The filament grouping dialog's choices: its mode, and the map its Custom page sets.
+        const FilamentMapMode           own_mode     = plate.get_filament_map_mode();
+        FilamentMapMode                 map_mode     = own_mode;
+        std::optional<std::vector<int>> map;
+        const int                       extruders    = wxGetApp().preset_bundle->get_printer_extruder_count();
         for (auto it = values_in.begin(); it != values_in.end(); ++it) {
             const std::string& key   = it.key();
             const json&        value = it.value();
-            if (std::find(std::begin(plate_scope_keys), std::end(plate_scope_keys), key) == std::end(plate_scope_keys))
-                throw unknown_setting(key, "plate",
-                                      {{"keys", std::vector<std::string>(std::begin(plate_scope_keys), std::end(plate_scope_keys))}});
-            if (key == "name" && !value.is_string())
-                throw ToolFailure("name takes a string (\"\" for none)");
-            if (key == "locked" && !value.is_boolean())
-                throw ToolFailure("locked takes true or false");
             if (key == "curr_bed_type") {
                 bed_type = btDefault; // "Same as Global Plate Type"
                 if (value.is_null())
@@ -633,51 +707,95 @@ ToolResult set_plate_settings(const json& args, ToolContext& ctx)
                 // The dialog greys the custom orders out while a slot is a mixed filament, which prints a different
                 // physical filament from layer to layer.
                 if (!value.is_null() && wxGetApp().preset_bundle->num_mixed_filaments() > 0)
-                    throw ToolFailure(key + " cannot be set while the project has mixed filaments (see the project scope's "
-                                            "filament_is_mixed); null sets Auto");
+                    throw ToolFailure(key + " cannot be set while the project has mixed filaments (see filament_is_mixed of "
+                                            "project_get_settings); null sets Auto");
                 if (key == "first_layer_print_sequence")
                     first_layer = value.is_null() ? std::vector<int>() : filament_order(value, slots);
                 else
                     other_layers = value.is_null() ? std::vector<LayerPrintSequence>() : layer_sequences(value, slots);
+            } else {
+                // The plate shows its filament map icon on a printer with several extruders alone.
+                if (extruders < 2)
+                    throw ToolFailure(key + " groups the filaments onto the extruders of a printer that has several; this one has one");
+                if (key == "filament_map_mode") {
+                    map_mode = filament_map_mode_value(value);
+                } else {
+                    if (!value.is_array() ||
+                        std::any_of(value.begin(), value.end(), [](const json& extruder) { return !extruder.is_number_integer(); }))
+                        throw ToolFailure("filament_map is the extruder of each filament, 1-based, e.g. [1, 2, 2]");
+                    map = value.get<std::vector<int>>();
+                }
             }
+        }
+        if (map) {
+            const std::string mode = map_mode == fmmDefault ? std::string() : ConfigOptionEnum<FilamentMapMode>(map_mode).serialize();
+            if (const std::string err = filament_map_error(mode, *map, grouped_filaments(), extruders); !err.empty())
+                throw ToolFailure(err);
         }
         const bool settings = bed_type != plate.get_bed_type() || sequence != plate.get_print_seq() ||
                               first_layer != plate.get_first_layer_print_sequence() ||
                               other_layers != plate.get_other_layers_print_sequence() || spiral != own_spiral;
-        const bool rename = values_in.contains("name") && values_in["name"].get<std::string>() != plate.get_plate_name();
-        // The settings and name icons select their plate first; the dialogs work on the current plate.
-        if ((settings || rename) && index != plates.get_curr_plate_index())
-            plater.select_plate(index);
-        Plater::SingleSnapshot single(&plater);
-        if (settings) {
+        // The grouping dialog's OK: in the Manual mode the map and nozzle volume types its Custom page shows become the
+        // plate's own, and the slice is invalidated when the mode or what the plate prints with changes.
+        const DynamicPrintConfig& project     = wxGetApp().preset_bundle->project_config;
+        const std::vector<int>    old_maps    = plate.get_real_filament_maps(project);
+        const std::vector<int>    old_volumes = plate.get_real_filament_volume_maps(project);
+        const std::vector<int>    new_maps    = map ? *map : shown_filament_map(plate);
+        const std::vector<int>    new_volumes = shown_filament_map(plate, true);
+        const bool                manual      = map_mode == fmmManual;
+        const bool                regrouped   = map_mode != own_mode || old_maps != new_maps || old_volumes != new_volumes;
+        const bool                own_map     = manual && (plate.get_filament_maps() != new_maps ||
+                                                    plate.get_filament_volume_maps() != new_volumes);
+        const bool grouping_given = values_in.contains("filament_map_mode") || values_in.contains("filament_map");
+        const bool grouping       = grouping_given && (regrouped || own_map);
+        // The Custom page disables the dialog's OK while an extruder its map gives a filament the plate prints has no
+        // nozzle of the volume type that filament needs.
+        if (const std::optional<NozzleShortage> shortage = manual && grouping_given ?
+                manual_map_nozzle_shortage(nozzle_inventory(*wxGetApp().preset_bundle), plate.get_extruders(true), new_maps,
+                                           new_volumes) :
+                std::nullopt) {
+            const std::string type = ConfigOptionEnum<NozzleVolumeType>(shortage->volume_type).serialize();
+            const char*       side = shortage->extruder == 0 ? " (left)" : shortage->extruder == 1 ? " (right)" : "";
+            throw ToolFailure("The manual grouping gives extruder " + std::to_string(shortage->extruder + 1) + side +
+                                  " a filament that prints with a " + type + " nozzle, and the extruder has no " + type +
+                                  " nozzle, so the filament grouping dialog does not take this map: give that filament another "
+                                  "extruder, or set the extruder's nozzles first",
+                              {{"code", "no_nozzle_for_grouping"}, {"extruder", shortage->extruder + 1}, {"nozzle_volume_type", type}});
+        }
+        if (settings || grouping) {
+            // The settings and filament map icons select their plate first; the dialogs work on the current plate.
+            if (index != plates.get_curr_plate_index())
+                plater.select_plate(index);
+            Plater::SingleSnapshot single(&plater);
             plater.take_snapshot("Plate Settings");
-            plater.apply_plate_settings(index, bed_type, first_layer, other_layers, sequence, spiral);
+            if (settings)
+                plater.apply_plate_settings(index, bed_type, first_layer, other_layers, sequence, spiral);
+            if (grouping) {
+                if (map_mode != own_mode)
+                    plate.set_filament_map_mode(map_mode);
+                if (manual) {
+                    plate.set_filament_maps(new_maps);
+                    plate.set_filament_volume_maps(new_volumes);
+                }
+                if (regrouped) {
+                    plate.update_slice_result_valid_state(false);
+                    plater.set_plater_dirty(true);
+                    plater.update();
+                }
+            }
         }
-        if (values_in.contains("locked")) {
-            Ops::SetPlateLockedArgs lock;
-            lock.plate  = index;
-            lock.locked = values_in["locked"].get<bool>();
-            if (const Ops::Outcome<Ops::PlateLocked> locked = Ops::set_plate_locked(lock); !locked)
-                throw refused(locked.refusal());
-        }
-        if (rename)
-            plater.rename_plate(index, values_in["name"].get<std::string>());
         const json after     = plate_values(plate, false);
         json       applied   = json::object();
         json       effective = json::object();
         json       changed   = json::object();
         for (auto it = values_in.begin(); it != values_in.end(); ++it) {
-            applied[it.key()] = after[it.key()];
-            if (is_plate_setting(it.key()))
-                effective[it.key()] = plate_value(plate, it.key(), true);
+            applied[it.key()]   = after.value(it.key(), json());
+            effective[it.key()] = plate_value(plate, it.key(), true);
         }
-        for (const char* key : plate_scope_keys)
-            if (after[key] != before[key])
-                changed[key] = after[key];
-        json out{{"plate", index}, {"applied", applied}, {"changed", changed}};
-        if (!effective.empty())
-            out["effective"] = std::move(effective);
-        return out;
+        for (auto it = after.begin(); it != after.end(); ++it)
+            if (it.value() != before.value(it.key(), json()))
+                changed[it.key()] = it.value();
+        return json{{"plate", index}, {"applied", applied}, {"changed", changed}, {"effective", effective}};
     });
     // A replay sets the same plate, whichever is current then.
     if (!args.contains("plate")) {
@@ -689,8 +807,22 @@ ToolResult set_plate_settings(const json& args, ToolContext& ctx)
     return ToolResult::ok(reply);
 }
 
-// list_plates: every plate's settings as it prints them, what it sets itself, its objects, slice state,
-// prime tower position and layer G-codes. UI thread.
+// How many objects have an instance on plate `plate`; object_list lists them.
+int objects_on_plate(const Model& model, PartPlateList& plates, int plate)
+{
+    int objects = 0;
+    for (std::size_t o = 0; o < model.objects.size(); ++o) {
+        const std::size_t instances = model.objects[o]->instances.size();
+        std::size_t       j         = 0;
+        while (j < instances && instance_plate(plates, int(o), int(j)) != plate)
+            ++j;
+        objects += j < instances;
+    }
+    return objects;
+}
+
+// plate_list: every plate's name, lock, settings as it prints them, what it sets itself, its objects, place on the bed,
+// slice state, prime tower position and layer G-codes. UI thread.
 json list_plates(const json& args)
 {
     Plater&                   plater  = ui_plater();
@@ -704,23 +836,17 @@ json list_plates(const json& args)
         PartPlate& plate = *plates.get_plate(i);
         json       entry = plate_values(plate, true);
         entry["index"]   = i;
+        entry["name"]    = plate.get_plate_name();
+        entry["locked"]  = plate.is_locked();
         entry["current"] = i == plates.get_curr_plate_index();
         json overrides   = json::array();
-        for (const char* key : plate_scope_keys)
-            if (is_plate_setting(key) && !plate_value(plate, key, false).is_null())
+        for (const std::string& key : listed_plate_keys())
+            if (!plate_value(plate, key, false).is_null())
                 overrides.push_back(key);
         entry["overrides"] = std::move(overrides);
-        // How many objects have an instance on the plate; list_objects lists them.
-        int objects = 0;
-        for (std::size_t o = 0; o < model.objects.size(); ++o) {
-            const std::size_t instances = model.objects[o]->instances.size();
-            std::size_t       j         = 0;
-            while (j < instances && instance_plate(plates, int(o), int(j)) != i)
-                ++j;
-            objects += j < instances;
-        }
-        entry["objects"] = objects;
-        entry["sliced"]  = plate.is_slice_result_valid();
+        entry["objects"]   = objects_on_plate(model, plates, i);
+        entry.update(plate_place(plate));
+        entry["sliced"]    = plate.is_slice_result_valid();
         if (tower_x != nullptr && tower_y != nullptr && !tower_x->empty() && !tower_y->empty())
             entry["wipe_tower"] = {tower_x->get_at(std::size_t(i)), tower_y->get_at(std::size_t(i))};
         // Layer numbers only from an up-to-date slice that no slice is rewriting.
@@ -735,50 +861,250 @@ json list_plates(const json& args)
     return page(items, args, 100);
 }
 
-// Resolves the scope arguments to the config they read and write. UI thread.
+// ---- The plate commands made from menu rows ----
+
+// What a plate command made from rows answers for a refusal: as information where its row told it so (no plates to
+// edit, the only plate, no room for another, a slice running), else as an error.
+AppActionRunResult plate_refused(const Ops::Refusal& refusal)
+{
+    const std::string code = refusal.code;
+    const bool        info = refusal.kind == Ops::RefusalKind::Busy || code == "no_plates" || code == "last_plate" ||
+                      code == "too_many_plates";
+    return NativeCommands::refused(refusal, info ? AppActionRunResult::Level::Info : AppActionRunResult::Level::Error);
+}
+
+// The plate a call's `plate` argument names; none without it, for the current plate.
+std::optional<int> named_plate(const json& args)
+{
+    return args.contains("plate") ? std::optional<int>(arg_int(args, "plate", 0)) : std::nullopt;
+}
+
+// The plates as a command that adds or removes one replies with them afterwards: each plate's index, name and how many
+// objects stand on it, and the current plate. UI thread.
+json plates_reply()
+{
+    Plater&        plater = ui_plater();
+    PartPlateList& plates = plater.get_partplate_list();
+    json           items  = json::array();
+    for (int i = 0; i < plates.get_plate_count(); ++i)
+        items.push_back(
+            {{"index", i}, {"name", plates.get_plate(i)->get_plate_name()}, {"objects", objects_on_plate(plater.model(), plates, i)}});
+    return {{"plates", std::move(items)}, {"current", plates.get_curr_plate_index()}};
+}
+
+AppActionRunResult plate_delete_command(const json& args)
+{
+    const Ops::Outcome<int> deleted = Ops::delete_plate({named_plate(args)});
+    if (!deleted)
+        return plate_refused(deleted.refusal());
+    json reply     = plates_reply();
+    reply["plate"] = deleted.value();
+    return row_reply(reply);
+}
+
+AppActionRunResult plate_duplicate_command(const json& args)
+{
+    const Ops::Outcome<Ops::PlateCopy> made = Ops::duplicate_plate({named_plate(args)});
+    if (!made)
+        return plate_refused(made.refusal());
+    json reply         = plates_reply();
+    reply["plate"]     = made.value().plate;
+    reply["new_plate"] = made.value().copy;
+    return row_reply(reply);
+}
+
+// plate_rename: a call with no arguments asks for the current plate's name in its name dialog, as the row does; any
+// other gives it.
+AppActionRunResult plate_rename_command(const json& args)
+{
+    Ops::RenamePlateArgs op;
+    op.plate = named_plate(args);
+    if (person_form(args)) {
+        if (std::optional<Ops::Refusal> refusal = Ops::plates_refusal())
+            return plate_refused(*refusal);
+        PlateNameEditDialog dlg(wxGetApp().mainframe, wxID_ANY, _L("Edit Plate Name"));
+        dlg.set_plate_name(from_u8(ui_plater().get_partplate_list().get_curr_plate()->get_plate_name()));
+        // The person called it off, and knows nothing was renamed.
+        if (dlg.ShowModal() != wxID_YES)
+            return quiet_refusal(Ops::plate_not_renamed());
+        op.name = into_u8(dlg.get_plate_name());
+    } else {
+        op.name = arg_string(args, "name");
+    }
+    const Ops::Outcome<int> renamed = Ops::rename_plate(op);
+    if (!renamed)
+        return plate_refused(renamed.refusal());
+    const PartPlate& plate = *ui_plater().get_partplate_list().get_plate(renamed.value());
+    return row_reply({{"plate", renamed.value()}, {"name", plate.get_plate_name()}});
+}
+
+AppActionRunResult plate_lock_command(const json& args)
+{
+    Ops::SetPlateLockedArgs op;
+    op.plate = named_plate(args);
+    if (args.contains("locked"))
+        op.locked = arg_bool(args, "locked", true);
+    const Ops::Outcome<Ops::PlateLocked> locked = Ops::set_plate_locked(op);
+    if (!locked)
+        return plate_refused(locked.refusal());
+    return row_reply({{"plate", locked.value().plate}, {"locked", locked.value().locked}, {"changed", locked.value().changed}});
+}
+
+// plate_select: Ops::select_plate() also serves the commands that select a plate on the way, so the check of the rows,
+// that the project has plates to select, is made here.
+AppActionRunResult plate_select_command(const json& args)
+{
+    if (std::optional<Ops::Refusal> refusal = Ops::plates_refusal())
+        return plate_refused(*refusal);
+    Ops::SelectPlateArgs op;
+    op.plate = arg_int(args, "plate", ui_plater().get_partplate_list().get_curr_plate_index());
+    if (const Ops::Outcome<Ops::Done> selected = Ops::select_plate(op); !selected)
+        return plate_refused(selected.refusal());
+    return row_reply({{"plate", op.plate}});
+}
+
+// ---- The filament slot commands made from menu rows, and Sync Presets ----
+
+// What a filament slot command answers for a refusal: as information where its row told it so (no slots to change, no
+// + and - buttons for the printer, no room for another slot, the only slot), else as an error.
+AppActionRunResult filament_refused(const Ops::Refusal& refusal)
+{
+    const std::string code = refusal.code;
+    const bool info = code == "filaments_unavailable" || code == "one_filament_per_extruder" || code == "too_many_filaments" ||
+                      code == "last_filament_slot";
+    return NativeCommands::refused(refusal, info ? AppActionRunResult::Level::Info : AppActionRunResult::Level::Error);
+}
+
+// What a filament slot command that ran shows a person, `message`, and replies to a call: `reply` with how many slots
+// the project has afterwards.
+AppActionRunResult filament_reply(const wxString& message, json reply)
+{
+    reply["filament_slots"] = wxGetApp().preset_bundle->filament_presets.size();
+    AppActionRunResult result{AppActionRunResult::Level::Succeeded, message};
+    result.reply = reply.dump();
+    return result;
+}
+
+AppActionRunResult filament_add_command(const json&)
+{
+    const Ops::Outcome<int> added = Ops::add_filament_slot();
+    if (!added)
+        return filament_refused(added.refusal());
+    // TRN %1% is a filament slot number.
+    return filament_reply(format_wxstr(_L("Added filament slot %1%."), added.value()), {{"filament_slot", added.value()}});
+}
+
+AppActionRunResult filament_delete_command(const json& args)
+{
+    Ops::DeleteFilamentArgs op;
+    if (args.contains("filament_slot"))
+        op.filament_slot = arg_int(args, "filament_slot", 1);
+    if (args.contains("merge_into"))
+        op.merge_into = arg_int(args, "merge_into", 1);
+    const Ops::Outcome<Ops::DeletedFilament> deleted = Ops::delete_filament_slot(op);
+    if (!deleted)
+        return filament_refused(deleted.refusal());
+    json reply{{"filament_slot", deleted.value().filament_slot}};
+    if (deleted.value().merged_into)
+        reply["merged_into"] = *deleted.value().merged_into;
+    // TRN %1% is a filament slot number.
+    return filament_reply(format_wxstr(_L("Deleted filament slot %1%."), deleted.value().filament_slot), std::move(reply));
+}
+
+// filament_sync_ams: with no arguments, as its tile, the sync dialog's run, which asks and warns; with mode, the sync
+// with that choice of the dialog, which opens nothing. Reply: each slot's preset and colour afterwards.
+AppActionRunResult sync_ams_command(const json& args)
+{
+    if (!args.contains("mode"))
+        return Rows::sync_ams();
+    const Ops::AmsSyncMode             mode   = arg_string(args, "mode") == "map" ? Ops::AmsSyncMode::Map : Ops::AmsSyncMode::Overwrite;
+    const Ops::Outcome<Ops::AmsSynced> synced = Ops::sync_filaments_from_ams(mode);
+    if (!synced)
+        return NativeCommands::refused(synced.refusal(), AppActionRunResult::Level::Error);
+    json slots = json::array();
+    for (std::size_t slot = 0; slot < synced.value().presets.size(); ++slot) {
+        json item{{"filament_slot", slot + 1}, {"preset", synced.value().presets[slot]}};
+        if (slot < synced.value().colours.size())
+            item["colour"] = synced.value().colours[slot];
+        slots.push_back(std::move(item));
+    }
+    json reply{{"mode", arg_string(args, "mode")}, {"filaments", std::move(slots)}};
+    if (!synced.value().unknowns.empty())
+        reply["mapped_to_generic"] = synced.value().unknowns;
+    return row_reply(reply);
+}
+
+// preset_sync: signed out, a pick says to sign in, as its row did, and a call is refused.
+AppActionRunResult preset_sync_command(const json&)
+{
+    if (const Ops::Outcome<Ops::Done> synced = Ops::sync_presets(); !synced)
+        return NativeCommands::refused(synced.refusal(), AppActionRunResult::Level::Info);
+    return AppActionRunResult{AppActionRunResult::Level::Succeeded};
+}
+
+// Whether settings_list's items carry their meta: as include_meta says, by default with where.
+bool listed_with_meta(const json& args) { return arg_bool(args, "include_meta", args.contains("where")); }
+
+// Resolves a call's type and target (settings_request_error() has checked them) to the config they read and write:
+// a type's preset for the target global, the process's overrides of an object, a part or a height range for the
+// others, which take what their rows offer (target_options()). The object or the part is the one the call names, else
+// the one selected in Prepare, as for every command of one target. UI thread.
 ConfigTarget resolve_target(const json& args, bool for_write)
 {
-    const std::string scope = arg_string(args, "scope", "process");
+    const std::string target = arg_string(args, "target", "global");
+    const std::string type   = arg_string(args, "type", "process");
     PresetBundle&     bundle = *wxGetApp().preset_bundle;
     ConfigTarget      t;
-    if (scope == "object" || scope == "part") {
-        Plater&     plater = ui_plater();
-        const int   idx    = arg_int(args, "object", -1);
-        ModelObjectPtrs& objects = plater.model().objects;
-        if (idx < 0 || idx >= int(objects.size()))
-            throw ToolFailure("object must be an index from list_objects (0.." + std::to_string(int(objects.size()) - 1) + ")");
-        t.object       = objects[size_t(idx)];
-        t.object_index = idx;
-        if (scope == "part") {
-            const int v = arg_int(args, "part", -1);
-            if (v < 0 || v >= int(t.object->volumes.size()))
-                throw ToolFailure("part must be a part index from list_objects");
-            t.volume = t.object->volumes[size_t(v)];
-            t.config = &t.volume->config.get();
+    if (target != "global") {
+        Plater& plater = ui_plater();
+        Model&  model  = plater.model();
+        json    names  = json::object();
+        for (const char* key : {"object", "object_id", "part", "part_id"})
+            if (args.contains(key))
+                names[key] = args[key];
+        // An instance or a part selected stands for its object.
+        const Ops::Outcome<Targets> resolved = resolve_targets(model, &plater.get_view3D_canvas3D()->get_selection(), names,
+                                                               target == "part" ? kParts : kObjects | kObjectOfSelection, true);
+        if (!resolved)
+            throw refused(resolved.refusal());
+        t.target = target;
+        t.named  = resolved.value();
+        if (target == "part") {
+            const auto [object, part] = t.named.parts.front();
+            t.object_index            = object;
+            t.object                  = model.objects[std::size_t(object)];
+            t.volume                  = t.object->volumes[std::size_t(part)];
+            t.config                  = &t.volume->config.get();
         } else {
-            t.config = &t.object->config.get();
+            t.object_index = t.named.objects.front();
+            t.object       = model.objects[std::size_t(t.object_index)];
+            t.config       = &t.object->config.get();
         }
-        check_expected_ids(*t.object, t.volume, args);
-        const bool is_part = t.volume != nullptr;
-        t.options          = model_scope_options(SettingsFactory::get_options(is_part), is_part, wxGetApp().filaments_cnt());
-        if (!for_write) {
-            // Reads take any print setting too: the object prints with every one of them, from its
-            // override or the process, which `effective` says. Writes keep to what the object list
-            // offers, so no override is made that the GUI can't show.
-            for (const std::string& key : preset_options(Preset::TYPE_PRINT))
-                if (std::find(t.options.begin(), t.options.end(), key) == t.options.end())
-                    t.options.push_back(key);
+        if (target == "height_range") {
+            // The range of those heights, as object_list gives them, to a tenth of a micron.
+            const t_layer_height_range heights{arg_double(args, "min_z", -1.), arg_double(args, "max_z", -1.)};
+            t_layer_config_ranges&     ranges = t.object->layer_config_ranges;
+            const auto range = std::find_if(ranges.begin(), ranges.end(), [&heights](const auto& entry) {
+                return std::abs(entry.first.first - heights.first) < EPSILON && std::abs(entry.first.second - heights.second) < EPSILON;
+            });
+            if (range == ranges.end()) {
+                std::string listed;
+                json        have = json::array();
+                for (const auto& entry : ranges) {
+                    listed += (listed.empty() ? "" : ", ") + height_range_text(entry.first);
+                    have.push_back({{"min_z", entry.first.first}, {"max_z", entry.first.second}});
+                }
+                throw ToolFailure("object " + std::to_string(t.object_index) + " has no height range " + height_range_text(heights) +
+                                      (listed.empty() ? "; it has none (object_set_height_ranges makes them)" : "; it has " + listed),
+                                  {{"height_ranges", std::move(have)}});
+            }
+            t.range  = range->first;
+            t.config = &range->second.get();
         }
+        t.options = target_options(target, wxGetApp().filaments_cnt());
         return t;
     }
-    if (scope == "project") {
-        t.project = true;
-        t.owned   = std::make_shared<const DynamicPrintConfig>(project_settings());
-        t.config  = t.owned.get();
-        t.options = project_options();
-        return t;
-    }
-    t.type    = preset_type(scope);
+    t.type    = preset_type(type);
     t.options = preset_options(t.type);
     if (args.contains("preset")) {
         // A saved preset, selected or not, read without selecting it.
@@ -790,7 +1116,7 @@ ConfigTarget resolve_target(const json& args, bool for_write)
         // `real`: the saved preset, not the edited copy find_preset() gives for the selected one.
         t.preset = collection(t.type).find_preset(name, false, true);
         if (t.preset == nullptr)
-            throw ToolFailure("No " + scope + " preset \"" + name + "\" (see list_presets)", {{"similar", similar_presets(collection(t.type), name)}});
+            throw ToolFailure("No " + type + " preset \"" + name + "\" (see preset_list)", {{"similar", similar_presets(collection(t.type), name)}});
         t.config = &t.preset->config;
         return t;
     }
@@ -811,6 +1137,26 @@ ConfigTarget resolve_target(const json& args, bool for_write)
     t.edited = true;
     t.preset = &collection(t.type).get_edited_preset();
     t.config = &t.preset->config;
+    if (t.type == Preset::TYPE_PRINTER) {
+        // The nozzle flow type of each extruder, which its card in the sidebar picks and the project holds.
+        auto printer = std::make_shared<DynamicPrintConfig>(t.preset->config);
+        if (const ConfigOption* volumes = bundle.project_config.option("nozzle_volume_type"))
+            printer->set_key_value("nozzle_volume_type", volumes->clone());
+        t.owned  = printer;
+        t.config = printer.get();
+        t.options.push_back("nozzle_volume_type");
+    }
+    return t;
+}
+
+// The project's own settings, which project_get_settings reads. UI thread.
+ConfigTarget project_target()
+{
+    ConfigTarget t;
+    t.project = true;
+    t.owned   = std::make_shared<const DynamicPrintConfig>(project_settings());
+    t.config  = t.owned.get();
+    t.options = project_options();
     return t;
 }
 
@@ -824,7 +1170,198 @@ std::pair<std::vector<int>, std::vector<int>> printer_extruders()
     return {types != nullptr ? types->values : std::vector<int>(), volumes != nullptr ? volumes->values : std::vector<int>()};
 }
 
-// The preset get_settings' compare names: ":saved" is the read preset as saved (so the difference is
+// settings_set's extruders_count, set alone (settings_request_error()): what a change of the Extruders field of the
+// Printer settings does (TabPrinter::change_extruders_count()). `before` is the printer's settings before it. UI thread.
+json set_extruders_count(const json& args, const DynamicPrintConfig& before)
+{
+    const std::size_t count = extruders_count_value(args["values"]["extruders_count"], before.opt_bool("single_extruder_multi_material"));
+    auto*             tab   = dynamic_cast<TabPrinter*>(wxGetApp().get_tab(Preset::TYPE_PRINTER));
+    if (tab == nullptr)
+        throw ToolFailure("The settings tab is not available");
+    tab->change_extruders_count(count);
+    // The Extruders field shows the count, which was not typed into it.
+    tab->reload_config();
+    const ConfigTarget after = resolve_target(args, false);
+    return json{{"applied", {{"extruders_count", tab->m_extruders_count}}}, {"changed", changed_settings(before, *after.config)}};
+}
+
+// What settings_set's printer values set through the sidebar's nozzle cards: the printer variant a nozzle_diameter
+// switches to (nozzle_diameter_variant()) and the printer preset that selects, and the nozzle flow type of each
+// extruder a nozzle_volume_type gives.
+struct NozzlePicks
+{
+    std::string                     variant;
+    std::string                     preset;
+    std::optional<std::vector<int>> flow_types;
+};
+
+// The nozzle flow types of `types` as nozzle_volume_type names them.
+json flow_type_names(const std::vector<NozzleVolumeType>& types)
+{
+    json names = json::array();
+    for (const NozzleVolumeType type : types)
+        names.push_back(ConfigOptionEnum<NozzleVolumeType>(type).serialize());
+    return names;
+}
+
+// The nozzle flow type of each extruder once `target`, a printer preset of another variant, is selected, read without
+// selecting it: what the printer tab gives the project when it loads a preset of another base preset
+// (TabPrinter::on_preset_loaded()), the types the app configuration remembers for that base, else the preset's
+// default_nozzle_volume_type; `current`, the types the project has, for a preset of the same base. UI thread.
+std::vector<int> flow_types_after_switch(const Preset& target, const std::vector<int>& current)
+{
+    PresetCollection& printers = wxGetApp().preset_bundle->printers;
+    const auto        base     = [&printers](const Preset& preset) {
+        const Preset* found = printers.get_preset_base(preset);
+        return (found != nullptr ? found : &preset)->name;
+    };
+    const std::string name = base(target);
+    if (name == base(printers.get_selected_preset()))
+        return current;
+    if (const auto* project = wxGetApp().preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")) {
+        ConfigOptionEnumsGeneric remembered(*project);
+        if (const std::string saved = wxGetApp().app_config->get_nozzle_volume_types_from_config(name);
+            !saved.empty() && remembered.deserialize(saved))
+            return remembered.values;
+    }
+    const auto* defaults = target.config.option<ConfigOptionEnumsGeneric>("default_nozzle_volume_type");
+    return defaults != nullptr ? defaults->values : current;
+}
+
+// Takes the values the nozzle cards set out of `values` (key, serialized value) and checks them, before anything
+// changes: a nozzle_diameter no variant has stays, to be typed into the Printer settings. A nozzle_diameter that selects
+// another variant's preset goes with nozzle_volume_type alone, since the other values would be read against one preset
+// and written to another. A flow type other than the one the extruder has, or with a variant switch will have
+// (flow_types_after_switch()), is checked against the Flow combo it is picked in: the one shown, or with a variant
+// switch the one the new preset shows. `printer` is the printer's settings, its nozzle_volume_type included
+// (resolve_target()). UI thread.
+NozzlePicks nozzle_picks(std::vector<std::pair<std::string, std::string>>& values, const DynamicPrintConfig& printer)
+{
+    NozzlePicks      picks;
+    std::vector<int> types;
+    for (auto v = values.begin(); v != values.end();) {
+        if (v->first != "nozzle_diameter" && v->first != "nozzle_volume_type") {
+            ++v;
+            continue;
+        }
+        DynamicPrintConfig scratch;
+        try {
+            scratch.set_deserialize_strict(v->first, v->second);
+        } catch (const std::exception& e) {
+            throw ToolFailure("Invalid value for " + v->first + ": " + e.what());
+        }
+        if (v->first == "nozzle_diameter") {
+            const auto* variant = printer.option<ConfigOptionString>("printer_variant");
+            picks.variant       = nozzle_diameter_variant(scratch.option<ConfigOptionFloats>(v->first)->values,
+                                                          wxGetApp().preset_bundle->printers.diameters_of_selected_printer(),
+                                                          variant != nullptr ? variant->value : std::string());
+            v                   = picks.variant.empty() ? std::next(v) : values.erase(v);
+            continue;
+        }
+        types            = scratch.option<ConfigOptionEnumsGeneric>(v->first)->values;
+        picks.flow_types = types;
+        v                = values.erase(v);
+    }
+    const Preset* target = nullptr;
+    if (!picks.variant.empty()) {
+        target = wxGetApp().preset_bundle->get_similar_printer_preset({}, picks.variant);
+        if (target == nullptr)
+            throw ToolFailure("The printer has no preset of the nozzle variant " + picks.variant);
+        picks.preset = target->name;
+        if (!values.empty()) {
+            std::string keys;
+            for (const auto& [key, value] : values)
+                keys += (keys.empty() ? "" : ", ") + key;
+            throw ToolFailure("Set " + keys + " in a second call: a nozzle_diameter that selects the printer preset of another "
+                              "variant (" + target->name + ") goes with nozzle_volume_type alone");
+        }
+    }
+    if (!picks.flow_types)
+        return picks;
+    const auto*       current = printer.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+    const std::size_t count   = current != nullptr ? current->size() : 0;
+    if (types.size() != count)
+        throw ToolFailure("nozzle_volume_type holds a nozzle flow type per extruder: " + std::to_string(count) + " extruders, " +
+                          std::to_string(types.size()) + " given");
+    // The types the extruders have when the picks are made: now, or once the switch has selected the new preset.
+    const std::vector<int> before = target != nullptr ? flow_types_after_switch(*target, current->values) : current->values;
+    const auto             name   = [](int type) { return ConfigOptionEnum<NozzleVolumeType>(NozzleVolumeType(type)).serialize(); };
+    for (std::size_t e = 0; e < count; ++e) {
+        if (e < before.size() && types[e] == before[e])
+            continue;
+        const std::vector<NozzleVolumeType> offered = target != nullptr ? Sidebar::nozzle_volume_types(target->config, int(e)) :
+                                                                          ui_plater().sidebar().nozzle_volume_types(int(e));
+        if (std::find(offered.begin(), offered.end(), NozzleVolumeType(types[e])) == offered.end()) {
+            const std::string has   = e < before.size() ? ": the extruder has " + name(before[e]) + " there" : std::string();
+            const std::string offer = offered.empty() ? "no nozzle flow type to pick" + has :
+                                                        "the nozzle flow types " + flow_type_names(offered).dump() + ", not " +
+                                                            name(types[e]);
+            throw ToolFailure("The nozzle card of extruder " + std::to_string(e + 1) +
+                                  (target != nullptr ? " with the printer preset " + target->name : std::string()) + " offers " + offer,
+                              {{"offered", flow_type_names(offered)}});
+        }
+    }
+    return picks;
+}
+
+// What nozzle_picks() checked, done as a person picks it in the sidebar: the variant, then the flow type of each
+// extruder that has another, each read back after the picks. The switch fails only when its question about the
+// printer's unsaved changes is cancelled, after `discarded`, reset_all's discarding of those changes, when the call
+// asked for it. UI thread.
+void pick_nozzles(const NozzlePicks& picks, bool discarded)
+{
+    Sidebar& sidebar = ui_plater().sidebar();
+    if (!picks.variant.empty() && !sidebar.pick_nozzle_variant(picks.variant))
+        throw ToolFailure("The printer preset " + picks.preset + " of the nozzle variant " + picks.variant + " was not selected" +
+                          (discarded ? "; reset_all had discarded the printer's unsaved changes" : ""));
+    if (!picks.flow_types)
+        return;
+    const auto flow_types = [] {
+        return wxGetApp().preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values;
+    };
+    const std::vector<int>& wanted  = *picks.flow_types;
+    const std::vector<int>  current = flow_types();
+    for (std::size_t e = 0; e < wanted.size() && e < current.size(); ++e)
+        if (current[e] != wanted[e])
+            sidebar.pick_nozzle_volume_type(int(e), NozzleVolumeType(wanted[e]));
+    // A guard for what nozzle_picks() rules out: an extruder whose Flow combo, after a variant switch whose flow types
+    // it predicted wrongly, did not take the type asked for. The call then fails, saying what it changed.
+    const std::vector<int> after = flow_types();
+    const auto             name  = [](int type) { return ConfigOptionEnum<NozzleVolumeType>(NozzleVolumeType(type)).serialize(); };
+    std::vector<std::string> wrong, set;
+    for (std::size_t e = 0; e < wanted.size(); ++e) {
+        const std::string extruder = "extruder " + std::to_string(e + 1);
+        if (e < after.size() && e < current.size() && after[e] != current[e])
+            set.push_back(extruder + " to " + name(after[e]));
+        if (e >= after.size())
+            wrong.push_back(extruder + " is not there");
+        else if (after[e] != wanted[e])
+            wrong.push_back(extruder + " has " + name(after[e]) + ", not " + name(wanted[e]));
+    }
+    if (wrong.empty())
+        return;
+    const auto listed = [](const std::vector<std::string>& items) {
+        std::string text;
+        for (std::size_t i = 0; i < items.size(); ++i)
+            text += (i == 0 ? "" : i + 1 == items.size() ? " and " : ", ") + items[i];
+        return text;
+    };
+    std::vector<std::string> changes;
+    if (!picks.variant.empty())
+        changes.push_back("selected the printer preset " + picks.preset);
+    if (!set.empty())
+        changes.push_back("set the nozzle flow type of " + listed(set));
+    if (discarded)
+        changes.push_back("discarded the printer's unsaved changes (reset_all)");
+    json types = json::array();
+    for (const int type : after)
+        types.push_back(name(type));
+    throw ToolFailure("nozzle_volume_type was not set as asked: " + listed(wrong) + ". The call " +
+                          (changes.empty() ? std::string("changed nothing") : listed(changes)) + ".",
+                      {{"nozzle_volume_type", std::move(types)}});
+}
+
+// The preset settings_get's compare names: ":saved" is the read preset as saved (so the difference is
 // its unsaved changes), ":parent" what the tab's lock icons compare against, else a saved preset by name.
 const Preset& compare_preset(const ConfigTarget& t, const std::string& name)
 {
@@ -843,7 +1380,7 @@ const Preset& compare_preset(const ConfigTarget& t, const std::string& name)
     } else {
         other = presets.find_preset(name, false, true);
         if (other == nullptr)
-            throw ToolFailure("No preset \"" + name + "\" to compare with (see list_presets)", {{"similar", similar_presets(presets, name)}});
+            throw ToolFailure("No preset \"" + name + "\" to compare with (see preset_list)", {{"similar", similar_presets(presets, name)}});
     }
     // The Compare presets dialog compares presets of one printer technology only.
     if (other->printer_technology() != t.preset->printer_technology())
@@ -881,10 +1418,16 @@ void check_filament_numbers(const DynamicPrintConfig& values)
 }
 
 // The object list row whose Change Filament sets the target's filament: the object's, which is also
-// what a single-part object shows for its one part, or the part's or modifier's own row. UI thread.
+// what a single-part object shows for its one part, the part's or modifier's own row, or the height range's. UI thread.
 wxDataViewItem filament_row(const ConfigTarget& t)
 {
     ObjectDataViewModel& rows = *wxGetApp().obj_list()->GetModel();
+    if (t.range) {
+        const wxDataViewItem row = rows.GetItemByLayerRange(t.object_index, *t.range);
+        if (!row.IsOk())
+            throw ToolFailure("The height range has no row in the object list");
+        return row;
+    }
     if (t.volume != nullptr && !t.volume->is_model_part() && !t.volume->is_modifier())
         throw ToolFailure("Only parts and modifiers take a filament; this one is a negative part, a support blocker or enforcer, "
                           "or a seam modifier");
@@ -938,24 +1481,39 @@ json filament_slots(const std::string& name)
     return slots;
 }
 
+// The first entry of a preset's string vector `key` ("" without one): a filament's vendor or type.
+std::string first_value(const Preset& preset, const char* key)
+{
+    const auto* values = preset.config.option<ConfigOptionStrings>(key);
+    return values != nullptr && !values->values.empty() ? values->values.front() : std::string();
+}
+
+// preset_list: an item per preset of the type, the default one only when it is alone, filtered by
+// filter_preset_items(). A filament's vendor and type are the ones the filament selection dialogs show; a printer's or
+// process's vendor is its vendor bundle (BBL), as the Printer Selection dialog has it. The Template vendor's presets
+// are what Create Printer and Create Filament start from, which nothing installs: they are left out. With `printer`,
+// a preset fits that printer preset as it would fit the selected one. UI thread.
 json list_presets(const json& args)
 {
-    const Preset::Type type               = preset_type(arg_string(args, "type"));
-    const bool         include_incompatible = arg_bool(args, "include_incompatible", false);
-    const bool         include_hidden     = arg_bool(args, "include_hidden", false);
-    const std::string  query              = lower(arg_string(args, "query"));
-    PresetCollection&  presets            = collection(type);
-    const std::string  selected           = presets.get_selected_preset_name();
-    json               items              = json::array();
+    const Preset::Type type     = preset_type(arg_string(args, "type"));
+    PresetBundle&      bundle   = *wxGetApp().preset_bundle;
+    PresetCollection&  presets  = collection(type);
+    const std::string  selected = presets.get_selected_preset_name();
+    const Preset*      printer  = nullptr;
+    if (args.contains("printer")) {
+        const std::string name = arg_string(args, "printer");
+        printer                = bundle.printers.find_preset(name, false, true);
+        if (printer == nullptr)
+            throw ToolFailure("No printer preset \"" + name + "\" (see preset_list {\"type\": \"printer\", \"include_uninstalled\": true})",
+                              {{"similar", similar_presets(bundle.printers, name)}});
+    }
+    json items = json::array();
     for (size_t i = 0; i < presets.size(); ++i) {
         const Preset& p = presets.preset(i);
         if (p.is_default && presets.size() > 1)
             continue;
-        if (!include_incompatible && !p.is_compatible)
-            continue;
-        if (!include_hidden && !p.is_visible)
-            continue;
-        if (!query.empty() && lower(p.name).find(query) == std::string::npos && lower(p.alias).find(query) == std::string::npos)
+        const VendorProfile* vendor = presets.get_preset_with_vendor_profile(p).vendor;
+        if (vendor != nullptr && vendor->id == PRESET_TEMPLATE_DIR)
             continue;
         json j{{"name", p.name}, {"system", p.is_system}, {"user", p.is_user()}};
         if (!p.alias.empty() && p.alias != p.name)
@@ -966,22 +1524,62 @@ json list_presets(const json& args)
             j["project"] = true;
         if (!p.is_compatible)
             j["compatible"] = false;
+        // Not offered by the selectors: a system printer or filament a person has not installed.
         if (!p.is_visible)
-            j["visible"] = false;
+            j["installed"] = false;
         if (p.name == selected) {
             j["selected"] = true;
             if (presets.current_is_dirty())
                 j["modified"] = true;
         }
-        if (type == Preset::TYPE_FILAMENT)
+        if (type == Preset::TYPE_FILAMENT) {
+            for (const auto& [field, key] : {std::pair{"vendor", "filament_vendor"}, std::pair{"filament_type", "filament_type"}})
+                if (std::string value = first_value(p, key); !value.empty())
+                    j[field] = std::move(value);
             if (json slots = filament_slots(p.name); !slots.empty())
                 j["filament_slots"] = std::move(slots);
+        } else if (vendor != nullptr) {
+            j["vendor"] = vendor->id;
+        }
+        if (type == Preset::TYPE_PRINTER)
+            for (const auto& [field, key] : {std::pair{"printer_model", "printer_model"}, std::pair{"nozzle", "printer_variant"}})
+                if (const auto* value = p.config.option<ConfigOptionString>(key); value != nullptr && !value->value.empty())
+                    j[field] = value->value;
         items.push_back(std::move(j));
     }
-    return page(items, args, 100);
+    std::function<bool(const json&)> fits;
+    if (printer != nullptr)
+        fits = [&](const json& item) {
+            const Preset* p = presets.find_preset(item["name"].get<std::string>(), false, true);
+            return p != nullptr && is_compatible_with_printer(presets.get_preset_with_vendor_profile(*p),
+                                                              bundle.printers.get_preset_with_vendor_profile(*printer));
+        };
+    return page(filter_preset_items(std::move(items), args, fits), args, 100);
 }
 
 } // namespace
+
+ToolFailure preset_refused(const Ops::Refusal& refusal)
+{
+    const std::string code = refusal.code;
+    if (code == "preset_not_offered")
+        return refused(refusal, "See preset_list.", "similar");
+    if (code == "ambiguous_hidden_preset")
+        return refused(refusal, "", "presets");
+    if (code == "preset_incompatible")
+        return refused(refusal, "preset_list include_incompatible lists such presets.");
+    if (code == "transfer_not_offered" || code == "unsaved_preset_changes")
+        return refused(refusal, "Pass preset_changes: \"discard\", or preset_save first.");
+    return refused(refusal);
+}
+
+Ops::PresetChanges preset_changes_answer(const json& args)
+{
+    const std::string changes = arg_string(args, "preset_changes");
+    return changes == "transfer" ? Ops::PresetChanges::Transfer :
+           changes == "discard"  ? Ops::PresetChanges::Discard :
+                                   Ops::PresetChanges::Ask;
+}
 
 std::vector<std::string> model_scope_options(const std::vector<std::string>& offered, bool is_part, int filaments)
 {
@@ -995,36 +1593,116 @@ std::vector<std::string> model_scope_options(const std::vector<std::string>& off
     return keys;
 }
 
-json effective_setting(const std::string& key, const DynamicPrintConfig& process, const ModelObject& object, const ModelVolume* volume)
+std::vector<std::string> target_options(const std::string& target, int filaments)
+{
+    if (target == "object" || target == "part")
+        return model_scope_options(SettingsFactory::get_fff_options(target == "part"), target == "part", filaments);
+    if (target == "height_range")
+        return layer_range_option_keys(filaments);
+    return {};
+}
+
+std::vector<std::string> targets_taking(const std::string& key, int filaments)
+{
+    std::vector<std::string> targets;
+    for (const char* target : {"object", "part", "height_range"}) {
+        const std::vector<std::string> options = target_options(target, filaments);
+        if (std::find(options.begin(), options.end(), key) != options.end())
+            targets.emplace_back(target);
+    }
+    return targets;
+}
+
+std::string untaken_setting_error(const std::string& key, const std::string& target, int filaments)
+{
+    const std::vector<std::string> takers = targets_taking(key, filaments);
+    if (std::find(takers.begin(), takers.end(), target) != takers.end())
+        return {};
+    const auto row = [](const std::string& name) {
+        return name == "object" ? std::string("an object") : name == "part" ? std::string("a part") : std::string("a height range");
+    };
+    if (takers.empty())
+        return key + " is set globally only, on the process (target global), not on " + row(target);
+    std::string where;
+    for (std::size_t i = 0; i < takers.size(); ++i)
+        where += (i == 0 ? "" : i + 1 == takers.size() ? " or " : ", ") + row(takers[i]);
+    return key + " is set on " + where + ", not on " + row(target);
+}
+
+json effective_setting(const std::string& key, const DynamicPrintConfig& process, const ModelObject& object, const ModelVolume* volume,
+                       const DynamicPrintConfig* range)
 {
     // An extruder of 0 is the object list's "Default": no filament of its own.
-    const auto own = [&key](const ModelConfig& config) -> const ConfigOption* {
+    const auto own = [&key](const DynamicPrintConfig& config) -> const ConfigOption* {
         const ConfigOption* opt = config.option(key);
         return opt != nullptr && (key != "extruder" || opt->getInt() != 0) ? opt : nullptr;
     };
     json out;
-    if (const ConfigOption* opt = volume != nullptr ? own(volume->config) : nullptr)
+    if (const ConfigOption* opt = range != nullptr ? own(*range) : nullptr)
+        out = {{"effective", opt->serialize()}, {"source", "height_range"}};
+    else if (const ConfigOption* opt = volume != nullptr ? own(volume->config.get()) : nullptr)
         out = {{"effective", opt->serialize()}, {"source", "part"}};
-    else if (const ConfigOption* opt = own(object.config))
+    else if (const ConfigOption* opt = own(object.config.get()))
         out = {{"effective", opt->serialize()}, {"source", "object"}};
     else if (process.has(key))
-        out = {{"effective", process.opt_serialize(key)}, {"source", "process"}};
+        out = {{"effective", process.opt_serialize(key)}, {"source", "global"}};
     else if (key == "extruder")
         out = {{"effective", "1"}, {"source", "default"}}; // the process has no extruder; filament 1 prints
     else if (const ConfigOptionDef* def = print_config_def.get(key); def != nullptr && def->default_value)
         out = {{"effective", def->default_value->serialize()}, {"source", "default"}};
     if (volume == nullptr) {
-        json parts = json::array();
+        // Inside a height range that sets the key, the range's value replaces its parts' own; a region modifier's, mesh or
+        // painted, applies still.
+        const bool range_sets = range != nullptr && own(*range) != nullptr;
+        json       parts      = json::array();
         for (std::size_t i = 0; i < object.volumes.size(); ++i) {
             const ModelVolume& v = *object.volumes[i];
-            if (v.is_model_part() || v.is_modifier())
-                if (const ConfigOption* opt = own(v.config))
+            if (v.is_region_modifier() || (v.is_model_part() && !range_sets))
+                if (const ConfigOption* opt = own(v.config.get()))
                     parts.push_back({{"part", int(i)}, {"value", opt->serialize()}});
         }
         if (!parts.empty())
             out["parts"] = std::move(parts);
     }
+    // A region modifier, a mesh or a painted one, that sets none of the key prints, inside it, with the region it overlaps:
+    // a model part's, or that of a region modifier before it in the object's list over the part (the slicer chains both
+    // kinds alike, and region_config_from_model_volume() starts from that region's config). Where the modifier sits is not
+    // worked out here, so where one of those volumes sets the key no value is the one it prints with: the object's chain
+    // gives one, beside the volumes that set their own.
+    if (volume != nullptr && volume->is_region_modifier() && range == nullptr && own(volume->config.get()) == nullptr) {
+        json parts = json::array();
+        for (std::size_t i = 0; i < object.volumes.size() && object.volumes[i] != volume; ++i) {
+            const ModelVolume& v = *object.volumes[i];
+            if (v.is_model_part() || v.is_region_modifier())
+                if (const ConfigOption* opt = own(v.config.get()))
+                    parts.push_back({{"part", int(i)}, {"value", opt->serialize()}});
+        }
+        if (!parts.empty())
+            out = {{"effective", nullptr},
+                   {"source", "overlapped_part"},
+                   {"object_effective", out["effective"]},
+                   {"object_source", out["source"]},
+                   {"parts", std::move(parts)}};
+    }
+    // A height range applies over the object's parts, after their own values; a region modifier's own value applies over
+    // it, and inside a region modifier that sets none the range's does, its region inheriting the part's region the range
+    // is applied to (region_config_from_model_volume()).
+    const bool ranges_apply = volume == nullptr || volume->is_model_part() ||
+                              (volume->is_region_modifier() && own(volume->config.get()) == nullptr);
+    if (range == nullptr && ranges_apply) {
+        json ranges = json::array();
+        for (const auto& [heights, config] : object.layer_config_ranges)
+            if (const ConfigOption* opt = own(config.get()))
+                ranges.push_back({{"min_z", heights.first}, {"max_z", heights.second}, {"value", opt->serialize()}});
+        if (!ranges.empty())
+            out["height_ranges"] = std::move(ranges);
+    }
     return out;
+}
+
+json settings_list_page(const json& items, const json& args)
+{
+    return page(items, args, listed_with_meta(args) ? 100 : std::max<std::size_t>(items.size(), 1));
 }
 
 bool save_preset_inside_project(const PresetCollection& presets, const std::string& name, const json& args)
@@ -1080,7 +1758,7 @@ std::vector<std::string> rank_settings(const std::string& query, const std::vect
     const std::vector<std::string> words = query_words(query);
     // (query words matched, those matched in the key or label) per key.
     std::vector<std::pair<std::pair<int, int>, std::string>> scored;
-    std::set<std::string>                                    seen; // a scope's options can list a key twice
+    std::set<std::string>                                    seen; // a type's options can list a key twice
     for (const std::string& key : within) {
         const ConfigOptionDef* def = print_config_def.get(key);
         if (def == nullptr || !seen.insert(key).second)
@@ -1116,7 +1794,8 @@ json variant_entries(const std::string& key, const DynamicPrintConfig& config, c
         id_key      = "printer_extruder_id";
         variant_key = "printer_extruder_variant";
         stride      = printer_options_with_variant_2.count(key) > 0 ? 2 : 1;
-    } else if (printer_extruder_options.count(key) == 0 && key != "extruder_offset") {
+    } else if (printer_extruder_options.count(key) == 0 && key != "extruder_offset" &&
+               key != "nozzle_volume_type" /* the project's, read and set with the printer's settings */) {
         return nullptr;
     }
     json names = json::array();
@@ -1268,7 +1947,7 @@ json unsaved_changes()
 {
     json out = json::object();
     for (const char* type : {"process", "filament", "printer"}) {
-        // What list_presets calls modified, in the settings the tab shows: the full comparison also lists
+        // What preset_list calls modified, in the settings the tab shows: the full comparison also lists
         // bookkeeping keys that only one of the two configs has.
         const PresetCollection& presets = collection(preset_type(type));
         if (!presets.current_is_dirty())
@@ -1311,7 +1990,7 @@ json check_preset_deletable(const PresetCollection& presets, const std::string& 
     const char* const type = presets.type() == Preset::TYPE_PRINT ? "process" : presets.type() == Preset::TYPE_FILAMENT ? "filament" : "printer";
     const Preset*     preset = presets.find_preset(name, false);
     if (preset == nullptr)
-        throw ToolFailure(std::string("No ") + type + " preset \"" + name + "\" (see list_presets)", {{"similar", similar_presets(presets, name)}});
+        throw ToolFailure(std::string("No ") + type + " preset \"" + name + "\" (see preset_list)", {{"similar", similar_presets(presets, name)}});
     // The tab's own rule (Tab::can_delete_preset()), worded for an agent.
     std::vector<std::string> inherited_by;
     switch (Tab::can_delete_preset(presets, *preset, &inherited_by)) {
@@ -1412,6 +2091,118 @@ std::vector<double> check_flush_matrix(std::vector<double> matrix, std::size_t s
             matrix[i] = std::min(matrix[i], double(g_max_flush_volume) / multipliers[nozzle]);
     }
     return matrix;
+}
+
+json plate_place(PartPlate& plate)
+{
+    // The plate's shape on the bed, moved to where the plate list places the plate; the extended box holds the grabber
+    // in front of it too.
+    const BoundingBoxf3& box = plate.get_bounding_box();
+    const auto           mm  = [](double v) { return std::round(v * 1000.) / 1000. + 0.; };
+    return {{"origin", {mm(box.min.x()), mm(box.min.y())}}, {"size", {mm(box.size().x()), mm(box.size().y())}}};
+}
+
+const std::vector<std::string>& plate_setting_keys()
+{
+    static const std::vector<std::string> keys{"curr_bed_type",
+                                               "print_sequence",
+                                               "spiral_mode",
+                                               "first_layer_print_sequence",
+                                               "other_layers_print_sequence",
+                                               "filament_map_mode",
+                                               "filament_map"};
+    return keys;
+}
+
+std::string filament_map_error(const std::string& mode, const std::vector<int>& map, int filaments, int extruders)
+{
+    if (mode != "Manual")
+        return "filament_map is a plate's own grouping, which filament_map_mode \"Manual\" takes: the automatic modes group the "
+               "filaments when the plate slices, and null follows the project's grouping";
+    if (int(map.size()) != filaments)
+        return "filament_map gives one extruder per filament: " + std::to_string(filaments) + " filaments, " +
+               std::to_string(map.size()) + " given";
+    for (const int extruder : map)
+        if (extruder < 1 || extruder > extruders)
+            return "filament_map names extruder " + std::to_string(extruder) + "; this printer has extruders 1 to " +
+                   std::to_string(extruders);
+    return {};
+}
+
+json filter_preset_items(json items, const json& args, const std::function<bool(const json&)>& fits)
+{
+    const bool        include_incompatible = arg_bool(args, "include_incompatible", false);
+    const bool        include_uninstalled  = arg_bool(args, "include_uninstalled", false);
+    const std::string query                = lower(arg_string(args, "query"));
+    const std::string vendor               = lower(arg_string(args, "vendor"));
+    const std::string filament_type        = lower(arg_string(args, "filament_type"));
+    const std::string source               = arg_string(args, "source");
+    const bool        other_printer        = args.contains("printer") && fits;
+    json              out                  = json::array();
+    for (json& item : items) {
+        if (other_printer) {
+            if (fits(item))
+                item.erase("compatible");
+            else
+                item["compatible"] = false;
+        }
+        if ((!include_incompatible && !item.value("compatible", true)) || (!include_uninstalled && !item.value("installed", true)))
+            continue;
+        if (!query.empty() && lower(item.value("name", "")).find(query) == std::string::npos &&
+            lower(item.value("alias", "")).find(query) == std::string::npos)
+            continue;
+        if ((!vendor.empty() && lower(item.value("vendor", "")) != vendor) ||
+            (!filament_type.empty() && lower(item.value("filament_type", "")) != filament_type))
+            continue;
+        const bool project = item.value("project", false);
+        if ((source == "system" && !item.value("system", false)) || (source == "user" && (!item.value("user", false) || project)) ||
+            (source == "project" && !project))
+            continue;
+        out.push_back(std::move(item));
+    }
+    return out;
+}
+
+std::size_t extruders_count_value(const json& value, bool single_extruder_multi_material)
+{
+    if (single_extruder_multi_material)
+        throw ToolFailure("Extruder count cannot be edited in single extruder multimaterial mode (single_extruder_multi_material)");
+    long long count = 0;
+    if (value.is_number_integer()) {
+        count = value.get<long long>();
+    } else if (value.is_string()) {
+        const std::string text = value.get<std::string>();
+        std::size_t       end  = 0;
+        try {
+            count = std::stoll(text, &end);
+        } catch (const std::exception&) {
+            end = 0;
+        }
+        if (end == 0 || end != text.size())
+            count = 0;
+    }
+    if (count < 1 || count > (long long) MAXIMUM_EXTRUDER_NUMBER)
+        throw ToolFailure("extruders_count is a whole number from 1 to " + std::to_string(MAXIMUM_EXTRUDER_NUMBER) +
+                          ", as the Extruders field of the Printer settings takes; got " + value.dump());
+    return std::size_t(count);
+}
+
+std::string nozzle_diameter_variant(const std::vector<double>& diameters, const std::vector<std::string>& variants,
+                                    const std::string& current)
+{
+    if (diameters.empty())
+        return {};
+    const double diameter = diameters.front();
+    if (std::any_of(diameters.begin(), diameters.end(), [diameter](double d) { return std::abs(d - diameter) > EPSILON; }))
+        return {};
+    for (const std::string& variant : variants) {
+        // A plain diameter ("0.6"), not a named variant ("0.4 High Flow"), which shares its diameter with the plain one.
+        std::size_t  parsed = 0;
+        const double value  = string_to_double_decimal_point(variant, &parsed);
+        if (!variant.empty() && parsed == variant.size() && std::abs(value - diameter) <= EPSILON)
+            return variant == current ? std::string() : variant;
+    }
+    return {};
 }
 
 std::vector<int> filament_order(const json& order, int slots)
@@ -1535,29 +2326,6 @@ json changed_settings(const DynamicPrintConfig& before, const DynamicPrintConfig
     return changed;
 }
 
-json preferences_settings(const AppConfig& config, const json& args)
-{
-    if (!args.contains("keys") || args.contains("query") || args.contains("preset") || args.contains("compare"))
-        throw ToolFailure("The preferences scope reads the keys named in keys, nothing else: it lists no preferences unasked, "
-                          "since the app configuration also holds account and device state");
-    json items = json::array(), unknown = json::array();
-    for (const json& k : args["keys"]) {
-        std::string value;
-        if (config.get("app", k.get<std::string>(), value))
-            items.push_back({{"key", k}, {"value", value}});
-        else
-            unknown.push_back(k);
-    }
-    json out = page(items, args, 100);
-    if (!unknown.empty()) {
-        out["unknown_keys"] = unknown;
-        // Many preferences are stored only once they are changed.
-        out["note"] = "unknown_keys are not stored: a preference never changed shows its default in the dialog (most "
-                      "checkboxes unchecked), or the key is not a preference.";
-    }
-    return out;
-}
-
 std::string edit_filament_slot(int slot)
 {
     PresetBundle&      bundle = *wxGetApp().preset_bundle;
@@ -1628,27 +2396,39 @@ std::string to_config_string(const json& v, const std::string& key)
 
 namespace {
 
-// The keys of kSearchScopes, each once, with the scope that offers it first. UI thread.
-std::vector<std::string> search_scope_options(std::map<std::string, std::string>& scope_of)
+// The keys of kSearchTypes, each once, with the type that offers it first. UI thread.
+std::vector<std::string> search_type_options(std::map<std::string, std::string>& type_of)
 {
     std::vector<std::string> options;
-    for (const char* scope : kSearchScopes)
-        for (const std::string& key : resolve_target(json{{"scope", scope}}, false).options)
-            if (scope_of.emplace(key, scope).second)
+    for (const char* type : kSearchTypes)
+        for (const std::string& key : resolve_target(json{{"type", type}}, false).options)
+            if (type_of.emplace(key, type).second)
                 options.push_back(key);
     return options;
 }
 
-// get_settings: the settings `args` asks for, read on the UI thread.
+json read_target(const json& args, const ConfigTarget& t, bool listing = false);
+
+// What a call on a target other than global acted on, as every command with a target names it: the object or the part
+// (objects, parts) and, for a height range, its heights (height_range). UI thread.
+json target_reply(const ConfigTarget& t)
+{
+    json out = targets_reply(ui_plater().model(), t.named);
+    if (t.range)
+        out["height_range"] = {{"min_z", t.range->first}, {"max_z", t.range->second}};
+    return out;
+}
+
+// settings_get: the settings `args` asks for, read on the UI thread.
 json read_settings(const json& args)
 {
     if (int(args.contains("keys")) + int(args.contains("query")) + int(args.contains("where")) > 1)
         throw ToolFailure("Give one of keys, query or where");
-    // A search or named keys with no scope look through kSearchScopes; each item names its scope.
-    if ((args.contains("query") || args.contains("keys")) && !args.contains("scope") && !args.contains("preset") &&
-        !args.contains("compare")) {
-        std::map<std::string, std::string> scope_of;
-        const std::vector<std::string>     options = search_scope_options(scope_of);
+    // A search or named keys with no type look through kSearchTypes; each item names its type.
+    if ((args.contains("query") || args.contains("keys")) && !args.contains("type") && arg_string(args, "target", "global") == "global" &&
+        !args.contains("preset") && !args.contains("compare")) {
+        std::map<std::string, std::string> type_of;
+        const std::vector<std::string>     options = search_type_options(type_of);
         std::vector<std::string>           wanted;
         json                               unknown = json::array();
         if (args.contains("query"))
@@ -1656,26 +2436,26 @@ json read_settings(const json& args)
         else
             for (const json& k : args["keys"]) {
                 const std::string key = k.get<std::string>();
-                if (scope_of.count(key) == 0)
+                if (type_of.count(key) == 0)
                     unknown.push_back(key);
                 else if (std::find(wanted.begin(), wanted.end(), key) == wanted.end())
                     wanted.push_back(key);
             }
         std::map<std::string, json> found;
-        for (const char* scope : kSearchScopes) {
+        for (const char* type : kSearchTypes) {
             json keys = json::array();
             for (const std::string& key : wanted)
-                if (scope_of[key] == scope)
+                if (type_of[key] == type)
                     keys.push_back(key);
             if (keys.empty())
                 continue;
-            json scoped = args;
-            scoped.erase("query");
-            scoped.erase("offset");
-            scoped.update({{"scope", scope}, {"keys", std::move(keys)}, {"limit", 500}});
-            json read = read_settings(scoped);
+            json typed = args;
+            typed.erase("query");
+            typed.erase("offset");
+            typed.update({{"type", type}, {"keys", std::move(keys)}, {"limit", 500}});
+            json read = read_settings(typed);
             for (json& item : read["items"]) {
-                item["scope"]         = scope;
+                item["type"]          = type;
                 const std::string key = item["key"];
                 found[key]            = std::move(item);
             }
@@ -1688,18 +2468,21 @@ json read_settings(const json& args)
         add_unknown_keys(out, unknown);
         return out;
     }
-    if (arg_string(args, "scope") == "plate")
-        return plate_settings(args);
-    if (arg_string(args, "scope") == "preferences")
-        return preferences_settings(*wxGetApp().app_config, args);
-    const ConfigTarget t       = resolve_target(args, false);
-    const bool         compare = args.contains("compare");
+    return read_target(args, resolve_target(args, false));
+}
+
+// The settings of `t` that `args` asks for: its keys, query or where, its whole listing without them (for a target
+// other than global, what it overrides), or with compare what differs from another preset. `listing`: settings_list's,
+// paged by settings_list_page(). A key a target does not take is refused with where it is set. UI thread.
+json read_target(const json& args, const ConfigTarget& t, bool listing)
+{
+    const bool compare = args.contains("compare");
     // A preset's whole listing, hundreds of keys, is for scanning values; what one key takes
     // comes with it when it is named, searched for or listed with its group.
     const bool whole = !args.contains("keys") && !args.contains("query") && !args.contains("where") && t.object == nullptr && !t.project;
-    const bool meta  = arg_bool(args, "include_meta", !compare && !whole);
-    if ((t.object != nullptr || t.project) && (compare || args.contains("preset")))
-        throw ToolFailure("preset and compare are for the process, filament and printer scopes");
+    const bool meta  = listing ? listed_with_meta(args) : arg_bool(args, "include_meta", !compare && !whole);
+    if (t.object != nullptr && (compare || args.contains("preset")))
+        throw ToolFailure("preset and compare read a type's presets, which the targets object, part and height_range are not");
     // An object's or part's settings are process settings, on the process tab's pages.
     const std::map<std::string, std::string> places =
         t.project ? std::map<std::string, std::string>() : setting_places(t.object != nullptr ? Preset::TYPE_PRINT : t.type);
@@ -1719,17 +2502,26 @@ json read_settings(const json& args)
                 groups.insert(place->second);
             }
         if (keys.empty())
-            throw ToolFailure("No page or group \"" + arg_string(args, "where") + "\" in this scope", {{"groups", groups}});
+            throw ToolFailure("No page or group \"" + arg_string(args, "where") + "\" in these settings", {{"groups", groups}});
     } else if (t.object != nullptr) {
-        keys = t.config->keys();
+        // What the target overrides: its own keys, a filament of 0 ("Default") being none.
+        for (const std::string& key : t.config->keys())
+            if (key != "extruder" || t.config->opt_int("extruder") != 0)
+                keys.push_back(key);
     } else {
         keys = t.options;
     }
-    std::vector<std::string> known;
-    json                     unknown = json::array();
+    // A target's overrides are listed whatever they are; a key named for a target is one it takes.
+    const bool                      overrides = t.object != nullptr && !args.contains("keys") && !args.contains("query");
+    const std::vector<std::string>& process   = preset_options(Preset::TYPE_PRINT);
+    std::vector<std::string>        known;
+    json                            unknown = json::array();
     for (const std::string& key : keys) {
-        if (print_config_def.get(key) != nullptr && std::find(t.options.begin(), t.options.end(), key) != t.options.end())
+        const bool defined = print_config_def.get(key) != nullptr;
+        if (defined && (overrides || std::find(t.options.begin(), t.options.end(), key) != t.options.end()))
             known.push_back(key);
+        else if (defined && t.object != nullptr && std::find(process.begin(), process.end(), key) != process.end())
+            throw ToolFailure(untaken_setting_error(key, t.target, wxGetApp().filaments_cnt()));
         else
             unknown.push_back(key);
     }
@@ -1765,11 +2557,13 @@ json read_settings(const json& args)
         out["left"]       = t.preset->name + (edited ? " (edited)" : "");
         out["right"]      = other.name;
     } else {
-        // What an object or part prints with falls back to the process being edited, as its
+        // What an object, a part or a height range prints with falls back to the process being edited, as its
         // settings tab shows it.
-        const DynamicPrintConfig& process   = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-        bool                      part_only = false;
-        json                      items     = json::array();
+        const DynamicPrintConfig& global     = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+        bool                      part_only  = false;
+        bool                      range_only = false;
+        bool                      overlapped = false;
+        json                      items      = json::array();
         for (const std::string& key : known) {
             json item{{"key", key}};
             if (t.config->has(key))
@@ -1777,8 +2571,10 @@ json read_settings(const json& args)
             else
                 item["value"] = nullptr; // not overridden at this level
             if (t.object != nullptr) {
-                item.update(effective_setting(key, process, *t.object, t.volume));
-                part_only = part_only || item.contains("parts") || item.value("source", "") == "part";
+                item.update(effective_setting(key, global, *t.object, t.volume, t.range ? t.config : nullptr));
+                part_only  = part_only || item.contains("parts") || item.value("source", "") == "part";
+                range_only = range_only || item.contains("height_ranges") || item.value("source", "") == "height_range";
+                overlapped = overlapped || item.value("source", "") == "overlapped_part";
             }
             if (meta)
                 add_meta(item, key);
@@ -1786,11 +2582,47 @@ json read_settings(const json& args)
         }
         // A search's matches carry their descriptions, and those past the best few rarely
         // fit what was asked.
-        out = page(items, args, args.contains("query") ? 20 : 100);
+        out = listing ? settings_list_page(items, args) : page(items, args, args.contains("query") ? 20 : 100);
+        std::string note;
         if (part_only)
-            out["note"] = "A part's value (source \"part\", or in parts) applies only inside that part's volume.";
+            note = "A part's value (source \"part\", or in parts) applies only inside that part's volume.";
+        if (range_only)
+            note += std::string(note.empty() ? "" : " ") +
+                    "A height range's value (source \"height_range\", or in height_ranges) applies only between its min_z and max_z.";
+        if (overlapped)
+            note += std::string(note.empty() ? "" : " ") +
+                    "Inside a modifier, mesh or painted, that sets none of a key (source \"overlapped_part\"), the value of the "
+                    "part it overlaps applies: that part's own in parts, else object_effective; which parts it overlaps is not "
+                    "worked out.";
+        if (!note.empty())
+            out["note"] = note;
     }
+    if (t.object != nullptr)
+        out.update(target_reply(t));
     add_unknown_keys(out, unknown);
+    return out;
+}
+
+// settings_list: a type's settings, a preset's or those an object or a region takes, which read the process
+// preset's values. UI thread.
+json list_settings(const json& args)
+{
+    const std::string type = arg_string(args, "type");
+    if (type != "object" && type != "region")
+        return read_target(args, resolve_target(args, false), true);
+    json process    = args;
+    process["type"] = "process";
+    ConfigTarget t  = resolve_target(process, false);
+    // A region is a part, a modifier or a height range: what a height range takes, a part's and the layer height.
+    const std::vector<std::string> taken = target_options(type == "object" ? "object" : "height_range", wxGetApp().filaments_cnt());
+    t.options.erase(std::remove_if(t.options.begin(), t.options.end(),
+                                   [&taken](const std::string& key) { return std::find(taken.begin(), taken.end(), key) == taken.end(); }),
+                    t.options.end());
+    json out = read_target(process, t, true);
+    if (type == "region")
+        for (json& item : out["items"])
+            if (item["key"] == "layer_height")
+                item["targets"] = json::array({"height_range"});
     return out;
 }
 
@@ -1799,8 +2631,8 @@ json read_settings(const json& args)
 json search_settings(const std::string& query, std::size_t limit)
 {
     ui_plater(); // the presets and the settings pages exist once the main window does
-    std::map<std::string, std::string> scope_of;
-    const std::vector<std::string>     options = search_scope_options(scope_of);
+    std::map<std::string, std::string> type_of;
+    const std::vector<std::string>     options = search_type_options(type_of);
     const std::vector<std::string>     ranked  = rank_settings(query, options, options.size());
     const std::map<std::string, Preset::Type> types{{"process", Preset::TYPE_PRINT}, {"filament", Preset::TYPE_FILAMENT},
                                                     {"printer", Preset::TYPE_PRINTER}};
@@ -1808,12 +2640,12 @@ json search_settings(const std::string& query, std::size_t limit)
     json                                                      items = json::array();
     for (std::size_t i = 0; i < ranked.size() && i < limit; ++i) {
         const std::string&     key   = ranked[i];
-        const std::string&     scope = scope_of[key];
+        const std::string&     type  = type_of[key];
         const ConfigOptionDef* def   = print_config_def.get(key);
-        auto                   place = places.find(scope);
+        auto                   place = places.find(type);
         if (place == places.end())
-            place = places.emplace(scope, setting_places(types.at(scope))).first;
-        json item{{"key", key}, {"scope", scope}, {"label", def->full_label.empty() ? def->label : def->full_label}};
+            place = places.emplace(type, setting_places(types.at(type))).first;
+        json item{{"key", key}, {"type", type}, {"label", def->full_label.empty() ? def->label : def->full_label}};
         if (const auto where = place->second.find(key); where != place->second.end())
             item["where"] = where->second;
         items.push_back(std::move(item));
@@ -1821,45 +2653,113 @@ json search_settings(const std::string& query, std::size_t limit)
     return {{"total", ranked.size()}, {"items", std::move(items)}};
 }
 
+std::string settings_request_error(const json& args, bool writes)
+{
+    const std::string target = arg_string(args, "target", "global");
+    const bool        names  = args.contains("object") || args.contains("object_id") || args.contains("part") || args.contains("part_id");
+    const bool        range  = args.contains("min_z") || args.contains("max_z");
+    if (target == "global" && names)
+        return "object and part name the object or part of a target: give target object, part or height_range";
+    if (target != "height_range" && range)
+        return "min_z and max_z go with target height_range, the range of an object they name";
+    if (target != "global") {
+        // An object's, a part's and a height range's settings are process settings.
+        if (const std::string type = arg_string(args, "type", "process"); type != "process")
+            return "The " + type + " settings have no target " + target + ": an object's, a part's or a height range's own "
+                   "settings are process settings (type process, or no type)";
+        if (target != "part" && (args.contains("part") || args.contains("part_id")))
+            return "part goes with target part: target " + target + " is of an object";
+        if (target == "part" && args.contains("object") != args.contains("part"))
+            return "target part names its part by object and part, or by neither for the part selected in Prepare";
+        if (target == "height_range" && !(args.contains("min_z") && args.contains("max_z")))
+            return "target height_range needs min_z and max_z, the range's heights as object_list lists them";
+    }
+    // settings_set writes values, or takes a preset back to its saved state; settings_get reads what keys, query or
+    // compare names, or a target's overrides.
+    if (writes) {
+        if (!args.contains("values") && !args.contains("reset_all"))
+            return "Nothing is named: give values to change settings, or reset_all to discard the unsaved changes of a type's "
+                   "preset";
+        // The extruders a count adds or takes away change what the printer's other values hold.
+        const json values = args.value("values", json::object());
+        if (values.is_object() && values.contains("extruders_count") &&
+            (arg_string(args, "type", "process") != "printer" || values.size() > 1 || arg_bool(args, "reset_all", false)))
+            return "extruders_count is set alone, with type printer: the extruders it adds take their settings in a following "
+                   "call";
+    } else if (target == "global" && !args.contains("keys") && !args.contains("query") && !args.contains("compare")) {
+        return "Nothing is named: give keys, query or compare to read settings, or a target other than global to read what "
+               "it overrides; settings_list lists a type's settings";
+    }
+    return {};
+}
+
 void register_config_tools(CommandCatalog& catalog)
 {
-    const json plate_prop = {{"type", "integer"}, {"minimum", 0}, {"description", "Plate index (plate scope; default: the current plate)."}};
-    // get_settings and set_settings take the same scopes and differ in what they do without one.
-    const std::vector<std::string> scopes{"process", "filament", "printer", "object", "part", "project", "plate", "preferences"};
-    const std::string              scope_text = "Which settings: the process, filament or printer preset being edited, an "
-                                                "object's / part's own overrides, the project's own settings, a plate's, or the "
-                                                "app's preferences (read only).";
-    const json read_scope_prop  = enum_prop(scopes, scope_text + " Without it, keys and query look through the process, filament "
-                                                                 "and printer settings; anything else reads the process.");
-    const json write_scope_prop = enum_prop(scopes, scope_text + " Default: the process.");
+    const json plate_prop = {{"type", "integer"}, {"minimum", 0}, {"description", "Plate index; default: the current plate."}};
+    // The settings tools' type and target, as the Process panel's Global and Objects rows choose them.
+    const json type_prop        = enum_prop({"printer", "process", "filament"}, "Which settings: the printer, process or filament "
+                                                                                 "preset being edited.");
+    const json target_prop      = enum_prop({"global", "object", "part", "height_range"},
+                                            "Where they apply: global (default), the type's preset; object, part or height_range, "
+                                            "the overrides an object, one of its parts or modifiers, or one of its height ranges "
+                                            "carries, which are process settings.");
+    const json object_prop = {{"type", "integer"},
+                              {"minimum", 0},
+                              {"description", "Object index from object_list (targets object, part and height_range); without it, "
+                                              "the object selected in Prepare."}};
+    const json part_prop   = {{"type", "integer"},
+                              {"minimum", 0},
+                              {"description", "Part index in the object (target part, with object); without both, the part selected "
+                                              "in Prepare."}};
+    const json min_z_prop  = {{"type", "number"}, {"minimum", 0}, {"description", "Target height_range: the range's bottom, mm."}};
+    const json max_z_prop  = {{"type", "number"}, {"minimum", 0}, {"description", "Target height_range: the range's top, mm."}};
+    const json read_preset_prop = prop("string", "Read this saved preset of the type (a name from preset_list) instead of the one "
+                                                 "being edited.");
 
     catalog.add(inspect_tool(
-        "api", "list_presets", L("List presets"),
+        "preset_list", L("List presets"),
         "Printer, process or filament presets, each with its name, alias (the name its selector shows, when another), "
         "system, user, project (kept inside the project), inherits, selected (and modified), compatible: false or "
-        "visible: false when so, and for a filament the slots using it (filament_slots). Only compatible, visible presets "
-        "unless asked: a fresh install hides most system filaments and printers, and select_preset takes a hidden one too.",
+        "installed: false when so, and vendor; a filament its filament_type and the slots using it (filament_slots), a "
+        "printer its printer_model and nozzle. Only compatible, installed presets unless asked: a fresh install leaves most "
+        "system filaments and printers out of the selectors, and preset_select takes such a preset too. printer lists the "
+        "filaments or processes that fit another printer preset, in place of the selected one.",
         object_schema({{"type", enum_prop({"printer", "process", "filament"}, "Preset category.")},
                        {"query", prop("string", "Case-insensitive part of the name or alias.")},
+                       {"vendor", prop("string", "A vendor, in either case: a filament's maker (\"Bambu Lab\", \"Generic\"), a "
+                                                 "printer's or process's vendor bundle (\"BBL\").")},
+                       {"filament_type", prop("string", "Type filament: a filament type, in either case (\"PLA\").")},
+                       {"printer", prop("string", "Types filament and process: list what fits this printer preset (a name from "
+                                                  "preset_list type printer) in place of the selected printer.")},
+                       {"source", enum_prop({"system", "user", "project"}, "Where the presets come from: the system's, a "
+                                                                           "person's own, or kept inside the project.")},
                        {"include_incompatible", prop("boolean", "Also list presets incompatible with the printer.")},
-                       {"include_hidden", prop("boolean", "Also list hidden presets.")},
+                       {"include_uninstalled", prop("boolean", "Also list the system presets the selectors do not offer, which "
+                                                               "a person has not installed.")},
                        {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}, {"description", "Default 100."}}},
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}},
                       {"type"}),
-        [](const json& args, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return list_presets(args); })); }));
+        [](const json& args, ToolContext& ctx) {
+            const std::string type = arg_string(args, "type");
+            if (args.contains("printer") && type == "printer")
+                throw ToolFailure("printer lists the filaments or processes that fit a printer preset, not printers");
+            if (args.contains("filament_type") && type != "filament")
+                throw ToolFailure("filament_type filters filaments (type filament)");
+            return ToolResult::ok(ctx.run_ui([&] { return list_presets(args); }));
+        }));
 
     catalog.add(reaching({"resolve_preset", "select_preset", "assign_filament_preset"}, mutate_tool(
-        "api", "select_preset", L("Select a preset"),
+        "preset_select", L("Select a preset"),
         "Select a printer, process or filament preset by the name its selector shows (or its internal name), as a person "
-        "would. A hidden one (list_presets include_hidden) is shown in the selectors first, until the app restarts; one "
-        "the selector leaves out as incompatible with the printer is refused. With unsaved changes the Transfer-or-discard prompt opens "
+        "would. One the selectors do not offer (preset_list include_uninstalled) is shown in them first, until the app "
+        "restarts; one the selector leaves out as incompatible with the printer is refused. With unsaved changes the Transfer-or-discard prompt opens "
         "(blocked_by_dialog) unless preset_changes answers it. A filament is assigned to filament_slot (1-based, default "
         "1); with several slots the filament tab keeps the preset and the changes it has, so nothing is asked. Reply: "
-        "selected, shown (a hidden preset it showed); "
+        "selected, shown (a preset it showed in the selectors); "
         "when presets had or have unsaved changes, discarded and modified list per preset the keys dropped and the keys "
         "still unsaved.",
         object_schema({{"type", enum_prop({"printer", "process", "filament"}, "Preset category.")},
-                       {"name", prop("string", "Preset name as list_presets shows it.")},
+                       {"name", prop("string", "Preset name as preset_list shows it.")},
                        {"filament_slot", {{"type", "integer"}, {"minimum", 1}, {"description", "Filament slot, 1-based."}}},
                        {"preset_changes", enum_prop({"transfer", "discard"}, "Unsaved changes of the presets the switch replaces: move "
                                                                        "them to the new preset or drop them, as the prompt's "
@@ -1868,18 +2768,15 @@ void register_config_tools(CommandCatalog& catalog)
                                                                        "another type). Omitted: the prompt opens.")}},
                       {"type", "name"}),
         [](const json& args, ToolContext& ctx) {
-            const Preset::Type type    = preset_type(arg_string(args, "type"));
-            const std::string  name    = arg_string(args, "name");
-            const std::string  changes = arg_string(args, "preset_changes");
+            const Preset::Type       type   = preset_type(arg_string(args, "type"));
+            const std::string        name   = arg_string(args, "name");
+            const Ops::PresetChanges answer = preset_changes_answer(args);
             json result = ctx.run_ui([&]() -> json {
                 ui_plater();
                 const int                slot = arg_int(args, "filament_slot", 1);
                 const Ops::PresetKind    kind = type == Preset::TYPE_PRINTER  ? Ops::PresetKind::Printer :
                                                 type == Preset::TYPE_FILAMENT ? Ops::PresetKind::Filament :
                                                                                 Ops::PresetKind::Process;
-                const Ops::PresetChanges answer = changes == "transfer" ? Ops::PresetChanges::Transfer :
-                                                  changes == "discard"  ? Ops::PresetChanges::Discard :
-                                                                          Ops::PresetChanges::Ask;
                 Ops::ResolvePresetArgs resolve;
                 resolve.kind          = kind;
                 resolve.name          = name;
@@ -1914,13 +2811,13 @@ void register_config_tools(CommandCatalog& catalog)
         })));
 
     NativeCommand save = mutate_tool(
-        "api", "save_preset", L("Save a preset"),
+        "preset_save", L("Save a preset"),
         "Save the printer, process or filament preset being edited, with its unsaved changes, as a preset called name, "
         "which is then selected: what the tab's Save button does through its dialog. A filament is filament_slot's "
         "(default 1), and every slot using the old preset takes the new one. Replacing another existing preset needs "
         "overwrite (pass it in replays and scripts meant to be rerun). Reply: saved, selected, user, project, inherits, "
         "filament_slots. A "
-        "temperature warning or an unsaved-changes prompt makes it blocked_by_dialog. To keep only some edits, set_settings "
+        "temperature warning or an unsaved-changes prompt makes it blocked_by_dialog. To keep only some edits, settings_set "
         "{reset_all: true, values} first.",
         object_schema({{"type", enum_prop({"printer", "process", "filament"}, "Preset category.")},
                        {"name", prop("string", "Name to save under.")},
@@ -1938,13 +2835,14 @@ void register_config_tools(CommandCatalog& catalog)
                 ui_plater();
                 // The dialog shows its detach checkbox only in Developer mode.
                 if (detach && wxGetApp().get_mode() != comDevelop)
-                    throw ToolFailure("Detach is offered only in Developer mode; run_action orca_command:toggle_developer_mode:orca first");
+                    throw ToolFailure("Detach is offered only in Developer mode; turn it on first with tool_call {\"tool\": "
+                                      "\"settings_toggle_developer_mode\"}");
                 Tab* tab = wxGetApp().get_tab(type);
                 if (tab == nullptr)
                     throw ToolFailure("The settings tab is not available");
-                // The filament tab edits one slot's preset; edit this slot's, as set_settings does.
+                // The filament tab edits one slot's preset; edit this slot's, as settings_set does.
                 if (type == Preset::TYPE_FILAMENT)
-                    resolve_target({{"scope", "filament"}, {"filament_slot", arg_int(args, "filament_slot", 1)}}, true);
+                    resolve_target({{"type", "filament"}, {"filament_slot", arg_int(args, "filament_slot", 1)}}, true);
                 PresetCollection& presets        = collection(type);
                 const bool        inside_project = save_preset_inside_project(presets, name, args);
                 // With the name given, the tab saves without opening the dialog.
@@ -1975,7 +2873,7 @@ void register_config_tools(CommandCatalog& catalog)
     catalog.add(save);
 
     NativeCommand remove = mutate_tool(
-        "api", "delete_preset", L("Delete a preset"),
+        "preset_delete", L("Delete a preset"),
         "Delete a user preset or one inside the project, its file and its cloud copy, as the tab's Delete does, without "
         "asking. A selected preset is replaced as the tab does (its parent or the next preset). Another filament is deleted "
         "without changing the selection, and slots using it take the selected one; another process is selected, deleted "
@@ -1983,9 +2881,9 @@ void register_config_tools(CommandCatalog& catalog)
         "deleted with it. Refused: system, default and bundle presets, presets others inherit from, another preset while "
         "the edited one of its type has unsaved changes. Deleting a selected printer or process can "
         "ask about other presets' unsaved changes (blocked_by_dialog). Reply: deleted, selected, filaments (per slot), "
-        "attached, and discarded/modified as select_preset's.",
+        "attached, and discarded/modified as preset_select's.",
         object_schema({{"type", enum_prop({"printer", "process", "filament"}, "Preset category.")},
-                       {"name", prop("string", "Preset name as list_presets shows it.")},
+                       {"name", prop("string", "Preset name as preset_list shows it.")},
                        {"delete_attached", prop("boolean", "A custom printer with process or filament presets made for it alone is "
                                                            "refused without this: they are deleted with it, as the GUI "
                                                            "deletes them.")}},
@@ -2012,10 +2910,10 @@ void register_config_tools(CommandCatalog& catalog)
                     tab->delete_preset(false);
                 } else if (type == Preset::TYPE_PRINTER) {
                     // Switching to another printer and back recomputes the process and the filaments, so it is no round trip.
-                    throw ToolFailure("\"" + name + "\" is not the selected printer; select it first with select_preset");
+                    throw ToolFailure("\"" + name + "\" is not the selected printer; select it first with preset_select");
                 } else if (presets.current_is_dirty()) {
                     // Both routes select the edited preset again, which would drop or ask about its changes.
-                    throw ToolFailure("The edited " + type_name + " \"" + selected + "\" has unsaved changes; save_preset or set_settings "
+                    throw ToolFailure("The edited " + type_name + " \"" + selected + "\" has unsaved changes; preset_save or settings_set "
                                       "{reset_all: true} first");
                 } else if (type == Preset::TYPE_FILAMENT) {
                     delete_unselected_filament_preset(name);
@@ -2052,105 +2950,142 @@ void register_config_tools(CommandCatalog& catalog)
     catalog.add(remove);
 
     catalog.add(inspect_tool(
-        "api", "get_settings", L("Read settings"),
-        "Read settings: each item has its value, as OrcaSlicer writes it, and meta: label, description (what the setting "
-        "does, when to change it), where (its settings page and group), type, unit, range, allowed values and mode. Choose "
-        "them by keys; by query, a few words matched in keys, labels and descriptions, best matches first; by where, a page "
-        "or \"Page > Group\" (an unknown one is refused with the list of them); or by none of these, for the whole scope, "
-        "paged and, in a preset scope, "
-        "without meta. Keys the scope lacks are listed in unknown_keys, and scope_of gives the scope of those another "
-        "scope has.\n"
-        "- No scope: keys and query look through the process, filament and printer settings, and each item names its "
-        "scope, the one set_settings takes; anything else reads the process.\n"
-        "- process, filament, printer: the preset being edited, or with preset a saved one; compare lists only "
-        "the keys that differ from another preset (value and other). A per-variant value lists in meta its variants (what "
-        "each entry is for) and active (the entry each extruder prints with).\n"
-        "- object, part: listed whole, the overrides that object or part carries; keys, query and where read any process "
-        "setting there. Each has effective (the value it prints with) and "
-        "source (part, object, process or default); an object's item lists in parts the parts and modifiers that override "
-        "the key inside their own volume.\n"
-        "- project: the plate type, slot colours, flushing volumes, purge mode, prime tower position per plate, mixed slots "
-        "and, with several extruders, the filament grouping; meta.offered lists the choices this printer has.\n"
-        "- plate: a plate's curr_bed_type, print_sequence, spiral_mode, first_layer_print_sequence, "
-        "other_layers_print_sequence, name and locked, each with value (the plate's own, null where it follows the global "
-        "setting or Auto) and effective.\n"
-        "- preferences: the named keys of the app configuration (the Preferences dialog's settings, keys as its controls "
-        "are named), as stored; it lists none unasked.",
-        object_schema({{"scope", read_scope_prop},
+        "settings_list", L("List settings"),
+        "All the settings of a type in one reply, each item with its value as OrcaSlicer writes it, and without meta unless "
+        "include_meta. process, printer and filament: the preset being edited, or with preset a saved one, or with "
+        "filament_slot a slot's. object: the process settings an object or an assembly takes; region: those a part, a "
+        "modifier or a height range takes, whose layer_height item has targets [\"height_range\"], a height range alone "
+        "taking it; in both, each with the process preset's value, which an object or a region prints with unless it "
+        "sets its own. With where, the settings of one settings page or \"Page > Group\" (an unknown one is refused with "
+        "the list of them). Items with meta, which where gives them, come 100 a page. settings_get reads the settings "
+        "named or searched for, and what an object, a part or a height range overrides.",
+        object_schema({{"type", enum_prop({"process", "printer", "filament", "object", "region"},
+                                          "Which settings: a preset's, or those an object or a region takes.")},
+                       {"where", prop("string", "A settings page, or \"Page > Group\" as meta.where gives it, e.g. "
+                                                "\"Strength > Walls\".")},
+                       {"preset", prop("string", "Read this saved preset (a name from preset_list) instead of the one being "
+                                                 "edited: of the type, or for object and region a process preset.")},
+                       {"filament_slot", {{"type", "integer"}, {"minimum", 1},
+                                          {"description", "Type filament: the slot whose preset is read, 1-based (default 1), with "
+                                                          "its unsaved changes when the filament tab is editing it."}}},
+                       {"include_meta", prop("boolean", "Include labels, types and ranges. Default false, true with where.")},
+                       {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500},
+                                  {"description", "Default: all of them, or 100 with meta."}}},
+                       {"offset", {{"type", "integer"}, {"minimum", 0}}}},
+                      {"type"}),
+        [](const json& args, ToolContext& ctx) {
+            return ToolResult::ok(ctx.run_ui([&] {
+                ui_plater(); // the presets and the settings pages exist once the main window does
+                return list_settings(args);
+            }));
+        }));
+
+    catalog.add(inspect_tool(
+        "settings_get", L("Read settings"),
+        "Read the settings named or searched for: each item has its value, as OrcaSlicer writes it, and meta: label, "
+        "description (what the setting does, when to change it), where (its settings page and group), type, unit, range, "
+        "allowed values and mode. Choose them by keys, or by query, a few words matched in keys, labels and descriptions, "
+        "best matches first. Keys the settings lack are listed in unknown_keys, and type_of gives where each of those is a "
+        "setting elsewhere (a type, or project for the project's own settings). It needs keys, query, compare or a target "
+        "other than global; settings_list lists all of a type's settings.\n"
+        "- No type: keys and query look through the process, filament and printer settings, and each item names its "
+        "type, the one settings_set takes; otherwise the type is the process.\n"
+        "- type printer, process or filament (target global): the preset being edited, or with preset a saved one; "
+        "compare lists only the keys that differ from another preset (value and other). A per-variant value lists in meta "
+        "its variants (what each entry is for) and active (the entry each extruder prints with).\n"
+        "- target object (object), part (object and part) or height_range (object, min_z and max_z), the object or part "
+        "selected in Prepare where none is named: without keys, what it overrides; keys and query read the process "
+        "settings it takes (settings_list type object or region lists them) and extruder, its filament, and a key it does "
+        "not take is refused with where it is set. Each has value (its own, null where it has none), effective (the "
+        "value it prints with) and source, in the order the slicer applies them: height_range, part, object, global or "
+        "default; an object's item lists in parts the parts and modifiers that override the key inside their own volume, "
+        "and an object's or a part's item lists in height_ranges the ranges whose value applies to it between their "
+        "heights. Inside a modifier, mesh or painted, that sets none of a key, the value of the part it overlaps applies, "
+        "which the command does not work out: where a part (or a modifier of either kind before it) sets the key, the "
+        "modifier's item has effective null, source overlapped_part, object_effective and object_source (the object's "
+        "value), and in parts those that set it. These settings are process settings. The reply names the target (objects or parts, and "
+        "height_range).\n"
+        "preferences_get reads the app's preferences, plate_get_settings a plate's settings and project_get_settings the "
+        "project's own.",
+        object_schema({{"type", type_prop},
+                       {"target", target_prop},
                        {"keys", array_prop({{"type", "string"}}, "Option keys, e.g. [\"layer_height\", \"wall_loops\"].")},
                        {"query", prop("string", "A few distinctive words, e.g. \"stringing\" or \"ooze travel\"; the best 20 "
                                                 "matches unless limit says otherwise.")},
-                       {"where", prop("string", "A settings page, or \"Page > Group\" as meta.where gives it, e.g. "
-                                                "\"Strength > Walls\".")},
-                       {"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (object/part scope)."}}},
-                       {"part", {{"type", "integer"}, {"minimum", 0}, {"description", "Part index (part scope)."}}},
-                       {"plate", plate_prop},
+                       {"object", object_prop},
+                       {"part", part_prop},
+                       {"min_z", min_z_prop},
+                       {"max_z", max_z_prop},
                        {"filament_slot", {{"type", "integer"}, {"minimum", 1},
-                                          {"description", "Filament scope: the slot whose preset is read, 1-based (default 1), with "
+                                          {"description", "Type filament: the slot whose preset is read, 1-based (default 1), with "
                                                           "its unsaved changes when the filament tab is editing it."}}},
-                       {"preset", prop("string", "Preset scopes: read this saved preset (a name from list_presets) instead of the "
-                                                 "one being edited.")},
-                       {"compare", prop("string", "Preset scopes: a preset name, \":saved\" (the unsaved changes) or \":parent\" "
+                       {"preset", read_preset_prop},
+                       {"compare", prop("string", "Target global: a preset name, \":saved\" (the unsaved changes) or \":parent\" "
                                                   "(the preset it inherits from).")},
-                       {"include_meta", prop("boolean", "Include labels, types and ranges. Default true, false for a preset "
-                                                       "scope's whole listing and with compare.")},
+                       {"include_meta", prop("boolean", "Include labels, types and ranges. Default true, false with compare.")},
                        {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}, {"description", "Default 100, or 20 with query."}}},
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
         [](const json& args, ToolContext& ctx) {
+            // Refused before the UI is asked for anything: what the arguments alone decide.
+            if (const std::string err = settings_request_error(args); !err.empty())
+                throw ToolFailure(err);
             return ToolResult::ok(ctx.run_ui([&] {
                 ui_plater(); // the presets and the settings pages exist once the main window does
                 return read_settings(args);
             }));
         }));
 
-    catalog.add(reaching({"set_plate_locked"}, with_expected_ids(mutate_tool(
-        "api", "set_settings", L("Change settings"),
-        "Change settings of one scope (default the process) as typing them into its settings tab would. Values are strings "
-        "in OrcaSlicer's format (\"15%\", \"0.2\", \"1,2\") or JSON numbers, booleans and arrays (a point as [x, y]). All are "
-        "parsed strictly first and applied together, so nothing changes if one is invalid, and a key of another scope is "
-        "refused with that scope named. Reply: applied, and changed, every setting the call changed, including those the "
-        "app adjusted in turn. An object's, part's or plate's change is one undo step; a preset's is not in the undo "
-        "history. Spiral vase and a few others confirm their adjustments in a dialog (blocked_by_dialog).\n"
-        "- process, filament, printer: null takes a key back to its saved value, or with reset_to parent to the "
-        "parent's; reset_all first discards every unsaved change, as the tab's undo button does (reply: reverted). A "
-        "per-variant value (get_settings meta.variants) takes one value for the entries in use (meta.active), {index, "
-        "value} for one entry, or an array of all.\n"
-        "- object, part: overrides of the keys the object list offers there; null removes one. extruder is the object's "
-        "or part's filament (1-based; 0 or null for Default), set as the Change Filament menu does.\n"
-        "- project, as the sidebar's controls write them: curr_bed_type, filament_colour (#RRGGBB per slot), "
-        "flush_multiplier, flush_volumes_matrix, prime_volume_mode, and wipe_tower_x/y (mm from the plate's origin, one per "
-        "plate). flush_volumes_matrix is per nozzle, slots x slots from row to column, in config order over every slot, "
-        "before the multiplier; a mixed slot's entries must be given as they are, and a colour change can recalculate it, "
-        "so set it last.\n"
-        "- plate, which it selects and writes as the Plate Settings dialog's OK does: curr_bed_type, print_sequence (\"by "
-        "layer\", \"by object\"), spiral_mode (true asks for confirmation), first_layer_print_sequence (every slot once, "
-        "e.g. [2, 1]), other_layers_print_sequence ([{from: layer >= 2, to, order}], to omitted for the last layer), name "
-        "and locked; null returns a value to the global setting or Auto.",
-        object_schema({{"scope", write_scope_prop},
+    catalog.add(with_expected_ids(mutate_tool(
+        "settings_set", L("Change settings"),
+        "Change settings as typing them into their settings tab would: a type's preset (target global, the default), or "
+        "the overrides an object, a part or a height range carries (targets object, part and height_range, whose settings "
+        "are process settings). Values "
+        "are strings in OrcaSlicer's format (\"15%\", \"0.2\", \"1,2\") or JSON numbers, booleans and arrays (a point as "
+        "[x, y]). All are parsed strictly first and applied together, so nothing changes if one is invalid, and a key of "
+        "another type is refused with that type named. Reply: applied, and changed, every setting the call changed, "
+        "including those the app adjusted in turn. An object's or part's change is one undo step; a preset's is not in the "
+        "undo history. Spiral vase and a few others confirm their adjustments in a dialog (blocked_by_dialog).\n"
+        "- type printer, process (the default) or filament, target global: null takes a key back to its saved value, or "
+        "with reset_to parent to the parent's; reset_all first discards every unsaved change, as the tab's undo button "
+        "does (reply: reverted). A per-variant value (settings_get meta.variants) takes one value for the entries in use "
+        "(meta.active), {index, value} for one entry, or an array of all.\n"
+        "- type printer: extruders_count, alone, as the Extruders field of the Printer settings sets it; "
+        "nozzle_volume_type, each extruder's nozzle flow type as its card in the sidebar picks it; a nozzle_diameter that a "
+        "variant of the printer model has selects that variant's printer preset, as the sidebar's nozzle diameter does, with "
+        "nozzle_volume_type alone (other keys go in a second call), each flow type checked against what the new preset's "
+        "nozzle card offers, or gives where it offers none. The switch asks about the printer's unsaved changes "
+        "(blocked_by_dialog) unless reset_all discards them first; the discard stays if the switch is not made.\n"
+        "- target object (object), part (object and part) or height_range (object, min_z and max_z), the object or part "
+        "selected in Prepare where none is named: overrides of the keys its row offers there (settings_list type object or "
+        "region), and extruder; a key it does not take is refused with where it is set. null removes one; a height range "
+        "keeps its layer_height, which is checked against the printer's layer heights for the range's filament. extruder, "
+        "in neither list, is the target's filament (1-based; 0 or null for Default, the object's), set as the Change "
+        "Filament menu does. The reply names the target (objects or parts, and height_range).\n"
+        "plate_set_settings changes a plate's settings and project_set_settings the project's own. preferences_set changes "
+        "the app's preferences; those it refuses (preferences_get marks them refused) change in the Preferences dialog, "
+        "whose controls carry their effects: window_open {\"window\": \"preferences\", \"tab\": \"<tab>\", \"key\": "
+        "\"<key>\"}, then widget_set_value {\"target\": {\"name\": \"<key>\", \"within\": \"Preferences\"}, \"value\": "
+        "...}.",
+        object_schema({{"type", type_prop},
+                       {"target", target_prop},
                        {"values", {{"type", "object"}, {"description", "{key: value}, or {key: {index, value}} for one entry"}}},
-                       {"reset_all", prop("boolean", "Preset scopes: discard the unsaved changes before applying values.")},
-                       {"reset_to", enum_prop({"saved", "parent"}, "Preset scopes: what a null value takes a key back to: the "
+                       {"reset_all", prop("boolean", "Target global: discard the unsaved changes before applying values.")},
+                       {"reset_to", enum_prop({"saved", "parent"}, "Target global: what a null value takes a key back to: the "
                                                                      "saved preset (default) or the preset it inherits from.")},
-                       {"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (object/part scope)."}}},
-                       {"part", {{"type", "integer"}, {"minimum", 0}, {"description", "Part index (part scope)."}}},
+                       {"object", object_prop},
+                       {"part", part_prop},
+                       {"min_z", min_z_prop},
+                       {"max_z", max_z_prop},
                        {"object_id", expected_id_prop("object")},
                        {"part_id", expected_id_prop("part")},
-                       {"plate", plate_prop},
                        {"filament_slot", {{"type", "integer"}, {"minimum", 1},
-                                          {"description", "Filament scope: the slot whose preset is changed, 1-based (default 1). "
+                                          {"description", "Type filament: the slot whose preset is changed, 1-based (default 1). "
                                                           "The filament tab switches to it, which can ask about the unsaved "
                                                           "changes it holds (blocked_by_dialog)."}}}}),
         [](const json& args, ToolContext& ctx) {
-            // A preference's control carries its effects (theme, language, network, this server's own port), which
-            // writing the key would skip.
-            if (arg_string(args, "scope") == "preferences")
-                throw ToolFailure("Preferences change in the Preferences dialog: run_action orca_command:open_preferences:orca "
-                                  "with args {\"tab\": \"<tab>\", \"key\": \"<key>\"}, then set_widget_value {\"target\": {\"name\": \"<key>\", \"within\": "
-                                  "\"Preferences\"}, \"value\": ...}");
-            if (arg_string(args, "scope") == "project")
-                return set_project_settings(args, ctx);
-            if (arg_string(args, "scope") == "plate")
-                return set_plate_settings(args, ctx);
+            // Refused before the UI is asked for anything: what the arguments alone decide.
+            if (const std::string err = settings_request_error(args, /*writes=*/true); !err.empty())
+                throw ToolFailure(err);
             const json values_in = args.value("values", json::object());
             const bool reset_all = arg_bool(args, "reset_all", false);
             if (values_in.empty() && !reset_all)
@@ -2161,27 +3096,32 @@ void register_config_tools(CommandCatalog& catalog)
                 ui_plater();
                 const ConfigTarget t = resolve_target(args, true);
                 if ((reset_all || args.contains("reset_to")) && t.object != nullptr)
-                    throw ToolFailure(std::string(reset_all ? "reset_all" : "reset_to") + " is for preset scopes; here a null value removes an override");
+                    throw ToolFailure(std::string(reset_all ? "reset_all" : "reset_to") + " is for a type's preset; on a target a null value removes an override");
                 // What a null value takes a preset's key back to: its saved value, as the key's undo arrow does,
                 // or the parent's, as its lock icon does.
                 const Preset* reference = t.object != nullptr ? nullptr :
                                           arg_string(args, "reset_to", "saved") == "parent" ? &compare_preset(t, ":parent") :
                                                                                                &collection(t.type).get_selected_preset();
+                const DynamicPrintConfig before = *t.config;
+                if (t.type == Preset::TYPE_PRINTER && t.object == nullptr && values_in.contains("extruders_count"))
+                    return set_extruders_count(args, before);
                 // A preset's value is checked against what it will replace: after reset_all, the saved preset.
                 const DynamicPrintConfig&                        basis = reset_all ? collection(t.type).get_selected_preset().config : *t.config;
                 const auto                                       extruders = printer_extruders();
-                const DynamicPrintConfig                         before    = *t.config;
                 std::vector<std::pair<std::string, std::string>> values;
                 std::vector<std::string>                         removals;
+                const std::vector<std::string>& process = preset_options(Preset::TYPE_PRINT);
                 for (auto it = values_in.begin(); it != values_in.end(); ++it) {
                     if (std::find(t.options.begin(), t.options.end(), it.key()) == t.options.end()) {
                         json similar{{"similar", search_keys(it.key().substr(0, std::max<std::size_t>(3, it.key().size() / 2)), t.options, 5)}};
-                        if (t.object != nullptr && print_config_def.get(it.key()) != nullptr)
-                            throw ToolFailure("The object list does not offer \"" + it.key() + "\" for " +
-                                                  (t.volume != nullptr ? "a part or modifier" : "an object"),
-                                              std::move(similar));
-                        throw unknown_setting(it.key(), arg_string(args, "scope", "process"), std::move(similar));
+                        // A process setting the target does not take is set where its rows offer it.
+                        if (t.object != nullptr && std::find(process.begin(), process.end(), it.key()) != process.end())
+                            throw ToolFailure(untaken_setting_error(it.key(), t.target, wxGetApp().filaments_cnt()), std::move(similar));
+                        throw unknown_setting(it.key(), arg_string(args, "type", "process"), std::move(similar));
                     }
+                    // A height range's row shows its layer height, which it always has.
+                    if (it.value().is_null() && t.range && it.key() == "layer_height")
+                        throw ToolFailure("A height range keeps its layer_height; give it another value");
                     if (it.value().is_null() && reference != nullptr) {
                         if (!reference->config.has(it.key()))
                             throw ToolFailure("\"" + reference->name + "\" has no " + it.key());
@@ -2212,19 +3152,28 @@ void register_config_tools(CommandCatalog& catalog)
                     Tab* tab = wxGetApp().get_tab(t.type);
                     if (tab == nullptr)
                         throw ToolFailure("The settings tab is not available");
+                    // Every value is checked before the first change: the nozzle cards' picks, then the rest parsed.
+                    const NozzlePicks nozzles = t.type == Preset::TYPE_PRINTER ? nozzle_picks(values, *t.config) : NozzlePicks();
+                    parse_values();
                     if (reset_all) {
-                        parse_values();
                         reverted = collection(t.type).current_dirty_options();
                         tab->on_roll_back_value();
                     }
+                    if (t.type == Preset::TYPE_PRINTER)
+                        pick_nozzles(nozzles, reset_all && !reverted.empty());
                     try {
-                        tab->apply_preset_config_values(values);
+                        if (!values.empty())
+                            tab->apply_preset_config_values(values);
                     } catch (const std::exception& e) {
                         throw ToolFailure(e.what());
                     }
                 } else {
                     DynamicPrintConfig scratch = parse_values();
                     check_filament_numbers(scratch);
+                    if (t.range)
+                        check_height_range_layer_height(scratch, *t.config, [](int extruder) {
+                            return std::make_pair(get_min_layer_height(extruder), get_max_layer_height(extruder));
+                        });
                     // The filament goes through the object list's Change Filament, as a person sets it;
                     // null is its "Default" (0).
                     const bool     set_extruder = scratch.has("extruder") ||
@@ -2239,12 +3188,16 @@ void register_config_tools(CommandCatalog& catalog)
                     Plater::SingleSnapshot single(&plater);
                     if (!scratch.empty() || !removals.empty()) {
                         plater.take_snapshot("Change object settings");
-                        ModelConfig& cfg = t.volume != nullptr ? static_cast<ModelConfig&>(t.volume->config) : static_cast<ModelConfig&>(t.object->config);
+                        ModelConfig& cfg = t.range             ? t.object->layer_config_ranges.at(*t.range) :
+                                           t.volume != nullptr ? static_cast<ModelConfig&>(t.volume->config) :
+                                                                 static_cast<ModelConfig&>(t.object->config);
                         for (const std::string& key : scratch.keys())
                             cfg.set_key_value(key, scratch.option(key)->clone());
                         for (const std::string& key : removals)
                             cfg.erase(key);
-                        wxGetApp().obj_list()->object_config_options_changed(ObjectVolumeID{t.object, t.volume});
+                        // The row of the object, the part or the height range shows whether it has settings of its own.
+                        wxGetApp().obj_list()->object_config_options_changed(ObjectVolumeID{t.object, t.volume},
+                                                                             t.range ? &*t.range : nullptr);
                         plater.changed_object(t.object_index);
                     }
                     if (set_extruder) {
@@ -2253,39 +3206,367 @@ void register_config_tools(CommandCatalog& catalog)
                         wxGetApp().obj_list()->set_extruder_for_items(rows, extruder);
                     }
                 }
-                const ConfigTarget after = resolve_target(args, false);
+                // A preset's settings are read again, which a printer's nozzle flow types are copied into; a target's are
+                // its own, changed in place.
+                const ConfigTarget        reread = t.object == nullptr ? resolve_target(args, false) : ConfigTarget();
+                const DynamicPrintConfig& after  = t.object == nullptr ? *reread.config : *t.config;
                 json applied = json::object();
-                for (const auto& [key, value] : values)
-                    applied[key] = after.config->has(key) ? json(after.config->opt_serialize(key)) : json();
+                for (auto it = values_in.begin(); it != values_in.end(); ++it)
+                    applied[it.key()] = after.has(it.key()) ? json(after.opt_serialize(it.key())) : json();
                 for (const std::string& key : removals)
                     applied[key] = nullptr;
-                json out{{"applied", applied}, {"changed", changed_settings(before, *after.config)}};
+                json out{{"applied", applied}, {"changed", changed_settings(before, after)}};
                 if (reset_all)
                     out["reverted"] = std::move(reverted);
-                if (values_in.contains("extruder")) {
+                if (values_in.contains("extruder") && t.object != nullptr) {
                     // A single-part object shows no part row; its filament is the object's.
-                    const bool                on_object = after.volume != nullptr && after.object->volumes.size() == 1;
-                    const DynamicPrintConfig& cfg       = on_object ? after.object->config.get() : *after.config;
+                    const bool                on_object = t.volume != nullptr && t.object->volumes.size() == 1;
+                    const DynamicPrintConfig& cfg       = on_object ? t.object->config.get() : after;
                     out["applied"]["extruder"]          = cfg.has("extruder") ? json(cfg.opt_serialize("extruder")) : json();
                     if (on_object)
                         out["note"] = "A single-part object's filament is the object's; it was set there.";
                 }
+                if (t.object != nullptr)
+                    out.update(target_reply(t));
                 return out;
             });
             settle(ctx);
             return ToolResult::ok(result);
-        }))));
+        })));
 
     catalog.add(inspect_tool(
-        "api", "list_plates", L("List plates"),
-        "Plates with name, locked, current, objects (how many are on it; list_objects lists them), and the settings they print with: curr_bed_type, "
-        "print_sequence, spiral_mode, first_layer_print_sequence and other_layers_print_sequence (null: Auto); overrides "
-        "lists those the plate sets itself (set_settings scope plate). Also sliced (an up-to-date slice), wipe_tower [x, y] "
+        "plate_get_settings", L("Read a plate's settings"),
+        "Read a plate's own settings, as the Plate Settings dialog sets them: curr_bed_type, print_sequence, spiral_mode, "
+        "first_layer_print_sequence and other_layers_print_sequence; and as its filament grouping sets them on a printer "
+        "with several extruders: filament_map_mode and filament_map (the extruder of each filament, 1-based). Each with "
+        "value (the plate's own, null where it follows the global setting or Auto), effective (what the plate prints with) "
+        "and meta (meta.offered lists the plate types or grouping modes this printer has). All of them, or those named in "
+        "keys. Reply: plate, items; unknown_keys for the keys a plate does not have.",
+        object_schema({{"plate", plate_prop},
+                       {"keys", array_prop({{"type", "string"}}, "Setting keys, e.g. [\"curr_bed_type\"].")},
+                       {"include_meta", prop("boolean", "Include labels, types and ranges. Default true.")}}),
+        [](const json& args, ToolContext& ctx) {
+            return ToolResult::ok(ctx.run_ui([&] {
+                ui_plater();
+                return plate_settings(args);
+            }));
+        }));
+
+    catalog.add(mutate_tool(
+        "plate_set_settings", L("Change a plate's settings"),
+        "Change a plate's own settings, which it selects and writes as the Plate Settings dialog's OK does: curr_bed_type, "
+        "print_sequence (\"by layer\", \"by object\"), spiral_mode (true asks for confirmation), first_layer_print_sequence "
+        "(every slot once, e.g. [2, 1]) and other_layers_print_sequence ([{from: layer >= 2, to, order}], to omitted for "
+        "the last layer); and as the OK of its filament grouping does, with several extruders: filament_map_mode (an "
+        "offered mode) and, with \"Manual\", filament_map (one extruder per filament, e.g. [1, 2, 2]; on a printer whose "
+        "extruder holds several nozzles, refused as the dialog refuses it where an extruder it uses has no nozzle of the "
+        "volume type its filaments print with). null returns a value to the global setting or Auto. Values are checked "
+        "before anything changes, and the call is one undo step. Reply: plate, applied, changed, and effective for the "
+        "settings the plate prints with.",
+        object_schema({{"plate", plate_prop},
+                       {"values", {{"type", "object"}, {"description", "{key: value}"}}}},
+                      {"values"}),
+        [](const json& args, ToolContext& ctx) { return set_plate_settings(args, ctx); }));
+
+    catalog.add(inspect_tool(
+        "project_get_settings", L("Read the project's settings"),
+        "Read the settings the project stores outside any preset: the plate type (curr_bed_type), slot colours "
+        "(filament_colour), flushing volumes (flush_volumes_matrix, flush_multiplier), purge mode (prime_volume_mode), "
+        "prime tower position per plate (wipe_tower_x, wipe_tower_y), mixed slots (filament_is_mixed) and, with several "
+        "extruders, the filament grouping (filament_map_mode, filament_map); all of them, or those named in keys. Each item "
+        "has its value and meta; meta.offered lists the choices this printer has, and meta.read_only marks what is set "
+        "elsewhere.",
+        object_schema({{"keys", array_prop({{"type", "string"}}, "Setting keys, e.g. [\"filament_colour\"].")},
+                       {"include_meta", prop("boolean", "Include labels, types and ranges. Default true.")}}),
+        [](const json& args, ToolContext& ctx) {
+            return ToolResult::ok(ctx.run_ui([&] {
+                ui_plater();
+                return read_target(args, project_target());
+            }));
+        }));
+
+    catalog.add(mutate_tool(
+        "project_set_settings", L("Change the project's settings"),
+        "Change the project's own settings as the sidebar's controls write them: curr_bed_type, filament_colour (#RRGGBB "
+        "per slot), flush_multiplier, flush_volumes_matrix, prime_volume_mode, and wipe_tower_x/y (mm from the plate's "
+        "origin, one per plate). flush_volumes_matrix is per nozzle, slots x slots from row to column, in config order over "
+        "every slot, before the multiplier; a mixed slot's entries must be given as they are, and a colour change can "
+        "recalculate it, so set it last. Values are checked before anything changes; a prime tower move is one undo step. "
+        "Reply: applied, changed, and a note when the app moved a prime tower that did not fit.",
+        object_schema({{"values", {{"type", "object"}, {"description", "{key: value}, or {key: {index, value}} for one entry"}}}},
+                      {"values"}),
+        [](const json& args, ToolContext& ctx) { return set_project_settings(args, ctx); }));
+
+    catalog.add(inspect_tool(
+        "plate_list", L("List plates"),
+        "Plates with name, locked, current, objects (how many are on it; object_list lists them), and the settings they print with: curr_bed_type, "
+        "print_sequence, spiral_mode, first_layer_print_sequence and other_layers_print_sequence (null: Auto), with several "
+        "extruders filament_map_mode and filament_map; overrides "
+        "lists those the plate sets itself (plate_set_settings). Also origin and size, the plate's place on the bed in "
+        "mm: the [x, y] of its front left corner and its [width, depth], in the bed coordinates object positions are "
+        "given in, so that origin plus half the size is its middle; sliced (an up-to-date slice), wipe_tower [x, y] "
         "and layer_gcode: the plate's pauses, custom G-code, templates and filament changes, each {z, layer, type, "
         "filament, color, gcode}; layer is the Preview slider's number, given while the plate's slice is up to date.",
         object_schema({{"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}, {"description", "Default 100."}}},
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
         [](const json& args, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return list_plates(args); })); }));
+
+    // The plate commands made from menu rows: each acts on the plate the call names, else on the current plate, as its row
+    // does, and its reply names the plate. A command named as its row is that row's tile, in the Speed Dial's section
+    // `section`.
+    const auto own_tile = [](NativeCommand command, std::string section, std::string icon) {
+        command.in_palette = true;
+        command.tile_group = std::move(section);
+        command.icon       = std::move(icon);
+        return command;
+    };
+    const std::string plates_after = "plates (each plate afterwards: index, name and objects, how many stand on it) and current "
+                                     "(the current plate)";
+    catalog.add(own_tile(row_command("plate_add", L("Add Plate"), "Add a plate.", object_schema({}), json(),
+                                     [](const json&) { return Rows::plate_add(); }),
+                         L("Plate"), "toolbar_add_plate"));
+    catalog.add(reaching({"delete_plate"},
+                         own_tile(row_command("plate_delete", L("Delete Plate"),
+                                              "Delete a plate (plate, else the current one), as Delete Plate does. The objects on it "
+                                              "stay in the project, outside the plates, and the plates after it move down one. The "
+                                              "only plate is refused. One undo step. Reply: plate (the index it had), " +
+                                                  plates_after + ".",
+                                              object_schema({{"plate", plate_prop}}), json(), plate_delete_command),
+                                  L("Plate"), "delete")));
+    catalog.add(reaching({"duplicate_plate"},
+                         own_tile(row_command("plate_duplicate", L("Duplicate Plate"),
+                                              "Add a plate with a copy of each object on the plate (plate, else the current one), "
+                                              "placed on it as on that plate, as Duplicate Current Plate does. The new "
+                                              "plate comes last, and the current plate stays current. Refused when the project "
+                                              "holds as many plates as it can, and while slicing. One undo step. Reply: plate (the "
+                                              "plate copied), new_plate (the new plate's index), " +
+                                                  plates_after + ".",
+                                              object_schema({{"plate", plate_prop}}), json(), plate_duplicate_command),
+                                  L("Plate"), "menu_copy")));
+    // The name dialog's name, which every call but the tile's gives.
+    NativeCommand rename = own_tile(row_command("plate_rename", L("Rename Plate"),
+                                                "Name a plate (plate, else the current one), as its name icon does: a plate other "
+                                                "than the current one is made current first. name \"\" leaves it unnamed. With no "
+                                                "arguments, as its tile, the name dialog asks for the current plate's name "
+                                                "(blocked_by_dialog), and a cancelled dialog renames nothing, which the call is "
+                                                "told. The name is one undo step; the name the plate has already changes nothing, "
+                                                "the current plate included. Reply: plate and name.",
+                                                object_schema({{"plate", plate_prop},
+                                                               {"name", prop("string", "The plate's name, in place of the name dialog.")}},
+                                                              {"name"}),
+                                                json(), plate_rename_command),
+                                    L("Plate"), "plate_name_edit");
+    rename.input_schema = with_silent(std::move(rename.input_schema), person_forms(rename));
+    catalog.add(reaching({"rename_plate", "select_plate"}, std::move(rename)));
+    catalog.add(reaching(
+        {"set_plate_locked"},
+        row_command("plate_lock", L("Toggle Plate Lock"),
+                    "Lock or unlock a plate (plate, else the current one), as its lock icon does: locked true locks it and false "
+                    "unlocks it; without locked it toggles, as its tile does. An arrange of every plate leaves a locked one as "
+                    "it is. One undo step, none when the plate is in that state already. Reply: plate, locked, and changed "
+                    "(false when it was so already).",
+                    object_schema({{"plate", plate_prop},
+                                   {"locked", prop("boolean", "true locks the plate, false unlocks it. Default: the other state.")}}),
+                    json::array({NativeCommands::tile("plate_toggle_lock", L("Toggle Plate Lock"), L("Plate"), "lock_normal", json::object(),
+                                                      "Lock or unlock the current plate.")}),
+                    plate_lock_command)));
+    catalog.add(reaching(
+        {"select_plate"},
+        row_command("plate_select", L("Go to Plate"),
+                    "Make a plate the current one, as a click on it does: plate; without it, the current plate stays current. "
+                    "An index the project lacks is an error. Reply: plate.",
+                    object_schema({{"plate", plate_prop}}),
+                    json::array({NativeCommands::tile("plate_goto", L("Go to Plate"), L("Plate"), "go_next_plate", {{"plate", 0}},
+                                                      "Make the first plate the current one.")}),
+                    plate_select_command)));
+
+    // ---- The presets and settings commands made from menu rows ----
+    using NativeCommands::tile;
+    const std::string preset_file = "a preset .json, a .zip of them, an .orca_printer, .orca_filament or .orca_bundle, or a .gcode";
+    const std::string imported    = "and the message names the presets imported, replaced and kept; a .gcode loads the settings it was "
+                                    "sliced with.";
+    NativeCommand import_configs = reaching(
+        {"import_presets"},
+        row_command("preset_import", L("Import Configs"),
+                    "Import presets from " + preset_file + " by absolute path, without a dialog, " + imported +
+                        " Called with no arguments it is Import Configs: the file dialog asks for the file (blocked_by_dialog).",
+                    object_schema({{"path", Rows::input_file(preset_file.c_str())},
+                                   {"on_conflict", enum_prop({"skip", "overwrite"}, "What happens to a preset that exists already. Default skip.")}},
+                                  {"path"}),
+                    json::array({tile("import_configs", L("Import Configs"), L("Import"), "menu_open", json::object(),
+                                      "Import presets from the file a dialog asks for. preset_import with a path imports " + preset_file +
+                                          " without a dialog, " + imported)}),
+                    [](const json& args) { return Rows::import_configs(args); }));
+    import_configs.input_schema = with_silent(std::move(import_configs.input_schema), person_forms(import_configs));
+    catalog.add(std::move(import_configs));
+
+    // Ruling 16: the dialog opens on every call, and the caller answers it.
+    const std::string export_dialog = "Export presets as a bundle or ZIP archives through the Export Preset Bundle dialog: click the "
+                                      "label of the kind to export, check its rows (each named after a printer preset or a "
+                                      "filament), press OK, then answer the result message.";
+    catalog.add(row_command(
+        "preset_export", L("Export Preset Bundle"),
+        export_dialog + " Every call opens the dialog (blocked_by_dialog). With path, OK writes into that folder instead of "
+                        "asking for one, and a cancelled dialog is an error: nothing was exported.",
+        object_schema({{"path", prop("string", "Absolute path of an existing folder, which the dialog's OK writes into.")}}),
+        json::array({tile("export_config", L("Export Preset Bundle"), L("Export"), "save", json::object(),
+                          export_dialog + " preset_export with a folder as path has OK write there instead of asking for one.")}),
+        [](const json& args) { return Rows::export_config(args); }));
+
+    const std::string sync = "Synchronize user presets with the cloud account.";
+    NativeCommand preset_sync = reaching({"sync_presets"},
+                                         row_command("preset_sync", L("Sync Presets"), sync + " Refused while no account is signed in.",
+                                                     object_schema({}),
+                                                     json::array({tile("sync_presets", L("Sync Presets"), L("Presets"), "printer_sync_ok",
+                                                                       json::object(), sync)}),
+                                                     preset_sync_command));
+    // It reaches the cloud account.
+    preset_sync.open_world = true;
+    catalog.add(std::move(preset_sync));
+
+    const std::string migrate = "Migrate legacy user filament presets.";
+    catalog.add(row_command("preset_migrate_filaments", L("Migrate Filament Presets"), migrate, object_schema({}),
+                            json::array({tile("help_migrate_filament_presets", L("Migrate Filament Presets"), L("Help"), "",
+                                              json::object(), migrate)}),
+                            [](const json&) { return Rows::migrate_filament_presets(); }));
+
+    // The Mode rows; titles are L("...")-marked here so xgettext extracts them.
+    struct ModeRow
+    {
+        const char* key;
+        const char* title;
+        const char* mode;
+        const char* name;
+    };
+    static const ModeRow mode_rows[] = {{"mode_simple", L("Mode: Simple"), "simple", "Simple"},
+                                        {"mode_advanced", L("Mode: Advanced"), "advanced", "Advanced"},
+                                        {"mode_expert", L("Mode: Expert"), "expert", "Expert"}};
+    json mode_tiles = json::array();
+    for (const ModeRow& row : mode_rows)
+        mode_tiles.push_back(tile(row.key, row.title, L("Mode"), "advanced", {{"mode", row.mode}},
+                                  std::string("Switch the settings view to ") + row.name + " mode."));
+    catalog.add(row_command("settings_set_mode", L("Set the settings mode"),
+                            "Switch the settings view to Simple, Advanced or Expert mode, which decides which settings the settings "
+                            "pages show.",
+                            object_schema({{"mode", enum_prop({"simple", "advanced", "expert"}, "The mode.")}}, {"mode"}),
+                            std::move(mode_tiles), [](const json& args) { return Rows::set_mode(arg_string(args, "mode")); }));
+
+    const std::string developer = "Turn Developer mode on or off.";
+    NativeCommand developer_mode = row_command("settings_toggle_developer_mode", L("Toggle Developer Mode"), developer, object_schema({}),
+                                               json::array({tile("toggle_developer_mode", L("Toggle Developer Mode"), L("Mode"),
+                                                                 "advanced", json::object(), developer)}),
+                                               [](const json&) { return Rows::toggle_developer_mode(); });
+    // A menu row with no argument form: tool_search finds it and tool_call runs it, the tool list does not show it.
+    developer_mode.listed = false;
+    catalog.add(std::move(developer_mode));
+
+    // ---- The filament slot and printer commands made from menu rows ----
+    // The + and - buttons above the filament list and a slot's Delete menu item, each named as its row, in the Speed
+    // Dial's section Filament.
+    const std::string slot_buttons = "Refused for a printer that has one filament per extruder, which shows no + and - buttons.";
+    catalog.add(reaching({"add_filament_slot"},
+                         own_tile(row_command("filament_add", L("Add Filament Slot"),
+                                              "Add a filament slot, as the + button above the filament list does. It takes the next "
+                                              "colour and the last slot's preset (change them with preset_select filament_slot and "
+                                              "project_set_settings filament_colour). It goes after the physical slots: mixed "
+                                              "filaments move up by one, and objects on them follow. " +
+                                                  slot_buttons + " Reply: filament_slot (the new slot) and filament_slots (how many the "
+                                                                 "project has).",
+                                              object_schema({}), json(), filament_add_command),
+                                  L("Filament"), "add_filament")));
+    catalog.add(reaching(
+        {"delete_filament_slot"},
+        own_tile(row_command("filament_delete", L("Delete Filament Slot"),
+                             "Delete a filament slot, as its Delete menu item does, the objects on it taking the first filament; "
+                             "with merge_into, as its Merge with item does, the objects on it taking that slot. The slots after "
+                             "it move down by one. The only physical slot and a mixed filament (project_get_settings "
+                             "filament_is_mixed) are refused, and so is a merge into a mixed filament that mixes the slot. " +
+                                 slot_buttons + " Not in the undo history. Reply: filament_slot (the slot deleted), merged_into "
+                                                "(the slot its objects went to, as numbered afterwards) and filament_slots.",
+                             object_schema({{"filament_slot", {{"type", "integer"},
+                                                               {"minimum", 1},
+                                                               {"description", "The 1-based filament slot. Default: the last "
+                                                                               "physical slot, as the - button."}}},
+                                            {"merge_into", {{"type", "integer"},
+                                                            {"minimum", 1},
+                                                            {"description", "The 1-based slot the objects on it go to, as Merge "
+                                                                            "with does. Default: they take the first filament."}}}}),
+                             json(), filament_delete_command),
+                 L("Filament"), "delete_filament")));
+
+    NativeCommand mixed = reaching(
+        {"add_mixed_filament"},
+        mutate_tool(
+            "filament_add_mixed", L("Add Mixed Filament"),
+            "Add a mixed filament: a slot that prints its physical filaments in turn, layer by layer, in the ratios given, as "
+            "the Add Mixed Filament dialog's OK does with no gradient. components are two or more of the physical slots "
+            "(1-based), each named once, whose filaments are of one type; ratios a whole percentage for each, adding up to "
+            "100. It goes after every other slot. A mix the "
+            "project has already is not added again: the reply names its slot. Not in the undo history. Reply: "
+            "filament_slot (1-based) and added (false for a mix the project had).",
+            object_schema({{"components", array_prop({{"type", "integer"}, {"minimum", 1}},
+                                                     "The physical filament slots to mix, 1-based, two or more, each once, of "
+                                                     "filaments of one type.")},
+                           {"ratios", array_prop({{"type", "integer"}, {"exclusiveMinimum", 0}},
+                                                 "Each component's share in percent, in the order of components, adding up to "
+                                                 "100.")}},
+                          {"components", "ratios"}),
+            [](const json& args, ToolContext& ctx) {
+                Ops::AddMixedFilamentArgs op;
+                for (const json& component : args.at("components"))
+                    op.components.push_back(component.get<int>());
+                for (const json& ratio : args.at("ratios"))
+                    op.ratios.push_back(ratio.get<double>());
+                json reply = ctx.run_ui([&] {
+                    ui_plater();
+                    const Ops::Outcome<Ops::MixedFilament> mixed = Ops::add_mixed_filament(op);
+                    if (!mixed)
+                        throw refused(mixed.refusal());
+                    return json{{"filament_slot", mixed.value().filament_slot}, {"added", mixed.value().added}};
+                });
+                settle(ctx);
+                return ToolResult::ok(reply);
+            }));
+    mixed.examples = json::parse(R"json([
+        {"title": "Mix the first two filaments half and half", "calls": [
+            {"tool": "filament_add_mixed", "args": {"components": [1, 2], "ratios": [50, 50]}}]},
+        {"title": "Mix three filaments, the third the most", "calls": [
+            {"tool": "filament_add_mixed", "args": {"components": [1, 2, 3], "ratios": [25, 25, 50]}}]}])json");
+    catalog.add(std::move(mixed));
+
+    const std::string ams = "Synchronize the filament list from the connected printer's AMS.";
+    NativeCommand     sync_ams = reaching(
+        {"sync_filaments_from_ams"},
+        row_command("filament_sync_ams", L("Synchronize Filament List from AMS"),
+                    ams + " With mode, as the sync dialog's Synchronize now does with that choice, without the dialog: map maps "
+                          "each of the project's filaments to a slot, as the dialog's Mapping first does, which takes a project "
+                          "with objects; overwrite replaces the filament list with the slots' filaments. Called with no arguments, "
+                          "as its tile, it opens the sync dialog where the project has objects (blocked_by_dialog), and a warning "
+                          "where it cannot sync. With no printer connected, no AMS or no filament it is refused, saying so. Not in "
+                          "the undo history. Reply: mode, filaments (each slot's preset and colour afterwards) and "
+                          "mapped_to_generic (slots whose filament is unknown, mapped to a generic preset).",
+                    object_schema({{"mode", enum_prop({"map", "overwrite"}, "The sync dialog's choice: map or overwrite.")}}),
+                    json::array({tile("sync_ams", L("Synchronize Filament List from AMS"), L("Printer"), "ams_fila_sync", json::object(),
+                                      ams)}),
+                    sync_ams_command));
+    // It reads the connected printer's AMS.
+    sync_ams.open_world = true;
+    catalog.add(std::move(sync_ams));
+
+    const std::string send =
+        "Open the Send G-code to printer host dialog for the current plate, as the Print button does for a printer with a print "
+        "host (OctoPrint, Moonraker, PrusaLink, Duet...). Set the file name with widget_set_value and press Upload or Upload and "
+        "Print with dialog_answer; the plate is sliced if needed, then uploaded in the background: app_state.uploads shows the "
+        "row's state, and a failed upload also opens an error dialog. A replay uploads again. Fails for a printer without a "
+        "print host, or one that prints through the Bambu network or printer agents.";
+    NativeCommand printer_send = reaching({"send_gcode_to_host"},
+                                          row_command("printer_send", L("Send G-code to printer host"), send, object_schema({}),
+                                                      json::array({tile("send_gcode", L("Send G-code to printer host"),
+                                                                        L("Slice & Export"), "printer", json::object(), send)}),
+                                                      [](const json&) { return Rows::send_gcode(); }));
+    // It uploads to the printer's print host.
+    printer_send.open_world = true;
+    catalog.add(std::move(printer_send));
 }
 
 }}} // namespace Slic3r::GUI::Mcp

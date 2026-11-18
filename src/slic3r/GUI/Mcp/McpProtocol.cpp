@@ -66,18 +66,18 @@ int base64_value(char c)
 
 } // namespace
 
-// ---- call_tool ----------------------------------------------------------------
+// ---- tool_call ----------------------------------------------------------------
 
 std::string resolve_call(const CommandCatalog& catalog, std::shared_ptr<const NativeCommand>& command, json& args)
 {
-    if (!command || command->key != "call_tool")
+    if (!command || command->key != "tool_call")
         return {};
     const std::string                    target = args.value("tool", std::string());
     std::shared_ptr<const NativeCommand> inner  = catalog.lookup(target);
     if (!inner)
         return catalog.unknown_command(target, /*suggest=*/true);
-    if (inner->key == "call_tool")
-        return "call_tool calls another tool, not itself";
+    if (inner->key == "tool_call")
+        return "tool_call calls another tool, not itself";
     json inner_args = args.contains("args") && args["args"].is_object() ? args["args"] : json::object();
     if (std::string err = argument_error(*inner, inner_args); !err.empty())
         return "Invalid arguments for " + target + ": " + err;

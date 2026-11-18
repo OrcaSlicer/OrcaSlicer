@@ -145,14 +145,23 @@ set(SLIC3R_GUI_SOURCES
     GUI/ActionRegistry.hpp
     GUI/ActionReplayDialog.cpp
     GUI/ActionReplayDialog.hpp
+    GUI/NativeCommandRows.hpp
     GUI/NativeCommands.cpp
     GUI/NativeCommands.hpp
     GUI/Operations/ExportOps.cpp
     GUI/Operations/ExportOps.hpp
+    GUI/Operations/InstallOps.cpp
+    GUI/Operations/InstallOps.hpp
+    GUI/Operations/ObjectOps.cpp
+    GUI/Operations/ObjectOps.hpp
     GUI/Operations/Outcome.cpp
     GUI/Operations/Outcome.hpp
     GUI/Operations/PlateOps.cpp
     GUI/Operations/PlateOps.hpp
+    GUI/Operations/PluginOps.cpp
+    GUI/Operations/PluginOps.hpp
+    GUI/Operations/PreferenceOps.cpp
+    GUI/Operations/PreferenceOps.hpp
     GUI/Operations/PresetOps.cpp
     GUI/Operations/PresetOps.hpp
     GUI/Operations/ProjectOps.cpp
@@ -176,6 +185,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Mcp/McpPersonRun.hpp
     GUI/Mcp/McpRecorder.cpp
     GUI/Mcp/McpRecorder.hpp
+    GUI/Mcp/McpTargets.cpp
+    GUI/Mcp/McpTargets.hpp
     GUI/Mcp/McpTools.hpp
     GUI/Mcp/McpPluginCaller.cpp
     GUI/Mcp/McpPluginCaller.hpp
@@ -184,7 +195,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/Mcp/McpToolsApp.cpp
     GUI/Mcp/McpToolsCommon.cpp
     GUI/Mcp/McpToolsConfig.cpp
+    GUI/Mcp/McpToolsInstall.cpp
     GUI/Mcp/McpToolsLayers.cpp
+    GUI/Mcp/McpToolsPlugins.cpp
+    GUI/Mcp/McpToolsPreferences.cpp
     GUI/Mcp/McpToolsProject.cpp
     GUI/Mcp/McpToolsPython.cpp
     GUI/Mcp/McpToolsRecord.cpp

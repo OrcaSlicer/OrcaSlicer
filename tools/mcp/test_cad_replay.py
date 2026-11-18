@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Checks that a Design-tab session exported with export_replay replays to the same part.
+"""Checks that a Design-tab session exported with replay_export replays to the same part.
 
     tools/mcp/orca_mcp.py launch --cad
     tools/mcp/test_cad_replay.py
 
-Records a session of Design command calls made through call_tool (replay steps are not journaled) on the
+Records a session of Design command calls made through tool_call (replay steps are not journaled) on the
 paths a replay breaks on: a sketch on a base plane, which passes through modeling_origin as every plane does; an
 empty sketch commit, which fails and must keep the sketch open for the next call; commands
-failing as an error (a hole that misses, a fillet the kernel refuses), which export_replay must
+failing as an error (a hole that misses, a fillet the kernel refuses), which replay_export must
 leave out; a shell thicker than the plate, which reports the rejected rebuild in its reply (ok
 false) and stays in to replay the same rejection; and face and edge ids passed with the generation
 they were read at, which the journal drops, since the replay reaches other generation numbers. The
@@ -27,7 +27,7 @@ import orca_mcp  # noqa: E402
 
 
 def cad(client, tool, **args):
-    return client.call("call_tool", _timeout=300, tool=tool, args=args)["result"]
+    return client.call("tool_call", _timeout=300, tool=tool, args=args)["result"]
 
 
 def refused(client, tool, **args):
@@ -41,8 +41,8 @@ def refused(client, tool, **args):
 
 def record(client):
     """The session to export; returns the reads the replay must match and the refusals seen."""
-    client.call("export_replay", clear=True)
-    client.call("new_project", discard_changes=True)
+    client.call("replay_export", clear=True)
+    client.call("project_new", discard_changes=True)
     cad(client, "new_design", discard_changes=True)
     frame = cad(client, "sketch_create", plane="XY")["frame"]
     empty_commit = refused(client, "sketch_finish")
@@ -60,7 +60,7 @@ def record(client):
     rejected_shell = cad(client, "shell", thickness=20, body=0)
     bores = cad(client, "body_describe", body=0, kinds=["cylindrical"])
     bore = next(f["id"] for f in bores["faces"] if f.get("internal"))
-    thread = client.await_job(client.call("call_tool", _timeout=300, tool="thread",
+    thread = client.await_job(client.call("tool_call", _timeout=300, tool="thread",
                                           args={"body": 0, "face": bore, "generation": bores["generation"]}))
     return {"mass": cad(client, "body_mass_properties", body=0), "scene": cad(client, "describe_design"),
             "frame": frame, "empty_commit": empty_commit, "missed_hole": missed_hole, "refused_fillet": refused_fillet,
@@ -76,16 +76,16 @@ def main():
     live = record(client)
     out_dir = tempfile.mkdtemp(prefix="orca-mcp-cad-replay-")
     path = os.path.join(out_dir, "session.json")
-    client.call("export_replay", path=path, overwrite=True)
+    client.call("replay_export", path=path, overwrite=True)
     with open(path) as f:
         text = f.read()
     steps = json.loads("\n".join(l for l in text.splitlines() if not l.lstrip().startswith("//")))["steps"]
-    # A Design command's call is journaled as its own; the session starts with new_project.
-    calls = [s for s in steps if s["tool"] != "new_project"]
+    # A Design command's call is journaled as its own; the session starts with project_new.
+    calls = [s for s in steps if s["tool"] != "project_new"]
     tools = [s["tool"] for s in calls]
 
-    client.call("new_project", discard_changes=True)
-    replay = client.await_job(client.call("run_replay", path=path, out_dir=out_dir), timeout=900)
+    client.call("project_new", discard_changes=True)
+    replay = client.await_job(client.call("replay_run", path=path, out_dir=out_dir), timeout=900)
     mass = cad(client, "body_mass_properties", body=0)
     scene = cad(client, "describe_design")
     kinds = lambda s: [f["type"] for f in s["features"]]  # noqa: E731 (names count on across projects)

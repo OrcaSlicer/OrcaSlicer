@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Checks that a Design-tab call whose job fails after its reply is left out of export_replay.
+"""Checks that a Design-tab call whose job fails after its reply is left out of replay_export.
 
     tools/mcp/orca_mcp.py launch --cad
     tools/mcp/test_cad_failed_job.py
@@ -35,7 +35,7 @@ REBUILD_S = max(orca_mcp.reply_budget_s() * 4 / 3, orca_mcp.reply_budget_s() + 4
 
 def cad(client, tool, **args):
     """A Design command's reply: its {result}, or the envelope of the job it runs as."""
-    return client.call("call_tool", _timeout=600, tool=tool, args=args)
+    return client.call("tool_call", _timeout=600, tool=tool, args=args)
 
 
 def coil(client, turns):
@@ -64,8 +64,8 @@ def main():
     # sizes has more turns. The hole must reply running and still run at the export after its reply.
     # One that fails inside the budget, or whose job has ended by the export, is made again with a
     # bigger coil.
-    client.call("export_replay", clear=True)
-    client.call("new_project", discard_changes=True)
+    client.call("replay_export", clear=True)
+    client.call("project_new", discard_changes=True)
     built = 12
     calibration = coil(client, built)
     turns = max(built, min(40, round(built * (REBUILD_S / max(calibration, 0.5)) ** (1 / 3))))
@@ -74,8 +74,8 @@ def main():
     running = False
     while True:
         if turns != built:
-            client.call("export_replay", clear=True)
-            client.call("new_project", discard_changes=True)
+            client.call("replay_export", clear=True)
+            client.call("project_new", discard_changes=True)
             coil(client, turns)
             built = turns
         start = time.time()
@@ -90,11 +90,11 @@ def main():
             continue
         if started.get("status") != "running":
             break
-        during = client.call("export_replay")
+        during = client.call("replay_export")
         # Asked of the job itself, which needs no UI thread (the rebuild may hold it); a failed job's
-        # reply is its error. The export leaves this wait out with the hole.
+        # reply is its error. The export leaves this app_wait out with the hole.
         try:
-            running = client.call("wait", **{"for": "job", "job": started["job"], "timeout_s": 0}).get("status") == "running"
+            running = client.call("app_wait", **{"for": "job", "job": started["job"], "timeout_s": 0}).get("status") == "running"
         except orca_mcp.McpError:
             running = False
         if during.get("left_out_running") or running or turns >= 40:
@@ -124,7 +124,7 @@ def main():
     live_scene = cad(client, "describe_design")["result"]
     live_mass = cad(client, "body_mass_properties", body=0)["result"]
 
-    after = client.call("export_replay", path=path, overwrite=True)
+    after = client.call("replay_export", path=path, overwrite=True)
     # A Design command's call is journaled as its own.
     tools = [s["tool"] for s in after["replay"]["steps"]]
     check("the export leaves the failed hole out", "hole" not in tools, tools)
@@ -141,8 +141,8 @@ def main():
     run_path = os.path.join(out_dir, "run.json")
     with open(run_path, "w") as f:
         json.dump(exported, f, indent=1)
-    client.call("new_project", discard_changes=True)
-    replay = client.await_job(client.call("run_replay", path=run_path, out_dir=out_dir), timeout=1800)
+    client.call("project_new", discard_changes=True)
+    replay = client.await_job(client.call("replay_run", path=run_path, out_dir=out_dir), timeout=1800)
     check("the exported session replays", replay.get("passed") is True,
           json.dumps([s for s in replay.get("steps", []) if not s.get("ok")][:1]))
     scene = cad(client, "describe_design")["result"]

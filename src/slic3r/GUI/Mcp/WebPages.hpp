@@ -91,7 +91,7 @@ const std::string& page_agent_version();
 // The script that asks `request` of the agent: when `install`, it installs the agent first.
 std::string page_script(const nlohmann::json& request, bool install);
 
-// A page snapshot (the agent's reply) as list_widgets lines at `depth`, in the window-client frame
+// A page snapshot (the agent's reply) as widget_list lines at `depth`, in the window-client frame
 // widgets use: CSS pixels times `scale` (logical pixels per CSS pixel), offset by `origin`, the web
 // view's place in its window. `key` is the element the line stands for (null for none).
 struct PageNode
@@ -121,7 +121,7 @@ std::string redact_url(const std::string& url);
 std::optional<int> journal_index(const std::vector<WebHandle>& webs, const std::vector<PageReply>& replies, WebHandle web,
                                  const nlohmann::json& key);
 
-// What a press_keys chord is to the agent: {key: {key, code, keyCode, charCode, text?}, mods: {ctrl,
+// What a keyboard_press chord is to the agent: {key: {key, code, keyCode, charCode, text?}, mods: {ctrl,
 // shift, alt, meta}}, with Ctrl/Cmd the Command key on macOS and RawCtrl its Control key. Throws
 // ToolFailure for a chord KeyChord::parse() refuses.
 nlohmann::json web_key(const std::string& chord);

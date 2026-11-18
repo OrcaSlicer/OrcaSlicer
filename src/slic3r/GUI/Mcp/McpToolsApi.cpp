@@ -1,7 +1,7 @@
-// search_tools and call_tool: a generic way to every command of the catalog, those tools/list never shows
-// among them: the Speed Dial's commands, the Design tab's and the operations plugins offer (plugin.<key>.<name>).
-// search_tools's search also reaches the other catalogs an agent calls into: the Speed Dial's other actions,
-// settings and the Python API.
+// tool_search and tool_call: a generic way to every command of the catalog, those tools/list does not show among
+// them: the menu rows that take no arguments, the Design tab's commands and the operations plugins offer
+// (plugin.<key>.<name>). tool_search's search also reaches the other catalogs an agent calls into: the Speed Dial's
+// other actions, settings and the Python API.
 
 #include "McpArguments.hpp"
 #include "McpTools.hpp"
@@ -56,11 +56,11 @@ json editor_tool_catalog(const CommandCatalog& catalog)
 
 namespace {
 
-// How many of each other catalog's matches search_tools shows beside the commands, and of the commands
+// How many of each other catalog's matches tool_search shows beside the commands, and of the commands
 // without a limit; each catalog's own search lists the rest.
 constexpr std::size_t kCatalogHits = 5;
 
-// What search_tools looks through: every command of `catalog`, in the order they were added, then what its
+// What tool_search looks through: every command of `catalog`, in the order they were added, then what its
 // sources hold now; with `group`, those of that group, compared in any case. A group none of them has is
 // refused with the groups there are, in the order they first appear.
 std::vector<std::shared_ptr<const NativeCommand>> search_inventory(const CommandCatalog& catalog, const std::string& group)
@@ -89,7 +89,7 @@ std::vector<std::shared_ptr<const NativeCommand>> search_inventory(const Command
     return out;
 }
 
-// A catalog's best matches for search_tools, from `ranked`, its matches best first: {total, items, use}
+// A catalog's best matches for tool_search, from `ranked`, its matches best first: {total, items, use}
 // with the first few, or null when nothing matched.
 json catalog_hits(const json& ranked, const std::string& use)
 {
@@ -102,7 +102,7 @@ json catalog_hits(const json& ranked, const std::string& use)
 }
 
 // The Speed Dial's actions that are no command (plates, recent projects, plugin scripts and pages) and settings
-// matching `words` (of `query`), for search_tools. A command's tile is left out: the command is among the
+// matching `words` (of `query`), for tool_search. A command's tile is left out: the command is among the
 // commands already. A catalog that can't be read yet (startup, before the main window) is left out. UI thread.
 json ui_catalog_hits(const std::vector<std::string>& words, const std::string& query)
 {
@@ -115,13 +115,13 @@ json ui_catalog_hits(const std::vector<std::string>& words, const std::string& q
         for (json& action : listed["items"])
             if (!action.contains("command"))
                 others.push_back(std::move(action));
-        // Ranked as search_actions ranks them, so the same query reads on there from these.
-        out["actions"] = catalog_hits(rank_actions(others, words), "run_action {id, args}; search_actions {query} lists the rest");
+        // Ranked as action_search ranks them, so the same query reads on there from these.
+        out["actions"] = catalog_hits(rank_actions(others, words), "action_run {id, args}; action_search {query} lists the rest");
     }
     try {
         json settings = search_settings(query, kCatalogHits);
         if (settings["total"] != 0) {
-            settings["use"]  = "get_settings {scope, keys} reads one with its description; set_settings {scope, values} changes it";
+            settings["use"]  = "settings_get {type, keys} reads one with its description; settings_set {type, values} changes it";
             out["settings"] = std::move(settings);
         }
     } catch (const ToolFailure&) {
@@ -129,7 +129,7 @@ json ui_catalog_hits(const std::vector<std::string>& words, const std::string& q
     return out;
 }
 
-// The Python API entries matching `query`, for search_tools, or null when Python is not running or none
+// The Python API entries matching `query`, for tool_search, or null when Python is not running or none
 // matches.
 json python_hits(const std::string& query)
 {
@@ -142,7 +142,7 @@ json python_hits(const std::string& query)
     try {
         ranked = rank_python_api(python_api_reference(), query);
     } catch (const ToolFailure&) {
-        return nullptr; // search_python_api reports why
+        return nullptr; // script_search_api reports why
     }
     if (ranked.empty())
         return nullptr;
@@ -152,7 +152,7 @@ json python_hits(const std::string& query)
                          {"summary", first_sentence(ranked[i]["doc"].get<std::string>())}});
     return {{"total", ranked.size()},
             {"items", std::move(items)},
-            {"use", "run_script {code}; search_python_api {query} gives each entry's whole documentation"}};
+            {"use", "script_run {code}; script_search_api {query} gives each entry's whole documentation"}};
 }
 
 json describe_tool(const NativeCommand& def)
@@ -169,14 +169,14 @@ json describe_tool(const NativeCommand& def)
 }
 
 // A plugin's operation as a command: a job (plugin code may take long), under the mutate guard and journaled
-// when it changes something, under the inspect guard and unjournaled when it only reads. Not listed; in the api
-// group, as it is called by name with JSON in and out.
+// when it changes something, under the inspect guard and unjournaled when it only reads. Not listed; in the group
+// Plugins, the place of the commands that manage the plugins.
 std::shared_ptr<const NativeCommand> operation_command(const PluginOperation& op)
 {
     auto def          = std::make_shared<NativeCommand>();
     def->key          = op.full_name();
     def->title        = op.name;
-    def->group        = "api";
+    def->group        = "Plugins";
     def->description  = "Offered by a plugin. " + op.description;
     def->input_schema = op.schema;
     def->read_only    = !op.changes;
@@ -199,7 +199,7 @@ std::shared_ptr<const NativeCommand> operation_command(const PluginOperation& op
 }
 
 // The operations the loaded plugins offer (plugin.<key>.<name>), which come and go with their plugins: a
-// call finds one by name, and search_tools lists them; tools/list does not.
+// call finds one by name, and tool_search lists them; tools/list does not.
 class PluginOperationSource final : public CommandSource
 {
 public:
@@ -265,34 +265,40 @@ json search_commands(const CommandCatalog& catalog, const json& args)
     }
     return {{"total", scored.size()},
             {"items", std::move(items)},
-            {"use", "call a listed command by its name; call_tool {tool, args} runs one that is not listed"}};
+            {"use", "call a listed command by its name; tool_call {tool, args} runs one that is not listed"}};
+}
+
+void register_plugin_operations(CommandCatalog& catalog)
+{
+    // Plugin operations resolve by name, beside the catalog's commands, without being listed.
+    catalog.add_source(std::make_unique<PluginOperationSource>());
 }
 
 void register_api_tools(CommandCatalog& catalog, const std::string& design_index)
 {
-    // Plugin operations resolve by name, beside the catalog's commands, without being listed.
-    catalog.add_source(std::make_unique<PluginOperationSource>());
-
     // Its description ends with `design_index`: the Design commands' names, in a catalog that holds them.
     catalog.add(inspect_tool(
-        "api", "search_tools", L("Find tools, actions, settings and APIs"),
+        "tool_search", L("Find tools, actions, settings and APIs"),
         "Find what does something, in one search, or look up one command. With query: the commands that match, best "
         "first, each with its group, the first sentence of its description and listed, whether the tool list shows it; "
-        "one that is not listed (a Speed Dial command, a Design tab command, or an operation a plugin offers, "
-        "plugin.<plugin>.<name>) comes with its input schema, and its description when that says more, which nothing "
-        "else shows. Beside them, the best few matches of each other catalog, with its total and how to use it: actions "
-        "(the Speed Dial's plates, recent projects and plugin scripts and pages, for run_action), settings (get_settings "
-        "/ set_settings) and python (the orca API for run_script). With tool: that command's description and input schema, "
-        "and its examples when it has some (the Design commands do). With neither: every command's name. group keeps the "
-        "names and the command matches to one group; the other catalogs' matches stay as they are. call_tool runs any "
-        "command, listed or not." + design_index,
+        "one that is not listed (a menu row that takes no arguments, a Design tab command, or an operation a plugin "
+        "offers, plugin.<plugin>.<name>) comes with its input schema, and its description when that says more, which "
+        "nothing else shows. Beside them, the best few matches of each other catalog, with its total and how to use it: "
+        "actions (the Speed Dial's plates, recent projects and plugin scripts and pages), settings, and python (the orca "
+        "API a script calls). The reply says how to call each kind of match. With tool: that command's description and "
+        "input schema, and its examples when it has some (the Design commands do). With neither: every command's name. "
+        "group keeps the names and the command matches to one group; the other catalogs' matches stay as they are." +
+            design_index,
         object_schema({{"tool", prop("string", "A command's name: its description and schema.")},
                        {"query", prop("string", "A few words saying what you want to do or find, e.g. \"brim\" or \"mesh normals\".")},
-                       {"group", prop("string", "Only the commands of this group, in any case: core (the session, dialogs and "
-                                                "Python), api (project data by index and name; plugin operations too), ui (the "
-                                                "GUI itself), Design (the Design tab's, with the CAD feature on), or a Speed Dial "
-                                                "section such as Commands, Object or View. A group no command has is refused with "
-                                                "the groups there are.")},
+                       {"group", prop("string", "Only the commands of this group, in any case: the heading of a place (Tools "
+                                                "and actions; The app; The project; Objects; Parts; Plates; Presets and "
+                                                "settings; Filaments; Printers and prints; Plugins, with the operations plugins "
+                                                "offer; View and windows; Recordings, replays and scripts; Driving the GUI), the "
+                                                "place a command's name starts with, but for window_screenshot and "
+                                                "window_save_screenshot, which are under Recordings, replays and scripts; or "
+                                                "Design (the Design tab's, with the CAD feature on). A group no command has is "
+                                                "refused with the groups there are.")},
                        {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 200}, {"description", "At most this many commands (default 5)."}}}}),
         [](const json& args, ToolContext& ctx) {
             json out = search_commands(NativeCommands::instance(), args);
@@ -316,15 +322,15 @@ void register_api_tools(CommandCatalog& catalog, const std::string& design_index
     // Dispatched before it runs (resolve_call): the call runs as the target's own, with its guard,
     // mode, budget and journal flag, and is journaled as the target's call. This handler is never reached.
     NativeCommand call = mutate_tool(
-        "api", "call_tool", L("Call a tool or plugin operation"),
-        "Call any command by name with its arguments: a tool, or one the tool list does not show, a Speed Dial command, a "
-        "Design tab command or an operation a plugin offers (see search_tools). It runs and is recorded as that command's "
-        "own call, with its guards and reply budget.",
+        "tool_call", L("Call a tool or plugin operation"),
+        "Call any command by name with its arguments: a tool, or one the tool list does not show, a menu row that takes no "
+        "arguments, a Design tab command or an operation a plugin offers (see tool_search). It runs and is recorded as "
+        "that command's own call, with its guards and reply budget.",
         object_schema({{"tool", prop("string", "The command to call.")},
                        {"args", {{"type", "object"}, {"description", "Its arguments."}}}},
                       {"tool"}),
-        [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("call_tool is dispatched to its tool before it runs"); });
-    // It calls any tool, run_script included, and plugin code.
+        [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("tool_call is dispatched to its tool before it runs"); });
+    // It calls any tool, script_run included, and plugin code.
     call.open_world = true;
     catalog.add(call);
 }

@@ -50,6 +50,19 @@ bool type_matches(const json& value, const json& type)
     return json_type_name(value) == t;
 }
 
+// Whether `value`, a call's arguments, meets `cond`, the "if" of with_silent(): it is no person's form, so what the
+// silent form requires applies. {"minProperties": 1} holds for any argument, {"not": {"enum": [...]}} for arguments
+// other than those listed; any other "if" is not with_silent()'s, and never holds.
+bool silent_form(const json& cond, const json& value)
+{
+    if (cond == json{{"minProperties", 1}})
+        return !value.empty();
+    if (const auto no = cond.find("not"); cond.size() == 1 && no != cond.end() && no->is_object() && no->size() == 1)
+        if (const auto forms = no->find("enum"); forms != no->end() && forms->is_array())
+            return std::find(forms->begin(), forms->end(), value) == forms->end();
+    return false;
+}
+
 std::string validate_value(const json& schema, const json& value, const std::string& path)
 {
     if (!schema.is_object())
@@ -70,6 +83,9 @@ std::string validate_value(const json& schema, const json& value, const std::str
             return path + " must be <= " + it->dump();
     }
     if (value.is_array()) {
+        if (auto it = schema.find("minItems");
+            it != schema.end() && it->is_number_integer() && it->get<long long>() > 0 && value.size() < it->get<std::size_t>())
+            return path + " must hold at least " + it->dump() + " item" + (it->get<long long>() == 1 ? "" : "s");
         if (auto it = schema.find("items"); it != schema.end())
             for (std::size_t i = 0; i < value.size(); ++i)
                 if (std::string err = validate_value(*it, value[i], path + "[" + std::to_string(i) + "]"); !err.empty())
@@ -102,10 +118,10 @@ std::string validate_value(const json& schema, const json& value, const std::str
         if (auto it = schema.find("required"); it != schema.end())
             if (std::string err = missing(*it); !err.empty())
                 return err;
-        // with_silent()'s shape, and no other use of if: what the silent form requires, once the call gives any
-        // argument.
+        // with_silent()'s shapes, and no other use of if: what the silent form requires, once the call is not one of
+        // the person's forms.
         const auto cond = schema.find("if"), then = schema.find("then");
-        if (cond != schema.end() && then != schema.end() && *cond == json{{"minProperties", 1}} && then->is_object() && !value.empty())
+        if (cond != schema.end() && then != schema.end() && then->is_object() && silent_form(*cond, value))
             if (auto it = then->find("required"); it != then->end())
                 if (std::string err = missing(*it); !err.empty())
                     return err;
@@ -130,6 +146,24 @@ const std::vector<std::pair<std::string, std::vector<std::string>>>& argument_al
         {"type", {"operation"}},      {"operation", {"type"}},
     };
     return aliases;
+}
+
+// The arguments that pick a command's variant where it is not a type, named for what is picked (project_export's
+// format, object_add_primitive's shape). A guessed type stands for the one of them a command takes, where it takes
+// exactly one and no type of its own; with two, either could be meant.
+constexpr const char* kVariantArguments[] = {"format", "shape", "model", "test", "into", "by", "axis", "mode", "window", "page"};
+
+// The one argument of kVariantArguments that `props` has, or nullptr where it has none or several.
+const char* only_variant_argument(const json& props)
+{
+    const char* found = nullptr;
+    for (const char* name : kVariantArguments)
+        if (props.contains(name)) {
+            if (found != nullptr)
+                return nullptr;
+            found = name;
+        }
+    return found;
 }
 
 bool type_includes(const json& type, const char* name)
@@ -232,9 +266,9 @@ void normalize_arguments(const json& schema, json& args)
     if (!args.is_object() || !schema.is_object() || !schema.contains("properties"))
         return;
     const json& props = schema["properties"];
-    // x and y, and width and height, as list_windows reports them, read as the position and size arrays
+    // x and y, and width and height, as window_list reports them, read as the position and size arrays
     // of a tool that takes those as window geometry, arrays of integers, and neither part by its own
-    // name. The mm arrays of the 3D tools (transform, add_part) hold numbers and never take a pair. Only
+    // name. The mm arrays of the 3D tools (object_transform, part_add) hold numbers and never take a pair. Only
     // both parts of a pair fold, and never over an array the call gives.
     struct Pair
     {
@@ -254,27 +288,34 @@ void normalize_arguments(const json& schema, json& args)
         args.erase(pair.first);
         args.erase(pair.second);
     }
+    // Moves `alias`'s value to `name` where the schema takes name, the call leaves it out and the value fits: the
+    // widget_click tool's action "click" is no button, and its error should name action.
+    const auto read_as = [&props, &args](const std::string& alias, const std::string& name) {
+        if (!props.contains(name) || args.contains(name))
+            return false;
+        json value = args[alias];
+        coerce_value(props[name], value);
+        if (!validate_value(props[name], value, name).empty())
+            return false;
+        args[name] = std::move(value);
+        args.erase(alias);
+        return true;
+    };
     for (const auto& [alias, names] : argument_aliases()) {
         if (!args.contains(alias) || props.contains(alias))
             continue;
-        // Only where the value fits: the click tool's action "click" is no button, and its error should name action.
-        for (const std::string& name : names) {
-            if (!props.contains(name) || args.contains(name))
-                continue;
-            json value = args[alias];
-            coerce_value(props[name], value);
-            if (validate_value(props[name], value, name).empty()) {
-                args[name] = std::move(value);
-                args.erase(alias);
+        for (const std::string& name : names)
+            if (read_as(alias, name))
                 break;
-            }
-        }
     }
+    if (args.contains("type") && !props.contains("type"))
+        if (const char* variant = only_variant_argument(props))
+            read_as("type", variant);
     for (auto it = args.begin(); it != args.end(); ++it)
         if (auto p = props.find(it.key()); p != props.end())
             coerce_value(*p, it.value());
     // A value outside its own enum that the enum of one other argument, which the call leaves out,
-    // takes: set_view's canvas "front" is its camera. The schema keeps each enum to its own values,
+    // takes: view_set's canvas "front" is its camera. The schema keeps each enum to its own values,
     // as listing them under both names would have agents give a value to the wrong one.
     std::vector<std::pair<std::string, std::string>> moves;
     for (const auto& [key, value] : args.items()) {
@@ -299,6 +340,25 @@ std::string validate_arguments(const json& schema, const json& args) { return va
 
 bool person_form(const json& args) { return args.is_null() || (args.is_object() && args.empty()); }
 
+std::vector<json> person_forms(const NativeCommand& command)
+{
+    std::vector<json> forms;
+    if (command.in_palette)
+        forms.push_back(json::object());
+    if (command.tiles.is_array())
+        for (const json& tile : command.tiles)
+            if (tile.value("input", std::string()).empty())
+                forms.push_back(tile.at("args"));
+    return forms;
+}
+
+bool person_form(const NativeCommand& command, const json& args)
+{
+    const json              given = person_form(args) ? json::object() : args;
+    const std::vector<json> forms = person_forms(command);
+    return std::find(forms.begin(), forms.end(), given) != forms.end();
+}
+
 json silent_args(json args)
 {
     if (args.is_object())
@@ -306,19 +366,29 @@ json silent_args(json args)
     return args;
 }
 
-json with_silent(json schema)
+json with_silent(json schema, const std::vector<json>& person_args)
 {
-    schema["properties"]["silent"] = {{"type", "boolean"},
-                                      {"enum", {true}},
-                                      {"description", "true runs the command without asking, with the defaults of what the call "
-                                                      "leaves out. A call with no arguments does what a person's pick does."}};
+    json required = json::array();
     if (auto it = schema.find("required"); it != schema.end()) {
-        json required = std::move(*it);
+        required = std::move(*it);
         schema.erase(it);
-        if (!required.empty()) {
-            schema["if"]   = {{"minProperties", 1}};
-            schema["then"] = {{"required", std::move(required)}};
-        }
+    }
+    const bool only_none = person_args.size() == 1 && person_form(person_args.front());
+    const bool has_none  = std::any_of(person_args.begin(), person_args.end(), [](const json& a) { return person_form(a); });
+    // What silent says is the command's own: what its silent form still needs, and which calls are its person's forms.
+    std::string needs;
+    for (std::size_t i = 0; i < required.size(); ++i)
+        needs += (i == 0 ? "" : i + 1 == required.size() ? " and " : ", ") + required[i].get<std::string>();
+    std::string text = needs.empty() ? "true runs the command without asking; what the call leaves out takes its default." :
+                                       "true runs the command without asking; it then needs " + needs +
+                                           ", and what else the call leaves out takes its default.";
+    text += only_none ? " A call with no arguments does what a person's pick does." :
+            has_none  ? " A call with no arguments, or with exactly a tile's arguments, does what a person's pick of that tile does." :
+                        " A call with exactly a tile's arguments does what a person's pick of that tile does.";
+    schema["properties"]["silent"] = {{"type", "boolean"}, {"enum", {true}}, {"description", std::move(text)}};
+    if (!required.empty()) {
+        schema["if"]   = only_none ? json{{"minProperties", 1}} : json{{"not", {{"enum", person_args}}}};
+        schema["then"] = {{"required", std::move(required)}};
     }
     return schema;
 }

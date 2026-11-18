@@ -68,16 +68,16 @@ using namespace std::chrono_literals;
 
 namespace {
 
-// The locator grammar is spelled out once, in list_widgets's description, which hands out the refs.
+// The locator grammar is spelled out once, in widget_list's description, which hands out the refs.
 const json kTargetSchema = {{"type", json::array({"string", "object"})},
-                            {"description", "A ref list_widgets gave (\"w12\"), which later listings leave good (one refused as stale or "
+                            {"description", "A ref widget_list gave (\"w12\"), which later listings leave good (one refused as stale or "
                                             "unknown needs a new listing), or a locator, such as {label: \"OK\", within: "
-                                            "\"Preferences\"} or {menu: \"File>Export>Export G-code\"}; list_widgets's description "
+                                            "\"Preferences\"} or {menu: \"File>Export>Export G-code\"}; widget_list's description "
                                             "lists every kind."}};
 
-// run_javascript's target: a web view or an element of its page, not a widget.
+// webview_run_javascript's target: a web view or an element of its page, not a widget.
 const json kPageTargetSchema = {{"type", json::array({"string", "object"})},
-                                {"description", "A web view (its ref; list_widgets lists it as kind webview) or an element of its "
+                                {"description", "A web view (its ref; widget_list lists it as kind webview) or an element of its "
                                                 "page (its ref or a {web} / {css} locator), which the code gets as `el`. Default: "
                                                 "the topmost dialog's web view, else the only one shown."}};
 
@@ -88,7 +88,7 @@ const json kPageTimeoutSchema = {{"type", "integer"},
 
 const json kModifiersSchema = {{"type", "array"},
                                {"items", {{"type", "string"}, {"enum", {"ctrl", "cmd", "rawctrl", "shift", "alt"}}}},
-                               {"description", "Modifier keys held during the input, as in press_keys: ctrl and cmd are both Command on macOS "
+                               {"description", "Modifier keys held during the input, as in keyboard_press: ctrl and cmd are both Command on macOS "
                                                "and Ctrl elsewhere; rawctrl is the macOS Control key."}};
 
 bool in_top_dialog(AutomationRuntime& runtime, wxWindow* window)
@@ -123,11 +123,9 @@ void journal_with_locator(ToolContext& ctx, const json& args, const json& locato
     ctx.set_journal_args(std::move(recorded));
 }
 
-NativeCommand recover_input_tool(std::string group, std::string name, std::string title, std::string description, json schema,
-                                 CommandFn handler)
+NativeCommand recover_input_tool(std::string name, std::string title, std::string description, json schema, CommandFn handler)
 {
-    NativeCommand d = mutate_tool(std::move(group), std::move(name), std::move(title), std::move(description), std::move(schema),
-                                  std::move(handler));
+    NativeCommand d = mutate_tool(std::move(name), std::move(title), std::move(description), std::move(schema), std::move(handler));
     d.guard   = GuardClass::Recover;
     return d;
 }
@@ -237,12 +235,12 @@ wxWebView* default_webview(AutomationRuntime& runtime)
         }
     }
     if (webs.empty())
-        throw ToolFailure("No web view is shown (the Home tab has one: set_view tab=home)");
+        throw ToolFailure("No web view is shown (the Home tab has one: view_set tab=home)");
     if (webs.size() > 1) {
         json urls = json::array();
         for (wxWebView* w : webs)
             urls.push_back(redact_url(into_u8(w->GetCurrentURL())));
-        throw ToolFailure("Several web views are shown" + where + "; pass target (list_widgets query=webview)", {{"web_views", urls}});
+        throw ToolFailure("Several web views are shown" + where + "; pass target (widget_list query=webview)", {{"web_views", urls}});
     }
     return webs.front();
 }
@@ -266,7 +264,7 @@ void guard_page(AutomationRuntime& runtime, ToolContext& ctx, wxWebView* web)
 // The input tools reach a page element through its page's agent (WebPages.hpp): resolve it, guard
 // its web view as any widget's window, ask the page to act, and observe what followed.
 
-// A "d" ref from list_widgets, also written {ref: "d12"}, or a {css}/{web} locator.
+// A "d" ref from widget_list, also written {ref: "d12"}, or a {css}/{web} locator.
 bool is_web_target(const json& target)
 {
     const json& ref = target.is_object() && target.size() == 1 && target.contains("ref") ? target["ref"] : target;
@@ -295,13 +293,13 @@ WebHandle web_view_target(AutomationRuntime& runtime, ToolContext& ctx, const js
     return out;
 }
 
-// click and set_widget_value on a web view: the page's elements are the targets.
+// widget_click and widget_set_value on a web view: the page's elements are the targets.
 void refuse_web_view(AutomationRuntime& runtime, ToolContext& ctx, const json& target)
 {
     std::string within;
     if (web_view_target(runtime, ctx, target, within) != 0)
         throw ToolFailure("That is a web view, whose page wx events don't reach; target one of its page elements: a d ref from "
-                          "list_widgets, or a {web} / {css} locator");
+                          "widget_list, or a {web} / {css} locator");
 }
 
 // A page element an input tool acts on.
@@ -441,7 +439,7 @@ void check_page_reply(const PageReply& r, std::chrono::seconds timeout, bool act
             throw ToolFailure("Cancelled: OrcaSlicer is closing or the replay or script was stopped");
         throw ToolFailure("The page did not answer within " + std::to_string(timeout.count()) + " s" +
                           (acting ? ", so the outcome is unknown: the action may have run, or may still run once the page is free. Call "
-                                    "list_widgets before trying again (timeout_s waits longer)" :
+                                    "widget_list before trying again (timeout_s waits longer)" :
                                     "; it may be busy"));
     }
     if (r.value.contains("error")) {
@@ -453,7 +451,7 @@ void check_page_reply(const PageReply& r, std::chrono::seconds timeout, bool act
 }
 
 // The pages a locator looks in: the shown ones within `within`, in snapshot order. Without `within`
-// while the topmost modal dialog shows a page, only that dialog's pages, the ones list_widgets reads
+// while the topmost modal dialog shows a page, only that dialog's pages, the ones widget_list reads
 // and the only ones input can reach, so a page behind it never makes a label ambiguous.
 std::vector<wxWebView*> locator_pages(AutomationRuntime& runtime, const std::string& within)
 {
@@ -480,7 +478,7 @@ WebTarget resolve_web(AutomationRuntime& runtime, ToolContext& ctx, const json& 
                 throw ToolFailure("The ref is not a page element");
             auto* web = dynamic_cast<wxWebView*>(t.window.get());
             if (web == nullptr)
-                throw ToolFailure("The page's web view is gone; call list_widgets again");
+                throw ToolFailure("The page's web view is gone; call widget_list again");
             out.web    = web_handle(web);
             out.key    = t.web_key;
             out.doc    = t.web_doc;
@@ -584,10 +582,10 @@ WebTarget resolve_web(AutomationRuntime& runtime, ToolContext& ctx, const json& 
         throw ToolFailure("No page element matches " + target.dump() + " in what answered" +
                               (unknown.empty() ? "" : "; " + unknown + " did not answer or failed the search") +
                               (failed == 0 ? "" : "; " + count(failed, "page", "pages") + " could not run the page agent") +
-                              "; nothing was done. " + (unknown.empty() ? "Call list_widgets" : "Try again once they answer"),
+                              "; nothing was done. " + (unknown.empty() ? "Call widget_list" : "Try again once they answer"),
                           {{"unread_pages", unread}});
     if (matches.empty())
-        throw ToolFailure("No page element matches " + target.dump() + "; call list_widgets");
+        throw ToolFailure("No page element matches " + target.dump() + "; call widget_list");
     if (matches.size() > 1 && index < 0) {
         json listed = json::array();
         for (const Match& m : matches)
@@ -633,7 +631,7 @@ json web_locator(AutomationRuntime& runtime, ToolContext& ctx, const WebTarget& 
     return loc;
 }
 
-// Why answer_dialog does not press a button refused_press() refuses.
+// Why dialog_answer does not press a button refused_press() refuses.
 std::string refused_button(const std::string& button, DialogPress refused)
 {
     if (refused == DialogPress::Hidden)
@@ -676,7 +674,7 @@ std::string watch_id()
 // document behind the page (a reload, or a form posted to the same URL). Not IsBusy(), which WebView2
 // also reports while a page only works. Failing those, for an action the page outlined itself before
 // (before.watch), `page`: whether what the page lists changed by then (changed), the lines it lists
-// that it did not (added) and those it no longer does (removed), as list_widgets writes them, partial
+// that it did not (added) and those it no longer does (removed), as widget_list writes them, partial
 // when a configuration frame could not be compared (then changed only when a line was found), and how
 // many messages the page itself sent OrcaSlicer during the action (posted). A change after that is the
 // next snapshot's to show.
@@ -789,7 +787,7 @@ WebActed web_act(AutomationRuntime& runtime, ToolContext& ctx, const WebTarget& 
             throw ToolFailure("The MCP server was turned off before this gesture ran; it was not performed");
         wxWebView* web = web_view_of(t.web);
         if (web == nullptr || !web->IsShownOnScreen())
-            throw ToolFailure("The page's web view is gone or hidden; call list_widgets again");
+            throw ToolFailure("The page's web view is gone or hidden; call widget_list again");
         guard_page(runtime, ctx, web);
         if (in_top_dialog(runtime, web))
             before.modal = runtime.modals().serial(runtime.modals().top());
@@ -835,7 +833,7 @@ WebActed web_act(AutomationRuntime& runtime, ToolContext& ctx, const WebTarget& 
     return out;
 }
 
-// The DOM modifier flags of a click or gesture's `modifiers`, named as press_keys chords name them: ctrl
+// The DOM modifier flags of a widget_click's or mouse_gesture's `modifiers`, named as keyboard_press chords name them: ctrl
 // and cmd are Command on macOS and Ctrl elsewhere, rawctrl the macOS Control key.
 json web_modifiers(const json& args)
 {
@@ -869,7 +867,7 @@ PressAgent agent_of(const WebTarget& t) { return press_agent(t.web, t.doc, t.key
 
 // Ends every press mouse_gesture downs left on pages but `keep`'s, each released where it was pressed,
 // all asked at once so an agent that doesn't answer holds up none of the others. Every gesture,
-// click and answer_dialog does this first, even one the tool then refuses, except that a move or an
+// widget_click and dialog_answer does this first, even one the tool then refuses, except that a move or an
 // up keeps the press of the agent it is on, which it belongs to; keys and input leave the presses, as
 // a person can type while holding the mouse. One whose agent did not take the release (busy,
 // failing) stays on record, so the next gesture asks again; a release taken late is past its
@@ -913,7 +911,7 @@ void end_web_press(AutomationRuntime& runtime, ToolContext& ctx, const std::opti
 ToolResult web_click(AutomationRuntime& runtime, ToolContext& ctx, const json& args)
 {
     if (args.contains("popup_item"))
-        throw ToolFailure("popup_item is for the menus OrcaSlicer opens; a page's own menu is part of the page, so call list_widgets after "
+        throw ToolFailure("popup_item is for the menus OrcaSlicer opens; a page's own menu is part of the page, so call widget_list after "
                           "the click");
     const auto timeout = web_timeout(args);
     WebTarget  t       = resolve_web(runtime, ctx, args["target"], timeout);
@@ -954,7 +952,7 @@ ToolResult web_input(AutomationRuntime& runtime, ToolContext& ctx, const json& a
 ToolResult web_keys(AutomationRuntime& runtime, ToolContext& ctx, const json& args, WebTarget t)
 {
     if (args.contains("popup_item"))
-        throw ToolFailure("popup_item is for the menus OrcaSlicer opens; a page's own menu is part of the page, so call list_widgets after "
+        throw ToolFailure("popup_item is for the menus OrcaSlicer opens; a page's own menu is part of the page, so call widget_list after "
                           "the keys");
     const std::string keys = arg_string(args, "keys"), text = arg_string(args, "text");
     json              a{{"text", text}};
@@ -1061,7 +1059,7 @@ wxWebView* key_page(AutomationRuntime& runtime)
     return webs.size() == 1 && !own_widget ? webs.front() : nullptr;
 }
 
-// The window set_window's target names: the main window, the topmost modal dialog, or the window a ref or
+// The window window_set's target names: the main window, the topmost modal dialog, or the window a ref or
 // locator is in. Refuses one no tool may size or move. `locator` gets what the journal records for a
 // ref. UI thread.
 wxTopLevelWindow& window_target(AutomationRuntime& runtime, const json& target, json& locator)
@@ -1080,30 +1078,30 @@ wxTopLevelWindow& window_target(AutomationRuntime& runtime, const json& target, 
         try {
             t = runtime.inspector().resolve(target);
         } catch (const ToolFailure& e) {
-            // A window's ref goes stale once the window is destroyed, and list_windows gives the open ones'.
+            // A window's ref goes stale once the window is destroyed, and window_list gives the open ones'.
             if (!target.is_string())
                 throw;
-            throw ToolFailure(std::string(e.what()) + ", or list_windows for the open windows", e.details);
+            throw ToolFailure(std::string(e.what()) + ", or window_list for the open windows", e.details);
         }
         locator = runtime.inspector().locator_for(t);
         window  = t.window.get() != nullptr ? wxGetTopLevelParent(t.window.get()) : nullptr;
     }
     if (dynamic_cast<wxPopupWindow*>(window) != nullptr)
-        throw ToolFailure("The target is in a popup, which the window it opened from places; give that window (list_windows)");
+        throw ToolFailure("The target is in a popup, which the window it opened from places; give that window (window_list)");
     auto* tlw = dynamic_cast<wxTopLevelWindow*>(window);
     if (tlw == nullptr)
         throw ToolFailure("The target is in no window");
     if (tlw->GetName() == kHiddenFromAutomation)
         throw ToolFailure("The window is the person's own, which no tool reaches");
     if (auto* dlg = dynamic_cast<wxDialog*>(tlw); dlg != nullptr && is_native_dialog(dlg))
-        throw ToolFailure("A native dialog is placed by the system; answer it with answer_dialog");
+        throw ToolFailure("A native dialog is placed by the system; answer it with dialog_answer");
     // A closed dialog may be hidden rather than destroyed, so its ref still resolves.
     if (!tlw->IsShown())
-        throw ToolFailure("The window is closed; list_windows lists the open windows");
+        throw ToolFailure("The window is closed; window_list lists the open windows");
     return *tlw;
 }
 
-// `window` while it is still one of the app's top-level windows, else null: set_window keeps a plain
+// `window` while it is still one of the app's top-level windows, else null: window_set keeps a plain
 // pointer across its UI closures and checks it before following it. UI thread.
 wxTopLevelWindow* live_window(wxTopLevelWindow* window)
 {
@@ -1113,7 +1111,7 @@ wxTopLevelWindow* live_window(wxTopLevelWindow* window)
     return nullptr;
 }
 
-// set_window: checks the request and applies it in one UI closure, waits for the window to take it,
+// window_set: checks the request and applies it in one UI closure, waits for the window to take it,
 // then replies with what the window became. A size or position applies to the normal window, so a
 // maximized or minimized one is restored first. Where the window system restores it later (GTK), the call
 // waits for that before sizing, as a size given meanwhile is lost: on Wayland the compositor's answer to
@@ -1234,7 +1232,7 @@ ToolResult set_window(AutomationRuntime& runtime, ToolContext& ctx, const json& 
         wxTopLevelWindow* w = live_window(window);
         if (w == nullptr)
             throw ToolFailure(closed);
-        // list_windows's own entry, so the two report a window alike.
+        // window_list's own entry, so the two report a window alike.
         const json entry = runtime.inspector().window_entry(*w, modal);
         json       reply{{"title", entry["title"]}, {"kind", entry["kind"]}, {"ref", entry["ref"]}, {"size", {entry["width"], entry["height"]}}};
         if (entry.contains("x"))
@@ -1301,7 +1299,7 @@ std::string window_request_refusal(const json& args, const WindowAbilities& wind
 {
     const bool size = args.contains("size"), position = args.contains("position");
     if (!size && !position && !args.contains("state") && !args.contains("raise"))
-        return "Give at least one of size, position, state or raise; list_windows reads a window's geometry without changing it";
+        return "Give at least one of size, position, state or raise; window_list reads a window's geometry without changing it";
     // Two whole numbers that fit wx's int coordinates, both positive for a size. Whole floats pass, as
     // they pass the schema's integer type.
     const auto is_pair = [](const json& value, bool positive) {
@@ -1343,15 +1341,15 @@ json display_area(unsigned index)
 void register_ui_tools(CommandCatalog& catalog)
 {
     catalog.add(inspect_tool(
-        "ui", "list_windows", L("List the windows"),
+        "window_list", L("List the windows"),
         "List OrcaSlicer's open windows: the main window, then the windows that don't block the app (Plugins, an "
         "object's settings, a dock panel floating on its own), then the modal dialogs in the order they opened, the "
-        "topmost last. A window's ref goes to screenshot as target to capture that window, to list_widgets as target to "
-        "list it alone, and to press_keys as target; its title is the within of locators for its widgets.\n"
+        "topmost last. A window's ref goes to window_screenshot as target to capture that window, to widget_list as target to "
+        "list it alone, and to keyboard_press as target; its title is the within of locators for its widgets.\n"
         "Reply: each window's title, kind (main, window, dialog, or panel: a dock panel floating on its own), modal, "
         "ref, web (it shows a web page), x and y on screen (not on Wayland, which doesn't say), width and height, state "
-        "(normal, maximized or minimized) and resizable (it has a resize border); set_window changes them.\n"
-        "A native dialog (a message box, a file picker) has native: true and no ref: answer_dialog answers it. hidden: "
+        "(normal, maximized or minimized) and resizable (it has a resize border); window_set changes them.\n"
+        "A native dialog (a message box, a file picker) has native: true and no ref: dialog_answer answers it. hidden: "
         "true marks the person's own windows (Action Replay, the Run Script panel and their prompts, the Python scripts "
         "setting), which no tool reaches and screenshots leave out.",
         object_schema({{"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 200}, {"description", "Default 100."}}},
@@ -1363,11 +1361,11 @@ void register_ui_tools(CommandCatalog& catalog)
 
     {
         NativeCommand def = recover_input_tool(
-            "ui", "set_window", L("Size, move or raise a window"),
+            "window_set", L("Size, move or raise a window"),
             "Size, move, maximize, minimize or raise a window: the main window (default), the topmost modal dialog, or one "
-            "list_windows lists, also while a modal dialog is open. Size the main window before set_view fits the camera and "
-            "before start_recording, as a recording keeps its first frame's size. size and position are in the units "
-            "list_windows reports, whose x/y and width/height are read as position and size too. A size or position restores "
+            "window_list lists, also while a modal dialog is open. Size the main window before view_set fits the camera and "
+            "before recording_start, as a recording keeps its first frame's size. size and position are in the units "
+            "window_list reports, whose x/y and width/height are read as position and size too. A size or position restores "
             "a maximized or minimized window first. A window takes only the states its title bar offers; a modal dialog "
             "never minimizes. A refused call changes nothing. Replies once the window holds still and the 3D view has drawn "
             "at its new size (3 s at most): title, kind, ref, size, position, state, resizable, scale (screenshot pixels per "
@@ -1375,7 +1373,7 @@ void register_ui_tools(CommandCatalog& catalog)
             "changed.",
             object_schema({{"target", {{"type", json::array({"string", "object"})},
                                        {"description", "main (default), dialog (the topmost modal "
-                                                       "dialog), or a window's ref or locator from list_windows; a widget's ref or "
+                                                       "dialog), or a window's ref or locator from window_list; a widget's ref or "
                                                        "locator picks the window it is in."}}},
                            {"size", array_prop({{"type", "integer"}}, "[width, height], held to the window's minimum and maximum size.")},
                            {"position", array_prop({{"type", "integer"}}, "[x, y] of the window's top-left corner on screen; not on Wayland.")},
@@ -1391,15 +1389,15 @@ void register_ui_tools(CommandCatalog& catalog)
 
     {
         NativeCommand def = inspect_tool(
-            "ui", "list_widgets", L("List the widgets"),
-            "Describe what is on screen as an indented tree, one element per line with a ref to pass to click, set_widget_value, "
-            "press_keys and run_javascript (a page element's to mouse_gesture too): the widgets of every shown window, the rows of lists, "
+            "widget_list", L("List the widgets"),
+            "Describe what is on screen as an indented tree, one element per line with a ref to pass to widget_click, widget_set_value, "
+            "keyboard_press and webview_run_javascript (a page element's to mouse_gesture too): the widgets of every shown window, the rows of lists, "
             "trees and tables, each shown popup after the window it opened from, the main menus, the 3D canvas's toolbar "
             "items and gizmos, each ImGui panel drawn in the last frame with its items and text, and the elements of each "
             "shown web page (dialogs, the setup wizard, sign-in, plugin windows) under its web view. With a modal dialog "
-            "open, only the topmost dialog's pages are read. Refs go stale when their element goes away: call list_widgets "
-            "again then. Prefer run_action and the typed tools when one fits.\n"
-            "A locator names an element without a ref, in any session (export_replay records them); index (0-based) picks "
+            "open, only the topmost dialog's pages are read. Refs go stale when their element goes away: call widget_list "
+            "again then. Prefer action_run and the typed tools when one fits.\n"
+            "A locator names an element without a ref, in any session (replay_export records them); index (0-based) picks "
             "one of several matches:\n"
             "- a widget: {label, class, name, within, index}, within being its window's title; a notebook page: {tab: "
             "\"General\", within}\n"
@@ -1411,11 +1409,11 @@ void register_ui_tools(CommandCatalog& catalog)
             "- a plate or one of its icons in the Prepare view: {plate_icon: \"lock\", plate: 0}, the icon being plate, "
             "delete, orient, arrange, lock, settings, name, move_to_front, filament_map or imex_mode\n"
             "- a web page's element: {web: \"Next\", kind?: \"button\", css?: \"#AcceptBtn\", within?, index?}, by the label "
-            "list_widgets lists (exactly, else ignoring case, else a part of it), its kind, a CSS selector (the id a line "
+            "widget_list lists (exactly, else ignoring case, else a part of it), its kind, a CSS selector (the id a line "
             "shows as name: name=#save is {css: \"#save\"}), or together. Without within it looks in the topmost dialog's "
             "pages while one is open, else in every shown page, and an action on it waits for its element up to 2 s short of "
             "the action's timeout_s (8 s by default), but at least 3 s or the whole of a shorter timeout_s.",
-            object_schema({{"target", prop("string", "all (default), main, dialog (the topmost modal), popup, or a window's ref (list_windows).")},
+            object_schema({{"target", prop("string", "all (default), main, dialog (the topmost modal), popup, or a window's ref (window_list).")},
                            {"query", prop("string", "Case-insensitive text to look for in labels, values, names and classes.")},
                            {"max_nodes", {{"type", "integer"}, {"minimum", 1}, {"maximum", 5000}, {"description", "Default 400."}}},
                            {"include_imgui", prop("boolean", "List ImGui items (default true).")},
@@ -1481,7 +1479,7 @@ void register_ui_tools(CommandCatalog& catalog)
     }
 
     catalog.add(recover_input_tool(
-        "ui", "click", L("Click an element"),
+        "widget_click", L("Click an element"),
         "Click a GUI element as a person would. Menu items, buttons, checkboxes, toggles, radio buttons, toolbar items and "
         "gizmos are activated the way their owners expect: a gizmo opens and a second click closes it (Text on an object "
         "without text creates a text part: created). Other widgets and ImGui items get a mouse click once scrolled into "
@@ -1500,7 +1498,7 @@ void register_ui_tools(CommandCatalog& catalog)
         "refused when something else covers that point. The reply reads back checked, and has closed when the click closed "
         "its dialog (with dialogs, those still open under it, which still need an answer), navigated (with url) when it "
         "changed the page, or dialogs when it opened another. Otherwise page says what changed on the page within 300 ms: "
-        "changed (false when its lines are as before), the list_widgets lines added and removed, partial when a plugin "
+        "changed (false when its lines are as before), the widget_list lines added and removed, partial when a plugin "
         "configuration frame could not be compared, and posted, how many messages the page sent OrcaSlicer.",
         object_schema({{"target", kTargetSchema},
                        {"button", enum_prop({"left", "right", "middle"}, "Default left.")},
@@ -1592,7 +1590,7 @@ void register_ui_tools(CommandCatalog& catalog)
         }));
 
     catalog.add(recover_input_tool(
-        "ui", "set_widget_value", L("Set a widget's value"),
+        "widget_set_value", L("Set a widget's value"),
         "Set a widget's value and send the events a person's edit would. Widgets: text fields (submit, the default, also "
         "presses Enter and leaves the field, which is when Orca's setting fields commit), spin controls, sliders, choice, "
         "combo and list boxes (by option text or index), checkboxes, toggles and a row's checkbox (true or false), and a "
@@ -1603,9 +1601,9 @@ void register_ui_tools(CommandCatalog& catalog)
         "beside it, multiline text with \\n), a combo's option is picked by its text or 0-based index, and a checkbox, radio "
         "or toggle is clicked when it differs. A web page's fields, as typing would leave them: text, number, range, colour "
         "and date fields and editable text get the value with input and change events (submit then leaves the field; "
-        "press_keys Return presses Enter), a select its option by text, value or index, and a checkbox or radio is clicked when "
-        "it differs; the value is read back and page says what changed, as for click. File fields can't be set. For "
-        "settings, set_settings is more reliable.",
+        "keyboard_press Return presses Enter), a select its option by text, value or index, and a checkbox or radio is clicked when "
+        "it differs; the value is read back and page says what changed, as for widget_click. File fields can't be set. For "
+        "settings, settings_set is more reliable.",
         object_schema({{"target", kTargetSchema},
                        {"value", {{"type", json::array({"string", "number", "boolean"})}, {"description", "The new value."}}},
                        {"submit", prop("boolean", "Press Enter / commit after setting (default true).")},
@@ -1629,15 +1627,15 @@ void register_ui_tools(CommandCatalog& catalog)
         }));
 
     catalog.add(recover_input_tool(
-        "ui", "press_keys", L("Press keys"),
+        "keyboard_press", L("Press keys"),
         "Send a key chord (\"Ctrl+S\", \"Escape\", \"Return\", \"Delete\", \"Shift+Tab\", \"Left\", \"F5\") and/or type text to "
         "a target or, without one, to the focused window (the topmost dialog while one is open, the shown 3D view when "
         "nothing has focus). As with a real key press, the shortcut handling of the target's panels and window sees the keys "
-        "first. Typing reaches ImGui fields and key handlers; fill a widget's text field with set_widget_value. A menu the keys open "
+        "first. Typing reaches ImGui fields and key handlers; fill a widget's text field with widget_set_value. A menu the keys open "
         "is listed as popup_menu, or popup_item runs one of its items. Keys for a web page (its element, or without a "
         "target the focused web view or the topmost dialog's only page) go to the page's focused element with the "
         "browser's default actions: typing, Backspace/Delete, Enter (submits a form, activates a button), Space, Tab moving "
-        "the focus, arrows stepping a select, range or radio group; page says what they changed, as for click.",
+        "the focus, arrows stepping a select, range or radio group; page says what they changed, as for widget_click.",
         object_schema({{"target", kTargetSchema},
                        {"keys", prop("string", "One chord: a key, after any modifiers joined by +. Keys: one character, Enter, Esc, "
                                                "Tab, Space, Backspace, Delete, Insert, Home, End, PageUp, PageDown, Left, Right, "
@@ -1710,22 +1708,22 @@ void register_ui_tools(CommandCatalog& catalog)
     mouse_canvases.insert(mouse_canvases.end() - 1, "design");
 #endif
     catalog.add(recover_input_tool(
-        "ui", "mouse_gesture", L("Mouse gesture on a 3D view or page element"),
+        "mouse_gesture", L("Mouse gesture on a 3D view or page element"),
         "Make a mouse gesture on a 3D canvas as a person would: move, down, up, click, drag or wheel. It starts at `at`, a "
         "point of the model, which is projected through the camera and by default checked to land on that part (check "
         "\"point\" only projects it), or at x/y, logical pixels from the canvas's top left. A drag goes through `waypoints` to "
         "`to`, `steps` moves per leg: on an object it moves the object, in a painting gizmo it paints from a press on the "
         "object being painted (waypoints zigzagging over an area paint all of it), and elsewhere it turns or pans the camera "
-        "as this install's mouse settings say, so turn the camera with set_view camera or orbit instead. A wheel turns delta "
+        "as this install's mouse settings say, so turn the camera with view_set camera or orbit instead. A wheel turns delta "
         "notches; positive zooms in (out with the Reverse mouse zoom preference on) or scrolls a panel up. Modifiers are "
         "held as keys for the gesture (shift picks points in Measure and erases in a painting gizmo). A down keeps its button and modifiers held, so moves drag, until an up or another "
-        "gesture. Grabbers are set through the gizmo's panel fields or transform, not dragged. A menu a right click opens "
+        "gesture. Grabbers are set through the gizmo's panel fields or object_transform, not dragged. A menu a right click opens "
         "is listed as popup_menu, or popup_item (with click or up) runs one of its items. The reply's camera_moved says the "
         "gesture moved the camera, so earlier screenshots and pixels no longer match the view.\n"
         "With target, the gesture is on a web page's element instead (a canvas such as the colour picker's spectrum, a "
         "slider, a sortable or scrolled list): x/y, to and waypoints are logical pixels from its top left, a drag keeps the "
         "pointer captured where the page asks for it, and a wheel scrolls what is under the pointer unless the page takes "
-        "it; page says what the gesture changed there, as for click.",
+        "it; page says what the gesture changed there, as for widget_click.",
         object_schema({{"action", enum_prop({"move", "down", "up", "click", "drag", "wheel"}, "Default click.")},
                        {"canvas", enum_prop(mouse_canvases, "Default current, the view shown. design takes x/y only.")},
                        {"at", target_schema},
@@ -1768,8 +1766,8 @@ void register_ui_tools(CommandCatalog& catalog)
                     const std::string name   = arg_string(args, "canvas", "current");
                     GLCanvas3D*       canvas = name == "current" ? shown_canvas() : canvas_by_name(name);
                     if (canvas == nullptr || !canvas->get_wxglcanvas()->IsShownOnScreen())
-                        throw ToolFailure(name == "design" ? "The Design view is not shown; set_view {\"tab\": \"design\"} first" :
-                                                             "That 3D view is not shown; switch to it with set_view first");
+                        throw ToolFailure(name == "design" ? "The Design view is not shown; view_set {\"tab\": \"design\"} first" :
+                                                             "That 3D view is not shown; switch to it with view_set first");
                     // The Design view sets up its GL at its first frame, as DesignCanvas guards its own renders.
                     if (canvas == design_canvas() && !canvas->is_initialized())
                         throw ToolFailure("The Design view has not drawn yet");
@@ -1795,12 +1793,12 @@ void register_ui_tools(CommandCatalog& catalog)
         }));
 
     catalog.add(mutate_tool(
-        "ui", "pick_gizmo_file", L("Load or save the open gizmo's SVG or texture file"),
+        "gizmo_pick_file", L("Load or save the open gizmo's SVG or texture file"),
         "Do what a file picker inside the open gizmo does, with a path instead of its dialog: svg_change loads another SVG "
         "file into the SVG part being edited, svg_save_as writes that part's SVG to a new file (an existing one only with "
         "overwrite), texture_import imports a height-map image into the texture library and puts it on Texture "
-        "Displacement's active layer. To add an SVG part, use run_action add_primitive_svg with a path. Gizmos open with "
-        "click {target: {gizmo: name}}, and their panels take set_widget_value / click on the ImGui items list_widgets lists.",
+        "Displacement's active layer. To add an SVG part, use object_add_svg with a path. Gizmos open with "
+        "widget_click {target: {gizmo: name}}, and their panels take widget_set_value / widget_click on the ImGui items widget_list lists.",
         object_schema({{"action", enum_prop({"svg_change", "svg_save_as", "texture_import"}, "What to do.")},
                        {"path", prop("string", "Absolute path of the file to read or write.")},
                        {"overwrite", prop("boolean", "svg_save_as: replace an existing file.")}},
@@ -1842,21 +1840,21 @@ void register_ui_tools(CommandCatalog& catalog)
         }));
 
     catalog.add(recover_input_tool(
-        "core", "answer_dialog", L("Answer a dialog"),
+        "dialog_answer", L("Answer a dialog"),
         "Press a button of the topmost modal dialog: yes, no, ok, cancel, close, apply, a button's label, or a numeric id. "
         "A disabled button (enabled: false) is refused, the dialog's message showing what it still needs, and so is one on "
         "a page the dialog does not show, except a hidden cancel or close, which ends the dialog. On a dialog that is "
         "neither native nor a web dialog, a standard name or id it has no button for ends it with that answer too, "
         "without a handler running (pressed: false). The label of an option of a "
         "selector made of buttons (Orca's radio groups, tab bars and multi-switches, shown as (*) / ( ) in the message) "
-        "selects that option and leaves the dialog open; set other radio buttons and switches with click or set_widget_value "
-        "true, and notebook tabs with click. "
+        "selects that option and leaves the dialog open; set other radio buttons and switches with widget_click or widget_set_value "
+        "true, and notebook tabs with widget_click. "
         "dialog.title, text the dialog's title contains, makes sure which dialog that is; it must be the topmost. Reply: "
         "dialog, button, pressed, and id, the wx id pressed or ended with, or web: true for a button on a web dialog's "
-        "page, with what the page did as click reports it; closed: true when it closed, and dialogs, those still open. A "
+        "page, with what the page did as widget_click reports it; closed: true when it closed, and dialogs, those still open. A "
         "native message box (native: true) is pressed through "
-        "the OS, by one of the buttons get_app_state.dialogs lists for it; a file or folder picker can't be answered here, nor "
-        "any native dialog on macOS (its buttons list is empty): register auto_answer_dialogs before opening them. A web "
+        "the OS, by one of the buttons app_state.dialogs lists for it; a file or folder picker can't be answered here, nor "
+        "any native dialog on macOS (its buttons list is empty): register dialog_auto_answer before opening them. A web "
         "dialog's buttons are on its page: a label is pressed there, waiting up to 3 s for it to show, so the page's own "
         "handler runs. With no such page button, or a page busy for those 3 s, cancel and close end the dialog, and ok, yes, "
         "no and apply are refused rather than skip the page's commit; page_buttons then lists the page's buttons.",
@@ -1894,7 +1892,7 @@ void register_ui_tools(CommandCatalog& catalog)
                 }
                 if (is_native_dialog(dialog) && message_box_buttons(dialog).empty())
                     throw ToolFailure("This native dialog (a file or folder picker, or a message box on macOS) can't be pressed; "
-                                      "register auto_answer_dialogs before the action that opens it",
+                                      "register dialog_auto_answer before the action that opens it",
                                       {{"dialog", describe_dialog(dialog)}});
                 return dialog;
             };
@@ -1925,7 +1923,7 @@ void register_ui_tools(CommandCatalog& catalog)
                     throw ToolFailure(refused_button(button, *refused), {{"dialog", describe_dialog(dialog)}});
                 const DialogPress press = press_dialog_button(dialog, id);
                 if (press == DialogPress::Failed)
-                    throw ToolFailure("The message box is not shown, so its button could not be pressed; call list_widgets again",
+                    throw ToolFailure("The message box is not shown, so its button could not be pressed; call widget_list again",
                                       {{"dialog", describe_dialog(dialog)}});
                 return {{"dialog", dialog_title}, {"button", button}, {"id", id}, {"pressed", press == DialogPress::Pressed}};
             });
@@ -1959,7 +1957,7 @@ void register_ui_tools(CommandCatalog& catalog)
                     wxDialog*  dialog = find_dialog();
                     wxWebView* web    = web_view_of(page.web);
                     if (dialog != web_dialog || web == nullptr)
-                        throw ToolFailure("The dialog changed while its page was being asked; call list_widgets again");
+                        throw ToolFailure("The dialog changed while its page was being asked; call widget_list again");
                     before.modal = runtime.modals().serial(dialog);
                     before.stack = runtime.modals().stack().size();
                     before.url   = into_u8(web->GetCurrentURL());
@@ -2021,15 +2019,15 @@ void register_ui_tools(CommandCatalog& catalog)
 
     {
         NativeCommand def = recover_input_tool(
-            "core", "auto_answer_dialogs", L("Answer dialogs automatically"),
+            "dialog_auto_answer", L("Answer dialogs automatically"),
             "Answer modal dialogs automatically when their title or message matches a rule's regex (case-insensitive). "
-            "get_app_state.auto_answer_rules lists the rules in force. Called from a replay or script, the rules join those "
+            "app_state.auto_answer_rules lists the rules in force. Called from a replay or script, the rules join those "
             "it set before and last until it ends, and a plugin's likewise until it unloads; an MCP client's replace the "
             "ones MCP clients set before and last until the MCP server stops, and an empty list clears them. Reply: scope (run, plugin or session), rules (uses counts "
             "a rule's answers) and answered_open_dialog. A native dialog "
             "returns the rule's button at once and never shows. A file or folder picker takes button ok with an absolute path "
             "and returns it without showing (on Linux such a rule cancels it); without a path a picker can only be cancelled, "
-            "and a multi-select picker takes no path. A wx dialog is answered as answer_dialog does. A matching dialog "
+            "and a multi-select picker takes no path. A wx dialog is answered as dialog_answer does. A matching dialog "
             "already open is answered too "
             "(answered_open_dialog), so a prompt that shows around the same time, such as the restore prompt after startup, "
             "is caught either way. A web dialog is matched by its title: a button that names one of its shown wx buttons (by "
@@ -2056,7 +2054,7 @@ void register_ui_tools(CommandCatalog& catalog)
                 // Paused rules leave the dialog that is open now to the person, as they leave the ones that open later.
                 json answered = set.paused ? json() : ctx.run_ui([&]() -> json {
                     wxDialog* top = runtime.modals().top();
-                    // A message box is pressed as answer_dialog presses it; a picker can't be.
+                    // A message box is pressed as dialog_answer presses it; a picker can't be.
                     const bool native = top != nullptr && is_native_dialog(top);
                     if (top == nullptr || (native && message_box_buttons(top).empty()))
                         return json();
@@ -2103,15 +2101,15 @@ void register_ui_tools(CommandCatalog& catalog)
     }
 
     NativeCommand eval = recover_input_tool(
-        "ui", "run_javascript", L("Run JavaScript in a web view"),
+        "webview_run_javascript", L("Run JavaScript in a web view"),
         "Evaluate JavaScript in one of OrcaSlicer's web views (Home, the device page, dialogs, plugin windows). Prefer "
-        "list_widgets and the input tools (click, set_widget_value, press_keys, mouse_gesture), which see and drive pages as they do widgets. The code runs in the target's page: "
-        "a web view's (kind webview in list_widgets), or a page element's, with the element as `el`; without a target, in "
+        "widget_list and the input tools (widget_click, widget_set_value, keyboard_press, mouse_gesture), which see and drive pages as they do widgets. The code runs in the target's page: "
+        "a web view's (kind webview in widget_list), or a page element's, with the element as `el`; without a target, in "
         "the topmost dialog's web view, else in the only shown one. While a modal dialog is open, only its pages run "
         "code. Reply: result, the value of the last expression (JSON values come back parsed), and url; closed: true when "
         "the code closed its dialog, navigated: true when it changed the page, dialogs when it opened another. Messages "
         "the page posts to OrcaSlicer reach it once the code has returned. It runs through eval, which a page whose "
-        "Content-Security-Policy forbids it may refuse (list_widgets and the input tools still work there).",
+        "Content-Security-Policy forbids it may refuse (widget_list and the input tools still work there).",
         object_schema({{"code", prop("string", "JavaScript statements, run through eval: the last expression's value is the "
                                                "result. No top-level return or await; a Promise or a DOM node comes back as {}.")},
                        {"target", kPageTargetSchema},
@@ -2141,11 +2139,11 @@ void register_ui_tools(CommandCatalog& catalog)
                     locator    = runtime.inspector().locator_for(t);
                     web        = dynamic_cast<wxWebView*>(target_window(t));
                     if (web == nullptr)
-                        throw ToolFailure("The target is not a web view (list_widgets lists them as kind webview)");
+                        throw ToolFailure("The target is not a web view (widget_list lists them as kind webview)");
                 } else
                     web = default_webview(runtime);
                 if (web == nullptr)
-                    throw ToolFailure("The page's web view is gone; call list_widgets again");
+                    throw ToolFailure("The page's web view is gone; call widget_list again");
                 guard_page(runtime, ctx, web);
                 page.web     = web_handle(web);
                 before.modal = in_top_dialog(runtime, web) ? runtime.modals().serial(runtime.modals().top()) : 0;

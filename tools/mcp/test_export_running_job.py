@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Checks what export_replay does with a call whose job outlived its reply.
+"""Checks what replay_export does with a call whose job outlived its reply.
 
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_export_running_job.py
 
-A run_replay whose one step waits 3 s past the reply budget replies with its running job once the budget is spent:
+A replay_run whose one step waits 3 s past the reply budget replies with its running job once the budget is spent:
 45 s, or the cap ORCA_MCP_REPLY_BUDGET_MS sets when the app and this script have it (the sweep sets 10 s, as a
 shorter cap can end the call opening Preferences before a slow or busy machine has opened it). An export
 while it runs leaves it out and names it in left_out_running; an export after it succeeded has it as
-an await:false step that the later wait refers to, and that replay runs. A call blocked on a
+an await:false step that the later app_wait refers to, and that replay runs. A call blocked on a
 dialog stays in the replay while the dialog is open, since the steps after it answer the dialog.
 A job that fails after its reply is dropped; no tool fails that late on demand, so the unit tests
 in test_mcp_results.cpp cover it. Takes about two minutes with the full budget, 45 s with a 10 s one. Exits 0 when
@@ -36,46 +36,46 @@ def main():
     def tools(replay):
         return [s["tool"] for s in replay["steps"]]
 
-    client.call("export_replay", clear=True)
+    client.call("replay_export", clear=True)
 
     # ---- A job past the reply budget, exported while it runs and after it ends ----
     start = time.time()
-    slow = {"orca_replay_version": "0.1.0", "name": "slow",
-            "steps": [{"tool": "wait", "args": {"for": "dialog", "timeout_s": orca_mcp.reply_budget_s() + 3}}]}
-    started = client.call("run_replay", _timeout=120, replay=slow, out_dir=os.path.join(work, "slow"))
+    slow = {"orca_replay_version": "0.2.0", "name": "slow",
+            "steps": [{"tool": "app_wait", "args": {"for": "dialog", "timeout_s": orca_mcp.reply_budget_s() + 3}}]}
+    started = client.call("replay_run", _timeout=120, replay=slow, out_dir=os.path.join(work, "slow"))
     check("the slow replay replies with its running job", started.get("status") == "running",
           f"{started.get('status')} after {time.time() - start:.1f} s")
     job = started.get("job")
-    client.call("set_settings", values={"wall_loops": 3})
-    during = client.call("export_replay")
-    check("an export while it runs leaves it out", tools(during["replay"]) == ["set_settings"], tools(during["replay"]))
-    check("and names it in left_out_running", during.get("left_out_running") == [{"tool": "run_replay", "job": job}],
+    client.call("settings_set", values={"wall_loops": 3})
+    during = client.call("replay_export")
+    check("an export while it runs leaves it out", tools(during["replay"]) == ["settings_set"], tools(during["replay"]))
+    check("and names it in left_out_running", during.get("left_out_running") == [{"tool": "replay_run", "job": job}],
           during.get("left_out_running"))
 
-    done = client.await_job(started)  # a journaled wait on the job
+    done = client.await_job(started)  # a journaled app_wait on the job
     check("the job then succeeds", done.get("passed") is True, done)
     path = os.path.join(work, "after.json")
-    after = client.call("export_replay", path=path, overwrite=True)
+    after = client.call("replay_export", path=path, overwrite=True)
     steps = after["replay"]["steps"]
-    check("an export after it ends has it as a step", tools(after["replay"]) == ["run_replay", "set_settings", "wait"],
+    check("an export after it ends has it as a step", tools(after["replay"]) == ["replay_run", "settings_set", "app_wait"],
           tools(after["replay"]))
     check("replayed with await:false", steps[0].get("await") is False and steps[0].get("save_as") == "job1", steps[0])
-    check("the wait refers to it", steps[2]["args"].get("job") == "${jobs.job1}", steps[2])
+    check("the app_wait refers to it", steps[2]["args"].get("job") == "${jobs.job1}", steps[2])
     check("nothing is left out", "left_out_running" not in after, after.get("left_out_running"))
 
     # ---- A call blocked on a dialog stays while the dialog is open ----
-    client.call("export_replay", clear=True)
-    blocked = client.call("run_action", id="orca_command:open_preferences:orca")
+    client.call("replay_export", clear=True)
+    blocked = client.call("action_run", id="orca_command:open_preferences:orca")
     check("Preferences blocks its call", blocked.get("status") == "blocked_by_dialog", blocked.get("status"))
-    open_export = client.call("export_replay")
-    check("an export with the dialog open keeps the call", tools(open_export["replay"]) == ["run_action"],
+    open_export = client.call("replay_export")
+    check("an export with the dialog open keeps the call", tools(open_export["replay"]) == ["action_run"],
           tools(open_export["replay"]))
     check("and leaves nothing out", "left_out_running" not in open_export, open_export.get("left_out_running"))
-    client.call("answer_dialog", button="close")
+    client.call("dialog_answer", button="close")
     client.await_job(blocked)
 
     # ---- The replay exported after the slow job runs ----
-    replay = client.await_job(client.call("run_replay", _timeout=120, path=path, out_dir=os.path.join(work, "replay")))
+    replay = client.await_job(client.call("replay_run", _timeout=120, path=path, out_dir=os.path.join(work, "replay")))
     check("the exported replay runs", replay.get("passed") is True,
           json.dumps([(s["tool"], s["ok"]) for s in replay.get("steps", [])]))
 

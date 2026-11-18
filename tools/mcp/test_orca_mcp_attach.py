@@ -228,12 +228,12 @@ def check_call_command():
 
     calls = stub(client, {"result": {"ok": True}})
     assert client.call_command("extrude", distance=5) == {"result": {"ok": True}}
-    assert calls == [("call_tool", 600, {"tool": "extrude", "args": {"distance": 5}})], calls
-    ok("call_command() calls call_tool and returns the command's whole reply")
+    assert calls == [("tool_call", 600, {"tool": "extrude", "args": {"distance": 5}})], calls
+    ok("call_command() calls tool_call and returns the command's whole reply")
 
     calls = stub(client, {"status": "running", "job": "j"}, {"result": 7})
     assert client.call_command("sweep", sketch=1, path=0) == {"result": 7}
-    assert calls[1][0] == "wait" and calls[1][2]["job"] == "j", calls
+    assert calls[1][0] == "app_wait" and calls[1][2]["job"] == "j", calls
     ok("call_command() follows a running job to its reply")
 
     refused = McpError("kernel refused the hole")
@@ -252,13 +252,13 @@ def check_call_log():
     reply = json.dumps({"jsonrpc": "2.0", "id": 1, "result": {"content": [{"type": "text", "text": "{}"}]}}).encode()
     with mock.patch.dict(os.environ, {"ORCA_MCP_CALL_LOG": log}):
         with Listener(200, reply) as port:
-            OrcaMcp(port, "t").call("get_app_state")
+            OrcaMcp(port, "t").call("app_state")
         with open(log, encoding="utf-8") as f:
             lines = [json.loads(line) for line in f]
         assert len(lines) == 1, lines
-        assert lines[0]["tool"] == "get_app_state" and lines[0]["ok"] is True and lines[0]["ms"] >= 0, lines
+        assert lines[0]["tool"] == "app_state" and lines[0]["ok"] is True and lines[0]["ms"] >= 0, lines
         with Listener(500, b"boom") as port:
-            raises(lambda: OrcaMcp(port, "t").call("get_app_state"), "HTTP 500")
+            raises(lambda: OrcaMcp(port, "t").call("app_state"), "HTTP 500")
         with open(log, encoding="utf-8") as f:
             lines = [json.loads(line) for line in f]
         assert len(lines) == 2 and lines[1]["ok"] is False, lines

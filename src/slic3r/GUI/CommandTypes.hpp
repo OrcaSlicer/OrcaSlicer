@@ -102,7 +102,7 @@ public:
     // Calls another tool as a child of this call (replay steps and a script's calls). Returns what a client would get:
     // the result, or a job envelope when the child outlives its reply budget.
     virtual ToolResult call_child(const std::string& tool, const nlohmann::json& args) = 0;
-    // This call's job and its ancestors, which `wait {for:"idle"}` must not wait for.
+    // This call's job and its ancestors, which `app_wait {for:"idle"}` must not wait for.
     virtual std::set<std::string> lineage() const = 0;
     // Replaces the arguments the session journal records for this call (refs become locators).
     virtual void set_journal_args(nlohmann::json args) = 0;

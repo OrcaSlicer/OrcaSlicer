@@ -210,7 +210,11 @@ std::vector<std::string> SettingsFactory::get_options(const bool is_part)
         options.erase(find(options.begin(), options.end(), "layer_height"));
         return options;
     }
+    return get_fff_options(is_part);
+}
 
+std::vector<std::string> SettingsFactory::get_fff_options(const bool is_part)
+{
     PrintRegionConfig reg_config;
     auto options = reg_config.keys();
     if (!is_part) {

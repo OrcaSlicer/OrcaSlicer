@@ -803,8 +803,8 @@ def feature_names():
 def rung_art():
     """O7: Text and SVG, the two verbs that go through a dialog.
 
-    Text opens the Design tab's own Text dialog, which is modeless: answer_dialog and the
-    auto-answer rules never see it, so its field takes set_widget_value and its OK a click by
+    Text opens the Design tab's own Text dialog, which is modeless: dialog_answer and the
+    auto-answer rules never see it, so its field takes widget_set_value and its OK a click by
     label. Choosing it ends the empty sketch, and the text becomes a feature of its own, placed
     with the Insert gizmo. A text OK'd and then cancelled there must leave the design as it was,
     and a text kept with Confirm is graded. SVG opens a file picker, which a rule answers with the
@@ -872,12 +872,12 @@ def rung_art():
         leave()
         return
     # The picker is matched by its prompt, unanchored: a picker answered unshown has no title.
-    gui.client.call("auto_answer_dialogs", rules=[{"match": "Import SVG", "button": "ok", "path": SVG}])
+    gui.client.call("dialog_auto_answer", rules=[{"match": "Import SVG", "button": "ok", "path": SVG}])
     try:
         choose(o, *free, "sketch_insert_svg")
     finally:
         try:
-            gui.client.call("auto_answer_dialogs", rules=[])
+            gui.client.call("dialog_auto_answer", rules=[])
         except Exception as e:  # reported, so that it does not hide an error from the choice
             gui.check("art: the Import SVG rule is cleared", False, f"{type(e).__name__}: {e}")
     ls, lp = ents("line"), loops()

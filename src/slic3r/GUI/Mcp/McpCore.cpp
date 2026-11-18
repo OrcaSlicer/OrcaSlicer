@@ -56,7 +56,7 @@ void deliver(const std::function<void(const ToolResult&)>& done, const ToolResul
 std::string busy_message(const std::string& op)
 {
     return "Busy: job " + op +
-           " is running an operation (slice, export, arrange or another background job); wait for it or stop it with cancel_job";
+           " is running an operation (slice, export, arrange or another background job); wait for it or stop it with job_cancel";
 }
 
 class CallContext final : public ToolContext
@@ -291,7 +291,7 @@ std::string McpCore::start_job(const NativeCommand& def, const nlohmann::json& a
                                ToolResult& refused)
 {
     // Operation admission: an MCP operation holds the project until it finishes; only recovery
-    // input and the commands that may run during an operation (cancel_job) get through.
+    // input and the commands that may run during an operation (job_cancel) get through.
     if (def.guard == GuardClass::Mutate && !def.allowed_during_operation)
         if (const auto busy = m_jobs.running_operations(); !busy.empty()) {
             refused = ToolResult::error(busy_message(busy.front()) + " before changing the project", {{"job", busy.front()}});
@@ -332,7 +332,7 @@ std::string McpCore::start_job(const NativeCommand& def, const nlohmann::json& a
                 result = await_worker(job, def.key, invoke(def, args, ctx));
                 notify(m_observer, [&](CallObserver& o) { o.call_ended(call, result); });
             }
-            // Before finish(): an export_replay right after the wait that sees the result must know it.
+            // Before finish(): a replay_export right after the app_wait that sees the result must know it.
             if (seq != 0)
                 m_journal->job_ended(seq, result);
             deliver(done, result);
@@ -400,8 +400,8 @@ ToolResult McpCore::run(const NativeCommand& def, const nlohmann::json& args, co
         return ToolResult::ok(std::move(out));
     };
     const std::string running_note = "The call is still running and will finish on its own; do not retry it. "
-                                     "Use wait {for:\"job\", job:\"" + job + "\"} for its result.";
-    // answer_dialog presses a native message box by the buttons ModalTracker lists for it, but not a
+                                     "Use app_wait {for:\"job\", job:\"" + job + "\"} for its result.";
+    // dialog_answer presses a native message box by the buttons ModalTracker lists for it, but not a
     // picker, nor a dialog while it holds the UI thread (macOS), so their note asks for a person.
     auto blocked = [&](nlohmann::json dialogs, bool ui_held) {
         std::string note;
@@ -409,16 +409,16 @@ ToolResult McpCore::run(const NativeCommand& def, const nlohmann::json& args, co
         const bool  pressable = native && !ui_held && !dialogs.back().value("buttons", nlohmann::json::array()).empty();
         if (pressable) {
             note = "The call is waiting on a native message box and continues after it closes; do not retry it. Answer it "
-                   "with answer_dialog and one of its buttons, then wait {for:\"job\", job:\"" + job + "\"}.";
+                   "with dialog_answer and one of its buttons, then app_wait {for:\"job\", job:\"" + job + "\"}.";
         } else if (native) {
-            note = "The call is waiting on a native dialog, which only a person can answer (answer_dialog can't); do not retry it. ";
+            note = "The call is waiting on a native dialog, which only a person can answer (dialog_answer can't); do not retry it. ";
             if (ui_held)
                 note += "Until it closes, tools that need the UI thread fail. ";
-            note += "Once it is answered, wait {for:\"job\", job:\"" + job +
-                    "\"}. Register auto_answer_dialogs before a step that opens a native dialog.";
+            note += "Once it is answered, app_wait {for:\"job\", job:\"" + job +
+                    "\"}. Register dialog_auto_answer before a step that opens a native dialog.";
         } else {
             note = "The call is waiting on a dialog and continues after it closes; do not retry it. "
-                   "Answer the dialog (list_widgets, answer_dialog), then wait {for:\"job\", job:\"" + job + "\"}.";
+                   "Answer the dialog (widget_list, dialog_answer), then app_wait {for:\"job\", job:\"" + job + "\"}.";
         }
         return envelope("blocked_by_dialog", {{"dialogs", std::move(dialogs)}, {"note", note}});
     };
@@ -481,7 +481,7 @@ void McpCore::admit(const std::string& job) const
             return;
     }
     throw ToolFailure("Busy: a background job (arrange, orient, fill bed, or one a gizmo started, such as Text typing) is "
-                      "running in OrcaSlicer; wait {for:\"idle\"} before changing the project");
+                      "running in OrcaSlicer; app_wait {for:\"idle\"} before changing the project");
 }
 
 bool McpCore::worker_busy() const { return m_worker.busy && m_worker.busy(); }

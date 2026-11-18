@@ -3,6 +3,7 @@
 #include "libslic3r/Model.hpp"
 
 #include "UiInspector.hpp"
+#include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
@@ -24,6 +25,7 @@
 #include <cstdint>
 #include <functional>
 #include <initializer_list>
+#include <memory>
 #include <string>
 #include <thread>
 #include <utility>
@@ -57,10 +59,10 @@ json enum_prop(std::vector<std::string> values, const std::string& description)
 
 json array_prop(json items, const std::string& description) { return {{"type", "array"}, {"items", std::move(items)}, {"description", description}}; }
 
-NativeCommand inspect_tool(std::string group, std::string name, std::string title, std::string description, json schema, CommandFn handler)
+NativeCommand inspect_tool(std::string name, std::string title, std::string description, json schema, CommandFn handler)
 {
-    NativeCommand d = NativeCommands::long_command(std::move(name), std::move(title), std::move(group), std::move(schema),
-                                                   std::move(handler), /*inline_call=*/true);
+    NativeCommand d = NativeCommands::long_command(std::move(name), std::move(title), {}, std::move(schema), std::move(handler),
+                                                   /*inline_call=*/true);
     d.description   = std::move(description);
     d.listed        = true;
     d.read_only     = true;
@@ -76,16 +78,38 @@ NativeCommand reaching(std::vector<std::string> operations, NativeCommand comman
     return command;
 }
 
-NativeCommand mutate_tool(std::string group, std::string name, std::string title, std::string description, json schema, CommandFn handler,
-                          bool destructive)
+NativeCommand mutate_tool(std::string name, std::string title, std::string description, json schema, CommandFn handler, bool destructive)
 {
-    NativeCommand d = NativeCommands::long_command(std::move(name), std::move(title), std::move(group), std::move(schema),
-                                                   std::move(handler));
+    NativeCommand d = NativeCommands::long_command(std::move(name), std::move(title), {}, std::move(schema), std::move(handler));
     d.description   = std::move(description);
     d.listed        = true;
     d.destructive   = destructive;
     d.guard         = GuardClass::Mutate;
     return d;
+}
+
+NativeCommand row_command(std::string name, std::string title, std::string description, json schema, json tiles,
+                          std::function<AppActionRunResult(const json& args)> fn)
+{
+    NativeCommand d = NativeCommands::ui_command(std::move(name), std::move(title), {}, std::move(schema), std::move(fn));
+    d.description   = std::move(description);
+    d.tiles         = std::move(tiles);
+    d.listed        = true;
+    return d;
+}
+
+AppActionRunResult row_reply(const json& reply)
+{
+    AppActionRunResult result{AppActionRunResult::Level::Succeeded};
+    result.reply = reply.dump();
+    return result;
+}
+
+AppActionRunResult quiet_refusal(const Ops::Refusal& refusal)
+{
+    AppActionRunResult kept{AppActionRunResult::Level::Info, {}, false};
+    kept.refusal = std::make_shared<const Ops::Refusal>(refusal);
+    return kept;
 }
 
 namespace {
@@ -179,7 +203,7 @@ Plater& ui_plater()
         throw ToolFailure("OrcaSlicer is shutting down");
     Plater* plater = wxGetApp().plater();
     if (plater == nullptr || wxGetApp().mainframe == nullptr)
-        throw ToolFailure("OrcaSlicer is still starting; wait {for:\"ready\"} first");
+        throw ToolFailure("OrcaSlicer is still starting; app_wait {for:\"ready\"} first");
     return *plater;
 }
 
@@ -246,7 +270,7 @@ json expected_id_prop(const char* of)
 {
     return {{"type", "integer"},
             {"minimum", 0},
-            {"description", std::string("The id list_objects reports for this ") + of +
+            {"description", std::string("The id object_list reports for this ") + of +
                                 ": the call is refused when the index names another one now."}};
 }
 
@@ -264,12 +288,12 @@ void check_expected_ids(const ModelObject& object, const ModelVolume* volume, co
     if (args.contains("object_id") && args["object_id"].get<std::size_t>() != object.id().id)
         throw ToolFailure("The object at this index is now \"" + object.name + "\" (id " + std::to_string(object.id().id) +
                               "), not the expected id " + std::to_string(args["object_id"].get<std::size_t>()) +
-                              ": list_objects again",
+                              ": object_list again",
                           {{"id", object.id().id}});
     if (volume != nullptr && args.contains("part_id") && args["part_id"].get<std::size_t>() != volume->id().id)
         throw ToolFailure("The part at this index is now \"" + volume->name + "\" (id " + std::to_string(volume->id().id) +
                               "), not the expected id " + std::to_string(args["part_id"].get<std::size_t>()) +
-                              ": list_objects again",
+                              ": object_list again",
                           {{"id", volume->id().id}});
 }
 

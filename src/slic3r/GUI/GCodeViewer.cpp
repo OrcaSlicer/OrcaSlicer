@@ -141,44 +141,51 @@ static void add_swatch(ImDrawList* draw_list, const ImVec2& min, const ImVec2& m
     draw_list->AddRectFilled(min, max, ImGuiWrapper::to_ImU32(color));
 }
 
-static std::string get_view_type_string(libvgcode::EViewType view_type)
+// The English name of a view type, marked for translation; empty for a type the preview does not offer.
+static const char* view_type_msgid(libvgcode::EViewType view_type)
 {
     if (view_type == libvgcode::EViewType::Summary)
-        return _u8L("Summary");
+        return L("Summary");
     else if (view_type == libvgcode::EViewType::FeatureType)
-        return _u8L("Line Type");
+        return L("Line Type");
     else if (view_type == libvgcode::EViewType::Height)
-        return _u8L("Layer Height");
+        return L("Layer Height");
     else if (view_type == libvgcode::EViewType::Width)
-        return _u8L("Line Width");
+        return L("Line Width");
     else if (view_type == libvgcode::EViewType::Speed)
-        return _u8L("Speed");
+        return L("Speed");
     else if (view_type == libvgcode::EViewType::ActualSpeed)
-        return _u8L("Actual Speed");
+        return L("Actual Speed");
     else if (view_type == libvgcode::EViewType::Acceleration)
-        return _u8L("Acceleration");
+        return L("Acceleration");
     else if (view_type == libvgcode::EViewType::Jerk)
-        return _u8L("Jerk");
+        return L("Jerk");
     else if (view_type == libvgcode::EViewType::FanSpeed)
-        return _u8L("Fan Speed");
+        return L("Fan Speed");
     else if (view_type == libvgcode::EViewType::Temperature)
-        return _u8L("Temperature");
+        return L("Temperature");
     else if (view_type == libvgcode::EViewType::VolumetricFlowRate)
-        return _u8L("Flow");
+        return L("Flow");
     else if (view_type == libvgcode::EViewType::ActualVolumetricFlowRate)
-        return _u8L("Actual Flow");
+        return L("Actual Flow");
     else if (view_type == libvgcode::EViewType::Tool)
-        return _u8L("Tool");
+        return L("Tool");
     else if (view_type == libvgcode::EViewType::ColorPrint)
-        return _u8L("Filament");
+        return L("Filament");
     else if (view_type == libvgcode::EViewType::LayerTimeLinear)
-        return _u8L("Layer Time");
+        return L("Layer Time");
     else if (view_type == libvgcode::EViewType::LayerTimeLogarithmic)
-        return _u8L("Layer Time (log)");
+        return L("Layer Time (log)");
 // ORCA: Add Pressure Advance visualization support
     else if (view_type == libvgcode::EViewType::PressureAdvance)
-        return _u8L("Pressure Advance");
+        return L("Pressure Advance");
     return "";
+}
+
+static std::string get_view_type_string(libvgcode::EViewType view_type)
+{
+    const char* msgid = view_type_msgid(view_type);
+    return *msgid == '\0' ? std::string() : _u8L(msgid);
 }
 
 // ORCA: Stable, locale independent names used to persist a view type in the application config.
@@ -1268,11 +1275,11 @@ bool GCodeViewer::view_type_from_config_name(const std::string& name, libvgcode:
 std::vector<std::pair<std::string, std::string>> GCodeViewer::default_view_type_choices()
 {
     std::vector<std::pair<std::string, std::string>> choices = {
-        { "auto", _u8L("Automatic") },
-        { "last", _u8L("Last used") },
+        { "auto", L("Automatic") },
+        { "last", L("Last used") },
     };
     for (const auto& [name, type] : view_type_config_map())
-        choices.push_back({ name, get_view_type_string(type) });
+        choices.push_back({ name, view_type_msgid(type) });
     return choices;
 }
 

@@ -13,6 +13,8 @@
 #include <wx/event.h>
 #include <wx/gdicmn.h>
 
+#include <cstddef>
+
 namespace Slic3r { namespace GUI {
 
 namespace {
@@ -64,6 +66,21 @@ void AuiMgr::track_docked_size(wxWindow* window)
         }
         evt.Skip();
     });
+}
+
+void AuiMgr::set_docked_width(wxWindow* window, int width)
+{
+    wxAuiPaneInfo& pane = GetPane(window);
+    if (!pane.IsOk())
+        return;
+    pane.BestSize(width, pane.best_size.GetHeight());
+    // A dock keeps its size from layout to layout; one of size 0 takes its panes' best size at the next.
+    for (std::size_t i = 0; i < m_docks.size(); ++i) {
+        wxAuiDockInfo& dock = m_docks[i];
+        if (dock.dock_direction == pane.dock_direction && dock.dock_layer == pane.dock_layer && dock.dock_row == pane.dock_row)
+            dock.size = 0;
+    }
+    Update();
 }
 
 wxAuiPaneInfo AuiMgr::sidebar_pane_info()

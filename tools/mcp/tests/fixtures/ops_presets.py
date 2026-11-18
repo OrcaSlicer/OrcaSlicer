@@ -1,6 +1,6 @@
-"""Helpers for the ops_select_preset and ops_assign_filament_preset replays, run with run_script:
+"""Helpers for the ops_select_preset and ops_assign_filament_preset replays, run with script_run:
 
-    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py",
+    {"tool": "script_run", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py",
                                     "code": "import ops_presets\nresult = ops_presets.probe()"}}
 
 A run whose filename is an existing file imports the modules beside it, so the replays share one copy of each
@@ -31,12 +31,12 @@ def _undo():
 
 def probe():
     """What a call left: the slot mapping, the preset each tab edits, the three filament colour settings that
-    PlaterPresetComboBox::update_ams_color() writes, the project scope's colours and flushing volumes, the open
+    PlaterPresetComboBox::update_ams_color() writes, the project's colours and flushing volumes, the open
     dialogs, the project's dirty flag and the undo snapshots taken since the last probe or arrange."""
     bundle = orca.host.preset_bundle()
-    state = call("get_app_state", {})
-    project = call("get_settings", {"scope": "project", "keys": ["filament_colour", "flush_volumes_matrix"],
-                                    "include_meta": False})
+    state = call("app_state", {})
+    project = call("project_get_settings", {"keys": ["filament_colour", "flush_volumes_matrix"],
+                                            "include_meta": False})
     return {
         "slots": bundle.current_filament_preset_names(),
         "filament_tab": _name(bundle.filaments.edited_preset()),
@@ -53,7 +53,7 @@ def probe():
 
 
 def drop_filament_edits():
-    """Drops the unsaved changes of the filament preset the tab edits. set_settings reaches the filament tab
+    """Drops the unsaved changes of the filament preset the tab edits. settings_set reaches the filament tab
     through a slot (slot 1 by default) and switches the tab to that slot's preset first, which asks about
     the changes, so it is given the slot that holds the edited preset; when no slot holds it, the question
     that opens is answered with Discard."""
@@ -63,18 +63,18 @@ def drop_filament_edits():
         return
     names = bundle.current_filament_preset_names()
     slot = names.index(edited.name) + 1 if edited.name in names else 1
-    reply = call("set_settings", {"scope": "filament", "filament_slot": slot, "reset_all": True})
+    reply = call("settings_set", {"type": "filament", "filament_slot": slot, "reset_all": True})
     if isinstance(reply, dict) and reply.get("status") == "blocked_by_dialog":
-        call("answer_dialog", {"button": "Discard"})
-        call("wait", {"for": "job", "job": reply["job"]})
+        call("dialog_answer", {"button": "Discard"})
+        call("app_wait", {"for": "job", "job": reply["job"]})
 
 
 def arrange_filaments(args):
     """The state a filament case starts from. args: slots (each slot's preset, by the name its selector shows;
     the slot count must already match), tab_slot (1-based: the filament tab edits that slot's preset, default
     1), dirty (an unsaved slow_down_layer_time on the preset the tab edits). Colours and flushing volumes are
-    set to the sentinels. The slot presets are assigned with select_preset and the tab switched with
-    set_settings filament_slot, both after the edits are dropped, so no prompt opens."""
+    set to the sentinels. The slot presets are assigned with preset_select and the tab switched with
+    settings_set filament_slot, both after the edits are dropped, so no prompt opens."""
     bundle = orca.host.preset_bundle()
     wanted = args["slots"]
     if len(bundle.current_filament_preset_names()) != len(wanted):
@@ -82,15 +82,15 @@ def arrange_filaments(args):
                            % (len(bundle.current_filament_preset_names()), len(wanted)))
     drop_filament_edits()
     for slot, name in enumerate(wanted, 1):
-        call("select_preset", {"type": "filament", "name": name, "filament_slot": slot})
-    call("set_settings", {"scope": "filament", "filament_slot": args.get("tab_slot", 1), "reset_all": True})
+        call("preset_select", {"type": "filament", "name": name, "filament_slot": slot})
+    call("settings_set", {"type": "filament", "filament_slot": args.get("tab_slot", 1), "reset_all": True})
     n = len(wanted)
     matrix = [0 if i == j else SENTINEL_FLUSH for i in range(n) for j in range(n)]
-    call("set_settings", {"scope": "project", "values": {"filament_colour": SENTINEL_COLOURS[:n],
-                                                         "flush_volumes_matrix": matrix}})
+    call("project_set_settings", {"values": {"filament_colour": SENTINEL_COLOURS[:n],
+                                             "flush_volumes_matrix": matrix}})
     if args.get("dirty"):
-        call("set_settings", {"scope": "filament", "values": {"slow_down_layer_time": 9}})
-    call("wait", {"for": "idle"})
+        call("settings_set", {"type": "filament", "values": {"slow_down_layer_time": 9}})
+    call("app_wait", {"for": "idle"})
     _undo()
     return probe()
 
@@ -99,19 +99,19 @@ def arrange_presets(args):
     """The state a printer or process case starts from. args: printer, process (names), dirty ("process": an
     unsaved wall_loops; "printer": unsaved printer notes). Every preset's edits are dropped first."""
     drop_filament_edits()
-    for scope in ("process", "printer"):
-        call("set_settings", {"scope": scope, "reset_all": True})
+    for preset_type in ("process", "printer"):
+        call("settings_set", {"type": preset_type, "reset_all": True})
     bundle = orca.host.preset_bundle()
     if bundle.printers.edited_preset().name != args["printer"]:
-        call("select_preset", {"type": "printer", "name": args["printer"], "preset_changes": "discard"})
+        call("preset_select", {"type": "printer", "name": args["printer"], "preset_changes": "discard"})
     if bundle.prints.edited_preset().name != args["process"]:
-        call("select_preset", {"type": "process", "name": args["process"], "preset_changes": "discard"})
+        call("preset_select", {"type": "process", "name": args["process"], "preset_changes": "discard"})
     dirty = args.get("dirty")
     if dirty == "process":
-        call("set_settings", {"scope": "process", "values": {"wall_loops": 5}})
+        call("settings_set", {"type": "process", "values": {"wall_loops": 5}})
     elif dirty == "printer":
-        call("set_settings", {"scope": "printer", "values": {"printer_notes": "MCP pin"}})
-    call("wait", {"for": "idle"})
+        call("settings_set", {"type": "printer", "values": {"printer_notes": "MCP pin"}})
+    call("app_wait", {"for": "idle"})
     _undo()
     return probe()
 

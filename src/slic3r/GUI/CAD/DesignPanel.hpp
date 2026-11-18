@@ -230,7 +230,7 @@ public:
     // Design commands may be the first thing to touch the Design tab after a project was opened.
     void hydrate_from_model();
 
-    // The view switches that are not the canvas's, set by value for set_view; the toolbar's and the rows'
+    // The view switches that are not the canvas's, set by value for view_set; the toolbar's and the rows'
     // toggles go through these. The section view is one horizontal clip at world height `z` that keeps the
     // lower half, or the upper one with `keep_upper`; turned on with no z it cuts at the model's middle
     // height. Turned off, z and keep_upper are left as they were.

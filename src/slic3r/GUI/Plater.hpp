@@ -19,7 +19,10 @@
 #include <optional>
 #include "slic3r/GUI/Event.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Operations/Outcome.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include <string>
+#include <utility>
 #include <vector>
 #include <boost/filesystem/path.hpp>
 
@@ -222,6 +225,9 @@ public:
     void add_filament();
     void delete_filament(size_t filament_id = size_t(-1), int replace_filament_id = -1);  // 0 base, -1 means default
     void change_filament(size_t from_id, size_t to_id);  // 0 base
+    // Whether merging filament `from_id` into `to_id` (0 base) deletes a physical filament that the mixed filament `to_id`
+    // mixes, which change_filament() asks about first.
+    bool merge_removes_component(size_t from_id, size_t to_id) const;
     void edit_filament();
     void add_custom_filament(wxColour new_col, const std::string& preset_name = std::string(), bool skip_preset_validation = false);
     bool is_new_project_in_gcode3mf();
@@ -229,10 +235,39 @@ public:
     void on_bed_type_change(BedType bed_type);
     void load_ams_list(MachineObject* obj);
     std::map<int, DynamicPrintConfig> build_filament_ams_list(MachineObject* obj);
-    void sync_ams_list(bool is_from_big_sync_btn = false);
+    // Synchronize Filament List from AMS: the printer's slots read again, the sync dialog where it asks, and the sync
+    // with its choice (Ops::apply_ams_sync()). Returns why it did not sync, after the warning it showed the person, or
+    // none where it synced or the person cancelled.
+    std::optional<Ops::Refusal> sync_ams_list(bool is_from_big_sync_btn = false);
+    // What apply_ams_sync() did.
+    struct AmsSyncApplied
+    {
+        unsigned int             filaments = 0; // the filament list's length afterwards; 0: nothing compatible, nothing synced
+        std::vector<std::string> unknowns;      // the slots mapped to a generic preset, "tray(type) reason", in English
+        wxString                 detail;        // the same, a line each, in the UI's language, as the sync's messages list them
+    };
+    // Syncs the filament list from the slots load_ams_list() read, as the sync dialog's Synchronize now does with its
+    // choice: `direct_sync` overwrites the list, else `sync_maps` maps each project filament (by its 0-based index) to a
+    // slot; `every_slot_changed` counts each slot's filament as changed. `unknowns_found`, when given, is told the slots
+    // mapped to a generic preset before the list changes.
+    AmsSyncApplied apply_ams_sync(bool                                          direct_sync,
+                                  std::map<int, AMSMapInfo>                     sync_maps,
+                                  bool                                          every_slot_changed,
+                                  const std::function<void(const wxString&)>& unknowns_found);
     bool sync_extruder_list();
     bool is_fila_switch_ready();
     void reset_fila_switch();
+    // The nozzle flow types the Flow combo of extruder `extruder` (0 base) lists on its nozzle card, empty while the card
+    // shows none.
+    std::vector<NozzleVolumeType> nozzle_volume_types(int extruder) const;
+    // The nozzle flow types that Flow combo lists with the printer preset whose settings are `printer` selected: what
+    // nozzle_volume_types() gives once it is, read before it is.
+    static std::vector<NozzleVolumeType> nozzle_volume_types(const DynamicPrintConfig& printer, int extruder);
+    // Picks `type`, one nozzle_volume_types() lists, in that Flow combo, as a person does.
+    void pick_nozzle_volume_type(int extruder, NozzleVolumeType type);
+    // Picks the printer variant `variant` (PresetCollection::diameters_of_selected_printer()) as the nozzle diameter
+    // combos do: the printer preset of that variant is selected. False when it was not.
+    bool pick_nozzle_variant(const std::string& variant);
     bool need_auto_sync_extruder_list_after_connect_priner(const MachineObject* obj);
     void update_sync_status(const MachineObject* obj);
     int get_sidebar_pos_right_x();
@@ -409,7 +444,10 @@ public:
     // Returns false when no object was added (e.g. the user cancelled the load dialog). Without fname the
     // person picks the files; fname names one of Orca's own models, which loads as LoadStrategy::BundledModel.
     bool add_model(bool imperial_units = false, std::string fname = "");
-    void import_zip_archive();
+    // Without `archive`, the archive a file dialog asks for, then the files of it the archive's file list picks; with it,
+    // the files `entries` names (as the archive's own paths give them) in place of the file list, which shows where
+    // `entries` is null.
+    void import_zip_archive(const boost::filesystem::path& archive = {}, const std::vector<std::string>* entries = nullptr);
     void import_sl1_archive();
     void extract_config_from_project();
     void load_gcode();
@@ -469,7 +507,9 @@ public:
     static wxColour get_next_color_for_filament();
     static wxString get_slice_warning_string(GCodeProcessorResult::SliceWarning& warning);
 
-    bool preview_zip_archive(const boost::filesystem::path& archive_path);
+    // Loads files of the archive: those its file list picks, or those `entries` names (as the archive's own paths give
+    // them) in place of it. False when it loaded none.
+    bool preview_zip_archive(const boost::filesystem::path& archive_path, const std::vector<std::string>* entries = nullptr);
 
     // BBS: restore
     std::vector<size_t> load_files(const std::vector<boost::filesystem::path>& input_files, LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,  bool ask_multi = false, bool* published_out = nullptr,
@@ -540,6 +580,14 @@ public:
     bool is_sidebar_collapsed() const;
     void collapse_sidebar(bool collapse);
     Sidebar::DockingState get_sidebar_docking_state() const;
+    // The sidebar's width in pixels: the docked pane's while it shows, else the width it docks at when it shows
+    // again. A drag of its edge sets it, and so does set_sidebar_width(), which a floating sidebar does not take: its
+    // window's size is its own.
+    bool is_sidebar_floating() const;
+    int  sidebar_width() const;
+    void set_sidebar_width(int width);
+    // The sidebar's width in the default window layout, which reset_window_layout() restores.
+    int  default_sidebar_width() const;
 
     void reset_window_layout();
 
@@ -614,9 +662,11 @@ public:
     bool get_pending_published(std::vector<std::string>& out_keys, std::vector<Slic3r::PublishedMaterialEntry>& out_material, bool& out_legacy_process) const;
     void set_pending_published(const std::vector<std::string>& published_keys, const std::vector<Slic3r::PublishedMaterialEntry>& material_keys);
     static TriangleMesh combine_mesh_fff(const ModelObject& mo, int instance_id, std::function<void(const std::string&)> notify_func = {});
-    // `output_path` (a directory for multi_stls) skips the file dialog.
-    void export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false, FileType file_type = FT_STL,
-                    const wxString& output_path = {});
+    // `output_path` (a directory for multi_stls) skips the file dialog. Without selection_only it writes `objects` (their
+    // indices), or every object where none is named. Returns the files it wrote.
+    std::vector<std::string> export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false,
+                                        FileType file_type = FT_STL, const wxString& output_path = {},
+                                        const std::vector<int>& objects = {});
     //BBS: remove amf
     //void export_amf();
     //BBS add extra param for exporting 3mf silence
@@ -626,11 +676,29 @@ public:
     //BBS
 
     void reload_from_disk();
+    // What reload_parts_from_disk() did: the parts [object, part] whose mesh it replaced, those whose file holds no part to
+    // take for them, and a file that could not be read, after which it loaded nothing more.
+    struct ReloadResult
+    {
+        std::vector<std::pair<int, int>> reloaded;
+        std::vector<std::pair<int, int>> unmatched;
+        std::string                      unreadable;
+    };
+    // Reloads `parts`, whose files are there, as Reload from disk does with them selected, but asking for nothing: no file
+    // dialog for a file that is gone and no message box for a part its file has none for. One undo step; the 3D view is
+    // brought up to date with what it reloaded.
+    ReloadResult reload_parts_from_disk(const std::vector<std::pair<int, int>>& parts);
     void replace_with_stl();
+    // How a part's replacement with a file ended.
+    enum class ReplaceResult { Replaced, Unreadable, Cancelled, SeveralParts };
+    // Replaces part `volume_idx` of object `object_idx` with the mesh of the file at `path`, as Replace 3D file does once its
+    // file is picked, but with no message box for a file of several parts. One undo step; then the 3D view.
+    ReplaceResult replace_part_with_file(int object_idx, int volume_idx, const std::string& path);
     void replace_all_with_stl();
     void reload_all_from_disk();
     bool has_toolpaths_to_export() const;
-    void export_toolpaths_to_obj() const;
+    // `output_path` skips the file dialog.
+    void export_toolpaths_to_obj(const wxString& output_path = {}) const;
     void reslice();
     void reslice_SLA_supports(const ModelObject &object, bool postpone_error_messages = false);
     void reslice_SLA_hollowing(const ModelObject &object, bool postpone_error_messages = false);
@@ -768,7 +836,8 @@ public:
     // Arranges every unlocked plate as the toolbar's Arrange does, or the current plate alone as its
     // Arrange icon does.
     void arrange(bool current_plate_only);
-    void orient();
+    // Auto-Orient in the background: `objects` when given, an empty list standing for every object, else the selection.
+    void orient(std::optional<std::vector<int>> objects = std::nullopt);
     void find_new_position(const ModelInstancePtrs  &instances);
     //BBS: add job state related functions
     void set_prepare_state(int state);
@@ -813,7 +882,14 @@ public:
     void search(bool plater_is_active, Preset::Type  type, wxWindow *tag, TextInput *etag, wxWindow *stag);
     void mirror(Axis axis);
     void split_object(bool auto_drop = true);
-    void split_object(int obj_idx, bool auto_drop = true);
+    // What split_object(obj_idx, ...) did: split the object, found it of one piece, or met the Auto-Drop question it was
+    // not to ask.
+    enum class SplitResult { Split, OnePiece, Unanswered };
+    // Splits object `obj_idx` into objects, as Split > To Objects does on the selected object, and selects them. Where
+    // some of them would float above the bed of an object that drops, `keep_z` answers the question the split asks
+    // (true keeps their height, as its Yes); with none it is asked when `ask`, and otherwise nothing is split. An object
+    // of one piece is told in a message box when `ask`.
+    SplitResult split_object(int obj_idx, bool ask, std::optional<bool> keep_z = std::nullopt);
     void split_volume();
     void optimize_rotation();
     // find all empty cells on the plate and won't overlap with exclusion areas

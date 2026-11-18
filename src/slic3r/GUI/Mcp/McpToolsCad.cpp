@@ -51,7 +51,7 @@
 #include "McpArguments.hpp"
 #include "McpTools.hpp"
 #include "McpPaths.hpp"
-#include "UiInspector.hpp"   // gizmo_name: the name get_app_state reports
+#include "UiInspector.hpp"   // gizmo_name: the name app_state reports
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
 #include "slic3r/GUI/CAD/DesignCanvas.hpp"
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
@@ -193,7 +193,7 @@ std::string mode_note(const DesignTool& t, bool no_arguments = false)
 // catalog holds the Design commands only when the feature was on at startup (the preference, or the command
 // line's --cad), and the main window creates the Design page only then too (its panel is built on first use),
 // so turning the feature on takes a restart.
-const char* const kCadOffNote = "call_tool runs no Design command now: they need the CAD feature on when OrcaSlicer "
+const char* const kCadOffNote = "tool_call runs no Design command now: they need the CAD feature on when OrcaSlicer "
                                 "started, in Preferences > Features or with --cad. A person turns it on there if it is "
                                 "off and restarts OrcaSlicer, or starts it with --cad.";
 
@@ -2827,7 +2827,7 @@ json action_commit_to_plate(DesignPanel* panel, const json& params)
                 {"tab", "prepare"}};
 }
 
-// New Design without its confirmation dialog: discard_changes confirms, as new_project's does.
+// New Design without its confirmation dialog: discard_changes confirms, as project_new's does.
 json action_new_design(DesignPanel* panel, const json& params)
 {
     const CadDocument& doc = panel->mcp_doc();
@@ -3469,7 +3469,7 @@ json sketch_transform(DesignSketchTool& t, const json& params, bool pattern)
 SketchConstraintType constraint_type_arg(const json& v)
 {
     if (!v.is_string())
-        throw std::runtime_error("type must be a constraint type, such as \"parallel\" (search_tools {tool: \"sketch_constrain\"} lists "
+        throw std::runtime_error("type must be a constraint type, such as \"parallel\" (tool_search {tool: \"sketch_constrain\"} lists "
                                  "them, and {tool: \"sketch_dimension\"} the dimensions)");
     const std::string s = v.get<std::string>();
     if (s == "equal") return SketchConstraintType::EqualLength;
@@ -3480,7 +3480,7 @@ SketchConstraintType constraint_type_arg(const json& v)
         if (edit_distance(boost::algorithm::to_lower_copy(s), n) <= 2 + s.size() / 4)
             close += std::string(close.empty() ? "" : ", ") + "\"" + n + "\"";
     throw std::runtime_error("unknown constraint type \"" + s + "\"" + (close.empty() ? "" : "; did you mean " + close) +
-                             " (search_tools {tool: \"sketch_constrain\"} lists them, and {tool: \"sketch_dimension\"} the dimensions)");
+                             " (tool_search {tool: \"sketch_constrain\"} lists them, and {tool: \"sketch_dimension\"} the dimensions)");
 }
 
 // Why the CONSTRAIN bar refuses a pick, in ConstraintReject order: a code an agent can test and the
@@ -4980,11 +4980,11 @@ void cad_apply_feature_refs(CadFeature& f, const json& refs, const CadDocument& 
 
 std::vector<int> cad_commit_to_plate_replace(const json& replace, const Model& model)
 {
-    if (!replace.is_array()) throw std::runtime_error("replace takes a list of object indices (list_objects)");
+    if (!replace.is_array()) throw std::runtime_error("replace takes a list of object indices (object_list)");
     const int count = int(model.objects.size());
     std::vector<int> out;
     for (const json& v : replace) {
-        if (!v.is_number_integer()) throw std::runtime_error("replace takes object indices (list_objects), not " + v.dump());
+        if (!v.is_number_integer()) throw std::runtime_error("replace takes object indices (object_list), not " + v.dump());
         const auto i = v.get<std::int64_t>();
         if (i < 0 || i >= count)
             throw std::runtime_error("object " + std::to_string(i) + " is out of range; the project has " + std::to_string(count) +
@@ -4994,7 +4994,7 @@ std::vector<int> cad_commit_to_plate_replace(const json& replace, const Model& m
         // Deleting one opens the "part of a cut object" warning, which the person answers.
         if (model.objects[size_t(i)]->is_cut())
             throw std::runtime_error("object " + std::to_string(i) +
-                                     " is part of a cut object; delete it with select_objects + run_action obj_delete, which asks first");
+                                     " is part of a cut object; delete it with object_select, then object_delete, which asks first");
         out.push_back(int(i));
     }
     std::sort(out.begin(), out.end());

@@ -3,6 +3,7 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include "slic3r/GUI/ActionReplayDialog.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/Mcp/McpJournal.hpp"
@@ -14,6 +15,7 @@
 #include "slic3r/GUI/Mcp/ScreenCapture.hpp"
 #include "slic3r/GUI/Mcp/VideoEncode.hpp"
 #include "slic3r/GUI/Mcp/VideoOverlay.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
 #include "test_utils.hpp"
 
 #include "libslic3r/AppConfig.hpp"
@@ -1033,6 +1035,50 @@ TEST_CASE("a call with a tile's arguments is captioned with the tile's title", "
     CHECK(board.current(t0)->title == "Pattern sketch entities");
 }
 
+TEST_CASE("a tile's call is captioned with the tile's title, run by its id or as its command with its arguments", "[Mcp][Recording]")
+{
+    // As McpRecorder::call_started() hands a call to the board: action_run of a tile, and a call of the tile's command
+    // with the tile's arguments.
+    const CommandCatalog& catalog    = NativeCommands::instance();
+    const NativeCommand*  action_run = catalog.find("action_run");
+    const NativeCommand*  mirror     = catalog.find("object_mirror");
+    REQUIRE(action_run != nullptr);
+    REQUIRE(mirror != nullptr);
+    CaptionBoard board;
+    const auto   t0                  = CaptionBoard::Clock::now();
+    const auto [arrange, arranges]   = shown_title(catalog, *action_run, {{"id", "orca_command:obj_arrange:orca"}});
+    REQUIRE(arranges != nullptr);
+    CHECK(arranges->key == "object_arrange");
+    board.call_started(1, arrange, "", t0);
+    REQUIRE(board.current(t0).has_value());
+    CHECK(board.current(t0)->title == "Auto-Arrange");
+    board.call_started(2, shown_title(catalog, *mirror, {{"axis", "x"}}).first, "", t0);
+    REQUIRE(board.current(t0).has_value());
+    CHECK(board.current(t0)->title == "Mirror X");
+
+    // The name inside the id, as action_run takes it; a command's own tile, titled as its command.
+    CHECK(shown_title(catalog, *action_run, {{"id", "obj_arrange"}}).first == "Auto-Arrange");
+    CHECK(shown_title(catalog, *action_run, {{"id", "orca_command:undo:orca"}}).first == "Undo");
+    // Any other action, and an id no tile has, are action_run's own.
+    CHECK(shown_title(catalog, *action_run, {{"id", "orca_recent_project:C:/p/a.3mf:orca"}}).first == action_run->title);
+    CHECK(shown_title(catalog, *action_run, {{"id", "orca_command:no_such_tile:orca"}}).second == action_run);
+    CHECK(shown_title(catalog, *mirror, {{"axis", "x"}, {"silent", true}}).first == mirror->title);
+}
+
+TEST_CASE("an Action Replay step that runs a tile is titled as the tile, with the value it collects", "[Mcp][Recording]")
+{
+    // describe_step()'s `what` for action_run of Go to layer with {percent: 50}, and of Mirror X.
+    const CommandCatalog& catalog = NativeCommands::instance();
+    const json layer{{"kind", "command"}, {"key", "view_set"}, {"tile", "go_to_layer"}, {"args", {"layer_percent: 50"}}};
+    const auto [layer_title, layer_detail] = replay_what_text(layer, catalog);
+    CHECK(layer_title == "Go to layer (percent)");
+    CHECK(layer_detail == "layer_percent: 50");
+    const json mirror{{"kind", "command"}, {"key", "object_mirror"}, {"tile", "obj_mirror_x"}};
+    const auto [mirror_title, mirror_detail] = replay_what_text(mirror, catalog);
+    CHECK(mirror_title == "Mirror X");
+    CHECK(mirror_detail.empty());
+}
+
 TEST_CASE("the caption is the newest call that runs or lingers", "[Mcp][Recording]")
 {
     CaptionBoard board;
@@ -1093,28 +1139,28 @@ TEST_CASE("a burst of quick steps never pushes out the replay still running", "[
 TEST_CASE("a failure's caption hides what the call's caption hides", "[Mcp][Recording]")
 {
     const std::string dots = "\xE2\x80\xA2\xE2\x80\xA2\xE2\x80\xA2";
-    // set_settings quotes a value it can't take; a sensitive one never shows.
-    const json settings = {{"scope", "printer"}, {"values", {{"printhost_apikey", json::array({{{"value", "SECRET42"}}})}}}};
-    CHECK(caption_error("set_settings", settings, R"(Unsupported value [{"value":"SECRET42"}])") ==
+    // settings_set quotes a value it can't take; a sensitive one never shows.
+    const json settings = {{"type", "printer"}, {"values", {{"printhost_apikey", json::array({{{"value", "SECRET42"}}})}}}};
+    CHECK(caption_error("settings_set", settings, R"(Unsupported value [{"value":"SECRET42"}])") ==
           "Unsupported value [{\"value\":\"" + dots + "\"}]");
     // A value typed into a field found by its label may be a password.
-    CHECK(caption_error("set_widget_value", {{"target", {{"label", "Password"}}}, {"value", "hunter22"}}, "Cannot set hunter22") ==
+    CHECK(caption_error("widget_set_value", {{"target", {{"label", "Password"}}}, {"value", "hunter22"}}, "Cannot set hunter22") ==
           "Cannot set " + dots);
     // A setting field's value is shown in the caption, so its error stays as it is.
-    CHECK(caption_error("set_widget_value", {{"target", {{"option", "layer_height"}}}, {"value", "0.33"}}, "0.33 is out of range") ==
+    CHECK(caption_error("widget_set_value", {{"target", {{"option", "layer_height"}}}, {"value", "0.33"}}, "0.33 is out of range") ==
           "0.33 is out of range");
-    CHECK(caption_error("press_keys", {{"text", "pa55word"}}, "typed pa55word into nothing") == "typed " + dots + " into nothing");
+    CHECK(caption_error("keyboard_press", {{"text", "pa55word"}}, "typed pa55word into nothing") == "typed " + dots + " into nothing");
     // A secret in a step of an inline replay is found under its key.
-    const json replay = {{"replay", {{"orca_replay_version", "0.1.0"}, {"steps", json::array({{{"tool", "set_settings"}, {"args", {{"values", {{"printhost_password", "letmein9"}}}}}}})}}}};
-    CHECK(caption_error("run_replay", replay, "step 1 failed: letmein9 rejected") == "step 1 failed: " + dots + " rejected");
+    const json replay = {{"replay", {{"orca_replay_version", "0.2.0"}, {"steps", json::array({{{"tool", "settings_set"}, {"args", {{"values", {{"printhost_password", "letmein9"}}}}}}})}}}};
+    CHECK(caption_error("replay_run", replay, "step 1 failed: letmein9 rejected") == "step 1 failed: " + dots + " rejected");
     // Too short to take out safely: the error is left out.
-    CHECK(caption_error("press_keys", {{"text", "ab"}}, "typed ab").empty());
+    CHECK(caption_error("keyboard_press", {{"text", "ab"}}, "typed ab").empty());
     // As JSON quotes it inside an error that dumps the arguments.
     const json quoted = {{"values", {{"printhost_apikey", "alpha\"omega"}}}};
-    CHECK(caption_error("set_settings", quoted, R"(Unsupported value "alpha\"omega")") == "Unsupported value \"" + dots + "\"");
+    CHECK(caption_error("settings_set", quoted, R"(Unsupported value "alpha\"omega")") == "Unsupported value \"" + dots + "\"");
     // Masked in the whole error before it is shortened, so no start of a value is left past the cut.
     const std::string long_error = std::string(95, 'x') + " SECRETVALUE";
-    const std::string masked     = shorten(caption_error("press_keys", {{"text", "SECRETVALUE"}}, long_error), 100);
+    const std::string masked     = shorten(caption_error("keyboard_press", {{"text", "SECRETVALUE"}}, long_error), 100);
     CHECK(masked.find("SECRE") == std::string::npos);
 }
 
@@ -1129,25 +1175,25 @@ TEST_CASE("an error is shortened to its first line at a character boundary", "[M
 
 TEST_CASE("captions name what a call acts on and never show secrets", "[Mcp][Recording]")
 {
-    CHECK(caption_detail("click", {{"target", {{"label", "Slice plate"}}}}) == "Slice plate");
-    CHECK(caption_detail("click", {{"target", {{"menu", "File>Export>Export G-code"}}}}) == "File > Export > Export G-code");
-    CHECK(caption_detail("click", {{"target", {{"row", "Plate 1>Cube"}, {"column", "Printable"}}}}) == "Plate 1 > Cube (Printable)");
-    CHECK(caption_detail("click", {{"target", "w12"}}).empty()); // a ref: its locator comes later
-    CHECK(caption_detail("set_widget_value", {{"target", {{"option", "layer_height"}}}, {"value", 0.2}}) == "layer_height = 0.2");
-    CHECK(caption_detail("set_widget_value", {{"target", {{"option", "printhost_apikey"}}}, {"value", "s3cret"}}) == "printhost_apikey");
-    CHECK(caption_detail("set_widget_value", {{"target", {{"label", "Password"}}}, {"value", "s3cret"}}) == "Password");
-    CHECK(caption_detail("set_widget_value", {{"target", "w3"}, {"value", "s3cret"}}).empty());
-    CHECK(caption_detail("press_keys", {{"keys", "ctrl+s"}, {"text", "s3cret"}}) == "ctrl+s");
-    CHECK(caption_detail("press_keys", {{"text", "s3cret"}}).empty());
+    CHECK(caption_detail("widget_click", {{"target", {{"label", "Slice plate"}}}}) == "Slice plate");
+    CHECK(caption_detail("widget_click", {{"target", {{"menu", "File>Export>Export G-code"}}}}) == "File > Export > Export G-code");
+    CHECK(caption_detail("widget_click", {{"target", {{"row", "Plate 1>Cube"}, {"column", "Printable"}}}}) == "Plate 1 > Cube (Printable)");
+    CHECK(caption_detail("widget_click", {{"target", "w12"}}).empty()); // a ref: its locator comes later
+    CHECK(caption_detail("widget_set_value", {{"target", {{"option", "layer_height"}}}, {"value", 0.2}}) == "layer_height = 0.2");
+    CHECK(caption_detail("widget_set_value", {{"target", {{"option", "printhost_apikey"}}}, {"value", "s3cret"}}) == "printhost_apikey");
+    CHECK(caption_detail("widget_set_value", {{"target", {{"label", "Password"}}}, {"value", "s3cret"}}) == "Password");
+    CHECK(caption_detail("widget_set_value", {{"target", "w3"}, {"value", "s3cret"}}).empty());
+    CHECK(caption_detail("keyboard_press", {{"keys", "ctrl+s"}, {"text", "s3cret"}}) == "ctrl+s");
+    CHECK(caption_detail("keyboard_press", {{"text", "s3cret"}}).empty());
     const std::string settings =
-        caption_detail("set_settings", {{"scope", "printer"}, {"values", {{"printhost_password", "s3cret"}, {"nozzle_diameter", "0.4"}}}});
+        caption_detail("settings_set", {{"type", "printer"}, {"values", {{"printhost_password", "s3cret"}, {"nozzle_diameter", "0.4"}}}});
     CHECK(settings.find("s3cret") == std::string::npos);
     CHECK(settings.find("nozzle_diameter = 0.4") != std::string::npos);
-    CHECK(caption_detail("open_files", {{"paths", {"C:/models/part.stl", "/tmp/b.3mf"}}}) == "part.stl, b.3mf");
-    CHECK(caption_detail("run_action", {{"id", "orca_command:obj_arrange:orca"}}) == "obj_arrange");
-    CHECK(caption_detail("run_action", {{"id", "orca_command:import_file:orca"}, {"args", {{"path", "C:/models/part.stl"}}}}) ==
-          "import_file path: part.stl");
-    CHECK(caption_detail("run_javascript", {{"code", "login('s3cret')"}}).empty());
+    CHECK(caption_detail("project_import", {{"paths", {"C:/models/part.stl", "/tmp/b.3mf"}}}) == "part.stl, b.3mf");
+    // A row's tile is its command's call; a command's own tile given arguments shows them.
+    CHECK(caption_detail("action_run", {{"id", "orca_command:obj_arrange:orca"}}) == "object_arrange");
+    CHECK(caption_detail("action_run", {{"id", "orca_command:undo:orca"}, {"args", {{"history", "design"}}}}) == "undo history: design");
+    CHECK(caption_detail("webview_run_javascript", {{"code", "login('s3cret')"}}).empty());
     CHECK(is_sensitive_key("printhost_apikey"));
     CHECK(is_sensitive_key("cloud_Token"));
     CHECK_FALSE(is_sensitive_key("layer_height"));
@@ -1282,7 +1328,7 @@ TEST_CASE("remembered recording settings come back, and a bad value keeps its de
     CHECK(loaded.profile == "main");
 }
 
-TEST_CASE("start_recording's encode arguments override the settings, a preset before the fields", "[Mcp][Recording]")
+TEST_CASE("recording_start's encode arguments override the settings, a preset before the fields", "[Mcp][Recording]")
 {
     RecordingSettings s;
     // The tool's other arguments are left to it.
@@ -1502,10 +1548,10 @@ TEST_CASE("an exported replay encodes the recording it makes and leaves other so
 {
     Journal j;
     auto    ok = [&](const std::string& tool, const json& args) { j.end(j.begin(tool, args), ToolResult::ok()); };
-    ok("start_recording", {{"save_path", "C:/Users/me/out/rec.mkv"}});
-    ok("stop_recording", json::object());
-    ok("encode_recording", {{"path", "C:/Users/me/out/rec.mkv"}, {"save_path", "C:/Users/me/out/rec.mp4"}});
-    ok("encode_recording", {{"path", "D:/videos/old.mkv"}});
+    ok("recording_start", {{"save_path", "C:/Users/me/out/rec.mkv"}});
+    ok("recording_stop", json::object());
+    ok("recording_encode", {{"path", "C:/Users/me/out/rec.mkv"}, {"save_path", "C:/Users/me/out/rec.mp4"}});
+    ok("recording_encode", {{"path", "D:/videos/old.mkv"}});
     const json steps = j.to_replay("s")["steps"];
     REQUIRE(steps.size() == 4);
     CHECK(steps[0]["args"]["save_path"] == "${out_dir}/rec.mkv");
@@ -1514,28 +1560,22 @@ TEST_CASE("an exported replay encodes the recording it makes and leaves other so
     CHECK(steps[3]["args"]["path"] == "D:/videos/old.mkv");
 }
 
-TEST_CASE("an exported replay records a tile's recording into its own folder and encodes it there", "[Mcp][Recording]")
+TEST_CASE("an exported replay records a silent recording into its own folder and keeps a pick of the tile as it is", "[Mcp][Recording]")
 {
     Journal j;
     auto    ok = [&](const std::string& tool, const json& args) { j.end(j.begin(tool, args), ToolResult::ok()); };
-    // run_action of the Start Recording tile, journaled as the tile's {id, args}, by its full id with the path the
-    // call gave. A call that gives none is journaled with the path its silent form chose in the session's output
-    // folder, as start_recording's own call is; the tile by its key here.
-    ok("run_action", {{"id", "orca_command:start_recording:orca"}, {"args", {{"silent", true}, {"save_path", "C:/Users/me/out/tile.mkv"}}}});
-    ok("run_action", {{"id", "orca_command:stop_recording:orca"}});
-    ok("encode_recording", {{"path", "C:/Users/me/out/tile.mkv"}});
-    ok("run_action", {{"id", "start_recording"}, {"args", {{"silent", true}, {"save_path", "C:/Users/me/mcp/recording-20261113.mkv"}}}});
-    ok("run_action", {{"id", "stop_recording"}});
-    ok("encode_recording", {{"path", "C:/Users/me/mcp/recording-20261113.mkv"}, {"save_path", "C:/Users/me/mcp/take.mp4"}});
-    // The person's form, which opens the Start Recording dialog, names no file.
-    ok("run_action", {{"id", "start_recording"}});
+    // recording_start's silent form, journaled with the path it chose in the session's output folder.
+    ok("recording_start", {{"silent", true}, {"save_path", "C:/Users/me/mcp/recording-20261113.mkv"}});
+    ok("recording_stop", {{"silent", true}});
+    ok("recording_encode", {{"path", "C:/Users/me/mcp/recording-20261113.mkv"}, {"save_path", "C:/Users/me/mcp/take.mp4"}});
+    // action_run of the Start Recording tile, which takes no arguments: the person's form, which opens the Start
+    // Recording dialog and names no file.
+    ok("action_run", {{"id", "orca_command:start_recording:orca"}});
     const json steps = j.to_replay("s")["steps"];
-    REQUIRE(steps.size() == 7);
-    CHECK(steps[0]["tool"] == "run_action");
-    CHECK(steps[0]["args"] == json{{"id", "orca_command:start_recording:orca"}, {"args", {{"silent", true}, {"save_path", "${out_dir}/tile.mkv"}}}});
-    CHECK(steps[2]["args"]["path"] == "${out_dir}/tile.mkv");
-    CHECK(steps[3]["args"] == json{{"id", "start_recording"}, {"args", {{"silent", true}, {"save_path", "${out_dir}/recording-20261113.mkv"}}}});
-    CHECK(steps[5]["args"]["path"] == "${out_dir}/recording-20261113.mkv");
-    CHECK(steps[5]["args"]["save_path"] == "${out_dir}/take.mp4");
-    CHECK(steps[6]["args"] == json{{"id", "start_recording"}});
+    REQUIRE(steps.size() == 4);
+    CHECK(steps[0]["args"] == json{{"silent", true}, {"save_path", "${out_dir}/recording-20261113.mkv"}});
+    CHECK(steps[2]["args"]["path"] == "${out_dir}/recording-20261113.mkv");
+    CHECK(steps[2]["args"]["save_path"] == "${out_dir}/take.mp4");
+    CHECK(steps[3]["tool"] == "action_run");
+    CHECK(steps[3]["args"] == json{{"id", "orca_command:start_recording:orca"}});
 }

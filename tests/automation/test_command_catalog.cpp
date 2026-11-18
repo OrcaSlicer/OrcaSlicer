@@ -63,7 +63,7 @@ TEST_CASE("a sealed catalog refuses additions", "[CommandCatalog]")
 TEST_CASE("find sees added commands, lookup also a source's", "[CommandCatalog]")
 {
     CommandCatalog catalog;
-    catalog.add(command("slice"));
+    catalog.add(command("plate_slice"));
     catalog.add_source(std::make_unique<OneCommandSource>("plugin.x.y"));
     catalog.seal();
 
@@ -72,9 +72,9 @@ TEST_CASE("find sees added commands, lookup also a source's", "[CommandCatalog]"
     REQUIRE(from_source != nullptr);
     CHECK(from_source->key == "plugin.x.y");
 
-    const NativeCommand* added = catalog.find("slice");
+    const NativeCommand* added = catalog.find("plate_slice");
     REQUIRE(added != nullptr);
-    CHECK(catalog.lookup("slice").get() == added);
+    CHECK(catalog.lookup("plate_slice").get() == added);
 
     CHECK(catalog.lookup("plugin.x.z") == nullptr);
     REQUIRE(catalog.source_commands().size() == 1);
@@ -99,9 +99,9 @@ TEST_CASE("a Design command's title is translated in the Design context, any oth
     REQUIRE(Slic3r::GUI::title_context(design) != nullptr);
     CHECK(std::string(Slic3r::GUI::title_context(design)) == "Design");
     NativeCommand other;
-    other.key   = "save_project";
+    other.key   = "project_save";
     other.title = "Save project";
-    other.group = "Commands";
+    other.group = "The project";
     CHECK(Slic3r::GUI::title_context(other) == nullptr);
 }
 
@@ -117,6 +117,50 @@ TEST_CASE("the person's form is the call with no arguments", "[CommandCatalog]")
     CHECK_FALSE(Mcp::person_form({{"silent", true}}));
     CHECK_FALSE(Mcp::person_form({{"path", "a"}}));
     CHECK(Mcp::silent_args({{"silent", true}, {"path", "a"}}) == json{{"path", "a"}});
+}
+
+TEST_CASE("a call with exactly a tile's arguments is the person's form", "[CommandCatalog]")
+{
+    // A command with a tile of its own, a tile that mirrors along X and one that collects a tab in the Speed Dial.
+    NativeCommand c = command("view_it", /*in_palette=*/true);
+    c.tiles         = json::array({json{{"key", "view_x"}, {"title", "X"}, {"group", "View"}, {"icon", ""}, {"description", ""},
+                                        {"args", {{"axis", "x"}}}},
+                                   json{{"key", "view_tab"}, {"title", "Tab"}, {"group", "Commands"}, {"icon", ""},
+                                        {"description", ""}, {"args", json::object()}, {"input", "tab"}}});
+    CHECK(Mcp::person_form(c, json()));
+    CHECK(Mcp::person_form(c, json::object()));
+    CHECK(Mcp::person_form(c, {{"axis", "x"}}));
+    CHECK_FALSE(Mcp::person_form(c, {{"axis", "y"}}));
+    CHECK_FALSE(Mcp::person_form(c, {{"axis", "x"}, {"silent", true}}));
+    CHECK_FALSE(Mcp::person_form(c, {{"silent", true}}));
+
+    // A tile that collects a value is no person's form: its value comes from the Speed Dial's second phase.
+    NativeCommand collects = command("go_to");
+    collects.tiles         = json::array({json{{"key", "go_to_tab"}, {"title", "Tab"}, {"group", "Commands"}, {"icon", ""},
+                                               {"description", ""}, {"args", json::object()}, {"input", "tab"}}});
+    CHECK_FALSE(Mcp::person_form(collects, json::object()));
+}
+
+TEST_CASE("what the silent form requires is not asked of a person's form", "[CommandCatalog]")
+{
+    const json schema{{"type", "object"},
+                      {"properties", {{"path", {{"type", "string"}}}, {"save_as", {{"type", "boolean"}}}, {"overwrite", {{"type", "boolean"}}}}},
+                      {"required", {"path"}}};
+    const json s = Mcp::with_silent(schema, {json::object(), {{"save_as", true}}});
+    CHECK(s["if"] == json{{"not", {{"enum", json::array({json::object(), {{"save_as", true}}})}}}});
+    CHECK(s["then"]["required"] == json::array({"path"}));
+    // The two person's forms and a silent one with what it requires.
+    CHECK(Mcp::validate_arguments(s, json::object()).empty());
+    CHECK(Mcp::validate_arguments(s, {{"save_as", true}}).empty());
+    CHECK(Mcp::validate_arguments(s, {{"path", "a.3mf"}}).empty());
+    // Silent forms without it.
+    CHECK_THAT(Mcp::validate_arguments(s, {{"overwrite", true}}), ContainsSubstring("path"));
+    CHECK_THAT(Mcp::validate_arguments(s, {{"save_as", true}, {"overwrite", true}}), ContainsSubstring("path"));
+    CHECK_THAT(Mcp::validate_arguments(s, {{"silent", true}}), ContainsSubstring("path"));
+
+    // The person's form with no arguments alone is written as a client's validator reads it most simply.
+    CHECK(Mcp::with_silent(schema)["if"] == json{{"minProperties", 1}});
+    CHECK(Mcp::with_silent(schema, {json::object()})["if"] == json{{"minProperties", 1}});
 }
 
 TEST_CASE("a two-form schema requires its arguments only when some are given", "[CommandCatalog]")
@@ -139,17 +183,17 @@ TEST_CASE("a reference entry has the command's fields, and its examples and tile
 {
     NativeCommand c = command("export_it", true);
     c.title         = "Export It";
-    c.group         = "Commands";
+    c.group         = "The project";
     c.description   = "Exports it.";
     c.input_schema  = {{"type", "object"}, {"properties", {{"path", {{"type", "string"}}}}}};
     c.guard         = GuardClass::Recover;
     c.completion    = CommandCompletion::Deferred;
-    c.operations    = {"export_gcode"};
+    c.operations    = {"start_gcode_export"};
     c.open_world    = true;
     const json entry = Slic3r::GUI::command_reference(c);
     CHECK(entry == json{{"key", "export_it"},
                         {"title", "Export It"},
-                        {"group", "Commands"},
+                        {"group", "The project"},
                         {"description", "Exports it."},
                         {"input_schema", c.input_schema},
                         {"listed", false},
@@ -160,7 +204,7 @@ TEST_CASE("a reference entry has the command's fields, and its examples and tile
                         {"open_world", true},
                         {"guard", "recover"},
                         {"completion", "deferred"},
-                        {"operations", json::array({"export_gcode"})}});
+                        {"operations", json::array({"start_gcode_export"})}});
 
     const json call{{"tool", "export_it"}, {"args", {{"path", "a"}}}};
     c.guard          = GuardClass::Inspect;
@@ -176,4 +220,16 @@ TEST_CASE("a reference entry has the command's fields, and its examples and tile
     c.tiles = json::array({json{{"key", "export_it_pdf"}, {"title", "Export as PDF"}, {"icon", ""}, {"description", ""},
                                 {"args", {{"format", "pdf"}}}}});
     CHECK(Slic3r::GUI::command_reference(c)["tiles"] == c.tiles);
+
+    // What a person sees of its own tile, once it has any.
+    CHECK_FALSE(entry.contains("icon"));
+    CHECK_FALSE(entry.contains("input"));
+    CHECK_FALSE(entry.contains("tile_group"));
+    c.icon       = "menu_save";
+    c.input      = "tab";
+    c.tile_group = "Commands";
+    const json shown = Slic3r::GUI::command_reference(c);
+    CHECK(shown["icon"] == "menu_save");
+    CHECK(shown["input"] == "tab");
+    CHECK(shown["tile_group"] == "Commands");
 }

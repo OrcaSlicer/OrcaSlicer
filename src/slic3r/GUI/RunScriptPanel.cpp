@@ -95,7 +95,7 @@ std::string starter_script()
            // Shift+Enter and Ctrl+Enter.
            format(_u8L("A line that starts with %1% starts a cell. %2% runs the cell at the cursor, %3% all of them."), "# %%",
                   run_cell_key(), run_all_key()) +
-           "\nfrom orca.host import tools\ntools.call(\"list_objects\")\n";
+           "\nfrom orca.host import tools\ntools.call(\"object_list\")\n";
 }
 
 // The page's text: its own and the code editor's.
@@ -914,7 +914,7 @@ bool RunScriptPanel::start_session()
         return false;
     }
     m_session        = std::move(session);
-    m_session_file   = m_file.empty() ? std::string("<run_script>") : Mcp::path_to_utf8(m_file);
+    m_session_file   = m_file.empty() ? std::string("<script_run>") : Mcp::path_to_utf8(m_file);
     m_session_ending = false;
     m_timer.Start(100);
     send_session_state();

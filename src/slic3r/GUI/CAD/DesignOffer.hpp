@@ -6,7 +6,7 @@
 // not apply are shown disabled in place with their reason rather than removed. Row order was
 // ratified 2026-07-31; changing an index is a breaking change to every user's muscle memory.
 // An entry with an action or a tool block, and no fold_into, is a command of the catalog's group Design
-// (Mcp::register_cad_commands(), Mcp::is_design_command()), under its section in search_tools' index. A
+// (Mcp::register_cad_commands(), Mcp::is_design_command()), under its section in tool_search's index. A
 // call whose arguments are exactly those that choose one of its rows opens that row's tool for a person
 // (Mcp::opened_row()): none choose the entry's own row where it has an action, else the rows folded into it
 // with {}; a folded row's args, or the entry's own, choose that row. Any other call runs its tool block's
@@ -126,7 +126,7 @@ struct DesignTool {
     // The arguments that choose this row, as JSON text: a folded row's, or those that choose the own row of
     // an entry with an action and a tool block as a call with none does; nullptr for none.
     const char* args;
-    // The heading its command is listed under in search_tools' index (kDesignSections,
+    // The heading its command is listed under in tool_search's index (kDesignSections,
     // Mcp::design_command_index()); nullptr for an entry that is no command.
     const char* section;
     // Its action acts on the selected row of the Feature list, which a call of its command, not a person's
@@ -134,7 +134,7 @@ struct DesignTool {
     bool        feature_row;
 };
 
-// The headings of search_tools' index of the Design commands, in its order. Menu rows holds the commands
+// The headings of tool_search's index of the Design commands, in its order. Menu rows holds the commands
 // that take no arguments and only do what their row does.
 static const char* const kDesignSections[] = {
     "Document",
@@ -1338,18 +1338,18 @@ static const DesignTool kDesignTools[] = {
     {"commit_to_plate", L_CONTEXT("Commit to plate", "Design"), -1, nullptr, nullptr, nullptr, 0x00000000u, 0, 0, false, false, nullptr, nullptr, nullptr, false, CadAccess::Change, false,
      "{\"summary\":\"Commit to Plate: send the visible bodies to Prepare at their Move-gizmo positions an"
      "d show Prepare.\",\"details\":\"It is one Prepare undo step. A lone body is sent even when hidden. A"
-     " body named in the Bodies list or with body_set names its object or part. Reply: objects (list_o"
-     "bjects index after replace, name, parts: how many), bodies_sent, bodies_hidden, replaced.\",\"para"
-     "ms\":[{\"name\":\"mode\",\"type\":\"string\",\"default\":\"\",\"enum\":[\"assembly\",\"bodies\"],\"description\":\"ass"
-     "embly: one object with a part per body; bodies: an object per body. Default: the Commit button's"
-     " mode, which this leaves as it is.\"},{\"name\":\"replace\",\"type\":\"array\",\"default\":[],\"description\""
-     ":\"list_objects indices to delete in the same undo step, such as an earlier commit. Their setting"
-     "s, modifiers and paint go with them.\"}],\"examples\":[{\"title\":\"A plate sent to Prepare as one obj"
-     "ect\",\"calls\":[{\"tool\":\"extrude\",\"args\":{\"distance\":5,\"height\":20,\"width\":20}},{\"tool\":\"commit_to"
-     "_plate\",\"args\":{}}]},{\"title\":\"Two bodies sent to Prepare as an object each\",\"calls\":[{\"tool\":\"e"
-     "xtrude\",\"args\":{\"distance\":5,\"height\":20,\"width\":20}},{\"tool\":\"extrude\",\"args\":{\"distance\":10,\"o"
-     "peration\":\"new_body\",\"profile\":[[20,-5],[30,-5],[30,5],[20,5]]}},{\"tool\":\"commit_to_plate\",\"args"
-     "\":{\"mode\":\"bodies\"}}]}],\"ids\":false}", nullptr, nullptr, "Document", false},
+     " body named in the Bodies list or with body_set names its object or part. Reply: objects (object"
+     "_list index after replace, name, parts: how many), bodies_sent, bodies_hidden, replaced.\",\"param"
+     "s\":[{\"name\":\"mode\",\"type\":\"string\",\"default\":\"\",\"enum\":[\"assembly\",\"bodies\"],\"description\":\"asse"
+     "mbly: one object with a part per body; bodies: an object per body. Default: the Commit button's "
+     "mode, which this leaves as it is.\"},{\"name\":\"replace\",\"type\":\"array\",\"default\":[],\"description\":"
+     "\"object_list indices to delete in the same undo step, such as an earlier commit. Their settings,"
+     " modifiers and paint go with them.\"}],\"examples\":[{\"title\":\"A plate sent to Prepare as one objec"
+     "t\",\"calls\":[{\"tool\":\"extrude\",\"args\":{\"distance\":5,\"height\":20,\"width\":20}},{\"tool\":\"commit_to_p"
+     "late\",\"args\":{}}]},{\"title\":\"Two bodies sent to Prepare as an object each\",\"calls\":[{\"tool\":\"ext"
+     "rude\",\"args\":{\"distance\":5,\"height\":20,\"width\":20}},{\"tool\":\"extrude\",\"args\":{\"distance\":10,\"ope"
+     "ration\":\"new_body\",\"profile\":[[20,-5],[30,-5],[30,5],[20,5]]}},{\"tool\":\"commit_to_plate\",\"args\":"
+     "{\"mode\":\"bodies\"}}]}],\"ids\":false}", nullptr, nullptr, "Document", false},
     {"new_design", L_CONTEXT("New design", "Design"), -1, nullptr, nullptr, nullptr, 0x00000000u, 0, 0, false, false, nullptr, nullptr, nullptr, false, CadAccess::Change, false,
      "{\"summary\":\"New Design: erase every feature, body and variable and the Design undo history.\",\"de"
      "tails\":\"Committed objects stay on the plate. Reply: cleared {features, bodies, variables}.\",\"par"

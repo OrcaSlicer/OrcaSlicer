@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
-"""Checks sending G-code to a print host with the Speed Dial's send_gcode, read back through get_app_state.uploads.
+"""Checks sending G-code to a print host with printer_send's Speed Dial tile, send_gcode, read back through
+app_state.uploads.
 
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_send_gcode.py
 
-Starts an OctoPrint-compatible stub host on a free loopback port. The command first refuses a printer that
+Starts an OctoPrint-compatible stub host on a free loopback port. The tile first refuses a printer that
 prints through the Bambu network (when the app starts on a Bambu printer) and one without a print host. Then
-the printer points at the stub, a cube is sliced, and each send runs send_gcode, sets the file name with
-set_widget_value and presses Upload with answer_dialog:
+the printer points at the stub, a cube is sliced, and each send runs the tile, sets the file name with
+widget_set_value and presses Upload with dialog_answer:
 - the stub answers 200 a few seconds after it has the whole file: meanwhile the row reads uploading at 99,
   then completed, and the stub got the file without print=true;
 - the replay exported from that send runs and uploads again;
 - the stub answers 500 after the same pause: the row never reads completed, ends as an error naming
-  HTTP 500, and the error dialog the queue opens closes with answer_dialog;
+  HTTP 500, and the error dialog the queue opens closes with dialog_answer;
 - the stub answers 500 at once: the row still ends as an error rather than staying queued.
 Exits 0 when every check passes.
 """
@@ -95,17 +96,17 @@ class StubHost:
 
 
 def uploads(client):
-    return client.call("get_app_state").get("uploads", [])
+    return client.call("app_state").get("uploads", [])
 
 
 def send(client, filename):
-    """Sends the current plate as `filename` through the command's dialog and returns the new row's id."""
+    """Sends the current plate as `filename` through the tile's dialog and returns the new row's id."""
     before = len(uploads(client))
-    blocked = client.call("run_action", id=SEND)
+    blocked = client.call("action_run", id=SEND)
     if blocked.get("status") != "blocked_by_dialog":
-        raise orca_mcp.McpError(f"send_gcode did not open its dialog: {blocked}", blocked)
-    client.call("set_widget_value", target={"class": "wxTextCtrl", "within": "Send G-code to printer host"}, value=filename, submit=False)
-    client.call("answer_dialog", button="Upload")
+        raise orca_mcp.McpError(f"the send_gcode tile did not open its dialog: {blocked}", blocked)
+    client.call("widget_set_value", target={"class": "wxTextCtrl", "within": "Send G-code to printer host"}, value=filename, submit=False)
+    client.call("dialog_answer", button="Upload")
     client.await_job(blocked)
     return before + 1
 
@@ -126,22 +127,22 @@ def follow(client, row_id, timeout=120):
 
 def refused(client, needle):
     try:
-        opened = client.call("run_action", id=SEND)
+        opened = client.call("action_run", id=SEND)
     except orca_mcp.McpError as e:
         return needle in str(e)
     if opened.get("status") == "blocked_by_dialog":
-        client.call("answer_dialog", button="Cancel")
+        client.call("dialog_answer", button="Cancel")
         client.await_job(opened)
     return False
 
 
 def close_error_dialog(client):
-    state = client.call("wait", **{"for": "dialog", "timeout_s": 10})
-    dialogs = client.call("get_app_state")["dialogs"]
+    state = client.call("app_wait", **{"for": "dialog", "timeout_s": 10})
+    dialogs = client.call("app_state")["dialogs"]
     if not state.get("satisfied") or not dialogs:
         return None
-    client.call("answer_dialog", button="ok")
-    client.call("wait", **{"for": "no_dialog", "timeout_s": 10})
+    client.call("dialog_answer", button="ok")
+    client.call("app_wait", **{"for": "no_dialog", "timeout_s": 10})
     return dialogs[-1]
 
 
@@ -154,29 +155,29 @@ def main():
     def check(name, ok, detail=""):
         checks.append((name, bool(ok), detail))
 
-    client.call("auto_answer_dialogs", rules=[{"match": "unsaved changes", "button": "no"}])
-    client.call("new_project", discard_changes=True)
-    client.call("open_files", paths=[os.path.abspath(MODEL)])
-    client.call("wait", **{"for": "idle"})
+    client.call("dialog_auto_answer", rules=[{"match": "unsaved changes", "button": "no"}])
+    client.call("project_new", discard_changes=True)
+    client.call("project_import", paths=[os.path.abspath(MODEL)])
+    client.call("app_wait", **{"for": "idle"})
 
-    found = client.call("search_actions", query="Send G-code")
-    check("search_actions finds the command", any(a["id"] == SEND for a in found["items"]), found)
+    found = client.call("action_search", query="Send G-code")
+    check("action_search finds the send_gcode tile", any(a["id"] == SEND for a in found["items"]), found)
 
     # ---- Refusals ----
-    if client.call("get_app_state")["presets"]["printer"].startswith("Bambu Lab"):
-        client.call("set_settings", scope="printer", values={"bbl_use_printhost": False})
+    if client.call("app_state")["presets"]["printer"].startswith("Bambu Lab"):
+        client.call("settings_set", type="printer", values={"bbl_use_printhost": False})
         check("a Bambu network printer is refused", refused(client, "Print plate"))
-        client.call("set_settings", scope="printer", values={"bbl_use_printhost": True})
+        client.call("settings_set", type="printer", values={"bbl_use_printhost": True})
     # Plain G-code, so the dialog proposes a .gcode name (a .gcode.3mf would make it confirm the suffix).
-    client.call("set_settings", scope="printer", values={"host_type": "octoprint", "print_host": "", "use_3mf": False})
+    client.call("settings_set", type="printer", values={"host_type": "octoprint", "print_host": "", "use_3mf": False})
     check("a printer without a print host is refused", refused(client, "no print host"))
 
-    client.call("set_settings", scope="printer", values={"print_host": f"127.0.0.1:{stub.port}"})
-    sliced = client.call("slice")
+    client.call("settings_set", type="printer", values={"print_host": f"127.0.0.1:{stub.port}"})
+    sliced = client.call("plate_slice")
     check("the cube slices", sliced["plates"][0]["outcome"] == "ok", sliced)
 
     # ---- The host answers 200 after a pause ----
-    client.call("export_replay", clear=True)
+    client.call("replay_export", clear=True)
     stub.status, stub.delay = 200, PAUSE_S
     seen, row = follow(client, send(client, "mcp_send_ok.gcode"))
     check("the upload completes", row is not None and row["state"] == "completed" and row["progress"] == 100, row)
@@ -188,16 +189,16 @@ def main():
 
     # ---- The exported send replays ----
     path = os.path.join(work, "send.json")
-    exported = client.call("export_replay", path=path, overwrite=True)
-    # Each step that acts on the dialog follows a wait for it, since the replayed command may open it late.
-    check("the send exports as run_action, set_widget_value and answer_dialog, each after a wait for the dialog, and the "
-          "wait for the command",
-          [s["tool"] + ("(dialog)" if s["tool"] == "wait" and s["args"]["for"] == "dialog" else "")
+    exported = client.call("replay_export", path=path, overwrite=True)
+    # Each step that acts on the dialog follows an app_wait for it, since the replayed tile may open it late.
+    check("the send exports as action_run, widget_set_value and dialog_answer, each after an app_wait for the dialog, "
+          "and the app_wait for the tile",
+          [s["tool"] + ("(dialog)" if s["tool"] == "app_wait" and s["args"]["for"] == "dialog" else "")
            for s in exported["replay"]["steps"]] ==
-          ["run_action", "wait(dialog)", "set_widget_value", "wait(dialog)", "answer_dialog", "wait"],
+          ["action_run", "app_wait(dialog)", "widget_set_value", "app_wait(dialog)", "dialog_answer", "app_wait"],
           exported["replay"])
     count = len(uploads(client))
-    replay = client.await_job(client.call("run_replay", path=path, out_dir=os.path.join(work, "replay")))
+    replay = client.await_job(client.call("replay_run", path=path, out_dir=os.path.join(work, "replay")))
     check("the replay runs", replay.get("passed") is True, replay)
     _seen, row = follow(client, count + 1)
     check("and uploads again", row is not None and row["state"] == "completed" and len(stub.uploads) == 2, (row, stub.uploads))
@@ -209,7 +210,7 @@ def main():
     check("its row never reads completed", all(s != "completed" for s, _p in seen), seen)
     check("it reads uploading at 99 until the host answers", ("uploading", 99) in seen, seen)
     dialog = close_error_dialog(client)
-    check("the queue's error dialog closes with answer_dialog", dialog is not None and not client.call("get_app_state")["dialogs"], dialog)
+    check("the queue's error dialog closes with dialog_answer", dialog is not None and not client.call("app_state")["dialogs"], dialog)
 
     # ---- The host answers 500 at once ----
     stub.delay = 0.0
@@ -218,8 +219,8 @@ def main():
     close_error_dialog(client)
 
     # Leave an empty project behind, so a replay or script run next on this app does not meet its unsaved changes.
-    client.call("new_project", discard_changes=True)
-    client.call("auto_answer_dialogs", rules=[])
+    client.call("project_new", discard_changes=True)
+    client.call("dialog_auto_answer", rules=[])
     stub.server.shutdown()
     failed = [c for c in checks if not c[1]]
     for name, ok, detail in checks:

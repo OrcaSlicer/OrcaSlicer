@@ -1,55 +1,55 @@
-// Arguments as agents often write them: names a tool does not take but that stand for one it does
+// Arguments as agents often write them: names a command does not take but that stand for one it does
 // (object for objects, action for id, key for keys, plate for plates), values in another JSON form (a
 // lone path for a list, an index as a string), an action by the name inside its id, a camera
-// direction as set_view's canvas, transform's position, wait with no condition, a gizmo by its toolbar
-// title, legend rows as agents name them, export without a format, and get_settings' whole listing
-// without meta. Run on a live app:
+// direction as view_set's canvas, object_transform's position, app_wait with no condition, a gizmo by its
+// toolbar title, legend rows as agents name them, project_export without a format, and settings_list's whole
+// listing without meta. Run on a live app:
 //   python3 tools/mcp/orca_mcp.py run-replay tools/mcp/tests/agent_forms.json --out <dir>
 {
-  "orca_replay_version": "0.1.0",
+  "orca_replay_version": "0.2.0",
   "name": "agent argument forms",
   "vars": {"cube": "${replay_dir}/../../../resources/handy_models/OrcaCube_v2.drc"},
   "steps": [
-    {"tool": "wait", "args": {"for": "ready"}},
-    {"tool": "new_project", "args": {"discard_changes": true}},
-    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "app_wait", "args": {"for": "ready"}},
+    {"tool": "project_new", "args": {"discard_changes": true}},
+    {"tool": "view_set", "args": {"tab": "prepare"}},
 
     // ---- A lone path for paths; object and a string index for objects; an action's name for its id ----
-    {"tool": "open_files", "args": {"paths": "${vars.cube}"}, "expect": {"/added": {"eq": 1}}},
-    {"tool": "open_files", "args": {"paths": ["${vars.cube}"]}, "expect": {"/added": {"eq": 1}}},
-    {"tool": "select_objects", "args": {"object": "1"}},
-    {"tool": "run_action", "args": {"id": "obj_rename", "args": {"name": "renamed"}}, "expect": {"/ran": {"eq": "orca_command:obj_rename:orca"}}},
-    {"tool": "list_objects", "expect": {"/plates/0/objects/1/name": {"eq": "renamed"}, "/plates/0/objects/0/name": {"ne": "renamed"}}},
-    {"tool": "run_action", "args": {"action": "view_top"}, "expect": {"/ran": {"eq": "orca_command:view_top:orca"}}},
+    {"tool": "project_import", "args": {"paths": "${vars.cube}"}, "expect": {"/added": {"eq": 1}}},
+    {"tool": "project_import", "args": {"paths": ["${vars.cube}"]}, "expect": {"/added": {"eq": 1}}},
+    {"tool": "object_select", "args": {"object": "1"}},
+    {"tool": "object_rename", "args": {"name": "renamed"}, "expect": {"/ran": {"eq": "object_rename"}}},
+    {"tool": "object_list", "expect": {"/plates/0/objects/1/name": {"eq": "renamed"}, "/plates/0/objects/0/name": {"ne": "renamed"}}},
+    {"tool": "action_run", "args": {"action": "view_top"}, "expect": {"/ran": {"eq": "orca_command:view_top:orca"}}},
 
-    // ---- A camera direction as canvas; position for an absolute move; key for keys; wait for idle ----
-    {"tool": "set_view", "args": {"canvas": "front"}, "expect": {"/camera": {"eq": "front"}}},
-    {"tool": "transform", "args": {"object": 0, "position": [100, 110, 0]}},
-    {"tool": "list_objects", "expect": {"/plates/0/objects/0/instances/0/offset/0": {"ge": 99.99, "le": 100.01},
-                                        "/plates/0/objects/0/instances/0/offset/1": {"ge": 109.99, "le": 110.01}}},
-    {"tool": "press_keys", "args": {"key": "Escape"}},
-    {"tool": "wait", "args": {}, "expect": {"/satisfied": {"eq": true}}},
+    // ---- A camera direction as canvas; position for an absolute move; key for keys; app_wait for idle ----
+    {"tool": "view_set", "args": {"canvas": "front"}, "expect": {"/camera": {"eq": "front"}}},
+    {"tool": "object_transform", "args": {"object": 0, "position": [100, 110, 0]}},
+    {"tool": "object_list", "expect": {"/plates/0/objects/0/instances/0/offset/0": {"ge": 99.99, "le": 100.01},
+                                       "/plates/0/objects/0/instances/0/offset/1": {"ge": 109.99, "le": 110.01}}},
+    {"tool": "keyboard_press", "args": {"key": "Escape"}},
+    {"tool": "app_wait", "args": {}, "expect": {"/satisfied": {"eq": true}}},
 
-    // ---- A gizmo by its toolbar title, in any case; replies name it as get_app_state does ----
-    {"tool": "select_objects", "args": {"objects": [0]}},
-    {"tool": "click", "args": {"target": {"gizmo": "Support Painting"}}, "expect": {"/gizmo": {"eq": "FdmSupports"}, "/active": {"eq": true}}},
-    {"tool": "get_app_state", "expect": {"/gizmo/name": {"eq": "FdmSupports"}}},
-    {"tool": "click", "args": {"target": {"gizmo": "support painting"}}, "expect": {"/active": {"eq": false}}},
+    // ---- A gizmo by its toolbar title, in any case; replies name it as app_state does ----
+    {"tool": "object_select", "args": {"objects": [0]}},
+    {"tool": "widget_click", "args": {"target": {"gizmo": "Support Painting"}}, "expect": {"/gizmo": {"eq": "FdmSupports"}, "/active": {"eq": true}}},
+    {"tool": "app_state", "expect": {"/gizmo/name": {"eq": "FdmSupports"}}},
+    {"tool": "widget_click", "args": {"target": {"gizmo": "support painting"}}, "expect": {"/active": {"eq": false}}},
 
-    // ---- plate for plates, as a string; export's format from the path ----
-    {"tool": "arrange", "args": {"plate": "0"}},
-    {"tool": "slice", "args": {"plate": "0"}, "expect": {"/plates/0/outcome": {"eq": "ok"}}},
+    // ---- plate for plates, as a string; project_export's format from the path ----
+    {"tool": "object_arrange", "args": {"plate": "0"}},
+    {"tool": "plate_slice", "args": {"plate": "0"}, "expect": {"/plates/0/outcome": {"eq": "ok"}}},
 
     // ---- Legend rows in any case and with _ for a space; hiding rows this print lacks does nothing ----
-    {"tool": "set_view", "args": {"tab": "preview", "legend": {"sparse_infill": false, "Travel": false, "Prime tower": false, "Pauses": false}},
+    {"tool": "view_set", "args": {"tab": "preview", "legend": {"sparse_infill": false, "Travel": false, "Prime tower": false, "Pauses": false}},
      "expect": {"/legend/Sparse infill": {"eq": false}, "/legend/travel": {"eq": false}, "/legend/Prime tower": {"exists": false}}},
-    {"tool": "set_view", "args": {"legend": {"Sparse infill": true, "travel": true}}, "expect": {"/legend/Sparse infill": {"eq": true}}},
-    {"tool": "set_view", "args": {"tab": "prepare"}},
-    {"tool": "export", "args": {"path": "${out_dir}/forms.gcode", "overwrite": true}, "expect": {"/export": {"eq": "ok"}}},
-    {"tool": "export", "args": {"path": "${out_dir}/forms.stl", "overwrite": true}},
+    {"tool": "view_set", "args": {"legend": {"Sparse infill": true, "travel": true}}, "expect": {"/legend/Sparse infill": {"eq": true}}},
+    {"tool": "view_set", "args": {"tab": "prepare"}},
+    {"tool": "project_export", "args": {"path": "${out_dir}/forms.gcode", "overwrite": true}, "expect": {"/export": {"eq": "ok"}}},
+    {"tool": "project_export", "args": {"path": "${out_dir}/forms.stl", "overwrite": true}},
 
-    // ---- get_settings: a whole preset listing carries values only, named keys their meta ----
-    {"tool": "get_settings", "args": {"scope": "process", "limit": 5}, "expect": {"/items/0/value": {"exists": true}, "/items/0/meta": {"exists": false}}},
-    {"tool": "get_settings", "args": {"scope": "process", "keys": ["wall_loops"]}, "expect": {"/items/0/meta/type": {"exists": true}}}
+    // ---- settings_list: a whole preset listing carries values only; settings_get: named keys with their meta ----
+    {"tool": "settings_list", "args": {"type": "process", "limit": 5}, "expect": {"/items/0/value": {"exists": true}, "/items/0/meta": {"exists": false}}},
+    {"tool": "settings_get", "args": {"type": "process", "keys": ["wall_loops"]}, "expect": {"/items/0/meta/type": {"exists": true}}}
   ]
 }

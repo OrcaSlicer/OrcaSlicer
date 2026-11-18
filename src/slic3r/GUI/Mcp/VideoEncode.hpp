@@ -15,7 +15,7 @@
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
-// encode_recording's half: finding the system ffmpeg, its command line, running it, and which files
+// recording_encode's half: finding the system ffmpeg, its command line, running it, and which files
 // recordings and encodes are using. The bundled FFmpeg only decodes, so the encode runs the system one.
 // wx-free.
 

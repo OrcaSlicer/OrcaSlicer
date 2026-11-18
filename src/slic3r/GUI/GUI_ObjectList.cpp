@@ -96,7 +96,8 @@
 #include <wx/headerctrl.h>
 #include <wx/window.h>
 
-#include "slic3r/Utils/FixModelByCgal.hpp"
+#include "Operations/ObjectOps.hpp"
+#include "Operations/Outcome.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/Orient.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -965,7 +966,7 @@ void ObjectList::update_name_for_items()
     wxGetApp().plater()->update();
 }
 
-void ObjectList::object_config_options_changed(const ObjectVolumeID& ov_id)
+void ObjectList::object_config_options_changed(const ObjectVolumeID& ov_id, const t_layer_height_range* range)
 {
     if (ov_id.object == nullptr)
         return;
@@ -973,6 +974,15 @@ void ObjectList::object_config_options_changed(const ObjectVolumeID& ov_id)
     ModelObjectPtrs& objects = wxGetApp().model().objects;
     ModelObject* mo = ov_id.object;
     ModelVolume* mv = ov_id.volume;
+
+    if (range != nullptr) {
+        // A height range's row, as a change in the range's panel marks it (TabPrintLayer::notify_changed()).
+        const auto config = mo->layer_config_ranges.find(*range);
+        const auto obj    = std::find(objects.begin(), objects.end(), mo);
+        if (config != mo->layer_config_ranges.end() && obj != objects.end())
+            add_settings_item(m_objects_model->GetItemByLayerRange(int(obj - objects.begin()), *range), &config->second.get());
+        return;
+    }
 
     wxDataViewItem obj_item = m_objects_model->GetObjectItem(mo);
     if (mv != nullptr) {
@@ -2078,33 +2088,7 @@ void ObjectList::OnDrop(wxDataViewEvent &event)
     take_snapshot(_u8L("Object order changed"));
 
     if(m_dragged_data.type() & itObject){
-        int delta = dest_obj_id < src_obj_id ? -1 : 1;
-        PartPlateList& partplate_list = wxGetApp().plater()->get_partplate_list();
-        /*int cnt = 0, cur_id = src_obj_id, next_id, total = abs(src_obj_id - dest_obj_id);
-        //for (cur_id = src_obj_id; cnt < total; id += delta, cnt++)
-        next_id = src_obj_id + delta;
-        while (cnt < total)
-        {
-            int cur_plate = partplate_list.find_instance(next_id, 0);
-            if (cur_plate != src_plate) {
-                cnt ++;
-                next_id += delta;
-                continue;
-            }
-            std::swap((*m_objects)[cur_id], (*m_objects)[next_id]);
-            cur_id = next_id;
-            cnt ++;
-            next_id += delta;
-        }*/
-
-        int cnt = 0;
-        for (int id = src_obj_id; cnt < abs(src_obj_id - dest_obj_id); id += delta, cnt++)
-            std::swap((*m_objects)[id], (*m_objects)[id + delta]);
-
-        select_item(m_objects_model->ReorganizeObjects(src_obj_id, dest_obj_id));
-
-        partplate_list.reload_all_objects(false, src_plate);
-        changed_object(src_obj_id);
+        move_object(src_obj_id, dest_obj_id, src_plate);
     }
     else if (m_dragged_data.type() & itVolume) {
         int from_volume_id = m_dragged_data.sub_obj_idx();
@@ -2690,7 +2674,9 @@ void ObjectList::load_generic_subobject(const std::string& type_name, const Mode
     Plater::SingleSnapshot single(wxGetApp().plater());
 
     if (type == ModelVolumeType::INVALID) {
-        load_shape_object(type_name, interactive, given_size);
+        // Add Primitive adds nothing while an object is selected on the 3D scene.
+        if (can_add_shape_object())
+            load_shape_object(type_name, interactive, given_size);
         return;
     }
 
@@ -2801,10 +2787,6 @@ bool ObjectList::can_add_shape_object() const
 
 void ObjectList::load_shape_object(const std::string &type_name, bool interactive, const std::vector<double>& given_size)
 {
-    // Add nothing while an object is selected on the 3D scene.
-    if (!can_add_shape_object())
-        return;
-
     const int obj_idx = m_objects->size();
     if (obj_idx < 0)
         return;
@@ -3169,6 +3151,18 @@ void ObjectList::split()
     if (!item || obj_idx < 0)
         return;
 
+    ModelVolume* volume = nullptr;
+    if (!(*m_objects)[obj_idx]->hides_imported_parts() && !get_volume_by_item(item, volume))
+        return;
+    // The object's row stands for its one part.
+    const ModelVolumePtrs& volumes = (*m_objects)[obj_idx]->volumes;
+    const ItemType         type    = m_objects_model->GetItemType(item);
+    split(obj_idx, volume == nullptr || type != itVolume ? -1 : int(std::find(volumes.begin(), volumes.end(), volume) - volumes.begin()),
+          type == itObject);
+}
+
+void ObjectList::split(int obj_idx, int volume_idx, bool expand)
+{
     ModelObject* imported = (*m_objects)[obj_idx];
     if (imported->hides_imported_parts()) {
         // Reveal the original CAD bodies, including their names and exact transforms.
@@ -3179,8 +3173,9 @@ void ObjectList::split()
         return;
     }
 
-    ModelVolume* volume;
-    if (!get_volume_by_item(item, volume)) return;
+    if (volume_idx < 0 && imported->volumes.size() != 1)
+        return;
+    ModelVolume* volume = imported->volumes[volume_idx < 0 ? 0 : std::size_t(volume_idx)];
     DynamicPrintConfig&	config = printer_config();
     // BBS
     const ConfigOptionStrings* filament_colors = config.option<ConfigOptionStrings>("filament_colour", false);
@@ -3198,11 +3193,8 @@ void ObjectList::split()
 
     auto model_object = (*m_objects)[obj_idx];
 
-    auto parent = m_objects_model->GetObject(item);
-    if (parent)
-        m_objects_model->DeleteVolumeChildren(parent);
-    else
-        parent = item;
+    wxDataViewItem parent = m_objects_model->GetItemById(obj_idx);
+    m_objects_model->DeleteVolumeChildren(parent);
 
     for (const ModelVolume* volume : model_object->volumes) {
         const wxDataViewItem& vol_item = m_objects_model->AddVolumeChild(parent, from_u8(volume->name),
@@ -3218,7 +3210,7 @@ void ObjectList::split()
 
     model_object->input_file.clear();
 
-    if (parent == item)
+    if (expand)
         Expand(parent);
 
     changed_object(obj_idx);
@@ -3229,11 +3221,19 @@ void ObjectList::split()
     update_info_items(obj_idx);
 }
 
-void ObjectList::merge(bool to_multipart_object)
+void ObjectList::merge(bool to_multipart_object, const wxDataViewItemArray& items)
 {
     wxBusyCursor wait;
     // merge selected objects to the multipart object
     if (to_multipart_object) {
+        // The rows given are selected first: the instances are split off into objects of their own, and the merged
+        // objects removed, as the selected rows.
+        if (!items.IsEmpty()) {
+            m_prevent_list_events = true;
+            UnselectAll();
+            SetSelections(items);
+            m_prevent_list_events = false;
+        }
         auto get_object_idxs = [this](std::vector<int>& obj_idxs, wxDataViewItemArray& sels)
         {
             // check selections and split instances to the separated objects...
@@ -6173,14 +6173,15 @@ static void move_volume_to_end(ModelObject* obj, ModelVolume* volume)
     }
 }
 
-wxString ObjectList::set_volume_type(ModelVolumeType new_type, bool preserve_ps_subtype, bool show_errors)
+wxString ObjectList::set_volume_type(ModelVolumeType new_type, bool preserve_ps_subtype, bool show_errors,
+                                     const std::vector<std::pair<int, int>>& parts)
 {
     struct VolumeSelection {
         int          object_idx;
         ModelVolume* volume;
     };
 
-    // --- Collect selected volumes from the object tree, falling back to the 3D canvas ---
+    // --- Collect the parts given, else the selected volumes from the object tree, falling back to the 3D canvas ---
     std::vector<VolumeSelection> volumes;
     auto add_volume = [&volumes](int obj_idx, ModelVolume* volume) {
         // A painted modifier has no shape of its own to keep as another type.
@@ -6191,8 +6192,12 @@ wxString ObjectList::set_volume_type(ModelVolumeType new_type, bool preserve_ps_
             volumes.push_back({ obj_idx, volume });
     };
 
+    for (const auto& [obj_idx, vol_idx] : parts)
+        add_volume(obj_idx, (*m_objects)[obj_idx]->volumes[vol_idx]);
+
     wxDataViewItemArray sels;
-    GetSelections(sels);
+    if (parts.empty())
+        GetSelections(sels);
     for (auto item : sels) {
         wxDataViewItem volume_item = item;
         ItemType       type        = m_objects_model->GetItemType(item);
@@ -6228,6 +6233,9 @@ wxString ObjectList::set_volume_type(ModelVolumeType new_type, bool preserve_ps_
         }
     };
 
+    // Parts given are what changes, painted modifiers aside, and the selection is not read.
+    if (volumes.empty() && !parts.empty())
+        return {};
     if (volumes.empty()) {
         collect_from_canvas(wxGetApp().plater()->canvas3D());
         if (volumes.empty()) {
@@ -6646,13 +6654,6 @@ void ObjectList::fix_through_cgal(const std::vector<int> &obj_idxs, const std::v
     if (obj_idxs.empty() || !wxGetApp().plater()->get_view3D_canvas3D()->get_gizmos_manager().check_gizmos_closed_except(GLGizmosManager::Undefined))
         return;
 
-    //          model_name
-    std::vector<std::string>                           succes_models;
-    //                   model_name     failing reason
-    std::vector<std::pair<std::string, std::string>>   failed_models;
-    size_t                                             unchanged_models = 0;
-    bool                                               painting_removed = false;
-
     std::vector<std::string> model_names;
 
     if (vol_idxs.empty()) {
@@ -6669,77 +6670,62 @@ void ObjectList::fix_through_cgal(const std::vector<int> &obj_idxs, const std::v
     }
 
     auto plater = wxGetApp().plater();
-    const bool keep_painting = GUI::wxGetApp().app_config->get_bool("keep_painting");
 
-    auto fix_and_update_progress = [&](const int obj_idx, const int vol_idx, int model_idx, ProgressDialog& progress_dlg)
-    {
-        ModelObject *mo = object(obj_idx);
-        if (!mo)
-            return false;
+    // The objects whole, or the parts of the first object, as Ops::fix_objects() repairs them in turn.
+    Ops::FixObjectsArgs repair;
+    if (vol_idxs.empty())
+        repair.targets.objects = obj_idxs;
+    else
+        for (int vol_idx : vol_idxs)
+            repair.targets.parts.emplace_back(obj_idxs.front(), vol_idx);
 
+    // Open a progress dialog.
+    ProgressDialog progress_dlg(_L("Repairing model object"), "", 100, find_toplevel_parent(plater),
+                                    wxPD_AUTO_HIDE | wxPD_APP_MODAL | wxPD_CAN_ABORT, true);
+    const auto shown = [&](std::size_t model_idx, int percent, const std::string& what) {
         const std::string& model_name = model_names[model_idx];
         wxString msg = _L("Repairing model object");
         if (model_names.size() == 1)
             msg += ": " + from_u8(model_name) + "\n";
         else if (model_names.size() > 10)
-            msg += ": " + from_u8(model_name) + wxString::Format(" (%d/%d)", model_idx + 1, int(model_names.size())) + "\n";
+            msg += ": " + from_u8(model_name) + wxString::Format(" (%d/%d)", int(model_idx) + 1, int(model_names.size())) + "\n";
         else {
             msg += ":\n";
-            for (int i = 0; i < int(model_names.size()); ++i)
+            for (std::size_t i = 0; i < model_names.size(); ++i)
                 msg += (i == model_idx ? " > " : "   ") + from_u8(model_names[i]) + "\n";
             msg += "\n";
         }
-
-        auto count_painted = [mo]() { return std::count_if(mo->volumes.begin(), mo->volumes.end(), [](const ModelVolume *mv) { return mv->is_any_painted(); }); };
-        const auto  painted_before = count_painted();
-        std::string res;
-        bool        modified = false;
-        if (!fix_model_with_cgal_gui(*mo, vol_idx, progress_dlg, msg, res, keep_painting, &modified))
+        // One percent short of the maximum, so that the dialog does not close itself.
+        if (!progress_dlg.Update(std::max(0, percent - 1), msg + from_u8(what)))
             return false;
-
-        if (modified) {
-            painting_removed = painting_removed || count_painted() < painted_before;
-            mo->ensure_on_bed();
-            plater->changed_mesh(obj_idx);
-            plater->get_partplate_list().notify_instance_update(obj_idx, 0);
-            plater->sidebar().obj_list()->update_plate_values_for_items();
-            update_item_error_icon(obj_idx, vol_idx);
-            update_info_items(obj_idx);
-        }
-
-        if (!res.empty())
-            failed_models.push_back({ model_name, res });
-        else if (modified)
-            succes_models.push_back(model_name);
-        else
-            ++unchanged_models;
+        progress_dlg.Fit();
         return true;
     };
-
-    Plater::TakeSnapshot snapshot(plater, _u8L("Repairing model object"));
-
-    // Open a progress dialog.
-    ProgressDialog progress_dlg(_L("Repairing model object"), "", 100, find_toplevel_parent(plater),
-                                    wxPD_AUTO_HIDE | wxPD_APP_MODAL | wxPD_CAN_ABORT, true);
-    int model_idx{ 0 };
-    if (vol_idxs.empty()) {
-        int vol_idx{ -1 };
-        for (int obj_idx : obj_idxs) {
-            if (!fix_and_update_progress(obj_idx, vol_idx, model_idx, progress_dlg))
-                break;
-            model_idx++;
-        }
-    }
-    else {
-        int obj_idx{ obj_idxs.front() };
-        for (int vol_idx : vol_idxs) {
-            if (!fix_and_update_progress(obj_idx, vol_idx, model_idx, progress_dlg))
-                break;
-            model_idx++;
-        }
-    }
+    // The gizmo check above is the operation's only refusal here.
+    const Ops::Outcome<Ops::FixedModels> fixed = Ops::fix_objects(repair, shown);
     // Close the progress dialog
     progress_dlg.Update(100, "");
+    if (!fixed)
+        return;
+
+    //          model_name
+    std::vector<std::string>                           succes_models;
+    //                   model_name     failing reason
+    std::vector<std::pair<std::string, std::string>>   failed_models;
+    size_t                                             unchanged_models = 0;
+    bool                                               painting_removed = false;
+    for (const Ops::FixedModel& model : fixed.value().models) {
+        // The notification tells the models whose repair ended; the one a Cancel stopped is left out of it.
+        if (model.cancelled)
+            continue;
+        painting_removed = painting_removed || model.painting_removed;
+        if (!model.failed.empty())
+            failed_models.push_back({ model.name, model.failed });
+        else if (model.changed)
+            succes_models.push_back(model.name);
+        else
+            ++unchanged_models;
+    }
 
     if (painting_removed)
         plater->notify_painting_removed();
@@ -7325,45 +7311,122 @@ void set_import_volume_order(ModelObject& object, bool sort_names)
         parts[i]->import_display_order = static_cast<int>(i);
 }
 
-void ObjectList::order_objects(ObjectOrder order, bool all_plates)
+std::vector<ModelObject*> plate_order(const std::vector<ModelObject*>& objects, const std::function<int(size_t)>& plate_of, int plate,
+                                      ObjectOrder order, bool descending)
+{
+    std::map<int, std::vector<size_t>> slots; // each plate's list positions, in order
+    for (size_t obj_idx = 0; obj_idx < objects.size(); ++obj_idx)
+        if (const int on = plate_of(obj_idx); on >= 0 && (plate < 0 || on == plate))
+            slots[on].push_back(obj_idx);
+    std::vector<ModelObject*> out = objects;
+    for (const auto& [on, positions] : slots) {
+        std::vector<ModelObject*> plate_objects;
+        for (size_t obj_idx : positions)
+            plate_objects.push_back(objects[obj_idx]);
+        sort_objects(plate_objects, order, descending);
+        for (size_t i = 0; i < positions.size(); ++i)
+            out[positions[i]] = plate_objects[i];
+    }
+    return out;
+}
+
+void move_object_in_list(std::vector<ModelObject*>& objects, int from, int to)
+{
+    const int delta = to < from ? -1 : 1;
+    for (int id = from; id != to; id += delta)
+        std::swap(objects[id], objects[id + delta]);
+}
+
+Ops::Outcome<std::vector<ObjectMove>> object_order_moves(const std::vector<int>& plate_of, int plate, const std::vector<int>& order)
+{
+    const int count = int(plate_of.size());
+    std::set<int> named;
+    for (const int object : order) {
+        if (count == 0)
+            return Ops::Refusal{Ops::RefusalKind::Precondition, "no_such_object", L("The project has no objects.")};
+        if (object < 0 || object >= count)
+            return Ops::Refusal{Ops::RefusalKind::Precondition, "no_such_object",
+                                // TRN %1% is the object index asked for, %2% the last object's.
+                                L("Object %1% does not exist: the project has objects 0 to %2%."),
+                                {std::to_string(object), std::to_string(count - 1)}};
+        if (plate_of[std::size_t(object)] != plate)
+            return Ops::Refusal{Ops::RefusalKind::Precondition, "object_not_on_plate",
+                                // TRN %1% is an object's index, %2% a plate's.
+                                L("Object %1% is not on plate %2%."), {std::to_string(object), std::to_string(plate)}};
+        if (!named.insert(object).second)
+            return Ops::Refusal{Ops::RefusalKind::Precondition, "order_repeats_object",
+                                // TRN %1% is an object's index.
+                                L("The order names object %1% twice."), {std::to_string(object)}};
+    }
+    std::vector<std::string> missing;
+    for (int object = 0; object < count; ++object)
+        if (plate_of[std::size_t(object)] == plate && named.count(object) == 0)
+            missing.push_back(std::to_string(object));
+    if (!missing.empty()) {
+        std::string list;
+        for (const std::string& object : missing)
+            list += (list.empty() ? "" : ", ") + object;
+        return Ops::Refusal{Ops::RefusalKind::Precondition, "order_misses_object",
+                            // TRN %1% is a plate's index, %2% the indices of the objects left out, separated by commas.
+                            L("The order leaves out objects of plate %1%: %2%. Name each of its objects once."),
+                            {std::to_string(plate), list}, missing};
+    }
+
+    // Each object in turn is dropped on the object that holds its place, as the list's positions stand after the drops
+    // before it.
+    std::vector<int>        listed(plate_of.size());
+    std::vector<ObjectMove> moves;
+    for (int position = 0; position < count; ++position)
+        listed[std::size_t(position)] = position;
+    for (std::size_t k = 0; k < order.size(); ++k) {
+        int seen = -1, to = -1, from = -1;
+        for (int position = 0; position < count; ++position) {
+            const int object = listed[std::size_t(position)];
+            if (plate_of[std::size_t(object)] == plate && ++seen == int(k))
+                to = position;
+            if (object == order[k])
+                from = position;
+        }
+        if (from == to)
+            continue;
+        moves.push_back({from, to});
+        const int delta = to < from ? -1 : 1;
+        for (int id = from; id != to; id += delta)
+            std::swap(listed[std::size_t(id)], listed[std::size_t(id + delta)]);
+    }
+    return moves;
+}
+
+void ObjectList::order_objects(ObjectOrder order, bool all_plates, int plate, std::optional<bool> descending)
 {
     Plater* plater = wxGetApp().plater();
     if (!plater->get_view3D_canvas3D()->get_gizmos_manager().check_gizmos_closed_except(GLGizmosManager::Undefined))
         return;
 
     PartPlateList& plates     = plater->get_partplate_list();
-    const int      curr_plate = plates.get_curr_plate_index();
-    auto sorted = [&](bool descending) {
-        std::vector<ModelObject*> objects = *m_objects;
-        for (int plate_idx = 0; plate_idx < plates.get_plate_count(); ++plate_idx) {
-            if (!all_plates && plate_idx != curr_plate)
-                continue;
-            // Sort within the list positions the plate already holds, so other plates keep their order.
-            std::vector<size_t>       slots;
-            std::vector<ModelObject*> plate_objects;
-            for (size_t obj_idx = 0; obj_idx < objects.size(); ++obj_idx)
-                if (plates.find_instance(int(obj_idx), 0) == plate_idx) {
-                    slots.push_back(obj_idx);
-                    plate_objects.push_back(objects[obj_idx]);
-                }
-            sort_objects(plate_objects, order, descending);
-            for (size_t i = 0; i < slots.size(); ++i)
-                objects[slots[i]] = plate_objects[i];
-        }
-        return objects;
-    };
-    // Choosing the order the objects already have reverses it.
-    std::vector<ModelObject*> objects = sorted(false);
-    if (objects == *m_objects)
+    const int      sort_plate = plate >= 0 ? plate : plates.get_curr_plate_index();
+    const auto     plate_of   = [&plates](size_t obj_idx) { return plates.find_instance(int(obj_idx), 0); };
+    const auto     sorted     = [&](bool descending) { return plate_order(*m_objects, plate_of, all_plates ? -1 : sort_plate, order, descending); };
+    std::vector<ModelObject*> objects = sorted(descending.value_or(false));
+    // Choosing the order the objects already have reverses it, unless the direction is given.
+    if (!descending && objects == *m_objects)
         objects = sorted(true);
 
     if (objects != *m_objects) {
         take_snapshot(_u8L("Object order changed"));
         *m_objects = std::move(objects);
-        plates.reload_all_objects(false, all_plates ? -1 : curr_plate);
+        plates.reload_all_objects(false, all_plates ? -1 : sort_plate);
     }
     // Rebuilt even when the order holds: an object moved to another plate is listed last there.
     reload_all_plates();
+}
+
+void ObjectList::move_object(int from, int to, int plate)
+{
+    move_object_in_list(*m_objects, from, to);
+    select_item(m_objects_model->ReorganizeObjects(from, to));
+    wxGetApp().plater()->get_partplate_list().reload_all_objects(false, plate);
+    changed_object(from);
 }
 
 void ObjectList::on_plate_selected(int plate_index)
@@ -7454,6 +7517,8 @@ void ObjectList::toggle_printable_state()
     // BBS: remove snapshot name "Set Printable group", "Set Unprintable group", "Set Printable"...
     take_snapshot("");
 
+    // An object row sets every instance of its object, an instance row its instance alone.
+    Ops::Targets        rows;
     std::vector<size_t> obj_idxs;
     for (auto item : sels)
     {
@@ -7462,22 +7527,18 @@ void ObjectList::toggle_printable_state()
             continue;
 
         obj_idx = m_objects_model->GetObjectIdByItem(item);
-        ModelObject* obj = object(obj_idx);
-
         obj_idxs.emplace_back(static_cast<size_t>(obj_idx));
-
-        // set printable value for selected instance/instances in object
-        if (type == itInstance) {
-            inst_idx = m_objects_model->GetInstanceIdByItem(item);
-            obj->instances[m_objects_model->GetInstanceIdByItem(item)]->printable = printable;
-        }
+        if (type == itInstance)
+            rows.instances.emplace_back(obj_idx, m_objects_model->GetInstanceIdByItem(item));
         else
-            for (auto inst : obj->instances)
-                inst->printable = printable;
-
-        // update printable state in ObjectList
-        m_objects_model->SetObjectPrintableState(printable ? piPrintable : piUnprintable, item);
+            rows.objects.push_back(obj_idx);
     }
+    Ops::set_printable(wxGetApp().plater()->model(), rows, printable);
+
+    // update printable state in ObjectList
+    for (auto item : sels)
+        if (m_objects_model->GetItemType(item) & (itObject | itInstance))
+            m_objects_model->SetObjectPrintableState(printable ? piPrintable : piUnprintable, item);
 
     sort(obj_idxs.begin(), obj_idxs.end());
     obj_idxs.erase(unique(obj_idxs.begin(), obj_idxs.end()), obj_idxs.end());

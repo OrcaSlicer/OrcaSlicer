@@ -90,7 +90,7 @@ CallablePtr make_holder(py::object obj)
 }
 
 // The script run the calling code's UI belongs to: the run bound to the thread when it owns its UI (a person's or an
-// agent's script). None for a plugin's code, a plugin's run_script included, whose UI belongs to the plugin as always.
+// agent's script). None for a plugin's code, a plugin's script_run included, whose UI belongs to the plugin as always.
 std::shared_ptr<PythonRunScope> owning_run()
 {
     const PythonRunBinding& binding = current_python_run();
@@ -118,7 +118,7 @@ void ensure_ui_open(const std::shared_ptr<PythonRunScope>& run)
 
 // Calls `call` under the GIL. A script run's callback runs inside that run (its identity, its UI owner, its thread
 // attribution), counted as one of its active callbacks so the run waits for it, and does nothing once the run's UI has
-// closed. A callback runs on the UI thread, so it calls no tools (call_tool refuses a Callback binding).
+// closed. A callback runs on the UI thread, so it calls no tools (call_tool() refuses a Callback binding).
 template<typename Call>
 void call_in_run(const std::shared_ptr<PythonRunScope>& run, Call&& call)
 {

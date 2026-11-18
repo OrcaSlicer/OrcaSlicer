@@ -18,15 +18,15 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 
 // Follows, while `on`, the windows a Wayland compositor hides, which GTK passes on only as a visibility
 // change, and the focus that ends a minimize: on before the first window_state(). Turning it off forgets
-// what was followed, so a window reads minimized again only after a set_window minimizes it with this on.
+// what was followed, so a window reads minimized again only after a window_set minimizes it with this on.
 void track_window_states(bool on);
 
-// "minimized", "maximized" or "normal": a window's state as list_windows reports it and set_window takes
+// "minimized", "maximized" or "normal": a window's state as window_list reports it and window_set takes
 // it. On Wayland, which reports no minimize, a window reads minimized while the compositor hides it after
-// set_window minimized it.
+// window_set minimized it.
 const char* window_state(const wxTopLevelWindow& window);
 
-// The window's size as the window system shows it, in the units list_windows reports: wx's size, less
+// The window's size as the window system shows it, in the units window_list reports: wx's size, less
 // the margins GTK draws a client-side decorated window's shadow in on Wayland, which the compositor and a
 // window screenshot leave out.
 wxSize window_size(wxTopLevelWindow& window);
@@ -55,7 +55,7 @@ void raise_window(wxTopLevelWindow& window);
 // Whether bringing a minimized window back takes the compositor's leave to activate it, which it may
 // refuse (Wayland).
 bool restore_needs_activation();
-// How long set_window waits for a window to report the `state` it was asked for: 3 s, and 5 s for a
+// How long window_set waits for a window to report the `state` it was asked for: 3 s, and 5 s for a
 // minimize on Wayland, where Mutter reports a window hidden once it has not shown it for 3 s.
 std::chrono::seconds state_change_timeout(const std::string& state);
 

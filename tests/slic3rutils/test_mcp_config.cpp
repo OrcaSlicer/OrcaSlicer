@@ -11,14 +11,20 @@
     #include <CommCtrl.h>
 #endif
 
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
+#include "slic3r/GUI/FilamentMapPanel.hpp"
+#include "slic3r/GUI/Mcp/McpArguments.hpp"
 #include "slic3r/GUI/Mcp/McpEndpoint.hpp"
 #include "slic3r/GUI/Mcp/McpTools.hpp"
 #include "slic3r/GUI/Mcp/PythonScriptsDialog.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
+#include "slic3r/GUI/Operations/PreferenceOps.hpp"
 
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Config.hpp"
@@ -37,7 +43,11 @@
 #include <algorithm>
 #include <climits>
 #include <cstddef>
+#include <functional>
 #include <initializer_list>
+#include <map>
+#include <optional>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -151,9 +161,10 @@ TEST_CASE("an object's effective value is its override, else the process's", "[M
     CHECK(e["source"] == "object");
     CHECK_FALSE(e.contains("parts"));
 
+    // The process's value is the global one, as the Process panel's Global row names it.
     e = effective_setting("sparse_infill_density", s.process, *s.object, nullptr);
     CHECK(e["effective"] == "15%");
-    CHECK(e["source"] == "process");
+    CHECK(e["source"] == "global");
 
     // A key the process does not carry takes the option's default.
     e = effective_setting("enable_support", s.process, *s.object, nullptr);
@@ -171,7 +182,7 @@ TEST_CASE("a modifier's override applies only inside its own volume", "[Mcp]")
     // For the object: the process value, with the modifier's listed apart.
     json e = effective_setting("sparse_infill_density", s.process, *s.object, nullptr);
     CHECK(e["effective"] == "15%");
-    CHECK(e["source"] == "process");
+    CHECK(e["source"] == "global");
     REQUIRE(e["parts"].size() == 1);
     CHECK(e["parts"][0]["part"] == 1);
     CHECK(e["parts"][0]["value"] == "40%");
@@ -214,12 +225,168 @@ TEST_CASE("a filament of 0 is no filament of its own", "[Mcp]")
     e = effective_setting("extruder", s.process, *s.object, part);
     CHECK(e["effective"] == "3");
     CHECK(e["source"] == "part");
+    // A modifier's filament of 0 takes the filament of the part it overlaps, the object's where that part has none.
     e = effective_setting("extruder", s.process, *s.object, modifier);
-    CHECK(e["effective"] == "2");
-    CHECK(e["source"] == "object");
+    CHECK(e["effective"].is_null());
+    CHECK(e["source"] == "overlapped_part");
+    CHECK(e["object_effective"] == "2");
+    CHECK(e["object_source"] == "object");
+    CHECK(e["parts"] == json::array({{{"part", 1}, {"value", "3"}}}));
 }
 
-TEST_CASE("save_preset refuses the names the Save preset dialog refuses", "[Mcp]")
+TEST_CASE("inside a modifier that sets none of a key, the value of the part it overlaps applies", "[Mcp]")
+{
+    Scene s;
+    s.object->config.set("wall_loops", 4);
+    s.object->volumes.front()->config.set("wall_loops", 5);
+    ModelVolume* modifier = s.add(ModelVolumeType::PARAMETER_MODIFIER);
+
+    // The part's 5 prints inside the modifier where it overlaps that part, the object's 4 where it overlaps another
+    // part: no value is the one it prints with.
+    json e = effective_setting("wall_loops", s.process, *s.object, modifier);
+    CHECK(e["effective"].is_null());
+    CHECK(e["source"] == "overlapped_part");
+    CHECK(e["object_effective"] == "4");
+    CHECK(e["object_source"] == "object");
+    CHECK(e["parts"] == json::array({{{"part", 0}, {"value", "5"}}}));
+    CHECK_FALSE(e.contains("height_ranges"));
+
+    // A modifier before it that sets the key is a region it can overlap too; one after it is not.
+    ModelVolume* later = s.add(ModelVolumeType::PARAMETER_MODIFIER);
+    later->config.set("wall_loops", 8);
+    CHECK(effective_setting("wall_loops", s.process, *s.object, modifier)["parts"] == json::array({{{"part", 0}, {"value", "5"}}}));
+    e = effective_setting("sparse_infill_density", s.process, *s.object, later);
+    CHECK(e["effective"] == "15%");
+    CHECK(e["source"] == "global");
+    modifier->config.set_key_value("sparse_infill_density", new ConfigOptionPercent(40));
+    e = effective_setting("sparse_infill_density", s.process, *s.object, later);
+    CHECK(e["effective"].is_null());
+    CHECK(e["object_effective"] == "15%");
+    CHECK(e["object_source"] == "global");
+    CHECK(e["parts"] == json::array({{{"part", 1}, {"value", "40%"}}}));
+
+    // Where no part sets the key, the object's value is the one the modifier prints with.
+    e = effective_setting("enable_support", s.process, *s.object, modifier);
+    CHECK(e["effective"] == "0");
+    CHECK(e["source"] == "default");
+    CHECK_FALSE(e.contains("parts"));
+    CHECK_FALSE(e.contains("object_effective"));
+}
+
+TEST_CASE("a painted modifier before a modifier that sets none of a key is a region it can overlap", "[Mcp]")
+{
+    Scene s;
+    s.object->config.set("wall_loops", 4);
+    ModelVolume* painted = s.add(ModelVolumeType::PAINTED_MODIFIER);
+    painted->config.set("wall_loops", 7);
+    ModelVolume* modifier = s.add(ModelVolumeType::PARAMETER_MODIFIER);
+
+    // The slicer chains the mesh modifier's region onto the painted modifier's as onto a part's: 7 where it overlaps it.
+    const json e = effective_setting("wall_loops", s.process, *s.object, modifier);
+    CHECK(e["effective"].is_null());
+    CHECK(e["source"] == "overlapped_part");
+    CHECK(e["object_effective"] == "4");
+    CHECK(e["object_source"] == "object");
+    CHECK(e["parts"] == json::array({{{"part", 1}, {"value", "7"}}}));
+}
+
+TEST_CASE("inside a painted modifier that sets none of a key, the value of the part it overlaps applies", "[Mcp]")
+{
+    Scene s;
+    s.object->config.set("wall_loops", 4);
+    s.object->volumes.front()->config.set("wall_loops", 5);
+    ModelVolume*       painted = s.add(ModelVolumeType::PAINTED_MODIFIER);
+    DynamicPrintConfig lower;
+    lower.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+    lower.set_key_value("wall_loops", new ConfigOptionInt(6));
+    s.object->layer_config_ranges[{0., 5.}].assign_config(lower);
+
+    // As inside a mesh modifier: the part's value, and the range's between its heights.
+    json e = effective_setting("wall_loops", s.process, *s.object, painted);
+    CHECK(e["effective"].is_null());
+    CHECK(e["source"] == "overlapped_part");
+    CHECK(e["object_effective"] == "4");
+    CHECK(e["object_source"] == "object");
+    CHECK(e["parts"] == json::array({{{"part", 0}, {"value", "5"}}}));
+    CHECK(e["height_ranges"] == json::array({{{"min_z", 0.}, {"max_z", 5.}, {"value", "6"}}}));
+
+    // One that sets the key holds its own value through the range.
+    painted->config.set("wall_loops", 7);
+    e = effective_setting("wall_loops", s.process, *s.object, painted);
+    CHECK(e["effective"] == "7");
+    CHECK(e["source"] == "part");
+    CHECK_FALSE(e.contains("height_ranges"));
+}
+
+TEST_CASE("a painted modifier that sets a key is listed among an object's overriding volumes", "[Mcp]")
+{
+    Scene s;
+    s.object->config.set("wall_loops", 4);
+    ModelVolume* painted = s.add(ModelVolumeType::PAINTED_MODIFIER);
+    painted->config.set("wall_loops", 7);
+    DynamicPrintConfig lower;
+    lower.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+    lower.set_key_value("wall_loops", new ConfigOptionInt(6));
+    s.object->layer_config_ranges[{0., 5.}].assign_config(lower);
+    const json painted_only = json::array({{{"part", 1}, {"value", "7"}}});
+
+    // For the object, and inside a height range that sets the key, where a modifier's own value still applies.
+    json e = effective_setting("wall_loops", s.process, *s.object, nullptr);
+    CHECK(e["effective"] == "4");
+    CHECK(e["parts"] == painted_only);
+    e = effective_setting("wall_loops", s.process, *s.object, nullptr, &s.object->layer_config_ranges.begin()->second.get());
+    CHECK(e["effective"] == "6");
+    CHECK(e["source"] == "height_range");
+    CHECK(e["parts"] == painted_only);
+}
+
+TEST_CASE("a height range's value applies over its parts' own, and inside a modifier that sets none", "[Mcp]")
+{
+    Scene s;
+    s.object->config.set("wall_loops", 4);
+    ModelVolume* part = s.object->volumes.front();
+    part->config.set("wall_loops", 5);
+    ModelVolume*       modifier = s.add(ModelVolumeType::PARAMETER_MODIFIER);
+    DynamicPrintConfig lower;
+    lower.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+    lower.set_key_value("wall_loops", new ConfigOptionInt(6));
+    s.object->layer_config_ranges[{0., 5.}].assign_config(lower);
+    const json ranges = json::array({{{"min_z", 0.}, {"max_z", 5.}, {"value", "6"}}});
+
+    // The object's and the part's own values, with the range's between its heights.
+    json e = effective_setting("wall_loops", s.process, *s.object, nullptr);
+    CHECK(e["effective"] == "4");
+    CHECK(e["source"] == "object");
+    CHECK(e["height_ranges"] == ranges);
+    e = effective_setting("wall_loops", s.process, *s.object, part);
+    CHECK(e["effective"] == "5");
+    CHECK(e["source"] == "part");
+    CHECK(e["height_ranges"] == ranges);
+
+    // A modifier that sets none takes what it covers: the part's value, and the range's between its heights (its region
+    // inherits the part's region, which the range is applied to); one that sets the key holds its own value through
+    // the range.
+    e = effective_setting("wall_loops", s.process, *s.object, modifier);
+    CHECK(e["effective"].is_null());
+    CHECK(e["source"] == "overlapped_part");
+    CHECK(e["object_effective"] == "4");
+    CHECK(e["parts"] == json::array({{{"part", 0}, {"value", "5"}}}));
+    CHECK(e["height_ranges"] == ranges);
+    modifier->config.set("wall_loops", 7);
+    e = effective_setting("wall_loops", s.process, *s.object, modifier);
+    CHECK(e["effective"] == "7");
+    CHECK(e["source"] == "part");
+    CHECK_FALSE(e.contains("height_ranges"));
+
+    // The range itself: its value, over the part's, which it replaces; the modifier's still applies inside it.
+    e = effective_setting("wall_loops", s.process, *s.object, nullptr, &s.object->layer_config_ranges.begin()->second.get());
+    CHECK(e["effective"] == "6");
+    CHECK(e["source"] == "height_range");
+    CHECK(e["parts"] == json::array({{{"part", 1}, {"value", "7"}}}));
+    CHECK_FALSE(e.contains("height_ranges"));
+}
+
+TEST_CASE("preset_save refuses the names the Save preset dialog refuses", "[Mcp]")
 {
     using Catch::Matchers::ContainsSubstring;
     Processes p;
@@ -230,7 +397,7 @@ TEST_CASE("save_preset refuses the names the Save preset dialog refuses", "[Mcp]
     CHECK_THROWS_AS(save_preset_inside_project(p.presets, "0.20mm Standard", json{{"overwrite", true}}), ToolFailure);
 }
 
-TEST_CASE("save_preset replaces another preset only with overwrite, and saves the selected one again without", "[Mcp]")
+TEST_CASE("preset_save replaces another preset only with overwrite, and saves the selected one again without", "[Mcp]")
 {
     using Catch::Matchers::ContainsSubstring;
     Processes p;
@@ -240,7 +407,7 @@ TEST_CASE("save_preset replaces another preset only with overwrite, and saves th
     CHECK_FALSE(save_preset_inside_project(p.presets, "Mine", json::object()));
 }
 
-TEST_CASE("save_preset keeps a preset where the Save preset dialog would", "[Mcp]")
+TEST_CASE("preset_save keeps a preset where the Save preset dialog would", "[Mcp]")
 {
     Processes p;
     // A new name: where the edited preset is, unless inside_project says otherwise.
@@ -361,7 +528,7 @@ TEST_CASE("the printer's machine limits and per-extruder values name their entri
     CHECK_FALSE(e.contains("active"));
 }
 
-TEST_CASE("set_settings writes a single value to the per-variant entries in use, or one entry by index", "[Mcp]")
+TEST_CASE("settings_set writes a single value to the per-variant entries in use, or one entry by index", "[Mcp]")
 {
     using Catch::Matchers::ContainsSubstring;
     const DynamicPrintConfig process = x1c_process();
@@ -490,7 +657,7 @@ void add_preset(PresetCollection& presets, const std::string& name, const std::s
 
 } // namespace
 
-TEST_CASE("delete_preset refuses the presets the tab does not delete", "[Mcp]")
+TEST_CASE("preset_delete refuses the presets the tab does not delete", "[Mcp]")
 {
     using Catch::Matchers::ContainsSubstring;
     Processes p;
@@ -568,7 +735,7 @@ TEST_CASE("the project scope takes one colour per slot and leaves a mixed slot's
     CHECK_THROWS_AS(check_filament_colours({"#FF00001", "#000000", "#7F7F7F"}, current, mixed), ToolFailure);
     CHECK_THROWS_WITH(check_filament_colours({"#FFFFFF", "#000000", "#FF0000"}, current, mixed), ContainsSubstring("Slot 3 is a mixed filament"));
 
-    // One slot by index, through set_settings' entry write.
+    // One slot by index, through settings_set's entry write.
     DynamicPrintConfig project;
     project.set_key_value("filament_colour", new ConfigOptionStrings(current));
     CHECK(preset_setting_value("filament_colour", {{"index", 1}, {"value", "#00FF00"}}, project, {}, {}) == "#FFFFFF;#00FF00;#7F7F7F");
@@ -699,28 +866,635 @@ TEST_CASE("a plate's layer G-codes read back by height, on the layer the Preview
     CHECK_FALSE(layer_gcode_json(codes, {})[0].contains("layer"));
 }
 
-TEST_CASE("the preferences scope reads the keys it is given, as stored, and lists none unasked", "[Mcp]")
+namespace {
+
+// Three rows of the Preferences dialog's table, as preferences_get lists them: a checkbox, a choice and a number.
+std::vector<Ops::Preference> preference_table()
+{
+    Ops::Preference arrange;
+    arrange.key      = "auto_arrange";
+    arrange.tab      = "behaviour";
+    arrange.section  = "Prepare";
+    arrange.label    = "Auto arrange plate after cloning";
+    arrange.fallback = "false";
+    Ops::Preference flush = arrange;
+    flush.key             = "auto_calculate_flush";
+    flush.label           = "Auto flush after changing...";
+    flush.kind            = Ops::PreferenceKind::Choice;
+    flush.choices         = {{"all", "All"}, {"color change", "Color"}, {"disabled", "None"}};
+    flush.fallback        = "all";
+    Ops::Preference fps   = arrange;
+    fps.key               = "opengl_fps_cap";
+    fps.tab               = "graphics";
+    fps.section           = "FPS";
+    fps.label             = "FPS cap";
+    fps.kind              = Ops::PreferenceKind::Number;
+    fps.min               = 0;
+    fps.max               = 240;
+    fps.fallback          = "";
+    fps.refused           = "%1%: a reason a call may not write it.";
+    return {arrange, flush, fps};
+}
+
+} // namespace
+
+TEST_CASE("preferences_get lists the dialog's preferences, typed, and reads a named key outside them as stored", "[Mcp]")
 {
     using Catch::Matchers::ContainsSubstring;
-    AppConfig config;
+    const std::vector<Ops::Preference> table = preference_table();
+    AppConfig                          config;
     config.set("auto_calculate_flush", "disabled");
+    config.set("opengl_fps_cap", "60");
     config.set("region", "");
     config.set("presets", "filament", "Bambu PLA Basic"); // another section than the preferences'
-    const json out = preferences_settings(config, json{{"keys", {"auto_calculate_flush", "region", "filament", "no_such_preference"}}});
-    REQUIRE(out["total"] == 2);
-    CHECK(out["items"][0] == json{{"key", "auto_calculate_flush"}, {"value", "disabled"}});
+    config.erase("app", "auto_arrange");
+
+    // With no argument, every row of the table, in its order, with its value typed by its kind.
+    const json all = preferences_settings(config, table, json::object());
+    REQUIRE(all["items"].size() == 3);
+    CHECK(all["total"] == 3);
+    // Nothing stored: the value the dialog shows, the checkbox unchecked.
+    CHECK(all["items"][0] == json{{"key", "auto_arrange"}, {"tab", "behaviour"}, {"section", "Prepare"},
+                                  {"label", "Auto arrange plate after cloning"}, {"kind", "checkbox"}, {"value", false},
+                                  {"stored", false}});
+    CHECK(all["items"][1]["value"] == "disabled");
+    CHECK(all["items"][1]["kind"] == "choice");
+    CHECK(all["items"][1]["choices"] == json::array({{{"value", "all"}, {"label", "All"}},
+                                                     {{"value", "color change"}, {"label", "Color"}},
+                                                     {{"value", "disabled"}, {"label", "None"}}}));
+    CHECK_FALSE(all["items"][1].contains("stored"));
+    CHECK(all["items"][2]["value"] == 60);
+    CHECK(all["items"][2]["kind"] == "number");
+    CHECK(all["items"][2]["min"] == 0);
+    CHECK(all["items"][2]["max"] == 240);
+    // A row a call may not write says why.
+    CHECK(all["items"][2]["refused"] == "opengl_fps_cap: a reason a call may not write it.");
+    CHECK_FALSE(all.contains("unknown_keys"));
+
+    // tab and query narrow the list: query by a key's, a label's or a section's words, in any case.
+    const json graphics = preferences_settings(config, table, json{{"tab", "graphics"}});
+    REQUIRE(graphics["items"].size() == 1);
+    CHECK(graphics["items"][0]["key"] == "opengl_fps_cap");
+    const json flush = preferences_settings(config, table, json{{"query", "FLUSH after"}});
+    REQUIRE(flush["items"].size() == 1);
+    CHECK(flush["items"][0]["key"] == "auto_calculate_flush");
+    CHECK(preferences_settings(config, table, json{{"query", "prepare"}})["items"].size() == 2);
+    CHECK(preferences_settings(config, table, json{{"query", "prepare"}, {"tab", "graphics"}})["items"].empty());
+
+    // Named keys: those of the table as listed, another key of the app section as stored, and the others unknown.
+    const json named =
+        preferences_settings(config, table, json{{"keys", {"region", "auto_calculate_flush", "filament", "no_such_preference"}}});
+    REQUIRE(named["items"].size() == 2);
+    CHECK(named["items"][0]["key"] == "auto_calculate_flush");
+    CHECK(named["items"][0]["kind"] == "choice");
     // A key stored empty is known, with its empty value.
-    CHECK(out["items"][1] == json{{"key", "region"}, {"value", ""}});
-    CHECK(out["unknown_keys"] == json{"filament", "no_such_preference"});
-    CHECK_THAT(out["note"].get<std::string>(), ContainsSubstring("never changed"));
-    const json known = preferences_settings(config, json{{"keys", {"region"}}});
+    CHECK(named["items"][1] == json{{"key", "region"}, {"value", ""}});
+    CHECK(named["unknown_keys"] == json{"filament", "no_such_preference"});
+    CHECK_THAT(named["note"].get<std::string>(), ContainsSubstring("not stored"));
+    const json known = preferences_settings(config, table, json{{"keys", {"region"}}});
     CHECK_FALSE(known.contains("unknown_keys"));
     CHECK_FALSE(known.contains("note"));
+}
 
-    // The app section also holds account and device state, so nothing is listed without keys.
-    CHECK_THROWS_WITH(preferences_settings(config, json::object()), ContainsSubstring("keys"));
-    CHECK_THROWS_AS(preferences_settings(config, json{{"query", "flush"}}), ToolFailure);
-    CHECK_THROWS_AS(preferences_settings(config, json{{"keys", {"region"}}, {"compare", ":saved"}}), ToolFailure);
+TEST_CASE("preferences_get gives what the dialog shows where that is not the stored value, and marks a value read at the next start",
+          "[Mcp]")
+{
+    std::vector<Ops::Preference> table = preference_table();
+    table[0].restart_needed            = true;
+    AppConfig config;
+    config.set("opengl_fps_cap", "60");
+    config.erase("app", "auto_arrange");
+
+    // The dialog shows a value of its own for a key: it is the value, typed by the kind, and stored still says whether
+    // the configuration holds one.
+    const json shown = preferences_settings(config, table, json::object(), {{"auto_arrange", "true"}, {"opengl_fps_cap", "14100"}});
+    REQUIRE(shown["items"].size() == 3);
+    CHECK(shown["items"][0]["value"] == true);
+    CHECK(shown["items"][0]["stored"] == false);
+    CHECK(shown["items"][2]["value"] == 14100);
+    CHECK_FALSE(shown["items"][2].contains("stored"));
+    // Without one, the stored value.
+    CHECK(preferences_settings(config, table, json::object())["items"][2]["value"] == 60);
+
+    // A row read at the next start says so; the others say nothing of it.
+    CHECK(shown["items"][0]["restart_needed"] == true);
+    CHECK_FALSE(shown["items"][1].contains("restart_needed"));
+}
+
+namespace {
+
+// The values of an enum property of `command`'s schema, as a set.
+std::set<std::string> enum_of(const NativeCommand& command, const char* property)
+{
+    std::set<std::string> values;
+    for (const json& v : command.input_schema.at("properties").at(property).at("enum"))
+        values.insert(v.get<std::string>());
+    return values;
+}
+
+// A call's context that fails the case when the call reaches its UI closure.
+class NoUiContext final : public ToolContext
+{
+public:
+    json run_ui(const std::function<json()>& /*fn*/) override
+    {
+        FAIL("the call reached its UI closure");
+        return json();
+    }
+    json observe_ui(const std::function<json()>& /*fn*/) override
+    {
+        FAIL("the call reached its UI closure");
+        return json();
+    }
+    const std::string&    job_id() const override { return m_job; }
+    bool                  cancelled() const override { return false; }
+    ToolResult            call_child(const std::string& /*tool*/, const json& /*args*/) override { return ToolResult::error("no child calls"); }
+    std::set<std::string> lineage() const override { return {}; }
+    void                  set_journal_args(json /*args*/) override {}
+    void                  begin_operation() override {}
+
+private:
+    std::string m_job;
+};
+
+// A call's context that runs its UI closures in place, for a check a call makes there before it reads the app.
+class InPlaceContext final : public ToolContext
+{
+public:
+    json                  run_ui(const std::function<json()>& fn) override { return fn(); }
+    json                  observe_ui(const std::function<json()>& fn) override { return fn(); }
+    const std::string&    job_id() const override { return m_job; }
+    bool                  cancelled() const override { return false; }
+    ToolResult            call_child(const std::string& /*tool*/, const json& /*args*/) override
+    {
+        return ToolResult::error("no child calls");
+    }
+    std::set<std::string> lineage() const override { return {}; }
+    void                  set_journal_args(json /*args*/) override {}
+    void                  begin_operation() override {}
+
+private:
+    std::string m_job;
+};
+
+} // namespace
+
+TEST_CASE("the settings tools take a type and a target", "[Mcp]")
+{
+    using Catch::Matchers::ContainsSubstring;
+    const NativeCommand* get  = NativeCommands::find("settings_get");
+    const NativeCommand* set  = NativeCommands::find("settings_set");
+    const NativeCommand* list = NativeCommands::find("settings_list");
+    REQUIRE(get != nullptr);
+    REQUIRE(set != nullptr);
+    REQUIRE(list != nullptr);
+    for (const NativeCommand* c : {get, set}) {
+        INFO(c->key);
+        CHECK(enum_of(*c, "type") == std::set<std::string>{"printer", "process", "filament"});
+        CHECK(enum_of(*c, "target") == std::set<std::string>{"global", "object", "part", "height_range"});
+        CHECK_FALSE(c->input_schema["properties"].contains("scope"));
+        for (const char* range : {"min_z", "max_z"})
+            CHECK(c->input_schema["properties"].contains(range));
+    }
+    json scoped{{"scope", "process"}, {"keys", {"layer_height"}}};
+    CHECK_THAT(argument_error(*get, scoped), ContainsSubstring("unknown argument scope"));
+
+    // A type's settings, whole or one page of them: a preset's, or those an object or a region takes.
+    CHECK(list->input_schema["required"] == json::array({"type"}));
+    CHECK(enum_of(*list, "type") == std::set<std::string>{"printer", "process", "filament", "object", "region"});
+    for (const char* absent : {"target", "keys", "compare", "scope"}) {
+        INFO(absent);
+        CHECK_FALSE(list->input_schema["properties"].contains(absent));
+    }
+    for (const char* present : {"where", "preset", "filament_slot", "include_meta", "limit", "offset"}) {
+        INFO(present);
+        CHECK(list->input_schema["properties"].contains(present));
+    }
+
+    // The refusals the arguments alone decide.
+    const json nothing{{"type", "process"}};
+    const json no_target{{"type", "filament"}, {"target", "object"}, {"object", 0}, {"keys", {"wall_loops"}}};
+    // Nothing named is worded for the tool called: what settings_get reads by, what settings_set writes.
+    const std::string read_nothing  = settings_request_error(nothing);
+    const std::string write_nothing = settings_request_error(nothing, true);
+    CHECK_THAT(read_nothing, ContainsSubstring("Nothing is named"));
+    CHECK_THAT(read_nothing, ContainsSubstring("keys, query or compare"));
+    CHECK_THAT(write_nothing, ContainsSubstring("Nothing is named"));
+    CHECK_THAT(write_nothing, ContainsSubstring("values"));
+    CHECK_THAT(write_nothing, !ContainsSubstring("query"));
+    CHECK_THAT(settings_request_error(no_target), ContainsSubstring("no target object"));
+    CHECK_THAT(settings_request_error(no_target, true), ContainsSubstring("no target object"));
+    CHECK(settings_request_error({{"target", "object"}, {"object", 0}}).empty());
+    CHECK(settings_request_error({{"target", "object"}, {"object", 0}, {"values", {{"wall_loops", 3}}}}, true).empty());
+    CHECK_THAT(settings_request_error({{"target", "part"}, {"part", 0}}), ContainsSubstring("object"));
+    // With no object, or no part for the target part, the selected one.
+    CHECK(settings_request_error({{"target", "object"}}).empty());
+    CHECK(settings_request_error({{"target", "part"}}).empty());
+    CHECK(settings_request_error({{"target", "height_range"}, {"min_z", 0}, {"max_z", 5}}).empty());
+    // Both tools refuse them before their UI closure.
+    for (const NativeCommand* c : {get, set})
+        for (const json& args : {nothing, no_target}) {
+            INFO(c->key << " " << args.dump());
+            NoUiContext ctx;
+            CHECK_THROWS_WITH(c->run(args, ctx), settings_request_error(args, c == set));
+        }
+}
+
+TEST_CASE("the settings tools' object, part and height range go with the target they name", "[Mcp]")
+{
+    using Catch::Matchers::ContainsSubstring;
+    const NativeCommand* get = NativeCommands::find("settings_get");
+    const NativeCommand* set = NativeCommands::find("settings_set");
+    REQUIRE(get != nullptr);
+    REQUIRE(set != nullptr);
+    // Each refused before anything is read, worded for what is wrong.
+    const std::vector<std::pair<json, std::string>> refused{
+        {{{"object", 0}, {"keys", {"wall_loops"}}}, "give target object, part or height_range"},
+        {{{"target", "object"}, {"object", 0}, {"part", 1}, {"keys", {"wall_loops"}}}, "part goes with target part"},
+        {{{"target", "height_range"}, {"object", 0}, {"min_z", 0}}, "target height_range needs min_z and max_z"},
+        {{{"target", "part"}, {"object", 0}, {"min_z", 0}, {"max_z", 5}}, "min_z and max_z go with target height_range"},
+        {{{"target", "part"}, {"object", 0}, {"keys", {"wall_loops"}}}, "target part names its part by object and part"}};
+    for (const auto& [args, message] : refused) {
+        INFO(args.dump());
+        CHECK_THAT(settings_request_error(args), ContainsSubstring(message));
+        json written = args;
+        written.erase("keys");
+        written["values"] = {{"wall_loops", 3}};
+        CHECK_THAT(settings_request_error(written, true), ContainsSubstring(message));
+        for (const NativeCommand* c : {get, set}) {
+            const json call = c == set ? written : args;
+            json       given = call;
+            CHECK(argument_error(*c, given).empty());
+            NoUiContext ctx;
+            CHECK_THROWS_WITH(c->run(call, ctx), ContainsSubstring(message));
+        }
+    }
+}
+
+TEST_CASE("filament_install names filaments by names, or by a vendor and a filament type together", "[Mcp]")
+{
+    const NativeCommand* install = NativeCommands::find("filament_install");
+    REQUIRE(install != nullptr);
+    // Each passes the schema, and the command refuses it before it reads the app.
+    const std::vector<std::pair<json, std::string>> refused{
+        {json::object(), "Give names, or vendor and filament_type"},
+        {{{"names", {"Bambu PLA Basic"}}, {"vendor", "Bambu Lab"}, {"filament_type", "PLA"}},
+         "Give names, or vendor and filament_type, not both"},
+        {{{"names", {"Bambu PLA Basic"}}, {"filament_type", "PLA"}}, "Give names, or vendor and filament_type, not both"},
+        {{{"vendor", "Bambu Lab"}}, "vendor and filament_type go together"},
+        {{{"filament_type", "PLA"}}, "vendor and filament_type go together"}};
+    for (const auto& [args, message] : refused) {
+        INFO(args.dump());
+        json given = args;
+        CHECK(argument_error(*install, given).empty());
+        NoUiContext ctx;
+        CHECK_THROWS_WITH(install->run(args, ctx), message);
+    }
+}
+
+TEST_CASE("preferences_set needs a preference to write", "[Mcp]")
+{
+    const NativeCommand* write = NativeCommands::find("preferences_set");
+    REQUIRE(write != nullptr);
+    // It passes the schema, and the command refuses it before it reads the app.
+    json given = {{"values", json::object()}};
+    CHECK(argument_error(*write, given).empty());
+    NoUiContext ctx;
+    CHECK_THROWS_WITH(write->run(json{{"values", json::object()}}, ctx),
+                      "values names no preference: give {key: value}, e.g. {\"auto_arrange\": false}");
+}
+
+TEST_CASE("plugin_enable refuses an empty capability before it reads the app", "[Mcp]")
+{
+    const NativeCommand* enable = NativeCommands::find("plugin_enable");
+    REQUIRE(enable != nullptr);
+    CHECK(enable->input_schema.at("properties").at("capability").at("minLength") == 1);
+    // An empty name is no capability, and not the plugin itself either, which enabled false would unload.
+    const json empty{{"plugin", "my_plugin"}, {"capability", ""}, {"enabled", false}};
+    NoUiContext ctx;
+    CHECK_THROWS_WITH(enable->run(empty, ctx),
+                      "capability is empty: name one of the plugin's capabilities, or leave capability out to turn the plugin "
+                      "itself on or off");
+}
+
+TEST_CASE("a target takes the settings its panel offers", "[Mcp]")
+{
+    using Targets = std::vector<std::string>;
+    CHECK(targets_taking("layer_height", 1) == Targets{"object", "height_range"});
+    CHECK(targets_taking("wall_loops", 1) == Targets{"object", "part", "height_range"});
+    CHECK(targets_taking("skirt_loops", 1).empty());
+    // Support is an object's alone, and a feature's filament is offered once there is a second filament.
+    CHECK(targets_taking("enable_support", 1) == Targets{"object"});
+    CHECK(targets_taking("sparse_infill_filament_id", 1).empty());
+    CHECK(targets_taking("sparse_infill_filament_id", 2) == Targets{"object", "part", "height_range"});
+
+    const std::vector<std::string> object = target_options("object", 1);
+    const std::vector<std::string> part   = target_options("part", 1);
+    const std::vector<std::string> range  = target_options("height_range", 1);
+    CHECK(has(part, "wall_loops"));
+    CHECK_FALSE(has(part, "layer_height"));
+    // A part takes what an object takes, and a height range what a part takes and the layer height.
+    for (const std::string& key : part) {
+        INFO(key);
+        CHECK(has(object, key));
+        CHECK(has(range, key));
+    }
+    CHECK(has(range, "layer_height"));
+    CHECK(range.size() == part.size() + 1);
+    // The filament each row's filament column sets.
+    for (const std::vector<std::string>* keys : {&object, &part, &range})
+        CHECK(has(*keys, "extruder"));
+    CHECK(target_options("global", 1).empty());
+}
+
+TEST_CASE("a setting a target does not take is refused with where it can be set", "[Mcp]")
+{
+    using Catch::Matchers::ContainsSubstring;
+    const std::string layer_height = untaken_setting_error("layer_height", "part", 1);
+    CHECK_THAT(layer_height, ContainsSubstring("layer_height is set on an object or a height range, not on a part"));
+    CHECK_THAT(untaken_setting_error("enable_support", "height_range", 1),
+               ContainsSubstring("enable_support is set on an object, not on a height range"));
+    // A process setting no target takes is the process's alone.
+    const std::string skirt = untaken_setting_error("skirt_loops", "object", 1);
+    CHECK_THAT(skirt, ContainsSubstring("skirt_loops is set globally only"));
+    CHECK_THAT(skirt, !ContainsSubstring("height range"));
+    for (const char* target : {"object", "part", "height_range"}) {
+        INFO(target);
+        CHECK(untaken_setting_error("wall_loops", target, 1).empty());
+    }
+}
+
+TEST_CASE("listing a type returns it whole unless it carries meta", "[Mcp]")
+{
+    const NativeCommand* list = NativeCommands::find("settings_list");
+    REQUIRE(list != nullptr);
+    CHECK(enum_of(*list, "type") == std::set<std::string>{"process", "printer", "filament", "object", "region"});
+    // The process settings of an X1 Carbon, as many as the app lists.
+    json items = json::array();
+    for (int i = 0; i < 395; ++i)
+        items.push_back({{"key", "setting_" + std::to_string(i)}, {"value", "0"}});
+    const json whole = settings_list_page(items, json::object());
+    CHECK(whole["total"] == 395);
+    CHECK(whole["items"].size() == 395);
+    CHECK_FALSE(whole.contains("next_offset"));
+    // With meta, which where carries too, 100 a page.
+    for (const json& args : {json{{"include_meta", true}}, json{{"where", "Strength"}}}) {
+        INFO(args.dump());
+        const json meta = settings_list_page(items, args);
+        CHECK(meta["items"].size() == 100);
+        CHECK(meta["next_offset"] == 100);
+    }
+    CHECK(settings_list_page(items, {{"where", "Strength"}, {"include_meta", false}})["items"].size() == 395);
+    const json fifty = settings_list_page(items, {{"limit", 50}});
+    CHECK(fifty["items"].size() == 50);
+    CHECK(fifty["next_offset"] == 50);
+    CHECK(settings_list_page(items, {{"offset", 350}})["items"].size() == 45);
+}
+
+TEST_CASE("the preferences, a plate's settings and the project's settings are commands of their own", "[Mcp]")
+{
+    const NativeCommand* preferences = NativeCommands::find("preferences_get");
+    REQUIRE(preferences != nullptr);
+    CHECK(preferences->listed);
+    // It takes keys, query and tab, and needs none: with none it lists the Preferences dialog's preferences.
+    for (const char* arg : {"keys", "query", "tab"}) {
+        INFO(arg);
+        CHECK(preferences->input_schema["properties"].contains(arg));
+    }
+    CHECK(preferences->input_schema.value("required", json::array()).empty());
+    const NativeCommand* write = NativeCommands::find("preferences_set");
+    REQUIRE(write != nullptr);
+    CHECK(write->listed);
+    CHECK(write->input_schema["required"] == json::array({"values"}));
+    for (const char* key : {"plate_get_settings", "plate_set_settings", "project_get_settings", "project_set_settings"}) {
+        INFO(key);
+        const NativeCommand* c = NativeCommands::find(key);
+        REQUIRE(c != nullptr);
+        CHECK(c->listed);
+    }
+    for (const char* key : {"plate_set_settings", "project_set_settings"}) {
+        INFO(key);
+        CHECK(NativeCommands::find(key)->input_schema["required"] == json::array({"values"}));
+    }
+    for (const char* key : {"preferences_get", "plate_get_settings", "plate_set_settings", "project_get_settings", "project_set_settings"})
+        for (const char* absent : {"type", "target", "scope"}) {
+            INFO(key << " " << absent);
+            CHECK_FALSE(NativeCommands::find(key)->input_schema["properties"].contains(absent));
+        }
+}
+
+TEST_CASE("a plate's settings are those of its Plate Settings and filament grouping dialogs, and its name and lock are none of them",
+          "[Mcp]")
+{
+    using Catch::Matchers::ContainsSubstring;
+    const std::vector<std::string> keys = plate_setting_keys();
+    CHECK(keys == std::vector<std::string>{"curr_bed_type", "print_sequence", "spiral_mode", "first_layer_print_sequence",
+                                           "other_layers_print_sequence", "filament_map_mode", "filament_map"});
+    CHECK_FALSE(has(keys, "name"));
+    CHECK_FALSE(has(keys, "locked"));
+
+    // A key a plate's settings lack is refused before the plate is read, whatever the other values.
+    const NativeCommand* set = NativeCommands::find("plate_set_settings");
+    REQUIRE(set != nullptr);
+    for (const auto& [key, value] : std::vector<std::pair<std::string, json>>{{"name", "x"}, {"locked", true}}) {
+        INFO(key);
+        const json     args{{"plate", 0}, {"values", {{"print_sequence", "by object"}, {key, value}}}};
+        InPlaceContext ctx;
+        CHECK_THROWS_WITH(set->run(args, ctx), ContainsSubstring("Unknown setting \"" + key + "\" for the plate settings"));
+    }
+}
+
+TEST_CASE("preset_list lists the presets the selectors do not offer only when asked", "[Mcp]")
+{
+    const NativeCommand* list = NativeCommands::find("preset_list");
+    REQUIRE(list != nullptr);
+    CHECK(list->input_schema["properties"].contains("include_uninstalled"));
+    CHECK_FALSE(list->input_schema["properties"].contains("include_hidden"));
+}
+
+TEST_CASE("a plate's filament map gives each filament an extruder the printer has, in the manual grouping alone", "[Mcp]")
+{
+    using Catch::Matchers::ContainsSubstring;
+    // Three filaments on a printer with two extruders.
+    CHECK(filament_map_error("Manual", {1, 2, 2}, 3, 2).empty());
+    CHECK_THAT(filament_map_error("Manual", {1, 2}, 3, 2), ContainsSubstring("3 filaments"));
+    CHECK_THAT(filament_map_error("Manual", {1, 2, 2, 1}, 3, 2), ContainsSubstring("3 filaments"));
+    CHECK_THAT(filament_map_error("Manual", {1, 3, 2}, 3, 2), ContainsSubstring("extruder 3"));
+    CHECK_THAT(filament_map_error("Manual", {0, 1, 2}, 3, 2), ContainsSubstring("extruder 0"));
+    // The automatic modes group the filaments themselves when the plate slices, and a plate following the
+    // project's grouping ("") has no map of its own.
+    CHECK_THAT(filament_map_error("Auto For Flush", {1, 2, 2}, 3, 2), ContainsSubstring("Manual"));
+    CHECK_THAT(filament_map_error("", {1, 2, 2}, 3, 2), ContainsSubstring("Manual"));
+}
+
+TEST_CASE("a manual filament map needs a nozzle of each volume type its used extruders print with", "[Mcp]")
+{
+    // A left extruder with one Standard nozzle and a right one that can hold six, with six Standard nozzles.
+    NozzleInventory inventory{{1, 6}, {nvtStandard, nvtHighFlow}, {{{nvtStandard, 1}}, {{nvtStandard, 6}}}};
+    REQUIRE(has_multi_nozzle_extruder(inventory.max_nozzle_counts));
+
+    // The right extruder prints High Flow and has no such nozzle: refused once a printed filament goes to it.
+    std::optional<NozzleShortage> shortage = manual_map_nozzle_shortage(inventory, {1, 2}, {1, 2}, {0, 1});
+    REQUIRE(shortage.has_value());
+    CHECK(shortage->extruder == 1);
+    CHECK(shortage->volume_type == nvtHighFlow);
+    CHECK_FALSE(manual_map_nozzle_shortage(inventory, {1, 2}, {1, 1}, {0, 0}).has_value());
+    // An extruder that only a filament the plate does not print goes to is not used.
+    CHECK_FALSE(manual_map_nozzle_shortage(inventory, {1}, {1, 2}, {0, 1}).has_value());
+    // The left extruder's own type is what it needs, whatever the volume map says of its filaments.
+    inventory.volume_types = {nvtHighFlow, nvtStandard};
+    shortage               = manual_map_nozzle_shortage(inventory, {1, 2}, {1, 2}, {0, 0});
+    REQUIRE(shortage.has_value());
+    CHECK(shortage->extruder == 0);
+    CHECK(shortage->volume_type == nvtHighFlow);
+
+    // A Hybrid extruder needs a nozzle of each type the volume map gives its filaments.
+    inventory.volume_types = {nvtStandard, nvtHybrid};
+    CHECK_FALSE(manual_map_nozzle_shortage(inventory, {1, 2, 3}, {1, 2, 2}, {0, 0, 0}).has_value());
+    shortage = manual_map_nozzle_shortage(inventory, {1, 2, 3}, {1, 2, 2}, {0, 0, 1});
+    REQUIRE(shortage.has_value());
+    CHECK(shortage->extruder == 1);
+    CHECK(shortage->volume_type == nvtHighFlow);
+    // With High Flow nozzles alone, its Standard filament is the one refused, and Standard is named before High Flow.
+    inventory.nozzle_counts[1] = {{nvtHighFlow, 6}};
+    CHECK_FALSE(manual_map_nozzle_shortage(inventory, {1, 2}, {1, 2}, {0, 1}).has_value());
+    shortage = manual_map_nozzle_shortage(inventory, {1, 2, 3}, {1, 2, 2}, {0, 0, 1});
+    REQUIRE(shortage.has_value());
+    CHECK(shortage->extruder == 1);
+    CHECK(shortage->volume_type == nvtStandard);
+    inventory.nozzle_counts[1] = {};
+    shortage                   = manual_map_nozzle_shortage(inventory, {1, 2, 3}, {1, 2, 2}, {0, 1, 0});
+    REQUIRE(shortage.has_value());
+    CHECK(shortage->volume_type == nvtStandard);
+
+    // A printer with no multi-nozzle extruder (a nil count is none) keeps no inventory to check.
+    for (const std::vector<int>& counts : {std::vector<int>{1, 1}, std::vector<int>{1, ConfigOptionIntsNullable::nil_value()}}) {
+        inventory.max_nozzle_counts = counts;
+        CHECK_FALSE(has_multi_nozzle_extruder(inventory.max_nozzle_counts));
+        CHECK_FALSE(manual_map_nozzle_shortage(inventory, {1, 2, 3}, {1, 2, 2}, {0, 1, 0}).has_value());
+    }
+}
+
+TEST_CASE("a preset list is filtered by vendor, filament type, printer and source", "[Mcp]")
+{
+    const NativeCommand* list = NativeCommands::find("preset_list");
+    REQUIRE(list != nullptr);
+    for (const char* filter : {"vendor", "filament_type", "printer", "source"}) {
+        INFO(filter);
+        CHECK(list->input_schema["properties"].contains(filter));
+    }
+    CHECK(enum_of(*list, "source") == std::set<std::string>{"system", "user", "project"});
+
+    // Filaments as preset_list builds their items: two system ones of a vendor, a user one and one kept in the project
+    // of another, a system one incompatible with the selected printer and one a person has not installed.
+    const json items = json::array({
+        {{"name", "Bambu PLA Basic @BBL X1C"}, {"system", true}, {"user", false}, {"vendor", "Bambu Lab"}, {"filament_type", "PLA"}},
+        {{"name", "Bambu PETG HF @BBL X1C"}, {"system", true}, {"user", false}, {"vendor", "Bambu Lab"}, {"filament_type", "PETG"}},
+        {{"name", "My PLA"}, {"system", false}, {"user", true}, {"vendor", "Generic"}, {"filament_type", "PLA"}, {"alias", "Mine"}},
+        {{"name", "Kept PLA"}, {"system", false}, {"user", true}, {"project", true}, {"vendor", "Generic"}, {"filament_type", "PLA"}},
+        {{"name", "Bambu PLA Basic @BBL X1C 0.2 nozzle"}, {"system", true}, {"user", false}, {"vendor", "Bambu Lab"},
+         {"filament_type", "PLA"}, {"compatible", false}},
+        {{"name", "Bambu PLA Silk @BBL X1C"}, {"system", true}, {"user", false}, {"vendor", "Bambu Lab"}, {"filament_type", "PLA"},
+         {"installed", false}},
+    });
+    const auto names = [](const json& listed) {
+        std::vector<std::string> out;
+        for (const json& item : listed)
+            out.push_back(item["name"].get<std::string>());
+        return out;
+    };
+    using Names = std::vector<std::string>;
+    const std::function<bool(const json&)> selected_printer;
+
+    // Unfiltered, the compatible and installed ones; a query matches a name or an alias.
+    CHECK(names(filter_preset_items(items, json::object(), selected_printer)) ==
+          Names{"Bambu PLA Basic @BBL X1C", "Bambu PETG HF @BBL X1C", "My PLA", "Kept PLA"});
+    CHECK(names(filter_preset_items(items, {{"query", "mine"}}, selected_printer)) == Names{"My PLA"});
+    // A vendor and a filament type, in either case.
+    CHECK(names(filter_preset_items(items, {{"vendor", "bambu lab"}, {"filament_type", "pla"}}, selected_printer)) ==
+          Names{"Bambu PLA Basic @BBL X1C"});
+    CHECK(names(filter_preset_items(items, {{"vendor", "Bambu Lab"}, {"filament_type", "PLA"}, {"include_uninstalled", true}},
+                                    selected_printer)) == Names{"Bambu PLA Basic @BBL X1C", "Bambu PLA Silk @BBL X1C"});
+    CHECK(names(filter_preset_items(items, {{"vendor", "Polymaker"}}, selected_printer)).empty());
+    // Where a preset comes from: a preset kept in the project is no user preset.
+    CHECK(names(filter_preset_items(items, {{"source", "system"}}, selected_printer)) ==
+          Names{"Bambu PLA Basic @BBL X1C", "Bambu PETG HF @BBL X1C"});
+    CHECK(names(filter_preset_items(items, {{"source", "user"}}, selected_printer)) == Names{"My PLA"});
+    CHECK(names(filter_preset_items(items, {{"source", "project"}}, selected_printer)) == Names{"Kept PLA"});
+
+    // Another printer: what fits it decides, in place of the flag for the selected printer, and the items say so.
+    const std::function<bool(const json&)> fits_nozzle_02 = [](const json& item) {
+        const std::string name = item["name"];
+        return name.find("0.2 nozzle") != std::string::npos || name == "My PLA";
+    };
+    const json other = filter_preset_items(items, {{"printer", "Bambu Lab X1 Carbon 0.2 nozzle"}}, fits_nozzle_02);
+    CHECK(names(other) == Names{"My PLA", "Bambu PLA Basic @BBL X1C 0.2 nozzle"});
+    CHECK_FALSE(other[1].contains("compatible"));
+    const json every = filter_preset_items(items, {{"printer", "Bambu Lab X1 Carbon 0.2 nozzle"}, {"include_incompatible", true}},
+                                           fits_nozzle_02);
+    REQUIRE(every.size() == 5);
+    CHECK(every[0]["name"] == "Bambu PLA Basic @BBL X1C");
+    CHECK(every[0]["compatible"] == false);
+
+    // A filter goes with the presets it can name: a printer for the filaments and processes, a filament type for the
+    // filaments; refused before the app is read.
+    for (const json& args : {json{{"type", "printer"}, {"printer", "Bambu Lab X1 Carbon 0.2 nozzle"}},
+                             json{{"type", "process"}, {"filament_type", "PLA"}}}) {
+        INFO(args.dump());
+        NoUiContext ctx;
+        CHECK_THROWS_AS(list->run(args, ctx), ToolFailure);
+    }
+}
+
+TEST_CASE("the printer type of settings_set takes the extruder count, and each extruder's nozzle flow type and diameter", "[Mcp]")
+{
+    using Catch::Matchers::ContainsSubstring;
+    // The Extruders field of the Printer settings: 1 or more, up to the app's limit, and greyed out while single
+    // extruder multi-material is on.
+    CHECK(extruders_count_value(json(2), false) == 2);
+    CHECK(extruders_count_value(json("3"), false) == 3);
+    CHECK_THROWS_WITH(extruders_count_value(json(0), false), ContainsSubstring("1 to 64"));
+    CHECK_THROWS_WITH(extruders_count_value(json(65), false), ContainsSubstring("1 to 64"));
+    CHECK_THROWS_AS(extruders_count_value(json(1.5), false), ToolFailure);
+    CHECK_THROWS_WITH(extruders_count_value(json(2), true), ContainsSubstring("single extruder multimaterial"));
+    // It is set alone, on the printer, before the app is read: the extruders it adds take their settings in a
+    // following call.
+    const NativeCommand* set = NativeCommands::find("settings_set");
+    REQUIRE(set != nullptr);
+    for (const json& args : {json{{"type", "printer"}, {"values", {{"extruders_count", 2}, {"nozzle_diameter", "0.4,0.4"}}}},
+                             json{{"type", "printer"}, {"values", {{"extruders_count", 2}}}, {"reset_all", true}},
+                             json{{"values", {{"extruders_count", 2}}}}}) {
+        INFO(args.dump());
+        CHECK_THAT(settings_request_error(args, true), ContainsSubstring("extruders_count"));
+        NoUiContext ctx;
+        CHECK_THROWS_WITH(set->run(args, ctx), settings_request_error(args, true));
+    }
+    CHECK(settings_request_error({{"type", "printer"}, {"values", {{"extruders_count", 2}}}}, true).empty());
+
+    // A nozzle flow type per extruder, as each extruder's card in the sidebar picks it.
+    DynamicPrintConfig printer;
+    printer.set_deserialize_strict("nozzle_diameter", "0.4,0.4");
+    printer.set_deserialize_strict("nozzle_volume_type", "Standard,Standard");
+    const std::vector<int> two_extruders{etDirectDrive, etDirectDrive};
+    const std::vector<int> standard_nozzles{nvtStandard, nvtStandard};
+    CHECK(variant_entries("nozzle_volume_type", printer, two_extruders, standard_nozzles)["variants"] ==
+          json::array({"extruder 1", "extruder 2"}));
+    CHECK(preset_setting_value("nozzle_volume_type", {{"index", 1}, {"value", "High Flow"}}, printer, two_extruders,
+                               standard_nozzles) == "Standard,High Flow");
+    CHECK_THROWS_WITH(preset_setting_value("nozzle_volume_type", "High Flow", printer, two_extruders, standard_nozzles),
+                      ContainsSubstring("holds 2 values"));
+
+    // A diameter one of the printer model's variants has switches to that variant, as the sidebar's nozzle diameter
+    // does; any other is typed into the Printer settings.
+    const std::vector<std::string> variants{"0.2", "0.4", "0.6", "0.8"};
+    CHECK(nozzle_diameter_variant({0.6}, variants, "0.4") == "0.6");
+    CHECK(nozzle_diameter_variant({0.6, 0.6}, variants, "0.4") == "0.6");
+    CHECK(nozzle_diameter_variant({0.4, 0.6}, variants, "0.4").empty());
+    CHECK(nozzle_diameter_variant({0.5}, variants, "0.4").empty());
+    CHECK(nozzle_diameter_variant({0.4}, variants, "0.4").empty());
+    CHECK(nozzle_diameter_variant({0.25}, {"0.25", "0.4"}, "0.4") == "0.25");
+    // A named variant shares its diameter with the plain one, which the diameter switches back to.
+    CHECK(nozzle_diameter_variant({0.4}, {"0.4", "0.4 High Flow"}, "0.4 High Flow") == "0.4");
 }
 
 TEST_CASE("the run's flag lets scripts run unrestricted without changing the setting", "[Mcp]")
@@ -786,7 +1560,7 @@ Calib_Params calib_args(const json& args, const DynamicPrintConfig& printer = ca
 
 } // namespace
 
-TEST_CASE("generate_calibration_test arguments map to the dialog's calibration modes", "[Mcp]")
+TEST_CASE("calibration_generate_test arguments map to the dialog's calibration modes", "[Mcp]")
 {
     for (const auto& [args, mode] : std::initializer_list<std::pair<json, CalibMode>>{
              {{{"test", "temperature"}}, CalibMode::Calib_Temp_Tower},
@@ -805,7 +1579,7 @@ TEST_CASE("generate_calibration_test arguments map to the dialog's calibration m
     CHECK_THROWS_AS(calib_args({{"test", "flow_ratio"}, {"method", "tower"}}), ToolFailure);
 }
 
-TEST_CASE("omitted generate_calibration_test parameters take the dialog defaults", "[Mcp]")
+TEST_CASE("omitted calibration_generate_test parameters take the dialog defaults", "[Mcp]")
 {
     const Calib_Params temp = calib_args({{"test", "temperature"}});
     CHECK((temp.start == 230 && temp.end == 190 && temp.nozzle_based_resize));
@@ -838,7 +1612,7 @@ TEST_CASE("omitted generate_calibration_test parameters take the dialog defaults
     CHECK(calib_args({{"test", "cornering"}}, calib_printer(gcfKlipper, etDirectDrive, 0.1)).end == 15);
 }
 
-TEST_CASE("generate_calibration_test refuses arguments its test does not take", "[Mcp]")
+TEST_CASE("calibration_generate_test refuses arguments its test does not take", "[Mcp]")
 {
     using Catch::Matchers::ContainsSubstring;
     CHECK_THROWS_WITH(calib_args({{"test", "pressure_advance"}, {"speeds", {100}}}),
@@ -878,7 +1652,7 @@ TEST_CASE("the input shaping Y range defaults to the X range, and RepRapFirmware
     CHECK(check_calib_params(p, calib_printer()) == CalibParamsError::Range);
 }
 
-TEST_CASE("generate_calibration_test clamps temperatures to 155-500 C, rounded down to 5 C steps, as the dialog does", "[Mcp]")
+TEST_CASE("calibration_generate_test clamps temperatures to 155-500 C, rounded down to 5 C steps, as the dialog does", "[Mcp]")
 {
     using Catch::Matchers::ContainsSubstring;
     std::vector<std::string> warnings;
@@ -988,7 +1762,7 @@ TEST_CASE("VFA's auto-adjust lowers the layer height, else the end speed, to sta
     CHECK(fit_vfa_speed(p, printer, print, filament, true, candidates).kind == VfaSpeedFit::Fits);
 }
 
-TEST_CASE("generate_calibration_test records the parameters a test ran with, defaults included", "[Mcp]")
+TEST_CASE("calibration_generate_test records the parameters a test ran with, defaults included", "[Mcp]")
 {
     const DynamicPrintConfig printer = calib_printer();
     const json tower = {{"test", "pressure_advance"}, {"end", 0.06}};
@@ -1011,4 +1785,24 @@ TEST_CASE("generate_calibration_test records the parameters a test ran with, def
     CHECK(calib_params_json(temp, calib_args(temp), printer) == json{{"start", 250.}, {"end", 190.}, {"auto_scale", true}});
     const json vfa = {{"test", "vfa"}, {"auto_adjust", false}};
     CHECK(calib_params_json(vfa, calib_args(vfa), printer)["auto_adjust"] == false);
+}
+
+TEST_CASE("filament_sync_ams takes the sync dialog's choice, map or overwrite, and called with none opens the dialog", "[Mcp]")
+{
+    const NativeCommand* sync = NativeCommands::find("filament_sync_ams");
+    REQUIRE(sync != nullptr);
+    std::set<std::string> modes;
+    for (const json& mode : sync->input_schema.at("properties").at("mode").at("enum"))
+        modes.insert(mode.get<std::string>());
+    CHECK(modes == std::set<std::string>{"map", "overwrite"});
+    for (const char* mode : {"map", "overwrite"}) {
+        INFO(mode);
+        json args{{"mode", mode}};
+        CHECK(argument_error(*sync, args).empty());
+        CHECK_FALSE(Mcp::person_form(*sync, args));
+    }
+    json other{{"mode", "merge"}};
+    CHECK_THAT(argument_error(*sync, other), Catch::Matchers::ContainsSubstring("mode"));
+    // Its tile's call, with no arguments, is the person's form, which opens the sync dialog.
+    CHECK(Mcp::person_form(*sync, json::object()));
 }

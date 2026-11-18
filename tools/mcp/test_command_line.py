@@ -6,14 +6,14 @@ Each check starts the built app as this script's child, on a fresh data folder w
 folder, seeded as orca_mcp.py launch seeds one, with preset sync off and the update check sent to the loopback's
 discard port. Only a process's parent can read its exit code on every system. The replays and scripts a check runs are
 written by the check into a temporary folder of its own. An app that serves is closed as a person closes it, by a click
-on the File menu's Quit item that list_widgets lists; an app still running when its check is done is killed with its
+on the File menu's Quit item that widget_list lists; an app still running when its check is done is killed with its
 child processes.
 
 - refused_options: --mcp-run r.json, --mcp-run-out d, --mcp-token t and --no-mcp each exit non-zero within 10 s with
   "Invalid option" on stderr, and the data folder holds only the seeded OrcaSlicer.conf, which a GUI that started
   would have added its log and cache folders to.
 - run_invalid_file: --run missing.json exits 2, and so does --run a.txt, whose text is a valid replay.
-- run_replay_folders: --run r.json, a replay whose one step is get_app_state, exits 0 with result.json in r.out beside
+- run_replay_folders: --run r.json, a replay whose one step is app_state, exits 0 with result.json in r.out beside
   it; with --outputdir D, a folder that does not exist yet, it exits 0, D holds result.json, and r.out is not created.
 - run_script_output_folder: --run s.py, whose code takes a screenshot with no path, exits 0 with one .png in D when
   given --outputdir D, and without it in <datadir>/automation/out, while <datadir>/mcp/out does not exist.
@@ -26,7 +26,7 @@ child processes.
 - unrestricted_scripts_flag: --unrestricted-scripts --run r.py, where r.py reads a file the test wrote in a temporary
   folder that is neither the data folder, the resources folder nor the script's own, exits 0, and the conf's
   python_scripts_unrestricted is absent or false after exit; without the flag the same run exits 1.
-- cad_flag: --cad --mcp on a fresh data folder: search_tools {group: Design} finds commands and get_app_state has no
+- cad_flag: --cad --mcp on a fresh data folder: tool_search {group: Design} finds commands and app_state has no
   cad_note; after exit the conf's enable_cad_feature is absent or false. A second start without the flag on the same
   folder finds no Design command.
 - run_beside_open_window: with single_instance true in the conf and a first window serving on the same data folder,
@@ -68,10 +68,10 @@ HANDED_OVER = (-1, 255)     # a start that handed its command line to a window, 
 MODEL = os.path.join(HERE, "..", "..", "resources", "handy_models", "OrcaCube_v2.drc")
 DROPPED = (McpError, OSError, http.client.HTTPException)
 
-REPLAY = {"orca_replay_version": "0.1.0", "name": "the app's state", "steps": [{"tool": "get_app_state"}]}
+REPLAY = {"orca_replay_version": "0.2.0", "name": "the app's state", "steps": [{"tool": "app_state"}]}
 SCREENSHOT_SCRIPT = """
 import orca
-orca.host.tools.call("screenshot", {"include_image": False})
+orca.host.tools.call("window_screenshot", {"include_image": False})
 """
 
 results = []
@@ -184,7 +184,7 @@ class App:
         deadline = time.monotonic() + READY_LIMIT_S
         while time.monotonic() < deadline and self.proc.poll() is None:
             try:
-                if not orca.call("wait", _timeout=15, **{"for": "ready", "timeout_s": 5}).get("satisfied"):
+                if not orca.call("app_wait", _timeout=15, **{"for": "ready", "timeout_s": 5}).get("satisfied"):
                     continue
             except DROPPED:
                 time.sleep(0.5)
@@ -207,10 +207,10 @@ class App:
         The click's reply may not arrive, since the server closes with the app."""
         if self.orca is not None and self.proc.poll() is None:
             try:
-                _, texts = self.orca.call_with_text("list_widgets", _timeout=10, query="Quit")
+                _, texts = self.orca.call_with_text("widget_list", _timeout=10, query="Quit")
                 found = re.search(r'\[(\w+)\] menu_item "Quit"', "".join(texts))
                 if found:
-                    self.orca.call_raw("click", {"target": found.group(1)}, timeout=10)
+                    self.orca.call_raw("widget_click", {"target": found.group(1)}, timeout=10)
             except DROPPED:
                 pass
         try:
@@ -380,16 +380,21 @@ with open({target!r}, encoding="utf-8") as f:
 
 
 def design_commands(orca):
-    """How many commands search_tools lists in the group Design, and "" or why the answer was not one. With the Design
-    tab off no command has that group, and search_tools refuses it as unknown, naming the groups there are; that
+    """How many commands tool_search lists in the group Design, and "" or why the answer was not one. With the Design
+    tab off no command has that group, and tool_search refuses it as unknown, naming the groups there are; that
     refusal counts as none, and any other error is a problem."""
     try:
-        return len(orca.call("search_tools", group="Design").get("names", [])), ""
+        return len(orca.call("tool_search", group="Design").get("names", [])), ""
     except McpError as e:
-        refused = re.search(r"Unknown group: Design; the groups are ([^\"]*)", str(e))
-        if refused and "Design" not in [g.strip() for g in refused.group(1).split(",")]:
+        # The refusal's details, on the line after its text, list the groups: places' headings, some with a comma.
+        text, _, details = str(e).rpartition("\n")
+        try:
+            groups = json.loads(details).get("groups")
+        except (ValueError, AttributeError):
+            groups = None
+        if text.startswith("Unknown group: Design;") and isinstance(groups, list) and "Design" not in groups:
             return 0, ""
-        return 0, f"search_tools {{group: Design}} failed: {str(e)[:300]}"
+        return 0, f"tool_search {{group: Design}} failed: {str(e)[:300]}"
 
 
 def cad_flag(binary):
@@ -404,10 +409,10 @@ def cad_flag(binary):
             if error:
                 problems.append(f"--cad --mcp: {error}")
             elif found == 0:
-                problems.append("--cad --mcp: search_tools finds no Design command")
-            note = app.orca.call("get_app_state").get("cad_note")
+                problems.append("--cad --mcp: tool_search finds no Design command")
+            note = app.orca.call("app_state").get("cad_note")
             if note is not None:
-                problems.append(f"--cad --mcp: get_app_state has cad_note {note!r}")
+                problems.append(f"--cad --mcp: app_state has cad_note {note!r}")
         app.quit()
         value = read_conf(work.datadir).get("enable_cad_feature")
         if not is_off(value):
@@ -420,7 +425,7 @@ def cad_flag(binary):
             if error:
                 problems.append(f"--mcp without --cad: {error}")
             elif count != 0:
-                problems.append(f"--mcp without --cad: search_tools finds {count} Design commands")
+                problems.append(f"--mcp without --cad: tool_search finds {count} Design commands")
         app.quit()
     check("cad_flag", problems, f"{found} Design commands with --cad, none without, enable_cad_feature stayed off")
 
@@ -438,7 +443,7 @@ def run_beside_open_window(binary):
             problems.append(f"--run r.json beside the first window: exit code {code}")
         if not os.path.isfile(os.path.join(out, "result.json")):
             problems.append("--run r.json beside the first window: no result.json")
-        objects = first.orca.call("get_app_state").get("objects")
+        objects = first.orca.call("app_state").get("objects")
         if objects != 0:
             problems.append(f"the first window has {objects} objects")
         first.quit()
@@ -493,7 +498,7 @@ def window_per_data_folder(binary):
                 break
             if sys.platform != "linux":
                 deadline = time.monotonic() + 30
-                while (objects := first.orca.call("get_app_state").get("objects")) != n and time.monotonic() < deadline:
+                while (objects := first.orca.call("app_state").get("objects")) != n and time.monotonic() < deadline:
                     time.sleep(0.5)
                 if objects != n:
                     problems.append(f"the first window has {objects} objects after a start on {what} handed it a model")

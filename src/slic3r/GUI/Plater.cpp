@@ -310,6 +310,9 @@
 #include "FilamentMapDialog.hpp"
 #include "CloneDialog.hpp"
 #include "PurgeModeDialog.hpp"
+#include "Operations/ObjectOps.hpp"
+#include "Operations/Outcome.hpp"
+#include "Operations/PresetOps.hpp"
 
 #include "DeviceCore/DevFilaSystem.h"
 #include "DeviceCore/DevManager.h"
@@ -1947,6 +1950,42 @@ static bool is_skip_high_flow_printer(const std::string& printer)
     };
     return invalidate_list.count(printer);
 };
+
+// The Flow combo's choices for extruder `index` of the printer `printer`: the nozzle flow types its variants name, and
+// Hybrid where the extruder holds several nozzles, each with its position among nozzle_volume_type's labels. E3D High
+// Flow is offered at 0.4 and 0.6 mm alone, High Flow neither at 0.2 mm nor on a printer that skips it.
+static std::vector<std::pair<NozzleVolumeType, size_t>> flow_choices(const DynamicPrintConfig &printer, int index)
+{
+    std::vector<std::pair<NozzleVolumeType, size_t>> choices;
+    const auto *extruders                 = printer.option<ConfigOptionEnumsGeneric>("extruder_type");
+    const auto *extruder_variants         = printer.option<ConfigOptionStrings>("extruder_variant_list");
+    const auto *extruder_max_nozzle_count = printer.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
+    if (extruders == nullptr || extruder_variants == nullptr || index < 0 || index >= int(extruder_variants->values.size()) ||
+        index >= int(extruders->values.size()))
+        return choices;
+    const ConfigOptionDef *extruders_def      = printer.def()->get("extruder_type");
+    const ConfigOptionDef *nozzle_volumes_def = printer.def()->get("nozzle_volume_type");
+    const std::string      diameter           = printer.opt_string("printer_variant");
+    const std::string      printer_model      = printer.opt_string("printer_model");
+    const std::string      type               = extruders_def->enum_labels[extruders->values[index]];
+    for (size_t i = 0; i < nozzle_volumes_def->enum_labels.size(); ++i) {
+        const auto cur_volume_type = NozzleVolumeType(nozzle_volumes_def->enum_keys_map->at(nozzle_volumes_def->enum_values[i]));
+        // get_at falls back to the first entry when a profile defines no per-extruder value,
+        // so extruders without an explicit sub-nozzle count never offer Hybrid. A nullable-int
+        // nil is INT_MAX (> 1) and would otherwise falsely pass the gate, so exclude it too.
+        if (boost::algorithm::contains(extruder_variants->values[index], type + " " + nozzle_volumes_def->enum_labels[i]) ||
+            (extruder_max_nozzle_count != nullptr && extruder_max_nozzle_count->get_at(index) > 1 &&
+             extruder_max_nozzle_count->get_at(index) != ConfigOptionIntsNullable::nil_value() && cur_volume_type == nvtHybrid)) {
+            // Defensive: profiles restrict E3D to 0.4 / 0.6; keep it out elsewhere.
+            if (cur_volume_type == NozzleVolumeType::nvtE3DHighFlow && diameter != "0.4" && diameter != "0.6")
+                continue;
+            if (cur_volume_type == NozzleVolumeType::nvtHighFlow && (diameter == "0.2" || is_skip_high_flow_printer(printer_model)))
+                continue;
+            choices.emplace_back(cur_volume_type, i);
+        }
+    }
+    return choices;
+}
 
 // ---- Multi-nozzle sync helpers ----------------------------
 // Serialize/deserialize the machine nozzle config + chosen NozzleOption for the app_config
@@ -4006,7 +4045,6 @@ void Sidebar::update_presets(Preset::Type preset_type)
         // Update dual extrudes
         auto* nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(printer_preset.config.option("nozzle_diameter"));
         auto extruder_variants = printer_preset.config.option<ConfigOptionStrings>("extruder_variant_list");
-        std::string printer_model = printer_preset.config.option<ConfigOptionString>("printer_model")->value;
 
         bool isBBL = preset_bundle.is_bbl_vendor();
         bool is_dual_extruder = extruder_variants->size() == 2;
@@ -4025,15 +4063,14 @@ void Sidebar::update_presets(Preset::Type preset_type)
             p->right_extruder->SetTitle(_L(right_title));
         }
 
-        auto extruders_def = printer_preset.config.def()->get("extruder_type");
         auto extruders = printer_preset.config.option<ConfigOptionEnumsGeneric>("extruder_type");
         auto nozzle_volumes_def = wxGetApp().preset_bundle->project_config.def()->get("nozzle_volume_type");
         auto nozzle_volumes = wxGetApp().preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
         auto diameters = wxGetApp().preset_bundle->printers.diameters_of_selected_printer();
         auto diameter = printer_preset.config.opt_string("printer_variant");
-        auto extruder_max_nozzle_count = printer_preset.config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
         const bool has_flow_variant = preset_bundle.support_different_extruders();
-        auto update_extruder_variant = [printer_model, extruders_def, extruders, nozzle_volumes_def, nozzle_volumes, extruder_variants,diameter,extruder_max_nozzle_count,has_flow_variant](ExtruderGroup & extruder, size_t row, int index) {
+        auto update_extruder_variant = [&printer_preset, extruders, nozzle_volumes_def, nozzle_volumes, extruder_variants,
+                                        has_flow_variant](ExtruderGroup &extruder, size_t row, int index) {
             ComboBox *combo_flow = extruder.rows[row].flow;
             combo_flow->Clear();
             // A profile may leave the per-extruder lists shorter than the nozzle count (they are
@@ -4043,28 +4080,13 @@ void Sidebar::update_presets(Preset::Type preset_type)
                 combo_flow->Hide();
                 return;
             }
-            auto type = extruders_def->enum_labels[extruders->values[index]];
             int select = -1;
-            for (size_t i = 0; i < nozzle_volumes_def->enum_labels.size(); ++i) {
-                // get_at falls back to the first entry when a profile defines no per-extruder value,
-                // so extruders without an explicit sub-nozzle count never offer Hybrid. A nullable-int
-                // nil is INT_MAX (> 1) and would otherwise falsely pass the gate, so exclude it too.
-                if (boost::algorithm::contains(extruder_variants->values[index], type + " " + nozzle_volumes_def->enum_labels[i]) ||
-                    (extruder_max_nozzle_count->get_at(index) > 1 && extruder_max_nozzle_count->get_at(index) != ConfigOptionIntsNullable::nil_value() &&
-                    nozzle_volumes_def->enum_keys_map->at(nozzle_volumes_def->enum_values[i]) == nvtHybrid)) {
-                    auto cur_volume_type = nozzle_volumes_def->enum_keys_map->at(nozzle_volumes_def->enum_values[i]);
-                    // Defensive: profiles restrict E3D to 0.4 / 0.6; keep it out elsewhere.
-                    if (cur_volume_type == NozzleVolumeType::nvtE3DHighFlow && diameter != "0.4" && diameter != "0.6")
-                        continue;
-                    if (cur_volume_type == NozzleVolumeType::nvtHighFlow && (diameter == "0.2" ||
-                        is_skip_high_flow_printer(printer_model)))
-                        continue;
-                    // The client data is the enum value, not the label position: E3D High Flow is 5
-                    // but sits at position 4, and a position would write an invalid type.
-                    if (nozzle_volumes->values[index] == cur_volume_type)
-                        select = combo_flow->GetCount();
-                    combo_flow->Append(_L(nozzle_volumes_def->enum_labels[i]), {}, (void*)(intptr_t)cur_volume_type);
-                }
+            for (const auto &[cur_volume_type, label] : flow_choices(printer_preset.config, index)) {
+                // The client data is the enum value, not the label position: E3D High Flow is 5
+                // but sits at position 4, and a position would write an invalid type.
+                if (nozzle_volumes->values[index] == cur_volume_type)
+                    select = combo_flow->GetCount();
+                combo_flow->Append(_L(nozzle_volumes_def->enum_labels[label]), {}, (void*)(intptr_t)cur_volume_type);
             }
             if (select == -1)
                 select = combo_flow->GetCount() - 1;
@@ -5904,36 +5926,30 @@ void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
     filament_list->Scroll(-1, INT_MAX); // ORCA scroll to end of list on changes to inform user about filament count
 }
 
+bool Sidebar::merge_removes_component(size_t from_id, size_t to_id) const
+{
+    const auto& pb = *wxGetApp().preset_bundle;
+    if (pb.is_mixed_filament(from_id) || !pb.is_mixed_filament(to_id))
+        return false;
+    const auto* comp_opt = pb.project_config.option<ConfigOptionStrings>("filament_mixed_components");
+    if (!comp_opt || to_id >= comp_opt->values.size())
+        return false;
+    const std::vector<unsigned int> comps = Slic3r::parse_mixed_components(comp_opt->values[to_id]);
+    return std::find(comps.begin(), comps.end(), (unsigned int) from_id + 1) != comps.end();
+}
+
 void Sidebar::change_filament(size_t from_id, size_t to_id)
 {
     // Merging a physical filament into a mixed one that lists it as a component would delete
     // the very filament the mix depends on, leaving it broken. Warn before doing so.
-    auto& pb = *wxGetApp().preset_bundle;
-    bool from_is_physical = !pb.is_mixed_filament(from_id);
-    bool to_is_mixed = pb.is_mixed_filament(to_id);
-
-    if (from_is_physical && to_is_mixed) {
-        auto* comp_opt = pb.project_config.option<ConfigOptionStrings>("filament_mixed_components");
-        if (comp_opt && to_id < comp_opt->values.size()) {
-            auto comps = Slic3r::parse_mixed_components(comp_opt->values[to_id]);
-            unsigned int from_1based = (unsigned int)from_id + 1;
-            bool target_uses_source = false;
-            for (unsigned int c : comps) {
-                if (c == from_1based) {
-                    target_uses_source = true;
-                    break;
-                }
-            }
-            if (target_uses_source) {
-                int ret = wxMessageBox(
-                    _L("The target mixed filament uses this physical filament as a component. "
-                       "Merging will remove this physical filament and may invalidate the mixed filament. Continue?"),
-                    _L("Warning"),
-                    wxOK | wxCANCEL | wxICON_WARNING);
-                if (ret != wxOK)
-                    return;
-            }
-        }
+    if (merge_removes_component(from_id, to_id)) {
+        int ret = wxMessageBox(
+            _L("The target mixed filament uses this physical filament as a component. "
+               "Merging will remove this physical filament and may invalidate the mixed filament. Continue?"),
+            _L("Warning"),
+            wxOK | wxCANCEL | wxICON_WARNING);
+        if (ret != wxOK)
+            return;
     }
 
     delete_filament(from_id, int(to_id));
@@ -6192,6 +6208,69 @@ void Sidebar::reset_fila_switch()
     p->update_extruder_separator_icon(false, false);
 }
 
+// The Flow combo of extruder `extruder` (0 base), as Sidebar::update_presets() fills them: a row per extruder of a card
+// with several rows, the left and right cards of a printer with two extruder variants, else the one card's row.
+static ComboBox *flow_combo(const ExtruderGroup &single, const ExtruderGroup &left, const ExtruderGroup &right, int extruder)
+{
+    if (extruder < 0)
+        return nullptr;
+    if (single.NozzleRowCount() > 1)
+        return size_t(extruder) < single.NozzleRowCount() ? single.rows[extruder].flow : nullptr;
+    const DynamicPrintConfig &printer  = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    const auto               *variants = printer.option<ConfigOptionStrings>("extruder_variant_list");
+    if (variants != nullptr && variants->size() == 2)
+        return extruder == 0 ? left.rows[0].flow : extruder == 1 ? right.rows[0].flow : nullptr;
+    return extruder == 0 ? single.rows[0].flow : nullptr;
+}
+
+std::vector<NozzleVolumeType> Sidebar::nozzle_volume_types(int extruder) const
+{
+    std::vector<NozzleVolumeType> types;
+    ComboBox *combo = flow_combo(*p->single_extruder, *p->left_extruder, *p->right_extruder, extruder);
+    // A person picks from the combo while it and the card it is on are shown.
+    if (combo != nullptr && combo->IsShown() && combo->GetParent()->IsShown())
+        for (unsigned int i = 0; i < combo->GetCount(); ++i)
+            types.push_back(NozzleVolumeType(intptr_t(combo->GetClientData(i))));
+    return types;
+}
+
+std::vector<NozzleVolumeType> Sidebar::nozzle_volume_types(const DynamicPrintConfig &printer, int extruder)
+{
+    // The combo is shown for a printer with flow variants (PresetBundle::support_different_extruders()).
+    std::vector<NozzleVolumeType> types;
+    int                           extruders = 0;
+    if (printer.support_different_extruders(extruders))
+        for (const auto &choice : flow_choices(printer, extruder))
+            types.push_back(choice.first);
+    return types;
+}
+
+void Sidebar::pick_nozzle_volume_type(int extruder, NozzleVolumeType type)
+{
+    ComboBox *combo = flow_combo(*p->single_extruder, *p->left_extruder, *p->right_extruder, extruder);
+    if (combo == nullptr)
+        return;
+    for (unsigned int i = 0; i < combo->GetCount(); ++i)
+        if (NozzleVolumeType(intptr_t(combo->GetClientData(i))) == type) {
+            // What the combo's drop-down does with a pick.
+            combo->SetSelection(int(i));
+            wxCommandEvent evt(wxEVT_COMBOBOX, combo->GetId());
+            evt.SetEventObject(combo);
+            evt.SetInt(int(i));
+            combo->GetEventHandler()->ProcessEvent(evt);
+            return;
+        }
+}
+
+bool Sidebar::pick_nozzle_variant(const std::string &variant)
+{
+    // As the variant combo's pick does, without its deferral: the combo is rebuilt by the preset switch.
+    p->is_switching_diameter = true;
+    const bool switched      = p->switch_diameter_to(from_u8(variant));
+    p->is_switching_diameter = false;
+    return switched;
+}
+
 bool Sidebar::need_auto_sync_extruder_list_after_connect_priner(const MachineObject *obj)
 {
     if(!obj)
@@ -6316,54 +6395,30 @@ void Sidebar::load_ams_list(MachineObject* obj)
     p->combo_printer->update();
 }
 
-void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
+std::optional<Ops::Refusal> Sidebar::sync_ams_list(bool is_from_big_sync_btn)
 {
     wxBusyCursor cursor;
     // Force load ams list
-    auto obj = wxGetApp().getDeviceManager()->get_selected_machine();
-    if (!obj)
-        return;
-    GUI::wxGetApp().sidebar().load_ams_list(obj);
-
-    auto & list = wxGetApp().preset_bundle->filament_ams_list;
-    if (list.empty()) {
-        // Only an unreachable printer is "not connected". One that is online and has
-        // delivered at least one status push answered the request without listing any
-        // filament slot, and the message then names the machine that answered.
-        if (obj->is_connected() && obj->m_push_count > 0) {
+    DeviceManager* devices = wxGetApp().getDeviceManager();
+    auto           obj     = devices != nullptr ? devices->get_selected_machine() : nullptr;
+    if (obj)
+        GUI::wxGetApp().sidebar().load_ams_list(obj);
+    if (std::optional<Ops::Refusal> refusal = Ops::ams_sync_refusal(Ops::ams_sync_state(), std::nullopt)) {
+        // The warning that says why, with its way to the Device page. With no printer there is none.
+        const std::string code = refusal->code;
+        if (code == "no_filament_system")
             p->plater->pop_warning_and_go_to_device_page(from_u8(obj->get_dev_name()), Plater::PrinterWarningType::NO_FILAMENT_SYSTEM,
                                                          _L("Sync printer information"));
-            return;
-        }
-        auto printer_name = p->plater->get_selected_printer_name_in_combox();
-        p->plater->pop_warning_and_go_to_device_page(printer_name, Plater::PrinterWarningType::NOT_CONNECTED, _L("Sync printer information"));
-        return;
-    }
-    bool exist_at_list_one_filament =false;
-    for (auto &cur : list) {
-        auto temp_config    = cur.second;
-        auto filament_type  = temp_config.opt_string("filament_type", 0u);
-        auto filament_color = temp_config.opt_string("filament_colour", 0u);
-        if (!filament_type.empty() || temp_config.opt_bool("filament_exist", 0u)) {
-            exist_at_list_one_filament = true;
-            break;
-        }
-    }
-    if (!exist_at_list_one_filament) {
-        if (!obj->is_filament_installed()) {
+        else if (code == "not_connected")
+            p->plater->pop_warning_and_go_to_device_page(p->plater->get_selected_printer_name_in_combox(),
+                                                         Plater::PrinterWarningType::NOT_CONNECTED, _L("Sync printer information"));
+        else if (code == "no_filament")
             p->plater->pop_warning_and_go_to_device_page("", Plater::PrinterWarningType::UNINSTALL_FILAMENT, _L("Sync printer information"));
-            return;
-        }
-        p->plater->pop_warning_and_go_to_device_page("", Plater::PrinterWarningType::EMPTY_FILAMENT, _L("Sync printer information"));
-        return;
-    }
-    if (!wxGetApp().plater()->is_same_printer_for_connected_and_selected()) {
-        return;
-    }
-    std::string ams_filament_ids = wxGetApp().app_config->get("ams_filament_ids", p->ams_list_device);
-    std::vector<std::string> list2;
-    if (!ams_filament_ids.empty()) {
-        boost::algorithm::split(list2, ams_filament_ids, boost::algorithm::is_any_of(","));
+        else if (code == "unknown_filaments")
+            p->plater->pop_warning_and_go_to_device_page("", Plater::PrinterWarningType::EMPTY_FILAMENT, _L("Sync printer information"));
+        else if (code == "other_printer")
+            wxGetApp().plater()->is_same_printer_for_connected_and_selected(/*popup_warning=*/true);
+        return refusal;
     }
     wxGetApp().plater()->update_all_plate_thumbnails(true);//preview thumbnail for sync_dlg
     SyncAmsInfoDialog::SyncInfo temp_info;
@@ -6388,18 +6443,53 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
         dlg_res =(int) wxID_YES;
     }
     if (dlg_res == wxID_CANCEL)
-        return;
+        return std::nullopt;
     auto sync_result = m_sync_dlg->get_result();
     if (!sync_result.is_same_printer) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "check error: sync_result.is_same_printer value is false";
-        return;
+        return std::nullopt;
+    }
+    Ops::AmsSyncChoice choice;
+    choice.direct_sync        = sync_result.direct_sync;
+    choice.sync_maps          = sync_result.sync_maps;
+    choice.every_slot_changed = dlg_res == wxID_YES;
+    choice.unknowns_found     = [this](const wxString &detail) {
+        MessageDialog dlg(this,
+            _L("There are some unknown or incompatible filaments mapped to generic preset.\nPlease update Orca Slicer or restart "
+               "Orca Slicer to check if there is an update to system presets.") + detail,
+            _L("Sync filaments with AMS"), wxOK);
+        dlg.ShowModal();
+    };
+    choice.none_compatible = [this](const wxString &detail) {
+        MessageDialog dlg(this,
+            _L("There are no compatible filaments, and sync is not performed.") + detail,
+            _L("Sync filaments with AMS"), wxOK);
+        dlg.ShowModal();
+    };
+    if (const Ops::Outcome<Ops::AmsSynced> synced = Ops::apply_ams_sync(choice); !synced)
+        return synced.refusal();
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "begin pop_finsish_sync_ams_dialog";
+    pop_finsish_sync_ams_dialog();
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "finish pop_finsish_sync_ams_dialog";
+    return std::nullopt;
+}
+
+Sidebar::AmsSyncApplied Sidebar::apply_ams_sync(bool direct_sync, std::map<int, AMSMapInfo> sync_maps, bool every_slot_changed,
+                                                const std::function<void(const wxString &detail)> &unknowns_found)
+{
+    AmsSyncApplied applied;
+    auto & list = wxGetApp().preset_bundle->filament_ams_list;
+    std::string ams_filament_ids = wxGetApp().app_config->get("ams_filament_ids", p->ams_list_device);
+    std::vector<std::string> list2;
+    if (!ams_filament_ids.empty()) {
+        boost::algorithm::split(list2, ams_filament_ids, boost::algorithm::is_any_of(","));
     }
     list2.resize(list.size());
     auto iter = list.begin();
     for (int i = 0; i < list.size(); ++i, ++iter) {
         auto & ams = iter->second;
         auto filament_id = ams.opt_string("filament_id", 0u);
-        ams.set_key_value("filament_changed", new ConfigOptionBool{dlg_res == wxID_YES || list2[i] != filament_id});
+        ams.set_key_value("filament_changed", new ConfigOptionBool{every_slot_changed || list2[i] != filament_id});
         list2[i] = filament_id;
     }
 
@@ -6416,20 +6506,17 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     std::vector<std::pair<DynamicPrintConfig *,std::string>> unknowns;
     auto enable_append  = wxGetApp().app_config->get_bool("enable_append_color_by_sync_ams");
     auto sync_color_only = wxGetApp().app_config->get("sync_ams_filament_mode") == "1";
-    auto n              = wxGetApp().preset_bundle->sync_ams_list(unknowns, !sync_result.direct_sync, sync_result.sync_maps, enable_append, merge_info, sync_color_only);
-    wxString detail;
+    auto n              = wxGetApp().preset_bundle->sync_ams_list(unknowns, !direct_sync, sync_maps, enable_append, merge_info,
+                                                                      sync_color_only);
     for (auto & uk : unknowns) {
         auto tray_name     = uk.first->opt_string("tray_name", 0u);
         auto filament_type = uk.first->opt_string("filament_type", 0u);
-        detail += from_u8("\n- " + tray_name + "(" + filament_type + ") ") + _L(uk.second);
+        applied.detail += from_u8("\n- " + tray_name + "(" + filament_type + ") ") + _L(uk.second);
+        applied.unknowns.push_back(tray_name + "(" + filament_type + ") " + uk.second);
     }
-    if (n == 0) {
-        MessageDialog dlg(this,
-            _L("There are no compatible filaments, and sync is not performed.") + detail,
-            _L("Sync filaments with AMS"), wxOK);
-        dlg.ShowModal();
-        return;
-    }
+    applied.filaments = n;
+    if (n == 0)
+        return applied;
     // Replace unknown filament IDs with the resolved preset's filament_id
     auto &filaments        = wxGetApp().preset_bundle->filaments;
     auto &filament_presets = wxGetApp().preset_bundle->filament_presets;
@@ -6442,12 +6529,8 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     }
     ams_filament_ids = boost::algorithm::join(list2, ",");
     wxGetApp().app_config ->set("ams_filament_ids", p->ams_list_device, ams_filament_ids);
-    if (!unknowns.empty()) {
-        MessageDialog dlg(this,
-            _L("There are some unknown or incompatible filaments mapped to generic preset.\nPlease update Orca Slicer or restart Orca Slicer to check if there is an update to system presets.") + detail,
-            _L("Sync filaments with AMS"), wxOK);
-        dlg.ShowModal();
-    }
+    if (!unknowns.empty() && unknowns_found)
+        unknowns_found(applied.detail);
     if (!sync_color_only) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "on_filament_count_change";
         wxGetApp().plater()->on_filament_count_change(n);
@@ -6497,7 +6580,7 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     };
     { // badge ams filament
         clear_combos_filament_badge();
-        if (sync_result.direct_sync) {
+        if (direct_sync) {
             // A placeholder contributes a preserved project filament to the
             // overwrite result, but it is not AMS-sourced and must not get a
             // sync badge. Non-placeholder empty trays are omitted entirely.
@@ -6535,7 +6618,7 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
             }
         };
         std::vector<bool> sync_ams_badges;
-        for (auto iter : sync_result.sync_maps) {
+        for (auto iter : sync_maps) {
             sync_ams_badges.push_back(false);
             if (iter.second.ams_id == "" || iter.second.slot_id == "") {
                 continue;
@@ -6564,7 +6647,7 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
             }
         }
     } else {
-        for (auto iter : sync_result.sync_maps) {
+        for (auto iter : sync_maps) {
             if (iter.second.ams_id == "" || iter.second.slot_id == "") {
                 continue;
             }
@@ -6575,9 +6658,7 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
             }
         }
     }
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "begin pop_finsish_sync_ams_dialog";
-    pop_finsish_sync_ams_dialog();
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "finish pop_finsish_sync_ams_dialog";
+    return applied;
 }
 
 
@@ -7568,7 +7649,9 @@ struct Plater::priv
     void drop_selection();
     void mirror(Axis axis);
     void split_object(bool auto_drop = true);
-    void split_object(int obj_idx, bool auto_drop = true);
+    // Plater::split_object(obj_idx, ask, keep_z), whose split loads the objects with `auto_drop` unless the question
+    // answers otherwise.
+    SplitResult split_object(int obj_idx, bool auto_drop = true, bool ask = true, std::optional<bool> keep_z = std::nullopt);
     void split_volume();
     void scale_selection_to_fit_print_volume();
 
@@ -7654,8 +7737,15 @@ struct Plater::priv
     bool export_gcode(fs::path output_path, bool output_path_on_removable_media, bool tracked = false);
     void export_gcode(fs::path output_path, bool output_path_on_removable_media, PrintHostJob upload_job);
 
-    void reload_from_disk();
-    bool replace_volume_with_stl(int object_idx, int volume_idx, const fs::path& new_path, const std::string& snapshot = "");
+    // Reload from disk of `parts`, else of the selection's parts. With `ask`, a file that is gone is asked for, a part its
+    // file has none for is told in a message box, and a file that cannot be read ends the reload where it is; without it
+    // nothing is asked or told, and the reload goes on to update the scene.
+    ReloadResult reload_from_disk(const std::vector<std::pair<int, int>>* parts = nullptr, bool ask = true);
+    // With `tell`, a file of several parts is told in a message box.
+    ReplaceResult replace_volume_with_stl(int object_idx, int volume_idx, const fs::path& new_path, const std::string& snapshot = "",
+                                          bool tell = true);
+    // replace_volume_with_stl() in its own "Replace with 3D file" undo step, then the 3D scene and its printable states.
+    ReplaceResult replace_part(int object_idx, int volume_idx, const fs::path& new_path, bool tell);
     void replace_with_stl();
     void replace_all_with_stl();
     void reload_all_from_disk();
@@ -11329,10 +11419,11 @@ void Plater::priv::split_object(bool auto_drop /* = true */)
 }
 
 // split provided object into multiple objects by its volumes
-void Plater::priv::split_object(int obj_idx, bool auto_drop /* = true */)
+Plater::SplitResult Plater::priv::split_object(int obj_idx, bool auto_drop /* = true */, bool ask /* = true */,
+                                               std::optional<bool> keep_z /* = std::nullopt */)
 {
     if (obj_idx == -1)
-        return;
+        return SplitResult::OnePiece;
 
     // we clone model object because split_object() adds the split volumes
     // into the same model object, thus causing duplicates when we call load_model_objects()
@@ -11342,9 +11433,12 @@ void Plater::priv::split_object(int obj_idx, bool auto_drop /* = true */)
     wxBusyCursor wait;
     ModelObjectPtrs new_objects;
     current_model_object->split(&new_objects, wxGetApp().app_config->get_bool("keep_painting"));
-    if (new_objects.size() == 1)
+    if (new_objects.size() == 1) {
         // #ysFIXME use notification
-        Slic3r::GUI::warning_catcher(q, _L("The selected object couldn't be split."));
+        if (ask)
+            Slic3r::GUI::warning_catcher(q, _L("The selected object couldn't be split."));
+        return SplitResult::OnePiece;
+    }
     else
     {
         // BBS no solid parts removed
@@ -11354,8 +11448,6 @@ void Plater::priv::split_object(int obj_idx, bool auto_drop /* = true */)
         //        NotificationManager::NotificationLevel::PrintInfoNotificationLevel,
         //        _u8L("All non-solid parts (modifiers) were deleted"));
 
-        Plater::TakeSnapshot snapshot(q, _u8L("Split to Objects"));
-
         auto is_atleast_one_floating = [new_objects]() {
             for (ModelObject* new_object : new_objects) {
                 if (new_object->get_instance_min_z(0) >= SINKING_MIN_Z_THRESHOLD) 
@@ -11363,14 +11455,24 @@ void Plater::priv::split_object(int obj_idx, bool auto_drop /* = true */)
             }
             return false;
         };
+        // The question is answered, or asked, before anything changes.
         bool split_auto_drop = auto_drop;
         if (current_model_object->auto_drop && is_atleast_one_floating()) {
-            MessageDialog dlg(q, _L("Disable Auto-Drop to preserve Z positioning?\n"),
-                                  _L("Object with floating parts was detected"), wxICON_QUESTION | wxYES_NO);
+            if (keep_z) {
+                if (*keep_z)
+                    split_auto_drop = false;
+            } else if (!ask) {
+                return SplitResult::Unanswered;
+            } else {
+                MessageDialog dlg(q, _L("Disable Auto-Drop to preserve Z positioning?\n"),
+                                      _L("Object with floating parts was detected"), wxICON_QUESTION | wxYES_NO);
 
-            if (dlg.ShowModal() == wxID_YES)
-                split_auto_drop = false;
+                if (dlg.ShowModal() == wxID_YES)
+                    split_auto_drop = false;
+            }
         }
+
+        Plater::TakeSnapshot snapshot(q, _u8L("Split to Objects"));
 
         remove(obj_idx);
 
@@ -11386,6 +11488,7 @@ void Plater::priv::split_object(int obj_idx, bool auto_drop /* = true */)
         {
             get_selection().add_object((unsigned int)idx, false);
         }
+        return SplitResult::Split;
     }
 }
 
@@ -12165,7 +12268,8 @@ void Plater::priv::update_sla_scene()
     this->update_restart_background_process(true, true);
 }
 
-bool Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const fs::path& new_path, const std::string& snapshot)
+Plater::ReplaceResult Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const fs::path& new_path,
+                                                             const std::string& snapshot, bool tell)
 {
     const std::string path = new_path.string();
     wxBusyCursor wait;
@@ -12200,7 +12304,7 @@ bool Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const
             };
 
             new_model = Model::read_from_step(path, LoadStrategy::AddDefaultInstances | LoadStrategy::LoadModel, nullptr, nullptr, callback, linear, angle, split_compound);
-            if (is_user_cancel) return false;
+            if (is_user_cancel) return ReplaceResult::Cancelled;
         } else {
             new_model = Model::read_from_file(path, nullptr, nullptr, LoadStrategy::AddDefaultInstances | LoadStrategy::LoadModel);
         }
@@ -12211,13 +12315,18 @@ bool Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const
     }
     catch (std::exception&) {
         // error while loading
-        return false;
+        return ReplaceResult::Unreadable;
     }
 
-    if (new_model.objects.size() > 1 || new_model.objects.front()->volumes.size() > 1) {
-        MessageDialog dlg(q, _L("Unable to replace with more than one volume"), _L("Error during replacement"), wxOK | wxOK_DEFAULT | wxICON_WARNING);
-        dlg.ShowModal();
-        return false;
+    // A file that loaded no object has no mesh to replace the part with.
+    if (new_model.objects.empty())
+        return ReplaceResult::Unreadable;
+    if (const std::optional<Ops::Refusal> refusal = Ops::replacement_refusal(new_model)) {
+        if (tell) {
+            MessageDialog dlg(q, refusal->translated(), _L("Error during replacement"), wxOK | wxOK_DEFAULT | wxICON_WARNING);
+            dlg.ShowModal();
+        }
+        return ReplaceResult::SeveralParts;
     }
 
     wxBusyInfo info(_L("Replace from:") + " " + from_u8(path), q->get_current_canvas3D()->get_wxglcanvas());
@@ -12273,7 +12382,23 @@ bool Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const
 
     sla::reproject_points_and_holes(old_model_object);
 
-    return true;
+    return ReplaceResult::Replaced;
+}
+
+Plater::ReplaceResult Plater::priv::replace_part(int object_idx, int volume_idx, const fs::path& new_path, bool tell)
+{
+    const ReplaceResult result = replace_volume_with_stl(object_idx, volume_idx, new_path, _u8L("Replace with 3D file"), tell);
+    if (result != ReplaceResult::Replaced)
+        return result;
+
+    // update 3D scene
+    update();
+
+    // new GLVolumes have been created at this point, so update their printable state
+    for (size_t i = 0; i < model.objects.size(); ++i) {
+        view3D->get_canvas3d()->update_instance_printable_state_for_object(i);
+    }
+    return result;
 }
 
 void Plater::priv::replace_with_stl()
@@ -12312,16 +12437,7 @@ void Plater::priv::replace_with_stl()
         return;
     }
 
-    if (!replace_volume_with_stl(object_idx, volume_idx, out_path, _u8L("Replace with 3D file")))
-        return;
-
-    // update 3D scene
-    update();
-
-    // new GLVolumes have been created at this point, so update their printable state
-    for (size_t i = 0; i < model.objects.size(); ++i) {
-        view3D->get_canvas3d()->update_instance_printable_state_for_object(i);
-    }
+    replace_part(object_idx, volume_idx, out_path, true);
 }
 
 void Plater::priv::replace_all_with_stl()
@@ -12429,7 +12545,7 @@ void Plater::priv::replace_all_with_stl()
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " replacing volume : " << input_path << " with " << new_path;
 
-        if (!replace_volume_with_stl(object_idx, volume_idx, new_path, _u8L("Replace with 3D file"))) {
+        if (replace_volume_with_stl(object_idx, volume_idx, new_path, _u8L("Replace with 3D file")) != ReplaceResult::Replaced) {
             status += wxString::Format(_L("✖ Skipped %s: failed to replace.\n"), from_u8(volume_name));
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " cannot replace volume : failed to replace with " << new_path;
             continue;
@@ -12462,8 +12578,7 @@ static std::vector<std::pair<int, int>> reloadable_volumes(const Model &model, c
             const ModelObject *obj   = model.objects[o_idx];
             const int          v_idx = v.volume_idx();
             if (0 <= v_idx && v_idx < int(obj->volumes.size())) {
-                const ModelVolume *vol = obj->volumes[v_idx];
-                if (!vol->source.is_from_builtin_objects && !vol->source.input_file.empty() && !fs::path(vol->source.input_file).extension().string().empty())
+                if (Ops::has_reload_source(*obj->volumes[v_idx]))
                     ret.push_back({o_idx, v_idx});
             }
         }
@@ -12472,15 +12587,16 @@ static std::vector<std::pair<int, int>> reloadable_volumes(const Model &model, c
 }
 #endif // ENABLE_RELOAD_FROM_DISK_REWORK
 
-void Plater::priv::reload_from_disk()
+Plater::ReloadResult Plater::priv::reload_from_disk(const std::vector<std::pair<int, int>>* parts, bool ask)
 {
+    ReloadResult result;
 #if ENABLE_RELOAD_FROM_DISK_REWORK
     // collect selected reloadable ModelVolumes
-    std::vector<std::pair<int, int>> selected_volumes = reloadable_volumes(model, get_selection());
+    std::vector<std::pair<int, int>> selected_volumes = parts != nullptr ? *parts : reloadable_volumes(model, get_selection());
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " entry, and reloadable volumes number is: " << selected_volumes.size();
     // nothing to reload, return
     if (selected_volumes.empty())
-        return;
+        return result;
 
     std::sort(selected_volumes.begin(), selected_volumes.end(), [](const std::pair<int, int> &v1, const std::pair<int, int> &v2) {
         return (v1.first < v2.first) || (v1.first == v2.first && v1.second < v2.second);
@@ -12494,7 +12610,7 @@ void Plater::priv::reload_from_disk()
     const Selection& selection = get_selection();
 
     if (selection.is_wipe_tower())
-        return;
+        return result;
 
     // struct to hold selected ModelVolumes by their indices
     struct SelectedVolume
@@ -12528,28 +12644,13 @@ void Plater::priv::reload_from_disk()
     std::vector<fs::path> missing_input_paths;
 #if ENABLE_RELOAD_FROM_DISK_REWORK
     std::vector<std::pair<fs::path, fs::path>> replace_paths;
-    for (auto [obj_idx, vol_idx] : selected_volumes) {
-        const ModelObject *object = model.objects[obj_idx];
-        const ModelVolume *volume = object->volumes[vol_idx];
-        if (fs::exists(volume->source.input_file))
-            input_paths.push_back(volume->source.input_file);
-        else {
-            // searches the source in the same folder containing the object
-            bool found = false;
-            if (!object->input_file.empty()) {
-                fs::path object_path = fs::path(object->input_file).remove_filename();
-                if (!object_path.empty()) {
-                    object_path /= fs::path(volume->source.input_file).filename();
-                    if (fs::exists(object_path)) {
-                        input_paths.push_back(object_path);
-                        found = true;
-                    }
-                }
-            }
-            if (!found)
-                missing_input_paths.push_back(volume->source.input_file);
-        }
-    }
+    // A part's source, else the file of its name in the folder of its object's file.
+    Ops::Targets selected;
+    selected.parts = selected_volumes;
+    const Ops::ReloadSources sources = Ops::reload_sources(model, selected, [](const std::string& path) { return fs::exists(path); });
+    input_paths.assign(sources.paths.begin(), sources.paths.end());
+    for (const auto& [obj_idx, vol_idx] : sources.missing)
+        missing_input_paths.push_back(model.objects[obj_idx]->volumes[vol_idx]->source.input_file);
 #else
     std::vector<fs::path> replace_paths;
     for (const SelectedVolume& v : selected_volumes) {
@@ -12585,7 +12686,7 @@ void Plater::priv::reload_from_disk()
     std::sort(missing_input_paths.begin(), missing_input_paths.end());
     missing_input_paths.erase(std::unique(missing_input_paths.begin(), missing_input_paths.end()), missing_input_paths.end());
 
-    while (!missing_input_paths.empty()) {
+    while (ask && !missing_input_paths.empty()) {
         // ask user to select the missing file
         fs::path search = missing_input_paths.back();
         wxString title = _L("Please select a file");
@@ -12595,7 +12696,7 @@ void Plater::priv::reload_from_disk()
         title += ":";
         wxFileDialog dialog(q, title, "", from_u8(search.filename().string()), file_wildcards(FT_MODEL), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
         if (dialog.ShowModal() != wxID_OK)
-            return;
+            return result;
 
         std::string sel_filename_path = dialog.GetPath().ToUTF8().data();
         std::string sel_filename = fs::path(sel_filename_path).filename().string();
@@ -12686,8 +12787,12 @@ void Plater::priv::reload_from_disk()
         }
         catch (std::exception&)
         {
-            // error while loading
-            return;
+            // A file that cannot be read ends a person's reload here; a call's stops loading and brings the scene up to
+            // date with the parts it reloaded.
+            result.unreadable = path;
+            if (ask)
+                return result;
+            break;
         }
 
 #if ENABLE_RELOAD_FROM_DISK_REWORK
@@ -12747,11 +12852,13 @@ void Plater::priv::reload_from_disk()
 
                 if (new_object_idx < 0 || int(new_model.objects.size()) <= new_object_idx) {
                     fail_list.push_back(from_u8(has_source ? old_volume->source.input_file : old_volume->name));
+                    result.unmatched.emplace_back(obj_idx, vol_idx);
                     continue;
                 }
                 ModelObject *new_model_object = new_model.objects[new_object_idx];
                 if (int(new_model_object->volumes.size()) <= new_volume_idx) {
                     fail_list.push_back(from_u8(has_source ? old_volume->source.input_file : old_volume->name));
+                    result.unmatched.emplace_back(obj_idx, vol_idx);
                     continue;
                 }
 
@@ -12801,6 +12908,7 @@ void Plater::priv::reload_from_disk()
 
                 // Fix warning icon in object list
                 wxGetApp().obj_list()->update_item_error_icon(obj_idx, vol_idx);
+                result.reloaded.emplace_back(obj_idx, vol_idx);
             }
         }
 #else
@@ -12881,7 +12989,7 @@ void Plater::priv::reload_from_disk()
         for (auto [obj_idx, vol_idx] : selected_volumes) {
             if (boost::algorithm::iequals(model.objects[obj_idx]->volumes[vol_idx]->source.input_file, src.string()))
                 // When an error occurs, either the dest parsing error occurs, or the number of objects in the dest is greater than 1 and cannot be replaced, and cannot be replaced in this loop.
-                if (!replace_volume_with_stl(obj_idx, vol_idx, dest, "")) break;
+                if (replace_volume_with_stl(obj_idx, vol_idx, dest, "") != ReplaceResult::Replaced) break;
         }
     }
 #else
@@ -12891,14 +12999,14 @@ void Plater::priv::reload_from_disk()
             ModelObject* old_model_object = model.objects[sel_v.object_idx];
             ModelVolume* old_volume = old_model_object->volumes[sel_v.volume_idx];
             bool has_source = !old_volume->source.input_file.empty() && boost::algorithm::iequals(fs::path(old_volume->source.input_file).filename().string(), fs::path(path).filename().string());
-            if (!replace_volume_with_stl(sel_v.object_idx, sel_v.volume_idx, path, "")) {
+            if (replace_volume_with_stl(sel_v.object_idx, sel_v.volume_idx, path, "") != ReplaceResult::Replaced) {
                 fail_list.push_back(from_u8(has_source ? old_volume->source.input_file : old_volume->name));
             }
         }
     }
 #endif // ENABLE_RELOAD_FROM_DISK_REWORK
 
-    if (!fail_list.empty()) {
+    if (ask && !fail_list.empty()) {
         wxString message = _L("Unable to reload:") + "\n";
         for (const wxString& s : fail_list) {
             message += s + "\n";
@@ -12916,6 +13024,14 @@ void Plater::priv::reload_from_disk()
     }
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " finish.";
+    // A part that a later file of its name reloaded is not one its file had none for.
+    result.unmatched.erase(std::remove_if(result.unmatched.begin(), result.unmatched.end(),
+                                          [&result](const std::pair<int, int>& part) {
+                                              return std::find(result.reloaded.begin(), result.reloaded.end(), part) !=
+                                                     result.reloaded.end();
+                                          }),
+                           result.unmatched.end());
+    return result;
 }
 
 void Plater::priv::reload_all_from_disk()
@@ -15016,12 +15132,12 @@ void Plater::priv::update_objects_position_when_select_preset(const std::functio
     update();
 }
 
-void Plater::orient()
+void Plater::orient(std::optional<std::vector<int>> objects)
 {
     auto &w = get_ui_job_worker();
     if (w.is_idle()) {
         p->take_snapshot(_u8L("Orient"));
-        replace_job(w, std::make_unique<OrientJob>());
+        replace_job(w, std::make_unique<OrientJob>(std::move(objects)));
     }
 }
 
@@ -18617,8 +18733,12 @@ void Plater::Calib_Cornering(const Calib_Params& params, bool skip_confirm)
 
 BuildVolume_Type Plater::get_build_volume_type() const { return p->bed.get_build_volume_type(); }
 
-void Plater::import_zip_archive()
+void Plater::import_zip_archive(const boost::filesystem::path& archive, const std::vector<std::string>* entries)
 {
+    if (!archive.empty()) {
+        preview_zip_archive(archive, entries);
+        return;
+    }
     wxString input_file;
     wxGetApp().import_zip(this, input_file);
     if (input_file.empty())
@@ -18939,7 +19059,7 @@ std::vector<size_t> Plater::load_files(const std::vector<fs::path>& input_files,
     return result;
 }
 
-bool Plater::preview_zip_archive(const boost::filesystem::path& archive_path)
+bool Plater::preview_zip_archive(const boost::filesystem::path& archive_path, const std::vector<std::string>* entries)
 {
     //std::vector<fs::path> unzipped_paths;
     std::vector<fs::path> non_project_paths;
@@ -18958,8 +19078,19 @@ bool Plater::preview_zip_archive(const boost::filesystem::path& archive_path)
         mz_zip_archive_file_stat stat;
         // selected_paths contains paths and its uncompressed size. The size is used to distinguish between files with same path.
         std::vector<std::pair<fs::path, size_t>> selected_paths;
-        FileArchiveDialog dlg(static_cast<wxWindow*>(wxGetApp().mainframe), &archive, selected_paths);
-        if (dlg.ShowModal() == wxID_OK)
+        bool chosen = entries != nullptr;
+        if (chosen) {
+            // The files named take the place of the person's choice in the file list.
+            for (mz_uint i = 0; i < num_entries; ++i)
+                if (mz_zip_reader_file_stat(&archive, i, &stat))
+                    if (const fs::path path(Slic3r::decode_archive_entry_path(&archive, stat));
+                        std::find(entries->begin(), entries->end(), path.generic_string()) != entries->end())
+                        selected_paths.emplace_back(path, size_t(stat.m_uncomp_size));
+        } else {
+            FileArchiveDialog dlg(static_cast<wxWindow*>(wxGetApp().mainframe), &archive, selected_paths);
+            chosen = dlg.ShowModal() == wxID_OK;
+        }
+        if (chosen)
         {
             std::string archive_path_string = archive_path.string();
             archive_path_string = archive_path_string.substr(0, archive_path_string.size() - 4);
@@ -19065,8 +19196,9 @@ bool Plater::preview_zip_archive(const boost::filesystem::path& archive_path)
         return false;
     }
 
-    // 1 project file and some models - behave like drag n drop of 3mf and then load models
-    if (project_paths.size() == 1)
+    // 1 project file and some models - behave like drag n drop of 3mf and then load models. Files named by `entries` are
+    // an import's: a project file among them gives its geometry, as the next branch loads it.
+    if (project_paths.size() == 1 && entries == nullptr)
     {
         wxArrayString aux;
         aux.Add(from_u8(project_paths.front().string()));
@@ -19718,6 +19850,24 @@ void Plater::enable_sidebar(bool enabled) { p->enable_sidebar(enabled); }
 bool Plater::is_sidebar_collapsed() const { return p->sidebar_layout.is_collapsed; }
 void Plater::collapse_sidebar(bool collapse) { p->collapse_sidebar(collapse); }
 Sidebar::DockingState Plater::get_sidebar_docking_state() const { return p->get_sidebar_docking_state(); }
+
+bool Plater::is_sidebar_floating() const { return p->m_aui_mgr.GetPane(p->sidebar).IsFloating(); }
+
+int Plater::sidebar_width() const
+{
+    // track_docked_size() keeps the docked width in best_size, which the pane docks at when it shows again.
+    const wxAuiPaneInfo& pane = p->m_aui_mgr.GetPane(p->sidebar);
+    return pane.IsShown() && pane.IsDocked() && pane.rect.GetWidth() > 0 ? pane.rect.GetWidth() : pane.best_size.GetWidth();
+}
+
+void Plater::set_sidebar_width(int width) { p->m_aui_mgr.set_docked_width(p->sidebar, width); }
+
+int Plater::default_sidebar_width() const
+{
+    wxAuiPaneInfo pane = p->m_aui_mgr.GetPane(p->sidebar);
+    p->m_aui_mgr.LoadPaneInfo(wxString::FromUTF8(aui_pane_layout_entry(p->m_default_window_layout.utf8_string(), "sidebar")), pane);
+    return pane.best_size.GetWidth();
+}
 
 void Plater::reset_window_layout()
 {
@@ -20667,9 +20817,10 @@ TriangleMesh Plater::combine_mesh_fff(const ModelObject& mo, int instance_id, st
 
 // BBS export with/without boolean, however, stil merge mesh
 #define EXPORT_WITH_BOOLEAN 0
-void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, FileType file_type, const wxString& output_path)
+std::vector<std::string> Plater::export_stl(bool extended, bool selection_only, bool multi_stls, FileType file_type,
+                                            const wxString& output_path, const std::vector<int>& objects)
 {
-    if (p->model.objects.empty()) { return; }
+    if (p->model.objects.empty()) { return {}; }
 
     int quality = 0;
 
@@ -20697,7 +20848,7 @@ void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, Fil
     } else {
         path = p->get_export_file(file_type);
     }
-    if (path.empty()) { return; }
+    if (path.empty()) { return {}; }
     const std::string path_u8 = into_u8(path);
 
     wxBusyCursor wait;
@@ -20706,15 +20857,15 @@ void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, Fil
 
 #if EXPORT_WITH_BOOLEAN
     if (selection_only && (obj_idx == -1 || selection.is_wipe_tower()))
-        return;
+        return {};
 #else
     // BBS support selecting multiple objects
-    if (selection_only && selection.is_wipe_tower()) return;
+    if (selection_only && selection.is_wipe_tower()) return {};
 
     // BBS
     if (selection_only) {
         // only support selection single full object and mulitiple full object
-        if (!selection.is_single_full_object() && !selection.is_multiple_full_object()) return;
+        if (!selection.is_single_full_object() && !selection.is_multiple_full_object()) return {};
     }
 
     // Following lambda generates a combined mesh for export with normals pointing outwards.
@@ -20874,6 +21025,14 @@ void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, Fil
         return path;
     };
 
+    // The objects written when no selection decides: those named, else every one.
+    std::vector<const ModelObject*> exported;
+    if (objects.empty())
+        exported.assign(p->model.objects.begin(), p->model.objects.end());
+    for (int object : objects)
+        exported.push_back(p->model.objects[size_t(object)]);
+
+    std::vector<std::string> written;
     TriangleMesh mesh;
     if (selection_only) {
         if (selection.is_single_full_object()) {
@@ -20903,35 +21062,41 @@ void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, Fil
                 auto mesh = mesh_to_export(*object, i.second);
                 mesh.translate(-object->origin_translation.cast<float>());
 
+                const std::string file = get_save_file(path_u8, object->name);
                 switch (file_type) {
-                case FT_STL: Slic3r::store_stl(get_save_file(path_u8, object->name).c_str(), &mesh, true); break;
-                case FT_DRC: Slic3r::store_drc(get_save_file(path_u8, object->name).c_str(), &mesh, quality); break;
+                case FT_STL: Slic3r::store_stl(file.c_str(), &mesh, true); break;
+                case FT_DRC: Slic3r::store_drc(file.c_str(), &mesh, quality); break;
                 }
+                written.push_back(file);
             }
-            return;
+            return written;
         }
     }
     else if (!multi_stls) {
-        for (const ModelObject* o : p->model.objects) {
+        for (const ModelObject* o : exported) {
             mesh.merge(mesh_to_export(*o, -1));
         }
     } else {
-        for (const ModelObject* o : p->model.objects) {
+        for (const ModelObject* o : exported) {
             auto mesh = mesh_to_export(*o, -1);
             mesh.translate(-o->origin_translation.cast<float>());
 
+            const std::string file = get_save_file(path_u8, o->name);
             switch (file_type) {
-            case FT_STL: Slic3r::store_stl(get_save_file(path_u8, o->name).c_str(), &mesh, true); break;
-            case FT_DRC: Slic3r::store_drc(get_save_file(path_u8, o->name).c_str(), &mesh, quality); break;
+            case FT_STL: Slic3r::store_stl(file.c_str(), &mesh, true); break;
+            case FT_DRC: Slic3r::store_drc(file.c_str(), &mesh, quality); break;
             }
+            written.push_back(file);
         }
-        return;
+        return written;
     }
 
     switch (file_type) {
     case FT_STL: Slic3r::store_stl(path_u8.c_str(), &mesh, true); break;
     case FT_DRC: Slic3r::store_drc(path_u8.c_str(), &mesh, quality); break;
     }
+    written.push_back(path_u8);
+    return written;
 }
 
 //BBS: remove amf export
@@ -21340,9 +21505,19 @@ void Plater::reload_from_disk()
     p->reload_from_disk();
 }
 
+Plater::ReloadResult Plater::reload_parts_from_disk(const std::vector<std::pair<int, int>>& parts)
+{
+    return p->reload_from_disk(&parts, false);
+}
+
 void Plater::replace_with_stl()
 {
     p->replace_with_stl();
+}
+
+Plater::ReplaceResult Plater::replace_part_with_file(int object_idx, int volume_idx, const std::string& path)
+{
+    return p->replace_part(object_idx, volume_idx, fs::path(path), false);
 }
 
 void Plater::replace_all_with_stl()
@@ -21360,12 +21535,12 @@ bool Plater::has_toolpaths_to_export() const
     return  p->preview->get_canvas3d()->has_toolpaths_to_export();
 }
 
-void Plater::export_toolpaths_to_obj() const
+void Plater::export_toolpaths_to_obj(const wxString& output_path) const
 {
     if ((printer_technology() != ptFFF) || !is_preview_loaded())
         return;
 
-    wxString path = p->get_export_file(FT_OBJ);
+    wxString path = output_path.empty() ? p->get_export_file(FT_OBJ) : output_path;
     if (path.empty())
         return;
 
@@ -23018,6 +23193,7 @@ void Plater::center_selection()             { p->center_selection(); }
 void Plater::drop_selection()               { p->drop_selection(); }
 void Plater::mirror(Axis axis)              { p->mirror(axis); }
 void Plater::split_object(bool auto_drop)   { p->split_object(auto_drop); }
+Plater::SplitResult Plater::split_object(int obj_idx, bool ask, std::optional<bool> keep_z) { return p->split_object(obj_idx, true, ask, keep_z); }
 void Plater::split_volume()                 { p->split_volume(); }
 void Plater::optimize_rotation()
 {
@@ -24235,13 +24411,16 @@ int Plater::add_plate()
     return new_plate;
 }
 
+// Adds a plate with a copy of the objects on plate `plate_index` (-1: the current plate), as one undo step; -1 when no
+// plate can be added or the project has no such plate.
 int Plater::duplicate_plate(int plate_index)
 {
-    int index = plate_index, ret;
-    if (plate_index == -1)
-        index = p->partplate_list.get_curr_plate_index();
+    const int index = plate_index == -1 ? p->partplate_list.get_curr_plate_index() : plate_index;
+    if (!p->can_add_plate() || p->partplate_list.get_plate(index) == nullptr)
+        return -1;
 
-    ret = p->partplate_list.duplicate_plate(index);
+    take_snapshot("duplicate partplate");
+    const int ret = p->partplate_list.duplicate_plate(index);
 
     //need to call update
     update();

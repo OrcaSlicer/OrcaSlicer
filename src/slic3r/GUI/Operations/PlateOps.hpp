@@ -4,13 +4,24 @@
 
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <vector>
+
+namespace Slic3r { namespace GUI {
+class GLCanvas3D;
+}} // namespace Slic3r::GUI
 
 // Plates, what is arranged and sliced on them, and the sliced plate's layers in the Preview.
 namespace Slic3r { namespace GUI { namespace Ops {
 
 // The refusal for a plate index the project lacks (no_such_plate), `count` being how many it has.
 Refusal no_such_plate(int plate, int count);
+// What every plate operation checks of the plate it is given, of a project of `count` plates: no_such_plate for an
+// index the project lacks, or none.
+std::optional<Refusal> plate_index_refusal(int plate, int count);
+// What keeps the plates from being changed, or none: a printer of another technology, or a G-code file opened for
+// viewing, has no plates to edit (no_plates). UI thread.
+std::optional<Refusal> plates_refusal();
 
 struct SelectPlateArgs
 {
@@ -22,17 +33,59 @@ Outcome<Done> select_plate(const SelectPlateArgs& args);
 
 struct SetPlateLockedArgs
 {
-    std::optional<int> plate; // none: the current plate
-    bool               locked = true;
+    std::optional<int>  plate;  // none: the current plate
+    std::optional<bool> locked; // none: the other state, as the lock icon toggles it
 };
 struct PlateLocked
 {
     int  plate   = 0;
+    bool locked  = false; // the plate's lock afterwards
     bool changed = false; // false: the plate was in that state already, and no undo step was taken
 };
-// Locks or unlocks the plate, as one undo step.
-// Refuses: no_such_plate.
+// Locks or unlocks the plate, as its lock icon does, as one undo step.
+// Refuses: no_plates, no_such_plate.
 Outcome<PlateLocked> set_plate_locked(const SetPlateLockedArgs& args);
+
+struct PlateArgs
+{
+    std::optional<int> plate; // none: the current plate
+};
+
+// What keeps plate `plate` of a project of `count` plates from being deleted, or none: an index the project lacks
+// (no_such_plate), or its only plate (last_plate).
+std::optional<Refusal> delete_plate_refusal(int plate, int count);
+// Deletes the plate, as Delete Plate does, as one undo step: the objects on it stay in the project, outside the plates,
+// and the plates after it move down one. The current plate stays current; when it is the one deleted, the plate before
+// it is current, or the first plate when there is none before it. Returns the index the plate had.
+// Refuses: no_plates, what delete_plate_refusal() gives.
+Outcome<int> delete_plate(const PlateArgs& args);
+
+// What keeps plate `plate` of a project of `count` plates from being duplicated, or none: an index the project lacks
+// (no_such_plate), as many plates as a project holds (too_many_plates), or, with `slicing`, a slice running, during
+// which no plate is added (slicing_in_progress).
+std::optional<Refusal> duplicate_plate_refusal(int plate, int count, bool slicing);
+struct PlateCopy
+{
+    int plate = 0; // the plate copied
+    int copy  = 0; // the new plate's index
+};
+// Adds a plate after the last with a copy of each object that stands on the plate, placed on it as on the plate, as
+// Duplicate Current Plate does, as one undo step. The current plate stays current.
+// Refuses: no_plates, what duplicate_plate_refusal() gives.
+Outcome<PlateCopy> duplicate_plate(const PlateArgs& args);
+
+struct RenamePlateArgs
+{
+    std::optional<int> plate; // none: the current plate
+    std::string        name;  // "" for none
+};
+// Names the plate, as the name dialog of its name icon does: a plate other than the current one is made current first,
+// as the icon does, and the name is one undo step. The name the plate has already changes nothing, the current plate
+// included. Returns the plate's index.
+// Refuses: no_plates, no_such_plate, plate_not_selected.
+Outcome<int> rename_plate(const RenamePlateArgs& args);
+// The refusal of a rename the person called off: the name dialog cancelled (not_renamed).
+Refusal plate_not_renamed();
 
 // The refusal while the UI job worker runs a job, such as an arrangement or an orientation (job_running).
 Refusal job_running();
@@ -40,6 +93,9 @@ Refusal job_running();
 // Shows the Prepare view when another view is shown. start_arrange() does it first; a caller with
 // work of its own in that view before the start calls it earlier.
 void show_prepare_view();
+// Shows the Prepare view (show_prepare_view()) and returns its canvas with its scene loaded: a canvas hidden while the
+// model changed loads it on its next draw, and a selection made or read there needs it now.
+GLCanvas3D& shown_prepare_canvas();
 
 struct ArrangeArgs
 {

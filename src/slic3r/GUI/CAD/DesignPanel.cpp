@@ -5046,7 +5046,7 @@ bool DesignPanel::mcp_select(const DesignSelection& s, std::string& why)
         if (s.plane < 0 || s.plane > 2) { why = "plane is XY, XZ or YZ"; return false; }
         // Where update_reference_planes() puts the planes up for a click (no card is open here).
         if (!m_show_origin && !m_choosing_sketch_plane) {
-            why = "no click can pick a plane now: one does while the Origin row shows the planes (set_view {\"tab\": "
+            why = "no click can pick a plane now: one does while the Origin row shows the planes (view_set {\"tab\": "
                   "\"design\", \"origin\": true}) or while Sketch waits for its plane (sketch_create {})";
             return false;
         }

@@ -1,6 +1,12 @@
-// list_objects, select_objects, transform, add_part, arrange, slice and cancel_job: the model on the plates, the
+// object_list, object_select, object_transform, part_add, object_arrange, plate_slice and job_cancel: the model on the plates, the
 // arrange and Fill bed jobs, and the slice operation, which reports its own outcome per plate (see
-// Operations/RunStatus).
+// Operations/RunStatus). The object and part commands made from menu rows: those that add a primitive, delete, rename,
+// set the number of instances, make instances separate objects, split, assemble, order, mirror, centre, scale to fit,
+// drop and orient objects and change a part's type take their targets (McpTargets.hpp) and run their operations
+// (Operations/ObjectOps, ProjectOps); the others run their rows' functions (NativeCommandRows.hpp) on the selection.
+// The object and part commands of menu items with no Speed Dial tile, which mark objects printable, turn their Auto Drop
+// on or off, repair their meshes, clone them, reload them from their files and replace a part's mesh, take their targets
+// and run their operations too.
 
 #include "CanvasTarget.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -10,23 +16,32 @@
 #include "libslic3r/Point.hpp"
 #include "McpPaths.hpp"
 #include "AutomationRuntime.hpp"
+#include "McpArguments.hpp"
+#include "McpTargets.hpp"
 #include "McpTools.hpp"
 #include "UiInspector.hpp"
 #include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/GUI_Factories.hpp"
 #include "slic3r/GUI/GUI_Geometry.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include "slic3r/GUI/Jobs/Worker.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/NativeCommandRows.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include "slic3r/GUI/Operations/ObjectOps.hpp"
 #include "slic3r/GUI/Operations/Outcome.hpp"
 #include "slic3r/GUI/Operations/PlateOps.hpp"
+#include "slic3r/GUI/Operations/ProjectOps.hpp"
 #include "slic3r/GUI/Operations/RunStatus.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Plater.hpp"
@@ -50,6 +65,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/path.hpp>
 #include <wx/arrstr.h>
+#include <wx/dataview.h>
 #include <wx/string.h>
 
 #include <algorithm>
@@ -60,6 +76,7 @@
 #include <cstring>
 #include <functional>
 #include <initializer_list>
+#include <map>
 #include <memory>
 #include <optional>
 #include <set>
@@ -87,30 +104,48 @@ Vec3d to_vec3(const json& v, const char* what)
     return {v[0].get<double>(), v[1].get<double>(), v[2].get<double>()};
 }
 
+// The canvas whose selection the view shown has, switching no view: the assemble view while it is shown, else the
+// Prepare view's, whose selection stays while Preview or another tab is shown.
+GLCanvas3D& selection_canvas(Plater& plater)
+{
+    if (GLCanvas3D* assemble = plater.get_assmeble_canvas3D(); assemble != nullptr && plater.get_current_canvas3D() == assemble)
+        return *assemble;
+    return *plater.get_view3D_canvas3D();
+}
+
 // The 3D canvas object operations act on: the assemble view while it is shown, else the Prepare
 // view, switched to when another is shown.
 GLCanvas3D& object_canvas()
 {
-    Plater& plater = ui_plater();
-    if (GLCanvas3D* assemble = plater.get_assmeble_canvas3D(); assemble != nullptr && plater.get_current_canvas3D() == assemble)
-        return *assemble;
-    if (!plater.is_view3D_shown()) {
+    Plater&     plater = ui_plater();
+    GLCanvas3D& canvas = selection_canvas(plater);
+    if (&canvas != plater.get_assmeble_canvas3D() && !plater.is_view3D_shown()) {
         plater.select_view_3D("3D");
         if (MainFrame* mf = wxGetApp().mainframe)
             mf->select_tab(TAB_ID_PREPARE);
     }
-    return *plater.canvas3D();
+    return canvas;
 }
 
-// The Prepare view's canvas, the view shown first when another is, as Ops::start_arrange() shows it.
-GLCanvas3D& shown_prepare_canvas(Plater& plater)
+// What Deselect All does, for object_select {none: true} and a pick of its tile: the selection of `canvas` clears
+// and its open gizmo closes. UI thread.
+void clear_selection(GLCanvas3D& canvas)
 {
-    Ops::show_prepare_view();
-    GLCanvas3D& canvas = *plater.canvas3D();
-    // A canvas hidden while the model changed loads its scene on its next draw; it is loaded now.
-    if (canvas.is_reload_delayed())
-        canvas.reload_scene(true);
-    return canvas;
+    canvas.deselect_all();
+    canvas.set_as_dirty();
+}
+
+// What Select All does, for object_select {all: true} and a pick of its tile: every object of `canvas` selected, and the
+// object list showing it. Refused while a gizmo of that canvas keeps its selection, where GLCanvas3D::select_all()
+// would select nothing. UI thread.
+std::optional<Ops::Refusal> select_everything(GLCanvas3D& canvas)
+{
+    if (!canvas.get_gizmos_manager().is_allow_select_all())
+        return Ops::gizmo_keeps_selection();
+    canvas.select_all();
+    wxGetApp().obj_list()->update_selections();
+    canvas.set_as_dirty();
+    return std::nullopt;
 }
 
 } // namespace
@@ -119,10 +154,10 @@ GLCanvas3D& shown_prepare_canvas(Plater& plater)
 GLCanvas3D& require_prepare_scene(Plater& plater)
 {
     if (GLCanvas3D* assemble = plater.get_assmeble_canvas3D(); assemble != nullptr && plater.get_current_canvas3D() == assemble)
-        throw ToolFailure("Leave the assemble view first (set_view {canvas: \"3d\"})");
+        throw ToolFailure("Leave the assemble view first (view_set {canvas: \"3d\"})");
     GLCanvas3D& canvas = object_canvas();
     if (const auto type = canvas.get_gizmos_manager().get_current_type(); type != GLGizmosManager::Undefined)
-        throw ToolFailure("Close the " + gizmo_name(type) + " gizmo first (click {target: {gizmo: \"" + gizmo_name(type) + "\"}})");
+        throw ToolFailure("Close the " + gizmo_name(type) + " gizmo first (widget_click {target: {gizmo: \"" + gizmo_name(type) + "\"}})");
     // A canvas hidden while the model changed loads its scene on its next draw; the selection needs
     // it now, as when the Prepare tab is requested while shown (Plater::priv::set_current_panel()).
     if (canvas.is_reload_delayed())
@@ -204,7 +239,16 @@ int volume_filament(const ModelVolume& volume)
     return volume.is_modifier() ? own : 0;
 }
 
-// An instance as list_objects describes it, except its plate and canvas rectangle, which the GUI knows.
+// An object's mesh errors as object_list and object_fix report them.
+json mesh_errors_json(const Ops::MeshErrors& errors)
+{
+    return {{"open_edges", errors.open_edges},           {"manifold", errors.manifold},
+            {"degenerate_facets", errors.degenerate_facets}, {"edges_fixed", errors.edges_fixed},
+            {"facets_removed", errors.facets_removed},   {"facets_reversed", errors.facets_reversed},
+            {"backwards_edges", errors.backwards_edges}};
+}
+
+// An instance as object_list describes it, except its plate and canvas rectangle, which the GUI knows.
 json instance_info(const ModelObject& object, std::size_t index)
 {
     const ModelInstance& inst = *object.instances[index];
@@ -249,7 +293,7 @@ json list_objects(const json& args)
     if (arg_bool(args, "screen", false)) {
         canvas = plater.get_current_canvas3D();
         if (canvas == nullptr || canvas == plater.get_preview_canvas3D())
-            throw ToolFailure("screen needs the Prepare view or the assemble view shown (set_view)");
+            throw ToolFailure("screen needs the Prepare view or the assemble view shown (view_set)");
     }
     std::vector<std::string> names;
     for (int i = 0; i < plates.get_plate_count(); ++i)
@@ -271,7 +315,7 @@ json list_objects(const json& args)
     return out;
 }
 
-// The slice tool's view of its request: slice_status()'s state, which adds when the tool started
+// The plate_slice tool's view of its request: slice_status()'s state, which adds when the tool started
 // waiting to what the operation's ticket holds.
 struct SliceTicket
 {
@@ -279,7 +323,7 @@ struct SliceTicket
     std::vector<int> plates;
 };
 
-// transform on an instance: written straight into the ModelInstance, then dropped, registered with
+// object_transform on an instance: written straight into the ModelInstance, then dropped, registered with
 // its plate and reloaded. Arguments are checked before anything changes.
 json transform_instance(Plater& plater, int oi, const json& args)
 {
@@ -308,7 +352,7 @@ json transform_instance(Plater& plater, int oi, const json& args)
     if (args.contains("plate")) {
         const int to = arg_int(args, "plate", 0);
         if (to >= plates.get_plate_count())
-            throw ToolFailure(no_such_plate(to, plates.get_plate_count()) + "; run_action plate_add makes one");
+            throw ToolFailure(no_such_plate(to, plates.get_plate_count()) + "; action_run plate_add makes one");
         const int from = plates.find_instance(oi, ii);
         if (from < 0)
             throw ToolFailure("instance " + std::to_string(ii) + " is off every plate; place it with translate (absolute) first");
@@ -330,15 +374,7 @@ json transform_instance(Plater& plater, int oi, const json& args)
         inst->set_scaling_factor(*scale);
     // The plate move is one more relative translate, after the others.
     inst->set_offset(inst->get_offset() + to_plate);
-    // The bounding box is cached: ensure_on_bed() must measure the new placement.
-    object->invalidate_bounding_box();
-    if (arg_bool(args, "drop_to_bed", true))
-        object->ensure_on_bed();
-    // Slicing and the object list read the plate an instance is on from the plate registry, which
-    // GLCanvas3D::do_move() updates for a person's moves.
-    plates.notify_instance_update(oi, ii);
-    wxGetApp().obj_list()->update_plate_values_for_items();
-    plater.changed_object(oi);
+    Ops::placed_instance(oi, ii, arg_bool(args, "drop_to_bed", true));
     return {{"object", oi},
             {"instance", ii},
             {"offset", vec3(inst->get_offset())},
@@ -346,17 +382,14 @@ json transform_instance(Plater& plater, int oi, const json& args)
             {"plate", plates.find_instance(oi, ii)}};
 }
 
-// transform on a part: the Object manipulation panel's path with the part selected, so do_move(),
+// object_transform on a part: the Object manipulation panel's path with the part selected, so do_move(),
 // do_rotate() and do_scale() write the part, drop the object (Auto Drop), register its instances
 // with their plates and update the object list. Translate and rotate are along the bed's axes on
-// instance 0, scale and size along the part's own axes.
+// instance 0, scale and size along the part's own axes. The part is one resolve_targets() checked.
 json transform_part(Plater& plater, int oi, const json& args)
 {
     ModelObject* object = plater.model().objects[size_t(oi)];
     const int    vi     = arg_int(args, "part", 0);
-    if (vi >= int(object->volumes.size()))
-        throw ToolFailure("part index out of range");
-    check_expected_ids(*object, object->volumes[size_t(vi)], args);
     // A single part has no row of its own in the object list, so the panel can't select it.
     if (object->volumes.size() == 1)
         throw ToolFailure("object " + std::to_string(oi) + " has one part; transform the instance");
@@ -429,14 +462,14 @@ std::set<std::pair<int, std::string>> shown_notifications(Plater& plater)
     return out;
 }
 
-// Validates arrange's arguments, applies its settings and starts the job the toolbar's Arrange, a
+// Validates object_arrange's arguments, applies its settings and starts the job the toolbar's Arrange, a
 // plate's Arrange icon or Fill bed starts. UI thread.
 ArrangeStart start_arrange(Plater& plater, const json& args)
 {
     const bool fill = args.contains("fill_object");
     // Fill bed selects its object first, so it needs what every tool that selects needs. An arrangement
     // runs from whatever view and with whatever gizmo is open, as the toolbar's Arrange does.
-    GLCanvas3D&            canvas  = fill ? require_prepare_scene(plater) : shown_prepare_canvas(plater);
+    GLCanvas3D&            canvas  = fill ? require_prepare_scene(plater) : Ops::shown_prepare_canvas();
     PartPlateList&         plates  = plater.get_partplate_list();
     const ModelObjectPtrs& objects = plater.model().objects;
     ArrangeStart           start;
@@ -467,8 +500,8 @@ ArrangeStart start_arrange(Plater& plater, const json& args)
     }
     const std::string plate_name = "Plate " + std::to_string(plate);
     if (plate >= 0 && plates.get_plate(plate)->is_locked())
-        throw ToolFailure(plate_name + " is locked; unlock it first (run_action plate_goto with args {\"plate\": " + std::to_string(plate) +
-                          "}, then plate_toggle_lock)");
+        throw ToolFailure(plate_name + " is locked; unlock it first (plate_select {\"plate\": " + std::to_string(plate) +
+                          "}, then plate_lock)");
     if (plate >= 0 && plates.get_plate(plate)->empty())
         throw ToolFailure(plate_name + " has no objects to arrange");
 
@@ -514,7 +547,7 @@ ArrangeStart start_arrange(Plater& plater, const json& args)
     return start;
 }
 
-// arrange's reply once the worker is idle. UI thread.
+// object_arrange's reply once the worker is idle. UI thread.
 json arrange_reply(Plater& plater, const ArrangeStart& start)
 {
     PartPlateList&         plates  = plater.get_partplate_list();
@@ -556,7 +589,7 @@ json arrange_reply(Plater& plater, const ArrangeStart& start)
     return out;
 }
 
-// The object list's name of an add_part shape, which its menus and the Primitive size dialog use;
+// The object list's name of a part_add shape, which its menus and the Primitive size dialog use;
 // nullptr for another shape.
 const char* shape_type_name(const std::string& shape)
 {
@@ -568,17 +601,13 @@ const char* shape_type_name(const std::string& shape)
     return nullptr;
 }
 
-// add_part: what the object's context menu Add items do, with the size or the file given instead
-// of asked for, then a move to `position` along the Move panel's path. Everything the arguments
-// can tell is checked before anything changes.
-json add_part(Plater& plater, const json& args)
+// part_add: what the object's context menu Add items do, on object `oi`, which resolve_targets() checked, with the
+// size or the file given instead of asked for, then a move to `position` along the Move panel's path. Everything the
+// arguments can tell is checked before anything changes.
+json add_part(Plater& plater, int oi, const json& args)
 {
     const ModelObjectPtrs& objects = plater.model().objects;
-    const int              oi      = arg_int(args, "object", -1);
-    if (oi < 0 || oi >= int(objects.size()))
-        throw ToolFailure("object index out of range");
-    check_expected_ids(*objects[size_t(oi)], nullptr, args);
-    const ModelVolumeType type = volume_type_from_name(arg_string(args, "type"));
+    const ModelVolumeType  type    = volume_type_from_name(arg_string(args, "type"));
     if (type == ModelVolumeType::INVALID)
         throw ToolFailure("type must be part, negative, modifier, support_blocker, support_enforcer or precise_seam");
     if (args.contains("shape") == args.contains("path"))
@@ -597,7 +626,7 @@ json add_part(Plater& plater, const json& args)
             throw ToolFailure(err);
         // The SVG gizmo makes SVG parts, placed where the camera looks.
         if (boost::algorithm::iends_with(path_to_utf8(*file), ".svg"))
-            throw ToolFailure("SVG parts come from run_action add_primitive_svg (a part of the selected object) or the SVG gizmo");
+            throw ToolFailure("SVG parts come from object_add_svg (a part of the selected object) or the SVG gizmo");
         files.Add(from_path(*file));
     }
     std::optional<Vec3d> position;
@@ -708,6 +737,17 @@ ModelVolumeType volume_type_from_name(const std::string& name)
     return ModelVolumeType::INVALID;
 }
 
+// The subtype's name is the 3MF type name without its "precise_seam_" prefix, as volume_info() gives it.
+ModelVolumeType precise_seam_subtype(const std::string& name)
+{
+    for (const ModelVolumeType seam : {ModelVolumeType::PRECISE_SEAM_CENTER, ModelVolumeType::PRECISE_SEAM_LEFT, ModelVolumeType::PRECISE_SEAM_RIGHT,
+                                       ModelVolumeType::PRECISE_SEAM_ENFORCED, ModelVolumeType::PRECISE_SEAM_BLOCKED,
+                                       ModelVolumeType::PRECISE_SEAM_NEUTRAL})
+        if ("precise_seam_" + name == ModelVolume::type_to_string(seam))
+            return seam;
+    return ModelVolumeType::INVALID;
+}
+
 std::vector<double> part_shape_size(const std::string& shape, const json& size)
 {
     const char* type_name = shape_type_name(shape);
@@ -748,7 +788,8 @@ json object_info(const ModelObject& object, std::size_t index)
              {"parts", std::move(volumes)},
              {"bbox", object.instances.empty() ? json(nullptr) : box_json(object.instance_bounding_box(0))},
              {"brim_ears", object.brim_points.size()},
-             {"overrides", std::move(overrides)}};
+             {"overrides", std::move(overrides)},
+             {"mesh_errors", mesh_errors_json(Ops::mesh_errors(object))}};
     if (!object.layer_config_ranges.empty())
         out["layer_config_ranges"] = layer_config_ranges_json(object.layer_config_ranges);
     if (json profile = layer_height_profile_json(object.layer_height_profile.get()); !profile.is_null())
@@ -968,28 +1009,1431 @@ json plate_summary(const json& statistics, const GCodeProcessorResult& result)
     return out;
 }
 
+namespace {
+
+// The Prepare view's selection, the view shown first when another is, as the object rows read it: what a command made
+// from rows acts on when it is given no target. Null for a call that names its targets, which leaves the view shown.
+const Selection* prepare_selection(const json& args)
+{
+    return names_targets(args) ? nullptr : &Ops::shown_prepare_canvas().get_selection();
+}
+
+// What a command made from rows answers for a refusal: as information where the person can select something else or
+// wait and pick it again, as the rows told those, else as an error.
+AppActionRunResult row_refused(const Ops::Refusal& refusal)
+{
+    const std::string code  = refusal.code;
+    const bool        again = refusal.kind == Ops::RefusalKind::Busy || code == "nothing_selected" || code == "wrong_selection" ||
+                       code == "one_object_only";
+    return NativeCommands::refused(refusal, again ? AppActionRunResult::Level::Info : AppActionRunResult::Level::Error);
+}
+
+// A refusal a command made from rows answers as information, where its row told that refusal, or the check it stands
+// for, as information.
+AppActionRunResult row_info(const Ops::Refusal& refusal) { return NativeCommands::refused(refusal, AppActionRunResult::Level::Info); }
+
+constexpr unsigned kEveryTarget = kObjects | kInstances | kParts;
+
+// The object list's selected rows as targets, for a command whose row acted on them (Assemble, Change Type), read in
+// the Prepare view, shown first, as the row read them: an object row as its object, an instance row as [object,
+// instance] and a part row as [object, part], by the part's index in the model. Refuses nothing_selected for no row and
+// wrong_selection for a row of none of `types` (ItemType bits). UI thread.
+Ops::Outcome<Targets> listed_rows(int types)
+{
+    Ops::show_prepare_view();
+    ObjectList&          list = *wxGetApp().obj_list();
+    ObjectDataViewModel& rows = *list.GetModel();
+    wxDataViewItemArray  selected;
+    list.GetSelections(selected);
+    if (selected.IsEmpty())
+        return Ops::nothing_selected();
+    Targets out;
+    out.from_selection = true;
+    for (const wxDataViewItem& row : selected) {
+        const ItemType type   = rows.GetItemType(row);
+        const int      object = rows.GetObjectIdByItem(row);
+        if ((type & types) == 0 || object < 0)
+            return Ops::wrong_selection();
+        if (type & itObject)
+            out.objects.push_back(object);
+        else if (type & itInstance)
+            out.instances.emplace_back(object, rows.GetInstanceIdByItem(row));
+        else if (type & itVolume)
+            out.parts.emplace_back(object, rows.get_real_volume_index_in_3d(object, rows.GetVolumeIdByItem(row)));
+        else
+            return Ops::wrong_selection();
+    }
+    return out;
+}
+
+// What Split takes from the object list, as ObjectList::is_splittable() reads it in the Prepare view, shown first: its
+// one selected row. Into objects, the object of its row or of a row of the object's own other than a part's; into
+// parts, the part of a part row, else the object of the row. `object_row` says whether the row is the object's.
+struct SplitRow
+{
+    Targets target;
+    bool    object_row = false;
+};
+Ops::Outcome<SplitRow> split_row(bool to_objects)
+{
+    Ops::show_prepare_view();
+    ObjectList&          list = *wxGetApp().obj_list();
+    ObjectDataViewModel& rows = *list.GetModel();
+    wxDataViewItemArray  selected;
+    list.GetSelections(selected);
+    if (selected.IsEmpty())
+        return Ops::nothing_selected();
+    if (selected.size() > 1)
+        return Ops::one_object_only();
+    const wxDataViewItem row    = selected.front();
+    const ItemType       type   = rows.GetItemType(row);
+    const int            object = rows.GetObjectIdByItem(row);
+    if (object < 0 || (to_objects && (type == itVolume || (type != itObject && rows.GetItemType(rows.GetParent(row)) != itObject))))
+        return Ops::wrong_selection();
+    SplitRow out;
+    out.target.from_selection = true;
+    out.object_row            = type == itObject;
+    if (!to_objects && type == itVolume)
+        out.target.parts.emplace_back(object, rows.GetVolumeIdByItem(row));
+    else
+        out.target.objects.push_back(object);
+    return out;
+}
+
+// What stands on plate `plate`: the objects whose every instance is on it, and the instances on it of the others.
+Targets plate_targets(Plater& plater, int plate)
+{
+    PartPlateList& plates = plater.get_partplate_list();
+    if (plate < 0 || plate >= plates.get_plate_count())
+        throw ToolFailure(no_such_plate(plate, plates.get_plate_count()));
+    const ModelObjectPtrs& objects = plater.model().objects;
+    Targets                out;
+    for (std::size_t o = 0; o < objects.size(); ++o) {
+        std::vector<int> on;
+        for (std::size_t i = 0; i < objects[o]->instances.size(); ++i)
+            if (instance_plate(plates, int(o), int(i)) == plate)
+                on.push_back(int(i));
+        if (!on.empty() && on.size() == objects[o]->instances.size())
+            out.objects.push_back(int(o));
+        else
+            for (int i : on)
+                out.instances.emplace_back(int(o), i);
+    }
+    if (out.objects.empty() && out.instances.empty())
+        throw ToolFailure("Plate " + std::to_string(plate) + " has no objects");
+    return out;
+}
+
+// The entries of `named` (targets_reply()'s) for the targets `which` names by the same indices, under the same keys.
+json entries_of(const json& named, const Targets& which)
+{
+    const auto has = [](const auto& list, const auto& item) { return std::find(list.begin(), list.end(), item) != list.end(); };
+    json       out = json::object();
+    const auto keep = [&out, &named](const char* key, const std::function<bool(const json&)>& wanted) {
+        json entries = json::array();
+        for (const json& entry : named.value(key, json::array()))
+            if (wanted(entry))
+                entries.push_back(entry);
+        if (!entries.empty())
+            out[key] = std::move(entries);
+    };
+    const auto pair_of = [](const json& e, const char* second) { return std::pair(e.at("object").get<int>(), e.at(second).get<int>()); };
+    keep("objects", [&](const json& e) { return has(which.objects, e.at("index").get<int>()); });
+    keep("instances", [&](const json& e) { return has(which.instances, pair_of(e, "instance")); });
+    keep("parts", [&](const json& e) { return has(which.parts, pair_of(e, "part")); });
+    return out;
+}
+
+// object_delete: what the call names, what stands on its plate, every object with all, else the selection. Only its
+// person's form, a call with no arguments, leaves a cut object and a last solid part to the object list, which asks
+// its question or shows its message, as a person's Delete does; any other call is refused with them.
+AppActionRunResult delete_command(const json& args)
+{
+    const bool all = arg_bool(args, "all", false);
+    if (all && args.contains("plate"))
+        throw ToolFailure("Give all or plate, not both");
+    if ((all || args.contains("plate")) && names_targets(args))
+        throw ToolFailure(all ? "all deletes every object; leave the targets out" : "plate deletes what stands on it; leave the targets out");
+    Plater&      plater = ui_plater();
+    const Model& model  = plater.model();
+
+    Ops::DeleteObjectsArgs op;
+    op.all    = all;
+    op.checks = person_form(args) ? Ops::DeleteChecks::ObjectList : Ops::DeleteChecks::Refuse;
+    if (args.contains("plate")) {
+        op.targets = plate_targets(plater, arg_int(args, "plate", 0));
+    } else if (!all) {
+        const Ops::Outcome<Targets> found = resolve_targets(model, prepare_selection(args), args, kEveryTarget, false);
+        if (!found)
+            return row_refused(found.refusal());
+        op.targets = found.value();
+    }
+    // Named before the delete renumbers what follows.
+    Targets doomed = Ops::deletion(model, op.targets);
+    if (all)
+        for (std::size_t i = 0; i < model.objects.size(); ++i)
+            doomed.objects.push_back(int(i));
+    const json named = targets_reply(model, doomed);
+    const Ops::Outcome<Ops::DeletedTargets> deleted = Ops::delete_objects(op);
+    if (!deleted) {
+        if (std::string(deleted.refusal().code) != "nothing_deleted")
+            return row_refused(deleted.refusal());
+        // The object list told the person why, or they answered its question themself: the pick shows nothing more,
+        // and a call learns that nothing was deleted.
+        AppActionRunResult kept{AppActionRunResult::Level::Info, {}, false};
+        kept.refusal = std::make_shared<const Ops::Refusal>(deleted.refusal());
+        return kept;
+    }
+    json reply = entries_of(named, deleted.value().deleted);
+    if (const json kept = targets_reply(model, deleted.value().kept); !kept.empty())
+        reply["kept"] = kept;
+    reply["object_count"] = model.objects.size();
+    return row_reply(reply);
+}
+
+// object_rename: the object or part the call names, else the one selected. A call with no arguments asks for the name
+// in the Rename dialog, as the row does; any other gives it.
+AppActionRunResult rename_command(const json& args)
+{
+    const bool        asks = person_form(args);
+    const std::string name = arg_string(args, "name");
+    // Before anything is read, so a name that cannot be given leaves the view as it is.
+    if (!asks)
+        if (const std::optional<Ops::Refusal> refusal = Ops::rename_refusal(name))
+            return row_refused(*refusal);
+    Plater&                     plater = ui_plater();
+    const Ops::Outcome<Targets> found  = resolve_targets(plater.model(), prepare_selection(args), args, kObjects | kParts, true);
+    if (!found)
+        return row_refused(std::string(found.refusal().code) == "wrong_selection" ? Ops::rename_wrong_selection() : found.refusal());
+    const Targets& target = found.value();
+    const int      object = target.parts.empty() ? target.objects.front() : target.parts.front().first;
+    const int      part   = target.parts.empty() ? -1 : target.parts.front().second;
+    if (asks) {
+        if (const std::optional<Ops::Refusal> refusal = Ops::unlisted_part_refusal(plater.model(), object, part))
+            return row_refused(*refusal);
+        // The dialog renames the object list's selected row, which is the target's once every instance of an object
+        // selected stands for it. A part's row is by its place among the rows, which leave a cut's connectors out.
+        ObjectList*           list  = wxGetApp().obj_list();
+        ObjectDataViewModel*  rows  = list->GetModel();
+        ModelObject*          owner = plater.model().objects[std::size_t(object)];
+        const wxDataViewItem  item  = part < 0 ? rows->GetItemById(object) :
+                                                 rows->GetItemByVolumeId(object, rows->get_real_volume_index_in_ui(object, part));
+        if (list->GetSelection() != item)
+            select_rows(owner, part < 0 ? nullptr : owner->volumes[std::size_t(part)]);
+        list->rename_item();
+    } else if (const Ops::Outcome<std::string> renamed = Ops::rename_object({object, part, name}); !renamed) {
+        return row_refused(renamed.refusal());
+    }
+    return row_reply(targets_reply(plater.model(), target));
+}
+
+// object_set_instances: the object the call names, else the one selected, or the object of the selected instance or
+// part, as the item reads it. A call with no arguments asks for the count in the item's dialog; delta is the
+// toolbar's + and -.
+AppActionRunResult instances_command(const json& args)
+{
+    const bool asks = person_form(args);
+    if (args.contains("count") && args.contains("delta"))
+        throw ToolFailure("Give count or delta, not both");
+    if (!asks && !args.contains("count") && !args.contains("delta"))
+        throw ToolFailure("Give count, or delta 1 or -1; with no arguments the dialog asks for the count");
+    Plater&                     plater = ui_plater();
+    const Ops::Outcome<Targets> found =
+        resolve_targets(plater.model(), prepare_selection(args), args, kObjects | kObjectOfSelection, true);
+    if (!found)
+        return row_refused(found.refusal());
+    const int         object = found.value().objects.front();
+    const std::size_t had    = plater.model().objects[std::size_t(object)]->instances.size();
+    if (asks) {
+        // The asking path: the item's dialog, on the selected object, enabled as the menu enables it.
+        if (const std::optional<Ops::Refusal> refusal = Ops::add_instances_refusal(plater.model(), object))
+            return row_refused(*refusal);
+        if (const std::optional<Ops::Refusal> refusal = Ops::instance_change_blocked())
+            return row_refused(*refusal);
+        plater.set_number_of_copies();
+    } else {
+        const int count = args.contains("count") ? args.at("count").get<int>() : int(had) + args.at("delta").get<int>();
+        if (const Ops::Outcome<Ops::InstanceCount> set = Ops::set_instance_count({object, count}); !set)
+            return row_refused(set.refusal());
+    }
+    json reply         = targets_reply(plater.model(), found.value());
+    reply["object"]    = object;
+    reply["instances"] = plater.model().objects[std::size_t(object)]->instances.size();
+    return row_reply(reply);
+}
+
+// object_separate_instances: the object the call names or the instances of one object, else the selection, where a part
+// selected stands for its instance, as Set as Individual Objects reads it.
+AppActionRunResult separate_command(const json& args)
+{
+    Plater&                     plater = ui_plater();
+    const Ops::Outcome<Targets> found  = resolve_targets(plater.model(), prepare_selection(args), args,
+                                                         kObjects | kInstances | kInstanceOfSelectedPart, false);
+    if (!found)
+        return row_refused(found.refusal());
+    const Ops::Outcome<Targets> holders = Ops::separate_instances(found.value());
+    if (!holders)
+        return row_refused(holders.refusal());
+    return row_reply(targets_reply(plater.model(), holders.value()));
+}
+
+// object_split: the object the call names, else the object list's one selected row (split_row()), as the Split rows
+// read it. A call with a tile's arguments asks what Split asks (the Auto-Drop question, a message for an object of one
+// piece); any other answers the question with keep_z, and is refused without it. The rows told every refusal of theirs
+// as information.
+AppActionRunResult split_command(const json& args)
+{
+    const std::string    into       = arg_string(args, "into");
+    const bool           to_objects = into == "objects";
+    const bool           asks       = args == json{{"into", into}};
+    Plater&              plater     = ui_plater();
+    Ops::SplitObjectArgs op;
+    if (names_targets(args)) {
+        const Ops::Outcome<Targets> found = resolve_targets(plater.model(), nullptr, args, kObjects, true);
+        if (!found)
+            return row_info(found.refusal());
+        op.target = found.value();
+    } else {
+        const Ops::Outcome<SplitRow> found = split_row(to_objects);
+        if (!found)
+            return row_info(found.refusal());
+        op.target = found.value().target;
+        op.expand = found.value().object_row;
+    }
+    op.to_objects = to_objects;
+    op.ask        = asks;
+    if (args.contains("keep_z"))
+        op.keep_z = args.at("keep_z").get<bool>();
+    const Ops::Outcome<Targets> made = Ops::split_object(op);
+    if (!made)
+        return asks && std::string(made.refusal().code) == "one_piece" ? quiet_refusal(made.refusal()) : row_info(made.refusal());
+    json reply            = targets_reply(plater.model(), made.value());
+    reply["object_count"] = plater.model().objects.size();
+    return row_reply(reply);
+}
+
+// object_assemble: the objects the call names, else the object and instance rows selected in the object list, which
+// the Assemble row merged. The row told a selection of fewer than two, or of parts, as information, and a cut object as
+// an error.
+AppActionRunResult assemble_command(const json& args)
+{
+    Plater&                     plater = ui_plater();
+    const Model&                model  = plater.model();
+    const Ops::Outcome<Targets> found  = names_targets(args) ? resolve_targets(model, nullptr, args, kObjects | kInstances, false) :
+                                                               listed_rows(itObject | itInstance);
+    if (!found)
+        return row_info(std::string(found.refusal().code) == "wrong_selection" ? *Ops::assemble_refusal(model, Targets{}) : found.refusal());
+    const Ops::Outcome<int> assembled = Ops::assemble_objects(found.value());
+    if (!assembled)
+        return std::string(assembled.refusal().code) == "too_few_objects" ? row_info(assembled.refusal()) : row_refused(assembled.refusal());
+    const int index = assembled.value();
+    Targets   made;
+    made.objects    = {index};
+    json reply      = targets_reply(model, made);
+    reply["object"] = index;
+    reply["name"]   = model.objects[std::size_t(index)]->name;
+    return row_reply(reply);
+}
+
+// part_change_type: the parts the call names, else the part rows selected in the object list, which the Change Type
+// rows changed. The row told a selection of anything but parts as information, in its own words, and why a part keeps
+// its type as an error.
+AppActionRunResult part_type_command(const json& args)
+{
+    std::optional<ModelVolumeType> subtype;
+    if (args.contains("subtype"))
+        subtype = precise_seam_subtype(arg_string(args, "subtype"));
+    Plater&                     plater = ui_plater();
+    const Ops::Outcome<Targets> found  = names_targets(args) ? resolve_targets(plater.model(), nullptr, args, kParts, false) :
+                                                               listed_rows(itVolume);
+    if (!found)
+        return row_info(std::string(found.refusal().code) == "wrong_selection" ? Ops::part_wrong_selection() : found.refusal());
+    const Ops::Outcome<Targets> changed = Ops::change_part_type({found.value(), volume_type_from_name(arg_string(args, "type")), subtype});
+    if (!changed)
+        return row_refused(changed.refusal());
+    json reply = targets_reply(plater.model(), changed.value());
+    for (json& part : reply["parts"]) {
+        const ModelVolume& volume = *plater.model().objects[part["object"].get<std::size_t>()]->volumes[part["part"].get<std::size_t>()];
+        part["type"]              = volume_type_name(volume.type());
+    }
+    return row_reply(reply);
+}
+
+// object_order's arguments, checked before the call reads the app: by, or the objects in order, which names one plate's.
+void check_order_arguments(const json& args)
+{
+    const bool by    = args.contains("by");
+    const bool order = args.contains("order");
+    if (by && order)
+        throw ToolFailure("Give by or order, not both");
+    if (!by && !order)
+        throw ToolFailure("Give by, or the objects in order");
+    if (order && args.contains("all"))
+        throw ToolFailure("order names the objects of one plate: leave all out");
+    if (order && args.contains("descending"))
+        throw ToolFailure("descending goes with by: order gives the objects in their order");
+    if (arg_bool(args, "all", false) && args.contains("plate"))
+        throw ToolFailure("Give plate or all, not both");
+}
+
+// The objects of plate `sorted`, or of every plate with `all`, in their order, as object_order replies them. UI thread.
+json plate_objects(int sorted, bool all)
+{
+    Plater&                plater  = ui_plater();
+    PartPlateList&         plates  = plater.get_partplate_list();
+    const ModelObjectPtrs& objects = plater.model().objects;
+    json                   order   = json::array();
+    for (int plate = 0; plate < plates.get_plate_count(); ++plate)
+        if (all || plate == sorted)
+            for (std::size_t i = 0; i < objects.size(); ++i)
+                if (plates.find_instance(int(i), 0) == plate)
+                    order.push_back({{"object", i}, {"name", objects[i]->name}, {"plate", plate}});
+    return order;
+}
+
+// object_order: the current plate, the plate the call names, or every plate with all. Its tile's call ({by}) shows
+// the Prepare view and reverses an order the objects already have, as the plate menu's Order By does; any other call
+// with by is ascending unless descending says otherwise. With order, the plate's objects go in that order, as drags in
+// the object list put them. The row told a plate with no objects as information.
+AppActionRunResult order_command(const json& args)
+{
+    if (const auto order = args.find("order"); order != args.end()) {
+        Ops::ReorderObjectsArgs op;
+        op.order = order->get<std::vector<int>>();
+        if (args.contains("plate"))
+            op.plate = arg_int(args, "plate", 0);
+        const Ops::Outcome<std::vector<int>> ordered = Ops::reorder_objects(op);
+        if (!ordered)
+            return row_refused(ordered.refusal());
+        const int plate = op.plate.value_or(ui_plater().get_partplate_list().get_curr_plate_index());
+        return row_reply({{"order", plate_objects(plate, false)}});
+    }
+    const std::string by  = arg_string(args, "by");
+    const bool        all = arg_bool(args, "all", false);
+    const bool asks = args == json{{"by", by}};
+    if (asks)
+        Ops::show_prepare_view();
+    static const std::pair<const char*, ObjectOrder> orders[] = {
+        {"name", ObjectOrder::Name}, {"filament", ObjectOrder::Filament}, {"height", ObjectOrder::Height}, {"size", ObjectOrder::Size}};
+    Ops::OrderObjectsArgs op{};
+    for (const auto& [name, order] : orders)
+        if (by == name)
+            op.order = order;
+    op.all = all;
+    if (args.contains("plate"))
+        op.plate = arg_int(args, "plate", 0);
+    if (args.contains("descending") || !asks)
+        op.descending = arg_bool(args, "descending", false);
+    const Ops::Outcome<bool> ordered = Ops::order_objects(op);
+    if (!ordered)
+        return std::string(ordered.refusal().code) == "no_objects_to_order" ? row_info(ordered.refusal()) : row_refused(ordered.refusal());
+
+    // The sorted plates' objects in their new order.
+    const int sorted = op.plate.value_or(ui_plater().get_partplate_list().get_curr_plate_index());
+    return row_reply({{"order", plate_objects(sorted, all)}, {"descending", ordered.value()}});
+}
+
+// object_mirror: the objects and parts the call names, else the selection, which Mirror takes of one instance or parts
+// of one. The row told every refusal as information.
+AppActionRunResult mirror_command(const json& args)
+{
+    const std::string           axis   = arg_string(args, "axis");
+    Plater&                     plater = ui_plater();
+    const Ops::Outcome<Targets> found  = resolve_targets(plater.model(), prepare_selection(args), args, kEveryTarget, false);
+    if (!found)
+        return row_info(found.refusal());
+    const Ops::Outcome<Ops::Done> mirrored = Ops::mirror_objects({found.value(), axis == "x" ? Axis::X : axis == "y" ? Axis::Y : Axis::Z});
+    if (!mirrored)
+        return row_info(mirrored.refusal());
+    return row_reply(targets_reply(plater.model(), found.value()));
+}
+
+// object_center: the objects the call names, else the selection; on the plate each stands on, or on plate. Its tile's
+// call ({}) is Center on the selection. The row told a selection to make as information.
+AppActionRunResult center_command(const json& args)
+{
+    Plater&            plater = ui_plater();
+    std::optional<int> plate;
+    if (args.contains("plate")) {
+        plate = arg_int(args, "plate", 0);
+        // Before the selection is read, so a plate the project lacks is named whatever is selected.
+        if (const int count = plater.get_partplate_list().get_plate_count(); *plate >= count)
+            return row_refused(Ops::no_such_plate(*plate, count));
+    }
+    const Ops::Outcome<Targets> found = resolve_targets(plater.model(), prepare_selection(args), args, kEveryTarget, false);
+    if (!found)
+        return row_info(found.refusal());
+    const Ops::Outcome<std::map<int, std::vector<int>>> centred = Ops::center_objects({found.value(), plate});
+    if (!centred)
+        return row_refused(centred.refusal());
+    json reply  = targets_reply(plater.model(), found.value());
+    json plates = json::array();
+    for (const auto& [on, objects] : centred.value())
+        plates.push_back({{"plate", on}, {"objects", objects}});
+    reply["plates"] = std::move(plates);
+    return row_reply(reply);
+}
+
+// object_scale_to_fit: the objects the call names, else the objects and instances selected, as Scale to Fit Print Volume
+// takes them. The row told every refusal as information.
+AppActionRunResult scale_to_fit_command(const json& args)
+{
+    Plater&                     plater = ui_plater();
+    const Ops::Outcome<Targets> found  = resolve_targets(plater.model(), prepare_selection(args), args, kObjects | kInstances, false);
+    if (!found)
+        return row_info(found.refusal());
+    if (const Ops::Outcome<Ops::Done> fitted = Ops::scale_to_fit(found.value()); !fitted)
+        return row_info(fitted.refusal());
+    const Model& model = plater.model();
+    std::vector<std::pair<int, int>> instances = found.value().instances;
+    for (int object : found.value().objects)
+        for (std::size_t i = 0; i < model.objects[std::size_t(object)]->instances.size(); ++i)
+            instances.emplace_back(object, int(i));
+    json scales = json::array();
+    for (const auto& [object, instance] : instances)
+        scales.push_back({{"object", object},
+                          {"instance", instance},
+                          {"scale", vec3(model.objects[std::size_t(object)]->instances[std::size_t(instance)]->get_scaling_factor())}});
+    json reply      = targets_reply(model, found.value());
+    reply["scales"] = std::move(scales);
+    return row_reply(reply);
+}
+
+// object_drop: the objects and parts the call names, else the selection. What already rests on the bed is no error: the
+// pick tells it, as information, and the call's reply says that nothing moved.
+AppActionRunResult drop_command(const json& args)
+{
+    Plater&                     plater = ui_plater();
+    const Ops::Outcome<Targets> found  = resolve_targets(plater.model(), prepare_selection(args), args, kEveryTarget, false);
+    if (!found)
+        return row_info(found.refusal());
+    const Ops::Outcome<bool> dropped = Ops::drop_objects(found.value());
+    if (!dropped)
+        return row_info(dropped.refusal());
+    json reply     = targets_reply(plater.model(), found.value());
+    reply["moved"] = dropped.value();
+    if (dropped.value())
+        return row_reply(reply);
+    AppActionRunResult resting = row_info(Ops::already_on_bed());
+    resting.done               = true;
+    resting.reply              = reply.dump();
+    return resting;
+}
+
+// object_auto_orient's targets: the objects named, else the selection, an instance or a part standing for its object as
+// the job reads it, and with nothing selected (or the prime tower) every object, as Auto-Orient does; plates add theirs.
+// Shows the Prepare view where it reads the selection. UI thread.
+Ops::Outcome<Ops::OrientObjectsArgs> orient_args(Plater& plater, const json& args)
+{
+    Ops::OrientObjectsArgs op;
+    for (const json& plate : args.value("plates", json::array()))
+        op.plates.push_back(plate.get<int>());
+    if (op.plates.empty() || names_targets(args)) {
+        const Ops::Outcome<Targets> found =
+            resolve_targets(plater.model(), prepare_selection(args), args, kObjects | kObjectOfSelection, false);
+        if (found)
+            op.targets = found.value();
+        else if (const std::string code = found.refusal().code; code == "nothing_selected" || code == "wrong_selection")
+            op.targets.from_selection = true;
+        else
+            return found.refusal();
+    }
+    return op;
+}
+
+// What object_auto_orient replies once the job has ended: the rotation of each instance it turned (Ops::orientable()),
+// of the objects named or of the plates named, else as the job turns a selection: the instances of the selection it
+// can turn, or, with none of those and none of the selection on a locked plate, of every object.
+json orient_reply(Plater& plater, const Ops::OrientObjectsArgs& op)
+{
+    const Model&                        model  = plater.model();
+    PartPlateList&                      plates = plater.get_partplate_list();
+    const std::function<bool(int, int)> locked = Ops::on_locked_plate(plates);
+    std::set<int>                       objects(op.targets.objects.begin(), op.targets.objects.end());
+    for (std::size_t o = 0; o < model.objects.size(); ++o)
+        for (std::size_t i = 0; i < model.objects[o]->instances.size(); ++i)
+            if (std::find(op.plates.begin(), op.plates.end(), instance_plate(plates, int(o), int(i))) != op.plates.end())
+                objects.insert(int(o));
+    std::vector<std::pair<int, int>> turned = Ops::orientable(model, objects, locked);
+    const auto                       some_locked = [&]() {
+        for (int object : objects)
+            for (std::size_t i = 0; i < model.objects[std::size_t(object)]->instances.size(); ++i)
+                if (locked(object, int(i)))
+                    return true;
+        return false;
+    };
+    if (turned.empty() && op.targets.from_selection && op.plates.empty() && !some_locked()) {
+        std::set<int> every;
+        for (std::size_t o = 0; o < model.objects.size(); ++o)
+            every.insert(int(o));
+        turned = Ops::orientable(model, every, locked);
+    }
+    Targets oriented;
+    json    rotations = json::array();
+    for (const auto& [object, instance] : turned) {
+        if (oriented.objects.empty() || oriented.objects.back() != object)
+            oriented.objects.push_back(object);
+        const ModelInstance& turned_instance = *model.objects[std::size_t(object)]->instances[std::size_t(instance)];
+        rotations.push_back({{"object", object}, {"instance", instance}, {"rotation_deg", degrees(turned_instance.get_rotation())}});
+    }
+    json reply         = targets_reply(model, oriented);
+    reply["rotations"] = std::move(rotations);
+    return reply;
+}
+
+// object_add_primitive: a call with the tile's arguments ({shape}) is Add Primitive, refused while an object is selected
+// and asking for the size; any other adds the shape at its size, or the built-in one, whatever is selected, on plate, at
+// position, named name, in one undo step (Ops::add_primitive()).
+AppActionRunResult add_primitive_command(const json& args)
+{
+    const std::string     shape = arg_string(args, "shape");
+    Ops::AddPrimitiveArgs op;
+    // The size first: it refuses a shape of another name, which shape_type_name() has none for.
+    op.size  = part_shape_size(shape, args.value("size", json()));
+    op.shape = shape_type_name(shape);
+    op.ask   = args == json{{"shape", shape}};
+    if (args.contains("plate"))
+        op.plate = arg_int(args, "plate", 0);
+    if (args.contains("name"))
+        op.name = arg_string(args, "name");
+    if (args.contains("position"))
+        op.position = to_vec3(args["position"], "position");
+
+    Plater&                 plater = ui_plater();
+    const Ops::Outcome<int> added  = Ops::add_primitive(op);
+    if (!added)
+        // The size dialog cancelled told the person nothing more is to come.
+        return op.ask && std::string(added.refusal().code) == "not_added" ? quiet_refusal(added.refusal()) : row_refused(added.refusal());
+    const int index = added.value();
+    Targets made;
+    made.objects    = {index};
+    json reply      = targets_reply(plater.model(), made);
+    reply["object"] = index;
+    reply["plate"]  = instance_plate(plater.get_partplate_list(), index, 0);
+    reply["offset"] = vec3(plater.model().objects[std::size_t(index)]->instances.front()->get_offset());
+    return row_reply(reply);
+}
+
+// The object and part commands made from menu rows: each acts on the targets it is given or, given none, on what is
+// selected in the Prepare view, as a person's pick of the row does. Those of the object's and part's menus read their
+// targets through resolve_targets() and run their operations; the handy models, Text and SVG run the row their
+// variant argument names. Their tiles are the rows, under the rows' ids, titles, sections and icons.
+void register_object_rows(CommandCatalog& catalog)
+{
+    using NativeCommands::tile;
+    const char* const object_section = L("Object");
+
+    // ---- Add Primitive and Add Handy models ---- (the Add menu; each creates a new object)
+    const json shape_size = array_prop({{"type", "number"}}, "mm, the Primitive size dialog's fields, in place of the dialog: cube "
+                                                             "[x, y, z]; cylinder, cone, disc [diameter, height]; sphere [diameter]; "
+                                                             "torus [inner diameter, tube diameter]; each above 0.");
+    // A shape the plate may then turn toward the part-cooling fan.
+    const std::string turned = " The shape may then be turned toward the part-cooling fan, so the size is along its own axes before that turn.";
+    const auto primitive = [&turned](const char* key, const char* title, const char* icon, const char* shape, bool turns) {
+        return tile(key, title, L("Add Primitive"), icon, {{"shape", shape}},
+                    std::string("Add a ") + shape + " object to the current plate at the size its dialog asks for; fails while an "
+                                                    "object is selected. object_add_primitive with a size, or silent, skips the "
+                                                    "dialog." +
+                        (turns ? turned : std::string()));
+    };
+    // With shape alone the size dialog asks, as the tiles do; a size or silent skips it.
+    NativeCommand add_primitive = row_command(
+        "object_add_primitive", L("Add a primitive"),
+        "Add a primitive shape (cube, cylinder, sphere, cone, disc or torus) as a new object, as Add Primitive does: on the "
+        "current plate, or on plate, which becomes the current one; at position, in the bed coordinates object_list and "
+        "object_transform use, else where Add Primitive puts it; named name, else after its shape. With a size, at that "
+        "size; with silent, at the shape's built-in size. With shape alone, as its tiles, the Primitive size dialog asks "
+        "for the size (blocked_by_dialog), unless a person turned that dialog off, and the call is refused while an object "
+        "is selected (part_add adds a shape to an object); any other call adds the object whatever is selected. One undo "
+        "step; the new object is selected. Reply: the object (objects, object), its plate and offset." +
+            turned,
+        object_schema({{"shape", enum_prop({"cube", "cylinder", "sphere", "cone", "disc", "torus"}, "The shape.")},
+                       {"size", shape_size},
+                       {"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "The plate to add it on. Default: the current plate."}}},
+                       {"position", array_prop({{"type", "number"}}, "[x, y, z] mm: where its first instance goes, as object_transform's "
+                                                                     "position; it then rests on the bed.")},
+                       {"name", prop("string", "The object's name. Default: its shape's.")}},
+                      {"shape"}),
+        json::array({primitive("add_primitive_cube", L("Cube"), "menu_obj_cube", "cube", false),
+                     primitive("add_primitive_cylinder", L("Cylinder"), "menu_obj_cylinder", "cylinder", true),
+                     primitive("add_primitive_sphere", L("Sphere"), "menu_obj_sphere", "sphere", false),
+                     primitive("add_primitive_cone", L("Cone"), "menu_obj_cone", "cone", true),
+                     primitive("add_primitive_disc", L("Disc"), "menu_obj_disc", "disc", true),
+                     primitive("add_primitive_torus", L("Torus"), "menu_obj_torus", "torus", true)}),
+        add_primitive_command);
+    add_primitive.input_schema = with_silent(std::move(add_primitive.input_schema), person_forms(add_primitive));
+    catalog.add(reaching({"add_primitive", "rename_object"}, std::move(add_primitive)));
+
+    // The two handy models of several files, which the menu arranges once they are loaded.
+    static const std::pair<const char*, const char*> arranged[] = {
+        {"orca_cube", "Add the Orca Cube and its plug to the current plate, then arrange the objects as the toolbar's Arrange "
+                      "does, which moves the others too."},
+        {"orcasliced_combo", "Add the OrcaSliced Combo (the OrcaSliced model, the Orca Cube and its plug) to the current plate, "
+                             "then arrange the objects as the toolbar's Arrange does, which moves the others too."}};
+    std::vector<std::string> models;
+    json                     handy_tiles = json::array();
+    for (const MenuFactory::HandyModel& model : MenuFactory::handy_models()) {
+        models.emplace_back(model.key);
+        std::string description = std::string("Add the ") + model.label + " model to the current plate.";
+        for (const auto& [key, text] : arranged)
+            if (models.back() == key)
+                description = text;
+        handy_tiles.push_back(tile("add_handy_" + models.back(), model.label, L("Add Handy models"), "", {{"model", model.key}},
+                                   description));
+    }
+    catalog.add(row_command(
+        "object_add_handy_model", L("Add a handy model"),
+        "Add one of the test models OrcaSlicer ships to the current plate, as Add Handy models does; orca_cube and "
+        "orcasliced_combo, of several files, then arrange the objects as the toolbar's Arrange does, which moves the others too.",
+        object_schema({{"model", enum_prop(models, "The model.")}}, {"model"}), std::move(handy_tiles), [](const json& args) {
+            const std::string                           model = arg_string(args, "model");
+            const std::vector<MenuFactory::HandyModel>& all   = MenuFactory::handy_models();
+            const auto it = std::find_if(all.begin(), all.end(), [&model](const MenuFactory::HandyModel& m) { return model == m.key; });
+            return Rows::add_handy(std::size_t(it - all.begin()));
+        }));
+
+    const std::string text = "Add a text: a part on the selected object, or a new object when nothing is selected. It is created "
+                             "in the background (app_wait {for: \"idle\"} waits for it), and the Text gizmo opens on it.";
+    catalog.add(row_command("object_add_text", L("Text"), text, object_schema({}),
+                            json::array({tile("add_primitive_text", L("Text"), L("Add Primitive"), "menu_obj_text", json::object(), text)}),
+                            [](const json&) { return Rows::add_primitive_text(); }));
+
+    catalog.add(row_command(
+        "object_add_svg", L("SVG"),
+        "Add an SVG as a new object, or as a part of the selected object. With a path, uses that file without a dialog; the "
+        "part is created in the background (app_wait {for: \"idle\"} waits for it), and the SVG gizmo opens on it.",
+        object_schema({{"path", Rows::input_file("an .svg file")}}),
+        json::array({tile("add_primitive_svg", L("SVG"), L("Add Primitive"), "menu_obj_svg", json::object(),
+                          "Add an SVG as a new object, or as a part of the selected object, from the file a dialog asks for; "
+                          "object_add_svg with a path uses that file without one. The part is created in the background "
+                          "(app_wait {for: \"idle\"} waits for it), and the SVG gizmo opens on it.")}),
+        [](const json& args) { return Rows::add_primitive_svg(args); }));
+
+    // ---- Object ---- (the object's context menu and the Edit menu)
+    NativeCommand del = row_command(
+        "object_delete", L("Delete objects"),
+        "Delete objects, instances or parts, as Delete does: those named (objects, instances, parts), what stands on a plate "
+        "(plate: its objects, or the instances on it of an object on two plates), every object (all, as Delete All does), or "
+        "with none of these what is selected in the Prepare view. An object whose every instance or every part is named goes "
+        "whole. An object's last solid part alone, and a cut object or a solid or negative part of one, are refused with "
+        "the message or the question Delete gives; a call with no arguments leaves them to the object list, which shows "
+        "the message or asks the question (blocked_by_dialog), and all deletes cut objects without asking, as Delete All "
+        "does. One undo step. Reply: what was deleted (objects, instances, parts, with the indices they had); kept, what "
+        "was named and stayed, with its indices now (the object list deletes from the last named and stops at what it "
+        "refuses or asks about); and object_count, the objects left; the objects after a deleted one move down.",
+        with_targets(object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Delete what stands on this plate."}}},
+                                    {"all", prop("boolean", "Delete every object. Default false: the targets.")}}),
+                     kEveryTarget, false),
+        json::array({tile("obj_delete", L("Delete Selected"), object_section, "delete", json::object(), "Delete the selected objects or parts."),
+                     tile("obj_delete_all", L("Delete All Objects"), object_section, "delete", {{"all", true}}, "Delete all objects.")}),
+        delete_command);
+    del.input_schema = with_silent(std::move(del.input_schema), person_forms(del));
+    catalog.add(reaching({"delete_objects"}, with_expected_ids(std::move(del))));
+
+    // The Rename dialog's name, which every call but the tile's gives.
+    NativeCommand rename = row_command(
+        "object_rename", L("Rename"),
+        "Rename an object, or a part of it (object and part), or with neither the object or part selected in the Prepare "
+        "view. With a name, skips the Rename dialog; an empty name, or one with characters a file name cannot hold, is "
+        "refused. Reply: what was renamed, with its name (objects or parts).",
+        with_targets(object_schema({{"name", prop("string", "The new name, in place of the Rename dialog.")}}, {"name"}), kObjects | kParts, true),
+        json::array({tile("obj_rename", L("Rename"), object_section, "", json::object(),
+                          "Rename the selected object or part (select one) in the Rename dialog; object_rename with a name skips it.")}),
+        rename_command);
+    rename.input_schema = with_silent(std::move(rename.input_schema), person_forms(rename));
+    catalog.add(reaching({"rename_object"}, with_expected_ids(std::move(rename))));
+
+    // The count the dialog asks for, which every call but the tiles' gives; delta is the toolbar's + and -.
+    NativeCommand instances = row_command(
+        "object_set_instances", L("Set the number of instances"),
+        "Give an object this many instances (count), as Set Number of Instances does, or one more or one fewer (delta 1 "
+        "or -1), as the toolbar's + and - do: the object named, else the one selected in the Prepare view, or the object "
+        "of the selected instance or part. With no arguments the dialog asks for the count (blocked_by_dialog). New "
+        "instances overlap; arrange afterwards. One undo step; the object is selected. Reply: the object (objects, "
+        "object) and instances, how many it has.",
+        with_targets(object_schema({{"count", {{"type", "integer"},
+                                               {"minimum", 1},
+                                               {"description", "The total number of instances, up to 1000, in place of the dialog."}}},
+                                    {"delta", {{"type", "integer"},
+                                               {"enum", {1, -1}},
+                                               {"description", "1 adds an instance and -1 removes one, as the toolbar's + and - do."}}}}),
+                     kObjects, true),
+        json::array({tile("obj_set_instances", L("Set Number of Instances"), object_section, "instance_add", json::object(),
+                          "Give the selected object the number of instances the dialog asks for, in one undo step; "
+                          "object_set_instances with a count skips the dialog. New instances overlap; arrange "
+                          "afterwards."),
+                     tile("obj_instances_up", L("Increase Instances"), object_section, "instance_add", {{"delta", 1}},
+                          "Add an instance of the selected object."),
+                     tile("obj_instances_down", L("Decrease Instances"), object_section, "instance_remove", {{"delta", -1}},
+                          "Remove an instance of the selected object.")}),
+        instances_command);
+    instances.input_schema = with_silent(std::move(instances.input_schema), person_forms(instances));
+    // Its silent form needs count or delta, which a schema of this server cannot require as one of two.
+    instances.input_schema["properties"]["silent"]["description"] =
+        "true runs the command without asking; it then needs count or delta. A call with no arguments, or with exactly a "
+        "tile's arguments, does what a person's pick of that tile does.";
+    catalog.add(reaching({"set_instance_count"}, with_expected_ids(std::move(instances))));
+
+    NativeCommand separate = row_command(
+        "object_separate_instances", L("Set as Individual Objects"),
+        "Make each instance of an object a separate object (object), or some instances of one object one new object "
+        "(instances), as Set as Individual Objects does; with neither, what is selected in the Prepare view: an object, or "
+        "some of its instances. New objects are added last. Reply: the objects that hold those instances afterwards "
+        "(objects): the object and its new objects, or the new object.",
+        with_targets(with_targets(object_schema({}), kObjects, true), kInstances, false),
+        json::array({tile("obj_instances_to_objects", L("Set as Individual Objects"), object_section, "", json::object(),
+                          "Make each instance of the selected object a separate object (object_select {objects: [n]}); with some "
+                          "of its instances selected, only those. New objects are added last; the reply lists the objects that "
+                          "hold those instances (objects).")}),
+        separate_command);
+    catalog.add(reaching({"separate_instances"}, with_expected_ids(std::move(separate))));
+
+    // The answer to Split's Auto-Drop question, which every call but the tiles' gives where the split asks it.
+    NativeCommand split = row_command(
+        "object_split", L("Split an object"),
+        "Split an object into separate objects, or into parts of it, as Split > To Objects and To Parts do: the object named, "
+        "else the one row selected in the object list, as Split reads it: an object's row, into objects also a row of the "
+        "object's own other than a part's, and into parts a part's row, or another row of the object. A mesh of one shell "
+        "is refused, and into parts so is an object of several parts, whose part is selected to split it. Into objects, "
+        "the object is removed and its pieces are added last and selected. Where some of them "
+        "would float above the bed of an object that drops, keep_z answers the question Split asks (true keeps their "
+        "height, false lets them drop), and without it the call is refused (auto_drop_question); with only a tile's "
+        "arguments Split asks it (blocked_by_dialog). One undo step. Reply: the new objects (objects) or the parts the "
+        "part became (parts), with their indices afterwards, and object_count.",
+        with_targets(object_schema({{"into", enum_prop({"objects", "parts"}, "Separate objects, or parts of the object.")},
+                                    {"keep_z", prop("boolean", "Into objects, the answer to the question whether pieces that would "
+                                                               "float above the bed keep their height: true keeps it, false "
+                                                               "lets them drop.")}},
+                                   {"into"}),
+                     kObjects, true),
+        json::array({tile("obj_split_objects", L("Split to Objects"), object_section, "menu_split_objects", {{"into", "objects"}},
+                          "Split the selected object into separate objects."),
+                     tile("obj_split_parts", L("Split to Parts"), object_section, "menu_split_parts", {{"into", "parts"}},
+                          "Split the selected object into parts.")}),
+        split_command);
+    split.input_schema = with_silent(std::move(split.input_schema), person_forms(split));
+    catalog.add(reaching({"split_object"}, with_expected_ids(std::move(split))));
+
+    catalog.add(reaching(
+        {"assemble_objects"},
+        with_expected_ids(row_command(
+            "object_assemble", L("Assemble"),
+            "Assemble two or more objects into one object of parts named Assembly, as Assemble does: those named, else the "
+            "object and instance rows selected in the object list, an instance becoming an object of its own first. Cut objects "
+            "are refused. They are removed and the new object is added last and selected, so object indices change. One "
+            "undo step. Reply: the new object's index (object) and name, and objects.",
+            with_targets(object_schema({}), kObjects, false),
+            json::array({tile("obj_assemble", L("Assemble"), object_section, "", json::object(),
+                              "Assemble two or more selected objects into one object of parts named Assembly. They are removed "
+                              "and it is added last, so object indices change; the reply has its index (object) and name.")}),
+            assemble_command))));
+
+    // The plate menu's Order By.
+    struct OrderRow
+    {
+        const char* key;
+        const char* title;
+        const char* by;
+        const char* what;
+    };
+    // Titles are L("...")-marked here so xgettext extracts them.
+    static const OrderRow order_rows[] = {
+        {"obj_order_by_name", L("Order by Name"), "name", "name"},
+        {"obj_order_by_filament", L("Order by Filament"), "filament", "filament"},
+        {"obj_order_by_height", L("Order by Height"), "height", "height"},
+        {"obj_order_by_size", L("Order by Size"), "size", "size (bounding box volume)"},
+    };
+    json order_tiles = json::array();
+    for (const OrderRow& row : order_rows)
+        order_tiles.push_back(tile(row.key, row.title, object_section, "", {{"by", row.by}},
+                                   std::string("Order the current plate's objects by ") + row.what +
+                                       ", which sets the object list and print order, as the plate menu's Order By does. "
+                                       "Choosing the order they already have reverses it. Object indices change; the reply "
+                                       "lists the new order (order: [{object, name, plate}]) and descending."));
+    NativeCommand order = reaching(
+        {"order_objects", "reorder_objects"},
+        row_command("object_order", L("Order objects"),
+                    "Order the objects of a plate (the current one, or plate), or with all of every plate, by name, filament, "
+                    "height or size (bounding box volume), which sets the object list and print order, as the plate menu's "
+                    "Order By does: ascending, or with descending true descending. Called with by alone, as its tiles, it shows "
+                    "the Prepare view and, as Order By does, reverses the order the objects already have. With order in place "
+                    "of by, the plate's objects go in the order given, as dragging them in the object list puts them: order "
+                    "names each of the plate's objects once, by index, and anything else is refused; the other plates' objects "
+                    "keep their order. One undo step; object indices change. Reply: the new order (order: [{object, name, "
+                    "plate}]), and descending with by.",
+                    object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Order this plate's objects. Default: the current plate."}}},
+                                   {"by", enum_prop({"name", "filament", "height", "size"}, "What to order by.")},
+                                   {"order", {{"type", "array"},
+                                              {"minItems", 1},
+                                              {"items", {{"type", "integer"}, {"minimum", 0}}},
+                                              {"description", "In place of by: the plate's objects, by index (object_list), each "
+                                                              "once, in the order wanted."}}},
+                                   {"descending", prop("boolean", "With by: descending order. Default false.")},
+                                   {"all", prop("boolean", "With by: order the objects of every plate. Default false: one plate's.")}}),
+                    std::move(order_tiles), order_command));
+    // The arguments are checked before the call reads the app.
+    order.run = [run = std::move(order.run)](const json& args, ToolContext& ctx) {
+        check_order_arguments(args);
+        return run(args, ctx);
+    };
+    catalog.add(std::move(order));
+
+    catalog.add(reaching(
+        {"drop_objects"},
+        with_expected_ids(row_command(
+            "object_drop", L("Drop to Bed"),
+            "Drop objects or parts onto the bed, as Drop does: those named, each instance and each part that does not rest on "
+            "the bed dropped on its own, else what is selected in the Prepare view, dropped as one by its lowest point. What "
+            "already rests on the bed is no error: moved false says that nothing moved. One undo step; the targets are left "
+            "selected. Reply: what it acted on (objects, instances, parts) and moved.",
+            with_targets(object_schema({}), kObjects | kParts, false),
+            json::array({tile("obj_drop", L("Drop to Bed"), object_section, "toolbar_flatten", json::object(), "Drop the selection onto the bed.")}),
+            drop_command))));
+
+    catalog.add(reaching(
+        {"mirror_objects"},
+        with_expected_ids(row_command(
+            "object_mirror", L("Mirror objects"),
+            "Mirror objects or parts along an axis, as Mirror > Along X Axis, Y Axis and Z Axis do: those named, each instance "
+            "of an object and the parts of each object in turn, else what is selected in the Prepare view, which Mirror takes "
+            "of one instance or parts of one. Cut objects are refused. One undo step; the targets are left selected. Reply: what "
+            "it mirrored (objects, instances, parts).",
+            with_targets(object_schema({{"axis", enum_prop({"x", "y", "z"}, "The axis to mirror along.")}}, {"axis"}), kObjects | kParts, false),
+            json::array({tile("obj_mirror_x", L("Mirror X"), object_section, "menu_mirror_x", {{"axis", "x"}}, "Mirror the selection along X."),
+                         tile("obj_mirror_y", L("Mirror Y"), object_section, "menu_mirror_y", {{"axis", "y"}}, "Mirror the selection along Y."),
+                         tile("obj_mirror_z", L("Mirror Z"), object_section, "menu_mirror_z", {{"axis", "z"}}, "Mirror the selection along Z.")}),
+            mirror_command))));
+
+    catalog.add(reaching(
+        {"center_objects"},
+        with_expected_ids(row_command(
+            "object_center", L("Center Selected on Plate"),
+            "Centre objects on their plate, as Center does: those named, each plate's as one group on the plate it stands on (an "
+            "object on no plate goes with the current plate's), or all on plate; with none named, what is selected in the "
+            "Prepare view as one group, on plate, or with no arguments, as its tile, on the current plate. A group moves as one, "
+            "its box to the plate's centre, its objects keeping their places relative to each other, so a group spread over "
+            "several plates and sent to plate may not fit on its bed. One undo step; the targets are left selected. Reply: "
+            "what it centred (objects, instances, parts) and the groups (plates: [{plate, objects}]).",
+            with_targets(object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Centre them all on this plate."}}}}),
+                         kObjects, false),
+            json::array({tile("obj_center", L("Center Selected on Plate"), object_section, "", json::object(), "Center the selection on its plate.")}),
+            center_command))));
+
+    catalog.add(reaching(
+        {"scale_to_fit"},
+        with_expected_ids(row_command(
+            "object_scale_to_fit", L("Scale to Fit Print Volume"),
+            "Scale objects as one to fit the current plate's print volume and move them into it, as Scale to build volume does: "
+            "those named, else the objects and instances selected in the Prepare view. Cut objects and a bed of another shape "
+            "than a rectangle or a circle are refused. One undo step; the targets are left selected. Reply: what it scaled "
+            "(objects, instances) and each instance's scale (scales: [{object, instance, scale}]).",
+            with_targets(object_schema({}), kObjects, false),
+            json::array({tile("obj_fit_volume", L("Scale to Fit Print Volume"), object_section, "", json::object(),
+                              "Scale the selection to fit the print volume.")}),
+            scale_to_fit_command))));
+
+    // Auto-Orient waits for its job; a person's pick starts it in place, as the toolbar does.
+    const std::string orient_tile = "Auto-orient the selection, or every object when nothing is selected; the call returns when it is done.";
+    NativeCommand     orient      = reaching(
+        {"orient_objects"},
+        with_expected_ids(mutate_tool(
+            "object_auto_orient", L("Auto-Orient"),
+            "Turn objects to the orientation that prints best, as Auto-Orient does: those named and those that stand on plates, "
+            "else what is selected in the Prepare view, an instance or a part standing for its object, or every object when "
+            "nothing is selected. An object on a locked plate, or one that is not printable, keeps its orientation. A call "
+            "that names objects or plates turns no other object: a plate named that holds no objects, a locked plate named, "
+            "and objects named none of which can be turned (not printable, or on a locked plate) are refused. A selection of "
+            "objects that are not printable, none on a locked plate, leaves the job to turn every other object, as the "
+            "toolbar's does. "
+            "Waits for the job to end. One undo step; objects named are left selected. Reply: the objects it turned (objects) "
+            "and the rotation of each instance it turned (rotations: [{object, instance, rotation_deg}]).",
+            with_targets(object_schema({{"plates", array_prop({{"type", "integer"}}, "Plate indices: orient the objects that stand on them.")}}),
+                         kObjects, false),
+            [](const json& args, ToolContext& ctx) {
+                AutomationRuntime&     runtime = ctx.runtime();
+                Ops::OrientObjectsArgs op;
+                ctx.run_ui([&] {
+                    Plater&                                    plater = ui_plater();
+                    const Ops::Outcome<Ops::OrientObjectsArgs> found  = orient_args(plater, args);
+                    if (!found)
+                        throw refused(found.refusal());
+                    op = found.value();
+                    if (const Ops::Outcome<Ops::Done> started = Ops::orient_objects(op); !started)
+                        throw refused(started.refusal());
+                    return json();
+                });
+                const auto timeout = std::chrono::seconds(300);
+                try {
+                    return ToolResult::ok(poll_ui(
+                        ctx,
+                        [&]() -> json {
+                            Plater& plater = ui_plater();
+                            return plater.get_ui_job_worker().is_idle() ? orient_reply(plater, op) : json();
+                        },
+                        timeout, "the orientation"));
+                } catch (const ToolFailure&) {
+                    if (ctx.cancelled())
+                        throw;
+                    // McpCore keeps the call's admission until the cancelled job has really stopped.
+                    ctx.observe_ui([&] { return json(runtime.core().cancel_worker(ctx.job_id())); });
+                    throw ToolFailure("The orientation did not finish within " + std::to_string(timeout.count()) + " s, so it was cancelled");
+                }
+            })));
+    orient.tiles = json::array({tile("obj_orient", L("Auto-Orient"), object_section, "toolbar_orient", json::object(), orient_tile)});
+    // A person's pick of the tile starts the orientation in place and returns while it runs; an automated call of the
+    // tile's arguments is the command's own function, which waits and replies. Both are orient_objects() on the same
+    // targets.
+    catalog.add(NativeCommands::with_row_forms(
+        std::move(orient),
+        [](const json&) {
+            Plater* plater = wxGetApp().plater();
+            if (plater == nullptr)
+                return AppActionRunResult{};
+            const Ops::Outcome<Ops::OrientObjectsArgs> found = orient_args(*plater, json::object());
+            if (!found)
+                return row_info(found.refusal());
+            if (const Ops::Outcome<Ops::Done> started = Ops::orient_objects(found.value()); !started)
+                return row_info(started.refusal());
+            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
+        },
+        /*person_form_behind_dialogs=*/false, std::vector<json>{json::object()}));
+
+    // ---- Parts ---- (Change Type, in the part menus only)
+    struct TypeRow
+    {
+        const char* key;
+        const char* title;
+        const char* type;
+        const char* description;
+    };
+    // Titles are L("...")-marked here so xgettext extracts them.
+    const TypeRow type_rows[] = {
+        {"obj_type_part", L("Change Type to Part"), "part",
+         "Make the selected parts (object_select {parts} first) solid parts, as Change Type does. Parts are listed by type, so "
+         "part indices change."},
+        {"obj_type_negative", L("Change Type to Negative Part"), "negative",
+         "Make the selected parts negative parts, as Change Type does; not the object's last solid part. Parts are listed by "
+         "type, so part indices change."},
+        {"obj_type_modifier", L("Change Type to Modifier"), "modifier",
+         "Make the selected parts modifiers, as Change Type does; not the object's last solid part. Parts are listed by type, "
+         "so part indices change."},
+        {"obj_type_support_blocker", L("Change Type to Support Blocker"), "support_blocker",
+         "Make the selected parts support blockers, as Change Type does; not the object's last solid part, nor a text or SVG "
+         "part. Parts are listed by type, so part indices change."},
+        {"obj_type_support_enforcer", L("Change Type to Support Enforcer"), "support_enforcer",
+         "Make the selected parts support enforcers, as Change Type does; not the object's last solid part, nor a text or SVG "
+         "part. Parts are listed by type, so part indices change."},
+        {"obj_type_precise_seam", L("Change Type to Precise Seam"), "precise_seam",
+         "Make the selected parts Center precise seams (seams keep their subtype), as Change Type does; not the object's last "
+         "solid part, nor a text or SVG part. Parts are listed by type, so part indices change."},
+    };
+    json type_tiles = json::array();
+    for (const TypeRow& row : type_rows)
+        type_tiles.push_back(tile(row.key, row.title, object_section, "", {{"type", row.type}}, row.description));
+    catalog.add(reaching(
+        {"change_part_type"},
+        with_expected_ids(row_command(
+            "part_change_type", L("Change a part's type"),
+            "Change what parts are, as Change Type does: those named, else the part rows selected in the object list. type is "
+            "part, negative, modifier, support_blocker, support_enforcer, or precise_seam, a Center precise seam where a seam "
+            "keeps its subtype; subtype, with precise_seam alone, sets the seam's subtype as the Precise Seam Type menu does. "
+            "Not an object's last solid part; a text or SVG part does not become a support blocker or enforcer or a precise "
+            "seam; a painted modifier keeps its type. One undo step. Parts are listed by type, so part indices change. Reply: "
+            "each part with its index afterwards and its type (parts).",
+            with_targets(object_schema({{"type", enum_prop({"part", "negative", "modifier", "support_blocker", "support_enforcer", "precise_seam"},
+                                                           "What the parts become.")},
+                                        {"subtype", enum_prop({"center", "left", "right", "enforced", "blocked", "neutral"},
+                                                              "With type precise_seam: the seam's subtype, which every part named "
+                                                              "takes. Default: a seam keeps its own, another part becomes center.")}},
+                                       {"type"}),
+                         kParts, false),
+            std::move(type_tiles), part_type_command))));
+}
+
+// What object_fix replies: what it repaired (objects whole, parts), and for each object or part in turn whether its mesh
+// changed, why it could not be repaired, the object's mesh errors before and after, whether painting was removed, and
+// whether it is the one a cancel stopped, listed because its mesh had changed by then.
+json fix_reply(const Model& model, const Ops::FixedModels& fixed)
+{
+    Targets repaired;
+    json    repairs = json::array();
+    for (const Ops::FixedModel& m : fixed.models) {
+        if (m.part < 0)
+            repaired.objects.push_back(m.object);
+        else
+            repaired.parts.emplace_back(m.object, m.part);
+        json item{{"object", m.object},
+                  {"name", m.name},
+                  {"changed", m.changed},
+                  {"mesh_errors_before", mesh_errors_json(m.before)},
+                  {"mesh_errors_after", mesh_errors_json(m.after)},
+                  {"painting_removed", m.painting_removed}};
+        if (m.part >= 0)
+            item["part"] = m.part;
+        if (!m.failed.empty())
+            item["failed"] = m.failed;
+        if (m.cancelled)
+            item["cancelled"] = true;
+        repairs.push_back(std::move(item));
+    }
+    json reply       = targets_reply(model, repaired);
+    reply["repairs"] = std::move(repairs);
+    return reply;
+}
+
+// The object and part commands of the GUI's menus that have no Speed Dial tile: Printable, Auto Drop, Fix Model, Clone,
+// Reload from disk and Replace 3D file. Each reads its targets through resolve_targets() and runs its operation.
+void register_object_tools(CommandCatalog& catalog)
+{
+    NativeCommand printable = reaching(
+        {"set_objects_printable"},
+        with_expected_ids(mutate_tool(
+            "object_set_printable", L("Set printable"),
+            "Mark objects, or some of their instances, printable or not, as the object list's Printable cell does: those "
+            "named (objects: every instance of each; instances: those alone), else what is selected in the Prepare view. An "
+            "instance that is not printable is greyed in the 3D view and left out of slicing. One undo step. Reply: every "
+            "instance it set, with printable (instances), and the objects named (objects).",
+            with_targets(object_schema({{"printable", prop("boolean", "true marks them printable, false not printable.")}}, {"printable"}),
+                         kObjects | kInstances, false),
+            [](const json& args, ToolContext& ctx) {
+                json out = ctx.run_ui([&] {
+                    Plater&                     plater = ui_plater();
+                    const Ops::Outcome<Targets> found =
+                        resolve_targets(plater.model(), prepare_selection(args), args, kObjects | kInstances, false);
+                    if (!found)
+                        throw refused(found.refusal());
+                    const bool                                           printable = arg_bool(args, "printable", true);
+                    const Ops::Outcome<std::vector<std::pair<int, int>>> set = Ops::set_objects_printable({found.value(), printable});
+                    if (!set)
+                        throw refused(set.refusal());
+                    Targets acted;
+                    acted.objects   = found.value().objects;
+                    acted.instances = set.value();
+                    json reply      = targets_reply(plater.model(), acted);
+                    for (json& instance : reply["instances"])
+                        instance["printable"] = printable;
+                    return reply;
+                });
+                settle(ctx);
+                return ToolResult::ok(out);
+            })));
+    printable.examples = json::parse(R"json([
+        {"title": "Leave one instance out of the print", "calls": [
+            {"tool": "object_set_instances", "args": {"object": 0, "count": 3}},
+            {"tool": "object_set_printable", "args": {"instances": [[0, 1]], "printable": false}}]},
+        {"title": "Print the selected objects again", "calls": [
+            {"tool": "object_set_printable", "args": {"printable": true}}]}])json");
+    catalog.add(std::move(printable));
+
+    NativeCommand auto_drop = reaching(
+        {"set_objects_auto_drop"},
+        with_expected_ids(mutate_tool(
+            "object_set_auto_drop", L("Set Auto Drop"),
+            "Turn Auto Drop on or off for objects, as the 3D view's Auto Drop does: those named, else the objects of what is "
+            "selected in the Prepare view, an instance or a part standing for its object. With it off an object stays where "
+            "object_transform or the Move gizmo leaves it, above the bed; with it on it drops onto the bed when it is next "
+            "moved. An object's instances share it. One undo step. Reply: the objects (objects) and auto_drop.",
+            with_targets(object_schema({{"auto_drop", prop("boolean", "true lets the objects drop onto the bed, false lets them "
+                                                                      "stay above it.")}},
+                                       {"auto_drop"}),
+                         kObjects, false),
+            [](const json& args, ToolContext& ctx) {
+                json out = ctx.run_ui([&] {
+                    Plater&                     plater = ui_plater();
+                    const Ops::Outcome<Targets> found =
+                        resolve_targets(plater.model(), prepare_selection(args), args, kObjects | kObjectOfSelection, false);
+                    if (!found)
+                        throw refused(found.refusal());
+                    const bool                            auto_drop = arg_bool(args, "auto_drop", true);
+                    const Ops::Outcome<std::vector<int>> set       = Ops::set_objects_auto_drop({found.value(), auto_drop});
+                    if (!set)
+                        throw refused(set.refusal());
+                    Targets acted;
+                    acted.objects      = set.value();
+                    json reply         = targets_reply(plater.model(), acted);
+                    reply["auto_drop"] = auto_drop;
+                    return reply;
+                });
+                settle(ctx);
+                return ToolResult::ok(out);
+            })));
+    auto_drop.examples = json::parse(R"json([
+        {"title": "Let an object stay above the bed where it is moved to", "calls": [
+            {"tool": "object_set_auto_drop", "args": {"objects": [0], "auto_drop": false}}]},
+        {"title": "Let the selected objects drop onto the bed again", "calls": [
+            {"tool": "object_set_auto_drop", "args": {"auto_drop": true}}]}])json");
+    catalog.add(std::move(auto_drop));
+
+    // The repair runs in one UI closure, which job_cancel {job} stops through the progress it reports. A cancel fails the
+    // call with the reply in its details: the models repaired before it, and the one it stopped when that one's mesh had
+    // changed (a part of an object repaired before the cancel keeps its new mesh).
+    NativeCommand fix = reaching(
+        {"fix_objects"},
+        with_expected_ids(mutate_tool(
+            "object_fix", L("Fix Model"),
+            "Repair objects' meshes, as Fix Model does: those named (objects whole, or parts), the objects on a plate (plate, "
+            "as Fix All on the current plate), every object (all), else what is selected in the Prepare view, an instance "
+            "standing for its object. A painted modifier is left as it is, and painting is kept only with the keep_painting "
+            "preference on. It opens no progress dialog and shows no notification; the call waits for the repair, during "
+            "which the window does not redraw, and job_cancel {job} cancels it: the call fails with the reply in its "
+            "details, and what was repaired before the cancel, a part of the object it stopped in among them, keeps its new "
+            "mesh. Refused while a gizmo is open. One undo step. Reply: what it repaired (objects, parts) and repairs, for "
+            "each in turn: changed, failed (why it could not be repaired), the object's mesh_errors_before and "
+            "mesh_errors_after (as object_list gives them), painting_removed, and cancelled: true on the one a cancel "
+            "stopped, listed when its mesh had changed by then.",
+            with_targets(object_schema({{"plate", {{"type", "integer"},
+                                                   {"minimum", 0},
+                                                   {"description", "Repair the objects on this plate."}}},
+                                        {"all", prop("boolean", "Repair every object. Default false: the targets.")}}),
+                         kObjects | kParts, false),
+            [](const json& args, ToolContext& ctx) {
+                const bool all = arg_bool(args, "all", false);
+                if (all && args.contains("plate"))
+                    throw ToolFailure("Give all or plate, not both");
+                if ((all || args.contains("plate")) && names_targets(args))
+                    throw ToolFailure(all ? "all repairs every object; leave the targets out" :
+                                            "plate repairs the objects on it; leave the targets out");
+                json out = ctx.run_ui([&] {
+                    Plater&             plater = ui_plater();
+                    Ops::FixObjectsArgs op;
+                    op.all = all;
+                    if (args.contains("plate")) {
+                        op.plate = arg_int(args, "plate", 0);
+                    } else if (!all) {
+                        const Ops::Outcome<Targets> found = resolve_targets(plater.model(), prepare_selection(args), args,
+                                                                            kObjects | kParts | kObjectOfSelection, false);
+                        if (!found)
+                            throw refused(found.refusal());
+                        op.targets = found.value();
+                    }
+                    const Ops::Outcome<Ops::FixedModels> fixed = Ops::fix_objects(op, [&ctx](std::size_t, int, const std::string&) {
+                        return !ctx.cancelled();
+                    });
+                    if (!fixed)
+                        throw refused(fixed.refusal());
+                    json reply = fix_reply(plater.model(), fixed.value());
+                    if (fixed.value().cancelled)
+                        throw ToolFailure("The repair was cancelled; what it repaired before keeps its new mesh (repairs)", reply);
+                    return reply;
+                });
+                settle(ctx);
+                return ToolResult::ok(out);
+            })));
+    fix.cancellable = true;
+    fix.examples = json::parse(R"json([
+        {"title": "Repair an imported object whose mesh has holes", "calls": [
+            {"tool": "object_list", "args": {}},
+            {"tool": "object_fix", "args": {"objects": [0]}}]},
+        {"title": "Repair the objects on the first plate", "calls": [
+            {"tool": "object_fix", "args": {"plate": 0}}]}])json");
+    catalog.add(std::move(fix));
+
+    // Clone waits for the arrangement it starts, as object_arrange does.
+    NativeCommand clone = reaching(
+        {"clone_objects"},
+        with_expected_ids(mutate_tool(
+            "object_clone", L("Clone"),
+            "Make copies of objects as new objects, as the Clone dialog does: those named, else what is selected in the "
+            "Prepare view (an object whole, or some of its instances, which a copy holds as one new object). count copies of "
+            "each (default 1, as the dialog's field starts), added after the other objects, placed near them on the current "
+            "plate; the last copies are left selected. With arrange true the current plate is then arranged, as the dialog's "
+            "Auto arrange plate after cloning does; without arrange, the dialog's choice: the auto_arrange preference. The "
+            "call waits for the arrangement. One undo step for the copies, and one for the arrangement. Reply: the new objects "
+            "(objects), what was copied (copied: its objects, or its instances where instances were selected), object_count "
+            "and arranged.",
+            with_targets(object_schema({{"count", {{"type", "integer"},
+                                                   {"minimum", 1},
+                                                   {"maximum", 1000},
+                                                   {"description", "Copies of each, up to 1000 as the Clone dialog takes. Default 1."}}},
+                                        {"arrange", prop("boolean", "Arrange the current plate afterwards. Default: the Clone dialog's "
+                                                                    "choice, the auto_arrange preference.")}}),
+                         kObjects, false),
+            [](const json& args, ToolContext& ctx) {
+                AutomationRuntime& runtime  = ctx.runtime();
+                bool               arranged = false;
+                json               reply    = ctx.run_ui([&] {
+                    Plater&                     plater = ui_plater();
+                    const Ops::Outcome<Targets> found =
+                        resolve_targets(plater.model(), prepare_selection(args), args, kObjects | kInstances, false);
+                    if (!found)
+                        throw refused(found.refusal());
+                    Ops::CloneObjectsArgs op;
+                    op.targets = found.value();
+                    op.count   = arg_int(args, "count", 1);
+                    if (args.contains("arrange"))
+                        op.arrange = arg_bool(args, "arrange", false);
+                    // Read before the copies are added after the other objects, which leaves these indices as they are.
+                    json copied = targets_reply(plater.model(), found.value());
+                    const Ops::Outcome<Ops::ClonedObjects> cloned = Ops::clone_objects(op);
+                    if (!cloned)
+                        throw refused(cloned.refusal());
+                    arranged            = cloned.value().arranged;
+                    json out            = targets_reply(plater.model(), cloned.value().objects);
+                    out["copied"]       = std::move(copied);
+                    out["object_count"] = plater.model().objects.size();
+                    out["arranged"]     = arranged;
+                    return out;
+                });
+                if (arranged) {
+                    const auto timeout = std::chrono::seconds(300);
+                    try {
+                        poll_ui(
+                            ctx, []() -> json { return ui_plater().get_ui_job_worker().is_idle() ? json(true) : json(); }, timeout,
+                            "the arrangement");
+                    } catch (const ToolFailure&) {
+                        if (ctx.cancelled())
+                            throw;
+                        // McpCore keeps the call's admission until the cancelled job has really stopped.
+                        ctx.observe_ui([&] { return json(runtime.core().cancel_worker(ctx.job_id())); });
+                        throw ToolFailure("The arrangement did not finish within " + std::to_string(timeout.count()) +
+                                          " s, so it was cancelled; the copies stay");
+                    }
+                }
+                settle(ctx);
+                return ToolResult::ok(reply);
+            })));
+    clone.examples = json::parse(R"json([
+        {"title": "Make three copies of an object and arrange the plate", "calls": [
+            {"tool": "object_clone", "args": {"objects": [0], "count": 3, "arrange": true}}]},
+        {"title": "Copy the selected objects once, where they are", "calls": [
+            {"tool": "object_clone", "args": {"arrange": false}}]}])json");
+    catalog.add(std::move(clone));
+
+    NativeCommand reload = reaching(
+        {"reload_parts"},
+        with_expected_ids(mutate_tool(
+            "object_reload_from_disk", L("Reload from disk"),
+            "Load parts again from the files they were loaded from, as Reload from disk does: every part of the objects "
+            "named, the parts named, every object's (all, as Reload All does, cut objects left out), else what is selected in "
+            "the Prepare view. A part's file is the one it was loaded from, else the file of that name beside its object's "
+            "file. A part whose file is gone is not asked for: it is listed under missing. A part keeps its settings, type, "
+            "filament and placement, and its painting when the keep_painting preference is on. Parts loaded from no file "
+            "(primitives, the built-in models) are left out; cut objects are refused, since a reload would replace a cut part "
+            "with its whole file, and so is a call while a gizmo is open. One undo step. Reply: reloaded (parts), missing "
+            "(with each part's path), unmatched (parts their file holds no part to take for) and unreadable (a file that "
+            "could not be read, after which nothing more was loaded).",
+            with_targets(object_schema({{"all", prop("boolean", "Reload every object but the cut ones. Default false: the targets.")}}),
+                         kObjects | kParts, false),
+            [](const json& args, ToolContext& ctx) {
+                const bool all = arg_bool(args, "all", false);
+                if (all && names_targets(args))
+                    throw ToolFailure("all reloads every object; leave the targets out");
+                json out = ctx.run_ui([&] {
+                    Plater&                 plater = ui_plater();
+                    Ops::ReloadFromDiskArgs op;
+                    op.all = all;
+                    if (!all) {
+                        const Ops::Outcome<Targets> found = resolve_targets(plater.model(), prepare_selection(args), args,
+                                                                            kObjects | kParts | kObjectOfSelection, false);
+                        if (!found)
+                            throw refused(found.refusal());
+                        op.targets = found.value();
+                    }
+                    const Ops::Outcome<Ops::ReloadedParts> reloaded = Ops::reload_parts(op);
+                    if (!reloaded)
+                        throw refused(reloaded.refusal());
+                    const Model& model = plater.model();
+                    // Each part with the file it was loaded from.
+                    const auto parts = [&model](const std::vector<std::pair<int, int>>& list) {
+                        Targets named;
+                        named.parts = list;
+                        json items  = targets_reply(model, named).value("parts", json::array());
+                        for (json& item : items)
+                            item["path"] = model.objects[item["object"].get<std::size_t>()]
+                                               ->volumes[item["part"].get<std::size_t>()]
+                                               ->source.input_file;
+                        return items;
+                    };
+                    json reply{{"reloaded", parts(reloaded.value().reloaded)},
+                               {"missing", parts(reloaded.value().missing)},
+                               {"unmatched", parts(reloaded.value().unmatched)}};
+                    if (!reloaded.value().unreadable.empty())
+                        reply["unreadable"] = reloaded.value().unreadable;
+                    return reply;
+                });
+                settle(ctx);
+                return ToolResult::ok(out);
+            })));
+    reload.examples = json::parse(R"json([
+        {"title": "Reload an imported object after its file changed", "calls": [
+            {"tool": "object_reload_from_disk", "args": {"objects": [0]}}]},
+        {"title": "Reload every object", "calls": [
+            {"tool": "object_reload_from_disk", "args": {"all": true}}]}])json");
+    catalog.add(std::move(reload));
+
+    NativeCommand replace = reaching(
+        {"replace_part"},
+        with_expected_ids(mutate_tool(
+            "part_replace", L("Replace 3D file"),
+            "Replace a part's mesh with the mesh of a model file, as Replace 3D file does: the part named (object and part, or "
+            "an object of one part), else the one selected in the Prepare view. The part keeps its settings, type, filament "
+            "and placement, and its painting when the keep_painting preference is on; with it off the painting is copied as it "
+            "is, which fits the same mesh alone. A file that loads as more than one object or part is refused, as Replace 3D "
+            "file refuses it. path names the file, so no file dialog opens; the loader may still ask, a STEP file for its mesh "
+            "options (blocked_by_dialog). Cut objects are refused, and so is a call while a gizmo is open. One undo step. "
+            "Reply: the part (parts), with its new part_id and its index, which moves when the object's parts are not in type "
+            "order (the replacement sorts them), and its object_list entry (part_info).",
+            with_targets(object_schema({{"path", prop("string", "Absolute path of the model file (STL, OBJ, 3MF, STEP, ...).")}}, {"path"}),
+                         kParts, true),
+            [](const json& args, ToolContext& ctx) {
+                json out = ctx.run_ui([&] {
+                    Plater&                     plater = ui_plater();
+                    const Ops::Outcome<Targets> found  = resolve_targets(plater.model(), prepare_selection(args), args,
+                                                                         kObjects | kParts | kObjectOfSelection, true);
+                    if (!found)
+                        throw refused(found.refusal());
+                    const Ops::Outcome<std::pair<int, int>> part = Ops::replaced_part(plater.model(), found.value());
+                    if (!part)
+                        throw refused(part.refusal());
+                    const int               object   = part.value().first;
+                    const Ops::Outcome<int> replaced = Ops::replace_part({object, part.value().second, arg_string(args, "path")});
+                    if (!replaced)
+                        throw refused(replaced.refusal());
+                    const std::size_t index = std::size_t(replaced.value());
+                    Targets           acted;
+                    acted.parts        = {{object, replaced.value()}};
+                    json reply         = targets_reply(plater.model(), acted);
+                    reply["part_info"] = volume_info(*plater.model().objects[std::size_t(object)]->volumes[index], index);
+                    return reply;
+                });
+                settle(ctx);
+                return ToolResult::ok(out);
+            })));
+    replace.examples = json::parse(R"json([
+        {"title": "Replace an object's only part with a new version of its file", "calls": [
+            {"tool": "part_replace", "args": {"object": 0, "path": "/models/bracket_v2.stl"}}]},
+        {"title": "Replace a modifier with a mesh of another shape", "calls": [
+            {"tool": "part_replace", "args": {"object": 0, "part": 1, "path": "/models/modifier.stl"}}]}])json");
+    catalog.add(std::move(replace));
+}
+
+} // namespace
+
 void register_scene_tools(CommandCatalog& catalog)
 {
     catalog.add(inspect_tool(
-        "api", "list_objects", L("List objects"),
+        "object_list", L("List objects"),
         "The project as the Objects panel lists it. plates: each {index, name, objects}, with the objects that have an "
         "instance on it; outside: the objects with an instance on no plate. An object with instances on two plates is "
         "listed under both, each time with that plate's instances. An object has its filament, auto_drop, bounding box "
-        "(instance 0), brim ear count and overrides, the keys of the settings it overrides (get_settings scope object "
-        "reads them); its instances (offset, rotation in degrees, scale, "
+        "(instance 0), brim ear count and overrides, the keys of the settings it overrides (settings_get target object "
+        "reads them); its mesh_errors, as the list's warning icon reads them: open_edges, manifold (no open edge), and the "
+        "loader's or a repair's counts degenerate_facets, edges_fixed, facets_removed, facets_reversed and "
+        "backwards_edges (object_fix repairs it); its instances (offset, rotation in degrees, scale, "
         "mirrored, bbox); its parts, one or more: parts, negative parts, modifiers, support blockers and enforcers and "
         "precise seams (type, with subtype for a precise seam; filament: a part's own or its object's, a modifier's only when it sets "
         "one; position, bbox and scaled_volume in mm3 on the bed, measured on instance 0; rotation_deg and scale in the "
         "object's frame; mirrored; triangle count; mesh_volume, the unscaled mesh's mm3; painted facets: supports and "
         "seam enforcers/blockers, fuzzy_skin, mmu per filament, texture per layer; a text part's text and font, an SVG "
-        "part's file); its height range modifiers when it has any (layer_config_ranges: [{min_z, max_z, values}], as "
-        "set_height_ranges takes them) and its variable layer height profile when it has one (layer_height_profile: "
+        "part's file); its height range modifiers when it has any (layer_config_ranges: [{min_z, max_z, values}], values "
+        "being a range's settings, which settings_set changes with target height_range; object_set_height_ranges takes "
+        "min_z and max_z) and its variable layer height profile when it has one (layer_height_profile: "
         "{points, min_height, max_height}). A bbox is {min, max, size} in mm of model parts only, so unlike the panel's Size it "
         "leaves out modifiers. An object's index numbers it in the project and a part's in its object, whatever the plate: "
-        "they are what select_objects, transform, mouse_gesture targets and the object/part settings scopes take. "
+        "they are what object_select, object_transform, mouse_gesture targets and the settings tools' object and part targets take. "
         "Each object and part also has an id, which stays with it when a delete, split or assemble shifts the indices: pass "
-        "it as object_id / part_id to transform, add_part, set_settings, set_height_ranges and set_variable_layer_height "
-        "(object_ids, part_ids and instance_object_ids to select_objects), and a call whose index names another one now is "
+        "it as object_id / part_id to object_transform, part_add, settings_set, object_set_height_ranges and object_set_variable_layer_height "
+        "(object_ids, part_ids and instance_object_ids to object_select), and a call whose index names another one now is "
         "refused instead of acting on it. limit and offset page the objects and total counts them, each once.",
         object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "List this plate alone, without outside."}}},
                        {"screen", prop("boolean", "Add each instance's rectangle in the shown 3D view, logical pixels [x, y, w, h].")},
@@ -997,108 +2441,50 @@ void register_scene_tools(CommandCatalog& catalog)
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
         [](const json& args, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return list_objects(args); })); }));
 
-    catalog.add(with_expected_ids(mutate_tool(
-        "ui", "select_objects", L("Select objects"),
+    NativeCommand select = with_expected_ids(mutate_tool(
+        "object_select", L("Select objects"),
         "Select objects, instances or parts in the 3D view (the assemble view while it is shown, else Prepare, switching to it), as clicking them would. Give objects, "
         "instances ([[object, instance], ...]) or parts ([[object, part], ...]); add keeps the current selection; all / "
-        "none select everything or nothing, whatever else is given. The reply is the selection as get_app_state.selection "
-        "gives it.",
-        object_schema({{"objects", array_prop({{"type", "integer"}}, "Object indices.")},
-                       {"instances", array_prop({{"type", "array"}}, "[[object, instance], ...]")},
-                       {"parts", array_prop({{"type", "array"}}, "[[object, part], ...]")},
-                       {"object_ids", array_prop({{"type", "integer"}}, "The ids list_objects reports for objects, one per "
-                                                                         "entry: refused when an index names another object now.")},
-                       {"part_ids", array_prop({{"type", "integer"}}, "The ids list_objects reports for the entries of parts, "
-                                                                         "one per entry: refused when a pair names another part now.")},
-                       {"instance_object_ids", array_prop({{"type", "integer"}}, "The ids list_objects reports for the objects of "
-                                                                                  "instances, one per entry: refused when a pair names "
-                                                                                  "another object now.")},
-                       {"add", prop("boolean", "Add to the selection instead of replacing it.")},
-                       {"all", prop("boolean", "Select all objects.")},
-                       {"none", prop("boolean", "Clear the selection.")}}),
+        "none select everything or nothing, whatever else is given; none also closes the open gizmo, as Deselect All does, "
+        "and all is refused while a gizmo that keeps its selection is open. The reply is the selection as "
+        "app_state.selection gives it, for all and none alone (Select All and Deselect All) too.",
+        with_targets(object_schema({{"add", prop("boolean", "Add to the selection instead of replacing it.")},
+                                    {"all", prop("boolean", "Select all objects.")},
+                                    {"none", prop("boolean", "Clear the selection and close the open gizmo.")}}),
+                     kEveryTarget, false),
         [](const json& args, ToolContext& ctx) {
             json out = ctx.run_ui([&] {
-                Plater&     plater   = ui_plater();
-                GLCanvas3D& canvas   = object_canvas();
-                Selection&  sel      = canvas.get_selection();
-                const bool  assemble = &canvas == plater.get_assmeble_canvas3D();
+                Plater&     plater = ui_plater();
+                GLCanvas3D& canvas = object_canvas();
+                Selection&  sel    = canvas.get_selection();
                 if (arg_bool(args, "none", false)) {
-                    if (assemble)
-                        sel.remove_all();
-                    else
-                        plater.deselect_all();
-                    canvas.set_as_dirty();
+                    clear_selection(canvas);
                     return selection_state(canvas);
                 }
                 if (arg_bool(args, "all", false)) {
-                    if (assemble)
-                        sel.add_all();
-                    else
-                        plater.select_all();
-                    canvas.set_as_dirty();
+                    if (const std::optional<Ops::Refusal> refusal = select_everything(canvas))
+                        throw refused(*refusal);
                     return selection_state(canvas);
                 }
-                const size_t  count = plater.model().objects.size();
-                bool          first = !arg_bool(args, "add", false);
-                auto check_obj = [&](int o) {
-                    if (o < 0 || size_t(o) >= count)
-                        throw ToolFailure("object index " + std::to_string(o) + " is out of range");
-                };
-                // An instance or part an object no longer has would select nothing, as quietly as a stale
-                // index from before a merge or a delete.
-                auto check_in = [&](const json& p, bool instance) {
-                    const int o = p.at(0).get<int>(), i = p.at(1).get<int>();
-                    check_obj(o);
-                    const ModelObject& object = *plater.model().objects[size_t(o)];
-                    if (i < 0 || size_t(i) >= (instance ? object.instances.size() : object.volumes.size()))
-                        throw ToolFailure("object " + std::to_string(o) + " has no " + (instance ? "instance " : "part ") +
-                                          std::to_string(i) + " (list_objects lists them)");
-                };
-                // Expected ids are checked for every entry before the selection changes.
-                const json objects = args.value("objects", json::array()), volumes = args.value("parts", json::array());
-                if (args.contains("object_ids")) {
-                    if (args["object_ids"].size() != objects.size())
-                        throw ToolFailure("object_ids takes one id per entry of objects");
-                    for (std::size_t k = 0; k < objects.size(); ++k) {
-                        check_obj(objects[k].get<int>());
-                        check_expected_ids(*plater.model().objects[size_t(objects[k].get<int>())], nullptr,
-                                           json{{"object_id", args["object_ids"][k]}});
+                // Every index and expected id is checked before the selection changes. A call that names nothing, or
+                // only empty lists, leaves it as it is.
+                if (names_targets(args) && !names_empty_lists(args)) {
+                    const Ops::Outcome<Targets> named = resolve_targets(plater.model(), nullptr, args, kEveryTarget, false);
+                    if (!named)
+                        throw refused(named.refusal());
+                    bool first = !arg_bool(args, "add", false);
+                    for (int o : named.value().objects) {
+                        sel.add_object(unsigned(o), first);
+                        first = false;
                     }
-                }
-                const json instances = args.value("instances", json::array());
-                if (args.contains("instance_object_ids")) {
-                    if (args["instance_object_ids"].size() != instances.size())
-                        throw ToolFailure("instance_object_ids takes one id per entry of instances");
-                    for (std::size_t k = 0; k < instances.size(); ++k) {
-                        check_in(instances[k], true);
-                        check_expected_ids(*plater.model().objects[size_t(instances[k].at(0).get<int>())], nullptr,
-                                           json{{"object_id", args["instance_object_ids"][k]}});
+                    for (const auto& [o, i] : named.value().instances) {
+                        sel.add_instance(unsigned(o), unsigned(i), first);
+                        first = false;
                     }
-                }
-                if (args.contains("part_ids")) {
-                    if (args["part_ids"].size() != volumes.size())
-                        throw ToolFailure("part_ids takes one id per entry of parts");
-                    for (std::size_t k = 0; k < volumes.size(); ++k) {
-                        check_in(volumes[k], false);
-                        const ModelObject& object = *plater.model().objects[size_t(volumes[k].at(0).get<int>())];
-                        check_expected_ids(object, object.volumes[size_t(volumes[k].at(1).get<int>())],
-                                           json{{"part_id", args["part_ids"][k]}});
+                    for (const auto& [o, p] : named.value().parts) {
+                        sel.add_volume(unsigned(o), unsigned(p), 0, first);
+                        first = false;
                     }
-                }
-                for (const json& o : objects) {
-                    check_obj(o.get<int>());
-                    sel.add_object(unsigned(o.get<int>()), first);
-                    first = false;
-                }
-                for (const json& p : args.value("instances", json::array())) {
-                    check_in(p, true);
-                    sel.add_instance(unsigned(p.at(0).get<int>()), unsigned(p.at(1).get<int>()), first);
-                    first = false;
-                }
-                for (const json& p : args.value("parts", json::array())) {
-                    check_in(p, false);
-                    sel.add_volume(unsigned(p.at(0).get<int>()), unsigned(p.at(1).get<int>()), 0, first);
-                    first = false;
                 }
                 wxGetApp().obj_list()->update_selections();
                 canvas.set_as_dirty();
@@ -1106,10 +2492,38 @@ void register_scene_tools(CommandCatalog& catalog)
             });
             settle(ctx);
             return ToolResult::ok(out);
-        })));
+        }));
+    select.tiles = json::array({NativeCommands::tile("select_all", L("Select All Objects"), L("Object"), "", {{"all", true}},
+                                                     "Select every object in the 3D view (the assemble view while it is shown, "
+                                                     "else Prepare, switching to it), and reply with the selection; refused "
+                                                     "while a gizmo that keeps its selection is open. A person's pick shows "
+                                                     "Prepare and selects there."),
+                                NativeCommands::tile("deselect_all", L("Deselect All"), L("Object"), "", {{"none", true}},
+                                                     "Clear the selection in the 3D view (the assemble view while it is shown, "
+                                                     "else Prepare, switching to it), close the open gizmo, and reply with the "
+                                                     "selection. A person's pick clears it where it is, switching no tab.")});
+    // A person's pick runs in place, as its row did: Select All shows Prepare and select_everything() selects there,
+    // Deselect All is clear_selection() on the view shown, switching no tab. An automated call of either tile's
+    // arguments is object_select's own function, which the two functions serve too, on the view shown, and replies
+    // with the selection.
+    catalog.add(NativeCommands::with_row_forms(
+        std::move(select),
+        [](const json& tile_args) {
+            Plater* plater = wxGetApp().plater();
+            if (arg_bool(tile_args, "all", false)) {
+                if (plater == nullptr)
+                    return AppActionRunResult{};
+                Ops::show_prepare_view();
+                if (const std::optional<Ops::Refusal> refusal = select_everything(*plater->get_view3D_canvas3D()))
+                    return NativeCommands::refused(*refusal, AppActionRunResult::Level::Info);
+            } else if (plater != nullptr)
+                clear_selection(selection_canvas(*plater));
+            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
+        },
+        /*person_form_behind_dialogs=*/false, std::vector<json>{json{{"none", true}}, json{{"all", true}}}));
 
     catalog.add(with_expected_ids(mutate_tool(
-        "api", "transform", L("Move, rotate or scale an instance or a part"),
+        "object_transform", L("Move, rotate or scale an instance or a part"),
         "Change one instance's placement, or one part's with part. translate is in mm, position where it goes (mm, as "
         "the Move panel shows it, whatever mode says), rotate in degrees about X/Y/Z, "
         "scale a factor (one number or [x, y, z]), size [x, y, z] mm along the object's or part's own axes, plate moves "
@@ -1118,78 +2532,109 @@ void register_scene_tools(CommandCatalog& catalog)
         "off; drop_to_bed false lets it sink into the bed, but an object of one part left above the bed still drops. A part "
         "moves as the "
         "Object manipulation panel moves it: translate and rotate along the bed's axes, measured on instance 0, scale and "
-        "size along its own axes; every instance shows the change, and Auto Drop may lower the object afterwards. One "
-        "undo step. Reply: the instance's offset, scale and plate, or the part's size along its own axes and its "
-        "list_objects entry (part_info).",
-        object_schema({{"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (list_objects)."}}},
-                       {"instance", {{"type", "integer"}, {"minimum", 0}, {"description", "Default 0."}}},
-                       {"part", {{"type", "integer"}, {"minimum", 0}, {"description", "Transform this part instead of the instance."}}},
-                       {"object_id", expected_id_prop("object")},
-                       {"part_id", expected_id_prop("part")},
-                       {"translate", array_prop({{"type", "number"}}, "[x, y, z] mm")},
-                       {"position", array_prop({{"type", "number"}}, "[x, y, z] mm: the position to move to. Not with translate.")},
-                       {"rotate", array_prop({{"type", "number"}}, "[x, y, z] degrees; relative only for a part")},
-                       {"scale", {{"type", {"number", "array"}}, {"description", "Factor or [x, y, z] factors."}}},
-                       {"size", array_prop({{"type", {"number", "null"}}}, "[x, y, z] mm, null keeps an axis; one number and two "
-                                                                            "nulls keep the proportions. Not with scale.")},
-                       {"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Move the instance to this plate."}}},
-                       {"mode", enum_prop({"relative", "absolute"}, "Default relative.")},
-                       {"drop_to_bed", prop("boolean", "Default true; instances only.")}},
-                      {"object"}),
+        "size along its own axes; every instance shows the change, and Auto Drop may lower the object afterwards. The "
+        "instance is the object's instance (default 0) and the part one of its parts; with no object, the instance or part "
+        "selected in the Prepare view, or instance 0 of the object selected. One undo step. Reply: the instance's offset, "
+        "scale and plate, or the part's size along its own axes and its object_list entry (part_info), and what it moved "
+        "(instances or parts).",
+        with_targets(object_schema({{"translate", array_prop({{"type", "number"}}, "[x, y, z] mm")},
+                                    {"position", array_prop({{"type", "number"}}, "[x, y, z] mm: the position to move to. Not with translate.")},
+                                    {"rotate", array_prop({{"type", "number"}}, "[x, y, z] degrees; relative only for a part")},
+                                    {"scale", {{"type", {"number", "array"}}, {"description", "Factor or [x, y, z] factors."}}},
+                                    {"size", array_prop({{"type", {"number", "null"}}}, "[x, y, z] mm, null keeps an axis; one number "
+                                                                                         "and two nulls keep the proportions. Not with scale.")},
+                                    {"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Move the instance to this plate."}}},
+                                    {"mode", enum_prop({"relative", "absolute"}, "Default relative.")},
+                                    {"drop_to_bed", prop("boolean", "Default true; instances only.")}}),
+                     kEveryTarget, true),
         [](const json& args, ToolContext& ctx) {
             json out = ctx.run_ui([&]() -> json {
-                Plater&   plater = ui_plater();
-                const int oi     = arg_int(args, "object", -1);
-                if (oi < 0 || oi >= int(plater.model().objects.size()))
-                    throw ToolFailure("object index out of range");
+                Plater& plater = ui_plater();
                 if (args.contains("scale") && args.contains("size"))
                     throw ToolFailure("give scale or size, not both");
                 if (args.contains("translate") && args.contains("position"))
                     throw ToolFailure("give translate or position, not both");
-                check_expected_ids(*plater.model().objects[size_t(oi)], nullptr, args);
-                return args.contains("part") ? transform_part(plater, oi, args) : transform_instance(plater, oi, args);
+                const Ops::Outcome<Targets> found = resolve_targets(plater.model(), &plater.get_view3D_canvas3D()->get_selection(), args,
+                                                                    kEveryTarget, true);
+                if (!found)
+                    throw refused(found.refusal());
+                // The call as the transforms read it: the object, and the instance (a whole object's is instance 0) or
+                // the part.
+                const Targets& target = found.value();
+                json           call   = args;
+                Targets        moved;
+                if (!target.parts.empty()) {
+                    call["object"] = target.parts.front().first;
+                    call["part"]   = target.parts.front().second;
+                    moved.parts    = target.parts;
+                } else {
+                    const std::pair<int, int> instance = target.instances.empty() ?
+                                                             std::make_pair(target.objects.front(), arg_int(args, "instance", 0)) :
+                                                             target.instances.front();
+                    call["object"]   = instance.first;
+                    call["instance"] = instance.second;
+                    moved.instances  = {instance};
+                }
+                const int oi    = call.at("object").get<int>();
+                json      reply = call.contains("part") ? transform_part(plater, oi, call) : transform_instance(plater, oi, call);
+                reply.update(targets_reply(plater.model(), moved));
+                return reply;
             });
             settle(ctx);
             return ToolResult::ok(out);
         })));
 
     catalog.add(with_expected_ids(mutate_tool(
-        "api", "add_part", L("Add a part or modifier to an object"),
+        "part_add", L("Add a part or modifier to an object"),
         "Add a part, negative part, modifier, support blocker or enforcer, or precise seam to an object, as its context "
         "menu's Add items do: a primitive shape at a size, or a model file as Load... adds it. The part lands where the "
         "menu puts it (a shape beside the object, a file at its coordinates relative to the object's first part) unless "
         "position is given. Like the menu, adding a shape folds the instance's rotation and scale into the object's parts "
         "(the instance's scale then reads 1). Refused for an object with several instances: add parts first. A STEP file "
-        "may ask for mesh options (blocked_by_dialog). The new part is selected; one undo step. Reply: its index, which is "
-        "not always the last (parts are ordered by type), the object's part count and the part's list_objects entry "
-        "(part_info).",
-        object_schema({{"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (list_objects)."}}},
-                       {"object_id", expected_id_prop("object")},
-                       {"type", enum_prop({"part", "negative", "modifier", "support_blocker", "support_enforcer", "precise_seam"},
-                                          "What the new part is.")},
-                       {"shape", enum_prop({"cube", "cylinder", "sphere", "cone", "disc", "torus"}, "A primitive shape.")},
-                       {"size", array_prop({{"type", "number"}}, "mm, the Primitive size dialog's fields: cube [x, y, z]; cylinder, "
-                                                                 "cone, disc [diameter, height]; sphere [diameter]; torus [inner "
-                                                                 "diameter, tube diameter]. Default: the built-in size.")},
-                       {"path", prop("string", "Instead of shape: absolute path of a model file (STL, OBJ, 3MF, STEP, ...).")},
-                       {"position", array_prop({{"type", "number"}}, "[x, y, z] mm on the bed for the part's centre, on "
-                                                                     "instance 0, as the Move panel shows it.")}},
-                      {"object", "type"}),
+        "may ask for mesh options (blocked_by_dialog). The object is the one named, else the one selected in the Prepare "
+        "view, or the object of the selected instance or part. The new part is selected; one undo step. Reply: its index, "
+        "which is not always the last (parts are ordered by type), the object's part count and the part's object_list entry "
+        "(part_info), and the object (objects).",
+        with_targets(object_schema({{"type", enum_prop({"part", "negative", "modifier", "support_blocker", "support_enforcer", "precise_seam"},
+                                                       "What the new part is.")},
+                                    {"shape", enum_prop({"cube", "cylinder", "sphere", "cone", "disc", "torus"}, "A primitive shape.")},
+                                    {"size", array_prop({{"type", "number"}}, "mm, the Primitive size dialog's fields: cube [x, y, z]; "
+                                                                              "cylinder, cone, disc [diameter, height]; sphere "
+                                                                              "[diameter]; torus [inner diameter, tube diameter]. "
+                                                                              "Default: the built-in size.")},
+                                    {"path", prop("string", "Instead of shape: absolute path of a model file (STL, OBJ, 3MF, STEP, ...).")},
+                                    {"position", array_prop({{"type", "number"}}, "[x, y, z] mm on the bed for the part's centre, on "
+                                                                                  "instance 0, as the Move panel shows it.")}},
+                                   {"type"}),
+                     kObjects, true),
         [](const json& args, ToolContext& ctx) {
-            json out = ctx.run_ui([&] { return add_part(ui_plater(), args); });
+            json out = ctx.run_ui([&] {
+                Plater&                     plater = ui_plater();
+                const Ops::Outcome<Targets> found  = resolve_targets(plater.model(), &plater.get_view3D_canvas3D()->get_selection(), args,
+                                                                     kObjects | kObjectOfSelection, true);
+                if (!found)
+                    throw refused(found.refusal());
+                json reply = add_part(plater, found.value().objects.front(), args);
+                reply.update(targets_reply(plater.model(), found.value()));
+                return reply;
+            });
             settle(ctx);
             return ToolResult::ok(out);
         })));
 
-    catalog.add(reaching({"start_arrange"}, mutate_tool(
-        "api", "arrange", L("Arrange objects or fill the bed"),
+    register_object_rows(catalog);
+    register_object_tools(catalog);
+
+    NativeCommand arrange = reaching({"start_arrange"}, mutate_tool(
+        "object_arrange", L("Arrange objects or fill the bed"),
         "Arrange the objects of every unlocked plate as the toolbar's Arrange does, or of one plate (plates: an index or "
         "\"current\") as its Arrange icon does. With fill_object, fill that object's plate with more of it instead, as Fill "
         "bed with instances (or copies, by fill_with) does (reply: added, how many). spacing, rotate, align_y and multi_material are the Arrange options "
         "panel's settings: the values given stay in the panel, so later arranges use them too. Waits for the arrangement "
         "(a longer one replies with a job). Reply: the settings in force, instances left off every plate, plates the "
-        "all-plates arrange skipped and the job's notifications. An arrange may reorder objects, so list_objects again. "
-        "One undo step.",
+        "all-plates arrange skipped and the job's notifications. An arrange may reorder objects, so object_list again. "
+        "One undo step. Called with no arguments it is Auto-Arrange, the toolbar's Arrange with the panel's settings, and "
+        "waits and replies as any other call.",
         object_schema({{"plates", {{"type", {"string", "integer"}}, {"description", "\"all\" (default), \"current\" or a plate index."}}},
                        {"spacing", {{"type", "number"}, {"minimum", 0}, {"description", "mm between objects; 0 means auto."}}},
                        {"rotate", prop("boolean", "Auto rotate for arrangement.")},
@@ -1227,19 +2672,35 @@ void register_scene_tools(CommandCatalog& catalog)
                 ctx.observe_ui([&] { return json(runtime.core().cancel_worker(ctx.job_id())); });
                 throw ToolFailure("The arrangement did not finish within " + std::to_string(timeout.count()) + " s, so it was cancelled");
             }
-        })));
+        }));
+    arrange.tiles = json::array({NativeCommands::tile("obj_arrange", L("Auto-Arrange"), L("Object"), "toolbar_arrange", json::object(),
+                                                      "Arrange all objects on the unlocked plates with the saved Arrange options, as "
+                                                      "the toolbar does; the call waits for the arrangement and replies as "
+                                                      "object_arrange does: the settings in force, the instances left off every "
+                                                      "plate and the plates skipped. object_arrange with arguments also takes "
+                                                      "options, one plate or fill bed.")});
+    // A person's pick starts the arrangement in place as the toolbar does, and returns while it runs; an automated call
+    // of the tile's arguments is object_arrange's own function, which waits and replies. Both are Ops::start_arrange()
+    // on every unlocked plate with the panel's settings.
+    catalog.add(NativeCommands::with_row_forms(
+        std::move(arrange), [](const json&) { return Rows::obj_arrange(); }, /*person_form_behind_dialogs=*/false,
+        std::vector<json>{json::object()}));
 
     NativeCommand slice = reaching({"start_slice"}, mutate_tool(
-        "api", "slice", L("Slice"),
+        "plate_slice", L("Slice"),
         "Slice the current plate, all plates, or one plate by index, the way the toolbar's Slice button does, and wait for "
         "the result (or reply with a job id when it takes longer than the reply budget). Each requested plate reports ok, "
         "error, cancelled, empty or skipped; the whole operation is superseded when someone else started a slice or "
         "edited the project while it ran. An ok plate has time_s (silent_time_s when the printer estimates it), "
         "filament_m and filament_g including flush, filament_cost, layers, max_z, filament_changes, and filaments[i] for "
         "slot i+1 with m, g and the grams of model_g, support_g, flush_g and tower_g. Other changes are refused until it "
-        "finishes; cancel_job stops it.",
+        "finishes; job_cancel stops it. The Preview tab shows the result, as after the Slice button; preview: true, alone "
+        "or with plates \"all\", is the call of Slice and Preview or Slice All Plates, whose pick starts the slice as a job "
+        "and shows its result as a notification.",
         object_schema({{"plates", {{"type", {"string", "integer"}}, {"description", "\"current\" (default), \"all\", or a plate index."}}},
-                       {"timeout_s", {{"type", "integer"}, {"minimum", 10}, {"maximum", 7200}, {"description", "Stop waiting after this long (default 1800): the call fails, and the slice goes on unless cancel_job stops it."}}}}),
+                       {"timeout_s", {{"type", "integer"}, {"minimum", 10}, {"maximum", 7200}, {"description", "Stop waiting after this long (default 1800): the call fails, and the slice goes on unless job_cancel stops it."}}},
+                       {"preview", prop("boolean", "Show the Preview tab, as every slice does: the argument of the Slice and "
+                                                   "Preview and Slice All Plates tiles.")}}),
         [](const json& args, ToolContext& ctx) {
             const json plates_arg = args.value("plates", json("current"));
             auto       ticket     = std::make_shared<SliceTicket>();
@@ -1249,7 +2710,7 @@ void register_scene_tools(CommandCatalog& catalog)
                 ctx.begin_operation();
                 return json(ui_plater().slice_cancel_seq());
             }).get<uint64_t>();
-            // A change made just before (set_settings, open_files) is validated by an update
+            // A change made just before (settings_set, project_open) is validated by an update
             // scheduled a moment later; a slice requested first would be refused on the old state.
             poll_ui(
                 ctx,
@@ -1352,14 +2813,21 @@ void register_scene_tools(CommandCatalog& catalog)
             return ToolResult::ok(result);
         }));
     slice.budget_ms = 45000;
-    catalog.add(slice);
+    slice.tiles     = json::array(
+        {NativeCommands::tile("slice_and_preview", L("Slice and Preview"), L("Slice & Export"), "media_play", {{"preview", true}},
+                              "Slice the current plate and show the Preview tab; the call waits for the result, and a pick starts "
+                              "the slice as a job."),
+         NativeCommands::tile("slice_all", L("Slice All Plates"), L("Slice & Export"), "media_play", {{"plates", "all"}, {"preview", true}},
+                              "Slice every plate and show the Preview tab; the call waits for the results, and a pick starts the "
+                              "slice as a job.")});
+    catalog.add(std::move(slice));
 
     NativeCommand cancel = mutate_tool(
-        "core", "cancel_job", L("Cancel a job"),
+        "job_cancel", L("Cancel a job"),
         "Stop the running operation: a slice or G-code export, as the slicing progress's cancel button does, or a "
         "background job an MCP call started (an arrange, orient or fill bed). Its job then reports cancelled; a background "
         "job keeps other changes out until it has really stopped. With job, only that job is stopped: the running "
-        "operation, a run_script run or an encode_recording. Allowed while an operation holds the project. Reply: "
+        "operation, an object_fix, a script_run run or a recording_encode. Allowed while an operation holds the project. Reply: "
         "was_running, and job when one was stopped.",
         object_schema({{"job", prop("string", "The operation's job to cancel, e.g. \"j12\".")}}),
         [](const json& args, ToolContext& ctx) {

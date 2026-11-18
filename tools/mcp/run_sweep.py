@@ -133,7 +133,7 @@ class RunContext:
 
     @property
     def cwd(self):
-        # Empty: a .py file in the folder a script runs from shadows the modules run_script needs.
+        # Empty: a .py file in the folder a script runs from shadows the modules script_run needs.
         return os.path.join(self.run_dir, "cwd")
 
 

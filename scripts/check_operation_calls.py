@@ -35,15 +35,19 @@ NOT_CALLERS = {"src/slic3r/GUI/Mcp/McpToolsCad.cpp"}
 # Owner methods an operation calls, by the operation that stands for them.
 BANNED = {
     "start_gcode_export": ["export_gcode_to"],
-    "import_models": ["load_files"],
+    "import_models": ["load_files", "import_zip_archive", "preview_zip_archive"],
     "open_project": ["load_project"],
     "new_project": ["new_project"],
     "save_project_as": ["save_project"],
     "export_sliced_3mf": ["export_gcode_3mf"],
     "export_model_3mf": ["export_core_3mf"],
     "export_stl": ["export_stl"],
+    "export_toolpaths_obj": ["export_toolpaths_to_obj"],
     "select_plate": ["select_plate"],
     "set_plate_locked": ["lock_plate", "set_plate_locked"],
+    "delete_plate": ["delete_plate"],
+    "duplicate_plate": ["duplicate_plate"],
+    "rename_plate": ["rename_plate"],
     "start_arrange": ["set_prepare_state", "arrange"],
     "start_slice": ["request_slice"],
     "show_layer_range": ["SetHigherValue", "SetLowerValue", "show_layer_range"],
@@ -51,7 +55,44 @@ BANNED = {
     "assign_filament_preset": ["set_filament_preset", "select_filament_preset"],
     "import_presets": ["import_configs"],
     "set_instance_count": ["set_number_of_copies"],
+    "delete_objects": ["delete_from_model_and_list", "delete_all_objects_from_model", "remove_selected"],
+    "rename_object": ["rename_item"],
+    "separate_instances": ["instances_to_separated_object", "instances_to_separated_objects", "split_instances"],
+    # assemble_objects calls ObjectList::merge(), a name too common to ban (a bounding box's merge()).
+    "split_object": ["split_object", "split_volume"],
+    "change_part_type": ["set_volume_type"],
+    "order_objects": ["order_objects"],
+    "mirror_objects": ["mirror"],
+    "center_objects": ["center_selection", "do_center_plate"],
+    "scale_to_fit": ["scale_selection_to_fit_print_volume"],
+    "drop_objects": ["drop_selection"],
+    "orient_objects": ["orient"],
+    "add_primitive": ["load_shape_object"],
+    "set_objects_printable": ["toggle_printable_state", "update_printable_state", "set_printable"],
+    "set_objects_auto_drop": ["set_auto_drop", "toggle_auto_drop"],
+    "fix_objects": ["fix_through_cgal", "fix_all_through_cgal"],
+    # clone_objects calls Selection::clone(), a name too common to ban (ConfigOption::clone()).
+    "clone_objects": ["clone_selection"],
+    "reload_parts": ["reload_parts_from_disk", "reload_from_disk", "reload_all_from_disk"],
+    "replace_part": ["replace_part_with_file", "replace_with_stl"],
     "send_gcode_to_host": ["send_gcode_legacy"],
+    "sync_presets": ["restart_sync_user_preset", "start_sync_user_preset"],
+    "add_filament_slot": ["add_filament"],
+    "delete_filament_slot": ["delete_filament", "change_filament"],
+    "add_mixed_filament": ["ensure_mixed_filament", "add_mixed_filament"],
+    # uninstall_printers, and the Printer Selection dialog's Confirm, apply the set through it too (apply_install_set).
+    "install_printers": ["apply_vendor_config"],
+    # uninstall_filaments writes the filaments section through it too.
+    "install_filaments": ["set_section"],
+    # The Preferences dialog's controls run these effects through apply_preference(), as set_preferences does.
+    "set_preferences": ["set_visible_page_count", "set_max_recent_count", "update_filaments_area_height"],
+    # The Plugins window's switches, Delete and Unsubscribe, and Reload and Reinstall run these through the operations.
+    "set_plugin_enabled": ["load_plugin", "unload_plugin", "set_capability_enabled"],
+    "uninstall_plugin": ["delete_plugin", "delete_and_unsubscribe_cloud_plugin"],
+    "reload_plugin": ["download_and_install_cloud_plugin"],
+    # The sync dialog's Synchronize now runs the sync through the operation, and a drop in the object list a drag.
+    "sync_filaments_from_ams": ["sync_ams_list", "apply_ams_sync"],
+    "reorder_objects": ["move_object"],
     "the undo snapshot of an operation": ["take_snapshot"],
 }
 

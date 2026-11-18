@@ -42,14 +42,15 @@ struct ReplayContext
 
 // The version of the replay format this build writes, the semver string a replay gives as "orca_replay_version".
 // A replay is read when it has this major version and a minor version no newer than this one; while the major
-// version is 0, every minor version may break, so only this minor version is read. The editor's draft and key
-// suggestions write the same version (REPLAY_VERSION in resources/web/dialog/ActionReplay/replay_editor.js).
-inline constexpr const char* REPLAY_VERSION = "0.1.0";
+// version is 0, every minor version may break, so only this minor version is read. A replay of another format, whose
+// steps may name commands this build does not have, is refused for its format before any step is read. The editor's
+// draft and key suggestions write the same version (REPLAY_VERSION in resources/web/dialog/ActionReplay/replay_editor.js).
+inline constexpr const char* REPLAY_VERSION = "0.2.0";
 
 // Parses a replay (JSON with // and /* */ comments). nullopt with `err` set when invalid.
 std::optional<Replay> parse_replay(const std::string& text, std::string& err);
 
-// The text of a run_replay inline replay, which is given as the replay object or as its JSON text.
+// The text of a replay_run inline replay, which is given as the replay object or as its JSON text.
 std::string inline_replay_text(const nlohmann::json& replay);
 
 // Replaces ${replay_dir}, ${out_dir}, ${env:NAME}, ${vars.NAME} and ${jobs.NAME} in every string of
@@ -80,7 +81,7 @@ struct ExpectFailure
 };
 std::optional<ExpectFailure> check_expect_detail(const nlohmann::json& result, const nlohmann::json& expect);
 
-// What run_replay needs from its host: calling a tool as a child of the replay's job, waiting for
+// What replay_run needs from its host: calling a tool as a child of the replay's job, waiting for
 // a job's result, and dropping replay-scoped dialog auto-answer rules when the replay ends.
 // step_started and step_finished, when set, report each step as it runs: step_started (1-based
 // index) before its arguments are substituted, step_finished with the entry as it goes into the
@@ -93,7 +94,7 @@ struct ReplayHost
     std::function<bool()>                                                                       cancelled;
     std::function<void(std::size_t index)>                                                      step_started;
     std::function<void(const nlohmann::json& entry)>                                            step_finished;
-    // The open modal dialogs, topmost last, as get_app_state lists them. Optional.
+    // The open modal dialogs, topmost last, as app_state lists them. Optional.
     std::function<nlohmann::json()>                                                             open_dialogs;
 };
 

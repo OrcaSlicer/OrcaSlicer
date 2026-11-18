@@ -155,7 +155,7 @@ std::optional<std::pair<int, std::string>> post(const Endpoint& e, const std::st
     if (sent != nullptr)
         *sent = false;
     // Deadlines only apply to Beast's asynchronous operations, so each step runs as one on a
-    // private io_context. A tool replies within its budget (45 s) and `wait` within 50 s.
+    // private io_context. A tool replies within its budget (45 s) and `app_wait` within 50 s.
     try {
         net::io_context                   ioc;
         boost::beast::tcp_stream          stream(ioc);
@@ -482,7 +482,7 @@ int run_stdio_bridge(int argc, char** argv, const std::function<const CommandCat
                     endpoint = fresh;
             if (is_request)
                 write_line(error_reply(msg["id"], -32603,
-                                       sent ? "OrcaSlicer did not reply; the call may have run. Check with get_app_state before "
+                                       sent ? "OrcaSlicer did not reply; the call may have run. Check with app_state before "
                                               "repeating it."
                                             : "OrcaSlicer's MCP server is not reachable.")
                                .dump());

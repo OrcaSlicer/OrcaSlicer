@@ -3078,12 +3078,12 @@ wxMenu* MainFrame::generate_help_menu()
     if (wxGetApp().is_editor()) {
         helpMenu->AppendSeparator();
         append_menu_item(helpMenu, wxID_ANY, _L("Take Screenshot"), _L("Save a picture of the main window"),
-            [](wxCommandEvent&) { NativeCommands::notify_result(NativeCommands::run("take_screenshot")); });
+            [](wxCommandEvent&) { NativeCommands::notify_result(NativeCommands::run("window_save_screenshot")); });
         append_menu_item(helpMenu, wxID_ANY, _L("Start Recording") + dots, _L("Record a video of the main window"),
-            [](wxCommandEvent&) { NativeCommands::notify_result(NativeCommands::run("start_recording")); }, "", nullptr,
+            [](wxCommandEvent&) { NativeCommands::notify_result(NativeCommands::run("recording_start")); }, "", nullptr,
             []() { return !NativeCommands::recording_active(); }, this);
         append_menu_item(helpMenu, wxID_ANY, _L("Stop Recording"), _L("Stop the recording and save it"),
-            [](wxCommandEvent&) { NativeCommands::notify_result(NativeCommands::run("stop_recording")); }, "", nullptr,
+            [](wxCommandEvent&) { NativeCommands::notify_result(NativeCommands::run("recording_stop")); }, "", nullptr,
             []() { return NativeCommands::recording_active(); }, this);
     }
 

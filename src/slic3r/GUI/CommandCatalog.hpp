@@ -37,10 +37,15 @@ struct NativeCommand
 {
     std::string key;
     std::string title; // untranslated English msgid; make_action() translates it for display
-    // A tile's section, an untranslated msgid as the title is. A typed tool without a tile is in the group of the way it
-    // acts, which search_tools filters by: core runs the session, recovers from dialogs and runs Python, api acts on
-    // project data by index and name with JSON in and out, and ui drives the GUI itself.
+    // What tool_search filters by. Outside the Design tab, the English heading of the command's place
+    // (NativeCommands::place_heading()): Objects, Plates, The app, the place its name starts with but for the two
+    // screenshot commands, which are under Recordings, replays and scripts; a plugin's operation is in Plugins. A
+    // Design command's is kDesignGroup, an untranslated msgid, which is also the Speed Dial section of its own tile and
+    // of its tiles.
     std::string group;
+    // The Speed Dial section of the command's own tile (in_palette), an untranslated msgid; empty where that tile is in
+    // `group`, as a Design command's is.
+    std::string tile_group;
     // "percent"/"tab": the palette's second phase, which collects the value the command needs before it
     // runs; "" to run at once.
     std::string input;
@@ -53,33 +58,40 @@ struct NativeCommand
     nlohmann::json input_schema = {{"type", "object"}, {"properties", nlohmann::json::object()}};
     // Calls that document the command: [{title, calls: [{tool, args}], needs?}], or null.
     nlohmann::json examples;
-    // The tiles of the menu rows folded into a Design command, [{key, title, icon, description, args}], or null:
-    // each, under the id of its key, runs the command with `args` (NativeCommands::make_action()). Its title is an
-    // untranslated msgid in title_context(), as the command's is.
+    // The tiles of the menu rows folded into the command, [{key, title, group?, icon, description, args, input?,
+    // input_arg?}] (NativeCommands::tile()), or null: each, under the id of its key, runs the command with `args`
+    // (NativeCommands::make_action()). Its title is an untranslated msgid in title_context(), as the command's is.
+    // group is its Speed Dial section, an untranslated msgid; a Design tile has none and is in the command's group.
+    // input is the Speed Dial's token for the value its second phase collects ("percent", "tab"), which the tile
+    // passes on under input_arg, the command's argument, or under the token where it has no input_arg.
     nlohmann::json tiles;
-    bool listed     = false; // shown in tools/list: a typed tool
+    // shown in tools/list: every command outside the Design tab that runs from its arguments, all but three menu rows
+    bool listed     = false;
     bool in_palette = false; // a person can pick it: it has a tile of its own, under its key
     // The access labels sent as MCP's annotations. Clients act on them: Codex asks a person before every call
     // of a destructive command, and Claude Code runs read-only calls in parallel and retries idempotent ones.
-    // read_only: it changes nothing in the app or the project; screenshot is, since its PNG replaces no file
-    // without overwrite, and export_replay, which can clear the journal, is not. destructive: every call deletes
-    // what a person made, with no undo: delete_preset. A command that can lose work only when an argument asks
-    // for it is not: new_project, generate_calibration_test and open_files drop unsaved changes only with
-    // discard_changes, and an output replaces a file only with overwrite. Nor is a command that runs what its
-    // arguments name (click and the other input tools, run_action, call_tool, run_replay, run_script), though
+    // read_only: it changes nothing in the app or the project; window_screenshot is, since its PNG replaces no file
+    // without overwrite, and replay_export, which can clear the journal, is not. destructive: every call deletes
+    // what a person made, with no undo: preset_delete and plugin_uninstall. A command that can lose work only when an
+    // argument asks for it is not: project_new, calibration_generate_test and project_open drop unsaved changes only
+    // with discard_changes, and an output replaces a file only with overwrite. Nor is a command that runs what its
+    // arguments name (widget_click and the other input tools, action_run, tool_call, replay_run, script_run), though
     // what it runs may be. The client sees both in the arguments, and the label would ask on every call. Nor is
-    // encode_recording, which deletes only a recording this session made, once its MP4 has replaced it.
-    // open_world: it can reach outside OrcaSlicer (a
-    // printer, the cloud account, the network, or anything the computer allows), including through what it runs.
+    // recording_encode, which deletes only a recording this session made, once its MP4 has replaced it, nor a command
+    // whose deletion has undo (object_delete, plate_delete). A command made from menu rows is neither read_only nor
+    // destructive. open_world: it can reach outside OrcaSlicer (a printer, the cloud account, the network, or anything
+    // the computer allows), including through what it runs: of the commands made from rows, printer_send, preset_sync,
+    // filament_sync_ams, app_check_for_updates, app_open_web_page and plugin_refresh; and plugin_enable and plugin_reload,
+    // which run a plugin's code and download a cloud plugin, and plugin_uninstall, whose Unsubscribe reaches the account.
     bool       read_only = false, destructive = false, idempotent = false, open_world = false;
     GuardClass guard     = GuardClass::Mutate;
     // inline_call: pure observation, which runs on the request thread and is never a job; everything that can
     // activate UI runs as a job instead, because activating UI can open a modal that blocks the call. journal:
-    // recorded by the session journal for export_replay; observation commands turn it off, except wait and
-    // screenshot, which a replay needs.
+    // recorded by the session journal for replay_export; observation commands turn it off, except app_wait and
+    // window_screenshot, which a replay needs.
     bool inline_call = false, journal = true;
-    // allowed_during_operation: may run while an MCP slice/export operation holds the project (cancel_job).
-    // cancellable: `cancel_job {job}` stops a running call that is not an operation (encode_recording); the
+    // allowed_during_operation: may run while an MCP slice/export operation holds the project (job_cancel).
+    // cancellable: `job_cancel {job}` stops a running call that is not an operation (recording_encode); the
     // function sees ToolContext::cancelled() and ends.
     bool allowed_during_operation = false, cancellable = false;
     // How long a call may run before the reply returns a job envelope and the call continues.
@@ -100,17 +112,39 @@ inline const char* title_context(const NativeCommand& command)
     return command.group == kDesignGroup ? "Design" : nullptr;
 }
 
-// The first of `command`'s tiles whose args are `args`, compared as JSON values, a null `args` as {}; nullptr when
-// none is.
+// A word view_set's tab takes for one of the main window's own pages, and the id of that page (MainFrame's TAB_ID_*).
+struct TabWord
+{
+    const char* word;
+    const char* page;
+};
+// The words of the main window's own pages. A word is its page's id, but for the Device tab's: device, whose page is
+// monitor. The window's other pages (the web Device page, a plugin's) have no word and are named by their ids.
+inline constexpr TabWord kTabWords[] = {{"home", "home"},       {"design", "design"},
+                                        {"prepare", "prepare"}, {"preview", "preview"},
+                                        {"device", "monitor"},  {"multi_device", "multi_device"},
+                                        {"project", "project"}, {"calibration", "calibration"}};
+
+// The first of `command`'s tiles that collect no value (no input) whose args are `args`, compared as JSON values, a
+// null `args` as {}; nullptr when none is.
 const nlohmann::json* tile_with_args(const NativeCommand& command, const nlohmann::json& args);
+
+// The arguments a pick of `tile`, an item of a command's tiles, runs its command with, given `args` (what
+// action_run or the Speed Dial's second phase gives): the tile's args, and for a tile with an input the value `args`
+// holds under that token, put under its input_arg, or under the token where it has none; a tab's page id that a word
+// of kTabWords names is given as that word (the Device tab's monitor as device). For a command's own tile
+// (`tile` null), `args` as they are, the call's own arguments. A person's pick, action_run and the description of a
+// replay's step all run a tile with it.
+nlohmann::json tile_call_args(const nlohmann::json* tile, const nlohmann::json& args);
 
 // What a call of `command` with `args` is titled where a person is shown it (a recording's caption): the title of
 // tile_with_args(), else the command's. Untranslated, in title_context(command).
 std::string call_title(const NativeCommand& command, const nlohmann::json& args);
 
-// What the reference says of a command: key, title, group, description, input_schema, examples and tiles when it
-// has some, listed, in_palette, the four access labels, guard ("inspect", "recover", "mutate"), completion
-// ("none", "export") and operations. All of it is the command's English text and constants, never translated.
+// What the reference says of a command: key, title, group, description, input_schema, listed, in_palette, the four
+// access labels, guard ("inspect", "recover", "mutate"), completion ("immediate", "deferred") and operations; icon,
+// input and tile_group when they are not empty, and examples and tiles when it has some. All of it is the command's
+// English text and constants, never translated.
 nlohmann::json command_reference(const NativeCommand& command);
 
 // Commands that come and go while the app runs (plugin operations). Any thread.
@@ -170,6 +204,13 @@ private:
 // own tile is (in_palette), else the command with the item of its `tiles` whose key is `key`; nullptrs when no
 // command added with add() has one.
 std::pair<const NativeCommand*, const nlohmann::json*> find_tile(const CommandCatalog& catalog, const std::string& key);
+
+// What a call of `command` with `args` is titled where a person is shown it (a recording's caption), and the command
+// whose title_context() that title is translated in: for action_run of a command's tile in `catalog` (args.id, the
+// tile's id or the key inside it), the tile's title and that command, the command's own title for its own tile; for any
+// other call, call_title() and `command`. Untranslated.
+std::pair<std::string, const NativeCommand*> shown_title(const CommandCatalog& catalog, const NativeCommand& command,
+                                                         const nlohmann::json& args);
 
 // The reference of `catalog`: {"commands": [command_reference(), ...]} of the commands added with add(), in
 // the order they were added. Its sources' commands are left out: they are a plugin's, not the build's.

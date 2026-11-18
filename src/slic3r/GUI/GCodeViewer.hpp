@@ -553,13 +553,16 @@ public:
     bool can_switch_time_mode() const;
     // What the legend's "Show stealth mode" / "Show normal mode" button does.
     void set_time_mode(libvgcode::ETimeMode mode);
+    // The legend folded to its title row, as its fold button leaves it; picking a view type unfolds it.
+    bool is_legend_folded() const { return m_fold; }
+    void fold_legend(bool fold) { m_fold = fold; }
     // ORCA: apply the "preview_default_view_type" preference, see the definition for the supported values
     void apply_default_view_type();
 
     // ORCA: stable, locale independent name of a view type, as stored in the application config
     static std::string view_type_to_config_name(libvgcode::EViewType type);
     static bool view_type_from_config_name(const std::string& name, libvgcode::EViewType& type);
-    // ORCA: (config value, translated label) pairs for the "preview_default_view_type" preference combo box
+    // ORCA: (config value, English label marked for translation) pairs for the "preview_default_view_type" preference
     static std::vector<std::pair<std::string, std::string>> default_view_type_choices();
     void reset_visible(libvgcode::EViewType type) {
         if (type == libvgcode::EViewType::FeatureType) {

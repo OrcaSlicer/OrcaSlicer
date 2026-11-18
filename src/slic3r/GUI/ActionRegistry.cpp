@@ -478,7 +478,7 @@ struct PlateAction : AppAction
     }
 
     AppActionRunResult run(const nlohmann::json& /*args*/) const override
-    { return NativeCommands::run("plate_goto", {{"plate", plate_index}}); }
+    { return NativeCommands::run("plate_select", {{"plate", plate_index}}); }
 };
 
 // A dynamic "Open recent project <name>" action, one per recent project file, rebuilt on every
@@ -608,12 +608,12 @@ void ActionRegistry::init()
             upsert(std::move(action));
     }
 
-    // Built-in palette commands (Save/Load, Preferences, Mode switch, Slice/Preview, Go to layer): the
-    // catalog's commands with a tile, and no others. Register after plugins so the plugin ids win on any
-    // (unlikely) id collision - ids are distinct by prefix, so this is order-independent. The catalog (and
+    // Built-in palette tiles (Save/Load, Preferences, Mode switch, Slice/Preview, Go to layer): the catalog's
+    // commands' own tiles and the items of their tiles, and no others. Register after plugins so the plugin ids win
+    // on any (unlikely) id collision - ids are distinct by prefix, so this is order-independent. The catalog (and
     // its thin AppAction adapter) lives in NativeCommands; the registry only stores and dispatches the result.
-    for (const NativeCommand* c : NativeCommands::palette_commands(NativeCommands::instance()))
-        upsert(NativeCommands::make_action(*c));
+    for (const NativeCommands::PaletteTile& t : NativeCommands::palette_tiles(NativeCommands::instance()))
+        upsert(t.tile != nullptr ? NativeCommands::make_action(*t.command, *t.tile) : NativeCommands::make_action(*t.command));
 }
 
 void ActionRegistry::relocalize_builtins()
@@ -633,8 +633,8 @@ void ActionRegistry::relocalize_builtins()
     for (const std::string& id : stale)
         remove(id);
 
-    for (const NativeCommand* c : NativeCommands::palette_commands(NativeCommands::instance()))
-        upsert(NativeCommands::make_action(*c));
+    for (const NativeCommands::PaletteTile& t : NativeCommands::palette_tiles(NativeCommands::instance()))
+        upsert(t.tile != nullptr ? NativeCommands::make_action(*t.command, *t.tile) : NativeCommands::make_action(*t.command));
 }
 
 void ActionRegistry::refresh_source(const std::string& plugin_key, ActionChange change)

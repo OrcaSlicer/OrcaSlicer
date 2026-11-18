@@ -24,7 +24,7 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 inline constexpr char kPluginUnloaded[] = "The plugin that made this call has been unloaded";
 
 // Bookkeeping for mutate tool calls that run on their own threads. A call that outlives its reply
-// budget stays here until it finishes, so a later `wait {for:"job"}` can return its result; the
+// budget stays here until it finishes, so a later `app_wait {for:"job"}` can return its result; the
 // most recent finished jobs are kept for that purpose, and so is a finished job whose parent (a
 // running replay) may still wait for it, up to kKeepFinishedMax in all. Thread-safe.
 class JobRegistry
@@ -41,7 +41,7 @@ public:
     // job is registered: a plugin found loaded then was loaded while the job was there for its unload to
     // find, so every job of the plugin is either refused or one the unload finds running.
     std::string create(const std::string& tool, const std::string& parent, const std::string& owner = {}, bool person = false);
-    // True when an unfinished job in `lineage` carries the person mark: a run_script there runs as the person's.
+    // True when an unfinished job in `lineage` carries the person mark: a script_run there runs as the person's.
     bool person_in(const std::set<std::string>& lineage) const;
     // Lets the unfinished job `id`, and the calls under it, drop the project's unsaved changes: the user chose
     // not to save before a run that replaces the project. Does nothing for an unknown or finished job.
@@ -84,7 +84,7 @@ public:
     bool stop_requested(const std::string& id) const;
     // True when a running job exists that is not in `excluded` and isn't set idle.
     bool any_running_except(const std::set<std::string>& excluded) const;
-    // Marks a running job as one that leaves `wait {for: "idle"}` to the calls it makes: a run_script run, which may
+    // Marks a running job as one that leaves `app_wait {for: "idle"}` to the calls it makes: a script_run run, which may
     // wait for a person in its window for minutes. list() shows it as idle.
     void set_idle(const std::string& id);
     // Operation admission: a job marked as an operation holds the project until it finishes.
@@ -92,7 +92,7 @@ public:
     std::string              begin_operation(const std::string& id);
     std::vector<std::string> running_operations() const;
 
-    // [{id, tool, parent, state, age_ms}] for get_app_state.
+    // [{id, tool, parent, state, age_ms}] for app_state.
     nlohmann::json list() const;
     // The tool of `id` while it runs; empty for an unknown or finished job.
     std::string running_tool(const std::string& id) const;

@@ -10,13 +10,13 @@ Replay and recordings show, and what the journal records and replays.
 
 This document is the command set: how the commands are named and grouped, what each does and takes, how a
 call opens a tool for a person instead of running, and how the commands relate to the right-click menu's
-rows. How the server serves them (the catalog, `search_tools`, the gate, the journal) is in
+rows. How the server serves them (the catalog, `tool_search`, the gate, the journal) is in
 [mcp-server.md](mcp-server.md), and the tab itself in [design-tab.md](design-tab.md).
 
 One table defines them all: `scripts/CAD/tool_atlas.json`. `scripts/CAD/gen_offer_table.py` writes
 `src/slic3r/GUI/CAD/DesignOffer.hpp` from it, and the commands' code is `src/slic3r/GUI/Mcp/McpToolsCad.cpp`.
 What every command takes and replies is in its entry's tool block, which the agent reads through
-`search_tools {tool}`; `tests/data/command_catalog.json` holds every command's schema, tiles and examples as
+`tool_search {tool}`; `tests/data/command_catalog.json` holds every command's schema, tiles and examples as
 an agent sees them.
 
 ## Naming
@@ -35,7 +35,7 @@ variable, body and feature.
    - `construct_`: reference planes, axes and coordinate systems.
    - `feature_`: one entry of the history: describe, edit, suppress, move, rename, delete.
    - `body_`: one body as an object: name and colour it, delete it, place it, describe and measure it.
-     `body_transform` is here too, since `transform` is the Prepare tab's command.
+     `body_transform` is here too, since `object_transform` is the Prepare tab's command.
 2. **One command per operation, and one argument for its variants.** `type` says which kind of thing the
    command makes, or which way it makes it: a shape, a pattern's layout, a hole's kind, how a plane is
    defined. A shape drawn more than one way names the way (`rectangle_3_point`).
@@ -52,7 +52,7 @@ whole bodies.
 
 ## The command set
 
-The commands are listed under the headings `search_tools`' description names them under, in its order:
+The commands are listed under the headings `tool_search`' description names them under, in its order:
 Document, Sketch, Solid, Surface, Construct, Inspect, Bodies, History and Menu rows. Main arguments only;
 every argument, its default and its range are in the command's schema.
 
@@ -217,7 +217,7 @@ These take no arguments and do what their row of the right-click menu does.
 
 ### Outside the Design table
 
-`undo` and `redo` with `{history: "design"}` step the Design history. `set_view` with `tab: "design"` takes
+`undo` and `redo` with `{history: "design"}` step the Design history. `view_set` with `tab: "design"` takes
 the Design view's options: `camera: "sketch_normal"`, which looks straight at the open sketch and is refused
 with none open; `section` `{on, z, keep}`, a horizontal cut at world `z` (left out, the model's middle) that
 keeps the lower or the upper half; and `origin_planes`, `world_axes`, `origin` and `bed`, which show or hide
@@ -322,7 +322,7 @@ and a pattern's layout as `type` in the commands' words. A feature's type name (
 
 ### How a failure shows
 
-A command that fails is an error (`code` `-32000`) and leaves the design as it was, so `export_replay` leaves
+A command that fails is an error (`code` `-32000`) and leaves the design as it was, so `replay_export` leaves
 it out. That holds for argument errors and for a rebuild the engine rejects alike. Twenty-one commands
 instead report a rejected rebuild in their reply, `ok` false or `error` not empty, after the same rollback,
 so such a call is journaled and replays the same rejection: `body_transform`, `boolean`, `construct_axis`,
@@ -451,12 +451,12 @@ address, and changing one is a breaking change.
   own row's tile is under the command's key (`orca_command:sketch_trim:orca`); a folded row keeps its tile
   under its own id (`orca_command:sk_array:orca`) with its row's title and icon.
 - A pick of a folded row's tile runs its command with the row's arguments, with the MCP server on or off.
-  Its action shows an agent no arguments, and `run_action` takes none for it, or exactly the row's; that is
+  Its action shows an agent no arguments, and `action_run` takes none for it, or exactly the row's; that is
   what the journal records, so a replay runs it again.
 - A call of a command with a row's arguments is titled as that row's tile wherever a person is shown the
   call: a job notice, a recording's caption, an Action Replay step (`replay_what_text()`).
 - A folded tile that is not shown is named, when a call asks for it, with the call that runs it from any
-  tab: `call_tool {"tool": "sketch_pattern", "args": {"type": "linear"}}`.
+  tab: `tool_call {"tool": "sketch_pattern", "args": {"type": "linear"}}`.
 - The MCP skill's reference (`tools/mcp/gen_skill_reference.py`) gives a command a row of its own only when
   it has an action of its own, and one row per folded tile with its arguments.
 

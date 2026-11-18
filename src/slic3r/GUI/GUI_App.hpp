@@ -107,6 +107,9 @@ class Downloader;
 struct GUI_InitParams;
 class ParamsDialog;
 class HMSQuery;
+namespace Ops {
+class RefreshTicket;
+}
 class ModelMallDialog;
 class PingCodeBindDialog;
 class PresetBundleDialog;
@@ -775,8 +778,10 @@ public:
     // Called on the GUI thread after an audit prompt stores a grant outside the Plugins dialog.
     // Refreshes an existing dialog instance; never creates or raises it.
     void            notify_plugin_permissions_changed(const std::string& plugin_key);
-    // Dialog-free plugin action used by the speed dial: it never requires the Plugins dialog to be open.
-    void            refresh_plugins();
+    // Refresh Plugins, which needs no Plugins dialog: starts a run of Ops::start_plugin_refresh(), whose end a
+    // notification reports, and returns its ticket. A refresh asked for while one waits or runs is a run of its own
+    // after it, with a notification of its own. GUI thread.
+    Ops::RefreshTicket refresh_plugins();
     // Shows the current plugin list in the Plugins dialog when it is open, after a change made outside it
     // (the speed dial's refresh or install, a plugin loading). GUI thread; never creates or raises it.
     void            update_plugins_dialog();

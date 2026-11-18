@@ -120,7 +120,7 @@ nested events of the same operation are not asked again.
 
 ### Python scripts
 
-A Python script run from the Run Script panel, with `--run` or by an agent's `run_script`
+A Python script run from the Run Script panel, with `--run` or by an agent's `script_run`
 is not a plugin, but its events are judged here under an identity of its own, `(script)` or `(mcp)`
 (see "Python scripts" in [mcp-server.md](mcp-server.md)). A script has no sidecar, so it holds
 no grant and is never asked: steps 1 to 3 apply to it, and any other event is denied with a

@@ -1,0 +1,93 @@
+// Printable, Fix Model and Auto Drop by index: object_set_printable marks one instance of three not printable, which
+// object_list reads, beside its two siblings and another object that stay printable, and one undo takes it back;
+// object_fix repairs a cube that lacks a triangle (written and imported by fixtures/objects_files.py), whose open edges
+// object_list reads before and after, with no dialog and no notice, in one "Repairing model object" undo step
+// (fixtures/ops_undo.py); Fix Model through the object's menu ends in its notice; object_set_auto_drop off lets a
+// lifted object stay above the bed, where with Auto Drop on it drops. Run it with
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/objects_state.json --out <dir>
+{
+  "orca_replay_version": "0.2.0",
+  "name": "objects state by index",
+  "vars": {
+    "files": "${replay_dir}/fixtures/objects_files.py",
+    "undo": "${replay_dir}/fixtures/ops_undo.py"
+  },
+  "steps": [
+    {"tool": "app_wait", "args": {"for": "ready"}},
+    {"tool": "project_new", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "view_set", "args": {"tab": "prepare"}},
+
+    // ---- Printable: object 0 of three instances beside object 1 ----
+    {"tool": "object_add_primitive", "args": {"shape": "cube", "size": [20, 20, 20]}},
+    {"tool": "object_select", "args": {"none": true}},
+    {"tool": "object_set_instances", "args": {"object": 0, "count": 3}},
+    {"tool": "object_add_primitive", "args": {"shape": "cube", "size": [20, 20, 20]}},
+    {"tool": "object_select", "args": {"none": true}},
+    {"tool": "object_arrange", "args": {}},
+    {"tool": "object_list", "expect": {"/outside": {"empty": true}, "/plates/0/objects/0/instances/2/index": {"eq": 2},
+                                       "/plates/0/objects/1/index": {"eq": 1}}},
+    {"tool": "object_set_printable", "args": {"instances": [[0, 1]], "printable": false},
+     "expect": {"/instances/0/object": {"eq": 0}, "/instances/0/instance": {"eq": 1}, "/instances/0/printable": {"eq": false},
+                "/instances/1": {"exists": false}, "/objects": {"exists": false}}},
+    {"tool": "object_list", "expect": {"/plates/0/objects/0/instances/1/printable": {"eq": false},
+                                       "/plates/0/objects/0/instances/0/printable": {"eq": true},
+                                       "/plates/0/objects/0/instances/2/printable": {"eq": true},
+                                       "/plates/0/objects/1/instances/0/printable": {"eq": true}}},
+    {"tool": "undo", "args": {"history": "project"}},
+    {"tool": "object_list", "expect": {"/plates/0/objects/0/instances/1/printable": {"eq": true}}},
+    // An object named sets every instance of it, and no other object's.
+    {"tool": "object_set_printable", "args": {"objects": [0], "printable": false},
+     "expect": {"/objects/0/index": {"eq": 0}, "/instances/2/instance": {"eq": 2}, "/instances/3": {"exists": false}}},
+    {"tool": "object_list", "expect": {"/plates/0/objects/0/instances/0/printable": {"eq": false},
+                                       "/plates/0/objects/0/instances/2/printable": {"eq": false},
+                                       "/plates/0/objects/1/instances/0/printable": {"eq": true}}},
+
+    // ---- Fix Model: a cube with a hole, repaired by index with no dialog and no notice ----
+    {"tool": "project_new", "args": {"discard_changes": true}},
+    {"tool": "script_run", "args": {"filename": "${vars.files}", "code": "import objects_files\nresult = objects_files.import_cube(args)",
+                                    "args": {"name": "holed.stl", "size": 20, "holed": true}},
+     "expect": {"/result/import/added": {"eq": 1}}},
+    {"tool": "object_list", "expect": {"/plates/0/objects/0/mesh_errors/open_edges": {"gt": 0},
+                                       "/plates/0/objects/0/mesh_errors/manifold": {"eq": false}}},
+    {"tool": "script_run", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "object_fix", "args": {"objects": [0]},
+     "expect": {"/status": {"exists": false}, "/objects/0/index": {"eq": 0}, "/repairs/0/changed": {"eq": true},
+                "/repairs/0/mesh_errors_before/open_edges": {"gt": 0}, "/repairs/0/mesh_errors_after/open_edges": {"eq": 0}}},
+    {"tool": "object_list", "expect": {"/plates/0/objects/0/mesh_errors/open_edges": {"eq": 0},
+                                       "/plates/0/objects/0/mesh_errors/manifold": {"eq": true}}},
+    {"tool": "script_run", "args": {"filename": "${vars.files}", "code": "import objects_files\nresult = objects_files.repair_notices()"},
+     "expect": {"/result/notices": {"empty": true}, "/result/dialogs": {"empty": true}}},
+    {"tool": "script_run", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"},
+     "expect": {"/result/taken": {"eq": ["Repairing model object"]}}},
+
+    // ---- Fix Model through the object's menu: the person's path ends in its notice ----
+    {"tool": "script_run", "args": {"filename": "${vars.files}", "code": "import objects_files\nresult = objects_files.import_cube(args)",
+                                    "args": {"name": "holed_menu.stl", "size": 20, "holed": true}}},
+    {"tool": "object_transform", "args": {"object": 0, "position": [60, 60, 10], "mode": "absolute"}},
+    {"tool": "object_transform", "args": {"object": 1, "position": [128, 128, 10], "mode": "absolute"}},
+    {"tool": "object_list", "expect": {"/plates/0/objects/1/mesh_errors/open_edges": {"gt": 0}}},
+    {"tool": "view_set", "args": {"camera": "iso"}},
+    {"tool": "view_set", "args": {"camera": "fit_objects"}},
+    {"tool": "object_select", "args": {"objects": [1]}},
+    // The 3D view draws the moved objects before the click, so that it finds the object under the pointer.
+    {"tool": "app_wait", "args": {"for": "idle"}},
+    {"tool": "mouse_gesture", "args": {"action": "click", "button": "right", "at": {"object": 1, "spot": "top"}, "popup_item": "Modify>Fix Model"},
+     "expect": {"/ran": {"eq": "Modify>Fix Model"}}},
+    {"tool": "script_run", "args": {"filename": "${vars.files}", "code": "import objects_files\nresult = objects_files.wait_repaired(args)",
+                                    "args": {"object": 1}},
+     "expect": {"/result/mesh_errors/open_edges": {"eq": 0}, "/result/notices/0": {"contains": "has been repaired"}}},
+    {"tool": "script_run", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"},
+     "expect": {"/result/taken": {"contains": "Repairing model object"}}},
+
+    // ---- Auto Drop: with it on a lifted object drops, with it off it stays where it is moved ----
+    {"tool": "object_transform", "args": {"object": 0, "translate": [0, 0, 15]}},
+    {"tool": "object_list", "expect": {"/plates/0/objects/0/bbox/min/2": {"lt": 0.01}}},
+    {"tool": "object_set_auto_drop", "args": {"objects": [0], "auto_drop": false},
+     "expect": {"/objects/0/index": {"eq": 0}, "/objects/1": {"exists": false}, "/auto_drop": {"eq": false}}},
+    {"tool": "object_list", "expect": {"/plates/0/objects/0/auto_drop": {"eq": false}, "/plates/0/objects/1/auto_drop": {"eq": true}}},
+    {"tool": "object_transform", "args": {"object": 0, "translate": [0, 0, 15]}},
+    {"tool": "object_list", "expect": {"/plates/0/objects/0/bbox/min/2": {"gt": 14.99}, "/plates/0/objects/0/bbox/max/2": {"lt": 35.01}}},
+
+    {"tool": "project_new", "args": {"discard_changes": true}}
+  ]
+}

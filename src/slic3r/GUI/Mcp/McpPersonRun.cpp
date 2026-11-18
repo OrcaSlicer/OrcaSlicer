@@ -53,7 +53,7 @@ void PersonRun::stop()
     if (job.empty() || m_runtime.stopping())
         return;
     m_runtime.jobs().request_stop(job);
-    // The step's own operation stops too, as cancel_job stops it.
+    // The step's own operation stops too, as job_cancel stops it.
     m_runtime.cancel_operations_of(job);
 }
 
@@ -86,14 +86,14 @@ void PersonRun::post_finished(nlohmann::json result, nlohmann::json jobs)
 std::shared_ptr<PersonRun> start_replay_run(AutomationRuntime& runtime, Replay replay, ReplayContext sctx,
                                             std::optional<std::size_t> only_step, bool discard_authorized, PersonRun::Events events)
 {
-    const NativeCommand* run_replay_def = NativeCommands::instance().find("run_replay");
+    const NativeCommand* run_replay_def = NativeCommands::instance().find("replay_run");
     if (run_replay_def == nullptr || runtime.stopping())
         return nullptr;
 
     auto run      = std::make_shared<PersonRun>(runtime, std::move(events));
     auto shared   = std::make_shared<Replay>(std::move(replay));
     auto ctx_held = std::make_shared<ReplayContext>(std::move(sctx));
-    // run_replay's properties, outside the session journal: a person's run is not an agent's call.
+    // replay_run's properties, outside the session journal: a person's run is not an agent's call.
     NativeCommand def = *run_replay_def;
     def.journal       = false;
     def.run           = [&runtime, run, shared, ctx_held, only_step, discard_authorized](const json&, ToolContext& ctx) {

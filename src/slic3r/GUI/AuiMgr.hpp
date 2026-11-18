@@ -16,6 +16,9 @@ public:
     // Keeps the docked size of `window`'s pane in its best_size, which re-docking and a saved layout
     // use: wxAUI does not record a dragged sash there.
     void track_docked_size(wxWindow* window);
+    // Docks the left or right pane of `window` at `width` pixels, as a drag of its sash leaves it: its best_size, which
+    // its dock takes at once and again when it is docked anew.
+    void set_docked_width(wxWindow* window, int width);
 
     // A tab's sidebar pane: docked left by default, movable to the right or floating, no close button.
     static wxAuiPaneInfo sidebar_pane_info();

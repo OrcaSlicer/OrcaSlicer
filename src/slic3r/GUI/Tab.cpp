@@ -5916,6 +5916,17 @@ void TabPrinter::extruders_count_changed(size_t extruders_count)
     }
 }
 
+void TabPrinter::change_extruders_count(size_t extruders_count)
+{
+    const size_t old_extruders_count = m_extruders_count;
+    extruders_count_changed(extruders_count);
+    init_options_list(); // m_options_list should be updated before UI updating
+    update_dirty();
+    // Orca: the variant switches (here, Process in the sidebar, ...) list one option per extruder.
+    if (m_extruders_count != old_extruders_count)
+        update_all_extruder_variants();
+}
+
 void TabPrinter::append_option_line(ConfigOptionsGroupShp optgroup, const std::string opt_key, const std::string& label_path)
 {
     auto option = optgroup->get_option(opt_key, 0);
@@ -6075,13 +6086,7 @@ if (is_marlin_flavor)
             size_t extruders_count = size_t(boost::any_cast<int>(v));
             wxTheApp->CallAfter([this, opt_key, value, extruders_count]() {
                 if (opt_key == "extruders_count" || opt_key == "single_extruder_multi_material") {
-                    const size_t old_extruders_count = m_extruders_count;
-                    extruders_count_changed(extruders_count);
-                    init_options_list(); // m_options_list should be updated before UI updating
-                    update_dirty();
-                    // Orca: the variant switches (here, Process in the sidebar, ...) list one option per extruder.
-                    if (m_extruders_count != old_extruders_count)
-                        update_all_extruder_variants();
+                    change_extruders_count(extruders_count);
                     if (opt_key == "single_extruder_multi_material") { // the single_extruder_multimaterial was added to force pages
                         on_value_change(opt_key, value);                      // rebuild - let's make sure the on_value_change is not skipped
 
@@ -7833,9 +7838,7 @@ bool Tab::can_transfer_changes_to(const std::string& preset_name) const
     return first_type(m_presets->get_edited_preset()) == first_type(*to_be_selected);
 }
 
-// The unsaved changes UnsavedChangesDialog lists for a preset switch, all of which its Transfer moves:
-// the changed options (key#index for one entry of a vector) that a settings page shows in the current mode.
-static std::vector<std::string> listed_dirty_options(const PresetCollection& presets)
+std::vector<std::string> listed_dirty_options(const PresetCollection& presets)
 {
     Search::SettingsIndex& index = wxGetApp().sidebar().settings_index();
     index.sort_options_by_key();

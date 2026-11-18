@@ -4,8 +4,8 @@
     tools/mcp/orca_mcp.py launch --cad
     tools/mcp/test_cad_examples.py [--tool NAME ...]
 
-Lists the Design commands (search_tools {group: "Design"}), with undo and redo, which document the
-Design history, reads each one's examples (search_tools {tool}), and runs every example of the named
+Lists the Design commands (tool_search {group: "Design"}), with undo and redo, which document the
+Design history, reads each one's examples (tool_search {tool}), and runs every example of the named
 commands (of all of them without --tool), each on a fresh, empty design: an open sketch is cancelled
 and new_design discards the rest. An argument {"from_call": i, "key": k} is the value under k in the
 result of call i of the same example. Every call is checked: an example fails when a call fails, or
@@ -84,7 +84,7 @@ def main():
     args = ap.parse_args()
 
     client, _ = orca_mcp.session_client()
-    names = client.call("search_tools", group="Design")["names"] + HISTORY
+    names = client.call("tool_search", group="Design")["names"] + HISTORY
     unknown = [t for t in args.tool if t not in names]
     if unknown:
         sys.exit(f"not Design commands: {', '.join(unknown)}")
@@ -92,7 +92,7 @@ def main():
 
     total = skipped = failures = 0
     for name in wanted:
-        for example in client.call("search_tools", tool=name).get("examples") or []:
+        for example in client.call("tool_search", tool=name).get("examples") or []:
             total += 1
             label = f"{name}: {example['title']}"
             if example.get("needs"):

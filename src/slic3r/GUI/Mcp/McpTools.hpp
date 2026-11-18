@@ -17,6 +17,8 @@
 #include <cstdint>
 #include <functional>
 #include <initializer_list>
+#include <iosfwd>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -42,13 +44,17 @@ namespace CustomGCode { struct Info; }
 namespace GUI {
 
 struct AppAction;
+struct AppActionRunResult;
 class IMSlider;
+class PartPlate;
 class PartPlateList;
 class Plater;
 
 namespace Ops {
 struct ExportTicket;
+struct Preference;
 struct Refusal;
+enum class PresetChanges;
 } // namespace Ops
 
 namespace Mcp {
@@ -57,22 +63,43 @@ class AutomationRuntime;
 struct Replay;
 struct ReplayContext;
 
-// Each tool family adds its commands to the catalog (NativeCommands::register_all_commands()), and so do the
-// Design tab's (register_cad_commands(), McpToolsCad.hpp). A command's function reaches the automation runtime
-// through its call's context (ToolContext::runtime()), so the catalog is built without one.
-void register_app_tools(CommandCatalog& catalog);
+// Each tool family adds its commands to the catalog (NativeCommands::register_all_commands(), which gives each the
+// group of its place), and so do the Design tab's (register_cad_commands(), McpToolsCad.hpp). A command's function
+// reaches the automation runtime through its call's context (ToolContext::runtime()), so the catalog is built
+// without one.
+// `cad`: the catalog holds the Design tab's commands, which undo's and redo's examples call.
+void register_app_tools(CommandCatalog& catalog, bool cad);
 void register_action_tools(CommandCatalog& catalog);
 void register_project_tools(CommandCatalog& catalog);
 void register_config_tools(CommandCatalog& catalog);
+// The printer models and system filaments a person installs (McpToolsInstall.cpp).
+void register_install_tools(CommandCatalog& catalog);
+// The Preferences dialog's preferences, read and written (McpToolsPreferences.cpp).
+void register_preference_tools(CommandCatalog& catalog);
 void register_scene_tools(CommandCatalog& catalog);
 void register_view_tools(CommandCatalog& catalog);
+void register_plugin_tools(CommandCatalog& catalog);
+// The error of a plugin command refused by `refusal` (McpToolsPlugins.cpp), the plugin's row (plugin_list's) being
+// `before` the call and `after` it, null where it is not listed. Where the call changed how the plugin stands (installed,
+// enabled or its error: a cloud plugin downloaded before the refusal, or its download's error recorded), the error says
+// how it is left and carries its row under "plugin"; else it is the refusal alone.
+ToolFailure plugin_refusal_after(const Ops::Refusal& refusal, const nlohmann::json& before, const nlohmann::json& after);
+// plugin_enable's reply once the call has ended (McpToolsPlugins.cpp), `row` being the plugin's row then, null where it is
+// not listed: {plugin, changed}, with a note while the load the call started (`load_started`) goes on (`still_loading`), or
+// where the plugin is no longer listed. A load that ended with the plugin not enabled, or no longer listed, is an error
+// (not_loaded) that says how the plugin is left and carries its row.
+nlohmann::json plugin_enable_reply(const std::string& plugin, bool changed, bool load_started, bool still_loading,
+                                   const nlohmann::json& row);
 void register_ui_tools(CommandCatalog& catalog);
 void register_replay_tools(CommandCatalog& catalog);
 void register_record_tools(CommandCatalog& catalog);
 void register_python_tools(CommandCatalog& catalog);
-// `design_index` ends search_tools' description: what it says of the Design commands (design_command_index(),
+// `design_index` ends tool_search's description: what it says of the Design commands (design_command_index(),
 // McpToolsCad.hpp) in a catalog that holds them, and nothing in one that does not.
 void register_api_tools(CommandCatalog& catalog, const std::string& design_index);
+// Adds the source of the operations the loaded plugins offer (plugin.<plugin>.<name>), which come and go with their
+// plugins, in group Plugins: tool_call runs one by name and tool_search finds it; tools/list does not show them.
+void register_plugin_operations(CommandCatalog& catalog);
 
 // How run_replay_job() runs a replay beyond what the replay says.
 struct ReplayRunOptions
@@ -84,11 +111,11 @@ struct ReplayRunOptions
     std::function<void(const nlohmann::json&)> step_finished;
 };
 
-// Runs a parsed replay as the calling job, as run_replay does: steps are child calls, dialog rules
+// Runs a parsed replay as the calling job, as replay_run does: steps are child calls, dialog rules
 // the replay registers end with it, and result.json goes to sctx.out_dir (created if missing). It
 // stops before the next step, and stops waiting on a step's job, once the call is cancelled: the
 // runtime stops, or a stop was asked for any job in the call's lineage (JobRegistry::request_stop), so
-// a nested run_replay stops with the run that holds it. Returns run_replay()'s result with out_dir (and result_file).
+// a nested replay_run stops with the run that holds it. Returns run_replay()'s result with out_dir (and result_file).
 nlohmann::json run_replay_job(AutomationRuntime& runtime, ToolContext& ctx, const Replay& replay, ReplayContext& sctx,
                               const ReplayRunOptions& options);
 
@@ -103,23 +130,33 @@ nlohmann::json enum_prop(std::vector<std::string> values, const std::string& des
 nlohmann::json array_prop(nlohmann::json items, const std::string& description);
 
 // The typed tools are listed commands (tools/list shows them) made with NativeCommands::long_command(), their
-// function unchanged, each in its `group`: core, api or ui (NativeCommand::group).
+// function unchanged. A command's group is its place's, which the catalog gives it (NativeCommands::place_heading()).
 // Pure observation: inline, read-only, inspect guard, not journaled.
-NativeCommand inspect_tool(std::string group, std::string name, std::string title, std::string description, nlohmann::json schema,
-                           CommandFn handler);
+NativeCommand inspect_tool(std::string name, std::string title, std::string description, nlohmann::json schema, CommandFn handler);
 // `command`, naming the operations (GUI/Operations) its function reaches, by function name.
 NativeCommand reaching(std::vector<std::string> operations, NativeCommand command);
 // Anything that changes the app: a job under the mutate guard, journaled.
-NativeCommand mutate_tool(std::string group, std::string name, std::string title, std::string description, nlohmann::json schema,
-                          CommandFn handler, bool destructive = false);
+NativeCommand mutate_tool(std::string name, std::string title, std::string description, nlohmann::json schema, CommandFn handler,
+                          bool destructive = false);
+// A command made from menu rows (NativeCommandRows.hpp): NativeCommands::ui_command(), listed, with `description` and
+// the rows as its `tiles`. `fn` does what the row a call's variant argument names does, as a person's pick of that row
+// does: on the targets the call names (McpTargets.hpp) where the command takes them, else on what is selected. A row
+// with no argument form is no command of the tool list: its declaration sets listed false.
+NativeCommand row_command(std::string name, std::string title, std::string description, nlohmann::json schema, nlohmann::json tiles,
+                          std::function<AppActionRunResult(const nlohmann::json& args)> fn);
+// What a command made from rows replies to a call, which a pick does not show: `reply`.
+AppActionRunResult row_reply(const nlohmann::json& reply);
+// What a command made from rows answers for a refusal after a dialog the person answered or read, which told them why:
+// a pick shows nothing more, and a call learns the refusal.
+AppActionRunResult quiet_refusal(const Ops::Refusal& refusal);
 
 // ---- expected object IDs ---------------------------------------------------------------------
 
-// The schema of an expected ID argument: the id list_objects reports for an object or part (`of`), which
+// The schema of an expected ID argument: the id object_list reports for an object or part (`of`), which
 // orca.host shows too, so a script addresses what it read.
 nlohmann::json expected_id_prop(const char* of);
 // `command` with its id_args: the expected-id arguments its schema has (object_id and part_id, as
-// expected_id_prop() describes them, and select_objects' object_ids, part_ids and instance_object_ids). Ids are
+// expected_id_prop() describes them, and object_select's object_ids, part_ids and instance_object_ids). Ids are
 // allocated per process, so the session journal leaves them out (without_expected_ids()).
 NativeCommand with_expected_ids(NativeCommand command);
 // Refuses the call when `args` names an expected object_id, or part_id, that is not the id of `object`,
@@ -154,7 +191,7 @@ bool        arg_bool(const nlohmann::json& args, const char* key, bool fallback)
 
 // ---- search ----------------------------------------------------------------------------------
 
-// search_tools' answer from `catalog`, every command it holds and those its sources hold now, for `args`:
+// tool_search's answer from `catalog`, every command it holds and those its sources hold now, for `args`:
 // - tool: that command's group, read_only, description and input schema, and its examples when it has some;
 //   ToolFailure, naming the closest keys, for a key lookup() does not resolve.
 // - query: {total, items, use}, the `limit` (default 5) best matches by match_score(), each {name, group, summary,
@@ -168,17 +205,23 @@ nlohmann::json search_commands(const CommandCatalog& catalog, const nlohmann::js
 // The Speed Dial actions of `listed` (ActionRegistry::describe()'s items: id, title, group, description)
 // that `words` (of query_words()) describe, best first: those matching more of the words, then those
 // matching more of them in what the action is called (the name inside its id, its title and its group),
-// then the shorter name, which is the plainer command (obj_delete before obj_delete_all). search_actions
-// and search_tools both rank with it, so one query finds the same actions through either.
+// then the shorter name, which is the plainer tile (obj_delete before obj_delete_all). action_search
+// and tool_search both rank with it, so one query finds the same actions through either.
 nlohmann::json rank_actions(const nlohmann::json& listed, const std::vector<std::string>& words);
 
-// Why run_action refuses `args` for `action`, or empty when it does not: a command's tile takes its command's
-// arguments, which the command checks, a tile with a preset (a folded row's) takes none or exactly its preset, and
-// every other action (a plugin's script or page, a plate's, a setting's or a recent project's) takes none.
+// Why action_run refuses `args` for `action`, or empty when it does not: a tile that collects a value (input) takes
+// exactly that value, a command's own tile takes its command's arguments, which the command checks, an item of a
+// command's tiles (a folded row's, with a preset) takes none or exactly its preset, and every other action (a
+// plugin's script or page, a plate's, a setting's or a recent project's) takes none.
 std::string action_args_error(const AppAction& action, const nlohmann::json& args);
+// The arguments action_run's journal step keeps for a command's tile of fixed arguments (AppAction::preset), run with
+// `args`, which action_run accepted: what it takes for that tile, the tile's own arguments, or for a tile that collects
+// a value, `args` (that value alone). Null for an action without a preset, a Design command's own tile among them,
+// which takes its command's arguments and keeps the command's rewrite of them (Mcp::TileContext).
+nlohmann::json tile_journal_args(const AppAction& action, const nlohmann::json& args);
 
-// What run_action answers for `id`, an action id or the name inside one, that no action of the app's state has:
-// for a Design tab tile's, when that tile is there and the call_tool that runs it from any tab (its command, with
+// What action_run answers for `id`, an action id or the name inside one, that no action of the app's state has:
+// for a Design tab tile's, when that tile is there and the tool_call that runs it from any tab (its command, with
 // the row's arguments for a folded row's tile), or, when `catalog` leaves the tile's command out
 // (CommandCatalog::leave_out()), why; for any other, where an action or a command is found.
 std::string unknown_action(const std::string& id, const CommandCatalog& catalog);
@@ -191,7 +234,7 @@ std::string to_config_string(const nlohmann::json& value, const std::string& key
 
 // ---- Python (McpToolsPython.cpp) -------------------------------------------------------------
 
-// search_python_api's reference: every public module, class, function, method, property, named instance (such
+// script_search_api's reference: every public module, class, function, method, property, named instance (such
 // as orca.host.preset.process) and constant (such as orca.host.ui.PD_CAN_ABORT) of the orca package, in
 // the order the package lists them, each {name, kind, signature, doc}. signature holds the signature lines
 // pybind11 starts a docstring with (a class's are its constructors, joined with " | "), and doc the rest
@@ -209,14 +252,14 @@ nlohmann::json rank_python_api(const nlohmann::json& reference, const std::strin
 // Takes the GIL, as python_api_reference() does.
 bool python_has_numpy();
 
-// The Run Script panel's session as the calling job, a person's run_script job.
-// The job is idle for `wait {for: "idle"}`, and owns what the session's tool calls leave behind (auto-answer rules, a
+// The Run Script panel's session as the calling job, a person's script_run job.
+// The job is idle for `app_wait {for: "idle"}`, and owns what the session's tool calls leave behind (auto-answer rules, a
 // recording, a held press) until the session ends, with its rules paused between works and its presses released as each
 // work ends. The calls hang under a lineage node of the job, which a stop cancels, inline calls included, and which the
 // next work replaces. Hosts `session` (host_python_session()) under `filename` until it ends; a job cancel ends it.
 ToolResult run_python_session_job(AutomationRuntime& runtime, ToolContext& ctx, PythonSession& session, const std::string& filename);
 
-// Hosts the Run Script panel's `session` as an unjournaled person's run_script job (run_python_session_job()), which
+// Hosts the Run Script panel's `session` as an unjournaled person's script_run job (run_python_session_job()), which
 // `runtime` follows on a thread of its own that its stop() joins and stop_followed() stops. `file` is the session's
 // file; empty for an unsaved script. `events.finished` is posted only for a job refused before its handler ran or a
 // handler that refused (Python scripts off), as {"error": message}; the session's end is PythonSession::ended(),
@@ -231,39 +274,70 @@ nlohmann::json editor_tool_catalog(const CommandCatalog& catalog);
 
 // ---- recording (McpToolsRecord.cpp) ----------------------------------------------------------
 
-// Starts encode_recording with `args` as an unjournaled job of its own and returns at once: the job's envelope, or
-// the error that refused it. For a recording's encode that stop_recording starts, which a replay of the recording
+// Starts recording_encode with `args` as an unjournaled job of its own and returns at once: the job's envelope, or
+// the error that refused it. For a recording's encode that recording_stop starts, which a replay of the recording
 // asks for again. Any thread.
 ToolResult start_encode(AutomationRuntime& runtime, const nlohmann::json& args);
 
-// ---- settings scopes (McpToolsConfig.cpp) ----------------------------------------------------
+// ---- settings (McpToolsConfig.cpp) -----------------------------------------------------------
 
-// The keys the object scope (or, with `is_part`, the volume scope) takes: those of `offered`
+// Why settings_get (or, with `writes`, settings_set) refuses `args` before reading anything, or empty when it does
+// not: a target the type has not (an object's, a part's and a height range's settings are the process's), an object,
+// part or height range given with a target that does not take it, a target part named by its object alone, a target
+// height_range without min_z and max_z, or nothing named, worded for the tool called (settings_get: no keys, query or
+// compare with the target global; settings_set: no values or reset_all), and an extruders_count set with anything
+// else or on another type than the printer. Any thread.
+std::string settings_request_error(const nlohmann::json& args, bool writes = false);
+
+// The keys the target object (or, with `is_part`, the target part) takes: those of `offered`
 // (SettingsFactory::get_options()) that the object list offers with `filaments` filament slots, and
 // extruder, the object's or part's filament.
 std::vector<std::string> model_scope_options(const std::vector<std::string>& offered, bool is_part, int filaments);
 
-// What `key` is for an object (`volume` null) or one of its parts, and where it comes from:
-// {"effective", "source"}, the part's override ("part"), else the object's ("object"), else the
-// process's ("process"), else the option's default ("default"; extruder 1). An extruder of 0 is no
-// override. For an object, "parts" lists [{volume, value}] for the parts and modifiers overriding
-// `key`, each applying only inside its own volume.
-nlohmann::json effective_setting(const std::string& key, const DynamicPrintConfig& process, const ModelObject& object,
-                                 const ModelVolume* volume);
+// The process settings a target of the settings tools takes, as its rows in the Process panel's Objects mode offer
+// them on an FFF printer with `filaments` filament slots: object, an object or an assembly, and part, a part or a
+// modifier (SettingsFactory::get_fff_options(), model_scope_options()); height_range, one of an object's height
+// ranges (layer_range_option_keys()). Each with extruder, the filament its row sets. Empty for another target.
+std::vector<std::string> target_options(const std::string& target, int filaments);
+// The targets whose target_options() hold `key`, in the order object, part, height_range.
+std::vector<std::string> targets_taking(const std::string& key, int filaments);
+// Why `target` does not take the process setting `key`, saying where it is set, from targets_taking(): "layer_height is
+// set on an object or a height range, not on a part", or for a key no target takes, that it is set globally only.
+// Empty when the target takes it.
+std::string untaken_setting_error(const std::string& key, const std::string& target, int filaments);
 
-// Checks save_preset's `name` against `presets` as the Save preset dialog does, and returns whether the
+// settings_list's page of `items`: all of them, unless the items carry their meta (include_meta, which where implies),
+// which pages them by 100; limit and offset as given.
+nlohmann::json settings_list_page(const nlohmann::json& items, const nlohmann::json& args);
+
+// What `key` is for an object (`volume` and `range` null), one of its parts, or one of its height ranges (`range`, its
+// settings), and where it comes from, in the order the slicer applies them: {"effective", "source"}, the height range's
+// own value ("height_range"), else the part's ("part"), else the object's ("object"), else the process's, the global
+// value ("global"), else the option's default ("default"; extruder 1). An extruder of 0 is no override. For an object
+// or a height range, "parts" lists [{part, value}] for the parts and modifiers overriding `key`, each applying only
+// inside its own volume (inside a height range that sets the key, its modifiers alone); for an object, one of its parts
+// or a region modifier that sets none of `key`, "height_ranges" lists [{min_z, max_z, value}] for the object's height
+// ranges overriding it, each applying only between its heights. Inside a region modifier (a mesh or a painted one) that
+// sets none of `key`, the value of the region it overlaps applies: a model part's, or that of a region modifier before it
+// in the object's list. Where one of those sets the key, which it overlaps is not worked out: "effective" is null,
+// "source" "overlapped_part", "object_effective" and "object_source" give what the object's chain resolves to, and
+// "parts" lists [{part, value}] for those that set it.
+nlohmann::json effective_setting(const std::string& key, const DynamicPrintConfig& process, const ModelObject& object,
+                                 const ModelVolume* volume, const DynamicPrintConfig* range = nullptr);
+
+// Checks preset_save's `name` against `presets` as the Save preset dialog does, and returns whether the
 // preset is kept inside the project: where an existing preset of that name is, else `inside_project`,
 // else where the edited preset is. Throws ToolFailure for a name the dialog refuses, for replacing
 // another existing preset without `overwrite`, and for an `inside_project` that contradicts where the
 // existing preset is, which the dialog does not let a person change.
 bool save_preset_inside_project(const PresetCollection& presets, const std::string& name, const nlohmann::json& args);
 
-// get_settings' meta of an option: label, description (its whole tooltip: what it does, when to change
+// settings_get's meta of an option: label, description (its whole tooltip: what it does, when to change
 // it, what it affects), type, mode, category, unit, range, and for an enum its values with their labels
 // (the untranslated texts the GUI shows), in the same order.
 nlohmann::json option_meta(const ConfigOptionDef& def);
 
-// get_settings' search: the keys of `within` that `query` describes, best first, at most `limit`.
+// settings_get's search: the keys of `within` that `query` describes, best first, at most `limit`.
 // A query word matches a word of a key (split at _), its label or its tooltip that starts with it, so
 // "retract" finds "retraction". Settings matching more of the query's words come first, then those
 // matching more of them in the key or label, so of two that match alike, the one the query names
@@ -271,8 +345,8 @@ nlohmann::json option_meta(const ConfigOptionDef& def);
 // the query has longer ones.
 std::vector<std::string> rank_settings(const std::string& query, const std::vector<std::string>& within, std::size_t limit);
 
-// get_settings' search without a scope, for search_tools: the process, filament and printer settings being
-// edited that `query` describes, best first, {total, items: [{key, scope, label, where}]} with at most
+// settings_get's search without a type, for tool_search: the process, filament and printer settings being
+// edited that `query` describes, best first, {total, items: [{key, type, label, where}]} with at most
 // `limit` items. UI thread.
 nlohmann::json search_settings(const std::string& query, std::size_t limit);
 
@@ -283,7 +357,7 @@ nlohmann::json search_settings(const std::string& query, std::size_t limit);
 nlohmann::json variant_entries(const std::string& key, const DynamicPrintConfig& config, const std::vector<int>& extruder_types,
                                const std::vector<int>& nozzle_volume_types);
 
-// The serialized value set_settings writes for `key` of the preset whose config is `config`: `value`
+// The serialized value settings_set writes for `key` of the preset whose config is `config`: `value`
 // itself, or for {"index": i, "value": v} the whole vector with entry i replaced, as editing one variant
 // in the tab leaves it. Throws ToolFailure, naming the entries, for a value with another number of
 // entries than a per-variant or per-extruder vector of several (a scalar would collapse it), and for a
@@ -297,13 +371,22 @@ std::string preset_setting_value(const std::string& key, const nlohmann::json& v
 // are left out.
 nlohmann::json preset_diff(const Preset& left, const Preset& right, const std::vector<std::string>& keys);
 
-// set_settings' "changed": {key: value} for every key whose value differs between `before` and `after`,
+// settings_set's "changed": {key: value} for every key whose value differs between `before` and `after`,
 // with null for a key `after` no longer has.
 nlohmann::json changed_settings(const DynamicPrintConfig& before, const DynamicPrintConfig& after);
 
 // The keys of `changes`, unsaved changes as the tab marks them ({key: value}, or key#index for one entry of
 // a vector), whose value `config` no longer holds; each key once.
 nlohmann::json discarded_changes(const nlohmann::json& changes, const DynamicPrintConfig& config);
+
+// What a command that changes presets (preset_select, printer_install, printer_uninstall) replies when an operation
+// refuses: the refusal's text with what an agent can do about it, and the names it carries under the key each refusal
+// has.
+ToolFailure preset_refused(const Ops::Refusal& refusal);
+
+// The answer a call's preset_changes gives about the presets' unsaved changes, as the preset tools take it: transfer or
+// discard them; Ask where the call gives none.
+Ops::PresetChanges preset_changes_answer(const nlohmann::json& args);
 
 // The process, filament and printer presets being edited that have unsaved changes:
 // {type: {name, changes: {key or key#index: value}}}. UI thread.
@@ -314,7 +397,7 @@ nlohmann::json unsaved_changes();
 // that have keys, and left out when there are none. UI thread.
 nlohmann::json unsaved_changes_outcome(const nlohmann::json& before);
 
-// Checks that delete_preset may delete the preset `name` of `presets`, as the GUI offers and checks it, and
+// Checks that preset_delete may delete the preset `name` of `presets`, as the GUI offers and checks it, and
 // returns the presets deleted with it: for a custom printer (a base printer that is not a system one),
 // {"process": [names], "filament": [names]} of the user presets of `prints` and `filaments` made for it
 // alone; otherwise an empty object. Throws ToolFailure for an unknown name (with similar names), a system,
@@ -323,23 +406,58 @@ nlohmann::json unsaved_changes_outcome(const nlohmann::json& before);
 nlohmann::json check_preset_deletable(const PresetCollection& presets, const std::string& name, bool delete_attached,
                                       const PresetCollection& prints, const PresetCollection& filaments);
 
-// The project scope's filament_colour to write: one colour per slot of `current`, each #RRGGBB (stored in
+// project_set_settings' filament_colour to write: one colour per slot of `current`, each #RRGGBB (stored in
 // upper case, as the colour pickers store it) or the slot's current colour in any case. `mixed` flags the
 // mixed slots, whose colour comes from their components and cannot change. Throws ToolFailure otherwise.
 std::vector<std::string> check_filament_colours(std::vector<std::string> colours, const std::vector<std::string>& current,
                                                 const std::vector<unsigned char>& mixed);
 
-// The project scope's flush_multiplier to write: one per nozzle, or one value for all, each within the
+// project_set_settings' flush_multiplier to write: one per nozzle, or one value for all, each within the
 // Flushing volumes dialog's 0..3. Throws ToolFailure otherwise.
 std::vector<double> check_flush_multipliers(std::vector<double> multipliers, std::size_t nozzles);
 
-// The project scope's flush_volumes_matrix to write: per nozzle, `slots` x `slots` volumes (row = from,
+// project_set_settings' flush_volumes_matrix to write: per nozzle, `slots` x `slots` volumes (row = from,
 // column = to) in config order over every slot, as project_config and the G-code header hold it, limited
 // as the Flushing volumes dialog limits them (g_max_flush_volume / the nozzle's multiplier). Throws
 // ToolFailure for another length, a negative volume, a non-zero diagonal, or a changed entry of a mixed
 // slot (flagged in `mixed`), which is never flushed and which the dialog keeps as `current` holds it.
 std::vector<double> check_flush_matrix(std::vector<double> matrix, std::size_t slots, const std::vector<double>& multipliers,
                                        const std::vector<double>& current, const std::vector<unsigned char>& mixed);
+
+// The keys of a plate's own settings, which plate_get_settings reads and plate_set_settings writes: what the Plate
+// Settings dialog sets on one plate, and the filament grouping its filament map icon opens (filament_map_mode,
+// filament_map). Its name and its lock are set by its icons, as plate_rename and plate_lock set them.
+const std::vector<std::string>& plate_setting_keys();
+
+// plate_list's place of a plate on the bed: {origin, size}, the [x, y] of its front left corner and its [width, depth]
+// in mm, in the bed coordinates object positions are given in, read from the plate's rectangle on the bed.
+nlohmann::json plate_place(PartPlate& plate);
+
+// Why plate_set_settings refuses `map` as a plate's filament_map (the 1-based extruder of each filament), or empty
+// when it does not: the map is the plate's own grouping, "Manual" as its `mode` (filament_map_mode, "" where the plate
+// follows the project's grouping), with one extruder per filament of the `filaments` and each of the printer's
+// `extruders`.
+std::string filament_map_error(const std::string& mode, const std::vector<int>& map, int filaments, int extruders);
+
+// preset_list's filters over `items`, one per preset as preset_list builds them: query (part of the name or alias),
+// vendor and filament_type (in either case), source (system, user or project; a preset kept in the project is no user
+// one), and the items marked compatible: false or installed: false only with include_incompatible or
+// include_uninstalled. With `printer`, `fits` says whether an item's preset fits that printer preset: it stands for the
+// item's compatible flag, which is for the selected printer, and sets it.
+nlohmann::json filter_preset_items(nlohmann::json items, const nlohmann::json& args,
+                                   const std::function<bool(const nlohmann::json&)>& fits);
+
+// settings_set's extruders_count for the printer: what the Extruders field of the Printer settings takes, a whole
+// number from 1 to MAXIMUM_EXTRUDER_NUMBER (or a string of one), and nothing while single extruder multi-material is
+// on, which greys the field out. Throws ToolFailure otherwise.
+std::size_t extruders_count_value(const nlohmann::json& value, bool single_extruder_multi_material);
+
+// The printer variant settings_set's nozzle_diameter switches to, as the sidebar's nozzle diameter does: the plain
+// diameter among `variants` (the printer model's, PresetCollection::diameters_of_selected_printer()) that every
+// extruder is given, unless it is the `current` variant. Empty when the extruders differ, no variant has the diameter
+// or the printer has it already: the value is then typed into the Printer settings.
+std::string nozzle_diameter_variant(const std::vector<double>& diameters, const std::vector<std::string>& variants,
+                                    const std::string& current);
 
 // A plate's filament order as the Plate Settings dialog's drag canvas gives it: every slot 1..`slots` once.
 // Throws ToolFailure otherwise.
@@ -359,17 +477,20 @@ nlohmann::json layer_sequences_json(const std::vector<std::pair<std::pair<int, i
 // at the height of its last extrusion that is not custom G-code, or for a belt print at its print Z.
 std::vector<double> gcode_layer_zs(const GCodeProcessorResult& result);
 
-// list_plates' layer_gcode of a plate's codes: [{z, layer, type, filament, color, gcode}] by height, z
+// plate_list's layer_gcode of a plate's codes: [{z, layer, type, filament, color, gcode}] by height, z
 // rounded to the G-code's 0.001 mm; layer (1-based, as the slider numbers it) where `layer_zs` has a layer
 // at or above z, the slider's rule for a stored height; filament and color for a filament or colour
 // change, gcode for custom G-code.
 nlohmann::json layer_gcode_json(const CustomGCode::Info& codes, const std::vector<double>& layer_zs);
 
-// get_settings on the preferences scope: [{key, value}] for the `keys` of `args` that `config`'s app section,
-// where the Preferences dialog keeps its settings, holds, paged, and unknown_keys for the others with a note
-// that a preference never changed is not stored. Values are as stored. Throws ToolFailure without keys: the
-// section also holds account and device state, so nothing is listed unasked.
-nlohmann::json preferences_settings(const AppConfig& config, const nlohmann::json& args);
+// preferences_get's reply: {total, items}, an item for each preference of `shown` (the rows the Preferences dialog shows,
+// Ops::shown_preferences()) that `args`' keys, tab and query leave (query: each of its words in the key, the label or
+// the section, in any case), with its value typed by its kind: the text `shown_texts` gives for its key, which is what
+// the dialog shows where that is not the stored value (Ops::shown_texts()), else the one in `config`'s app section; then
+// {key, value} as stored for each named key outside `shown` that the section holds, and unknown_keys, with a note, for
+// the named keys it lacks. The section also holds account and device state, so nothing outside `shown` is listed unasked.
+nlohmann::json preferences_settings(const AppConfig& config, const std::vector<Ops::Preference>& shown, const nlohmann::json& args,
+                                    const std::map<std::string, std::string>& shown_texts = {});
 
 // Points the filament tab at the preset of filament slot `slot` (1-based, in range), as opening that slot's
 // settings does, through the tab's switch, which asks about its unsaved changes. Returns the preset the tab
@@ -379,14 +500,14 @@ std::string edit_filament_slot(int slot);
 
 // ---- calibration (McpToolsProject.cpp) -------------------------------------------------------
 
-// generate_calibration_test's arguments as the test's dialog takes them on `printer`: its defaults for what is left out (the
+// calibration_generate_test's arguments as the test's dialog takes them on `printer`: its defaults for what is left out (the
 // pressure advance ones by the printer's extruder type, an input shaping Y range or frequency by the X one),
 // temperatures clamped to the dialog field's 155-500 °C and rounded down to its 5 °C, and the dialog's rules
 // (check_calib_params()). Adds to `warnings` what the dialog would say without refusing. Throws ToolFailure
 // for an argument the test does not take, a value the dialog refuses, or a choice the printer does not offer.
 Calib_Params calib_params_from_args(const nlohmann::json& args, const DynamicPrintConfig& printer, std::vector<std::string>& warnings);
 
-// The parameters `params` holds for generate_calibration_test's `args`, in its argument names and units: what generate_calibration_test
+// The parameters `params` holds for calibration_generate_test's `args`, in its argument names and units: what calibration_generate_test
 // reports and records in the journal, so a replay does not depend on the dialogs' defaults.
 nlohmann::json calib_params_json(const nlohmann::json& args, const Calib_Params& params, const DynamicPrintConfig& printer);
 
@@ -419,6 +540,25 @@ nlohmann::json poll_until(ToolContext& ctx,
 // thread.
 std::string undrawn_window(ToolContext& ctx);
 
+// ---- app (McpToolsApp.cpp) -------------------------------------------------------------------
+
+// app_log's lines of the log read from `in`: the last `lines` of those at or above `min_level` (trace, debug, info,
+// warning, error, fatal).
+std::vector<std::string> log_tail(std::istream& in, const std::string& min_level, std::size_t lines);
+
+// ---- view (McpToolsView.cpp) -----------------------------------------------------------------
+
+// What view_set sets outside the Design tab, as app_state's view gives it, under the names of view_set's arguments so
+// that it can be passed back: sidebar_collapsed and sidebar_width (pixels), legend_collapsed and gcode_window, the 3D
+// camera's projection (perspective or orthographic), the section view of Prepare and the Preview ({on}), and the display
+// switches labels, overhangs, outline, wireframe, gridlines, axes and navigator. UI thread.
+nlohmann::json view_state(Plater& plater);
+
+// The page of the main window's notebook that view_set's `tab` names, of `pages`, the notebook's page ids: the page
+// of one of the words of kTabWords (CommandCatalog.hpp), device being the page monitor; else the page of that id,
+// when no word names that page (a plugin's page, the web Device page); else nothing.
+std::optional<std::string> view_tab_page(const std::string& tab, const std::vector<std::string>& pages);
+
 // ---- windows (McpToolsUi.cpp) ----------------------------------------------------------------
 
 // What a window's title bar offers and where it runs, for window_request_refusal().
@@ -430,10 +570,10 @@ struct WindowAbilities
     bool can_minimize    = false; // wxMINIMIZE_BOX in its style
     bool positions_known = true;  // false on Wayland (window_positions_known())
 };
-// Why set_window can't apply `args` to such a window, or empty when it can. Checks everything
+// Why window_set can't apply `args` to such a window, or empty when it can. Checks everything
 // before anything changes.
 std::string window_request_refusal(const nlohmann::json& args, const WindowAbilities& window);
-// How set_window's wait for a window ended, for add_window_notes().
+// How window_set's wait for a window ended, for add_window_notes().
 struct WindowSettling
 {
     bool        limited    = false; // the size was held to the window's minimum or maximum size
@@ -443,7 +583,7 @@ struct WindowSettling
     int         seconds    = 3;     // how long the wait for the window lasted at most
     std::string undrawn;            // undrawn_window()'s reason the 3D view isn't drawn, or empty
 };
-// Adds to set_window's `reply`, which holds the size, position and state the window reads back,
+// Adds to window_set's `reply`, which holds the size, position and state the window reads back,
 // adjusted, the fields of `args` the window differs from, and a note on why: a size limit, the window
 // manager, a compositor that refused to activate a minimized window, or a 3D view that didn't draw.
 void add_window_notes(const nlohmann::json& args, const WindowSettling& settling, nlohmann::json& reply);
@@ -452,7 +592,7 @@ void add_window_notes(const nlohmann::json& args, const WindowSettling& settling
 // view is shown. UI thread.
 bool view_drawn_at_size();
 // {index, x, y, width, height}: the work area of display `index` (the screen less the taskbar or the
-// dock and menu bar), in the units list_windows reports. UI thread.
+// dock and menu bar), in the units window_list reports. UI thread.
 nlohmann::json display_area(unsigned index);
 
 // ---- scene -----------------------------------------------------------------------------------
@@ -464,26 +604,26 @@ GLCanvas3D& require_prepare_scene(Plater& plater);
 // it does. UI thread.
 void select_rows(ModelObject* object, ModelVolume* volume);
 
-// Scale factors that turn `current` (mm per axis) into the sizes of transform's `size` argument, [x, y, z]
+// Scale factors that turn `current` (mm per axis) into the sizes of object_transform's `size` argument, [x, y, z]
 // with null for an axis that keeps its size. With one number and two nulls, every axis scales by that
 // axis's factor. Throws ToolFailure for another length, no number, or a size that is not positive.
 Vec3d size_factors(const Vec3d& current, const nlohmann::json& size);
 
-// Applies arrange's spacing, rotate, align_y and multi_material to `settings` by the Arrange options
+// Applies object_arrange's spacing, rotate, align_y and multi_material to `settings` by the Arrange options
 // panel's rules: Align to Y axis stays off while rotation is on. Settings not given keep their values.
 // Returns why an asked-for value did not apply, or "".
 std::string apply_arrange_args(GLCanvas3D::ArrangeSettings& settings, const nlohmann::json& args);
-// The settings as arrange replies with them and records them for replay.
+// The settings as object_arrange replies with them and records them for replay.
 nlohmann::json arrange_settings_json(const GLCanvas3D::ArrangeSettings& settings);
 
-// An object as list_objects describes it: its filament, auto_drop, overrides, instances (without the
+// An object as object_list describes it: its filament, auto_drop, overrides, mesh errors, instances (without the
 // plate, which the GUI's plate registry knows), parts, and its height ranges and variable layer height
 // profile when it has them. Bounding boxes, on the bed and of model parts only, are {min, max, size}.
 nlohmann::json object_info(const ModelObject& object, std::size_t index);
-// A part as list_objects describes it: its type, filament, placement on the bed measured on instance 0,
+// A part as object_list describes it: its type, filament, placement on the bed measured on instance 0,
 // rotation and scale in the object's frame, mesh, paint, and what a text or SVG part was made from.
 nlohmann::json volume_info(const ModelVolume& volume, std::size_t index);
-// What list_objects replies with, laid out as the Objects panel is: `plates`, each {index, name, objects}
+// What object_list replies with, laid out as the Objects panel is: `plates`, each {index, name, objects}
 // with the objects that have an instance on it, and `outside`, the objects with an instance on no plate.
 // An object row lists the instances of its plate only, so an object on two plates has a row under each.
 // `plate_of(object, instance)` is the plate an instance is on, or -1, and `plate_names` has a name per
@@ -498,17 +638,20 @@ nlohmann::json objects_by_plate(const Model& model, const std::vector<std::strin
 // registry does not hold, as Fill bed leaves its new ones, the first plate it stands on. UI thread.
 int instance_plate(PartPlateList& plates, int object, int instance);
 
-// What `canvas` has selected, in the indices select_objects takes: its objects, the instances [[object, instance]]
+// What `canvas` has selected, in the indices object_select takes: its objects, the instances [[object, instance]]
 // they are selected in and, when the selection holds parts rather than whole instances, those parts
 // [[object, part]]; wipe_tower when a prime tower is selected. UI thread.
 nlohmann::json selection_state(GLCanvas3D& canvas);
-// A part's type as list_objects and add_part name it: part, negative, modifier, support_blocker,
+// A part's type as object_list and part_add name it: part, negative, modifier, support_blocker,
 // support_enforcer, precise_seam (any subtype), else other.
 const char* volume_type_name(ModelVolumeType type);
-// The type add_part's `type` adds, as the context menu's Add items do (precise_seam: a Center seam);
+// The type part_add's `type` adds, as the context menu's Add items do (precise_seam: a Center seam);
 // ModelVolumeType::INVALID for another name.
 ModelVolumeType volume_type_from_name(const std::string& name);
-// add_part's size of a shape (cube, cylinder, sphere, cone, disc, torus): one positive number of mm
+// The precise seam a subtype name stands for, as object_list names a seam's subtype (center, left, right, enforced,
+// blocked, neutral); ModelVolumeType::INVALID for another name.
+ModelVolumeType precise_seam_subtype(const std::string& name);
+// part_add's size of a shape (cube, cylinder, sphere, cone, disc, torus): one positive number of mm
 // per field of the Primitive size dialog, in its order. Empty when size is null (the built-in size).
 // Throws ToolFailure naming the fields.
 std::vector<double> part_shape_size(const std::string& shape, const nlohmann::json& size);
@@ -520,28 +663,34 @@ void register_layer_tools(CommandCatalog& catalog);
 // The settings a height range modifier takes: layer_height, the per-region process settings the object
 // list offers a part or a range (with `filaments` filament slots), and extruder, the range's filament.
 std::vector<std::string> layer_range_option_keys(int filaments);
-// set_height_ranges' ranges as an object's layer_config_ranges. Each starts from `defaults`, what the
-// object list gives a new range, and takes its values, parsed strictly. Throws ToolFailure for a range
-// that is not 0 <= min_z < max_z or that overlaps another (touching is fine), a key a range does not
-// take, an invalid value, an extruder above `filaments`, or a layer_height given outside
-// `layer_height_bounds(extruder)`.
-t_layer_config_ranges layer_config_ranges_from_json(const nlohmann::json& ranges, const DynamicPrintConfig& defaults, int filaments,
-                                                    const std::function<std::pair<double, double>(int extruder)>& layer_height_bounds);
-// An object's height range modifiers as list_objects and set_height_ranges report them:
-// [{min_z, max_z, values: {key: value serialized as get_settings returns it}}], lowest first.
+// A height range as messages give it: "0-5", "12.5-20".
+std::string height_range_text(const Slic3r::t_layer_height_range& range);
+// object_set_height_ranges' ranges, each {min_z, max_z}, as an object's layer_config_ranges: a range of `current`, the
+// object's, with the same heights keeps its settings, and any other starts from `defaults`, what the object list gives
+// a new range. Throws ToolFailure for a range that is not 0 <= min_z < max_z or that overlaps another (touching is
+// fine).
+t_layer_config_ranges layer_config_ranges_from_json(const nlohmann::json& ranges, const t_layer_config_ranges& current,
+                                                    const DynamicPrintConfig& defaults);
+// settings_set's check of the `values` it writes to a height range whose settings are `range`: a layer_height given is
+// within `layer_height_bounds(extruder)` for the range's filament after the call (the one given, else the range's), as the
+// range editor checks what a person types. Throws ToolFailure otherwise.
+void check_height_range_layer_height(const DynamicPrintConfig& values, const DynamicPrintConfig& range,
+                                     const std::function<std::pair<double, double>(int extruder)>& layer_height_bounds);
+// An object's height range modifiers as object_list and object_set_height_ranges report them:
+// [{min_z, max_z, values: {key: value serialized as settings_get returns it}}], lowest first.
 nlohmann::json layer_config_ranges_json(const t_layer_config_ranges& ranges);
-// An object's layer_height_profile ([z0, h0, z1, h1, ...]) as list_objects and set_variable_layer_height
+// An object's layer_height_profile ([z0, h0, z1, h1, ...]) as object_list and object_set_variable_layer_height
 // report it: {points, min_height, max_height}, heights to 0.001 mm; null unless the object list marks the
 // object's layer height as variable (more than 4 entries).
 nlohmann::json layer_height_profile_json(const std::vector<double>& profile);
 
-// The names set_custom_gcode_at_layer and list_plates give the types of layer codes: pause, custom, template,
+// The names plate_set_custom_gcode and plate_list give the types of layer codes: pause, custom, template,
 // change_filament, and color_change for an old project's colour change.
 const char* custom_gcode_type_name(CustomGCode::Type type);
-// The type set_custom_gcode_at_layer adds for a name; CustomGCode::Unknown for any other, color_change included,
+// The type plate_set_custom_gcode adds for a name; CustomGCode::Unknown for any other, color_change included,
 // since the layer slider adds none.
 CustomGCode::Type custom_gcode_type_from_name(const std::string& name);
-// set_custom_gcode_at_layer's clear, remove and add, in that order, on a layer slider that holds a plate's layers
+// plate_set_custom_gcode's clear, remove and add, in that order, on a layer slider that holds a plate's layers
 // and codes. Everything is checked against the slider's layers and codes before it changes, with the
 // rules of its menus: one code per layer, a template only when the printer has one (`has_template`), a
 // filament change only with two or more filaments, as many as the slider has (`filaments`, the slots now),
@@ -571,13 +720,13 @@ class GCodeViewer;
 
 namespace Mcp {
 
-// The camera set_view leaves, as its reply's camera_state and get_app_state.camera give it: type ("ortho"
+// The camera view_set leaves, as its reply's camera_state and app_state.camera give it: type ("ortho"
 // or "perspective"), look_at, the point it looks at, and position ([x, y, z] in mm, to 0.001), zoom (viewport
 // pixels per mm at look_at's depth) and click_px_per_mm (the zoom in the logical pixels the input tools take, the zoom over
 // `canvas_scale`), both to 0.0001, and the elevation and azimuth orbit uses, in whole degrees.
 nlohmann::json camera_state(Camera& camera, double canvas_scale);
 
-// What a sliced plate reports in the slice reply: print time, filament totals with the flush, cost,
+// What a sliced plate reports in plate_slice's reply: print time, filament totals with the flush, cost,
 // layer count, max Z, filament changes, and every filament slot of the project (zeros for slots the
 // plate does not use, so filaments[i] is slot i + 1) split into model, support, flush and prime
 // tower. Read from `statistics`, the plate's gcode_statistics_json() parsed, so the reply agrees with
@@ -585,18 +734,18 @@ nlohmann::json camera_state(Camera& camera, double canvas_scale);
 // leaves out, come from `result`.
 nlohmann::json plate_summary(const nlohmann::json& statistics, const GCodeProcessorResult& result);
 
-// get_slice_stats's tables, from the same parsed statistics, which sum the moves as the Preview does.
+// plate_slice_stats's tables, from the same parsed statistics, which sum the moves as the Preview does.
 // Per feature type, keyed by the English names of the G-code's ;FEATURE: tags: seconds, share of
 // the print time and grams, plus a Travel row with its distance. The shares need not add up to 100:
 // the print time also counts retractions, wipes, Z moves, tool changes and the prepare time.
 nlohmann::json preview_features(const nlohmann::json& statistics);
-// Every layer, numbered from 1 as the Preview's layer slider and set_view count them, with its Z,
+// Every layer, numbered from 1 as the Preview's layer slider and view_set count them, with its Z,
 // its height above the layer below (a layer lower than that one, the next object of a by-object
 // print, starts again from the bed), seconds and grams; with `with_features`, the seconds of each
 // feature type on it.
 nlohmann::json preview_layers(const nlohmann::json& statistics, bool with_features);
 // Grams per object instance, model and support. The G-code names an instance by its object's name
-// and its index among that object's instances, so an entry gets the list_objects index `object`
+// and its index among that object's instances, so an entry gets the object_list index `object`
 // only when exactly one of `object_names` (the model's objects, in order) has its name.
 nlohmann::json preview_objects(const nlohmann::json& statistics, const std::vector<std::string>& object_names);
 // What the Preview shows: view type, time mode, the layer slider's range (1-based) with the Z of
@@ -605,7 +754,7 @@ nlohmann::json preview_state(GCodeViewer& viewer);
 // Whether the Preview's toolpaths are `result`'s. It loads a plate's only while it is shown, so after
 // another plate is selected it keeps the last one's. UI thread.
 bool viewer_holds(const GCodeViewer& viewer, const GCodeProcessorResult* result);
-// The names get_slice_stats and set_view give the legend's rows: a feature type by the English name of
+// The names plate_slice_stats and view_set give the legend's rows: a feature type by the English name of
 // its ;FEATURE: tag, an option by a key; null for the options that are markers, not rows.
 std::string legend_feature_key(libvgcode::EGCodeExtrusionRole role);
 const char* legend_option_key(libvgcode::EOptionType type);

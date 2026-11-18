@@ -43,6 +43,9 @@ struct SettingsFactory
     static wxBitmap                             get_category_bitmap(const std::string& category_name, bool menu_bmp = true);
     static Bundle                               get_bundle(const DynamicPrintConfig* config, bool is_object_settings, bool is_layer_settings = false);
     static std::vector<std::string>             get_options(bool is_part);
+    // get_options() for an FFF printer, which reads no printer: the region settings for a part or modifier, and the
+    // object settings too for an object.
+    static std::vector<std::string>             get_fff_options(bool is_part);
     // Options of this category are not offered to objects (is_object_settings) or to parts and
     // modifiers: internal options without a category, and per-feature filaments with one filament.
     static bool                                 is_improper_category(const std::string& category, int filaments_cnt, bool is_object_settings = true);

@@ -41,9 +41,11 @@ struct StepDescription
 };
 
 // Describes `step` of `replay`, substituting its arguments leniently over `ctx`; a file counts as
-// written inside the output folder when it is inside ctx.out_dir. A step that calls a Speed Dial command
-// by its key (one of `catalog` with no place in the tool list, with a tile of its own or called with the
-// arguments of one of its tiles) is described as run_action of that tile is. A run_replay step is described by
+// written inside the output folder when it is inside ctx.out_dir. A step that calls a command of `catalog` as one
+// of its tiles (with exactly a tile's arguments, or with none where it has a tile of its own, or, for one the tool
+// list does not show, a Design command, with any) is described as action_run of that tile is. A step's flags come
+// from the command it runs and its arguments, whether it calls the command or action_run of its tile (an export flags
+// writes_file either way). A replay_run step is described by
 // the steps of its inline replay, or of its file when `path` reads and parses, each in the nested
 // run's own context (its vars merged with the step's `vars`, its own replay and output folders);
 // past `depth` 4, or when the file doesn't read or parse, it gets every flag, "checked" and
@@ -52,7 +54,7 @@ StepDescription describe_step(const CommandCatalog& catalog, const ReplayStep& s
                               const ReplayContext& ctx, int depth = 0);
 
 // What a call of `tool` with `args` acts on, as describe_step()'s `what` says it over `catalog`, Speed Dial
-// ids included, but from the arguments as they are and without reading files: a run_replay call is named
+// ids included, but from the arguments as they are and without reading files: a replay_run call is named
 // by its replay file. For recording captions.
 nlohmann::json describe_call(const CommandCatalog& catalog, const std::string& tool, const nlohmann::json& args);
 

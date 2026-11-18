@@ -87,7 +87,7 @@ void start_launch_run(AutomationRuntime& runtime, const McpLaunchOptions& option
         set_run_output_dir(path_from_utf8(options.run_out));
 
     FollowedCall call;
-    call.command = *NativeCommands::instance().find(python ? "run_script" : "run_replay");
+    call.command = *NativeCommands::instance().find(python ? "script_run" : "replay_run");
     call.person  = true;
     // The file is read off the UI thread.
     call.ready = [&runtime, file, out = options.run_out, python, replay](json& args) {

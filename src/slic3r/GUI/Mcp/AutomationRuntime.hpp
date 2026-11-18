@@ -34,7 +34,7 @@ class UiInspector;
 class WebPresses;
 struct AutoAnswerRule;
 
-// Whose an auto_answer_dialogs call's rules are ("run", "plugin" or "session"), the tracker layer they went into (0 for
+// Whose a dialog_auto_answer call's rules are ("run", "plugin" or "session"), the tracker layer they went into (0 for
 // none), and whether they start paused: a Run Script session's rules registered between its works answer nothing, an open
 // dialog included, until its next work.
 struct AutoAnswerSet
@@ -137,21 +137,21 @@ public:
     UiInvoker&    ui() { return *m_invoker; }
     McpCore&      core() { return *m_core; }
     ModalTracker& modals() { return *m_modals; }
-    // Refs from list_widgets live here. Turns the GUI instruments on if they are off. UI thread only.
+    // Refs from widget_list live here. Turns the GUI instruments on if they are off. UI thread only.
     UiInspector&  inspector();
     // The presses mouse_gesture downs left on pages, the web counterpart of the inspector's held press.
     // Any thread.
     WebPresses&   web_presses() { return *m_web_presses; }
-    // start_recording and its kin; also told about every call, for the captions.
+    // recording_start and its kin; also told about every call, for the captions.
     McpRecorder&  recorder() { return *m_recorder; }
 
-    // Auto-answer rules from auto_answer_dialogs. Rules registered from inside a run (the nearest
+    // Auto-answer rules from dialog_auto_answer. Rules registered from inside a run (the nearest
     // running replay or script in `ancestry`, the caller's job chain, nearest first) last until that run
     // ends; a client's rules replace the ones it registered before, and end when the client scope
     // closes: with the scope closed (the server turned off meanwhile), a client's rules are refused.
     // A run scope that is paused (set_run_scope_paused()) gets them paused. Any thread.
     AutoAnswerSet set_auto_answer(std::vector<AutoAnswerRule> rules, const std::vector<std::string>& ancestry);
-    // run_replay and run_script bracket their runs with these. A mouse press the run left held is released
+    // replay_run and script_run bracket their runs with these. A mouse press the run left held is released
     // when it ends, and so is a recording it started; `wait_recording` waits for that recording's file,
     // unless the run already did.
     void begin_run_scope(const std::string& job);
@@ -162,7 +162,7 @@ public:
     // Releases the mouse presses `job`'s calls left held, on widgets and pages, as the end of its scope does. Any
     // thread.
     void release_run_presses(const std::string& job);
-    // Cancels the operations whose lineage holds `job`, as cancel_job does: a background job through the worker,
+    // Cancels the operations whose lineage holds `job`, as job_cancel does: a background job through the worker,
     // a slice or an export through the plater. UI thread.
     void cancel_operations_of(const std::string& job);
     // The job of the nearest running replay or script in `ancestry`, else the scope of the plugin whose call it is,

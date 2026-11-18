@@ -81,7 +81,7 @@ struct UiTarget
     nlohmann::json      locator;
 };
 
-// A row of a list, tree, table or drop-down list, as list_widgets lists it and row locators find it.
+// A row of a list, tree, table or drop-down list, as widget_list lists it and row locators find it.
 struct ListRow
 {
     std::vector<std::string> path;        // labels from the top: the row's own label last
@@ -123,7 +123,7 @@ struct ClickOptions
     int         x = 0, y = 0;
 };
 
-// Lists and drives the GUI for list_widgets and the input tools: wx widgets of every shown top-level window, the
+// Lists and drives the GUI for widget_list and the input tools: wx widgets of every shown top-level window, the
 // menus, the 3D canvases' toolbar items, gizmos and ImGui items. Input is synthesized as wx
 // events delivered to the widgets' own handlers (no OS input, focus or pointer needed), with
 // semantic activation for controls whose handlers listen to command events. UI thread only.
@@ -139,14 +139,14 @@ public:
 
     // {tree, nodes, omitted}
     nlohmann::json snapshot(const SnapshotOptions& options);
-    // The open windows as list_windows lists them, in list_widgets's order: the main window, the windows
+    // The open windows as window_list lists them, in widget_list's order: the main window, the windows
     // that don't block, then the modal dialogs in the order they opened, so the topmost is last. Each
-    // has the ref list_widgets gives it. A native dialog has no ref, and a window hidden from automation
+    // has the ref widget_list gives it. A native dialog has no ref, and a window hidden from automation
     // is listed by its title and kind alone, so an agent knows it is there and out of reach.
     nlohmann::json windows();
     // One window of windows(), `modal` saying whether it blocks the app: its title, kind and modal, then
     // hidden or native for a window no tool reaches, else a new ref, web, x and y where the platform
-    // knows them, width, height, state and resizable. set_window replies with the same fields.
+    // knows them, width, height, state and resizable. window_set replies with the same fields.
     nlohmann::json window_entry(wxTopLevelWindow& window, bool modal);
     // The web views a snapshot with `options` walks whose pages it lists: shown ones under its
     // roots, and while a modal dialog is open only those in the topmost one. `behind` gets the
@@ -303,10 +303,10 @@ std::string no_modal_dialog(ModalTracker& modals);
 // What a locator's `within` names `w`'s window by: its top-level window's title, empty for the main
 // window, whose title follows the project name.
 std::string within_of(wxWindow* w);
-// The shown popups that opened from `top` or from its widgets, which list_widgets lists after it.
+// The shown popups that opened from `top` or from its widgets, which widget_list lists after it.
 std::vector<wxWindow*> popups_of(wxWindow* top);
 
-// How an agent reads a widget. list_widgets and a modal dialog's description (describe_dialog()) both
+// How an agent reads a widget. widget_list and a modal dialog's description (describe_dialog()) both
 // read controls through these, so they say the same about each one. UI thread only.
 
 // The role a window plays for an agent: button, checkbox, toggle, radio, combo, choice, spin, text,
@@ -353,7 +353,7 @@ struct SelectorChoices
 };
 std::optional<SelectorChoices> selector_choices(wxWindow* w);
 
-// Rows of the lists list_widgets reads: wxDataViewCtrl (every row, collapsed branches too), wxListBox and
+// Rows of the lists widget_list reads: wxDataViewCtrl (every row, collapsed branches too), wxListBox and
 // wxCheckListBox, wxListCtrl, Orca's DropDown, wxGrid (read-only) and the Design tab's DesignRowList.
 // Empty for other windows. With a `limit`, only shown rows are read (a tree's collapsed branches are
 // skipped), and at most `limit` of them: what a summary of the list costs, whatever its size.
@@ -378,7 +378,7 @@ nlohmann::json input_row(wxWindow& list, const ListRow& row, const std::string& 
 std::vector<GLCanvas3D*> live_canvases();
 // The Design tab's view once the tab is built, else null.
 GLCanvas3D* design_canvas();
-// live_canvases() and the Design view: the canvases list_widgets lists and the input tools find items in and send
+// live_canvases() and the Design view: the canvases widget_list lists and the input tools find items in and send
 // input to. The gizmo state and the idle checks read live_canvases(), since the Design view has no
 // gizmos.
 std::vector<GLCanvas3D*> ui_canvases();
@@ -435,7 +435,7 @@ std::vector<SurfaceMesh> surface_meshes(const std::vector<GLVolume*>&           
 
 // A GL toolbar's items, with the visibility and enabled state the canvas's idle handler gives them
 // (GLToolbar::update_items_state()) brought up to date first: until that handler runs they keep the
-// state of the last idle event, so an item a `select_objects` just enabled would still read disabled.
+// state of the last idle event, so an item an `object_select` just enabled would still read disabled.
 // `changed` tells whether a state changed, which the canvas has yet to draw.
 const std::vector<GLToolbarItem*>& toolbar_items(GLToolbar& toolbar, bool* changed = nullptr);
 

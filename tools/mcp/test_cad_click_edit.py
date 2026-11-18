@@ -98,7 +98,7 @@ def type_into_open_field(rung, value, what, measure, opened_by="by itself"):
     the field took it; returns whether a field opened.
 
     No click and no target for the keys: the field opens holding the keyboard, as a person sees it.
-    list_widgets reads the field as an ImGui input whose value is its text, the prefill until
+    widget_list reads the field as an ImGui input whose value is its text, the prefill until
     something is typed and then the digits that landed. Return commits the text the field holds,
     so a field the digits never reached commits its prefill, which the geometry then shows. `what`
     names the quantity `measure` reads off sketch_describe, the one the field sets."""

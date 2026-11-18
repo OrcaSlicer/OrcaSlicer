@@ -1,0 +1,125 @@
+// The lists of a type's settings and the settings tools' targets, on a 20 mm cube with a modifier and two height ranges:
+// settings_list gives a type's settings whole (a preset's being edited, a saved one's, a slot's), and the settings an
+// object and a region take, the process's values with them; wall_loops set on the object, on the modifier and on a
+// height range, each read back with its target, by index and from the selection, with effective and source in the
+// order the slicer applies them; and the ranges replaced, the one that stays keeping its settings. Run on a live app:
+//   python3 tools/mcp/orca_mcp.py run-replay tools/mcp/tests/settings_targets.json --out <dir>
+// The checks over whole lists are tests/fixtures/settings_targets.py's.
+{
+  "orca_replay_version": "0.2.0",
+  "name": "settings targets",
+  "vars": {"cube": "${replay_dir}/../../../resources/handy_models/OrcaCube_v2.drc",
+           "lists": "${replay_dir}/fixtures/settings_targets.py",
+           "fine": "0.16mm High Quality @BBL X1C",
+           "petg": "Bambu PETG Basic @BBL X1C"},
+  "steps": [
+    {"tool": "app_wait", "args": {"for": "ready"}},
+    {"tool": "project_new", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "view_set", "args": {"tab": "prepare"}},
+    {"tool": "project_import", "args": {"paths": ["${vars.cube}"]}, "expect": {"/added": {"eq": 1}}},
+    {"tool": "object_transform", "args": {"object": 0, "size": [20, 20, 20]}},
+    {"tool": "part_add", "args": {"object": 0, "type": "modifier", "shape": "cube", "size": [5, 5, 5]}},
+    {"tool": "object_set_height_ranges", "args": {"object": 0, "ranges": [{"min_z": 0, "max_z": 5}, {"min_z": 5, "max_z": 10}]},
+     "expect": {"/layer_config_ranges/1/max_z": {"eq": 10}, "/layer_config_ranges/2": {"exists": false}}},
+
+    // ---- A type's settings come whole, with no next page ----
+    {"tool": "script_run", "args": {"filename": "${vars.lists}", "code": "import settings_targets\nresult = settings_targets.listing(args)",
+                                    "args": {"type": "process"}},
+     "expect": {"/result/total": {"ge": 300}, "/result/next_offset": {"eq": false}}},
+    {"tool": "script_run", "args": {"filename": "${vars.lists}",
+                                    "code": "import settings_targets\nresult = settings_targets.listing(args)\nresult['whole'] = result['items'] == result['total']",
+                                    "args": {"type": "process"}},
+     "expect": {"/result/whole": {"eq": true}}},
+    {"tool": "script_run", "args": {"filename": "${vars.lists}",
+                                    "code": "import settings_targets\nresult = settings_targets.listing(args)\nresult['whole'] = result['items'] == result['total']",
+                                    "args": {"type": "printer"}},
+     "expect": {"/result/whole": {"eq": true}, "/result/next_offset": {"eq": false}, "/result/total": {"gt": 100}}},
+    {"tool": "script_run", "args": {"filename": "${vars.lists}",
+                                    "code": "import settings_targets\nresult = settings_targets.listing(args)\nresult['whole'] = result['items'] == result['total']",
+                                    "args": {"type": "filament"}},
+     "expect": {"/result/whole": {"eq": true}, "/result/next_offset": {"eq": false}, "/result/total": {"gt": 100}}},
+    // With meta, 100 a page; a limit pages it too.
+    {"tool": "settings_list", "args": {"type": "process", "include_meta": true}, "expect": {"/next_offset": {"eq": 100}, "/items/99/meta": {"exists": true}}},
+    {"tool": "settings_list", "args": {"type": "process", "limit": 50}, "expect": {"/next_offset": {"eq": 50}, "/items/49/meta": {"exists": false}}},
+
+    // ---- A saved preset's values, and the second slot's ----
+    {"tool": "script_run", "args": {"filename": "${vars.lists}", "code": "import settings_targets\nresult = settings_targets.value_of(args)",
+                                    "args": {"type": "process", "key": "layer_height"}},
+     "expect": {"/result/value": {"eq": "0.2"}}},
+    {"tool": "script_run", "args": {"filename": "${vars.lists}", "code": "import settings_targets\nresult = settings_targets.value_of(args)",
+                                    "args": {"type": "process", "preset": "${vars.fine}", "key": "layer_height"}},
+     "expect": {"/result/value": {"eq": "0.16"}}},
+    {"tool": "filament_add"},
+    {"tool": "preset_select", "args": {"type": "filament", "name": "${vars.petg}", "filament_slot": 2}, "expect": {"/selected": {"eq": "Bambu PETG Basic @BBL X1C"}}},
+    {"tool": "script_run", "args": {"filename": "${vars.lists}", "code": "import settings_targets\nresult = settings_targets.value_of(args)",
+                                    "args": {"type": "filament", "filament_slot": 2, "key": "filament_type"}},
+     "expect": {"/result/value": {"eq": "PETG"}}},
+    {"tool": "script_run", "args": {"filename": "${vars.lists}", "code": "import settings_targets\nresult = settings_targets.value_of(args)",
+                                    "args": {"type": "filament", "filament_slot": 1, "key": "filament_type"}},
+     "expect": {"/result/value": {"eq": "PLA"}}},
+
+    // ---- What an object and a region take: the process's settings and values, layer_height a height range's alone ----
+    {"tool": "script_run", "args": {"filename": "${vars.lists}", "code": "import settings_targets\nresult = settings_targets.nested(args)"},
+     "expect": {"/result/object": {"gt": 200}, "/result/region": {"gt": 100}, "/result/object_not_in_process": {"eq": []},
+                "/result/object_values_not_the_process": {"eq": []}, "/result/region_not_in_object": {"eq": []},
+                "/result/layer_height_targets": {"eq": ["height_range"]}}},
+
+    // ---- wall_loops on the object, on the modifier and on the lower height range; each names its target ----
+    {"tool": "settings_set", "args": {"target": "object", "object": 0, "values": {"wall_loops": 4}},
+     "expect": {"/applied/wall_loops": {"eq": "4"}, "/objects/0/index": {"eq": 0}}},
+    {"tool": "settings_set", "args": {"target": "part", "object": 0, "part": 1, "values": {"wall_loops": 5}},
+     "expect": {"/applied/wall_loops": {"eq": "5"}, "/parts/0/object": {"eq": 0}, "/parts/0/part": {"eq": 1}}},
+    {"tool": "settings_set", "args": {"target": "height_range", "object": 0, "min_z": 0, "max_z": 5, "values": {"wall_loops": 6}},
+     "expect": {"/applied/wall_loops": {"eq": "6"}, "/objects/0/index": {"eq": 0}, "/height_range/min_z": {"eq": 0},
+                "/height_range/max_z": {"eq": 5}}},
+    {"tool": "settings_set", "args": {"target": "height_range", "object": 0, "min_z": 5, "max_z": 10, "values": {"layer_height": 0.12}},
+     "expect": {"/applied/layer_height": {"eq": "0.12"}}},
+    {"tool": "object_list", "expect": {"/plates/0/objects/0/layer_config_ranges/0/values/wall_loops": {"eq": "6"},
+                                       "/plates/0/objects/0/layer_config_ranges/1/values/layer_height": {"eq": "0.12"}}},
+
+    // ---- With no type and no keys, each target's overrides ----
+    {"tool": "script_run", "args": {"filename": "${vars.lists}", "code": "import settings_targets\nresult = settings_targets.overrides(args)",
+                                    "args": {"target": "object", "object": 0}},
+     "expect": {"/result/values/wall_loops": {"eq": "4"}, "/result/named/objects/0/index": {"eq": 0}}},
+    {"tool": "script_run", "args": {"filename": "${vars.lists}", "code": "import settings_targets\nresult = settings_targets.overrides(args)",
+                                    "args": {"target": "part", "object": 0, "part": 1}},
+     "expect": {"/result/values/wall_loops": {"eq": "5"}, "/result/named/parts/0/part": {"eq": 1}}},
+    {"tool": "script_run", "args": {"filename": "${vars.lists}", "code": "import settings_targets\nresult = settings_targets.overrides(args)",
+                                    "args": {"target": "height_range", "object": 0, "min_z": 0, "max_z": 5}},
+     "expect": {"/result/values/wall_loops": {"eq": "6"}, "/result/values/layer_height": {"exists": true},
+                "/result/values/extruder": {"exists": false}, "/result/named/height_range/max_z": {"eq": 5}}},
+
+    // ---- The part selected: target part with no object and part names it, and reads its value as it prints ----
+    {"tool": "object_select", "args": {"parts": [[0, 1]]}},
+    {"tool": "settings_get", "args": {"target": "part"},
+     "expect": {"/parts/0/object": {"eq": 0}, "/parts/0/part": {"eq": 1}, "/items/0/key": {"exists": true}}},
+    {"tool": "settings_get", "args": {"target": "part", "keys": ["wall_loops"]},
+     "expect": {"/parts/0/part": {"eq": 1}, "/items/0/value": {"eq": "5"}, "/items/0/effective": {"eq": "5"},
+                "/items/0/source": {"eq": "part"}, "/items/0/height_ranges": {"exists": false}}},
+    // A modifier that sets none of a key the model part sets: the part's value applies where the modifier overlaps it.
+    {"tool": "settings_set", "args": {"target": "part", "object": 0, "part": 0, "values": {"sparse_infill_density": "30%"}},
+     "expect": {"/applied/sparse_infill_density": {"eq": "30%"}}},
+    {"tool": "settings_get", "args": {"target": "part", "object": 0, "part": 1, "keys": ["sparse_infill_density"]},
+     "expect": {"/items/0/value": {"eq": null}, "/items/0/effective": {"eq": null}, "/items/0/source": {"eq": "overlapped_part"},
+                "/items/0/object_source": {"eq": "global"}, "/items/0/object_effective": {"exists": true},
+                "/items/0/parts/0/part": {"eq": 0}, "/items/0/parts/0/value": {"eq": "30%"}, "/items/0/parts/1": {"exists": false},
+                "/note": {"contains": "overlapped_part"}}},
+    // The object's value, with the modifier's and the range's where they apply; the range's, which wins over the object's.
+    {"tool": "settings_get", "args": {"target": "object", "object": 0, "keys": ["wall_loops"]},
+     "expect": {"/items/0/effective": {"eq": "4"}, "/items/0/source": {"eq": "object"}, "/items/0/parts/0/value": {"eq": "5"},
+                "/items/0/height_ranges/0/value": {"eq": "6"}, "/items/0/height_ranges/0/max_z": {"eq": 5}}},
+    {"tool": "settings_get", "args": {"target": "height_range", "object": 0, "min_z": 0, "max_z": 5, "keys": ["wall_loops", "sparse_infill_density"]},
+     "expect": {"/items/0/effective": {"eq": "6"}, "/items/0/source": {"eq": "height_range"},
+                "/items/1/value": {"eq": null}, "/items/1/source": {"eq": "global"}}},
+    // The object selected stands for target object and height_range too.
+    {"tool": "object_select", "args": {"objects": [0]}},
+    {"tool": "settings_get", "args": {"target": "height_range", "min_z": 5, "max_z": 10, "keys": ["layer_height"]},
+     "expect": {"/objects/0/index": {"eq": 0}, "/items/0/value": {"eq": "0.12"}, "/items/0/source": {"eq": "height_range"}}},
+
+    // ---- The ranges replaced: the lower one stays with its settings, the upper one is new at the object's layer height ----
+    {"tool": "object_set_height_ranges", "args": {"object": 0, "ranges": [{"min_z": 0, "max_z": 5}, {"min_z": 5, "max_z": 12}]},
+     "expect": {"/layer_config_ranges/0/values/wall_loops": {"eq": "6"}, "/layer_config_ranges/1/max_z": {"eq": 12},
+                "/layer_config_ranges/1/values/layer_height": {"eq": "0.2"}, "/layer_config_ranges/1/values/wall_loops": {"exists": false}}},
+    {"tool": "plate_slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}}
+  ]
+}

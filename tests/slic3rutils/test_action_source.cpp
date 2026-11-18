@@ -42,6 +42,16 @@ public:
     AppActionRunResult run(const nlohmann::json& /*args*/) const override { return {}; }
 };
 
+// The action the registry makes of the Speed Dial's tile `key`, a command's own or an item of its tiles; null when no
+// command of the process catalog has that tile.
+std::unique_ptr<AppAction> tile_action(const std::string& key)
+{
+    const auto [command, tile] = Slic3r::GUI::find_tile(Slic3r::GUI::NativeCommands::instance(), key);
+    if (command == nullptr)
+        return nullptr;
+    return tile != nullptr ? Slic3r::GUI::NativeCommands::make_action(*command, *tile) : Slic3r::GUI::NativeCommands::make_action(*command);
+}
+
 } // namespace
 
 TEST_CASE("AppAction composes a stable id from prefix:title:source_key", "[ActionSource][SpeedDial]")
@@ -140,26 +150,26 @@ TEST_CASE("Actions default to no description or wiki link", "[ActionSource][Spee
     CHECK(command->help_url.empty());
 }
 
-// Two-phase commands declare the input the palette must collect before they can run.
+// Two-phase tiles declare the input the palette must collect before they can run.
 TEST_CASE("Two-phase commands declare their input phase", "[ActionSource][SpeedDial]")
 {
-    auto input_of = [](const std::string& key) -> std::string {
-        for (const auto& c : Slic3r::GUI::NativeCommands::instance().commands())
-            if (c.key == key)
-                return c.input;
-        return {};
-    };
-    CHECK(input_of("go_to_layer") == "percent");
-    CHECK(input_of("go_to_tab") == "tab");
+    const std::unique_ptr<AppAction> layer = tile_action("go_to_layer");
+    const std::unique_ptr<AppAction> tab   = tile_action("go_to_tab");
+    REQUIRE(layer != nullptr);
+    REQUIRE(tab != nullptr);
+    CHECK(layer->input == "percent");
+    CHECK(tab->input == "tab");
 }
 
 // The input token vocabulary is a JS<->C++ contract (speeddial.js dispatches "percent"/"tab").
-// A typo here would leave a command that never enters its second phase, so pin the allowed set.
+// A typo here would leave a tile that never enters its second phase, so pin the allowed set.
 TEST_CASE("Command input tokens stay in the known vocabulary", "[ActionSource][SpeedDial]")
 {
-    for (const auto& c : Slic3r::GUI::NativeCommands::instance().commands()) {
-        INFO(c.key << " input=" << c.input);
-        CHECK((c.input.empty() || c.input == "percent" || c.input == "tab"));
+    for (const Slic3r::GUI::NativeCommands::PaletteTile& t : Slic3r::GUI::NativeCommands::palette_tiles(Slic3r::GUI::NativeCommands::instance())) {
+        const std::string key   = t.tile != nullptr ? t.tile->at("key").get<std::string>() : t.command->key;
+        const std::string input = t.tile != nullptr ? t.tile->value("input", std::string()) : t.command->input;
+        INFO(key << " input=" << input);
+        CHECK((input.empty() || input == "percent" || input == "tab"));
     }
 }
 
@@ -188,6 +198,23 @@ TEST_CASE("A pin with no live action is dropped, the others keep their order", "
     // Without the Design table, a Design tile's pin cannot be told from a removed command's.
     CHECK_FALSE(Slic3r::GUI::is_design_tile_id("orca_command:shell:orca"));
 #endif
+}
+
+TEST_CASE("A pin under a row's id is kept, as its tile's", "[ActionSource][SpeedDial]")
+{
+    // The ids the registry holds of the palette's tiles, which it makes as the Speed Dial starts.
+    std::set<std::string> held;
+    for (const Slic3r::GUI::NativeCommands::PaletteTile& t : Slic3r::GUI::NativeCommands::palette_tiles(Slic3r::GUI::NativeCommands::instance()))
+        held.insert((t.tile != nullptr ? Slic3r::GUI::NativeCommands::make_action(*t.command, *t.tile) :
+                                         Slic3r::GUI::NativeCommands::make_action(*t.command))
+                        ->id());
+    const auto live = [&held](const std::string& id) { return held.count(id) != 0; };
+    // Delete Selected and New Project, whose rows are tiles of object_delete and project_new.
+    const std::vector<std::string> pinned{"orca_command:obj_delete:orca", "orca_command:new_project:orca"};
+    std::vector<std::string>       stored, shown;
+    Slic3r::GUI::prune_favourites(pinned, live, stored, shown);
+    CHECK(stored == pinned);
+    CHECK(shown == pinned);
 }
 
 namespace {
@@ -265,7 +292,7 @@ TEST_CASE("Native command catalog has unique keys and present titles", "[ActionS
         INFO(c.key);
         CHECK_FALSE(c.key.empty());
         CHECK_FALSE(c.title.empty());
-        // A tile shows under its group; a typed tool's group is what search_tools filters by.
+        // A command's group is what tool_search filters by: its place's heading, or Design.
         CHECK_FALSE(c.group.empty());
         // A duplicated key would silently shadow the earlier command in the palette.
         CHECK(seen.insert(c.key).second);
@@ -278,14 +305,6 @@ TEST_CASE("Native command catalog has unique keys and present titles", "[ActionS
 // cannot leave broken images in the palette.
 TEST_CASE("Native command icons resolve to shipped SVGs", "[ActionSource][SpeedDial]")
 {
-    const std::vector<Slic3r::GUI::NativeCommand>& commands = Slic3r::GUI::NativeCommands::instance().commands();
-    auto icon_of = [&commands](const std::string& key) -> const std::string* {
-        for (const auto& c : commands)
-            if (c.key == key)
-                return &c.icon;
-        return nullptr;
-    };
-
     struct Expected
     {
         const char* key;
@@ -307,143 +326,146 @@ TEST_CASE("Native command icons resolve to shipped SVGs", "[ActionSource][SpeedD
                               Expected{"help_check_updates", "refresh"},
                               Expected{"help_about", "OrcaSlicer_gradient_circle"},
                               Expected{"go_to_tab", ""}}) {
-        const std::string* icon = icon_of(e.key);
         INFO(e.key);
-        REQUIRE(icon != nullptr);
-        CHECK(*icon == e.icon);
+        const std::unique_ptr<AppAction> action = tile_action(e.key);
+        REQUIRE(action != nullptr);
+        CHECK(action->icon == e.icon);
     }
 
+    // Every tile's icon, a command's own or an item's.
     const boost::filesystem::path images = boost::filesystem::path(PROFILES_DIR).parent_path() / "images";
-    for (const auto& c : commands) {
-        if (c.icon.empty())
+    for (const Slic3r::GUI::NativeCommands::PaletteTile& t : Slic3r::GUI::NativeCommands::palette_tiles(Slic3r::GUI::NativeCommands::instance())) {
+        const std::string key  = t.tile != nullptr ? t.tile->at("key").get<std::string>() : t.command->key;
+        const std::string icon = t.tile != nullptr ? t.tile->at("icon").get<std::string>() : t.command->icon;
+        if (icon.empty())
             continue;
-        INFO(c.key << " -> " << c.icon);
-        CHECK(boost::filesystem::exists(images / (c.icon + ".svg")));
+        INFO(key << " -> " << icon);
+        CHECK(boost::filesystem::exists(images / (icon + ".svg")));
     }
 }
 
 // The Design tab's tiles are the registry's to show while the tab is shown (materialize_design_actions()),
-// so the palette's own commands, which it holds whatever tab is shown, leave the Design group out.
-TEST_CASE("the palette's own commands leave the Design group out", "[ActionSource][SpeedDial]")
+// so the palette's own tiles, which it holds whatever tab is shown, leave the Design group out. A command of any other
+// group, listed as one that runs from its arguments, has its tiles there.
+TEST_CASE("the palette's own tiles leave the Design group out", "[ActionSource][SpeedDial]")
 {
     Slic3r::GUI::CommandCatalog catalog;
-    for (const char* group : {"Design", "Commands"}) {
+    for (const char* group : {"Design", "Objects"}) {
         Slic3r::GUI::NativeCommand c;
         c.key        = std::string(group) + "_tile";
         c.title      = group;
         c.group      = group;
+        c.listed     = c.group != Slic3r::GUI::kDesignGroup;
         c.in_palette = true;
+        c.tiles      = nlohmann::json::array({nlohmann::json{{"key", std::string(group) + "_row"}, {"title", group}, {"icon", ""},
+                                                             {"description", ""}, {"args", {{"row", true}}}}});
         catalog.add(std::move(c));
     }
     catalog.seal();
-    const std::vector<const Slic3r::GUI::NativeCommand*> palette = Slic3r::GUI::NativeCommands::palette_commands(catalog);
-    REQUIRE(palette.size() == 1);
-    CHECK(palette.front()->key == "Commands_tile");
+    const std::vector<Slic3r::GUI::NativeCommands::PaletteTile> palette = Slic3r::GUI::NativeCommands::palette_tiles(catalog);
+    REQUIRE(palette.size() == 2);
+    CHECK(palette[0].command->key == "Objects_tile");
+    CHECK(palette[0].tile == nullptr);
+    REQUIRE(palette[1].tile != nullptr);
+    CHECK(palette[1].tile->at("key") == "Objects_row");
 }
 
-// The Help-menu commands, wiki/YouTube links and the developer-mode toggle are part of the palette.
+// The Help-menu tiles, wiki/YouTube links and the developer-mode toggle are part of the palette.
 // Guard their presence and that they stay grouped with their peers, so a catalog edit cannot drop
 // or scatter them. Groups are compared to the peer's own group to stay independent of translation.
 TEST_CASE("Native command catalog includes the Help and developer-mode commands", "[ActionSource][SpeedDial]")
 {
-    const std::vector<Slic3r::GUI::NativeCommand>& commands = Slic3r::GUI::NativeCommands::instance().commands();
-    auto find = [&commands](const std::string& key) -> const Slic3r::GUI::NativeCommand* {
-        for (const auto& c : commands)
-            if (c.key == key)
-                return &c;
-        return nullptr;
-    };
-
-    const Slic3r::GUI::NativeCommand* first = find("help_keyboard_shortcuts");
+    const std::unique_ptr<AppAction> first = tile_action("help_keyboard_shortcuts");
     REQUIRE(first != nullptr);
     for (const char* key : {"help_setup_wizard", "help_open_config_folder", "help_migrate_filament_presets", "help_troubleshoot", "help_network_test",
                             "help_benchmark_3d_scene", "help_tip_of_the_day", "help_check_updates", "help_about", "open_wiki",
                             "open_youtube"}) {
-        const Slic3r::GUI::NativeCommand* c = find(key);
-        REQUIRE(c != nullptr);
-        CHECK(c->group == first->group);
+        INFO(key);
+        const std::unique_ptr<AppAction> action = tile_action(key);
+        REQUIRE(action != nullptr);
+        CHECK(action->group_en == first->group_en);
     }
 
-    const Slic3r::GUI::NativeCommand* mode_simple = find("mode_simple");
-    const Slic3r::GUI::NativeCommand* dev_mode    = find("toggle_developer_mode");
+    const std::unique_ptr<AppAction> mode_simple = tile_action("mode_simple");
+    const std::unique_ptr<AppAction> dev_mode    = tile_action("toggle_developer_mode");
     REQUIRE(mode_simple != nullptr);
     REQUIRE(dev_mode != nullptr);
-    CHECK(dev_mode->group == mode_simple->group);
+    CHECK(dev_mode->group_en == mode_simple->group_en);
 }
 
 // A person takes screenshots and records from the palette, beside Run Script, with no agent involved. Start and
-// Stop Recording are the typed tools too, whose arguments skip what the tile does.
+// Stop Recording are tiles of the typed tools, whose arguments skip what the tile does; Take Screenshot's command has
+// no argument form.
 TEST_CASE("Native command catalog has the screenshot and recording commands", "[ActionSource][SpeedDial]")
 {
-    const Slic3r::GUI::NativeCommand* runner = Slic3r::GUI::NativeCommands::find("open_action_replay");
+    const std::unique_ptr<AppAction> runner = tile_action("open_action_replay");
     REQUIRE(runner != nullptr);
-    for (const char* key : {"take_screenshot", "start_recording", "stop_recording"}) {
+    for (const auto& [key, name] : {std::make_pair("take_screenshot", "window_save_screenshot"),
+                                    std::make_pair("start_recording", "recording_start"), std::make_pair("stop_recording", "recording_stop")}) {
         INFO(key);
-        const Slic3r::GUI::NativeCommand* c = Slic3r::GUI::NativeCommands::find(key);
+        const std::unique_ptr<AppAction> action = tile_action(key);
+        REQUIRE(action != nullptr);
+        CHECK(action->group_en == runner->group_en);
+        CHECK(action->input.empty());
+        CHECK(action->command == name);
+        const Slic3r::GUI::NativeCommand* c = Slic3r::GUI::NativeCommands::find(name);
         REQUIRE(c != nullptr);
-        CHECK(c->group == runner->group);
-        CHECK(c->input.empty());
         CHECK(c->input_schema.at("properties").empty() == (std::string(key) == "take_screenshot"));
         CHECK_FALSE(c->description.empty());
     }
 }
 
-// The Run Script panel's command sits beside Action Replay's, which keeps its id so existing replays and agent sessions
+// The Run Script panel's tile sits beside Action Replay's, which keeps its id so existing replays and agent sessions
 // that open it still do.
 TEST_CASE("Native command catalog has the Run Script panel and Action Replay commands", "[ActionSource][SpeedDial]")
 {
-    const Slic3r::GUI::NativeCommand* replay = Slic3r::GUI::NativeCommands::find("open_action_replay");
+    const std::unique_ptr<AppAction> replay = tile_action("open_action_replay");
     REQUIRE(replay != nullptr);
-    CHECK(std::string(replay->title) == "Action Replay");
-    const Slic3r::GUI::NativeCommand* panel = Slic3r::GUI::NativeCommands::find("toggle_run_script_panel");
+    CHECK(replay->title_en == "Action Replay");
+    const std::unique_ptr<AppAction> panel = tile_action("toggle_run_script_panel");
     REQUIRE(panel != nullptr);
-    CHECK(panel->group == replay->group);
+    CHECK(panel->group_en == replay->group_en);
     CHECK(panel->input.empty());
-    CHECK(panel->input_schema.at("properties").empty());
-    CHECK_FALSE(panel->description.empty());
+    const Slic3r::GUI::NativeCommand* command = Slic3r::GUI::NativeCommands::find(panel->command);
+    REQUIRE(command != nullptr);
+    CHECK(command->key == "script_toggle_panel");
+    CHECK(command->input_schema.at("properties").empty());
+    CHECK_FALSE(command->description.empty());
 }
 
-// Every "Add Primitive" item and shipped handy model has a palette command, grouped as in the Add
+// Every "Add Primitive" item and shipped handy model has a palette tile, grouped as in the Add
 // menu. Groups are compared to a peer's own group to stay independent of translation.
 TEST_CASE("Native command catalog covers the Add menus", "[ActionSource][SpeedDial]")
 {
-    const std::vector<Slic3r::GUI::NativeCommand>& commands = Slic3r::GUI::NativeCommands::instance().commands();
-    auto group_of = [&commands](const std::string& key) -> const std::string* {
-        for (const auto& c : commands)
-            if (c.key == key)
-                return &c.group;
-        return nullptr;
-    };
-
-    const std::string* primitive_group = group_of("add_primitive_cube");
-    REQUIRE(primitive_group != nullptr);
+    const std::unique_ptr<AppAction> primitive = tile_action("add_primitive_cube");
+    REQUIRE(primitive != nullptr);
     for (const char* key : {"add_primitive_cylinder", "add_primitive_sphere", "add_primitive_cone", "add_primitive_disc",
                             "add_primitive_torus", "add_primitive_text", "add_primitive_svg"}) {
-        const std::string* group = group_of(key);
         INFO(key);
-        REQUIRE(group != nullptr);
-        CHECK(*group == *primitive_group);
+        const std::unique_ptr<AppAction> action = tile_action(key);
+        REQUIRE(action != nullptr);
+        CHECK(action->group_en == primitive->group_en);
     }
 
-    const std::string* handy_group = group_of("add_handy_orca_cube");
-    REQUIRE(handy_group != nullptr);
+    const std::unique_ptr<AppAction> handy = tile_action("add_handy_orca_cube");
+    REQUIRE(handy != nullptr);
     for (const char* key : {"add_handy_orcasliced_combo", "add_handy_orca_badge", "add_handy_orca_tolerance_test",
                             "add_handy_3dbenchy", "add_handy_cali_cat", "add_handy_autodesk_fdm_test", "add_handy_voron_cube",
                             "add_handy_stanford_bunny", "add_handy_orca_string_hell"}) {
-        const std::string* group = group_of(key);
         INFO(key);
-        REQUIRE(group != nullptr);
-        CHECK(*group == *handy_group);
+        const std::unique_ptr<AppAction> action = tile_action(key);
+        REQUIRE(action != nullptr);
+        CHECK(action->group_en == handy->group_en);
     }
 
-    // A handy model's command is titled by the English label its Add-menu entry is built from, so it is
+    // A handy model's tile is titled by the English label its Add-menu entry is built from, so it is
     // searchable in English in any UI language.
     for (const auto& model : Slic3r::GUI::MenuFactory::handy_models()) {
         const std::string key = "add_handy_" + std::string(model.key);
         INFO(key);
-        const auto it = std::find_if(commands.begin(), commands.end(), [&key](const auto& c) { return c.key == key; });
-        REQUIRE(it != commands.end());
-        CHECK(it->title == model.label);
+        const std::unique_ptr<AppAction> action = tile_action(key);
+        REQUIRE(action != nullptr);
+        CHECK(action->title_en == model.label);
     }
 }
 

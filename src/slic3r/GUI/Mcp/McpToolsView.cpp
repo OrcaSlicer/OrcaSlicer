@@ -1,5 +1,6 @@
-// screenshot, get_slice_stats and set_view: what the agent looks at and reads off the Preview, and
-// pointing the view before looking.
+// window_screenshot, plate_slice_stats and view_set: what the agent looks at and reads off the Preview, and
+// pointing the view before looking; and the window commands made from menu rows, window_open and
+// window_save_screenshot.
 
 #include "libvgcode/include/ColorRange.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -11,7 +12,9 @@
 #include "ModalTracker.hpp"
 #include "ScreenCapture.hpp"
 #include "UiInspector.hpp"
+#include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GCodeViewer.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
@@ -20,6 +23,9 @@
 #include "slic3r/GUI/IMSlider.hpp"
 #include "slic3r/GUI/LibVGCode/LibVGCodeWrapper.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/NativeCommandRows.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
+#include "slic3r/GUI/Notebook.hpp"
 #include "slic3r/GUI/Operations/Outcome.hpp"
 #include "slic3r/GUI/Operations/PlateOps.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
@@ -29,6 +35,7 @@
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
 #endif
 
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
@@ -80,19 +87,13 @@ std::string base64(const std::string& bytes)
     return out;
 }
 
-const char* tab_id(const std::string& name)
+// The ids of the main window's notebook pages, in the notebook's order.
+std::vector<std::string> notebook_pages(const Notebook& notebook)
 {
-    if (name == "home") return TAB_ID_HOME;
-    if (name == "prepare") return TAB_ID_PREPARE;
-    if (name == "preview") return TAB_ID_PREVIEW;
-    if (name == "device" || name == "monitor") return TAB_ID_MONITOR;
-    if (name == "multi_device") return TAB_ID_MULTI_DEVICE;
-    if (name == "project") return TAB_ID_PROJECT;
-    if (name == "calibration") return TAB_ID_CALIBRATION;
-#ifdef SLIC3R_CAD
-    if (name == "design") return TAB_ID_DESIGN;
-#endif
-    return nullptr;
+    std::vector<std::string> pages;
+    for (size_t i = 0; i < notebook.GetPageCount(); ++i)
+        pages.push_back(into_u8(notebook.GetPageName(i)));
+    return pages;
 }
 
 // Rounded for a reply, which reads like the legend rather than the raw floats.
@@ -158,7 +159,7 @@ bool any_legend_row(const std::string& key)
     return false;
 }
 
-// set_view's legend argument: each named row shown or hidden as a click on it does, clicked only when its
+// view_set's legend argument: each named row shown or hidden as a click on it does, clicked only when its
 // state differs. The rows are the feature types and options the print has, whatever the view type: the
 // viewer keeps one visibility set, though the legend lists feature types only in Line Type. The keys are
 // checked here, before the Preview changes; the returned function applies them and gives each row's
@@ -226,13 +227,13 @@ std::pair<double, double> camera_angles(Camera& camera)
     return {std::asin(std::clamp(offset.z() / distance, -1., 1.)), std::atan2(flat.y(), flat.x())};
 }
 
-// Angles in radians as set_view replies with them: whole degrees, the azimuth from -180 to 180.
+// Angles in radians as view_set replies with them: whole degrees, the azimuth from -180 to 180.
 json angles_json(double elevation, double azimuth)
 {
     return {{"elevation", std::lround(Geometry::rad2deg(elevation))}, {"azimuth", std::lround(std::remainder(Geometry::rad2deg(azimuth), 360.))}};
 }
 
-// set_view's orbit: the camera moved around the point it looks at, `yaw` degrees to its right
+// view_set's orbit: the camera moved around the point it looks at, `yaw` degrees to its right
 // (counterclockwise seen from above) and `pitch` degrees up, at the same distance. It is placed from its
 // position rather than turned as a mouse drag turns it, so the result is the same whatever the user's
 // mouse settings and free-camera preference. The elevation stops a degree short of straight up or down,
@@ -258,15 +259,23 @@ bool fit_pending(const Camera& camera)
     return camera.requires_zoom_to_bed || camera.requires_zoom_to_volumes || camera.requires_zoom_to_plate != REQUIRES_ZOOM_TO_PLATE_IDLE;
 }
 
-// set_view's camera: a named direction or a fit of the shown 3D view. On the Design tab it points the Design
-// view as its own controls do, `default` being its Home view and `sketch_normal` the sketch's N key. UI thread.
-void point_camera(Plater& plater, const std::string& cam)
+// Why fit_bed does nothing on the Design tab, which a pick of Fit Bed to View shows there.
+Ops::Refusal no_bed_in_design()
+{
+    return Ops::Refusal{Ops::RefusalKind::Precondition, "no_bed_in_design", L("The Design tab has no bed to fit the view to.")};
+}
+
+// view_set's camera, and a pick of a camera tile: a named direction or a fit of the shown 3D view. On the Design tab
+// it points the Design view as its own controls do, `default` being its Home view and `sketch_normal` the sketch's N
+// key. The refusal is the one a tile can reach, fit_bed on the Design tab; fit_selection and sketch_normal, which no
+// tile gives, throw. UI thread.
+std::optional<Ops::Refusal> point_camera(Plater& plater, const std::string& cam)
 {
 #ifdef SLIC3R_CAD
     if (DesignPanel* design = wxGetApp().mainframe->shown_design_panel()) {
         DesignCanvas* view = design->mcp_viewport();
         if (cam == "fit_bed")
-            throw ToolFailure("fit_bed is not offered in the Design tab");
+            return no_bed_in_design();
         if (cam == "fit_objects")
             view->fit_view();
         else if (cam == "fit_selection") {
@@ -277,7 +286,7 @@ void point_camera(Plater& plater, const std::string& cam)
                 throw ToolFailure("No sketch is open in the Design tab");
         } else
             view->set_view(cam == "default" ? "iso" : cam);
-        return;
+        return std::nullopt;
     }
 #endif
     GLCanvas3D* canvas = plater.get_current_canvas3D();
@@ -297,6 +306,7 @@ void point_camera(Plater& plater, const std::string& cam)
     } else {
         plater.select_view(cam);
     }
+    return std::nullopt;
 }
 
 // Asks the shown 3D view, the Design view on the Design tab, to draw again. UI thread.
@@ -307,6 +317,142 @@ void repaint_shown_canvas()
         if (wxGLCanvas* widget = canvas->get_wxglcanvas())
             widget->Refresh();
     }
+}
+
+// The 3D view of Prepare or the Preview whose axes switch app_state reads: the one shown, else Prepare's. UI thread.
+GLCanvas3D* axes_canvas(Plater& plater)
+{
+    GLCanvas3D* preview = plater.get_preview_canvas3D();
+    return plater.is_preview_shown() && preview != nullptr ? preview : plater.get_view3D_canvas3D();
+}
+
+// view_set's display switches of Prepare and the Preview, under the names it and app_state give them: the switches of
+// the View menu and of the 3D view's own menu (the canvas toolbar's), each read as its check mark or eye shows it and set
+// as its item sets it, where it differs. labels and overhangs are Prepare's 3D view's, which its items set while it is
+// shown, and are set on it from any tab; Prepare's and the Preview's 3D views each draw the axes by a switch of their
+// own, which the menu sets on the view shown, and axes sets both. The others are the app's. UI thread.
+struct ViewSwitch
+{
+    const char* name;
+    bool (*shown)(Plater&);
+    void (*show)(Plater&, bool);
+};
+
+const ViewSwitch kViewSwitches[] = {
+    {"labels", [](Plater& plater) { return plater.get_view3D_canvas3D()->are_labels_shown(); },
+     [](Plater& plater, bool on) {
+         plater.get_view3D_canvas3D()->show_labels(on);
+         wxGetApp().app_config->set_bool("show_labels", on);
+     }},
+    {"overhangs", [](Plater& plater) { return plater.get_view3D_canvas3D()->is_overhang_shown(); },
+     [](Plater& plater, bool on) {
+         plater.get_view3D_canvas3D()->show_overhang(on);
+         wxGetApp().app_config->set_bool("show_overhang", on);
+     }},
+    {"outline", [](Plater&) { return wxGetApp().show_outline(); },
+     [](Plater&, bool on) {
+         if (wxGetApp().show_outline() != on)
+             wxGetApp().toggle_show_outline();
+     }},
+    {"wireframe", [](Plater& plater) { return plater.is_show_wireframe(); },
+     [](Plater& plater, bool on) {
+         if (plater.is_show_wireframe() != on)
+             plater.toggle_show_wireframe();
+     }},
+    {"gridlines", [](Plater&) { return wxGetApp().show_plate_gridlines(); },
+     [](Plater&, bool on) {
+         if (wxGetApp().show_plate_gridlines() != on)
+             wxGetApp().toggle_show_plate_gridlines();
+     }},
+    {"axes", [](Plater& plater) { return axes_canvas(plater)->are_world_axes_shown(); },
+     [](Plater& plater, bool on) {
+         for (GLCanvas3D* canvas : {plater.get_view3D_canvas3D(), plater.get_preview_canvas3D()})
+             if (canvas != nullptr && canvas->are_world_axes_shown() != on)
+                 canvas->toggle_world_axes_visibility(false);
+     }},
+    {"navigator", [](Plater&) { return wxGetApp().show_3d_navigator(); },
+     [](Plater&, bool on) {
+         if (wxGetApp().show_3d_navigator() != on)
+             wxGetApp().toggle_show_3d_navigator();
+     }},
+};
+
+// The section view of Prepare and the Preview, whose 3D views share it: on, as a right click on its toolbar button turns
+// it on, at the cut it had or through the middle, and off. UI thread.
+bool section_view_on(Plater& plater) { return plater.get_view3D_canvas3D()->is_section_view_active(); }
+
+void show_section_view(Plater& plater, bool on)
+{
+    GLCanvas3D* canvas = plater.get_view3D_canvas3D();
+    if (canvas->is_section_view_active() != on)
+        canvas->toggle_section_view();
+}
+
+// view_set's tab, and a pick of Go to tab: shows the main window's page `tab` names (view_tab_page()). Refused when no
+// page has that name, named as given, or when the page refuses to open, named by its id as the Speed Dial lists it.
+// UI thread.
+std::optional<Ops::Refusal> show_tab(MainFrame& frame, const std::string& tab)
+{
+    const std::optional<std::string> page = frame.m_tabpanel != nullptr ? view_tab_page(tab, notebook_pages(*frame.m_tabpanel)) :
+                                                                           std::nullopt;
+    if (!page)
+        // TRN %1% is the tab id the command was given, such as "preview".
+        return Ops::Refusal{Ops::RefusalKind::Precondition, "no_such_tab", L("No tab has the id \"%1%\"."), {tab}};
+    frame.select_tab(from_u8(*page));
+    // The tab can refuse to open: the Device tab of a Bambu Lab printer without its network plugin.
+    if (frame.m_tabpanel->GetSelectedPageName() != from_u8(*page))
+        // TRN %1% is the id of the tab that could not be opened, such as "monitor".
+        return Ops::Refusal{Ops::RefusalKind::Failed, "tab_not_opened", L("The \"%1%\" tab could not be opened."), {*page}};
+    return std::nullopt;
+}
+
+// The Preview tab, which a preview field given without tab or canvas, and a pick of Go to layer, show. UI thread.
+void show_preview(Plater& plater, MainFrame& frame)
+{
+    plater.select_view_3D("Preview", false);
+    frame.select_tab(wxString(TAB_ID_PREVIEW));
+}
+
+// view_set's layer_percent, and a pick of Go to layer: the top of the Preview's shown range moves to the layer that
+// share of the plate's layers stands for, and its bottom stays. UI thread.
+Ops::Outcome<Ops::ShownLayers> show_layer_percent(double percent)
+{
+    const Ops::Outcome<int> count = Ops::layer_count();
+    if (!count)
+        return count.refusal();
+    Ops::ShowLayerRangeArgs range;
+    range.last = int(std::lround(percent / 100.0 * double(count.value() - 1))) + 1;
+    return Ops::show_layer_range(range);
+}
+
+// A person's pick of one of view_set's tiles, in place on the UI thread as its row ran: for each argument the function
+// a call's UI closure runs, and a refusal in the UI's language, Go to tab's as an error and the others, which say that
+// the view has nothing to show it, as information.
+AppActionRunResult picked_view(const json& tile_args)
+{
+    Plater*    plater = wxGetApp().plater();
+    MainFrame* frame  = wxGetApp().mainframe;
+    if (plater == nullptr || frame == nullptr)
+        return AppActionRunResult{};
+    if (tile_args.contains("layout"))
+        return Rows::reset_window_layout();
+    if (tile_args.contains("projection"))
+        return Rows::toggle_perspective();
+    if (tile_args.contains("tab")) {
+        if (const std::optional<Ops::Refusal> refusal = show_tab(*frame, arg_string(tile_args, "tab")))
+            return NativeCommands::refused(*refusal);
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
+    }
+    if (tile_args.contains("layer_percent")) {
+        show_preview(*plater, *frame);
+        const Ops::Outcome<Ops::ShownLayers> shown = show_layer_percent(tile_args.at("layer_percent").get<double>());
+        return shown ? AppActionRunResult{AppActionRunResult::Level::Succeeded} :
+                       NativeCommands::refused(shown.refusal(), AppActionRunResult::Level::Info);
+    }
+    if (const std::optional<Ops::Refusal> refusal = point_camera(*plater, arg_string(tile_args, "camera")))
+        return NativeCommands::refused(*refusal, AppActionRunResult::Level::Info);
+    repaint_shown_canvas();
+    return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 
 } // namespace
@@ -323,6 +469,33 @@ json camera_state(Camera& camera, double canvas_scale)
     state["zoom"]            = rounded(camera.get_zoom(), 1e4);
     state["click_px_per_mm"] = rounded(camera.get_zoom() / canvas_scale, 1e4);
     return state;
+}
+
+json view_state(Plater& plater)
+{
+    GLCanvas3D* preview = plater.get_preview_canvas3D();
+    json        state{{"sidebar_collapsed", plater.is_sidebar_collapsed()},
+                      {"sidebar_width", plater.sidebar_width()},
+                      {"legend_collapsed", preview != nullptr && preview->get_gcode_viewer().is_legend_folded()},
+                      {"gcode_window", wxGetApp().show_gcode_window()},
+                      {"projection", plater.get_camera().get_type_as_string()},
+                      {"section", {{"on", section_view_on(plater)}}}};
+    for (const ViewSwitch& view_switch : kViewSwitches)
+        state[view_switch.name] = view_switch.shown(plater);
+    return state;
+}
+
+std::optional<std::string> view_tab_page(const std::string& tab, const std::vector<std::string>& pages)
+{
+    const auto has = [&pages](const std::string& page) { return std::find(pages.begin(), pages.end(), page) != pages.end(); };
+    for (const TabWord& w : kTabWords) {
+        if (tab == w.word)
+            return has(w.page) ? std::optional<std::string>(w.page) : std::nullopt;
+        // A page a word names is reached by its word: the Device tab is device, never monitor.
+        if (tab == w.page)
+            return std::nullopt;
+    }
+    return has(tab) ? std::optional<std::string>(tab) : std::nullopt;
 }
 
 std::string legend_feature_key(libvgcode::EGCodeExtrusionRole role) { return ExtrusionEntity::role_to_string(libvgcode::convert(role)); }
@@ -423,17 +596,17 @@ json preview_state(GCodeViewer& viewer)
 void register_view_tools(CommandCatalog& catalog)
 {
     NativeCommand screenshot = inspect_tool(
-        "ui", "screenshot", L("Take a screenshot"),
+        "window_screenshot", L("Take a screenshot"),
         "Capture what OrcaSlicer shows and return it as an image, downscaled to max_dim on the long edge (default 1280), "
         "plus the full-size PNG written to save_path (or the session's output folder). target: \"main\" (the main "
         "window), \"canvas\" (the visible 3D view exactly as rendered: scene, toolpaths, toolbars, ImGui panels; on the "
         "Design tab its view), "
-        "\"dialog\" (the topmost modal dialog), or a ref: a window's from list_windows (one that is not modal, say), or a "
-        "widget's from list_widgets, cropped to that widget (a page element's ref captures its whole web view). The result "
+        "\"dialog\" (the topmost modal dialog), or a ref: a window's from window_list (one that is not modal, say), or a "
+        "widget's from widget_list, cropped to that widget (a page element's ref captures its whole web view). The result "
         "says when parts may differ from the "
-        "screen (approximate). Point the view first with set_view.",
+        "screen (approximate). Point the view first with view_set.",
         object_schema({{"target", {{"type", json::array({"string", "object"})},
-                                    {"description", "main (default), canvas, dialog, or a widget's ref or locator from list_widgets."}}},
+                                    {"description", "main (default), canvas, dialog, or a widget's ref or locator from widget_list."}}},
                        {"max_dim", {{"type", "integer"}, {"minimum", 256}, {"maximum", 2000}, {"description", "Long edge of the returned image."}}},
                        {"save_path", prop("string", "Absolute .png path for the full-size image.")},
                        {"overwrite", prop("boolean", "Replace an existing save_path.")},
@@ -473,7 +646,7 @@ void register_view_tools(CommandCatalog& catalog)
                         ui_plater(); // refuses while OrcaSlicer starts or closes
                         GLCanvas3D* canvas = shown_canvas();
                         if (canvas == nullptr)
-                            throw ToolFailure("No 3D view is shown; switch to one with set_view tab");
+                            throw ToolFailure("No 3D view is shown; switch to one with view_set tab");
                         cap = capture_canvas(*canvas, err);
                     } else if (target == "dialog") {
                         wxDialog* top = runtime.modals().top();
@@ -490,7 +663,7 @@ void register_view_tools(CommandCatalog& catalog)
                             throw ToolFailure("target must be main, canvas, dialog or the ref of a widget");
                         if (t.kind == UiTarget::Kind::WebElement) {
                             // A replay captures the same web view, by its own locator: a page element's
-                            // has none the screenshot's target takes.
+                            // has none the window_screenshot's target takes.
                             UiTarget view;
                             view.kind    = UiTarget::Kind::Window;
                             view.window  = w;
@@ -503,9 +676,9 @@ void register_view_tools(CommandCatalog& catalog)
                             // A tab: its page, which only the selected tab shows.
                             auto* book = dynamic_cast<wxBookCtrlBase*>(w);
                             if (book == nullptr || t.page >= int(book->GetPageCount()))
-                                throw ToolFailure("The tab is gone; call list_widgets again");
+                                throw ToolFailure("The tab is gone; call widget_list again");
                             if (book->GetSelection() != t.page)
-                                throw ToolFailure("The tab's page is not shown; click the tab (click) first");
+                                throw ToolFailure("The tab's page is not shown; click the tab (widget_click) first");
                             w = book->GetPage(size_t(t.page));
                         }
                         if (GLCanvas3D* canvas = runtime.inspector().canvas_of(&t); canvas != nullptr && canvas->get_wxglcanvas() == w) {
@@ -514,7 +687,7 @@ void register_view_tools(CommandCatalog& catalog)
                             wxWindow* top = wxGetTopLevelParent(w);
                             // A popup is a native window of its own, which its window's capture draws in.
                             if (dynamic_cast<wxPopupWindow*>(top) != nullptr)
-                                throw ToolFailure("The widget is in a popup; a screenshot of its window shows the popup, and list_widgets "
+                                throw ToolFailure("The widget is in a popup; a screenshot of its window shows the popup, and widget_list "
                                                   "{target: \"popup\"} lists it");
                             auto* tlw = dynamic_cast<wxTopLevelWindow*>(top);
                             if (tlw == nullptr)
@@ -583,11 +756,11 @@ void register_view_tools(CommandCatalog& catalog)
     catalog.add(screenshot);
 
     catalog.add(inspect_tool(
-        "api", "get_slice_stats", L("Get slice statistics"),
-        "What the Preview shows for a sliced plate. summary: the slice reply's, plus prepare and travel time and travel "
+        "plate_slice_stats", L("Get slice statistics"),
+        "What the Preview shows for a sliced plate. summary: plate_slice's, plus prepare and travel time and travel "
         "distance. features: seconds, share of the print time and grams per feature type (the Line Type legend), and "
-        "travel. layers: per layer (1-based, as set_view's layer) Z, height, seconds and grams, paged; layer_features adds "
-        "each feature type's seconds. objects: grams per object instance, with its list_objects index when its name is "
+        "travel. layers: per layer (1-based, as view_set's layer) Z, height, seconds and grams, paged; layer_features adds "
+        "each feature type's seconds. objects: grams per object instance, with its object_list index when its name is "
         "unique. view, for the plate the Preview shows: view type, time mode, layer range, which legend rows are visible, "
         "and each view type's colour range for what the legend shows. Times are normal-mode estimates. A G-code file "
         "opened for viewing reads the same.",
@@ -605,7 +778,7 @@ void register_view_tools(CommandCatalog& catalog)
                     throw ToolFailure("The Preview needs an FFF printer");
                 // The background process may be rewriting a result whatever its valid flag says.
                 if (plater.is_slicing_any())
-                    throw ToolFailure("Slicing is in progress; wait {\"for\": \"idle\"} first");
+                    throw ToolFailure("Slicing is in progress; app_wait {\"for\": \"idle\"} first");
                 PartPlateList& plates  = plater.get_partplate_list();
                 const int      current = plates.get_curr_plate_index();
                 const int      index   = arg_int(args, "plate", current);
@@ -621,7 +794,7 @@ void register_view_tools(CommandCatalog& catalog)
                 // shows, without marking the plate sliced.
                 const bool        gcode_file = plater.only_gcode_mode() && shown;
                 const std::string name       = "Plate " + std::to_string(index);
-                const std::string slice_it   = "slice {\"plates\": " + std::to_string(index) + "}";
+                const std::string slice_it   = "plate_slice {\"plates\": " + std::to_string(index) + "}";
                 if (result == nullptr || !(plate->is_slice_result_valid() || gcode_file))
                     throw ToolFailure(name + " has no up-to-date slice; " + slice_it + " first");
                 // Of a project opened from a sliced 3MF, a plate the Preview has not shown keeps only the file's totals.
@@ -649,9 +822,9 @@ void register_view_tools(CommandCatalog& catalog)
                     out["view"] = shown ? preview_view(*canvas) : json();
                     if (index != current)
                         out["note"] = "The Preview shows plate " + std::to_string(current) + "; show plate " + std::to_string(index) +
-                                      " there (run_action orca_command:plate_goto:orca, args {\"plate\": " + std::to_string(index) + "}) to read its legend";
+                                      " there (plate_select {\"plate\": " + std::to_string(index) + "}) to read its legend";
                     else if (!shown)
-                        out["note"] = "The Preview has not loaded this plate's toolpaths; show it with set_view {\"tab\": \"preview\"}";
+                        out["note"] = "The Preview has not loaded this plate's toolpaths; show it with view_set {\"tab\": \"preview\"}";
                 }
                 return out;
             }));
@@ -663,13 +836,13 @@ void register_view_tools(CommandCatalog& catalog)
         if (std::string name = GCodeViewer::view_type_to_config_name(libvgcode::EViewType(i)); !name.empty())
             view_types.push_back(std::move(name));
 
-    std::vector<std::string> tabs{"home", "prepare", "preview", "device", "multi_device", "project", "calibration"};
-#ifdef SLIC3R_CAD
-    tabs.insert(tabs.begin() + 1, "design");
-#endif
+    // The words of tab, as the description lists them.
+    std::string tab_words;
+    for (const TabWord& w : kTabWords)
+        tab_words += (tab_words.empty() ? "" : ", ") + std::string(w.word);
 
-    catalog.add(reaching({"show_layer_range"}, mutate_tool(
-        "ui", "set_view", L("Set up the view"),
+    NativeCommand view = reaching({"show_layer_range"}, mutate_tool(
+        "view_set", L("Set up the view"),
         "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D view (canvas: Prepare's, the "
         "preview or the assemble view, which has its own gizmos), the camera of the 3D view shown (a named direction, the "
         "default view, or fit to bed / objects / selection, then look_at, the point it looks at, an orbit to look from "
@@ -679,9 +852,18 @@ void register_view_tools(CommandCatalog& catalog)
         "sketch_normal looks straight at the open sketch), and with tab design, section, origin_planes, world_axes, origin and bed "
         "set the Design view's switches. The reply echoes them; preview layers as [first, last, count] with z, the heights of "
         "first and last; with tab design, design: the section view and the four switches as they then are; with any camera "
-        "field, camera_state, the camera it leaves as get_app_state.camera gives it, and adjusted: [\"zoom\"] when the zoom "
-        "was held to its limits.",
-        object_schema({{"tab", enum_prop(tabs, "Main window tab.")},
+        "field, camera_state, the camera it leaves as app_state.camera gives it, and adjusted: [\"zoom\"] when the zoom "
+        "was held to its limits. tab takes the id of any other page of the window too, such as a plugin's. projection "
+        "sets the 3D camera's, layout default restores the default window layout, and layer_percent shows the Preview "
+        "at that share of the layer range, as Go to layer does. Outside the Design tab, from any tab: section {on} turns "
+        "the section view of Prepare and the Preview on or off; labels, overhangs, outline, wireframe, gridlines, axes and "
+        "navigator set the display switches of the View menu and of the 3D view's own menu; sidebar_collapsed and "
+        "sidebar_width set the sidebar of Prepare and the Preview; in the Preview, legend_collapsed folds the legend and "
+        "gcode_window shows the G-code window. Each is echoed as the app reads it back, and app_state's view gives them "
+        "under these names. A pick of a view tile runs the same code in place, so a camera tile turns the Design tab's "
+        "camera too.",
+        object_schema({{"tab", prop("string", "Main window tab: " + tab_words + ", or the id of another page of the window "
+                                              "(monitor_web, the web Device page where the app shows one, or a plugin's page).")},
                        {"canvas", enum_prop({"3d", "preview", "assemble"}, "3D view: Prepare's, the preview, or the assemble view (needs an object; leave it with 3d, as its Return button does).")},
                        {"camera", enum_prop({"iso", "top", "bottom", "front", "rear", "left", "right", "default", "fit_bed", "fit_objects", "fit_selection",
                                              "sketch_normal"},
@@ -694,15 +876,18 @@ void register_view_tools(CommandCatalog& catalog)
                                                     {"keep", enum_prop({"lower", "upper"}, "The half that stays: lower (the default) or upper.")}}},
                                     {"required", {"on"}},
                                     {"additionalProperties", false},
-                                    {"description", "Design tab: the section view, a horizontal cut that hides half of the model to show "
-                                                    "inside it, as the toolbar's Section View and Flip set it."}}},
+                                    {"description", "The section view, a cut that hides part of the model to show inside it. With tab "
+                                                    "design, the Design view's horizontal cut, as its toolbar's Section View and "
+                                                    "Flip set it, at z, keeping one half. Without it, the section view of Prepare "
+                                                    "and the Preview, on alone, as a right click on its toolbar button turns it on "
+                                                    "and off."}}},
                        {"origin_planes", {{"type", "boolean"}, {"description", "Design tab: show the origin helper planes (key P)."}}},
                        {"world_axes", {{"type", "boolean"}, {"description", "Design tab: show the world axis triad (key A)."}}},
                        {"origin", {{"type", "boolean"}, {"description", "Design tab: the Origin row's eye, the XY, XZ and YZ planes kept up "
                                                                         "where a click picks one; off lets go of a picked plane."}}},
                        {"bed", {{"type", "boolean"}, {"description", "Design tab: the Bed row's eye, the printer bed drawn."}}},
                        {"look_at", array_prop({{"type", "number"}}, "[x, y, z] in mm: the point the camera looks at, in the 3D view's "
-                                                                   "world coordinates, as list_objects gives positions; on the Design tab, "
+                                                                   "world coordinates, as object_list gives positions; on the Design tab, "
                                                                    "the Design view's, which the Design commands' world points use (describe_design's "
                                                                    "modeling_origin is the sketch planes' origin). The camera moves "
                                                                    "parallel, keeping its direction and distance. After camera.")},
@@ -717,21 +902,60 @@ void register_view_tools(CommandCatalog& catalog)
                        {"layer_z", {{"type", "number"}, {"minimum", 0}, {"description", "Preview: show layers up to the first whose top is at or above this height (mm), as the slider places a custom G-code."}}},
                        {"view_type", enum_prop(view_types, "Preview color scheme.")},
                        {"legend", {{"type", "object"}, {"additionalProperties", {{"type", "boolean"}}},
-                                   {"description", "Preview: show (true) or hide (false) legend rows: feature types by name as get_slice_stats lists them "
+                                   {"description", "Preview: show (true) or hide (false) legend rows: feature types by name as plate_slice_stats lists them "
                                                    "(\"Sparse infill\"), and travel, wipe, retract, unretract, seams, filament_changes, color_changes, "
                                                    "pauses, custom_gcode, in any case and with _ or a space between words. Hiding a row this "
                                                    "print lacks does nothing. Applied after view_type."}}},
-                       {"time_mode", enum_prop({"normal", "silent"}, "Preview: the time estimate the legend and layer times show; silent only when the print has its own.")}}),
+                       {"time_mode", enum_prop({"normal", "silent"}, "Preview: the time estimate the legend and layer times show; silent only when the print has its own.")},
+                       {"layer_percent", {{"type", "number"}, {"minimum", 0}, {"maximum", 100},
+                                          {"description", "Preview: show the layers up to this share of the layer range, as Go to "
+                                                          "layer does; the bottom of the shown range stays."}}},
+                       {"projection", enum_prop({"perspective", "orthographic", "toggle"}, "The 3D camera's projection; toggle "
+                                                                                          "switches between the two.")},
+                       {"layout", enum_prop({"default"}, "default restores the default window layout, as View > Reset Window "
+                                                         "Layout does.")},
+                       {"sidebar_collapsed", prop("boolean", "Collapse (true) or expand (false) the sidebar of Prepare and the "
+                                                             "Preview, as its collapse button does.")},
+                       {"sidebar_width", {{"type", {"integer", "string"}},
+                                          {"minimum", 1},
+                                          {"description", "The sidebar's width in pixels, as a drag of its edge sets it, or "
+                                                          "\"default\", its width in the default window layout. A sidebar "
+                                                          "floating in a window of its own is sized with window_set."}}},
+                       {"legend_collapsed", prop("boolean", "Preview: fold the legend to its title row (true) or unfold it (false), "
+                                                            "as its fold button does.")},
+                       {"gcode_window", prop("boolean", "Preview: show (true) or hide (false) the G-code window, as View > Show "
+                                                        "G-code Window does.")},
+                       {"labels", prop("boolean", "Prepare: the object labels, as View > Show Labels sets them.")},
+                       {"overhangs", prop("boolean", "Prepare: the overhang highlight, as View > Show Overhang sets it.")},
+                       {"outline", prop("boolean", "The outline around the selected objects, as View > Show Selected Outline sets "
+                                                   "it.")},
+                       {"wireframe", prop("boolean", "The objects' wireframe, as the 3D view's own menu sets it.")},
+                       {"gridlines", prop("boolean", "The plate's gridlines, as View > Show Gridlines sets them.")},
+                       {"axes", prop("boolean", "The axes on the bed of Prepare and the Preview, as the 3D view's own menu sets "
+                                                "them; with tab design, world_axes is the Design view's.")},
+                       {"navigator", prop("boolean", "The 3D navigator of Prepare and the Preview, as View > Show 3D Navigator "
+                                                     "sets it.")}}),
         [](const json& args, ToolContext& ctx) {
             const bool preview_args = args.contains("layer") || args.contains("layer_range") || args.contains("layer_z") ||
-                                      args.contains("view_type") || args.contains("legend") || args.contains("time_mode");
-            if (arg_string(args, "tab") == "design" && (args.contains("canvas") || preview_args))
+                                      args.contains("layer_percent") || args.contains("view_type") || args.contains("legend") ||
+                                      args.contains("time_mode") || args.contains("legend_collapsed") || args.contains("gcode_window");
+            const bool design_tab = arg_string(args, "tab") == "design";
+            if (design_tab && (args.contains("canvas") || preview_args))
                 throw ToolFailure("canvas and the Preview fields show Prepare or Preview; give them without tab design");
-            const bool design_args = args.contains("section") || args.contains("origin_planes") || args.contains("world_axes") ||
-                                     args.contains("origin") || args.contains("bed") || arg_string(args, "camera") == "sketch_normal";
-            if (design_args && arg_string(args, "tab") != "design")
-                throw ToolFailure("sketch_normal, section, origin_planes, world_axes, origin and bed are the Design tab's: give them "
-                                  "with tab design");
+            // The section view is the Design view's with tab design, else Prepare's and the Preview's.
+            const bool design_args = (args.contains("section") && design_tab) || args.contains("origin_planes") ||
+                                     args.contains("world_axes") || args.contains("origin") || args.contains("bed") ||
+                                     arg_string(args, "camera") == "sketch_normal";
+            if (design_args && !design_tab)
+                throw ToolFailure("sketch_normal, origin_planes, world_axes, origin and bed are the Design tab's: give them with "
+                                  "tab design");
+            const bool view_section = args.contains("section") && !design_tab;
+            if (view_section && (args["section"].contains("z") || args["section"].contains("keep")))
+                throw ToolFailure("z and keep are the Design view's cut: give them with tab design. Without it, section is the "
+                                  "section view of Prepare and the Preview, which takes on alone");
+            if (args.contains("sidebar_width") && args["sidebar_width"].is_string() && args["sidebar_width"] != "default")
+                throw ToolFailure("sidebar_width is a width in pixels or \"default\"");
+            const bool sidebar_args = args.contains("sidebar_collapsed") || args.contains("sidebar_width");
             if (args.contains("orbit") && args["orbit"].size() != 2)
                 throw ToolFailure("orbit is [yaw, pitch] in degrees");
             if (args.contains("look_at") && args["look_at"].size() != 3)
@@ -742,6 +966,11 @@ void register_view_tools(CommandCatalog& catalog)
                 Plater&    plater = ui_plater();
                 MainFrame* frame  = wxGetApp().mainframe;
                 json       done   = json::object();
+                // The sidebar's state, refused before anything changes where it takes none.
+                if (sidebar_args && !plater.is_sidebar_enabled())
+                    throw ToolFailure("The sidebar is off while a G-code file is shown without its settings");
+                if (args.contains("sidebar_width") && plater.is_sidebar_floating())
+                    throw ToolFailure("The sidebar floats in a window of its own, whose size window_set sets");
 #ifdef SLIC3R_CAD
                 // The Design tab's panel, which its options set and the reply reads. They, and the cameras the
                 // Design view refuses (point_camera()), are refused here, before the tab or anything else
@@ -760,21 +989,25 @@ void register_view_tools(CommandCatalog& catalog)
                     if (arg_string(args, "camera") == "sketch_normal" && !design->mcp_viewport()->is_sketching())
                         throw ToolFailure("No sketch is open in the Design tab");
                 }
-                if (design != nullptr && arg_string(args, "camera") == "fit_bed")
-                    throw ToolFailure("fit_bed is not offered in the Design tab");
-                if (design != nullptr && arg_string(args, "camera") == "fit_selection" && !design->mcp_viewport()->selection_box().defined)
+                // The Design view the camera points once the tab is handled: the one asked for, or the one shown, which
+                // a call with no tab, canvas or Preview field leaves shown. Its refusals (point_camera()) come here too.
+                DesignPanel* aimed = design;
+                if (aimed == nullptr && !args.contains("tab") && !args.contains("canvas") && !preview_args)
+                    aimed = frame->shown_design_panel();
+                if (aimed != nullptr && arg_string(args, "camera") == "fit_bed")
+                    throw refused(no_bed_in_design());
+                if (aimed != nullptr && arg_string(args, "camera") == "fit_selection" && !aimed->mcp_viewport()->selection_box().defined)
                     throw ToolFailure("Nothing is selected in the Design tab");
 #endif
                 if (args.contains("tab")) {
-                    const char* id = tab_id(arg_string(args, "tab"));
-                    if (id == nullptr)
-                        throw ToolFailure("Unknown tab");
+                    const std::string tab = arg_string(args, "tab");
 #ifdef SLIC3R_CAD
-                    if (id == std::string(TAB_ID_DESIGN) && frame->m_design_page == nullptr)
+                    if (tab == "design" && frame->m_design_page == nullptr)
                         throw ToolFailure("The Design tab is off; enable the CAD feature in Preferences and restart");
 #endif
-                    frame->select_tab(wxString(id));
-                    done["tab"] = arg_string(args, "tab");
+                    if (const std::optional<Ops::Refusal> refusal = show_tab(*frame, tab))
+                        throw refused(*refusal);
+                    done["tab"] = tab;
                 }
 #ifdef SLIC3R_CAD
                 if (design != nullptr) {
@@ -828,10 +1061,8 @@ void register_view_tools(CommandCatalog& catalog)
                         frame->select_tab(wxString(TAB_ID_PREVIEW));
                     done["canvas"] = view;
                 }
-                if (preview_args && !args.contains("tab") && !args.contains("canvas")) {
-                    plater.select_view_3D("Preview", false);
-                    frame->select_tab(wxString(TAB_ID_PREVIEW));
-                }
+                if (preview_args && !args.contains("tab") && !args.contains("canvas"))
+                    show_preview(plater, *frame);
                 if (preview_args) {
                     GLCanvas3D* canvas = plater.get_preview_canvas3D();
                     if (canvas == nullptr)
@@ -839,6 +1070,8 @@ void register_view_tools(CommandCatalog& catalog)
                     GCodeViewer& viewer = canvas->get_gcode_viewer();
                     if (args.contains("layer_z") && (args.contains("layer") || args.contains("layer_range")))
                         throw ToolFailure("Give layer_z or layer/layer_range, not both");
+                    if (args.contains("layer_percent") && (args.contains("layer") || args.contains("layer_range") || args.contains("layer_z")))
+                        throw ToolFailure("Give layer_percent alone, without layer, layer_range or layer_z");
                     if ((args.contains("legend") || args.contains("time_mode")) && !viewer.has_data())
                         throw ToolFailure("legend and time_mode need the Preview's toolpaths; slice first");
                     const std::function<json()> show_legend = args.contains("legend") ? legend_change(viewer, args["legend"]) : nullptr;
@@ -865,7 +1098,7 @@ void register_view_tools(CommandCatalog& catalog)
                             viewer.set_time_mode(mode);
                         done["time_mode"] = arg_string(args, "time_mode");
                     }
-                    if (args.contains("layer") || args.contains("layer_range") || args.contains("layer_z")) {
+                    if (args.contains("layer") || args.contains("layer_range") || args.contains("layer_z") || args.contains("layer_percent")) {
                         const Ops::Outcome<int> count = Ops::layer_count();
                         if (!count)
                             throw refused(count.refusal());
@@ -886,7 +1119,7 @@ void register_view_tools(CommandCatalog& catalog)
                             range.last  = r[1].get<int>();
                         }
                         if (args.contains("layer_z")) {
-                            // The slider's own rule for a height, which set_custom_gcode_at_layer's z follows too.
+                            // The slider's own rule for a height, which plate_set_custom_gcode's z follows too.
                             const double z    = args["layer_z"].get<double>();
                             const int    tick = layers->get_tick_from_value(z, true);
                             if (tick < 0 || tick > max)
@@ -894,17 +1127,59 @@ void register_view_tools(CommandCatalog& catalog)
                                                   json(rounded(layers->GetMaxValueD(), 1000.)).dump() + " mm)");
                             range.last = tick + 1;
                         }
-                        const Ops::Outcome<Ops::ShownLayers> shown = Ops::show_layer_range(range);
+                        const Ops::Outcome<Ops::ShownLayers> shown = args.contains("layer_percent") ?
+                                                                         show_layer_percent(args["layer_percent"].get<double>()) :
+                                                                         Ops::show_layer_range(range);
                         if (!shown)
                             throw refused(shown.refusal());
                         // The reply echoes the range asked for; z is of the layers the slider shows.
                         done["layers"] = {shown.value().asked_first, shown.value().asked_last, shown.value().count};
                         done["z"]      = {rounded(shown.value().z_first, 1000.), rounded(shown.value().z_last, 1000.)};
                     }
+                    // After the layers, which can still refuse the call, and after view_type, whose pick unfolds the
+                    // legend.
+                    if (args.contains("legend_collapsed")) {
+                        viewer.fold_legend(args["legend_collapsed"].get<bool>());
+                        done["legend_collapsed"] = viewer.is_legend_folded();
+                    }
+                    if (args.contains("gcode_window")) {
+                        if (wxGetApp().show_gcode_window() != args["gcode_window"].get<bool>())
+                            wxGetApp().toggle_show_gcode_window();
+                        done["gcode_window"] = wxGetApp().show_gcode_window();
+                    }
                     canvas->set_as_dirty();
                 }
+                if (args.contains("projection")) {
+                    Camera&           camera     = plater.get_camera();
+                    const std::string projection = arg_string(args, "projection");
+                    if (projection == "toggle")
+                        camera.select_next_type();
+                    else
+                        camera.set_type(projection == "perspective" ? Camera::EType::Perspective : Camera::EType::Ortho);
+                    done["projection"] = camera.get_type_as_string();
+                }
+                if (args.contains("layout")) {
+                    plater.reset_window_layout();
+                    done["layout"] = arg_string(args, "layout");
+                }
+                if (view_section) {
+                    show_section_view(plater, args["section"].at("on").get<bool>());
+                    done["section"] = {{"on", section_view_on(plater)}};
+                }
+                for (const ViewSwitch& view_switch : kViewSwitches)
+                    if (args.contains(view_switch.name)) {
+                        view_switch.show(plater, args[view_switch.name].get<bool>());
+                        done[view_switch.name] = view_switch.shown(plater);
+                    }
+                // After layout, which expands the sidebar at its default width.
+                if (args.contains("sidebar_collapsed") && plater.is_sidebar_collapsed() != args["sidebar_collapsed"].get<bool>())
+                    plater.collapse_sidebar(args["sidebar_collapsed"].get<bool>());
+                if (args.contains("sidebar_width"))
+                    plater.set_sidebar_width(args["sidebar_width"].is_string() ? plater.default_sidebar_width() :
+                                                                                  args["sidebar_width"].get<int>());
                 if (GLCanvas3D* canvas = plater.get_current_canvas3D())
                     canvas->set_as_dirty();
+                repaint_shown_canvas();
                 return done;
             });
             if (camera_args) {
@@ -939,7 +1214,8 @@ void register_view_tools(CommandCatalog& catalog)
                     Camera& camera = plater.get_camera();
                     json    done   = json::object();
                     if (args.contains("camera")) {
-                        point_camera(plater, arg_string(args, "camera"));
+                        if (const std::optional<Ops::Refusal> refusal = point_camera(plater, arg_string(args, "camera")))
+                            throw refused(*refusal);
                         done["camera"] = arg_string(args, "camera");
                     }
                     if (args.contains("look_at")) {
@@ -965,6 +1241,17 @@ void register_view_tools(CommandCatalog& catalog)
                     },
                     std::chrono::seconds(15), "the assemble view to show its objects");
             settle(ctx);
+            // The sidebar as the window lays it out once the change is handled.
+            if (sidebar_args)
+                out.update(ctx.observe_ui([&args] {
+                    Plater& plater = ui_plater();
+                    json    read   = json::object();
+                    if (args.contains("sidebar_collapsed"))
+                        read["sidebar_collapsed"] = plater.is_sidebar_collapsed();
+                    if (args.contains("sidebar_width"))
+                        read["sidebar_width"] = plater.sidebar_width();
+                    return read;
+                }));
             if (camera_args)
                 out.update(ctx.observe_ui([&args] {
                     const GLCanvas3D* canvas = shown_canvas();
@@ -976,7 +1263,117 @@ void register_view_tools(CommandCatalog& catalog)
                     return read;
                 }));
             return ToolResult::ok(out);
-        })));
+        }));
+    // The View menu's rows and the Speed Dial's Go to tab and Go to layer, whose value its second phase collects. Titles
+    // are L("...")-marked here so xgettext extracts them.
+    struct CameraRow
+    {
+        const char* key;
+        const char* title;
+        const char* camera;
+    };
+    static const CameraRow camera_rows[] = {{"view_top", L("View: Top"), "top"},           {"view_bottom", L("View: Bottom"), "bottom"},
+                                            {"view_front", L("View: Front"), "front"},     {"view_rear", L("View: Rear"), "rear"},
+                                            {"view_left", L("View: Left"), "left"},        {"view_right", L("View: Right"), "right"},
+                                            {"view_iso", L("View: Isometric"), "iso"},     {"view_default", L("View: Default"), "default"},
+                                            {"view_fit_bed", L("Fit Bed to View"), "fit_bed"}};
+    view.tiles = json::array();
+    std::vector<json> camera_forms;
+    for (const CameraRow& row : camera_rows) {
+        const std::string camera = row.camera;
+        std::string       does   = "Turn the camera of the view shown, the Design tab's too, to the " + camera + " view.";
+        if (camera == "default")
+            does = "Turn the camera of the view shown to the default view and fit the plate; on the Design tab, its Home view.";
+        else if (camera == "fit_bed")
+            does = "Fit the build plate in the 3D view shown; refused on the Design tab, which has no bed to fit.";
+        view.tiles.push_back(NativeCommands::tile(row.key, row.title, L("View"), "", {{"camera", camera}}, does));
+        camera_forms.push_back({{"camera", camera}});
+    }
+    view.tiles.push_back(NativeCommands::tile("view_toggle_perspective", L("Toggle Perspective"), L("View"), "", {{"projection", "toggle"}},
+                                              "Switch the 3D camera between perspective and orthographic."));
+    view.tiles.push_back(NativeCommands::tile("reset_window_layout", L("Reset Window Layout"), L("View"), "toolbar_reset",
+                                              {{"layout", "default"}}, "Restore the default window layout."));
+    view.tiles.push_back(NativeCommands::tile("go_to_tab", L("Go to tab..."), L("Commands"), "", json::object(),
+                                              "Switch to a main window tab.", "tab"));
+    view.tiles.push_back(NativeCommands::tile("go_to_layer", L("Go to layer (percent)"), L("Commands"), "height_range_layer",
+                                              json::object(),
+                                              "Show the Preview tab at a layer chosen as a percentage of the layer range; an error "
+                                              "while the Preview has no layers (slice first).",
+                                              "percent", "layer_percent"));
+    // A person's pick of any of these tiles runs in place (picked_view()): Toggle Perspective and Reset Window Layout
+    // their rows, the camera tiles, Go to tab and Go to layer the camera, tab and layer functions view_set's UI closure
+    // runs for a call, so a camera tile turns the Design tab's camera too. An automated call of a camera tile, Go to tab
+    // or Go to layer is view_set's own function.
+    catalog.add(NativeCommands::with_row_forms(std::move(view), picked_view, /*person_form_behind_dialogs=*/false,
+                                               std::move(camera_forms)));
+
+    // ---- The window commands made from menu rows ----
+    struct WindowRow
+    {
+        const char* key;
+        const char* title;
+        const char* group;
+        const char* icon;
+        const char* window;
+        const char* description;
+    };
+    // Titles are L("...")-marked here so xgettext extracts them.
+    static const WindowRow window_rows[] = {
+        {"open_preferences", L("Preferences"), L("Commands"), "cog", "preferences",
+         "Open the Preferences dialog. window_open with a tab, and a key on it, opens it on that tab with that preference's "
+         "control scrolled into view and focused (shown on its own tab)."},
+        {"open_plugins", L("Open Plugins"), L("Plugins"), "", "plugins", "Open the plugins dialog."},
+        {"open_action_replay", L("Action Replay"), L("Commands"), "loop", "action_replay",
+         "Open the Action Replay window, where a person opens a replay file, reads its steps and replays them. Agents run "
+         "replays with the replay_run tool instead."},
+        {"preset_bundle", L("Open Preset Bundle"), L("Presets"), "menu_edit_preset", "preset_bundle", "Open the preset bundle manager."},
+        {"help_keyboard_shortcuts", L("Keyboard Shortcuts"), L("Help"), "", "keyboard_shortcuts", "Show the keyboard shortcuts dialog."},
+        {"help_setup_wizard", L("Setup Wizard"), L("Help"), "", "setup_wizard", "Open the setup wizard."},
+        {"help_network_test", L("Open Network Test"), L("Help"), "", "network_test", "Open the network test dialog."},
+        {"help_troubleshoot", L("Troubleshoot Center"), L("Help"), "", "troubleshoot", "Open the troubleshooting center."},
+        {"help_tip_of_the_day", L("Show Tip of the Day"), L("Help"), "info", "tip_of_the_day", "Show a tip of the day."},
+        {"help_about", L("About OrcaSlicer"), L("Help"), "OrcaSlicer_gradient_circle", "about", "Show the About dialog."},
+    };
+    std::vector<std::string> windows;
+    json                     window_tiles = json::array();
+    for (const WindowRow& row : window_rows) {
+        windows.emplace_back(row.window);
+        window_tiles.push_back(NativeCommands::tile(row.key, row.title, row.group, row.icon, {{"window", row.window}}, row.description));
+    }
+    catalog.add(row_command(
+        "window_open", L("Open a window"),
+        "Open one of OrcaSlicer's windows or dialogs for a person, as its menu row does: preferences, the Preferences dialog, "
+        "with tab, and key on it, on that tab with that preference's control scrolled into view and focused (its controls are "
+        "named after their preference keys: preferences_get reads them and preferences_set writes those it does not refuse, "
+        "and widget_set_value {\"target\": {\"name\": key, \"within\": \"Preferences\"}} changes one through the "
+        "dialog); plugins, the Plugins window; action_replay, the "
+        "Action Replay window, where a person replays a replay file (agents run one with replay_run); preset_bundle, the preset "
+        "bundle manager; keyboard_shortcuts; setup_wizard; network_test; troubleshoot, the troubleshooting center; "
+        "tip_of_the_day; about. A modal one replies blocked_by_dialog.",
+        object_schema({{"window", enum_prop(windows, "The window.")},
+                       {"tab", enum_prop(Rows::preferences_tabs(), "preferences: the tab to show.")},
+                       {"key", prop("string", "preferences, with tab: a preference on that tab, e.g. auto_arrange on behaviour: "
+                                              "its control is scrolled into view and focused.")}},
+                      {"window"}),
+        std::move(window_tiles), [](const json& args) {
+            const std::string window = arg_string(args, "window");
+            if (window != "preferences" && (args.contains("tab") || args.contains("key")))
+                return AppActionRunResult{AppActionRunResult::Level::Error, from_u8("tab and key go with window preferences"), false};
+            json preferences = args;
+            preferences.erase("window");
+            return Rows::open_window(window, preferences);
+        }));
+
+    const std::string saved = "Save a PNG of the main window in the folder Start Recording saves in (the person's Downloads unless "
+                              "they chose another) and show the person a notification naming it; the reply has its path. Agents use "
+                              "the window_screenshot tool, which returns the image.";
+    NativeCommand save_screenshot = row_command("window_save_screenshot", L("Take Screenshot"), saved, object_schema({}),
+                                                json::array({NativeCommands::tile("take_screenshot", L("Take Screenshot"),
+                                                                                  L("Commands"), "screenshot", json::object(), saved)}),
+                                                [](const json&) { return Rows::take_screenshot(); });
+    // A menu row with no argument form: tool_search finds it and tool_call runs it, the tool list does not show it.
+    save_screenshot.listed = false;
+    catalog.add(std::move(save_screenshot));
 }
 
 }}} // namespace Slic3r::GUI::Mcp

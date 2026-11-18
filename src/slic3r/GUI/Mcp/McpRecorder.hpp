@@ -44,7 +44,7 @@ wxFont font_with_line_height(const wxFont& font, int line_height);
 // the coverage. Null for no text. UI thread.
 std::shared_ptr<const TextMask> render_text(const std::string& text, const wxFont& font, int max_width);
 
-// start_recording's arguments.
+// recording_start's arguments.
 struct RecordingOptions
 {
     std::string             target = "main";   // main | canvas
@@ -56,7 +56,7 @@ struct RecordingOptions
     bool                    pointer     = false; // the pointer highlighted, its clicks rippling
     boost::filesystem::path path;
     std::string             owner; // the job of the run (a replay or a script) that started it, "" for a client, kPersonOwner
-    // encode_recording's arguments, path included, for the stop_recording that reports this recording to run;
+    // recording_encode's arguments, path included, for the recording_stop that reports this recording to run;
     // null for none.
     nlohmann::json encode;
     // Runs on the UI thread once the recording ends, while its file is still being closed, with the reason it
@@ -104,20 +104,20 @@ public:
     // Any thread. Ends the recording `owner` started ("" for a client's), and with `wait`, waits up to 30 s
     // for its file to be closed. Returns the path of a file still being written after that wait.
     std::optional<std::string> end_owned_by(const std::string& owner, const std::string& reason, bool wait);
-    // stop_recording: ends the running recording and waits for its file, or takes the result of the last
+    // recording_stop: ends the running recording and waits for its file, or takes the result of the last
     // one that ended on its own, once. Null when there is none. `encode` gets the recording's
     // RecordingOptions::encode.
     nlohmann::json stop_and_report(std::chrono::milliseconds timeout, nlohmann::json& encode);
-    // get_app_state's recording: {path, target, seconds, frames} while one runs, else null.
+    // app_state's recording: {path, target, seconds, frames} while one runs, else null.
     nlohmann::json state() const;
     // A recording is being written or finalized.
     bool active() const;
     // Any thread. Waits up to `timeout` for the recording at `path` to have its file closed; true once it has,
     // or when that recording is not the latest, since another starts only after it is closed.
     bool wait_closed(const boost::filesystem::path& path, std::chrono::milliseconds timeout) const;
-    // Any thread. Encodes a recording once its file is closed: encode_recording with `args` as an unjournaled job,
+    // Any thread. Encodes a recording once its file is closed: recording_encode with `args` as an unjournaled job,
     // which `runtime` follows to its end before posting `done` its result on the UI thread. The job is cancelled
-    // like any encode (cancel_job {job}, the runtime's stop), and `done` is not called once the runtime stops.
+    // like any encode (job_cancel {job}, the runtime's stop), and `done` is not called once the runtime stops.
     // False when the runtime is not started or is stopping, or when the system cannot start a thread.
     bool encode_when_closed(AutomationRuntime& runtime, nlohmann::json args, std::function<void(const ToolResult&)> done);
     // The files recordings and encodes use; shared with the sinks' finalizers.

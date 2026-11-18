@@ -43,7 +43,7 @@ GtkWidget* gtk_window_of(const wxTopLevelWindow& window)
 // What a Wayland compositor says of a window, which GTK passes on as a visibility notify and wx ignores:
 // it hides the window (xdg_toplevel's suspended state). KWin hides a minimized window, but also one on
 // another virtual desktop and every window while the screens are off; Mutter hides any window it has not
-// shown for 3 s. So a hidden window reads minimized only while set_window's minimize of it stands, which
+// shown for 3 s. So a hidden window reads minimized only while window_set's minimize of it stands, which
 // ends once the window shows, takes the focus or closes.
 constexpr const char* kSuspendedKey = "orca-mcp-suspended";
 constexpr const char* kMinimizedKey = "orca-mcp-minimized";
@@ -176,7 +176,7 @@ void raise_transients(const wxTopLevelWindow& window)
     }
 }
 
-// The window's normal rect, kept on the GtkWindow while set_window keeps it maximized itself.
+// The window's normal rect, kept on the GtkWindow while window_set keeps it maximized itself.
 constexpr const char* kNormalRectKey = "orca-mcp-normal-rect";
 
 // Adds or removes the maximized atoms in the window's _NET_WM_STATE, keeping the others GDK set. With no

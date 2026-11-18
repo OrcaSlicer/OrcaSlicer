@@ -17,8 +17,8 @@ namespace Slic3r {
 class PythonRunScope;
 class PythonSession;
 
-// A Python script a person or an agent starts (run_script, a .py in the Run Script dialog or
-// --run), or a plugin's run_script: code run on the plugin interpreter without being packaged
+// A Python script a person or an agent starts (script_run, a .py in the Run Script dialog or
+// --run), or a plugin's script_run: code run on the plugin interpreter without being packaged
 // as a plugin.
 struct PythonRunRequest
 {
@@ -33,8 +33,8 @@ struct PythonRunRequest
     std::string    identity;
     // Shown in tracebacks. An existing file's path makes it a file run, which runs as `python file.py` would run
     // it: `__file__` and `sys.argv` name it, and its folder serves its imports. Any other name, such as the default
-    // <run_script>, is code sent as text.
-    std::string    filename = "<run_script>";
+    // <script_run>, is code sent as text.
+    std::string    filename = "<script_run>";
     // The run is interrupted as timed_out once it has run this long.
     std::chrono::milliseconds budget{std::chrono::minutes(5)};
     // Polled while the code runs, from another thread; true interrupts it as cancelled.
@@ -75,7 +75,7 @@ struct PythonSessionRequest
     std::string    identity;
     // As PythonRunRequest::filename, fixed for the session: an existing file makes it a file session, whose works
     // run with `__file__`, `sys.argv` and its folder's imports, and whose first work installs its PEP 723 dependencies.
-    std::string    filename = "<run_script>";
+    std::string    filename = "<script_run>";
     // Bound to the module-level name `args`.
     nlohmann::json args = nlohmann::json::object();
     // The session is stopped and ended as timed_out once it has run this long, measured from its start; 0 is none.

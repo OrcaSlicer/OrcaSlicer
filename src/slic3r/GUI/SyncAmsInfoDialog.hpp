@@ -231,7 +231,7 @@ public:
     void set_print_type(PrintFromType type) { m_print_type = type; };
     bool do_ams_mapping(MachineObject *obj_);
     // Orca: true when a Filament Track Switch is installed and ready (drives the combined dynamic mapping view).
-    bool has_selector(MachineObject *obj_) const;
+    static bool has_selector(MachineObject *obj_);
     void deal_only_exist_ext_spool(MachineObject *obj_);
     void show_thumbnail_page();
     bool get_ams_mapping_result(std::string &mapping_array_str, std::string &mapping_array_str2, std::string &ams_mapping_info);
@@ -397,5 +397,17 @@ public:
 private:
     InputInfo m_input_info;
 };
+// The project's filaments as the sync dialog maps them to the printer's slots: each physical filament it lists, in its
+// order, with its type, vendor, filament id and colour. UI thread.
+std::vector<FilamentInfo> ams_sync_filaments();
+// Maps `filaments` to the slots of `printer`'s AMS and external spools as the sync dialog first does, into `result`:
+// DevMappingUtil::ams_filament_mapping()'s result code. UI thread.
+int map_filaments_to_ams(MachineObject *printer, const std::vector<FilamentInfo> &filaments, std::vector<FilamentInfo> &result);
+// The slot each filament of `result` maps to, by its index, as the dialog's Synchronize now takes them in Mapping.
+std::map<int, AMSMapInfo> ams_sync_maps(const std::vector<FilamentInfo> &result);
+// Whether the dialog lays out the filaments of two nozzles: a printer of two nozzles whose current plate maps each
+// filament to one of them.
+bool ams_sync_double_extruder();
+
 }}     // namespace Slic3r::GUI
 #endif  // _STEP_MESH_DIALOG_H_

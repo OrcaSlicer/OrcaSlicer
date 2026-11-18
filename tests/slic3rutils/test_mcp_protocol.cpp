@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "automation/automation_test_utils.hpp"
+#include "retired_names.hpp"
 
 #include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/Mcp/McpProtocol.hpp"
@@ -48,17 +49,16 @@ TEST_CASE("tools/list lists the listed commands in the order they were added", "
             added.push_back(def.key);
     CHECK(names == added);
 
-    // The families in the order register_all_commands() adds them: the Speed Dial's commands before them are
-    // not listed.
+    // The search, the generic call and the app's state first, then the commands by place, the GUI-driving ones last.
     REQUIRE_FALSE(names.empty());
-    CHECK(names.front() == "get_app_state");
+    CHECK(names.front() == "tool_search");
     const auto position = [&names](const std::string& name) {
         const auto it = std::find(names.begin(), names.end(), name);
         REQUIRE(it != names.end());
         return it - names.begin();
     };
-    CHECK(position("search_tools") < position("open_files"));
-    CHECK(position("slice") < position("click"));
+    CHECK(position("tool_search") < position("project_open"));
+    CHECK(position("plate_slice") < position("widget_click"));
 }
 
 TEST_CASE("the catalog the stdio bridge lists without the app holds every tool family", "[Mcp]")
@@ -70,9 +70,9 @@ TEST_CASE("the catalog the stdio bridge lists without the app holds every tool f
             continue;
         CHECK(names.insert(def.key).second);
     }
-    for (const char* name : {"get_app_state", "run_action", "open_files", "set_settings", "slice", "set_height_ranges", "set_view",
-                             "list_widgets", "run_replay", "start_recording", "run_script", "call_tool", "set_variable_layer_height",
-                             "set_custom_gcode_at_layer"})
+    for (const char* name : {"app_state", "action_run", "project_open", "settings_set", "plate_slice", "object_set_height_ranges", "view_set",
+                             "widget_list", "replay_run", "recording_start", "script_run", "tool_call", "object_set_variable_layer_height",
+                             "plate_set_custom_gcode"})
         CHECK(names.count(name) == 1);
     // Built once, for the life of the process.
     CHECK(&NativeCommands::instance() == &catalog);
@@ -80,4 +80,10 @@ TEST_CASE("the catalog the stdio bridge lists without the app holds every tool f
     CHECK_FALSE(server_info().instructions.empty());
     // Clients cut the instructions off after 4096 characters.
     CHECK(server_info().instructions.size() <= 4096);
+}
+
+TEST_CASE("the instructions name no retired command", "[Mcp]")
+{
+    // An agent reads them first: a word of them that was a command's name would send it to an unknown tool.
+    CHECK(retired_names_in(server_info().instructions) == std::set<std::string>{});
 }

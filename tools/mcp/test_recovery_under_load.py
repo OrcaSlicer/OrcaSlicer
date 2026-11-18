@@ -4,8 +4,8 @@
     tools/mcp/orca_mcp.py launch --headless
     tools/mcp/test_recovery_under_load.py
 
-With Preferences open in a running job, 32 `wait` calls block on it (every blocking slot) and 32
-more connections sit idle or half-sent, which fills the server's 64 connections. An `answer_dialog`
+With Preferences open in a running job, 32 `app_wait` calls block on it (every blocking slot) and 32
+more connections sit idle or half-sent, which fills the server's 64 connections. A `dialog_answer`
 on a new connection must still close the dialog, and the waits must then return. Exits 0 when both
 the idle and the half-sent variants pass.
 """
@@ -58,13 +58,13 @@ def holder(port, token, half_sent):
 
 
 def run(port, token, half_sent):
-    job, _ = call(port, token, "run_action", {"id": "orca_command:open_preferences:orca"})
+    job, _ = call(port, token, "action_run", {"id": "orca_command:open_preferences:orca"})
     if job.get("status") != "blocked_by_dialog":
         return f"Preferences did not open: {job}"
 
     waits, results = [], []
     for _ in range(32):
-        t = threading.Thread(target=lambda: results.append(call(port, token, "wait", {"for": "no_dialog", "timeout_s": 50})[0]))
+        t = threading.Thread(target=lambda: results.append(call(port, token, "app_wait", {"for": "no_dialog", "timeout_s": 50})[0]))
         t.start()
         waits.append(t)
     time.sleep(2)
@@ -72,11 +72,11 @@ def run(port, token, half_sent):
     time.sleep(1)
 
     started = time.time()
-    answer, failed = call(port, token, "answer_dialog", {"button": "close"})
+    answer, failed = call(port, token, "dialog_answer", {"button": "close"})
     if failed:
-        return f"answer_dialog failed: {answer}"
+        return f"dialog_answer failed: {answer}"
     if answer.get("status") == "running":  # no blocking slot: the job runs on, follow it
-        answer, failed = call(port, token, "wait", {"for": "job", "job": answer["job"], "timeout_s": 30})
+        answer, failed = call(port, token, "app_wait", {"for": "job", "job": answer["job"], "timeout_s": 30})
     for t in waits:
         t.join(60)
     for s in holders:

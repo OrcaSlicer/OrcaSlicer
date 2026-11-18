@@ -4,7 +4,7 @@
 
 // The replay format version the draft and the version key's suggestion write: the host's REPLAY_VERSION
 // (src/slic3r/GUI/Mcp/McpReplay.hpp), which says which versions it reads.
-const REPLAY_VERSION = "0.1.0";
+const REPLAY_VERSION = "0.2.0";
 
 // The keys of a replay and of a step, with the JSON type of their values. Accepting a key writes a
 // value of that type after its colon (an empty string, object or array with the caret inside, or true),

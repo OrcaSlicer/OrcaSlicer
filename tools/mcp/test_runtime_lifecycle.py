@@ -4,31 +4,31 @@ during a call.
 Each of the six checks launches OrcaSlicer on a fresh data folder of its own, with the MCP server on unless it says
 otherwise. The app is started here, as orca_mcp.py launch starts it, but as this script's child: only a process's parent
 can read its exit code on every system. It is closed as a person closes it, by a click on the File menu's Quit item that
-list_widgets lists; the click's reply may not arrive, since the server closes with the app. orca_mcp.py stop would not
+widget_list lists; the click's reply may not arrive, since the server closes with the app. orca_mcp.py stop would not
 do: on Windows it kills the process.
 
-- exit_with_job_running: a run_script whose code sleeps in 0.2 s steps for 120 s replies running once its reply budget
+- exit_with_job_running: a script_run whose code sleeps in 0.2 s steps for 120 s replies running once its reply budget
   is spent, 4 s with ORCA_MCP_REPLY_BUDGET_MS set for the app, and the app is closed. It passes when the process is
   gone within 20 s with exit code 0 and no line of the log under <datadir>/log contains "did not return".
-- exit_with_recording: a run_script whose code starts a recording through orca.host.tools into a temporary folder and
+- exit_with_recording: a script_run whose code starts a recording through orca.host.tools into a temporary folder and
   then sleeps as above; 3 s later the app is closed. It passes as the first does, and when the recording's file is a
   finished one: the writer puts the header down at once and patches the Segment's size and the Duration only as it
   closes the file (MkvWriter.cpp), so the file is read for a known Segment size that ends at the file's end, a Duration
   above 0 and at least one Cluster.
 - exit_without_endpoint: the app is started with the server off and --run on a replay whose one step is
-  get_app_state, expecting mcp.serving false. It passes when the process exits with code 0 within 60 s, the replay's
+  app_state, expecting mcp.serving false. It passes when the process exits with code 0 within 60 s, the replay's
   result.json says passed (so the endpoint stayed off) and the log has no line containing "did not return".
-- server_off_and_on_during_a_call: a run_script whose code opens Preferences, switches the server off with the widget
-  named mcp_enabled, keeps get_app_state's mcp.serving, switches it on, reads it again, closes the dialog and returns
+- server_off_and_on_during_a_call: a script_run whose code opens Preferences, switches the server off with the widget
+  named mcp_enabled, keeps app_state's mcp.serving, switches it on, reads it again, closes the dialog and returns
   both values. Closing the endpoint drops every connection, the one waiting for the run's job too, so the code waits
-  until the test holds its job before it switches, and the test reconnects and reads the job with wait {for: "job"}. It
+  until the test holds its job before it switches, and the test reconnects and reads the job with app_wait {for: "job"}. It
   passes when the job finished, the values are false then true, and the server answers on the port it had before.
 - exit_with_stuck_call: as exit_with_job_running, but the code is one time.sleep(120), a call no stop interrupts, so
   the run is still inside it when the app closes. It passes when the process is gone within 25 s with exit code 0 and
   the log has a line containing "did not return": the app left the runtime in place under the call rather than free
   it. A missing line means the runtime was freed under the call or the call was interrupted, a change to explain.
   Its limit is longer than the others' since its exit holds the runtime's 10 s drain.
-- instruments_off_with_the_server: a run_script whose code opens Preferences, switches the server off with the widget
+- instruments_off_with_the_server: a script_run whose code opens Preferences, switches the server off with the widget
   named mcp_enabled and closes the dialog, so the run ends with no endpoint serving and nothing else driving the GUI.
   It passes when the log said "Automation GUI instruments on" while the server served and says "Automation GUI
   instruments off" within 30 s of the switch. No server is left to close the app through, so the process is killed.
@@ -81,7 +81,7 @@ time.sleep(120)
 """
 RECORDER = """
 import orca
-orca.host.tools.call("start_recording", {"save_path": args["save_path"]})
+orca.host.tools.call("recording_start", {"save_path": args["save_path"]})
 """ + SLEEPER
 # The run waits for the go file, which the test writes once it holds the run's job: the switch closes the connection a
 # reply would come back on.
@@ -90,20 +90,20 @@ import os
 import time
 import orca
 tools = orca.host.tools
-opened = tools.call("run_action", {"id": "orca_command:open_preferences:orca", "args": {"tab": "general", "key": "mcp_enabled"}})
+opened = tools.call("window_open", {"window": "preferences", "tab": "general", "key": "mcp_enabled"})
 deadline = time.monotonic() + 60
 while not os.path.exists(args["go"]):
     if time.monotonic() > deadline:
         raise TimeoutError("the test never wrote the go file")
     time.sleep(0.1)
 switch = {"name": "mcp_enabled", "within": "Preferences"}
-tools.call("set_widget_value", {"target": switch, "value": False})
-off = tools.call("get_app_state")["mcp"]["serving"]
-tools.call("set_widget_value", {"target": switch, "value": True})
-on = tools.call("get_app_state")["mcp"]["serving"]
-tools.call("answer_dialog", {"dialog": {"title": "Preferences"}, "button": "close"})
+tools.call("widget_set_value", {"target": switch, "value": False})
+off = tools.call("app_state")["mcp"]["serving"]
+tools.call("widget_set_value", {"target": switch, "value": True})
+on = tools.call("app_state")["mcp"]["serving"]
+tools.call("dialog_answer", {"dialog": {"title": "Preferences"}, "button": "close"})
 if opened.get("job"):
-    tools.call("wait", {"for": "job", "job": opened["job"], "timeout_s": 30})
+    tools.call("app_wait", {"for": "job", "job": opened["job"], "timeout_s": 30})
 result = [off, on]
 """
 
@@ -111,11 +111,11 @@ result = [off, on]
 SWITCH_OFF = """
 import orca
 tools = orca.host.tools
-opened = tools.call("run_action", {"id": "orca_command:open_preferences:orca", "args": {"tab": "general", "key": "mcp_enabled"}})
-tools.call("set_widget_value", {"target": {"name": "mcp_enabled", "within": "Preferences"}, "value": False})
-tools.call("answer_dialog", {"dialog": {"title": "Preferences"}, "button": "close"})
+opened = tools.call("window_open", {"window": "preferences", "tab": "general", "key": "mcp_enabled"})
+tools.call("widget_set_value", {"target": {"name": "mcp_enabled", "within": "Preferences"}, "value": False})
+tools.call("dialog_answer", {"dialog": {"title": "Preferences"}, "button": "close"})
 if opened.get("job"):
-    tools.call("wait", {"for": "job", "job": opened["job"], "timeout_s": 30})
+    tools.call("app_wait", {"for": "job", "job": opened["job"], "timeout_s": 30})
 """
 # What AutomationRuntime logs as it installs and removes the GUI instruments.
 INSTRUMENTS_ON = "Automation GUI instruments on"
@@ -156,7 +156,7 @@ def seed(datadir):
 
 class Instance:
     """A private OrcaSlicer on a fresh data folder, started as this script's child, its working folder that data folder,
-    which holds no .py file to shadow a module run_script needs. On leaving, an app still running is closed as a person
+    which holds no .py file to shadow a module script_run needs. On leaving, an app still running is closed as a person
     closes it when the server on PORT is its own, then killed if it outlives its exit watchdog, and the folder is
     removed. `env` adds variables to the app's environment."""
 
@@ -181,7 +181,7 @@ class Instance:
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline and self.proc.poll() is None:
             try:
-                if not self.orca.call("wait", _timeout=15, **{"for": "ready", "timeout_s": 5}).get("satisfied"):
+                if not self.orca.call("app_wait", _timeout=15, **{"for": "ready", "timeout_s": 5}).get("satisfied"):
                     continue
             except DROPPED:
                 time.sleep(0.5)
@@ -220,14 +220,14 @@ def quit_app(orca):
     """Clicks the File menu's Quit item, as a person closes the app, and says what came of the click: its reply, or why
     none came. The reply may not arrive, since the server closes with the app."""
     try:
-        _, texts = orca.call_with_text("list_widgets", _timeout=10, query="Quit")
+        _, texts = orca.call_with_text("widget_list", _timeout=10, query="Quit")
     except DROPPED as e:
-        return f"list_widgets failed: {e}"
+        return f"widget_list failed: {e}"
     found = re.search(r'\[(\w+)\] menu_item "Quit"', "".join(texts))
     if not found:
-        return "list_widgets lists no Quit menu item"
+        return "widget_list lists no Quit menu item"
     try:
-        reply = orca.call_raw("click", {"target": found.group(1)}, timeout=10)
+        reply = orca.call_raw("widget_click", {"target": found.group(1)}, timeout=10)
     except DROPPED as e:
         return f"the click's reply was lost ({type(e).__name__})"
     return "the click replied " + json.dumps(reply)[:300]
@@ -333,12 +333,12 @@ def exit_with_job_running(binary):
     with Instance(binary, env=BUDGET_CAP) as app:
         if app.not_ready:
             return check(name, [app.not_ready], "")
-        reply = call(app.orca, "run_script", code=SLEEPER)
+        reply = call(app.orca, "script_run", code=SLEEPER)
         if reply.get("status") != "running":
-            return check(name, ["run_script did not reply running: " + json.dumps(reply)[:300]], "")
+            return check(name, ["script_run did not reply running: " + json.dumps(reply)[:300]], "")
         problems, took = close_as_a_person(app)
         check(name, problems + log_problems(app.datadir),
-              f"run_script replied running; exit code 0 {took:.1f} s after Quit; no \"{STUCK}\" in the log")
+              f"script_run replied running; exit code 0 {took:.1f} s after Quit; no \"{STUCK}\" in the log")
 
 
 def exit_with_recording(binary):
@@ -351,7 +351,7 @@ def exit_with_recording(binary):
                 return check(name, [app.not_ready], "")
             # No reply within 3 s means the script runs on, as it should; the call goes on in the app.
             try:
-                early = app.orca.call("run_script", _timeout=3, code=RECORDER, args={"save_path": video})
+                early = app.orca.call("script_run", _timeout=3, code=RECORDER, args={"save_path": video})
             except McpError as e:
                 early = {"error": str(e)}
             except (OSError, http.client.HTTPException):
@@ -381,8 +381,8 @@ def exit_without_endpoint(binary):
     os.makedirs(out)
     with open(replay, "w", encoding="utf-8") as f:
         # The expect makes a run that opened the endpoint fail the replay, and with it the check.
-        json.dump({"orca_replay_version": "0.1.0", "name": "the app's state without the server",
-                   "steps": [{"tool": "get_app_state", "expect": {"/mcp/serving": {"eq": False}}}]}, f)
+        json.dump({"orca_replay_version": "0.2.0", "name": "the app's state without the server",
+                   "steps": [{"tool": "app_state", "expect": {"/mcp/serving": {"eq": False}}}]}, f)
     try:
         with Instance(binary, "--run", replay, "--outputdir", out, serve=False) as app:
             start = time.monotonic()
@@ -410,19 +410,19 @@ def server_off_and_on_during_a_call(binary):
     with Instance(binary) as app:
         if app.not_ready:
             return check(name, [app.not_ready], "")
-        before = call(app.orca, "get_app_state").get("mcp", {}).get("port")
+        before = call(app.orca, "app_state").get("mcp", {}).get("port")
         go = os.path.join(app.datadir, "go")
         # The call replies blocked_by_dialog once the Preferences dialog the run opened is up.
-        reply = call(app.orca, "run_script", code=SWITCHER, args={"go": go})
+        reply = call(app.orca, "script_run", code=SWITCHER, args={"go": go})
         job = reply.get("job")
         if reply.get("status") not in ("running", "blocked_by_dialog") or not job:
-            return check(name, ["run_script did not reply with a running job: " + json.dumps(reply)[:300]], "")
+            return check(name, ["script_run did not reply with a running job: " + json.dumps(reply)[:300]], "")
         open(go, "w").close()
         drops, done = 0, None
         deadline = time.monotonic() + 90
         while done is None and time.monotonic() < deadline:
             try:
-                r = app.orca.call("wait", **{"for": "job", "job": job, "timeout_s": 10})
+                r = app.orca.call("app_wait", **{"for": "job", "job": job, "timeout_s": 10})
             except DROPPED:
                 drops += 1
                 time.sleep(0.5)
@@ -431,7 +431,7 @@ def server_off_and_on_during_a_call(binary):
                 done = r
         if done is None:
             return check(name, [f"the job never finished, or the server never came back on port {PORT}"], "")
-        after = call(app.orca, "get_app_state").get("mcp", {}).get("port")
+        after = call(app.orca, "app_state").get("mcp", {}).get("port")
         problems = []
         if done.get("status") != "finished":
             problems.append("the job did not finish: " + json.dumps(done)[:300])
@@ -448,9 +448,9 @@ def exit_with_stuck_call(binary):
     with Instance(binary, env=BUDGET_CAP) as app:
         if app.not_ready:
             return check(name, [app.not_ready], "")
-        reply = call(app.orca, "run_script", code=STUCK_SLEEPER)
+        reply = call(app.orca, "script_run", code=STUCK_SLEEPER)
         if reply.get("status") != "running":
-            return check(name, ["run_script did not reply running: " + json.dumps(reply)[:300]], "")
+            return check(name, ["script_run did not reply running: " + json.dumps(reply)[:300]], "")
         problems, took = close_as_a_person(app, STUCK_EXIT_LIMIT_S)
         stuck = log_lines_containing(app.datadir, STUCK)
         if stuck is None:
@@ -459,7 +459,7 @@ def exit_with_stuck_call(binary):
             problems.append(f"no \"{STUCK}\" line in the log: the runtime was freed under the call, or the call was "
                             f"interrupted")
         line = " ".join(stuck[0].split())[:200] if stuck else ""
-        check(name, problems, f"run_script replied running; exit code 0 {took:.1f} s after Quit; the log says: {line}")
+        check(name, problems, f"script_run replied running; exit code 0 {took:.1f} s after Quit; the log says: {line}")
 
 
 def instruments_off_with_the_server(binary):
@@ -474,7 +474,7 @@ def instruments_off_with_the_server(binary):
             problems.append(f"the log says \"{INSTRUMENTS_OFF}\" while the server serves")
         start = time.monotonic()
         try:
-            app.orca.call("run_script", _timeout=30, code=SWITCH_OFF)
+            app.orca.call("script_run", _timeout=30, code=SWITCH_OFF)
         except DROPPED:
             pass
         while not log_lines_containing(app.datadir, INSTRUMENTS_OFF) and time.monotonic() - start < 30:

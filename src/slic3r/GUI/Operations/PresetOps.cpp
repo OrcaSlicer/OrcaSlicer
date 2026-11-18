@@ -7,19 +7,29 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/DeviceCore/DevManager.h"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/PresetComboBoxes.hpp"
+#include "slic3r/GUI/SyncAmsInfoDialog.hpp"
 #include "slic3r/GUI/Tab.hpp"
 
+#include "libslic3r/Config.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/ProjectTask.hpp"
+#include "libslic3r/TriangleSelector.hpp"
+#include "libslic3r/libslic3r.h"
 
 #include <boost/filesystem/path.hpp>
 
 #include <algorithm>
 #include <cassert>
 #include <cctype>
+#include <cmath>
 #include <cstddef>
 #include <initializer_list>
+#include <numeric>
 #include <optional>
 #include <set>
 #include <sstream>
@@ -366,6 +376,297 @@ Outcome<ImportedPresets> import_presets(const ImportPresetsArgs& args)
         return Refusal{RefusalKind::Failed, "no_presets_imported",
                        L("No presets were imported.\nHint: Make sure you have added the corresponding printer before importing the configs.")};
     return result;
+}
+
+Outcome<Done> sync_presets()
+{
+    assert(wxThread::IsMain());
+    if (!wxGetApp().is_user_login())
+        return Refusal{RefusalKind::Precondition, "not_signed_in", L("Sign in to sync presets.")};
+    wxGetApp().restart_sync_user_preset();
+    return Done{};
+}
+
+// ---- Filament slots ----
+
+namespace {
+
+// Why the filament list cannot change, or none: a printer of another technology has none, and a G-code file shown in
+// place of a project has its own.
+std::optional<Refusal> filament_list_refusal(Plater& plater)
+{
+    if (plater.printer_technology() != ptFFF || plater.only_gcode_mode() || plater.using_exported_file())
+        return Refusal{RefusalKind::Precondition, "filaments_unavailable",
+                       L("Filament slots belong to a filament (FFF) project, not to a G-code file.")};
+    return std::nullopt;
+}
+
+// Why the + and - buttons and a slot's Delete do not show, or none: they are for a printer that takes several
+// filaments through one extruder (Sidebar::should_show_SEMM_buttons()).
+std::optional<Refusal> slot_buttons_refusal(Plater& plater)
+{
+    if (std::optional<Refusal> refusal = filament_list_refusal(plater))
+        return refusal;
+    if (!Sidebar::should_show_SEMM_buttons())
+        return Refusal{RefusalKind::Precondition, "one_filament_per_extruder",
+                       L("This printer has one filament per extruder; change the number of extruders in the printer settings.")};
+    return std::nullopt;
+}
+
+Refusal too_many_filaments() { return {RefusalKind::Precondition, "too_many_filaments", L("No more filament slots can be added.")}; }
+
+Refusal last_filament_slot() { return {RefusalKind::Precondition, "last_filament_slot", L("The only filament slot cannot be deleted.")}; }
+
+} // namespace
+
+Outcome<int> add_filament_slot()
+{
+    assert(wxThread::IsMain());
+    Plater& plater = *wxGetApp().plater();
+    if (std::optional<Refusal> refusal = slot_buttons_refusal(plater))
+        return *refusal;
+    const PresetBundle& bundle = *wxGetApp().preset_bundle;
+    const std::size_t   before = bundle.filament_presets.size();
+    if (before >= MAXIMUM_EXTRUDER_NUMBER)
+        return too_many_filaments();
+    // A new physical slot goes after the physical ones; mixed filaments move up by one.
+    const int slot = int(bundle.num_physical_filaments()) + 1;
+    plater.sidebar().add_filament();
+    plater.sidebar().update_filaments_counter();
+    if (bundle.filament_presets.size() == before)
+        return Refusal{RefusalKind::Failed, "not_added", L("No filament slot was added.")};
+    return slot;
+}
+
+std::optional<Refusal> filament_delete_refusal(int slots, int slot, std::optional<int> merge_into)
+{
+    if (slots < 2)
+        return last_filament_slot();
+    if (slot < 1 || slot > slots)
+        // TRN %1% is the number of the last filament slot.
+        return Refusal{RefusalKind::Precondition, "no_such_slot", L("Filament slot must be 1 to %1%."), {std::to_string(slots)}};
+    if (merge_into && (*merge_into < 1 || *merge_into > slots))
+        // TRN %1% is the number of the last filament slot.
+        return Refusal{RefusalKind::Precondition, "no_such_slot", L("The slot to merge into must be 1 to %1%."), {std::to_string(slots)}};
+    if (merge_into == slot)
+        return Refusal{RefusalKind::Precondition, "merge_into_itself", L("A filament slot cannot be merged into itself.")};
+    return std::nullopt;
+}
+
+Outcome<DeletedFilament> delete_filament_slot(const DeleteFilamentArgs& args)
+{
+    assert(wxThread::IsMain());
+    Plater& plater = *wxGetApp().plater();
+    if (std::optional<Refusal> refusal = slot_buttons_refusal(plater))
+        return *refusal;
+    const PresetBundle& bundle   = *wxGetApp().preset_bundle;
+    const int           slots    = int(bundle.filament_presets.size());
+    const int           physical = int(bundle.num_physical_filaments());
+    // One physical slot stays, whatever mixed slots there are.
+    if (physical < 2)
+        return last_filament_slot();
+    const int slot = args.filament_slot.value_or(physical);
+    if (std::optional<Refusal> refusal = filament_delete_refusal(slots, slot, args.merge_into))
+        return *refusal;
+    if (bundle.is_mixed_filament(std::size_t(slot) - 1))
+        return Refusal{RefusalKind::Precondition, "mixed_filament_slot",
+                       // TRN %1% is a filament slot number.
+                       L("Filament slot %1% is a mixed filament; delete it from the mixed filament list."), {std::to_string(slot)}};
+    Sidebar& sidebar = plater.sidebar();
+    if (args.merge_into) {
+        if (sidebar.merge_removes_component(std::size_t(slot) - 1, std::size_t(*args.merge_into) - 1))
+            return Refusal{RefusalKind::Precondition, "mixed_uses_slot",
+                           L("The target mixed filament uses this physical filament as a component. "
+                             "Merging will remove this physical filament and may invalidate the mixed filament. Continue?")};
+        sidebar.change_filament(std::size_t(slot) - 1, std::size_t(*args.merge_into) - 1);
+    } else {
+        sidebar.delete_filament(std::size_t(slot) - 1);
+    }
+    sidebar.update_filaments_counter();
+    if (int(bundle.filament_presets.size()) == slots)
+        return Refusal{RefusalKind::Failed, "not_deleted", L("The filament slot was not deleted.")};
+    DeletedFilament deleted;
+    deleted.filament_slot = slot;
+    // The slots after the deleted one move down by one.
+    if (args.merge_into)
+        deleted.merged_into = *args.merge_into > slot ? *args.merge_into - 1 : *args.merge_into;
+    return deleted;
+}
+
+std::optional<Refusal> mixed_filament_refusal(const std::vector<std::string>& types, const std::vector<int>& components,
+                                              const std::vector<double>& ratios)
+{
+    const int slots = int(types.size());
+    for (auto it = components.begin(); it != components.end(); ++it)
+        if (std::find(components.begin(), it, *it) != it)
+            return Refusal{RefusalKind::Precondition, "duplicate_component",
+                           // TRN %1% is a filament slot number.
+                           L("Filament %1% is named twice: a mixed filament mixes each filament once."),
+                           {std::to_string(*it)}};
+    if (components.size() < 2)
+        return Refusal{RefusalKind::Precondition, "too_few_components", L("A mixed filament mixes two filaments or more.")};
+    for (int component : components)
+        if (component < 1 || component > slots)
+            return Refusal{RefusalKind::Precondition, "no_such_slot",
+                           // TRN %1% is the filament slot asked for, %2% the number of the last filament that can be mixed.
+                           L("Filament %1% does not exist: the filaments that mix are 1 to %2%."),
+                           {std::to_string(component), std::to_string(slots)}};
+    // The dialog's OK takes filaments of one type; check_mixed_filament_type_consistency() marks another mix broken.
+    std::vector<std::string> mixed_types;
+    for (int component : components)
+        mixed_types.push_back(std::to_string(component) + ": " + types[std::size_t(component - 1)]);
+    for (int component : components)
+        if (types[std::size_t(component - 1)] != types[std::size_t(components.front() - 1)])
+            return Refusal{RefusalKind::Precondition, "mixed_types", L("Cannot mix different filament types"), {}, mixed_types};
+    const bool shares = ratios.size() == components.size() &&
+                        std::all_of(ratios.begin(), ratios.end(), [](double ratio) { return ratio > 0.; }) &&
+                        std::abs(std::accumulate(ratios.begin(), ratios.end(), 0.) - 100.) < 1e-6;
+    if (!shares)
+        return Refusal{RefusalKind::Precondition, "bad_ratios", L("Give one ratio per filament, as percentages that add up to 100.")};
+    return std::nullopt;
+}
+
+Outcome<MixedFilament> add_mixed_filament(const AddMixedFilamentArgs& args)
+{
+    assert(wxThread::IsMain());
+    Plater& plater = *wxGetApp().plater();
+    if (std::optional<Refusal> refusal = filament_list_refusal(plater))
+        return *refusal;
+    Sidebar& sidebar = plater.sidebar();
+    // The filaments that mix are the physical ones, a selector each, each of the type the sidebar reads for them.
+    PresetBundle&            presets = *wxGetApp().preset_bundle;
+    std::vector<std::string> types;
+    for (std::size_t slot = 0; slot < sidebar.combos_filament().size(); ++slot) {
+        Preset* preset = slot < presets.filament_presets.size() ? presets.filaments.find_preset(presets.filament_presets[slot]) :
+                                                                  nullptr;
+        std::string display;
+        std::string type = preset != nullptr ? preset->config.get_filament_type(display) : std::string();
+        types.push_back(type.empty() ? "PLA" : type);
+    }
+    if (std::optional<Refusal> refusal = mixed_filament_refusal(types, args.components, args.ratios))
+        return *refusal;
+    const std::vector<unsigned int> components(args.components.begin(), args.components.end());
+    std::vector<int>                ratios;
+    for (double ratio : args.ratios)
+        ratios.push_back(int(std::lround(ratio)));
+    const PresetBundle& bundle = *wxGetApp().preset_bundle;
+    const std::size_t   before = bundle.filament_presets.size();
+    const int           index  = sidebar.ensure_mixed_filament(components, ratios);
+    if (index < 0 && before >= std::size_t(EnforcerBlockerType::ExtruderMax))
+        return too_many_filaments();
+    if (index < 0)
+        return Refusal{RefusalKind::Failed, "not_mixed", L("No mixed filament was added.")};
+    MixedFilament mixed;
+    mixed.filament_slot = index + 1;
+    mixed.added         = bundle.filament_presets.size() > before;
+    return mixed;
+}
+
+// ---- Syncing the filament list from the AMS ----
+
+AmsSyncState ams_sync_state()
+{
+    assert(wxThread::IsMain());
+    AmsSyncState   state;
+    DeviceManager* devices = wxGetApp().getDeviceManager();
+    MachineObject* printer = devices != nullptr ? devices->get_selected_machine() : nullptr;
+    Plater*        plater  = wxGetApp().plater();
+    if (printer == nullptr || plater == nullptr)
+        return state;
+    state.printer          = true;
+    state.printer_name     = printer->get_dev_name();
+    state.selected_printer = into_u8(plater->get_selected_printer_name_in_combox());
+    const auto& slots      = wxGetApp().preset_bundle->filament_ams_list;
+    state.slots_listed     = !slots.empty();
+    state.printer_answered = printer->is_connected() && printer->m_push_count > 0;
+    for (const auto& slot : slots)
+        if (!slot.second.opt_string("filament_type", 0u).empty() || slot.second.opt_bool("filament_exist", 0u))
+            state.filament_loaded = true;
+    state.filament_installed = printer->is_filament_installed();
+    state.same_printer       = plater->is_same_printer_for_connected_and_selected(/*popup_warning=*/false);
+    PartPlateList& plates    = plater->get_partplate_list();
+    for (int plate = 0; plate < plates.get_plate_count(); ++plate)
+        if (!plates.get_plate(plate)->get_objects_on_this_plate().empty())
+            state.project_has_objects = true;
+    return state;
+}
+
+std::optional<Refusal> ams_sync_refusal(const AmsSyncState& state, std::optional<AmsSyncMode> mode)
+{
+    if (!state.printer)
+        return Refusal{RefusalKind::Precondition, "no_printer", L("Connect a printer to synchronize the AMS filament list.")};
+    if (!state.slots_listed) {
+        // Only an unreachable printer is not connected: one that has sent its status listed no slot.
+        if (state.printer_answered)
+            return Refusal{RefusalKind::Precondition, "no_filament_system",
+                           // TRN %s is the connected printer's name.
+                           L("%s is connected, but no filament system (AMS, CFS or other multi-material unit) was found on it, so "
+                             "there are no filaments to synchronize."),
+                           {state.printer_name}};
+        return Refusal{RefusalKind::Precondition, "not_connected",
+                       // TRN %s is the printer's name.
+                       L("OrcaSlicer can't connect to %s. Please check if the printer is powered on and connected to the network."),
+                       {state.selected_printer}};
+    }
+    if (!state.filament_loaded) {
+        if (!state.filament_installed)
+            return Refusal{RefusalKind::Precondition, "no_filament",
+                           L("There are no filaments on the printer. Please load the filaments on the printer first.")};
+        return Refusal{RefusalKind::Precondition, "unknown_filaments",
+                       L("The filaments on the printer are all unknown types. Please go to the printer screen or software device page "
+                         "to set the filament type.")};
+    }
+    if (!state.same_printer)
+        return Refusal{RefusalKind::Precondition, "other_printer",
+                       // TRN Both %s are the printer selected in the printer selector.
+                       L("The currently connected printer on the device page is not %s. Please switch to %s before syncing."),
+                       {state.selected_printer, state.selected_printer}};
+    if (mode == AmsSyncMode::Map && !state.project_has_objects)
+        return Refusal{RefusalKind::Precondition, "nothing_to_map",
+                       L("Map takes a project with objects on a plate; with none, the filament list is overwritten.")};
+    return std::nullopt;
+}
+
+Outcome<AmsSynced> apply_ams_sync(const AmsSyncChoice& choice)
+{
+    assert(wxThread::IsMain());
+    Plater&                         plater  = *wxGetApp().plater();
+    const Sidebar::AmsSyncApplied   applied = plater.sidebar().apply_ams_sync(choice.direct_sync, choice.sync_maps,
+                                                                              choice.every_slot_changed, choice.unknowns_found);
+    if (applied.filaments == 0) {
+        if (choice.none_compatible)
+            choice.none_compatible(applied.detail);
+        return Refusal{RefusalKind::Failed, "no_compatible_filaments", L("There are no compatible filaments, and sync is not performed."),
+                       {}, applied.unknowns};
+    }
+    AmsSynced           synced;
+    const PresetBundle& bundle = *wxGetApp().preset_bundle;
+    synced.presets             = bundle.filament_presets;
+    if (const auto* colours = bundle.project_config.option<ConfigOptionStrings>("filament_colour"))
+        synced.colours = colours->values;
+    synced.unknowns = applied.unknowns;
+    return synced;
+}
+
+Outcome<AmsSynced> sync_filaments_from_ams(AmsSyncMode mode)
+{
+    assert(wxThread::IsMain());
+    DeviceManager* devices = wxGetApp().getDeviceManager();
+    MachineObject* printer = devices != nullptr ? devices->get_selected_machine() : nullptr;
+    // The printer's slots, read again, as the sync reads them first.
+    if (printer != nullptr)
+        wxGetApp().plater()->sidebar().load_ams_list(printer);
+    if (std::optional<Refusal> refusal = ams_sync_refusal(ams_sync_state(), mode))
+        return *refusal;
+    // Synchronize now, which the dialog answers wxID_YES: every slot counts as changed.
+    AmsSyncChoice choice;
+    if (mode == AmsSyncMode::Map) {
+        std::vector<FilamentInfo> mapped;
+        map_filaments_to_ams(printer, ams_sync_filaments(), mapped);
+        choice.direct_sync = false;
+        choice.sync_maps   = ams_sync_maps(mapped);
+    }
+    return apply_ams_sync(choice);
 }
 
 }}} // namespace Slic3r::GUI::Ops

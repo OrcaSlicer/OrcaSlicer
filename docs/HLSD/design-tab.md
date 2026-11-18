@@ -385,7 +385,7 @@ fold into eight commands, the 24 shape rows into `sketch_draw` among them. An en
 may name the arguments that choose its own row (`args`), as Boolean's Join row is `boolean {operation: "join"}`,
 so that each of a command's variants opens the same way. Two rows have neither an action nor a block, Pattern
 on Curve and Align to, and are shown greyed: they are no command. Every command has a `section`, its heading in
-the names index the MCP server's `search_tools` gives, and `feature_row` marks the four rows whose action works
+the names index the MCP server's `tool_search` gives, and `feature_row` marks the four rows whose action works
 on the Feature tree's selected row (Edit, Rename, Delete and Constrain sketch). `modal` marks the three
 entries whose action opens a dialog that waits for an answer: a modal one for SVG (a file picker) and Color,
 which holds the call that opened it until it is answered, and the Design tab's own modeless dialog for Text,
@@ -398,9 +398,9 @@ for a checked-in header, not documentation.
 ## Automation surface
 
 The document is automated through the app's MCP server, on every platform, with the Design tab's commands, one
-per command entry of its table, in the command catalog's group `Design`: `search_tools {group: "Design"}`
-lists them, `search_tools {tool}` gives one's arguments, how its failure shows and runnable examples, and
-`call_tool {tool, args}` runs one. They are named in the industry's terminology, as popular CAD programs such
+per command entry of its table, in the command catalog's group `Design`: `tool_search {group: "Design"}`
+lists them, `tool_search {tool}` gives one's arguments, how its failure shows and runnable examples, and
+`tool_call {tool, args}` runs one. They are named in the industry's terminology, as popular CAD programs such
 as Fusion 360, Onshape and SolidWorks use it, with a prefix for where each works (`sketch_`, `surface_`,
 `construct_`, `feature_`, `body_`, and none for the model), and one argument for a variant: `type` for which
 kind of thing it makes, `operation` for what the result does to the bodies already there. A person picks the
@@ -421,7 +421,7 @@ does and takes and which menu rows call it, is in [design-commands.md](design-co
 An agent's call needs the MCP server on (`--mcp`, or Preferences), and every command, a person's tile included,
 needs the CAD feature on (Preferences > Features, or `--cad` for one run). The catalog holds them only when the
 feature is on at startup, as the main window makes the Design page only then, so turning it on takes a restart;
-with it off they are unknown commands, whose error says how a person turns it on, as `get_app_state`'s
+with it off they are unknown commands, whose error says how a person turns it on, as `app_state`'s
 `cad_note` does. Turned off while OrcaSlicer runs, the tab stays until the restart, but the Speed Dial has no
 tile of it. A call is refused (`-32002`) while the Design tab is busy: none runs while a rebuild owns the
 document, `change` and `sketch` commands do not run under an open feature card, the Text dialog, Constrain mode
@@ -477,7 +477,7 @@ moves and turns a body as the Move / Rotate card does, lays a face on the bed as
 it back where the model has it. Like the gizmo it is outside the history and not saved, and a placement
 follows its body when the bodies are renumbered, by the transient id of the feature that made it.
 `describe_design` reports each body's placement. The section view and the view's switches are set by value
-through `set_view {tab: "design"}` (`section {on, z, keep}`, `origin_planes`, `world_axes`, `origin`, `bed`),
+through `view_set {tab: "design"}` (`section {on, z, keep}`, `origin_planes`, `world_axes`, `origin`, `bed`),
 which the toolbar and the rows only toggle, and its `camera: "sketch_normal"` is the `N` key, refused with no
 sketch open.
 
@@ -521,10 +521,10 @@ angle to the helix axis. Thread, sweep and loft automation rebuilds through `rec
 as the cards do, so the window stays live during a long build.
 
 The viewport is a canvas target like Prepare's for the app's MCP server (`DesignCanvas::gl_canvas()`):
-`set_view {tab: "design"}` shows the tab and points its camera, `screenshot` captures the view
+`view_set {tab: "design"}` shows the tab and points its camera, `window_screenshot` captures the view
 (sketch overlay and status line included) and composites it into window captures, `mouse_gesture`
 clicks and drags it at pixels, so a left click picks and a right click opens the offer, and
-`list_widgets` lists its in-canvas value fields. Keys sent with `press_keys` reach the panel's
+`widget_list` lists its in-canvas value fields. Keys sent with `keyboard_press` reach the panel's
 `wxEVT_CHAR_HOOK` as a real key press does, travelling up from the focused widget, so Escape,
 Enter and the tool shortcuts behave as they do for a person.
 
@@ -564,7 +564,7 @@ catalog holds: one per command entry and none for a folded or a greyed row, a si
 block and a block for every silent form, the folded rows' tiles, which call opens a tool and which runs, their
 schemas and summaries, and examples that call only real commands with arguments their schemas take;
 `scripts/CAD/test_gen_offer_table.py` checks the generator's refusals. On a live application launched with `tools/mcp/orca_mcp.py launch --cad`, the replays
-`tools/mcp/tests/cad_*.json` drive the commands through `call_tool`, the live tests `tools/mcp/test_cad_replay.py`,
+`tools/mcp/tests/cad_*.json` drive the commands through `tool_call`, the live tests `tools/mcp/test_cad_replay.py`,
 `test_cad_slow_build.py` and `test_cad_failed_job.py` cover journaling and replay, the app staying
 live through a long rebuild, and a call whose job fails after its reply,
 `tools/mcp/test_cad_examples.py` runs every command's examples, each on a fresh design, and
@@ -573,7 +573,7 @@ answer. The GUI
 tests `tools/mcp/test_cad_sketching.py`, `test_cad_context_menu.py` and `test_cad_click_edit.py`
 drive the tab as a person does, through the server's UI tools: they draw on the canvas with
 clicks and typed values, run the offer's verbs from a right click and type into the value fields with
-no click into them, and grade what the reading commands and `list_widgets` report back. They
+no click into them, and grade what the reading commands and `widget_list` report back. They
 need an English UI and no CI job runs them; `tools/mcp/README.md` says how to run them.
 
 Three checks in `scripts/CAD/` drive a running app through its MCP server as an agent does and

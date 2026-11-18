@@ -7,6 +7,7 @@
 #include "slic3r/GUI/NotificationManager.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include <cstddef>
+#include <optional>
 #include <vector>
 #include <utility>
 #include "slic3r/GUI/PartPlate.hpp"
@@ -109,9 +110,15 @@ void OrientJob::prepare_selected() {
 
     std::vector<bool> obj_sel(model.objects.size(), false);
 
-    for (auto &s : m_plater->get_selection().get_content())
-        if (s.first < int(obj_sel.size()))
-            obj_sel[size_t(s.first)] = !s.second.empty();
+    if (m_objects) {
+        for (int object : *m_objects)
+            if (object >= 0 && size_t(object) < obj_sel.size())
+                obj_sel[size_t(object)] = true;
+    } else {
+        for (auto &s : m_plater->get_selection().get_content())
+            if (s.first < int(obj_sel.size()))
+                obj_sel[size_t(s.first)] = !s.second.empty();
+    }
 
    //BBS: add only one plate mode
     prepare_selection(obj_sel, false);
@@ -256,7 +263,7 @@ void OrientJob::process(Ctl &ctl)
     wxGetApp().plater()->show_status_message(ctl.was_canceled() ? "Orienting canceled." : ss.str());
 }
 
-OrientJob::OrientJob() : m_plater{wxGetApp().plater()} {}
+OrientJob::OrientJob(std::optional<std::vector<int>> objects) : m_plater{wxGetApp().plater()}, m_objects{std::move(objects)} {}
 
 void OrientJob::finalize(bool canceled, std::exception_ptr &eptr)
 {

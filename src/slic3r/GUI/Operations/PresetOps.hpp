@@ -2,11 +2,17 @@
 
 #include "Outcome.hpp"
 
+#include "libslic3r/PresetBundle.hpp"
+
 #include <boost/filesystem/path.hpp>
 
+#include <functional>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
+
+#include <wx/string.h>
 
 namespace Slic3r {
 
@@ -94,6 +100,124 @@ Outcome<ImportedPresets> import_presets(const ImportPresetsArgs& args);
 // The names of `presets` closest to `name`, those compatible with the printer first: what a refusal
 // of an unknown preset name carries, for a caller that refuses one itself.
 std::vector<std::string> similar_preset_names(const PresetCollection& presets, const std::string& name);
+
+// Starts the sync of the user presets with the cloud account, as Sync Presets does; the sync goes on in the
+// background.
+// Refuses: not_signed_in.
+Outcome<Done> sync_presets();
+
+// ---- Filament slots: the + and - buttons above the filament list, a slot's Delete and Merge with, Add Mixed Filament ----
+
+// Adds a physical filament slot after the physical ones, as the + button does: it takes the next colour and the last
+// slot's preset, and the mixed filaments, with the objects on them, move up by one. Returns the new slot's number
+// (1-based).
+// Refuses: filaments_unavailable (a printer of another technology, or a G-code file shown in place of a project, which
+//          has a filament list of its own), one_filament_per_extruder (a printer whose filaments are its extruders,
+//          which shows no + button), too_many_filaments.
+Outcome<int> add_filament_slot();
+
+// What keeps filament slot `slot` (1-based) of a project of `slots` slots, mixed ones among them, from being deleted, or
+// merged into slot `merge_into`, or none: the only slot (last_filament_slot), a slot the project lacks (no_such_slot),
+// and a merge into the slot itself (merge_into_itself).
+std::optional<Refusal> filament_delete_refusal(int slots, int slot, std::optional<int> merge_into);
+
+struct DeleteFilamentArgs
+{
+    std::optional<int> filament_slot; // 1-based; none: the last physical slot, as the - button
+    std::optional<int> merge_into;    // 1-based; none: the objects on the slot take the first filament, as its Delete does
+};
+struct DeletedFilament
+{
+    int                filament_slot = 0; // the slot deleted, by its number before the delete
+    std::optional<int> merged_into;       // the slot its objects went to, by its number afterwards
+};
+// Deletes a filament slot as its Delete menu item does, or, with merge_into, as its Merge with item does
+// (Sidebar::change_filament()): the objects on it go to that slot. Not in the undo history, as neither item is.
+// Refuses: filaments_unavailable, one_filament_per_extruder, the only physical slot (last_filament_slot), what
+//          filament_delete_refusal() gives, a mixed filament (mixed_filament_slot, which the mixed filament list
+//          deletes), a merge into a mixed filament that mixes the slot (mixed_uses_slot, with the question Merge with
+//          asks there), and a delete the sidebar did not make (not_deleted).
+Outcome<DeletedFilament> delete_filament_slot(const DeleteFilamentArgs& args);
+
+// What keeps a mixed filament of `components` (1-based filament slots) in `ratios` (percentages, one per component)
+// from being made in a project whose filaments that mix, its physical ones, have the filament types `types` (slot 1
+// first), or none: a filament named twice (duplicate_component), which the Add Mixed Filament dialog's selectors
+// never offer, fewer than two filaments (too_few_components), a slot that is not one of them (no_such_slot),
+// filaments of different types (mixed_types), which the dialog does not take and the sidebar marks broken, and ratios
+// that are not one per component, each above 0, adding up to 100 (bad_ratios).
+std::optional<Refusal> mixed_filament_refusal(const std::vector<std::string>& types, const std::vector<int>& components,
+                                              const std::vector<double>& ratios);
+
+struct AddMixedFilamentArgs
+{
+    std::vector<int>    components; // 1-based physical filament slots
+    std::vector<double> ratios;     // whole percentages, one per component, as the dialog sets them
+};
+struct MixedFilament
+{
+    int  filament_slot = 0;     // 1-based
+    bool added         = false; // false: the project mixes these filaments in these ratios already, in that slot
+};
+// Adds a mixed filament as the Add Mixed Filament dialog's OK does for these filaments and ratios with no gradient
+// (Sidebar::ensure_mixed_filament()), in a slot after every other; a mix the project has already is that slot.
+// Refuses: filaments_unavailable, what mixed_filament_refusal() gives, too_many_filaments, and not_mixed where the
+//          sidebar made none.
+Outcome<MixedFilament> add_mixed_filament(const AddMixedFilamentArgs& args);
+
+// ---- Syncing the filament list from the AMS: Synchronize Filament List from AMS and its dialog ----
+
+// The sync dialog's two choices: map each of the project's filaments to a slot of the printer, or overwrite the filament
+// list with the slots' filaments.
+enum class AmsSyncMode { Map, Overwrite };
+
+// What the sync reads of the printer selected on the Device tab and of the project.
+struct AmsSyncState
+{
+    bool        printer = false;             // a printer is selected on the Device tab
+    std::string printer_name;                // its name
+    std::string selected_printer;            // the printer the printer selector shows
+    bool        slots_listed        = false; // the printer listed AMS or external spool slots
+    bool        printer_answered    = false; // it is online and has sent its status
+    bool        filament_loaded     = false; // a slot holds a filament of a known type
+    bool        filament_installed  = false; // the printer reports filament installed
+    bool        same_printer        = false; // it is of the selected printer's model, ready to sync
+    bool        project_has_objects = false; // a plate has objects: the dialog then asks how to sync
+};
+// The state of the printer selected on the Device tab, once Sidebar::load_ams_list() has read its slots. UI thread.
+AmsSyncState ams_sync_state();
+// Why the filament list cannot be synced from the AMS, or none; `mode` none for the sync dialog's own run.
+// Refuses: no_printer, no_filament_system (the printer answered with no slot), not_connected, no_filament,
+//          unknown_filaments (every filament of an unknown type), other_printer (not the selected printer's model), and
+//          nothing_to_map (Map for a project with no objects, where the dialog does not ask and overwrites the list).
+std::optional<Refusal> ams_sync_refusal(const AmsSyncState& state, std::optional<AmsSyncMode> mode);
+
+// What the sync dialog's Synchronize now takes, as the sync applies it.
+struct AmsSyncChoice
+{
+    bool                      direct_sync = true;        // overwrite the list; else map by sync_maps
+    std::map<int, AMSMapInfo> sync_maps;                 // each project filament's slot, by its 0-based index
+    bool                      every_slot_changed = true; // each slot's filament counts as changed since the last sync
+    // Told, in the UI's language, the slots whose filament is unknown or incompatible and was mapped to a generic preset,
+    // before the list changes; none tells no one.
+    std::function<void(const wxString& detail)> unknowns_found;
+    // Told the slots' detail where no filament is compatible and nothing is synced; none tells no one.
+    std::function<void(const wxString& detail)> none_compatible;
+};
+struct AmsSynced
+{
+    std::vector<std::string> presets;  // each filament slot's preset afterwards, slot 1 first
+    std::vector<std::string> colours;  // each slot's colour afterwards
+    std::vector<std::string> unknowns; // the slots mapped to a generic preset: "tray(type) reason"
+};
+// Syncs the filament list from the AMS list read last (Sidebar::apply_ams_sync()), as the sync dialog's Synchronize now
+// does with `choice`. Not in the undo history.
+// Refuses: no_compatible_filaments (with the slots), where nothing is synced.
+Outcome<AmsSynced> apply_ams_sync(const AmsSyncChoice& choice);
+// Syncs the filament list from the AMS of the printer selected on the Device tab with the dialog's choice `mode`, as
+// Synchronize now does on what the dialog first shows: Map maps the project's filaments to the slots as the dialog's
+// Mapping first does. Opens nothing.
+// Refuses: what ams_sync_refusal() gives, and what apply_ams_sync() refuses.
+Outcome<AmsSynced> sync_filaments_from_ams(AmsSyncMode mode);
 
 }} // namespace GUI::Ops
 } // namespace Slic3r

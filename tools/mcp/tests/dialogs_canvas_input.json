@@ -5,54 +5,54 @@
 // Refusals (a point or an ImGui item under a panel or notification) are unit tests in
 // tests/slic3rutils/test_mcp_results.cpp, since a replay step cannot expect an error.
 {
-  "orca_replay_version": "0.1.0",
+  "orca_replay_version": "0.2.0",
   "name": "auto-answers and canvas input",
   "vars": {"standard": "0.20mm Standard @BBL X1C", "fine": "0.16mm High Quality @BBL X1C"},
   "steps": [
-    {"tool": "wait", "args": {"for": "ready"}},
-    {"tool": "auto_answer_dialogs", "args": {"rules": [
+    {"tool": "app_wait", "args": {"for": "ready"}},
+    {"tool": "dialog_auto_answer", "args": {"rules": [
       {"match": "Uniform scale", "button": "ok"},
       {"match": "unsaved changes", "button": "no"},
       {"match": "Transfer or discard", "button": "Transfer"}]}},
-    {"tool": "new_project", "args": {"discard_changes": true}},
-    {"tool": "set_window", "args": {"size": [1600, 900]}},
-    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "project_new", "args": {"discard_changes": true}},
+    {"tool": "window_set", "args": {"size": [1600, 900]}},
+    {"tool": "view_set", "args": {"tab": "prepare"}},
 
     // ---- An auto-answered Transfer keeps the edit on the newly selected process preset ----
-    {"tool": "select_preset", "args": {"type": "process", "name": "${vars.standard}"}},
-    {"tool": "set_settings", "args": {"scope": "process", "values": {"wall_loops": 5}}},
-    {"tool": "select_preset", "args": {"type": "process", "name": "${vars.fine}"}, "expect": {"/selected": {"eq": "0.16mm High Quality @BBL X1C"}}},
-    {"tool": "get_settings", "args": {"scope": "process", "keys": ["wall_loops"]}, "expect": {"/items/0/value": {"eq": "5"}}},
+    {"tool": "preset_select", "args": {"type": "process", "name": "${vars.standard}"}},
+    {"tool": "settings_set", "args": {"type": "process", "values": {"wall_loops": 5}}},
+    {"tool": "preset_select", "args": {"type": "process", "name": "${vars.fine}"}, "expect": {"/selected": {"eq": "0.16mm High Quality @BBL X1C"}}},
+    {"tool": "settings_get", "args": {"type": "process", "keys": ["wall_loops"]}, "expect": {"/items/0/value": {"eq": "5"}}},
     // ---- An auto-answered Discard drops it ----
-    {"tool": "auto_answer_dialogs", "args": {"rules": [{"match": "Transfer or discard", "button": "Discard"}]}},
-    {"tool": "select_preset", "args": {"type": "process", "name": "${vars.standard}"}, "expect": {"/selected": {"eq": "0.20mm Standard @BBL X1C"}}},
-    {"tool": "get_settings", "args": {"scope": "process", "keys": ["wall_loops"]}, "expect": {"/items/0/value": {"ne": "5"}}},
-    {"tool": "get_app_state", "expect": {"/project/dirty": {"eq": false}}},
+    {"tool": "dialog_auto_answer", "args": {"rules": [{"match": "Transfer or discard", "button": "Discard"}]}},
+    {"tool": "preset_select", "args": {"type": "process", "name": "${vars.standard}"}, "expect": {"/selected": {"eq": "0.20mm Standard @BBL X1C"}}},
+    {"tool": "settings_get", "args": {"type": "process", "keys": ["wall_loops"]}, "expect": {"/items/0/value": {"ne": "5"}}},
+    {"tool": "app_state", "expect": {"/project/dirty": {"eq": false}}},
 
     // ---- A toolbar item a selection just enabled takes the click at once ----
-    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
-    {"tool": "wait", "args": {"for": "idle"}},
-    {"tool": "select_objects", "args": {"none": true}},
-    {"tool": "list_widgets", "args": {"query": "layersediting"}},
-    {"tool": "select_objects", "args": {"objects": [0]}},
-    {"tool": "click", "args": {"target": {"gltoolbar": "layersediting"}}, "expect": {"/pressed": {"eq": true}}},
-    {"tool": "click", "args": {"target": {"gltoolbar": "layersediting"}}, "expect": {"/pressed": {"eq": false}}},
+    {"tool": "action_run", "args": {"id": "orca_command:add_primitive_cube:orca"}},
+    {"tool": "app_wait", "args": {"for": "idle"}},
+    {"tool": "object_select", "args": {"none": true}},
+    {"tool": "widget_list", "args": {"query": "layersediting"}},
+    {"tool": "object_select", "args": {"objects": [0]}},
+    {"tool": "widget_click", "args": {"target": {"gltoolbar": "layersediting"}}, "expect": {"/pressed": {"eq": true}}},
+    {"tool": "widget_click", "args": {"target": {"gltoolbar": "layersediting"}}, "expect": {"/pressed": {"eq": false}}},
 
     // ---- A negative part is a surface target (the text lands on the cube's top) ----
-    {"tool": "set_view", "args": {"camera": "iso"}},
-    {"tool": "set_view", "args": {"camera": "fit_objects"}},
-    {"tool": "click", "args": {"target": {"gizmo": "Text"}}, "expect": {"/created": {"eq": true}}},
-    {"tool": "wait", "args": {"for": "idle"}},
-    {"tool": "click", "args": {"target": {"imgui": "Cut"}}},
-    {"tool": "click", "args": {"target": {"imgui": "Done"}}},
-    {"tool": "list_objects", "expect": {"/plates/0/objects/0/parts/1/type": {"eq": "negative"}}},
+    {"tool": "view_set", "args": {"camera": "iso"}},
+    {"tool": "view_set", "args": {"camera": "fit_objects"}},
+    {"tool": "widget_click", "args": {"target": {"gizmo": "Text"}}, "expect": {"/created": {"eq": true}}},
+    {"tool": "app_wait", "args": {"for": "idle"}},
+    {"tool": "widget_click", "args": {"target": {"imgui": "Cut"}}},
+    {"tool": "widget_click", "args": {"target": {"imgui": "Done"}}},
+    {"tool": "object_list", "expect": {"/plates/0/objects/0/parts/1/type": {"eq": "negative"}}},
     // The text's size, and so which of its ends the cube hides, differs between platforms; the step is
     // about the part resolving as a target, so it skips the visibility check.
     {"tool": "mouse_gesture", "args": {"action": "move", "at": {"object": 0, "part": 1, "spot": "right"}, "check": "point"}},
 
     // ---- From below, the bed hides nothing ----
-    {"tool": "set_view", "args": {"camera": "bottom"}},
-    {"tool": "set_view", "args": {"camera": "fit_objects"}},
+    {"tool": "view_set", "args": {"camera": "bottom"}},
+    {"tool": "view_set", "args": {"camera": "fit_objects"}},
     {"tool": "mouse_gesture", "args": {"action": "move", "at": {"object": 0, "spot": "bottom"}}},
     {"tool": "mouse_gesture", "args": {"action": "move", "at": {"object": 0, "point": [5, 5, -12.8]}}}
   ]

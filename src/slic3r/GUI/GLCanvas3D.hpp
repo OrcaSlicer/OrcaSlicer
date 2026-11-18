@@ -1200,6 +1200,7 @@ public:
     void share_section_view(const GLCanvas3D& owner) { m_section_view = owner.m_section_view; }
 
     void toggle_world_axes_visibility(bool force_show = false);
+    bool are_world_axes_shown() const { return m_show_world_axes; }
     void refresh_camera_scene_box();
     void set_color_by(const std::string& value);
 

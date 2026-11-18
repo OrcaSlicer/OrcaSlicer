@@ -1,7 +1,7 @@
 """Drive the Design tab of a running OrcaSlicer the way a person does, for the Design-tab GUI tests.
 
-Every action goes through the MCP server's UI tools (set_view, click, mouse_gesture, press_keys,
-set_widget_value, answer_dialog); the Design commands are used only to read results back (sketch_describe,
+Every action goes through the MCP server's UI tools (view_set, widget_click, mouse_gesture, keyboard_press,
+widget_set_value, dialog_answer); the Design commands are used only to read results back (sketch_describe,
 describe_design, feature_describe), and the right-click menu's layout is read from the Design table's source,
 scripts/CAD/tool_atlas.json, as the app's own table is generated from it. Nothing here knows a pixel: buttons and rows are
 found by label, and canvas positions come from a calibration that maps the open sketch's plane
@@ -37,7 +37,7 @@ NEW_DESIGN = "New Design — clear the feature tree"
 # reset_view()'s zoom, in click pixels per mm at the camera's target, about 1.6: close enough that a
 # 40 mm line is long beside the pixel-sized reach of its value label, and far enough that the region
 # calibrate() measures holds every shape the tests draw at the default window. In click pixels, so
-# the tests' clicks have the same room on every display; set_view takes screenshot pixels, which
+# the tests' clicks have the same room on every display; view_set takes screenshot pixels, which
 # are GL pixels, two per click pixel on a Retina display.
 RESET_ZOOM = 250 / 1.4 ** 15
 
@@ -65,7 +65,7 @@ BADGE_CELL_PX = 11.0
 BADGE_STEP_PX = 1.5 * BADGE_CELL_PX
 BADGE_PICK_PX = 0.6 * BADGE_CELL_PX
 
-# One line of list_widgets' tree. rect is (x, y, w, h) in logical pixels, from the main window's
+# One line of widget_list's tree. rect is (x, y, w, h) in logical pixels, from the main window's
 # client area for a window's widgets and from the canvas's top left for its ImGui items, or None.
 # parent is the index of the parent node in the list widgets() returns, or None at the top.
 # focused: the line is marked [focused], the window or ImGui text field that typed keys go to.
@@ -103,7 +103,7 @@ def _same(a, b, tol=1e-12):
     return a == b
 
 
-# ---------------------------------------------------------------- list_widgets' tree
+# ---------------------------------------------------------------- widget_list's tree
 
 # The parts of a line that can follow its value, in their order; a label or value ends at a quote
 # followed by one of them or by the end of the line.
@@ -111,7 +111,7 @@ _AFTER_VALUE = (" (", " name=", " option=", ' in "', " [")
 
 
 def parse_widgets(text):
-    """list_widgets' text tree as [Widget]. A line is
+    """widget_list's text tree as [Widget]. A line is
     `[ref] kind "label" = "value" (class) name=NAME option=O in "W" [flags] @x,y wxh`, every part
     after the kind optional and in that order."""
     out, stack = [], []
@@ -315,7 +315,7 @@ class CadGui:
         released before reset_view(), whose N would otherwise act under it."""
         steps = [("cancel dialogs", self._cancel_dialogs),
                  ("cancel modeless dialogs", self._cancel_modeless),
-                 ("show the Design tab", lambda: self.client.call("set_view", tab="design")),
+                 ("show the Design tab", lambda: self.client.call("view_set", tab="design")),
                  ("release the mouse", lambda: self.gesture(action="up", **self._canvas_centre())),
                  ("reset the view", self.reset_view),
                  ("Escape", lambda: self.keys("Escape", target=CANVAS)),
@@ -329,30 +329,30 @@ class CadGui:
 
     def _cancel_dialogs(self):
         for _ in range(5):
-            dialogs = self.client.call("get_app_state").get("dialogs", [])
+            dialogs = self.client.call("app_state").get("dialogs", [])
             if not dialogs:
                 return
             buttons = {b.get("label", "").lower() for b in dialogs[-1].get("buttons", [])}
             button = next((b for b in ("cancel", "no", "close") if b in buttons), "cancel")
-            self.client.call("answer_dialog", button=button)
+            self.client.call("dialog_answer", button=button)
         raise RuntimeError("dialogs keep opening")
 
     def _cancel_modeless(self):
         """Close each shown dialog that is not modal as a person would: with its own Cancel, or with
-        Escape in it when it has none, as the Speed Dial has none. answer_dialog and get_app_state's
-        dialogs know only modal ones, so these are found among list_windows' windows. The Cancel is
+        Escape in it when it has none, as the Speed Dial has none. dialog_answer and app_state's
+        dialogs know only modal ones, so these are found among window_list's windows. The Cancel is
         looked for among that window's own widgets: within an empty title, as the Speed Dial's is,
         matches every window, so a click by label could press another's, such as the Design tab's."""
         for _ in range(5):
             shown = self._modeless_windows()
             if not shown:
                 return
-            _, texts = self.client.call_with_text("list_widgets", target=shown[0]["ref"], max_nodes=5000,
+            _, texts = self.client.call_with_text("widget_list", target=shown[0]["ref"], max_nodes=5000,
                                                   max_web_nodes=5000)
             own = parse_widgets(texts[0] if texts else "")
             cancel = next((w for w in own if w.kind == "button" and w.label == "Cancel"), None)
             if cancel is not None:
-                self.client.call("click", target=cancel.ref)
+                self.client.call("widget_click", target=cancel.ref)
             else:
                 page = next((w for w in own if w.kind == "webview"), None)
                 self.keys("Escape", target=page.ref if page is not None else shown[0]["ref"])
@@ -380,14 +380,14 @@ class CadGui:
             raise
 
     def widgets(self):
-        """list_widgets' tree as [Widget], asked for at the tool's largest size. A tree larger than
+        """widget_list's tree as [Widget], asked for at the tool's largest size. A tree larger than
         that raises: the nodes past the cut include the canvas and its ImGui items, which would
         otherwise read as not shown."""
-        _, texts = self.client.call_with_text("list_widgets", max_nodes=5000, max_web_nodes=5000)
+        _, texts = self.client.call_with_text("widget_list", max_nodes=5000, max_web_nodes=5000)
         text = texts[0] if texts else ""
         cut = next((line for line in text.splitlines() if line.startswith("... ") and " more nodes" in line), None)
         if cut is not None:
-            raise RuntimeError(f"list_widgets cut its tree short: {cut}")
+            raise RuntimeError(f"widget_list cut its tree short: {cut}")
         return parse_widgets(text)
 
     def modeless(self):
@@ -395,9 +395,9 @@ class CadGui:
         return [w["title"] for w in self._modeless_windows()]
 
     def _modeless_windows(self):
-        """list_windows' shown dialogs that are not modal, leaving out the person's own (hidden), such
+        """window_list's shown dialogs that are not modal, leaving out the person's own (hidden), such
         as Action Replay, which no tool reaches."""
-        items = self.client.call("list_windows").get("items", [])
+        items = self.client.call("window_list").get("items", [])
         return [w for w in items if w.get("kind") == "dialog" and not w.get("modal") and not w.get("hidden")]
 
     @staticmethod
@@ -459,10 +459,10 @@ class CadGui:
         args = {"keys": chord}
         if target is not None:
             args["target"] = target
-        return self.client.call("press_keys", **args)
+        return self.client.call("keyboard_press", **args)
 
     def text(self, s):
-        return self.client.call("press_keys", text=s)
+        return self.client.call("keyboard_press", text=s)
 
     def press(self, label, within=None):
         """Click a widget by its label, in the window titled `within` when one is named. A click
@@ -470,19 +470,19 @@ class CadGui:
         target = {"label": label}
         if within is not None:
             target["within"] = within
-        return self.client.call("click", target=target)
+        return self.client.call("widget_click", target=target)
 
     def fill(self, target, value, submit=True):
-        """Give the widget `target` names (a list_widgets locator) `value` with set_widget_value,
+        """Give the widget `target` names (a widget_list locator) `value` with widget_set_value,
         the way into a native text field, which key presses never type into. `submit` also
         presses Enter in it, as the tool does by default."""
-        return self.client.call("set_widget_value", target=target, value=value, submit=submit)
+        return self.client.call("widget_set_value", target=target, value=value, submit=submit)
 
     def row(self, label, double=False):
-        return self.client.call("click", target={"row": label}, double=double)
+        return self.client.call("widget_click", target={"row": label}, double=double)
 
     def menu(self, path):
-        return self.client.call("click", target={"menu": path})
+        return self.client.call("widget_click", target={"menu": path})
 
     def gesture(self, **args):
         return self.client.call("mouse_gesture", canvas="design", **args)
@@ -491,7 +491,7 @@ class CadGui:
         """When `reply` is a call held by the dialog titled `title`, answer it and finish the call."""
         if reply.get("status") != "blocked_by_dialog":
             return reply
-        self.client.call("answer_dialog", button=button, dialog={"title": title})
+        self.client.call("dialog_answer", button=button, dialog={"title": title})
         return self.client.await_job(reply, timeout=60)
 
     # ------------------------------------------------------------ session
@@ -501,7 +501,7 @@ class CadGui:
         tab lays its canvas out on its first showing (in a fresh instance) as on a later one, make the
         window wide enough for the sketch ribbon, show the Design tab in reset_view()'s view and start
         an empty design."""
-        if not self.client.call("get_app_state").get("design_tab"):
+        if not self.client.call("app_state").get("design_tab"):
             print("the Design tab is off: launch the app with tools/mcp/orca_mcp.py launch --cad")
             sys.exit(2)
         ws = self.widgets()
@@ -511,13 +511,13 @@ class CadGui:
             sys.exit(2)
         # A run killed before it cleared its auto-answer rules leaves them in force, and they would
         # answer this run's dialogs and pickers; an empty list clears the rules a client set.
-        self.client.call("auto_answer_dialogs", rules=[])
+        self.client.call("dialog_auto_answer", rules=[])
         # A canvas laid out under a ribbon of the wrong height moves when the tab is shown again, and a
         # click aimed through a map fitted before the move misses by that much.
-        self.client.call("set_view", tab="design")
+        self.client.call("view_set", tab="design")
         first = self._canvas(self.widgets()).rect
-        self.client.call("set_view", tab="prepare")
-        self.client.call("set_view", tab="design")
+        self.client.call("view_set", tab="prepare")
+        self.client.call("view_set", tab="design")
         again = self._canvas(self.widgets()).rect
         self.check("the Design tab's first showing lays out its canvas as a later one does", first == again,
                    f"{first}, then {again}")
@@ -535,14 +535,14 @@ class CadGui:
         over = cancel.rect[0] + cancel.rect[2] - (cx + cw)
         self.cancel()
         if over > 0:
-            width, height = self.client.call("get_app_state")["window"]["size"]
-            self.client.call("set_window", size=[width + over + cancel.rect[3], height])
+            width, height = self.client.call("app_state")["window"]["size"]
+            self.client.call("window_set", size=[width + over + cancel.rect[3], height])
         self.show_design()
         self.new_design()
 
     def show_design(self):
         """Bring the Design tab to the front, in the view reset_view() sets."""
-        self.client.call("set_view", tab="design")
+        self.client.call("view_set", tab="design")
         self.reset_view()
 
     def reset_view(self):
@@ -550,18 +550,18 @@ class CadGui:
         the top camera at RESET_ZOOM, centred on describe_design's modeling_origin, the sketch planes'
         origin, and squared to the sketch's plane when a sketch is open.
 
-        set_view's look_at is in the Design view's world coordinates, where modeling_origin is not
+        view_set's look_at is in the Design view's world coordinates, where modeling_origin is not
         zero: a new design puts it at the Design bed's centre. Its directions fit only what has volumes, so on an
         empty design they turn the camera and keep its zoom and centre; the look_at and zoom it
         applies after the direction set both. N in a sketch squares the view to the sketch's plane
         and centres it on the plane's origin, keeping the zoom. Every map calibrate() fits stands
-        on this view, so the camera set_view reports is checked. Its camera_state gives the canvas's
+        on this view, so the camera view_set reports is checked. Its camera_state gives the canvas's
         GL pixels per click pixel, and the view is set again when they differ from the ones the zoom
         assumed."""
         origin = self.cad("describe_design")["modeling_origin"]
 
         def aim():
-            return self.client.call("set_view", tab="design", camera="top", look_at=origin,
+            return self.client.call("view_set", tab="design", camera="top", look_at=origin,
                                     zoom=RESET_ZOOM * self.gl_per_px).get("camera_state", {})
 
         state = aim()
@@ -573,7 +573,7 @@ class CadGui:
         zoom, target = state.get("zoom"), state.get("look_at")
         if (zoom is None or abs(zoom - RESET_ZOOM * self.gl_per_px) > 1e-3 or target is None
                 or max(abs(a - b) for a, b in zip(target, origin)) > 1e-3):
-            raise RuntimeError(f"set_view left the Design camera at {state}, not at modeling_origin "
+            raise RuntimeError(f"view_set left the Design camera at {state}, not at modeling_origin "
                                f"{origin} with zoom {RESET_ZOOM * self.gl_per_px:.4f}")
         if self._sketch_or_none():
             self.keys("n", target=CANVAS)
@@ -732,8 +732,8 @@ class CadGui:
 
     def _view_key(self, w, h):
         """What a plane-to-pixel map stands on besides the sketch's plane: the canvas's size and
-        the Design camera get_app_state reports."""
-        camera = self.client.call("get_app_state").get("camera") or {}
+        the Design camera app_state reports."""
+        camera = self.client.call("app_state").get("camera") or {}
         return (w, h, json.dumps(camera, sort_keys=True))
 
     def _check_map(self, H, w, h):

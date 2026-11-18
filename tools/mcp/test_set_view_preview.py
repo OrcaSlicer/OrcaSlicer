@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Checks what set_view does to the Preview of a sliced cube where a replay cannot look.
+"""Checks what view_set does to the Preview of a sliced cube where a replay cannot look.
 
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_set_view_preview.py
@@ -35,13 +35,13 @@ def main():
 
     def refusal(**args):
         try:
-            client.call("set_view", **args)
+            client.call("view_set", **args)
             return ""
         except orca_mcp.McpError as e:
             return str(e)
 
     def legend():
-        return client.call("get_slice_stats", include=["view"])["view"]["legend"]
+        return client.call("plate_slice_stats", include=["view"])["view"]["legend"]
 
     def last_view_type(expected):
         # The app writes its config at an idle moment, so wait for it.
@@ -59,23 +59,23 @@ def main():
             time.sleep(0.1)
         return value
 
-    client.call("auto_answer_dialogs", rules=[{"match": "Uniform scale", "button": "ok"}])
-    client.call("new_project", discard_changes=True)
+    client.call("dialog_auto_answer", rules=[{"match": "Uniform scale", "button": "ok"}])
+    client.call("project_new", discard_changes=True)
     check("legend rows need a slice", "slice first" in refusal(legend={"travel": False}))
-    client.call("run_action", id="orca_command:add_primitive_cube:orca")
-    client.call("wait", **{"for": "idle"})
-    sliced = client.await_job(client.call("slice"))["plates"][0]
-    client.call("set_view", view_type="feature_type", layer_range=[1, 128])
+    client.call("action_run", id="orca_command:add_primitive_cube:orca")
+    client.call("app_wait", **{"for": "idle"})
+    sliced = client.await_job(client.call("plate_slice"))["plates"][0]
+    client.call("view_set", view_type="feature_type", layer_range=[1, 128])
 
-    # A click on the legend row and get_slice_stats's legend are one state. The snapshot draws the legend
+    # A click on the legend row and plate_slice_stats's legend are one state. The snapshot draws the legend
     # first, since a window the desktop hides may not have drawn it since the slice.
-    client.call("list_widgets", query="Sparse infill")
-    client.call("click", target={"imgui_name": "Sparse infill"})
+    client.call("widget_list", query="Sparse infill")
+    client.call("widget_click", target={"imgui_name": "Sparse infill"})
     check("a legend row's click hides its feature type", legend()["features"]["Sparse infill"] is False)
-    client.call("set_view", view_type="speed")
+    client.call("view_set", view_type="speed")
     check("the pick is remembered", last_view_type("speed") == "speed", last_view_type("speed"))
     check("another view type keeps it hidden", legend()["features"]["Sparse infill"] is False)
-    client.call("set_view", view_type="feature_type")
+    client.call("view_set", view_type="feature_type")
     check("picking Line Type shows it again", legend()["features"]["Sparse infill"] is True)
     check("Line Type is remembered", last_view_type("feature_type") == "feature_type", last_view_type("feature_type"))
 
@@ -87,11 +87,11 @@ def main():
                {"layer_range": [20, 100]}, {"view_type": "fan_speed"}, {"layer_range": [1, 128]}, {"view_type": "feature_type"}]
     steps = []
     for i, change in enumerate(changes):
-        steps.append({"tool": "set_view", "args": change})
-        steps += [{"tool": "screenshot", "args": {"target": "canvas", "save_path": f"${{out_dir}}/{i}{shot}.png",
+        steps.append({"tool": "view_set", "args": change})
+        steps += [{"tool": "window_screenshot", "args": {"target": "canvas", "save_path": f"${{out_dir}}/{i}{shot}.png",
                                                   "overwrite": True, "include_image": False}}
                   for shot in "ab"]
-    ran = client.await_job(client.call("run_replay", replay={"orca_replay_version": "0.1.0", "name": "captures after view changes", "steps": steps},
+    ran = client.await_job(client.call("replay_run", replay={"orca_replay_version": "0.2.0", "name": "captures after view changes", "steps": steps},
                                        out_dir=out_dir))
     check("the capture replay runs", ran.get("passed") is True, ran)
     if ran.get("passed") is True:
@@ -105,21 +105,21 @@ def main():
         check("a capture right after a layer or view type change shows it settled", not stale, f"stale after {stale}")
         check("every change shows in the capture", not unchanged, f"unchanged after {unchanged}")
 
-    reply = client.call("set_view", legend={"Sparse infill": False, "travel": True}, layer_z=1.05)
+    reply = client.call("view_set", legend={"Sparse infill": False, "travel": True}, layer_z=1.05)
     check("layer_z between two tops shows up to the upper one", reply.get("layers") == [1, 6, 128] and reply.get("z") == [0.2, 1.2], reply)
     check("the legend reply gives each row's state", reply.get("legend") == {"Sparse infill": False, "travel": True}, reply)
 
-    reply = client.call("set_view", layer_range=[60, 20])
+    reply = client.call("view_set", layer_range=[60, 20])
     check("a range given backwards shows its first layer alone", reply.get("layers") == [60, 60, 128] and reply.get("z") == [12.0, 12.0],
           reply)
     # L switches the layer slider's one-layer mode.
-    client.call("press_keys", keys="L")
-    reply = client.call("set_view", layer_range=[2, 5])
-    shown = client.call("get_app_state")["preview"]
+    client.call("keyboard_press", keys="L")
+    reply = client.call("view_set", layer_range=[2, 5])
+    shown = client.call("app_state")["preview"]
     check("in one-layer mode the reply echoes the range and the slider shows its first layer",
           reply.get("layers") == [2, 5, 128] and reply.get("z") == [0.4, 0.4] and shown.get("layers") == [2, 2], (reply, shown))
-    client.call("press_keys", keys="L")
-    shown = client.call("get_app_state")["preview"]
+    client.call("keyboard_press", keys="L")
+    shown = client.call("app_state")["preview"]
     check("leaving one-layer mode shows every layer again", shown.get("layers") == [1, 128], shown)
 
     message = refusal(layer_z=80)
@@ -127,15 +127,15 @@ def main():
     check("layer with layer_z is refused", "not both" in refusal(layer=3, layer_z=1.0))
     message = refusal(view_type="speed", legend={"Infill": False})
     check("an unknown row is refused with the print's rows", "Sparse infill" in message and "travel" in message, message)
-    check("a refused call leaves the view type", client.call("get_app_state")["preview"]["view_type"] == "feature_type")
+    check("a refused call leaves the view type", client.call("app_state")["preview"]["view_type"] == "feature_type")
     check("a value that is not true or false is refused", "true (show) or false (hide)" in refusal(legend={"travel": "yes"}))
     if "silent_time_s" not in sliced:
         message = refusal(time_mode="silent")
         check("silent mode without its own estimate is refused", "no separate silent-mode estimate" in message, message)
-    check("normal mode is always offered", client.call("set_view", time_mode="normal").get("time_mode") == "normal")
+    check("normal mode is always offered", client.call("view_set", time_mode="normal").get("time_mode") == "normal")
 
-    client.call("auto_answer_dialogs", rules=[])
-    client.call("new_project", discard_changes=True)
+    client.call("dialog_auto_answer", rules=[])
+    client.call("project_new", discard_changes=True)
     failures = 0
     for name, ok, detail in checks:
         print(("ok   " if ok else "FAIL ") + name + ("" if ok or detail == "" else f": {detail}"))

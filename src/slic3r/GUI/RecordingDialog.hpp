@@ -34,7 +34,7 @@ boost::filesystem::path capture_folder(const Mcp::RecordingSettings& settings);
 // runs once the recording ends, from a built-in preset or field by field, and whether the .mkv stays beside
 // the MP4 it makes. A rail joins them, showing whether the second runs; it can't without an ffmpeg, and the
 // stage then says how to get one. Below them is the folder both files go in. Each control is named after the
-// key of the command's parameter it sets, so an agent can set it with set_widget_value.
+// key of the command's parameter it sets, so an agent can set it with widget_set_value.
 class RecordingDialog : public DPIDialog
 {
 public:

@@ -41,7 +41,7 @@ double pulse(double seconds)
 }
 
 // Runs Stop Recording once the mouse handler that calls this has returned: it hides the pill.
-void stop_recording() { wxGetApp().CallAfter([] { NativeCommands::notify_result(NativeCommands::run("stop_recording")); }); }
+void stop_recording() { wxGetApp().CallAfter([] { NativeCommands::notify_result(NativeCommands::run("recording_stop")); }); }
 
 } // namespace
 

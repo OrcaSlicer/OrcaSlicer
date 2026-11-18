@@ -9,7 +9,7 @@ inline constexpr int kDefaultPort = 13619;
 
 // The app config key of the unrestricted Python scripts setting: one switch, off unless true. While it is on,
 // or the command line's --unrestricted-scripts is, the scripts a person runs (the Run Script panel, --run) and
-// agents send (run_script) skip the plugin permission checks. Only the window show_python_scripts_dialog() opens
+// agents send (script_run) skip the plugin permission checks. Only the window show_python_scripts_dialog() opens
 // writes it; no tool and no command line option does.
 inline constexpr char kPythonUnrestrictedKey[] = "python_scripts_unrestricted";
 

@@ -17,11 +17,11 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 // remembers them; the command's parameter overrides them for one recording.
 struct RecordingSettings
 {
-    int         quality  = 80;    // the frames' JPEG quality, 30-95, as start_recording's
-    bool        captions = false; // the overlays, as start_recording's
+    int         quality  = 80;    // the frames' JPEG quality, 30-95, as recording_start's
+    bool        captions = false; // the overlays, as recording_start's
     bool        pointer  = false;
     bool        encode   = false;
-    std::string codec   = "h265"; // and the rest as encode_recording takes them
+    std::string codec   = "h265"; // and the rest as recording_encode takes them
     int         crf     = 28;
     std::string speed   = "medium";
     std::string profile = "main";
@@ -60,13 +60,13 @@ std::string matching_encode_preset(const RecordingSettings& settings);
 RecordingSettings load_recording_settings(const AppConfig& config);
 void              save_recording_settings(AppConfig& config, const RecordingSettings& settings);
 
-// Applies start_recording's encode arguments, an object with any of encode, encode_preset, codec, crf, speed,
+// Applies recording_start's encode arguments, an object with any of encode, encode_preset, codec, crf, speed,
 // profile and keep_raw_video_file, other keys left alone: encode_preset's fields first, then the fields it
 // names. A codec named without a profile takes the codec's default profile when the one it had does not fit.
 // Returns what is wrong, "" when nothing; `settings` is then unchanged.
 std::string apply_recording_overrides(RecordingSettings& settings, const nlohmann::json& overrides);
 
-// encode_recording's arguments for the recording at `path` (UTF-8).
+// recording_encode's arguments for the recording at `path` (UTF-8).
 nlohmann::json encode_arguments(const RecordingSettings& settings, const std::string& path);
 
 }}} // namespace Slic3r::GUI::Mcp

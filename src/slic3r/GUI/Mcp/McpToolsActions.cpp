@@ -1,4 +1,4 @@
-// search_actions and run_action: every Speed Dial action - built-in commands, plates, recent projects,
+// action_search and action_run: every Speed Dial action - built-in commands, plates, recent projects,
 // plugin scripts and pages, and (on request) settings - is reachable through these two tools.
 
 #include "slic3r/GUI/I18N.hpp"
@@ -31,7 +31,7 @@ ActionRegistry& registry_or_fail()
 {
     ActionRegistry* reg = wxGetApp().m_action_registry.get();
     if (reg == nullptr)
-        throw ToolFailure("The action catalog is not available yet; wait {for:\"ready\"} first");
+        throw ToolFailure("The action catalog is not available yet; app_wait {for:\"ready\"} first");
     return *reg;
 }
 
@@ -79,16 +79,36 @@ const AppAction& find_action(ActionRegistry& actions, std::string& id)
 
 std::string action_args_error(const AppAction& action, const json& args)
 {
+    // A tile that collects a value takes that value alone, as the Speed Dial's second phase gives it.
+    if (!action.input.empty())
+        return args.is_object() && args.size() == 1 && args.contains(action.input) ?
+                   std::string() :
+                   "The action " + action.id() + " takes exactly its " + action.input + ": run it with args {\"" + action.input +
+                       "\": ...} (its input_schema)";
     if (person_form(args))
         return {};
-    // A folded row's tile runs its command with the row's arguments, which it takes as well as none.
-    if (!action.preset.is_null())
-        return args == action.preset ? std::string() :
-                                       "The action " + action.id() + " runs " + action.command + " with " + action.preset.dump() +
-                                           ": run it without args, or with exactly those";
+    // A command's tile runs its command with the tile's arguments, which it takes as well as none; other arguments are
+    // the command's to take.
+    if (!action.preset.is_null()) {
+        if (args == action.preset)
+            return {};
+        if (action.preset.empty())
+            return "The action " + action.id() + " takes no arguments: run it without args, or call " + action.command +
+                   " with them";
+        return "The action " + action.id() + " runs " + action.command + " with " + action.preset.dump() +
+               ": run it without args or with exactly those, or call " + action.command + " with other arguments";
+    }
+    // A Design command's own tile takes the command's arguments, which the command checks.
     if (!action.command.empty())
         return {};
     return "The action " + action.id() + " takes no arguments: run it without args";
+}
+
+json tile_journal_args(const AppAction& action, const json& args)
+{
+    if (action.preset.is_null())
+        return nullptr;
+    return action.input.empty() ? action.preset : args;
 }
 
 std::string unknown_action(const std::string& id, const CommandCatalog& catalog)
@@ -110,10 +130,10 @@ std::string unknown_action(const std::string& id, const CommandCatalog& catalog)
             call += ", \"args\": {" + args + "}";
         }
         return id + " is a Design tab tile, there only while the Design tab is shown in its mode (a sketch's or the model's) "
-                    "with the CAD feature on; call_tool " + call + "} runs its command from any tab";
+                    "with the CAD feature on; tool_call " + call + "} runs its command from any tab";
     }
-    // The name may be a command's that has no tile, which call_tool runs.
-    return "Unknown action id " + id + "; find an action with search_actions, or a command with search_tools";
+    // The name may be a command's that has no tile, which tool_call runs.
+    return "Unknown action id " + id + "; find an action with action_search, or a command with tool_search";
 }
 
 json rank_actions(const json& listed, const std::vector<std::string>& words)
@@ -175,13 +195,13 @@ ToolResult await_gcode_export(ToolContext& ctx, const Ops::ExportTicket& ticket)
 void register_action_tools(CommandCatalog& catalog)
 {
     catalog.add(inspect_tool(
-        "ui", "search_actions", L("Search Speed Dial actions"),
+        "action_search", L("Search Speed Dial actions"),
         "Search everything the Speed Dial can run: built-in commands (slice, export, views, object operations, plates, "
-        "calibration wizards, help), recent projects, plugin scripts and pages. Each entry has an id for run_action, a "
+        "calibration wizards, help), recent projects, plugin scripts and pages. Each entry has an id for action_run, a "
         "description, the command's key for a built-in command, and, when it takes arguments, their input_schema. A query "
         "ranks them, best match first, as "
-        "search_tools does; without one they are listed by group and title. include_settings also lists settings (each "
-        "jumps to that setting in the sidebar; use get_settings / set_settings to read or change values).",
+        "tool_search does; without one they are listed by group and title. include_settings also lists settings (each "
+        "jumps to that setting in the sidebar; use settings_get / settings_set to read or change values).",
         object_schema({{"query", prop("string", "A few words, e.g. \"delete object\": each is matched at the start of the words of "
                                                 "an action's id, title, group and description.")},
                        {"group", prop("string", "Only this group, e.g. \"Object\", \"View\", \"Slice & Export\".")},
@@ -205,58 +225,61 @@ void register_action_tools(CommandCatalog& catalog)
         }));
 
     NativeCommand run = mutate_tool(
-        "ui", "run_action", L("Run a Speed Dial action"),
-        "Run one action by the id search_actions returned (orca_command:view_front:orca, or the name inside it, view_front), "
-        "with args, the command's arguments, when it takes some (its input_schema). A command that asks in a dialog asks "
-        "when it is given no args, as a person's pick does, and runs without asking when given them: an absolute path "
-        "skips a file dialog, and an output needs {\"path\": ..., \"overwrite\": true} to replace a file. Go to layer and "
-        "Go to tab need their value ({\"percent\": 50}, {\"tab\": \"preview\"}). Actions that open a dialog return "
-        "blocked_by_dialog; answer it with answer_dialog, or, for a native one it can't press (a file picker), register "
-        "auto_answer_dialogs before the call. An export_gcode with a path completes when the file is written; an action "
-        "that starts a background job (obj_arrange, obj_orient) when the job ends. An action that does nothing (no object "
-        "selected) is an error. Some commands add what they did to the reply (the obj_order_by_* order, the object "
-        "obj_assemble made). A command's action runs that command, as call_tool {tool: its command} does; the tile of a "
-        "Design tab menu row folded into a command runs that command with the row's arguments, and takes no others. The "
-        "other actions (plates, recent projects, plugin scripts and pages, settings) run only here.",
-        object_schema({{"id", prop("string", "Action id from search_actions, or the name inside it.")},
+        "action_run", L("Run a Speed Dial action"),
+        "Run one action by the id action_search returned (orca_command:view_front:orca, or the name inside it, view_front), "
+        "with args, the command's arguments, when it takes some (its input_schema). A command's tile (action_search names "
+        "the command) runs the command as a call with the tile's arguments does: a tile that asks in a dialog asks, and "
+        "the call returns blocked_by_dialog; answer it with dialog_answer, or, for a native one it can't press (a file "
+        "picker), register dialog_auto_answer before the call. Such a tile takes no args, or exactly its own; to run a "
+        "command without asking, call it with its arguments (an absolute path skips a file dialog). Go to layer and Go to "
+        "tab take their value alone ({\"percent\": 50}, {\"tab\": \"preview\"}), and a Design command's own tile takes the "
+        "command's arguments. An action that starts a background job (obj_arrange, obj_orient) completes when the job "
+        "ends. An action that does nothing (no object selected) is an error. Some commands add what they did to the reply "
+        "(the order object_order leaves, the object object_assemble made). The other actions (plates, recent projects, "
+        "plugin scripts and pages, settings) run only here.",
+        object_schema({{"id", prop("string", "Action id from action_search, or the name inside it.")},
                        {"args", {{"type", "object"}, {"description", "The command's arguments, as its input_schema gives them."}}}},
                       {"id"}),
         [](const json& args, ToolContext& ctx) {
             std::string        id           = arg_string(args, "id");
             json               command_args = args.contains("args") ? args["args"] : json::object();
-            std::string        key;    // the command of a command's tile
-            AppActionRunResult result; // of any other action
+            std::string        key;       // the command of a command's tile
+            json               tile_args; // what its journal step keeps for a tile of fixed arguments
+            AppActionRunResult result;    // of any other action
             ctx.run_ui([&]() -> json {
                 ActionRegistry&  actions = registry_or_fail();
                 const AppAction& action  = find_action(actions, id);
                 if (const std::string err = action_args_error(action, command_args); !err.empty())
                     throw ToolFailure(err);
-                key = action.command;
-                if (key.empty())
+                key       = action.command;
+                tile_args = tile_journal_args(action, command_args);
+                if (key.empty()) {
                     result = actions.run(id, command_args, /*record_stats=*/false);
-                else if (!action.preset.is_null())
-                    // A folded row's tile runs its command with the row's arguments, which the journal records.
-                    command_args = action.preset;
+                } else {
+                    // What a person's pick of the tile runs its command with, which the journal records.
+                    const json* tile = find_tile(NativeCommands::instance(), short_id(id)).second;
+                    command_args     = tile_call_args(tile, command_args);
+                }
                 return json();
             });
             if (key.empty()) {
                 settle(ctx);
                 return NativeCommands::from_run_result(id, result);
             }
-            // A command's tile runs the command's own function, as a call of the command does, inside run_action's
+            // A command's tile runs the command's own function, as a call of the command does, inside action_run's
             // journal entry.
             const NativeCommand* command = NativeCommands::find(key);
             if (command == nullptr)
                 throw ToolFailure("Unknown command " + key);
             if (const std::string err = argument_error(*command, command_args); !err.empty())
                 throw ToolFailure("Invalid arguments for " + key + ": " + err);
-            TileContext tile(ctx, id);
+            TileContext tile(ctx, id, tile_args);
             ToolResult  reply = command->run(command_args, tile);
             if (!reply.is_error && reply.data.is_object())
                 reply.data["ran"] = id;
             return reply;
         });
-    // Its commands upload G-code to a print host (send_gcode) and sync presets with the cloud account (sync_presets).
+    // Its tiles upload G-code to a print host (printer_send) and sync presets with the cloud account (preset_sync).
     run.open_world = true;
     catalog.add(run);
 }

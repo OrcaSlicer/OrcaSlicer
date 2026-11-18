@@ -116,8 +116,6 @@ std::pair<std::string, std::string> split_action_id(const std::string& id)
     return {id.substr(0, first), id.substr(first + 1, last - first - 1)};
 }
 
-bool starts_with(const std::string& s, const char* prefix) { return s.rfind(prefix, 0) == 0; }
-
 bool one_of(const std::string& s, std::initializer_list<const char*> names)
 {
     for (const char* n : names)
@@ -126,8 +124,34 @@ bool one_of(const std::string& s, std::initializer_list<const char*> names)
     return false;
 }
 
+// The effects of command `key` called with `args`, whichever way it is called: the files it writes, the presets it
+// changes, what it sends to a printer.
+void flag_effects(Builder& b, const std::string& key, const json& args)
+{
+    if (one_of(key, {"project_save", "project_export", "preset_export"}))
+        b.flag(StepFlag::WritesFile);
+    // The preset bundle manager imports and deletes bundles of presets.
+    const bool preset_bundle = key == "window_open" && args.is_object() && args.value("window", std::string()) == "preset_bundle";
+    if (one_of(key, {"preset_import", "preset_sync"}) || preset_bundle)
+        b.flag(StepFlag::ChangesPresets);
+    if (key == "printer_send")
+        b.flag(StepFlag::SendsToPrinter);
+}
+
+// Each argument of `args` as "name: value", the file of a path by its name.
+json argument_texts(const json& args)
+{
+    json texts = json::array();
+    for (const auto& [name, value] : args.items()) {
+        const bool file = name == "path" && value.is_string();
+        texts.push_back(name + ": " + (file ? file_name(value.get<std::string>()) : value.is_string() ? value.get<std::string>() : value.dump()));
+    }
+    return texts;
+}
+
 // A call of command `key` with `args`, or of its tile `tile` (one of its tiles, which runs it with `args`): a call
-// whose arguments are a tile's is that tile, `tile` or else the first with them (tile_with_args()).
+// whose arguments are a tile's is that tile, `tile` or else the first with them (tile_with_args()). A tile that
+// collects a value is described with the call's arguments, which hold that value.
 void describe_command(Builder& b, const CommandCatalog& catalog, const std::string& key, const json& args,
                       const json* tile = nullptr)
 {
@@ -135,48 +159,40 @@ void describe_command(Builder& b, const CommandCatalog& catalog, const std::stri
     if (tile == nullptr)
         if (const NativeCommand* command = catalog.find(key))
             tile = tile_with_args(*command, args);
-    if (tile != nullptr) {
+    if (tile != nullptr)
         what["tile"] = tile->at("key");
-    } else if (args.is_object() && !args.empty()) {
-        // Each argument as "name: value", the file of a path by its name.
-        json texts = json::array();
-        for (const auto& [name, value] : args.items()) {
-            const bool file = name == "path" && value.is_string();
-            texts.push_back(name + ": " +
-                            (file ? file_name(value.get<std::string>()) : value.is_string() ? value.get<std::string>() : value.dump()));
-        }
-        what["args"] = std::move(texts);
-    }
+    if ((tile == nullptr || !tile->value("input", std::string()).empty()) && args.is_object() && !args.empty())
+        what["args"] = argument_texts(args);
     b.d.what = std::move(what);
 
-    if (starts_with(key, "calib_")) {
+    // What the command's tile does, as a person's pick of it: a calibration test's dialog, which then replaces the
+    // project and changes the presets, and Load Project and New Project, which ask about unsaved changes.
+    if (key == "calibration_generate_test") {
         b.flag(StepFlag::ReplacesProject);
         b.flag(StepFlag::ChangesPresets);
         b.replace("app_asked");
     }
-    if (one_of(key, {"load_project", "new_project"})) {
+    if (one_of(key, {"project_open", "project_new"})) {
         b.flag(StepFlag::ReplacesProject);
         b.replace("app_asked");
     }
-    if (one_of(key, {"save_project", "save_project_as", "export_config"}) || starts_with(key, "export_"))
-        b.flag(StepFlag::WritesFile);
-    if (one_of(key, {"import_configs", "preset_bundle", "sync_presets"}))
-        b.flag(StepFlag::ChangesPresets);
-    if (key == "send_gcode")
-        b.flag(StepFlag::SendsToPrinter);
+    flag_effects(b, key, args);
 }
 
 void describe_action(Builder& b, const CommandCatalog& catalog, const json& args)
 {
-    const std::string id        = args.contains("id") && args["id"].is_string() ? args["id"].get<std::string>() : std::string();
+    const std::string id    = args.contains("id") && args["id"].is_string() ? args["id"].get<std::string>() : std::string();
+    const json        given = args.contains("args") ? args["args"] : json();
+    // A command's tile, by its full id or by the key inside it, as action_run takes either: a folded row's tile runs its
+    // command with the row's arguments, and the value it collects when it has one, as a person's pick of it does.
+    if (const auto [command, tile] = find_tile(catalog, command_tile_key(id)); command != nullptr) {
+        describe_command(b, catalog, command->key, tile_call_args(tile, given), tile);
+        return;
+    }
     const auto [prefix, middle] = split_action_id(id);
     if (prefix == kCommandPrefix) {
-        // A folded row's tile runs its command with the row's arguments, whatever run_action was given.
-        const auto [command, tile] = find_tile(catalog, middle);
-        if (tile != nullptr)
-            describe_command(b, catalog, command->key, tile->at("args"), tile);
-        else
-            describe_command(b, catalog, middle, args.contains("args") ? args["args"] : json());
+        // A tile `catalog` does not hold (a Design tile of a run without the Design tab), by the key in its id.
+        describe_command(b, catalog, middle, given);
     } else if (prefix == "orca_recent_project") {
         b.d.what = {{"kind", "recent_project"}, {"name", file_name(middle)}};
         b.flag(StepFlag::ReplacesProject);
@@ -192,13 +208,15 @@ void describe_action(Builder& b, const CommandCatalog& catalog, const json& args
     }
 }
 
-// A command of `catalog` with no typed tool's place in the tool list called as one of its tiles: with a tile of its
-// own (load_project, export_stl), or with the arguments of a tile that runs it with them (a Design command's folded
-// row). Called so, it does what run_action of that tile does.
+// A command of `catalog` called as one of its tiles: with the arguments of a tile that runs it with them (a menu row
+// folded into it), or with none, as its tile of its own (plate_delete). A command with a tile of its own that the tool
+// list does not show (a Design command) is its tile's call whatever its arguments. Called so, it does what action_run
+// of that tile does.
 bool tile_command(const CommandCatalog& catalog, const std::string& tool, const json& args)
 {
     const NativeCommand* command = catalog.find(tool);
-    return command != nullptr && !command->listed && (command->in_palette || tile_with_args(*command, args) != nullptr);
+    return command != nullptr && (tile_with_args(*command, args) != nullptr ||
+                                  (command->in_palette && (!command->listed || person_form(args))));
 }
 
 std::optional<std::string> read_text(const fs::path& path)
@@ -211,7 +229,7 @@ std::optional<std::string> read_text(const fs::path& path)
     return ss.str();
 }
 
-// A run_replay step: the nested replay, read in the context its run will have.
+// A replay_run step: the nested replay, read in the context its run will have.
 void describe_nested(Builder& b, const CommandCatalog& catalog, const json& args, const ReplayContext& outer, int depth)
 {
     std::optional<Replay> nested;
@@ -271,13 +289,13 @@ json describe_what(const std::string& tool, const json& args)
             return {{"kind", "value"}, {"text", args[key].is_string() ? args[key].get<std::string>() : args[key].dump()}};
         return nullptr;
     };
-    if (one_of(tool, {"select_preset", "save_preset", "delete_preset"}) && args.contains("name") && args["name"].is_string())
+    if (one_of(tool, {"preset_select", "preset_save", "preset_delete"}) && args.contains("name") && args["name"].is_string())
         return {{"kind", "preset"}, {"name", args["name"]}};
-    if (one_of(tool, {"slice", "arrange"}))
-        return {{"kind", "plates"}, {"plates", args.contains("plates") ? args["plates"] : json(tool == "slice" ? "current" : "all")}};
-    if (tool == "wait")
+    if (one_of(tool, {"plate_slice", "object_arrange"}))
+        return {{"kind", "plates"}, {"plates", args.contains("plates") ? args["plates"] : json(tool == "plate_slice" ? "current" : "all")}};
+    if (tool == "app_wait")
         return text("for");
-    if (tool == "answer_dialog")
+    if (tool == "dialog_answer")
         return text("button");
     if (args.contains("paths") && args["paths"].is_array()) {
         json names = json::array();
@@ -302,7 +320,7 @@ json describe_what(const std::string& tool, const json& args)
 
 json describe_call(const CommandCatalog& catalog, const std::string& tool, const json& args)
 {
-    if (tool == "run_action") {
+    if (tool == "action_run") {
         Builder b;
         describe_action(b, catalog, args);
         return b.d.what;
@@ -312,7 +330,7 @@ json describe_call(const CommandCatalog& catalog, const std::string& tool, const
         describe_command(b, catalog, tool, args);
         return b.d.what;
     }
-    if (tool == "run_replay")
+    if (tool == "replay_run")
         return args.contains("path") && args["path"].is_string() ? json{{"kind", "files"}, {"names", {file_name(args["path"].get<std::string>())}}} :
                                                                     json();
     return describe_what(tool, args);
@@ -337,11 +355,11 @@ StepDescription describe_step(const CommandCatalog& catalog, const ReplayStep& s
     Builder           b;
     b.d.checks_result = !step.expect.empty();
 
-    if (tool == "run_action") {
+    if (tool == "action_run") {
         describe_action(b, catalog, args);
         return b.done();
     }
-    if (tool == "run_replay") {
+    if (tool == "replay_run") {
         describe_nested(b, catalog, args, ctx, depth);
         return b.done();
     }
@@ -356,46 +374,46 @@ StepDescription describe_step(const CommandCatalog& catalog, const ReplayStep& s
         if (args.contains(key) && args[key].is_string() && !inside(args[key].get<std::string>(), ctx.out_dir))
             b.flag(StepFlag::WritesFile);
     };
-    if (one_of(tool, {"export", "save_project"}))
-        b.flag(StepFlag::WritesFile);
-    if (one_of(tool, {"screenshot", "start_recording"}))
+    flag_effects(b, tool, args);
+    if (one_of(tool, {"window_screenshot", "recording_start"}))
         writes_outside("save_path");
-    if (tool == "encode_recording") {
+    if (tool == "recording_encode") {
         // Without save_path the video goes beside its source, which it deletes unless keep_raw_video_file.
         writes_outside(args.contains("save_path") ? "save_path" : "path");
         if (!(args.contains("keep_raw_video_file") && args["keep_raw_video_file"].is_boolean() && args["keep_raw_video_file"].get<bool>()))
             writes_outside("path");
     }
-    if (tool == "export_replay")
+    if (tool == "replay_export")
         writes_outside("path");
-    if (tool == "pick_gizmo_file" && args.value("action", std::string()) == "svg_save_as")
+    if (tool == "gizmo_pick_file" && args.value("action", std::string()) == "svg_save_as")
         writes_outside("path");
     // A rule's path lets a save picker write the file, or with overwrite replace it. Which picker a rule will
     // answer isn't known here, so every path counts.
-    if (tool == "auto_answer_dialogs" && args.contains("rules") && args["rules"].is_array())
+    if (tool == "dialog_auto_answer" && args.contains("rules") && args["rules"].is_array())
         for (const json& rule : args["rules"])
             if (rule.is_object() && rule.contains("path") && rule["path"].is_string() && !rule["path"].get<std::string>().empty() &&
                 !inside(rule["path"].get<std::string>(), ctx.out_dir))
                 b.flag(StepFlag::WritesFile);
-    if (one_of(tool, {"save_preset", "delete_preset", "generate_calibration_test"}))
+    if (one_of(tool, {"preset_save", "preset_delete", "calibration_generate_test"}))
         b.flag(StepFlag::ChangesPresets);
-    if (one_of(tool, {"new_project", "generate_calibration_test"})) {
+    if (one_of(tool, {"project_new", "calibration_generate_test"})) {
         b.flag(StepFlag::ReplacesProject);
-        // new_project with no arguments is New Project's: the app asks about the unsaved changes.
-        b.replace(tool == "new_project" && person_form(args) ? "app_asked" : "checked");
+        // project_new with no arguments is New Project's: the app asks about the unsaved changes.
+        b.replace(tool == "project_new" && person_form(args) ? "app_asked" : "checked");
     }
-    if (tool == "open_files" && args.contains("paths") && args["paths"].is_array() && args["paths"].size() == 1 &&
-        args["paths"][0].is_string()) {
-        const std::string path = args["paths"][0].get<std::string>();
+    // A project replaces the current one as discard_changes says; a G-code to look at, after the app asks about its
+    // unsaved changes. project_open refuses any other file, which replaces nothing.
+    if (tool == "project_open" && args.contains("path") && args["path"].is_string()) {
+        const std::string path = args["path"].get<std::string>();
         if (has_extension(path, {".gcode", ".bgcode"})) {
             b.flag(StepFlag::ReplacesProject);
             b.replace("app_asked");
-        } else if (has_extension(path, {".3mf"}) && args.value("as", std::string("auto")) != "geometry") {
+        } else if (has_extension(path, {".3mf"})) {
             b.flag(StepFlag::ReplacesProject);
             b.replace("checked");
         }
     }
-    b.d.answers_dialogs = one_of(tool, {"auto_answer_dialogs", "answer_dialog", "click", "press_keys"});
+    b.d.answers_dialogs = one_of(tool, {"dialog_auto_answer", "dialog_answer", "widget_click", "keyboard_press"});
     return b.done();
 }
 
@@ -408,22 +426,22 @@ json describe_result(const std::string& tool, const json& result)
             return {{"kind", "file"}, {"name", file_name(result[key].get<std::string>())}};
         return nullptr;
     };
-    if (tool == "open_files" && result.value("opened", std::string()) == "gcode")
+    if (tool == "project_open" && result.value("opened", std::string()) == "gcode")
         return file_of("path");
-    if (one_of(tool, {"open_files", "new_project", "generate_calibration_test"}) && result.contains("objects") &&
+    if (one_of(tool, {"project_open", "project_import", "project_new", "calibration_generate_test"}) && result.contains("objects") &&
         result["objects"].is_number_integer())
         return {{"kind", "objects"}, {"count", result["objects"]}};
-    if (tool == "slice" && result.contains("plates") && result["plates"].is_array()) {
+    if (tool == "plate_slice" && result.contains("plates") && result["plates"].is_array()) {
         int ok = 0, other = 0;
         for (const json& p : result["plates"])
             (p.is_object() && p.value("outcome", std::string()) == "ok" ? ok : other)++;
         return {{"kind", "plates"}, {"ok", ok}, {"other", other}};
     }
-    if (one_of(tool, {"export", "save_project", "screenshot"}))
+    if (one_of(tool, {"project_export", "project_save", "window_screenshot"}))
         return file_of("path");
-    if (tool == "pick_gizmo_file")
+    if (tool == "gizmo_pick_file")
         return file_of("saved");
-    if (tool == "run_replay" && result.contains("passed") && result["passed"].is_boolean()) {
+    if (tool == "replay_run" && result.contains("passed") && result["passed"].is_boolean()) {
         json out{{"kind", "replay"}, {"passed", result["passed"]}};
         if (result.contains("failed_step"))
             out["failed_step"] = result["failed_step"];

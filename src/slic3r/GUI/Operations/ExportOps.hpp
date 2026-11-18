@@ -8,6 +8,11 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <vector>
+
+namespace Slic3r {
+class Model;
+}
 
 // Writing the project or its G-code to a file the caller names, without a file dialog.
 namespace Slic3r { namespace GUI { namespace Ops {
@@ -59,9 +64,40 @@ struct ExportFileArgs
 // too: one that holds only a Design-tab recipe has none.
 // Refuses: no_such_plate, plate_not_selected, file_not_written.
 Outcome<Done> export_model_3mf(const ExportFileArgs& args);
-// Writes all objects as one STL.
-// Refuses: no_objects, no_such_plate, plate_not_selected, file_not_written.
-Outcome<Done> export_stl(const ExportFileArgs& args);
+
+// What keeps an export in `format` (gcode, sliced_3mf, 3mf, stl, drc or toolpaths_obj) of `objects` (indices in `model`;
+// none: every object), or of a file per object with `per_object`, from being written, or none: objects named for a
+// format that writes no objects of its own choosing (objects_not_taken), objects named, or a file per object, in a
+// project with none (no_objects), and an index the project lacks (no_such_object).
+std::optional<Refusal> export_objects_refusal(const std::string& format, const std::vector<int>& objects, bool per_object,
+                                              const Model& model);
+
+struct ExportStlArgs
+{
+    boost::filesystem::path path;               // the file, or with per_object an existing folder
+    std::optional<int>      plate;              // made the current plate first; the files hold objects of every plate
+    std::vector<int>        objects;            // their indices; none: every object
+    bool                    per_object = false; // a file per object, named after it, into the folder
+    bool                    draco      = false; // Draco (.drc) files in place of STL
+};
+// Writes objects as one STL or Draco file, as File > Export writes every object, or each into a file of its own, as
+// Export All Objects as STLs does and the object menu's Export as STLs does for the objects selected
+// (Plater::export_stl()). A file per object is named after it, with a number added where the folder has that name.
+// Returns the files written.
+// Refuses: no_objects, what export_objects_refusal() gives, no_such_plate, plate_not_selected, file_not_written.
+Outcome<std::vector<boost::filesystem::path>> export_stl(const ExportStlArgs& args);
+
+// What keeps the toolpaths from being written as an OBJ, or none: none loaded in the Preview (no_toolpaths), which
+// shows a plate's toolpaths once the plate is sliced and the Preview has been shown.
+std::optional<Refusal> toolpaths_refusal();
+
+struct ExportToolpathsArgs
+{
+    boost::filesystem::path path;
+};
+// Writes the toolpaths the Preview shows as an OBJ, as Export Toolpaths as OBJ does.
+// Refuses: no_toolpaths, file_not_written.
+Outcome<Done> export_toolpaths_obj(const ExportToolpathsArgs& args);
 
 struct SendGcodeToHostArgs
 {};

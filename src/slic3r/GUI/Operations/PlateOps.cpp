@@ -12,6 +12,7 @@
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
+#include "libslic3r/Config.hpp"
 #include "libslic3r/Model.hpp"
 
 #include <algorithm>
@@ -53,6 +54,21 @@ Refusal no_such_plate(int plate, int count)
             {std::to_string(plate), std::to_string(count - 1)}};
 }
 
+std::optional<Refusal> plate_index_refusal(int plate, int count)
+{
+    if (plate < 0 || plate >= count)
+        return no_such_plate(plate, count);
+    return std::nullopt;
+}
+
+std::optional<Refusal> plates_refusal()
+{
+    Plater& plater = the_plater();
+    if (plater.printer_technology() != ptFFF || plater.only_gcode_mode())
+        return Refusal{RefusalKind::Precondition, "no_plates", L("Plates are a filament (FFF) feature.")};
+    return std::nullopt;
+}
+
 Refusal job_running() { return {RefusalKind::Busy, "job_running", L("Wait for the running background job to finish.")}; }
 
 void show_prepare_view()
@@ -65,12 +81,20 @@ void show_prepare_view()
         frame->select_tab(wxString(TAB_ID_PREPARE));
 }
 
+GLCanvas3D& shown_prepare_canvas()
+{
+    show_prepare_view();
+    GLCanvas3D& canvas = *the_plater().get_view3D_canvas3D();
+    if (canvas.is_reload_delayed())
+        canvas.reload_scene(true);
+    return canvas;
+}
+
 Outcome<Done> select_plate(const SelectPlateArgs& args)
 {
-    Plater&   plater = the_plater();
-    const int count  = plater.get_partplate_list().get_plate_count();
-    if (args.plate < 0 || args.plate >= count)
-        return no_such_plate(args.plate, count);
+    Plater& plater = the_plater();
+    if (std::optional<Refusal> refusal = plate_index_refusal(args.plate, plater.get_partplate_list().get_plate_count()))
+        return *refusal;
     if (plater.select_plate(args.plate) != 0)
         return plate_not_selected(args.plate);
     return Done{};
@@ -78,16 +102,86 @@ Outcome<Done> select_plate(const SelectPlateArgs& args)
 
 Outcome<PlateLocked> set_plate_locked(const SetPlateLockedArgs& args)
 {
+    if (std::optional<Refusal> refusal = plates_refusal())
+        return *refusal;
     Plater&        plater = the_plater();
     PartPlateList& plates = plater.get_partplate_list();
-    const int      index  = args.plate ? *args.plate : plates.get_curr_plate_index();
-    if (index < 0 || index >= plates.get_plate_count())
-        return no_such_plate(index, plates.get_plate_count());
-    if (plates.is_locked(index) == args.locked)
-        return PlateLocked{index, false};
-    plater.set_plate_locked(index, args.locked);
-    return PlateLocked{index, true};
+    const int      index  = args.plate.value_or(plates.get_curr_plate_index());
+    if (std::optional<Refusal> refusal = plate_index_refusal(index, plates.get_plate_count()))
+        return *refusal;
+    const bool locked = args.locked.value_or(!plates.is_locked(index));
+    if (plates.is_locked(index) == locked)
+        return PlateLocked{index, locked, false};
+    plater.set_plate_locked(index, locked);
+    return PlateLocked{index, locked, true};
 }
+
+std::optional<Refusal> delete_plate_refusal(int plate, int count)
+{
+    if (std::optional<Refusal> refusal = plate_index_refusal(plate, count))
+        return refusal;
+    if (count <= 1)
+        return Refusal{RefusalKind::Precondition, "last_plate", L("Cannot delete the only plate.")};
+    return std::nullopt;
+}
+
+Outcome<int> delete_plate(const PlateArgs& args)
+{
+    if (std::optional<Refusal> refusal = plates_refusal())
+        return *refusal;
+    Plater&        plater = the_plater();
+    PartPlateList& plates = plater.get_partplate_list();
+    const int      index  = args.plate.value_or(plates.get_curr_plate_index());
+    if (std::optional<Refusal> refusal = delete_plate_refusal(index, plates.get_plate_count()))
+        return *refusal;
+    plater.delete_plate(index);
+    return index;
+}
+
+std::optional<Refusal> duplicate_plate_refusal(int plate, int count, bool slicing)
+{
+    if (std::optional<Refusal> refusal = plate_index_refusal(plate, count))
+        return refusal;
+    if (count >= int(PartPlateList::MAX_PLATES_COUNT))
+        return Refusal{RefusalKind::Precondition, "too_many_plates", L("Cannot duplicate a plate (maximum reached).")};
+    if (slicing)
+        return Refusal{RefusalKind::Busy, "slicing_in_progress", L("Wait for the slicing to finish.")};
+    return std::nullopt;
+}
+
+Outcome<PlateCopy> duplicate_plate(const PlateArgs& args)
+{
+    if (std::optional<Refusal> refusal = plates_refusal())
+        return *refusal;
+    Plater&        plater = the_plater();
+    PartPlateList& plates = plater.get_partplate_list();
+    const int      index  = args.plate.value_or(plates.get_curr_plate_index());
+    if (std::optional<Refusal> refusal = duplicate_plate_refusal(index, plates.get_plate_count(), plater.is_background_process_slicing()))
+        return *refusal;
+    return PlateCopy{index, plater.duplicate_plate(index)};
+}
+
+Outcome<int> rename_plate(const RenamePlateArgs& args)
+{
+    if (std::optional<Refusal> refusal = plates_refusal())
+        return *refusal;
+    Plater&        plater = the_plater();
+    PartPlateList& plates = plater.get_partplate_list();
+    const int      index  = args.plate.value_or(plates.get_curr_plate_index());
+    if (std::optional<Refusal> refusal = plate_index_refusal(index, plates.get_plate_count()))
+        return *refusal;
+    // The name the plate has already changes nothing: neither the current plate nor the undo history.
+    if (plates.get_plate(index)->get_plate_name() == args.name)
+        return index;
+    // The name icon makes its plate the current one before its dialog names it.
+    if (index != plates.get_curr_plate_index())
+        if (const Outcome<Done> selected = select_plate({index}); !selected)
+            return selected.refusal();
+    plater.rename_plate(index, args.name);
+    return index;
+}
+
+Refusal plate_not_renamed() { return {RefusalKind::Failed, "not_renamed", L("The plate was not renamed.")}; }
 
 std::optional<Refusal> arrange_refusal(const ArrangeArgs& args)
 {

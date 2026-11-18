@@ -111,6 +111,10 @@ protected:
 };
 
 
+// Whether `path`, an entry of a ZIP archive, is a model file the archive's file list offers: a file named .stl, .obj,
+// .amf, .3mf, .step or .stp, outside the __MACOSX folder macOS adds to an archive.
+bool is_archive_model(const boost::filesystem::path& path);
+
 class FileArchiveDialog : public DPIDialog
 {
 public:

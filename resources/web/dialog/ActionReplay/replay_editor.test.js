@@ -5,8 +5,8 @@ const editor = require("./replay_editor.js");
 
 // Two tools, as the host's catalog lists them: one taking a plain number, one an enum and a nullable number.
 editor.setEditorTools([
-  { name: "slice", title: "Slice", args: { plates: { type: "integer" } } },
-  { name: "set_view", title: "Set the view", args: { camera: { type: "string", enum: ["top", "front"] }, zoom: { type: ["number", "null"] } } },
+  { name: "plate_slice", title: "Slice", args: { plates: { type: "integer" } } },
+  { name: "view_set", title: "Set the view", args: { camera: { type: "string", enum: ["top", "front"] }, zoom: { type: ["number", "null"] } } },
 ]);
 
 // What suggestionsAt() finds with the caret at the end of `text`.
@@ -22,25 +22,25 @@ test("a replay's root keys are suggested in a key's string", () => {
 });
 
 test("a step's keys are suggested inside steps[], leaving out the ones it has", () => {
-  const found = at('{"steps": [{"tool": "slice", "');
+  const found = at('{"steps": [{"tool": "plate_slice", "');
   assert.equal(found.kind, "key");
   assert.deepEqual(labels(found), ["args", "expect", "optional", "await", "save_as", "timeout_s"]);
 });
 
 test("a step's tool is suggested from the catalog with its title and arguments", () => {
-  const text = '{"steps": [{"tool": "sl';
+  const text = '{"steps": [{"tool": "pl';
   const found = at(text);
   assert.equal(found.kind, "value");
   assert.equal(found.from, text.length - 2);
   assert.equal(found.to, text.length);
   assert.deepEqual(found.items, [
-    { label: "slice", detail: "Slice", info: "args: plates" },
-    { label: "set_view", detail: "Set the view", info: "args: camera, zoom" },
+    { label: "plate_slice", detail: "Slice", info: "args: plates" },
+    { label: "view_set", detail: "Set the view", info: "args: camera, zoom" },
   ]);
 });
 
 test("a tool's arguments are suggested in its args with their types and allowed values", () => {
-  const found = at('{"steps": [{"tool": "set_view", "args": {"');
+  const found = at('{"steps": [{"tool": "view_set", "args": {"');
   assert.equal(found.kind, "key");
   assert.deepEqual(found.items, [
     { label: "camera", detail: "string", info: "top | front" },
@@ -49,13 +49,13 @@ test("a tool's arguments are suggested in its args with their types and allowed 
 });
 
 test("an argument's allowed values are suggested as its value", () => {
-  const found = at('{"steps": [{"tool": "set_view", "args": {"camera": "');
+  const found = at('{"steps": [{"tool": "view_set", "args": {"camera": "');
   assert.equal(found.kind, "value");
   assert.deepEqual(labels(found), ["top", "front"]);
 });
 
 test("a placeholder suggests the folders, the vars and the saved jobs", () => {
-  const text = '{"vars": {"part": 1}, "steps": [{"tool": "slice", "save_as": "s1"}, {"tool": "set_view", "args": {"camera": "${';
+  const text = '{"vars": {"part": 1}, "steps": [{"tool": "plate_slice", "save_as": "s1"}, {"tool": "view_set", "args": {"camera": "${';
   const found = at(text);
   assert.equal(found.kind, "var");
   assert.equal(found.from, text.length);
@@ -81,7 +81,7 @@ test("an accepted key gets its colon and an empty value with the caret inside", 
   assert.deepEqual(editor.acceptEdit(text, found, name), { from: 2, to: 2, insert: 'name": ""', back: 1, reopen: true });
   // The format version is written whole, with the caret after it.
   const version = found.items.find((item) => item.label === "orca_replay_version");
-  assert.deepEqual(editor.acceptEdit(text, found, version), { from: 2, to: 2, insert: 'orca_replay_version": "0.1.0"', back: 0, reopen: false });
+  assert.deepEqual(editor.acceptEdit(text, found, version), { from: 2, to: 2, insert: 'orca_replay_version": "0.2.0"', back: 0, reopen: false });
 });
 
 test("a key accepted before an existing colon replaces only the key", () => {
@@ -92,12 +92,12 @@ test("a key accepted before an existing colon replaces only the key", () => {
 });
 
 test("a value accepted in a closed string replaces it up to its quote", () => {
-  const text = '{"steps": [{"tool": "sl"}]}';
-  const caret = text.indexOf('sl"') + 2;
+  const text = '{"steps": [{"tool": "pl"}]}';
+  const caret = text.indexOf('pl"') + 2;
   const found = editor.suggestionsAt(text, caret, false);
   assert.equal(found.from, caret - 2);
   assert.equal(found.to, caret + 1);
-  assert.deepEqual(editor.acceptEdit(text, found, { label: "slice" }), { from: caret - 2, to: caret + 1, insert: 'slice"', back: 0, reopen: false });
+  assert.deepEqual(editor.acceptEdit(text, found, { label: "plate_slice" }), { from: caret - 2, to: caret + 1, insert: 'plate_slice"', back: 0, reopen: false });
 });
 
 test("an accepted placeholder closes its brace, over one already typed", () => {

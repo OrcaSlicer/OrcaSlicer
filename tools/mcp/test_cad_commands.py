@@ -28,7 +28,7 @@ card's width and height, a Project sketch, and any index while a sketch is open.
 shrinks the sketch of a block whose top edge is filleted until the fillet cannot rebuild, and sketch_edit_empty
 deletes every entity: in both sketch_finish replies ok false, that the sketch was not replaced and why, the design
 and its undo depth are as they were, and the next sketch_create opens a new sketch, which its sketch_finish adds
-after the others. The failed replace's session, exported with export_replay, keeps that sketch_finish and replays
+after the others. The failed replace's session, exported with replay_export, keeps that sketch_finish and replays
 in a new project to the same features. sketch_edit_failed_leave leaves the same failing edit through sketch_text {}
 and through K, which finish the sketch before they open the Text dialog or Constrain mode: each stops with the
 status line saying the sketch could not be replaced, nothing open and the design as it was.
@@ -55,7 +55,7 @@ opens the card of a Hole drilled into a block's side, which a later Fillet renum
 the Hole goes into that face, its plane read in the model before it. edit_repick_hidden hides a second block and opens
 the Fillet's card: a click on the hidden block picks nothing, and after the block is shown and hidden again with the
 card open, an edge picked is still named by its id in the model before the Fillet.
-design_view sets set_view's Design options on a block: a section view at a height and its upper half, one at the
+design_view sets view_set's Design options on a block: a section view at a height and its upper half, one at the
 model's middle when the height is left out, and each of the four switches on and off, as the reply reads them back.
 sketch_normal with no sketch open is refused, leaving the view as it was, and in a sketch on XZ looks along the
 plane's normal; the Design options given without tab design are refused.
@@ -94,7 +94,7 @@ boolean_opens calls boolean {} and boolean {operation: "cut"} with two bodies an
 a tool is open, and the card it opened, confirmed with confirm_tool, adds a join and a cut; with target and tool the
 cut runs. tile_pick opens the Speed Dial in a sketch with a line selected and picks the Polar array tile, a row folded
 into sketch_pattern, which arms the polar array tool, and the Trim tile, sketch_trim's own, which arms the trim tool.
-tile_replay runs the Polar array tile with run_action, exports the session, whose step carries the row's arguments
+tile_replay runs the Polar array tile with action_run, exports the session, whose step carries the row's arguments
 {"type": "circular"}, and replays it in a new project to the same armed tool.
 """
 
@@ -475,7 +475,7 @@ def rung_sketch_edit_cancel():
     gui.cad("sketch_edit", sketch=sketch)
     gui.cad("sketch_draw", type="circle_center", center=[10, 5], radius=2)
     gui.cad("sketch_cancel")
-    dialogs = gui.client.call("get_app_state").get("dialogs", [])
+    dialogs = gui.client.call("app_state").get("dialogs", [])
     gui.check("sketch_edit_cancel: sketch_cancel asks nothing", not dialogs, dialogs)
     gui.check("sketch_edit_cancel: no sketch is left open", gui._sketch_or_none() is None, gui._sketch_or_none())
     gui.check("sketch_edit_cancel: the design is as it was", state() == before, f"{before} -> {state()}")
@@ -533,7 +533,7 @@ def not_replaced(rung, reply, sketch, why):
 
 
 def steps_of(path):
-    """The steps of the replay export_replay wrote at `path`, its // comment lines left out."""
+    """The steps of the replay replay_export wrote at `path`, its // comment lines left out."""
     with open(path) as f:
         text = f.read()
     return json.loads("\n".join(l for l in text.splitlines() if not l.lstrip().startswith("//")))["steps"]
@@ -542,7 +542,7 @@ def steps_of(path):
 def rung_sketch_edit_failed_replace():
     # The session the replay must reproduce starts on the empty design.
     gui.new_design()
-    gui.client.call("export_replay", clear=True)
+    gui.client.call("replay_export", clear=True)
     sketch = block_on_rectangle()
     round_top_edge()
     before = state()
@@ -559,12 +559,12 @@ def rung_sketch_edit_failed_replace():
     live = [f["type"] for f in gui.cad("describe_design")["features"]]
     out_dir = tempfile.mkdtemp(prefix="orca-mcp-sketch-edit-")
     path = os.path.join(out_dir, "session.json")
-    gui.client.call("export_replay", path=path, overwrite=True)
+    gui.client.call("replay_export", path=path, overwrite=True)
     tools = [s["tool"] for s in steps_of(path)]
     gui.check("sketch_edit_failed_replace: the export keeps the sketch_finish that did not replace",
               tools.count("sketch_edit") == 1 and tools.count("sketch_finish") == 3, tools)
-    gui.client.call("new_project", discard_changes=True)
-    replay = gui.client.await_job(gui.client.call("run_replay", path=path, out_dir=out_dir), timeout=900)
+    gui.client.call("project_new", discard_changes=True)
+    replay = gui.client.await_job(gui.client.call("replay_run", path=path, out_dir=out_dir), timeout=900)
     gui.check("sketch_edit_failed_replace: the exported session replays", replay.get("passed") is True,
               [s for s in replay.get("steps", []) if not s.get("ok")][:1])
     replayed = [f["type"] for f in gui.cad("describe_design")["features"]]
@@ -694,7 +694,7 @@ def features():
 
 def nothing_open(rung):
     """No dialog is open, modal or modeless, and no sketch session: no placement step was left for a person."""
-    dialogs = gui.client.call("get_app_state").get("dialogs", [])
+    dialogs = gui.client.call("app_state").get("dialogs", [])
     gui.check(f"{rung}: no dialog is open", not dialogs and not gui.modeless(), [dialogs, gui.modeless()])
     gui.check(f"{rung}: no sketch session is open", gui._sketch_or_none() is None, gui._sketch_or_none())
 
@@ -773,7 +773,7 @@ def rung_svg_art():
 
 def row_menu(name, item):
     """The item `item` of the Feature tree row `name`'s right-click menu."""
-    gui.client.call("click", target={"row": name}, button="right", popup_item=item)
+    gui.client.call("widget_click", target={"row": name}, button="right", popup_item=item)
 
 
 def rung_scale_artwork():
@@ -829,14 +829,14 @@ def rung_surface_revolve_flip():
 
 
 def view(**args):
-    """set_view's reply to `args` given with tab design."""
-    return gui.client.call("set_view", tab="design", **args)
+    """view_set's reply to `args` given with tab design."""
+    return gui.client.call("view_set", tab="design", **args)
 
 
 def view_refused(**args):
-    """Why set_view refuses `args`; empty when it runs."""
+    """Why view_set refuses `args`; empty when it runs."""
     try:
-        gui.client.call("set_view", **args)
+        gui.client.call("view_set", **args)
     except orca_mcp.McpError as e:
         return str(e)
     return ""
@@ -878,7 +878,7 @@ def rung_design_view():
     why = view_refused(tab="design", camera="fit_bed", section={"on": True})
     section = view().get("design", {}).get("section") or {}
     gui.check("design_view: fit_bed is refused, leaving the section view off",
-              "fit_bed is not offered" in why and section.get("on") is False, [why, section])
+              "The Design tab has no bed to fit the view to." in why and section.get("on") is False, [why, section])
 
     frame = gui.cad("sketch_create", plane="XZ")["frame"]
     state = view(camera="sketch_normal").get("camera_state", {})
@@ -926,7 +926,7 @@ def canvas_rows(out_dir, name):
     """The upper three quarters of a canvas screenshot's rows as its PNG stores them, apart from the status line and
     the readout the canvas draws along its bottom: equal for two screenshots exactly when their pixels there are."""
     path = os.path.join(out_dir, name + ".png")
-    gui.client.call("screenshot", target="canvas", include_image=False, save_path=path, overwrite=True)
+    gui.client.call("window_screenshot", target="canvas", include_image=False, save_path=path, overwrite=True)
     with open(path, "rb") as f:
         data = f.read()
     pos, idat, width, height, channels = 8, b"", 0, 0, 0
@@ -1146,7 +1146,7 @@ def rung_select_loops():
     gui.check("select_loops: {sketch, loop: 1} reads back sk_loop", r["selection"]["id"] == "sk_loop", r)
     # zoom_to_selection centres the view on what is selected: the loop sketch_describe calls 1.
     gui.cad("zoom_to_selection")
-    look = gui.client.call("get_app_state").get("camera", {}).get("look_at", [])
+    look = gui.client.call("app_state").get("camera", {}).get("look_at", [])
     want = centre(loops[1])
     gui.check("select_loops: it selects the loop sketch_describe calls 1",
               len(look) == 3 and near(look[0], want[0], 1e-3) and near(look[1], want[1], 1e-3), [look, want])
@@ -1369,8 +1369,8 @@ def rung_edit_repick_hidden():
     picked = selection()
     gui.check("edit_repick_hidden: a click on the hidden block picks nothing in the Fillet's card", picked == "none", picked)
     # The Bodies row's eye, as a person shows and hides a body with the card open.
-    gui.client.call("click", target={"row": "Body 2 — Block B", "column": "Show"})
-    gui.client.call("click", target={"row": "Body 2 — Block B", "column": "Hide"})
+    gui.client.call("widget_click", target={"row": "Body 2 — Block B", "column": "Show"})
+    gui.client.call("widget_click", target={"row": "Body 2 — Block B", "column": "Hide"})
     gui._follow_canvas()
     gui.click_mm(*on_frame(frame, mid(edge)))
     gui.click_mm(*on_frame(frame, other["centroid"]))
@@ -1524,17 +1524,17 @@ COMMIT = "Commit to Plate — send the solid to Prepare"   # the ribbon's Commit
 
 def plate_objects():
     """How many objects the Prepare plate holds, on its plates and off them."""
-    listed = gui.client.call("list_objects")
+    listed = gui.client.call("object_list")
     return sum(len(p["objects"]) for p in listed.get("plates", [])) + len(listed.get("outside", []))
 
 
 def commit_stops(rung):
     """Press Commit to Plate over a card whose Confirm does not take, and check that it stops there: nothing sent to
     the plate, the Design tab still in front."""
-    sent, tab = plate_objects(), gui.client.call("get_app_state").get("tab")
+    sent, tab = plate_objects(), gui.client.call("app_state").get("tab")
     gui.press(COMMIT)
     gui.check(f"{rung}: Commit to Plate sends nothing to the plate", plate_objects() == sent, [sent, plate_objects()])
-    now = gui.client.call("get_app_state").get("tab")
+    now = gui.client.call("app_state").get("tab")
     gui.check(f"{rung}: the Design tab stays in front", now == tab, [tab, now])
 
 
@@ -1662,7 +1662,7 @@ def plate_offset(replace):
     room, so a part's place is read against another part of the same object."""
     r = gui.cad("commit_to_plate", mode="assembly", replace=[] if replace is None else [replace])
     index = r["objects"][0]["index"]
-    listed = gui.client.call("list_objects")
+    listed = gui.client.call("object_list")
     objects = [o for p in listed.get("plates", []) for o in p["objects"]] + listed.get("outside", [])
     parts = {p["name"]: p for o in objects if o["index"] == index for p in o["parts"]}
     return parts["Design Body 1"]["bbox"]["min"][0] - parts["Design Body 2"]["bbox"]["min"][0], index
@@ -1859,8 +1859,8 @@ def rung_boolean_opens():
 def dial_pick(title):
     """Opens the Speed Dial on the Design view and picks the tile titled `title` from it, as a person's click does."""
     gui.keys("space", target=CANVAS)
-    gui.client.call("set_widget_value", target={"web": "Search actions"}, value=title, submit=False)
-    return gui.client.call("click", target={"web": f"{title} from Orcaslicer", "kind": "button"})
+    gui.client.call("widget_set_value", target={"web": "Search actions"}, value=title, submit=False)
+    return gui.client.call("widget_click", target={"web": f"{title} from Orcaslicer", "kind": "button"})
 
 
 def line_selected():
@@ -1885,25 +1885,25 @@ def rung_tile_pick():
 
 
 def rung_tile_replay():
-    # run_action of a folded row's tile is journaled with the row's arguments, so the exported session replays the pick.
+    # action_run of a folded row's tile is journaled with the row's arguments, so the exported session replays the pick.
     gui.new_design()
-    gui.client.call("export_replay", clear=True)
+    gui.client.call("replay_export", clear=True)
     gui.cad("sketch_create", plane="XY")
     gui.cad("sketch_draw", type="line", p0=[0, 0], p1=[10, 0])
     gui.cad("sketch_select", entities=[0])
-    r = gui.client.call("run_action", id="sk_array_polar")
-    gui.check("tile_replay: run_action of the Polar array tile opens its tool", r.get("result", {}).get("interactive") is True, r)
+    r = gui.client.call("action_run", id="sk_array_polar")
+    gui.check("tile_replay: action_run of the Polar array tile opens its tool", r.get("result", {}).get("interactive") is True, r)
     gui.check("tile_replay: it arms the polar array tool", gui.sketch()["tool"] == "array_polar", gui.sketch()["tool"])
     out_dir = tempfile.mkdtemp(prefix="orca-mcp-tile-replay-")
     path = os.path.join(out_dir, "session.json")
-    gui.client.call("export_replay", path=path, overwrite=True)
-    picks = [s for s in steps_of(path) if s["tool"] == "run_action"]
+    gui.client.call("replay_export", path=path, overwrite=True)
+    picks = [s for s in steps_of(path) if s["tool"] == "action_run"]
     gui.check("tile_replay: the export keeps the pick with the row's arguments",
               len(picks) == 1 and picks[0]["args"].get("id") == "orca_command:sk_array_polar:orca"
               and picks[0]["args"].get("args") == {"type": "circular"}, picks)
     gui.cad("sketch_cancel")
-    gui.client.call("new_project", discard_changes=True)
-    replay = gui.client.await_job(gui.client.call("run_replay", path=path, out_dir=out_dir), timeout=900)
+    gui.client.call("project_new", discard_changes=True)
+    replay = gui.client.await_job(gui.client.call("replay_run", path=path, out_dir=out_dir), timeout=900)
     gui.check("tile_replay: the exported session replays", replay.get("passed") is True,
               [s for s in replay.get("steps", []) if not s.get("ok")][:1])
     gui.check("tile_replay: the replayed pick arms the polar array tool", gui.sketch()["tool"] == "array_polar",

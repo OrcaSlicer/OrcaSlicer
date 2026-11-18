@@ -89,7 +89,7 @@ public:
     // As call(), with the job marked a person's.
     ToolResult call_person(const NativeCommand& command, const nlohmann::json& args);
     // A call made by a running job (a replay step or a script's call). The new job's parent is `parent_job`, so a
-    // `wait {for:"idle"}` from that job does not wait for it, and the journal leaves it out.
+    // `app_wait {for:"idle"}` from that job does not wait for it, and the journal leaves it out.
     ToolResult call_child(const NativeCommand& command, const nlohmann::json& args, const std::string& parent_job,
                           const std::string& plugin = {});
     // A child call by the command's key, as ToolContext::call_child() makes one, under any parent: the command is
@@ -174,7 +174,7 @@ private:
     mutable std::mutex                   m_dialogs_mutex;
     std::map<std::string, std::uint64_t> m_dialogs_of;
 
-    // Requests that may block (a job within its reply budget, or wait) hold a slot, so the number of
+    // Requests that may block (a job within its reply budget, or app_wait) hold a slot, so the number of
     // blocked request threads stays below the connection limit and recovery calls always get through.
     bool acquire_slot();
     void release_slot();

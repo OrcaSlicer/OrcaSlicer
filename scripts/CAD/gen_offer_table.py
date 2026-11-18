@@ -33,7 +33,7 @@ ENUM = {
 # a tool block's access -> CadAccess enumerator
 ACCESS = {"read": "Read", "change": "Change", "sketch": "Sketch", "ui": "Ui"}
 
-# The headings of search_tools' index of the Design commands (Mcp::design_command_index()), in its order: every
+# The headings of tool_search's index of the Design commands (Mcp::design_command_index()), in its order: every
 # command's `section` is one of them. Menu rows holds the commands that take no arguments and only do what their row
 # does.
 SECTIONS = ("Document", "Sketch", "Solid", "Surface", "Construct", "Inspect", "Bodies", "History", "Menu rows")
@@ -122,7 +122,7 @@ def faults(A):
     command's own row takes, which a call with none also gives. A command's rows are in one mode.
 
     Every command, an entry with an action or a block that is no folded row, has a `section`, its heading in
-    search_tools' index (SECTIONS); a folded or greyed row, which is no command, has none.
+    tool_search's index (SECTIONS); a folded or greyed row, which is no command, has none.
 
     `feature_row` marks a row whose action acts on the selected row of the Feature list, which a call of its
     command takes as its target when nothing is picked in the view (Mcp::open_refusal()): only a command with a row
@@ -154,7 +154,7 @@ def faults(A):
         if not command and "section" in v:
             errs.append(f"{vid}: a folded or greyed row is no command and has no section")
         elif command and "section" not in v:
-            errs.append(f"{vid}: a command needs a section, its heading in search_tools' index: one of {list(SECTIONS)}")
+            errs.append(f"{vid}: a command needs a section, its heading in tool_search's index: one of {list(SECTIONS)}")
         elif command and v["section"] not in SECTIONS:
             errs.append(f'{vid}: section {v["section"]!r} is not one of {list(SECTIONS)}')
         if v.get("feature_row") and (not v.get("action") or "fold" in v):
@@ -248,7 +248,7 @@ def main():
         "// not apply are shown disabled in place with their reason rather than removed. Row order was",
         "// ratified 2026-07-31; changing an index is a breaking change to every user's muscle memory.",
         "// An entry with an action or a tool block, and no fold_into, is a command of the catalog's group Design",
-        "// (Mcp::register_cad_commands(), Mcp::is_design_command()), under its section in search_tools' index. A",
+        "// (Mcp::register_cad_commands(), Mcp::is_design_command()), under its section in tool_search's index. A",
         "// call whose arguments are exactly those that choose one of its rows opens that row's tool for a person",
         "// (Mcp::opened_row()): none choose the entry's own row where it has an action, else the rows folded into it",
         "// with {}; a folded row's args, or the entry's own, choose that row. Any other call runs its tool block's",
@@ -336,7 +336,7 @@ def main():
         "    // The arguments that choose this row, as JSON text: a folded row's, or those that choose the own row of",
         "    // an entry with an action and a tool block as a call with none does; nullptr for none.",
         "    const char* args;",
-        "    // The heading its command is listed under in search_tools' index (kDesignSections,",
+        "    // The heading its command is listed under in tool_search's index (kDesignSections,",
         "    // Mcp::design_command_index()); nullptr for an entry that is no command.",
         "    const char* section;",
         "    // Its action acts on the selected row of the Feature list, which a call of its command, not a person's",
@@ -344,7 +344,7 @@ def main():
         "    bool        feature_row;",
         "};",
         "",
-        "// The headings of search_tools' index of the Design commands, in its order. Menu rows holds the commands",
+        "// The headings of tool_search's index of the Design commands, in its order. Menu rows holds the commands",
         "// that take no arguments and only do what their row does.",
         "static const char* const kDesignSections[] = {",
     ]

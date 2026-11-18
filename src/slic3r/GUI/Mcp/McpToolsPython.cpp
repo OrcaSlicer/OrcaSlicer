@@ -1,4 +1,4 @@
-// run_script and search_python_api: Python scripts against orca.host, the plugin API, and the orca package's
+// script_run and script_search_api: Python scripts against orca.host, the plugin API, and the orca package's
 // reference.
 
 #include "JobRegistry.hpp"
@@ -9,7 +9,9 @@
 #include "AutomationRuntime.hpp"
 #include "McpTools.hpp"
 
+#include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/NativeCommandRows.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -44,7 +46,7 @@ namespace py = pybind11;
 
 namespace {
 
-// A run's orca.host.tools calls, as child calls of the run_script job, so each has its tool's guards,
+// A run's orca.host.tools calls, as child calls of the script_run job, so each has its tool's guards,
 // admission and undo, and a cancel of the run reaches them.
 class RunBridge final : public ToolBridge
 {
@@ -63,13 +65,13 @@ private:
 };
 
 // The Run Script panel's session's orca.host.tools calls: child calls under a lineage node of the session's job, so a
-// stop cancels every call in flight, inline ones (wait) included, without stopping the session, and the next work's
+// stop cancels every call in flight, inline ones (app_wait) included, without stopping the session, and the next work's
 // calls run under a fresh node.
 class SessionBridge final : public ToolBridge
 {
 public:
     SessionBridge(AutomationRuntime& runtime, const std::string& session_job)
-        : m_runtime(runtime), m_node(runtime.jobs(), "run_script", session_job)
+        : m_runtime(runtime), m_node(runtime.jobs(), "script_run", session_job)
     {}
     json call(const std::string& tool, const json& args) override
     {
@@ -79,7 +81,7 @@ public:
         return r.data;
     }
     // A stop or time-out, from the session's watcher: the node's calls are cancelled, and its operations, as the
-    // cancel_job cancels them.
+    // job_cancel cancels them.
     void stop_calls()
     {
         const std::string node = m_node.id();
@@ -257,7 +259,7 @@ bool python_has_numpy()
 ToolResult run_python_session_job(AutomationRuntime& runtime, ToolContext& ctx, PythonSession& session, const std::string& filename)
 {
     const std::string job = ctx.job_id();
-    // The session waits for the person between works: `wait {for: "idle"}` counts only the calls it makes.
+    // The session waits for the person between works: `app_wait {for: "idle"}` counts only the calls it makes.
     runtime.jobs().set_idle(job);
     // What its calls leave behind is the session's, as a run's is; its rules act only while a work runs.
     runtime.begin_run_scope(job);
@@ -291,14 +293,14 @@ ToolResult run_python_session_job(AutomationRuntime& runtime, ToolContext& ctx, 
 std::shared_ptr<PersonRun> start_python_session(AutomationRuntime& runtime, std::shared_ptr<PythonSession> session,
                                                 const boost::filesystem::path& file, PersonRun::Events events)
 {
-    const NativeCommand* run_script = NativeCommands::instance().find("run_script");
-    if (run_script == nullptr || runtime.stopping() || !session)
+    const NativeCommand* script_run = NativeCommands::instance().find("script_run");
+    if (script_run == nullptr || runtime.stopping() || !session)
         return nullptr;
     auto run      = std::make_shared<PersonRun>(runtime, std::move(events));
     auto hosted   = std::make_shared<std::atomic<bool>>(false);
-    auto filename = file.empty() ? std::string("<run_script>") : path_to_utf8(file);
-    // run_script's properties, outside the session journal, as a person's run.
-    NativeCommand def = *run_script;
+    auto filename = file.empty() ? std::string("<script_run>") : path_to_utf8(file);
+    // script_run's properties, outside the session journal, as a person's run.
+    NativeCommand def = *script_run;
     def.journal       = false;
     def.run           = [&runtime, run, session, hosted, filename](const json&, ToolContext& ctx) {
         run->set_job(ctx.job_id());
@@ -337,12 +339,12 @@ std::shared_ptr<PersonRun> start_python_session(AutomationRuntime& runtime, std:
 void register_python_tools(CommandCatalog& catalog)
 {
     NativeCommand run = mutate_tool(
-        "core", "run_script", L("Run a Python script"),
+        "script_run", L("Run a Python script"),
         "Run Python code inside OrcaSlicer as its main program (__name__ == \"__main__\") against orca.host, the whole plugin "
-        "API (search_python_api searches it): read objects, meshes and settings, compute, use orca.host.ui and the preset "
+        "API (script_search_api searches it): read objects, meshes and settings, compute, use orca.host.ui and the preset "
         "API, and call these same tools, with their guards and undo, through orca.host.tools.call(name, args). Mesh and "
         "matrix arrays need numpy, which "
-        "search_python_api says is installed or not; a file run's PEP 723 block can install it. The code runs on a worker "
+        "script_search_api says is installed or not; a file run's PEP 723 block can install it. The code runs on a worker "
         "thread, where calls documented as UI thread only raise RuntimeError. The run ends once its code and the non-daemon "
         "threads and pool tasks it started are done; its windows close with it. `args` holds the args you pass; set `result` "
         "to a JSON value to return it; print() output comes back as output. Reply: {status: finished | raised | cancelled | "
@@ -350,14 +352,14 @@ void register_python_tools(CommandCatalog& catalog)
         "own file access is held to OrcaSlicer's folders (its data folder, and read only its resources folder and, for a "
         "file run, the file's folder), and it starts no programs or threads and reaches no network: such an access raises "
         "PermissionError, unless a person has let Python scripts run unrestricted in Preferences "
-        "(get_app_state.python.scripts_unrestricted), when the threads and pool tasks it starts call the tools too while "
+        "(app_state.python.scripts_unrestricted), when the threads and pool tasks it starts call the tools too while "
         "the run lasts; the tools it calls work as they do for you. Recorded "
-        "by export_replay as one step with its code, which a replay runs again against the project as it is then.",
+        "by replay_export as one step with its code, which a replay runs again against the project as it is then.",
         object_schema({{"code", prop("string", "Python source, run as a module body.")},
                        {"args", {{"type", "object"}, {"description", "Bound to the name `args` in the code."}}},
                        {"timeout_s", {{"type", "integer"}, {"minimum", 1}, {"maximum", 3600},
                                       {"description", "The run is stopped as timed_out after this many seconds (default 300)."}}},
-                       {"filename", prop("string", "The name tracebacks show for the code (default <run_script>). An existing file's "
+                       {"filename", prop("string", "The name tracebacks show for the code (default <script_run>). An existing file's "
                                                    "path makes it a file run, as `python file.py` runs it: __file__, sys.argv, imports "
                                                    "from its folder and its PEP 723 dependencies; any other name only names it. "
                                                    "What runs is still `code`: pass the file's text there.")}},
@@ -373,7 +375,7 @@ void register_python_tools(CommandCatalog& catalog)
             // A run owns what its calls leave behind (auto-answer rules, a recording, a held press) as a JSON
             // script does: it all ends with the run.
             const std::string job = ctx.job_id();
-            // A run may wait for a person in its window: `wait {for: "idle"}` counts only the calls it makes.
+            // A run may wait for a person in its window: `app_wait {for: "idle"}` counts only the calls it makes.
             runtime.jobs().set_idle(job);
             runtime.begin_run_scope(job);
             struct ScopeEnd
@@ -389,7 +391,7 @@ void register_python_tools(CommandCatalog& catalog)
             request.code      = arg_string(args, "code");
             request.args      = args.value("args", json::object());
             request.identity  = identity;
-            request.filename  = arg_string(args, "filename", "<run_script>");
+            request.filename  = arg_string(args, "filename", "<script_run>");
             // 0, below the schema's minimum, is passed only in process, by the Run Script dialog, whose Stop ends a run:
             // every external path validates the arguments. It means no time limit.
             request.budget    = std::chrono::seconds(arg_int(args, "timeout_s", 300));
@@ -405,19 +407,19 @@ void register_python_tools(CommandCatalog& catalog)
                 data["traceback"] = out.traceback;
             if (!out.message.empty())
                 data["message"] = out.message;
-            // A run that did not finish is reported, not failed, as run_replay reports a failed step: the
+            // A run that did not finish is reported, not failed, as replay_run reports a failed step: the
             // journal keeps it, and a replay of it fails again (D7).
             return ToolResult::ok(std::move(data));
         });
-    // cancel_job {job} stops a run: its code is interrupted at its next bytecode.
+    // job_cancel {job} stops a run: its code is interrupted at its next bytecode.
     run.cancellable = true;
     // A script reaches outside the app: files, programs and the network.
     run.open_world = true;
     catalog.add(run);
 
     catalog.add(inspect_tool(
-        "core", "search_python_api", L("Search the Python API"),
-        "Search orca, the Python API of run_script scripts and plugins, in the running build: orca.host (the project's "
+        "script_search_api", L("Search the Python API"),
+        "Search orca, the Python API of script_run scripts and plugins, in the running build: orca.host (the project's "
         "model and meshes, presets and their editors, slicing data, orca.host.ui windows and dialogs, orca.host.tools "
         "calling these tools) and the classes, events and pages plugins build on. Each entry has its kind, signature (a "
         "class's constructors) and documentation. A query ranks them, best match first; without one, the whole package is "
@@ -445,6 +447,17 @@ void register_python_tools(CommandCatalog& catalog)
             out["numpy"] = python_has_numpy();
             return ToolResult::ok(std::move(out));
         }));
+
+    // The Run Script panel's menu row, which has no argument form.
+    const std::string panel = "Show or hide the Run Script panel, where a person writes and runs Python scripts cell by cell. Agents "
+                              "run Python with the script_run tool instead.";
+    NativeCommand toggle_panel = row_command("script_toggle_panel", L("Run Script"), panel, object_schema({}),
+                                             json::array({NativeCommands::tile("toggle_run_script_panel", L("Run Script"),
+                                                                               L("Commands"), "media_play", json::object(), panel)}),
+                                             [](const json&) { return Rows::toggle_run_script_panel(); });
+    // A menu row with no argument form: tool_search finds it and tool_call runs it, the tool list does not show it.
+    toggle_panel.listed = false;
+    catalog.add(std::move(toggle_panel));
 }
 
 }}} // namespace Slic3r::GUI::Mcp

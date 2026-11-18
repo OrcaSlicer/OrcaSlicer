@@ -10,12 +10,13 @@
 """The pages tools/mcp/test_web_ui.py drives through the MCP server's GUI tools.
 
 Side-load it into a test data directory (test_web_ui.py --install DATADIR does) and run its scripts
-from run_action: "MCP web fixture dialog" opens PAGE as a modal plugin dialog and writes what the
+from action_run: "MCP web fixture dialog" opens PAGE as a modal plugin dialog and writes what the
 page submits to stderr, "MCP web fixture window" opens it as a modeless window, and "MCP web fixture
 panel" docks a small page beside the 3D view (the Prepare tab). The dialog script's configuration UI (CONFIG_UI) is shown by
 the Plugins dialog in its sandboxed frame. Each page logs what its controls saw into <pre id="log">,
 which the test reads back. "MCP web fixture thread" starts a thread, for which the host asks the
-threading permission in its permission prompt.
+threading permission in its permission prompt. "MCP web fixture page" is a page among the main window's
+tabs (TAB_PAGE), which the Go to tab tile shows by its id.
 """
 import json
 import sys
@@ -149,7 +150,7 @@ PAGE = r"""
 </script>
 """
 
-# Its Content-Security-Policy forbids eval, which the page agent doesn't need and run_javascript may
+# Its Content-Security-Policy forbids eval, which the page agent doesn't need and webview_run_javascript may
 # (where the port holds injected scripts to the page's policy).
 PANEL = r"""
 <meta http-equiv="Content-Security-Policy" content="script-src 'unsafe-inline'">
@@ -158,6 +159,12 @@ PANEL = r"""
 <canvas id="dock" width="60" height="30" aria-label="Dock pad" onpointerup="document.getElementById('ups').textContent += 'dock up\n'"></canvas>
 <pre id="log"></pre>
 <pre id="ups"></pre>
+"""
+
+# A page among the main window's tabs, which the Go to tab tile reaches by its id.
+TAB_PAGE = r"""
+<h3>Fixture page</h3>
+<p>A plugin's page among the main window's tabs.</p>
 """
 
 # Rewrite replaces every control with a new one, and Reload the frame's whole document, so refs to the
@@ -288,6 +295,14 @@ class FixturePanel(orca.script.ScriptPluginCapabilityBase):
         return orca.ExecutionResult.success("opened")
 
 
+class FixturePage(orca.pages.PagesPluginCapabilityBase):
+    def get_name(self):
+        return "MCP web fixture page"
+
+    def get_ui(self):
+        return TAB_PAGE
+
+
 @orca.plugin
 class FixturePackage(orca.base):
     def register_capabilities(self):
@@ -295,3 +310,4 @@ class FixturePackage(orca.base):
         orca.register_capability(FixtureWindow)
         orca.register_capability(FixtureThread)
         orca.register_capability(FixturePanel)
+        orca.register_capability(FixturePage)

@@ -10,7 +10,7 @@ Python. It uses only the standard library. `docs/HLSD/mcp-server.md` covers the 
 | `launch [--headless [kwin\|mutter] \| --xvfb] [--cad] [--unrestricted-scripts] [--printer "<model>@<nozzle>"] [--vendor V] [--filament F] [--datadir DIR] [--port N] [--bin PATH] [--print-config] [-- app args]` | Start OrcaSlicer with `--mcp`, wait until it is ready, print the session |
 | `call TOOL ['<json args>'] [--wait]` | Call a tool and print its JSON result; `--wait` follows a returned job to its result |
 | `tools` | List the tools, with the first line of each description |
-| `widgets ['<json args>']` | Print the `list_widgets` tree |
+| `widgets ['<json args>']` | Print the `widget_list` tree |
 | `screenshot OUT [--target main\|canvas\|dialog]` | Save a full-size PNG, replacing `OUT` if it exists |
 | `run-replay FILE [--out DIR]` | Run a replay in the launched instance and print the result; exit 0 when it passes |
 | `stop` | Stop the app and its private display, and remove the session |
@@ -26,7 +26,7 @@ screen, and the tests' views and screenshots all have one size; the tests that s
 the same 1600×900. `--cad` starts the app with
 `--cad`, which turns the Design (CAD) tab on for that run, and with it its commands, and
 `--unrestricted-scripts` starts it with `--unrestricted-scripts`, which lets Python scripts
-(`run_script`) run unrestricted for that run. Neither writes the datadir's `OrcaSlicer.conf`, and a later
+(`script_run`) run unrestricted for that run. Neither writes the datadir's `OrcaSlicer.conf`, and a later
 launch without them has the settings the datadir holds. The token comes from
 `ORCA_MCP_TOKEN` or is generated, and it reaches the app through the environment, not the command
 line. On Linux, `launch` also sets `SSL_CERT_FILE`, so a fresh datadir doesn't prompt for a CA
@@ -75,14 +75,14 @@ sys.path.insert(0, "tools/mcp")
 from orca_mcp import OrcaMcp, McpError
 
 orca = OrcaMcp(port=13619, token=os.environ["ORCA_MCP_TOKEN"])
-orca.call("open_files", paths=["/abs/path/part.stl"])
-result = orca.await_job(orca.call("slice"))          # follows a job envelope to the end
-orca.call("wait", **{"for": "idle"})                 # "for" is a Python keyword
-info, pngs = orca.images("screenshot", target="canvas")
+orca.call("project_import", paths=["/abs/path/part.stl"])
+result = orca.await_job(orca.call("plate_slice"))    # follows a job envelope to the end
+orca.call("app_wait", **{"for": "idle"})             # "for" is a Python keyword
+info, pngs = orca.images("window_screenshot", target="canvas")
 ```
 
 `call()` returns the tool's JSON result and raises `McpError` when the tool reports an error.
-`call_with_text()` also returns the text blocks after the JSON one, such as `list_widgets`'s tree.
+`call_with_text()` also returns the text blocks after the JSON one, such as `widget_list`'s tree.
 `images()` also returns the PNG bytes of the image blocks. `call_raw()` returns the MCP result
 unchanged. With `ORCA_MCP_CALL_LOG` set to a file, every call appends a JSON line with its tool, its
 time in milliseconds and whether it succeeded, which shows where a test spends its time.
@@ -109,25 +109,28 @@ unverified, which matters only for a symlinked binary. When the file is missing,
 port it names fails (nothing listens there, or another server answers), `from_datadir()` raises
 `McpError` saying so, with the failure as its cause.
 
-`call_command(tool, **args)` calls `call_tool {tool, args}`, follows a running job to its end and
+`call_command(tool, **args)` calls `tool_call {tool, args}`, follows a running job to its end and
 returns the command's whole reply, which for a Design command is `{"result": ...}`. A call whose first
 reply says a dialog blocks it fails at once, naming the dialog, rather than waiting on it. A call that
-first replied `running` and opens a dialog later is waited on up to the timeout (600 s), since `wait`
+first replied `running` and opens a dialog later is waited on up to the timeout (600 s), since `app_wait`
 reports only that its job is still running. Every `McpError` it raises starts with the command's name
-(`"extrude: ..."`) and has the original error as its cause. `search_tools {group: "Design"}` names the
-Design commands, and `search_tools {tool}` gives one's arguments and examples.
+(`"extrude: ..."`) and has the original error as its cause. `tool_search {group: "Design"}` names the
+Design commands, and `tool_search {tool}` gives one's arguments and examples.
 
-## The skill's list of commands
+## The skill's list of tiles
 
 `gen_skill_reference.py <skills-checkout> [--check]` writes
 `skills/orcaslicer-mcp-skills/references/actions.md` in a checkout of the orcaslicer-mcp-skills repository:
-the Speed Dial's commands section by section, each with its key, title, arguments and description, from
-the command reference `tests/data/command_catalog.json` (`docs/HLSD/mcp-server.md`, "Making a feature
-reachable"), and before them what the reference says of particular commands: those with one form, which
-needs its value, and the typed tools that are tiles too. A command has a row of its own when it has a tile
-of its own (`in_palette`); each Design menu row folded into a command follows it as a row with the
-command's key, the row's title and the arguments that open its tool (`sketch_pattern` with
-`{"type": "linear"}` for Linear array). It needs no running app. With `--check` it writes
+the Speed Dial's tiles section by section, from the command reference `tests/data/command_catalog.json`
+(`docs/HLSD/mcp-server.md`, "Making a feature reachable"), and before them what the reference says of
+particular commands: the Design commands with one form, which needs its value, and the commands of tiles
+the tool list does not show. Outside the Design tab a section is a Speed Dial section (a tile's `group`, or
+the `tile_group` of a command's own tile), and each tile has a row with its key, its title, the command and
+arguments it runs (`project_export {"format": "gcode"}` for Export G-code) and its description. In the
+Design section a command has a row of its own when it has a tile of its own (`in_palette`), and each Design
+menu row folded into a command follows it as a row with the command's key, the row's title and the
+arguments that open its tool (`sketch_pattern` with `{"type": "linear"}` for Linear array). It needs no
+running app. With `--check` it writes
 nothing, prints the difference and exits 1 when the file is not what it would write. When a command
 changed, regenerate the reference first: run `slic3rutils_tests "[Reference]"` with
 `ORCA_UPDATE_COMMAND_REFERENCE=1` in the environment.
@@ -175,10 +178,11 @@ the run that outlives its reply budget runs with the budget capped at 4 s (`ORCA
 
 `test_plugin_tools.py` checks a plugin's calls into the tools in the running app: it side-loads
 `tests/plugins/mcp_tools_fixture` into a fresh data folder and launches twice: over MCP, with the Design tab
-on (its operation is reached through `search_tools` and `call_tool` and stays out of `tools/list`, a Speed
-Dial command is found among `search_tools`' commands with its schema and not again among its actions, a
-Design command is found there too, in no section of its own, calls from its Script worker
-and a thread it starts reach the tools, an auto-answer rule it sets is the plugin's, `export_replay` is
+on (its operation is in the group Plugins, reached through `tool_search` and `tool_call` and out of
+`tools/list`; a menu row's command is found among `tool_search`'s commands with its schema and its tile not
+among its actions, and `tool_call` runs it; a group is a place's heading, in any case; a Design command is
+found there too, in no section of its own; calls from its Script worker
+and a thread it starts reach the tools, an auto-answer rule it sets is the plugin's, `replay_export` is
 refused, nothing it calls is journaled, a script that finds its progress dialog handle can use it,
 `tests/plugins/mcp_tools_broken`, whose load fails, offers none of its operations, and unticking the
 plugin in the Plugins dialog withdraws its operation and ends its rule); and without MCP,
@@ -188,7 +192,7 @@ Run Script panel's `.py` files are not driven from here: the panel is hidden fro
 files through a file picker, so how it reads and saves them is covered by the unit tests of
 `decode_python_source()` and `encode_python_source()`.
 
-A `.py` file given to `--run` runs as a Python script (`run_script`) instead, exiting 0 when it
+A `.py` file given to `--run` runs as a Python script (`script_run`) instead, exiting 0 when it
 finishes and 1 when it raises, is cancelled or runs out of time; its traceback goes to the log. A
 script's own file access is held to OrcaSlicer's folders, and it starts no programs or threads and reaches
 no network, unless scripts run unrestricted: start the app with `--unrestricted-scripts` for one run (as
@@ -218,7 +222,7 @@ def main():
     window = orca.host.ui.create_window("<button onclick='window.orca.postMessage({go: 1})'>Go</button>",
                                         on_message=pages.put)
     pages.get()                                  # the person pressed Go
-    worker = threading.Thread(target=lambda: print(orca.host.tools.call("get_app_state")["ready"]))
+    worker = threading.Thread(target=lambda: print(orca.host.tools.call("app_state")["ready"]))
     worker.start()                               # waited for before the run ends
 
 if __name__ == "__main__":
@@ -232,104 +236,118 @@ overlapping runs, imports, pools, `atexit` and Stop.
 
 `tests/gizmos.json` drives every gizmo through the GUI tools, the way a person does: each one's icon,
 its panel's fields, combos, toggles and links, and clicks or strokes at points of the model, then
-checks what it left on the model (`list_objects`), with an undo and redo and a canvas screenshot per
+checks what it left on the model (`object_list`), with an undo and redo and a canvas screenshot per
 gizmo. It uses the fixtures beside it (`tests/fixtures/star.svg`, `tests/fixtures/heightmap.png`).
-Run it at a second window size through `run_replay`'s `vars`:
+Run it at a second window size through `replay_run`'s `vars`:
 
 ```bash
-tools/mcp/orca_mcp.py call run_replay '{"path": "/abs/tools/mcp/tests/gizmos.json", "out_dir": "/tmp/gizmos-small", "vars": {"window_size": [1100, 760]}}' --wait
+tools/mcp/orca_mcp.py call replay_run '{"path": "/abs/tools/mcp/tests/gizmos.json", "out_dir": "/tmp/gizmos-small", "vars": {"window_size": [1100, 760]}}' --wait
 ```
 
-`tests/scene.json` checks object structure and placement: `transform` on an instance (the drop after a
-scale, `size`, a move to another plate), on a part, what `list_objects` reports of them (bounding boxes
-on the bed, filament, the scaled volume, a mirrored part and instance), the selection as `select_objects` and
-`get_app_state` report it (parts, whole instances, one instance of two), the shape commands given a size
-(`run_action` with `args` `{"size": [...]}`), `arrange` on one plate and every plate, Fill bed, the Speed
-Dial no-op that `run_action` reports as an error, `add_part` (shapes at a size and a position, a model
+`tests/scene.json` checks object structure and placement: `object_transform` on an instance (the drop after a
+scale, `size`, a move to another plate), on a part, what `object_list` reports of them (bounding boxes
+on the bed, filament, the scaled volume, a mirrored part and instance), the selection as `object_select` and
+`app_state` report it (parts, whole instances, one instance of two), shapes given a size
+(`object_add_primitive {shape, size}`), `object_arrange` on one plate and every plate, Fill bed, the Speed
+Dial no-op that `action_run` reports as an error, `part_add` (shapes at a size and a position, a model
 file, one undo step, and what it refuses), and the object structure commands (Change Type, Rename,
 number of instances, individual objects, Assemble, Order By and its reversal, and what each refuses). It
 ends with all of them on one scene: a block with a magnet pocket and a boss, sized, moved to a second
 plate, copied six times and arranged there, split into objects, one mirrored, two assembled, ordered,
 the plate filled and sliced.
 
-`tests/layers.json` checks height range modifiers: `set_height_ranges` with ranges given out of order,
-their read-back in `list_objects`, one undo step (and none for the same ranges again), the layer count
-of a slice with them, the refusals (an overlap, a layer height beyond the printer's, a missing filament,
-an object setting, an empty range), a range in the second filament, a 3MF round trip, and `[]`. Then
-variable layer height profiles on a Benchy with `set_variable_layer_height`: Adaptive called from the
+`tests/layers.json` checks height range modifiers: `object_set_height_ranges` with ranges given out of order
+and their settings set with `settings_set` (target `height_range`), their read-back in `object_list`, one
+undo step each (and none for the same ranges again, which keep their settings), the layer count of a slice
+with them, the refusals (an overlap, a layer height beyond the printer's, a missing filament, an object
+setting, an empty range), a range in the second filament, a 3MF round trip, and `[]`. Then
+variable layer height profiles on a Benchy with `object_set_variable_layer_height`: Adaptive called from the
 Preview tab, its quality's effect on the point count, the layer count of a slice with it, Smooth as one
 undo step, Reset and a Reset that changes nothing, the refusals (an argument of another action, the
 assemble view), Smooth and Adaptive over height ranges, and a 3MF round trip. Last, layer G-codes on a
-cube with `set_custom_gcode_at_layer`: refused before a slice, a pause by layer and custom G-code by height called
+cube with `plate_set_custom_gcode`: refused before a slice, a pause by layer and custom G-code by height called
 from Prepare (it shows the Preview), the same code again changing nothing, a removal and an in-place
 custom edit in one call, the refusals (a layer above the top, a code where another is, nothing to remove,
 a missing filament, a missing plate, a plate changed since its slice that the Preview does not show), a
 filament change, a 3MF round trip, and `clear`.
+
+`tests/settings_targets.json` checks `settings_list` (each type whole, a saved preset's and a slot's values,
+what an object and a region take) and the settings tools' targets on a cube with a modifier and two height
+ranges: a value set on the object, the modifier and a range, each read back by index and from the selection
+with the value it prints with and where that comes from, and ranges replaced keeping the settings of the one
+that stays. `tests/view_switches.json` checks `view_set`'s sidebar, legend, G-code window, section view and
+display switches, each set and read back from its reply and `app_state`; a cube placed in the middle of a
+plate from `plate_list`'s origin and size; and `app_state`'s account, network plug-in and configuration folder.
+`test_sidebar_floating.py` launches its own app twice, the second time with the sidebar floating in the saved window
+layout, and checks that `view_set`'s `sidebar_width` is refused there.
 
 `tests/recording.json` records while it drives the GUI: clicks on the 3D view, a setting typed, the
 Preferences dialog opened and closed, a slice. It stops the recording (frames, length, size) and encodes
 it to H.265, then has a nested replay start a recording of the 3D view that it never stops, checks the
 replay's end closed it, and encodes that to H.264. Short recordings check that a recording has no overlays
 unless `captions` or `pointer` turns one on, that one started with a path and no `max_seconds` runs under an
-hour's limit, and that one started with `encode` is encoded as a job once `stop_recording` reports it, the
+hour's limit, and that one started with `encode` is encoded as a job once `recording_stop` reports it, the
 encode deleting its `.mkv` unless `keep_raw_video_file` keeps it. Its
-`new_project` and `stop_recording` calls pass `silent: true`: with no arguments they would do what a
+`project_new` and `recording_stop` calls pass `silent: true`: with no arguments they would do what a
 person's pick does, asking and stopping without a report. The encodes need an ffmpeg with libx265 and libx264
 (`ORCA_FFMPEG`, or `ffmpeg` on `PATH`) and are optional without one. Look at the videos, or at frames
 `ffmpeg -i session.mkv -vf fps=1 frame%02d.png` extracts, for the caption, the pointer and the dialog.
 
-`tests/multicolor.json` assigns filaments to objects and parts through `set_settings`' object and
-part scopes, with undo and redo, and reads them back with `get_settings`' effective values. It then
-sets the project's slot colours, flushing multiplier, one flushing volume and plate type through the
-project scope (in one call, the colour first), checks the refusals that leave everything as it was
+`tests/multicolor.json` assigns filaments to objects and parts through `settings_set`'s object and
+part targets, with undo and redo, and reads them back with `settings_get`'s effective values. It then
+sets the project's slot colours, flushing multiplier, one flushing volume and plate type through
+`project_set_settings` (in one call, the colour first), checks the refusals that leave everything as it was
 (the read-only `filament_is_mixed`, a bad colour, a purge mode the printer has no button for, a non-zero
 diagonal, a tower off the plate), and moves the prime tower with an undo, before slicing.
 
-`tests/presets.json` saves filament, process and printer presets with `save_preset` (a user preset,
+`tests/presets.json` saves filament, process and printer presets with `preset_save` (a user preset,
 one inside the project that a saved and reopened project keeps, a detached one, and the overwrite
-rule), and drops unsaved edits with `set_settings {"reset_all": true}`. It selects a hidden filament,
-one the setup wizard has not added, by name. It reads presets that are not selected and compares presets (`get_settings` `preset` and `compare`), writes one entry of a
-per-variant value, and checks `set_settings`' `changed` after the spiral vase dialog. It reads what
-settings do from `get_settings`' meta (`description`, `where`): by key, for one group, and found by
-the words of their descriptions, in one scope and in all three. Keys named without a scope are read
-from the scope that has each one, and a key named in the wrong scope is listed with the scope that has
-it (`scope_of`) and refused by `set_settings`. It reverts single keys (`null`, `reset_to`), and answers the unsaved-changes prompts:
-`select_preset` without `preset_changes` still opens the prompt, `preset_changes` transfers or discards without it,
-and `new_project` keeps modified presets unless `preset_changes` is `"discard"`. It ends by deleting the
-presets it made with `delete_preset`: filaments the tab edits and does not, a base process and its
+rule), and drops unsaved edits with `settings_set {"reset_all": true}`. It selects a filament the selector
+does not offer, one the setup wizard has not installed, by name. It reads presets that are not selected and
+compares presets (`settings_get` `preset` and `compare`), writes one entry of a
+per-variant value, and checks `settings_set`'s `changed` after the spiral vase dialog. It reads what
+settings do from their meta (`description`, `where`): by key with `settings_get`, for one group with
+`settings_list`, and found by the words of their descriptions, in one type and in all three. Keys named
+without a type are read from the type that has each one, and a key named in the wrong type is listed with
+the type that has it (`type_of`) and refused by `settings_set`. It reverts single keys (`null`, `reset_to`),
+and answers the unsaved-changes prompts:
+`preset_select` without `preset_changes` still opens the prompt, `preset_changes` transfers or discards without it,
+and `project_new` keeps modified presets unless `preset_changes` is `"discard"`. It ends by deleting the
+presets it made with `preset_delete`: filaments the tab edits and does not, a base process and its
 child, and a printer once selected, with the refusals for system presets, a preset another inherits
 from, unsaved changes and a printer that is not selected. It exports a filament with the Export
-Preset Bundle dialog to its `out_dir` (`export_config` with a directory), imports the archive again
-with `import_configs` and a path (kept while the preset exists, imported once it is deleted) and
+Preset Bundle dialog to its `out_dir` (`preset_export` with a directory), imports the archive again
+with `preset_import` and a path (kept while the preset exists, imported once it is deleted) and
 imports `tests/fixtures/mcp_import_pla.json`. It changes a preference in the Preferences dialog
-opened with `open_preferences` `behaviour:auto_arrange`, by the control's name, and reads it back with
-`get_settings {"scope": "preferences"}`. It starts from the harness's default printer with one
+opened with `window_open {"window": "preferences", "tab": "behaviour", "key": "auto_arrange"}`, by the
+control's name, and reads it back with `preferences_get`. It starts from the harness's default printer with one
 filament slot in Simple mode, deleting slots and selecting the mode first, and reruns on the same
 datadir.
 
 `tests/plates.json` sets a plate type and print sequence on one plate only (with undo and redo), the
-first and other layers' filament orders, spiral vase, the lock (twice, which leaves it locked) and a
-name through `set_settings`' plate scope, and reads them back with `list_plates` and `get_settings`.
+first and other layers' filament orders and spiral vase through `plate_set_settings`, the lock (twice,
+which leaves it locked) through `plate_lock` and a name through `plate_rename`, and reads them back
+with `plate_list` and `plate_get_settings`.
 It brings the filament list to two slots with the `filament_add` and `filament_delete` commands first,
 and ends with a mixed filament, whose slot the delete command refuses and ahead of which a new slot
 goes. It reruns on the same datadir.
 
-`tests/calibration.json` makes every calibration test with `generate_calibration_test` (each pressure advance method,
+`tests/calibration.json` makes every calibration test with `calibration_generate_test` (each pressure advance method,
 a 2 x 2 pattern batch, the four flow ratio passes) and checks the objects it added, the parameters
 it used and the presets it changed, slicing some of them. It checks the temperature rounding, the
 refusals that leave the project as it was (modified presets without `preset_changes`, an argument the test
-does not take), `preset_changes: "keep"` keeping an edit, and `new_project` dropping the test's settings. It
+does not take), `preset_changes: "keep"` keeping an edit, and `project_new` dropping the test's settings. It
 starts from the harness's default printer and reruns on the same datadir.
 
 `tests/ops_*.json` drive each operation of the operations layer (`docs/HLSD/mcp-server.md`, "The
-operations layer") through every route that reaches it: the Speed Dial command run with `run_action`,
-the typed tool and, for presets, a pick in the sidebar and the plugin API called from a `run_script`
-step. One replay per operation, named after it: G-code, sliced 3MF, model 3MF and STL exports, a model
+operations layer") through the routes that reach it: the command, a Speed Dial tile run with `action_run`
+where one runs it from a call, and, for presets, a pick in the sidebar and the plugin API called from a
+`script_run` step. One replay per operation, named after it: G-code, sliced 3MF, model 3MF and STL exports, a model
 import, a project opened, started anew and saved, a plate selected and locked, arrange, slice, the
 Preview's layer range, a printer or process preset selected (`ops_select_preset`), a filament assigned
 to a slot on a printer with one slot and with several (`ops_assign_filament_preset_one_slot`,
-`_multi_slot`), presets imported, an object's instance count, and the refusals of `send_gcode`, which
-never sets a print host, so nothing is sent. Each records what a call leaves: its reply or its
+`_multi_slot`), presets imported, an object's instance count, and the refusals of `printer_send`'s tile,
+whose id is `send_gcode`, which never sets a print host, so nothing is sent. Each records what a call leaves: its reply or its
 refusal's text, the state read back after it, and the undo snapshots it took, which
 `tests/fixtures/ops_undo.py` reads from the app's log since no tool lists the undo history. Their
 `expect`s are on the setup and on what is read back. A replay cannot assert a refusal's text, so a
@@ -337,20 +355,21 @@ call that a route refuses is `optional`, and `result.json` is the record of thos
 between two builds.
 The preset replays share `tests/fixtures/ops_presets.py`, which sets the slots, colours and flushing
 volumes to known values before each case, and each needs a freshly launched app, since a hidden
-preset that `select_preset` shows stays shown until a restart. The replays whose commands write files
-need a fresh `--out`, since those commands write without `overwrite`. Launch the app from a folder that
+preset that `preset_select` shows stays shown until a restart. The replays whose calls write files
+need a fresh `--out`, since some of those calls write without `overwrite`. Launch the app from a folder that
 holds no `.py` files, since the app's working directory is on Python's module path and a file there can
-shadow a standard module that `run_script` needs.
+shadow a standard module that `script_run` needs.
 
-`test_operation_routes.py` asserts what those replays only record: that a command, the tool that does
-the same thing and the plugin API's binding refuse the same states with the same code and words, and
-accept the same ones. It covers a project saved under a `.gcode.3mf` name, the exports of a project
-with no objects, a layer asked of a Preview with none, an arrangement from the assemble view and with
-a gizmo open, a mixed-colour filament slot, and a hidden printer selected through the plugin API. Run
+`test_operation_routes.py` asserts what those replays only record: that a command, a Speed Dial tile that
+runs it and the plugin API's binding refuse the same states with the same code and words, and accept the
+same ones: a layer asked of a Preview with none (the Go to layer tile and `view_set`), a mixed-colour
+filament slot, and a hidden printer selected through the plugin API. It also checks what a command refuses
+or does in those states alone: a project saved under a `.gcode.3mf` name, the exports of a project with no
+objects, and an arrangement from the assemble view and with a gizmo open. Run
 it on a freshly launched app, for the reasons above and because the Preview keeps the last slice's
 layers.
 
-The Design-tab replays drive the Design commands through `call_tool` and need an instance launched with
+The Design-tab replays drive the Design commands through `tool_call` and need an instance launched with
 `--cad`. Each starts from a new project and checks what it builds by volume and by what the reading
 commands give back, under each reply's `result`; steps
 marked `optional` are calls that must be refused and change nothing.
@@ -382,29 +401,29 @@ marked `optional` are calls that must be refused and change nothing.
   an edit and of a rename), suppresses, moves and deletes features, names, hides and colours bodies,
   commits only the shown one, and saves and reopens the project to check that a body's name and
   colour were kept.
-- `tests/cad_canvas.json` drives the Design view as a canvas: `set_view` shows the Design tab and
+- `tests/cad_canvas.json` drives the Design view as a canvas: `view_set` shows the Design tab and
   points its camera (and refuses Prepare's and Preview's fields there), canvas and widget
   screenshots capture the view, a click at its centre picks the block and a right click lists the
-  verbs for the pick, and `press_keys` reaches the Design panel's key hook (Shift+E opens the Extrude
+  verbs for the pick, and `keyboard_press` reaches the Design panel's key hook (Shift+E opens the Extrude
   card, Escape with no target closes it). Last, a change made only in the Design tab marks the
   project modified, and reopening the saved design-only project with `discard_changes` asks nothing
   and names the project after its file.
 
 Three harness tests run on an instance launched with `--cad`. `test_cad_replay.py` makes calls as a
-client, so they are journaled, exports the session with `export_replay`, replays it into a new
+client, so they are journaled, exports the session with `replay_export`, replays it into a new
 project and compares the body's mass properties and the features. The session has an empty sketch
 commit, a missed hole and a fillet the kernel refuses, which must fail and be left out, a shell thicker
 than the plate answering ok false, which stays in, and face and edge ids passed with their `generation`,
 which the journal drops.
 `test_cad_slow_build.py` runs a long thread build (an M8 thread tapped 60 mm deep, about 8 s) and
-checks that while it builds `get_app_state` answers, a window screenshot succeeds, `list_widgets` lists
+checks that while it builds `app_state` answers, a window screenshot succeeds, `widget_list` lists
 the progress dialog and a screenshot of that dialog captures it, and another Design command is refused.
 `test_cad_failed_job.py` sweeps a coil whose every rebuild outlasts the reply budget (its turns sized from the
 session's first build), then a hole that misses it replies with a running job and fails after
 the reply budget: an export while it runs leaves it out and names it in `left_out_running`, the
 export after it has the rename made next and not the hole, and that replay runs to the same coil.
 It takes four to eight minutes, or under a minute with the reply budget capped at 4 s by
-`ORCA_MCP_REPLY_BUDGET_MS=4000` for the app and the test, as the sweep runs it. `test_cad_examples.py` runs the examples `search_tools {tool}` gives for
+`ORCA_MCP_REPLY_BUDGET_MS=4000` for the app and the test, as the sweep runs it. `test_cad_examples.py` runs the examples `tool_search {tool}` gives for
 every Design command, and for `undo` and `redo`, each on a fresh design, and fails one whose call fails or
 whose result has `ok` false, an error, or is the person's form; `--tool NAME` runs one command's.
 
@@ -415,20 +434,20 @@ commands with their arguments and grades what `describe_design`, `feature_descri
 shapes drawn once with its tool on the canvas and once with `sketch_draw`, which must agree in entities,
 constraints, loops and degrees of freedom; `sketch_edit` and its replace, cancel and refusals;
 `sketch_project` with and without an open sketch, `sketch_text`, `sketch_insert_svg` and Scale artwork;
-`feature_edit`'s `refs` and a card's picks while it edits a feature; `set_view`'s Design options;
+`feature_edit`'s `refs` and a card's picks while it edits a feature; `view_set`'s Design options;
 `select_geometry`, `confirm_tool`, `cancel_tool` and `body_place`; the Boolean card a call opens; and a
 pick of a folded row's tile from the Speed Dial, and its replay. Its docstring lists the rungs.
 
 Three more harness tests on a `--cad` instance drive the Design tab the way a person does. Every action goes
-through the UI tools (`set_view`, `click`, `mouse_gesture`, `press_keys`, `set_widget_value`, `answer_dialog`
-and `auto_answer_dialogs`), and the Design commands only read the result back (`sketch_describe`,
+through the UI tools (`view_set`, `widget_click`, `mouse_gesture`, `keyboard_press`, `widget_set_value`,
+`dialog_answer` and `dialog_auto_answer`), and the Design commands only read the result back (`sketch_describe`,
 `describe_design`, `feature_describe`), save for one call in the scale rung; the right-click menu's layout they
 grade against is read from `scripts/CAD/tool_atlas.json`, the Design table the app's own is generated from,
 for the selection `describe_design` names. Buttons and rows are found by label, and canvas positions come from
 a calibration that maps the open sketch's plane to canvas pixels, so nothing in them is tuned to a window
 size, screen scaling or theme. A map fitted from five probe points is reused, once one probe confirms it,
 while the canvas size and the camera stay the ones it was fitted on. The sketch tool's pick budgets and badge layout are in the canvas's GL pixels,
-which `cad_gui.py` turns into click pixels by the canvas scale that `set_view`'s `camera_state` gives (`zoom`
+which `cad_gui.py` turns into click pixels by the canvas scale that `view_set`'s `camera_state` gives (`zoom`
 over `click_px_per_mm`). What they share is in `cad_gui.py` beside them. `test_cad_sketching.py` draws each
 sketch tool's primitive with clicks on the canvas and types its exact values into the canvas's value field,
 drives the edit operations and each constraint button on drawn geometry, undoes inside a sketch and across its
@@ -485,19 +504,20 @@ Plate Settings opened and cancelled, arrange of a second plate's two cubes (the 
 job), the plate menu from a right click, and move to front.
 
 `test_webview_modal.py` runs JavaScript in the web views of modal dialogs: the preset bundle dialog's
-page takes it by default and by locator, `run_javascript` is refused in the Home tab's web view behind a
+page takes it by default and by locator, `webview_run_javascript` is refused in the Home tab's web view behind a
 modal and in a dialog under the topmost, the Flushing volumes dialog's page takes it as any topmost
 dialog's does, and a page that closes its dialog replies `closed` at once.
 
-Web pages are driven like widgets: `list_widgets` lists each shown page's elements under its web view
-with `d` refs, and `click`, `set_widget_value`, `press_keys`, `mouse_gesture` and `answer_dialog` act on them, by
+Web pages are driven like widgets: `widget_list` lists each shown page's elements under its web view
+with `d` refs, and `widget_click`, `widget_set_value`, `keyboard_press`, `mouse_gesture` and `dialog_answer` act on them, by
 ref or by `{web: "Next", kind, css, within, index}`. `tests/web_dialogs.json` drives Orca's own web
 dialogs that way alone: the preset bundle dialog, the colour picker behind a filament swatch (its hex
 field, and a drag on its spectrum) and the setup wizard's first steps. `test_web_ui.py` covers every
 kind of page control, action and what it changed on its page, refusal, locator, timeout and close on
 the pages of a fixture plugin, in a modal dialog, a modeless window, a dock panel and the Plugins
 dialog's configuration frame, a token in a page's URL shown redacted, and the permission prompt the
-plugin's thread opens, answered with `answer_dialog` and with a rule registered while it is open.
+plugin's thread opens, answered with `dialog_answer` and with a rule registered while it is open, and the
+plugin's page among the main window's tabs, which the Go to tab tile shows by its id.
 Side-load the plugin into the datadir first:
 
 ```bash
@@ -506,11 +526,11 @@ tools/mcp/orca_mcp.py launch --datadir /tmp/orca-mcp-test
 tools/mcp/test_web_ui.py
 ```
 
-`test_list_windows.py` checks `list_windows`: the main window first, the Plugins window (which doesn't
-block the app) with a ref that `screenshot` captures alone, `list_widgets` reads alone and `press_keys` Escape
+`test_list_windows.py` checks `window_list`: the main window first, the Plugins window (which doesn't
+block the app) with a ref that `window_screenshot` captures alone, `widget_list` reads alone and `keyboard_press` Escape
 closes, Preferences last as a modal dialog, and Action Replay listed as hidden, without a ref.
 
-`test_set_window.py` checks `set_window` on the main window (sized twice, moved, placed over its
+`test_set_window.py` checks `window_set` on the main window (sized twice, moved, placed over its
 display's work area, maximized, minimized and restored), on the Plugins window by its ref and on
 Preferences by its `{label}` locator. On Wayland it checks
 that a window screenshot is the size the reply gives and skips positions, which Wayland neither reports
@@ -518,12 +538,12 @@ nor takes. On X11 it reads the X server's stacking order through libX11 to check
 restored and raised while Preferences is open, stays under it.
 
 `test_action_replay_hidden.py` opens Action Replay
-and checks that the GUI tools don't see it: `list_widgets` lists no window for it, `run_javascript`
+and checks that the GUI tools don't see it: `widget_list` lists no window for it, `webview_run_javascript`
 without a target behaves as before it opened, and a key sent without a target never reaches it. It
 then shows the Run Script panel on
-Prepare and checks the same for it, with no more web views in `list_widgets` than before, a key sent
-without a target reaching the 3D view, a window screenshot, and an agent's `run_script` finishing
-while it is shown; `run_replay` still runs the smoke test and a nested inline replay.
+Prepare and checks the same for it, with no more web views in `widget_list` than before, a key sent
+without a target reaching the 3D view, a window screenshot, and an agent's `script_run` finishing
+while it is shown; `replay_run` still runs the smoke test and a nested inline replay.
 
 `test_speed_dial_open.py` goes from Home to Prepare, the Design tab (launched with `--cad`) and Preview by
 their tabs, and checks that the page's 3D view then holds the keyboard focus and that Space opens the Speed
@@ -532,56 +552,97 @@ proved only where no pointer rests on the view: on a native Wayland display, or 
 elsewhere. Where KWin runs the display, it also checks through KWin's D-Bus that KWin draws no title bar on
 the dial.
 
-`tests/slice_stats.json` slices one cube, then two cubes in two colours, and checks the slice
-reply's statistics: layers, max Z, filament changes, and each filament slot's model, flush and
+`tests/slice_stats.json` slices one cube, then two cubes in two colours, and checks the statistics of
+`plate_slice`'s reply: layers, max Z, filament changes, and each filament slot's model, flush and
 prime tower grams.
 
-`tests/preview.json` slices a cube and reads it back with `get_slice_stats` (summary, feature and layer
-tables, the object, the legend's state and colour ranges) and `get_app_state.preview` as `set_view`
+`tests/preview.json` slices a cube and reads it back with `plate_slice_stats` (summary, feature and layer
+tables, the object, the legend's state and colour ranges) and `app_state.preview` as `view_set`
 changes the layer (by number and by height), the view type, legend rows and time estimate, then
 reads the cube's G-code opened for viewing the same way. Run it on a fresh datadir: modified presets
 left by an earlier replay make opening the G-code ask about them. `test_set_view_preview.py` checks
-what that replay cannot: `set_view {view_type}` acts as the legend's combo (a feature type hidden by
+what that replay cannot: `view_set {view_type}` acts as the legend's combo (a feature type hidden by
 a click on its row shows again on Line Type, and the pick reaches the app config), a canvas
 screenshot straight after a layer or view type change shows the new layers and the legend laid out
 (it matches the capture after it), and the refusals of the preview arguments.
 
-`test_set_view_camera.py`, on an instance launched with `--cad`, checks `set_view`'s `look_at` and `zoom`
+`test_set_view_camera.py`, on an instance launched with `--cad`, checks `view_set`'s `look_at` and `zoom`
 on Prepare, Preview and the Design tab, and `orbit` on Prepare and the Design tab, against the reply's
-`camera_state` and `get_app_state.camera`, including straight after `new_project`, whose fit runs at the
+`camera_state` and `app_state.camera`, including straight after `project_new`, whose fit runs at the
 next frame, and a fit on Prepare after the window was sized on the Home tab.
 
-`tests/agent_forms.json` calls tools the way agents often write them: a lone path for `paths`,
+`tests/agent_forms.json` calls commands the way agents often write them: a lone path for `paths`,
 `object` for `objects` with the index as a string, an action by the key inside its id, `action` for
-`id`, a camera direction as `set_view`'s `canvas`, which is read as its `camera`, `transform` to a `position`, `key` for `keys`,
-`wait` with no condition, a gizmo by its toolbar title, `plate` for `plates`, legend rows in another
-case or with `_` for a space, and `export` with the format taken from the path. It also checks that a
-preset scope's whole `get_settings` listing leaves meta out.
+`id`, a camera direction as `view_set`'s `canvas`, which is read as its `camera`, `object_transform` to a
+`position`, `key` for `keys`, `app_wait` with no condition, a gizmo by its toolbar title, `plate` for
+`plates`, legend rows in another case or with `_` for a space, and `project_export` with the format taken
+from the path. It also checks that a type's whole `settings_list` listing leaves meta out.
 
 `test_stdio_bridge.py [--bin PATH]` checks `orca-slicer --mcp-stdio` against the launched instance:
 the handshake, notifications, tool calls in both protocol eras, and errors. With no instance
 answering, it checks that the bridge answers the handshake and lists the launched instance's tools
 without starting OrcaSlicer, and that a tool call then starts OrcaSlicer on the bridge's port (the
 test stops that app).
-`test_recovery_under_load.py` fills the server's connections with 32 blocked `wait` calls and 32
-idle or half-sent connections while a dialog is open, and checks that `answer_dialog` on a new
+`test_recovery_under_load.py` fills the server's connections with 32 blocked `app_wait` calls and 32
+idle or half-sent connections while a dialog is open, and checks that `dialog_answer` on a new
 connection still closes it. `test_cancel_pending_slice.py` cancels a slice while it still waits for
 the update a setting change scheduled, and checks that it never starts. `test_ref_locator_export.py`
 uses ImGui refs after their items changed (the Text gizmo's font button, whose label shows the font,
 and a Texture Displacement layer row renamed by its place when a layer before it goes) and checks
-that the exported session replays. `test_worker_admission.py` starts a long arrange three ways (the
-`arrange` tool, `run_action obj_arrange`, a click on the Arrange options panel's button) and checks
-that changes, canvas keys and toolbar clicks are refused while it runs, reads answer, and `cancel_job`
+that the exported session replays. `test_worker_admission.py` starts a long arrange three ways
+(`object_arrange` with arguments, `action_run` of its Auto-Arrange tile, whose id is `obj_arrange`, a click on
+the Arrange options panel's button) and
+checks that changes, canvas keys and toolbar clicks are refused while it runs, reads answer, and `job_cancel`
 stops it. `test_export_running_job.py` exports while a call's job runs past
 its reply budget (left out, named in `left_out_running`), after it ends (an `await: false` step that
 replays) and while a dialog holds its call (kept); it takes about 100 s, or about 45 s with the reply budget
 capped at 10 s by `ORCA_MCP_REPLY_BUDGET_MS=10000` for the app and the test, as the sweep runs it.
-`test_send_gcode.py` starts an OctoPrint-compatible stub host and sends a sliced cube to it with the
-Speed Dial's `send_gcode`, the Send dialog answered with `set_widget_value` and `answer_dialog`: the command
-is refused for a Bambu network printer and one without a print host, an upload the stub accepts
-reads uploading at 99 until the stub answers and then completed in `get_app_state.uploads`, its exported
+`test_send_gcode.py` starts an OctoPrint-compatible stub host and sends a sliced cube to it with
+`printer_send`'s Speed Dial tile, `send_gcode`, the Send dialog answered with `widget_set_value` and `dialog_answer`: the
+tile is refused for a Bambu network printer and one without a print host, an upload the stub accepts
+reads uploading at 99 until the stub answers and then completed in `app_state.uploads`, its exported
 replay uploads again, and one the stub refuses with HTTP 500 never reads completed and ends as an
-error whose dialog `answer_dialog` closes.
+error whose dialog `dialog_answer` closes.
+
+`tests/tiles_ask.json` and `test_person_forms.py` check a call with exactly a tile's arguments, which may ask
+as a person's pick of the tile does: `calibration_generate_test {test}` asks in the test's dialog and with
+`silent` runs with its defaults, View: Top turns the Design tab's camera, Go to tab and Go to layer take their
+value through `action_run`, and the slice tiles slice and show the Preview tab (the replay, on an instance
+launched with `--cad`); `project_save {save_as: true}` and `project_export {format: gcode}` open their file
+pickers while a path writes without one, `preset_export` always opens its dialog, `object_arrange {}` and
+`object_select {all: true}` (and `action_run` of their tiles) reply as their commands do, the selection in the
+assemble view's too, and the Speed Dial's own picks of a view tile, Deselect All, Go to layer, Auto-Arrange and
+Select All Objects run in place (the script). `test_project_open_settings.py`
+launches its own app, whose Preferences load a project's geometry only, and checks that `project_open` loads
+the settings a project was saved with all the same.
+
+The commands that do a menu row's job take their targets by index, and the replays call them so and read each
+back: `tests/rows_objects.json` (rename, instances, separate, delete, height ranges), `rows_structure.json`
+(split, assemble, change type, order), `rows_placement.json` (add a primitive by numbers, mirror, drop, centre,
+scale to fit, auto-orient) and `rows_plates.json` (duplicate, rename, lock, select and delete a plate);
+`objects_state.json` (`object_set_printable`, `object_fix`, `object_set_auto_drop`), `objects_files.json`
+(`object_clone`, `object_reload_from_disk`, `part_replace`, with the files `tests/fixtures/objects_files.py`
+writes), `objects_order.json` (`object_order {order}`), `filaments_and_files.json` (a slot merged into
+another, a mixed filament, exports of some objects and of each object, a ZIP's entries, a STEP file),
+`settings_targets.json` (`settings_list`, and the settings commands' targets object, part and height range),
+`presets_and_plate_map.json` (`preset_list`'s filters, a plate's filament map, a nozzle variant) and
+`view_switches.json` (`view_set`'s display switches, sidebar and legend, and an object placed by a plate's
+`origin` and `size`). A replay cannot expect an error, so the refusals are Python tests:
+`test_rows_refusals.py` checks that each object command made from rows refuses with its own reason, and
+`test_additions_refusals.py` the filament, preset, export and import commands'. `test_preferences.py` checks
+`preferences_get` and `preferences_set` against the Preferences dialog, tab by tab. Some launch their own app,
+on a fresh data folder and printers the sweep does not seed: `test_install_printers.py` and
+`test_install_filaments.py` (installs and uninstalls, read back after a restart), `test_plugin_commands.py`
+(the plugin commands on the fixture plugins of `tests/plugins`, against the Plugins window),
+`test_printer_extruders.py` (a printer of two extruders) and `test_sidebar_floating.py` (`view_set`'s
+`sidebar_width` refused while the sidebar floats).
+
+`test_every_tile.py` runs each of the 129 Speed Dial tiles of `tests/data/speed_dial_tiles.json` through
+`action_run`, each from a state its table sets up afresh, answers the dialog or file picker it opens, and reads what
+its row's job leaves: a change only that tile makes, the window it opens, the file it writes, or the refusal of a
+tile that needs a printer or an account. It also checks the reply's `ran` and the step `replay_export` keeps against
+`tests/data/speed_dial_tile_calls.json`. Its web-page and configuration-folder tiles hand over to the system's
+browser and file manager, so the sweep runs it on its own.
 
 ## The sweep
 

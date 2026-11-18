@@ -23,31 +23,31 @@ MODEL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "re
 
 def main():
     client, _ = orca_mcp.session_client()
-    client.call("auto_answer_dialogs", rules=[{"match": "unsaved changes", "button": "no"}])
-    client.call("new_project", discard_changes=True)
-    client.call("open_files", paths=[os.path.abspath(MODEL)])
-    client.call("wait", **{"for": "idle"})
+    client.call("dialog_auto_answer", rules=[{"match": "unsaved changes", "button": "no"}])
+    client.call("project_new", discard_changes=True)
+    client.call("project_import", paths=[os.path.abspath(MODEL)])
+    client.call("app_wait", **{"for": "idle"})
 
-    client.call("set_settings", scope="process", values={"sparse_infill_density": "35%"})
+    client.call("settings_set", type="process", values={"sparse_infill_density": "35%"})
     box = {}
-    worker = threading.Thread(target=lambda: box.update(result=client.call("slice", _timeout=600)))
+    worker = threading.Thread(target=lambda: box.update(result=client.call("plate_slice", _timeout=600)))
     worker.start()
     time.sleep(0.1)
-    cancel = client.call("cancel_job")
+    cancel = client.call("job_cancel")
     worker.join(600)
     result = client.await_job(box["result"])
-    client.call("auto_answer_dialogs", rules=[])
+    client.call("dialog_auto_answer", rules=[])
     # Once the scheduled update has run, the plate must still have no result to export.
-    client.call("wait", **{"for": "idle"})
+    client.call("app_wait", **{"for": "idle"})
     try:
-        client.call("export", format="gcode", path=os.path.join(tempfile.mkdtemp(prefix="orca-mcp-"), "plate.gcode"))
+        client.call("project_export", format="gcode", path=os.path.join(tempfile.mkdtemp(prefix="orca-mcp-"), "plate.gcode"))
         unsliced = False
     except orca_mcp.McpError:
         unsliced = True
 
     failures = 0
     for name, ok, detail in [
-        ("cancel_job reports the waiting slice", cancel.get("was_running") is True, cancel),
+        ("job_cancel reports the waiting slice", cancel.get("was_running") is True, cancel),
         ("the slice reports its plate cancelled", result["plates"][0]["outcome"] == "cancelled", result),
         ("the plate stays unsliced", unsliced, "a G-code export succeeded"),
     ]:

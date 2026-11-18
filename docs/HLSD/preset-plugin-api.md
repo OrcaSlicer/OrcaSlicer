@@ -221,7 +221,7 @@ preserves those side effects and then verifies the resulting edited target.
 
 Filament `preset_name` is an additional integration on top of `Tab::select_preset()`:
 once the filament tab edits the preset, a different name for a slot is assigned to the
-slot by `GUI::Ops::assign_filament_preset()`, the operation the MCP `select_preset` tool
+slot by `GUI::Ops::assign_filament_preset()`, the operation the MCP `preset_select` command
 calls too (docs/HLSD/mcp-server.md, "The operations layer"). It does what picking the
 preset in the slot's sidebar selector does (`Sidebar::select_filament_preset()`): the
 slot's colour settings follow the preset, the slot-to-preset mapping, the dynamic
@@ -233,12 +233,12 @@ slot is not targetable.
 
 Process and printer dropdown choices are constrained by visibility and compatibility,
 and compatibility may depend on the active context. Target resolution
-(`GUI::Ops::resolve_preset()`, the rule the `select_preset` tool resolves by, which
+(`GUI::Ops::resolve_preset()`, the rule the `preset_select` command resolves by, which
 words its refusals) checks the tab
 dropdown's actual items before the selection flow, so a target the user cannot pick
 fails without raising that flow's unsaved-edit prompt; a name two entries carry is
 rejected as ambiguous. A hidden preset that suits the printer is shown in the
-selectors first, as for the tool, and a process or printer selection that leaves
+selectors first, as for the command, and a process or printer selection that leaves
 another preset edited is refused by `GUI::Ops::select_preset()`. A filament
 `preset_name` resolves against the requested slot's own sidebar selector rather than
 the tab's, so that slot's compatibility filter is the one that applies. A name the

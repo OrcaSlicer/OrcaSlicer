@@ -286,7 +286,7 @@ bool capture_area(ModalTracker& modals, bool suspended, Recording& rec, const Ca
     if (rec.options.target == "canvas") {
         GLCanvas3D* canvas = shown_canvas();
         if (canvas == nullptr || canvas->get_wxglcanvas() == nullptr) {
-            err = "No 3D view is shown; switch to one with set_view tab";
+            err = "No 3D view is shown; switch to one with view_set tab";
             return false;
         }
         std::optional<Capture> cap = capture_canvas(*canvas, err, options);
@@ -453,7 +453,7 @@ json McpRecorder::start(const RecordingOptions& options, uint64_t files_owner)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         if (m_rec && !m_rec->sink->finalized())
-            throw ToolFailure("A recording is already running (" + path_to_utf8(m_rec->options.path) + "); stop_recording ends it");
+            throw ToolFailure("A recording is already running (" + path_to_utf8(m_rec->options.path) + "); recording_stop ends it");
         previous = m_rec;
     }
     if (previous) {
@@ -787,7 +787,7 @@ json McpRecorder::stop_and_report(std::chrono::milliseconds timeout, json& encod
     }
     end_recording(rec, "stopped");
     if (!rec->sink->wait_finalized(timeout))
-        throw ToolFailure("The recording is still being written to " + path_to_utf8(rec->options.path) + "; call stop_recording again");
+        throw ToolFailure("The recording is still being written to " + path_to_utf8(rec->options.path) + "; call recording_stop again");
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         rec->reported = true;
@@ -828,7 +828,7 @@ bool McpRecorder::wait_closed(const fs::path& path, std::chrono::milliseconds ti
 
 bool McpRecorder::encode_when_closed(AutomationRuntime& runtime, json args, std::function<void(const ToolResult&)> done)
 {
-    const NativeCommand* encode = NativeCommands::instance().find("encode_recording");
+    const NativeCommand* encode = NativeCommands::instance().find("recording_encode");
     if (encode == nullptr || runtime.stopping())
         return false;
     FollowedCall call;
@@ -901,10 +901,10 @@ void McpRecorder::call_started(uint64_t call, const NativeCommand& def, const js
     std::lock_guard<std::mutex> lock(m_mutex);
     if (!m_rec || m_rec->ending || !m_rec->options.captions)
         return;
-    // A call with a folded row's arguments is captioned as that row's tile.
-    const char* context = title_context(def);
-    m_rec->board.call_started(call, call_title(def, args), safe_caption_detail(def.key, args), Clock::now(),
-                              context != nullptr ? context : "");
+    // A tile's call is captioned with the tile's title: action_run of it, or its command called with its arguments.
+    const auto [title, titled] = shown_title(NativeCommands::instance(), def, args);
+    const char* context        = title_context(*titled);
+    m_rec->board.call_started(call, title, safe_caption_detail(def.key, args), Clock::now(), context != nullptr ? context : "");
     m_captioned[call] = {def.key, {args}};
 }
 
@@ -1020,7 +1020,7 @@ void McpRecorder::on_event(wxEvent& event)
         return;
     }
 
-    // A real click sent its press first; a command alone is a click made without the mouse (click).
+    // A real click sent its press first; a command alone is a click made without the mouse (widget_click).
     wxWindow* pressed = in.pressed_window.get();
     if (pressed != nullptr && now - in.pressed_at < kSemanticClick && (pressed == window || window->IsDescendant(pressed)))
         return;

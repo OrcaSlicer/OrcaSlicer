@@ -159,16 +159,16 @@ void register_tools(py::module_& host)
         py::arg("name"), py::arg("args") = py::none(),
         "Call the MCP tool `name` with `args` (a dict) and return its result as a dict. A call that outlives its "
         "reply budget returns {status: \"running\" | \"blocked_by_dialog\", job}, as it does for an agent; follow it "
-        "with call(\"wait\", {\"for\": \"job\", \"job\": ...}). An error result raises ToolError, whose details "
+        "with call(\"app_wait\", {\"for\": \"job\", \"job\": ...}). An error result raises ToolError, whose details "
         "hold the result's data. A person's or an agent's script calls tools from its own code and from the threads and "
         "pool tasks it starts, while its run lasts, but not from its window callbacks; a plugin calls from a "
         "Script worker, never the UI thread.");
     // Static, as pybind keeps a docstring by its pointer; it names the format version this build reads.
     static const std::string run_replay_doc =
         std::string("Run a replay ({\"orca_replay_version\": \"") + GUI::Mcp::REPLAY_VERSION +
-        "\", \"steps\": [...]}) as the run_replay tool does, and return its result. "
+        "\", \"steps\": [...]}) as the replay_run tool does, and return its result. "
         "`replay` is the replay as a dict or as its JSON text, which may hold comments as a replay file does; "
-        "`vars` override the replay's vars. For a replay file, call(\"run_replay\", {\"path\": ...}).";
+        "`vars` override the replay's vars. For a replay file, call(\"replay_run\", {\"path\": ...}).";
     tools.def(
         "run_replay",
         [tools](const py::object& replay, const py::object& vars) mutable {
@@ -176,7 +176,7 @@ void register_tools(py::module_& host)
             args["replay"] = replay;
             if (!vars.is_none())
                 args["vars"] = vars;
-            return json_to_py(call_tool(tools, "run_replay", args));
+            return json_to_py(call_tool(tools, "replay_run", args));
         },
         py::arg("replay"), py::arg("vars") = py::none(),
         run_replay_doc.c_str());
@@ -192,10 +192,13 @@ void register_tools(py::module_& host)
             }
             return json_to_py(commands);
         },
-        "Every command call() reaches, as a list of {name, title, group, description, read_only, listed}: the tools, the "
-        "Speed Dial's commands and the Design tab's (with the CAD feature on), in the order the app adds them, then the "
-        "operations the loaded plugins offer (plugin.<plugin>.<name>). title and description are in English; listed says "
-        "whether an agent's tool list shows it, read_only that it changes nothing. Any thread.");
+        "Every command call() reaches, as a list of {name, title, group, description, read_only, listed}: the app's "
+        "commands and the Design tab's (with the CAD feature on), in the order the app adds them, then the operations the "
+        "loaded plugins offer (plugin.<plugin>.<name>). group is the heading of the command's place, the one its name "
+        "starts with (Objects for object_mirror, Plates for plate_slice) but for window_screenshot and "
+        "window_save_screenshot, which are under Recordings, replays and scripts; Design for a Design tab command and "
+        "Plugins for an operation. title and description are in English; listed says whether an agent's tool list shows "
+        "it, read_only that it changes nothing. Any thread.");
     tools.def(
         "describe",
         [tools](const std::string& name) mutable {
@@ -217,9 +220,10 @@ void register_tools(py::module_& host)
             return json_to_py(entry);
         },
         py::arg("name"),
-        "The command `name` as a dict: key, title, group, description, input_schema (the JSON Schema of its "
-        "arguments), examples when it has some ([{title, calls: [{tool, args}]}]), listed, in_palette (a person can "
-        "pick it in the Speed Dial), the access labels read_only, destructive, idempotent and open_world, guard "
+        "The command `name` as a dict: key, title, group (as list() gives it), description, input_schema (the JSON "
+        "Schema of its arguments), examples when it has some ([{title, calls: [{tool, args}]}]), listed, in_palette (it "
+        "has a tile of its own in the Speed Dial), tiles when it has some (the Speed Dial's tiles that run it with their "
+        "args), the access labels read_only, destructive, idempotent and open_world, guard "
         "(inspect, recover or mutate: what it may do behind a dialog), completion and operations. An unknown name "
         "raises ToolError, whose details hold did_you_mean, the closest names. Any thread.");
 }

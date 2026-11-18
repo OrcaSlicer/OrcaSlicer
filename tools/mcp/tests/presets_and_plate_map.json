@@ -1,0 +1,73 @@
+// preset_list's filters and fields, a plate's filament grouping and a printer's nozzle diameter, on the sweep's printer,
+// the Bambu Lab X1 Carbon 0.4 nozzle: the PLA filaments of one vendor are listed, each with its vendor and type, and the
+// presets of the Template vendor are none of them; the X1 Carbon's 0.2 nozzle preset, which the vendor has loaded and the
+// selectors do not offer, is listed with include_uninstalled, and the filaments that fit it are not those of the
+// selected 0.4 nozzle preset; a nozzle_diameter of 0.6 selects the 0.6 nozzle preset, as the sidebar's nozzle diameter
+// does, and reads back; a filament the replay saves is listed with source user, and no system one is. The printer has
+// one extruder: a plate reads its filament grouping (a new plate's own is Auto For Flush) and refuses to set it. The
+// checks over whole lists are in fixtures/presets_and_plate_map.py; test_printer_extruders.py sets the grouping on a
+// printer with two extruders.
+// Run it with
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/presets_and_plate_map.json --out <dir>
+{
+  "orca_replay_version": "0.2.0",
+  "name": "presets and the plate's filament map",
+  "vars": {
+    "presets": "${replay_dir}/fixtures/presets_and_plate_map.py",
+    "nozzle_02": "Bambu Lab X1 Carbon 0.2 nozzle",
+    "saved": "PLA saved by presets_and_plate_map"
+  },
+  "steps": [
+    {"tool": "app_wait", "args": {"for": "ready"}},
+    {"tool": "project_new", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "app_state", "expect": {"/presets/printer": {"eq": "Bambu Lab X1 Carbon 0.4 nozzle"}}},
+
+    // ---- The PLA filaments of one vendor, each with its fields; no Template preset among the printers either ----
+    {"tool": "script_run", "args": {"filename": "${vars.presets}", "code": "import presets_and_plate_map\nresult = presets_and_plate_map.listed(args)",
+                                    "args": {"type": "filament", "filament_type": "PLA", "vendor": "Bambu Lab"}},
+     "expect": {"/result/count": {"gt": 0}, "/result/others": {"empty": true}, "/result/template": {"eq": 0}}},
+    {"tool": "preset_list", "args": {"type": "filament", "filament_type": "pla", "vendor": "bambu lab", "limit": 1},
+     "expect": {"/items/0/vendor": {"eq": "Bambu Lab"}, "/items/0/filament_type": {"eq": "PLA"}}},
+    {"tool": "script_run", "args": {"filename": "${vars.presets}", "code": "import presets_and_plate_map\nresult = presets_and_plate_map.listed(args)",
+                                    "args": {"type": "printer", "include_uninstalled": true}},
+     "expect": {"/result/names": {"contains": "Bambu Lab X1 Carbon 0.2 nozzle"}, "/result/others": {"empty": true},
+                "/result/template": {"eq": 0}}},
+    {"tool": "preset_list", "args": {"type": "printer", "query": "X1 Carbon 0.4 nozzle"},
+     "expect": {"/items/0/vendor": {"eq": "BBL"}, "/items/0/printer_model": {"eq": "Bambu Lab X1 Carbon"},
+                "/items/0/nozzle": {"eq": "0.4"}, "/items/0/selected": {"eq": true}}},
+
+    // ---- The filaments that fit the 0.2 nozzle preset, in place of the selected 0.4 nozzle one ----
+    {"tool": "script_run", "args": {"filename": "${vars.presets}", "code": "import presets_and_plate_map\nresult = presets_and_plate_map.fitting(args)",
+                                    "args": {"printer": "${vars.nozzle_02}"}},
+     "expect": {"/result/other": {"gt": 0}, "/result/only_other": {"gt": 0}, "/result/marked_incompatible": {"eq": 0}}},
+
+    // ---- A nozzle_diameter of 0.6 selects the 0.6 nozzle preset, and 0.4 the 0.4 one again ----
+    {"tool": "settings_set", "args": {"type": "printer", "values": {"nozzle_diameter": 0.6}},
+     "expect": {"/applied/nozzle_diameter": {"eq": "0.6"}}},
+    {"tool": "app_state", "expect": {"/presets/printer": {"eq": "Bambu Lab X1 Carbon 0.6 nozzle"}}},
+    {"tool": "settings_get", "args": {"type": "printer", "keys": ["nozzle_diameter", "printer_variant"]},
+     "expect": {"/items/0/value": {"eq": "0.6"}, "/items/1/value": {"eq": "0.6"}}},
+    {"tool": "settings_set", "args": {"type": "printer", "values": {"nozzle_diameter": "0.4"}}},
+    {"tool": "app_state", "expect": {"/presets/printer": {"eq": "Bambu Lab X1 Carbon 0.4 nozzle"}}},
+
+    // ---- A user filament: source user lists it, and no system preset ----
+    {"tool": "preset_save", "args": {"type": "filament", "name": "${vars.saved}", "overwrite": true}},
+    {"tool": "script_run", "args": {"filename": "${vars.presets}", "code": "import presets_and_plate_map\nresult = presets_and_plate_map.listed(args)",
+                                    "args": {"type": "filament", "source": "user"}},
+     "expect": {"/result/names": {"contains": "PLA saved by presets_and_plate_map"}, "/result/others": {"empty": true}}},
+    {"tool": "preset_list", "args": {"type": "filament", "source": "system", "query": "${vars.saved}"}, "expect": {"/total": {"eq": 0}}},
+
+    // ---- A plate's filament grouping on a printer of one extruder: read, and refused ----
+    {"tool": "plate_get_settings", "args": {"keys": ["filament_map_mode", "filament_map"]},
+     "expect": {"/items/0/value": {"eq": "Auto For Flush"}, "/items/0/meta/offered": {"empty": true},
+                "/items/1/effective": {"eq": [1]}}},
+    {"tool": "script_run", "args": {"filename": "${vars.presets}", "code": "import presets_and_plate_map\nresult = presets_and_plate_map.refused(args)",
+                                    "args": {"tool": "plate_set_settings", "args": {"values": {"filament_map_mode": "Manual"}}}},
+     "expect": {"/result/refused": {"eq": true}, "/result/message": {"contains": "this one has one"}}},
+
+    // ---- Leave the configuration folder as it was ----
+    {"tool": "preset_select", "args": {"type": "filament", "name": "Bambu PLA Basic @BBL X1C", "preset_changes": "discard"}},
+    {"tool": "preset_delete", "args": {"type": "filament", "name": "${vars.saved}"}},
+    {"tool": "project_new", "args": {"discard_changes": true, "preset_changes": "discard"}}
+  ]
+}

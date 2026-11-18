@@ -24,60 +24,60 @@ HEIGHTMAP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests", "f
 
 
 def snapshot_ref(client, pattern):
-    _, texts = client.call_with_text("list_widgets")
+    _, texts = client.call_with_text("widget_list")
     found = re.search(pattern, "\n".join(texts))
     return found.groups() if found else None
 
 
 def main():
     client, _ = orca_mcp.session_client()
-    client.call("auto_answer_dialogs", rules=[{"match": "Uniform scale", "button": "ok"},
+    client.call("dialog_auto_answer", rules=[{"match": "Uniform scale", "button": "ok"},
                                              {"match": "unsaved changes", "button": "no"},
                                              {"match": "text volume is empty", "button": "ok"}])
-    client.call("export_replay", clear=True)
-    client.call("new_project", discard_changes=True)
-    client.call("set_view", tab="prepare")
-    client.call("run_action", id="orca_command:add_primitive_cube:orca")
-    client.call("wait", **{"for": "idle"})
+    client.call("replay_export", clear=True)
+    client.call("project_new", discard_changes=True)
+    client.call("view_set", tab="prepare")
+    client.call("action_run", id="orca_command:add_primitive_cube:orca")
+    client.call("app_wait", **{"for": "idle"})
     checks = []
 
     # One ref to the font button, used for two picks.
-    client.call("select_objects", objects=[0])
-    client.call("click", target={"gizmo": "Text"})
-    client.call("wait", **{"for": "idle"})
+    client.call("object_select", objects=[0])
+    client.call("widget_click", target={"gizmo": "Text"})
+    client.call("app_wait", **{"for": "idle"})
     font = snapshot_ref(client, r'\[(g\d+)\] imgui "([^"]*)"[^\n]*name=Combo_Font')
     checks.append(("the snapshot lists the font button", font is not None, "no font button"))
     if font:
         ref, shown = font
-        first = client.call("set_widget_value", target=ref, value=FONT)
-        client.call("wait", **{"for": "idle"})
-        back = client.call("set_widget_value", target=ref, value=shown)
-        client.call("wait", **{"for": "idle"})
+        first = client.call("widget_set_value", target=ref, value=FONT)
+        client.call("app_wait", **{"for": "idle"})
+        back = client.call("widget_set_value", target=ref, value=shown)
+        client.call("app_wait", **{"for": "idle"})
         checks.append(("the ref picks a font", first.get("selected") == FONT, first))
         checks.append(("the same ref picks the first font back", back.get("selected", "").startswith(shown), back))
 
     # A ref to the second layer's row, clicked once the first layer is gone and the row is "Layer 1"
     # (the third layer, the open one, has no row).
-    client.call("select_objects", objects=[0])
-    client.call("click", target={"gizmo": "Texture Displacement"})
-    client.call("pick_gizmo_file", action="texture_import", path=HEIGHTMAP)
-    client.call("click", target={"imgui_name": "add_layer"})
-    client.call("click", target={"imgui_name": "add_layer"})
+    client.call("object_select", objects=[0])
+    client.call("widget_click", target={"gizmo": "Texture Displacement"})
+    client.call("gizmo_pick_file", action="texture_import", path=HEIGHTMAP)
+    client.call("widget_click", target={"imgui_name": "add_layer"})
+    client.call("widget_click", target={"imgui_name": "add_layer"})
     row = snapshot_ref(client, r'\[(g\d+)\][^\n]*name=Layer 2 (?!image)')
     checks.append(("the snapshot lists the second layer's row", row is not None, "no Layer 2 row"))
     if row:
-        client.call("click", target={"imgui_name": "Remove", "index": 0})
-        clicked = client.call("click", target=row[0])
-        layers = client.call("list_objects")["plates"][0]["objects"][0]["parts"][0]["painted"]["texture"]
+        client.call("widget_click", target={"imgui_name": "Remove", "index": 0})
+        clicked = client.call("widget_click", target=row[0])
+        layers = client.call("object_list")["plates"][0]["objects"][0]["parts"][0]["painted"]["texture"]
         checks.append(("the old ref clicks the renamed row", len(layers) == 2, (clicked, len(layers))))
     # Its icon closes it: in a small window the object's info notification covers the panel's Close.
-    client.call("click", target={"gizmo": "Texture Displacement"})
-    client.call("wait", **{"for": "idle"})
+    client.call("widget_click", target={"gizmo": "Texture Displacement"})
+    client.call("app_wait", **{"for": "idle"})
 
     out_dir = tempfile.mkdtemp(prefix="orca-mcp-")
     path = os.path.join(out_dir, "session.json")
-    client.call("export_replay", path=path, overwrite=True)
-    replay = client.await_job(client.call("run_replay", path=path, out_dir=out_dir))
+    client.call("replay_export", path=path, overwrite=True)
+    replay = client.await_job(client.call("replay_run", path=path, out_dir=out_dir))
     failed = [s for s in replay.get("steps", []) if not s.get("ok")]
     checks.append(("the exported session replays", replay.get("passed") is True, failed[:1]))
 

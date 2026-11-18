@@ -28,7 +28,7 @@ public:
     {
         std::function<void(std::size_t index)>          step_started;
         std::function<void(const nlohmann::json& entry)> step_finished;
-        // Exactly once: run_replay's result, or {"error": message} when the run failed as a call (refused,
+        // Exactly once: replay_run's result, or {"error": message} when the run failed as a call (refused,
         // or its job ended in an error or was lost); `jobs` are the jobs the run saved, for later steps,
         // or null when it was refused before it started.
         std::function<void(const nlohmann::json& result, const nlohmann::json& jobs)> finished;
@@ -38,7 +38,7 @@ public:
 
     // UI thread. Latches the stop, so one asked before the job exists still counts, stops the job's lineage
     // once it is known (JobRegistry::request_stop), and cancels the run's operation (a slice, an export, a
-    // background job) as cancel_job does. Does nothing once the runtime is stopping.
+    // background job) as job_cancel does. Does nothing once the runtime is stopping.
     void stop();
     // UI thread: the events are dropped from now on; the run carries on to its end.
     void detach();
@@ -63,7 +63,7 @@ private:
     std::atomic<bool>  m_running{true};
 };
 
-// Runs a replay for the Action Replay window: an unjournaled mutate job, as run_replay runs one, whose steps
+// Runs a replay for the Action Replay window: an unjournaled mutate job, as replay_run runs one, whose steps
 // report through `events`. `runtime` follows the job to its end, past a running or blocked_by_dialog reply, and
 // posts `finished`. `only_step` runs one step (no result.json). `discard_authorized`: the user chose not to save
 // before a run that replaces the project, so the replacing tools may drop unsaved changes while it runs. nullptr

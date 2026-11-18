@@ -3,8 +3,8 @@
 // The window names the MCP tools read. A header of their own, so that a window that sets one includes nothing more.
 namespace Slic3r { namespace GUI { namespace Mcp {
 
-// The name of a top-level window the MCP GUI tools never see: list_widgets and locators skip it,
-// run_javascript never picks its web views, keys sent without a target never go to it, window screenshots leave it
+// The name of a top-level window the MCP GUI tools never see: widget_list and locators skip it,
+// webview_run_javascript never picks its web views, keys sent without a target never go to it, window screenshots leave it
 // out, and as a modal dialog it is not tracked, so the dialog tools and auto-answer rules never reach
 // it. Action Replay carries it, so a replay it runs can't act on it, and so does the window that
 // changes the Python scripts setting, so no agent, replay or script can turn it on.
