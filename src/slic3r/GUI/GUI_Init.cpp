@@ -12,6 +12,7 @@
 #include "slic3r/GUI/I18N.hpp"
 
 // To show a message box if GUI initialization ends up with an exception thrown.
+#include <string>
 #include <vector>
 #include <utility>
 #include <wx/init.h>
@@ -67,6 +68,13 @@ int GUI_Run(GUI_InitParams &params)
         register_mac_deep_link_handler();
 #endif
 
+#ifdef _WIN32
+        // wxEntry(char**) decodes argv[0] with the ANSI code page, so a non-ASCII install path needs the UTF-16 overload.
+        std::wstring app_name = boost::nowide::widen(params.argv[0]);
+        int          argc     = 1;
+        wchar_t     *argv[]   = { app_name.data(), nullptr };
+        return wxEntry(argc, argv);
+#else
         if (params.argc > 1) {
             // STUDIO-273 wxWidgets report error when opening some files with specific names
             // wxWidgets does not handle parameters, so intercept parameters here, only keep the app name
@@ -77,6 +85,7 @@ int GUI_Run(GUI_InitParams &params)
         } else {
             return wxEntry(params.argc, params.argv);
         }
+#endif
     } catch (const Slic3r::Exception &ex) {
         BOOST_LOG_TRIVIAL(error) << ex.what() << std::endl;
         wxMessageBox(boost::nowide::widen(ex.what()), _L("Orca Slicer GUI initialization failed"), wxICON_STOP);
