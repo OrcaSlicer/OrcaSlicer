@@ -801,7 +801,7 @@ public:
     bool can_delete_plate() const;
     // Undoable rename; use for user edits instead of PartPlate::set_plate_name().
     void rename_plate(int plate_index, const std::string& name);
-bool can_reorder_plates() const;
+    bool can_reorder_plates() const;
     bool can_increase_instances() const;
     bool can_decrease_instances() const;
     bool can_set_instance_to_object() const;
