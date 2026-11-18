@@ -261,12 +261,17 @@ bool module_entry_reachable(const boost::filesystem::path& dir, const std::strin
         return false;
     relative /= component;
 
+    const fs::path entry = dir / relative;
+
     boost::system::error_code ec;
-    if (fs::is_directory(dir / relative, ec))
-        return plain_path_reaches_entry_files(dir / relative, "__init__");
-    // A probe that fails cannot be told apart from an entry past MAX_PATH, so take the
-    // extended-length form to be safe.
-    if (ec)
+    if (fs::is_directory(entry, ec))
+        return plain_path_reaches_entry_files(entry, "__init__");
+
+    // Boost reports a missing path through ec too (ENOENT, or on Windows ERROR_FILE_NOT_FOUND /
+    // ERROR_PATH_NOT_FOUND), so the code alone cannot tell the single-module layout from a path
+    // past MAX_PATH. The length can: a fitting absent entry is a module that lives next to it,
+    // while one that does not fit cannot be probed plainly and takes the extended-length form.
+    if (!fits_plain_windows_path(entry))
         return false;
 
     // A single module: <pkg>.py or a compiled <pkg>.<tag>.pyd/.so next to the package path.

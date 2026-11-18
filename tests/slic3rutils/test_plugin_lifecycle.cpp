@@ -956,6 +956,48 @@ TEST_CASE("A compiled-only package keeps its plain directory path", "[PluginLife
     loaded.release_module();
 }
 
+TEST_CASE("A compiled-only module keeps its plain directory path", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedTemporaryDir dir("plain-import-compiled-module");
+    const fs::path      module_parent = dir.path();
+    const std::string   module_name   = "orca_test_compiled_module";
+    // A top-level compiled module has no <name> directory beside it, so the probe of that path
+    // reports "not found". That must not be read as a path past MAX_PATH. As with the package
+    // fixture, the file is not a loadable extension module, so the import fails after the sys.path
+    // entry has been recorded.
+#ifdef _WIN32
+    const fs::path compiled_module = module_parent / (module_name + ".pyd");
+#else
+    const fs::path compiled_module = module_parent / (module_name + ".so");
+#endif
+    {
+        std::ofstream compiled(compiled_module.string(), std::ios::binary);
+        compiled << "not a real extension module\n";
+        REQUIRE(compiled.good());
+    }
+
+    PythonInterpreter&       interpreter = PythonInterpreter::instance();
+    std::vector<std::string> paths;
+    std::vector<std::string> modules;
+    std::string              error;
+    PyObject* module = interpreter.load_module_from_directory(path_utf8(module_parent), module_name, error, &paths, &modules);
+    CHECK(module == nullptr);
+    CHECK_FALSE(error.empty());
+    REQUIRE(paths.size() == 1);
+    CHECK(paths.front() == path_utf8(module_parent));
+
+    Plugin loaded;
+    loaded.module           = module;
+    loaded.module_name      = module_name;
+    loaded.plugin_sys_paths = paths;
+    loaded.plugin_modules   = modules;
+    loaded.release_module();
+}
+
 TEST_CASE("A capability disabled in the sidecar loads disabled", "[PluginLifecycle][Python]")
 {
     ScopedPluginManager plugin_system;
