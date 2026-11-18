@@ -27,7 +27,7 @@ Permissions are stored per plugin key. A plugin can hold:
 | `fs_readwrite` | target list | Write-shaped and read/write filesystem events mapped to `FsReadWrite`: a write-mode `open`, rename, chmod, utime, copy, move, archive extraction, and similar. Same target matching as `fs_read`. A write-mode `open` can create a file, but this grant does not cover events mapped to `FsCreate` or `FsDelete`, which have no persistent grant list. |
 | `network_http` | target list | Network targets, consulted together with `network_socket` for both HTTP and socket events. A canonical `scheme://host` entry is host-wide and covers both layers; a URL with a path, port, query or trailing slash is exact; a bare host or legacy address tuple covers raw sockets. |
 | `network_socket` | target list | The same network matching, kept as a separate list so a plugin can declare socket access without an HTTP URL. |
-| `process` | target list | Process creation and process replacement: `os.system`, `subprocess.Popen`, `os.spawn*`, `os.exec*`, `pty.spawn`, `_winapi.CreateProcess`, and similar. Targets match the audited value verbatim. |
+| `process` | target list | Process creation and process replacement: `os.system`, `subprocess.Popen`, `os.spawn*`, `os.exec*`, `pty.spawn`, `_winapi.CreateProcess`, and similar. Targets name the tool, not its arguments. |
 | `threading` | boolean | Permission to start a Python thread with `_thread.start_new_thread`. |
 | `events` | target list | Audited events that expose no target, keyed as `<Category>:<event>`, for example `Socket:socket.__new__`. Matched verbatim. |
 | `full_access` | boolean | Turns off the permission decision for the plugin. See "Full access". |
@@ -65,8 +65,10 @@ approved.
   A canonical entry is host-wide and applies to HTTP and raw socket events for that host.
   A URL with a path, port, query, fragment or trailing slash that was stored without
   normalization remains an exact match.
-- Process entries are compared verbatim with the string the audit event reports,
-  including Python representations of a command.
+- Process entries name the tool an event runs, compared verbatim. When the event exposes
+  the executable or path, that argument is the target. For a command string or argv, the
+  first token or element is the target. Arguments after the tool are ignored, so one grant
+  covers repeated runs of the tool with different arguments.
 - An event with no target is granted by the `events` entry for its category and name. A
   targetless network event, such as `http.client.send`, is covered by any recorded
   network grant instead.

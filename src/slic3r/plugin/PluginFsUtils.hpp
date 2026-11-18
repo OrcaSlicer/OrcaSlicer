@@ -25,6 +25,8 @@ struct PluginPermissions
     std::vector<std::string> fs_readwrite;
     std::vector<std::string> network_http;
     std::vector<std::string> network_socket;
+    // Executables or command names. Arguments are ignored, so one entry covers every call of
+    // the tool.
     std::vector<std::string> process;
     // Thread creation is a yes/no grant. Newer sidecars store a boolean; older ones stored an
     // array (empty when denied, nonempty when granted), and nonempty strings are accepted by the
