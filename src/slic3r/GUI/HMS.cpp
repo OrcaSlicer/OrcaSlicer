@@ -33,7 +33,7 @@ static const char* HMS_LOCAL_IMG_PATH = "hms/local_image";
 
 // the local HMS info
 // Orca: dev-id-type set trimmed to the devices Orca ships local HMS images for
-static std::unordered_set<std::string> package_dev_id_types {"094", "239", "093", "22E"};
+static std::unordered_set<std::string> package_dev_id_types {"094", "239", "093", "22E", "20P", "26A", "31B"};
 
 // Orca: HMS should be disabled when stealth mode is on or networking is not installed
 static bool should_disable_hms()

@@ -19,6 +19,7 @@
 #include <wx/stattext.h>
 #include <wx/gdicmn.h>
 #include <wx/window.h>
+#include <wx/utils.h>
 
 #ifdef __WXGTK__
 #include <gtk/gtk.h>
@@ -665,6 +666,35 @@ void DropDown::messureSize()
             sub->mainDropDown->mouseMove(ev);
             e.RequestMore();
         });
+        // Orca: the submenu holds the GTK grab, so GTK gives it the wheel events of the whole
+        // chain. GDK names the window under the cursor, so re-emit main's events on main.
+        g_signal_connect(sub->m_widget, "event", G_CALLBACK(+[](GtkWidget *, GdkEvent *event, gpointer data) -> gboolean {
+            auto *sub = static_cast<DropDown *>(data);
+            DropDown *main = sub->mainDropDown;
+            if (event->type != GDK_SCROLL || !main || !main->IsShown() || !sub->IsShown())
+                return FALSE;
+            gpointer owner = nullptr;
+            if (event->any.window)
+                gdk_window_get_user_data(event->any.window, &owner);
+            GtkWidget *widget   = (owner && GTK_IS_WIDGET(owner)) ? GTK_WIDGET(owner) : nullptr;
+            bool       for_main = widget && (widget == main->m_widget || gtk_widget_is_ancestor(widget, main->m_widget));
+            bool       for_sub  = widget && (widget == sub->m_widget || gtk_widget_is_ancestor(widget, sub->m_widget));
+            if (!for_main && for_sub) {
+                // The compositor may keep the pointer focus on the submenu while the cursor is over main.
+                wxPoint pt((int) event->scroll.x, (int) event->scroll.y);
+                if (sub->GetClientRect().Contains(pt))
+                    return FALSE;
+                wxPoint off = sub->GetScreenRect().GetTopLeft() - main->GetScreenRect().GetTopLeft();
+                event->scroll.x += off.x;
+                event->scroll.y += off.y;
+                for_main = true;
+            }
+            if (!for_main)
+                return FALSE;
+            // wx connects its mouse handlers to GetConnectWidget(), the inner widget of the popup.
+            gtk_propagate_event(main->GetConnectWidget(), event);
+            return TRUE;
+        }), sub);
 #endif
         subDropDown->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent &e) {
             e.SetEventObject(this);

@@ -19,6 +19,7 @@
 #include <utility>
 #include <vector>
 #include "slic3r/GUI/Monitor.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include <wx/mstream.h>
 #include <wx/dcmemory.h>
 #include <wx/statbmp.h>

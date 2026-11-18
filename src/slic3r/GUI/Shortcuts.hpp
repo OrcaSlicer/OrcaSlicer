@@ -32,7 +32,7 @@ enum class Shortcut : uint8_t {
     // Editing
     Undo, Redo, Cut, Copy, Paste, DeleteSelected, DeleteAll, CloneSelected,
     // Objects
-    AddInstance, RemoveInstance, TogglePrintable, ToggleAutoDrop,
+    AddInstance, RemoveInstance, TogglePrintable, ToggleAutoDrop, ReloadFromDisk,
     // Placement
     Arrange, ArrangePlate, Orient, OrientPlate,
     MoveSelectionLeft, MoveSelectionRight, MoveSelectionUp, MoveSelectionDown, RotateSelectionLeft, RotateSelectionRight,
@@ -46,9 +46,13 @@ enum class Shortcut : uint8_t {
     // Camera
     ViewDefault, ViewTop, ViewBottom, ViewFront, ViewRear, ViewLeft, ViewRight, ViewPlate, ZoomIn, ZoomOut, Mouse3DSettings,
     // Display
-    ShowLabels, ShowWireframe, ToggleGcodeWindow, ToggleOneLayerMode, ToggleBeltRawGcode,
+    ShowLabels, ShowCollisionVolumes, ShowWireframe, ToggleGcodeWindow, ToggleOneLayerMode, ToggleBeltRawGcode,
     // Application
-    Preferences, Search, SwitchView, CollapseSidebar, ReloadDevicePage, KeyboardShortcuts,
+    Preferences, Search, SwitchView, CollapseSidebar, GoToHome,
+#ifdef SLIC3R_CAD
+    GoToDesign,
+#endif
+    GoToPrepare, GoToPreview, GoToDevice, GoToMultiDevice, GoToProject, GoToCalibration, TabNext, TabPrevious, ReloadDevicePage, KeyboardShortcuts, Quit,
     // Speed Dial
     SpeedDial,
     Count

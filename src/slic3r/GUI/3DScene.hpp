@@ -48,9 +48,6 @@ extern Slic3r::ColorRGBA              adjust_color_for_rendering(const Slic3r::C
 
 
 namespace Slic3r {
-namespace GUI {
-    class Size;
-}
 
 class SLAPrintObject;
 enum  SLAPrintObjectStep : unsigned int;
@@ -69,7 +66,7 @@ enum ModelInstanceEPrintVolumeState : unsigned char;
 using ModelObjectPtrs = std::vector<ModelObject*>;
 
 struct ObjectFilamentInfo {
-    ModelObject* object;
+    ModelObject* object { nullptr };
     std::map<int, int> manual_filaments; //manual mode: filament id -> extruder id can not be printed
 
     std::vector<int> auto_filaments; //auto mode: filaments in all extruder's outside area
@@ -211,6 +208,8 @@ public:
 	    bool                visible : 1;
 	    // Whether or not this volume is active for rendering
 	    bool                is_active : 1;
+	    // Whether or not is_active was cleared because the other plates are hidden
+	    bool                on_hidden_plate : 1;
 	    // Whether or not to use this volume when applying zoom_to_volumes()
 	    bool                zoom_to_volumes : 1;
 	    // Wheter or not this volume is enabled for outside print volume detection in shader.
@@ -364,11 +363,8 @@ public:
 
     virtual void        render();
 
-    //BBS: add outline related logic and add virtual specifier
-    virtual void render_with_outline(const GUI::Size& cnv_size);
-
     //BBS: add simple render function for thumbnail
-    void simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_objects, std::vector<ColorRGBA>& extruder_colors, bool ban_light =false);
+    void simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_objects, std::vector<ColorRGBA>& extruder_colors, bool ban_light =false, bool ban_color_volume = false);
 
     void                set_bounding_boxes_as_dirty() {
         m_transformed_bounding_box.reset();
@@ -398,10 +394,11 @@ class GLWipeTowerVolume : public GLVolume {
 public:
     GLWipeTowerVolume(const std::vector<ColorRGBA>& colors);
     void render() override;
-    void render_with_outline(const GUI::Size& cnv_size) override { render(); }
 
     std::vector<GUI::GLModel> model_per_colors;
     bool                              IsTransparent();
+    const std::vector<ColorRGBA>&     colors() const { return m_colors; }
+    std::vector<ColorRGBA>&           colors() { return m_colors; }
 
 private:
     std::vector<ColorRGBA> m_colors;
@@ -510,17 +507,17 @@ public:
 
     float get_selection_support_normal_z() const;
     // Render the volumes by OpenGL.
-    //BBS: add outline drawing logic
     void render(ERenderType                           type,
                 bool                                  disable_cullface,
                 const Transform3d &                   view_matrix,
                 const Transform3d&                    projection_matrix,
-                const GUI::Size&                      cnv_size,
                 std::function<bool(const GLVolume &)> filter_func   = std::function<bool(const GLVolume &)>(),
                 bool                                  partly_inside_enable =true,
                 // Per-extruder printable heights (extruder_printable_height); null / size<=1
                 // leaves the shader's extruder_printable_heights flag at 0.0 (single-extruder = inert).
-                std::vector<double> *                 printable_heights = nullptr
+                std::vector<double> *                 printable_heights = nullptr,
+                // Collects the selected volumes drawn, marked in the stencil for SelectionOutline.
+                std::vector<GLVolume*> *              outlined_volumes = nullptr
            ) const;
 
     // Clear the geometry

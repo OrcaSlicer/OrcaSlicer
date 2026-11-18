@@ -1,0 +1,538 @@
+:root {
+  --thumb-size  : 20px;
+  --field-height: 28px;
+  --number-width: 52px;
+  --preview-size: 52px;
+  --checkerboard: conic-gradient(var(--checker-light) 25%, var(--checker-dark) 0 50%, var(--checker-light) 0 75%, var(--checker-dark) 0);
+}
+
+* {
+	padding: 0;
+	border: 0;
+	margin: 0;
+	user-select: none;
+	-webkit-user-select: none;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+}
+
+html, body {
+  /* Report the full content width even before the native host expands its viewport.
+     WebKit's fit-content can clip the sidebar and retain the expanded width on close. */
+  width: max-content;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--orca-font, system-ui, sans-serif);
+  background: var(--bg-color);
+  color: var(--fg-color-text);
+  padding: 10px;
+}
+
+#selectionNotice {
+  width: 0;
+  min-width: 100%;
+  margin-bottom: 8px;
+  color: var(--fg-color-label);
+}
+
+.main-wrapper {
+  display: flex;
+  gap: 10px;
+  height: 360px;
+}
+
+/* ---------- Palette sidebar ---------- */
+.left-panel {
+  flex: 0 0 160px;
+  width: 160px;
+  display: none;
+  flex-direction: column;
+}
+.left-panel.open {
+  display: flex;
+  padding-right: 0px;
+  border-right: 1px solid var(--border-color);
+}
+
+#paletteCombo {
+  font-size: 13px;
+  width: 100%;
+}
+
+/* Combo box or filter box, with the search / close button on the right. */
+.palette-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 25px;
+  margin-right:5px;
+}
+.palette-toolbar > .palette-select { flex: 1 }
+.palette-filter {
+  flex: 1;
+  height: 25px;
+  padding: 0 6px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--fg-color-text);
+  background: var(--bg-color);
+  border: 1px solid var(--main-color);
+  outline: none;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.palette-filter::-webkit-search-cancel-button { -webkit-appearance: none }
+.palette-filter:focus-visible{
+  background-color: var(--focus-bg-box);
+}
+
+.palette-search-button {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  background-color: var(--button-bg-normal);
+  border: 1px solid var(--border-color);
+  border-left: 0;
+}
+.palette-search-button:hover {
+  background-color: var(--button-bg-hover);
+}
+
+.palette-search-button .icon-search {
+  --icon-url: var(--icon-search);
+}
+.palette-search-button .icon-close {
+  --icon-url: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><g style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round"><line x1="3.5" y1="2.5" x2="13.5" y2="12.5"/><line x1="3.5" y1="12.5" x2="13.5" y2="2.5"/></g></svg>');;
+}
+.palette-search-button .icon-close,
+.palette-search-button[aria-pressed="true"] .icon-search { display: none }
+.palette-search-button[aria-pressed="true"] .icon-close { display: block }
+.palette-empty {
+  flex: 1;
+  padding: 8px 2px;
+  font-size: 13px;
+  color: var(--fg-color-label);
+}
+
+.palette {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 1px;
+  margin-bottom: 5px;
+}
+
+.color-item {
+  display: flex;
+  align-items: center;
+  padding: 1px 2px 1px 0;
+  border:1px solid transparent;
+  font-size: 13px;
+  color: var(--fg-color-text);
+}
+
+.color-item:hover {
+  border-color: var(--main-color);
+}
+
+.color-swatch {
+  flex: 0 0 18px;
+  height: 18px;
+  border-radius: 3px;
+  margin-right: 5px;
+  margin: 0 5px 0 1px;
+  border: 1px solid var(--border-color);
+}
+
+.color-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Picker ---------- */
+.right-panel {
+  flex: 0 0 330px;
+  /* WebKit uses width, rather than flex-basis, for the parent's intrinsic width. */
+  width: 330px;
+  display: flex;
+  flex-direction: column;
+}
+
+.spectrum-row {
+  --spectrum-height: 150px;
+  display: flex;
+  gap: 8px;
+  height: var(--spectrum-height);
+  margin-bottom: 8px;
+}
+
+.spectrum-container {
+  position: relative;
+  flex: 1;
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+#spectrum {
+  position: absolute; /* Absolute so the canvas's pixel size never feeds back into the flex layout */
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+#pickerEditors:disabled #spectrum { pointer-events: none }
+
+#colorIndicator {
+  position: absolute;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  border: 2px solid var(--color-marker-outline);
+  box-shadow: 0 0 0 2px var(--color-marker-shadow);
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}
+
+.saturation-slider {
+  position: relative;
+  flex: 0 0 var(--thumb-size);
+}
+
+#satSlider {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  flex: none;
+  width: var(--spectrum-height);
+  transform: translate(-50%, -50%) rotate(-90deg);
+}
+
+.valueSlider {
+  height: 14px;
+  border-radius: 8px;
+  outline: none;
+  -webkit-appearance: none;
+  background: transparent;
+}
+
+.valueSlider::-webkit-slider-runnable-track {
+  height: 14px;
+  border-radius: 8px;
+  background: var(--track-gradient);
+  border: 1px solid var(--border-color);
+}
+
+.valueSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  border-radius: 50%;
+  border: 2px solid var(--color-marker-outline);
+  box-shadow: 0 0 0 2px var(--color-marker-shadow);
+  background: var(--thumb-color);
+  margin-top: -4px;
+}
+
+/* Left column: mode switch, hex + alpha, gradient endpoints. Right: H S L and R G B columns. */
+.editor-grid {
+  --editor-grid-gap: 5px;
+  display: flex;
+  gap: var(--editor-grid-gap);
+  margin-bottom: 10px;
+}
+
+.editor-column:first-of-type {flex:1}
+.editor-column {
+  display: grid;
+  grid-template-rows: repeat(3, var(--field-height));
+  gap: var(--editor-grid-gap);
+}
+
+.hex-row {
+  display: flex;
+  gap: var(--editor-grid-gap);
+}
+
+.switch-check {
+  display: none !important;
+}
+.switch-label {
+  font-size: 13px;
+  padding: 2px 10px;
+  text-align: center;
+  line-height: 18px;
+  z-index: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.switch-slider {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-radius: 20px;
+  background: var(--bg-color-alt);
+  border: 2px solid var(--bg-color-alt);
+  height:26px;
+}
+.switch-slider:before {
+  content: '';
+  position: absolute;
+  width: 50%;
+  height: 100%;
+  left: 0%;
+  border-radius:20px;
+  background: var(--main-color);
+  transition: all 0.2s;
+}
+.switch-check:checked + .switch-slider:before {
+  left: 50%;
+}
+.switch-check:checked + .switch-slider div:first-child,
+.switch-check         + .switch-slider div:last-child{
+  color: var(--fg-color-label);
+  transition: all 0.2s;
+}
+.switch-check:checked + .switch-slider div:last-child,
+.switch-check         + .switch-slider div:first-child{
+  color: var(--button-fg-light);
+  transition: all 0.2s;
+}
+
+/* H S L / R G B / Hex / Alpha input boxes */
+.inline-field {
+  display: flex;
+  align-items: center;
+  padding-left: 5px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-color);
+}
+.inline-field > label {
+  width: 8px;
+  font-size: 12px;
+  color: var(--fg-color-text);
+  opacity: 0.6;
+}
+.inline-field > input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  padding: 0 2px 0 5px;
+  color: var(--fg-color-text);
+  font-size: 15px;
+  line-height: var(--field-height);
+  appearance: textfield; /* No spinner buttons; Up/Down keys and the wheel still step by 1. */
+}
+.inline-field:focus-within { 
+  border-color: var(--main-color); 
+  background: var(--focus-bg-box); 
+}
+.inline-field:has(input:invalid) { 
+  border-color: var(--control-invalid);
+}
+.inline-field > input:focus {
+  outline: none;
+}
+
+.inline-field > input[type="number"]::-webkit-inner-spin-button,
+.inline-field > input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none }
+
+.value-field { width: var(--number-width)}
+.field-hex   { flex: 1 }
+#alphaControls {
+  width: calc(var(--number-width) + 2px)
+}
+#alphaControls > input {
+  padding-left: 7px;
+}
+
+/* Third row holds the gradient bar and the opacity slider in the same cell. The slider only
+   shows while the opacity field or the slider itself is in use, and hides the gradient bar. */
+.third-row { position: relative }
+.third-row > * {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  align-items: center;
+}
+
+.third-row.opacity-open > #opacitySliderBar { display: flex }
+.third-row.opacity-open > #gradientCtrlBar  { display: none }
+
+#opacitySlider { width: 100%; }
+#opacitySlider::-webkit-slider-runnable-track {
+  background: var(--track-gradient), var(--checkerboard); /* Transparent end shows the checkerboard through the color. */
+  background-size: auto, 8px 8px;
+}
+
+/* Gradient colors: thumbs are evenly spaced and fixed; a click anywhere selects the nearest. */
+#gradientCtrlBar {
+  display: flex;
+}
+.gradient-stops {
+  position: relative;
+  flex: 1;
+  height: 100%;
+}
+/* Kept 10px away from the gradient bar so a click near its right end can't hit − or +. */
+.gradient-step-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px;
+  margin-right: 4px;
+}
+.gradient-step-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  border-radius: 4px;
+  background: var(--button-bg-normal);
+  color: var(--icon-color);
+}
+.gradient-step-button svg { display: block; flex: none }
+.gradient-step-button:hover:not([aria-disabled="true"]) { background: var(--button-bg-hover) }
+.gradient-step-button[aria-disabled="true"] { opacity: 0.4; cursor: default }
+.gradient-track {
+  position: absolute;
+  inset: 0;
+  top: 50%;
+  height: var(--thumb-size);
+  transform: translateY(-50%);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background-image: var(--swatch-color, linear-gradient(transparent, transparent)), var(--checkerboard);
+  background-size: auto, 8px 8px;
+}
+.gradient-thumb {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 1px;
+  border: 1px solid var(--color-marker-outline);
+  box-shadow: 0 0 0 1px var(--color-marker-shadow);
+  background: var(--thumb-color);
+  transform: translate(-50%, -50%);
+}
+/* Thumb i of n sits at 10px + (100% - 20px) * i / (n - 1), set inline as --stop. */
+.gradient-thumb { left: calc(10px + (100% - 20px) * var(--stop, 0)) }
+.gradient-thumb[aria-pressed="true"] {
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  border: 2px solid var(--color-marker-outline);
+  box-shadow: 0 0 0 2px var(--color-marker-shadow);
+  border-radius: 4px;
+}
+
+.gradient-thumb:hover {
+  box-shadow: 0 0 0 3px var(--color-marker-shadow);
+}
+
+/* ---------- Original / current / favorites ---------- */
+.bottom-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: var(--preview-size);
+}
+
+.color-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--preview-size);
+  height: var(--preview-size);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+}
+
+.color-preview svg {
+  display: none;
+  pointer-events: none;
+}
+
+.color-preview:hover svg {
+  display: block;
+}
+
+.saved-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 24px));
+  grid-template-rows:    repeat(2, minmax(0, 24px));
+  gap: 4px;
+}
+
+.saved-swatch {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+}
+
+.saved-swatch.empty {
+  background: var(--bg-color);
+  cursor: default;
+}
+
+/* Each layer is separate so transparent RGBA shows the checkerboard beneath it. */
+.color-swatch, .saved-swatch, .color-preview {
+  background-image: var(--swatch-color, linear-gradient(transparent, transparent)), var(--checkerboard);
+  background-size: auto, 12px 12px;
+}
+.color-item { width: 100%; background: transparent; text-align: left; font-family: inherit; }
+
+/* ---------- Actions ---------- */
+
+.dialog-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+}
+.dialog-actions button { margin: 0 }
+#confirmBtn[disabled]  { opacity: 0.5 }
+.stretch-spacer { flex: 1 }
+
+.icon-button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: var(--button-bg-normal);
+  color: var(--fg-color-text);
+}
+.icon-button:hover {
+  background: var(--button-bg-hover);
+}
+.icon-button[aria-expanded="true"] { 
+  background: var(--main-color);
+  color: var(--button-fg-light);
+}
+.icon-button[aria-expanded="true"]:hover { 
+  background: var(--main-color-hover);
+}
+.icon-button[aria-pressed="true"] {
+  background: var(--main-color);
+  color: var(--button-fg-light);
+}
+
+.hidden    { display: none !important }
+.invisible { visibility: hidden }
+
+.color-item:focus-visible, .saved-swatch:focus-visible,
+select:focus-visible, button:focus-visible { outline: 2px solid var(--main-color); outline-offset: -1px; }

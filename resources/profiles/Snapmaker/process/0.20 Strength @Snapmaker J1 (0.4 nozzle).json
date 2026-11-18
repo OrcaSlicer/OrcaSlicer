@@ -11,5 +11,7 @@
 	"elefant_foot_compensation": "0.15",
 	"wall_loops": "6",
 	"bottom_shell_layers": "4",
-	"sparse_infill_density": "25%"
+	"bottom_color_penetration_layers": "3",
+	"sparse_infill_density": "25%",
+	"top_color_penetration_layers": "4"
 }

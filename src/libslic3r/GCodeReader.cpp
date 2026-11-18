@@ -5,6 +5,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <boost/nowide/cstdio.hpp>
+#include <boost/format.hpp>
 #include <cassert>
 #include <cstddef>
 #include <cstdio>
@@ -95,7 +96,7 @@ const char* GCodeReader::parse_line_internal(const char *ptr, const char *end, G
                 if (pend != c && is_end_of_word(*pend)) {
                     // The axis value has been parsed correctly.
                     if (axis != UNKNOWN_AXIS)
-	                    gline.m_axis[int(axis)] = float(v);
+	                    gline.m_axis[int(axis)] = v;
                     gline.m_mask |= 1 << int(axis);
                     c = pend;
                 } else

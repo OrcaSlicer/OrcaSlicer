@@ -1,6 +1,8 @@
 #include "CloudPluginService.hpp"
 
 #include "OrcaCloudServiceAgent.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/format.hpp"
 #include "slic3r/Utils/Http.hpp"
 
 #include <boost/filesystem.hpp>
@@ -9,6 +11,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <cstddef>
+#include <future>
 #include <memory>
 #include <ios>
 #include <slic3r/plugin/PluginDescriptor.hpp>
@@ -47,16 +50,22 @@ bool CloudPluginService::fetch_manifests_into_descriptors(std::vector<PluginDesc
     unauthorized.clear();
 
     if (m_orca_agent) {
+        // Refresh the token once, then run both requests in parallel.
+        m_orca_agent->ensure_token_fresh("fetch_plugin_manifests");
+        std::vector<PluginDescriptor> mine_descriptors;
+        auto mine = std::async(std::launch::async, [agent = m_orca_agent, &mine_descriptors] {
+            return agent->fetch_mine_manifests_into_descriptors(mine_descriptors);
+        });
+
         int ret = m_orca_agent->fetch_subscribed_manifests_into_descriptors(descriptors, not_found, unauthorized);
+        const int mine_ret = mine.get();
 
         if (ret != 0) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to get subscribed plugins.";
             return false;
         }
 
-        std::vector<PluginDescriptor> mine_descriptors;
-
-        ret = m_orca_agent->fetch_mine_manifests_into_descriptors(mine_descriptors);
+        ret = mine_ret;
 
         if (ret != 0) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to get owned plugins.";
@@ -77,12 +86,12 @@ bool CloudPluginService::request_cloud_subscribe(const std::string& plugin_uuid,
         return false;
     }
     if (plugin_uuid.empty()) {
-        error = "Cloud plugin key is missing UUID.";
+        error = _u8L("Cloud plugin key is missing UUID.");
         return false;
     }
 
     if (m_orca_agent->subscribe_plugin(plugin_uuid) != 0) {
-        error = "Failed to subscribe to cloud plugin, see logs for more info.";
+        error = _u8L("Failed to subscribe to cloud plugin, see logs for more info.");
         return false;
     }
 
@@ -97,20 +106,20 @@ bool CloudPluginService::request_cloud_unsubscribe(const PluginDescriptor& plugi
     }
 
     if (!plugin.is_cloud_plugin()) {
-        error = "Only cloud plugins can be unsubscribed.";
+        error = _u8L("Only cloud plugins can be unsubscribed.");
         return false;
     }
 
     const std::string cloud_uuid = plugin.cloud_uuid();
     if (cloud_uuid.empty()) {
-        error = "Cloud plugin key is missing UUID.";
+        error = _u8L("Cloud plugin key is missing UUID.");
         return false;
     }
 
     int result = m_orca_agent->unsubscribe_plugins({cloud_uuid});
 
     if (result != 0) {
-        error = "Failed to unsubscribe plugin, see logs for more info.";
+        error = _u8L("Failed to unsubscribe plugin, see logs for more info.");
         return false;
     }
 
@@ -147,13 +156,14 @@ bool CloudPluginService::download_cloud_plugin(PluginDescriptor& entry,
 
     int result = m_orca_agent->get_plugin_download_url(entry_uuid, requested_version, data, not_found, unauthorized);
     if (result != 0) {
-        error = "Failed to fetch download_url, result =" + std::to_string(result);
+        // TRN %1% is the numeric result code returned by the cloud service.
+        error = GUI::format(_u8L("Failed to fetch the plugin download URL (result %1%)."), result);
         return false;
     }
 
     for (const std::string& plugin_uuid : unauthorized) {
         if (plugin_uuid == entry_uuid) {
-            error = "You are not authorized to download this cloud plugin.";
+            error = _u8L("You are not authorized to download this cloud plugin.");
             return false;
         }
     }
@@ -161,16 +171,17 @@ bool CloudPluginService::download_cloud_plugin(PluginDescriptor& entry,
     for (const PluginDownloadNotFound& item : not_found) {
         if (item.id == entry_uuid) {
             if (item.reason == "requested os not found")
-                error = "No plugin package is available for this operating system.";
+                error = _u8L("No plugin package is available for this operating system.");
             else if (item.reason == "requested version not found")
-                error = requested_version.empty() ? "The selected plugin version was not found." :
-                                                    "Plugin version " + requested_version + " was not found.";
+                error = requested_version.empty() ? _u8L("The selected plugin version was not found.") :
+                                                    GUI::format(_u8L("Plugin version %1% was not found."), requested_version);
             else if (item.reason == "requested plugin not found")
-                error = "Cloud plugin was not found.";
+                error = _u8L("Cloud plugin was not found.");
             else if (!item.reason.empty())
-                error = "Cloud plugin download was not found: " + item.reason + ".";
+                // TRN %1% is the reason reported by the cloud service, in English.
+                error = GUI::format(_u8L("Cloud plugin download was not found: %1%."), item.reason);
             else
-                error = "Cloud plugin download was not found.";
+                error = _u8L("Cloud plugin download was not found.");
             return false;
         }
     }
@@ -183,8 +194,7 @@ bool CloudPluginService::download_cloud_plugin(PluginDescriptor& entry,
     }
 
     if (download_url.empty()) {
-        error = "No download URL is available for this plugin. Please "
-                "check the logs for errors.";
+        error = _u8L("No download URL is available for this plugin. Please check the logs for errors.");
         return false;
     }
 
@@ -210,17 +220,17 @@ bool CloudPluginService::download_cloud_plugin(PluginDescriptor& entry,
         .perform_sync();
 
     if (!error.empty()) {
-        error = "Failed to download plugin: " + error;
+        error = GUI::format(_u8L("Failed to download plugin: %1%"), error);
         return false;
     }
 
     if (http_status >= 400) {
-        error = "Plugin download failed with HTTP status " + std::to_string(http_status);
+        error = GUI::format(_u8L("Plugin download failed with HTTP status %1%."), http_status);
         return false;
     }
 
     if (body.empty()) {
-        error = "Plugin download returned empty data.";
+        error = _u8L("Plugin download returned empty data.");
         return false;
     }
 
@@ -232,12 +242,12 @@ bool CloudPluginService::download_cloud_plugin(PluginDescriptor& entry,
     {
         boost::nowide::ofstream file(tmp_path.string(), std::ios::binary | std::ios::trunc);
         if (!file) {
-            error = "Failed to create temporary file for plugin download.";
+            error = _u8L("Failed to create temporary file for plugin download.");
             return false;
         }
         file.write(body.data(), body.size());
         if (!file) {
-            error = "Failed to write plugin data to temporary file.";
+            error = _u8L("Failed to write plugin data to temporary file.");
             return false;
         }
     }

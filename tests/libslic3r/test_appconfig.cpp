@@ -3,8 +3,67 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Thread.hpp"
+#include "../slic3rutils/plugin_test_utils.hpp"
+#include "test_utils.hpp"
+
+#include <boost/filesystem/operations.hpp>
+
+#include <fstream>
+#include <ios>
+#include <string>
+
+#include <string>
 
 using namespace Slic3r;
+
+TEST_CASE("Full collision-volume previews are opt-in and retain the user's preference", "[AppConfig][ExclusionVolume]")
+{
+    AppConfig config;
+    config.set_defaults();
+    CHECK_FALSE(config.get_bool("show_collision_volumes"));
+
+    config.set_bool("show_collision_volumes", true);
+    config.set_defaults();
+    CHECK(config.get_bool("show_collision_volumes"));
+}
+
+TEST_CASE("Persistent outlines are opt-in and use white by default", "[AppConfig][Outline]")
+{
+    AppConfig config;
+    CHECK_FALSE(config.get_bool(SETTING_OPENGL_OUTLINE_PERSISTENT));
+    CHECK(config.get(SETTING_OPENGL_OUTLINE_COLOR) == "#FFFFFF");
+    CHECK(config.get(SETTING_OPENGL_SELECTION_OUTLINE_COLOR) == "#FFFFFF");
+
+    config.set_bool(SETTING_OPENGL_OUTLINE_PERSISTENT, true);
+    config.set(SETTING_OPENGL_OUTLINE_COLOR, "#2468AC");
+    config.set(SETTING_OPENGL_SELECTION_OUTLINE_COLOR, "#FF8000");
+    config.set_defaults();
+    CHECK(config.get_bool(SETTING_OPENGL_OUTLINE_PERSISTENT));
+    CHECK(config.get(SETTING_OPENGL_OUTLINE_COLOR) == "#2468AC");
+    CHECK(config.get(SETTING_OPENGL_SELECTION_OUTLINE_COLOR) == "#FF8000");
+}
+
+TEST_CASE("Outline preferences survive save and reload independently of selection outlining", "[AppConfig][Outline]")
+{
+    ScopedDataDir data_dir("outline-preferences");
+    save_main_thread_id();
+    AppConfig config;
+    const bool persistent = GENERATE(false, true);
+    const bool selected_outline = GENERATE(false, true);
+    config.set_bool(SETTING_OPENGL_OUTLINE_PERSISTENT, persistent);
+    config.set_bool("show_outline", selected_outline);
+    config.set(SETTING_OPENGL_OUTLINE_COLOR, "#2468AC");
+    config.set(SETTING_OPENGL_SELECTION_OUTLINE_COLOR, "#FF8000");
+    config.save();
+
+    AppConfig reloaded;
+    REQUIRE(reloaded.load().empty());
+    CHECK(reloaded.get_bool(SETTING_OPENGL_OUTLINE_PERSISTENT) == persistent);
+    CHECK(reloaded.get_bool("show_outline") == selected_outline);
+    CHECK(reloaded.get(SETTING_OPENGL_OUTLINE_COLOR) == "#2468AC");
+    CHECK(reloaded.get(SETTING_OPENGL_SELECTION_OUTLINE_COLOR) == "#FF8000");
+}
 
 TEST_CASE("AppConfig network version helpers", "[AppConfig]") {
     AppConfig config;
@@ -44,6 +103,130 @@ TEST_CASE("AppConfig network version helpers", "[AppConfig]") {
         REQUIRE(skipped.size() == 1);
         REQUIRE(config.is_network_version_skipped("02.01.01.52"));
     }
+}
+
+TEST_CASE("Local machine agent replacements survive save and reload", "[AppConfig]")
+{
+    ScopedDataDir data_dir("local-machine");
+    save_main_thread_id();
+    AppConfig config;
+    BBLocalMachine saved;
+    saved.dev_id           = "127.0.0.1:7125";
+    saved.dev_ip           = saved.dev_id;
+    saved.dev_name         = "Test printer";
+    saved.printer_type     = "test-model";
+    saved.printer_agent_id = "orca";
+    saved.access_code      = "old-key";
+    saved.ca_file          = "old-ca.crt";
+    config.update_local_machine(saved);
+    config.save();
+    REQUIRE_FALSE(config.dirty());
+
+    BBLocalMachine replacement = saved;
+    replacement.printer_agent_id = "moonraker";
+    replacement.access_code = GENERATE("", "new-key", "88888888");
+    replacement.ca_file     = GENERATE("", "new-ca.crt");
+    config.update_local_machine(replacement);
+    REQUIRE(config.dirty());
+    REQUIRE(config.get_local_machines().at(saved.dev_id) == replacement);
+    config.save();
+
+    AppConfig reloaded;
+    REQUIRE(reloaded.load().empty());
+    REQUIRE(reloaded.get_local_machines().at(saved.dev_id) == replacement);
+    REQUIRE_FALSE(reloaded.dirty());
+    reloaded.update_local_machine(replacement);
+    REQUIRE_FALSE(reloaded.dirty());
+}
+
+TEST_CASE("Local machines saved without an agent load as Bambu printers unless keyed by address", "[AppConfig]")
+{
+    ScopedDataDir data_dir("local-machine-legacy");
+    save_main_thread_id();
+    const std::string agent_field = GENERATE("", R"("printer_agent_id": "",)");
+    AppConfig config;
+    std::ofstream(config.config_path()) << R"({"local_machines": {)"
+                                        << R"("01P00A000000001": {)" << agent_field << R"("dev_ip": "192.168.1.20"},)"
+                                        << R"("192.168.1.30:7125": {)" << agent_field << R"("dev_ip": "192.168.1.30:7125"},)"
+                                        << R"("192.168.1.31:7125": {)" << agent_field << R"("dev_ip": "192.168.1.32"},)"
+                                        << R"("voron": {)" << agent_field << R"("dev_ip": "voron"},)"
+                                        << R"("01P00A000000002": {"printer_agent_id": "moonraker", "dev_ip": "192.168.1.40"})"
+                                        << "}}";
+
+    REQUIRE(config.load().empty());
+    const auto& machines = config.get_local_machines();
+    CHECK(machines.at("01P00A000000001").printer_agent_id == "bbl");
+    CHECK(machines.at("192.168.1.30:7125").printer_agent_id.empty());
+    CHECK(machines.at("192.168.1.31:7125").printer_agent_id.empty());
+    CHECK(machines.at("voron").printer_agent_id.empty());
+    CHECK(machines.at("01P00A000000002").printer_agent_id == "moonraker");
+}
+
+TEST_CASE("Clearing local credentials preserves another agent's record", "[AppConfig]")
+{
+    AppConfig config;
+    BBLocalMachine saved;
+    saved.dev_id           = "test_dev";
+    saved.printer_agent_id = GENERATE("orca", "qidi", "bbl", "");
+    saved.access_code      = "saved-key";
+    config.update_local_machine(saved);
+    config.set_str("access_code", saved.dev_id, "legacy-key");
+    config.set_str("user_access_code", saved.dev_id, "legacy-user-key");
+
+    config.clear_local_machine_access_code(saved.dev_id, "moonraker");
+
+    REQUIRE(config.get_local_machines().at(saved.dev_id) == saved);
+    REQUIRE(config.get("access_code", saved.dev_id) == "legacy-key");
+    REQUIRE(config.get("user_access_code", saved.dev_id) == "legacy-user-key");
+}
+
+TEST_CASE("Clearing local credentials changes only the owning agent's key", "[AppConfig]")
+{
+    ScopedDataDir data_dir("local-machine-clear");
+    save_main_thread_id();
+    AppConfig config;
+    BBLocalMachine saved;
+    saved.dev_id           = "test_dev";
+    saved.dev_name         = "Test printer";
+    saved.printer_agent_id = GENERATE("moonraker", "qidi");
+    saved.access_code      = "saved-key";
+    config.update_local_machine(saved);
+    config.save();
+    REQUIRE_FALSE(config.dirty());
+
+    config.clear_local_machine_access_code(saved.dev_id, saved.printer_agent_id);
+    REQUIRE(config.dirty());
+    config.save();
+
+    AppConfig reloaded;
+    REQUIRE(reloaded.load().empty());
+    saved.access_code.clear();
+    REQUIRE(reloaded.get_local_machines().at(saved.dev_id) == saved);
+    REQUIRE_FALSE(reloaded.dirty());
+    reloaded.clear_local_machine_access_code(saved.dev_id, saved.printer_agent_id);
+    reloaded.clear_local_machine_access_code("unknown_dev", saved.printer_agent_id);
+    REQUIRE(reloaded.get_local_machines().size() == 1);
+    REQUIRE_FALSE(reloaded.dirty());
+}
+
+TEST_CASE("BBL credential clearing removes legacy fallback without changing foreign records", "[AppConfig]")
+{
+    AppConfig config;
+    BBLocalMachine saved;
+    saved.dev_id           = "test_dev";
+    saved.printer_agent_id = GENERATE("bbl", "", "moonraker");
+    saved.access_code      = "saved-key";
+    config.update_local_machine(saved);
+    config.set_str("access_code", saved.dev_id, "legacy-key");
+    config.set_str("user_access_code", saved.dev_id, "legacy-user-key");
+
+    config.clear_local_machine_access_code(saved.dev_id, GENERATE("bbl", ""));
+
+    if (saved.printer_agent_id != "moonraker")
+        saved.access_code.clear();
+    REQUIRE(config.get_local_machines().at(saved.dev_id) == saved);
+    REQUIRE(config.get("access_code", saved.dev_id).empty());
+    REQUIRE(config.get("user_access_code", saved.dev_id).empty());
 }
 
 TEST_CASE("Remembered checkbox settings retain both selections", "[AppConfig][Regression]") {
@@ -106,5 +289,108 @@ TEST_CASE("AppConfig Speed Dial recent count defaults, clamps and parses", "[App
     SECTION("garbage falls back to the default") {
         config.set(SETTING_SPEED_DIAL_RECENT_COUNT, "abc");
         REQUIRE(config.get_speed_dial_recent_count() == SPEED_DIAL_RECENT_COUNT_DEFAULT);
+    }
+}
+
+TEST_CASE("peek_bool reads an app boolean from a saved configuration without loading it", "[AppConfig]")
+{
+    ScopedDataDir data_dir("peek-bool");
+    save_main_thread_id();
+    AppConfig config;
+    config.set_bool("prefer_discrete_gpu", true);
+    config.save();
+    const std::string dir = data_dir.dir.string();
+
+    CHECK(AppConfig::peek_bool(dir, "prefer_discrete_gpu"));
+    CHECK_FALSE(AppConfig::peek_bool(dir, "no_such_key"));
+
+    config.set_bool("prefer_discrete_gpu", false);
+    config.save();
+    CHECK_FALSE(AppConfig::peek_bool(dir, "prefer_discrete_gpu"));
+}
+
+TEST_CASE("peek_bool accepts the legacy spellings and tolerates a bad or missing file", "[AppConfig]")
+{
+    ScopedTemporaryDir tmp("orca-peek-bool");
+    // Each case gets its own data dir holding an editor configuration with the given text.
+    const auto write = [&tmp](const std::string &name, const std::string &text) {
+        const std::string dir = (tmp.path() / name).string();
+        boost::filesystem::create_directory(dir);
+        std::ofstream(AppConfig::config_path(dir, AppConfig::EAppMode::Editor)) << text;
+        return dir;
+    };
+
+    CHECK(AppConfig::peek_bool(write("one", R"({"app":{"k":"1"}})"), "k"));
+    CHECK(AppConfig::peek_bool(write("true", R"({"app":{"k":"true"}})"), "k"));
+    CHECK_FALSE(AppConfig::peek_bool(write("zero", R"({"app":{"k":"0"}})"), "k"));
+    CHECK_FALSE(AppConfig::peek_bool(write("noapp", R"({"k":true})"), "k"));
+    CHECK_FALSE(AppConfig::peek_bool(write("broken", "{not json"), "k"));
+    CHECK_FALSE(AppConfig::peek_bool((tmp.path() / "missing").string(), "k"));
+}
+
+TEST_CASE("A configuration without the checksum line loads", "[AppConfig][Regression]")
+{
+    ScopedDataDir data_dir("no-checksum");
+    // A person or a tool editing the file drops the checksum line, often with the newline after the closing brace.
+    const std::string ending = GENERATE("", "\n");
+    std::ofstream(AppConfig::config_path(data_dir.dir.string(), AppConfig::EAppMode::Editor), std::ios::binary)
+        << R"({"app":{"k":"v"}})" << ending;
+
+    AppConfig config;
+    REQUIRE(config.load().empty());
+    CHECK(config.get("k") == "v");
+}
+
+#ifdef _WIN32
+// Only Windows saves the checksum line, and a backup to restore a corrupted configuration from.
+TEST_CASE("A corrupted configuration is restored from a backup whose checksum matches", "[AppConfig]")
+{
+    ScopedDataDir data_dir("restore-backup");
+    save_main_thread_id();
+    AppConfig saved;
+    saved.set("k", "v");
+    saved.save();
+    std::ofstream(saved.config_path(), std::ios::binary) << "{not json";
+
+    AppConfig config;
+    REQUIRE(config.load().empty());
+    CHECK(config.get("k") == "v");
+}
+
+TEST_CASE("A backup without the checksum line is not restored", "[AppConfig][Regression]")
+{
+    ScopedDataDir data_dir("unverified-backup");
+    const std::string path = AppConfig::config_path(data_dir.dir.string(), AppConfig::EAppMode::Editor);
+    std::ofstream(path, std::ios::binary) << "{not json";
+    const std::string ending = GENERATE("", "\n");
+    std::ofstream(path + ".bak", std::ios::binary) << R"({"app":{"k":"v"}})" << ending;
+
+    AppConfig config;
+    CHECK_FALSE(config.load().empty());
+    CHECK(config.get("k").empty());
+}
+#endif
+
+TEST_CASE("AppConfig keeps only the preview drag modes it knows", "[AppConfig]") {
+    AppConfig config;
+    const std::string key = "preview_reduced_detail_mode";
+
+    SECTION("a missing value becomes off") {
+        config.set_defaults();
+        REQUIRE(config.get(key) == "off");
+    }
+
+    SECTION("a known mode is kept") {
+        const std::string mode = GENERATE("off", "solid", "shell");
+        config.set(key, mode);
+        config.set_defaults();
+        REQUIRE(config.get(key) == mode);
+    }
+
+    SECTION("an unknown mode falls back to off") {
+        const std::string mode = GENERATE("layers", "outer_walls", "");
+        config.set(key, mode);
+        config.set_defaults();
+        REQUIRE(config.get(key) == "off");
     }
 }

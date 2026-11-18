@@ -68,6 +68,7 @@ protected:
 #elif defined(__LINUX__)
     wxString GetLinuxDistroName();
     wxString GetLinuxDisplayServer();
+    wxString GetAppDisplayBackend();
 #endif
     wxString GetPackageType();
     wxString GetCPUinfo();

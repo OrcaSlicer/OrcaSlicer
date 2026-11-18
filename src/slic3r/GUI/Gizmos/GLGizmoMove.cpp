@@ -31,6 +31,11 @@
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/GLModel.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoAlignment.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <vector>
 #include "slic3r/GUI/I18N.hpp"
 
 namespace Slic3r {
@@ -105,10 +110,12 @@ bool GLGizmoMove3D::on_is_activable() const
 
 void GLGizmoMove3D::on_set_state() {
     if (get_state() == On) {
-        m_last_selected_obejct_idx = -1;
-        m_last_selected_volume_idx = -1;
+        m_last_selected_obejct_idx = -2;
+        m_last_selected_volume_idx = -2;
         change_cs_by_selection();
     }
+    if (m_object_manipulation)
+        m_object_manipulation->reset_align_state();
 }
 
 void GLGizmoMove3D::on_start_dragging()
@@ -156,6 +163,8 @@ void GLGizmoMove3D::on_render()
 
     glsafe(::glClear(GL_DEPTH_BUFFER_BIT));
     glsafe(::glEnable(GL_DEPTH_TEST));
+
+    render_align_preview();
 
     const auto &[box, box_trafo]    = selection.get_bounding_box_in_current_reference_system();
     m_bounding_box                  = box;
@@ -340,8 +349,99 @@ double GLGizmoMove3D::calc_projection(const UpdateData& data) const
     return projection;
 }
 
+void GLGizmoMove3D::render_align_preview()
+{
+    using AlignType = GLGizmoAlignment::AlignType;
+    if (m_object_manipulation == nullptr || m_object_manipulation->get_hovered_align_type() == AlignType::NONE)
+        return;
+
+    // The box the hovered operation aligns to, in the frame the operation aligns along.
+    const AlignType         type      = m_object_manipulation->get_hovered_align_type();
+    const GLGizmoAlignment &helper    = m_object_manipulation->get_alignment_helper();
+    const bool              to_parent = m_object_manipulation->get_align_to_parent();
+    const Matrix3d          basis     = helper.reference_basis(to_parent);
+    const BoundingBoxf3     box       = to_parent ? helper.get_parent_box(basis) : helper.get_items_box(basis);
+    if (!box.defined)
+        return;
+    Transform3d basis_trafo = Transform3d::Identity();
+    basis_trafo.linear()    = basis;
+    m_parent.get_selection().render_bounding_box(box, basis_trafo, {0.0f, 150.0f / 255.0f, 136.0f / 255.0f}, m_parent.get_scale());
+
+    GLShaderProgram* shader = wxGetApp().get_shader("flat");
+    if (shader == nullptr)
+        return;
+
+    if (!m_align_plane.is_initialized()) {
+        GLModel::Geometry init_data;
+        init_data.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
+        init_data.reserve_vertices(4);
+        init_data.reserve_indices(6);
+        init_data.add_vertex(Vec3f(-0.5f, -0.5f, 0.0f));
+        init_data.add_vertex(Vec3f(0.5f, -0.5f, 0.0f));
+        init_data.add_vertex(Vec3f(0.5f, 0.5f, 0.0f));
+        init_data.add_vertex(Vec3f(-0.5f, 0.5f, 0.0f));
+        init_data.add_triangle(0, 1, 2);
+        init_data.add_triangle(0, 2, 3);
+        m_align_plane.init_from(std::move(init_data));
+        m_align_plane.set_color({ 1.0f, 1.0f, 1.0f, 0.5f });
+    }
+
+    // A plane across the box at its min, center or max on the hovered axis. Distributing shows up to six evenly
+    // spaced planes.
+    int    axis = Z;
+    double t    = 0.5;
+    switch (type) {
+    case AlignType::X_MIN: axis = X; t = 0.0; break;
+    case AlignType::X_MAX: axis = X; t = 1.0; break;
+    case AlignType::CENTER_X:
+    case AlignType::DISTRIBUTE_X: axis = X; break;
+    case AlignType::Y_MIN: axis = Y; t = 0.0; break;
+    case AlignType::Y_MAX: axis = Y; t = 1.0; break;
+    case AlignType::CENTER_Y:
+    case AlignType::DISTRIBUTE_Y: axis = Y; break;
+    case AlignType::Z_MIN: t = 0.0; break;
+    case AlignType::Z_MAX: t = 1.0; break;
+    default: break;
+    }
+    const Vec3d         size = box.size();
+    std::vector<double> positions;
+    if (type >= AlignType::DISTRIBUTE_X) {
+        const size_t count = std::min<size_t>(helper.get_items_count(type, false), 6);
+        for (size_t i = 1; i <= count; ++i)
+            positions.push_back(box.min[axis] + i * size[axis] / (count + 1));
+    } else
+        positions.push_back(box.min[axis] + t * size[axis]);
+
+    const int   u            = (axis + 1) % 3;
+    const int   v            = (axis + 2) % 3;
+    Transform3d plane_matrix = Transform3d::Identity();
+    plane_matrix.linear().col(0) = size[u] * Vec3d::Unit(u);
+    plane_matrix.linear().col(1) = size[v] * Vec3d::Unit(v);
+    plane_matrix.linear().col(2) = Vec3d::Unit(axis);
+    Vec3d plane_center           = box.center();
+
+    glsafe(::glDisable(GL_CULL_FACE));
+    glsafe(::glEnable(GL_BLEND));
+    glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+    // Translucent planes must hide neither each other nor the grabbers drawn after them.
+    glsafe(::glDepthMask(GL_FALSE));
+    shader->start_using();
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    shader->set_uniform("projection_matrix", camera.get_projection_matrix());
+    for (double position : positions) {
+        plane_center[axis]         = position;
+        plane_matrix.translation() = plane_center;
+        shader->set_uniform("view_model_matrix", camera.get_view_matrix() * basis_trafo * plane_matrix);
+        m_align_plane.render();
+    }
+    shader->stop_using();
+    glsafe(::glDepthMask(GL_TRUE));
+    glsafe(::glEnable(GL_CULL_FACE));
+    glsafe(::glDisable(GL_BLEND));
+}
+
 void GLGizmoMove3D::change_cs_by_selection() {
-    int          obejct_idx, volume_idx;
+    int          obejct_idx = -1, volume_idx = -1;
     ModelVolume *model_volume = m_parent.get_selection().get_selected_single_volume(obejct_idx, volume_idx);
     if (m_last_selected_obejct_idx == obejct_idx && m_last_selected_volume_idx == volume_idx) {
         return;

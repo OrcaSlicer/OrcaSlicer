@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "QIDI PLA Rapido Metal @Qidi X-Smart 5 0.6 nozzle",
+	"inherits": "QIDI PLA Rapido Metal@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "S7C4VyO1eq5HHb12",
+	"instantiation": "true",
+	"additional_cooling_fan_speed_unseal": [
+		"0"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"pressure_advance": [
+		"0.020"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.6 nozzle"
+	]
+}

@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "QIDI PETG-CF @Qidi X-Smart 5 0.8 nozzle",
+	"inherits": "QIDI PETG-CF@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "2yqDtGr28oZ5q5Qs",
+	"instantiation": "true",
+	"additional_cooling_fan_speed_unseal": [
+		"0"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"nozzle_temperature": [
+		"240"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.8 nozzle"
+	]
+}

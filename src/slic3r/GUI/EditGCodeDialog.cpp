@@ -385,7 +385,8 @@ void EditGCodeDialog::selection_changed(wxDataViewEvent& evt)
         // Orca: move below checking for def in custom defined G-code placeholders
         // This allows custom placeholders to override the default ones for this dialog
         // Override custom def if selection is within the preset category
-        if (!def || m_params_list->GetSelectedTopLevelCategory() == "Presets") {
+        // The group label is translated, so compare against the translated label.
+        if (!def || m_params_list->GetSelectedTopLevelCategory() == _L("Presets").ToStdString()) {
             const auto& full_config = wxGetApp().preset_bundle->full_config();
             if (const ConfigDef* config_def = full_config.def(); config_def && config_def->has(opt_key)) {
                 def = config_def->get(opt_key);

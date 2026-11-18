@@ -1,0 +1,26 @@
+{
+    "type": "filament",
+    "name": "School House Spools Matte PLA @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "OFJe1Nqi",
+    "instantiation": "false",
+    "filament_cost": [
+        "17"
+    ],
+    "filament_density": [
+        "1.32"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_scarf_gap": [
+        "0%"
+    ],
+    "filament_scarf_height": [
+        "5%"
+    ],
+    "filament_vendor": [
+        "School House Spools"
+    ]
+}

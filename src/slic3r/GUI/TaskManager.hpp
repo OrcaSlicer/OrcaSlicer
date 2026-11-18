@@ -16,6 +16,7 @@
 #include <vector>
 #include <map>
 #include <mutex>
+#include <atomic>
 #include <wx/event.h>
 
 
@@ -158,6 +159,8 @@ public:
     static int SendingInterval;
     TaskManager(NetworkAgent* agent);
 
+    void set_agent(NetworkAgent* agent);
+
     int start_print(const std::vector<PrintParams>& params, TaskSettings* settings = nullptr);
 
     static void set_max_send_at_same_time(int count);
@@ -184,7 +187,8 @@ private:
     std::vector<boost::thread*>   m_sending_thread_list;
     std::mutex                    m_scedule_mutex;
     bool                        m_started { false };
-    NetworkAgent*               m_agent { nullptr };
+    // Replaced on the main thread whenever networking is re-initialised, read by the sending threads.
+    std::atomic<NetworkAgent*>  m_agent { nullptr };
 
     std::chrono::system_clock::time_point last_sent_timestamp;
 };

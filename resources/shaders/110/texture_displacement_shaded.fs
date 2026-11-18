@@ -72,16 +72,20 @@ varying float weight;
 varying float island_active;
 varying vec2  vertex_uv;
 
-// The cylinder's own frame, built exactly as libslic3r's project_cylindrical() builds it - including
-// the handedness, which comes out left-handed for an axis of +Z. Copied rather than "corrected", so
-// the preview wraps the texture the same way round as the bake.
+// The cylinder's own frame, built exactly as libslic3r's project_cylindrical() builds it - right
+// handed, so the angle taken from it grows anticlockwise about the axis, which seen from outside the
+// cylinder is to the viewer's right rather than mirrored.
 void cylinder_frame(out vec3 up, out vec3 right, out vec3 fwd)
 {
     up = (length(patch_axis) > 1e-8) ? normalize(patch_axis) : vec3(0.0, 0.0, 1.0);
     vec3 arbitrary = (abs(up.z) < 0.9) ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
     right = normalize(cross(up, arbitrary));
-    fwd   = normalize(cross(right, up));
+    fwd   = normalize(cross(up, right));
 }
+
+// Which side of a world plane a face is on, with zero counting as the positive side. Not GLSL's own
+// sign(), which returns 0 there and would collapse the coordinate onto a line.
+float box_face_sign(float n) { return n >= 0.0 ? 1.0 : -1.0; }
 
 // The raw, millimetre-valued projection of `p` (a position in the texture frame), before the layer's
 // tiling/rotation/aspect/offset - a term-for-term transcription of libslic3r's project_planar(),
@@ -94,7 +98,7 @@ vec2 projection_raw(vec3 p, vec3 n)
         vec3  rel = p - patch_center;
         float x   = dot(rel, right);
         float y   = dot(rel, fwd);
-        return vec2(atan(y, x) * sqrt(x * x + y * y), dot(rel, up));
+        return vec2(atan(y, x) * sqrt(x * x + y * y), -dot(rel, up));
     }
     if (projection_mode == 2) {                 // Spherical: (longitude, latitude) * radius
         vec3  rel    = p - patch_center;
@@ -102,10 +106,18 @@ vec2 projection_raw(vec3 p, vec3 n)
         if (radius < 1e-8)
             return vec2(0.0);
         vec3 dir = rel / radius;
-        return vec2(atan(dir.y, dir.x), asin(clamp(dir.z, -1.0, 1.0))) * radius;
+        return vec2(atan(dir.y, dir.x), -asin(clamp(dir.z, -1.0, 1.0))) * radius;
     }
-    vec3 an = abs(n);                           // Triplanar: drop the dominant normal axis
-    return (an.x >= an.y && an.x >= an.z) ? p.yz : ((an.y >= an.x && an.y >= an.z) ? p.xz : p.xy);
+    // Triplanar: drop the dominant normal axis. v is negated so the image's first pixel row (v = 0)
+    // sits at the top of the model instead of upside down, and u is flipped on the far side of each
+    // plane so the two faces sharing it are not mirror images. libslic3r's box_plane_yz() and its two
+    // siblings, term for term.
+    vec3 an = abs(n);
+    if (an.x >= an.y && an.x >= an.z)
+        return vec2(box_face_sign(n.x) * p.y, -p.z);
+    if (an.y >= an.x && an.y >= an.z)
+        return vec2(-box_face_sign(n.y) * p.x, -p.z);
+    return vec2(box_face_sign(n.z) * p.x, -p.y);
 }
 
 // The two surface directions projection_raw()'s u and v run along at `p`, plus how many raw units one
@@ -124,7 +136,7 @@ void projection_axes(vec3 p, vec3 n, out vec3 t, out vec3 b, out vec2 units_per_
         vec2  xy  = vec2(dot(rel, right), dot(rel, fwd));
         float r   = length(xy);
         t = (r > 1e-6) ? (fwd * xy.x - right * xy.y) / r : right; // circumferential: u runs along it
-        b = up;                                                   // v is the distance along the axis
+        b = -up;                                                  // v is the distance *against* the axis
         return;
     }
     if (projection_mode == 2) {
@@ -133,20 +145,20 @@ void projection_axes(vec3 p, vec3 n, out vec3 t, out vec3 b, out vec2 units_per_
         vec3  dir = (r > 1e-8) ? rel / r : vec3(0.0, 0.0, 1.0);
         float c   = length(dir.xy);                               // cos(latitude)
         t = (c > 1e-6) ? vec3(-dir.y, dir.x, 0.0) / c : vec3(1.0, 0.0, 0.0);
-        b = cross(dir, t);                                        // increasing latitude, unit length
+        b = -cross(dir, t);                                       // v grows away from the pole, unit length
         units_per_mm = vec2(1.0 / max(c, 1e-3), 1.0);
         return;
     }
-    vec3 an = abs(n);
-    if (an.x >= an.y && an.x >= an.z) {        // planar = p.yz
-        t = vec3(0.0, 1.0, 0.0);
-        b = vec3(0.0, 0.0, 1.0);
-    } else if (an.y >= an.x && an.y >= an.z) { // planar = p.xz
-        t = vec3(1.0, 0.0, 0.0);
-        b = vec3(0.0, 0.0, 1.0);
-    } else {                                   // planar = p.xy
-        t = vec3(1.0, 0.0, 0.0);
-        b = vec3(0.0, 1.0, 0.0);
+    vec3 an = abs(n);                          // the same signed basis projection_raw() uses
+    if (an.x >= an.y && an.x >= an.z) {        // planar = (+-y, -z)
+        t = vec3(0.0, box_face_sign(n.x), 0.0);
+        b = vec3(0.0, 0.0, -1.0);
+    } else if (an.y >= an.x && an.y >= an.z) { // planar = (+-x, -z)
+        t = vec3(-box_face_sign(n.y), 0.0, 0.0);
+        b = vec3(0.0, 0.0, -1.0);
+    } else {                                   // planar = (+-x, -y)
+        t = vec3(box_face_sign(n.z), 0.0, 0.0);
+        b = vec3(0.0, -1.0, 0.0);
     }
 }
 

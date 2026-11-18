@@ -28,6 +28,7 @@
 #include <libslic3r/PresetBundle.hpp>
 #include <wx/string.h>
 #include "MainFrame.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include <miniz.h>
 #include <OrcaCloudServiceAgent.hpp>
 #include <wx/utils.h>
@@ -218,7 +219,7 @@ nlohmann::json PresetBundleDialog::localized_strings() const
         {"update", _u8L("Update")},
         {"export_presets", _u8L("Export Presets")},
         {"close", _u8L("Close")},
-        {"open_folder", _u8L("Open folder in explorer")},
+        {"open_folder", _u8L("Show in folder")},
         {"delete_bundle", _u8L("Delete bundle")},
         {"unsubscribe_bundle", _u8L("Unsubscribe bundle")},
         {"update_available", _u8L("Update available")},

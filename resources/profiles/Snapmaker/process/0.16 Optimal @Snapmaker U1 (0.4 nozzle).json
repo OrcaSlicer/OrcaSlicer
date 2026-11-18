@@ -93,5 +93,7 @@
 		"500",
 		"200",
 		"500"
-	]
+	],
+	"top_color_penetration_layers": "6",
+	"bottom_color_penetration_layers": "4"
 }

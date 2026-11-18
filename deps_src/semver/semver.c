@@ -224,12 +224,14 @@ compare_prerelease (char *x, char *y) {
   if (x == NULL && y) return 1;
 
   // Orca: Special handling for 'dev'
+  // Nightly builds stay on x.y.z-dev after the alpha and beta are tagged, so 'dev'
+  // ranks above every other prerelease and below the release.
   if (strcmp(x, "dev") == 0 && strcmp(y, "dev") == 0)
       return 0;
   if (strcmp(x, "dev") == 0 && strcmp(y, "dev") != 0)
-      return -1;
-  if (strcmp(x, "dev") != 0 && strcmp(y, "dev") == 0)
       return 1;
+  if (strcmp(x, "dev") != 0 && strcmp(y, "dev") == 0)
+      return -1;
 
   lastx = x;
   lasty = y;

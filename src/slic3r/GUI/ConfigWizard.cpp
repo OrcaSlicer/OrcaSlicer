@@ -1,6 +1,7 @@
 // FIXME: extract absolute units -> em
 
 #include "ConfigWizard_private.hpp"
+#include "ConfigWizardTypes.hpp"
 #include "libslic3r_version.h"
 
 #include <algorithm>
@@ -551,9 +552,9 @@ PageWelcome::PageWelcome(ConfigWizard *parent)
     cbox_integrate->Hide();    
 }
 
-void PageWelcome::set_run_reason(ConfigWizard::RunReason run_reason)
+void PageWelcome::set_run_reason(RunReason run_reason)
 {
-    const bool data_empty = run_reason == ConfigWizard::RR_DATA_EMPTY;
+    const bool data_empty = run_reason == RunReason::RR_DATA_EMPTY;
     welcome_text->Show(data_empty);
     cbox_reset->Show(!data_empty);
 #if defined(__linux__) && defined(SLIC3R_DESKTOP_INTEGRATION)
@@ -647,11 +648,11 @@ std::set<std::string> PagePrinters::get_selected_models()
     return ret_set;
 }
 
-void PagePrinters::set_run_reason(ConfigWizard::RunReason run_reason)
+void PagePrinters::set_run_reason(RunReason run_reason)
 {
     //Orca: add custom as default
     if (is_primary_printer_page
-        && (run_reason == ConfigWizard::RR_DATA_EMPTY || run_reason == ConfigWizard::RR_DATA_LEGACY)
+        && (run_reason == RunReason::RR_DATA_EMPTY || run_reason == RunReason::RR_DATA_LEGACY)
         && printer_pickers.size() > 0 
         && printer_pickers[0]->vendor_id == PresetBundle::ORCA_DEFAULT_BUNDLE) {
         //printer_pickers[0]->select_one(0, true);
@@ -1929,18 +1930,18 @@ void ConfigWizard::priv::enable_next(bool enable)
     btn_finish->Enable(enable);
 }
 
-void ConfigWizard::priv::set_start_page(ConfigWizard::StartPage start_page)
+void ConfigWizard::priv::set_start_page(StartPage start_page)
 {
     switch (start_page) {
-        case ConfigWizard::SP_CUSTOM:
+        case StartPage::SP_CUSTOM:
             index->go_to(page_custom);
             btn_next->SetFocus();
             break;
-        case ConfigWizard::SP_FILAMENTS:
+        case StartPage::SP_FILAMENTS:
             index->go_to(page_filaments);
             btn_finish->SetFocus();
             break;
-        case ConfigWizard::SP_MATERIALS:
+        case StartPage::SP_MATERIALS:
             index->go_to(page_sla_materials);
             btn_finish->SetFocus();
             break;
@@ -2455,18 +2456,18 @@ bool ConfigWizard::priv::apply_config(AppConfig *app_config, PresetBundle *prese
     bool snapshot = true;
     Snapshot::Reason snapshot_reason = Snapshot::SNAPSHOT_UPGRADE;
     switch (run_reason) {
-        case ConfigWizard::RR_DATA_EMPTY:
+        case RunReason::RR_DATA_EMPTY:
             snapshot = false;
             break;
-        case ConfigWizard::RR_DATA_LEGACY:
+        case RunReason::RR_DATA_LEGACY:
             snapshot = true;
             break;
-        case ConfigWizard::RR_DATA_INCOMPAT:
+        case RunReason::RR_DATA_INCOMPAT:
             // In this case snapshot has already been taken by
             // PresetUpdater with the appropriate reason
             snapshot = false;
             break;
-        case ConfigWizard::RR_USER:
+        case RunReason::RR_USER:
             snapshot = false;
             snapshot_reason = Snapshot::SNAPSHOT_USER;
             break;
@@ -2671,7 +2672,8 @@ ConfigWizard::ConfigWizard(wxWindow *parent)
     p->load_vendors();
     //BBS: add bed exclude areas
     p->custom_config.reset(DynamicPrintConfig::new_from_defaults_keys({
-        "gcode_flavor", "printable_area", "bed_exclude_area", "bed_custom_texture", "bed_custom_model", "nozzle_diameter", "filament_diameter", "thumbnails"
+        "gcode_flavor", "printable_area", "bed_exclude_area", "bed_exclude_volumes", "bed_exclude_volume_mode", "extruder_bed_exclude_volumes",
+        "bed_custom_texture", "bed_custom_model", "nozzle_diameter", "filament_diameter", "thumbnails"
         //, "nozzle_temperature", "bed_temperature"
     }));
 
@@ -2797,7 +2799,7 @@ ConfigWizard::~ConfigWizard() {}
 
 bool ConfigWizard::run(RunReason reason, StartPage start_page)
 {
-    BOOST_LOG_TRIVIAL(info) << boost::format("Running ConfigWizard, reason: %1%, start_page: %2%") % reason % start_page;
+    BOOST_LOG_TRIVIAL(info) << boost::format("Running ConfigWizard, reason: %1%, start_page: %2%") % static_cast<int>(reason) % static_cast<int>(start_page);
 
     GUI_App &app = wxGetApp();
 

@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "QIDI PET-GF @Qidi X-Smart 5 0.8 nozzle",
+	"inherits": "QIDI PET-GF@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "25frFfTU9Jjbb569",
+	"instantiation": "true",
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"additional_cooling_fan_speed_unseal": [
+		"0"
+	],
+	"pressure_advance": [
+		"0.01"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.8 nozzle"
+	]
+}

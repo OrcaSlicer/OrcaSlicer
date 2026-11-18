@@ -6,7 +6,7 @@
 	"setting_id": "UDfjcTtL3vUxC6VO",
 	"instantiation": "true",
 	"printer_model": "Flashforge Adventurer 3 Series",
-	"default_print_profile": "0.20mm Standard @Flashforge AD3 0.6 Nozzle",
+	"default_print_profile": "0.30mm Standard @Flashforge AD3 0.6 Nozzle",
 	"nozzle_diameter": [
 		"0.6",
 		"0.6"

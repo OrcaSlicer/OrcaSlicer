@@ -4,15 +4,26 @@
 // Via pybind11 so this file requests the same python3xx.lib as everything else.
 #include <boost/filesystem/path.hpp>
 #include <pybind11/conduit/wrap_include_python_h.h>
+#include <cstddef>
+#include <deque>
+#include <functional>
+#include <future>
+#include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include <boost/filesystem.hpp>
 
 namespace Slic3r {
+
+struct PluginPermissions;
+
+// Thread creation exposes no user-supplied target, so the runtime audit event reports this fixed
+// target. Legacy sidecars also stored it as the sole entry of their threading target list; the
+// reader maps that form onto the boolean permission.
+inline constexpr const char* kThreadPermissionTarget = "thread";
 
 struct AuditDecision {
     bool        allowed = true;
@@ -49,7 +60,9 @@ enum class AuditEventCategory {
 };
 
 // Returns true if candidate resolves to a path inside allowed_root.
-// Uses weakly_canonical and component-wise comparison to reject traversal attacks.
+// Uses weakly_canonical and component-wise comparison to reject traversal attacks. A candidate
+// whose final component is a dangling symlink is never inside: containment fails closed rather
+// than authorizing the destination a write through it would create.
 bool is_inside_allowed_root(const boost::filesystem::path& candidate,
                             const boost::filesystem::path& allowed_root);
 
@@ -103,12 +116,13 @@ public:
     bool is_denied_filename(const boost::filesystem::path& candidate) const;
 
     // --- denied-path-keyword registry ---
-    // Keywords that categorically deny a path if ANY component matches one case-insensitively --
+    // Keywords that categorically deny a path when a component matches one case-insensitively --
     // e.g. a "secrets" subfolder, a "certificates" folder, a "conf"/"config" directory, or a
     // .conf/.ini file anywhere the plugin can otherwise reach, including inside an allowed root.
-    // This is broader than the exact-name is_denied_filename registry, but it is not a substring
-    // match: importable modules such as numpy/__config__.py, configparser.py, sysconfig.py, or
-    // user folders such as "Conference" and "Concert" are unrelated names and must stay promptable.
+    // The components above the app's data_dir() are not considered (see below). This is broader
+    // than the exact-name is_denied_filename registry, but it is not a substring match:
+    // importable modules such as numpy/__config__.py, configparser.py, sysconfig.py, or user
+    // folders such as "Conference" and "Concert" are unrelated names and must stay promptable.
     void add_denied_path_keyword(const std::string& keyword);
 
     // The list install_hook() seeds into the keyword registry. Exposed so tests seed the exact
@@ -116,7 +130,10 @@ public:
     static std::vector<std::string> default_denied_path_keywords();
 
     // True when any component of candidate's (canonicalized) path matches a registered keyword,
-    // case-insensitively. A registered "conf" keyword also blocks .conf/.ini file components.
+    // case-insensitively. Inside data_dir(), only the components below data_dir() are checked:
+    // the app's own data folder may itself sit under a component named like a keyword (Flatpak
+    // keeps it under .../config/OrcaSlicer), which must not deny everything inside it. A
+    // registered "conf" keyword also blocks .conf/.ini file components.
     bool is_denied_path_keyword(const boost::filesystem::path& candidate) const;
 
     // is_denied_filename(candidate) || is_denied_path_keyword(candidate). Convenience for
@@ -131,12 +148,57 @@ public:
     AuditDecision check_path_access(const boost::filesystem::path& candidate, bool is_write);
     AuditDecision check_open(const std::string& path, const std::string& mode);
 
-    // Ask the user to grant the requested filesystem-read paths. The request may originate on a
-    // plugin load worker, so the implementation marshals the modal dialog to the wx main thread.
-    // Returns true only when every missing path was granted and persisted; denial aborts the plugin
-    // load without adding a permission.
-    bool request_filesystem_read_permissions(const std::string& plugin_key,
-                                             const std::vector<std::string>& paths);
+    // Ask the user to grant the requested permissions. The request may originate on a plugin
+    // load worker, so it goes through the same serialized prompt queue as runtime events; a worker
+    // waits for the answer, while a GUI-thread caller only shows it when no other prompt is active
+    // and is otherwise rejected without queueing a deferred declaration. Targets already persisted
+    // for the plugin are not shown or asked for again. Returns true only when every missing target
+    // was granted and persisted; denial aborts the plugin load without adding a permission. A
+    // plugin with full access stored in its sidecar is never prompted: the declaration is accepted
+    // and no grant is added.
+    //
+    // A filesystem target may name a directory tree: a trailing "/*" (e.g. "/path/to/folder/*")
+    // grants the folder itself and every path beneath it, at any depth. "*" is the only wildcard
+    // and is only recognized as the final path component; elsewhere it is an ordinary character.
+    // The wildcard applies to fs_read and fs_readwrite only, never to event grants or the other
+    // buckets, and a read grant still never authorizes a write (or the reverse). Denied paths
+    // stay denied regardless of a covering wildcard.
+    //
+    // A relative tree grant is resolved against the working directory when the request is made:
+    // the prompt shows, and the sidecar stores, the absolute scope it covers. Exact grants and
+    // the non-filesystem buckets are stored as requested.
+    //
+    // Tree grants are matched on canonical paths: a symlink below the granted folder does not
+    // extend the grant outside it, and a grant whose root is a symlink applies to its target. A
+    // target whose final component is a dangling symlink is never covered, since a write through
+    // it would create the link's target rather than the path the grant describes. Exact grants
+    // match verbatim; absolute exact grants also match canonical-equivalent paths, including
+    // relative targets resolved against the working directory at the time of the check.
+    bool request_permissions(const std::string& plugin_key, const PluginPermissions& requested);
+
+    // Ask the user to grant network access to the given http(s) URLs. Each URL is reduced to its
+    // scheme and host before prompting and persisting, so one approval covers every path, query
+    // and port on that host. The grant is recorded as an HTTP grant; network_permission_matches
+    // applies it to raw socket events for the same host too. Like request_permissions, the request
+    // may originate on a plugin load worker; denial aborts the plugin load without adding a
+    // permission.
+    bool request_network_permissions(const std::string& plugin_key,
+                                     const std::vector<std::string>& urls);
+
+    // Canonical scheme://host form used to store and match network permissions. Returns an empty
+    // string unless `url` is an absolute http(s) URL with a host. The path, query, fragment,
+    // userinfo and port are discarded; scheme and host are lowercased.
+    static std::string normalize_network_url(const std::string& url);
+
+    // True when a granted scheme://host entry covers `target`. `target` is a URL (urllib.Request),
+    // a bare host (http.client.connect, socket.getaddrinfo) or an address as exposed by the audit
+    // event (a hostname, a host:port pair, or a legacy persisted tuple such as "('host', 443)").
+    // URL targets must match both scheme and host. Canonical scheme://host grants cover all paths;
+    // older full-URL grants remain exact. A bare host carries no scheme, so it matches the host of
+    // a canonical scheme://host grant only; a full-URL grant does not authorize raw sockets to its
+    // host, and a bare host never matches a different host.
+    static bool network_permission_matches(const std::vector<std::string>& granted,
+                                           const std::string& target);
 
     void report_violation(const AuditViolation& violation);
     bool audit_denial_pending() const;
@@ -144,15 +206,39 @@ public:
     void clear_last_violation();
     bool last_violation(AuditViolation& violation) const;
 
-    // --- call-site cascade cache ---
-    // A single plugin action often fires several nested CPython audit events as it passes
-    // through stdlib layers (urllib.request calling http.client calling socket, for example).
-    // Once the user approves one event, every stdlib frame still on the stack for that call
-    // is recorded here by (filename, function, first line) identity. A later event whose own
-    // ancestor chain still contains one of those frames is the same logical action seen from
-    // a deeper layer, so it is auto-approved instead of prompting again.
-    bool has_approved_ancestor(const std::string& plugin_key, const std::vector<std::string>& call_site_ids) const;
-    void record_approved_call_sites(const std::string& plugin_key, const std::vector<std::string>& call_site_ids);
+    // --- operation-root frames ---
+    // One stdlib operation fires several nested audit events as it passes through lower layers:
+    // urlopen() raises urllib.Request, then http.client and socket events. When an operation's
+    // own root event is granted (by a saved grant or the user), the stdlib frame that raised it
+    // is held, and a later event whose stack reaches that frame through stdlib frames only is
+    // part of the same operation, so it is allowed without a prompt of its own. Plugin or
+    // library code the operation calls back into is judged on its own. A frame is let go once it
+    // returns, a suspended generator's (os.walk) when the audit scope ends. Letting a frame go may
+    // run finalizers of objects its locals held; they are judged as the plugin and never prompt.
+    void record_root_frame();
+    bool covered_by_root_frame() const;
+    bool releasing_frames() const;
+
+    // True when code from `filename` (a code object's co_filename) is the interpreter's own
+    // stdlib: the only code a root frame's coverage passes through. Valid after install_hook().
+    static bool is_stdlib_file(const std::string& filename);
+
+    // Answers permission prompts in place of the dialog, for tests. Production never sets it.
+    using PermissionPrompt = std::function<bool(const std::string& event_name, const std::vector<std::string>& targets)>;
+    static void set_permission_prompt_for_testing(PermissionPrompt prompt);
+
+    // Answers the combined permission-request prompt in place of the dialog, receiving the message
+    // it would show. Tests run without a wxApp, so this seam also stands in for the app check.
+    // Production never sets it.
+    using PermissionMessagePrompt = std::function<bool(const std::string& message)>;
+    static void set_permission_message_prompt_for_testing(PermissionMessagePrompt prompt);
+
+    // Drops runtime audit prompts that have not been shown yet, and cancels any blocked worker
+    // waiting on one (including the prompt currently on screen: its late answer is ignored). Called
+    // when the application shuts down so a queued prompt cannot open after the GUI is gone, and
+    // when a plugin is unloaded or its in-flight load is cancelled so its prompts cannot outlive it.
+    static void discard_pending_permission_prompts();
+    static void discard_pending_permission_prompts_for(const std::string& plugin_key);
 
     bool verbose_events = true;
 
@@ -163,24 +249,38 @@ private:
 
     static int audit_hook(const char* event, PyObject* args, void* user_data);
 
+    // True for paths inside the interpreter's stdlib, excluding site-packages. Unlike
+    // is_stdlib_file(), this query is not cached because filesystem paths may resolve through
+    // symlinks that can change.
+    static bool is_stdlib_path(const boost::filesystem::path& path);
+
+    // Drops the references in `frames`, keeping the caller's error and denial state intact.
+    void release_frames(std::vector<PyObject*>& frames);
+
     static thread_local std::string                   m_current_plugin_key;
     static thread_local std::string                   m_current_capability_name;
     static thread_local std::vector<AllowedRoot>       m_scoped_allowed_roots;
+    static thread_local std::vector<PyObject*>         m_root_frames; // strong references
+    static thread_local int                            m_releasing_frames;
     static thread_local bool                           m_audit_denial_pending;
     static thread_local bool                           m_has_last_violation;
     static thread_local AuditViolation                 m_last_violation;
 
-    // mutable: is_denied_filename() and has_approved_ancestor() are const queries that must lock.
+    // mutable: is_denied_filename() is a const query that must lock.
     mutable std::mutex m_mutex;
+
     std::vector<AllowedRoot>             m_global_allowed_roots;
     std::vector<std::string>             m_denied_filenames;
     std::vector<std::string>             m_denied_path_keywords;
-    std::unordered_map<std::string, std::unordered_set<std::string>> m_approved_call_sites; // plugin_key -> call-site ids
 };
 
 // RAII guard that sets the current plugin key and capability name, restoring the previous
 // pair on scope exit. `capability_name` may be empty for calls that are not scoped to a
 // single capability.
+//
+// Each scope owns the root frames recorded inside it and lets them go, as its own plugin, before
+// restoring the outer context. That needs the GIL whenever a frame is still held, so construct
+// the scope after the GIL guard, to be destroyed before it.
 class ScopedPluginAuditContext
 {
 public:
@@ -194,10 +294,171 @@ public:
     ScopedPluginAuditContext& operator=(const ScopedPluginAuditContext&) = delete;
 
 private:
+    std::string                   m_plugin_key;
+    std::string                   m_capability;
     std::string                   m_previous_id;
     std::string                   m_previous_capability;
     std::vector<AllowedRoot>      m_previous_scoped_roots;
+    std::vector<PyObject*>        m_previous_root_frames;
 };
+
+// What a queued prompt asks the user. A runtime event and a permission declaration can both grant
+// what they show; an informational denial cannot, so it has no Yes/No choice.
+enum class AuditPromptKind {
+    RuntimeEvent,
+    DeclaredPermissions,
+    DeniedOperation,
+};
+
+// The plugin lifecycle facts the prompt drain consults. Plain data so the lifetime decision is
+// testable without a GUI or a live plugin system.
+struct AuditPromptPluginState
+{
+    bool loaded           = false;
+    bool load_in_progress = false;
+    bool load_cancelled   = false;
+    bool load_failed      = false;
+    bool shutting_down    = false;
+};
+
+// True when a queued prompt may still be shown and its answer persisted. An ordinary load
+// failure leaves a runtime prompt actionable: the event that was denied is what the user can
+// approve now, and the saved grant lets a retry load succeed. Explicit cancellation and unload,
+// as well as application shutdown, make a prompt ineligible; those paths also discard its queue
+// entries.
+bool prompt_plugin_is_available(const AuditPromptPluginState& state, AuditPromptKind kind);
+
+// One permission bucket of a load-time declaration. Kept plain (no wx types) so the queue can be
+// owned by production code that outlives static destruction.
+struct AuditPromptBucket
+{
+    AuditEventCategory       category = AuditEventCategory::None;
+    std::vector<std::string> targets;
+
+    bool operator==(const AuditPromptBucket& other) const;
+};
+
+// Resolves a blocked load worker exactly once. The queue may cancel a request from another thread
+// (plugin unload, shutdown) while the GUI thread is still showing its dialog; the second resolve
+// must be a no-op. Held by shared_ptr so a request copy and the queue's active slot share it.
+struct AuditPromptCompletion
+{
+    void resolve(bool value);
+
+    std::future<bool> get_future();
+
+private:
+    std::mutex         m_mutex;
+    std::promise<bool> m_promise;
+    bool               m_resolved = false;
+};
+
+// One audit decision awaiting a user answer. `keys` is what a Yes persists; `shown` is what the
+// dialog lists (empty for an event that is granted by name, with no target to show).
+struct AuditPromptRequest
+{
+    AuditPromptKind          kind = AuditPromptKind::RuntimeEvent;
+    AuditEventCategory       category = AuditEventCategory::None;
+    std::string              plugin_key;
+    std::string              plugin_name;
+    std::string              event_name;
+    bool                     by_event = false;
+    std::vector<std::string> keys;
+    std::vector<std::string> shown;
+    // DeclaredPermissions only: the missing buckets the combined dialog lists.
+    std::vector<AuditPromptBucket> buckets;
+    // DeclaredPermissions only: whether the sidecar was readable when the declaration was read.
+    // The queued write must not recreate a sidecar that was readable then but has since
+    // disappeared; only one absent at both reads is treated as a new install to seed.
+    bool sidecar_was_readable = false;
+    // Set only when a worker is blocked waiting for the answer.
+    std::shared_ptr<AuditPromptCompletion> completion;
+};
+
+// Serializes audit prompts on the GUI thread. At most one request is active: the next one is
+// handed out by take_next() only after the previous dialog has returned from ShowModal(), so a
+// modal dialog's nested event loop cannot open another audit prompt.
+//
+// Thread-safe: audit events enqueue from plugin worker threads, the GUI thread drains. Requests
+// are never merged unless they are exactly equivalent, so coalescing cannot widen a grant.
+class AuditPromptQueue
+{
+public:
+    enum class Admission {
+        ShowNow,   // idle and allowed to prompt here: present this request, then complete()
+        Queued,    // a prompt is active or waiting: the current audit event stays denied
+        Duplicate, // an equivalent request is already active or waiting: this one is dropped
+        Rejected   // a synchronous-only caller found the queue busy: nothing was stored
+    };
+
+    // Presents a request synchronously only when the queue is idle. Busy callers are rejected
+    // atomically instead of leaving a deferred prompt behind: used by GUI-thread callers whose
+    // operation is already being denied and cannot wait for a later Yes.
+    Admission admit_synchronous(AuditPromptRequest request);
+
+    // `may_show_now` is true only on the GUI thread: it lets an idle queue hand the request back
+    // for a synchronous prompt instead of queueing it for a later GUI callback.
+    Admission admit(AuditPromptRequest request, bool may_show_now);
+
+    // For a create/delete request: show the immediate Yes/No prompt when idle on the GUI thread,
+    // but queue `queued_request` (an OK-only informational denial) when that is not possible. The
+    // kind cannot be switched after admission, so the fallback is chosen under the queue lock.
+    Admission admit_with_fallback(AuditPromptRequest immediate_request, AuditPromptRequest queued_request,
+                                  bool may_show_now);
+
+    // Claims the oldest queued request when no prompt is active, and marks it active.
+    std::optional<AuditPromptRequest> take_next();
+
+    // Claims the active answer for persistence. Cancellation and commit are mutually exclusive:
+    // once this returns true, discard_all()/discard_plugin() leave the request alone so a user's
+    // accepted answer cannot be dropped midway through the sidecar write. A request already
+    // cancelled (shutdown or unload won the race) returns false and must not be persisted.
+    bool begin_commit();
+
+    // Marks the active request done. Returns true when it was cancelled while its dialog was up,
+    // so the caller must not persist an accepted grant. Idempotent.
+    bool complete();
+
+    bool has_pending() const;
+
+    bool idle() const;
+
+    std::size_t pending_count() const;
+
+    // Drops every queued request and cancels any blocked worker. An active prompt stays on screen
+    // (it may be mid-modal), but its completion is released now and its late answer must not be
+    // persisted. A commit already begun is left to finish. Used on application shutdown.
+    void discard_all();
+
+    // Drops queued requests for one plugin and cancels a blocked worker of that plugin. An active
+    // prompt is cancelled but stays on screen until its dialog returns, unless its commit already
+    // started. Used when a plugin is unloaded or removed.
+    void discard_plugin(const std::string& plugin_key);
+
+private:
+    // Equality only over what a Yes would grant, plus the plugin it is granted to. Distinct
+    // categories, plugins, targets, or event grants are never considered equivalent.
+    static bool same_request(const AuditPromptRequest& a, const AuditPromptRequest& b);
+
+    bool contains_locked(const AuditPromptRequest& request) const;
+
+    // Drops queued requests matching `matches` and cancels the active request when it matches and
+    // its commit has not begun. Returns the blocked workers' completions in FIFO order. The caller
+    // resolves them after this returns, never under m_mutex: the wake-up can re-enter the queue.
+    std::vector<std::shared_ptr<AuditPromptCompletion>>
+    discard_matching(const std::function<bool(const AuditPromptRequest&)>& matches);
+
+    mutable std::mutex                m_mutex;
+    std::deque<AuditPromptRequest>    m_pending;
+    std::optional<AuditPromptRequest> m_active;
+    bool                              m_active_cancelled = false;
+    bool                              m_active_committing = false;
+};
+
+// The process-wide queue the drain and the explicit discard calls use. Exposed so a test can put
+// a request behind an active prompt and then exercise PluginManager's unload/cancel wiring
+// against the real queue. Production reaches it only through PluginAuditManager.
+AuditPromptQueue& runtime_prompt_queue_for_testing();
 
 } // namespace Slic3r
 

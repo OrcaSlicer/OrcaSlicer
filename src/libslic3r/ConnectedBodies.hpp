@@ -26,7 +26,9 @@ class IslandLocator
 {
 public:
     // The islands must outlive the locator. Their boxes are widened by the margin, for points reaching past an outline.
-    IslandLocator(const ExPolygons &islands, coord_t margin);
+    // A caller that needs only to know that some island holds a point, not which one, need not tell them apart: then the
+    // box of every island vouches for it unless the call is strict.
+    IslandLocator(const ExPolygons &islands, coord_t margin, bool tell_apart = true);
     // Whether the island holds the point, or its box does where no other box reaches unless strict.
     bool holds(size_t island, const Point &point, bool strict = false) const;
     // The island holding the point as above, else the nearest one whose box holds it, with the squared distance to it; -1

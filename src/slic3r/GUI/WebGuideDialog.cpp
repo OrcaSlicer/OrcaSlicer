@@ -1,4 +1,5 @@
 #include "WebGuideDialog.hpp"
+#include "CloudProvider.hpp"
 #include "ConfigWizard.hpp"
 
 #include <algorithm>
@@ -92,6 +93,8 @@ static json guide_strings()
 {
     return {
         {"loading", _u8L("Loading…")},
+        // TRN Sidebar entry of the printer selection page for the group of custom (user-defined) printers.
+        {"custom_vendor", _u8L_CONTEXT("Custom", "Printer vendor")},
         {"welcome", _u8L("Welcome to Orca Slicer")},
         {"setup_intro", _u8L("Orca Slicer will be set up in several steps. Let's start!")},
         {"get_started", _u8L("Get Started")},
@@ -100,7 +103,7 @@ static json guide_strings()
         {"china", _u8L("China")},
         {"europe", _u8L("Europe")},
         {"north_america", _u8L("North America")},
-        {"others", _u8L("Others")},
+        {"others", _u8L_CONTEXT("Others", "Region")},
         {"back", _u8L_CONTEXT("Back", "Navigation")},
         {"next", _u8L("Next")},
         {"finish", _u8L("Finish")},
@@ -448,6 +451,16 @@ void GuideFrame::on_profile_loaded()
     SaveProfileData();
     const std::string strAll = m_ProfileJson.dump(-1, ' ', false, json::error_handler_t::ignore);
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", finished, json contents:\n" << strAll;
+    m_profile_ready = true;
+    notify_profile_loaded();
+}
+
+// The data is often ready before the loading page has run its scripts, and a
+// call into a page without HandleStudio is lost, so the message waits for both.
+void GuideFrame::notify_profile_loaded()
+{
+    if (!m_profile_ready || !m_page_ready)
+        return;
     json res;
     res["command"]     = "userguide_profile_load_finish";
     res["sequence_id"] = "10001";
@@ -543,7 +556,11 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
         wxString strCmd = j["command"];
         BOOST_LOG_TRIVIAL(trace) << "GuideFrame::OnScriptMessage;Command:" << strCmd;
 
-        if (strCmd == "close_page") {
+        if (strCmd == "userguide_loading_page_ready") {
+            m_page_ready = true;
+            notify_profile_loaded();
+        }
+        else if (strCmd == "close_page") {
             this->EndModal(wxID_CANCEL);
         }
         if (strCmd == "user_clause") {
@@ -753,7 +770,7 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
                     if (wxGetApp().is_user_login()) {
                         BOOST_LOG_TRIVIAL(info) << "logout: user_logout on user_guide_finish";
                         // agent->user_logout();
-                        wxGetApp().request_user_logout();
+                        wxGetApp().request_user_logout(ORCA_CLOUD_PROVIDER, /*user_initiated=*/true);
                     }
                 }
             }

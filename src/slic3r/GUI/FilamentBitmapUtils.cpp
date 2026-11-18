@@ -1,4 +1,7 @@
 #include <wx/colour.h>
+#include <wx/bitmap.h>
+#include <wx/brush.h>
+#include <wx/dc.h>
 #include <vector>
 #include <cstddef>
 #include "libslic3r/Config.hpp"
@@ -8,22 +11,26 @@
 #include <array>
 #include <wx/dcmemory.h>
 #include <wx/dcgraph.h>
+#include <wx/debug.h>
 #include <wx/gdicmn.h>
 #include <wx/geometry.h>
 #include <wx/font.h>
 #include <wx/graphics.h>
+#include <wx/math.h>
 #include <wx/peninfobase.h>
+#include <wx/pen.h>
 #include <wx/settings.h>
 #include <wx/string.h>
 #include <wx/window.h>
 #include <algorithm>
 #include <cmath>
 #include <map>
+#include <memory>
 #include <numeric>
 #include <string>
 #include <tuple>
+#include <utility>
 
-#include "EncodedFilament.hpp"
 #include "FilamentBitmapUtils.hpp"
 #include "GUI_App.hpp"
 #include "GuiColor.hpp"
@@ -68,15 +75,24 @@ void tri_barycentric(TriPoint p, TriPoint v0, TriPoint v1, TriPoint v2,
 
 TriPoint tri_clamp(TriPoint p, TriPoint v0, TriPoint v1, TriPoint v2)
 {
-    double w0, w1, w2;
-    tri_barycentric(p, v0, v1, v2, w0, w1, w2);
-    return {w0 * v0.x + w1 * v1.x + w2 * v2.x,
-            w0 * v0.y + w1 * v1.y + w2 * v2.y};
+    if (tri_contains(p, v0, v1, v2))
+        return p;
+    // Snap a point outside to the nearest point on the outline.
+    auto closest_on_edge = [p](TriPoint a, TriPoint b) {
+        const double dx = b.x - a.x, dy = b.y - a.y;
+        const double len2 = dx * dx + dy * dy;
+        const double t = len2 > 0 ? std::clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / len2, 0.0, 1.0) : 0.0;
+        return TriPoint{a.x + t * dx, a.y + t * dy};
+    };
+    auto dist2 = [p](TriPoint q) { return (q.x - p.x) * (q.x - p.x) + (q.y - p.y) * (q.y - p.y); };
+    const std::array<TriPoint, 3> candidates{closest_on_edge(v0, v1), closest_on_edge(v1, v2), closest_on_edge(v2, v0)};
+    return *std::min_element(candidates.begin(), candidates.end(),
+                             [&dist2](TriPoint a, TriPoint b) { return dist2(a) < dist2(b); });
 }
 
-void fill_gradient_rect_east(wxDC& dc, const wxRect& rect, const wxColour& from, const wxColour& to)
+static void fill_gradient_rect_east(wxDC& dc, const wxRect& rect, const wxColour* colors, size_t count)
 {
-    if (rect.width <= 0 || rect.height <= 0) return;
+    if (rect.width <= 0 || rect.height <= 0 || count == 0) return;
 
     auto mix_channel = [](unsigned char a, unsigned char b, double t) {
         return static_cast<unsigned char>(a + (b - a) * t + 0.5);
@@ -84,7 +100,11 @@ void fill_gradient_rect_east(wxDC& dc, const wxRect& rect, const wxColour& from,
 
     dc.SetPen(*wxTRANSPARENT_PEN);
     for (int x = 0; x < rect.width; ++x) {
-        const double t = rect.width > 1 ? static_cast<double>(x) / (rect.width - 1) : 0.0;
+        const double position = rect.width > 1 ? static_cast<double>(x) * (count - 1) / (rect.width - 1) : 0.0;
+        const size_t index = std::min(static_cast<size_t>(position), count - 1);
+        const wxColour& from = colors[index];
+        const wxColour& to = colors[std::min(index + 1, count - 1)];
+        const double t = position - index;
         const wxColour col(mix_channel(from.Red(), to.Red(), t),
                            mix_channel(from.Green(), to.Green(), t),
                            mix_channel(from.Blue(), to.Blue(), t),
@@ -92,6 +112,82 @@ void fill_gradient_rect_east(wxDC& dc, const wxRect& rect, const wxColour& from,
         dc.SetBrush(wxBrush(col));
         dc.DrawRectangle(rect.x + x, rect.y, 1, rect.height);
     }
+}
+
+void fill_gradient_rect_east(wxDC& dc, const wxRect& rect, const wxColour& from, const wxColour& to)
+{
+    const std::array<wxColour, 2> colors{from, to};
+    fill_gradient_rect_east(dc, rect, colors.data(), colors.size());
+}
+
+void fill_gradient_rect_east(wxDC& dc, const wxRect& rect, const std::vector<wxColour>& colors)
+{
+    // Plain GTK DCs can ignore brush alpha; use the graphics backend for transparent stops.
+    if (!dc.GetGraphicsContext() && std::any_of(colors.begin(), colors.end(), [](const wxColour& color) { return color.Alpha() != 255; })) {
+        wxGCDC graphics(wxGraphicsContext::CreateFromUnknownDC(dc));
+        wxCHECK_RET(graphics.IsOk(), "Filament alpha rendering requires a graphics context");
+        fill_gradient_rect_east(graphics, rect, colors.data(), colors.size());
+        return;
+    }
+    fill_gradient_rect_east(dc, rect, colors.data(), colors.size());
+}
+
+static bool has_alpha(const std::vector<wxColour>& colors)
+{
+    return std::any_of(colors.begin(), colors.end(), [](const wxColour& color) { return color.Alpha() < 255; });
+}
+
+static wxBrush checkerboard_brush(int square_size)
+{
+    wxBitmap checkerboard(2 * square_size, 2 * square_size, 24);
+    {
+        wxMemoryDC checker_dc(checkerboard);
+        checker_dc.SetBackground(*wxWHITE_BRUSH);
+        checker_dc.Clear();
+        checker_dc.SetPen(*wxTRANSPARENT_PEN);
+        checker_dc.SetBrush(wxBrush(wxColour(217, 217, 217)));
+        checker_dc.DrawRectangle(square_size, 0, square_size, square_size);
+        checker_dc.DrawRectangle(0, square_size, square_size, square_size);
+    }
+    return wxBrush(checkerboard);
+}
+
+void draw_rounded_filament_swatch(wxDC& dc, const wxRect& rect, const std::vector<wxColour>& colors,
+                                  bool gradient, double radius)
+{
+    if (colors.empty() || rect.width <= 0 || rect.height <= 0)
+        return;
+    std::unique_ptr<wxGraphicsContext> owned_gc;
+    wxGraphicsContext* gc = dc.GetGraphicsContext();
+    if (!gc) {
+        owned_gc.reset(wxGraphicsContext::CreateFromUnknownDC(dc));
+        gc = owned_gc.get();
+    }
+    wxCHECK_RET(gc, "Rounded filament swatches require a graphics context");
+
+    wxGraphicsGradientStops stops(colors.front(), colors.back());
+    const size_t count = colors.size();
+    if (gradient) {
+        for (size_t i = 1; i + 1 < count; ++i)
+            stops.Add(colors[i], static_cast<float>(i) / (count - 1));
+    } else {
+        // Repeated boundary stops keep segmented multi-color selections distinct.
+        for (size_t i = 1; i < count; ++i) {
+            const float position = static_cast<float>(i) / count;
+            stops.Add(colors[i - 1], position);
+            stops.Add(colors[i], position);
+        }
+    }
+    gc->PushState();
+    gc->SetPen(*wxTRANSPARENT_PEN);
+    if (has_alpha(colors)) {
+        // A bitmap brush clips the checkerboard to the same rounded outline as the colors.
+        gc->SetBrush(checkerboard_brush(std::max(1, rect.height / 5)));
+        gc->DrawRoundedRectangle(rect.x, rect.y, rect.width, rect.height, radius);
+    }
+    gc->SetBrush(gc->CreateLinearGradientBrush(rect.x, rect.y, rect.x + rect.width, rect.y, stops));
+    gc->DrawRoundedRectangle(rect.x, rect.y, rect.width, rect.height, radius);
+    gc->PopState();
 }
 
 static std::string to_hex(const wxColour& c)
@@ -205,165 +301,126 @@ void fill_gradient_ramp_rect(wxDC& dc, const wxRect& rect, const std::vector<wxC
 struct BitmapDC {
     wxBitmap bitmap;
     wxMemoryDC dc;
+    std::unique_ptr<wxGCDC> graphics;
 
-    BitmapDC(const wxSize& size) : bitmap(size){
-#ifdef __WXOSX__
-        bitmap.UseAlpha();
-#endif
+    // All previews are opaque after checkerboard compositing. RGB storage also
+    // prevents Windows GDI labels from leaving invalid alpha bytes for menus.
+    BitmapDC(const wxSize& size, bool alpha) : bitmap(size, 24)
+    {
         dc.SelectObject(bitmap);
         // Don't set white background - let the color patterns fill the entire area
         dc.SetPen(*wxTRANSPARENT_PEN);
+        if (alpha) {
+            graphics = std::make_unique<wxGCDC>(wxGraphicsContext::CreateFromUnknownDC(dc));
+            wxDC& paint = paint_dc();
+            paint.SetPen(*wxTRANSPARENT_PEN);
+            paint.SetBrush(checkerboard_brush(std::max(1, size.GetHeight() / 5)));
+            paint.DrawRectangle(0, 0, size.GetWidth(), size.GetHeight());
+        }
+    }
+
+    wxDC& paint_dc() { return graphics ? static_cast<wxDC&>(*graphics) : static_cast<wxDC&>(dc); }
+
+    void finish()
+    {
+        // Flush the graphics backend while its bitmap is still selected in the memory DC.
+        graphics.reset();
+        dc.SelectObject(wxNullBitmap);
     }
 };
 
-static BitmapDC init_bitmap_dc(const wxSize& size) {
-    return BitmapDC(size);
+static BitmapDC init_bitmap_dc(const wxSize& size, bool alpha = false) {
+    return BitmapDC(size, alpha);
 }
 
 wxBitmap create_gradient_ramp_bitmap(const std::vector<wxColour>& ramp, const wxSize& size)
 {
     if (ramp.empty()) return wxNullBitmap;
 
-    BitmapDC bdc = init_bitmap_dc(size);
+    BitmapDC bdc = init_bitmap_dc(size, has_alpha(ramp));
     if (!bdc.dc.IsOk()) return wxNullBitmap;
 
-    fill_gradient_ramp_rect(bdc.dc, wxRect(0, 0, size.GetWidth(), size.GetHeight()), ramp);
+    fill_gradient_ramp_rect(bdc.paint_dc(), wxRect(0, 0, size.GetWidth(), size.GetHeight()), ramp);
 
-    bdc.dc.SelectObject(wxNullBitmap);
+    bdc.finish();
     return bdc.bitmap;
-}
-
-// Check if a color is transparent (alpha == 0)
-static bool is_transparent_color(const wxColour& color) {
-    return color.Alpha() == 0;
-}
-
-// Create transparent bitmap
-static wxBitmap create_transparent_bitmap(const wxSize& size) {
-    BitmapDC bdc = init_bitmap_dc(size);
-    if (!bdc.dc.IsOk()) return wxNullBitmap;
-
-    // Create checkerboard pattern
-    wxColour light_gray(217, 217, 217);  // #D9D9D9
-    wxColour white(255, 255, 255);
-
-    bool is_dark_mode = wxGetApp().dark_mode();
-
-    // Calculate parameters based on mode
-    int start_pos = is_dark_mode ? 0 : 1;
-    int end_width = is_dark_mode ? size.GetWidth() : size.GetWidth() - 1;
-    int end_height = is_dark_mode ? size.GetHeight() : size.GetHeight() - 1;
-    int square_size = std::max(6, std::min(end_width - start_pos, end_height - start_pos) / 8);
-
-    // Draw checkerboard
-    for (int x = start_pos; x < end_width; x += square_size) {
-        for (int y = start_pos; y < end_height; y += square_size) {
-            bool is_light = ((x / square_size) + (y / square_size)) % 2 == 0;
-            bdc.dc.SetBrush(wxBrush(is_light ? white : light_gray));
-
-            int width = std::min(square_size, size.GetWidth() - x);
-            int height = std::min(square_size, size.GetHeight() - y);
-            bdc.dc.DrawRectangle(x, y, width, height);
-        }
-    }
-
-    // Add border only in light mode
-    if (!is_dark_mode) {
-        bdc.dc.SetPen(wxPen(wxColour(130, 130, 128), 1, wxPENSTYLE_SOLID));
-        bdc.dc.SetBrush(*wxTRANSPARENT_BRUSH);
-        bdc.dc.DrawRectangle(0, 0, size.GetWidth(), size.GetHeight());
-    }
-
-    bdc.dc.SelectObject(wxNullBitmap);
-    return bdc.bitmap;
-}
-
-// Sort colors by HSV values (primarily by hue, then saturation, then value)
-static void sort_colors_by_hsv(std::vector<wxColour>& colors) {
-    if (colors.size() < 2) return;
-    std::sort(colors.begin(), colors.end(),
-        [](const wxColour& a, const wxColour& b) {
-            ColourHSV ha = wxColourToHSV(a);
-            ColourHSV hb = wxColourToHSV(b);
-            if (ha.h != hb.h) return ha.h < hb.h;
-            if (ha.s != hb.s) return ha.s < hb.s;
-            return ha.v < hb.v;
-        });
 }
 
 static wxBitmap create_single_filament_bitmap(const wxColour& color, const wxSize& size)
 {
-    // Check if color is transparent
-    if (is_transparent_color(color)) {
-        return create_transparent_bitmap(size);
-    }
-
-    BitmapDC bdc = init_bitmap_dc(size);
+    const bool alpha = color.Alpha() < 255;
+    BitmapDC bdc = init_bitmap_dc(size, alpha);
     if (!bdc.dc.IsOk()) return wxNullBitmap;
 
-    bdc.dc.SetBackground(wxBrush(color));
-    bdc.dc.Clear();
-    bdc.dc.SetBrush(wxBrush(color));
-    bdc.dc.DrawRectangle(0, 0, size.GetWidth(), size.GetHeight());
+    wxDC& dc = bdc.paint_dc();
+    if (!alpha) {
+        dc.SetBackground(wxBrush(color));
+        dc.Clear();
+    }
+    dc.SetBrush(wxBrush(color));
+    dc.DrawRectangle(0, 0, size.GetWidth(), size.GetHeight());
 
     // Add gray border for light colors (similar to wxExtensions.cpp logic) - only in light mode
-    if (!wxGetApp().dark_mode() && color.Red() > 224 && color.Blue() > 224 && color.Green() > 224) {
-        bdc.dc.SetPen(wxPen(wxColour(130, 130, 128), 1, wxPENSTYLE_SOLID));
-        bdc.dc.SetBrush(*wxTRANSPARENT_BRUSH);
-        bdc.dc.DrawRectangle(0, 0, size.GetWidth(), size.GetHeight());
+    if (!alpha && !wxGetApp().dark_mode() && color.Red() > 224 && color.Blue() > 224 && color.Green() > 224) {
+        dc.SetPen(wxPen(wxColour(130, 130, 128), 1, wxPENSTYLE_SOLID));
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawRectangle(0, 0, size.GetWidth(), size.GetHeight());
     }
 
     // Add white border for dark colors - only in dark mode
-    if(wxGetApp().dark_mode() && color.Red() < 45 && color.Blue() < 45 && color.Green() < 45) {
-        bdc.dc.SetPen(wxPen(wxColour(207, 207, 207), 1, wxPENSTYLE_SOLID));
-        bdc.dc.SetBrush(*wxTRANSPARENT_BRUSH);
-        bdc.dc.DrawRectangle(0, 0, size.GetWidth(), size.GetHeight());
+    if (!alpha && wxGetApp().dark_mode() && color.Red() < 45 && color.Blue() < 45 && color.Green() < 45) {
+        dc.SetPen(wxPen(wxColour(207, 207, 207), 1, wxPENSTYLE_SOLID));
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawRectangle(0, 0, size.GetWidth(), size.GetHeight());
     }
 
-    bdc.dc.SelectObject(wxNullBitmap);
+    bdc.finish();
     return bdc.bitmap;
 }
 
 static wxBitmap create_dual_filament_bitmap(const wxColour& color1, const wxColour& color2, const wxSize& size)
 {
-    BitmapDC bdc = init_bitmap_dc(size);
+    BitmapDC bdc = init_bitmap_dc(size, color1.Alpha() < 255 || color2.Alpha() < 255);
+    wxDC& dc = bdc.paint_dc();
 
     int half_width = size.GetWidth() / 2;
 
-    bdc.dc.SetBrush(wxBrush(color1));
-    bdc.dc.DrawRectangle(0, 0, half_width, size.GetHeight());
+    dc.SetBrush(wxBrush(color1));
+    dc.DrawRectangle(0, 0, half_width, size.GetHeight());
 
-    bdc.dc.SetBrush(wxBrush(color2));
-    bdc.dc.DrawRectangle(half_width, 0, size.GetWidth() - half_width, size.GetHeight());
+    dc.SetBrush(wxBrush(color2));
+    dc.DrawRectangle(half_width, 0, size.GetWidth() - half_width, size.GetHeight());
 
-    bdc.dc.SelectObject(wxNullBitmap);
+    bdc.finish();
     return bdc.bitmap;
 }
 
 static wxBitmap create_triple_filament_bitmap(const std::vector<wxColour>& colors, const wxSize& size)
 {
-    BitmapDC bdc = init_bitmap_dc(size);
+    BitmapDC bdc = init_bitmap_dc(size, has_alpha(colors));
+    wxDC& dc = bdc.paint_dc();
 
     int third_width = size.GetWidth() / 3;
     int remaining_width = size.GetWidth() - (third_width * 2);
 
     // Draw three vertical sections
-    bdc.dc.SetBrush(wxBrush(colors[0]));
-    bdc.dc.DrawRectangle(0, 0, third_width, size.GetHeight());
+    dc.SetBrush(wxBrush(colors[0]));
+    dc.DrawRectangle(0, 0, third_width, size.GetHeight());
 
-    bdc.dc.SetBrush(wxBrush(colors[1]));
-    bdc.dc.DrawRectangle(third_width, 0, third_width, size.GetHeight());
+    dc.SetBrush(wxBrush(colors[1]));
+    dc.DrawRectangle(third_width, 0, third_width, size.GetHeight());
 
-    bdc.dc.SetBrush(wxBrush(colors[2]));
-    bdc.dc.DrawRectangle(third_width * 2, 0, remaining_width, size.GetHeight());
+    dc.SetBrush(wxBrush(colors[2]));
+    dc.DrawRectangle(third_width * 2, 0, remaining_width, size.GetHeight());
 
-    bdc.dc.SelectObject(wxNullBitmap);
+    bdc.finish();
     return bdc.bitmap;
 }
 
 static wxBitmap create_quadruple_filament_bitmap(const std::vector<wxColour>& colors, const wxSize& size)
 {
-    BitmapDC bdc = init_bitmap_dc(size);
+    BitmapDC bdc = init_bitmap_dc(size, has_alpha(colors));
+    wxDC& dc = bdc.paint_dc();
 
     int half_width = (size.GetWidth() + 1) / 2;
     int half_height = (size.GetHeight() + 1) / 2;
@@ -376,78 +433,40 @@ static wxBitmap create_quadruple_filament_bitmap(const std::vector<wxColour>& co
     };
 
     for (int i = 0; i < 4; i++) {
-        bdc.dc.SetBrush(wxBrush(colors[i]));
-        bdc.dc.DrawRectangle(rects[i][0], rects[i][1], rects[i][2], rects[i][3]);
+        dc.SetBrush(wxBrush(colors[i]));
+        dc.DrawRectangle(rects[i][0], rects[i][1], rects[i][2], rects[i][3]);
     }
 
-    bdc.dc.SelectObject(wxNullBitmap);
+    bdc.finish();
     return bdc.bitmap;
 }
 
 static wxBitmap create_gradient_filament_bitmap(const std::vector<wxColour>& colors, const wxSize& size)
 {
-    BitmapDC bdc = init_bitmap_dc(size);
-
     if (colors.size() == 1) {
         return create_single_filament_bitmap(colors[0], size);
     }
 
-    // use segment gradient, make transition more natural
-    wxDC& dc = bdc.dc;
-    int total_width = size.GetWidth();
-    int height = size.GetHeight();
-
-    // calculate segment count
-    int segment_count = colors.size() - 1;
-    double segment_width = (double)total_width / segment_count;
-
-    int left = 0;
-    for (int i = 0; i < segment_count; i++) {
-        int current_width = (int)segment_width;
-
-        // handle last segment, ensure fully filled
-        if (i == segment_count - 1) {
-            current_width = total_width - left;
-        }
-
-        // avoid width exceed boundary
-        if (left + current_width > total_width) {
-            current_width = total_width - left;
-        }
-
-        if (current_width > 0) {
-            auto rect = wxRect(left, 0, current_width, height);
-            dc.GradientFillLinear(rect, colors[i], colors[i + 1], wxEAST);
-            left += current_width;
-        }
-    }
-
-    bdc.dc.SelectObject(wxNullBitmap);
+    BitmapDC bdc = init_bitmap_dc(size, has_alpha(colors));
+    fill_gradient_rect_east(bdc.paint_dc(), wxRect(0, 0, size.GetWidth(), size.GetHeight()), colors);
+    bdc.finish();
     return bdc.bitmap;
 }
 
 wxBitmap create_filament_bitmap(const std::vector<wxColour>& colors, const wxSize& size, bool force_gradient)
 {
-    if (colors.empty()) return wxNullBitmap;
+    if (colors.empty() || size.GetWidth() <= 0 || size.GetHeight() <= 0) return wxNullBitmap;
 
-    // Make a copy to sort without modifying original
-    std::vector<wxColour> sorted_colors = colors;
-
-    // Sort colors by HSV when there are 2 or more colors
-    if (sorted_colors.size() >= 2) {
-        sort_colors_by_hsv(sorted_colors);
+    if (force_gradient && colors.size() >= 2) {
+        return create_gradient_filament_bitmap(colors, size);
     }
 
-    if (force_gradient && sorted_colors.size() >= 2) {
-        return create_gradient_filament_bitmap(sorted_colors, size);
-    }
-
-    switch (sorted_colors.size()) {
-        case 1: return create_single_filament_bitmap(sorted_colors[0], size);
-        case 2: return create_dual_filament_bitmap(sorted_colors[0], sorted_colors[1], size);
-        case 3: return create_triple_filament_bitmap(sorted_colors, size);
-        case 4: return create_quadruple_filament_bitmap(sorted_colors, size);
-        default: return create_gradient_filament_bitmap(sorted_colors, size);
+    switch (colors.size()) {
+        case 1: return create_single_filament_bitmap(colors[0], size);
+        case 2: return create_dual_filament_bitmap(colors[0], colors[1], size);
+        case 3: return create_triple_filament_bitmap(colors, size);
+        case 4: return create_quadruple_filament_bitmap(colors, size);
+        default: return create_gradient_filament_bitmap(colors, size);
     }
 }
 
@@ -521,7 +540,7 @@ constexpr double kPlotLeftRatio   = 0.0316;
 constexpr double kPlotRightRatio  = 0.6766;
 constexpr double kPlotTopRatio    = 0.1529;
 constexpr double kPlotBottomRatio = 0.8474;
-constexpr int    kGridDivisions   = 9;    // 10 grid lines including the outer borders.
+constexpr int    kGridDivisions   = 10;   // 10% steps, 11 grid lines including the outer borders.
 constexpr int    kStrokeAxis      = 2;    // axis line width (px, no DPI scaling)
 constexpr int    kAxisArrowHalf   = 5;    // half-base of the axis arrow triangle (DIP)
 constexpr int    kAxisArrowLen    = 10;   // length of the axis arrow triangle (DIP)
@@ -544,6 +563,58 @@ wxColour lerp_blend(const wxColour& a, const wxColour& b, double ratio_a)
 // window parameter explicitly; nullptr picks the app's default DPI like the Publish dialog does.
 int dip_px(int v) { return wxWindow::FromDIP(v, nullptr); }
 
+using Dash = std::pair<TriPoint, TriPoint>;
+
+// Splits the line a -> b into 1 DIP dashes separated by 2 DIP gaps. The line gets a whole number
+// of dash + gap periods, so the dashes meet both ends evenly.
+void add_dashes(std::vector<Dash>& dashes, TriPoint a, TriPoint b)
+{
+    const double dash   = dip_px(1);
+    const double period = dash + dip_px(2);
+    const int    count  = std::max(1, int(std::lround(std::hypot(b.x - a.x, b.y - a.y) / period)));
+    auto         at     = [&a, &b](double t) { return TriPoint{a.x + t * (b.x - a.x), a.y + t * (b.y - a.y)}; };
+    for (int j = 0; j < count; ++j)
+        dashes.emplace_back(at(double(j) / count), at((j + dash / period) / count));
+}
+
+// Dark dashes over a light fill, white ones over a dark fill.
+wxColour dash_colour(double luminance) { return luminance > 0.5 ? wxColour(38, 46, 48) : *wxWHITE; }
+
+// The anti-aliased graphics context of `dc`, or one created over it and kept alive by `owned`.
+// Null when wx cannot wrap the dc. Drop `owned` before drawing on the dc again.
+wxGraphicsContext* graphics_context(wxDC& dc, std::unique_ptr<wxGraphicsContext>& owned)
+{
+    wxGraphicsContext* gc = dc.GetGraphicsContext();
+    if (!gc) {
+        owned.reset(wxGraphicsContext::CreateFromUnknownDC(dc));
+        gc = owned.get();
+    }
+    if (gc)
+        gc->SetAntialiasMode(wxANTIALIAS_DEFAULT);
+    return gc;
+}
+
+// Strokes the dashes at sub-pixel positions through `gc`, so all dashes of one line stay
+// collinear. Without a graphics context they are drawn on `dc`, rounded to whole pixels.
+void stroke_dashes(wxDC& dc, wxGraphicsContext* gc, const std::vector<Dash>& dashes, const wxColour& colour)
+{
+    if (gc) {
+        gc->SetPen(gc->CreatePen(wxGraphicsPenInfo(colour, dip_px(1)).Cap(wxCAP_BUTT)));
+        wxGraphicsPath path = gc->CreatePath();
+        for (const auto& [p0, p1] : dashes) {
+            path.MoveToPoint(p0.x, p0.y);
+            path.AddLineToPoint(p1.x, p1.y);
+        }
+        gc->StrokePath(path);
+    } else {
+        wxPen pen(colour, dip_px(1));
+        pen.SetCap(wxCAP_BUTT);
+        dc.SetPen(pen);
+        for (const auto& [p0, p1] : dashes)
+            dc.DrawLine(wxRound(p0.x), wxRound(p0.y), wxRound(p1.x), wxRound(p1.y));
+    }
+}
+
 } // namespace
 
 wxRect mixed_gradient_plot_rect(const wxSize& sz)
@@ -559,7 +630,8 @@ wxRect mixed_gradient_plot_rect(const wxSize& sz)
 void draw_mixed_gradient_plot(wxDC& raw_dc, const wxSize& canvas,
                               const std::vector<MixedGradientCurve>& curves,
                               const std::vector<wxPoint2DDouble>& anchors,
-                              const MixedGradientTheme& theme)
+                              const MixedGradientTheme& theme,
+                              double min_ratio)
 {
     // Draw into an internal opaque buffer so wxGCDC text/curves anti-alias against a solid
     // background (never a transparent one), then blit the finished image onto the caller's
@@ -578,7 +650,7 @@ void draw_mixed_gradient_plot(wxDC& raw_dc, const wxSize& canvas,
     wxGCDC dc(memdc);
     wxGraphicsContext* gc = dc.GetGraphicsContext();
 
-    // 10x10 light grid (10 lines including outer borders, 9 equal divisions).
+    // 10x10 light grid (11 lines including outer borders, 10 equal divisions).
     dc.SetPen(wxPen(theme.grid, 1));
     for (int i = 0; i <= kGridDivisions; ++i) {
         const int x = rc.x + rc.width  * i / kGridDivisions;
@@ -663,6 +735,17 @@ void draw_mixed_gradient_plot(wxDC& raw_dc, const wxSize& canvas,
     if (!gc)
         return;
 
+    if (min_ratio > 0.0) {
+        std::vector<Dash> dashes;
+        for (const double ratio : {min_ratio, 1.0 - min_ratio}) {
+            // Floored like the grid lines so the dashes sit on them; the epsilon keeps a ratio such
+            // as 1 - 0.9 from landing a pixel short.
+            const double y = rc.y + std::floor((1.0 - ratio) * rc.height + 1e-6);
+            add_dashes(dashes, {double(rc.x), y}, {double(rc.x + rc.width), y});
+        }
+        stroke_dashes(dc, gc, dashes, dash_colour(theme.background.GetLuminance()));
+    }
+
     // Outline only when the curve colour is perceptually close to the background; otherwise the
     // plain filament colour reads fine and the extra stroke would look heavy.
     auto needs_outline = [&](const wxColour& c) {
@@ -700,7 +783,7 @@ void draw_mixed_gradient_plot(wxDC& raw_dc, const wxSize& canvas,
 }
 
 void draw_mixed_ratio_blend_bar(wxDC& dc, const wxRect& rect, const wxColour& first,
-                                const wxColour& second, double second_fraction)
+                                const wxColour& second, double second_fraction, double min_ratio)
 {
     if (rect.width <= 0 || rect.height <= 0)
         return;
@@ -709,6 +792,18 @@ void draw_mixed_ratio_blend_bar(wxDC& dc, const wxRect& rect, const wxColour& fi
         const wxColour c = lerp_blend(first, second, 1.0 - t);
         dc.SetPen(wxPen(c));
         dc.DrawLine(rect.x + x, rect.y, rect.x + x, rect.y + rect.height);
+    }
+
+    // Each dashed line is dark or light to suit the fill under it.
+    if (min_ratio > 0.0) {
+        std::unique_ptr<wxGraphicsContext> owned_gc;
+        wxGraphicsContext*                 gc = graphics_context(dc, owned_gc);
+        for (const double t : {min_ratio, 1.0 - min_ratio}) {
+            const double      x = rect.x + std::floor(t * rect.width);
+            std::vector<Dash> dashes;
+            add_dashes(dashes, {x, double(rect.y)}, {x, double(rect.y + rect.height)});
+            stroke_dashes(dc, gc, dashes, dash_colour(lerp_blend(first, second, 1.0 - t).GetLuminance()));
+        }
     }
 
     // Fixed in both themes, like the triangle picker's drag handle: the divider is drawn over
@@ -774,6 +869,17 @@ std::map<TriCacheKey, wxBitmap>& tri_cache()
     return cache;
 }
 
+// The blended colour of the picker fill at barycentric weights (w0, w1, w2).
+wxColour tri_mix_colour(const wxColour& c0, const wxColour& c1, const wxColour& c2, double w0, double w1, double w2)
+{
+    unsigned char mr = c2.Red(), mg = c2.Green(), mb = c2.Blue();
+    if (w0 + w1 > 1e-6) {
+        Slic3r::filament_mixer_lerp(c0.Red(), c0.Green(), c0.Blue(), c1.Red(), c1.Green(), c1.Blue(), float(w1 / (w0 + w1)), &mr, &mg, &mb);
+        Slic3r::filament_mixer_lerp(mr, mg, mb, c2.Red(), c2.Green(), c2.Blue(), float(w2), &mr, &mg, &mb);
+    }
+    return wxColour(mr, mg, mb);
+}
+
 } // namespace
 
 std::array<TriPoint, 3> mixed_triangle_vertices(const wxSize& size, double margin_dip)
@@ -789,7 +895,8 @@ std::array<TriPoint, 3> mixed_triangle_vertices(const wxSize& size, double margi
 }
 
 void draw_mixed_triangle_picker(wxDC& dc, const wxSize& size, const std::array<wxColour, 3>& colours,
-                                const std::array<double, 3>& weights, const MixedTriangleTheme& theme)
+                                const std::array<double, 3>& weights, const MixedTriangleTheme& theme,
+                                double min_weight)
 {
     if (size.GetWidth() <= 0 || size.GetHeight() <= 0)
         return;
@@ -828,15 +935,7 @@ void draw_mixed_triangle_picker(wxDC& dc, const wxSize& size, const std::array<w
                     continue;
                 double w0, w1, w2;
                 tri_barycentric(p, v[0], v[1], v[2], w0, w1, w2);
-                unsigned char mr, mg, mb;
-                if (w0 + w1 > 1e-6) {
-                    float t01 = float(w1 / (w0 + w1));
-                    Slic3r::filament_mixer_lerp(c0.Red(), c0.Green(), c0.Blue(), c1.Red(), c1.Green(), c1.Blue(), t01, &mr, &mg, &mb);
-                    Slic3r::filament_mixer_lerp(mr, mg, mb, c2.Red(), c2.Green(), c2.Blue(), float(w2), &mr, &mg, &mb);
-                } else {
-                    mr = c2.Red(); mg = c2.Green(); mb = c2.Blue();
-                }
-                mdc.SetPen(wxPen(wxColour(mr, mg, mb)));
+                mdc.SetPen(wxPen(tri_mix_colour(c0, c1, c2, w0, w1, w2)));
                 mdc.DrawPoint(px, py);
             }
         }
@@ -855,13 +954,46 @@ void draw_mixed_triangle_picker(wxDC& dc, const wxSize& size, const std::array<w
     }
     dc.DrawBitmap(bmp, 0, 0);
 
-    // Published-ratio marker (read-only twin of the editor's drag handle).
+    std::unique_ptr<wxGraphicsContext> owned_gc;
+    wxGraphicsContext*                 gc = graphics_context(dc, owned_gc);
+
+    // Dashed outline of the area where every weight is at least `min_weight`. It is dark or light
+    // depending on how light the fill under the line is on average, so it stays visible over most blends.
+    if (min_weight > 0.0) {
+        const double            k = 1.0 - 2.0 * min_weight;
+        std::array<TriPoint, 3> inner;
+        for (size_t i = 0; i < 3; ++i) {
+            const TriPoint& a = v[i];
+            const TriPoint& b = v[(i + 1) % 3];
+            const TriPoint& c = v[(i + 2) % 3];
+            inner[i] = {k * a.x + min_weight * (b.x + c.x), k * a.y + min_weight * (b.y + c.y)};
+        }
+        std::vector<Dash> dashes;
+        for (size_t i = 0; i < 3; ++i)
+            add_dashes(dashes, inner[i], inner[(i + 1) % 3]);
+        double luminance = 0.0;
+        for (const auto& [p0, p1] : dashes) {
+            double w0, w1, w2;
+            tri_barycentric({(p0.x + p1.x) / 2, (p0.y + p1.y) / 2}, v[0], v[1], v[2], w0, w1, w2);
+            luminance += tri_mix_colour(c0, c1, c2, w0, w1, w2).GetLuminance();
+        }
+        stroke_dashes(dc, gc, dashes, dash_colour(luminance / dashes.size()));
+    }
+
+    // Drag handle, anti-aliased at its sub-pixel position when a graphics context is available.
     const double w0 = weights[0], w1 = weights[1], w2 = weights[2];
-    const int hx = int(w0 * v[0].x + w1 * v[1].x + w2 * v[2].x);
-    const int hy = int(w0 * v[0].y + w1 * v[1].y + w2 * v[2].y);
-    dc.SetBrush(*wxWHITE_BRUSH);
-    dc.SetPen(wxPen(theme.ring, dip_px(2)));
-    dc.DrawCircle(hx, hy, dip_px(5));
+    const double hx = w0 * v[0].x + w1 * v[1].x + w2 * v[2].x;
+    const double hy = w0 * v[0].y + w1 * v[1].y + w2 * v[2].y;
+    const double r  = dip_px(5);
+    if (gc) {
+        gc->SetBrush(*wxWHITE_BRUSH);
+        gc->SetPen(gc->CreatePen(wxGraphicsPenInfo(theme.ring, dip_px(2))));
+        gc->DrawEllipse(hx - r, hy - r, 2 * r, 2 * r);
+    } else {
+        dc.SetBrush(*wxWHITE_BRUSH);
+        dc.SetPen(wxPen(theme.ring, dip_px(2)));
+        dc.DrawCircle(wxRound(hx), wxRound(hy), wxRound(r));
+    }
 }
 
 void draw_mixed_triangle_labels(wxDC& dc, const wxSize& size, const std::array<double, 3>& weights,
