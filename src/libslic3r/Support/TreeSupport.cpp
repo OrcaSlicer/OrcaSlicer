@@ -1337,7 +1337,8 @@ void TreeSupport::create_tree_support_layers()
     if (m_raft_layers > 0) { //create raft layers
         coordf_t raft_print_z = 0.f;
         coordf_t raft_slice_z = 0.f;
-        {
+        // A one layer raft is only its interface layer.
+        if (m_slicing_params.base_raft_layers > 0) {
             // Do not add the raft contact layer, 1st layer should use first_print_layer_height
             coordf_t height = m_slicing_params.first_print_layer_height;
             raft_print_z += height;

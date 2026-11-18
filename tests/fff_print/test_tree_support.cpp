@@ -214,6 +214,21 @@ TEST_CASE("Tree support on the build plate only leaves out branches that land on
     CHECK(support_points(print).empty());
 }
 
+TEST_CASE("A one layer raft under tree support is one first layer below the object", "[TreeSupport][Regression]")
+{
+    Slic3r::Print print;
+    slice_with_tree_support(make_cube(20, 20, 5), print, "tree_hybrid", 30, 0, 1);
+    const PrintObject &object = *print.objects().front();
+    const Layer       &first  = *object.layers().front();
+    const auto        &layers = object.support_layers();
+    REQUIRE_FALSE(layers.empty());
+    CHECK_THAT(layers.front()->print_z, Catch::Matchers::WithinAbs(print.config().initial_layer_print_height.value, EPSILON));
+    // The raft and the gap above it end where the object's first layer starts.
+    for (const SupportLayer *layer : layers)
+        if (layer->print_z < first.print_z + EPSILON)
+            CHECK(layer->print_z < first.print_z - first.height + EPSILON);
+}
+
 // With 4 raft layers, the first two are raft base layers.
 TEST_CASE("The first layer expansion widens the first layer of a tree support raft by its value and no other layer", "[TreeSupport][Regression]")
 {
