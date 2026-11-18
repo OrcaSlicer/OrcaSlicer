@@ -1025,6 +1025,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     const wxString flat_bed_brim_reason = _L("Enable a brim on a printer without a tilted belt to use this setting.");
     toggle_field("brim_use_efc_outline", have_brim && !is_belt_tilted, -1, flat_bed_brim_reason);
     toggle_field("combine_brims", have_brim && !is_belt_tilted, -1, flat_bed_brim_reason);
+    toggle_field("brim_include_supports", config->opt_enum<BrimType>("brim_type") == btAutoBrim && !is_belt_tilted, -1,
+                 _L("Set the brim type to Auto to use this setting."));
     bool have_brim_width = have_brim && config->opt_enum<BrimType>("brim_type") != btAutoBrim &&
                            config->opt_enum<BrimType>("brim_type") != btPainted;
     // On a tilted belt Auto / Mouse ear / Painted all collapse to outer-only at the

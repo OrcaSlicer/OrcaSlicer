@@ -1704,3 +1704,30 @@ TEST_CASE("Belt brim slices when every object is a flush target", "[SkirtBrim][b
     const std::string out = gcode(print);
     CHECK(out.find(";TYPE:Brim") != std::string::npos);
 }
+
+TEST_CASE("Including supports in the auto brim only adds brim", "[SkirtBrim]")
+{
+    const auto brim_loops = [](bool include_supports) {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({
+            { "skirt_loops",           0 },
+            { "brim_type",             "auto_brim" },
+            { "layer_height",          0.2 },
+            { "enable_support",        1 },
+            { "support_type",          "tree(auto)" },
+            { "support_style",         "organic" },
+            { "brim_include_supports", include_supports ? "1" : "0" },
+        });
+        Print print;
+        Model model;
+        init_print({ TestMesh::overhang }, print, model, config);
+        print.process();
+        size_t loops = 0;
+        for (const auto &[object_id, brim] : print.get_brimMap())
+            loops += brim.entities.size();
+        return loops;
+    };
+
+    // With the option off the brim is the one the object gets without it. With it on the support can only add to it.
+    CHECK(brim_loops(true) >= brim_loops(false));
+}

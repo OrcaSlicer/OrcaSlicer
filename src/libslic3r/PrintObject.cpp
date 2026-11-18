@@ -1489,6 +1489,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "extra_brim_width"
             || opt_key == "brim_object_gap"
             || opt_key == "brim_use_efc_outline"
+            || opt_key == "brim_include_supports"
             || opt_key == "brim_type"
             || opt_key == "brim_ears_max_angle"
             || opt_key == "brim_ears_detection_length"
