@@ -99,7 +99,7 @@ var searchNeedle = "";
 var searchTokens = [];
 var searchTokenRes = [];
 
-// Palette phase: 'commands' (one unified search over actions/commands/settings, recents on empty
+// The Speed Dial's phase: 'commands' (one unified search over actions/commands/settings, recents on empty
 // query), 'percent' ("Go to layer" second phase: enter a 0-100 percentage), 'tab' ("Go to tab..."
 // second phase: pick a notebook tab).
 var phase = "commands";
@@ -1493,7 +1493,7 @@ function run(a) {
     SendMessage({ command: "run_action", id: a.id, title: a.title, args: {} });
 }
 
-// Activate an entry in the main phase. Two-phase commands switch the palette to their input phase
+// Activate an entry in the main phase. Two-phase commands switch the Speed Dial to their input phase
 // instead of running; everything else (including a setting jump, which is a plain action now) runs.
 function activateEntry(a) {
     if (!a) return;

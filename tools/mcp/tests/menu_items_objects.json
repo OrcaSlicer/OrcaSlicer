@@ -1,6 +1,6 @@
 // The object commands made from menu items, called by index, and with no target on the selection: object_rename,
 // object_set_instances, object_separate_instances and object_delete name what they act on in their replies, which
-// object_list reads back; the Delete Selected tile deletes the selection; object_set_height_ranges and
+// object_list reads back; the Delete Selected action deletes the selection; object_set_height_ranges and
 // object_set_variable_layer_height without object act on the selected object and name it. Run it with
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/menu_items_objects.json --out <dir>
 {
@@ -30,7 +30,7 @@
                                        "/plates/0/objects/0/instances/2": {"exists": false},
                                        "/plates/0/objects/3/instances/0": {"exists": true}}},
 
-    // ---- Delete by index, then the selection, by the command and by its Delete Selected tile ----
+    // ---- Delete by index, then the selection, by the command and by its Delete Selected action ----
     {"tool": "object_delete", "args": {"objects": [0]}, "expect": {"/objects/0/index": {"eq": 0}, "/object_count": {"eq": 3}}},
     {"tool": "object_list", "expect": {"/total": {"eq": 3}, "/plates/0/objects/0/name": {"eq": "middle"}}},
     {"tool": "object_select", "args": {"objects": [0]}},

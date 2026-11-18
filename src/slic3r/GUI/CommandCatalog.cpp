@@ -125,26 +125,26 @@ const char* completion_name(CommandCompletion completion)
 
 } // namespace
 
-const nlohmann::json* tile_with_args(const NativeCommand& command, const nlohmann::json& args)
+const nlohmann::json* action_with_args(const NativeCommand& command, const nlohmann::json& args)
 {
-    if (!command.tiles.is_array())
+    if (!command.actions.is_array())
         return nullptr;
     // A call with no arguments gives none, null as {}, as Mcp::opened_item() reads it.
     const nlohmann::json given = Mcp::person_form(args) ? nlohmann::json::object() : args;
-    // A tile that collects a value is called with that value besides its own arguments, never with these alone.
-    for (const nlohmann::json& tile : command.tiles)
-        if (tile.value("input", std::string()).empty() && tile.at("args") == given)
-            return &tile;
+    // An action that collects a value is called with that value besides its own arguments, never with these alone.
+    for (const nlohmann::json& action : command.actions)
+        if (action.value("input", std::string()).empty() && action.at("args") == given)
+            return &action;
     return nullptr;
 }
 
-nlohmann::json tile_call_args(const nlohmann::json* tile, const nlohmann::json& args)
+nlohmann::json action_call_args(const nlohmann::json* action, const nlohmann::json& args)
 {
-    if (tile == nullptr)
+    if (action == nullptr)
         return args;
-    nlohmann::json    out   = tile->at("args");
-    const std::string input = tile->value("input", std::string());
-    // Without the value the tile's args alone are given: action_run refuses such a call first (action_args_error()),
+    nlohmann::json    out   = action->at("args");
+    const std::string input = action->value("input", std::string());
+    // Without the value the action's args alone are given: action_run refuses such a call first (action_args_error()),
     // and the Speed Dial's second phase always collects the value.
     if (input.empty() || !args.is_object() || !args.contains(input))
         return out;
@@ -154,25 +154,25 @@ nlohmann::json tile_call_args(const nlohmann::json* tile, const nlohmann::json& 
         for (const TabWord& w : kTabWords)
             if (value == w.page)
                 value = w.word;
-    out[tile->value("input_arg", input)] = std::move(value);
+    out[action->value("input_arg", input)] = std::move(value);
     return out;
 }
 
 std::string call_title(const NativeCommand& command, const nlohmann::json& args)
 {
-    const nlohmann::json* tile = tile_with_args(command, args);
-    return tile != nullptr ? tile->at("title").get<std::string>() : command.title;
+    const nlohmann::json* action = action_with_args(command, args);
+    return action != nullptr ? action->at("title").get<std::string>() : command.title;
 }
 
-std::pair<const NativeCommand*, const nlohmann::json*> find_tile(const CommandCatalog& catalog, const std::string& key)
+std::pair<const NativeCommand*, const nlohmann::json*> find_command_action(const CommandCatalog& catalog, const std::string& key)
 {
-    if (const NativeCommand* command = catalog.find(key); command != nullptr && command->in_palette)
+    if (const NativeCommand* command = catalog.find(key); command != nullptr && command->has_own_action)
         return {command, nullptr};
     for (const NativeCommand& command : catalog.commands())
-        if (command.tiles.is_array())
-            for (const nlohmann::json& tile : command.tiles)
-                if (tile.at("key") == key)
-                    return {&command, &tile};
+        if (command.actions.is_array())
+            for (const nlohmann::json& action : command.actions)
+                if (action.at("key") == key)
+                    return {&command, &action};
     return {nullptr, nullptr};
 }
 
@@ -180,9 +180,9 @@ std::pair<std::string, const NativeCommand*> shown_title(const CommandCatalog& c
                                                          const nlohmann::json& args)
 {
     if (command.key == "action_run" && args.is_object() && args.value("id", nlohmann::json()).is_string()) {
-        const auto [owner, tile] = find_tile(catalog, command_tile_key(args.at("id").get<std::string>()));
+        const auto [owner, action] = find_command_action(catalog, command_action_key(args.at("id").get<std::string>()));
         if (owner != nullptr)
-            return {tile != nullptr ? tile->at("title").get<std::string>() : owner->title, owner};
+            return {action != nullptr ? action->at("title").get<std::string>() : owner->title, owner};
     }
     return {call_title(command, args), &command};
 }
@@ -195,7 +195,7 @@ nlohmann::json command_reference(const NativeCommand& command)
                          {"description", command.description},
                          {"input_schema", command.input_schema},
                          {"listed", command.listed},
-                         {"in_palette", command.in_palette},
+                         {"has_own_action", command.has_own_action},
                          {"read_only", command.read_only},
                          {"destructive", command.destructive},
                          {"idempotent", command.idempotent},
@@ -205,13 +205,13 @@ nlohmann::json command_reference(const NativeCommand& command)
                          {"operations", command.operations}};
     for (const auto& [name, value] : {std::pair<const char*, const std::string*>{"icon", &command.icon},
                                       {"input", &command.input},
-                                      {"tile_group", &command.tile_group}})
+                                      {"action_group", &command.action_group}})
         if (!value->empty())
             entry[name] = *value;
     if (!command.examples.is_null())
         entry["examples"] = command.examples;
-    if (!command.tiles.is_null())
-        entry["tiles"] = command.tiles;
+    if (!command.actions.is_null())
+        entry["actions"] = command.actions;
     return entry;
 }
 

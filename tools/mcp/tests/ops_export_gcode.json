@@ -1,6 +1,6 @@
 // Records what the G-code export, project_export with format gcode and a path, does: with no objects, on a plate
 // not sliced, with a plate index the project lacks, after a slice that ended with an error, a success, two exports
-// started back to back, and while a slice runs (started by the slice_and_preview and slice_all tiles, which return
+// started back to back, and while a slice runs (started by the slice_and_preview and slice_all actions, which return
 // at once). Each case exports once, to a file named for it. A replay step returns once a short export has
 // finished, so the two started back to back run one after the other; overlapping calls need two clients. Every
 // call it records is optional, so a refusal is kept in result.json with its text, and each is followed by the
@@ -78,7 +78,7 @@
     {"tool": "project_export", "args": {"format": "stl", "path": "${out_dir}/twice_2.gcode", "plates": 999}, "optional": true},
     {"tool": "script_run", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
 
-    // ---- While a slice runs: the slice_and_preview tile, then slice_all, both return at once ----
+    // ---- While a slice runs: the slice_and_preview action, then slice_all, both return at once ----
     {"tool": "project_new", "args": {"discard_changes": true}},
     {"tool": "project_import", "args": {"paths": ["${vars.benchy}"]}, "expect": {"/added": {"eq": 1}}},
     {"tool": "app_wait", "args": {"for": "idle"}},

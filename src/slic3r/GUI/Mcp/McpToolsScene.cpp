@@ -4,9 +4,9 @@
 // set the number of instances, make instances separate objects, split, assemble, order, mirror, centre, scale to fit,
 // drop and orient objects and change a part's type take their targets (McpTargets.hpp) and run their operations
 // (Operations/ObjectOps, ProjectOps); the others run their menu items' functions (NativeCommandMenuItems.hpp) on the selection.
-// The object and part commands of menu items with no Speed Dial tile, which mark objects printable, turn their Auto Drop
-// on or off, repair their meshes, clone them, reload them from their files and replace a part's mesh, take their targets
-// and run their operations too.
+// The object and part commands of menu items with no Speed Dial action, which mark objects printable, turn their Auto
+// Drop on or off, repair their meshes, clone them, reload them from their files and replace a part's mesh, take their
+// targets and run their operations too.
 
 #include "CanvasTarget.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -127,7 +127,7 @@ GLCanvas3D& object_canvas()
     return canvas;
 }
 
-// What Deselect All does, for object_select {none: true} and a pick of its tile: the selection of `canvas` clears
+// What Deselect All does, for object_select {none: true} and a pick of its action: the selection of `canvas` clears
 // and its open gizmo closes. UI thread.
 void clear_selection(GLCanvas3D& canvas)
 {
@@ -135,8 +135,8 @@ void clear_selection(GLCanvas3D& canvas)
     canvas.set_as_dirty();
 }
 
-// What Select All does, for object_select {all: true} and a pick of its tile: every object of `canvas` selected, and the
-// object list showing it. Refused while a gizmo of that canvas keeps its selection, where GLCanvas3D::select_all()
+// What Select All does, for object_select {all: true} and a pick of its action: every object of `canvas` selected, and
+// the object list showing it. Refused while a gizmo of that canvas keeps its selection, where GLCanvas3D::select_all()
 // would select nothing. UI thread.
 std::optional<Ops::Refusal> select_everything(GLCanvas3D& canvas)
 {
@@ -1278,7 +1278,7 @@ AppActionRunResult separate_command(const json& args)
 }
 
 // object_split: the object the call names, else the object list's one selected row (split_row()), as the Split menu items
-// read it. A call with a tile's arguments asks what Split asks (the Auto-Drop question, a message for an object of one
+// read it. A call with an action's arguments asks what Split asks (the Auto-Drop question, a message for an object of one
 // piece); any other answers the question with keep_z, and is refused without it. The menu items told every refusal of theirs
 // as information.
 AppActionRunResult split_command(const json& args)
@@ -1393,7 +1393,7 @@ json plate_objects(int sorted, bool all)
     return order;
 }
 
-// object_order: the current plate, the plate the call names, or every plate with all. Its tile's call ({by}) shows
+// object_order: the current plate, the plate the call names, or every plate with all. Its action's call ({by}) shows
 // the Prepare view and reverses an order the objects already have, as the plate menu's Order By does; any other call
 // with by is ascending unless descending says otherwise. With order, the plate's objects go in that order, as drags in
 // the object list put them. The menu item told a plate with no objects as information.
@@ -1451,7 +1451,7 @@ AppActionRunResult mirror_command(const json& args)
     return menu_reply(targets_reply(plater.model(), found.value()));
 }
 
-// object_center: the objects the call names, else the selection; on the plate each stands on, or on plate. Its tile's
+// object_center: the objects the call names, else the selection; on the plate each stands on, or on plate. Its action's
 // call ({}) is Center on the selection. The menu item told a selection to make as information.
 AppActionRunResult center_command(const json& args)
 {
@@ -1584,9 +1584,9 @@ json orient_reply(Plater& plater, const Ops::OrientObjectsArgs& op)
     return reply;
 }
 
-// object_add_primitive: a call with the tile's arguments ({shape}) is Add Primitive, refused while an object is selected
-// and asking for the size; any other adds the shape at its size, or the built-in one, whatever is selected, on plate, at
-// position, named name, in one undo step (Ops::add_primitive()).
+// object_add_primitive: a call with the action's arguments ({shape}) is Add Primitive, refused while an object is
+// selected and asking for the size; any other adds the shape at its size, or the built-in one, whatever is selected, on
+// plate, at position, named name, in one undo step (Ops::add_primitive()).
 AppActionRunResult add_primitive_command(const json& args)
 {
     const std::string     shape = arg_string(args, "shape");
@@ -1620,10 +1620,10 @@ AppActionRunResult add_primitive_command(const json& args)
 // The object and part commands made from menu items: each acts on the targets it is given or, given none, on what is
 // selected in the Prepare view, as a person's pick of the item does. Those of the object's and part's menus read their
 // targets through resolve_targets() and run their operations; the handy models, Text and SVG run the menu item their
-// variant argument names. Their tiles are the menu items, under the items' ids, titles, sections and icons.
+// variant argument names. Their actions are the menu items, under the items' ids, titles, sections and icons.
 void register_object_menu_commands(CommandCatalog& catalog)
 {
-    using NativeCommands::tile;
+    using NativeCommands::action;
     const char* const object_section = L("Object");
 
     // ---- Add Primitive and Add Handy models ---- (the Add menu; each creates a new object)
@@ -1633,22 +1633,22 @@ void register_object_menu_commands(CommandCatalog& catalog)
     // A shape the plate may then turn toward the part-cooling fan.
     const std::string turned = " The shape may then be turned toward the part-cooling fan, so the size is along its own axes before that turn.";
     const auto primitive = [&turned](const char* key, const char* title, const char* icon, const char* shape, bool turns) {
-        return tile(key, title, L("Add Primitive"), icon, {{"shape", shape}},
-                    std::string("Add a ") + shape + " object to the current plate at the size its dialog asks for; fails while an "
-                                                    "object is selected. object_add_primitive with a size, or silent, skips the "
-                                                    "dialog." +
-                        (turns ? turned : std::string()));
+        return action(key, title, L("Add Primitive"), icon, {{"shape", shape}},
+                      std::string("Add a ") + shape + " object to the current plate at the size its dialog asks for; fails while an "
+                                                      "object is selected. object_add_primitive with a size, or silent, skips the "
+                                                      "dialog." +
+                          (turns ? turned : std::string()));
     };
-    // With shape alone the size dialog asks, as the tiles do; a size or silent skips it.
+    // With shape alone the size dialog asks, as the actions do; a size or silent skips it.
     NativeCommand add_primitive = menu_command(
         "object_add_primitive", L("Add a primitive"),
         "Add a primitive shape (cube, cylinder, sphere, cone, disc or torus) as a new object, as Add Primitive does: on the "
         "current plate, or on plate, which becomes the current one; at position, in the bed coordinates object_list and "
         "object_transform use, else where Add Primitive puts it; named name, else after its shape. With a size, at that "
-        "size; with silent, at the shape's built-in size. With shape alone, as its tiles, the Primitive size dialog asks "
-        "for the size (blocked_by_dialog), unless a person turned that dialog off, and the call is refused while an object "
-        "is selected (part_add adds a shape to an object); any other call adds the object whatever is selected. One undo "
-        "step; the new object is selected. Reply: the object (objects, object), its plate and offset." +
+        "size; with silent, at the shape's built-in size. With shape alone, as its Speed Dial actions, the Primitive size "
+        "dialog asks for the size (blocked_by_dialog), unless a person turned that dialog off, and the call is refused "
+        "while an object is selected (part_add adds a shape to an object); any other call adds the object whatever is "
+        "selected. One undo step; the new object is selected. Reply: the object (objects, object), its plate and offset." +
             turned,
         object_schema({{"shape", enum_prop({"cube", "cylinder", "sphere", "cone", "disc", "torus"}, "The shape.")},
                        {"size", shape_size},
@@ -1674,21 +1674,21 @@ void register_object_menu_commands(CommandCatalog& catalog)
         {"orcasliced_combo", "Add the OrcaSliced Combo (the OrcaSliced model, the Orca Cube and its plug) to the current plate, "
                              "then arrange the objects as the toolbar's Arrange does, which moves the others too."}};
     std::vector<std::string> models;
-    json                     handy_tiles = json::array();
+    json                     handy_actions = json::array();
     for (const MenuFactory::HandyModel& model : MenuFactory::handy_models()) {
         models.emplace_back(model.key);
         std::string description = std::string("Add the ") + model.label + " model to the current plate.";
         for (const auto& [key, text] : arranged)
             if (models.back() == key)
                 description = text;
-        handy_tiles.push_back(tile("add_handy_" + models.back(), model.label, L("Add Handy models"), "", {{"model", model.key}},
-                                   description));
+        handy_actions.push_back(action("add_handy_" + models.back(), model.label, L("Add Handy models"), "", {{"model", model.key}},
+                                       description));
     }
     catalog.add(menu_command(
         "object_add_handy_model", L("Add a handy model"),
         "Add one of the test models OrcaSlicer ships to the current plate, as Add Handy models does; orca_cube and "
         "orcasliced_combo, of several files, then arrange the objects as the toolbar's Arrange does, which moves the others too.",
-        object_schema({{"model", enum_prop(models, "The model.")}}, {"model"}), std::move(handy_tiles), [](const json& args) {
+        object_schema({{"model", enum_prop(models, "The model.")}}, {"model"}), std::move(handy_actions), [](const json& args) {
             const std::string                           model = arg_string(args, "model");
             const std::vector<MenuFactory::HandyModel>& all   = MenuFactory::handy_models();
             const auto it = std::find_if(all.begin(), all.end(), [&model](const MenuFactory::HandyModel& m) { return model == m.key; });
@@ -1698,7 +1698,8 @@ void register_object_menu_commands(CommandCatalog& catalog)
     const std::string text = "Add a text: a part on the selected object, or a new object when nothing is selected. It is created "
                              "in the background (app_wait {for: \"idle\"} waits for it), and the Text gizmo opens on it.";
     catalog.add(menu_command("object_add_text", L("Text"), text, object_schema({}),
-                            json::array({tile("add_primitive_text", L("Text"), L("Add Primitive"), "menu_obj_text", json::object(), text)}),
+                            json::array({action("add_primitive_text", L("Text"), L("Add Primitive"), "menu_obj_text", json::object(),
+                                                text)}),
                             [](const json&) { return MenuItems::add_primitive_text(); }));
 
     catalog.add(menu_command(
@@ -1706,10 +1707,10 @@ void register_object_menu_commands(CommandCatalog& catalog)
         "Add an SVG as a new object, or as a part of the selected object. With a path, uses that file without a dialog; the "
         "part is created in the background (app_wait {for: \"idle\"} waits for it), and the SVG gizmo opens on it.",
         object_schema({{"path", MenuItems::input_file("an .svg file")}}),
-        json::array({tile("add_primitive_svg", L("SVG"), L("Add Primitive"), "menu_obj_svg", json::object(),
-                          "Add an SVG as a new object, or as a part of the selected object, from the file a dialog asks for; "
-                          "object_add_svg with a path uses that file without one. The part is created in the background "
-                          "(app_wait {for: \"idle\"} waits for it), and the SVG gizmo opens on it.")}),
+        json::array({action("add_primitive_svg", L("SVG"), L("Add Primitive"), "menu_obj_svg", json::object(),
+                            "Add an SVG as a new object, or as a part of the selected object, from the file a dialog asks for; "
+                            "object_add_svg with a path uses that file without one. The part is created in the background "
+                            "(app_wait {for: \"idle\"} waits for it), and the SVG gizmo opens on it.")}),
         [](const json& args) { return MenuItems::add_primitive_svg(args); }));
 
     // ---- Object ---- (the object's context menu and the Edit menu)
@@ -1727,26 +1728,27 @@ void register_object_menu_commands(CommandCatalog& catalog)
         with_targets(object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Delete what stands on this plate."}}},
                                     {"all", prop("boolean", "Delete every object. Default false: the targets.")}}),
                      kEveryTarget, false),
-        json::array({tile("obj_delete", L("Delete Selected"), object_section, "delete", json::object(), "Delete the selected objects or parts."),
-                     tile("obj_delete_all", L("Delete All Objects"), object_section, "delete", {{"all", true}}, "Delete all objects.")}),
+        json::array({action("obj_delete", L("Delete Selected"), object_section, "delete", json::object(),
+                            "Delete the selected objects or parts."),
+                     action("obj_delete_all", L("Delete All Objects"), object_section, "delete", {{"all", true}}, "Delete all objects.")}),
         delete_command);
     del.input_schema = with_silent(std::move(del.input_schema), person_forms(del));
     catalog.add(reaching({"delete_objects"}, with_expected_ids(std::move(del))));
 
-    // The Rename dialog's name, which every call but the tile's gives.
+    // The Rename dialog's name, which every call but the action's gives.
     NativeCommand rename = menu_command(
         "object_rename", L("Rename"),
         "Rename an object, or a part of it (object and part), or with neither the object or part selected in the Prepare "
         "view. With a name, skips the Rename dialog; an empty name, or one with characters a file name cannot hold, is "
         "refused. Reply: what was renamed, with its name (objects or parts).",
         with_targets(object_schema({{"name", prop("string", "The new name, in place of the Rename dialog.")}}, {"name"}), kObjects | kParts, true),
-        json::array({tile("obj_rename", L("Rename"), object_section, "", json::object(),
-                          "Rename the selected object or part (select one) in the Rename dialog; object_rename with a name skips it.")}),
+        json::array({action("obj_rename", L("Rename"), object_section, "", json::object(),
+                            "Rename the selected object or part (select one) in the Rename dialog; object_rename with a name skips it.")}),
         rename_command);
     rename.input_schema = with_silent(std::move(rename.input_schema), person_forms(rename));
     catalog.add(reaching({"rename_object"}, with_expected_ids(std::move(rename))));
 
-    // The count the dialog asks for, which every call but the tiles' gives; delta is the toolbar's + and -.
+    // The count the dialog asks for, which every call but the actions' gives; delta is the toolbar's + and -.
     NativeCommand instances = menu_command(
         "object_set_instances", L("Set the number of instances"),
         "Give an object this many instances (count), as Set Number of Instances does, or one more or one fewer (delta 1 "
@@ -1761,20 +1763,20 @@ void register_object_menu_commands(CommandCatalog& catalog)
                                                {"enum", {1, -1}},
                                                {"description", "1 adds an instance and -1 removes one, as the toolbar's + and - do."}}}}),
                      kObjects, true),
-        json::array({tile("obj_set_instances", L("Set Number of Instances"), object_section, "instance_add", json::object(),
-                          "Give the selected object the number of instances the dialog asks for, in one undo step; "
-                          "object_set_instances with a count skips the dialog. New instances overlap; arrange "
-                          "afterwards."),
-                     tile("obj_instances_up", L("Increase Instances"), object_section, "instance_add", {{"delta", 1}},
-                          "Add an instance of the selected object."),
-                     tile("obj_instances_down", L("Decrease Instances"), object_section, "instance_remove", {{"delta", -1}},
-                          "Remove an instance of the selected object.")}),
+        json::array({action("obj_set_instances", L("Set Number of Instances"), object_section, "instance_add", json::object(),
+                            "Give the selected object the number of instances the dialog asks for, in one undo step; "
+                            "object_set_instances with a count skips the dialog. New instances overlap; arrange "
+                            "afterwards."),
+                     action("obj_instances_up", L("Increase Instances"), object_section, "instance_add", {{"delta", 1}},
+                            "Add an instance of the selected object."),
+                     action("obj_instances_down", L("Decrease Instances"), object_section, "instance_remove", {{"delta", -1}},
+                            "Remove an instance of the selected object.")}),
         instances_command);
     instances.input_schema = with_silent(std::move(instances.input_schema), person_forms(instances));
     // Its silent form needs count or delta, which a schema of this server cannot require as one of two.
     instances.input_schema["properties"]["silent"]["description"] =
-        "true runs the command without asking; it then needs count or delta. A call with no arguments, or with exactly a "
-        "tile's arguments, does what a person's pick of that tile does.";
+        "true runs the command without asking; it then needs count or delta. A call with no arguments, or with exactly an "
+        "action's arguments, does what a person's pick of that action does.";
     catalog.add(reaching({"set_instance_count"}, with_expected_ids(std::move(instances))));
 
     NativeCommand separate = menu_command(
@@ -1784,14 +1786,14 @@ void register_object_menu_commands(CommandCatalog& catalog)
         "some of its instances. New objects are added last. Reply: the objects that hold those instances afterwards "
         "(objects): the object and its new objects, or the new object.",
         with_targets(with_targets(object_schema({}), kObjects, true), kInstances, false),
-        json::array({tile("obj_instances_to_objects", L("Set as Individual Objects"), object_section, "", json::object(),
-                          "Make each instance of the selected object a separate object (object_select {objects: [n]}); with some "
-                          "of its instances selected, only those. New objects are added last; the reply lists the objects that "
-                          "hold those instances (objects).")}),
+        json::array({action("obj_instances_to_objects", L("Set as Individual Objects"), object_section, "", json::object(),
+                            "Make each instance of the selected object a separate object (object_select {objects: [n]}); with some "
+                            "of its instances selected, only those. New objects are added last; the reply lists the objects that "
+                            "hold those instances (objects).")}),
         separate_command);
     catalog.add(reaching({"separate_instances"}, with_expected_ids(std::move(separate))));
 
-    // The answer to Split's Auto-Drop question, which every call but the tiles' gives where the split asks it.
+    // The answer to Split's Auto-Drop question, which every call but the actions' gives where the split asks it.
     NativeCommand split = menu_command(
         "object_split", L("Split an object"),
         "Split an object into separate objects, or into parts of it, as Split > To Objects and To Parts do: the object named, "
@@ -1800,7 +1802,7 @@ void register_object_menu_commands(CommandCatalog& catalog)
         "is refused, and into parts so is an object of several parts, whose part is selected to split it. Into objects, "
         "the object is removed and its pieces are added last and selected. Where some of them "
         "would float above the bed of an object that drops, keep_z answers the question Split asks (true keeps their "
-        "height, false lets them drop), and without it the call is refused (auto_drop_question); with only a tile's "
+        "height, false lets them drop), and without it the call is refused (auto_drop_question); with only an action's "
         "arguments Split asks it (blocked_by_dialog). One undo step. Reply: the new objects (objects) or the parts the "
         "part became (parts), with their indices afterwards, and object_count.",
         with_targets(object_schema({{"into", enum_prop({"objects", "parts"}, "Separate objects, or parts of the object.")},
@@ -1809,10 +1811,10 @@ void register_object_menu_commands(CommandCatalog& catalog)
                                                                "lets them drop.")}},
                                    {"into"}),
                      kObjects, true),
-        json::array({tile("obj_split_objects", L("Split to Objects"), object_section, "menu_split_objects", {{"into", "objects"}},
-                          "Split the selected object into separate objects."),
-                     tile("obj_split_parts", L("Split to Parts"), object_section, "menu_split_parts", {{"into", "parts"}},
-                          "Split the selected object into parts.")}),
+        json::array({action("obj_split_objects", L("Split to Objects"), object_section, "menu_split_objects", {{"into", "objects"}},
+                            "Split the selected object into separate objects."),
+                     action("obj_split_parts", L("Split to Parts"), object_section, "menu_split_parts", {{"into", "parts"}},
+                            "Split the selected object into parts.")}),
         split_command);
     split.input_schema = with_silent(std::move(split.input_schema), person_forms(split));
     catalog.add(reaching({"split_object"}, with_expected_ids(std::move(split))));
@@ -1826,9 +1828,9 @@ void register_object_menu_commands(CommandCatalog& catalog)
             "are refused. They are removed and the new object is added last and selected, so object indices change. One "
             "undo step. Reply: the new object's index (object) and name, and objects.",
             with_targets(object_schema({}), kObjects, false),
-            json::array({tile("obj_assemble", L("Assemble"), object_section, "", json::object(),
-                              "Assemble two or more selected objects into one object of parts named Assembly. They are removed "
-                              "and it is added last, so object indices change; the reply has its index (object) and name.")}),
+            json::array({action("obj_assemble", L("Assemble"), object_section, "", json::object(),
+                                "Assemble two or more selected objects into one object of parts named Assembly. They are removed "
+                                "and it is added last, so object indices change; the reply has its index (object) and name.")}),
             assemble_command))));
 
     // The plate menu's Order By.
@@ -1846,24 +1848,24 @@ void register_object_menu_commands(CommandCatalog& catalog)
         {"obj_order_by_height", L("Order by Height"), "height", "height"},
         {"obj_order_by_size", L("Order by Size"), "size", "size (bounding box volume)"},
     };
-    json order_tiles = json::array();
+    json order_actions = json::array();
     for (const OrderMenuItem& item : order_menu_items)
-        order_tiles.push_back(tile(item.key, item.title, object_section, "", {{"by", item.by}},
-                                   std::string("Order the current plate's objects by ") + item.what +
-                                       ", which sets the object list and print order, as the plate menu's Order By does. "
-                                       "Choosing the order they already have reverses it. Object indices change; the reply "
-                                       "lists the new order (order: [{object, name, plate}]) and descending."));
+        order_actions.push_back(action(item.key, item.title, object_section, "", {{"by", item.by}},
+                                       std::string("Order the current plate's objects by ") + item.what +
+                                           ", which sets the object list and print order, as the plate menu's Order By does. "
+                                           "Choosing the order they already have reverses it. Object indices change; the reply "
+                                           "lists the new order (order: [{object, name, plate}]) and descending."));
     NativeCommand order = reaching(
         {"order_objects", "reorder_objects"},
         menu_command("object_order", L("Order objects"),
                     "Order the objects of a plate (the current one, or plate), or with all of every plate, by name, filament, "
                     "height or size (bounding box volume), which sets the object list and print order, as the plate menu's "
-                    "Order By does: ascending, or with descending true descending. Called with by alone, as its tiles, it shows "
-                    "the Prepare view and, as Order By does, reverses the order the objects already have. With order in place "
-                    "of by, the plate's objects go in the order given, as dragging them in the object list puts them: order "
-                    "names each of the plate's objects once, by index, and anything else is refused; the other plates' objects "
-                    "keep their order. One undo step; object indices change. Reply: the new order (order: [{object, name, "
-                    "plate}]), and descending with by.",
+                    "Order By does: ascending, or with descending true descending. Called with by alone, as its Speed Dial "
+                    "actions, it shows the Prepare view and, as Order By does, reverses the order the objects already have. "
+                    "With order in place of by, the plate's objects go in the order given, as dragging them in the object list "
+                    "puts them: order names each of the plate's objects once, by index, and anything else is refused; the "
+                    "other plates' objects keep their order. One undo step; object indices change. Reply: the new order (order: "
+                    "[{object, name, plate}]), and descending with by.",
                     object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Order this plate's objects. Default: the current plate."}}},
                                    {"by", enum_prop({"name", "filament", "height", "size"}, "What to order by.")},
                                    {"order", {{"type", "array"},
@@ -1873,7 +1875,7 @@ void register_object_menu_commands(CommandCatalog& catalog)
                                                               "once, in the order wanted."}}},
                                    {"descending", prop("boolean", "With by: descending order. Default false.")},
                                    {"all", prop("boolean", "With by: order the objects of every plate. Default false: one plate's.")}}),
-                    std::move(order_tiles), order_command));
+                    std::move(order_actions), order_command));
     // The arguments are checked before the call reads the app.
     order.run = [run = std::move(order.run)](const json& args, ToolContext& ctx) {
         check_order_arguments(args);
@@ -1890,7 +1892,8 @@ void register_object_menu_commands(CommandCatalog& catalog)
             "already rests on the bed is no error: moved false says that nothing moved. One undo step; the targets are left "
             "selected. Reply: what it acted on (objects, instances, parts) and moved.",
             with_targets(object_schema({}), kObjects | kParts, false),
-            json::array({tile("obj_drop", L("Drop to Bed"), object_section, "toolbar_flatten", json::object(), "Drop the selection onto the bed.")}),
+            json::array({action("obj_drop", L("Drop to Bed"), object_section, "toolbar_flatten", json::object(),
+                                "Drop the selection onto the bed.")}),
             drop_command))));
 
     catalog.add(reaching(
@@ -1902,9 +1905,12 @@ void register_object_menu_commands(CommandCatalog& catalog)
             "of one instance or parts of one. Cut objects are refused. One undo step; the targets are left selected. Reply: what "
             "it mirrored (objects, instances, parts).",
             with_targets(object_schema({{"axis", enum_prop({"x", "y", "z"}, "The axis to mirror along.")}}, {"axis"}), kObjects | kParts, false),
-            json::array({tile("obj_mirror_x", L("Mirror X"), object_section, "menu_mirror_x", {{"axis", "x"}}, "Mirror the selection along X."),
-                         tile("obj_mirror_y", L("Mirror Y"), object_section, "menu_mirror_y", {{"axis", "y"}}, "Mirror the selection along Y."),
-                         tile("obj_mirror_z", L("Mirror Z"), object_section, "menu_mirror_z", {{"axis", "z"}}, "Mirror the selection along Z.")}),
+            json::array({action("obj_mirror_x", L("Mirror X"), object_section, "menu_mirror_x", {{"axis", "x"}},
+                                "Mirror the selection along X."),
+                         action("obj_mirror_y", L("Mirror Y"), object_section, "menu_mirror_y", {{"axis", "y"}},
+                                "Mirror the selection along Y."),
+                         action("obj_mirror_z", L("Mirror Z"), object_section, "menu_mirror_z", {{"axis", "z"}},
+                                "Mirror the selection along Z.")}),
             mirror_command))));
 
     catalog.add(reaching(
@@ -1913,13 +1919,14 @@ void register_object_menu_commands(CommandCatalog& catalog)
             "object_center", L("Center Selected on Plate"),
             "Centre objects on their plate, as Center does: those named, each plate's as one group on the plate it stands on (an "
             "object on no plate goes with the current plate's), or all on plate; with none named, what is selected in the "
-            "Prepare view as one group, on plate, or with no arguments, as its tile, on the current plate. A group moves as one, "
-            "its box to the plate's centre, its objects keeping their places relative to each other, so a group spread over "
-            "several plates and sent to plate may not fit on its bed. One undo step; the targets are left selected. Reply: "
-            "what it centred (objects, instances, parts) and the groups (plates: [{plate, objects}]).",
+            "Prepare view as one group, on plate, or with no arguments, as its Speed Dial action, on the current plate. A "
+            "group moves as one, its box to the plate's centre, its objects keeping their places relative to each other, so "
+            "a group spread over several plates and sent to plate may not fit on its bed. One undo step; the targets are "
+            "left selected. Reply: what it centred (objects, instances, parts) and the groups (plates: [{plate, objects}]).",
             with_targets(object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Centre them all on this plate."}}}}),
                          kObjects, false),
-            json::array({tile("obj_center", L("Center Selected on Plate"), object_section, "", json::object(), "Center the selection on its plate.")}),
+            json::array({action("obj_center", L("Center Selected on Plate"), object_section, "", json::object(),
+                                "Center the selection on its plate.")}),
             center_command))));
 
     catalog.add(reaching(
@@ -1931,13 +1938,14 @@ void register_object_menu_commands(CommandCatalog& catalog)
             "than a rectangle or a circle are refused. One undo step; the targets are left selected. Reply: what it scaled "
             "(objects, instances) and each instance's scale (scales: [{object, instance, scale}]).",
             with_targets(object_schema({}), kObjects, false),
-            json::array({tile("obj_fit_volume", L("Scale to Fit Print Volume"), object_section, "", json::object(),
-                              "Scale the selection to fit the print volume.")}),
+            json::array({action("obj_fit_volume", L("Scale to Fit Print Volume"), object_section, "", json::object(),
+                                "Scale the selection to fit the print volume.")}),
             scale_to_fit_command))));
 
     // Auto-Orient waits for its job; a person's pick starts it in place, as the toolbar does.
-    const std::string orient_tile = "Auto-orient the selection, or every object when nothing is selected; the call returns when it is done.";
-    NativeCommand     orient      = reaching(
+    const std::string orient_action = "Auto-orient the selection, or every object when nothing is selected; the call returns when it "
+                                      "is done.";
+    NativeCommand     orient        = reaching(
         {"orient_objects"},
         with_expected_ids(mutate_tool(
             "object_auto_orient", L("Auto-Orient"),
@@ -1982,9 +1990,9 @@ void register_object_menu_commands(CommandCatalog& catalog)
                     throw ToolFailure("The orientation did not finish within " + std::to_string(timeout.count()) + " s, so it was cancelled");
                 }
             })));
-    orient.tiles = json::array({tile("obj_orient", L("Auto-Orient"), object_section, "toolbar_orient", json::object(), orient_tile)});
-    // A person's pick of the tile starts the orientation in place and returns while it runs; an automated call of the
-    // tile's arguments is the command's own function, which waits and replies. Both are orient_objects() on the same
+    orient.actions = json::array({action("obj_orient", L("Auto-Orient"), object_section, "toolbar_orient", json::object(), orient_action)});
+    // A person's pick of the action starts the orientation in place and returns while it runs; an automated call of the
+    // action's arguments is the command's own function, which waits and replies. Both are orient_objects() on the same
     // targets.
     catalog.add(NativeCommands::with_menu_item_forms(
         std::move(orient),
@@ -2030,9 +2038,9 @@ void register_object_menu_commands(CommandCatalog& catalog)
          "Make the selected parts Center precise seams (seams keep their subtype), as Change Type does; not the object's last "
          "solid part, nor a text or SVG part. Parts are listed by type, so part indices change."},
     };
-    json type_tiles = json::array();
+    json type_actions = json::array();
     for (const TypeMenuItem& item : type_menu_items)
-        type_tiles.push_back(tile(item.key, item.title, object_section, "", {{"type", item.type}}, item.description));
+        type_actions.push_back(action(item.key, item.title, object_section, "", {{"type", item.type}}, item.description));
     catalog.add(reaching(
         {"change_part_type"},
         with_expected_ids(menu_command(
@@ -2050,7 +2058,7 @@ void register_object_menu_commands(CommandCatalog& catalog)
                                                               "takes. Default: a seam keeps its own, another part becomes center.")}},
                                        {"type"}),
                          kParts, false),
-            std::move(type_tiles), part_type_command))));
+            std::move(type_actions), part_type_command))));
 }
 
 // What object_fix replies: what it repaired (objects whole, parts), and for each object or part in turn whether its mesh
@@ -2084,8 +2092,8 @@ json fix_reply(const Model& model, const Ops::FixedModels& fixed)
     return reply;
 }
 
-// The object and part commands of the GUI's menus that have no Speed Dial tile: Printable, Auto Drop, Fix Model, Clone,
-// Reload from disk and Replace 3D file. Each reads its targets through resolve_targets() and runs its operation.
+// The object and part commands of the GUI's menus that have no Speed Dial action: Printable, Auto Drop, Fix Model,
+// Clone, Reload from disk and Replace 3D file. Each reads its targets through resolve_targets() and runs its operation.
 void register_object_tools(CommandCatalog& catalog)
 {
     NativeCommand printable = reaching(
@@ -2496,24 +2504,24 @@ void register_scene_tools(CommandCatalog& catalog)
             settle(ctx);
             return ToolResult::ok(out);
         }));
-    select.tiles = json::array({NativeCommands::tile("select_all", L("Select All Objects"), L("Object"), "", {{"all", true}},
-                                                     "Select every object in the 3D view (the assemble view while it is shown, "
-                                                     "else Prepare, switching to it), and reply with the selection; refused "
-                                                     "while a gizmo that keeps its selection is open. A person's pick shows "
-                                                     "Prepare and selects there."),
-                                NativeCommands::tile("deselect_all", L("Deselect All"), L("Object"), "", {{"none", true}},
-                                                     "Clear the selection in the 3D view (the assemble view while it is shown, "
-                                                     "else Prepare, switching to it), close the open gizmo, and reply with the "
-                                                     "selection. A person's pick clears it where it is, switching no tab.")});
+    select.actions = json::array({NativeCommands::action("select_all", L("Select All Objects"), L("Object"), "", {{"all", true}},
+                                                         "Select every object in the 3D view (the assemble view while it is shown, "
+                                                         "else Prepare, switching to it), and reply with the selection; refused "
+                                                         "while a gizmo that keeps its selection is open. A person's pick shows "
+                                                         "Prepare and selects there."),
+                                  NativeCommands::action("deselect_all", L("Deselect All"), L("Object"), "", {{"none", true}},
+                                                         "Clear the selection in the 3D view (the assemble view while it is shown, "
+                                                         "else Prepare, switching to it), close the open gizmo, and reply with the "
+                                                         "selection. A person's pick clears it where it is, switching no tab.")});
     // A person's pick runs in place, as its menu item did: Select All shows Prepare and select_everything() selects there,
-    // Deselect All is clear_selection() on the view shown, switching no tab. An automated call of either tile's
+    // Deselect All is clear_selection() on the view shown, switching no tab. An automated call of either action's
     // arguments is object_select's own function, which the two functions serve too, on the view shown, and replies
     // with the selection.
     catalog.add(NativeCommands::with_menu_item_forms(
         std::move(select),
-        [](const json& tile_args) {
+        [](const json& action_args) {
             Plater* plater = wxGetApp().plater();
-            if (arg_bool(tile_args, "all", false)) {
+            if (arg_bool(action_args, "all", false)) {
                 if (plater == nullptr)
                     return AppActionRunResult{};
                 Ops::show_prepare_view();
@@ -2676,14 +2684,14 @@ void register_scene_tools(CommandCatalog& catalog)
                 throw ToolFailure("The arrangement did not finish within " + std::to_string(timeout.count()) + " s, so it was cancelled");
             }
         }));
-    arrange.tiles = json::array({NativeCommands::tile("obj_arrange", L("Auto-Arrange"), L("Object"), "toolbar_arrange", json::object(),
-                                                      "Arrange all objects on the unlocked plates with the saved Arrange options, as "
-                                                      "the toolbar does; the call waits for the arrangement and replies as "
-                                                      "object_arrange does: the settings in force, the instances left off every "
-                                                      "plate and the plates skipped. object_arrange with arguments also takes "
-                                                      "options, one plate or fill bed.")});
+    arrange.actions = json::array({NativeCommands::action("obj_arrange", L("Auto-Arrange"), L("Object"), "toolbar_arrange", json::object(),
+                                                          "Arrange all objects on the unlocked plates with the saved Arrange options, as "
+                                                          "the toolbar does; the call waits for the arrangement and replies as "
+                                                          "object_arrange does: the settings in force, the instances left off every "
+                                                          "plate and the plates skipped. object_arrange with arguments also takes "
+                                                          "options, one plate or fill bed.")});
     // A person's pick starts the arrangement in place as the toolbar does, and returns while it runs; an automated call
-    // of the tile's arguments is object_arrange's own function, which waits and replies. Both are Ops::start_arrange()
+    // of the action's arguments is object_arrange's own function, which waits and replies. Both are Ops::start_arrange()
     // on every unlocked plate with the panel's settings.
     catalog.add(NativeCommands::with_menu_item_forms(
         std::move(arrange), [](const json&) { return MenuItems::obj_arrange(); }, /*person_form_behind_dialogs=*/false,
@@ -2703,7 +2711,7 @@ void register_scene_tools(CommandCatalog& catalog)
         object_schema({{"plates", {{"type", {"string", "integer"}}, {"description", "\"current\" (default), \"all\", or a plate index."}}},
                        {"timeout_s", {{"type", "integer"}, {"minimum", 10}, {"maximum", 7200}, {"description", "Stop waiting after this long (default 1800): the call fails, and the slice goes on unless job_cancel stops it."}}},
                        {"preview", prop("boolean", "Show the Preview tab, as every slice does: the argument of the Slice and "
-                                                   "Preview and Slice All Plates tiles.")}}),
+                                                   "Preview and Slice All Plates actions.")}}),
         [](const json& args, ToolContext& ctx) {
             const json plates_arg = args.value("plates", json("current"));
             auto       ticket     = std::make_shared<SliceTicket>();
@@ -2816,13 +2824,14 @@ void register_scene_tools(CommandCatalog& catalog)
             return ToolResult::ok(result);
         }));
     slice.budget_ms = 45000;
-    slice.tiles     = json::array(
-        {NativeCommands::tile("slice_and_preview", L("Slice and Preview"), L("Slice & Export"), "media_play", {{"preview", true}},
-                              "Slice the current plate and show the Preview tab; the call waits for the result, and a pick starts "
-                              "the slice as a job."),
-         NativeCommands::tile("slice_all", L("Slice All Plates"), L("Slice & Export"), "media_play", {{"plates", "all"}, {"preview", true}},
-                              "Slice every plate and show the Preview tab; the call waits for the results, and a pick starts the "
-                              "slice as a job.")});
+    slice.actions   = json::array(
+        {NativeCommands::action("slice_and_preview", L("Slice and Preview"), L("Slice & Export"), "media_play", {{"preview", true}},
+                                "Slice the current plate and show the Preview tab; the call waits for the result, and a pick starts "
+                                "the slice as a job."),
+         NativeCommands::action("slice_all", L("Slice All Plates"), L("Slice & Export"), "media_play",
+                                {{"plates", "all"}, {"preview", true}},
+                                "Slice every plate and show the Preview tab; the call waits for the results, and a pick starts the "
+                                "slice as a job.")});
     catalog.add(std::move(slice));
 
     NativeCommand cancel = mutate_tool(

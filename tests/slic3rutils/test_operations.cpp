@@ -2207,14 +2207,14 @@ TEST_CASE("the exception list names only commands the catalog has under the rule
 // scripts/check_operation_calls.py leaves McpToolsCad.cpp out.
 TEST_CASE("the operations rule leaves the Design group and the read-only commands out", "[Operations]")
 {
-    Slic3r::GUI::NativeCommand tile;
-    tile.key   = "shell";
-    tile.group = "Design";
-    CHECK_FALSE(under_operations_rule(tile));
-    tile.group = "Objects";
-    CHECK(under_operations_rule(tile));
-    tile.read_only = true;
-    CHECK_FALSE(under_operations_rule(tile));
+    Slic3r::GUI::NativeCommand shell;
+    shell.key   = "shell";
+    shell.group = "Design";
+    CHECK_FALSE(under_operations_rule(shell));
+    shell.group = "Objects";
+    CHECK(under_operations_rule(shell));
+    shell.read_only = true;
+    CHECK_FALSE(under_operations_rule(shell));
 
     // With the CAD feature on, no Design command is under the rule, and none is on the exception list.
     Slic3r::GUI::CommandCatalog catalog;

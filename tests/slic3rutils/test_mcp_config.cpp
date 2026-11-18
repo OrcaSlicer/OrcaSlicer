@@ -1803,6 +1803,6 @@ TEST_CASE("filament_sync_ams takes the sync dialog's choice, map or overwrite, a
     }
     json other{{"mode", "merge"}};
     CHECK_THAT(argument_error(*sync, other), Catch::Matchers::ContainsSubstring("mode"));
-    // Its tile's call, with no arguments, is the person's form, which opens the sync dialog.
+    // Its Speed Dial action's call, with no arguments, is the person's form, which opens the sync dialog.
     CHECK(Mcp::person_form(*sync, json::object()));
 }

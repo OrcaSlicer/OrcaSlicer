@@ -17,7 +17,7 @@
 namespace Slic3r { namespace GUI {
 
 // The group of the Design tab's commands (Mcp::register_cad_commands()), an untranslated msgid as every
-// group is. Their tiles are the Speed Dial's only while the Design tab is shown.
+// group is. Their actions are the Speed Dial's only while the Design tab is shown.
 inline constexpr const char* kDesignGroup = "Design";
 
 // When a command's effect finishes. Immediate: it has finished by the time the call returns. Deferred: it
@@ -40,17 +40,17 @@ struct NativeCommand
     // What tool_search filters by. Outside the Design tab, the English heading of the command's place
     // (NativeCommands::place_heading()): Objects, Plates, The app, the place its name starts with but for the two
     // screenshot commands, which are under Recordings, replays and scripts; a plugin's operation is in Plugins. A
-    // Design command's is kDesignGroup, an untranslated msgid, which is also the Speed Dial section of its own tile and
-    // of its tiles.
+    // Design command's is kDesignGroup, an untranslated msgid, which is also the Speed Dial section of its own action
+    // and of its actions.
     std::string group;
-    // The Speed Dial section of the command's own tile (in_palette), an untranslated msgid; empty where that tile is in
-    // `group`, as a Design command's is.
-    std::string tile_group;
-    // "percent"/"tab": the palette's second phase, which collects the value the command needs before it
+    // The Speed Dial section of the command's own action (has_own_action), an untranslated msgid; empty where that
+    // action is in `group`, as a Design command's is.
+    std::string action_group;
+    // "percent"/"tab": the Speed Dial's second phase, which collects the value the command needs before it
     // runs; "" to run at once.
     std::string input;
     std::string icon;  // tile pictogram: an SVG base name under resources/images, or "" for a blank tile
-    std::string       description; // English, for agents; not shown in the palette
+    std::string       description; // English, for agents; not shown in the Speed Dial
     CommandCompletion completion = CommandCompletion::Immediate;
     // The command's function. With no arguments it does what a person's pick does; with arguments that a
     // dialog would otherwise ask for, it runs without asking.
@@ -58,16 +58,16 @@ struct NativeCommand
     nlohmann::json input_schema = {{"type", "object"}, {"properties", nlohmann::json::object()}};
     // Calls that document the command: [{title, calls: [{tool, args}], needs?}], or null.
     nlohmann::json examples;
-    // The tiles of the menu items folded into the command, [{key, title, group?, icon, description, args, input?,
-    // input_arg?}] (NativeCommands::tile()), or null: each, under the id of its key, runs the command with `args`
+    // The actions of the menu items folded into the command, [{key, title, group?, icon, description, args, input?,
+    // input_arg?}] (NativeCommands::action()), or null: each, under the id of its key, runs the command with `args`
     // (NativeCommands::make_action()). Its title is an untranslated msgid in title_context(), as the command's is.
-    // group is its Speed Dial section, an untranslated msgid; a Design tile has none and is in the command's group.
-    // input is the Speed Dial's token for the value its second phase collects ("percent", "tab"), which the tile
-    // passes on under input_arg, the command's argument, or under the token where it has no input_arg.
-    nlohmann::json tiles;
+    // group is its Speed Dial section, an untranslated msgid; a Design tab action has none and is in the command's
+    // group. input is the Speed Dial's token for the value its second phase collects ("percent", "tab"), which the
+    // action passes on under input_arg, the command's argument, or under the token where it has no input_arg.
+    nlohmann::json actions;
     // shown in tools/list: every command outside the Design tab that runs from its arguments, all but three menu items
-    bool listed     = false;
-    bool in_palette = false; // a person can pick it: it has a tile of its own, under its key
+    bool listed         = false;
+    bool has_own_action = false; // a person can pick it: it has an action of its own, under its key
     // The access labels sent as MCP's annotations. Clients act on them: Codex asks a person before every call
     // of a destructive command, and Claude Code runs read-only calls in parallel and retries idempotent ones.
     // read_only: it changes nothing in the app or the project; window_screenshot is, since its PNG replaces no file
@@ -99,14 +99,14 @@ struct NativeCommand
     // The arguments that carry an expected object or part id, which the session journal leaves out.
     std::vector<std::string> id_args;
     // The operations (GUI/Operations) the command reaches when it is given arguments, by function name. A
-    // palette command that takes arguments names them or is on the exception list of the catalog test.
+    // command in the Speed Dial that takes arguments names them or is on the exception list of the catalog test.
     std::vector<std::string> operations;
 };
 
 // The context a command's title is translated in, or nullptr for none: "Design" for a Design command, whose
 // title is its entry's name, which the Design table marks in that context for every entry (DesignOffer.hpp), with
 // a menu item or without, the context the Design tab's right-click menu translates an item's name in. Every place
-// that shows a command's title translates it with this (NativeCommands::tile_title(), a recording's caption).
+// that shows a command's title translates it with this (NativeCommands::action_title(), a recording's caption).
 inline const char* title_context(const NativeCommand& command)
 {
     return command.group == kDesignGroup ? "Design" : nullptr;
@@ -125,26 +125,26 @@ inline constexpr TabWord kTabWords[] = {{"home", "home"},       {"design", "desi
                                         {"device", "monitor"},  {"multi_device", "multi_device"},
                                         {"project", "project"}, {"calibration", "calibration"}};
 
-// The first of `command`'s tiles that collect no value (no input) whose args are `args`, compared as JSON values, a
+// The first of `command`'s actions that collect no value (no input) whose args are `args`, compared as JSON values, a
 // null `args` as {}; nullptr when none is.
-const nlohmann::json* tile_with_args(const NativeCommand& command, const nlohmann::json& args);
+const nlohmann::json* action_with_args(const NativeCommand& command, const nlohmann::json& args);
 
-// The arguments a pick of `tile`, an item of a command's tiles, runs its command with, given `args` (what
-// action_run or the Speed Dial's second phase gives): the tile's args, and for a tile with an input the value `args`
-// holds under that token, put under its input_arg, or under the token where it has none; a tab's page id that a word
-// of kTabWords names is given as that word (the Device tab's monitor as device). For a command's own tile
-// (`tile` null), `args` as they are, the call's own arguments. A person's pick, action_run and the description of a
-// replay's step all run a tile with it.
-nlohmann::json tile_call_args(const nlohmann::json* tile, const nlohmann::json& args);
+// The arguments a pick of `action`, an item of a command's actions, runs its command with, given `args` (what
+// action_run or the Speed Dial's second phase gives): the action's args, and for an action with an input the value
+// `args` holds under that token, put under its input_arg, or under the token where it has none; a tab's page id that a
+// word of kTabWords names is given as that word (the Device tab's monitor as device). For a command's own action
+// (`action` null), `args` as they are, the call's own arguments. A person's pick, action_run and the description of a
+// replay's step all run an action with it.
+nlohmann::json action_call_args(const nlohmann::json* action, const nlohmann::json& args);
 
 // What a call of `command` with `args` is titled where a person is shown it (a recording's caption): the title of
-// tile_with_args(), else the command's. Untranslated, in title_context(command).
+// action_with_args(), else the command's. Untranslated, in title_context(command).
 std::string call_title(const NativeCommand& command, const nlohmann::json& args);
 
-// What the reference says of a command: key, title, group, description, input_schema, listed, in_palette, the four
+// What the reference says of a command: key, title, group, description, input_schema, listed, has_own_action, the four
 // access labels, guard ("inspect", "recover", "mutate"), completion ("immediate", "deferred") and operations; icon,
-// input and tile_group when they are not empty, and examples and tiles when it has some. All of it is the command's
-// English text and constants, never translated.
+// input and action_group when they are not empty, and examples and actions when it has some. All of it is the
+// command's English text and constants, never translated.
 nlohmann::json command_reference(const NativeCommand& command);
 
 // Commands that come and go while the app runs (plugin operations). Any thread.
@@ -200,15 +200,15 @@ private:
     bool                                         m_sealed = false;
 };
 
-// The command of `catalog` that has a tile under `key`, with that tile: the command `key` with nullptr when its
-// own tile is (in_palette), else the command with the item of its `tiles` whose key is `key`; nullptrs when no
+// The command of `catalog` that has an action under `key`, with that action: the command `key` with nullptr when its
+// own action is (has_own_action), else the command with the item of its `actions` whose key is `key`; nullptrs when no
 // command added with add() has one.
-std::pair<const NativeCommand*, const nlohmann::json*> find_tile(const CommandCatalog& catalog, const std::string& key);
+std::pair<const NativeCommand*, const nlohmann::json*> find_command_action(const CommandCatalog& catalog, const std::string& key);
 
 // What a call of `command` with `args` is titled where a person is shown it (a recording's caption), and the command
-// whose title_context() that title is translated in: for action_run of a command's tile in `catalog` (args.id, the
-// tile's id or the key inside it), the tile's title and that command, the command's own title for its own tile; for any
-// other call, call_title() and `command`. Untranslated.
+// whose title_context() that title is translated in: for action_run of a command's action in `catalog` (args.id, the
+// action's id or the key inside it), the action's title and that command, the command's own title for its own action;
+// for any other call, call_title() and `command`. Untranslated.
 std::pair<std::string, const NativeCommand*> shown_title(const CommandCatalog& catalog, const NativeCommand& command,
                                                          const nlohmann::json& args);
 

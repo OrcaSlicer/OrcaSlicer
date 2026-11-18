@@ -12,7 +12,7 @@
 #include <vector>
 
 // The types a command of the catalog (CommandCatalog.hpp) is called with and answers in, whichever front end
-// calls it: a Speed Dial tile, an MCP tool or a plugin. No wx here: this header is part of the library
+// calls it: a Speed Dial action, an MCP tool or a plugin. No wx here: this header is part of the library
 // libslic3r_automation, which is built without wx.
 namespace Slic3r { namespace GUI {
 

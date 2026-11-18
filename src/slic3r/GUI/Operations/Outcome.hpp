@@ -30,7 +30,7 @@ struct Refusal
     std::vector<std::string> args;       // the placeholders' values
     std::vector<std::string> names;      // names that help the caller: candidates, closest matches
 
-    // In the UI's language, for the palette and notifications.
+    // In the UI's language, for the Speed Dial and notifications.
     wxString translated() const;
     // For a tool's reply and a Python exception.
     std::string english() const;

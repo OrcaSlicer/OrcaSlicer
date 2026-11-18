@@ -92,10 +92,10 @@ where it stands. place_follows deletes the feature that made the first of two pl
 placement as it becomes body 0, a box added afterwards has none, and undo brings the first back where it stood.
 boolean_opens calls boolean {} and boolean {operation: "cut"} with two bodies and nothing selected: each replies that
 a tool is open, and the card it opened, confirmed with confirm_tool, adds a join and a cut; with target and tool the
-cut runs. tile_pick opens the Speed Dial in a sketch with a line selected and picks the Polar array tile, an item folded
-into sketch_pattern, which arms the polar array tool, and the Trim tile, sketch_trim's own, which arms the trim tool.
-tile_replay runs the Polar array tile with action_run, exports the session, whose step carries the item's arguments
-{"type": "circular"}, and replays it in a new project to the same armed tool.
+cut runs. action_pick opens the Speed Dial in a sketch with a line selected and picks the Polar array action, an item
+folded into sketch_pattern, which arms the polar array tool, and the Trim action, sketch_trim's own, which arms the trim
+tool. action_pick_replay runs the Polar array action with action_run, exports the session, whose step carries the
+item's arguments {"type": "circular"}, and replays it in a new project to the same armed tool.
 """
 
 import json
@@ -1857,7 +1857,7 @@ def rung_boolean_opens():
 
 
 def dial_pick(title):
-    """Opens the Speed Dial on the Design view and picks the tile titled `title` from it, as a person's click does."""
+    """Opens the Speed Dial on the Design view and picks the action titled `title` from it, as a person's click does."""
     gui.keys("space", target=CANVAS)
     gui.client.call("widget_set_value", target={"web": "Search actions"}, value=title, submit=False)
     return gui.client.call("widget_click", target={"web": f"{title} from Orcaslicer", "kind": "button"})
@@ -1871,42 +1871,44 @@ def line_selected():
     gui.cad("sketch_select", entities=[0])
 
 
-def rung_tile_pick():
-    # A pick from the Speed Dial runs its tile's action: a folded item's with the item's arguments, a merged item's as its
-    # command's own tile.
+def rung_action_pick():
+    # A pick from the Speed Dial runs the action picked: a folded item's action with the item's arguments, a merged
+    # item's as its command's own action.
     line_selected()
     dial_pick("Polar array")
-    gui.check("tile_pick: the Polar array tile arms the polar array tool", gui.sketch()["tool"] == "array_polar",
+    gui.check("action_pick: the Polar array action arms the polar array tool", gui.sketch()["tool"] == "array_polar",
               gui.sketch()["tool"])
     gui.keys("Escape", target=CANVAS)
     dial_pick("Trim")
-    gui.check("tile_pick: the Trim tile arms the trim tool", gui.sketch()["tool"] == "trim", gui.sketch()["tool"])
+    gui.check("action_pick: the Trim action arms the trim tool", gui.sketch()["tool"] == "trim", gui.sketch()["tool"])
     gui.cad("sketch_cancel")
 
 
-def rung_tile_replay():
-    # action_run of a folded item's tile is journaled with the item's arguments, so the exported session replays the pick.
+def rung_action_pick_replay():
+    # action_run of a folded item's action is journaled with the item's arguments, so the exported session replays the
+    # pick.
     gui.new_design()
     gui.client.call("replay_export", clear=True)
     gui.cad("sketch_create", plane="XY")
     gui.cad("sketch_draw", type="line", p0=[0, 0], p1=[10, 0])
     gui.cad("sketch_select", entities=[0])
     r = gui.client.call("action_run", id="sk_array_polar")
-    gui.check("tile_replay: action_run of the Polar array tile opens its tool", r.get("result", {}).get("interactive") is True, r)
-    gui.check("tile_replay: it arms the polar array tool", gui.sketch()["tool"] == "array_polar", gui.sketch()["tool"])
-    out_dir = tempfile.mkdtemp(prefix="orca-mcp-tile-replay-")
+    gui.check("action_pick_replay: action_run of the Polar array action opens its tool",
+              r.get("result", {}).get("interactive") is True, r)
+    gui.check("action_pick_replay: it arms the polar array tool", gui.sketch()["tool"] == "array_polar", gui.sketch()["tool"])
+    out_dir = tempfile.mkdtemp(prefix="orca-mcp-action-pick-replay-")
     path = os.path.join(out_dir, "session.json")
     gui.client.call("replay_export", path=path, overwrite=True)
     picks = [s for s in steps_of(path) if s["tool"] == "action_run"]
-    gui.check("tile_replay: the export keeps the pick with the item's arguments",
+    gui.check("action_pick_replay: the export keeps the pick with the item's arguments",
               len(picks) == 1 and picks[0]["args"].get("id") == "orca_command:sk_array_polar:orca"
               and picks[0]["args"].get("args") == {"type": "circular"}, picks)
     gui.cad("sketch_cancel")
     gui.client.call("project_new", discard_changes=True)
     replay = gui.client.await_job(gui.client.call("replay_run", path=path, out_dir=out_dir), timeout=900)
-    gui.check("tile_replay: the exported session replays", replay.get("passed") is True,
+    gui.check("action_pick_replay: the exported session replays", replay.get("passed") is True,
               [s for s in replay.get("steps", []) if not s.get("ok")][:1])
-    gui.check("tile_replay: the replayed pick arms the polar array tool", gui.sketch()["tool"] == "array_polar",
+    gui.check("action_pick_replay: the replayed pick arms the polar array tool", gui.sketch()["tool"] == "array_polar",
               gui.sketch()["tool"])
     gui.cad("sketch_cancel")
     gui.show_design()
@@ -1927,8 +1929,8 @@ RUNGS = {"words": rung_words, "shapes_match_tools": rung_shapes_match_tools, "sk
          "text_dialog": rung_text_dialog, "confirm_nothing": rung_confirm_nothing, "confirm_disabled": rung_confirm_disabled,
          "confirm_refused_add": rung_confirm_refused_add, "confirm_failed_add": rung_confirm_failed_add,
          "place": rung_place, "place_select": rung_place_select,
-         "place_follows": rung_place_follows, "boolean_opens": rung_boolean_opens, "tile_pick": rung_tile_pick,
-         "tile_replay": rung_tile_replay}
+         "place_follows": rung_place_follows, "boolean_opens": rung_boolean_opens, "action_pick": rung_action_pick,
+         "action_pick_replay": rung_action_pick_replay}
 
 
 def main():

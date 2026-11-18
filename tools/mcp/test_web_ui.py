@@ -17,7 +17,7 @@ stale refs; closed:true from a page that closes its dialog through a reference t
 before, with another client's snapshots running meanwhile, and from orca.submit; dialog_answer by a
 page button and its refusal of apply; an auto-answer rule registered before the dialog opens; the web
 budget with the Home page and a modeless page window open; the plugin's page among the main window's tabs,
-which the Go to tab tile shows by its id; webview_run_javascript's el. Exits 0 when every check passes.
+which the Go to tab action shows by its id; webview_run_javascript's el. Exits 0 when every check passes.
 """
 
 import glob
@@ -588,7 +588,7 @@ def main():
     check("a page that closes its dialog before the click's reply replies closed", r.get("closed") is True and "error" not in r, r)
     check("that dialog is gone", wait_for(lambda: dialogs() == []), lambda: dialogs())
 
-    # ---- A plugin's page among the main window's tabs: the Go to tab tile shows it by its id ----
+    # ---- A plugin's page among the main window's tabs: the Go to tab action shows it by its id ----
     # The plugin registers its page once it has loaded, which may be after the app reports ready.
     shown = {}
 
@@ -597,7 +597,7 @@ def main():
         shown.update(call("action_run", id="orca_command:go_to_tab:orca", args={"tab": PAGE_TAB}))
         return shown.get("tab") == PAGE_TAB
 
-    check("the Go to tab tile shows the plugin's page", wait_for(go_to_page_tab, 15), lambda: shown)
+    check("the Go to tab action shows the plugin's page", wait_for(go_to_page_tab, 15), lambda: shown)
     check("and the window shows it", client.call("app_state").get("tab") == PAGE_TAB, lambda: client.call("app_state").get("tab"))
 
     # ---- A dock panel, beside the 3D view ----

@@ -132,7 +132,7 @@ TEST_CASE("the arrange options keep Align to Y axis off while auto rotation is o
     CHECK(settings.enable_rotation);
 }
 
-// A command that replaces a dialog takes, as JSON arguments, what the dialog asks; Go to layer and Go to tab, tiles of
+// A command that replaces a dialog takes, as JSON arguments, what the dialog asks; Go to layer and Go to tab, actions of
 // view_set, take the value of the Speed Dial's second phase, which they need.
 TEST_CASE("the commands that replace a dialog take the arguments the table gives", "[Mcp][Scene]")
 {
@@ -155,7 +155,7 @@ TEST_CASE("the commands that replace a dialog take the arguments the table gives
         INFO(name);
         CHECK(view.count(name) == 1);
     }
-    // A command whose tile asks takes, in its place, the arguments of the tile and silent.
+    // A command whose action asks takes, in its place, the arguments of the action and silent.
     REQUIRE(names("project_open") == Names{"path", "discard_changes", "silent"});
     REQUIRE(names("project_import") == Names{"paths", "entries", "archive", "silent"});
     REQUIRE(names("project_save") == Names{"path", "overwrite", "save_as", "silent"});
@@ -198,9 +198,9 @@ TEST_CASE("the commands that replace a dialog take the arguments the table gives
     CHECK(names("object_arrange").count("fill_object") == 1);
     CHECK(names("object_arrange").count("fill") == 0);
 
-    // A command with a tile of its own requires nothing: it does its person's form when it is given no arguments.
-    for (const NativeCommands::PaletteTile& t : NativeCommands::palette_tiles(NativeCommands::instance())) {
-        if (t.tile != nullptr)
+    // A command with an action of its own requires nothing: it does its person's form when it is given no arguments.
+    for (const NativeCommands::SpeedDialAction& t : NativeCommands::speed_dial_actions(NativeCommands::instance())) {
+        if (t.action != nullptr)
             continue;
         INFO(t.command->key);
         CHECK_FALSE(t.command->input_schema.contains("required"));
@@ -337,7 +337,7 @@ struct FakeWorker
 };
 
 // A core with stand-ins for the tools that start an arrange (the typed object_arrange, action_run of the
-// obj_arrange tile, a click on a plate's Arrange icon, which queues its event), change the scene (a
+// obj_arrange action, a click on a plate's Arrange icon, which queues its event), change the scene (a
 // mutate tool, a key on the canvas), answer a dialog, read, and cancel.
 struct Harness
 {
@@ -503,7 +503,7 @@ TEST_CASE("a cancelled worker job keeps admission until the worker is really idl
 
 TEST_CASE("a change is refused while an arrange an MCP call started runs, however it started", "[Mcp][Scene]")
 {
-    // The typed object_arrange, action_run of the obj_arrange tile, and a recover input whose click queues the job.
+    // The typed object_arrange, action_run of the obj_arrange action, and a recover input whose click queues the job.
     for (const char* starter : {"object_arrange", "action_run", "widget_click"}) {
         DYNAMIC_SECTION(starter)
         {
@@ -1118,7 +1118,7 @@ TEST_CASE("a shape's size needs one positive number per field of the size dialog
     }
 }
 
-// The object list's context-menu items are tiles of commands beside the other object and part commands.
+// The object list's context-menu items are actions of commands beside the other object and part commands.
 TEST_CASE("the object structure commands sit beside the other object commands", "[Mcp][Scene]")
 {
     const NativeCommand* objects = NativeCommands::find("object_delete");
@@ -1132,9 +1132,9 @@ TEST_CASE("the object structure commands sit beside the other object commands", 
         REQUIRE(c != nullptr);
         CHECK(c->group == (std::string(key).rfind("part_", 0) == 0 ? parts : objects)->group);
         CHECK_FALSE(c->description.empty());
-        REQUIRE(c->tiles.is_array());
-        for (const json& tile : c->tiles)
-            CHECK_FALSE(tile.at("description").get<std::string>().empty());
+        REQUIRE(c->actions.is_array());
+        for (const json& action : c->actions)
+            CHECK_FALSE(action.at("description").get<std::string>().empty());
     }
 }
 
@@ -1205,7 +1205,7 @@ TEST_CASE("a mirror needs its axis, a centring takes a plate and no part, and a 
     REQUIRE(primitive != nullptr);
     json placed{{"shape", "cube"}, {"size", json::array({20, 20, 20})}, {"plate", 1}, {"position", json::array({100, 100, 0})}, {"name", "block"}};
     CHECK(Mcp::argument_error(*primitive, placed).empty());
-    // A call with more than a tile's shape is the silent form, which asks for no size.
+    // A call with more than an action's shape is the silent form, which asks for no size.
     CHECK_FALSE(Mcp::person_form(*primitive, placed));
     // Its size is checked as part_add's is: the size dialog's fields, each above 0.
     const std::vector<double> cylinder = Mcp::part_shape_size("cylinder", json::array({30, 10}));

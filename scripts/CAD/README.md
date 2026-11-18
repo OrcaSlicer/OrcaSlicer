@@ -50,9 +50,10 @@ compiled against it cannot drift apart:
 | `mate-glyph/emit_glyph_table.py` | `mate-glyph/bear_outline.json`, measured off `mate-glyph/bear.step` by `extract_outline.py` | the `kBear…` tables in `DesignSketchTool.cpp` |
 
 The atlas's `verbs` are one table for three things: the right-click menu (a verb with a `slot` has an
-item there), the Speed Dial's Design tiles and the Design commands. Every verb but `align` is a command
-whose key is its `id`. A verb with an `action` does what its menu item does when called with no
-arguments, in the mode the item belongs to, and has a tile; one with a `tool` block also runs silently
+item there), the Speed Dial's Design tab actions and the Design commands. Every verb but `align` is a
+command whose key is its `id`. A verb with a handler (`action`) does what its menu item does when called
+with no arguments, in the mode the item belongs to, and has an action of its own in the Speed Dial; one
+with a `tool` block also runs silently
 with arguments, and the block holds what that form takes and does: its `access` (`read`, `change` or
 `sketch`, which decides what a busy Design tab lets through), `ok_false` (it reports a rejected rebuild
 in its reply), a `summary` of one sentence,
@@ -60,10 +61,10 @@ in its reply), a `summary` of one sentence,
 `max`, `enum` and `description`; one with no default is required, and one whose default is null also takes
 null, unless `nullable` is false, which marks a param whose function reads a null as given), one to three
 `examples` and `ids`
-(it takes or gives face and edge ids). Entries with no `slot` and no `action` are commands only, and
-`modal` marks a verb whose action opens a dialog. `src/slic3r/GUI/Mcp/McpToolsCad.cpp` binds each block
+(it takes or gives face and edge ids). Entries with no `slot` and no handler are commands only, and
+`modal` marks a verb whose handler opens a dialog. `src/slic3r/GUI/Mcp/McpToolsCad.cpp` binds each block
 to the function that runs it (`kSilentForms`), and a unit test fails when a block has no function or a
-function no block. The generator refuses an entry with neither an action nor a block, but `align`.
+function no block. The generator refuses an entry with neither a handler nor a block, but `align`.
 
 `python3 scripts/CAD/gen_offer_table.py` rewrites the header and `--check` proves the
 checked-in one matches the atlas. The "Check CAD offer table" workflow

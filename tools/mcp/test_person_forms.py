@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Checks that a call with exactly a tile's arguments asks as a person's pick does, that one with a path does not, and
-that a person's pick of a view tile or Deselect All runs in place, as its menu item did.
+"""Checks that a call with exactly an action's arguments asks as a person's pick does, that one with a path does not,
+and that a person's pick of a view action or Deselect All runs in place, as its menu item did.
 
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_person_forms.py
@@ -16,14 +16,14 @@ Picks from the Speed Dial, opened with Space on the 3D view and searched by titl
 the camera, Deselect All on the Preview tab clears the Prepare selection without leaving the tab, and Go to layer takes
 its percentage from the second phase. None of them starts a job or shows a notice.
 
-Auto-Arrange and Select All Objects, on a plate of three cubes: object_arrange {} and action_run of the tile wait and
-reply as the command does (the settings in force, what was left off the plates); the journal keeps the call with the
-settings in force, and action_run of the tile with the tile's arguments, whose exported replay runs. object_select
-{all: true} and action_run of its tile reply with the selection; in the assemble view the call selects there and leaves
-the view shown, and with the Measure gizmo open there it is refused as gizmo_open. A pick of either runs in place:
-Auto-Arrange puts a cube moved off the plate back on it, and Select All Objects selects the three, in Prepare, which it
-shows when picked in the assemble view. A replay cannot expect a failed step, which is why this is a script. Exits 0
-when every check passes.
+Auto-Arrange and Select All Objects, on a plate of three cubes: object_arrange {} and action_run of its action wait
+and reply as the command does (the settings in force, what was left off the plates); the journal keeps the call with
+the settings in force, and action_run of the action with its own arguments, whose exported replay runs. object_select
+{all: true} and action_run of its action reply with the selection; in the assemble view the call selects there and
+leaves the view shown, and with the Measure gizmo open there it is refused as gizmo_open. A pick of either runs in
+place: Auto-Arrange puts a cube moved off the plate back on it, and Select All Objects selects the three, in Prepare,
+which it shows when picked in the assemble view. A replay cannot expect a failed step, which is why this is a script.
+Exits 0 when every check passes.
 """
 
 import json
@@ -80,7 +80,7 @@ def main():
         return out
 
     def dial_pick(title):
-        """Opens the Speed Dial on the shown 3D view and picks the tile titled `title`, as a person's click does."""
+        """Opens the Speed Dial on the shown 3D view and picks the action titled `title`, as a person's click does."""
         client.call("keyboard_press", keys="space", target=CANVAS)
         client.call("widget_set_value", target={"web": "Search actions"}, value=title, submit=False)
         return client.call("widget_click", target={"web": f"{title} from Orcaslicer", "kind": "button"})
@@ -132,7 +132,7 @@ def main():
     check("project_save with a path writes the file", os.path.isfile(path), os.listdir(work))
     check("with no picker", picker_uses() == before, f"{before} -> {picker_uses()}")
 
-    # ---- The tiles' arguments open the pickers, which the rule cancels ----
+    # ---- The actions' arguments open the pickers, which the rule cancels ----
     last = last_output_dir(session)
     folders = [work] + ([last] if last and os.path.isdir(last) else [])
     since = time.time()
@@ -233,19 +233,19 @@ def main():
     check("and the journal keeps it with the settings in force", step.get("tool") == "object_arrange"
           and "spacing" in step.get("args", {}), step)
 
-    # action_run names the tile it ran in ran, whatever the command replies; the menu item replied level besides.
+    # action_run names the action it ran in ran, whatever the command replies; the menu item replied level besides.
     cube_off_plate("action_run of Auto-Arrange")
     arranged = client.await_job(client.call("action_run", id="orca_command:obj_arrange:orca"))
     check("action_run of Auto-Arrange replies with the settings in force and what it left off the plates",
           "settings" in arranged and arranged.get("off_plate") == [], arranged)
     check("and not with the menu item's level", "level" not in arranged, arranged)
-    check("and with ran, the tile's id", arranged.get("ran") == "orca_command:obj_arrange:orca", arranged)
+    check("and with ran, the action's id", arranged.get("ran") == "orca_command:obj_arrange:orca", arranged)
     check("and puts the cube back on the plate", outside() == [], outside())
-    # action_run takes the tile with its own arguments alone, none here, so the journal keeps those in place of the
+    # action_run takes the action with its own arguments alone, none here, so the journal keeps those in place of the
     # settings the command records, and the step replays.
     exported = client.call("replay_export", clear=True)["replay"]
     step = (exported["steps"] or [{}])[-1]
-    check("and the journal keeps the tile's call", step.get("tool") == "action_run"
+    check("and the journal keeps the action's call", step.get("tool") == "action_run"
           and step.get("args") == {"id": "orca_command:obj_arrange:orca", "args": {}}, step)
     exported["steps"] = [s for s in exported["steps"] if s.get("tool") in ("object_transform", "action_run")]
     replayed = client.await_job(client.call("replay_run", replay=exported))
@@ -281,7 +281,7 @@ def main():
     check("action_run of Select All Objects replies with the selection, the three cubes", chosen.get("objects") == [0, 1, 2],
           chosen)
     check("and not with the menu item's level", "level" not in chosen, chosen)
-    check("and with ran, the tile's id", chosen.get("ran") == "orca_command:select_all:orca", chosen)
+    check("and with ran, the action's id", chosen.get("ran") == "orca_command:select_all:orca", chosen)
 
     client.call("view_set", canvas="assemble")
     client.call("object_select", none=True)

@@ -410,12 +410,12 @@ void register_app_tools(CommandCatalog& catalog, [[maybe_unused]] bool cad)
         }));
 
     // Undo and Redo act on the shown tab's history, as the Edit menu's do; history names one for automation, which acts
-    // whatever tab is shown. Each has a tile of its own, in the Speed Dial's section Commands.
+    // whatever tab is shown. Each has an action of its own, in the Speed Dial's section Commands.
     const json history = object_schema(
         {{"history", enum_prop({"design", "project"}, "The history: design, the Design tab's (with the CAD feature on), or project. "
                                                       "Default: the Design tab's while it is shown, else the project's.")}});
     // A person's pick does what the Edit menu's item does, and shows nothing where it would be greyed. An automated
-    // call, action_run of the tile included, acts on the history MenuItems::undo_redo() picks: the Design tab's through its
+    // call, action_run of its action included, acts on the history MenuItems::undo_redo() picks: the Design tab's through its
     // gate, whose refusals say why, and the project's as the Edit menu's item does.
     const auto history_command = [&history](std::string key, std::string title, std::string icon, std::string description, bool redo) {
         NativeCommand command = menu_command(std::move(key), std::move(title), std::move(description), history, json(),
@@ -426,9 +426,9 @@ void register_app_tools(CommandCatalog& catalog, [[maybe_unused]] bool cad)
         command.run = [picked, automated = std::move(command.run)](const json& args, ToolContext& ctx) {
             return ctx.person() ? picked(args, ctx) : automated(args, ctx);
         };
-        command.in_palette = true;
-        command.tile_group = L("Commands");
-        command.icon       = std::move(icon);
+        command.has_own_action = true;
+        command.action_group   = L("Commands");
+        command.icon           = std::move(icon);
         return command;
     };
     NativeCommand undo = history_command(
@@ -472,41 +472,43 @@ void register_app_tools(CommandCatalog& catalog, [[maybe_unused]] bool cad)
     catalog.add(std::move(redo));
 
     // ---- The app's commands made from the Help and Plugins menus' items ----
-    using NativeCommands::tile;
+    using NativeCommands::action;
     NativeCommand web_page = menu_command(
         "app_open_web_page", L("Open a web page"),
         "Open one of OrcaSlicer's web pages in the default web browser, as its menu item does: wiki, the OrcaSlicer wiki; "
         "youtube, the OrcaSlicer YouTube channel; plugin_hub, the plugin hub's page, where a person picks a plugin to install. "
         "Nothing opens in OrcaSlicer.",
         object_schema({{"page", enum_prop({"wiki", "youtube", "plugin_hub"}, "The page.")}}, {"page"}),
-        json::array({tile("open_wiki", L("Open Wiki"), L("Help"), "link_wiki_img", {{"page", "wiki"}}, "Open the OrcaSlicer wiki in the browser."),
-                     tile("open_youtube", L("Open YouTube Channel"), L("Help"), "", {{"page", "youtube"}},
-                          "Open the OrcaSlicer YouTube channel in the browser."),
-                     tile("install_plugin", L("Install Plugin"), L("Plugins"), "", {{"page", "plugin_hub"}},
-                          "Open the plugin hub's page in the default web browser, where a person picks a plugin to install; "
-                          "nothing opens in OrcaSlicer.")}),
+        json::array({action("open_wiki", L("Open Wiki"), L("Help"), "link_wiki_img", {{"page", "wiki"}},
+                            "Open the OrcaSlicer wiki in the browser."),
+                     action("open_youtube", L("Open YouTube Channel"), L("Help"), "", {{"page", "youtube"}},
+                            "Open the OrcaSlicer YouTube channel in the browser."),
+                     action("install_plugin", L("Install Plugin"), L("Plugins"), "", {{"page", "plugin_hub"}},
+                            "Open the plugin hub's page in the default web browser, where a person picks a plugin to install; "
+                            "nothing opens in OrcaSlicer.")}),
         [](const json& args) { return MenuItems::open_web_page(arg_string(args, "page")); });
     // The browser it opens reaches the network.
     web_page.open_world = true;
     catalog.add(std::move(web_page));
     const std::string updates = "Check for a newer OrcaSlicer.";
     NativeCommand check_updates = menu_command("app_check_for_updates", L("Check for Updates"), updates, object_schema({}),
-                                              json::array({tile("help_check_updates", L("Check for Updates"), L("Help"), "refresh",
-                                                                json::object(), updates)}),
+                                              json::array({action("help_check_updates", L("Check for Updates"), L("Help"), "refresh",
+                                                                  json::object(), updates)}),
                                               [](const json&) { return MenuItems::check_for_updates(); });
     // It asks the update server.
     check_updates.open_world = true;
     catalog.add(std::move(check_updates));
     const std::string folder = "Open the configuration folder in the file manager.";
     catalog.add(menu_command("app_show_config_folder", L("Show Configuration Folder"), folder, object_schema({}),
-                            json::array({tile("help_open_config_folder", L("Show Configuration Folder"), L("Help"), "open_project",
-                                              json::object(), folder)}),
+                            json::array({action("help_open_config_folder", L("Show Configuration Folder"), L("Help"), "open_project",
+                                                json::object(), folder)}),
                             [](const json&) { return MenuItems::show_config_folder(); }));
     const std::string benchmark = "Time the 3D views on a test model. It asks first (Start or Cancel), then replaces the project with "
                                   "the OrcaSliced Combo as New Project does, which may ask about unsaved changes, slices it and shows "
                                   "the results.";
     catalog.add(menu_command("app_benchmark_3d_scene", L("Benchmark 3D Scene"), benchmark, object_schema({}),
-                            json::array({tile("help_benchmark_3d_scene", L("Benchmark 3D Scene"), L("Help"), "", json::object(), benchmark)}),
+                            json::array({action("help_benchmark_3d_scene", L("Benchmark 3D Scene"), L("Help"), "", json::object(),
+                                                benchmark)}),
                             [](const json&) { return MenuItems::benchmark_3d_scene(); }));
 }
 

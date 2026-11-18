@@ -16,7 +16,7 @@ panel" docks a small page beside the 3D view (the Prepare tab). The dialog scrip
 the Plugins dialog in its sandboxed frame. Each page logs what its controls saw into <pre id="log">,
 which the test reads back. "MCP web fixture thread" starts a thread, for which the host asks the
 threading permission in its permission prompt. "MCP web fixture page" is a page among the main window's
-tabs (TAB_PAGE), which the Go to tab tile shows by its id.
+tabs (TAB_PAGE), which the Go to tab action shows by its id.
 """
 import json
 import sys
@@ -161,7 +161,7 @@ PANEL = r"""
 <pre id="ups"></pre>
 """
 
-# A page among the main window's tabs, which the Go to tab tile reaches by its id.
+# A page among the main window's tabs, which the Go to tab action reaches by its id.
 TAB_PAGE = r"""
 <h3>Fixture page</h3>
 <p>A plugin's page among the main window's tabs.</p>

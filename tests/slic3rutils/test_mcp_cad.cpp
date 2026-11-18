@@ -328,7 +328,7 @@ TEST_CASE("the CAD commands are the Design table's entries but its greyed and fo
         CHECK(keys.insert(c.key).second);
         CHECK(c.group == "Design");
         CHECK_FALSE(c.listed);
-        // Its title is the item's name, the one the right-click menu and its tile show.
+        // Its title is the item's name, the one the right-click menu and its Speed Dial action show.
         CHECK(c.title == design_row(c.key).name);
     }
     CHECK(keys.size() == 88);
@@ -373,7 +373,7 @@ TEST_CASE("a menu item and the command that runs its job are one command", "[Mcp
                             "sketch_constrain", "feature_edit"}) {
         INFO(key);
         const GUI::NativeCommand& command = command_of(catalog, key);
-        CHECK(command.in_palette);
+        CHECK(command.has_own_action);
         CHECK(two_forms(command));
         const GUI::DesignTool* entry = GUI::Mcp::find_design_tool(key);
         REQUIRE(entry != nullptr);
@@ -503,18 +503,18 @@ TEST_CASE("a command has silent when a call with no arguments opens a tool", "[M
         const GUI::DesignTool& entry = design_row(c.key);
         if (entry.doc != nullptr)
             CHECK(two_forms(c) == (GUI::Mcp::opened_item(entry, json::object()) != nullptr));
-        // A command that has a tile is the one whose entry has an action, and it carries the item's icon.
-        CHECK(c.in_palette == (entry.action != nullptr));
+        // A command that has an action of its own is the one whose entry has a handler, and it carries the item's icon.
+        CHECK(c.has_own_action == (entry.action != nullptr));
         CHECK(c.icon == (entry.icon != nullptr ? entry.icon : ""));
-        // A tile with no icon would be a blank square in the Speed Dial.
-        if (c.in_palette)
+        // An action with no icon would be a blank square in the Speed Dial.
+        if (c.has_own_action)
             CHECK_FALSE(c.icon.empty());
     }
-    // Their items are folded into them, and their tiles are the items'.
+    // Their items are folded into them, and their actions are the items'.
     for (const char* key : {"body_set", "sketch_set_value"}) {
         INFO(key);
         CHECK(two_forms(command_of(catalog, key)));
-        CHECK_FALSE(command_of(catalog, key).in_palette);
+        CHECK_FALSE(command_of(catalog, key).has_own_action);
     }
     CHECK(two_forms(command_of(catalog, "shell")));
     CHECK_FALSE(two_forms(command_of(catalog, "describe_design")));
@@ -571,7 +571,7 @@ TEST_CASE("a call opens a tool only with the arguments that choose it", "[Mcp][C
         INFO(runs.dump());
         CHECK(GUI::Mcp::opened_item(body_set, runs) == nullptr);
     }
-    // sketch_set_value's three value items are one action.
+    // sketch_set_value's three value items share one handler.
     const GUI::DesignTool* value = GUI::Mcp::opened_item(design_row("sketch_set_value"), json::object());
     REQUIRE(value != nullptr);
     REQUIRE(value->action != nullptr);
@@ -626,7 +626,7 @@ TEST_CASE("a folded item opens only in its own mode", "[Mcp][CAD]")
     REQUIRE(in_sketch.has_value());
     CHECK(std::string(in_sketch->what()) == "This tool works on the model: finish or cancel the sketch first");
     CHECK_FALSE(GUI::Mcp::open_refusal(colour, false, int(GUI::OfferSel::BodySolid)).has_value());
-    // Its action is a btn: one, which the menu greys for a selection it does not take.
+    // Its handler is a btn: one, which the menu greys for a selection it does not take.
     const std::optional<GUI::ToolFailure> nothing = GUI::Mcp::open_refusal(colour, false, int(GUI::OfferSel::None));
     REQUIRE(nothing.has_value());
     CHECK(std::string(nothing->what()) == "This tool does not apply to what is selected");
@@ -705,44 +705,44 @@ TEST_CASE("a Design command carries its menu item's icon", "[Mcp][CAD]")
     const GUI::CommandCatalog catalog = cad_catalog();
     CHECK(command_of(catalog, "sketch_create").icon == "design_sketch");
     CHECK(command_of(catalog, "body_transform").icon == "design_move");
-    // Its tile, titled as the right-click menu names its entry, in the tests' English UI.
-    const std::unique_ptr<GUI::AppAction> tile = GUI::NativeCommands::make_action(command_of(catalog, "sketch_create"));
-    REQUIRE(tile != nullptr);
-    CHECK(tile->id() == "orca_command:sketch_create:orca");
-    CHECK(tile->group == "Design");
-    CHECK(tile->title() == "Sketch");
-    CHECK(GUI::NativeCommands::tile_title(command_of(catalog, "sketch_create")) == "Sketch");
+    // Its Speed Dial action, titled as the right-click menu names its entry, in the tests' English UI.
+    const std::unique_ptr<GUI::AppAction> action = GUI::NativeCommands::make_action(command_of(catalog, "sketch_create"));
+    REQUIRE(action != nullptr);
+    CHECK(action->id() == "orca_command:sketch_create:orca");
+    CHECK(action->group == "Design");
+    CHECK(action->title() == "Sketch");
+    CHECK(GUI::NativeCommands::action_title(command_of(catalog, "sketch_create")) == "Sketch");
     CHECK(std::string(GUI::title_context(command_of(catalog, "sketch_create"))) == "Design");
-    CHECK(tile->icon == "design_sketch");
-    CHECK(tile->command == "sketch_create");
+    CHECK(action->icon == "design_sketch");
+    CHECK(action->command == "sketch_create");
 }
 
-TEST_CASE("the Design tiles' icons resolve to shipped SVGs", "[Mcp][CAD][SpeedDial]")
+TEST_CASE("the Design tab actions' icons resolve to shipped SVGs", "[Mcp][CAD][SpeedDial]")
 {
     // An icon comes from a hand-edited atlas row, so a typo would be a blank tile and a blank menu item.
     const boost::filesystem::path images = boost::filesystem::path(PROFILES_DIR).parent_path() / "images";
     const GUI::CommandCatalog     catalog = catalog_with_cad();
-    std::size_t                   tiles   = 0;
+    std::size_t                   actions = 0;
     for (const GUI::NativeCommand& c : catalog.commands()) {
         if (c.group != "Design")
             continue;
         if (!c.icon.empty()) {
             INFO(c.key << " -> " << c.icon);
             CHECK(boost::filesystem::exists(images / (c.icon + ".svg")));
-            tiles += c.in_palette ? 1 : 0;
+            actions += c.has_own_action ? 1 : 0;
         }
-        if (!c.tiles.is_array())
+        if (!c.actions.is_array())
             continue;
-        for (const json& tile : c.tiles) {
-            const std::string icon = tile.at("icon").get<std::string>();
-            INFO(c.key << " / " << tile.at("key") << " -> " << icon);
+        for (const json& action : c.actions) {
+            const std::string icon = action.at("icon").get<std::string>();
+            INFO(c.key << " / " << action.at("key") << " -> " << icon);
             CHECK_FALSE(icon.empty());
             CHECK(boost::filesystem::exists(images / (icon + ".svg")));
-            ++tiles;
+            ++actions;
         }
     }
-    // One per entry with an action: the 52 commands' own and the 37 folded items'.
-    CHECK(tiles == 89);
+    // One per entry with a handler: the 52 commands' own and the 37 folded items'.
+    CHECK(actions == 89);
 }
 
 TEST_CASE("a tool refused for the selection says it does not apply and what it takes", "[Mcp][CAD]")
@@ -786,7 +786,7 @@ TEST_CASE("a tool refused for the selection says it does not apply and what it t
     }
     CHECK(greyed > 0);
     CHECK(never_greyed > 0);
-    // A key: action runs whatever is selected, as its key does.
+    // A key: handler runs whatever is selected, as its key does.
     CHECK_FALSE(GUI::Mcp::open_refusal(design_row("shell"), false, int(GUI::OfferSel::None)).has_value());
 }
 
@@ -813,7 +813,7 @@ TEST_CASE("the menu items that act on the Feature list's row are not refused for
         CHECK(GUI::kDesignTools[i].feature_row == (feature_rows.count(GUI::kDesignTools[i].id) == 1));
     }
     // With nothing picked in the view: refused for the selection as the menu greys them, and nothing when a call
-    // targets the selected row of the Feature list, whose action says itself what it cannot do.
+    // targets the selected row of the Feature list, whose handler says itself what it cannot do.
     const int none = int(GUI::OfferSel::None);
     for (const std::string& id : feature_rows) {
         INFO(id);
@@ -862,20 +862,20 @@ TEST_CASE("a Design tool opens only in the mode its menu item belongs to", "[Mcp
     CHECK_FALSE(GUI::Mcp::open_refusal(design_row("sk_rect"), true, int(GUI::OfferSel::SkNone)).has_value());
 }
 
-TEST_CASE("a pinned Design tile stays pinned while its tile is not shown", "[Mcp][CAD][SpeedDial]")
+TEST_CASE("a pinned Design tab action stays pinned while it is not shown", "[Mcp][CAD][SpeedDial]")
 {
-    CHECK(GUI::is_design_tile_id("orca_command:shell:orca"));
-    CHECK(GUI::is_design_tile_id("orca_command:sk_rect:orca"));
-    CHECK(GUI::is_design_tile_id("orca_command:sk_array:orca"));                // a folded item's, which runs sketch_pattern
-    CHECK_FALSE(GUI::is_design_tile_id("orca_command:describe_design:orca"));   // a Design command with no tile
-    CHECK_FALSE(GUI::is_design_tile_id("orca_command:align_to:orca"));          // an entry with no command
-    CHECK_FALSE(GUI::is_design_tile_id("orca_command:sk_trim:orca"));           // no entry's: the Trim item is sketch_trim's
-    CHECK_FALSE(GUI::is_design_tile_id("orca_command:save_project:orca"));
-    CHECK_FALSE(GUI::is_design_tile_id("orca_plate_goto:shell:orca"));
-    CHECK_FALSE(GUI::is_design_tile_id("shell"));
-    // On the Prepare tab no Design tile is live, and the third plate is gone. A pin under an id no entry has, as
-    // the Trim item's tile had before it took sketch_trim's key, has no live action either: it is dropped, and the
-    // pins on either side of it stay.
+    CHECK(GUI::is_design_action_id("orca_command:shell:orca"));
+    CHECK(GUI::is_design_action_id("orca_command:sk_rect:orca"));
+    CHECK(GUI::is_design_action_id("orca_command:sk_array:orca"));                // a folded item's, which runs sketch_pattern
+    CHECK_FALSE(GUI::is_design_action_id("orca_command:describe_design:orca"));   // a Design command with no action
+    CHECK_FALSE(GUI::is_design_action_id("orca_command:align_to:orca"));          // an entry with no command
+    CHECK_FALSE(GUI::is_design_action_id("orca_command:sk_trim:orca"));           // no entry's: the Trim item is sketch_trim's
+    CHECK_FALSE(GUI::is_design_action_id("orca_command:save_project:orca"));
+    CHECK_FALSE(GUI::is_design_action_id("orca_plate_goto:shell:orca"));
+    CHECK_FALSE(GUI::is_design_action_id("shell"));
+    // On the Prepare tab no Design tab action is live, and the third plate is gone. A pin under an id no entry has,
+    // as the Trim item's action had before it took sketch_trim's key, has no live action either: it is dropped, and
+    // the pins on either side of it stay.
     const std::string           shell = "orca_command:shell:orca", rect = "orca_command:sk_rect:orca";
     const std::string           array = "orca_command:sk_array:orca", trim = "orca_command:sk_trim:orca";
     const std::string           save = "orca_command:save_project:orca", plate = "orca_plate_goto:2:orca";
@@ -889,7 +889,7 @@ TEST_CASE("a pinned Design tile stays pinned while its tile is not shown", "[Mcp
 
 TEST_CASE("a hidden Design pin takes no place on the favourites bar", "[Mcp][CAD][SpeedDial]")
 {
-    // Ten stored pins on the Prepare tab, three of them Design tiles, which are not live there.
+    // Ten stored pins on the Prepare tab, three of them Design tab actions, which are not live there.
     const std::vector<std::string> design = {"orca_command:shell:orca", "orca_command:sk_rect:orca", "orca_command:fillet:orca"};
     std::vector<std::string>       favs;
     for (int i = 1; i <= 7; ++i)
@@ -909,30 +909,30 @@ TEST_CASE("a hidden Design pin takes no place on the favourites bar", "[Mcp][CAD
     CHECK(shown.size() == 8);
 }
 
-TEST_CASE("the Design tab's tiles are its mode's tools, and none with the CAD feature off", "[Mcp][CAD][SpeedDial]")
+TEST_CASE("the Design tab's actions are its mode's tools, and none with the CAD feature off", "[Mcp][CAD][SpeedDial]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
     for (const bool sketching : {false, true}) {
         INFO("sketching " << sketching);
-        // The entry of each tile, in the order design_tiles() gives them.
+        // The entry of each action, in the order design_actions() gives them.
         std::vector<std::string> ids;
-        for (const GUI::Mcp::DesignTile& tile : GUI::Mcp::design_tiles(catalog, sketching, /*cad_on=*/true)) {
-            REQUIRE(tile.command != nullptr);
-            const std::string id = tile.tile != nullptr ? tile.tile->at("key").get<std::string>() : tile.command->key;
+        for (const GUI::Mcp::DesignAction& action : GUI::Mcp::design_actions(catalog, sketching, /*cad_on=*/true)) {
+            REQUIRE(action.command != nullptr);
+            const std::string id = action.action != nullptr ? action.action->at("key").get<std::string>() : action.command->key;
             INFO(id);
             const GUI::DesignTool& entry = design_row(id);
             if (entry.fold_into != nullptr) {
-                // A folded item's tile runs the command it is folded into with the item's arguments.
-                REQUIRE(tile.tile != nullptr);
-                CHECK(tile.command->key == entry.fold_into);
-                CHECK(tile.tile->at("args") == json::parse(entry.args));
+                // A folded item's action runs the command it is folded into with the item's arguments.
+                REQUIRE(action.action != nullptr);
+                CHECK(action.command->key == entry.fold_into);
+                CHECK(action.action->at("args") == json::parse(entry.args));
             } else {
-                CHECK(tile.tile == nullptr);
-                CHECK(tile.command->in_palette);
+                CHECK(action.action == nullptr);
+                CHECK(action.command->has_own_action);
             }
             ids.push_back(id);
         }
-        // Every entry with an action has its tile in its own mode and none in the other, in the table's order.
+        // Every entry with a handler has its action in its own mode and none in the other, in the table's order.
         std::vector<std::string> offered;
         for (int i = 0; i < GUI::kDesignToolCount; ++i)
             if (GUI::kDesignTools[i].action != nullptr && GUI::kDesignTools[i].sketch_mode == sketching)
@@ -942,19 +942,19 @@ TEST_CASE("the Design tab's tiles are its mode's tools, and none with the CAD fe
             INFO(id);
             CHECK(std::count(ids.begin(), ids.end(), id) == 1);
         }
-        // Turned off while the app runs, the tab stays until a restart, and has no tile.
-        CHECK(GUI::Mcp::design_tiles(catalog, sketching, /*cad_on=*/false).empty());
+        // Turned off while the app runs, the tab stays until a restart, and has no action.
+        CHECK(GUI::Mcp::design_actions(catalog, sketching, /*cad_on=*/false).empty());
     }
 }
 
-TEST_CASE("a folded item's tile runs its command with the item's arguments", "[Mcp][CAD][SpeedDial]")
+TEST_CASE("a folded item's action runs its command with the item's arguments", "[Mcp][CAD][SpeedDial]")
 {
     const GUI::CommandCatalog catalog        = cad_catalog();
     const GUI::NativeCommand& sketch_pattern = command_of(catalog, "sketch_pattern");
-    const auto [pattern_owner, array]        = GUI::find_tile(catalog, "sk_array");
+    const auto [pattern_owner, array]        = GUI::find_command_action(catalog, "sk_array");
     REQUIRE(pattern_owner == &sketch_pattern);
     REQUIRE(array != nullptr);
-    // The Linear array item's tile, under the id it has had, titled and pictured as the item, in the tests' English UI.
+    // The Linear array item's action, under the id it has had, titled and pictured as the item, in the tests' English UI.
     const std::unique_ptr<GUI::AppAction> action = GUI::NativeCommands::make_action(sketch_pattern, *array);
     REQUIRE(action != nullptr);
     CHECK(action->id() == "orca_command:sk_array:orca");
@@ -972,68 +972,68 @@ TEST_CASE("a folded item's tile runs its command with the item's arguments", "[M
     CHECK(GUI::Mcp::action_args_error(*action, {{"type", "linear"}}).empty());
     CHECK_FALSE(GUI::Mcp::action_args_error(*action, {{"count", 3}}).empty());
     CHECK_FALSE(GUI::Mcp::action_args_error(*action, {{"type", "circular"}}).empty());
-    // A call of the command with the item's arguments is titled as the item's tile; with any other, as the command.
+    // A call of the command with the item's arguments is titled as the item's action; with any other, as the command.
     CHECK(GUI::call_title(sketch_pattern, {{"type", "linear"}}) == "Linear array");
     CHECK(GUI::call_title(sketch_pattern, {{"type", "linear"}, {"count", 3}}) == sketch_pattern.title);
 
     // The Color item runs body_set with no arguments: its preset is an empty object, not null.
     const GUI::NativeCommand& body_set     = command_of(catalog, "body_set");
-    const auto [colour_owner, colour_tile] = GUI::find_tile(catalog, "colour");
+    const auto [colour_owner, colour_action] = GUI::find_command_action(catalog, "colour");
     REQUIRE(colour_owner == &body_set);
-    REQUIRE(colour_tile != nullptr);
-    const std::unique_ptr<GUI::AppAction> colour = GUI::NativeCommands::make_action(body_set, *colour_tile);
+    REQUIRE(colour_action != nullptr);
+    const std::unique_ptr<GUI::AppAction> colour = GUI::NativeCommands::make_action(body_set, *colour_action);
     REQUIRE(colour != nullptr);
     CHECK(colour->preset.is_object());
     CHECK(colour->preset.empty());
     CHECK(GUI::call_title(body_set, json::object()) == "Color");
-    // The three value items are one action under three labels, all with no arguments: a call with none is titled as
+    // The three value items are one tool under three labels, all with no arguments: a call with none is titled as
     // the first of them.
     CHECK(GUI::call_title(command_of(catalog, "sketch_set_value"), json::object()) == "Length\xE2\x80\xA6");
 
-    // A command's own tile is found under its key, with no tile of the command's tiles; an id no entry has is none.
-    const auto [trim, trim_tile] = GUI::find_tile(catalog, "sketch_trim");
+    // A command's own action is found under its key, with none of the command's actions; an id no entry has is none.
+    const auto [trim, trim_action] = GUI::find_command_action(catalog, "sketch_trim");
     CHECK(trim == &command_of(catalog, "sketch_trim"));
-    CHECK(trim_tile == nullptr);
-    const auto [none, none_tile] = GUI::find_tile(catalog, "sk_trim");
+    CHECK(trim_action == nullptr);
+    const auto [none, none_action] = GUI::find_command_action(catalog, "sk_trim");
     CHECK(none == nullptr);
-    CHECK(none_tile == nullptr);
+    CHECK(none_action == nullptr);
 
-    // Every tile's arguments are a call its command takes, and that call opens the tile's item.
-    std::size_t tiles = 0;
+    // Every action's arguments are a call its command takes, and that call opens the action's item.
+    std::size_t actions = 0;
     for (const GUI::NativeCommand& c : catalog.commands()) {
-        if (c.tiles.is_null())
+        if (c.actions.is_null())
             continue;
         const GUI::DesignTool* entry = GUI::Mcp::find_design_tool(c.key);
         REQUIRE(entry != nullptr);
-        for (const json& tile : c.tiles) {
-            INFO(c.key << " / " << tile.at("key"));
-            json args = tile.at("args");
+        for (const json& command_action : c.actions) {
+            INFO(c.key << " / " << command_action.at("key"));
+            json args = command_action.at("args");
             CHECK(GUI::Mcp::argument_error(c, args).empty());
-            const GUI::DesignTool* item = GUI::Mcp::opened_item(*entry, tile.at("args"));
+            const GUI::DesignTool* item = GUI::Mcp::opened_item(*entry, command_action.at("args"));
             REQUIRE(item != nullptr);
-            CHECK(std::string(item->action) == design_row(tile.at("key").get<std::string>()).action);
-            ++tiles;
+            CHECK(std::string(item->action) == design_row(command_action.at("key").get<std::string>()).action);
+            ++actions;
         }
     }
-    CHECK(tiles == 37);   // one per folded item
+    CHECK(actions == 37);   // one per folded item
 }
 
-TEST_CASE("the Action Replay window titles a step that calls a folded item's tile as that item", "[Mcp][CAD][SpeedDial]")
+TEST_CASE("the Action Replay window titles a step that calls a folded item's action as that item", "[Mcp][CAD][SpeedDial]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
     const std::string         pattern = command_of(catalog, "sketch_pattern").title;
     const json                step{{"kind", "command"}, {"key", "sketch_pattern"}};
-    // describe_step()'s `what` for a call of sketch_pattern with the Linear array item's arguments names the item's tile:
-    // the window shows that tile's title, in the tests' English UI.
-    json tiled    = step;
-    tiled["tile"] = "sk_array";
-    CHECK(GUI::replay_what_text(tiled, catalog).first == "Linear array");
-    // With no tile, or a tile that is not the command's (body_set's Color, or none at all), the command's own title.
+    // describe_step()'s `what` for a call of sketch_pattern with the Linear array item's arguments names the item's
+    // action: the window shows that action's title, in the tests' English UI.
+    json with_action      = step;
+    with_action["action"] = "sk_array";
+    CHECK(GUI::replay_what_text(with_action, catalog).first == "Linear array");
+    // With no action, or an action that is not the command's (body_set's Color, or none at all), the command's own title.
     CHECK(GUI::replay_what_text(step, catalog).first == pattern);
     for (const char* other : {"colour", "sk_none"}) {
         INFO(other);
-        json given    = step;
-        given["tile"] = other;
+        json given      = step;
+        given["action"] = other;
         CHECK(GUI::replay_what_text(given, catalog).first == pattern);
     }
 }
@@ -1550,7 +1550,7 @@ TEST_CASE("a CAD command's summary is one sentence of at most 120 characters", "
     CHECK_THAT(command_of(catalog, "sketch_transform").description, ContainsSubstring("pivot"));
     CHECK_THAT(command_of(catalog, "shell").description, ContainsSubstring("ok is false"));
     CHECK_THAT(command_of(catalog, "extrude").description, !ContainsSubstring("ok is false"));
-    // One with an action only does what its menu item does, which for Zoom to selection is to act at once.
+    // One with a handler only does what its menu item does, which for Zoom to selection is to act at once.
     CHECK_THAT(command_of(catalog, "zoom_to_selection").description, ContainsSubstring("act at once"));
     CHECK_THAT(command_of(catalog, "zoom_to_selection").description, !ContainsSubstring("opens the tool"));
 }
@@ -1565,7 +1565,7 @@ TEST_CASE("a Design command with a person's form says which mode it runs in", "[
         if (item.action == nullptr)
             continue;
         INFO(c.key);
-        // An action only: its description says it of the command, which takes no arguments. Both forms: the `silent`
+        // A handler only: its description says it of the command, which takes no arguments. Both forms: the `silent`
         // property says it of the call with no arguments, whose item's mode the argument form need not share.
         const bool        both = item.doc != nullptr;
         const std::string text = both ? property_of(c, "silent").value("description", std::string()) : c.description;
@@ -1576,7 +1576,7 @@ TEST_CASE("a Design command with a person's form says which mode it runs in", "[
             CHECK_THAT(text, !ContainsSubstring("It runs only"));
         ++told;
     }
-    CHECK(told == 52);   // the commands whose entry has an action
+    CHECK(told == 52);   // the commands whose entry has a handler
     CHECK_THAT(command_of(catalog, "sketch_polygon_inscribed").description, ContainsSubstring("It " + in_sketch));
     CHECK_THAT(command_of(catalog, "zoom_to_selection").description, ContainsSubstring("It " + outside));
     CHECK_THAT(property_of(command_of(catalog, "shell"), "silent").value("description", std::string()),
@@ -1998,7 +1998,7 @@ TEST_CASE("every CAD command with a silent form has one to three examples", "[Mc
     const GUI::CommandCatalog catalog = cad_catalog();
     for (const GUI::NativeCommand& c : catalog.commands()) {
         INFO(c.key);
-        // A command with an action and no silent form takes no arguments, so there is no call to show.
+        // A command with a handler and no silent form takes no arguments, so there is no call to show.
         if (design_row(c.key).doc == nullptr) {
             CHECK(c.examples.is_null());
             continue;
@@ -2973,10 +2973,10 @@ TEST_CASE("sketch_edit re-opens a committed sketch by its index, as a sketch com
     const GUI::CommandCatalog catalog = cad_catalog();
     const GUI::NativeCommand& command = command_of(catalog, "sketch_edit");
     const GUI::DesignTool&    entry   = design_row("sketch_edit");
-    // A command with no menu item of its own: no menu item, no tile and no person's form.
+    // A command with no menu item of its own: no menu item, no Speed Dial action and no person's form.
     CHECK(entry.row == -1);
     CHECK(entry.action == nullptr);
-    CHECK_FALSE(command.in_palette);
+    CHECK_FALSE(command.has_own_action);
     CHECK_FALSE(two_forms(command));
     REQUIRE(entry.section != nullptr);
     CHECK(std::string(entry.section) == "Sketch");

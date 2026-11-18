@@ -27,17 +27,17 @@ std::string validate_arguments(const nlohmann::json& schema, const nlohmann::jso
 // Whether `args` is a call with no arguments: an object with no members, or null. A Design command and a menu
 // item's function do their person's form then (they ask, as a person's pick does).
 bool person_form(const nlohmann::json& args);
-// The arguments of each of `command`'s person's forms: {} for its own tile (in_palette), and the args of each item
-// of its tiles that collects no value (no input), in their order.
+// The arguments of each of `command`'s person's forms: {} for its own action (has_own_action), and the args of each
+// item of its actions that collects no value (no input), in their order.
 std::vector<nlohmann::json> person_forms(const NativeCommand& command);
 // Whether `args`, null as {}, are a person's form of `command`: exactly the arguments of one of person_forms(). Such
-// a call does what a person's pick of that tile does, and may ask; any other call is its silent form.
+// a call does what a person's pick of that action does, and may ask; any other call is its silent form.
 bool person_form(const NativeCommand& command, const nlohmann::json& args);
 // `args` without `silent`, which only chooses the silent form.
 nlohmann::json silent_args(nlohmann::json args);
 // The schema of a two-form command from its silent form's `schema`: it gains the property `silent`, which
 // takes only true and asks for the silent form with its defaults, described by what that form still requires and by
-// which calls are the person's forms (none, a tile's arguments, or both), and a top-level `required` list moves under
+// which calls are the person's forms (none, an action's arguments, or both), and a top-level `required` list moves under
 // "then", with an "if" that holds for every call but the person's forms, `person_args` (never empty), so that a
 // person's form needs none of them: {"minProperties": 1} where the only one is the call with no arguments, else
 // {"not": {"enum": [<each of person_args>]}}.

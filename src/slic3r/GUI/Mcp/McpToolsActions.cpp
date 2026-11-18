@@ -79,7 +79,7 @@ const AppAction& find_action(ActionRegistry& actions, std::string& id)
 
 std::string action_args_error(const AppAction& action, const json& args)
 {
-    // A tile that collects a value takes that value alone, as the Speed Dial's second phase gives it.
+    // An action that collects a value takes that value alone, as the Speed Dial's second phase gives it.
     if (!action.input.empty())
         return args.is_object() && args.size() == 1 && args.contains(action.input) ?
                    std::string() :
@@ -87,8 +87,8 @@ std::string action_args_error(const AppAction& action, const json& args)
                        "\": ...} (its input_schema)";
     if (person_form(args))
         return {};
-    // A command's tile runs its command with the tile's arguments, which it takes as well as none; other arguments are
-    // the command's to take.
+    // A command's action runs its command with the action's arguments, which it takes as well as none; other arguments
+    // are the command's to take.
     if (!action.preset.is_null()) {
         if (args == action.preset)
             return {};
@@ -98,13 +98,13 @@ std::string action_args_error(const AppAction& action, const json& args)
         return "The action " + action.id() + " runs " + action.command + " with " + action.preset.dump() +
                ": run it without args or with exactly those, or call " + action.command + " with other arguments";
     }
-    // A Design command's own tile takes the command's arguments, which the command checks.
+    // A Design command's own action takes the command's arguments, which the command checks.
     if (!action.command.empty())
         return {};
     return "The action " + action.id() + " takes no arguments: run it without args";
 }
 
-json tile_journal_args(const AppAction& action, const json& args)
+json action_journal_args(const AppAction& action, const json& args)
 {
     if (action.preset.is_null())
         return nullptr;
@@ -113,26 +113,26 @@ json tile_journal_args(const AppAction& action, const json& args)
 
 std::string unknown_action(const std::string& id, const CommandCatalog& catalog)
 {
-    // A Design tile is no action while it is not live (ActionRegistry::materialize_design_actions()); its
+    // A Design tab action is in the registry only while it is live (ActionRegistry::materialize_design_actions()); its
     // command is in the catalog, unless the catalog was built with the CAD feature off.
-    const std::string tile = id.find(':') != std::string::npos ? id : AppAction::compose_id(kCommandPrefix, id, kOrcaSourceKey);
-    if (is_design_tile_id(tile)) {
-        if (const std::string* why = catalog.left_out(short_id(tile)))
-            return id + " is a Design tab tile, and " + *why;
-        // A folded item's tile is a call of the command it is folded into with the item's arguments, written as the
+    const std::string action_id = id.find(':') != std::string::npos ? id : AppAction::compose_id(kCommandPrefix, id, kOrcaSourceKey);
+    if (is_design_action_id(action_id)) {
+        if (const std::string* why = catalog.left_out(short_id(action_id)))
+            return id + " is a Design tab action, and " + *why;
+        // A folded item's action is a call of the command it is folded into with the item's arguments, written as the
         // rest of the call is, a space after each colon and comma.
-        const auto [command, folded] = find_tile(catalog, short_id(tile));
-        std::string call = "{\"tool\": \"" + (command != nullptr ? command->key : short_id(tile)) + "\"";
+        const auto [command, folded] = find_command_action(catalog, short_id(action_id));
+        std::string call = "{\"tool\": \"" + (command != nullptr ? command->key : short_id(action_id)) + "\"";
         if (folded != nullptr && !folded->at("args").empty()) {
             std::string args;
             for (const auto& [name, value] : folded->at("args").items())
                 args += (args.empty() ? "" : ", ") + json(name).dump() + ": " + value.dump();
             call += ", \"args\": {" + args + "}";
         }
-        return id + " is a Design tab tile, there only while the Design tab is shown in its mode (a sketch's or the model's) "
+        return id + " is a Design tab action, there only while the Design tab is shown in its mode (a sketch's or the model's) "
                     "with the CAD feature on; tool_call " + call + "} runs its command from any tab";
     }
-    // The name may be a command's that has no tile, which tool_call runs.
+    // The name may be a command's that has no action, which tool_call runs.
     return "Unknown action id " + id + "; find an action with action_search, or a command with tool_search";
 }
 
@@ -148,7 +148,7 @@ json rank_actions(const json& listed, const std::vector<std::string>& words)
     for (const json& action : listed) {
         // The name inside the id, without the source and plugin every built-in id shares: "orca" and
         // "command" would match them all. The group is part of what the action is called, as the
-        // palette shows one by group and title: Delete Selected is the Object group's delete, though
+        // Speed Dial shows one by group and title: Delete Selected is the Object group's delete, though
         // its own title names no object.
         const std::string         name  = short_id(action.value("id", std::string()));
         const std::pair<int, int> score = match_score(words,
@@ -227,13 +227,13 @@ void register_action_tools(CommandCatalog& catalog)
     NativeCommand run = mutate_tool(
         "action_run", L("Run a Speed Dial action"),
         "Run one action by the id action_search returned (orca_command:view_front:orca, or the name inside it, view_front), "
-        "with args, the command's arguments, when it takes some (its input_schema). A command's tile (action_search names "
-        "the command) runs the command as a call with the tile's arguments does: a tile that asks in a dialog asks, and "
-        "the call returns blocked_by_dialog; answer it with dialog_answer, or, for a native one it can't press (a file "
-        "picker), register dialog_auto_answer before the call. Such a tile takes no args, or exactly its own; to run a "
+        "with args, the command's arguments, when it takes some (its input_schema). A command's action (action_search names "
+        "the command) runs the command as a call with the action's arguments does: an action that asks in a dialog asks, "
+        "and the call returns blocked_by_dialog; answer it with dialog_answer, or, for a native one it can't press (a file "
+        "picker), register dialog_auto_answer before the call. Such an action takes no args, or exactly its own; to run a "
         "command without asking, call it with its arguments (an absolute path skips a file dialog). Go to layer and Go to "
-        "tab take their value alone ({\"percent\": 50}, {\"tab\": \"preview\"}), and a Design command's own tile takes the "
-        "command's arguments. An action that starts a background job (obj_arrange, obj_orient) completes when the job "
+        "tab take their value alone ({\"percent\": 50}, {\"tab\": \"preview\"}), and a Design command's own action takes "
+        "the command's arguments. An action that starts a background job (obj_arrange, obj_orient) completes when the job "
         "ends. An action that does nothing (no object selected) is an error. Some commands add what they did to the reply "
         "(the order object_order leaves, the object object_assemble made). The other actions (plates, recent projects, "
         "plugin scripts and pages, settings) run only here.",
@@ -243,22 +243,22 @@ void register_action_tools(CommandCatalog& catalog)
         [](const json& args, ToolContext& ctx) {
             std::string        id           = arg_string(args, "id");
             json               command_args = args.contains("args") ? args["args"] : json::object();
-            std::string        key;       // the command of a command's tile
-            json               tile_args; // what its journal step keeps for a tile of fixed arguments
-            AppActionRunResult result;    // of any other action
+            std::string        key;         // the command of a command's action
+            json               action_args; // what its journal step keeps for an action of fixed arguments
+            AppActionRunResult result;      // of any other action
             ctx.run_ui([&]() -> json {
                 ActionRegistry&  actions = registry_or_fail();
                 const AppAction& action  = find_action(actions, id);
                 if (const std::string err = action_args_error(action, command_args); !err.empty())
                     throw ToolFailure(err);
-                key       = action.command;
-                tile_args = tile_journal_args(action, command_args);
+                key         = action.command;
+                action_args = action_journal_args(action, command_args);
                 if (key.empty()) {
                     result = actions.run(id, command_args, /*record_stats=*/false);
                 } else {
-                    // What a person's pick of the tile runs its command with, which the journal records.
-                    const json* tile = find_tile(NativeCommands::instance(), short_id(id)).second;
-                    command_args     = tile_call_args(tile, command_args);
+                    // What a person's pick of the action runs its command with, which the journal records.
+                    const json* command_action = find_command_action(NativeCommands::instance(), short_id(id)).second;
+                    command_args               = action_call_args(command_action, command_args);
                 }
                 return json();
             });
@@ -266,20 +266,20 @@ void register_action_tools(CommandCatalog& catalog)
                 settle(ctx);
                 return NativeCommands::from_run_result(id, result);
             }
-            // A command's tile runs the command's own function, as a call of the command does, inside action_run's
+            // A command's action runs the command's own function, as a call of the command does, inside action_run's
             // journal entry.
             const NativeCommand* command = NativeCommands::find(key);
             if (command == nullptr)
                 throw ToolFailure("Unknown command " + key);
             if (const std::string err = argument_error(*command, command_args); !err.empty())
                 throw ToolFailure("Invalid arguments for " + key + ": " + err);
-            TileContext tile(ctx, id, tile_args);
-            ToolResult  reply = command->run(command_args, tile);
+            ActionContext action_ctx(ctx, id, action_args);
+            ToolResult    reply = command->run(command_args, action_ctx);
             if (!reply.is_error && reply.data.is_object())
                 reply.data["ran"] = id;
             return reply;
         });
-    // Its tiles upload G-code to a print host (printer_send) and sync presets with the cloud account (preset_sync).
+    // Its actions upload G-code to a print host (printer_send) and sync presets with the cloud account (preset_sync).
     run.open_world = true;
     catalog.add(run);
 }

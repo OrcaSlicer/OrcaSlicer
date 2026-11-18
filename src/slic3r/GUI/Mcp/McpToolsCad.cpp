@@ -1,5 +1,5 @@
 // The Design tab's commands. The Design table (kDesignTools, generated from scripts/CAD/tool_atlas.json)
-// declares every one, its menu item, action, access, tool block and the items folded into it; kSilentForms binds a
+// declares every one, its menu item, handler, access, tool block and the items folded into it; kSilentForms binds a
 // block to the function that runs it. register_cad_commands() makes a command of each entry that is one
 // (is_design_command()): a call with the arguments that choose one of its items does what that menu item does
 // (opened_item(), open_tool()), and any other has run_cad_tool() run its silent form on the UI thread, through the
@@ -55,7 +55,7 @@
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
 #include "slic3r/GUI/CAD/DesignCanvas.hpp"
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
-#include "slic3r/GUI/CAD/DesignOffer.hpp"   // the Design table: every command's menu item, action and tool block
+#include "slic3r/GUI/CAD/DesignOffer.hpp"   // the Design table: every command's menu item, handler and tool block
 
 #include "libslic3r/CAD/CadDocument.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"
@@ -163,7 +163,7 @@ const char* const kGenerationNote =
 // How a silent form whose entry has ok_false reports a rebuild the kernel rejects.
 const char* const kFailureNote = "A rejected rebuild is reported in the reply: ok is false or error is not empty.";
 
-// The rest of the description of a command whose entry has an action and no silent form, after its hint and
+// The rest of the description of a command whose entry has a handler and no silent form, after its hint and
 // before mode_note().
 const char* const kOpensToolNote =
     "It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open "
@@ -176,7 +176,7 @@ const char* const kSilentNote =
     "true runs the tool with the other arguments and opens nothing. A call with no arguments does what the Design "
     "tab's menu item does, as a person's pick does.";
 
-// The mode an entry with an action runs in, as the Design tab's right-click menu offers it (offered_in_mode()).
+// The mode an entry with a handler runs in, as the Design tab's right-click menu offers it (offered_in_mode()).
 // A sketch being constrained counts as open, and refuses sketch_finish and sketch_cancel: the tab's own Confirm
 // and Cancel buttons end it. A call that takes no arguments runs only there; `no_arguments` words it for the call
 // with no arguments of a command that also runs from arguments, whose argument form may run in the other mode
@@ -198,7 +198,7 @@ const char* const kCadOffNote = "tool_call runs no Design command now: they need
                                 "off and restarts OrcaSlicer, or starts it with --cad.";
 
 // Why a catalog built with the CAD feature off leaves out the Design commands, after "Unknown tool: <key>; "
-// or a tile's "<key> is a Design tab tile, and " (unknown_action()).
+// or an action's "<key> is a Design tab action, and " (unknown_action()).
 const char* const kCadOffAtStartup = "the CAD feature was off when OrcaSlicer started: a person turns it on in "
                                      "Preferences > Features and restarts OrcaSlicer, or starts it with --cad";
 
@@ -3973,14 +3973,14 @@ CadRun find_silent_form(const std::string& id)
     return nullptr;
 }
 
-// Runs `run`, a tool's handler, with its failure as the call's error: the handler's own refusal with its code,
+// Runs `run`, a silent form or undo and redo, with its failure as the call's error: its own refusal with its code,
 // a kernel exception as "OCCT: ...", and any other as -32000.
 json run_guarded(const std::function<json()>& run)
 {
     try {
         return run();
     } catch (const ToolFailure&) {
-        throw;   // a handler's own refusal, code included
+        throw;   // its own refusal, code included
     } catch (const Standard_Failure& ex) {   // derives from std::exception, so it comes first
         throw ToolFailure(std::string("OCCT: ") + (*ex.what() ? ex.what() : "failure"), {{"code", -32000}});
     } catch (const std::exception& ex) {
@@ -3988,7 +3988,7 @@ json run_guarded(const std::function<json()>& run)
     }
 }
 
-// Why a menu-only entry (a btn: or fly: action) is refused for a selection it does not accept.
+// Why a menu-only entry (a btn: or fly: handler) is refused for a selection it does not accept.
 // TRN Refusal of a Design tab tool picked for a selection its right-click menu item is greyed for (Constrain
 // sketch with a face selected).
 const char* const kDoesNotApply = L("This tool does not apply to what is selected");
@@ -4016,16 +4016,16 @@ uint32_t reported_kinds(bool sketching)
     return bits;
 }
 
-// Item `item`'s action, for a call of `command` that opens it (opened_item()), as a person's pick of the item or its
-// tile runs it: past cad_gate() with no access of its own, so that only a rebuild refuses it, as the Design tab's
-// keys and menu are refused by nothing; each tool decides for itself what an open card means to it. The action
-// runs in place, so a modal dialog it opens holds the call, which the core reports as blocked by that dialog. It
-// is refused, as open_refusal() says, in the mode the item does not belong to, where the right-click menu does not
-// offer it, and for a btn: or fly: action a selection the menu greys the item for. The reply claims nothing about
-// what the action did, which may be to open a card, start a sketch tool, act at once or tell the person why it
+// Item `item`'s handler, for a call of `command` that opens it (opened_item()), as a person's pick of the item or of
+// its Speed Dial action runs it: past cad_gate() with no access of its own, so that only a rebuild refuses it, as the
+// Design tab's keys and menu are refused by nothing; each tool decides for itself what an open card means to it. The
+// handler runs in place, so a modal dialog it opens holds the call, which the core reports as blocked by that dialog.
+// It is refused, as open_refusal() says, in the mode the item does not belong to, where the right-click menu does not
+// offer it, and for a btn: or fly: handler a selection the menu greys the item for. The reply claims nothing about
+// what the handler did, which may be to open a card, start a sketch tool, act at once or tell the person why it
 // cannot: it says what the tab shows after it, its busy reason (a card, a dialog or a sketch now open) and its
 // status line. Its `tool` is the command called. A call that is not a person's pick, made while a row of the Feature
-// list is selected and nothing is picked in the view, targets that row: an item whose action acts on it (feature_row)
+// list is selected and nothing is picked in the view, targets that row: an item whose handler acts on it (feature_row)
 // is not refused for the selection then, and applies. A person's pick keeps the menu's rule, which greys the item.
 json open_tool(const DesignTool& item, const char* command, const json& args, bool person)
 {
@@ -4038,8 +4038,8 @@ json open_tool(const DesignTool& item, const char* command, const json& args, bo
         throw *refused;
     const bool text_was_open = panel->mcp_text_dialog_open();
     panel->mcp_run_verb(item.id);
-    // A dialog the action opened held the call until it was answered, unless the action opened the Text dialog,
-    // which is modeless: the call returns with it open. A Text dialog open before the action is not its dialog.
+    // A dialog the handler opened held the call until it was answered, unless the handler opened the Text dialog,
+    // which is modeless: the call returns with it open. A Text dialog open before the handler ran is not its dialog.
     const bool modal = item.modal && !(panel->mcp_text_dialog_open() && !text_was_open);
     std::string why;
     const bool  busy = panel->mcp_busy(false, false, why);
@@ -4082,7 +4082,7 @@ std::string opening_calls(const DesignTool& t)
            calls + ".";
 }
 
-// The command of the Design table's entry `t`, which has an action, a tool block or both, and is no folded item.
+// The command of the Design table's entry `t`, which has a handler, a tool block or both, and is no folded item.
 NativeCommand design_command(const DesignTool& t)
 {
     const json doc = t.doc != nullptr ? json::parse(t.doc) : json();
@@ -4108,17 +4108,17 @@ NativeCommand design_command(const DesignTool& t)
             return run_cad_tool(entry->id, silent_args(args));
         },
         [entry](const json& args) { return opened_item(*entry, args) != nullptr; });
-    c.in_palette = t.action != nullptr;
-    c.icon       = t.icon != nullptr ? t.icon : "";
-    // The items folded into the command keep their tiles, each a call of the command with the item's arguments, and
-    // say what a pick does as a command with an action only does.
+    c.has_own_action = t.action != nullptr;
+    c.icon           = t.icon != nullptr ? t.icon : "";
+    // The items folded into the command keep their actions, each a call of the command with the item's arguments,
+    // and say what a pick does as a command with a handler only does.
     for (const DesignTool& item : kDesignTools)
         if (item.fold_into != nullptr && std::strcmp(item.fold_into, t.id) == 0)
-            c.tiles.push_back({{"key", item.id},
-                               {"title", item.name},
-                               {"icon", item.icon != nullptr ? item.icon : ""},
-                               {"description", std::string(item.hint) + ". " + kOpensToolNote + " " + mode_note(item)},
-                               {"args", json::parse(item.args)}});
+            c.actions.push_back({{"key", item.id},
+                                 {"title", item.name},
+                                 {"icon", item.icon != nullptr ? item.icon : ""},
+                                 {"description", std::string(item.hint) + ". " + kOpensToolNote + " " + mode_note(item)},
+                                 {"args", json::parse(item.args)}});
     if (doc.is_null()) {
         c.description = std::string(t.hint) + ". " + kOpensToolNote + " " + mode_note(t);
         return c;
@@ -4164,16 +4164,16 @@ const DesignTool* opened_item(const DesignTool& entry, const json& args)
 
 bool offered_in_mode(const DesignTool& t, bool sketching) { return t.sketch_mode == sketching; }
 
-std::vector<DesignTile> design_tiles(const CommandCatalog& catalog, bool sketching, bool cad_on)
+std::vector<DesignAction> design_actions(const CommandCatalog& catalog, bool sketching, bool cad_on)
 {
-    std::vector<DesignTile> tiles;
-    if (!cad_on) return tiles;
+    std::vector<DesignAction> actions;
+    if (!cad_on) return actions;
     for (const DesignTool& t : kDesignTools) {
         if (t.action == nullptr || !offered_in_mode(t, sketching)) continue;
-        const auto [command, tile] = find_tile(catalog, t.id);
-        if (command != nullptr && command->group == kDesignGroup) tiles.push_back({command, tile});
+        const auto [command, action] = find_command_action(catalog, t.id);
+        if (command != nullptr && command->group == kDesignGroup) actions.push_back({command, action});
     }
-    return tiles;
+    return actions;
 }
 
 std::optional<ToolFailure> open_refusal(const DesignTool& t, bool sketching, int kind, bool row_target)
@@ -4181,14 +4181,14 @@ std::optional<ToolFailure> open_refusal(const DesignTool& t, bool sketching, int
     if (!offered_in_mode(t, sketching))
         return ToolFailure(t.sketch_mode ? kSketchTool : kModelTool,
                            {{"code", -32000}, {"mode", t.sketch_mode ? "sketch" : "model"}});
-    // The item's action acts on the Feature list's selected row, and says itself what it cannot do with it.
+    // The item's handler acts on the Feature list's selected row, and says itself what it cannot do with it.
     if (row_target && t.feature_row)
         return std::nullopt;
-    const std::string action(t.action);
+    const std::string handler(t.action);
     const bool applies = (t.accepts & offer_bit(OfferSel(kind))) != 0;
     // Only an item that accepts a kind the tab can report in its mode is greyed for the others; one that accepts none
     // (Boolean's items take two bodies, Rib a sketch line) opens as its toolbar button does, whatever is selected.
-    const bool greyable = (action.rfind("btn:", 0) == 0 || action.rfind("fly:", 0) == 0) &&
+    const bool greyable = (handler.rfind("btn:", 0) == 0 || handler.rfind("fly:", 0) == 0) &&
                           (t.accepts & reported_kinds(t.sketch_mode)) != 0;
     if (applies || !greyable)
         return std::nullopt;
@@ -4233,7 +4233,7 @@ DesignPanel* cad_gate(CadAccess access, const json& args)
     // load it, as showing the tab would, before anything reads or writes the document.
     panel->hydrate_from_model();
 
-    // Stale-id guard, checked here rather than in each handler.
+    // Stale-id guard, checked here rather than in each command's function.
     //
     // Global face and edge ids are indices into TopExp::MapShapes, valid only against the
     // topology that produced them. Every dress-up rewrites those maps, so the natural way to
@@ -4246,7 +4246,7 @@ DesignPanel* cad_gate(CadAccess access, const json& args)
     // So a caller may pass back the "generation" it got from describe_design or body_describe,
     // and a mismatch is refused instead of silently obeyed. Optional by design: a call without it
     // is not checked, and supplying it is what buys the guarantee. One check here rather than one
-    // per handler, so a command added later cannot forget it.
+    // per command, so a command added later cannot forget it.
     //
     // The type is checked first, as a caller that skips the schema (run_cad_tool() called directly) may
     // pass any: a bare get<uint64_t>() on `"generation": "x"` would surface as an internal error instead
@@ -4373,7 +4373,7 @@ void register_cad_commands(CommandCatalog& catalog)
 
 void leave_out_cad_commands(CommandCatalog& catalog)
 {
-    // A folded item's id too, which is no command but names a tile.
+    // A folded item's id too, which is no command but names an action.
     for (const DesignTool& t : kDesignTools)
         if (t.action != nullptr || t.doc != nullptr)
             catalog.leave_out(t.id, kCadOffAtStartup);

@@ -68,7 +68,7 @@ std::vector<std::string> cap_favourites(const std::vector<std::string>& ids, siz
     return out;
 }
 
-bool is_design_tile_id([[maybe_unused]] const std::string& id)
+bool is_design_action_id([[maybe_unused]] const std::string& id)
 {
 #ifdef SLIC3R_CAD
     for (const DesignTool& t : kDesignTools)
@@ -88,7 +88,7 @@ void prune_favourites(const std::vector<std::string>& favs, const std::function<
             stored.push_back(id);
             if (shown.size() < ActionRegistry::kFavLimit)
                 shown.push_back(id);
-        } else if (is_design_tile_id(id)) {
+        } else if (is_design_action_id(id)) {
             stored.push_back(id);
         }
     }
@@ -339,7 +339,7 @@ constexpr const char* kPlateGotoPrefix     = "orca_plate_goto";
 constexpr const char* kRecentProjectPrefix = "orca_recent_project";
 
 // Display context for a setting action's eyebrow, e.g. the "Process" in "Process : Quality : Layers".
-// Keyed by the option's preset type so the palette reads like the settings sidebar tabs. Untranslated:
+// Keyed by the option's preset type so the Speed Dial reads like the settings sidebar tabs. Untranslated:
 // the caller translates it for the displayed breadcrumb and keeps it for the English one.
 const char* setting_type_context(Preset::Type type)
 {
@@ -608,12 +608,12 @@ void ActionRegistry::init()
             upsert(std::move(action));
     }
 
-    // Built-in palette tiles (Save/Load, Preferences, Mode switch, Slice/Preview, Go to layer): the catalog's
-    // commands' own tiles and the items of their tiles, and no others. Register after plugins so the plugin ids win
-    // on any (unlikely) id collision - ids are distinct by prefix, so this is order-independent. The catalog (and
+    // Built-in Speed Dial actions (Save/Load, Preferences, Mode switch, Slice/Preview, Go to layer): the catalog's
+    // commands' own actions and the items of their actions, and no others. Register after plugins so the plugin ids
+    // win on any (unlikely) id collision - ids are distinct by prefix, so this is order-independent. The catalog (and
     // its thin AppAction adapter) lives in NativeCommands; the registry only stores and dispatches the result.
-    for (const NativeCommands::PaletteTile& t : NativeCommands::palette_tiles(NativeCommands::instance()))
-        upsert(t.tile != nullptr ? NativeCommands::make_action(*t.command, *t.tile) : NativeCommands::make_action(*t.command));
+    for (const NativeCommands::SpeedDialAction& t : NativeCommands::speed_dial_actions(NativeCommands::instance()))
+        upsert(t.action != nullptr ? NativeCommands::make_action(*t.command, *t.action) : NativeCommands::make_action(*t.command));
 }
 
 void ActionRegistry::relocalize_builtins()
@@ -633,8 +633,8 @@ void ActionRegistry::relocalize_builtins()
     for (const std::string& id : stale)
         remove(id);
 
-    for (const NativeCommands::PaletteTile& t : NativeCommands::palette_tiles(NativeCommands::instance()))
-        upsert(t.tile != nullptr ? NativeCommands::make_action(*t.command, *t.tile) : NativeCommands::make_action(*t.command));
+    for (const NativeCommands::SpeedDialAction& t : NativeCommands::speed_dial_actions(NativeCommands::instance()))
+        upsert(t.action != nullptr ? NativeCommands::make_action(*t.command, *t.action) : NativeCommands::make_action(*t.command));
 }
 
 void ActionRegistry::refresh_source(const std::string& plugin_key, ActionChange change)
@@ -979,7 +979,7 @@ void ActionRegistry::materialize_recent_project_actions()
     std::vector<std::string> favs;
     load_persisted(stats, favs);
 
-    // app_config stores recents oldest-first; the palette shows newest-first.
+    // app_config stores recents oldest-first; the Speed Dial shows newest-first.
     std::vector<std::string> recents = wxGetApp().app_config->get_recent_projects();
     std::reverse(recents.begin(), recents.end());
 
@@ -1014,10 +1014,10 @@ void ActionRegistry::materialize_design_actions()
 {
     assert(wxThread::IsMain());
 #ifdef SLIC3R_CAD
-    // The tiles act on the Design tab a person is looking at, so they are there only while it is shown, and
+    // The Design tab's actions work on the tab a person is looking at, so they are there only while it is shown, and
     // only those of the mode it is in, the tools its right-click menu offers there; none while the CAD feature
-    // is off, though the tab stays until a restart (Mcp::design_tiles()). The catalog holds the Design commands
-    // only when the CAD feature was on at startup. A folded item's tile runs its command with the item's arguments.
+    // is off, though the tab stays until a restart (Mcp::design_actions()). The catalog holds the Design commands
+    // only when the CAD feature was on at startup. A folded item's action runs its command with the item's arguments.
     const MainFrame*   frame = wxTheApp ? wxGetApp().mainframe : nullptr;
     const DesignPanel* panel = frame != nullptr ? frame->shown_design_panel() : nullptr;
     std::unordered_set<std::string> seen;
@@ -1025,18 +1025,19 @@ void ActionRegistry::materialize_design_actions()
         nlohmann::json           stats;
         std::vector<std::string> favs;
         load_persisted(stats, favs);
-        for (const Mcp::DesignTile& tile :
-             Mcp::design_tiles(NativeCommands::instance(), panel->mcp_sketch_map_applies(), wxGetApp().is_enable_cad_feature())) {
-            std::unique_ptr<AppAction> action = tile.tile != nullptr ? NativeCommands::make_action(*tile.command, *tile.tile) :
-                                                                       NativeCommands::make_action(*tile.command);
+        for (const Mcp::DesignAction& design_action :
+             Mcp::design_actions(NativeCommands::instance(), panel->mcp_sketch_map_applies(), wxGetApp().is_enable_cad_feature())) {
+            std::unique_ptr<AppAction> action = design_action.action != nullptr ?
+                                                    NativeCommands::make_action(*design_action.command, *design_action.action) :
+                                                    NativeCommands::make_action(*design_action.command);
             const std::string          id     = action->id();
             seed_from(stats, favs, id, *action);
             seen.insert(id);
             m_actions.insert_or_assign(id, std::shared_ptr<AppAction>(std::move(action)));
         }
     }
-    // Drop the tiles of a tab no longer shown, of the other mode, or of a CAD feature turned off. Their ids are
-    // command ids like any other tile's, so they are told apart by their group.
+    // Drop the actions of a tab no longer shown, of the other mode, or of a CAD feature turned off. Their ids are
+    // command ids like those of the other commands' actions, so they are told apart by their group.
     for (auto it = m_actions.begin(); it != m_actions.end();) {
         const AppAction& a = *it->second;
         if (a.kind == AppActionKind::Command && a.group_en == kDesignGroup && seen.count(it->first) == 0)
@@ -1090,7 +1091,7 @@ nlohmann::json ActionRegistry::snapshot()
     assert(wxThread::IsMain());
     // Settings and plates are first-class actions; make sure the current visible option set and the
     // live plate list are materialised before we serialise the pool (tabs_list is built by the time
-    // the palette opens).
+    // the Speed Dial opens).
     materialize_setting_actions();
     materialize_live();
 
@@ -1120,7 +1121,7 @@ nlohmann::json ActionRegistry::snapshot()
     // as stored, not be re-derived from the frecency-sorted actions (that would
     // reorder the favourites bar). Drop pins with no live action (an option hidden by the
     // current mode, an unloaded plugin, a gone plate/project) and persist the pruned list. Order is
-    // preserved. A Design tile's pin is kept but not shown while its tile is not live (another tab,
+    // preserved. A Design tab action's pin is kept but not shown while the action is not live (another tab,
     // the other mode): the person pinned it to use in the Design tab. The bar is the first
     // kFavLimit live pins, so a pin it does not show never fills it.
     const std::vector<std::string> favs = favourite_ids();

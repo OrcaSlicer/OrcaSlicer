@@ -4,13 +4,13 @@
 
 OrcaSlicer's MCP server gives a client 118 commands, its MCP tools: for the app, the project, its objects,
 parts and plates, presets and settings, filaments, printers, plugins, the view and windows, recordings,
-replays and scripts, and for driving the GUI itself. An agent calls them by name. A person's Speed Dial tiles
+replays and scripts, and for driving the GUI itself. An agent calls them by name. A person's Speed Dial actions
 run them, Action Replay and recordings show them, and the journal records and replays them. A client that
 knows the app's menus can guess the command that does a menu item's job and the argument that picks the
 item, and can do from arguments what a person does through the item and its dialog.
 
 This document is that command set: how the commands are named and grouped, what each does and takes, which
-menu items are tiles of which command, which calls ask in a dialog, and the behaviour a caller relies on
+menu items are actions of which command, which calls ask in a dialog, and the behaviour a caller relies on
 across the commands. How the server serves them (the catalog, the guards, jobs, the journal, the operations
 layer) is in [mcp-server.md](mcp-server.md).
 
@@ -23,8 +23,8 @@ Each place's commands are written in its family's file, `src/slic3r/GUI/Mcp/McpT
 and what a command does that a dialog or another interface does too is an operation of
 `src/slic3r/GUI/Operations/`. What every command takes and replies is in its description and input schema,
 which `tools/list` gives a client and `tool_search {tool}` gives for any command.
-`tests/data/command_catalog.json` holds every command's schema, tiles, labels and examples as an agent sees
-them, and `tests/data/speed_dial_tiles.json` the tiles as a person sees them.
+`tests/data/command_catalog.json` holds every command's schema, actions, labels and examples as an agent sees
+them, and `tests/data/speed_dial_actions.json` the actions as a person sees them.
 
 ## Naming
 
@@ -39,8 +39,10 @@ them, and `tests/data/speed_dial_tiles.json` the tiles as a person sees them.
    the GUI has no name for the thing, the words are plain (`widget_list`, `dialog_answer`). A word the GUI
    uses for something else is avoided: the `script_` commands run Python, as the Run Script panel does.
 3. **One job, one command, and one argument for its variants.** A menu item and the command that does its job
-   are one command, and the item is a tile of it. Where the GUI has an item for each variant, one argument
-   picks it: `format`, `shape`, `axis`, `type`, `mode`, `window`, `page`, `camera`.
+   are one command, and the item is one of its actions: a Speed Dial entry that runs the command with fixed
+   arguments. Most of a command's actions match a menu item; Go to tab... and Go to layer (percent) collect a
+   value in the Speed Dial and match none. Where the GUI has an item for each variant, one argument picks it:
+   `format`, `shape`, `axis`, `type`, `mode`, `window`, `page`, `camera`.
 4. **An argument's name means one thing across the commands**, so what an agent learns from one holds for
    the next:
 
@@ -99,8 +101,8 @@ them and `tool_call` runs them.
 |---|---|---|
 | `tool_search` | Find the command that does something, in one search, or read one command's description and schema; beside the commands, the best matches of the actions, the settings and the Python API | `query`, `group`; `tool` |
 | `tool_call` | Call any command by name, one `tools/list` shows or one it does not, as that command's own call | `tool`, `args` |
-| `action_search` | Search what the Speed Dial runs: the commands' tiles, plates, recent projects, plugin scripts and pages, and settings on request | `query`, `group`, `include_settings` |
-| `action_run` | Run one of those by its id, as a person's pick does | `id`; `args`: none, or exactly the tile's |
+| `action_search` | Search what the Speed Dial runs: the commands' actions, plates, recent projects, plugin scripts and pages, and settings on request | `query`, `group`, `include_settings` |
+| `action_run` | Run one of those by its id, as a person's pick does | `id`; `args`: none, or exactly the action's |
 
 ### The app
 
@@ -380,13 +382,13 @@ lacks is refused in the same words by every command, which give the plates there
 
 ## When a call opens a dialog or a tool
 
-One rule holds for every command: **a call whose arguments are exactly those of one of the command's tiles
-is the person's form, and does what a person's pick of that tile does; any other call runs from its arguments
-and opens nothing.** A command's own tile is `{}`.
+One rule holds for every command: **a call whose arguments are exactly those of one of the command's actions
+is the person's form, and does what a person's pick of that action does; any other call runs from its arguments
+and opens nothing.** A command's own action is `{}`.
 
 - The person's form may ask in a dialog, as the menu item does, or act on the selection. An agent's call of it
   replies `blocked_by_dialog` where the item asks.
-- Where the command's own function needs nothing more than a tile gives, `silent: true` runs it from its
+- Where the command's own function needs nothing more than an action gives, `silent: true` runs it from its
   arguments without asking, with its defaults: `object_add_primitive {shape: "cube", silent: true}` adds the
   cube at its built-in size, where `{shape: "cube"}` asks for the size. Sixteen commands take `silent`:
   `project_open`, `project_import`, `project_new`, `project_save`, `project_export`, `object_add_primitive`,
@@ -397,15 +399,15 @@ and opens nothing.** A command's own tile is `{}`.
   an argument, or refuses with the question as its reason: Split's Auto-Drop question (`keep_z`, else
   `auto_drop_question`), deleting part of a cut object, replacing an installed plugin (`overwrite`), the
   presets' unsaved changes (`preset_changes`).
-- Where a menu item does just what the command does, its tile is the command's own form and a call of it
-  replies as any call: the camera tiles of `view_set`, Select All and Deselect All, Auto-Arrange, Auto-Orient
+- Where a menu item does just what the command does, its action is the command's own form and a call of it
+  replies as any call: the camera actions of `view_set`, Select All and Deselect All, Auto-Arrange, Auto-Orient
   and Refresh Plugins.
 - A call of the person's form is refused while a modal dialog is open or another call's nested loop runs,
   unless that form opens nothing: `recording_stop {}` stops the recording wherever the command runs.
 
-### The tiles that ask, and the call that does not
+### The actions that ask, and the call that does not
 
-| Command, called as its tile | It asks | The call that does not ask |
+| Command, called as its action | It asks | The call that does not ask |
 |---|---|---|
 | `project_open {}` | the unsaved changes question, then the Open dialog | `path`, with `discard_changes` where the project has unsaved changes |
 | `project_import {}`, `project_import {archive: true}` | a file dialog; the archive, then its file list | `paths`, and `entries` for an archive |
@@ -436,14 +438,14 @@ These open a dialog or a gizmo whatever their arguments, and the caller answers 
 | `preset_migrate_filaments`, `app_check_for_updates` | the migration's dialog; the answer to the check | `dialog_answer` |
 | `object_add_text`, `object_add_svg` | none: the Text or SVG gizmo opens on the new part | the gizmo, through `widget_list` and the input commands |
 
-### Every tile and the call it makes
+### Every action and the call it makes
 
-56 commands have tiles, 129 in all. A tile's id is `orca_command:<key>:orca`, under the key of the menu item
-it was: a command's own tile under the command's key (eight: `undo`, `redo`, `plate_add`, `plate_delete`,
-`plate_duplicate`, `plate_rename`, `filament_add`, `filament_delete`), any other under the item's id, which
-`tests/data/speed_dial_tiles.json` lists.
+56 commands have actions, 129 in all. An action's id is `orca_command:<key>:orca`, under the key of the menu
+item it was: a command's own action under the command's key (eight: `undo`, `redo`, `plate_add`,
+`plate_delete`, `plate_duplicate`, `plate_rename`, `filament_add`, `filament_delete`), any other under the
+item's id, which `tests/data/speed_dial_actions.json` lists.
 
-| Command | Its tiles, and the call each makes |
+| Command | Its actions, and the call each makes |
 |---|---|
 | `undo` | Undo `{}` |
 | `redo` | Redo `{}` |
@@ -502,26 +504,27 @@ it was: a command's own tile under the command's key (eight: `undo`, `redo`, `pl
 | `recording_start` | Start Recording `{}` |
 | `recording_stop` | Stop Recording `{}` |
 
-Go to tab and Go to layer collect a value in the Speed Dial's second phase, which the tile passes on under
-`tab` or `layer_percent`; `action_run` takes it under the tile's own name for it, `tab` or `percent`. Go to Plate goes to the first plate, as its menu item did, and the Speed Dial's plate
-family calls `plate_select` with each plate. A tile of `object_order` reverses the order the objects already
-have, as Order By does; `descending` says which way.
+Go to tab and Go to layer collect a value in the Speed Dial's second phase, which the action passes on under
+`tab` or `layer_percent`; `action_run` takes it under the action's own name for it, `tab` or `percent`. Go to
+Plate goes to the first plate, as its menu item did, and the Speed Dial's plate family calls `plate_select`
+with each plate. An action of `object_order` reverses the order the objects already have, as Order By does;
+`descending` says which way.
 
-## Tiles, titles, the journal and replays
+## Actions, titles, the journal and replays
 
-- A tile's id is what a person's pins and run counts are stored under, and the ids of the menu items a
-  released build stored stay the ids of tiles, whatever their command is called. The unit test "every Speed
-  Dial tile of today is still a tile" holds each one to its title, section, icon and value.
-- A tile runs its command with its arguments, with the MCP server on or off. `action_run` takes no `args` for
-  a tile, or exactly the tile's, or the value of a tile that collects one, and journals the step as that
-  `action_run`, so a replay runs it again.
-- A call of a command with exactly a tile's arguments is titled as that tile wherever a person is shown the
-  call: a job notice, a recording's caption, an Action Replay step.
-- A tile picked by a person runs in place, on the UI thread, but for a long command's: Slice and Preview and
-  Slice All Plates start the slice as a job and show its result as a notification, where a call waits for
+- An action's id is what a person's pins and run counts are stored under, and the ids of the menu items a
+  released build stored stay the ids of actions, whatever their command is called. The unit test "every Speed
+  Dial action of today is still a command's action" holds each one to its title, section, icon and value.
+- An action runs its command with its arguments, with the MCP server on or off. `action_run` takes no `args`
+  for an action, or exactly the action's, or the value of an action that collects one, and journals the step
+  as that `action_run`, so a replay runs it again.
+- A call of a command with exactly an action's arguments is titled as that action wherever a person is shown
+  the call: a job notice, a recording's caption, an Action Replay step.
+- An action picked by a person runs in place, on the UI thread, but for a long command's: Slice and Preview
+  and Slice All Plates start the slice as a job and show its result as a notification, where a call waits for
   the result.
 
-How the tiles are made and found is in mcp-server.md, Speed Dial catalog.
+How the actions are made and found is in mcp-server.md, Speed Dial catalog.
 
 ## When a command may run
 
@@ -628,7 +631,7 @@ The Design tab is a parametric CAD modeller inside OrcaSlicer, an optional compo
 feature is on. The MCP server gives a client 88 commands for it, in the command catalog's group `Design`. A
 client that knows a mainstream CAD program can guess the command, the argument that picks its variant and
 that argument's values, and can do from arguments what a person does with the tab's tools. The same commands
-are what a person's Speed Dial tiles run while the tab is shown, what Action Replay and recordings show, and
+are what a person's Speed Dial actions run while the tab is shown, what Action Replay and recordings show, and
 what the journal records and replays. No listing shows them: `tool_search`' description names each under its
 heading, `tool_search {tool}` gives its schema, and `tool_call` runs it.
 
@@ -641,7 +644,7 @@ How the server holds them (the catalog with the CAD feature on, the gate) is in
 One table defines them all: `scripts/CAD/tool_atlas.json`. `scripts/CAD/gen_offer_table.py` writes
 `src/slic3r/GUI/CAD/DesignOffer.hpp` from it, and the commands' code is `src/slic3r/GUI/Mcp/McpToolsCad.cpp`.
 What every command takes and replies is in its entry's tool block, which the agent reads through
-`tool_search {tool}`; `tests/data/command_catalog.json` holds every command's schema, tiles and examples as
+`tool_search {tool}`; `tests/data/command_catalog.json` holds every command's schema, actions and examples as
 an agent sees them.
 
 ### Naming
@@ -979,10 +982,10 @@ opens that item's tool for a person, as a pick of the item does; any other call 
   that row as what four menu items act on: `feature_edit`, `rename_selected`, `feature_delete` and
   `sketch_constrain_selected`.
 - The reply is `{"result": {"interactive": true, "tool", "applies", "modal", "selection_kind", "busy",
-  "status"}}`: the command called, whether the menu item accepts the selection, whether a dialog the action
-  opened held the call until it was answered, the selection's kind, what the tab has open after the action,
-  and its status line. It claims nothing about what the action did, which may be to open a card, arm a
-  sketch tool, act at once, or say on the status line why it cannot.
+  "status"}}`: the command called, whether the menu item accepts the selection, whether a dialog the item's
+  handler opened held the call until it was answered, the selection's kind, what the tab has open after the
+  handler ran, and its status line. It claims nothing about what the handler did, which may be to open a
+  card, arm a sketch tool, act at once, or say on the status line why it cannot.
 - A command's description ends with the calls that open a tool, each with its menu item's name, so that a
   search for "rounded rectangle" or "polar array" finds the command.
 
@@ -1055,36 +1058,36 @@ model and is refused while a sketch is open.
 
 `tool_atlas.json` has 127 entries. Each is one of these:
 
-- **A command with a menu item**: the item's slot, key, action, accepts, mode, name, icon and hint, and the
-  command's tool block, under the command's name. 47 commands.
-- **An argument-only command**: a tool block and no action. 36 commands: 35 have no menu item, and `measure`'s
-  item, which has no action, is shown disabled.
-- **A menu-only command**: an action and no tool block. Five, under Menu items.
+- **A command with a menu item**: the item's slot, key, handler (`action`), accepts, mode, name, icon and
+  hint, and the command's tool block, under the command's name. 47 commands.
+- **An argument-only command**: a tool block and no handler. 36 commands: 35 have no menu item, and
+  `measure`'s item, which has no handler, is shown disabled.
+- **A menu-only command**: a handler and no tool block. Five, under Menu items.
 - **A folded item**: a menu item that is no command. It keeps its id, which the menu, the keys, the toolbar,
-  the tiles and the GUI tests use, and names its command and the arguments that choose it: `"fold": {"into":
-  "sketch_draw", "args": {"type": "circle_center"}}`. 37 items, folded into eight commands.
+  the Speed Dial actions and the GUI tests use, and names its command and the arguments that choose it:
+  `"fold": {"into": "sketch_draw", "args": {"type": "circle_center"}}`. 37 items, folded into eight commands.
 - **A greyed item**: an item with neither, shown disabled. Two: Pattern on Curve (`pat_curve`), whose function
   is `pattern {type: "curve"}`, and Align to (`align_to`), which is not built.
 
-That is 88 commands and 89 menu items with an action, each of which has a Speed Dial tile.
+That is 88 commands and 89 menu items with a handler, each of which has a Speed Dial action.
 
 The right-click menu's rows and their order are ratified (`_ratified` in the atlas): a row's index is its
 address, and changing one is a breaking change.
 
-### Tiles, titles, the journal and replays
+### Actions, titles, the journal and replays
 
-- Every entry with an action has a Speed Dial tile while the Design tab is shown, in its mode. A command's
-  own menu item's tile is under the command's key (`orca_command:sketch_trim:orca`); a folded item keeps its
-  tile under its own id (`orca_command:sk_array:orca`) with the item's title and icon.
-- A pick of a folded item's tile runs its command with the item's arguments, with the MCP server on or off.
-  Its action shows an agent no arguments, and `action_run` takes none for it, or exactly the item's; that is
+- Every entry with a handler has a Speed Dial action while the Design tab is shown, in its mode. A command's
+  own menu item's action is under the command's key (`orca_command:sketch_trim:orca`); a folded item keeps
+  its action under its own id (`orca_command:sk_array:orca`) with the item's title and icon.
+- A pick of a folded item's action runs its command with the item's arguments, with the MCP server on or
+  off. It shows an agent no arguments, and `action_run` takes none for it, or exactly the item's; that is
   what the journal records, so a replay runs it again.
-- A call of a command with a menu item's arguments is titled as that item's tile wherever a person is shown
-  the call: a job notice, a recording's caption, an Action Replay step (`replay_what_text()`).
-- A folded tile that is not shown is named, when a call asks for it, with the call that runs it from any
-  tab: `tool_call {"tool": "sketch_pattern", "args": {"type": "linear"}}`.
+- A call of a command with a menu item's arguments is titled as that item's action wherever a person is
+  shown the call: a job notice, a recording's caption, an Action Replay step (`replay_what_text()`).
+- A folded item's action that is not shown is named, when a call asks for it, with the call that runs it
+  from any tab: `tool_call {"tool": "sketch_pattern", "args": {"type": "linear"}}`.
 - The MCP skill's reference (`tools/mcp/gen_skill_reference.py`) gives a command a row of its own only when
-  it has an action of its own, and one row per folded tile with its arguments.
+  it has an action of its own, and one row per folded item's action with its arguments.
 
 ### When a command may run
 

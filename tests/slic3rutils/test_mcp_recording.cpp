@@ -1010,19 +1010,19 @@ TEST_CASE("a caption keeps the context its title is translated in", "[Mcp][Recor
     CHECK(board.current(t0)->context == "Design");
 }
 
-TEST_CASE("a call with a tile's arguments is captioned with the tile's title", "[Mcp][Recording]")
+TEST_CASE("a call with an action's arguments is captioned with the action's title", "[Mcp][Recording]")
 {
-    // A Design command whose Linear array item is folded into it: the call that item's tile makes is titled as the
-    // tile, untranslated and in the command's context, as McpRecorder::call_started() hands it to the board.
+    // A Design command whose Linear array item is folded into it: the call that item's action makes is titled as the
+    // action, untranslated and in the command's context, as McpRecorder::call_started() hands it to the board.
     NativeCommand pattern;
-    pattern.key   = "sketch_pattern";
-    pattern.title = "Pattern sketch entities";
-    pattern.group = kDesignGroup;
-    pattern.tiles = json::array({{{"key", "sk_array"},
-                                  {"title", "Linear array"},
-                                  {"icon", "design_array"},
-                                  {"description", ""},
-                                  {"args", {{"type", "linear"}}}}});
+    pattern.key     = "sketch_pattern";
+    pattern.title   = "Pattern sketch entities";
+    pattern.group   = kDesignGroup;
+    pattern.actions = json::array({{{"key", "sk_array"},
+                                    {"title", "Linear array"},
+                                    {"icon", "design_array"},
+                                    {"description", ""},
+                                    {"args", {{"type", "linear"}}}}});
     CaptionBoard board;
     const auto   t0 = CaptionBoard::Clock::now();
     board.call_started(1, call_title(pattern, {{"type", "linear"}}), "", t0, title_context(pattern));
@@ -1035,10 +1035,10 @@ TEST_CASE("a call with a tile's arguments is captioned with the tile's title", "
     CHECK(board.current(t0)->title == "Pattern sketch entities");
 }
 
-TEST_CASE("a tile's call is captioned with the tile's title, run by its id or as its command with its arguments", "[Mcp][Recording]")
+TEST_CASE("an action's call is captioned with the action's title, run by its id or as its command with its arguments", "[Mcp][Recording]")
 {
-    // As McpRecorder::call_started() hands a call to the board: action_run of a tile, and a call of the tile's command
-    // with the tile's arguments.
+    // As McpRecorder::call_started() hands a call to the board: action_run of an action, and a call of the action's
+    // command with the action's arguments.
     const CommandCatalog& catalog    = NativeCommands::instance();
     const NativeCommand*  action_run = catalog.find("action_run");
     const NativeCommand*  mirror     = catalog.find("object_mirror");
@@ -1056,24 +1056,24 @@ TEST_CASE("a tile's call is captioned with the tile's title, run by its id or as
     REQUIRE(board.current(t0).has_value());
     CHECK(board.current(t0)->title == "Mirror X");
 
-    // The name inside the id, as action_run takes it; a command's own tile, titled as its command.
+    // The name inside the id, as action_run takes it; a command's own action, titled as its command.
     CHECK(shown_title(catalog, *action_run, {{"id", "obj_arrange"}}).first == "Auto-Arrange");
     CHECK(shown_title(catalog, *action_run, {{"id", "orca_command:undo:orca"}}).first == "Undo");
-    // Any other action, and an id no tile has, are action_run's own.
+    // An action that is not a command's, and an id no action has, are action_run's own.
     CHECK(shown_title(catalog, *action_run, {{"id", "orca_recent_project:C:/p/a.3mf:orca"}}).first == action_run->title);
-    CHECK(shown_title(catalog, *action_run, {{"id", "orca_command:no_such_tile:orca"}}).second == action_run);
+    CHECK(shown_title(catalog, *action_run, {{"id", "orca_command:no_such_action:orca"}}).second == action_run);
     CHECK(shown_title(catalog, *mirror, {{"axis", "x"}, {"silent", true}}).first == mirror->title);
 }
 
-TEST_CASE("an Action Replay step that runs a tile is titled as the tile, with the value it collects", "[Mcp][Recording]")
+TEST_CASE("an Action Replay step that runs an action is titled as the action, with the value it collects", "[Mcp][Recording]")
 {
     // describe_step()'s `what` for action_run of Go to layer with {percent: 50}, and of Mirror X.
     const CommandCatalog& catalog = NativeCommands::instance();
-    const json layer{{"kind", "command"}, {"key", "view_set"}, {"tile", "go_to_layer"}, {"args", {"layer_percent: 50"}}};
+    const json layer{{"kind", "command"}, {"key", "view_set"}, {"action", "go_to_layer"}, {"args", {"layer_percent: 50"}}};
     const auto [layer_title, layer_detail] = replay_what_text(layer, catalog);
     CHECK(layer_title == "Go to layer (percent)");
     CHECK(layer_detail == "layer_percent: 50");
-    const json mirror{{"kind", "command"}, {"key", "object_mirror"}, {"tile", "obj_mirror_x"}};
+    const json mirror{{"kind", "command"}, {"key", "object_mirror"}, {"action", "obj_mirror_x"}};
     const auto [mirror_title, mirror_detail] = replay_what_text(mirror, catalog);
     CHECK(mirror_title == "Mirror X");
     CHECK(mirror_detail.empty());
@@ -1190,7 +1190,7 @@ TEST_CASE("captions name what a call acts on and never show secrets", "[Mcp][Rec
     CHECK(settings.find("s3cret") == std::string::npos);
     CHECK(settings.find("nozzle_diameter = 0.4") != std::string::npos);
     CHECK(caption_detail("project_import", {{"paths", {"C:/models/part.stl", "/tmp/b.3mf"}}}) == "part.stl, b.3mf");
-    // A menu item's tile is its command's call; a command's own tile given arguments shows them.
+    // A menu item's action is its command's call; a command's own action given arguments shows them.
     CHECK(caption_detail("action_run", {{"id", "orca_command:obj_arrange:orca"}}) == "object_arrange");
     CHECK(caption_detail("action_run", {{"id", "orca_command:undo:orca"}, {"args", {{"history", "design"}}}}) == "undo history: design");
     CHECK(caption_detail("webview_run_javascript", {{"code", "login('s3cret')"}}).empty());
@@ -1560,7 +1560,7 @@ TEST_CASE("an exported replay encodes the recording it makes and leaves other so
     CHECK(steps[3]["args"]["path"] == "D:/videos/old.mkv");
 }
 
-TEST_CASE("an exported replay records a silent recording into its own folder and keeps a pick of the tile as it is", "[Mcp][Recording]")
+TEST_CASE("an exported replay records a silent recording into its own folder and keeps a pick of the action as it is", "[Mcp][Recording]")
 {
     Journal j;
     auto    ok = [&](const std::string& tool, const json& args) { j.end(j.begin(tool, args), ToolResult::ok()); };
@@ -1568,7 +1568,7 @@ TEST_CASE("an exported replay records a silent recording into its own folder and
     ok("recording_start", {{"silent", true}, {"save_path", "C:/Users/me/mcp/recording-20261113.mkv"}});
     ok("recording_stop", {{"silent", true}});
     ok("recording_encode", {{"path", "C:/Users/me/mcp/recording-20261113.mkv"}, {"save_path", "C:/Users/me/mcp/take.mp4"}});
-    // action_run of the Start Recording tile, which takes no arguments: the person's form, which opens the Start
+    // action_run of the Start Recording action, which takes no arguments: the person's form, which opens the Start
     // Recording dialog and names no file.
     ok("action_run", {{"id", "orca_command:start_recording:orca"}});
     const json steps = j.to_replay("s")["steps"];

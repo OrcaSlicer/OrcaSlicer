@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "Source of truth for the Design tab's table: the object-driven tool offer, its Speed Dial tiles and its",
+    "Source of truth for the Design tab's table: the object-driven tool offer, its Speed Dial actions and its",
     "commands (see docs/HLSD/design-tab.md).",
     "Every verb, the selections it accepts, the document state it needs, and its fixed",
     "compass address. Extracted from the code, not from memory:",

@@ -1212,10 +1212,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     // --- Sketch group: plane + entity tools + Construction + Finish
     m_tb_sketch = new wxBoxSizer(wxHORIZONTAL);
-    // Sketch carries the most tools of any mode: pack it tight (no inter-icon gap) so the
-    // whole entity palette fits without crowding the right-hand actions.
-    // Same for the sketch bar: the drawing tools live in the offer. Only Delete selected stays,
-    // via sadd_bar. sadd() still runs so sk_key/fly: registrations and the flyout popups survive.
+    // The drawing tools live in the offer, so the SKETCH group's bar holds only Delete selected (sadd_bar).
+    // The other tool buttons are still made and sadd() hides them, so their sk_key/fly: registrations and
+    // the flyout popups survive.
     auto sadd     = [](wxWindow* w) { w->Hide(); };
     auto sadd_bar = [this](wxWindow* w) { m_tb_sketch->Add(w, 0, wxALIGN_CENTER_VERTICAL); };
     m_tb_sketch->Add(caption(_L("SKETCH")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
@@ -1390,7 +1389,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
               _L("Click a line or arc to extend it to the nearest entity; Esc exits"));
         // Constrain — grouped with the edit tools so it's easy to find (nde #13: it was buried
         // far-right next to Construction and went unnoticed). Commits the live sketch in place
-        // and drops into Constrain mode (geometric/dimensional palette).
+        // and drops into Constrain mode (the CONSTRAIN group's geometric and dimensional constraints).
         auto* b_constrain_sk = icon_btn("design_constrain",
             _L("Constrain — add geometric/dimensional relations"));
         b_constrain_sk->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { enter_constrain_inline(); });
@@ -6255,7 +6254,7 @@ void DesignPanel::on_check_interference()
 void DesignPanel::on_mass_properties()
 {
     // This bounds check is not defensive padding — it is what makes the verb safe to fire from
-    // its Design command or Speed Dial tile, which have no offer menu to grey the item out.
+    // its Design command or Speed Dial action, which have no offer menu to grey the item out.
     if (m_sel_solid_body < 0 || m_sel_solid_body >= int(m_doc.bodies.size())) {
         set_status(StatusKind::Info, _L("Select a body to measure it"));
         return;
@@ -6619,8 +6618,8 @@ void DesignPanel::run_offer_action(const char* action)
 }
 
 // Look a verb up by its id and dispatch it, as a Design command with no arguments does (a Speed
-// Dial tile, or an agent's call). Unknown ids and entries whose action string is null (no GUI
-// route) return false without touching anything.
+// Dial action, or an agent's call). Unknown ids and entries whose handler is null (no GUI route)
+// return false without touching anything.
 bool DesignPanel::mcp_run_verb(const char* verb_id)
 {
     if (!verb_id) return false;
@@ -7164,7 +7163,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
         }
     }
 
-    // --- Mate palette section (lukg part B) ---
+    // --- The offer's Mate section (lukg part B) ---
     // Fed by CadDocument::mate_options() so the offer can never disagree with the kernel about
     // which assembly mates a connector pair admits. Shown only when the document holds at least
     // two ENABLED CoordSys features: below that the whole section would be one permanently dead
@@ -7229,7 +7228,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
 
         // Hovering an item shows the RESULT, not a description of it (epic gap G3). preview() moves
         // the body on a throwaway copy of the document, so nothing is written until the click —
-        // the "commit nothing until you choose" behaviour the palette was asked for.
+        // the "commit nothing until you choose" behaviour the Mate section was asked for.
         auto drop_ghost = [this, &mate_ghost]() {
             if (!mate_ghost) return;
             m_viewport->clear_preview();
@@ -7240,7 +7239,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
         menu.Bind(wxEVT_MENU_HIGHLIGHT,
                   [this, cs_a, cs_b, opts, &mate_ghost, drop_ghost](wxMenuEvent& e) {
             const int i = e.GetMenuId() - (mate_base + 1);
-            // Off the palette (a verb item, the header, or nothing) — a stale ghost from the item
+            // Off the Mate items (a verb item, the header, or nothing) — a stale ghost from the item
             // you just left is worse than none, so it goes as soon as the cursor does.
             if (i < 0 || i >= int(opts.size()) || !opts[i].viable) { drop_ghost(); return; }
             std::string err;
@@ -8721,7 +8720,7 @@ void DesignPanel::rename_feature(int f, const std::string& name)
 
 // Commit the live sketch in place, then enter Constrain mode on the just-committed sketch.
 // One-click bridge from the SKETCH toolbar: removes the "Finish -> find in tree -> select ->
-// Constrain" friction, so the constraint palette + Trim/Extend are reachable mid-sketch.
+// Constrain" friction, so the CONSTRAIN group's tools and Trim/Extend are reachable mid-sketch.
 bool DesignPanel::enter_constrain_inline()
 {
     // Synchronous: packages the live entities and constraints into a Sketch feature.

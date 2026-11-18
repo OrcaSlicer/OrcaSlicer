@@ -5,7 +5,7 @@
 // the last two opening a warning and an error, which it answers). After each it reads the objects, the project's
 // name and file, the selected presets and their unsaved keys, the recent projects (action_search) and the
 // dialogs, then the undo snapshots taken since the last read (fixtures/ops_undo.py), and runs undo once to show
-// what that step takes back. Last, File > Import (the import_file tile) with a rule that answers its picker with
+// what that step takes back. Last, File > Import (the import_file action) with a rule that answers its picker with
 // a path: the picker is multi-select, which takes no path, so it is cancelled. Every call it records is optional.
 // Run it with
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_import_models.json --out <dir>

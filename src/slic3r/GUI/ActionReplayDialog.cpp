@@ -125,18 +125,18 @@ std::pair<std::string, std::string> replay_what_text(const json& what, const Com
     if (kind == "command") {
         const std::string               key     = what.value("key", "");
         const auto*       command = catalog.find(key);
-        // Titled as its tile is, so a Design command's step reads as the Design tab names its tool; a call that is
-        // a folded row's tile, as that row, with the value a tile that collects one was given.
+        // Titled as its action is, so a Design command's step reads as the Design tab names its tool; a call that is
+        // a folded item's action, as that item, with the value an action that collects one was given.
         const std::string args = what.contains("args") ? join(what["args"]) : std::string();
-        if (what.contains("tile")) {
-            const auto [owner, tile] = find_tile(catalog, what.value("tile", ""));
-            if (tile != nullptr && owner == command) {
-                const std::string title   = tile->at("title").get<std::string>();
+        if (what.contains("action")) {
+            const auto [owner, action] = find_command_action(catalog, what.value("action", ""));
+            if (action != nullptr && owner == command) {
+                const std::string title   = action->at("title").get<std::string>();
                 const char*       context = title_context(*owner);
                 return {into_u8(context != nullptr ? I18N::translate(title, context) : I18N::translate(title)), args};
             }
         }
-        return {command != nullptr ? into_u8(NativeCommands::tile_title(*command)) : key, args};
+        return {command != nullptr ? into_u8(NativeCommands::action_title(*command)) : key, args};
     }
     if (kind == "recent_project" || kind == "preset")
         return {what.value("name", ""), {}};
@@ -637,7 +637,7 @@ json ActionReplayDialog::describe(const Mcp::Replay& replay) const
             flags.push_back(Mcp::flag_id(f));
         json view{{"index", i + 1},
                   {"tool", step.tool},
-                  {"title", def != nullptr ? into_u8(NativeCommands::tile_title(*def)) : step.tool},
+                  {"title", def != nullptr ? into_u8(NativeCommands::action_title(*def)) : step.tool},
                   {"flags", std::move(flags)},
                   {"checks_result", d.checks_result},
                   {"optional", step.optional},

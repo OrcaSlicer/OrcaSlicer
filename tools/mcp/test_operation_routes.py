@@ -4,9 +4,9 @@
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_operation_routes.py
 
-A command, a Speed Dial tile that runs it (with action_run) and the plugin API's binding run one
+A command, a Speed Dial action that runs it (with action_run) and the plugin API's binding run one
 operation of GUI/Operations, so each pair here gets one answer: a layer asked of a Preview that has none
-(the Go to layer tile and view_set); a preset for a mixed-colour filament slot; and a hidden printer
+(the Go to layer action and view_set); a preset for a mixed-colour filament slot; and a hidden printer
 selected by name through the plugin API, as preset_select selects one. It also checks what a command
 refuses or does in those states alone: a project saved under a .gcode.3mf name; an export of a project
 with no objects (a .3mf is written, an STL and a sliced file are refused); an arrangement from the
@@ -61,8 +61,8 @@ def main():
             return "blocked_by_dialog", json.dumps(reply.get("dialogs"))
         return None, client.await_job(reply)
 
-    def tile(name, **tile_args):
-        return answer("action_run", id="orca_command:%s:orca" % name, args=tile_args)
+    def action(name, **action_args):
+        return answer("action_run", id="orca_command:%s:orca" % name, args=action_args)
 
     def plugin_api(**args):
         code = "import ops_presets\nresult = ops_presets.preset_api(args)"
@@ -87,9 +87,9 @@ def main():
         check("project_export refuses %s of a project with no objects" % fmt, code == "no_objects", (code, text))
         check("and writes no file (%s)" % fmt, not os.path.exists(path("model" + ext)))
 
-    code_c, text_c = tile("go_to_layer", percent=50)
+    code_c, text_c = action("go_to_layer", percent=50)
     code_t, text_t = answer("view_set", layer=1)
-    check("the Go to layer tile refuses a layer of a Preview with none", code_c == "no_layers", (code_c, text_c))
+    check("the Go to layer action refuses a layer of a Preview with none", code_c == "no_layers", (code_c, text_c))
     check("view_set refuses a layer of a Preview with none", code_t == "no_layers", (code_t, text_t))
     check("in the same words (layer)", text_c == text_t, (text_c, text_t))
     client.call("view_set", tab="prepare")

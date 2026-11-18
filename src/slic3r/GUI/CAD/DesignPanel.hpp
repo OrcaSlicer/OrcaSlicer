@@ -185,12 +185,12 @@ public:
     // line), which is what a profile is drawn around, or -1 for the plane axis.
     static int default_revolve_axis_entity(const std::vector<SketchEntity>& ents);
     // The offer table's verbs without a right-click: a Design command with no arguments, a Speed Dial
-    // tile or an agent's call, fires one by id, so every verb is reachable — including the items with
+    // action or an agent's call, fires one by id, so every verb is reachable — including the items with
     // no keyboard shortcut, which are otherwise invisible to anything that parses key tables.
     int  mcp_offer_selection_kind() const { return offer_selection_kind(); }  // OfferSel as int
     // Whether the right-click menu offers the sketch's verbs now, not the model's (sketch_map_applies()).
     bool mcp_sketch_map_applies() const { return sketch_map_applies(); }
-    void mcp_run_action(const char* action) { run_offer_action(action); }     // dispatch an action string
+    void mcp_run_action(const char* action) { run_offer_action(action); }     // dispatch an entry's handler (`action`)
     // Defined out of line in DesignPanel.cpp: it needs kDesignTools, which this header deliberately
     // does not include (the table is generated and belongs to the offer-menu code).
     bool mcp_run_verb(const char* verb_id);
@@ -468,8 +468,8 @@ private:
     // constraint to the in-canvas picked segment and re-solve in the kernel.
     void on_begin_constrain(int sel_override = -1);
     // Sketch-toolbar Constrain entry: commit the live sketch in place, then enter Constrain
-    // mode on it (so the constraint palette + Trim/Extend are reachable without leaving the
-    // sketch flow). Returns true if constrain mode was entered.
+    // mode on it (so the CONSTRAIN group's tools and Trim/Extend are reachable without leaving
+    // the sketch flow). Returns true if constrain mode was entered.
     bool enter_constrain_inline();
     void apply_constraint(SketchConstraintType type);
     void apply_entity_constraint(SketchConstraintType type);  // Fase 4.2 entity path
@@ -564,7 +564,7 @@ private:
     // body has been moved.
     TriangleMesh ghost_from_bodies(const std::vector<TriangleMesh>& per_body) const;
     // A mate makes no new geometry but it MOVES a body, and the moved assembly is the ghost worth
-    // showing. Used both by the Mate card and by hovering an item of the offer's mate palette.
+    // showing. Used both by the Mate card and by hovering an item of the offer's Mate section.
     bool       show_mate_ghost(int kind, int cs_a, int cs_b,
                                double offset, double angle_deg, bool flip, std::string& err);
     int        resolve_extrude_sketch() const;

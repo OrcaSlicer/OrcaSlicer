@@ -2,9 +2,9 @@
 // name while another object is selected, in one undo step (the snapshots read from the log, fixtures/ops_undo.py);
 // object_mirror, object_drop, object_center (each plate's objects on their own plate, then all on one),
 // object_scale_to_fit and object_auto_orient (a cube on its edge laid on a face), each read back through object_list;
-// and the Center, Drop, Scale to Fit and Auto-Orient tiles on the selection. Plate positions are those of the sweep's printer, a
-// Bambu Lab X1 Carbon (a 256 mm bed): with three plates, plate 1's centre is at x 435.2, y 128 and plate 2's at x 128,
-// y -179.2. Run it with
+// and the Center, Drop, Scale to Fit and Auto-Orient actions on the selection. Plate positions are those of the sweep's
+// printer, a Bambu Lab X1 Carbon (a 256 mm bed): with three plates, plate 1's centre is at x 435.2, y 128 and plate 2's
+// at x 128, y -179.2. Run it with
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/menu_items_placement.json --out <dir>
 {
   "orca_replay_version": "0.2.0",
@@ -43,7 +43,7 @@
     {"tool": "object_drop", "args": {"objects": [1]}, "expect": {"/moved": {"eq": true}, "/objects/0/index": {"eq": 1}}},
     {"tool": "object_list", "expect": {"/plates/1/objects/1/bbox/min/2": {"ge": -0.001, "le": 0.001}}},
     {"tool": "object_drop", "args": {"objects": [1]}, "expect": {"/moved": {"eq": false}}},
-    // the Drop to Bed tile on the selection
+    // the Drop to Bed action on the selection
     {"tool": "object_transform", "args": {"object": 1, "translate": [0, 0, 15], "drop_to_bed": false}},
     {"tool": "object_select", "args": {"objects": [1]}},
     {"tool": "action_run", "args": {"id": "orca_command:obj_drop:orca"}, "expect": {"/moved": {"eq": true}}},
@@ -76,14 +76,14 @@
     {"tool": "object_center", "args": {"objects": [0, 1, 2], "plate": 1}, "expect": {"/plates/0/plate": {"eq": 1}, "/plates/0/objects": {"eq": [0, 1, 2]}}},
     {"tool": "object_list", "expect": {"/plates/1/objects/2/name": {"eq": "third"}, "/plates/2/objects/0": {"exists": false}, "/outside": {"empty": true}}},
 
-    // ---- The Center tile on the one selected: the current plate's centre ----
+    // ---- The Center action on the one selected: the current plate's centre ----
     {"tool": "object_transform", "args": {"object": 2, "translate": [30, 0, 0]}},
     {"tool": "object_select", "args": {"objects": [2]}},
     {"tool": "action_run", "args": {"id": "orca_command:obj_center:orca"}, "expect": {"/plates/0/plate": {"eq": 1}, "/objects/0/index": {"eq": 2}}},
     {"tool": "object_list", "expect": {"/plates/1/objects/2/instances/0/offset/0": {"ge": 435.1, "le": 435.3},
                                        "/plates/1/objects/2/instances/0/offset/1": {"ge": 127.9, "le": 128.1}}},
 
-    // ---- Scale to fit by index, and the tile on the selection ----
+    // ---- Scale to fit by index, and the action on the selection ----
     {"tool": "object_scale_to_fit", "args": {"objects": [0]}, "expect": {"/scales/0/object": {"eq": 0}, "/scales/0/scale/0": {"gt": 5}}},
     {"tool": "object_list", "expect": {"/plates/1/objects/0/instances/0/scale/0": {"gt": 5}}},
     {"tool": "object_select", "args": {"objects": [2]}},
@@ -97,7 +97,7 @@
                 "/rotations/1/rotation_deg/0": {"ge": 89.9, "le": 90.1}}},
     {"tool": "object_list", "expect": {"/plates/1/objects/2/instances/0/rotation_deg/0": {"ge": 89.9, "le": 90.1}}},
     {"tool": "app_state", "expect": {"/selection/objects": {"eq": [1, 2]}}},
-    // the Auto-Orient tile with nothing selected orients every object
+    // the Auto-Orient action with nothing selected orients every object
     {"tool": "object_select", "args": {"none": true}},
     {"tool": "app_state", "expect": {"/selection/empty": {"eq": true}}},
     {"tool": "action_run", "args": {"id": "orca_command:obj_orient:orca"}, "expect": {"/rotations/2/object": {"eq": 2}, "/rotations/3": {"exists": false}}},

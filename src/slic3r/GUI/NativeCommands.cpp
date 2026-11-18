@@ -115,19 +115,19 @@ void ensure_3d_view(Plater* plater)
 
 using NativeCommands::refused;
 
-// The tile of `command` that collects a value whose call `args` is: the tile's args and the value, under its
+// The action of `command` that collects a value whose call `args` is: the action's args and the value, under its
 // input_arg (or its input where it has none), and nothing else; nullptr when none is.
-const json* tile_with_input(const NativeCommand& command, const json& args)
+const json* action_with_input(const NativeCommand& command, const json& args)
 {
-    if (!command.tiles.is_array() || !args.is_object())
+    if (!command.actions.is_array() || !args.is_object())
         return nullptr;
-    for (const json& tile : command.tiles) {
-        const std::string input = tile.value("input", std::string());
+    for (const json& action : command.actions) {
+        const std::string input = action.value("input", std::string());
         if (input.empty())
             continue;
         json rest = args;
-        if (rest.erase(tile.value("input_arg", input)) == 1 && rest == tile.at("args"))
-            return &tile;
+        if (rest.erase(action.value("input_arg", input)) == 1 && rest == action.at("args"))
+            return &action;
     }
     return nullptr;
 }
@@ -379,24 +379,24 @@ AppActionRunResult import_preset_file(const boost::filesystem::path& path, bool 
     return {AppActionRunResult::Level::Succeeded, message};
 }
 
-// Thin AppAction wrapper for one catalog entry's own tile, or one of its items: identity and presentation come from
-// the catalog, run() runs the catalog's command, which outlives the action. The id is keyed by the stable catalog key
-// (not the display title), so a rename or a UI-language switch never re-keys the action.
+// Thin AppAction wrapper for one catalog entry's own action, or one of its items: identity and presentation come from
+// the catalog, run() runs the catalog's command, which outlives the AppAction. The id is keyed by the stable catalog
+// key (not the display title), so a rename or a UI-language switch never re-keys it.
 struct CommandAction : AppAction
 {
-    // A Speed Dial pick (ActionRegistry::run()): `args` is empty for a plain pick, or the value a tile with an input
-    // collects. The tile's own arguments join them (tile_call_args()), and NativeCommands::run() checks the result
+    // A Speed Dial pick (ActionRegistry::run()): `args` is empty for a plain pick, or the value an action with an input
+    // collects. The action's own arguments join them (action_call_args()), and NativeCommands::run() checks the result
     // against the command's schema.
     AppActionRunResult run(const json& args) const override
     {
-        return NativeCommands::run(m_command, tile_call_args(m_tile.is_null() ? nullptr : &m_tile, args));
+        return NativeCommands::run(m_command, action_call_args(m_action.is_null() ? nullptr : &m_action, args));
     }
 
-    // The command's own tile, in its tile_group, else its group. `title` is the command's title in the UI's language. A
-    // Design command's takes the command's arguments, which its gizmo or dialog would otherwise ask for; any other's
-    // takes none, as an item of tiles with no arguments does, and runs the command as a person's pick does.
+    // The command's own action, in its action_group, else its group. `title` is the command's title in the UI's
+    // language. A Design command's takes the command's arguments, which its gizmo or dialog would otherwise ask for; any
+    // other's takes none, as an item of actions with no arguments does, and runs the command as a person's pick does.
     CommandAction(const NativeCommand& c, std::string title)
-        : CommandAction(c, c.key, std::move(title), c.title, c.tile_group.empty() ? c.group : c.tile_group)
+        : CommandAction(c, c.key, std::move(title), c.title, c.action_group.empty() ? c.group : c.action_group)
     {
         this->input                   = c.input;
         this->icon                    = c.icon;
@@ -409,20 +409,21 @@ struct CommandAction : AppAction
         }
     }
 
-    // The tile `tile` of `c`, in its group, else the command's. `title` is the tile's title in the UI's language.
-    CommandAction(const NativeCommand& c, const json& tile, std::string title)
-        : CommandAction(c, tile.at("key").get<std::string>(), std::move(title), tile.at("title").get<std::string>(),
-                        tile.value("group", c.group))
+    // `action`, an item of `c`'s actions, in its group, else the command's. `title` is the action's title in the UI's
+    // language.
+    CommandAction(const NativeCommand& c, const json& action, std::string title)
+        : CommandAction(c, action.at("key").get<std::string>(), std::move(title), action.at("title").get<std::string>(),
+                        action.value("group", c.group))
     {
-        m_tile                       = tile;
-        this->icon                   = tile.at("icon").get<std::string>();
-        this->automation_description = tile.at("description").get<std::string>();
-        this->preset                 = tile.at("args");
-        this->input                  = tile.value("input", std::string());
+        m_action                     = action;
+        this->icon                   = action.at("icon").get<std::string>();
+        this->automation_description = action.at("description").get<std::string>();
+        this->preset                 = action.at("args");
+        this->input                  = action.value("input", std::string());
         this->input_schema           = Mcp::object_schema({});
         // The value the Speed Dial's second phase collects, typed as the command's argument it goes to.
         if (!this->input.empty()) {
-            const std::string to       = tile.value("input_arg", this->input);
+            const std::string to       = action.value("input_arg", this->input);
             const json&       property = c.input_schema.at("properties").at(to);
             this->input_schema         = {{"type", "object"},
                                           {"properties", {{this->input, property}}},
@@ -446,7 +447,7 @@ private:
     }
 
     const NativeCommand& m_command;
-    json                 m_tile; // the item of m_command's tiles; null for its own tile
+    json                 m_action; // the item of m_command's actions; null for its own action
 };
 
 // The Preferences dialog's tabs, by the names window_open's tab gives them.
@@ -460,7 +461,7 @@ constexpr std::pair<const char*, PreferencesTab> kPreferencesTabs[] = {{"general
 
 } // namespace
 
-// ---- The menu items that are tiles of a command (NativeCommandMenuItems.hpp) ----
+// ---- The menu items that are actions of a command (NativeCommandMenuItems.hpp) ----
 
 json MenuItems::input_file(const char* what) { return Mcp::prop("string", std::string("Absolute path of ") + what + "."); }
 
@@ -1123,8 +1124,8 @@ const CommandCatalog& NativeCommands::instance()
     return process_catalog != nullptr ? *process_catalog : publish_catalog({});
 }
 
-json NativeCommands::tile(std::string key, std::string title, std::string group, std::string icon, json args, std::string description,
-                          std::string input, std::string input_arg)
+json NativeCommands::action(std::string key, std::string title, std::string group, std::string icon, json args, std::string description,
+                            std::string input, std::string input_arg)
 {
     json item{{"key", std::move(key)},   {"title", std::move(title)},
               {"icon", std::move(icon)}, {"description", std::move(description)}, {"args", std::move(args)}};
@@ -1138,17 +1139,17 @@ json NativeCommands::tile(std::string key, std::string title, std::string group,
     return item;
 }
 
-std::vector<NativeCommands::PaletteTile> NativeCommands::palette_tiles(const CommandCatalog& catalog)
+std::vector<NativeCommands::SpeedDialAction> NativeCommands::speed_dial_actions(const CommandCatalog& catalog)
 {
-    std::vector<PaletteTile> out;
+    std::vector<SpeedDialAction> out;
     for (const NativeCommand& c : catalog.commands()) {
-        // The Design tab's tiles are there only while the tab is shown (ActionRegistry::materialize_design_actions()).
+        // The Design tab's actions are there only while the tab is shown (ActionRegistry::materialize_design_actions()).
         if (c.group == kDesignGroup)
             continue;
-        if (c.in_palette)
+        if (c.has_own_action)
             out.push_back({&c, nullptr});
-        if (c.tiles.is_array())
-            for (const json& item : c.tiles)
+        if (c.actions.is_array())
+            for (const json& item : c.actions)
                 out.push_back({&c, &item});
     }
     return out;
@@ -1156,7 +1157,7 @@ std::vector<NativeCommands::PaletteTile> NativeCommands::palette_tiles(const Com
 
 namespace {
 
-// `title`, a title of `command` or of one of its tiles, in the UI's language.
+// `title`, a title of `command` or of one of its actions, in the UI's language.
 wxString translated_title(const NativeCommand& command, const std::string& title)
 {
     const char* context = title_context(command);
@@ -1165,16 +1166,17 @@ wxString translated_title(const NativeCommand& command, const std::string& title
 
 } // namespace
 
-wxString NativeCommands::tile_title(const NativeCommand& command) { return translated_title(command, command.title); }
+wxString NativeCommands::action_title(const NativeCommand& command) { return translated_title(command, command.title); }
 
 std::unique_ptr<AppAction> NativeCommands::make_action(const NativeCommand& command)
 {
-    return std::make_unique<CommandAction>(command, into_u8(tile_title(command)));
+    return std::make_unique<CommandAction>(command, into_u8(action_title(command)));
 }
 
-std::unique_ptr<AppAction> NativeCommands::make_action(const NativeCommand& command, const json& tile)
+std::unique_ptr<AppAction> NativeCommands::make_action(const NativeCommand& command, const json& command_action)
 {
-    return std::make_unique<CommandAction>(command, tile, into_u8(translated_title(command, tile.at("title").get<std::string>())));
+    return std::make_unique<CommandAction>(command, command_action,
+                                           into_u8(translated_title(command, command_action.at("title").get<std::string>())));
 }
 
 const NativeCommand* NativeCommands::find(const std::string& key) { return instance().find(key); }
@@ -1253,23 +1255,23 @@ AppActionRunResult NativeCommands::refused(const Ops::Refusal& refusal, AppActio
     return result;
 }
 
-NativeCommand NativeCommands::with_person_form(NativeCommand tool, std::function<AppActionRunResult(const json& tile_args)> person,
+NativeCommand NativeCommands::with_person_form(NativeCommand tool, std::function<AppActionRunResult(const json& action_args)> person,
                                                bool person_form_behind_dialogs)
 {
     tool.input_schema = Mcp::with_silent(std::move(tool.input_schema), Mcp::person_forms(tool));
     return with_menu_item_forms(std::move(tool), std::move(person), person_form_behind_dialogs);
 }
 
-NativeCommand NativeCommands::with_menu_item_forms(NativeCommand tool, std::function<AppActionRunResult(const json& tile_args)> person,
+NativeCommand NativeCommands::with_menu_item_forms(NativeCommand tool, std::function<AppActionRunResult(const json& action_args)> person,
                                              bool person_form_behind_dialogs, std::vector<json> own_forms)
 {
-    // The tiles a call's arguments are matched against, kept apart from the tool this returns.
+    // The actions a call's arguments are matched against, kept apart from the tool this returns.
     NativeCommand forms;
-    forms.in_palette = tool.in_palette;
-    forms.tiles      = tool.tiles;
+    forms.has_own_action = tool.has_own_action;
+    forms.actions        = tool.actions;
     // The person's form runs as a ui_command() function does: in place for a person's pick, in one UI closure
-    // for an automated call, whose reply then says what the pick showed. It is given the tile's arguments, {} for
-    // the tool's own tile.
+    // for an automated call, whose reply then says what the pick showed. It is given the action's arguments, {} for
+    // the tool's own action.
     const auto given = [](const json& args) { return Mcp::person_form(args) ? json::object() : args; };
     const CommandFn asks = ui_command(tool.key, tool.title, tool.group, Mcp::object_schema({}),
                                       [person, given](const json& args) { return person(given(args)); })
@@ -1278,9 +1280,9 @@ NativeCommand NativeCommands::with_menu_item_forms(NativeCommand tool, std::func
     tool.run = [key = tool.key, forms = std::move(forms), own_forms = std::move(own_forms), person = std::move(person), given, asks,
                 checked, silent = std::move(tool.run)](const json& args, ToolContext& ctx) {
         const bool own = std::find(own_forms.begin(), own_forms.end(), given(args)) != own_forms.end();
-        // A person's pick of a tile whose menu item is the tool's own function, or of a tile that collects a value, runs that
-        // function in place, as a menu item does: no job.
-        if (ctx.person() && (own || tile_with_input(forms, args) != nullptr))
+        // A person's pick of an action whose menu item is the tool's own function, or of an action that collects a value,
+        // runs that function in place, as a menu item does: no job.
+        if (ctx.person() && (own || action_with_input(forms, args) != nullptr))
             return asks(args, ctx);
         if (own || !Mcp::person_form(forms, args))
             return silent(args, ctx);
@@ -1290,9 +1292,9 @@ NativeCommand NativeCommands::with_menu_item_forms(NativeCommand tool, std::func
         // opens, so it is refused while a modal dialog is open or another call's nested loop runs, in the UI
         // closure that runs it.
         Mcp::UiInvoker& ui = ctx.runtime().ui();
-        return ui_command(key, {}, {}, Mcp::object_schema({}), [&person, &ui, &given](const json& tile_args) {
+        return ui_command(key, {}, {}, Mcp::object_schema({}), [&person, &ui, &given](const json& action_args) {
                    ui.require_mutate();
-                   return person(given(tile_args));
+                   return person(given(action_args));
                }).run(args, ctx);
     };
     return tool;
@@ -1302,7 +1304,7 @@ ToolResult NativeCommands::from_run_result(const std::string& key, const AppActi
 {
     // An operation's refusal is worded once, in English here as in a tool's reply.
     const std::string message = result.refusal ? result.refusal->english() : into_u8(result.message);
-    // A command that did nothing (no selection, no objects) fails here, though the palette shows it as
+    // A command that did nothing (no selection, no objects) fails here, though the Speed Dial shows it as
     // information.
     if (result.level == AppActionRunResult::Level::Error || result.level == AppActionRunResult::Level::Busy || !result.done) {
         json details;

@@ -24,58 +24,59 @@ using Flags = std::vector<std::string>;
 
 const Flags kEveryFlag{"writes_file", "changes_presets", "replaces_project", "sends_to_printer"};
 
-// The commands the cases call by their key, with tiles and places in the tool list as the app's catalog has them:
-// commands whose menu items are their tiles, view_set's two among them collecting a value, and object_mirror's
-// two, one of which has a Speed Dial section of its own; plate_delete, with a tile of its own; all of them listed, as
-// they run from their arguments. And export_drawing, made up, with a tile of its own and one that runs it with
+// The commands the cases call by their key, with actions and places in the tool list as the app's catalog has them:
+// commands whose menu items are their actions, view_set's two among them collecting a value, and object_mirror's
+// two, one of which has a Speed Dial section of its own; plate_delete, with an action of its own; all of them listed,
+// as they run from their arguments. And export_drawing, made up, with an action of its own and one that runs it with
 // {"format": "pdf"}, which the tool list does not show, as a Design command. Every other tool the cases name is a
 // typed tool, which the summary describes by its name.
-CommandCatalog tile_catalog()
+CommandCatalog action_catalog()
 {
     CommandCatalog catalog;
-    const auto     tile = [](const char* key, const char* title, json args) {
+    const auto     entry = [](const char* key, const char* title, json args) {
         return json{{"key", key}, {"title", title}, {"icon", ""}, {"description", ""}, {"args", std::move(args)}};
     };
-    // A tile whose second phase collects a value under `input`, which goes to the command's `input_arg`.
-    const auto collects = [&tile](const char* key, const char* title, const char* input, const char* input_arg) {
-        json item         = tile(key, title, json::object());
+    // An action whose second phase collects a value under `input`, which goes to the command's `input_arg`.
+    const auto collects = [&entry](const char* key, const char* title, const char* input, const char* input_arg) {
+        json item         = entry(key, title, json::object());
         item["input"]     = input;
         item["input_arg"] = input_arg;
         return item;
     };
-    const auto add = [&catalog](const char* key, bool listed, bool in_palette, json tiles) {
+    const auto add = [&catalog](const char* key, bool listed, bool has_own_action, json actions) {
         NativeCommand command;
-        command.key        = key;
-        command.listed     = listed;
-        command.in_palette = in_palette;
-        command.tiles      = std::move(tiles);
+        command.key            = key;
+        command.listed         = listed;
+        command.has_own_action = has_own_action;
+        command.actions        = std::move(actions);
         catalog.add(std::move(command));
     };
-    add("project_new", true, false, json::array({tile("new_project", "New Project", json::object())}));
-    add("project_open", true, false, json::array({tile("load_project", "Load Project", json::object())}));
-    add("project_import", true, false, json::array({tile("import_file", "Import 3MF/STL/STEP/SVG/OBJ/AMF", json::object())}));
+    add("project_new", true, false, json::array({entry("new_project", "New Project", json::object())}));
+    add("project_open", true, false, json::array({entry("load_project", "Load Project", json::object())}));
+    add("project_import", true, false, json::array({entry("import_file", "Import 3MF/STL/STEP/SVG/OBJ/AMF", json::object())}));
     add("project_save", true, false,
-        json::array({tile("save_project", "Save Project", json::object()), tile("save_project_as", "Save Project As", {{"save_as", true}})}));
-    add("project_export", true, false, json::array({tile("export_gcode", "Export G-code", {{"format", "gcode"}})}));
+        json::array({entry("save_project", "Save Project", json::object()),
+                     entry("save_project_as", "Save Project As", {{"save_as", true}})}));
+    add("project_export", true, false, json::array({entry("export_gcode", "Export G-code", {{"format", "gcode"}})}));
     add("calibration_generate_test", true, false,
-        json::array({tile("calib_flow_ratio", "Flow Ratio Calibration", {{"test", "flow_ratio"}})}));
-    add("plate_slice", true, false, json::array({tile("slice_all", "Slice All Plates", {{"plates", "all"}, {"preview", true}})}));
+        json::array({entry("calib_flow_ratio", "Flow Ratio Calibration", {{"test", "flow_ratio"}})}));
+    add("plate_slice", true, false, json::array({entry("slice_all", "Slice All Plates", {{"plates", "all"}, {"preview", true}})}));
     add("view_set", true, false,
-        json::array({tile("view_top", "View: Top", {{"camera", "top"}}), collects("go_to_tab", "Go to tab...", "tab", "tab"),
+        json::array({entry("view_top", "View: Top", {{"camera", "top"}}), collects("go_to_tab", "Go to tab...", "tab", "tab"),
                      collects("go_to_layer", "Go to layer (percent)", "percent", "layer_percent")}));
-    add("object_add_primitive", true, false, json::array({tile("add_primitive_cube", "Cube", {{"shape", "cube"}})}));
-    add("object_set_instances", true, false, json::array({tile("obj_set_instances", "Set Number of Instances", json::object())}));
-    json mirror_x     = tile("obj_mirror_x", "Mirror X", {{"axis", "x"}});
+    add("object_add_primitive", true, false, json::array({entry("add_primitive_cube", "Cube", {{"shape", "cube"}})}));
+    add("object_set_instances", true, false, json::array({entry("obj_set_instances", "Set Number of Instances", json::object())}));
+    json mirror_x     = entry("obj_mirror_x", "Mirror X", {{"axis", "x"}});
     mirror_x["group"] = "Object";
-    add("object_mirror", true, false, json::array({std::move(mirror_x), tile("obj_mirror_y", "Mirror Y", {{"axis", "y"}})}));
-    add("preset_export", true, false, json::array({tile("export_config", "Export Preset Bundle", json::object())}));
-    add("preset_sync", true, false, json::array({tile("sync_presets", "Sync Presets", json::object())}));
-    add("printer_send", true, false, json::array({tile("send_gcode", "Send G-code to printer host", json::object())}));
+    add("object_mirror", true, false, json::array({std::move(mirror_x), entry("obj_mirror_y", "Mirror Y", {{"axis", "y"}})}));
+    add("preset_export", true, false, json::array({entry("export_config", "Export Preset Bundle", json::object())}));
+    add("preset_sync", true, false, json::array({entry("sync_presets", "Sync Presets", json::object())}));
+    add("printer_send", true, false, json::array({entry("send_gcode", "Send G-code to printer host", json::object())}));
     add("window_open", true, false,
-        json::array({tile("open_preferences", "Preferences", {{"window", "preferences"}}),
-                     tile("preset_bundle", "Open Preset Bundle", {{"window", "preset_bundle"}})}));
+        json::array({entry("open_preferences", "Preferences", {{"window", "preferences"}}),
+                     entry("preset_bundle", "Open Preset Bundle", {{"window", "preset_bundle"}})}));
     add("plate_delete", true, true, json());
-    add("export_drawing", false, true, json::array({tile("export_drawing_pdf", "Export as PDF", {{"format", "pdf"}})}));
+    add("export_drawing", false, true, json::array({entry("export_drawing_pdf", "Export as PDF", {{"format", "pdf"}})}));
     catalog.seal();
     return catalog;
 }
@@ -90,7 +91,7 @@ StepDescription describe(const std::string& step, const std::string& vars = "{}"
     ReplayContext ctx;
     ctx.replay_dir = "C:/replays";
     ctx.out_dir    = "C:/out";
-    return describe_step(tile_catalog(), replay->steps[0], *replay, ctx);
+    return describe_step(action_catalog(), replay->steps[0], *replay, ctx);
 }
 
 Flags flags_of(const StepDescription& d)
@@ -162,15 +163,15 @@ TEST_CASE("project tools replace the project after checking for unsaved changes"
     const StepDescription asked = describe(R"({"tool": "project_new", "args": {}})");
     CHECK(flags_of(asked) == Flags{"replaces_project"});
     CHECK(asked.replace == "app_asked");
-    // A test called with its tile's arguments opens its dialog, as the Calibration menu does.
+    // A test called with its action's arguments opens its dialog, as the Calibration menu does.
     const StepDescription dialog = describe(R"({"tool": "calibration_generate_test", "args": {"test": "flow_ratio"}})");
     CHECK(flags_of(dialog) == Flags{"changes_presets", "replaces_project"});
     CHECK(dialog.replace == "app_asked");
 }
 
-TEST_CASE("a command called by name is described as its tile is", "[Mcp]")
+TEST_CASE("a command called by name is described as its action is", "[Mcp]")
 {
-    const auto [key, tile_key, args, flags] = GENERATE_COPY(table<std::string, std::string, json, Flags>({
+    const auto [key, action_key, args, flags] = GENERATE_COPY(table<std::string, std::string, json, Flags>({
         {"preset_export", "export_config", json::object(), {"writes_file"}},
         {"preset_sync", "sync_presets", json::object(), {"changes_presets"}},
         {"window_open", "preset_bundle", {{"window", "preset_bundle"}}, {"changes_presets"}},
@@ -178,27 +179,27 @@ TEST_CASE("a command called by name is described as its tile is", "[Mcp]")
         {"plate_delete", "plate_delete", json::object(), {}},
     }));
     INFO(key << " " << args.dump());
-    const StepDescription by_name = describe(json{{"tool", key}, {"args", args}}.dump());
-    const StepDescription tile    = describe(action("orca_command:" + tile_key + ":orca"));
+    const StepDescription by_name   = describe(json{{"tool", key}, {"args", args}}.dump());
+    const StepDescription by_action = describe(action("orca_command:" + action_key + ":orca"));
     CHECK(flags_of(by_name) == flags);
-    CHECK(flags_of(by_name) == flags_of(tile));
-    CHECK(by_name.replace == tile.replace);
-    CHECK(by_name.what == tile.what);
-    CHECK(describe_call(tile_catalog(), key, args) == tile.what);
+    CHECK(flags_of(by_name) == flags_of(by_action));
+    CHECK(by_name.replace == by_action.replace);
+    CHECK(by_name.what == by_action.what);
+    CHECK(describe_call(action_catalog(), key, args) == by_action.what);
 }
 
-TEST_CASE("a tile that runs its command with arguments is described as that call is", "[Mcp]")
+TEST_CASE("an action that runs its command with arguments is described as that call is", "[Mcp]")
 {
-    const auto [key, tile, args, flags] = GENERATE_COPY(table<std::string, std::string, json, Flags>({
+    const auto [key, action_key, args, flags] = GENERATE_COPY(table<std::string, std::string, json, Flags>({
         {"project_export", "export_gcode", {{"format", "gcode"}}, {"writes_file"}},
         {"calibration_generate_test", "calib_flow_ratio", {{"test", "flow_ratio"}}, {"changes_presets", "replaces_project"}},
         {"object_set_instances", "obj_set_instances", json::object(), {}},
         {"object_mirror", "obj_mirror_y", {{"axis", "y"}}, {}},
     }));
     INFO(key << " " << args.dump());
-    const json        what{{"kind", "command"}, {"key", key}, {"tile", tile}};
-    const std::string id = "orca_command:" + tile + ":orca";
-    // The tile's action with no arguments and with its own, and the call of its command with them.
+    const json        what{{"kind", "command"}, {"key", key}, {"action", action_key}};
+    const std::string id = "orca_command:" + action_key + ":orca";
+    // The action with no arguments and with its own, and the call of its command with them.
     const StepDescription picked = describe(action(id));
     const StepDescription given  = describe(action(id, args));
     const StepDescription called = describe(json{{"tool", key}, {"args", args}}.dump());
@@ -207,20 +208,20 @@ TEST_CASE("a tile that runs its command with arguments is described as that call
         CHECK(flags_of(*d) == flags);
         CHECK(d->replace == picked.replace);
     }
-    CHECK(describe_call(tile_catalog(), key, args) == what);
-    CHECK(describe_call(tile_catalog(), "action_run", {{"id", id}}) == what);
-    CHECK(describe_call(tile_catalog(), "action_run", {{"id", tile}}) == what);
+    CHECK(describe_call(action_catalog(), key, args) == what);
+    CHECK(describe_call(action_catalog(), "action_run", {{"id", id}}) == what);
+    CHECK(describe_call(action_catalog(), "action_run", {{"id", action_key}}) == what);
 }
 
-TEST_CASE("a call with other arguments than a tile's is described by its arguments", "[Mcp]")
+TEST_CASE("a call with other arguments than an action's is described by its arguments", "[Mcp]")
 {
     const json what{{"kind", "command"}, {"key", "export_drawing"}, {"args", {"format: svg"}}};
     CHECK(describe(R"({"tool": "export_drawing", "args": {"format": "svg"}})").what == what);
     CHECK(describe(action("orca_command:export_drawing:orca", {{"format", "svg"}})).what == what);
-    // The command's own tile with the other tile's arguments is that tile.
+    // The command's own action with the other action's arguments is that action.
     CHECK(describe(action("orca_command:export_drawing:orca", {{"format", "pdf"}})).what ==
-          json{{"kind", "command"}, {"key", "export_drawing"}, {"tile", "export_drawing_pdf"}});
-    // A command made from menu items called with arguments no tile has is described as a typed tool's call, with what it
+          json{{"kind", "command"}, {"key", "export_drawing"}, {"action", "export_drawing_pdf"}});
+    // A command made from menu items called with arguments no action has is described as a typed tool's call, with what it
     // does whichever way it is called.
     const StepDescription exported = describe(json{{"tool", "preset_export"}, {"args", {{"path", abs_path("presets")}}}}.dump());
     CHECK(exported.what == json{{"kind", "files"}, {"names", {"presets"}}});
@@ -228,20 +229,20 @@ TEST_CASE("a call with other arguments than a tile's is described by its argumen
     CHECK(flags_of(describe(json{{"tool", "preset_import"}, {"args", {{"path", abs_path("a.json")}}}}.dump())) == Flags{"changes_presets"});
 }
 
-TEST_CASE("a tile that collects a value is described with it, and a call without it is no tile", "[Mcp]")
+TEST_CASE("an action that collects a value is described with it, and a call without it is no action's call", "[Mcp]")
 {
-    // Go to layer's percent reaches view_set as layer_percent, which the description shows with the tile.
+    // Go to layer's percent reaches view_set as layer_percent, which the description shows with the action.
     CHECK(describe(action("orca_command:go_to_layer:orca", {{"percent", 50}})).what ==
-          json{{"kind", "command"}, {"key", "view_set"}, {"tile", "go_to_layer"}, {"args", {"layer_percent: 50"}}});
+          json{{"kind", "command"}, {"key", "view_set"}, {"action", "go_to_layer"}, {"args", {"layer_percent: 50"}}});
     CHECK(describe(action("orca_command:go_to_tab:orca", {{"tab", "preview"}})).what ==
-          json{{"kind", "command"}, {"key", "view_set"}, {"tile", "go_to_tab"}, {"args", {"tab: preview"}}});
-    // view_set called with no arguments is no tile's call: the two tiles with nothing of their own collect a value.
-    CHECK(describe_call(tile_catalog(), "view_set", json::object()).is_null());
-    CHECK(describe_call(tile_catalog(), "view_set", {{"camera", "top"}}) ==
-          json{{"kind", "command"}, {"key", "view_set"}, {"tile", "view_top"}});
+          json{{"kind", "command"}, {"key", "view_set"}, {"action", "go_to_tab"}, {"args", {"tab: preview"}}});
+    // view_set called with no arguments is no action's call: the two actions with nothing of their own collect a value.
+    CHECK(describe_call(action_catalog(), "view_set", json::object()).is_null());
+    CHECK(describe_call(action_catalog(), "view_set", {{"camera", "top"}}) ==
+          json{{"kind", "command"}, {"key", "view_set"}, {"action", "view_top"}});
 }
 
-TEST_CASE("a step that calls a tile's command by its key is described from the catalog it is given", "[Mcp]")
+TEST_CASE("a step that calls an action's command by its key is described from the catalog it is given", "[Mcp]")
 {
     std::string err;
     const auto  replay = parse_replay(R"({"orca_replay_version": "0.2.0", "steps": [
@@ -253,18 +254,18 @@ TEST_CASE("a step that calls a tile's command by its key is described from the c
     ReplayContext ctx;
     ctx.out_dir = "C:/out";
 
-    // filament_delete as the app's catalog has it: listed, with a tile of its own.
+    // filament_delete as the app's catalog has it: listed, with an action of its own.
     CommandCatalog catalog;
     NativeCommand  filament_delete;
-    filament_delete.key        = "filament_delete";
-    filament_delete.in_palette = true;
-    filament_delete.listed     = true;
+    filament_delete.key            = "filament_delete";
+    filament_delete.has_own_action = true;
+    filament_delete.listed         = true;
     catalog.add(std::move(filament_delete));
     catalog.seal();
-    const StepDescription tile = describe_step(catalog, replay->steps[0], *replay, ctx);
-    REQUIRE(tile.what.is_object());
-    CHECK(tile.what.value("kind", "") == "command");
-    CHECK(tile.what.value("key", "") == "filament_delete");
+    const StepDescription own = describe_step(catalog, replay->steps[0], *replay, ctx);
+    REQUIRE(own.what.is_object());
+    CHECK(own.what.value("kind", "") == "command");
+    CHECK(own.what.value("key", "") == "filament_delete");
     // With arguments of its own it is its silent form, described from them as a typed tool's call is.
     CHECK(describe_step(catalog, replay->steps[1], *replay, ctx).what == json{{"kind", "value"}, {"text", "filament_slot: 2"}});
 
@@ -276,8 +277,9 @@ TEST_CASE("a step that calls a tile's command by its key is described from the c
 
 TEST_CASE("speed dial actions are flagged by their id", "[Mcp]")
 {
-    // A tile's id reaches its command through find_tile(), and the command and its arguments decide the flags: a tile's
-    // call and a call of its command with those arguments, or with a path beside them, are flagged alike.
+    // An action's id reaches its command through find_command_action(), and the command and its arguments decide the
+    // flags: an action's call and a call of its command with those arguments, or with a path beside them, are flagged
+    // alike.
     struct Case
     {
         std::string step;
@@ -298,7 +300,7 @@ TEST_CASE("speed dial actions are flagged by their id", "[Mcp]")
         {action("orca_command:new_project:orca"), {"replaces_project"}, "app_asked"},
         {action("orca_command:load_project:orca"), {"replaces_project"}, "app_asked"},
         {action("orca_command:import_file:orca"), {}, ""},
-        // A tile by the key inside its id, as action_run takes it.
+        // An action by the key inside its id, as action_run takes it.
         {action("export_gcode"), {"writes_file"}, ""},
         {action("new_project"), {"replaces_project"}, "app_asked"},
         {action("send_gcode"), {"sends_to_printer"}, ""},
@@ -311,7 +313,7 @@ TEST_CASE("speed dial actions are flagged by their id", "[Mcp]")
         {action("orca_setting:layer_height:1"), {}, ""},
         {action("plugin_replay_action:tool:plugin"), kEveryFlag, "app_asked"},
         {action("plugin_page_action:page:plugin"), kEveryFlag, "app_asked"},
-        // A name inside an id that is no tile may be another action's, whose effect can't be read.
+        // A name inside an id that is no command's action may be another action's, whose effect can't be read.
         {action("page"), kEveryFlag, "app_asked"},
     }));
     INFO(c.step);
@@ -330,20 +332,21 @@ TEST_CASE("speed dial actions describe their command and file", "[Mcp]")
 {
     const json none = json::object();
     const auto [id, args, what] = GENERATE_COPY(table<std::string, json, json>({
-        {"orca_command:import_file:orca", none, {{"kind", "command"}, {"key", "project_import"}, {"tile", "import_file"}}},
-        {"orca_command:save_project_as:orca", none, {{"kind", "command"}, {"key", "project_save"}, {"tile", "save_project_as"}}},
-        {"orca_command:export_config:orca", none, {{"kind", "command"}, {"key", "preset_export"}, {"tile", "export_config"}}},
+        {"orca_command:import_file:orca", none, {{"kind", "command"}, {"key", "project_import"}, {"action", "import_file"}}},
+        {"orca_command:save_project_as:orca", none, {{"kind", "command"}, {"key", "project_save"}, {"action", "save_project_as"}}},
+        {"orca_command:export_config:orca", none, {{"kind", "command"}, {"key", "preset_export"}, {"action", "export_config"}}},
         {"orca_command:go_to_layer:orca", {{"percent", 50}},
-         {{"kind", "command"}, {"key", "view_set"}, {"tile", "go_to_layer"}, {"args", {"layer_percent: 50"}}}},
-        {"orca_command:add_primitive_cube:orca", none, {{"kind", "command"}, {"key", "object_add_primitive"}, {"tile", "add_primitive_cube"}}},
-        {"orca_command:slice_all:orca", none, {{"kind", "command"}, {"key", "plate_slice"}, {"tile", "slice_all"}}},
-        // A tile with a Speed Dial section of its own is described as any other.
-        {"orca_command:obj_mirror_x:orca", none, {{"kind", "command"}, {"key", "object_mirror"}, {"tile", "obj_mirror_x"}}},
-        {"orca_command:obj_mirror_y:orca", none, {{"kind", "command"}, {"key", "object_mirror"}, {"tile", "obj_mirror_y"}}},
-        // A tile by the key inside its id, as action_run takes it, a command's own tile among them.
-        {"export_gcode", none, {{"kind", "command"}, {"key", "project_export"}, {"tile", "export_gcode"}}},
+         {{"kind", "command"}, {"key", "view_set"}, {"action", "go_to_layer"}, {"args", {"layer_percent: 50"}}}},
+        {"orca_command:add_primitive_cube:orca", none,
+         {{"kind", "command"}, {"key", "object_add_primitive"}, {"action", "add_primitive_cube"}}},
+        {"orca_command:slice_all:orca", none, {{"kind", "command"}, {"key", "plate_slice"}, {"action", "slice_all"}}},
+        // An action with a Speed Dial section of its own is described as any other.
+        {"orca_command:obj_mirror_x:orca", none, {{"kind", "command"}, {"key", "object_mirror"}, {"action", "obj_mirror_x"}}},
+        {"orca_command:obj_mirror_y:orca", none, {{"kind", "command"}, {"key", "object_mirror"}, {"action", "obj_mirror_y"}}},
+        // An action by the key inside its id, as action_run takes it, a command's own action among them.
+        {"export_gcode", none, {{"kind", "command"}, {"key", "project_export"}, {"action", "export_gcode"}}},
         {"go_to_layer", {{"percent", 50}},
-         {{"kind", "command"}, {"key", "view_set"}, {"tile", "go_to_layer"}, {"args", {"layer_percent: 50"}}}},
+         {{"kind", "command"}, {"key", "view_set"}, {"action", "go_to_layer"}, {"args", {"layer_percent: 50"}}}},
         {"plate_delete", none, {{"kind", "command"}, {"key", "plate_delete"}}},
         {"orca_recent_project:C:/p/a.3mf:orca", none, {{"kind", "recent_project"}, {"name", "a.3mf"}}},
         {"orca_setting:layer_height:1", none, {{"kind", "value"}, {"text", "layer_height"}}},
@@ -484,8 +487,8 @@ TEST_CASE("saved jobs don't change a step's flags", "[Mcp]")
     without.out_dir = "C:/out";
     ReplayContext with = without;
     with.jobs          = json{{"p", "j12"}};
-    const StepDescription a = describe_step(tile_catalog(), replay->steps[0], *replay, without);
-    const StepDescription b = describe_step(tile_catalog(), replay->steps[0], *replay, with);
+    const StepDescription a = describe_step(action_catalog(), replay->steps[0], *replay, without);
+    const StepDescription b = describe_step(action_catalog(), replay->steps[0], *replay, with);
     CHECK(flags_of(a) == flags_of(b));
     CHECK(a.replace == b.replace);
     CHECK(a.answers_dialogs == b.answers_dialogs);

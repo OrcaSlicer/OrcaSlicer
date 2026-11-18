@@ -265,10 +265,10 @@ Ops::Refusal no_bed_in_design()
     return Ops::Refusal{Ops::RefusalKind::Precondition, "no_bed_in_design", L("The Design tab has no bed to fit the view to.")};
 }
 
-// view_set's camera, and a pick of a camera tile: a named direction or a fit of the shown 3D view. On the Design tab
+// view_set's camera, and a pick of a camera action: a named direction or a fit of the shown 3D view. On the Design tab
 // it points the Design view as its own controls do, `default` being its Home view and `sketch_normal` the sketch's N
-// key. The refusal is the one a tile can reach, fit_bed on the Design tab; fit_selection and sketch_normal, which no
-// tile gives, throw. UI thread.
+// key. The refusal is the one an action can reach, fit_bed on the Design tab; fit_selection and sketch_normal, which no
+// action gives, throw. UI thread.
 std::optional<Ops::Refusal> point_camera(Plater& plater, const std::string& cam)
 {
 #ifdef SLIC3R_CAD
@@ -425,31 +425,31 @@ Ops::Outcome<Ops::ShownLayers> show_layer_percent(double percent)
     return Ops::show_layer_range(range);
 }
 
-// A person's pick of one of view_set's tiles, in place on the UI thread as its menu item ran: for each argument the function
-// a call's UI closure runs, and a refusal in the UI's language, Go to tab's as an error and the others, which say that
-// the view has nothing to show it, as information.
-AppActionRunResult picked_view(const json& tile_args)
+// A person's pick of one of view_set's actions, in place on the UI thread as its menu item ran: for each argument the
+// function a call's UI closure runs, and a refusal in the UI's language, Go to tab's as an error and the others, which say
+// that the view has nothing to show it, as information.
+AppActionRunResult picked_view(const json& action_args)
 {
     Plater*    plater = wxGetApp().plater();
     MainFrame* frame  = wxGetApp().mainframe;
     if (plater == nullptr || frame == nullptr)
         return AppActionRunResult{};
-    if (tile_args.contains("layout"))
+    if (action_args.contains("layout"))
         return MenuItems::reset_window_layout();
-    if (tile_args.contains("projection"))
+    if (action_args.contains("projection"))
         return MenuItems::toggle_perspective();
-    if (tile_args.contains("tab")) {
-        if (const std::optional<Ops::Refusal> refusal = show_tab(*frame, arg_string(tile_args, "tab")))
+    if (action_args.contains("tab")) {
+        if (const std::optional<Ops::Refusal> refusal = show_tab(*frame, arg_string(action_args, "tab")))
             return NativeCommands::refused(*refusal);
         return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     }
-    if (tile_args.contains("layer_percent")) {
+    if (action_args.contains("layer_percent")) {
         show_preview(*plater, *frame);
-        const Ops::Outcome<Ops::ShownLayers> shown = show_layer_percent(tile_args.at("layer_percent").get<double>());
+        const Ops::Outcome<Ops::ShownLayers> shown = show_layer_percent(action_args.at("layer_percent").get<double>());
         return shown ? AppActionRunResult{AppActionRunResult::Level::Succeeded} :
                        NativeCommands::refused(shown.refusal(), AppActionRunResult::Level::Info);
     }
-    if (const std::optional<Ops::Refusal> refusal = point_camera(*plater, arg_string(tile_args, "camera")))
+    if (const std::optional<Ops::Refusal> refusal = point_camera(*plater, arg_string(action_args, "camera")))
         return NativeCommands::refused(*refusal, AppActionRunResult::Level::Info);
     repaint_shown_canvas();
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
@@ -860,8 +860,8 @@ void register_view_tools(CommandCatalog& catalog)
         "navigator set the display switches of the View menu and of the 3D view's own menu; sidebar_collapsed and "
         "sidebar_width set the sidebar of Prepare and the Preview; in the Preview, legend_collapsed folds the legend and "
         "gcode_window shows the G-code window. Each is echoed as the app reads it back, and app_state's view gives them "
-        "under these names. A pick of a view tile runs the same code in place, so a camera tile turns the Design tab's "
-        "camera too.",
+        "under these names. A pick of a view action runs the same code in place, so a camera action turns the Design "
+        "tab's camera too.",
         object_schema({{"tab", prop("string", "Main window tab: " + tab_words + ", or the id of another page of the window "
                                               "(monitor_web, the web Device page where the app shows one, or a plugin's page).")},
                        {"canvas", enum_prop({"3d", "preview", "assemble"}, "3D view: Prepare's, the preview, or the assemble view (needs an object; leave it with 3d, as its Return button does).")},
@@ -1281,7 +1281,7 @@ void register_view_tools(CommandCatalog& catalog)
                                                        {"view_iso", L("View: Isometric"), "iso"},
                                                        {"view_default", L("View: Default"), "default"},
                                                        {"view_fit_bed", L("Fit Bed to View"), "fit_bed"}};
-    view.tiles = json::array();
+    view.actions = json::array();
     std::vector<json> camera_forms;
     for (const CameraMenuItem& item : camera_menu_items) {
         const std::string camera = item.camera;
@@ -1290,24 +1290,25 @@ void register_view_tools(CommandCatalog& catalog)
             does = "Turn the camera of the view shown to the default view and fit the plate; on the Design tab, its Home view.";
         else if (camera == "fit_bed")
             does = "Fit the build plate in the 3D view shown; refused on the Design tab, which has no bed to fit.";
-        view.tiles.push_back(NativeCommands::tile(item.key, item.title, L("View"), "", {{"camera", camera}}, does));
+        view.actions.push_back(NativeCommands::action(item.key, item.title, L("View"), "", {{"camera", camera}}, does));
         camera_forms.push_back({{"camera", camera}});
     }
-    view.tiles.push_back(NativeCommands::tile("view_toggle_perspective", L("Toggle Perspective"), L("View"), "", {{"projection", "toggle"}},
-                                              "Switch the 3D camera between perspective and orthographic."));
-    view.tiles.push_back(NativeCommands::tile("reset_window_layout", L("Reset Window Layout"), L("View"), "toolbar_reset",
-                                              {{"layout", "default"}}, "Restore the default window layout."));
-    view.tiles.push_back(NativeCommands::tile("go_to_tab", L("Go to tab..."), L("Commands"), "", json::object(),
-                                              "Switch to a main window tab.", "tab"));
-    view.tiles.push_back(NativeCommands::tile("go_to_layer", L("Go to layer (percent)"), L("Commands"), "height_range_layer",
-                                              json::object(),
-                                              "Show the Preview tab at a layer chosen as a percentage of the layer range; an error "
-                                              "while the Preview has no layers (slice first).",
-                                              "percent", "layer_percent"));
-    // A person's pick of any of these tiles runs in place (picked_view()): Toggle Perspective and Reset Window Layout
-    // their menu items, the camera tiles, Go to tab and Go to layer the camera, tab and layer functions view_set's UI closure
-    // runs for a call, so a camera tile turns the Design tab's camera too. An automated call of a camera tile, Go to tab
-    // or Go to layer is view_set's own function.
+    view.actions.push_back(NativeCommands::action("view_toggle_perspective", L("Toggle Perspective"), L("View"), "",
+                                                  {{"projection", "toggle"}},
+                                                  "Switch the 3D camera between perspective and orthographic."));
+    view.actions.push_back(NativeCommands::action("reset_window_layout", L("Reset Window Layout"), L("View"), "toolbar_reset",
+                                                  {{"layout", "default"}}, "Restore the default window layout."));
+    view.actions.push_back(NativeCommands::action("go_to_tab", L("Go to tab..."), L("Commands"), "", json::object(),
+                                                  "Switch to a main window tab.", "tab"));
+    view.actions.push_back(NativeCommands::action("go_to_layer", L("Go to layer (percent)"), L("Commands"), "height_range_layer",
+                                                  json::object(),
+                                                  "Show the Preview tab at a layer chosen as a percentage of the layer range; an error "
+                                                  "while the Preview has no layers (slice first).",
+                                                  "percent", "layer_percent"));
+    // A person's pick of any of these actions runs in place (picked_view()): Toggle Perspective and Reset Window Layout
+    // their menu items, the camera actions, Go to tab and Go to layer the camera, tab and layer functions view_set's UI
+    // closure runs for a call, so a camera action turns the Design tab's camera too. An automated call of a camera action,
+    // Go to tab or Go to layer is view_set's own function.
     catalog.add(NativeCommands::with_menu_item_forms(std::move(view), picked_view, /*person_form_behind_dialogs=*/false,
                                                std::move(camera_forms)));
 
@@ -1339,11 +1340,11 @@ void register_view_tools(CommandCatalog& catalog)
         {"help_about", L("About OrcaSlicer"), L("Help"), "OrcaSlicer_gradient_circle", "about", "Show the About dialog."},
     };
     std::vector<std::string> windows;
-    json                     window_tiles = json::array();
+    json                     window_actions = json::array();
     for (const WindowMenuItem& item : window_menu_items) {
         windows.emplace_back(item.window);
-        window_tiles.push_back(
-            NativeCommands::tile(item.key, item.title, item.group, item.icon, {{"window", item.window}}, item.description));
+        window_actions.push_back(
+            NativeCommands::action(item.key, item.title, item.group, item.icon, {{"window", item.window}}, item.description));
     }
     catalog.add(menu_command(
         "window_open", L("Open a window"),
@@ -1360,7 +1361,7 @@ void register_view_tools(CommandCatalog& catalog)
                        {"key", prop("string", "preferences, with tab: a preference on that tab, e.g. auto_arrange on behaviour: "
                                               "its control is scrolled into view and focused.")}},
                       {"window"}),
-        std::move(window_tiles), [](const json& args) {
+        std::move(window_actions), [](const json& args) {
             const std::string window = arg_string(args, "window");
             if (window != "preferences" && (args.contains("tab") || args.contains("key")))
                 return AppActionRunResult{AppActionRunResult::Level::Error, from_u8("tab and key go with window preferences"), false};
@@ -1373,8 +1374,8 @@ void register_view_tools(CommandCatalog& catalog)
                               "they chose another) and show the person a notification naming it; the reply has its path. Agents use "
                               "the window_screenshot tool, which returns the image.";
     NativeCommand save_screenshot = menu_command("window_save_screenshot", L("Take Screenshot"), saved, object_schema({}),
-                                                json::array({NativeCommands::tile("take_screenshot", L("Take Screenshot"),
-                                                                                  L("Commands"), "screenshot", json::object(), saved)}),
+                                                json::array({NativeCommands::action("take_screenshot", L("Take Screenshot"),
+                                                                                    L("Commands"), "screenshot", json::object(), saved)}),
                                                 [](const json&) { return MenuItems::take_screenshot(); });
     // A menu item with no argument form: tool_search finds it and tool_call runs it, the tool list does not show it.
     save_screenshot.listed = false;

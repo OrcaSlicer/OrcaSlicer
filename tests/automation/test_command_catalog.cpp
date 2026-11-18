@@ -119,11 +119,11 @@ TEST_CASE("the person's form is the call with no arguments", "[CommandCatalog]")
     CHECK(Mcp::silent_args({{"silent", true}, {"path", "a"}}) == json{{"path", "a"}});
 }
 
-TEST_CASE("a call with exactly a tile's arguments is the person's form", "[CommandCatalog]")
+TEST_CASE("a call with exactly an action's arguments is the person's form", "[CommandCatalog]")
 {
-    // A command with a tile of its own, a tile that mirrors along X and one that collects a tab in the Speed Dial.
-    NativeCommand c = command("view_it", /*in_palette=*/true);
-    c.tiles         = json::array({json{{"key", "view_x"}, {"title", "X"}, {"group", "View"}, {"icon", ""}, {"description", ""},
+    // A command with an action of its own, an action that mirrors along X and one that collects a tab in the Speed Dial.
+    NativeCommand c = command("view_it", /*has_own_action=*/true);
+    c.actions       = json::array({json{{"key", "view_x"}, {"title", "X"}, {"group", "View"}, {"icon", ""}, {"description", ""},
                                         {"args", {{"axis", "x"}}}},
                                    json{{"key", "view_tab"}, {"title", "Tab"}, {"group", "Commands"}, {"icon", ""},
                                         {"description", ""}, {"args", json::object()}, {"input", "tab"}}});
@@ -134,9 +134,9 @@ TEST_CASE("a call with exactly a tile's arguments is the person's form", "[Comma
     CHECK_FALSE(Mcp::person_form(c, {{"axis", "x"}, {"silent", true}}));
     CHECK_FALSE(Mcp::person_form(c, {{"silent", true}}));
 
-    // A tile that collects a value is no person's form: its value comes from the Speed Dial's second phase.
+    // An action that collects a value is no person's form: its value comes from the Speed Dial's second phase.
     NativeCommand collects = command("go_to");
-    collects.tiles         = json::array({json{{"key", "go_to_tab"}, {"title", "Tab"}, {"group", "Commands"}, {"icon", ""},
+    collects.actions       = json::array({json{{"key", "go_to_tab"}, {"title", "Tab"}, {"group", "Commands"}, {"icon", ""},
                                                {"description", ""}, {"args", json::object()}, {"input", "tab"}}});
     CHECK_FALSE(Mcp::person_form(collects, json::object()));
 }
@@ -179,7 +179,7 @@ TEST_CASE("a two-form schema requires its arguments only when some are given", "
     CHECK_THAT(Mcp::validate_arguments(s, {{"silent", false}}), ContainsSubstring("silent"));
 }
 
-TEST_CASE("a reference entry has the command's fields, and its examples and tiles only when it has some", "[CommandCatalog][Reference]")
+TEST_CASE("a reference entry has the command's fields, and its examples and actions only when it has some", "[CommandCatalog][Reference]")
 {
     NativeCommand c = command("export_it", true);
     c.title         = "Export It";
@@ -197,7 +197,7 @@ TEST_CASE("a reference entry has the command's fields, and its examples and tile
                         {"description", "Exports it."},
                         {"input_schema", c.input_schema},
                         {"listed", false},
-                        {"in_palette", true},
+                        {"has_own_action", true},
                         {"read_only", false},
                         {"destructive", false},
                         {"idempotent", false},
@@ -214,22 +214,22 @@ TEST_CASE("a reference entry has the command's fields, and its examples and tile
     CHECK(other["guard"] == "inspect");
     CHECK(other["completion"] == "immediate");
     CHECK(other["examples"] == c.examples);
-    CHECK_FALSE(other.contains("tiles"));
+    CHECK_FALSE(other.contains("actions"));
     c.guard = GuardClass::Mutate;
     CHECK(Slic3r::GUI::command_reference(c)["guard"] == "mutate");
-    c.tiles = json::array({json{{"key", "export_it_pdf"}, {"title", "Export as PDF"}, {"icon", ""}, {"description", ""},
-                                {"args", {{"format", "pdf"}}}}});
-    CHECK(Slic3r::GUI::command_reference(c)["tiles"] == c.tiles);
+    c.actions = json::array({json{{"key", "export_it_pdf"}, {"title", "Export as PDF"}, {"icon", ""}, {"description", ""},
+                                  {"args", {{"format", "pdf"}}}}});
+    CHECK(Slic3r::GUI::command_reference(c)["actions"] == c.actions);
 
-    // What a person sees of its own tile, once it has any.
+    // What a person sees of its own action, once it has any.
     CHECK_FALSE(entry.contains("icon"));
     CHECK_FALSE(entry.contains("input"));
-    CHECK_FALSE(entry.contains("tile_group"));
-    c.icon       = "menu_save";
-    c.input      = "tab";
-    c.tile_group = "Commands";
+    CHECK_FALSE(entry.contains("action_group"));
+    c.icon         = "menu_save";
+    c.input        = "tab";
+    c.action_group = "Commands";
     const json shown = Slic3r::GUI::command_reference(c);
     CHECK(shown["icon"] == "menu_save");
     CHECK(shown["input"] == "tab");
-    CHECK(shown["tile_group"] == "Commands");
+    CHECK(shown["action_group"] == "Commands");
 }

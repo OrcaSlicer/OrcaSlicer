@@ -269,7 +269,7 @@ void OptionsGroup::append_line(const Line& line)
         for (const auto& opt : line.get_options()) {
             if (!line.label_path.empty())
                 index.set_path(opt.opt_id, type, line.label_path);
-            // Mirror the sub-label OG_CustomCtrl draws for a multi-option row, so the palette
+            // Mirror the sub-label OG_CustomCtrl draws for a multi-option row, so the Speed Dial
             // names each field like the page does.
             const std::string& leaf_src = opt.opt.label;
             const wxString leaf = (leaf_src == L_CONTEXT("Top", "Layers") || leaf_src == L_CONTEXT("Bottom", "Layers")) ?

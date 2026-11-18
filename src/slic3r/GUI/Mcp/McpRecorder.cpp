@@ -901,7 +901,7 @@ void McpRecorder::call_started(uint64_t call, const NativeCommand& def, const js
     std::lock_guard<std::mutex> lock(m_mutex);
     if (!m_rec || m_rec->ending || !m_rec->options.captions)
         return;
-    // A tile's call is captioned with the tile's title: action_run of it, or its command called with its arguments.
+    // An action's call is captioned with the action's title: action_run of it, or its command called with its arguments.
     const auto [title, titled] = shown_title(NativeCommands::instance(), def, args);
     const char* context        = title_context(*titled);
     m_rec->board.call_started(call, title, safe_caption_detail(def.key, args), Clock::now(), context != nullptr ? context : "");

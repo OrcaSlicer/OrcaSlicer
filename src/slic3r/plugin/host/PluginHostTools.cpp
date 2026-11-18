@@ -221,9 +221,9 @@ void register_tools(py::module_& host)
         },
         py::arg("name"),
         "The command `name` as a dict: key, title, group (as list() gives it), description, input_schema (the JSON "
-        "Schema of its arguments), examples when it has some ([{title, calls: [{tool, args}]}]), listed, in_palette (it "
-        "has a tile of its own in the Speed Dial), tiles when it has some (the Speed Dial's tiles that run it with their "
-        "args), the access labels read_only, destructive, idempotent and open_world, guard "
+        "Schema of its arguments), examples when it has some ([{title, calls: [{tool, args}]}]), listed, has_own_action "
+        "(it has an action of its own in the Speed Dial), actions when it has some (the Speed Dial's actions that run it "
+        "with their args), the access labels read_only, destructive, idempotent and open_world, guard "
         "(inspect, recover or mutate: what it may do behind a dialog), completion and operations. An unknown name "
         "raises ToolError, whose details hold did_you_mean, the closest names. Any thread.");
 }

@@ -1,22 +1,23 @@
 #!/usr/bin/env python3
-"""Runs every Speed Dial tile of tests/data/speed_dial_tiles.json through action_run and checks that it does its row's
-job: the change its variant alone makes, the window it opens, the file it writes, or the refusal of a tile this harness
-cannot give a state to (a printer, an AMS, an account).
+"""Runs every Speed Dial action of tests/data/speed_dial_actions.json through action_run and checks that it does its
+row's job: the change its variant alone makes, the window it opens, the file it writes, or the refusal of an action this
+harness cannot give a state to (a printer, an AMS, an account).
 
     tools/mcp/orca_mcp.py launch
-    tools/mcp/test_every_tile.py [--out DIR]
+    tools/mcp/test_every_action.py [--out DIR]
 
-ROWS holds one row per tile key; a key of the tiles file with no row, or a row of a key the file lacks, fails the test.
-Before each tile its state is set up afresh by calls (STATES), so that no tile sees what another left: New Project and
-Delete All among them. A row's dialog is answered as the row says: a button of one of the app's own dialogs, a text
-typed into it first, or a rule for a native file picker registered beforehand, with a file in the output folder.
+ROWS holds one row per action key; a key of the actions file with no row, or a row of a key the file lacks, fails the
+test. Before each action its state is set up afresh by calls (STATES), so that no action sees what another left: New
+Project and Delete All among them. A row's dialog is answered as the row says: a button of one of the app's own
+dialogs, a text typed into it first, or a rule for a native file picker registered beforehand, with a file in the
+output folder.
 
-For every tile that ran, the reply's ran is the tile's id, and the step replay_export writes for the call is the tile's
-action_run with the arguments of tests/data/speed_dial_tile_calls.json (for Go to tab and Go to layer the value under
-the tile's input token), the tile naming the fixture's command in action_search. A tile expected to be refused has
-neither: action_run adds ran only when the command ran, and a failed call is not exported.
+For every action that ran, the reply's ran is the action's id, and the step replay_export writes for the call is an
+action_run of that id with the arguments of tests/data/speed_dial_action_calls.json (for Go to tab and Go to layer the
+value under the action's input token), the action naming the fixture's command in action_search. An action expected to
+be refused has neither: action_run adds ran only when the command ran, and a failed call is not exported.
 
-Three tiles open a web page in the system's browser and one opens the configuration folder in the file manager; the
+Three actions open a web page in the system's browser and one opens the configuration folder in the file manager; the
 test runs them once and leaves what they opened. Send G-code, Synchronize Filament List from AMS and Sync Presets are
 expected to be refused: the seeded printer prints through the Bambu network and nothing is signed in. Import, Import
 Configs and SVG open a file picker that dialog_auto_answer cannot give a file (a multi-select picker, and one whose
@@ -24,7 +25,7 @@ caller reads GetPaths()): the rule cancels it, and the row checks that the picke
 dialogs whose choices are a person's (Export Preset Bundle, the Setup Wizard, the Network Test) are closed. Every file the
 test writes is in its output folder (a new temporary folder unless --out names one) or in the app's configuration
 folder; Start Recording's folder, where Take Screenshot saves too, is set to the output folder through the Start
-Recording dialog before the tiles run. Exits 0 when every check passes.
+Recording dialog before the actions run. Exits 0 when every check passes.
 """
 
 import argparse
@@ -50,18 +51,18 @@ IMPORTED_PRESET = "MCP Import PLA"  # the filament fixtures/mcp_import_pla.json 
 LOCAL_PLUGIN, SIDE_LOADED = "MCP Tools Fixture", "MCP Web Fixture"  # the fixture plugins' names, from their manifests
 
 
-def tile_id(key):
+def action_id(key):
     return PREFIX + key + SUFFIX
 
 
 class Run:
-    """The client, the output folder and what one tile's checks read."""
+    """The client, the output folder and what one action's checks read."""
 
     def __init__(self, client, out, datadir):
         self.client, self.out, self.datadir = client, out, datadir
-        self.reply = None    # the tile's final reply
+        self.reply = None    # the action's final reply
         self.before = None   # what the row's before() read after the state was set up
-        self.windows = []    # the titles window_list gave before the tile ran
+        self.windows = []    # the titles window_list gave before the action ran
         self.seen = []       # the titles of the dialogs the row's answers found open
 
     def call(self, tool, /, **args):
@@ -115,12 +116,12 @@ class Run:
         return [line.split('"')[1] for line in "\n".join(texts).splitlines() if "imgui_window" in line and '"' in line]
 
     def new_windows(self):
-        """The windows the tile opened: those its answers found open, and those still open that were not before."""
+        """The windows the action opened: those its answers found open, and those still open that were not before."""
         shown = [w["title"] for w in self.call("window_list").get("items", []) if w["title"] not in self.windows]
         return self.seen + [t for t in shown if t not in self.seen]
 
 
-# ---- The files the tiles read ----
+# ---- The files the actions read ----
 
 def box(x0, size):
     """The twelve facets of an axis-aligned cube of `size` mm whose corner is at (x0, 0, 0), as ASCII STL text."""
@@ -132,7 +133,7 @@ def box(x0, size):
 
 
 def write_inputs(out):
-    """The files the import, open and install tiles pick: an STL of one mesh with two shells, a ZIP holding it, the
+    """The files the import, open and install actions pick: an STL of one mesh with two shells, a ZIP holding it, the
     fixture preset, SVG and plugin."""
     stl = os.path.join(out, "two_shells.stl")
     with open(stl, "w") as f:
@@ -146,7 +147,7 @@ def write_inputs(out):
         os.makedirs(os.path.join(out, folder), exist_ok=True)
 
 
-# ---- States: each set up afresh by calls before its tile ----
+# ---- States: each set up afresh by calls before its action ----
 
 RESTORE = {"match": "restore", "button": "no"}  # the prompt to restore unsaved items after a start
 
@@ -250,7 +251,7 @@ STATES = {"empty": empty, "two_cubes": two_cubes, "sliced": sliced, "assembled":
 # ---- Answers ----
 
 def picker(name):
-    """A rule for the native file or folder picker the tile opens: it returns `name` in the output folder."""
+    """A rule for the native file or folder picker the action opens: it returns `name` in the output folder."""
     return ("picker", name)
 
 
@@ -294,7 +295,7 @@ def app_state(fn):
 
 
 def window(title):
-    """The tile opened the window or dialog titled `title`, which it had not shown before."""
+    """The action opened the window or dialog titled `title`, which it had not shown before."""
     return ("window", lambda r: (any(title.lower() in t.lower() for t in r.new_windows()), r.new_windows()))
 
 
@@ -325,7 +326,7 @@ PATHLESS = "dialog_auto_answer cannot give this picker a file, so its rule cance
 
 
 def picked(unchanged):
-    """The tile opened its file picker, which the row's rule answered, and with nothing chosen `unchanged` holds."""
+    """The action opened its file picker, which the row's rule answered, and with nothing chosen `unchanged` holds."""
     def check(r):
         uses = [rule.get("uses", 0) for rule in r.state().get("auto_answer_rules", []) if rule.get("path")]
         return uses == [1] and unchanged(r), (uses, r.names())
@@ -393,7 +394,7 @@ LIFTED = call("object_transform", object=0, translate=[0, 0, 15], drop_to_bed=Fa
 TWO_SLOTS = call("filament_add")
 ORDER_NAMES = (call("object_rename", object=0, name="b_cube"), call("object_rename", object=1, name="a_cube"))
 # Three objects in an order that is neither ascending nor descending by height or by size, and whose order by height
-# is the reverse of their order by size: a tile that sorts by the other key, or reverses an order it finds sorted
+# is the reverse of their order by size: an action that sorts by the other key, or reverses an order it finds sorted
 # (ObjectList::order_objects()), leaves another order.
 ORDER_SIZES = (call("object_select", none=True),
                call("object_add_primitive", shape="cube", silent=True, size=[10, 10, 30], position=[BED_CENTRE, 200, 15]),
@@ -420,8 +421,8 @@ CALIBRATIONS = {"temperature": ("Temperature calibration", "Nozzle temperature t
                 "vfa": ("VFA test", "VFA test")}
 
 
-def dialog_tile(key, title, why=""):
-    """A Help or window tile whose job is to show one of the app's dialogs, which the test then closes."""
+def dialog_action(key, title, why=""):
+    """A Help or window action whose job is to show one of the app's dialogs, which the test then closes."""
     return row(key, "empty", window(title), answers=[button(title, "close")], why=why)
 
 
@@ -457,7 +458,7 @@ ROWS = dict([
         why="the Run Script panel is kept from automation, so widget_list reads the 3D view it docks under"),
     row("open_action_replay", "empty", window("Action Replay"),
         why="Action Replay is the person's window, which no tool closes: it stays open"),
-    dialog_tile("open_preferences", "Preferences"),
+    dialog_action("open_preferences", "Preferences"),
     row("take_screenshot", "two_cubes", ("file", lambda r: (bool(r.reply.get("path")) and os.path.isfile(r.reply["path"]) and
                                                            os.path.dirname(r.reply["path"]) == r.out, r.reply))),
     # ---- Mode ----
@@ -517,13 +518,13 @@ ROWS = dict([
                                                        [(o["name"], o["plate"]) for o in r.objects()])), pre=[CUBE_OFF_PLATE]),
     row("obj_orient", "two_cubes", objects(lambda r: (near(r.objects()[0]["bbox"]["size"][2], 20, 0.5), r.objects()[0]["bbox"])),
         pre=[call("object_transform", object=0, rotate=[45, 0, 0]), call("object_select", objects=[0])]),
-    *[row("obj_type_" + tile, "part_selected", objects(lambda r, t=t: (part_types(r) == sorted(["part", t]), part_types(r))))
-      for tile, t in (("negative", "negative"), ("modifier", "modifier"), ("support_blocker", "support_blocker"),
-                      ("support_enforcer", "support_enforcer"), ("precise_seam", "precise_seam"))],
+    *[row("obj_type_" + action, "part_selected", objects(lambda r, t=t: (part_types(r) == sorted(["part", t]), part_types(r))))
+      for action, t in (("negative", "negative"), ("modifier", "modifier"), ("support_blocker", "support_blocker"),
+                        ("support_enforcer", "support_enforcer"), ("precise_seam", "precise_seam"))],
     row("obj_type_part", "part_selected", objects(lambda r: (part_types(r) == ["part", "part"], part_types(r))),
         pre=[call("part_change_type", parts=[[0, 1]], type="modifier"), call("object_select", parts=[[0, 1]])]),
-    row("obj_rename", "two_cubes", objects(lambda r: (r.names()[0] == "Renamed by its tile", r.names())),
-        answers=[typed("Renaming", "wxTextCtrl", "Renamed by its tile")]),
+    row("obj_rename", "two_cubes", objects(lambda r: (r.names()[0] == "Renamed by its action", r.names())),
+        answers=[typed("Renaming", "wxTextCtrl", "Renamed by its action")]),
     row("obj_set_instances", "two_cubes", objects(lambda r: (len(r.objects()[0]["instances"]) == 3,
                                                              len(r.objects()[0]["instances"]))),
         answers=[typed("Copies of the selected object", "wxSpinCtrl", 3)]),
@@ -555,15 +556,15 @@ ROWS = dict([
     # The plate goes and its objects stay, off every plate (PartPlateList::delete_plate()).
     row("plate_delete", "two_plates", plates(lambda r: (len(r.plates()) == 1 and [o["plate"] for o in r.objects()] == [0, None],
                                                         (len(r.plates()), [o["plate"] for o in r.objects()])))),
-    row("plate_rename", "two_cubes", plates(lambda r: (r.plates()[0]["name"] == "Plate by its tile", r.plates()[0]["name"])),
-        answers=[typed("Edit Plate Name", "TextInput", "Plate by its tile")]),
+    row("plate_rename", "two_cubes", plates(lambda r: (r.plates()[0]["name"] == "Plate by its action", r.plates()[0]["name"])),
+        answers=[typed("Edit Plate Name", "TextInput", "Plate by its action")]),
     row("plate_toggle_lock", "two_cubes", plates(lambda r: (r.plates()[0]["locked"] is True, r.plates()[0]["locked"]))),
     row("plate_goto", "two_plates", plates(lambda r: (r.state()["plates"]["current"] == 0, r.state()["plates"]))),
     # ---- Printer, Filament, Presets ----
     row("sync_ams", "two_cubes", refused("no_printer", "no printer is connected, and the test connects to none")),
     row("filament_add", "empty", app_state(lambda r: (r.slots() == 2, r.slots()))),
     row("filament_delete", "empty", app_state(lambda r: (r.slots() == 1, r.slots())), pre=[TWO_SLOTS]),
-    dialog_tile("preset_bundle", "Preset Bundle"),
+    dialog_action("preset_bundle", "Preset Bundle"),
     row("sync_presets", "empty", refused("not_signed_in", "nothing is signed in, and the test signs in to no account")),
     # ---- Import ----
     row("import_file", "empty", picked(lambda r: r.objects() == []), answers=[picker("two_shells.stl")],
@@ -582,13 +583,13 @@ ROWS = dict([
     row("export_config", "empty", window("Export Preset Bundle"), answers=[button("Export Preset Bundle", "cancel")],
         why="the dialog's kinds and presets are the person's to pick, so the test closes it"),
     # ---- Help ----
-    dialog_tile("help_keyboard_shortcuts", "Keyboard Shortcuts"),
-    dialog_tile("help_setup_wizard", "Setup Wizard", why="the wizard installs printers on Finish, so the test closes it"),
+    dialog_action("help_keyboard_shortcuts", "Keyboard Shortcuts"),
+    dialog_action("help_setup_wizard", "Setup Wizard", why="the wizard installs printers on Finish, so the test closes it"),
     row("help_open_config_folder", "empty", external("it opens the configuration folder in the system's file manager")),
     row("help_migrate_filament_presets", "empty", window("Migrate Filament Presets"),
         answers=[button("Migrate Filament Presets", "ok")]),
-    dialog_tile("help_troubleshoot", "Troubleshoot Center"),
-    dialog_tile("help_network_test", "Network Test", why="its tests reach the network, so the test closes it"),
+    dialog_action("help_troubleshoot", "Troubleshoot Center"),
+    dialog_action("help_network_test", "Network Test", why="its tests reach the network, so the test closes it"),
     # Once Start is pressed the OrcaSliced Combo replaces the empty project, and the benchmark's own window, which times
     # the views and slices, stays open beside the main window (run_scene_benchmark()).
     row("help_benchmark_3d_scene", "empty", objects(lambda r: (lambda shown: (
@@ -599,7 +600,7 @@ ROWS = dict([
     row("help_tip_of_the_day", "empty", ("widget", lambda r: ("Daily Tips" in r.imgui_windows(), r.imgui_windows()))),
     row("help_check_updates", "empty", ("window", lambda r: (r.new_windows() != [], r.new_windows())),
         answers=[button("", "ok")], why="the dialog says whether a newer version exists, which depends on the day"),
-    dialog_tile("help_about", "About Orca Slicer"),
+    dialog_action("help_about", "About Orca Slicer"),
     row("open_wiki", "empty", external("it opens the wiki in the system's browser")),
     row("open_youtube", "empty", external("it opens the YouTube channel in the system's browser")),
     # ---- Plugins ----
@@ -641,22 +642,22 @@ def use_capture_folder(run):
 
 
 def journal_step(run, key):
-    """The step replay_export writes for the tile's action_run, or None."""
+    """The action_run step replay_export writes for the action of `key`, or None."""
     steps = run.call("replay_export", clear=True)["replay"]["steps"]
-    return next((s for s in steps if s.get("tool") == "action_run" and s.get("args", {}).get("id") == tile_id(key)), None)
+    return next((s for s in steps if s.get("tool") == "action_run" and s.get("args", {}).get("id") == action_id(key)), None)
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", help="output folder (default: a new temporary one)")
-    ap.add_argument("--only", nargs="+", metavar="KEY", help="run these tiles alone")
+    ap.add_argument("--only", nargs="+", metavar="KEY", help="run these actions alone")
     args = ap.parse_args()
-    out = os.path.abspath(args.out) if args.out else tempfile.mkdtemp(prefix="every-tile-")
+    out = os.path.abspath(args.out) if args.out else tempfile.mkdtemp(prefix="every-action-")
     os.makedirs(out, exist_ok=True)
     write_inputs(out)
-    with open(os.path.join(DATA, "speed_dial_tiles.json"), encoding="utf-8") as f:
-        tiles = json.load(f)
-    with open(os.path.join(DATA, "speed_dial_tile_calls.json"), encoding="utf-8") as f:
+    with open(os.path.join(DATA, "speed_dial_actions.json"), encoding="utf-8") as f:
+        actions = json.load(f)
+    with open(os.path.join(DATA, "speed_dial_action_calls.json"), encoding="utf-8") as f:
         fixture = {c["key"]: c for c in json.load(f)}
 
     client, session = orca_mcp.session_client()
@@ -668,10 +669,10 @@ def main():
         checks.append((name, bool(ok), detail))
         print(("PASS " if ok else "FAIL ") + name + ("" if ok else f": {str(detail)[:600]}"), flush=True)
 
-    keys = [t["key"] for t in tiles]
-    check("every tile has a row", set(keys) <= set(ROWS), sorted(set(keys) - set(ROWS)))
-    check("every row is a tile", set(ROWS) <= set(keys), sorted(set(ROWS) - set(keys)))
-    check("every tile has a call in the fixture", set(keys) <= set(fixture), sorted(set(keys) - set(fixture)))
+    keys = [a["key"] for a in actions]
+    check("every action has a row", set(keys) <= set(ROWS), sorted(set(keys) - set(ROWS)))
+    check("every row is an action", set(ROWS) <= set(keys), sorted(set(ROWS) - set(keys)))
+    check("every action has a call in the fixture", set(keys) <= set(fixture), sorted(set(keys) - set(fixture)))
     commands, offset = {}, 0
     while True:
         page = client.call("action_search", group="", limit=200, offset=offset)
@@ -701,7 +702,7 @@ def main():
             run.call("replay_export", clear=True)
             kind = r["expect"][0]
             try:
-                first = run.call("action_run", id=tile_id(key), **({"args": r["value"]} if r["value"] else {}))
+                first = run.call("action_run", id=action_id(key), **({"args": r["value"]} if r["value"] else {}))
             except orca_mcp.McpError as e:
                 if kind == "refused":
                     code = json.loads(str(e).rpartition("\n")[2] or "{}").get("code")
@@ -725,21 +726,21 @@ def main():
                     continue
             run.call("app_wait", **{"for": "idle", "timeout_s": 50})
             if kind == "external":
-                check(f"{name} runs, handing over to another program", run.reply.get("ran") == tile_id(key), run.reply)
+                check(f"{name} runs, handing over to another program", run.reply.get("ran") == action_id(key), run.reply)
                 shown_otherwise.append((key, "external", r["expect"][1]))
             else:
                 ok, detail = r["expect"][1](run)
                 check(f"{name} does its row's job ({kind})", ok, detail)
                 if not cancelled:
-                    check(f"{name}: its reply names the tile it ran", run.reply.get("ran") == tile_id(key), run.reply)
+                    check(f"{name}: its reply names the action it ran", run.reply.get("ran") == action_id(key), run.reply)
             step = journal_step(run, key)
             spec = fixture.get(key, {})
             given = step.get("args", {}).get("args", {}) if step else None
             wanted = ({spec["input"]: list(r["value"].values())[0]} if spec.get("input") else spec.get("args"))
-            check(f"{name}: the journal keeps the tile's action_run with the fixture's arguments",
+            check(f"{name}: the journal keeps its action_run with the fixture's arguments",
                   step is not None and given in ({}, wanted) and (given == wanted or not spec.get("input")), step)
-            check(f"{name}: whose tile names the fixture's command", commands.get(tile_id(key)) == spec.get("command"),
-                  (commands.get(tile_id(key)), spec.get("command")))
+            check(f"{name}: its action names the fixture's command", commands.get(action_id(key)) == spec.get("command"),
+                  (commands.get(action_id(key)), spec.get("command")))
             if r["why"]:
                 shown_otherwise.append((key, kind, r["why"]))
         except orca_mcp.McpError as e:
@@ -757,7 +758,7 @@ def main():
                     print(f"  after {key}: {tool} failed: {e}", flush=True)
 
     empty(run)
-    print("\nTiles shown by a refusal or as handing over, and rows that read less than a change of their own:")
+    print("\nActions shown by a refusal or as handing over, and rows that read less than a change of their own:")
     for key, kind, why in shown_otherwise:
         print(f"  {key}: {kind}: {why}")
     failed = [c for c in checks if not c[1]]

@@ -26,7 +26,7 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 namespace {
 
 // What a person is shown once a job they started ends: what the command says, its error, or that it finished.
-// `title` is the command's, in the UI's language (NativeCommands::tile_title()).
+// `title` is the command's, in the UI's language (NativeCommands::action_title()).
 AppActionRunResult ended_notice(const ToolResult& result, const std::string& title)
 {
     if (result.notice)
@@ -76,7 +76,7 @@ ToolResult PersonContext::submit(const std::string& key, const nlohmann::json& a
     AutomationRuntime* const owner   = &runtime();
     const std::thread::id    caller  = std::this_thread::get_id();
     auto                     refusal = std::make_shared<std::optional<ToolResult>>();
-    const std::string        title   = into_u8(NativeCommands::tile_title(*command));
+    const std::string        title   = into_u8(NativeCommands::action_title(*command));
     const std::string        job     = owner->core().submit(*command, args, [owner, caller, refusal, title](const ToolResult& r) {
         // A refusal comes at once, on this thread: it is the reply. A job's result comes on the job's thread,
         // while the runtime still runs it, and is shown on the UI thread.

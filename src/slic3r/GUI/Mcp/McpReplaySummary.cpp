@@ -149,23 +149,23 @@ json argument_texts(const json& args)
     return texts;
 }
 
-// A call of command `key` with `args`, or of its tile `tile` (one of its tiles, which runs it with `args`): a call
-// whose arguments are a tile's is that tile, `tile` or else the first with them (tile_with_args()). A tile that
-// collects a value is described with the call's arguments, which hold that value.
+// A call of command `key` with `args`, or of its action `action` (one of its actions, which runs it with `args`): a
+// call whose arguments are an action's is that action, `action` or else the first with them (action_with_args()). An
+// action that collects a value is described with the call's arguments, which hold that value.
 void describe_command(Builder& b, const CommandCatalog& catalog, const std::string& key, const json& args,
-                      const json* tile = nullptr)
+                      const json* action = nullptr)
 {
     json what{{"kind", "command"}, {"key", key}};
-    if (tile == nullptr)
+    if (action == nullptr)
         if (const NativeCommand* command = catalog.find(key))
-            tile = tile_with_args(*command, args);
-    if (tile != nullptr)
-        what["tile"] = tile->at("key");
-    if ((tile == nullptr || !tile->value("input", std::string()).empty()) && args.is_object() && !args.empty())
+            action = action_with_args(*command, args);
+    if (action != nullptr)
+        what["action"] = action->at("key");
+    if ((action == nullptr || !action->value("input", std::string()).empty()) && args.is_object() && !args.empty())
         what["args"] = argument_texts(args);
     b.d.what = std::move(what);
 
-    // What the command's tile does, as a person's pick of it: a calibration test's dialog, which then replaces the
+    // What the command's action does, as a person's pick of it: a calibration test's dialog, which then replaces the
     // project and changes the presets, and Load Project and New Project, which ask about unsaved changes.
     if (key == "calibration_generate_test") {
         b.flag(StepFlag::ReplacesProject);
@@ -183,15 +183,15 @@ void describe_action(Builder& b, const CommandCatalog& catalog, const json& args
 {
     const std::string id    = args.contains("id") && args["id"].is_string() ? args["id"].get<std::string>() : std::string();
     const json        given = args.contains("args") ? args["args"] : json();
-    // A command's tile, by its full id or by the key inside it, as action_run takes either: a folded item's tile runs its
-    // command with the item's arguments, and the value it collects when it has one, as a person's pick of it does.
-    if (const auto [command, tile] = find_tile(catalog, command_tile_key(id)); command != nullptr) {
-        describe_command(b, catalog, command->key, tile_call_args(tile, given), tile);
+    // A command's action, by its full id or by the key inside it, as action_run takes either: a folded item's action runs
+    // its command with the item's arguments, and the value it collects when it has one, as a person's pick of it does.
+    if (const auto [command, action] = find_command_action(catalog, command_action_key(id)); command != nullptr) {
+        describe_command(b, catalog, command->key, action_call_args(action, given), action);
         return;
     }
     const auto [prefix, middle] = split_action_id(id);
     if (prefix == kCommandPrefix) {
-        // A tile `catalog` does not hold (a Design tile of a run without the Design tab), by the key in its id.
+        // An action `catalog` does not hold (a Design tab action of a run without the Design tab), by the key in its id.
         describe_command(b, catalog, middle, given);
     } else if (prefix == "orca_recent_project") {
         b.d.what = {{"kind", "recent_project"}, {"name", file_name(middle)}};
@@ -208,15 +208,15 @@ void describe_action(Builder& b, const CommandCatalog& catalog, const json& args
     }
 }
 
-// A command of `catalog` called as one of its tiles: with the arguments of a tile that runs it with them (a menu item
-// folded into it), or with none, as its tile of its own (plate_delete). A command with a tile of its own that the tool
-// list does not show (a Design command) is its tile's call whatever its arguments. Called so, it does what action_run
-// of that tile does.
-bool tile_command(const CommandCatalog& catalog, const std::string& tool, const json& args)
+// A command of `catalog` called as one of its actions: with the arguments of an action that runs it with them (a menu
+// item folded into it), or with none, as its action of its own (plate_delete). A command with an action of its own that
+// the tool list does not show (a Design command) is its action's call whatever its arguments. Called so, it does what
+// action_run of that action does.
+bool action_command(const CommandCatalog& catalog, const std::string& tool, const json& args)
 {
     const NativeCommand* command = catalog.find(tool);
-    return command != nullptr && (tile_with_args(*command, args) != nullptr ||
-                                  (command->in_palette && (!command->listed || person_form(args))));
+    return command != nullptr && (action_with_args(*command, args) != nullptr ||
+                                  (command->has_own_action && (!command->listed || person_form(args))));
 }
 
 std::optional<std::string> read_text(const fs::path& path)
@@ -325,7 +325,7 @@ json describe_call(const CommandCatalog& catalog, const std::string& tool, const
         describe_action(b, catalog, args);
         return b.d.what;
     }
-    if (tile_command(catalog, tool, args)) {
+    if (action_command(catalog, tool, args)) {
         Builder b;
         describe_command(b, catalog, tool, args);
         return b.d.what;
@@ -363,7 +363,7 @@ StepDescription describe_step(const CommandCatalog& catalog, const ReplayStep& s
         describe_nested(b, catalog, args, ctx, depth);
         return b.done();
     }
-    if (tile_command(catalog, tool, args)) {
+    if (action_command(catalog, tool, args)) {
         describe_command(b, catalog, tool, args);
         return b.done();
     }

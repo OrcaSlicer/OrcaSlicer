@@ -1,4 +1,4 @@
-// Records what starting a slice does through its routes, the slice_and_preview and slice_all tiles run with
+// Records what starting a slice does through its routes, the slice_and_preview and slice_all actions run with
 // action_run (they return at once) and plate_slice (the current plate, all, an index): with no objects, on
 // one plate, on two plates, and with objects that fail validation (spiral vase on a plate with two objects).
 // Each call starts from the Prepare tab; after it, the replay waits for idle and reads the plates' slice state,

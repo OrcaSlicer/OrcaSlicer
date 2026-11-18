@@ -49,7 +49,7 @@ json editor_tool_catalog(const CommandCatalog& catalog)
                 args[name] = std::move(arg);
             }
         tools.push_back(
-            {{"name", def.key}, {"title", into_u8(NativeCommands::tile_title(def))}, {"args", std::move(args)}});
+            {{"name", def.key}, {"title", into_u8(NativeCommands::action_title(def))}, {"args", std::move(args)}});
     }
     return tools;
 }
@@ -102,7 +102,7 @@ json catalog_hits(const json& ranked, const std::string& use)
 }
 
 // The Speed Dial's actions that are no command (plates, recent projects, plugin scripts and pages) and settings
-// matching `words` (of `query`), for tool_search. A command's tile is left out: the command is among the
+// matching `words` (of `query`), for tool_search. A command's action is left out: the command is among the
 // commands already. A catalog that can't be read yet (startup, before the main window) is left out. UI thread.
 json ui_catalog_hits(const std::vector<std::string>& words, const std::string& query)
 {
@@ -239,7 +239,7 @@ json search_commands(const CommandCatalog& catalog, const json& args)
         return {{"total", items.size()}, {"names", std::move(items)}};
     }
     // A command is called by its key; its title, a person's name for it, counts as its text. Among equal
-    // matches a listed command comes first: the typed tools are what an agent calls, and many tiles run one.
+    // matches a listed command comes first: the typed tools are what an agent calls, and many Speed Dial actions run one.
     const std::vector<std::string>                                    words = query_words(query);
     std::vector<std::pair<std::pair<int, int>, const NativeCommand*>> scored;
     for (const auto& def : all) {

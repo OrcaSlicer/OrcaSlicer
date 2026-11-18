@@ -26,8 +26,8 @@ inline const std::vector<std::string> kRetiredTools{
     "pick_gizmo_file",     "run_javascript",     "open_files",                "get_settings",
     "set_settings"};
 
-// The ids of the menu items that are a tile of a command of another name (the design's Mapping), each the key of
-// its tile: those of the project, the objects, the parts and the plates, then those of the presets, the app, the view
+// The ids of the menu items that are an action of a command of another name (the design's Mapping), each the key of
+// its action: those of the project, the objects, the parts and the plates, then those of the presets, the app, the view
 // and the rest.
 inline const std::vector<std::string> kRetiredMenuItems{
     "new_project",              "load_project",               "import_file",                   "import_zip_archive",

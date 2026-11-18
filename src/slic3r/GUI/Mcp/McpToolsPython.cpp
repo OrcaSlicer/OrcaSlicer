@@ -452,8 +452,8 @@ void register_python_tools(CommandCatalog& catalog)
     const std::string panel = "Show or hide the Run Script panel, where a person writes and runs Python scripts cell by cell. Agents "
                               "run Python with the script_run tool instead.";
     NativeCommand toggle_panel = menu_command("script_toggle_panel", L("Run Script"), panel, object_schema({}),
-                                             json::array({NativeCommands::tile("toggle_run_script_panel", L("Run Script"),
-                                                                               L("Commands"), "media_play", json::object(), panel)}),
+                                             json::array({NativeCommands::action("toggle_run_script_panel", L("Run Script"),
+                                                                                 L("Commands"), "media_play", json::object(), panel)}),
                                              [](const json&) { return MenuItems::toggle_run_script_panel(); });
     // A menu item with no argument form: tool_search finds it and tool_call runs it, the tool list does not show it.
     toggle_panel.listed = false;

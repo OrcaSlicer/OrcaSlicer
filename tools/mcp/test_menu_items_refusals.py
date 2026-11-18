@@ -12,7 +12,7 @@ object_delete of an object the project lacks names its index. object_select with
 and object_delete by index leaves the view shown (the assemble view).
 
 A selection of a kind a command does not take: object_rename with an instance selected is refused as wrong_selection,
-and a pick of Rename from the Speed Dial (Space on the 3D view, the search field, a click on the tile) says to select
+and a pick of Rename from the Speed Dial (Space on the 3D view, the search field, a click on its row) says to select
 one object or part, as its menu item did, and opens no dialog. A pick of Set as Individual Objects with a part selected
 separates that part's instance alone. A pick of Delete with an object's last solid part selected shows the object
 list's message, as the menu item did, where object_delete of that part by index is refused as last_solid_part; object_delete
@@ -42,11 +42,11 @@ Named objects, or a plate, of which nothing is printable (an Assembly of a cube 
 not_printable and turn no other object, while a pick of Auto-Orient on that object turns the other object, as its menu item's
 job did, and names it.
 
-The plates: a pick of Duplicate Plate is one undo step, which Undo takes back alone. The Rename Plate tile run with its
-name dialog cancelled is told the plate was not renamed (not_renamed), while a pick of it, cancelled, shows nothing, as
-its menu item did. plate_delete, plate_duplicate, plate_rename, plate_lock and plate_select of a plate the project lacks are
-refused as no_such_plate, each leaving the plates as they were; a rename of a plate to the name it has changes neither
-the current plate nor the undo history.
+The plates: a pick of Duplicate Plate is one undo step, which Undo takes back alone. The Rename Plate action run with
+its name dialog cancelled is told the plate was not renamed (not_renamed), while a pick of it, cancelled, shows
+nothing, as its menu item did. plate_delete, plate_duplicate, plate_rename, plate_lock and plate_select of a plate the
+project lacks are refused as no_such_plate, each leaving the plates as they were; a rename of a plate to the name it
+has changes neither the current plate nor the undo history.
 
 A refusal is an error a replay cannot expect, which is why this is a script. Exits 0 when every check passes.
 """
@@ -98,7 +98,7 @@ def main():
         return (client.call("app_state").get("gizmo") or {}).get("name")
 
     def dial_pick(title):
-        """Opens the Speed Dial on the shown 3D view and picks the tile titled `title`, as a person's click does."""
+        """Opens the Speed Dial on the shown 3D view and picks the action titled `title`, as a person's click does."""
         client.call("keyboard_press", keys="space", target=CANVAS)
         client.call("widget_set_value", target={"web": "Search actions"}, value=title, submit=False)
         return client.call("widget_click", target={"web": f"{title} from Orcaslicer", "kind": "button"})
@@ -535,7 +535,7 @@ def main():
 
     client.call("dialog_auto_answer", rules=[{"match": "Edit Plate Name", "button": "cancel"}])
     before = rule_uses("Edit Plate Name")
-    refused("Rename Plate's tile with its dialog cancelled says the plate was not renamed", "action_run",
+    refused("Rename Plate's action with its dialog cancelled says the plate was not renamed", "action_run",
             {"id": "orca_command:plate_rename:orca"}, "not renamed", "not_renamed")
     check("and its dialog was asked", rule_uses("Edit Plate Name") == before + 1, f"{before} -> {rule_uses('Edit Plate Name')}")
     before = rule_uses("Edit Plate Name")

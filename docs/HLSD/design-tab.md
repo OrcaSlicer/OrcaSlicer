@@ -369,27 +369,27 @@ one would be unreachable, and a table in which an entry's name is not marked for
 `Design` context (`L_CONTEXT`): every name is a command's title, which a person sees translated, and
 the mark compiles to the bare string, so nothing at run time could tell it is missing.
 
-The same table is the Design tab's Speed Dial tiles and its automation commands, so the three cannot drift
+The same table is the Design tab's Speed Dial actions and its automation commands, so the three cannot drift
 apart. The header's `kDesignTools` holds 127 entries: the 92 verbs with a menu item, and 35 commands with no
-menu item (`row` -1), such as `describe_design`, `sketch_draw` or `commit_to_plate`. An entry with an `action`
-or a `tool` block is a command of the catalog, whose key is the entry's id and whose title is its name, unless
-it is a folded item: 88 commands. An entry with an `action` does what its menu item does when it is called with
-no arguments, and has a tile. An entry with a `tool` block also runs silently, with arguments: the block is that
-form's access, params, examples, whether it reports a rejected rebuild in its reply and whether its schema
-refuses an argument it does not name (`closed`), which the header carries as JSON text (`doc`) beside the
-entry's `access` and `ok_false`. An item whose tool is a variant of a command is folded into it
-(`"fold": {"into", "args"}`): it is no command, keeps its id, its place in the menu, its key and its tile, and
-the command opens its tool when called with exactly the item's arguments, as Polar array is
-`sketch_pattern {type: "circular"}` and the Corner rectangle `sketch_draw {type: "rectangle_2_point"}`. 37 items
-fold into eight commands, the 24 shape items into `sketch_draw` among them. An entry with an action and a block
-may name the arguments that choose its own item (`args`), as Boolean's Join item is
-`boolean {operation: "join"}`, so that each of a command's variants opens the same way. Two items have neither
-an action nor a block, Pattern on Curve and Align to, and are shown greyed: they are no command. Every command
-has a `section`, its heading in the names index the MCP server's `tool_search` gives, and `feature_row` marks
-the four items whose action works on the Feature tree's selected row (Edit, Rename, Delete and Constrain
-sketch). `modal` marks the three entries whose action opens a dialog that waits for an answer: a modal one for
-SVG (a file picker) and Color, which holds the call that opened it until it is answered, and the Design tab's
-own modeless dialog for Text, which does not.
+menu item (`row` -1), such as `describe_design`, `sketch_draw` or `commit_to_plate`. An entry with a handler
+(`action`, the code its menu item runs) or a `tool` block is a command of the catalog, whose key is the entry's
+id and whose title is its name, unless it is a folded item: 88 commands. An entry with a handler does what its
+menu item does when it is called with no arguments, and has an action of its own in the Speed Dial. An entry
+with a `tool` block also runs silently, with arguments: the block is that form's access, params, examples,
+whether it reports a rejected rebuild in its reply and whether its schema refuses an argument it does not name
+(`closed`), which the header carries as JSON text (`doc`) beside the entry's `access` and `ok_false`. An item
+whose tool is a variant of a command is folded into it (`"fold": {"into", "args"}`): it is no command, keeps its
+id, its place in the menu, its key and its Speed Dial action, and the command opens its tool when called with
+exactly the item's arguments, as Polar array is `sketch_pattern {type: "circular"}` and the Corner rectangle
+`sketch_draw {type: "rectangle_2_point"}`. 37 items fold into eight commands, the 24 shape items into
+`sketch_draw` among them. An entry with a handler and a block may name the arguments that choose its own item
+(`args`), as Boolean's Join item is `boolean {operation: "join"}`, so that each of a command's variants opens
+the same way. Two items have neither a handler nor a block, Pattern on Curve and Align to, and are shown greyed:
+they are no command. Every command has a `section`, its heading in the names index the MCP server's
+`tool_search` gives, and `feature_row` marks the four items whose handler works on the Feature tree's selected
+row (Edit, Rename, Delete and Constrain sketch). `modal` marks the three entries whose handler opens a dialog
+that waits for an answer: a modal one for SVG (a file picker) and Color, which holds the call that opened it
+until it is answered, and the Design tab's own modeless dialog for Text, which does not.
 `kDesignSelectionIds` names the selection kinds in `OfferSel`'s order, the ids the verbs' `accepts` use.
 
 The atlas and its generator sit in `scripts/CAD/` rather than in `docs/`: they are build inputs
@@ -404,38 +404,38 @@ lists them, `tool_search {tool}` gives one's arguments, how its failure shows an
 as Fusion 360, Onshape and SolidWorks use it, with a prefix for where each works (`sketch_`, `surface_`,
 `construct_`, `feature_`, `body_`, and none for the model), and one argument for a variant: `type` for which
 kind of thing it makes, `operation` for what the result does to the bodies already there. A person picks the
-same commands from the Speed Dial: while the Design tab is shown with the CAD feature on, it has a tile for
-each entry with an action of the mode the tab is in, a folded item's included, the sketch's tools in a sketch
+same commands from the Speed Dial: while the Design tab is shown with the CAD feature on, it has an action for
+each entry with a handler of the mode the tab is in, a folded item's included, the sketch's tools in a sketch
 and the model's outside one, titled as the right-click menu names it and with its icon, and on any other tab,
-or once the feature is turned off, none; a pinned Design tile stays pinned while it is not shown, and takes no
-place on the favourites bar meanwhile. A folded item's tile runs its command with the item's arguments. A call
-whose arguments are exactly those that choose an item (none for an entry's own item) does what the menu item
-does, only in the mode the item belongs to, and replies `{"result": {"interactive": true, ...}}` with what the
-tab shows then (its busy reason and status line); with other arguments, or `silent: true`, the commands
-(`Mcp/McpToolsCad.*`) describe the design, read topology, measure, and run the same verbs the offer does —
-they re-implement nothing, so a scripted action and a clicked one cannot diverge. Where a GUI action is bound
-to a selection, a card or a dialog, its work is split into a function both callers share, and the command
+or once the feature is turned off, none; a pinned Design tab action stays pinned while it is not shown, and
+takes no place on the favourites bar meanwhile. A folded item's action runs its command with the item's
+arguments. A call whose arguments are exactly those that choose an item (none for an entry's own item) does what
+the menu item does, only in the mode the item belongs to, and replies `{"result": {"interactive": true, ...}}`
+with what the tab shows then (its busy reason and status line); with other arguments, or `silent: true`, the
+commands (`Mcp/McpToolsCad.*`) describe the design, read topology, measure, and run the same verbs the offer
+does — they re-implement nothing, so a scripted action and a clicked one cannot diverge. Where a GUI action is
+bound to a selection, a card or a dialog, its work is split into a function both callers share, and the command
 calls that function with explicit arguments instead of driving the widgets. The command set, what each command
 does and takes and which menu items call it, is in [mcp-tools.md](mcp-tools.md), The Design tab's commands.
 
-An agent's call needs the MCP server on (`--mcp`, or Preferences), and every command, a person's tile included,
-needs the CAD feature on (Preferences > Features, or `--cad` for one run). The catalog holds them only when the
-feature is on at startup, as the main window makes the Design page only then, so turning it on takes a restart;
-with it off they are unknown commands, whose error says how a person turns it on, as `app_state`'s
-`cad_note` does. Turned off while OrcaSlicer runs, the tab stays until the restart, but the Speed Dial has no
-tile of it. A call is refused (`-32002`) while the Design tab is busy: none runs while a rebuild owns the
-document, `change` and `sketch` commands do not run under an open feature card, the Text dialog, Constrain mode
-or a body Move, and a `change` one does not run under a sketch session, which `sketch` ones drive. `read`
-commands are refused only during a rebuild, and so are `confirm_tool` and `cancel_tool`, which confirm or cancel
-what is open as its Confirm and Cancel do, the Text dialog's OK and Cancel among them, and the opening of a
-tool, which is also refused in the mode its item does not belong to (a model tool in a sketch, a sketch tool
-outside one): the tab's right-click menu offers a tool only in its mode and refuses it for nothing else, and
-each tool decides what an open card means to it. For the menu, and so for the commands, a sketch in Constrain
-mode is open, while the tab's keys there are the model's: there a command does what its menu item does, not what
-its key does. A tool whose menu item only the right-click menu reaches (a `btn:` or `fly:` action) is refused
-for a selection its item does not accept, saying so and naming the selections it takes. `undo` and `redo` are
-the shared commands of the Speed Dial and act on the history of the tab shown, the Design tab's while it is
-shown; `history: "design"` names the Design tab's from any tab.
+An agent's call needs the MCP server on (`--mcp`, or Preferences), and every command, a person's pick of a Speed
+Dial action included, needs the CAD feature on (Preferences > Features, or `--cad` for one run). The catalog
+holds them only when the feature is on at startup, as the main window makes the Design page only then, so
+turning it on takes a restart; with it off they are unknown commands, whose error says how a person turns it on,
+as `app_state`'s `cad_note` does. Turned off while OrcaSlicer runs, the tab stays until the restart, but the
+Speed Dial has none of its actions. A call is refused (`-32002`) while the Design tab is busy: none runs while a
+rebuild owns the document, `change` and `sketch` commands do not run under an open feature card, the Text
+dialog, Constrain mode or a body Move, and a `change` one does not run under a sketch session, which `sketch`
+ones drive. `read` commands are refused only during a rebuild, and so are `confirm_tool` and `cancel_tool`,
+which confirm or cancel what is open as its Confirm and Cancel do, the Text dialog's OK and Cancel among them,
+and the opening of a tool, which is also refused in the mode its item does not belong to (a model tool in a
+sketch, a sketch tool outside one): the tab's right-click menu offers a tool only in its mode and refuses it for
+nothing else, and each tool decides what an open card means to it. For the menu, and so for the commands, a
+sketch in Constrain mode is open, while the tab's keys there are the model's: there a command does what its menu
+item does, not what its key does. A tool whose menu item only the right-click menu reaches (a `btn:` or `fly:`
+handler) is refused for a selection its item does not accept, saying so and naming the selections it takes.
+`undo` and `redo` are the shared commands of the Speed Dial and act on the history of the tab shown, the Design
+tab's while it is shown; `history: "design"` names the Design tab's from any tab.
 
 Face and edge ids name faces and edges of the current model, and a rebuild renumbers them while a
 stale id still names a real face or edge, so the replies carry the model's `generation`: a call that
@@ -546,7 +546,7 @@ and replay tests.
 | `src/slic3r/GUI/CAD/DesignSketchTool.*` | in-canvas sketching |
 | `src/slic3r/GUI/Mcp/McpToolsCad.*` | the automation surface: the Design commands made from the table, their silent forms (`kSilentForms`) and their gate |
 | `src/slic3r/GUI/CAD/DesignInteraction.hpp` | the Esc level contract |
-| `src/slic3r/GUI/CAD/DesignOffer.hpp` | the generated table: the offer, the tiles and the commands |
+| `src/slic3r/GUI/CAD/DesignOffer.hpp` | the generated table: the offer, the Speed Dial actions and the commands |
 | `scripts/CAD/tool_atlas.json` | source of truth for the table |
 
 ## Verification
@@ -561,7 +561,7 @@ The automation surface has its own checks. `slic3rutils_tests "[Mcp][CAD]"`
 (`tests/slic3rutils/test_mcp_cad.cpp`) runs the commands' argument checks and kernel calls on a
 `CadDocument` or a bare `DesignSketchTool`, with no panel, and checks the table and the commands the
 catalog holds: one per command entry and none for a folded or a greyed item, a silent form for every tool
-block and a block for every silent form, the folded items' tiles, which call opens a tool and which runs, their
+block and a block for every silent form, the folded items' actions, which call opens a tool and which runs, their
 schemas and summaries, and examples that call only real commands with arguments their schemas take;
 `scripts/CAD/test_gen_offer_table.py` checks the generator's refusals. On a live application launched with `tools/mcp/orca_mcp.py launch --cad`, the replays
 `tools/mcp/tests/cad_*.json` drive the commands through `tool_call`, the live tests `tools/mcp/test_cad_replay.py`,

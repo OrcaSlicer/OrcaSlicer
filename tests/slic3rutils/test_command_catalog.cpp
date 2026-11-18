@@ -194,30 +194,30 @@ std::vector<std::string> group_runs(const CommandCatalog& catalog, const std::ve
 
 } // namespace
 
-TEST_CASE("the process catalog's palette is the Speed Dial's tiles", "[CommandCatalog]")
+TEST_CASE("the process catalog gives the Speed Dial its 129 command actions", "[CommandCatalog]")
 {
     const CommandCatalog& catalog = NativeCommands::instance();
     CHECK(catalog.sealed());
-    const std::vector<NativeCommands::PaletteTile> palette = NativeCommands::palette_tiles(catalog);
-    CHECK(palette.size() == 129);
-    for (const NativeCommands::PaletteTile& t : palette) {
+    const std::vector<NativeCommands::SpeedDialAction> speed_dial = NativeCommands::speed_dial_actions(catalog);
+    CHECK(speed_dial.size() == 129);
+    for (const NativeCommands::SpeedDialAction& t : speed_dial) {
         REQUIRE(t.command != nullptr);
         INFO(t.command->key);
-        // A command's own tile, or an item of its tiles.
-        if (t.tile == nullptr)
-            CHECK(t.command->in_palette);
+        // A command's own action, or an item of its actions.
+        if (t.action == nullptr)
+            CHECK(t.command->has_own_action);
         else
-            CHECK(t.command->tiles.is_array());
+            CHECK(t.command->actions.is_array());
     }
     // The Speed Dial's own lookup reads the same catalog.
     CHECK(NativeCommands::find("plate_slice") == catalog.find("plate_slice"));
 }
 
-TEST_CASE("every Speed Dial tile of today is still a tile", "[CommandCatalog][SpeedDial]")
+TEST_CASE("every Speed Dial action of today is still a command's action", "[CommandCatalog][SpeedDial]")
 {
-    // The 129 tiles of the Speed Dial, each with its id, title, section, icon and input: each is a tile of
-    // the palette with that presentation, and the palette has no other.
-    std::ifstream in(std::string(TEST_DATA_DIR) + "/speed_dial_tiles.json", std::ios::binary);
+    // The Speed Dial's 129 actions of commands, each with its id, title, section, icon and input: each is an action of
+    // the Speed Dial with that presentation, and the Speed Dial has no other.
+    std::ifstream in(std::string(TEST_DATA_DIR) + "/speed_dial_actions.json", std::ios::binary);
     REQUIRE(in.is_open());
     const json fixture = json::parse(in);
     REQUIRE(fixture.size() == 129);
@@ -228,10 +228,11 @@ TEST_CASE("every Speed Dial tile of today is still a tile", "[CommandCatalog][Sp
         const std::string key = item.at("key");
         INFO(key);
         expected.push_back(key);
-        const auto [command, tile] = Slic3r::GUI::find_tile(catalog, key);
+        const auto [command, command_action] = Slic3r::GUI::find_command_action(catalog, key);
         REQUIRE(command != nullptr);
-        const std::unique_ptr<Slic3r::GUI::AppAction> action = tile != nullptr ? NativeCommands::make_action(*command, *tile) :
-                                                                                 NativeCommands::make_action(*command);
+        const std::unique_ptr<Slic3r::GUI::AppAction> action = command_action != nullptr ?
+                                                                   NativeCommands::make_action(*command, *command_action) :
+                                                                   NativeCommands::make_action(*command);
         REQUIRE(action != nullptr);
         CHECK(action->id() == "orca_command:" + key + ":orca");
         CHECK(action->title_en == item.at("title").get<std::string>());
@@ -240,31 +241,31 @@ TEST_CASE("every Speed Dial tile of today is still a tile", "[CommandCatalog][Sp
         CHECK(action->input == item.at("input").get<std::string>());
     }
 
-    std::vector<std::string> tiles;
-    for (const NativeCommands::PaletteTile& t : NativeCommands::palette_tiles(catalog))
-        tiles.push_back(t.tile != nullptr ? t.tile->at("key").get<std::string>() : t.command->key);
+    std::vector<std::string> actions;
+    for (const NativeCommands::SpeedDialAction& t : NativeCommands::speed_dial_actions(catalog))
+        actions.push_back(t.action != nullptr ? t.action->at("key").get<std::string>() : t.command->key);
     std::sort(expected.begin(), expected.end());
-    std::sort(tiles.begin(), tiles.end());
-    CHECK(tiles == expected);
+    std::sort(actions.begin(), actions.end());
+    CHECK(actions == expected);
 }
 
-TEST_CASE("a menu item's id is a tile's key, not a command", "[CommandCatalog][SpeedDial]")
+TEST_CASE("a menu item's id is an action's key, not a command", "[CommandCatalog][SpeedDial]")
 {
     const CommandCatalog& catalog = NativeCommands::instance();
     REQUIRE(kRetiredMenuItems.size() == 121);
     for (const std::string& item : kRetiredMenuItems) {
         INFO(item);
         CHECK(catalog.find(item) == nullptr);
-        const auto [command, tile] = Slic3r::GUI::find_tile(catalog, item);
+        const auto [command, action] = Slic3r::GUI::find_command_action(catalog, item);
         CHECK(command != nullptr);
-        CHECK(tile != nullptr);
+        CHECK(action != nullptr);
     }
 }
 
-TEST_CASE("every tile is its command's, with the design's arguments, and they fit its schema", "[CommandCatalog][SpeedDial]")
+TEST_CASE("every action is its command's, with the design's arguments, and they fit its schema", "[CommandCatalog][SpeedDial]")
 {
-    // Each of the 129 tiles with the command the design folds its menu item into and the arguments it runs it with.
-    std::ifstream in(std::string(TEST_DATA_DIR) + "/speed_dial_tile_calls.json", std::ios::binary);
+    // Each of the 129 actions with the command the design folds its menu item into and the arguments it runs it with.
+    std::ifstream in(std::string(TEST_DATA_DIR) + "/speed_dial_action_calls.json", std::ios::binary);
     REQUIRE(in.is_open());
     const json fixture = json::parse(in);
     REQUIRE(fixture.size() == 129);
@@ -275,39 +276,39 @@ TEST_CASE("every tile is its command's, with the design's arguments, and they fi
         const std::string key  = item.at("key");
         const std::string name = item.at("command");
         INFO(key << " -> " << name);
-        const auto [command, tile] = Slic3r::GUI::find_tile(catalog, key);
+        const auto [command, action] = Slic3r::GUI::find_command_action(catalog, key);
         REQUIRE(command != nullptr);
         REQUIRE(command->key == name);
         ++folded;
         if (key == name) {
-            // The command's own tile, a person's form of it.
-            CHECK(command->in_palette);
-            CHECK(tile == nullptr);
+            // The command's own action, a person's form of it.
+            CHECK(command->has_own_action);
+            CHECK(action == nullptr);
             CHECK(item.at("args") == json::object());
             CHECK(Mcp::person_form(*command, json::object()));
-            json none = Slic3r::GUI::tile_call_args(nullptr, json::object());
+            json none = Slic3r::GUI::action_call_args(nullptr, json::object());
             CHECK(Mcp::argument_error(*command, none).empty());
             continue;
         }
-        REQUIRE(tile != nullptr);
-        CHECK(tile->at("args") == item.at("args"));
+        REQUIRE(action != nullptr);
+        CHECK(action->at("args") == item.at("args"));
         const std::string input = item.value("input", std::string());
-        CHECK(tile->value("input", std::string()) == input);
-        CHECK(tile->value("input_arg", std::string()) == item.value("input_arg", std::string()));
-        // A tile that collects nothing is a person's form of its command; one that collects a value is not, as its
+        CHECK(action->value("input", std::string()) == input);
+        CHECK(action->value("input_arg", std::string()) == item.value("input_arg", std::string()));
+        // An action that collects nothing is a person's form of its command; one that collects a value is not, as its
         // value comes from the Speed Dial's second phase.
-        CHECK(Mcp::person_form(*command, tile->at("args")) == input.empty());
-        // What a pick runs the command with: the tile's arguments, and the value its second phase collects.
+        CHECK(Mcp::person_form(*command, action->at("args")) == input.empty());
+        // What a pick runs the command with: the action's arguments, and the value its second phase collects.
         json value = json::object();
         if (!input.empty())
             value[input] = input == "percent" ? json(50) : json("preview");
-        json call = Slic3r::GUI::tile_call_args(tile, value);
+        json call = Slic3r::GUI::action_call_args(action, value);
         CHECK(Mcp::argument_error(*command, call).empty());
     }
-    // Every tile of today, under the command the design folds its menu item into.
+    // Every action of today, under the command the design folds its menu item into.
     CHECK(folded == 129);
 
-    // The tiles that ask need none of what the silent form requires; one more argument is the silent form.
+    // The actions that ask need none of what the silent form requires; one more argument is the silent form.
     const NativeCommand* save   = catalog.find("project_save");
     const NativeCommand* export_ = catalog.find("project_export");
     const NativeCommand* import_ = catalog.find("project_import");
@@ -326,13 +327,13 @@ TEST_CASE("every tile is its command's, with the design's arguments, and they fi
     CHECK_THAT(Mcp::argument_error(*export_, gcode_overwrite), ContainsSubstring("path"));
 }
 
-TEST_CASE("a menu item's tile runs its command with the item's arguments", "[SpeedDial]")
+TEST_CASE("a menu item's action runs its command with the item's arguments", "[SpeedDial]")
 {
-    // One tile of each command that has tiles, and each of view_set's kinds of tile: a tile's key, its command, the
-    // arguments it runs it with, and the Speed Dial's token for the value it collects with the argument that takes it.
+    // One action of each command that has actions, and each of view_set's kinds of action: an action's key, its command,
+    // the arguments it runs it with, and the Speed Dial's token for the value it collects with the argument that takes it.
     struct Pair
     {
-        const char* tile;
+        const char* key;
         const char* command;
         json        args;
         const char* input     = "";
@@ -403,27 +404,28 @@ TEST_CASE("a menu item's tile runs its command with the item's arguments", "[Spe
     REQUIRE(pairs.size() == 60);
     const CommandCatalog& catalog = NativeCommands::instance();
     for (const Pair& p : pairs) {
-        INFO(p.tile << " -> " << p.command << " " << p.args.dump());
-        const auto [command, tile] = Slic3r::GUI::find_tile(catalog, p.tile);
+        INFO(p.key << " -> " << p.command << " " << p.args.dump());
+        const auto [command, command_action] = Slic3r::GUI::find_command_action(catalog, p.key);
         REQUIRE(command != nullptr);
         CHECK(command->key == p.command);
-        // The tile's action runs its command, with what tile_call_args() makes of a pick that collects nothing.
-        const std::unique_ptr<Slic3r::GUI::AppAction> action = tile != nullptr ? NativeCommands::make_action(*command, *tile) :
-                                                                                 NativeCommands::make_action(*command);
+        // Its AppAction runs its command, with what action_call_args() makes of a pick that collects nothing.
+        const std::unique_ptr<Slic3r::GUI::AppAction> action = command_action != nullptr ?
+                                                                   NativeCommands::make_action(*command, *command_action) :
+                                                                   NativeCommands::make_action(*command);
         CHECK(action->command == p.command);
-        CHECK(Slic3r::GUI::tile_call_args(tile, json::object()) == p.args);
+        CHECK(Slic3r::GUI::action_call_args(command_action, json::object()) == p.args);
         CHECK(action->input == p.input);
-        if (tile != nullptr)
-            CHECK(tile->value("input_arg", std::string()) == p.input_arg);
-        // The command's own tile is the one whose key is the command's name.
-        CHECK((tile == nullptr) == (std::string(p.tile) == p.command));
+        if (command_action != nullptr)
+            CHECK(command_action->value("input_arg", std::string()) == p.input_arg);
+        // The command's own action is the one whose key is the command's name.
+        CHECK((command_action == nullptr) == (std::string(p.key) == p.command));
     }
 }
 
-TEST_CASE("outside the Design tab the catalog has its commands and 129 tiles", "[CommandCatalog]")
+TEST_CASE("outside the Design tab the catalog has its commands and 129 actions", "[CommandCatalog]")
 {
-    // The section the Speed Dial shows each tile in, by its key.
-    std::ifstream in(std::string(TEST_DATA_DIR) + "/speed_dial_tiles.json", std::ios::binary);
+    // The section the Speed Dial shows each action in, by its key.
+    std::ifstream in(std::string(TEST_DATA_DIR) + "/speed_dial_actions.json", std::ios::binary);
     REQUIRE(in.is_open());
     std::map<std::string, std::string> section;
     for (const json& item : json::parse(in))
@@ -435,19 +437,19 @@ TEST_CASE("outside the Design tab the catalog has its commands and 129 tiles", "
         if (c.group == Slic3r::GUI::kDesignGroup)
             continue;
         ++commands;
-        if (c.tiles.is_array())
-            items += c.tiles.size();
-        if (!c.in_palette)
+        if (c.actions.is_array())
+            items += c.actions.size();
+        if (!c.has_own_action)
             continue;
         INFO(c.key);
         own.insert(c.key);
-        // An own tile is in the section the Speed Dial shows its key in.
-        CHECK(c.tile_group == section.at(c.key));
+        // An own action is in the section the Speed Dial shows its key in.
+        CHECK(c.action_group == section.at(c.key));
     }
     // The commands outside the Design tab: the typed tools, the commands made from menu items, the seven Parts 4a to 4c
     // add, Part 5a's three, Part 5b's two, Part 5c's one and Part 5d's four.
     CHECK(commands == 118);
-    // The eight commands named as their menu items keep a tile of their own; the other 121 tiles are items.
+    // The eight commands named as their menu items keep an action of their own; the other 121 actions are items.
     CHECK(own == std::set<std::string>{"plate_add", "plate_delete", "plate_duplicate", "plate_rename", "filament_add", "filament_delete",
                                        "undo", "redo"});
     CHECK(items == 121);
@@ -602,15 +604,15 @@ TEST_CASE("the plugin commands name the plugin they act on, and an install repla
     CHECK(install->input_schema.at("properties").at("overwrite").at("type") == "boolean");
 }
 
-TEST_CASE("a call with no arguments is not titled as a tile that collects a value", "[CommandCatalog]")
+TEST_CASE("a call with no arguments is not titled as an action that collects a value", "[CommandCatalog]")
 {
     // view_set's Go to tab and Go to layer have no arguments of their own: their call takes its value from the Speed
-    // Dial's second phase, so a call with none is view_set's, and a call with the value is the tile's command with it.
+    // Dial's second phase, so a call with none is view_set's, and a call with the value is the action's command with it.
     const NativeCommand* view = NativeCommands::find("view_set");
     REQUIRE(view != nullptr);
-    CHECK(Slic3r::GUI::tile_with_args(*view, json::object()) == nullptr);
+    CHECK(Slic3r::GUI::action_with_args(*view, json::object()) == nullptr);
     CHECK(Slic3r::GUI::call_title(*view, json::object()) == view->title);
-    // A tile that collects nothing titles its call.
+    // An action that collects nothing titles its call.
     CHECK(Slic3r::GUI::call_title(*view, {{"camera", "top"}}) == "View: Top");
 }
 
@@ -653,41 +655,41 @@ TEST_CASE("every key of the process catalog is unique, tools and commands togeth
 
 TEST_CASE("the typed tools are listed and the merged commands are both", "[CommandCatalog]")
 {
-    // A tool whose menu item is one of its tiles, with the item's title, section and icon.
-    for (const auto& [key, tile_key, title] : {std::make_tuple("project_new", "new_project", "New Project"),
-                                               std::make_tuple("project_save", "save_project", "Save Project"),
-                                               std::make_tuple("recording_start", "start_recording", "Start Recording"),
-                                               std::make_tuple("recording_stop", "stop_recording", "Stop Recording")}) {
+    // A tool whose menu item is one of its actions, with the item's title, section and icon.
+    for (const auto& [key, action_key, title] : {std::make_tuple("project_new", "new_project", "New Project"),
+                                                 std::make_tuple("project_save", "save_project", "Save Project"),
+                                                 std::make_tuple("recording_start", "start_recording", "Start Recording"),
+                                                 std::make_tuple("recording_stop", "stop_recording", "Stop Recording")}) {
         INFO(key);
         const NativeCommand* merged = NativeCommands::find(key);
         REQUIRE(merged != nullptr);
         CHECK(merged->listed);
-        CHECK_FALSE(merged->in_palette);
-        const auto [command, tile] = Slic3r::GUI::find_tile(NativeCommands::instance(), tile_key);
+        CHECK_FALSE(merged->has_own_action);
+        const auto [command, action] = Slic3r::GUI::find_command_action(NativeCommands::instance(), action_key);
         CHECK(command == merged);
-        REQUIRE(tile != nullptr);
-        CHECK(tile->at("title") == title);
-        CHECK(tile->at("group") == "Commands");
-        CHECK_FALSE(tile->at("icon").get<std::string>().empty());
+        REQUIRE(action != nullptr);
+        CHECK(action->at("title") == title);
+        CHECK(action->at("group") == "Commands");
+        CHECK_FALSE(action->at("icon").get<std::string>().empty());
     }
 
     const NativeCommand* tool = NativeCommands::find("app_state");
     REQUIRE(tool != nullptr);
     CHECK(tool->listed);
-    CHECK_FALSE(tool->in_palette);
+    CHECK_FALSE(tool->has_own_action);
 
-    // A command made from menu items is listed too, as it runs from its arguments: its menu items are its tiles.
+    // A command made from menu items is listed too, as it runs from its arguments: its menu items are its actions.
     const NativeCommand* menu_items = NativeCommands::find("object_mirror");
     REQUIRE(menu_items != nullptr);
     CHECK(menu_items->listed);
-    CHECK_FALSE(menu_items->in_palette);
-    CHECK(menu_items->tiles.size() == 3);
+    CHECK_FALSE(menu_items->has_own_action);
+    CHECK(menu_items->actions.size() == 3);
 }
 
-TEST_CASE("the palette's tiles are under the menu items' keys, not the tools' names", "[CommandCatalog]")
+TEST_CASE("the Speed Dial's actions are under the menu items' keys, not the tools' names", "[CommandCatalog]")
 {
-    // Every tile of the Speed Dial by its key: a typed tool is there only through its menu items' tiles.
-    const std::set<std::string> tiles{
+    // Every command's action in the Speed Dial, by its key: a typed tool is there only through its menu items' actions.
+    const std::set<std::string> actions{
         "add_handy_3dbenchy", "add_handy_autodesk_fdm_test", "add_handy_cali_cat", "add_handy_orca_badge",
         "add_handy_orca_cube", "add_handy_orca_string_hell", "add_handy_orca_tolerance_test", "add_handy_orcasliced_combo",
         "add_handy_stanford_bunny", "add_handy_voron_cube", "add_primitive_cone", "add_primitive_cube",
@@ -711,17 +713,17 @@ TEST_CASE("the palette's tiles are under the menu items' keys, not the tools' na
         "sync_ams", "sync_presets", "take_screenshot", "toggle_developer_mode", "toggle_run_script_panel", "undo", "view_bottom",
         "view_default", "view_fit_bed", "view_front", "view_iso", "view_left", "view_rear", "view_right",
         "view_toggle_perspective", "view_top"};
-    REQUIRE(tiles.size() == 129);
+    REQUIRE(actions.size() == 129);
 
-    std::set<std::string> palette;
-    for (const NativeCommands::PaletteTile& t : NativeCommands::palette_tiles(NativeCommands::instance()))
-        palette.insert(t.tile != nullptr ? t.tile->at("key").get<std::string>() : t.command->key);
-    CHECK(palette == tiles);
-    CHECK(palette.count("new_project") == 1);
-    CHECK(palette.count("project_new") == 0);
-    CHECK(palette.count("app_state") == 0);
-    // plate_slice's tiles are slice_and_preview and slice_all.
-    CHECK(palette.count("plate_slice") == 0);
+    std::set<std::string> speed_dial;
+    for (const NativeCommands::SpeedDialAction& t : NativeCommands::speed_dial_actions(NativeCommands::instance()))
+        speed_dial.insert(t.action != nullptr ? t.action->at("key").get<std::string>() : t.command->key);
+    CHECK(speed_dial == actions);
+    CHECK(speed_dial.count("new_project") == 1);
+    CHECK(speed_dial.count("project_new") == 0);
+    CHECK(speed_dial.count("app_state") == 0);
+    // plate_slice's actions are slice_and_preview and slice_all.
+    CHECK(speed_dial.count("plate_slice") == 0);
 }
 
 TEST_CASE("a merged command accepts silent and publishes its form", "[CommandCatalog]")
@@ -746,7 +748,7 @@ TEST_CASE("a merged command accepts silent and publishes its form", "[CommandCat
     }
 }
 
-TEST_CASE("a merged command's call with a tile's arguments is the person's form", "[CommandCatalog]")
+TEST_CASE("a merged command's call with an action's arguments is the person's form", "[CommandCatalog]")
 {
     int        tool_calls = 0;
     json       person_args; // what each run of the person's form was given
@@ -757,10 +759,10 @@ TEST_CASE("a merged command's call with a tile's arguments is the person's form"
         ++tool_calls;
         return ToolResult::ok({{"tool", true}});
     });
-    tool.in_palette = true;
-    tool.tiles      = json::array({NativeCommands::tile("k_as", "K as", "Commands", "", {{"save_as", true}}, "Saves as.")});
-    const NativeCommand merged = NativeCommands::with_person_form(tool, [&person_args](const json& tile_args) {
-        person_args.push_back(tile_args);
+    tool.has_own_action = true;
+    tool.actions        = json::array({NativeCommands::action("k_as", "K as", "Commands", "", {{"save_as", true}}, "Saves as.")});
+    const NativeCommand merged = NativeCommands::with_person_form(tool, [&person_args](const json& action_args) {
+        person_args.push_back(action_args);
         return AppActionRunResult{AppActionRunResult::Level::Succeeded, "Asked"};
     });
     CHECK(merged.input_schema["properties"].contains("silent"));
@@ -779,7 +781,7 @@ TEST_CASE("a merged command's call with a tile's arguments is the person's form"
     CHECK(given.data["tool"] == true);
 }
 
-TEST_CASE("a pick of a tile whose menu item and tool are one function runs it in place, and a call runs the tool", "[CommandCatalog]")
+TEST_CASE("a pick of an action whose menu item and tool are one function runs it in place, and a call runs the tool", "[CommandCatalog]")
 {
     int  tool_calls = 0;
     json person_args = json::array(); // what each run of the shared function for a pick was given
@@ -787,23 +789,23 @@ TEST_CASE("a pick of a tile whose menu item and tool are one function runs it in
         ++tool_calls;
         return ToolResult::ok({{"tool", true}});
     });
-    tool.tiles = json::array({NativeCommands::tile("k_item", "Item", "View", "", {{"item", true}}, "The menu item's function."),
-                              NativeCommands::tile("k_tool", "Tool", "View", "", {{"camera", "top"}}, "The tool's function."),
-                              NativeCommands::tile("k_input", "Input", "View", "", json::object(), "A value it collects.", "percent",
-                                                   "level")});
+    tool.actions = json::array({NativeCommands::action("k_item", "Item", "View", "", {{"item", true}}, "The menu item's function."),
+                                NativeCommands::action("k_tool", "Tool", "View", "", {{"camera", "top"}}, "The tool's function."),
+                                NativeCommands::action("k_input", "Input", "View", "", json::object(), "A value it collects.", "percent",
+                                                       "level")});
     const NativeCommand merged = NativeCommands::with_menu_item_forms(
         tool,
-        [&person_args](const json& tile_args) {
-            person_args.push_back(tile_args);
+        [&person_args](const json& action_args) {
+            person_args.push_back(action_args);
             return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         },
         /*person_form_behind_dialogs=*/false, std::vector<json>{json{{"camera", "top"}}});
-    // The menu item's tile and the tool's are person's forms of the command; the tile that collects a value is not.
+    // The menu item's action and the tool's are person's forms of the command; the action that collects a value is not.
     CHECK(Mcp::person_form(merged, {{"item", true}}));
     CHECK(Mcp::person_form(merged, {{"camera", "top"}}));
     CHECK_FALSE(Mcp::person_form(merged, {{"level", 50}}));
 
-    // An automated call: the menu item's tile runs the item, the tool's own form and the input tile's call run the tool.
+    // An automated call: the menu item's action runs the item, the tool's own form and the input action's call run the tool.
     TestContext agent;
     merged.run({{"item", true}}, agent);
     CHECK(person_args == json::array({{{"item", true}}}));
@@ -812,7 +814,7 @@ TEST_CASE("a pick of a tile whose menu item and tool are one function runs it in
     CHECK(tool_calls == 2);
     CHECK(agent.submitted.empty());
 
-    // A person's pick of the tool's own form, and of the input tile with its value, runs the shared function in place:
+    // A person's pick of the tool's own form, and of the input action with its value, runs the shared function in place:
     // nothing is submitted as a job, and the tool's function does not run.
     TestContext person(/*person=*/true);
     const ToolResult picked = merged.run({{"camera", "top"}}, person);
@@ -834,9 +836,9 @@ TEST_CASE("an agent's call of a person's form is checked as a mutate call, a per
     auto tool         = NativeCommands::long_command("k", "K", "", no_arguments(), [](const json&, ToolContext&) {
         return ToolResult::ok();
     });
-    tool.guard        = GuardClass::Inspect; // as the recording tools run, behind dialogs
-    tool.in_palette   = true;
-    const auto person = [&person_calls](const json&) {
+    tool.guard          = GuardClass::Inspect; // as the recording tools run, behind dialogs
+    tool.has_own_action = true;
+    const auto person   = [&person_calls](const json&) {
         ++person_calls;
         return AppActionRunResult{AppActionRunResult::Level::Succeeded, "Asked"};
     };
@@ -865,7 +867,7 @@ TEST_CASE("a silent call is journaled silent", "[CommandCatalog]")
         ctx.set_journal_args(args);
         return ToolResult::ok();
     });
-    tool.in_palette            = true;
+    tool.has_own_action        = true;
     const NativeCommand merged = NativeCommands::with_person_form(tool, [](const json&) { return AppActionRunResult{}; });
 
     TestContext agent;
@@ -906,7 +908,7 @@ TEST_CASE("a command made from menu items is found by the one lookup", "[Command
 {
     const CommandCatalog& catalog = NativeCommands::instance();
     CHECK(catalog.lookup("object_mirror") != nullptr);
-    // A misspelt key is answered with the closest command, which tool_call runs, not with a tile's action_run.
+    // A misspelt key is answered with the closest command, which tool_call runs, not with action_run of an action.
     const std::string unknown = catalog.unknown_command("object_miror", /*suggest=*/true);
     CHECK_THAT(unknown, ContainsSubstring("object_mirror"));
     CHECK_THAT(unknown, !ContainsSubstring("action_run"));
@@ -971,33 +973,33 @@ TEST_CASE("the process catalog is built once", "[CommandCatalog]")
     CHECK(&NativeCommands::instance() == &catalog);
 }
 
-TEST_CASE("the palette is the commands' own tiles and their items, in the catalog's order", "[CommandCatalog]")
+TEST_CASE("the Speed Dial has the commands' own actions and their items, in the catalog's order", "[CommandCatalog]")
 {
     CommandCatalog catalog;
     catalog.add(command("first", true));
     catalog.add(command("typed_tool", false));
     NativeCommand folded = command("folded", true);
-    folded.tiles         = json::array({NativeCommands::tile("folded_x", "X", "View", "", {{"axis", "x"}}, "Along X."),
-                                        NativeCommands::tile("folded_y", "Y", "View", "", {{"axis", "y"}}, "Along Y.")});
+    folded.actions       = json::array({NativeCommands::action("folded_x", "X", "View", "", {{"axis", "x"}}, "Along X."),
+                                        NativeCommands::action("folded_y", "Y", "View", "", {{"axis", "y"}}, "Along Y.")});
     catalog.add(std::move(folded));
-    // A listed command's tiles are the palette's as any other's.
+    // A listed command's actions are in the Speed Dial as any other's are.
     NativeCommand items_only = command("items_only", false);
     items_only.listed        = true;
-    items_only.tiles         = json::array({NativeCommands::tile("items_only_tab", "Tab", "Commands", "", json::object(), "A tab.", "tab")});
+    items_only.actions = json::array({NativeCommands::action("items_only_tab", "Tab", "Commands", "", json::object(), "A tab.", "tab")});
     catalog.add(std::move(items_only));
     catalog.seal();
 
-    const std::vector<NativeCommands::PaletteTile> palette = NativeCommands::palette_tiles(catalog);
-    REQUIRE(palette.size() == 5);
-    CHECK(palette[0].command == catalog.find("first"));
-    CHECK(palette[0].tile == nullptr);
-    CHECK(palette[1].command == catalog.find("folded"));
-    CHECK(palette[1].tile == nullptr);
-    CHECK(palette[2].tile == &catalog.find("folded")->tiles[0]);
-    CHECK(palette[3].tile == &catalog.find("folded")->tiles[1]);
-    CHECK(palette[4].command == catalog.find("items_only"));
-    REQUIRE(palette[4].tile != nullptr);
-    CHECK(palette[4].tile->at("input") == "tab");
+    const std::vector<NativeCommands::SpeedDialAction> speed_dial = NativeCommands::speed_dial_actions(catalog);
+    REQUIRE(speed_dial.size() == 5);
+    CHECK(speed_dial[0].command == catalog.find("first"));
+    CHECK(speed_dial[0].action == nullptr);
+    CHECK(speed_dial[1].command == catalog.find("folded"));
+    CHECK(speed_dial[1].action == nullptr);
+    CHECK(speed_dial[2].action == &catalog.find("folded")->actions[0]);
+    CHECK(speed_dial[3].action == &catalog.find("folded")->actions[1]);
+    CHECK(speed_dial[4].command == catalog.find("items_only"));
+    REQUIRE(speed_dial[4].action != nullptr);
+    CHECK(speed_dial[4].action->at("input") == "tab");
 }
 
 TEST_CASE("a sealed catalog is read from eight threads", "[CommandCatalog]")
@@ -1136,19 +1138,19 @@ TEST_CASE("an Export command called with arguments takes the project, and with n
     CHECK(either.operations == 0);
 }
 
-TEST_CASE("a tile with a second phase takes its value, typed as its command's argument", "[CommandCatalog]")
+TEST_CASE("an action with a second phase takes its value, typed as its command's argument", "[CommandCatalog]")
 {
     const CommandCatalog& catalog = NativeCommands::instance();
     for (const auto& [key, input, value] : {std::make_tuple("go_to_tab", "tab", json("preview")), std::make_tuple("go_to_layer", "percent", json(50))}) {
         INFO(key);
-        const auto [command, tile] = Slic3r::GUI::find_tile(catalog, key);
+        const auto [command, command_action] = Slic3r::GUI::find_command_action(catalog, key);
         REQUIRE(command != nullptr);
-        REQUIRE(tile != nullptr);
-        const std::unique_ptr<Slic3r::GUI::AppAction> action = NativeCommands::make_action(*command, *tile);
+        REQUIRE(command_action != nullptr);
+        const std::unique_ptr<Slic3r::GUI::AppAction> action = NativeCommands::make_action(*command, *command_action);
         CHECK(action->input == input);
         CHECK(action->input_schema["required"] == json::array({input}));
         // The pick's value reaches view_set under its argument, which checks it.
-        json call = Slic3r::GUI::tile_call_args(tile, {{input, value}});
+        json call = Slic3r::GUI::action_call_args(command_action, {{input, value}});
         CHECK(Mcp::argument_error(*command, call).empty());
     }
     // The layer is a share of the layer range.
@@ -1175,7 +1177,7 @@ TEST_CASE("undo takes a history", "[CommandCatalog]")
         INFO(key);
         const NativeCommand* command = NativeCommands::find(key);
         REQUIRE(command != nullptr);
-        CHECK(command->in_palette);
+        CHECK(command->has_own_action);
         CHECK(command->listed);
         json design{{"history", "design"}};
         CHECK(Mcp::argument_error(*command, design).empty());
@@ -1218,7 +1220,7 @@ TEST_CASE("a command's result reads as action_run's did", "[CommandCatalog]")
     CHECK(done.data == json{{"ran", "k"}, {"level", "success"}, {"message", "Done"}});
     CHECK(NativeCommands::from_run_result("k", {Level::Busy, "Wait"}).is_error);
     CHECK(NativeCommands::from_run_result("k", {Level::Error, "Failed"}).is_error);
-    // A command that did nothing fails, though the palette shows it as information.
+    // A command that did nothing fails, though the Speed Dial shows it as information.
     CHECK(NativeCommands::from_run_result("k", {Level::Info, "Select an object first.", false}).is_error);
 
     // What a command adds to its reply joins the reply's fields.
@@ -1321,7 +1323,7 @@ TEST_CASE("the reference shows both forms of a two-form command", "[CommandCatal
     CommandCatalog catalog = catalog_with_design();
     catalog.seal();
     const json reference = Slic3r::GUI::catalog_reference(catalog);
-    // Each with what its person's forms are: {} alone, or the arguments of each of its tiles.
+    // Each with what its person's forms are: {} alone, or the arguments of each of its actions.
     std::vector<std::pair<std::string, json>> two_forms{
         {"project_save", {{"not", {{"enum", json::array({json::object(), {{"save_as", true}}})}}}}}};
 #ifdef SLIC3R_CAD

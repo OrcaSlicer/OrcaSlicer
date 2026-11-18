@@ -38,12 +38,12 @@ struct AppActionRunResult
 
     Level level = Level::Info;
     wxString message; // empty = "nothing worth showing"
-    // False when the command did nothing (no selection, no objects): the palette shows the message
+    // False when the command did nothing (no selection, no objects): the Speed Dial shows the message
     // at its level all the same, and automation reports the run as failed.
     bool done = true;
     // For automation only: a JSON object saying what the command did that its message does not
     // (the new object order, the object an Assemble made). An automated call's reply has its fields
-    // (NativeCommands::from_run_result()); the palette never shows it.
+    // (NativeCommands::from_run_result()); the Speed Dial never shows it.
     std::string reply;
     // The operation's refusal that `message` words in the UI's language, when the command ran an
     // operation that refused: automation replies with its English text and its code.
@@ -90,13 +90,13 @@ struct AppAction
     // source name); Command sets a section label (e.g. "Commands", "Mode").
     AppActionKind kind = AppActionKind::Plugin;
     std::string group;
-    // Second-phase input descriptor for the palette: "percent" (jump to layer by a 0-100
+    // Second-phase input descriptor for the Speed Dial: "percent" (jump to layer by a 0-100
     // value) or "tab" (pick a notebook tab). Empty = run immediately on activation.
     std::string input;
     // Tile pictogram: SVG base name under resources/images; empty renders a blank tile (commands
     // without a GUI icon, plugins). Set from NativeCommands / the setting's category icon.
     std::string icon;
-    // Settings mode required to edit this action (SettingActions only). The palette prompts before
+    // Settings mode required to edit this action (SettingActions only). The Speed Dial prompts before
     // running an action whose mode is above the user's current mode. comSimple for everything else.
     ConfigOptionMode required_mode = comSimple;
     // Description shown in the Speed Dial's footer strip (SettingActions: the localized tooltip).
@@ -116,17 +116,17 @@ struct AppAction
     std::string help_url;
     // For automation (MCP, scripts): what the action does in English, the arguments it takes (a JSON
     // Schema; none for most actions) and whether its effect finishes after run() returns (an export that
-    // runs in the background). Not shown in the palette.
+    // runs in the background). Not shown in the Speed Dial.
     std::string    automation_description;
     nlohmann::json input_schema;
     bool           completes_in_background = false;
-    // The catalog key of a command's tile (NativeCommands), whose own function action_run runs; empty for
-    // every other action.
+    // For a command's action (NativeCommands), the catalog key of that command, whose own function action_run runs;
+    // empty for every other action.
     std::string command;
-    // The arguments a tile of `command` runs it with, an object that may be empty: an item of its tiles' args, to which a
-    // tile that collects a value (input) adds that value (tile_call_args(), CommandCatalog.hpp), or {} for the command's
-    // own tile outside the Design tab. Null for every other action, a Design command's own tile among them, which runs
-    // with the arguments it is given.
+    // The arguments an action of `command` runs it with, an object that may be empty: an item of its actions' args, to
+    // which an action that collects a value (input) adds that value (action_call_args(), CommandCatalog.hpp), or {} for
+    // the command's own action outside the Design tab. Null for every other action, a Design command's own action among
+    // them, which runs with the arguments it is given.
     nlohmann::json preset;
 
     virtual ~AppAction() = default;
@@ -170,14 +170,14 @@ inline bool requires_mode_switch(ConfigOptionMode setting_mode, ConfigOptionMode
 // hand-edited config must never grow the stored list past `limit`, and a duplicated id must collapse to its first pin.
 std::vector<std::string> cap_favourites(const std::vector<std::string>& ids, size_t limit);
 
-// Whether `id` is the id of a Design tab tile, that of an entry of the Design table with an action: a Design
-// command's own tile, or a folded item's, which runs the command it is folded into. Such a tile is live only while
-// that tab is shown, in its entry's mode. The Design table tells it apart, so it does even when the catalog holds
-// no Design command (the CAD feature off at startup). A build without CAD has no table, and there it is never one.
-bool is_design_tile_id(const std::string& id);
+// Whether `id` is the id of a Design tab action, that of an entry of the Design table with a handler: a Design
+// command's own action, or a folded item's, which runs the command it is folded into. Such an action is live only
+// while that tab is shown, in its entry's mode. The Design table tells it apart, so it does even when the catalog
+// holds no Design command (the CAD feature off at startup). A build without CAD has no table, and there it is never one.
+bool is_design_action_id(const std::string& id);
 
 // The pins snapshot() keeps, in their order: `stored` gets those with a live action (`live`) and the Design
-// tab's whose tile is not live now (is_design_tile_id()), which the person pinned in that tab and keeps when
+// tab's whose action is not live now (is_design_action_id()), which the person pinned in that tab and keeps when
 // the Speed Dial opens elsewhere; `shown`, the bar, gets the first ActionRegistry::kFavLimit live ones. A live
 // pin past them stays stored and comes onto the bar once a pin before it is unpinned. Any other pin with no live
 // action is dropped.
@@ -207,7 +207,7 @@ nlohmann::json action_json(const AppAction& a);
 // 2. Loader load/unload callbacks route through refresh_source()/refresh_capability(),
 //    which upsert()/remove() actions. The registry keeps the only action list and
 //    restores persisted user state as actions arrive.
-// 3. Dynamic built-in families (settings, plates, recent projects, the Design tab's tiles) are
+// 3. Dynamic built-in families (settings, plates, recent projects, the Design tab's actions) are
 //    re-materialised at the top of snapshot(), because their membership follows live state (the current
 //    configs, plate list, recents, the tab shown and its mode); all but settings also at the top of
 //    describe() and of find_live(), an automated lookup by id.
@@ -241,7 +241,7 @@ public:
     // Always-clean read surface. UI thread only.
     const AppAction* by_id(const std::string& id) const;
     // The action `id` as the app is now: by_id() after the families whose membership follows live state
-    // (plates, recent projects, the Design tab's tiles) are re-materialised, for a caller that may have
+    // (plates, recent projects, the Design tab's actions) are re-materialised, for a caller that may have
     // changed that state since the last snapshot() or describe(), such as an automated action_run after a
     // sketch was opened or the tab switched. Settings are not, being thousands: snapshot() and describe()
     // with include_settings materialise them. UI thread only.
@@ -256,7 +256,7 @@ public:
     static constexpr size_t kFavStoredLimit = 100;
 
     // Dispatch + write-through (registry is the only thing that touches AppConfig). Automation passes
-    // record_stats = false so agent runs don't reorder the user's palette.
+    // record_stats = false so agent runs don't reorder the user's Speed Dial.
     AppActionRunResult run(const std::string& id, const nlohmann::json& args = nlohmann::json::object(), bool record_stats = true);
 
     // The catalog for agents: actions whose id, title, group, source or description contains `text`
@@ -314,28 +314,28 @@ private:
 
     // (Re)materialise the current visible config settings as SettingActions from the live
     // searcher (respecting printer-tech + user-mode + visibility filtering), removing stale ones.
-    // Called at the top of snapshot(), so the palette always reflects the current configs, and by
+    // Called at the top of snapshot(), so the Speed Dial always reflects the current configs, and by
     // describe() when it is asked for settings.
     void materialize_setting_actions();
 
-    // (Re)materialise one "Go to Plate N" action per live plate, so the palette lists every plate
+    // (Re)materialise one "Go to Plate N" action per live plate, so the Speed Dial lists every plate
     // directly on each spawn (no second-phase picker). FFF-editor only; SLA/gcode modes have no
     // plate UI, so nothing is materialised and stale ids are dropped. Run by materialize_live().
     void materialize_plate_actions();
 
     // (Re)materialise one "Open recent project <name>" action per recent project file, so the
-    // palette lists every recent project and can load it by clicking. Keyed by file path (stable);
+    // Speed Dial lists every recent project and can load it by clicking. Keyed by file path (stable);
     // files that no longer exist are skipped and their stale ids dropped. Run by materialize_live().
     void materialize_recent_project_actions();
 
-    // (Re)materialise the Design tab's tiles: while the tab is shown with the CAD feature on, one per entry of the
-    // Design table with an action offered in the tab's mode (Mcp::design_tiles()), a Design command's own or a
+    // (Re)materialise the Design tab's actions: while the tab is shown with the CAD feature on, one per entry of the
+    // Design table with a handler offered in the tab's mode (Mcp::design_actions()), a Design command's own or a
     // folded item's, titled as the right-click menu names the entry (the "Design" context) with the entry's icon;
     // otherwise none. A build without CAD has none.
     void materialize_design_actions();
 
     // The three families above whose membership follows live state and is cheap to rebuild: plates, recent
-    // projects and the Design tab's tiles. snapshot(), describe() and find_live() run it first.
+    // projects and the Design tab's actions. snapshot(), describe() and find_live() run it first.
     void materialize_live();
 
     // Loader callbacks (marshalled to the UI thread) land here. refresh_source rebuilds

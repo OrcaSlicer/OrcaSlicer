@@ -1,4 +1,4 @@
-// Records how the Preview's layers are set through its two routes, the go_to_layer tile run with
+// Records how the Preview's layers are set through its two routes, the go_to_layer action run with
 // action_run and its percent (0, 50, 100, a fraction, and refused: past 100, negative, not a number, none)
 // and view_set's layer, layer_range and layer_z (in range, past the top, a layer_z above it): on plates the
 // Preview has no layers for (one with no objects, one whose slice fails validation: spiral vase with two
@@ -57,7 +57,7 @@
     {"tool": "app_state"},
     {"tool": "script_run", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
 
-    // ---- A sliced plate: the tile ----
+    // ---- A sliced plate: the action ----
     {"tool": "project_new", "args": {"discard_changes": true}},
     {"tool": "view_set", "args": {"tab": "prepare"}},
     {"tool": "object_add_primitive", "args": {"shape": "cube", "size": [20, 20, 20]}},
@@ -83,7 +83,7 @@
     {"tool": "action_run", "args": {"id": "orca_command:go_to_layer:orca", "args": {"percent": 10}}, "optional": true},
     {"tool": "action_run", "args": {"id": "orca_command:go_to_layer:orca"}, "optional": true},
     {"tool": "app_state"},
-    // the tile after view_set showed a range: does it keep the range's bottom?
+    // the action after view_set showed a range: does it keep the range's bottom?
     {"tool": "view_set", "args": {"layer_range": [20, 60]}, "optional": true},
     {"tool": "action_run", "args": {"id": "orca_command:go_to_layer:orca", "args": {"percent": 80}}, "optional": true},
     {"tool": "app_state"},

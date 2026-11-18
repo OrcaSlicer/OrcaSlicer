@@ -1,9 +1,9 @@
 #pragma once
 
 // The Design tab's commands, one per entry of its table (kDesignTools, DesignOffer.hpp, generated from
-// scripts/CAD/tool_atlas.json) that has an action or a tool block and is no folded item (is_design_command()): its
+// scripts/CAD/tool_atlas.json) that has a handler or a tool block and is no folded item (is_design_command()): its
 // tools, sketches, features, measurements and edits, which an agent finds with tool_search (group Design) and
-// runs with tool_call, and a person picks as Speed Dial tiles while the Design tab is shown, those of the mode it
+// runs with tool_call, and a person picks as Speed Dial actions while the Design tab is shown, those of the mode it
 // is in. A call with exactly the arguments that choose one of the command's items (opened_item()) does what that
 // right-click menu item does, in the mode the item belongs to (open_refusal()); any other call, or one with
 // silent: true, runs the entry's tool block's silent form. They run on the UI thread through the GUI's own
@@ -64,19 +64,20 @@ NativeCommand cad_command(std::string key, std::string title, nlohmann::json sch
                           std::function<bool(const nlohmann::json& args)> opens = {});
 
 // Adds the Design commands to `catalog`, one per entry of kDesignTools that is a command (is_design_command()):
-// its id as the key, its name as the title, and its icon. An entry with an action is in the palette, and an item
-// folded into a command is one of the command's `tiles`, with the item's id as its key, its name, icon and args, and
-// as its description its hint and what a pick does (a tile is materialised only while the Design tab is shown in
-// its entry's mode, ActionRegistry::materialize_design_actions()). One with a block is read_only for Read access,
-// and its description is the block's summary, details and, for a silent form that reports a rejected rebuild in
-// its reply, how that shows, then the other calls that open a tool, each with its item's name; its examples are the
-// block's and its schema cad_input_schema() of it, through with_silent() when a call with no arguments opens a
-// tool. One with an action only takes no arguments, and its description is its hint and what the call does.
+// its id as the key, its name as the title, and its icon. An entry with a handler has an action of its own
+// (has_own_action), and an item folded into a command is one of the command's `actions`, with the item's id as its
+// key, its name, icon and args, and as its description its hint and what a pick does (an action is materialised
+// only while the Design tab is shown in its entry's mode, ActionRegistry::materialize_design_actions()). One with a
+// block is read_only for Read access, and its description is the block's summary, details and, for a silent form
+// that reports a rejected rebuild in its reply, how that shows, then the other calls that open a tool, each with its
+// item's name; its examples are the block's and its schema cad_input_schema() of it, through with_silent() when a
+// call with no arguments opens a tool. One with a handler only takes no arguments, and its description is its hint
+// and what the call does.
 // undo and redo are the shared commands of NativeCommands.cpp and not among them.
 void register_cad_commands(CommandCatalog& catalog);
 
 // Records in `catalog`, built with the CAD feature off, that it leaves out the keys register_cad_commands()
-// adds, and the ids of the items folded into them, which name tiles, because the feature was off when OrcaSlicer
+// adds, and the ids of the items folded into them, which name actions, because the feature was off when OrcaSlicer
 // started and how a person turns it on (CommandCatalog::leave_out()).
 void leave_out_cad_commands(CommandCatalog& catalog);
 
@@ -115,13 +116,13 @@ DesignPanel* cad_gate(CadAccess access, const nlohmann::json& args);
 // The Design table's entry `id`, or nullptr.
 const DesignTool* find_design_tool(const std::string& id);
 
-// Whether entry `t` is a command of the catalog: it has an action or a tool block, and is no folded item
+// Whether entry `t` is a command of the catalog: it has a handler or a tool block, and is no folded item
 // (DesignTool::fold_into), which is a way of calling the command it is folded into.
 bool is_design_command(const DesignTool& t);
 
 // The item whose tool a call of `entry`'s command with `args` opens, or nullptr when the call runs. A call with no
-// arguments (null or {}) opens `entry`'s own item where it has an action, else the first item folded into it with
-// {}; any other opens `entry`'s item where it has an action and its own args equal `args`, else the first item
+// arguments (null or {}) opens `entry`'s own item where it has a handler, else the first item folded into it with
+// {}; any other opens `entry`'s item where it has a handler and its own args equal `args`, else the first item
 // folded into it whose args equal `args`. Arguments are compared as JSON values, as they reach the command's
 // function: `generation`, `silent` or any other argument beside the choosing ones makes the call run.
 const DesignTool* opened_item(const DesignTool& entry, const nlohmann::json& args);
@@ -129,32 +130,32 @@ const DesignTool* opened_item(const DesignTool& entry, const nlohmann::json& arg
 // Whether the Design tab offers entry `t` in the mode it is in, `sketching` being the right-click menu's
 // DesignPanel::sketch_map_applies(): an entry of the sketch's vocabulary in a sketch, one of the model's
 // outside it, as the menu offers them. A sketch in Constrain mode is a sketch to the menu, though the tab's keys
-// there are the model's. Only then is its tile shown and its person's form run.
+// there are the model's. Only then is its Speed Dial action shown and its person's form run.
 bool offered_in_mode(const DesignTool& t, bool sketching);
 
-// A Speed Dial tile of the Design tab: `command`'s own (`tile` null), or the item of command->tiles that a menu item
-// folded into it has.
-struct DesignTile
+// A Speed Dial action of the Design tab: `command`'s own (`action` null), or the item of command->actions that a menu
+// item folded into it has.
+struct DesignAction
 {
     const NativeCommand*  command;
-    const nlohmann::json* tile;
+    const nlohmann::json* action;
 };
 
-// The Speed Dial tiles the Design tab has while it is shown in the mode `sketching` names (as offered_in_mode()
-// takes it): one per entry of the Design table with an action offered in that mode, in the table's order, whose
+// The Speed Dial actions the Design tab has while it is shown in the mode `sketching` names (as offered_in_mode()
+// takes it): one per entry of the Design table with a handler offered in that mode, in the table's order, whose
 // command `catalog` holds: a folded item's runs the command it is folded into with the item's args. None while the
 // CAD feature is off (`cad_on` false): the tab stays until a restart, but cad_gate() would refuse every pick of
-// its tiles.
-std::vector<DesignTile> design_tiles(const CommandCatalog& catalog, bool sketching, bool cad_on);
+// its actions.
+std::vector<DesignAction> design_actions(const CommandCatalog& catalog, bool sketching, bool cad_on);
 
-// Why the person's form of entry `t` is refused before its action runs, or nothing: `t` is not offered in the
+// Why the person's form of entry `t` is refused before its handler runs, or nothing: `t` is not offered in the
 // tab's mode (offered_in_mode()), and the message says which mode it belongs to and what to do; or `t`'s
-// action is a btn: or fly: one, which the menu greys for a selection it does not accept, `t` accepts a kind the
+// handler is a btn: or fly: one, which the menu greys for a selection it does not accept, `t` accepts a kind the
 // tab reports as the selection in its mode, and selection `kind` (OfferSel as int) is not one it accepts, and the
 // details name the selection and those it accepts. An item that accepts no kind the tab reports there opens as its
-// toolbar button does, and a key: action runs whatever is selected, as its key does. With `row_target`, a call that
-// targets the Feature list's selected row (nothing picked in the view), an item whose action acts on that row
-// (DesignTool::feature_row) is not refused for the selection: its action says itself what it cannot do. The message
+// toolbar button does, and a key: handler runs whatever is selected, as its key does. With `row_target`, a call that
+// targets the Feature list's selected row (nothing picked in the view), an item whose handler acts on that row
+// (DesignTool::feature_row) is not refused for the selection: its handler says itself what it cannot do. The message
 // is a msgid, the code -32000.
 std::optional<ToolFailure> open_refusal(const DesignTool& t, bool sketching, int kind, bool row_target = false);
 

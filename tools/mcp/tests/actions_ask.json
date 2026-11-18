@@ -1,12 +1,13 @@
-// A call with exactly a tile's arguments does what a person's pick of the tile does, and a tile whose menu item and tool do
-// the same thing runs the tool's function: calibration_generate_test with test alone asks in the test's dialog, and
-// with silent runs with its defaults; View: Top turns the Design tab's camera; Go to tab and Go to layer take their
-// value through action_run; plate_slice {preview: true} and Slice and Preview slice and show the Preview tab; Deselect
-// All clears the selection of the view shown. Run on a live app with the Design tab (orca_mcp.py launch --cad):
-//   python3 tools/mcp/orca_mcp.py run-replay tools/mcp/tests/tiles_ask.json --out <dir>
+// A call with exactly an action's arguments does what a person's pick of the action does, and an action whose menu item
+// and tool do the same thing runs the tool's function: calibration_generate_test with test alone asks in the test's
+// dialog, and with silent runs with its defaults; View: Top turns the Design tab's camera; Go to tab and Go to layer
+// take their value through action_run; plate_slice {preview: true} and Slice and Preview slice and show the Preview
+// tab; Deselect All clears the selection of the view shown. Run on a live app with the Design tab
+// (orca_mcp.py launch --cad):
+//   python3 tools/mcp/orca_mcp.py run-replay tools/mcp/tests/actions_ask.json --out <dir>
 {
   "orca_replay_version": "0.2.0",
-  "name": "tiles that ask",
+  "name": "actions that ask",
   "vars": {"cube": "${replay_dir}/../../../resources/handy_models/OrcaCube_v2.drc"},
   "steps": [
     {"tool": "app_wait", "args": {"for": "ready"}},

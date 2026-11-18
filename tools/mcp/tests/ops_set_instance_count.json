@@ -1,7 +1,7 @@
 // Records what object_set_instances with a count does: nothing selected, one object,
 // two objects, one instance of an object, a part, counts of 1, 2 written as text, 0, negative, past 1000, a
 // fraction and a word, an object with an instance that is not printable, a cut object, and its obj_set_instances
-// tile (it opens its dialog, which the replay cancels). After each it reads the objects' instances and the undo
+// action (it opens its dialog, which the replay cancels). After each it reads the objects' instances and the undo
 // snapshots taken since the last read (fixtures/ops_undo.py), and once runs undo to show the change is one
 // step. Every call it records is optional. Run it with
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_set_instance_count.json --out <dir>
@@ -85,7 +85,7 @@
     {"tool": "widget_click", "args": {"target": {"row": "Plate 1>Cylinder", "column": "Printable"}}},
     {"tool": "object_list", "expect": {"/plates/0/objects/1/instances/0/printable": {"eq": true}}},
 
-    // ---- The tile: its dialog opens, and is cancelled ----
+    // ---- The action: its dialog opens, and is cancelled ----
     {"tool": "object_select", "args": {"objects": [1]}},
     {"tool": "action_run", "args": {"id": "orca_command:obj_set_instances:orca"}, "await": false, "save_as": "dialog", "optional": true},
     {"tool": "app_state"},

@@ -4,8 +4,8 @@ Launches OrcaSlicer on a fresh data folder with the Design tab on (in a build wi
 tests/plugins/mcp_tools_fixture side-loaded, and tests/plugins/mcp_tools_broken, whose load fails after declaring an
 operation: over MCP, then once without MCP, running a replay with --run, so the plugin's calls go to the
 runtime started without its endpoint. The first launch also checks that the plugin is sent the NewProject event when
-project_new or its Speed Dial tile starts a project, and ends by unticking the fixture in the Plugins dialog, as a person
-unloads it.
+project_new or its Speed Dial action starts a project, and ends by unticking the fixture in the Plugins dialog, as a
+person unloads it.
 Run it as python tools/mcp/test_plugin_tools.py [--bin PATH].
 """
 import json
@@ -165,7 +165,7 @@ def main():
         command = next((i for i in found["items"] if i["name"] == "settings_toggle_developer_mode"), {})
         check("tool_search's search finds a menu item's command among the commands, with its schema",
               command.get("listed") is False and "input_schema" in command, found)
-        check("and not its tile among the actions",
+        check("and does not list its Speed Dial action among the actions",
               not any("toggle_developer_mode" in a["id"] for a in found.get("actions", {}).get("items", [])), found)
         found = orca.call("tool_search", query="fixture")
         check("tool_search's search finds the Speed Dial's other actions",
@@ -201,13 +201,13 @@ def main():
               journal)
         broken = orca.call_raw("tool_search", {"tool": f"plugin.{BROKEN}.measure"})
         check("a plugin whose load failed offers none of its operations", broken.get("isError"), broken)
-        # A project started by project_new or by its tile tells plugins, as File > New Project does.
+        # A project started by project_new or by its Speed Dial action tells plugins, as File > New Project does.
         started = lambda: lines_of(os.path.join(plugin_dir, "new_projects.txt"))
         before = started()
         orca.call("project_new", discard_changes=True)
         check("project_new sends plugins the NewProject event", wait_for(lambda: started() == before + 1, 10), started())
         orca.call("action_run", id="orca_command:new_project:orca")
-        check("and so does its tile, new_project", wait_for(lambda: started() == before + 2, 10), started())
+        check("and so does its action, new_project", wait_for(lambda: started() == before + 2, 10), started())
         held = run_plugin_script(orca, plugin_dir, "handle", CAPABILITIES[4])
         check("the plugin opens a progress dialog and keeps its handle", held.get("ok") is True, held)
         grab = orca.await_job(orca.call("script_run", code=GRAB_HANDLE))

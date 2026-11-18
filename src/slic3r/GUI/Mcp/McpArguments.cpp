@@ -343,12 +343,12 @@ bool person_form(const json& args) { return args.is_null() || (args.is_object() 
 std::vector<json> person_forms(const NativeCommand& command)
 {
     std::vector<json> forms;
-    if (command.in_palette)
+    if (command.has_own_action)
         forms.push_back(json::object());
-    if (command.tiles.is_array())
-        for (const json& tile : command.tiles)
-            if (tile.value("input", std::string()).empty())
-                forms.push_back(tile.at("args"));
+    if (command.actions.is_array())
+        for (const json& action : command.actions)
+            if (action.value("input", std::string()).empty())
+                forms.push_back(action.at("args"));
     return forms;
 }
 
@@ -383,8 +383,9 @@ json with_silent(json schema, const std::vector<json>& person_args)
                                        "true runs the command without asking; it then needs " + needs +
                                            ", and what else the call leaves out takes its default.";
     text += only_none ? " A call with no arguments does what a person's pick does." :
-            has_none  ? " A call with no arguments, or with exactly a tile's arguments, does what a person's pick of that tile does." :
-                        " A call with exactly a tile's arguments does what a person's pick of that tile does.";
+            has_none  ? " A call with no arguments, or with exactly a Speed Dial action's arguments, does what a person's pick of "
+                        "that action does." :
+                        " A call with exactly a Speed Dial action's arguments does what a person's pick of that action does.";
     schema["properties"]["silent"] = {{"type", "boolean"}, {"enum", {true}}, {"description", std::move(text)}};
     if (!required.empty()) {
         schema["if"]   = only_none ? json{{"minProperties", 1}} : json{{"not", {{"enum", person_args}}}};

@@ -118,20 +118,20 @@ reports only that its job is still running. Every `McpError` it raises starts wi
 (`"extrude: ..."`) and has the original error as its cause. `tool_search {group: "Design"}` names the
 Design commands, and `tool_search {tool}` gives one's arguments and examples.
 
-## The skill's list of tiles
+## The skill's list of actions
 
 `gen_skill_reference.py <skills-checkout> [--check]` writes
 `skills/orcaslicer-mcp-skills/references/actions.md` in a checkout of the orcaslicer-mcp-skills repository:
-the Speed Dial's tiles section by section, from the command reference `tests/data/command_catalog.json`
-(`docs/HLSD/mcp-server.md`, "Making a feature reachable"), and before them what the reference says of
-particular commands: the Design commands with one form, which needs its value, and the commands of tiles
-the tool list does not show. Outside the Design tab a section is a Speed Dial section (a tile's `group`, or
-the `tile_group` of a command's own tile), and each tile has a row with its key, its title, the command and
-arguments it runs (`project_export {"format": "gcode"}` for Export G-code) and its description. In the
-Design section a command has a row of its own when it has a tile of its own (`in_palette`), and each Design
-menu item folded into a command follows it as a row with the command's key, the item's title and the
-arguments that open its tool (`sketch_pattern` with `{"type": "linear"}` for Linear array). It needs no
-running app. With `--check` it writes
+the commands' Speed Dial actions section by section, from the command reference
+`tests/data/command_catalog.json` (`docs/HLSD/mcp-server.md`, "Making a feature reachable"), and before them
+what the reference says of particular commands: the Design commands with one form, which needs its value,
+and the commands of actions the tool list does not show. Outside the Design tab a section is a Speed Dial
+section (an action's `group`, or the `action_group` of a command's own action), and each action has a row
+with its key, its title, the command and arguments it runs (`project_export {"format": "gcode"}` for Export
+G-code) and its description. In the Design section a command has a row of its own when it has an action of
+its own (`has_own_action`), and each Design menu item folded into a command follows it as a row with the
+command's key, the item's title and the arguments that open its tool (`sketch_pattern` with
+`{"type": "linear"}` for Linear array). It needs no running app. With `--check` it writes
 nothing, prints the difference and exits 1 when the file is not what it would write. When a command
 changed, regenerate the reference first: run `slic3rutils_tests "[Reference]"` with
 `ORCA_UPDATE_COMMAND_REFERENCE=1` in the environment.
@@ -180,9 +180,9 @@ the run that outlives its reply budget runs with the budget capped at 4 s (`ORCA
 `test_plugin_tools.py` checks a plugin's calls into the tools in the running app: it side-loads
 `tests/plugins/mcp_tools_fixture` into a fresh data folder and launches twice: over MCP, with the Design tab
 on (its operation is in the group Plugins, reached through `tool_search` and `tool_call` and out of
-`tools/list`; a menu item's command is found among `tool_search`'s commands with its schema and its tile not
-among its actions, and `tool_call` runs it; a group is a place's heading, in any case; a Design command is
-found there too, in no section of its own; calls from its Script worker
+`tools/list`; a menu item's command is found among `tool_search`'s commands with its schema and its Speed Dial
+action is not among the actions it lists, and `tool_call` runs it; a group is a place's heading, in any case; a
+Design command is found there too, in no section of its own; calls from its Script worker
 and a thread it starts reach the tools, an auto-answer rule it sets is the plugin's, `replay_export` is
 refused, nothing it calls is journaled, a script that finds its progress dialog handle can use it,
 `tests/plugins/mcp_tools_broken`, whose load fails, offers none of its operations, and unticking the
@@ -341,13 +341,13 @@ does not take), `preset_changes: "keep"` keeping an edit, and `project_new` drop
 starts from the harness's default printer and reruns on the same datadir.
 
 `tests/ops_*.json` drive each operation of the operations layer (`docs/HLSD/mcp-server.md`, "The
-operations layer") through the routes that reach it: the command, a Speed Dial tile run with `action_run`
+operations layer") through the routes that reach it: the command, a Speed Dial action run with `action_run`
 where one runs it from a call, and, for presets, a pick in the sidebar and the plugin API called from a
 `script_run` step. One replay per operation, named after it: G-code, sliced 3MF, model 3MF and STL exports, a model
 import, a project opened, started anew and saved, a plate selected and locked, arrange, slice, the
 Preview's layer range, a printer or process preset selected (`ops_select_preset`), a filament assigned
 to a slot on a printer with one slot and with several (`ops_assign_filament_preset_one_slot`,
-`_multi_slot`), presets imported, an object's instance count, and the refusals of `printer_send`'s tile,
+`_multi_slot`), presets imported, an object's instance count, and the refusals of `printer_send`'s action,
 whose id is `send_gcode`, which never sets a print host, so nothing is sent. Each records what a call leaves: its reply or its
 refusal's text, the state read back after it, and the undo snapshots it took, which
 `tests/fixtures/ops_undo.py` reads from the app's log since no tool lists the undo history. Their
@@ -361,9 +361,9 @@ need a fresh `--out`, since some of those calls write without `overwrite`. Launc
 holds no `.py` files, since the app's working directory is on Python's module path and a file there can
 shadow a standard module that `script_run` needs.
 
-`test_operation_routes.py` asserts what those replays only record: that a command, a Speed Dial tile that
+`test_operation_routes.py` asserts what those replays only record: that a command, a Speed Dial action that
 runs it and the plugin API's binding refuse the same states with the same code and words, and accept the
-same ones: a layer asked of a Preview with none (the Go to layer tile and `view_set`), a mixed-colour
+same ones: a layer asked of a Preview with none (the Go to layer action and `view_set`), a mixed-colour
 filament slot, and a hidden printer selected through the plugin API. It also checks what a command refuses
 or does in those states alone: a project saved under a `.gcode.3mf` name, the exports of a project with no
 objects, and an arrangement from the assemble view and with a gizmo open. Run
@@ -437,7 +437,7 @@ constraints, loops and degrees of freedom; `sketch_edit` and its replace, cancel
 `sketch_project` with and without an open sketch, `sketch_text`, `sketch_insert_svg` and Scale artwork;
 `feature_edit`'s `refs` and a card's picks while it edits a feature; `view_set`'s Design options;
 `select_geometry`, `confirm_tool`, `cancel_tool` and `body_place`; the Boolean card a call opens; and a
-pick of a folded item's tile from the Speed Dial, and its replay. Its docstring lists the rungs.
+pick of a folded item's action from the Speed Dial, and its replay. Its docstring lists the rungs.
 
 Three more harness tests on a `--cad` instance drive the Design tab the way a person does. Every action goes
 through the UI tools (`view_set`, `widget_click`, `mouse_gesture`, `keyboard_press`, `widget_set_value`,
@@ -518,7 +518,7 @@ kind of page control, action and what it changed on its page, refusal, locator, 
 the pages of a fixture plugin, in a modal dialog, a modeless window, a dock panel and the Plugins
 dialog's configuration frame, a token in a page's URL shown redacted, and the permission prompt the
 plugin's thread opens, answered with `dialog_answer` and with a rule registered while it is open, and the
-plugin's page among the main window's tabs, which the Go to tab tile shows by its id.
+plugin's page among the main window's tabs, which the Go to tab action shows by its id.
 Side-load the plugin into the datadir first:
 
 ```bash
@@ -591,7 +591,7 @@ the update a setting change scheduled, and checks that it never starts. `test_re
 uses ImGui refs after their items changed (the Text gizmo's font button, whose label shows the font,
 and a Texture Displacement layer row renamed by its place when a layer before it goes) and checks
 that the exported session replays. `test_worker_admission.py` starts a long arrange three ways
-(`object_arrange` with arguments, `action_run` of its Auto-Arrange tile, whose id is `obj_arrange`, a click on
+(`object_arrange` with arguments, `action_run` of its Auto-Arrange action, whose id is `obj_arrange`, a click on
 the Arrange options panel's button) and
 checks that changes, canvas keys and toolbar clicks are refused while it runs, reads answer, and `job_cancel`
 stops it. `test_export_running_job.py` exports while a call's job runs past
@@ -599,20 +599,20 @@ its reply budget (left out, named in `left_out_running`), after it ends (an `awa
 replays) and while a dialog holds its call (kept); it takes about 100 s, or about 45 s with the reply budget
 capped at 10 s by `ORCA_MCP_REPLY_BUDGET_MS=10000` for the app and the test, as the sweep runs it.
 `test_send_gcode.py` starts an OctoPrint-compatible stub host and sends a sliced cube to it with
-`printer_send`'s Speed Dial tile, `send_gcode`, the Send dialog answered with `widget_set_value` and `dialog_answer`: the
-tile is refused for a Bambu network printer and one without a print host, an upload the stub accepts
+`printer_send`'s Speed Dial action, `send_gcode`, the Send dialog answered with `widget_set_value` and `dialog_answer`: the
+action is refused for a Bambu network printer and one without a print host, an upload the stub accepts
 reads uploading at 99 until the stub answers and then completed in `app_state.uploads`, its exported
 replay uploads again, and one the stub refuses with HTTP 500 never reads completed and ends as an
 error whose dialog `dialog_answer` closes.
 
-`tests/tiles_ask.json` and `test_person_forms.py` check a call with exactly a tile's arguments, which may ask
-as a person's pick of the tile does: `calibration_generate_test {test}` asks in the test's dialog and with
+`tests/actions_ask.json` and `test_person_forms.py` check a call with exactly an action's arguments, which may
+ask as a person's pick of the action does: `calibration_generate_test {test}` asks in the test's dialog and with
 `silent` runs with its defaults, View: Top turns the Design tab's camera, Go to tab and Go to layer take their
-value through `action_run`, and the slice tiles slice and show the Preview tab (the replay, on an instance
+value through `action_run`, and the slice actions slice and show the Preview tab (the replay, on an instance
 launched with `--cad`); `project_save {save_as: true}` and `project_export {format: gcode}` open their file
 pickers while a path writes without one, `preset_export` always opens its dialog, `object_arrange {}` and
-`object_select {all: true}` (and `action_run` of their tiles) reply as their commands do, the selection in the
-assemble view's too, and the Speed Dial's own picks of a view tile, Deselect All, Go to layer, Auto-Arrange and
+`object_select {all: true}` (and `action_run` of their actions) reply as their commands do, the selection in the
+assemble view's too, and the Speed Dial's own picks of a view action, Deselect All, Go to layer, Auto-Arrange and
 Select All Objects run in place (the script). `test_project_open_settings.py`
 launches its own app, whose Preferences load a project's geometry only, and checks that `project_open` loads
 the settings a project was saved with all the same.
@@ -640,12 +640,12 @@ on a fresh data folder and printers the sweep does not seed: `test_install_print
 `test_printer_extruders.py` (a printer of two extruders) and `test_sidebar_floating.py` (`view_set`'s
 `sidebar_width` refused while the sidebar floats).
 
-`test_every_tile.py` runs each of the 129 Speed Dial tiles of `tests/data/speed_dial_tiles.json` through
+`test_every_action.py` runs each of the 129 Speed Dial actions of `tests/data/speed_dial_actions.json` through
 `action_run`, each from a state its table sets up afresh, answers the dialog or file picker it opens, and reads what
-its menu item's job leaves: a change only that tile makes, the window it opens, the file it writes, or the refusal of a
-tile that needs a printer or an account. It also checks the reply's `ran` and the step `replay_export` keeps against
-`tests/data/speed_dial_tile_calls.json`. Its web-page and configuration-folder tiles hand over to the system's
-browser and file manager, so the sweep runs it on its own.
+its menu item's job leaves: a change only that action makes, the window it opens, the file it writes, or the refusal
+of an action that needs a printer or an account. It also checks the reply's `ran` and the step `replay_export` keeps
+against `tests/data/speed_dial_action_calls.json`. Its web-page and configuration-folder actions hand over to the
+system's browser and file manager, so the sweep runs it on its own.
 
 ## The sweep
 

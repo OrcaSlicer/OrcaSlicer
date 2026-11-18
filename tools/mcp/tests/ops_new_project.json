@@ -1,8 +1,8 @@
-// Records what a new project does through its two forms, the person's (the new_project tile run with action_run)
+// Records what a new project does through its two forms, the person's (the new_project action run with action_run)
 // and the silent one (project_new called with arguments): on a clean project, with unsaved project changes (a
-// cube; silent: true, then discard_changes) and with unsaved preset changes (top_shell_layers 7; the tile's
+// cube; silent: true, then discard_changes) and with unsaved preset changes (top_shell_layers 7; the action's
 // question answered Discard, then Transfer when it offers that, and preset_changes keep and discard). Each call starts from the
-// Home tab, so the reads show the tab it leaves. The tile runs with "await": false; app_state lists its
+// Home tab, so the reads show the tab it leaves. The action runs with "await": false; app_state lists its
 // question, which the replay answers by its title. After each it reads the objects, the project, the presets'
 // unsaved keys and the undo snapshots taken since the last read (fixtures/ops_undo.py). Plugins get the
 // NewProject event on both routes, which no replay can observe without a plugin. Every call it records is
@@ -16,7 +16,7 @@
     {"tool": "app_wait", "args": {"for": "ready"}},
     {"tool": "project_new", "args": {"discard_changes": true, "preset_changes": "discard"}},
 
-    // ---- A clean project: the tile, then the command ----
+    // ---- A clean project: the action, then the command ----
     {"tool": "view_set", "args": {"tab": "home"}},
     {"tool": "app_wait", "args": {"for": "idle"}},
     {"tool": "script_run", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
@@ -32,7 +32,7 @@
     {"tool": "app_state"},
     {"tool": "script_run", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
 
-    // ---- Unsaved project changes: the tile asks ----
+    // ---- Unsaved project changes: the action asks ----
     {"tool": "object_add_primitive", "args": {"shape": "cube", "size": [20, 20, 20]}},
     {"tool": "view_set", "args": {"tab": "home"}},
     {"tool": "app_wait", "args": {"for": "idle"}},
@@ -59,7 +59,7 @@
     {"tool": "object_list"},
     {"tool": "script_run", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
 
-    // ---- Unsaved preset changes, no objects: the tile, answered Discard ----
+    // ---- Unsaved preset changes, no objects: the action, answered Discard ----
     {"tool": "settings_set", "args": {"values": {"top_shell_layers": 7}}},
     {"tool": "view_set", "args": {"tab": "home"}},
     {"tool": "app_wait", "args": {"for": "idle"}},

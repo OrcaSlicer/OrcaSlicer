@@ -29,7 +29,7 @@ def block(params=None, **extra):
 
 def atlas():
     """One slot, two selections, a command with a block and a menu item (paint), and a second item (tint), a command with
-    an action only; each under its heading."""
+    a handler only; each under its heading."""
     return {
         "slots": [{"id": "make", "label": "Make"}],
         "selections": [{"id": "none"}, {"id": "body_solid"}],
@@ -47,9 +47,9 @@ def entry(A, vid):
     return next(v for v in A["verbs"] if v["id"] == vid)
 
 
-def item(vid, action, **extra):
+def item(vid, handler, **extra):
     v = {"id": vid, "name": vid.title(), "slot": "make", "key": None, "accepts": ["body_solid"],
-         "action": action, "icon": vid, "hint": "Do " + vid}
+         "action": handler, "icon": vid, "hint": "Do " + vid}
     v.update(extra)
     return v
 
@@ -84,7 +84,7 @@ class Faults(unittest.TestCase):
         entry(A, "tint")["id"] = "anything"
         self.assertEqual(gen.faults(A), [])
 
-    def test_items_of_one_command_with_equal_args_and_one_action_pass(self):
+    def test_items_of_one_command_with_equal_args_and_one_handler_pass(self):
         A = atlas()
         entry(A, "tint")["fold"] = {"into": "paint", "args": {"shade": "blue"}}
         del entry(A, "tint")["section"]
@@ -105,11 +105,11 @@ class Faults(unittest.TestCase):
 
     # --- a fold ----------------------------------------------------------------------------------
 
-    def test_a_fold_on_an_entry_with_no_action(self):
+    def test_a_fold_on_an_entry_with_no_handler(self):
         A = atlas()
         del entry(A, "tint")["action"]
         entry(A, "tint")["fold"] = {"into": "paint", "args": {}}
-        self.assertFault(A, "tint", "fold needs an action")
+        self.assertFault(A, "tint", "fold needs a handler")
 
     def test_a_fold_on_an_entry_with_a_block(self):
         A = atlas()
@@ -170,7 +170,7 @@ class Faults(unittest.TestCase):
         entry(A, "paint")["args"] = {"shade": "green"}
         self.assertFault(A, "paint", "'green'")
 
-    def test_two_items_of_one_command_with_equal_args_and_different_actions(self):
+    def test_two_items_of_one_command_with_equal_args_and_different_handlers(self):
         A = atlas()
         entry(A, "tint")["fold"] = {"into": "paint", "args": {"shade": "blue"}}
         A["verbs"].append(item("wash", "btn:wash", fold={"into": "paint", "args": {"shade": "blue"}}))
@@ -188,15 +188,15 @@ class Faults(unittest.TestCase):
         entry(A, "tint")["fold"] = {"into": "paint", "args": {}}
         self.assertFault(A, "tint", "the args paint's own item takes")
 
-    def test_own_args_on_an_entry_with_no_action(self):
+    def test_own_args_on_an_entry_with_no_handler(self):
         A = atlas()
         A["verbs"].append({"id": "rinse", "name": "Rinse", "slot": None, "tool": block(), "args": {"shade": "red"}})
-        self.assertFault(A, "rinse", "own args need an action and a tool block")
+        self.assertFault(A, "rinse", "own args need a handler (action) and a tool block")
 
     def test_own_args_on_an_entry_with_no_block(self):
         A = atlas()
         entry(A, "tint")["args"] = {"shade": "red"}
-        self.assertFault(A, "tint", "own args need an action and a tool block")
+        self.assertFault(A, "tint", "own args need a handler (action) and a tool block")
 
     def test_empty_own_args(self):
         A = atlas()
@@ -248,7 +248,7 @@ class Faults(unittest.TestCase):
         entry(A, "paint")["feature_row"] = True
         self.assertEqual(gen.faults(A), [])
 
-    def test_feature_row_on_an_entry_with_no_action(self):
+    def test_feature_row_on_an_entry_with_no_handler(self):
         A = atlas()
         A["verbs"].append({"id": "rinse", "name": "Rinse", "section": "Solid", "slot": None, "tool": block(),
                            "feature_row": True})
@@ -263,10 +263,10 @@ class Faults(unittest.TestCase):
 
     # --- entries and blocks ----------------------------------------------------------------------
 
-    def test_an_entry_with_no_slot_no_action_and_no_block(self):
+    def test_an_entry_with_no_slot_no_handler_and_no_block(self):
         A = atlas()
         A["verbs"].append({"id": "nothing", "name": "Nothing", "slot": None})
-        self.assertFault(A, "nothing", "neither a menu item, an action nor a tool block")
+        self.assertFault(A, "nothing", "neither a menu item, a handler (action) nor a tool block")
 
     def test_a_closed_that_is_no_boolean(self):
         A = atlas()

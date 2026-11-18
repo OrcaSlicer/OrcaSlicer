@@ -4,13 +4,14 @@
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_additions_refusals.py
 
-preset_sync while signed out is refused, and so is filament_sync_ams, as its tile and with each mode, with no printer
-connected. view_set of a layer on a plate with no slice is refused, and leaves the legend's
-fold and the G-code window, given beside it, as they were. project_export of each object as its own STL, as its tile and with a folder,
-is refused for a project with no objects, and of the toolpaths as an OBJ while the Preview shows none; a pick of either
-tile from the Speed Dial (Space on the 3D view, the search field, a click on the tile) shows the refusal as a notice and
-opens no dialog. project_import of an entry a ZIP archive lacks is refused with the names the archive has, and imports
-nothing (the archive is written by tests/fixtures/filaments_and_files.py, in the configuration folder).
+preset_sync while signed out is refused, and so is filament_sync_ams, as its Speed Dial action and with each mode, with
+no printer connected. view_set of a layer on a plate with no slice is refused, and leaves the legend's fold and the
+G-code window, given beside it, as they were. project_export of each object as its own STL, as its Speed Dial action
+and with a folder, is refused for a project with no objects, and of the toolpaths as an OBJ while the Preview shows
+none; a pick of either action from the Speed Dial (Space on the 3D view, the search field, a click on its row) shows
+the refusal as a notice and opens no dialog. project_import of an entry a ZIP archive lacks is refused with the names
+the archive has, and imports nothing (the archive is written by tests/fixtures/filaments_and_files.py, in the
+configuration folder).
 
 On a cube with a modifier and two height ranges, settings_set of layer_height on the modifier, and settings_get of it,
 are refused naming where it is set (an object or a height range); settings_set of a null layer_height on a height range
@@ -87,7 +88,7 @@ def main():
         return len(client.call("app_state")["presets"]["filaments"])
 
     def dial_pick(title):
-        """Opens the Speed Dial on the shown 3D view and picks the tile titled `title`, as a person's click does."""
+        """Opens the Speed Dial on the shown 3D view and picks the action titled `title`, as a person's click does."""
         client.call("keyboard_press", keys="space", target=CANVAS)
         client.call("widget_set_value", target={"web": "Search actions"}, value=title, submit=False)
         return client.call("widget_click", target={"web": f"{title} from Orcaslicer", "kind": "button"})
@@ -124,7 +125,7 @@ def main():
 
     # ---- Exports of a project with no objects, and of toolpaths the Preview does not show ----
     check("the project has no objects", client.call("object_list").get("total") == 0)
-    refused("project_export of each object as an STL, as its tile, is refused for a project with no objects", "project_export",
+    refused("project_export of each object as an STL, as its action, is refused for a project with no objects", "project_export",
             {"format": "stl", "per_object": True}, "no objects", "no_objects")
     folder = tempfile.mkdtemp(prefix="per_object_")
     refused("project_export of each object as an STL into a folder is refused for a project with no objects", "project_export",

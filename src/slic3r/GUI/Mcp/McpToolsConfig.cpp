@@ -1011,8 +1011,8 @@ AppActionRunResult filament_delete_command(const json& args)
     return filament_reply(format_wxstr(_L("Deleted filament slot %1%."), deleted.value().filament_slot), std::move(reply));
 }
 
-// filament_sync_ams: with no arguments, as its tile, the sync dialog's run, which asks and warns; with mode, the sync
-// with that choice of the dialog, which opens nothing. Reply: each slot's preset and colour afterwards.
+// filament_sync_ams: with no arguments, as its Speed Dial action, the sync dialog's run, which asks and warns; with
+// mode, the sync with that choice of the dialog, which opens nothing. Reply: each slot's preset and colour afterwards.
 AppActionRunResult sync_ams_command(const json& args)
 {
     if (!args.contains("mode"))
@@ -3312,63 +3312,64 @@ void register_config_tools(CommandCatalog& catalog)
         [](const json& args, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return list_plates(args); })); }));
 
     // The plate commands made from menu items: each acts on the plate the call names, else on the current plate, as its item
-    // does, and its reply names the plate. A command named as its item is that item's tile, in the Speed Dial's section
+    // does, and its reply names the plate. A command named as its item is that item's action, in the Speed Dial's section
     // `section`.
-    const auto own_tile = [](NativeCommand command, std::string section, std::string icon) {
-        command.in_palette = true;
-        command.tile_group = std::move(section);
-        command.icon       = std::move(icon);
+    const auto own_action = [](NativeCommand command, std::string section, std::string icon) {
+        command.has_own_action = true;
+        command.action_group   = std::move(section);
+        command.icon           = std::move(icon);
         return command;
     };
     const std::string plates_after = "plates (each plate afterwards: index, name and objects, how many stand on it) and current "
                                      "(the current plate)";
-    catalog.add(own_tile(menu_command("plate_add", L("Add Plate"), "Add a plate.", object_schema({}), json(),
-                                     [](const json&) { return MenuItems::plate_add(); }),
-                         L("Plate"), "toolbar_add_plate"));
+    catalog.add(own_action(menu_command("plate_add", L("Add Plate"), "Add a plate.", object_schema({}), json(),
+                                       [](const json&) { return MenuItems::plate_add(); }),
+                           L("Plate"), "toolbar_add_plate"));
     catalog.add(reaching({"delete_plate"},
-                         own_tile(menu_command("plate_delete", L("Delete Plate"),
-                                              "Delete a plate (plate, else the current one), as Delete Plate does. The objects on it "
-                                              "stay in the project, outside the plates, and the plates after it move down one. The "
-                                              "only plate is refused. One undo step. Reply: plate (the index it had), " +
-                                                  plates_after + ".",
-                                              object_schema({{"plate", plate_prop}}), json(), plate_delete_command),
-                                  L("Plate"), "delete")));
+                         own_action(menu_command("plate_delete", L("Delete Plate"),
+                                                "Delete a plate (plate, else the current one), as Delete Plate does. The objects on it "
+                                                "stay in the project, outside the plates, and the plates after it move down one. The "
+                                                "only plate is refused. One undo step. Reply: plate (the index it had), " +
+                                                    plates_after + ".",
+                                                object_schema({{"plate", plate_prop}}), json(), plate_delete_command),
+                                    L("Plate"), "delete")));
     catalog.add(reaching({"duplicate_plate"},
-                         own_tile(menu_command("plate_duplicate", L("Duplicate Plate"),
-                                              "Add a plate with a copy of each object on the plate (plate, else the current one), "
-                                              "placed on it as on that plate, as Duplicate Current Plate does. The new "
-                                              "plate comes last, and the current plate stays current. Refused when the project "
-                                              "holds as many plates as it can, and while slicing. One undo step. Reply: plate (the "
-                                              "plate copied), new_plate (the new plate's index), " +
-                                                  plates_after + ".",
-                                              object_schema({{"plate", plate_prop}}), json(), plate_duplicate_command),
-                                  L("Plate"), "menu_copy")));
-    // The name dialog's name, which every call but the tile's gives.
-    NativeCommand rename = own_tile(menu_command("plate_rename", L("Rename Plate"),
-                                                "Name a plate (plate, else the current one), as its name icon does: a plate other "
-                                                "than the current one is made current first. name \"\" leaves it unnamed. With no "
-                                                "arguments, as its tile, the name dialog asks for the current plate's name "
-                                                "(blocked_by_dialog), and a cancelled dialog renames nothing, which the call is "
-                                                "told. The name is one undo step; the name the plate has already changes nothing, "
-                                                "the current plate included. Reply: plate and name.",
-                                                object_schema({{"plate", plate_prop},
-                                                               {"name", prop("string", "The plate's name, in place of the name dialog.")}},
-                                                              {"name"}),
-                                                json(), plate_rename_command),
-                                    L("Plate"), "plate_name_edit");
+                         own_action(menu_command("plate_duplicate", L("Duplicate Plate"),
+                                                "Add a plate with a copy of each object on the plate (plate, else the current one), "
+                                                "placed on it as on that plate, as Duplicate Current Plate does. The new "
+                                                "plate comes last, and the current plate stays current. Refused when the project "
+                                                "holds as many plates as it can, and while slicing. One undo step. Reply: plate (the "
+                                                "plate copied), new_plate (the new plate's index), " +
+                                                    plates_after + ".",
+                                                object_schema({{"plate", plate_prop}}), json(), plate_duplicate_command),
+                                    L("Plate"), "menu_copy")));
+    // The name dialog's name, which every call but the action's gives.
+    NativeCommand rename = own_action(menu_command("plate_rename", L("Rename Plate"),
+                                                  "Name a plate (plate, else the current one), as its name icon does: a plate other "
+                                                  "than the current one is made current first. name \"\" leaves it unnamed. With no "
+                                                  "arguments, as its Speed Dial action, the name dialog asks for the current plate's "
+                                                  "name (blocked_by_dialog), and a cancelled dialog renames nothing, which the call "
+                                                  "is told. The name is one undo step; the name the plate has already changes "
+                                                  "nothing, the current plate included. Reply: plate and name.",
+                                                  object_schema({{"plate", plate_prop},
+                                                                 {"name", prop("string", "The plate's name, in place of "
+                                                                                         "the name dialog.")}},
+                                                                {"name"}),
+                                                  json(), plate_rename_command),
+                                      L("Plate"), "plate_name_edit");
     rename.input_schema = with_silent(std::move(rename.input_schema), person_forms(rename));
     catalog.add(reaching({"rename_plate", "select_plate"}, std::move(rename)));
     catalog.add(reaching(
         {"set_plate_locked"},
         menu_command("plate_lock", L("Toggle Plate Lock"),
                     "Lock or unlock a plate (plate, else the current one), as its lock icon does: locked true locks it and false "
-                    "unlocks it; without locked it toggles, as its tile does. An arrange of every plate leaves a locked one as "
-                    "it is. One undo step, none when the plate is in that state already. Reply: plate, locked, and changed "
-                    "(false when it was so already).",
+                    "unlocks it; without locked it toggles, as its Speed Dial action does. An arrange of every plate leaves a "
+                    "locked one as it is. One undo step, none when the plate is in that state already. Reply: plate, locked, and "
+                    "changed (false when it was so already).",
                     object_schema({{"plate", plate_prop},
                                    {"locked", prop("boolean", "true locks the plate, false unlocks it. Default: the other state.")}}),
-                    json::array({NativeCommands::tile("plate_toggle_lock", L("Toggle Plate Lock"), L("Plate"), "lock_normal", json::object(),
-                                                      "Lock or unlock the current plate.")}),
+                    json::array({NativeCommands::action("plate_toggle_lock", L("Toggle Plate Lock"), L("Plate"), "lock_normal",
+                                                        json::object(), "Lock or unlock the current plate.")}),
                     plate_lock_command)));
     catalog.add(reaching(
         {"select_plate"},
@@ -3376,12 +3377,12 @@ void register_config_tools(CommandCatalog& catalog)
                     "Make a plate the current one, as a click on it does: plate; without it, the current plate stays current. "
                     "An index the project lacks is an error. Reply: plate.",
                     object_schema({{"plate", plate_prop}}),
-                    json::array({NativeCommands::tile("plate_goto", L("Go to Plate"), L("Plate"), "go_next_plate", {{"plate", 0}},
-                                                      "Make the first plate the current one.")}),
+                    json::array({NativeCommands::action("plate_goto", L("Go to Plate"), L("Plate"), "go_next_plate", {{"plate", 0}},
+                                                        "Make the first plate the current one.")}),
                     plate_select_command)));
 
     // ---- The presets and settings commands made from menu items ----
-    using NativeCommands::tile;
+    using NativeCommands::action;
     const std::string preset_file = "a preset .json, a .zip of them, an .orca_printer, .orca_filament or .orca_bundle, or a .gcode";
     const std::string imported    = "and the message names the presets imported, replaced and kept; a .gcode loads the settings it was "
                                     "sliced with.";
@@ -3393,9 +3394,9 @@ void register_config_tools(CommandCatalog& catalog)
                     object_schema({{"path", MenuItems::input_file(preset_file.c_str())},
                                    {"on_conflict", enum_prop({"skip", "overwrite"}, "What happens to a preset that exists already. Default skip.")}},
                                   {"path"}),
-                    json::array({tile("import_configs", L("Import Configs"), L("Import"), "menu_open", json::object(),
-                                      "Import presets from the file a dialog asks for. preset_import with a path imports " + preset_file +
-                                          " without a dialog, " + imported)}),
+                    json::array({action("import_configs", L("Import Configs"), L("Import"), "menu_open", json::object(),
+                                        "Import presets from the file a dialog asks for. preset_import with a path imports " + preset_file +
+                                            " without a dialog, " + imported)}),
                     [](const json& args) { return MenuItems::import_configs(args); }));
     import_configs.input_schema = with_silent(std::move(import_configs.input_schema), person_forms(import_configs));
     catalog.add(std::move(import_configs));
@@ -3409,16 +3410,16 @@ void register_config_tools(CommandCatalog& catalog)
         export_dialog + " Every call opens the dialog (blocked_by_dialog). With path, OK writes into that folder instead of "
                         "asking for one, and a cancelled dialog is an error: nothing was exported.",
         object_schema({{"path", prop("string", "Absolute path of an existing folder, which the dialog's OK writes into.")}}),
-        json::array({tile("export_config", L("Export Preset Bundle"), L("Export"), "save", json::object(),
-                          export_dialog + " preset_export with a folder as path has OK write there instead of asking for one.")}),
+        json::array({action("export_config", L("Export Preset Bundle"), L("Export"), "save", json::object(),
+                            export_dialog + " preset_export with a folder as path has OK write there instead of asking for one.")}),
         [](const json& args) { return MenuItems::export_config(args); }));
 
     const std::string sync = "Synchronize user presets with the cloud account.";
     NativeCommand preset_sync = reaching({"sync_presets"},
                                          menu_command("preset_sync", L("Sync Presets"), sync + " Refused while no account is signed in.",
                                                      object_schema({}),
-                                                     json::array({tile("sync_presets", L("Sync Presets"), L("Presets"), "printer_sync_ok",
-                                                                       json::object(), sync)}),
+                                                     json::array({action("sync_presets", L("Sync Presets"), L("Presets"), "printer_sync_ok",
+                                                                         json::object(), sync)}),
                                                      preset_sync_command));
     // It reaches the cloud account.
     preset_sync.open_world = true;
@@ -3426,8 +3427,8 @@ void register_config_tools(CommandCatalog& catalog)
 
     const std::string migrate = "Migrate legacy user filament presets.";
     catalog.add(menu_command("preset_migrate_filaments", L("Migrate Filament Presets"), migrate, object_schema({}),
-                            json::array({tile("help_migrate_filament_presets", L("Migrate Filament Presets"), L("Help"), "",
-                                              json::object(), migrate)}),
+                            json::array({action("help_migrate_filament_presets", L("Migrate Filament Presets"), L("Help"), "",
+                                                json::object(), migrate)}),
                             [](const json&) { return MenuItems::migrate_filament_presets(); }));
 
     // The Mode menu items; titles are L("...")-marked here so xgettext extracts them.
@@ -3441,20 +3442,20 @@ void register_config_tools(CommandCatalog& catalog)
     static const ModeMenuItem mode_menu_items[] = {{"mode_simple", L("Mode: Simple"), "simple", "Simple"},
                                         {"mode_advanced", L("Mode: Advanced"), "advanced", "Advanced"},
                                         {"mode_expert", L("Mode: Expert"), "expert", "Expert"}};
-    json mode_tiles = json::array();
+    json mode_actions = json::array();
     for (const ModeMenuItem& item : mode_menu_items)
-        mode_tiles.push_back(tile(item.key, item.title, L("Mode"), "advanced", {{"mode", item.mode}},
-                                  std::string("Switch the settings view to ") + item.name + " mode."));
+        mode_actions.push_back(action(item.key, item.title, L("Mode"), "advanced", {{"mode", item.mode}},
+                                      std::string("Switch the settings view to ") + item.name + " mode."));
     catalog.add(menu_command("settings_set_mode", L("Set the settings mode"),
                             "Switch the settings view to Simple, Advanced or Expert mode, which decides which settings the settings "
                             "pages show.",
                             object_schema({{"mode", enum_prop({"simple", "advanced", "expert"}, "The mode.")}}, {"mode"}),
-                            std::move(mode_tiles), [](const json& args) { return MenuItems::set_mode(arg_string(args, "mode")); }));
+                            std::move(mode_actions), [](const json& args) { return MenuItems::set_mode(arg_string(args, "mode")); }));
 
     const std::string developer = "Turn Developer mode on or off.";
     NativeCommand developer_mode = menu_command("settings_toggle_developer_mode", L("Toggle Developer Mode"), developer, object_schema({}),
-                                               json::array({tile("toggle_developer_mode", L("Toggle Developer Mode"), L("Mode"),
-                                                                 "advanced", json::object(), developer)}),
+                                               json::array({action("toggle_developer_mode", L("Toggle Developer Mode"), L("Mode"),
+                                                                   "advanced", json::object(), developer)}),
                                                [](const json&) { return MenuItems::toggle_developer_mode(); });
     // A menu item with no argument form: tool_search finds it and tool_call runs it, the tool list does not show it.
     developer_mode.listed = false;
@@ -3465,34 +3466,34 @@ void register_config_tools(CommandCatalog& catalog)
     // Dial's section Filament.
     const std::string slot_buttons = "Refused for a printer that has one filament per extruder, which shows no + and - buttons.";
     catalog.add(reaching({"add_filament_slot"},
-                         own_tile(menu_command("filament_add", L("Add Filament Slot"),
-                                              "Add a filament slot, as the + button above the filament list does. It takes the next "
-                                              "colour and the last slot's preset (change them with preset_select filament_slot and "
-                                              "project_set_settings filament_colour). It goes after the physical slots: mixed "
-                                              "filaments move up by one, and objects on them follow. " +
-                                                  slot_buttons + " Reply: filament_slot (the new slot) and filament_slots (how many the "
-                                                                 "project has).",
-                                              object_schema({}), json(), filament_add_command),
-                                  L("Filament"), "add_filament")));
+                         own_action(menu_command("filament_add", L("Add Filament Slot"),
+                                                "Add a filament slot, as the + button above the filament list does. It takes the next "
+                                                "colour and the last slot's preset (change them with preset_select filament_slot and "
+                                                "project_set_settings filament_colour). It goes after the physical slots: mixed "
+                                                "filaments move up by one, and objects on them follow. " +
+                                                    slot_buttons + " Reply: filament_slot (the new slot) and filament_slots (how many the "
+                                                                   "project has).",
+                                                object_schema({}), json(), filament_add_command),
+                                    L("Filament"), "add_filament")));
     catalog.add(reaching(
         {"delete_filament_slot"},
-        own_tile(menu_command("filament_delete", L("Delete Filament Slot"),
-                             "Delete a filament slot, as its Delete menu item does, the objects on it taking the first filament; "
-                             "with merge_into, as its Merge with item does, the objects on it taking that slot. The slots after "
-                             "it move down by one. The only physical slot and a mixed filament (project_get_settings "
-                             "filament_is_mixed) are refused, and so is a merge into a mixed filament that mixes the slot. " +
-                                 slot_buttons + " Not in the undo history. Reply: filament_slot (the slot deleted), merged_into "
-                                                "(the slot its objects went to, as numbered afterwards) and filament_slots.",
-                             object_schema({{"filament_slot", {{"type", "integer"},
-                                                               {"minimum", 1},
-                                                               {"description", "The 1-based filament slot. Default: the last "
-                                                                               "physical slot, as the - button."}}},
-                                            {"merge_into", {{"type", "integer"},
-                                                            {"minimum", 1},
-                                                            {"description", "The 1-based slot the objects on it go to, as Merge "
-                                                                            "with does. Default: they take the first filament."}}}}),
-                             json(), filament_delete_command),
-                 L("Filament"), "delete_filament")));
+        own_action(menu_command("filament_delete", L("Delete Filament Slot"),
+                               "Delete a filament slot, as its Delete menu item does, the objects on it taking the first filament; "
+                               "with merge_into, as its Merge with item does, the objects on it taking that slot. The slots after "
+                               "it move down by one. The only physical slot and a mixed filament (project_get_settings "
+                               "filament_is_mixed) are refused, and so is a merge into a mixed filament that mixes the slot. " +
+                                   slot_buttons + " Not in the undo history. Reply: filament_slot (the slot deleted), merged_into "
+                                                  "(the slot its objects went to, as numbered afterwards) and filament_slots.",
+                               object_schema({{"filament_slot", {{"type", "integer"},
+                                                                 {"minimum", 1},
+                                                                 {"description", "The 1-based filament slot. Default: the last "
+                                                                                 "physical slot, as the - button."}}},
+                                              {"merge_into", {{"type", "integer"},
+                                                              {"minimum", 1},
+                                                              {"description", "The 1-based slot the objects on it go to, as Merge "
+                                                                              "with does. Default: they take the first filament."}}}}),
+                               json(), filament_delete_command),
+                   L("Filament"), "delete_filament")));
 
     NativeCommand mixed = reaching(
         {"add_mixed_filament"},
@@ -3541,13 +3542,13 @@ void register_config_tools(CommandCatalog& catalog)
                     ams + " With mode, as the sync dialog's Synchronize now does with that choice, without the dialog: map maps "
                           "each of the project's filaments to a slot, as the dialog's Mapping first does, which takes a project "
                           "with objects; overwrite replaces the filament list with the slots' filaments. Called with no arguments, "
-                          "as its tile, it opens the sync dialog where the project has objects (blocked_by_dialog), and a warning "
-                          "where it cannot sync. With no printer connected, no AMS or no filament it is refused, saying so. Not in "
-                          "the undo history. Reply: mode, filaments (each slot's preset and colour afterwards) and "
+                          "as its Speed Dial action, it opens the sync dialog where the project has objects (blocked_by_dialog), and "
+                          "a warning where it cannot sync. With no printer connected, no AMS or no filament it is refused, saying so. "
+                          "Not in the undo history. Reply: mode, filaments (each slot's preset and colour afterwards) and "
                           "mapped_to_generic (slots whose filament is unknown, mapped to a generic preset).",
                     object_schema({{"mode", enum_prop({"map", "overwrite"}, "The sync dialog's choice: map or overwrite.")}}),
-                    json::array({tile("sync_ams", L("Synchronize Filament List from AMS"), L("Printer"), "ams_fila_sync", json::object(),
-                                      ams)}),
+                    json::array({action("sync_ams", L("Synchronize Filament List from AMS"), L("Printer"), "ams_fila_sync", json::object(),
+                                        ams)}),
                     sync_ams_command));
     // It reads the connected printer's AMS.
     sync_ams.open_world = true;
@@ -3561,8 +3562,8 @@ void register_config_tools(CommandCatalog& catalog)
         "print host, or one that prints through the Bambu network or printer agents.";
     NativeCommand printer_send = reaching({"send_gcode_to_host"},
                                           menu_command("printer_send", L("Send G-code to printer host"), send, object_schema({}),
-                                                      json::array({tile("send_gcode", L("Send G-code to printer host"),
-                                                                        L("Slice & Export"), "printer", json::object(), send)}),
+                                                      json::array({action("send_gcode", L("Send G-code to printer host"),
+                                                                          L("Slice & Export"), "printer", json::object(), send)}),
                                                       [](const json&) { return MenuItems::send_gcode(); }));
     // It uploads to the printer's print host.
     printer_send.open_world = true;

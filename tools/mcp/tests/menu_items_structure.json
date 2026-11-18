@@ -1,6 +1,6 @@
 // The object structure commands made from menu items, called by index: object_split into objects and into parts,
 // object_assemble, part_change_type and object_order name what they made or renumbered in their replies, which
-// object_list reads back; the Split to Objects tile splits the selected object. Run it with
+// object_list reads back; the Split to Objects action splits the selected object. Run it with
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/menu_items_structure.json --out <dir>
 {
   "orca_replay_version": "0.2.0",
@@ -46,13 +46,13 @@
      "expect": {"/descending": {"eq": false}, "/order/3/plate": {"eq": 0}, "/order/4": {"exists": false}}},
     {"tool": "object_list", "expect": {"/plates/0/objects/2/bbox/size/2": {"ge": 9.99, "le": 10.01},
                                        "/plates/0/objects/3/bbox/size/2": {"ge": 29.99, "le": 30.01}}},
-    // the same call again keeps the order: only the tile's call reverses it
+    // the same call again keeps the order: only the action's call reverses it
     {"tool": "object_order", "args": {"by": "height", "plate": 0}, "expect": {"/descending": {"eq": false}}},
     {"tool": "object_order", "args": {"by": "height", "descending": true}, "expect": {"/descending": {"eq": true}}},
     {"tool": "object_list", "expect": {"/plates/0/objects/0/bbox/size/2": {"ge": 29.99, "le": 30.01},
                                        "/plates/0/objects/1/bbox/size/2": {"ge": 9.99, "le": 10.01}}},
 
-    // ---- The Split to Objects tile on the selected object of two shells ----
+    // ---- The Split to Objects action on the selected object of two shells ----
     {"tool": "project_import", "args": {"paths": ["${vars.two_shells}"]}, "expect": {"/added": {"eq": 1}}},
     {"tool": "object_select", "args": {"objects": [4]}},
     {"tool": "action_run", "args": {"id": "orca_command:obj_split_objects:orca"},

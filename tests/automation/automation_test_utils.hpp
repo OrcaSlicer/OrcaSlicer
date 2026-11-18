@@ -26,11 +26,11 @@
 // core with a type of the GUI library.
 namespace Slic3r { namespace GUI { namespace Mcp { namespace Test {
 
-inline NativeCommand command(std::string key, bool in_palette = false)
+inline NativeCommand command(std::string key, bool has_own_action = false)
 {
     NativeCommand c;
-    c.key        = std::move(key);
-    c.in_palette = in_palette;
+    c.key            = std::move(key);
+    c.has_own_action = has_own_action;
     return c;
 }
 

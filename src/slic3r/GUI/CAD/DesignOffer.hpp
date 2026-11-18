@@ -5,13 +5,13 @@
 // has ONE row index, that index is the same in every selection it appears in, and verbs that do
 // not apply are shown disabled in place with their reason rather than removed. Row order was
 // ratified 2026-07-31; changing an index is a breaking change to every user's muscle memory.
-// An entry with an action or a tool block, and no fold_into, is a command of the catalog's group Design
+// An entry with a handler or a tool block, and no fold_into, is a command of the catalog's group Design
 // (Mcp::register_cad_commands(), Mcp::is_design_command()), under its section in tool_search's index. A
 // call whose arguments are exactly those that choose one of its items opens that item's tool for a person
-// (Mcp::opened_item()): none choose the entry's own item where it has an action, else the items folded into it
+// (Mcp::opened_item()): none choose the entry's own item where it has a handler, else the items folded into it
 // with {}; a folded item's args, or the entry's own, choose that item. Any other call runs its tool block's
 // silent form. A folded item (fold_into) is no command: it is a way of calling the command it names. An item
-// with neither an action nor a tool block is greyed, and no command. An entry with no menu item is a command only.
+// with neither a handler nor a tool block is greyed, and no command. An entry with no menu item is a command only.
 #ifndef slic3r_GUI_DesignOffer_hpp_
 #define slic3r_GUI_DesignOffer_hpp_
 
@@ -88,7 +88,7 @@ static const char* const kDesignSelectionIds[] = {
 // of a tool, which only a rebuild refuses, as the Design tab's keys and menu do.
 enum class CadAccess { None, Read, Change, Sketch, Ui };
 
-// One entry of the table. `action` routes to the code that already implements the verb:
+// One entry of the table. Its handler (`action`) routes to the code that already implements the verb:
 //   "key:S+E"        -> m_keys_feature[SHIFT('E')]
 //   "key:L"          -> m_keys_sketch['L']
 //   "fly:material#4" -> row 4 of the "material" feature flyout
@@ -114,7 +114,7 @@ struct DesignTool {
     const char* family;
     const char* icon;         // resources/images name, or nullptr — the offer draws it beside the item
     const char* hint;         // what the verb does / what to click; shown on hover
-    bool        modal;        // its action opens a dialog that waits for an answer: a modal one, which holds
+    bool        modal;        // its handler opens a dialog that waits for an answer: a modal one, which holds
                               // the call until it is answered, or Text's, which is modeless and does not
     CadAccess   access;       // its silent form's, None without one
     bool        ok_false;     // its silent form reports a rejected rebuild in its reply (ok false)
@@ -124,12 +124,12 @@ struct DesignTool {
     const char* doc;
     const char* fold_into;    // the id of the command this item is a variant of, or nullptr
     // The arguments that choose this item, as JSON text: a folded item's, or those that choose the own item of
-    // an entry with an action and a tool block as a call with none does; nullptr for none.
+    // an entry with a handler and a tool block as a call with none does; nullptr for none.
     const char* args;
     // The heading its command is listed under in tool_search's index (kDesignSections,
     // Mcp::design_command_index()); nullptr for an entry that is no command.
     const char* section;
-    // Its action acts on the selected row of the Feature list, which a call of its command, not a person's
+    // Its handler acts on the selected row of the Feature list, which a call of its command, not a person's
     // pick, takes as what the item is for while nothing is picked in the view (Mcp::open_refusal()).
     bool        feature_row;
 };

@@ -139,10 +139,10 @@ NativeCommand reaching(std::vector<std::string> operations, NativeCommand comman
 NativeCommand mutate_tool(std::string name, std::string title, std::string description, nlohmann::json schema, CommandFn handler,
                           bool destructive = false);
 // A command made from menu items (NativeCommandMenuItems.hpp): NativeCommands::ui_command(), listed, with `description` and
-// the items as its `tiles`. `fn` does what the menu item a call's variant argument names does, as a person's pick of that item
+// the items as its `actions`. `fn` does what the menu item a call's variant argument names does, as a person's pick of that item
 // does: on the targets the call names (McpTargets.hpp) where the command takes them, else on what is selected. A menu item
 // with no argument form is no command of the tool list: its declaration sets listed false.
-NativeCommand menu_command(std::string name, std::string title, std::string description, nlohmann::json schema, nlohmann::json tiles,
+NativeCommand menu_command(std::string name, std::string title, std::string description, nlohmann::json schema, nlohmann::json actions,
                           std::function<AppActionRunResult(const nlohmann::json& args)> fn);
 // What a command made from menu items replies to a call, which a pick does not show: `reply`.
 AppActionRunResult menu_reply(const nlohmann::json& reply);
@@ -205,24 +205,24 @@ nlohmann::json search_commands(const CommandCatalog& catalog, const nlohmann::js
 // The Speed Dial actions of `listed` (ActionRegistry::describe()'s items: id, title, group, description)
 // that `words` (of query_words()) describe, best first: those matching more of the words, then those
 // matching more of them in what the action is called (the name inside its id, its title and its group),
-// then the shorter name, which is the plainer tile (obj_delete before obj_delete_all). action_search
+// then the shorter name, which is the plainer action (obj_delete before obj_delete_all). action_search
 // and tool_search both rank with it, so one query finds the same actions through either.
 nlohmann::json rank_actions(const nlohmann::json& listed, const std::vector<std::string>& words);
 
-// Why action_run refuses `args` for `action`, or empty when it does not: a tile that collects a value (input) takes
-// exactly that value, a command's own tile takes its command's arguments, which the command checks, an item of a
-// command's tiles (a folded item's, with a preset) takes none or exactly its preset, and every other action (a
+// Why action_run refuses `args` for `action`, or empty when it does not: an action that collects a value (input) takes
+// exactly that value, a command's own action takes its command's arguments, which the command checks, an item of a
+// command's actions (a folded item's, with a preset) takes none or exactly its preset, and every other action (a
 // plugin's script or page, a plate's, a setting's or a recent project's) takes none.
 std::string action_args_error(const AppAction& action, const nlohmann::json& args);
-// The arguments action_run's journal step keeps for a command's tile of fixed arguments (AppAction::preset), run with
-// `args`, which action_run accepted: what it takes for that tile, the tile's own arguments, or for a tile that collects
-// a value, `args` (that value alone). Null for an action without a preset, a Design command's own tile among them,
-// which takes its command's arguments and keeps the command's rewrite of them (Mcp::TileContext).
-nlohmann::json tile_journal_args(const AppAction& action, const nlohmann::json& args);
+// The arguments action_run's journal step keeps for a command's action of fixed arguments (AppAction::preset), run with
+// `args`, which action_run accepted: what it takes for that action, the action's own arguments, or for an action that
+// collects a value, `args` (that value alone). Null for an action without a preset, a Design command's own action among
+// them, which takes its command's arguments and keeps the command's rewrite of them (Mcp::ActionContext).
+nlohmann::json action_journal_args(const AppAction& action, const nlohmann::json& args);
 
 // What action_run answers for `id`, an action id or the name inside one, that no action of the app's state has:
-// for a Design tab tile's, when that tile is there and the tool_call that runs it from any tab (its command, with
-// the item's arguments for a folded item's tile), or, when `catalog` leaves the tile's command out
+// for a Design tab action's, when that action is there and the tool_call that runs it from any tab (its command, with
+// the item's arguments for a folded item's action), or, when `catalog` leaves the action's command out
 // (CommandCatalog::leave_out()), why; for any other, where an action or a command is found.
 std::string unknown_action(const std::string& id, const CommandCatalog& catalog);
 

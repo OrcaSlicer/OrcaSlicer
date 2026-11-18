@@ -88,12 +88,12 @@ NativeCommand mutate_tool(std::string name, std::string title, std::string descr
     return d;
 }
 
-NativeCommand menu_command(std::string name, std::string title, std::string description, json schema, json tiles,
+NativeCommand menu_command(std::string name, std::string title, std::string description, json schema, json actions,
                           std::function<AppActionRunResult(const json& args)> fn)
 {
     NativeCommand d = NativeCommands::ui_command(std::move(name), std::move(title), {}, std::move(schema), std::move(fn));
     d.description   = std::move(description);
-    d.tiles         = std::move(tiles);
+    d.actions       = std::move(actions);
     d.listed        = true;
     return d;
 }

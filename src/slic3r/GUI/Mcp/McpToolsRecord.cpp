@@ -109,7 +109,7 @@ ToolResult start_encode(AutomationRuntime& runtime, const json& args)
 
 void register_record_tools(CommandCatalog& catalog)
 {
-    // The Speed Dial's Start Recording is its tile: with no arguments it opens the tile's dialog.
+    // The Speed Dial's Start Recording is its action: with no arguments it opens the action's dialog.
     NativeCommand start = record_tool(
         "recording_start", L("Start Recording"),
         "Record a video of OrcaSlicer until recording_stop: the main window with any modal dialog on it (target main), or "
@@ -225,14 +225,14 @@ void register_record_tools(CommandCatalog& catalog)
             ctx.set_journal_args(std::move(recorded));
             return ToolResult::ok(out);
         });
-    start.tiles = json::array({NativeCommands::tile("start_recording", L("Start Recording"), L("Commands"), "recording_start",
-                                                    json::object(),
-                                                    "Runs recording_start with no arguments, as Start Recording does: the Start "
-                                                    "Recording dialog, whose Start recording starts the person's recording, "
-                                                    "which neither the end of a replay or script nor the server turning off ends.")});
+    start.actions = json::array({NativeCommands::action("start_recording", L("Start Recording"), L("Commands"), "recording_start",
+                                                        json::object(),
+                                                        "Runs recording_start with no arguments, as Start Recording does: the Start "
+                                                        "Recording dialog, whose Start recording starts the person's recording, "
+                                                        "which neither the end of a replay or script nor the server turning off ends.")});
     catalog.add(NativeCommands::with_person_form(std::move(start), [](const json&) { return NativeCommands::start_person_recording(); }));
 
-    // The Speed Dial's Stop Recording is its tile: with no arguments it stops as the tile does.
+    // The Speed Dial's Stop Recording is its action: with no arguments it stops as the action does.
     NativeCommand stop = record_tool("recording_stop", L("Stop Recording"),
                         "Stop the running recording. Call it with silent: true for the report: it waits for the file and "
                         "returns it with its seconds, frames captured and "
@@ -267,11 +267,11 @@ void register_record_tools(CommandCatalog& catalog)
                             }
                             return ToolResult::ok(report);
                         });
-    stop.tiles = json::array({NativeCommands::tile("stop_recording", L("Stop Recording"), L("Commands"), "recording_stop",
-                                                   json::object(),
-                                                   "Runs recording_stop with no arguments, as Stop Recording does: it stops the "
-                                                   "recording, whoever started it, and shows the person a notification naming its "
-                                                   "file.")});
+    stop.actions = json::array({NativeCommands::action("stop_recording", L("Stop Recording"), L("Commands"), "recording_stop",
+                                                       json::object(),
+                                                       "Runs recording_stop with no arguments, as Stop Recording does: it stops the "
+                                                       "recording, whoever started it, and shows the person a notification naming its "
+                                                       "file.")});
     // The person's stop opens nothing: like the silent one, it stops a recording behind a dialog.
     stop = NativeCommands::with_person_form(std::move(stop), [](const json&) { return NativeCommands::stop_recording_in_app(); },
                                             /*person_form_behind_dialogs=*/true);

@@ -30,15 +30,15 @@ namespace {
 std::size_t serialized_size(const json& args) { return args.dump(-1, ' ', false, json::error_handler_t::replace).size(); }
 
 // The name a journaled call of `tool` with `args` runs under, and the arguments it runs with: the call's own, or, for
-// action_run of a command's tile, by its full id or the key inside it, that key and the arguments inside the tile's
-// {id, args}. A command's own tile is under its command's key, so a Design command's tile is rewritten as its command
-// is; a tile of a menu item folded into a command is under a key of its own, and its call's arguments, none, the tile's own
-// or the value it collects, hold no path to rewrite.
+// action_run of a command's action, by its full id or the key inside it, that key and the arguments inside the action's
+// {id, args}. A command's own action is under its command's key, so a Design command's action is rewritten as its
+// command is; the action of a menu item folded into a command is under a key of its own, and its call's arguments, none,
+// the action's own or the value it collects, hold no path to rewrite.
 std::pair<std::string, json*> called_command(const std::string& tool, json& args)
 {
     if (tool != "action_run" || !args.is_object() || !args.value("id", json()).is_string() || !args.value("args", json()).is_object())
         return {tool, &args};
-    const std::string key = command_tile_key(args["id"].get<std::string>());
+    const std::string key = command_action_key(args["id"].get<std::string>());
     if (key.empty())
         return {tool, &args};
     return {key, &args["args"]};
@@ -224,8 +224,8 @@ nlohmann::json Journal::to_replay(const std::string& name, nlohmann::json* left_
                 continue; // waits on a job the journal did not see start
             step["args"]["job"] = "${jobs." + it->second + "}";
         }
-        // The name the step runs under and its arguments: action_run of a command's tile runs as the tile's key, with
-        // the arguments inside the tile's {id, args}, which the step keeps, so that its replay runs the tile again.
+        // The name the step runs under and its arguments: action_run of a command's action runs as the action's key, with
+        // the arguments inside the action's {id, args}, which the step keeps, so that its replay runs the action again.
         const auto [tool, called_args] = called_command(e.tool, step["args"]);
         nlohmann::json& args           = *called_args;
         auto in_out_dir = [&](const char* key) {

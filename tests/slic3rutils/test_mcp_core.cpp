@@ -15,7 +15,7 @@
 #include <string>
 #include <utility>
 
-// The dispatch core's cases that name a type of the GUI library: the automation runtime and a tile's
+// The dispatch core's cases that name a type of the GUI library: the automation runtime and an action's
 // context. The others are in tests/automation/test_mcp_core.cpp.
 
 using namespace Slic3r::GUI;
@@ -62,17 +62,17 @@ TEST_CASE("a context with no runtime refuses", "[Mcp]")
     CHECK_FALSE(acted.data.contains("status"));
 }
 
-TEST_CASE("a tile's journal update stays inside action_run's envelope", "[Mcp]")
+TEST_CASE("an action's journal update stays inside action_run's envelope", "[Mcp]")
 {
     Harness h;
     h.registry.add(tool("action_run", GuardClass::Mutate, [](const json&, ToolContext& ctx) {
-        // The command's function, as action_run runs a tile with it.
+        // The command's function, as action_run runs an action with it.
         const auto command = [](const json&, ToolContext& own) {
             own.set_journal_args({{"a", 1}});
             return ToolResult::ok();
         };
-        TileContext tile(ctx, "orca_command:k:orca");
-        return command(json::object(), tile);
+        ActionContext action(ctx, "orca_command:k:orca");
+        return command(json::object(), action);
     }));
     h.start();
     const ToolResult ran = h.call("action_run", {{"id", "k"}});
@@ -84,27 +84,27 @@ TEST_CASE("a tile's journal update stays inside action_run's envelope", "[Mcp]")
     CHECK(steps[0]["args"] == json{{"id", "orca_command:k:orca"}, {"args", {{"a", 1}}}});
 }
 
-TEST_CASE("a tile of fixed arguments is journaled with the arguments action_run takes for it", "[Mcp]")
+TEST_CASE("an action of fixed arguments is journaled with the arguments action_run takes for it", "[Mcp]")
 {
-    // What action_run takes for the tile: a folded item's own arguments, none for a command's own tile outside the
-    // Design tab, or the value a tile with an input collects.
-    const json tile_args = GENERATE(json{{"type", "circular"}}, json::object(), json{{"percent", 50}});
+    // What action_run takes for the action: a folded item's own arguments, none for a command's own action outside the
+    // Design tab, or the value an action with an input collects.
+    const json action_args = GENERATE(json{{"type", "circular"}}, json::object(), json{{"percent", 50}});
     Harness    h;
-    h.registry.add(tool("action_run", GuardClass::Mutate, [tile_args](const json&, ToolContext& ctx) {
+    h.registry.add(tool("action_run", GuardClass::Mutate, [action_args](const json&, ToolContext& ctx) {
         // The command's function records what it ran with, as object_arrange records the settings in force and a
         // Design command its arguments with their refs as locators.
         const auto command = [](const json&, ToolContext& own) {
             own.set_journal_args({{"type", "circular"}, {"spacing", 6}});
             return ToolResult::ok();
         };
-        TileContext tile(ctx, "orca_command:k:orca", tile_args);
-        return command(json::object(), tile);
+        ActionContext action(ctx, "orca_command:k:orca", action_args);
+        return command(json::object(), action);
     }));
     h.start();
     REQUIRE_FALSE(h.call("action_run", {{"id", "k"}}).is_error);
     const json steps = h.journal.to_replay("s")["steps"];
     REQUIRE(steps.size() == 1);
     CHECK(steps[0]["tool"] == "action_run");
-    // action_run refuses any other arguments for such a tile, so the step holds the tile's, which its replay runs.
-    CHECK(steps[0]["args"] == json{{"id", "orca_command:k:orca"}, {"args", tile_args}});
+    // action_run refuses any other arguments for such an action, so the step holds the action's, which its replay runs.
+    CHECK(steps[0]["args"] == json{{"id", "orca_command:k:orca"}, {"args", action_args}});
 }

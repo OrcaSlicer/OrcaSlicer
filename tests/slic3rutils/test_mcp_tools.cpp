@@ -135,9 +135,9 @@ TEST_CASE("a search matches query words at the start of a text's words, CamelCas
     CHECK(match_score(query_words("retract"), "retraction_length", "") == std::pair<int, int>{1, 1});
 }
 
-TEST_CASE("an action search ranks by the query's words and puts the plainer tile first", "[Mcp]")
+TEST_CASE("an action search ranks by the query's words and puts the plainer action first", "[Mcp]")
 {
-    // Four of the Speed Dial's tiles as it lists them.
+    // Four of the Speed Dial's actions as it lists them.
     const json listed = json::array({
         {{"id", "orca_command:obj_delete_all:orca"}, {"title", "Delete All Objects"}, {"group", "Object"},
          {"description", "Delete all objects."}},
@@ -154,8 +154,8 @@ TEST_CASE("an action search ranks by the query's words and puts the plainer tile
         return out;
     };
 
-    // No entry holds "delete object" as one text. Two are the Object group's deletes, which the palette
-    // names by group and title, and the shorter name, the plainer tile, leads; the third only
+    // No entry holds "delete object" as one text. Two are the Object group's deletes, which the Speed Dial
+    // names by group and title, and the shorter name, the plainer action, leads; the third only
     // mentions objects.
     CHECK(ids(rank_actions(listed, query_words("delete object"))) ==
           std::vector<std::string>{"orca_command:obj_delete:orca", "orca_command:obj_delete_all:orca", "orca_command:filament_delete:orca"});
@@ -177,7 +177,7 @@ TEST_CASE("action_run refuses arguments for an action that takes none", "[Mcp][S
         CHECK_THAT(action_args_error(action, {{"plate", 2}}), Catch::Matchers::ContainsSubstring("takes no arguments"));
         CHECK(action_args_error(action, json::object()).empty());
     }
-    // A command's own tile outside the Design tab takes none, as an item with no arguments does: the refusal names the
+    // A command's own action outside the Design tab takes none, as an item with no arguments does: the refusal names the
     // command that takes them.
     const NativeCommand* filament_delete = NativeCommands::find("filament_delete");
     REQUIRE(filament_delete != nullptr);
@@ -186,8 +186,8 @@ TEST_CASE("action_run refuses arguments for an action that takes none", "[Mcp][S
     CHECK(action_args_error(*own, json::object()).empty());
     const std::string refused = action_args_error(*own, {{"filament_slot", 2}});
     CHECK_THAT(refused, Catch::Matchers::ContainsSubstring("filament_delete"));
-    // A menu item's tile takes no arguments, or exactly its own; an item's former arguments are refused, naming the command.
-    const auto [export_command, export_gcode] = find_tile(NativeCommands::instance(), "export_gcode");
+    // A menu item's action takes no arguments, or exactly its own; an item's former arguments are refused, naming the command.
+    const auto [export_command, export_gcode] = find_command_action(NativeCommands::instance(), "export_gcode");
     REQUIRE(export_gcode != nullptr);
     const std::unique_ptr<Slic3r::GUI::AppAction> gcode = NativeCommands::make_action(*export_command, *export_gcode);
     CHECK(action_args_error(*gcode, json::object()).empty());
@@ -196,55 +196,56 @@ TEST_CASE("action_run refuses arguments for an action that takes none", "[Mcp][S
     CHECK_FALSE(with_path.empty());
     CHECK_THAT(with_path, Catch::Matchers::ContainsSubstring("call project_export"));
 #ifdef SLIC3R_CAD
-    // A Design command's own tile takes the command's arguments, which the command checks.
+    // A Design command's own action takes the command's arguments, which the command checks.
     CommandCatalog design;
     NativeCommands::register_all_commands(design, {true});
     design.seal();
     const NativeCommand* shell = design.find("shell");
     REQUIRE(shell != nullptr);
-    REQUIRE(shell->in_palette);
-    const std::unique_ptr<Slic3r::GUI::AppAction> design_tile = NativeCommands::make_action(*shell);
-    CHECK(design_tile->input_schema == shell->input_schema);
-    CHECK(action_args_error(*design_tile, {{"thickness", 2}}).empty());
+    REQUIRE(shell->has_own_action);
+    const std::unique_ptr<Slic3r::GUI::AppAction> design_action = NativeCommands::make_action(*shell);
+    CHECK(design_action->input_schema == shell->input_schema);
+    CHECK(action_args_error(*design_action, {{"thickness", 2}}).empty());
 #endif
 }
 
-TEST_CASE("what action_run journals for a tile of fixed arguments is a call it takes", "[Mcp][SpeedDial]")
+TEST_CASE("what action_run journals for an action of fixed arguments is a call it takes", "[Mcp][SpeedDial]")
 {
-    // Every command's tile: its journal step's arguments are the tile's own, or the value a tile with an input
+    // Every command's action: its journal step's arguments are the action's own, or the value an action with an input
     // collects, and action_run takes them, so a replay of the step is never refused.
-    const auto check_tiles = [](const CommandCatalog& catalog) {
-        int tiles = 0;
+    const auto check_actions = [](const CommandCatalog& catalog) {
+        int checked = 0;
         for (const NativeCommand& command : catalog.commands()) {
             std::vector<std::unique_ptr<Slic3r::GUI::AppAction>> actions;
-            if (command.in_palette)
+            if (command.has_own_action)
                 actions.push_back(NativeCommands::make_action(command));
-            if (command.tiles.is_array())
-                for (const json& tile : command.tiles)
-                    actions.push_back(NativeCommands::make_action(command, tile));
+            if (command.actions.is_array())
+                for (const json& item : command.actions)
+                    actions.push_back(NativeCommands::make_action(command, item));
             for (const std::unique_ptr<Slic3r::GUI::AppAction>& action : actions) {
                 INFO(action->id());
                 const json given    = action->input.empty() ? json::object() : json{{action->input, 1}};
-                const json recorded = tile_journal_args(*action, given);
+                const json recorded = action_journal_args(*action, given);
                 if (action->preset.is_null()) {
-                    // A Design command's own tile takes its command's arguments: the command's rewrite stands.
+                    // A Design command's own action takes its command's arguments: the command's rewrite stands.
                     CHECK(recorded.is_null());
                     continue;
                 }
-                ++tiles;
+                ++checked;
                 CHECK(recorded == (action->input.empty() ? action->preset : given));
                 CHECK(action_args_error(*action, recorded).empty());
             }
         }
-        return tiles;
+        return checked;
     };
-    // The 129 Speed Dial entries outside the Design tab are commands' tiles: eight own and 121 items.
-    CHECK(check_tiles(NativeCommands::instance()) == 129);
+    // The 129 Speed Dial entries outside the Design tab are commands' actions: eight own and 121 items.
+    CHECK(check_actions(NativeCommands::instance()) == 129);
 
     const auto recorded_for = [](const CommandCatalog& catalog, const char* key, const json& given) {
-        const auto [command, tile] = find_tile(catalog, key);
+        const auto [command, action] = find_command_action(catalog, key);
         REQUIRE(command != nullptr);
-        return tile_journal_args(*(tile != nullptr ? NativeCommands::make_action(*command, *tile) : NativeCommands::make_action(*command)), given);
+        return action_journal_args(
+            *(action != nullptr ? NativeCommands::make_action(*command, *action) : NativeCommands::make_action(*command)), given);
     };
     CHECK(recorded_for(NativeCommands::instance(), "obj_arrange", json::object()) == json::object());
     CHECK(recorded_for(NativeCommands::instance(), "go_to_layer", {{"percent", 50}}) == json{{"percent", 50}});
@@ -252,15 +253,15 @@ TEST_CASE("what action_run journals for a tile of fixed arguments is a call it t
     CommandCatalog design;
     NativeCommands::register_all_commands(design, {true});
     design.seal();
-    CHECK(check_tiles(design) > 129);
+    CHECK(check_actions(design) > 129);
     CHECK(recorded_for(design, "sk_array_polar", json::object()) == json{{"type", "circular"}});
 #endif
 }
 
-TEST_CASE("a call with a tile's arguments asks, and one more argument runs", "[Mcp]")
+TEST_CASE("a call with an action's arguments asks, and one more argument runs", "[Mcp]")
 {
-    // The commands whose tiles ask, as the design's table "When a call does what a menu item does" lists them: called with
-    // exactly a tile's arguments a command is its person's form, and with silent beside them its silent form.
+    // The commands whose actions ask, as the design's table "When a call does what a menu item does" lists them: called with
+    // exactly an action's arguments a command is its person's form, and with silent beside them its silent form.
     const CommandCatalog& catalog = NativeCommands::instance();
     for (const char* key : {"project_open", "project_import", "project_save", "project_export", "object_add_primitive", "object_rename",
                             "plate_rename", "object_set_instances", "calibration_generate_test", "preset_import", "preset_export",
@@ -277,7 +278,7 @@ TEST_CASE("a call with a tile's arguments asks, and one more argument runs", "[M
             CHECK_FALSE(person_form(*command, silent));
         }
     }
-    // The tiles each is called with, by the table: their arguments are a person's form.
+    // The actions each is called with, by the table: their arguments are a person's form.
     for (const auto& [key, args] : std::vector<std::pair<const char*, json>>{
              {"project_import", {{"archive", true}}},
              {"project_save", {{"save_as", true}}},
@@ -288,7 +289,7 @@ TEST_CASE("a call with a tile's arguments asks, and one more argument runs", "[M
         INFO(key << " " << args.dump());
         CHECK(person_form(*catalog.find(key), args));
     }
-    // Where the table's silent form is silent: true, the schema takes it beside the tile's arguments, and the call is
+    // Where the table's silent form is silent: true, the schema takes it beside the action's arguments, and the call is
     // valid: the default size of a primitive, a test with its dialog's defaults.
     for (const auto& [key, args] : std::vector<std::pair<const char*, json>>{{"object_add_primitive", {{"shape", "cube"}}},
                                                                                {"calibration_generate_test", {{"test", "temperature"}}}}) {
@@ -300,23 +301,23 @@ TEST_CASE("a call with a tile's arguments asks, and one more argument runs", "[M
         silent["silent"] = true;
         CHECK(argument_error(*command, silent).empty());
         // Neither form needs more than the variant; with nothing at all the silent form is refused for it.
-        json tile = args;
-        CHECK(argument_error(*command, tile).empty());
+        json action = args;
+        CHECK(argument_error(*command, action).empty());
         json none = json::object();
         CHECK_FALSE(argument_error(*command, none).empty());
     }
     // silent says what a person's form of the command is: a call with no arguments where that is the only one, else a
-    // call with a tile's arguments.
+    // call with an action's arguments.
     const auto silent_text = [&catalog](const char* key) {
         return catalog.find(key)->input_schema.at("properties").at("silent").at("description").get<std::string>();
     };
     CHECK_THAT(silent_text("project_new"), Catch::Matchers::ContainsSubstring("no arguments"));
     CHECK_THAT(silent_text("project_export"), !Catch::Matchers::ContainsSubstring("no arguments"));
-    CHECK_THAT(silent_text("project_export"), Catch::Matchers::ContainsSubstring("tile"));
-    CHECK_THAT(silent_text("calibration_generate_test"), Catch::Matchers::ContainsSubstring("tile"));
+    CHECK_THAT(silent_text("project_export"), Catch::Matchers::ContainsSubstring("Speed Dial action"));
+    CHECK_THAT(silent_text("calibration_generate_test"), Catch::Matchers::ContainsSubstring("Speed Dial action"));
 }
 
-TEST_CASE("a tile that collects a value takes exactly that argument", "[Mcp][SpeedDial]")
+TEST_CASE("an action that collects a value takes exactly that argument", "[Mcp][SpeedDial]")
 {
     json given; // what the command's function was last called with
     NativeCommand view = NativeCommands::ui_command(
@@ -328,13 +329,13 @@ TEST_CASE("a tile that collects a value takes exactly that argument", "[Mcp][Spe
             given = args;
             return Slic3r::GUI::AppActionRunResult{Slic3r::GUI::AppActionRunResult::Level::Succeeded};
         });
-    view.tiles = json::array({NativeCommands::tile("view_it_tab", "Go to tab", "Commands", "", json::object(), "Goes to a tab.", "tab"),
-                              NativeCommands::tile("view_it_layer", "Go to layer", "Commands", "", json::object(), "Goes to a layer.",
-                                                   "percent", "layer_percent"),
-                              NativeCommands::tile("view_it_x", "Along X", "View", "", {{"axis", "x"}}, "Along X.")});
+    view.actions = json::array({NativeCommands::action("view_it_tab", "Go to tab", "Commands", "", json::object(), "Goes to a tab.", "tab"),
+                                NativeCommands::action("view_it_layer", "Go to layer", "Commands", "", json::object(), "Goes to a layer.",
+                                                       "percent", "layer_percent"),
+                                NativeCommands::action("view_it_x", "Along X", "View", "", {{"axis", "x"}}, "Along X.")});
 
     // Go to tab's value is the command's argument of the same name.
-    const std::unique_ptr<Slic3r::GUI::AppAction> tab = NativeCommands::make_action(view, view.tiles[0]);
+    const std::unique_ptr<Slic3r::GUI::AppAction> tab = NativeCommands::make_action(view, view.actions[0]);
     CHECK(tab->input == "tab");
     CHECK(tab->group_en == "Commands");
     REQUIRE(tab->input_schema["properties"].size() == 1);
@@ -346,25 +347,25 @@ TEST_CASE("a tile that collects a value takes exactly that argument", "[Mcp][Spe
     tab->run({{"tab", "preview"}});
     CHECK(given == json{{"tab", "preview"}});
 
-    // Go to layer's value goes to the command's argument the tile names.
-    const std::unique_ptr<Slic3r::GUI::AppAction> layer = NativeCommands::make_action(view, view.tiles[1]);
+    // Go to layer's value goes to the command's argument the action names.
+    const std::unique_ptr<Slic3r::GUI::AppAction> layer = NativeCommands::make_action(view, view.actions[1]);
     CHECK(layer->input == "percent");
     REQUIRE(layer->input_schema["properties"].size() == 1);
     CHECK(layer->input_schema["properties"]["percent"]["type"] == "number");
     CHECK(layer->input_schema["required"] == json::array({"percent"}));
     layer->run({{"percent", 50}});
     CHECK(given == json{{"layer_percent", 50}});
-    CHECK(tile_call_args(&view.tiles[1], {{"percent", 50}}) == json{{"layer_percent", 50}});
+    CHECK(action_call_args(&view.actions[1], {{"percent", 50}}) == json{{"layer_percent", 50}});
 
     // An item made without a group has none, and is in its command's section.
-    const json grouped_with_command = NativeCommands::tile("view_it_y", "Along Y", "", "", {{"axis", "y"}}, "Along Y.");
+    const json grouped_with_command = NativeCommands::action("view_it_y", "Along Y", "", "", {{"axis", "y"}}, "Along Y.");
     CHECK_FALSE(grouped_with_command.contains("group"));
     CHECK(NativeCommands::make_action(view, grouped_with_command)->group_en == "View");
 
-    // A tile that collects nothing runs its command with its own arguments, and a command's own tile with the call's.
-    CHECK(tile_call_args(&view.tiles[2], json::object()) == json{{"axis", "x"}});
-    CHECK(tile_call_args(nullptr, {{"plate", 2}}) == json{{"plate", 2}});
-    CHECK(tile_call_args(nullptr, json::object()) == json::object());
+    // An action that collects nothing runs its command with its own arguments, and a command's own action with the call's.
+    CHECK(action_call_args(&view.actions[2], json::object()) == json{{"axis", "x"}});
+    CHECK(action_call_args(nullptr, {{"plate", 2}}) == json{{"plate", 2}});
+    CHECK(action_call_args(nullptr, json::object()) == json::object());
 }
 
 TEST_CASE("Go to tab takes the Device tab as device and any other page by its id", "[Mcp][SpeedDial]")
@@ -383,14 +384,14 @@ TEST_CASE("Go to tab takes the Device tab as device and any other page by its id
     CHECK_FALSE(view_tab_page("no_such_page", pages).has_value());
     CHECK_FALSE(view_tab_page("device", {"home", "prepare"}).has_value());
 
-    // The tab picker sends the page's id, which the tile gives view_set as the page's word.
-    const auto [command, tile] = find_tile(NativeCommands::instance(), "go_to_tab");
+    // The tab picker sends the page's id, which the action gives view_set as the page's word.
+    const auto [command, action] = find_command_action(NativeCommands::instance(), "go_to_tab");
     REQUIRE(command != nullptr);
-    REQUIRE(tile != nullptr);
+    REQUIRE(action != nullptr);
     CHECK(command->key == "view_set");
-    CHECK(tile_call_args(tile, {{"tab", "monitor"}}) == json{{"tab", "device"}});
-    CHECK(tile_call_args(tile, {{"tab", "preview"}}) == json{{"tab", "preview"}});
-    CHECK(tile_call_args(tile, {{"tab", "a_plugin_page"}}) == json{{"tab", "a_plugin_page"}});
+    CHECK(action_call_args(action, {{"tab", "monitor"}}) == json{{"tab", "device"}});
+    CHECK(action_call_args(action, {{"tab", "preview"}}) == json{{"tab", "preview"}});
+    CHECK(action_call_args(action, {{"tab", "a_plugin_page"}}) == json{{"tab", "a_plugin_page"}});
     // view_set takes a plugin's page by its id.
     json plugin{{"tab", "a_plugin_page"}};
     CHECK(argument_error(*command, plugin).empty());
@@ -413,8 +414,8 @@ TEST_CASE("the filament commands take the filaments they mix, and the slot a del
     const NativeCommand* mixed = NativeCommands::find("filament_add_mixed");
     REQUIRE(mixed != nullptr);
     CHECK(mixed->listed);
-    CHECK_FALSE(mixed->in_palette);
-    CHECK(mixed->tiles.is_null());
+    CHECK_FALSE(mixed->has_own_action);
+    CHECK(mixed->actions.is_null());
     CHECK(mixed->input_schema["required"] == json::array({"components", "ratios"}));
     json half{{"components", json::array({1, 2})}, {"ratios", json::array({50, 50})}};
     CHECK(argument_error(*mixed, half).empty());
@@ -430,10 +431,10 @@ TEST_CASE("the filament commands take the filaments they mix, and the slot a del
     json no_ratios{{"components", json::array({1, 2})}};
     CHECK_THAT(argument_error(*mixed, no_ratios), ContainsSubstring("ratios"));
 
-    // Delete Filament Slot keeps its tile of its own, which deletes the last physical slot, and takes the slot to merge into.
+    // Delete Filament Slot keeps an action of its own, which deletes the last physical slot, and takes the slot to merge into.
     const NativeCommand* remove = NativeCommands::find("filament_delete");
     REQUIRE(remove != nullptr);
-    CHECK(remove->in_palette);
+    CHECK(remove->has_own_action);
     CHECK_FALSE(remove->input_schema.contains("required"));
     json merge{{"filament_slot", 2}, {"merge_into", 1}};
     CHECK(argument_error(*remove, merge).empty());
@@ -466,7 +467,7 @@ TEST_CASE("action_run says where an action it cannot find is", "[Mcp][SpeedDial]
 {
     CHECK_THAT(unknown_action("obj_arange", NativeCommands::instance()), Catch::Matchers::ContainsSubstring("action_search"));
 #ifdef SLIC3R_CAD
-    // A Design tab tile, by its id or its key, while it is not shown: in a run with the CAD feature on at startup
+    // A Design tab action, by its id or its key, while it is not shown: in a run with the CAD feature on at startup
     // tool_call runs its command from any tab, and in one with it off there is no such command.
     for (const bool cad : {true, false}) {
         CommandCatalog catalog;
@@ -479,23 +480,23 @@ TEST_CASE("action_run says where an action it cannot find is", "[Mcp][SpeedDial]
                 CHECK_THAT(why, Catch::Matchers::ContainsSubstring("while the Design tab is shown"));
                 CHECK_THAT(why, Catch::Matchers::ContainsSubstring("tool_call {\"tool\": \"shell\"}"));
             } else {
-                CHECK(why == id + " is a Design tab tile, and the CAD feature was off when OrcaSlicer started: a person "
+                CHECK(why == id + " is a Design tab action, and the CAD feature was off when OrcaSlicer started: a person "
                                   "turns it on in Preferences > Features and restarts OrcaSlicer, or starts it with "
                                   "--cad");
             }
         }
-        // A folded item's tile names the call of its command that runs it; with the feature off at startup, there is
-        // neither, as for any other tile.
+        // A folded item's action names the call of its command that runs it; with the feature off at startup, there is
+        // neither, as for any other action.
         const std::string folded = "orca_command:sk_array:orca";
         INFO(folded << (cad ? ", the CAD feature on" : ", the CAD feature off"));
         if (cad)
             CHECK_THAT(unknown_action(folded, catalog),
                        Catch::Matchers::ContainsSubstring("tool_call {\"tool\": \"sketch_pattern\", \"args\": {\"type\": \"linear\"}}"));
         else
-            CHECK(unknown_action(folded, catalog) == folded + " is a Design tab tile, and the CAD feature was off when OrcaSlicer "
+            CHECK(unknown_action(folded, catalog) == folded + " is a Design tab action, and the CAD feature was off when OrcaSlicer "
                                                               "started: a person turns it on in Preferences > Features and restarts "
                                                               "OrcaSlicer, or starts it with --cad");
-        // A Design command without a tile is any unknown action.
+        // A Design command with no Speed Dial action is refused as any unknown action is.
         CHECK_THAT(unknown_action("orca_command:describe_design:orca", catalog), Catch::Matchers::ContainsSubstring("action_search"));
     }
 #endif
@@ -760,9 +761,9 @@ TEST_CASE("tool_search reads one inventory", "[Mcp]")
     };
     CommandCatalog catalog;
     catalog.add(command("measure_bed", "Plugins", true, "Measure the bed. In mm."));
-    NativeCommand tile = command("measure_tile", "View", false, "Measure what the view shows.");
-    tile.in_palette    = true;
-    catalog.add(tile);
+    NativeCommand measure  = command("measure_action", "View", false, "Measure what the view shows.");
+    measure.has_own_action = true;
+    catalog.add(measure);
     catalog.add_source(
         std::make_unique<OneCommandSource>(command("plugin.fixture.measure", "Plugins", false, "Offered by a plugin. Doubles a.")));
     catalog.seal();
@@ -777,7 +778,7 @@ TEST_CASE("tool_search reads one inventory", "[Mcp]")
     CHECK(items["measure_bed"]["listed"] == true);
     CHECK(items["measure_bed"]["summary"] == "Measure the bed.");
     CHECK_FALSE(items["measure_bed"].contains("input_schema"));
-    for (const char* unlisted : {"measure_tile", "plugin.fixture.measure"}) {
+    for (const char* unlisted : {"measure_action", "plugin.fixture.measure"}) {
         INFO(unlisted);
         CHECK(items[unlisted]["listed"] == false);
         CHECK(items[unlisted]["input_schema"]["properties"].contains("a"));
@@ -787,18 +788,18 @@ TEST_CASE("tool_search reads one inventory", "[Mcp]")
     CHECK(found["use"].get<std::string>().find("tool_call {tool, args}") != std::string::npos);
 
     // {tool} describes any of them.
-    const json described = search_commands(catalog, {{"tool", "measure_tile"}});
+    const json described = search_commands(catalog, {{"tool", "measure_action"}});
     CHECK(described["listed"] == false);
     CHECK(described["input_schema"]["properties"].contains("a"));
     CHECK_THROWS_AS(search_commands(catalog, {{"tool", "measure_nothing"}}), ToolFailure);
 
     // group narrows the names and the matches, in any case, a source's commands included.
-    CHECK(search_commands(catalog, json::object())["names"] == json::array({"measure_bed", "measure_tile", "plugin.fixture.measure"}));
+    CHECK(search_commands(catalog, json::object())["names"] == json::array({"measure_bed", "measure_action", "plugin.fixture.measure"}));
     CHECK(search_commands(catalog, {{"group", "PLUGINS"}})["names"] == json::array({"measure_bed", "plugin.fixture.measure"}));
-    CHECK(search_commands(catalog, {{"group", "view"}})["names"] == json::array({"measure_tile"}));
+    CHECK(search_commands(catalog, {{"group", "view"}})["names"] == json::array({"measure_action"}));
     const json in_view = search_commands(catalog, {{"group", "View"}, {"query", "measure"}});
     REQUIRE(in_view["items"].size() == 1);
-    CHECK(in_view["items"][0]["name"] == "measure_tile");
+    CHECK(in_view["items"][0]["name"] == "measure_action");
     // A group no command has is refused with the groups there are.
     try {
         search_commands(catalog, {{"group", "commands"}});

@@ -1,4 +1,4 @@
-// Records what an arrange does, object_arrange {} (Auto-Arrange's arguments; action_run of the obj_arrange tile runs
+// Records what an arrange does, object_arrange {} (Auto-Arrange's arguments; action_run of the obj_arrange action runs
 // the same function) and object_arrange with one plate by index: with no objects, with two cubes on one spot, in the
 // assemble view, with the Move gizmo open, and with the plate locked. After each it reads the objects' offsets,
 // the tab, canvas and gizmo, and the undo snapshots taken since the last read (fixtures/ops_undo.py), and once

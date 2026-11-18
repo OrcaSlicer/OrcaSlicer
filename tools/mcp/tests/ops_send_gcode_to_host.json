@@ -1,4 +1,4 @@
-// Records the refusals of the send_gcode tile (action_run), and nothing else: it never sets a print host, so
+// Records the refusals of the send_gcode action (action_run), and nothing else: it never sets a print host, so
 // nothing is ever sent. A Bambu network printer (the harness's X1 Carbon as it starts, then with
 // bbl_use_printhost off) with no objects, on a plate not sliced and on a sliced one; then the same printer set
 // to print through a host (bbl_use_printhost on, OctoPrint) with no host address, sliced, not sliced and with no

@@ -2,8 +2,8 @@
 
 #include <string>
 
-// The built-in action source's key and name, and the prefix of a command's tile id. No wx here: this header is part
-// of the library libslic3r_automation, which is built without wx.
+// The built-in action source's key and name, and the prefix of the id of a command's action. No wx here: this header
+// is part of the library libslic3r_automation, which is built without wx.
 namespace Slic3r { namespace GUI {
 
 // Stable identity/display name of the built-in ("OrcaSlicer") action source. Shared by the native
@@ -11,12 +11,12 @@ namespace Slic3r { namespace GUI {
 // action re-keys together.
 inline constexpr const char* kOrcaSourceKey  = "orca";
 inline constexpr const char* kOrcaSourceName = "OrcaSlicer";
-// The prefix of a catalog command's tile id, "orca_command:<key>:orca" (NativeCommands::make_action()).
+// The prefix of the id of a catalog command's action, "orca_command:<key>:orca" (NativeCommands::make_action()).
 inline constexpr const char* kCommandPrefix = "orca_command";
 
-// The key inside a command's tile id, "orca_command:<key>:orca"; `id` itself when it has no colon, the name inside the
-// id, which action_run takes in its place; empty for any other action's id.
-inline std::string command_tile_key(const std::string& id)
+// The key inside the id of a command's action, "orca_command:<key>:orca"; `id` itself when it has no colon, the name
+// inside the id, which action_run takes in its place; empty for any other action's id.
+inline std::string command_action_key(const std::string& id)
 {
     if (id.find(':') == std::string::npos)
         return id;

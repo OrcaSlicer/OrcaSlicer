@@ -1,4 +1,4 @@
-// Records how a plate is locked through its three routes: the plate_toggle_lock tile run with action_run (the
+// Records how a plate is locked through its three routes: the plate_toggle_lock action run with action_run (the
 // current plate), plate_lock with locked, and a click on the plate's lock icon ({plate_icon: "lock", plate}).
 // Each is run twice on plate 0, then on plate 1 while plate 0 is current; plate_lock also with a plate the
 // project lacks. After each it reads the lock state and the current plate (plate_list) and the undo
@@ -21,7 +21,7 @@
     {"tool": "plate_list", "expect": {"/total": {"eq": 2}, "/items/0/current": {"eq": true}}},
     {"tool": "script_run", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
 
-    // ---- The tile, twice on plate 0 ----
+    // ---- The action, twice on plate 0 ----
     {"tool": "action_run", "args": {"id": "orca_command:plate_toggle_lock:orca"}, "optional": true},
     {"tool": "plate_list"},
     {"tool": "script_run", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
@@ -50,7 +50,7 @@
     {"tool": "plate_list"},
     {"tool": "script_run", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
 
-    // ---- Plate 1 while plate 0 is current: plate_lock and the icon (the tile has no plate) ----
+    // ---- Plate 1 while plate 0 is current: plate_lock and the icon (the action has no plate) ----
     {"tool": "plate_lock", "args": {"plate": 1, "locked": true}, "optional": true},
     {"tool": "plate_list"},
     {"tool": "script_run", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},

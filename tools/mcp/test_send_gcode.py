@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Checks sending G-code to a print host with printer_send's Speed Dial tile, send_gcode, read back through
+"""Checks sending G-code to a print host with printer_send's Speed Dial action, send_gcode, read back through
 app_state.uploads.
 
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_send_gcode.py
 
-Starts an OctoPrint-compatible stub host on a free loopback port. The tile first refuses a printer that
+Starts an OctoPrint-compatible stub host on a free loopback port. The action first refuses a printer that
 prints through the Bambu network (when the app starts on a Bambu printer) and one without a print host. Then
-the printer points at the stub, a cube is sliced, and each send runs the tile, sets the file name with
+the printer points at the stub, a cube is sliced, and each send runs the action, sets the file name with
 widget_set_value and presses Upload with dialog_answer:
 - the stub answers 200 a few seconds after it has the whole file: meanwhile the row reads uploading at 99,
   then completed, and the stub got the file without print=true;
@@ -100,11 +100,11 @@ def uploads(client):
 
 
 def send(client, filename):
-    """Sends the current plate as `filename` through the tile's dialog and returns the new row's id."""
+    """Sends the current plate as `filename` through the action's dialog and returns the new row's id."""
     before = len(uploads(client))
     blocked = client.call("action_run", id=SEND)
     if blocked.get("status") != "blocked_by_dialog":
-        raise orca_mcp.McpError(f"the send_gcode tile did not open its dialog: {blocked}", blocked)
+        raise orca_mcp.McpError(f"the send_gcode action did not open its dialog: {blocked}", blocked)
     client.call("widget_set_value", target={"class": "wxTextCtrl", "within": "Send G-code to printer host"}, value=filename, submit=False)
     client.call("dialog_answer", button="Upload")
     client.await_job(blocked)
@@ -161,7 +161,7 @@ def main():
     client.call("app_wait", **{"for": "idle"})
 
     found = client.call("action_search", query="Send G-code")
-    check("action_search finds the send_gcode tile", any(a["id"] == SEND for a in found["items"]), found)
+    check("action_search finds the send_gcode action", any(a["id"] == SEND for a in found["items"]), found)
 
     # ---- Refusals ----
     if client.call("app_state")["presets"]["printer"].startswith("Bambu Lab"):
@@ -190,9 +190,9 @@ def main():
     # ---- The exported send replays ----
     path = os.path.join(work, "send.json")
     exported = client.call("replay_export", path=path, overwrite=True)
-    # Each step that acts on the dialog follows an app_wait for it, since the replayed tile may open it late.
+    # Each step that acts on the dialog follows an app_wait for it, since the replayed action may open it late.
     check("the send exports as action_run, widget_set_value and dialog_answer, each after an app_wait for the dialog, "
-          "and the app_wait for the tile",
+          "and the app_wait for the action",
           [s["tool"] + ("(dialog)" if s["tool"] == "app_wait" and s["args"]["for"] == "dialog" else "")
            for s in exported["replay"]["steps"]] ==
           ["action_run", "app_wait(dialog)", "widget_set_value", "app_wait(dialog)", "dialog_answer", "app_wait"],

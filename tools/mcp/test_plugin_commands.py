@@ -239,7 +239,7 @@ def run(orca, datadir, scratch):
     check("uninstalling it again is refused: no plugin has that key", gone is not None and gone[1].get("code") == "no_such_plugin", gone)
 
     # --- Refresh Plugins picked in the Speed Dial as a person picks it (the pick of test_person_forms.py; action_run of
-    # the tile is an automated call, which waits as plugin_refresh does): it returns at once and its refresh ends with
+    # it is an automated call, which waits as plugin_refresh does): it returns at once and its refresh ends with
     # its "Plugins refreshed." notification. It goes before the calls below, as the notification manager shows that
     # text once for every refresh that ends with it. Each refresh rescans the plugins, which the log says
     # (PluginManager::rescan_plugins()). Two refreshes that overlap take turns: the unit case of Ops::RefreshRun shows

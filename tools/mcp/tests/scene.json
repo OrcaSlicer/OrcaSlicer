@@ -129,7 +129,7 @@
                 "/settings/rotate": {"eq": false}}},
     {"tool": "object_list", "args": {"plate": 1}, "expect": {"/total": {"eq": 1}, "/plates/0/objects/0/name": {"eq": "Cylinder"}}},
     {"tool": "object_list", "args": {"plate": 0}, "expect": {"/total": {"eq": 2}}},
-    // every plate with the saved options, which is Auto-Arrange; the obj_arrange tile runs the same call and replies as it
+    // every plate with the saved options, which is Auto-Arrange; the obj_arrange action runs the same call and replies as it
     {"tool": "object_arrange", "args": {}, "expect": {"/settings/spacing": {"eq": 10}, "/off_plate": {"empty": true}}},
     {"tool": "action_run", "args": {"id": "orca_command:obj_arrange:orca"}, "expect": {"/settings/spacing": {"eq": 10}, "/off_plate": {"empty": true}}},
     // a Speed Dial command that does nothing (no selection) is an error step

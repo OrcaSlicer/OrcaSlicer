@@ -2707,15 +2707,15 @@ TEST_CASE("an upload's row reaches 100 percent only once the host has answered",
     CHECK(percent(4096, 4096) == 99);
 }
 
-TEST_CASE("the send command is a Slice & Export tile that takes no arguments", "[Mcp][SpeedDial]")
+TEST_CASE("the send command is a Slice & Export action that takes no arguments", "[Mcp][SpeedDial]")
 {
     const NativeCommand* send = NativeCommands::find("printer_send");
     REQUIRE(send != nullptr);
     CHECK(send->title == "Send G-code to printer host");
-    const auto [command, tile] = Slic3r::GUI::find_tile(NativeCommands::instance(), "send_gcode");
+    const auto [command, action] = Slic3r::GUI::find_command_action(NativeCommands::instance(), "send_gcode");
     CHECK(command == send);
-    REQUIRE(tile != nullptr);
-    CHECK(tile->at("group") == "Slice & Export");
+    REQUIRE(action != nullptr);
+    CHECK(action->at("group") == "Slice & Export");
     CHECK(send->input_schema.at("properties").empty());
     CHECK(send->completion == CommandCompletion::Immediate);
     CHECK(send->description.find("app_state.uploads") != std::string::npos);

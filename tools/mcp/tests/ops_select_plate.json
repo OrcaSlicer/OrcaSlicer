@@ -1,5 +1,5 @@
 // Records how a plate is selected: plate_select with a plate in range, past the last plate and negative
-// (refused), not a number and not a whole number (refused), and its plate_goto tile (plate 0), and each command
+// (refused), not a number and not a whole number (refused), and its plate_goto action (plate 0), and each command
 // that takes a plate index given one the project lacks (plate_slice, project_export, object_arrange,
 // plate_rename and plate_get_settings, object_list, object_transform) and given one it has. After each it
 // reads the current plate (app_state, plate_list) and the undo snapshots taken since the last read
@@ -22,7 +22,7 @@
     {"tool": "app_state"},
     {"tool": "script_run", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
 
-    // ---- plate_select: in range, past the last, negative, not a number, not a whole number; the tile ----
+    // ---- plate_select: in range, past the last, negative, not a number, not a whole number; the action ----
     {"tool": "plate_select", "args": {"plate": 1}, "optional": true},
     {"tool": "app_state"},
     {"tool": "script_run", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},

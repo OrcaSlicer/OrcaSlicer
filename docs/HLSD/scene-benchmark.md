@@ -14,7 +14,7 @@ can be pasted into an issue.
 ## What it does
 
 `run_scene_benchmark()` in `src/slic3r/GUI/SceneBenchmark.cpp` is reached from Help >
-Benchmark 3D Scene, the command palette and Preferences > Graphics. After a confirmation
+Benchmark 3D Scene, the Speed Dial and Preferences > Graphics. After a confirmation
 it starts a new project, which asks to save the current one if needed, loads the
 OrcaSliced Combo handy model and arranges it. A small dialog in a corner of the 3D view
 then shows the progress; every other window is disabled until the run ends, so a click
