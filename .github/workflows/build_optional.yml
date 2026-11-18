@@ -183,7 +183,7 @@ jobs:
       cancel-in-progress: true
     uses: ./.github/workflows/build_check_cache.yml
     with:
-      os: windows-latest
+      os: windows-2025
       arch: x64
       compiler: msvc
     secrets: inherit
