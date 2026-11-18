@@ -15441,16 +15441,18 @@ bool Plater::priv::can_smooth_mesh() const
 {
     std::vector<int> obj_idxs, vol_idxs;
     sidebar->obj_list()->get_selection_indexes(obj_idxs, vol_idxs);
+    // Check the meshes that get subdivided: the parts of each object, or the selected volumes.
     if (vol_idxs.empty()) {
         for (auto obj_idx : obj_idxs)
-            if (model.objects[obj_idx]->get_object_stl_stats().open_edges > 0)
-                return false;
+            for (const ModelVolume *volume : model.objects[obj_idx]->volumes)
+                if (volume->is_model_part() && volume->mesh().stats().open_edges > 0)
+                    return false;
         return true;
     }
 
     int obj_idx = obj_idxs.front();
     for (auto vol_idx : vol_idxs)
-        if (model.objects[obj_idx]->get_object_stl_stats().open_edges > 0)
+        if (model.objects[obj_idx]->volumes[vol_idx]->mesh().stats().open_edges > 0)
             return false;
     return true;
 }
