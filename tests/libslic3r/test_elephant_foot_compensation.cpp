@@ -1,5 +1,6 @@
 #include <catch2/catch_all.hpp>
 
+#include <algorithm>
 #include <iostream>
 #include <boost/filesystem.hpp>
 #include "libslic3r/Point.hpp"
@@ -611,4 +612,27 @@ SCENARIO("Elephant foot compensation", "[ElephantFoot]") {
             }
         }
 	}
+}
+
+TEST_CASE("Elephant foot compensation keeps every piece of a polygon that simplification splits", "[ElephantFoot]")
+{
+    // A 10 mm square ring with 90 nm thick side walls: the contour bulges 90 nm out of the square along its sides,
+    // and the hole reaches the square. Simplification straightens the bulges, which leaves a bottom and a top bar.
+    const coord_t mm    = scaled<coord_t>(1.);
+    const coord_t bulge = 90;
+    REQUIRE(bulge < SCALED_EPSILON);
+    ExPolygon ring;
+    ring.contour.points = { { 0, 0 }, { 10 * mm, 0 }, { 10 * mm + bulge, mm }, { 10 * mm + bulge, 9 * mm },
+                            { 10 * mm, 10 * mm }, { 0, 10 * mm }, { -bulge, 9 * mm }, { -bulge, mm } };
+    ring.holes.emplace_back(Points{ { 0, 2 * mm }, { 0, 8 * mm }, { 10 * mm, 8 * mm }, { 10 * mm, 2 * mm } });
+    REQUIRE(ring.simplify(SCALED_EPSILON).size() == 2);
+
+    const ExPolygons compensated = elephant_foot_compensation(ExPolygons{ ring }, Flow(0.42f, 0.2f, 0.4f), 0.2);
+    auto covers = [&compensated](const Point &pt) {
+        return std::any_of(compensated.begin(), compensated.end(), [&pt](const ExPolygon &expoly) { return expoly.contains(pt); });
+    };
+    // Each bar is 2 mm wide, so it is compensated and still covers its middle.
+    CHECK(covers({ 5 * mm, mm }));
+    CHECK(covers({ 5 * mm, 9 * mm }));
+    CHECK(area(compensated) < ring.area());
 }
