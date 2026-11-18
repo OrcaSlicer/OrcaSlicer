@@ -802,6 +802,20 @@ std::vector<TextureFilterPreset> texture_filter_presets()
 constexpr int FILTER_THUMB_PX = 128;
 } // namespace
 
+// One thumbnail per filter, each this picture under it: the adjust window's row and the ChromaStack card's
+// both show exactly this.
+static std::vector<std::unique_ptr<GLTexture>> make_filter_thumbnails(const DecodedHeightTexture            &base,
+                                                                      const std::vector<TextureFilterPreset> &presets)
+{
+    std::vector<std::unique_ptr<GLTexture>> out;
+    out.reserve(presets.size());
+    for (const TextureFilterPreset &preset : presets)
+        out.push_back(preset.adjust.identity() ?
+                          upload_height_thumbnail(base, FILTER_THUMB_PX) :
+                          upload_height_thumbnail(apply_texture_adjustments(base, preset.adjust), FILTER_THUMB_PX));
+    return out;
+}
+
 void GLGizmoTextureDisplacement::rebuild_filter_thumbnails()
 {
     const std::vector<TextureFilterPreset> presets = texture_filter_presets();
@@ -817,15 +831,218 @@ void GLGizmoTextureDisplacement::rebuild_filter_thumbnails()
 
     // From the preview copy rather than the full-size image: it is already decoded and already small,
     // and a 128 px thumbnail cannot show what the difference between the two would be.
-    const DecodedHeightTexture base = downscale_height_texture(m_adjust_preview_source, FILTER_THUMB_PX);
-    m_filter_thumbs.clear();
-    m_filter_thumbs.reserve(presets.size());
-    for (const TextureFilterPreset &preset : presets)
-        m_filter_thumbs.push_back(preset.adjust.identity() ?
-                                      upload_height_thumbnail(base, FILTER_THUMB_PX) :
-                                      upload_height_thumbnail(apply_texture_adjustments(base, preset.adjust),
-                                                              FILTER_THUMB_PX));
+    m_filter_thumbs       = make_filter_thumbnails(downscale_height_texture(m_adjust_preview_source, FILTER_THUMB_PX), presets);
     m_filter_thumb_source = m_adjust_source_image;
+}
+
+bool GLGizmoTextureDisplacement::adjust_session_on(const TextureDisplacementLayer &layer) const
+{
+    if (m_adjust_slot < 0 || layer.slot != m_adjust_slot)
+        return false;
+    const ModelVolume *mv = texture_volume();
+    return mv != nullptr && mv->id().id == m_adjust_volume_id;
+}
+
+void GLGizmoTextureDisplacement::sync_image_adjust(TextureDisplacementLayer &layer)
+{
+    // A ChromaStack picture's own image is the height map its solve wrote, and preview_adjust is applied to
+    // whatever a layer's image is: a filter handed over that way sharpened the answer rather than the
+    // question. The solve reads the sliders itself instead (chroma_live_adjust()), so a change asks for a
+    // solve, which also brings the card's thumbnails and the model along.
+    if (layer.chroma_enabled && layer.chroma_source) {
+        if (!layer.preview_adjust.identity())
+            layer.preview_adjust = TextureAdjustments{};
+        if (m_adjust != m_adjust_applied) {
+            m_adjust_applied = m_adjust;
+            chroma_touch(layer.slot);
+            m_parent.set_as_dirty();
+        }
+        return;
+    }
+
+    // Hand the sliders to the layer, which is what puts the adjusted image in front of the displacement:
+    // decode_height_texture() applies preview_adjust, so the relief, the colour and the thumbnails all
+    // follow from here. Written every frame rather than only on a change, so an undo snapshot or a
+    // reselection that resets the layer cannot leave the model showing an adjustment the panel has moved
+    // on from.
+    layer.preview_adjust = m_adjust;
+    if (m_adjust != m_adjust_applied) {
+        m_adjust_applied = m_adjust;
+        invalidate_adjust_textures();
+        // Marked dirty rather than rebuilt here: the panel's own flag is consumed by the main panel's
+        // "rebuild once the mouse is released" rule, so dragging a slider recomputes the displacement
+        // once, on release, instead of on every frame of the drag. That is what keeps the UI responsive
+        // while a full-size resample and a mesh displacement happen behind it.
+        m_preview_params_dirty = true;
+        // The window is drawn after the block that consumes that flag, so the rebuild happens on a later
+        // frame - which means there has to *be* one. Cheap insurance: a slider release that generated no
+        // further canvas event would otherwise leave the flag set and the model unchanged until something
+        // unrelated redrew.
+        m_parent.set_as_dirty();
+    }
+}
+
+void GLGizmoTextureDisplacement::render_chroma_filters(TextureDisplacementLayer &layer, float width)
+{
+    if (layer.slot < 0 || size_t(layer.slot) >= TEXTURE_DISPLACEMENT_MAX_LAYERS || !layer.chroma_source)
+        return;
+    const size_t                           slot    = size_t(layer.slot);
+    const std::vector<TextureFilterPreset> presets = texture_filter_presets();
+    const float                            gap     = std::round(m_imgui->scaled(0.4f));
+    const float                            frame_h = ImGui::GetFrameHeight();
+
+    // The thumbnails, once per picture: they show the filters, not whatever the sliders say, so only
+    // another picture invalidates them. The decode is the cached one the solve uses. A grayscale picture
+    // gets none, and the key is what stops that being worked out again every frame.
+    if (m_chroma_filter_key[slot] != layer.chroma_source.get()) {
+        // The thumbnail-sized copy the source thumbnail is made from too (FILTER_THUMB_PX is that size).
+        const DecodedHeightTexture &base = chroma_thumb_base(layer);
+        m_chroma_filter_thumbs[slot].clear();
+        // Only for a colour picture, as in the window: a filter is a look, and most of a look is colour.
+        if (!base.empty() && base.has_color())
+            m_chroma_filter_thumbs[slot] = make_filter_thumbnails(base, presets);
+        m_chroma_filter_key[slot] = layer.chroma_source.get();
+    }
+    const bool has_color = m_chroma_filter_thumbs[slot].size() == presets.size();
+
+    // Whether the adjustment session is this picture's. Slots are numbered per volume, so the volume it
+    // was opened on is part of the answer.
+    const auto ours = [&]() { return adjust_session_on(layer); };
+    // Every change below goes through here: the first one opens the session on this picture with its
+    // window out of the way - the card is the panel - and the solve follows from then on.
+    const auto apply = [&](const TextureAdjustments &adj) {
+        if (!ours())
+            open_image_adjust(layer);
+        if (ours())
+            m_adjust = adj;
+    };
+    const TextureAdjustments current = ours() ? m_adjust : TextureAdjustments{};
+
+    // ---- The filters, in one row ----
+    //
+    // One row that scrolls sideways, as a phone camera has them: the picture is what is being looked at,
+    // and a block of ten thumbnails under it pushed the rest of the step off the panel. Each is cropped
+    // square from the middle of the picture, which is where the subject of most pictures is.
+    if (has_color) {
+        const float cell    = std::round(frame_h * 2.5f);
+        const float label_h = ImGui::GetTextLineHeight();
+        const float bar     = std::round(m_imgui->scaled(0.45f));
+        push_slim_scrollbar_style(bar, wxGetApp().dark_mode());
+        ImGui::BeginChild("##chroma_filters", ImVec2(width, cell + label_h + bar + 1.f), false,
+                          ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+        // The wheel scrolls the row, a cell at a time, while the pointer is on it: a row that only scrolls
+        // by its thin bar is a row whose end nobody finds. The notch is used up here, so the panel body,
+        // which reads the wheel after its content (see ease_wheel_scroll()), does not scroll with it.
+        if (ImGui::IsWindowHovered()) {
+            ImGuiIO &io = ImGui::GetIO();
+            if (io.MouseWheel != 0.f) {
+                ImGui::SetScrollX(std::clamp(ImGui::GetScrollX() - io.MouseWheel * (cell + gap), 0.f, ImGui::GetScrollMaxX()));
+                io.MouseWheel = 0.f;
+                m_parent.set_as_dirty();
+            }
+        }
+        ImDrawList  *dl    = ImGui::GetWindowDrawList();
+        const float  round = std::round(cell * 0.12f);
+        for (size_t i = 0; i < presets.size(); ++i) {
+            if (i > 0)
+                ImGui::SameLine(0.f, gap);
+            ImGui::PushID(int(i));
+            const ImVec2 at = ImGui::GetCursorScreenPos();
+            // The filter as it would be applied: the brightness mode survives a pick, as it does in the
+            // window, which is also what makes it read as chosen once picked.
+            TextureAdjustments preset = presets[i].adjust;
+            preset.brightness_space   = current.brightness_space;
+            if (ImGui::InvisibleButton("##chroma_filter", ImVec2(cell, cell + label_h)))
+                apply(preset);
+            const bool hot = ImGui::IsItemHovered();
+            if (hot)
+                panel_tooltip(into_u8(presets[i].name) + "\n\n" + presets[i].when);
+            const bool   chosen = current == preset;
+            const ImVec2 br(at.x + cell, at.y + cell);
+            if (const GLTexture *tex = m_chroma_filter_thumbs[slot][i].get(); tex != nullptr) {
+                const float tw = float(std::max(1, tex->get_width())), th = float(std::max(1, tex->get_height()));
+                const float cu = tw > th ? 0.5f * (1.f - th / tw) : 0.f;
+                const float cv = th > tw ? 0.5f * (1.f - tw / th) : 0.f;
+                dl->AddImageRounded((ImTextureID) (intptr_t) tex->get_id(), at, br, ImVec2(cu, cv),
+                                    ImVec2(1.f - cu, 1.f - cv), IM_COL32_WHITE, round);
+            }
+            dl->AddRect(at, br,
+                        ImGui::GetColorU32(chosen ? ImGuiWrapper::COL_ORCA : ImGui::GetStyleColorVec4(ImGuiCol_Separator)),
+                        round, 0, chosen ? 2.f : 1.f);
+            if (hot && !chosen)
+                dl->AddRect(at, br, ImGui::GetColorU32(ImGuiCol_Text), round, 0, 1.f);
+            // The name under its picture, centred when it fits and cut at the cell's edge when it does
+            // not, so a long translation never runs into its neighbour.
+            const std::string name = into_u8(presets[i].name);
+            const float       nw   = ImGui::CalcTextSize(name.c_str()).x;
+            dl->PushClipRect(ImVec2(at.x, br.y), ImVec2(br.x, br.y + label_h), true);
+            dl->AddText(ImVec2(nw < cell ? std::round(at.x + 0.5f * (cell - nw)) : at.x, br.y),
+                        ImGui::GetColorU32(ImGuiCol_Text, chosen ? 1.f : (hot ? 0.9f : 0.6f)), name.c_str());
+            dl->PopClipRect();
+            ImGui::PopID();
+        }
+        ImGui::EndChild();
+        pop_slim_scrollbar_style();
+    }
+
+    // ---- The sliders behind them ----
+    //
+    // On the card rather than in a window of their own: a filter is a starting point, and the sliders
+    // are where it is taken from there, so they belong under the filters they start from.
+    {
+        TextureAdjustments adj = current;
+        ImGui::TextDisabled("%s", _u8L("Fine-tune").c_str());
+        const auto row = [&](const char *id, const wxString &label, float *v, float v_min, float v_max,
+                             const char *format, bool enabled, const wxString &tip) {
+            const float x0 = ImGui::GetCursorPosX();
+            slider_label(label);
+            const float item_w = std::max(m_imgui->scaled(2.f), width - (ImGui::GetCursorPosX() - x0) - panel_edit_icon_room());
+            m_imgui->disabled_begin(!enabled);
+            typed_slider(id, item_w, v, v_min, v_max, format, false, tip);
+            m_imgui->disabled_end();
+        };
+        row("##chroma_adj_brightness", _L("Brightness"), &adj.brightness, -1.f, 1.f, "%.2f", true, {});
+        row("##chroma_adj_contrast", _L("Contrast"), &adj.contrast, -1.f, 1.f, "%.2f", true, {});
+        row("##chroma_adj_sharpness", _L("Sharpness"), &adj.sharpness, 0.f, 1.f, "%.2f", true,
+            _L("Brings out the finest detail in the image. Applied after Blur, so the two can be used together: "
+               "blur away the speckle, then sharpen the edges that remain."));
+        row("##chroma_adj_blur", _L("Blur"), &adj.blur, 0.f, 1.f, "%.2f", true,
+            _L("Blurs the picture. Speckle in a photograph prints as single-layer freckles, and this is what "
+               "removes it."));
+        row("##chroma_adj_hue", _L("Hue"), &adj.hue_deg, -180.f, 180.f, "%.0f°", has_color, {});
+        row("##chroma_adj_saturation", _L("Saturation"), &adj.saturation, -1.f, 1.f, "%.2f", has_color,
+            _L("How strong the colours are. A stack of a few filaments reaches a limited set of colours, and "
+               "pulling the picture towards what it can reach is often the difference between a print that "
+               "looks like the picture and one that does not."));
+        bool perceptual = adj.brightness_space == TextureBrightnessSpace::PerceptualLab;
+        if (m_imgui->bbl_checkbox(_L("Keep the colors while brightening"), perceptual))
+            adj.brightness_space = perceptual ? TextureBrightnessSpace::PerceptualLab : TextureBrightnessSpace::Rgb;
+        if (ImGui::IsItemHovered())
+            panel_tooltip(_u8L("Brightens by lightness alone, so a red stays red instead of drifting toward pink as "
+                               "it lightens. Off, the brighten is the plain per-channel one."));
+        if (adj != current)
+            apply(adj);
+    }
+
+    // What to do with a change being tried: keep it, which writes the picture to the gallery and points
+    // the layer at it, or drop it. Until then the readiness line says so, and Bake waits. Only while
+    // there is something to keep, so the step ends with the sliders the rest of the time.
+    if (ours() && !m_adjust.identity()) {
+        ImGui::Dummy(ImVec2(1.f, gap));
+        const float half = std::floor(0.5f * (width - gap));
+        GLGizmoUtils::push_orca_button_style();
+        if (ImGui::Button(_u8L("Keep").c_str(), ImVec2(half, frame_h)))
+            commit_image_adjust(layer);
+        GLGizmoUtils::pop_orca_button_style();
+        if (ImGui::IsItemHovered())
+            panel_tooltip(_u8L("Saves the picture with this filter to your pictures as a new one and prints that. "
+                               "The picture you started from stays where it was."));
+        ImGui::SameLine(0.f, gap);
+        if (ImGui::Button(_u8L("Undo").c_str(), ImVec2(half, frame_h)))
+            close_image_adjust();
+        if (ImGui::IsItemHovered())
+            panel_tooltip(_u8L("Drops the filter and goes back to the picture as it was."));
+    }
 }
 
 bool GLGizmoTextureDisplacement::load_image_adjust_source(const TextureDisplacementLayer &layer)
@@ -868,11 +1085,11 @@ void GLGizmoTextureDisplacement::open_image_adjust(const TextureDisplacementLaye
     if (!load_image_adjust_source(layer))
         return;
 
-    m_adjust           = TextureAdjustments{};
-    m_adjust_applied   = TextureAdjustments{};
-    m_adjust_slot      = layer.slot;
-    const ModelVolume *mv = texture_volume();
-    m_adjust_volume_id = mv != nullptr ? mv->id().id : 0;
+    m_adjust               = TextureAdjustments{};
+    m_adjust_applied       = TextureAdjustments{};
+    m_adjust_slot          = layer.slot;
+    const ModelVolume *mv  = texture_volume();
+    m_adjust_volume_id     = mv != nullptr ? mv->id().id : 0;
 }
 
 void GLGizmoTextureDisplacement::invalidate_adjust_textures()
@@ -899,16 +1116,25 @@ void GLGizmoTextureDisplacement::close_image_adjust()
     // reverting the newly selected object's layer instead would both miss the adjustment that is still
     // live on the original volume and clear one the user never touched.
     bool reverted = false;
+    // A ChromaStack picture carries its filter in its solve rather than on the layer (see
+    // sync_image_adjust()), so there is nothing to revert on the layer, but the solve has to run again
+    // on the picture without it.
+    int resolve_slot = -1;
     if (m_adjust_slot >= 0 && m_adjust_volume_id != 0)
         for (ModelObject *mo : wxGetApp().model().objects) {
             for (ModelVolume *mv : mo->volumes) {
                 if (mv->id().id != m_adjust_volume_id)
                     continue;
-                for (TextureDisplacementLayer &l : mv->texture_displacement_layers)
-                    if (l.slot == m_adjust_slot && !l.preview_adjust.identity()) {
+                for (TextureDisplacementLayer &l : mv->texture_displacement_layers) {
+                    if (l.slot != m_adjust_slot)
+                        continue;
+                    if (!l.preview_adjust.identity()) {
                         l.preview_adjust = TextureAdjustments{};
                         reverted         = true;
                     }
+                    if (l.chroma_enabled && !m_adjust_applied.identity())
+                        resolve_slot = l.slot;
+                }
             }
         }
 
@@ -939,6 +1165,11 @@ void GLGizmoTextureDisplacement::close_image_adjust()
     // what matters there, and that is already done above.
     if (reverted && m_state == On) {
         rebuild_preview();
+        m_parent.set_as_dirty();
+    }
+    // After the session is gone, so the solve it asks for reads the picture without the filter.
+    if (resolve_slot >= 0 && m_state == On) {
+        chroma_touch(resolve_slot);
         m_parent.set_as_dirty();
     }
 }
@@ -1054,6 +1285,14 @@ void GLGizmoTextureDisplacement::render_image_adjust_window(const ImVec2 &panel_
     // also what keeps the panel's photo and the model showing the same thing.
     if (adjust_image_of(*layer).get() != m_adjust_source_image && !load_image_adjust_source(*layer)) {
         close_image_adjust(); // the new image cannot be decoded; nothing left to adjust
+        return;
+    }
+
+    // A ChromaStack picture's adjustment is made on its card - the Picture step's filters and sliders are
+    // this window's whole content - so the window is not drawn. The sliders still have to reach the
+    // picture every frame.
+    if (layer->chroma_enabled && layer->chroma_source) {
+        sync_image_adjust(*layer);
         return;
     }
 
@@ -1254,26 +1493,7 @@ void GLGizmoTextureDisplacement::render_image_adjust_window(const ImVec2 &panel_
         m_adjust.brightness_space          = space;
     }
 
-    // Hand the sliders to the layer, which is what puts the adjusted image in front of the displacement:
-    // decode_height_texture() applies preview_adjust, so the relief, the colour and the thumbnails all
-    // follow from here. Written every frame rather than only on a change, so an undo snapshot or a
-    // reselection that resets the layer cannot leave the model showing an adjustment the panel has moved
-    // on from.
-    layer->preview_adjust = m_adjust;
-    if (m_adjust != m_adjust_applied) {
-        m_adjust_applied = m_adjust;
-        invalidate_adjust_textures();
-        // Marked dirty rather than rebuilt here: the panel's own flag is consumed by the main panel's
-        // "rebuild once the mouse is released" rule, so dragging a slider recomputes the displacement
-        // once, on release, instead of on every frame of the drag. That is what keeps the UI responsive
-        // while a full-size resample and a mesh displacement happen behind it.
-        m_preview_params_dirty = true;
-        // This window is drawn after the block that consumes that flag, so the rebuild happens on a later
-        // frame - which means there has to *be* one. Cheap insurance: a slider release that generated no
-        // further canvas event would otherwise leave the flag set and the model unchanged until something
-        // unrelated redrew.
-        m_parent.set_as_dirty();
-    }
+    sync_image_adjust(*layer);
 
     ImGui::Separator();
     m_imgui->text_wrapped(_u8L("The model updates when you release a slider. Save as copy writes the "

@@ -5,8 +5,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include <catch2/matchers/catch_matchers.hpp>
 #include "libslic3r/ChromaDiagnostics.hpp"
 #include "libslic3r/ChromaStack.hpp"
 #include "libslic3r/Color.hpp"

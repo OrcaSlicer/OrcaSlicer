@@ -1,11 +1,16 @@
 #include "ChromaStack.hpp"
 
 #include <cctype>
+#include <cstdint>
+#include <cstddef>
+#include <math.h>
 #include <set>
 
 #include <boost/nowide/fstream.hpp>
 #include <nlohmann/json.hpp>
 
+#include "Color.hpp"
+#include "Point.hpp"
 #include "Polygon.hpp"
 #include "Utils.hpp"
 // For PALETTE_EXACT_MAX_COLORS alone, which is where the tree already keeps the number of colours that
@@ -24,10 +29,13 @@
 #include <cstdlib>
 #include <numeric>
 
+#include <string>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
 
 #include <miniz.h>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 
@@ -141,6 +149,170 @@ ColorRGB chroma_srgb_to_linear(const ColorRGB &c)
     return ColorRGB(srgb_to_linear(c.r()), srgb_to_linear(c.g()), srgb_to_linear(c.b()));
 }
 
+ColorRGB chroma_kelvin_to_rgb(float kelvin)
+{
+    // Tanner Helland's fit, in hundreds of kelvin, giving 0..255 per channel. Below 6600 K red is
+    // saturated and blue falls away; above it red and green fall and blue is saturated.
+    const double t = double(std::clamp(kelvin, 1000.f, 12000.f)) / 100.;
+    double       r, g, b;
+    if (t <= 66.) {
+        r = 255.;
+        g = 99.4708025861 * std::log(t) - 161.1195681661;
+        b = t <= 19. ? 0. : 138.5177312231 * std::log(t - 10.) - 305.0447927307;
+    } else {
+        r = 329.698727446 * std::pow(t - 60., -0.1332047592);
+        g = 288.1221695283 * std::pow(t - 60., -0.0755148492);
+        b = 255.;
+    }
+    std::array<double, 3> c{ std::clamp(r, 0., 255.), std::clamp(g, 0., 255.), std::clamp(b, 0., 255.) };
+    // The brightest channel to 1: brightness is the lamp's intensity, see the declaration.
+    const double peak = std::max({ c[0], c[1], c[2], 1e-6 });
+    return ColorRGB(float(c[0] / peak), float(c[1] / peak), float(c[2] / peak));
+}
+
+// A filament's name as lower-case words of letters only, so a word is matched whole: "Silk" in
+// "PLA Silk+" and "silk-pla" both count, "Silkworm" does not.
+static std::vector<std::string> name_words(const std::string &name)
+{
+    std::vector<std::string> words;
+    std::string              word;
+    for (const char ch : name + ' ') {
+        const unsigned char u = static_cast<unsigned char>(ch);
+        if (std::isalpha(u)) {
+            word.push_back(char(std::tolower(u)));
+        } else if (!word.empty()) {
+            words.push_back(word);
+            word.clear();
+        }
+    }
+    return words;
+}
+
+ChromaFinish chroma_finish_from_name(const std::string &name)
+{
+    const std::vector<std::string> words = name_words(name);
+    // Matte first: "Matte Silk" is not a thing a maker sells, but "Silk" alone is never matte, and a
+    // name that somehow says both is closer to the duller surface.
+    for (const std::string &w : words)
+        if (w == "matte" || w == "matt" || w == "terra")
+            return ChromaFinish::Matte;
+    for (const std::string &w : words)
+        if (w == "silk" || w == "metallic" || w == "metal" || w == "pearl" || w == "starlight" || w == "elixir" ||
+            w == "glossy" || w == "shiny" || w == "satin")
+            return ChromaFinish::Glossy;
+    return ChromaFinish::Standard;
+}
+
+ChromaEffect chroma_effect_from_name(const std::string &name)
+{
+    const std::vector<std::string> words = name_words(name);
+    for (const std::string &w : words)
+        if (w == "glow" || w == "gitd" || w == "luminous" || w == "luminescent" || w == "phosphorescent")
+            return ChromaEffect::Glow;
+    for (const std::string &w : words)
+        if (w == "chameleon" || w == "shift" || w == "shifting" || w == "starlight" || w == "aurora")
+            return ChromaEffect::ColorShift;
+    return ChromaEffect::None;
+}
+
+ColorRGB chroma_default_effect_color(ChromaEffect effect, const ColorRGB &filament_color)
+{
+    const float r = filament_color.r(), g = filament_color.g(), b = filament_color.b();
+    const float hi = std::max({ r, g, b }), lo = std::min({ r, g, b });
+    if (effect == ChromaEffect::Glow) {
+        // Too little colour to have a hue of its own: the yellow-green of an ordinary glow pigment.
+        if (hi - lo < 0.15f || hi <= 1e-4f)
+            return ColorRGB(0.6f, 1.f, 0.45f);
+        return ColorRGB(r / hi, g / hi, b / hi);
+    }
+    if (effect == ChromaEffect::ColorShift) {
+        // A rotation about the grey axis by 120 degrees is a cyclic swap of the channels, which keeps
+        // lightness and saturation exactly and needs no colour space round trip.
+        return ColorRGB(b, r, g);
+    }
+    return ColorRGB(1.f, 1.f, 1.f);
+}
+
+bool chroma_has_glow(const ChromaStack &stack)
+{
+    for (const ChromaBand &band : stack.bands)
+        if (band.filament.effect == ChromaEffect::Glow)
+            return true;
+    return false;
+}
+
+// The filament each printed layer is in, bottom-up: the base first, in the bottom band's filament, then
+// the bands themselves. The one list both walks (chroma_palette() and chroma_glow_palette()) read, so the
+// two can never disagree about which layer is which. The caller checks `stack.bands` is not empty.
+static std::vector<const ChromaFilament *> chroma_layer_filaments(const ChromaStack &stack)
+{
+    std::vector<const ChromaFilament *> per_layer;
+    per_layer.reserve(size_t(std::max(0, stack.total_layers())));
+    for (int i = 0; i < std::max(0, stack.base_layers); ++i)
+        per_layer.push_back(&stack.bands.front().filament);
+    for (const ChromaBand &band : stack.bands)
+        for (int i = 0; i < band.layers; ++i)
+            per_layer.push_back(&band.filament);
+    return per_layer;
+}
+
+std::vector<ColorRGB> chroma_glow_palette(const ChromaStack &stack)
+{
+    const int total = stack.total_layers();
+    if (total <= 0 || stack.bands.empty() || stack.layer_height_mm <= 0.f)
+        return {};
+
+    const std::vector<const ChromaFilament *> per_layer = chroma_layer_filaments(stack);
+
+    std::vector<ColorRGB> out(size_t(total) + 1, ColorRGB(0.f, 0.f, 0.f));
+    std::array<float, 3>  glow{ 0.f, 0.f, 0.f };
+    for (int k = 1; k <= total; ++k) {
+        const ChromaFilament      &f    = *per_layer[size_t(k - 1)];
+        const float                t    = std::exp(-chroma_layer_density(f.td_mm, stack.layer_height_mm));
+        const std::array<float, 3> tint = backlit_tint(f.color);
+        const ColorRGB             glow_lin = f.effect == ChromaEffect::Glow ? chroma_srgb_to_linear(f.effect_color) :
+                                                                                ColorRGB(0.f, 0.f, 0.f);
+        const std::array<float, 3> emit{ glow_lin.r(), glow_lin.g(), glow_lin.b() };
+        for (int c = 0; c < 3; ++c)
+            glow[size_t(c)] = glow[size_t(c)] * t * tint[size_t(c)] + emit[size_t(c)] * (1.f - t);
+        out[size_t(k)] = ColorRGB(std::clamp(linear_to_srgb(glow[0]), 0.f, 1.f),
+                                  std::clamp(linear_to_srgb(glow[1]), 0.f, 1.f),
+                                  std::clamp(linear_to_srgb(glow[2]), 0.f, 1.f));
+    }
+    return out;
+}
+
+void chroma_make_lithophane(ChromaStack &stack, int base_layers)
+{
+    stack.lighting = ChromaLighting::BackLit;
+
+    // Darkest at the bottom. Stable, so two bands of the same lightness keep the order they had.
+    std::stable_sort(stack.bands.begin(), stack.bands.end(), [](const ChromaBand &a, const ChromaBand &b) {
+        return srgb_to_lab(a.filament.color.r(), a.filament.color.g(), a.filament.color.b()).l <
+               srgb_to_lab(b.filament.color.r(), b.filament.color.g(), b.filament.color.b()).l;
+    });
+
+    // Only a plate the picture made for itself has a backing to cut. On somebody's model the base is the
+    // model under the painted face, a measurement that says where the swaps go; a number of layers
+    // written over it would move every swap off the face, and the model would be no thinner for it.
+    if (stack.plate.generated) {
+        stack.base_auto   = false;
+        stack.base_layers = std::max(1, base_layers);
+        if (stack.plate.orientation == ChromaOrientation::FaceDown)
+            stack.plate.base_mm = std::max(stack.plate.base_mm, stack.total_mm());
+        else
+            stack.plate.base_mm = std::max(0.2f, float(stack.base_layers) * stack.layer_height_mm);
+    }
+
+    // Only a lamp nobody has touched: plain white, full intensity, not set from a temperature.
+    const bool default_lamp = stack.led_kelvin <= 0.f && stack.led_color.r() >= 1.f && stack.led_color.g() >= 1.f &&
+                              stack.led_color.b() >= 1.f;
+    if (default_lamp) {
+        stack.led_kelvin = 4000.f;
+        stack.led_color  = chroma_kelvin_to_rgb(stack.led_kelvin);
+    }
+}
+
 std::vector<ColorRGB> chroma_palette(const ChromaStack &stack)
 {
     const int total = stack.total_layers();
@@ -148,15 +320,7 @@ std::vector<ColorRGB> chroma_palette(const ChromaStack &stack)
     if (total <= 0 || stack.bands.empty() || stack.layer_height_mm <= 0.f)
         return {};
 
-    // The filament each printed layer is in, bottom-up: the base first, in the bottom band's filament,
-    // then the bands themselves.
-    std::vector<const ChromaFilament *> per_layer;
-    per_layer.reserve(size_t(total));
-    for (int i = 0; i < std::max(0, stack.base_layers); ++i)
-        per_layer.push_back(&stack.bands.front().filament);
-    for (const ChromaBand &band : stack.bands)
-        for (int i = 0; i < band.layers; ++i)
-            per_layer.push_back(&band.filament);
+    const std::vector<const ChromaFilament *> per_layer = chroma_layer_filaments(stack);
 
     std::vector<ColorRGB> palette(size_t(total) + 1);
 
@@ -2104,10 +2268,20 @@ void chroma_stack_to_json(nlohmann::json &chroma, const ChromaStack &stack)
                                         { "td_mm", band.filament.td_mm },
                                         { "color", chroma_color_to_json(band.filament.color) },
                                         { "layers", band.layers } });
+    // Only for a band that has an effect, so a stack without any writes exactly what it always did - or
+    // whose name would give it one on reading, so an effect somebody switched off stays off.
+    for (size_t i = 0; i < stack.bands.size(); ++i) {
+        const ChromaFilament &f = stack.bands[i].filament;
+        if (f.effect != ChromaEffect::None || chroma_effect_from_name(f.name) != ChromaEffect::None) {
+            bands[i]["effect"]       = int(f.effect);
+            bands[i]["effect_color"] = chroma_color_to_json(f.effect_color);
+        }
+    }
 
     chroma["lighting"]         = int(stack.lighting);
     chroma["led_color"]        = chroma_color_to_json(stack.led_color);
     chroma["led_intensity"]    = stack.led_intensity;
+    chroma["led_kelvin"]       = stack.led_kelvin;
     chroma["lighting_balance"] = stack.lighting_balance;
 
     // Only when there is something to say. An edit's mask is the largest thing in a stack by a wide
@@ -2198,6 +2372,18 @@ void chroma_stack_from_json(const nlohmann::json &chroma, ChromaStack &stack)
                 band.filament.color = chroma_color_from_json(*col, band.filament.color);
             chroma_read(b, "layers", band.layers);
             band.layers = std::max(1, band.layers);
+            // No key is a band saved before effects existed, or one without an effect; either way the
+            // name decides, as it does for a filament loaded fresh. An effect changes the preview and
+            // never the solve, so reading one in where there was none moves no colour of the picture.
+            if (const auto eff = b.find("effect"); eff != b.end() && eff->is_number_integer()) {
+                const int e          = eff->get<int>();
+                band.filament.effect = chroma_effect_from_int(e);
+            } else {
+                band.filament.effect = chroma_effect_from_name(band.filament.name);
+            }
+            band.filament.effect_color = chroma_default_effect_color(band.filament.effect, band.filament.color);
+            if (const auto ec = b.find("effect_color"); ec != b.end())
+                band.filament.effect_color = chroma_color_from_json(*ec, band.filament.effect_color);
             stack.bands.push_back(band);
         }
     }
@@ -2217,6 +2403,11 @@ void chroma_stack_from_json(const nlohmann::json &chroma, ChromaStack &stack)
     // A negative lamp is not a lamp. The upper end is left alone: an intensity above 1 is a bright
     // light, which the palette clamps rather than refuses.
     stack.led_intensity = std::max(0.f, stack.led_intensity);
+    chroma_read(chroma, "led_kelvin", stack.led_kelvin);
+    // 0 means the lamp was picked as a colour; anything else outside the range the fit covers is a
+    // number nobody chose, and reads as that.
+    if (stack.led_kelvin != 0.f && !(stack.led_kelvin >= 1000.f && stack.led_kelvin <= 12000.f))
+        stack.led_kelvin = 0.f;
 
     if (const auto imp = chroma.find("importance"); imp != chroma.end() && imp->is_object()) {
         mask_from_json(*imp, stack.importance.region);

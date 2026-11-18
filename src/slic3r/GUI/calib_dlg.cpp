@@ -4,6 +4,9 @@
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
 #include <algorithm>
+#include <libslic3r/Color.hpp>
+#include <slic3r/GUI/Widgets/SpinInput.hpp>
+#include <libslic3r/ChromaStack.hpp>
 #include <sstream>
 #include <iterator>
 #include "slic3r/GUI/Widgets/CheckBox.hpp"

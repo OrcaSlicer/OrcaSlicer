@@ -1162,6 +1162,33 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
                                                  // plate by another keeps the relief on its underside.
                                                  float                                        resting_drop = 0.f);
 
+// A preview of the relief on a painted face that is one flat plane, built straight from the height
+// map instead of through the bake's pipeline. The painted face is replaced by a regular grid in its
+// own plane, each grid vertex moved along the face's normal by the same sampler the bake reads; the
+// strip between the grid and the face's outline is filled flat, and the rest of the mesh is copied.
+//
+// It exists for the generated ChromaStack plate, whose picture face is flat by construction and whose
+// height map changes on every colour edit. The pipeline refines that face to the bake's resolution
+// on every edit, which takes seconds; this is a pass over a grid of at most `max_cells` cells, and
+// its cost does not depend on the bake's resolution setting. The grid is no finer than 1/1024 of the
+// face's longer side, which is the resolution the interactive solve runs at.
+//
+// The surface is for looking at, not for printing: the grid's outermost ring of vertices is pinned to
+// the face, so the relief ramps down over one cell at the outline (as the bake's does over one of its
+// own edges), and the flat strip meets the grid with T-junctions, which lie in the face's plane.
+//
+// Returns false when the paint is not whole triangles of one flat face, and the caller should run
+// the pipeline. Returns true with an empty `out` when `progress` asked to stop.
+bool build_texture_displacement_flat_preview(const indexed_triangle_set                  &base_mesh,
+                                             const std::vector<TextureDisplacementLayer> &layers,
+                                             const TextureDisplacementFacetsData         &facets_data,
+                                             const Transform3d                           &volume_to_world,
+                                             const Vec3d                                 &texture_anchor,
+                                             const std::vector<Vec2f>                    *model_uv,
+                                             size_t                                       max_cells,
+                                             const DisplacementProgressFn                &progress,
+                                             indexed_triangle_set                        &out);
+
 // `volume`'s mesh coordinates -> world millimetres: its first instance's transform times its own.
 // The mesh is shared by every instance, so a multi-instance object can only be baked for one of
 // them; the first is what the gizmo edits against. Identity when the volume has no object yet.

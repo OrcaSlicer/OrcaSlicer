@@ -170,6 +170,27 @@ uniform float led_intensity;
 // exactly and 1 the back-lit one, which is what keeps the mode continuous with the two it sits between.
 uniform float lighting_balance;
 
+// Slicer view: every surface the plain colour of the filament its own layer prints in, with no
+// blending and no lamp, the way a slicer's preview draws the same print. It answers "which filament is
+// where" rather than "what will it look like", so it overrides the lighting mode rather than adding to it.
+uniform int   slicer_view;
+// How glossy each band's filament is, as a multiplier on the highlight: 1 for an ordinary filament,
+// less for a matte one, more for silk and the other filaments sold on their shine (see
+// chroma_finish_from_name()). It shapes the highlight only, never the colour the walk computes, because
+// a finish changes how a surface looks and not what the stack blends to.
+uniform float band_gloss[CHROMA_MAX_BANDS];
+// Colour shifting filaments: the colour each band turns at a grazing angle, in sRGB and in linear
+// light like band_color. A band that does not shift is sent its own colour, so the mix below is a no-op
+// for it and nothing has to branch per band.
+uniform vec3  band_shift[CHROMA_MAX_BANDS];
+uniform vec3  band_shift_lin[CHROMA_MAX_BANDS];
+// Glow in the dark: what a layer of each band gives off with the lights off, in linear light, black for
+// a band that does not glow.
+uniform vec3  band_glow_lin[CHROMA_MAX_BANDS];
+// Lights off: the print drawn by its own glow alone, chroma_glow_palette()'s walk. Nothing else lights
+// it, so there is no shading, no lamp and no scene through it.
+uniform int   lights_off;
+
 // The solve's colour difference per pixel of the picture, in its red channel: 0 where the stack hit
 // the picture's colour and ERROR_DE_FULL or worse at 255. Sampled only when the overlay is on.
 uniform int       error_enabled;
@@ -337,6 +358,10 @@ void main()
     // and that case is the wall below rather than an infinite path.
     float facing = clamp(abs(dot(normalize(stack_axis), V)), 0.0, 1.0);
     float path   = 1.0 / max(facing, 0.25);
+    // How far round a colour shifting filament has turned: its own colour face on, its shift colour at
+    // a grazing angle. Measured against the surface, because the flakes that shift it lie along the
+    // surface they were extruded with.
+    float shift_t = smoothstep(0.15, 0.9, 1.0 - clamp(dot(N, V), 0.0, 1.0));
 
     // Walk the bands from the bottom, stopping at the layer this fragment sits at. `own` is the
     // filament of the band that layer belongs to, which is what the side of the print shows.
@@ -347,7 +372,9 @@ void main()
     // assumed to be behind the stack, and one walk gives both.
     vec3  stacked   = vec3(0.0);
     float clear     = 1.0;
-    vec3  own       = band_color[0];
+    vec3  own       = mix(band_color[0], band_shift[0], shift_t);
+    vec3  glow      = vec3(0.0);
+    float own_gloss = band_gloss[0];
     vec3  through   = vec3(1.0);
     // Which band the fragment's own layer fell in, for the debug views; the walk itself has no use
     // for it, since `own` already carries that band's colour.
@@ -360,7 +387,21 @@ void main()
         if (n <= 0.0)
             break;
         float t = exp(-band_density[i] * path * n);
-        stacked = (1.0 - t) * band_color_lin[i] + t * stacked;
+        stacked = (1.0 - t) * mix(band_color_lin[i], band_shift_lin[i], shift_t) + t * stacked;
+        // With the lights off: what came up from below is absorbed and tinted by this band as back-lit
+        // light is, and every one of its layers adds its own glow, (1 - T) of it escaping that layer.
+        // A run of n layers is the per-layer recursion of chroma_glow_palette() summed in closed form,
+        // a geometric series in the per-layer transmittance r; straight down, like the back-lit walk,
+        // for the same reason. Only with the lights off, the one view that reads it.
+        if (lights_off != 0) {
+            float t1  = exp(-band_density[i]);
+            vec3  tnt = chroma_backlit_tint(band_color_lin[i]);
+            vec3  r   = t1 * tnt;
+            vec3  geo = vec3(n);
+            vec3  dr  = vec3(1.0) - r;
+            geo       = mix(geo, (vec3(1.0) - pow(r, vec3(n))) / max(dr, vec3(1.0e-5)), step(vec3(1.0e-4), dr));
+            glow      = glow * exp(-band_density[i] * n) * pow(tnt, vec3(n)) + band_glow_lin[i] * (1.0 - t1) * geo;
+        }
         clear  *= t;
         // Back lit, nothing is composited over anything: what leaves the band is what it passed, so
         // the transmittances multiply - attenuated neutrally and then tinted per layer by the
@@ -376,7 +417,8 @@ void main()
         if (lighting_mode != CHROMA_LIT_FRONT)
             through *= exp(-band_density[i] * n) *
                        pow(chroma_backlit_tint(band_color_lin[i]), vec3(n));
-        own       = band_color[i];
+        own       = mix(band_color[i], band_shift[i], shift_t);
+        own_gloss = band_gloss[i];
         band_hit  = float(i);
         consumed += band_layers[i];
     }
@@ -396,12 +438,14 @@ void main()
     // Back out of linear light here and not before: everything downstream - the shading, the scatter,
     // the layer lines, the overlays - was written against an sRGB albedo and is left exactly as it was.
     vec3 composite = chroma_to_srgb((see_through != 0) ? stacked / max(1.0 - clear, 1.0e-4) :
-                                                         stacked + clear * band_color_lin[0]);
+                                                         stacked + clear * mix(band_color_lin[0], band_shift_lin[0], shift_t));
 
     // A terrace is a column seen through; a wall is the layers seen edge on. Everything between is
     // between.
     float up     = clamp(abs(world_normal.z), 0.0, 1.0);
     vec3  albedo = mix(own, composite, smoothstep(0.35, 0.8, up));
+    if (slicer_view != 0)
+        albedo = own;
 
     // How much of this fragment the plate stops, which is the alpha the blender wants.
     //
@@ -409,12 +453,12 @@ void main()
     // stacking axis and nothing whatever about how far the print reaches sideways, and the side of a
     // plate has the body of the print behind it - so the one case it could guess at is the one case the
     // guess would be wrong in.
-    float opacity = (see_through != 0) ? mix(1.0, 1.0 - clear, smoothstep(0.35, 0.8, up)) : 1.0;
+    float opacity = (see_through != 0 && slicer_view == 0) ? mix(1.0, 1.0 - clear, smoothstep(0.35, 0.8, up)) : 1.0;
 
     // Lateral scattering, on the picture's own surface only: a wall is the cut side of the layers and
     // shows its band's colour, with no picture on it to diffuse. Added as the difference the
     // neighbourhood makes, so the walk's own level and its grazing-angle darkening both survive.
-    if (scatter_enabled != 0) {
+    if (scatter_enabled != 0 && slicer_view == 0) {
         // Sampled before the picture's bounds are tested rather than inside the test, for the same
         // reason the error overlay is: a fetch under non-uniform control flow has no defined
         // derivatives, and off the picture there is nothing solved to diffuse anyway.
@@ -441,7 +485,10 @@ void main()
     diffuse      += max((dot(N, LIGHT_FRONT_DIR) + wrap) / (1.0 + wrap), 0.0) * LIGHT_FRONT_DIFFUSE;
 
     // Specular, strongest along a layer line, which is what makes a printed wall glint in stripes.
-    float spec = LIGHT_TOP_SPECULAR * pow(max(dot(V, reflect(-LIGHT_TOP_DIR, N)), 0.0), LIGHT_TOP_SHININESS);
+    // The finish shapes it: a glossy filament's highlight is brighter and tighter, a matte one's dimmer
+    // and spread out.
+    float spec = LIGHT_TOP_SPECULAR * own_gloss *
+                 pow(max(dot(V, reflect(-LIGHT_TOP_DIR, N)), 0.0), LIGHT_TOP_SHININESS * max(own_gloss, 0.25));
     spec      *= mix(1.0, 0.35 + 0.65 * groove, wall * 0.9);
 
     // Scattering out of the edges: a translucent part lights up where it is seen at a grazing angle.
@@ -452,7 +499,7 @@ void main()
     // Even a clear sheet shows the light on its own face. One alpha has to carry both the filament's
     // transmission and that reflection, so it never falls below what the surface itself sends back: a
     // fully clear fragment keeps its glint and its lit edge instead of vanishing along with the plastic.
-    if (see_through != 0)
+    if (see_through != 0 && slicer_view == 0)
         opacity = clamp(max(opacity, spec + rim * translucency * 0.55), 0.0, 1.0);
 
     // Back lit: none of that light is in the picture. A lithophane shows the LED through the column,
@@ -460,7 +507,7 @@ void main()
     // edge on to the panel with filament behind it whichever way it faces, so it keeps its own band's
     // colour at the brightness the column lets past, and the layer lines stay: a groove is thinner
     // filament, and thinner is brighter here rather than merely shaded.
-    if (lighting_mode != CHROMA_LIT_FRONT) {
+    if (lighting_mode != CHROMA_LIT_FRONT && slicer_view == 0) {
         // In linear light, and with the lamp taken into it there, because that is where
         // chroma_palette()'s walk_back() does both: the light is the lamp's colour times its intensity,
         // every band multiplies it by what that band passed, and only the result becomes an sRGB
@@ -479,6 +526,13 @@ void main()
         // Behind a back-lit plate is the panel, and what the panel sends through the plate has just
         // been drawn. Letting the scene show through as well would be that same light counted twice,
         // with the thinnest and so brightest part of a lithophane fading into the background.
+        opacity = 1.0;
+    }
+
+    // Lights off: the glow is the whole picture. The layer lines stay, since a groove is thinner
+    // filament over whatever glows under it; the shading does not, since nothing is lighting the print.
+    if (lights_off != 0 && slicer_view == 0) {
+        color   = chroma_to_srgb(glow) * lines;
         opacity = 1.0;
     }
 

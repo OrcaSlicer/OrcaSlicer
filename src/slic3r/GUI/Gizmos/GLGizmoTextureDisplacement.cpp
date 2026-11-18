@@ -141,11 +141,8 @@ GLGizmoTextureDisplacement::GLGizmoTextureDisplacement(GLCanvas3D& parent, const
     // No band's second form is open, and -1 rather than 0 is what says so: a zero-initialised array
     // would mean every card opened with its first filament already expanded.
     m_chroma_band_open.fill(-1);
-    m_chroma_open_colors.fill(true);
-    // The plate is the one closable section that starts open. It holds the dimensions of the thing
-    // being printed, which is what somebody who has just made a plate is there to set; the other two
-    // are chosen once and then left, so they start closed.
-    m_chroma_open_plate.fill(true);
+    // The divider starts in the middle, half picture and half print.
+    m_chroma_split.fill(0.5f);
 }
 
 bool GLGizmoTextureDisplacement::on_init()
@@ -205,7 +202,7 @@ bool GLGizmoTextureDisplacement::on_init()
 
 std::string GLGizmoTextureDisplacement::on_get_name() const
 {
-    return _u8L("Texture displacement");
+    return _u8L("Texture tool");
 }
 
 bool GLGizmoTextureDisplacement::on_is_activable() const
@@ -370,6 +367,11 @@ void GLGizmoTextureDisplacement::render_painter_gizmo()
     // lookup after the first frame (see rebuild_chroma_colors) and it is the only guard that cannot be
     // answered without doing the work.
     const TextureDisplacementLayer *chroma_layer       = active_layer();
+    // A picture with no painted face has nowhere to be yet. Drawn anyway, every view below would put
+    // it over the whole object, coloured in bands counted from a base that is only the default -
+    // which reads as the tool having painted something by itself.
+    if (chroma_layer != nullptr && chroma_layer->chroma_enabled && !chroma_patch(*chroma_layer).valid)
+        chroma_layer = nullptr;
     bool                            chroma_see_through = false;
     if (m_chroma_see_through && m_show_chroma_colors && !m_show_chroma_error && m_chroma_debug == 0 &&
         m_debug_stage < 0 && chroma_layer != nullptr && chroma_layer->chroma_enabled &&
@@ -576,6 +578,9 @@ bool GLGizmoTextureDisplacement::on_mouse(const wxMouseEvent &mouse_event)
         return on_mouse_adjust_texture(mouse_event);
     if (m_chroma_retouch_mode)
         return on_mouse_chroma_retouch(mouse_event);
+    // While the mode picker is up there is no layer to paint into, so the mouse is the camera's.
+    if (const ModelVolume *mv = texture_volume(); mv != nullptr && mv->texture_displacement_layers.empty())
+        return false;
 
     const bool handled = GLGizmoPainterBase::on_mouse(mouse_event);
     // A consumed drag/click is a paint (or erase) event: the base class has already updated the live
@@ -1067,16 +1072,8 @@ void GLGizmoTextureDisplacement::update_from_model_object(bool first_update)
         m_triangle_selectors.back()->request_update_render_data();
     }
 
-    // Start a freshly opened, never-textured volume with one layer already in place, so the panel is
-    // ready to paint straight away rather than showing an empty layer list. Only on first open, and
-    // only when there are none - never during an undo/redo or layer-switch reload (which also come
-    // through here), where silently adding a layer would be wrong.
-    if (first_update)
-        if (ModelVolume *tv = texture_volume(); tv != nullptr && tv->texture_displacement_layers.empty()) {
-            add_texture_layer(); // takes its own snapshot and rebuilds the preview
-            return;
-        }
-
+    // A never-textured volume opens on the mode picker (render_mode_picker()), which adds the first
+    // layer of the kind chosen there.
     rebuild_preview();
 }
 
@@ -2049,6 +2046,96 @@ void GLGizmoTextureDisplacement::heading(const wxString &text)
     m_imgui->pop_bold_font();
 }
 
+void GLGizmoTextureDisplacement::heading(const wxString &text, const std::string &summary, float card_pad)
+{
+    const float  frame_h = ImGui::GetFrameHeight();
+    const float  x0      = ImGui::GetCursorPosX();
+    const ImVec2 p       = ImGui::GetCursorScreenPos();
+    const float  w = std::max(m_imgui->scaled(2.f), ImGui::GetContentRegionMax().x - x0 - std::max(card_pad, 1.f));
+    ImGui::Dummy(ImVec2(w, frame_h));
+    ImDrawList       *dl   = ImGui::GetWindowDrawList();
+    const float       ty   = p.y + 0.5f * (frame_h - ImGui::GetFontSize());
+    const std::string name = into_u8(text);
+    m_imgui->push_bold_font();
+    dl->AddText(ImVec2(p.x, ty), ImGui::GetColorU32(ImGuiCol_Text), name.c_str());
+    m_imgui->pop_bold_font();
+    if (!summary.empty())
+        dl->AddText(ImVec2(p.x + w - ImGui::CalcTextSize(summary.c_str()).x, ty), ImGui::GetColorU32(ImGuiCol_TextDisabled),
+                    summary.c_str());
+}
+
+void GLGizmoTextureDisplacement::render_mode_picker(float panel_w, bool busy)
+{
+    const ImGuiStyle &style  = ImGui::GetStyle();
+    const ImVec4      orca   = ImGuiWrapper::COL_ORCA;
+    const bool        dark   = wxGetApp().dark_mode();
+    const float       pad    = std::round(m_imgui->scaled(0.6f));
+    const float       img    = std::round(m_imgui->scaled(5.f));
+    const float       text_x = pad + img + pad; // the text column, after the picture
+    const float       wrap_w = panel_w - text_x - pad;
+
+    // A card the width of the panel: a picture of what the mode makes beside its name and what it does,
+    // the whole card one button. The pictures are the tooltip illustrations of the same features. An
+    // animated one stands on its last frame, the finished result, and plays from the start on hover.
+    const auto card = [&](int index, const char *id, const std::string &file, const std::string &title,
+                          const std::string &text) {
+        m_imgui->push_bold_font();
+        ImFont      *title_font = ImGui::GetFont();
+        const float  title_size = ImGui::GetFontSize();
+        const ImVec2 title_sz   = ImGui::CalcTextSize(title.c_str());
+        m_imgui->pop_bold_font();
+        const ImVec2 text_sz = ImGui::CalcTextSize(text.c_str(), nullptr, false, wrap_w);
+        const ImVec2 p       = ImGui::GetCursorScreenPos();
+        const float  text_h  = title_sz.y + style.ItemSpacing.y + text_sz.y;
+        const ImVec2 size(panel_w, std::round(std::max(img, text_h) + 2.f * pad));
+        const bool   clicked = ImGui::InvisibleButton(id, size);
+        const bool   hot     = ImGui::IsItemHovered() && !busy;
+        const ImVec2 q(p.x + size.x, p.y + size.y);
+        const float  r  = style.FrameRounding + 1.f;
+        ImDrawList  *dl = ImGui::GetWindowDrawList();
+        dl->AddRectFilled(p, q, hot ? ImGui::GetColorU32(ImVec4(orca.x, orca.y, orca.z, 0.15f)) :
+                                      ImGui::GetColorU32(ImGuiCol_Text, dark ? 0.045f : 0.047f), r);
+        dl->AddRect(p, q, ImGui::GetColorU32(hot ? orca : style.Colors[ImGuiCol_Separator]), r);
+
+        const ImVec2 img_min(p.x + pad, std::round(p.y + 0.5f * (size.y - img)));
+        const ImVec2 img_max(img_min.x + img, img_min.y + img);
+        const AnimatedTexture *texture =
+            m_tip_media.get((boost::filesystem::path(resources_dir()) / "images" / "texture_displacement" / file).string());
+        if (texture != nullptr && texture->is_valid()) {
+            if (hot && m_mode_picker_hovered != index) {
+                m_mode_picker_hovered     = index;
+                m_mode_picker_hover_start = tip_now();
+            } else if (!hot && m_mode_picker_hovered == index)
+                m_mode_picker_hovered = -1;
+            const double time = hot ? tip_now() - m_mode_picker_hover_start : std::max(0., texture->duration() - 1e-3);
+            dl->AddImage((ImTextureID) (intptr_t) texture->texture_id(time), img_min, img_max);
+            if (hot && texture->is_animated())
+                m_parent.request_extra_frame(); // the canvas only redraws on demand
+        }
+        dl->AddRect(img_min, img_max, ImGui::GetColorU32(ImGuiCol_Text, 0.25f), style.FrameRounding);
+
+        const float ty = std::round(p.y + 0.5f * (size.y - text_h));
+        dl->AddText(title_font, title_size, ImVec2(p.x + text_x, ty), ImGui::GetColorU32(ImGuiCol_Text), title.c_str());
+        dl->AddText(ImGui::GetFont(), ImGui::GetFontSize(), ImVec2(p.x + text_x, ty + title_sz.y + style.ItemSpacing.y),
+                    ImGui::GetColorU32(ImGuiCol_TextDisabled), text.c_str(), nullptr, wrap_w);
+        return clicked;
+    };
+
+    ImGui::AlignTextToFramePadding();
+    heading(_L("Choose a mode"));
+    // Only the first layer: past this point the panel is the same whichever card was picked.
+    m_imgui->disabled_begin(busy);
+    if (card(0, "##mode_chroma", "chroma_colors.gif", _u8L("ChromaStack"),
+             _u8L("A color picture on a flat face, made of filament swaps: its height map is solved from the "
+                  "picture and the filaments you give it.")))
+        add_texture_layer(true);
+    if (card(1, "##mode_relief", "tile_on.png", _u8L_CONTEXT("Displacement", "Texture tool mode"),
+             _u8L("Height maps pushed into the surface where you paint them: tiles, depth and blending, in "
+                  "layers.")))
+        add_texture_layer(false);
+    m_imgui->disabled_end();
+}
+
 void GLGizmoTextureDisplacement::slider_label(const wxString &label)
 {
     const float x0 = ImGui::GetCursorPosX();
@@ -2259,7 +2346,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
     {
         const float x0 = ImGui::GetCursorPosX();
         ImGui::AlignTextToFramePadding();
-        heading(_L("Texture displacement"));
+        heading(_L("Texture tool"));
 
         const std::string labels[2] = { _u8L_CONTEXT("Standard", "Mode"), _u8L("Pro") };
         const float       seg_pad   = m_imgui->scaled(0.5f);
@@ -2311,11 +2398,24 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         ImGui::SameLine(0.f, gap_s);
         if (icon_button(806, "canvas_drag.svg", icon_sm, m_undocked ? _L("Dock panel") : _L("Undock panel"),
                         _L("Detach this panel so it can be dragged anywhere over the 3D view, or dock it back beside "
-                           "the toolbar.")))
+                           "the toolbar."))) {
             m_undocked = !m_undocked;
             wxGetApp().app_config->set_bool(UNDOCKED_CONFIG_KEY, m_undocked);
+        }
     }
     ImGui::Separator();
+
+    // ---- No layers yet: the mode picker stands in for the body and the footer ----
+    // Every control below belongs to a layer, so with none there is nothing for them to act on.
+    if (mv != nullptr && mv->texture_displacement_layers.empty()) {
+        render_mode_picker(panel_w, busy);
+        // The body and footer were not drawn, so whichever comes back next sizes itself from scratch.
+        m_panel_body_h   = 0.f;
+        m_panel_footer_h = 0.f;
+        GizmoImguiEnd();
+        ImGuiWrapper::pop_toolbar_style();
+        return;
+    }
 
     // ---- Body: everything between the header and the footer, scrolling as one. ----
     // Sized from last frame's content and footer heights (see m_panel_body_h): as tall as its content,
@@ -2336,7 +2436,6 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
     // NoScrollWithMouse: ease_wheel_scroll() eases the scroll instead of teleporting five text lines per
     // notch, which on blocks this tall lost the reader's place.
     ImGui::BeginChild("##td_body", ImVec2(panel_w, body_h), false, ImGuiWindowFlags_NoScrollWithMouse);
-    ease_wheel_scroll(m_panel_scroll_target, m_panel_scroll_applied);
 
     // Everything that changes the layer list is deferred until the list is no longer being drawn:
     // removing or reordering shifts mv->texture_displacement_layers under the pointers the loop holds,
@@ -2537,7 +2636,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                         "or dragging a slider starts to stutter - the preview then waits until you let go."));
 
         // The views of a ChromaStack layer used to be three checkboxes here, on a line of their own
-        // below this row. They are in the layer's own card now, under Views: this row is full before
+        // below this row. They are in the layer's own card now, on its Check step: this row is full before
         // they are added, and on their own line they still ran past the right edge of the panel as
         // soon as they were translated. See render_chroma_views().
 
@@ -2799,9 +2898,8 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                 // offered - but a feature with two names in one panel is a feature the user cannot ask
                 // a question about, and the name that had to go was the one not written anywhere else.
                 const wxString    chip_text   = chroma_card ? _L("ChromaStack") : _L("Relief");
-                // The same cog as a relief card, in the same place: it opens the same window on the
-                // same kind of thing, and one feature drawn two ways in one list is two features to a
-                // reader who has to find it twice.
+                // Room for the icons after the chip: a relief card's cog, order arrows and cross, and a
+                // ChromaStack card's cross alone - its cog's window opens from Fine-tune on the Picture step.
                 const float right_w = (painted ? 0.f : ImGui::CalcTextSize(not_painted.c_str()).x + gap_s) +
                                       chip_width(chip_text) + gap_s +
                                       (chroma_card ? 1.f : 4.f) * frame_h + 3.f * gap_s;
@@ -2847,25 +2945,20 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                 // Between the name and the order arrows: it acts on the image the name refers to, so it
                 // belongs with the name rather than with the controls that reorder the stack.
                 //
-                // On a ChromaStack card it edits the picture, not the height map the solve wrote (see
-                // adjust_image_of()), and there are no order arrows beside it because a picture is
-                // always the top layer and has nothing to be reordered past.
-                {
+                // Not on a ChromaStack card, whose picture step carries the filters and Fine-tune in its own
+                // rows; and no order arrows there either, because a picture is always the top layer and has
+                // nothing to be reordered past.
+                if (!chroma_card) {
                     ImGui::SameLine();
                     m_imgui->disabled_begin(busy || !adjust_image_of(layer));
                     const std::string adjust_tip =
-                        chroma_card ? _u8L("Filters, and the sliders behind them: brightness, contrast, sharpness, "
-                                           "blur, hue and saturation, each shown on your own picture. Saving writes "
-                                           "the result to your pictures as a new one and solves the stack against "
-                                           "it, leaving the picture you started from where it was.") :
-                                      _u8L("Brightness, contrast, sharpness, blur, hue and saturation, shown on the "
-                                           "image and on the model as you set them. Save as copy writes the result "
-                                           "to your texture library and points this layer at it.");
+                        _u8L("Brightness, contrast, sharpness, blur, hue and saturation, shown on the image and on the "
+                             "model as you set them. Save as copy writes the result to your texture library and points "
+                             "this layer at it.");
                     if (icon_button(613 + layer.slot, "cog.svg", frame_h, _L("Adjust image"), adjust_tip))
                         open_image_adjust(layer);
                     m_imgui->disabled_end();
-                }
-                if (!chroma_card) {
+
                     ImGui::SameLine();
                     m_imgui->disabled_begin(busy || li == 0);
                     if (icon_button(611, "texture_displacement_move_up.svg", frame_h, _L("Move up"), _L("Move up - applied earlier"))) {
@@ -2894,6 +2987,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                 // The four things the user decides, and nothing else: the picture and the print it
                 // predicts, what is wrong, how many colours, and the filaments. The solve and the swaps
                 // are not decisions - they follow the stack by themselves (see chroma_settle()).
+                chroma_follow_face(layer);
                 chroma_settle(layer);
                 render_chroma_card(layer, card_pad, card_content_w);
             } else {
@@ -2925,8 +3019,14 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                                                 { { "rotation.gif" } });
             }
 
-            if (m_layer_expanded[size_t(layer.slot)]) {
-                {
+            // A ChromaStack card shows these rows - only its placement, for a picture painted onto somebody's
+            // model - on its Plate step, rather than behind "More settings": the steps are how that card
+            // opens and closes.
+            const bool expanded_rows =
+                chroma_card ? (layer.chroma_source && m_chroma_step[size_t(layer.slot)] == ChromaStepPlate) :
+                              m_layer_expanded[size_t(layer.slot)];
+            if (expanded_rows) {
+                if (!chroma_card) {
                     // A dashed rule between the basic and the advanced settings.
                     const ImVec2 p    = ImGui::GetCursorScreenPos();
                     const float  x1   = content_rx - card_pad;
@@ -3329,10 +3429,9 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             }
             } // picture_is_the_plate
 
-            // "More settings" / "Fewer settings", drawn as a link. On a ChromaStack card it opens the
-            // plate, the light and the views instead of the texture displacement settings - see
-            // render_chroma_card() - but it is the same link and the same flag.
-            {
+            // "More settings" / "Fewer settings", drawn as a link. Not on a ChromaStack card, whose tab row is
+            // how it opens and closes.
+            if (!chroma_card) {
                 const bool        expanded = m_layer_expanded[size_t(layer.slot)];
                 const std::string text     = expanded ? _u8L("Fewer settings") : _u8L("More settings");
                 const float       arrow    = std::round(ImGui::GetFontSize() * 0.55f);
@@ -3750,6 +3849,10 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
     // Content height, for next frame's body size. The cursor position is scroll-compensated, so this is the
     // height of everything above, whether or not it is scrolled.
     m_panel_body_h = ImGui::GetCursorPosY() - style.ItemSpacing.y;
+    // After the content rather than before it, so a row inside that scrolls sideways (the ChromaStack
+    // filters) has already taken the wheel for itself when it was under the pointer. The scroll this sets
+    // lands at the next Begin either way.
+    ease_wheel_scroll(m_panel_scroll_target, m_panel_scroll_applied);
     ImGui::EndChild();
     pop_slim_scrollbar_style();
 
@@ -3802,6 +3905,10 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
     }
 
     // ---- Footer: pinned below the body, so Bake never scrolls away. ----
+    // Close is carried out at the very end of this function, not where it is clicked: closing shuts
+    // the tool down (on_shutdown() and the painter base drop the selectors, the previews and the
+    // ChromaStack state), and everything drawn after the button in this frame reads that state.
+    bool close_requested = false;
     const float footer_top = ImGui::GetCursorScreenPos().y;
     {
         TextureDisplacementOptions &opts = mv->texture_displacement_options;
@@ -3822,146 +3929,130 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
 
         ImGui::Separator();
 
-        if (!m_show_resolution) 
-            ImGui::SetNextTreeNodeOpen(false);
-        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_FramePadding;
-        ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 0); // removes extra space on tree node indentation
-        bool auto_res = opts.v2_refine_mm <= 0.f;
-        std::string quality_title = (auto_res ? _u8L("Quality") + " (" + _u8L("Auto") + ")" 
-                                              : _u8L("Quality")) // resolution value can be shown while collapsed
-                                  + "###v2quality";  // stable ID, label can change freely
+        // A heading rather than a fold: what it holds decides whether the bake is worth running, and a
+        // section that can be closed is one more place for the reason a bake came out coarse to hide.
+        bool auto_res = opts.v2_refine_mm <= 0.f; // the Auto box below writes it
         m_imgui->push_bold_font();
-        const bool quality_open = ImGui::TreeNodeEx(quality_title.c_str(), flags);
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted((auto_res ? _u8L("Quality") + " (" + _u8L("Auto") + ")" : _u8L("Quality")).c_str());
         m_imgui->pop_bold_font();
-        if (quality_open) {
-            if (!m_show_resolution) {
-                m_show_resolution = true;
-                m_imgui->set_requires_extra_frame();
-            } else {
-                // The triangle budget is the one subdivision control Standard mode keeps: its right value depends on
-                // the part rather than on the recipe (a big model, or a fine texture, simply needs more of them), and
-                // raising or lowering it is safe without understanding anything else. Pro's Subdivide uses it too.
-                ImGui::AlignTextToFramePadding();
-                if (v2) {
-                    const V2Resolution         &rec  = v2_recommendation(*mv);
+        // The triangle budget is the one subdivision control Standard mode keeps: its right value depends on
+        // the part rather than on the recipe (a big model, or a fine texture, simply needs more of them), and
+        // raising or lowering it is safe without understanding anything else. Pro's Subdivide uses it too.
+        ImGui::AlignTextToFramePadding();
+        if (v2) {
+            const V2Resolution         &rec  = v2_recommendation(*mv);
 
-                    // -1 is "auto": the row shows the recommendation, greyed; editing it makes it a fixed value.
-                    const bool auto_budget = opts.v2_max_triangles_k < 0;
-                    int        shown_k     = auto_budget ? v2_recommendation(*mv).budget_k : opts.v2_max_triangles_k;
-                    m_imgui->disabled_begin(auto_budget);
-                    // TRN Slider value: %d is the triangle budget in thousands
-                    if (int_row("##v2budget", _L("Budget"), &shown_k, 0, 4000, auto_budget ? _u8L("%d k (auto)").c_str() : "%d k", 0.f,
-                                _L("How many thousand triangles this bake may spend on the area you painted. "
-                                   "Relief already baked into the rest of the model is kept on top of it, so a "
-                                   "second bake somewhere else gets the same budget as the first. Raise it if the "
-                                   "warning below Resolution says the detail will not fit; 0 keeps every triangle "
-                                   "the refinement produced, however many that is."),
-                                { { "subdivide.gif" } })) {
-                        opts.v2_max_triangles_k = shown_k;
-                        m_preview_params_dirty  = true;
-                    }
-                    m_imgui->disabled_end();
-
-                    // The one control the default pipeline needs: the edge length its refinement targets, which
-                    // decides how much of the texture the mesh can carry. About eight texels per edge is where
-                    // fine detail (mortar joints, knurl ridges) stops being lost between vertices.
-                    m_imgui->text(_L("Resolution"));
-                    ImGui::SameLine();
-                    ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
-                    // Auto: the edge (and the budget) follow the texture and the model. Off: the slider holds
-                    // a fixed value, seeded with the recommendation so it starts from something sensible.
-                    m_imgui->disabled_begin(busy);
-                    if (m_imgui->bbl_checkbox(wxString::FromUTF8("##v2auto"), auto_res)) {
-                        if (auto_res) {
-                            opts.v2_refine_mm       = 0.f;
-                            opts.v2_max_triangles_k = -1;
-                        } else {
-                            opts.v2_refine_mm       = rec.edge_mm > 0.f ? rec.edge_mm : 0.3f;
-                            opts.v2_max_triangles_k = rec.budget_k > 0 ? rec.budget_k : 750;
-                        }
-                        m_preview_params_dirty = true;
-                        m_parent.set_as_dirty();
-                    }
-                    m_imgui->disabled_end();
-                    hover_tip(_u8L("On: the resolution follows the size of the model and the budget is left at its "
-                                   "default. Untick to set both yourself - worth doing for a texture much finer or "
-                                   "much coarser than the part it sits on."));
-                    ImGui::SameLine();
-                    float shown = auto_res ? rec.edge_mm : opts.v2_refine_mm;
-                    // Held in a local: the format outlives the call that reads it, and the slider and the
-                    // range in its tooltip are then formatted the same way.
-                    const std::string v2edge_format = auto_res ? _u8L("%.2f mm (auto)") : std::string("%.2f mm");
-                    const bool        v2edge_chosen = auto_res && rec.edge_mm > 0.f;
-                    const wxString    v2edge_tip =
-                        v2edge_chosen ?
-                            from_u8(Slic3r::format(_u8L("Chosen from the size of the model: %1$.2f mm triangles, "
-                                                        "budget %2% k. Untick Auto to set them yourself."),
-                                                   rec.edge_mm, rec.budget_k)) :
-                            _L("How fine the mesh is made under the paint, in millimetres. It has to be "
-                               "smaller than the detail you want out of the texture - a 0.5 mm groove needs "
-                               "triangles well under 0.5 mm. Smaller costs triangles fast: halving it needs "
-                               "four times as many, and once they no longer fit the budget the bake simplifies "
-                               "back down and the detail goes with it.");
-                    m_imgui->disabled_begin(busy || auto_res);
-                    if (typed_slider("##v2edge", x0 + panel_w - ImGui::GetCursorPosX() - panel_edit_icon_room(), &shown, 0.02f, 2.f,
-                                     v2edge_format.c_str(), true, v2edge_tip,
-                                     v2edge_chosen ? std::vector<TipMedia>{} : std::vector<TipMedia>{ { "subdivide.gif" } })) {
-                        opts.v2_refine_mm      = shown;
-                        m_preview_params_dirty = true;
-                        m_parent.set_as_dirty();
-                    }
-                    m_imgui->disabled_end();
-
-                    // What this resolution costs over what is painted, against what the budget allows. Refining
-                    // past the budget is not an error - the bake simplifies back down to it - but the result
-                    // then carries less of the texture than the resolution asks for, and the only sign of that
-                    // used to be a mesh that came out coarser than expected. Shown before the bake, so the
-                    // answer is to change a number rather than to wait out a bake and redo it.
-                    const float  edge_now   = auto_res ? rec.edge_mm : opts.v2_refine_mm;
-                    const int    budget_k   = opts.v2_max_triangles_k < 0 ? rec.budget_k : opts.v2_max_triangles_k;
-                    const size_t budget     = size_t(std::max(0, budget_k)) * 1000;
-                    const size_t needed     = estimated_refined_triangles(*mv, edge_now);
-                    // Only when it is clearly over: the estimate runs about 3% high where it matters and up to
-                    // a third high at coarse resolutions, where the mesh's own triangles are already near the
-                    // target, and a warning about a bake that would have fitted is worse than none.
-                    if (budget > 0 && needed > budget * 5 / 4) {
-                        // Thousands under a million: a 119 k budget shown as "0.1 M" says nothing.
-                        const auto count = [](size_t n) {
-                            return n >= 1000000 ? Slic3r::format("%1$.1f M", double(n) / 1000000.) :
-                                                  Slic3r::format("%1% k", (n + 500) / 1000);
-                        };
-                        // Wrapped to the panel, like the note under the buttons: unwrapped text runs past the
-                        // panel's edge and takes the window's width with it.
-                        ImGui::PushTextWrapPos(x0 + panel_w);
-                        m_imgui->warning_text(Slic3r::format(_u8L("Needs about %1% triangles, budget %2% - the bake "
-                                                                  "will simplify back down and lose detail."),
-                                                             count(needed), count(budget)));
-                        ImGui::PopTextWrapPos();
-                    }
-                } else {
-                    m_imgui->text(_L("Triangles"));
-                    ImGui::SameLine();
-                    ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
-                    m_imgui->disabled_begin(busy);
-                    if (typed_slider_int("##subdivbudget", x0 + panel_w - ImGui::GetCursorPosX() - panel_edit_icon_room(),
-                                         &m_subdivide_budget_k, 10, 2000, "+%d k", true,
-                                         _L("How many thousand triangles the refinement may add to the model. The triangle "
-                                            "that fits worst is always split first, so even a run that spends the lot has "
-                                            "spent it where it shows most. Raise it if the relief still looks coarse."),
-                                         { { "subdivide.gif" } })) {
-                        if (m_subdivide_editing)
-                            rebuild_subdivide_preview();
-                        m_parent.set_as_dirty();
-                    }
-                    m_imgui->disabled_end();
-                }
+            // -1 is "auto": the row shows the recommendation, greyed; editing it makes it a fixed value.
+            const bool auto_budget = opts.v2_max_triangles_k < 0;
+            int        shown_k     = auto_budget ? v2_recommendation(*mv).budget_k : opts.v2_max_triangles_k;
+            m_imgui->disabled_begin(auto_budget);
+            // TRN Slider value: %d is the triangle budget in thousands
+            if (int_row("##v2budget", _L("Budget"), &shown_k, 0, 4000, auto_budget ? _u8L("%d k (auto)").c_str() : "%d k", 0.f,
+                        _L("How many thousand triangles this bake may spend on the area you painted. "
+                           "Relief already baked into the rest of the model is kept on top of it, so a "
+                           "second bake somewhere else gets the same budget as the first. Raise it if the "
+                           "warning below Resolution says the detail will not fit; 0 keeps every triangle "
+                           "the refinement produced, however many that is."),
+                        { { "subdivide.gif" } })) {
+                opts.v2_max_triangles_k = shown_k;
+                m_preview_params_dirty  = true;
             }
-            ImGui::TreePop();
-        } else if (m_show_resolution) {
-            m_show_resolution = false;
-            m_imgui->set_requires_extra_frame();
+            m_imgui->disabled_end();
+
+            // The one control the default pipeline needs: the edge length its refinement targets, which
+            // decides how much of the texture the mesh can carry. About eight texels per edge is where
+            // fine detail (mortar joints, knurl ridges) stops being lost between vertices.
+            m_imgui->text(_L("Resolution"));
+            ImGui::SameLine();
+            ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
+            // Auto: the edge (and the budget) follow the texture and the model. Off: the slider holds
+            // a fixed value, seeded with the recommendation so it starts from something sensible.
+            m_imgui->disabled_begin(busy);
+            if (m_imgui->bbl_checkbox(wxString::FromUTF8("##v2auto"), auto_res)) {
+                if (auto_res) {
+                    opts.v2_refine_mm       = 0.f;
+                    opts.v2_max_triangles_k = -1;
+                } else {
+                    opts.v2_refine_mm       = rec.edge_mm > 0.f ? rec.edge_mm : 0.3f;
+                    opts.v2_max_triangles_k = rec.budget_k > 0 ? rec.budget_k : 750;
+                }
+                m_preview_params_dirty = true;
+                m_parent.set_as_dirty();
+            }
+            m_imgui->disabled_end();
+            hover_tip(_u8L("On: the resolution follows the size of the model and the budget is left at its "
+                           "default. Untick to set both yourself - worth doing for a texture much finer or "
+                           "much coarser than the part it sits on."));
+            ImGui::SameLine();
+            float shown = auto_res ? rec.edge_mm : opts.v2_refine_mm;
+            // Held in a local: the format outlives the call that reads it, and the slider and the
+            // range in its tooltip are then formatted the same way.
+            const std::string v2edge_format = auto_res ? _u8L("%.2f mm (auto)") : std::string("%.2f mm");
+            const bool        v2edge_chosen = auto_res && rec.edge_mm > 0.f;
+            const wxString    v2edge_tip =
+                v2edge_chosen ?
+                    from_u8(Slic3r::format(_u8L("Chosen from the size of the model: %1$.2f mm triangles, "
+                                                "budget %2% k. Untick Auto to set them yourself."),
+                                           rec.edge_mm, rec.budget_k)) :
+                    _L("How fine the mesh is made under the paint, in millimetres. It has to be "
+                       "smaller than the detail you want out of the texture - a 0.5 mm groove needs "
+                       "triangles well under 0.5 mm. Smaller costs triangles fast: halving it needs "
+                       "four times as many, and once they no longer fit the budget the bake simplifies "
+                       "back down and the detail goes with it.");
+            m_imgui->disabled_begin(busy || auto_res);
+            if (typed_slider("##v2edge", x0 + panel_w - ImGui::GetCursorPosX() - panel_edit_icon_room(), &shown, 0.02f, 2.f,
+                             v2edge_format.c_str(), true, v2edge_tip,
+                             v2edge_chosen ? std::vector<TipMedia>{} : std::vector<TipMedia>{ { "subdivide.gif" } })) {
+                opts.v2_refine_mm      = shown;
+                m_preview_params_dirty = true;
+                m_parent.set_as_dirty();
+            }
+            m_imgui->disabled_end();
+
+            // What this resolution costs over what is painted, against what the budget allows. Refining
+            // past the budget is not an error - the bake simplifies back down to it - but the result
+            // then carries less of the texture than the resolution asks for, and the only sign of that
+            // used to be a mesh that came out coarser than expected. Shown before the bake, so the
+            // answer is to change a number rather than to wait out a bake and redo it.
+            const float  edge_now   = auto_res ? rec.edge_mm : opts.v2_refine_mm;
+            const int    budget_k   = opts.v2_max_triangles_k < 0 ? rec.budget_k : opts.v2_max_triangles_k;
+            const size_t budget     = size_t(std::max(0, budget_k)) * 1000;
+            const size_t needed     = estimated_refined_triangles(*mv, edge_now);
+            // Only when it is clearly over: the estimate runs about 3% high where it matters and up to
+            // a third high at coarse resolutions, where the mesh's own triangles are already near the
+            // target, and a warning about a bake that would have fitted is worse than none.
+            if (budget > 0 && needed > budget * 5 / 4) {
+                // Thousands under a million: a 119 k budget shown as "0.1 M" says nothing.
+                const auto count = [](size_t n) {
+                    return n >= 1000000 ? Slic3r::format("%1$.1f M", double(n) / 1000000.) :
+                                          Slic3r::format("%1% k", (n + 500) / 1000);
+                };
+                // Wrapped to the panel, like the note under the buttons: unwrapped text runs past the
+                // panel's edge and takes the window's width with it.
+                ImGui::PushTextWrapPos(x0 + panel_w);
+                m_imgui->warning_text(Slic3r::format(_u8L("Needs about %1% triangles, budget %2% - the bake "
+                                                          "will simplify back down and lose detail."),
+                                                     count(needed), count(budget)));
+                ImGui::PopTextWrapPos();
+            }
+        } else {
+            m_imgui->text(_L("Triangles"));
+            ImGui::SameLine();
+            ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
+            m_imgui->disabled_begin(busy);
+            if (typed_slider_int("##subdivbudget", x0 + panel_w - ImGui::GetCursorPosX() - panel_edit_icon_room(),
+                                 &m_subdivide_budget_k, 10, 2000, "+%d k", true,
+                                 _L("How many thousand triangles the refinement may add to the model. The triangle "
+                                    "that fits worst is always split first, so even a run that spends the lot has "
+                                    "spent it where it shows most. Raise it if the relief still looks coarse."),
+                                 { { "subdivide.gif" } })) {
+                if (m_subdivide_editing)
+                    rebuild_subdivide_preview();
+                m_parent.set_as_dirty();
+            }
+            m_imgui->disabled_end();
         }
-        ImGui::PopStyleVar(1); // ImGuiStyleVar_IndentSpacing
 
         const float button_h = std::round(frame_h * 1.25f);
         const float button_w = std::max({
@@ -4003,6 +4094,14 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             if (!state.ready)
                 chroma_block = state.text;
         }
+        // A filter being tried on a picture is checked on every layer, not only the active one: the
+        // filter row does not make its card active, and a bake would print the filter all the same.
+        if (chroma_block.empty() && mv != nullptr)
+            for (const TextureDisplacementLayer &l : mv->texture_displacement_layers)
+                if (l.chroma_enabled && !chroma_live_adjust(l).identity()) {
+                    chroma_block = chroma_readiness(l).text;
+                    break;
+                }
         // Read before Close below, which releases the selection any_part_painted() finds the parts through.
         const bool        painted    = mv != nullptr && any_part_painted();
         const bool        can_bake   = !busy && painted && chroma_block.empty();
@@ -4045,7 +4144,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             hover_tip(_u8L("Stops the bake. Whatever it had already finished stays on the model, and can be undone."));
         } else {
             if (ImGui::Button((_u8L("Close") + "##close").c_str(), ImVec2(button_w, button_h)))
-                m_parent.reset_all_gizmos();
+                close_requested = true;
             hover_tip(_u8L("Closes the tool without baking. Your paint, layers and settings stay with the model."));
         }
 
@@ -4112,6 +4211,9 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
     // Drawn last, over everything, via the foreground draw list: the +/- add-remove sign next to the 3D
     // cursor. Still inside the gizmo's ImGui frame here, which is what render_paint_cursor_hint() needs.
     render_paint_cursor_hint();
+
+    if (close_requested)
+        m_parent.reset_all_gizmos();
 }
 
 } // namespace Slic3r::GUI

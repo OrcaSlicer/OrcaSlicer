@@ -58,6 +58,12 @@ absorption pass 5% of the light, which is where the eye stops seeing through. Th
 against how the community's TD step prints behave, not derived from first principles - TD is an
 empirical scale.
 
+HueForge's wiki words TD as the thickness of a block that stops 95% of the light, which read literally
+is ten times this scale. HueForge's own prints, a few millimetres thick, could not blend at that scale,
+and AutoForge, the open HueForge-compatible solver, reaches full coverage at `0.1 * TD`. The scale here
+is that one; only the curve differs, AutoForge's coverage rising as the square root of thickness where
+this is an exponential, and the two agree within a few percent at both ends of a run.
+
 How fast that happens is the single most useful fact about a stack, and `chroma_layers_to_opaque()`
 is it: a filament hides what is under it at about a tenth of its TD, so how many *layers* that takes
 depends entirely on how thick they are. TD 4 covers in two layers at 0.2 mm and in five at 0.08 mm.
@@ -108,6 +114,21 @@ linear light, which is the only space where adding two lights means anything, by
 sets. It is a mode rather than a view because the sum is a different set of colours from either walk,
 and a stack chosen against the lamp alone washes out the moment room light lands on it. The balance is
 part of the palette and so is part of the solve key.
+
+Because those three are what make a lithophane rather than the light alone, the panel has one action
+that does all of them, `chroma_make_lithophane()`: it lights the stack from behind, sorts the bands
+darkest first by lightness while keeping each band's layer count, cuts a generated plate's base to two
+layers and takes it off automatic, and gives a lamp still at the plain default a neutral 4000 K. A
+picture painted onto a model keeps its base, which there is the model under the face and says where
+the swaps go. It does not invert the
+picture: the solve matches colours against the back-lit palette, where a tall column is a dark one, so
+it already puts the thick columns where the picture is dark.
+
+The lamp is chosen the way lamps are sold: three whites by colour temperature, the five coloured LEDs,
+a white of any temperature, or any colour. A temperature becomes a colour through
+`chroma_kelvin_to_rgb()`, a fit to the blackbody locus normalised so its brightest channel is 1, since
+brightness is the lamp's intensity and not its colour. The palette reads only `led_color`;
+`led_kelvin` is kept so the panel can show the temperature a white was given.
 
 ## The solve
 
@@ -373,8 +394,12 @@ slider's own text, since a layer number means nothing on a stack whose layer hei
 else.
 
 The use it is for: stop just below a band and then just above it, and see whether the picture moved.
-If it did not, that band is paying for a filament swap and buying nothing, and `Trim wasted layers`
+If it did not, that band is paying for a filament swap and buying nothing, and `Trim layers`
 should have caught it.
+
+It is not on the card, and neither are the preview's softening, seeing through the thin places, or
+the debug views below. Each is for taking a solve apart rather than for making a picture, and each
+rests at the value the preview is judged by: the whole stack, softened, opaque, with no debug view.
 
 ### Where a fragment sits on the stack
 
@@ -540,14 +565,48 @@ It is offered only for a generated plate. A printed layer is a horizontal slice 
 that is a sheet over the picture only while the picture is a flat rectangle lying on the bed; a
 picture painted onto somebody's model has the surface pass and nothing else.
 
+### Slicer view and finish
+
+Slicer view draws every surface in the plain colour of the filament its own layer prints in, with no
+blending and no lamp: which filament is where, the way the sliced preview will show it, as opposed to
+what the print will look like. It is a uniform on the same shader rather than a pass of its own, and a
+view rather than a setting, so it is not saved.
+
+A filament's finish shapes the preview's highlight and nothing else: a silk and a matte PLA of the same
+colour and TD blend identically, so the finish can never change what the solve picks. No preset carries
+a finish, and every maker puts one in the product's name, so `chroma_finish_from_name()` reads it from
+the words there - silk, metallic, pearl, starlight and the like are glossy, matte and terra are matte -
+and the shader scales the band's highlight by it, brighter and tighter for gloss, dimmer and wider for
+matte.
+
+### Glow and colour shift
+
+A filament can have one secondary effect, as in HueForge: glow in the dark, or a colour that shifts
+with the viewing angle. Like the finish, it is read from the filament's name to begin with
+(`chroma_effect_from_name()`), with a starting colour from `chroma_default_effect_color()`, and both
+can be changed per filament in the light section. Neither changes what the solve picks: the solve
+matches the picture lit and seen face on, which is exactly what both effects leave alone. The effect is
+saved on the band, and a band saved without one takes it from its name.
+
+Glow is a view, lights off, offered only when something glows. `chroma_glow_palette()` is its model:
+every layer of a glowing filament gives off its effect colour, `(1 - T)` of it escaping the layer, and
+every layer on the way out absorbs and tints what passes the way the back-lit walk does. So a glowing
+base shows through a translucent stack and is hidden by an opaque top. The shader walks the same
+recursion per band in closed form, a geometric series in the per-layer transmittance, and the panel's
+ramp shows the glow palette while the view is on.
+
+Colour shift is in the ordinary view: each band's colour in the walk is mixed toward its shift colour
+by how far from face on the surface is seen, measured against the surface normal because the pigment
+flakes lie along the surface. It applies to reflected light only; back lit, the transmitted tint is the
+filament's own.
+
 ### Debug views
 
 A preview that looks wrong cannot say why. A stack whose relief never reached the mesh, a picture
 that landed somewhere else on the model, and a walk that genuinely came out dark all end as the same
 flat wash of the top filament, and no amount of looking at that wash separates them. So the shader
-can draw what it works from instead of what it predicts, one quantity at a time, chosen from a combo
-in the card's light and detail section. The C++ enum and the shader's `CHROMA_DBG_*` are the same
-numbers under the same names and have to be changed together.
+can draw what it works from instead of what it predicts, one quantity at a time. The C++ enum and
+the shader's `CHROMA_DBG_*` are the same numbers under the same names and have to be changed together.
 
 Each one rules out a different cause, and they are listed in the order worth trying:
 
@@ -653,6 +712,13 @@ swept moulding is not a height map and splitting a sweep by Z planes is differen
 
 ## What the panel shows
 
+The panel belongs to the Texture tool. A volume with no layers opens on a picker with two cards,
+ChromaStack and Displacement, each beside a picture of what it makes, and the one clicked adds the
+first layer of that kind. The picker is
+not a mode the panel stays in: once a layer exists the panel is the same whichever card was chosen,
+and it comes back only when the last layer is removed. While it is up the brush does nothing, since
+there is no layer for a stroke to land in.
+
 The kind of a layer is the layer's own, chosen when it is added. The chip in the card's header is
 also the control that changes it: there are two kinds and one of them is the current one, so the chip
 is the switch rather than something that opens a switch, and clicking it converts. Converting keeps
@@ -668,7 +734,7 @@ rather than when its swaps would overwrite the first one's.
 The card carries the four things a user decides and nothing else: which picture, which filaments in
 what order and how deep, whether the result is good enough, and - as a single row of `2 3 4 6` -
 how many colours to spend. Everything else is either derived or rare, and either shows as a state
-chip or sits behind More settings.
+chip or sits on a later step of the card.
 
 ### The solve and the swaps are not buttons
 
@@ -682,6 +748,14 @@ rule about whose they are. The stack remembers a fingerprint of what it last wro
 (`ChromaStack::applied_ranges`); the automatic path writes only when the ranges are empty or still
 match that fingerprint, and otherwise leaves them exactly as they are and says so with a chip, with
 a button that asks before replacing them. The panel never takes over something it was not given.
+
+Nor does it write swaps for a picture with nowhere to go. The swaps sit at the height of the painted
+face, which is what the base counts up to, so until a face is painted there is no height to put them
+at, and the default base would land the colours a few layers above the bed. The 3D view leaves such a
+picture out for the same reason; the card still shows it, solved, so the choice of picture and
+filaments can be made before the face is. For a picture painted onto
+a model the base follows that face (`chroma_follow_face()`), every frame and whichever step is open,
+since the paint can change on any of them.
 
 ### Saving one
 
@@ -815,6 +889,16 @@ does to a palette of thirty colours, so each filter is shown as a thumbnail of *
 it. They are chosen for what a filament print needs - more bite, fewer colours, opened shadows,
 removed speckle, no colour at all - rather than for a look.
 
+The filters are on the card itself, on its first step, as a grid of those thumbnails, because most
+pictures want one and nobody has to understand a slider to pick it. Picking one tries it: the solve
+reads the picture through the filter (`chroma_live_adjust()`), so the prediction beside the picture
+answers at once. The filter goes to the solve rather than to the layer's own preview adjustment,
+which is applied to whatever a layer's image is, and a ChromaStack layer's image is the height map
+the solve wrote - adjusting that would sharpen the answer rather than the question. Keep commits it,
+Undo drops it, and the sliders under the filters take it from there, on the card as well. Until it is
+kept or dropped, a filter lives in this panel and nowhere else, so the readiness line says so and Bake
+waits for it: a bake would print it, and the project would reopen on the picture without it.
+
 Committing an adjustment writes a new picture into the user's gallery and points the layer at it,
 which is the same shape as the relief path: the edit becomes an asset of its own, so the picture it
 came from is still there and the edited one can be used again on another plate.
@@ -837,6 +921,19 @@ millimetres means nothing on a row of its own and everything next to the profile
 the frame off is the gallery's first cell for the same reason - it is a choice made while looking at
 frames - and so is cutting the plate to an SVG silhouette, which is a separate choice from the
 moulding swept around it and can be used with any frame in the gallery.
+
+A cross-section runs from the plate's outer edge (x 0) to the picture (x 1), and every shipped frame
+rises toward the picture: it starts at the backing at the outside, climbs to its full rise at the
+picture's edge, and drops back to the backing there, so the picture sits in a raised surround. The
+drop is written into each definition as a last sample at `[1, 0]`; the builder forces the last
+sample onto the picture's surface anyway, and without that sample the climb would be pulled down
+into a slope over the last step. A project keeps the section it was built with (`profile_points`),
+so editing a shipped definition never reshapes a plate that has already been saved.
+
+Choosing another picture for such a plate reshapes the plate to it: the plate is the picture, so a
+portrait laid on a plate built for a landscape would be the picture in the wrong frame. The longer
+side keeps the size it had, since that is the size the plate was given, and the rebuild lays the new
+picture over the new face and solves it again.
 
 A fresh pick takes the moulding's own width and rise, because proportions are part of what makes a
 frame look like itself; a width the user has set survives browsing the gallery, because that is a
@@ -905,24 +1002,36 @@ the blend settles on anyway, so nothing about a flat picture changes.
 
 ### The shape of the card
 
-Four blocks in the order of the work, so the card carries the task's sequence rather than leaving the
-reader to find it:
+The before and after sit at the top as one image at the picture's own shape: the picture on one side
+of a divider and the print on the other, with the divider dragged across to compare them. A picture
+squeezed into a square is not the picture, and two half-width thumbnails side by side were too small
+for the one judgement the card is for. The line saying whether this is ready to print is under it,
+because every step changes the image and every step is judged by it. Under that the card is four steps,
+in the order of the work, and only one of them is on the card at a time:
 
-1. **The picture** - the source row, the before and after at the top where they get the most space,
-   one line saying whether this is ready to print, and the brush that corrects what those two
-   previews show. A problem bar sits above it when there is one.
+1. **Picture** - which picture, and the filters and fine adjustments it is solved through.
 2. **Colors** - the ramp first, because it reads the whole stack at once and settles whether any of
-   it is worth printing; then one row per filament, top of the stack first; then the two ways of
+   it is worth printing; then one row per filament, top of the stack first; then the ways of
    choosing the whole stack again.
-3. **The plate** - every dimension of the physical thing, which is why the base and which way up it
-   prints are among them. Closable, and open by default, with its size in the header while closed.
-4. **Light and detail** - chosen once for a picture and then left, so it starts closed.
+3. **Plate** - every dimension of the physical thing, which is why the base and which way up it
+   prints are among them, and then the light it is seen in, which is chosen once for a picture.
+4. **Check** - whether it is ready to bake, the colour analysis that says why the print looks the way
+   it does, and the brush that corrects what the previews show, its settings and the corrections made
+   with it always on the step.
 
-Where the picture sits on the model (its size there, its angle, the mapping, the handle that moves
-it) is a fifth block, but only for a picture painted onto somebody's model. A generated plate pins
-all of it - the picture *is* the plate - so for one of those the block is absent rather than merely
-disabled. A control that cannot act is worse than one that is not there, because the reader has to
-work out which it is.
+Steps rather than sections that fold, because the card's problem was its height: four sections open
+at once were taller than the panel, and the previews the whole card is judged by scrolled away while
+the rows under them were changed. A step keeps the card as tall as one step, and its tab row says
+where the rest is. Two arrows under the open step go back and on, with no words of their own because
+the tab row already names every step; there is no forward arrow on Check, because what comes after
+checking is the panel's own Bake. Leaving a step puts down what it was holding: the brush
+belongs to Check and the placement handle to Plate, and neither stays live with its controls gone.
+
+Where the picture sits on the model (its size there, its angle, the handle that moves it) is part of
+the Plate step, but only for a picture painted onto somebody's model. A generated plate pins all of it
+- the picture *is* the plate - so for one of those the rows are absent rather than merely disabled. A
+control that cannot act is worse than one that is not there, because the reader has to work out which
+it is.
 
 A filament's row is two lines. The first holds the three things that get changed: which filament, how
 many layers, and the chevron that opens the rest. The second is derived and never interactive: how
@@ -940,15 +1049,15 @@ question the whole card is there to answer.
   over the image: amber when the filaments cannot reach the picture, green when they do, the
   separator grey when it is merely close, and the accent colour while the stack is settling. It is a
   property of that picture, so it is drawn on it.
-- **Whether this is ready** is one derived line under the previews: no picture, no filaments, still
-  working it out, the worst thing `chroma_problems()` found, or that it is ready to bake. Bake's
-  reason for being disabled is the same sentence from the same function, because two readings of one
-  state are two things that can come to disagree, and the place a user looks for "can I print this
-  yet" must not contradict the button they are looking at.
-- **Everything else wrong** is a bar at the top of the card: the first problem in a sentence, the one
-  action that answers it when there is one, and a count of the rest with the full list in its
-  tooltip. It was a single amber triangle, which could carry neither the sentence nor the action, and
-  it is the one thing on the card that is about the object rather than about a control on it.
+- **What is wrong** is one bar under the image, and only when there is something to say: the reason
+  it cannot be baked yet, the warning that the filaments cannot reach the picture, or the worst thing
+  `chroma_problems()` found, in a sentence, with a count of the rest whose tooltip is all of them, and
+  the one action that answers it when there is one. A card with nothing wrong shows no bar, and the
+  solve running is said by the chip on the image rather than by a bar that comes and goes with every
+  edit. Bake's reason for being disabled is the same sentence from the same function, because two
+  readings of one state are two things that can come to disagree.
+- **Whether this is ready** is a line at the top of the Check step - "Ready to bake." or why not -
+  since that step is where the question is asked.
 - **Whether the base follows the model** is a padlock beside the field, with the state in words
   beside it: closed-means-automatic is not a thing a reader can guess.
 
@@ -966,12 +1075,12 @@ prose as the problem needs when there is.
 
 The base is a measurement rather than a setting: it follows the painted face unless the padlock is
 opened, which is why it sits among the plate's dimensions instead of among the stack's. The lighting
-and the dither are the card's closed section because neither is touched on a normal pass: back lit is
-a different print of the same picture, chosen once, and the lamp's colour and brightness only exist
-when it is on.
+and the dither come after the plate's dimensions on the same step because neither is touched on a
+normal pass: back lit is a different print of the same picture, chosen once, and the lamp's colour and
+brightness only exist when it is on.
 
-The printed-colour overlay is a view, so its switch is in the View row with the other views rather
-than inside a layer's card, and the error overlay is the second switch beside it. Both draw the same
+The printed-colour overlay is on while a picture's card is open, and its switches - with the error
+overlay beside it - are not on the card, which keeps to the view a picture is judged by. Both draw the same
 surface through the same shader: one shows what the stack will print, the other how far that is from
 the picture. Which is why the error view opens the overlay on its own - it is the one case where the
 overlay is wanted with the colours off.

@@ -33,6 +33,7 @@
 #include <wx/image.h>
 #include <wx/panel.h>
 #include <wx/pen.h>
+#include <wx/peninfobase.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/string.h>

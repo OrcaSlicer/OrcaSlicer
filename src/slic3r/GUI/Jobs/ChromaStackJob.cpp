@@ -1,9 +1,14 @@
 #include "ChromaStackJob.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <exception>
+#include <memory>
+#include <functional>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -131,7 +136,8 @@ ChromaSolveResult chroma_run_solve(ChromaSolveInput &input, const std::function<
     // the image, and the cache is keyed by that buffer, so re-solving never decodes the PNG twice.
     // The cache guards itself with a mutex, which is what makes this safe from a worker.
     TextureDisplacementLayer probe;
-    probe.image_data = layer.chroma_source;
+    probe.image_data     = layer.chroma_source;
+    probe.preview_adjust = input.source_adjust;
     const DecodedHeightTexture source = decode_height_texture(probe);
     prof.step("decode", std::to_string(source.width) + "x" + std::to_string(source.height));
     if (source.empty() || stop())

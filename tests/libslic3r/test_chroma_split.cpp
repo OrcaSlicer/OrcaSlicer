@@ -12,6 +12,8 @@
 #include <utility>
 #include <vector>
 
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/ChromaSplit.hpp"
 #include "libslic3r/ChromaStack.hpp"
 #include "libslic3r/Point.hpp"

@@ -13,9 +13,11 @@
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
+#include <ratio>
 #include <sstream>
 #include <string>
 #include <thread>
+#include <utility>
 
 namespace Slic3r {
 

@@ -112,6 +112,10 @@ struct ChromaSolveInput
     // or 0 to leave them. A per-run option rather than part of the stack, like the dither cell: it is
     // a property of the printer the relief is going to, not of the picture.
     int                                      despike_layers    = 0;
+    // The filter the picture is being tried with and has not been saved under yet, applied to the
+    // picture as it is decoded. Not the layer's preview_adjust: on a ChromaStack layer that one would
+    // land on the height map the solve wrote rather than on the picture it reads.
+    TextureAdjustments                       source_adjust;
 };
 
 struct ChromaSolveResult

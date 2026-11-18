@@ -286,9 +286,9 @@ protected:
 
     wxString handle_snapshot_action_name(bool shift_down, Button button_down) const override;
 
-    std::string get_gizmo_entering_text() const override { return _u8L("Entering Texture displacement painting"); }
-    std::string get_gizmo_leaving_text() const override { return _u8L("Leaving Texture displacement painting"); }
-    std::string get_action_snapshot_name() const override { return _u8L("Texture displacement editing"); }
+    std::string get_gizmo_entering_text() const override { return _u8L("Entering Texture tool"); }
+    std::string get_gizmo_leaving_text() const override { return _u8L("Leaving Texture tool"); }
+    std::string get_action_snapshot_name() const override { return _u8L("Texture tool editing"); }
 
     // The panel's Paint / Erase toggle swaps what the two buttons do, so the right button always does the
     // opposite of the left. Shift still erases in both modes (GLGizmoPainterBase::gizmo_event()).
@@ -694,6 +694,9 @@ private:
     // Called every frame; does the work once the stack has been still for a moment, since a solve on
     // every keystroke of a layer count would be a stutter and a reslice each time.
     void chroma_settle(TextureDisplacementLayer &layer);
+    // Keeps an automatic base at the height of the painted face, for a picture painted onto a model.
+    // Called every frame, before chroma_settle(), so painting on any step moves the swaps with the face.
+    void chroma_follow_face(TextureDisplacementLayer &layer);
     // Marks the stack as changed. The debounce starts from the last change, so a drag settles once.
     void chroma_touch(int slot);
     std::array<int64_t, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_settle_at{}; // ms, 0 = nothing pending
@@ -777,37 +780,67 @@ private:
     // are a filament's own settings, and two rows open at once is a list that no longer reads as a
     // stack.
     std::array<int, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_band_open{};
-    // Whether each of the card's closable sections is open, per layer. Panel state rather than the
-    // layer's: which section somebody left open is a fact about this sitting at the screen, not about
-    // the print, and a project file is the wrong place to keep it.
-    std::array<bool, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_open_plate{};
-    std::array<bool, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_open_light{};
-    std::array<bool, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_open_views{};
-    // Whether the half of Views that is for taking a solve apart is unfolded. One flag for the panel
-    // rather than one per layer: it is a way of working, not a property of a picture.
-    bool m_chroma_open_debug = false;
-    // Colors starts open, unlike the rest: it is the section the card is mostly for, and a card that
-    // opens with nothing but five folded headers on it says nothing about the picture above them.
-    std::array<bool, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_open_colors{};
+    // The card's four steps, in the order of the work: the picture, the colours it is printed in, the
+    // plate and its light, and checking the result. One of them is on the card at a time.
+    enum ChromaStep
+    {
+        ChromaStepPicture = 0,
+        ChromaStepColors,
+        ChromaStepPlate,
+        ChromaStepCheck,
+        ChromaStepCount
+    };
+    // Which step each layer's card is on. Panel state rather than the layer's: which step somebody is
+    // on is a fact about this sitting at the screen, not about the print, and a project file is the
+    // wrong place to keep it.
+    std::array<int, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_step{};
+    // Where the divider between the picture and its print sits, as a fraction of the image's width.
+    std::array<float, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_split{};
     // The layer whose before and after is enlarged over the canvas, or -1.
     int m_chroma_zoom_slot = -1;
-    // The whole of a ChromaStack card: four blocks in the order of the work - the picture and what it
-    // is predicted to print, the colours it is printed in, the plate that comes out of the printer,
-    // and the two settings that are chosen once. The blocks below are its sections rather than
+    // The whole of a ChromaStack card: the picture and what it is predicted to print, whether it is
+    // ready, the row of steps, and the step that is open. The blocks below are its steps rather than
     // separate cards, and are called only from here.
     void render_chroma_card(TextureDisplacementLayer &layer, float card_pad, float content_w);
+    // Moves a card to another step, putting down whatever the step being left was holding: the brush
+    // belongs to Check and the placement handle to Plate.
+    void chroma_set_step(TextureDisplacementLayer &layer, int step);
+    // A generated plate's dimensions changed: its frame is resolved again, the plate rebuilt and the
+    // stack solved, on the next settle.
+    void chroma_plate_changed(TextureDisplacementLayer &layer);
     // The plate's own dimensions: every row here is a measurement of the thing that comes off the bed,
     // which is why the base and which way up it prints are among them.
     void render_chroma_plate(TextureDisplacementLayer &layer, float card_pad, bool has_ramp);
     // Where the light is and how the rounding error is spread. Both are chosen once for a picture and
-    // neither is touched on a normal pass, so the section is closed until it is wanted.
-    void render_chroma_light(TextureDisplacementLayer &layer);
-    // How the picture is drawn rather than what is printed: the overlays over the model, the softening
-    // the preview applies, the layer slider and the debug views. Nothing in it reaches the project.
+    // neither is touched on a normal pass.
+    void render_chroma_light(TextureDisplacementLayer &layer, float card_pad);
+    // The switches for what is drawn over the model: the printed colours, the printed layers, the error,
+    // the slicer's view and the glow. Not on the card at present (see its definition). Nothing in it
+    // reaches the project.
     void render_chroma_views(TextureDisplacementLayer &layer);
+    // The picture's filters, each one a thumbnail of this picture under it, in a row that scrolls, and
+    // the sliders behind them. A change opens the adjustment on this picture without its window, and
+    // the solve follows it live; Keep writes it to the gallery and Undo drops it. Lives with the adjust
+    // window, whose session it drives.
+    void render_chroma_filters(TextureDisplacementLayer &layer, float width);
+    // A layer's picture at thumbnail size, decoded and shrunk once per picture: the source thumbnail and
+    // the filter thumbnails are both made from it, so dragging a slider re-filters 128 px, not the photo.
+    const DecodedHeightTexture &chroma_thumb_base(const TextureDisplacementLayer &layer);
+    std::array<DecodedHeightTexture, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_thumb_base;
+    std::array<const void *, TEXTURE_DISPLACEMENT_MAX_LAYERS>         m_chroma_thumb_base_key{};
+    // Per layer, the filter thumbnails and the picture they were made from.
+    std::array<std::vector<std::unique_ptr<GLTexture>>, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_filter_thumbs;
+    std::array<const void *, TEXTURE_DISPLACEMENT_MAX_LAYERS>                          m_chroma_filter_key{};
+    // The adjustment a picture is being solved and shown with: the adjust session's, while that is
+    // open on this layer, and none otherwise.
+    TextureAdjustments chroma_live_adjust(const TextureDisplacementLayer &layer) const;
     // The before and after at the size of the canvas, for a judgement a 190 px thumbnail cannot carry.
     // Drawn over the 3D view rather than in the panel, and closed by anything that dismisses a modal.
     void render_chroma_zoom();
+    // The chart of a solve's colours against the stack's reach, into any rectangle: the Check step's
+    // small copy and the window it opens both draw it. `scale` sizes the dots and the line.
+    void draw_chroma_diag_plot(ImDrawList *dl, const ChromaDiagnostics &diag, const ImVec2 &origin, float w, float h,
+                               float scale);
     // The hue-against-lightness chart and the ranked findings, over the 3D view. A modal for the same
     // reason the zoom is one: the panel is 420 px wide and a scatter of a picture's colours is not a
     // thing that fits in a column.
@@ -824,6 +857,7 @@ private:
         std::string text;
         ImVec4      color;
         bool        ready = false; // nothing is stopping a bake
+        bool        warn  = false; // said in the warning colour: a filter being tried, or colours out of reach
     };
     ChromaReadiness chroma_readiness(const TextureDisplacementLayer &layer) const;
 
@@ -851,6 +885,12 @@ private:
     // to the stack costs a palette upload rather than a mesh rebuild.
     size_t  m_chroma_color_key = 0;
     bool                       m_show_chroma_colors = true;
+    // Slicer view: the overlay draws each surface in the plain colour of the filament its layer prints
+    // in, with no blending and no lamp. A view, not a setting, so it is not saved with the project.
+    bool                       m_chroma_slicer_view = false;
+    // Lights off: the overlay draws the print by its own glow, for a stack with a glow in the dark
+    // filament in it. A view, like slicer view.
+    bool                       m_chroma_lights_off = false;
     // The other thing the overlay can draw: how far the stack landed from the picture, per pixel.
     //
     // The card can only report one number for the whole picture, and "4.8 on average" does not say that
@@ -976,6 +1016,8 @@ private:
     // The source picture's thumbnail, beside the prediction, keyed by the image it was built from.
     std::array<std::unique_ptr<GLTexture>, TEXTURE_DISPLACEMENT_MAX_LAYERS>  m_chroma_source_thumb;
     std::array<const void *, TEXTURE_DISPLACEMENT_MAX_LAYERS>                m_chroma_source_key{};
+    // The filter the source thumbnail was drawn under, so picking another redraws it.
+    std::array<TextureAdjustments, TEXTURE_DISPLACEMENT_MAX_LAYERS>          m_chroma_source_adjust{};
 
     // Paint / Erase, from the panel. See get_left_button_state_type().
     bool m_erase_mode = false;
@@ -1021,6 +1063,14 @@ private:
     // Collects a finished preview and starts one for the current slider values. One at a time, so a drag
     // coalesces into "whatever the sliders last said" instead of a queue of superseded frames.
     void update_image_adjust_preview();
+
+    // Hands the sliders to the layer every frame the session is open, whether or not its window is drawn.
+    // A relief layer takes them as its preview_adjust; a ChromaStack picture takes them as the input to
+    // its solve (see chroma_live_adjust()), because its own image is the height map the solve wrote.
+    void sync_image_adjust(TextureDisplacementLayer &layer);
+    // Whether the adjust session is this layer's: slots are numbered per volume, so the volume it was
+    // opened on is part of the answer, or one object's adjustment lands on another object's layer.
+    bool adjust_session_on(const TextureDisplacementLayer &layer) const;
 
     int                m_adjust_slot = -1; // the layer the panel is open for; -1 when closed
     TextureAdjustments m_adjust;           // what the sliders currently say
@@ -1670,8 +1720,6 @@ private:
     // The config key behind m_undocked.
     static constexpr const char *UNDOCKED_CONFIG_KEY = "texture_displacement_panel_undocked";
 
-    bool m_show_resolution = false;
-
     // Smooth scrolling for a child window, called inside it: the panel body (everything between the header
     // and the pinned Bake footer) and the texture library's grid. ImGui jumps a fixed number of lines per
     // wheel notch, which on tall layer cards reads as a hard jolt rather than a scroll. The child sets
@@ -1783,6 +1831,14 @@ private:
     // A short vertical rule between groups of buttons on one row; call it right after an item.
     void vsep(float h);
     void heading(const wxString &text);
+    // A heading across the row with what it adds up to on the right, in the disabled colour. A
+    // ChromaStack step's: not a control, since the steps are what open and close.
+    void heading(const wxString &text, const std::string &summary, float card_pad);
+    // What the panel shows while the volume has no layers: ChromaStack or Displacement, each adding
+    // the first layer of its kind.
+    void render_mode_picker(float panel_w, bool busy);
+    int    m_mode_picker_hovered     = -1; // the card whose picture is playing, -1 for none
+    double m_mode_picker_hover_start = 0.;
     // The label column of a row, clamped to one width so every field starts at the same x.
     void slider_label(const wxString &label);
 

@@ -38,6 +38,9 @@ Several in one tooltip are laid out side by side at equal widths, which is how a
 comparison - the same model at two values of it. The caption under each is translated; the file name
 is not.
 
+The Texture tool's mode picker draws two of them on its cards, `chroma_colors.gif` and `tile_on.png`,
+so replacing either changes the picker as well.
+
 A file that is missing or will not decode is skipped, and a tooltip whose pictures are all missing is
 exactly the text tooltip it was before. So the art for a tooltip can land after the tooltip does, and
 a half-finished set never breaks the panel.

@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <cereal/cereal.hpp>
@@ -15,6 +16,7 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include "Color.hpp"
+#include "Point.hpp"
 #include "TransmissionDistance.hpp"
 #include "TriangleMesh.hpp"
 
@@ -48,6 +50,14 @@ namespace Slic3r {
 // filament of TD 2 stops hiding what is under it at roughly 0.2 mm, i.e. after two or three layers,
 // while one of TD 8 needs most of a millimetre. The model below turns that into a per-layer
 // transmittance; see chroma_palette().
+//
+// HueForge's own wiki words TD as the thickness of a solid block that stops 95% of the light, which
+// read literally is ten times this. Its prints say otherwise - a four-colour HueForge is a few
+// millimetres thick, and a white of TD 5 could not cover anything in that - and so does AutoForge,
+// the open HueForge-compatible solver, whose coverage model reaches full coverage at `0.1 * TD`
+// (`reach` in its OptimizerHelper.py). The scale here is that one. The curve differs: AutoForge's
+// coverage rises as the square root of thickness and stops, this one is an exponential with three
+// e-folds over the same depth, and the two agree within a few percent at both ends of the run.
 static constexpr float CHROMA_TD_OPAQUE_FRACTION = 0.1f;
 
 // What a fresh stack gets above the base. Twenty-four layers is about two millimetres at a fine layer
@@ -79,6 +89,32 @@ static constexpr float CHROMA_MAX_TILT_DEG = 60.f;
 // a limit on patience rather than on the model; the palette itself is bounded by the layer count.
 static constexpr size_t CHROMA_MAX_BANDS = 16;
 
+// What a filament does besides absorbing light, which the colour model's two numbers cannot say.
+//
+// Neither changes what the solve picks: the solve matches the picture as it looks lit from the front
+// (or behind) and seen face on, and that is what both of these leave alone. They change what the
+// preview shows - the print in the dark, the print seen at an angle - which is what HueForge calls a
+// secondary effect, and like HueForge a filament has at most one.
+enum class ChromaEffect : int
+{
+    None       = 0,
+    // Glow in the dark: the pigment stores light and gives it back with the lamps off, from inside
+    // every layer printed in it, so what reaches the eye has come out through the layers above.
+    Glow       = 1,
+    // Colour shifting (chameleon, starlight): the colour seen depends on the angle it is seen from,
+    // `ChromaFilament::color` face on and `effect_color` at a grazing angle.
+    ColorShift = 2,
+};
+
+// An effect as a project or a cache stores it, a number. Anything it does not know is no effect: a
+// value from a newer version is better read as none than as the wrong one.
+inline ChromaEffect chroma_effect_from_int(int e)
+{
+    return e == int(ChromaEffect::Glow)       ? ChromaEffect::Glow :
+           e == int(ChromaEffect::ColorShift) ? ChromaEffect::ColorShift :
+                                                ChromaEffect::None;
+}
+
 // One filament as the colour model sees it: what colour it is, and how far light gets into it.
 struct ChromaFilament
 {
@@ -102,11 +138,23 @@ struct ChromaFilament
     // would make a layer infinitely opaque and a negative value is meaningless.
     float    td_mm = 4.f;
 
+    // The secondary effect, and the one colour it needs: the light a glowing filament gives off, or the
+    // colour a shifting one turns at a grazing angle. Ignored with no effect. Taken from the preset's
+    // name when the filament is loaded (chroma_effect_from_name()) and editable per filament after.
+    ChromaEffect effect       = ChromaEffect::None;
+    ColorRGB     effect_color = ColorRGB(1.f, 1.f, 1.f);
+
     template<class Archive> void serialize(Archive &ar)
     {
         float r = color.r(), g = color.g(), b = color.b();
         ar(filament, r, g, b, td_mm, name);
         color = ColorRGB(r, g, b);
+        // Appended, never reordered; see ChromaStack::serialize().
+        int   e  = int(effect);
+        float er = effect_color.r(), eg = effect_color.g(), eb = effect_color.b();
+        ar(e, er, eg, eb);
+        effect       = chroma_effect_from_int(e);
+        effect_color = ColorRGB(er, eg, eb);
     }
 };
 
@@ -488,6 +536,10 @@ struct ChromaStack
     // columns all show white and the picture loses its highlights, which is the honest prediction.
     ColorRGB led_color     = ColorRGB(1.f, 1.f, 1.f);
     float    led_intensity = 1.f;
+    // The colour temperature `led_color` was set from, in kelvin, or 0 when it was picked as a colour.
+    // `led_color` is what the palette reads either way; this is only kept so the panel can show the
+    // temperature a white lamp was given rather than an RGB triple nobody chose.
+    float    led_kelvin    = 0.f;
 
     // How much of a both-lit picture is the lamp behind it: 0 is the front-lit print exactly, 1 the
     // back-lit one exactly, and a half is a plate on a window sill at dusk. Ignored in the other two
@@ -537,6 +589,7 @@ struct ChromaStack
         ar(importance);
         ar(lighting_balance);
         ar(match_strictness);
+        ar(led_kelvin);
     }
 };
 
@@ -601,6 +654,78 @@ std::vector<ColorRGB> chroma_palette(const ChromaStack &stack);
 // then disagree with the thing they are previews of. A caller hands these to the shader instead of
 // carrying a second copy of the curve.
 ColorRGB chroma_srgb_to_linear(const ColorRGB &c);
+
+// The colour of a white lamp of the given colour temperature, in sRGB, with its brightest channel at 1.
+//
+// Brightness is the lamp's intensity and not its colour, so the peak is normalised away: a 2700 K
+// lamp and a 6500 K one at the same intensity differ only in hue, which is what a back-lit print shows
+// as "the same picture, warmer". Clamped to 1000..12000 K, which covers every white LED sold and stays
+// inside the range the fit below is good for (Tanner Helland's fit to the blackbody locus).
+ColorRGB chroma_kelvin_to_rgb(float kelvin);
+
+// How a filament's surface returns light, which is what the preview's highlight follows. A colour
+// model has no use for it - a silk and a matte PLA of the same colour and TD blend identically - so
+// it changes the look of the preview and never what the solve picks.
+enum class ChromaFinish : int
+{
+    Standard = 0,
+    Matte    = 1,
+    Glossy   = 2, // silk, metallic, pearl and the other filaments sold on their shine
+};
+
+// The finish a filament's own name says it has, by the words the makers use for it. A preset carries
+// no finish of its own, and the name is where every maker puts one: "PLA Silk", "PLA Matte",
+// "Starlight". Whole words, any case, so "Silkworm Grey" is not a silk. Standard when the name says
+// nothing.
+ChromaFinish chroma_finish_from_name(const std::string &name);
+
+// Turns a stack into a lithophane in one step: lit from behind, the darkest filament at the bottom,
+// and a backing of `base_layers` rather than an opaque slab.
+//
+// Back lit the light crosses the whole column, so the order that makes the long ramp front lit starves
+// everything above a dark band of light; the bands are therefore re-sorted darkest first, by
+// lightness, keeping each band's own layer count. The base is part of every colour now rather than a
+// backing behind them, which is why it is cut to a layer or two and taken off automatic: there is no
+// opaque face left for the automatic base to measure to. A generated plate printed face up follows
+// with its own backing; face down the plate has to stay thick enough to hold the whole stack, so its
+// backing only grows. A picture painted onto a model keeps its base: there it is the model under the
+// painted face, a measurement of where the swaps go rather than a backing that can be cut. A lamp still at the plain default is set to a neutral 4000 K white, the LED a
+// lithophane is usually lit by; a lamp somebody chose is left alone.
+//
+// The picture's tone is not inverted. The solve matches colours against the back-lit palette, where a
+// tall column is a dark one, so it already puts the thick columns where the picture is dark.
+void chroma_make_lithophane(ChromaStack &stack, int base_layers = 2);
+
+// The effect a filament's name says it has, by the words makers sell it under: glow, luminous, GITD
+// for a glow in the dark filament, chameleon, colour shift, starlight, aurora for a colour shifting one.
+// Whole words, any case. None when the name says nothing, which is every ordinary filament.
+ChromaEffect chroma_effect_from_name(const std::string &name);
+
+// The effect colour a filament gets before anybody sets one. A glow pigment glows in roughly its own
+// hue, so a coloured glow filament gets its colour at full brightness; a white or grey one is the
+// common strontium aluminate, which glows yellow-green. A shifting filament gets its own hue turned a
+// third of the way round the wheel, a stand-in that at least shows there is a shift until the real
+// second colour is entered. White for no effect.
+ColorRGB chroma_default_effect_color(ChromaEffect effect, const ColorRGB &filament_color);
+
+// Whether any band, the base included, glows.
+bool chroma_has_glow(const ChromaStack &stack);
+
+// What every column height looks like with the lights off, in sRGB: entry k is a column of exactly k
+// printed layers, the same shape as chroma_palette(). Black throughout for a stack with nothing that
+// glows.
+//
+// Every layer of a glowing filament gives off its effect colour, and every layer on the way out - its
+// own included - absorbs and tints what passes, exactly as the back-lit walk does:
+//
+//     G_k = G_(k-1) * T_k * tint_k + E_k * (1 - T_k)
+//
+// where E_k is the layer's emission (its effect colour in linear light, or nothing) and (1 - T_k) is
+// the share of a layer's own glow that is not lost inside it, which is also what makes a thick run of
+// glow filament saturate at its effect colour instead of growing without bound. So a glowing base under
+// a translucent stack shows through it, and the same base under an opaque top band is dark: which is
+// what a glow print does.
+std::vector<ColorRGB> chroma_glow_palette(const ChromaStack &stack);
 
 // What chroma_solve() produced.
 struct ChromaSolve

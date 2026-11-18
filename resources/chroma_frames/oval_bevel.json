@@ -6,7 +6,7 @@
   "rise_mm": 3.5,
   "outline": { "shape": "ellipse" },
   "profile": [
-    [0.0, 1.0], [0.2, 1.0], [1.0, 0.0]
+    [0.0, 0.0], [0.8, 1.0], [1.0, 1.0], [1.0, 0.0]
   ],
   "profile_scaling": "stretch",
   "legacy_profile": "bevel"

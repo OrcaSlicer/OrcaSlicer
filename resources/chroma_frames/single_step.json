@@ -6,7 +6,7 @@
   "rise_mm": 2.5,
   "outline": { "shape": "rectangle" },
   "profile": [
-    [0.0, 1.0], [0.5, 1.0], [0.5, 0.0], [1.0, 0.0]
+    [0.0, 0.0], [0.5, 0.0], [0.5, 1.0], [1.0, 1.0], [1.0, 0.0]
   ],
   "profile_scaling": "stretch",
   "legacy_profile": "step"

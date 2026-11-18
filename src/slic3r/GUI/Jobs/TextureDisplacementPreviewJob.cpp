@@ -55,6 +55,18 @@ void TextureDisplacementPreviewJob::process(Ctl &ctl)
     m_results.resize(m_input.volumes.size());
     for (size_t i = 0; i < m_input.volumes.size(); ++i) {
         const TextureDisplacementPreviewVolume &volume = m_input.volumes[i];
+        // The flat preview has no per-triangle colour to report, so a colouring stack takes the pipeline.
+        if (volume.flat_preview_cells > 0 && color == nullptr &&
+            build_texture_displacement_flat_preview(volume.base_mesh, volume.layers, volume.facets_data,
+                                                    volume.volume_to_world, volume.texture_anchor,
+                                                    volume.model_uv.empty() ? nullptr : &volume.model_uv,
+                                                    volume.flat_preview_cells, still_wanted, m_results[i].mesh)) {
+            if (!still_wanted(0)) {
+                m_results.clear();
+                return;
+            }
+            continue;
+        }
         if (color != nullptr)
             color_request.out_triangle = &m_results[i].triangle_color;
         m_results[i].mesh = build_texture_displacement(volume.base_mesh, volume.layers, volume.facets_data,

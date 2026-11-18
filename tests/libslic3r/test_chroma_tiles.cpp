@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <cstddef>
 #include <cstdint>
 #include <sstream>
 #include <vector>
@@ -8,6 +9,7 @@
 #include <cereal/archives/binary.hpp>
 #include <nlohmann/json.hpp>
 
+#include <catch2/matchers/catch_matchers.hpp>
 #include "libslic3r/ChromaStack.hpp"
 #include "libslic3r/ChromaTiles.hpp"
 #include "libslic3r/Color.hpp"

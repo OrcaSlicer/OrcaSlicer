@@ -5,12 +5,14 @@
 #include <functional>
 #include <map>
 #include <optional>
+#include <slic3r/GUI/GUI_Utils.hpp>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include <wx/bitmap.h>
 #include <wx/brush.h>
+#include <wx/chartype.h>
 #include <wx/colour.h>
 #include <wx/control.h>
 #include <wx/dc.h>
@@ -28,6 +30,7 @@
 #include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/timer.h>
+#include <wx/toplevel.h>
 #include <wx/window.h>
 
 #include "GUI.hpp"

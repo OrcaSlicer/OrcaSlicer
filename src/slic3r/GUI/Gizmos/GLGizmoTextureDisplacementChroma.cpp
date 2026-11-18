@@ -232,7 +232,26 @@ bool GLGizmoTextureDisplacement::render_chroma_colors(const TextureDisplacementL
                             chroma_layer_density(band.filament.td_mm, layer.chroma.layer_height_mm));
         shader->set_uniform(("band_layers" + idx).c_str(),
                             float(band.layers + (i == 0 ? std::max(0, layer.chroma.base_layers) : 0)));
+        // The highlight's strength for this band's filament, from the finish its name declares. Set
+        // for every band on every pass: an unset uniform is 0, which would take the highlight off.
+        const ChromaFinish finish = chroma_finish_from_name(band.filament.name);
+        shader->set_uniform(("band_gloss" + idx).c_str(), finish == ChromaFinish::Matte  ? 0.35f :
+                                                          finish == ChromaFinish::Glossy ? 2.5f :
+                                                                                           1.f);
+        // The secondary effect, sent for every band so a band without one costs nothing to branch on:
+        // a band that does not shift turns into its own colour, and one that does not glow gives off
+        // black.
+        const ChromaFilament &f     = band.filament;
+        const ColorRGB        shift = f.effect == ChromaEffect::ColorShift ? f.effect_color : f.color;
+        shader->set_uniform(("band_shift" + idx).c_str(), shift);
+        shader->set_uniform(("band_shift_lin" + idx).c_str(), chroma_srgb_to_linear(shift));
+        shader->set_uniform(("band_glow_lin" + idx).c_str(),
+                            f.effect == ChromaEffect::Glow ? chroma_srgb_to_linear(f.effect_color) : ColorRGB(0.f, 0.f, 0.f));
     }
+    shader->set_uniform("slicer_view", m_chroma_slicer_view ? 1 : 0);
+    // Only while something glows: with nothing to give light, lights off is a black plate, and the
+    // toggle is not offered then either.
+    shader->set_uniform("lights_off", (m_chroma_lights_off && chroma_has_glow(layer.chroma)) ? 1 : 0);
     // The direction the stack is built along, in eye space: what the view ray's path through it is
     // measured against, and the whole reason this is composited here rather than looked up.
     const Vec3d axis = view_matrix.matrix().block(0, 0, 3, 3) * Vec3d(0., 0., 1.);
@@ -640,7 +659,9 @@ TextureDisplacementLayer *GLGizmoTextureDisplacement::chroma_layer_in_slot(int s
 
 // How long the stack has to hold still before the solve runs. Long enough that dragging a layer count
 // through ten values solves once at the end, short enough that letting go feels like it answered.
-static constexpr int64_t CHROMA_SETTLE_MS = 350;
+// A drag never settles while it is held (chroma_settle() waits for no item to be active), so this
+// only has to outlast the gap between keystrokes and clicks.
+static constexpr int64_t CHROMA_SETTLE_MS = 200;
 
 // ---- ChromaStack ---------------------------------------------------------------------------------
 
@@ -690,6 +711,10 @@ std::vector<ChromaFilament> GLGizmoTextureDisplacement::chroma_filaments()
                 }
             }
         }
+        // The secondary effect, from the name for the same reason the finish is: no preset carries
+        // one, and every maker puts it in what the spool is called.
+        f.effect       = chroma_effect_from_name(f.name);
+        f.effect_color = chroma_default_effect_color(f.effect, f.color);
         out.push_back(f);
     }
     return out;
@@ -1088,6 +1113,27 @@ void GLGizmoTextureDisplacement::chroma_apply_plate(int slot, ChromaPlateResult 
     m_parent.set_as_dirty();
 }
 
+// A plate the picture's shape, its longer side `longest` millimetres: a photograph stretched to a shape
+// that is not its own is not the photograph any more. `aspect` is the picture's width over its height.
+static void chroma_plate_fit(ChromaPlate &plate, float longest, float aspect)
+{
+    aspect          = std::max(0.05f, aspect);
+    plate.width_mm  = aspect >= 1.f ? longest : longest * aspect;
+    plate.height_mm = aspect >= 1.f ? longest / aspect : longest;
+}
+
+void GLGizmoTextureDisplacement::chroma_plate_changed(TextureDisplacementLayer &layer)
+{
+    if (layer.slot < 0 || size_t(layer.slot) >= TEXTURE_DISPLACEMENT_MAX_LAYERS)
+        return;
+    // The frame's cross-section is resolved against the picture's size and the backing under it, so any
+    // change to the plate can invalidate it. Re-resolving costs a polyline and saves the moulding quietly
+    // drifting out of proportion as the plate is resized.
+    chroma_refresh_frame(layer);
+    m_chroma_plate_dirty[size_t(layer.slot)] = true;
+    chroma_touch(layer.slot);
+}
+
 void GLGizmoTextureDisplacement::create_picture_plate()
 {
     Plater *plater = wxGetApp().plater();
@@ -1116,13 +1162,11 @@ void GLGizmoTextureDisplacement::create_picture_plate()
     const float aspect = layer_texture_aspect(probe);
     ChromaPlate plate;
     plate.generated = true;
-    if (aspect >= 1.f) {
-        plate.width_mm  = CHROMA_PLATE_DEFAULT_MM;
-        plate.height_mm = CHROMA_PLATE_DEFAULT_MM / std::max(0.05f, aspect);
-    } else {
-        plate.height_mm = CHROMA_PLATE_DEFAULT_MM;
-        plate.width_mm  = CHROMA_PLATE_DEFAULT_MM * std::max(0.05f, aspect);
-    }
+    // No frame until one is picked from the gallery: the picture runs to the edge of the plate. Set
+    // here rather than in ChromaFrame's default, which is also what a project saved without a frame
+    // entry reads back.
+    plate.frame.width_mm = 0.f;
+    chroma_plate_fit(plate, CHROMA_PLATE_DEFAULT_MM, aspect);
 
     const ChromaPlateMesh mesh = chroma_plate_mesh(plate);
     if (mesh.empty()) {
@@ -1235,6 +1279,18 @@ void GLGizmoTextureDisplacement::chroma_set_picture(int slot, const std::string 
     layer.invert       = false;
     layer.midlevel     = 0.f;
 
+    // A plate the picture made for itself takes the new picture's shape: the plate *is* the picture, and
+    // a portrait laid on a plate built for a landscape is a picture squeezed into the wrong frame. The
+    // longer side keeps the size it had, since that is the size the plate was given. The rebuild this
+    // asks for lays the picture over the new face and solves it again (see chroma_apply_plate()).
+    if (layer.chroma.plate.generated) {
+        TextureDisplacementLayer probe;
+        probe.image_data   = layer.chroma_source;
+        ChromaPlate &plate = layer.chroma.plate;
+        chroma_plate_fit(plate, std::max(plate.width_mm, plate.height_mm), layer_texture_aspect(probe));
+        chroma_plate_changed(layer);
+    }
+
     chroma_fit_picture(layer);
 
     if (layer.chroma.bands.empty()) {
@@ -1339,6 +1395,19 @@ uint64_t GLGizmoTextureDisplacement::chroma_solve_key(const TextureDisplacementL
     // and the key has to read the member directly - but it goes into chroma_solve_input() and changes
     // the height map, so a key that leaves it out pins the solve to whatever it was first set to.
     mix(m_chroma_despike ? 1 : 0);
+    // A filter being tried on the picture. It is read through chroma_solve_input() rather than from the
+    // stack, so a key that leaves it out would keep the solve on the unfiltered picture while the
+    // card's thumbnail showed the filtered one.
+    {
+        const TextureAdjustments adj = chroma_live_adjust(layer);
+        mix_f(adj.brightness);
+        mix_f(adj.contrast);
+        mix_f(adj.sharpness);
+        mix_f(adj.blur);
+        mix_f(adj.hue_deg);
+        mix_f(adj.saturation);
+        mix(uint64_t(int(adj.brightness_space)));
+    }
 
     // The lamp, which decides every colour in the palette when the light comes from behind.
     mix(uint64_t(int(layer.chroma.lighting)));
@@ -1457,7 +1526,28 @@ bool GLGizmoTextureDisplacement::chroma_solve_input(const TextureDisplacementLay
     // Off unless the user asked for it, and at the value the solve recommends rather than a number of
     // this panel's own: how many layers make a spike is a question about the solve, not about the card.
     out.despike_layers = m_chroma_despike ? CHROMA_DESPIKE_LAYERS_RECOMMENDED : 0;
+    out.source_adjust  = chroma_live_adjust(layer);
     return true;
+}
+
+const DecodedHeightTexture &GLGizmoTextureDisplacement::chroma_thumb_base(const TextureDisplacementLayer &layer)
+{
+    static const DecodedHeightTexture none;
+    if (layer.slot < 0 || size_t(layer.slot) >= TEXTURE_DISPLACEMENT_MAX_LAYERS || !layer.chroma_source)
+        return none;
+    const size_t slot = size_t(layer.slot);
+    if (m_chroma_thumb_base_key[slot] != layer.chroma_source.get()) {
+        TextureDisplacementLayer probe;
+        probe.image_data            = layer.chroma_source;
+        m_chroma_thumb_base[slot]   = downscale_height_texture(decode_height_texture(probe), THUMBNAIL_MAX_PX);
+        m_chroma_thumb_base_key[slot] = layer.chroma_source.get();
+    }
+    return m_chroma_thumb_base[slot];
+}
+
+TextureAdjustments GLGizmoTextureDisplacement::chroma_live_adjust(const TextureDisplacementLayer &layer) const
+{
+    return layer.chroma_enabled && adjust_session_on(layer) ? m_adjust_applied : TextureAdjustments{};
 }
 
 void GLGizmoTextureDisplacement::chroma_apply_solve(int slot, ChromaSolveResult &&result)
@@ -1898,6 +1988,15 @@ void GLGizmoTextureDisplacement::chroma_apply_swaps(TextureDisplacementLayer &la
     ModelObject *mo = m_c->selection_info()->model_object();
     if (mo == nullptr)
         return;
+    // The swaps sit at the height of the face the picture is painted on, which is what the base counts
+    // up to. With nothing painted there is no such height and the base is only its default, so writing
+    // them would put the picture's colours a few layers above the bed. The solve that follows the first
+    // stroke measures the base, and the swaps are written then.
+    if (!chroma_patch(layer).valid) {
+        if (!silent)
+            show_error(nullptr, _u8L("Paint the face the picture goes on first."));
+        return;
+    }
     const std::vector<ChromaRange> ranges = chroma_ranges(layer.chroma, 0.);
     if (ranges.empty() || chroma_swaps_applied(layer))
         return;
@@ -1942,6 +2041,20 @@ void GLGizmoTextureDisplacement::chroma_touch(int slot)
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
             .count() +
         CHROMA_SETTLE_MS;
+}
+
+void GLGizmoTextureDisplacement::chroma_follow_face(TextureDisplacementLayer &layer)
+{
+    // A generated plate's base is its own number, kept on the Plate step (render_chroma_plate()).
+    if (layer.chroma.plate.generated || !layer.chroma.base_auto)
+        return;
+    // The base is everything of the model under the painted face, so it changes with the paint - and
+    // the paint changes on whichever step is open, which is why this is not left to the Plate step.
+    const int measured = chroma_measured_base(layer);
+    if (measured > 0 && measured != layer.chroma.base_layers) {
+        layer.chroma.base_layers = measured;
+        chroma_touch(layer.slot);
+    }
 }
 
 void GLGizmoTextureDisplacement::chroma_settle(TextureDisplacementLayer &layer)
@@ -2355,10 +2468,11 @@ void GLGizmoTextureDisplacement::chroma_pick_colors(TextureDisplacementLayer &la
         return;
     // Spending layers on colours the one below already showed is never what was asked for.
     chroma_trim_bands(picked);
-    picked.base_auto      = layer.chroma.base_auto;
-    picked.dither         = layer.chroma.dither;
-    picked.applied_ranges = layer.chroma.applied_ranges;
-    layer.chroma          = std::move(picked);
+    // The bands are the pick's whole answer: its layer height and base are the ones it was handed. So
+    // only they are replaced. Taking the stack whole reset everything else on it to its defaults - the
+    // light, the retouch, the importance mask, and the plate, whose `generated` going false turned a
+    // picture's own plate into a picture on somebody's model, with that card's placement rows.
+    layer.chroma.bands = std::move(picked.bands);
     m_chroma_pick_count[size_t(layer.slot)] = count;
     chroma_touch(layer.slot);
 }
@@ -2522,7 +2636,175 @@ static ChromaBandDrift chroma_band_drift(const ChromaFilament &stored, const std
 // card states in colour rather than in words, and they are file-local because the card and the
 // readiness line below have to agree about them.
 static const ImVec4 CHROMA_COL_WARN = ImVec4(0.94f, 0.65f, 0.24f, 1.f);
+
+// A row of mutually exclusive choices drawn as one control: every option is on screen and one click
+// picks it, where a combo hides all but one behind a click and a second one. `current` is the index of
+// the chosen one, and the row fills `total_w`.
+//
+// One frame round the whole row, with a rule between two options and the corners rounded only at its
+// ends, in the frame colours every field and button on the card uses: a row of separate buttons with a
+// gap between each read as a second kind of control beside them.
+static bool chroma_segmented(const char *id, const std::vector<std::string> &labels, int &current, float total_w)
+{
+    if (labels.empty())
+        return false;
+    const ImGuiStyle &style   = ImGui::GetStyle();
+    const float       frame_h = ImGui::GetFrameHeight();
+    const float       round   = style.FrameRounding;
+    const size_t      n       = labels.size();
+    ImDrawList       *dl      = ImGui::GetWindowDrawList();
+    // Each option as wide as its word, and what is left of the row shared out evenly: equal widths cut
+    // the long option in a row of short ones ("Behind and in front" beside "Behind").
+    std::vector<float> widths(n);
+    float              natural = 0.f;
+    for (size_t i = 0; i < n; ++i)
+        natural += widths[i] = ImGui::CalcTextSize(labels[i].c_str()).x + 2.f * style.FramePadding.x;
+    for (size_t i = 0; i < n; ++i)
+        widths[i] = natural <= total_w ? widths[i] + (total_w - natural) / float(n) : widths[i] * total_w / natural;
+    const ImVec2      p0      = ImGui::GetCursorScreenPos();
+    const ImVec2      p1(p0.x + total_w, p0.y + frame_h);
+    bool              changed = false;
+
+    dl->AddRectFilled(p0, p1, ImGui::GetColorU32(ImGuiCol_Button), round);
+    ImGui::PushID(id);
+    float x_at = p0.x;
+    for (size_t i = 0; i < n; ++i) {
+        const float x0 = std::round(x_at);
+        x_at += widths[i];
+        const float x1 = i + 1 == n ? p1.x : std::round(x_at);
+        ImGui::SetCursorScreenPos(ImVec2(x0, p0.y));
+        ImGui::PushID(int(i));
+        if (ImGui::InvisibleButton("##seg", ImVec2(x1 - x0, frame_h)) && int(i) != current) {
+            current = int(i);
+            changed = true;
+        }
+        const bool        hot     = ImGui::IsItemHovered();
+        const bool        on      = int(i) == current;
+        const ImDrawFlags corners = n == 1     ? ImDrawFlags_RoundCornersAll :
+                                    i == 0     ? ImDrawFlags_RoundCornersLeft :
+                                    i + 1 == n ? ImDrawFlags_RoundCornersRight :
+                                                 ImDrawFlags_RoundCornersNone;
+        if (on || hot)
+            dl->AddRectFilled(ImVec2(x0, p0.y), ImVec2(x1, p1.y),
+                              on ? ImGui::GetColorU32(ImGuiWrapper::COL_ORCA) : ImGui::GetColorU32(ImGuiCol_ButtonHovered),
+                              round, corners);
+        // The rule before an option, unless either side of it is the chosen one, whose fill is its edge.
+        if (i > 0 && !on && int(i) - 1 != current)
+            dl->AddLine(ImVec2(x0, p0.y + 1.f), ImVec2(x0, p1.y - 1.f), ImGui::GetColorU32(ImGuiCol_Border));
+        const ImVec2 ts = ImGui::CalcTextSize(labels[i].c_str());
+        dl->PushClipRect(ImVec2(x0, p0.y), ImVec2(x1, p1.y), true);
+        dl->AddText(ImVec2(std::round(0.5f * (x0 + x1 - ts.x)), std::round(p0.y + 0.5f * (frame_h - ts.y))),
+                    on ? IM_COL32(255, 255, 255, 255) : ImGui::GetColorU32(ImGuiCol_Text), labels[i].c_str());
+        dl->PopClipRect();
+        ImGui::PopID();
+    }
+    ImGui::PopID();
+    dl->AddRect(p0, p1, ImGui::GetColorU32(ImGuiCol_Border), round, ImDrawFlags_RoundCornersAll,
+                std::max(1.f, style.FrameBorderSize));
+    // One item for the whole row, so a tooltip asked for after the call is about the row.
+    ImGui::SetCursorScreenPos(p0);
+    ImGui::Dummy(ImVec2(total_w, frame_h));
+    return changed;
+}
 static const ImVec4 CHROMA_COL_GOOD = ImVec4(0.39f, 0.69f, 0.51f, 1.f);
+
+// A whole number with a minus and a plus, as one control framed like every field on the card: the
+// count is changed a step at a time far more often than it is typed, and the field between the two
+// still takes a typed one. Returns whether `v` changed.
+static bool chroma_stepper(const char *id, int &v, int v_min, int v_max, float total_w)
+{
+    const ImGuiStyle &style   = ImGui::GetStyle();
+    const float       frame_h = ImGui::GetFrameHeight();
+    ImDrawList       *dl      = ImGui::GetWindowDrawList();
+    ImGui::PushID(id);
+    const int    before = v;
+    const ImVec2 p0     = ImGui::GetCursorScreenPos();
+    const ImVec2 p1(p0.x + total_w, p0.y + frame_h);
+    const float  bw     = frame_h;
+    const float  round  = style.FrameRounding;
+    dl->AddRectFilled(p0, p1, ImGui::GetColorU32(ImGuiCol_FrameBg), round);
+    const auto end_button = [&](const char *bid, bool plus) {
+        const ImVec2 b0  = ImGui::GetCursorScreenPos();
+        const bool   hit = ImGui::InvisibleButton(bid, ImVec2(bw, frame_h));
+        const bool   hot = ImGui::IsItemHovered();
+        if (hot)
+            dl->AddRectFilled(b0, ImVec2(b0.x + bw, b0.y + frame_h), ImGui::GetColorU32(ImGuiCol_ButtonHovered), round,
+                              plus ? ImDrawFlags_RoundCornersRight : ImDrawFlags_RoundCornersLeft);
+        const ImU32 col = ImGui::GetColorU32(ImGuiCol_Text, hot ? 1.f : 0.8f);
+        const float a   = std::round(bw * 0.18f);
+        const float cx = b0.x + 0.5f * bw, cy = b0.y + 0.5f * frame_h;
+        dl->AddLine(ImVec2(cx - a, cy), ImVec2(cx + a + 1.f, cy), col, 1.5f);
+        if (plus)
+            dl->AddLine(ImVec2(cx + 0.5f, cy - a), ImVec2(cx + 0.5f, cy + a + 1.f), col, 1.5f);
+        return hit;
+    };
+    if (end_button("##less", false) && v > v_min)
+        --v;
+    ImGui::SameLine(0.f, 0.f);
+    const float       field_w = std::max(1.f, total_w - 2.f * bw);
+    const std::string shown   = std::to_string(v);
+    const float       pad_x   = std::max(style.FramePadding.x,
+                                         std::floor(0.5f * (field_w - ImGui::CalcTextSize(shown.c_str()).x)));
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.f, 0.f, 0.f, 0.f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.f, 0.f, 0.f, 0.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(pad_x, style.FramePadding.y));
+    ImGui::SetNextItemWidth(field_w);
+    if (ImGui::InputScalar("##value", ImGuiDataType_S32, &v, nullptr, nullptr, "%d"))
+        v = std::clamp(v, v_min, v_max);
+    ImGui::PopStyleVar(2);
+    ImGui::PopStyleColor(2);
+    ImGui::SameLine(0.f, 0.f);
+    if (end_button("##more", true) && v < v_max)
+        ++v;
+    const ImU32 edge = ImGui::GetColorU32(ImGuiCol_Border);
+    dl->AddLine(ImVec2(p0.x + bw, p0.y + 1.f), ImVec2(p0.x + bw, p1.y - 1.f), edge);
+    dl->AddLine(ImVec2(p1.x - bw, p0.y + 1.f), ImVec2(p1.x - bw, p1.y - 1.f), edge);
+    dl->AddRect(p0, p1, edge, round, ImDrawFlags_RoundCornersAll, std::max(1.f, style.FrameBorderSize));
+    // One item for the whole control, so a tooltip asked for after the call is about it.
+    ImGui::SetCursorScreenPos(p0);
+    ImGui::Dummy(ImVec2(total_w, frame_h));
+    ImGui::PopID();
+    return v != before;
+}
+
+// The average colour difference under which a match is good, and over which the filaments cannot reach
+// the picture. Between the two it is close enough, and said in neither colour.
+static constexpr double CHROMA_MATCH_GOOD = 5.;
+static constexpr double CHROMA_MATCH_FAR  = 15.;
+
+// A filament as the lists on the card name it: its slot and its name, or the slot alone when it has none.
+static std::string chroma_filament_label(const ChromaFilament &f)
+{
+    return f.name.empty() ? Slic3r::format(_u8L("Filament %1%"), f.filament + 1) :
+                            Slic3r::format("%1%  %2%", f.filament + 1, f.name);
+}
+
+// How light a colour reads, for picking text and marks that stand out against it.
+static float chroma_luma(const ColorRGB &c) { return 0.2126f * c.r() + 0.7152f * c.g() + 0.0722f * c.b(); }
+
+// The red a cross that takes something out turns under the pointer, and the cross itself.
+static constexpr ImU32 CHROMA_REMOVE_HOT = IM_COL32(224, 89, 75, 255);
+static void chroma_draw_cross(ImDrawList *dl, const ImVec2 &c, float a, ImU32 col)
+{
+    dl->AddLine(ImVec2(c.x - a, c.y - a), ImVec2(c.x + a, c.y + a), col, 1.6f);
+    dl->AddLine(ImVec2(c.x - a, c.y + a), ImVec2(c.x + a, c.y - a), col, 1.6f);
+}
+
+// A popup of `width` beside the panel rather than over it, its top level with the cursor: a list read
+// against the rows it belongs to must not cover them.
+static void chroma_place_beside_panel(float width, float gap)
+{
+    const ImVec2 panel = ImGui::GetWindowPos();
+    ImGui::SetNextWindowPos(ImVec2(std::max(0.f, panel.x - width - gap), ImGui::GetCursorScreenPos().y), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(width, 0.f));
+}
+
+// The colour a match of this average difference is said in, or null between the two thresholds.
+static const ImVec4 *chroma_match_col(double mean)
+{
+    return mean > CHROMA_MATCH_FAR ? &CHROMA_COL_WARN : mean <= CHROMA_MATCH_GOOD ? &CHROMA_COL_GOOD : nullptr;
+}
 
 GLGizmoTextureDisplacement::ChromaReadiness
 GLGizmoTextureDisplacement::chroma_readiness(const TextureDisplacementLayer &layer) const
@@ -2545,6 +2827,14 @@ GLGizmoTextureDisplacement::chroma_readiness(const TextureDisplacementLayer &lay
         out.text  = _u8L("Working out the heights.");
         return out;
     }
+    // A filter that is only being tried lives in this panel and nowhere else: a bake would print it,
+    // and the project would reopen on the picture without it.
+    if (!chroma_live_adjust(layer).identity()) {
+        out.color = CHROMA_COL_WARN;
+        out.warn  = true;
+        out.text  = _u8L("Keep or undo the filter before baking.");
+        return out;
+    }
 
     // Past this point nothing stops a bake. A problem is still worth the top line - it is the worst
     // thing the card knows - but a brim that would print across the picture is a setting to go and
@@ -2561,13 +2851,14 @@ GLGizmoTextureDisplacement::chroma_readiness(const TextureDisplacementLayer &lay
         out.text = _u8L("Ready to bake.");
         return out;
     }
-    if (report.mean > 15.) {
+    if (report.mean > CHROMA_MATCH_FAR) {
         out.color = CHROMA_COL_WARN;
+        out.warn  = true;
         out.text  = _u8L("Your filaments cannot reach these colors.");
         return out;
     }
     out.color = CHROMA_COL_GOOD;
-    out.text  = report.mean <= 5. ? _u8L("Good match. Ready to bake.") : _u8L("Close enough. Ready to bake.");
+    out.text  = report.mean <= CHROMA_MATCH_GOOD ? _u8L("Good match. Ready to bake.") : _u8L("Close enough. Ready to bake.");
     return out;
 }
 
@@ -2592,93 +2883,21 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                            IM_COL32(int(c.r() * 255.f), int(c.g() * 255.f), int(c.b() * 255.f), 255), style.FrameRounding);
         wdl->AddRect(ImVec2(p.x, y), ImVec2(p.x + size, y + size), ImGui::GetColorU32(ImGuiCol_Separator), style.FrameRounding);
     };
-    const ImVec4 &col_warn = CHROMA_COL_WARN;
-    const ImVec4 &col_good = CHROMA_COL_GOOD;
 
-    // A row's label, clamped to one width so every field in the card starts at the same x. Three
-    // weights and no more: a heading, a setting row like this one, and a derived line that is never
-    // interactive.
-    // A section that closes, with its summary in the same bar so folding it costs no information.
-    // Returns whether it is open.
-    const auto closable = [&](const char *id, const wxString &title, const std::string &summary, bool &open) {
-        const float  x0 = ImGui::GetCursorPosX();
-        const ImVec2 p  = ImGui::GetCursorScreenPos();
-        const float  w  = std::max(m_imgui->scaled(2.f),
-                                   ImGui::GetContentRegionMax().x - x0 - std::max(card_pad, 1.f));
-        if (ImGui::InvisibleButton(id, ImVec2(w, frame_h)))
-            open = !open;
-        const bool  hot  = ImGui::IsItemHovered();
-        const ImU32 text = ImGui::GetColorU32(ImGuiCol_Text, hot ? 1.f : 0.9f);
-        // The disclosure triangle, pointing down when open. Drawn rather than taken from a font so it
-        // keeps its size when the panel is scaled.
-        const float a  = std::round(ImGui::GetFontSize() * 0.3f);
-        const float cx = p.x + a + 2.f, cy = p.y + 0.5f * frame_h;
-        if (open)
-            dl->AddTriangleFilled(ImVec2(cx - a, cy - 0.5f * a), ImVec2(cx + a, cy - 0.5f * a),
-                                  ImVec2(cx, cy + 0.7f * a), text);
-        else
-            dl->AddTriangleFilled(ImVec2(cx - 0.5f * a, cy - a), ImVec2(cx + 0.7f * a, cy),
-                                  ImVec2(cx - 0.5f * a, cy + a), text);
-        const std::string name = into_u8(title);
-        dl->AddText(ImVec2(cx + a + 4.f, cy - 0.5f * ImGui::GetFontSize()), text, name.c_str());
-        if (!summary.empty())
-            dl->AddText(ImVec2(p.x + w - ImGui::CalcTextSize(summary.c_str()).x, cy - 0.5f * ImGui::GetFontSize()),
-                        ImGui::GetColorU32(ImGuiCol_TextDisabled), summary.c_str());
-        ImGui::SetCursorPosX(x0);
-        return open;
-    };
-    // The same control for a choice whose options are words rather than numbers. `current` is the
-    // index of the chosen one.
-    const auto segmented_text = [&](const char *id, const std::vector<std::string> &labels, int &current,
-                                    float total_w) {
-        bool        changed = false;
-        const float each    = std::max(m_imgui->scaled(1.2f), std::floor(total_w / float(labels.size())));
-        ImGui::PushID(id);
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(1.f, ImGui::GetStyle().ItemSpacing.y));
-        for (size_t i = 0; i < labels.size(); ++i) {
-            const bool on = int(i) == current;
-            if (on)
-                ImGui::PushStyleColor(ImGuiCol_Button, ImGuiWrapper::COL_ORCA);
-            ImGui::PushID(int(i));
-            if (ImGui::Button(labels[i].c_str(), ImVec2(each, frame_h))) {
-                current = int(i);
-                changed = true;
-            }
-            ImGui::PopID();
-            if (on)
-                ImGui::PopStyleColor();
-            if (i + 1 < labels.size())
-                ImGui::SameLine(0.f, 1.f);
-        }
-        ImGui::PopStyleVar();
-        ImGui::PopID();
-        return changed;
-    };
-    // A row of mutually exclusive choices drawn as one control. Replaces a slider for a count nobody
-    // drags: picking 4 out of five options is one click, where a slider is a drag and a read-back.
+    // The same control for a count. Replaces a slider for a count nobody drags: picking 4 out of five
+    // options is one click, where a slider is a drag and a read-back.
     const auto segmented = [&](const char *id, const std::vector<int> &values, int &current, float total_w) {
-        bool        changed = false;
-        const float each    = std::max(m_imgui->scaled(1.2f), std::floor(total_w / float(values.size())));
-        ImGui::PushID(id);
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(1.f, ImGui::GetStyle().ItemSpacing.y));
+        std::vector<std::string> labels;
+        int                      index = -1;
         for (size_t i = 0; i < values.size(); ++i) {
-            const bool on = values[i] == current;
-            if (on)
-                ImGui::PushStyleColor(ImGuiCol_Button, ImGuiWrapper::COL_ORCA);
-            ImGui::PushID(int(i));
-            if (ImGui::Button(std::to_string(values[i]).c_str(), ImVec2(each, frame_h))) {
-                current = values[i];
-                changed = true;
-            }
-            ImGui::PopID();
-            if (on)
-                ImGui::PopStyleColor();
-            if (i + 1 < values.size())
-                ImGui::SameLine(0.f, 1.f);
+            labels.push_back(std::to_string(values[i]));
+            if (values[i] == current)
+                index = int(i);
         }
-        ImGui::PopStyleVar();
-        ImGui::PopID();
-        return changed;
+        if (!chroma_segmented(id, labels, index, total_w) || index < 0)
+            return false;
+        current = values[size_t(index)];
+        return true;
     };
 
     // ---- The height a layer is actually printed at ----
@@ -2705,80 +2924,29 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
         return;
     }
 
-    // Sized from the width the card is allowed, never from the width it has left. The two thumbnails
-    // are square, so a size taken from the live region ties the panel's height to its width: a
-    // scrollbar appears, the region narrows, the thumbnails shrink, the panel gets shorter, the
-    // scrollbar goes, and it does it all again next frame. The panel flickered between two widths.
-    const float thumb = std::max(m_imgui->scaled(2.f), std::round(0.5f * (content_w - gap_s)));
-    if (m_chroma_source_key[slot] != layer.chroma_source.get()) {
-        TextureDisplacementLayer probe;
-        probe.image_data            = layer.chroma_source;
-        m_chroma_source_thumb[slot] = upload_height_thumbnail(decode_height_texture(probe));
-        m_chroma_source_key[slot]   = layer.chroma_source.get();
+    // Under the filter being tried, so "Your picture" is the picture the solve is reading. The filter is
+    // applied to the thumbnail rather than to the picture, as the filter row's own thumbnails are: a
+    // slider being dragged changes it every frame, and a full-size pass per frame on this thread stalls
+    // the panel for as long as the drag lasts.
+    if (const TextureAdjustments adj = chroma_live_adjust(layer);
+        m_chroma_source_key[slot] != layer.chroma_source.get() || m_chroma_source_adjust[slot] != adj) {
+        const DecodedHeightTexture &thumb_src = chroma_thumb_base(layer);
+        m_chroma_source_thumb[slot] = upload_height_thumbnail(adj.identity() || thumb_src.empty() ? thumb_src :
+                                                                                                apply_texture_adjustments(thumb_src, adj));
+        m_chroma_source_key[slot]    = layer.chroma_source.get();
+        m_chroma_source_adjust[slot] = adj;
     }
-    // One preview: the image, a frame that carries the match, a chip naming it in figures, and a
-    // caption. Clicking it opens the pair at the size of the canvas, because judging a face against a
-    // print is not a thing a 190 px square can settle.
-    const auto pane = [&](GLTexture *tex, const std::string &caption, const std::string &tip_text,
-                          const ImVec4 *ring, const std::string &chip, const ImVec4 *chip_col) {
-        ImGui::BeginGroup();
-        const ImVec2 p = ImGui::GetCursorScreenPos();
-        if (tex != nullptr)
-            ImGui::Image((ImTextureID) (intptr_t) tex->get_id(), ImVec2(thumb, thumb));
-        else {
-            ImGui::Dummy(ImVec2(thumb, thumb));
-            dl->AddRect(p, ImVec2(p.x + thumb, p.y + thumb), ImGui::GetColorU32(ImGuiCol_Separator));
-        }
-        // Over the image rather than beside it: the picture is the control, and a separate button for
-        // "look closer" would be a seventh thing in a card that already has too many.
-        ImGui::SetCursorScreenPos(p);
-        if (ImGui::InvisibleButton("##zoom", ImVec2(thumb, thumb)) && tex != nullptr)
-            m_chroma_zoom_slot = layer.slot;
-        const bool hot = ImGui::IsItemHovered();
-        // How good the match is, as the colour of the prediction's own frame. It is a property of that
-        // picture, so it belongs on it rather than on a line of its own saying so in words.
-        if (ring != nullptr)
-            dl->AddRect(ImVec2(p.x - 1.f, p.y - 1.f), ImVec2(p.x + thumb + 1.f, p.y + thumb + 1.f),
-                        ImGui::GetColorU32(*ring), 0.f, 0, 2.f);
-        if (!chip.empty() && chip_col != nullptr) {
-            const ImVec2 ts  = ImGui::CalcTextSize(chip.c_str());
-            const float  pad = std::round(m_imgui->scaled(0.2f));
-            const ImVec2 c0(p.x + pad, p.y + thumb - ts.y - 3.f * pad);
-            const ImVec2 c1(c0.x + ts.x + 2.f * pad, c0.y + ts.y + 2.f * pad);
-            dl->AddRectFilled(c0, c1, ImGui::GetColorU32(*chip_col), style.FrameRounding);
-            dl->AddText(ImVec2(c0.x + pad, c0.y + pad), IM_COL32(20, 20, 20, 255), chip.c_str());
-        }
-        if (tex != nullptr && hot) {
-            // A magnifier, only while the pointer is on the image: an affordance that is always there
-            // is one more mark on a card full of them.
-            const float r  = std::round(m_imgui->scaled(0.3f));
-            const ImVec2 c(p.x + thumb - 2.5f * r, p.y + 2.5f * r);
-            dl->AddCircleFilled(c, r * 1.9f, IM_COL32(0, 0, 0, 120));
-            dl->AddCircle(ImVec2(c.x - 0.15f * r, c.y - 0.15f * r), r * 0.8f, IM_COL32(255, 255, 255, 230), 0, 1.4f);
-            dl->AddLine(ImVec2(c.x + 0.4f * r, c.y + 0.4f * r), ImVec2(c.x + r, c.y + r),
-                        IM_COL32(255, 255, 255, 230), 1.4f);
-        }
-        if (hot)
-            panel_tooltip(tip_text + "\n\n" + _u8L("Click to see both at the size of the canvas."));
-        ImGui::TextDisabled("%s", caption.c_str());
-        ImGui::EndGroup();
-    };
-
     const ChromaReport &report  = m_chroma_report[slot];
     // Waiting for the controls to settle, or actually computing. The ring and the tooltip mean the
     // same thing to the user either way: what is on screen is the previous answer, and a better one
     // is on its way.
     const bool          solving = m_chroma_settle_at[slot] != 0 || m_chroma_solve_running[slot] ||
                                   m_chroma_plate_running[slot];
-    const ImVec4        ring    = solving       ? ImGuiWrapper::COL_ORCA :
-                                  !report.valid ? ImGui::GetStyleColorVec4(ImGuiCol_Separator) :
-                                  report.mean > 15.  ? col_warn :
-                                  report.mean <= 5.  ? col_good :
-                                                       ImGui::GetStyleColorVec4(ImGuiCol_Separator);
-    pane(m_chroma_source_thumb[slot].get(), _u8L("Your picture"),
-         _u8L("The picture being reproduced. Click the layer's name to choose another."), nullptr, {}, nullptr);
-    ImGui::SameLine(0.f, gap_s);
-    // While the error view is on, the second pane shows the error rather than the prediction, so the
+    const ImVec4       *match   = report.valid ? chroma_match_col(report.mean) : nullptr;
+    const ImVec4        ring    = solving         ? ImGuiWrapper::COL_ORCA :
+                                  match != nullptr ? *match :
+                                                     ImGui::GetStyleColorVec4(ImGuiCol_Separator);
+    // While the error view is on, the print's half shows the error rather than the prediction, so the
     // card and the model are never saying two different things about the same solve.
     const bool error_pane = m_show_chroma_error && m_chroma_error_tex[slot];
     // The match in figures, on the prediction itself. The frame's colour already says which band it is
@@ -2797,159 +2965,429 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
         // TRN A color difference, as shown on the ChromaStack prediction: "3.4 off" means the print
         // lands 3.4 units of color difference away from the picture on average.
         chip     = Slic3r::format(_u8L("%1$.1f off"), report.mean);
-        chip_col = report.mean > 15. ? &col_warn : report.mean <= 5. ? &col_good : &chip_plain;
+        chip_col = match != nullptr ? match : &chip_plain;
     }
-    pane(error_pane ? m_chroma_error_tex[slot].get() : m_chroma_preview[slot].get(),
-         error_pane ? _u8L("Where it is wrong") : _u8L("What prints"),
-         error_pane   ? _u8L("How far this stack lands from the picture, pixel by pixel: dark where it "
-                             "matches, bright where the filaments cannot reach it. Turn Error off in the "
-                             "View row to see the predicted print again.") :
-         solving       ? _u8L("Working out the heights for this stack.") :
-         !report.valid ? _u8L("What this stack is predicted to print.") :
-                         Slic3r::format(_u8L("What this stack is predicted to print, %1$.1f from the picture on "
-                                             "average and %2$.1f at worst, as a color difference.\n\n"
-                                             "Under 5 is a good match. Over 15 means these filaments cannot reach the "
-                                             "picture's colors and more layers will not help: change a filament, or "
-                                             "ask for a different number of colors."),
-                                        report.mean, report.max),
-         &ring, chip, chip_col);
 
-    // ---- Whether it is ready, what can be done about it, and the one correction that is not a
-    //      change to the whole picture ----
+    // ---- The picture and what it prints, as one image ----
     //
-    // One sentence, said once. This line is the card's answer to "can I print this yet"; Bake's
-    // disabled tooltip is the same sentence from the same function, and the worst problem is the same
-    // sentence again, which is why there is no separate bar of problems above the previews any more.
-    // Two copies of one state are two things that can come to disagree, and a reader who meets the
-    // same sentence twice in two weights goes looking for the difference between them.
+    // The picture on the left of a divider and the print on the right, at the picture's own shape: a
+    // picture squeezed into a square is not the picture, and two side by side at half the width each
+    // made the one judgement this card exists for - is that the face - on two 190 px thumbnails. Dragging
+    // the divider walks the comparison across the image; a double click opens the pair at the size of
+    // the canvas.
     //
-    // Under it, a row of actions that is always there, in the same place, whatever the state. Fix an
-    // area corrects what the previews above show; Color analysis answers the question the line itself
-    // asks. Neither appears or disappears, because a control that appears has moved everything below
-    // it while the reader was looking somewhere else.
+    // Sized from the width the card is allowed, never from the width it has left: a size taken from the
+    // live region ties the panel's height to its width, and the panel flickers between two widths as a
+    // scrollbar comes and goes.
+    {
+        const GLTexture *src    = m_chroma_source_thumb[slot].get();
+        const GLTexture *out    = error_pane ? m_chroma_error_tex[slot].get() : m_chroma_preview[slot].get();
+        const GLTexture *shape  = src != nullptr ? src : out;
+        const float      aspect = shape != nullptr && shape->get_height() > 0 ?
+                                      float(shape->get_width()) / float(shape->get_height()) : 1.f;
+        const float      full_w = std::max(m_imgui->scaled(4.f), content_w);
+        // No taller than a wide photograph is at this width: the steps under it are where the work is
+        // done, and an image that fills the panel pushes them off it. A taller picture is narrowed to
+        // keep its shape rather than cropped.
+        float view_w = full_w;
+        float view_h = std::round(view_w / std::max(0.05f, aspect));
+        if (const float max_h = std::round(full_w * 0.6f); view_h > max_h) {
+            view_h = max_h;
+            view_w = std::round(view_h * aspect);
+        }
+        const float x0 = ImGui::GetCursorPosX();
+        ImGui::SetCursorPosX(x0 + std::round(0.5f * (full_w - view_w)));
+        const ImVec2 p0 = ImGui::GetCursorScreenPos();
+        const ImVec2 p1(p0.x + view_w, p0.y + view_h);
+        ImGui::InvisibleButton("##chroma_compare", ImVec2(view_w, view_h));
+        const bool hot = ImGui::IsItemHovered();
+        float     &split = m_chroma_split[slot];
+        if (ImGui::IsItemActive())
+            split = std::clamp((ImGui::GetIO().MousePos.x - p0.x) / std::max(1.f, view_w), 0.f, 1.f);
+        if (hot && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && out != nullptr)
+            m_chroma_zoom_slot = layer.slot;
+        const float sx = std::round(p0.x + split * view_w);
+
+        if (src != nullptr)
+            dl->AddImage((ImTextureID) (intptr_t) src->get_id(), p0, ImVec2(sx, p1.y), ImVec2(0.f, 0.f), ImVec2(split, 1.f));
+        if (out != nullptr)
+            dl->AddImage((ImTextureID) (intptr_t) out->get_id(), ImVec2(sx, p0.y), p1, ImVec2(split, 0.f), ImVec2(1.f, 1.f));
+        else
+            dl->AddRectFilled(ImVec2(sx, p0.y), p1, ImGui::GetColorU32(ImGuiCol_FrameBg));
+        // How good the match is, as the colour of the image's own frame.
+        dl->AddRect(ImVec2(p0.x - 1.f, p0.y - 1.f), ImVec2(p1.x + 1.f, p1.y + 1.f), ImGui::GetColorU32(ring), 0.f, 0, 2.f);
+
+        // The divider and its handle.
+        const ImU32 white = IM_COL32(255, 255, 255, 235);
+        dl->AddLine(ImVec2(sx, p0.y), ImVec2(sx, p1.y), white, 2.f);
+        const float  r = std::round(frame_h * 0.48f);
+        const ImVec2 c(sx, std::round(0.5f * (p0.y + p1.y)));
+        dl->AddCircleFilled(c, r, white, 24);
+        const ImU32 dark = IM_COL32(40, 40, 44, 255);
+        const float a    = std::round(r * 0.32f);
+        dl->AddTriangleFilled(ImVec2(c.x - 0.35f * r - a, c.y), ImVec2(c.x - 0.35f * r, c.y - a), ImVec2(c.x - 0.35f * r, c.y + a), dark);
+        dl->AddTriangleFilled(ImVec2(c.x + 0.35f * r + a, c.y), ImVec2(c.x + 0.35f * r, c.y + a), ImVec2(c.x + 0.35f * r, c.y - a), dark);
+
+        // What each side is, and the match in figures, on the image rather than under it.
+        const float pad = std::round(m_imgui->scaled(0.25f));
+        const auto  tag = [&](const std::string &text, const ImVec2 &at, ImU32 bg, ImU32 fg) {
+            const ImVec2 ts = ImGui::CalcTextSize(text.c_str());
+            dl->AddRectFilled(at, ImVec2(at.x + ts.x + 2.f * pad, at.y + ts.y + 2.f * pad), bg, ImGui::GetStyle().FrameRounding);
+            dl->AddText(ImVec2(at.x + pad, at.y + pad), fg, text.c_str());
+            return ts.x + 2.f * pad;
+        };
+        const ImU32       shade = IM_COL32(20, 20, 24, 200);
+        const std::string left  = _u8L("Your picture");
+        const std::string right = error_pane ? _u8L("Where it is wrong") : _u8L("What prints");
+        tag(left, ImVec2(p0.x + pad, p0.y + pad), shade, IM_COL32(235, 235, 235, 255));
+        tag(right, ImVec2(p1.x - pad - ImGui::CalcTextSize(right.c_str()).x - 2.f * pad, p0.y + pad), shade,
+            IM_COL32(235, 235, 235, 255));
+        if (!chip.empty() && chip_col != nullptr)
+            tag(chip, ImVec2(p1.x - pad - ImGui::CalcTextSize(chip.c_str()).x - 2.f * pad,
+                             p1.y - pad - ImGui::GetTextLineHeight() - 2.f * pad),
+                ImGui::GetColorU32(*chip_col), IM_COL32(20, 20, 20, 255));
+
+        if (hot) {
+            const std::string said =
+                error_pane    ? _u8L("How far this stack lands from the picture, pixel by pixel: dark where it "
+                                     "matches, bright where the filaments cannot reach it. Turn the error view "
+                                     "off under Check to see the predicted print again.") :
+                solving       ? _u8L("Working out the heights for this stack.") :
+                !report.valid ? _u8L("What this stack is predicted to print.") :
+                                Slic3r::format(_u8L("What this stack is predicted to print, %1$.1f from the picture "
+                                                    "on average and %2$.1f at worst, as a color difference.\n\n"
+                                                    "Under 5 is a good match. Over 15 means these filaments cannot "
+                                                    "reach the picture's colors and more layers will not help: change "
+                                                    "a filament, or ask for a different number of colors."),
+                                               report.mean, report.max);
+            panel_tooltip(said + "\n\n" + _u8L("Drag across the picture to compare. Double-click to see both at the size of the canvas."));
+        }
+        ImGui::SetCursorPosX(x0);
+        ImGui::Dummy(ImVec2(1.f, gap_s));
+    }
+
+    // ---- What is wrong, when something is ----
+    //
+    // One bar, and only when there is something to say: the reason this cannot be baked yet, the
+    // warning about the match, or the worst problem chroma_problems() found, in a sentence, with a
+    // count of the rest whose tooltip is all of them. A card with nothing wrong says nothing here -
+    // "Ready to bake." is on the Check step, which is where that question is asked - and the solve
+    // running is said by the chip on the image, not by a bar that would come and go with every edit.
+    //
+    // Bake's reason for being disabled is the same sentence from the same function (chroma_readiness()):
+    // two readings of one state are two things that can come to disagree.
+    //
+    // Worked out once for the frame, along with where its sentence goes: in the bar when it is a reason
+    // not to bake or a warning (a ready card can still carry one - the filaments cannot reach the
+    // picture), and on the Check step otherwise. One flag, so the two places cannot both say it or
+    // both leave it out.
+    const ChromaReadiness state = chroma_readiness(layer);
+    const bool            alarm = !solving && (!state.ready || state.warn);
     {
         const std::vector<std::string> problems = chroma_problems(layer);
-        const ChromaReadiness          state    = chroma_readiness(layer);
-        const float                    x0       = ImGui::GetCursorPosX();
-
-        ImGui::AlignTextToFramePadding();
-        {
-            const ImVec2 p = ImGui::GetCursorScreenPos();
-            const float  r = std::max(2.5f, std::round(frame_h * 0.11f));
-            ImGui::Dummy(ImVec2(2.f * r + gap_s, frame_h));
-            dl->AddCircleFilled(ImVec2(p.x + r, p.y + 0.5f * frame_h), r, ImGui::GetColorU32(state.color));
+        std::string said;
+        size_t      rest = problems.size();
+        if (alarm)
+            said = state.text;
+        else if (!problems.empty()) {
+            said = problems.front();
+            rest = problems.size() - 1;
         }
-        ImGui::SameLine(0.f, gap_s);
-        ImGui::AlignTextToFramePadding();
-        ImGui::PushStyleColor(ImGuiCol_Text, state.color);
-        ImGui::TextUnformatted(state.text.c_str());
-        ImGui::PopStyleColor();
+        const bool swaps = chroma_swaps_blocked(layer);
+        if (said.empty() && swaps)
+            said = _u8L("The object already has filament swaps that this picture did not write.");
+        if (!said.empty()) {
+            const float  x0    = ImGui::GetCursorPosX();
+            const ImVec2 p0    = ImGui::GetCursorScreenPos();
+            const float  w     = std::max(m_imgui->scaled(4.f), ImGui::GetContentRegionMax().x - x0 - std::max(card_pad, 1.f));
+            const float  h     = std::round(frame_h * 1.3f);
+            const float  pad   = std::round(m_imgui->scaled(0.35f));
+            const ImU32  tint  = ImGui::GetColorU32(ImVec4(CHROMA_COL_WARN.x, CHROMA_COL_WARN.y, CHROMA_COL_WARN.z, 0.16f));
+            const ImU32  edge  = ImGui::GetColorU32(ImVec4(CHROMA_COL_WARN.x, CHROMA_COL_WARN.y, CHROMA_COL_WARN.z, 0.55f));
+            dl->AddRectFilled(p0, ImVec2(p0.x + w, p0.y + h), tint, style.FrameRounding);
+            dl->AddRect(p0, ImVec2(p0.x + w, p0.y + h), edge, style.FrameRounding);
 
-        // Everything else that is wrong, as one mark. A problem is a paragraph and there can be
-        // several of them; printed on the card they were the tallest thing on it and they pushed the
-        // picture they are about off the top of the panel. The mark is the whole of their presence
-        // here, and the tooltip is all of them in full.
-        if (!problems.empty()) {
-            ImGui::SameLine(0.f, gap_s);
-            const ImVec2 p = ImGui::GetCursorScreenPos();
-            const float  a = std::round(frame_h * 0.30f);
-            ImGui::InvisibleButton("##hf_problems", ImVec2(2.f * a + gap_s, frame_h));
-            const float cx = p.x + a, cy = p.y + 0.5f * frame_h;
-            const ImU32 col = ImGui::GetColorU32(col_warn);
-            dl->AddTriangleFilled(ImVec2(cx, cy - a), ImVec2(cx + a, cy + 0.75f * a),
-                                  ImVec2(cx - a, cy + 0.75f * a), col);
-            // The bar of the exclamation mark, knocked out of the triangle rather than drawn over it,
-            // so it reads at the size the panel actually gets on a high-DPI screen.
+            // What is on its right, measured first so the sentence knows how much room it has.
+            const std::string act   = _u8L("Replace them");
+            const float       act_w = swaps ? ImGui::CalcTextSize(act.c_str()).x + 2.f * style.FramePadding.x : 0.f;
+            const std::string more  = rest > 0 ? Slic3r::format("+%1%", int(rest)) : std::string();
+            const float       more_w = more.empty() ? 0.f : ImGui::CalcTextSize(more.c_str()).x + pad;
+
+            // The mark, knocked out rather than drawn over, so it reads at the size a high-DPI panel gets.
+            const float a  = std::round(frame_h * 0.28f);
+            const float cx = p0.x + pad + a, cy = p0.y + 0.5f * h;
+            dl->AddTriangleFilled(ImVec2(cx, cy - a), ImVec2(cx + a, cy + 0.75f * a), ImVec2(cx - a, cy + 0.75f * a),
+                                  ImGui::GetColorU32(CHROMA_COL_WARN));
             const ImU32 hole = ImGui::GetColorU32(ImGuiCol_WindowBg);
             dl->AddRectFilled(ImVec2(cx - 0.11f * a, cy - 0.35f * a), ImVec2(cx + 0.11f * a, cy + 0.2f * a), hole);
             dl->AddRectFilled(ImVec2(cx - 0.11f * a, cy + 0.38f * a), ImVec2(cx + 0.11f * a, cy + 0.6f * a), hole);
+
+            const float       tx     = cx + a + pad;
+            const float       room   = std::max(frame_h, p0.x + w - pad - act_w - (swaps ? pad : 0.f) - more_w - tx);
+            const std::string shown  = ellipsize(said, room);
+            const float       ty     = std::round(cy - 0.5f * ImGui::GetTextLineHeight());
+            dl->AddText(ImVec2(tx, ty), ImGui::GetColorU32(ImGuiCol_Text), shown.c_str());
+            if (!more.empty())
+                dl->AddText(ImVec2(tx + ImGui::CalcTextSize(shown.c_str()).x + pad, ty), ImGui::GetColorU32(ImGuiCol_TextDisabled),
+                            more.c_str());
+
+            // The sentence in full and everything else wrong, on the bar's own tooltip.
+            ImGui::InvisibleButton("##chroma_problem", ImVec2(std::max(1.f, w - act_w - (swaps ? pad : 0.f)), h));
             if (ImGui::IsItemHovered()) {
-                std::string all;
-                for (const std::string &one : problems)
-                    all += (all.empty() ? "" : "\n\n") + one;
+                const bool  first_shown = !problems.empty() && said == problems.front();
+                std::string all         = said;
+                for (size_t i = first_shown ? 1 : 0; i < problems.size(); ++i)
+                    all += "\n\n" + problems[i];
                 panel_tooltip(all);
             }
-        }
-
-        // ---- the action row ----
-        ImGui::SetCursorPosX(x0);
-        const bool        was_on = m_chroma_retouch_mode;
-        const std::string fix    = was_on ? _u8L("Done fixing") : _u8L("Fix an area");
-        if (m_imgui->button(from_u8(fix))) {
-            m_chroma_retouch_mode = !was_on;
-            if (!m_chroma_retouch_mode && m_chroma_retouch_painting)
-                chroma_commit_stroke(layer);
-            m_parent.set_as_dirty();
-        }
-        if (ImGui::IsItemHovered())
-            panel_tooltip(was_on ?
-                              _u8L("Stops the brush, so dragging turns the model again.") :
-                              _u8L("Paint over the print to correct it: the area you paint moves to the color you "
-                                   "choose here, and the rest of the picture is left exactly as the solve decided. "
-                                   "Turn on the error view first, under Views in More settings - it shows you where "
-                                   "correcting is worth the trouble.\n\nHold Ctrl to turn the model while the brush "
-                                   "is on."));
-
-        // The report, as the answer to the line above rather than as a button of its own further down
-        // the card: the findings are the why behind the sentence. Disabled rather than absent when the
-        // solve found nothing to say, so the row keeps its shape.
-        const ChromaDiagnostics &diag     = m_chroma_diag[slot];
-        const bool               analysed = !diag.empty();
-        ImGui::SameLine(0.f, gap_s);
-        m_imgui->disabled_begin(!analysed);
-        if (ImGui::Button(_u8L("Color analysis").c_str()) && analysed)
-            m_chroma_diag_slot = layer.slot;
-        m_imgui->disabled_end();
-        if (ImGui::IsItemHovered())
-            panel_tooltip(analysed ?
-                              _u8L("The picture's colors and the stack's own reach, drawn in one chart, with what is "
-                                   "wrong with this choice of filaments written out underneath. The error view says "
-                                   "where a solve failed; this says why.") :
-                              _u8L("The picture's colors and the stack's own reach in one chart. It opens once a "
-                                   "solve has something to say about this choice of filaments."));
-
-        // What else is wrong, or what has been corrected. On the right of the same row, because it is
-        // a count and not an action.
-        if (const int fixes = int(layer.chroma.retouch.edits.size()); fixes > 0) {
-            const std::string tail = Slic3r::format(into_u8(_L_PLURAL("%1% correction", "%1% corrections", fixes)),
-                                                    fixes);
-            const float       w    = ImGui::CalcTextSize(tail.c_str()).x;
-            ImGui::SameLine();
-            ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(),
-                                          ImGui::GetContentRegionMax().x - std::max(card_pad, 1.f) - w));
-            ImGui::AlignTextToFramePadding();
-            ImGui::TextDisabled("%s", tail.c_str());
-        }
-
-        // The one action a problem can carry, and the only thing in this block that is not always
-        // offered: swaps that did not come from this picture are the one thing here the card itself
-        // can put right. It takes a row of its own rather than a fourth place on the row above, which
-        // at this width is where a control goes to be clipped.
-        if (chroma_swaps_blocked(layer)) {
-            ImGui::SetCursorPosX(x0);
-            if (m_imgui->button(_L("Replace them")))
-                chroma_apply_swaps(layer);
-            if (ImGui::IsItemHovered())
-                panel_tooltip(_u8L("Writes this picture's own filament swaps over the height ranges the object "
-                                   "already had."));
+            // The one action a problem can carry: swaps that did not come from this picture are the one
+            // thing here the card itself can put right.
+            if (swaps) {
+                ImGui::SetCursorScreenPos(ImVec2(p0.x + w - pad - act_w, p0.y + 0.5f * (h - frame_h)));
+                if (ImGui::Button(act.c_str(), ImVec2(act_w, frame_h)))
+                    chroma_apply_swaps(layer);
+                if (ImGui::IsItemHovered())
+                    panel_tooltip(_u8L("Writes this picture's own filament swaps over the height ranges the object "
+                                       "already had."));
+            }
+            ImGui::SetCursorScreenPos(ImVec2(p0.x, p0.y + h));
+            ImGui::Dummy(ImVec2(1.f, gap_s));
         }
     }
 
-    // ---- Fixing what the solve got wrong ----
+    // ---- The steps ----
     //
-    // Everything else on this card changes the whole picture to put one part of it right. This does
-    // not: a stroke over the print says what that area should have been, and the solve honours it
-    // there and nowhere else. It sits with the previews because it is a correction of what they show.
+    // The work in the order it is done: the picture, the colours it is printed in, the plate and the
+    // light it is seen in, and checking what came out. One step is on the card at a time, so the card
+    // is as tall as the step rather than as tall as all four, and the previews above it - which every
+    // step changes - stay where they are while the rows under them change.
+    const int step = std::clamp(m_chroma_step[slot], 0, int(ChromaStepCount) - 1);
     {
-        if (m_chroma_retouch_mode) {
-            const float x0    = ImGui::GetCursorPosX();
-            const float row_w = std::max(m_imgui->scaled(2.f),
-                                         ImGui::GetContentRegionMax().x - x0 - std::max(card_pad, 1.f));
-            // Three words rather than a combo. Three is the whole choice, so a combo hides two of them
-            // behind a click and saves no room doing it - and it was the combo that changed the kind
-            // and the width of the control beside it, which is what made the brush slider move.
-            if (segmented_text("##hf_fix_kind", { _u8L("Layers"), _u8L("Filament"), _u8L("Matters") },
-                               m_chroma_retouch_kind, row_w))
+        // TRN The four steps of a ChromaStack card, in the order the work is done. Short: four of them share
+        // the width of the panel, each beside an icon.
+        const std::string names[] = { _u8L("Picture"), _u8L("Colors"), _u8L_CONTEXT("Plate", "ChromaStack step"),
+                                      _u8L_CONTEXT("Check", "ChromaStack step") };
+        const float       row_x   = ImGui::GetCursorPosX();
+        const float       row_w   = std::max(m_imgui->scaled(4.f),
+                                             ImGui::GetContentRegionMax().x - row_x - std::max(card_pad, 1.f));
+        const float       tab_w   = std::floor(row_w / float(ChromaStepCount));
+        const float       tab_h   = std::round(frame_h * 1.35f);
+        const float       ico     = std::round(frame_h * 0.55f);
+        const ImVec2      origin  = ImGui::GetCursorScreenPos();
+        // Check carries the card's state as a dot, the same colour as the line above: it is the step
+        // whose whole job is that question.
+        const ImVec4      check   = state.color;
+        // Each step's icon, drawn rather than taken from a font so it keeps its weight when the panel is
+        // scaled: a picture, a stack of filament, a slab, a tick.
+        const auto icon = [&](int s, const ImVec2 &c, ImU32 col) {
+            const float h = 0.5f * ico, w = 0.62f * ico, line = std::max(1.2f, std::round(frame_h * 0.06f));
+            if (s == ChromaStepPicture) {
+                dl->AddRect(ImVec2(c.x - w, c.y - h), ImVec2(c.x + w, c.y + h), col, 1.f, 0, line);
+                dl->AddTriangleFilled(ImVec2(c.x - w + line, c.y + h - line), ImVec2(c.x - 0.15f * w, c.y - 0.1f * h),
+                                      ImVec2(c.x + 0.4f * w, c.y + h - line), col);
+                dl->AddCircleFilled(ImVec2(c.x + 0.45f * w, c.y - 0.35f * h), 0.16f * ico, col);
+            } else if (s == ChromaStepColors) {
+                for (int k = -1; k <= 1; ++k)
+                    dl->AddRectFilled(ImVec2(c.x - w, c.y + float(k) * 0.66f * h - 0.22f * h),
+                                      ImVec2(c.x + w, c.y + float(k) * 0.66f * h + 0.22f * h), col, 1.f);
+            } else if (s == ChromaStepPlate) {
+                const float d = 0.35f * w;
+                dl->AddQuad(ImVec2(c.x - w, c.y - 0.1f * h), ImVec2(c.x - w + d, c.y - h), ImVec2(c.x + w, c.y - h),
+                            ImVec2(c.x + w - d, c.y - 0.1f * h), col, line);
+                dl->AddRect(ImVec2(c.x - w, c.y - 0.1f * h), ImVec2(c.x + w - d, c.y + h), col, 0.f, 0, line);
+            } else {
+                dl->AddLine(ImVec2(c.x - w, c.y), ImVec2(c.x - 0.25f * w, c.y + 0.75f * h), col, 1.4f * line);
+                dl->AddLine(ImVec2(c.x - 0.25f * w, c.y + 0.75f * h), ImVec2(c.x + w, c.y - 0.8f * h), col, 1.4f * line);
+            }
+        };
+        for (int s = 0; s < int(ChromaStepCount); ++s) {
+            ImGui::SetCursorScreenPos(ImVec2(origin.x + float(s) * tab_w, origin.y));
+            ImGui::PushID(s);
+            if (ImGui::InvisibleButton("##chroma_step", ImVec2(tab_w, tab_h)) && s != step)
+                chroma_set_step(layer, s);
+            const bool  hot = ImGui::IsItemHovered();
+            const bool  on  = s == step;
+            const ImU32 ink = on ? ImGui::GetColorU32(ImGuiCol_Text) : ImGui::GetColorU32(ImGuiCol_Text, hot ? 0.85f : 0.55f);
+            const ImVec2 ts = ImGui::CalcTextSize(names[s].c_str());
+            // The icon and the word together, centred in the tab.
+            const float  body = ico * 1.24f + gap_s + ts.x;
+            const float  bx   = std::round(origin.x + float(s) * tab_w + 0.5f * (tab_w - body));
+            const float  cy   = std::round(origin.y + 0.5f * tab_h - 1.f);
+            icon(s, ImVec2(bx + 0.62f * ico, cy), on ? ImGui::GetColorU32(ImGuiWrapper::COL_ORCA) : ink);
+            dl->AddText(ImVec2(bx + ico * 1.24f + gap_s, std::round(cy - 0.5f * ts.y)), ink, names[s].c_str());
+            if (s == int(ChromaStepCheck)) {
+                const float r = std::max(2.f, std::round(frame_h * 0.09f));
+                dl->AddCircleFilled(ImVec2(std::round(bx + body + 2.f * r + 1.f), std::round(cy - 0.3f * ts.y)), r,
+                                    ImGui::GetColorU32(check));
+            }
+            // The step's own underline, across the whole row so the four read as one control, and a short
+            // rule between two steps so each reads as a place of its own.
+            const float y = origin.y + tab_h - 1.f;
+            dl->AddLine(ImVec2(origin.x + float(s) * tab_w, y), ImVec2(origin.x + float(s + 1) * tab_w, y),
+                        on ? ImGui::GetColorU32(ImGuiWrapper::COL_ORCA) : ImGui::GetColorU32(ImGuiCol_Separator),
+                        on ? 2.f : 1.f);
+            if (s > 0) {
+                const float x = std::round(origin.x + float(s) * tab_w);
+                dl->AddLine(ImVec2(x, origin.y + 0.25f * tab_h), ImVec2(x, origin.y + 0.75f * tab_h),
+                            ImGui::GetColorU32(ImGuiCol_Separator));
+            }
+            ImGui::PopID();
+        }
+        ImGui::SetCursorScreenPos(ImVec2(origin.x, origin.y + tab_h));
+        ImGui::Dummy(ImVec2(1.f, gap_s));
+    }
+
+    // ---- 1 Picture ----
+    //
+    // Which picture, and what is done to it before it is solved. The filters come first because they
+    // are what most pictures want and nobody has to understand a slider to use one.
+    if (step == ChromaStepPicture) {
+        const float full = std::max(m_imgui->scaled(4.f), ImGui::GetContentRegionAvail().x - std::max(card_pad, 1.f));
+        // The picture's name in a field, and the gallery it comes from beside it. The field is not
+        // typed into: a picture is chosen by looking at it, so clicking the name opens the gallery too.
+        {
+            const float       x0      = ImGui::GetCursorPosX();
+            slider_label(_L("Picture"));
+            const std::string gallery = _u8L("Gallery");
+            const float       gal_w   = ImGui::CalcTextSize(gallery.c_str()).x + 2.f * style.FramePadding.x;
+            const float       field_w = std::max(frame_h, full - (ImGui::GetCursorPosX() - x0) - gal_w - gap_s);
+            const ImVec2      p       = ImGui::GetCursorScreenPos();
+            const std::string tip     = _u8L("Picks a different picture from the gallery. The stack and the placement stay "
+                                             "as they are, a plate made for the picture takes the new one's shape, and the "
+                                             "stack is solved again for it.");
+            if (ImGui::InvisibleButton("##chroma_picture_name", ImVec2(field_w, frame_h)))
+                chroma_pick_picture(layer);
+            const bool hot = ImGui::IsItemHovered();
+            dl->AddRectFilled(p, ImVec2(p.x + field_w, p.y + frame_h),
+                              ImGui::GetColorU32(hot ? ImGuiCol_FrameBgHovered : ImGuiCol_FrameBg), style.FrameRounding);
+            dl->AddRect(p, ImVec2(p.x + field_w, p.y + frame_h), ImGui::GetColorU32(ImGuiCol_Border), style.FrameRounding,
+                        ImDrawFlags_RoundCornersAll, std::max(1.f, style.FrameBorderSize));
+            const std::string name = ellipsize(layer.name.empty() ? _u8L("Picture") : layer.name,
+                                               field_w - 2.f * style.FramePadding.x);
+            dl->AddText(ImVec2(p.x + style.FramePadding.x, p.y + style.FramePadding.y), ImGui::GetColorU32(ImGuiCol_Text),
+                        name.c_str());
+            if (hot)
+                panel_tooltip(tip);
+            ImGui::SameLine(0.f, gap_s);
+            if (ImGui::Button(gallery.c_str(), ImVec2(gal_w, frame_h)))
+                chroma_pick_picture(layer);
+            if (ImGui::IsItemHovered())
+                panel_tooltip(tip);
+        }
+        render_chroma_filters(layer, full);
+    }
+
+    // ---- 4 Check ----
+    //
+    // Whether it is ready, why it looks the way it does, and the one correction that is not a change to
+    // the whole picture. The brush's settings are always on the step rather than appearing when it is
+    // switched on: a control that appears has moved everything below it while the reader was looking
+    // somewhere else.
+    if (step == ChromaStepCheck) {
+        const float x0    = ImGui::GetCursorPosX();
+        const float row_w = std::max(m_imgui->scaled(4.f), ImGui::GetContentRegionMax().x - x0 - std::max(card_pad, 1.f));
+        const float right = x0 + row_w;
+
+        // Whether it is ready. Only "ready" and "still working" are said here: anything wrong is already
+        // the bar above the steps, and the same sentence twice in two places reads as two things.
+        {
+            if (!alarm) {
+                const float r = std::max(2.5f, std::round(frame_h * 0.11f));
+                ImGui::AlignTextToFramePadding();
+                const ImVec2 p = ImGui::GetCursorScreenPos();
+                ImGui::Dummy(ImVec2(2.f * r + gap_s, frame_h));
+                dl->AddCircleFilled(ImVec2(p.x + r, p.y + 0.5f * frame_h), r, ImGui::GetColorU32(state.color));
+                ImGui::SameLine(0.f, gap_s);
+                ImGui::AlignTextToFramePadding();
+                ImGui::PushStyleColor(ImGuiCol_Text, state.color);
+                ImGui::TextUnformatted(state.text.c_str());
+                ImGui::PopStyleColor();
+            }
+        }
+
+        // ---- Why it looks the way it does ----
+        //
+        // The colour analysis on the step itself, small: the picture's colours as a cloud and the stack's
+        // reach as a line through it, which says at a glance whether the filaments can get there. A click
+        // opens it at the size of the canvas, with the figures under it.
+        {
+            const ChromaDiagnostics &diag = m_chroma_diag[slot];
+            heading(_L("Color analysis"), diag.empty() ? std::string() : Slic3r::format(_u8L("%1$.1f off"), diag.mean_de),
+                    card_pad);
+            // Its height from the width the card is allowed, never from the width it has left: taken from
+            // the live region it ties the card's height to the scrollbar, which then comes and goes every
+            // frame as the chart shrinks under it and grows back.
+            const float  ch  = std::round(std::max(m_imgui->scaled(4.f), content_w) * 0.34f);
+            const ImVec2 cp  = ImGui::GetCursorScreenPos();
+            const bool   hit = ImGui::InvisibleButton("##chroma_diag_small", ImVec2(row_w, ch));
+            const bool   hot = ImGui::IsItemHovered() && !diag.empty();
+            if (diag.empty()) {
+                dl->AddRectFilled(cp, ImVec2(cp.x + row_w, cp.y + ch), ImGui::GetColorU32(ImGuiCol_FrameBg), style.FrameRounding);
+                const std::string wait = _u8L("It appears once the stack has been solved.");
+                const ImVec2      ts   = ImGui::CalcTextSize(wait.c_str());
+                dl->AddText(ImVec2(std::round(cp.x + 0.5f * (row_w - ts.x)), std::round(cp.y + 0.5f * (ch - ts.y))),
+                            ImGui::GetColorU32(ImGuiCol_TextDisabled), wait.c_str());
+            } else {
+                draw_chroma_diag_plot(dl, diag, cp, row_w, ch, 0.55f);
+                if (hit)
+                    m_chroma_diag_slot = layer.slot;
+            }
+            dl->AddRect(cp, ImVec2(cp.x + row_w, cp.y + ch),
+                        hot ? ImGui::GetColorU32(ImGuiWrapper::COL_ORCA) : ImGui::GetColorU32(ImGuiCol_Border),
+                        style.FrameRounding, ImDrawFlags_RoundCornersAll, std::max(1.f, style.FrameBorderSize));
+            if (hot)
+                panel_tooltip(_u8L("The picture's colors as dots, each as large as its share of the picture, and what "
+                                   "this stack can print as the line through them: hue across, lightness up. Where the "
+                                   "dots sit far from the line, these filaments cannot reach those colors.\n\n"
+                                   "Click to see it larger, with the figures under it."));
+        }
+
+        // ---- Fixing what the solve got wrong ----
+        //
+        // Everything else on this card changes the whole picture to put one part of it right. This does
+        // not: a stroke over the print says what that area should have been, and the solve honours it
+        // there and nowhere else.
+        ImGui::Dummy(ImVec2(1.f, gap_s));
+        {
+            // The heading, and painting switched on and off at its right: while it is on, dragging over
+            // the model paints instead of turning it.
+            const bool        on    = m_chroma_retouch_mode;
+            const std::string label = on ? _u8L("Done") : _u8L("Paint");
+            const float       bw    = ImGui::CalcTextSize(label.c_str()).x + 4.f * style.FramePadding.x;
+            ImGui::AlignTextToFramePadding();
+            m_imgui->push_bold_font();
+            ImGui::TextUnformatted(_u8L("Fix an area").c_str());
+            m_imgui->pop_bold_font();
+            ImGui::SameLine();
+            ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), right - bw));
+            if (on)
+                GLGizmoUtils::push_orca_button_style();
+            if (ImGui::Button(label.c_str(), ImVec2(bw, frame_h))) {
+                m_chroma_retouch_mode = !on;
+                if (!m_chroma_retouch_mode && m_chroma_retouch_painting)
+                    chroma_commit_stroke(layer);
+                m_parent.set_as_dirty();
+            }
+            if (on)
+                GLGizmoUtils::pop_orca_button_style();
+            if (ImGui::IsItemHovered())
+                panel_tooltip(on ? _u8L("Stops the brush, so dragging turns the model again.") :
+                                   _u8L("Paint over the print to correct it: the area you paint moves to the color you "
+                                        "choose here, and the rest of the picture is left exactly as the solve decided."
+                                        "\n\nHold Ctrl to turn the model while the brush is on."));
+        }
+
+        // The brush's settings and the corrections made with it, in one frame.
+        const float  pad  = std::round(m_imgui->scaled(0.35f));
+        const ImVec2 top  = ImGui::GetCursorScreenPos();
+        const float  in_w = row_w - 2.f * pad;
+        ImGui::Dummy(ImVec2(1.f, pad));
+        ImGui::Indent(pad);
+        {
+            const float ix0 = ImGui::GetCursorPosX();
+            // Three words rather than a combo: three is the whole choice.
+            if (chroma_segmented("##hf_fix_kind", { _u8L("Layers"), _u8L("Filament"), _u8L("Matters") },
+                               m_chroma_retouch_kind, in_w))
                 m_parent.set_as_dirty();
             if (ImGui::IsItemHovered())
                 panel_tooltip(_u8L("What the brush does to what it covers. Moving by layers nudges that area up or "
@@ -2958,26 +3396,26 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                                    "color wants. Marking what matters changes no height: it tells the solve which "
                                    "part of the picture to choose the filaments for."));
 
-            // Then two rows, and always these two. The control on the Amount row changes kind with the
-            // mode, but neither its place nor its width does, so nothing under it moves when the mode
-            // is changed.
+            // Two rows, always these two: the control on the first changes kind with the mode, but
+            // neither its place nor its width does, so nothing under it moves when the mode is changed.
+            // The clear mark at its end belongs to Matters alone, and keeps its room in the other two.
             const float label_w = m_imgui->scaled(4.2f);
-            const float field_w = std::max(m_imgui->scaled(3.f), row_w - label_w - frame_h - 2.f * gap_s);
-
-            ImGui::SetCursorPosX(x0);
+            const float clear_w = frame_h;
+            const float field_w = std::max(m_imgui->scaled(3.f), in_w - label_w - clear_w - gap_s);
+            ImGui::SetCursorPosX(ix0);
             ImGui::AlignTextToFramePadding();
-            ImGui::TextDisabled("%s", _u8L("Amount").c_str());
+            ImGui::TextDisabled("%s", m_chroma_retouch_kind == 0 ? _u8L("Amount").c_str() :
+                                      m_chroma_retouch_kind == 1 ? _u8L("Take it to").c_str() :
+                                                                   _u8L("Weight").c_str());
             ImGui::SameLine();
-            ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
-            ImGui::SetNextItemWidth(field_w);
+            ImGui::SetCursorPosX(ix0 + label_w);
             if (m_chroma_retouch_kind == 0) {
-                if (ImGui::InputInt("##hf_fix_delta", &m_chroma_retouch_delta, 1, 1))
-                    m_chroma_retouch_delta = std::clamp(m_chroma_retouch_delta, -CHROMA_MAX_RELIEF_LAYERS,
-                                                        CHROMA_MAX_RELIEF_LAYERS);
+                chroma_stepper("##hf_fix_delta", m_chroma_retouch_delta, -CHROMA_MAX_RELIEF_LAYERS, CHROMA_MAX_RELIEF_LAYERS, field_w);
                 if (ImGui::IsItemHovered())
                     panel_tooltip(_u8L("How many printed layers to move the area, up for a later color and down for "
                                        "an earlier one. One layer is usually the whole correction."));
             } else if (m_chroma_retouch_kind == 1) {
+                ImGui::SetNextItemWidth(field_w);
                 const int   bands      = int(layer.chroma.bands.size());
                 std::string band_label = _u8L("the base");
                 if (m_chroma_retouch_band >= 0 && m_chroma_retouch_band < bands)
@@ -3012,82 +3450,118 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                                     "is of gets outvoted by the wall behind it.")))
                     m_chroma_importance_weight = std::max(1.f, m_chroma_importance_weight);
             }
-
-            // On the row in every mode, so the row is the same shape in all three. There is only one
-            // thing on this card that can be forgotten, and it is the marked area.
-            const bool can_clear = m_chroma_retouch_kind == 2 && !layer.chroma.importance.region.empty();
             ImGui::SameLine(0.f, gap_s);
-            m_imgui->disabled_begin(!can_clear);
-            if (m_imgui->button("x##hf_fix_imp_clear") && can_clear) {
-                layer.chroma.importance = ChromaImportance{};
-                chroma_touch(layer.slot);
-            }
-            m_imgui->disabled_end();
-            if (ImGui::IsItemHovered())
-                panel_tooltip(can_clear ? _u8L("Forgets the marked area, so the whole picture counts equally again.") :
-                                          _u8L("Forgets the marked area. Nothing is marked yet."));
+            if (m_chroma_retouch_kind == 2) {
+                const bool   can_clear = !layer.chroma.importance.region.empty();
+                const ImVec2 cp        = ImGui::GetCursorScreenPos();
+                m_imgui->disabled_begin(!can_clear);
+                if (ImGui::InvisibleButton("##hf_fix_imp_clear", ImVec2(clear_w, frame_h)) && can_clear) {
+                    layer.chroma.importance = ChromaImportance{};
+                    chroma_touch(layer.slot);
+                }
+                m_imgui->disabled_end();
+                const bool  hot = ImGui::IsItemHovered() && can_clear;
+                chroma_draw_cross(dl, ImVec2(cp.x + 0.5f * clear_w, cp.y + 0.5f * frame_h), std::round(clear_w * 0.2f),
+                                  hot ? CHROMA_REMOVE_HOT : ImGui::GetColorU32(ImGuiCol_Text, can_clear ? 0.6f : 0.25f));
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+                    panel_tooltip(can_clear ? _u8L("Forgets the marked area, so the whole picture counts equally again.") :
+                                              _u8L("Forgets the marked area. Nothing is marked yet."));
+            } else
+                ImGui::Dummy(ImVec2(clear_w, frame_h));
 
-            ImGui::SetCursorPosX(x0);
+            ImGui::SetCursorPosX(ix0);
             ImGui::AlignTextToFramePadding();
             ImGui::TextDisabled("%s", _u8L("Brush").c_str());
             ImGui::SameLine();
-            ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
-            if (typed_slider("##hf_fix_radius", field_w, &m_chroma_retouch_radius_mm, 0.5f, 25.f, "%.1f mm", false,
+            ImGui::SetCursorPosX(ix0 + label_w);
+            if (typed_slider("##hf_fix_radius", field_w + gap_s + clear_w - panel_edit_icon_room(), &m_chroma_retouch_radius_mm,
+                             0.5f, 25.f, "%.1f mm", false,
                              _L("How wide the brush is, measured on the print rather than on the screen, so it "
                                 "covers the same amount of the picture however far you have zoomed in.")))
                 m_parent.set_as_dirty();
-        }
 
-        // The edits themselves, newest last, each one a stroke. Shown only when there are any: a card
-        // with nothing wrong on it says nothing.
-        std::vector<ChromaRetouchEdit> &edits = layer.chroma.retouch.edits;
-        int                             drop  = -1;
-        // Four of them on screen and then a scrollbar. One correction is one stroke, so the list is as
-        // long as the retouching went, and a dozen of them pushed the picture they are about off the
-        // top of the panel - the one thing a correction has to be read against.
-        const bool scrolls = edits.size() > 4;
-        if (scrolls) {
-            push_slim_scrollbar_style(m_imgui->scaled(0.5f), wxGetApp().dark_mode());
-            ImGui::BeginChild("##hf_fix_list", ImVec2(0.f, 4.f * frame_h + 3.f * style.ItemSpacing.y), false);
-        }
-        for (size_t ei = 0; ei < edits.size(); ++ei) {
-            ChromaRetouchEdit &edit = edits[ei];
-            ImGui::PushID(int(1000 + ei));
-            if (m_imgui->bbl_checkbox(wxString("##hf_fix_on"), edit.enabled))
+            // The corrections, newest last, each one a stroke: a name, whether it is on, and taking it
+            // out. Four on screen and then a scrollbar, so a long session of retouching cannot push the
+            // picture it is about off the top of the panel.
+            std::vector<ChromaRetouchEdit> &edits   = layer.chroma.retouch.edits;
+            int                             drop    = -1;
+            const bool                      scrolls = edits.size() > 4;
+            if (scrolls) {
+                push_slim_scrollbar_style(m_imgui->scaled(0.5f), wxGetApp().dark_mode());
+                ImGui::BeginChild("##hf_fix_list", ImVec2(in_w, 4.f * frame_h + 3.f * style.ItemSpacing.y), false);
+            }
+            const float icon_w = std::round(frame_h * 0.85f);
+            for (size_t ei = 0; ei < edits.size(); ++ei) {
+                ChromaRetouchEdit &edit = edits[ei];
+                ImGui::PushID(int(1000 + ei));
+                std::string said;
+                if (edit.target == ChromaRetouchEdit::Target::Delta) {
+                    const int moved = std::abs(edit.value);
+                    said = edit.value >= 0 ?
+                               Slic3r::format(into_u8(_L_PLURAL("Fix %1%: %2% layer up", "Fix %1%: %2% layers up", moved)),
+                                              int(ei + 1), moved) :
+                               Slic3r::format(into_u8(_L_PLURAL("Fix %1%: %2% layer down", "Fix %1%: %2% layers down",
+                                                                moved)),
+                                              int(ei + 1), moved);
+                } else if (edit.value < 0)
+                    said = Slic3r::format(_u8L("Fix %1%: the base"), int(ei + 1));
+                else
+                    said = Slic3r::format(_u8L("Fix %1%: band %2%"), int(ei + 1), edit.value + 1);
+                ImGui::SetCursorPosX(ix0);
+                ImGui::AlignTextToFramePadding();
+                if (edit.enabled)
+                    ImGui::TextUnformatted(said.c_str());
+                else
+                    ImGui::TextDisabled("%s", said.c_str());
+                // On or off, as an eye; then the cross that takes it out.
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(ix0 + in_w - 2.f * icon_w - gap_s - (scrolls ? m_imgui->scaled(0.5f) : 0.f));
+                {
+                    const ImVec2 p = ImGui::GetCursorScreenPos();
+                    if (ImGui::InvisibleButton("##hf_fix_on", ImVec2(icon_w, frame_h))) {
+                        edit.enabled = !edit.enabled;
+                        chroma_touch(layer.slot);
+                    }
+                    const bool  hot = ImGui::IsItemHovered();
+                    const ImU32 col = ImGui::GetColorU32(ImGuiCol_Text, hot ? 1.f : edit.enabled ? 0.75f : 0.35f);
+                    const float cx = p.x + 0.5f * icon_w, cy = p.y + 0.5f * frame_h, ew = 0.36f * icon_w;
+                    dl->PathArcTo(ImVec2(cx, cy + 0.9f * ew), 1.25f * ew, -2.36f, -0.78f, 10);
+                    dl->PathArcTo(ImVec2(cx, cy - 0.9f * ew), 1.25f * ew, 0.78f, 2.36f, 10);
+                    dl->PathStroke(col, ImDrawFlags_Closed, 1.3f);
+                    if (edit.enabled)
+                        dl->AddCircleFilled(ImVec2(cx, cy), 0.32f * ew, col);
+                    else
+                        dl->AddLine(ImVec2(cx - ew, cy + 0.7f * ew), ImVec2(cx + ew, cy - 0.7f * ew), col, 1.3f);
+                    if (hot)
+                        panel_tooltip(edit.enabled ? _u8L("Turns this correction off without losing it, so you can see what it is doing.") :
+                                                     _u8L("Turns this correction back on."));
+                }
+                ImGui::SameLine(0.f, gap_s);
+                {
+                    const ImVec2 p = ImGui::GetCursorScreenPos();
+                    if (ImGui::InvisibleButton("##hf_fix_del", ImVec2(icon_w, frame_h)))
+                        drop = int(ei);
+                    const bool  hot = ImGui::IsItemHovered();
+                    chroma_draw_cross(dl, ImVec2(p.x + 0.5f * icon_w, p.y + 0.5f * frame_h), std::round(icon_w * 0.22f),
+                                      hot ? CHROMA_REMOVE_HOT : ImGui::GetColorU32(ImGuiCol_Text, 0.6f));
+                    if (hot)
+                        panel_tooltip(_u8L("Removes this correction."));
+                }
+                ImGui::PopID();
+            }
+            if (scrolls) {
+                ImGui::EndChild();
+                pop_slim_scrollbar_style();
+            }
+            if (drop >= 0) {
+                edits.erase(edits.begin() + drop);
                 chroma_touch(layer.slot);
-            if (ImGui::IsItemHovered())
-                panel_tooltip(_u8L("Turns this correction off without losing it, so you can see what it is doing."));
-            ImGui::SameLine(0.f, gap_s);
-            ImGui::AlignTextToFramePadding();
-            std::string said;
-            if (edit.target == ChromaRetouchEdit::Target::Delta) {
-                const int moved = std::abs(edit.value);
-                said = edit.value >= 0 ?
-                           Slic3r::format(into_u8(_L_PLURAL("Fix %1%: %2% layer up", "Fix %1%: %2% layers up", moved)),
-                                          int(ei + 1), moved) :
-                           Slic3r::format(into_u8(_L_PLURAL("Fix %1%: %2% layer down", "Fix %1%: %2% layers down",
-                                                            moved)),
-                                          int(ei + 1), moved);
-            } else if (edit.value < 0)
-                said = Slic3r::format(_u8L("Fix %1%: the base"), int(ei + 1));
-            else
-                said = Slic3r::format(_u8L("Fix %1%: band %2%"), int(ei + 1), edit.value + 1);
-            ImGui::TextDisabled("%s", said.c_str());
-            ImGui::SameLine(0.f, gap_s);
-            if (m_imgui->button("x##hf_fix_del"))
-                drop = int(ei);
-            if (ImGui::IsItemHovered())
-                panel_tooltip(_u8L("Removes this correction."));
-            ImGui::PopID();
+            }
         }
-        if (scrolls) {
-            ImGui::EndChild();
-            pop_slim_scrollbar_style();
-        }
-        if (drop >= 0) {
-            edits.erase(edits.begin() + drop);
-            chroma_touch(layer.slot);
-        }
+        ImGui::Unindent(pad);
+        ImGui::Dummy(ImVec2(1.f, pad - style.ItemSpacing.y));
+        dl->AddRect(top, ImVec2(top.x + row_w, ImGui::GetCursorScreenPos().y - style.ItemSpacing.y),
+                    ImGui::GetColorU32(ImGuiCol_Separator), style.FrameRounding);
     }
 
     // ---- The colours the picture is printed in ----
@@ -3095,24 +3569,18 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
     // The ramp first, because it is the whole stack's own readout and answers "is this worth printing"
     // before any one band is worth looking at; then the bands, top of the stack first, the way the
     // print is looked at; then the two ways of choosing them again from scratch.
-    ImGui::Dummy(ImVec2(1.f, gap_s));
-    const std::vector<ChromaFilament> loaded   = chroma_filaments();
-    const std::vector<ColorRGB>       palette  = chroma_palette(layer.chroma);
-    const int                         distinct = chroma_distinct_levels(layer.chroma);
-    const int                         relief   = layer.chroma.relief_layers();
-    const bool                        has_ramp = int(palette.size()) > layer.chroma.base_layers;
+    // Whether the stack prints anything above its base, which Plate needs as well. Read off the stack
+    // rather than off its palette: chroma_palette() is empty exactly when one of these fails, and has
+    // one entry more than the stack has layers otherwise.
+    const bool has_ramp = layer.chroma.total_layers() > 0 && !layer.chroma.bands.empty() &&
+                          layer.chroma.layer_height_mm > 0.f;
 
-    // Closable like the rest of them, and open to begin with. The summary carries the filament count,
-    // which is the one thing about the stack worth reading while the section is folded. It carries
-    // only that: a summary assembled out of two translated fragments is a sentence no translator can
-    // put in the order their language wants, and how many colours the stack can print is already
-    // written out under the ramp.
-    const bool colors_open = closable("##hf_sec_colors", _L("Colors"),
-                                      Slic3r::format(into_u8(_L_PLURAL("%1% filament", "%1% filaments",
-                                                                       int(layer.chroma.bands.size()))),
-                                                     int(layer.chroma.bands.size())),
-                                      m_chroma_open_colors[slot]);
-    if (colors_open) {
+    // ---- 2 Colors ----
+    if (step == ChromaStepColors) {
+        const std::vector<ChromaFilament> loaded   = chroma_filaments();
+        const std::vector<ColorRGB>       palette  = chroma_palette(layer.chroma);
+        const int                         distinct = chroma_distinct_levels(layer.chroma);
+        const int                         relief   = layer.chroma.relief_layers();
         if (has_ramp) {
             const float  w     = std::max(m_imgui->scaled(2.f),
                                           ImGui::GetContentRegionAvail().x - std::max(card_pad, 1.f));
@@ -3120,9 +3588,14 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
             const ImVec2 p     = ImGui::GetCursorScreenPos();
             const int    first = std::max(0, layer.chroma.base_layers);
             const int    count = int(palette.size()) - first;
+            // With the lights off the ramp shows what the overlay does, the glow at every height; the
+            // band ticks below still read the lit palette, which is what says where one band ends.
+            const bool                   dark = m_chroma_lights_off && chroma_has_glow(layer.chroma);
+            const std::vector<ColorRGB>  glow = dark ? chroma_glow_palette(layer.chroma) : std::vector<ColorRGB>();
+            const std::vector<ColorRGB> &ramp = glow.size() == palette.size() ? glow : palette;
             ImGui::Dummy(ImVec2(w, h));
             for (int i = 0; i < count; ++i) {
-                const ColorRGB &c  = palette[size_t(first + i)];
+                const ColorRGB &c  = ramp[size_t(first + i)];
                 const float     x0 = p.x + w * float(i) / float(count);
                 const float     x1 = p.x + w * float(i + 1) / float(count);
                 dl->AddRectFilled(ImVec2(x0, p.y), ImVec2(x1, p.y + h),
@@ -3136,7 +3609,7 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                 if (at <= 0 || at >= count)
                     continue;
                 const ColorRGB &c   = palette[size_t(first + at)];
-                const float     lum = 0.2126f * c.r() + 0.7152f * c.g() + 0.0722f * c.b();
+                const float     lum = chroma_luma(c);
                 const float     x   = std::round(p.x + w * float(at) / float(count));
                 dl->AddLine(ImVec2(x, p.y), ImVec2(x, p.y + h),
                             lum > 0.5f ? IM_COL32(0, 0, 0, 140) : IM_COL32(255, 255, 255, 140));
@@ -3155,72 +3628,21 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
             // being adjusted.
         }
 
-        // ---- One row per filament, and everything that filament has on it ----
+        // ---- One row per filament, and a drawer for the rest of it ----
         //
-        // It used to be two rows and a drawer: a line of figures nobody could click, and behind a
-        // chevron the transmission distance, the tool that measures it, Remove, and the band's own
-        // place in the print order behind two buttons. Four things one click away each, to save a row
-        // that did not need saving. They are all on the row now, and the order is the handle: the list
-        // is the stack, so dragging a row along it is the one gesture that already means what it says.
+        // On the row, what is changed on every pass: which filament, and how many layers of it, with its
+        // transmission distance read off beside them. In the drawer under it, what is a filament's own and
+        // set once: the transmission distance itself, measuring it, its place in the stack, and taking it
+        // out. The row reads as one line of a stack, which is what a list of five of them has to do.
         {
             int remove    = -1;
+            // A move up or down the stack, from the arrows in a filament's drawer.
             int drag_from = -1, drag_to = -1;
-            // The band under the cursor while a reorder drag is in flight. The same gesture as the
-            // layer list one level up, and the same three things on screen: the row picked up follows
-            // the cursor, the row it came from stays behind as a ghost, and a line shows the gap it
-            // would drop into. Before this it swapped with its neighbour silently, and a list that
-            // rearranges itself with nothing held reads as a misclick.
-            int dragging  = -1;
-            if (const ImGuiPayload *pl = ImGui::GetDragDropPayload(); pl != nullptr && pl->IsDataType("TD_BAND"))
-                dragging = *static_cast<const int *>(pl->Data);
             for (size_t bi = 0; bi < layer.chroma.bands.size(); ++bi) {
                 ChromaBand &band = layer.chroma.bands[bi];
                 ImGui::PushID(int(bi));
                 const float swatch_px = std::round(frame_h * 0.8f);
-                const float handle_w  = std::round(frame_h * 0.7f);
-                // The row as one item, so the whole of it is the drop target rather than whichever
-                // control happens to be last on it.
-                const ImVec2 row_min = ImGui::GetCursorScreenPos();
-                const float  row_w   = ImGui::GetContentRegionAvail().x;
                 ImGui::BeginGroup();
-
-                // ---- the handle ----
-                //
-                // The row's place in the list is the band's place in the stack, so the gesture that
-                // changes it is dragging the row. One step at a time, with the drag delta reset at each
-                // swap: a slow drag walks the band along and a fast one cannot overshoot the list.
-                {
-                    const ImVec2 hp = ImGui::GetCursorScreenPos();
-                    ImGui::InvisibleButton("##hf_drag", ImVec2(handle_w, frame_h));
-                    if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceNoHoldToOpenOthers)) {
-                        const int idx = int(bi);
-                        ImGui::SetDragDropPayload("TD_BAND", &idx, sizeof(idx));
-                        // What is in the hand, under the cursor: the swatch and the name, which is what
-                        // tells one row of a stack from another without reading any of its figures.
-                        swatch(band.filament.color, swatch_px);
-                        ImGui::SameLine(0.f, gap_s);
-                        ImGui::AlignTextToFramePadding();
-                        ImGui::TextUnformatted((band.filament.name.empty() ?
-                                                    Slic3r::format(_u8L("Filament %1%"), band.filament.filament + 1) :
-                                                    Slic3r::format("%1%  %2%", band.filament.filament + 1,
-                                                                   band.filament.name))
-                                                   .c_str());
-                        ImGui::EndDragDropSource();
-                    }
-                    const bool  hot = ImGui::IsItemHovered() || ImGui::IsItemActive();
-                    const ImU32 col = ImGui::GetColorU32(ImGuiCol_Text, hot ? 0.9f : 0.35f);
-                    const float r   = std::max(1.f, std::round(frame_h * 0.055f));
-                    const float cx = hp.x + 0.5f * handle_w, cy = hp.y + 0.5f * frame_h;
-                    for (int ry = -1; ry <= 1; ++ry)
-                        for (int rx = 0; rx < 2; ++rx)
-                            dl->AddCircleFilled(ImVec2(cx + (rx == 0 ? -1.7f : 1.7f) * r, cy + float(ry) * 3.2f * r),
-                                                r, col);
-                    if (ImGui::IsItemHovered())
-                        panel_tooltip(_u8L("Drag to move this filament along the stack. The order is the print order: "
-                                           "the first row is printed first, against the backing, and the last is the "
-                                           "one the light meets first."));
-                    ImGui::SameLine(0.f, gap_s);
-                }
 
                 // The one thing about a stack that can go wrong while nobody is touching the card: the
                 // project's filament in this slot is no longer the one the band was solved against. Said
@@ -3269,69 +3691,40 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                     const ImVec2 mn  = ImGui::GetItemRectMin();
                     const float  top = std::round(mn.y + 0.5f * (frame_h - swatch_px));
                     const ColorRGB &c = band.filament.color;
-                    const float lum   = 0.2126f * c.r() + 0.7152f * c.g() + 0.0722f * c.b();
+                    const float lum   = chroma_luma(c);
                     const std::string no = std::to_string(bi + 1);
                     const ImVec2      ts = ImGui::CalcTextSize(no.c_str());
                     dl->AddText(ImVec2(mn.x + 0.5f * (swatch_px - ts.x), top + 0.5f * (swatch_px - ts.y)),
                                 lum > 0.5f ? IM_COL32(20, 20, 20, 230) : IM_COL32(240, 240, 240, 230), no.c_str());
                     if (drift.any()) {
                         const float r = std::max(2.5f, std::round(swatch_px * 0.2f));
-                        dl->AddCircleFilled(ImVec2(mn.x + swatch_px - r, top + r), r, ImGui::GetColorU32(col_warn));
+                        dl->AddCircleFilled(ImVec2(mn.x + swatch_px - r, top + r), r, ImGui::GetColorU32(CHROMA_COL_WARN));
                     }
                 }
                 ImGui::SameLine(0.f, gap_s);
                 // ---- the filament ----
+                // The name alone on the closed list: the swatch beside it already says which slot it is,
+                // and the open list carries the slot numbers that tell two spools of one name apart.
                 const std::string current = band.filament.name.empty() ?
                                                 Slic3r::format(_u8L("Filament %1%"), band.filament.filament + 1) :
-                                                Slic3r::format("%1%  %2%", band.filament.filament + 1, band.filament.name);
-                const float layers_w  = m_imgui->scaled(3.9f);
-                const float td_w      = m_imgui->scaled(3.3f);
-                const float icon_w    = std::round(frame_h * 0.85f);
-                const float tail      = layers_w + td_w + 2.f * icon_w + 4.f * gap_s + std::max(card_pad, 1.f);
-                ImGui::SetNextItemWidth(-tail);
-                push_panel_combo_style(m_parent.get_scale());
-                if (ImGui::BeginCombo("##hf_filament", current.c_str())) {
-                    for (const ChromaFilament &f : loaded) {
-                        const std::string item = f.name.empty() ? Slic3r::format(_u8L("Filament %1%"), f.filament + 1) :
-                                                                  Slic3r::format("%1%  %2%", f.filament + 1, f.name);
-                        if (ImGui::Selectable(item.c_str(), f.filament == band.filament.filament)) {
-                            band.filament = f;
-                            chroma_touch(layer.slot);
-                        }
-                    }
-                    ImGui::EndCombo();
-                }
-                pop_panel_combo_style();
-                hover_tip(_u8L("Which of the loaded filaments this band prints in. Its color and its transmission distance come "
-                         "from that filament's preset."));
-
-                // ---- how many layers of it ----
-                //
-                // The unit lives in the field's own format, which is the only place a reader is looking
-                // when they want to know what the number counts.
-                ImGui::SameLine(0.f, gap_s);
-                ImGui::SetNextItemWidth(layers_w);
-                if (ImGui::InputScalar("##hf_layers", ImGuiDataType_S32, &band.layers, nullptr, nullptr,
-                                       _u8L("%d layers").c_str())) {
-                    band.layers = std::clamp(band.layers, 1, CHROMA_MAX_RELIEF_LAYERS);
-                    chroma_touch(layer.slot);
-                }
-                hover_tip(_u8L("How many printed layers this filament gets, counting up the stack."));
-
-                // ---- how deep light gets into it ----
-                ImGui::SameLine(0.f, gap_s);
-                ImGui::SetNextItemWidth(td_w);
-                float td = band.filament.td_mm;
-                if (ImGui::InputFloat("##hf_td", &td, 0.f, 0.f, "%.1f")) {
-                    const float v = std::clamp(td, 0.05f, 100.f);
+                                                band.filament.name;
+                const float step_w   = std::round(frame_h * 3.3f);
+                const float td_w     = ImGui::CalcTextSize("TD 00.0").x + gap_s;
+                const float icon_w   = std::round(frame_h * 0.85f);
+                const float tail     = step_w + td_w + icon_w + 3.f * gap_s + std::max(card_pad, 1.f);
+                const bool  open_row = m_chroma_band_open[slot] == int(bi);
+                // A transmission distance is the filament's, so it is set on every band printed in it.
+                const auto set_td = [&](float v) {
                     for (ChromaBand &b : layer.chroma.bands)
                         if (b.filament.filament == band.filament.filament)
                             b.filament.td_mm = v;
                     chroma_touch(layer.slot);
-                }
-                {
-                    // The reading of the number, where the number is. It was a line of its own under
-                    // every band, which is what made the list two storeys tall.
+                };
+                // The sentence every reading of the transmission distance carries, on the figure and on
+                // the field in the drawer alike.
+                // Built only when it is about to be shown: it is a few sentences and several translations,
+                // and there is one per band on every frame otherwise.
+                const auto td_said = [&]() {
                     const float cover = chroma_layers_to_opaque(band.filament.td_mm, layer.chroma.layer_height_mm);
                     std::string said  = Slic3r::format(_u8L("Transmission distance, in millimetres: how deep light gets "
                                                             "into this filament before it is spent. Every color on this "
@@ -3347,26 +3740,92 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                     if (drift.any())
                         said += "\n\n" + _u8L("This is not the filament it was solved with. Click the swatch to take "
                                                "the one the project has now.");
-                    hover_tip(said, { { "chroma_td.gif" } });
+                    return said;
+                };
+                ImGui::SetNextItemWidth(-tail);
+                push_panel_combo_style(m_parent.get_scale());
+                if (ImGui::BeginCombo("##hf_filament", current.c_str())) {
+                    for (const ChromaFilament &f : loaded) {
+                        if (ImGui::Selectable(chroma_filament_label(f).c_str(), f.filament == band.filament.filament)) {
+                            band.filament = f;
+                            chroma_touch(layer.slot);
+                        }
+                    }
+                    ImGui::EndCombo();
                 }
+                pop_panel_combo_style();
+                hover_tip(_u8L("Which of the loaded filaments this band prints in. Its color and its transmission distance come "
+                         "from that filament's preset."));
 
-                // ---- measure it, rather than guess it ----
+                // ---- how many layers of it ----
                 //
-                // No filament preset ships the number and nothing but a print can tell you it, so the
-                // tool that prints the staircase is on the row beside the field it fills in. The icon
-                // is that staircase.
+                // Minus, the count, plus: a count is changed a layer at a time far more often than it is
+                // typed, and the field between them still takes a typed one.
                 ImGui::SameLine(0.f, gap_s);
+                if (chroma_stepper("##hf_layers", band.layers, 1, CHROMA_MAX_RELIEF_LAYERS, step_w))
+                    chroma_touch(layer.slot);
+                hover_tip(_u8L("How many printed layers this filament gets, counting up the stack."));
+
+                // ---- how deep light gets into it, read off ----
+                ImGui::SameLine(0.f, gap_s);
+                ImGui::AlignTextToFramePadding();
+                ImGui::TextDisabled("%s", Slic3r::format(_u8L("TD %1$.1f"), band.filament.td_mm).c_str());
+                if (ImGui::IsItemHovered())
+                    panel_tooltip(td_said(), { { "chroma_td.gif" } });
+
+                // ---- the rest of it, one click away ----
+                ImGui::SameLine(0.f, gap_s);
+                ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(),
+                                              ImGui::GetContentRegionMax().x - std::max(card_pad, 1.f) - icon_w));
                 {
                     const ImVec2 p = ImGui::GetCursorScreenPos();
-                    if (ImGui::InvisibleButton("##hf_measure", ImVec2(icon_w, frame_h))) {
+                    if (ImGui::InvisibleButton("##hf_open", ImVec2(icon_w, frame_h)))
+                        m_chroma_band_open[slot] = open_row ? -1 : int(bi);
+                    const ImU32 col = ImGui::GetColorU32(ImGuiCol_Text, ImGui::IsItemHovered() ? 1.f : 0.6f);
+                    const float a   = std::round(frame_h * 0.18f);
+                    const float cx = p.x + 0.5f * icon_w, cy = p.y + 0.5f * frame_h;
+                    if (open_row)
+                        dl->AddTriangleFilled(ImVec2(cx - a, cy - 0.5f * a), ImVec2(cx + a, cy - 0.5f * a), ImVec2(cx, cy + 0.7f * a), col);
+                    else
+                        dl->AddTriangleFilled(ImVec2(cx - 0.5f * a, cy - a), ImVec2(cx + 0.7f * a, cy), ImVec2(cx - 0.5f * a, cy + a), col);
+                    if (ImGui::IsItemHovered())
+                        panel_tooltip(open_row ? _u8L("Closes this filament's settings.") :
+                                                 _u8L("This filament's own settings: its transmission distance, measuring "
+                                                      "it, where it comes in the print, and taking it out."));
+                }
+
+                // ---- the drawer ----
+                //
+                // The things that are a filament's own rather than the stack's, under the row they belong
+                // to. One drawer open at a time: two open is a list that no longer reads as a stack.
+                if (open_row) {
+                    const float  pad   = std::round(m_imgui->scaled(0.3f));
+                    const float  x0    = ImGui::GetCursorPosX();
+                    const ImVec2 top   = ImGui::GetCursorScreenPos();
+                    const float  right = ImGui::GetContentRegionMax().x - std::max(card_pad, 1.f); // window-relative
+                    ImGui::Dummy(ImVec2(1.f, pad));
+                    ImGui::SetCursorPosX(x0 + pad);
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::TextDisabled("TD");
+                    ImGui::SameLine(0.f, gap_s);
+                    ImGui::SetNextItemWidth(std::round(frame_h * 2.2f));
+                    float td = band.filament.td_mm;
+                    if (ImGui::InputFloat("##hf_td", &td, 0.f, 0.f, "%.1f"))
+                        set_td(std::clamp(td, 0.05f, 100.f));
+                    if (ImGui::IsItemHovered())
+                        panel_tooltip(td_said(), { { "chroma_td.gif" } });
+
+                    // Measure it, rather than guess it: no filament preset ships the number and nothing but
+                    // a print can tell you it.
+                    ImGui::SameLine(0.f, gap_s);
+                    if (ImGui::Button(_u8L("Measure").c_str())) {
                         m_chroma_wedge_step = 0;
                         if (m_chroma_wedge_substrate < 0 || m_chroma_wedge_substrate == band.filament.filament) {
                             // The darkest other filament shows through a pale staircase best.
                             float darkest = 2.f;
                             for (const ChromaFilament &f : loaded)
                                 if (f.filament != band.filament.filament) {
-                                    const float lum = 0.2126f * f.color.r() + 0.7152f * f.color.g() +
-                                                      0.0722f * f.color.b();
+                                    const float lum = chroma_luma(f.color);
                                     if (lum < darkest) {
                                         darkest                  = lum;
                                         m_chroma_wedge_substrate = f.filament;
@@ -3375,229 +3834,202 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                         }
                         ImGui::OpenPopup("hf_measure_pop");
                     }
-                    const ImU32 col  = ImGui::GetColorU32(ImGuiCol_Text, ImGui::IsItemHovered() ? 1.f : 0.6f);
-                    const float step = std::round(icon_w * 0.26f);
-                    const float x0   = p.x + 0.5f * (icon_w - 3.f * step);
-                    const float y1   = p.y + 0.5f * frame_h + 1.5f * step;
-                    for (int k = 0; k < 3; ++k)
-                        dl->AddRectFilled(ImVec2(x0 + float(k) * step, y1 - float(k + 1) * step),
-                                          ImVec2(x0 + float(k + 1) * step - 1.f, y1), col);
                     if (ImGui::IsItemHovered())
                         panel_tooltip(_u8L("Measure this filament's transmission distance by printing a step wedge: a "
                                            "staircase of it over a filament it has to hide. Nothing but a print can tell "
                                            "you this number, and every color on this card is computed from it."),
                                       { { "chroma_td.gif" } });
+
+                    // Its place in the print, and taking it out, at the right of the drawer.
+                    const auto icon_button = [&](const char *id, int kind, bool enabled, const std::string &tip) {
+                        const ImVec2 p = ImGui::GetCursorScreenPos();
+                        m_imgui->disabled_begin(!enabled);
+                        const bool hit = ImGui::InvisibleButton(id, ImVec2(icon_w, frame_h)) && enabled;
+                        m_imgui->disabled_end();
+                        const bool  hot = ImGui::IsItemHovered() && enabled;
+                        const ImU32 col = kind == 2 && hot ? CHROMA_REMOVE_HOT :
+                                                             ImGui::GetColorU32(ImGuiCol_Text, !enabled ? 0.25f : hot ? 1.f : 0.6f);
+                        const float a  = std::round(icon_w * 0.24f);
+                        const float cx = p.x + 0.5f * icon_w, cy = p.y + 0.5f * frame_h;
+                        if (kind == 0)
+                            dl->AddTriangleFilled(ImVec2(cx - a, cy + 0.5f * a), ImVec2(cx + a, cy + 0.5f * a), ImVec2(cx, cy - 0.7f * a), col);
+                        else if (kind == 1)
+                            dl->AddTriangleFilled(ImVec2(cx - a, cy - 0.5f * a), ImVec2(cx + a, cy - 0.5f * a), ImVec2(cx, cy + 0.7f * a), col);
+                        else
+                            chroma_draw_cross(dl, ImVec2(cx, cy), a, col);
+                        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+                            panel_tooltip(tip);
+                        return hit;
+                    };
+                    ImGui::SameLine(0.f, gap_s);
+                    ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(),
+                                                  right - pad - 3.f * icon_w - 2.f * gap_s));
+                    if (icon_button("##hf_up", 0, bi > 0,
+                                    _u8L("Moves this filament one row up: earlier in the print, nearer the backing."))) {
+                        drag_from = int(bi);
+                        drag_to   = int(bi) - 1;
+                    }
+                    ImGui::SameLine(0.f, gap_s);
+                    if (icon_button("##hf_down", 1, bi + 1 < layer.chroma.bands.size(),
+                                    _u8L("Moves this filament one row down: later in the print, nearer the light."))) {
+                        drag_from = int(bi);
+                        drag_to   = int(bi) + 1;
+                    }
+                    ImGui::SameLine(0.f, gap_s);
+                    if (icon_button("##hf_remove", 2, layer.chroma.bands.size() > 1,
+                                    layer.chroma.bands.size() > 1 ? _u8L("Takes this filament out of the stack.") :
+                                                                    _u8L("A stack prints in at least one filament.")))
+                        remove = int(bi);
+                    ImGui::Dummy(ImVec2(1.f, pad));
+                    dl->AddRect(top, ImVec2(ImGui::GetWindowPos().x + right, ImGui::GetCursorScreenPos().y - style.ItemSpacing.y + pad),
+                                ImGui::GetColorU32(ImGuiCol_Separator), style.FrameRounding);
                 }
 
                 // Beside the panel, not over it, for the same reason the suggestion list is: the wedge
                 // is set up by reading it against the row it belongs to - the filament, its current
                 // number and where that number came from - and a window over the card hides all three.
-                {
-                    const float  wedge_w = m_imgui->scaled(21.5f);
-                    const ImVec2 panel   = ImGui::GetWindowPos();
-                    ImGui::SetNextWindowPos(ImVec2(std::max(0.f, panel.x - wedge_w - m_imgui->scaled(0.5f)),
-                                                   ImGui::GetCursorScreenPos().y),
-                                            ImGuiCond_Always);
-                    ImGui::SetNextWindowSize(ImVec2(wedge_w, 0.f));
-                }
+                chroma_place_beside_panel(m_imgui->scaled(21.5f), m_imgui->scaled(0.5f));
                 if (PanelPopup popup{"hf_measure_pop"}) {
-                        ImGui::TextDisabled("%s", _u8L("Measure transmission distance").c_str());
-                        ImGui::Dummy(ImVec2(1.f, gap_s));
+                    ImGui::TextDisabled("%s", _u8L("Measure transmission distance").c_str());
+                    ImGui::Dummy(ImVec2(1.f, gap_s));
 
-                        ImGui::AlignTextToFramePadding();
-                        ImGui::TextUnformatted(_u8L("Over").c_str());
-                        ImGui::SameLine(0.f, gap_s);
-                        const ChromaFilament *sub = nullptr;
-                        for (const ChromaFilament &f : loaded)
-                            if (f.filament == m_chroma_wedge_substrate)
-                                sub = &f;
-                        ImGui::SetNextItemWidth(m_imgui->scaled(8.f));
-                        push_panel_combo_style(m_parent.get_scale());
-                        if (ImGui::BeginCombo("##hf_sub", sub == nullptr ? _u8L("pick one").c_str() :
-                                                                           (sub->name.empty() ?
-                                                                                Slic3r::format(_u8L("Filament %1%"), sub->filament + 1) :
-                                                                                Slic3r::format("%1%  %2%", sub->filament + 1, sub->name))
-                                                                               .c_str())) {
-                            for (const ChromaFilament &f : loaded) {
-                                if (f.filament == band.filament.filament)
-                                    continue;
-                                const std::string item = f.name.empty() ? Slic3r::format(_u8L("Filament %1%"), f.filament + 1) :
-                                                                          Slic3r::format("%1%  %2%", f.filament + 1, f.name);
-                                if (ImGui::Selectable(item.c_str(), f.filament == m_chroma_wedge_substrate))
-                                    m_chroma_wedge_substrate = f.filament;
-                            }
-                            ImGui::EndCombo();
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::TextUnformatted(_u8L("Over").c_str());
+                    ImGui::SameLine(0.f, gap_s);
+                    const ChromaFilament *sub = nullptr;
+                    for (const ChromaFilament &f : loaded)
+                        if (f.filament == m_chroma_wedge_substrate)
+                            sub = &f;
+                    ImGui::SetNextItemWidth(m_imgui->scaled(8.f));
+                    push_panel_combo_style(m_parent.get_scale());
+                    if (ImGui::BeginCombo("##hf_sub", (sub == nullptr ? _u8L("pick one") : chroma_filament_label(*sub)).c_str())) {
+                        for (const ChromaFilament &f : loaded) {
+                            if (f.filament == band.filament.filament)
+                                continue;
+                            if (ImGui::Selectable(chroma_filament_label(f).c_str(), f.filament == m_chroma_wedge_substrate))
+                                m_chroma_wedge_substrate = f.filament;
                         }
-                        pop_panel_combo_style();
-                        if (ImGui::IsItemHovered())
-                            panel_tooltip(_u8L("The filament the staircase is printed over. A dark one under a pale staircase "
-                                               "is the easiest to see stop showing through."));
-
-                        ImGui::SameLine(0.f, 2.f * gap_s);
-                        ImGui::AlignTextToFramePadding();
-                        ImGui::TextUnformatted(_u8L("Steps").c_str());
-                        ImGui::SameLine(0.f, gap_s);
-                        ImGui::SetNextItemWidth(m_imgui->scaled(3.4f));
-                        if (ImGui::InputInt("##hf_steps", &m_chroma_wedge_steps, 0, 0))
-                            m_chroma_wedge_steps = std::clamp(m_chroma_wedge_steps, 4, 60);
-                        if (ImGui::IsItemHovered())
-                            panel_tooltip(_u8L("How many thicknesses the staircase offers, one layer apart. Sixteen covers "
-                                               "every filament that is any use for this at a fine layer height."));
-
-                        m_imgui->disabled_begin(m_chroma_wedge_substrate < 0);
-                        if (m_imgui->button(_L("Create test plate"))) {
-                            ChromaWedge wedge;
-                            wedge.steps           = m_chroma_wedge_steps;
-                            wedge.layer_height_mm = layer.chroma.layer_height_mm;
-                            // After this frame, not during it. The test plate replaces the project, which frees
-                            // the volume that `layer` and `band` point into, and the rest of the panel then
-                            // draws from freed memory.
-                            const int substrate = m_chroma_wedge_substrate;
-                            const int test      = band.filament.filament;
-                            ImGui::CloseCurrentPopup();
-                            wxGetApp().CallAfter([wedge, substrate, test]() {
-                                if (Plater *plater = wxGetApp().plater(); plater != nullptr)
-                                    plater->calib_transmission_distance(wedge, substrate, test);
-                            });
-                        }
-                        m_imgui->disabled_end();
-                        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-                            panel_tooltip(_u8L("Replaces what is on the plate with the wedge, ready to slice. Print it, then "
-                                               "come back here with the step you read off it."));
-
-                        ImGui::Dummy(ImVec2(1.f, gap_s));
-                        ImGui::AlignTextToFramePadding();
-                        ImGui::TextUnformatted(_u8L("Step").c_str());
-                        ImGui::SameLine(0.f, gap_s);
-                        ImGui::SetNextItemWidth(m_imgui->scaled(3.4f));
-                        if (ImGui::InputInt("##hf_read", &m_chroma_wedge_step, 0, 0))
-                            m_chroma_wedge_step = std::clamp(m_chroma_wedge_step, 0, 200);
-                        if (ImGui::IsItemHovered())
-                            panel_tooltip(_u8L("The first step at which the filament underneath stopped showing through. "
-                                               "Every fifth step is widened so it can be counted in fives."));
-                        const float measured_td = chroma_td_from_step(m_chroma_wedge_step, layer.chroma.layer_height_mm);
-                        ImGui::SameLine(0.f, 2.f * gap_s);
-                        ImGui::AlignTextToFramePadding();
-                        if (measured_td > 0.f)
-                            ImGui::Text("%s", Slic3r::format(_u8L("TD %1$.1f"), measured_td).c_str());
-                        else
-                            ImGui::TextDisabled("%s", _u8L("TD -").c_str());
-
-                        ImGui::SameLine(0.f, 2.f * gap_s);
-                        m_imgui->disabled_begin(measured_td <= 0.f);
-                        if (m_imgui->button(_L("Use it"))) {
-                            for (ChromaBand &b : layer.chroma.bands)
-                                if (b.filament.filament == band.filament.filament)
-                                    b.filament.td_mm = measured_td;
-                            chroma_touch(layer.slot);
-                            ImGui::CloseCurrentPopup();
-                        }
-                        m_imgui->disabled_end();
-                        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-                            panel_tooltip(_u8L("Puts the measurement into this stack. Put it into the filament's own preset "
-                                               "too, under Transmission distance, so every later picture starts from it."));
-
-                        // The other way to get a transmission distance: somebody else measured it. A library is a
-                        // file of filaments with a number each, and the people who do this have large ones; it
-                        // belongs here because this is where the card talks about where the number comes from.
-                        ImGui::Dummy(ImVec2(1.f, gap_s));
-                        ImGui::Separator();
-                        ImGui::Dummy(ImVec2(1.f, gap_s));
-                        ImGui::TextDisabled("%s", _u8L("Or use someone else's measurements").c_str());
-                        ImGui::Dummy(ImVec2(1.f, gap_s));
-                        if (m_imgui->button(_L("Import a library"))) {
-                            wxFileDialog pick(nullptr, _L("Choose a filament library to import"), wxEmptyString, wxEmptyString,
-                                              _L("Filament libraries (*.json;*.csv;*.tsv)|*.json;*.csv;*.tsv"),
-                                              wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-                            if (pick.ShowModal() == wxID_OK) {
-                                const FilamentTdImport result = filament_td_import(into_u8(pick.GetPath()));
-                                // Without this the import would only take effect on the next run: the table is
-                                // read once and cached for the process.
-                                filament_td_reset_cache();
-
-                                std::string said;
-                                if (result.unreadable)
-                                    said = _u8L("That file could not be read as a filament library. A library is a JSON or "
-                                                "CSV file listing filaments with a transmission distance for each of them.");
-                                else {
-                                    said = Slic3r::format(into_u8(_L_PLURAL("Took %1% measurement.", "Took %1% measurements.",
-                                                                            int(result.taken))),
-                                                          int(result.taken));
-                                    if (result.skipped() > 0)
-                                        said += "\n\n" +
-                                                Slic3r::format(into_u8(_L_PLURAL("%1% row had nothing usable in it and was "
-                                                                                 "skipped.",
-                                                                                 "%1% rows had nothing usable in them and "
-                                                                                 "were skipped.",
-                                                                                 int(result.skipped()))),
-                                                               int(result.skipped()));
-                                    if (result.taken > 0)
-                                        said += "\n\n" + _u8L("A filament takes its transmission distance up when you choose "
-                                                              "it for a band. For a band you have already chosen, the mark on "
-                                                              "its color swatch is how you take the new number.");
-                                }
-                                MessageDialog(nullptr, from_u8(said), _L("Import filament library"),
-                                              wxOK | wxICON_INFORMATION)
-                                    .ShowModal();
-                                m_parent.set_as_dirty();
-                            }
-                        }
-                        if (ImGui::IsItemHovered())
-                            panel_tooltip(_u8L("Reads a file of filaments with a transmission distance each, and keeps its "
-                                               "measurements beside the ones that ship with OrcaSlicer. A number you set on a "
-                                               "preset yourself still beats both, and a number measured for one color is "
-                                               "never used for another."));
+                        ImGui::EndCombo();
                     }
+                    pop_panel_combo_style();
+                    if (ImGui::IsItemHovered())
+                        panel_tooltip(_u8L("The filament the staircase is printed over. A dark one under a pale staircase "
+                                           "is the easiest to see stop showing through."));
 
-                // ---- take it out of the stack ----
-                ImGui::SameLine(0.f, gap_s);
-                {
-                    const ImVec2 p = ImGui::GetCursorScreenPos();
-                    m_imgui->disabled_begin(layer.chroma.bands.size() <= 1);
-                    if (ImGui::InvisibleButton("##hf_remove", ImVec2(icon_w, frame_h)) &&
-                        layer.chroma.bands.size() > 1)
-                        remove = int(bi);
+                    ImGui::SameLine(0.f, 2.f * gap_s);
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::TextUnformatted(_u8L("Steps").c_str());
+                    ImGui::SameLine(0.f, gap_s);
+                    ImGui::SetNextItemWidth(m_imgui->scaled(3.4f));
+                    if (ImGui::InputInt("##hf_steps", &m_chroma_wedge_steps, 0, 0))
+                        m_chroma_wedge_steps = std::clamp(m_chroma_wedge_steps, 4, 60);
+                    if (ImGui::IsItemHovered())
+                        panel_tooltip(_u8L("How many thicknesses the staircase offers, one layer apart. Sixteen covers "
+                                           "every filament that is any use for this at a fine layer height."));
+
+                    m_imgui->disabled_begin(m_chroma_wedge_substrate < 0);
+                    if (m_imgui->button(_L("Create test plate"))) {
+                        ChromaWedge wedge;
+                        wedge.steps           = m_chroma_wedge_steps;
+                        wedge.layer_height_mm = layer.chroma.layer_height_mm;
+                        // After this frame, not during it. The test plate replaces the project, which frees
+                        // the volume that `layer` and `band` point into, and the rest of the panel then
+                        // draws from freed memory.
+                        const int substrate = m_chroma_wedge_substrate;
+                        const int test      = band.filament.filament;
+                        ImGui::CloseCurrentPopup();
+                        wxGetApp().CallAfter([wedge, substrate, test]() {
+                            if (Plater *plater = wxGetApp().plater(); plater != nullptr)
+                                plater->calib_transmission_distance(wedge, substrate, test);
+                        });
+                    }
                     m_imgui->disabled_end();
-                    const bool  hot = ImGui::IsItemHovered() && layer.chroma.bands.size() > 1;
-                    const ImU32 col = hot ? IM_COL32(224, 89, 75, 255) :
-                                            ImGui::GetColorU32(ImGuiCol_Text, layer.chroma.bands.size() > 1 ? 0.55f : 0.25f);
-                    const float a   = std::round(icon_w * 0.26f);
-                    const float cx = p.x + 0.5f * icon_w, cy = p.y + 0.5f * frame_h;
-                    dl->AddLine(ImVec2(cx - a, cy - a), ImVec2(cx + a, cy + a), col, 1.6f);
-                    dl->AddLine(ImVec2(cx - a, cy + a), ImVec2(cx + a, cy - a), col, 1.6f);
                     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-                        panel_tooltip(layer.chroma.bands.size() > 1 ?
-                                          _u8L("Takes this filament out of the stack.") :
-                                          _u8L("A stack prints in at least one filament."));
-                }
+                        panel_tooltip(_u8L("Replaces what is on the plate with the wedge, ready to slice. Print it, then "
+                                           "come back here with the step you read off it."));
 
-                // ---- where the dragged row would land ----
-                ImGui::EndGroup();
-                const ImVec2 row_max(row_min.x + row_w, ImGui::GetItemRectMax().y);
-                if (int(bi) == dragging)
-                    dl->AddRectFilled(row_min, row_max, ImGui::GetColorU32(ImGuiCol_WindowBg, 0.65f));
-                if (ImGui::BeginDragDropTarget()) {
-                    if (const ImGuiPayload *pl = ImGui::AcceptDragDropPayload("TD_BAND",
-                                                     ImGuiDragDropFlags_AcceptBeforeDelivery |
-                                                     ImGuiDragDropFlags_AcceptNoDrawDefaultRect)) {
-                        const int from = *static_cast<const int *>(pl->Data);
-                        if (from != int(bi)) {
-                            // Dropped on a row, the dragged band takes its place and the ones between
-                            // shift over by one, so it lands above the target coming up the list and
-                            // below it going down. The line is drawn on that side; ImGui's own
-                            // highlight says only "something is here", which is not where.
-                            const float y = from < int(bi) ? row_max.y + 2.f : row_min.y - 2.f;
-                            dl->AddLine(ImVec2(row_min.x, y), ImVec2(row_max.x, y),
-                                        ImGui::GetColorU32(ImGuiWrapper::COL_ORCA), 2.f);
-                            if (pl->IsDelivery()) {
-                                drag_from = from;
-                                drag_to   = int(bi);
+                    ImGui::Dummy(ImVec2(1.f, gap_s));
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::TextUnformatted(_u8L("Step").c_str());
+                    ImGui::SameLine(0.f, gap_s);
+                    ImGui::SetNextItemWidth(m_imgui->scaled(3.4f));
+                    if (ImGui::InputInt("##hf_read", &m_chroma_wedge_step, 0, 0))
+                        m_chroma_wedge_step = std::clamp(m_chroma_wedge_step, 0, 200);
+                    if (ImGui::IsItemHovered())
+                        panel_tooltip(_u8L("The first step at which the filament underneath stopped showing through. "
+                                           "Every fifth step is widened so it can be counted in fives."));
+                    const float measured_td = chroma_td_from_step(m_chroma_wedge_step, layer.chroma.layer_height_mm);
+                    ImGui::SameLine(0.f, 2.f * gap_s);
+                    ImGui::AlignTextToFramePadding();
+                    if (measured_td > 0.f)
+                        ImGui::Text("%s", Slic3r::format(_u8L("TD %1$.1f"), measured_td).c_str());
+                    else
+                        ImGui::TextDisabled("%s", _u8L("TD -").c_str());
+
+                    ImGui::SameLine(0.f, 2.f * gap_s);
+                    m_imgui->disabled_begin(measured_td <= 0.f);
+                    if (m_imgui->button(_L("Use it"))) {
+                        set_td(measured_td);
+                        ImGui::CloseCurrentPopup();
+                    }
+                    m_imgui->disabled_end();
+                    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+                        panel_tooltip(_u8L("Puts the measurement into this stack. Put it into the filament's own preset "
+                                           "too, under Transmission distance, so every later picture starts from it."));
+
+                    // The other way to get a transmission distance: somebody else measured it. A library is a
+                    // file of filaments with a number each, and the people who do this have large ones; it
+                    // belongs here because this is where the card talks about where the number comes from.
+                    ImGui::Dummy(ImVec2(1.f, gap_s));
+                    ImGui::Separator();
+                    ImGui::Dummy(ImVec2(1.f, gap_s));
+                    ImGui::TextDisabled("%s", _u8L("Or use someone else's measurements").c_str());
+                    ImGui::Dummy(ImVec2(1.f, gap_s));
+                    if (m_imgui->button(_L("Import a library"))) {
+                        wxFileDialog pick(nullptr, _L("Choose a filament library to import"), wxEmptyString, wxEmptyString,
+                                          _L("Filament libraries (*.json;*.csv;*.tsv)|*.json;*.csv;*.tsv"),
+                                          wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+                        if (pick.ShowModal() == wxID_OK) {
+                            const FilamentTdImport result = filament_td_import(into_u8(pick.GetPath()));
+                            // Without this the import would only take effect on the next run: the table is
+                            // read once and cached for the process.
+                            filament_td_reset_cache();
+
+                            std::string said;
+                            if (result.unreadable)
+                                said = _u8L("That file could not be read as a filament library. A library is a JSON or "
+                                            "CSV file listing filaments with a transmission distance for each of them.");
+                            else {
+                                said = Slic3r::format(into_u8(_L_PLURAL("Took %1% measurement.", "Took %1% measurements.",
+                                                                        int(result.taken))),
+                                                      int(result.taken));
+                                if (result.skipped() > 0)
+                                    said += "\n\n" +
+                                            Slic3r::format(into_u8(_L_PLURAL("%1% row had nothing usable in it and was "
+                                                                             "skipped.",
+                                                                             "%1% rows had nothing usable in them and "
+                                                                             "were skipped.",
+                                                                             int(result.skipped()))),
+                                                           int(result.skipped()));
+                                if (result.taken > 0)
+                                    said += "\n\n" + _u8L("A filament takes its transmission distance up when you choose "
+                                                          "it for a band. For a band you have already chosen, the mark on "
+                                                          "its color swatch is how you take the new number.");
                             }
+                            MessageDialog(nullptr, from_u8(said), _L("Import filament library"),
+                                          wxOK | wxICON_INFORMATION)
+                                .ShowModal();
+                            m_parent.set_as_dirty();
                         }
                     }
-                    ImGui::EndDragDropTarget();
+                    if (ImGui::IsItemHovered())
+                        panel_tooltip(_u8L("Reads a file of filaments with a transmission distance each, and keeps its "
+                                           "measurements beside the ones that ship with OrcaSlicer. A number you set on a "
+                                           "preset yourself still beats both, and a number measured for one color is "
+                                           "never used for another."));
                 }
 
+                ImGui::EndGroup();
                 ImGui::PopID();
             }
 
@@ -3611,10 +4043,10 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                 // it read as a decoration of the list rather than as something to press. The label is
                 // the plus itself, so it is centred in the frame by the same code that centres every
                 // other button's text.
-                const float plus_w = std::round(frame_h * 0.7f) + gap_s + std::round(frame_h * 0.8f);
-                const bool  room   = !loaded.empty() && layer.chroma.bands.size() < CHROMA_MAX_BANDS;
+                const float add_w = std::max(m_imgui->scaled(4.f), ImGui::GetContentRegionAvail().x - std::max(card_pad, 1.f));
+                const bool  room  = !loaded.empty() && layer.chroma.bands.size() < CHROMA_MAX_BANDS;
                 m_imgui->disabled_begin(!room);
-                const bool add_one = ImGui::Button("+##hf_add_band", ImVec2(plus_w, frame_h));
+                const bool add_one = ImGui::Button(("+  " + _u8L("Add a filament") + "##hf_add_band").c_str(), ImVec2(add_w, frame_h));
                 m_imgui->disabled_end();
                 if (add_one && room)
                     ImGui::OpenPopup("hf_add");
@@ -3636,9 +4068,7 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                         swatch(f.color, std::round(frame_h * 0.7f));
                         ImGui::SameLine(0.f, gap_s);
                         ImGui::AlignTextToFramePadding();
-                        ImGui::TextUnformatted((f.name.empty() ? Slic3r::format(_u8L("Filament %1%"), f.filament + 1) :
-                                                                 Slic3r::format("%1%  %2%", f.filament + 1, f.name))
-                                                   .c_str());
+                        ImGui::TextUnformatted(chroma_filament_label(f).c_str());
                         if (picked) {
                             ChromaBand band;
                             band.filament = f;
@@ -3666,34 +4096,35 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
 
         // ---- Choosing the whole stack again, rather than one band of it ----
         {
-            ImGui::Dummy(ImVec2(1.f, gap_s));
             if (m_chroma_pick_count[slot] <= 0)
                 m_chroma_pick_count[slot] = std::max(2, int(layer.chroma.bands.size()));
             ImGui::AlignTextToFramePadding();
-            ImGui::TextDisabled("%s", _u8L("Number of colors").c_str());
+            ImGui::TextUnformatted(_u8L("Number of colors").c_str());
             ImGui::SameLine(0.f, gap_s);
             // Five choices and one click, instead of a slider nobody drags to pick four.
             std::vector<int> counts;
             for (int n : { 2, 3, 4, 6, 8 })
                 if (n <= int(CHROMA_MAX_BANDS))
                     counts.push_back(n);
-            segmented("##hf_count", counts, m_chroma_pick_count[slot], m_imgui->scaled(7.f));
+            segmented("##hf_count", counts, m_chroma_pick_count[slot],
+                      std::max(m_imgui->scaled(4.f), ImGui::GetContentRegionMax().x - ImGui::GetCursorPosX() - std::max(card_pad, 1.f)));
             hover_tip(_u8L("How many filaments the picture is printed in. Fewer is fewer changes to stand over; more is a "
                      "better match, never a worse one."),
                 { { "chroma_colors.gif" } });
 
-            // Their own row, each half of it. On the row above they shared it with the count, and the
-            // second of them was drawn past the right edge of the panel: a button nobody can reach.
-            const float half = std::max(m_imgui->scaled(4.f),
-                                        0.5f * (ImGui::GetContentRegionAvail().x - std::max(card_pad, 1.f) - gap_s));
-            if (ImGui::Button(_u8L("Pick from mine").c_str(), ImVec2(half, frame_h)))
+            // Their own row, a third each: the two ways of choosing the whole stack again, and the one edit
+            // to the stack as a whole. On the row above they shared it with the count, and the last of them
+            // was drawn past the right edge of the panel: a button nobody can reach.
+            const float third = std::max(m_imgui->scaled(3.f),
+                                         std::floor((ImGui::GetContentRegionAvail().x - std::max(card_pad, 1.f) - 2.f * gap_s) / 3.f));
+            if (ImGui::Button(_u8L("Pick from mine").c_str(), ImVec2(third, frame_h)))
                 chroma_pick_colors(layer, m_chroma_pick_count[slot]);
             hover_tip(_u8L("Builds the stack from that many of your loaded filaments: the ones that come closest to this "
                      "picture, in the order that reaches the most colors."),
                 { { "chroma_colors.gif" }, { "chroma_order.gif" } });
 
             ImGui::SameLine(0.f, gap_s);
-            if (ImGui::Button(_u8L("Suggest colors").c_str(), ImVec2(half, frame_h))) {
+            if (ImGui::Button(_u8L("Suggest colors").c_str(), ImVec2(third, frame_h))) {
                 chroma_suggest(layer, m_chroma_pick_count[slot]);
                 ImGui::OpenPopup("hf_suggest");
             }
@@ -3703,17 +4134,23 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
                      "different filaments for this. Click a color in the list to put your nearest into that band."),
                 { { "chroma_colors.gif" } });
 
+            ImGui::SameLine(0.f, gap_s);
+            m_imgui->disabled_begin(!has_ramp || distinct >= relief);
+            if (ImGui::Button(_u8L("Trim layers").c_str(), ImVec2(third, frame_h)) && has_ramp && distinct < relief) {
+                chroma_trim_bands(layer.chroma);
+                chroma_touch(layer.slot);
+            }
+            m_imgui->disabled_end();
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+                panel_tooltip(Slic3r::format(_u8L("Shortens each band to its last layer that still changes the "
+                                                  "color. %1% of %2% picture layers do."),
+                                             distinct, relief),
+                              { { "chroma_trim.png" } });
+
             // Beside the panel rather than over it, and at a width of its own. Over it, the list
             // covered the stack it is about: the use of a suggestion is reading it against the bands
             // underneath, and a window that hides them makes the reader close it to look.
-            {
-                const float  sug_w = m_imgui->scaled(21.5f);
-                const ImVec2 panel = ImGui::GetWindowPos();
-                ImGui::SetNextWindowPos(ImVec2(std::max(0.f, panel.x - sug_w - m_imgui->scaled(0.5f)),
-                                               ImGui::GetCursorScreenPos().y),
-                                        ImGuiCond_Always);
-                ImGui::SetNextWindowSize(ImVec2(sug_w, 0.f));
-            }
+            chroma_place_beside_panel(m_imgui->scaled(21.5f), m_imgui->scaled(0.5f));
             if (PanelPopup popup{"hf_suggest"}) {
                 const std::vector<ChromaSuggestion> &found = m_chroma_suggestion[slot];
                 if (found.empty())
@@ -3861,88 +4298,53 @@ void GLGizmoTextureDisplacement::render_chroma_card(TextureDisplacementLayer &la
             }
         }
 
-        // ---- The one edit to the stack as a whole ----
-        if (has_ramp && m_layer_expanded[slot]) {
-            const float full = std::max(m_imgui->scaled(4.f),
-                                        ImGui::GetContentRegionAvail().x - std::max(card_pad, 1.f));
-            m_imgui->disabled_begin(distinct >= relief);
-            if (ImGui::Button(_u8L("Trim wasted layers").c_str(), ImVec2(full, frame_h))) {
-                chroma_trim_bands(layer.chroma);
-                chroma_touch(layer.slot);
-            }
-            m_imgui->disabled_end();
-            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-                panel_tooltip(Slic3r::format(_u8L("Shortens each band to its last layer that still changes the "
-                                                  "color. %1% of %2% picture layers do."),
-                                             distinct, relief),
-                              { { "chroma_trim.png" } });
-        }
     }
 
-    // ---- Everything past the stack itself waits behind "More settings" ----
+    // ---- 3 Plate ----
     //
-    // A closed card is the picture, what is wrong with it, and the filaments it prints in: the four
-    // things that are actually decided here. What follows - the plate's own dimensions, which way the
-    // light comes at it, and the overlays that take a solve apart - is either already decided by the
-    // picture or is a way of looking at it rather than a decision about it, and every one of them is a
-    // row a reader has to rule out before reaching the one they came for.
-    //
-    // The link that opens them is the layer card's own, drawn under this by the list, so a ChromaStack
-    // card discloses itself the same way every other layer does and shares the one flag.
-    if (!m_layer_expanded[slot])
-        return;
-
-    // ---- The plate that comes out of the printer ----
-    //
-    // Every row in here is a dimension of the physical thing, which is why which way up it prints is
-    // among them and why the frame's own two numbers are not: those belong beside the drawing of the
-    // moulding, in the gallery where a frame is chosen by looking at it.
-    ImGui::Dummy(ImVec2(1.f, gap_s));
-    if (layer.chroma.plate.generated) {
+    // The physical thing and the light it is looked at in. Every row in the first half is a dimension
+    // of the plate, which is why which way up it prints is among them and why the frame's own two
+    // numbers are not: those belong beside the drawing of the moulding, in the gallery where a frame
+    // is chosen by looking at it. For a picture painted onto somebody's model, the rows that say where
+    // it lands come after these, from the layer card (see render_texture_displacement_panel()).
+    if (step == ChromaStepPlate) {
+        // A heading over both halves, whether or not the picture made its own plate: for one painted
+        // onto a model, the plate is the model, and what is set here is what is under the picture.
         const ChromaPlate &plate = layer.chroma.plate;
-        const std::string  size  = Slic3r::format(_u8L("%1$.0f x %2$.0f x %3$.1f mm"), plate.width_mm, plate.height_mm,
-                                                  plate.base_mm + layer.chroma.depth_mm());
-        if (closable("##hf_sec_plate", _L("The plate"), size, m_chroma_open_plate[slot])) {
-            ImGui::Dummy(ImVec2(1.f, gap_s));
-            render_chroma_plate(layer, card_pad, has_ramp);
-        }
-    } else {
-        // Not a section. For a picture painted onto somebody else's model the whole of it is one row -
-        // how much of the model is under the picture - and a fold that hides one row is a click that
-        // buys nothing and a heading that says nothing.
+        heading(_L("The plate"), plate.generated ? Slic3r::format(_u8L("%1$.0f x %2$.0f x %3$.1f mm"), plate.width_mm,
+                                                                  plate.height_mm, plate.base_mm + layer.chroma.depth_mm()) :
+                                                   std::string(),
+                card_pad);
         render_chroma_plate(layer, card_pad, has_ramp);
-    }
 
-    // ---- Chosen once, and then not again ----
-    ImGui::Dummy(ImVec2(1.f, gap_s));
-    {
-        const std::string lit = layer.chroma.lighting == ChromaLighting::BackLit ? _u8L("lit from behind") :
-                                layer.chroma.lighting == ChromaLighting::BothLit ?
-                                                                                   _u8L("lit from both sides") :
-                                                                                   _u8L("lit from the front");
-        if (closable("##hf_sec_light", _L("Light and detail"), lit, m_chroma_open_light[slot])) {
-            ImGui::Dummy(ImVec2(1.f, gap_s));
-            render_chroma_light(layer);
-        }
+        ImGui::Dummy(ImVec2(1.f, gap_s));
+        heading(_L_CONTEXT("Light", "ChromaStack lighting"), {}, card_pad);
+        render_chroma_light(layer, card_pad);
     }
+}
 
-    // ---- How it is drawn, as opposed to what is printed ----
-    //
-    // Nothing in here goes into the project or changes the mesh. The summary names whichever overlay is
-    // on, because that is the one thing about this section worth knowing while it is folded: an overlay
-    // left on is the usual reason a model looks wrong.
-    ImGui::Dummy(ImVec2(1.f, gap_s));
-    {
-        const std::string on = m_show_chroma_error  ? _u8L("the error map") :
-                               m_show_chroma_layers ? _u8L("printed layers") :
-                               m_show_chroma_colors ? _u8L("printed colors") :
-                               m_chroma_debug != 0  ? _u8L("a debug view") :
-                                                      _u8L("none on");
-        if (closable("##hf_sec_views", _L("Views"), on, m_chroma_open_views[slot])) {
-            ImGui::Dummy(ImVec2(1.f, gap_s));
-            render_chroma_views(layer);
-        }
+void GLGizmoTextureDisplacement::chroma_set_step(TextureDisplacementLayer &layer, int step)
+{
+    if (layer.slot < 0 || size_t(layer.slot) >= TEXTURE_DISPLACEMENT_MAX_LAYERS)
+        return;
+    const int from = m_chroma_step[size_t(layer.slot)];
+    step           = std::clamp(step, 0, int(ChromaStepCount) - 1);
+    if (step == from)
+        return;
+    // The brush is Check's: left on, dragging over the model would go on painting corrections with
+    // the controls that say what it paints no longer on the card.
+    if (from == ChromaStepCheck && m_chroma_retouch_mode) {
+        if (m_chroma_retouch_painting)
+            chroma_commit_stroke(layer);
+        m_chroma_retouch_mode = false;
     }
+    // The placement handle is Plate's, for the same reason.
+    if (from == ChromaStepPlate && m_adjust_texture_mode) {
+        m_adjust_texture_mode = false;
+        m_adjust_drag_handle  = AdjustHandle::None;
+    }
+    m_chroma_step[size_t(layer.slot)] = step;
+    m_parent.set_as_dirty();
 }
 
 // The plate's own dimensions. Every row is a measurement of the thing that comes off the bed, which is
@@ -3958,6 +4360,21 @@ void GLGizmoTextureDisplacement::render_chroma_plate(TextureDisplacementLayer &l
     // One width for every field in the section. They start at one x already; starting at one x and
     // ending at four different ones is what made the column look like no column at all.
     const float field_w = m_imgui->scaled(4.6f);
+    // One label column for the section, as wide as its widest label, so every field starts at the same x:
+    // the panel's own column is narrower than "Solid backing", and a row whose label overran it pushed
+    // its field out of line with the rest.
+    float label_w = 0.f;
+    for (const wxString &l : { _L("Layers below it"), _L("Picture is"), _L("Solid backing"), _L("Which way up"),
+                               _L("Flat tile") })
+        label_w = std::max(label_w, ImGui::CalcTextSize(into_u8(l).c_str()).x);
+    label_w += m_imgui->scaled(0.8f);
+    const auto row_label = [&](const wxString &label) {
+        const float x0 = ImGui::GetCursorPosX();
+        ImGui::AlignTextToFramePadding();
+        m_imgui->text(label);
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(x0 + label_w);
+    };
 
     // What is under the picture, in layers. Two different questions wear the same name here, and the
     // one being asked depends on whose plate it is.
@@ -3980,12 +4397,9 @@ void GLGizmoTextureDisplacement::render_chroma_plate(TextureDisplacementLayer &l
             chroma_touch(layer.slot);
         }
     } else {
+        // Kept to the face by chroma_follow_face(), every frame and on every step.
         const int measured = chroma_measured_base(layer);
-        if (layer.chroma.base_auto && measured > 0 && measured != layer.chroma.base_layers) {
-            layer.chroma.base_layers = measured;
-            chroma_touch(layer.slot);
-        }
-        slider_label(_L("Layers below it"));
+        row_label(_L("Layers below it"));
         int base = layer.chroma.base_layers;
         m_imgui->disabled_begin(layer.chroma.base_auto);
         ImGui::SetNextItemWidth(field_w);
@@ -4010,96 +4424,58 @@ void GLGizmoTextureDisplacement::render_chroma_plate(TextureDisplacementLayer &l
         // Following the model or not, as a padlock rather than a pair of buttons and a sentence.
         ImGui::SameLine(0.f, gap_s);
         {
-        const ImVec2 p = ImGui::GetCursorScreenPos();
-        if (ImGui::InvisibleButton("##hf_base_auto", ImVec2(frame_h, frame_h))) {
-            layer.chroma.base_auto = !layer.chroma.base_auto;
-            chroma_touch(layer.slot);
+            const ImVec2 p = ImGui::GetCursorScreenPos();
+            if (ImGui::InvisibleButton("##hf_base_auto", ImVec2(frame_h, frame_h))) {
+                layer.chroma.base_auto = !layer.chroma.base_auto;
+                chroma_touch(layer.slot);
+            }
+            const bool  hot  = ImGui::IsItemHovered();
+            const float w    = std::round(frame_h * 0.38f);
+            const float hgt  = std::round(frame_h * 0.30f);
+            const float cx   = p.x + 0.5f * frame_h;
+            const float body = p.y + 0.5f * frame_h;
+            ImVec4 tint = layer.chroma.base_auto ? ImGuiWrapper::COL_ORCA :
+                                                   ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
+            tint.w      = hot ? 1.f : 0.9f;
+            const ImU32 col = ImGui::GetColorU32(tint);
+            dl->AddRectFilled(ImVec2(cx - 0.5f * w, body), ImVec2(cx + 0.5f * w, body + hgt), col, 1.f);
+            // The shackle: closed while it follows the model, open once it has been set by hand.
+            const float r  = 0.32f * w;
+            const float pi = 3.14159265f;
+            dl->PathArcTo(ImVec2(layer.chroma.base_auto ? cx : cx + 0.22f * w, body - r * 0.2f), r, pi, pi * 2.f, 12);
+            dl->PathStroke(col, 0, 1.4f);
+            if (hot)
+                panel_tooltip(layer.chroma.base_auto ?
+                                     _u8L("The base follows the painted face. Click to set it by hand.") :
+                                     _u8L("The base is set by hand. Click to make it follow the painted face again."));
         }
-        const bool  hot  = ImGui::IsItemHovered();
-        const float w    = std::round(frame_h * 0.38f);
-        const float hgt  = std::round(frame_h * 0.30f);
-        const float cx   = p.x + 0.5f * frame_h;
-        const float body = p.y + 0.5f * frame_h;
-        ImVec4 tint = layer.chroma.base_auto ? ImGuiWrapper::COL_ORCA :
-                                               ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
-        tint.w      = hot ? 1.f : 0.9f;
-        const ImU32 col = ImGui::GetColorU32(tint);
-        dl->AddRectFilled(ImVec2(cx - 0.5f * w, body), ImVec2(cx + 0.5f * w, body + hgt), col, 1.f);
-        // The shackle: closed while it follows the model, open once it has been set by hand.
-        const float r  = 0.32f * w;
-        const float pi = 3.14159265f;
-        dl->PathArcTo(ImVec2(layer.chroma.base_auto ? cx : cx + 0.22f * w, body - r * 0.2f), r, pi, pi * 2.f, 12);
-        dl->PathStroke(col, 0, 1.4f);
-        if (hot)
-            panel_tooltip(layer.chroma.base_auto ?
-                                 _u8L("The base follows the painted face. Click to set it by hand.") :
-                                 _u8L("The base is set by hand. Click to make it follow the painted face again."));
-        }
+        // The state in words beside the padlock: closed-means-automatic is not a thing a reader can guess.
+        ImGui::SameLine(0.f, gap_s);
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextDisabled("%s", layer.chroma.base_auto ? _u8L("follows the face").c_str() : _u8L("set by hand").c_str());
     }
 
     // ---- The plate, for a picture that made one for itself ----
     //
     // Only here: a picture painted onto a model has a plate already, and it is the model.
     if (layer.chroma.plate.generated) {
-        ChromaPlate &plate = layer.chroma.plate;
-        const size_t slot  = size_t(layer.slot);
-        const auto   redraw = [&]() {
-            // The frame's cross-section is resolved against the picture's size and the backing under
-            // it, so any of these rows can invalidate it. Re-resolving costs a polyline and saves the
-            // moulding quietly drifting out of proportion as the plate is resized.
-            chroma_refresh_frame(layer);
-            m_chroma_plate_dirty[slot] = true;
-            chroma_touch(layer.slot);
-        };
-
-        // One number for the size, because the other one is the picture's to decide: a photograph
-        // stretched to a shape that is not its own is not the photograph any more.
-        const bool  wide    = plate.width_mm >= plate.height_mm;
-        const float aspect  = wide ? plate.width_mm / std::max(0.1f, plate.height_mm) :
-                                     plate.height_mm / std::max(0.1f, plate.width_mm);
-        float       longest = std::max(plate.width_mm, plate.height_mm);
-        slider_label(_L("Picture is"));
-        ImGui::SetNextItemWidth(field_w);
-        if (ImGui::InputFloat("##hf_plate_size", &longest, 0.f, 0.f, "%.0f mm")) {
-            longest = std::clamp(longest, 10.f, 1000.f);
-            plate.width_mm  = wide ? longest : longest / aspect;
-            plate.height_mm = wide ? longest / aspect : longest;
-            redraw();
-        }
-        ImGui::SameLine(0.f, gap_s);
-        ImGui::AlignTextToFramePadding();
-        ImGui::TextDisabled("%s", Slic3r::format(_u8L("wide, so %1$.0f x %2$.0f"), plate.width_mm,
-                                                 plate.height_mm)
-                                      .c_str());
-        hover_tip(_u8L("The longer side of the picture on the plate. The other side follows the picture's own "
-                 "proportions, and the frame is added outside both."));
-
-        slider_label(_L("Solid backing"));
-        ImGui::SetNextItemWidth(field_w);
-        if (ImGui::InputFloat("##hf_plate_base", &plate.base_mm, 0.f, 0.f, "%.1f mm")) {
-            plate.base_mm = std::clamp(plate.base_mm, 0.2f, 20.f);
-            redraw();
-        }
-        hover_tip(_u8L("How solid the plate is under the picture. The colors are computed assuming no light gets "
-                 "through it, so this has to be thick enough to be opaque in the first filament - about a "
-                 "tenth of its transmission distance."),
-            { { "chroma_td.gif" } });
+        ChromaPlate &plate  = layer.chroma.plate;
+        const auto   redraw = [&]() { chroma_plate_changed(layer); };
 
         // ---- The frame ----
         //
-        // One mark at the end of this row, and it is the frame itself: the cross-section the plate is
-        // wearing, drawn small. A frame is something seen, so the thing that opens the gallery is a
-        // picture of what you already have rather than a word and a list of words - and the gallery is
-        // where it is chosen anyway, because that is the only place the width, the rise, your own
-        // mouldings and cutting the plate to an outline all are.
+        // A row of its own, and the row is the frame: the cross-section the plate is wearing, drawn, with
+        // its name and its two numbers beside it. A frame is something seen, so the thing that opens the
+        // gallery is a picture of what you already have rather than a word and a list of words - and the
+        // gallery is where it is chosen anyway, because that is the only place the width, the rise, your
+        // own mouldings and cutting the plate to an outline all are.
         ChromaFrame &frame = plate.frame;
         {
-            const float  fw = std::round(frame_h * 1.5f);
-            ImGui::SameLine();
-            ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(),
-                                          ImGui::GetContentRegionMax().x - std::max(card_pad, 1.f) - fw));
-            const ImVec2 p0 = ImGui::GetCursorScreenPos();
-            if (ImGui::InvisibleButton("##hf_frame_pick", ImVec2(fw, frame_h))) {
+            const float  box_w = std::max(m_imgui->scaled(6.f),
+                                          ImGui::GetContentRegionMax().x - ImGui::GetCursorPosX() - std::max(card_pad, 1.f));
+            const float  box_h = std::round(frame_h * 2.1f);
+            const ImVec2 p0    = ImGui::GetCursorScreenPos();
+            if (ImGui::InvisibleButton("##hf_frame_pick", ImVec2(box_w, box_h))) {
                 // Modal window, so not from inside the ImGui pass: see chroma_pick_picture().
                 const int         slot_id = layer.slot;
                 const std::string current = frame.frame_id;
@@ -4111,36 +4487,29 @@ void GLGizmoTextureDisplacement::render_chroma_plate(TextureDisplacementLayer &l
                         chroma_set_frame(slot_id, pick);
                 });
             }
-            const bool  hot  = ImGui::IsItemHovered();
-            const ImU32 line = ImGui::GetColorU32(hot ? ImGuiWrapper::COL_ORCA :
-                                                        ImGui::GetStyleColorVec4(ImGuiCol_Text));
-            const float pad  = std::round(frame_h * 0.18f);
-            const float base_y = p0.y + frame_h - pad;
+            const bool  hot   = ImGui::IsItemHovered();
             const float round = ImGui::GetStyle().FrameRounding;
+            const float pad   = std::round(frame_h * 0.3f);
+            dl->AddRectFilled(p0, ImVec2(p0.x + box_w, p0.y + box_h),
+                              ImGui::GetColorU32(hot ? ImGuiCol_FrameBgHovered : ImGuiCol_FrameBg), round);
+            dl->AddRect(p0, ImVec2(p0.x + box_w, p0.y + box_h),
+                        ImGui::GetColorU32(hot ? ImGuiWrapper::COL_ORCA : ImGui::GetStyleColorVec4(ImGuiCol_Border)), round);
 
-            // The button's own frame, and it is always drawn. A plate with no frame on it has no
-            // cross-section to draw, so without this the control was an empty gap at the end of the
-            // row: nothing to see, and nothing to aim at either.
-            if (hot)
-                dl->AddRectFilled(p0, ImVec2(p0.x + fw, p0.y + frame_h),
-                                  ImGui::GetColorU32(ImGuiCol_FrameBgHovered), round);
-            dl->AddRect(p0, ImVec2(p0.x + fw, p0.y + frame_h),
-                        ImGui::GetColorU32(hot ? ImGuiWrapper::COL_ORCA : ImGui::GetStyleColorVec4(ImGuiCol_Border)),
-                        round);
-            dl->AddLine(ImVec2(p0.x, base_y), ImVec2(p0.x + fw, base_y), ImGui::GetColorU32(ImGuiCol_Separator));
-
+            // The cross-section, at the left of the row.
+            const float  draw_w = std::round(frame_h * 2.4f);
+            const ImVec2 d0(p0.x + pad, p0.y + pad);
+            const ImVec2 d1(d0.x + draw_w, p0.y + box_h - pad);
+            const ImU32  ink    = ImGui::GetColorU32(ImGuiCol_Text, hot ? 1.f : 0.8f);
+            const float  stroke = std::max(1.4f, std::round(frame_h * 0.07f));
+            dl->AddLine(ImVec2(d0.x, d1.y), ImVec2(d1.x, d1.y), ImGui::GetColorU32(ImGuiCol_Separator));
             const std::vector<Vec2f> profile = frame.frame_id.empty() ? std::vector<Vec2f>() :
                                                                         chroma_frame_profile(frame, plate.base_mm);
             if (profile.size() < 2) {
-                // Nothing on the plate yet, so the mark is what the gallery is for rather than what is
-                // in it: a picture inside a moulding, which is the one shape a frame has whatever its
-                // profile.
-                const ImU32  mark = ImGui::GetColorU32(ImGuiCol_Text, hot ? 0.9f : 0.45f);
-                const float  m    = std::round(frame_h * 0.26f);
-                const ImVec2 a(p0.x + m, p0.y + m), b(p0.x + fw - m, p0.y + frame_h - m);
-                const float  i    = std::max(1.5f, std::round(frame_h * 0.11f));
-                dl->AddRect(a, b, mark, 0.f, 0, std::max(1.4f, std::round(frame_h * 0.07f)));
-                dl->AddRect(ImVec2(a.x + i, a.y + i), ImVec2(b.x - i, b.y - i), mark, 0.f, 0, 1.f);
+                // No frame on the plate, so the mark is what the gallery is for rather than what is in
+                // it: a picture inside a moulding, which is the one shape a frame has whatever its profile.
+                const float i = std::max(1.5f, std::round(frame_h * 0.14f));
+                dl->AddRect(d0, d1, ImGui::GetColorU32(ImGuiCol_Text, 0.45f), 0.f, 0, stroke);
+                dl->AddRect(ImVec2(d0.x + i, d0.y + i), ImVec2(d1.x - i, d1.y - i), ImGui::GetColorU32(ImGuiCol_Text, 0.45f));
             } else {
                 float top = plate.base_mm;
                 for (const Vec2f &v : profile)
@@ -4149,62 +4518,98 @@ void GLGizmoTextureDisplacement::render_chroma_plate(TextureDisplacementLayer &l
                 // The picture's surface on the left and the plate's outer edge on the right, which is
                 // the way the plate is looked at from above with the moulding running round it.
                 const auto at = [&](const Vec2f &v) {
-                    return ImVec2(p0.x + fw * (v.x() / std::max(1e-3f, frame.width_mm)),
-                                  base_y - (frame_h - 2.f * pad) * (v.y() - plate.base_mm) / span);
+                    return ImVec2(d0.x + draw_w * (v.x() / std::max(1e-3f, frame.width_mm)),
+                                  d1.y - (d1.y - d0.y) * (v.y() - plate.base_mm) / span);
                 };
                 for (size_t i = 0; i + 1 < profile.size(); ++i)
-                    dl->AddLine(at(profile[i]), at(profile[i + 1]), line, std::max(1.4f, std::round(frame_h * 0.07f)));
+                    dl->AddLine(at(profile[i]), at(profile[i + 1]), ink, stroke);
             }
-            if (hot) {
-                const ChromaFrameDef *def = frame.frame_id.empty() ?
-                                                nullptr :
-                                                ChromaFrameLibrary::instance().find(frame.frame_id);
-                std::string said;
-                if (def != nullptr && frame.width_mm > 0.f)
-                    said = Slic3r::format(_u8L("Frame: %1%, %2$.1f mm wide."), into_u8(def->name), frame.width_mm);
-                else if (def != nullptr)
-                    said = Slic3r::format(_u8L("Frame: %1%."), into_u8(def->name));
-                else if (!frame.frame_id.empty())
-                    // The file it came from is gone, but the plate still has the cross-section it
-                    // resolved, so the frame itself is intact and only its name is missing.
-                    said = Slic3r::format(_u8L("Frame: %1%, which this installation no longer has a file for."),
-                                          frame.frame_id);
-                else
-                    said = _u8L("No frame: the picture runs to the edge of the plate.");
-                panel_tooltip(said + "\n\n" +
-                              _u8L("Click to choose one from the gallery, where its width and how far it stands "
-                                   "above the picture are set too, along with adding your own and cutting the "
-                                   "plate to an SVG outline."));
-            }
+
+            // Its name and its two numbers.
+            const ChromaFrameDef *def = frame.frame_id.empty() ? nullptr :
+                                                                 ChromaFrameLibrary::instance().find(frame.frame_id);
+            const std::string name = def != nullptr          ? Slic3r::format(_u8L("Frame: %1%"), into_u8(def->name)) :
+                                     !frame.frame_id.empty() ? Slic3r::format(_u8L("Frame: %1%"), frame.frame_id) :
+                                                               _u8L("No frame");
+            const std::string size = !frame.frame_id.empty() && frame.width_mm > 0.f ?
+                                         Slic3r::format(_u8L("%1$.1f mm wide, %2$.1f mm rise"), frame.width_mm, frame.rise_mm) :
+                                         _u8L("The picture runs to the edge of the plate.");
+            // What a click does, drawn as the button it behaves as, at the right; the name and the two
+            // numbers fill what is left and are cut short before they reach it.
+            const std::string open = _u8L("Frames");
+            const ImVec2      ts   = ImGui::CalcTextSize(open.c_str());
+            const ImVec2      b1(p0.x + box_w - pad, std::round(p0.y + 0.5f * (box_h + frame_h)));
+            const ImVec2      b0(b1.x - ts.x - 2.f * ImGui::GetStyle().FramePadding.x, b1.y - frame_h);
+            const float       tx   = d1.x + pad;
+            const float       room = std::max(frame_h, b0.x - pad - tx);
+            const float       line = ImGui::GetTextLineHeight();
+            const float       ty   = std::round(p0.y + 0.5f * (box_h - 2.f * line));
+            m_imgui->push_bold_font();
+            dl->AddText(ImVec2(tx, ty), ImGui::GetColorU32(ImGuiCol_Text), ellipsize(name, room).c_str());
+            m_imgui->pop_bold_font();
+            dl->AddText(ImVec2(tx, ty + line), ImGui::GetColorU32(ImGuiCol_TextDisabled), ellipsize(size, room).c_str());
+
+            dl->AddRectFilled(b0, b1, ImGui::GetColorU32(hot ? ImGuiCol_ButtonHovered : ImGuiCol_Button), round);
+            dl->AddText(ImVec2(b0.x + ImGui::GetStyle().FramePadding.x, b0.y + 0.5f * (frame_h - ts.y)),
+                        ImGui::GetColorU32(ImGuiCol_Text), open.c_str());
+            if (hot)
+                panel_tooltip(_u8L("Choose a frame from the gallery, where its width and how far it stands above the "
+                                   "picture are set too, along with adding your own and cutting the plate to an SVG "
+                                   "outline."));
+            ImGui::Dummy(ImVec2(1.f, gap_s));
         }
+
+        // One number for the size, because the other one is the picture's to decide.
+        const float aspect  = plate.width_mm / std::max(0.1f, plate.height_mm);
+        float       longest = std::max(plate.width_mm, plate.height_mm);
+        row_label(_L("Picture is"));
+        ImGui::SetNextItemWidth(field_w);
+        if (ImGui::InputFloat("##hf_plate_size", &longest, 0.f, 0.f, "%.0f mm")) {
+            chroma_plate_fit(plate, std::clamp(longest, 10.f, 1000.f), aspect);
+            redraw();
+        }
+        ImGui::SameLine(0.f, gap_s);
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextDisabled("%s", Slic3r::format(_u8L("wide, so %1$.0f x %2$.0f"), plate.width_mm,
+                                                 plate.height_mm)
+                                      .c_str());
+        hover_tip(_u8L("The longer side of the picture on the plate. The other side follows the picture's own "
+                 "proportions, and the frame is added outside both."));
+
+        row_label(_L("Solid backing"));
+        ImGui::SetNextItemWidth(field_w);
+        if (ImGui::InputFloat("##hf_plate_base", &plate.base_mm, 0.f, 0.f, "%.1f mm")) {
+            plate.base_mm = std::clamp(plate.base_mm, 0.2f, 20.f);
+            redraw();
+        }
+        hover_tip(_u8L("How solid the plate is under the picture. The colors are computed assuming no light gets "
+                 "through it, so this has to be thick enough to be opaque in the first filament - about a "
+                 "tenth of its transmission distance."),
+            { { "chroma_td.gif" } });
 
         // ---- Which way up it prints ----
         //
         // Face down is the one way to get a picture with no layer lines in it at all: the picture's own
         // face is printed against the build plate, so it comes out as smooth as that plate is.
-        slider_label(_L("Which way up"));
+        row_label(_L("Which way up"));
         {
-            const bool  down    = plate.orientation == ChromaOrientation::FaceDown;
-            ImGui::SetNextItemWidth(m_imgui->scaled(7.f));
-            push_panel_combo_style(m_parent.get_scale());
-            if (ImGui::BeginCombo("##hf_orient", down ? _u8L("Picture down").c_str() : _u8L("Picture up").c_str())) {
-                if (ImGui::Selectable(_u8L("Picture up").c_str(), !down) && down) {
-                    plate.orientation = ChromaOrientation::FaceUp;
+            const bool down  = plate.orientation == ChromaOrientation::FaceDown;
+            int        which = down ? 1 : 0;
+            if (chroma_segmented("##hf_orient", { _u8L("Picture up"), _u8L("Picture down") }, which,
+                                 ImGui::GetContentRegionMax().x - ImGui::GetCursorPosX() - std::max(card_pad, 1.f))) {
+                if (which == 0) {
+                    plate.orientation      = ChromaOrientation::FaceUp;
                     layer.chroma.base_auto = true;
-                    redraw();
-                }
-                if (ImGui::Selectable(_u8L("Picture down").c_str(), down) && !down) {
+                } else {
                     plate.orientation = ChromaOrientation::FaceDown;
                     // The picture is at the bottom now, so there is no face above it to measure a base
                     // from, and the backing has to be at least as thick as the whole stack is tall -
                     // everything the picture is made of prints above it.
                     layer.chroma.base_auto = false;
                     plate.base_mm          = std::max(plate.base_mm, layer.chroma.total_mm());
-                    redraw();
                 }
-                ImGui::EndCombo();
+                redraw();
             }
-            pop_panel_combo_style();
             hover_tip(_u8L("Which way up the plate prints. Picture up is the ordinary way, and the picture carries "
                      "the layer lines of its own terraces. Picture down prints the picture's face against the "
                      "build plate, which comes out as smooth as the plate is - and turns the relief inside "
@@ -4222,28 +4627,32 @@ void GLGizmoTextureDisplacement::render_chroma_plate(TextureDisplacementLayer &l
     // makes whichever of these is chosen.
     if (layer.chroma.plate.generated && has_ramp) {
         ImGui::Dummy(ImVec2(0.f, gap_s));
-        // Which of the three flat tiles it builds. They all end up the same slab; what differs is
-        // where the bands sit inside it, and that decides what the fill prints in and the order the
-        // light crosses the colours in.
-        slider_label(_L("Flat tile"));
+        // The terraced plate, or which of the three flat tiles it builds. The flat tiles all end up the
+        // same slab; what differs is where the bands sit inside it, and that decides what the fill
+        // prints in and the order the light crosses the colours in.
+        //
+        // The terraced plate has to be a choice of its own and be named as one: it is the default
+        // (m_chroma_flat_mode = 3), and a combo that showed it under a flat tile's name made Bake build
+        // the plate while the card said FlatStack.
+        row_label(_L("Flat tile"));
         {
-            const auto name_of = [](int m) {
-                switch (m) {
-                case 0: return _u8L("Clear in front");
-                case 1: return _u8L("Backing behind");
-                default: return _u8L("FlatStack");
-                }
-            };
-            ImGui::SetNextItemWidth(-std::max(card_pad, 1.f));
-            push_panel_combo_style(m_parent.get_scale());
-            if (ImGui::BeginCombo("##hf_flat_mode", name_of(m_chroma_flat_mode).c_str())) {
-                for (int m = 2; m >= 0; --m)
-                    if (ImGui::Selectable(name_of(m).c_str(), m == m_chroma_flat_mode))
-                        m_chroma_flat_mode = m;
-                ImGui::EndCombo();
-            }
-            pop_panel_combo_style();
-            hover_tip(_u8L("FlatStack slides each column's own sequence up against the flat face, so the light crosses "
+            // In the order a reader meets them: the plate itself, then the three flat tiles. The index on
+            // the bar is not m_chroma_flat_mode's, whose numbering Bake reads.
+            static constexpr int modes[] = { 3, 0, 1, 2 };
+            int                  which   = 0;
+            for (int i = 0; i < 4; ++i)
+                if (modes[i] == m_chroma_flat_mode)
+                    which = i;
+            // TRN The four things a ChromaStack plate can be baked into: the terraced plate itself ("None",
+            // no flat tile), clear filament in front of the bands, the backing behind them, and FlatStack.
+            if (chroma_segmented("##hf_flat_mode",
+                                 { _u8L_CONTEXT("None", "ChromaStack flat tile"), _u8L_CONTEXT("Clear", "ChromaStack flat tile"),
+                                   _u8L_CONTEXT("Backing", "ChromaStack flat tile"), _u8L("FlatStack") },
+                                 which, ImGui::GetContentRegionMax().x - ImGui::GetCursorPosX() - std::max(card_pad, 1.f)))
+                m_chroma_flat_mode = modes[which];
+            hover_tip(_u8L("None bakes the terraced plate: one filament a layer, the picture carried by the height "
+                     "of its columns.\n\n"
+                     "FlatStack slides each column's own sequence up against the flat face, so the light crosses "
                      "the same filaments in the same order it would on the plate, and the colors are the ones the "
                      "solve chose. The cost is the printing: a layer no longer holds one band, so the printer "
                      "swaps filament inside almost every layer.\n\n"
@@ -4260,7 +4669,7 @@ void GLGizmoTextureDisplacement::render_chroma_plate(TextureDisplacementLayer &l
 
 // Where the light is, and how the rounding error is spread. Both are chosen once for a picture and
 // neither is touched on a normal pass.
-void GLGizmoTextureDisplacement::render_chroma_light(TextureDisplacementLayer &layer)
+void GLGizmoTextureDisplacement::render_chroma_light(TextureDisplacementLayer &layer, float card_pad)
 {
     const float gap_s = std::round(m_imgui->scaled(0.4f));
 
@@ -4273,35 +4682,45 @@ void GLGizmoTextureDisplacement::render_chroma_light(TextureDisplacementLayer &l
     // print of the same picture, which is why it is a mode here and not a view. Both at once is the
     // third, and is where most back-lit prints end up: a lamp behind and a room in front, the two
     // adding rather than one replacing the other.
-    slider_label(_L("Light comes from"));
+    // The name of the choice on its own line, with the one-click lithophane at its right, and the three
+    // choices across the whole width under it: on one line with its label, "Behind and in front" was cut.
+    ImGui::AlignTextToFramePadding();
+    m_imgui->text(_L("Light comes from"));
     {
-        const ChromaLighting mode    = layer.chroma.lighting;
-        const bool           back    = mode == ChromaLighting::BackLit;
-        const bool           both    = mode == ChromaLighting::BothLit;
-        const float          combo_w = m_imgui->scaled(7.f);
-        // One place the three names are written, so the closed combo and its list cannot drift apart.
-        const auto name_of = [](ChromaLighting m) {
-            switch (m) {
-            case ChromaLighting::BackLit: return _u8L("Behind");
-            case ChromaLighting::BothLit: return _u8L("Behind and in front");
-            default: return _u8L("The front");
+        const ChromaLighting mode = layer.chroma.lighting;
+        {
+            // One click from a painting to a lithophane, because a lithophane is not only the light moving:
+            // the bands want the opposite order and the base wants to be a layer or two, and a user who
+            // switched the light alone gets a black plate and no idea which of the other two was why.
+            // chroma_make_lithophane() is what it changes and why.
+            const float lw = ImGui::CalcTextSize(_u8L("Lithophane").c_str()).x + 2.f * ImGui::GetStyle().FramePadding.x;
+            ImGui::SameLine();
+            ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), ImGui::GetContentRegionMax().x - std::max(card_pad, 1.f) - lw));
+            if (ImGui::Button(_u8L("Lithophane").c_str(), ImVec2(lw, 0.f))) {
+                Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Make the ChromaStack picture a lithophane"),
+                                              UndoRedo::SnapshotType::GizmoAction);
+                chroma_make_lithophane(layer.chroma);
+                if (layer.chroma.plate.generated)
+                    chroma_plate_changed(layer);
+                else
+                    chroma_touch(layer.slot);
             }
-        };
-        const auto pick = [&](ChromaLighting m) {
-            if (ImGui::Selectable(name_of(m).c_str(), mode == m) && mode != m) {
-                layer.chroma.lighting = m;
-                chroma_touch(layer.slot);
-            }
-        };
-        ImGui::SetNextItemWidth(combo_w);
-        push_panel_combo_style(m_parent.get_scale());
-        if (ImGui::BeginCombo("##hf_lighting", name_of(mode).c_str())) {
-            pick(ChromaLighting::FrontLit);
-            pick(ChromaLighting::BackLit);
-            pick(ChromaLighting::BothLit);
-            ImGui::EndCombo();
+            hover_tip(_u8L("Sets the print up to be lit from behind: the light moves behind it, the darkest filament "
+                           "goes to the bottom of the stack, and the base becomes two thin layers instead of a solid "
+                           "backing. A white lamp still at its default becomes a neutral 4000 K white.\n\n"
+                           "The picture is not inverted: thicker is darker from behind, and the solve already puts the "
+                           "thick columns where the picture is dark."));
         }
-        pop_panel_combo_style();
+
+        const bool           back = mode == ChromaLighting::BackLit;
+        const bool           both = mode == ChromaLighting::BothLit;
+        // The options are in the enum's own order: front, behind, both.
+        int which = int(mode);
+        if (chroma_segmented("##hf_lighting", { _u8L("The front"), _u8L("Behind"), _u8L("Behind and in front") }, which,
+                             ImGui::GetContentRegionMax().x - ImGui::GetCursorPosX() - std::max(card_pad, 1.f))) {
+            layer.chroma.lighting = ChromaLighting(which);
+            chroma_touch(layer.slot);
+        }
         hover_tip(_u8L("Where the light is when the print is looked at. In front is a filament painting. Behind is "
                  "a lithophane: the light comes through the whole stack, so thicker is darker, the darkest "
                  "filaments belong at the bottom, and the backing has to be a layer or two rather than solid "
@@ -4309,6 +4728,8 @@ void GLGizmoTextureDisplacement::render_chroma_light(TextureDisplacementLayer &l
                  "Behind and in front is both at once, which is what a lit plate in a lit room really is. "
                  "A stack chosen for the lamp alone washes out as soon as the room light lands on it, so "
                  "this is the one to solve against for anything that will not hang in the dark."));
+        // The lamp's combo below, which is still a list: its presets do not fit one row.
+        const float combo_w = m_imgui->scaled(7.f);
 
         // How much of the picture the lamp accounts for. Both lit only: in the other two modes it would
         // be a second way to say what the mode has already said.
@@ -4329,18 +4750,91 @@ void GLGizmoTextureDisplacement::render_chroma_light(TextureDisplacementLayer &l
         }
 
         if (back || both) {
-            slider_label(_L("Lamp"));
-            ImVec4 led(layer.chroma.led_color.r(), layer.chroma.led_color.g(), layer.chroma.led_color.b(), 1.f);
-            if (ImGui::ColorEdit3("##hf_led", &led.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel)) {
-                layer.chroma.led_color = ColorRGB(led.x, led.y, led.z);
-                chroma_touch(layer.slot);
+            // The lamp, by what is sold: three whites by colour temperature, the five coloured LEDs, a
+            // white of any temperature, and any colour at all through the swatch. `led_color` is what
+            // the palette reads in every case; `led_kelvin` only remembers that a white was given as a
+            // temperature, so the panel can say so.
+            struct LampPreset
+            {
+                std::string name;
+                float       kelvin;
+                ColorRGB    color;
+            };
+            const std::vector<LampPreset> presets = {
+                { _u8L("Plain white"), 0.f, ColorRGB(1.f, 1.f, 1.f) },
+                { _u8L("Warm white, 2700 K"), 2700.f, ColorRGB() },
+                { _u8L("Natural white, 4000 K"), 4000.f, ColorRGB() },
+                { _u8L("Cold white, 6500 K"), 6500.f, ColorRGB() },
+                { _u8L("White of any temperature"), -1.f, ColorRGB() },
+                { _u8L("Red"), 0.f, ColorRGB(1.f, 0.f, 0.f) },
+                { _u8L("Green"), 0.f, ColorRGB(0.f, 1.f, 0.f) },
+                { _u8L("Blue"), 0.f, ColorRGB(0.f, 0.f, 1.f) },
+                { _u8L("Cyan"), 0.f, ColorRGB(0.f, 1.f, 1.f) },
+                { _u8L("Magenta"), 0.f, ColorRGB(1.f, 0.f, 1.f) },
+            };
+            const float kelvin  = layer.chroma.led_kelvin;
+            int         current = -1;
+            for (int i = 0; i < int(presets.size()) && current < 0; ++i) {
+                const LampPreset &pr = presets[size_t(i)];
+                if (pr.kelvin > 0.f ? std::abs(kelvin - pr.kelvin) < 0.5f :
+                    pr.kelvin < 0.f ? kelvin > 0.f :
+                                      kelvin <= 0.f && layer.chroma.led_color == pr.color)
+                    current = i;
             }
-            hover_tip(_u8L("The colour of the light behind the print. A warm white lamp and a cold white one show the "
-                     "same filaments as different colours, and this is where that is accounted for."));
+
+            slider_label(_L("Lamp"));
+            ImGui::SetNextItemWidth(combo_w);
+            push_panel_combo_style(m_parent.get_scale());
+            if (ImGui::BeginCombo("##hf_led_preset",
+                                  current >= 0 ? presets[size_t(current)].name.c_str() : _u8L("Custom color").c_str())) {
+                for (int i = 0; i < int(presets.size()); ++i) {
+                    const LampPreset &pr = presets[size_t(i)];
+                    if (ImGui::Selectable(pr.name.c_str(), i == current) && i != current) {
+                        if (pr.kelvin < 0.f)
+                            // Any temperature: start from where the lamp is if it is already a white of
+                            // one, from a neutral white otherwise.
+                            layer.chroma.led_kelvin = kelvin > 0.f ? kelvin : 5000.f;
+                        else
+                            layer.chroma.led_kelvin = pr.kelvin;
+                        layer.chroma.led_color = layer.chroma.led_kelvin > 0.f ?
+                                                     chroma_kelvin_to_rgb(layer.chroma.led_kelvin) :
+                                                     pr.color;
+                        chroma_touch(layer.slot);
+                    }
+                }
+                ImGui::EndCombo();
+            }
+            pop_panel_combo_style();
+            hover_tip(_u8L("The light behind the print. A warm white lamp and a cold white one show the same filaments "
+                     "as different colors, and this is where that is accounted for. Most lithophane lamps are a "
+                     "white LED; the box or the listing usually gives its temperature in kelvin."));
 
             ImGui::SameLine(0.f, m_imgui->scaled(0.6f));
+            ImVec4 led(layer.chroma.led_color.r(), layer.chroma.led_color.g(), layer.chroma.led_color.b(), 1.f);
+            if (ImGui::ColorEdit3("##hf_led", &led.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel)) {
+                layer.chroma.led_color  = ColorRGB(led.x, led.y, led.z);
+                // Picked as a colour now, not as a temperature.
+                layer.chroma.led_kelvin = 0.f;
+                chroma_touch(layer.slot);
+            }
+            hover_tip(_u8L("Any color for the light, for a lamp none of the presets describe."));
+
+            if (layer.chroma.led_kelvin > 0.f) {
+                slider_label(_L("Color temperature"));
+                float k = layer.chroma.led_kelvin;
+                if (typed_slider("##hf_led_k", m_imgui->scaled(9.f) - panel_edit_icon_room(), &k, 1000.f, 12000.f,
+                                 "%.0f K", false,
+                                 _L("The lamp's color temperature. 2700 K is a warm household bulb, 4000 K a neutral "
+                                    "white, 6500 K daylight."))) {
+                    layer.chroma.led_kelvin = std::clamp(k, 1000.f, 12000.f);
+                    layer.chroma.led_color  = chroma_kelvin_to_rgb(layer.chroma.led_kelvin);
+                    chroma_touch(layer.slot);
+                }
+            }
+
+            slider_label(_L("Brightness"));
             float lumens = layer.chroma.led_intensity;
-            if (typed_slider("##hf_led_i", m_imgui->scaled(6.f) - panel_edit_icon_room(), &lumens, 0.2f, 8.f, "%.1fx",
+            if (typed_slider("##hf_led_i", m_imgui->scaled(9.f) - panel_edit_icon_room(), &lumens, 0.2f, 8.f, "%.1fx",
                              false,
                              _L("How bright that light is, as a multiple of a plain white lamp. A deep stack passes very "
                                 "little, so more than one is normal here and is what a bright panel behind the print "
@@ -4348,6 +4842,96 @@ void GLGizmoTextureDisplacement::render_chroma_light(TextureDisplacementLayer &l
                 layer.chroma.led_intensity = std::max(0.f, lumens);
                 chroma_touch(layer.slot);
             }
+        }
+    }
+
+    // ---- What the filaments do besides absorbing light ----
+    //
+    // One row per filament rather than a control in each band's row, which is full: the effect is a
+    // property of the filament, it is set once if at all, and most stacks have none. It starts as
+    // whatever the filament's name says (chroma_effect_from_name()), and an edit applies to every band
+    // printed in that filament, the way the TD field does.
+    ImGui::Dummy(ImVec2(0.f, gap_s));
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted(_u8L("Filament effects").c_str());
+    hover_tip(_u8L("What a filament does besides absorbing light. Glow in the dark shows in the lights off view; "
+                   "color shift turns the filament toward a second color as the print is seen at an angle. "
+                   "Neither changes the colors the picture is solved for, only how the preview shows them.\n\n"
+                   "Read from the filament's name to begin with: glow, luminous or GITD for a glow, chameleon, "
+                   "color shift or starlight for a shift."));
+    {
+        const auto effect_name = [](ChromaEffect e) {
+            switch (e) {
+            case ChromaEffect::Glow: return _u8L("Glow in the dark");
+            case ChromaEffect::ColorShift: return _u8L("Color shift");
+            default: return _u8L("No effect");
+            }
+        };
+        ImDrawList *edl     = ImGui::GetWindowDrawList();
+        const float fh      = ImGui::GetFrameHeight();
+        const float combo_w = m_imgui->scaled(6.5f);
+        const float right   = ImGui::GetContentRegionMax().x - m_imgui->scaled(0.5f);
+        std::vector<ChromaBand> &bands = layer.chroma.bands;
+        for (size_t bi = 0; bi < bands.size(); ++bi) {
+            const ChromaFilament &f = bands[bi].filament;
+            // One row per filament: a filament used by two bands is one filament with one effect.
+            bool seen = false;
+            for (size_t prev = 0; prev < bi && !seen; ++prev)
+                seen = f.filament >= 0 && bands[prev].filament.filament == f.filament;
+            if (seen)
+                continue;
+
+            ImGui::PushID(int(bi));
+            const ImVec2 p  = ImGui::GetCursorScreenPos();
+            const float  sw = std::round(fh * 0.7f);
+            edl->AddRectFilled(ImVec2(p.x, p.y + 0.5f * (fh - sw)), ImVec2(p.x + sw, p.y + 0.5f * (fh + sw)),
+                               ImGui::GetColorU32(ImVec4(f.color.r(), f.color.g(), f.color.b(), 1.f)), 2.f);
+            ImGui::Dummy(ImVec2(sw, fh));
+            ImGui::SameLine(0.f, m_imgui->scaled(0.4f));
+            ImGui::AlignTextToFramePadding();
+            const std::string label = f.name.empty() ? Slic3r::format(_u8L("Filament %1%"), f.filament + 1) : f.name;
+            // Clipped short of the controls, so a long preset name cannot push them off the panel.
+            const float name_end = right - combo_w - fh - m_imgui->scaled(0.8f);
+            ImGui::PushClipRect(ImGui::GetCursorScreenPos(),
+                                ImVec2(ImGui::GetWindowPos().x + name_end, ImGui::GetCursorScreenPos().y + fh), true);
+            ImGui::TextUnformatted(label.c_str());
+            ImGui::PopClipRect();
+
+            const auto apply = [&](ChromaEffect effect, const ColorRGB &color) {
+                for (ChromaBand &b : bands)
+                    if (&b == &bands[bi] || (f.filament >= 0 && b.filament.filament == f.filament)) {
+                        b.filament.effect       = effect;
+                        b.filament.effect_color = color;
+                    }
+                chroma_touch(layer.slot);
+                m_parent.set_as_dirty();
+            };
+
+            ImGui::SameLine(right - combo_w - fh - m_imgui->scaled(0.4f));
+            ImGui::SetNextItemWidth(combo_w);
+            push_panel_combo_style(m_parent.get_scale());
+            if (ImGui::BeginCombo("##hf_effect", effect_name(f.effect).c_str())) {
+                for (ChromaEffect e : { ChromaEffect::None, ChromaEffect::Glow, ChromaEffect::ColorShift })
+                    if (ImGui::Selectable(effect_name(e).c_str(), e == f.effect) && e != f.effect) {
+                        const ColorRGB color = chroma_default_effect_color(e, f.color);
+                        apply(e, color);
+                    }
+                ImGui::EndCombo();
+            }
+            pop_panel_combo_style();
+
+            if (f.effect != ChromaEffect::None) {
+                ImGui::SameLine(0.f, m_imgui->scaled(0.4f));
+                ImVec4 ec(f.effect_color.r(), f.effect_color.g(), f.effect_color.b(), 1.f);
+                if (ImGui::ColorEdit3("##hf_effect_color", &ec.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
+                    apply(f.effect, ColorRGB(ec.x, ec.y, ec.z));
+                hover_tip(f.effect == ChromaEffect::Glow ?
+                              _u8L("The color it glows. Most glow in the dark filament glows yellow-green or aqua, "
+                                   "whatever its color in daylight.") :
+                              _u8L("The color it turns when seen at a grazing angle. Face on it is the filament's own "
+                                   "color."));
+            }
+            ImGui::PopID();
         }
     }
 
@@ -4392,7 +4976,9 @@ void GLGizmoTextureDisplacement::render_chroma_light(TextureDisplacementLayer &l
 }
 
 
-// The views of this picture: what is drawn over the model, and the two tools for taking a solve apart.
+// The views of this picture: what is drawn over the model. Not on the card: the card keeps the printed
+// colours on, which is the view a picture is judged by, and leaves the rest at their defaults. Kept with
+// the switches for the slicer's view and the glow, which have no other place yet.
 //
 // They used to be in two places, and neither was this one. Printed colors, Printed layers and Where it
 // is wrong were checkboxes in the panel's own View row, where they did not fit: that row is full before
@@ -4403,14 +4989,12 @@ void GLGizmoTextureDisplacement::render_chroma_light(TextureDisplacementLayer &l
 // are one layer's views, already conditional on that layer, and a layer's own views belong in its card,
 // where each gets a full row that nothing can clip.
 //
-// Soften, See through, the layer slider and the debug views came the other way, out of Light and
-// detail. Every one of them draws the preview differently and writes nothing into the project, while
-// everything left in that section is a dimension of the print. Two of them said so in their own
-// comments.
+// The preview's own switches - the softening, seeing through the thin places, the layer slider and the
+// debug views - are not on the card. They keep their defaults, which are the preview a print is judged
+// by; they are for taking a solve apart, not for making a picture.
 void GLGizmoTextureDisplacement::render_chroma_views(TextureDisplacementLayer &layer)
 {
     const float gap_s = std::round(m_imgui->scaled(0.4f));
-
 
     // ---- What is drawn over the model ----
     //
@@ -4445,6 +5029,18 @@ void GLGizmoTextureDisplacement::render_chroma_views(TextureDisplacementLayer &l
             for (int i = -1; i <= 1; ++i)
                 dl->AddRectFilled(ImVec2(p.x + c - 1.6f * q, p.y + c + float(i) * 1.5f * q - 1.f),
                                   ImVec2(p.x + c + 1.6f * q, p.y + c + float(i) * 1.5f * q + 1.f), fg);
+        } else if (kind == 4) {
+            // Lights off: a crescent, the disc with a second one cut out of it in the button's own colour.
+            dl->AddCircleFilled(ImVec2(p.x + c, p.y + c), 1.5f * q, fg);
+            dl->AddCircleFilled(ImVec2(p.x + c + 0.8f * q, p.y + c - 0.5f * q), 1.3f * q,
+                                on  ? ImGui::GetColorU32(ImGuiWrapper::COL_ORCA) :
+                                hot ? ImGui::GetColorU32(ImGuiCol_ButtonHovered) :
+                                      ImGui::GetColorU32(ImGuiCol_Button));
+        } else if (kind == 3) {
+            // Slicer view: three solid bars, each one flat colour and nothing blended between them.
+            for (int i = -1; i <= 1; ++i)
+                dl->AddRectFilled(ImVec2(p.x + c - 1.6f * q, p.y + c + float(i) * 1.1f * q - 0.4f * q),
+                                  ImVec2(p.x + c + 1.6f * q, p.y + c + float(i) * 1.1f * q + 0.4f * q), fg, 1.f);
         } else {
             // Where it is wrong: a mark over the one place it is.
             dl->AddCircle(ImVec2(p.x + c, p.y + c), 1.6f * q, fg, 0, 1.6f);
@@ -4496,6 +5092,43 @@ void GLGizmoTextureDisplacement::render_chroma_views(TextureDisplacementLayer &l
         m_parent.set_as_dirty();
     }
 
+    // Slicer view rides on the printed colors overlay, which is the surface it recolours, so turning it
+    // on turns that on too rather than leaving a switch that visibly does nothing.
+    ImGui::SameLine(0.f, gap_s);
+    bool slicer_on = m_chroma_slicer_view;
+    view_toggle("##v_slicer", 3, slicer_on,
+                _u8L("Slicer view: every surface in the plain color of the filament its layer is printed in, "
+                     "with nothing blended and no light on it - what the sliced preview will show.\n\n"
+                     "Use it to see which filament ends up where. The printed colors view is what the print "
+                     "will look like."));
+    if (slicer_on != m_chroma_slicer_view) {
+        m_chroma_slicer_view = slicer_on;
+        if (slicer_on && !m_show_chroma_colors) {
+            m_show_chroma_colors = true;
+            m_chroma_color_key   = 0;
+        }
+        m_parent.set_as_dirty();
+    }
+
+    // Lights off, only for a stack with something in it that glows. Like slicer view it recolours the
+    // printed colors overlay, so it turns that on with it.
+    if (chroma_has_glow(layer.chroma)) {
+        ImGui::SameLine(0.f, gap_s);
+        bool dark_on = m_chroma_lights_off;
+        view_toggle("##v_dark", 4, dark_on,
+                    _u8L("Lights off: the print as it looks in the dark, lit only by its glow in the dark "
+                         "filament. The glow comes up through every layer above it, so a translucent stack lets "
+                         "it through and an opaque top hides it."));
+        if (dark_on != m_chroma_lights_off) {
+            m_chroma_lights_off = dark_on;
+            if (dark_on && !m_show_chroma_colors) {
+                m_show_chroma_colors = true;
+                m_chroma_color_key   = 0;
+            }
+            m_parent.set_as_dirty();
+        }
+    }
+
     // The one thing about the sheets worth a switch, and only while they are drawn.
     if (m_show_chroma_layers && layer.chroma.plate.generated) {
         ImGui::SameLine(0.f, 2.f * gap_s);
@@ -4505,169 +5138,82 @@ void GLGizmoTextureDisplacement::render_chroma_views(TextureDisplacementLayer &l
                  "opaque, so with it on the picture sits against a wall and nothing of the scene behind the plate "
                  "comes through."));
     }
-
-    ImGui::Dummy(ImVec2(0.f, gap_s));
-
-    // ---- The half of this that is for taking a solve apart ----
-    //
-    // Folded, and folded by default. None of it is wrong to have and none of it is anything to reach
-    // for while a picture is being set up: it is here for the afternoon when the preview looks wrong
-    // and the question is which of three things went wrong.
-    {
-        const float  x0 = ImGui::GetCursorPosX();
-        const ImVec2 p  = ImGui::GetCursorScreenPos();
-        const float  fh = ImGui::GetFrameHeight();
-        if (ImGui::InvisibleButton("##chroma_dbg_head",
-                                   ImVec2(std::max(m_imgui->scaled(2.f), ImGui::GetContentRegionMax().x - x0), fh)))
-            m_chroma_open_debug = !m_chroma_open_debug;
-        const ImU32 col = ImGui::GetColorU32(ImGuiCol_Text, ImGui::IsItemHovered() ? 0.95f : 0.65f);
-        const float a   = std::round(ImGui::GetFontSize() * 0.3f);
-        const float cx = p.x + a + 2.f, cy = p.y + 0.5f * fh;
-        if (m_chroma_open_debug)
-            dl->AddTriangleFilled(ImVec2(cx - a, cy - 0.5f * a), ImVec2(cx + a, cy - 0.5f * a),
-                                  ImVec2(cx, cy + 0.7f * a), col);
-        else
-            dl->AddTriangleFilled(ImVec2(cx - 0.5f * a, cy - a), ImVec2(cx + 0.7f * a, cy),
-                                  ImVec2(cx - 0.5f * a, cy + a), col);
-        const std::string name = _u8L("Taking a solve apart");
-        dl->AddText(ImVec2(cx + a + 4.f, cy - 0.5f * ImGui::GetFontSize()), col, name.c_str());
-        ImGui::SetCursorPosX(x0);
-    }
-    if (!m_chroma_open_debug)
-        return;
-
-    ImGui::Dummy(ImVec2(0.f, gap_s));
-    // A view rather than a setting, but it belongs with the light: what it switches is whether the
-    // preview accounts for light going into the plastic at one point and coming out at another. On by
-    // default, because the soft picture is the one the printer makes and the hard one promises detail
-    // the material cannot hold. Worth turning off to see the solve's own steps.
-    if (m_imgui->bbl_checkbox(_L("Soften it the way the plastic does"), m_show_chroma_scatter))
-        m_parent.set_as_dirty();
-    hover_tip(_u8L("Filament scatters light sideways, so a print is softer than the stack it was solved from and "
-             "detail finer than about a nozzle width never survives the plastic. With this on, the preview "
-             "shows that softening; with it off, it shows the solve's own terraces, which no print has.\n\n"
-             "Lit from behind it is much stronger, because the light crosses the whole plate rather than "
-             "the top filament only - which is why a lithophane loses fine detail."));
-
-    // Also a view, and the other half of the same question: the softening above is the light that comes
-    // back out of the plastic, this is the light that goes straight through it and out the far side.
-    //
-    // Off by default, and not only because a new view should be. It is the one option here that changes
-    // how the plate is drawn rather than what it is drawn as: the opaque surface has to be left out of
-    // the frame for the translucency to show at all (see on_render), and with it goes the paint
-    // highlight. The place to say that is here rather than in a comment nobody reading the panel can see.
-    {
-        const bool back_lit = layer.chroma.lighting != ChromaLighting::FrontLit;
-        m_imgui->disabled_begin(back_lit);
-        if (m_imgui->bbl_checkbox(_L("See through the thin places"), m_chroma_see_through))
-            m_parent.set_as_dirty();
-        m_imgui->disabled_end();
-        if (back_lit)
-            hover_tip(_u8L("Only with the light in front. Lit from behind, the plate stands in front of its own "
-                     "lamp and what you see is already the light that came through it, so there is nothing "
-                     "behind it left to show."));
-        else
-            hover_tip(_u8L("Draws the plate as the translucent thing it is: the stack's own transmittance becomes "
-                     "how solid each pixel is, so whatever stands behind the print shows through wherever "
-                     "the filament does not stop the light.\n\n"
-                     "A finished plate is nearly opaque, and that is not a shortcoming of the preview - it "
-                     "is why a print reads as a picture rather than a stained-glass window. Expect to see "
-                     "this at the thin places only: the first layers of a clear filament, a plate that is "
-                     "almost all relief, or the stack part way up as the layer slider walks it.\n\n"
-                     "While it is on, a brush stroke shows as the green tint instead of the solid "
-                     "highlight, which would otherwise cover the print it is meant to be seen through."));
-    }
-
-    // ---- The layer slider ----
-    //
-    // Which swap bought what. A finished stack does not say: every band is under every band above it,
-    // and the one that contributed nothing looks exactly like the one that carried the picture. Walking
-    // the limit up shows the print as it stood at each layer, which is the same thing the user would
-    // have seen standing over the printer, and it is the fastest way to find a band paying for a swap
-    // and changing nothing.
-    {
-        const int total = std::max(1, layer.chroma.total_layers());
-        // At the top it is the finished print, which is also the resting state, so the slider is left
-        // there rather than being a mode that has to be switched off.
-        int shown = (m_chroma_layer_limit > 0 && m_chroma_layer_limit < total) ? m_chroma_layer_limit : total;
-        ImGui::Dummy(ImVec2(0.f, gap_s));
-        slider_label(_L("Show up to layer"));
-        // The height in millimetres rides along in the slider's own text: a layer number means nothing
-        // on a stack whose layer height the user set somewhere else.
-        const std::string fmt = (shown >= total) ?
-                                    Slic3r::format(_u8L("%1$d of %2$d - all of it"), shown, total) :
-                                    Slic3r::format(_u8L("%1$d of %2$d - %3$.2f mm"), shown, total,
-                                                   float(shown) * layer.chroma.layer_height_mm);
-        // The one slider in the gizmo that is not a typed_slider_int(): that one puts the bounds in the
-        // tooltip by running the format over them, and this format takes three arguments rather than the
-        // one a bound would supply.
-        ImGui::SetNextItemWidth(m_imgui->scaled(9.f));
-        if (ImGui::SliderInt("##hf_layer_limit", &shown, 1, total, fmt.c_str(), ImGuiSliderFlags_AlwaysClamp)) {
-            m_chroma_layer_limit = (shown >= total) ? 0 : shown;
-            m_parent.set_as_dirty();
-        }
-        hover_tip(_u8L("Draws the print as it stood at that layer, so the stack can be walked up one band at a "
-                 "time. Everything already finished below the line keeps its color; everything above it "
-                 "shows the color the stack had reached by then.\n\n"
-                 "This is how to find a band that is paying for a filament swap and changing nothing: stop "
-                 "just below it, then just above it, and see whether the picture moved."));
-    }
-
-    // ---- The debug views ----
-    //
-    // A preview that looks wrong cannot say why: a stack that never got its relief, a picture that
-    // landed somewhere else on the model, and a walk that came out dark all end in the same flat
-    // wash. Each of these draws one of the quantities the shader works from instead of the colour it
-    // predicts, which is the only way to tell those three apart by looking.
-    ImGui::Dummy(ImVec2(0.f, gap_s));
-    slider_label(_L("Debug view"));
-    {
-        // The order is the order to try them in, which is also the order they rule things out in, and
-        // the index is what the shader switches on - see CHROMA_DBG_* in chromastack.fs.
-        const auto name_of = [](int v) {
-            switch (v) {
-            case ChromaDebugHeight: return _u8L("Height in the stack");
-            case ChromaDebugBand: return _u8L("Which band");
-            case ChromaDebugFacing: return _u8L("Terrace or wall");
-            case ChromaDebugUV: return _u8L("Where the picture lands");
-            case ChromaDebugSolve: return _u8L("What the solve predicted");
-            case ChromaDebugAlbedo: return _u8L("Colour with no light on it");
-            default: return _u8L("Off");
-            }
-        };
-        ImGui::SetNextItemWidth(m_imgui->scaled(9.f));
-        push_panel_combo_style(m_parent.get_scale());
-        if (ImGui::BeginCombo("##hf_debug", name_of(m_chroma_debug).c_str())) {
-            for (int v = 0; v < int(ChromaDebugCount); ++v)
-                if (ImGui::Selectable(name_of(v).c_str(), v == m_chroma_debug) && v != m_chroma_debug) {
-                    m_chroma_debug = v;
-                    m_parent.set_as_dirty();
-                }
-            ImGui::EndCombo();
-        }
-        pop_panel_combo_style();
-        hover_tip(_u8L("Draws one of the things the shader works from instead of the colour it predicts. Off is the "
-                 "normal preview.\n\n"
-                 "Height in the stack: how far up the stack each point sits, dark blue at the base to pale "
-                 "yellow at the top. A plate whose relief never reached the mesh is one flat colour here, and "
-                 "that is the first thing to rule out.\n\n"
-                 "Which band: the filament each point's own layer belongs to, one colour per band. The "
-                 "picture's terraces should read as flat fields with hard edges.\n\n"
-                 "Terrace or wall: green where the shader looks down through the column, red where it reads "
-                 "the cut side of the layers instead.\n\n"
-                 "Where the picture lands: the picture's own coordinates on the model, black beyond its edge.\n\n"
-                 "What the solve predicted: the panel's \"What prints\" image laid on the model. Where this "
-                 "and the normal preview disagree, the solve and the shader disagree.\n\n"
-                 "Colour with no light on it: the walk's own answer with the shading taken off."));
-    }
 }
 
-// The picture and the print it is predicted to make, at the size of the canvas.
-//
-// The card's two thumbnails answer "is this worth printing"; they cannot answer "is this face still
-// the face", which is the question a portrait or anything with text in it actually turns on. Drawn
-// over the 3D view rather than in the panel, because the panel is 420 px wide and that is the whole
-// problem.
+// The chart of a solve: the picture's colours as a cloud, each as large as its share of the picture,
+// and the stack's reach as the line its levels walk from the base to the top, hue across and
+// lightness up. Drawn into whatever rectangle it is given - the Check step's small copy and the window
+// it opens - with `scale` sizing the dots and the line to the chart.
+void GLGizmoTextureDisplacement::draw_chroma_diag_plot(ImDrawList *wdl, const ChromaDiagnostics &diag, const ImVec2 &origin,
+                                                       float plot_w, float plot_h, float scale)
+{
+    const auto col_of = [](const ColorRGB &c, int alpha) {
+        return IM_COL32(int(std::lround(255.f * std::clamp(c.r(), 0.f, 1.f))),
+                        int(std::lround(255.f * std::clamp(c.g(), 0.f, 1.f))),
+                        int(std::lround(255.f * std::clamp(c.b(), 0.f, 1.f))), alpha);
+    };
+    const ImU32 grid  = ImGui::GetColorU32(ImGuiCol_Separator);
+    const ImU32 faint = ImGui::GetColorU32(ImGuiCol_TextDisabled);
+    wdl->AddRectFilled(origin, ImVec2(origin.x + plot_w, origin.y + plot_h),
+                       ImGui::GetColorU32(ImGuiCol_FrameBg));
+
+    // Lightness runs up the left, because that is the axis the relief works along: a column's
+    // height reaches the eye mostly as tone, so two filaments at the same height on this chart
+    // give a ramp that does not ramp however different their hues are.
+    for (int l = 0; l <= 100; l += 25) {
+        const float y = origin.y + plot_h * (1.f - 0.01f * float(l));
+        wdl->AddLine(ImVec2(origin.x, y), ImVec2(origin.x + plot_w, y), grid);
+    }
+    // Hue wraps, so the cut has to be drawn rather than left for the reader to infer: 0 and 360
+    // are the same colour and the two edges of this chart are neighbours.
+    for (int h = 0; h <= 360; h += 90) {
+        const float x = origin.x + plot_w * (float(h) / 360.f);
+        wdl->AddLine(ImVec2(x, origin.y), ImVec2(x, origin.y + plot_h), grid);
+    }
+
+    const auto at = [&](const ChromaMapCoord &c) {
+        return ImVec2(origin.x + plot_w * std::clamp(c.hue_deg, 0.f, 360.f) / 360.f,
+                      origin.y + plot_h * (1.f - std::clamp(c.lightness, 0.f, 100.f) / 100.f));
+    };
+
+    // What the picture asks for, each bin as large as its share of the picture. Drawn first and
+    // underneath: the question is whether the curve passes through the cloud, and a cloud over the
+    // curve hides the answer.
+    float heaviest = 0.f;
+    for (const ChromaWant &w : diag.wants)
+        heaviest = std::max(heaviest, w.weight);
+    for (const ChromaWant &w : diag.wants) {
+        const float share = heaviest > 0.f ? w.weight / heaviest : 0.f;
+        const float r     = scale * (m_imgui->scaled(0.12f) + m_imgui->scaled(0.42f) * std::sqrt(share));
+        // A near-grey has a hue angle that is arithmetically fine and means nothing, so it is drawn
+        // faint rather than scattered around the circle on the strength of a rounding difference.
+        const float vivid = std::clamp(w.at.chroma_ab / 30.f, 0.f, 1.f);
+        const int   a     = int(std::lround(60.f + 150.f * vivid));
+        wdl->AddCircleFilled(at(w.at), r, col_of(w.color, a));
+    }
+
+    // What the stack can print: consecutive levels joined, so the line is the walk the palette
+    // takes from the base to the top. Where it doubles back on itself, a swap is being paid for
+    // twice; where the cloud sits far from it, those colours cannot be printed at all.
+    for (size_t i = 1; i < diag.reach.size(); ++i) {
+        const ChromaReach &a0 = diag.reach[i - 1];
+        const ChromaReach &b0 = diag.reach[i];
+        wdl->AddLine(at(a0.at), at(b0.at), col_of(b0.color, 230), std::max(1.f, scale * m_imgui->scaled(0.14f)));
+    }
+    for (const ChromaReach &r : diag.reach) {
+        const ImVec2 p = at(r.at);
+        // A level that prints none of the picture is a layer nobody asked for, and it is drawn
+        // hollow so a dead stretch of the curve can be seen as a run of them.
+        const float  rad = scale * m_imgui->scaled(r.serves > 0.f ? 0.22f : 0.16f);
+        if (r.serves > 0.f)
+            wdl->AddCircleFilled(p, rad, col_of(r.color, 255));
+        else
+            wdl->AddCircle(p, rad, faint, 0, m_imgui->scaled(0.07f));
+        wdl->AddCircle(p, rad, ImGui::GetColorU32(ImGuiCol_WindowBg), 0, m_imgui->scaled(0.05f));
+    }
+    wdl->AddRect(origin, ImVec2(origin.x + plot_w, origin.y + plot_h), grid);
+}
+
 // The picture's colours and the stack's reach, in the one space where the question is legible.
 //
 // The error overlay answers "where", per pixel, on the model. It cannot answer "why", and the three
@@ -4699,12 +5245,6 @@ void GLGizmoTextureDisplacement::render_chroma_diagnostics()
     const float       plot_w = win_w - 2.f * pad - m_imgui->scaled(2.2f);
     const float       plot_h = std::max(m_imgui->scaled(6.f), std::min(0.5f * plot_w, win_h * 0.45f));
 
-    const auto col_of = [](const ColorRGB &c, int alpha) {
-        return IM_COL32(int(std::lround(255.f * std::clamp(c.r(), 0.f, 1.f))),
-                        int(std::lround(255.f * std::clamp(c.g(), 0.f, 1.f))),
-                        int(std::lround(255.f * std::clamp(c.b(), 0.f, 1.f))), alpha);
-    };
-
     ImGui::SetNextWindowPos(ImVec2(0.5f * (screen.x - win_w), 0.5f * (screen.y - win_h)), ImGuiCond_Always);
     ImGui::SetNextWindowSize(ImVec2(win_w, win_h), ImGuiCond_Always);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(pad, pad));
@@ -4720,70 +5260,16 @@ void GLGizmoTextureDisplacement::render_chroma_diagnostics()
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + label_w);
         const ImVec2  origin  = ImGui::GetCursorScreenPos();
         ImGui::Dummy(ImVec2(plot_w, plot_h));
-        const ImU32   grid    = ImGui::GetColorU32(ImGuiCol_Separator);
         const ImU32   faint   = ImGui::GetColorU32(ImGuiCol_TextDisabled);
-        wdl->AddRectFilled(origin, ImVec2(origin.x + plot_w, origin.y + plot_h),
-                           ImGui::GetColorU32(ImGuiCol_FrameBg));
-
-        // Lightness runs up the left, because that is the axis the relief works along: a column's
-        // height reaches the eye mostly as tone, so two filaments at the same height on this chart
-        // give a ramp that does not ramp however different their hues are.
+        draw_chroma_diag_plot(wdl, diag, origin, plot_w, plot_h, 1.f);
+        // The lightness scale up the left, outside the plot.
         for (int l = 0; l <= 100; l += 25) {
-            const float y = origin.y + plot_h * (1.f - 0.01f * float(l));
-            wdl->AddLine(ImVec2(origin.x, y), ImVec2(origin.x + plot_w, y), grid);
-            const std::string t = std::to_string(l);
-            wdl->AddText(ImVec2(origin.x - m_imgui->scaled(0.3f) - ImGui::CalcTextSize(t.c_str()).x,
+            const float       y = origin.y + plot_h * (1.f - 0.01f * float(l));
+            const std::string v = std::to_string(l);
+            wdl->AddText(ImVec2(origin.x - m_imgui->scaled(0.3f) - ImGui::CalcTextSize(v.c_str()).x,
                                 y - 0.5f * ImGui::GetTextLineHeight()),
-                         faint, t.c_str());
+                         faint, v.c_str());
         }
-        // Hue wraps, so the cut has to be drawn rather than left for the reader to infer: 0 and 360
-        // are the same colour and the two edges of this chart are neighbours.
-        for (int h = 0; h <= 360; h += 90) {
-            const float x = origin.x + plot_w * (float(h) / 360.f);
-            wdl->AddLine(ImVec2(x, origin.y), ImVec2(x, origin.y + plot_h), grid);
-        }
-
-        const auto at = [&](const ChromaMapCoord &c) {
-            return ImVec2(origin.x + plot_w * std::clamp(c.hue_deg, 0.f, 360.f) / 360.f,
-                          origin.y + plot_h * (1.f - std::clamp(c.lightness, 0.f, 100.f) / 100.f));
-        };
-
-        // What the picture asks for, each bin as large as its share of the picture. Drawn first and
-        // underneath: the question is whether the curve passes through the cloud, and a cloud over the
-        // curve hides the answer.
-        float heaviest = 0.f;
-        for (const ChromaWant &w : diag.wants)
-            heaviest = std::max(heaviest, w.weight);
-        for (const ChromaWant &w : diag.wants) {
-            const float share = heaviest > 0.f ? w.weight / heaviest : 0.f;
-            const float r     = m_imgui->scaled(0.12f) + m_imgui->scaled(0.42f) * std::sqrt(share);
-            // A near-grey has a hue angle that is arithmetically fine and means nothing, so it is drawn
-            // faint rather than scattered around the circle on the strength of a rounding difference.
-            const float vivid = std::clamp(w.at.chroma_ab / 30.f, 0.f, 1.f);
-            const int   a     = int(std::lround(60.f + 150.f * vivid));
-            wdl->AddCircleFilled(at(w.at), r, col_of(w.color, a));
-        }
-
-        // What the stack can print: consecutive levels joined, so the line is the walk the palette
-        // takes from the base to the top. Where it doubles back on itself, a swap is being paid for
-        // twice; where the cloud sits far from it, those colours cannot be printed at all.
-        for (size_t i = 1; i < diag.reach.size(); ++i) {
-            const ChromaReach &a0 = diag.reach[i - 1];
-            const ChromaReach &b0 = diag.reach[i];
-            wdl->AddLine(at(a0.at), at(b0.at), col_of(b0.color, 230), m_imgui->scaled(0.14f));
-        }
-        for (const ChromaReach &r : diag.reach) {
-            const ImVec2 p = at(r.at);
-            // A level that prints none of the picture is a layer nobody asked for, and it is drawn
-            // hollow so a dead stretch of the curve can be seen as a run of them.
-            const float  rad = m_imgui->scaled(r.serves > 0.f ? 0.22f : 0.16f);
-            if (r.serves > 0.f)
-                wdl->AddCircleFilled(p, rad, col_of(r.color, 255));
-            else
-                wdl->AddCircle(p, rad, faint, 0, m_imgui->scaled(0.07f));
-            wdl->AddCircle(p, rad, ImGui::GetColorU32(ImGuiCol_WindowBg), 0, m_imgui->scaled(0.05f));
-        }
-        wdl->AddRect(origin, ImVec2(origin.x + plot_w, origin.y + plot_h), grid);
 
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + label_w);
         ImGui::TextDisabled("%s", _u8L("Across: hue, a full turn, so the two edges of the chart are "
@@ -4805,9 +5291,7 @@ void GLGizmoTextureDisplacement::render_chroma_diagnostics()
                 std::string   label;
                 const ImVec4 *color;
             };
-            const ImVec4 *avg_col = diag.mean_de > 15.  ? &CHROMA_COL_WARN :
-                                    diag.mean_de <= 5.  ? &CHROMA_COL_GOOD :
-                                                          nullptr;
+            const ImVec4 *avg_col = chroma_match_col(diag.mean_de);
             const ImVec4 *bad_col = diag.unreachable_weight > 0.15f ? &CHROMA_COL_WARN : nullptr;
             const std::vector<Tile> tiles = {
                 { Slic3r::format("%1$.1f", diag.mean_de), _u8L("average off"), avg_col },
@@ -4863,6 +5347,12 @@ void GLGizmoTextureDisplacement::render_chroma_diagnostics()
         m_chroma_diag_slot = -1;
 }
 
+// The picture and the print it is predicted to make, at the size of the canvas.
+//
+// The card's two thumbnails answer "is this worth printing"; they cannot answer "is this face still
+// the face", which is the question a portrait or anything with text in it actually turns on. Drawn
+// over the 3D view rather than in the panel, because the panel is 420 px wide and that is the whole
+// problem.
 void GLGizmoTextureDisplacement::render_chroma_zoom()
 {
     if (m_chroma_zoom_slot < 0 || size_t(m_chroma_zoom_slot) >= TEXTURE_DISPLACEMENT_MAX_LAYERS)

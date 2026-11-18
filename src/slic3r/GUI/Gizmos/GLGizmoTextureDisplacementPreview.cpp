@@ -111,6 +111,10 @@
 
 namespace Slic3r::GUI {
 
+// The most grid cells a generated ChromaStack plate's preview spends on its picture face: about
+// 0.18 mm cells on a 100 mm plate, finer than a nozzle draws, and 600 k triangles to upload.
+static constexpr size_t CHROMA_FLAT_PREVIEW_CELLS = 300000;
+
 using namespace gizmo_td;
 
 namespace {
@@ -1377,6 +1381,14 @@ void GLGizmoTextureDisplacement::queue_preview_job()
         entry.volume_to_world = texture_displacement_volume_to_world(*part);
         entry.texture_anchor  = anchor;
         entry.resting_drop    = drops[i];
+        // A generated ChromaStack plate's picture is one flat face, so its relief can be previewed
+        // straight from the height map rather than through the bake's refinement, which took seconds
+        // and grew with the Quality setting. That matters because every colour edit re-solves the
+        // height map and lands here. See build_texture_displacement_flat_preview().
+        if (std::any_of(entry.layers.begin(), entry.layers.end(), [](const TextureDisplacementLayer &l) {
+                return l.chroma_enabled && l.chroma.plate.generated;
+            }))
+            entry.flat_preview_cells = CHROMA_FLAT_PREVIEW_CELLS;
         if (part->has_texture_uv())
             entry.model_uv = part->texture_uv;
         for (int slot = 0; slot < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++slot)

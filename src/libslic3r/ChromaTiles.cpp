@@ -9,6 +9,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "ChromaStack.hpp"
 #include "Color.hpp"
 #include "Point.hpp"
 
@@ -53,6 +54,14 @@ struct KeyHash
             v = 0.f;
         bytes(&v, sizeof(v));
     }
+    // A colour at the 8 bits a channel is saved with (chroma_color_to_json()), not its float bits: a
+    // project hands back 26/255 for a 0.1 it was given, and a key over the float would call every
+    // reopened tiling stale.
+    void add(const ColorRGB &c)
+    {
+        for (const float v : { c.r(), c.g(), c.b() })
+            add(std::clamp(int(v * 255.f + 0.5f), 0, 255));
+    }
 };
 
 void key_filament(KeyHash &k, const ChromaFilament &f)
@@ -61,9 +70,7 @@ void key_filament(KeyHash &k, const ChromaFilament &f)
     // from: a filament preset that was renamed between two sessions is the same filament to print
     // through, and a plan that had to be rebuilt over a rename would be rebuilt constantly.
     k.add(f.filament);
-    k.add(f.color.r());
-    k.add(f.color.g());
-    k.add(f.color.b());
+    k.add(f.color);
     k.add(f.td_mm);
 }
 
@@ -351,9 +358,7 @@ uint64_t chroma_tile_stack_key(const ChromaStack &stack)
 
     // The lighting model, which changes the palette and therefore every colour the stack prints.
     k.add(int(stack.lighting));
-    k.add(stack.led_color.r());
-    k.add(stack.led_color.g());
-    k.add(stack.led_color.b());
+    k.add(stack.led_color);
     k.add(stack.led_intensity);
     k.add(stack.lighting_balance);
 

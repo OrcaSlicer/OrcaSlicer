@@ -6,15 +6,22 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
+#include <libslic3r/Point.hpp>
 #include <limits>
 #include <map>
+#include <math.h>
+#include <memory>
 #include <sstream>
+#include <utility>
 #include <vector>
 
 #include <cereal/archives/binary.hpp>
 #include <nlohmann/json.hpp>
 
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Color.hpp"
 #include "libslic3r/ChromaStack.hpp"
@@ -1021,7 +1028,9 @@ TEST_CASE("The solve reports per pixel how far it was from the picture", "[Chrom
         const std::vector<uint8_t> pixel = flat_picture(palette[size_t(stack.base_layers + 4)], 1, 1);
         const ChromaSolve          solve = chroma_solve(pixel.data(), 1, 1, stack);
         REQUIRE(solve.delta.size() == 1);
-        REQUIRE(solve.delta[0] == 0);
+        // Nothing but the rounding: the picture holds the palette colour at 8 bits a channel, which is
+        // worth a few tenths of a dE, well under the 1 that can be seen.
+        REQUIRE(int(solve.delta[0]) <= int(std::lround(0.5 * 255.0 / double(CHROMA_ERROR_IMAGE_FULL_SCALE_DE))));
     }
 
     SECTION("a byte covers the range the number is read in")
@@ -1487,6 +1496,7 @@ TEST_CASE("A stack's lighting and retouch survive the project file", "[ChromaSta
     stack.lighting                    = ChromaLighting::BackLit;
     stack.led_color                   = ColorRGB(1.f, 0.85f, 0.6f);
     stack.led_intensity               = 1.5f;
+    stack.led_kelvin                  = 2700.f;
 
     const std::vector<uint8_t> painted = left_half_mask(8, 4, 3);
     ChromaRetouchEdit          flattened;
@@ -1517,6 +1527,7 @@ TEST_CASE("A stack's lighting and retouch survive the project file", "[ChromaSta
     REQUIRE_THAT(back.led_color.g(), WithinAbs(0.85f, 2.f / 255.f));
     REQUIRE_THAT(back.led_color.b(), WithinAbs(0.6f, 2.f / 255.f));
     REQUIRE_THAT(back.led_intensity, WithinRel(1.5f, 1e-4f));
+    REQUIRE_THAT(back.led_kelvin, WithinRel(2700.f, 1e-4f));
     REQUIRE_THAT(back.lighting_balance, WithinRel(0.25f, 1e-4f));
     REQUIRE(back.retouch.edits.size() == 2);
     REQUIRE(back.retouch.edits[0].target == ChromaRetouchEdit::Target::Band);
@@ -2333,7 +2344,11 @@ TEST_CASE("The solve can drop the spikes the printer would string over", "[Chrom
     constexpr int        width = 7, height = 7;
     std::vector<uint8_t> picture = flat_picture(ColorRGB(1.f, 1.f, 1.f), width, height);
     const size_t         centre  = (size_t(height / 2) * size_t(width) + size_t(width / 2));
-    picture[centre * 3] = picture[centre * 3 + 1] = picture[centre * 3 + 2] = 0;
+    // The darkest colour the stack prints, rather than black: the speck has to be one the solve can
+    // match, or its error is already past the error image's full scale and dropping it cannot be seen
+    // to cost anything.
+    const std::vector<uint8_t> speck = flat_picture(chroma_palette(stack).back(), 1, 1);
+    std::copy(speck.begin(), speck.end(), picture.begin() + std::ptrdiff_t(centre * 3));
 
     const ChromaSolve plain = chroma_solve(picture.data(), width, height, stack);
     REQUIRE_FALSE(plain.empty());
@@ -2783,4 +2798,259 @@ TEST_CASE("A ChromaStack plate's relief reaches the displaced mesh", "[ChromaSta
     INFO("pipeline v2 vertices off the plate's planes: " << off_the_flats(displaced));
     CHECK(off_the_flats(displaced) > 0);
     CHECK(lowest_z(displaced) > -1e-3f);
+
+    // The preview the gizmo shows for a generated plate, built from the height map without the
+    // pipeline. It has to be the same relief: every vertex it moved sits where the sampler puts that
+    // point of the face, and the heights it reaches are the pipeline's, to within a layer.
+    indexed_triangle_set flat;
+    REQUIRE(build_texture_displacement_flat_preview(plate_mesh.its, { layer }, facets, Transform3d::Identity(),
+                                                    Vec3d::Zero(), nullptr, 20000, {}, flat));
+    REQUIRE_FALSE(flat.indices.empty());
+    CHECK(lowest_z(flat) > -1e-3f);
+
+    const HeightFieldSampler sampler = make_combined_displacement_sampler(plate_mesh.its, { layer }, facets);
+    REQUIRE(bool(sampler));
+    const float face_z = plate_mesh.its.vertices[size_t(plate_mesh.its.indices.front()[0])].z();
+    const Vec3f normal(0.f, 0.f, face_down ? -1.f : 1.f);
+    const auto  off_flat = [&](const Vec3f &v) {
+        return std::abs(v.z()) > 1e-3f && std::abs(v.z() - plate.base_mm) > 1e-3f;
+    };
+    size_t moved = 0, misplaced = 0;
+    for (const Vec3f &v : flat.vertices) {
+        if (!off_flat(v))
+            continue;
+        ++moved;
+        const float want = face_z + normal.z() * sampler(Vec3f(v.x(), v.y(), face_z), normal);
+        if (std::abs(v.z() - want) > 1e-3f)
+            ++misplaced;
+    }
+    CHECK(moved > 0);
+    CHECK(misplaced == 0);
+
+    // Over the face only. The pipeline remeshes the plate's outer walls too, and a wall vertex sits
+    // between the bed and the backing without being relief; the flat preview leaves the walls whole.
+    BoundingBoxf3 plate_box;
+    for (const Vec3f &v : plate_mesh.its.vertices)
+        plate_box.merge(v.cast<double>());
+    const auto on_wall = [&](const Vec3f &v) {
+        return std::abs(v.x() - plate_box.min.x()) < 1e-3 || std::abs(v.x() - plate_box.max.x()) < 1e-3 ||
+               std::abs(v.y() - plate_box.min.y()) < 1e-3 || std::abs(v.y() - plate_box.max.y()) < 1e-3;
+    };
+    const auto relief_span = [&](const indexed_triangle_set &m) {
+        float zlo = 1e9f, zhi = -1e9f;
+        for (const Vec3f &v : m.vertices)
+            if (off_flat(v) && !on_wall(v)) {
+                zlo = std::min(zlo, v.z());
+                zhi = std::max(zhi, v.z());
+            }
+        return zhi - zlo;
+    };
+    INFO("relief span: pipeline " << relief_span(displaced) << " mm, flat preview " << relief_span(flat) << " mm");
+    CHECK_THAT(relief_span(flat), WithinAbs(relief_span(displaced), stack.layer_height_mm));
+
+    // Nothing of the plate is lost: the flat preview covers the same footprint as the plate itself.
+    const auto footprint = [](const indexed_triangle_set &m) {
+        BoundingBoxf3 box;
+        for (const Vec3f &v : m.vertices)
+            box.merge(v.cast<double>());
+        return box;
+    };
+    CHECK_THAT(footprint(flat).size().x(), WithinAbs(footprint(plate_mesh.its).size().x(), 1e-3));
+    CHECK_THAT(footprint(flat).size().y(), WithinAbs(footprint(plate_mesh.its).size().y(), 1e-3));
+}
+
+// The flat preview only stands in for the pipeline where it can be exact about which surface carries
+// the relief. A painted face that is not one plane - two sides of a box - goes back to the pipeline.
+TEST_CASE("The flat preview declines paint that is not one flat face", "[ChromaStack]")
+{
+    indexed_triangle_set cube = its_make_cube(10., 10., 10.);
+    TriangleSelector     selector{ TriangleMesh(cube) };
+    for (size_t i = 0; i < cube.indices.size(); ++i)
+        selector.set_facet(int(i), EnforcerBlockerType::ENFORCER);
+    TextureDisplacementFacetsData facets{};
+    facets[0] = selector.serialize();
+
+    TextureDisplacementLayer layer;
+    layer.slot       = 0;
+    layer.image_data = std::make_shared<std::vector<unsigned char>>();
+    layer.depth_mm   = 1.f;
+
+    indexed_triangle_set out;
+    CHECK_FALSE(build_texture_displacement_flat_preview(cube, { layer }, facets, Transform3d::Identity(), Vec3d::Zero(),
+                                                        nullptr, 1000, {}, out));
+}
+
+TEST_CASE("A lamp's colour temperature is a white of that hue at full brightness", "[ChromaStack]")
+{
+    const ColorRGB warm    = chroma_kelvin_to_rgb(2700.f);
+    const ColorRGB neutral = chroma_kelvin_to_rgb(4000.f);
+    const ColorRGB cold    = chroma_kelvin_to_rgb(6500.f);
+    for (const ColorRGB &c : { warm, neutral, cold }) {
+        // Brightness is the intensity's business: the brightest channel is always 1.
+        CHECK_THAT(std::max({ c.r(), c.g(), c.b() }), WithinAbs(1.f, 1e-5f));
+        CHECK(std::min({ c.r(), c.g(), c.b() }) >= 0.f);
+    }
+    // Warmer is redder and less blue.
+    CHECK(warm.b() < neutral.b());
+    CHECK(neutral.b() < cold.b());
+    CHECK(warm.r() >= neutral.r());
+    // Daylight is close to plain white.
+    CHECK(cold.g() > 0.9f);
+    CHECK(cold.b() > 0.9f);
+    // Outside the fit's range the answer is the range's own end, not garbage.
+    CHECK(chroma_kelvin_to_rgb(100.f).b() == chroma_kelvin_to_rgb(1000.f).b());
+    CHECK(chroma_kelvin_to_rgb(1e6f).r() == chroma_kelvin_to_rgb(12000.f).r());
+}
+
+TEST_CASE("A filament's finish is read off the words in its name", "[ChromaStack]")
+{
+    CHECK(chroma_finish_from_name("Generic PLA") == ChromaFinish::Standard);
+    CHECK(chroma_finish_from_name("") == ChromaFinish::Standard);
+    CHECK(chroma_finish_from_name("Bambu PLA Silk+") == ChromaFinish::Glossy);
+    CHECK(chroma_finish_from_name("eSUN PLA-Metallic") == ChromaFinish::Glossy);
+    CHECK(chroma_finish_from_name("starlight blue") == ChromaFinish::Glossy);
+    CHECK(chroma_finish_from_name("Bambu PLA Matte") == ChromaFinish::Matte);
+    CHECK(chroma_finish_from_name("Terra PLA") == ChromaFinish::Matte);
+    // Whole words only.
+    CHECK(chroma_finish_from_name("Silkworm Grey") == ChromaFinish::Standard);
+    CHECK(chroma_finish_from_name("Mattel Red") == ChromaFinish::Standard);
+}
+
+TEST_CASE("Making a stack a lithophane lights it from behind with the darkest band at the bottom", "[ChromaStack]")
+{
+    ChromaStack stack;
+    stack.layer_height_mm = 0.1f;
+    stack.base_layers     = 10;
+    stack.base_auto       = true;
+    const ChromaFilament grey = filament(3, ColorRGB(0.5f, 0.5f, 0.5f), 3.f);
+    stack.bands           = { band(WHITE_OPAQUE, 4), band(grey, 5), band(BLACK_TRANSLUCENT, 6) };
+    stack.plate.generated = true;
+
+    chroma_make_lithophane(stack);
+
+    CHECK(stack.lighting == ChromaLighting::BackLit);
+    REQUIRE(stack.bands.size() == 3);
+    // Darkest first, each band keeping its own layer count.
+    CHECK(stack.bands[0].filament.filament == BLACK_TRANSLUCENT.filament);
+    CHECK(stack.bands[0].layers == 6);
+    CHECK(stack.bands[1].filament.filament == grey.filament);
+    CHECK(stack.bands[2].filament.filament == WHITE_OPAQUE.filament);
+    CHECK(stack.bands[2].layers == 4);
+    // A thin base, set by hand, and the face-up plate's backing with it.
+    CHECK_FALSE(stack.base_auto);
+    CHECK(stack.base_layers == 2);
+    CHECK_THAT(stack.plate.base_mm, WithinAbs(0.2f, 1e-5f));
+    // The untouched lamp became a neutral white of a known temperature.
+    CHECK_THAT(stack.led_kelvin, WithinAbs(4000.f, 1e-3f));
+    CHECK(stack.led_color.b() < 1.f);
+
+    SECTION("a lamp somebody chose is kept")
+    {
+        ChromaStack red = stack;
+        red.led_kelvin  = 0.f;
+        red.led_color   = ColorRGB(1.f, 0.f, 0.f);
+        chroma_make_lithophane(red);
+        CHECK(red.led_color.g() == 0.f);
+        CHECK(red.led_kelvin == 0.f);
+    }
+    SECTION("face down the plate stays thick enough for the whole stack")
+    {
+        ChromaStack down       = stack;
+        down.plate.orientation = ChromaOrientation::FaceDown;
+        down.plate.base_mm     = 0.5f;
+        chroma_make_lithophane(down);
+        CHECK(down.plate.base_mm >= down.total_mm() - 1e-5f);
+    }
+    SECTION("a picture painted onto a model keeps the base the model has")
+    {
+        ChromaStack painted     = stack;
+        painted.plate.generated = false;
+        painted.base_layers     = 30;
+        painted.base_auto       = true;
+        chroma_make_lithophane(painted);
+        CHECK(painted.lighting == ChromaLighting::BackLit);
+        CHECK(painted.base_layers == 30);
+        CHECK(painted.base_auto);
+    }
+}
+
+TEST_CASE("A filament's effect is read off the words in its name", "[ChromaStack]")
+{
+    CHECK(chroma_effect_from_name("Generic PLA") == ChromaEffect::None);
+    CHECK(chroma_effect_from_name("PLA Glow Green") == ChromaEffect::Glow);
+    CHECK(chroma_effect_from_name("Luminous PETG") == ChromaEffect::Glow);
+    CHECK(chroma_effect_from_name("PLA GITD") == ChromaEffect::Glow);
+    CHECK(chroma_effect_from_name("Silk Chameleon") == ChromaEffect::ColorShift);
+    CHECK(chroma_effect_from_name("PLA Color-Shift Purple") == ChromaEffect::ColorShift);
+    CHECK(chroma_effect_from_name("Starlight Mars") == ChromaEffect::ColorShift);
+    // Whole words only.
+    CHECK(chroma_effect_from_name("Glowing Ember Red") == ChromaEffect::None);
+}
+
+TEST_CASE("An effect's starting colour follows the filament", "[ChromaStack]")
+{
+    // A white glow filament glows the usual yellow-green; a coloured one glows in its own hue.
+    const ColorRGB white_glow = chroma_default_effect_color(ChromaEffect::Glow, ColorRGB(0.95f, 0.95f, 0.93f));
+    CHECK(white_glow.g() > white_glow.r());
+    CHECK(white_glow.g() > white_glow.b());
+    const ColorRGB blue_glow = chroma_default_effect_color(ChromaEffect::Glow, ColorRGB(0.1f, 0.3f, 0.6f));
+    CHECK_THAT(blue_glow.b(), WithinAbs(1.f, 1e-5f));
+    CHECK(blue_glow.r() < blue_glow.g());
+    // A shift turns the hue and keeps the channels' values.
+    const ColorRGB shift = chroma_default_effect_color(ChromaEffect::ColorShift, ColorRGB(0.9f, 0.2f, 0.1f));
+    CHECK(shift != ColorRGB(0.9f, 0.2f, 0.1f));
+    CHECK_THAT(std::max({ shift.r(), shift.g(), shift.b() }), WithinAbs(0.9f, 1e-6f));
+}
+
+TEST_CASE("With the lights off only a glowing filament shows, through what is over it", "[ChromaStack]")
+{
+    ChromaFilament glow = filament(3, ColorRGB(0.9f, 0.9f, 0.9f), 4.f);
+    glow.effect         = ChromaEffect::Glow;
+    glow.effect_color   = ColorRGB(0.6f, 1.f, 0.45f);
+
+    ChromaStack plain;
+    plain.layer_height_mm = 0.1f;
+    plain.base_layers     = 2;
+    plain.bands           = { band(WHITE_OPAQUE, 3), band(BLACK_TRANSLUCENT, 3) };
+    CHECK_FALSE(chroma_has_glow(plain));
+    for (const ColorRGB &c : chroma_glow_palette(plain))
+        CHECK(c == ColorRGB(0.f, 0.f, 0.f));
+
+    ChromaStack glowing   = plain;
+    glowing.bands.front() = band(glow, 3);
+    REQUIRE(chroma_has_glow(glowing));
+    const std::vector<ColorRGB> dark = chroma_glow_palette(glowing);
+    REQUIRE(dark.size() == size_t(glowing.total_layers()) + 1);
+    CHECK(dark[0] == ColorRGB(0.f, 0.f, 0.f));
+    // Brighter with every glowing layer, and green, the colour it glows.
+    const int top_of_glow = glowing.base_layers + 3;
+    for (int k = 1; k < top_of_glow; ++k)
+        CHECK(dark[size_t(k + 1)].g() >= dark[size_t(k)].g());
+    CHECK(dark[size_t(top_of_glow)].g() > dark[size_t(top_of_glow)].b());
+    // Every layer of black over it takes some away.
+    for (int k = top_of_glow; k < glowing.total_layers(); ++k)
+        CHECK(dark[size_t(k + 1)].g() < dark[size_t(k)].g());
+
+    // The effect is saved, and a band saved without one takes it from its name.
+    nlohmann::json json;
+    chroma_stack_to_json(json, glowing);
+    ChromaStack back;
+    chroma_stack_from_json(json, back);
+    REQUIRE(back.bands.size() == 2);
+    CHECK(back.bands[0].filament.effect == ChromaEffect::Glow);
+    CHECK_THAT(back.bands[0].filament.effect_color.r(), WithinAbs(0.6f, 2.f / 255.f));
+    CHECK(back.bands[1].filament.effect == ChromaEffect::None);
+
+    json["bands"][1]["name"] = "PLA Chameleon";
+    chroma_stack_from_json(json, back);
+    CHECK(back.bands[1].filament.effect == ChromaEffect::ColorShift);
+
+    // An effect switched off on a filament whose name says it has one stays off.
+    back.bands[1].filament.effect = ChromaEffect::None;
+    nlohmann::json cleared;
+    chroma_stack_to_json(cleared, back);
+    ChromaStack again;
+    chroma_stack_from_json(cleared, again);
+    REQUIRE(again.bands.size() == 2);
+    CHECK(again.bands[1].filament.effect == ChromaEffect::None);
 }

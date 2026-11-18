@@ -19,6 +19,9 @@
 #include <mutex>
 #include <numeric>
 #include <optional>
+#include "ChromaStack.hpp"
+#include "libslic3r.h"
+#include "Color.hpp"
 #include "nlohmann/json.hpp"
 #include <queue>
 #include <ratio>
@@ -39,7 +42,11 @@
 
 #include "AABBTreeIndirect.hpp"
 #include "BoundingBox.hpp"
+#include "ClipperUtils.hpp"
+#include "ExPolygon.hpp"
 #include "MeshBoolean.hpp"
+#include "Polygon.hpp"
+#include "Tesselate.hpp"
 #include "Model.hpp"
 #include "PNGReadWrite.hpp"
 #include "Point.hpp"
@@ -4031,6 +4038,354 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
     for (Vec3f &v : out.vertices)
         v = (to_local * v.cast<double>()).cast<float>();
     return out;
+}
+
+bool build_texture_displacement_flat_preview(const indexed_triangle_set                  &base_mesh,
+                                             const std::vector<TextureDisplacementLayer> &layers,
+                                             const TextureDisplacementFacetsData         &facets_data,
+                                             const Transform3d                           &volume_to_world,
+                                             const Vec3d                                 &texture_anchor,
+                                             const std::vector<Vec2f>                    *model_uv,
+                                             size_t                                       max_cells,
+                                             const DisplacementProgressFn                &progress,
+                                             indexed_triangle_set                        &out)
+{
+    out = indexed_triangle_set{};
+    const auto keep_going = [&progress](int percent) { return !progress || progress(percent); };
+
+    // The same frame build_texture_displacement() works in, so the sampler places the picture exactly
+    // where the bake will.
+    const Transform3d frame    = texture_displacement_bake_frame(volume_to_world, texture_anchor);
+    const bool        mirrored = frame.linear().determinant() < 0.0;
+    indexed_triangle_set world = base_mesh;
+    for (Vec3f &v : world.vertices)
+        v = (frame * v.cast<double>()).cast<float>();
+    if (world.indices.empty())
+        return false;
+
+    const auto tri_area = [&world](size_t t) {
+        const stl_triangle_vertex_indices &f = world.indices[t];
+        return 0.5 * double((world.vertices[size_t(f[1])] - world.vertices[size_t(f[0])])
+                                .cross(world.vertices[size_t(f[2])] - world.vertices[size_t(f[0])])
+                                .norm());
+    };
+
+    // Which source triangles are painted, by any layer. Only whole triangles: a brush stroke that
+    // splits one paints part of it, and the grid has no way to stop half way across a triangle.
+    std::vector<uint8_t> painted(world.indices.size(), 0);
+    {
+        const TriangleMesh selector_mesh(world);
+        TriangleSelector   selector(selector_mesh);
+        for (const TriangleSelector::TriangleSplittingData &data : facets_data) {
+            if (data.triangles_to_split.empty())
+                continue;
+            selector.deserialize(data);
+            std::vector<int>           piece_src;
+            const indexed_triangle_set pieces = selector.get_facets_strict(EnforcerBlockerType::ENFORCER, &piece_src);
+            std::vector<double>        covered(world.indices.size(), 0.);
+            for (size_t i = 0; i < pieces.indices.size() && i < piece_src.size(); ++i) {
+                const int src = piece_src[i];
+                if (src < 0 || size_t(src) >= world.indices.size())
+                    continue;
+                const stl_triangle_vertex_indices &f = pieces.indices[i];
+                covered[size_t(src)] += 0.5 * double((pieces.vertices[size_t(f[1])] - pieces.vertices[size_t(f[0])])
+                                                         .cross(pieces.vertices[size_t(f[2])] - pieces.vertices[size_t(f[0])])
+                                                         .norm());
+            }
+            for (size_t t = 0; t < covered.size(); ++t) {
+                if (covered[t] <= 0.)
+                    continue;
+                if (covered[t] < tri_area(t) * (1. - 1e-4))
+                    return false; // painted in part
+                painted[t] = 1;
+            }
+        }
+    }
+
+    // One plane, wound one way. The normal comes from the winding, like every normal the bake uses.
+    Vec3d  normal_sum = Vec3d::Zero();
+    size_t first      = world.indices.size();
+    for (size_t t = 0; t < world.indices.size(); ++t)
+        if (painted[t]) {
+            const stl_triangle_vertex_indices &f = world.indices[t];
+            normal_sum += (world.vertices[size_t(f[1])] - world.vertices[size_t(f[0])])
+                              .cross(world.vertices[size_t(f[2])] - world.vertices[size_t(f[0])])
+                              .cast<double>();
+            first = std::min(first, t);
+        }
+    if (first == world.indices.size() || normal_sum.norm() < 1e-12)
+        return false;
+    const Vec3d  nn     = normal_sum.normalized();
+    const Vec3d  origin = world.vertices[size_t(world.indices[first][0])].cast<double>();
+    const double min_cos = std::cos(0.5 * M_PI / 180.);
+    for (size_t t = 0; t < world.indices.size(); ++t) {
+        if (!painted[t])
+            continue;
+        const stl_triangle_vertex_indices &f = world.indices[t];
+        const Vec3d n = (world.vertices[size_t(f[1])] - world.vertices[size_t(f[0])])
+                            .cross(world.vertices[size_t(f[2])] - world.vertices[size_t(f[0])])
+                            .cast<double>();
+        if (n.norm() > 1e-12 && n.normalized().dot(nn) < min_cos)
+            return false;
+        for (int k = 0; k < 3; ++k)
+            if (std::abs((world.vertices[size_t(f[k])].cast<double>() - origin).dot(nn)) > 1e-3)
+                return false;
+    }
+    // The way the relief leaves the face. A mirroring placement turns every winding normal inwards,
+    // which the bake corrects the same way (see build_texture_displacement()).
+    const Vec3f n_out = (mirrored ? Vec3d(-nn) : nn).cast<float>();
+
+    // The plane's own 2D frame, right-handed about the winding normal, so a triangle wound
+    // counter-clockwise in 3D is counter-clockwise here too.
+    const Vec3d an   = nn.cwiseAbs();
+    const Vec3d axis = (an.x() <= an.y() && an.x() <= an.z()) ? Vec3d::UnitX() :
+                       (an.y() <= an.z())                     ? Vec3d::UnitY() : Vec3d::UnitZ();
+    const Vec3d e1   = axis.cross(nn).normalized();
+    const Vec3d e2   = nn.cross(e1);
+    const auto  to_2d = [&](const Vec3f &p) {
+        const Vec3d d = p.cast<double>() - origin;
+        return Point(scaled<coord_t>(d.dot(e1)), scaled<coord_t>(d.dot(e2)));
+    };
+    const auto to_3d = [&](double x, double y) -> Vec3f { return (origin + e1 * x + e2 * y).cast<float>(); };
+
+    // The painted region's outline: the edges only one painted triangle uses, chained into loops with
+    // the triangles' own direction, so outer loops come out counter-clockwise and holes clockwise.
+    Polygons loops;
+    {
+        std::unordered_map<uint64_t, int> edge_use;
+        for (size_t t = 0; t < world.indices.size(); ++t)
+            if (painted[t])
+                for (int k = 0; k < 3; ++k)
+                    ++edge_use[undirected_edge_key(world.indices[t][k], world.indices[t][(k + 1) % 3])];
+        std::unordered_multimap<int, int> next;
+        for (size_t t = 0; t < world.indices.size(); ++t)
+            if (painted[t])
+                for (int k = 0; k < 3; ++k) {
+                    const int a = world.indices[t][k], b = world.indices[t][(k + 1) % 3];
+                    if (edge_use[undirected_edge_key(a, b)] == 1)
+                        next.emplace(a, b);
+                }
+        while (!next.empty()) {
+            auto    it    = next.begin();
+            const int start = it->first;
+            int     at    = it->second;
+            Polygon loop;
+            loop.points.push_back(to_2d(world.vertices[size_t(start)]));
+            next.erase(it);
+            while (at != start) {
+                loop.points.push_back(to_2d(world.vertices[size_t(at)]));
+                auto step = next.find(at);
+                if (step == next.end())
+                    return false; // an outline that does not close: not a surface this can follow
+                at = step->second;
+                next.erase(step);
+            }
+            if (loop.points.size() >= 3)
+                loops.push_back(std::move(loop));
+        }
+    }
+    const ExPolygons region = union_ex(loops);
+    if (region.empty())
+        return false;
+
+    // The grid: cells no finer than the interactive solve's texels, and no more of them than asked.
+    const BoundingBox bb = get_extents(region);
+    double            area_mm2 = 0.;
+    for (const ExPolygon &ex : region)
+        area_mm2 += ex.area() * SCALING_FACTOR * SCALING_FACTOR;
+    const double extent_mm = unscale<double>(std::max(bb.max.x() - bb.min.x(), bb.max.y() - bb.min.y()));
+    const double cell_mm   = std::max({ extent_mm / 1024., std::sqrt(area_mm2 / double(std::max<size_t>(1, max_cells))), 0.01 });
+    const coord_t cell     = std::max<coord_t>(1, scaled<coord_t>(cell_mm));
+    const int     nx       = std::max(1, int((bb.max.x() - bb.min.x() + cell - 1) / cell));
+    const int     ny       = std::max(1, int((bb.max.y() - bb.min.y() + cell - 1) / cell));
+    const size_t  row      = size_t(nx) + 1;
+    const auto    gx       = [&](int i) { return bb.min.x() + coord_t(i) * cell; };
+    const auto    gy       = [&](int j) { return bb.min.y() + coord_t(j) * cell; };
+
+    // Which grid vertices lie in the region, row by row, by the winding of the outline's crossings.
+    std::vector<uint8_t> inside(row * (size_t(ny) + 1), 0);
+    tbb::parallel_for(tbb::blocked_range<int>(0, ny + 1), [&](const tbb::blocked_range<int> &range) {
+        std::vector<std::pair<double, int>> crossings;
+        for (int j = range.begin(); j < range.end(); ++j) {
+            const double y = double(gy(j));
+            crossings.clear();
+            const auto add = [&](const Polygon &poly) {
+                for (size_t k = 0; k < poly.points.size(); ++k) {
+                    const Point &p = poly.points[k], &q = poly.points[(k + 1) % poly.points.size()];
+                    const double py = double(p.y()), qy = double(q.y());
+                    if ((py <= y) == (qy <= y))
+                        continue;
+                    const double x = double(p.x()) + (y - py) * double(q.x() - p.x()) / (qy - py);
+                    crossings.emplace_back(x, qy > py ? 1 : -1);
+                }
+            };
+            for (const ExPolygon &ex : region) {
+                add(ex.contour);
+                for (const Polygon &hole : ex.holes)
+                    add(hole);
+            }
+            std::sort(crossings.begin(), crossings.end());
+            int    winding = 0;
+            size_t c       = 0;
+            for (int i = 0; i <= nx; ++i) {
+                const double x = double(gx(i));
+                while (c < crossings.size() && crossings[c].first < x)
+                    winding += crossings[c++].second;
+                // On a crossing counts as inside: such a vertex is on the outline, which is still the
+                // region, and the cells it closes are wholly inside it.
+                const bool on_crossing = c < crossings.size() && crossings[c].first == x;
+                inside[size_t(j) * row + size_t(i)] = uint8_t(winding != 0 || on_crossing);
+            }
+        }
+    });
+    if (!keep_going(30))
+        return true;
+
+    // A cell is the grid's when its four corners are in the region and the outline does not cut into
+    // it. A corner of the outline inside the cell is one way it can; the other is a slot or a notch
+    // narrower than a cell, whose two sides cross the cell with every corner of it still inside.
+    std::vector<uint8_t> blocked(size_t(nx) * size_t(ny), 0);
+    const auto block_around = [&](const Point &p) {
+        const int ci = int((p.x() - bb.min.x()) / cell), cj = int((p.y() - bb.min.y()) / cell);
+        for (int j = cj - 1; j <= cj; ++j)
+            for (int i = ci - 1; i <= ci; ++i)
+                if (i >= 0 && j >= 0 && i < nx && j < ny)
+                    blocked[size_t(j) * size_t(nx) + size_t(i)] = 1;
+    };
+    // An edge crossing a cell's inside, found by walking it in steps of a quarter cell. A point on a grid
+    // line is on the cell's boundary rather than in it, so an edge lying along a grid line, as a
+    // rectangular plate's do, blocks nothing.
+    const auto block_crossed = [&](const Polygon &poly) {
+        for (size_t k = 0; k < poly.points.size(); ++k) {
+            const Point  &a = poly.points[k], &b = poly.points[(k + 1) % poly.points.size()];
+            const double  len   = (b - a).cast<double>().norm();
+            const int     steps = std::max(1, int(std::ceil(4. * len / double(cell))));
+            for (int s = 1; s < steps; ++s) {
+                const double  t  = double(s) / double(steps);
+                const double  x  = double(a.x()) + t * double(b.x() - a.x()) - double(bb.min.x());
+                const double  y  = double(a.y()) + t * double(b.y() - a.y()) - double(bb.min.y());
+                const int     ci = int(std::floor(x / double(cell))), cj = int(std::floor(y / double(cell)));
+                const bool    on_line = x == double(ci) * double(cell) || y == double(cj) * double(cell);
+                if (!on_line && ci >= 0 && cj >= 0 && ci < nx && cj < ny)
+                    blocked[size_t(cj) * size_t(nx) + size_t(ci)] = 1;
+            }
+        }
+    };
+    for (const ExPolygon &ex : region) {
+        for (const Point &p : ex.contour.points)
+            block_around(p);
+        block_crossed(ex.contour);
+        for (const Polygon &hole : ex.holes) {
+            for (const Point &p : hole.points)
+                block_around(p);
+            block_crossed(hole);
+        }
+    }
+    std::vector<uint8_t> cell_in(size_t(nx) * size_t(ny), 0);
+    for (int j = 0; j < ny; ++j)
+        for (int i = 0; i < nx; ++i) {
+            const size_t v = size_t(j) * row + size_t(i);
+            cell_in[size_t(j) * size_t(nx) + size_t(i)] =
+                uint8_t(!blocked[size_t(j) * size_t(nx) + size_t(i)] && inside[v] && inside[v + 1] && inside[v + row] &&
+                        inside[v + row + 1]);
+        }
+    const auto cell_at = [&](int i, int j) {
+        return i >= 0 && j >= 0 && i < nx && j < ny && cell_in[size_t(j) * size_t(nx) + size_t(i)] != 0;
+    };
+
+    // The output starts as everything the paint does not cover, untouched.
+    out.vertices = world.vertices;
+    out.indices.reserve(world.indices.size() + size_t(nx) * size_t(ny) * 2);
+    for (size_t t = 0; t < world.indices.size(); ++t)
+        if (!painted[t])
+            out.indices.push_back(world.indices[t]);
+
+    // The grid's vertices: only those a grid cell uses, and pinned to the face where any cell around
+    // them is not the grid's, so the relief comes down to the outline rather than ending in a cliff.
+    std::vector<int>   grid_index(inside.size(), -1);
+    std::vector<int>   used;
+    std::vector<uint8_t> pinned;
+    for (int j = 0; j <= ny; ++j)
+        for (int i = 0; i <= nx; ++i) {
+            const bool a = cell_at(i - 1, j - 1), b = cell_at(i, j - 1), c = cell_at(i - 1, j), d = cell_at(i, j);
+            if (!(a || b || c || d))
+                continue;
+            grid_index[size_t(j) * row + size_t(i)] = int(out.vertices.size() + used.size());
+            used.push_back(j * int(row) + i);
+            pinned.push_back(uint8_t(!(a && b && c && d)));
+        }
+
+    const HeightFieldSampler sampler = make_combined_displacement_sampler(world, layers, facets_data, model_uv);
+    if (!sampler)
+        return false;
+    const size_t base_count = out.vertices.size();
+    out.vertices.resize(base_count + used.size());
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, used.size(), 4096), [&](const tbb::blocked_range<size_t> &range) {
+        for (size_t k = range.begin(); k < range.end(); ++k) {
+            const int   j = used[k] / int(row), i = used[k] % int(row);
+            const Vec3f p = to_3d(unscale<double>(gx(i)), unscale<double>(gy(j)));
+            const float h = pinned[k] ? 0.f : sampler(p, n_out);
+            out.vertices[base_count + k] = p + n_out * h;
+        }
+    });
+    if (!keep_going(70)) {
+        out = indexed_triangle_set{};
+        return true;
+    }
+
+    // Two triangles a cell, counter-clockwise in the plane like the face they replace.
+    for (int j = 0; j < ny; ++j)
+        for (int i = 0; i < nx; ++i) {
+            if (!cell_at(i, j))
+                continue;
+            const size_t v   = size_t(j) * row + size_t(i);
+            const int    v00 = grid_index[v], v10 = grid_index[v + 1], v01 = grid_index[v + row], v11 = grid_index[v + row + 1];
+            out.indices.emplace_back(v00, v10, v11);
+            out.indices.emplace_back(v00, v11, v01);
+        }
+
+    // The strip between the grid and the outline, flat in the face's plane.
+    Polygons cells;
+    for (int j = 0; j < ny; ++j)
+        for (int i = 0; i < nx;) {
+            if (!cell_at(i, j)) {
+                ++i;
+                continue;
+            }
+            int end = i;
+            while (end < nx && cell_at(end, j))
+                ++end;
+            Polygon rect;
+            rect.points = { Point(gx(i), gy(j)), Point(gx(end), gy(j)), Point(gx(end), gy(j + 1)), Point(gx(i), gy(j + 1)) };
+            cells.push_back(std::move(rect));
+            i = end;
+        }
+    const ExPolygons           strip = cells.empty() ? region : diff_ex(region, cells);
+    const std::vector<Vec2d>   flat  = triangulate_expolygons_2d(strip);
+    for (size_t k = 0; k + 2 < flat.size(); k += 3) {
+        const Vec2d &a = flat[k], &b = flat[k + 1], &c = flat[k + 2];
+        if ((b - a).x() * (c - a).y() - (b - a).y() * (c - a).x() == 0.)
+            continue;
+        const int first_v = int(out.vertices.size());
+        out.vertices.push_back(to_3d(a.x(), a.y()));
+        out.vertices.push_back(to_3d(b.x(), b.y()));
+        out.vertices.push_back(to_3d(c.x(), c.y()));
+        // Whichever way the tesselator wound it, the face's own way round.
+        const bool ccw = (b - a).x() * (c - a).y() - (b - a).y() * (c - a).x() > 0.;
+        out.indices.emplace_back(first_v, ccw ? first_v + 1 : first_v + 2, ccw ? first_v + 2 : first_v + 1);
+    }
+    if (!keep_going(90)) {
+        out = indexed_triangle_set{};
+        return true;
+    }
+
+    its_compactify_vertices(out);
+    if (!frame.matrix().isApprox(Transform3d::Identity().matrix())) {
+        const Transform3d to_local = frame.inverse();
+        for (Vec3f &v : out.vertices)
+            v = (to_local * v.cast<double>()).cast<float>();
+    }
+    return true;
 }
 
 void texture_displacement_patch_frame(const indexed_triangle_set &patch, const std::vector<Vec3f> &vertex_normals,

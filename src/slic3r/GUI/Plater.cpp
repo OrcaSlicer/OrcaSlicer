@@ -23,6 +23,7 @@
 #include <ios>
 #include <iomanip>
 #include <cstring>
+#include <libslic3r/ChromaStack.hpp>
 #include <map>
 #include <exception>
 #include <functional>
