@@ -68,3 +68,23 @@ TEST_CASE("Plugin tabs that fit follow the bar width", "[TabOrder]")
     CHECK(Slic3r::PluginPages::fitting_tabs(471, {136, 200, 136}, 40) == 2);
     CHECK(Slic3r::PluginPages::fitting_tabs(472, {136, 200, 136}, 40) == 3);
 }
+
+TEST_CASE("Plugin tabs shown before the overflow button follow the saved order", "[TabOrder]")
+{
+    using Slic3r::PluginCapabilityId;
+    using Slic3r::PluginCapabilityType;
+    using Ids = std::vector<PluginCapabilityId>;
+    auto id = [](const char* name) { return PluginCapabilityId{PluginCapabilityType::Pages, name, name}; };
+    const auto golf = id("Golf"), charlie = id("Charlie"), delta = id("Delta"), foxtrot = id("Foxtrot"),
+               bravo = id("Bravo"), alpha = id("Alpha"), echo = id("Echo");
+    const Ids order{golf, charlie, delta, foxtrot, bravo, alpha, echo};
+
+    // Nothing picked from the overflow menu: the first page in the overflow gets the last slot.
+    CHECK(Slic3r::PluginPages::plugin_tab_ids(order, 5, std::nullopt) == Ids{golf, charlie, delta, foxtrot, bravo});
+    // A page picked from the overflow menu keeps the last slot.
+    CHECK(Slic3r::PluginPages::plugin_tab_ids(order, 5, echo) == Ids{golf, charlie, delta, foxtrot, echo});
+    // A pick that is no longer in the overflow does not take the slot.
+    CHECK(Slic3r::PluginPages::plugin_tab_ids(order, 5, charlie) == Ids{golf, charlie, delta, foxtrot, bravo});
+    CHECK(Slic3r::PluginPages::plugin_tab_ids(order, 7, alpha) == order);
+    CHECK(Slic3r::PluginPages::plugin_tab_ids(order, 1, std::nullopt) == Ids{golf});
+}

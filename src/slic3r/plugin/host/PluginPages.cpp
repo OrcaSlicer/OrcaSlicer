@@ -327,21 +327,11 @@ void PluginPages::relayout()
     const int visible_slots = m_visible_slots;
     const bool need_overflow = static_cast<int>(m_order.size()) > visible_slots;
 
-    // Every visible slot is a normal, individual tab hosting its own page. When there's
-    // overflow, the last slot's page is swappable via m_overflow_button/show_overflow_menu()
-    // rather than being a fixed page — m_swapped_in_id tracks which one currently sits there.
-    std::vector<PluginCapabilityId> tab_ids;
-    if (!need_overflow) {
-        tab_ids = m_order;
+    // When there's overflow, the last slot shows the page the user picked from the overflow menu
+    // (or through select_page()), else the first page in the overflow.
+    if (!need_overflow || (m_swapped_in_id && std::find(m_order.begin() + (visible_slots - 1), m_order.end(), *m_swapped_in_id) == m_order.end()))
         m_swapped_in_id.reset();
-    } else {
-        const auto overflow_begin = m_order.begin() + (visible_slots - 1);
-        tab_ids.assign(m_order.begin(), overflow_begin);
-
-        if (!m_swapped_in_id || std::find(overflow_begin, m_order.end(), *m_swapped_in_id) == m_order.end())
-            m_swapped_in_id = *overflow_begin;
-        tab_ids.push_back(*m_swapped_in_id);
-    }
+    const std::vector<PluginCapabilityId> tab_ids = plugin_tab_ids(m_order, visible_slots, m_swapped_in_id);
 
     // MainFrame::show_device() relayouts on every printer change and most of those change
     // nothing, so only touch the notebook when the pages in it are not already tab_ids — a
@@ -419,6 +409,18 @@ int PluginPages::fitting_page_count() const
     return fitting_tabs(room, widths, bar->GetTabWidth(true));
 }
 
+std::vector<PluginCapabilityId> PluginPages::plugin_tab_ids(const std::vector<PluginCapabilityId>& order, int visible_slots,
+                                                            const std::optional<PluginCapabilityId>& picked)
+{
+    if (static_cast<int>(order.size()) <= visible_slots)
+        return order;
+
+    const auto overflow_begin = order.begin() + (std::max(1, visible_slots) - 1);
+    std::vector<PluginCapabilityId> ids(order.begin(), overflow_begin);
+    ids.push_back(picked && std::find(overflow_begin, order.end(), *picked) != order.end() ? *picked : *overflow_begin);
+    return ids;
+}
+
 int PluginPages::fitting_tabs(int room, const std::vector<int>& widths, int overflow_width)
 {
     int used = 0;
@@ -465,9 +467,10 @@ void PluginPages::show_overflow_menu()
         const size_t index = static_cast<size_t>(evt.GetId() - (wxID_HIGHEST + 1));
         if (index >= overflow_ids.size())
             return;
-        m_swapped_in_id = overflow_ids[index];
+        const PluginCapabilityId id = overflow_ids[index];
+        m_swapped_in_id = id;
         relayout();
-        m_parent->SelectPageByName(page_tab_id(*m_swapped_in_id));
+        m_parent->SelectPageByName(page_tab_id(id));
     });
     m_overflow_button->PopupMenu(&menu);
 }
