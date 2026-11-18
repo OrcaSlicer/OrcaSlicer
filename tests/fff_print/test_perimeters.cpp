@@ -136,6 +136,38 @@ double max_difference(const std::vector<double> &a, const std::vector<double> &b
 // density of 0% leaves the top layer with walls only. The last section is the control - the same
 // expansion on the same model does change the slice once a top fill exists - without which the two
 // equality checks above it would hold for an unrelated reason.
+// The area every layer of the object keeps clear of the walls for gap fill and concentric infill.
+static double no_overlap_fill_area(const Print &print)
+{
+    double sum = 0.;
+    for (const Layer *layer : print.objects().front()->layers())
+        for (const LayerRegion *region : layer->regions())
+            sum += area(region->fill_no_overlap_expolygons);
+    return sum;
+}
+
+TEST_CASE("Generating the walls again leaves the no-overlap fill area of a fresh slice", "[Perimeters][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({ { "wall_loops", 2 }, { "gcode_comments", 1 } });
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+    print.process();
+
+    // Only the walls are generated again.
+    config.set_deserialize_strict({ { "wall_loops", 3 } });
+    print.apply(model, config);
+    print.process();
+
+    Print fresh;
+    Model fresh_model;
+    init_print({ cube(20) }, fresh, fresh_model, config);
+    fresh.process();
+    REQUIRE(no_overlap_fill_area(fresh) > 0.);
+    CHECK_THAT(no_overlap_fill_area(print), Catch::Matchers::WithinRel(no_overlap_fill_area(fresh), 1e-6));
+}
+
 TEST_CASE("Top surface expansion only acts where there is a top fill", "[Perimeters]")
 {
     const char *wall_generator = GENERATE("classic", "arachne");
