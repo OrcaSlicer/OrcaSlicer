@@ -416,7 +416,7 @@ tab shows then (its busy reason and status line); with other arguments, or `sile
 they re-implement nothing, so a scripted action and a clicked one cannot diverge. Where a GUI action is bound
 to a selection, a card or a dialog, its work is split into a function both callers share, and the command
 calls that function with explicit arguments instead of driving the widgets. The command set, what each command
-does and takes and which menu rows call it, is in [design-commands.md](design-commands.md).
+does and takes and which menu rows call it, is in [mcp-tools.md](mcp-tools.md), The Design tab's commands.
 
 An agent's call needs the MCP server on (`--mcp`, or Preferences), and every command, a person's tile included,
 needs the CAD feature on (Preferences > Features, or `--cad` for one run). The catalog holds them only when the

@@ -605,74 +605,12 @@ getters. That is for review: a caller's handler converts, calls, and shapes the 
 
 ## Tool catalog
 
-A command's name is its place, then its verb, every word in full: `object_delete`, `plate_add`,
-`preset_select`, as the Design tab has `body_delete`. The place is the thing the command acts on, in the
-singular and in the GUI's word (`settings` and `preferences` are the GUI's words as they stand); a read is
-its place, then what it returns (`app_state`, `plate_slice_stats`). `undo` and `redo` alone have no place:
-they are shared with the Design tab and act on the tab shown. The verb and what follows it are the GUI's
-words too, so a person's request and an agent's search meet: `object_set_height_ranges` edits what the
-object list calls height ranges (Height Range Modifier), `object_set_variable_layer_height` runs the
-Variable layer height panel, and `replay_run` runs what Action Replay calls a replay file. Where the GUI has
-no name for the thing, the words are plain (`widget_list`, `dialog_answer`), and a word the GUI uses for
-something else is avoided: a `script` command runs Python, as the Run Script panel does.
-
-One job has one command. A menu row and the tool that does its job are one command, and the row is a
-tile of it (see Speed Dial catalog); one argument picks the variant (`format`, `shape`, `axis`, `type`,
-`mode`, `window`, `page`) where the GUI has a row for each. What each command does, the arguments it takes
-and what it replies are in its description, which `tools/list` gives a client and the command reference
-`tests/data/command_catalog.json` holds for a reader (see Making a feature reachable). A command's group is
-the heading of its place, and `tools/list` gives the places in this order:
-
-**Tools and actions.** `tool_search`, `tool_call`, `action_search` and `action_run`.
-
-**The app.** `app_state`, `app_wait`, `app_log`, `undo`, `redo`, `app_open_web_page`,
-`app_check_for_updates`, `app_show_config_folder`, `app_benchmark_3d_scene`, `preferences_get`,
-`preferences_set` and `job_cancel`.
-
-**The project.** `project_open`, `project_import`, `project_new`, `project_save`, `project_export`,
-`project_get_settings` and `project_set_settings`.
-
-**Objects.** `object_list`, `object_select`, `object_transform`, `object_add_primitive`,
-`object_add_handy_model`, `object_add_text`, `object_add_svg`, `object_delete`, `object_rename`,
-`object_set_instances`, `object_separate_instances`, `object_split`, `object_assemble`, `object_order`,
-`object_drop`, `object_mirror`, `object_center`, `object_scale_to_fit`, `object_auto_orient`,
-`object_set_printable`, `object_set_auto_drop`, `object_fix`, `object_clone`, `object_reload_from_disk`,
-`object_arrange`, `object_set_height_ranges` and `object_set_variable_layer_height`.
-
-**Parts.** `part_add`, `part_change_type` and `part_replace`.
-
-**Plates.** `calibration_generate_test`, `plate_get_settings`, `plate_set_settings`, `plate_list`,
-`plate_add`, `plate_delete`, `plate_duplicate`, `plate_rename`, `plate_lock`, `plate_select`, `plate_slice`,
-`plate_set_custom_gcode` and `plate_slice_stats`.
-
-**Presets and settings.** `preset_list`, `preset_select`, `preset_save`, `preset_delete`, `settings_list`,
-`settings_get`, `settings_set`, `preset_import`, `preset_export`, `preset_sync`, `preset_migrate_filaments`,
-`settings_set_mode` and `settings_toggle_developer_mode`.
-
-**Filaments.** `filament_add`, `filament_delete`, `filament_add_mixed`, `filament_sync_ams`,
-`filament_install` and `filament_uninstall`.
-
-**Printers and prints.** `printer_send`, `printer_list_models`, `printer_install` and `printer_uninstall`.
-
-**Plugins.** `plugin_list`, `plugin_install_local`, `plugin_enable`, `plugin_reload`, `plugin_uninstall` and
-`plugin_refresh`.
-
-**View and windows.** `view_set`, `window_open`, `window_list` and `window_set`.
-
-**Recordings, replays and scripts.** `window_screenshot`, `window_save_screenshot`, `replay_run`,
-`replay_export`, `script_run`, `script_search_api`, `script_toggle_panel`, `recording_start`,
-`recording_stop` and `recording_encode`.
-
-**Driving the GUI.** `widget_list`, `widget_click`, `widget_set_value`, `keyboard_press`, `mouse_gesture`,
-`gizmo_pick_file`, `dialog_answer`, `dialog_auto_answer` and `webview_run_javascript`.
-
-Every command that runs from its arguments is `listed`, so `tools/list` shows it. Three are not: the menu
-rows that take no arguments, `window_save_screenshot`, `script_toggle_panel` and
-`settings_toggle_developer_mode`, which `tool_search` finds and `tool_call` runs, as it does the Design
-tab's commands, which no listing shows. A screenshot is a recording's still, so the two screenshot commands
-are grouped with the recordings, not with the windows; `calibration_generate_test`, which builds a test
-plate's project, is under Plates, and the two preferences commands are under The app, since a preference is
-kept by the app and not in a preset or a project.
+The command set, how its commands are named and grouped, what each does and takes, which menu rows call it and
+which calls open a dialog or a tool, is in [mcp-tools.md](mcp-tools.md), with the Design tab's commands in a
+section of their own. A command's group is the heading of its place, the first word of its name, and
+`tools/list` gives the places in the order that document lists them. Every command that runs from its
+arguments is `listed`, so `tools/list` shows it. The menu rows that take no arguments are not: `tool_search`
+finds them and `tool_call` runs them, as it does the Design tab's commands, which no listing shows.
 
 The commands are the process's command catalog (`CommandCatalog`, `NativeCommands::instance()`). Startup
 builds it, with no automation runtime: `register_all_commands()` gathers each family of commands in a fixed
@@ -1689,29 +1627,29 @@ plugin itself.
 The Design tab's sketches, features, reads and measurements, feature and body edits and its commit to the
 plate are commands of the catalog (`Mcp/McpToolsCad.cpp`) in the group `Design`, not listed, so agents that
 never open the Design tab pay in `tools/list` for their names alone. The command set itself, how the commands
-are named and what each takes, is in [design-commands.md](design-commands.md). The names end `tool_search`'
-description while the catalog holds the commands (`design_command_index()`): that they are the Design tab's
-CAD commands and what those cover, that one is looked up before it is called, that a command whose schema has
-`silent` does what its menu row does when called with no arguments unless `silent` is true, so `interference
-{}` with a body selected opens the tool and `interference {silent: true}` returns the result, and then every
-key under its heading, in the table's order: Document, Sketch, Solid, Surface, Construct, Inspect, Bodies,
-History, and Menu rows, the commands that take no arguments and do what their row of the right-click menu
-does. The headings are the generator's (`SECTIONS` in `gen_offer_table.py`, `kDesignSections` in the header),
-and a command's is its entry's `section`. So an agent learns without a search that the commands exist, that
-they are CAD and where each works, and reads a command's description and schema only when it looks it up. The
-description stays within 4096 characters, the most a client is known to keep of one. The commands that open a
-tool are in the palette, whose tiles for them the Speed Dial has while the Design tab is shown (see Speed Dial
-catalog). `register_all_commands()` adds them through `register_cad_commands()` only when the catalog is built
-with the CAD feature on (`CatalogOptions::cad`, which startup takes in the editor from the value in force: the
-`enable_cad_feature` preference, or `--cad` for the run). With it off the catalog holds none, and records that
-it leaves them out (`leave_out_cad_commands()`), a folded row's id among them, which names a tile: `tool_call
-{tool: "hole"}` is an unknown command whose error says the feature was off when OrcaSlicer started and how a
-person turns it on, and `app_state` carries `cad_note`, how a person turns the feature on (`cad_note()`,
-in the editor while the catalog holds no Design command or the feature is off). The catalog is sealed at
-startup and the main window makes the Design page only then, so turning the feature on or off takes effect
-after a restart, but for the Speed Dial's Design tiles, which go as soon as it is turned off (see Speed Dial
-catalog); a window rebuilt for a language change in between makes the page by the new preference, while the
-catalog keeps the commands it started with.
+are named and what each takes, is in [mcp-tools.md](mcp-tools.md), The Design tab's commands. The names end
+`tool_search`' description while the catalog holds the commands (`design_command_index()`): that they are the
+Design tab's CAD commands and what those cover, that one is looked up before it is called, that a command
+whose schema has `silent` does what its menu row does when called with no arguments unless `silent` is true,
+so `interference {}` with a body selected opens the tool and `interference {silent: true}` returns the result,
+and then every key under its heading, in the table's order: Document, Sketch, Solid, Surface, Construct,
+Inspect, Bodies, History, and Menu rows, the commands that take no arguments and do what their row of the
+right-click menu does. The headings are the generator's (`SECTIONS` in `gen_offer_table.py`, `kDesignSections`
+in the header), and a command's is its entry's `section`. So an agent learns without a search that the
+commands exist, that they are CAD and where each works, and reads a command's description and schema only when
+it looks it up. The description stays within 4096 characters, the most a client is known to keep of one. The
+commands that open a tool are in the palette, whose tiles for them the Speed Dial has while the Design tab is
+shown (see Speed Dial catalog). `register_all_commands()` adds them through `register_cad_commands()` only
+when the catalog is built with the CAD feature on (`CatalogOptions::cad`, which startup takes in the editor
+from the value in force: the `enable_cad_feature` preference, or `--cad` for the run). With it off the catalog
+holds none, and records that it leaves them out (`leave_out_cad_commands()`), a folded row's id among them,
+which names a tile: `tool_call {tool: "hole"}` is an unknown command whose error says the feature was off when
+OrcaSlicer started and how a person turns it on, and `app_state` carries `cad_note`, how a person turns the
+feature on (`cad_note()`, in the editor while the catalog holds no Design command or the feature is off). The
+catalog is sealed at startup and the main window makes the Design page only then, so turning the feature on or
+off takes effect after a restart, but for the Speed Dial's Design tiles, which go as soon as it is turned off
+(see Speed Dial catalog); a window rebuilt for a language change in between makes the page by the new
+preference, while the catalog keeps the commands it started with.
 
 The commands' names, their variant arguments and those arguments' values use the industry's terminology, as
 popular CAD programs such as Fusion 360, Onshape and SolidWorks use it, so that people and agents who know one
@@ -2499,45 +2437,10 @@ command does.
 ### Commands that replace a dialog
 
 A call with exactly a tile's arguments is the person's form and asks as the row does; any other call runs
-from its arguments and opens nothing. For most tiles the row acts at once, and its call differs from a call
-with arguments only in its targets, which the selection gives. These are the tiles that ask, with the call
-that does the same without asking:
-
-| Command, called as its tile | It asks | The call that does not ask |
-|---|---|---|
-| `project_open {}` | the unsaved changes question, then the Open dialog | `path`, with `discard_changes` where the project has unsaved changes |
-| `project_import {}`, `project_import {archive: true}` | a file dialog; the archive, then its file list | `paths`, and `entries` for an archive |
-| `project_new {}` | the unsaved changes question | `discard_changes`, `preset_changes`, or `silent: true` |
-| `project_save {}`, `project_save {save_as: true}` | a file, when the project has none; always | `path` |
-| `project_export {format}`, also with `plates: "all"` or `per_object: true` | a file or folder dialog | `path` |
-| `object_add_primitive {shape}` | the size, in the Primitive size dialog | `size`, or `silent: true` for the built-in size |
-| `object_rename {}`, `plate_rename {}` | the name | `name` |
-| `object_set_instances {}` | the count | `count` or `delta` |
-| `object_split {into}` | Split's Auto-Drop question, where pieces would float | `keep_z` |
-| `object_delete {}` | the object list's message or question for a cut object or a last solid part | the targets; the question becomes the refusal |
-| `object_add_svg {}` | a file dialog | `path` |
-| `calibration_generate_test {test}` | the test's dialog | any value of the test, or `silent: true` |
-| `preset_import {}` | a file dialog | `path` |
-| `plugin_install_local {}` | a file dialog, and whether to replace an installed plugin | `path`, with `overwrite` |
-| `filament_sync_ams {}` | the sync dialog | `mode` |
-| `recording_start {}` | the Start Recording dialog | any argument, or `silent: true` |
-| `window_open {window}`, `app_open_web_page {page}` | nothing: opening is the job | the same call |
-
-A silent call that meets the question a row asks on the way takes the answer as an argument or refuses with
-the question as its reason: Split's Auto-Drop question (`keep_z`, else `auto_drop_question`), deleting part
-of a cut object, replacing an installed plugin (`overwrite`), unsaved preset changes (`preset_changes`).
-
-Two things have no silent form, and the caller answers their dialog:
-
-| What | The dialog | How a caller answers it |
-|---|---|---|
-| `preset_export`, every call | the Export Preset Bundle dialog, on the folder `path` names when one is given | click the label of the kind (`widget_click`), check the presets' rows (`widget_set_value` on the checkboxes named after the printer preset or filament they stand for), press OK (`dialog_answer`) and answer the result message; a dialog closed without exporting makes the call an error |
-| the loader's questions during `project_import`, `part_add` and `part_replace` with a path | a STEP file's mesh options, the AMF and CAD 3MF options, the names clean-up, inches or metres, one object of several parts (`Plater::load_files()`) | the call replies `blocked_by_dialog`, and `dialog_answer` answers it; no file dialog opens |
-
-Commands that open a dialog whatever their arguments do so as well: `printer_send` (the print host's dialog,
-see Print host uploads), `app_benchmark_3d_scene` (Start or Cancel), `preset_migrate_filaments`, and
-`app_check_for_updates` with its answer. A path is absolute, and an output takes `overwrite: true` to replace
-a file that exists; `path_argument()` resolves `{"path", "overwrite"?}` for the rows that take one and turns
+from its arguments and opens nothing. Which tiles ask, what each asks, the call that does the same without
+asking, and the commands that open a dialog whatever their arguments are in [mcp-tools.md](mcp-tools.md),
+When a call opens a dialog or a tool. A path is absolute, and an output takes
+`overwrite: true` to replace a file that exists; `path_argument()` resolves `{"path", "overwrite"?}` for the rows that take one and turns
 a bad or missing path into an Error result.
 
 `preset_import` with a path imports presets as the Import Configs dialog does, through
@@ -2578,8 +2481,8 @@ done.
 
 ### Making a feature reachable
 
-A feature is a command, named for its place, then its verb (see Tool catalog), declared in the
-`McpTools*.cpp` of its place beside the commands of that place:
+A feature is a command, named for its place, then its verb (see [mcp-tools.md](mcp-tools.md)),
+declared in the `McpTools*.cpp` of its place beside the commands of that place:
 
 1. Build it with `inspect_tool()` for pure observation, which runs inline, read-only and unjournaled, or with
    `mutate_tool()` for anything that changes the app, which runs as a journaled job under the mutate guard;

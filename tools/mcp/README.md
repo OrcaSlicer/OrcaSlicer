@@ -1,7 +1,8 @@
 # MCP harness
 
 `orca_mcp.py` launches OrcaSlicer with its MCP server and talks to it, from a shell or from
-Python. It uses only the standard library. `docs/HLSD/mcp-server.md` covers the server.
+Python. It uses only the standard library. `docs/HLSD/mcp-server.md` covers the server, and
+`docs/HLSD/mcp-tools.md` its commands.
 
 ## Commands
 
