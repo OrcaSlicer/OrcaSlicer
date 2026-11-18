@@ -2,8 +2,10 @@
 
 #include <algorithm>
 #include <initializer_list>
+#include <utility>
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/ExPolygon.hpp"
@@ -13,6 +15,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -189,6 +193,28 @@ TEST_CASE("A raft is still generated under tree support", "[TreeSupport]")
     REQUIRE(rafted_object->support_layers().size() > unrafted_object->support_layers().size());
     // The raft goes under the object.
     REQUIRE(rafted_object->layers().front()->print_z > unrafted_object->layers().front()->print_z);
+}
+
+// With 4 raft layers, the first two are raft base layers.
+TEST_CASE("The first layer expansion widens the first layer of a tree support raft by its value and no other layer", "[TreeSupport][Regression]")
+{
+    auto raft_base_widths = [](double expansion) {
+        Slic3r::Print print;
+        slice_with_tree_support(make_cube(20, 20, 5), print, "tree_hybrid", 30, 0, 4, { { "raft_first_layer_expansion", expansion } });
+        const auto &layers = print.objects().front()->support_layers();
+        REQUIRE(layers.size() > 1);
+        auto width = [&layers](size_t idx) {
+            Points points;
+            layers[idx]->support_fills.collect_points(points);
+            return unscaled(BoundingBox(points).size().x());
+        };
+        return std::make_pair(width(0), width(1));
+    };
+    const auto [first_narrow, second_narrow] = raft_base_widths(2.);
+    const auto [first_wide, second_wide]     = raft_base_widths(6.);
+    // 4 mm more on each side of the first layer.
+    CHECK_THAT(first_wide - first_narrow, Catch::Matchers::WithinAbs(8., 0.5));
+    CHECK_THAT(second_wide, Catch::Matchers::WithinAbs(second_narrow, 0.5));
 }
 
 // drop_nodes() decides the node merges and spawns the next layer's nodes in parallel. Every one of
