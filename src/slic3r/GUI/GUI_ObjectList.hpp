@@ -22,6 +22,7 @@
 #include "Event.hpp"
 #include "ObjectDataViewModel.hpp"
 
+#include "libslic3r/ObjectID.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 class wxBitmap;
@@ -193,6 +194,7 @@ private:
     std::vector<wxBitmap*>      m_bmp_vector;
 
     int			m_selected_object_id = -1;
+    ObjectID    m_painted_modifier_id; // the selected painted modifier, once its paint tool has been opened
     bool		m_prevent_list_events = false;		// We use this flag to avoid circular event handling Select()
                                                     // happens to fire a wxEVT_LIST_ITEM_SELECTED on OSX, whose event handler
                                                     // calls this method again and again and again
