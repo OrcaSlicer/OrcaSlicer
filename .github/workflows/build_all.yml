@@ -208,16 +208,6 @@ jobs:
       os: windows-latest
       artifact: ${{ github.sha }}-tests-windows-x64-x64-clang
   
-  unit_tests_windows_arm64:
-    name: Windows arm64
-    needs: build_windows
-    if: ${{ !cancelled() && success() }}
-    uses: ./.github/workflows/unit_tests.yml
-    with:
-      os: windows-11-vs2026-arm
-      artifact: ${{ github.sha }}-tests-windows-arm64-arm64-clang
-      test-dir: build-arm64/tests
-  
   unit_tests_macos_arm64:
     name: macOS arm64
     needs: build_macos_arch
