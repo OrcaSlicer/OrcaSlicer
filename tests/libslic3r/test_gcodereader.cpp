@@ -6,6 +6,7 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "test_utils.hpp"
 
 using namespace Slic3r;
 
@@ -44,6 +45,16 @@ TEST_CASE("A G-code reader measures extrusion as relative or absolute as its con
     GCodeReader copy = applied;
     CHECK(copy.config().use_relative_e_distances.value == relative);
     CHECK_THAT(second_move_extrusion(copy), Catch::Matchers::WithinAbs(expected, 1e-6));
+}
+
+TEST_CASE("A G-code reader fails on a file it cannot open", "[GCodeReader]")
+{
+    const ScopedTemporaryFile missing(".gcode");
+    GCodeReader reader;
+    bool called = false;
+    CHECK_FALSE(reader.parse_file(missing.string(), [&called](GCodeReader &, const GCodeReader::GCodeLine &) { called = true; }));
+    CHECK_FALSE(reader.parse_file_raw(missing.string(), [&called](GCodeReader &, const char *, const char *) { called = true; }));
+    CHECK_FALSE(called);
 }
 
 TEST_CASE("A G-code reader without a config uses the default one", "[GCodeReader]")
