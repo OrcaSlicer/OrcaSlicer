@@ -35,6 +35,7 @@ add_executable(${_TEST_NAME}_tests
     test_drc.cpp
     test_gcodereader.cpp
     test_toolordering_nozzle_group.cpp
+    test_parallel_for_first_error.cpp
     test_parallel_resolve.cpp
     test_preset_bundle_loading.cpp
     test_preset_collection.cpp

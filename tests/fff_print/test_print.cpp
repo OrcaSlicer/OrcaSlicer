@@ -3759,9 +3759,11 @@ TEST_CASE("Slicing copies of one object at different scales gives each copy the 
             return std::abs(object->instances().front().model_instance->get_scaling_factor().x() - scale) < EPSILON;
         });
         REQUIRE(copy != print.objects().end());
-        const std::string extrusions = layer_extrusions(**copy);
-        REQUIRE(! extrusions.empty());
-        CHECK(extrusions == layer_extrusions(*alone.objects().front()));
+        // The copy has walls, so the layers compare extrusions and not only their heights.
+        REQUIRE(std::any_of((*copy)->layers().begin(), (*copy)->layers().end(), [](const Layer *layer) {
+            return ! layer->regions().empty() && ! layer->regions().front()->perimeters.empty();
+        }));
+        CHECK(layer_extrusions(**copy) == layer_extrusions(*alone.objects().front()));
     }
 }
 
