@@ -157,6 +157,7 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
        {"sparse_infill_density", "", 1},
        {"fill_multiline", "", 1},
        {"sparse_infill_pattern", "", 1},
+       {"sparse_infill_strategy", "", 1},
        {"adaptive_infill_mode", "", 1},
        {"adaptive_infill_interior_density", "", 1},
        {"adaptive_infill_gradient", "", 1},
