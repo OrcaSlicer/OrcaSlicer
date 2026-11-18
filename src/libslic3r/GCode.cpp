@@ -3731,7 +3731,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         std::vector<int> physicial_first_filaments;
         physicial_first_filaments.resize(filaments.size());
         for (int extruder_id = 0; extruder_id < filaments.size(); extruder_id++) {
-            physicial_first_filaments[config.physical_extruder_map.get_at(extruder_id)] = filaments[extruder_id];
+            // The map value is a firmware tool number, so it may legitimately fall outside this table.
+            const int physical_id = config.physical_extruder_map.get_at(extruder_id);
+            if (physical_id >= 0 && physical_id < static_cast<int>(physicial_first_filaments.size()))
+                physicial_first_filaments[physical_id] = filaments[extruder_id];
         }
         filaments = physicial_first_filaments;
     };
@@ -6091,8 +6094,9 @@ std::string GCode::generate_object_brim(
     if (!first_layer)
         return {};
 
-    const bool wait_for_owner_filament = has_bed_exclude_volumes(m_config) &&
-        active_bed_exclude_volume_mode(m_config) != BedExcludeVolumeMode::Shared;
+    // A chosen brim filament also waits for its own pass, see process_layer().
+    const bool wait_for_owner_filament = object.config().brim_filament_id.value > 0 ||
+        (has_bed_exclude_volumes(m_config) && active_bed_exclude_volume_mode(m_config) != BedExcludeVolumeMode::Shared);
     auto emit_brim = [this, extruder_id, wait_for_owner_filament](const ExtrusionEntityCollection& brim,
                                          const std::vector<ObjectInstanceID>& instances,
                                          const unsigned int brim_filament_id) {
@@ -7620,6 +7624,21 @@ LayerResult GCode::process_layer(
         if (print.has_belt_brim()) {
             const Vec2d saved_origin = m_origin;
             gcode += emit_belt_brim_for_extruder(extruder_id);
+            this->set_origin(saved_origin);
+        }
+
+        // A chosen brim filament may print nothing else on its objects, so their brims go down at the start of its pass.
+        if (first_layer) {
+            const Vec2d saved_origin = m_origin;
+            for (const LayerToPrint &ltp : layers) {
+                const PrintObject *object = ltp.original_object;
+                if (object == nullptr || object->config().brim_filament_id.value <= 0 || object->has_belt_brim())
+                    continue;
+                const size_t i_begin = single_object_instance_idx == size_t(-1) ? 0 : single_object_instance_idx;
+                const size_t i_end   = single_object_instance_idx == size_t(-1) ? object->instances().size() : single_object_instance_idx + 1;
+                for (size_t i = i_begin; i < i_end && i < object->instances().size(); ++i)
+                    gcode += generate_object_brim(print, *object, i, first_layer, extruder_id, ltp.object_layer);
+            }
             this->set_origin(saved_origin);
         }
 
