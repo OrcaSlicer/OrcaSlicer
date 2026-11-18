@@ -370,8 +370,12 @@ void PluginPages::relayout()
         // In tab order, as in shutdown().
         for (const auto& id : m_order) {
             const int idx = m_parent->FindPage(m_pages.at(id).page);
-            if (idx != wxNOT_FOUND)
+            if (idx != wxNOT_FOUND) {
                 m_parent->RemovePage(idx);
+                // Removing the selected page leaves it shown, and a page that is not
+                // inserted again would stay drawn over the next selected one.
+                m_pages.at(id).page->Hide();
+            }
         }
 
         for (const auto& id : tab_ids) {

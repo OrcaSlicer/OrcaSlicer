@@ -127,8 +127,7 @@ public:
         m_is_first_print(true),
         m_print_config(&print_config),
         m_last_wipe_tower_print_z(print_config.z_offset.value),
-        m_sparse_layers_skipped(wipe_tower_sparse_layers_skipped(print_config)),
-        m_sparse_layers_combined(wipe_tower_sparse_layers_combined(print_config))
+        m_sparse_layers_skipped(wipe_tower_sparse_layers_skipped(print_config))
     {
         // Precomputed rather than accumulated while emitting, so that the clearance validator and
         // the emitter cannot disagree about where the compacted tower sits on any given layer.
@@ -161,7 +160,6 @@ public:
 private:
     WipeTowerIntegration& operator=(const WipeTowerIntegration&);
     std::string append_tcr(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
-    std::string tower_height_tag(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, const std::string &tcr_gcode) const;
     Polyline generate_path_to_wipe_tower(const Point &start_pos, const Point &end_pos, const BoundingBox &avoid_polygon, const Polygons &bed_polygons) const;
     std::string append_tcr2(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
     std::string travel_to_tower_gap(GCode &gcodegen, const Point &route_start, const Point &start_wipe_pos) const;
@@ -202,9 +200,6 @@ private:
     // wipe_tower_no_sparse_layers, as answered by the shared compaction rule rather than by the raw
     // option: smooth timelapse and wrapping detection keep a tower on every layer regardless.
     const bool                                                   m_sparse_layers_skipped;
-    // Combined tower layers are thicker than the object layer they sit on, the only case where the
-    // tower's height is not the one process_layer already declared.
-    const bool                                                   m_sparse_layers_combined;
     // Print z of the compacted tower per planned layer. Empty when the tower is not compacted.
     std::vector<float>                                           m_compacted_tower_z;
 };
@@ -833,6 +828,11 @@ protected:
     bool                                m_enable_extrusion_role_markers;
     // Keeps track of the last extrusion role passed to the processor
     ExtrusionRole                       m_last_processor_extrusion_role;
+    // Orca: the last extruded wall is an outer wall with retract_after_outer_wall on,
+    // so the next travel ignores the retraction threshold
+    bool                                m_retract_after_last_path { false };
+    // Orca: the next extruded path starts an outer wall on an overhang; tag it for the preview.
+    bool                                m_outer_overhang_tag_pending{false};
     // How many times will change_layer() be called?
     // change_layer() will update the progress bar.
     unsigned int                        m_layer_count;
@@ -987,6 +987,14 @@ protected:
     ExtrusionPaths belt_cut_at_band_edges(const ExtrusionPath &path, std::vector<std::vector<double>> &uncut_line_lengths) const;
     // _extrude() of a path that stays in one band above the belt (see belt_cut_at_band_edges()).
     std::string _extrude_piece(const ExtrusionPath &path, const std::string &path_description, double speed);
+    // First point of the path in the slicing frame, for the per-point first-layer test.
+    Vec3d path_slicing_point(const ExtrusionPath &path) const;
+    // Flow in mm³ per mm the path is extruded with, after the flow ratios (the first layer's when `on_first_layer`).
+    double extrusion_mm3_per_mm(const ExtrusionPath &path, bool on_first_layer) const;
+    // Feed rate of a feature: its linear `speed`, or with volumetric speeds its flow divided by `mm3_per_mm`.
+    double feature_speed(double speed, const ConfigOptionFloatsOrPercentsNullable &volumetric_flow, double mm3_per_mm) const;
+    // Max flow in mm³/s of a path with this role, 0 for no limit.
+    double volumetric_speed_limit(ExtrusionRole role) const;
     bool _needSAFC(const ExtrusionPath &path);
     void print_machine_envelope(GCodeOutputStream& file, Print& print);
     void _print_first_layer_bed_temperature(GCodeOutputStream &file, Print &print, const std::string &gcode, unsigned int first_printing_extruder_id, bool wait);

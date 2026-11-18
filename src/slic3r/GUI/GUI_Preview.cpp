@@ -12,6 +12,7 @@
 #include <functional>
 #include "libslic3r/Config.hpp"
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
 #include "libslic3r/CustomGCode.hpp"
 #include <wx/event.h>
 #include <algorithm>

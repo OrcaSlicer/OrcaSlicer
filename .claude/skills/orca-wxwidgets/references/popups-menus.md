@@ -81,6 +81,11 @@ Contents: [Rules](#rules) · [1. Choosing the window kind](#1-choosing-the-windo
     tooltip of a widget in that popup, or in a popup opened from it, is on screen: the tooltip has taken the
     keyboard while the user is still on the popup. `PopupWindow::topWindowActiavate` does it for every Orca popup;
     a popup outside `PopupWindow` with such a hook must do it itself. (§9)
+31. When a dialog that hides on deactivation closes by itself, find the code that activated another window
+    instead of hardening the hook: on wxGTK, `SetFocus()` on a child of a visible, inactive toplevel presents
+    that toplevel. A handler bound on a book control acts only on events whose object is that book, because a
+    page-changed event from a book inside a page propagates up to it. A deferred, re-checked hide tolerates only
+    a focus bounce shorter than its delay. (§10)
 
 ## 1. Choosing the window kind
 
@@ -827,8 +832,9 @@ created with `wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT | wxF
 - `wxFRAME_NO_TASKBAR` gives no taskbar entry on MSW/GTK, on GTK only when the WM supports
   `_NET_WM_STATE_SKIP_TASKBAR` (`interface/wx/frame.h:97-103`).
 - `wxFRAME_FLOAT_ON_PARENT` requires a non-null parent (`interface/wx/frame.h:104-106`).
-- Its `wxEVT_ACTIVATE` handler hides on deactivation and `Skip()`s. On activation it focuses the web view, because
-  modeless focus is granted asynchronously and a focus request made right after `Show()` is dropped.
+- Its `wxEVT_ACTIVATE` handler focuses the web view on activation, because modeless focus is granted
+  asynchronously and a focus request made right after `Show()` is dropped. It hides on deactivation after a
+  short settle delay and a re-check of `gtk_window_is_active()` (Pitfalls below), and it `Skip()`s.
 - On Linux `focus_webview` grabs focus on the WebKit native widget (`gtk_widget_grab_focus` on
   `GetNativeBackend()`). `browser()->SetFocus()` focuses only the container.
 - Display-only web content can stay in a transient popup (`MarkdownTip`).
@@ -847,13 +853,39 @@ created with `wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT | wxF
                           wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT | wxFRAME_SHAPED)
   {
       Bind(wxEVT_ACTIVATE, [this](wxActivateEvent& e) {
-          if (e.GetActive() && IsShown())       focus_webview(browser(), m_page_ready);
-          else if (!e.GetActive() && IsShown()) Hide();
+          if (!IsShown())    { e.Skip(); return; }
+          if (e.GetActive()) { m_hide_timer.Stop(); focus_webview(browser(), m_page_ready); }
+          else               schedule_hide();   // validated, see the next rule
           e.Skip();
       });
   }
   ```
   Cite: f142716e51, a86202b45b (`SpeedDialPopup.cpp` replaced by `SpeedDialDialog.{hpp,cpp}`; `GUI_App.cpp`).
+- **Rule:** When a dialog that hides on deactivation closes by itself, find the code that activated another
+  window; do not harden the dismissal hook. A handler bound on a book control checks that `e.GetEventObject()`
+  is that book before acting.
+  **Why:** On wxGTK, `wxWindow::SetFocus()` on a child of a visible but inactive toplevel calls
+  `gtk_window_present` on that toplevel (`src/gtk/window.cpp:5157-5162`), so an unexpected `SetFocus()` anywhere
+  in the main frame takes the keyboard from a modeless dialog that hides on deactivation. The Speed Dial closed
+  by itself a moment after the first Space on Linux (GNOME and KDE, X11 and Wayland): the idle builder
+  constructed the Calibration page, whose `Tabbook::InsertPage` emitted `wxEVT_BOOKCTRL_PAGE_CHANGED`; the event
+  propagated, as every `wxNotifyEvent` does, to the main frame's `m_tabpanel` handler
+  (`wxEVT_NOTEBOOK_PAGE_CHANGED` is the same type, `include/wx/bookctrl.h:434`), which treated it as a main tab
+  change and ended with `panel->SetFocus()`. Found with a 10 ms focus poller and a backtrace on
+  `gtk_window_present`. MSW and macOS `SetFocus()` do not activate the toplevel, so the bug was Linux-only. The
+  dial's deferred, re-checked hide (`kHideSettleMs`, `gtk_window_is_active()`, since `wxTopLevelWindowGTK::IsActive()`
+  answers from `g_activeFrame`, which the deactivation has already cleared) absorbs only a focus bounce shorter
+  than the delay; it did not stop this.
+  ```cpp
+  // Wrong: the main book's handler acts on every page-changed event that reaches it
+  m_tabpanel->Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, [this](wxBookCtrlEvent& e) { /* ... */ panel->SetFocus(); });
+  // Right: only the book's own events
+  m_tabpanel->Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, [this](wxBookCtrlEvent& e) {
+      if (e.GetEventObject() != m_tabpanel) { e.Skip(); return; }
+      /* ... */
+  });
+  ```
+  Cite: #17245 (`MainFrame::init_tabpanel`; `SpeedDialWebDialog::on_hide_timer`).
 - **Rule:** When restoring the main frame after hiding a popup or overlay frame, call `Show()` only if
   `!IsShown()`, and `Raise()` unconditionally (top-level `Show`/`Raise` are owned by
   `references/windows-dialogs.md`).
