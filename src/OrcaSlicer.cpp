@@ -6926,6 +6926,18 @@ int CLI::run(int argc, char **argv)
                                         flush_and_exit(CLI_INVALID_PARAMS);
                                     }
 
+                                    // A short or out of range filament_map would index past the tables below.
+                                    bool filament_map_valid = std::all_of(filament_maps.begin(), filament_maps.end(),
+                                                                          [new_extruder_count](int e) { return e >= 1 && e <= new_extruder_count; });
+                                    for (int fid : plate_filaments)
+                                        if (fid >= 1 && fid <= filament_count && fid > (int) filament_maps.size())
+                                            filament_map_valid = false;
+                                    if (!filament_map_valid) {
+                                        BOOST_LOG_TRIVIAL(error) << boost::format("plate %1% : filament_map does not give every filament an extruder between 1 and %2%") % (index + 1) % new_extruder_count;
+                                        record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, index + 1, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                                        flush_and_exit(CLI_INVALID_PARAMS);
+                                    }
+
                                     for (int index = 0; index < filament_maps.size(); index++)
                                     {
                                         int filament_extruder = filament_maps[index];
