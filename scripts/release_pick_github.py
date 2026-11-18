@@ -13,7 +13,7 @@ API = "https://api.github.com"
 
 _ISSUE_FIELDS = """
 fragment IssueFields on Issue {
-  id number state repository { nameWithOwner } labels(first: 50) { nodes { name } } milestone { title state }
+  id number title state repository { nameWithOwner } labels(first: 50) { nodes { name } } milestone { title state }
   closedByPullRequestsReferences(first: 10) {
     nodes { number state merged repository { nameWithOwner } milestone { title } }
   }
@@ -21,7 +21,7 @@ fragment IssueFields on Issue {
 
 _PR_FIELDS = """
 fragment PrFields on PullRequest {
-  id number state repository { nameWithOwner } labels(first: 50) { nodes { name } } milestone { title state }
+  id number title state repository { nameWithOwner } labels(first: 50) { nodes { name } } milestone { title state }
 }"""
 
 _PROJECT_QUERY = _ISSUE_FIELDS + _PR_FIELDS + """
@@ -124,6 +124,7 @@ def _item_from_content(content, repo, label, project_node=None):
         item_id=project_node["id"] if project_node else None,
         status=status,
         archived=bool(project_node and project_node.get("isArchived")),
+        title=content.get("title") or "",
     )
 
 

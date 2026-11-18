@@ -2,7 +2,9 @@
 """Keeps the release project in line with the release-pick label and the release branches.
 
 Reads everything first, prints the planned changes as Markdown (also to $GITHUB_STEP_SUMMARY), and
-changes the project only with --apply. Run by .github/workflows/release_pick.yml.
+changes the project only with --apply. With RELEASE_STATUS_DISCORD_WEBHOOK set, an applied run also
+edits the Discord status post (RELEASE_STATUS_MESSAGE_ID), or creates it when no id is set; a dry run
+prints a preview. Run by .github/workflows/release_pick.yml.
 
   RELEASE_PROJECT_TOKEN=... python3 scripts/release_pick_sync.py --owner OrcaSlicer --project 15 \\
       --repo OrcaSlicer/OrcaSlicer --repo-dir . [--apply]
@@ -11,6 +13,7 @@ The clone needs origin/main, origin/rc/*, origin/release/* and the release tags.
 """
 
 import argparse
+import datetime
 import os
 import re
 import subprocess
@@ -18,10 +21,12 @@ import sys
 from dataclasses import replace
 
 from release_pick_git import branch_base, branch_picks, patch_id_matches, release_branches, remote_branches
+from release_pick_discord import Discord, DiscordError, build_message
 from release_pick_github import GitHub, GitHubError
-from release_pick_rules import needs_attention, plan_changes
+from release_pick_rules import needs_attention, plan_changes, project_after
 
 LABEL = "release-pick"
+DISCORD_POST_TITLE = "Release status"
 
 
 def collect_picks(gh, repo_dir, repo, milestones):
@@ -116,7 +121,19 @@ def _apply(gh, project, changes):
     return len(changes), None
 
 
-def run(gh, repo_dir, owner, number, repo, apply, out):
+def _discord_payload(project, labelled, changes, reverted, unmatched, owner, number, repo, now):
+    attention = [(n, "closed without a merge") for n in needs_attention(project.items)]
+    attention += [(p.pr, f"reverted on {p.branch} ({_short(p)})") for p in reverted]
+    by_milestone = {}
+    for pick in unmatched:
+        match = re.search(r"v(\d+\.\d+\.\d+)$", pick.branch)
+        if match:
+            by_milestone.setdefault(match.group(1), []).append((pick.branch, _short(pick)))
+    return build_message(project_after(project.items, labelled, changes), attention, by_milestone,
+                         f"https://github.com/orgs/{owner}/projects/{number}", repo, now)
+
+
+def run(gh, repo_dir, owner, number, repo, apply, out, discord=None, post_id=None, now=None):
     try:
         project = gh.project(owner, number, repo)
         labelled = gh.labelled_items(repo, LABEL)
@@ -133,15 +150,35 @@ def run(gh, repo_dir, owner, number, repo, apply, out):
     unmatched = [pick for pick, number in resolved if number is None or number not in tracked]
 
     lines = _report(changes, needs_attention(project.items), reverted, unmatched)
+    payload = None
+    if discord:
+        now = now or datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+        payload = _discord_payload(project, labelled, changes, reverted, unmatched, owner, number, repo, now)
     if apply:
         applied, error = _apply(gh, project, changes)
         if error:
             lines += ["", f"Failed: {error}"]
         lines += ["", f"Applied {applied} of {len(changes)} changes."]
         code = 1 if error else 0
+        if payload and not error:
+            try:
+                if post_id:
+                    discord.edit_post(post_id, payload)
+                    lines.append("Updated the Discord status post.")
+                else:
+                    new_id = discord.create_post(DISCORD_POST_TITLE, payload)
+                    lines.append(f"Created the Discord status post. Set the repository variable "
+                                 f"RELEASE_STATUS_MESSAGE_ID to {new_id} so later runs edit it.")
+            except DiscordError as discord_error:
+                lines.append(f"Discord update failed: {discord_error}")
+                code = 1
     else:
         lines += ["", "Dry run: no changes applied."]
         code = 0
+        if payload:
+            lines += ["", "## Discord post (preview, not sent)"]
+            for embed in payload["embeds"]:
+                lines += ["", f"### {embed['title']}", embed["description"]]
     print("\n".join(lines), file=out)
     return code
 
@@ -169,7 +206,10 @@ def main():
             sys.stdout.write(text)
 
     out = Tee()
-    code = run(GitHub(token, label=LABEL), args.repo_dir, args.owner, args.project, args.repo, args.apply, out)
+    webhook = os.environ.get("RELEASE_STATUS_DISCORD_WEBHOOK")
+    code = run(GitHub(token, label=LABEL), args.repo_dir, args.owner, args.project, args.repo, args.apply, out,
+               discord=Discord(webhook) if webhook else None,
+               post_id=os.environ.get("RELEASE_STATUS_MESSAGE_ID") or None)
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary:
         with open(summary, "a", encoding="utf-8") as f:

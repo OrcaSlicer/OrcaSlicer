@@ -13,7 +13,7 @@ status each one has. Pure functions only; release_pick_sync.py reads the data an
 """
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 STATUSES = ("Proposed", "In progress", "Ready to pick", "Picked")
 
@@ -41,6 +41,7 @@ class Item:
     item_id: str | None = None  # set for items already in the project
     status: str | None = None
     archived: bool = False
+    title: str = ""
 
 
 @dataclass(frozen=True)
@@ -155,3 +156,13 @@ def needs_attention(project):
     """Numbers of project items closed without a merge."""
     return sorted(i.number for i in project
                   if not i.archived and i.state == "CLOSED" and derived_status(i, {}, []) is None)
+
+
+def project_after(project, labelled, changes):
+    """The non-archived project items once changes are applied, with their new statuses."""
+    archived = {c.number for c in changes if c.action == "archive"}
+    added = {c.number for c in changes if c.action == "add"}
+    status = {c.number: c.status for c in changes if c.action == "set_status"}
+    items = [i for i in project if not i.archived and i.number not in archived]
+    items += [i for i in labelled if i.number in added]
+    return [replace(i, status=status.get(i.number, i.status)) for i in items]

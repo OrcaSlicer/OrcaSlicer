@@ -35,7 +35,7 @@ def issue(number, repo=REPO, labels=("release-pick",), milestone=("2.5.2", "OPEN
 
 
 def pull(number, state="OPEN", repo=REPO, labels=("release-pick",), milestone=("2.5.2", "OPEN")):
-    return {"__typename": "PullRequest", "id": f"PR_{number}", "number": number, "state": state,
+    return {"__typename": "PullRequest", "id": f"PR_{number}", "number": number, "state": state, "title": f"Pull {number}",
             "repository": {"nameWithOwner": repo}, "labels": {"nodes": [{"name": n} for n in labels]},
             "milestone": {"title": milestone[0], "state": milestone[1]} if milestone else None}
 
@@ -81,6 +81,7 @@ class ReadTest(unittest.TestCase):
         self.assertEqual((item.kind, item.state, item.labelled, item.milestone, item.milestone_open),
                          ("PullRequest", "MERGED", False, "2.5.1", False))
         self.assertEqual((item.item_id, item.status, item.archived, item.content_id), ("A", "Picked", True, "PR_2"))
+        self.assertEqual(item.title, "Pull 2")
 
     def test_drafts_and_other_repos_are_skipped(self):
         nodes = [project_node("A", {"__typename": "DraftIssue"}), project_node("B", issue(3, repo="x/y")),

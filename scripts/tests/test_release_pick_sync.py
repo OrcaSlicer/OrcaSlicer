@@ -83,16 +83,94 @@ class MainTest(unittest.TestCase):
             self.assertEqual(sync.main(), 0)
         self.assertIn("::notice::RELEASE_PROJECT_TOKEN is not set", out.getvalue())
 
+    def test_webhook_and_post_id_come_from_the_environment(self):
+        env = {"RELEASE_PROJECT_TOKEN": "t", "RELEASE_STATUS_DISCORD_WEBHOOK": "https://discord.invalid/h",
+               "RELEASE_STATUS_MESSAGE_ID": "999"}
+        with mock.patch.dict(os.environ, env, clear=True), mock.patch.object(sync, "run", return_value=0) as run, \
+                mock.patch.object(sys, "argv", ["sync", "--owner", "o", "--project", "1", "--repo", "o/r"]):
+            self.assertEqual(sync.main(), 0)
+        kwargs = run.call_args.kwargs
+        self.assertIsInstance(kwargs["discord"], sync.Discord)
+        self.assertEqual(kwargs["post_id"], "999")
+
+    def test_no_webhook_means_no_discord(self):
+        with mock.patch.dict(os.environ, {"RELEASE_PROJECT_TOKEN": "t"}, clear=True), \
+                mock.patch.object(sync, "run", return_value=0) as run, \
+                mock.patch.object(sys, "argv", ["sync", "--owner", "o", "--project", "1", "--repo", "o/r"]):
+            sync.main()
+        self.assertIsNone(run.call_args.kwargs["discord"])
+
+
+class FakeDiscord:
+    def __init__(self, fail=False):
+        self.calls = []
+        self.fail = fail
+
+    def create_post(self, thread_name, payload):
+        self.calls.append(("create", thread_name, payload))
+        return "777"
+
+    def edit_post(self, post_id, payload):
+        self.calls.append(("edit", post_id, payload))
+        if self.fail:
+            raise sync.DiscordError("Discord PATCH failed: HTTP 404")
+
 
 class RunTest(unittest.TestCase):
-    def run_sync(self, gh, apply=False, **git):
+    def run_sync(self, gh, apply=False, discord=None, post_id=None, **git):
         out = io.StringIO()
         patches = git_stubs(**git)
         for p in patches:
             p.start()
         self.addCleanup(lambda: [p.stop() for p in patches])
-        code = sync.run(gh, ".", "OrcaSlicer", 15, REPO, apply, out)
+        code = sync.run(gh, ".", "OrcaSlicer", 15, REPO, apply, out, discord=discord, post_id=post_id,
+                        now="2026-11-18T17:30:00+00:00")
         return code, out.getvalue()
+
+    def test_apply_edits_the_discord_post_with_the_new_state(self):
+        discord = FakeDiscord()
+        gh = FakeGitHub([item(1, state="MERGED", status="In progress", item_id="P1")], [item(1, state="MERGED")])
+        code, out = self.run_sync(gh, apply=True, discord=discord, post_id="999")
+        self.assertEqual(code, 0)
+        (action, post_id, payload), = discord.calls
+        self.assertEqual((action, post_id), ("edit", "999"))
+        self.assertIn("**Ready to pick** 1", payload["embeds"][0]["description"])
+        self.assertEqual(payload["embeds"][0]["url"], "https://github.com/orgs/OrcaSlicer/projects/15")
+
+    def test_apply_without_post_id_creates_the_post(self):
+        discord = FakeDiscord()
+        code, out = self.run_sync(FakeGitHub([], []), apply=True, discord=discord)
+        self.assertEqual(discord.calls[0][:2], ("create", "Release status"))
+        self.assertIn("RELEASE_STATUS_MESSAGE_ID to 777", out)
+
+    def test_dry_run_previews_the_post_without_sending(self):
+        discord = FakeDiscord()
+        gh = FakeGitHub([item(1, status="Proposed", item_id="P1")], [item(1)])
+        code, out = self.run_sync(gh, discord=discord, post_id="999")
+        self.assertEqual(discord.calls, [])
+        self.assertIn("## Discord post (preview, not sent)", out)
+        self.assertIn("2.5.2 · 1 item", out)
+
+    def test_discord_failure_fails_the_run(self):
+        code, out = self.run_sync(FakeGitHub([], []), apply=True, discord=FakeDiscord(fail=True), post_id="999")
+        self.assertEqual(code, 1)
+        self.assertIn("Discord update failed", out)
+
+    def test_no_discord_update_after_a_failed_mutation(self):
+        discord = FakeDiscord()
+        gh = FakeGitHub([item(2, labelled=False, status="Proposed", item_id="P2")], [], fail_on="archive_item")
+        code, out = self.run_sync(gh, apply=True, discord=discord, post_id="999")
+        self.assertEqual((code, discord.calls), (1, []))
+
+    def test_reverted_pick_and_unmatched_commit_reach_the_post(self):
+        discord = FakeDiscord()
+        gh = FakeGitHub([item(1, state="MERGED", status="Picked", item_id="P1")], [item(1, state="MERGED")])
+        self.run_sync(gh, apply=True, discord=discord, post_id="999",
+                      picks=[Pick("aaaaaaaaaaaa", "Translations refresh", None, "rc/v2.5.2")],
+                      reverted=[Pick("cccccccccccc", "Fix one (#1)", 1, "rc/v2.5.2")])
+        text = discord.calls[0][2]["embeds"][0]["description"]
+        self.assertIn("reverted on rc/v2.5.2", text)
+        self.assertIn("**Unmatched commits on rc/v2.5.2**", text)
 
     def test_dry_run_prints_plan_and_mutates_nothing(self):
         gh = FakeGitHub([item(1, state="MERGED", status="Ready to pick", item_id="P1"),

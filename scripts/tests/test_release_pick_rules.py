@@ -17,6 +17,7 @@ from release_pick_rules import (  # noqa: E402
     needs_attention,
     parse_version,
     plan_changes,
+    project_after,
 )
 
 OPEN = ["2.5.2", "2.5.3"]
@@ -143,6 +144,17 @@ class PlanChangesTest(unittest.TestCase):
         changes = plan_changes([gone, moved], [new, moved], {}, OPEN)
         self.assertEqual([c.action for c in changes], ["add", "archive", "set_status", "set_status"])
         self.assertEqual([c.number for c in changes[2:]], [10, 30])
+
+
+class ProjectAfterTest(unittest.TestCase):
+    def test_changes_are_applied(self):
+        kept = in_project(pr(1, state="MERGED"), "In progress")
+        gone = in_project(issue(2, labelled=False), "Proposed")
+        old = in_project(pr(3, state="MERGED", milestone="2.5.1", milestone_open=False), "Picked", archived=True)
+        new = issue(4)
+        changes = plan_changes([kept, gone, old], [kept, new], {}, OPEN)
+        after = {i.number: i.status for i in project_after([kept, gone, old], [kept, new], changes)}
+        self.assertEqual(after, {1: "Ready to pick", 4: "Proposed"})
 
 
 class DerivedStatusTest(unittest.TestCase):
