@@ -1115,7 +1115,7 @@ function RenderPermissions(plugin) {
     fs_readwrite: [null, ""],
     network_http: [null, "https://example.com"],
     network_socket: [null, "https://example.com"],
-    process: [T("permissions_process_help", "Enter the executable or command name. The grant covers all arguments."), T("permissions_process_placeholder", "Executable or command name")],
+    process: [T("permissions_process_help", "Executable grants cover all arguments. CommandLine: entries cover only the exact command line."), T("permissions_process_placeholder", "Executable or command name")],
     threading: [T("permissions_threading_help_short", "Allow this plugin to create threads."), ""],
     events: [T("permissions_events_help", "Enter a category and event separated by a colon, such as Socket:socket.__new__."), T("permissions_events_placeholder", "Socket:socket.__new__")]
   };

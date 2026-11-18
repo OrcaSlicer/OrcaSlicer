@@ -2163,7 +2163,94 @@ unquoted_outcome = raise_popen(None, r"plain-tool.exe --flag")
     CHECK(describe(harness.prompts) ==
           "subprocess.Popen: C:\\Program Files\\Tool\\tool.exe\n"
           "subprocess.Popen: D:\\other\\tool.exe\n"
-          "subprocess.Popen: plain-tool.exe\n");
+          "subprocess.Popen: CommandLine:plain-tool.exe --flag\n");
+}
+
+TEST_CASE("An unquoted Windows command line is granted as one exact command", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    // An existing executable grant for the first token must not authorize the longer executable
+    // that CreateProcess may resolve from an unquoted command line.
+    PluginPermissions legacy;
+    legacy.process = {R"(C:\Program)"};
+    harness.save_permissions(PLUGIN, legacy);
+
+    python.run_as(PLUGIN, R"PY(
+def raise_popen(executable, command_line):
+    try:
+        sys.audit("subprocess.Popen", executable, command_line, None, None)
+        return "ok"
+    except PermissionError:
+        return "denied"
+
+tool_a_one = r"C:\Program Files\ToolA\a.exe --one"
+)PY");
+
+    // The legacy C:\Program grant is the first token of ToolA, but the command line is asked for
+    // as one exact command instead.
+    python.run_as(PLUGIN, R"PY(
+denied_outcome = raise_popen(None, tool_a_one)
+)PY");
+    CHECK(python.str("denied_outcome") == "denied");
+    CHECK(describe(harness.prompts) ==
+          "subprocess.Popen: CommandLine:C:\\Program Files\\ToolA\\a.exe --one\n");
+    CHECK(harness.saved_permissions(PLUGIN).process == std::vector<std::string>{R"(C:\Program)"});
+
+    // Approving saves that exact command line beside the unrelated legacy grant.
+    harness.approve = [](const Prompt& prompt) {
+        return prompt.targets ==
+               std::vector<std::string>{R"(CommandLine:C:\Program Files\ToolA\a.exe --one)"};
+    };
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+approved_outcome = raise_popen(None, tool_a_one)
+)PY");
+    CHECK(python.str("approved_outcome") == "ok");
+    CHECK(describe(harness.prompts) ==
+          "subprocess.Popen: CommandLine:C:\\Program Files\\ToolA\\a.exe --one\n");
+    CHECK(harness.saved_permissions(PLUGIN).process ==
+          std::vector<std::string>{R"(C:\Program)", R"(CommandLine:C:\Program Files\ToolA\a.exe --one)"});
+
+    // The same exact command line reuses the saved exact grant.
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+repeat_outcome = raise_popen(None, tool_a_one)
+)PY");
+    CHECK(python.str("repeat_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+
+    // The saved exact grant covers neither changed arguments nor the same arguments on another
+    // executable, and the legacy C:\Program grant does not cover either exact command line.
+    harness.approve = [](const Prompt&) { return false; };
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+changed_arguments_outcome = raise_popen(None, r"C:\Program Files\ToolA\a.exe --two")
+other_executable_outcome = raise_popen(None, r"C:\Program Files\ToolB\b.exe --one")
+)PY");
+    CHECK(python.str("changed_arguments_outcome") == "denied");
+    CHECK(python.str("other_executable_outcome") == "denied");
+    CHECK(describe(harness.prompts) ==
+          "subprocess.Popen: CommandLine:C:\\Program Files\\ToolA\\a.exe --two\n"
+          "subprocess.Popen: CommandLine:C:\\Program Files\\ToolB\\b.exe --one\n");
+
+    // A quoted executable and an explicit executable remain argument-insensitive grants.
+    PluginPermissions permissions;
+    permissions.process = {R"(C:\Program Files\Tool\tool.exe)", R"(D:\other\tool.exe)"};
+    harness.save_permissions(PLUGIN, permissions);
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+quoted_outcome = raise_popen(None, r'"C:\Program Files\Tool\tool.exe" --changed')
+explicit_outcome = raise_popen(r"D:\other\tool.exe", r'"C:\Program Files\Tool\tool.exe" --changed')
+)PY");
+    CHECK(python.str("quoted_outcome") == "ok");
+    CHECK(python.str("explicit_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
 }
 
 TEST_CASE("A Windows command line grant names one quoted executable, not another path", "[audit][Python]")

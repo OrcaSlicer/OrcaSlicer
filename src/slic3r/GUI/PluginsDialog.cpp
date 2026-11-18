@@ -762,7 +762,7 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"permissions_filesystem_placeholder", _u8L("/path/to/directory/*")},
 #endif
         {"permissions_network_access_guidance", _u8L("Enter a full http:// or https:// URL; only its scheme and host are saved, so the grant covers every port, path, and query on that host. A network socket grant also accepts a bare host name or IP address, with or without a port, and covers every port on that host. Other schemes are not accepted. Grants in either list are checked for HTTP and socket access.")},
-        {"permissions_process_help", _u8L("Enter the executable or command name. The grant covers all arguments.")},
+        {"permissions_process_help", _u8L("Executable grants cover all arguments. CommandLine: entries cover only the exact command line.")},
         {"permissions_process_placeholder", _u8L("Executable or command name")},
         {"permissions_threading_help_short", _u8L("Allow this plugin to create threads.")},
         {"permissions_events_help", _u8L("Enter a category and event separated by a colon, such as Socket:socket.__new__.")},

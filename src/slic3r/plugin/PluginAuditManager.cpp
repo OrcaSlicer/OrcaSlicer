@@ -1653,7 +1653,9 @@ static const std::unordered_map<std::string, Py_ssize_t> network_target_arg_indi
 };
 
 // Process events each expose the executable in a different argument, and some pass the whole
-// command line or argv. A grant names the tool only, so the arguments are dropped.
+// command line or argv. A grant normally names the tool only, so the arguments are dropped; the
+// exception is a Windows command line whose executable is unquoted and followed by arguments
+// (see windows_command_line_target).
 enum class ProcessTargetFormat {
     Path,               // the argument is the executable path or name
     FirstToken,         // a command string or argv sequence: its first token or element
@@ -1664,6 +1666,49 @@ struct ProcessTargetSource {
     Py_ssize_t          index;
     ProcessTargetFormat format;
 };
+
+// An exact-command entry shares the process list with executable entries. This reserved prefix
+// keeps the two namespaces apart: an exact command line can never be mistaken for an executable
+// name, and an existing executable grant (which does not carry the prefix) keeps its
+// argument-insensitive meaning. It is stored in the sidecar and listed by the Plugins dialog; the
+// permission prompt shows the command line without it.
+static const std::string kWindowsCommandLineGrantPrefix = "CommandLine:";
+
+static bool is_exact_command_grant(const std::string& target)
+{
+    return boost::algorithm::starts_with(target, kWindowsCommandLineGrantPrefix);
+}
+
+static std::string exact_command_grant(const std::string& command_line)
+{
+    return kWindowsCommandLineGrantPrefix + command_line;
+}
+
+// The prompt shows the command line the user is asked about, not the storage marker.
+static std::string process_target_for_display(const std::string& target)
+{
+    return is_exact_command_grant(target) ? target.substr(kWindowsCommandLineGrantPrefix.size()) : target;
+}
+
+// A process prompt can list executable grants and exact command lines together (a declaration may
+// do so; a runtime event has one target). The wording must not claim argument-insensitive scope
+// for an exact command line.
+struct ProcessPromptScope {
+    bool exact_command = false;
+    bool executable    = false;
+};
+
+static ProcessPromptScope process_prompt_scope(const std::vector<std::string>& targets)
+{
+    ProcessPromptScope scope;
+    for (const std::string& target : targets) {
+        if (is_exact_command_grant(target))
+            scope.exact_command = true;
+        else
+            scope.executable = true;
+    }
+    return scope;
+}
 
 // os.system does not run a program named by its first token: it hands the whole string to the
 // platform shell. POSIX passes it to /bin/sh. The Windows C runtime runs the command interpreter
@@ -1760,11 +1805,19 @@ std::string first_process_token(PyObject* object)
     return value;
 }
 
-// The executable named by a Windows command line. Windows does not split it like a POSIX shell: a
+// The grant target for a Windows command line. Windows does not split it like a POSIX shell: a
 // path that contains spaces is enclosed in double quotes, and backslashes before a quote follow
 // the CommandLineToArgvW rules (2n backslashes and a quote give n backslashes and end the
-// argument, 2n+1 give n backslashes and a literal quote). The audit event reports the command line
-// before the executable is resolved, so this first argument is the program to name in the grant.
+// argument, 2n+1 give n backslashes and a literal quote).
+//
+// A quoted first argument names the executable unambiguously and is returned alone, as is a
+// command line that is only the executable: both keep the argument-insensitive executable grant.
+// An unquoted first argument followed by more text is different. CreateProcess resolves it by
+// trying successively longer prefixes of the name, so the first whitespace-delimited token need
+// not be the executable it starts (the command line "C:\Program Files\app.exe --x" can start
+// "C:\Program Files\app.exe", not "C:\Program"). Such a command line is returned as one exact
+// grant instead, because granting the first token would describe a different program and would
+// cover every later command line with that token.
 std::string windows_command_line_target(const std::string& command_line)
 {
     size_t index = command_line.find_first_not_of(" \t");
@@ -1772,8 +1825,11 @@ std::string windows_command_line_target(const std::string& command_line)
         return {};
 
     if (command_line[index] != '"') {
-        const size_t end = command_line.find_first_of(" \t", index);
-        return command_line.substr(index, end == std::string::npos ? std::string::npos : end - index);
+        const size_t end       = command_line.find_first_of(" \t", index);
+        const size_t token_end = end == std::string::npos ? command_line.size() : end;
+        if (command_line.find_first_not_of(" \t", token_end) != std::string::npos)
+            return exact_command_grant(command_line.substr(index));
+        return command_line.substr(index, token_end - index);
     }
 
     std::string token;
@@ -2542,7 +2598,8 @@ int report_denied(PluginAuditManager&            mgr,
 
 wxString audit_message(AuditEventCategory category, const wxString& plugin_name, const wxString& event_name,
                        const wxString& target_list, size_t target_count, bool full_fs_scope = false,
-                       bool tree_scope = false, bool root_tree_scope = false)
+                       bool tree_scope = false, bool root_tree_scope = false, bool exact_process_command = false,
+                       bool executable_process_target = false)
 {
     // Create and delete grants name folders, and a declaration may ask for the whole filesystem
     // with a sole "*". Describe that scope instead of printing the marker as a folder.
@@ -2682,6 +2739,33 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
                "Approval covers raw network connections to the listed hosts. It does not restrict ports."),
             plugin_name, target_list);
     case AuditEventCategory::ProcessCreate:
+        // An exact command line is saved with its arguments rather than as a tool name, so the
+        // prompt must not promise that approval covers any arguments. The full line is stored,
+        // which can include credentials or tokens in its arguments.
+        if (exact_process_command && !executable_process_target)
+            return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to run the following exact command line:\n%s\n\n"
+                                              "Approval is saved for this exact command line, including its arguments, and covers "
+                                              "only it. A different command line, including different arguments, asks again. The "
+                                              "full command line is shown and saved, so it may contain sensitive values.",
+                                              "Plugin \"%s\" is requesting to run the following exact command lines:\n%s\n\n"
+                                              "Approval is saved for each exact command line, including its arguments, and covers "
+                                              "only that line. A different command line, including different arguments, asks again. "
+                                              "The full command lines are shown and saved, so they may contain sensitive values.",
+                                              target_count),
+                                    plugin_name, target_list);
+        if (exact_process_command)
+            return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to run the following commands:\n%s\n\n"
+                                              "Approval covers the listed executables with any arguments. A listed exact command "
+                                              "line is saved with its arguments and covers only that command line. Exact command "
+                                              "lines are shown and saved in full, so they may contain sensitive values. Approving a "
+                                              "shell allows it to run any command.",
+                                              "Plugin \"%s\" is requesting to run the following commands:\n%s\n\n"
+                                              "Approval covers the listed executables with any arguments. Each listed exact command "
+                                              "line is saved with its arguments and covers only that command line. Exact command "
+                                              "lines are shown and saved in full, so they may contain sensitive values. Approving a "
+                                              "shell allows it to run any command.",
+                                              target_count),
+                                    plugin_name, target_list);
         return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to run the following command:\n%s\n\n"
                                           "Approval covers any arguments. Approving a shell allows it to run any command.",
                                           "Plugin \"%s\" is requesting to run the following commands:\n%s\n\n"
@@ -2701,17 +2785,19 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
 PermissionMessage formatted_audit_message(AuditEventCategory category, const wxString& plugin_name,
                                           const wxString& event_name, const wxString& targets, size_t count,
                                           bool full_fs_scope = false, bool tree_scope = false,
-                                          bool root_tree_scope = false)
+                                          bool root_tree_scope = false, bool exact_process_command = false,
+                                          bool executable_process_target = false)
 {
     if (targets.empty())
         return {audit_message(category, plugin_name, event_name, targets, count, full_fs_scope, tree_scope,
-                              root_tree_scope), {}};
+                              root_tree_scope, exact_process_command, executable_process_target), {}};
 
     wxString marker = "__ORCA_PERMISSION_TARGETS__";
     while (plugin_name.Contains(marker) || event_name.Contains(marker) || targets.Contains(marker))
         marker += "_";
     PermissionMessage message{
-        audit_message(category, plugin_name, event_name, marker, count, full_fs_scope, tree_scope, root_tree_scope), {}};
+        audit_message(category, plugin_name, event_name, marker, count, full_fs_scope, tree_scope, root_tree_scope,
+                      exact_process_command, executable_process_target), {}};
     const size_t pos = message.text.find(marker);
     if (pos != wxString::npos) {
         message.text.replace(pos, marker.length(), targets);
@@ -2796,9 +2882,16 @@ bool prompt_for_targets(AuditEventCategory category, const std::string& plugin_n
         return show_permission_dialog(message, _L("Plugin permission request"));
     }
 
+    const bool process_category =
+        category == AuditEventCategory::ProcessCreate || category == AuditEventCategory::ProcessReplace;
+    const ProcessPromptScope process_scope =
+        process_category ? process_prompt_scope(unresolved) : ProcessPromptScope{};
+
     wxString target_list;
-    for (const auto& target : unresolved)
-        target_list += wxString::FromUTF8(target.c_str()) + "\n";
+    for (const auto& target : unresolved) {
+        const std::string shown = process_category ? process_target_for_display(target) : target;
+        target_list += wxString::FromUTF8(shown.c_str()) + "\n";
+    }
 
     const bool tree_scope = std::any_of(unresolved.begin(), unresolved.end(), [](const std::string& target) {
         boost::filesystem::path root;
@@ -2808,7 +2901,8 @@ bool prompt_for_targets(AuditEventCategory category, const std::string& plugin_n
     PermissionMessage message = formatted_audit_message(category, wxString::FromUTF8(plugin_name.c_str()),
                                                          wxString::FromUTF8(event_name.c_str()), target_list,
                                                          unresolved.size(), /*full_fs_scope=*/false, tree_scope,
-                                                         /*root_tree_scope=*/false);
+                                                         /*root_tree_scope=*/false, process_scope.exact_command,
+                                                         process_scope.executable);
     return show_permission_dialog(message, _L("Plugin permission request"));
 }
 
@@ -2840,16 +2934,24 @@ PermissionMessage build_permission_message(const std::string& plugin_name, const
                 return tree_grant_root(target, root) && is_filesystem_root(root);
             });
 
+        const bool process_category =
+            bucket.category == AuditEventCategory::ProcessCreate || bucket.category == AuditEventCategory::ProcessReplace;
+        const ProcessPromptScope process_scope =
+            process_category ? process_prompt_scope(bucket.targets) : ProcessPromptScope{};
+
         wxString targets;
         if (!full_fs_scope)
-            for (const std::string& target : bucket.targets)
-                targets += wxString::FromUTF8(target.c_str()) + "\n";
+            for (const std::string& target : bucket.targets) {
+                const std::string shown = process_category ? process_target_for_display(target) : target;
+                targets += wxString::FromUTF8(shown.c_str()) + "\n";
+            }
 
         if (!message.text.IsEmpty())
             message.text += "\n\n";
         PermissionMessage part = formatted_audit_message(bucket.category, wxString::FromUTF8(plugin_name.c_str()),
                                                           wxEmptyString, targets, bucket.targets.size(),
-                                                          full_fs_scope, tree_scope, root_tree_scope);
+                                                          full_fs_scope, tree_scope, root_tree_scope,
+                                                          process_scope.exact_command, process_scope.executable);
         for (const auto& range : part.targets)
             message.targets.emplace_back(message.text.length() + range.first, range.second);
         message.text += part.text;
