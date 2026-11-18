@@ -5361,13 +5361,24 @@ Preset *PresetBundle::get_similar_printer_preset(std::string printer_model, std:
     }
     if (printer_presets.empty())
         return nullptr;
-    auto prefer_printer = printers.get_selected_preset().alias; //.name ORCA use alias instead "name" for calling system presets. otherwise nozzle combo will not change printer presets if they custom named
-
-    if (!printer_variant.empty())
-        boost::replace_all(prefer_printer, printer_variant_old, printer_variant);
-    else if (auto n = prefer_printer.find(printer_variant_old); n != std::string::npos)
-        prefer_printer = printer_model + " " + printer_variant_old + prefer_printer.substr(n + printer_variant_old.length());
-    if (auto iter = printer_presets.find(prefer_printer); iter != printer_presets.end()) {
+    // ORCA: swap the variant in the name of the selected preset, then in the name of its system parent.
+    // User presets are named freely, so only a match of the requested variant is accepted.
+    const Preset &selected = printers.get_selected_preset();
+    for (const Preset *from : {&selected, &printers.get_selected_preset_base()}) {
+        auto prefer_printer = from->alias;
+        const auto &variant_old = from->config.opt_string("printer_variant");
+        if (!printer_variant.empty())
+            boost::replace_all(prefer_printer, variant_old, printer_variant);
+        else if (auto n = prefer_printer.find(variant_old); n != std::string::npos)
+            prefer_printer = printer_model + " " + variant_old + prefer_printer.substr(n + variant_old.length());
+        auto iter = printer_presets.find(prefer_printer);
+        if (iter == printer_presets.end() || (!printer_variant.empty() && iter->second->config.opt_string("printer_variant") != printer_variant))
+            continue;
+        // ORCA: from a user preset, prefer another user preset based on the matching system preset.
+        if (!selected.is_system && iter->second->is_system)
+            for (auto &preset : printer_presets)
+                if (!preset.second->is_system && preset.second != &selected && printers.get_preset_base(*preset.second) == iter->second)
+                    return preset.second;
         return iter->second;
     }
     if (printer_variant.empty())
