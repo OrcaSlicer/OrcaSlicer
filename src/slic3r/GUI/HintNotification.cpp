@@ -339,6 +339,10 @@ void HintDatabase::init()
 }
 void HintDatabase::init_random_hint_id()
 {
+	if (m_loaded_hints.empty()) {
+		m_hint_id = 0;
+		return;
+	}
 	srand(time(NULL));
 	m_hint_id = rand() % m_loaded_hints.size();
 }
