@@ -23,17 +23,32 @@ struct ToolbarGroupLayout
     bool operator!=(const ToolbarGroupLayout& rhs) const { return !(*this == rhs); }
 };
 
+// A user-made group of gizmo bar icons that share one bar button. Members are gizmo bar ids in their bar order.
+struct ToolbarGizmoGroup
+{
+    std::string              name;
+    std::vector<std::string> members;
+
+    bool operator==(const ToolbarGizmoGroup& rhs) const { return name == rhs.name && members == rhs.members; }
+    bool operator!=(const ToolbarGizmoGroup& rhs) const { return !(*this == rhs); }
+};
+
 struct ToolbarLayout
 {
     int                version = 1;
     ToolbarGroupLayout main;
     ToolbarGroupLayout gizmos;
+    // The user's gizmo groups, in bar order.
+    std::vector<ToolbarGizmoGroup> groups;
+    // Entries of the saved "groups" array that are not user groups, kept so a save does not drop them.
+    nlohmann::json     other_groups = nlohmann::json::array();
     // Top-level fields this build does not know (written by a newer one), kept so a save does not drop them.
     nlohmann::json     extra = nlohmann::json::object();
 
     bool operator==(const ToolbarLayout& rhs) const
     {
-        return version == rhs.version && main == rhs.main && gizmos == rhs.gizmos && extra == rhs.extra;
+        return version == rhs.version && main == rhs.main && gizmos == rhs.gizmos && groups == rhs.groups &&
+               other_groups == rhs.other_groups && extra == rhs.extra;
     }
     bool operator!=(const ToolbarLayout& rhs) const { return !(*this == rhs); }
 };
@@ -56,5 +71,10 @@ ToolbarLayout stock_toolbar_layout();
 ToolbarLayout parse_toolbar_layout(const std::string& value);
 // Returns "" when the layout is stock and carries no unknown fields: the caller then erases the key.
 std::string serialize_toolbar_layout(const ToolbarLayout& layout);
+
+// Drops group members that are not gizmo bar ids or that an earlier group already has, and groups left with fewer
+// than two members; then moves each group's members next to its first one in gizmos.order and keeps the groups and
+// their members in bar order.
+void normalize_gizmo_groups(ToolbarLayout& layout);
 
 }} // namespace Slic3r::GUI

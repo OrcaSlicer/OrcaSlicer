@@ -3,7 +3,9 @@
 #include <algorithm>
 #include <cstddef>
 #include <iterator>
+#include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Slic3r { namespace GUI {
@@ -15,6 +17,9 @@ constexpr const char* KEY_MAIN          = "main";
 constexpr const char* KEY_MAIN_HIDDEN   = "main_hidden";
 constexpr const char* KEY_GIZMOS        = "gizmos";
 constexpr const char* KEY_GIZMOS_HIDDEN = "gizmos_hidden";
+constexpr const char* KEY_GROUPS        = "groups";
+constexpr const char* KEY_GROUP_NAME    = "name";
+constexpr const char* KEY_GROUP_MEMBERS = "members";
 
 std::vector<std::string> read_string_array(const nlohmann::json& object, const char* key)
 {
@@ -128,8 +133,22 @@ ToolbarLayout parse_toolbar_layout(const std::string& value)
     layout.main   = merge_toolbar_group(stock_main_toolbar_ids(), read_string_array(parsed, KEY_MAIN), read_string_array(parsed, KEY_MAIN_HIDDEN));
     layout.gizmos = merge_toolbar_group(stock_gizmo_bar_ids(), read_string_array(parsed, KEY_GIZMOS), read_string_array(parsed, KEY_GIZMOS_HIDDEN));
 
+    const auto groups = parsed.find(KEY_GROUPS);
+    const bool groups_known = groups != parsed.end() && groups->is_array();
+    if (groups_known)
+        for (const nlohmann::json& entry : *groups) {
+            const auto name    = entry.is_object() ? entry.find(KEY_GROUP_NAME) : entry.end();
+            const auto members = entry.is_object() ? entry.find(KEY_GROUP_MEMBERS) : entry.end();
+            if (entry.is_object() && name != entry.end() && name->is_string() && members != entry.end() && members->is_array())
+                layout.groups.push_back({name->get<std::string>(), read_string_array(entry, KEY_GROUP_MEMBERS)});
+            else
+                layout.other_groups.push_back(entry);
+        }
+    normalize_gizmo_groups(layout);
+
     for (const auto& [key, field] : parsed.items())
-        if (key != KEY_VERSION && key != KEY_MAIN && key != KEY_MAIN_HIDDEN && key != KEY_GIZMOS && key != KEY_GIZMOS_HIDDEN)
+        if (key != KEY_VERSION && key != KEY_MAIN && key != KEY_MAIN_HIDDEN && key != KEY_GIZMOS && key != KEY_GIZMOS_HIDDEN &&
+            !(key == KEY_GROUPS && groups_known))
             layout.extra[key] = field;
     return layout;
 }
@@ -139,13 +158,51 @@ std::string serialize_toolbar_layout(const ToolbarLayout& layout)
     nlohmann::json out = nlohmann::json::object();
     write_group(out, layout.main, stock_main_toolbar_ids(), KEY_MAIN, KEY_MAIN_HIDDEN);
     write_group(out, layout.gizmos, stock_gizmo_bar_ids(), KEY_GIZMOS, KEY_GIZMOS_HIDDEN);
+    if (!layout.groups.empty() || !layout.other_groups.empty()) {
+        nlohmann::json groups = nlohmann::json::array();
+        for (const ToolbarGizmoGroup& group : layout.groups)
+            groups.push_back({{KEY_GROUP_NAME, group.name}, {KEY_GROUP_MEMBERS, group.members}});
+        for (const nlohmann::json& entry : layout.other_groups)
+            groups.push_back(entry);
+        out[KEY_GROUPS] = std::move(groups);
+    }
     if (out.empty() && layout.extra.empty())
         return {};
 
     out[KEY_VERSION] = std::max(layout.version, 1);
     for (const auto& [key, field] : layout.extra.items())
-        out[key] = field;
+        // A "groups" value this build could not read gives way to the groups made here.
+        if (key != KEY_GROUPS || out.find(KEY_GROUPS) == out.end())
+            out[key] = field;
     return out.dump();
+}
+
+void normalize_gizmo_groups(ToolbarLayout& layout)
+{
+    std::vector<std::string>&      order = layout.gizmos.order;
+    std::set<std::string>          taken;
+    std::vector<ToolbarGizmoGroup> kept;
+    for (const ToolbarGizmoGroup& group : layout.groups) {
+        ToolbarGizmoGroup clean{group.name, {}};
+        for (const std::string& id : order)
+            if (contains(group.members, id) && contains(stock_gizmo_bar_ids(), id) && taken.count(id) == 0)
+                clean.members.push_back(id);
+        if (clean.members.size() < 2)
+            continue;
+        taken.insert(clean.members.begin(), clean.members.end());
+        kept.push_back(std::move(clean));
+    }
+
+    // Each group's members follow its first member, in their existing relative order.
+    for (const ToolbarGizmoGroup& group : kept) {
+        const std::vector<std::string> rest(group.members.begin() + 1, group.members.end());
+        order.erase(std::remove_if(order.begin(), order.end(), [&rest](const std::string& id) { return contains(rest, id); }), order.end());
+        order.insert(std::next(std::find(order.begin(), order.end(), group.members.front())), rest.begin(), rest.end());
+    }
+
+    const auto position = [&order](const ToolbarGizmoGroup& group) { return std::find(order.begin(), order.end(), group.members.front()) - order.begin(); };
+    std::stable_sort(kept.begin(), kept.end(), [&position](const ToolbarGizmoGroup& a, const ToolbarGizmoGroup& b) { return position(a) < position(b); });
+    layout.groups = std::move(kept);
 }
 
 }} // namespace Slic3r::GUI
