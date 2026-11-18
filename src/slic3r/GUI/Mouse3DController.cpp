@@ -161,6 +161,7 @@ static std::string format_device_string(int vid, int pid)
     case 0xc633: { ret += "spacemouse enterprise"; break; }
     case 0xc635: { ret += "spacemouse compact"; break; }
     case 0xc636: { ret += "spacemouse module"; break; }
+    case 0xc63a: { ret += "spacemouse wireless (Bluetooth)"; break; }
     case 0xc640: { ret += "nulooq"; break; }
     case 0xc652: { ret += "3Dconnexion universal receiver"; break; }
     default:     { ret += "UNKNOWN"; break; }
