@@ -1573,7 +1573,8 @@ void TreeSupport::generate_toolpaths()
             raft_areas.push_back(expoly);
     }
 
-    raft_areas = offset_ex(raft_areas, scale_(object_config.raft_first_layer_expansion));
+    // A fixed grip for every raft layer, as in BambuStudio. The first layer expansion is added to the first layer below.
+    raft_areas = offset_ex(raft_areas, scale_(3.));
 
     size_t layer_nr = 0;
     for (; layer_nr < m_slicing_params.base_raft_layers; layer_nr++) {
