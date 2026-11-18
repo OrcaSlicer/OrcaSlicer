@@ -184,7 +184,6 @@
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/IMEXHelpers.hpp"
-#include "libslic3r/PhysicalExtruderMap.hpp"
 #include "libslic3r/PublishSettings.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "slic3r/Utils/CrealityPrint.hpp"

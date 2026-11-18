@@ -160,7 +160,7 @@ std::vector<std::string> imex_plate_mode_choices(const ConfigBase& cfg);
 // route through one of the helpers below.
 // =============================================================================
 
-// effective_physical_extruder_map() lives in PhysicalExtruderMap.hpp: the map is a setting of
+// effective_physical_extruder_map() lives in PrintConfig.hpp and PresetBundle.hpp: the map is a setting of
 // every multi-nozzle printer, not only IMEX ones.
 
 // Returns the physical extruder index to emit as a per-tool qualifier (PA / temperature)

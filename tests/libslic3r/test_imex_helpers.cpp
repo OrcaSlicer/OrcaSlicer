@@ -7,7 +7,6 @@
 #include "catch2/catch_message.hpp"
 #include "catch2/generators/catch_generators.hpp"
 #include "libslic3r/IMEXHelpers.hpp"
-#include "libslic3r/PhysicalExtruderMap.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Point.hpp"
 

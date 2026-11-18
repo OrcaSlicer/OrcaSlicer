@@ -82,7 +82,6 @@
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
 #include "libslic3r/IMEXHelpers.hpp"
-#include "libslic3r/PhysicalExtruderMap.hpp"
 #include "libslic3r/IMEXZones.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/LifecycleEvents.hpp"

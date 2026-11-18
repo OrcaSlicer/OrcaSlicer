@@ -29,7 +29,6 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Flow.hpp"
-#include "libslic3r/PhysicalExtruderMap.hpp"
 #include <cstddef>
 #include "libslic3r/ParameterUtils.hpp"
 #include <cmath>

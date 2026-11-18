@@ -1,6 +1,5 @@
 #include "ClipperUtils.hpp"
 #include "IMEXHelpers.hpp"
-#include "PhysicalExtruderMap.hpp"
 #include "Geometry.hpp"
 #include "CustomGCode.hpp"
 #include "Config.hpp"

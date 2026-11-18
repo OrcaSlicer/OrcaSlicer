@@ -403,8 +403,6 @@ set(lisbslic3r_sources
     pchheader.hpp
     PerimeterGenerator.cpp
     PerimeterGenerator.hpp
-    PhysicalExtruderMap.cpp
-    PhysicalExtruderMap.hpp
     PlaceholderParser.cpp
     PlaceholderParser.hpp
     Platform.cpp
