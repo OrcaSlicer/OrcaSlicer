@@ -53,7 +53,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          lfs: 'false'
+          lfs: false
 
       # A reused self-hosted workspace keeps .git/info/sparse-checkout from an earlier
       # job, so the checkout above only materialises those paths. Clear it and expand
@@ -224,7 +224,7 @@ jobs:
             if true; then
               brew install automake texinfo libtool pkgconf yasm nasm
             fi
-            ./build_release_macos.sh -dx '-j 3' -a ${{ inputs.arch }} -t 10.15
+            ./build_release_macos.sh -dx -j 3 -a ${{ inputs.arch }} -t 10.15
             (cd "${{ github.workspace }}/deps/build/${{ inputs.arch }}" && \
             find . -mindepth 1 -maxdepth 1 ! -name 'OrcaSlicer_dep' -exec rm -rf {} +)
 

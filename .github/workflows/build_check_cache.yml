@@ -57,7 +57,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          lfs: 'false'
+          lfs: false
           # The wait check compares the merge commit with its first parent.
           fetch-depth: ${{ startsWith(inputs.os, 'macos-') && 2 || 1 }}
           # Fetches only deps/, which the key hashes, and the wait script.
@@ -82,14 +82,18 @@ jobs:
           # can restore the base branch's deps cache. Restore-keys in
           # build_deps.yml handle finer-grained fallback within the same prefix.
           #
+          # -v3: v2 caches held expat 2.5.0, while CMakeLists.txt now requires
+          # 2.10.0 (deps/EXPAT pins R_2_10_0). Restoring v2 makes the slicer
+          # configure fail before compilation.
+          #
           # -v2: earlier caches hold a Boost whose Boost.Locale was built with the
           # iconv backend enabled (Boost enables it whenever Iconv is found at
           # build time). Consuming such a tree requires find_package(Iconv), which
           # this runner cannot satisfy, so the slicer configure fails before any
           # compilation. A Boost built here reports "Boost.Locale: iconv OFF" and
           # carries no Iconv dependency.
-          echo cache-key=${{ env.cache-os }}-cache-orcaslicer_deps-build-v2 >> ${{ env.output-cmd }}
-          echo cache-prefix=${{ env.cache-os }}-cache-orcaslicer_deps-build-v2- >> ${{ env.output-cmd }}
+          echo cache-key=${{ env.cache-os }}-cache-orcaslicer_deps-build-v3 >> ${{ env.output-cmd }}
+          echo cache-prefix=${{ env.cache-os }}-cache-orcaslicer_deps-build-v3- >> ${{ env.output-cmd }}
           # Relative to the workspace, which differs from the build's when this job runs on Linux.
           echo cache-path=deps/build${{ env.dep-folder-name }} >> ${{ env.output-cmd }}
             
