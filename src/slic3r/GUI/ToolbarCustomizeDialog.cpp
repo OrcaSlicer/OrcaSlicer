@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <iterator>
 #include <map>
 #include <string>
 #include <utility>
@@ -103,8 +104,8 @@ public:
             arrows->Add(btn, 0, wxBOTTOM, FromDIP(6));
             return btn;
         };
-        m_up_button   = add_arrow("design_moveup", _L("Move up"), -1);
-        m_down_button = add_arrow("design_movedown", _L("Move down"), 1);
+        m_up_button   = add_arrow("toolbar_row_up_disabled", _L("Move up"), -1);
+        m_down_button = add_arrow("toolbar_row_down_disabled", _L("Move down"), 1);
         body->Add(arrows, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(12));
 
         auto* lists = new wxBoxSizer(wxHORIZONTAL);
@@ -175,12 +176,30 @@ private:
         std::swap(order[static_cast<size_t>(from)], order[static_cast<size_t>(to)]);
 
         // Move the row itself rather than rebuilding the lists, which flickers.
-        wxWindow* row  = m_rows.at(m_selected);
+        wxWindow* row  = m_rows.at(m_selected).panel;
         wxWindow* list = row->GetParent();
         list->GetSizer()->Detach(row);
         list->GetSizer()->Insert(static_cast<size_t>(to), row, row_flags());
         follow_in_tab_order(list, static_cast<size_t>(to));
         list->Layout();
+        update_arrows();
+    }
+
+    // The arrows are enabled only when the selected row can move that way.
+    void update_arrows()
+    {
+        bool up = false, down = false;
+        if (!m_selected.empty()) {
+            const std::vector<std::string>& order = group_of(m_selected).order;
+            const auto it = std::find(order.begin(), order.end(), m_selected);
+            up   = it != order.end() && it != order.begin();
+            down = it != order.end() && std::next(it) != order.end();
+        }
+        // Button draws its icon the same when disabled, so the icon shows the state.
+        m_up_button->Enable(up);
+        m_up_button->SetIcon(up ? "toolbar_row_up" : "toolbar_row_up_disabled");
+        m_down_button->Enable(down);
+        m_down_button->SetIcon(down ? "toolbar_row_down" : "toolbar_row_down_disabled");
     }
 
     // Keeps Tab moving through the rows in the order they are shown.
@@ -200,8 +219,9 @@ private:
     {
         const std::string old = std::exchange(m_selected, id);
         if (old != id && m_rows.count(old) != 0)
-            style_row(m_rows.at(old), false);
-        style_row(m_rows.at(id), true);
+            style_row(m_rows.at(old).panel, false);
+        style_row(m_rows.at(id).panel, true);
+        update_arrows();
     }
 
     void style_row(wxWindow* row, bool selected)
@@ -229,21 +249,20 @@ private:
             }
             for (size_t i = 0; i < group->order.size(); ++i) {
                 const auto it = m_rows.find(group->order[i]);
-                if (it == m_rows.end() || it->second->GetParent() != panel) {
+                if (it == m_rows.end() || it->second.panel->GetParent() != panel) {
                     rebuild_rows();
                     return;
                 }
-                wxWindow* row = it->second;
+                wxWindow* row = it->second.panel;
                 rows->Detach(row);
                 rows->Insert(i, row, row_flags());
                 follow_in_tab_order(panel, i);
-                for (wxWindow* child : row->GetChildren())
-                    if (auto* check = dynamic_cast<::CheckBox*>(child))
-                        check->SetValue(group->hidden.count(group->order[i]) == 0);
+                it->second.check->SetValue(group->hidden.count(group->order[i]) == 0);
                 style_row(row, group->order[i] == m_selected);
             }
             panel->Layout();
         }
+        update_arrows();
     }
 
     void rebuild_rows()
@@ -252,6 +271,7 @@ private:
         m_rows.clear();
         fill_list(m_main_panel, m_working.main);
         fill_list(m_gizmo_panel, m_working.gizmos);
+        update_arrows();
         // The rows keep their sizes, so the dialog does too; refitting it here made it grow.
         if (GetSizer() != nullptr)
             Layout();
@@ -277,6 +297,7 @@ private:
                     g.hidden.erase(id);
                 else
                     g.hidden.insert(id);
+                select_row(id);
                 e.Skip();
             });
             row_sizer->Add(check, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(6));
@@ -288,7 +309,8 @@ private:
             row_sizer->Add(name, 1, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(3));
 
             if (id != TOOLBAR_SEPARATOR_ID && canvas != nullptr && !canvas->is_toolbar_item_available(id)) {
-                auto* note = new Label(row, Label::Body_12, _L("(not available now)"));
+                // TRN Shown next to a toolbar icon the current printer or selection leaves off the toolbar.
+                auto* note = new Label(row, Label::Body_12, _L("(not on the toolbar right now)"));
                 note->SetForegroundColour(wxColour(144, 144, 144));
                 row_sizer->Add(note, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
             }
@@ -305,7 +327,7 @@ private:
 
             style_row(row, id == m_selected);
             rows->Add(row, row_flags());
-            m_rows[id] = row;
+            m_rows[id] = {row, check};
         }
         panel->Layout();
     }
@@ -317,7 +339,12 @@ private:
     wxPanel*      m_gizmo_panel{nullptr};
     Button*       m_up_button{nullptr};
     Button*       m_down_button{nullptr};
-    std::map<std::string, wxWindow*> m_rows;
+    struct Row
+    {
+        wxPanel*    panel{nullptr};
+        ::CheckBox* check{nullptr};
+    };
+    std::map<std::string, Row> m_rows;
 };
 
 } // namespace
