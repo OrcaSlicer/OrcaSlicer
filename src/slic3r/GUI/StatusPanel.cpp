@@ -2152,13 +2152,12 @@ void StatusBasePanel::reset_temp_misc_control()
 
         m_tempCtrl_nozzle->Enable(true);
         m_tempCtrl_nozzle_deputy->Enable(true);
-    } else {
-        for (auto& tempCtrl : m_tempCtrl_nozzles) {
-            tempCtrl->SetIconNormal();
-            tempCtrl->SetLabel(TEMP_BLANK_STR);
-            tempCtrl->GetTextCtrl()->SetValue(TEMP_BLANK_STR);
-            tempCtrl->Enable(true);
-        }
+    }
+    for (auto& tempCtrl : m_tempCtrl_nozzles) {
+        tempCtrl->SetIconNormal();
+        tempCtrl->SetLabel(TEMP_BLANK_STR);
+        tempCtrl->GetTextCtrl()->SetValue(TEMP_BLANK_STR);
+        tempCtrl->Enable(true);
     }
 
     m_tempCtrl_bed->SetIconNormal();
@@ -2815,7 +2814,8 @@ void StatusPanel::wire_controls()
         if (id == m_tempCtrl_bed->GetType()) {
             on_set_bed_temp();
         } else if (id == m_nozzle_temp_control_id) {
-            if (wxGetApp().preset_bundle->is_bbl_vendor()) {
+            if (wxGetApp().preset_bundle->is_bbl_vendor() &&
+                (!obj || obj->GetExtderSystem()->GetTotalExtderCount() <= 2)) {
                 if (e.GetString() == wxString::Format("%d", MAIN_EXTRUDER_ID)) {
                     on_set_nozzle_temp(MAIN_EXTRUDER_ID);
                 } else if (e.GetString() == wxString::Format("%d", DEPUTY_EXTRUDER_ID)) {
@@ -2930,11 +2930,10 @@ StatusPanel::~StatusPanel()
 
             m_tempCtrl_nozzle_deputy->Disconnect(wxEVT_KILL_FOCUS, wxFocusEventHandler(StatusPanel::on_nozzle_temp_kill_focus), NULL, this);
             m_tempCtrl_nozzle_deputy->Disconnect(wxEVT_SET_FOCUS, wxFocusEventHandler(StatusPanel::on_nozzle_temp_set_focus), NULL, this);
-        } else {
-            for (auto& tempCtrl : m_tempCtrl_nozzles) {
-                tempCtrl->Disconnect(wxEVT_KILL_FOCUS, wxFocusEventHandler(StatusPanel::on_nozzle_temp_kill_focus), NULL, this);
-                tempCtrl->Disconnect(wxEVT_SET_FOCUS, wxFocusEventHandler(StatusPanel::on_nozzle_temp_set_focus), NULL, this);
-            }
+        }
+        for (auto& tempCtrl : m_tempCtrl_nozzles) {
+            tempCtrl->Disconnect(wxEVT_KILL_FOCUS, wxFocusEventHandler(StatusPanel::on_nozzle_temp_kill_focus), NULL, this);
+            tempCtrl->Disconnect(wxEVT_SET_FOCUS, wxFocusEventHandler(StatusPanel::on_nozzle_temp_set_focus), NULL, this);
         }
 
         m_switch_lamp->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_lamp_switch), NULL, this);
@@ -3408,7 +3407,8 @@ void StatusPanel::show_printing_status(bool ctrl_area, bool temp_area)
     }
 
     if (!temp_area) {
-        if (wxGetApp().preset_bundle->is_bbl_vendor()) {
+        if (wxGetApp().preset_bundle->is_bbl_vendor() &&
+            (!obj || obj->GetExtderSystem()->GetTotalExtderCount() <= 2)) {
             m_tempCtrl_nozzle->Enable(false);
             m_tempCtrl_nozzle_deputy->Enable(false);
         } else {
@@ -3426,7 +3426,8 @@ void StatusPanel::show_printing_status(bool ctrl_area, bool temp_area)
         m_switch_cham_fan->Enable(false);*/
         m_switch_fan->Enable(false);
     } else {
-        if (wxGetApp().preset_bundle->is_bbl_vendor()) {
+        if (wxGetApp().preset_bundle->is_bbl_vendor() &&
+            (!obj || obj->GetExtderSystem()->GetTotalExtderCount() <= 2)) {
             m_tempCtrl_nozzle->Enable();
             m_tempCtrl_nozzle_deputy->Enable();
         } else {
@@ -3485,7 +3486,8 @@ void StatusPanel::update_temp_ctrl(MachineObject *obj)
     if (!obj) return;
 
     const int nozzle_num = obj->GetExtderSystem()->GetTotalExtderCount();
-    if (!wxGetApp().preset_bundle->is_bbl_vendor())
+    const bool legacy_bbl_temps = wxGetApp().preset_bundle->is_bbl_vendor() && nozzle_num <= 2;
+    if (!legacy_bbl_temps)
         sync_nozzle_temp_controls(nozzle_num);
 
     DevBed* bed = obj->GetBed();
@@ -3500,7 +3502,7 @@ void StatusPanel::update_temp_ctrl(MachineObject *obj)
     m_tempCtrl_bed->SetMaxTemp(limit);
 
     if (obj->nozzle_temp_range.size() >= 2) {
-        if (wxGetApp().preset_bundle->is_bbl_vendor()) {
+        if (legacy_bbl_temps) {
             m_tempCtrl_nozzle->SetMinTemp(obj->nozzle_temp_range[0]);
             m_tempCtrl_nozzle->SetMaxTemp(obj->nozzle_temp_range[1]);
 
@@ -3529,7 +3531,7 @@ void StatusPanel::update_temp_ctrl(MachineObject *obj)
 
     bool to_update_layout = false;
 
-    if (wxGetApp().preset_bundle->is_bbl_vendor()) {
+    if (legacy_bbl_temps) {
         for (auto& tempCtrl : m_tempCtrl_nozzles) {
             if (tempCtrl->IsShown()) {
                 tempCtrl->Hide();
@@ -3600,7 +3602,7 @@ void StatusPanel::update_temp_ctrl(MachineObject *obj)
         }
     }
 
-    if (wxGetApp().preset_bundle->is_bbl_vendor()) {
+    if (legacy_bbl_temps) {
         if (m_temp_nozzle_timeout > 0) {
             m_temp_nozzle_timeout--;
         } else {
@@ -3737,15 +3739,14 @@ void StatusPanel::update_misc_ctrl(MachineObject *obj)
     /*extder*/
     auto extder_system = obj->GetExtderSystem();
     m_nozzle_num     = extder_system->GetTotalExtderCount();
-    const bool is_bbl_vendor = wxGetApp().preset_bundle->is_bbl_vendor();
     const bool bbl_selector_was_shown = m_nozzle_btn_panel->IsShown();
     const bool generic_selector_was_shown = m_generic_nozzle_selector->IsShown();
     if (m_nozzle_num <= 0) {
         m_nozzle_btn_panel->Hide();
         m_generic_nozzle_selector->Hide();
         m_extruder_book->SetSelection(0);
-    } else if (is_bbl_vendor) {
-        // Preserve Bambu's existing main/deputy presentation and left/right selector.
+    } else if (m_nozzle_num <= 2) {
+        // The legacy single/dual presentation addresses tool 0 on the right and tool 1 on the left.
         const int display_num = std::min(m_nozzle_num, static_cast<int>(m_extruderImage.size()));
         const int select_index = display_num - 1;
         ExtruderImage* image = m_extruderImage[select_index];
@@ -3828,7 +3829,7 @@ void StatusPanel::update_misc_ctrl(MachineObject *obj)
     // best size untouched.
     bool book_size_changed = false;
     {
-        const bool generic_grid       = !is_bbl_vendor && m_nozzle_num > 2;
+        const bool generic_grid       = m_nozzle_num > 2;
         const bool book_has_explicit_size =
             m_extruder_book->GetMinSize() != wxDefaultSize ||
             m_extruder_book->GetMaxSize() != wxDefaultSize;
@@ -4001,9 +4002,7 @@ void StatusPanel::update_ams(MachineObject *obj)
     // must select a current can
     m_ams_control->UpdateAms(obj->get_printer_series_str(), obj->printer_type, ams_info, ext_info, *obj->GetExtderSystem(), obj->get_dev_id(), obj, false);
 
-    const bool show_generic_nozzle_switch =
-        obj->GetExtderSystem()->GetTotalExtderCount() > 2 &&
-        !wxGetApp().preset_bundle->is_bbl_vendor();
+    const bool show_generic_nozzle_switch = obj->GetExtderSystem()->GetTotalExtderCount() > 2;
     const bool ams_nozzle_switch_was_shown = m_ams_nozzle_switch->IsShown();
     if (show_generic_nozzle_switch) {
         std::vector<wxString> nozzle_options;
@@ -4057,7 +4056,7 @@ void StatusPanel::update_ams(MachineObject *obj)
 
     //    m_ams_control->SetExtruder(obj->is_filament_at_extruder(), obj->m_extder_data.extders[MAIN_NOZZLE_ID].snow.ams_id, obj->m_extder_data.extders[MAIN_NOZZLE_ID].snow.slot_id);
     //} else {
-    if (wxGetApp().preset_bundle->is_bbl_vendor()) {
+    if (wxGetApp().preset_bundle->is_bbl_vendor() && obj->GetExtderSystem()->GetTotalExtderCount() <= 2) {
         /*right*/
         if (obj->GetExtderSystem()->GetTotalExtderCount() > 0) {
             auto ext = obj->GetExtderSystem()->GetExtderById(MAIN_EXTRUDER_ID);
@@ -4817,7 +4816,7 @@ void StatusPanel::on_set_nozzle_temp(int nozzle_id)
     try {
         long nozzle_temp;
 
-        if (wxGetApp().preset_bundle->is_bbl_vendor()) {
+        if (wxGetApp().preset_bundle->is_bbl_vendor() && obj->GetExtderSystem()->GetTotalExtderCount() <= 2) {
             if (nozzle_id == MAIN_EXTRUDER_ID) {
                 wxString str = m_tempCtrl_nozzle->GetTextCtrl()->GetValue();
                 if (str.ToLong(&nozzle_temp) && obj) {
@@ -5092,7 +5091,7 @@ void StatusPanel::on_ams_switch(SimpleEvent &event)
         if (m_ams_nozzle_switch && m_ams_nozzle_switch->IsShown())
             m_ams_nozzle_switch->SetSelection(m_ams_control->GetActiveNozzleId());
 
-        if (wxGetApp().preset_bundle->is_bbl_vendor()) {
+        if (wxGetApp().preset_bundle->is_bbl_vendor() && obj->GetExtderSystem()->GetTotalExtderCount() <= 2) {
             /*right*/
             if (obj->GetExtderSystem()->GetTotalExtderCount() > 0) {
                 auto ext = obj->GetExtderSystem()->GetExtderById(MAIN_EXTRUDER_ID);
@@ -5725,6 +5724,7 @@ void StatusPanel::on_xyz_abs(wxCommandEvent &event)
 void StatusPanel::on_nozzle_selected(wxCommandEvent &event)
 {
     const bool is_bbl_vendor = wxGetApp().preset_bundle->is_bbl_vendor();
+    const bool indexed_selector = event.GetEventType() == wxEVT_CHOICE;
     if (obj) {
         const int nozzle_id = event.GetInt();
         const auto extder_system = obj->GetExtderSystem();
@@ -5732,9 +5732,10 @@ void StatusPanel::on_nozzle_selected(wxCommandEvent &event)
         const int current_selection = current_nozzle_id >= 0 && current_nozzle_id < extder_system->GetTotalExtderCount()
                                           ? current_nozzle_id
                                           : wxNOT_FOUND;
-        const bool nozzle_change_in_progress = !is_bbl_vendor && obj->targ_nozzle_id_from_pc != INVALID_EXTRUDER_ID;
-        if (!is_bbl_vendor && (nozzle_id < 0 || nozzle_id >= extder_system->GetTotalExtderCount())) {
-            m_generic_nozzle_selector->SetSelection(current_selection);
+        const bool nozzle_change_in_progress = (!is_bbl_vendor || indexed_selector) && obj->targ_nozzle_id_from_pc != INVALID_EXTRUDER_ID;
+        if (nozzle_id < 0 || nozzle_id >= extder_system->GetTotalExtderCount()) {
+            if (indexed_selector)
+                m_generic_nozzle_selector->SetSelection(current_selection);
             return;
         }
 
@@ -5743,16 +5744,16 @@ void StatusPanel::on_nozzle_selected(wxCommandEvent &event)
             obj->ams_status_main == AMS_STATUS_MAIN_FILAMENT_CHANGE || nozzle_change_in_progress) {
             MessageDialog dlg(nullptr, _L("The printer is busy with another print job."), _L("Error"), wxICON_WARNING | wxOK);
             dlg.ShowModal();
-            if (!is_bbl_vendor)
+            if (indexed_selector)
                 m_generic_nozzle_selector->SetSelection(current_selection);
             return;
         }
 
-        if (!is_bbl_vendor)
+        if (indexed_selector)
             m_generic_nozzle_selector->Disable();
-        if (obj->GetCtrl()->command_select_extruder(nozzle_id) == 0)
+        if (obj->GetCtrl()->command_select_extruder(nozzle_id) != 0)
         {
-            if (!is_bbl_vendor) {
+            if (indexed_selector) {
                 // The command did not start; restore the previous selection and
                 // re-enable the selector so the user is not stuck.
                 m_generic_nozzle_selector->SetSelection(current_selection);
@@ -5762,7 +5763,7 @@ void StatusPanel::on_nozzle_selected(wxCommandEvent &event)
         }
     }
 
-    if (is_bbl_vendor)
+    if (!indexed_selector)
         m_nozzle_btn_panel->Enable();
     else
         m_generic_nozzle_selector->Enable();

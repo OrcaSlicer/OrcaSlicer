@@ -1709,7 +1709,8 @@ std::map<int, DevNozzle> SelectMachineDialog::get_mapped_nozzles(int fila_id) co
         total_ext_count = opt ? opt->values.size() : 0;
     }
 
-    if (total_ext_count != obj_->GetExtderSystem()->GetTotalExtderCount()) {
+    const int device_ext_count = obj_->GetExtderSystem()->GetTotalExtderCount();
+    if (device_ext_count <= 2 && total_ext_count != device_ext_count) {
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": total_ext_count not match";
         return nozzle_map;
     }
@@ -1718,15 +1719,25 @@ std::map<int, DevNozzle> SelectMachineDialog::get_mapped_nozzles(int fila_id) co
     if (!nozzle_system) { return nozzle_map; }
 
     if (!nozzle_system->GetNozzleRack()->IsSupported()) {
-        if (total_ext_count == 1) {
+        if (device_ext_count == 1) {
             nozzle_map[MAIN_EXTRUDER_ID] = nozzle_system->GetNozzleByPosId(MAIN_EXTRUDER_ID);
-        } else if (total_ext_count == 2) {
+        } else if (device_ext_count == 2) {
             if (fila_id >= 0 && (size_t)fila_id < m_filaments_map.size()) {
                 if (m_filaments_map[fila_id] == 1) {
                     nozzle_map[DEPUTY_EXTRUDER_ID] = nozzle_system->GetNozzleByPosId(DEPUTY_EXTRUDER_ID);
                 } else if (m_filaments_map[fila_id] == 2) {
                     nozzle_map[MAIN_EXTRUDER_ID] = nozzle_system->GetNozzleByPosId(MAIN_EXTRUDER_ID);
                 }
+            }
+        } else if (device_ext_count > 2 && fila_id >= 0 && size_t(fila_id) < m_filaments_map.size()) {
+            const int logical = m_filaments_map[fila_id] - 1;
+            const auto& config = m_print_type == FROM_NORMAL ? wxGetApp().preset_bundle->full_config() : m_required_data_config;
+            const auto* physical_map = config.option<ConfigOptionInts>("physical_extruder_map");
+            const auto map = effective_physical_extruder_map(physical_map, total_ext_count);
+            if (logical >= 0 && size_t(logical) < map.values.size()) {
+                const int physical = map.values[logical];
+                if (physical >= 0 && physical < device_ext_count)
+                    nozzle_map[physical] = nozzle_system->GetExtNozzle(physical);
             }
         }
     } else if (m_print_type == FROM_NORMAL) {
@@ -4523,6 +4534,9 @@ static wxString _get_nozzle_name(int total_ext_count, int ext_id)
         }
     }
 
+    if (total_ext_count > 2)
+        return wxString::Format(_L("nozzle T%d"), ext_id);
+
     return _L("nozzle");
 }
 
@@ -4802,7 +4816,7 @@ bool SelectMachineDialog::CheckErrorExtruderNozzleWithSlicing(MachineObject* obj
                 if (installed_ext_nozzle.GetNozzleDiameter() > 0.0f &&
                     slicing_ext.nozzle_diameter != installed_ext_nozzle.GetNozzleDiameter()) {
                     std::vector<wxString> msg_params;
-                    if (ext_sys->GetTotalExtderCount() == 2) {
+                    if (ext_sys->GetTotalExtderCount() > 1) {
                         const wxString& mismatch_nozzle_str = _get_nozzle_name(ext_sys->GetTotalExtderCount(), slicing_ext_idx);
                         const wxString& nozzle_message = wxString::Format(_L("The %s diameter(%.1fmm) of current printer doesn't match with the slicing file (%.1fmm). "
                             "Please make sure the nozzle installed matches with settings in printer, then set the "
@@ -4861,6 +4875,15 @@ static wxString _get_ext_loc_str(const std::unordered_set<int>& extruders, int t
         }
     }
 
+    if (total_ext_num > 2) {
+        wxString tools;
+        for (int id : std::set<int>(extruders.begin(), extruders.end())) {
+            if (!tools.empty())
+                tools += ", ";
+            tools += wxString::Format("T%d", id);
+        }
+        return wxString::Format(_L_PLURAL("extruder %s", "extruders %s", extruders.size()), tools);
+    }
     return wxEmptyString;
 }
 
@@ -7181,8 +7204,14 @@ static wxString _get_tips(MachineObject* obj_)
         ext_diameter += format_nozzle_diameter(obj_->GetExtderSystem()->GetNozzleDiameter(1));//Left
         ext_diameter += "/";
         ext_diameter += format_nozzle_diameter(obj_->GetExtderSystem()->GetNozzleDiameter(0));
-    } else {
-        assert(0);
+    } else if (obj_->GetExtderSystem()->GetTotalExtderCount() > 2) {
+        for (int i = 0; i < obj_->GetExtderSystem()->GetTotalExtderCount(); ++i) {
+            if (!ext_diameter.empty())
+                ext_diameter += "/";
+            ext_diameter += wxString::Format("T%d: ", i);
+            const float diameter = obj_->GetExtderSystem()->GetNozzleDiameter(i);
+            ext_diameter += diameter > 0.0f ? format_nozzle_diameter(diameter) : _L("Unknown");
+        }
     }
 
     if (!ext_diameter.empty()) {

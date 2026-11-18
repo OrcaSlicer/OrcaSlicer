@@ -196,10 +196,9 @@ The device-control widgets follow the same device-reported counts.
 - The status panel builds external-spool entries from `MachineObject::vt_slot`; generic slot
   synthesis keeps one empty entry available for each live toolhead even when the printer does not
   report external-spool state.
-- The status panel's `ExtruderImage` renders one per-toolhead state per nozzle and is resized to
-  `GetTotalExtderCount()`. Non-Bambu printers choose the active toolhead through
-  `m_generic_nozzle_selector` (shown when more than one toolhead exists); Bambu keeps its left/right
-  `m_nozzle_btn_panel`. Nozzle temperature controls are created on demand per toolhead.
+- The status panel uses the single or left/right nozzle presentation for one or two toolheads,
+  and an indexed `ExtruderImage` and toolhead selector for three or more. Nozzle temperature
+  controls are created on demand for generic printers and printers with more than two toolheads.
 
 ## Constraints
 
@@ -219,9 +218,9 @@ The device-control widgets follow the same device-reported counts.
   `nozzle_diameter` entries as the device has toolheads. A mismatch is surfaced only as a log warning
   (`StatusPanel::check_extruder_count_mismatch()`), deliberately log-only, because the sidebar and
   extruder logic would otherwise silently disagree.
-- **Bambu compatibility.** Bambu-specific presentation (left/right pair, fixed 4-slot units, fixed
-  virtual ids, physical/logical inversion) is preserved behind the vendor check. Generic paths do
-  not alter it.
+- **Bambu compatibility.** The two-tool left/right presentation is shared across vendors.
+  Bambu protocol details, including fixed 4-slot units, fixed virtual ids and physical/logical
+  inversion, remain separate from generic paths.
 - **Tray-index invariant.** The generic tray-index map is cumulative, so payload tray ids must be
   unique, 0-based, and contiguous per unit. A malformed id is a producer error.
 - **Protocol markers.** The dialect has no neutral equivalent for some Bambu state, so agents that

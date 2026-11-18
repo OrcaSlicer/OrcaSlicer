@@ -673,8 +673,7 @@ void AMSControl::restore_legacy_ams_layout()
 
 bool AMSControl::use_multi_nozzle_layout() const
 {
-    const bool is_bbl = wxGetApp().preset_bundle && wxGetApp().preset_bundle->is_bbl_vendor();
-    return is_bbl ? m_total_ext_count > 2 : m_nozzle_book != nullptr;
+    return m_total_ext_count > 2 && m_nozzle_book != nullptr;
 }
 
 void AMSControl::CreateAmsMultiNozzle(const std::string &series_name, const std::string &printer_type) {
@@ -812,7 +811,9 @@ void AMSControl::CreateAmsDoubleNozzle(const std::string &series_name, const std
     // Orca: place each AMS by its switch inlet when a Filament Track Switch is installed, else by the pinned
     // nozzle_id (routes_to_main_extruder). Switch-less machines are unaffected; ext spools keep nozzle_id.
     for (auto ams_info = m_ams_info.begin(); ams_info != m_ams_info.end(); ams_info++){
-        if (ams_info->cans.size() == GENERIC_AMS_SLOT_NUM){
+        if (ams_info->cans.size() == GENERIC_AMS_SLOT_NUM ||
+            (ams_info->ams_type == AMSModel::GENERIC_AMS && !ams_info->cans.empty() &&
+             (!wxGetApp().preset_bundle || !wxGetApp().preset_bundle->is_bbl_vendor()))){
             ams_info->routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(ams_info->ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(ams_info->ams_id);
             AddAmsPreview(*ams_info, ams_info->ams_type);
             AddAms(*ams_info);
@@ -843,11 +844,6 @@ void AMSControl::CreateAmsDoubleNozzle(const std::string &series_name, const std
             }
         }
     }
-    if (m_ext_info.size() <= 1) {
-        BOOST_LOG_TRIVIAL(trace) << "vt_slot empty!";
-        assert(0);
-        return;
-    }
     AMSinfo ext_info;
     for (auto info : m_ext_info){
         if (info.ams_id == std::to_string(VIRTUAL_TRAY_MAIN_ID)){
@@ -859,14 +855,16 @@ void AMSControl::CreateAmsDoubleNozzle(const std::string &series_name, const std
     //wait add
 
 
-    single_info_right[0].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_right[0].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_right[0].ams_id);
-    if (single_info_right.size() == 2){
-        single_info_right[1].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_right[1].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_right[1].ams_id);
-        pair_id.push_back(std::make_pair(single_info_right[0].ams_id, single_info_right[1].ams_id));
+    if (!single_info_right.empty()) {
+        single_info_right[0].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_right[0].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_right[0].ams_id);
+        if (single_info_right.size() == 2){
+            single_info_right[1].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_right[1].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_right[1].ams_id);
+            pair_id.push_back(std::make_pair(single_info_right[0].ams_id, single_info_right[1].ams_id));
+        }
+        AddAms(single_info_right, series_name, printer_type);
+        AddAmsPreview(single_info_right, AMSPanelPos::RIGHT_PANEL);
+        single_info_right.clear();
     }
-    AddAms(single_info_right, series_name, printer_type);
-    AddAmsPreview(single_info_right, AMSPanelPos::RIGHT_PANEL);
-    single_info_right.clear();
 
     for (auto info : m_ext_info) {
         if (info.ams_id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) {
@@ -876,14 +874,16 @@ void AMSControl::CreateAmsDoubleNozzle(const std::string &series_name, const std
         }
     }
     //wait add
-    single_info_left[0].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_left[0].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_left[0].ams_id);
-    if (single_info_left.size() == 2){
-        single_info_left[1].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_left[1].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_left[1].ams_id);
-        pair_id.push_back(std::make_pair(single_info_left[0].ams_id, single_info_left[1].ams_id));
+    if (!single_info_left.empty()) {
+        single_info_left[0].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_left[0].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_left[0].ams_id);
+        if (single_info_left.size() == 2){
+            single_info_left[1].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_left[1].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_left[1].ams_id);
+            pair_id.push_back(std::make_pair(single_info_left[0].ams_id, single_info_left[1].ams_id));
+        }
+        AddAmsPreview(single_info_left, AMSPanelPos::LEFT_PANEL);
+        AddAms(single_info_left, series_name, printer_type);
+        single_info_left.clear();
     }
-    AddAmsPreview(single_info_left, AMSPanelPos::LEFT_PANEL);
-    AddAms(single_info_left, series_name, printer_type);
-    single_info_left.clear();
 
     m_sizer_prv_left->Layout();
     m_sizer_prv_right->Layout();
@@ -935,7 +935,9 @@ void AMSControl::CreateAmsSingleNozzle(const std::string &series_name, const std
 
     //add ams data
     for (auto ams_info = m_ams_info.begin(); ams_info != m_ams_info.end(); ams_info++) {
-        if (ams_info->cans.size() == GENERIC_AMS_SLOT_NUM) {
+        if (ams_info->cans.size() == GENERIC_AMS_SLOT_NUM ||
+            (ams_info->ams_type == AMSModel::GENERIC_AMS && !ams_info->cans.empty() &&
+             (!wxGetApp().preset_bundle || !wxGetApp().preset_bundle->is_bbl_vendor()))) {
             m_item_ids[DEPUTY_EXTRUDER_ID].push_back(ams_info->ams_id);
             AddAmsPreview(*ams_info, ams_info->ams_type);
             AddAms(*ams_info, AMSPanelPos::LEFT_PANEL);
@@ -967,14 +969,11 @@ void AMSControl::CreateAmsSingleNozzle(const std::string &series_name, const std
     }
 
     // data ext data
-    if (m_ext_info.size() <= 0){
-        BOOST_LOG_TRIVIAL(trace) << "vt_slot empty!";
-        return;
+    if (!m_ext_info.empty()) {
+        single_info.push_back(m_ext_info[0]);
+        m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info[0].ams_id);
+        AddAms(single_info, series_name, printer_type, AMSPanelPos::RIGHT_PANEL);
     }
-
-    single_info.push_back(m_ext_info[0]);
-    m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info[0].ams_id);
-    AddAms(single_info, series_name, printer_type, AMSPanelPos::RIGHT_PANEL);
     auto left_init_mode = findFirstMode(AMSPanelPos::LEFT_PANEL);
     auto right_init_mode = findFirstMode(AMSPanelPos::RIGHT_PANEL);
 
@@ -1159,6 +1158,10 @@ void AMSControl::UpdateAms(const std::string   &series_name,
                 if (m_ams_info[i].nozzle_id != ams_info[i].nozzle_id) {
                     fresh = true;
                 }
+                if (m_ams_info[i].cans.size() != ams_info[i].cans.size() ||
+                    m_ams_info[i].ams_type != ams_info[i].ams_type) {
+                    fresh = true;
+                }
             }
 
             for (int i = 0; i < static_cast<int>(m_ext_info.size()); ++i) {
@@ -1328,7 +1331,7 @@ void AMSControl::createAms(wxSimplebook* parent, int& idx, AMSinfo info, AMSPane
     // laid out fully instead of being clipped by the old minimum width.
     if (info.ams_type == AMSModel::GENERIC_AMS) {
         const int required_width = ams_item->GetMinSize().x;
-        if (required_width > 0) {
+        if (required_width > 0 && use_multi_nozzle_layout()) {
             const int page_width = std::max(parent->GetMinSize().x, required_width);
             parent->SetMinSize(wxSize(page_width, -1));
             if (auto *page = parent->GetParent()) {
@@ -1389,7 +1392,10 @@ AMSRoadShowMode AMSControl::findFirstMode(AMSPanelPos pos) {
     auto item = m_ams_item_list.find(ams_id);
     if (ams_id.empty() || item == m_ams_item_list.end()) return init_mode;
 
-    if (item->second->get_can_count() == GENERIC_AMS_SLOT_NUM) {
+    if (item->second->get_can_count() == GENERIC_AMS_SLOT_NUM ||
+        (item->second->get_ams_model() == AMSModel::GENERIC_AMS && item->second->get_can_count() > 0 &&
+         item->second->get_can_count() < GENERIC_AMS_SLOT_NUM &&
+         (!wxGetApp().preset_bundle || !wxGetApp().preset_bundle->is_bbl_vendor()))) {
         if (item->second->get_ams_model() == AMSModel::AMS_LITE) return AMSRoadShowMode::AMS_ROAD_MODE_AMS_LITE;
         if (item->second->get_ams_model() == AMSModel::EXT_AMS && item->second->get_ext_type() == AMSModelOriginType::LITE_EXT) return AMSRoadShowMode::AMS_ROAD_MODE_AMS_LITE;
         return AMSRoadShowMode::AMS_ROAD_MODE_FOUR;
@@ -1805,7 +1811,10 @@ void AMSControl::SwitchAms(std::string ams_id)
             for (auto id : ids) {
                 if (id == item->get_ams_id()) {
                     pos == AMSPanelPos::LEFT_PANEL ? m_simplebook_ams_left->SetSelection(item->get_selection()) : m_simplebook_ams_right->SetSelection(item->get_selection());
-                    if (item->get_can_count() == GENERIC_AMS_SLOT_NUM) {
+                    if (item->get_can_count() == GENERIC_AMS_SLOT_NUM ||
+                        (item->get_ams_model() == AMSModel::GENERIC_AMS && item->get_can_count() > 0 &&
+                         item->get_can_count() < GENERIC_AMS_SLOT_NUM &&
+                         (!wxGetApp().preset_bundle || !wxGetApp().preset_bundle->is_bbl_vendor()))) {
                         if (item->get_ams_model() == AMSModel::AMS_LITE) {
                             if (pos == AMSPanelPos::LEFT_PANEL) {
                                 m_down_road->UpdateLeft(m_total_ext_count, AMSRoadShowMode::AMS_ROAD_MODE_AMS_LITE);
@@ -1897,7 +1906,7 @@ void AMSControl::SetExtruder(bool on_off, int nozzle_id, std::string ams_id, std
     if (m_ams_item_list.find(ams_id) != m_ams_item_list.end()) { item = m_ams_item_list[ams_id]; }
 
     if (use_multi_nozzle_layout()) {
-        if (nozzle_id < 0 || nozzle_id >= static_cast<int>(m_nozzle_panes.size()))
+        if (nozzle_id < 0 || nozzle_id >= static_cast<int>(m_nozzle_panes.size()) || nozzle_id != m_active_nozzle_id)
             return;
 
         if (!m_extruder)
@@ -1966,7 +1975,9 @@ void AMSControl::SetAmsStep(std::string ams_id, std::string canid, AMSPassRoadTy
     //Set path length in different case
     model  = ams->get_ams_model();
 
-    if (ams->get_can_count() == GENERIC_AMS_SLOT_NUM) {
+    if (ams->get_can_count() == GENERIC_AMS_SLOT_NUM ||
+        (model == AMSModel::GENERIC_AMS && ams->get_can_count() > 0 &&
+         (!wxGetApp().preset_bundle || !wxGetApp().preset_bundle->is_bbl_vendor()))) {
         length = left ? 129 : 145;
     } else if (ams->get_can_count() == 1) {
         for (auto it : pair_id){
@@ -2040,6 +2051,17 @@ void AMSControl::SetAmsStep(std::string ams_id, std::string canid, AMSPassRoadTy
         if (nozzle_id >= static_cast<int>(m_nozzle_panes.size()))
             return;
         auto &pane = m_nozzle_panes[nozzle_id];
+        if (nozzle_id != m_active_nozzle_id) {
+            AMSPassRoadSTEP item_step = AMSPassRoadSTEP::AMS_ROAD_STEP_NONE;
+            if (step == AMSPassRoadSTEP::AMS_ROAD_STEP_COMBO_LOAD_STEP1)
+                item_step = AMSPassRoadSTEP::AMS_ROAD_STEP_1;
+            else if (step == AMSPassRoadSTEP::AMS_ROAD_STEP_COMBO_LOAD_STEP2)
+                item_step = AMSPassRoadSTEP::AMS_ROAD_STEP_2;
+            else if (step == AMSPassRoadSTEP::AMS_ROAD_STEP_COMBO_LOAD_STEP3)
+                item_step = AMSPassRoadSTEP::AMS_ROAD_STEP_3;
+            ams->SetAmsStep(ams_id, canid, type, item_step);
+            return;
+        }
         AMSRoadShowMode road_mode = AMSRoadShowMode::AMS_ROAD_MODE_SINGLE;
         if (ams->get_can_count() == GENERIC_AMS_SLOT_NUM)
             road_mode = AMSRoadShowMode::AMS_ROAD_MODE_FOUR;
