@@ -357,7 +357,7 @@ public:
     bool is_multi_extruders() const;
     int  get_extruder_id_by_ams_id(const std::string& ams_id);
     // Orca: the printer preset's extruder index of device extruder extder_id
-    int  get_preset_extruder_index(int extder_id) const { return is_multi_extruders() ? (is_main_extruder_on_left() ? extder_id : 1 - extder_id) : 0; }
+    int  get_preset_extruder_index(int extder_id) const;
 
     /* E3D has extra nozzle flow type info */
     bool has_extra_flow_type{false};

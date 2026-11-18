@@ -457,6 +457,13 @@ wxString MachineObject::get_printer_type_display_str() const
         return _L("Unknown");
 }
 
+int MachineObject::get_preset_extruder_index(int extder_id) const
+{
+    if (GUI::wxGetApp().preset_bundle->is_bbl_vendor())
+        return is_multi_extruders() ? (is_main_extruder_on_left() ? extder_id : 1 - extder_id) : 0;
+    return extder_id;
+}
+
 std::string MachineObject::get_printer_thumbnail_img_str() const
 {
     std::string img_str = DevPrinterConfigUtil::get_printer_thumbnail_img(printer_type);
