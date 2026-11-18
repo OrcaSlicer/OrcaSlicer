@@ -1,12 +1,17 @@
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "libslic3r/Model.hpp"
 #include "libslic3r/TexturePainting.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 #include "texture_import_cgal.hpp"
 
 #include <algorithm>
 #include <array>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -78,4 +83,25 @@ TEST_CASE("An OBJ preserves both MTL colors through filament matching", "[Textur
 TEST_CASE("An OBJ resolves its MTL and external JPEG through filament matching", "[TextureImport][OBJ][Regression]")
 {
     check_texture_import("two_color_sphere/test_two_color_sphere_textured.obj");
+}
+
+TEST_CASE("Converting units scales the texture mesh with the model objects", "[TextureImport][Regression]")
+{
+    const bool from_meters = GENERATE(true, false);
+    const double to_mm = from_meters ? 1000. : 25.4;
+    INFO((from_meters ? "from meters" : "from inches"));
+
+    Slic3r::Model model;
+    Slic3r::ModelObject* object = model.add_object();
+    object->add_volume(Slic3r::TriangleMesh(Slic3r::its_make_cube(0.02, 0.02, 0.02)));
+    model.texture_mesh = std::make_shared<Slic3r::TexturedMesh>();
+    model.texture_mesh->vertices = {{0.f, 0.f, 0.f}, {0.02f, 0.02f, 0.02f}};
+
+    if (from_meters)
+        model.convert_from_meters(false);
+    else
+        model.convert_from_imperial_units(false);
+
+    REQUIRE_THAT(object->volumes.front()->mesh().bounding_box().size().x(), Catch::Matchers::WithinRel(0.02 * to_mm, 1e-4));
+    REQUIRE_THAT(double(model.texture_mesh->vertices.back()[0]), Catch::Matchers::WithinRel(0.02 * to_mm, 1e-4));
 }
