@@ -29,6 +29,7 @@ public:
     virtual bool    clips() const { return false; }
     // The output grid the generated points are snapped to.
     const Point     scaled(const Vec2d& fpt) const { return { coord_t(floor(fpt.x() * m_scale_out + 0.5)), coord_t(floor(fpt.y() * m_scale_out + 0.5)) }; }
+    double          scale_out() const { return m_scale_out; }
 
 protected:
     // Output polyline.
