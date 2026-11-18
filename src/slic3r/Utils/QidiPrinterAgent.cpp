@@ -52,6 +52,11 @@ AgentInfo QidiPrinterAgent::get_agent_info_static()
 
 bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
 {
+    if (!ensure_device_info(dev_id))
+        return false;
+    if (fetch_afc_filament_info())
+        return true;
+
     std::string error;
 
     // 1. Fetch device info and infer series_id
@@ -123,8 +128,11 @@ std::string QidiPrinterAgent::build_tool_slot_script(const std::string& ams_mapp
 
 bool QidiPrinterAgent::print_uploaded_file(const PrintParams& params, const std::string& filename)
 {
-    const std::string script = build_tool_slot_script(params.ams_mapping);
-    if (!script.empty() && !send_gcode_sync(device_info.dev_id, script)) {
+    if (afc_active()) {
+        if (!send_changer_map())
+            return false;
+    } else if (const std::string script = build_tool_slot_script(params.ams_mapping);
+               !script.empty() && !send_gcode_sync(device_info.dev_id, script)) {
         return false;
     }
 

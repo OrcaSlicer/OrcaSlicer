@@ -4,6 +4,7 @@
 	"inherits": "fdm_klipper_common",
 	"from": "system",
 	"instantiation": "false",
+	"printer_agent": "wondermaker",
 	"default_bed_type": "4",
 	"default_filament_profile": [
 		"WonderMaker PLA Basic"

@@ -2484,7 +2484,7 @@ void PreferencesDialog::create_items()
 
     auto item_filament_sync_mode = create_item_combobox(
         _L("Filament sync mode"),
-        _L("Choose whether sync updates both filament preset and color, or only color."),
+        _L("Choose whether syncing filaments from the printer updates both filament preset and color, or only color. Also offered in the sync dialog's advanced settings."),
         "sync_ams_filament_mode",
         {_L("Filament & Color"), _L("Color only")});
     g_sizer->Add(item_filament_sync_mode);

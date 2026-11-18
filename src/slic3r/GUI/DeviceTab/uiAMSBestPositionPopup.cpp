@@ -1042,12 +1042,12 @@ wxString ReselectMachineDialog::getTrayID(MachineObject* obj, const std::string&
                 int     tray_id     = 0;
                 if (ams->GetAmsType() == DevAmsType::AMS || ams->GetAmsType() == DevAmsType::AMS_LITE || ams->GetAmsType() == DevAmsType::N3F) {
                     tray_id = ams_id_int * 4 + slot_id_int;
-                } else if (ams->GetAmsType() == DevAmsType::N3S) {
+                } else if (ams->GetAmsType() == DevAmsType::N3S || ams->GetAmsType() == DevAmsType::TOOLCHANGER) {
                     tray_id = ams_id_int + slot_id_int;
                 } else if (ams->GetAmsType() == DevAmsType::EXT_SPOOL) {
                     tray_id = slot_id_int;
                 }
-                return wxGetApp().transition_tridid(tray_id);
+                return wxGetApp().tray_display_label(tray_id, ams->GetAmsType() == DevAmsType::TOOLCHANGER);
             }
         }
     }

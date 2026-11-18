@@ -1,0 +1,124 @@
+# Toolchanger filament mapping
+
+How OrcaSlicer works with a printer that assigns filaments to tools itself: a Snapmaker U1, a
+WonderMaker ZR Ultra S, or any Klipper printer with a filament changer (AFC, Happy Hare,
+openACE). The project may hold more filaments than the printer has nozzles; a plate is sliced
+in logical tool space; the filament-to-tool assignment is chosen at print time and delivered
+with the job; the printer's loaded filaments are read, shown and (where the firmware allows)
+written back.
+
+## What the printer reports, and where it is kept
+
+Everything the printer can report is read at sync time and cached, never configured by hand:
+
+| Fact | Read from | Cached in |
+|---|---|---|
+| its physical slots (extruders, lanes, gates), each with a name, its unit, its position in the unit, the extruder it feeds and the virtual tool it currently maps to | the vendor agent (`SnapmakerPrinterAgent`, `WonderMakerPrinterAgent`, `MoonrakerPrinterAgent`) | the filament inventory (`FilamentInventory::slots`), one record per printer preset in the app config |
+| which Klipper changer it runs (`afc`, `happy_hare`) | Moonraker's `lane_data` namespace, or Happy Hare's MMU status | the printer preset, hidden option `device_changer` |
+| how many `T<n>` commands it registers | `/printer/gcode/help` | the printer preset, hidden option `device_tool_count` |
+
+AFC owns the filament configuration, the `T<n>` commands and the print start of any Klipper
+printer it is installed on, so every Moonraker-based agent reads `lane_data` before its vendor's
+own slots. While AFC is active, slot writes, the map and the start go through AFC; a printer
+without it keeps its vendor's behaviour.
+
+The two hidden options are develop-mode entries written by `seed_printer_from_report` as a
+modification of the edited preset, which the user saves or discards like any other change.
+Caching them in the profile is what lets slicing run offline against the last known printer;
+the send path re-reads the printer and re-validates before starting.
+
+A Moonraker lane's topology is read from the `lane_data` record, whose fields were defined
+together with the AFC developers: `lane` (the index, which is the lane's virtual tool), `unit`,
+an optional `unit_name` read as the unit's label only, `slot`, and `extruder` or
+`extruder_index`. When every lane names its unit and slot the record is used as is; older AFC
+`lane_data` carries just the extruder index, so its `AFC_stepper <lane>` status objects are
+queried once, joined by lane name, and only fill what the record left out. Whole numbers may be
+written as strings. Two lanes that claim the same unit and slot are both kept, since the printer
+addresses each by name, and the pair is logged. Units are grouped
+by id and titled by name, so renaming a unit neither splits nor merges its lanes. Happy Hare's
+gates, the U1's extruders and the stock ZR's boxes are the identity. The topology rides the
+same hops as the filament data (agent tray → device tray → inventory slot) and is published for
+empty slots too, since an empty slot still has a place.
+
+## The protocol is the delivery format
+
+`filament_mapping_protocol` is the vendor's declaration of how the map reaches the printer:
+`none`, `snapmaker` (`extruder_map_table` in the start script) or `wondermaker` (`box_modify`
+variables). A reported changer overrides it for delivery (`effective_map_delivery`): AFC takes
+`RESET_AFC_MAPPING` and `SET_MAP LANE=… MAP=T<n>`, Happy Hare `MMU_TTG_MAP`. openACE reports
+AFC's `lane_data`, so the sync records it as AFC; the send checks the printer's Klipper objects
+for `openace` (`print_time_map_delivery`) and then passes one `OPENACE_MAP="[[sliced,virtual],…]"`
+parameter on the SD start instead. The vendor's value is never rewritten, so a ZR Ultra S
+running openACE keeps its own prelude (the timelapse and leveling lines its screen offers) and
+hands only the map to openACE. Print-start options belong to the
+vendor adapter (`device_print_spec`), not to the protocol, and are offered only when the vendor's
+own start sends them: a U1 whose map goes through AFC offers none.
+
+Through a printer agent, the print dialog picks each filament's slot from the same grouped grid
+as the sync dialog. The agent receives the map, keyed by the g-code's tool numbers, through
+`send_filament_mapping` and sends it ahead of its own print start.
+
+## One namespace rule
+
+The project's filaments are decoupled from the printer's tools, as described in
+[Decoupling filaments from tools](filament-decoupling.md): the project may hold more filaments
+than the printer has nozzles, and each plate assigns the filaments it uses to the printer's
+extruders. On these printers the gate is also true for a vendor protocol or a reported changer,
+whatever `enable_filament_mapping` says.
+
+Two sizes are kept apart. The T namespace (`filament_namespace_size`) is the T numbers the printer
+accepts: the probed count when a sync measured it, else the vendor's constant (32 for the U1's
+table), else the nozzle count. The capacity (`filament_capacity`) is how many filaments one plate
+may print: the namespace where a changer feeds the extruders, else one filament per extruder.
+
+Where the namespace is the nozzle count, a T number is an extruder, and a plate that reaches past
+it is renumbered densely before slicing (a stock ZR prints any plate of up to four filaments
+whatever their numbers). Where it is not, and no changer is reported, the T numbers are the
+project's filament numbers, as the U1's metadata view and `extruder_map_table` expect, and the
+plate's assignment names the physical extruder each T prints from instead
+(`FilamentCompaction::extruder_of_tool`, resolved by the same rules over the extruders and pinned
+by the same per-plate map). At apply, the per-extruder options get one column per T number in use,
+copied from that extruder, so T4 slices with extruder 4's nozzle. A five-filament plate is refused
+on a four-extruder U1 although its table has 32 entries.
+
+Once the plate is sliced, the send dialog and the delivered map narrow the plate's filaments
+to the ones the G-code prints, and the map is expressed in the emitted tool numbers. A
+35-filament project prints on a U1 plate by plate.
+
+## The dialogs
+
+One panel, `SlotGridPanel`, draws the printer's slots where the printer has them: a titled box
+per changer unit with its slots in slot order, a "Direct" row for slots without a unit, and on
+a multi-extruder printer with a changer (MEMM) a row of extruder tiles that fades the slots on
+other extruders. A tile shows the slot's current virtual tool, its material and, on MEMM, its
+extruder; an empty slot is grey with a diagonal line. Everything shown to the user is
+1-indexed.
+
+- **Printer Material Settings** is the grid with a pencil per editable slot. The edit dialog
+  writes back through the agent where the firmware takes writes (AFC's
+  `SET_COLOR`/`SET_MATERIAL`, Happy Hare's `MMU_GATE_MAP`, the U1's own API).
+- **Synchronize Filament Information** picks project filaments from the grid. The sync that
+  opens it stores what the printer just reported, so a changer's first sync already offers its
+  lanes and caches the changer into the preset.
+- **Print mapping** picks each plate filament's slot from the grid: a popup on a
+  single-extruder changer or the U1, a modal with the extruder row on MEMM, where two filaments
+  landing on the same extruder are marked because the printer will swap and purge between them.
+
+The three modes are derived, not configured: SEMM is one nozzle with a changer, ME several
+nozzles without one, MEMM several nozzles with one.
+
+## Flushing volumes
+
+`flush_volumes_matrix` keeps upstream's one-block-per-extruder layout. On a device-resolved
+printer the dialog lists the physical extruders as `E<n>` and offers "same flushing volumes for
+all extruders" (`flush_volumes_synced`, default on), which writes identical blocks, and the
+sidebar shows the button only where filament is swapped through a nozzle: single-extruder
+multi-material or MEMM. Every other printer keeps upstream's dialog and button.
+
+## Send-time checks
+
+The device dialog re-reads the printer when it opens. Before a print starts, the plate is
+re-validated against the fresh namespace, and the send is refused when the changer the printer
+reports now differs from the one the plate was sliced with, or when the start script could not
+be rendered (an AFC lane without a name). A device-resolved printer never auto-starts a print
+whose map did not reach it.
