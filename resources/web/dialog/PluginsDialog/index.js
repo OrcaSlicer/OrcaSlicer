@@ -1365,7 +1365,9 @@ function RenderFolderModes(plugin, pluginKey, draft, editable) {
       controls.appendChild(bucket);
       continue;
     }
-    const mode = entries.length === 1 && entries[0] === "*" ? "full" : entries.length || draft.partialModes?.[type.key] ? "partial" : "none";
+    const savedEntries = plugin.permissions[type.key];
+    const mode = savedEntries.length === 1 && savedEntries[0] === "*" ? "full"
+      : savedEntries.length || draft.partialModes?.[type.key] ? "partial" : "none";
     const fieldset = document.createElement("fieldset");
     fieldset.className = "permission-mode";
     fieldset.setAttribute("aria-describedby", guidance.id);
@@ -1383,7 +1385,7 @@ function RenderFolderModes(plugin, pluginKey, draft, editable) {
       radio.checked = mode === value;
       radio.disabled = !editable;
       radio.addEventListener("change", () => {
-        if (entries.length === 0 && value !== "full") {
+        if (savedEntries.length === 0 && value !== "full") {
           (draft.partialModes ||= {})[type.key] = value === "partial";
           renderedPermissionsSignature = null;
           RenderDetails();
@@ -1396,14 +1398,20 @@ function RenderFolderModes(plugin, pluginKey, draft, editable) {
       fieldset.appendChild(wrapper);
     }
     bucket.appendChild(fieldset);
+    if (mode !== "partial" && (draft.additions[type.key] || Object.keys(draft.edits[type.key] || {}).length)) {
+      const notice = document.createElement("p");
+      notice.className = "permission-notice";
+      notice.textContent = T("permissions_folder_drafts_retained", "Unsaved folder changes are kept. Choose Selected folders to review or discard them.");
+      bucket.appendChild(notice);
+    }
     if (mode === "partial") {
-      if (entries.includes("*")) {
+      if (savedEntries.includes("*")) {
         const notice = document.createElement("p");
         notice.className = "permission-notice";
         notice.textContent = T("permissions_folder_invalid_wildcard", "The wildcard is ignored when combined with folder paths. Remove it or choose all folders.");
         bucket.appendChild(notice);
       }
-      if (entries.length === 0) {
+      if (savedEntries.length === 0) {
         const notice = document.createElement("p");
         notice.className = "permission-notice";
         notice.textContent = T("permissions_folder_empty", "Add a folder to save selected-folder access. No selected folders are saved until you add one.");

@@ -2401,25 +2401,35 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
             switch (category) {
             // A tree grant rooted at a filesystem, drive, or network share root covers everything
             // on it. Say so explicitly instead of describing it like an ordinary nested folder.
+            // A mixed target list may also hold exact folders: only the entries ending in /* or \*
+            // cover subfolders, so the message cannot say that every listed folder does.
             case AuditEventCategory::FsCreate:
                 return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to create files in the following folder:\n%s\n\n"
-                                                  "Approval covers creating entries directly inside the listed folder and every "
-                                                  "folder below it. A target that is a filesystem, drive, or network share root, such as /*, "
+                                                  "Approval covers creating entries directly inside the listed folder. "
+                                                  "Only a target ending in /* or \\* also includes that folder's subfolders, at any depth. "
+                                                  "An exact folder target covers the entries directly inside that folder only. "
+                                                  "A target that is a filesystem, drive, or network share root, such as /*, "
                                                   "C:\\*, or \\\\server\\share\\*, covers that entire filesystem, drive, or network share.",
                                                   "Plugin \"%s\" is requesting to create files in the following folders:\n%s\n\n"
-                                                  "Approval covers creating entries directly inside each listed folder and every "
-                                                  "folder below it. A target that is a filesystem, drive, or network share root, such as /*, "
+                                                  "Approval covers creating entries directly inside each listed folder. "
+                                                  "Only targets ending in /* or \\* also include their folder's subfolders, at any depth. "
+                                                  "Exact folder targets cover the entries directly inside that folder only. "
+                                                  "A target that is a filesystem, drive, or network share root, such as /*, "
                                                   "C:\\*, or \\\\server\\share\\*, covers that entire filesystem, drive, or network share.",
                                                   target_count),
                                         plugin_name, target_list);
             case AuditEventCategory::FsDelete:
                 return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to delete files in the following folder:\n%s\n\n"
-                                                  "Approval covers deleting entries directly inside the listed folder and every "
-                                                  "folder below it. A target that is a filesystem, drive, or network share root, such as /*, "
+                                                  "Approval covers deleting entries directly inside the listed folder. "
+                                                  "Only a target ending in /* or \\* also includes that folder's subfolders, at any depth. "
+                                                  "An exact folder target covers the entries directly inside that folder only. "
+                                                  "A target that is a filesystem, drive, or network share root, such as /*, "
                                                   "C:\\*, or \\\\server\\share\\*, covers that entire filesystem, drive, or network share.",
                                                   "Plugin \"%s\" is requesting to delete files in the following folders:\n%s\n\n"
-                                                  "Approval covers deleting entries directly inside each listed folder and every "
-                                                  "folder below it. A target that is a filesystem, drive, or network share root, such as /*, "
+                                                  "Approval covers deleting entries directly inside each listed folder. "
+                                                  "Only targets ending in /* or \\* also include their folder's subfolders, at any depth. "
+                                                  "Exact folder targets cover the entries directly inside that folder only. "
+                                                  "A target that is a filesystem, drive, or network share root, such as /*, "
                                                   "C:\\*, or \\\\server\\share\\*, covers that entire filesystem, drive, or network share.",
                                                   target_count),
                                         plugin_name, target_list);
@@ -2434,19 +2444,23 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
         case AuditEventCategory::FsCreate:
             return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to create files in the following folder:\n%s\n\n"
                                               "Approval covers creating entries directly inside the listed folder. "
-                                              "A target ending in /* also covers that folder's subfolders, at any depth.",
+                                              "Only a target ending in /* or \\* also includes that folder's subfolders, at any depth. "
+                                              "An exact folder target covers the entries directly inside that folder only.",
                                               "Plugin \"%s\" is requesting to create files in the following folders:\n%s\n\n"
                                               "Approval covers creating entries directly inside each listed folder. "
-                                              "A target ending in /* also covers that folder's subfolders, at any depth.",
+                                              "Only targets ending in /* or \\* also include their folder's subfolders, at any depth. "
+                                              "Exact folder targets cover the entries directly inside that folder only.",
                                               target_count),
                                     plugin_name, target_list);
         case AuditEventCategory::FsDelete:
             return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to delete files in the following folder:\n%s\n\n"
                                               "Approval covers deleting entries directly inside the listed folder. "
-                                              "A target ending in /* also covers that folder's subfolders, at any depth.",
+                                              "Only a target ending in /* or \\* also includes that folder's subfolders, at any depth. "
+                                              "An exact folder target covers the entries directly inside that folder only.",
                                               "Plugin \"%s\" is requesting to delete files in the following folders:\n%s\n\n"
                                               "Approval covers deleting entries directly inside each listed folder. "
-                                              "A target ending in /* also covers that folder's subfolders, at any depth.",
+                                              "Only targets ending in /* or \\* also include their folder's subfolders, at any depth. "
+                                              "Exact folder targets cover the entries directly inside that folder only.",
                                               target_count),
                                     plugin_name, target_list);
         default:
