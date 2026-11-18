@@ -323,6 +323,7 @@ void NotificationManager::SlicingProgressNotification::render(GLCanvas3D& canvas
 			set_hovered();
 		}
 	}
+	bring_to_display_front();
 	imgui.end();
 
 

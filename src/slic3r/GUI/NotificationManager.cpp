@@ -294,6 +294,20 @@ void NotificationManager::PopNotification::restore_default_theme()
 }
 
 
+// ImGui::BringWindowToDisplayFront() returns early when the frontmost window is a child of this
+// one, even when another root window sits between them. The daily tips panel of the slicing
+// notification is such a child, created after the G-code window, so it would stay under it.
+void NotificationManager::PopNotification::bring_to_display_front()
+{
+	ImGuiWindow*            window  = ImGui::GetCurrentWindow();
+	ImVector<ImGuiWindow*>& windows = ImGui::GetCurrentContext()->Windows;
+	ImGuiWindow**           it      = std::find(windows.begin(), windows.end(), window);
+	if (it == windows.end())
+		return;
+	windows.erase(it);
+	windows.push_back(window);
+}
+
 void NotificationManager::PopNotification::render(GLCanvas3D& canvas, float initial_y, bool move_from_overlay, float overlay_width, float right_margin)
 {
 	if (m_state == EState::Unknown)
@@ -370,12 +384,7 @@ void NotificationManager::PopNotification::render(GLCanvas3D& canvas, float init
         render_close_button(imgui, win_size.x, win_size.y, win_pos.x, win_pos.y); // ORCA draw it after minimize button since its position related to minimize button
 	}
 
-	const bool gcode_window_visible = canvas.get_canvas_type() == GLCanvas3D::ECanvasType::CanvasPreview && wxGetApp().show_gcode_window();
-	if (!gcode_window_visible)
-	{
-		ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
-	}
-	
+	bring_to_display_front();
 	imgui.end();
 
 	restore_default_theme();
@@ -464,7 +473,7 @@ void NotificationManager::PopNotification::bbl_render_block_notification(GLCanva
 		//if (m_multiline && m_lines_count > 3)
 		//	render_minimize_button(imgui, win_pos.x, win_pos.y);
 	}
-	ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
+	bring_to_display_front();
 	imgui.end();
 
 	ImGui::PopStyleColor(3);
