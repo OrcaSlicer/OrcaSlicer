@@ -634,10 +634,10 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     }
 
     // BBS
-    // Reset filament overrides pointing at a slot that no longer exists. Support and the wipe
+    // Reset filament overrides pointing at a slot that no longer exists. Support, brim and the wipe
     // tower additionally reject mixed slots: the engine consumes those keys directly, so a virtual
     // slot would reach the G-code unresolved, while the per-feature keys are resolved per layer.
-    static const char* physical_only_keys[] = { "support_filament", "support_interface_filament", "wipe_tower_filament" };
+    static const char* physical_only_keys[] = { "support_filament", "support_interface_filament", "brim_filament_id", "wipe_tower_filament" };
     static const char* feature_keys[] = { "outer_wall_filament_id", "inner_wall_filament_id",
                                           "sparse_infill_filament_id", "internal_solid_filament_id",
                                           "top_surface_filament_id", "bottom_surface_filament_id" };
@@ -1031,6 +1031,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // configured width, so the width field has to stay live for them too.
     toggle_field("brim_width", have_brim_width || (have_brim && is_belt_tilted), -1, _L("Select a brim type with an editable width, or enable a brim on a tilted belt printer."));
     toggle_field("brim_flow_ratio", have_brim, -1, brim_reason);
+    toggle_field("brim_filament_id", have_brim, -1, brim_reason);
     // Paired toggle_line + toggle_field: cb_toggle_line is null in the per-object
     // override panel, so the row cannot be hidden there and greying out is the
     // fallback.  Both extras are belt-only: one extends the brim ahead along the belt,

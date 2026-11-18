@@ -350,6 +350,78 @@ TEST_CASE("Per-object wall filament override is honored", "[MultiFilament]")
     CHECK(tools_for_role(gcode, "infill")    == std::set<int>{ 0 }); // infill not overridden: stays on F1
 }
 
+// Filament 3 prints nothing but the brim, so the brim still needs a pass of its own.
+TEST_CASE("Brim prints with its assigned filament", "[MultiFilament]")
+{
+    const int   brim_filament  = GENERATE(2, 3);
+    const char *print_sequence = GENERATE("by layer", "by object");
+    DYNAMIC_SECTION("brim filament " << brim_filament << ", " << print_sequence) {
+        const std::string gcode = slice({ cube(20) },
+            multifilament_config(3, {
+                { "outer_wall_filament_id", 2 },
+                { "inner_wall_filament_id", 2 },
+                { "brim_filament_id",       brim_filament },
+                { "skirt_loops",            0 },
+                { "brim_type",              "outer_only" },
+                { "brim_width",             5 },
+                { "print_sequence",         print_sequence },
+            }));
+        CHECK(tools_for_role(gcode, "brim")      == std::set<int>{ brim_filament - 1 });
+        CHECK(tools_for_role(gcode, "perimeter") == std::set<int>{ 1 });
+    }
+}
+
+// Only the brim and the tool ordering depend on the brim filament on a flat bed.
+TEST_CASE("Changing the brim filament keeps the sliced object", "[MultiFilament]")
+{
+    DynamicPrintConfig config = multifilament_config(3, {
+        { "outer_wall_filament_id", 2 },
+        { "inner_wall_filament_id", 2 },
+        { "brim_filament_id",       2 },
+        { "skirt_loops",            0 },
+        { "brim_type",              "outer_only" },
+        { "brim_width",             5 },
+    });
+    // init_print sets this on its own copy; set it here too so the re-apply below differs in the brim filament only.
+    config.set_key_value("gcode_comments", new ConfigOptionBool(true));
+
+    Print print;
+    Model model;
+    init_print(std::vector<TriangleMesh>{ cube(20) }, print, model, config);
+    REQUIRE(tools_for_role(gcode(print), "brim") == std::set<int>{ 1 });
+
+    config.set_deserialize_strict({ { "brim_filament_id", 3 } });
+    DynamicPrintConfig changed = DynamicPrintConfig::full_print_config();
+    changed.apply(config);
+    print.apply(model, changed);
+    CHECK(print.objects().front()->is_step_done(posSupportMaterial));
+    CHECK_FALSE(print.is_step_done(psSkirtBrim));
+    CHECK(tools_for_role(gcode(print), "brim") == std::set<int>{ 2 });
+}
+
+// The wall filament prints the first layer first; a brim left on Default goes with it,
+// a brim assigned to the infill filament waits for that filament's pass.
+TEST_CASE("Brim waits for its assigned filament when another prints first", "[MultiFilament]")
+{
+    auto [brim_filament, brim_tool] = GENERATE(table<int, int>({ { 0, 0 }, { 2, 1 } }));
+    DYNAMIC_SECTION("brim filament " << brim_filament) {
+        const std::string gcode = slice({ cube(20) },
+            multifilament_config(2, {
+                { "outer_wall_filament_id",     1 },
+                { "inner_wall_filament_id",     1 },
+                { "sparse_infill_filament_id",  2 },
+                { "internal_solid_filament_id", 2 },
+                { "top_surface_filament_id",    2 },
+                { "bottom_surface_filament_id", 2 },
+                { "brim_filament_id",           brim_filament },
+                { "skirt_loops",                0 },
+                { "brim_type",                  "outer_only" },
+                { "brim_width",                 5 },
+            }));
+        CHECK(tools_for_role(gcode, "brim") == std::set<int>{ brim_tool });
+    }
+}
+
 // 0-based tool indices extruding under the ";TYPE:" marker of `feature`.
 static std::set<int> tools_for_feature(const std::string& gcode, std::string_view feature)
 {
