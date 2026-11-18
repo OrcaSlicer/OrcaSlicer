@@ -2540,6 +2540,22 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         }
     }
 
+    for (const PrintObject *object : m_objects)
+        for (const PrintRegion &region : object->all_regions()) {
+            const PrintRegionConfig &cfg = region.config();
+            if (cfg.sparse_infill_strategy.value == InfillStrategy::Crossing && cfg.fill_multiline.value > 3 &&
+                has_infill_strategy(cfg.sparse_infill_pattern.value) && cfg.sparse_infill_density.value > 0. &&
+                cfg.sparse_infill_density.value < 100.) {
+                // TRN %1% is the object name.
+                warn(Slic3r::format(_u8L("The sparse infill of the object %1% uses the Crossing strategy with more than 3 lines. "
+                                         "Its walls overlap over a large area at every crossing, which can over-extrude there "
+                                         "and make the nozzle scrape the infill. Use the Non-crossing strategy or fewer lines."),
+                                    object->model_object()->name),
+                     "sparse_infill_strategy", object);
+                break;
+            }
+        }
+
     // Cache of layer height profiles for checking:
     // 1) Whether all layers are synchronized if printing with wipe tower and / or unsynchronized supports.
     // 2) Whether layer height is constant for Organic supports.

@@ -384,6 +384,13 @@ static t_config_enum_values s_keys_map_SurfaceFillOrder{
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SurfaceFillOrder)
 
 //Orca
+static t_config_enum_values s_keys_map_InfillStrategy{
+    { "default",      int(InfillStrategy::Default) },
+    { "crossing",     int(InfillStrategy::Crossing) },
+    { "non_crossing", int(InfillStrategy::NonCrossing) },
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(InfillStrategy)
+
 static t_config_enum_values s_keys_map_AdaptiveInfillMode{
     { "disabled",       int(AdaptiveInfillMode::Disabled) },
     { "distance_warp",  int(AdaptiveInfillMode::DistanceWarp) },
@@ -3896,6 +3903,26 @@ void PrintConfigDef::init_fff_params()
     def->min = 1;
     def->max = 10; // Maximum number of lines for infill pattern
     def->set_default_value(new ConfigOptionInt(1));
+
+    def             = this->add("sparse_infill_strategy", coEnum);
+    def->label      = L("Sparse infill strategy");
+    def->category   = L("Strength");
+    def->tooltip    = L("How the lines of the Grid, Triangles, Tri-hexagon, Cubic, Quarter Cubic, Adaptive Cubic and "
+                        "Support Cubic patterns meet.\n"
+                        " - Default: crossing with a single line, non-crossing with multiline infill.\n"
+                        " - Crossing: the lines run straight across each other. With multiline infill, the lines of two "
+                        "walls overlap where they cross.\n"
+                        " - Non-crossing: the lines turn back where they meet instead of crossing, so the walls touch "
+                        "without overlapping.");
+    def->enum_keys_map = &ConfigOptionEnum<InfillStrategy>::get_enum_values();
+    def->enum_values.push_back("default");
+    def->enum_values.push_back("crossing");
+    def->enum_values.push_back("non_crossing");
+    def->enum_labels.push_back(L("Default"));
+    def->enum_labels.push_back(L("Crossing"));
+    def->enum_labels.push_back(L("Non-crossing"));
+    def->mode       = comExpert;
+    def->set_default_value(new ConfigOptionEnum<InfillStrategy>(InfillStrategy::Default));
 
     def             = this->add("adaptive_infill_mode", coEnum);
     def->label      = L("Adaptive density (experimental)");

@@ -855,6 +855,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // gyroid_optimized only applies when the sparse infill pattern is gyroid without adaptive density;
     // hide the whole line otherwise.
     toggle_line("gyroid_optimized", have_infill && pattern == ipGyroid && !have_adaptive_infill, -1, _L("Select Gyroid infill with nonzero sparse infill density and disable adaptive density to use this setting."));
+    toggle_line("sparse_infill_strategy", have_infill && has_infill_strategy(pattern), -1, _L("Select the Grid, Triangles, Tri-hexagon, Cubic, Quarter Cubic, Adaptive Cubic or Support Cubic sparse infill pattern with nonzero sparse infill density to use this setting."));
 
     // If there is infill, enable/disable fill_multiline according to whether the pattern supports multiline infill.
     if (have_infill) {
@@ -904,7 +905,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool has_bottom_shell = config->opt_int("bottom_shell_layers") > 0;
     const wxString bottom_shell_reason = _L("Set bottom shell layers above zero to use this setting.");
     bool has_solid_infill = has_top_shell_layers || has_bottom_shell;
-    toggle_line("sparse_infill_smooth_factor", have_infill && is_smoothable_infill_pattern(pattern, config->opt_int("fill_multiline")), -1, _L("Use nonzero sparse infill density and an infill pattern and multiline setting that support infill smoothing."));
+    toggle_line("sparse_infill_smooth_factor", have_infill && is_smoothable_infill_pattern(pattern, config->opt_int("fill_multiline"), config->opt_enum<InfillStrategy>("sparse_infill_strategy")), -1, _L("Use nonzero sparse infill density and an infill pattern, multiline and strategy setting that support infill smoothing."));
     toggle_field("top_surface_pattern", has_top_shell, -1, top_shell_reason);
     toggle_field("bottom_surface_pattern", has_bottom_shell, -1, bottom_shell_reason);
     toggle_field("top_surface_density", has_top_shell_layers, -1, top_shell_layers_reason);
