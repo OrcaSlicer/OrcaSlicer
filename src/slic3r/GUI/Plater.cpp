@@ -22770,7 +22770,9 @@ bool Plater::set_printer_technology(PrinterTechnology printer_technology)
     p->sidebar->get_searcher().set_printer_technology(printer_technology);
 
     p->notification_manager->set_fff(printer_technology == ptFFF);
-    p->notification_manager->set_slicing_progress_hidden();
+    // A preset reload keeps the technology, and must not hide the progress of a slice that goes on.
+    if (ret)
+        p->notification_manager->set_slicing_progress_hidden();
 
     return ret;
 }
