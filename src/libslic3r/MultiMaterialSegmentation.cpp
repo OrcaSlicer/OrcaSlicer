@@ -563,6 +563,9 @@ struct PaintedLineVisitor
 
     bool operator()(coord_t iy, coord_t ix)
     {
+        // The line was clipped to a slightly inflated grid box, so its end cells can lie just outside the grid.
+        if (iy < 0 || ix < 0 || size_t(iy) >= grid.rows() || size_t(ix) >= grid.cols())
+            return true;
         // Called with a row and column of the grid cell, which is intersected by a line.
         auto         cell_data_range        = grid.cell_data_range(iy, ix);
         const Vec2d  v1                     = line_to_test.vector().cast<double>();
