@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <iterator>
 #include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/TriangleSelector.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Geometry.hpp"
@@ -142,6 +143,28 @@ SCENARIO("Perimeter generation", "[PrintObject]") {
             }
         }
     }
+}
+
+TEST_CASE("Fuzzy skin parameters out of range keep painted fuzzy skin off", "[PrintObject][Regression]")
+{
+    // Older projects could hold a point distance of 0, which never advances along a wall.
+    const std::string fuzzy_skin = GENERATE(as<std::string>{}, "none", "disabled_fuzzy");
+    CAPTURE(fuzzy_skin);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({ { "fuzzy_skin", fuzzy_skin }, { "fuzzy_skin_point_distance", 0 } });
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+    ModelVolume *volume = model.objects.front()->volumes.front();
+    TriangleSelector selector(volume->mesh());
+    for (int facet = 0; facet < int(volume->mesh().facets_count()); ++facet)
+        selector.set_facet(facet, EnforcerBlockerType::FUZZY_SKIN);
+    REQUIRE(volume->fuzzy_skin_facets.set(selector));
+    // Applied only: slicing such a region would never finish.
+    print.apply(model, config);
+    const PrintObject &object = *print.objects().front();
+    for (size_t region = 0; region < object.num_printing_regions(); ++region)
+        CHECK(object.printing_region(region).config().fuzzy_skin.value != FuzzySkinType::All);
 }
 
 TEST_CASE("Initial layer height is honored", "[PrintObject]")

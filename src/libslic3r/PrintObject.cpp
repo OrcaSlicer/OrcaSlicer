@@ -4497,8 +4497,9 @@ PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &defau
         config.sparse_infill_density.value = 0;
     else
         config.sparse_infill_density.value = std::min(config.sparse_infill_density.value, 100.);
-    if (config.fuzzy_skin.value != FuzzySkinType::None && (config.fuzzy_skin_point_distance.value < 0.01 || config.fuzzy_skin_thickness.value < 0.001))
-        config.fuzzy_skin.value = FuzzySkinType::None;
+    // None still allows painting, so invalid parameters must disable fuzzy skin outright.
+    if (config.fuzzy_skin.value != FuzzySkinType::Disabled_fuzzy && (config.fuzzy_skin_point_distance.value < 0.01 || config.fuzzy_skin_thickness.value < 0.001))
+        config.fuzzy_skin.value = FuzzySkinType::Disabled_fuzzy;
     return config;
 }
 
