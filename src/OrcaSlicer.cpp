@@ -6926,18 +6926,6 @@ int CLI::run(int argc, char **argv)
                                         flush_and_exit(CLI_INVALID_PARAMS);
                                     }
 
-                                    // A short or out of range filament_map would index past the tables below.
-                                    bool filament_map_valid = std::all_of(filament_maps.begin(), filament_maps.end(),
-                                                                          [new_extruder_count](int e) { return e >= 1 && e <= new_extruder_count; });
-                                    for (int fid : plate_filaments)
-                                        if (fid >= 1 && fid <= filament_count && fid > (int) filament_maps.size())
-                                            filament_map_valid = false;
-                                    if (!filament_map_valid) {
-                                        BOOST_LOG_TRIVIAL(error) << boost::format("plate %1% : filament_map does not give every filament an extruder between 1 and %2%") % (index + 1) % new_extruder_count;
-                                        record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, index + 1, cli_errors[CLI_INVALID_PARAMS], sliced_info);
-                                        flush_and_exit(CLI_INVALID_PARAMS);
-                                    }
-
                                     for (int index = 0; index < filament_maps.size(); index++)
                                     {
                                         int filament_extruder = filament_maps[index];
@@ -6952,7 +6940,9 @@ int CLI::run(int argc, char **argv)
                                     for (int f_index = 0; f_index < plate_filaments.size(); f_index++) {
                                         for (int f_index = 0; f_index < plate_filaments.size(); f_index++) {
                                             if (plate_filaments[f_index] <= filament_count) {
-                                                int filament_extruder = filament_maps[plate_filaments[f_index] - 1];
+                                                // A filament the map leaves out prints with nozzle 1, as in the final map.
+                                                const int filament_extruder = plate_filaments[f_index] <= int(filament_maps.size()) ?
+                                                                                  filament_maps[plate_filaments[f_index] - 1] : 1;
                                                 std::string filament_type;
                                                 m_print_config.get_filament_type(filament_type, plate_filaments[f_index] - 1);
                                                 auto *filament_printable_status = dynamic_cast<const ConfigOptionInts *>(m_print_config.option("filament_printable"));
