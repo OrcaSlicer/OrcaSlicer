@@ -242,9 +242,11 @@ TEST_CASE("install-state sidecar is the source of truth for a cloud plugin's ins
     REQUIRE(read_install_state(plugin_dir, state));
     CHECK(state.installed_version == "1.2.0");
 
-    state.permissions.fs_read       = {"/path/to/read"};
-    state.permissions.fs_readwrite  = {"/path/to/readwrite"};
-    state.permissions.network_http  = {"https://api.example.com"};
+    state.permissions.fs_read        = {"/path/to/read"};
+    state.permissions.fs_readwrite   = {"/path/to/readwrite"};
+    state.permissions.fs_create      = {"/path/to/create-folder"};
+    state.permissions.fs_delete      = {"*"};
+    state.permissions.network_http   = {"https://api.example.com"};
     state.permissions.network_socket = {"192.168.45.6:443"};
     state.permissions.process        = {"/usr/bin/curl"};
     state.permissions.threading      = true;
@@ -255,6 +257,8 @@ TEST_CASE("install-state sidecar is the source of truth for a cloud plugin's ins
     REQUIRE(read_install_state(plugin_dir, persisted));
     CHECK(persisted.permissions.fs_read == state.permissions.fs_read);
     CHECK(persisted.permissions.fs_readwrite == state.permissions.fs_readwrite);
+    CHECK(persisted.permissions.fs_create == state.permissions.fs_create);
+    CHECK(persisted.permissions.fs_delete == state.permissions.fs_delete);
     CHECK(persisted.permissions.network_http == state.permissions.network_http);
     CHECK(persisted.permissions.network_socket == state.permissions.network_socket);
     CHECK(persisted.permissions.process == state.permissions.process);
@@ -268,6 +272,86 @@ TEST_CASE("install-state sidecar is the source of truth for a cloud plugin's ins
     scanned.version = "1.0.0"; // as parsed from the unchanged PEP723 header
     read_install_state(plugin_dir, scanned);
     CHECK(scanned.installed_version == "1.2.0");
+}
+
+TEST_CASE("install-state reads create and delete grants and defaults missing keys to none", "[PluginInstall][PluginFsUtils]")
+{
+    ScopedDataDir data_dir_guard("create-delete-permission-read");
+    const fs::path plugin_dir = data_dir_guard.dir / "plugin";
+
+    const auto read_permissions = [&plugin_dir]() {
+        PluginInstallState state;
+        REQUIRE(read_install_state(plugin_dir, state));
+        return state.permissions;
+    };
+
+    SECTION("missing keys grant nothing")
+    {
+        write_raw_install_state(plugin_dir, {{"permissions", nlohmann::json::object()}});
+
+        // Fail closed: an older sidecar has no create/delete buckets, so neither operation is
+        // allowed without a prompt.
+        const PluginPermissions permissions = read_permissions();
+        CHECK(permissions.fs_create.empty());
+        CHECK(permissions.fs_delete.empty());
+
+        // The same holds when the sidecar has no permissions object at all.
+        write_raw_install_state(plugin_dir, nlohmann::json::object());
+        const PluginPermissions no_permissions = read_permissions();
+        CHECK(no_permissions.fs_create.empty());
+        CHECK(no_permissions.fs_delete.empty());
+    }
+
+    SECTION("saved folders and the all-folders marker are read back")
+    {
+        write_raw_install_state(plugin_dir,
+                                {{"permissions",
+                                  {{"fs_create", nlohmann::json::array({"/allowed/create", "/allowed/tree/*"})},
+                                   {"fs_delete", nlohmann::json::array({"*"})}}}});
+
+        const PluginPermissions permissions = read_permissions();
+        CHECK(permissions.fs_create == std::vector<std::string>{"/allowed/create", "/allowed/tree/*"});
+        CHECK(permissions.fs_delete == std::vector<std::string>{"*"});
+    }
+
+    SECTION("a non-array or non-string value grants nothing")
+    {
+        write_raw_install_state(plugin_dir,
+                                {{"permissions",
+                                  {{"fs_create", "/allowed/create"},
+                                   {"fs_delete", nlohmann::json::array({1, true})}}}});
+
+        const PluginPermissions permissions = read_permissions();
+        CHECK(permissions.fs_create.empty());
+        CHECK(permissions.fs_delete.empty());
+    }
+}
+
+TEST_CASE("install-state writes create and delete grants as arrays", "[PluginInstall][PluginFsUtils]")
+{
+    ScopedDataDir data_dir_guard("create-delete-permission-write");
+    const fs::path plugin_dir = data_dir_guard.dir / "plugin";
+    fs::create_directories(plugin_dir);
+
+    PluginInstallState state;
+    state.permissions.fs_create = {"/allowed/create", "/other/tree/*"};
+    state.permissions.fs_delete = {"*"};
+    REQUIRE(write_install_state(plugin_dir, state));
+
+    std::ifstream in((plugin_dir / ".install_state.json").string(), std::ios::binary);
+    const nlohmann::json written = nlohmann::json::parse(in);
+    REQUIRE(written["permissions"].contains("fs_create"));
+    REQUIRE(written["permissions"].contains("fs_delete"));
+    CHECK(written["permissions"]["fs_create"].is_array());
+    CHECK(written["permissions"]["fs_delete"].is_array());
+    CHECK(written["permissions"]["fs_create"] == nlohmann::json::array({"/allowed/create", "/other/tree/*"}));
+    CHECK(written["permissions"]["fs_delete"] == nlohmann::json::array({"*"}));
+    in.close();
+
+    PluginInstallState read_back;
+    REQUIRE(read_install_state(plugin_dir, read_back));
+    CHECK(read_back.permissions.fs_create == state.permissions.fs_create);
+    CHECK(read_back.permissions.fs_delete == state.permissions.fs_delete);
 }
 
 TEST_CASE("install-state metadata read-modify-write leaves an unreadable sidecar untouched", "[PluginInstall][PluginFsUtils]")

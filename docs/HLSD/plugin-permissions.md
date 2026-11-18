@@ -24,7 +24,9 @@ Permissions are stored per plugin key. A plugin can hold:
 | Field | Kind | Governs |
 | --- | --- | --- |
 | `fs_read` | target list | Read-shaped filesystem events. Targets are exact paths or `<dir>/*` trees. |
-| `fs_readwrite` | target list | Write-shaped and read/write filesystem events mapped to `FsReadWrite`: a write-mode `open`, rename, chmod, utime, copy, move, archive extraction, and similar. Same target matching as `fs_read`. A write-mode `open` can create a file, but this grant does not cover events mapped to `FsCreate` or `FsDelete`, which have no persistent grant list. |
+| `fs_readwrite` | target list | Write-shaped and read/write filesystem events mapped to `FsReadWrite`: a write-mode `open`, rename, chmod, utime, copy, move, archive extraction, and similar. Same target matching as `fs_read`. A write-mode `open` can create a file, but this grant does not cover events mapped to `FsCreate` or `FsDelete`. |
+| `fs_create` | folder list | Filesystem create events such as `os.mkdir` and `os.symlink`. |
+| `fs_delete` | folder list | Filesystem delete events such as `os.remove` and `shutil.rmtree`. |
 | `network_http` | target list | Network targets, consulted together with `network_socket` for both HTTP and socket events. A canonical `scheme://host` entry is host-wide and covers both layers; a URL with a path, port, query or trailing slash is exact; a bare host or legacy address tuple covers raw sockets. |
 | `network_socket` | target list | The same network matching, kept as a separate list so a plugin can declare socket access without an HTTP URL. |
 | `process` | target list | Process creation and process replacement: `os.system`, `subprocess.Popen`, `os.spawn*`, `os.exec*`, `pty.spawn`, `_winapi.CreateProcess`, and similar. Targets match the audited value verbatim. |
@@ -32,19 +34,24 @@ Permissions are stored per plugin key. A plugin can hold:
 | `events` | target list | Audited events that expose no target, keyed as `<Category>:<event>`, for example `Socket:socket.__new__`. Matched verbatim. |
 | `full_access` | boolean | Turns off the permission decision for the plugin. See "Full access". |
 
-Filesystem create and delete events (`os.mkdir`, `os.symlink`, `tempfile.mkstemp`,
-`os.remove`, `shutil.rmtree`, and similar) are audited, but they have no persistent grant
-list. A `fs_read` or `fs_readwrite` grant does not cover these events, although a write grant
-can create a file through `open()`. Without full access, each such
-event outside an allowed root is prompted only when it can be answered inline. On the wx
-main thread a Yes applies only to the operation that raised it and is not saved. Off the
-main thread the event is denied immediately and an informational denial is shown instead;
-there is no Yes/No prompt, no saved grant, and no promise that a later attempt will be
-approved.
+Create and delete grants are independent of read and read/write grants. An empty list grants
+no folders; an absolute folder path grants operations directly inside that folder, while a path
+ending in `/*` also covers its subfolders; a list containing only `*` grants all folders. Runtime approval stores
+the parent folder of the audited target, except for a recursive delete, whose consent is
+transient and is never stored. A delete grant covers existing entries in that folder,
+not just entries created by the plugin. The unconditional denied paths still apply.
+
+A recursive delete (`shutil.rmtree`) is a subtree operation: a plain folder grant is
+insufficient even when it names the target folder or its parent. It requires either a saved
+delete tree grant whose root covers the target, or explicit one-time consent for that canonical
+subtree. A tree grant rooted exactly at the target covers the entries inside it but not the
+final removal of the target folder itself, which is an entry in the parent; the operation asks
+for consent unless the parent is granted separately. The consent applies only to the operation
+that requested it and the nested deletes it performs inside that subtree.
 
 ### Target matching
 
-- Exact filesystem entries match the audited path verbatim. An absolute exact entry also
+- Read and read/write exact filesystem entries match the audited path verbatim. An absolute exact entry also
   matches an equivalent canonical path, including a symlink alias or a relative target resolved
   against the current working directory. Relative exact entries match only verbatim, so their
   equivalence scope cannot move with the working directory. Canonical equivalence fails closed
@@ -56,6 +63,23 @@ approved.
   root must be absolute on the current platform: a relative root never matches, even when a
   target is spelled exactly like the entry, so the scope cannot float with the process
   working directory.
+- Create and delete folder grants compare canonical parent directories; a final symlink is
+  governed by the folder containing the link. Link creation checks the destination folder;
+  a hardlink also requires write access to its source because writes through either name
+  affect the same file. Both source and destination remain
+  subject to the denied-path check. An unresolved parent
+  does not match a folder grant. Recursive deletion is checked as a subtree operation: an
+  exact folder grant does not cover it, but a delete tree grant does, and a one-time consent
+  covers the target subtree for that operation only. A target-rooted tree grant covers the
+  entries inside the target but not removing the target folder itself; that final removal needs
+  a grant for the containing folder or one-time consent. Nested delete entries inside an
+  approved subtree are allowed while the operation runs, provided they stay inside the canonical
+  subtree and are reached through standard-library frames. Scope is decided by the entry's
+  containing folder: deleting a symlink acts on the link entry, never on its destination.
+  Intermediate `..` components are resolved after symlinks, never lexically folded before
+  them, and a final `..` fails closed. A
+  symlink or `..` that would leave the subtree is judged on its own, and denied paths stay
+  blocked.
 - Network entries can be an HTTP URL, a canonical `scheme://host`, a bare host, a
   `host:port` pair, or a legacy persisted address tuple such as `('host', 443)`.
   `normalize_network_url` reduces a URL to lowercase `scheme://host`; path, query,
@@ -101,10 +125,12 @@ order:
    before allowed roots, before a granted operation and before full access, so no grant
    can make a denied path reachable.
 2. **Covered by a granted operation.** When a granted root operation is still running,
-   nested events raised through its standard-library frames are allowed without another
-   prompt. The coverage is bounded to the operation frame and does not extend to plugin
-   or third-party frames it calls back into. A nested `urllib.Request` is judged on its
-   own URL, including when it follows a redirect.
+   nested events raised through its standard-library frames are generally allowed without
+   another prompt. Delete operations still check nested delete events against their
+   own grants, or against the canonical subtree recorded by a one-time recursive-delete
+   consent started by this operation. The coverage is bounded to the operation frame and does
+   not extend to plugin or third-party frames it calls back into. A nested `urllib.Request`
+   is judged on its own URL, including when it follows a redirect.
 3. **Implicit allowed root or standard-library read.** A filesystem target inside an
    allowed root is allowed; a read of the interpreter's standard library is also allowed.
    See "Implicit access".
@@ -143,18 +169,17 @@ An event that is not covered by a saved grant or an implicit rule is either put 
 user or denied. If the caller is on the wx main thread and no audit prompt is active, the
 modal runs inline. Otherwise, as on the Script workflow, the plugin-load worker, or the
 slicing worker, the current event is denied and the prompt is queued for the GUI thread.
-`AuditPromptQueue` serializes every audit prompt -- runtime events, create/delete
-informational denials, and load-time declarations -- so at most one is shown at a time,
+`AuditPromptQueue` serializes runtime prompts, one-time recursive-delete consent, and
+load-time declarations, so at most one is shown at a time,
 including during a modal dialog's nested event loop. An event raised inside that loop is
 queued and denied instead of opening a second dialog; the queued prompt opens after the
 active dialog has closed.
 
 For a category with a persistent grant list, a Yes saves the grant and a later matching
-attempt can succeed without another prompt. Create and delete do not support persistent
-grants: they use the inline Yes/No prompt only when it can be shown immediately on the GUI
-thread, while a queued request for them is an OK-only informational denial with no Yes/No
-choice. Blocking a worker on a marshalled modal is avoided because the UI thread can itself
-be parked on the slicing worker. A load worker does block on its declared-permission answer:
+attempt can succeed without another prompt. Create and delete approvals save the target's
+parent folder, so a worker can retry after the queued Yes. Recursive delete instead uses
+one-time consent, as described below. Blocking a worker on a marshalled modal is avoided
+because the UI thread can itself be parked on the slicing worker. A load worker does block on its declared-permission answer:
 shutdown or plugin unload cancels queued requests and active requests whose accepted answer
 has not begun committing, releasing waiting workers with a denial. An admission that races
 that cancellation is discarded as soon as it becomes visible. A cancelled load stops being
@@ -164,9 +189,26 @@ screen, but its answer is ignored unless committing won the race. An ordinary lo
 a cancellation: its queued runtime prompt stays actionable, so the user can approve the event
 whose denial aborted the load and then retry with the saved grant.
 
-Runtime approvals store the target observed by the audit hook. A URL with a path, port or
+Runtime approvals store the target observed by the audit hook, except that create and delete
+approvals store its parent folder. A URL with a path, port or
 query is therefore an exact grant; a bare host remains usable for raw sockets. The
 declared form and the runtime form are not normalized by the same code path.
+
+A recursive delete is different: a Yes grants consent for the canonical target subtree for
+that operation only. The prompt shows the subtree root and states that the consent is not
+saved; a filesystem, drive, or network share root gets an explicit warning that its whole
+filesystem, drive, or network share is covered. Nested deletes inside that subtree proceed
+during the same operation; after it ends, the same target asks again. Denied paths stay blocked
+throughout. When the prompt cannot run inline, the current attempt is denied and a Yes from the
+posted dialog is kept as a short-lived, single-use approval bound to the plugin key and
+canonical target. The posted prompt says it applies to the next matching attempt within one
+minute after approval; the next matching attempt consumes it. A different plugin, a different
+target, a reused or an expired approval does not. A prompt already open for the same plugin and
+target is not posted again, so a retry loop cannot queue duplicate dialogs. The pending-prompt
+set is bounded; at capacity, new prompts are denied rather than evicting a dialog that is
+already queued. A permission edit, revocation, or reinstall invalidates the plugin's transient
+approvals and pending prompt keys; a dialog callback already queued becomes a no-op instead of
+recreating a stale approval.
 
 ## Implicit access
 
@@ -180,6 +222,12 @@ Some access needs no grant because it is part of the plugin system's normal oper
 - A per-call scoped root can be added. The G-code post-process hook grants the folder
   containing the exported G-code file so the plugin can edit it; the root is scoped to
   that call.
+- A delete inside a writable allowed root is scoped by the entry's containing folder. Deleting
+  a symlink that lives in the root is therefore implicit even when the link points outside,
+  because the operation removes the link entry; an outside link that points into the root is
+  not implicit. A recursive delete inside a writable root records its target subtree as the
+  running operation, so its fd-based reads do not trigger a separate prompt and its nested
+  deletes cannot leave that subtree.
 
 ### Denied paths
 
@@ -198,8 +246,10 @@ The following are denied before any allowed root or full-access check:
 ## Persistence and editing
 
 Grants and install state live in `.install_state.json` in the plugin root. The
-`permissions` object stores `fs_read`, `fs_readwrite`, `network_http`,
-`network_socket`, `process`, `threading`, `events`, and `full_access`. The file is
+`permissions` object stores `fs_read`, `fs_readwrite`, `fs_create`, `fs_delete`, `network_http`,
+`network_socket`, `process`, `threading`, `events`, and `full_access`. It never stores a
+recursive-delete consent: that approval and any retry approval are in memory only, so accepting
+one does not widen the plugin's saved delete scope. The file is
 written by `write_install_state`, the single writer for the sidecar schema. In-process
 reads and read-modify-write operations are synchronized. Writes prepare a complete
 replacement in the plugin directory and replace the sidecar only after the write succeeds.
@@ -253,7 +303,8 @@ targets; unchanged entries, including grants written by an older release, are ca
 byte-for-byte. New filesystem targets must be absolute on the current
 platform: a POSIX path starts at `/`, and a Windows path names a drive plus root or a UNC
 share. A `*` is accepted only as the final `/*` of a folder tree, and `..` components are
-refused. The matcher also refuses to widen a relative tree root, so a relative tree entry
+refused for filesystem grants. Create and delete use absolute folder paths, optional final `/*`
+tree grants, or the all-folders mode. The matcher also refuses to widen a relative tree root, so a relative tree entry
 saved by hand or carried over from an older release never authorizes. New network targets
 must be a full `http://` or `https://` URL; the writer stores `normalize_network_url`'s canonical
 lowercase `scheme://host`, dropping port, path, query and fragment. Bare hosts, other
@@ -264,6 +315,11 @@ The dialog warns before enabling full access. Grants stored
 while full access is on are inert and apply again when full access is off. Turning full access
 on does not delete the stored lists. A permission change affects subsequent audit decisions,
 not operations already authorized.
+
+The dialog also asks for confirmation before granting create or delete access to all folders.
+On Linux and macOS, create and delete operations using a directory file descriptor are checked
+against its resolved path. If that path cannot be resolved, the operation is denied, even with
+full access.
 
 ## Full access
 
@@ -312,6 +368,17 @@ never treated as an opt-out.
 - **Denied paths are a direct-access block.** Path laundering through a symlink,
   hardlink, subprocess, or Windows 8.3 short name is outside the model. A tree grant is
   canonicalized for matching, but the deny check itself is base-name and component based.
+- **A recursive delete stops at a denied path.** Consent for the subtree does not override the
+  deny registry. A protected entry inside the tree makes `shutil.rmtree` fail with
+  `PermissionError` (or be skipped by `ignore_errors`), leaving that entry and any unvisited
+  entries in place. This is deliberate: protected paths stay protected.
+- **fd-based recursive deletes expose only partial paths.** `shutil.rmtree` reads with
+  `os.scandir(fd)` and opens entries with `dir_fd`; those audit events carry an integer
+  descriptor or a relative name rather than the full path. The running operation frame covers
+  them normally, and each relative entry name is still checked, so denied entries stay blocked.
+  A relative `os.open` target is canonicalized against the process working directory, so a
+  working directory containing a denied keyword can over-block nested opens. That fails closed
+  and does not widen access.
 - **`data_dir()` is shared and writable.** Every plugin can write anywhere in the
   application data directory, including other plugin package files. Only the
   install-state sidecar and the denied names and keywords are blocked there.
@@ -325,18 +392,21 @@ never treated as an opt-out.
   be re-entered as an absolute path to take effect.
 - **An off-main-thread prompt denies the current event.** A persistable grant is saved
   only if the user later accepts, so the first attempt from a worker fails with
-  `PermissionError`. Create and delete have no persistable grant and no retryable approval:
-  off the main thread they are denied and only an informational denial is shown, while the
-  inline main-thread prompt covers only the operation that raised it.
-- **A running root operation is not re-evaluated.** Revoking full access or changing a
-  grant affects later top-level operations, not an operation whose root frame already
-  recorded coverage.
+  `PermissionError`; a later attempt can succeed after approval. A recursive-delete consent is
+  instead kept as a short-lived, single-use retry approval bound to the plugin and canonical
+  target, valid for the next matching attempt within one minute after approval, and is never
+  persisted. Duplicate prompts for the same plugin and target are not posted.
+- **A running root operation is generally not re-evaluated.** Revoking full access or changing a
+  grant affects later top-level operations, not an operation whose root frame already recorded
+  coverage. Nested delete events within a delete operation are checked separately, or covered
+  by the one-time subtree consent recorded on that operation.
 
 ## File and symbol map
 
 - `src/slic3r/plugin/PluginAuditManager.hpp` / `.cpp` - `PluginAuditManager`,
   `install_hook`, `audit_plugin_event`, `decide_audited_event`, `request_permissions`,
-  `request_permission`, `AuditPromptQueue`, `check_path_access`,
+  `request_permission`, `request_recursive_delete_consent`, `delete_target_inside_approved_subtree`,
+  `delete_target_inside_writable_allowed_root`, `AuditPromptQueue`, `check_path_access`,
   `network_permission_matches`, `default_denied_filenames`, `default_denied_path_keywords`,
   `ScopedPluginAuditContext`.
 - `src/slic3r/plugin/PluginFsUtils.hpp` / `.cpp` - `PluginPermissions`,
