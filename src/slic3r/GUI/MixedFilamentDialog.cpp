@@ -26,12 +26,12 @@
 #include <wx/dcclient.h>
 #include <wx/dcbuffer.h>
 #include <wx/dcgraph.h>
+#include <wx/display.h>
 #include <wx/scrolwin.h>
 #include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/toplevel.h>
 #include <wx/window.h>
-#include <wx/tglbtn.h>
 #include <wx/wrapsizer.h>
 #include <wx/tokenzr.h>
 
@@ -44,7 +44,7 @@
 #include "FilamentBitmapUtils.hpp"
 #include "wxExtensions.hpp"
 #include "Widgets/Button.hpp"
-#include "Widgets/CheckBox.hpp"
+#include "Widgets/LabeledCheckBox.hpp"
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/DropDown.hpp"
 #include "Widgets/Label.hpp"
@@ -199,8 +199,7 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow* parent,
 
 void MixedFilamentDialog::on_dpi_changed(const wxRect&)
 {
-    int h = (num_components() >= 3) ? FromDIP(680) : FromDIP(580);
-    SetSize(FromDIP(439), h);
+    resize_keeping_centre();
     Refresh();
 }
 
@@ -631,14 +630,15 @@ void MixedFilamentDialog::build_ui()
     m_right_sizer->Add(create_material_selection(), 0, wxEXPAND);
     m_right_sizer->Add(create_gradient_section(), 0, wxEXPAND | wxTOP, FromDIP(7));
 
-    m_ratio_sizer = create_ratio_slider();
-    m_right_sizer->Add(m_ratio_sizer, 0, wxEXPAND | wxTOP, FromDIP(7));
-
     m_triangle_sizer = create_triangle_picker();
     m_right_sizer->Add(m_triangle_sizer, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, FromDIP(7));
 
     top_sizer->Add(m_right_sizer, 1, wxTOP | wxRIGHT | wxBOTTOM, FromDIP(20));
     main_sizer->Add(top_sizer, 0, wxEXPAND);
+
+    // The ratio bar spans the full dialog width, using the space below the preview too.
+    m_ratio_sizer = create_ratio_slider();
+    main_sizer->Add(m_ratio_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(25));
 
     main_sizer->Add(create_recommendation_grid(), 1, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(25));
 
@@ -866,7 +866,7 @@ wxBoxSizer* MixedFilamentDialog::create_ratio_slider()
         wxBufferedPaintDC dc(m_ratio_bar);
         wxSize sz = m_ratio_bar->GetClientSize();
         draw_mixed_ratio_blend_bar(dc, wxRect(0, 0, sz.GetWidth(), sz.GetHeight()),
-                                   comp_colour(0), comp_colour(1), ratio(1) / 100.0);
+                                   comp_colour(0), comp_colour(1), ratio(1) / 100.0, MIN_COMPONENT_RATIO / 100.0);
     });
 
     m_ratio_bar->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& e) {
@@ -965,7 +965,8 @@ wxBoxSizer* MixedFilamentDialog::create_triangle_picker()
                                    {StateColor::darkModeColorFor(*wxWHITE),
                                     StateColor::darkModeColorFor(wxColour("#CECECE")),
                                     StateColor::darkModeColorFor(wxColour("#262E30")),
-                                    StateColor::darkModeColorFor(COLOR_LABEL_MUTED)});
+                                    StateColor::darkModeColorFor(COLOR_LABEL_MUTED)},
+                                   MIN_COMPONENT_RATIO / 100.0);
 
         if (m_result.ratios.size() >= 3) {
             dc.SetFont(::Label::Body_10);
@@ -1068,14 +1069,10 @@ wxBoxSizer* MixedFilamentDialog::create_gradient_section()
 {
     m_gradient_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    m_chk_gradient = new ::CheckBox(this);
+    m_chk_gradient = new LabeledCheckBox(this, _L("Gradient Effect"));
     m_chk_gradient->SetValue(m_result.gradient_enabled);
-    m_chk_gradient->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) { e.Skip(); on_gradient_toggled(); });
-    m_gradient_sizer->Add(m_chk_gradient, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(4));
-
-    m_label_gradient = new wxStaticText(this, wxID_ANY, _L("Gradient Effect"));
-    m_label_gradient->SetFont(::Label::Body_13);
-    m_gradient_sizer->Add(m_label_gradient, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
+    m_chk_gradient->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) { e.Skip(); on_gradient_toggled(); });
+    m_gradient_sizer->Add(m_chk_gradient, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(2));
 
     m_combo_gradient_dir = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
                                         wxSize(FromDIP(152), FromDIP(24)), 0, nullptr, wxCB_READONLY);
@@ -1109,17 +1106,12 @@ wxBoxSizer* MixedFilamentDialog::create_gradient_section()
     // Per-part gradient toggle sits BELOW the curve editor.
     m_per_part_gradient_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    m_chk_per_part_gradient = new ::CheckBox(this);
+    m_chk_per_part_gradient = new LabeledCheckBox(this, _L("Enable per-part gradient effect"));
     m_chk_per_part_gradient->SetValue(m_result.per_part_gradient);
-    m_chk_per_part_gradient->Bind(wxEVT_TOGGLEBUTTON,
+    m_chk_per_part_gradient->Bind(wxEVT_CHECKBOX,
         [this](wxCommandEvent& e) { e.Skip(); on_per_part_gradient_toggled(); });
     m_per_part_gradient_sizer->Add(m_chk_per_part_gradient, 0,
-        wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(4));
-
-    m_label_per_part_gradient = new wxStaticText(this, wxID_ANY, _L("Enable per-part gradient effect"));
-    m_label_per_part_gradient->SetFont(::Label::Body_13);
-    m_per_part_gradient_sizer->Add(m_label_per_part_gradient, 0,
-        wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
+        wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(2));
 
     outer->Add(m_per_part_gradient_sizer, 0, wxEXPAND | wxTOP, FromDIP(2));
     m_per_part_gradient_sizer->ShowItems(m_result.gradient_enabled);
@@ -1395,15 +1387,7 @@ void MixedFilamentDialog::on_gradient_toggled()
     // Toggling the curve editor changes the right column height (and width when
     // turning gradient on), so the dialog must follow or the recommendation list
     // gets squeezed off-screen. Same trick as 2-color -> 3-color switching.
-    const wxSize new_size = compute_dialog_size();
-    if (GetSize() != new_size) {
-        const wxRect old_rect = GetRect();
-        const wxPoint center(old_rect.x + old_rect.width / 2,
-                             old_rect.y + old_rect.height / 2);
-        SetSize(new_size);
-        SetPosition(wxPoint(center.x - new_size.x / 2,
-                            center.y - new_size.y / 2));
-    }
+    resize_keeping_centre();
 
     Layout();
     Refresh();
@@ -1809,7 +1793,6 @@ void MixedFilamentDialog::update_component_count_ui()
     if (m_gradient_sizer) {
         bool show_gradient = is_two;
         m_chk_gradient->Show(show_gradient);
-        if (m_label_gradient) m_label_gradient->Show(show_gradient);
         m_combo_gradient_dir->Show(show_gradient && m_result.gradient_enabled);
         if (m_per_part_gradient_sizer)
             m_per_part_gradient_sizer->ShowItems(show_gradient && m_result.gradient_enabled);
@@ -1836,14 +1819,25 @@ void MixedFilamentDialog::update_component_count_ui()
         m_btn_remove_material->SetToolTip(is_three ? _L("Remove the third material") : wxString());
     }
 
-    const wxSize new_size = compute_dialog_size();
-    const wxRect old_rect = GetRect();
-    const wxPoint center(old_rect.x + old_rect.width / 2,
-                         old_rect.y + old_rect.height / 2);
-    SetSize(new_size);
-    SetPosition(wxPoint(center.x - new_size.x / 2,
-                        center.y - new_size.y / 2));
+    resize_keeping_centre();
     Layout();
+}
+
+void MixedFilamentDialog::resize_keeping_centre()
+{
+    // Until it is shown the dialog has no display of its own (on Wayland none at all), so use
+    // the parent's, which is also where CentreOnParent() places it.
+    const wxRect area     = wxDisplay(IsShown() ? static_cast<wxWindow*>(this) : GetParent()).GetClientArea();
+    wxSize       new_size = compute_dialog_size();
+    new_size.DecTo(area.GetSize()); // never larger than the display
+    if (GetSize() == new_size)
+        return;
+    // Grow or shrink around the current centre, but keep the whole dialog inside its display
+    // so the buttons don't end up under the taskbar.
+    const wxPoint centre = GetPosition() + GetSize() / 2;
+    const int     x      = std::max(area.x, std::min(centre.x - new_size.x / 2, area.GetRight() + 1 - new_size.x));
+    const int     y      = std::max(area.y, std::min(centre.y - new_size.y / 2, area.GetBottom() + 1 - new_size.y));
+    SetSize(x, y, new_size.x, new_size.y, wxSIZE_ALLOW_MINUS_ONE);
 }
 
 } // namespace GUI
