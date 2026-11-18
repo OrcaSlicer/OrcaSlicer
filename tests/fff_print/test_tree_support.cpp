@@ -195,6 +195,25 @@ TEST_CASE("A raft is still generated under tree support", "[TreeSupport]")
     REQUIRE(rafted_object->layers().front()->print_z > unrafted_object->layers().front()->print_z);
 }
 
+// A plate on a column overhangs a slab that covers the whole bed, so support could only land on the slab.
+TEST_CASE("Tree support on the build plate only leaves out branches that land on the first layer of the model", "[TreeSupport][Regression]")
+{
+    const double slab_height = GENERATE(0.2, 0.6);
+    CAPTURE(slab_height);
+    TriangleMesh mesh   = make_cube(80, 80, slab_height);
+    TriangleMesh column = make_cube(6, 6, 5.1 - slab_height);
+    TriangleMesh plate  = make_cube(30, 30, 1);
+    // Each part overlaps the one below rather than resting on it; a coplanar join slices ambiguously.
+    column.translate(37.f, 37.f, float(slab_height) - 0.05f);
+    plate.translate(25.f, 25.f, 5.f);
+    mesh.merge(column);
+    mesh.merge(plate);
+
+    Slic3r::Print print;
+    slice_with_tree_support(mesh, print, "tree_slim", 30, 1);
+    CHECK(support_points(print).empty());
+}
+
 // With 4 raft layers, the first two are raft base layers.
 TEST_CASE("The first layer expansion widens the first layer of a tree support raft by its value and no other layer", "[TreeSupport][Regression]")
 {
