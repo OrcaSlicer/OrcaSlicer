@@ -954,6 +954,9 @@ void ArrangeJob::finalize(bool canceled, std::exception_ptr &eptr) {
     // BBS: update slice context and gcode result.
     m_plater->update_slicing_context_to_current_partplate();
 
+    // The plates were rebuilt in arrange order, so the GLVolume ids are stale until the scene reloads.
+    m_plater->get_view3D_canvas3D()->reload_scene(true);
+
     wxGetApp().obj_list()->reload_all_plates();
 
     m_plater->update();
