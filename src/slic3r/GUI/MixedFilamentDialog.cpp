@@ -32,7 +32,6 @@
 #include <wx/textctrl.h>
 #include <wx/toplevel.h>
 #include <wx/window.h>
-#include <wx/tglbtn.h>
 #include <wx/wrapsizer.h>
 #include <wx/tokenzr.h>
 
@@ -45,7 +44,7 @@
 #include "FilamentBitmapUtils.hpp"
 #include "wxExtensions.hpp"
 #include "Widgets/Button.hpp"
-#include "Widgets/CheckBox.hpp"
+#include "Widgets/LabeledCheckBox.hpp"
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/DropDown.hpp"
 #include "Widgets/Label.hpp"
@@ -1070,14 +1069,10 @@ wxBoxSizer* MixedFilamentDialog::create_gradient_section()
 {
     m_gradient_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    m_chk_gradient = new ::CheckBox(this);
+    m_chk_gradient = new LabeledCheckBox(this, _L("Gradient Effect"));
     m_chk_gradient->SetValue(m_result.gradient_enabled);
-    m_chk_gradient->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) { e.Skip(); on_gradient_toggled(); });
-    m_gradient_sizer->Add(m_chk_gradient, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(4));
-
-    m_label_gradient = new wxStaticText(this, wxID_ANY, _L("Gradient Effect"));
-    m_label_gradient->SetFont(::Label::Body_13);
-    m_gradient_sizer->Add(m_label_gradient, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
+    m_chk_gradient->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) { e.Skip(); on_gradient_toggled(); });
+    m_gradient_sizer->Add(m_chk_gradient, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(2));
 
     m_combo_gradient_dir = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
                                         wxSize(FromDIP(152), FromDIP(24)), 0, nullptr, wxCB_READONLY);
@@ -1111,17 +1106,12 @@ wxBoxSizer* MixedFilamentDialog::create_gradient_section()
     // Per-part gradient toggle sits BELOW the curve editor.
     m_per_part_gradient_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    m_chk_per_part_gradient = new ::CheckBox(this);
+    m_chk_per_part_gradient = new LabeledCheckBox(this, _L("Enable per-part gradient effect"));
     m_chk_per_part_gradient->SetValue(m_result.per_part_gradient);
-    m_chk_per_part_gradient->Bind(wxEVT_TOGGLEBUTTON,
+    m_chk_per_part_gradient->Bind(wxEVT_CHECKBOX,
         [this](wxCommandEvent& e) { e.Skip(); on_per_part_gradient_toggled(); });
     m_per_part_gradient_sizer->Add(m_chk_per_part_gradient, 0,
-        wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(4));
-
-    m_label_per_part_gradient = new wxStaticText(this, wxID_ANY, _L("Enable per-part gradient effect"));
-    m_label_per_part_gradient->SetFont(::Label::Body_13);
-    m_per_part_gradient_sizer->Add(m_label_per_part_gradient, 0,
-        wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
+        wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(2));
 
     outer->Add(m_per_part_gradient_sizer, 0, wxEXPAND | wxTOP, FromDIP(2));
     m_per_part_gradient_sizer->ShowItems(m_result.gradient_enabled);
@@ -1803,7 +1793,6 @@ void MixedFilamentDialog::update_component_count_ui()
     if (m_gradient_sizer) {
         bool show_gradient = is_two;
         m_chk_gradient->Show(show_gradient);
-        if (m_label_gradient) m_label_gradient->Show(show_gradient);
         m_combo_gradient_dir->Show(show_gradient && m_result.gradient_enabled);
         if (m_per_part_gradient_sizer)
             m_per_part_gradient_sizer->ShowItems(show_gradient && m_result.gradient_enabled);
