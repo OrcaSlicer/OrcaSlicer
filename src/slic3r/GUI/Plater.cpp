@@ -7873,9 +7873,14 @@ bool PlaterDropTarget::OnDropFiles(wxCoord x, wxCoord y, const wxArrayString &fi
 #endif // WIN32
 
     m_mainframe.Raise();
-    m_mainframe.select_tab(TAB_ID_PREPARE);
-    if (wxGetApp().is_editor())
-        m_plater.select_view_3D("3D");
+    // load_gcode() shows the preview, so a G-code dropped in G-code preview mode doesn't flash the empty Prepare page.
+    const bool gcode_on_gcode = m_plater.only_gcode_mode() &&
+        std::all_of(filenames.begin(), filenames.end(), [](const wxString &filename) { return is_gcode_file(into_u8(filename)); });
+    if (! gcode_on_gcode) {
+        m_mainframe.select_tab(TAB_ID_PREPARE);
+        if (wxGetApp().is_editor())
+            m_plater.select_view_3D("3D");
+    }
 
     // When only one .svg file is dropped on scene
     if (filenames.size() == 1) {
@@ -18593,10 +18598,16 @@ void Plater::load_gcode(const wxString& filename)
 {
     BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << __LINE__ << " entry and filename: " << filename;
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__;
-    if (! is_gcode_file(into_u8(filename))
-        || (m_last_loaded_gcode == filename && m_only_gcode)
-        )
+    if (! is_gcode_file(into_u8(filename)))
         return;
+
+    if (m_last_loaded_gcode == filename && m_only_gcode) {
+        // Already loaded: show its preview, in case the caller left it.
+        wxGetApp().mainframe->select_tab(TAB_ID_PREVIEW);
+        p->set_current_panel(p->preview, true);
+        p->get_current_canvas3D()->render();
+        return;
+    }
 
     m_last_loaded_gcode = filename;
 
