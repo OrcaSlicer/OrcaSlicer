@@ -13796,8 +13796,9 @@ msgid "Overhang speed"
 msgstr "懸空列印速度"
 
 # AI Translated
-msgid "This is the speed for various overhang degrees. Overhang degrees are expressed as a percentage of line width. 0 speed means no slowing down for the overhang degree range and wall speed is used"
-msgstr "這是不同懸空程度的速度。懸空程度以線寬的百分比表示。速度為 0 表示該懸空程度範圍內不減速，直接使用牆的速度"
+#, no-c-format, no-boost-format
+msgid "Overhang is the unsupported fraction of the wall line width. Speeds are interpolated between targets at 10%, 25%, 50%, 75% and 87%. The reference speed is the outer or inner wall speed after volumetric and scarf-seam limits; percentage values use this reference. Targets above it print faster only with Allow overhang speeds above wall speed enabled; other targets retain existing path-speed limits. Setting the first target to 0 disables interpolation below 10%. For the remaining targets, 0 uses wall speed at that point; neighboring targets can still change speed in between."
+msgstr "懸空是指牆線寬中未被支撐的比例。速度會在 10%、25%、50%、75% 和 87% 處設定的目標速度之間內插。參考速度是套用體積流量與斜拼接縫限制後的外牆或內牆速度，百分比數值皆以此參考速度計算。僅在啟用「允許懸空列印速度高於牆速度」時，高於參考速度的目標速度才會加快列印；其他目標速度仍受現有的路徑速度限制。將第一個目標速度設為 0 會停用 10% 以下的內插。對於其餘目標速度，設為 0 表示在該控制點使用牆速度；相鄰的目標速度仍可能改變其間的速度。"
 
 msgid "Set speed for external and internal bridges"
 msgstr "設定外部和內部橋接的速度"
@@ -17446,7 +17447,7 @@ msgid ""
 "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge.\n"
-"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75% overhang speed will be applied, limited by the bridge speed."
+"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75–100% overhang speed will be applied, limited by the bridge speed."
 msgstr ""
 "啟用此選項可在牆可能向上捲曲的區域降低列印速度。\n"
 "例如，在列印像 Benchy 船體前端這類尖角上的懸空時，會套用額外的減速，以減少在多個層上不斷累積的捲曲。\n"
@@ -17461,10 +17462,47 @@ msgstr ""
 "3. 若仍出現缺陷，請啟用「平滑擠出率」（ERS），以進一步平滑流量轉換。\n"
 "\n"
 "注意：啟用此選項時，懸空牆會被視為懸空，這表示即使懸空牆屬於橋接的一部分，仍會套用懸空列印速度。\n"
-"例如，當牆 100% 懸空、下方沒有牆支撐時，將會套用 75% 的懸空列印速度，並受橋接速度限制。"
+"例如，當牆 100% 懸空、下方沒有牆支撐時，將會套用 75–100% 的懸空列印速度，並受橋接速度限制。"
+
+# AI Translated
+msgid "Allow overhang speeds above wall speed"
+msgstr "允許懸空列印速度高於牆速度"
+
+# AI Translated
+msgid ""
+"Print overhanging outer and inner walls faster when their overhang speed is set above the wall speed, up to the maximum volumetric speed of the filament. When disabled, overhang speeds never make a wall print faster than it would without the overhang.\n"
+"Bridges, overhang walls, fully unsupported walls, scarf seams and walls whose speed other settings change, such as small perimeters or resonance avoidance, are never sped up."
+msgstr ""
+"當懸空列印速度設定得高於牆速度時，以更快的速度列印懸空的外牆與內牆，最高不超過線材的最大體積流量。停用時，懸空列印速度絕不會讓牆列印得比沒有懸空時更快。\n"
+"橋接、懸空牆、完全沒有支撐的牆、斜拼接縫，以及速度會被其他設定（例如「微小部位」或「共振規避」）改變的牆，一律不會加速。"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 10% of the wall line width is unsupported. Between 0% and 10%, speed is linearly interpolated from the actual wall speed to this value. For example, a wall speed of 60 mm/s and a target of 30 mm/s give 45 mm/s at 5% overhang. A value of 0 disables this initial interpolation. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "牆線寬有 10% 未被支撐時的目標速度。在 0% 到 10% 之間，速度會從實際牆速度線性內插到此值。例如，牆速度為 60 mm/s、目標速度為 30 mm/s 時，5% 懸空處的速度為 45 mm/s。設為 0 會停用這段初始內插。如果以 % 表示，將以牆的參考速度為基準計算。僅在啟用「允許懸空列印速度高於牆速度」時，高於參考速度的目標速度才會加快列印，且仍受體積流量、冷卻與「翹邊處降速」的限制。"
 
 msgid "mm/s or %"
 msgstr "mm/s 或 %"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 25% of the wall line width is unsupported. Between 10% and 25%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "牆線寬有 25% 未被支撐時的目標速度。在 10% 到 25% 之間，速度會從前一個控制點線性內插到此值。設為 0 時，會在此控制點使用牆速度，並仍受現有的速度限制。相鄰的目標速度仍可能改變控制點之間的速度。如果以 % 表示，將以牆的參考速度為基準計算。僅在啟用「允許懸空列印速度高於牆速度」時，高於參考速度的目標速度才會加快列印，且仍受體積流量、冷卻與「翹邊處降速」的限制。"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 50% of the wall line width is unsupported. Between 25% and 50%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "牆線寬有 50% 未被支撐時的目標速度。在 25% 到 50% 之間，速度會從前一個控制點線性內插到此值。設為 0 時，會在此控制點使用牆速度，並仍受現有的速度限制。相鄰的目標速度仍可能改變控制點之間的速度。如果以 % 表示，將以牆的參考速度為基準計算。僅在啟用「允許懸空列印速度高於牆速度」時，高於參考速度的目標速度才會加快列印，且仍受體積流量、冷卻與「翹邊處降速」的限制。"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 75% of the wall line width is unsupported. Between 50% and 75%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "牆線寬有 75% 未被支撐時的目標速度。在 50% 到 75% 之間，速度會從前一個控制點線性內插到此值。設為 0 時，會在此控制點使用牆速度，並仍受現有的速度限制。相鄰的目標速度仍可能改變控制點之間的速度。如果以 % 表示，將以牆的參考速度為基準計算。僅在啟用「允許懸空列印速度高於牆速度」時，高於參考速度的目標速度才會加快列印，且仍受體積流量、冷卻與「翹邊處降速」的限制。"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 87% of the wall line width is unsupported. Between 75% and 87%, speed is linearly interpolated from the preceding control point to this value. With Slow down for curled perimeters disabled, speed is interpolated from this value at 87% to the external bridge speed at 100%; the bridge target is limited to the original path speed. With it enabled, this value is used throughout the 87% to 100% range, except that a value above the wall speed falls back to the original path speed at 100%. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "牆線寬有 87% 未被支撐時的目標速度。在 75% 到 87% 之間，速度會從前一個控制點線性內插到此值。停用「翹邊處降速」時，速度會從 87% 處的此值內插到 100% 處的外部橋接速度；此橋接目標速度不會超過原始路徑速度。啟用時，在 87% 到 100% 的整個範圍內都使用此值，但若此值高於牆速度，則在 100% 處改回原始路徑速度。設為 0 時，會在此控制點使用牆速度，並仍受現有的速度限制。相鄰的目標速度仍可能改變控制點之間的速度。如果以 % 表示，將以牆的參考速度為基準計算。僅在啟用「允許懸空列印速度高於牆速度」時，高於參考速度的目標速度才會加快列印，且仍受體積流量、冷卻與「翹邊處降速」的限制。"
 
 # AI Translated
 msgid ""

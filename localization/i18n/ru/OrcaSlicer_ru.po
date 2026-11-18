@@ -12842,8 +12842,10 @@ msgstr "Ограничения скоростей на других слоях"
 msgid "Overhang speed"
 msgstr "Ограничения скоростей на нависаниях"
 
-msgid "This is the speed for various overhang degrees. Overhang degrees are expressed as a percentage of line width. 0 speed means no slowing down for the overhang degree range and wall speed is used"
-msgstr "Максимальная скорость движения головы (относительно стола) при печати нависаний (степень нависаний указана в процентах от ширины линии). 0 – использовать скорость периметров."
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Overhang is the unsupported fraction of the wall line width. Speeds are interpolated between targets at 10%, 25%, 50%, 75% and 87%. The reference speed is the outer or inner wall speed after volumetric and scarf-seam limits; percentage values use this reference. Targets above it print faster only with Allow overhang speeds above wall speed enabled; other targets retain existing path-speed limits. Setting the first target to 0 disables interpolation below 10%. For the remaining targets, 0 uses wall speed at that point; neighboring targets can still change speed in between."
+msgstr "Нависанием считается доля ширины линии периметра, не имеющая опоры снизу. Скорость интерполируется между целевыми значениями при 10%, 25%, 50%, 75% и 87%. Базовая скорость – это скорость внешнего или внутреннего периметра с учётом ограничений объёмного расхода и косого шва; значения в процентах указываются от неё. Целевые скорости выше базовой ускоряют печать только при включённом параметре «Разрешать скорость на нависаниях выше скорости периметров»; для остальных целевых скоростей сохраняются действующие ограничения скорости линии. Значение 0 для первой целевой скорости отключает интерполяцию ниже 10%. Для остальных значение 0 означает скорость периметра в этой точке; соседние целевые скорости всё равно могут менять скорость между точками."
 
 msgid "Set speed for external and internal bridges"
 msgstr "Ограничения скоростей движения головы при печати внешних и внутренних мостов (относительно стола)."
@@ -16243,14 +16245,14 @@ msgid ""
 "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge.\n"
-"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75% overhang speed will be applied, limited by the bridge speed."
+"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75–100% overhang speed will be applied, limited by the bridge speed."
 msgstr ""
 "Позволяет автоматически замедлять печать в областях, где выступающие периметры могут деформироваться из-за усадки.\n"
 "Например, форштевень Benchy, который сильнее подвержен накоплению усадочной деформации.\n"
 "\n"
 "Рекомендуется использовать в случаях, если скоростной режим, конструкция принтера или его система охлаждения не способны обеспечить качественного сопротивления усадке материала.\n"
 "\n"
-"Примечание: отключает скоростной режим мостов для нависающих периметров (передаёт его в управление настройке 75% нависания ниже).\n"
+"Примечание: отключает скоростной режим мостов для нависающих периметров (передаёт его в управление настройке 75–100% нависания ниже).\n"
 "\n"
 "Внимание: требуется крайне точная настройка коррекции давления. В противном случае при быстрой печати стенок в местах перепада скоростей будут возникать заметные артефакты поверхности.\n"
 "\n"
@@ -16260,8 +16262,45 @@ msgstr ""
 "2. Повысьте ограничения скоростей нависаний.\n"
 "3. Если это не помогло, воспользуйтесь сглаживанием расхода."
 
+# AI Translated
+msgid "Allow overhang speeds above wall speed"
+msgstr "Разрешать скорость на нависаниях выше скорости периметров"
+
+# AI Translated
+msgid ""
+"Print overhanging outer and inner walls faster when their overhang speed is set above the wall speed, up to the maximum volumetric speed of the filament. When disabled, overhang speeds never make a wall print faster than it would without the overhang.\n"
+"Bridges, overhang walls, fully unsupported walls, scarf seams and walls whose speed other settings change, such as small perimeters or resonance avoidance, are never sped up."
+msgstr ""
+"Печатать внешние и внутренние периметры на нависаниях быстрее, если их скорость на нависании задана выше скорости периметров, не превышая предел объёмного расхода материала. Если отключено, скорость на нависаниях никогда не делает печать периметра быстрее, чем без нависания.\n"
+"Мосты, нависающие периметры, периметры полностью без опоры, косые швы и периметры, скорость которых меняют другие параметры (например, «Короткие периметры» или «Избегание ряби»), никогда не ускоряются."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 10% of the wall line width is unsupported. Between 0% and 10%, speed is linearly interpolated from the actual wall speed to this value. For example, a wall speed of 60 mm/s and a target of 30 mm/s give 45 mm/s at 5% overhang. A value of 0 disables this initial interpolation. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Целевая скорость, когда 10% ширины линии периметра не имеет опоры. От 0% до 10% скорость линейно меняется от фактической скорости периметра до этого значения. Например, при скорости периметра 60 мм/с и целевой скорости 30 мм/с при нависании 5% получится 45 мм/с. 0 – отключить эту начальную интерполяцию. Можно указать процент от базовой скорости периметра. Целевые скорости выше базовой ускоряют печать только при включённом параметре «Разрешать скорость на нависаниях выше скорости периметров», с учётом объёмного расхода, охлаждения и замедления на изогнутых периметрах."
+
 msgid "mm/s or %"
 msgstr "мм/с или %"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 25% of the wall line width is unsupported. Between 10% and 25%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Целевая скорость, когда 25% ширины линии периметра не имеет опоры. От 10% до 25% скорость линейно меняется от предыдущей контрольной точки до этого значения. 0 – использовать в этой контрольной точке скорость периметра с учётом действующих ограничений скорости. Соседние целевые скорости всё равно могут менять скорость между контрольными точками. Можно указать процент от базовой скорости периметра. Целевые скорости выше базовой ускоряют печать только при включённом параметре «Разрешать скорость на нависаниях выше скорости периметров», с учётом объёмного расхода, охлаждения и замедления на изогнутых периметрах."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 50% of the wall line width is unsupported. Between 25% and 50%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Целевая скорость, когда 50% ширины линии периметра не имеет опоры. От 25% до 50% скорость линейно меняется от предыдущей контрольной точки до этого значения. 0 – использовать в этой контрольной точке скорость периметра с учётом действующих ограничений скорости. Соседние целевые скорости всё равно могут менять скорость между контрольными точками. Можно указать процент от базовой скорости периметра. Целевые скорости выше базовой ускоряют печать только при включённом параметре «Разрешать скорость на нависаниях выше скорости периметров», с учётом объёмного расхода, охлаждения и замедления на изогнутых периметрах."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 75% of the wall line width is unsupported. Between 50% and 75%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Целевая скорость, когда 75% ширины линии периметра не имеет опоры. От 50% до 75% скорость линейно меняется от предыдущей контрольной точки до этого значения. 0 – использовать в этой контрольной точке скорость периметра с учётом действующих ограничений скорости. Соседние целевые скорости всё равно могут менять скорость между контрольными точками. Можно указать процент от базовой скорости периметра. Целевые скорости выше базовой ускоряют печать только при включённом параметре «Разрешать скорость на нависаниях выше скорости периметров», с учётом объёмного расхода, охлаждения и замедления на изогнутых периметрах."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 87% of the wall line width is unsupported. Between 75% and 87%, speed is linearly interpolated from the preceding control point to this value. With Slow down for curled perimeters disabled, speed is interpolated from this value at 87% to the external bridge speed at 100%; the bridge target is limited to the original path speed. With it enabled, this value is used throughout the 87% to 100% range, except that a value above the wall speed falls back to the original path speed at 100%. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Целевая скорость, когда 87% ширины линии периметра не имеет опоры. От 75% до 87% скорость линейно меняется от предыдущей контрольной точки до этого значения. Если параметр «Замедляться на изогнутых периметрах» отключён, скорость меняется от этого значения при 87% до скорости внешнего моста при 100%; при этом целевая скорость моста ограничена исходной скоростью линии. Если он включён, это значение действует во всём диапазоне от 87% до 100%, но значение выше скорости периметра при 100% заменяется исходной скоростью линии. 0 – использовать в этой контрольной точке скорость периметра с учётом действующих ограничений скорости. Соседние целевые скорости всё равно могут менять скорость между контрольными точками. Можно указать процент от базовой скорости периметра. Целевые скорости выше базовой ускоряют печать только при включённом параметре «Разрешать скорость на нависаниях выше скорости периметров», с учётом объёмного расхода, охлаждения и замедления на изогнутых периметрах."
 
 # AI Translated
 msgid ""

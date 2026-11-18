@@ -12860,8 +12860,10 @@ msgstr "Velocidad de otras capas"
 msgid "Overhang speed"
 msgstr "Velocidad del voladizo"
 
-msgid "This is the speed for various overhang degrees. Overhang degrees are expressed as a percentage of line width. 0 speed means no slowing down for the overhang degree range and wall speed is used"
-msgstr "Esta es la velocidad para varios grados de voladizo. Los grados de voladizo se expresan como un porcentaje del ancho de la línea. La velocidad 0 significa que no hay ralentización para el rango de grados de voladizo y se utiliza la velocidad del perímetro"
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Overhang is the unsupported fraction of the wall line width. Speeds are interpolated between targets at 10%, 25%, 50%, 75% and 87%. The reference speed is the outer or inner wall speed after volumetric and scarf-seam limits; percentage values use this reference. Targets above it print faster only with Allow overhang speeds above wall speed enabled; other targets retain existing path-speed limits. Setting the first target to 0 disables interpolation below 10%. For the remaining targets, 0 uses wall speed at that point; neighboring targets can still change speed in between."
+msgstr "El voladizo es la fracción del ancho de línea del perímetro que queda sin soporte. Las velocidades se interpolan entre los objetivos situados en el 10%, 25%, 50%, 75% y 87%. La velocidad de referencia es la velocidad del perímetro externo o interno tras aplicar los límites volumétricos y de costura en bisel; los valores en porcentaje se calculan sobre esta referencia. Los objetivos superiores a ella solo imprimen más rápido si «Permitir velocidades de voladizo superiores a la velocidad del perímetro» está activado; los demás objetivos mantienen los límites de velocidad existentes de la trayectoria. Ajustar el primer objetivo a 0 desactiva la interpolación por debajo del 10%. Para los demás objetivos, 0 usa la velocidad del perímetro en ese punto; los objetivos vecinos pueden seguir cambiando la velocidad entre esos puntos."
 
 msgid "Set speed for external and internal bridges"
 msgstr "Configurar velocidad para puentes externos e internos"
@@ -16261,7 +16263,7 @@ msgid ""
 "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge.\n"
-"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75% overhang speed will be applied, limited by the bridge speed."
+"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75–100% overhang speed will be applied, limited by the bridge speed."
 msgstr ""
 "Active esta opción para ralentizar la impresión en áreas donde los perímetros puedan haberse curvado hacia arriba.\n"
 "Por ejemplo, se aplicará una ralentización adicional al imprimir voladizos en esquinas afiladas, como la parte frontal del casco de Benchy, reduciendo la curvatura que se acumula en varias capas.\n"
@@ -16276,10 +16278,48 @@ msgstr ""
 "3. Si aún aparecen artefactos, active el Suavizado de la tasa de extrusión (ERS) para suavizar aún más las transiciones del flujo.\n"
 "\n"
 "Nota: Cuando esta opción está activada, los perímetros en voladizo se tratan como tales, lo que significa que se aplica la velocidad de voladizo incluso si el perímetro en voladizo forma parte de un puente.\n"
-"Por ejemplo, cuando los perímetros sobresalen al 100%, sin ninguna pared que los sostenga por debajo, se aplicará la velocidad de voladizo del 75%, limitada por la velocidad de puente."
+"Por ejemplo, cuando los perímetros sobresalen al 100%, sin ninguna pared que los sostenga por debajo, se aplicará la velocidad de voladizo del 75–100%, limitada por la velocidad de puente."
+
+# AI Translated
+msgid "Allow overhang speeds above wall speed"
+msgstr "Permitir velocidades de voladizo superiores a la velocidad del perímetro"
+
+# AI Translated
+# Needs human review: "overhang walls" is the Overhang wall feature type (walls printed as bridges), so it is quoted as «Perímetro de voladizo» to keep it apart from the overhanging walls of the first sentence; check it reads right.
+msgid ""
+"Print overhanging outer and inner walls faster when their overhang speed is set above the wall speed, up to the maximum volumetric speed of the filament. When disabled, overhang speeds never make a wall print faster than it would without the overhang.\n"
+"Bridges, overhang walls, fully unsupported walls, scarf seams and walls whose speed other settings change, such as small perimeters or resonance avoidance, are never sped up."
+msgstr ""
+"Imprime más rápido los perímetros externos e internos en voladizo cuando su velocidad de voladizo es superior a la velocidad del perímetro, hasta la velocidad volumétrica máxima del filamento. Si se desactiva, las velocidades de voladizo nunca hacen que un perímetro se imprima más rápido que sin voladizo.\n"
+"Los puentes, los perímetros de tipo «Perímetro de voladizo», los perímetros totalmente sin soporte, las costuras en bisel y los perímetros cuya velocidad modifican otros ajustes, como los perímetros pequeños o la prevención de resonancia, nunca se aceleran."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 10% of the wall line width is unsupported. Between 0% and 10%, speed is linearly interpolated from the actual wall speed to this value. For example, a wall speed of 60 mm/s and a target of 30 mm/s give 45 mm/s at 5% overhang. A value of 0 disables this initial interpolation. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Velocidad objetivo cuando el 10% del ancho de línea del perímetro queda sin soporte. Entre el 0% y el 10%, la velocidad se interpola linealmente desde la velocidad real del perímetro hasta este valor. Por ejemplo, una velocidad del perímetro de 60 mm/s y un objetivo de 30 mm/s dan 45 mm/s con un 5% de voladizo. Un valor de 0 desactiva esta interpolación inicial. Si se expresa como %, se calculará en base a la velocidad de referencia del perímetro. Un objetivo superior a esta referencia solo imprime más rápido si «Permitir velocidades de voladizo superiores a la velocidad del perímetro» está activado, y queda sujeto al flujo volumétrico, la refrigeración y la reducción de velocidad en perímetros curvados."
 
 msgid "mm/s or %"
 msgstr "mm/s o %"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 25% of the wall line width is unsupported. Between 10% and 25%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Velocidad objetivo cuando el 25% del ancho de línea del perímetro queda sin soporte. Entre el 10% y el 25%, la velocidad se interpola linealmente desde el punto de control anterior hasta este valor. Un valor de 0 usa la velocidad del perímetro en este punto de control, respetando los límites de velocidad existentes. Los objetivos adyacentes pueden seguir cambiando la velocidad entre los puntos de control. Si se expresa como %, se calculará en base a la velocidad de referencia del perímetro. Un objetivo superior a esta referencia solo imprime más rápido si «Permitir velocidades de voladizo superiores a la velocidad del perímetro» está activado, y queda sujeto al flujo volumétrico, la refrigeración y la reducción de velocidad en perímetros curvados."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 50% of the wall line width is unsupported. Between 25% and 50%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Velocidad objetivo cuando el 50% del ancho de línea del perímetro queda sin soporte. Entre el 25% y el 50%, la velocidad se interpola linealmente desde el punto de control anterior hasta este valor. Un valor de 0 usa la velocidad del perímetro en este punto de control, respetando los límites de velocidad existentes. Los objetivos adyacentes pueden seguir cambiando la velocidad entre los puntos de control. Si se expresa como %, se calculará en base a la velocidad de referencia del perímetro. Un objetivo superior a esta referencia solo imprime más rápido si «Permitir velocidades de voladizo superiores a la velocidad del perímetro» está activado, y queda sujeto al flujo volumétrico, la refrigeración y la reducción de velocidad en perímetros curvados."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 75% of the wall line width is unsupported. Between 50% and 75%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Velocidad objetivo cuando el 75% del ancho de línea del perímetro queda sin soporte. Entre el 50% y el 75%, la velocidad se interpola linealmente desde el punto de control anterior hasta este valor. Un valor de 0 usa la velocidad del perímetro en este punto de control, respetando los límites de velocidad existentes. Los objetivos adyacentes pueden seguir cambiando la velocidad entre los puntos de control. Si se expresa como %, se calculará en base a la velocidad de referencia del perímetro. Un objetivo superior a esta referencia solo imprime más rápido si «Permitir velocidades de voladizo superiores a la velocidad del perímetro» está activado, y queda sujeto al flujo volumétrico, la refrigeración y la reducción de velocidad en perímetros curvados."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 87% of the wall line width is unsupported. Between 75% and 87%, speed is linearly interpolated from the preceding control point to this value. With Slow down for curled perimeters disabled, speed is interpolated from this value at 87% to the external bridge speed at 100%; the bridge target is limited to the original path speed. With it enabled, this value is used throughout the 87% to 100% range, except that a value above the wall speed falls back to the original path speed at 100%. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Velocidad objetivo cuando el 87% del ancho de línea del perímetro queda sin soporte. Entre el 75% y el 87%, la velocidad se interpola linealmente desde el punto de control anterior hasta este valor. Con «Reducir velocidad en perímetros curvados» desactivado, la velocidad se interpola desde este valor en el 87% hasta la velocidad de puentes externos en el 100%; este objetivo de puente se limita a la velocidad original de la trayectoria. Con esa opción activada, este valor se usa en todo el rango del 87% al 100%, con la salvedad de que un valor superior a la velocidad del perímetro vuelve a la velocidad original de la trayectoria en el 100%. Un valor de 0 usa la velocidad del perímetro en este punto de control, respetando los límites de velocidad existentes. Los objetivos adyacentes pueden seguir cambiando la velocidad entre los puntos de control. Si se expresa como %, se calculará en base a la velocidad de referencia del perímetro. Un objetivo superior a esta referencia solo imprime más rápido si «Permitir velocidades de voladizo superiores a la velocidad del perímetro» está activado, y queda sujeto al flujo volumétrico, la refrigeración y la reducción de velocidad en perímetros curvados."
 
 # AI Translated
 msgid ""

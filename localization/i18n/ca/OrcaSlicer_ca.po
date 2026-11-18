@@ -13365,8 +13365,10 @@ msgstr "Velocitat d'altres capes"
 msgid "Overhang speed"
 msgstr "Velocitat de voladís"
 
-msgid "This is the speed for various overhang degrees. Overhang degrees are expressed as a percentage of line width. 0 speed means no slowing down for the overhang degree range and wall speed is used"
-msgstr "Aquesta és la velocitat per a diversos graus de voladís. Els graus de voladís s'expressen com un percentatge de l'amplada de la línia. La velocitat 0 vol dir que no hi ha alentiment per al rang de graus de voladís i s'utilitza la velocitat del perímetre"
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Overhang is the unsupported fraction of the wall line width. Speeds are interpolated between targets at 10%, 25%, 50%, 75% and 87%. The reference speed is the outer or inner wall speed after volumetric and scarf-seam limits; percentage values use this reference. Targets above it print faster only with Allow overhang speeds above wall speed enabled; other targets retain existing path-speed limits. Setting the first target to 0 disables interpolation below 10%. For the remaining targets, 0 uses wall speed at that point; neighboring targets can still change speed in between."
+msgstr "El voladís és la fracció no suportada de l'amplada de línia del perímetre. Les velocitats s'interpolen entre les velocitats objectiu al 10%, 25%, 50%, 75% i 87%. La velocitat de referència és la velocitat del perímetre exterior o interior després d'aplicar els límits de velocitat volumètrica i de les costures amb unió en bisell; els valors percentuals són relatius a aquesta referència. Les velocitats objectiu superiors a aquesta només acceleren la impressió si l'opció \"Permetre velocitats de voladís superiors a la velocitat del perímetre\" està activada; les altres velocitats objectiu mantenen els límits de velocitat existents de la trajectòria. Si la primera velocitat objectiu és 0, no s'interpola per sota del 10%. Per a la resta de velocitats objectiu, 0 fa servir la velocitat del perímetre en aquell punt; les velocitats objectiu veïnes encara poden canviar la velocitat entremig."
 
 msgid "Set speed for external and internal bridges"
 msgstr "Establir la velocitat dels ponts externs i interns"
@@ -16887,7 +16889,7 @@ msgid ""
 "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge.\n"
-"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75% overhang speed will be applied, limited by the bridge speed."
+"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75–100% overhang speed will be applied, limited by the bridge speed."
 msgstr ""
 "Activeu aquesta opció per alentir la impressió en àrees on els perímetres s'hagin pogut corbar cap amunt.\n"
 "Per exemple, s'aplicarà un alentiment addicional en imprimir voladissos en cantonades pronunciades, com ara la proa del casc del Benchy, cosa que redueix el corbament que s'acumula al llarg de diverses capes.\n"
@@ -16902,10 +16904,47 @@ msgstr ""
 "3. Si encara apareixen defectes, activeu el Suavitzat de la velocitat d'extrusió (ERS) per suavitzar encara més les transicions de flux.\n"
 "\n"
 "Nota: quan aquesta opció està activada, els perímetres de voladís es tracten com a voladissos, cosa que vol dir que s'aplica la velocitat de voladís fins i tot si el perímetre en voladís forma part d'un pont.\n"
-"Per exemple, quan els perímetres estan en voladís al 100%, sense cap perímetre que els aguanti per sota, s'aplicarà la velocitat de voladís del 75%, limitada per la velocitat de pont."
+"Per exemple, quan els perímetres estan en voladís al 100%, sense cap perímetre que els aguanti per sota, s'aplicarà la velocitat de voladís del 75–100%, limitada per la velocitat de pont."
+
+# AI Translated
+msgid "Allow overhang speeds above wall speed"
+msgstr "Permetre velocitats de voladís superiors a la velocitat del perímetre"
+
+# AI Translated
+msgid ""
+"Print overhanging outer and inner walls faster when their overhang speed is set above the wall speed, up to the maximum volumetric speed of the filament. When disabled, overhang speeds never make a wall print faster than it would without the overhang.\n"
+"Bridges, overhang walls, fully unsupported walls, scarf seams and walls whose speed other settings change, such as small perimeters or resonance avoidance, are never sped up."
+msgstr ""
+"Imprimeix més ràpid els perímetres exteriors i interiors en voladís quan la seva velocitat de voladís és superior a la velocitat del perímetre, fins a la velocitat volumètrica màxima del filament. Si l'opció està desactivada, les velocitats de voladís mai no fan que un perímetre s'imprimeixi més ràpid del que ho faria sense el voladís.\n"
+"Els ponts, els perímetres de voladís, els perímetres sense cap suport, les costures amb unió en bisell i els perímetres la velocitat dels quals modifiquen altres ajustaments, com ara \"Petits perímetres\" o \"Evitació de ressonància\", no s'acceleren mai."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 10% of the wall line width is unsupported. Between 0% and 10%, speed is linearly interpolated from the actual wall speed to this value. For example, a wall speed of 60 mm/s and a target of 30 mm/s give 45 mm/s at 5% overhang. A value of 0 disables this initial interpolation. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Velocitat objectiu quan el 10% de l'amplada de línia del perímetre no té suport. Entre el 0% i el 10%, la velocitat s'interpola linealment des de la velocitat real del perímetre fins a aquest valor. Per exemple, amb una velocitat del perímetre de 60 mm/s i una velocitat objectiu de 30 mm/s, s'obtenen 45 mm/s amb un 5% de voladís. Un valor de 0 desactiva aquesta interpolació inicial. Els valors en % són relatius a la velocitat de referència del perímetre. Les velocitats objectiu superiors a aquesta només acceleren la impressió si l'opció \"Permetre velocitats de voladís superiors a la velocitat del perímetre\" està activada, i continuen limitades pel flux volumètric, la refrigeració i l'alentiment per a perímetres corbats."
 
 msgid "mm/s or %"
 msgstr "mm/s o %"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 25% of the wall line width is unsupported. Between 10% and 25%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Velocitat objectiu quan el 25% de l'amplada de línia del perímetre no té suport. Entre el 10% i el 25%, la velocitat s'interpola linealment des del punt de control anterior fins a aquest valor. Un valor de 0 fa servir la velocitat del perímetre en aquest punt de control, dins dels límits de velocitat existents. Les velocitats objectiu adjacents encara poden canviar la velocitat entre punts de control. Els valors en % són relatius a la velocitat de referència del perímetre. Les velocitats objectiu superiors a aquesta només acceleren la impressió si l'opció \"Permetre velocitats de voladís superiors a la velocitat del perímetre\" està activada, i continuen limitades pel flux volumètric, la refrigeració i l'alentiment per a perímetres corbats."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 50% of the wall line width is unsupported. Between 25% and 50%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Velocitat objectiu quan el 50% de l'amplada de línia del perímetre no té suport. Entre el 25% i el 50%, la velocitat s'interpola linealment des del punt de control anterior fins a aquest valor. Un valor de 0 fa servir la velocitat del perímetre en aquest punt de control, dins dels límits de velocitat existents. Les velocitats objectiu adjacents encara poden canviar la velocitat entre punts de control. Els valors en % són relatius a la velocitat de referència del perímetre. Les velocitats objectiu superiors a aquesta només acceleren la impressió si l'opció \"Permetre velocitats de voladís superiors a la velocitat del perímetre\" està activada, i continuen limitades pel flux volumètric, la refrigeració i l'alentiment per a perímetres corbats."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 75% of the wall line width is unsupported. Between 50% and 75%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Velocitat objectiu quan el 75% de l'amplada de línia del perímetre no té suport. Entre el 50% i el 75%, la velocitat s'interpola linealment des del punt de control anterior fins a aquest valor. Un valor de 0 fa servir la velocitat del perímetre en aquest punt de control, dins dels límits de velocitat existents. Les velocitats objectiu adjacents encara poden canviar la velocitat entre punts de control. Els valors en % són relatius a la velocitat de referència del perímetre. Les velocitats objectiu superiors a aquesta només acceleren la impressió si l'opció \"Permetre velocitats de voladís superiors a la velocitat del perímetre\" està activada, i continuen limitades pel flux volumètric, la refrigeració i l'alentiment per a perímetres corbats."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 87% of the wall line width is unsupported. Between 75% and 87%, speed is linearly interpolated from the preceding control point to this value. With Slow down for curled perimeters disabled, speed is interpolated from this value at 87% to the external bridge speed at 100%; the bridge target is limited to the original path speed. With it enabled, this value is used throughout the 87% to 100% range, except that a value above the wall speed falls back to the original path speed at 100%. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Velocitat objectiu quan el 87% de l'amplada de línia del perímetre no té suport. Entre el 75% i el 87%, la velocitat s'interpola linealment des del punt de control anterior fins a aquest valor. Si l'opció \"Alentir la velocitat per a perímetres corbats\" està desactivada, la velocitat s'interpola des d'aquest valor al 87% fins a la velocitat dels ponts externs al 100%; aquesta velocitat objectiu del pont es limita a la velocitat original de la trajectòria. Si està activada, aquest valor s'utilitza en tot l'interval del 87% al 100%, excepte que un valor superior a la velocitat del perímetre torna a la velocitat original de la trajectòria al 100%. Un valor de 0 fa servir la velocitat del perímetre en aquest punt de control, dins dels límits de velocitat existents. Les velocitats objectiu adjacents encara poden canviar la velocitat entre punts de control. Els valors en % són relatius a la velocitat de referència del perímetre. Les velocitats objectiu superiors a aquesta només acceleren la impressió si l'opció \"Permetre velocitats de voladís superiors a la velocitat del perímetre\" està activada, i continuen limitades pel flux volumètric, la refrigeració i l'alentiment per a perímetres corbats."
 
 # AI Translated
 msgid ""

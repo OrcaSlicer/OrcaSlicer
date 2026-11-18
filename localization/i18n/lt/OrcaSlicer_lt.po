@@ -13254,8 +13254,10 @@ msgstr "Kitų sluoksnių greitis"
 msgid "Overhang speed"
 msgstr "Iškyšų greitis"
 
-msgid "This is the speed for various overhang degrees. Overhang degrees are expressed as a percentage of line width. 0 speed means no slowing down for the overhang degree range and wall speed is used"
-msgstr "Šiame nustatyme nurodomas spausdinimo greitis skirtingiems iškyšos laipsniams. Iškyšos laipsnis pateikiamas linijos pločio procentine išraiška. 0 greitis reiškia, kad nepristabdoma nė vienam iškyšos laipsniui ir naudojamas sienelės spausdinimo greitis"
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Overhang is the unsupported fraction of the wall line width. Speeds are interpolated between targets at 10%, 25%, 50%, 75% and 87%. The reference speed is the outer or inner wall speed after volumetric and scarf-seam limits; percentage values use this reference. Targets above it print faster only with Allow overhang speeds above wall speed enabled; other targets retain existing path-speed limits. Setting the first target to 0 disables interpolation below 10%. For the remaining targets, 0 uses wall speed at that point; neighboring targets can still change speed in between."
+msgstr "Iškyša – tai sienelės linijos pločio dalis, neturinti atramos. Greitis interpoliuojamas tarp tikslinių reikšmių ties 10%, 25%, 50%, 75% ir 87%. Atskaitos greitis – tai išorinės arba vidinės sienelės greitis, pritaikius tūrinio greičio ir įstrižosios jungties siūlės apribojimus; procentinės reikšmės apskaičiuojamos pagal jį. Tiksliniai greičiai, didesni už atskaitos greitį, pagreitina spausdinimą tik įjungus parinktį „Leisti iškyšų greitį viršyti sienelių greitį“; kitiems tiksliniams greičiams išlieka esami trajektorijos greičio apribojimai. Nustačius pirmojo tikslinio greičio reikšmę 0, interpoliacija žemiau 10% išjungiama. Kitiems tiksliniams greičiams 0 reiškia sienelės greitį tame taške; gretimi tiksliniai greičiai vis tiek gali keisti greitį tarp taškų."
 
 msgid "Set speed for external and internal bridges"
 msgstr "Vidinių ir išorinių tiltų greitis"
@@ -16714,7 +16716,7 @@ msgid ""
 "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge.\n"
-"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75% overhang speed will be applied, limited by the bridge speed."
+"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75–100% overhang speed will be applied, limited by the bridge speed."
 msgstr ""
 "Įjunkite šią parinktį, kad sumažintumėte spausdinimo greitį vietose, kur perimetrai linkę riestis į viršų.\n"
 "Pavyzdžiui, papildomas sulėtinimas bus taikomas spausdinant iškyšas ties aštriais kampais (kaip „Benchy“ laivelio priekis) – tai apsaugo nuo sluoksnių rietimosi, kuris linkęs kauptis per kelis sluoksnius.\n"
@@ -16729,10 +16731,47 @@ msgstr ""
 "3. Jei artefaktai išlieka, įjunkite „Išstūmimo greičio išlyginimas“ (ERS), kad sušvelnintumėte srauto perėjimus.\n"
 "\n"
 "Pastaba: kai ši parinktis įjungta, išsikišę perimetrai yra traktuojami kaip iškyšos, t. y. iškyšų greitis taikomas net ir tada, kai perimetras yra tilto dalis.\n"
-"Pavyzdžiui, kai perimetrai kyšo 100 % (apačioje nėra jokios palaikančios sienelės), bus taikomas 75 % iškyšos greitis, apribotas tilto greičiu."
+"Pavyzdžiui, kai perimetrai kyšo 100 % (apačioje nėra jokios palaikančios sienelės), bus taikomas 75–100 % iškyšos greitis, apribotas tilto greičiu."
+
+# AI Translated
+msgid "Allow overhang speeds above wall speed"
+msgstr "Leisti iškyšų greitį viršyti sienelių greitį"
+
+# AI Translated
+msgid ""
+"Print overhanging outer and inner walls faster when their overhang speed is set above the wall speed, up to the maximum volumetric speed of the filament. When disabled, overhang speeds never make a wall print faster than it would without the overhang.\n"
+"Bridges, overhang walls, fully unsupported walls, scarf seams and walls whose speed other settings change, such as small perimeters or resonance avoidance, are never sped up."
+msgstr ""
+"Iškyšose esančios išorinės ir vidinės sienelės spausdinamos greičiau, kai jų iškyšos greitis nustatytas didesnis už sienelės greitį, neviršijant gijos maksimalaus tūrinio greičio. Kai išjungta, iškyšų greičiai niekada nepagreitina sienelės spausdinimo, palyginti su spausdinimu be iškyšos.\n"
+"Tiltai, pakibusios dalies sienelės, visiškai neparemtos sienelės, įstrižosios jungties siūlės ir sienelės, kurių greitį keičia kiti nustatymai, pavyzdžiui, mažų perimetrų greitis ar rezonanso vengimas, niekada nepagreitinamos."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 10% of the wall line width is unsupported. Between 0% and 10%, speed is linearly interpolated from the actual wall speed to this value. For example, a wall speed of 60 mm/s and a target of 30 mm/s give 45 mm/s at 5% overhang. A value of 0 disables this initial interpolation. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Tikslinis greitis, kai 10% sienelės linijos pločio neturi atramos. Nuo 0% iki 10% greitis tiesiškai kinta nuo faktinio sienelės greičio iki šios reikšmės. Pavyzdžiui, kai sienelės greitis 60 mm/s, o tikslinis greitis 30 mm/s, esant 5% iškyšai gaunama 45 mm/s. Reikšmė 0 išjungia šią pradinę interpoliaciją. Procentais nurodytos reikšmės apskaičiuojamos pagal sienelės atskaitos greitį. Tiksliniai greičiai, didesni už atskaitos greitį, pagreitina spausdinimą tik įjungus parinktį „Leisti iškyšų greitį viršyti sienelių greitį“, atsižvelgiant į tūrinį greitį, aušinimą ir sulėtinimą riečiantis perimetrams."
 
 msgid "mm/s or %"
 msgstr "mm/s arba %"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 25% of the wall line width is unsupported. Between 10% and 25%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Tikslinis greitis, kai 25% sienelės linijos pločio neturi atramos. Nuo 10% iki 25% greitis tiesiškai kinta nuo ankstesnio valdymo taško iki šios reikšmės. Nustačius 0, šiame valdymo taške naudojamas sienelės greitis, taikant esamus greičio apribojimus. Gretimi tiksliniai greičiai vis tiek gali keisti greitį tarp valdymo taškų. Procentais nurodytos reikšmės apskaičiuojamos pagal sienelės atskaitos greitį. Tiksliniai greičiai, didesni už atskaitos greitį, pagreitina spausdinimą tik įjungus parinktį „Leisti iškyšų greitį viršyti sienelių greitį“, atsižvelgiant į tūrinį greitį, aušinimą ir sulėtinimą riečiantis perimetrams."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 50% of the wall line width is unsupported. Between 25% and 50%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Tikslinis greitis, kai 50% sienelės linijos pločio neturi atramos. Nuo 25% iki 50% greitis tiesiškai kinta nuo ankstesnio valdymo taško iki šios reikšmės. Nustačius 0, šiame valdymo taške naudojamas sienelės greitis, taikant esamus greičio apribojimus. Gretimi tiksliniai greičiai vis tiek gali keisti greitį tarp valdymo taškų. Procentais nurodytos reikšmės apskaičiuojamos pagal sienelės atskaitos greitį. Tiksliniai greičiai, didesni už atskaitos greitį, pagreitina spausdinimą tik įjungus parinktį „Leisti iškyšų greitį viršyti sienelių greitį“, atsižvelgiant į tūrinį greitį, aušinimą ir sulėtinimą riečiantis perimetrams."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 75% of the wall line width is unsupported. Between 50% and 75%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Tikslinis greitis, kai 75% sienelės linijos pločio neturi atramos. Nuo 50% iki 75% greitis tiesiškai kinta nuo ankstesnio valdymo taško iki šios reikšmės. Nustačius 0, šiame valdymo taške naudojamas sienelės greitis, taikant esamus greičio apribojimus. Gretimi tiksliniai greičiai vis tiek gali keisti greitį tarp valdymo taškų. Procentais nurodytos reikšmės apskaičiuojamos pagal sienelės atskaitos greitį. Tiksliniai greičiai, didesni už atskaitos greitį, pagreitina spausdinimą tik įjungus parinktį „Leisti iškyšų greitį viršyti sienelių greitį“, atsižvelgiant į tūrinį greitį, aušinimą ir sulėtinimą riečiantis perimetrams."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 87% of the wall line width is unsupported. Between 75% and 87%, speed is linearly interpolated from the preceding control point to this value. With Slow down for curled perimeters disabled, speed is interpolated from this value at 87% to the external bridge speed at 100%; the bridge target is limited to the original path speed. With it enabled, this value is used throughout the 87% to 100% range, except that a value above the wall speed falls back to the original path speed at 100%. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Tikslinis greitis, kai 87% sienelės linijos pločio neturi atramos. Nuo 75% iki 87% greitis tiesiškai kinta nuo ankstesnio valdymo taško iki šios reikšmės. Kai parinktis „Sulėtinti greitį riečiantis perimetrams“ išjungta, greitis kinta nuo šios reikšmės ties 87% iki išorinių tiltų greičio ties 100%; tilto tikslinis greitis apribojamas pradiniu trajektorijos greičiu. Kai ji įjungta, ši reikšmė taikoma visame intervale nuo 87% iki 100%, tačiau už sienelės greitį didesnė reikšmė ties 100% pakeičiama pradiniu trajektorijos greičiu. Nustačius 0, šiame valdymo taške naudojamas sienelės greitis, taikant esamus greičio apribojimus. Gretimi tiksliniai greičiai vis tiek gali keisti greitį tarp valdymo taškų. Procentais nurodytos reikšmės apskaičiuojamos pagal sienelės atskaitos greitį. Tiksliniai greičiai, didesni už atskaitos greitį, pagreitina spausdinimą tik įjungus parinktį „Leisti iškyšų greitį viršyti sienelių greitį“, atsižvelgiant į tūrinį greitį, aušinimą ir sulėtinimą riečiantis perimetrams."
 
 # AI Translated
 msgid ""

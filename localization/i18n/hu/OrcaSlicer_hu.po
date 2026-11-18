@@ -13274,8 +13274,10 @@ msgstr "Többi réteg sebessége"
 msgid "Overhang speed"
 msgstr "Sebesség túlnyúlásnál"
 
-msgid "This is the speed for various overhang degrees. Overhang degrees are expressed as a percentage of line width. 0 speed means no slowing down for the overhang degree range and wall speed is used"
-msgstr "Nyomtatási sebesség a különböző mértékű túlnyúlásoknál. A túlnyúlás mértéke a vonalszélesség százalékában van kifejezve. A 0 sebesség azt jelenti, hogy nincs lassítás, és a rendszer a fal nyomtatási sebességét használja."
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Overhang is the unsupported fraction of the wall line width. Speeds are interpolated between targets at 10%, 25%, 50%, 75% and 87%. The reference speed is the outer or inner wall speed after volumetric and scarf-seam limits; percentage values use this reference. Targets above it print faster only with Allow overhang speeds above wall speed enabled; other targets retain existing path-speed limits. Setting the first target to 0 disables interpolation below 10%. For the remaining targets, 0 uses wall speed at that point; neighboring targets can still change speed in between."
+msgstr "A túlnyúlás a fal vonalszélességének alá nem támasztott része. A sebesség a 10%-nál, 25%-nál, 50%-nál, 75%-nál és 87%-nál megadott célsebességek között interpolálódik. A referenciasebesség a külső vagy belső fal sebessége a volumetrikus és az átlapolt varrat miatti korlátozások alkalmazása után; a százalékos értékek ehhez vannak viszonyítva. Az ennél nagyobb célsebességek csak akkor eredményeznek gyorsabb nyomtatást, ha a „Falsebességnél nagyobb túlnyúlási sebességek engedélyezése” be van kapcsolva; a többi célsebesség megtartja a szerszámút meglévő sebességkorlátait. Ha az első célsebességet 0-ra állítod, 10% alatt nincs interpoláció. A többi célsebességnél a 0 az adott pontban a falsebességet használja; a szomszédos célsebességek a köztes sebességet ettől még módosíthatják."
 
 msgid "Set speed for external and internal bridges"
 msgstr "Sebesség beállítása a külső és belső hidakhoz"
@@ -16783,7 +16785,7 @@ msgid ""
 "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge.\n"
-"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75% overhang speed will be applied, limited by the bridge speed."
+"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75–100% overhang speed will be applied, limited by the bridge speed."
 msgstr ""
 "Kapcsold be ezt a lehetőséget, hogy lassabban nyomtasson azokon a területeken, ahol a falak felfelé kunkorodhattak.\n"
 "Például további lassítás lép életbe éles sarkokon lévő túlnyúlások nyomtatásakor, mint amilyen a Benchy hajótestének eleje, csökkentve a több rétegen át felhalmozódó kunkorodást.\n"
@@ -16798,10 +16800,47 @@ msgstr ""
 "3. Ha még mindig megjelennek a hibák, kapcsold be az extrudálási sebesség simítását (ERS) az anyagáramlás átmeneteinek további simításához.\n"
 "\n"
 "Megjegyzés: ha ez a beállítás be van kapcsolva, a túlnyúló falakat a rendszer túlnyúlásként kezeli, vagyis a túlnyúlási sebesség akkor is érvényes, ha a túlnyúló fal egy áthidalás része.\n"
-"Például amikor a falak 100%-ban túlnyúlnak, és alattuk nincs alátámasztó fal, a 75%-os túlnyúlási sebesség lesz alkalmazva, az áthidalási sebesség által korlátozva."
+"Például amikor a falak 100%-ban túlnyúlnak, és alattuk nincs alátámasztó fal, a 75–100%-os túlnyúlási sebesség lesz alkalmazva, az áthidalási sebesség által korlátozva."
+
+# AI Translated
+msgid "Allow overhang speeds above wall speed"
+msgstr "Falsebességnél nagyobb túlnyúlási sebességek engedélyezése"
+
+# AI Translated
+msgid ""
+"Print overhanging outer and inner walls faster when their overhang speed is set above the wall speed, up to the maximum volumetric speed of the filament. When disabled, overhang speeds never make a wall print faster than it would without the overhang.\n"
+"Bridges, overhang walls, fully unsupported walls, scarf seams and walls whose speed other settings change, such as small perimeters or resonance avoidance, are never sped up."
+msgstr ""
+"A túlnyúló külső és belső falakat gyorsabban nyomtatja, ha a túlnyúlási sebességük a falsebességnél nagyobbra van állítva, legfeljebb a filament max. volumetrikus sebességéig. Kikapcsolt állapotban a túlnyúlási sebességek miatt egy fal sosem nyomtatódik gyorsabban, mint túlnyúlás nélkül.\n"
+"Az áthidalások, a túlnyúló falak, a teljesen alátámasztatlan falak, az átlapolt varratok és azok a falak, amelyek sebességét más beállítások módosítják (például „Kis peremek” vagy „Rezonancia elkerülése”), sosem gyorsulnak fel."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 10% of the wall line width is unsupported. Between 0% and 10%, speed is linearly interpolated from the actual wall speed to this value. For example, a wall speed of 60 mm/s and a target of 30 mm/s give 45 mm/s at 5% overhang. A value of 0 disables this initial interpolation. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Célsebesség, amikor a fal vonalszélességének 10%-a nincs alátámasztva. 0% és 10% között a sebesség lineárisan interpolálódik a tényleges falsebességtől erre az értékre. Például 60 mm/s falsebesség és 30 mm/s célsebesség esetén 5%-os túlnyúlásnál 45 mm/s adódik. A 0 érték kikapcsolja ezt a kezdeti interpolációt. A százalékos értékek a referencia-falsebességhez vannak viszonyítva. Az ennél nagyobb célsebességek csak akkor eredményeznek gyorsabb nyomtatást, ha a „Falsebességnél nagyobb túlnyúlási sebességek engedélyezése” be van kapcsolva, és ekkor is érvényesek rájuk a volumetrikus anyagáramlás, a hűtés és a „Lassítás felkunkorodó kerületeknél” korlátai."
 
 msgid "mm/s or %"
 msgstr "mm/s vagy %"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 25% of the wall line width is unsupported. Between 10% and 25%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Célsebesség, amikor a fal vonalszélességének 25%-a nincs alátámasztva. 10% és 25% között a sebesség lineárisan interpolálódik az előző vezérlőponttól erre az értékre. A 0 érték ebben a vezérlőpontban a falsebességet használja, a meglévő sebességkorlátok mellett. A szomszédos célsebességek a vezérlőpontok közötti sebességet ettől még módosíthatják. A százalékos értékek a referencia-falsebességhez vannak viszonyítva. Az ennél nagyobb célsebességek csak akkor eredményeznek gyorsabb nyomtatást, ha a „Falsebességnél nagyobb túlnyúlási sebességek engedélyezése” be van kapcsolva, és ekkor is érvényesek rájuk a volumetrikus anyagáramlás, a hűtés és a „Lassítás felkunkorodó kerületeknél” korlátai."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 50% of the wall line width is unsupported. Between 25% and 50%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Célsebesség, amikor a fal vonalszélességének 50%-a nincs alátámasztva. 25% és 50% között a sebesség lineárisan interpolálódik az előző vezérlőponttól erre az értékre. A 0 érték ebben a vezérlőpontban a falsebességet használja, a meglévő sebességkorlátok mellett. A szomszédos célsebességek a vezérlőpontok közötti sebességet ettől még módosíthatják. A százalékos értékek a referencia-falsebességhez vannak viszonyítva. Az ennél nagyobb célsebességek csak akkor eredményeznek gyorsabb nyomtatást, ha a „Falsebességnél nagyobb túlnyúlási sebességek engedélyezése” be van kapcsolva, és ekkor is érvényesek rájuk a volumetrikus anyagáramlás, a hűtés és a „Lassítás felkunkorodó kerületeknél” korlátai."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 75% of the wall line width is unsupported. Between 50% and 75%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Célsebesség, amikor a fal vonalszélességének 75%-a nincs alátámasztva. 50% és 75% között a sebesség lineárisan interpolálódik az előző vezérlőponttól erre az értékre. A 0 érték ebben a vezérlőpontban a falsebességet használja, a meglévő sebességkorlátok mellett. A szomszédos célsebességek a vezérlőpontok közötti sebességet ettől még módosíthatják. A százalékos értékek a referencia-falsebességhez vannak viszonyítva. Az ennél nagyobb célsebességek csak akkor eredményeznek gyorsabb nyomtatást, ha a „Falsebességnél nagyobb túlnyúlási sebességek engedélyezése” be van kapcsolva, és ekkor is érvényesek rájuk a volumetrikus anyagáramlás, a hűtés és a „Lassítás felkunkorodó kerületeknél” korlátai."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 87% of the wall line width is unsupported. Between 75% and 87%, speed is linearly interpolated from the preceding control point to this value. With Slow down for curled perimeters disabled, speed is interpolated from this value at 87% to the external bridge speed at 100%; the bridge target is limited to the original path speed. With it enabled, this value is used throughout the 87% to 100% range, except that a value above the wall speed falls back to the original path speed at 100%. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Célsebesség, amikor a fal vonalszélességének 87%-a nincs alátámasztva. 75% és 87% között a sebesség lineárisan interpolálódik az előző vezérlőponttól erre az értékre. Ha a „Lassítás felkunkorodó kerületeknél” ki van kapcsolva, a sebesség a 87%-nál érvényes értéktől a 100%-nál érvényes külső áthidalási sebességig interpolálódik; az áthidalási célsebességet a szerszámút eredeti sebessége korlátozza. Ha be van kapcsolva, ez az érték a teljes 87–100%-os tartományban érvényes, azzal a kivétellel, hogy a falsebességnél nagyobb érték 100%-nál a szerszámút eredeti sebességére esik vissza. A 0 érték ebben a vezérlőpontban a falsebességet használja, a meglévő sebességkorlátok mellett. A szomszédos célsebességek a vezérlőpontok közötti sebességet ettől még módosíthatják. A százalékos értékek a referencia-falsebességhez vannak viszonyítva. Az ennél nagyobb célsebességek csak akkor eredményeznek gyorsabb nyomtatást, ha a „Falsebességnél nagyobb túlnyúlási sebességek engedélyezése” be van kapcsolva, és ekkor is érvényesek rájuk a volumetrikus anyagáramlás, a hűtés és a „Lassítás felkunkorodó kerületeknél” korlátai."
 
 # AI Translated
 msgid ""

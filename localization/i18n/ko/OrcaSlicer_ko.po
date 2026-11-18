@@ -13407,8 +13407,10 @@ msgstr "다른 레이어 속도"
 msgid "Overhang speed"
 msgstr "오버행 속도"
 
-msgid "This is the speed for various overhang degrees. Overhang degrees are expressed as a percentage of line width. 0 speed means no slowing down for the overhang degree range and wall speed is used"
-msgstr "다양한 오버행 각도에 대한 속도입니다. 오버행 정도는 선 너비의 백분율로 표시됩니다. 0 속도는 오버행 정도에 대한 감속이 없음을 의미하며 벽 속도가 사용됩니다"
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Overhang is the unsupported fraction of the wall line width. Speeds are interpolated between targets at 10%, 25%, 50%, 75% and 87%. The reference speed is the outer or inner wall speed after volumetric and scarf-seam limits; percentage values use this reference. Targets above it print faster only with Allow overhang speeds above wall speed enabled; other targets retain existing path-speed limits. Setting the first target to 0 disables interpolation below 10%. For the remaining targets, 0 uses wall speed at that point; neighboring targets can still change speed in between."
+msgstr "오버행은 벽 선 너비 중 지지되지 않는 부분의 비율입니다. 속도는 10%, 25%, 50%, 75%, 87%에 설정된 목표 속도 사이에서 보간됩니다. 기준 속도는 압출 속도 및 스카프 조인트 재봉선에 따른 제한을 적용한 후의 외벽 또는 내벽 속도이며, % 값은 이 기준 속도에 대한 비율로 계산됩니다. 기준 속도보다 높은 목표 속도는 \"벽 속도보다 빠른 오버행 속도 허용\"이 활성화된 경우에만 더 빠르게 출력되며, 그 밖의 목표 속도에는 기존 경로 속도 제한이 그대로 적용됩니다. 첫 번째 목표 속도를 0으로 설정하면 10% 미만에서는 보간하지 않습니다. 나머지 목표 속도는 0으로 설정하면 해당 제어점에서 벽 속도를 사용하지만, 그 사이의 속도는 인접한 목표 속도에 따라 달라질 수 있습니다."
 
 msgid "Set speed for external and internal bridges"
 msgstr "외부 및 내부 브릿지 속도 설정"
@@ -16975,7 +16977,7 @@ msgid ""
 "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge.\n"
-"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75% overhang speed will be applied, limited by the bridge speed."
+"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75–100% overhang speed will be applied, limited by the bridge speed."
 msgstr ""
 "둘레가 위로 말려 올라갈 수 있는 영역에서 출력 속도를 늦추려면 이 옵션을 활성화하십시오.\n"
 "예를 들어 Benchy 선체 앞부분과 같은 날카로운 모서리의 오버행을 출력할 때 추가 감속이 적용되어, 여러 레이어에 걸쳐 누적되는 말림을 줄여 줍니다.\n"
@@ -16990,10 +16992,47 @@ msgstr ""
 "3. 그래도 아티팩트가 나타나면 유연한 압출량(ERS)을 활성화하여 압출량 전환을 더 부드럽게 하십시오.\n"
 "\n"
 "참고: 이 옵션을 활성화하면 오버행 둘레가 오버행처럼 처리되어, 오버행 둘레가 브릿지의 일부인 경우에도 오버행 속도가 적용됩니다.\n"
-"예를 들어 둘레가 100% 오버행이고 아래에서 받쳐 주는 벽이 없으면 75% 오버행 속도가 적용되며, 브릿지 속도로 제한됩니다."
+"예를 들어 둘레가 100% 오버행이고 아래에서 받쳐 주는 벽이 없으면 75–100% 오버행 속도가 적용되며, 브릿지 속도로 제한됩니다."
+
+# AI Translated
+msgid "Allow overhang speeds above wall speed"
+msgstr "벽 속도보다 빠른 오버행 속도 허용"
+
+# AI Translated
+msgid ""
+"Print overhanging outer and inner walls faster when their overhang speed is set above the wall speed, up to the maximum volumetric speed of the filament. When disabled, overhang speeds never make a wall print faster than it would without the overhang.\n"
+"Bridges, overhang walls, fully unsupported walls, scarf seams and walls whose speed other settings change, such as small perimeters or resonance avoidance, are never sped up."
+msgstr ""
+"오버행 속도가 벽 속도보다 높게 설정된 경우, 오버행이 있는 외벽과 내벽을 필라멘트의 최대 압출 속도까지 더 빠르게 출력합니다. 비활성화하면 오버행 속도 때문에 벽이 오버행이 없을 때보다 빠르게 출력되는 일은 없습니다.\n"
+"브릿지, 오버행 벽, 완전히 지지되지 않는 벽, 스카프 조인트 재봉선, 그리고 \"작은 둘레\"나 \"공진 회피\"처럼 다른 설정이 속도를 바꾸는 벽은 빨라지지 않습니다."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 10% of the wall line width is unsupported. Between 0% and 10%, speed is linearly interpolated from the actual wall speed to this value. For example, a wall speed of 60 mm/s and a target of 30 mm/s give 45 mm/s at 5% overhang. A value of 0 disables this initial interpolation. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "벽 선 너비의 10%가 지지되지 않을 때의 목표 속도입니다. 0%에서 10% 사이에서는 실제 벽 속도에서 이 값까지 속도가 선형 보간됩니다. 예를 들어 벽 속도가 60 mm/s이고 목표 속도가 30 mm/s이면, 오버행 5%에서는 45 mm/s가 됩니다. 0으로 설정하면 이 첫 구간의 보간을 사용하지 않습니다. %로 입력 시 벽 기준 속도에 대한 비율로 계산됩니다. 기준 속도보다 높은 목표 속도는 \"벽 속도보다 빠른 오버행 속도 허용\"이 활성화된 경우에만 더 빠르게 출력되며, 압출 속도, 냉각 및 \"구부러진 둘레에서 감속\"에 따른 제한을 받습니다."
 
 msgid "mm/s or %"
 msgstr "mm/s 또는 %"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 25% of the wall line width is unsupported. Between 10% and 25%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "벽 선 너비의 25%가 지지되지 않을 때의 목표 속도입니다. 10%에서 25% 사이에서는 이전 제어점에서 이 값까지 속도가 선형 보간됩니다. 0으로 설정하면 이 제어점에서 벽 속도를 사용하며, 기존 속도 제한이 적용됩니다. 제어점 사이의 속도는 인접한 목표 속도에 따라 여전히 달라질 수 있습니다. %로 입력 시 벽 기준 속도에 대한 비율로 계산됩니다. 기준 속도보다 높은 목표 속도는 \"벽 속도보다 빠른 오버행 속도 허용\"이 활성화된 경우에만 더 빠르게 출력되며, 압출 속도, 냉각 및 \"구부러진 둘레에서 감속\"에 따른 제한을 받습니다."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 50% of the wall line width is unsupported. Between 25% and 50%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "벽 선 너비의 50%가 지지되지 않을 때의 목표 속도입니다. 25%에서 50% 사이에서는 이전 제어점에서 이 값까지 속도가 선형 보간됩니다. 0으로 설정하면 이 제어점에서 벽 속도를 사용하며, 기존 속도 제한이 적용됩니다. 제어점 사이의 속도는 인접한 목표 속도에 따라 여전히 달라질 수 있습니다. %로 입력 시 벽 기준 속도에 대한 비율로 계산됩니다. 기준 속도보다 높은 목표 속도는 \"벽 속도보다 빠른 오버행 속도 허용\"이 활성화된 경우에만 더 빠르게 출력되며, 압출 속도, 냉각 및 \"구부러진 둘레에서 감속\"에 따른 제한을 받습니다."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 75% of the wall line width is unsupported. Between 50% and 75%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "벽 선 너비의 75%가 지지되지 않을 때의 목표 속도입니다. 50%에서 75% 사이에서는 이전 제어점에서 이 값까지 속도가 선형 보간됩니다. 0으로 설정하면 이 제어점에서 벽 속도를 사용하며, 기존 속도 제한이 적용됩니다. 제어점 사이의 속도는 인접한 목표 속도에 따라 여전히 달라질 수 있습니다. %로 입력 시 벽 기준 속도에 대한 비율로 계산됩니다. 기준 속도보다 높은 목표 속도는 \"벽 속도보다 빠른 오버행 속도 허용\"이 활성화된 경우에만 더 빠르게 출력되며, 압출 속도, 냉각 및 \"구부러진 둘레에서 감속\"에 따른 제한을 받습니다."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 87% of the wall line width is unsupported. Between 75% and 87%, speed is linearly interpolated from the preceding control point to this value. With Slow down for curled perimeters disabled, speed is interpolated from this value at 87% to the external bridge speed at 100%; the bridge target is limited to the original path speed. With it enabled, this value is used throughout the 87% to 100% range, except that a value above the wall speed falls back to the original path speed at 100%. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "벽 선 너비의 87%가 지지되지 않을 때의 목표 속도입니다. 75%에서 87% 사이에서는 이전 제어점에서 이 값까지 속도가 선형 보간됩니다. \"구부러진 둘레에서 감속\"이 비활성화된 경우, 속도는 87%에서의 이 값부터 100%에서의 외부 브릿지 속도까지 보간되며, 이 브릿지 목표 속도는 원래 경로 속도를 넘지 않습니다. 활성화된 경우에는 87%에서 100%까지 전 구간에서 이 값을 사용하지만, 벽 속도보다 높은 값은 100%에서 원래 경로 속도로 돌아갑니다. 0으로 설정하면 이 제어점에서 벽 속도를 사용하며, 기존 속도 제한이 적용됩니다. 제어점 사이의 속도는 인접한 목표 속도에 따라 여전히 달라질 수 있습니다. %로 입력 시 벽 기준 속도에 대한 비율로 계산됩니다. 기준 속도보다 높은 목표 속도는 \"벽 속도보다 빠른 오버행 속도 허용\"이 활성화된 경우에만 더 빠르게 출력되며, 압출 속도, 냉각 및 \"구부러진 둘레에서 감속\"에 따른 제한을 받습니다."
 
 # AI Translated
 msgid ""

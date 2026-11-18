@@ -13242,8 +13242,10 @@ msgstr "Velocità altri strati"
 msgid "Overhang speed"
 msgstr "Velocità sulle sporgenze"
 
-msgid "This is the speed for various overhang degrees. Overhang degrees are expressed as a percentage of line width. 0 speed means no slowing down for the overhang degree range and wall speed is used"
-msgstr "Indica la velocità per vari gradi di sporgenza. I gradi di sporgenza sono espressi come percentuale della larghezza della linea. Velocità 0 significa che non c'è rallentamento per l'intervallo di gradi di sporgenza e viene utilizzata la velocità della parete"
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Overhang is the unsupported fraction of the wall line width. Speeds are interpolated between targets at 10%, 25%, 50%, 75% and 87%. The reference speed is the outer or inner wall speed after volumetric and scarf-seam limits; percentage values use this reference. Targets above it print faster only with Allow overhang speeds above wall speed enabled; other targets retain existing path-speed limits. Setting the first target to 0 disables interpolation below 10%. For the remaining targets, 0 uses wall speed at that point; neighboring targets can still change speed in between."
+msgstr "La sporgenza è la frazione non supportata della larghezza della linea della parete. Le velocità vengono interpolate tra gli obiettivi posti al 10%, 25%, 50%, 75% e 87%. La velocità di riferimento è la velocità della parete esterna o interna dopo i limiti volumetrici e della cucitura obliqua; i valori percentuali sono calcolati su questo riferimento. Gli obiettivi superiori al riferimento stampano più velocemente solo con \"Consenti velocità sulle sporgenze superiori alla velocità della parete\" abilitato; gli altri obiettivi mantengono i limiti di velocità esistenti del percorso. Impostando il primo obiettivo a 0 si disattiva l'interpolazione sotto il 10%. Per gli altri obiettivi, 0 usa la velocità della parete in quel punto; gli obiettivi vicini possono comunque variare la velocità tra un punto e l'altro."
 
 msgid "Set speed for external and internal bridges"
 msgstr "Imposta la velocità per ponti esterni e interni"
@@ -16702,7 +16704,7 @@ msgid ""
 "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge.\n"
-"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75% overhang speed will be applied, limited by the bridge speed."
+"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75–100% overhang speed will be applied, limited by the bridge speed."
 msgstr ""
 "Abilita questa opzione per rallentare la stampa nelle aree in cui i perimetri potrebbero essersi arricciati verso l'alto.\n"
 "Ad esempio, verrà applicato un rallentamento aggiuntivo durante la stampa di sporgenze su angoli acuti come la parte anteriore dello scafo del Benchy, riducendo l'arricciamento che si accumula su più strati.\n"
@@ -16717,10 +16719,48 @@ msgstr ""
 "3. Se gli artefatti persistono, abilita 'Livellamento velocità di estrusione' (ERS) per uniformare ulteriormente le transizioni di flusso.\n"
 "\n"
 "Nota: quando questa opzione è abilitata, i perimetri in sporgenza vengono trattati come sporgenze, il che significa che la velocità per le sporgenze viene applicata anche se il perimetro in sporgenza fa parte di un ponte.\n"
-"Ad esempio, quando i perimetri sono in sporgenza al 100%, senza alcuna parete a sostenerli da sotto, verrà applicata la velocità per sporgenze del 75%, limitata dalla velocità del ponte."
+"Ad esempio, quando i perimetri sono in sporgenza al 100%, senza alcuna parete a sostenerli da sotto, verrà applicata la velocità per sporgenze del 75–100%, limitata dalla velocità del ponte."
+
+# AI Translated
+msgid "Allow overhang speeds above wall speed"
+msgstr "Consenti velocità sulle sporgenze superiori alla velocità della parete"
+
+# AI Translated
+# Needs human review: "overhang walls" is the Overhang wall feature type (walls printed as bridges), so it is quoted as "Parete sporgente" to keep it apart from the overhanging walls of the first sentence; check it reads right.
+msgid ""
+"Print overhanging outer and inner walls faster when their overhang speed is set above the wall speed, up to the maximum volumetric speed of the filament. When disabled, overhang speeds never make a wall print faster than it would without the overhang.\n"
+"Bridges, overhang walls, fully unsupported walls, scarf seams and walls whose speed other settings change, such as small perimeters or resonance avoidance, are never sped up."
+msgstr ""
+"Stampa più velocemente le pareti esterne e interne sporgenti quando la loro velocità sulle sporgenze è impostata sopra la velocità della parete, fino alla velocità volumetrica massima del filamento. Se disabilitato, le velocità sulle sporgenze non rendono mai la stampa di una parete più veloce di quanto sarebbe senza sporgenza.\n"
+"Ponti, pareti di tipo \"Parete sporgente\", pareti completamente non supportate, cuciture oblique e pareti la cui velocità è modificata da altre impostazioni, come i perimetri piccoli o la prevenzione della risonanza, non vengono mai accelerati."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 10% of the wall line width is unsupported. Between 0% and 10%, speed is linearly interpolated from the actual wall speed to this value. For example, a wall speed of 60 mm/s and a target of 30 mm/s give 45 mm/s at 5% overhang. A value of 0 disables this initial interpolation. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Velocità obiettivo quando il 10% della larghezza della linea della parete non è supportato. Tra lo 0% e il 10%, la velocità viene interpolata linearmente dalla velocità effettiva della parete a questo valore. Ad esempio, una velocità della parete di 60 mm/s e un obiettivo di 30 mm/s danno 45 mm/s al 5% di sporgenza. Il valore 0 disattiva questa interpolazione iniziale. Se il valore è espresso come una %, verrà calcolato sulla velocità di riferimento della parete. Un obiettivo superiore a questo riferimento stampa più velocemente solo con \"Consenti velocità sulle sporgenze superiori alla velocità della parete\" abilitato, nel rispetto dei limiti di portata volumetrica, del raffreddamento e del rallentamento per pareti incurvate."
 
 msgid "mm/s or %"
 msgstr "mm/s o %"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 25% of the wall line width is unsupported. Between 10% and 25%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Velocità obiettivo quando il 25% della larghezza della linea della parete non è supportato. Tra il 10% e il 25%, la velocità viene interpolata linearmente dal punto di controllo precedente a questo valore. Il valore 0 usa la velocità della parete in questo punto di controllo, fermi restando i limiti di velocità esistenti. Gli obiettivi adiacenti possono comunque variare la velocità tra i punti di controllo. Se il valore è espresso come una %, verrà calcolato sulla velocità di riferimento della parete. Un obiettivo superiore a questo riferimento stampa più velocemente solo con \"Consenti velocità sulle sporgenze superiori alla velocità della parete\" abilitato, nel rispetto dei limiti di portata volumetrica, del raffreddamento e del rallentamento per pareti incurvate."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 50% of the wall line width is unsupported. Between 25% and 50%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Velocità obiettivo quando il 50% della larghezza della linea della parete non è supportato. Tra il 25% e il 50%, la velocità viene interpolata linearmente dal punto di controllo precedente a questo valore. Il valore 0 usa la velocità della parete in questo punto di controllo, fermi restando i limiti di velocità esistenti. Gli obiettivi adiacenti possono comunque variare la velocità tra i punti di controllo. Se il valore è espresso come una %, verrà calcolato sulla velocità di riferimento della parete. Un obiettivo superiore a questo riferimento stampa più velocemente solo con \"Consenti velocità sulle sporgenze superiori alla velocità della parete\" abilitato, nel rispetto dei limiti di portata volumetrica, del raffreddamento e del rallentamento per pareti incurvate."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 75% of the wall line width is unsupported. Between 50% and 75%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Velocità obiettivo quando il 75% della larghezza della linea della parete non è supportato. Tra il 50% e il 75%, la velocità viene interpolata linearmente dal punto di controllo precedente a questo valore. Il valore 0 usa la velocità della parete in questo punto di controllo, fermi restando i limiti di velocità esistenti. Gli obiettivi adiacenti possono comunque variare la velocità tra i punti di controllo. Se il valore è espresso come una %, verrà calcolato sulla velocità di riferimento della parete. Un obiettivo superiore a questo riferimento stampa più velocemente solo con \"Consenti velocità sulle sporgenze superiori alla velocità della parete\" abilitato, nel rispetto dei limiti di portata volumetrica, del raffreddamento e del rallentamento per pareti incurvate."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 87% of the wall line width is unsupported. Between 75% and 87%, speed is linearly interpolated from the preceding control point to this value. With Slow down for curled perimeters disabled, speed is interpolated from this value at 87% to the external bridge speed at 100%; the bridge target is limited to the original path speed. With it enabled, this value is used throughout the 87% to 100% range, except that a value above the wall speed falls back to the original path speed at 100%. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Velocità obiettivo quando l'87% della larghezza della linea della parete non è supportato. Tra il 75% e l'87%, la velocità viene interpolata linearmente dal punto di controllo precedente a questo valore. Con \"Rallenta per pareti incurvate\" disabilitato, la velocità viene interpolata da questo valore all'87% fino alla velocità dei ponti esterni al 100%; questo obiettivo di ponte è limitato alla velocità originale del percorso. Con l'opzione abilitata, questo valore viene usato in tutto l'intervallo dall'87% al 100%, ma al 100% un valore superiore alla velocità della parete torna alla velocità originale del percorso. Il valore 0 usa la velocità della parete in questo punto di controllo, fermi restando i limiti di velocità esistenti. Gli obiettivi adiacenti possono comunque variare la velocità tra i punti di controllo. Se il valore è espresso come una %, verrà calcolato sulla velocità di riferimento della parete. Un obiettivo superiore a questo riferimento stampa più velocemente solo con \"Consenti velocità sulle sporgenze superiori alla velocità della parete\" abilitato, nel rispetto dei limiti di portata volumetrica, del raffreddamento e del rallentamento per pareti incurvate."
 
 # AI Translated
 msgid ""
