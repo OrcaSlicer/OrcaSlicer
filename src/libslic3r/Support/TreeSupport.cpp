@@ -3435,6 +3435,13 @@ void TreeSupport::drop_nodes()
             }
         }
 
+        // Layer 0 is never dropped from, so its nodes are not checked at the top of the loop.
+        if (layer_nr_next == 0 && support_on_buildplate_only) {
+            for (SupportNode *node : contact_nodes[layer_nr_next])
+                if (!node->to_buildplate)
+                    unsupported_branch_leaves.push_front({ layer_nr_next, node });
+        }
+
 #ifdef SUPPORT_TREE_DEBUG_TO_SVG
         if (contact_nodes[layer_nr].empty() == false) {
             draw_contours_and_nodes_to_svg(debug_out_path("contact_points_%.2f.svg", contact_nodes[layer_nr][0]->print_z), get_collision(0,obj_layer_nr_next),
