@@ -40,6 +40,7 @@
 #include <vector>
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/Flow.hpp"
 #include "libslic3r/SurfaceCollection.hpp"
 
 using namespace Slic3r;
@@ -307,6 +308,45 @@ TEST_CASE("Turning infill does not replace the anchors of another region", "[Pri
         total_area += area(expected);
     }
     REQUIRE(total_area > 0.);
+}
+
+TEST_CASE("Internal bridges stay out of the area of another filament", "[PrintObject][InternalBridge][Regression]")
+{
+    auto config = multifilament_config(2, {{"enable_prime_tower", false},
+                                           {"sparse_infill_pattern", "rectilinear"},
+                                           {"sparse_infill_density", "15%"},
+                                           {"internal_bridge_angle", 0},
+                                           {"top_shell_layers", 3},
+                                           {"bottom_shell_layers", 2},
+                                           {"top_shell_thickness", 0},
+                                           {"bottom_shell_thickness", 0},
+                                           {"layer_height", 0.2},
+                                           {"initial_layer_print_height", 0.2}});
+    Print print;
+    Model model;
+    init_print({internal_bridge_step()}, print, model, config, nullptr, false);
+    // The infill of the right half prints in filament 2, so the shoulder's bridges meet at x = 15.
+    // Both halves keep the walls of filament 1, so no wall separates their fill areas.
+    TriangleMesh right_half = make_cube(16, 26, 6);
+    right_half.translate(15, -1, -1);
+    ModelVolume *right = model.objects.front()->add_volume(std::move(right_half), ModelVolumeType::PARAMETER_MODIFIER, false);
+    right->config.set_key_value("internal_solid_filament_id", new ConfigOptionInt(2));
+    right->config.set_key_value("sparse_infill_filament_id", new ConfigOptionInt(2));
+    print.apply(model, config);
+    print.process();
+    double bridge_area = 0.;
+    double other_filament_area = 0.;
+    for (const Layer *layer : print.objects().front()->layers())
+        for (const LayerRegion *region : layer->regions()) {
+            const Polygons bridges = to_polygons(region->fill_surfaces.filter_by_type(stInternalBridge));
+            bridge_area += area(bridges);
+            for (const LayerRegion *other : layer->regions())
+                if (other->region().extruder(frSolidInfill) != region->region().extruder(frSolidInfill))
+                    other_filament_area += area(intersection(bridges, to_polygons(other->fill_expolygons)));
+        }
+    const double square_mm = scaled<double>(1.) * scaled<double>(1.);
+    REQUIRE(bridge_area > square_mm);
+    CHECK(other_filament_area < square_mm * 1e-6);
 }
 
 TEST_CASE("Rounded internal bridges end on printed support", "[PrintObject][InternalBridge][Regression]")

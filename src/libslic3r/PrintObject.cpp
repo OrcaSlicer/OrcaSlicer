@@ -3876,6 +3876,15 @@ void PrintObject::bridge_over_infill()
                 total_fill_area   = closing(total_fill_area, float(SCALED_EPSILON));
                 expansion_area    = closing(expansion_area, float(SCALED_EPSILON));
                 expansion_area    = intersection(expansion_area, deep_infill_area);
+                // A bridge reaching into a region of another filament would print that region's area in its own filament.
+                std::map<unsigned int, Polygons> fill_area_by_filament;
+                for (const LayerRegion *region : layer->regions())
+                    append(fill_area_by_filament[region->region().extruder(frSolidInfill)], to_polygons(region->fill_expolygons));
+                if (fill_area_by_filament.size() > 1) {
+                    for (auto &filament_area : fill_area_by_filament)
+                        filament_area.second = closing(filament_area.second, float(SCALED_EPSILON));
+                } else
+                    fill_area_by_filament.clear();
                 // Orca: Preserve the real lower-layer anchors for every candidate in this
                 // layer. Replacing this shared set for one pattern also changes later regions,
                 // and synthetic straight lines can claim support where no infill is printed.
@@ -4051,6 +4060,10 @@ void PrintObject::bridge_over_infill()
                         const BoundingBox bridging_bbox = get_extents(bridging_area).inflated(SCALED_EPSILON);
                         bridging_area = intersection(bridging_area, ClipperUtils::clip_clipper_polygons_with_subject_bbox(limiting_area, bridging_bbox));
                         bridging_area = intersection(bridging_area, ClipperUtils::clip_clipper_polygons_with_subject_bbox(total_fill_area, bridging_bbox));
+                        if (!fill_area_by_filament.empty())
+                            bridging_area = intersection(bridging_area,
+                                                         ClipperUtils::clip_clipper_polygons_with_subject_bbox(
+                                                             fill_area_by_filament.at(candidate.region->region().extruder(frSolidInfill)), bridging_bbox));
                         bridging_area = diff(bridging_area, ClipperUtils::clip_clipper_polygons_with_subject_bbox(total_top_area, bridging_bbox));
                     }
                     if (!bridging_area.empty()) {
