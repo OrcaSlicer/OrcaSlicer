@@ -1666,31 +1666,43 @@ struct ProcessTargetSource {
 };
 
 // os.system does not run a program named by its first token: it hands the whole string to the
-// platform shell. POSIX passes it to /bin/sh, and the Windows C runtime runs the command
-// interpreter named by COMSPEC, falling back to cmd.exe. The grant therefore names the shell, and
-// approving it covers every command string the plugin passes to os.system: the shell parses and
-// executes all of the string, arguments included.
+// platform shell. POSIX passes it to /bin/sh. The Windows C runtime runs the command interpreter
+// named by COMSPEC, or cmd.exe when COMSPEC is unset or empty, and also falls back to cmd.exe
+// when it cannot open the configured file (ENOENT or EACCES). Either interpreter may therefore
+// run the command, so every one of them is a required target: a narrow grant for a harmless
+// COMSPEC target must not admit the fallback shell. Approving the shells covers every command
+// string the plugin passes to os.system, because a shell parses and executes all of the string,
+// arguments included.
+//
+// The runtime chooses the interpreter when it runs the command, so the audit names the possible
+// interpreters instead of checking whether the COMSPEC file exists: a file that is present while
+// the prompt is answered can be removed before the call. A COMSPEC that already is the bare name
+// cmd.exe, in any casing, names the fallback itself and is listed once.
 #ifdef _WIN32
-static std::string system_shell_target()
+static std::vector<std::string> system_shell_targets()
 {
-    std::wstring buffer(static_cast<std::size_t>(MAX_PATH) + 1, L'\0');
-    for (;;) {
-        const DWORD length = ::GetEnvironmentVariableW(L"COMSPEC", buffer.data(),
-                                                       static_cast<DWORD>(buffer.size()));
-        // An unset COMSPEC falls back to the runtime's default interpreter name.
-        if (length == 0)
-            return "cmd.exe";
-        if (length < buffer.size()) {
-            buffer.resize(length);
-            return wxString(buffer.c_str()).ToUTF8().data();
-        }
-        buffer.resize(static_cast<std::size_t>(length) + 1);
-    }
+    constexpr const char* kFallbackShell = "cmd.exe";
+
+    // _wsystem reads COMSPEC through the CRT environment, which is the copy it consults; the
+    // process environment block can differ. Read the same value and copy it at once, because a
+    // concurrent _wputenv may replace the buffer the pointer names.
+    const wchar_t* const comspec_value = ::_wgetenv(L"COMSPEC");
+    // An unset or empty COMSPEC leaves only the runtime's default interpreter.
+    if (comspec_value == nullptr || *comspec_value == L'\0')
+        return {kFallbackShell};
+
+    std::string comspec = wxString(comspec_value).utf8_string();
+    // A bare cmd.exe is the fallback interpreter itself, whatever the casing, so one target stays.
+    if (comspec.find_first_of("/\\") == std::string::npos &&
+        wxString::FromUTF8(comspec).CmpNoCase(wxString::FromUTF8(kFallbackShell)) == 0)
+        return {kFallbackShell};
+
+    return {std::move(comspec), kFallbackShell};
 }
 #else
-static std::string system_shell_target()
+static std::vector<std::string> system_shell_targets()
 {
-    return "/bin/sh";
+    return {"/bin/sh"};
 }
 #endif
 
@@ -1836,9 +1848,11 @@ std::vector<std::string> audit_targets(const std::string& event_name, AuditEvent
     }
     case AuditEventCategory::ProcessCreate:
     case AuditEventCategory::ProcessReplace: {
-        // The shell a command string runs in, not the command itself.
+        // The shells a command string may run in, not the command itself. Every possible
+        // interpreter has to be granted before the event is allowed.
         if (event_name == "os.system") {
-            targets.emplace_back(system_shell_target());
+            for (std::string& shell : system_shell_targets())
+                targets.push_back(std::move(shell));
             return targets;
         }
         const auto it = process_target_sources.find(event_name);

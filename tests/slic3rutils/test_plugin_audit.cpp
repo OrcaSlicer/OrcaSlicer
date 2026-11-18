@@ -1432,6 +1432,17 @@ PRIVATE = os.path.join(OUTSIDE, "private.txt")
 MISSING = os.path.join(OUTSIDE, "missing")
 TREE = os.path.join(OUTSIDE, "tree")
 TRUE_COMMAND = ["cmd", "/c", "exit 0"] if os.name == "nt" else ["true"]
+
+# The shells os.system may run a command in. On Windows the runtime uses COMSPEC or cmd.exe,
+# and falls back to cmd.exe when COMSPEC names a file it cannot open, so both are targets. A
+# bare cmd.exe COMSPEC is the fallback itself.
+if os.name != "nt":
+    SYSTEM_SHELLS = ["/bin/sh"]
+else:
+    COMSPEC = os.environ.get("COMSPEC") or ""
+    SYSTEM_SHELLS = (["cmd.exe"] if not COMSPEC or
+                     ("/" not in COMSPEC and "\\" not in COMSPEC and COMSPEC.lower() == "cmd.exe")
+                     else [COMSPEC, "cmd.exe"])
 for path in (APPROVED, PRIVATE):
     with open(path, "w") as f:
         f.write("x")
@@ -1523,6 +1534,23 @@ std::string describe(const std::vector<Prompt>& prompts)
         text += "\n";
     }
     return text;
+}
+
+// The line describe() prints for an os.system prompt, whose target is every possible shell.
+std::string describe_system_prompt(const std::vector<std::string>& shells)
+{
+    std::string text = "os.system:";
+    for (const std::string& shell : shells)
+        text += " " + shell;
+    return text + "\n";
+}
+
+// The process grants a successful os.system approval adds to the ones already saved.
+std::vector<std::string> with_shell_grants(std::vector<std::string> grants,
+                                           const std::vector<std::string>& shells)
+{
+    grants.insert(grants.end(), shells.begin(), shells.end());
+    return grants;
 }
 
 // The plugin system with the audit hook installed, and the permission dialog replaced by a
@@ -2055,10 +2083,11 @@ TEST_CASE("A process grant names the executable and ignores its arguments", "[au
     py::gil_scoped_acquire gil;
     PythonSide python(harness);
     const std::string executable = python.eval("TRUE_COMMAND[0]");
-    const std::string shell = python.eval("(os.environ.get('COMSPEC') or 'cmd.exe') if os.name == 'nt' else '/bin/sh'");
+    const std::vector<std::string> shells = python.strings("SYSTEM_SHELLS");
 
     // Refused, so nothing runs: the prompts show the target each event reports. A direct process
-    // event names the executable, while os.system names the shell that parses its command string.
+    // event names the executable, while os.system names every shell that may parse its command
+    // string.
     python.run_as(PLUGIN, R"PY(
 popen_outcome = attempt(lambda: subprocess.run(TRUE_COMMAND, check=True))
 system_outcome = attempt(lambda: os.system(" ".join(TRUE_COMMAND) + " ignored"))
@@ -2066,7 +2095,7 @@ system_outcome = attempt(lambda: os.system(" ".join(TRUE_COMMAND) + " ignored"))
     CHECK(python.str("popen_outcome") == "denied");
     CHECK(python.str("system_outcome") == "denied");
     CHECK(describe(harness.prompts) ==
-          "subprocess.Popen: " + executable + "\nos.system: " + shell + "\n");
+          "subprocess.Popen: " + executable + "\n" + describe_system_prompt(shells));
 
 #ifndef _WIN32
     harness.prompts.clear();
@@ -2091,8 +2120,9 @@ system_outcome = attempt(lambda: os.system(" ".join(TRUE_COMMAND) + " ignored"))
 )PY");
     CHECK(python.str("system_outcome") == "ok");
     REQUIRE(harness.prompts.size() == 1);
-    CHECK(harness.prompts.front().targets == std::vector<std::string>{shell});
-    CHECK(harness.saved_permissions(PLUGIN).process == std::vector<std::string>{executable, shell});
+    CHECK(harness.prompts.front().targets == shells);
+    CHECK(harness.saved_permissions(PLUGIN).process ==
+          with_shell_grants({executable}, shells));
 
     // The shell grant covers a different command string, arguments included.
     harness.prompts.clear();
@@ -2203,10 +2233,10 @@ TEST_CASE("An os.system grant names the shell and covers every command", "[audit
     harness.add_plugin(PLUGIN);
     py::gil_scoped_acquire gil;
     PythonSide python(harness);
-    const std::string shell = python.eval("(os.environ.get('COMSPEC') or 'cmd.exe') if os.name == 'nt' else '/bin/sh'");
+    const std::vector<std::string> shells = python.strings("SYSTEM_SHELLS");
 
-    // Raising the event directly exercises the target the hook reads without running the command.
-    // The grant names the shell, not the command string's first token, on every platform.
+    // Raising the event directly exercises the targets the hook reads without running the command.
+    // The grants name the shells, not the command string's first token, on every platform.
     python.run_as(PLUGIN, R"PY(
 def raise_system(command):
     try:
@@ -2223,9 +2253,9 @@ other_outcome = raise_system("other-tool")
     CHECK(python.str("quoted_outcome") == "denied");
     CHECK(python.str("other_outcome") == "denied");
     CHECK(describe(harness.prompts) ==
-          "os.system: " + shell + "\nos.system: " + shell + "\nos.system: " + shell + "\n");
+          describe_system_prompt(shells) + describe_system_prompt(shells) + describe_system_prompt(shells));
 
-    // Approving the shell covers every command string, arguments included.
+    // Approving the shells covers every command string, arguments included.
     harness.approve = [](const Prompt&) { return true; };
     harness.prompts.clear();
     python.run_as(PLUGIN, R"PY(
@@ -2233,8 +2263,8 @@ repeat_outcome = raise_system("plain-tool --two")
 )PY");
     CHECK(python.str("repeat_outcome") == "ok");
     REQUIRE(harness.prompts.size() == 1);
-    CHECK(harness.prompts.front().targets == std::vector<std::string>{shell});
-    CHECK(harness.saved_permissions(PLUGIN).process == std::vector<std::string>{shell});
+    CHECK(harness.prompts.front().targets == shells);
+    CHECK(harness.saved_permissions(PLUGIN).process == shells);
 
     harness.prompts.clear();
     python.run_as(PLUGIN, R"PY(
@@ -2245,6 +2275,77 @@ other_repeat_outcome = raise_system("third-tool --three")
     CHECK(python.str("other_repeat_outcome") == "ok");
     CHECK(describe(harness.prompts).empty());
 }
+
+#ifdef _WIN32
+TEST_CASE("An os.system grant for COMSPEC alone does not authorize the fallback shell", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    // Pin the configured interpreter, so the case does not depend on the machine's COMSPEC.
+    python.run_as(PLUGIN, R"PY(
+saved_comspec = os.environ.get("COMSPEC")
+NARROW_SHELL = r"C:\narrow\narrow-shell.exe"
+os.environ["COMSPEC"] = NARROW_SHELL
+
+def raise_system(command):
+    try:
+        sys.audit("os.system", command)
+        return "ok"
+    except PermissionError:
+        return "denied"
+)PY");
+    const std::string narrow_shell = python.str("NARROW_SHELL");
+    const std::vector<std::string> both_shells{narrow_shell, "cmd.exe"};
+
+    // The runtime falls back to cmd.exe when it cannot open COMSPEC, so the configured
+    // interpreter's grant alone leaves the event unresolved by the fallback shell.
+    PluginPermissions permissions;
+    permissions.process = {narrow_shell};
+    harness.save_permissions(PLUGIN, permissions);
+    python.run_as(PLUGIN, "narrow_outcome = raise_system('anything')");
+    CHECK(python.str("narrow_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "os.system: cmd.exe\n");
+    CHECK(harness.saved_permissions(PLUGIN).process == std::vector<std::string>{narrow_shell});
+
+    // One approval saves the missing fallback interpreter, so the next run does not ask again.
+    harness.approve = [](const Prompt&) { return true; };
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "approved_outcome = raise_system('anything')");
+    CHECK(python.str("approved_outcome") == "ok");
+    CHECK(harness.prompts.size() == 1);
+    if (harness.prompts.size() == 1)
+        CHECK(harness.prompts.front().targets == std::vector<std::string>{"cmd.exe"});
+    CHECK(harness.saved_permissions(PLUGIN).process == both_shells);
+
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "repeat_outcome = raise_system('anything else')");
+    CHECK(python.str("repeat_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+
+    // A COMSPEC that is the bare fallback name names one interpreter, whatever its casing.
+    harness.save_permissions(PLUGIN, {});
+    harness.approve = [](const Prompt&) { return false; };
+    python.run_as(PLUGIN, R"PY(
+os.environ["COMSPEC"] = "CmD.eXe"
+bare_outcome = raise_system("anything")
+)PY");
+    CHECK(python.str("bare_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "os.system: cmd.exe\n");
+    CHECK(harness.saved_permissions(PLUGIN).process.empty());
+
+    python.run_as(PLUGIN, R"PY(
+if saved_comspec is None:
+    os.environ.pop("COMSPEC", None)
+else:
+    os.environ["COMSPEC"] = saved_comspec
+)PY");
+}
+#endif
 
 TEST_CASE("A finalizer run when a root frame is let go is judged as the plugin without a prompt", "[audit][Python]")
 {

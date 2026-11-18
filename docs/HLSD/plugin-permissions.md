@@ -93,13 +93,20 @@ that requested it and the nested deletes it performs inside that subtree.
   the executable or path, that argument is the target. For a command string or argv, the
   first token or element is the target. Arguments after the tool are ignored, so one grant
   covers repeated runs of the tool with different arguments. `os.system` is the exception:
-  Python hands its whole string to the platform shell, so the target is the shell. On POSIX
-  that is `/bin/sh`; on Windows it is the interpreter named by `COMSPEC`, or `cmd.exe` when
-  `COMSPEC` is unset or empty. The command string is not parsed, and approving the shell
-  covers every command and argument the plugin passes to `os.system`. The target is read
-  when the event is raised, so a grant saved under one `COMSPEC` value does not cover a run
-  under another. Direct process creation, such as `subprocess.Popen`, still names its
-  executable.
+  Python hands its whole string to the platform shell, so the target is every shell that may
+  run it. On POSIX that is `/bin/sh`. On Windows the C runtime runs the interpreter named by
+  `COMSPEC`, or `cmd.exe` when `COMSPEC` is unset or empty, and also falls back to `cmd.exe`
+  when it cannot open the configured file (ENOENT or EACCES). The configured interpreter and
+  the fallback are both required targets: a grant for a narrow `COMSPEC` does not authorize
+  the fallback shell. A `COMSPEC` that is already the bare name `cmd.exe`, in any casing,
+  names the fallback itself and is listed once. The value is read from the CRT environment
+  that `_wsystem` consults, not the process environment block, which can differ. The audit
+  does not test whether the `COMSPEC` file exists; the runtime decides that when it runs the
+  command, so a file present at prompt time can be gone by the call. The command string is
+  not parsed, and approving the shells covers every command and argument the plugin passes
+  to `os.system`. The targets are read when the event is raised, so a grant saved under one
+  `COMSPEC` value does not cover a run under another. Direct process creation, such as
+  `subprocess.Popen`, still names its executable.
 - An event with no target is granted by the `events` entry for its category and name. A
   targetless network event, such as `http.client.send`, is covered by any recorded
   network grant instead.
