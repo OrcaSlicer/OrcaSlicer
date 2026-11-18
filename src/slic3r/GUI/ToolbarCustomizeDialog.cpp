@@ -11,6 +11,7 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include "Widgets/Label.hpp"
+#include "Widgets/StateColor.hpp"
 #include "libslic3r/AppConfig.hpp"
 
 #include <wx/colour.h>
@@ -21,10 +22,10 @@
 #include <wx/string.h>
 #include <wx/tglbtn.h>
 #include <wx/toplevel.h>
+#include <wx/window.h>
 
 #include <algorithm>
 #include <cstddef>
-#include <functional>
 #include <map>
 #include <string>
 #include <utility>
@@ -92,30 +93,32 @@ public:
         auto* hint  = new Label(this, _L("Uncheck an icon to hide it. Select a row and move it to change the order."));
         sizer->Add(hint, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(12));
 
+        auto* body   = new wxBoxSizer(wxHORIZONTAL);
+        auto* arrows = new wxBoxSizer(wxVERTICAL);
+        auto  add_arrow = [this, arrows](const char* icon, const wxString& tip, int step) {
+            auto* btn = new Button(this, "", icon, 0, 16);
+            btn->SetStyle(ButtonStyle::Regular, ButtonType::Icon);
+            btn->SetToolTip(tip);
+            btn->Bind(wxEVT_BUTTON, [this, step](wxCommandEvent&) { move_selected(step); });
+            arrows->Add(btn, 0, wxBOTTOM, FromDIP(6));
+            return btn;
+        };
+        m_up_button   = add_arrow("design_moveup", _L("Move up"), -1);
+        m_down_button = add_arrow("design_movedown", _L("Move down"), 1);
+        body->Add(arrows, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(12));
+
         auto* lists = new wxBoxSizer(wxHORIZONTAL);
         m_main_panel  = add_list(lists, _L("Object tools"));
         m_gizmo_panel = add_list(lists, _L("Gizmos"));
-        sizer->Add(lists, 1, wxEXPAND | wxALL, FromDIP(12));
+        body->Add(lists, 1, wxEXPAND);
+        sizer->Add(body, 1, wxEXPAND | wxALL, FromDIP(12));
 
-        auto* moves = new wxBoxSizer(wxHORIZONTAL);
-        auto  add_button = [this, moves](const wxString& text, std::function<void()> action) {
-            auto* btn = new Button(this, text);
-            btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
-            btn->Bind(wxEVT_BUTTON, [action](wxCommandEvent&) { action(); });
-            moves->Add(btn, 0, wxRIGHT, FromDIP(8));
-            return btn;
-        };
-        add_button(_L("Move up"), [this]() { move_selected(-1); });
-        add_button(_L("Move down"), [this]() { move_selected(1); });
-        moves->AddStretchSpacer();
-        add_button(_L("Reset to default"), [this]() {
+        auto* btns = new DialogButtons(this, {L("Reset to default"), "OK", "Cancel"}, "", 1 /*left_aligned*/);
+        btns->GetButtonFromIndex(0)->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
             m_working = stock_toolbar_layout();
             m_selected.clear();
-            rebuild_rows();
+            show_working_layout();
         });
-        sizer->Add(moves, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(12));
-
-        auto* btns = new DialogButtons(this, {"OK", "Cancel"});
         btns->GetOK()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_OK); });
         btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
         sizer->Add(btns, 0, wxEXPAND);
@@ -132,6 +135,8 @@ public:
 protected:
     void on_dpi_changed(const wxRect&) override
     {
+        m_up_button->Rescale();
+        m_down_button->Rescale();
         rebuild_rows();
         GetSizer()->SetSizeHints(this);
         Refresh();
@@ -168,18 +173,88 @@ private:
         if (to < 0 || to >= static_cast<std::ptrdiff_t>(order.size()))
             return;
         std::swap(order[static_cast<size_t>(from)], order[static_cast<size_t>(to)]);
-        rebuild_rows();
+
+        // Move the row itself rather than rebuilding the lists, which flickers.
+        wxWindow* row  = m_rows.at(m_selected);
+        wxWindow* list = row->GetParent();
+        list->GetSizer()->Detach(row);
+        list->GetSizer()->Insert(static_cast<size_t>(to), row, row_flags());
+        follow_in_tab_order(list, static_cast<size_t>(to));
+        list->Layout();
+    }
+
+    // Keeps Tab moving through the rows in the order they are shown.
+    static void follow_in_tab_order(wxWindow* list, size_t index)
+    {
+        wxSizer* rows = list->GetSizer();
+        if (index > 0)
+            rows->GetItem(index)->GetWindow()->MoveAfterInTabOrder(rows->GetItem(index - 1)->GetWindow());
+        else if (rows->GetItemCount() > 1)
+            rows->GetItem(index)->GetWindow()->MoveBeforeInTabOrder(rows->GetItem(1)->GetWindow());
+    }
+
+    wxSizerFlags row_flags() const { return wxSizerFlags().Expand().Border(wxBOTTOM, FromDIP(2)); }
+
+    // Restyles the old and new selected rows only; rebuilding them all on each click flickers.
+    void select_row(const std::string& id)
+    {
+        const std::string old = std::exchange(m_selected, id);
+        if (old != id && m_rows.count(old) != 0)
+            style_row(m_rows.at(old), false);
+        style_row(m_rows.at(id), true);
+    }
+
+    void style_row(wxWindow* row, bool selected)
+    {
+        const wxColour bg = StateColor::darkModeColorFor(wxColour(selected ? "#BFE1DE" : "#FFFFFF"));
+        row->SetBackgroundColour(bg);
+        for (wxWindow* child : row->GetChildren()) {
+            child->SetBackgroundColour(bg);
+            if (auto* name = dynamic_cast<Label*>(child); name != nullptr && name->GetName() == "name")
+                name->SetFont(selected ? Label::Head_14 : Label::Body_14);
+        }
+        row->Layout();
+        row->Refresh();
+    }
+
+    // Puts the existing rows in m_working's order and state. Rows built after the dialog is shown measure
+    // 1px taller on GTK, so rebuilding them here would push the last row out of the dialog.
+    void show_working_layout()
+    {
+        for (const auto& [panel, group] : {std::make_pair(m_main_panel, &m_working.main), std::make_pair(m_gizmo_panel, &m_working.gizmos)}) {
+            wxSizer* rows = panel->GetSizer();
+            if (rows->GetItemCount() != group->order.size()) {
+                rebuild_rows();
+                return;
+            }
+            for (size_t i = 0; i < group->order.size(); ++i) {
+                const auto it = m_rows.find(group->order[i]);
+                if (it == m_rows.end() || it->second->GetParent() != panel) {
+                    rebuild_rows();
+                    return;
+                }
+                wxWindow* row = it->second;
+                rows->Detach(row);
+                rows->Insert(i, row, row_flags());
+                follow_in_tab_order(panel, i);
+                for (wxWindow* child : row->GetChildren())
+                    if (auto* check = dynamic_cast<::CheckBox*>(child))
+                        check->SetValue(group->hidden.count(group->order[i]) == 0);
+                style_row(row, group->order[i] == m_selected);
+            }
+            panel->Layout();
+        }
     }
 
     void rebuild_rows()
     {
         Freeze();
+        m_rows.clear();
         fill_list(m_main_panel, m_working.main);
         fill_list(m_gizmo_panel, m_working.gizmos);
-        if (GetSizer() != nullptr) {
+        // The rows keep their sizes, so the dialog does too; refitting it here made it grow.
+        if (GetSizer() != nullptr)
             Layout();
-            GetSizer()->SetSizeHints(this);
-        }
         wxGetApp().UpdateDlgDarkUI(this);
         Thaw();
     }
@@ -187,12 +262,14 @@ private:
     void fill_list(wxPanel* panel, ToolbarGroupLayout& group)
     {
         panel->DestroyChildren();
-        wxSizer*         rows   = panel->GetSizer();
+        wxSizer*          rows   = panel->GetSizer();
         const GLCanvas3D* canvas = wxGetApp().plater() != nullptr ? wxGetApp().plater()->get_view3D_canvas3D() : nullptr;
         for (const std::string& id : group.order) {
-            auto* row = new wxBoxSizer(wxHORIZONTAL);
+            // A full-width row, so a click anywhere on it selects it.
+            auto* row       = new wxPanel(panel);
+            auto* row_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-            auto* check = new ::CheckBox(panel);
+            auto* check = new ::CheckBox(row);
             check->SetValue(group.hidden.count(id) == 0);
             check->Bind(wxEVT_TOGGLEBUTTON, [this, id, check](wxCommandEvent& e) {
                 ToolbarGroupLayout& g = group_of(id);
@@ -202,25 +279,33 @@ private:
                     g.hidden.insert(id);
                 e.Skip();
             });
-            row->Add(check, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
+            row_sizer->Add(check, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(6));
 
-            const bool selected = id == m_selected;
-            auto*      name     = new Label(panel, selected ? Label::Head_14 : Label::Body_14, toolbar_item_name(id));
-            name->Bind(wxEVT_LEFT_DOWN, [this, id](wxMouseEvent&) {
-                // Rebuilding destroys this label, so do it after the click has been handled.
-                CallAfter([this, id]() {
-                    m_selected = id;
-                    rebuild_rows();
-                });
-            });
-            row->Add(name, 0, wxALIGN_CENTER_VERTICAL);
+            // Sized for the bold font, so selecting the row does not clip its name.
+            auto* name = new Label(row, Label::Head_14, toolbar_item_name(id));
+            name->SetName("name");
+            name->SetMinSize(name->GetBestSize());
+            row_sizer->Add(name, 1, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(3));
 
             if (id != TOOLBAR_SEPARATOR_ID && canvas != nullptr && !canvas->is_toolbar_item_available(id)) {
-                auto* note = new Label(panel, Label::Body_12, _L("(not available now)"));
+                auto* note = new Label(row, Label::Body_12, _L("(not available now)"));
                 note->SetForegroundColour(wxColour(144, 144, 144));
-                row->Add(note, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(6));
+                row_sizer->Add(note, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
             }
-            rows->Add(row, 0, wxBOTTOM, FromDIP(4));
+            row->SetSizer(row_sizer);
+
+            const auto on_click = [this, id](wxMouseEvent& e) {
+                select_row(id);
+                e.Skip();
+            };
+            row->Bind(wxEVT_LEFT_DOWN, on_click);
+            for (wxWindow* child : row->GetChildren())
+                if (child != check)
+                    child->Bind(wxEVT_LEFT_DOWN, on_click);
+
+            style_row(row, id == m_selected);
+            rows->Add(row, row_flags());
+            m_rows[id] = row;
         }
         panel->Layout();
     }
@@ -230,6 +315,9 @@ private:
     std::string   m_selected;
     wxPanel*      m_main_panel{nullptr};
     wxPanel*      m_gizmo_panel{nullptr};
+    Button*       m_up_button{nullptr};
+    Button*       m_down_button{nullptr};
+    std::map<std::string, wxWindow*> m_rows;
 };
 
 } // namespace
