@@ -1,4 +1,5 @@
 #include "Preferences.hpp"
+#include "slic3r/plugin/host/PluginPages.hpp"
 #include "CloudProvider.hpp"
 #include "ColorPickerDialog.hpp"
 #include "OptionsGroup.hpp"

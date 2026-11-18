@@ -29,6 +29,7 @@
 #include "slic3r/GUI/Field.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include <boost/any.hpp>
+#include <boost/format.hpp>
 #include <wx/sizer.h>
 #include <wx/wupdlock.h>
 
