@@ -3793,18 +3793,14 @@ msgstr "暂停"
 msgid "Template"
 msgstr "模板"
 
+# AI Translated
+#. TRN Where a mark on the layer slider stands: its layer number and its height in millimeters.
+#, boost-format
+msgid "%1% · %2% mm"
+msgstr "%1% · %2% mm"
+
 msgid "Custom"
 msgstr "自定义"
-
-# AI Translated
-msgid "Pause:"
-msgstr "暂停："
-
-msgid "Custom Template:"
-msgstr "自定义模板："
-
-msgid "Custom G-code:"
-msgstr "自定义G-code："
 
 msgid "Custom G-code"
 msgstr "自定义G-code"
@@ -6711,12 +6707,37 @@ msgstr "PA： "
 msgid "mm/s"
 msgstr "mm/s"
 
+# AI Translated
+msgctxt "Move details"
+msgid "LINE"
+msgstr "线"
+
+# AI Translated
+#. TRN Width × height of the extrusion line.
+msgid "W × H"
+msgstr "宽 × 高"
+
+# AI Translated
+msgctxt "Move details"
+msgid "MOTION"
+msgstr "运动"
+
 msgid "mm/s²"
 msgstr "mm/s²"
 
 # AI Translated
+msgctxt "Move details"
+msgid "EXTRUSION"
+msgstr "挤出"
+
+# AI Translated
 msgid "mm³/s"
 msgstr "mm³/s"
+
+# AI Translated
+msgctxt "Move details"
+msgid "THERMAL"
+msgstr "温度"
 
 msgid "Flow rate"
 msgstr "流量"
@@ -6724,15 +6745,34 @@ msgstr "流量"
 msgid "Fan speed"
 msgstr "风扇速度"
 
+# AI Translated
+# Needs human review: Header of the move panel in the G-code preview: current move number of the move count in the layer; check the wording reads naturally.
+#, boost-format
+msgid "Move %1% of %2%"
+msgstr "第 %1%/%2% 步移动"
+
 msgid "Time"
 msgstr "时间"
 
 # AI Translated
-msgid "Speed: "
-msgstr "速度： "
+msgid "Speed profile"
+msgstr "速度曲线"
 
-msgid "Actual speed profile"
-msgstr "实际速度曲线"
+# AI Translated
+#. TRN Title of the speed chart of a move: its length in millimeters and its duration in seconds.
+#, boost-format
+msgid "Actual speed profile · %1% mm · %2% s"
+msgstr "实际速度曲线 · %1% mm · %2% s"
+
+# AI Translated
+msgid "No speed profile for this move"
+msgstr "此移动没有速度曲线"
+
+# AI Translated
+#, boost-format
+msgid "%1% more"
+msgid_plural "%1% more"
+msgstr[0] "还有 %1% 项"
 
 # AI Translated
 msgid "Automatic"
@@ -35567,6 +35607,15 @@ msgstr "标记纹理切缝路径"
 #, boost-format
 msgid "Layer %1%"
 msgstr "图层 %1%"
+
+# AI Translated
+#, boost-format
+msgid "%1% mm"
+msgstr "%1% mm"
+
+# AI Translated
+msgid "Single layer"
+msgstr "单层"
 
 # AI Translated
 msgid "Average island scale"

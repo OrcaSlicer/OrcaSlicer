@@ -4051,20 +4051,14 @@ msgstr "Pauze"
 msgid "Template"
 msgstr "Sjabloon"
 
+# AI Translated
+#. TRN Where a mark on the layer slider stands: its layer number and its height in millimeters.
+#, boost-format
+msgid "%1% · %2% mm"
+msgstr "%1% · %2% mm"
+
 msgid "Custom"
 msgstr "Aangepast"
-
-# AI Translated
-msgid "Pause:"
-msgstr "Pauze:"
-
-# AI Translated
-msgid "Custom Template:"
-msgstr "Aangepaste sjabloon:"
-
-# AI Translated
-msgid "Custom G-code:"
-msgstr "Aangepaste G-code:"
 
 msgid "Custom G-code"
 msgstr "Aangepaste G-code"
@@ -7097,11 +7091,36 @@ msgstr "PA: "
 msgid "mm/s"
 msgstr "mm/s"
 
+# AI Translated
+msgctxt "Move details"
+msgid "LINE"
+msgstr "LIJN"
+
+# AI Translated
+#. TRN Width × height of the extrusion line.
+msgid "W × H"
+msgstr "B × H"
+
+# AI Translated
+msgctxt "Move details"
+msgid "MOTION"
+msgstr "BEWEGING"
+
 msgid "mm/s²"
 msgstr "mm/s²"
 
+# AI Translated
+msgctxt "Move details"
+msgid "EXTRUSION"
+msgstr "EXTRUSIE"
+
 msgid "mm³/s"
 msgstr "mm³/s"
+
+# AI Translated
+msgctxt "Move details"
+msgid "THERMAL"
+msgstr "TEMPERATUUR"
 
 msgid "Flow rate"
 msgstr "Flowrate"
@@ -7109,15 +7128,34 @@ msgstr "Flowrate"
 msgid "Fan speed"
 msgstr "Ventilator snelheid"
 
+# AI Translated
+#, boost-format
+msgid "Move %1% of %2%"
+msgstr "Beweging %1% van %2%"
+
 msgid "Time"
 msgstr "Tijd"
 
-msgid "Speed: "
-msgstr "Snelheid: "
+# AI Translated
+msgid "Speed profile"
+msgstr "Snelheidsprofiel"
 
 # AI Translated
-msgid "Actual speed profile"
-msgstr "Werkelijk snelheidsprofiel"
+#. TRN Title of the speed chart of a move: its length in millimeters and its duration in seconds.
+#, boost-format
+msgid "Actual speed profile · %1% mm · %2% s"
+msgstr "Werkelijk snelheidsprofiel · %1% mm · %2% s"
+
+# AI Translated
+msgid "No speed profile for this move"
+msgstr "Geen snelheidsprofiel voor deze beweging"
+
+# AI Translated
+#, boost-format
+msgid "%1% more"
+msgid_plural "%1% more"
+msgstr[0] "Nog %1%"
+msgstr[1] "Nog %1%"
 
 # AI Translated
 msgid "Automatic"
@@ -36893,6 +36931,15 @@ msgstr "Pad van textuurnaad markeren"
 #, boost-format
 msgid "Layer %1%"
 msgstr "Laag %1%"
+
+# AI Translated
+#, boost-format
+msgid "%1% mm"
+msgstr "%1% mm"
+
+# AI Translated
+msgid "Single layer"
+msgstr "Enkele laag"
 
 # AI Translated
 msgid "Average island scale"

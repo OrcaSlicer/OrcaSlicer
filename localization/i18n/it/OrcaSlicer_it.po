@@ -3779,17 +3779,14 @@ msgstr "Pausa"
 msgid "Template"
 msgstr "Modello"
 
+# AI Translated
+#. TRN Where a mark on the layer slider stands: its layer number and its height in millimeters.
+#, boost-format
+msgid "%1% · %2% mm"
+msgstr "%1% · %2% mm"
+
 msgid "Custom"
 msgstr "Personalizzato"
-
-msgid "Pause:"
-msgstr "Pausa:"
-
-msgid "Custom Template:"
-msgstr "Modello personalizzato:"
-
-msgid "Custom G-code:"
-msgstr "G-code personalizzato:"
 
 msgid "Custom G-code"
 msgstr "G-code personalizzato"
@@ -6598,11 +6595,36 @@ msgstr "PA: "
 msgid "mm/s"
 msgstr "mm/s"
 
+# AI Translated
+msgctxt "Move details"
+msgid "LINE"
+msgstr "LINEA"
+
+# AI Translated
+#. TRN Width × height of the extrusion line.
+msgid "W × H"
+msgstr "L × A"
+
+# AI Translated
+msgctxt "Move details"
+msgid "MOTION"
+msgstr "MOVIMENTO"
+
 msgid "mm/s²"
 msgstr "mm/s²"
 
+# AI Translated
+msgctxt "Move details"
+msgid "EXTRUSION"
+msgstr "ESTRUSIONE"
+
 msgid "mm³/s"
 msgstr "mm³/s"
+
+# AI Translated
+msgctxt "Move details"
+msgid "THERMAL"
+msgstr "TEMPERATURA"
 
 msgid "Flow rate"
 msgstr "Flusso di stampa"
@@ -6610,14 +6632,34 @@ msgstr "Flusso di stampa"
 msgid "Fan speed"
 msgstr "Velocità ventola"
 
+# AI Translated
+#, boost-format
+msgid "Move %1% of %2%"
+msgstr "Movimento %1% di %2%"
+
 msgid "Time"
 msgstr "Tempo"
 
-msgid "Speed: "
-msgstr "Velocità: "
+# AI Translated
+msgid "Speed profile"
+msgstr "Profilo di velocità"
 
-msgid "Actual speed profile"
-msgstr "Profilo di velocità effettivo"
+# AI Translated
+#. TRN Title of the speed chart of a move: its length in millimeters and its duration in seconds.
+#, boost-format
+msgid "Actual speed profile · %1% mm · %2% s"
+msgstr "Profilo di velocità effettiva · %1% mm · %2% s"
+
+# AI Translated
+msgid "No speed profile for this move"
+msgstr "Nessun profilo di velocità per questo movimento"
+
+# AI Translated
+#, boost-format
+msgid "%1% more"
+msgid_plural "%1% more"
+msgstr[0] "Altro %1%"
+msgstr[1] "Altri %1%"
 
 # AI Translated
 msgid "Automatic"
@@ -34728,6 +34770,15 @@ msgstr "Segna percorso di taglio UV della trama"
 #, boost-format
 msgid "Layer %1%"
 msgstr "Livello %1%"
+
+# AI Translated
+#, boost-format
+msgid "%1% mm"
+msgstr "%1% mm"
+
+# AI Translated
+msgid "Single layer"
+msgstr "Strato singolo"
 
 # AI Translated
 msgid "Average island scale"

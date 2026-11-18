@@ -3667,21 +3667,18 @@ msgstr "Пауза"
 msgid "Template"
 msgstr "Шаблон"
 
+# AI Translated
+#. TRN Where a mark on the layer slider stands: its layer number and its height in millimeters.
+#, boost-format
+msgid "%1% · %2% mm"
+msgstr "%1% · %2% мм"
+
 # Тянется из 9 мест: группировка материалов: Auto/Custom, Форма стола: %s, тип
 # линии: %s, калибровка температуры – Тип материала: %s (тут колонки узкие, но
 # место вроде есть),). Причём местами должно согласоваться с разными родами
 # (форма: пользов.). Лучше сократить до Пользов.
 msgid "Custom"
 msgstr "Пользовательский"
-
-msgid "Pause:"
-msgstr "Пауза:"
-
-msgid "Custom Template:"
-msgstr "Шаблон пользовательского G-кода:"
-
-msgid "Custom G-code:"
-msgstr "Пользовательский G-код:"
 
 msgid "Custom G-code"
 msgstr "Пользовательский G-код"
@@ -6462,11 +6459,36 @@ msgstr "PA: "
 msgid "mm/s"
 msgstr "мм/с"
 
+# AI Translated
+msgctxt "Move details"
+msgid "LINE"
+msgstr "ЛИНИЯ"
+
+# AI Translated
+#. TRN Width × height of the extrusion line.
+msgid "W × H"
+msgstr "Ш × В"
+
+# AI Translated
+msgctxt "Move details"
+msgid "MOTION"
+msgstr "ДВИЖЕНИЕ"
+
 msgid "mm/s²"
 msgstr "мм/с²"
 
+# AI Translated
+msgctxt "Move details"
+msgid "EXTRUSION"
+msgstr "ЭКСТРУЗИЯ"
+
 msgid "mm³/s"
 msgstr "мм³/с"
+
+# AI Translated
+msgctxt "Move details"
+msgid "THERMAL"
+msgstr "ТЕМПЕРАТУРА"
 
 # В идеале должно быть "Объёмный расход", но кое-как пытаемся совместить с
 # меню калибровок. Используется в табличке просмотра слоёв в значении "расход"
@@ -6481,15 +6503,35 @@ msgstr "Расход"
 msgid "Fan speed"
 msgstr "Обдув"
 
+# AI Translated
+#, boost-format
+msgid "Move %1% of %2%"
+msgstr "Ход %1% из %2%"
+
 msgid "Time"
 msgstr "Время"
 
-msgid "Speed: "
-msgstr "Скорость: "
+# AI Translated
+msgid "Speed profile"
+msgstr "Профиль скорости"
 
-# Перед строкой подставляется кнопка "Показать"/"Скрыть"
-msgid "Actual speed profile"
-msgstr "график расчётной скорости"
+# AI Translated
+#. TRN Title of the speed chart of a move: its length in millimeters and its duration in seconds.
+#, boost-format
+msgid "Actual speed profile · %1% mm · %2% s"
+msgstr "Профиль действительной скорости · %1% мм · %2% с"
+
+# AI Translated
+msgid "No speed profile for this move"
+msgstr "У этого хода нет профиля скорости"
+
+# AI Translated
+#, boost-format
+msgid "%1% more"
+msgid_plural "%1% more"
+msgstr[0] "Ещё %1% группа"
+msgstr[1] "Ещё %1% группы"
+msgstr[2] "Ещё %1% групп"
 
 msgid "Automatic"
 msgstr "Авто"
@@ -34253,6 +34295,15 @@ msgstr "Пометка пути шва развёртки"
 #, boost-format
 msgid "Layer %1%"
 msgstr "Слой %1%"
+
+# AI Translated
+#, boost-format
+msgid "%1% mm"
+msgstr "%1% мм"
+
+# AI Translated
+msgid "Single layer"
+msgstr "Один слой"
 
 # AI Translated
 msgid "Average island scale"

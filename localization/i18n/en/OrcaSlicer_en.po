@@ -3452,16 +3452,12 @@ msgstr ""
 msgid "Template"
 msgstr ""
 
+#. TRN Where a mark on the layer slider stands: its layer number and its height in millimeters.
+#, boost-format
+msgid "%1% · %2% mm"
+msgstr ""
+
 msgid "Custom"
-msgstr ""
-
-msgid "Pause:"
-msgstr ""
-
-msgid "Custom Template:"
-msgstr ""
-
-msgid "Custom G-code:"
 msgstr ""
 
 msgid "Custom G-code"
@@ -5949,10 +5945,30 @@ msgstr ""
 msgid "mm/s"
 msgstr ""
 
+msgctxt "Move details"
+msgid "LINE"
+msgstr ""
+
+#. TRN Width × height of the extrusion line.
+msgid "W × H"
+msgstr ""
+
+msgctxt "Move details"
+msgid "MOTION"
+msgstr ""
+
 msgid "mm/s²"
 msgstr ""
 
+msgctxt "Move details"
+msgid "EXTRUSION"
+msgstr ""
+
 msgid "mm³/s"
+msgstr ""
+
+msgctxt "Move details"
+msgid "THERMAL"
 msgstr ""
 
 msgid "Flow rate"
@@ -5961,14 +5977,29 @@ msgstr ""
 msgid "Fan speed"
 msgstr ""
 
+#, boost-format
+msgid "Move %1% of %2%"
+msgstr ""
+
 msgid "Time"
 msgstr ""
 
-msgid "Speed: "
+msgid "Speed profile"
 msgstr ""
 
-msgid "Actual speed profile"
+#. TRN Title of the speed chart of a move: its length in millimeters and its duration in seconds.
+#, boost-format
+msgid "Actual speed profile · %1% mm · %2% s"
 msgstr ""
+
+msgid "No speed profile for this move"
+msgstr ""
+
+#, boost-format
+msgid "%1% more"
+msgid_plural "%1% more"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Automatic"
 msgstr ""
@@ -29446,6 +29477,13 @@ msgstr ""
 
 #, boost-format
 msgid "Layer %1%"
+msgstr ""
+
+#, boost-format
+msgid "%1% mm"
+msgstr ""
+
+msgid "Single layer"
 msgstr ""
 
 msgid "Average island scale"

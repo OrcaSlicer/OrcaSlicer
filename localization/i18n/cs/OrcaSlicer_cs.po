@@ -3810,17 +3810,14 @@ msgstr "Pozastavit"
 msgid "Template"
 msgstr "Šablona"
 
+# AI Translated
+#. TRN Where a mark on the layer slider stands: its layer number and its height in millimeters.
+#, boost-format
+msgid "%1% · %2% mm"
+msgstr "%1% · %2% mm"
+
 msgid "Custom"
 msgstr "Vlastní"
-
-msgid "Pause:"
-msgstr "Pozastaveno:"
-
-msgid "Custom Template:"
-msgstr "Vlastní šablona:"
-
-msgid "Custom G-code:"
-msgstr "Vlastní G-code:"
 
 msgid "Custom G-code"
 msgstr "vlastní G-code"
@@ -6674,11 +6671,36 @@ msgstr "PA: "
 msgid "mm/s"
 msgstr "mm/s"
 
+# AI Translated
+msgctxt "Move details"
+msgid "LINE"
+msgstr "ČÁRA"
+
+# AI Translated
+#. TRN Width × height of the extrusion line.
+msgid "W × H"
+msgstr "Š × V"
+
+# AI Translated
+msgctxt "Move details"
+msgid "MOTION"
+msgstr "POHYB"
+
 msgid "mm/s²"
 msgstr "mm/s²"
 
+# AI Translated
+msgctxt "Move details"
+msgid "EXTRUSION"
+msgstr "EXTRUZE"
+
 msgid "mm³/s"
 msgstr "mm³/s"
+
+# AI Translated
+msgctxt "Move details"
+msgid "THERMAL"
+msgstr "TEPLOTA"
 
 msgid "Flow rate"
 msgstr "Průtok"
@@ -6686,14 +6708,35 @@ msgstr "Průtok"
 msgid "Fan speed"
 msgstr "Rychlost ventilátoru"
 
+# AI Translated
+#, boost-format
+msgid "Move %1% of %2%"
+msgstr "Pohyb %1% z %2%"
+
 msgid "Time"
 msgstr "Čas"
 
-msgid "Speed: "
-msgstr "Rychlost: "
+# AI Translated
+msgid "Speed profile"
+msgstr "Rychlostní profil"
 
-msgid "Actual speed profile"
-msgstr "Profil skutečné rychlosti"
+# AI Translated
+#. TRN Title of the speed chart of a move: its length in millimeters and its duration in seconds.
+#, boost-format
+msgid "Actual speed profile · %1% mm · %2% s"
+msgstr "Profil skutečné rychlosti · %1% mm · %2% s"
+
+# AI Translated
+msgid "No speed profile for this move"
+msgstr "Tento pohyb nemá rychlostní profil"
+
+# AI Translated
+#, boost-format
+msgid "%1% more"
+msgid_plural "%1% more"
+msgstr[0] "Další %1% skupina"
+msgstr[1] "Další %1% skupiny"
+msgstr[2] "Dalších %1% skupin"
 
 # AI Translated
 msgid "Automatic"
@@ -35113,6 +35156,15 @@ msgstr "Označit dráhu švu textury"
 #, boost-format
 msgid "Layer %1%"
 msgstr "Vrstva %1%"
+
+# AI Translated
+#, boost-format
+msgid "%1% mm"
+msgstr "%1% mm"
+
+# AI Translated
+msgid "Single layer"
+msgstr "Jedna vrstva"
 
 # AI Translated
 msgid "Average island scale"

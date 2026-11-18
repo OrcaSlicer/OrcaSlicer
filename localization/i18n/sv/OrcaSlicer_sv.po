@@ -4141,18 +4141,14 @@ msgid "Template"
 msgstr "Mall"
 
 # AI Translated
-msgid "Custom"
-msgstr "Anpassad"
-
-msgid "Pause:"
-msgstr "Pausa:"
-
-msgid "Custom Template:"
-msgstr "Anpassad mall:"
+#. TRN Where a mark on the layer slider stands: its layer number and its height in millimeters.
+#, boost-format
+msgid "%1% · %2% mm"
+msgstr "%1% · %2% mm"
 
 # AI Translated
-msgid "Custom G-code:"
-msgstr "Anpassad G-code:"
+msgid "Custom"
+msgstr "Anpassad"
 
 # AI Translated
 msgid "Custom G-code"
@@ -7181,11 +7177,36 @@ msgstr "PA: "
 msgid "mm/s"
 msgstr "mm/s"
 
+# AI Translated
+msgctxt "Move details"
+msgid "LINE"
+msgstr "LINJE"
+
+# AI Translated
+#. TRN Width × height of the extrusion line.
+msgid "W × H"
+msgstr "B × H"
+
+# AI Translated
+msgctxt "Move details"
+msgid "MOTION"
+msgstr "RÖRELSE"
+
 msgid "mm/s²"
 msgstr "mm/s²"
 
+# AI Translated
+msgctxt "Move details"
+msgid "EXTRUSION"
+msgstr "EXTRUDERING"
+
 msgid "mm³/s"
 msgstr "mm³/s"
+
+# AI Translated
+msgctxt "Move details"
+msgid "THERMAL"
+msgstr "TEMPERATUR"
 
 msgid "Flow rate"
 msgstr "Flödeshastighet"
@@ -7193,15 +7214,34 @@ msgstr "Flödeshastighet"
 msgid "Fan speed"
 msgstr "Fläkt hastighet"
 
+# AI Translated
+#, boost-format
+msgid "Move %1% of %2%"
+msgstr "Rörelse %1% av %2%"
+
 msgid "Time"
 msgstr "Tid"
 
-msgid "Speed: "
-msgstr "Hastighet: "
+# AI Translated
+msgid "Speed profile"
+msgstr "Hastighetsprofil"
 
 # AI Translated
-msgid "Actual speed profile"
-msgstr "Faktisk hastighetsprofil"
+#. TRN Title of the speed chart of a move: its length in millimeters and its duration in seconds.
+#, boost-format
+msgid "Actual speed profile · %1% mm · %2% s"
+msgstr "Faktisk hastighetsprofil · %1% mm · %2% s"
+
+# AI Translated
+msgid "No speed profile for this move"
+msgstr "Ingen hastighetsprofil för den här rörelsen"
+
+# AI Translated
+#, boost-format
+msgid "%1% more"
+msgid_plural "%1% more"
+msgstr[0] "%1% till"
+msgstr[1] "%1% till"
 
 # AI Translated
 msgid "Automatic"
@@ -37102,6 +37142,15 @@ msgstr "Markera textursöm längs väg"
 #, boost-format
 msgid "Layer %1%"
 msgstr "Lager %1%"
+
+# AI Translated
+#, boost-format
+msgid "%1% mm"
+msgstr "%1% mm"
+
+# AI Translated
+msgid "Single layer"
+msgstr "Ett lager"
 
 # AI Translated
 msgid "Average island scale"
