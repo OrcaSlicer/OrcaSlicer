@@ -20,7 +20,9 @@ name remains the provider identity used in the project manifest.
 Saving a preset or project records the currently resolved capability's full plugin reference, including
 local or cloud plugin identity, for plugin-backed pattern settings. The manifest supports plugin
 management and diagnostics; it does not bind a pattern ID to a particular provider for slicing.
-`InfillFactory` is the authority for resolving a selected pattern ID. Slicing uses its currently
+For saving, pattern IDs are resolved against loaded capability descriptors, including disabled
+capabilities, so a known plugin reference can be preserved even when its patterns are not registered.
+For slicing, `InfillFactory` is the authority for resolving a selected pattern ID. Slicing uses its currently
 registered provider, provided the pattern supports the selected surface purpose, and never falls back
 to a built-in pattern. If a different provider registers the same ID while the original provider is
 unavailable, that provider is used. Users are responsible for ensuring that the installed provider is
