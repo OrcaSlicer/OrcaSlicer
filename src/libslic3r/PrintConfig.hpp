@@ -248,9 +248,14 @@ inline bool is_adaptive_infill_pattern(const std::optional<InfillPattern> &patte
 {
     return pattern && is_adaptive_infill_pattern(*pattern);
 }
-inline bool is_smoothable_infill_pattern(const std::optional<InfillPattern> &pattern, int multiline = 1)
+inline bool has_infill_strategy(const std::optional<InfillPattern> &pattern)
 {
-    return pattern && is_smoothable_infill_pattern(*pattern, multiline);
+    return pattern && has_infill_strategy(*pattern);
+}
+inline bool is_smoothable_infill_pattern(const std::optional<InfillPattern> &pattern, int multiline = 1,
+                                         InfillStrategy strategy = InfillStrategy::Default)
+{
+    return pattern && is_smoothable_infill_pattern(*pattern, multiline, strategy);
 }
 
 enum class IroningType {

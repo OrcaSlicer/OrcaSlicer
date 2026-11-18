@@ -2555,7 +2555,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         for (const PrintRegion &region : object->all_regions()) {
             const PrintRegionConfig &cfg = region.config();
             if (cfg.sparse_infill_strategy.value == InfillStrategy::Crossing && cfg.fill_multiline.value > 3 &&
-                has_infill_strategy(cfg.sparse_infill_pattern.value) && cfg.sparse_infill_density.value > 0. &&
+                has_infill_strategy(infill_pattern_from_key(cfg.sparse_infill_pattern.value)) && cfg.sparse_infill_density.value > 0. &&
                 cfg.sparse_infill_density.value < 100.) {
                 // TRN %1% is the object name.
                 warn(Slic3r::format(_u8L("The sparse infill of the object %1% uses the Crossing strategy with more than 3 lines. "
