@@ -10,6 +10,7 @@
 
 #include "Line.hpp"
 #include "Point.hpp"
+#include "TriangleSelector.hpp"
 #include "libslic3r.h"
 
 namespace Slic3r {
@@ -20,7 +21,6 @@ class PrintObject;
 class PrintConfig;
 class PrintObjectConfig;
 class PrintRegionConfig;
-class FacetsAnnotation;
 
 using ExPolygons = std::vector<ExPolygon>;
 
@@ -40,7 +40,8 @@ enum class IncludeTopAndBottomLayers {
 };
 
 struct ModelVolumeFacetsInfo {
-    const FacetsAnnotation &facets_annotation;
+    // The volume's paint, as FacetsAnnotation stores it.
+    const TriangleSelector::TriangleSplittingData &facets_data;
     // Indicate if model volume is painted.
     const bool              is_painted;
     // Indicate if the default extruder (TriangleStateType::NONE) should be replaced with the volume extruder.
@@ -59,6 +60,11 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
 
 // Returns multi-material segmentation based on painting in multi-material segmentation gizmo
 std::vector<std::vector<ExPolygons>> multi_material_segmentation_by_painting(const PrintObject &print_object, const std::function<void()> &throw_on_cancel_callback);
+
+// Returns the color paint of `volume` with every region smaller than `min_area` merged into the neighboring color it
+// shares the longest boundary with. Areas and lengths are measured after `trafo`, so on the object as it prints.
+// Each mesh triangle counts as the color that covers most of it. A triangle that changes color loses finer paint inside it.
+TriangleSelector::TriangleSplittingData merge_small_painted_regions(const ModelVolume &volume, const Transform3d &trafo, double min_area);
 
 // Returns fuzzy skin segmentation based on painting in fuzzy skin segmentation gizmo
 std::vector<std::vector<ExPolygons>> fuzzy_skin_segmentation_by_painting(const PrintObject &print_object, const std::function<void()> &throw_on_cancel_callback);

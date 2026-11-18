@@ -5,10 +5,12 @@
 #include <cmath>
 #include <cstddef>
 #include <string>
+#include <utility>
 
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Point.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -54,7 +56,94 @@ size_t layers_with_filament(const PrintObject &object, int filament_id)
     return count;
 }
 
+// A box with its top split into a grid of `cells` by `cells` squares, each two triangles, so paint can mark a small patch.
+TriangleMesh make_box_with_gridded_top(float size, float height, int cells)
+{
+    indexed_triangle_set its;
+    const float          step = size / float(cells);
+    const int            row  = cells + 1;
+    for (const float z : {0.f, height})
+        for (int j = 0; j <= cells; ++j)
+            for (int i = 0; i <= cells; ++i)
+                its.vertices.emplace_back(float(i) * step, float(j) * step, z);
+    auto bottom = [row](int i, int j) { return j * row + i; };
+    auto top    = [row](int i, int j) { return row * row + j * row + i; };
+    auto quad   = [&its](int a, int b, int c, int d) {
+        its.indices.emplace_back(a, b, c);
+        its.indices.emplace_back(a, c, d);
+    };
+    for (int j = 0; j < cells; ++j)
+        for (int i = 0; i < cells; ++i) {
+            quad(top(i, j), top(i + 1, j), top(i + 1, j + 1), top(i, j + 1));
+            quad(bottom(i, j), bottom(i, j + 1), bottom(i + 1, j + 1), bottom(i + 1, j));
+        }
+    for (int k = 0; k < cells; ++k) {
+        quad(bottom(k, 0), bottom(k + 1, 0), top(k + 1, 0), top(k, 0));
+        quad(bottom(k + 1, cells), bottom(k, cells), top(k, cells), top(k + 1, cells));
+        quad(bottom(0, k + 1), bottom(0, k), top(0, k), top(0, k + 1));
+        quad(bottom(cells, k), bottom(cells, k + 1), top(cells, k + 1), top(cells, k));
+    }
+    return TriangleMesh(std::move(its));
+}
+
+// Paints the top face of `volume` with filament 2, except a square island of filament 3 `island_size` wide in its middle.
+void paint_top_with_island(ModelVolume &volume, double island_size)
+{
+    const TriangleMesh &mesh   = volume.mesh();
+    const BoundingBoxf3 bbox   = mesh.bounding_box();
+    const Vec3d         center = bbox.center();
+    TriangleSelector    selector(mesh);
+    for (int i = 0; i < int(mesh.its.indices.size()); ++i) {
+        Vec3d centroid = Vec3d::Zero();
+        bool  top      = true;
+        for (int j = 0; j < 3; ++j) {
+            const Vec3d v = mesh.its.vertices[mesh.its.indices[i][j]].cast<double>();
+            centroid += v / 3.;
+            top = top && std::abs(v.z() - bbox.max.z()) < EPSILON;
+        }
+        if (!top)
+            continue;
+        const bool island = std::abs(centroid.x() - center.x()) < island_size / 2. && std::abs(centroid.y() - center.y()) < island_size / 2.;
+        selector.set_facet(i, island ? EnforcerBlockerType::Extruder3 : EnforcerBlockerType::Extruder2);
+    }
+    REQUIRE(volume.mmu_segmentation_facets.set(selector));
+}
+
 } // namespace
+
+TEST_CASE("A painted island prints only if it covers the minimum painted region area on the scaled object", "[MultiMaterialSegmentation]")
+{
+    // The island is 1.5 mm square, 2.25 mm^2. Scaled 2x in X and Y it covers 9 mm^2.
+    const auto [min_area, xy_scale, island_prints] =
+        GENERATE(table<double, double, bool>({{0., 1., true}, {4., 1., false}, {4., 2., true}}));
+    CAPTURE(min_area, xy_scale);
+
+    DynamicPrintConfig config = Test::multifilament_config(3, {
+        {"layer_height", "0.2"},
+        {"initial_layer_print_height", "0.2"},
+        {"top_shell_layers", "5"},
+        {"bottom_shell_layers", "4"},
+        {"mmu_segmented_region_min_area", std::to_string(min_area)},
+        {"gcode_comments", "1"}, // Match init_print so the second apply changes only the model.
+    });
+
+    Print print;
+    Model model;
+    // 0.5 mm grid squares, so the island is 3 by 3 squares.
+    Test::init_print({make_box_with_gridded_top(20.f, 4.f, 40)}, print, model, config);
+    ModelObject &object_model = *model.objects.front();
+    paint_top_with_island(*object_model.volumes.front(), 1.5);
+    object_model.instances.front()->set_scaling_factor(Vec3d(xy_scale, xy_scale, 1.));
+    print.apply(model, config);
+
+    REQUIRE(print.objects().size() == 1);
+    PrintObject &object = *print.get_object(0);
+    object.slice();
+    REQUIRE(object.layers().size() == 20);
+
+    CHECK(layers_with_filament(object, 2) > 0);
+    CHECK((layers_with_filament(object, 3) > 0) == island_prints);
+}
 
 TEST_CASE("Painted top and bottom surfaces color their paint penetration layers", "[MultiMaterialSegmentation]")
 {
