@@ -1,0 +1,45 @@
+{
+	"type": "process",
+	"name": "0.20mm Standard @Anycubic Kobra 3 Max V2 0.4 nozzle",
+	"inherits": "fdm_process_anycubic_kobra_3_max_v2_nozzle_0.4",
+	"from": "system",
+	"setting_id": "eh4cGWAXEw8zOjm8",
+	"instantiation": "true",
+	"gap_infill_speed": [
+		"250"
+	],
+	"initial_layer_speed": [
+		"50"
+	],
+	"inner_wall_acceleration": [
+		"3000"
+	],
+	"inner_wall_speed": [
+		"200"
+	],
+	"outer_wall_acceleration": [
+		"1000"
+	],
+	"outer_wall_speed": [
+		"150"
+	],
+	"sparse_infill_pattern": "grid",
+	"sparse_infill_speed": [
+		"300"
+	],
+	"top_shell_layers": "5",
+	"top_shell_thickness": "1",
+	"infill_anchor_max": "20",
+	"scarf_joint_speed": "30%",
+	"seam_slope_conditional": "1",
+	"seam_slope_inner_walls": "1",
+	"seam_slope_min_length": "10",
+	"seam_slope_start_height": "10",
+	"top_bottom_infill_wall_overlap": "40%",
+	"top_solid_infill_flow_ratio": [
+		"1"
+	],
+	"compatible_printers": [
+		"Anycubic Kobra 3 Max V2 0.4 nozzle"
+	]
+}

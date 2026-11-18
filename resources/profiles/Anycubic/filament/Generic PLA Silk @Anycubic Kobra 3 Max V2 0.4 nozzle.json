@@ -1,0 +1,27 @@
+{
+	"type": "filament",
+	"name": "Generic PLA Silk @Anycubic Kobra 3 Max V2 0.4 nozzle",
+	"inherits": "Anycubic PLA Silk @Anycubic Kobra 3 Max V2 0.4 nozzle",
+	"from": "system",
+	"setting_id": "cTC59V3kbacRtwMN",
+	"filament_id": "OFesA6rF",
+	"instantiation": "true",
+	"filament_vendor": [
+		"Generic"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"pressure_advance": [
+		"0.02"
+	],
+	"slow_down_layer_time": [
+		"12"
+	],
+	"compatible_printers": [
+		"Anycubic Kobra 3 Max V2 0.4 nozzle"
+	]
+}

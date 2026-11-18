@@ -1,0 +1,16 @@
+{
+	"type": "process",
+	"name": "0.28mm Standard @Anycubic Kobra 3 Max V2 0.4 nozzle",
+	"inherits": "fdm_process_anycubic_kobra_3_max_v2_nozzle_0.4",
+	"from": "system",
+	"setting_id": "J8fSBSie9XucD6yS",
+	"instantiation": "true",
+	"initial_layer_print_height": "0.28",
+	"initial_layer_speed": [
+		"50"
+	],
+	"layer_height": "0.28",
+	"compatible_printers": [
+		"Anycubic Kobra 3 Max V2 0.4 nozzle"
+	]
+}

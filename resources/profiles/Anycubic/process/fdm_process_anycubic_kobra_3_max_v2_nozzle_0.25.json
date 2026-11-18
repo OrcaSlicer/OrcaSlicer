@@ -1,0 +1,40 @@
+{
+	"type": "process",
+	"name": "fdm_process_anycubic_kobra_3_max_v2_nozzle_0.25",
+	"inherits": "fdm_process_anycubic_kobra_3_max_v2_common",
+	"from": "system",
+	"instantiation": "false",
+	"bottom_shell_layers": "5",
+	"bottom_surface_pattern": "monotonicline",
+	"filename_format": "{timestamp}-{if plate_name==\"\" then input_filename_base+\"_plate\" else plate_name endif}{\"(\"+plate_number+\")\"}_{filament_type[initial_tool]}_{layer_height}_{print_time}.gcode",
+	"gap_infill_speed": [
+		"100"
+	],
+	"initial_layer_line_width": "0.3",
+	"initial_layer_print_height": "0.15",
+	"initial_layer_speed": [
+		"50"
+	],
+	"inner_wall_acceleration": [
+		"3000"
+	],
+	"inner_wall_line_width": "0.3",
+	"inner_wall_speed": [
+		"120"
+	],
+	"internal_solid_infill_line_width": "0.27",
+	"line_width": "0.27",
+	"outer_wall_acceleration": [
+		"1000"
+	],
+	"outer_wall_line_width": "0.27",
+	"scarf_joint_speed": "30%",
+	"seam_slope_start_height": "10",
+	"sparse_infill_line_width": "0.3",
+	"support_line_width": "0.27",
+	"top_bottom_infill_wall_overlap": "40%",
+	"top_shell_layers": "7",
+	"top_surface_line_width": "0.27",
+	"wall_loops": "4",
+	"wipe_tower_wall_type": "rectangle"
+}

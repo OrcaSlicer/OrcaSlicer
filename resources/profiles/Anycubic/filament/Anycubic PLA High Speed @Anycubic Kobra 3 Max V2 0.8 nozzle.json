@@ -1,0 +1,66 @@
+{
+	"type": "filament",
+	"name": "Anycubic PLA High Speed @Anycubic Kobra 3 Max V2 0.8 nozzle",
+	"inherits": "Anycubic PLA High Speed @Anycubic Kobra 3 Max V2 0.4 nozzle",
+	"from": "system",
+	"setting_id": "aotegu1BjfHiLYqF",
+	"filament_id": "OFjVOWfJ",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.96"
+	],
+	"filament_deretraction_speed": [
+		"nil"
+	],
+	"filament_retract_before_wipe": [
+		"nil"
+	],
+	"filament_retract_lift_above": [
+		"nil"
+	],
+	"filament_retract_lift_below": [
+		"nil"
+	],
+	"filament_retract_lift_enforce": [
+		"nil"
+	],
+	"filament_retract_restart_extra": [
+		"nil"
+	],
+	"filament_retract_when_changing_layer": [
+		"nil"
+	],
+	"filament_retraction_length": [
+		"nil"
+	],
+	"filament_retraction_minimum_travel": [
+		"nil"
+	],
+	"filament_retraction_speed": [
+		"nil"
+	],
+	"filament_wipe": [
+		"nil"
+	],
+	"filament_wipe_distance": [
+		"nil"
+	],
+	"filament_z_hop": [
+		"nil"
+	],
+	"filament_z_hop_types": [
+		"nil"
+	],
+	"full_fan_speed_layer": [
+		"0"
+	],
+	"nozzle_temperature_initial_layer": [
+		"215"
+	],
+	"pressure_advance": [
+		"0.035"
+	],
+	"compatible_printers": [
+		"Anycubic Kobra 3 Max V2 0.8 nozzle"
+	]
+}

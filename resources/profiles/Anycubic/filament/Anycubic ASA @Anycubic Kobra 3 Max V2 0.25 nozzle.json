@@ -1,0 +1,39 @@
+{
+	"type": "filament",
+	"name": "Anycubic ASA @Anycubic Kobra 3 Max V2 0.25 nozzle",
+	"inherits": "Anycubic ASA @Anycubic Kobra 3 Max V2 0.4 nozzle",
+	"from": "system",
+	"setting_id": "0jsqGTQLJLkfskLu",
+	"filament_id": "OF0yFLkY",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"cool_plate_temp": [
+		"0"
+	],
+	"cool_plate_temp_initial_layer": [
+		"0"
+	],
+	"filament_flush_temp": [
+		"nil"
+	],
+	"filament_flush_volumetric_speed": [
+		"nil"
+	],
+	"hot_plate_temp": [
+		"100"
+	],
+	"hot_plate_temp_initial_layer": [
+		"100"
+	],
+	"textured_plate_temp": [
+		"100"
+	],
+	"textured_plate_temp_initial_layer": [
+		"100"
+	],
+	"compatible_printers": [
+		"Anycubic Kobra 3 Max V2 0.25 nozzle"
+	]
+}

@@ -1,0 +1,32 @@
+{
+	"type": "process",
+	"name": "fdm_process_anycubic_kobra_3_max_v2_nozzle_0.4",
+	"inherits": "fdm_process_anycubic_kobra_3_max_v2_common",
+	"from": "system",
+	"instantiation": "false",
+	"bottom_surface_pattern": "monotonicline",
+	"bridge_flow": "0.9",
+	"gap_infill_speed": [
+		"150"
+	],
+	"infill_anchor_max": "10",
+	"internal_solid_infill_line_width": "0.42",
+	"line_width": "0.42",
+	"outer_wall_line_width": "0.42",
+	"outer_wall_speed": [
+		"140"
+	],
+	"scarf_joint_speed": "100%",
+	"seam_slope_conditional": "0",
+	"seam_slope_inner_walls": "0",
+	"seam_slope_min_length": "20",
+	"sparse_infill_pattern": "zigzag",
+	"support_line_width": "0.42",
+	"top_bottom_infill_wall_overlap": "25%",
+	"top_shell_layers": "4",
+	"top_shell_thickness": "0",
+	"top_solid_infill_flow_ratio": [
+		"0.96"
+	],
+	"top_surface_line_width": "0.42"
+}

@@ -1,0 +1,27 @@
+{
+	"type": "filament",
+	"name": "Anycubic PETG @Anycubic Kobra 3 Max V2 0.25 nozzle",
+	"inherits": "Anycubic PETG @Anycubic Kobra 3 Max V2 0.4 nozzle",
+	"from": "system",
+	"setting_id": "bCVYACr5SISq9yEh",
+	"filament_id": "OFo6n2pB",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"filament_flush_temp": [
+		"nil"
+	],
+	"filament_flush_volumetric_speed": [
+		"nil"
+	],
+	"supertack_plate_temp": [
+		"35"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"35"
+	],
+	"compatible_printers": [
+		"Anycubic Kobra 3 Max V2 0.25 nozzle"
+	]
+}

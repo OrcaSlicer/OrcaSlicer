@@ -1,0 +1,105 @@
+{
+	"type": "filament",
+	"name": "Anycubic PLA Matte @Anycubic Kobra 3 Max V2 0.6 nozzle",
+	"inherits": "Anycubic PLA Matte @Anycubic Kobra 3 Max V2 0.4 nozzle",
+	"from": "system",
+	"setting_id": "3YoN68ppP7sqOXTN",
+	"filament_id": "OFIE3vOf",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.97"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"filament_cooling_final_speed": [
+		"0"
+	],
+	"filament_cooling_initial_speed": [
+		"0"
+	],
+	"filament_cooling_moves": [
+		"0"
+	],
+	"filament_deretraction_speed": [
+		"nil"
+	],
+	"filament_loading_speed": [
+		"0"
+	],
+	"filament_loading_speed_start": [
+		"0"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"0"
+	],
+	"filament_retract_before_wipe": [
+		"nil"
+	],
+	"filament_retract_lift_above": [
+		"nil"
+	],
+	"filament_retract_lift_below": [
+		"nil"
+	],
+	"filament_retract_lift_enforce": [
+		"nil"
+	],
+	"filament_retract_restart_extra": [
+		"nil"
+	],
+	"filament_retract_when_changing_layer": [
+		"nil"
+	],
+	"filament_retraction_length": [
+		"nil"
+	],
+	"filament_retraction_minimum_travel": [
+		"nil"
+	],
+	"filament_retraction_speed": [
+		"nil"
+	],
+	"filament_unloading_speed": [
+		"0"
+	],
+	"filament_unloading_speed_start": [
+		"0"
+	],
+	"filament_wipe": [
+		"nil"
+	],
+	"filament_wipe_distance": [
+		"nil"
+	],
+	"filament_z_hop": [
+		"nil"
+	],
+	"filament_z_hop_types": [
+		"nil"
+	],
+	"full_fan_speed_layer": [
+		"0"
+	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
+	"nozzle_temperature": [
+		"205"
+	],
+	"nozzle_temperature_initial_layer": [
+		"215"
+	],
+	"textured_plate_temp": [
+		"60"
+	],
+	"textured_plate_temp_initial_layer": [
+		"60"
+	],
+	"compatible_printers": [
+		"Anycubic Kobra 3 Max V2 0.6 nozzle"
+	]
+}
