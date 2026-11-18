@@ -2659,8 +2659,15 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
                 config.option<ConfigOptionString>(entry.first, true)->value = entry.second;
         }
         if (inherit_preset) {
+            // Merge as a user preset is loaded, so a "nil" variant slot keeps the parent's value.
+            std::string            extruder_id_name, extruder_variant_name;
+            std::set<std::string> *key_set1 = nullptr, *key_set2 = nullptr;
+            Preset::get_extruder_names_and_keysets(collection->type(), extruder_id_name, extruder_variant_name, &key_set1, &key_set2);
             new_config = inherit_preset->config;
-            new_config.apply(std::move(config));
+            extend_parent_extruders_to_child(new_config, config, collection->type());
+            extend_default_config_length(config, false, {});
+            new_config.update_diff_values_to_child_config(config, extruder_id_name, extruder_variant_name, *key_set1, *key_set2);
+            pad_printer_variant_vectors(new_config);
         } else {
             // We support custom root preset now
             auto inherits_config2 = dynamic_cast<ConfigOptionString *>(inherits_config);

@@ -299,7 +299,7 @@ static const std::unordered_map<std::string, std::string> pre_family_model_map {
 
 // Orca: update_diff_values_to_child_config() only fills the parent's variant slots, so grow a printer
 // parent to the child's extruder count first.
-static void extend_parent_extruders_to_child(DynamicPrintConfig& parent_config, const DynamicPrintConfig& child_config, Preset::Type type)
+void extend_parent_extruders_to_child(DynamicPrintConfig& parent_config, const DynamicPrintConfig& child_config, Preset::Type type)
 {
     if (type != Preset::TYPE_PRINTER)
         return;
@@ -372,7 +372,7 @@ void extend_default_config_length(DynamicPrintConfig& config, const bool set_nil
 
 // Inherited per-variant printer vectors keep the parent's length; pad them up to this config's
 // variant count. Never truncates, so a longer child vector is left alone.
-static void pad_printer_variant_vectors(DynamicPrintConfig &config)
+void pad_printer_variant_vectors(DynamicPrintConfig &config)
 {
     const auto *variants = config.option<ConfigOptionStrings>("printer_extruder_variant");
     if (variants == nullptr || variants->values.empty())
