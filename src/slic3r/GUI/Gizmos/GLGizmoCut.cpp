@@ -581,7 +581,7 @@ std::optional<Vec3d> GLGizmoCut3D::pick_vertex(const Vec2d& mouse_pos)
     const Vec3d surface_hit = world * hit;
     const Vec3d ray = camera.get_type() == Camera::EType::Perspective ?
                       Vec3d((surface_hit - camera.get_position()).normalized()) : camera.get_dir_forward();
-    const double radius = GLGizmoUtils::point_marker_radius * camera.get_inv_zoom();
+    const double radius = 7.5 * camera.get_inv_zoom();
     double closest_sq = radius * radius;
     std::optional<Vec3d> vertex;
     for (const auto& feature : features.measuring->get_plane_features(std::get<0>(plane->get_plane()))) {
@@ -2510,7 +2510,7 @@ void GLGizmoCut3D::on_render()
     if (m_hovered_vertex) {
         const Camera& camera = wxGetApp().plater()->get_camera();
         render_model(m_sphere.model, GRABBER_COLOR, camera.get_view_matrix() *
-                     translation_transform(*m_hovered_vertex) * scale_transform(GLGizmoUtils::point_marker_radius * camera.get_inv_zoom()));
+                     translation_transform(*m_hovered_vertex) * scale_transform(7.5 * camera.get_inv_zoom()));
     }
 
     render_cut_line();

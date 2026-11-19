@@ -16,8 +16,6 @@ class GLCanvas3D;
 
 namespace GLGizmoUtils {
 
-    inline constexpr float point_marker_radius = 7.5f;
-
 	// Renders a tooltip button using the provided shortcuts
 	void render_tooltip_button(
 		ImGuiWrapper* imgui_wrapper, const GLCanvas3D& canvas, const std::vector<std::pair<wxString, wxString>>& shortcuts, float x, float y);
