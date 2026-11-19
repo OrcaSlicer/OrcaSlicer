@@ -195,9 +195,19 @@ jobs:
             $env:PATH = (Join-Path $spDest 'perl\bin') + ';' + (Join-Path $spDest 'c\bin') + ';' + $env:PATH
 
             # Install clang-cl component when compiler is clang (needed for deps build)
+            # windows-2022 has clang-cl pre-installed in VS 2022 Enterprise; winget is not available.
             if ("${{ inputs.compiler }}" -eq "clang") {
-              Write-Host "Installing VS clang-cl component..."
-              winget install --id Microsoft.VisualStudio.Component.VC.Llvm.Clang --source winget --accept-source-agreements --accept-package-agreements --silent 2>&1 | Write-Host
+              $clangClPath = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin\clang-cl.exe"
+              if (Test-Path $clangClPath) {
+                Write-Host "clang-cl found at $clangClPath"
+              } else {
+                Write-Host "Installing VS clang-cl component via winget..."
+                if (Get-Command winget -ErrorAction SilentlyContinue) {
+                  winget install --id Microsoft.VisualStudio.Component.VC.Llvm.Clang --source winget --accept-source-agreements --accept-package-agreements --silent 2>&1 | Write-Host
+                } else {
+                  Write-Warning "winget not available; clang-cl not found at expected path. Build may fail."
+                }
+              }
             }
 
             # cache-path is the install directory inside the deps build directory.
