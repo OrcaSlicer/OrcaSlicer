@@ -3,6 +3,7 @@
 #include <catch2/catch_all.hpp>
 
 #include <chrono>
+#include <cstddef>
 #include <ios>
 #include <libslic3r/Utils.hpp>
 #include <slic3r/plugin/PluginLoader.hpp>
@@ -21,6 +22,8 @@
 #include "test_utils.hpp"
 
 #include <boost/filesystem.hpp>
+#include <boost/nowide/convert.hpp>
+#include <boost/nowide/fstream.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <fstream>
@@ -74,6 +77,24 @@ std::string read_sidecar_text(const fs::path& plugin_dir, const std::string& fil
 fs::path to_extended_path(const fs::path& p)
 {
     return Slic3r::extended_path(p);
+}
+
+// Write a small sentinel file through the extended-length form too, so a file whose parent sits
+// near MAX_PATH can be created and left in place on Windows.
+bool write_file_at_extended_path(const fs::path& path, const std::string& contents)
+{
+    fs::create_directories(to_extended_path(path.parent_path()));
+#ifdef _WIN32
+    const std::string io_path = boost::nowide::narrow(to_extended_path(path).wstring());
+#else
+    const std::string io_path = to_extended_path(path).string();
+#endif
+    boost::nowide::ofstream out(io_path, std::ios::binary | std::ios::trunc);
+    if (!out)
+        return false;
+    out.write(contents.data(), static_cast<std::streamsize>(contents.size()));
+    out.close();
+    return static_cast<bool>(out);
 }
 
 // A minimal installable wheel: one dist-info directory holding METADATA, WHEEL and RECORD, plus a
@@ -956,4 +977,100 @@ TEST_CASE("extract_zip_to_directory rejects an entry that escapes the destinatio
     CHECK_FALSE(extract_zip_to_directory(wheel, dir.path() / "out", error));
     CHECK_THAT(error, Catch::Matchers::ContainsSubstring("escapes the plugin package"));
     CHECK_FALSE(fs::exists(dir.path() / "escape.txt"));
+}
+
+TEST_CASE("deleting a plugin's install cache reaches a cache root past MAX_PATH",
+          "[PluginInstall][PluginFsUtils][Regression]")
+{
+    ScopedTemporaryDir plugins_dir("deep-cache-delete");
+    const fs::path     plugins_root = plugins_dir.path();
+
+    // Keep the plugin root below MAX_PATH and size the last component so the cache root, one
+    // directory deeper, passes it. The removal root is what the extended-length form has to reach.
+    const std::size_t base_length = plugins_root.string().size();
+    if (base_length + 2 > 249)
+        SKIP("Temporary path is too long for a cache root below MAX_PATH");
+    const fs::path plugin_root = plugins_root / std::string(249 - base_length, 'c');
+    const fs::path cache_root  = plugin_root / plugin_wheel_install::EXTRACTED_DIR_NAME;
+    REQUIRE(plugin_root.string().size() < 260);
+    REQUIRE(cache_root.string().size() > 260);
+
+    fs::create_directories(to_extended_path(cache_root / "demo_pkg"));
+
+    // The real layout: the plugin root is a child of orca_plugins, and plugin_data is its sibling
+    // there, not a child of the plugin root.
+    const fs::path stored_wheel     = plugin_root / "demo_pkg-1.0-py3-none-any.whl";
+    const fs::path install_sidecar  = plugin_root / INSTALL_STATE_FILE;
+    const fs::path plugin_data      = plugins_root / PLUGIN_DATA_DIR / "demo_plugin";
+    const fs::path plugin_data_file = plugin_data / "settings.json";
+    REQUIRE(write_file_at_extended_path(stored_wheel, "stored wheel sentinel\n"));
+    REQUIRE(write_file_at_extended_path(install_sidecar, "{\"enabled\": true}\n"));
+    REQUIRE(write_file_at_extended_path(plugin_data_file, "{\"value\": 1}\n"));
+
+    std::string error;
+    const bool removed = plugin_wheel_install::delete_install_cache(plugin_root, error);
+    INFO("cache delete error: " << error);
+    REQUIRE(removed);
+    CHECK(error.empty());
+    CHECK_FALSE(fs::exists(to_extended_path(cache_root)));
+
+    // Only the cache goes: the stored wheel, install sidecar, plugin root and the sibling plugin
+    // data all stay.
+    CHECK(fs::is_directory(to_extended_path(plugin_root)));
+    CHECK(fs::is_regular_file(to_extended_path(stored_wheel)));
+    CHECK(fs::is_regular_file(to_extended_path(install_sidecar)));
+    CHECK(fs::is_regular_file(to_extended_path(plugin_data_file)));
+
+    // Remove the deep plugin root explicitly; ScopedTemporaryDir cleans up the rest.
+    boost::system::error_code cleanup_ec;
+    fs::remove_all(to_extended_path(plugin_root), cleanup_ec);
+    CHECK_FALSE(cleanup_ec);
+}
+
+TEST_CASE("a deep plugin root is authorized inside its directory and then deleted",
+          "[PluginInstall][PluginFsUtils][Regression]")
+{
+    ScopedTemporaryDir dir("deep-plugin-root-delete");
+
+    const fs::path plugin_root = dir.path() / std::string(240, 'p');
+    REQUIRE(plugin_root.string().size() > 260);
+    fs::create_directories(to_extended_path(plugin_root / "demo_pkg"));
+
+    PluginDescriptor descriptor;
+    descriptor.plugin_root = plugin_root.string();
+
+    // The authorization check runs on the same deep root that removal will use.
+    fs::path    resolved_root;
+    std::string error;
+    REQUIRE(resolve_allowed_plugin_root(descriptor, {dir.path().string()}, "outside plugin root",
+                                        resolved_root, error));
+    CHECK(error.empty());
+
+    const bool deleted = delete_plugin_root(resolved_root, descriptor.plugin_root, error);
+    INFO("plugin delete error: " << error);
+    REQUIRE(deleted);
+    CHECK(error.empty());
+    CHECK_FALSE(fs::exists(to_extended_path(plugin_root)));
+}
+
+TEST_CASE("a plugin root outside the allowed directories is rejected before deletion",
+          "[PluginInstall][PluginFsUtils]")
+{
+    ScopedTemporaryDir allowed_dir("allowed-plugin-root");
+    ScopedTemporaryDir outside_dir("outside-plugin-root");
+
+    const fs::path outside_root = outside_dir.path() / "plugin";
+    fs::create_directories(outside_root);
+
+    PluginDescriptor descriptor;
+    descriptor.plugin_root = outside_root.string();
+
+    fs::path    resolved_root;
+    std::string error;
+    CHECK_FALSE(resolve_allowed_plugin_root(descriptor, {allowed_dir.path().string()}, "outside plugin root",
+                                            resolved_root, error));
+    CHECK(error == "outside plugin root");
+
+    // Rejection happens before removal, so the outside root is untouched.
+    CHECK(fs::is_directory(outside_root));
 }

@@ -273,6 +273,13 @@ std::string install_dir(const std::string& plugin_root, const std::string& entry
 // for this interpreter and entry package.
 bool is_installed(const PluginDescriptor& descriptor);
 
+// Delete the plugin's installed-wheel cache (the whole __whl_extracted__ subtree). The plugin root
+// must already have passed resolve_allowed_plugin_root(): this only removes the cache directory,
+// never the plugin root, the stored wheel or the install sidecar. Removal uses the extended-length
+// form, so a cache whose own root passes MAX_PATH is still cleared on Windows. On failure `error`
+// explains the cause.
+bool delete_install_cache(const boost::filesystem::path& plugin_root, std::string& error);
+
 // Install the plugin's entry wheel with uv into the legacy extraction path
 // <plugin_root>/__whl_extracted__/<entry package> unless a matching installation already exists.
 // An existing markerless directory there is a pre-uv extraction: when it already contains the entry
