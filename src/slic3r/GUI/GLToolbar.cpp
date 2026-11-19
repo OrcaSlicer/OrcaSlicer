@@ -1893,15 +1893,15 @@ void GLToolbar::render_group_list(int group, float left, float top)
 
     imgui.set_next_window_pos(left, top, ImGuiCond_Always, 0.0f, 0.0f);
     // A fixed id: the group's name is user text and may repeat or contain "##".
+    // An accent border, as on the open group's dots.
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.0f * m_layout.scale);
+    ImGui::PushStyleColor(ImGuiCol_Border, ImGuiWrapper::COL_ORCA);
     imgui.begin(std::string("##toolbar_group_list"), ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize |
                                                        ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
     ImDrawList* draw      = ImGui::GetWindowDrawList();
-    ImVec4      name_text = ImGui::GetStyleColorVec4(ImGuiCol_Text);
-    name_text.w *= 0.6f;
     const auto tex = reinterpret_cast<ImTextureID>(static_cast<intptr_t>(tex_id));
-    ImGui::PushStyleColor(ImGuiCol_Text, name_text);
     ImGui::TextUnformatted(m_groups[static_cast<size_t>(group)].name.c_str());
-    ImGui::PopStyleColor();
     for (size_t i = 0; i < members.size(); ++i) {
         const GLToolbarItem& item    = *members[i];
         const bool           enabled = !item.is_disabled();
@@ -1925,6 +1925,8 @@ void GLToolbar::render_group_list(int group, float left, float top)
     const ImVec2 sz  = ImGui::GetWindowSize();
     m_group_list_rect = Vec4f(pos.x, pos.y, pos.x + sz.x, pos.y + sz.y);
     imgui.end();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar(2);
     ImGuiWrapper::pop_toolbar_style();
     // A pick closes the list; the caller runs the item's action after the frame.
     if (!m_group_picked.empty()) {
