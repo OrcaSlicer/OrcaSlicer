@@ -150,16 +150,16 @@ jobs:
   
   build_macos_universal:
     name: Build macOS Universal
-    needs: [build_macos_arch, check_cache]
+    needs: build_macos_arch
     if: ${{ !cancelled() && needs.build_macos_arch.result == 'success' && !inputs.build-deps-only && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_orca.yml
     with:
       os: macos-15
       arch: universal
       macos-combine-only: true
-      cache-key: ${{ needs.check_cache.outputs.cache-key }}
-      cache-prefix: ${{ needs.check_cache.outputs.cache-prefix }}
-      cache-path: ${{ needs.check_cache.outputs.cache-path }}
+      cache-key: ${{ needs.build_macos_arch.outputs.cache-key }}
+      cache-prefix: ${{ needs.build_macos_arch.outputs.cache-prefix }}
+      cache-path: ${{ needs.build_macos_arch.outputs.cache-path }}
     secrets: inherit
   
   build_linux:
