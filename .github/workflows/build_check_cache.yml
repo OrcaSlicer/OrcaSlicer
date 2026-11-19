@@ -93,12 +93,8 @@ jobs:
             dep_folder="/OrcaSlicer_dep"
           fi
 
-          # Output file
-          if [[ "${{ runner.os }}" == "Windows" ]]; then
-            output_cmd="$env:GITHUB_OUTPUT"
-          else
-            output_cmd="$GITHUB_OUTPUT"
-          fi
+          # Output file (GITHUB_OUTPUT is the env var name on all platforms in bash)
+          output_cmd="$GITHUB_OUTPUT"
 
           # Cache key hashes all inputs that affect the deps build.
           # Primary key (exact match): cache-os + hash of all deps-affecting files.
