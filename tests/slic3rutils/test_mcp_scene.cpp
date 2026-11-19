@@ -27,6 +27,7 @@
 #include <imgui/imgui.h>
 #include <nlohmann/json.hpp>
 
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
@@ -1701,7 +1702,8 @@ TEST_CASE("layer G-codes are edited on the layer slider as its menus edit them",
 
 // The gizmo commands, each with the place its name gives it.
 const std::vector<std::pair<std::string, std::string>> kGizmoCommands{
-    {"object_paint", "Objects"}, {"object_measure", "Objects"}, {"object_simplify", "Objects"}, {"part_boolean", "Parts"}, {"object_cut", "Objects"}};
+    {"object_paint", "Objects"}, {"object_measure", "Objects"}, {"object_simplify", "Objects"}, {"part_boolean", "Parts"}, {"object_cut", "Objects"},
+    {"object_lay_on_face", "Objects"}, {"object_set_brim_ears", "Objects"}};
 
 TEST_CASE("the gizmo commands are listed under their places and take no silent", "[Mcp][Gizmos]")
 {
@@ -1754,4 +1756,27 @@ TEST_CASE("a gizmo command's acting arguments are schema properties its descript
     }
     // A command that is not a gizmo command has none.
     CHECK(Mcp::gizmo_acting_args("object_list").empty());
+}
+
+TEST_CASE("text and SVG take the object they become a part of and the part's type, and their actions stay as they were",
+          "[Mcp][Gizmos]")
+{
+    for (const auto& [key, action_id] : std::vector<std::pair<std::string, std::string>>{{"object_add_text", "add_primitive_text"},
+                                                                                         {"object_add_svg", "add_primitive_svg"}}) {
+        INFO(key);
+        const NativeCommand* command = NativeCommands::find(key);
+        REQUIRE(command != nullptr);
+        const json& properties = command->input_schema.at("properties");
+        CHECK(properties.contains("object"));
+        CHECK(properties.contains("object_id"));
+        CHECK(properties.at("type").at("enum") == json::array({"part", "negative", "modifier"}));
+        // An object's id is checked against its index, and left out of the journal.
+        CHECK(std::find(command->id_args.begin(), command->id_args.end(), "object_id") != command->id_args.end());
+        // The Speed Dial's action is the menu item as it was: it takes no arguments.
+        const auto [owner, action] = Slic3r::GUI::find_command_action(NativeCommands::instance(), action_id);
+        CHECK(owner == command);
+        REQUIRE(action != nullptr);
+        CHECK(action->at("args") == json::object());
+    }
+    CHECK(NativeCommands::find("object_add_svg")->input_schema.at("properties").contains("path"));
 }

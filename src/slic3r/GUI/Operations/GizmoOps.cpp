@@ -5,19 +5,24 @@
 #include "PlateOps.hpp"
 
 #include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/Event.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBrimEars.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoCut.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Selection.hpp"
 
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/BrimEarsPoint.hpp"
 #include "libslic3r/CutUtils.hpp"
 #include "libslic3r/Geometry.hpp"
+#include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/Point.hpp"
@@ -190,6 +195,21 @@ bool plane_misses(const ModelObject& object, int instance, const Vec3d& point, c
     return true;
 }
 
+// Why `object` and `instance` name no instance of the model, or none. The command layer has checked them
+// (Mcp::resolve_targets()); an operation checks again for its other callers.
+std::optional<Refusal> no_such_instance(const Model& model, int object, int instance)
+{
+    if (object < 0 || std::size_t(object) >= model.objects.size())
+        // TRN %1% is the object index asked for, %2% the index of the project's last object.
+        return Refusal{RefusalKind::Precondition, "no_such_object", L("Object %1% does not exist (the project has objects 0..%2%)"),
+                       {std::to_string(object), std::to_string(int(model.objects.size()) - 1)}};
+    const ModelObject& named = *model.objects[std::size_t(object)];
+    if (instance < 0 || std::size_t(instance) >= named.instances.size())
+        // TRN %1% is an object's name, %2% an instance's index.
+        return Refusal{RefusalKind::Precondition, "no_such_instance", L("\"%1%\" has no instance %2%."), {named.name, std::to_string(instance)}};
+    return std::nullopt;
+}
+
 } // namespace
 
 std::optional<Refusal> gizmo_refusal(GLGizmosManager::EType type, const GizmoFacts& facts, bool activable)
@@ -338,15 +358,9 @@ Outcome<Targets> cut_object(const CutObjectArgs& args)
     assert(wxThread::IsMain());
     Plater& plater = *wxGetApp().plater();
     Model&  model  = plater.model();
-    if (args.object < 0 || std::size_t(args.object) >= model.objects.size())
-        // TRN %1% is the object index asked for, %2% the index of the project's last object.
-        return Refusal{RefusalKind::Precondition, "no_such_object", L("Object %1% does not exist (the project has objects 0..%2%)"),
-                       {std::to_string(args.object), std::to_string(int(model.objects.size()) - 1)}};
+    if (std::optional<Refusal> missing = no_such_instance(model, args.object, args.instance))
+        return *missing;
     ModelObject* object = model.objects[std::size_t(args.object)];
-    if (args.instance < 0 || std::size_t(args.instance) >= object->instances.size())
-        // TRN %1% is an object's name, %2% an instance's index.
-        return Refusal{RefusalKind::Precondition, "no_such_instance", L("\"%1%\" has no instance %2%."),
-                       {object->name, std::to_string(args.instance)}};
     if (std::optional<Refusal> refused = cut_refusal(*object, args.instance, args.point, args.normal))
         return *refused;
 
@@ -379,6 +393,104 @@ Outcome<Targets> cut_object(const CutObjectArgs& args)
     if (args.to_parts && out.objects.size() == 1)
         for (std::size_t part = 0; part < model.objects.back()->volumes.size(); ++part)
             out.parts.emplace_back(out.objects.front(), int(part));
+    return out;
+}
+
+Vec3d flatten_normal(const ModelInstance& instance, const Vec3d& normal, bool world)
+{
+    if (!world)
+        return normal.normalized();
+    return (instance.get_matrix_no_offset().linear().transpose() * normal).normalized();
+}
+
+Outcome<Vec3d> lay_on_face(const LayOnFaceArgs& args)
+{
+    assert(wxThread::IsMain());
+    Plater& plater = *wxGetApp().plater();
+    Model&  model  = plater.model();
+    if (std::optional<Refusal> missing = no_such_instance(model, args.object, args.instance))
+        return *missing;
+    if (args.normal.norm() < EPSILON)
+        return refusal("zero_normal", L("The normal is zero: give the direction the face to lay on the bed points to."));
+    const ModelInstance& instance = *model.objects[std::size_t(args.object)]->instances[std::size_t(args.instance)];
+    const Vec3d          normal   = flatten_normal(instance, args.normal, args.world);
+
+    close_open_gizmo();
+    GLCanvas3D& canvas = shown_prepare_canvas();
+    {
+        // The turn is the call's undo step; selecting the instance to turn is not a step of its own.
+        Plater::SuppressSnapshots quiet(&plater);
+        Targets one;
+        one.instances = {{args.object, args.instance}};
+        select_targets(one);
+    }
+    // What a click on a face of the Flatten gizmo does (GLGizmoFlatten::on_mouse()), once the click that selected the
+    // instance has set up the selection's cache.
+    Selection& sel = canvas.get_selection();
+    sel.setup_cache();
+    sel.flattening_rotate(normal);
+    canvas.do_rotate(L("Gizmo-Place on Face"));
+    wxGetApp().obj_manipul()->set_dirty();
+    return instance.get_rotation();
+}
+
+Outcome<std::vector<BrimPoint>> brim_points_from_bed(const ModelObject& object, int instance, const std::vector<BrimEar>& ears,
+                                                     float default_radius)
+{
+    const Transform3d      to_object = object.instances[std::size_t(instance)]->get_matrix().inverse();
+    std::vector<BrimPoint> points;
+    points.reserve(ears.size());
+    for (const BrimEar& ear : ears) {
+        const float radius = ear.radius.value_or(default_radius);
+        if (radius < BRIM_EAR_RADIUS_MIN || radius > BRIM_EAR_RADIUS_MAX) {
+            const std::string low  = float_to_string_decimal_point(BRIM_EAR_RADIUS_MIN);
+            const std::string high = float_to_string_decimal_point(BRIM_EAR_RADIUS_MAX);
+            // TRN %1% and %2% are the smallest and the largest radius of a brim ear, in mm.
+            return Refusal{RefusalKind::Precondition, "radius_out_of_range", L("A brim ear's radius is from %1% to %2% mm."),
+                           {low, high}, {low, high}};
+        }
+        // Where Auto-generate puts an ear for a point of the bed: just under the bed, in the object's coordinates.
+        const Vec3d on_object = to_object * Vec3d(ear.position.x(), ear.position.y(), -0.0001);
+        points.emplace_back(on_object.cast<float>(), radius);
+    }
+    return points;
+}
+
+Outcome<BrimEarsSet> set_brim_ears(const SetBrimEarsArgs& args)
+{
+    assert(wxThread::IsMain());
+    Plater& plater = *wxGetApp().plater();
+    Model&  model  = plater.model();
+    if (std::optional<Refusal> missing = no_such_instance(model, args.object, args.instance))
+        return *missing;
+    GLCanvas3D&      canvas    = *plater.get_view3D_canvas3D();
+    GLGizmoBrimEars* brim_ears = dynamic_cast<GLGizmoBrimEars*>(canvas.get_gizmos_manager().get_gizmo(GLGizmosManager::BrimEars));
+    if (brim_ears == nullptr)
+        return Refusal{RefusalKind::Failed, "no_brim_ears_gizmo", L("The Brim Ears gizmo is not available.")};
+    ModelObject&                          object = *model.objects[std::size_t(args.object)];
+    const Outcome<std::vector<BrimPoint>> points = brim_points_from_bed(object, args.instance, args.ears,
+                                                                        brim_ears->get_brim_default_radius());
+    if (!points)
+        return points.refusal();
+
+    close_open_gizmo();
+    {
+        Plater::TakeSnapshot snapshot(&plater, _u8L("Set brim ears"));
+        object.brim_points = points.value();
+        // What GLGizmoBrimEars::update_model_object() does after it writes the ears.
+        plater.set_plater_dirty(true);
+        canvas.post_event(SimpleEvent(EVT_GLCANVAS_SCHEDULE_BACKGROUND_PROCESS));
+    }
+    // The closed gizmo still holds the ears it had; its next opening reloads them from the object instead.
+    brim_ears->reload_on_next_opening();
+
+    BrimEarsSet out;
+    out.ears      = object.brim_points;
+    out.brim_type = object.config.has("brim_type") ?
+                        object.config.get().opt_serialize("brim_type") :
+                        wxGetApp().preset_bundle->prints.get_edited_preset().config.opt_serialize("brim_type");
+    // Brim ears print only with the painted brim type; the others ignore them.
+    out.takes_effect = out.brim_type == "painted";
     return out;
 }
 

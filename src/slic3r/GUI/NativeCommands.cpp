@@ -20,6 +20,7 @@
 #include "RunScriptPanel.hpp"
 #include "NetworkTestDialog.hpp"
 #include "Operations/ExportOps.hpp"
+#include "Operations/ObjectOps.hpp"
 #include "Operations/Outcome.hpp"
 #include "Operations/PlateOps.hpp"
 #include "Operations/PluginOps.hpp"
@@ -36,6 +37,7 @@
 #include "Mcp/McpPaths.hpp"
 #include "Mcp/McpPersonContext.hpp"
 #include "Mcp/McpRecorder.hpp"
+#include "Mcp/McpTargets.hpp"
 #include "Mcp/AutomationRuntime.hpp"
 #include "Mcp/McpTools.hpp"
 #ifdef SLIC3R_CAD
@@ -524,14 +526,45 @@ AppActionRunResult MenuItems::calib(CalibKind kind) { return calib_command(kind)
 AppActionRunResult MenuItems::obj_arrange() { return arrange_all(wxGetApp().plater()); }
 
 // ---- Add Primitive ---- (the Add > Add Primitive submenu's Text and SVG)
-AppActionRunResult MenuItems::add_primitive_text()
+namespace {
+
+// The part type object_add_text and object_add_svg pass where the action passes ModelVolumeType::INVALID, which adds a
+// part to the selected object, or a new object when nothing is selected. A call that names an object selects it first,
+// as a click would, and adds a part of `type` to it (a part when left out); `type` alone adds to the selected object and
+// is refused with nothing selected, since a new object has no part type.
+Ops::Outcome<ModelVolumeType> part_type(Plater& plater, const json& args)
+{
+    const bool named = Mcp::names_targets(args);
+    if (!named && !args.contains("type"))
+        return ModelVolumeType::INVALID;
+    const std::string type = args.value("type", std::string("part"));
+    if (named) {
+        const Ops::Outcome<Ops::Targets> object = Mcp::resolve_targets(plater.model(), nullptr, args, Mcp::kObjects, true);
+        if (!object)
+            return object.refusal();
+        // Adding the part is the call's undo step; selecting its object is not a step of its own.
+        Plater::SuppressSnapshots quiet(&plater);
+        Ops::select_targets(object.value());
+    } else if (Ops::shown_prepare_canvas().get_selection().is_empty())
+        return Ops::nothing_selected();
+    return type == "negative" ? ModelVolumeType::NEGATIVE_VOLUME :
+           type == "modifier" ? ModelVolumeType::PARAMETER_MODIFIER :
+                                ModelVolumeType::MODEL_PART;
+}
+
+} // namespace
+
+AppActionRunResult MenuItems::add_primitive_text(const json& args)
 {
     Plater* plater = wxGetApp().plater();
     if (plater) {
         ensure_3d_view(plater);
+        const Ops::Outcome<ModelVolumeType> type = part_type(*plater, args);
+        if (!type)
+            return refused(type.refusal());
         if (GLCanvas3D* canvas = plater->canvas3D())
             canvas->clear_popup_menu_position();
-        MenuFactory::add_text_volume(ModelVolumeType::INVALID);
+        MenuFactory::add_text_volume(type.value());
     }
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
@@ -545,8 +578,12 @@ AppActionRunResult MenuItems::add_primitive_svg(const json& args)
     GLCanvas3D* canvas = plater->canvas3D();
     if (canvas != nullptr)
         canvas->clear_popup_menu_position();
-    if (Mcp::person_form(args)) {
-        MenuFactory::add_svg_volume(ModelVolumeType::INVALID);
+    const Ops::Outcome<ModelVolumeType> type = part_type(*plater, args);
+    if (!type)
+        return refused(type.refusal());
+    // Without a path the file dialog asks for the file, as the action does; the object and type named still apply.
+    if (!args.contains("path")) {
+        MenuFactory::add_svg_volume(type.value());
         return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     }
     // What the dialog path does once a file is picked: a new object with nothing selected, else
@@ -556,7 +593,8 @@ AppActionRunResult MenuItems::add_primitive_svg(const json& args)
     if (!path)
         return fail;
     auto* svg = canvas != nullptr ? dynamic_cast<GLGizmoSVG*>(canvas->get_gizmos_manager().get_gizmo(GLGizmosManager::Svg)) : nullptr;
-    if (svg == nullptr || !svg->create_volume(into_u8(from_path(*path)), ModelVolumeType::MODEL_PART))
+    const ModelVolumeType volume_type = type.value() == ModelVolumeType::INVALID ? ModelVolumeType::MODEL_PART : type.value();
+    if (svg == nullptr || !svg->create_volume(into_u8(from_path(*path)), volume_type))
         return AppActionRunResult{AppActionRunResult::Level::Error, _L("The SVG file could not be added.")};
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }

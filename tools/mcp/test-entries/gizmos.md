@@ -425,7 +425,7 @@ counts a brush stroke gives, the Measure distance, the reverted font and where a
 are checked by a tolerance or a property, as the app works them out.
 
 ## `test_gizmo_commands`
-`test_gizmo_commands.py` · Python, 277 checks · in `sweep.json` as `{"path": "test_gizmo_commands.py"}`
+`test_gizmo_commands.py` · Python, 421 checks · in `sweep.json` as `{"path": "test_gizmo_commands.py"}`
 
 **Tests:** The commands that open a gizmo on a named target, and the ones among them that do the gizmo's job from
 arguments with no gizmo: `object_paint`, `object_measure`, `object_simplify`, `part_boolean`, `object_cut`,
@@ -564,7 +564,7 @@ asked for at bed position (x, y) is stored at (x - 100, y - 100, -10.0001) in A'
 |---|---|---|---|
 | 0 | start | `brim_ears` 0; `setting(0, "brim_type")` value null, effective `auto_brim` | `settings_get` of the process's `initial_layer_line_width` "0.5" |
 | 1 | `object_set_brim_ears {object: 0}` | as after 0 | reply `gizmo` "Brim Ears"; `gizmo()` Brim Ears |
-| 2 | `object_set_brim_ears {object: 0, points: [{position: [90, 90], radius: 3}, {position: [110, 90]}]}` | `brim_ears` 2 | `gizmo()` none; reply `ears` [(-10, -10, -10.0001) 3, (10, -10, -10.0001) 4], `brim_type` `auto_brim`, `takes_effect` false; undo steps ["Set brim ears"] |
+| 2 | `object_set_brim_ears {object: 0, points: [{position: [90, 90], radius: 3}, {position: [110, 90]}]}` | `brim_ears` 2 | `gizmo()` none; reply `ears` [(-10, -10, -10.0001) 3, (10, -10, -10.0001) 4], `brim_type` `auto_brim`, `takes_effect` false; undo steps ["Brim ears edit", "Leaving Brim Ears", "Set brim ears"]: the two steps the Brim Ears gizmo records as it closes, then the call's |
 | 3 | `undo` | `brim_ears` 0 | |
 | 4 | `redo` | `brim_ears` 2 | |
 | 5 | `settings_set {target: "object", object: 0, values: {brim_type: "painted"}}`, then step 2's call again | `brim_ears` 2; `brim_type` `painted` from `object` | reply `ears` as in 2, `brim_type` `painted`, `takes_effect` true |
@@ -572,7 +572,7 @@ asked for at bed position (x, y) is stored at (x - 100, y - 100, -10.0001) in A'
 | 7 | `project_new {discard_changes: true}`, `project_open` of the file | `brim_ears` 2; `brim_type` `painted` | |
 | 8 | `object_set_brim_ears {object: 0, clear: true}` | `brim_ears` 0 | reply `ears` [] |
 | 9 | `object_set_brim_ears {object: 0}`, then `object_set_brim_ears {object: 0, points: [{position: [100, 90], radius: 5}]}` | `brim_ears` 1 | after the first, `gizmo()` Brim Ears; after the second, `gizmo()` none, and after `project_save` to a new file, `brim_file()` {1: [(0, -10, -10.0001) 5]}: the call's ear, not what the gizmo held |
-| 10 | `object_set_brim_ears {object: 0, points: [{position: [90, 90], radius: 3}, {position: [110, 90], radius: 3}]}`, then `object_set_brim_ears {object: 0}` | `brim_ears` 2 | `gizmo()` Brim Ears |
+| 10 | `object_set_brim_ears {object: 0, points: [{position: [90, 90], radius: 3}, {position: [110, 90], radius: 3}]}`, then `object_set_brim_ears {object: 0}` | `brim_ears` 2 | `gizmo()` Brim Ears; the opening keeps the two ears the call set with the gizmo closed, though the gizmo was last open on A holding none (D9: `reload_on_next_opening()`) |
 | 11 | `object_set_brim_ears {object: 0, points: [{position: [100, 90], radius: 150}]}` | as after 10 | refused `radius_out_of_range`; `gizmo()` Brim Ears: a refused call leaves the gizmo open; no undo step |
 | 12 | `object_set_brim_ears {object: 0, points: [{position: [100, 90]}], clear: true}` | as after 10 | refused, the words "points or clear, not both"; `gizmo()` Brim Ears |
 | 13 | `object_select {none: true}` | `brim_ears` 2 | `gizmo()` none |
@@ -582,14 +582,15 @@ asked for at bed position (x, y) is stored at (x - 100, y - 100, -10.0001) in A'
 A 20 mm cube A at (100, 100) and a 20 mm cube B at (150, 100), B selected (`object_select {objects: [1]}`).
 `star.svg` is `tools/mcp/tests/fixtures/star.svg`, as in `test_gizmos`. Each step that adds a part is followed by
 `app_wait {for: "idle"}`. A's parts are written as their `type` and, for a text, its `text.text`, for an SVG, its
-`svg.path` as the file's name.
+`svg.path` as the file's name. An object keeps its parts first, then its negative parts, then its modifiers
+(`ModelObject::sort_volumes`), so a part added after a negative part comes before it.
 
 | # | Step | A's parts after | Also checked |
 |---|---|---|---|
 | 0 | start | part | B one part; `selection()` objects [1] |
 | 1 | `object_add_text {object: 0}` | part · part "Embossed text" | `gizmo()` Text; B one part |
 | 2 | `object_select {none: true}`, then `object_add_text {object: 0, type: "negative"}` | as after 1 · negative "Embossed text" | `gizmo()` Text |
-| 3 | `object_select {objects: [1]}`, then `object_add_svg {object: 0, path: star.svg}` | as after 2 · part star.svg | `gizmo()` SVG; B one part |
+| 3 | `object_select {objects: [1]}`, then `object_add_svg {object: 0, path: star.svg}` | part · part "Embossed text" · part star.svg · negative "Embossed text" | `gizmo()` SVG; B one part |
 | 4 | `object_select {none: true}`, then `object_add_svg {object: 0, type: "modifier", path: star.svg}` | as after 3 · modifier star.svg | `gizmo()` SVG |
 | 5 | `object_select {none: true}`, `undo` | as after 3 | adding the part is one undo step |
 | 6 | `redo` | as after 4 | |
@@ -606,6 +607,13 @@ A 20 mm cube A at (100, 100) and a 20 mm cube B at (150, 100), B selected (`obje
 - Variable layer height editing, under which the Cut gizmo does not open (`layers_editing_on`), and a printer that is
   not FFF (`needs_fff_printer`): unit cases of `gizmo_refusal()`.
 - How the ears are drawn, and what they do to a slice.
+- The ears an undo brings back. With the Brim Ears gizmo closed, an undo restores an object's ears, but the gizmo keeps
+  the ears it held and brings them back on its next opening. A person's own edit does the same (an ear clicked on,
+  the gizmo closed, the ear undone, the gizmo opened: the ear is back), so it is the gizmo's behaviour, which the
+  command leaves as it is (D9).
+- That no ear is selected once the gizmo opens after a call: a check needs an ear selected first, by a click on its
+  grabber at the bed under the object's edge, and the panel shows no state of it (`has_selected_points()` reads the
+  ears, not the flag a click reads). `reload_on_next_opening()` clears it with the gizmo's own `select_point(NoPoints)`.
 - `object_id` and `part_id` in replies.
 
 **Strength:** Strong — every opening is read back from `app_state`, every acting call's model from `object_list`

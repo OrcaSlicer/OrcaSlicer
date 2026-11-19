@@ -5,15 +5,19 @@
 
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 
+#include "libslic3r/BrimEarsPoint.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/enum_bitmask.hpp"
 
 #include <optional>
+#include <string>
+#include <vector>
 
 // Declared rather than included, as the other operation headers declare them: Model.hpp reaches OCCT, which switches
 // parts of windows.h off (NOUSER, NOGDI) for whatever includes windows.h after it, as wx does in a file built without
 // the precompiled header, such as a unit test.
 namespace Slic3r {
+class ModelInstance;
 class ModelObject;
 enum class ModelObjectCutAttribute : int; // CutUtils.hpp
 } // namespace Slic3r
@@ -22,7 +26,8 @@ enum class ModelObjectCutAttribute : int; // CutUtils.hpp
 // object_measure, object_simplify, part_boolean, and the openings of the commands that also act from arguments) share.
 // No gizmo behaves differently for being opened here: the operation selects as a click on the model would, asks the gizmo
 // whether it can open, and opens it as its toolbar icon does. The jobs a gizmo command does from arguments with no gizmo
-// (object_cut's cut by a plane) are here too, each doing what the gizmo's own button does, through the same functions.
+// (object_cut's cut by a plane, object_lay_on_face's turn, object_set_brim_ears's ears) are here too, each doing what the
+// gizmo's own button or click does, through the same functions.
 namespace Slic3r { namespace GUI { namespace Ops {
 
 struct OpenGizmoArgs
@@ -105,5 +110,61 @@ Transform3d cut_matrix(const ModelObject& object, int instance, const Vec3d& poi
 // about the open edges a cut may leave (Perform cut offers to repair them). Returns the pieces' indices, or with
 // to_parts the one object and its parts. UI thread.
 Outcome<Targets> cut_object(const CutObjectArgs& args);
+
+// ---- Lay on face from a direction, as a click on a face of the Flatten gizmo does it ----
+
+// What Selection::flattening_rotate() takes for the face to lay down: `normal` in the object's frame, normalized, or with
+// `world` a direction in the 3D view brought into the object's frame. flattening_rotate() turns its normal into the view by
+// the inverse transpose of the instance's matrix without its offset, M, so a view direction w is Mᵀw there, which holds
+// for an instance scaled unevenly or mirrored. Pure.
+Vec3d flatten_normal(const ModelInstance& instance, const Vec3d& normal, bool world);
+
+struct LayOnFaceArgs
+{
+    int   object = 0, instance = 0;
+    Vec3d normal = -Vec3d::UnitZ(); // the outward normal of the face to lay on the bed
+    bool  world  = false;           // normal is in the 3D view's frame, else in the object's
+};
+
+// Turns the instance so that the face `normal` points out of faces the bed, as a click on that face of the Flatten gizmo
+// does: the open gizmo closed, the instance selected, flattening_rotate(), then one undo step "Gizmo-Place on Face" that
+// drops it onto the bed. The object's other instances turn with it; no flat face is looked for. Refuses zero_normal.
+// Returns the instance's rotation afterwards, in radians. UI thread.
+Outcome<Vec3d> lay_on_face(const LayOnFaceArgs& args);
+
+// ---- Brim ears by position, as the Brim Ears gizmo places them ----
+
+// An ear asked for on the bed: where, and its radius in mm, else the gizmo's default.
+struct BrimEar
+{
+    Vec2d                position = Vec2d::Zero();
+    std::optional<float> radius;
+};
+
+// The ears as the Brim Ears gizmo stores them: each bed position at z -0.0001 brought through the inverse of the
+// instance's transformation into the object's coordinates, as Auto-generate places one, and a radius left out
+// `default_radius`. Refuses radius_out_of_range for a radius outside BRIM_EAR_RADIUS_MIN to BRIM_EAR_RADIUS_MAX
+// (GLGizmoBrimEars.hpp), which the gizmo's slider cannot set. Pure.
+Outcome<std::vector<BrimPoint>> brim_points_from_bed(const ModelObject& object, int instance, const std::vector<BrimEar>& ears,
+                                                     float default_radius);
+
+struct SetBrimEarsArgs
+{
+    int                  object = 0, instance = 0;
+    std::vector<BrimEar> ears; // none: the object's ears are cleared
+};
+
+struct BrimEarsSet
+{
+    std::vector<BrimPoint> ears;      // the object's ears as stored, read back after the write
+    std::string            brim_type; // the brim type the object prints with: its own, else the process's
+    bool                   takes_effect = false; // whether that type is painted, the one brim type that prints the ears
+};
+
+// Replaces the object's brim ears, which its instances share. The ears are converted and checked first, so that a
+// refused call leaves an open gizmo open: the Brim Ears gizmo writes its own ears to the object as it closes. Then the
+// open gizmo is closed, one undo step "Set brim ears" taken, the ears written as the gizmo writes them, and the gizmo
+// told to reload them when it next opens (GLGizmoBrimEars::reload_on_next_opening()). UI thread.
+Outcome<BrimEarsSet> set_brim_ears(const SetBrimEarsArgs& args);
 
 }}} // namespace Slic3r::GUI::Ops

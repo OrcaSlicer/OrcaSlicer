@@ -96,6 +96,7 @@ BANNED = {
     # The gizmo commands open their gizmo through it; a gizmo icon's click stays the GUI tools' (UiInspector.cpp).
     "open_gizmo": ["open_gizmo"],
     "cut_object": ["apply_cut_object_to_model", "perform_with_plane"],
+    "lay_on_face": ["flattening_rotate"],
     "the undo snapshot of an operation": ["take_snapshot"],
 }
 

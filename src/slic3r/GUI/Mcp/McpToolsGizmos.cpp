@@ -1,7 +1,8 @@
 // The gizmo commands: a named target's gizmo opened on it (object_paint, object_measure, object_simplify, part_boolean,
-// object_cut). A call that names only its targets opens the gizmo and the client works it with the GUI tools; a command
-// whose gizmo has an entry point that asks nothing also acts from its acting arguments (gizmo_acting_args()), with no
-// gizmo: object_cut's cut by a plane.
+// object_cut, object_lay_on_face, object_set_brim_ears). A call that names only its targets opens the gizmo and the
+// client works it with the GUI tools; a command whose gizmo has an entry point that asks nothing also acts from its
+// acting arguments (gizmo_acting_args()), with no gizmo: a cut by a plane, a lay on face by a direction, brim ears by
+// position.
 
 #include "McpTargets.hpp"
 #include "McpTools.hpp"
@@ -18,6 +19,7 @@
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Selection.hpp"
 
+#include "libslic3r/BrimEarsPoint.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -133,6 +135,17 @@ json piece(const Model& model, int index)
     return {{"index", index}, {"object_id", object.id().id}, {"name", object.name}, {"open_edges", open_edges}};
 }
 
+// The one instance a gizmo command acts on: the instance or object named (the object's first instance), else the one
+// selected.
+std::pair<int, int> acted_on(Plater& plater, const json& args)
+{
+    const Ops::Outcome<Targets> named = resolve_targets(plater.model(), &plater.get_view3D_canvas3D()->get_selection(), args,
+                                                        kObjects | kInstances, true);
+    if (!named)
+        throw refused(named.refusal());
+    return one_instance(plater.model(), named.value()).instances.front();
+}
+
 // object_cut from its acting arguments. The arguments the Cut gizmo's panel could not set together are refused before
 // anything is read: z with plane, a placement for a piece not kept, and placements or one piece with Cut to parts.
 json cut_from_args(const json& args)
@@ -166,12 +179,8 @@ json cut_from_args(const json& args)
     if (args.contains("lower"))
         op.lower = placement(args["lower"].get<std::string>());
 
-    Plater&                     plater = ui_plater();
-    const Ops::Outcome<Targets> named  = resolve_targets(plater.model(), &plater.get_view3D_canvas3D()->get_selection(), args,
-                                                         kObjects | kInstances, true);
-    if (!named)
-        throw refused(named.refusal());
-    std::tie(op.object, op.instance) = one_instance(plater.model(), named.value()).instances.front();
+    Plater& plater                   = ui_plater();
+    std::tie(op.object, op.instance) = acted_on(plater, args);
     if (args.contains("z")) {
         // A level plane that high above the bed, through the instance.
         op.point = plater.model().objects[std::size_t(op.object)]->instances[std::size_t(op.instance)]->get_offset();
@@ -193,6 +202,52 @@ json cut_from_args(const json& args)
             reply["pieces"].push_back(piece(model, index));
     }
     return reply;
+}
+
+// object_lay_on_face from its acting arguments.
+json lay_from_args(const json& args)
+{
+    if (!args.contains("normal"))
+        throw refused(Ops::Refusal{Ops::RefusalKind::Precondition, "needs_normal",
+                                   L("Laying an object on a face needs the face's direction: give normal with frame.")});
+    Plater&           plater = ui_plater();
+    Ops::LayOnFaceArgs op;
+    std::tie(op.object, op.instance) = acted_on(plater, args);
+    op.normal = to_vec3(args["normal"], "normal");
+    op.world  = args.value("frame", std::string("object")) == "world";
+    const Ops::Outcome<Vec3d> turned = Ops::lay_on_face(op);
+    if (!turned)
+        throw refused(turned.refusal());
+    const Vec3d degrees = turned.value() * (180. / PI);
+    return {{"object", op.object}, {"instance", op.instance}, {"rotation", {degrees.x(), degrees.y(), degrees.z()}}};
+}
+
+// object_set_brim_ears from its acting arguments.
+json brim_ears_from_args(const json& args)
+{
+    if (args.contains("points") && args.contains("clear"))
+        throw ToolFailure("Give points or clear, not both.");
+    Plater&              plater = ui_plater();
+    Ops::SetBrimEarsArgs op;
+    std::tie(op.object, op.instance) = acted_on(plater, args);
+    for (const json& point : args.value("points", json::array())) {
+        const json& at = point.at("position");
+        if (!at.is_array() || at.size() != 2)
+            throw ToolFailure("points[].position must be [x, y]");
+        Ops::BrimEar ear;
+        ear.position = Vec2d(at[0].get<double>(), at[1].get<double>());
+        if (point.contains("radius"))
+            ear.radius = point["radius"].get<float>();
+        op.ears.push_back(ear);
+    }
+    const Ops::Outcome<Ops::BrimEarsSet> set = Ops::set_brim_ears(op);
+    if (!set)
+        throw refused(set.refusal());
+    json ears = json::array();
+    for (const BrimPoint& ear : set.value().ears)
+        ears.push_back({{"position", {ear.pos.x(), ear.pos.y(), ear.pos.z()}}, {"radius", ear.head_front_radius}});
+    return {{"object", op.object}, {"ears", std::move(ears)}, {"brim_type", set.value().brim_type},
+            {"takes_effect", set.value().takes_effect}};
 }
 
 NativeCommand gizmo_command(std::string name, std::string title, std::string description, json schema, EType type,
@@ -219,7 +274,9 @@ const std::vector<std::string>& gizmo_acting_args(const std::string& command)
     // The gizmo commands' acting arguments: a call with any of them does the job and opens no gizmo.
     static const std::map<std::string, std::vector<std::string>> acting{
         {"object_paint", {}}, {"object_measure", {}}, {"object_simplify", {}}, {"part_boolean", {}},
-        {"object_cut", {"z", "plane", "keep", "upper", "lower", "to_parts"}}};
+        {"object_cut", {"z", "plane", "keep", "upper", "lower", "to_parts"}},
+        {"object_lay_on_face", {"normal", "frame"}},
+        {"object_set_brim_ears", {"points", "clear"}}};
     static const std::vector<std::string> none;
     const auto                            found = acting.find(command);
     return found != acting.end() ? found->second : none;
@@ -324,6 +381,70 @@ void register_gizmo_tools(CommandCatalog& catalog)
         {"title": "Keep the part of object 1 above a tilted plane", "calls": [
             {"tool": "object_cut", "args": {"object": 1, "plane": {"point": [100, 100, 10], "normal": [1, 0, 1]}, "keep": "upper"}}]}])json");
     catalog.add(reaching({"open_gizmo", "cut_object"}, std::move(cut)));
+
+    NativeCommand lay = with_expected_ids(mutate_tool(
+        "object_lay_on_face", L("Lay on face"),
+        std::string(
+            "Lay an object's instance, the first unless instance is given, on one of its faces, as a click on that face in "
+            "the Lay on Face gizmo does. Acts from arguments: normal, frame. With none of them it opens the Lay on Face "
+            "gizmo. normal is the direction the face points out to: in the object's own frame (frame object, the default, "
+            "where [0, 0, -1] is the face that was its bottom) or in the 3D view's (frame world, where the face points now). "
+            "The instance turns so that face lies on the bed and drops onto it, one undo step; the object's other instances "
+            "turn with it. No flat face is looked for: the direction is laid down as given. A call that acts replies object, "
+            "instance and rotation, the instance's rotation in degrees as object_list gives it.") +
+            kWorkTheGizmo,
+        with_targets(object_schema({{"normal", array_prop({{"type", "number"}}, "[x, y, z]: the direction the face to lay on the bed "
+                                                                               "points out to; any length but zero.")},
+                                    {"frame", enum_prop({"object", "world"}, "The frame normal is in: the object's own (default) or "
+                                                                             "the 3D view's. Needs normal.")}}),
+                     kObjects | kInstances, true),
+        [](const json& args, ToolContext& ctx) {
+            json out = ctx.run_ui([&] {
+                return acts(args, "object_lay_on_face") ? lay_from_args(args) :
+                                                          open_on(args, EType::Flatten, {kObjects | kInstances, true, one_instance});
+            });
+            settle(ctx);
+            return ToolResult::ok(out);
+        }));
+    lay.examples = json::parse(R"json([
+        {"title": "Lay object 0 on the face that points down in its own frame", "calls": [
+            {"tool": "object_lay_on_face", "args": {"object": 0, "normal": [0, 0, -1]}}]},
+        {"title": "Lay object 0 on the face that now points to +X", "calls": [
+            {"tool": "object_lay_on_face", "args": {"object": 0, "normal": [1, 0, 0], "frame": "world"}}]}])json");
+    catalog.add(reaching({"open_gizmo", "lay_on_face"}, std::move(lay)));
+
+    json ear = object_schema({{"position", array_prop({{"type", "number"}}, "[x, y] mm: where on the bed.")},
+                              {"radius", prop("number", "mm. Default: the gizmo's, eight first-layer line widths.")}},
+                             {"position"});
+    NativeCommand brim = with_expected_ids(mutate_tool(
+        "object_set_brim_ears", L("Brim ears"),
+        std::string(
+            "Set an object's brim ears from positions on the bed, as the Brim Ears gizmo places them, through the instance "
+            "named, the first unless instance is given. Acts from arguments: points, clear. With none of them it opens the "
+            "Brim Ears gizmo. points replaces the object's ears with those given, each at a bed position, with a radius "
+            "from 0.1 to 100 mm or the gizmo's default; clear removes them all. The ears are taken on the bed and stored in "
+            "the object's coordinates, so they are the object's, shared by its instances. One undo step. They print only "
+            "with the painted brim type: settings_set on the object sets brim_type. A call that acts replies object, ears "
+            "as stored ({position: [x, y, z] in the object's coordinates, radius}), brim_type, the brim type the object "
+            "prints with, and takes_effect, whether that is painted.") +
+            kWorkTheGizmo,
+        with_targets(object_schema({{"points", array_prop(std::move(ear), "The ears, in place of the object's.")},
+                                    {"clear", {{"type", "boolean"}, {"enum", {true}}, {"description", "Remove every ear. Not with points."}}}}),
+                     kObjects | kInstances, true),
+        [](const json& args, ToolContext& ctx) {
+            json out = ctx.run_ui([&] {
+                return acts(args, "object_set_brim_ears") ? brim_ears_from_args(args) :
+                                                            open_on(args, EType::BrimEars, {kObjects | kInstances, true, one_instance});
+            });
+            settle(ctx);
+            return ToolResult::ok(out);
+        }));
+    brim.examples = json::parse(R"json([
+        {"title": "Two ears at the front corners of object 0", "calls": [
+            {"tool": "object_set_brim_ears", "args": {"object": 0, "points": [{"position": [90, 90], "radius": 3}, {"position": [110, 90]}]}},
+            {"tool": "settings_set", "args": {"target": "object", "object": 0, "values": {"brim_type": "painted"}}}]},
+        {"title": "Remove object 1's ears", "calls": [{"tool": "object_set_brim_ears", "args": {"object": 1, "clear": true}}]}])json");
+    catalog.add(reaching({"open_gizmo", "set_brim_ears"}, std::move(brim)));
 }
 
 }}} // namespace Slic3r::GUI::Mcp

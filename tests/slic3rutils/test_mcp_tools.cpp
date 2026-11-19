@@ -650,14 +650,14 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
         CHECK(first_sentence(command->description) == r.first_sentence);
     }
 
-    // Outside the Design group 120 commands are listed: every one that runs from its arguments, all but the three menu
+    // Outside the Design group 122 commands are listed: every one that runs from its arguments, all but the three menu
     // items that take none (Task 3's 98, the seven Parts 4a to 4c add, Part 5a's three, Part 5b's two, Part 5c's one,
-    // Part 5d's four and the five gizmo commands).
+    // Part 5d's four and the seven gizmo commands).
     std::size_t listed = 0;
     for (const NativeCommand& c : catalog.commands())
         if (c.listed && c.group != Slic3r::GUI::kDesignGroup)
             ++listed;
-    CHECK(listed == 120);
+    CHECK(listed == 122);
 }
 
 TEST_CASE("opening a project and importing models are two commands", "[Mcp]")

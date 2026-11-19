@@ -42,9 +42,12 @@ AppActionRunResult export_toolpaths_obj();
 // ---- Objects and parts ----
 // Handy model `index` of MenuFactory::handy_models().
 AppActionRunResult add_handy(std::size_t index);
-AppActionRunResult add_primitive_text();
-// An SVG as a new object, or a part of the selected object: with no arguments from the file a dialog asks for,
-// else from the file `args` names ({"path"}).
+// A text as a new object, or a part of the selected object; with object_add_text's arguments ({object?, object_id?,
+// type?}) a part of `type` on the object named, which is selected first, or with `type` alone on the selected one.
+AppActionRunResult add_primitive_text(const nlohmann::json& args);
+// An SVG as a new object, or a part of the selected object, from the file a dialog asks for; with object_add_svg's
+// arguments ({path?, object?, object_id?, type?}) from the file `path` names, and as a part of `type` on the object named
+// or with `type` alone on the selected one, as add_primitive_text() takes them.
 AppActionRunResult add_primitive_svg(const nlohmann::json& args);
 AppActionRunResult obj_arrange();
 

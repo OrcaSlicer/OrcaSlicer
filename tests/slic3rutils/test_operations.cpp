@@ -23,7 +23,9 @@
 #include "slic3r/plugin/PluginDescriptor.hpp"
 
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/BrimEarsPoint.hpp"
 #include "libslic3r/CutUtils.hpp"
+#include "libslic3r/Geometry.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/TextConfiguration.hpp"
@@ -35,6 +37,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <future>
@@ -2052,6 +2055,7 @@ const std::set<std::string> kOperations = {
     "printer_models",     "install_printers",     "uninstall_printers",   "install_filaments", "uninstall_filaments",
     "set_preferences",    "set_plugin_enabled",   "uninstall_plugin",     "reload_plugin",    "start_plugin_refresh",
     "reorder_objects",    "sync_filaments_from_ams", "open_gizmo",           "cut_object",
+    "lay_on_face",        "set_brim_ears",
 };
 
 // What an exception is, so that the reason reads the same for every entry of a kind.
@@ -2427,4 +2431,88 @@ TEST_CASE("a cut's matrix places the plane as the Cut gizmo places it", "[Operat
     same(down.linear() * Slic3r::Vec3d::UnitY(), -Slic3r::Vec3d::UnitY());
     same(down.linear() * Slic3r::Vec3d::UnitX(), Slic3r::Vec3d::UnitX());
     CHECK_THAT(down.linear().determinant(), WithinAbs(1., 1e-12));
+}
+
+
+TEST_CASE("a direction in the 3D view becomes the normal flattening_rotate() takes", "[Operations][Gizmos]")
+{
+    // flattening_rotate() turns its normal into the 3D view by the inverse transpose of the instance's matrix without its
+    // offset; the normal of a view direction must come back to that direction there.
+    const auto in_view = [](const Slic3r::ModelInstance& instance, const Slic3r::Vec3d& normal) {
+        return (instance.get_matrix_no_offset().linear().inverse().transpose() * normal).normalized().eval();
+    };
+    const auto same = [](const Slic3r::Vec3d& got, const Slic3r::Vec3d& want) {
+        INFO("got " << got.transpose() << ", expected " << want.transpose());
+        CHECK((got - want).norm() < 1e-9);
+    };
+    Slic3r::Model model;
+
+    // Turned 30 degrees about X: the face that was its bottom points along (0, 0.5, -0.866) in the view.
+    Slic3r::ModelInstance& turned = *placed_cube(model)->instances.front();
+    turned.set_rotation(Slic3r::Vec3d(Slic3r::Geometry::deg2rad(30.), 0., 0.));
+    const Slic3r::Vec3d bottom_in_view(0., 0.5, -std::sqrt(3.) / 2.);
+    same(flatten_normal(turned, bottom_in_view, true), -Slic3r::Vec3d::UnitZ());
+    same(in_view(turned, -Slic3r::Vec3d::UnitZ()), bottom_in_view);
+
+    // In the object's own frame the normal is taken as given, of any length.
+    same(flatten_normal(turned, Slic3r::Vec3d(0., 0., -2.), false), -Slic3r::Vec3d::UnitZ());
+
+    // Scaled unevenly and turned, and mirrored: a view direction comes back to itself, though the object's normal is
+    // not the view direction turned back.
+    Slic3r::ModelInstance& scaled = *placed_cube(model)->instances.front();
+    scaled.set_rotation(Slic3r::Vec3d(Slic3r::Geometry::deg2rad(30.), 0., Slic3r::Geometry::deg2rad(45.)));
+    scaled.set_scaling_factor(Slic3r::Vec3d(2., 1., 0.5));
+    Slic3r::ModelInstance& mirrored = *placed_cube(model)->instances.front();
+    mirrored.set_rotation(Slic3r::Vec3d(0., Slic3r::Geometry::deg2rad(20.), 0.));
+    mirrored.set_mirror(Slic3r::Vec3d(-1., 1., 1.));
+    for (const Slic3r::ModelInstance* instance : {&scaled, &mirrored})
+        for (const Slic3r::Vec3d& direction : std::vector<Slic3r::Vec3d>{Slic3r::Vec3d(1., 0., 0.), Slic3r::Vec3d(0., -1., -1.).normalized(),
+                                               Slic3r::Vec3d(0.3, 0.4, -0.866).normalized()})
+            same(in_view(*instance, flatten_normal(*instance, direction, true)), direction);
+    const Slic3r::Vec3d along_x = flatten_normal(scaled, Slic3r::Vec3d::UnitX(), true);
+    CHECK((along_x - scaled.get_matrix_no_offset().linear().inverse() * Slic3r::Vec3d::UnitX()).norm() > 1e-3);
+}
+
+TEST_CASE("brim ears asked for on the bed are stored in the object's coordinates", "[Operations][Gizmos]")
+{
+    using Catch::Matchers::WithinAbs;
+    Slic3r::Model          model;
+    Slic3r::ModelObject&   cube     = *placed_cube(model);
+    Slic3r::ModelInstance& instance = *cube.instances.front();
+    // Moved to (100, 100, 10) and turned 90 degrees about Z: a bed point 10 mm to the right of its centre is 10 mm along
+    // the object's -Y, and one 10 mm in front of it 10 mm along its -X; both just under the bed, 10.0001 mm below its
+    // centre.
+    instance.set_rotation(Slic3r::Vec3d(0., 0., Slic3r::Geometry::deg2rad(90.)));
+    std::vector<BrimEar> ears(2);
+    ears[0].position = Slic3r::Vec2d(110., 100.);
+    ears[0].radius   = 3.f;
+    ears[1].position = Slic3r::Vec2d(100., 90.);
+    const Outcome<std::vector<Slic3r::BrimPoint>> points = brim_points_from_bed(cube, 0, ears, 4.f);
+    REQUIRE(points);
+    REQUIRE(points.value().size() == 2);
+    const std::vector<Slic3r::Vec3d> stored{{0., -10., -10.0001}, {-10., 0., -10.0001}};
+    for (std::size_t i = 0; i < 2; ++i) {
+        INFO(i);
+        CHECK((points.value()[i].pos.cast<double>() - stored[i]).norm() < 1e-4);
+    }
+    // A radius given is kept, and one left out is the default.
+    CHECK_THAT(points.value()[0].head_front_radius, WithinAbs(3., 1e-6));
+    CHECK_THAT(points.value()[1].head_front_radius, WithinAbs(4., 1e-6));
+
+    // The radius a gizmo's slider can set: from 0.1 to 100 mm.
+    for (const float radius : {0.1f, 100.f}) {
+        INFO(radius);
+        CHECK(brim_points_from_bed(cube, 0, {BrimEar{Slic3r::Vec2d(100., 90.), radius}}, 4.f));
+    }
+    for (const float radius : {0.05f, 150.f}) {
+        INFO(radius);
+        const Outcome<std::vector<Slic3r::BrimPoint>> refused = brim_points_from_bed(cube, 0, {BrimEar{Slic3r::Vec2d(100., 90.), radius}}, 4.f);
+        REQUIRE_FALSE(refused);
+        CHECK(std::string(refused.refusal().code) == "radius_out_of_range");
+        CHECK(refused.refusal().names == std::vector<std::string>{"0.1", "100"});
+    }
+    // No ears clear them.
+    const Outcome<std::vector<Slic3r::BrimPoint>> none = brim_points_from_bed(cube, 0, {}, 4.f);
+    REQUIRE(none);
+    CHECK(none.value().empty());
 }

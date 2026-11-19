@@ -1695,23 +1695,37 @@ void register_object_menu_commands(CommandCatalog& catalog)
             return MenuItems::add_handy(std::size_t(it - all.begin()));
         }));
 
+    // What a text or an SVG takes beyond the action's form: the object it becomes a part of, and the part's type.
+    const auto part_props = [](std::initializer_list<Property> own) {
+        json schema = object_schema(own);
+        schema["properties"]["type"] = enum_prop({"part", "negative", "modifier"},
+                                                 "The part's type, as the object's Add menu offers it. Default part. Without "
+                                                 "object, on the selected object.");
+        return with_targets(std::move(schema), kObjects, true);
+    };
     const std::string text = "Add a text: a part on the selected object, or a new object when nothing is selected. It is created "
                              "in the background (app_wait {for: \"idle\"} waits for it), and the Text gizmo opens on it.";
-    catalog.add(menu_command("object_add_text", L("Text"), text, object_schema({}),
-                            json::array({action("add_primitive_text", L("Text"), L("Add Primitive"), "menu_obj_text", json::object(),
-                                                text)}),
-                            [](const json&) { return MenuItems::add_primitive_text(); }));
+    catalog.add(with_expected_ids(menu_command(
+        "object_add_text", L("Text"),
+        text + " With object, the text becomes a part of that object, which is selected first; type makes it a negative part "
+               "or a modifier, as the object's Add menu does.",
+        part_props({}),
+        json::array({action("add_primitive_text", L("Text"), L("Add Primitive"), "menu_obj_text", json::object(), text)}),
+        [](const json& args) { return MenuItems::add_primitive_text(args); })));
 
-    catalog.add(menu_command(
+    catalog.add(with_expected_ids(menu_command(
         "object_add_svg", L("SVG"),
         "Add an SVG as a new object, or as a part of the selected object. With a path, uses that file without a dialog; the "
-        "part is created in the background (app_wait {for: \"idle\"} waits for it), and the SVG gizmo opens on it.",
-        object_schema({{"path", MenuItems::input_file("an .svg file")}}),
+        "part is created in the background (app_wait {for: \"idle\"} waits for it), and the SVG gizmo opens on it. With "
+        "object, the SVG becomes a part of that object, which is selected first; type makes it a negative part or a modifier, "
+        "as the object's Add menu does. Without path the file dialog opens, as the action's does, and the object and type "
+        "apply to the file picked there.",
+        part_props({{"path", MenuItems::input_file("an .svg file")}}),
         json::array({action("add_primitive_svg", L("SVG"), L("Add Primitive"), "menu_obj_svg", json::object(),
                             "Add an SVG as a new object, or as a part of the selected object, from the file a dialog asks for; "
                             "object_add_svg with a path uses that file without one. The part is created in the background "
                             "(app_wait {for: \"idle\"} waits for it), and the SVG gizmo opens on it.")}),
-        [](const json& args) { return MenuItems::add_primitive_svg(args); }));
+        [](const json& args) { return MenuItems::add_primitive_svg(args); })));
 
     // ---- Object ---- (the object's context menu and the Edit menu)
     NativeCommand del = menu_command(

@@ -1838,7 +1838,7 @@
     }
    ],
    "completion": "immediate",
-   "description": "Add a text: a part on the selected object, or a new object when nothing is selected. It is created in the background (app_wait {for: \"idle\"} waits for it), and the Text gizmo opens on it.",
+   "description": "Add a text: a part on the selected object, or a new object when nothing is selected. It is created in the background (app_wait {for: \"idle\"} waits for it), and the Text gizmo opens on it. With object, the text becomes a part of that object, which is selected first; type makes it a negative part or a modifier, as the object's Add menu does.",
    "destructive": false,
    "group": "Objects",
    "guard": "mutate",
@@ -1846,7 +1846,27 @@
    "idempotent": false,
    "input_schema": {
     "additionalProperties": false,
-    "properties": {},
+    "properties": {
+     "object": {
+      "description": "Object index (object_list).",
+      "minimum": 0,
+      "type": "integer"
+     },
+     "object_id": {
+      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "minimum": 0,
+      "type": "integer"
+     },
+     "type": {
+      "description": "The part's type, as the object's Add menu offers it. Default part. Without object, on the selected object.",
+      "enum": [
+       "part",
+       "negative",
+       "modifier"
+      ],
+      "type": "string"
+     }
+    },
     "type": "object"
    },
    "key": "object_add_text",
@@ -1868,7 +1888,7 @@
     }
    ],
    "completion": "immediate",
-   "description": "Add an SVG as a new object, or as a part of the selected object. With a path, uses that file without a dialog; the part is created in the background (app_wait {for: \"idle\"} waits for it), and the SVG gizmo opens on it.",
+   "description": "Add an SVG as a new object, or as a part of the selected object. With a path, uses that file without a dialog; the part is created in the background (app_wait {for: \"idle\"} waits for it), and the SVG gizmo opens on it. With object, the SVG becomes a part of that object, which is selected first; type makes it a negative part or a modifier, as the object's Add menu does. Without path the file dialog opens, as the action's does, and the object and type apply to the file picked there.",
    "destructive": false,
    "group": "Objects",
    "guard": "mutate",
@@ -1877,8 +1897,27 @@
    "input_schema": {
     "additionalProperties": false,
     "properties": {
+     "object": {
+      "description": "Object index (object_list).",
+      "minimum": 0,
+      "type": "integer"
+     },
+     "object_id": {
+      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "minimum": 0,
+      "type": "integer"
+     },
      "path": {
       "description": "Absolute path of an .svg file.",
+      "type": "string"
+     },
+     "type": {
+      "description": "The part's type, as the object's Add menu offers it. Default part. Without object, on the selected object.",
+      "enum": [
+       "part",
+       "negative",
+       "modifier"
+      ],
       "type": "string"
      }
     },
@@ -3594,6 +3633,215 @@
    ],
    "read_only": false,
    "title": "Cut"
+  },
+  {
+   "completion": "immediate",
+   "description": "Lay an object's instance, the first unless instance is given, on one of its faces, as a click on that face in the Lay on Face gizmo does. Acts from arguments: normal, frame. With none of them it opens the Lay on Face gizmo. normal is the direction the face points out to: in the object's own frame (frame object, the default, where [0, 0, -1] is the face that was its bottom) or in the 3D view's (frame world, where the face points now). The instance turns so that face lies on the bed and drops onto it, one undo step; the object's other instances turn with it. No flat face is looked for: the direction is laid down as given. A call that acts replies object, instance and rotation, the instance's rotation in degrees as object_list gives it. Read the gizmo's panel with widget_list {include_imgui: true}, set its fields with widget_set_value, press its buttons with widget_click, and click or drag on the model with mouse_gesture; object_select {none: true} closes it. The gizmo already open on the same target stays open. Reply: gizmo (its name, as app_state.gizmo gives it), active, and what is selected (objects, instances, parts).",
+   "destructive": false,
+   "examples": [
+    {
+     "calls": [
+      {
+       "args": {
+        "normal": [
+         0,
+         0,
+         -1
+        ],
+        "object": 0
+       },
+       "tool": "object_lay_on_face"
+      }
+     ],
+     "title": "Lay object 0 on the face that points down in its own frame"
+    },
+    {
+     "calls": [
+      {
+       "args": {
+        "frame": "world",
+        "normal": [
+         1,
+         0,
+         0
+        ],
+        "object": 0
+       },
+       "tool": "object_lay_on_face"
+      }
+     ],
+     "title": "Lay object 0 on the face that now points to +X"
+    }
+   ],
+   "group": "Objects",
+   "guard": "mutate",
+   "has_own_action": false,
+   "idempotent": false,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {
+     "frame": {
+      "description": "The frame normal is in: the object's own (default) or the 3D view's. Needs normal.",
+      "enum": [
+       "object",
+       "world"
+      ],
+      "type": "string"
+     },
+     "instance": {
+      "description": "An instance of the object (object_list).",
+      "minimum": 0,
+      "type": "integer"
+     },
+     "normal": {
+      "description": "[x, y, z]: the direction the face to lay on the bed points out to; any length but zero.",
+      "items": {
+       "type": "number"
+      },
+      "type": "array"
+     },
+     "object": {
+      "description": "Object index (object_list).",
+      "minimum": 0,
+      "type": "integer"
+     },
+     "object_id": {
+      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "minimum": 0,
+      "type": "integer"
+     }
+    },
+    "type": "object"
+   },
+   "key": "object_lay_on_face",
+   "listed": true,
+   "open_world": false,
+   "operations": [
+    "open_gizmo",
+    "lay_on_face"
+   ],
+   "read_only": false,
+   "title": "Lay on face"
+  },
+  {
+   "completion": "immediate",
+   "description": "Set an object's brim ears from positions on the bed, as the Brim Ears gizmo places them, through the instance named, the first unless instance is given. Acts from arguments: points, clear. With none of them it opens the Brim Ears gizmo. points replaces the object's ears with those given, each at a bed position, with a radius from 0.1 to 100 mm or the gizmo's default; clear removes them all. The ears are taken on the bed and stored in the object's coordinates, so they are the object's, shared by its instances. One undo step. They print only with the painted brim type: settings_set on the object sets brim_type. A call that acts replies object, ears as stored ({position: [x, y, z] in the object's coordinates, radius}), brim_type, the brim type the object prints with, and takes_effect, whether that is painted. Read the gizmo's panel with widget_list {include_imgui: true}, set its fields with widget_set_value, press its buttons with widget_click, and click or drag on the model with mouse_gesture; object_select {none: true} closes it. The gizmo already open on the same target stays open. Reply: gizmo (its name, as app_state.gizmo gives it), active, and what is selected (objects, instances, parts).",
+   "destructive": false,
+   "examples": [
+    {
+     "calls": [
+      {
+       "args": {
+        "object": 0,
+        "points": [
+         {
+          "position": [
+           90,
+           90
+          ],
+          "radius": 3
+         },
+         {
+          "position": [
+           110,
+           90
+          ]
+         }
+        ]
+       },
+       "tool": "object_set_brim_ears"
+      },
+      {
+       "args": {
+        "object": 0,
+        "target": "object",
+        "values": {
+         "brim_type": "painted"
+        }
+       },
+       "tool": "settings_set"
+      }
+     ],
+     "title": "Two ears at the front corners of object 0"
+    },
+    {
+     "calls": [
+      {
+       "args": {
+        "clear": true,
+        "object": 1
+       },
+       "tool": "object_set_brim_ears"
+      }
+     ],
+     "title": "Remove object 1's ears"
+    }
+   ],
+   "group": "Objects",
+   "guard": "mutate",
+   "has_own_action": false,
+   "idempotent": false,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {
+     "clear": {
+      "description": "Remove every ear. Not with points.",
+      "enum": [
+       true
+      ],
+      "type": "boolean"
+     },
+     "instance": {
+      "description": "An instance of the object (object_list).",
+      "minimum": 0,
+      "type": "integer"
+     },
+     "object": {
+      "description": "Object index (object_list).",
+      "minimum": 0,
+      "type": "integer"
+     },
+     "object_id": {
+      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "minimum": 0,
+      "type": "integer"
+     },
+     "points": {
+      "description": "The ears, in place of the object's.",
+      "items": {
+       "additionalProperties": false,
+       "properties": {
+        "position": {
+         "description": "[x, y] mm: where on the bed.",
+         "items": {
+          "type": "number"
+         },
+         "type": "array"
+        },
+        "radius": {
+         "description": "mm. Default: the gizmo's, eight first-layer line widths.",
+         "type": "number"
+        }
+       },
+       "required": [
+        "position"
+       ],
+       "type": "object"
+      },
+      "type": "array"
+     }
+    },
+    "type": "object"
+   },
+   "key": "object_set_brim_ears",
+   "listed": true,
+   "open_world": false,
+   "operations": [
+    "open_gizmo",
+    "set_brim_ears"
+   ],
+   "read_only": false,
+   "title": "Brim ears"
   },
   {
    "completion": "immediate",
