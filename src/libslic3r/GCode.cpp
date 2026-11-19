@@ -9927,6 +9927,11 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
         // TODO: with the overhang speed and flow before the role change is flagged in the path.role() function.
         if(role_change)
             evaluate_adaptive_pa = true;
+        // Orca: a gap fill line is split into one path per width change, so evaluating adaptive PA on
+        // every path would change it on nearly every gap fill move. Unless adaptive PA within features
+        // is enabled, evaluate it once, when the gap fill feature starts.
+        if (path.role() == erGapFill && !adaptive_pa_overhangs)
+            evaluate_adaptive_pa = role_change;
     }
     // Orca: End of dynamic PA trigger flag segment
     
