@@ -69,47 +69,41 @@ jobs:
       - name: set outputs
         id: set_outputs
         env:
-          # Anything that changes how the tree is built belongs in the key, or a job
-          # restores one it cannot use. Linux amd64 passes no arch deliberately, so
-          # 'linux-clang' keeps the cache it already has.
-          cache-os: ${{ (runner.os == 'macOS' || startsWith(inputs.os, 'macos-')) && format('{0}-{1}', inputs.os, inputs.arch) || (runner.os == 'Windows' && format('windows-{0}-{1}', inputs.arch, inputs.compiler) || format('linux-clang{0}', inputs.arch && format('-{0}', inputs.arch) || '')) }}
-          # The Windows ARM64 deps build in build-arm64, all others under build;
-          # build_deps.yml and build_orca.yml pass the Windows build directory to build_win.ps1.
-          dep-folder-name: ${{ (runner.os == 'macOS' || startsWith(inputs.os, 'macos-')) && format('/{0}', inputs.arch) || (runner.os == 'Windows' && inputs.arch == 'arm64') && '-arm64/OrcaSlicer_dep' || '/OrcaSlicer_dep' }}
+          # cache-os uniquely identifies the deps cache configuration
+          # macOS: os-arch (e.g., macos-15-arm64, macos-15-intel-x86_64)
+          # Windows: windows-arch-compiler (e.g., windows-x64-clang, windows-x64-msvc)
+          # Linux: linux-clang[-arch] (e.g., linux-clang-x64, linux-clang-aarch64)
+          cache-os: >-
+            ${
+              (runner.os == 'macOS' || startsWith(inputs.os, 'macos-'))
+                && format('{0}-{1}', inputs.os, inputs.arch)
+                || (runner.os == 'Windows'
+                    && format('windows-{0}-{1}', inputs.arch, inputs.compiler)
+                    || format('linux-clang{0}', inputs.arch && format('-{0}', inputs.arch) || '')
+                )
+            }
+          # dep-folder-name: path segment under deps/build for this configuration
+          # macOS: /arch (e.g., /arm64, /x86_64)
+          # Windows ARM64: -arm64/OrcaSlicer_dep
+          # Others: /OrcaSlicer_dep
+          dep-folder-name: >-
+            ${
+              (runner.os == 'macOS' || startsWith(inputs.os, 'macos-'))
+                && format('/{0}', inputs.arch)
+                || (runner.os == 'Windows' && inputs.arch == 'arm64')
+                  && '-arm64/OrcaSlicer_dep'
+                  || '/OrcaSlicer_dep'
+            }
           output-cmd: ${{ runner.os == 'Windows' && '$env:GITHUB_OUTPUT' || '"$GITHUB_OUTPUT"'}}
         run: |
-          # Cache key intentionally does NOT hash deps/** so that a PR branch
-          # can restore the base branch's deps cache. Restore-keys in
-          # build_deps.yml handle finer-grained fallback within the same prefix.
-          #
-          # -v3: v2 caches held expat 2.5.0, while CMakeLists.txt now requires
-          # 2.10.0 (deps/EXPAT pins R_2_10_0). Restoring v2 makes the slicer
-          # configure fail before compilation.
-          #
-          # -v2: earlier caches hold a Boost whose Boost.Locale was built with the
-          # iconv backend enabled (Boost enables it whenever Iconv is found at
-          # build time). Consuming such a tree requires find_package(Iconv), which
-          # this runner cannot satisfy, so the slicer configure fails before any
-          # compilation. A Boost built here reports "Boost.Locale: iconv OFF" and
-          # carries no Iconv dependency.
-          # -v4: v3 caches hold a libpng whose Apple build also installed a
-          # png.framework. Drop them with the framework (deps/PNG/PNG.cmake).
-          #
-          # -v4 also adds hashFiles('deps/**') to the key so any deps/ change
-          # invalidates the cache. This matches upstream/main.
-          #
-          # -v5: v4 built libpng with -DPNG_FRAMEWORK=OFF but the prebuilt
-          # pnglibconf.h (no PNG_PREFIX) was still used. Add
-          # -DPNG_LIBCONF_HEADER_PREBUILT=OFF to force generation from the .dfa
-          # so the PNG_PREFIX mapping is baked into the installed pnglibconf.h.
-          #
-          # -v6: PNG_PREFIX removed entirely (libpng prefix mechanism broken
-          # in 1.6.59). Build without prefix so libpng exports standard png_*
-          # names matching unprefixed calls in PNGReadWrite.cpp.
-          echo cache-key=${{ env.cache-os }}-cache-orcaslicer_deps-build-v6-${{ hashFiles('deps/**') }} >> ${{ env.output-cmd }}
-          echo cache-prefix=${{ env.cache-os }}-cache-orcaslicer_deps-build-v6- >> ${{ env.output-cmd }}
+          # Cache key hashes all inputs that affect the deps build.
+          # Primary key (exact match): cache-os + hash of all deps-affecting files.
+          # Restore keys (prefix fallback): base-ref, main, generic.
+          # No version suffix needed - hash covers all deps-affecting inputs.
+          echo "cache-key=${{ env.cache-os }}_${{ hashFiles('deps/**', 'CMakeLists.txt', 'deps/CMakeLists.txt', '.github/workflows/build_deps.yml', '.github/workflows/build_check_cache.yml', 'build_win.ps1', 'build_release_macos.sh', 'build_linux.sh') }}" >> ${{ env.output-cmd }}
+          echo "cache-prefix=${{ env.cache-os }}_" >> ${{ env.output-cmd }}
           # Relative to the workspace, which differs from the build's when this job runs on Linux.
-          echo cache-path=deps/build${{ env.dep-folder-name }} >> ${{ env.output-cmd }}
+          echo "cache-path=deps/build${{ env.dep-folder-name }}" >> ${{ env.output-cmd }}
             
       # actions/cache matches the path too, so a Linux lookup for macOS uses the
       # workspace of a hosted macOS job.
@@ -125,8 +119,8 @@ jobs:
           path: ${{ steps.macos_path.outputs.path || format('{0}/{1}', github.workspace, steps.set_outputs.outputs.cache-path) }}
           key: ${{ steps.set_outputs.outputs.cache-key }}
           restore-keys: |
-            ${{ steps.set_outputs.outputs.cache-prefix }}${github.base_ref}-
-            ${{ steps.set_outputs.outputs.cache-prefix }}main-
+            ${{ steps.set_outputs.outputs.cache-prefix }}${github.base_ref}_
+            ${{ steps.set_outputs.outputs.cache-prefix }}main_
             ${{ steps.set_outputs.outputs.cache-prefix }}
           lookup-only: true
         
