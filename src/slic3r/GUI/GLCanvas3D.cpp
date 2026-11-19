@@ -4864,6 +4864,12 @@ void GLCanvas3D::on_char(wxKeyEvent& evt)
         && (_deactivate_arrange_menu() || _deactivate_orient_menu()))
         return;
 
+    // Esc first closes an open toolbar group's list.
+    if (keyCode == WXK_ESCAPE && m_main_toolbar.close_group_list()) {
+        set_as_dirty();
+        return;
+    }
+
     if (m_gizmos.on_char(evt))
         return;
 
@@ -5567,8 +5573,10 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
     Point pos(evt.GetX(), evt.GetY());
 
     // A press anywhere but the open group list or its button closes the list, whichever part of the canvas takes it.
-    if (evt.LeftDown() || evt.RightDown())
+    if (evt.LeftDown() || evt.RightDown()) {
         m_gizmos.close_group_list_unless_at(pos.cast<double>());
+        m_main_toolbar.close_group_list_unless_at(pos.cast<double>(), *this);
+    }
 
     ImGuiWrapper* imgui = wxGetApp().imgui();
     if (m_tooltip.is_in_imgui() && evt.LeftUp())
@@ -6317,8 +6325,9 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
     else if (evt.Moving()) {
         m_mouse.position = pos.cast<double>();
 
-        // updates gizmos overlay
-        if (m_selection.is_empty())
+        // updates gizmos overlay; an open group list, which a group of tools that need a selection also shows
+        // without one, stays open
+        if (m_selection.is_empty() && !m_gizmos.is_group_list_open())
             m_gizmos.reset_all_states();
 
         _set_overlay_as_dirty();
@@ -8540,7 +8549,8 @@ bool GLCanvas3D::_init_main_toolbar()
     };
 
     // Items the user hid are still added, only invisible, so lookups by name keep finding them.
-    const ToolbarGroupLayout layout = parse_toolbar_layout(wxGetApp().app_config->get("toolbar", "layout")).main;
+    const ToolbarLayout      saved  = parse_toolbar_layout(wxGetApp().app_config->get("toolbar", "layout"));
+    const ToolbarGroupLayout& layout = saved.main;
     unsigned int sprite_id = 0;
     for (const std::string& id : layout.order) {
         const bool hidden = layout.hidden.count(id) != 0;
@@ -8562,6 +8572,7 @@ bool GLCanvas3D::_init_main_toolbar()
         if (!m_main_toolbar.add_item(item))
             return false;
     }
+    m_main_toolbar.set_groups(saved.groups);
 
     update_shortcut_tooltips();
     return true;
@@ -11124,6 +11135,9 @@ void GLCanvas3D::_render_overlays()
 
     // The options window of a pressed toolbar item (arrange).
     m_main_toolbar.render_item_windows(*this);
+    if (const std::string picked = m_main_toolbar.take_picked_group_item(); !picked.empty())
+        // After this frame: the item's action may render the canvas.
+        m_canvas->CallAfter([this, picked]() { force_main_toolbar_left_action(get_main_toolbar_item_id(picked)); });
 
     m_gizmos.render_overlay_input_window();
 

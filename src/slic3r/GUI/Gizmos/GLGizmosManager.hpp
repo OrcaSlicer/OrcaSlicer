@@ -39,7 +39,7 @@ class GLCanvas3D;
 class ClippingPlane;
 struct ToolbarGroupLayout;
 struct ToolbarBarSlot;
-struct ToolbarGizmoGroup;
+struct ToolbarIconGroup;
 enum class SLAGizmoEventType : unsigned char;
 class CommonGizmosDataPool;
 //BBS: GUI refactor: add object manipulation
@@ -150,7 +150,7 @@ private:
     std::vector<bool> m_bar_hidden;
     // The user's gizmo groups, the group whose list is open (-1 for none), and the gizmo ids opened this session,
     // newest first.
-    std::vector<ToolbarGizmoGroup> m_groups;
+    std::vector<ToolbarIconGroup> m_groups;
     int m_open_group{-1};
     // The group whose button the tooltip names, or -1.
     int m_tooltip_group{-1};
@@ -257,7 +257,7 @@ public:
     bool init();
 
     // Applies the user's gizmo bar order, hidden set and groups; ids that name no gizmo are ignored.
-    void set_bar_layout(const ToolbarGroupLayout& layout, const std::vector<ToolbarGizmoGroup>& groups);
+    void set_bar_layout(const ToolbarGroupLayout& layout, const std::vector<ToolbarIconGroup>& groups);
     void close_group_list();
     // Closes the open group list unless the mouse is on it or on its group's button.
     void close_group_list_unless_at(const Vec2d& mouse_pos);
@@ -309,6 +309,8 @@ public:
     bool is_enabled() const { return m_enabled; }
     // ORCA
     bool is_mouse_over_toolbar_icon(const Vec2d& mouse_pos) const { return get_gizmo_from_mouse(mouse_pos) != Undefined; }
+    // A group's list is open; no gizmo is then, as opening either closes the other.
+    bool is_group_list_open() const { return m_open_group >= 0; }
     void set_enabled(bool enable) { m_enabled = enable; }
 
     void set_icon_dirty() { m_icons_texture_dirty = true; }

@@ -18,6 +18,8 @@ namespace Slic3r {
 namespace GUI {
 
 class GLCanvas3D;
+struct ToolbarBarSlot;
+struct ToolbarIconGroup;
 
 
 //BBS: GUI refactor: GLToolbar
@@ -204,7 +206,8 @@ public:
     bool is_disabled() const { return (m_state == Disabled) || (m_state == HoverDisabled); }
     bool is_hovered() const { return (m_state == Hover) || (m_state == HoverPressed) || (m_state == HoverDisabled); }
     bool is_pressed() const { return (m_state == Pressed) || (m_state == HoverPressed); }
-    bool is_visible() const { return m_data.visible; }
+    // Hidden by its visibility callback, or folded into its group's button.
+    bool is_visible() const { return m_data.visible && !m_folded; }
     bool is_separator() const { return m_type == Separator; }
 
     bool is_left_toggable() const { return m_data.left.toggable; }
@@ -239,6 +242,10 @@ public:
     void render_image(unsigned int tex_id, float left, float right, float bottom, float top, unsigned int tex_width, unsigned int tex_height, unsigned int icon_size) const;
 private:
     void set_visible(bool visible) { m_data.visible = visible; }
+    unsigned int get_sprite_id() const { return m_data.sprite_id; }
+
+    // A grouped item its group's button does not show.
+    bool m_folded{false};
 
     friend class GLToolbar;
 };
@@ -358,6 +365,16 @@ private:
 
     MouseCapture m_mouse_capture;
     std::function<void()> m_context_menu;
+    // The user's groups of item names. A group with two or more items on the toolbar is one button, its slot,
+    // which shows the pressed member, else the one used last that is enabled. The slots are from the last
+    // visibility update; the names are of grouped items used this session, newest first.
+    std::vector<ToolbarIconGroup> m_groups;
+    std::vector<ToolbarBarSlot>   m_group_slots;
+    std::vector<std::string>      m_recent_items;
+    int                           m_open_group{-1};
+    // Written while the open group's list is drawn: its screen rectangle, and the item picked in it.
+    Vec4f                         m_group_list_rect{Vec4f::Zero()};
+    std::string                   m_group_picked;
     int m_pressed_toggable_id;
 
 public:
@@ -430,6 +447,14 @@ public:
     void render_arrow(const GLCanvas3D& parent, GLToolbarItem* highlighted_item);
 
     bool on_mouse(wxMouseEvent& evt, GLCanvas3D& parent);
+    void set_groups(const std::vector<ToolbarIconGroup>& groups);
+    // Returns whether a group's list was open.
+    bool close_group_list();
+    // Closes the open group's list unless the press is on it or on its button.
+    void close_group_list_unless_at(const Vec2d& mouse_pos, GLCanvas3D& parent);
+    // The item picked in a group's list by the last render_item_windows(), which clears it; "" for none. The
+    // caller runs its action after the frame, as the action may render.
+    std::string take_picked_group_item() { return std::exchange(m_group_picked, {}); }
     // Called on a right click on the toolbar outside any icon with a right action; none by default.
     void set_context_menu(std::function<void()> menu) { m_context_menu = std::move(menu); }
     // get item pointer for highlighter timer
@@ -463,6 +488,14 @@ private:
     void render_vertical(const GLCanvas3D& parent, bool draw_icons);
 
     bool generate_icons_texture();
+
+    // The group whose slot shows the item, or -1.
+    int group_of_slot(int item_id) const;
+    // Folds each group's members but the one its slot shows; returns true if any item folded or unfolded.
+    bool fold_groups();
+    void open_group_list(int group, GLCanvas3D& parent);
+    void render_group_marks(const GLCanvas3D& parent);
+    void render_group_list(int group, float left, float top);
 
     // returns true if any item changed its state
     bool update_items_visibility();
