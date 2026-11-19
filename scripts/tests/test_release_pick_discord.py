@@ -68,6 +68,36 @@ class BuildMessageTest(unittest.TestCase):
         self.assertNotIn("Long title", first)
         self.assertIn("[#5](https://github.com/o/r/pull/5) Small release", second)
 
+    def test_other_release_gives_up_titles_before_notes_are_cut(self):
+        items = [item(n, "Ready to pick", title="R" * 100) for n in range(17000, 17015)]
+        items += [item(n, "Proposed", milestone="2.5.3", title="P" * 75) for n in range(18000, 18018)]
+        attention = [("2.5.2", n, "PullRequest", "closed without a merge " * 5) for n in range(19000, 19010)]
+        message = build_message(items, attention, {}, OPEN, PROJECT, "OrcaSlicer/OrcaSlicer", NOW)
+        first, second = (e["description"] for e in message["embeds"])
+        self.assertNotIn("PPP", second)
+        self.assertGreater(len(first), 3900)  # cut only to its own limit, not to make room for titles
+        self.assertLessEqual(total(message), 5800)
+
+    def test_release_over_its_own_limit_leaves_other_titles_alone(self):
+        items = [item(n, "Ready to pick", title="R" * 100) for n in range(17000, 17015)]
+        items += [item(n, "Proposed", milestone="2.5.3", title="Small release") for n in range(18000, 18003)]
+        attention = [("2.5.2", n, "PullRequest", "closed without a merge " * 5) for n in range(19000, 19010)]
+        message = build_message(items, attention, {}, OPEN, PROJECT, "OrcaSlicer/OrcaSlicer", NOW)
+        self.assertIn("[#18000](https://github.com/OrcaSlicer/OrcaSlicer/pull/18000) Small release",
+                      message["embeds"][1]["description"])
+
+    def test_long_numbers_only_list_is_shortened_not_dropped(self):
+        items = [item(n, "Ready to pick", title="R" * 60) for n in range(16000, 16015)]
+        items += [item(n, "Proposed", kind="Issue", title="Long title " * 9) for n in range(17000, 17100)]
+        attention = [("2.5.2", n, "PullRequest", "closed without a merge") for n in range(19000, 19003)]
+        message = build_message(items, attention, {}, ["2.5.2"], PROJECT, "OrcaSlicer/OrcaSlicer", NOW)
+        text = message["embeds"][0]["description"]
+        self.assertIn("[#17000](https://github.com/OrcaSlicer/OrcaSlicer/issues/17000) · [#17001]", text)
+        self.assertGreaterEqual(text.count("/issues/170"), 20)
+        self.assertNotIn("Long title", text)
+        self.assertGreater(len(text), 3500)
+        self.assertLessEqual(len(text), 4096)
+
     def test_all_sections_drop_titles_before_lines_are_cut(self):
         items = [item(n, "In progress", title="Long title " * 9) for n in range(1000, 1060)]
         items += [item(n, "Proposed", title="Long title " * 9) for n in range(2000, 2060)]

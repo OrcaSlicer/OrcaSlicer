@@ -20,6 +20,7 @@ _NAME_LENGTH = 100
 _TITLE_LENGTH = 100
 _READY_CAP = 15
 _LIST_CAP = 60
+_LINKS_PER_LINE = 10  # numbers-only lists are split so trimming can shorten a list, not drop it
 _NOTES_CAP = 10
 _COLOR = 0x4CB6FF
 _USER_AGENT = "DiscordBot (https://github.com/OrcaSlicer/OrcaSlicer, 1)"
@@ -72,10 +73,10 @@ def _lines(items, notes, unmatched, project_url, repo, compact=()):
             lines += ["", f"**{status} ({len(listed)})**"] + _capped(_titled(listed, repo), _LIST_CAP, project_url)
         elif listed:
             links = [_link(i.number, i.kind, repo) for i in listed[:_LIST_CAP]]
-            text = " · ".join(links)
+            rows = [" · ".join(links[k:k + _LINKS_PER_LINE]) for k in range(0, len(links), _LINKS_PER_LINE)]
             if len(listed) > _LIST_CAP:
-                text += f" …and {len(listed) - _LIST_CAP} more in the [project]({project_url})"
-            lines += ["", f"**{status} ({len(listed)})**", text]
+                rows[-1] += f" …and {len(listed) - _LIST_CAP} more in the [project]({project_url})"
+            lines += ["", f"**{status} ({len(listed)})**"] + rows
     if notes:
         rows = [f"{_link(n, kind, repo)} {_escape(_shorten(reason, _TITLE_LENGTH))}" for n, kind, reason in notes]
         lines += ["", "**Needs attention**"] + _capped(rows, _NOTES_CAP, project_url)
@@ -144,15 +145,26 @@ def build_message(items, attention, unmatched, open_milestones, project_url, rep
                                                       project_url, repo, compact[milestone])))
         return blocks
 
-    # Titles while they fit: the largest titled section goes to numbers only until the message fits, taken
-    # from a description over its own limit first, so a release that fits keeps its titles.
+    def titled_sections(milestones):
+        """(size of the titled lines shown, position, milestone, status) for each section still titled."""
+        found = []
+        for index, milestone in enumerate(milestones):
+            for status in ("In progress", "Proposed"):
+                listed = sorted((i for i in releases.get(milestone, []) if i.status == status), key=lambda i: i.number)
+                if listed and status not in compact[milestone]:
+                    found.append((len("\n".join(_titled(listed[:_LIST_CAP], repo))), index, milestone, status))
+        return found
+
+    # Titles while they fit: the largest titled section goes to numbers only until the message fits. A
+    # description over its own limit gives up its own titles; other releases give up theirs only while
+    # the whole message is too long even once each description is cut to its limit.
     blocks = render()
     while _too_big([(title, "\n".join(lines)) for title, lines in blocks]):
-        over = [m for m, (_, lines) in zip(order, blocks) if len("\n".join(lines)) > _DESCRIPTION_LIMIT]
-        sections = [(len("\n".join(_titled(listed, repo))), index, milestone, status)
-                    for index, milestone in enumerate(over or order)
-                    for status in ("In progress", "Proposed") if status not in compact[milestone]
-                    for listed in [[i for i in releases.get(milestone, []) if i.status == status]] if listed]
+        texts = [(title, "\n".join(lines)) for title, lines in blocks]
+        over = [m for m, (_, text) in zip(order, texts) if len(text) > _DESCRIPTION_LIMIT]
+        sections = titled_sections(over)
+        if not sections and sum(len(t) + min(len(x), _DESCRIPTION_LIMIT) for t, x in texts) > _MESSAGE_LIMIT:
+            sections = titled_sections(order)
         if not sections:
             break
         _, _, milestone, status = max(sections)
