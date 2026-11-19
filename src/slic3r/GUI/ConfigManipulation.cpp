@@ -1222,6 +1222,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("toolchange_cyclic_first_layer", use_cyclic_ordering, -1, cyclic_order_reason);
 
     toggle_line("prime_volume",have_prime_tower && (!purge_in_primetower || !bSEMM), -1, _L("Enable the prime tower and either disable purging in the prime tower or disable single extruder multimaterial mode."));
+    // Orca: the Type 1 tower takes the prime volume of each filament instead.
+    toggle_field("prime_volume", supports_wipe_tower_2, -1, _L("The Type 1 prime tower takes the prime volume from each filament, on its Multimaterial page."));
 
     for (auto el : {"flush_into_infill", "flush_into_support", "flush_into_objects"})
         toggle_field(el, have_prime_tower, -1, _L("Enable the prime tower to use this setting."));
