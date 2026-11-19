@@ -480,8 +480,9 @@ after 0.
 
 One filament slot (`filament_delete` until refused); A and B as in the scenario above. Each step starts from the
 selection its row gives. After every row the model is as after 0, `gizmo()` is none, `undo_steps()` is empty, and
-`selection()` is the selection the step started from: a refused opening puts back the selection it found, though it
-selects the named target to ask the gizmo.
+`selection()` is the selection the step started from. Rows 1, 2 and 5 are refused by the gizmo's condition, which
+the call asks after it has selected the named target, so they check that it puts back the selection it found;
+row 3 is refused by the Simplify check, which comes before anything is selected; row 4 names no target.
 
 | # | Selection before | Step | Refused |
 |---|---|---|---|
@@ -490,6 +491,7 @@ selects the named target to ask the gizmo.
 | 2 | `object_select {none: true}`: empty | `object_paint {object: 0, type: "color"}` | `needs_two_filaments` |
 | 3 | `object_select {parts: [[1, 1]]}`: parts [[1, 1]] | `object_simplify {object: 1}` | `needs_one_part`: B has two parts and none is named |
 | 4 | `object_select {none: true}`: empty | `object_measure {}` | `needs_selection` |
+| 5 | `object_paint {object: 1, type: "supports"}`: objects [1], `gizmo()` FdmSupports | `part_boolean {object: 0}` | `needs_two_parts`; the FdmSupports gizmo it closed to ask stays closed |
 
 **Scenario: cut from arguments**
 
