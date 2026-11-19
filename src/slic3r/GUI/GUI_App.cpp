@@ -2923,6 +2923,9 @@ int GUI_App::OnExit()
 {
     stop_http_server();
     stop_sync_user_preset();
+    // Its threads read the app config and the plater, which ~GUI_App deletes before the updater.
+    if (preset_updater != nullptr)
+        preset_updater->stop();
     if (m_startup_cloud_plugin_fetch_thread.joinable())
         m_startup_cloud_plugin_fetch_thread.join();
 

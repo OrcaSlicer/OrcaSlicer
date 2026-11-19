@@ -1364,6 +1364,11 @@ PresetUpdater::PresetUpdater() :
 
 PresetUpdater::~PresetUpdater()
 {
+	this->stop();
+}
+
+void PresetUpdater::stop()
+{
 	if (p && p->thread.joinable()) {
 		// This will stop transfers being done by the thread, if any.
 		// Cancelling takes some time, but should complete soon enough.
