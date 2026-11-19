@@ -6,10 +6,11 @@ tools/mcp/test-entries/gizmos.md designs them.
     tools/mcp/test_gizmo_commands.py [scenario ...]
 
 A call that names only its target opens the gizmo on it, and the same call again leaves it open; a refused opening
-leaves the model, the gizmo and the selection as it found them. After every step the test reads the state back through
-another tool (object_list, app_state) and compares it with the values the entry writes out. It runs on the harness's
-default printer, the Bambu Lab X1 Carbon 0.4, and exits 0 when every check passes. Scenario names given on the command
-line run those scenarios alone.
+leaves the model, the gizmo and the selection as it found them. A call with an acting argument (object_cut's plane)
+closes the open gizmo and does the job as the gizmo's own button would, one undo step. After every step the test reads
+the state back through another tool (object_list, app_state, the undo log, the saved project) and compares it with the
+values the entry writes out. It runs on the harness's default printer, the Bambu Lab X1 Carbon 0.4, and exits 0 when
+every check passes. Scenario names given on the command line run those scenarios alone.
 """
 
 import os
@@ -56,11 +57,24 @@ class GizmoCommandsTest:
     def scene(self):
         """Each object of object_list in index order as {name, offset, parts}: its instance 0's offset, its parts'
         count."""
-        listing = self.c.call("object_list", limit=500)
-        objs = sorted([o for p in listing["plates"] for o in p["objects"]] + listing.get("outside", []),
-                      key=lambda o: o["index"])
         return [{"name": o["name"], "offset": [round(v, 3) for v in o["instances"][0]["offset"]], "parts": len(o["parts"])}
-                for o in objs]
+                for o in self.listed()]
+
+    def listed(self):
+        """object_list's objects, on the plates and outside them, in index order."""
+        listing = self.c.call("object_list", limit=500)
+        return sorted([o for p in listing["plates"] for o in p["objects"]] + listing.get("outside", []),
+                      key=lambda o: o["index"])
+
+    def shapes(self):
+        """Each object in index order as {name, offset, min, max, size, parts}: its instance 0's offset and bbox, and its
+        parts as (type, mesh_volume)."""
+        out = []
+        for o in self.listed():
+            inst = o["instances"][0]
+            out.append({"name": o["name"], "offset": inst["offset"], "min": inst["bbox"]["min"], "max": inst["bbox"]["max"],
+                        "size": inst["bbox"]["size"], "parts": [(p["type"], p["mesh_volume"]) for p in o["parts"]]})
+        return out
 
     def gizmo(self):
         g = self.c.call("app_state").get("gizmo")
@@ -194,10 +208,146 @@ class GizmoCommandsTest:
         refused(5, {"objects": [1], "instances": [[1, 0]]}, "part_boolean", {"object": 0}, "needs_two_parts",
                 before_gizmo={"name": "FdmSupports", "canvas": "3d"}, steps=["Leaving Paint-on supports"])
 
+    # ---- Cut ----
+
+    def undo(self):
+        self.run("undo", history="project")
+
+    def redo(self):
+        self.run("redo", history="project")
+
+    def save_and_reopen(self, name):
+        path = os.path.join(self.folder, name)
+        self.run("project_save", path=path, overwrite=True)
+        self.run("project_new", discard_changes=True)
+        self.run("project_open", path=path)
+        self.idle()
+
+    def piece(self, label, o, volumes, size=None, height=None, xy=None, x=None):
+        """Checks one object of shapes(): its parts' types and mesh volumes (to 1 mm³), that it rests on the bed, and
+        when given its bbox size, its height, its x and y range [x0, y0, x1, y1], or its x range [x0, x1] (to 0.01)."""
+        self.t.equal(f"{label}: the parts' types", [t for t, _ in o["parts"]], ["part"] * len(volumes))
+        self.t.near(f"{label}: the parts' mesh volumes", [v for _, v in o["parts"]], list(volumes), 1)
+        self.t.near(f"{label}: rests on the bed", o["min"][2], 0, 0.01)
+        if size is not None:
+            self.t.near(f"{label}: the size", o["size"], size, 0.01)
+        if height is not None:
+            self.t.near(f"{label}: the height", o["size"][2], height, 0.01)
+        if xy is not None:
+            self.t.near(f"{label}: the x and y range", [o["min"][0], o["min"][1], o["max"][0], o["max"][1]], xy, 0.01)
+        if x is not None:
+            self.t.near(f"{label}: the x range", [o["min"][0], o["max"][0]], x, 0.01)
+
+    def whole(self, label):
+        """The 20 mm cube A at (100, 100), as after the cut scenarios' row 0."""
+        objs = self.shapes()
+        if self.t.equal(f"{label}: the objects", [o["name"] for o in objs], ["A"]):
+            self.t.near(f"{label}: A's offset", objs[0]["offset"], [100, 100, 10], 0.01)
+            self.piece(f"{label}: A", objs[0], [8000], size=[20, 20, 20])
+
+    def halves(self, label):
+        """A cut level at z 10: two pieces 10 mm high where A stood, upper first."""
+        objs = self.shapes()
+        if self.t.equal(f"{label}: the objects", [o["name"] for o in objs], ["A", "A"]):
+            for o, which in zip(objs, ("upper", "lower")):
+                self.piece(f"{label}: the {which} piece", o, [4000], size=[20, 20, 10], xy=[90, 90, 110, 110])
+
+    @staticmethod
+    def pieces_reply(reply):
+        return [{k: p.get(k) for k in ("index", "name", "open_edges")} for p in reply.get("pieces", [])]
+
+    def cut(self):
+        s = "cut from arguments"
+        self.start(s)
+        self.cube([100, 100], name="A")
+        self.run("object_select", none=True)
+        self.whole(f"{s} 0")
+
+        undo_steps(self.c)
+        reply = self.run("object_cut", object=0)
+        self.t.equal(f"{s} 1: the reply", (reply.get("gizmo"), reply.get("active")), ("Cut", True))
+        self.t.equal(f"{s} 1: the Cut gizmo open", self.gizmo(), {"name": "Cut", "canvas": "3d"})
+        # The Cut gizmo records a step of its own as it opens, as for a click on its icon.
+        self.t.equal(f"{s} 1: the undo steps", undo_steps(self.c), ["Entering Cut gizmo"])
+        self.whole(f"{s} 1")
+
+        reply = self.run("object_cut", object=0, z=10)
+        self.halves(f"{s} 2")
+        self.t.equal(f"{s} 2: the open Cut gizmo was closed first", self.gizmo(), None)
+        self.t.equal(f"{s} 2: the reply", self.pieces_reply(reply),
+                     [{"index": 0, "name": "A", "open_edges": 0}, {"index": 1, "name": "A", "open_edges": 0}])
+        # The gizmo's own step as it closes, then the cut's.
+        self.t.equal(f"{s} 2: the undo steps", undo_steps(self.c), ["Leaving Cut gizmo", "Cut by Plane"])
+        self.undo()
+        self.whole(f"{s} 3")
+        self.redo()
+        self.halves(f"{s} 4")
+        self.undo()
+        self.whole(f"{s} 5")
+
+        reply = self.run("object_cut", object=0, plane={"point": [100, 100, 10], "normal": [1, 0, 1]})
+        objs = self.shapes()
+        if self.t.equal(f"{s} 6: the objects", [o["name"] for o in objs], ["A", "A"]):
+            # The plane x + z = 110 halves the cube into two prisms: the upper one lies on its cut face, its far edge
+            # 10√2 mm above it; the lower one stays as cut.
+            self.piece(f"{s} 6: the upper piece", objs[0], [4000], height=14.14)
+            self.piece(f"{s} 6: the lower piece", objs[1], [4000], size=[20, 20, 20], x=[90, 110])
+        self.t.equal(f"{s} 6: the reply", [(p["index"], p["open_edges"]) for p in self.pieces_reply(reply)], [(0, 0), (1, 0)])
+        self.undo()
+        self.whole(f"{s} 7")
+
+        reply = self.run("object_cut", object=0, z=10, keep="upper")
+        objs = self.shapes()
+        if self.t.equal(f"{s} 8: the objects", [o["name"] for o in objs], ["A"]):
+            self.piece(f"{s} 8: the upper piece", objs[0], [4000], size=[20, 20, 10])
+        self.t.equal(f"{s} 8: the reply", self.pieces_reply(reply), [{"index": 0, "name": "A", "open_edges": 0}])
+        self.undo()
+        self.whole(f"{s} 9")
+
+        reply = self.run("object_cut", object=0, z=10, to_parts=True)
+        objs = self.shapes()
+        if self.t.equal(f"{s} 10: the objects", [o["name"] for o in objs], ["A"]):
+            self.piece(f"{s} 10: A", objs[0], [4000, 4000], size=[20, 20, 20], xy=[90, 90, 110, 110])
+        self.t.equal(f"{s} 10: the reply's object", {k: reply.get("object", {}).get(k) for k in ("index", "name")},
+                     {"index": 0, "name": "A"})
+        self.t.equal(f"{s} 10: the reply's parts", len(reply.get("parts", [])), 2)
+        self.undo()
+        self.whole(f"{s} 11")
+
+        self.run("object_cut", object=0, z=10)
+        self.halves(f"{s} 12")
+        self.save_and_reopen("cut.3mf")
+        self.halves(f"{s} 13: saved and reopened")
+
+    def refused_cuts(self):
+        s = "cuts refused"
+        self.start(s)
+        self.cube([100, 100], name="A")
+        self.run("object_select", none=True)
+        self.whole(f"{s} 0")
+        plane = {"point": [100, 100, 10], "normal": [0, 0, 1]}
+        rows = [
+            (1, {"z": 50}, "plane_misses_object", None),
+            (2, {"keep": "upper"}, "needs_plane", None),
+            (3, {"z": 10, "plane": plane}, None, "z or plane, not both"),
+            (4, {"plane": {"point": [100, 100, 10], "normal": [0, 0, 0]}}, None, "normal is zero"),
+            (5, {"z": 10, "keep": "upper", "lower": "flip"}, None, "the lower piece is not kept"),
+            (6, {"z": 10, "keep": "upper", "to_parts": True}, None, "to_parts keeps both pieces"),
+            (7, {"z": 10, "to_parts": True, "upper": "flip"}, None, "to_parts places no piece"),
+        ]
+        for row, args, code, words in rows:
+            undo_steps(self.c)
+            self.t.refused(f"{s} {row}: refused", lambda: self.c.call("object_cut", object=0, **args), code=code,
+                           words=words)
+            self.whole(f"{s} {row}")
+            self.t.equal(f"{s} {row}: no gizmo open", self.gizmo(), None)
+            self.t.equal(f"{s} {row}: the undo steps", undo_steps(self.c), [])
+
     def run_all(self, only=()):
         self.run("action_run", id="orca_command:mode_expert:orca")
         self.t.equal("Expert mode", self.c.call("app_state")["mode"], "expert")
-        scenarios = [("opening a gizmo on a target", self.opening), ("openings refused", self.refused_openings)]
+        scenarios = [("opening a gizmo on a target", self.opening), ("openings refused", self.refused_openings),
+                     ("cut from arguments", self.cut), ("cuts refused", self.refused_cuts)]
         for name, scenario in scenarios:
             if not only or name in only:
                 self.t.scenario(name, scenario)

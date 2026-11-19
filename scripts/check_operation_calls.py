@@ -95,6 +95,7 @@ BANNED = {
     "reorder_objects": ["move_object"],
     # The gizmo commands open their gizmo through it; a gizmo icon's click stays the GUI tools' (UiInspector.cpp).
     "open_gizmo": ["open_gizmo"],
+    "cut_object": ["apply_cut_object_to_model", "perform_with_plane"],
     "the undo snapshot of an operation": ["take_snapshot"],
 }
 

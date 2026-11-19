@@ -1701,7 +1701,7 @@ TEST_CASE("layer G-codes are edited on the layer slider as its menus edit them",
 
 // The gizmo commands, each with the place its name gives it.
 const std::vector<std::pair<std::string, std::string>> kGizmoCommands{
-    {"object_paint", "Objects"}, {"object_measure", "Objects"}, {"object_simplify", "Objects"}, {"part_boolean", "Parts"}};
+    {"object_paint", "Objects"}, {"object_measure", "Objects"}, {"object_simplify", "Objects"}, {"part_boolean", "Parts"}, {"object_cut", "Objects"}};
 
 TEST_CASE("the gizmo commands are listed under their places and take no silent", "[Mcp][Gizmos]")
 {

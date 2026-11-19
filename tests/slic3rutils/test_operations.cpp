@@ -1,6 +1,7 @@
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "slic3r/GUI/CommandCatalog.hpp"
@@ -22,7 +23,9 @@
 #include "slic3r/plugin/PluginDescriptor.hpp"
 
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/CutUtils.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Point.hpp"
 #include "libslic3r/TextConfiguration.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
@@ -2048,7 +2051,7 @@ const std::set<std::string> kOperations = {
     "add_filament_slot",  "delete_filament_slot", "add_mixed_filament",   "sync_presets",     "export_toolpaths_obj",
     "printer_models",     "install_printers",     "uninstall_printers",   "install_filaments", "uninstall_filaments",
     "set_preferences",    "set_plugin_enabled",   "uninstall_plugin",     "reload_plugin",    "start_plugin_refresh",
-    "reorder_objects",    "sync_filaments_from_ams", "open_gizmo",
+    "reorder_objects",    "sync_filaments_from_ams", "open_gizmo",           "cut_object",
 };
 
 // What an exception is, so that the reason reads the same for every entry of a kind.
@@ -2301,4 +2304,127 @@ TEST_CASE("every gizmo a command opens says why it stays closed", "[Operations][
           GLGizmosManager::Measure})
         CHECK(gizmo_refusal_code(reads_none, every_fact_fails, true).empty());
     CHECK(gizmo_refusal_code(GLGizmosManager::Cut, GizmoFacts{false, 1, false, false}, true).empty());
+}
+
+namespace {
+
+// A 20 mm cube centred on its own origin, its instance's centre at (100, 100, 10), as object_add_primitive places one
+// on the bed.
+Slic3r::ModelObject* placed_cube(Slic3r::Model& model)
+{
+    Slic3r::ModelObject* object = model.add_object();
+    Slic3r::TriangleMesh mesh   = Slic3r::make_cube(20., 20., 20.);
+    mesh.translate(-10.f, -10.f, -10.f);
+    object->add_volume(std::move(mesh));
+    object->add_instance()->set_offset(Slic3r::Vec3d(100., 100., 10.));
+    return object;
+}
+
+// The code cut_refusal() gives, or "" for none.
+std::string cut_refusal_code(const Slic3r::ModelObject& object, const Slic3r::Vec3d& point, const Slic3r::Vec3d& normal)
+{
+    const std::optional<Refusal> refusal = cut_refusal(object, 0, point, normal);
+    return refusal ? std::string(refusal->code) : std::string();
+}
+
+} // namespace
+
+TEST_CASE("a cut from arguments builds the attributes the Cut gizmo builds", "[Operations][Gizmos]")
+{
+    using Attribute = Slic3r::ModelObjectCutAttribute;
+    // The gizmo's defaults on an object never cut: both pieces kept, the upper one laid on its cut face, and the cut
+    // information left out, since the object has no cut id to carry on.
+    const CutObjectArgs defaults;
+    CHECK(cut_attributes(defaults, false, false) ==
+          (Attribute::KeepUpper | Attribute::KeepLower | Attribute::PlaceOnCutUpper | Attribute::InvalidateCutInfo));
+    // The keep_painting preference keeps the painting.
+    CHECK(cut_attributes(defaults, true, false) ==
+          (Attribute::KeepUpper | Attribute::KeepLower | Attribute::PlaceOnCutUpper | Attribute::InvalidateCutInfo | Attribute::KeepPaint));
+
+    CutObjectArgs upper_only;
+    upper_only.keep_lower = false;
+    CHECK(cut_attributes(upper_only, false, false) == (Attribute::KeepUpper | Attribute::PlaceOnCutUpper | Attribute::InvalidateCutInfo));
+
+    CutObjectArgs flipped;
+    flipped.upper = CutPlacement::Flip;
+    flipped.lower = CutPlacement::PlaceOnCut;
+    CHECK(cut_attributes(flipped, false, false) ==
+          (Attribute::KeepUpper | Attribute::KeepLower | Attribute::FlipUpper | Attribute::PlaceOnCutLower | Attribute::InvalidateCutInfo));
+
+    // Cut to parts keeps both pieces and drops the placements, the upper piece's default among them.
+    CutObjectArgs to_parts;
+    to_parts.keep_lower = false;
+    to_parts.to_parts   = true;
+    CHECK(cut_attributes(to_parts, false, false) ==
+          (Attribute::KeepUpper | Attribute::KeepLower | Attribute::KeepAsParts | Attribute::InvalidateCutInfo));
+
+    // An object cut before keeps its cut id, so its pieces stay one cut with the earlier ones.
+    CHECK(cut_attributes(defaults, false, true) == (Attribute::KeepUpper | Attribute::KeepLower | Attribute::PlaceOnCutUpper));
+}
+
+TEST_CASE("a cut is refused where the plane misses the object or the object has connectors", "[Operations][Gizmos]")
+{
+    Slic3r::Model              model;
+    const Slic3r::ModelObject& cube = *placed_cube(model);
+    const Slic3r::Vec3d        up   = Slic3r::Vec3d::UnitZ();
+    // Through the cube, level or tilted.
+    CHECK(cut_refusal_code(cube, {100., 100., 10.}, up).empty());
+    CHECK(cut_refusal_code(cube, {100., 100., 10.}, {1., 0., 1.}).empty());
+    // Above it, below it, and on its top and bottom faces, all of it lies on one side.
+    CHECK(cut_refusal_code(cube, {100., 100., 50.}, up) == "plane_misses_object");
+    CHECK(cut_refusal_code(cube, {100., 100., -5.}, up) == "plane_misses_object");
+    CHECK(cut_refusal_code(cube, {100., 100., 20.}, up) == "plane_misses_object");
+    CHECK(cut_refusal_code(cube, {100., 100., 0.}, up) == "plane_misses_object");
+    // A plane beside it, upright.
+    CHECK(cut_refusal_code(cube, {130., 100., 10.}, Slic3r::Vec3d::UnitX()) == "plane_misses_object");
+    // A zero normal gives no plane.
+    CHECK(cut_refusal_code(cube, {100., 100., 10.}, Slic3r::Vec3d::Zero()) == "plane_misses_object");
+
+    // Connectors are placed and cut in the Cut gizmo, whatever the plane.
+    Slic3r::ModelObject& with_connectors = *placed_cube(model);
+    with_connectors.cut_connectors.emplace_back();
+    CHECK(cut_refusal_code(with_connectors, {100., 100., 10.}, up) == "has_connectors");
+
+    // A cut object left as one dowel connector, on which the Cut gizmo does not open.
+    Slic3r::ModelObject& dowel = *placed_cube(model);
+    dowel.cut_id.init();
+    dowel.volumes.front()->cut_info = Slic3r::ModelVolume::CutInfo(Slic3r::CutConnectorType::Dowel, 0.f, 0.f, true);
+    CHECK(cut_refusal_code(dowel, {100., 100., 10.}, up) == "dowel_alone");
+
+    // Each refusal is one whole sentence a person can read.
+    const std::optional<Refusal> misses = cut_refusal(cube, 0, {100., 100., 50.}, up);
+    REQUIRE(misses.has_value());
+    CHECK_FALSE(misses->msgid.empty());
+}
+
+TEST_CASE("a cut's matrix places the plane as the Cut gizmo places it", "[Operations][Gizmos]")
+{
+    using Catch::Matchers::WithinAbs;
+    Slic3r::Model              model;
+    const Slic3r::ModelObject& cube = *placed_cube(model);
+    const auto                 same = [](const Slic3r::Vec3d& got, const Slic3r::Vec3d& want) {
+        INFO("got " << got.transpose() << ", expected " << want.transpose());
+        CHECK((got - want).norm() < 1e-9);
+    };
+
+    // A level plane 12 mm above the bed: 2 mm above the instance's centre, and no turn.
+    const Slic3r::Transform3d level = cut_matrix(cube, 0, {100., 100., 12.}, Slic3r::Vec3d::UnitZ(), 0.);
+    same(level.translation(), {0., 0., 2.});
+    CHECK(level.linear().isIdentity(1e-12));
+
+    // A plane through the centre facing (1, 0, 1): no translation, and the plane's +Z turned to the normal, about Y.
+    const Slic3r::Transform3d tilted = cut_matrix(cube, 0, {100., 100., 10.}, {1., 0., 1.}, 0.);
+    same(tilted.translation(), Slic3r::Vec3d::Zero());
+    same(tilted.linear() * Slic3r::Vec3d::UnitZ(), Slic3r::Vec3d(1., 0., 1.).normalized());
+    same(tilted.linear() * Slic3r::Vec3d::UnitY(), Slic3r::Vec3d::UnitY());
+
+    // An SLA object stands raised in the 3D view; its plane is lowered by the lift.
+    const Slic3r::Transform3d lifted = cut_matrix(cube, 0, {100., 100., 12.}, Slic3r::Vec3d::UnitZ(), 5.);
+    same(lifted.translation(), {0., 0., -3.});
+
+    // A plane facing straight down is the gizmo's Flip, a half turn about X.
+    const Slic3r::Transform3d down = cut_matrix(cube, 0, {100., 100., 10.}, -Slic3r::Vec3d::UnitZ(), 0.);
+    same(down.linear() * Slic3r::Vec3d::UnitY(), -Slic3r::Vec3d::UnitY());
+    same(down.linear() * Slic3r::Vec3d::UnitX(), Slic3r::Vec3d::UnitX());
+    CHECK_THAT(down.linear().determinant(), WithinAbs(1., 1e-12));
 }

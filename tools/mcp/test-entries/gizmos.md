@@ -425,7 +425,7 @@ counts a brush stroke gives, the Measure distance, the reverted font and where a
 are checked by a tolerance or a property, as the app works them out.
 
 ## `test_gizmo_commands`
-`test_gizmo_commands.py` · Python, 87 checks · in `sweep.json` as `{"path": "test_gizmo_commands.py"}`
+`test_gizmo_commands.py` · Python, 277 checks · in `sweep.json` as `{"path": "test_gizmo_commands.py"}`
 
 **Tests:** The commands that open a gizmo on a named target, and the ones among them that do the gizmo's job from
 arguments with no gizmo: `object_paint`, `object_measure`, `object_simplify`, `part_boolean`, `object_cut`,
@@ -504,8 +504,8 @@ upper first (`Plater::apply_cut_object_to_model`), each named as the object was.
 | # | Step | Objects after | Also checked |
 |---|---|---|---|
 | 0 | start | A (100, 100, 10) size [20, 20, 20], one part 8000 | |
-| 1 | `object_cut {object: 0}` | as after 0 | reply `gizmo` "Cut", `active` true; `gizmo()` Cut; no undo step |
-| 2 | `object_cut {object: 0, z: 10}` | A [20, 20, 10] 4000 · A [20, 20, 10] 4000, both `bbox` x and y 90–110 | `gizmo()` none: the open Cut gizmo was closed first; reply `pieces` [{index 0, name "A", open_edges 0}, {index 1, name "A", open_edges 0}]; undo steps ["Cut by Plane"] |
+| 1 | `object_cut {object: 0}` | as after 0 | reply `gizmo` "Cut", `active` true; `gizmo()` Cut; undo steps ["Entering Cut gizmo"], the step the Cut gizmo records as it opens, as for a click on its icon |
+| 2 | `object_cut {object: 0, z: 10}` | A [20, 20, 10] 4000 · A [20, 20, 10] 4000, both `bbox` x and y 90–110 | `gizmo()` none: the open Cut gizmo was closed first; reply `pieces` [{index 0, name "A", open_edges 0}, {index 1, name "A", open_edges 0}]; undo steps ["Leaving Cut gizmo", "Cut by Plane"]: the gizmo's own step as it closes, then the cut's |
 | 3 | `undo` | as after 0 | |
 | 4 | `redo` | as after 2 | |
 | 5 | `undo` | as after 0 | |

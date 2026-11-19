@@ -3458,6 +3458,145 @@
   },
   {
    "completion": "immediate",
+   "description": "Cut an object's instance, the first unless instance is given, along a plane, as the Cut gizmo's Perform cut does. Acts from arguments: z, plane, keep, upper, lower, to_parts. With none of them it opens the Cut gizmo. z cuts level, that many mm above the bed; plane {point, normal} cuts along any plane, the upper piece being the one the normal points into. keep: both (default), upper or lower. upper and lower place a kept piece: as_cut, place_on_cut (laid on its cut face) or flip; by default the upper piece is laid on its cut face and the lower one stays as cut. to_parts keeps both pieces as two parts of one object, with no placement. A cut is one undo step and replaces the object: its pieces go to the end of the object list, upper first, and the reply gives them as pieces [{index, object_id, name, open_edges}], or with to_parts the object and its parts. A piece with open edges is repaired by object_fix. Connectors, the dovetail and a cut along a contour are left to the gizmo: open it with object_cut naming only the object. Read the gizmo's panel with widget_list {include_imgui: true}, set its fields with widget_set_value, press its buttons with widget_click, and click or drag on the model with mouse_gesture; object_select {none: true} closes it. The gizmo already open on the same target stays open. Reply: gizmo (its name, as app_state.gizmo gives it), active, and what is selected (objects, instances, parts).",
+   "destructive": false,
+   "examples": [
+    {
+     "calls": [
+      {
+       "args": {
+        "object": 0,
+        "z": 10
+       },
+       "tool": "object_cut"
+      }
+     ],
+     "title": "Cut object 0 in two, 10 mm above the bed"
+    },
+    {
+     "calls": [
+      {
+       "args": {
+        "keep": "upper",
+        "object": 1,
+        "plane": {
+         "normal": [
+          1,
+          0,
+          1
+         ],
+         "point": [
+          100,
+          100,
+          10
+         ]
+        }
+       },
+       "tool": "object_cut"
+      }
+     ],
+     "title": "Keep the part of object 1 above a tilted plane"
+    }
+   ],
+   "group": "Objects",
+   "guard": "mutate",
+   "has_own_action": false,
+   "idempotent": false,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {
+     "instance": {
+      "description": "An instance of the object (object_list).",
+      "minimum": 0,
+      "type": "integer"
+     },
+     "keep": {
+      "description": "The pieces kept. Default both.",
+      "enum": [
+       "both",
+       "upper",
+       "lower"
+      ],
+      "type": "string"
+     },
+     "lower": {
+      "description": "Where the lower piece goes. Default as_cut.",
+      "enum": [
+       "as_cut",
+       "place_on_cut",
+       "flip"
+      ],
+      "type": "string"
+     },
+     "object": {
+      "description": "Object index (object_list).",
+      "minimum": 0,
+      "type": "integer"
+     },
+     "object_id": {
+      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "minimum": 0,
+      "type": "integer"
+     },
+     "plane": {
+      "additionalProperties": false,
+      "description": "Cut along this plane. Not with z.",
+      "properties": {
+       "normal": {
+        "description": "[x, y, z]: the direction the upper piece lies in; any length but zero.",
+        "items": {
+         "type": "number"
+        },
+        "minItems": 3,
+        "type": "array"
+       },
+       "point": {
+        "description": "[x, y, z] mm: a point of the plane, in the 3D view's coordinates.",
+        "items": {
+         "type": "number"
+        },
+        "minItems": 3,
+        "type": "array"
+       }
+      },
+      "required": [
+       "point",
+       "normal"
+      ],
+      "type": "object"
+     },
+     "to_parts": {
+      "description": "Keep both pieces as two parts of one object, as the gizmo's Cut to parts does. Default false.",
+      "type": "boolean"
+     },
+     "upper": {
+      "description": "Where the upper piece goes. Default place_on_cut.",
+      "enum": [
+       "as_cut",
+       "place_on_cut",
+       "flip"
+      ],
+      "type": "string"
+     },
+     "z": {
+      "description": "mm above the bed: cut level at this height. Not with plane.",
+      "type": "number"
+     }
+    },
+    "type": "object"
+   },
+   "key": "object_cut",
+   "listed": true,
+   "open_world": false,
+   "operations": [
+    "open_gizmo",
+    "cut_object"
+   ],
+   "read_only": false,
+   "title": "Cut"
+  },
+  {
+   "completion": "immediate",
    "description": "Replace an object's height range modifiers (Height Range Modifier in the object list): Z ranges in mm, each printed with its own layer_height, filament and process settings, which settings_get and settings_set read and write with the target height_range. A range given with the min_z and max_z of one the object has keeps its settings; a new one starts from the object's layer height and filament. Ranges may touch but not overlap; [] removes them all. The object is the one named, else the one selected in the Prepare view. One undo step; the object is selected. Reply: the object (objects, object), its height and its ranges as object_list shows them, with their settings, and warnings, such as a variable layer height profile deciding the layer heights instead.",
    "destructive": false,
    "group": "Objects",
