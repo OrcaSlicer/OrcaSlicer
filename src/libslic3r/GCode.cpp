@@ -164,26 +164,16 @@ namespace {
 std::optional<Vec2d> emitted_xy_after_gcode(const std::string &gcode, const Vec2d &initial_xy)
 {
     Vec2d position = initial_xy;
-    bool  absolute = true;
     bool  coordinate_frame_known = true;
 
     GCodeReader reader;
-    reader.parse_buffer(gcode, [&position, &absolute, &coordinate_frame_known](GCodeReader &, const GCodeReader::GCodeLine &line) {
-        if (line.cmd_is("G90")) {
-            absolute = true;
-            return;
-        }
-        if (line.cmd_is("G91")) {
-            absolute = false;
-            return;
-        }
-
+    reader.parse_buffer(gcode, [&position, &coordinate_frame_known](GCodeReader &self, const GCodeReader::GCodeLine &line) {
         const bool is_motion = line.cmd_is("G0") || line.cmd_is("G1") || line.cmd_is("G2") || line.cmd_is("G3");
         if (is_motion) {
             if (line.has_x())
-                position.x() = absolute ? line.x() : position.x() + line.x();
+                position.x() = self.relative_xyz() ? position.x() + line.x() : line.x();
             if (line.has_y())
-                position.y() = absolute ? line.y() : position.y() + line.y();
+                position.y() = self.relative_xyz() ? position.y() + line.y() : line.y();
             return;
         }
 
