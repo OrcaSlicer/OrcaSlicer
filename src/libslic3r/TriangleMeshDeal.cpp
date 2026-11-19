@@ -16,9 +16,9 @@
 
 namespace Slic3r {
 
-// igl::loop() pairs exactly two faces per edge and sizes its vertex adjacency by the largest vertex index in use,
-// so a repeated face, an edge of more than two faces or an unused vertex makes it read out of bounds.
-// Drop repeated faces (in either winding) and unused vertices, and refuse the other edges.
+// igl::loop() pairs exactly two faces per edge, running along it in opposite directions, and sizes its vertex
+// adjacency by the largest vertex index in use. Any other face, edge or unused vertex makes it index out of bounds.
+// Drop faces that repeat a vertex or another face (in either winding) and unused vertices, and refuse the other edges.
 static bool prepare_for_loop(indexed_triangle_set &its)
 {
     std::vector<std::array<int, 3>> keys(its.indices.size());
@@ -33,24 +33,25 @@ static bool prepare_for_loop(indexed_triangle_set &its)
     for (size_t i = 1; i < order.size(); ++i)
         repeated[order[i]] = keys[order[i]] == keys[order[i - 1]];
     size_t kept = 0;
-    for (size_t i = 0; i < its.indices.size(); ++i)
-        if (!repeated[i])
-            its.indices[kept++] = its.indices[i];
+    for (size_t i = 0; i < its.indices.size(); ++i) {
+        const stl_triangle_vertex_indices f = its.indices[i];
+        if (!repeated[i] && f(0) != f(1) && f(1) != f(2) && f(2) != f(0))
+            its.indices[kept++] = f;
+    }
     its.indices.resize(kept);
     its_compactify_vertices(its);
     if (its.indices.empty())
         return false;
 
+    // Two faces running along an edge the same way, as around a flipped face, and any third face on an edge
+    // repeat one of its directions.
     std::vector<std::pair<int, int>> edges;
     edges.reserve(3 * its.indices.size());
     for (const stl_triangle_vertex_indices &f : its.indices)
         for (int j = 0; j < 3; ++j)
-            edges.emplace_back(std::minmax(f(j), f((j + 1) % 3)));
+            edges.emplace_back(f(j), f((j + 1) % 3));
     std::sort(edges.begin(), edges.end());
-    for (size_t i = 2; i < edges.size(); ++i)
-        if (edges[i] == edges[i - 2])
-            return false;
-    return true;
+    return std::adjacent_find(edges.begin(), edges.end()) == edges.end();
 }
 
 TriangleMesh TriangleMeshDeal::smooth_triangle_mesh(const TriangleMesh& mesh, bool& ok, TriangleMesh* unsmoothed)

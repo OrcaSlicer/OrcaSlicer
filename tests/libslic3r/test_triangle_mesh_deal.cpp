@@ -101,6 +101,31 @@ TEST_CASE("Loop subdivision drops a repeated face and an unused vertex", "[Trian
     CHECK(smoothed.its.vertices.size() == expected.its.vertices.size());
 }
 
+TEST_CASE("Loop subdivision drops a face that repeats a vertex", "[TriangleMeshDeal][Regression]")
+{
+    const TriangleMesh cube = make_cube(20.f, 20.f, 20.f);
+    bool               ok   = false;
+    const TriangleMesh expected = TriangleMeshDeal::smooth_triangle_mesh(cube, ok);
+    REQUIRE(ok);
+
+    indexed_triangle_set its = cube.its;
+    its.indices.emplace_back(0, 0, 6);
+    const TriangleMesh smoothed = TriangleMeshDeal::smooth_triangle_mesh(TriangleMesh(its), ok);
+    REQUIRE(ok);
+    CHECK(smoothed.its.indices.size() == expected.its.indices.size());
+    CHECK(smoothed.its.vertices.size() == expected.its.vertices.size());
+}
+
+TEST_CASE("Loop subdivision refuses a face that runs along its edges the same way as its neighbours", "[TriangleMeshDeal][Regression]")
+{
+    indexed_triangle_set its = make_cube(20.f, 20.f, 20.f).its;
+    std::swap(its.indices.front()(1), its.indices.front()(2));
+
+    bool ok = true;
+    TriangleMeshDeal::smooth_triangle_mesh(TriangleMesh(its), ok);
+    CHECK_FALSE(ok);
+}
+
 TEST_CASE("Loop subdivision refuses an edge shared by more than two faces", "[TriangleMeshDeal][Regression]")
 {
     // Three triangles hinged on the edge from vertex 0 to vertex 1.
