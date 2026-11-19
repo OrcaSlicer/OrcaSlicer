@@ -20,6 +20,7 @@
 
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/BrimEarsPoint.hpp"
+#include "libslic3r/Config.hpp"
 #include "libslic3r/CutUtils.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/LocalesUtils.hpp"

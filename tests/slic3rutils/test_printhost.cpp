@@ -16,6 +16,7 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <catch2/generators/catch_generators_range.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include "libslic3r/Config.hpp"
 #include "libslic3r/LifecycleEvents.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/Operations/Outcome.hpp"

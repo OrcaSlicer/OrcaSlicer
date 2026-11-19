@@ -2,12 +2,14 @@
 
 ## Purpose and scope
 
-OrcaSlicer's MCP server gives a client 118 commands, its MCP tools: for the app, the project, its objects,
+OrcaSlicer's MCP server gives a client 131 commands, its MCP tools: for the app, the project, its objects,
 parts and plates, presets and settings, filaments, printers, plugins, the view and windows, recordings,
 replays and scripts, and for driving the GUI itself. An agent calls them by name. A person's Speed Dial actions
 run them, Action Replay and recordings show them, and the journal records and replays them. A client that
 knows the app's menus can guess the command that does a menu item's job and the argument that picks the
-item, and can do from arguments what a person does through the item and its dialog.
+item, and can do from arguments what a person does through the item and its dialog. Where a gizmo or a print dialog holds
+choices too many to take as arguments, its command opens it on the object or printer it names, and the client works
+it with the commands that drive the GUI.
 
 This document is that command set: how the commands are named and grouped, what each does and takes, which
 menu items are actions of which command, which calls ask in a dialog, and the behaviour a caller relies on
@@ -141,8 +143,8 @@ them and `tool_call` runs them.
 | `object_transform` | Move, rotate or scale one instance, or one part | `object`, `instance`, `part`; `translate`, `position`, `rotate`, `scale`, `size`, `plate`; `mode`: relative, absolute; `drop_to_bed` |
 | `object_add_primitive` | Add a primitive shape as a new object, as Add Primitive does | `shape`: cube, cylinder, sphere, cone, disc, torus; `size`, `position`, `plate`, `name` |
 | `object_add_handy_model` | Add one of the test models the app ships, as Add Handy models does | `model`: one of ten |
-| `object_add_text` | Add a text part to the selected object, or a new object, and open the Text gizmo on it |  |
-| `object_add_svg` | Add an SVG as a new object or as a part of the selected one, and open the SVG gizmo on it | `path` |
+| `object_add_text` | Add a text part to the selected object, or to the object named, or a new object, and open the Text gizmo on it | `object`; `type`: part, negative, modifier |
+| `object_add_svg` | Add an SVG as a new object or as a part of the selected one, or of the object named, and open the SVG gizmo on it | `path`; `object`; `type`: part, negative, modifier |
 | `object_delete` | Delete objects, instances or parts, what stands on a plate, or every object | targets; `plate`; `all` |
 | `object_rename` | Rename an object or a part | `object`, `part`, `name` |
 | `object_set_instances` | Give an object a number of instances, or one more or one fewer | `object`; `count`, or `delta`: 1, -1 |
@@ -161,6 +163,12 @@ them and `tool_call` runs them.
 | `object_clone` | Copy objects as new objects, as the Clone dialog does | targets; `count`, `arrange` |
 | `object_reload_from_disk` | Load parts again from the files they came from | targets; `all` |
 | `object_arrange` | Arrange every unlocked plate, or one, or fill an object's plate with more of it | `plates`; `spacing`, `rotate`, `align_y`, `multi_material`; `fill_object`, `fill_with`: instances, copies |
+| `object_paint` | Open a painting gizmo on an object's instance | `type`: supports, seam, color, fuzzy_skin; `object`, `instance` |
+| `object_measure` | Open the Measure gizmo on objects, or on the selection as it is | targets |
+| `object_simplify` | Open the Simplify gizmo on a part | `object`, `part` |
+| `object_cut` | Cut an instance along a plane, as the Cut gizmo's Perform cut does, or open the Cut gizmo on it | `object`, `instance`; acting: `z` or `plane`, `keep`: both, upper, lower; `upper`, `lower`: as_cut, place_on_cut, flip; `to_parts` |
+| `object_lay_on_face` | Turn an instance so that the face a direction names lies on the bed, or open Lay on Face on it | `object`, `instance`; acting: `normal`, `frame`: object, world |
+| `object_set_brim_ears` | Set an object's brim ears at bed positions, or clear them, or open the Brim Ears gizmo on it | `object`, `instance`; acting: `points`, `clear` |
 | `object_set_height_ranges` | Replace an object's height range modifiers | `object`, `ranges` |
 | `object_set_variable_layer_height` | Run the Variable layer height panel's Adaptive, Smooth or Reset on an object | `action`: adaptive, smooth, reset; `object`; `quality`; `radius`, `keep_min` |
 
@@ -171,6 +179,7 @@ them and `tool_call` runs them.
 | `part_add` | Add a part, a negative part, a modifier, a support blocker or enforcer, or a precise seam to an object: a primitive shape, or a model file | `type`: part, negative, modifier, support_blocker, support_enforcer, precise_seam; `shape` and `size`, or `path`; `object`, `position` |
 | `part_change_type` | Change what parts are, as Change Type does, and a precise seam's subtype | `type`, as `part_add` takes it; `subtype`: center, left, right, enforced, blocked, neutral; `parts` |
 | `part_replace` | Replace a part's mesh with a model file's, keeping its settings, type, filament and placement | `object`, `part`, `path` |
+| `part_boolean` | Open the Mesh Boolean gizmo on an object of two parts or more | `object` |
 
 ### Plates
 
@@ -223,10 +232,16 @@ them and `tool_call` runs them.
 
 | Command | What it does | Variants and main arguments |
 |---|---|---|
-| `printer_send` | Open the Send G-code to printer host dialog for the current plate, as the Print button does for a printer with a print host |  |
 | `printer_list_models` | Every printer model the app ships or has installed, of every vendor, with its nozzles | `vendor`, `query` |
 | `printer_install` | Install printer models, as the Printer Selection dialog's Confirm does | `models`, each with its `nozzles`; `preset_changes`: transfer, discard |
 | `printer_uninstall` | Uninstall printer models, or some of their nozzles | `models`; `preset_changes` |
+| `print_start` | Open the dialog the Print button's Print plate, or Print all, opens for the selected printer | `plates`: an index, `"current"`, `"all"` |
+| `printer_send` | Open the dialog the Print button's Send opens: a Bambu printer's storage dialog, or the print host's upload dialog | `plates` |
+| `printer_test_host` | Ask the printer's print host whether it answers, as the connection dialog's Test button does |  |
+| `printer_status` | What the Device tab shows of the printer it is connected to: state, progress, layers, the file, temperatures |  |
+| `print_pause` | Pause that printer's print, as the Device tab's Pause does |  |
+| `print_resume` | Resume its paused print, as the tab's Resume does |  |
+| `print_stop` | Stop its print, as the tab's Stop does, without the tab's question |  |
 
 ### Plugins
 
@@ -433,10 +448,75 @@ These open a dialog or a gizmo whatever their arguments, and the caller answers 
 |---|---|---|
 | `preset_export` | the Export Preset Bundle dialog, on the folder `path` names when one is given | click the label of the kind (`widget_click`), check the presets' rows (`widget_set_value` on the checkboxes named after the printer preset or filament they stand for), press OK (`dialog_answer`) and answer the result message; a dialog closed without exporting makes the call an error |
 | `project_import`, `part_add` and `part_replace` with a path | the loader's questions: a STEP file's mesh options, the AMF and CAD 3MF options, the names clean-up, inches or metres, one object of several parts | the call replies `blocked_by_dialog` where the loader asks, and `dialog_answer` answers it; no file dialog opens |
-| `printer_send` | the Send G-code to printer host dialog; refused for a printer without a print host, and for one that prints through the Bambu network or a printer agent | the file name with `widget_set_value`, Upload or Upload and Print with `dialog_answer`; the plate is sliced if needed and uploaded in the background (`app_state.uploads`) |
+| `print_start`, `printer_send` | the dialog of the Print button's action of that name for the selected printer (see The printing commands' dialogs) | its fields with `widget_list` and `widget_set_value`, its buttons with `dialog_answer`; in a print host's upload dialog, the file name, then Upload or Upload and Print, after which the plate is sliced if needed and uploaded in the background (`app_state.uploads`) |
 | `app_benchmark_3d_scene` | Start or Cancel, then New Project's unsaved changes question | `dialog_answer` |
 | `preset_migrate_filaments`, `app_check_for_updates` | the migration's dialog; the answer to the check | `dialog_answer` |
 | `object_add_text`, `object_add_svg` | none: the Text or SVG gizmo opens on the new part | the gizmo, through `widget_list` and the input commands |
+
+### The gizmo commands: opening or acting
+
+`object_paint`, `object_measure`, `object_simplify`, `part_boolean`, `object_cut`, `object_lay_on_face` and
+`object_set_brim_ears` each stand for a gizmo of the Prepare view. Their rules add to the one above:
+
+- **A call that names only its targets opens the gizmo on them.** It shows the Prepare view, selects the target as
+  `object_select` does, and opens the gizmo as its toolbar icon does; with no target, on the selection as it is. The
+  reply is the gizmo's name, as `app_state.gizmo` gives it, `active`, and what is selected. The client reads the
+  gizmo's panel with `widget_list {include_imgui: true}`, sets its fields with `widget_set_value`, presses its
+  buttons with `widget_click`, clicks or drags on the model with `mouse_gesture`, and closes it with
+  `object_select {none: true}`.
+- **A call with any of its command's acting arguments does the job with no gizmo**, as the gizmo's own button or click
+  does, through the same functions, as one undo step. A command's description names its acting arguments in one fixed
+  sentence ("Acts from arguments: ..."). Acting arguments that need a plane or a direction and have none are refused
+  (`needs_plane`, `needs_normal`).
+- **None of them takes `silent`**: whether a call opens or acts is read from its arguments.
+- **Opening is not a toggle.** The gizmo already open on the same target stays open, and the reply is the same; a
+  click on its icon would close it.
+- **A gizmo that cannot open says why**, in the gizmo's own condition, and the selection is put back as the call found
+  it: `needs_two_parts` for Mesh Boolean, `needs_two_filaments` for Color Painting, `needs_fff_printer` for the
+  painting gizmos, `needs_one_instance`, `needs_one_part`, `needs_instance_or_part`, `needs_selection`,
+  `layers_editing_on`, `dowel_alone`.
+- **A call that acts closes the open gizmo first**, as Perform cut does, since a gizmo writes its own state to the
+  model as it closes; a refused call leaves it open.
+
+| Command | Opens | Acting arguments | Left to the gizmo |
+|---|---|---|---|
+| `object_cut` | Cut, on `object`, `instance` | `z`, or `plane` (`point`, `normal`); `keep`; `upper`, `lower`; `to_parts` | connectors, the dovetail, a cut along a contour; `object_fix` repairs the open edges a reply reports |
+| `object_lay_on_face` | Lay on Face, on `object`, `instance` | `normal`, in the object's frame or with `frame: "world"` in the 3D view's | picking one of the flat faces the gizmo finds; the other instances turn with it |
+| `object_set_brim_ears` | Brim Ears, on `object`, `instance` | `points` (bed positions, each with an optional `radius` within 0.1 to 100 mm), or `clear` | Auto-generate, with its angle and detection radius; moving an ear. The ears are the object's, stored in its coordinates, and take effect where its brim type is `painted` |
+| `object_paint` | the painting gizmo of `type`, on `object`, `instance` | none | all painting |
+| `object_measure` | Measure, on `objects` | none | everything |
+| `object_simplify` | Simplify Model, on a part: the one named, or an object's only one | none | the detail level or ratio, and Apply |
+| `part_boolean` | Mesh Boolean, on `object` | none | the operation, the two parts, Delete input, and the button |
+
+### The printing commands' dialogs
+
+`print_start` and `printer_send` are the Print button's actions of those names, read from the button's own list for
+the selected printer (`MainFrame::available_print_actions()`), so a call and the button cannot drift apart. Each is
+refused where the button offers no such action (`all_plates_not_offered`), and a route through a print host is
+refused with no `print_host` address (`no_print_host`). As the button's click does, `print_start` applies the slicing
+result first and is refused where the button would be disabled (`not_sliced`), and so is `printer_send` where it opens
+the storage dialog; a send to a print host slices the plate itself. `plates` names a plate, which becomes the current
+one; a refusal after that makes the plate that was current before current again.
+
+| The selected printer | `print_start` | with `plates: "all"` | `printer_send` | with `plates: "all"` |
+|---|---|---|---|---|
+| On the Bambu network, or with printer agents on | the Print dialog | the Print dialog, for every plate | the dialog that sends to the printer's storage | the same, for every plate |
+| A Bambu preset set to a print host | the host's upload dialog | the upload of every plate, for a SimplyPrint host; refused for the others | the host's upload dialog | refused |
+| Another vendor's printer with a print host | the host's upload dialog | refused | the host's upload dialog | refused |
+
+The dialog is left to the client: the printer, bed levelling, flow calibration, timelapse, the AMS mapping and the
+button that prints, or the file name, the storage and the button that sends. Nothing prints or sends until that
+button is pressed.
+
+`printer_status`, `print_pause`, `print_resume` and `print_stop` act on the printer the Device tab is connected to
+(`DeviceManager::get_selected_machine()`), whether or not the tab is shown, and open nothing. With none connected
+`printer_status` replies `{"connected": false}` and the job commands are refused `no_printer_connected`. A job
+command is refused, naming the state, where the printer's state does not allow it (`printer_state`: Pause while
+running, Resume while paused, Stop while running, paused, preparing or slicing), and Resume where a job resumes
+only at the printer (`resume_at_printer`, in the app's own sentence). The printer's new state arrives when it
+reports, and `printer_status` reads it. `printer_test_host` asks the print host whether it answers, with the
+connection settings as they stand; a cloud host that wants a login is a failed test with the host's message, since
+logging in stays in the printer's connection dialog.
 
 ### Every action and the call it makes
 
@@ -530,31 +610,33 @@ How the actions are made and found is in mcp-server.md, Speed Dial catalog.
 
 Each command runs under a guard (mcp-server.md, Threading):
 
-- **Inspect**, 24 commands: the searches, lists and reads, `app_state`, `app_wait`, `app_log`,
+- **Inspect**, 25 commands: the searches, lists and reads, `app_state`, `app_wait`, `app_log`, `printer_status`,
   `window_screenshot`, `widget_list`, `replay_export` and the three recording commands. They run behind a
   modal dialog and inside another call.
 - **Recover**, 9 commands: `job_cancel`, `window_set`, `dialog_answer`, `dialog_auto_answer`, and the input
   commands that act on what is on screen, `widget_click`, `widget_set_value`, `keyboard_press`,
   `mouse_gesture` and `webview_run_javascript`. They act on a modal dialog that holds the app; aimed outside
   the topmost dialog, the input commands are held to the mutate rules.
-- **Mutate**, the other 85. A call is refused while a modal dialog is open, or while it would run inside
+- **Mutate**, the other 97. A call is refused while a modal dialog is open, or while it would run inside
   another call's nested loop, and changes to the project are refused while a slice, an export or a
   background job holds it.
 
 Access labels, which `tools/list` sends as MCP's annotations (mcp-server.md, Tool catalog, says why each is
 set as it is):
 
-- **read_only**, 20 commands: `tool_search`, `action_search`, `app_state`, `app_wait`, `app_log`,
+- **read_only**, 21 commands: `tool_search`, `action_search`, `app_state`, `app_wait`, `app_log`,
   `preferences_get`, `project_get_settings`, `object_list`, `plate_get_settings`, `plate_list`,
-  `plate_slice_stats`, `preset_list`, `settings_list`, `settings_get`, `printer_list_models`, `plugin_list`,
-  `window_list`, `window_screenshot`, `script_search_api` and `widget_list`. These are idempotent too, and so
+  `plate_slice_stats`, `preset_list`, `settings_list`, `settings_get`, `printer_list_models`, `printer_status`,
+  `plugin_list`, `window_list`, `window_screenshot`, `script_search_api` and `widget_list`. These are idempotent too, and so
   is `dialog_auto_answer`.
-- **destructive**, 2: `preset_delete` and `plugin_uninstall`, whose every call removes what a person made,
-  with no undo.
-- **open_world**, 16, which can reach a printer, the cloud account or the network: `tool_call`, `action_run`,
+- **destructive**, 3: `preset_delete` and `plugin_uninstall`, whose every call removes what a person made,
+  with no undo, and `print_stop`, which ends a print with no question.
+- **open_world**, 21, which can reach a printer, the cloud account or the network: `tool_call`, `action_run`,
   `replay_run` and `script_run` through what they run; `app_open_web_page`, `app_check_for_updates`,
-  `preset_save`, `preset_delete`, `preset_sync`, `filament_sync_ams`, `printer_send`, `plugin_enable`,
-  `plugin_reload`, `plugin_uninstall`, `plugin_refresh` and `webview_run_javascript`.
+  `preset_save`, `preset_delete`, `preset_sync`, `filament_sync_ams`, `print_start`, `printer_send`,
+  `printer_test_host`, `print_pause`, `print_resume`, `print_stop`, `plugin_enable`, `plugin_reload`,
+  `plugin_uninstall`, `plugin_refresh` and `webview_run_javascript`. `printer_status` reads what the app holds and
+  is not among them.
 
 ## Behaviour a caller relies on
 
@@ -565,7 +647,8 @@ set as it is):
   delete. Ids stay with what they name: pass them beside indices (see Targets and the selection).
 - **Undo.** A command that changes the objects, their parts or the plates is one undo step; `object_clone`
   with `arrange` is two, the copies and then the arrangement, and `project_set_settings` takes one for a prime
-  tower move. Not in the undo history: `filament_delete`, `filament_add_mixed`, `filament_sync_ams`,
+  tower move. A gizmo that records undo steps of its own as it opens or closes, as Cut, Brim Ears and the painting
+  gizmos do, adds them around a gizmo command's call. Not in the undo history: `filament_delete`, `filament_add_mixed`, `filament_sync_ams`,
   `filament_install`, `filament_uninstall`, `printer_install`, `printer_uninstall`, a preset's change by
   `settings_set`, `preferences_set`, and `plate_set_custom_gcode`, as in the layer slider.
 - **Unsaved changes.** `project_open`, `project_new` and `calibration_generate_test` refuse while the project
@@ -617,7 +700,12 @@ set as it is):
 | the filament list's + and -, Merge with | `filament_add`, `filament_delete`, `{merge_into}` |
 | System Filaments dialog | `filament_install`, `filament_uninstall` |
 | Printer Selection dialog | `printer_install`, `printer_uninstall` |
-| Send G-code to printer host | `printer_send` |
+| Send G-code to printer host, the Print button's Send and Send all | `printer_send`, `{plates: "all"}` |
+| the Print button's Print plate and Print all | `print_start`, `{plates: "all"}` |
+| the connection dialog's Test | `printer_test_host` |
+| the Device tab's status, Pause, Resume and Stop | `printer_status`, `print_pause`, `print_resume`, `print_stop` |
+| Cut, Lay on Face, Brim Ears, Measure, Simplify, Mesh Boolean | `object_cut`, `object_lay_on_face`, `object_set_brim_ears`, `object_measure`, `object_simplify`, `part_boolean` |
+| Support Painting, Seam Painting, Color Painting, Paint-on fuzzy skin | `object_paint {type}`: supports, seam, color, fuzzy_skin |
 | Install Plugin | `app_open_web_page {page: "plugin_hub"}`, which opens the plugin hub's page in the browser |
 | Fit Bed to View, Toggle Perspective, Reset Window Layout, Go to tab, Go to layer | `view_set {camera: "fit_bed"}`, `{projection: "toggle"}`, `{layout: "default"}`, `{tab}`, `{layer_percent}` |
 | Open Preset Bundle | `window_open {window: "preset_bundle"}` |

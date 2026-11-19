@@ -34,9 +34,9 @@
 #include <vector>
 
 #include <wx/app.h>
+#include <wx/busycursor.h>
 #include <wx/string.h>
 #include <wx/thread.h>
-#include <wx/utils.h>
 
 namespace Slic3r { namespace GUI { namespace Ops {
 

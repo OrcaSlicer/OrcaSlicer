@@ -11,8 +11,8 @@
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
+#include "libslic3r/Config.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/PrintConfig.hpp"
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>

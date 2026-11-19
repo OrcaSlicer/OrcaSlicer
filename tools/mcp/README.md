@@ -244,6 +244,13 @@ negative part and seen from below the bed) and that auto-answer rules run the pr
 It uses the fixtures beside it (`tests/fixtures/star.svg`, `tests/fixtures/heightmap.png`), and scenarios named on
 its command line run alone.
 
+`test_gizmo_commands.py` checks the commands that open a gizmo on a named target (`object_paint`, `object_measure`,
+`object_simplify`, `part_boolean`, `object_cut`, `object_lay_on_face`, `object_set_brim_ears`): each opens its gizmo
+and the same call again leaves it open, a refused opening leaves the model and the selection as they were, and a
+call with acting arguments closes the open gizmo and does the job, read back through `object_list`, the undo log and
+a saved and reopened project. `test_printer_commands.py` checks `printer_status` and the job commands with no
+printer connected; it reads `printer_status` first and calls nothing else where a printer is connected.
+
 `test_objects.py` and `test_object_structure.py` check the object commands, each called by index and, where its
 menu item acts on the selection, on the selection. `test_objects.py` checks where objects stand and how many there
 are: shapes added at a size, a place, a plate and a name; instances moved, turned, scaled and sent to another plate,

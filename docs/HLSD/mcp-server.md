@@ -532,7 +532,6 @@ nothing from it, and `plugin/` includes nothing from `GUI/Mcp`.
 |---|---|---|
 | `ExportOps` | `start_gcode_export`, `gcode_export_state` | `project_export` with `format` gcode |
 | | `export_sliced_3mf`, `export_model_3mf`, `export_stl`, `export_toolpaths_obj` | `project_export` with the other formats |
-| | `send_gcode_to_host` | `printer_send` |
 | `ProjectOps` | `import_models`, `open_project`, `new_project`, `save_project_as` | `project_import`, `project_open`, `project_new`, `project_save` |
 | | `set_instance_count` | `object_set_instances` |
 | `ObjectOps` | `add_primitive`, `delete_objects`, `rename_object`, `separate_instances`, `split_object`, `assemble_objects` | `object_add_primitive`, `object_delete`, `object_rename` (and `object_add_primitive`'s `name`), `object_separate_instances`, `object_split`, `object_assemble` |
@@ -558,6 +557,11 @@ nothing from it, and `plugin/` includes nothing from `GUI/Mcp`.
 | `PreferenceOps` | `preferences`, `set_preferences`, `apply_preference` | the table `preferences_get` lists and the Preferences dialog builds its rows from; `preferences_set`; each control's effect, run by the dialog and by `preferences_set` |
 | `PluginOps` | `set_plugin_enabled`, `uninstall_plugin`, `reload_plugin` | `plugin_enable`, `plugin_uninstall`, `plugin_reload`, and the Plugins window's switches and row menu |
 | | `start_plugin_refresh` | `plugin_refresh` and Refresh Plugins |
+| `GizmoOps` | `open_gizmo` | `object_paint`, `object_measure`, `object_simplify`, `part_boolean`, and `object_cut`, `object_lay_on_face` and `object_set_brim_ears` called with only their target |
+| | `cut_object`, `lay_on_face`, `set_brim_ears` | `object_cut`, `object_lay_on_face`, `object_set_brim_ears` with their acting arguments: what the gizmo's Perform cut, a click on a face and its stored ears do, through the gizmo's own functions |
+| `PrinterOps` | `open_print_dialog` | `print_start`, `printer_send` and its Speed Dial action, which run the Print button's own handler for the route the button offers |
+| | `test_print_host` | `printer_test_host`, the call the connection dialog's Test button makes |
+| | `send_job_command` | `print_pause`, `print_resume`, `print_stop`, the commands of the Device tab's buttons |
 | `RunStatus` | `slice_status`, `export_status`, `classify_plates` | the status rules of a slice and an export, free of wx and `Plater` |
 
 **What every route gets.** An operation holds what every route of its function does, so these are
@@ -2974,6 +2978,18 @@ panel fields or `object_transform` set those values. Pickers inside a gizmo go t
 actions are the bodies of those pickers (`GLGizmoSVG::change_file()`, `save_svg_as()`,
 `GLGizmoTextureDisplacement::import_texture()`).
 
+A command can also open a gizmo on a target it names (mcp-tools.md, The gizmo commands: opening or acting):
+`Ops::open_gizmo()` shows the Prepare view, selects the target as a click on the model would, asks the gizmo
+whether it can open, and opens it through `GLGizmosManager::open_gizmo()`, as its icon does; then it renders the
+canvas twice, so that the panel's items exist for `widget_list` before the reply, as a click on the icon here does.
+Opening is not a toggle: the gizmo already open on the same target is left open. A refused opening puts back the
+selection it found, under `Plater::SuppressSnapshots`, so it leaves no undo step. The gizmos that open and close
+with snapshots of their own (Cut, Brim Ears, the painting gizmos) record them as for a person. A command that acts
+from arguments closes the open gizmo first, through `reset_all_gizmos()`, since a gizmo writes its state to the
+model as it closes; the Brim Ears gizmo also reloads an object's ears on its next opening after
+`object_set_brim_ears` writes them (`GLGizmoBrimEars::reload_on_next_opening()`), where it would otherwise show,
+and write back, the ears it held.
+
 `mouse_gesture` takes points of the model (`CanvasTarget`): `{object, instance, part}` with `point` in
 the part's mesh coordinates (`frame: "part"`, mapped by `GLVolume::world_matrix()`, which follows
 the assemble view's offset and explosion) or in the scene's (`"world"`), or `spot`, where a ray along
@@ -3803,20 +3819,29 @@ last.
 ## Print host uploads
 
 Sending G-code to a print host (OctoPrint, Moonraker, PrusaLink, Duet and the others in
-`PrintHost::get_print_host()`) goes through the GUI's own dialog. `printer_send`, whose Speed Dial action is
-`send_gcode` ("Send G-code to printer host", the dialog's title), runs `Ops::send_gcode_to_host()`, which
-calls `Plater::send_gcode_legacy()`, as the Print button does for such a printer: it opens the Send
-dialog, whose file name an agent
-sets with `widget_set_value` and whose Upload or Upload and Print button it presses with `dialog_answer`.
-The plate is then sliced if needed, its G-code exported in the background process, and the upload
-queued. Host settings are printer settings (`host_type`, `print_host`, `printhost_apikey`, and
-`bbl_use_printhost` on a Bambu printer), written with `settings_set {type: "printer"}`. Where the
-Print button would not send to a print host, the command fails and says why: the printer prints
-through the Bambu network or printer agents (`PresetBundle::use_bbl_network()`,
-`use_printer_agents`), or has no `print_host`, the condition `MainFrame::can_send_gcode()` gives the
-button. It is journaled like any call, so a replay uploads again. Its arguments (the plates, the printer, the
-file name, the storage) belong to the design of printing and the Device tab, which `printer_send` leaves to
-the dialog.
+`PrintHost::get_print_host()`) goes through the GUI's own dialog. `print_start` and `printer_send`, whose Speed Dial
+action is `send_gcode` ("Send G-code to printer host", the dialog's title), run `Ops::open_print_dialog()`, which takes
+the route of the Print button's action of that name from `MainFrame::available_print_actions()`
+(`Ops::print_route()`) and then runs the button's own call: the plater's handler of `EVT_GLTOOLBAR_PRINT_PLATE` or
+`EVT_GLTOOLBAR_PRINT_ALL`, processed in place, for Print plate and Print all; `Plater::send_to_printer()` for the
+storage dialog of a printer on the Bambu network or with printer agents; `Plater::send_gcode_legacy()` for any other
+send. For a printer with a print host it opens the Send dialog, whose file name an agent sets with
+`widget_set_value` and whose Upload or Upload and Print button it presses with `dialog_answer`. The plate is then
+sliced if needed, its G-code exported in the background process, and the upload queued. Before an action the
+button checks, `print_start` applies the slicing result (`Plater::apply_background_progress()`) and asks the
+button's rule for it, `MainFrame::print_action_enabled()`, the rule `get_enable_print_status()` applies to the
+button's selected action; a plate not ready is refused `not_sliced`. `plates` names a plate (`Ops::select_plate()`)
+or every plate where the button offers that. Host settings are printer settings (`host_type`, `print_host`,
+`printhost_apikey`, and `bbl_use_printhost` on a Bambu printer), written with `settings_set {type: "printer"}`; a
+route through a print host with an empty `print_host` is refused `no_print_host`, whether or not the project has
+objects. The calls are journaled like any call, so a replay opens the dialog again, and the replay summary flags
+them as sending to a printer.
+
+`printer_test_host` makes the call the connection dialog's Test button makes, `PrintHost::test()` on a host built
+from the printer preset's settings as they stand (`Ops::test_print_host()`), on the UI thread, which does not
+redraw while the host is asked. It replies `ok` and the button's message in the app's language
+(`get_test_ok_msg()`, `get_test_failed_msg()`). The button goes on to a login dialog for a cloud host whose test
+fails; the command stops at the failed test.
 
 `app_state.uploads` lists the session's rows of the upload queue (`PrintHostQueueDialog`), as the
 queue window shows them: `id` (its ID column, from 1), `state` (`queued`, `uploading`, `error`,
@@ -4674,8 +4699,10 @@ KWin's title bar, `tools/mcp/test_set_view_camera.py`
 an orbit that keeps `look_at`, the camera Preview shares and the Design tab's own, with `camera_state`
 and `app_state.camera`, and a fit after the window was sized while no 3D view showed,
 `tools/mcp/test_export_running_job.py` an export during and after a job that outlived its reply,
-`tools/mcp/test_send_gcode.py` `printer_send` and `app_state.uploads` against a stub print host that
-answers 200 or 500,
+`tools/mcp/test_send_gcode.py` `printer_send`, `print_start`, `printer_test_host` and `app_state.uploads` against
+a stub print host that answers 200 or 500, `tools/mcp/test_printer_commands.py` `printer_status` and the job
+commands' refusals with no printer connected, `tools/mcp/test_gizmo_commands.py` the gizmo commands' openings,
+refusals and acting calls, read back through `object_list`, the undo log and the saved project,
 `tools/mcp/test_command_line.py` the command line's options (the refused ones, `--run`'s exit codes, folders and
 refusals, `--mcp-port`, the two run flags, and a run beside a window already open),
 `tools/mcp/test_runtime_lifecycle.py` the app's exit with a job, a recording or a call no stop interrupts still
@@ -4701,6 +4728,16 @@ after a restart, `test_plugin_commands.py` the plugin commands against the Plugi
 `test_printer_extruders.py` a printer of two extruders, `test_project_open_settings.py` a project opened
 with its settings whatever the load-behaviour preference says, and `test_sidebar_floating.py` a floating
 sidebar.
+
+What the tests may reach. The sweep runs on scratch datadirs, which are not cut off from the account they may be
+signed in to or from the network, so no sweep test opens a dialog that messages a printer: the print calls run on a
+printer made a print host, `test_send_gcode.py` stops before any of them where printer agents are on, and
+`test_printer_commands.py` calls a job command only after `printer_status` has said no printer is connected. No test
+sends a print job or reaches a physical printer: the Print and storage dialogs of a Bambu printer, a real printer's
+status and the job commands' refusals on it are left to a person with such a printer. The job commands, and what
+they publish, are unit cases against a printer agent double
+(`test_device_manager_integration`, `[DeviceManager][Printer]`); the routes, the host test's refusals and the gizmo
+commands' rules are `test_operations` (`[Printer]`, `[Gizmos]`) and `test_printhost` cases.
 
 `test_mcp_scene` covers the scene and layer tools without the app: `object_transform`'s `size`, the arguments
 of the commands that replace a dialog, notifications updated before the first ImGui frame, `object_arrange`'s option rules,

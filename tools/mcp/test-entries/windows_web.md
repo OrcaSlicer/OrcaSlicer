@@ -391,8 +391,7 @@ call replies `blocked_by_dialog`, `dialogs()` lists one dialog titled "Send G-co
 - The error dialog's text: only that some dialog opened and closed. For the immediate 500, neither the
   "HTTP 500" text nor the dialog is checked; `close_error_dialog`'s result is ignored.
 - The Print and storage dialogs of a printer on the Bambu network, and `printer_send`'s `not_sliced` there: no
-  sweep test opens them, since they message a printer. The A2L check (`tools/mcp/a2l_printer_check.py`), run by
-  hand, covers them.
+  test opens them, since they message a physical printer. They are the maintainer's to check on a printer of his.
 - A SimplyPrint host's Print all, and a cloud host's login: the stub is an OctoPrint host.
 - The host test's message in another language: the sweep runs the app in English.
 - Row ids are assumed to be `count + 1`. Different numbering makes `follow` time out, which fails rather than
@@ -421,8 +420,8 @@ one is.
 **Not checked:**
 - A connected printer: what each job command publishes, refusals by the printer's state, resume where the printer
   allows it only at the printer, and the status fields are unit cases against the printer agent double
-  (`tests/slic3rutils/test_device_manager_integration.cpp`). The A2L check, run by hand, reads the A2L's status and
-  checks the refusals while it is idle. A print paused, resumed and stopped is the maintainer's to check.
+  (`tests/slic3rutils/test_device_manager_integration.cpp`). No test reaches a physical printer: a real printer's
+  status and refusals, and a print paused, resumed and stopped, are the maintainer's to check.
 
 **Strength:** Partial — the refusals and the status with no printer are checked exactly, but nothing reaches a
 printer.

@@ -6,6 +6,7 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/Mcp/PythonScriptsDialog.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
