@@ -8,6 +8,11 @@ orcaslicer_add_cmake_project(PNG
             # install the only one, so every consumer sees the same prefixed
             # pnglibconf.h the archive was built with.
             -DPNG_FRAMEWORK=OFF
+            # The libpng build defaults to using a prebuilt pnglibconf.h that has
+            # no PNG_PREFIX applied. Force generation from the .dfa so the prefix
+            # mapping is baked into the installed pnglibconf.h.
+            -DPNG_LIBCONF_HEADER_PREBUILT=OFF
+            -DPNG_FRAMEWORK=OFF
             -DPNG_SHARED=OFF
             -DPNG_STATIC=ON
             -DPNG_PREFIX=prusaslicer_

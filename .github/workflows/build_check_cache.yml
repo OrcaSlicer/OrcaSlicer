@@ -97,8 +97,13 @@ jobs:
           #
           # -v4 also adds hashFiles('deps/**') to the key so any deps/ change
           # invalidates the cache. This matches upstream/main.
-          echo cache-key=${{ env.cache-os }}-cache-orcaslicer_deps-build-v4-${{ hashFiles('deps/**') }} >> ${{ env.output-cmd }}
-          echo cache-prefix=${{ env.cache-os }}-cache-orcaslicer_deps-build-v4- >> ${{ env.output-cmd }}
+          #
+          # -v5: v4 built libpng with -DPNG_FRAMEWORK=OFF but the prebuilt
+          # pnglibconf.h (no PNG_PREFIX) was still used. Add
+          # -DPNG_LIBCONF_HEADER_PREBUILT=OFF to force generation from the .dfa
+          # so the PNG_PREFIX mapping is baked into the installed pnglibconf.h.
+          echo cache-key=${{ env.cache-os }}-cache-orcaslicer_deps-build-v5-${{ hashFiles('deps/**') }} >> ${{ env.output-cmd }}
+          echo cache-prefix=${{ env.cache-os }}-cache-orcaslicer_deps-build-v5- >> ${{ env.output-cmd }}
           # Relative to the workspace, which differs from the build's when this job runs on Linux.
           echo cache-path=deps/build${{ env.dep-folder-name }} >> ${{ env.output-cmd }}
             
