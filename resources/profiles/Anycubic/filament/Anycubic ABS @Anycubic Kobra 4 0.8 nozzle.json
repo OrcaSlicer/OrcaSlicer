@@ -112,7 +112,7 @@
 		"20"
 	],
 	"filament_density": [
-		"1.24"
+		"1.05"
 	],
 	"filament_deretraction_speed": [
 		"nil"
@@ -298,7 +298,7 @@
 		"-1"
 	],
 	"temperature_vitrification": [
-		"55"
+		"98"
 	],
 	"textured_cool_plate_temp": [
 		"40"
