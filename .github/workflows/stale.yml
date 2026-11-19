@@ -16,9 +16,10 @@ jobs:
     steps:
       - uses: actions/stale@v11
         with:
-          # Each new stale label costs about 2 operations. Runs that stop early
-          # continue from the same place the next day.
-          operations-per-run: 300
+          # Each stale label or close costs about 2 operations and posts one
+          # comment, so 800 stays under GitHub's limit of 500 comments an hour.
+          # Runs that stop early continue from the same place the next day.
+          operations-per-run: 800
           ascending: true
           stale-issue-label: stale
           stale-pr-label: stale
@@ -28,17 +29,16 @@ jobs:
           days-before-issue-stale: 90
           days-before-issue-close: 14
           close-issue-reason: not_planned
-          exempt-issue-labels: enhancement
           exempt-all-issue-assignees: true
           exempt-all-issue-milestones: true
           stale-issue-message: |
             This issue has had no activity for 90 days, so it will be closed in 14 days.
 
-            If it still happens on the latest OrcaSlicer release, please leave a comment with the version you tested and it will stay open.
+            If it's a bug that still happens on the latest OrcaSlicer release, please leave a comment with the version you tested. If it's a feature request you still want, please leave a comment saying so. Either one keeps it open.
           close-issue-message: |
             This issue was closed because there was no activity after the reminder.
 
-            If it still happens on the latest release, leave a comment here and a team member can reopen it, or open a new issue with the details.
+            If it still matters to you, leave a comment here and a team member can reopen it, or open a new issue with the details.
 
           # PRs: only PRs where we asked the author for something
           only-pr-labels: "wait for response"

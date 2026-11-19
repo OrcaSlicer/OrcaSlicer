@@ -56,11 +56,12 @@ the source is what runs — the references mark such facts **[source]**. Orca-si
 
 ## Golden rules
 
-1. **Interactive controls are Orca widgets** (`Button` + `SetStyle(...)`, `::CheckBox`, `::ComboBox`,
-   `::TextInput`, `SpinInput`, `SwitchButton`, `RadioGroup`, `TabCtrl`); the bottom row of every dialog is
-   `DialogButtons`. Never `wxButton`, `wxSpinCtrl`, `wxCheckBox`, `wxChoice` or a single-line `wxTextCtrl`
-   in new code; multi-line text is a raw `wxTextCtrl`. Inside `Slic3r::GUI` write `::CheckBox` etc. —
-   `Field.hpp` has classes with the same names. → `orca-widgets.md`
+1. **Interactive controls are Orca widgets** (`Button` + `SetStyle(...)`, `::CheckBox`, `LabeledCheckBox`,
+   `::ComboBox`, `::TextInput`, `SpinInput`, `SwitchButton`, `RadioGroup`, `TabCtrl`); the bottom row of every
+   dialog is `DialogButtons`. Never `wxButton`, `wxSpinCtrl`, `wxCheckBox`, `wxChoice` or a single-line
+   `wxTextCtrl` in new code; multi-line text is a raw `wxTextCtrl`. When the label is on the right side of the
+   check box and belongs to it, use a `LabeledCheckBox`, not a `::CheckBox` paired with a label by hand. Inside
+   `Slic3r::GUI` write `::CheckBox` etc. — `Field.hpp` has classes with the same names. → `orca-widgets.md`
 2. **DPI.** Layout pixel values go through `FromDIP(n)` (or `n * em_unit()`); `wxBitmap` constructor
    sizes, image-list sizes and GL viewports are physical and are not `FromDIP`'d (icon heights passed to
    `create_scaled_bitmap`/`ScalableBitmap`/`Button` are DIP). Top-level windows are `DPIDialog`/
@@ -171,7 +172,8 @@ if (dlg.ShowModal() == wxID_OK) { /* read results */ }
 | Orca widget (`src/slic3r/GUI/Widgets/`) | Instead of | Must know |
 |---|---|---|
 | `Button` | `wxButton` | ctor `(parent, text, icon_name, style, iconSize, id)` — id is last; style with `SetStyle(ButtonStyle::…, ButtonType::…)`; emits `wxEVT_BUTTON`; not a `wxButton` (no dialog default/escape emulation) |
-| `::CheckBox` | `wxCheckBox` | no label parameter — pair with a `wxStaticText`/`Label`; emits `wxEVT_TOGGLEBUTTON` (never `wxEVT_CHECKBOX`), and a handler bound on it must `Skip()` or the bitmap is not refreshed |
+| `::CheckBox` | `wxCheckBox` without a label | no label parameter — when the label is on the right side of the check box and belongs to it, use `LabeledCheckBox`; emits `wxEVT_TOGGLEBUTTON` (never `wxEVT_CHECKBOX`), and a handler bound on it must `Skip()` or the bitmap is not refreshed |
+| `LabeledCheckBox` | `wxCheckBox` with a label, a `::CheckBox` hand-paired with its own label on the right side | ctor `(parent, label, id)`; a click on the check or the label sends `wxEVT_CHECKBOX` **and** `wxEVT_TOGGLEBUTTON` from the control — bind one; `SetValue` silent; label, font, `Wrap(width)`/`AutoWrap()` and `Enable()` go through the control, not its children |
 | `::ComboBox` (+ `DropDown`) | `wxComboBox`/`wxChoice` | `wxCB_READONLY` for choices; `SelectAndNotify(n)` fires the event; ignores the ctor id; `void*` client data only |
 | `::TextInput` | single-line `wxTextCtrl` | text via `GetTextCtrl()`; bind `wxEVT_TEXT_ENTER`/`wxEVT_KILL_FOCUS` on the widget, never on a parent |
 | `SpinInput` | `wxSpinCtrl` | non-negative integers only (`-` cannot be typed); commits on Enter, kill-focus and arrow steps with `wxEVT_SPINCTRL`, a plain `wxCommandEvent` — bind a `wxCommandEvent&` handler and read `GetValue()` |

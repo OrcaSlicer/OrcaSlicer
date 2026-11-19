@@ -63,6 +63,8 @@ src/slic3r/GUI/Gizmos/GLGizmoMmuSegmentation.cpp
 src/slic3r/GUI/Gizmos/GLGizmoMmuSegmentation.hpp
 src/slic3r/GUI/Gizmos/GLGizmoFuzzySkin.cpp
 src/slic3r/GUI/Gizmos/GLGizmoFuzzySkin.hpp
+src/slic3r/GUI/Gizmos/GLGizmoPaintedModifier.cpp
+src/slic3r/GUI/Gizmos/GLGizmoPaintedModifier.hpp
 src/slic3r/GUI/Gizmos/GLGizmoMove.cpp
 src/slic3r/GUI/Gizmos/GLGizmoRotate.cpp
 src/slic3r/GUI/Gizmos/GLGizmoScale.cpp
@@ -349,6 +351,7 @@ src/slic3r/GUI/MixedFilamentDialog.cpp
 src/slic3r/GUI/ModelMall.cpp
 src/slic3r/GUI/OAuthDialog.cpp
 src/slic3r/GUI/PluginPickerDialog.cpp
+src/slic3r/GUI/PluginPermissionValidation.cpp
 src/slic3r/GUI/PluginsConfigDialog.cpp
 src/slic3r/GUI/PluginsDialog.cpp
 src/slic3r/GUI/PrinterWebView.cpp

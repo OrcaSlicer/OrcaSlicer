@@ -17,7 +17,12 @@
     if (url == nil || url.length == 0)
         return;
     BOOST_LOG_TRIVIAL(info) << "Deep link received: " << [url UTF8String];
-    Slic3r::GUI::wxGetApp().MacOpenURL(wxString::FromUTF8([url UTF8String]));
+    const wxString wx_url = wxString::FromUTF8([url UTF8String]);
+    // Before OnInit, hand the URL to wxWidgets so it calls MacOpenURL once init finishes.
+    if (!wxTheApp->OSXInitWasCalled())
+        wxTheApp->OSXStoreOpenURL(wx_url);
+    else
+        Slic3r::GUI::wxGetApp().MacOpenURL(wx_url);
 }
 @end
 

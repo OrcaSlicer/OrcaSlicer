@@ -22,6 +22,7 @@
 #include <wx/tglbtn.h>
 #include <wx/event.h>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
 #include <wx/timer.h>
 
 static const wxColour STATIC_BOX_LINE_COL = wxColour(238, 238, 238);
