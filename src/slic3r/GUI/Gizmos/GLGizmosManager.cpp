@@ -69,6 +69,7 @@
 #include "slic3r/GUI/KeyChord.hpp"
 #include "slic3r/GUI/MeshUtils.hpp"
 #include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/ToolbarCustomizeDialog.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -905,6 +906,9 @@ bool GLGizmosManager::gizmos_toolbar_on_mouse(const wxMouseEvent &mouse_event) {
         }
         else if (mc.right && mouse_event.RightUp()) {
             mc.right = false;
+            // Only on the Prepare canvas, whose bar the dialog customizes.
+            if (selected_gizmo && m_parent.get_canvas_type() == GLCanvas3D::CanvasView3D)
+                show_toolbar_context_menu();
             return true;
         }
         else if (mc.middle && mouse_event.MiddleUp()) {

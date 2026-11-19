@@ -101,6 +101,7 @@
 #include "Plater.hpp"
 #include "MainFrame.hpp"
 #include "WipeTowerDialog.hpp"
+#include "ToolbarCustomizeDialog.hpp"
 #include "GUI_App.hpp"
 #include "Shortcuts.hpp"
 #include "GUI_ObjectList.hpp"
@@ -8434,6 +8435,7 @@ bool GLCanvas3D::_init_main_toolbar()
         m_main_toolbar.set_enabled(false);
         return true;
     }
+    m_main_toolbar.set_context_menu(show_toolbar_context_menu);
     // init arrow
     if (!m_main_toolbar.init_arrow("toolbar_arrow.svg"))
         BOOST_LOG_TRIVIAL(error) << "Main toolbar failed to load arrow texture.";

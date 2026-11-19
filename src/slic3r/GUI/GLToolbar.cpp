@@ -594,9 +594,14 @@ bool GLToolbar::on_mouse(wxMouseEvent& evt, GLCanvas3D& parent)
     // mouse anywhere
     if (!evt.Dragging() && !evt.Leaving() && !evt.Entering() && m_mouse_capture.parent != nullptr) {
         if (m_mouse_capture.any() && (evt.LeftUp() || evt.MiddleUp() || evt.RightUp())) {
+            // A right click on the toolbar, where no icon has its own right action, opens the toolbar's menu.
+            const int  item_id   = evt.RightUp() && m_mouse_capture.right && m_context_menu ? contains_mouse(mouse_pos, parent) : -1;
+            const bool show_menu = item_id == -2 || (item_id >= 0 && !m_items[item_id]->is_right_toggable());
             // prevents loosing selection into the scene if mouse down was done inside the toolbar and mouse up was down outside it,
             // as when switching between views
             m_mouse_capture.reset();
+            if (show_menu)
+                m_context_menu();
             return true;
         }
         m_mouse_capture.reset();
