@@ -2521,9 +2521,12 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         const auto &is_mixed = m_config.filament_is_mixed.values;
         for (const PrintObject *object : m_objects) {
             auto used_filament_ids = object->object_extruders();
-            // Painted all over, the object prints only its painted filaments: its own filament's regions stay empty.
+            // Painted all over, the object prints only its painted filaments, unless the segmented region
+            // max width or interlocking depth limits the paint to a band and fills the rest with its own filament.
             const ModelVolumePtrs &volumes = object->model_object()->volumes;
-            if (std::all_of(volumes.begin(), volumes.end(), [](const ModelVolume *volume) {
+            if (object->config().mmu_segmented_region_max_width.value == 0. &&
+                object->config().mmu_segmented_region_interlocking_depth.value == 0. &&
+                std::all_of(volumes.begin(), volumes.end(), [](const ModelVolume *volume) {
                     return !volume->is_model_part() || volume->is_mm_painted_everywhere();
                 })) {
                 used_filament_ids.clear();
