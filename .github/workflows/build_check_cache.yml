@@ -68,42 +68,45 @@ jobs:
         
       - name: set outputs
         id: set_outputs
-        env:
-          # cache-os uniquely identifies the deps cache configuration
-          # macOS: os-arch (e.g., macos-15-arm64, macos-15-intel-x86_64)
-          # Windows: windows-arch-compiler (e.g., windows-x64-clang, windows-x64-msvc)
-          # Linux: linux-clang[-arch] (e.g., linux-clang-x64, linux-clang-aarch64)
-          cache-os: >-
-            ${
-              (runner.os == 'macOS' || startsWith(inputs.os, 'macos-'))
-                && format('{0}-{1}', inputs.os, inputs.arch)
-                || (runner.os == 'Windows'
-                    && format('windows-{0}-{1}', inputs.arch, inputs.compiler)
-                    || format('linux-clang{0}', inputs.arch && format('-{0}', inputs.arch) || '')
-                )
-            }
-          # dep-folder-name: path segment under deps/build for this configuration
-          # macOS: /arch (e.g., /arm64, /x86_64)
-          # Windows ARM64: -arm64/OrcaSlicer_dep
-          # Others: /OrcaSlicer_dep
-          dep-folder-name: >-
-            ${
-              (runner.os == 'macOS' || startsWith(inputs.os, 'macos-'))
-                && format('/{0}', inputs.arch)
-                || (runner.os == 'Windows' && inputs.arch == 'arm64')
-                  && '-arm64/OrcaSlicer_dep'
-                  || '/OrcaSlicer_dep'
-            }
-          output-cmd: ${{ runner.os == 'Windows' && '$env:GITHUB_OUTPUT' || '"$GITHUB_OUTPUT"'}}
+        # Compute cache-os and dep-folder-name inline to avoid shell substitution issues
         run: |
+          # Compute cache-os
+          if [[ "${{ runner.os }}" == "macOS" || "${{ inputs.os }}" == macos-* ]]; then
+            cache_os="${{ inputs.os }}-${{ inputs.arch }}"
+          elif [[ "${{ runner.os }}" == "Windows" ]]; then
+            cache_os="windows-${{ inputs.arch }}-${{ inputs.compiler }}"
+          else
+            if [[ -n "${{ inputs.arch }}" && "${{ inputs.arch }}" != "" ]]; then
+              cache_os="linux-clang-${{ inputs.arch }}"
+            else
+              cache_os="linux-clang"
+            fi
+          fi
+
+          # Compute dep-folder-name
+          if [[ "${{ runner.os }}" == "macOS" || "${{ inputs.os }}" == macos-* ]]; then
+            dep_folder="/${{ inputs.arch }}"
+          elif [[ "${{ runner.os }}" == "Windows" && "${{ inputs.arch }}" == "arm64" ]]; then
+            dep_folder="-arm64/OrcaSlicer_dep"
+          else
+            dep_folder="/OrcaSlicer_dep"
+          fi
+
+          # Output file
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            output_cmd="$env:GITHUB_OUTPUT"
+          else
+            output_cmd="$GITHUB_OUTPUT"
+          fi
+
           # Cache key hashes all inputs that affect the deps build.
           # Primary key (exact match): cache-os + hash of all deps-affecting files.
           # Restore keys (prefix fallback): base-ref, main, generic.
           # No version suffix needed - hash covers all deps-affecting inputs.
-          echo "cache-key=${{ env.cache-os }}_${{ hashFiles('deps/**', 'CMakeLists.txt', 'deps/CMakeLists.txt', '.github/workflows/build_deps.yml', '.github/workflows/build_check_cache.yml', 'build_win.ps1', 'build_release_macos.sh', 'build_linux.sh') }}" >> ${{ env.output-cmd }}
-          echo "cache-prefix=${{ env.cache-os }}_" >> ${{ env.output-cmd }}
-          # Relative to the workspace, which differs from the build's when this job runs on Linux.
-          echo "cache-path=deps/build${{ env.dep-folder-name }}" >> ${{ env.output-cmd }}
+          echo "cache-key=${cache_os}_${{ hashFiles('deps/**', 'CMakeLists.txt', 'deps/CMakeLists.txt', '.github/workflows/build_deps.yml', '.github/workflows/build_check_cache.yml', 'build_win.ps1', 'build_release_macos.sh', 'build_linux.sh') }}" >> "$output_cmd"
+          echo "cache-prefix=${cache_os}_" >> "$output_cmd"
+          echo "cache-path=deps/build${dep_folder}" >> "$output_cmd"
+
             
       # actions/cache matches the path too, so a Linux lookup for macOS uses the
       # workspace of a hosted macOS job.
