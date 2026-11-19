@@ -26,6 +26,7 @@
 #include "../Print.hpp"
 #include "../PrintBase.hpp"
 #include "../PrintConfig.hpp"
+#include "../Slicing.hpp"
 #include "../Surface.hpp"
 #include "../VariableWidth.hpp"
 #include "../libslic3r.h"
@@ -48,16 +49,258 @@
 
 namespace Slic3r {
 
+static float bead_reach_offset(double width);
+
 // Reserve dense feet in a sparse flange so trees cannot fall between its lines.
 // A solid flange already holds them; partitioning it would add internal ring perimeters.
-void organic_fill_first_layer(ExtrusionEntitiesPtr &dst, const Polygons &polygons, const Polygons &feet,
-    Fill *filler, float density, ExtrusionRole role, const Flow &flow, const SupportParameters &support_params)
+// A lone foot starts no tree: it holds what the layer above prints over the inside of a body. It is reserved only where
+// the first layer would leave some of that over nothing: where a bead within the cover of a lone foot, the farthest a
+// load is held from a tip (reach under a roof, a line and a half under a tree, see
+// organic_grow_trees_inside_hollow_bodies()), may lie farther than half its width from a bead printed, see
+// bead_reach(). The bead is as narrow as the layer above may print one: Arachne does not print the spiral of a solid
+// part narrower than 0.85 of the nozzle, see organic_extrude_solid_fill() and FillSpiralInset. A reserved foot prints
+// the bead of a loop half a line inside its outline and lines that end within the area its fill leaves them, see
+// fill_expolygons_with_sheath_generate_paths(), FillRectilinear and FillSupportBase: a line long enough to print passes
+// through every disc in that area a little wider than a spacing, so the loop and the reach of such discs surely hold,
+// and the paths of the pads decide elsewhere. Paths too short to print hold nothing. Each island is checked by what it
+// prints alone, a part of what the layer prints, and only a lone foot on it changes that: the part of its lone feet
+// within their cover of a place over nothing is reserved, or a whole foot where some of that part is too narrow to
+// print or none of the foot is left there, and the layer is filled again and checked again over the cover of every lone
+// foot. The last round, or one that would reserve nothing more, refills every island with a place still over nothing
+// with all its lone feet reserved, and reserves the rest of every lone foot whose cover reaches an island refilled, its
+// own island refilled in turn: a load the trees took as held by that foot across the gap between the islands is held by
+// it again, as when every lone foot was reserved. Lines more than a line and that bead apart leave the middle of the
+// gaps between them farther than half the bead from any, so all are reserved.
+void organic_fill_first_layer(ExtrusionEntitiesPtr &dst, const Polygons &polygons, const Polygons &feet, const Polygons &lone_feet,
+    Fill *filler, float density, ExtrusionRole role, const Flow &flow, const SupportParameters &support_params,
+    const PrintObject &object)
 {
-    const Polygons pads = density < 1.f ? intersection(polygons, feet) : Polygons();
-    fill_expolygons_with_sheath_generate_paths(dst, pads.empty() ? polygons : diff(polygons, pads), filler, density,
-        role, flow, support_params, true, true);
-    if (! pads.empty())
-        fill_expolygons_with_sheath_generate_paths(dst, pads, filler, 1.f, role, flow, support_params, true, true);
+    Polygons pads = density < 1.f ? intersection(polygons, feet) : Polygons();
+    Polygons lone = density < 1.f ? diff(intersection(polygons, lone_feet), pads) : Polygons();
+    const auto fill_flange = [&](ExtrusionEntitiesPtr &out) {
+        fill_expolygons_with_sheath_generate_paths(out, pads.empty() ? polygons : diff(polygons, pads), filler, density,
+            role, flow, support_params, true, true);
+    };
+    const auto fill_pads = [&](ExtrusionEntitiesPtr &out) {
+        if (! pads.empty())
+            fill_expolygons_with_sheath_generate_paths(out, pads, filler, 1.f, role, flow, support_params, true, true);
+    };
+    const coord_t width   = support_params.support_material_flow.scaled_width();
+    const auto   &nozzles = object.print()->config().nozzle_diameter.values;
+    const double  bead    = std::min(double(width), scaled<double>(0.85 * *std::min_element(nozzles.begin(), nozzles.end())));
+    if (! lone.empty() && double(flow.scaled_spacing()) / density - double(flow.scaled_width()) > bead) {
+        pads = union_(pads, lone);
+        lone.clear();
+    }
+    if (! lone.empty()) {
+        const float  cover      = float(std::max(0.5 * double(organic_base_span(object) + width), 1.5 * double(width)));
+        const float  printable  = 0.5f * float(flow.scaled_width());
+        const float  reach_bead = bead_reach_offset(bead);
+        const double tolerance  = scaled<double>(0.005);
+        const auto   solid      = [tolerance](ExPolygons pieces) {
+            pieces.erase(std::remove_if(pieces.begin(), pieces.end(), [tolerance](const ExPolygon &piece) {
+                return offset(piece, - float(tolerance)).empty(); }), pieces.end());
+            return pieces;
+        };
+        // Where the axis of a bead surely touches what the reserved feet print: within reach of the bead of a loop as it is
+        // printed, its seam clipped and a dot left out, or of a line through a disc where the fill lets lines end, wide
+        // enough for a line within half a spacing of its centre to run across it no shorter than a dot.
+        const double spacing      = double(flow.scaled_spacing());
+        const float  edge         = printable + reach_bead;
+        const double dot          = 0.25 * std::min(double(flow.scaled_width()), double(width));
+        const auto   pads_holding = [&](const Polygons &here) {
+            const ExPolygons outlines = closing_ex(here, float(SCALED_EPSILON), float(SCALED_EPSILON) + printable);
+            Polylines        loops;
+            for (const ExPolygon &outline : outlines)
+                for (Polyline &loop : draw_perimeters(outline, 0.15 * spacing))
+                    if (loop.length() >= dot)
+                        loops.emplace_back(std::move(loop));
+            Polygons       held = offset(loops, edge, jtRound, tolerance, etOpenRound);
+            const Polygons ends = offset(offset(to_polygons(outlines), - float(0.4 * spacing)), - float(0.5 * spacing));
+            append(held, offset(offset(ends, - float(0.5 * std::hypot(spacing, dot)), jtRound, tolerance), edge - float(0.5 * spacing),
+                jtRound, tolerance));
+            return held;
+        };
+        const ExPolygons         islands = closing_ex(polygons, float(SCALED_EPSILON));
+        std::vector<BoundingBox> island_boxes;
+        for (const ExPolygon &island : islands)
+            island_boxes.emplace_back(get_extents(island.contour));
+        // The island of a point, of each lone foot, and the cover of every lone foot, island by island.
+        const auto island_of = [&](const Point &point) {
+            for (size_t n = 0; n < islands.size(); ++ n)
+                if (island_boxes[n].contains(point) && islands[n].contains(point))
+                    return n;
+            return islands.size();
+        };
+        // A foot lies on one island, though a point of its outline cut along that of the island may round off it.
+        const auto island_of_foot = [&](const ExPolygon &foot) {
+            for (const Point &point : foot.contour.points)
+                if (const size_t n = island_of(point); n < islands.size())
+                    return n;
+            const BoundingBox box = get_extents(foot.contour);
+            for (size_t n = 0; n < islands.size(); ++ n)
+                if (island_boxes[n].overlap(box) && ! intersection(to_polygons(foot), to_polygons(islands[n])).empty())
+                    return n;
+            return islands.size();
+        };
+        const ExPolygons                 lone_all = solid(union_ex(lone));
+        std::vector<std::vector<size_t>> island_feet(islands.size());
+        std::vector<size_t>              foot_island(lone_all.size());
+        std::vector<std::vector<size_t>> reaches(lone_all.size());
+        NearPolygons                     zones_near;
+        for (size_t k = 0; k < lone_all.size(); ++ k) {
+            foot_island[k] = island_of_foot(lone_all[k]);
+            if (foot_island[k] < islands.size()) {
+                island_feet[foot_island[k]].push_back(k);
+                reaches[k].push_back(foot_island[k]);
+            }
+            const Polygons    zone = offset(to_polygons(lone_all[k]), cover, jtRound, tolerance);
+            const BoundingBox box  = get_extents(zone);
+            for (size_t n = 0; n < islands.size(); ++ n)
+                if (n != foot_island[k] && island_boxes[n].overlap(box) &&
+                    ! intersection(zone, ClipperUtils::clip_clipper_polygons_with_subject_bbox(to_polygons(islands[n]), box)).empty())
+                    reaches[k].push_back(n);
+            zones_near.append(zone);
+        }
+        std::vector<Polygons> zones(islands.size());
+        for (size_t n = 0; n < islands.size(); ++ n)
+            if (const Polygons zone = zones_near.around({ island_boxes[n] }); ! zone.empty())
+                zones[n] = intersection(ClipperUtils::clip_clipper_polygons_with_subject_bbox(zone, island_boxes[n].inflated(SCALED_EPSILON)),
+                    to_polygons(islands[n]));
+        Polygons left = to_polygons(lone_all);
+        for (int round = 0; ! left.empty(); ++ round) {
+            ExtrusionEntityCollection flange, reserved;
+            fill_flange(flange.entities);
+            fill_pads(reserved.entities);
+            // The axes printed on each island, by width, but of the paths too short to print, see organic_remove_dots():
+            // each expolygon of the flange and of the pads is filled into a collection of its own.
+            using Axes = std::vector<std::map<float, Polylines>>;
+            const auto by_island = [&](const ExtrusionEntityCollection &printed) {
+                Axes axes(islands.size());
+                for (const ExtrusionEntity *entity : printed.entities) {
+                    size_t n = islands.size();
+                    for_each_extrusion_path(*entity, [&](const ExtrusionPath &path) {
+                        if (path.polyline.size() < 2)
+                            return;
+                        if (n == islands.size())
+                            n = island_of(path.first_point());
+                        if (n < islands.size() && ! zones[n].empty() &&
+                            path.length() >= 0.25 * std::min(double(scale_(path.width)), double(width)))
+                            axes[n][path.width].emplace_back(path.as_polyline());
+                    });
+                }
+                return axes;
+            };
+            const Axes flange_axes = by_island(flange);
+            const Axes pad_axes    = by_island(reserved);
+            // Where the axis of a bead touches the axes near box.
+            const auto reach = [&](const std::map<float, Polylines> &axes, const BoundingBox &box) {
+                Polygons held;
+                for (const auto &[path_width, paths] : axes) {
+                    Polylines near_paths;
+                    for (const Polyline &axis : paths)
+                        if (get_extents(axis).overlap(box))
+                            near_paths.push_back(axis);
+                    append(held, offset(near_paths, float(0.5 * scale_(path_width)) + reach_bead, jtRound, tolerance, etOpenRound));
+                }
+                return held;
+            };
+            NearPolygons pads_near;
+            pads_near.append(pads);
+            std::vector<ExPolygons> bare(islands.size());
+            bool                    any_bare = false;
+            for (size_t n = 0; n < islands.size(); ++ n)
+                if (! zones[n].empty()) {
+                    const BoundingBox near    = get_extents(zones[n]).inflated(flow.scaled_width() + width);
+                    Polygons          holding = reach(flange_axes[n], near);
+                    append(holding, pads_holding(intersection(pads_near.around({ near }), to_polygons(islands[n]))));
+                    bare[n] = solid(diff_ex(zones[n], holding));
+                    if (! bare[n].empty())
+                        // The paths of the pads decide where the model of them leaves places over nothing.
+                        bare[n] = solid(diff_ex(bare[n], reach(pad_axes[n], get_extents(bare[n]).inflated(flow.scaled_width() + width))));
+                    any_bare = any_bare || ! bare[n].empty();
+                }
+            if (! any_bare) {
+                // What was checked is printed.
+                append(dst, std::move(flange.entities));
+                flange.entities.clear();
+                append(dst, std::move(reserved.entities));
+                reserved.entities.clear();
+                return;
+            }
+            if (round < 2) {
+                Polygons     part;
+                NearPolygons left_near;
+                left_near.append(left);
+                for (size_t n = 0; n < islands.size(); ++ n)
+                    if (! bare[n].empty()) {
+                        // The parts of the lone feet left on the island within their cover of such places, wide enough to
+                        // print with the corners the opening cuts off them.
+                        const Polygons island = to_polygons(islands[n]);
+                        NearPolygons hit_near;
+                        for (const ExPolygon &piece : bare[n])
+                            hit_near.append(offset(to_polygons(piece), cover, jtRound, tolerance));
+                        const Polygons &hit   = hit_near.polygons;
+                        const Polygons raw    = intersection(intersection(left_near.around({ island_boxes[n] }), island), hit);
+                        Polygons       got    = opening(raw, printable, jtRound, tolerance);
+                        got = union_(got, intersection(offset(got, printable, jtRound, tolerance), raw));
+                        // A foot with more of its part too narrow to print, or with none of it left near such a place, whole.
+                        NearPolygons raw_near;
+                        raw_near.append(raw);
+                        NearPolygons lost_near;
+                        lost_near.append(to_polygons(solid(diff_ex(raw, got))));
+                        for (const size_t k : island_feet[n]) {
+                            const Polygons    whole = to_polygons(lone_all[k]);
+                            const BoundingBox box   = get_extents(lone_all[k].contour);
+                            const auto        meets = [&whole, &box](const NearPolygons &near) {
+                                const Polygons around = near.around({ box });
+                                return ! around.empty() && ! intersection(whole, around).empty();
+                            };
+                            if (meets(hit_near) && (meets(lost_near) || ! meets(raw_near)))
+                                append(got, whole);
+                        }
+                        append(part, std::move(got));
+                    }
+                if (! solid(diff_ex(part, pads)).empty()) {
+                    left = to_polygons(solid(diff_ex(left, part)));
+                    append(pads, std::move(part));
+                    pads = union_(pads);
+                    continue;
+                }
+            }
+            // Every island with a place still over nothing is refilled, and the rest of every lone foot whose cover reaches
+            // an island refilled is reserved, its own island refilled in turn.
+            NearPolygons          left_near;
+            left_near.append(left);
+            std::vector<Polygons> rest(lone_all.size());
+            for (size_t k = 0; k < lone_all.size(); ++ k)
+                if (const Polygons near_left = left_near.around({ get_extents(lone_all[k].contour) }); ! near_left.empty())
+                    rest[k] = intersection(near_left, to_polygons(lone_all[k]));
+            std::vector<bool> refilled(islands.size(), false);
+            std::vector<bool> reserve(lone_all.size(), false);
+            for (size_t n = 0; n < islands.size(); ++ n)
+                refilled[n] = ! bare[n].empty();
+            for (bool more = true; more;) {
+                more = false;
+                for (size_t k = 0; k < lone_all.size(); ++ k)
+                    if (! reserve[k] && ! rest[k].empty() &&
+                        std::any_of(reaches[k].begin(), reaches[k].end(), [&refilled](size_t n) { return bool(refilled[n]); })) {
+                        reserve[k] = true;
+                        if (foot_island[k] < islands.size() && ! refilled[foot_island[k]]) {
+                            refilled[foot_island[k]] = true;
+                            more                     = true;
+                        }
+                    }
+            }
+            for (size_t k = 0; k < lone_all.size(); ++ k)
+                if (reserve[k])
+                    append(pads, std::move(rest[k]));
+            pads = union_(pads);
+            break;
+        }
+    }
+    fill_flange(dst);
+    fill_pads(dst);
 }
 
 // Loops filling region from its outline in, the first half a line inside it. A loop leaves the middle of the region
@@ -815,8 +1058,7 @@ void organic_remove_dots(ExtrusionEntityCollection &collection, const coord_t wi
     remove_dots(collection, ends, width);
 }
 
-// Whether the flow of a support path of this role is set to nothing.
-static bool support_role_has_no_flow(const PrintObjectConfig &config, const ExtrusionRole role)
+bool support_role_has_no_flow(const PrintObjectConfig &config, const ExtrusionRole role)
 {
     return config.set_other_flow_ratios &&
         ((role == erSupportMaterial && config.support_flow_ratio == 0.) ||
@@ -1273,16 +1515,66 @@ static bool hollow_organic(const PrintObjectConfig &config)
         config.support_style != smsTreeHybrid && (config.support_base_pattern == smpDefault || config.support_base_pattern == smpNone);
 }
 
-// The longest bridge between two bearings the support allows: a line between two lines of the base, the gap a roof spans
-// between the bodies it lies on, see generate_support_areas(), or between two lines of a bottom interface, which the
-// bodies standing on it span. It is the length of the run of a bead out of reach of its bearings, see bead_reach(), so
-// the gap in the material the bead crosses may be a width wider.
-static double free_span(const PrintObjectConfig &config, const double width)
+// The gap of a hollow base. A hollow base lays no lines of the base pattern, so their spacing means nothing to it and is
+// not read; the gap is set by the support line and the layer height instead. The gap S is how wide a gap a line of the
+// lowest roof layer spans between the bodies and the inner trees under it, see generate_support_areas(): every point
+// of a roof is to lie within half of S plus half a line of what holds it, the inner trees stand sqrt(3) * (tip radius +
+// that reach) apart, and free_span() lets any bead of the base, walls and trees as well as roofs, bridge as far. One value
+// for the whole object keeps the trees, the trimming of the base and the warning agreeing on what holds.
+//
+// The trade-off: a narrower gap holds a roof at more points, a wider one grows fewer and larger trees. Below about three
+// lines the gain at the roof does not show on prints while the cost does: bodies full of tiny trees, loops hardly wider
+// than a line, with more travels, retractions and stringing, a support harder to remove and slower to generate. So the
+// gap grows with the line, as everything of the trees does, and with the layer:
+//
+//     S = clamp(7 * layer height, line, 3 * line)
+//
+// - Three lines at most. With layers about half a line high, 0.1 mm under 0.22 mm lines and 0.2 mm under 0.42 mm lines,
+//   prints left the underside of a roof over a gap of three lines as clean as over a gap of one, and the support came
+//   off more easily. Wider gaps printed no better, while they leave the lines of a roof hanging over longer stretches.
+// - One line at least, at fine layers. A line 0.02 mm high bridges next to nothing: under 0.22 mm lines the lowest roof
+//   layer tore over the gaps between the trees with a gap of one line and more with three. No gap makes such layers
+//   bridge, only thicker support layers would, but the narrowest gap the trees keep, one line, as a tree narrower than
+//   that prints no loop (see prints_loop in organic_grow_trees_inside_hollow_bodies()), tears least.
+// - In between, the gap follows the layer height, a thicker line bridging farther. Seven layer heights reach three lines
+//   at layers 0.43 lines high, about where the three-line prints were made, and leave one line at layers a seventh of a
+//   line high and finer, 0.03 mm under 0.22 mm lines. The factor is fitted to these two points, not derived: prints at
+//   the heights in between, 0.06 mm under 0.22 mm lines, are yet to calibrate it.
+//
+// The layer height of the object is taken, the gap being one for the whole object. Organic supports print the layers of
+// the object and refuse a variable layer height (see Print::validate()), but a style of normal supports left with a tree
+// support type, which SupportParameters resolves to Organic, escapes that check: then the thinnest layer above the first
+// that the layer height profile makes counts, as it bridges least. The layers the profile makes without the precise Z
+// height, not the sliced ones: that height stretches or squeezes the top layers to meet the height of the object, which is
+// to leave the gap as it is.
+coord_t organic_base_span(const PrintObject &object)
+{
+    const SupportMaterialPattern base = object.config().support_base_pattern.value;
+    if (base != smpDefault && base != smpNone)
+        return scaled<coord_t>(object.config().support_base_pattern_spacing.value);
+    const coord_t line   = support_material_flow(&object).scaled_width();
+    double        height = object.config().layer_height.value;
+    if (object.model_object()->has_custom_layering()) {
+        const SlicingParameters &slicing = object.slicing_parameters();
+        std::vector<coordf_t>    profile;
+        PrintObject::update_layer_height_profile(*object.model_object(), slicing, profile);
+        // The bottom and the top of each layer; a first layer of a fixed height is left out.
+        const std::vector<coordf_t> layers = generate_object_layers(slicing, profile, false);
+        for (size_t i = slicing.first_object_layer_height_fixed() ? 2 : 0; i + 1 < layers.size(); i += 2)
+            height = std::min(height, layers[i + 1] - layers[i]);
+    }
+    return std::clamp(coord_t(std::llround(scaled<double>(7. * height))), line, 3 * line);
+}
+
+// The longest bridge between two bearings the support allows: a line across the gap of the base, see organic_base_span(),
+// the gap a roof spans between the bodies it lies on, see generate_support_areas(), or between two lines of a bottom
+// interface, which the bodies standing on it span. It is the length of the run of a bead out of reach of its bearings, see
+// bead_reach(), so the gap in the material the bead crosses may be a width wider.
+static double free_span(const PrintObjectConfig &config, const coord_t base_span, const double width)
 {
     const int bottom_layers = config.support_interface_bottom_layers.value < 0 ? config.support_interface_top_layers.value :
         config.support_interface_bottom_layers.value;
-    return scale_(std::max(config.support_base_pattern_spacing.value,
-        bottom_layers > 0 ? config.support_bottom_interface_spacing.value : 0.)) + width;
+    return std::max(double(base_span), bottom_layers > 0 ? scale_(config.support_bottom_interface_spacing.value) : 0.) + width;
 }
 
 // Whether a support path is printed flat and with some flow, as what holds up the support above.
@@ -1351,7 +1643,7 @@ Polygons organic_footing_near_box(const Polygons &footing, const BoundingBox &bo
 // material below: the support below and, where the support may stand on it, the model. Sideways contact joins such a run
 // to a rooted XY island but puts nothing below it, so the island check does not see it.
 static size_t hanging_runs(const PrintObject &object, const std::vector<Polygons> &covered, const size_t i,
-    const ExPolygons &floating, ModelFootprints &model, const ToolOrdering *ordering)
+    const ExPolygons &floating, ModelFootprints &model, const ToolOrdering *ordering, const coord_t base_span)
 {
     const SupportLayer &layer  = *object.support_layers()[i];
     const auto         &config = object.config();
@@ -1377,7 +1669,7 @@ static size_t hanging_runs(const PrintObject &object, const std::vector<Polygons
         box.offset(double(around) + scaled<double>(.1));
         return bead_reach(organic_footing_near_box(footing, box, bead_reach_offset(double(width))), double(width));
     };
-    const auto max_span = [&](const double width) { return free_span(config, width); };
+    const auto max_span = [&](const double width) { return free_span(config, base_span, width); };
     AxesOutsideReach outside;
     for_each_extrusion_path(layer.support_fills, [&](const ExtrusionPath &path) {
         if (flat_support(config, path))
@@ -1428,14 +1720,14 @@ static size_t hanging_runs(const PrintObject &object, const std::vector<Polygons
 }
 
 // Appends the print Z of layer i for each of its floating islands at least min_area large and each of its hanging runs
-// outside all of its floating islands.
+// outside all of its floating islands. base_span is organic_base_span() of the object, the same on all of its layers.
 static void append_floating_heights(std::vector<coordf_t> &heights, const PrintObject &object,
     const std::vector<Polygons> &covered, const size_t i, const ExPolygons &floating, ModelFootprints &model,
-    const ToolOrdering *ordering = nullptr, const double min_area = 0.)
+    const coord_t base_span, const ToolOrdering *ordering = nullptr, const double min_area = 0.)
 {
     const size_t large = std::count_if(floating.begin(), floating.end(),
         [min_area](const ExPolygon &island) { return island.area() >= min_area; });
-    heights.insert(heights.end(), large + hanging_runs(object, covered, i, floating, model, ordering),
+    heights.insert(heights.end(), large + hanging_runs(object, covered, i, floating, model, ordering, base_span),
         object.support_layers()[i]->print_z);
 }
 
@@ -1467,10 +1759,11 @@ std::vector<coordf_t> floating_support_islands(const PrintObject &object, const 
     const std::vector<Polygons> covered = support_covered(object);
     std::vector<coordf_t>       floating;
     ModelFootprints            model;
+    const coord_t               base_span = organic_base_span(object);
     for (size_t i = 0; i < covered.size(); ++ i) {
         throw_if_canceled(object);
-        append_floating_heights(floating, object, covered, i, floating_islands(object, covered, i, model), model, nullptr,
-            min_area);
+        append_floating_heights(floating, object, covered, i, floating_islands(object, covered, i, model), model, base_span,
+            nullptr, min_area);
     }
     return floating;
 }
@@ -1484,10 +1777,11 @@ std::vector<coordf_t> floating_support_islands(const PrintObject &object, const 
     std::vector<coordf_t> floating;
     ModelFootprints model;
     model.nozzle_layers = &nozzle_layers;
+    const coord_t base_span = organic_base_span(object);
     for (size_t i = 0; i < covered.size(); ++i) {
         throw_if_canceled(object);
         append_floating_heights(floating, object, covered, i, floating_islands(object, covered, i, model, &ordering), model,
-            &ordering, min_area);
+            base_span, &ordering, min_area);
     }
     return floating;
 }
@@ -1530,6 +1824,9 @@ void organic_update_support_warning(PrintObject &object, std::vector<coordf_t> h
             "starting on the layers at Z (mm): %2%. "
             "Consider a filled base pattern, such as Rectilinear, instead of a hollow one."), object.model_object()->name, list);
     }
+    const PrintObject *shared = object.get_shared_object();
+    object.set_organic_support_heights({ std::move(heights), shared,
+        shared == nullptr ? 0 : shared->step_state_with_timestamp(posSupportMaterial).timestamp });
     object.update_step_warning(posSupportMaterial, PrintStateBase::WarningLevel::NON_CRITICAL, message,
         PrintStateBase::SlicingOrganicSupportWarning);
 }
@@ -1541,6 +1838,30 @@ void organic_update_loaded_support_warning(PrintObject &object)
     const SupportParameters support_params(object);
     organic_update_support_warning(object,
         floating_support_islands(object, scaled<double>(1.) * support_params.support_material_flow.scaled_width()));
+}
+
+void organic_update_shared_support_warning(PrintObject &object)
+{
+    const PrintObject *shared = object.get_shared_object();
+    if (shared == nullptr)
+        return;
+    auto warns = [](const PrintObject &of) {
+        const auto state = of.step_state_with_warnings(posSupportMaterial);
+        return state.state == PrintStateBase::DONE && std::any_of(state.warnings.begin(), state.warnings.end(),
+            [](const PrintStateBase::Warning &warning) {
+                return warning.current && warning.message_id == PrintStateBase::SlicingOrganicSupportWarning;
+            });
+    };
+    // This object takes over the layers again on every slice, which clears its warning. The checks after generating the
+    // support, by the tool ordering and by the Scarf seams exported, may not run again, and may find for this object
+    // what they do not for the other one: a Scarf seam starts nearest to where the nozzle comes from to each instance.
+    // So it keeps the heights found for it while the support it shares stays as generated then, and takes those of the
+    // other object else.
+    const PrintObject::OrganicSupportHeights &own = object.organic_support_heights();
+    if (own.shared == shared && own.shared_support_timestamp == shared->step_state_with_timestamp(posSupportMaterial).timestamp)
+        organic_update_support_warning(object, own.heights);
+    else if (warns(*shared))
+        organic_update_support_warning(object, shared->organic_support_heights().heights);
 }
 
 OrganicScarfFooting::OrganicScarfFooting(Print &print)
@@ -1563,10 +1884,10 @@ OrganicScarfFooting::OrganicScarfFooting(Print &print)
     }
 }
 
-void OrganicScarfFooting::record(const Layer &layer, const Point &origin, const ExtrusionPath &path,
+void OrganicScarfFooting::record(const PrintObject &printed, const Point &origin, const ExtrusionPath &path,
     const double z, const bool extruding)
 {
-    auto it = m_objects.find(layer.object());
+    auto it = m_objects.find(&printed);
     if (it == m_objects.end() || (!is_perimeter(path.role()) && !is_infill(path.role()) && path.role() != erGapFill))
         return;
     ObjectMaterial &object = it->second;
@@ -1593,8 +1914,9 @@ void OrganicScarfFooting::record(const Layer &layer, const Point &origin, const 
 void OrganicScarfFooting::update_warnings()
 {
     for (auto &[object, material] : m_objects) {
-        const auto covered = support_covered(*object);
-        const double sliver = organic_sliver_area(*object);
+        const auto    covered   = support_covered(*object);
+        const double  sliver    = organic_sliver_area(*object);
+        const coord_t base_span = organic_base_span(*object);
         std::vector<coordf_t> heights;
         if (material.instances.empty())
             material.instances[{0, 0}].resize(covered.size());
@@ -1605,7 +1927,8 @@ void OrganicScarfFooting::update_warnings()
             model.emitted = &footprints;
             for (size_t i = 0; i < covered.size(); ++i) {
                 throw_if_canceled(*object);
-                append_floating_heights(heights, *object, covered, i, floating_islands(*object, covered, i, model), model, nullptr, sliver);
+                append_floating_heights(heights, *object, covered, i, floating_islands(*object, covered, i, model), model, base_span,
+                    nullptr, sliver);
             }
         }
         organic_update_support_warning(*material.object, std::move(heights));
@@ -1726,9 +2049,9 @@ static bool shorten_wall_axis(const Polyline &axis, const Polygons &cut, const P
     return true;
 }
 
-// Shorten unsupported base axes while preserving the rooted wall and its closure.
+// Shorten unsupported base axes while preserving the rooted wall and its closure, bridging no farther than free_span().
 static size_t trim_unsupported_base(ExtrusionEntityCollection &collection, const Polygons &region,
-    const Polygons &footing, const Polygons *legal, double bridge_spacing)
+    const Polygons &footing, const Polygons *legal, const PrintObjectConfig &config, const coord_t base_span)
 {
     ExtrusionEntityCollection original;
     collection.entities.swap(original.entities);
@@ -1744,7 +2067,7 @@ static size_t trim_unsupported_base(ExtrusionEntityCollection &collection, const
     for (ExtrusionEntity *&entity : original.entities) {
         if (entity->is_collection()) {
             auto &nested = *static_cast<ExtrusionEntityCollection*>(entity);
-            trimmed += trim_unsupported_base(nested, region, footing, legal, bridge_spacing);
+            trimmed += trim_unsupported_base(nested, region, footing, legal, config, base_span);
             if (!nested.empty())
                 result.entities.push_back(entity);
             else
@@ -1779,7 +2102,7 @@ static size_t trim_unsupported_base(ExtrusionEntityCollection &collection, const
             }
             Polyline repaired;
             if (!shorten_wall_axis(axis, clip.cut, clip.footing, clip.legal, legal != nullptr,
-                    scale_(bridge_spacing) + double(width), double(width), repaired) ||
+                    free_span(config, base_span, double(width)), double(width), repaired) ||
                 axis.length() - repaired.length() <= SCALED_EPSILON) {
                 parts.append(path);
                 return;
@@ -1804,8 +2127,9 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
 {
     if (on_belt(object))
         return 0;
-    std::vector<Polygons> covered = support_covered(object);
-    size_t                removed = 0;
+    std::vector<Polygons> covered   = support_covered(object);
+    size_t                removed   = 0;
+    const coord_t         base_span = organic_base_span(object);
     ModelFootprints       model;
     std::vector<Polygons> rooted;
     size_t rooted_layers = 0;
@@ -1971,7 +2295,7 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
                         if (inserted)
                             it->second = bead_reach(footing, double(width));
                         for (const Polyline &part : hanging_parts(axis, double(width), it->second,
-                                 free_span(config, double(width))))
+                                 free_span(config, base_span, double(width))))
                             for (const ExPolygon &tongue : union_ex(organic_bead(part, double(width))))
                                 if (config.support_on_build_plate_only ? unused_appendage(i, tongue) : carries_nothing(i, tongue))
                                     append(tongues, to_polygons(tongue));
@@ -1995,7 +2319,7 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
                     if (!interfaces.empty())
                         legal = diff(legal, union_(interfaces));
                     const size_t trimmed = trim_unsupported_base(fills, union_(tongues), footing,
-                        layer.support_islands.empty() ? nullptr : &legal, config.support_base_pattern_spacing.value);
+                        layer.support_islands.empty() ? nullptr : &legal, config, base_span);
                     removed += trimmed;
                     changed = changed || trimmed != 0;
                 }
@@ -2008,7 +2332,7 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
         } while (changed);
         // The layers above leave this one as it is now.
         if (floating != nullptr)
-            append_floating_heights(*floating, object, covered, i, kept, model);
+            append_floating_heights(*floating, object, covered, i, kept, model, base_span);
     }
     return removed;
 }
@@ -2023,79 +2347,97 @@ Polygons organic_solid_fill(const ExPolygon &island, const Polygons &solid, cons
     return walled ? intersection(island_solid, offset(island_polygons, - 2.f * float(width))) : island_polygons;
 }
 
-// Organic: print the solid parts of a hollow body, the bodies widened under an interface, as spirals from their outline
-// in, see organic_solid_fill(), and return the islands to be printed as walls. The spiral is Arachne's, its loops as
-// wide as the part leaves room for: loops of a fixed width leave a slit up to a line wide where they run out, along the
-// middle of a part mostly, and as the part widens going up, the loop the layer above starts there lies over the slit.
+// Organic: the solid parts of a hollow body, the bodies widened under an interface, see organic_solid_fill(), and the
+// islands to be printed as walls.
+Polygons organic_split_solid_islands(const Polygons &polygons, const Polygons &solid, const coord_t width, Polygons &fill)
+{
+    if (solid.empty())
+        return polygons;
+    Polygons walls;
+    for (const ExPolygon &island : union_ex(polygons)) {
+        bool walled = true;
+        // With the rule the inner trees use, see organic_grow_trees_inside_hollow_bodies().
+        append(fill, organic_solid_fill(island, solid, width, walled));
+        if (walled)
+            append(walls, to_polygons(island));
+    }
+    return walls;
+}
+
 Polygons organic_extrude_solid_islands(ExtrusionEntitiesPtr &dst, const Polygons &polygons, const Polygons &solid, const Flow &flow,
     const PrintConfig &print_config, const PrintObjectConfig &object_config)
 {
     if (solid.empty())
         return polygons;
-    Polygons              walls;
-    std::unique_ptr<Fill> filler;
-    FillParams            params;
+    // Island by island, as the paths are to follow one another.
+    Polygons walls;
+    for (const ExPolygon &island : union_ex(polygons)) {
+        Polygons fill;
+        append(walls, organic_split_solid_islands(to_polygons(island), solid, flow.scaled_width(), fill));
+        organic_extrude_solid_fill(dst, fill, flow, print_config, object_config);
+    }
+    return walls;
+}
+
+// Organic: print solid parts of a hollow body as spirals from their outline in. The spiral is Arachne's, its loops as wide
+// as the part leaves room for: loops of a fixed width leave a slit up to a line wide where they run out, along the middle
+// of a part mostly, and as the part widens going up, the loop the layer above starts there lies over the slit.
+void organic_extrude_solid_fill(ExtrusionEntitiesPtr &dst, const Polygons &fill, const Flow &flow, const PrintConfig &print_config,
+    const PrintObjectConfig &object_config)
+{
+    if (fill.empty())
+        return;
+    FillParams params;
     params.density        = 1.f;
     params.dont_adjust    = false;
     params.use_arachne    = true;
     params.layer_height   = flow.height();
     params.extrusion_role = ExtrusionRole::erSupportMaterial;
-    for (const ExPolygon &island : union_ex(polygons)) {
-        bool     walled = true;
-        Polygons fill   = organic_solid_fill(island, solid, flow.scaled_width(), walled);
-        if (walled)
-            append(walls, to_polygons(island));
-        if (fill.empty())
-            continue;
-        if (! filler) {
-            filler.reset(Fill::new_from_type(ipSpiralInset));
-            filler->spacing             = flow.spacing();
-            filler->print_config        = &print_config;
-            filler->print_object_config = &object_config;
+    std::unique_ptr<Fill> filler(Fill::new_from_type(ipSpiralInset));
+    filler->spacing             = flow.spacing();
+    filler->print_config        = &print_config;
+    filler->print_object_config = &object_config;
+    // The fill sets its outermost loop half a line inside the outline, as a wall.
+    for (ExPolygon &region : union_ex(fill)) {
+        filler->set_bounding_box(get_extents(region));
+        const Surface  surface(stInternal, std::move(region));
+        ThickPolylines loops;
+        try {
+            loops = filler->fill_surface_arachne(&surface, params);
+        } catch (InfillFailedException &) {
         }
-        // The fill sets its outermost loop half a line inside the outline, as a wall.
-        for (ExPolygon &region : union_ex(fill)) {
-            filler->set_bounding_box(get_extents(region));
-            const Surface  surface(stInternal, std::move(region));
-            ThickPolylines loops;
-            try {
-                loops = filler->fill_surface_arachne(&surface, params);
-            } catch (InfillFailedException &) {
+        // A piece shorter than a quarter of a line, as Arachne fits in the middle of a part apart from the spiral, is a
+        // dot printed after a travel of its own.
+        loops.erase(std::remove_if(loops.begin(), loops.end(),
+            [&flow](const ThickPolyline &loop) { return loop.length() < 0.25 * double(flow.scaled_width()); }), loops.end());
+        // Arachne at times lays nothing but such dots in a part a couple of lines across. Left out, the part would hold
+        // nothing up where the trees take it for material, see organic_grow_trees_inside_hollow_bodies(): it is filled
+        // with loops going inward, or where it is too narrow for one, with a bead along its middle as wide as it is.
+        if (loops.empty()) {
+            if (Polylines inward = organic_inward_loops(to_polygons(surface.expolygon), flow); ! inward.empty()) {
+                extrusion_entities_append_paths(dst, std::move(inward), ExtrusionRole::erSupportMaterial, flow.mm3_per_mm(),
+                    flow.width(), flow.height());
+                continue;
             }
-            // A piece shorter than a quarter of a line, as Arachne fits in the middle of a part apart from the spiral, is a
-            // dot printed after a travel of its own.
-            loops.erase(std::remove_if(loops.begin(), loops.end(),
-                [&flow](const ThickPolyline &loop) { return loop.length() < 0.25 * double(flow.scaled_width()); }), loops.end());
-            // Arachne at times lays nothing but such dots in a part a couple of lines across. Left out, the part would hold
-            // nothing up where the trees take it for material, see organic_grow_trees_inside_hollow_bodies(): it is filled
-            // with loops going inward, or where it is too narrow for one, with a bead along its middle as wide as it is.
-            if (loops.empty()) {
-                if (Polylines inward = organic_inward_loops(to_polygons(surface.expolygon), flow); ! inward.empty()) {
-                    extrusion_entities_append_paths(dst, std::move(inward), ExtrusionRole::erSupportMaterial, flow.mm3_per_mm(),
-                        flow.width(), flow.height());
-                    continue;
-                }
-                const float half = 0.5f * float(flow.scaled_width());
-                Geometry::MedialAxis(half, 2. * flow.scaled_width(), surface.expolygon).build(&loops);
-                for (ThickPolyline &middle : loops)
-                    for (coordf_t &bead : middle.width)
-                        bead = std::max(bead, coordf_t(flow.scaled_width()));
-            }
-            for (const ThickPolyline &loop : loops) {
-                // A path for each width along a piece, kept together so that they print in a row: apart, a short one
-                // could be left alone between travels where dots are removed around it.
-                ExtrusionMultiPath piece = thick_polyline_to_multi_path(loop, ExtrusionRole::erSupportMaterial, flow,
-                    scaled<float>(0.05), float(SCALED_EPSILON));
-                if (piece.paths.empty())
-                    continue;
-                if (piece.first_point() == piece.last_point())
-                    dst.emplace_back(new ExtrusionLoop(std::move(piece.paths)));
-                else
-                    dst.emplace_back(new ExtrusionMultiPath(std::move(piece)));
-            }
+            const float half = 0.5f * float(flow.scaled_width());
+            Geometry::MedialAxis(half, 2. * flow.scaled_width(), surface.expolygon).build(&loops);
+            for (ThickPolyline &middle : loops)
+                for (coordf_t &bead : middle.width)
+                    bead = std::max(bead, coordf_t(flow.scaled_width()));
+        }
+        for (const ThickPolyline &loop : loops) {
+            // A path for each width along a piece, kept together so that they print in a row: apart, a short one
+            // could be left alone between travels where dots are removed around it.
+            ExtrusionMultiPath piece = thick_polyline_to_multi_path(loop, ExtrusionRole::erSupportMaterial, flow,
+                scaled<float>(0.05), float(SCALED_EPSILON));
+            if (piece.paths.empty())
+                continue;
+            if (piece.first_point() == piece.last_point())
+                dst.emplace_back(new ExtrusionLoop(std::move(piece.paths)));
+            else
+                dst.emplace_back(new ExtrusionMultiPath(std::move(piece)));
         }
     }
-    return walls;
 }
 
 } // namespace Slic3r

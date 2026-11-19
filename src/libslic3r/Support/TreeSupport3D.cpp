@@ -15,6 +15,7 @@
 #include "libslic3r/Exception.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "Fill/Fill.hpp"
+#include "libslic3r/Geometry.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
 #include "Layer.hpp"
@@ -42,6 +43,7 @@
 #include "libslic3r/Utils.hpp"
 
 #include <algorithm>
+#include <array>
 #include <Eigen/Geometry>
 #include <atomic>
 #include <cassert>
@@ -4188,22 +4190,376 @@ static std::vector<RoofStretch> organic_hanging_roof_stretches(const Polygons &r
     return result;
 }
 
+bool organic_widens_cut_as_it_is(const Polygons &cut, const float delta)
+{
+    const double shortest = std::abs(double(delta)) * ClipperOffsetShortestEdgeFactor;
+    for (const Polygon &polygon : cut) {
+        // It drops a point only next to one closer than that: the first it drops is closer to a point next to it.
+        bool drops = false;
+        for (size_t j = 0, k = polygon.size() - 1; j < polygon.size() && ! drops; k = j ++)
+            drops = (polygon[j] - polygon[k]).cast<double>().squaredNorm() < shortest * shortest;
+        if (! drops || polygon.area() <= 0.)
+            continue;
+        const Polygons kept = offset_input(Polygons{ polygon }, delta);
+        if (kept.empty() || kept.front().area() <= 0.)
+            return false;
+        // The edges it joins past the points it drops, each from the point it keeps before them, as it keeps the first,
+        // with the box around them and the points it joins past.
+        const Points                               &left = kept.front().points;
+        const size_t                                n    = left.size();
+        std::vector<std::pair<size_t, BoundingBox>> joined;
+        for (size_t i = 0, j = 0; i < polygon.size(); ++ i)
+            if (j < n && polygon[i] == left[j])
+                ++ j;
+            else {
+                if (joined.empty() || joined.back().first != j - 1) {
+                    joined.emplace_back(j - 1, BoundingBox());
+                    joined.back().second.merge(left[j - 1]);
+                    joined.back().second.merge(left[j % n]);
+                }
+                joined.back().second.merge(polygon[i]);
+            }
+        const auto crosses = [&left, n](const size_t a, const size_t c) {
+            const size_t b = (a + 1) % n;
+            const size_t d = (c + 1) % n;
+            return c != a && c != b && d != a &&
+                (left[c] == left[a] || left[c] == left[b] || left[d] == left[a] || left[d] == left[b] ||
+                    Geometry::segments_intersect(left[a], left[b], left[c], left[d]));
+        };
+        // An edge it keeps of the polygon, which does not cross itself, crosses or touches one it joins only with an
+        // end between that one and the points it joins past, or on their border, within their box, but where it passes
+        // through an end of that one, as the polygon did; of two edges it joins that cross or touch, one has an end in
+        // the box of the other. The points within a box are found among those as far along x; where more than 32 of
+        // them are, as along a straight side of the polygon with many small teeth, among those as far along y where
+        // those are fewer, the points sorted along y the first time.
+        std::array<std::vector<size_t>, 2> sorted;
+        const auto sort_along = [&left, &sorted, n](const int axis) {
+            sorted[axis].resize(n);
+            std::iota(sorted[axis].begin(), sorted[axis].end(), 0);
+            std::sort(sorted[axis].begin(), sorted[axis].end(),
+                [&left, axis](const size_t l, const size_t r) { return left[l](axis) < left[r](axis); });
+        };
+        sort_along(0);
+        const auto within = [&left, &sorted](const int axis, const BoundingBox &box) {
+            const std::vector<size_t> &by = sorted[axis];
+            const auto first = std::lower_bound(by.begin(), by.end(), box.min(axis),
+                [&left, axis](const size_t l, const coord_t v) { return left[l](axis) < v; });
+            const auto last  = std::upper_bound(first, by.end(), box.max(axis),
+                [&left, axis](const coord_t v, const size_t r) { return v < left[r](axis); });
+            return std::make_pair(first, last);
+        };
+        for (const auto &[a, box] : joined) {
+            auto run = within(0, box);
+            if (run.second - run.first > 32) {
+                if (sorted[1].empty())
+                    sort_along(1);
+                if (const auto along_y = within(1, box); along_y.second - along_y.first < run.second - run.first)
+                    run = along_y;
+            }
+            for (auto it = run.first; it != run.second; ++ it)
+                if (box.contains(left[*it]) && (crosses(a, *it) || crosses(a, (*it + n - 1) % n)))
+                    return false;
+        }
+    }
+    return true;
+}
+
+std::optional<Polygons> organic_widen_part(const ExPolygon &island, const BoundingBox &extents, const Polygons &part,
+    const BoundingBox &box, const float delta, size_t *points)
+{
+    if (points != nullptr)
+        *points = 0;
+    if (part.empty())
+        return Polygons();
+    // A part within the box is all of the island.
+    if (box.contains(get_extents(part)))
+        return std::nullopt;
+    // Within the box exactly: the clip keeps the far corners of the island and joins them outside the box, where the
+    // contour may wind the other way and, widened, cover nothing. Where the widening would not keep the cut as it is,
+    // see organic_widens_cut_as_it_is(), the island is cut by a box a little larger instead, a few times, its corners
+    // moved aslant differently each time, and last by a box as much larger as delta, where a gentle tip of the island
+    // is wider: widened, the cut is the island widened within the box all the same. A box that takes in all of the
+    // island takes it whole.
+    if (const Polygons cut = intersection(part, Polygons{box.polygon()}); organic_widens_cut_as_it_is(cut, delta))
+        return offset(cut, delta, jtRound, scaled<double>(0.005));
+    const auto step = coord_t(std::ceil(4. * std::abs(double(delta)) * ClipperOffsetShortestEdgeFactor));
+    const auto far  = coord_t(std::ceil(std::abs(double(delta))));
+    const std::array<Point, 4> margins = { Point(step, 2 * step), Point(2 * step, step), Point(3 * step, 3 * step),
+        Point(far, far) };
+    if (step > 0)
+        for (size_t k = 0; k < margins.size(); ++ k) {
+            const BoundingBox around(box.min - margins[k], box.max + margins[k]);
+            if (around.contains(extents))
+                break;
+            if (const Polygons cut = intersection(ClipperUtils::clip_clipper_polygons_with_subject_bbox(island, around),
+                    Polygons{around.polygon()});
+                organic_widens_cut_as_it_is(cut, delta)) {
+                if (points != nullptr && k + 1 == margins.size())
+                    *points = count_points(cut);
+                return offset(cut, delta, jtRound, scaled<double>(0.005));
+            }
+        }
+    return std::nullopt;
+}
+
+Polygons organic_model_under(const PrintObject &object, const TreeModelVolumes &volumes,
+    const TreeSupportSettings &config, const size_t layer_idx, const BoundingBox &box, OrganicModelUnderCache *cache)
+{
+    // A tree rests on the model from a bottom Z distance over the bed, and over the raft, up. The areas are calculated
+    // with the collision of radius 0 where the support may rest on the model; else
+    // TreeModelVolumes::getPlaceableAreas() returns the collision.
+    const size_t num_raft_layers = config.raft_layers.size();
+    if (! config.support_rests_on_model || layer_idx < config.z_distance_bottom_layers + num_raft_layers)
+        return {};
+    const size_t top = layer_idx - config.z_distance_bottom_layers - num_raft_layers;
+    if (top >= object.layer_count())
+        return {};
+    // A branch placed on the model keeps the least XY distance from it, a foot dropped beside a slope the XY distance.
+    const coord_t   wider     = std::max<coord_t>(0, config.xy_distance - config.xy_min_distance);
+    const Polygons &placeable = volumes.getPlaceableAreas(0, LayerIndex(layer_idx + 1), [] {});
+    OrganicModelUnderCache::Whole *kept = nullptr;
+    if (cache != nullptr) {
+        if (cache->layers.size() <= layer_idx)
+            cache->layers.resize(layer_idx + 1);
+        kept = &cache->layers[layer_idx];
+        // The model under all the areas, once found, answers every box after.
+        if (kept->found)
+            return ClipperUtils::clip_clipper_polygons_with_subject_bbox(kept->model, box);
+    }
+    const BoundingBox near_box = box.inflated(wider);
+    Polygons          near     = ClipperUtils::clip_clipper_polygons_with_subject_bbox(placeable, near_box);
+    if (near.empty())
+        return {};
+    // Within the box exactly: the clip above keeps the far corners of an area whose edge crosses the box, and the
+    // slices near them would be taken in for nothing.
+    if (! near_box.contains(get_extents(near))) {
+        near = intersection(near, Polygons{near_box.polygon()});
+        if (near.empty())
+            return {};
+    }
+    // No farther than the XY distance from the top of the model the branch rests on, all round: the areas are widened
+    // by the least XY distance with mitered corners, as the collision by the XY distance, which reach out farther at a
+    // sharp edge of the model. The slices farther than that from the areas do not matter.
+    const BoundingBox slice_box = get_extents(near).inflated(wider + config.xy_distance);
+    const Layer      &layer     = *object.get_layer(int(top));
+    const float       xy        = float(config.xy_distance);
+    const auto        widened   = [&layer, xy](const size_t i) {
+        return offset(layer.lslices[i], xy, jtRound, scaled<double>(0.005));
+    };
+    const auto        near_to   = [&layer](const size_t i, const BoundingBox &around) {
+        return i >= layer.lslices_bboxes.size() || layer.lslices_bboxes[i].overlap(around);
+    };
+    const auto        extents_of = [&layer](const size_t i) {
+        return i < layer.lslices_bboxes.size() ? layer.lslices_bboxes[i] : get_extents(layer.lslices[i].contour);
+    };
+    // The part of an island near the box, see ClipperUtils::clip_clipper_polygons_with_subject_bbox(): none of its
+    // holes when none of its contour, as they lie within it, and none of a hole away from the box, as it is clipped to
+    // nothing.
+    const auto        part_of   = [&layer](const size_t i, const BoundingBox &around) {
+        Polygons part;
+        if (Polygon contour = ClipperUtils::clip_clipper_polygon_with_subject_bbox(layer.lslices[i].contour, around);
+            ! contour.empty()) {
+            part.emplace_back(std::move(contour));
+            for (const Polygon &hole : layer.lslices[i].holes)
+                if (get_extents(hole).overlap(around))
+                    if (Polygon clipped = ClipperUtils::clip_clipper_polygon_with_subject_bbox(hole, around);
+                        ! clipped.empty())
+                        part.emplace_back(std::move(clipped));
+        }
+        return part;
+    };
+    const auto        widen_near = [wider](const Polygons &areas) {
+        return wider > 0 ? offset(areas, float(wider), jtRound, scaled<double>(0.005)) : areas;
+    };
+    Polygons slices;
+    if (cache == nullptr) {
+        for (size_t i = 0; i < layer.lslices.size(); ++ i)
+            if (near_to(i, slice_box)) {
+                std::optional<Polygons> part =
+                    organic_widen_part(layer.lslices[i], extents_of(i), part_of(i, slice_box), slice_box, xy);
+                append(slices, part ? std::move(*part) : widened(i));
+            }
+        return intersection(widen_near(near), slices);
+    }
+    if (cache->islands.size() < object.layer_count()) {
+        cache->islands.resize(object.layer_count());
+        cache->island_known.resize(object.layer_count());
+        cache->island_far_counted.resize(object.layer_count());
+        cache->island_whole_drops.resize(object.layer_count());
+    }
+    std::vector<Polygons> &reach       = cache->islands[top];
+    std::vector<bool>     &known       = cache->island_known[top];
+    std::vector<bool>     &far_counted = cache->island_far_counted[top];
+    std::vector<bool>     &whole_drops = cache->island_whole_drops[top];
+    if (known.size() != layer.lslices.size()) {
+        reach.assign(layer.lslices.size(), Polygons());
+        known.assign(layer.lslices.size(), false);
+        far_counted.assign(layer.lslices.size(), false);
+        whole_drops.assign(layer.lslices.size(), false);
+    }
+    // What finding it near the box goes through, in points: the areas near the box, and the islands of the slices near
+    // them, or what of each is kept, clipped to them.
+    const BoundingBox                        near_extents = get_extents(near).inflated(wider + SCALED_EPSILON);
+    std::vector<std::pair<size_t, Polygons>> parts;
+    size_t                                   points = count_points(near);
+    for (size_t i = 0; i < layer.lslices.size(); ++ i)
+        if (near_to(i, slice_box)) {
+            if (known[i]) {
+                // What of a kept island is clipped to them counts in points of the island, as the parts do.
+                Polygons part = ClipperUtils::clip_clipper_polygons_with_subject_bbox(reach[i], near_extents);
+                points += count_points(part) * count_points(layer.lslices[i]) /
+                    std::max<size_t>(1, count_points(reach[i]));
+                append(slices, std::move(part));
+            } else {
+                Polygons part = part_of(i, slice_box);
+                points += count_points(part);
+                parts.emplace_back(i, std::move(part));
+            }
+        }
+    // The model under all the areas is found once finding it near the boxes asked for has gone through as many points
+    // as finding it all at once does, the areas and the parts of the islands near them, or near a box half as many:
+    // what it costs then is no more than twice what finding it only near the boxes, or only all at once, would. So
+    // finding it near the boxes goes through about as many points at most as finding it all at once is counted to, and
+    // a box more: the cuts and the islands widened whole count, not the checks of an island whole, see below, which go
+    // through no more than twice the points of a cut. Finding it all at once goes through about as many: more where it
+    // widens whole an island not kept, no cut of which by the box around the areas is widened as it is, or cuts one
+    // farther out that no box asked for cut so, which it does not count; fewer where a ring of points counted is not
+    // cut. Where it is found does not change what is found, but by rounding and for slivers, see
+    // OrganicModelUnderCache.
+    const auto around_areas = [&placeable, wider, &config] {
+        return get_extents(placeable).inflated(wider + config.xy_distance);
+    };
+    // An island within the box around all the areas is all of it, the part of one crossing it is clipped to it; the
+    // parts, kept from counting them in this call for finding the model under all the areas.
+    std::vector<std::pair<size_t, Polygons>> around_parts;
+    BoundingBox                              around;
+    const auto                               within = [&layer, &around](const size_t i) {
+        return i < layer.lslices_bboxes.size() && around.contains(layer.lslices_bboxes[i]);
+    };
+    const bool counted = kept->points == 0;
+    if (counted) {
+        around       = around_areas();
+        kept->points = count_points(placeable);
+        for (size_t i = 0; i < layer.lslices.size(); ++ i)
+            if (! near_to(i, around))
+                continue;
+            else if (within(i))
+                kept->points += count_points(layer.lslices[i]);
+            else {
+                Polygons part = part_of(i, around);
+                kept->points += count_points(part);
+                around_parts.emplace_back(i, std::move(part));
+            }
+    }
+    kept->spent += points;
+    if (2 * points < kept->points && kept->spent < kept->points) {
+        // An island of which the areas take in half the points or more is widened whole, once, kept and clipped to
+        // them; of one not kept yet that they take in less of, only the part near them is widened, each time it is
+        // asked for, but where the island is to be widened whole, see organic_widen_part(): it is kept then too, and
+        // what is spent counts all its points. Where only the cut by the box as much larger as the XY distance is
+        // widened, what is spent counts all its points past the part; where that cut takes in half the points of the
+        // island or more, the island is widened whole and kept as well, but where that would not keep it as it is, see
+        // organic_widens_cut_as_it_is(), as of a sliver it drops all of, found once. Else, the first time, what finding
+        // the model all at once goes through counts the points of the island as much farther out than the box around
+        // all the areas, which it may cut that far out too: no fewer than it goes through, so it may be found all at
+        // once that many points later. Known only once cut, past the test above, they count before the next box is
+        // asked for.
+        std::optional<BoundingBox> all;
+        const auto                 around_all = [&all, &around_areas]() -> const BoundingBox & {
+            if (! all)
+                all = around_areas();
+            return *all;
+        };
+        for (auto &[i, part] : parts) {
+            const size_t part_points   = count_points(part);
+            const size_t island_points = count_points(layer.lslices[i]);
+            if (2 * part_points < island_points) {
+                size_t                  far_points = 0;
+                std::optional<Polygons> near_part =
+                    organic_widen_part(layer.lslices[i], extents_of(i), part, slice_box, xy, &far_points);
+                if (near_part && far_points > 0) {
+                    kept->spent += far_points - std::min(far_points, part_points);
+                    if (2 * far_points >= island_points && ! whole_drops[i]) {
+                        if (organic_widens_cut_as_it_is(to_polygons(layer.lslices[i]), xy))
+                            near_part.reset();
+                        else
+                            whole_drops[i] = true;
+                    }
+                    if (near_part && ! far_counted[i]) {
+                        far_counted[i] = true;
+                        if (! around_all().contains(extents_of(i))) {
+                            const size_t farther =
+                                count_points(part_of(i, around_all().inflated(coord_t(std::ceil(xy)))));
+                            kept->points += farther - std::min(farther, count_points(part_of(i, around_all())));
+                        }
+                    }
+                }
+                if (near_part) {
+                    append(slices, std::move(*near_part));
+                    continue;
+                }
+                kept->spent += island_points - part_points;
+            }
+            reach[i] = widened(i);
+            known[i] = true;
+            append(slices, ClipperUtils::clip_clipper_polygons_with_subject_bbox(reach[i], near_extents));
+        }
+        return intersection(widen_near(near), slices);
+    }
+    // All the areas widened, and the parts of the islands near them widened, or the islands kept.
+    if (! counted) {
+        around = around_areas();
+        for (size_t i = 0; i < layer.lslices.size(); ++ i)
+            if (near_to(i, around) && ! known[i] && ! within(i))
+                around_parts.emplace_back(i, part_of(i, around));
+    }
+    Polygons islands;
+    for (size_t i = 0, next = 0; i < layer.lslices.size(); ++ i)
+        if (near_to(i, around)) {
+            const bool crossing = next < around_parts.size() && around_parts[next].first == i;
+            if (known[i])
+                append(islands, std::move(reach[i]));
+            else if (std::optional<Polygons> part = crossing ?
+                         organic_widen_part(layer.lslices[i], extents_of(i), around_parts[next].second, around, xy) :
+                         std::nullopt;
+                     part)
+                append(islands, std::move(*part));
+            else
+                append(islands, widened(i));
+            next += crossing;
+        }
+    kept->model = intersection(widen_near(placeable), islands);
+    kept->found = true;
+    // The islands of that layer are asked for no more.
+    cache->islands[top]        = std::vector<Polygons>();
+    cache->island_known[top]   = std::vector<bool>();
+    cache->island_far_counted[top] = std::vector<bool>();
+    cache->island_whole_drops[top] = std::vector<bool>();
+    return ClipperUtils::clip_clipper_polygons_with_subject_bbox(kept->model, box);
+}
+
 void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &roofs,
-    const std::vector<Polygons> &model, const coord_t line_width, const coord_t tip_radius, const coord_t move, const coord_t reach,
-    const std::vector<double> &roof_angles)
+    const std::vector<Polygons> &model, const std::function<Polygons(size_t, const BoundingBox &)> &model_under,
+    const bool limit_growth, const coord_t line_width, const coord_t tip_radius, const coord_t move, const coord_t reach,
+    const std::vector<double> &roof_angles, const std::function<void()> &throw_on_cancel)
 {
     assert(bodies.size() == roofs.size() && bodies.size() == model.size());
     const float  half      = 0.5f * float(line_width);
-    const float  step      = std::min(half, float(move));
-    // A branch angle of 0 lets no body widen.
-    if (step <= 0.f)
+    const float  lean      = std::min(half, float(move));
+    // A body leaning no farther a layer than SCALED_EPSILON, the least widen below tells apart, never widened in steps
+    // as far as it leans, and does not widen, as at a branch angle of nought.
+    if (lean <= float(SCALED_EPSILON))
         return;
     const float  widest    = 5.f * half;
+    // The bodies widen a step at a time, as far as they lean a layer, but where they lean less than a 128th of the
+    // widest a layer, by that much, so that they take no more than 128 steps.
+    const float  step      = std::max(lean, widest / 128.f);
     const size_t max_steps = size_t(std::ceil(widest / step - EPSILON));
     const float  margin    = float(reach) + widest + float(line_width);
-    // The roof lines are sampled a quarter of a line apart, so a line between two of them touches what both touch within
-    // half a line less half that pitch, and a stretch is to hang no farther than the span between two lines of the base
-    // less that much on both sides, so that a point midway still lies within reach, or than a line where it ends in the air.
+    // The roof lines are sampled a quarter of a line apart, so a line between two of them touches what both touch
+    // within half a line less half that pitch, and a stretch is to hang no farther than the span between two lines of
+    // the base less that much on both sides, so that a point midway still lies within reach, or than a line where it
+    // ends in the air.
     const double pitch  = 0.25 * double(line_width);
     const double touch  = 0.5 * (double(line_width) - pitch);
     const double bridge = 2. * (double(reach) - touch);
@@ -4214,16 +4570,19 @@ void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const s
         SupportGeneratorLayer *layer = bodies[below];
         if (roof.empty() || layer == nullptr)
             continue;
+        if (throw_on_cancel)
+            throw_on_cancel();
         BoundingBox where = get_extents(roof);
         where.offset(coord_t(margin));
         const Polygons roofs_below = ClipperUtils::clip_clipper_polygons_with_subject_bbox(roofs[below], where);
-        // What hangs of the roof over the bodies and the roofs below it, held: the stretches of its lines along them, see
-        // organic_hanging_roof_stretches(), or with no lines known, the points of it farther than reach from them.
+        // What hangs of the roof over the bodies and the roofs below it, held: the stretches of its lines along them,
+        // see organic_hanging_roof_stretches(), or with no lines known, the points of it farther than reach from them.
         const auto hanging_over = [&](const Polygons &held) {
             if (roof_angles.empty())
                 return diff(roof, offset(held, float(reach)));
-            // A line running along a gap between them narrower than a bridge passes over neither, though it touches them,
-            // and one across it bridges it: the gap is not touched, so that the bodies close it under such a line.
+            // A line running along a gap between them narrower than a bridge passes over neither, though it touches
+            // them, and one across it bridges it: the gap is not touched, so that the bodies close it under such a
+            // line.
             const Polygons touched = diff(offset(held, float(touch)), diff(closing(held, float(0.5 * bridge)), held));
             Polylines      stretches;
             for (const RoofStretch &stretch : organic_hanging_roof_stretches(roof, touched, roof_angles, pitch, bridge, end,
@@ -4255,11 +4614,13 @@ void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const s
         const float    apart = float(line_width) + half;
         const Polygons room  = diff(offset(roof, half), union_(model[below], offset(fixed, apart)));
         std::vector<std::vector<Polygons>> steps{ shapes };
-        while (steps.size() <= max_steps && ! hanging.empty()) {
-            bool wider = false;
-            // Each body keeps away from the others as they are now, so they widen in turn, but near where the roof still
-            // hangs: a roof line along the gap between two bodies passes over neither, and their bands, printed solid,
-            // close the gap under it, as the flares of tips merge.
+        // A step more: each body keeps away from the others as they are now, so they widen in turn, but near where the
+        // roof still hangs: a roof line along the gap between two bodies passes over neither, and their bands, printed
+        // solid, close the gap under it, as the flares of tips merge.
+        const auto widen = [&]() {
+            if (throw_on_cancel)
+                throw_on_cancel();
+            bool           wider = false;
             const Polygons hangs = offset(hanging, apart);
             for (size_t i = 0; i < shapes.size(); ++ i) {
                 const BoundingBox box = get_extents(shapes[i]).inflated(coord_t(step + apart));
@@ -4267,49 +4628,163 @@ void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const s
                 for (size_t j = 0; j < shapes.size(); ++ j)
                     if (j != i && ! (tip[i] && tip[j]) && get_extents(shapes[j]).overlap(box))
                         append(others, shapes[j]);
-                // A body widens all around, so that its band is as wide as a step everywhere, not a sliver no bead prints.
+                // A body widens all around, so that its band is as wide as a step everywhere, not a sliver no bead
+                // prints.
                 const Polygons grown = diff(intersection(offset(shapes[i], step), room), diff(offset(others, apart), hangs));
                 if (diff(grown, offset(shapes[i], float(SCALED_EPSILON))).empty())
                     continue;
                 shapes[i] = union_(shapes[i], grown);
                 wider     = true;
             }
-            if (! wider)
-                break;
+            if (wider)
+                steps.push_back(shapes);
+            return wider;
+        };
+        // A sliver narrower than a line holds nothing: no bead prints it.
+        const auto held_by = [half](const Polygons &held) {
+            return opening(held, half, jtRound, scaled<double>(0.005));
+        };
+        const Polygons hanging_bare = hanging;
+        while (steps.size() <= max_steps && ! hanging.empty() && widen()) {
             Polygons all;
             for (const Polygons &shape : shapes)
                 append(all, shape);
-            // A sliver narrower than a line holds nothing: no bead prints it.
-            hanging = roof_angles.empty() ? diff(hanging, offset(opening(all, half, jtRound, scaled<double>(0.005)), float(reach))) :
-                hanging_over(union_(opening(all, half, jtRound, scaled<double>(0.005)), roofs_below));
-            steps.push_back(shapes);
+            hanging = roof_angles.empty() ? diff(hanging, offset(held_by(all), float(reach))) :
+                hanging_over(union_(held_by(all), roofs_below));
         }
-        // The layer m layers below the interface takes the bodies m steps narrower, each standing on the one below it, and
-        // no farther from the bodies of that layer than its steps, as a leaning body moves away from under them.
-        const size_t num_steps = steps.size() - 1;
-        BoundingBox  flared;
-        for (const Polygons &shape : steps.back())
-            flared.merge(get_extents(shape));
-        flared.offset(coord_t(widest + float(line_width)));
-        for (size_t m = 0; m < num_steps && m <= below; ++ m) {
-            SupportGeneratorLayer *target = bodies[below - m];
-            if (target == nullptr || (m > 0 && std::abs(target->print_z - bodies[below - m + 1]->bottom_z) > EPSILON))
-                break;
-            const Polygons own    = ClipperUtils::clip_clipper_polygons_with_subject_bbox(target->polygons, flared);
-            const Polygons within = offset(own, float(num_steps - m) * step + float(SCALED_EPSILON));
-            Polygons added;
-            Polygons solid;
-            for (size_t i = 0; i < shapes.size(); ++ i) {
-                Polygons shape;
-                // A piece the cut leaves apart from the bodies of that layer would stand on nothing.
-                for (ExPolygon &part : intersection_ex(diff(steps[num_steps - m][i], model[below - m]), within))
-                    if (! intersection(to_polygons(part), own).empty())
-                        append(shape, to_polygons(std::move(part)));
-                append(solid, tip[i] ? shape : diff(shape, target->polygons));
-                append(added, std::move(shape));
+        // The layer m layers below the interface takes the bodies as many steps narrower as they lean over m layers,
+        // each standing on the one below it, and no farther from the bodies of that layer than its steps, as a leaning
+        // body moves away from under them; with steps wider than the lean, the flare goes down in stairs a step wide,
+        // no narrower than it would be.
+        // With limit_growth, what a layer adds keeps within half a line, or the move where that is more, of what its
+        // body stands on: the bodies of the layer below as widened, its roofs, and the model under it where the support
+        // may rest on it, as a body grows going up; a body standing on none of them, or with no layer right below it,
+        // widens as it is. The model of the collision is no such material: it holds the gaps around the model and the
+        // support blockers. The side a body leans to moves by the lean already, so that it gains that much less a
+        // layer.
+        const float beyond = std::max(half, float(move)) + float(SCALED_EPSILON);
+        // What the steps add to the layers below the interface, and what of it is printed solid, a layer each going
+        // down.
+        const auto dry_run = [&](std::vector<Polygons> &adds, std::vector<Polygons> &solids) {
+            const size_t num_steps = steps.size() - 1;
+            const auto   state     = [num_steps, lean, step](const size_t m) {
+                return num_steps - std::min(num_steps, step > lean ? size_t(double(m) * lean / step) : m);
+            };
+            BoundingBox  flared;
+            for (const Polygons &shape : steps.back())
+                flared.merge(get_extents(shape));
+            flared.offset(coord_t(widest + float(line_width)));
+            size_t num_layers = 0;
+            for (; state(num_layers) > 0 && num_layers <= below; ++ num_layers)
+                if (const size_t m = num_layers; bodies[below - m] == nullptr ||
+                    (m > 0 && std::abs(bodies[below - m]->print_z - bodies[below - m + 1]->bottom_z) > EPSILON))
+                    break;
+            adds.assign(num_layers, Polygons());
+            solids.assign(num_layers, Polygons());
+            // Going up, each layer standing on the one below as widened.
+            for (size_t m = num_layers; m -- > 0;) {
+                if (throw_on_cancel)
+                    throw_on_cancel();
+                const SupportGeneratorLayer *target = bodies[below - m];
+                const Polygons own = ClipperUtils::clip_clipper_polygons_with_subject_bbox(target->polygons, flared);
+                if (own.empty())
+                    continue;
+                const float out = float(state(m)) * step + float(SCALED_EPSILON);
+                Polygons    within;
+                if (const SupportGeneratorLayer *base = below - m > 0 ? bodies[below - m - 1] : nullptr;
+                    limit_growth && base != nullptr && std::abs(base->print_z - target->bottom_z) <= EPSILON) {
+                    // Each body widened as far as it may, with mitered corners, which reach out farther than the
+                    // steps. What lies farther from them than that and beyond does not matter.
+                    std::vector<Polygons> pieces, spread;
+                    BoundingBox           box;
+                    for (ExPolygon &body : union_ex(own)) {
+                        pieces.emplace_back(to_polygons(std::move(body)));
+                        spread.emplace_back(offset(pieces.back(), out));
+                        box.merge(get_extents(spread.back()));
+                    }
+                    box.offset(coord_t(beyond));
+                    Polygons footing = ClipperUtils::clip_clipper_polygons_with_subject_bbox(base->polygons, box);
+                    append(footing, ClipperUtils::clip_clipper_polygons_with_subject_bbox(roofs[below - m - 1], box));
+                    if (model_under)
+                        append(footing, model_under(below - m - 1, box));
+                    if (m + 1 < num_layers)
+                        append(footing, adds[m + 1]);
+                    NearPolygons footing_near;
+                    footing_near.append(union_(footing));
+                    // A body standing on none of them widens as it is.
+                    Polygons standing, floating;
+                    for (size_t j = 0; j < pieces.size(); ++ j)
+                        append(footing_near.touch(pieces[j]) ? standing : floating, std::move(spread[j]));
+                    within = union_(own, intersection(standing,
+                        offset(footing_near.polygons, beyond, jtRound, scaled<double>(0.005))));
+                    within = union_(within, floating);
+                } else
+                    within = offset(own, out);
+                for (size_t i = 0; i < shapes.size(); ++ i) {
+                    Polygons shape;
+                    // A piece the cut leaves apart from the bodies of that layer would stand on nothing.
+                    for (ExPolygon &part : intersection_ex(diff(steps[state(m)][i], model[below - m]), within))
+                        if (! intersection(to_polygons(part), own).empty())
+                            append(shape, to_polygons(std::move(part)));
+                    append(solids[m], tip[i] ? shape : diff(shape, target->polygons));
+                    append(adds[m], std::move(shape));
+                }
             }
-            target->polygons       = union_(target->polygons, added);
-            target->solid_polygons = union_(target->solid_polygons, solid);
+        };
+        // What of the roof hangs over the top layer, its bodies widened by adds.
+        const auto hanging_off = [&](const Polygons &adds) {
+            Polygons top = ClipperUtils::clip_clipper_polygons_with_subject_bbox(layer->polygons, where);
+            append(top, adds);
+            top = held_by(union_(top));
+            return roof_angles.empty() ? diff(hanging_bare, offset(top, float(reach))) :
+                hanging_over(union_(top, roofs_below));
+        };
+        std::vector<Polygons> added, solid;
+        dry_run(added, solid);
+        // Where the roof then hangs over the bodies more than over the flare unclipped, they widen by a step more,
+        // reaching as many layers lower down as the step holds leans, up to the widest, keeping the flare that leaves
+        // the least of it hanging, each step paying for itself by a step along 0.01 mm. A step down to a layer a body
+        // leans on by the limit gains nothing, and the next one, down to where it stands straight, may carry a step up
+        // through it, so the search ends only at a step that neither leaves less of the roof hanging than the one
+        // before nor reaches a layer lower down.
+        if (limit_growth && hanging.empty() && ! added.empty()) {
+            const double gain  = double(step) * scaled<double>(0.01);
+            Polygons     still = hanging_off(added.front());
+            double       left  = area(still);
+            if (left > gain) {
+                Polygons widened;
+                for (const Polygons &shape : shapes)
+                    append(widened, shape);
+                const double          unclipped = area(hanging_off(widened));
+                std::vector<Polygons> more_added, more_solid;
+                size_t                best_steps = steps.size(), last_layers = added.size();
+                double                last       = left;
+                while (left > unclipped + gain && steps.size() <= max_steps) {
+                    hanging = std::move(still);
+                    if (! widen())
+                        break;
+                    dry_run(more_added, more_solid);
+                    if (more_added.empty())
+                        break;
+                    still = hanging_off(more_added.front());
+                    const double now    = area(still);
+                    const size_t layers = more_added.size();
+                    if (now <= left - gain * double(steps.size() - best_steps)) {
+                        left       = now;
+                        best_steps = steps.size();
+                        std::swap(added, more_added);
+                        std::swap(solid, more_solid);
+                    } else if (now > last - gain && layers == last_layers)
+                        break;
+                    last        = now;
+                    last_layers = layers;
+                }
+            }
+        }
+        for (size_t m = 0; m < added.size(); ++ m) {
+            SupportGeneratorLayer *target = bodies[below - m];
+            target->polygons       = union_(target->polygons, added[m]);
+            target->solid_polygons = union_(target->solid_polygons, solid[m]);
         }
     }
 }
@@ -4382,7 +4857,8 @@ void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, 
     {
         ExPolygons islands;
         // The walls and the solid parts, and with the roofs the material.
-        Polygons   beads;
+        Polygons   walls;
+        Polygons   solid;
         Polygons   material;
         Polygons   inside;
     };
@@ -4417,7 +4893,7 @@ void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, 
                             // first wall, and the paths cut them against the second one where they print it. See
                             // generate_support_toolpaths().
                             Polygons in = offset(island, - 0.75f * float(width));
-                            append(out.beads, diff(opening(to_polygons(island), half), in));
+                            append(out.walls, diff(opening(to_polygons(island), half), in));
                             // A hole in a body is as open as its inside: the trees grow in it too, beside its walls.
                             Polygons holes;
                             for (Polygon hole : island.holes) {
@@ -4425,12 +4901,13 @@ void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, 
                                 holes.push_back(std::move(hole));
                             }
                             append(out.inside, diff(union_(in, offset(holes, 0.25f * float(width))), solid));
-                            append(out.beads, std::move(solid));
+                            append(out.solid, std::move(solid));
                         } else if (! first)
-                            append(out.beads, to_polygons(island));
+                            append(out.solid, to_polygons(island));
                         out.islands.emplace_back(std::move(island));
                     }
-                out.material = out.beads;
+                out.material = out.walls;
+                append(out.material, out.solid);
                 // Interface contours are planning envelopes. Sparse bottom interfaces receive local footing under
                 // the actual base/tree paths in organic_anchor_bottom_interfaces() after their pattern is printed.
                 append(out.material, roofs[l]);
@@ -4474,13 +4951,15 @@ void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, 
         const Printed &here = printed[l];
         // The roofs over this layer and the beads the layer above prints, its walls, its solid parts and its trees, over
         // the inside of the bodies: the loads the trees carry.
-        const Polygons roof_load = l + 1 < roofs.size() ? intersection(roofs[l + 1], here.inside) : Polygons();
-        const Polygons bead_load = stacked ? intersection(printed[l + 1].beads, here.inside) : Polygons();
-        const Polygons tree_load = stacked ? intersection(bodies[l + 1]->inner_trees, here.inside) : Polygons();
-        if (trees.empty() && roof_load.empty() && bead_load.empty() && tree_load.empty())
+        const Polygons roof_load  = l + 1 < roofs.size() ? intersection(roofs[l + 1], here.inside) : Polygons();
+        const Polygons wall_load  = stacked ? intersection(printed[l + 1].walls, here.inside) : Polygons();
+        const Polygons solid_load = stacked ? intersection(printed[l + 1].solid, here.inside) : Polygons();
+        const Polygons tree_load  = stacked ? intersection(bodies[l + 1]->inner_trees, here.inside) : Polygons();
+        if (trees.empty() && roof_load.empty() && wall_load.empty() && solid_load.empty() && tree_load.empty())
             continue;
         BoundingBox where = get_extents(roof_load);
-        where.merge(get_extents(bead_load));
+        where.merge(get_extents(wall_load));
+        where.merge(get_extents(solid_load));
         where.merge(get_extents(tree_load));
         for (const Tree &tree : trees)
             where.merge(get_extents(tree.shape));
@@ -4701,10 +5180,13 @@ void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, 
                 }
             }
         };
-        // A roof line bridges between the lines of the base within reach of them; a bead of a wall or a solid part touches
-        // what is below it at least, as the first layer of a second wall lies beside the first; and so does one of a
-        // tree, as a tree going into a wall ends in a bead beside it, as deep as a line and the move of a layer at most.
-        if (! roof_load.empty() || ! bead_load.empty() || ! tree_load.empty()) {
+        // A roof line bridges between the lines of the base within reach of them; a bead of a wall touches what is below it
+        // at least, as the first layer of a second wall lies beside the first, a line from it; the spiral of a solid part
+        // lays its beads anywhere over it, and a bead touches what is below where its axis lies within half its width of
+        // it, see bead_reach() in OrganicToolpaths.cpp, so half a line holds a solid part; and a bead of a tree touches
+        // what is below too, as a tree going into a wall ends in a bead beside it, as deep as a line and the move of a
+        // layer at most.
+        if (! roof_load.empty() || ! wall_load.empty() || ! solid_load.empty() || ! tree_load.empty()) {
             Polygons held = material;
             append(held, grown_out);
             // A roof line bridges between what it passes over, not between what lies within reach of it: a line between two
@@ -4756,8 +5238,10 @@ void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, 
                 hold_roof_lines(roof_load);
                 grow_tips(unheld(roof_load, float(reach)), float(reach));
             }
-            if (! bead_load.empty())
-                grow_tips(unheld(bead_load, float(width)), float(width));
+            if (! wall_load.empty())
+                grow_tips(unheld(wall_load, float(width)), float(width));
+            if (! solid_load.empty())
+                grow_tips(unheld(solid_load, half), half);
             if (! tree_load.empty()) {
                 // A part of a tree touching nothing that holds it stands on nothing, however near it lies: a tree going into
                 // a wall whose way the model or a roof bars ends short of the wall, its last bead beside nothing. The paths
@@ -4778,10 +5262,15 @@ void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, 
                 grow_tips(union_(hanging), float(double(width) + move));
             }
         }
-        layer->inner_trees = first ? union_(grown_in, grown_out) : union_(grown_in);
-        const Polygons &added = first ? layer->inner_trees : grown_out;
-        if (! added.empty())
-            layer->polygons = union_(layer->polygons, added);
+        // On the first layer the trees coming down onto it end in feet in its flange, and the tips grown on it start no
+        // tree: they are lone feet.
+        layer->inner_trees = union_(first ? grown_out : grown_in);
+        if (first) {
+            layer->lone_feet = union_(grown_in);
+            append(grown_out, std::move(grown_in));
+        }
+        if (! grown_out.empty())
+            layer->polygons = union_(layer->polygons, grown_out);
     }
 }
 
@@ -5026,9 +5515,9 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
                         if (roof != nullptr)
                             if (const size_t idx = layer_of(roof->print_z); idx < roofs.size())
                                 append(roofs[idx], roof->polygons);
-                // A roof is to lie no farther from the material below than a line between two lines of the base.
-                const coord_t reach = coord_t(0.5 * (scaled<double>(print_object.config().support_base_pattern_spacing.value) +
-                    double(config.support_line_width)));
+                // A roof is to lie no farther from the material below than a line across the gap of the base, see
+                // organic_base_span().
+                const coord_t reach = coord_t(0.5 * double(organic_base_span(print_object) + config.support_line_width));
                 // A hollow base leaves the inside of a body open, under a roof and over the gaps between trunks merging
                 // into it going up.
                 const SupportMaterialPattern base   = print_object.config().support_base_pattern.value;
@@ -5048,12 +5537,34 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
                 }
                 throw_on_cancel();
                 const std::vector<double> roof_angles = organic_roof_angles(print_object, support_params);
-                organic_widen_bodies_under_roofs(bodies, roofs, model_of, config.support_line_width, config.min_radius,
-                    config.maximum_move_distance, reach, roof_angles);
+                // The model a body stands on, see organic_model_under(). The flares ask for it near their bodies, a
+                // layer after another and a dry run after another, and what it is found from is kept, see
+                // OrganicModelUnderCache.
+                std::function<Polygons(size_t, const BoundingBox &)> model_under;
+                OrganicModelUnderCache                                model_under_cache;
+                if (config.support_rests_on_model)
+                    model_under = [&print_object, &volumes, &config, &model_under_cache](const size_t layer_idx,
+                                      const BoundingBox &box) {
+                        return organic_model_under(print_object, volumes, config, layer_idx, box, &model_under_cache);
+                    };
+                // On a belt the bodies grow as they are, as above.
+                organic_widen_bodies_under_roofs(bodies, roofs, model_of, model_under, volumes.m_belt_floor.empty(),
+                    config.support_line_width, config.min_radius, config.maximum_move_distance, reach, roof_angles,
+                    throw_on_cancel);
+                model_under_cache = OrganicModelUnderCache();
                 throw_on_cancel();
-                if (hollow)
+                if (hollow) {
                     organic_grow_trees_inside_hollow_bodies(bodies, roofs, model_of, config, reach,
                         support_params.first_layer_flow.scaled_width(), roof_angles, throw_on_cancel);
+                    // On a belt the first layer is no flange on the bed, see generate_support_toolpaths(): a lone foot is
+                    // printed as the feet of the trees are.
+                    if (! volumes.m_belt_floor.empty())
+                        for (SupportGeneratorLayer *body : bodies)
+                            if (body != nullptr && ! body->lone_feet.empty()) {
+                                body->inner_trees = union_(body->inner_trees, body->lone_feet);
+                                body->lone_feet.clear();
+                            }
+                }
             }
 
             auto t_draw = std::chrono::high_resolution_clock::now();
@@ -5091,6 +5602,8 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
                 layer->polygons = intersection(layer->polygons, volumes.m_bed_area);
                 if (! layer->inner_trees.empty())
                     layer->inner_trees = intersection(layer->inner_trees, volumes.m_bed_area);
+                if (! layer->lone_feet.empty())
+                    layer->lone_feet = intersection(layer->lone_feet, volumes.m_bed_area);
             }
         });
 
@@ -5112,6 +5625,8 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
                     layer->polygons = diff(layer->polygons, ctx.surface_polygon(layer->print_z));
                     if (! layer->inner_trees.empty())
                         layer->inner_trees = diff(layer->inner_trees, ctx.surface_polygon(layer->print_z));
+                    if (! layer->lone_feet.empty())
+                        layer->lone_feet = diff(layer->lone_feet, ctx.surface_polygon(layer->print_z));
                 });
             }
         }

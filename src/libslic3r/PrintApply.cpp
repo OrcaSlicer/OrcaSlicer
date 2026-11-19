@@ -285,6 +285,13 @@ static bool custom_per_printz_gcodes_tool_changes_differ(const std::vector<Custo
 	return false;
 }
 
+// Organic model footing, found when the support is generated, depends on the nozzle that prints the tops.
+static bool support_reads_top_nozzle(const PrintObjectConfig &config)
+{
+    return PrintObject::has_support_material(config) && !config.support_on_build_plate_only && is_tree(config.support_type) &&
+        config.support_style != smsTreeSlim && config.support_style != smsTreeStrong && config.support_style != smsTreeHybrid;
+}
+
 // Collect changes to print config, account for overrides of extruder retract values by filament presets.
 //BBS: add plate index
 static t_config_option_keys print_config_diffs(
@@ -1712,17 +1719,17 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             return key == "nozzle_volume_type" || key == "extruder_max_nozzle_count" || key == "filament_map_mode" ||
                 key == "filament_is_mixed" || key == "enable_mixed_color_sublayer" || key.find("filament_mixed_") == 0;
         });
-    const FilamentMapMode next_map_mode = new_full_config.opt_enum<FilamentMapMode>("filament_map_mode");
-    const bool unchanged_automatic_assignment = is_BBL_printer() && is_auto_filament_map_mode(next_map_mode) &&
-        m_config.filament_map_mode == next_map_mode;
-    if (footing_assignment_changed && !unchanged_automatic_assignment)
-        for (PrintObject *object : m_objects) {
-            const PrintObjectConfig &config = object->config();
-            if ((config.enable_support || config.raft_layers > 0) && !config.support_on_build_plate_only &&
-                is_tree(config.support_type) &&
-                config.support_style != smsTreeSlim && config.support_style != smsTreeStrong && config.support_style != smsTreeHybrid)
-                update_apply_status(object->invalidate_step(posSupportMaterial));
-        }
+    if (footing_assignment_changed) {
+        // Read through the base class: a loaded configuration may hold the enum as ConfigOptionEnumGeneric.
+        const ConfigOption *next_map_mode = new_full_config.option("filament_map_mode");
+        const bool unchanged_automatic_assignment = next_map_mode != nullptr && is_BBL_printer() &&
+            is_auto_filament_map_mode(FilamentMapMode(next_map_mode->getInt())) &&
+            int(m_config.filament_map_mode.value) == next_map_mode->getInt();
+        if (!unchanged_automatic_assignment)
+            for (PrintObject *object : m_objects)
+                if (support_reads_top_nozzle(object->config()))
+                    update_apply_status(object->invalidate_step(posSupportMaterial));
+    }
     // Publish only after affected workers are stopped. Equal values must leave the backing storage alone.
     if (previous_process_slots != process_slots)
         m_config.filament_map_2.values = std::move(process_slots);
@@ -1806,13 +1813,9 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                      [](const CustomGCode::Item &item) { return item.type == CustomGCode::ToolChange; }));
             // Early Organic cleanup must retain possible material while layer tool overrides are unresolved.
             if (num_extruders > 1 && m_config.print_sequence != PrintSequence::ByObject && organic_tool_changes_changed)
-                for (PrintObject *object : m_objects) {
-                    const auto &config = object->config();
-                    if ((config.enable_support || config.raft_layers > 0) && !config.support_on_build_plate_only &&
-                        is_tree(config.support_type) && config.support_style != smsTreeSlim &&
-                        config.support_style != smsTreeStrong && config.support_style != smsTreeHybrid)
+                for (PrintObject *object : m_objects)
+                    if (support_reads_top_nozzle(object->config()))
                         update_apply_status(object->invalidate_step(posSupportMaterial));
-                }
             update_apply_status(num_extruders_changed ||
                 // Tool change G-codes are applied as color changes for a single extruder printer, no need to invalidate tool ordering.
                 //FIXME The tool ordering may be invalidated unnecessarily if the custom_gcode_per_print_z.mode is not applicable
@@ -2367,6 +2370,21 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         update_filament_self_index_cache();
     }
 
+    // The steps read this rather than the custom G-codes. It changes only with the tool changes, the extruders or the print
+    // sequence, which invalidated the steps after the support above. The support generation and the final check of its warning
+    // read it too: they are invalidated before it is written, so it is not written while they run, and before the slicing
+    // parameters this invalidates are updated below.
+    const CustomGCode::Info &codes = m_model.get_curr_plate_custom_gcodes();
+    const bool custom_tool_overrides = m_config.print_sequence != PrintSequence::ByObject &&
+        codes.mode == CustomGCode::MultiAsSingle && m_config.filament_diameter.size() > 1 && this->object_extruders().size() == 1 &&
+        !CustomGCode::custom_tool_changes(codes, m_config.filament_diameter.size()).empty();
+    if (custom_tool_overrides != m_custom_tool_overrides) {
+        for (PrintObject *object : m_objects)
+            if (support_reads_top_nozzle(object->config()))
+                update_apply_status(object->invalidate_step(posSupportMaterial));
+        m_custom_tool_overrides = custom_tool_overrides;
+    }
+
     // Update SlicingParameters for each object where the SlicingParameters is not valid.
     // If it is not valid, then it is ensured that PrintObject.m_slicing_params is not in use
     // (posSlicing and posSupportMaterial was invalidated).
@@ -2375,14 +2393,6 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         object->update_slicing_parameters();
         m_support_used |= object->config().enable_support;
     }
-    // The steps read this rather than the custom G-codes. It changes only with the tool changes, the extruders or the print
-    // sequence, which invalidated those steps above: written only then, it is not written while they run.
-    const CustomGCode::Info &codes = m_model.get_curr_plate_custom_gcodes();
-    const bool custom_tool_overrides = m_config.print_sequence != PrintSequence::ByObject &&
-        codes.mode == CustomGCode::MultiAsSingle && m_config.filament_diameter.size() > 1 && this->object_extruders().size() == 1 &&
-        !CustomGCode::custom_tool_changes(codes, m_config.filament_diameter.size()).empty();
-    if (custom_tool_overrides != m_custom_tool_overrides)
-        m_custom_tool_overrides = custom_tool_overrides;
 
     // Orca: see precise_z_height_overridden(). The objects it applies to are sliced again when it flips.
     {

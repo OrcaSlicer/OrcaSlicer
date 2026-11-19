@@ -3813,6 +3813,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         if (need_slicing_objects.count(obj) == 0) {
             obj->copy_layers_from_shared_object();
             obj->copy_layers_overhang_from_shared_object();
+            organic_update_shared_support_warning(*obj);
         }
     }
 

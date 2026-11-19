@@ -546,6 +546,17 @@ public:
     void         clear_shared_object();
     void         copy_layers_from_shared_object();
     void         copy_layers_overhang_from_shared_object();
+    // The heights the Organic support warning lists, see organic_update_support_warning(). An object sharing the layers
+    // of another takes them over on every slice, see organic_update_shared_support_warning(), with its own heights or
+    // with those of the other object.
+    struct OrganicSupportHeights {
+        std::vector<coordf_t> heights;
+        // Of an object sharing the layers of another: that object, and the timestamp of its support step when found.
+        const PrintObject *shared { nullptr };
+        size_t             shared_support_timestamp { 0 };
+    };
+    const OrganicSupportHeights& organic_support_heights() const { return m_organic_support_heights; }
+    void         set_organic_support_heights(OrganicSupportHeights heights) { m_organic_support_heights = std::move(heights); }
 
     // BBS: Boundingbox of the first layer
     BoundingBox                 firstLayerObjectBrimBoundingBox;
@@ -722,6 +733,7 @@ private:
     ExtrusionEntityCollection               m_skirt;
 
     PrintObject*                            m_shared_object{ nullptr };
+    OrganicSupportHeights                   m_organic_support_heights;
 
     // Belt printer: global Z offset applied to this object's layers for shear positioning.
     double                                  m_belt_global_z_offset { 0.0 };

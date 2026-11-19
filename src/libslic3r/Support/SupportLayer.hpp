@@ -120,9 +120,13 @@ public:
 	// widened under a roof.
 	Polygons solid_polygons;
 	// Organic: the trees grown inside a hollow body, which carry what is printed above it over its inside, a roof or a
-	// part printed solid, printed as walls of their own beside the walls of the body; on the first layer, their feet,
-	// printed separately from the sparse flange.
+	// part printed solid, printed as walls of their own beside the walls of the body; on the first layer, the feet of
+	// the trees coming down onto it, printed separately from the sparse flange, and on a belt the lone feet too.
 	Polygons inner_trees;
+	// Organic, on the first layer: the feet grown under what the layer above prints over the inside of a body, which
+	// start no tree. Printed separately from the sparse flange only where its lines would not hold that, see
+	// organic_fill_first_layer().
+	Polygons lone_feet;
 	// Organic, with the number of walls chosen by the area of a body: the bodies that get a second wall, standing on the
 	// bed, the first layer or a second wall below, see organic_mark_double_walls().
 	Polygons double_walls;

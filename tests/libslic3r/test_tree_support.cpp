@@ -2,8 +2,10 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <limits>
 #include <math.h>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
@@ -492,7 +494,9 @@ TEST_CASE("Organic bodies widen under a roof that bridges the gaps between them"
     const double  step       = 0.11;
     const double  move       = std::tan(40. * M_PI / 180.) * 0.02;
     const double  reach      = GENERATE(0.235, 0.18);
-    CAPTURE(reach);
+    // Vertical bodies widen the same whether the growth is limited or not, as on a belt.
+    const bool    limited    = GENERATE(true, false);
+    CAPTURE(reach, limited);
     // Two rows of three tips 1.7 mm apart, 0.9 mm between their edges, under strips of roof as wide as the tips,
     // the second row with a sliver of model between two of its tips; a trunk 6 mm wide under a roof reaching
     // 1.5 mm beyond it.
@@ -515,7 +519,8 @@ TEST_CASE("Organic bodies widen under a roof that bridges the gaps between them"
         model[i]       = { rectangle(60.8, -1., 0.1, 2.) };
         bodies[i]      = &layer;
     }
-    organic_widen_bodies_under_roofs(bodies, roofs, model, line_width, tip_radius, scaled<coord_t>(move), scaled<coord_t>(reach));
+    organic_widen_bodies_under_roofs(bodies, roofs, model, {}, limited, line_width, tip_radius, scaled<coord_t>(move),
+        scaled<coord_t>(reach));
     const Polygons original = union_(tips, trunk);
     const Polygons &top     = storage.back().polygons;
     // The roof over the first row lies within reach of the tips below it, whose flares merge, being printed solid.
@@ -543,6 +548,606 @@ TEST_CASE("Organic bodies widen under a roof that bridges the gaps between them"
     // The tips widen over the layers the branch angle takes them, no more.
     CHECK(diff(storage.front().polygons, original).empty());
     CHECK(diff(original, storage.front().polygons).empty());
+}
+
+TEST_CASE("Organic bodies leaning under a roof widen beyond the layer below by no more than a wall overhangs it", "[TreeSupport][Material][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    auto disc = [](double x, double radius) {
+        Polygon circle = make_circle_num_segments(scale_(radius), 64);
+        circle.translate(Point::new_scale(x, 0.));
+        return circle;
+    };
+    auto rectangle = [](double x, double y, double width, double depth) {
+        return Polygon({Point::new_scale(x, y), Point::new_scale(x + width, y), Point::new_scale(x + width, y + depth),
+                        Point::new_scale(x, y + depth)});
+    };
+    // Lines 0.82 mm wide, tips 1.5 mm across and a branch angle of 40 degrees: at layers 0.4 mm a move of 0.34 mm a
+    // layer, and a wall overhangs the one below it by half a line, 0.41 mm, at most; at layers 0.6 mm by the move, 0.5
+    // mm, as it is set to. Three tips 6 mm apart, leaning going up by the move a layer, under a strip of roof whose
+    // middle between them lies farther than reach from them, with lines along the strip or none known.
+    const double  height     = GENERATE(0.4, 0.6);
+    const bool    lines      = GENERATE(false, true);
+    CAPTURE(height, lines);
+    const double  line_width = 0.82, reach = 1.64;
+    const double  move       = std::tan(40. * M_PI / 180.) * height;
+    const double  overhang   = std::max(0.5 * line_width, move);
+    const size_t  num_layers = 13, roof_layer = num_layers - 1;
+    std::vector<SupportGeneratorLayer> storage(roof_layer);
+    std::vector<Polygons> roofs(num_layers), model(num_layers), original(roof_layer);
+    roofs[roof_layer] = { rectangle(- 1. + move * double(roof_layer), -0.75, 14., 1.5) };
+    SupportGeneratorLayersPtr bodies(num_layers, nullptr);
+    for (size_t i = 0; i < storage.size(); ++ i) {
+        SupportGeneratorLayer &layer = storage[i];
+        layer.bottom_z = height * double(i);
+        layer.print_z  = layer.bottom_z + height;
+        layer.height   = height;
+        for (const double x : { 0., 6., 12. })
+            original[i].push_back(disc(x + move * double(i), 0.75));
+        layer.polygons = original[i];
+        bodies[i]      = &layer;
+    }
+    const std::vector<double> roof_angles = lines ? std::vector<double>{ 0. } : std::vector<double>{};
+    organic_widen_bodies_under_roofs(bodies, roofs, model, {}, true, scaled<coord_t>(line_width),
+        scaled<coord_t>(0.75), scaled<coord_t>(move), scaled<coord_t>(reach), roof_angles);
+    // The bodies widen under the roof, with no lines known until every point of it lies within reach of them: the side
+    // they lean to gains less a layer, and they widen by a step more,
+    CHECK_FALSE(diff(storage.back().polygons, original.back()).empty());
+    if (! lines)
+        CHECK(diff(roofs[roof_layer], offset(storage.back().polygons, scaled<float>(reach + 0.005))).empty());
+    // what they add on a layer lying within that overhang of the layer below, where the walls they print stand: the
+    // side the tips lean to moves by the lean already, and the move more would take a wall there farther over nothing.
+    for (size_t i = 1; i < storage.size(); ++ i) {
+        CAPTURE(i);
+        const Polygons added = diff(storage[i].polygons, original[i]);
+        CHECK(diff(added, offset(storage[i - 1].polygons, scaled<float>(overhang + 0.01))).empty());
+    }
+}
+
+TEST_CASE("Organic bodies leaning under a roof take no step more that leaves as much of it hanging", "[TreeSupport][Material][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    auto disc = [](double x, double radius) {
+        Polygon circle = make_circle_num_segments(scale_(radius), 64);
+        circle.translate(Point::new_scale(x, 0.));
+        return circle;
+    };
+    auto rectangle = [](double x, double y, double width, double depth) {
+        return Polygon({Point::new_scale(x, y), Point::new_scale(x + width, y), Point::new_scale(x + width, y + depth),
+                        Point::new_scale(x, y + depth)});
+    };
+    // Lines 0.82 mm wide, layers 0.6 mm and a branch angle of 40 degrees: a move of 0.5 mm a layer, more than half a
+    // line, so that a step is half a line and a wall overhangs the one below it by the move. A tip 1.5 mm across leans
+    // going up by the move a layer toward a strip of roof beyond it, which two steps would bring within reach. The side
+    // the tip leans to gains nothing a layer, and no step more holds more of the roof.
+    const double line_width = 0.82, reach = 1.64, step = 0.41;
+    const double move       = std::tan(40. * M_PI / 180.) * 0.6;
+    const size_t num_layers = 8, roof_layer = num_layers - 1;
+    const double top        = move * double(roof_layer - 1);
+    std::vector<SupportGeneratorLayer> storage(roof_layer);
+    std::vector<Polygons> roofs(num_layers), model(num_layers), original(roof_layer);
+    roofs[roof_layer] = { rectangle(top, -0.4, 0.75 + 2. * step + reach - 0.1, 0.8) };
+    SupportGeneratorLayersPtr bodies(num_layers, nullptr);
+    for (size_t i = 0; i < storage.size(); ++ i) {
+        SupportGeneratorLayer &layer = storage[i];
+        layer.bottom_z = 0.6 * double(i);
+        layer.print_z  = layer.bottom_z + 0.6;
+        layer.height   = 0.6;
+        original[i]    = { disc(move * double(i), 0.75) };
+        layer.polygons = original[i];
+        bodies[i]      = &layer;
+    }
+    organic_widen_bodies_under_roofs(bodies, roofs, model, {}, true, scaled<coord_t>(line_width),
+        scaled<coord_t>(0.75), scaled<coord_t>(move), scaled<coord_t>(reach));
+    // The tip flares over the two layers the steps take, no lower.
+    CHECK_FALSE(diff(storage[roof_layer - 1].polygons, original[roof_layer - 1]).empty());
+    CHECK(diff(storage[roof_layer - 3].polygons, original[roof_layer - 3]).empty());
+}
+
+TEST_CASE("Organic bodies leaning under a roof go on past a step that holds no more of it", "[TreeSupport][Material][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    auto disc = [](double x, double radius) {
+        Polygon circle = make_circle_num_segments(scale_(radius), 64);
+        circle.translate(Point::new_scale(x, 0.));
+        return circle;
+    };
+    auto rectangle = [](double x, double y, double width, double depth) {
+        return Polygon({Point::new_scale(x, y), Point::new_scale(x + width, y), Point::new_scale(x + width, y + depth),
+                        Point::new_scale(x, y + depth)});
+    };
+    // Lines 0.82 mm wide, layers 0.4 mm and a move of 0.5 mm a layer, more than half a line: a step is half a line, and
+    // a wall overhangs the one below it by the move. A tip 1.5 mm across stands straight, then leans by the move over
+    // its two top layers toward a strip of roof beyond it, which a step brings within reach. The side it leans to gains
+    // nothing on those layers: a step more, down to the first of them, holds no more of the roof, and one more, down to
+    // where the tip stands straight, carries a step up.
+    const double line_width = 0.82, reach = 1.64, step = 0.41, move = 0.5034;
+    const size_t num_layers = 9, roof_layer = num_layers - 1, straight = roof_layer - 3;
+    std::vector<SupportGeneratorLayer> storage(roof_layer);
+    std::vector<Polygons> roofs(num_layers), model(num_layers);
+    const double top = 2. * move;
+    roofs[roof_layer] = { rectangle(top, -0.4, 0.75 + step + reach - 0.1, 0.8) };
+    SupportGeneratorLayersPtr bodies(num_layers, nullptr);
+    for (size_t i = 0; i < storage.size(); ++ i) {
+        SupportGeneratorLayer &layer = storage[i];
+        layer.bottom_z = 0.4 * double(i);
+        layer.print_z  = layer.bottom_z + 0.4;
+        layer.height   = 0.4;
+        layer.polygons = { disc(move * double(i > straight ? i - straight : 0), 0.75) };
+        bodies[i]      = &layer;
+    }
+    organic_widen_bodies_under_roofs(bodies, roofs, model, {}, true, scaled<coord_t>(line_width), scaled<coord_t>(0.75),
+        scaled<coord_t>(move), scaled<coord_t>(reach));
+    CHECK(diff(roofs[roof_layer], offset(storage.back().polygons, scaled<float>(reach + 0.005))).empty());
+}
+
+TEST_CASE("Organic bodies over a support blocker widen under a roof as standing on nothing", "[TreeSupport][Material][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    auto disc = [](double x, double radius) {
+        Polygon circle = make_circle_num_segments(scale_(radius), 64);
+        circle.translate(Point::new_scale(x, 0.));
+        return circle;
+    };
+    auto rectangle = [](double x, double y, double width, double depth) {
+        return Polygon({Point::new_scale(x, y), Point::new_scale(x + width, y), Point::new_scale(x + width, y + depth),
+                        Point::new_scale(x, y + depth)});
+    };
+    // Lines 0.42 mm wide, layers 0.2 mm and a branch angle of 40 degrees, a move of 0.17 mm a layer. A tip 1.5 mm
+    // across three layers tall under a strip of roof reaching 3 mm to either side stands over a support blocker 0.6 mm
+    // across, which the collision of the layer below holds but which is no material to stand on; a trunk far away
+    // stands on every layer. The support may rest on the model, of which there is none under the tip.
+    const double  line_width = 0.42, reach = 0.63;
+    const double  move       = std::tan(40. * M_PI / 180.) * 0.2;
+    const size_t  num_layers = 11, roof_layer = num_layers - 1, first_tip = roof_layer - 3;
+    std::vector<SupportGeneratorLayer> storage(roof_layer);
+    std::vector<Polygons> roofs(num_layers), model(num_layers);
+    roofs[roof_layer]    = { rectangle(-3., -0.75, 6., 1.5) };
+    model[first_tip - 1] = { rectangle(-0.3, -0.3, 0.6, 0.6) };
+    SupportGeneratorLayersPtr bodies(num_layers, nullptr);
+    for (size_t i = 0; i < storage.size(); ++ i) {
+        SupportGeneratorLayer &layer = storage[i];
+        layer.bottom_z = 0.2 * double(i);
+        layer.print_z  = layer.bottom_z + 0.2;
+        layer.height   = 0.2;
+        layer.polygons = { disc(20., 2.) };
+        if (i >= first_tip)
+            layer.polygons.push_back(disc(0., 0.75));
+        bodies[i] = &layer;
+    }
+    const std::function<Polygons(size_t, const BoundingBox &)> model_under = [](size_t, const BoundingBox &) {
+        return Polygons();
+    };
+    organic_widen_bodies_under_roofs(bodies, roofs, model, model_under, true, scaled<coord_t>(line_width),
+        scaled<coord_t>(0.75), scaled<coord_t>(move), scaled<coord_t>(reach));
+    // The tip flares from its lowest layer on, five steps there and seven at the top, all around.
+    for (const double side : { -1., 1. }) {
+        CAPTURE(side);
+        CHECK(contains(storage[first_tip].polygons, Point::new_scale(side * (0.75 + 4.5 * move), 0.)));
+        CHECK(contains(storage.back().polygons, Point::new_scale(side * (0.75 + 6.5 * move), 0.)));
+    }
+}
+
+TEST_CASE("Organic bodies widen under a roof over the model below only where the support may rest on it", "[TreeSupport][Material][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    auto disc = [](double x, double radius) {
+        Polygon circle = make_circle_num_segments(scale_(radius), 64);
+        circle.translate(Point::new_scale(x, 0.));
+        return circle;
+    };
+    auto rectangle = [](double x, double y, double width, double depth) {
+        return Polygon({Point::new_scale(x, y), Point::new_scale(x + width, y), Point::new_scale(x + width, y + depth),
+                        Point::new_scale(x, y + depth)});
+    };
+    // Lines 0.42 mm wide, layers 0.2 mm and a branch angle of 40 degrees, a move of 0.17 mm a layer. A tip 1.5 mm
+    // across three layers tall under a strip of roof reaching 3 mm to either side, farther than the flare of seven
+    // steps of the move, 1.18 mm, and reach. It stands with its left half on a branch 0.8 mm across, and its right half
+    // over the top of the model, which keeps the flare of the branch on its left.
+    const bool    on_model   = GENERATE(false, true);
+    CAPTURE(on_model);
+    const double  line_width = 0.42, reach = 0.63;
+    const double  move       = std::tan(40. * M_PI / 180.) * 0.2;
+    const size_t  num_layers = 11, roof_layer = num_layers - 1, first_tip = roof_layer - 3;
+    std::vector<SupportGeneratorLayer> storage(roof_layer);
+    std::vector<Polygons> roofs(num_layers), model(num_layers);
+    roofs[roof_layer]    = { rectangle(-3., -0.75, 6., 1.5) };
+    model[first_tip - 1] = { rectangle(0.3, -5., 5., 10.) };
+    SupportGeneratorLayersPtr bodies(num_layers, nullptr);
+    for (size_t i = 0; i < storage.size(); ++ i) {
+        SupportGeneratorLayer &layer = storage[i];
+        layer.bottom_z = 0.2 * double(i);
+        layer.print_z  = layer.bottom_z + 0.2;
+        layer.height   = 0.2;
+        layer.polygons = { i < first_tip ? disc(-0.5, 0.4) : disc(0., 0.75) };
+        bodies[i]      = &layer;
+    }
+    // The model under the tip is the model of the collision there, the support stands on it where it may rest on it.
+    std::function<Polygons(size_t, const BoundingBox &)> model_under;
+    if (on_model)
+        model_under = [&model](size_t layer, const BoundingBox &) { return model[layer]; };
+    organic_widen_bodies_under_roofs(bodies, roofs, model, model_under, true, scaled<coord_t>(line_width),
+        scaled<coord_t>(0.75), scaled<coord_t>(move), scaled<coord_t>(reach));
+    // The tip flares from its lowest layer on, five steps there and seven at the top, over the branch, and over the
+    // model where the support may rest on it.
+    CHECK(contains(storage[first_tip].polygons, Point::new_scale(-0.75 - 4.5 * move, 0.)));
+    CHECK(contains(storage[first_tip].polygons, Point::new_scale(0.75 + 4.5 * move, 0.)) == on_model);
+    CHECK(contains(storage.back().polygons, Point::new_scale(-0.75 - 6.5 * move, 0.)));
+    CHECK(contains(storage.back().polygons, Point::new_scale(0.75 + 6.5 * move, 0.)) == on_model);
+}
+
+TEST_CASE("Organic bodies widen under a roof over the model the same when it is asked for near them only", "[TreeSupport][Material][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    auto rectangle = [](double x, double y, double width, double depth) {
+        return Polygon({Point::new_scale(x, y), Point::new_scale(x + width, y), Point::new_scale(x + width, y + depth),
+                        Point::new_scale(x, y + depth)});
+    };
+    // Lines 0.42 mm wide, layers 0.2 mm and a branch angle of 40 degrees, a move of 0.17 mm a layer. A tip three layers
+    // tall, a wedge 1.5 mm across narrowing to a corner of 40 degrees, under a strip of roof reaching far past it,
+    // stands on the top of the model, with a branch 0.8 mm across beside its wide end. Its flare widens with mitered
+    // corners, which at that angle reach almost three times as far from the corner as its steps.
+    const double  line_width = 0.42, reach = 0.63;
+    const double  move       = std::tan(40. * PI / 180.) * 0.2;
+    const size_t  num_layers = 11, roof_layer = num_layers - 1, first_tip = roof_layer - 3;
+    const double  length     = 0.75 / std::tan(20. * PI / 180.);
+    const Polygon wedge({Point::new_scale(0., -0.75), Point::new_scale(length, 0.), Point::new_scale(0., 0.75)});
+    Polygon       branch = make_circle_num_segments(scale_(0.4), 64);
+    branch.translate(Point::new_scale(-0.5, 0.));
+    std::vector<Polygons> roofs(num_layers), model(num_layers);
+    roofs[roof_layer]    = { rectangle(-3., -2., 12., 4.) };
+    model[first_tip - 1] = { rectangle(0.3, -5., 10., 10.) };
+    // The bodies widened over all the model, and over the model within the box it is asked for near them.
+    std::vector<Polygons> widened[2];
+    for (const bool near_only : {false, true}) {
+        std::vector<SupportGeneratorLayer> storage(roof_layer);
+        SupportGeneratorLayersPtr          bodies(num_layers, nullptr);
+        for (size_t i = 0; i < storage.size(); ++ i) {
+            SupportGeneratorLayer &layer = storage[i];
+            layer.bottom_z = 0.2 * double(i);
+            layer.print_z  = layer.bottom_z + 0.2;
+            layer.height   = 0.2;
+            layer.polygons = { i < first_tip ? branch : wedge };
+            bodies[i]      = &layer;
+        }
+        const std::function<Polygons(size_t, const BoundingBox &)> model_under =
+            [&model, near_only](size_t layer, const BoundingBox &box) {
+                return near_only ? intersection(model[layer], Polygons{ box.polygon() }) : model[layer];
+            };
+        organic_widen_bodies_under_roofs(bodies, roofs, model, model_under, true, scaled<coord_t>(line_width),
+            scaled<coord_t>(0.75), scaled<coord_t>(move), scaled<coord_t>(reach));
+        for (const SupportGeneratorLayer &layer : storage)
+            widened[near_only ? 1 : 0].push_back(layer.polygons);
+    }
+    // The tip flares from its lowest layer on, five steps there, its corner reaching out more than twice as far as the
+    // steps and half a line, and the same with the model asked for near it only.
+    CHECK(contains(widened[0][first_tip], Point::new_scale(length + 10. * move + 0.5 * line_width, 0.)));
+    for (size_t i = 0; i < roof_layer; ++ i) {
+        CAPTURE(i);
+        CHECK(diff(widened[0][i], offset(widened[1][i], scaled<float>(0.001))).empty());
+        CHECK(diff(widened[1][i], offset(widened[0][i], scaled<float>(0.001))).empty());
+    }
+}
+
+TEST_CASE("Organic islands clipped to a box widen within it as they do whole", "[TreeSupport][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    // A concave island reaching into a box 9 mm by 4 mm, whose clip to the box keeps far corners that join outside it
+    // the other way round, widened by an XY distance of 0.35 mm.
+    const ExPolygon island(Polygon({Point(5404922, 10355228), Point(5022691, 11330444), Point(1559138, 6809131),
+        Point(-4696227, 9742406), Point(-6622603, 10931625), Point(-3695113, -12415881)}));
+    REQUIRE(island.contour.is_counter_clockwise());
+    const BoundingBox box(Point(-2640000, 10370000), Point(6359999, 14370000));
+    const coord_t     delta = scaled<coord_t>(0.35);
+    const Polygons    part  = ClipperUtils::clip_clipper_polygons_with_subject_bbox(island, box);
+    REQUIRE_FALSE(part.empty());
+    // Within the box shrunk by the distance, the part widened is the island widened, though widened as it is clipped
+    // it covers less.
+    const Polygons inner = { box.inflated(- delta).polygon() };
+    const Polygons whole =
+        intersection(offset(to_polygons(island), float(delta), jtRound, scaled<double>(0.005)), inner);
+    const std::optional<Polygons> widened =
+        organic_widen_part(island, get_extents(island.contour), part, box, float(delta));
+    REQUIRE(widened);
+    const Polygons near = intersection(*widened, inner);
+    REQUIRE_FALSE(whole.empty());
+    REQUIRE_FALSE(
+        diff(whole, offset(intersection(offset(part, float(delta), jtRound, scaled<double>(0.005)), inner),
+            scaled<float>(0.001))).empty());
+    CHECK(diff(whole, offset(near, scaled<float>(0.001))).empty());
+    CHECK(diff(near, offset(whole, scaled<float>(0.001))).empty());
+}
+
+TEST_CASE("Organic island tips a box cuts short widen within it as they do whole", "[TreeSupport][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    // Islands over a box 30 mm square, widened by an XY distance of 10 mm, whose widening drops a point closer than
+    // 0.05 mm to the last one it keeps, with a sharp tip into the box less than 0.1 mm across its side. Cut to the box
+    // as Clipper2 starts the cut, the widening drops all of the tips of the first two, leaves three points of the third
+    // winding the other way round, the fourth twisted and winding the other way round, the next three twisted, though
+    // winding as they do, the seventh next to a point of it within the box, and the last two, needles 20.6 mm long and
+    // 0.01 and 0.2 mm across where they leave the island, all of them: the premise below checks that the tip cut
+    // widened covers less. Cut by a box a little larger, the widening drops only one of the two points of the second
+    // within the box, as it does of the island, and keeps the tips of the fourth, the sixth and the seventh as they
+    // are; cut by a box as much larger as the widening, it keeps the wider needle as it is, where it is 0.1 mm across.
+    // The first, the third and the fifth, all within that box, and the thinner needle are widened whole.
+    const std::pair<ExPolygon, bool> tip = GENERATE(
+        std::pair(ExPolygon(Polygon({Point::new_scale(10., 5.), Point::new_scale(-10., 5.), Point::new_scale(-10., 1.),
+            Point::new_scale(-0.02, 1.), Point::new_scale(0., -0.03), Point::new_scale(0.02, 1.),
+            Point::new_scale(10., 1.)})), false),
+        std::pair(ExPolygon(Polygon({Point::new_scale(10., 5.), Point::new_scale(-10., 5.), Point::new_scale(-10., 1.),
+            Point::new_scale(-0.26, 1.), Point::new_scale(-0.015, -0.065), Point::new_scale(0., -0.02),
+            Point::new_scale(2.55, 1.), Point::new_scale(10., 1.)})), true),
+        std::pair(ExPolygon(Polygon({Point::new_scale(10., 5.), Point::new_scale(-10., 5.), Point::new_scale(-10., 1.),
+            Point::new_scale(-0.02, 1.), Point::new_scale(0., -0.6), Point::new_scale(-0.002, -0.3),
+            Point::new_scale(0.02, 1.), Point::new_scale(10., 1.)})), false),
+        std::pair(ExPolygon(Polygon({Point::new_scale(10., 5.), Point::new_scale(-10., 5.), Point::new_scale(-10., 1.),
+            Point::new_scale(-0.0427, 1.), Point::new_scale(-0.0177, -0.4431), Point::new_scale(-0.0075, -0.5305),
+            Point::new_scale(-0.0176, -0.302), Point::new_scale(0.0332, 1.), Point::new_scale(10., 1.)})), true),
+        std::pair(ExPolygon(Polygon({Point::new_scale(10., 5.), Point::new_scale(-10., 5.), Point::new_scale(-10., 1.),
+            Point::new_scale(-0.02494, 1.), Point::new_scale(-0.00617, -0.32771), Point::new_scale(-0.00593, -0.27694),
+            Point::new_scale(0.00841, -0.10896), Point::new_scale(0.04236, 1.), Point::new_scale(10., 1.)})), false),
+        std::pair(ExPolygon(Polygon({Point::new_scale(10., 5.), Point::new_scale(-10., 5.), Point::new_scale(-10., 1.),
+            Point::new_scale(-0.05999, 1.), Point::new_scale(-0.00054, -0.44774), Point::new_scale(-0.0013, -0.32835),
+            Point::new_scale(0.01582, -0.25691), Point::new_scale(0.05683, 1.), Point::new_scale(10., 1.)})), true),
+        std::pair(ExPolygon(Polygon({Point::new_scale(10., 5.), Point::new_scale(-10., 5.), Point::new_scale(-10., 1.),
+            Point::new_scale(0., 1.), Point::new_scale(-0.05, -0.04), Point::new_scale(-0.02, -0.15),
+            Point::new_scale(-0.042, -0.06), Point::new_scale(1., 1.), Point::new_scale(10., 1.)})), true),
+        std::pair(ExPolygon(Polygon({Point::new_scale(10., 25.), Point::new_scale(-10., 25.),
+            Point::new_scale(-10., 20.), Point::new_scale(-0.005, 20.), Point::new_scale(0., -0.6),
+            Point::new_scale(0.005, 20.), Point::new_scale(10., 20.)})), false),
+        std::pair(ExPolygon(Polygon({Point::new_scale(10., 25.), Point::new_scale(-10., 25.),
+            Point::new_scale(-10., 20.), Point::new_scale(-0.1, 20.), Point::new_scale(0., -0.6),
+            Point::new_scale(0.1, 20.), Point::new_scale(10., 20.)})), true));
+    const ExPolygon &island = tip.first;
+    REQUIRE(island.contour.is_counter_clockwise());
+    const BoundingBox box(Point::new_scale(-15., -30.), Point::new_scale(15., 0.));
+    const coord_t     delta = scaled<coord_t>(10.);
+    const Polygons    part  = ClipperUtils::clip_clipper_polygons_with_subject_bbox(island, box);
+    REQUIRE_FALSE(part.empty());
+    // Within the box shrunk by the distance, the part widened, or the island widened whole where it is to be, is the
+    // island widened, but for the points the widening drops, though the tip cut to the box widened covers less.
+    const Polygons                inner   = { box.inflated(- delta).polygon() };
+    const Polygons                whole   = offset(island, float(delta), jtRound, scaled<double>(0.005));
+    const Polygons                cut     =
+        offset(intersection(part, Polygons{ box.polygon() }), float(delta), jtRound, scaled<double>(0.005));
+    const std::optional<Polygons> widened =
+        organic_widen_part(island, get_extents(island.contour), part, box, float(delta));
+    const Polygons               &near    = widened ? *widened : whole;
+    REQUIRE_FALSE(diff(intersection(whole, inner), offset(cut, scaled<float>(0.005))).empty());
+    CHECK(widened.has_value() == tip.second);
+    CHECK(diff(intersection(whole, inner), offset(near, scaled<float>(0.1))).empty());
+    CHECK(diff(intersection(near, inner), offset(whole, scaled<float>(0.1))).empty());
+}
+
+TEST_CASE("Organic island slivers widening whole drops keep the cut a box as much larger as the widening keeps", "[TreeSupport][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    // A sliver of an island 30 mm long over a box 40 mm wide, widened by an XY distance of 1 mm, whose widening drops a
+    // point closer than 0.005 mm to the last one it keeps: its tip reaches 0.05 mm into the box, and its far side is
+    // 0.004 mm long, so the sliver widened whole is dropped all of it. Cut by the box, or by a box a little larger, the
+    // widening drops a point where the cut crosses it; cut by a box as much larger as the widening, the cut crosses it
+    // 0.03 mm apart and is widened as it is, its points reported.
+    const ExPolygon island(
+        Polygon({Point::new_scale(0., -0.05), Point::new_scale(30., 2.), Point::new_scale(30., 2.004)}));
+    REQUIRE(island.contour.is_counter_clockwise());
+    const BoundingBox box(Point::new_scale(-5., -5.), Point::new_scale(35., 0.));
+    const coord_t     delta = scaled<coord_t>(1.);
+    REQUIRE(offset(island, float(delta), jtRound, scaled<double>(0.005)).empty());
+    const Polygons    part = ClipperUtils::clip_clipper_polygons_with_subject_bbox(island, box);
+    const BoundingBox far  = box.inflated(delta);
+    const Polygons    cut  = intersection(ClipperUtils::clip_clipper_polygons_with_subject_bbox(island, far),
+        Polygons{ far.polygon() });
+    size_t                        points  = 0;
+    const std::optional<Polygons> widened =
+        organic_widen_part(island, get_extents(island.contour), part, box, float(delta), &points);
+    REQUIRE(widened);
+    CHECK(points == count_points(cut));
+    CHECK_FALSE(intersection(*widened, Polygons{ box.inflated(- delta).polygon() }).empty());
+}
+
+TEST_CASE("Organic island tips a box a little larger cuts report no points of a cut reaching farther out", "[TreeSupport][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    // An island over a box 30 mm square, widened by an XY distance of 10 mm, whose widening drops a point closer than
+    // 0.05 mm to the last one it keeps, with a sharp tip into the box: cut by the box, the widening drops both of its
+    // points within it; cut by a box a little larger, it drops only one of them, as it does of the island, and no
+    // points of a cut by the box as much larger as the widening are reported.
+    const ExPolygon island(Polygon({Point::new_scale(10., 5.), Point::new_scale(-10., 5.), Point::new_scale(-10., 1.),
+        Point::new_scale(-0.26, 1.), Point::new_scale(-0.015, -0.065), Point::new_scale(0., -0.02),
+        Point::new_scale(2.55, 1.), Point::new_scale(10., 1.)}));
+    REQUIRE(island.contour.is_counter_clockwise());
+    const BoundingBox box(Point::new_scale(-15., -30.), Point::new_scale(15., 0.));
+    const coord_t     delta = scaled<coord_t>(10.);
+    const Polygons    part  = ClipperUtils::clip_clipper_polygons_with_subject_bbox(island, box);
+    REQUIRE_FALSE(organic_widens_cut_as_it_is(intersection(part, Polygons{ box.polygon() }), float(delta)));
+    // The box a little larger, by four times the least edge the widening keeps along x and eight times along y.
+    const auto        step = coord_t(std::ceil(4. * double(delta) * ClipperOffsetShortestEdgeFactor));
+    const BoundingBox larger(box.min - Point(step, 2 * step), box.max + Point(step, 2 * step));
+    const Polygons    cut  = intersection(ClipperUtils::clip_clipper_polygons_with_subject_bbox(island, larger),
+        Polygons{ larger.polygon() });
+    REQUIRE(organic_widens_cut_as_it_is(cut, float(delta)));
+    size_t                        points  = 0;
+    const std::optional<Polygons> widened =
+        organic_widen_part(island, get_extents(island.contour), part, box, float(delta), &points);
+    REQUIRE(widened);
+    CHECK(points == 0);
+    const Polygons inner = { box.inflated(- delta).polygon() };
+    const Polygons whole = offset(island, float(delta), jtRound, scaled<double>(0.005));
+    CHECK(diff(intersection(whole, inner), offset(*widened, scaled<float>(0.1))).empty());
+    CHECK(diff(intersection(*widened, inner), offset(whole, scaled<float>(0.1))).empty());
+}
+
+TEST_CASE("Organic islands a side of a box crosses next to a point are cut a little farther out", "[TreeSupport][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    // An island over a box 30 mm square, widened by an XY distance of 10 mm, whose widening drops a point closer than
+    // 0.05 mm to the last one it keeps, with a blunt point 0.03 mm into the box: cut by the box, the widening drops all
+    // of it.
+    const ExPolygon island(Polygon({Point::new_scale(10., 5.), Point::new_scale(-10., 5.), Point::new_scale(-10., 1.),
+        Point::new_scale(-1., 1.), Point::new_scale(0., -0.03), Point::new_scale(0.5, 1.), Point::new_scale(10., 1.)}));
+    REQUIRE(island.contour.is_counter_clockwise());
+    const BoundingBox box(Point::new_scale(-15., -30.), Point::new_scale(15., 0.));
+    const coord_t     delta = scaled<coord_t>(10.);
+    const Polygons    part  = ClipperUtils::clip_clipper_polygons_with_subject_bbox(island, box);
+    const Polygons    inner = { box.inflated(- delta).polygon() };
+    const Polygons    whole = intersection(offset(island, float(delta), jtRound, scaled<double>(0.005)), inner);
+    REQUIRE_FALSE(whole.empty());
+    REQUIRE(intersection(offset(intersection(part, Polygons{ box.polygon() }), float(delta), jtRound,
+        scaled<double>(0.005)), inner).empty());
+    // Not widened whole, the island cut a little farther out widened is the island widened within the box shrunk by
+    // the distance.
+    const std::optional<Polygons> widened =
+        organic_widen_part(island, get_extents(island.contour), part, box, float(delta));
+    REQUIRE(widened);
+    const Polygons near = intersection(*widened, inner);
+    CHECK(diff(whole, offset(near, scaled<float>(0.001))).empty());
+    CHECK(diff(near, offset(whole, scaled<float>(0.001))).empty());
+}
+
+TEST_CASE("Organic islands with points closer than the widening keeps within a box widen the part of them in it", "[TreeSupport][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    // Islands over a box 30 mm square, widened by an XY distance of 10 mm, whose widening drops a point closer than
+    // 0.05 mm to the last one it keeps, reaching 5 mm into the box with two points 0.01 mm apart there, as merging the
+    // slices of regions leaves at a sharp corner, one of them on its contour and one on a hole in the box: the widening
+    // drops one of them, as it does of the island.
+    const ExPolygon island = GENERATE(
+        ExPolygon(Polygon({Point::new_scale(10., 5.), Point::new_scale(-10., 5.), Point::new_scale(-10., 1.),
+            Point::new_scale(-3., 1.), Point::new_scale(-2., -5.), Point::new_scale(2., -5.),
+            Point::new_scale(2.01, -4.995), Point::new_scale(3., 1.), Point::new_scale(10., 1.)})),
+        ExPolygon(Polygon({Point::new_scale(10., 5.), Point::new_scale(-10., 5.), Point::new_scale(-10., 1.),
+                      Point::new_scale(-3., 1.), Point::new_scale(-2., -9.), Point::new_scale(2., -9.),
+                      Point::new_scale(3., 1.), Point::new_scale(10., 1.)}),
+            Polygon({Point::new_scale(-1., -7.), Point::new_scale(-1., -5.), Point::new_scale(1., -5.),
+                Point::new_scale(1.01, -5.005)})));
+    REQUIRE(island.contour.is_counter_clockwise());
+    REQUIRE(std::all_of(island.holes.begin(), island.holes.end(), [](const Polygon &hole) {
+        return hole.is_clockwise();
+    }));
+    const BoundingBox box(Point::new_scale(-15., -30.), Point::new_scale(15., 0.));
+    const coord_t     delta = scaled<coord_t>(10.);
+    const Polygons    part  = ClipperUtils::clip_clipper_polygons_with_subject_bbox(island, box);
+    const Polygons    cut   = intersection(part, Polygons{ box.polygon() });
+    REQUIRE(count_points(offset_input(cut, float(delta))) < count_points(cut));
+    // Not widened whole, the part widened is the island widened within the box shrunk by the distance, but for the
+    // points the widening drops; cut by the box itself, no points of a cut by a larger box are reported.
+    size_t                        points  = 1;
+    const std::optional<Polygons> widened =
+        organic_widen_part(island, get_extents(island.contour), part, box, float(delta), &points);
+    REQUIRE(widened);
+    CHECK(points == 0);
+    const Polygons inner = { box.inflated(- delta).polygon() };
+    const Polygons whole = offset(island, float(delta), jtRound, scaled<double>(0.005));
+    REQUIRE_FALSE(intersection(whole, inner).empty());
+    CHECK(diff(intersection(whole, inner), offset(*widened, scaled<float>(0.1))).empty());
+    CHECK(diff(intersection(*widened, inner), offset(whole, scaled<float>(0.1))).empty());
+}
+
+TEST_CASE("Organic cuts the widening twists where it joins past the points it drops are not widened as they are", "[TreeSupport][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    // A widening by 10000 units of the coordinates drops a point closer than 50 of them to the last one it keeps,
+    // going around a contour from its first point. Past those it drops, it joins an edge that crosses or touches
+    // another edge with an end between them and the edge it joins: one with its end there, one next to a point it
+    // drops, one where the contour touches itself, and one with its start there. The last does not cross itself, and
+    // the edge it joins crosses one ending between them; all 55 points it keeps lie as far along x as that edge, most
+    // along a side with small teeth, and only three as far along y.
+    const float   delta   = 10000.f;
+    const Polygon twisted = GENERATE(
+        Polygon({Point(100, 130), Point(40, 40), Point(100, 100), Point(50, 0), Point(120, 90)}),
+        Polygon({Point(23, 75), Point(119, 42), Point(34, 83), Point(105, 54), Point(23, 98)}),
+        Polygon({Point(100, 210), Point(50, 260), Point(160, 190), Point(180, 190), Point(50, 260), Point(0, 30)}),
+        Polygon({Point(75, 71), Point(145, 68), Point(95, 65), Point(188, 66), Point(50, 112)}),
+        [] {
+            Polygon teeth({Point(0, 1000), Point(0, 951), Point(1000, 1010), Point(1000, 3000), Point(510, 3000),
+                Point(500, 995), Point(490, 3000)});
+            for (int k = 1; k < 50; ++ k)
+                teeth.points.emplace_back(490 - 10 * k, k % 2 == 1 ? 3100 : 3000);
+            return teeth;
+        }());
+    REQUIRE(twisted.area() > 0.);
+    REQUIRE(count_points(offset_input(Polygons{ twisted }, delta)) < twisted.size());
+    CHECK_FALSE(organic_widens_cut_as_it_is(Polygons{ twisted }, delta));
+    // A square with a point next to a corner, which the widening drops, it keeps as it is otherwise.
+    const Polygon square({Point(0, 0), Point(1000, 0), Point(1000, 1000), Point(0, 1000), Point(0, 980)});
+    REQUIRE(count_points(offset_input(Polygons{ square }, delta)) < square.size());
+    CHECK(organic_widens_cut_as_it_is(Polygons{ square }, delta));
+}
+
+TEST_CASE("Organic bodies under a roof widen as far in at most 128 steps at a tenth of a degree and not at all at a hundredth", "[TreeSupport][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    // Four round bodies 1.4 mm across, 6 mm apart, on 130 layers of 0.2 mm under a roof over all of them, bodies of
+    // lines 0.42 mm wide that lean by a branch angle of 40 degrees, of 0.1 degrees, 0.35 um a layer, or of 0.01
+    // degrees, 35 nm a layer.
+    constexpr size_t num_layers = 130;
+    const double     lean       = 0.2 * std::tan(0.1 * PI / 180.);
+    Polygons         rounds;
+    for (const double x : { 0., 6. })
+        for (const double y : { 0., 6. }) {
+            Polygon round;
+            for (int k = 0; k < 64; ++ k)
+                round.points.push_back(
+                    Point::new_scale(x + 0.7 * std::cos(PI * k / 32.), y + 0.7 * std::sin(PI * k / 32.)));
+            rounds.push_back(std::move(round));
+        }
+    const auto widened = [&rounds](const double angle, size_t &checks) {
+        std::vector<SupportGeneratorLayer> storage(num_layers);
+        SupportGeneratorLayersPtr          bodies(num_layers + 1, nullptr);
+        for (size_t i = 0; i < num_layers; ++ i) {
+            storage[i].bottom_z = 0.2 * double(i);
+            storage[i].print_z  = 0.2 * double(i + 1);
+            storage[i].polygons = rounds;
+            bodies[i]           = &storage[i];
+        }
+        std::vector<Polygons> roofs(num_layers + 1), model(num_layers + 1);
+        roofs.back() = { Polygon({Point::new_scale(-3., -3.), Point::new_scale(9., -3.), Point::new_scale(9., 9.),
+            Point::new_scale(-3., 9.)}) };
+        organic_widen_bodies_under_roofs(bodies, roofs, model, {}, true, scaled<coord_t>(0.42), scaled<coord_t>(0.4),
+            scaled<coord_t>(0.2 * std::tan(angle * PI / 180.)), scaled<coord_t>(0.42), { 0. },
+            [&checks] { ++ checks; });
+        std::vector<Polygons> out;
+        for (SupportGeneratorLayer &layer : storage)
+            out.emplace_back(std::move(layer.polygons));
+        return out;
+    };
+    size_t                      checks_wide = 0, checks_steep = 0;
+    const std::vector<Polygons> wide        = widened(40., checks_wide);
+    const std::vector<Polygons> steep       = widened(0.1, checks_steep);
+    // The top bodies widen as far either way, but for the last step of the wide ones, of 0.17 mm, the steep ones in at
+    // most 128 steps, the roof, each step and each layer a flare is tried on checked for cancelling; going down, the
+    // steep ones are narrower by how far they lean, in stairs of 8 um: at most 3 um nine layers down, and all the way
+    // down by 45 um less a stair at most.
+    CHECK(diff(steep.back(), offset(wide.back(), scaled<float>(0.01))).empty());
+    CHECK(diff(wide.back(), offset(steep.back(), scaled<float>(0.2 * std::tan(40. * PI / 180.) + 0.01))).empty());
+    CHECK(diff(steep.back(), offset(steep[num_layers - 10], scaled<float>(0.005))).empty());
+    CHECK(diff(steep.back(), offset(steep.front(), scaled<float>(double(num_layers - 1) * lean + 0.005))).empty());
+    const double stair = 2.5 * 0.42 / 128.;
+    CHECK_FALSE(diff(steep.back(), offset(steep.front(), scaled<float>(double(num_layers - 1) * lean - stair - 0.002)))
+                    .empty());
+    CHECK(checks_steep == 1 + 128 + num_layers);
+    // Leaning less a layer than a step the widening tells apart, they do not widen at all, as at nought: every layer
+    // keeps its bodies as they are, and nothing is checked for cancelling.
+    size_t                      checks_still = 0;
+    const std::vector<Polygons> still        = widened(0.01, checks_still);
+    REQUIRE(still.size() == num_layers);
+    CHECK(std::count_if(still.begin(), still.end(), [&rounds](const Polygons &layer) { return layer != rounds; }) == 0);
+    CHECK(checks_still == 0);
 }
 
 TEST_CASE("Organic bodies under a roof close the gap between them that the roof hangs over", "[TreeSupport][Material][Regression]")
@@ -576,8 +1181,8 @@ TEST_CASE("Organic bodies under a roof close the gap between them that the roof 
         layer.polygons = trunks;
         bodies[i]      = &layer;
     }
-    organic_widen_bodies_under_roofs(bodies, roofs, model, line_width, tip_radius, scaled<coord_t>(move), scaled<coord_t>(reach),
-        { 0. });
+    organic_widen_bodies_under_roofs(bodies, roofs, model, {}, true, line_width, tip_radius, scaled<coord_t>(move),
+        scaled<coord_t>(reach), { 0. });
     // The bodies close the gap under the roof with their bands: a line touching a body with its edge only, running along
     // a gap, would hang off it.
     const Polygons gap_area{ rectangle(0., 1.5, 3., gap) };
@@ -1087,6 +1692,56 @@ TEST_CASE("Organic trees end on what their beads touch, not beside it", "[TreeSu
     // A tree grows under an end beside the wall but not touching it, a bead of which would hang, and not under one that
     // touches it.
     CHECK(intersection(Polygons{ end }, storage[num_layers - 2].inner_trees).empty() == (gap < 0.25 * line_width));
+}
+
+TEST_CASE("Organic trees under a solid part of a hollow body hold every bead of it", "[TreeSupport][Material][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    // Lines 0.22 mm wide, layers 0.02 mm, tips 0.8 mm across, a branch angle of 40 degrees, a preferred one of 25 and a
+    // diameter angle of 5. A body 6 mm square, hollow, whose top layer is printed solid over the inside of the layer
+    // below: all of it, as a body widened under a roof is, or a core 2 mm square in it, with its walls. A bead touches
+    // what is below where its axis lies within half a line of it, wherever the spiral runs, so the trees of the layer
+    // below hold every point of the solid part that near, far from its walls. The reach a roof line bridges plays no part,
+    // up to the two lines of a gap of the base of three.
+    const double line_width = 0.22, layer_height = 0.02;
+    const bool   core  = GENERATE(false, true);
+    const double reach = GENERATE(0.22, 0.235, 0.44);
+    CAPTURE(core, reach);
+    TreeSupportSettings settings;
+    settings.support_line_width               = scaled<coord_t>(line_width);
+    settings.layer_height                     = scaled<coord_t>(layer_height);
+    settings.min_radius                       = scaled<coord_t>(0.4);
+    settings.maximum_move_distance            = scaled<coord_t>(std::tan(40. * M_PI / 180.) * layer_height);
+    settings.maximum_move_distance_slow       = scaled<coord_t>(std::tan(25. * M_PI / 180.) * layer_height);
+    settings.branch_radius_increase_per_layer = scaled<double>(std::tan(5. * M_PI / 180.) * layer_height);
+    settings.support_rests_on_model           = false;
+    const Polygon square({ Point::new_scale(-3., -3.), Point::new_scale(3., -3.), Point::new_scale(3., 3.), Point::new_scale(-3., 3.) });
+    const Polygon middle({ Point::new_scale(-1., -1.), Point::new_scale(1., -1.), Point::new_scale(1., 1.), Point::new_scale(-1., 1.) });
+    const size_t num_layers = 20;
+    std::vector<SupportGeneratorLayer> storage(num_layers);
+    std::vector<Polygons> roofs(num_layers), model(num_layers);
+    SupportGeneratorLayersPtr bodies(num_layers, nullptr);
+    for (size_t i = 0; i < storage.size(); ++ i) {
+        SupportGeneratorLayer &layer = storage[i];
+        layer.bottom_z = layer_height * double(i);
+        layer.print_z  = layer.bottom_z + layer_height;
+        layer.height   = layer_height;
+        layer.polygons = { square };
+        bodies[i]      = &layer;
+    }
+    const Polygons solid{ core ? middle : square };
+    storage.back().solid_polygons = solid;
+    organic_grow_trees_inside_hollow_bodies(bodies, roofs, model, settings, scaled<coord_t>(reach), settings.support_line_width);
+    // The layer below prints its walls, a band three quarters of a line wide along its outline, and the trees inside it.
+    const SupportGeneratorLayer &below = storage[num_layers - 2];
+    REQUIRE_FALSE(below.inner_trees.empty());
+    const float    half = 0.5f * float(settings.support_line_width);
+    const Polygons held = union_(diff(Polygons{ square }, offset(Polygons{ square }, - 1.5f * half)), below.inner_trees);
+    // But for specks where three tips just meet, their discs being polygons a few micrometres inside their circles, as the
+    // trees leave them too.
+    CHECK(area(opening(diff(solid, offset(held, half + float(SCALED_EPSILON))), scaled<float>(0.005))) <
+        scaled<double>(0.01) * scaled<double>(0.01));
 }
 
 TEST_CASE("Organic trees keep out of a hole of a body that opens to the outside below", "[TreeSupport][Material][Regression]")

@@ -37,6 +37,8 @@ private:
     bool                m_is_initialized_support_material_overhangs_queried{ false };
     bool                m_support_material_overhangs_queried{ false };
     bool                is_BBL_Printer{false};
+    // Whether an object among several selected ones prints lines of its base pattern, see set_base_pattern_spacing_used().
+    bool                m_base_pattern_spacing_used{false};
 
     // function to loading of changed configuration
     std::function<void()>                                       load_config = nullptr;
@@ -106,6 +108,13 @@ public:
     bool    layer_height_out_of_range_dialog(DynamicPrintConfig* config, double clamp_to);
     void    layer_height_limits(double& min_layer_height, double& max_layer_height) const;
     void    set_is_BBL_Printer(bool is_bbl_printer) { is_BBL_Printer = is_bbl_printer; };
+    // Whether a support of this configuration prints lines of the base pattern, whose spacing it then uses: a support at all,
+    // but not an Organic one with a hollow base, which prints them only on a raft and on a roof printed as base, with no
+    // top interface layers.
+    static bool base_pattern_spacing_used(const DynamicPrintConfig &config, bool is_belt_printer);
+    // Keeps the base pattern spacing editable where the configuration toggled is merged from several objects and one of them
+    // prints lines of its base pattern, which that configuration may not show.
+    void    set_base_pattern_spacing_used(bool used) { m_base_pattern_spacing_used = used; }
     bool    get_is_BBL_Printer() { return is_BBL_Printer; };
     // SLA print
     void    update_print_sla_config(DynamicPrintConfig* config, const bool is_global_config = false);

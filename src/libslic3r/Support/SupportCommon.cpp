@@ -177,6 +177,8 @@ void trim_support_layers_by_exclusion_volumes(
             trim_polygons(layer.polygons, excluded[idx]);
             if (! layer.inner_trees.empty())
                 trim_polygons(layer.inner_trees, excluded[idx]);
+            if (! layer.lone_feet.empty())
+                trim_polygons(layer.lone_feet, excluded[idx]);
             if (layer.contact_polygons)
                 trim_polygons(*layer.contact_polygons, excluded[idx]);
             if (layer.overhang_polygons)
@@ -537,11 +539,19 @@ SupportGeneratorLayersPtr generate_raft_base(
             new_layer.print_z = slicing_params.first_print_layer_height;
             new_layer.height  = slicing_params.first_print_layer_height;
             new_layer.bottom_z = 0.;
-            first_layer = union_(std::move(first_layer), base);
-            new_layer.polygons = inflate_factor_1st_layer > 0 ? expand(first_layer, inflate_factor_1st_layer, inflate_join, inflate_join_arg) :
-                                                                first_layer;
-            if (support_params.support_style == smsTreeOrganic && columns_base != nullptr)
+            if (inflate_factor_1st_layer > 0 && ! first_layer.empty())
+                // The Organic bodies standing on the bed widen round, see round_inflation; the raft under the model keeps
+                // the mitered corners of other supports.
+                new_layer.polygons = union_(expand(first_layer, inflate_factor_1st_layer, inflate_join, inflate_join_arg),
+                    expand(union_(base), inflate_factor_1st_layer));
+            else {
+                first_layer        = union_(std::move(first_layer), base);
+                new_layer.polygons = inflate_factor_1st_layer > 0 ? expand(first_layer, inflate_factor_1st_layer) : first_layer;
+            }
+            if (support_params.support_style == smsTreeOrganic && columns_base != nullptr) {
                 new_layer.inner_trees = columns_base->inner_trees;
+                new_layer.lone_feet   = columns_base->lone_feet;
+            }
         }
         // Insert the base layers.
         for (size_t i = 1; i < slicing_params.base_raft_layers; ++ i) {
@@ -1652,10 +1662,15 @@ void generate_support_toolpaths(
     auto n_raft_layers = std::min<size_t>(support_layers.size(), std::max(0, int(slicing_params.raft_layers()) - 1));
     const bool organic_hollow = support_params.support_style == smsTreeOrganic &&
         (config.support_base_pattern == smpNone || config.support_base_pattern == smpDefault);
+    // Organic with a hollow base: the second walls are chosen going up, each standing on the walls below, in the raft
+    // as above it.
+    const bool organic_double_walls = organic_hollow && config.tree_support_wall_count.value == 0;
+    if (organic_double_walls)
+        organic_mark_double_walls(intermediate_layers, support_params);
 
     tbb::parallel_for(tbb::blocked_range<size_t>(0, n_raft_layers),
         [&support_layers, &raft_layers, &intermediate_layers, &config, &support_params, &slicing_params,
-            &bbox_object, link_max_length_factor, organic_hollow]
+            &bbox_object, link_max_length_factor, organic_hollow, organic_double_walls]
             (const tbb::blocked_range<size_t>& range) {
         for (size_t support_layer_id = range.begin(); support_layer_id < range.end(); ++ support_layer_id)
         {
@@ -1710,7 +1725,7 @@ void generate_support_toolpaths(
                     // Organic prints the solid parts of its bodies solid, as above the raft.
                     tree_supports_generate_paths(dst, organic_hollow ? organic_extrude_solid_islands(dst, tree_polygons,
                         tree_layer->solid_polygons, flow, support_layer.object()->print()->config(), config) : tree_polygons,
-                        flow, support_params);
+                        flow, support_params, organic_double_walls ? &tree_layer->double_walls : nullptr);
                     tree_paths.assign(dst.begin() + first, dst.end());
                 }
             }
@@ -1736,7 +1751,7 @@ void generate_support_toolpaths(
                 const ExtrusionRole role = support_layer_id < slicing_params.base_raft_layers ? erSupportMaterial : erSupportMaterialInterface;
                 if (organic_hollow && support_layer_id == 0)
                     organic_fill_first_layer(support_layer.support_fills.entities, raft_layer.polygons, raft_layer.inner_trees,
-                        filler, density, role, flow, support_params);
+                        raft_layer.lone_feet, filler, density, role, flow, support_params, *support_layer.object());
                 else
                     fill_expolygons_with_sheath_generate_paths(support_layer.support_fills.entities,
                         tree_polygons.empty() ? raft_layer.polygons : diff(raft_layer.polygons, tree_polygons),
@@ -1783,12 +1798,6 @@ void generate_support_toolpaths(
         }
     };
     std::vector<LayerCache>             layer_caches(support_layers.size());
-
-    // Organic with a hollow base: the second walls are chosen going up, each standing on the walls below.
-    const bool organic_double_walls = support_params.support_style == smsTreeOrganic &&
-        (config.support_base_pattern == smpNone || config.support_base_pattern == smpDefault) && config.tree_support_wall_count.value == 0;
-    if (organic_double_walls)
-        organic_mark_double_walls(intermediate_layers, support_params);
 
     tbb::parallel_for(tbb::blocked_range<size_t>(n_raft_layers, support_layers.size()),
         [&config, &slicing_params, &support_params, &support_layers, &bottom_contacts, &top_contacts, &intermediate_layers, &interface_layers, &base_interface_layers, &layer_caches, &loop_interface_processor,
@@ -1970,6 +1979,8 @@ void generate_support_toolpaths(
             Polygons interface_regions;
             Polygons separate_regions;
             Polygons shell_coverage;
+            // The solid parts of a shell, filled once the interfaces sharing it are, see below.
+            Polygons shell_solid;
             for (SupportGeneratorLayerExtruded *item : {&top_contact_layer, &interface_layer, &base_interface_layer}) {
                 if (organic_tree && !item->empty()) {
                     polygons_append(interface_regions, item->layer->polygons);
@@ -1987,8 +1998,8 @@ void generate_support_toolpaths(
                 const Flow flow = support_params.support_material_flow.with_height(float(base_layer.layer->height));
                 Polygons shell_region = diff(base_layer.polygons_to_extrude(), union_(separate_regions));
                 if (hollow_tree)
-                    shell_region = organic_extrude_solid_islands(base_layer.extrusions, shell_region, base_layer.layer->solid_polygons, flow,
-                        support_layer.object()->print()->config(), config);
+                    shell_region = organic_split_solid_islands(shell_region, base_layer.layer->solid_polygons, flow.scaled_width(),
+                        shell_solid);
                 ExtrusionEntityCollection shell;
                 if (hollow_tree)
                     tree_supports_generate_paths(shell.entities, shell_region, flow, support_params,
@@ -2128,6 +2139,31 @@ void generate_support_toolpaths(
                 fill_interface(base_interface_layer, filler, float(base_interface_density), ExtrusionRole::erSupportMaterial, interface_flow);
             }
 
+            // The solid parts of a shell under its interfaces are theirs to fill where their beads print: elsewhere, around
+            // their beads and all over where their flow is set to nothing, the base fills them. A sparse pattern, as a grid
+            // leaves at full density, keeps its holes as it does elsewhere, but only within the interfaces: outside them, as
+            // between two of their islands, the base prints up to their outline, its loops and theirs as far apart as lines
+            // side by side. Their outline is taken a hair wider: where it runs along that of the shell, the shell would keep
+            // hairs along it, over which the Voronoi diagrams the fill is drawn along break down. The spiral is written into
+            // the base extrusions, past the split of the shell between base and interface above.
+            if (! shell_solid.empty()) {
+                const Flow flow = support_params.support_material_flow.with_height(float(base_layer.layer->height));
+                Polygons   printed;
+                Polygons   shared_regions;
+                for (const SupportGeneratorLayerExtruded *item : shell_interfaces) {
+                    polygons_append(shared_regions, item->polygons_to_extrude());
+                    for (const ExtrusionEntity *entity : item->extrusions)
+                        for_each_extrusion_path(*entity, [&](const ExtrusionPath &path) {
+                            if (path.mm3_per_mm > 0. && ! support_role_has_no_flow(config, path.role()))
+                                polygons_append(printed, organic_bead(path.as_polyline(), scale_(path.width)));
+                        });
+                }
+                const float half = 0.5f * float(flow.scaled_width());
+                organic_extrude_solid_fill(base_layer.extrusions,
+                    diff(shell_solid, intersection(closing(union_(printed), half), offset(shared_regions, float(SCALED_EPSILON)))),
+                    flow, support_layer.object()->print()->config(), config);
+            }
+
             // Base support or flange, and the trees inside an Organic body: the interfaces of a layer may take all of a body
             // and leave the trees in its holes.
             if (! base_layer.empty() && (! base_layer.polygons_to_extrude().empty() || ! base_layer.layer->inner_trees.empty())) {
@@ -2202,7 +2238,8 @@ void generate_support_toolpaths(
                 if (! done) {
                     if (hollow_tree && ! is_belt_printer && base_layer.layer->bottom_z < EPSILON)
                         organic_fill_first_layer(base_layer.extrusions, base_layer.polygons_to_extrude(), base_layer.layer->inner_trees,
-                            filler, density, ExtrusionRole::erSupportMaterial, flow, support_params);
+                            base_layer.layer->lone_feet, filler, density, ExtrusionRole::erSupportMaterial, flow, support_params,
+                            *support_layer.object());
                     else
                         fill_expolygons_with_sheath_generate_paths(base_layer.extrusions, base_layer.polygons_to_extrude(),
                             filler, density, ExtrusionRole::erSupportMaterial, flow, support_params, sheath, no_sort);

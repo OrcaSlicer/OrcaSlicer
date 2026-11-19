@@ -27,7 +27,9 @@
 #include <cerrno>
 #include <utility>
 #include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/file_status.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/path.hpp>
 #include "libslic3r/LocalesUtils.hpp"
 #include <fstream>
 #include <exception>
@@ -156,6 +158,15 @@
 #include "slic3r/GUI/Jobs/SendJob.hpp"
 #include <boost/nowide/convert.hpp>
 #include <stdio.h>
+#include <system_error>
+#include <fcntl.h>
+#ifdef _WIN32
+#include <io.h>
+#include <share.h>
+#include <sys/stat.h>
+#else
+#include <unistd.h>
+#endif
 
 namespace fs = boost::filesystem;
 using json = nlohmann::json;
@@ -608,6 +619,32 @@ void record_exit_reson(std::string outputdir, int code, int plate_id, std::strin
     }
     catch (...) {}
 #endif
+}
+
+// Makes an empty file where nothing is, with the rights any file made there gets: whether this call made it. Any failure
+// other than something being there goes to ec.
+static bool create_new_file(const std::string &path, std::error_code &ec)
+{
+#ifdef _WIN32
+    // Not fopen() mode x, which older Universal CRTs take for an invalid parameter and end the process on.
+    int fd = -1;
+    const int err = _wsopen_s(&fd, boost::nowide::widen(path).c_str(), _O_WRONLY | _O_CREAT | _O_EXCL | _O_BINARY, _SH_DENYNO,
+        _S_IREAD | _S_IWRITE);
+    if (err == 0) {
+        _close(fd);
+        return true;
+    }
+#else
+    const int fd = ::open(path.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0666);
+    if (fd >= 0) {
+        ::close(fd);
+        return true;
+    }
+    const int err = errno;
+#endif
+    if (err != EEXIST)
+        ec = std::error_code(err, std::generic_category());
+    return false;
 }
 
 static int decode_png_to_thumbnail(std::string png_file, ThumbnailData& thumbnail_data)
@@ -7230,7 +7267,7 @@ int CLI::run(int argc, char **argv)
                                        flush_and_exit(CLI_GCODE_PATH_CONFLICTS);
                                     }
 
-                                    // The Organic support warning is settled by the export below and checked after it.
+                                    // The Organic support warning is checked below from the state of its step, which its events may lag.
                                     g_slicing_warnings.erase(std::remove_if(g_slicing_warnings.begin(), g_slicing_warnings.end(),
                                         [](const PrintBase::SlicingStatus &status) { return status.message_type == PrintStateBase::SlicingOrganicSupportWarning; }),
                                         g_slicing_warnings.end());
@@ -7276,6 +7313,26 @@ int CLI::run(int argc, char **argv)
                                     }
                                     sliced_plate_info.triangle_count = plate_triangle_counts[index];
 
+                                    // The Organic support warning stands once the support is generated, unless the Scarf seams checked while
+                                    // exporting settle it: then it is checked after the export, and --strict removes the G-code it rejects.
+                                    const bool organic_settled_by_export = !OrganicScarfFooting(*print_fff).empty();
+                                    // Records the warnings; whether --strict rejects the plate for them.
+                                    auto organic_support_warnings_reject = [&]() {
+                                        for (const PrintBase::SlicingStatus &status : organic_support_warning_statuses(*print_fff)) {
+                                            sliced_plate_info.warning_message = status.text;
+                                            BOOST_LOG_TRIVIAL(warning) << "plate " << index + 1 << ": found NON_CRITICAL slicing warnings: " << status.text << std::endl;
+                                            cli_record_warning(sliced_info, "slicing_warning_non_critical", nlohmann::json{{"plate_id", index + 1}, {"text", status.text}});
+                                            if (sliced_info.strict_mode)
+                                                return true;
+                                        }
+                                        return false;
+                                    };
+                                    if (!organic_settled_by_export && organic_support_warnings_reject()) {
+                                        sliced_info.sliced_plates.push_back(sliced_plate_info);
+                                        record_exit_reson(outfile_dir, CLI_SLICING_ERROR, index + 1, cli_errors[CLI_SLICING_ERROR], sliced_info);
+                                        flush_and_exit(CLI_SLICING_ERROR);
+                                    }
+
                                     // The outfile is processed by a PlaceholderParser.
                                     //outfile = part_plate->get_tmp_gcode_path();
                                     if (outfile_dir.empty()) {
@@ -7286,22 +7343,91 @@ int CLI::run(int argc, char **argv)
                                         part_plate->set_tmp_gcode_path(outfile);
                                     }
                                     BOOST_LOG_TRIVIAL(info) << "process finished, will export gcode temporarily to " << outfile << std::endl;
+                                    // With --strict, a plate rejected for a warning the Scarf seams exported settle is to leave no G-code
+                                    // where it goes, nor take the place of what an earlier run left there: its G-code goes to a file of
+                                    // its own, put in place once the warning is checked.
+                                    const std::string requested_outfile = outfile;
+                                    const bool        export_aside      = organic_settled_by_export && sliced_info.strict_mode;
+                                    std::string aside_file, aside_lock;
+                                    // The exporter writes to <file>.tmp, and the G-code processor to that name with a suffix of its own.
+                                    const char *const export_suffixes[] = { "", ".tmp", ".tmp.postprocess", ".tmp.preheat" };
+                                    const auto remove_aside = [&aside_file, &aside_lock, &export_suffixes]() {
+                                        if (aside_lock.empty())
+                                            return;
+                                        boost::system::error_code ec;
+                                        for (const char *suffix : export_suffixes)
+                                            boost::filesystem::remove(aside_file + suffix, ec);
+                                        boost::filesystem::remove(aside_lock, ec);
+                                    };
+                                    if (export_aside) {
+                                        // Next to the target, so its files get the rights and the group a direct export would give
+                                        // them, and named no longer than the target, so they fit wherever the target's do: Windows
+                                        // limits the length of a path. A lock made only where nothing is reserves the name and those
+                                        // the export adds to it from any other run. A name anything has already, a link to nothing
+                                        // included, is passed over: the lock or the export would write through the link. The .tmp
+                                        // and .lock endings keep them out of what takes the *.gcode files. unique_path() replaces
+                                        // each % with a random hex digit.
+                                        const boost::filesystem::path requested(requested_outfile);
+                                        const std::string name = "~" + std::string(std::max<size_t>(requested.stem().string().size(), 2) - 1, '%');
+                                        boost::system::error_code folder_ec;
+                                        boost::filesystem::create_directories(requested.parent_path(), folder_ec);
+                                        std::error_code ec;
+                                        boost::system::error_code status_ec;
+                                        // Whether anything has the name; status_ec tells it cannot be told. Boost reports a missing
+                                        // file in it too, so the type tells which.
+                                        const auto taken = [&status_ec](const std::string &path) {
+                                            const boost::filesystem::file_type type = boost::filesystem::symlink_status(path, status_ec).type();
+                                            if (type != boost::filesystem::status_error)
+                                                status_ec.clear();
+                                            return type != boost::filesystem::file_not_found;
+                                        };
+                                        while (aside_lock.empty() && !ec && !status_ec) {
+                                            const std::string base = (requested.parent_path() / boost::filesystem::unique_path(name)).string();
+                                            if (taken(base + ".lock") || !create_new_file(base + ".lock", ec))
+                                                continue;
+                                            bool export_taken = false;
+                                            for (const char *suffix : export_suffixes)
+                                                export_taken = export_taken || taken(base + ".tmp" + suffix);
+                                            if (export_taken) {
+                                                boost::system::error_code remove_ec;
+                                                boost::filesystem::remove(base + ".lock", remove_ec);
+                                                continue;
+                                            }
+                                            aside_lock = base + ".lock";
+                                            aside_file = base + ".tmp";
+                                        }
+                                        if (aside_lock.empty())
+                                            throw Slic3r::RuntimeError("Failed to create a file next to " + requested_outfile + ": " +
+                                                (ec ? ec.message() : status_ec.message()));
+                                        outfile = aside_file;
+                                    }
                                     temp_time = (long long)Slic3r::Utils::get_current_time_utc();
-                                    outfile = print_fff->export_gcode(outfile, gcode_result, nullptr);
-                                    // The Scarf seams checked while exporting settle the Organic support warning: what stands now counts, and no event of it
-                                    // goes on to the next plate.
+                                    try {
+                                        outfile = print_fff->export_gcode(outfile, gcode_result, nullptr);
+                                    } catch (...) {
+                                        if (export_aside)
+                                            remove_aside();
+                                        throw;
+                                    }
+                                    // No event of the Organic support warning goes on to the next plate: what stands after the export counts.
                                     g_slicing_warnings.erase(std::remove_if(g_slicing_warnings.begin(), g_slicing_warnings.end(),
                                         [](const PrintBase::SlicingStatus &status) { return status.message_type == PrintStateBase::SlicingOrganicSupportWarning; }),
                                         g_slicing_warnings.end());
-                                    for (const PrintBase::SlicingStatus &status : organic_support_warning_statuses(*print_fff)) {
-                                        sliced_plate_info.warning_message = status.text;
-                                        BOOST_LOG_TRIVIAL(warning) << "plate " << index + 1 << ": found NON_CRITICAL slicing warnings: " << status.text << std::endl;
-                                        cli_record_warning(sliced_info, "slicing_warning_non_critical", nlohmann::json{{"plate_id", index + 1}, {"text", status.text}});
-                                        if (sliced_info.strict_mode) {
-                                            sliced_info.sliced_plates.push_back(sliced_plate_info);
-                                            record_exit_reson(outfile_dir, CLI_SLICING_ERROR, index + 1, cli_errors[CLI_SLICING_ERROR], sliced_info);
-                                            flush_and_exit(CLI_SLICING_ERROR);
-                                        }
+                                    // Only --strict rejects a plate, and then the G-code went aside.
+                                    if (organic_settled_by_export && organic_support_warnings_reject()) {
+                                        remove_aside();
+                                        sliced_info.sliced_plates.push_back(sliced_plate_info);
+                                        record_exit_reson(outfile_dir, CLI_SLICING_ERROR, index + 1, cli_errors[CLI_SLICING_ERROR], sliced_info);
+                                        flush_and_exit(CLI_SLICING_ERROR);
+                                    }
+                                    if (export_aside) {
+                                        const bool moved = !rename_file(outfile, requested_outfile);
+                                        remove_aside();
+                                        if (!moved)
+                                            throw Slic3r::RuntimeError("Failed to move the G-code from " + outfile + " to " + requested_outfile);
+                                        outfile = requested_outfile;
+                                        if (gcode_result != nullptr)
+                                            gcode_result->filename = outfile;
                                     }
                                     time_using_cache = time_using_cache + ((long long)Slic3r::Utils::get_current_time_utc() - temp_time);
                                     BOOST_LOG_TRIVIAL(info) << "export_gcode finished: time_using_cache update to " << time_using_cache << " secs.";
