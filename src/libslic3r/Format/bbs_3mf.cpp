@@ -9629,6 +9629,7 @@ private:
     size_t m_task_seq = 0;
     // param 0: should call run_ui_tasks
     // param 1: should backup current project
+    // Param 0 is called with m_mutex held, so the callback must only post to the main window, never call back in here.
     std::function<void(int)> m_post_callback;
     long m_interval = 1 * 60;
     boost::system_time m_next_backup;
