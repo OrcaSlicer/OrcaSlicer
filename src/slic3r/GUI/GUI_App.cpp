@@ -965,6 +965,16 @@ void GUI_App::post_init()
             if (this->init_params->input_gcode) {
                 mainframe->select_tab(TAB_ID_PREPARE);
                 plater_->select_view_3D("3D");
+#ifdef __linux__
+                // Wayland maps the canvas after the first idle, and without OpenGL the G-code preview
+                // can't load, so the file is reported as invalid. Retry from the next idle.
+                if (!plater_->canvas3D()->get_wxglcanvas()->IsShownOnScreen() ||
+                    !plater_->canvas3D()->make_current_for_postinit() || !init_opengl()) {
+                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": glcontext not ready, postpone loading the G-code";
+                    m_post_initialized = false;
+                    return;
+                }
+#endif
                 this->plater()->load_gcode(from_u8(this->init_params->input_files.front()));
                 m_open_method = "gcode";
             } else {
