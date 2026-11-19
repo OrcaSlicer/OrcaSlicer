@@ -1574,14 +1574,13 @@ void TreeSupport::generate_toolpaths()
             raft_areas.push_back(expoly);
     }
 
-    // A fixed grip for every raft layer, as in BambuStudio. The first layer expansion is added to the first layer below.
-    raft_areas = offset_ex(raft_areas, scale_(3.));
+    // Orca: these styles size every raft layer by the first layer expansion, see ConfigManipulation.
+    raft_areas = offset_ex(raft_areas, scale_(object_config.raft_first_layer_expansion));
 
     size_t layer_nr = 0;
     for (; layer_nr < m_slicing_params.base_raft_layers; layer_nr++) {
         SupportLayer *ts_layer = m_object->get_support_layer(layer_nr);
-        coordf_t expand_offset = (layer_nr == 0 ? m_object_config->raft_first_layer_expansion.value : 0.);
-        auto raft_areas1 = offset_ex(raft_areas, scale_(expand_offset));
+        ExPolygons    raft_areas1 = raft_areas;
 
         Flow support_flow = Flow(support_extrusion_width, ts_layer->height, nozzle_diameter);
         Fill* filler_raft = Fill::new_from_type(ipRectilinear);
