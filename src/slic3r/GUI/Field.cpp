@@ -104,12 +104,11 @@ wxString double_to_string(double const value, const int max_precision /*= 4*/)
 
 	wxString s = wxNumberFormatter::ToString(value, max_precision, wxNumberFormatter::Style_None);
 
-	// The following code comes from wxNumberFormatter::RemoveTrailingZeroes(wxString& s)
-	// with the exception that here one sets the decimal separator explicitely to dot.
+	// The following code comes from wxNumberFormatter::RemoveTrailingZeroes(wxString& s).
     // If number is in scientific format, trailing zeroes belong to the exponent and cannot be removed.
     if (s.find_first_of("eE") == wxString::npos) {
-        char dec_sep = is_decimal_separator_point() ? '.' : ',';
-        const size_t posDecSep = s.find(dec_sep);
+        // The separator ToString() wrote, from the UI locale, which can differ from the C locale's.
+        const size_t posDecSep = s.find(wxNumberFormatter::GetDecimalSeparator());
 	    // No decimal point => removing trailing zeroes irrelevant for integer number.
 	    if (posDecSep != wxString::npos) {
 		    // Find the last character to keep.
