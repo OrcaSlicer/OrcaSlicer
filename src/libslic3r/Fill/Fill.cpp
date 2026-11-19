@@ -1150,7 +1150,9 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 }
 
                 // Calculate the actual flow we'll be using for this infill.
-		        params.bridge = is_bridge;
+                // A plugin pattern has no InfillPattern value, so only built-in patterns can
+                // request bridge flow through the virtual method.
+		        params.bridge = is_bridge || (params.pattern && Fill::use_bridge_flow(*params.pattern));
                 const bool is_thick_bridge = surface.is_bridge() && (surface.is_internal_bridge() ? object_config.thick_internal_bridges : object_config.thick_bridges);
 				params.flow   = params.bridge ?
 					//Orca: enable thick bridge based on config

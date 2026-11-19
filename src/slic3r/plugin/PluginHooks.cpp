@@ -16,14 +16,9 @@
 
 #include <boost/log/trivial.hpp>
 
-#include <algorithm>
 #include <exception>
-#include <chrono>
 #include <cstddef>
-#include <map>
 #include <memory>
-#include <utility>
-#include <vector>
 #include "slic3r/plugin/PluginDescriptor.hpp"
 #include <string>
 #include <stdexcept>

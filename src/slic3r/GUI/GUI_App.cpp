@@ -194,7 +194,6 @@
 #include "3DScene.hpp"
 #include "MainFrame.hpp"
 #include "Plater.hpp"
-#include "BackgroundSlicingProcess.hpp"
 #include "GLCanvas3D.hpp"
 #include "EncodedFilament.hpp"
 #include "GeneratedConfig.hpp"
@@ -3036,9 +3035,13 @@ void GUI_App::init_plugin_gui_wiring()
     PluginManager& plugin_mgr = PluginManager::instance();
 
     auto refresh_plugins_dialog = [] {
-        GUI_App* app = static_cast<GUI_App*>(wxTheApp);
-        if (!app)
+        if (!wxTheApp)
             return;
+
+        GUI_App* app = &GUI::wxGetApp();
+        if (app->is_closing())
+            return;
+
         app->CallAfter([app] {
             if (!app->is_closing() && app->m_plugins_dlg)
                 app->m_plugins_dlg->update_plugin_dialog_ui();

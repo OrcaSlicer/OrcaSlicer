@@ -78,6 +78,23 @@ Fill* Fill::new_from_type(const InfillPattern type)
     throw Slic3r::InvalidArgument("unknown type");
 }
 
+// Cached per built-in pattern. A function-local static initializes it once and thread-safely;
+// construction goes through the infill registry, so it must not run during static initialization.
+bool Fill::use_bridge_flow(const InfillPattern type)
+{
+    static const std::vector<unsigned char> cached = []() {
+        std::vector<unsigned char> result(size_t(ipCount), 0);
+        for (size_t i = 0; i < result.size(); ++ i) {
+            std::unique_ptr<Fill> fill(Fill::new_from_type((InfillPattern)i));
+            result[i] = fill->use_bridge_flow();
+        }
+        return result;
+    }();
+    if (type < 0 || type >= ipCount)
+        return false;
+    return cached[size_t(type)] != 0;
+}
+
 Polylines Fill::fill_surface(const Surface *surface, const FillParams &params)
 {
     // Perform offset.
