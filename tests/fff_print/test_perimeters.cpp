@@ -132,11 +132,6 @@ double max_difference(const std::vector<double> &a, const std::vector<double> &b
 
 } // namespace
 
-// The expansion only retypes area as top solid infill, so it can do nothing where there is no top
-// fill to begin with: zero top shell layers retypes the top surfaces as internal, and a top surface
-// density of 0% leaves the top layer with walls only. The last section is the control - the same
-// expansion on the same model does change the slice once a top fill exists - without which the two
-// equality checks above it would hold for an unrelated reason.
 // Overhang walls print at the bridge and overhang speeds, so regions that differ in them can't share their walls.
 TEST_CASE("Regions with different overhang wall speeds get walls of their own", "[Perimeters]")
 {
@@ -199,6 +194,11 @@ TEST_CASE("Generating the walls again leaves the no-overlap fill area of a fresh
     CHECK_THAT(no_overlap_fill_area(print), Catch::Matchers::WithinRel(no_overlap_fill_area(fresh), 1e-6));
 }
 
+// The expansion only retypes area as top solid infill, so it can do nothing where there is no top
+// fill to begin with: zero top shell layers retypes the top surfaces as internal, and a top surface
+// density of 0% leaves the top layer with walls only. The last section is the control - the same
+// expansion on the same model does change the slice once a top fill exists - without which the two
+// equality checks above it would hold for an unrelated reason.
 TEST_CASE("Top surface expansion only acts where there is a top fill", "[Perimeters]")
 {
     const char *wall_generator = GENERATE("classic", "arachne");
