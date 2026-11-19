@@ -19,13 +19,16 @@
 #include "wxExtensions.hpp"
 #include "libslic3r/AppConfig.hpp"
 
+#include <wx/brush.h>
 #include <wx/colour.h>
 #include <wx/control.h>
+#include <wx/dcclient.h>
 #include <wx/defs.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/menu.h>
 #include <wx/panel.h>
+#include <wx/pen.h>
 #include <wx/sizer.h>
 #include <wx/string.h>
 #include <wx/textctrl.h>
@@ -145,9 +148,9 @@ public:
         sizer->Add(hint, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(12));
 
         auto* lists = new wxBoxSizer(wxHORIZONTAL);
+        add_actions(lists);
         m_main_panel  = add_list(lists, _L("Object tools"));
         m_gizmo_panel = add_list(lists, _L("Gizmos"));
-        add_group_buttons();
         sizer->Add(lists, 1, wxEXPAND | wxALL, FromDIP(12));
 
         auto* btns = new DialogButtons(this, {L("Reset to default"), "OK", "Cancel"}, "", 1 /*left_aligned*/);
@@ -193,7 +196,7 @@ protected:
         m_name_height     = 0;
         m_measured_height = 0;
         m_name_sizes.clear();
-        for (Button* btn : {m_group_button, m_rename_button, m_ungroup_button})
+        for (Button* btn : {m_rename_button, m_move_up, m_move_down, m_group_button, m_ungroup_button})
             btn->Rescale();
         rebuild_rows();
         m_name_height = m_measured_height;
@@ -202,7 +205,7 @@ protected:
     }
 
 private:
-    // One row of either list. Gizmo rows also carry what they show: a plain gizmo, a group header or a member.
+    // One row of either list, and what it shows: a plain item, a group header or a member.
     struct Row
     {
         wxPanel*        panel{nullptr};
@@ -210,16 +213,17 @@ private:
         Button*         up{nullptr};
         Button*         down{nullptr};
         Label*          name{nullptr};
-        bool            gizmo{false};
-        ToolbarGizmoRow model{ToolbarRowKind::Plain, {}, -1};
+        bool            main{false}; // in the Object tools list, not the Gizmos list
+        ToolbarRow model{ToolbarRowKind::Plain, {}, -1};
     };
 
-    // What the gizmo rows in the selection are: plain gizmos (in list order) and the groups they touch.
-    struct GizmoSelection
+    // What the selected rows, all of one list, are: plain items (in list order) and the groups they touch.
+    struct ListSelection
     {
         std::vector<std::string> plain;
         std::set<int>            groups;
         int                      headers{0};
+        bool                     separator{false};
     };
 
     wxPanel* add_list(wxBoxSizer* lists, const wxString& title)
@@ -234,35 +238,47 @@ private:
         return panel;
     }
 
-    // Under the Gizmos list, acting on its selection.
-    void add_group_buttons()
+    // A column beside the lists, acting on their selection, so the dialog grows wider rather than taller.
+    void add_actions(wxBoxSizer* lists)
     {
-        auto* buttons = new wxBoxSizer(wxHORIZONTAL);
-        auto  add     = [this, buttons](const wxString& text, void (ToolbarCustomizeDialog::*action)()) {
+        auto* actions = new wxBoxSizer(wxVERTICAL);
+        auto  add     = [this, actions](const wxString& text, void (ToolbarCustomizeDialog::*action)(), int gap_before) {
             auto* btn = new Button(this, text);
             btn->SetStyle(ButtonStyle::Regular, ButtonType::Window);
-            btn->Bind(wxEVT_BUTTON, [this, action](wxCommandEvent&) { (this->*action)(); });
-            buttons->Add(btn, 0, wxRIGHT, FromDIP(6));
+            // After the click: an action that adds or removes rows rebuilds them.
+            btn->Bind(wxEVT_BUTTON, [this, action](wxCommandEvent&) { CallAfter([this, action]() { (this->*action)(); }); });
+            actions->Add(btn, 0, wxEXPAND | wxTOP, gap_before);
             return btn;
         };
-        m_group_button   = add(_L("Group selected"), &ToolbarCustomizeDialog::group_selected);
-        m_rename_button  = add(_L("Rename"), &ToolbarCustomizeDialog::rename_selected);
-        m_ungroup_button = add(_L("Ungroup"), &ToolbarCustomizeDialog::ungroup_selected);
+        m_rename_button = add(_L("Rename"), &ToolbarCustomizeDialog::rename_selected, 0);
+        m_move_up       = add(_L("Move up"), &ToolbarCustomizeDialog::move_selected_up, FromDIP(18));
+        m_move_down     = add(_L("Move down"), &ToolbarCustomizeDialog::move_selected_down, FromDIP(6));
+        m_group_button  = add(_L("Group selected"), &ToolbarCustomizeDialog::group_selected, FromDIP(18));
+        m_ungroup_button = add(_L("Ungroup"), &ToolbarCustomizeDialog::ungroup_selected, FromDIP(6));
+        // Mouse only, like the row arrows: a focused Move button that gets disabled at the end of a list would hand
+        // the focus on. Alt+Up and Alt+Down move rows from the keyboard.
+        m_move_up->SetCanFocus(false);
+        m_move_down->SetCanFocus(false);
+        // TRN Tooltip of the Move up button in the Customize Toolbar dialog. %1% is a key chord such as "Alt+Arrow Up".
+        m_move_up->SetToolTip(format_wxstr(_L("Move up (%1%)"), from_u8(move_up_key().display())));
+        // TRN Tooltip of the Move down button in the Customize Toolbar dialog. %1% is a key chord such as "Alt+Arrow Down".
+        m_move_down->SetToolTip(format_wxstr(_L("Move down (%1%)"), from_u8(move_down_key().display())));
         // TRN Tooltip of the "Group selected" button. %1% and %2% are key names such as "Ctrl" and "Shift".
-        m_group_button->SetToolTip(format_wxstr(_L("%1%+click or %2%+click gizmos to select several, then group them under one toolbar button."),
+        m_group_button->SetToolTip(format_wxstr(_L("%1%+click or %2%+click icons of one list to select several, then group them under one toolbar button."),
                                                 from_u8(KeyChord::modifier_name(wxMOD_CONTROL)), from_u8(KeyChord::modifier_name(wxMOD_SHIFT))));
-        m_gizmo_panel->GetContainingSizer()->Add(buttons, 0, wxTOP, FromDIP(8));
+        lists->Add(actions, 0, wxRIGHT, FromDIP(16));
     }
+
+    void move_selected_up() { move_selected(-1); }
+    void move_selected_down() { move_selected(1); }
 
     static KeyChord move_up_key() { return {WXK_UP, wxMOD_ALT}; }
     static KeyChord move_down_key() { return {WXK_DOWN, wxMOD_ALT}; }
 
-    ToolbarGroupLayout& group_of(const std::string& id)
-    {
-        return std::count(m_working.main.order.begin(), m_working.main.order.end(), id) != 0 ? m_working.main : m_working.gizmos;
-    }
+    ToolbarGroupLayout& list(bool main) { return main ? m_working.main : m_working.gizmos; }
+    wxPanel*            panel(bool main) const { return main ? m_main_panel : m_gizmo_panel; }
 
-    std::string row_key(const ToolbarGizmoRow& row) const
+    std::string row_key(const ToolbarRow& row) const
     {
         return row.kind == ToolbarRowKind::Header ? "#group:" + m_working.groups[static_cast<size_t>(row.group)].members.front() : row.id;
     }
@@ -273,13 +289,18 @@ private:
     std::string single_selection() const { return m_selection.size() == 1 ? m_selection.front() : std::string(); }
     bool        is_selected(const std::string& key) const { return std::find(m_selection.begin(), m_selection.end(), key) != m_selection.end(); }
 
-    GizmoSelection gizmo_selection() const
+    ListSelection list_selection() const
     {
-        GizmoSelection out;
-        for (const ToolbarGizmoRow& row : gizmo_rows(m_working)) {
+        ListSelection out;
+        if (m_selection.empty() || m_rows.count(m_selection.front()) == 0)
+            return out;
+        const bool main = m_rows.at(m_selection.front()).main;
+        for (const ToolbarRow& row : toolbar_rows(m_working, main ? m_working.main : m_working.gizmos)) {
             if (!is_selected(row_key(row)))
                 continue;
-            if (row.kind == ToolbarRowKind::Plain)
+            if (row.kind == ToolbarRowKind::Plain && row.id == TOOLBAR_SEPARATOR_ID)
+                out.separator = true;
+            else if (row.kind == ToolbarRowKind::Plain)
                 out.plain.push_back(row.id);
             else
                 out.groups.insert(row.group);
@@ -294,66 +315,42 @@ private:
         const std::string key = single_selection();
         if (key.empty() || m_rows.count(key) == 0)
             return;
-        if (m_rows.at(key).gizmo) {
-            if (move_gizmo_row(m_working, m_rows.at(key).model, step))
-                sync_gizmo_rows();
-            return;
-        }
-        std::vector<std::string>& order = group_of(key).order;
-        const auto it = std::find(order.begin(), order.end(), key);
-        if (it == order.end())
-            return;
-        const std::ptrdiff_t from = it - order.begin();
-        const std::ptrdiff_t to   = from + step;
-        if (to < 0 || to >= static_cast<std::ptrdiff_t>(order.size()))
-            return;
-        std::swap(order[static_cast<size_t>(from)], order[static_cast<size_t>(to)]);
-
-        // Move the row itself rather than rebuilding the lists, which flickers.
-        wxWindow* row  = m_rows.at(key).panel;
-        wxWindow* list = row->GetParent();
-        list->GetSizer()->Detach(row);
-        list->GetSizer()->Insert(static_cast<size_t>(to), row, row_flags());
-        follow_in_tab_order(list, static_cast<size_t>(to));
-        list->Layout();
-        update_arrows();
+        if (move_toolbar_row(m_working, m_rows.at(key).model, step))
+            sync_rows(m_rows.at(key).main);
     }
 
-    // Only a single selected row shows its arrows, so they plainly move that row; each is enabled only when the
-    // row can move that way.
+    // Only a single selected row shows its arrows, so they plainly move that row; each arrow, and each Move
+    // button, is enabled only when the row can move that way.
     void update_arrows()
     {
         const std::string selected = single_selection();
+        m_move_up->Enable(false);
+        m_move_down->Enable(false);
         for (const auto& [key, row] : m_rows) {
             const bool show = key == selected;
             row.up->Show(show);
             row.down->Show(show);
             if (!show)
                 continue;
-            bool up = false, down = false;
-            if (row.gizmo) {
-                ToolbarLayout probe = m_working;
-                up                  = move_gizmo_row(probe, row.model, -1);
-                probe               = m_working;
-                down                = move_gizmo_row(probe, row.model, 1);
-            } else {
-                const std::vector<std::string>& order = m_working.main.order;
-                const auto it = std::find(order.begin(), order.end(), key);
-                up            = it != order.end() && it != order.begin();
-                down          = it != order.end() && std::next(it) != order.end();
-            }
+            ToolbarLayout probe = m_working;
+            const bool    up    = move_toolbar_row(probe, row.model, -1);
+            probe               = m_working;
+            const bool    down  = move_toolbar_row(probe, row.model, 1);
             // Button draws its icon the same when disabled, so the icon shows the state.
             row.up->Enable(up);
             row.up->SetIcon(up ? "toolbar_row_up" : "toolbar_row_up_disabled");
             row.down->Enable(down);
             row.down->SetIcon(down ? "toolbar_row_down" : "toolbar_row_down_disabled");
+            m_move_up->Enable(up);
+            m_move_down->Enable(down);
         }
     }
 
     void update_group_buttons()
     {
-        const GizmoSelection sel = gizmo_selection();
-        m_group_button->Enable((sel.groups.empty() && sel.plain.size() >= 2) || (sel.groups.size() == 1 && !sel.plain.empty()));
+        const ListSelection sel = list_selection();
+        // The separator never joins a group.
+        m_group_button->Enable(!sel.separator && ((sel.groups.empty() && sel.plain.size() >= 2) || (sel.groups.size() == 1 && !sel.plain.empty())));
         m_rename_button->Enable(m_selection.size() == 1 && sel.headers == 1);
         m_ungroup_button->Enable(sel.groups.size() == 1);
     }
@@ -362,10 +359,11 @@ private:
     void update_header_boxes()
     {
         for (const auto& [key, row] : m_rows) {
-            if (!row.gizmo || row.model.kind != ToolbarRowKind::Header)
+            if (row.model.kind != ToolbarRowKind::Header)
                 continue;
             const std::vector<std::string>& members = m_working.groups[static_cast<size_t>(row.model.group)].members;
-            const auto hidden = std::count_if(members.begin(), members.end(), [this](const std::string& id) { return m_working.gizmos.hidden.count(id) != 0; });
+            const std::set<std::string>&    hidden_ids = list(row.main).hidden;
+            const auto hidden = std::count_if(members.begin(), members.end(), [&hidden_ids](const std::string& id) { return hidden_ids.count(id) != 0; });
             row.check->SetValue(hidden == 0);
             row.check->SetHalfChecked(hidden > 0 && hidden < static_cast<std::ptrdiff_t>(members.size()));
         }
@@ -381,7 +379,8 @@ private:
             rows->GetItem(index)->GetWindow()->MoveBeforeInTabOrder(rows->GetItem(1)->GetWindow());
     }
 
-    wxSizerFlags row_flags() const { return wxSizerFlags().Expand().Border(wxBOTTOM, FromDIP(2)); }
+    // No gap between rows: a click there would land on the list, not a row.
+    static wxSizerFlags row_flags() { return wxSizerFlags().Expand(); }
 
     // Restyles only the rows whose selection changed; rebuilding them all on each click flickers.
     void set_selection(std::vector<std::string> keys)
@@ -401,14 +400,14 @@ private:
         set_selection({key});
     }
 
-    // Ctrl+click adds or removes a gizmo row, Shift+click selects the gizmo rows from the last one clicked.
+    // Ctrl+click adds or removes a row, Shift+click selects the rows from the last one clicked; both within one list.
     void click_row(const std::string& key, const wxMouseEvent& e)
     {
-        const bool gizmo = m_rows.at(key).gizmo;
-        if (gizmo && e.CmdDown()) {
+        const bool main = m_rows.at(key).main;
+        if (e.CmdDown()) {
             std::vector<std::string> keys;
             for (const std::string& k : m_selection)
-                if (m_rows.count(k) != 0 && m_rows.at(k).gizmo && k != key)
+                if (m_rows.count(k) != 0 && m_rows.at(k).main == main && k != key)
                     keys.push_back(k);
             if (!is_selected(key))
                 keys.push_back(key);
@@ -416,9 +415,9 @@ private:
             set_selection(std::move(keys));
             return;
         }
-        if (gizmo && e.ShiftDown() && m_rows.count(m_anchor) != 0 && m_rows.at(m_anchor).gizmo) {
+        if (e.ShiftDown() && m_rows.count(m_anchor) != 0 && m_rows.at(m_anchor).main == main) {
             std::vector<std::string> order;
-            for (const ToolbarGizmoRow& row : gizmo_rows(m_working))
+            for (const ToolbarRow& row : toolbar_rows(m_working, list(main)))
                 order.push_back(row_key(row));
             auto a = std::find(order.begin(), order.end(), m_anchor);
             auto b = std::find(order.begin(), order.end(), key);
@@ -432,14 +431,11 @@ private:
 
     void style_row(const Row& row)
     {
-        const bool     selected = is_selected(row.gizmo ? row_key(row.model) : row.model.id);
+        const bool     selected = is_selected(row_key(row.model));
         const wxColour bg       = StateColor::darkModeColorFor(wxColour(selected ? "#BFE1DE" : "#FFFFFF"));
         row.panel->SetBackgroundColour(bg);
         for (wxWindow* child : row.panel->GetChildren())
             child->SetBackgroundColour(bg);
-        // A header's name is always bold.
-        row.name->SetFont(selected || row.model.kind == ToolbarRowKind::Header ? Label::Head_14 : Label::Body_14);
-        row.panel->Layout();
         row.panel->Refresh();
     }
 
@@ -451,17 +447,23 @@ private:
         const std::string name = into_u8(dlg.value());
         if (name.find_first_not_of(" \t\r\n") != std::string::npos)
             return name;
-        // TRN Default name of a new gizmo group in the Customize Toolbar dialog. %1% is a number.
+        // TRN Default name of a new toolbar group in the Customize Toolbar dialog. %1% is a number.
         return default_group_name(m_working, [](int n) { return into_u8(format_wxstr(_L("Group %1%"), n)); });
     }
 
+    // The list the selection is in; the Gizmos list when nothing is selected.
+    bool selection_in_main() const { return !m_selection.empty() && m_rows.count(m_selection.front()) != 0 && m_rows.at(m_selection.front()).main; }
+
     void group_selected()
     {
-        const GizmoSelection sel = gizmo_selection();
+        const ListSelection sel  = list_selection();
+        const bool          main = selection_in_main();
+        if (sel.separator)
+            return;
         if (sel.groups.empty() && sel.plain.size() >= 2) {
             const std::optional<std::string> name = ask_group_name(
                 default_group_name(m_working, [](int n) { return into_u8(format_wxstr(_L("Group %1%"), n)); }));
-            if (!name || !group_gizmos(m_working, sel.plain, *name))
+            if (!name || !group_icons(m_working, sel.plain, *name))
                 return;
             m_selection = {"#group:" + sel.plain.front()};
             m_anchor    = m_selection.front();
@@ -470,7 +472,7 @@ private:
                 return;
         } else
             return;
-        sync_gizmo_rows();
+        sync_rows(main);
     }
 
     void rename_selected()
@@ -481,34 +483,36 @@ private:
         const int                        group = m_rows.at(key).model.group;
         const std::optional<std::string> name  = ask_group_name(m_working.groups[static_cast<size_t>(group)].name);
         if (name && rename_group(m_working, group, *name))
-            sync_gizmo_rows();
+            sync_rows(m_rows.at(key).main);
     }
 
     void ungroup_selected()
     {
-        const GizmoSelection sel = gizmo_selection();
-        if (sel.groups.size() == 1 && ungroup_gizmos(m_working, *sel.groups.begin()))
-            sync_gizmo_rows();
+        const ListSelection sel  = list_selection();
+        const bool          main = selection_in_main();
+        if (sel.groups.size() == 1 && ungroup_icons(m_working, *sel.groups.begin()))
+            sync_rows(main);
     }
 
-    // Brings the Gizmos rows in line with m_working: in place when the same rows remain (a move, a rename,
-    // Reset without groups), rebuilt when rows come or go (a group made, ungrouped or dissolved).
-    void sync_gizmo_rows()
+    // Brings one list's rows in line with m_working: in place when the same rows remain (a move, a rename, Reset
+    // without groups), rebuilt when rows come or go (a group made, ungrouped or dissolved).
+    void sync_rows(bool main)
     {
-        const wxWindowUpdateLocker   no_repaint(this);
-        const std::vector<ToolbarGizmoRow> rows = gizmo_rows(m_working);
+        const wxWindowUpdateLocker    no_repaint(this);
+        wxPanel*                      list_panel = panel(main);
+        const std::vector<ToolbarRow> rows       = toolbar_rows(m_working, list(main));
         std::vector<std::string>     keys;
-        for (const ToolbarGizmoRow& row : rows)
+        for (const ToolbarRow& row : rows)
             keys.push_back(row_key(row));
         std::set<std::string> existing;
         for (const auto& [key, row] : m_rows)
-            if (row.gizmo)
+            if (row.main == main)
                 existing.insert(key);
 
         const bool rebuilt = existing != std::set<std::string>(keys.begin(), keys.end());
         bool grew = false;
         if (!rebuilt) {
-            wxSizer* sizer = m_gizmo_panel->GetSizer();
+            wxSizer* sizer = list_panel->GetSizer();
             for (size_t i = 0; i < keys.size(); ++i) {
                 Row& row = m_rows.at(keys[i]);
                 // A row joining or leaving a group gains or loses its indent, which may need a wider dialog.
@@ -517,7 +521,7 @@ private:
                 row.model = rows[i];
                 sizer->Detach(row.panel);
                 sizer->Insert(i, row.panel, row_flags());
-                follow_in_tab_order(m_gizmo_panel, i);
+                follow_in_tab_order(list_panel, i);
                 if (row.model.kind == ToolbarRowKind::Header) {
                     row.name->SetLabel(group_label(row.model.group));
                     // A longer name after Rename needs a wider row.
@@ -528,18 +532,18 @@ private:
                         grew = true;
                     }
                 } else
-                    row.check->SetValue(m_working.gizmos.hidden.count(row.model.id) == 0);
+                    row.check->SetValue(list(main).hidden.count(row.model.id) == 0);
                 set_indent(row);
                 style_row(row);
             }
-            m_gizmo_panel->Layout();
+            list_panel->Layout();
             if (grew)
                 GetSizer()->SetSizeHints(this);
         } else {
             Freeze();
             for (auto it = m_rows.begin(); it != m_rows.end();)
-                it = it->second.gizmo ? m_rows.erase(it) : std::next(it);
-            fill_gizmo_list();
+                it = it->second.main == main ? m_rows.erase(it) : std::next(it);
+            fill_list(main);
             Layout();
             // Rows came or went: fit the dialog to them.
             GetSizer()->SetSizeHints(this);
@@ -569,31 +573,16 @@ private:
     void show_working_layout()
     {
         const wxWindowUpdateLocker no_repaint(this);
-        wxSizer*                   rows  = m_main_panel->GetSizer();
-        const ToolbarGroupLayout&  group = m_working.main;
-        for (size_t i = 0; i < group.order.size(); ++i) {
-            const auto it = m_rows.find(group.order[i]);
-            if (it == m_rows.end() || it->second.gizmo || rows->GetItemCount() != group.order.size()) {
-                rebuild_rows();
-                return;
-            }
-            wxWindow* row = it->second.panel;
-            rows->Detach(row);
-            rows->Insert(i, row, row_flags());
-            follow_in_tab_order(m_main_panel, i);
-            it->second.check->SetValue(group.hidden.count(group.order[i]) == 0);
-            style_row(it->second);
-        }
-        m_main_panel->Layout();
-        sync_gizmo_rows();
+        sync_rows(true);
+        sync_rows(false);
     }
 
     void rebuild_rows()
     {
         Freeze();
         m_rows.clear();
-        fill_main_list();
-        fill_gizmo_list();
+        fill_list(true);
+        fill_list(false);
         update_header_boxes();
         update_arrows();
         update_group_buttons();
@@ -604,22 +593,15 @@ private:
         Thaw();
     }
 
-    void fill_main_list()
+    void fill_list(bool main)
     {
-        m_main_panel->DestroyChildren();
-        for (const std::string& id : m_working.main.order)
-            add_row(m_main_panel, id, toolbar_item_name(id), false, {ToolbarRowKind::Plain, id, -1}, m_working.main.hidden.count(id) == 0);
-        m_main_panel->Layout();
-    }
-
-    void fill_gizmo_list()
-    {
-        m_gizmo_panel->DestroyChildren();
-        for (const ToolbarGizmoRow& row : gizmo_rows(m_working)) {
+        wxPanel* list_panel = panel(main);
+        list_panel->DestroyChildren();
+        for (const ToolbarRow& row : toolbar_rows(m_working, list(main))) {
             const wxString text = row.kind == ToolbarRowKind::Header ? group_label(row.group) : toolbar_item_name(row.id);
-            add_row(m_gizmo_panel, row_key(row), text, true, row, m_working.gizmos.hidden.count(row.id) == 0);
+            add_row(list_panel, row_key(row), text, main, row, list(main).hidden.count(row.id) == 0);
         }
-        m_gizmo_panel->Layout();
+        list_panel->Layout();
     }
 
     // Members are indented by their name, not their box, so the boxes stay in one column.
@@ -632,34 +614,32 @@ private:
     void toggle_box(const std::string& key)
     {
         Row& row = m_rows.at(key);
-        if (row.gizmo && row.model.kind == ToolbarRowKind::Header) {
+        std::set<std::string>& hidden = list(row.main).hidden;
+        if (row.model.kind == ToolbarRowKind::Header) {
             // Shows every member if any is hidden, else hides them all.
             const std::vector<std::string>& members = m_working.groups[static_cast<size_t>(row.model.group)].members;
-            const bool any_hidden = std::any_of(members.begin(), members.end(), [this](const std::string& id) { return m_working.gizmos.hidden.count(id) != 0; });
+            const bool any_hidden = std::any_of(members.begin(), members.end(), [&hidden](const std::string& id) { return hidden.count(id) != 0; });
             for (const std::string& id : members) {
                 if (any_hidden)
-                    m_working.gizmos.hidden.erase(id);
+                    hidden.erase(id);
                 else
-                    m_working.gizmos.hidden.insert(id);
+                    hidden.insert(id);
                 if (m_rows.count(id) != 0)
                     m_rows.at(id).check->SetValue(any_hidden);
             }
-        } else {
-            ToolbarGroupLayout& g = row.gizmo ? m_working.gizmos : m_working.main;
-            if (row.check->GetValue())
-                g.hidden.erase(row.model.id);
-            else
-                g.hidden.insert(row.model.id);
-        }
+        } else if (row.check->GetValue())
+            hidden.erase(row.model.id);
+        else
+            hidden.insert(row.model.id);
         update_header_boxes();
         select_row(key);
     }
 
-    void add_row(wxPanel* panel, const std::string& key, const wxString& text, bool gizmo, const ToolbarGizmoRow& model, bool shown)
+    void add_row(wxPanel* list_panel, const std::string& key, const wxString& text, bool main, const ToolbarRow& model, bool shown)
     {
         const GLCanvas3D* canvas = wxGetApp().plater() != nullptr ? wxGetApp().plater()->get_view3D_canvas3D() : nullptr;
         // A full-width row, so a click anywhere on it selects it.
-        auto* row       = new wxPanel(panel);
+        auto* row       = new wxPanel(list_panel);
         auto* row_sizer = new wxBoxSizer(wxHORIZONTAL);
 
         auto* check = new ::CheckBox(row);
@@ -676,16 +656,15 @@ private:
             e.Skip();
         });
         row_sizer->Add(check, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(6));
-        if (gizmo)
-            row_sizer->Add(0, 0);
+        row_sizer->Add(0, 0);
 
-        // Sized for the bold font, so selecting the row does not clip its name. GTK measures text differently once
-        // the dialog is shown, so a row rebuilt later keeps the size measured when the dialog was built; a name
-        // first seen later (a new group's) gets a small margin.
-        auto*  name = new Label(row, Label::Head_14, text);
+        // A group's header is bold. GTK measures text differently once the dialog is shown, so a row rebuilt later
+        // keeps the size measured when the dialog was built; a name first seen later (a new group's) gets a small
+        // margin.
+        auto*  name = new Label(row, model.kind == ToolbarRowKind::Header ? Label::Head_14 : Label::Body_14, text);
         wxSize best = name->GetBestSize();
         m_measured_height = std::max(m_measured_height, best.y);
-        const std::string size_key = into_u8(text);
+        const std::string size_key = std::string(model.kind == ToolbarRowKind::Header ? "#bold:" : "") + into_u8(text);
         if (m_name_height == 0)
             m_name_sizes[size_key] = best;
         else if (const auto known = m_name_sizes.find(size_key); known != m_name_sizes.end())
@@ -693,13 +672,13 @@ private:
         else
             best = wxSize(best.x + FromDIP(6), m_name_height);
         name->SetMinSize(best);
-        row_sizer->Add(name, 1, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(3));
+        row_sizer->Add(name, 1, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(4));
 
         if (model.kind != ToolbarRowKind::Header && model.id != TOOLBAR_SEPARATOR_ID && canvas != nullptr && !canvas->is_toolbar_item_available(model.id)) {
             // TRN Shown next to a toolbar icon the current printer or selection leaves off the toolbar.
             auto* note = new Label(row, Label::Body_12, _L("(not on the toolbar right now)"));
             note->SetForegroundColour(wxColour(144, 144, 144));
-            row_sizer->Add(note, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
+            row_sizer->Add(note, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(6));
         }
 
         // Hidden until the row is selected; their space is kept so the row does not shift when they show.
@@ -751,11 +730,47 @@ private:
             if (child != check && child != up && child != down && child != name)
                 child->Bind(wxEVT_LEFT_DOWN, on_click);
 
-        panel->GetSizer()->Add(row, row_flags());
+        // The hovered row shows a border. Moving onto a child leaves the row, so only a leave outside the row
+        // clears it.
+        const auto on_enter = [this, key](wxMouseEvent& e) {
+            set_hovered(key);
+            e.Skip();
+        };
+        const auto on_leave = [this, key, row](wxMouseEvent& e) {
+            const auto*   from = static_cast<wxWindow*>(e.GetEventObject());
+            const wxPoint at   = from == row ? e.GetPosition() : from->GetPosition() + e.GetPosition();
+            if (m_hovered == key && !row->GetClientRect().Contains(at))
+                set_hovered({});
+            e.Skip();
+        };
+        row->Bind(wxEVT_ENTER_WINDOW, on_enter);
+        row->Bind(wxEVT_LEAVE_WINDOW, on_leave);
+        for (wxWindow* child : row->GetChildren()) {
+            child->Bind(wxEVT_ENTER_WINDOW, on_enter);
+            child->Bind(wxEVT_LEAVE_WINDOW, on_leave);
+        }
+        row->Bind(wxEVT_PAINT, [this, key, row](wxPaintEvent&) {
+            wxPaintDC dc(row);
+            if (key != m_hovered)
+                return;
+            dc.SetPen(wxPen(StateColor::darkModeColorFor(wxColour("#009688")), FromDIP(1)));
+            dc.SetBrush(*wxTRANSPARENT_BRUSH);
+            dc.DrawRectangle(row->GetClientRect());
+        });
+
+        list_panel->GetSizer()->Add(row, row_flags());
         Row& added = m_rows[key];
-        added      = {row, check, up, down, name, gizmo, model};
+        added      = {row, check, up, down, name, main, model};
         set_indent(added);
         style_row(added);
+    }
+
+    void set_hovered(const std::string& key)
+    {
+        const std::string old = std::exchange(m_hovered, key);
+        for (const std::string* changed : {&old, &key})
+            if (const auto it = m_rows.find(*changed); it != m_rows.end())
+                it->second.panel->Refresh();
     }
 
     ToolbarLayout            m_loaded;
@@ -763,11 +778,14 @@ private:
     std::vector<std::string> m_selection;           // row keys: gizmo or item ids, "#group:<first member>" for a header
     std::string              m_anchor;              // the row Shift+click selects from
     std::string              m_focused_row;         // the row whose box last took the focus
+    std::string              m_hovered;             // the row under the pointer, drawn with a border
     bool                     m_tabbing{false};      // Tab has been pressed, so focusing a box selects its row
     int                      m_name_height{0};      // row name height measured when the dialog was built
     int                      m_measured_height{0};  // tallest row name built so far
     wxPanel*                 m_main_panel{nullptr};
     wxPanel*                 m_gizmo_panel{nullptr};
+    Button*                  m_move_up{nullptr};
+    Button*                  m_move_down{nullptr};
     Button*                  m_group_button{nullptr};
     Button*                  m_rename_button{nullptr};
     Button*                  m_ungroup_button{nullptr};
