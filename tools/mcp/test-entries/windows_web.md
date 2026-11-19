@@ -334,22 +334,41 @@ test runs exclusive in the sweep.
 pointer off the view, but the KWin check almost never runs and native Wayland skips the focus checks.
 
 ## `test_send_gcode`
-`test_send_gcode.py` · Python, 16 checks (1 conditional)
+`test_send_gcode.py` · Python
 
-**Tests:** The `send_gcode` Speed Dial action (`orca_command:send_gcode:orca`), run against an OctoPrint stub host
-inside the test process. It covers:
-- Refusals for a printer on the Bambu network and for a printer with no print host.
+**Tests:** Printing and sending through a print host, run against an OctoPrint stub host inside the test process:
+the `send_gcode` Speed Dial action (`orca_command:send_gcode:orca`), `printer_send` with `plates`, `print_start`,
+and `printer_test_host`. The test makes the seeded X1 Carbon a print-host printer (`bbl_use_printhost` true) before
+any of these calls, since on the Bambu network they would open dialogs that message a printer. It covers:
+- Refusals for a printer with no print host, a plate not sliced, and all plates where the Print button offers no
+  such action.
+- `print_start` and `printer_send` opening the host's upload dialog, which the test cancels: nothing is uploaded.
+- The host test, answered by the stub, refused with no address, and failing on a port nothing listens on.
 - An upload through the action's dialog, with the file name set by `widget_set_value` and Upload pressed by
   `dialog_answer`, tracked in `app_state.uploads`.
 - The exported replay of that send, which uploads again.
 - HTTP 500 replies, delayed and immediate, which must end as errors, with the queue's error dialog.
 
-**Decides by:** Exits 1 when a check prints FAIL or on an uncaught exception.
-- Discovery and refusals:
-  - `action_search "Send G-code"` lists the action's id.
-  - With `bbl_use_printhost` false, the action raises with "Print plate". This runs only when the printer is a
-    Bambu Lab one, as the sweep's seeded X1 Carbon is.
-  - With `print_host` "", the action raises with "no print host". If a dialog opens instead, the check fails.
+**Decides by:** Exits 1 when a check prints FAIL or on an uncaught exception. Every refusal is asserted by its code
+with `checks.py`'s `refused`, then `app_state.uploads` and `dialogs()` are read back. "Nothing sent" below means:
+`app_state.uploads` is as before the call, the stub got no file, and `dialogs()` is empty. "Cancelled" means: the
+call replies `blocked_by_dialog`, `dialogs()` lists one dialog titled "Send G-code to printer host",
+`dialog_answer {button: "Cancel"}` closes it, and then nothing was sent.
+- Discovery: `action_search "Send G-code"` lists the action's id.
+- No address. `settings_set {type: "printer", values: {bbl_use_printhost: true, host_type: "octoprint", print_host:
+  "", use_3mf: false}}`, with the imported cube not sliced (plain G-code, so the dialog proposes a `.gcode` name):
+  - The action is refused `no_print_host`; nothing sent.
+  - `printer_send {plates: 0}` is refused `no_print_host`; nothing sent.
+  - `printer_test_host` is refused `no_print_host`; `dialogs()` is empty.
+- The stub's address set (`print_host` `127.0.0.1:<port>`), the cube still not sliced:
+  - `printer_test_host` replies `ok` true and `message` "Connection to OctoPrint is working correctly."; the stub
+    answered one more version check (`GET /api/version`); `dialogs()` is empty.
+  - `print_start` is refused `not_sliced`; nothing sent.
+  - `print_start {plates: "all"}` and `printer_send {plates: "all"}` are each refused `all_plates_not_offered`: the
+    Print button offers neither for a printer through a host other than SimplyPrint; nothing sent.
+- Sliced (`plate_slice`, the plate's `outcome` `ok`):
+  - `print_start` is cancelled.
+  - `printer_send {plates: 0}` is cancelled.
 - Upload answered 200:
   - The row ends `completed` at progress 100 and was seen at (`uploading`, 99) during the stub's 3 s pause.
   - The row has `filename` `mcp_send_ok.gcode` and the stub's port in `host`.
@@ -362,21 +381,51 @@ inside the test process. It covers:
   - The row ends `error` with "HTTP 500" in `error`, never read `completed`, and was seen at (`uploading`, 99).
   - An error dialog appears, and after `dialog_answer ok`, `app_state.dialogs` is empty.
 - 500 at once: the row ends `error`.
+- A port nothing listens on (`print_host` set to it): `printer_test_host` replies `ok` false and a `message` starting
+  "Could not connect to OctoPrint"; `dialogs()` is empty.
 
 **Not checked:**
 - The uploaded file's content. The stub parses only the multipart `filename` and `print` fields, so an empty or
   wrong body would pass.
-- The replayed upload's file name. The stub answers the version check (`GET /api/version`), but nothing checks it
-  was made.
+- The replayed upload's file name.
 - The error dialog's text: only that some dialog opened and closed. For the immediate 500, neither the
   "HTTP 500" text nor the dialog is checked; `close_error_dialog`'s result is ignored.
-- The Bambu-network refusal runs only when the selected printer's name starts with "Bambu Lab".
+- The Print and storage dialogs of a printer on the Bambu network, and `printer_send`'s `not_sliced` there: no
+  sweep test opens them, since they message a printer. The A2L check (`tools/mcp/a2l_printer_check.py`), run by
+  hand, covers them.
+- A SimplyPrint host's Print all, and a cloud host's login: the stub is an OctoPrint host.
+- The host test's message in another language: the sweep runs the app in English.
 - Row ids are assumed to be `count + 1`. Different numbering makes `follow` time out, which fails rather than
   passes falsely.
 - The (`uploading`, 99) checks rely on polling every 0.2 s during a 3 s pause.
 
 **Strength:** Strong — row states, progress, the file name, the print flag and the exported steps are checked
-exactly against an independent stub.
+exactly against an independent stub, and each refusal by its code with the uploads and dialogs read back.
+
+## `test_printer_commands`
+`test_printer_commands.py` · Python · in `sweep.json` as `{"path": "test_printer_commands.py"}`
+
+**Tests:** `printer_status`, `print_pause`, `print_resume` and `print_stop` with no printer connected, on a scratch
+datadir. A scratch datadir is not cut off from the account it may be signed in to, so the test reads
+`printer_status` first and goes on only when it says no printer is connected; it never calls a job command while
+one is.
+
+**Decides by:** Exits 1 when a check prints FAIL or on an uncaught exception.
+- The guard: `printer_status` replies exactly `{"connected": false}`. Otherwise the check "no printer is
+  connected" fails with the printer's `name` and `model` from the reply, and the test ends there, having called
+  nothing else.
+- `print_pause`, `print_resume` and `print_stop` are each refused `no_printer_connected`, asserted with
+  `checks.py`'s `refused`; after each, `printer_status` replies exactly `{"connected": false}` again and `dialogs()`
+  is empty.
+
+**Not checked:**
+- A connected printer: what each job command publishes, refusals by the printer's state, resume where the printer
+  allows it only at the printer, and the status fields are unit cases against the printer agent double
+  (`tests/slic3rutils/test_device_manager_integration.cpp`). The A2L check, run by hand, reads the A2L's status and
+  checks the refusals while it is idle. A print paused, resumed and stopped is the maintainer's to check.
+
+**Strength:** Partial — the refusals and the status with no printer are checked exactly, but nothing reaches a
+printer.
 
 ## `test_web_ui`
 `test_web_ui.py` · Python, 230 checks (1 conditional)

@@ -296,15 +296,16 @@ fails when three attempts in a row do not overlap. A refusal with other words fa
 
 **Scenario: sending G-code without a print host**
 
-Send is `action_run {id: "send_gcode"}`. After each send, `app_state.uploads` is `[]` and `dialogs()` is empty.
+Send is `action_run {id: "send_gcode"}`. After each send, `app_state.uploads` is `[]` and `dialogs()` is empty. The
+X1 Carbon prints through the Bambu network, where Send opens the storage dialog, which messages a printer; so the
+scenario makes it a print host before its first send.
 
 | # | Step | Printer after (`bbl_use_printhost`, `print_host`) | Also checked |
 |---|---|---|---|
 | 1 | (the start) `values([bbl_use_printhost, print_host], "printer")` | `0`, `""` | `app_state.uploads` `[]` |
-| 2 | Send, with no objects | as after 1 | refused, `not_a_print_host_printer`: the X1 Carbon prints through the Bambu network |
-| 3 | `settings_set {type: "printer", values: {bbl_use_printhost: true, host_type: "octoprint", print_host: "", use_3mf: false}}`; Send, with no objects | `1`, `""` | refused, `no_print_host` |
-| 4 | cube `box` 20 at (128, 128), `plate_slice`; Send | `1`, `""` | outcome `ok`, `layers` 100, `sliced_flags()` `[true]`; refused, `no_print_host` |
-| 5 | `project_new {discard_changes: true, preset_changes: "discard"}` | `0`, `""` | `unsaved("printer")` `[]` |
+| 2 | `settings_set {type: "printer", values: {bbl_use_printhost: true, host_type: "octoprint", print_host: "", use_3mf: false}}`; Send, with no objects | `1`, `""` | refused, `no_print_host`: an empty address is no print host, whether or not the project has objects |
+| 3 | cube `box` 20 at (128, 128), `plate_slice`; Send | `1`, `""` | outcome `ok`, `layers` 100, `sliced_flags()` `[true]`; refused, `no_print_host` |
+| 4 | `project_new {discard_changes: true, preset_changes: "discard"}` | `0`, `""` | `unsaved("printer")` `[]` |
 
 **Scenario: filament slots merged and mixed**
 
