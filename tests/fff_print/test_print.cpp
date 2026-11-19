@@ -1001,6 +1001,24 @@ TEST_CASE("The estimated printing time comment stays near the end of the file", 
     CHECK(trailing_lines <= 5);
 }
 
+// The comment carries the first layer's time, not the start G-code's time. A 50 mm move at
+// F60 (1 mm/s) makes the start block about 50 s, so the two times format to different
+// strings and the check below tells them apart.
+TEST_CASE("The estimated first layer time comment reports the first layer", "[Print][Regression]")
+{
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, { { "machine_start_gcode", "G1 X50 Y50 Z0.2 F60" } });
+
+    GCodeProcessorResult result;
+    const std::string gcode = Test::gcode(print, &result);
+
+    const float first_layer_time = result.initial_layer_time;
+    const float start_gcode_time = result.print_statistics.modes[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)].prepare_time;
+    REQUIRE(get_time_dhms(first_layer_time) != get_time_dhms(start_gcode_time));
+    CHECK(gcode.find(std::string("; estimated first layer printing time (normal mode) = ") + get_time_dhms(first_layer_time)) != std::string::npos);
+}
+
 // Custom G-code templates substitute placeholders during export.
 TEST_CASE("Custom G-code placeholders are substituted", "[Print]")
 {
@@ -1241,8 +1259,9 @@ TEST_CASE("export_gcode writes G-code without a result pointer", "[Print][export
     Slic3r::Test::init_print({cube(20)}, print, model);
     print.process();
 
-    SECTION("non-BBL printer") {}
-    SECTION("BBL printer") { print.is_BBL_printer() = true; }
+    const bool bbl_printer = GENERATE(false, true);
+    CAPTURE(bbl_printer);
+    print.is_BBL_printer() = bbl_printer;
 
     ScopedTemporaryFile temp(".gcode");
     REQUIRE_NOTHROW(print.export_gcode(temp.string(), nullptr, nullptr));
@@ -1256,13 +1275,16 @@ TEST_CASE("export_gcode writes G-code without a result pointer", "[Print][export
 TEST_CASE("Exporting a sliced print again gives the same G-code", "[Print][export_gcode][Regression]")
 {
     const int instances = GENERATE(1, 3);
-    CAPTURE(instances);
+    // Whether chaining reverses support or infill.
+    const bool support = GENERATE(false, true);
+    CAPTURE(instances, support);
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     TestMesh           mesh   = TestMesh::ipadstand;
-    SECTION("infill reversed by chaining") { config.set_deserialize_strict({{"sparse_infill_pattern", "gyroid"}}); }
-    SECTION("support reversed by chaining") {
+    if (support) {
         mesh = TestMesh::overhang;
         config.set_deserialize_strict({{"enable_support", true}, {"support_interface_pattern", "concentric"}});
+    } else {
+        config.set_deserialize_strict({{"sparse_infill_pattern", "gyroid"}});
     }
     Print print;
     Model model;
@@ -1868,6 +1890,43 @@ TEST_CASE("Sequential printing counts a raft toward the height checked against t
     const std::string error = print.validate().string;
     INFO(error);
     CHECK(error.find("too tall") != std::string::npos);
+}
+
+TEST_CASE("Sequential printing counts a raft toward whether an object is short", "[Print]")
+{
+    // Objects below nozzle_height only need to clear the nozzle cone, so they may stand close together,
+    // and their skirt is kept at its full distance. A raft lifts a 2 mm slab past the 2.5 mm nozzle_height,
+    // so the slabs need the toolhead radius between them and the skirt offset of a tall object.
+    const bool raft = GENERATE(false, true);
+    std::vector<TriangleMesh> meshes;
+    for (size_t i = 0; i < 2; ++i) {
+        TriangleMesh slab = make_cube(20, 20, 2);
+        slab.translate(float(80 + 30 * i), 80.f, 0.f); // 10 mm apart, within the 40 mm toolhead radius
+        meshes.push_back(std::move(slab));
+    }
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",            "by object" },
+        { "nozzle_height",             2.5 },
+        { "extruder_clearance_radius", 40 },
+        { "skirt_loops",               1 },
+        { "skirt_type",                "perobject" },
+        { "raft_layers",               raft ? 3 : 0 },
+        { "layer_change_gcode",        "G92 E0\n" } // validate() relative-E reset
+    });
+    Print print;
+    Model model;
+    Test::init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false);
+    REQUIRE((2. + print.objects().front()->slicing_parameters().object_print_z_min > 2.5) == raft);
+
+    CHECK(print.is_all_objects_are_short() == ! raft);
+    CHECK((std::get<0>(print.object_skirt_offset()) > 0.f) == ! raft);
+    const std::string error = print.validate().string;
+    INFO(error);
+    if (raft)
+        CHECK(error.find("too close to others") != std::string::npos);
+    else
+        CHECK(error.empty());
 }
 
 TEST_CASE("Sequential printing measures objects on a belt printer by the model's top", "[Print][belt]")
@@ -2671,8 +2730,9 @@ TEST_CASE("Belt G-code has no layer that prints nothing", "[Print][belt][GCode][
         { "layer_change_gcode",         "G92 E0\n" },
     });
     // Both export paths drop the empty layers and count the layers the same way.
-    SECTION("by layer")  { config.set_deserialize_strict({{ "print_sequence", "by layer" }}); }
-    SECTION("by object") { config.set_deserialize_strict({{ "print_sequence", "by object" }}); }
+    const std::string sequence = GENERATE(as<std::string>{}, "by layer", "by object");
+    CAPTURE(sequence);
+    config.set_deserialize_strict({{ "print_sequence", sequence }});
     Print print;
     Model model;
     TriangleMesh cube_a(its_make_cube(20., 20., 20.));
@@ -2727,10 +2787,11 @@ TEST_CASE("Belt G-code has no layer that prints nothing", "[Print][belt][GCode][
 TEST_CASE("Belt supports reach the belt under a leading overhang", "[Print][belt][Support][Regression]")
 {
     // default resolves to organic for tree support; tree_hybrid is the classic tree.
-    const char *support_type  = GENERATE("normal(auto)", "tree(auto)");
-    const char *support_style = GENERATE("default", "organic", "tree_hybrid");
-    if (std::string(support_type) == "normal(auto)" && std::string(support_style) != "default")
-        return;   // organic and tree_hybrid are tree styles
+    const auto [support_type, support_style] = GENERATE(table<const char *, const char *>({
+        { "normal(auto)", "default" },
+        { "tree(auto)",   "default" },
+        { "tree(auto)",   "organic" },
+        { "tree(auto)",   "tree_hybrid" } }));
     DYNAMIC_SECTION(support_type << " / " << support_style) {
         // A 20 mm cube with a 2 mm thick fin that leaves its top edge and reaches
         // 20 mm toward -Y, the end of the part that prints first, climbing at 45 deg
@@ -3199,6 +3260,39 @@ TEST_CASE("No sparse layers still refuses an object that rises past the lid clea
     REQUIRE_THROWS_WITH(print.process(), Catch::Matchers::ContainsSubstring("No sparse layers"));
 }
 
+// Only the layers below an object's top count toward its rise above the compacted tower, and a raft lifts that
+// top. The 20 mm cube shares the tower's Y band and may rise 20 mm above it. The tower starts on the first layer
+// above 19.6 mm, where the taller object's second part changes filament, and keeps pace from there, so without a
+// raft the cube rises 19.6 mm at most. The raft lifts the cube's top with every layer, and it is refused.
+TEST_CASE("No sparse layers counts a raft toward an object's rise above the compacted tower", "[Print][PrimeTower]")
+{
+    const bool raft = GENERATE(false, true);
+    Model model;
+    add_object(model, make_cube(20., 20., 20.), 20., 140.);
+    ModelObject *tall = add_object(model, make_cube(20., 20., 19.6), 60., 20.);
+    TriangleMesh upper = make_cube(20., 20., 20.4);
+    upper.translate(0.f, 0.f, 19.6f);
+    tall->add_volume(std::move(upper))->config.set_key_value("extruder", new ConfigOptionInt(2));
+    Print print;
+    print.apply(model, prime_tower_config({
+        { "wipe_tower_no_sparse_layers",      1 },
+        { "wipe_tower_x",                     120 }, // with its rib wall the tower is over 40 mm across
+        { "wipe_tower_y",                     140 },
+        { "extruder_clearance_height_to_lid", 30 }, // the taller cube, away from the rod's band, rises as much
+        { "extruder_clearance_height_to_rod", 20 },
+        { "raft_layers",                      raft ? 3 : 0 },
+    }));
+    REQUIRE((print.objects().front()->slicing_parameters().object_print_z_min > 0.4) == raft);
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    CHECK(error.empty());
+    if (raft)
+        REQUIRE_THROWS_WITH(print.process(), Catch::Matchers::ContainsSubstring("No sparse layers"));
+    else
+        REQUIRE_NOTHROW(print.process());
+}
+
 // Within the toolhead radius of the tower the head body limits an object to nozzle_height, however tall the tower
 // grows, so validate() refuses it before slicing.
 TEST_CASE("No sparse layers refuses before slicing an object that rises within the toolhead radius of the tower", "[Print][PrimeTower]")
@@ -3211,6 +3305,31 @@ TEST_CASE("No sparse layers refuses before slicing an object that rises within t
     print.apply(model, prime_tower_config({ { "wipe_tower_no_sparse_layers", 1 } }));
 
     CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("No sparse layers"));
+}
+
+// The head body passes over an object that stays below nozzle_height however close to the tower it stands. A
+// raft lifts a 2 mm slab past the 2.5 mm nozzle_height, so the same slab within the toolhead radius is refused
+// before slicing once it stands on one.
+TEST_CASE("No sparse layers counts a raft toward whether an object near the tower is short", "[Print][PrimeTower]")
+{
+    const bool raft = GENERATE(false, true);
+    Model model;
+    add_object(model, make_cube(10., 10., 2.), 140., 140.); // 10 mm from the tower in X and in Y
+    add_object(model, make_cube(20., 20., 10.), 20., 20.)->config.set_key_value("extruder", new ConfigOptionInt(2));
+    Print print;
+    print.apply(model, prime_tower_config({
+        { "wipe_tower_no_sparse_layers", 1 },
+        { "nozzle_height",               2.5 },
+        { "raft_layers",                 raft ? 3 : 0 },
+    }));
+    REQUIRE((2. + print.objects().front()->slicing_parameters().object_print_z_min > 2.5) == raft);
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    if (raft)
+        CHECK(error.find("No sparse layers") != std::string::npos);
+    else
+        CHECK(error.empty());
 }
 
 TEST_CASE("An object takes the layer height limits of the extruder of its own filament", "[Print]")
@@ -3503,4 +3622,25 @@ TEST_CASE("A changed AMS filament inventory invalidates the grouping steps", "[P
     print.set_extruder_filament_info({});
     CHECK(print.apply(model, config) != PrintBase::APPLY_STATUS_INVALIDATED);
     CHECK(print.get_extruder_filament_info().empty());
+}
+
+TEST_CASE("Print validation warns about crossing sparse infill walls of more than 3 lines", "[Print]")
+{
+    const auto [pattern, strategy, lines, warned] = GENERATE(table<std::string, std::string, int, bool>({
+        { "grid", "crossing", 4, true },
+        { "adaptivecubic", "crossing", 4, true },
+        { "grid", "crossing", 3, false },
+        { "grid", "non_crossing", 4, false },
+        { "grid", "default", 4, false },
+        { "gyroid", "crossing", 4, false } }));
+    CAPTURE(pattern, strategy, lines);
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({ { "sparse_infill_pattern", pattern },
+                                    { "sparse_infill_strategy", strategy },
+                                    { "fill_multiline", lines },
+                                    { "sparse_infill_density", "20%" } });
+    std::vector<StringObjectException> warnings;
+    REQUIRE(validate_cubes(config, warnings).string.empty());
+    CHECK(count_opt_key(warnings, "sparse_infill_strategy") == (warned ? 1u : 0u));
 }
