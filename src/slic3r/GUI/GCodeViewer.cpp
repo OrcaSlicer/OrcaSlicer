@@ -3,6 +3,7 @@
 
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/calib.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Model.hpp"
@@ -204,6 +205,22 @@ static const std::vector<std::pair<std::string, libvgcode::EViewType>>& view_typ
         { "pressure_advance",             libvgcode::EViewType::PressureAdvance },
     };
     return map;
+}
+
+// ORCA: the view type showing the value a calibration varies, when the preview has one.
+static std::optional<libvgcode::EViewType> calibration_view_type(CalibMode mode)
+{
+    switch (mode) {
+    case CalibMode::Calib_PA_Line:
+    case CalibMode::Calib_PA_Pattern:
+    case CalibMode::Calib_PA_Tower:        return libvgcode::EViewType::PressureAdvance;
+    case CalibMode::Calib_Temp_Tower:      return libvgcode::EViewType::Temperature;
+    case CalibMode::Calib_Flow_Rate:
+    case CalibMode::Calib_Vol_speed_Tower: return libvgcode::EViewType::VolumetricFlowRate;
+    case CalibMode::Calib_VFA_Tower:       return libvgcode::EViewType::Speed;
+    case CalibMode::Calib_Cornering:       return libvgcode::EViewType::Jerk;
+    default:                               return std::nullopt;
+    }
 }
 
 // Find an index of a value in a sorted vector, which is in <z-eps, z+eps>.
@@ -1286,14 +1303,19 @@ void GCodeViewer::select_view_type(libvgcode::EViewType type)
 // ORCA: Pick the view type the preview opens with, following the "preview_default_view_type" preference:
 // a fixed view type, the one the user picked last ("last"), or the automatic choice ("auto", the default)
 // which shows Filament for multi material prints and Line Type for single material ones.
+// A calibration's view, when given, takes precedence over the preference.
 // The default is only (re)applied when it actually changes, so a view type picked by hand survives a reslice.
-void GCodeViewer::apply_default_view_type()
+void GCodeViewer::apply_default_view_type(std::optional<libvgcode::EViewType> calibration_view)
 {
     const std::string preference = wxGetApp().app_config->get("preview_default_view_type");
 
     std::string key = preference;
     libvgcode::EViewType type = libvgcode::EViewType::FeatureType;
-    if (preference == "last") {
+    if (calibration_view) {
+        type = *calibration_view;
+        key  = "calibration_" + view_type_to_config_name(type);
+    }
+    else if (preference == "last") {
         if (!view_type_from_config_name(wxGetApp().app_config->get("preview_last_view_type"), type))
             type = libvgcode::EViewType::FeatureType;
     }
@@ -1765,7 +1787,8 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     // load_toolpaths(gcode_result, build_volume, exclude_bounding_box);
     
     // ORCA: Apply the default view type now that we know how many tools the G-code actually uses.
-    apply_default_view_type();
+    const bool flowrate_calib = print.calib_mode() == CalibMode::Calib_None && wxGetApp().plater()->is_flowrate_calib();
+    apply_default_view_type(calibration_view_type(flowrate_calib ? CalibMode::Calib_Flow_Rate : print.calib_mode()));
 
     // BBS: data for rendering color arrangement recommendation
     m_nozzle_nums = print.config().option<ConfigOptionFloats>("nozzle_diameter")->values.size();

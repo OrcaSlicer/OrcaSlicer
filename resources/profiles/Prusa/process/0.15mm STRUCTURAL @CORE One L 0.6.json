@@ -7,7 +7,7 @@
 	"instantiation": "true",
 	"inner_wall_speed": "80",
 	"overhang_2_4_speed": "30",
-	"overhang_3_4_speed": "70%",
+	"overhang_1_4_speed": "70%",
 	"travel_speed": "500",
 	"travel_acceleration": "6000",
 	"default_acceleration": "3000",
