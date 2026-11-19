@@ -253,16 +253,18 @@ bool delete_plugin_root(const boost::filesystem::path& resolved_root, const std:
         return false;
     }
 
+    if (removed_count == 0) {
+        BOOST_LOG_TRIVIAL(warning) << "Plugin deletion removed 0 files from " << resolved_root.string()
+                                   << "; the folder may already be absent or may not have been accessible.";
+        return true;
+    }
+
     if (attempts > 1) {
         // Recovered after one or more transient failures: keep the last failure for diagnosis.
         BOOST_LOG_TRIVIAL(info) << "Deleted plugin: " << plugin_id << " from " << resolved_root.string()
                                 << " after attempts=" << attempts << " last_error_value=" << last_retry_error.value()
                                 << " last_error_category=" << last_retry_error.category().name()
                                 << " last_error_message=" << last_retry_error.message();
-        return true;
-    }
-
-    if (removed_count == 0) {
         return true;
     }
 
@@ -279,6 +281,8 @@ bool delete_plugin_root(const boost::filesystem::path& resolved_root, const std:
     }
 
     if (removed_count == 0) {
+        BOOST_LOG_TRIVIAL(warning) << "Plugin deletion removed 0 files from " << resolved_root.string()
+                                   << "; the folder may already be absent or may not have been accessible.";
         return true;
     }
 
