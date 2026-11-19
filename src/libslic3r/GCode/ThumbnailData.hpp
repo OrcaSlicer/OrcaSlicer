@@ -60,6 +60,8 @@ struct BBoxData
 struct PlateBBoxData
 {
     std::vector<coordf_t> bbox_all;  // total bounding box of all objects including brim
+    std::vector<coordf_t> first_layer_print_min;
+    std::vector<coordf_t> first_layer_print_max;
     std::vector<BBoxData> bbox_objs; // BBoxData of seperate object
     std::vector<int>      filament_ids; // filament id used in curr plate
     std::vector<std::string> filament_colors;
