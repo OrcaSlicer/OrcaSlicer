@@ -13596,7 +13596,7 @@ void GLCanvas3D::_update_selection_from_hover()
     bool ctrl_pressed = wxGetKeyState(WXK_CONTROL);
 
     if (m_hover_volume_idxs.empty()) {
-        // Also closes the gizmos, which cannot render an empty selection.
+        // As below for a rectangle that leaves nothing selected: close the gizmos and update the object list.
         if (!ctrl_pressed && (m_rectangle_selection.get_state() == GLSelectionRectangle::Select))
             deselect_all();
 

@@ -316,6 +316,8 @@ void GLGizmoScale3D::change_cs_by_selection() {
 
 void GLGizmoScale3D::on_render()
 {
+    if (m_parent.get_selection().is_empty())
+        return;
     glsafe(::glClear(GL_DEPTH_BUFFER_BIT));
     glsafe(::glEnable(GL_DEPTH_TEST));
 

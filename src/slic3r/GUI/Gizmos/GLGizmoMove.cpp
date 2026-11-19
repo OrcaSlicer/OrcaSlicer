@@ -160,6 +160,8 @@ void GLGizmoMove3D::on_dragging(const UpdateData& data)
 void GLGizmoMove3D::on_render()
 {
     const Selection& selection = m_parent.get_selection();
+    if (selection.is_empty())
+        return;
 
     glsafe(::glClear(GL_DEPTH_BUFFER_BIT));
     glsafe(::glEnable(GL_DEPTH_TEST));
