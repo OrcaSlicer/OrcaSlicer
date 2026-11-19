@@ -110,9 +110,9 @@ public:
         m_actions = new wxBoxSizer(wxVERTICAL);
         lists->Add(m_actions, 0, wxRIGHT, FromDIP(16));
         // TRN Tooltip of the Move up button in the Customize Toolbar dialog. %1% is a key chord such as "Alt+Arrow Up".
-        m_move_up = add_action(_L("Move up"), format_wxstr(_L("Move up (%1%)"), from_u8(move_up_key().display())), [this] { move_selected(-1); });
+        m_move_up = add_action(_L_CONTEXT("Up", "Move a row"), format_wxstr(_L("Move up (%1%)"), from_u8(move_up_key().display())), [this] { move_selected(-1); });
         // TRN Tooltip of the Move down button in the Customize Toolbar dialog. %1% is a key chord such as "Alt+Arrow Down".
-        m_move_down = add_action(_L("Move down"), format_wxstr(_L("Move down (%1%)"), from_u8(move_down_key().display())), [this] { move_selected(1); });
+        m_move_down = add_action(_L_CONTEXT("Down", "Move a row"), format_wxstr(_L("Move down (%1%)"), from_u8(move_down_key().display())), [this] { move_selected(1); });
         m_main_panel  = add_list(lists, _L("Object tools"));
         m_gizmo_panel = add_list(lists, _L("Gizmos"));
         sizer->Add(lists, 1, wxEXPAND | wxALL, FromDIP(12));
@@ -171,14 +171,14 @@ private:
         panel->SetBackgroundColour(*wxWHITE);
         panel->SetSizer(new wxBoxSizer(wxVERTICAL));
         column->Add(panel, 1, wxEXPAND);
-        lists->Add(column, 1, wxEXPAND | wxRIGHT, FromDIP(16));
+        lists->Add(column, 0, wxEXPAND | wxRIGHT, FromDIP(16));
         return panel;
     }
 
     Button* add_action(const wxString& text, const wxString& tip, std::function<void()> action)
     {
         auto* btn = new Button(this, text);
-        btn->SetStyle(ButtonStyle::Regular, ButtonType::Window);
+        btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
         btn->SetToolTip(tip);
         // Mouse only, like the row arrows: a focused button that gets disabled would hand the focus on.
         btn->SetCanFocus(false);
