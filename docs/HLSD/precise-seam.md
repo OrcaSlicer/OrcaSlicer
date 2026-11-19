@@ -637,7 +637,10 @@ A loop on which a candidate is left Enforced by a zone has exact ends (see
 so alignment and the Random position keep the seam between them. The mark is one
 per loop and is set after painting has typed the candidates. A run enforced on
 the same loop only by paint near the layer keeps its candidates, but the seam no
-longer passes its ends either.
+longer passes its ends either. A zone reduced to a single candidate holds the
+aligned seam on that candidate: alignment cannot smooth its shift between
+layers, which may show where the loop differs from layer to layer, as with
+fuzzy skin.
 
 ## Numeric tolerances
 
