@@ -126,6 +126,14 @@ wxString double_to_string(double const value, const int max_precision /*= 4*/)
     return s;
 }
 
+bool string_to_double_any_separator(wxString str, double* value)
+{
+    // The text may carry the UI locale's separator or the C locale's, and the two can differ.
+    const char dec_sep = is_decimal_separator_point() ? '.' : ',';
+    str.Replace(dec_sep == '.' ? ',' : '.', dec_sep, false);
+    return str.ToDouble(value);
+}
+
 wxString get_thumbnail_string(const Vec2d& value)
 {
     wxString ret_str = wxString::Format("%.2fx%.2f", value[0], value[1]);
@@ -2899,8 +2907,8 @@ void PointCtrl::set_value(const boost::any& value, bool change_event)
 boost::any& PointCtrl::get_value()
 {
 	double x, y;
-	if (!x_textctrl->GetValue().ToDouble(&x) ||
-		!y_textctrl->GetValue().ToDouble(&y))
+	if (!string_to_double_any_separator(x_textctrl->GetValue(), &x) ||
+		!string_to_double_any_separator(y_textctrl->GetValue(), &y))
 	{
 		set_value(m_value.empty() ? Vec2d(0.0, 0.0) : m_value, true);
         show_error(m_parent, _L("Invalid numeric."));
