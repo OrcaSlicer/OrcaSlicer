@@ -503,8 +503,10 @@ private:
     void sync_rows()
     {
         const wxWindowUpdateLocker no_repaint(this);
-        const bool                 main_rebuilt  = sync_list(true);
-        const bool                 gizmo_rebuilt = sync_list(false);
+        m_syncing                = true;
+        const bool main_rebuilt  = sync_list(true);
+        const bool gizmo_rebuilt = sync_list(false);
+        m_syncing                = false;
 
         std::vector<std::string> kept;
         for (const std::string& key : m_selection)
@@ -660,10 +662,11 @@ private:
             toggle_box(key);
             e.Skip();
         });
-        // Not for the focus the dialog gives its first box on opening, so it opens with nothing selected.
+        // Not for the focus the dialog gives its first box on opening, so it opens with nothing selected, nor for
+        // focus moved while the rows are synced, when the other list's rows may still hold old group numbers.
         check->Bind(wxEVT_SET_FOCUS, [this, key](wxFocusEvent& e) {
             m_focused_row = key;
-            if (m_tabbing)
+            if (m_tabbing && !m_syncing)
                 select_row(key);
             e.Skip();
         });
@@ -792,6 +795,7 @@ private:
     std::string              m_focused_row;         // the row whose box last took the focus
     std::string              m_hovered;             // the row under the pointer, drawn with a border
     bool                     m_tabbing{false};      // Tab has been pressed, so focusing a box selects its row
+    bool                     m_syncing{false};      // the rows are being brought in line with m_working
     int                      m_name_height{0};      // row name height measured when the dialog was built
     int                      m_measured_height{0};  // tallest row name built so far
     wxPanel*                 m_main_panel{nullptr};
