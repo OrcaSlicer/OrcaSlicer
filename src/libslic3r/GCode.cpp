@@ -3498,7 +3498,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     // object's empty lead-in), so they must not be counted here either or the layer
     // count in the file disagrees with its layer changes.
     const bool belt = print.config().belt_printer.value;
-    // Elsewhere process_layer() skips a layer its tool ordering gives no extruder, such as a tip too thin to print.
+    // Counts the print_z that process_layer() prints. It skips a layer whose tool ordering has no extruder, such as
+    // the tip of a cone too thin for a wall.
     const auto count_printed_layers = [belt](const auto &objects, const ToolOrdering &tool_ordering) {
         std::vector<coordf_t> zs;
         for (const PrintObject *object : objects) {
@@ -3515,7 +3516,13 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         }
         if (! belt)
             zs.erase(std::remove_if(zs.begin(), zs.end(), [&tool_ordering](coordf_t z) {
-                         return tool_ordering.empty() || tool_ordering.tools_for_layer(z).extruders.empty();
+                         if (tool_ordering.empty())
+                             return true;
+                         // The lookup only asserts that z is in the tool ordering. A layer that is not is counted.
+                         if (z > (tool_ordering.end() - 1)->print_z + EPSILON)
+                             return false;
+                         const LayerTools &layer_tools = tool_ordering.tools_for_layer(z);
+                         return std::abs(layer_tools.print_z - z) < EPSILON && layer_tools.extruders.empty();
                      }),
                      zs.end());
         if (zs.empty())
