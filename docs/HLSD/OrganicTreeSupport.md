@@ -338,43 +338,77 @@ heights Organic supports are often printed with does not print. A line of that
 layer bridges between what it passes over, not between what lies within reach of
 it: a line running along the gap between two bodies passes over neither. So every
 line of it is to touch the material below, by half a line, at least every span of
-a line between two lines of the base pattern, and its ends are to rest on it, a
-stretch ending in the air no longer than a line. The lines run in the directions
+a line across the gap of the base, and its ends are to rest on it, a stretch ending
+in the air no longer than a line. The gap of the base is the spacing of the lines of
+a filled base pattern. A hollow base lays no lines, and the base pattern spacing
+sets nothing of its gap: that grows with the line, as everything of the trees
+does, and with the layer height, seven layer heights but no less than one line
+and no more than three; with a layer height profile, the thinnest layer above
+the first it asks for. A wider gap grows fewer and larger trees, a narrower one
+holds a roof at more points. With layers about half a line high, a gap of three
+lines leaves the underside of a roof as clean as a gap of one, without bodies
+full of tiny trees; at fine layers a line bridges next to nothing, and one line,
+the narrowest gap the trees keep, tears least. The factor of seven is fitted to
+these two cases, see organic_base_span(). The lines run in the directions
 the interface pattern gives them: one with Rectilinear and the default, two with
 Rectilinear Interlaced, which turns them from layer to layer, and with Grid. Their
 positions are not known before the paths, so the lines are taken a quarter of a
 line apart, each touching what lies within half a line less half that pitch of it.
 A stretch also stops short of that span by as much on both sides, so that a point
-midway still lies within half the base pattern spacing and a line of what holds
-it. A concentric or spiral interface prints no lines; under it every point is to
+midway still lies within half of the gap of the base plus half a line of what
+holds it. A concentric or spiral interface prints no lines; under it every point is to
 lie within that distance instead. Where a line hangs, the top layers of the bodies
 near it widen going up
 by the branch angle, by half a line a layer at most, the overhang a wall prints
 over the wall below it, over as many layers as they need, up to two and a half
-lines in all, so the bodies end in flares. A wall leaning more than the branch
-angle curls up at fine layers. A layer lower down widens no farther from its own
+lines in all, so the bodies end in flares. Where the branch angle moves a body
+less than a 128th of the widest a layer, they widen in no more than 128 steps, a
+flare going down in stairs of a 128th of the widest, no narrower than it would
+be; moving it no farther a layer than a widening tells apart, 0.1 um, they do
+not widen at all, as at a branch angle of nought. A wall leaning more than the
+branch angle curls up at fine layers. A layer
+lower down widens no farther from its own
 bodies than its steps, as a leaning body moves away from under the flare, and a
-piece of the flare that this leaves apart from them is dropped. A body widens all
-around rather than toward the hanging part alone, which would cut its band into
-slivers no bead prints, and stays under the interface, away from the model and a
-line and a half away from the other bodies, so that bodies do not merge, not even
-where their beads squish: a hollow body merged over a gap would leave the gap
-hanging over its inside. Near where the roof still hangs they come closer: a roof
-line running along a gap between two bodies narrower than a bridge passes over
-neither, even touching one of them with its edge, while a line across the gap
-bridges it, so the bodies close the gap under it with their bands, printed
-solid. The flares of tips merge with each other, being printed
-solid: kept apart, tips a lattice pitch apart would leave the middle of each
-triangle of them hanging. Only a body wide enough to
-print counts as holding the interface. A tip, no wider than a tip
-and half a line, is printed solid with its flare, as a spiral from its outline in
-instead of a wall; a wider body prints the part of the band it widens by that lies
-within two lines of its outline solid, where its walls lie. A sliver of the band narrower than a
-line prints nothing and holds nothing up: the trees inside the body grow under
-what lies over it. This holds whatever the base pattern, as the gaps lie between the
-bodies, outside any fill. The touch band is removed from every gap narrower than the
-bridge span, so a roof line running between tips is not held by them, and at the
-default base pattern spacing the hanging check can still fire and widen bodies.
+piece of the flare that this leaves apart from them is dropped. What a layer
+adds lies within half a line, or the branch angle where it sets more, of what
+its body stands on below, as a body grows: the bodies of that layer as widened,
+the roofs, and, where the support may rest on the model, the areas a tree may
+rest on it: its top a Z distance below widened by the XY distance, so that on a
+slope a body beside it stands on it, not the collision of the layer, which holds
+the gaps around the model, the model within the Z distances and the support
+blockers; a body standing on none of them, or with no layer right below it,
+widens as it is. The side a body leans to moves by the lean already, so that it
+gains that much less a layer. Where the flare unclipped would hold the interface
+but it then hangs, the bodies widen by a step more, a layer lower down, or as
+many as the step holds moves of the branch angle, up to the widest, keeping, of
+the flares whose steps pay for themselves, the one that
+leaves the least of it hanging: a step through layers a body leans on by the
+limit gains nothing, and one more, down to where it stands straight, may, so the
+search ends only at a step that neither leaves less hanging than the one before
+nor reaches a layer lower down. A roof reaching past an edge of the model over a
+body too short to flare far enough is not held there: the flare would have to
+hang over nothing below it, and the roof hangs instead, which, with a hollow
+base, the warning of parts printed with nothing under them reports. On a belt
+the bodies grow as they are. A body widens all around rather than toward the
+hanging part alone, which would cut its band into slivers no bead prints, and
+stays under the interface, away from the model and a line and a half away from
+the other bodies, so that bodies do not merge, not even where their beads
+squish: a hollow body merged over a gap would leave the gap hanging over its
+inside. Near where the roof still hangs they come closer: a roof line running
+along a gap between two bodies narrower than a bridge passes over neither, even
+touching one of them with its edge, while a line across the gap bridges it, so
+the bodies close the gap under it with their bands, printed solid. The flares of
+tips merge with each other, being printed solid: kept apart, tips a lattice
+pitch apart would leave the middle of each triangle of them hanging. Only a body
+wide enough to print counts as holding the interface. A tip, no wider than a tip
+and half a line, is printed solid with its flare, as a spiral from its outline
+in instead of a wall; a wider body prints the part of the band it widens by that
+lies within two lines of its outline solid, where its walls lie. A sliver of the
+band narrower than a line prints nothing and holds nothing up: the trees inside
+the body grow under what lies over it. This holds whatever the base pattern, as
+the gaps lie between the bodies, outside any fill. The touch band is removed
+from every gap narrower than the bridge span, so a roof line running between
+tips is not held by them, and the hanging check can still fire and widen bodies.
 
 The loops of the spiral are as wide as the part leaves room for, as Arachne lays
 them. Loops a line wide leave a slit up to a line wide where they run out, along
@@ -422,12 +456,17 @@ such a hole ends in the wall. Under a roof a tip stands
 where a line hangs: in the middle of a stretch between two bearings, or a tip
 radius in from the end of one ending in the air, one for the lines it crosses,
 round by round until no line hangs. So the tips stand in rows across the lines,
-the base pattern spacing apart, and in a row, close enough that a line between
+their edges the gap of the base apart, and in a row, close enough that a line between
 two of them touches one. Under the beads of a layer, and under a roof printing
 no lines, the tips stand on a hexagonal lattice fixed in the object's
 coordinates, so close that every point between them lies within the tip radius
 and the distance a load is held from of one, with one more wherever a point of
-the part is still farther from them. A tip has the tip
+the part is still farther from them. A bead of a wall is held a line from what is
+below, as the first layer of a second wall lies beside the first; a bead of a
+solid part only half a line, as its spiral lays it anywhere over the part and a
+bead touches what is below where its axis lies within half its width of it: held
+a line away, a bead between two tips could run on beside both without touching
+either. A tip has the tip
 radius, a line and the reach at most, so that what lies over the middle of its
 ring lies within reach of it too, and a line at least, whatever the tip
 diameter: a tip not much wider than a line prints no loop and grows no tree.
@@ -468,11 +507,31 @@ it becomes a part of the body. On the first layer every tree has a foot, inside
 the body or in a hole of it, two lines of the first layer across at least:
 the first layer may print lines wider than those of the base, and with no
 expansion of it a narrower tree prints neither a loop nor a fill, which leaves
-the tree above standing on nothing. In a sparse first layer, each foot is printed
-with its own perimeter and dense interior, and its area is taken out of the
+the tree above standing on nothing. In a sparse first layer, each foot of a tree is
+printed with its own perimeter and dense interior, and its area is taken out of the
 remaining fill. At 100% density, the flange is filled as one region without
 internal foot perimeters. A sparse flange may leave a gap under a tree, so its
-outline alone does not count as material the tree can end on. A tree widens by the diameter angle. It is
+outline alone does not count as material the tree can end on. The tips grown on
+the first layer, under what the second prints over the inside of a body, start
+no tree: such a lone foot is printed apart only where the first layer would
+leave some of that over nothing, where a bead within its cover, the farthest a
+load is held from a tip, could lie farther than half its width from a bead
+printed. The bead is as narrow as the second layer may print one, as Arachne
+narrows the spiral of a solid part. A foot printed apart surely holds by the
+loop along its outline and by its lines where the fill area is wide enough for
+one to pass; elsewhere its paths decide. Each island of the first layer is
+checked by what it prints alone, and only its lone feet change that: the part of
+them within their cover of a place over nothing is printed apart, or a whole
+foot where that part is too narrow or none of the foot is left there, and the
+layer is filled and checked again. After a few rounds every island with a place
+still over nothing gets all its lone feet printed apart, and so does, in turn,
+every island with a lone foot not yet printed apart whole whose cover reaches
+such an island, as the trees took that foot to hold across the gap between them.
+Lines more than a first-layer line and that bead apart leave the middle of the
+gaps between them farther than half the bead from any: there all are printed
+apart. On a belt, whose first layer is no flange on the bed, a lone foot is
+printed as the feet of the trees are.
+A tree widens by the diameter angle. It is
 printed with loops of its own beside the walls of the body, the roofs and the
 solid parts, fusing with them by a quarter of a line but not over them, the
 walls a body shares with an interface of its layer as well. A loop
@@ -516,10 +575,9 @@ loops come closer than a line for a layer or two, as a loop cannot go round a
 neck narrower than two lines without passing over itself; the trees are not
 merged any sooner, which would leave the lines over the inside of the merged
 loop without the rings that hold them. The filled base patterns, such as
-Rectilinear, carry these interfaces on the body fill and grow no trees. With the
-default base pattern spacing of 2.5 mm only an interface over an inside wider
-than about 3 mm gets them. The passes that fill covered holes, limit the growth of
-the bodies and widen them under roofs run for the filled base patterns as well.
+Rectilinear, carry these interfaces on the body fill and grow no trees. The passes
+that fill covered holes, limit the growth of the bodies and widen them under roofs
+run for the filled base patterns as well.
 
 Trees whose tops merge while their trunks stand apart give a body that splits
 again going down. With a walls-only base the gaps between the trunks open below
@@ -587,8 +645,10 @@ the support, including the empty cavities of hollow bodies, and the model where
 the support may stand on it. A run farther than half a bead from it hangs when
 it is longer than a bead and ends in the air or leaves a corridor within one
 bead width of the chord between its bearings, or when it bridges straight
-between two bearings farther than the support spans anywhere else: a line
-between two lines of the base pattern, or of a bottom interface. Along a bead
+between two bearings farther than the support spans anywhere else: a line across
+the gap of the base, see Bodies under interfaces, or between two lines of a bottom
+interface. The walls and the trees of a hollow base may bridge as far as its roofs:
+the trees are planned with that one gap. Along a bead
 that Arachne prints in paths of several widths, each segment of a run counts in
 its length, its span and its corridor against the width of its own path, so a
 short stretch of a wide path lends a narrow one hanging on from it nothing.
@@ -607,7 +667,7 @@ hang over the model too, and carry neither support of the layer above nor model
 within the top Z distance. Its retained bearings are connected by
 a straight line, or by the shorter legal route along the footing boundary.
 Both bearings must touch printed material below; each free span is limited to
-one base-pattern pitch. A connection lying on the edge of what the material
+the gap of the base. A connection lying on the edge of what the material
 below holds touches it, and the warning and the search for excursions take it
 as standing there: by rounding, it would otherwise hang off that edge. The new bead stays inside the support region and away
 from interface beads. A closed wall stays closed, including when the cut

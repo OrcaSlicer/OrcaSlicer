@@ -31,9 +31,11 @@ class PrintObject;
 class SupportLayer;
 class ToolOrdering;
 
-// Reserve dense tree feet only in a sparse first-layer flange; fill a solid flange as one region.
-void organic_fill_first_layer(ExtrusionEntitiesPtr &dst, const Polygons &polygons, const Polygons &feet,
-    Fill *filler, float density, ExtrusionRole role, const Flow &flow, const SupportParameters &support_params);
+// Reserve dense tree feet only in a sparse first-layer flange; fill a solid flange as one region. A lone foot, which starts
+// no tree, is reserved only where what the first layer prints, island by island, would leave what it holds over nothing.
+void organic_fill_first_layer(ExtrusionEntitiesPtr &dst, const Polygons &polygons, const Polygons &feet, const Polygons &lone_feet,
+    Fill *filler, float density, ExtrusionRole role, const Flow &flow, const SupportParameters &support_params,
+    const PrintObject &object);
 
 // Print inner tree loops beside the material already printed on their layer, splicing loops touching a base wall into it.
 // The walls are the support paths of dst, or those given where dst holds fill lines too, as a raft layer does.
@@ -94,11 +96,23 @@ Polygons organic_footing_near_box(const Polygons &footing, const BoundingBox &bo
 // walled tells whether the island is printed with a wall.
 Polygons organic_solid_fill(const ExPolygon &island, const Polygons &solid, coord_t width, bool &walled);
 
-// Print the solid parts of the islands of polygons, the bodies of a hollow Organic layer, as organic_solid_fill() finds
-// them given the solid polygons of the layer, into dst as spirals of the configured nozzle. Returns the islands printed
-// with a wall.
+// The solid parts of the islands of polygons, the bodies of a hollow Organic layer, as organic_solid_fill() finds them
+// given the solid polygons of the layer, appended to fill. Returns the islands to be printed with a wall.
+Polygons organic_split_solid_islands(const Polygons &polygons, const Polygons &solid, coord_t width, Polygons &fill);
+// Print fill, solid parts of a hollow Organic layer, into dst as spirals of the configured nozzle.
+void organic_extrude_solid_fill(ExtrusionEntitiesPtr &dst, const Polygons &fill, const Flow &flow, const PrintConfig &print_config,
+    const PrintObjectConfig &object_config);
+// Print the solid parts of the islands of polygons, see organic_split_solid_islands(), into dst, see
+// organic_extrude_solid_fill(). Returns the islands printed with a wall.
 Polygons organic_extrude_solid_islands(ExtrusionEntitiesPtr &dst, const Polygons &polygons, const Polygons &solid, const Flow &flow,
     const PrintConfig &print_config, const PrintObjectConfig &object_config);
+// Whether the flow of a support path of this role is set to nothing: it prints nothing.
+bool support_role_has_no_flow(const PrintObjectConfig &config, ExtrusionRole role);
+// The gap a line of the support bridges between two lines of the base, scaled: their spacing for a filled base; for a
+// hollow one, which lays none and so takes nothing from the base pattern spacing, one to three support lines by the
+// layer height of the object, or by the thinnest layer its layer height profile makes above the first where it has one;
+// see the definition for why. Valid once the slicing parameters of the object are set.
+coord_t organic_base_span(const PrintObject &object);
 
 // The islands of the support of an object, its extrusions with their width, standing on nothing: neither on the support
 // of the layer below nor on the object within the bottom Z distance, or 0.1 mm, below. The first layer stands on the
@@ -119,6 +133,9 @@ void organic_update_support_warning(PrintObject &object, std::vector<coordf_t> h
 // The warning of an Organic support loaded with its object, which keeps none: what stands on nothing is found again as
 // generating the support finds it, after dropping its crumbs.
 void organic_update_loaded_support_warning(PrintObject &object);
+// The warning of an object that takes over the layers of an identical one, see PrintObject::copy_layers_from_shared_object(),
+// and so generates no support of its own: found on the layers it shares where the other object has one.
+void organic_update_shared_support_warning(PrintObject &object);
 
 // Scarf selection happens during export. With zero Scarf flow, record only material actually
 // emitted by each instance, so conditional and partial seams cannot supply imaginary footing.
@@ -127,7 +144,8 @@ class OrganicScarfFooting
 public:
     explicit OrganicScarfFooting(Print &print);
     bool empty() const { return m_objects.empty(); }
-    void record(const Layer &layer, const Point &origin, const ExtrusionPath &path, double z, bool extruding);
+    // object is the object printed, which may share its layers with another, see PrintObject::copy_layers_from_shared_object().
+    void record(const PrintObject &object, const Point &origin, const ExtrusionPath &path, double z, bool extruding);
     void update_warnings();
 private:
     struct ObjectMaterial {

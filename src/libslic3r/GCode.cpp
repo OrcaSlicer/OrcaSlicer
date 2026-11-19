@@ -9656,8 +9656,10 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
     // _mm3_per_mm already includes the filament flow ratio, so convert it with the bare cross-section
     // rather than e_per_mm3(), which would apply the ratio a second time.
     double e_per_mm = _mm3_per_mm / m_writer.filament()->filament_crossection();
-    if (m_organic_scarf_footing && m_layer != nullptr && dynamic_cast<const SupportLayer*>(m_layer) == nullptr)
-        m_organic_scarf_footing->record(*m_layer, Point::new_scale(m_origin.x(), m_origin.y()), path,
+    // The object printed, not m_layer->object(): an object sharing the layers of another prints its own instances.
+    if (m_organic_scarf_footing && m_layer != nullptr && dynamic_cast<const SupportLayer*>(m_layer) == nullptr &&
+        m_last_obj_copy.first != nullptr)
+        m_organic_scarf_footing->record(*m_last_obj_copy.first, Point::new_scale(m_origin.x(), m_origin.y()), path,
             m_nominal_z - m_config.z_offset.value, e_per_mm > 0. && !path.is_force_no_extrusion());
 
     // set speed

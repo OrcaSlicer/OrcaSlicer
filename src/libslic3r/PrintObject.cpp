@@ -985,6 +985,9 @@ void PrintObject::generate_support_material(bool with_belt_brim)
 {
     if (this->set_started(posSupportMaterial)) {
         this->clear_support_layers();
+        // As after slicing: the overhang regions the nozzle lift found are not those of the support, which finds its own
+        // where it is on. The lift finds its own again after this step.
+        this->clear_overhangs_for_lift();
 
         if(!has_support() && !m_print->get_no_check_flag()) {
             // BBS: pop a warning if objects have significant amount of overhangs but support material is not enabled
@@ -1923,7 +1926,7 @@ bool PrintObject::invalidate_state_by_config_options(
                    opt_key == "scarf_angle_threshold" || opt_key == "scarf_overhang_threshold" || opt_key == "seam_slope_start_height" ||
                    opt_key == "seam_slope_entire_loop" || opt_key == "seam_slope_min_length" || opt_key == "seam_slope_steps" ||
                    opt_key == "seam_slope_inner_walls") && (slope_starts_at_zero(old_config) || slope_starts_at_zero(new_config))));
-            if ((support_flow_changed || model_flow_changed) && (m_config.enable_support || m_config.raft_layers > 0) && is_tree(m_config.support_type) &&
+            if ((support_flow_changed || model_flow_changed) && this->has_support_material() && is_tree(m_config.support_type) &&
                 m_config.support_style != smsTreeSlim && m_config.support_style != smsTreeStrong && m_config.support_style != smsTreeHybrid)
                 steps.emplace_back(posSupportMaterial);
         } else if (opt_key == "brim_filament_id") {
@@ -1959,9 +1962,12 @@ bool PrintObject::invalidate_step(PrintObjectStep step)
     // Organic cleanup and warnings use the model's printed footing. Regenerate support when that
     // material changes; the other tree styles do not depend on model extrusion paths.
     if ((step == posPerimeters || step == posPrepareInfill || step == posInfill || step == posIroning || step == posContouring) &&
-        (m_config.enable_support || m_config.raft_layers > 0) && ! m_config.support_on_build_plate_only && is_tree(m_config.support_type) &&
-        m_config.support_style != smsTreeSlim && m_config.support_style != smsTreeStrong && m_config.support_style != smsTreeHybrid)
-        invalidated |= this->invalidate_steps({ posSupportMaterial, posSimplifySupportPath });
+        this->has_support_material() && ! m_config.support_on_build_plate_only && is_tree(m_config.support_type) &&
+        m_config.support_style != smsTreeSlim && m_config.support_style != smsTreeStrong && m_config.support_style != smsTreeHybrid) {
+        // As invalidate_step(posSupportMaterial), which would also invalidate the slicing parameters, here unchanged.
+        invalidated |= this->invalidate_steps({ posSupportMaterial, posSimplifySupportPath, posDetectOverhangsForLift });
+        invalidated |= m_print->invalidate_steps({ psSkirtBrim });
+    }
 
     // propagate to dependent steps
     if (step == posPerimeters) {
@@ -1986,7 +1992,8 @@ bool PrintObject::invalidate_step(PrintObjectStep step)
         // The exact belt_floor_z_shift is recomputed when slice() runs again.
         m_belt_floor_z_shift_cache_valid = false;
     } else if (step == posSupportMaterial) {
-        invalidated |= this->invalidate_steps({ posSimplifySupportPath });
+        // The support finds its overhangs in the layers' overhang regions, which the nozzle lift fills after it.
+        invalidated |= this->invalidate_steps({ posSimplifySupportPath, posDetectOverhangsForLift });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
         // SlicingParameters depend on support config (enable_support /
         // raft_layers / enforce_support_layers feed min/max layer height in
