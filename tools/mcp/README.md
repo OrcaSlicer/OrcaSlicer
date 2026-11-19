@@ -465,7 +465,7 @@ tools/mcp/test_web_ui.py
 
 `test_list_windows.py` checks `window_list`: the main window first, the Plugins window (which doesn't
 block the app) with a ref that `window_screenshot` captures alone, `widget_list` reads alone and `keyboard_press` Escape
-closes, Preferences last as a modal dialog, and Action Replay listed as hidden, without a ref.
+closes, Preferences last as a modal dialog, and Action Replay listed with a ref and closed by Escape.
 
 `test_set_window.py` checks `window_set` on the main window (sized twice, moved, placed over its
 display's work area, maximized, minimized and restored), on the Plugins window by its ref and on
@@ -474,12 +474,9 @@ that a window screenshot is the size the reply gives and skips positions, which 
 nor takes. On X11 it reads the X server's stacking order through libX11 to check that the main window,
 restored and raised while Preferences is open, stays under it.
 
-`test_action_replay_hidden.py` opens Action Replay
-and checks that the GUI tools don't see it: `widget_list` lists no window for it, `webview_run_javascript`
-without a target behaves as before it opened, and a key sent without a target never reaches it. It
-then shows the Run Script panel on
-Prepare and checks the same for it, with no more web views in `widget_list` than before, a key sent
-without a target reaching the 3D view, a window screenshot, and an agent's `script_run` finishing
+`test_run_script_hidden.py` shows the Run Script panel on Prepare and checks that the GUI tools don't see it:
+no more web views in `widget_list` than before, `webview_run_javascript` without a target behaving as before it
+showed, a key sent without a target reaching the 3D view, a window screenshot, and an agent's `script_run` finishing
 while it is shown; `replay_run` still runs the smoke test and a nested inline replay.
 
 `test_speed_dial_open.py` goes from Home to Prepare, the Design tab (launched with `--cad`) and Preview by

@@ -1,18 +1,14 @@
 #!/usr/bin/env python3
-"""Checks that the Action Replay window and the Run Script panel stay out of reach of the GUI tools, so a
-replay or a script can't act on them.
+"""Checks that the Run Script panel stays out of reach of the GUI tools, so a script can't act on the panel that
+runs it.
 
     tools/mcp/orca_mcp.py launch
-    tools/mcp/test_action_replay_hidden.py
+    tools/mcp/test_run_script_hidden.py
 
-Each window is first seen up: window_list lists Action Replay as hidden, and the 3D view is shorter once the Run
-Script panel docks under it. With Action Replay open: widget_list lists no window or dialog for it, while it lists
-the main window as such a line, a window screenshot still works, webview_run_javascript without a target behaves
-as it did before the window opened (it must not find a second web view), and keyboard_press without a target goes
-to the 3D view, not to a page. With the Run Script panel shown on Prepare: widget_list lists no more web views
-than before, webview_run_javascript without a target behaves as before, keyboard_press without a target reaches
-the 3D view, a window screenshot works and an agent's script_run finishes. replay_run still runs the smoke test,
-and a replay nesting an inline replay_run passes. Exits 0 when every check passes.
+The panel is first seen up: the 3D view is shorter once it docks under it. With the panel shown on Prepare: widget_list
+lists no more web views than before, webview_run_javascript without a target behaves as before, keyboard_press without
+a target reaches the 3D view, a window screenshot works and an agent's script_run finishes. replay_run still runs the
+smoke test, and a replay nesting an inline replay_run passes. Exits 0 when every check passes.
 """
 
 import os
@@ -60,35 +56,7 @@ def main():
             time.sleep(0.2)
         return True
 
-    def action_replay_listed():
-        return any(w.get("title") == "Action Replay" and w.get("hidden") is True
-                   for w in client.call("window_list").get("items", []))
-
     client.call("project_new", discard_changes=True)
-    client.call("view_set", tab="home")
-    before = eval_outcome()
-
-    client.call("action_run", id="orca_command:open_action_replay:orca")
-    check("Action Replay opens", within(SHOW_LIMIT_S, action_replay_listed),
-          f"window_list lists no hidden Action Replay window {SHOW_LIMIT_S} s after the action")
-    time.sleep(1.0)  # let its web view load
-
-    snap, texts = client.call_with_text("widget_list")
-    tree = texts[0] if texts else ""
-    # The File menu's "Action Replay..." item is listed; the window must not be. The main window's line is the
-    # control: the tree words a window as its role and its title in quotes.
-    check("widget_list lists no Action Replay window", not re.search(r'\b(window|dialog) "Action Replay"', tree))
-    check("widget_list still lists the main window", re.search(r'\bwindow "[^"\n]+" \(MainFrame\)', tree))
-    check("a window screenshot works", client.call("window_screenshot", target="main").get("path"))
-    check("webview_run_javascript without a target behaves as before", eval_outcome() == before, f"{before} / {eval_outcome()}")
-
-    client.call("view_set", tab="prepare")
-    client.call("action_run", id="orca_command:open_action_replay:orca")  # raised again, so it has the focus
-    # A key that reached a page replies with what the page did; the focus left in a window the tools don't see is
-    # no target, so the key goes to the shown 3D view.
-    key = client.call("keyboard_press", keys="Escape")
-    check("a key without a target never goes to Action Replay's web view",
-          "page" not in key and "canvas" in str(key.get("to", "")).lower(), key)
 
     # The Run Script panel, docked under the 3D view of Prepare.
     client.call("view_set", tab="prepare")

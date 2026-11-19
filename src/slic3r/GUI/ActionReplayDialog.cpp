@@ -265,9 +265,9 @@ std::string thumbnail(const std::string& path)
 
 ActionReplayDialog::ActionReplayDialog(wxWindow* parent) : WebViewHostDialog(parent)
 {
-    // Replays drive the main window through the MCP tools; the dialog keeps out of their sight.
-    SetName(Mcp::kHiddenFromAutomation);
-    // Replaying needs the runtime's tools and jobs, started here without the network endpoint, and its steps drive
+    // The window is one the GUI tools reach, as any of the app's windows, so an agent or a test can read and close it;
+    // its prompts and file dialogs are the person's alone (kHiddenFromAutomation), so no tool or auto-answer rule
+    // answers the person's own question. Replaying needs the runtime's tools and jobs, started here without the network endpoint, and its steps drive
     // the GUI: the window keeps the GUI instruments on while it is open.
     if (Mcp::AutomationRuntime* runtime = wxGetApp().automation()) {
         runtime->hold_gui_instruments();

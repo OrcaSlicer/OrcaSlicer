@@ -472,7 +472,7 @@ ROWS = dict([
         before=lambda r: r.canvas_height(), post=[call("tool_call", tool="script_toggle_panel", args={})],
         why="the Run Script panel is kept from automation, so widget_list reads the 3D view it docks under"),
     row("open_action_replay", "empty", window("Action Replay"),
-        why="Action Replay is the person's window, which no tool closes: it stays open"),
+        post=[call("keyboard_press", keys="Escape", target={"label": "Action Replay"})]),
     dialog_action("open_preferences", "Preferences"),
     row("take_screenshot", "two_cubes", ("file", lambda r: (bool(r.reply.get("path")) and os.path.isfile(r.reply["path"]) and
                                                            os.path.dirname(r.reply["path"]) == r.out, r.reply))),

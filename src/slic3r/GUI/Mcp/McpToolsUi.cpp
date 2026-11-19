@@ -1350,8 +1350,8 @@ void register_ui_tools(CommandCatalog& catalog)
         "ref, web (it shows a web page), x and y on screen (not on Wayland, which doesn't say), width and height, state "
         "(normal, maximized or minimized) and resizable (it has a resize border); window_set changes them.\n"
         "A native dialog (a message box, a file picker) has native: true and no ref: dialog_answer answers it. hidden: "
-        "true marks the person's own windows (Action Replay, the Run Script panel and their prompts, the Python scripts "
-        "setting), which no tool reaches and screenshots leave out.",
+        "true marks the person's own windows (the Run Script panel floating, its prompts and Action Replay's, the Python "
+        "scripts setting), which no tool reaches and screenshots leave out.",
         object_schema({{"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 200}, {"description", "Default 100."}}},
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
         [](const json& args, ToolContext& ctx) {

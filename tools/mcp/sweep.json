@@ -7,7 +7,7 @@
     "cad_sketch_edit": {"path": "tests/cad_sketch_edit.json", "cad": true},
     "cad_sketch_to_solid": {"path": "tests/cad_sketch_to_solid.json", "cad": true},
     "cad_topology_targets": {"path": "tests/cad_topology_targets.json", "cad": true},
-    "test_action_replay_hidden": {"path": "test_action_replay_hidden.py"},
+    "test_run_script_hidden": {"path": "test_run_script_hidden.py"},
     "test_additions_refusals": {"path": "test_additions_refusals.py"},
     "test_cad_click_edit": {"path": "test_cad_click_edit.py", "cad": true},
     "test_cad_commands": {"path": "test_cad_commands.py", "cad": true},

@@ -3466,8 +3466,8 @@ OrcaSlicer's windows only gives what the screen shows of them in the client area
 backing scale, in sRGB: the window, web views and 3D views included, and over it our dialogs, wx
 popups, AppKit's menus and tooltips, but no other application's window, so a covered window captures
 whole. The filter names the application rather than its windows, so a menu or tooltip that opens later
-is in it too. It leaves out the shown windows hidden from automation (Action Replay, a floating Run Script
-panel), their wx
+is in it too. It leaves out the shown windows hidden from automation (a floating Run Script panel, the
+person's own prompts), their wx
 popups, and AppKit's windows over them: AppKit does not say which window opened a menu or tooltip, so
 each of our windows that is not wx's goes with the topmost wx window below it that it overlaps, as on
 Windows. The window behind such a window shows through. `SCScreenshotManager` takes one image per
@@ -3588,7 +3588,7 @@ result's `note` is the last frame's: which of these applies, then what that fram
 approximated, so a macOS recording that fell back to drawing views says so. `capture_frame()` stores it
 under the recorder's mutex, since `recording_stop` reports from another thread while a tick may be
 capturing. The `canvas` target is `shown_canvas()`. A recording captures with
-`CaptureOptions::hide_covering` off, so X11 never hides and re-shows Action Replay at each frame.
+`CaptureOptions::hide_covering` off, so X11 never hides and re-shows a floating Run Script panel at each frame.
 
 The costly part is a 3D view: `render_and_capture()` draws a frame, after any extra frames a change
 asked for, and reads it back. A recording
@@ -3980,12 +3980,12 @@ run's replacing tools treat the run as `discard_changes: true`: the run's handle
 call's lineage when it checks (`discard_allowed_in()`), so changes are dropped only when a step really
 replaces the project. The runner never answers the app's own question.
 
-The window is named `kHiddenFromAutomation`: `widget_list` and locators skip it, `window_list` lists
-it as hidden with no ref,
-`webview_run_javascript` never picks its web views, a key sent without a target never goes to the focus inside it, and on X11,
-where a window capture reads the screen, it hides for the moment of the capture. Every prompt and
-file dialog it opens is named so too, so no auto-answer rule a replay registers answers the person's
-own question. Its own wording is
+The window is one the GUI tools reach, as the app's other windows: `window_list` lists it with a ref,
+`widget_list`, locators and `webview_run_javascript` read its page, and `keyboard_press Escape` by its ref closes it, so
+an agent or a test can close the window it opened. A replay run from it sees it too: a key sent without a target goes to
+the focus, which is in this window once the person has pressed Run, so a replay meant for the main window gives its keys
+a target. Every prompt and file dialog it opens is named `kHiddenFromAutomation`, so no tool and no auto-answer rule a
+replay registers answers the person's own question. Its own wording is
 translated, from the structured step descriptions and failure reasons; a tool's own error, which
 agents read in English, is shown as a detail under a translated lead. Tool titles are marked with
 `L()` so the dialog can show them translated while `tools/list` keeps the English.
@@ -4349,7 +4349,7 @@ seen, or a failed run. The console's side hides only while it shows the console,
 the hidden side are AppConfig `script_run` › `split` and `hidden_side`, saved when a drag
 ends rather than as it moves.
 
-**Out of the tools' reach.** Like Action Replay's page, the page navigates nowhere but its own loads: a dropped
+**Out of the tools' reach.** As Action Replay's page does, the page navigates nowhere but its own loads: a dropped
 `.py` opens in the panel, and any other navigation is vetoed. The pane is named `kHiddenFromAutomation`, as are the frame it floats in
 (`AuiMgr::CreateFloatingFrame()`) and every prompt and file dialog it opens. `skipped_by_walks()` keeps the walks of
 `widget_list`, locators and `webview_run_javascript`'s search for a web view out of it, and a key sent without a target never

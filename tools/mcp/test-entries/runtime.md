@@ -197,41 +197,38 @@ in [TESTS.md](../TESTS.md).
 
 **Strength:** Strong — every export is compared with an exact list of steps, and the reference fields are checked by value.
 
-## `test_action_replay_hidden`
-`test_action_replay_hidden.py` · Python, 14 checks
+## `test_run_script_hidden`
+`test_run_script_hidden.py` · Python, 8 checks
 
-**Tests:** That the Action Replay window and the Run Script panel stay out of reach of the GUI tools. Neither is listed by `widget_list` or picked by an untargeted `webview_run_javascript` or `keyboard_press`. While they are up, a window screenshot, an agent's `script_run`, the smoke replay and a nested inline replay still work.
+**Tests:** That the Run Script panel stays out of reach of the GUI tools. It is not listed by `widget_list` or picked by an untargeted `webview_run_javascript` or `keyboard_press`. While it is up, a window screenshot, an agent's `script_run`, the smoke replay and a nested inline replay still work. (The Action Replay window, which this test checked too, is reachable by the tools, D11 of the printing and gizmo commands; `test_list_windows` checks it.)
 
 **Decides by:** Exits 1 when any check prints FAIL.
-- Action Replay is up: "Action Replay opens", within 10 s of `action_run open_action_replay`, `window_list` lists a window titled `Action Replay` with `hidden: true`; a wait that runs out fails it. The test then gives its page 1 s.
-- Action Replay: the `widget_list` tree has no line of the role `window` or `dialog` titled `Action Replay`, and, the control, it words the main window as such a line: `window "<title>" (MainFrame)`. `window_screenshot` returns a `path`. Untargeted `webview_run_javascript "1 + 1"` gives the same outcome string as before the window opened; with two web views shown it would get the "Several web views are shown" refusal.
-- "a key without a target never goes to Action Replay's web view": with Action Replay raised again on Prepare, `keyboard_press Escape`'s reply has no `page` (a key that reached a page replies with what the page did) and its `to` holds `canvas`: the focus left in a window the tools don't see is no target, so the key goes to the shown 3D view (`UiInspector::key_target`).
 - Run Script panel shown: "the Run Script panel shows", within 10 s of the toggle, the 3D view's height in `widget_list` (its `canvas "OrcaSceneCanvas"` line) is less than before the toggle, as the panel docks under it. The test then gives its page 1 s.
-- Run Script panel: the number of `webview` words in `widget_list` is unchanged, and untargeted JS on Prepare gives the same outcome as before. `keyboard_press`'s `to` contains "canvas", the screenshot returns a `path`, and `script_run` ends `finished`.
+- Run Script panel: the number of `webview` words in `widget_list` is unchanged, and untargeted `webview_run_javascript "1 + 1"` on Prepare gives the same outcome string as before the panel showed. `keyboard_press Escape`'s `to` contains "canvas", the screenshot returns a `path`, and `script_run` ends `finished`.
 - Replays: `smoke_test.json` and a nested inline `replay_run` both return `passed: true`.
 
 **Not checked:**
-- `time.sleep(1.0)` stands in for each page having loaded. The windows are confirmed up and their web views exist with them, so the checks that count web views hold; whether a script could reach a page that has not loaded is not tried.
-- The screenshots are checked only for a returned `path`; they are never compared.
+- `time.sleep(1.0)` stands in for the page having loaded. The panel is confirmed up and its web view exists with it, so the check that counts web views holds; whether a script could reach a page that has not loaded is not tried.
+- The screenshot is checked only for a returned `path`; it is never compared.
 
-**Strength:** Strong — the hiding checks run with each window confirmed up, the window absence has its control in the same tree, and the key's destination is read from the reply's own fields.
+**Strength:** Strong — the hiding checks run with the panel confirmed up, and the key's destination is read from the reply's own fields.
 
 ## `test_list_windows`
-`test_list_windows.py` · Python, 16 checks (4 only when the Plugins window has a ref)
+`test_list_windows.py` · Python, 17 checks (4 only when the Plugins window has a ref, 1 only when Action Replay has one)
 
-**Tests:** `window_list`. The main window comes first. The Plugins window, which doesn't block the app, is listed with a ref that `window_screenshot`, `widget_list` and `keyboard_press` take. Preferences is listed last as modal and is gone once closed. Action Replay is listed as hidden, with no ref.
+**Tests:** `window_list`. The main window comes first. The Plugins window, which doesn't block the app, is listed with a ref that `window_screenshot`, `widget_list` and `keyboard_press` take. Preferences is listed last as modal and is gone once closed. Action Replay is listed with a ref, as a window the tools reach, and closes with a key.
 
 **Decides by:** Exits 1 when any check prints FAIL.
 - Page: `total == len(items)` and `offset == 0`.
 - Main window: the first item has `kind: "main"`, a `ref`, `modal: false`, and width and height above 0.
 - Plugins: it is found by title within 15 s, with `modal: false`, a `ref` and `web: true`. A screenshot by its ref has a `path`, a width above 0, and a size different from the main window's. `widget_list` by its ref has "Plugins" on the first line and no `MainFrame`. `keyboard_press Escape` by its ref removes it from the list within 10 s.
 - Preferences: it has `modal: true` and a `ref`, is last in the list, and is absent after `dialog_answer close`.
-- Action Replay: `hidden: true`, and no `ref` key.
+- Action Replay: found by title within 10 s of `action_run open_action_replay`, with no `hidden` key, a `ref`, `modal: false` and `web: true`; `keyboard_press Escape` by its ref removes it from the list within 10 s.
 
 **Not checked:**
 - The Plugins screenshot is checked only for a size unlike the main window's. It is not compared with the size `window_list` gives for Plugins, and its pixels are never compared.
 - "the modal dialog comes last" runs after Plugins is closed. If the list then holds only the main window and Preferences, "last" only means "not first"; I could not confirm what else the list holds at that point.
-- Action Replay is left open at the end, and its other fields are not checked.
+- Action Replay's size and position, and what its page shows.
 
 **Strength:** Strong — flags, refs, order and removal are checked by exact value. Only the screenshot is checked loosely.
 

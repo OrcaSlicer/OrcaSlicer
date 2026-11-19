@@ -396,7 +396,7 @@ class CadGui:
 
     def _modeless_windows(self):
         """window_list's shown dialogs that are not modal, leaving out the person's own (hidden), such
-        as Action Replay, which no tool reaches."""
+        as a floating Run Script panel, which no tool reaches."""
         items = self.client.call("window_list").get("items", [])
         return [w for w in items if w.get("kind") == "dialog" and not w.get("modal") and not w.get("hidden")]
 

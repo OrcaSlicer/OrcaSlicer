@@ -3530,7 +3530,7 @@ wxWindow* UiInspector::key_target(const UiTarget* t) const
     if (t != nullptr)
         return t->window.get();
     wxWindow* focus = wxWindow::FindFocus();
-    // Focus left in a window the tools don't see (the Action Replay window) is no target for keys.
+    // Focus left in a window the tools don't see (the Run Script panel) is no target for keys.
     if (focus != nullptr && hidden_from_automation(focus))
         focus = nullptr;
     if (wxDialog* top = m_modals.top())

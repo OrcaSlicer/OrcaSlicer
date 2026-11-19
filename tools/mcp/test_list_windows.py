@@ -7,7 +7,8 @@
 The main window comes first. The Plugins window, which doesn't block the app, is listed with a ref:
 a screenshot of that ref captures the window, widget_list with it as target reads that window alone,
 and keyboard_press Escape sent to it closes it, after which the list leaves it out. Preferences, a modal
-dialog, comes last. Action Replay is listed as hidden, without a ref. Exits 0 when every check passes.
+dialog, comes last. Action Replay, a window the tools reach, is listed with a ref, and keyboard_press Escape sent to it
+closes it. Exits 0 when every check passes.
 """
 
 import os
@@ -81,11 +82,15 @@ def main():
     client.await_job(prefs)
     check("Preferences is gone from the list once closed", find("Preferences") is None, windows())
 
-    # Action Replay is the person's own window: listed, but out of reach.
+    # Action Replay is a window the tools reach: listed with a ref, and closed by a key sent to it.
     client.call("action_run", id="orca_command:open_action_replay:orca")
-    replay = wait_for(lambda: find("Action Replay"), 15)
-    check("Action Replay is listed as hidden", replay and replay.get("hidden") is True, windows())
-    check("without a ref", replay is not None and "ref" not in replay, replay)
+    replay = wait_for(lambda: find("Action Replay"), 10)
+    check("Action Replay is listed, not hidden", replay is not None and "hidden" not in replay, windows())
+    check("with a ref, not modal, showing a web page",
+          replay is not None and bool(replay.get("ref")) and replay.get("modal") is False and replay.get("web") is True, replay)
+    if replay is not None and replay.get("ref"):
+        client.call("keyboard_press", keys="Escape", target=replay["ref"])
+        check("keyboard_press Escape on its ref closes Action Replay", wait_for(lambda: find("Action Replay") is None, 10), windows())
 
     failed = [c for c in checks if not c[1]]
     for name, ok, detail in checks:
