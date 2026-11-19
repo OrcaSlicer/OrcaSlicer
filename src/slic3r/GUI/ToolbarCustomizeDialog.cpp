@@ -15,22 +15,28 @@
 #include "Widgets/Label.hpp"
 #include "Widgets/StateColor.hpp"
 #include "format.hpp"
+#include "wxExtensions.hpp"
 #include "libslic3r/AppConfig.hpp"
 
+#include <wx/brush.h>
 #include <wx/colour.h>
 #include <wx/defs.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
+#include <wx/menu.h>
 #include <wx/panel.h>
+#include <wx/pen.h>
 #include <wx/sizer.h>
 #include <wx/string.h>
 #include <wx/tglbtn.h>
 #include <wx/toplevel.h>
 #include <wx/window.h>
+#include <wx/dcclient.h>
 #include <wx/wupdlock.h>
 
 #include <algorithm>
 #include <cstddef>
+#include <functional>
 #include <iterator>
 #include <map>
 #include <string>
@@ -100,6 +106,13 @@ public:
         sizer->Add(hint, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(12));
 
         auto* lists = new wxBoxSizer(wxHORIZONTAL);
+        // The actions sit beside the lists, so the dialog grows wider rather than taller.
+        m_actions = new wxBoxSizer(wxVERTICAL);
+        lists->Add(m_actions, 0, wxRIGHT, FromDIP(16));
+        // TRN Tooltip of the Move up button in the Customize Toolbar dialog. %1% is a key chord such as "Alt+Arrow Up".
+        m_move_up = add_action(_L("Move up"), format_wxstr(_L("Move up (%1%)"), from_u8(move_up_key().display())), [this] { move_selected(-1); });
+        // TRN Tooltip of the Move down button in the Customize Toolbar dialog. %1% is a key chord such as "Alt+Arrow Down".
+        m_move_down = add_action(_L("Move down"), format_wxstr(_L("Move down (%1%)"), from_u8(move_down_key().display())), [this] { move_selected(1); });
         m_main_panel  = add_list(lists, _L("Object tools"));
         m_gizmo_panel = add_list(lists, _L("Gizmos"));
         sizer->Add(lists, 1, wxEXPAND | wxALL, FromDIP(12));
@@ -142,6 +155,8 @@ public:
 protected:
     void on_dpi_changed(const wxRect&) override
     {
+        m_move_up->Rescale();
+        m_move_down->Rescale();
         rebuild_rows();
         GetSizer()->SetSizeHints(this);
         Refresh();
@@ -158,6 +173,18 @@ private:
         column->Add(panel, 1, wxEXPAND);
         lists->Add(column, 1, wxEXPAND | wxRIGHT, FromDIP(16));
         return panel;
+    }
+
+    Button* add_action(const wxString& text, const wxString& tip, std::function<void()> action)
+    {
+        auto* btn = new Button(this, text);
+        btn->SetStyle(ButtonStyle::Regular, ButtonType::Window);
+        btn->SetToolTip(tip);
+        // Mouse only, like the row arrows: a focused button that gets disabled would hand the focus on.
+        btn->SetCanFocus(false);
+        btn->Bind(wxEVT_BUTTON, [action](wxCommandEvent&) { action(); });
+        m_actions->Add(btn, 0, wxEXPAND | wxBOTTOM, FromDIP(6));
+        return btn;
     }
 
     static KeyChord move_up_key() { return {WXK_UP, wxMOD_ALT}; }
@@ -192,10 +219,12 @@ private:
         update_arrows();
     }
 
-    // Only the selected row shows its arrows, so they plainly move that row; each is enabled only when the
-    // row can move that way.
+    // Only the selected row shows its arrows, so they plainly move that row; each arrow, and each Move button,
+    // is enabled only when the row can move that way.
     void update_arrows()
     {
+        m_move_up->Enable(false);
+        m_move_down->Enable(false);
         for (const auto& [id, row] : m_rows) {
             const bool selected = id == m_selected;
             row.up->Show(selected);
@@ -211,6 +240,8 @@ private:
             row.up->SetIcon(up ? "toolbar_row_up" : "toolbar_row_up_disabled");
             row.down->Enable(down);
             row.down->SetIcon(down ? "toolbar_row_down" : "toolbar_row_down_disabled");
+            m_move_up->Enable(up);
+            m_move_down->Enable(down);
         }
     }
 
@@ -224,7 +255,8 @@ private:
             rows->GetItem(index)->GetWindow()->MoveBeforeInTabOrder(rows->GetItem(1)->GetWindow());
     }
 
-    wxSizerFlags row_flags() const { return wxSizerFlags().Expand().Border(wxBOTTOM, FromDIP(2)); }
+    // No gap between rows: a click there would land on the list, not a row.
+    static wxSizerFlags row_flags() { return wxSizerFlags().Expand(); }
 
     // Restyles the old and new selected rows only; rebuilding them all on each click flickers.
     void select_row(const std::string& id)
@@ -240,12 +272,8 @@ private:
     {
         const wxColour bg = StateColor::darkModeColorFor(wxColour(selected ? "#BFE1DE" : "#FFFFFF"));
         row->SetBackgroundColour(bg);
-        for (wxWindow* child : row->GetChildren()) {
+        for (wxWindow* child : row->GetChildren())
             child->SetBackgroundColour(bg);
-            if (auto* name = dynamic_cast<Label*>(child); name != nullptr && name->GetName() == "name")
-                name->SetFont(selected ? Label::Head_14 : Label::Body_14);
-        }
-        row->Layout();
         row->Refresh();
     }
 
@@ -322,17 +350,14 @@ private:
             });
             row_sizer->Add(check, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(6));
 
-            // Sized for the bold font, so selecting the row does not clip its name.
-            auto* name = new Label(row, Label::Head_14, toolbar_item_name(id));
-            name->SetName("name");
-            name->SetMinSize(name->GetBestSize());
-            row_sizer->Add(name, 1, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(3));
+            auto* name = new Label(row, Label::Body_14, toolbar_item_name(id));
+            row_sizer->Add(name, 1, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(4));
 
             if (id != TOOLBAR_SEPARATOR_ID && canvas != nullptr && !canvas->is_toolbar_item_available(id)) {
                 // TRN Shown next to a toolbar icon the current printer or selection leaves off the toolbar.
                 auto* note = new Label(row, Label::Body_12, _L("(not on the toolbar right now)"));
                 note->SetForegroundColour(wxColour(144, 144, 144));
-                row_sizer->Add(note, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
+                row_sizer->Add(note, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(6));
             }
 
             // Hidden until the row is selected; their space is kept so the row does not shift when they show.
@@ -370,6 +395,34 @@ private:
                 if (child != check && child != up && child != down)
                     child->Bind(wxEVT_LEFT_DOWN, on_click);
 
+            // The hovered row shows a border. Moving onto a child leaves the row, so only a leave outside the row
+            // clears it.
+            const auto on_enter = [this, id](wxMouseEvent& e) {
+                set_hovered(id);
+                e.Skip();
+            };
+            const auto on_leave = [this, id, row](wxMouseEvent& e) {
+                const auto* from = static_cast<wxWindow*>(e.GetEventObject());
+                const wxPoint at = from == row ? e.GetPosition() : from->GetPosition() + e.GetPosition();
+                if (m_hovered == id && !row->GetClientRect().Contains(at))
+                    set_hovered({});
+                e.Skip();
+            };
+            row->Bind(wxEVT_ENTER_WINDOW, on_enter);
+            row->Bind(wxEVT_LEAVE_WINDOW, on_leave);
+            for (wxWindow* child : row->GetChildren()) {
+                child->Bind(wxEVT_ENTER_WINDOW, on_enter);
+                child->Bind(wxEVT_LEAVE_WINDOW, on_leave);
+            }
+            row->Bind(wxEVT_PAINT, [this, id, row](wxPaintEvent&) {
+                wxPaintDC dc(row);
+                if (id != m_hovered)
+                    return;
+                dc.SetPen(wxPen(StateColor::darkModeColorFor(wxColour("#009688")), FromDIP(1)));
+                dc.SetBrush(*wxTRANSPARENT_BRUSH);
+                dc.DrawRectangle(row->GetClientRect());
+            });
+
             style_row(row, id == m_selected);
             rows->Add(row, row_flags());
             m_rows[id] = {row, check, up, down};
@@ -377,13 +430,25 @@ private:
         panel->Layout();
     }
 
+    void set_hovered(const std::string& id)
+    {
+        const std::string old = std::exchange(m_hovered, id);
+        for (const std::string* changed : {&old, &id})
+            if (const auto it = m_rows.find(*changed); it != m_rows.end())
+                it->second.panel->Refresh();
+    }
+
     ToolbarLayout m_loaded;
     ToolbarLayout m_working;
     std::string   m_selected;
     std::string   m_focused_row;    // the row whose box last took the focus
+    std::string   m_hovered;        // the row under the pointer, drawn with a border
     bool          m_tabbing{false}; // Tab has been pressed, so focusing a box selects its row
     wxPanel*      m_main_panel{nullptr};
     wxPanel*      m_gizmo_panel{nullptr};
+    wxBoxSizer*   m_actions{nullptr};
+    Button*       m_move_up{nullptr};
+    Button*       m_move_down{nullptr};
     struct Row
     {
         wxPanel*    panel{nullptr};
@@ -411,6 +476,20 @@ void show_toolbar_customize_dialog(wxWindow* parent)
 
     if (wxGetApp().plater() != nullptr)
         wxGetApp().plater()->get_view3D_canvas3D()->apply_toolbar_layout();
+}
+
+void show_toolbar_context_menu()
+{
+    // Not on the stack of the canvas's mouse handler: the menu, and the dialog after it, run their own event loops.
+    wxGetApp().CallAfter([] {
+        Plater* plater = wxGetApp().plater();
+        if (plater == nullptr)
+            return;
+        wxMenu menu;
+        append_menu_item(&menu, wxID_ANY, _L("Customize Toolbar..."), _L("Choose which toolbar icons are shown and in what order."),
+                         [](wxCommandEvent&) { wxGetApp().CallAfter([] { show_toolbar_customize_dialog(wxGetApp().mainframe); }); }, "", &menu);
+        plater->PopupMenu(&menu);
+    });
 }
 
 }} // namespace Slic3r::GUI

@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <functional>
+#include <utility>
 #include <string>
 #include <vector>
 #include <wx/event.h>
@@ -356,6 +357,7 @@ private:
     };
 
     MouseCapture m_mouse_capture;
+    std::function<void()> m_context_menu;
     int m_pressed_toggable_id;
 
 public:
@@ -427,6 +429,8 @@ public:
     void render_arrow(const GLCanvas3D& parent, GLToolbarItem* highlighted_item);
 
     bool on_mouse(wxMouseEvent& evt, GLCanvas3D& parent);
+    // Called on a right click on the toolbar outside any icon with a right action; none by default.
+    void set_context_menu(std::function<void()> menu) { m_context_menu = std::move(menu); }
     // get item pointer for highlighter timer
     GLToolbarItem* get_item(const std::string& item_name);
 
