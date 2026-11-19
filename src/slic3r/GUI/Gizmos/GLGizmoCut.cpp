@@ -22,6 +22,8 @@
 #include "slic3r/GUI/GLModel.hpp"
 #include "libslic3r/Point.hpp"
 #include <utility>
+#include <tuple>
+#include <initializer_list>
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/BoundingBox.hpp"
@@ -559,8 +561,7 @@ std::optional<Vec3d> GLGizmoCut3D::pick_vertex(const Vec2d& mouse_pos)
     if (!nearest)
         return std::nullopt;
 
-    // Measure's endpoint tolerance is in millimeters. Bake the linear transform
-    // into the mesh once, keeping the face indices used by the volume raycaster.
+    // Keep Measure's feature geometry in world units and preserve the raycaster's face indices.
     const int volume_idx = nearest->volume_idx();
     const auto mesh = selection.get_model()->objects[nearest->object_idx()]->volumes[volume_idx]->mesh_ptr();
     VertexFeatures& features = m_vertex_features[volume_idx];
@@ -571,10 +572,33 @@ std::optional<Vec3d> GLGizmoCut3D::pick_vertex(const Vec2d& mouse_pos)
         its_transform(transformed, features.linear_transform, true);
         features.measuring = std::make_unique<Measure::Measuring>(transformed);
     }
-    auto feature = features.measuring->get_feature(facet, world.linear() * hit, translation_transform(world.translation()), false);
-    if (feature && feature->get_type() == Measure::SurfaceFeatureType::Point)
-        return feature->get_point();
-    return std::nullopt;
+    const auto plane = features.measuring->get_feature(facet, world.linear() * hit, translation_transform(world.translation()), true);
+    if (!plane)
+        return std::nullopt;
+
+    // A cursor ray hits the marker when it passes within one sphere radius of its center.
+    // Measure's boundary edges exclude internal triangle vertices and tessellated circles.
+    const Vec3d surface_hit = world * hit;
+    const Vec3d ray = camera.get_type() == Camera::EType::Perspective ?
+                      Vec3d((surface_hit - camera.get_position()).normalized()) : camera.get_dir_forward();
+    const double radius = GLGizmoUtils::point_marker_radius * camera.get_inv_zoom();
+    double closest_sq = radius * radius;
+    std::optional<Vec3d> vertex;
+    for (const auto& feature : features.measuring->get_plane_features(std::get<0>(plane->get_plane()))) {
+        if (feature.get_type() != Measure::SurfaceFeatureType::Edge)
+            continue;
+
+        const auto [start, end] = feature.get_edge();
+        for (const Vec3d& endpoint : {start, end}) {
+            const Vec3d candidate = endpoint + world.translation();
+            const double distance_sq = (candidate - surface_hit).cross(ray).squaredNorm();
+            if (distance_sq < closest_sq) {
+                closest_sq = distance_sq;
+                vertex = candidate;
+            }
+        }
+    }
+    return vertex;
 }
 
 void GLGizmoCut3D::shift_cut(double delta)
@@ -2486,7 +2510,7 @@ void GLGizmoCut3D::on_render()
     if (m_hovered_vertex) {
         const Camera& camera = wxGetApp().plater()->get_camera();
         render_model(m_sphere.model, GRABBER_COLOR, camera.get_view_matrix() *
-                     translation_transform(*m_hovered_vertex) * scale_transform(5.0 * camera.get_inv_zoom()));
+                     translation_transform(*m_hovered_vertex) * scale_transform(GLGizmoUtils::point_marker_radius * camera.get_inv_zoom()));
     }
 
     render_cut_line();
