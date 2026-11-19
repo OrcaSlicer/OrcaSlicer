@@ -48,8 +48,6 @@ public:
               const wxSize & size  = wxDefaultSize,
               long           style = 0);
 
-    void SetCornerRadius(double radius);
-
     // Only meant to be used by inspector, not public API
     int GetCornerRadius() const { return static_cast<int>(radius); }
 

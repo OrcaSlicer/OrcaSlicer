@@ -95,6 +95,7 @@ namespace UndoRedo {
 }
 
 namespace GUI {
+enum class LoadType : unsigned char;
 class SyncAmsInfoDialog;
 class MainFrame;
 class ConfigOptionsGroup;
@@ -193,7 +194,7 @@ public:
     void create_printer_preset();
     void init_filament_combo(PlaterPresetComboBox **combo, const int filament_idx);
     void remove_unused_filament_combos(const size_t current_extruder_count);
-    void update_all_preset_comboboxes();
+    void update_all_preset_comboboxes(bool update_filament_combos = true);
     //void update_partplate(PartPlateList& list);
     void update_presets(Slic3r::Preset::Type preset_type);
     //BBS
@@ -219,6 +220,8 @@ public:
     void delete_filament(size_t filament_id = size_t(-1), int replace_filament_id = -1);  // 0 base, -1 means default
     void change_filament(size_t from_id, size_t to_id);  // 0 base
     void edit_filament();
+    // Loads a filament's preset into the filament tab without showing it, so that edits go to it. 0 based.
+    bool load_filament_in_tab(size_t filament_id);
     void add_custom_filament(wxColour new_col, const std::string& preset_name = std::string(), bool skip_preset_validation = false);
     bool is_new_project_in_gcode3mf();
     // BBS
@@ -389,6 +392,8 @@ public:
     bool up_to_date(bool saved, bool backup);
 
     bool open_3mf_file(const boost::filesystem::path &file_path);
+    // Batch import resolves the project/geometry question once before staging the whole set.
+    bool open_3mf_file(const boost::filesystem::path &file_path, LoadType resolved_type);
     int  get_3mf_file_count(std::vector<boost::filesystem::path> paths);
     void add_file();
     // Returns false when no object was added (e.g. the user cancelled the load dialog).
@@ -408,7 +413,9 @@ public:
     // SoftFever
     void calib_pa(const Calib_Params& params);
     //ORCA: Add pattern parameter to calib_flowrate
-    void calib_flowrate(bool is_linear, int pass, InfillPattern pattern = ipArchimedeanChords);
+    void calib_flowrate(bool is_linear, int pass, InfillPattern pattern = ipArchimedeanChords, int filament_id = 0, int extruder_id = 0);
+    // True from calib_flowrate() until other files are loaded, like the print's calibration mode
+    bool is_flowrate_calib() const;
     void calib_temp(const Calib_Params& params);
     void calib_max_vol_speed(const Calib_Params& params);
     void calib_retraction(const Calib_Params& params);
@@ -454,7 +461,8 @@ public:
     bool preview_zip_archive(const boost::filesystem::path& archive_path);
 
     // BBS: restore
-    std::vector<size_t> load_files(const std::vector<boost::filesystem::path>& input_files, LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,  bool ask_multi = false, bool* published_out = nullptr);
+    std::vector<size_t> load_files(const std::vector<boost::filesystem::path>& input_files, LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,  bool ask_multi = false, bool* published_out = nullptr,
+                                   const std::function<void()>& before_publish = nullptr);
     // to be called on drag and drop
     bool load_files(const wxArrayString& filenames);
 
@@ -550,7 +558,8 @@ public:
     void reset(bool apply_presets_change = false, bool reload_presets = true);
     void reset_with_confirm();
     //BBS: return int for various result
-    int close_with_confirm(std::function<bool(bool yes_or_no)> second_check = nullptr); // BBS close project
+    // With deferred_close, the steps that mark the current project closed are returned instead of run.
+    int close_with_confirm(std::function<bool(bool yes_or_no)> second_check = nullptr, std::function<void()>* deferred_close = nullptr); // BBS close project
     //BBS: trigger a restore project event
     void trigger_restore_project(int skip_confirm = 0);
     bool delete_object_from_model(size_t obj_idx, bool refresh_immediately = true); // BBS support refresh immediately
@@ -1059,6 +1068,7 @@ public:
     wxMenu* part_menu();
     wxMenu* text_part_menu();
     wxMenu* svg_part_menu();
+    wxMenu* painted_modifier_menu();
     wxMenu* sla_object_menu();
     wxMenu* default_menu();
     wxMenu* instance_menu();
@@ -1128,6 +1138,10 @@ private:
     void _calib_pa_tower(const Calib_Params& params);
     void _calib_pa_select_added_objects();
     void _calib_apply_belt_mode();
+    // Loads the filament a calibration prints with into the filament tab, so the test edits its settings.
+    bool _calib_select_filament(int filament_id);
+    // Makes every test object print with that filament.
+    void _calib_assign_filament(int filament_id);
     void _calib_temp_belt_sectioned(const Calib_Params& params, double belt_angle_rad);
 
     void cut_horizontal(size_t obj_idx, size_t instance_idx, double z, ModelObjectCutAttributes attributes);

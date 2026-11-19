@@ -4,6 +4,7 @@
 #include <boost/algorithm/string/erase.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
+#include <boost/lexical_cast.hpp>
 #include <cstddef>
 #include <algorithm>
 #include "libslic3r/Color.hpp"
@@ -3026,6 +3027,8 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 	int glb_internal_solid_extr = glb_config.opt_int("internal_solid_filament_id");
 	int glb_top_surface_extr = glb_config.opt_int("top_surface_filament_id");
 	int glb_bottom_surface_extr = glb_config.opt_int("bottom_surface_filament_id");
+	const int glb_brim_extr = glb_config.opt_int("brim_filament_id");
+	const bool glb_brim = glb_config.option("brim_type")->getInt() != int(BrimType::btNoBrim);
 	bool glb_support = glb_config.opt_bool("enable_support");
     glb_support |= glb_config.opt_int("raft_layers") > 0;
 
@@ -3136,6 +3139,12 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 		else if (glb_bottom_surface_extr != 0)
 			plate_extruders.push_back(glb_bottom_surface_extr);
 
+		const ConfigOption* brim_type_opt = mo->config.option("brim_type");
+		if (brim_type_opt != nullptr ? brim_type_opt->getInt() != int(BrimType::btNoBrim) : glb_brim) {
+			const ConfigOption* brim_opt = mo->config.option("brim_filament_id");
+			if (const int brim_extr = brim_opt != nullptr ? brim_opt->getInt() : glb_brim_extr; brim_extr != 0)
+				plate_extruders.push_back(brim_extr);
+		}
 	}
 
 	if (conside_custom_gcode) {
@@ -3191,6 +3200,9 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 	int glb_internal_solid_extr = full_config.opt_int("internal_solid_filament_id");
 	int glb_top_surface_extr = full_config.opt_int("top_surface_filament_id");
 	int glb_bottom_surface_extr = full_config.opt_int("bottom_surface_filament_id");
+	const ConfigOption* glb_brim_opt = full_config.option("brim_filament_id");
+	const int glb_brim_extr = glb_brim_opt != nullptr ? glb_brim_opt->getInt() : 0;
+	const bool glb_brim = full_config.option("brim_type")->getInt() != int(BrimType::btNoBrim);
 
     bool glb_support = full_config.opt_bool("enable_support");
     glb_support |= full_config.opt_int("raft_layers") > 0;
@@ -3307,6 +3319,13 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 				plate_extruders.push_back(obj_bottom_surface_extr);
 			else if (glb_bottom_surface_extr != 0)
 				plate_extruders.push_back(glb_bottom_surface_extr);
+
+			const ConfigOption* brim_type_opt = object->config.option("brim_type");
+			if (brim_type_opt != nullptr ? brim_type_opt->getInt() != int(BrimType::btNoBrim) : glb_brim) {
+				const ConfigOption* brim_opt = object->config.option("brim_filament_id");
+				if (const int brim_extr = brim_opt != nullptr ? brim_opt->getInt() : glb_brim_extr; brim_extr != 0)
+					plate_extruders.push_back(brim_extr);
+			}
         }
     }
 
@@ -3543,6 +3562,9 @@ std::map<int, size_t> PartPlate::get_object_filament_extruders(
         if (active && !object.config.has(key) && process_config.has(key) && process_config.opt_int(key) > 0)
             filament_ids.emplace(process_config.opt_int(key));
     }
+
+    if (has_brim && effective_int("brim_filament_id") > 0)
+        filament_ids.emplace(effective_int("brim_filament_id"));
 
     const bool has_support = effective_bool("enable_support") || effective_int("raft_layers") > 0;
     if (has_support) {
@@ -5189,8 +5211,9 @@ BoundingBoxf3 PartPlate::get_build_volume(bool use_share)
     auto  eps=Slic3r::BuildVolume::SceneEpsilon;
 	Vec3d up_point;
 	Vec3d low_point;
-	if (use_share && !m_extruder_areas.empty()) {
-		Polygon bed_poly = get_shared_poly(m_extruder_areas);
+	// Extruder areas that share nothing leave the whole plate to place on.
+	const Polygon bed_poly = use_share && !m_extruder_areas.empty() ? get_shared_poly(m_extruder_areas, m_shape) : Polygon();
+	if (!bed_poly.points.empty()) {
 		BoundingBox bbox = bed_poly.bounding_box();
 
 		up_point = Vec3d(unscale_(bbox.max.x()) + eps,  unscale_(bbox.max.y()) + eps, m_origin.z() + m_height + eps);
@@ -5207,7 +5230,7 @@ BoundingBoxf3 PartPlate::get_build_volume(bool use_share)
 
 Polygon PartPlate::get_shared_printable_polygon() const
 {
-	return m_extruder_areas.empty() ? Polygon::new_scale(m_shape) : get_shared_poly(m_extruder_areas);
+	return m_extruder_areas.empty() ? Polygon::new_scale(m_shape) : get_shared_poly(m_extruder_areas, m_shape);
 }
 
 
@@ -6339,6 +6362,9 @@ void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx, bool ini
     // prime tower is validated against the real outline — pull it onto the bed before storing.
     {
         Polygons bed{part_plate->get_shared_printable_polygon()};
+        // Without an area every extruder reaches the tower cannot be printed, but it still stays on the plate.
+        if (bed.front().points.empty())
+            bed.front() = Polygon::new_scale(part_plate->get_shape());
         bed.front().translate(Point(-scaled(plate_origin.x()), -scaled(plate_origin.y()))); // into the frame x/y live in
         const BoundingBox tower(Point::new_scale(x, y),
                                 Point::new_scale(x + wipe_tower_size(0), y + wipe_tower_size(1)));
@@ -8547,7 +8573,7 @@ int PartPlateList::load_from_3mf_structure(PlateDataPtrs& plate_data_list, int f
                 std::replace(s.begin(), s.end(), ',', ' ');
                 std::istringstream iss(s);
                 std::string tok;
-                while (iss >> tok) { try { out.push_back(std::stod(tok)); } catch (...) {} }
+                while (iss >> tok) { try { out.push_back(boost::lexical_cast<double>(tok)); } catch (...) {} }
                 return out;
             };
 

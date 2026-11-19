@@ -10,6 +10,7 @@
 #include <cassert>
 #include <algorithm>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
 #include <glad/gl.h>
 
 #include "slic3r/GUI/GUI_App.hpp"
@@ -1156,6 +1157,8 @@ void GLGizmoPainterBase::update_raycast_cache(const Vec2d& mouse_position,
             }
         }
     }
+    if (closest_hit_mesh_id != -1 && ! is_mesh_paintable(closest_hit_mesh_id))
+        closest_hit_mesh_id = -1;
 
     m_rr = {mouse_position, closest_hit_mesh_id, closest_hit, closest_facet};
 }

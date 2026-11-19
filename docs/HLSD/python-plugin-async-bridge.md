@@ -46,6 +46,8 @@ finalization cannot run underneath it. `ScopedPluginAuditContext`
 (`src/slic3r/plugin/PluginAuditManager.hpp`) stores the previous thread-local plugin/capability pair
 and scoped filesystem roots, sets this call's, and restores them on destruction; the audit hook then
 attributes every filesystem/socket/process event to the plugin currently executing on that thread.
+The policy those events are judged against is described in
+[plugin-permissions.md](plugin-permissions.md).
 
 ### The Script capability
 
@@ -139,10 +141,22 @@ dropping the pybind holder from a non-Python thread would `DECREF` without the G
 closed and `tl_script_loop` cleared before the worker exits.
 
 A consequence of running Script on a non-main thread: the audit permission prompt is fail-closed off
-the main thread. `request_permission` in `src/slic3r/plugin/PluginAuditManager.cpp` posts the dialog
-with `CallAfter` and denies the current event, persisting the grant when the user accepts, so a
-Script sees a denial on the first attempt and can succeed on a later one. This matches the existing
-behavior for the plugin-load worker and the slicing worker.
+the main thread. `request_permission` in `src/slic3r/plugin/PluginAuditManager.cpp` queues the dialog
+for the GUI thread and denies the current event. For permissions with persistent grants, accepting
+the prompt saves a grant for a later attempt, so a Script sees a denial on the first attempt and can
+succeed on a later one. Create and delete approvals save the target's parent folder in the same way.
+Recursive-delete consent is instead a one-time approval for the next matching attempt within one
+minute, bound to the plugin and canonical target. It is never saved. The plugin-load worker and the
+slicing worker follow the same behavior.
+
+`AuditPromptQueue` serializes runtime prompts, recursive-delete consent and load-time declared-permission
+prompts. Only one is shown at a time, including during a modal dialog's nested event loop. A load
+worker waits for its declared-permission answer; shutdown or plugin unload cancels pending requests
+and active requests whose accepted answers have not started committing, releasing waiting workers
+with a denial. An accepted answer already being persisted completes before its worker is released.
+A declared-permission request on the GUI thread is
+denied if another prompt is active or pending, rather than blocking the GUI or opening a deferred
+dialog. The queue outlives static destruction so shutdown can discard requests safely.
 
 ### Blocking UI continuation
 

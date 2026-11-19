@@ -1,0 +1,9 @@
+{
+	"type": "process",
+	"name": "0.32mm Optimal @BenFab 450 0.8 nozzle",
+	"inherits": "0.40mm Standard @BenFab 450 0.8 nozzle",
+	"from": "system",
+	"setting_id": "1pDBWI9RQ1OFK0DN",
+	"instantiation": "true",
+	"layer_height": "0.32"
+}

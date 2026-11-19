@@ -6,8 +6,8 @@
 	"setting_id": "pF4T59Q97nEuyVlE",
 	"instantiation": "true",
 	"compatible_printers": [
-		"Flashforge Creator 5 0.6 nozzle",
-		"Flashforge Creator 5 Pro 0.6 nozzle"
+		"Flashforge Creator 5 0.8 nozzle",
+		"Flashforge Creator 5 Pro 0.8 nozzle"
 	],
 	"enable_arc_fitting": "1",
 	"enable_extra_bridge_layer": "external_bridge_only",

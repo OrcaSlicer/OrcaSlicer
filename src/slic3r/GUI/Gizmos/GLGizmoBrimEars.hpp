@@ -159,7 +159,7 @@ private:
     void select_point(int i);
     void unselect_point(int i);
     void reload_cache();
-    Points generate_points(Polygon &obj_polygon, float ear_detection_length, float brim_ears_max_angle, bool is_outer);
+    Points generate_points(const Polygon &obj_polygon, float ear_detection_length, float brim_ears_max_angle, bool is_outer);
     void auto_generate();
     void first_layer_slicer();
     void get_detection_radius_max();

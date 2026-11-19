@@ -252,6 +252,36 @@ static void insert_gap_fill(const ThickPolylines &gaps, const Flow &flow, Extrus
         return sum;
     };
 
+    // The last extrusion of the fill that borders each gap: the gap fill goes after it.
+    std::vector<size_t> after(gaps.size(), npos);
+    {
+        Lines               lines;
+        std::vector<size_t> owner;
+        for (size_t i = 0; i < entities.size(); ++ i)
+            for (const Polyline &pl : entities[i]->as_polylines())
+                for (const Line &line : pl.lines()) {
+                    lines.push_back(line);
+                    owner.push_back(i);
+                }
+        const AABBTreeLines::LinesDistancer<Line> distancer(std::move(lines));
+        const double spacing = flow.scaled_spacing();
+        for (size_t gap = 0; gap < gaps.size(); ++ gap) {
+            const ThickPolyline &pl = gaps[gap];
+            if (pl.width.empty())
+                continue;
+            const double radius = 0.5 * *std::max_element(pl.width.begin(), pl.width.end()) + spacing;
+            for (size_t j = 0; j + 1 < pl.points.size(); ++ j) {
+                const Vec2d  a     = pl.points[j].cast<double>();
+                const Vec2d  b     = pl.points[j + 1].cast<double>();
+                const size_t steps = std::max<size_t>(1, size_t(std::ceil((b - a).norm() / (0.5 * spacing))));
+                for (size_t k = 0; k <= steps; ++ k)
+                    for (size_t line : distancer.all_lines_in_radius(Point((a + double(k) / double(steps) * (b - a)).cast<coord_t>()), radius))
+                        if (after[gap] == npos || owner[line] > after[gap])
+                            after[gap] = owner[line];
+            }
+        }
+    }
+
     std::vector<Item> items, appended;
     items.reserve(entities.size() + gaps.size());
     for (const ExtrusionEntity *ee : entities)
@@ -262,7 +292,12 @@ static void insert_gap_fill(const ThickPolylines &gaps, const Flow &flow, Extrus
         double best      = std::numeric_limits<double>::max();
         size_t best_slot = 0;
         Item   best_item{};
+        size_t extrusions_before = 0;
         for (size_t slot = 0; slot <= items.size(); ++ slot) {
+            if (slot > 0 && items[slot - 1].gap == npos)
+                ++ extrusions_before;
+            if (after[gap] != npos && extrusions_before <= after[gap])
+                continue;
             const Point *prev = slot > 0 ? &items[slot - 1].out : nullptr;
             const Point *next = slot < items.size() ? &items[slot].in : nullptr;
             auto consider = [&](const Point &in, const Point &out, bool reversed) {
@@ -3115,6 +3150,12 @@ void join_close_ends(Polylines &polylines, double max_gap, bool can_reverse)
         if (! done[i] && partner[2 * i + 1] == npos)
             walk(2 * i + 1);
     polylines = std::move(out);
+}
+
+void join_cut_outlines(Polylines &polylines, const FillParams &params)
+{
+    if (params.multiline > 1)
+        join_close_ends(polylines, SCALED_EPSILON, true);
 }
 
 } // namespace Slic3r
