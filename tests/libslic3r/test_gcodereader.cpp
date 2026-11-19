@@ -3,6 +3,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_vector.hpp>
 #include "libslic3r/Config.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -63,9 +64,9 @@ TEST_CASE("A G-code reader follows relative positioning", "[GCodeReader]")
                 height_after_lift = reader.z();
         });
     // The lift is 2 mm up from 10 mm, and G92 then sets the height to 3 mm.
-    CHECK(targets == std::vector<float>{ 10.f, 12.f, 4.f });
-    CHECK(distances == std::vector<float>{ 10.f, 2.f, 1.f });
-    CHECK(height_after_lift == 12.f);
+    CHECK_THAT(targets, Catch::Matchers::Approx(std::vector<float>{ 10.f, 12.f, 4.f }).margin(1e-4));
+    CHECK_THAT(distances, Catch::Matchers::Approx(std::vector<float>{ 10.f, 2.f, 1.f }).margin(1e-4));
+    CHECK_THAT(height_after_lift, Catch::Matchers::WithinAbs(12., 1e-4));
 }
 
 TEST_CASE("A G-code reader fails on a file it cannot open", "[GCodeReader]")

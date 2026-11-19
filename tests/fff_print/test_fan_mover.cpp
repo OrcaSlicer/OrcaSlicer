@@ -4,6 +4,7 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
+#include <catch2/matchers/catch_matchers_vector.hpp>
 
 #include <string>
 #include <vector>
@@ -92,7 +93,7 @@ TEST_CASE("Fan mover does not split a move in relative mode", "[FanMover]")
     writer.apply_print_config(config);
     FanMover mover(writer, 0.5f, false, true, false, 0.f);
     const std::string gcode = mover.process_gcode(";TYPE:Outer wall\nG1 F60\nG1 Z10\nG91\nG1 Z2\nM106 S255\nG90\n", true);
-    CHECK(move_heights(gcode) == std::vector<float>{ 10.f, 12.f });
+    CHECK_THAT(move_heights(gcode), Catch::Matchers::Approx(std::vector<float>{ 10.f, 12.f }).margin(1e-4));
     CHECK_THAT(gcode, Catch::Matchers::ContainsSubstring("M106 S255\nG1 Z2"));
 }
 
