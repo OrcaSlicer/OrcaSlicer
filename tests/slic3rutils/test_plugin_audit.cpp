@@ -2074,7 +2074,7 @@ os.close(WRITE_FD)
     CHECK(harness.saved_permissions(PLUGIN).process.empty());
 }
 
-TEST_CASE("A process grant names the executable and ignores its arguments", "[audit][Python]")
+TEST_CASE("A process grant names the executable, or the exact Windows command line", "[audit][Python]")
 {
     AuditHarness harness;
     if (!harness.initialized)
@@ -2082,12 +2082,21 @@ TEST_CASE("A process grant names the executable and ignores its arguments", "[au
     harness.add_plugin(PLUGIN);
     py::gil_scoped_acquire gil;
     PythonSide python(harness);
-    const std::string executable = python.eval("TRUE_COMMAND[0]");
     const std::vector<std::string> shells = python.strings("SYSTEM_SHELLS");
+#ifdef _WIN32
+    // subprocess.run() joins argv into one command line before the audit event. Its executable
+    // "cmd" is unquoted and followed by arguments, so the documented grant keeps the whole exact
+    // line instead of the first token.
+    const std::string popen_target = R"(CommandLine:cmd /c "exit 0")";
+#else
+    // POSIX keeps the executable in its own argv element, so only the executable is granted.
+    const std::string popen_target = python.eval("TRUE_COMMAND[0]");
+#endif
 
     // Refused, so nothing runs: the prompts show the target each event reports. A direct process
-    // event names the executable, while os.system names every shell that may parse its command
-    // string.
+    // event names the executable, except a Windows command line whose unquoted executable is
+    // followed by arguments, which is the exact command line. os.system names every shell that may
+    // parse its command string.
     python.run_as(PLUGIN, R"PY(
 popen_outcome = attempt(lambda: subprocess.run(TRUE_COMMAND, check=True))
 system_outcome = attempt(lambda: os.system(" ".join(TRUE_COMMAND) + " ignored"))
@@ -2095,24 +2104,26 @@ system_outcome = attempt(lambda: os.system(" ".join(TRUE_COMMAND) + " ignored"))
     CHECK(python.str("popen_outcome") == "denied");
     CHECK(python.str("system_outcome") == "denied");
     CHECK(describe(harness.prompts) ==
-          "subprocess.Popen: " + executable + "\n" + describe_system_prompt(shells));
+          "subprocess.Popen: " + popen_target + "\n" + describe_system_prompt(shells));
 
 #ifndef _WIN32
     harness.prompts.clear();
     python.run_as(PLUGIN, "spawn_outcome = attempt(lambda: spawn_checked(TRUE_COMMAND + ['spawned']))");
     CHECK(python.str("spawn_outcome") == "denied");
-    CHECK(describe(harness.prompts) == "pty.spawn: " + executable + "\n");
+    CHECK(describe(harness.prompts) == "pty.spawn: " + popen_target + "\n");
 #endif
 
-    // Approving a direct process grant names only the executable; that is not a shell grant, so a
-    // later os.system is asked for on its own.
+    // Approving the direct process event grants its target alone: on Windows the exact command
+    // line, elsewhere the executable. The approval also opens an operation frame that covers the
+    // runtime's nested CreateProcess event, so the run asks once. Neither target is a shell grant,
+    // so a later os.system is asked for on its own.
     harness.approve = [](const Prompt&) { return true; };
     harness.prompts.clear();
     python.run_as(PLUGIN, "popen_outcome = attempt(lambda: subprocess.run(TRUE_COMMAND, check=True))");
     CHECK(python.str("popen_outcome") == "ok");
     REQUIRE(harness.prompts.size() == 1);
-    CHECK(harness.prompts.front().targets == std::vector<std::string>{executable});
-    CHECK(harness.saved_permissions(PLUGIN).process == std::vector<std::string>{executable});
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{popen_target});
+    CHECK(harness.saved_permissions(PLUGIN).process == std::vector<std::string>{popen_target});
 
     harness.prompts.clear();
     python.run_as(PLUGIN, R"PY(
@@ -2122,7 +2133,7 @@ system_outcome = attempt(lambda: os.system(" ".join(TRUE_COMMAND) + " ignored"))
     REQUIRE(harness.prompts.size() == 1);
     CHECK(harness.prompts.front().targets == shells);
     CHECK(harness.saved_permissions(PLUGIN).process ==
-          with_shell_grants({executable}, shells));
+          with_shell_grants({popen_target}, shells));
 
     // The shell grant covers a different command string, arguments included.
     harness.prompts.clear();
