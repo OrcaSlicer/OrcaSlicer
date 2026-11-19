@@ -77,6 +77,8 @@ BANNED = {
     "replace_part": ["replace_part_with_file", "replace_with_stl"],
     # The Print button's handlers run the print dialogs through it, as its Print and Send open them.
     "open_print_dialog": ["send_gcode_legacy", "send_to_printer"],
+    # The Device tab's job buttons send the same commands; the operation adds the checks a call needs without the tab.
+    "send_job_command": ["command_task_pause", "command_task_resume", "command_task_abort"],
     "sync_presets": ["restart_sync_user_preset", "start_sync_user_preset"],
     "add_filament_slot": ["add_filament"],
     "delete_filament_slot": ["delete_filament", "change_filament"],

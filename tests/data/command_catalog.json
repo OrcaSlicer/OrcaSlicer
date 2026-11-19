@@ -6529,6 +6529,144 @@
   },
   {
    "completion": "immediate",
+   "description": "Read what the Device tab shows of the printer it is connected to, without sending it anything. Reply: connected; with a printer, name, model (null where the tab would say Unknown), printer_type (the model's id), online, state (IDLE, PREPARE, RUNNING, PAUSE, FINISH, FAILED...), stage (a number), percent, remaining_seconds, layer, total_layers, file (the job's name), error_code, and temperatures: nozzles (one {current, target} each), bed and chamber, null where the tab shows none. With no printer connected the reply is {\"connected\": false}, which is no error. The values are what the printer last reported.",
+   "destructive": false,
+   "examples": [
+    {
+     "calls": [
+      {
+       "args": {},
+       "tool": "printer_status"
+      }
+     ],
+     "title": "Read the connected printer's state and temperatures"
+    }
+   ],
+   "group": "Printers and prints",
+   "guard": "inspect",
+   "has_own_action": false,
+   "idempotent": true,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {},
+    "type": "object"
+   },
+   "key": "printer_status",
+   "listed": true,
+   "open_world": false,
+   "operations": [],
+   "read_only": true,
+   "title": "Printer status"
+  },
+  {
+   "completion": "immediate",
+   "description": "Pause the print running on the printer the Device tab is connected to, as the tab's Pause button does. Refused: no_printer_connected with no printer connected, printer_state, naming the state, unless it is RUNNING. The printer's new state arrives when it reports: read it with printer_status. Reply: printer (its name), state (the state it was in) and sent. A replay sends the command again.",
+   "destructive": false,
+   "examples": [
+    {
+     "calls": [
+      {
+       "args": {},
+       "tool": "printer_status"
+      },
+      {
+       "args": {},
+       "tool": "print_pause"
+      }
+     ],
+     "title": "Pause the print once printer_status reads RUNNING"
+    }
+   ],
+   "group": "Printers and prints",
+   "guard": "mutate",
+   "has_own_action": false,
+   "idempotent": false,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {},
+    "type": "object"
+   },
+   "key": "print_pause",
+   "listed": true,
+   "open_world": true,
+   "operations": [
+    "send_job_command"
+   ],
+   "read_only": false,
+   "title": "Pause the print"
+  },
+  {
+   "completion": "immediate",
+   "description": "Resume the paused print on the printer the Device tab is connected to, as the tab's Resume button does. Refused: no_printer_connected with no printer connected, printer_state, naming the state, unless it is PAUSE, and resume_at_printer, in the app's own sentence, for a job (such as laser processing) that resumes only at the printer. The printer's new state arrives when it reports: read it with printer_status. Reply: printer (its name), state (the state it was in) and sent. A replay sends the command again.",
+   "destructive": false,
+   "examples": [
+    {
+     "calls": [
+      {
+       "args": {},
+       "tool": "printer_status"
+      },
+      {
+       "args": {},
+       "tool": "print_resume"
+      }
+     ],
+     "title": "Resume the print once printer_status reads PAUSE"
+    }
+   ],
+   "group": "Printers and prints",
+   "guard": "mutate",
+   "has_own_action": false,
+   "idempotent": false,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {},
+    "type": "object"
+   },
+   "key": "print_resume",
+   "listed": true,
+   "open_world": true,
+   "operations": [
+    "send_job_command"
+   ],
+   "read_only": false,
+   "title": "Resume the print"
+  },
+  {
+   "completion": "immediate",
+   "description": "Stop the print on the printer the Device tab is connected to, as the tab's Stop button does, but without its question \"Are you sure you want to stop this print?\": it asks nothing, and a stopped print cannot be resumed. Refused: no_printer_connected with no printer connected, printer_state, naming the state, unless it is RUNNING, PAUSE, PREPARE or SLICING. The printer's new state arrives when it reports: read it with printer_status. Reply: printer (its name), state (the state it was in) and sent. A replay sends the command again.",
+   "destructive": true,
+   "examples": [
+    {
+     "calls": [
+      {
+       "args": {},
+       "tool": "print_stop"
+      }
+     ],
+     "title": "Stop the print"
+    }
+   ],
+   "group": "Printers and prints",
+   "guard": "mutate",
+   "has_own_action": false,
+   "idempotent": false,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {},
+    "type": "object"
+   },
+   "key": "print_stop",
+   "listed": true,
+   "open_world": true,
+   "operations": [
+    "send_job_command"
+   ],
+   "read_only": false,
+   "title": "Stop the print"
+  },
+  {
+   "completion": "immediate",
    "description": "The plugins, as the Plugins window lists them: each with its key (which the other plugin commands take), name, version (the one installed, else the latest offered), installed (a package is on disk), enabled (loaded: the row's switch), status (Activated, Error, RuntimeError, Inactive or Loading), source (local, subscribed, mine or orphaned), capabilities (a loaded plugin's: name, type, enabled) and error.",
    "destructive": false,
    "examples": [

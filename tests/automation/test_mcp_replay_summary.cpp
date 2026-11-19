@@ -229,13 +229,18 @@ TEST_CASE("a call with other arguments than an action's is described by its argu
     CHECK(flags_of(describe(json{{"tool", "preset_import"}, {"args", {{"path", abs_path("a.json")}}}}.dump())) == Flags{"changes_presets"});
 }
 
-TEST_CASE("the print and send commands send to a printer and the host test sends nothing", "[Mcp]")
+TEST_CASE("the print, send and job commands send to a printer, and the host test and the status send nothing", "[Mcp]")
 {
     CHECK(flags_of(describe(R"({"tool": "print_start"})")) == Flags{"sends_to_printer"});
     CHECK(flags_of(describe(R"({"tool": "print_start", "args": {"plates": 1}})")) == Flags{"sends_to_printer"});
     // printer_send with a plate is no action's call, and sends all the same.
     CHECK(flags_of(describe(R"({"tool": "printer_send", "args": {"plates": 1}})")) == Flags{"sends_to_printer"});
     CHECK(flags_of(describe(R"({"tool": "printer_test_host"})")).empty());
+    for (const char* job : {"print_pause", "print_resume", "print_stop"}) {
+        INFO(job);
+        CHECK(flags_of(describe(json{{"tool", job}}.dump())) == Flags{"sends_to_printer"});
+    }
+    CHECK(flags_of(describe(R"({"tool": "printer_status"})")).empty());
 }
 
 TEST_CASE("an action that collects a value is described with it, and a call without it is no action's call", "[Mcp]")

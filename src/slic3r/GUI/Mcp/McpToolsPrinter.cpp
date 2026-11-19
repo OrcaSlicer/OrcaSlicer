@@ -1,6 +1,8 @@
 // The printing commands: print_start and printer_send open the dialog the Print button's Print and Send open for the
 // selected printer, and printer_test_host asks the printer's print host whether it answers, as the Test button of its
 // connection dialog does. What is printed or sent is left to the dialog, which a client answers with the dialog tools.
+// printer_status reads what the Device tab shows of the printer it is connected to, and print_pause, print_resume and
+// print_stop send that printer the tab's job commands.
 
 #include "McpTools.hpp"
 
@@ -24,6 +26,36 @@ using nlohmann::json;
 
 namespace {
 
+json temperature(const Ops::Temperature& t)
+{
+    return {{"current", t.current ? json(*t.current) : json()}, {"target", t.target ? json(*t.target) : json()}};
+}
+
+// print_pause, print_resume or print_stop: `command` sent to the connected printer.
+NativeCommand job_command(const char* name, const char* title, Ops::JobCommand command, const std::string& description,
+                          const char* examples, bool destructive)
+{
+    NativeCommand job = mutate_tool(
+        name, title,
+        description + " The printer's new state arrives when it reports: read it with printer_status. Reply: printer (its "
+                      "name), state (the state it was in) and sent. A replay sends the command again.",
+        object_schema({}),
+        [command](const json&, ToolContext& ctx) {
+            json reply = ctx.run_ui([command] {
+                const Ops::Outcome<Ops::JobCommandSent> sent = Ops::send_job_command(Ops::connected_printer(), command);
+                if (!sent)
+                    throw refused(sent.refusal());
+                return json{{"printer", sent.value().printer}, {"state", sent.value().state}, {"sent", true}};
+            });
+            return ToolResult::ok(std::move(reply));
+        },
+        destructive);
+    // It sends the printer a command.
+    job.open_world = true;
+    job.examples   = json::parse(examples);
+    return reaching({"send_job_command"}, std::move(job));
+}
+
 json plates_prop(const char* all)
 {
     return {{"type", {"string", "integer"}},
@@ -32,6 +64,30 @@ json plates_prop(const char* all)
 }
 
 } // namespace
+
+json printer_status_reply(const std::optional<Ops::PrinterStatus>& status)
+{
+    if (!status)
+        return {{"connected", false}};
+    json nozzles = json::array();
+    for (const Ops::Temperature& nozzle : status->nozzles)
+        nozzles.push_back(temperature(nozzle));
+    return {{"connected", true},
+            {"name", status->name},
+            {"model", status->model.empty() ? json() : json(status->model)},
+            {"printer_type", status->printer_type},
+            {"online", status->online},
+            {"state", status->state},
+            {"stage", status->stage},
+            {"percent", status->percent},
+            {"remaining_seconds", status->remaining_seconds},
+            {"layer", status->layer},
+            {"total_layers", status->total_layers},
+            {"file", status->file},
+            {"error_code", status->error_code},
+            {"temperatures",
+             {{"nozzles", std::move(nozzles)}, {"bed", temperature(status->bed)}, {"chamber", temperature(status->chamber)}}}};
+}
 
 std::string read_print_plates(const json& args, std::optional<int>& plate, bool& all)
 {
@@ -130,6 +186,45 @@ void register_printer_tools(CommandCatalog& catalog)
             {"tool": "settings_set", "args": {"type": "printer", "values": {"host_type": "octoprint", "print_host": "192.168.1.20"}}},
             {"tool": "printer_test_host", "args": {}}]}])json");
     catalog.add(reaching({"test_print_host"}, std::move(test_host)));
+
+    NativeCommand status = inspect_tool(
+        "printer_status", L("Printer status"),
+        "Read what the Device tab shows of the printer it is connected to, without sending it anything. Reply: connected; "
+        "with a printer, name, model (null where the tab would say Unknown), printer_type (the model's id), online, state "
+        "(IDLE, PREPARE, RUNNING, PAUSE, FINISH, FAILED...), stage (a number), percent, remaining_seconds, layer, "
+        "total_layers, file (the job's name), error_code, and temperatures: nozzles (one {current, target} each), bed and "
+        "chamber, null where the tab shows none. With no printer connected the reply is {\"connected\": false}, which is no "
+        "error. The values are what the printer last reported.",
+        object_schema({}), [](const json&, ToolContext& ctx) {
+            return ToolResult::ok(ctx.run_ui([] { return printer_status_reply(Ops::printer_status(Ops::connected_printer())); }));
+        });
+    status.examples = json::parse(R"json([
+        {"title": "Read the connected printer's state and temperatures", "calls": [{"tool": "printer_status", "args": {}}]}])json");
+    catalog.add(std::move(status));
+
+    catalog.add(job_command(
+        "print_pause", L("Pause the print"), Ops::JobCommand::Pause,
+        "Pause the print running on the printer the Device tab is connected to, as the tab's Pause button does. Refused: "
+        "no_printer_connected with no printer connected, printer_state, naming the state, unless it is RUNNING.",
+        R"json([{"title": "Pause the print once printer_status reads RUNNING", "calls": [
+            {"tool": "printer_status", "args": {}}, {"tool": "print_pause", "args": {}}]}])json",
+        false));
+    catalog.add(job_command(
+        "print_resume", L("Resume the print"), Ops::JobCommand::Resume,
+        "Resume the paused print on the printer the Device tab is connected to, as the tab's Resume button does. Refused: "
+        "no_printer_connected with no printer connected, printer_state, naming the state, unless it is PAUSE, and "
+        "resume_at_printer, in the app's own sentence, for a job (such as laser processing) that resumes only at the printer.",
+        R"json([{"title": "Resume the print once printer_status reads PAUSE", "calls": [
+            {"tool": "printer_status", "args": {}}, {"tool": "print_resume", "args": {}}]}])json",
+        false));
+    catalog.add(job_command(
+        "print_stop", L("Stop the print"), Ops::JobCommand::Stop,
+        "Stop the print on the printer the Device tab is connected to, as the tab's Stop button does, but without its "
+        "question \"Are you sure you want to stop this print?\": it asks nothing, and a stopped print cannot be resumed. "
+        "Refused: no_printer_connected with no printer connected, printer_state, naming the state, unless it is RUNNING, "
+        "PAUSE, PREPARE or SLICING.",
+        R"json([{"title": "Stop the print", "calls": [{"tool": "print_stop", "args": {}}]}])json",
+        true));
 }
 
 }}} // namespace Slic3r::GUI::Mcp

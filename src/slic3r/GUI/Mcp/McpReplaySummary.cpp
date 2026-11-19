@@ -134,8 +134,9 @@ void flag_effects(Builder& b, const std::string& key, const json& args)
     const bool preset_bundle = key == "window_open" && args.is_object() && args.value("window", std::string()) == "preset_bundle";
     if (one_of(key, {"preset_import", "preset_sync"}) || preset_bundle)
         b.flag(StepFlag::ChangesPresets);
-    // Their dialogs print on a printer or send it a file; printer_test_host only asks the host whether it answers.
-    if (one_of(key, {"print_start", "printer_send"}))
+    // Their dialogs print on a printer or send it a file, and the job commands pause, resume or stop its print;
+    // printer_test_host only asks the host whether it answers, and printer_status reads what the app holds.
+    if (one_of(key, {"print_start", "printer_send", "print_pause", "print_resume", "print_stop"}))
         b.flag(StepFlag::SendsToPrinter);
 }
 

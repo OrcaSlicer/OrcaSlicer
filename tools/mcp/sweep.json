@@ -51,6 +51,7 @@
     "test_menu_items_refusals": {"path": "test_menu_items_refusals.py"},
     "test_run_sweep": {"path": "test_run_sweep.py", "launch": "none"},
     "test_runtime_lifecycle": {"path": "test_runtime_lifecycle.py", "launch": "own", "args": ["--bin", "{bin}"], "locks": ["port-13694"], "why": "both serve on the fixed port 13694"},
+    "test_printer_commands": {"path": "test_printer_commands.py"},
     "test_send_gcode": {"path": "test_send_gcode.py"},
     "test_set_view_camera": {"path": "test_set_view_camera.py", "cad": true},
     "test_set_view_preview": {"path": "test_set_view_preview.py"},

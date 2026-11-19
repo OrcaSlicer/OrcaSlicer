@@ -2058,7 +2058,7 @@ const std::set<std::string> kOperations = {
     "printer_models",     "install_printers",     "uninstall_printers",   "install_filaments", "uninstall_filaments",
     "set_preferences",    "set_plugin_enabled",   "uninstall_plugin",     "reload_plugin",    "start_plugin_refresh",
     "reorder_objects",    "sync_filaments_from_ams", "open_gizmo",           "cut_object",
-    "lay_on_face",        "set_brim_ears",        "test_print_host",
+    "lay_on_face",        "set_brim_ears",        "test_print_host",      "send_job_command",
 };
 
 // What an exception is, so that the reason reads the same for every entry of a kind.

@@ -143,13 +143,13 @@ std::string first_difference(const std::string& actual, const std::string& expec
 }
 
 // The design's command set outside the Design tab, heading by heading in the order tools/list gives them, Driving the
-// GUI last, after the Design tab's commands: the 127 commands of the catalog, its typed tools, the commands made from
+// GUI last, after the Design tab's commands: the 131 commands of the catalog, its typed tools, the commands made from
 // menu items, the seven Parts 4a to 4c add (Printable, Fix Model, Auto Drop, Clone, Reload from disk, Replace 3D file,
 // Add Mixed Filament), the three of Part 5a (the Printer Selection dialog's list, install and uninstall), the two of
 // Part 5b (the System Filaments dialog's install and uninstall), Part 5c's write of the Preferences dialog's preferences
 // and the four of Part 5d (the Plugins window's list, a switch, Delete or Unsubscribe, and Reload), the seven gizmo
-// commands (Paint, Measure, Simplify, Mesh Boolean, Cut, Lay on Face and Brim Ears), and the Print button's Print and
-// the print host's test.
+// commands (Paint, Measure, Simplify, Mesh Boolean, Cut, Lay on Face and Brim Ears), and the six printing commands (the
+// Print button's Print, the print host's test, and the Device tab's status, Pause, Resume and Stop).
 // A part that adds a command adds it here.
 const std::vector<std::pair<std::string, std::set<std::string>>> kPlaces{
     {"Tools and actions", {"tool_search", "tool_call", "action_search", "action_run"}},
@@ -175,7 +175,8 @@ const std::vector<std::pair<std::string, std::set<std::string>>> kPlaces{
     {"Filaments",
      {"filament_add", "filament_delete", "filament_sync_ams", "filament_add_mixed", "filament_install", "filament_uninstall"}},
     {"Printers and prints",
-     {"printer_send", "printer_list_models", "printer_install", "printer_uninstall", "print_start", "printer_test_host"}},
+     {"printer_send", "printer_list_models", "printer_install", "printer_uninstall", "print_start", "printer_test_host",
+      "printer_status", "print_pause", "print_resume", "print_stop"}},
     {"Plugins", {"plugin_list", "plugin_install_local", "plugin_enable", "plugin_reload", "plugin_uninstall", "plugin_refresh"}},
     {"View and windows", {"view_set", "window_list", "window_set", "window_open"}},
     {"Recordings, replays and scripts",
@@ -451,9 +452,9 @@ TEST_CASE("outside the Design tab the catalog has its commands and 129 actions",
         CHECK(c.action_group == section.at(c.key));
     }
     // The commands outside the Design tab: the typed tools, the commands made from menu items, the seven Parts 4a to 4c
-    // add, Part 5a's three, Part 5b's two, Part 5c's one, Part 5d's four, the seven gizmo commands and the two printing
-    // commands (print_start, printer_test_host).
-    CHECK(commands == 127);
+    // add, Part 5a's three, Part 5b's two, Part 5c's one, Part 5d's four, the seven gizmo commands and the six printing
+    // commands.
+    CHECK(commands == 131);
     // The eight commands named as their menu items keep an action of their own; the other 121 actions are items.
     CHECK(own == std::set<std::string>{"plate_add", "plate_delete", "plate_duplicate", "plate_rename", "filament_add", "filament_delete",
                                        "undo", "redo"});
@@ -480,7 +481,7 @@ TEST_CASE("the commands outside the Design tab are the design's, under its headi
         commands += keys.size();
     }
     CHECK(by_heading.size() == kPlaces.size());
-    CHECK(commands == 127);
+    CHECK(commands == 131);
 
     // tool_search's group says which there are.
     const NativeCommand* search = NativeCommands::find("tool_search");
@@ -521,8 +522,8 @@ TEST_CASE("every command that runs from arguments is in the tool list, by place"
     // The three menu items with no argument form, which tool_search finds and tool_call runs.
     CHECK(unlisted == std::set<std::string>{"window_save_screenshot", "script_toggle_panel", "settings_toggle_developer_mode"});
     // Task 3's 98, the seven Parts 4a to 4c add, Part 5a's three, Part 5b's two, Part 5c's one, Part 5d's four, the
-    // seven gizmo commands and the two printing commands.
-    CHECK(listed.size() == 124);
+    // seven gizmo commands and the six printing commands.
+    CHECK(listed.size() == 128);
 
     // The search, the generic call and the app's state first; then each heading's commands together, in the
     // design's order, Driving the GUI last.
@@ -544,22 +545,24 @@ TEST_CASE("every command that runs from arguments is in the tool list, by place"
     CHECK(group_runs(with_design, std::vector<std::string>(keys.begin() + 3, keys.end())) == with_design_headings);
 }
 
-TEST_CASE("only deleting a preset and uninstalling a plugin are labelled destructive", "[CommandCatalog]")
+TEST_CASE("only deleting a preset, uninstalling a plugin and stopping a print are labelled destructive", "[CommandCatalog]")
 {
     // The reads: they change nothing in the app or the project.
     const std::set<std::string> reads{"app_state",          "app_wait",       "app_log",         "tool_search",
                                       "preset_list",        "settings_list",  "settings_get",    "preferences_get",
                                       "plate_get_settings", "project_get_settings", "plate_list", "object_list",
                                       "window_screenshot",  "plate_slice_stats",    "script_search_api", "action_search",
-                                      "window_list",        "widget_list",          "printer_list_models", "plugin_list"};
+                                      "window_list",        "widget_list",          "printer_list_models", "plugin_list",
+                                      "printer_status"};
     // The commands made from menu items whose item reaches a printer, the cloud account or the network.
     const std::set<std::string> menu_items_reaching_out{"printer_send",          "preset_sync",       "filament_sync_ams",
                                                         "app_check_for_updates", "app_open_web_page", "plugin_refresh"};
     // The plugin commands that run a plugin's code or reach the cloud account: a plugin switched on or loaded again
     // runs its code, a cloud plugin is downloaded, and Unsubscribe ends a subscription.
     const std::set<std::string> plugins_reaching_out{"plugin_enable", "plugin_reload", "plugin_uninstall"};
-    // The printing commands: the Print button's dialogs print on a printer, and the host test asks the print host.
-    const std::set<std::string> printing_reaching_out{"print_start", "printer_test_host"};
+    // The printing commands: the Print button's dialogs print on a printer, the host test asks the print host, and the
+    // job commands send the printer a command. printer_status reads what the app holds and reaches nothing.
+    const std::set<std::string> printing_reaching_out{"print_start", "printer_test_host", "print_pause", "print_resume", "print_stop"};
     std::set<std::string> destructive, read_only;
     for (const NativeCommand& c : NativeCommands::instance().commands()) {
         if (c.group == Slic3r::GUI::kDesignGroup)
@@ -574,7 +577,7 @@ TEST_CASE("only deleting a preset and uninstalling a plugin are labelled destruc
             CHECK(c.input_schema.value("type", std::string()) == "object");
         }
     }
-    CHECK(destructive == std::set<std::string>{"preset_delete", "plugin_uninstall"});
+    CHECK(destructive == std::set<std::string>{"preset_delete", "plugin_uninstall", "print_stop"});
     CHECK(read_only == reads);
     std::set<std::string> reaching_out = menu_items_reaching_out;
     reaching_out.insert(plugins_reaching_out.begin(), plugins_reaching_out.end());

@@ -52,6 +52,7 @@ class Plater;
 
 namespace Ops {
 struct ExportTicket;
+struct PrinterStatus;
 struct Preference;
 struct Refusal;
 enum class PresetChanges;
@@ -83,8 +84,12 @@ void register_gizmo_tools(CommandCatalog& catalog);
 // A gizmo command's acting arguments: a call with any of them does the job and opens no gizmo; a call with none opens
 // it. Empty for a command that only opens, and for any other command.
 const std::vector<std::string>& gizmo_acting_args(const std::string& command);
-// print_start, printer_send and printer_test_host (McpToolsPrinter.cpp).
+// print_start, printer_send, printer_test_host, printer_status, print_pause, print_resume and print_stop
+// (McpToolsPrinter.cpp).
 void register_printer_tools(CommandCatalog& catalog);
+// printer_status's reply: {"connected": false} with no printer, else the status's fields, a name the Device tab would
+// not give being null.
+nlohmann::json printer_status_reply(const std::optional<Ops::PrinterStatus>& status);
 // The plates argument of print_start and printer_send, as project_export takes it: a plate's index into `plate`,
 // "all" as `all`, or "current" (also when left out) as neither. Returns what is wrong with it, else empty.
 std::string read_print_plates(const nlohmann::json& args, std::optional<int>& plate, bool& all);
