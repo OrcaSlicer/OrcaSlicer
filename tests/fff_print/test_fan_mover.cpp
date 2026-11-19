@@ -95,3 +95,24 @@ TEST_CASE("Fan mover does not split a move in relative mode", "[FanMover]")
     CHECK(move_heights(gcode) == std::vector<float>{ 10.f, 12.f });
     CHECK_THAT(gcode, Catch::Matchers::ContainsSubstring("M106 S255\nG1 Z2"));
 }
+
+TEST_CASE("Fan mover reads the moves after a role tag as absolute, also where custom G-code left G91 through a macro", "[FanMover]")
+{
+    PrintConfig config;
+    GCodeWriter writer;
+    writer.apply_print_config(config);
+    // RESTORE_GCODE_STATE ends G91 out of the reader's sight. Orca's next move follows a role tag, in absolute positioning.
+    FanMover mover(writer, 1.f, false, true, false, 0.f);
+    const std::string gcode = mover.process_gcode(";TYPE:Outer wall\nG1 F600\nG1 Z10\n"
+                                                  "SAVE_GCODE_STATE NAME=lift\nG91\nG1 Z2\nRESTORE_GCODE_STATE NAME=lift\n"
+                                                  ";TYPE:Inner wall\nG1 Z10 F60\nM106 S255\n", true);
+    // The fan command moves 1 s back, splitting the 2 s move from 12 mm down to 10 mm in the middle.
+    std::vector<float> heights;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&heights](GCodeReader &, const GCodeReader::GCodeLine &line) {
+        if (line.cmd_is("G1") && line.has_z())
+            heights.push_back(line.z());
+    });
+    REQUIRE(heights.size() == 4);
+    CHECK_THAT(heights[2], Catch::Matchers::WithinAbs(11., 1e-4));
+}

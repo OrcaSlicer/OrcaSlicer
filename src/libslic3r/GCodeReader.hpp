@@ -159,6 +159,8 @@ public:
 
     // True after G91, until G90.
     bool   relative_xyz() const { return m_relative_xyz; }
+    // For a caller that knows the positioning mode where a macro it can't see changed it.
+    void   set_relative_xyz(bool relative) { m_relative_xyz = relative; }
     float& x()       { return m_position[X]; }
     float  x() const { return m_position[X]; }
     float& y()       { return m_position[Y]; }
