@@ -5074,6 +5074,11 @@ void TabFilament::build()
         optgroup->append_single_option_line("filament_tower_interface_purge_volume", "material_multimaterial#multimaterial-wipe-tower-parameters");
         optgroup->append_single_option_line("filament_tower_interface_print_temp", "material_multimaterial#multimaterial-wipe-tower-parameters");
 
+        // Orca: the Type 1 prime tower takes its prime volume from each filament, not from the process.
+        optgroup = page->new_optgroup(L("Prime volume"), "param_tower");
+        optgroup->append_single_option_line("filament_prime_volume", "material_multimaterial#multimaterial-wipe-tower-parameters");
+        optgroup->append_single_option_line("filament_prime_volume_nc", "material_multimaterial#multimaterial-wipe-tower-parameters");
+
         optgroup = page->new_optgroup(L("Multi Filament"));
         // optgroup->append_single_option_line("filament_flush_temp", "", 0);
         // optgroup->append_single_option_line("filament_flush_volumetric_speed", "", 0);
@@ -5310,6 +5315,18 @@ void TabFilament::toggle_options()
         // Orca: hide specific settings for BBL printers
         const wxString bambu_printer_reason = _L("This setting is unavailable for Bambu Lab printers.");
         toggle_option("filament_minimal_purge_on_wipe_tower", !is_BBL_printer, 256 + variant_index, bambu_printer_reason);
+
+        // Orca: only the Type 1 prime tower reads these. Bambu Lab printers always use the Type 1 tower. The tower
+        // takes the hotend change volume only when two filaments share an extruder but not a nozzle, so only on a
+        // printer whose extruder holds several nozzles, as has_multiple_nozzle tells in TabPrinter::on_preset_loaded().
+        const bool  type1_tower        = is_BBL_printer || printer_cfg.opt_enum<WipeTowerType>("wipe_tower_type") == WipeTowerType::Type1;
+        const auto *max_nozzle_counts  = printer_cfg.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
+        const bool  has_multiple_nozzle = max_nozzle_counts != nullptr &&
+            std::any_of(max_nozzle_counts->values.begin(), max_nozzle_counts->values.end(),
+                        [](int v) { return v > 1 && v != ConfigOptionIntsNullable::nil_value(); });
+        toggle_line("filament_prime_volume", type1_tower, -1, _L("Select wipe tower Type 1 in the printer settings to use this setting."));
+        toggle_line("filament_prime_volume_nc", type1_tower && has_multiple_nozzle, -1,
+                    _L("Select wipe tower Type 1 on a printer whose extruder holds more than one nozzle to use this setting."));
         for (auto el : {"filament_loading_speed_start", "filament_loading_speed",
                         "filament_unloading_speed_start", "filament_unloading_speed", "filament_toolchange_delay", "filament_cooling_moves",
                         "filament_cooling_initial_speed", "filament_cooling_final_speed"})
