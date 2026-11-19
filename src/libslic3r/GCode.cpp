@@ -191,11 +191,10 @@ std::optional<Vec2d> emitted_xy_after_gcode(const std::string &gcode, const Vec2
     return coordinate_frame_known ? std::optional<Vec2d>(position) : std::nullopt;
 }
 
-// The lift for a retraction with no travel after it, as before a toolchange: a slope needs a travel, so it spirals.
+// The lift for a retraction with no travel after it, as before a toolchange: a slope needs a travel, so it lifts straight up.
 LiftType lift_type_in_place(ZHopType z_hop_type)
 {
-    return z_hop_type == ZHopType::zhtAuto || z_hop_type == ZHopType::zhtSpiral || z_hop_type == ZHopType::zhtSlope ?
-               LiftType::SpiralLift : LiftType::NormalLift;
+    return z_hop_type == ZHopType::zhtAuto || z_hop_type == ZHopType::zhtSpiral ? LiftType::SpiralLift : LiftType::NormalLift;
 }
 
 } // namespace

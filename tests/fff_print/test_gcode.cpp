@@ -1007,7 +1007,7 @@ TEST_CASE("Layer changes leave no fan speed marker in the G-code", "[GCode][Regr
 TEST_CASE("A filament change lifts the way the Z hop type says", "[GCode][Regression]")
 {
     // Without a prime tower GCode::set_extruder() changes the filament, here between two objects printed one by one.
-    const std::string z_hop_type = GENERATE(as<std::string>{}, "Normal Lift", "Spiral Lift");
+    const std::string z_hop_type = GENERATE(as<std::string>{}, "Normal Lift", "Slope Lift", "Spiral Lift");
     CAPTURE(z_hop_type);
     DynamicPrintConfig config = Test::multifilament_config(2, {
         { "z_hop_types",        z_hop_type },
@@ -1025,4 +1025,20 @@ TEST_CASE("A filament change lifts the way the Z hop type says", "[GCode][Regres
     // The G-code writer comments every spiral lift it writes.
     const bool spiral = gcode.find("spiral lift Z") != std::string::npos;
     CHECK(spiral == (z_hop_type == "Spiral Lift"));
+}
+
+TEST_CASE("A timelapse frame on a bed slinger lifts straight up with slope lift", "[GCode][Regression]")
+{
+    // A bed slinger with Timelapse G-code takes a frame every layer, after a lift with no travel.
+    const std::string gcode = Test::slice({ Test::cube(20) }, {
+        { "z_hop_types",       "Slope Lift" },
+        { "z_hop",             0.4 },
+        { "gcode_comments",    1 },
+        { "printer_structure", "i3" },
+        { "time_lapse_gcode",  ";timelapse frame" },
+        // Around the object, which is not arranged, so a spiral lift fits.
+        { "printable_area",    "-100x-100,100x-100,100x100,-100x100" },
+    });
+    REQUIRE(gcode.find(";timelapse frame") != std::string::npos);
+    CHECK(gcode.find("spiral lift Z") == std::string::npos);
 }
