@@ -440,9 +440,9 @@ void register_gizmo_tools(CommandCatalog& catalog)
             return ToolResult::ok(out);
         }));
     brim.examples = json::parse(R"json([
-        {"title": "Two ears at the front corners of object 0", "calls": [
-            {"tool": "object_set_brim_ears", "args": {"object": 0, "points": [{"position": [90, 90], "radius": 3}, {"position": [110, 90]}]}},
-            {"tool": "settings_set", "args": {"target": "object", "object": 0, "values": {"brim_type": "painted"}}}]},
+        {"title": "Paint object 0's brim as two ears at its front corners", "calls": [
+            {"tool": "settings_set", "args": {"target": "object", "object": 0, "values": {"brim_type": "painted"}}},
+            {"tool": "object_set_brim_ears", "args": {"object": 0, "points": [{"position": [90, 90], "radius": 3}, {"position": [110, 90]}]}}]},
         {"title": "Remove object 1's ears", "calls": [{"tool": "object_set_brim_ears", "args": {"object": 1, "clear": true}}]}])json");
     catalog.add(reaching({"open_gizmo", "set_brim_ears"}, std::move(brim)));
 }

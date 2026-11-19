@@ -164,6 +164,7 @@ src/slic3r/GUI/Mcp/McpToolsInstall.cpp
 src/slic3r/GUI/Mcp/McpToolsLayers.cpp
 src/slic3r/GUI/Mcp/McpToolsPlugins.cpp
 src/slic3r/GUI/Mcp/McpToolsPreferences.cpp
+src/slic3r/GUI/Mcp/McpToolsPrinter.cpp
 src/slic3r/GUI/Mcp/McpToolsProject.cpp
 src/slic3r/GUI/Mcp/McpToolsPython.cpp
 src/slic3r/GUI/Mcp/McpToolsRecord.cpp
@@ -199,6 +200,7 @@ src/slic3r/GUI/Operations/PlateOps.cpp
 src/slic3r/GUI/Operations/PluginOps.cpp
 src/slic3r/GUI/Operations/PreferenceOps.cpp
 src/slic3r/GUI/Operations/PresetOps.cpp
+src/slic3r/GUI/Operations/PrinterOps.cpp
 src/slic3r/GUI/Operations/ProjectOps.cpp
 src/slic3r/GUI/OptionsGroup.cpp
 src/slic3r/GUI/OptionStateRegistry.cpp

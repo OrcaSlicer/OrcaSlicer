@@ -166,6 +166,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Operations/PreferenceOps.hpp
     GUI/Operations/PresetOps.cpp
     GUI/Operations/PresetOps.hpp
+    GUI/Operations/PrinterOps.cpp
+    GUI/Operations/PrinterOps.hpp
     GUI/Operations/ProjectOps.cpp
     GUI/Operations/ProjectOps.hpp
     GUI/Operations/RunStatus.cpp
@@ -202,6 +204,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/Mcp/McpToolsLayers.cpp
     GUI/Mcp/McpToolsPlugins.cpp
     GUI/Mcp/McpToolsPreferences.cpp
+    GUI/Mcp/McpToolsPrinter.cpp
     GUI/Mcp/McpToolsProject.cpp
     GUI/Mcp/McpToolsPython.cpp
     GUI/Mcp/McpToolsRecord.cpp

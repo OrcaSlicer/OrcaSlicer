@@ -11,11 +11,8 @@
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
-#include "libslic3r/AppConfig.hpp"
-#include "libslic3r/Config.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/Preset.hpp"
-#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
@@ -240,23 +237,6 @@ Outcome<Done> export_toolpaths_obj(const ExportToolpathsArgs& args)
     wxGetApp().plater()->get_preview_canvas3D()->apply_gcode_sliders();
     wxGetApp().plater()->export_toolpaths_to_obj(from_path(args.path));
     return written(args.path);
-}
-
-Outcome<Done> send_gcode_to_host(const SendGcodeToHostArgs&)
-{
-    assert(wxThread::IsMain());
-    PresetBundle& bundle = *wxGetApp().preset_bundle;
-    if (bundle.use_bbl_network() || wxGetApp().app_config->get_bool("use_printer_agents"))
-        // TRN "Print plate" is the print button's action, which sends to such a printer through its own dialog.
-        return Refusal{RefusalKind::Precondition, "not_a_print_host_printer",
-                       L("This printer prints with Print plate, not through a print host.")};
-    // The Print button sends only to a printer with a print host address.
-    const auto* host = bundle.printers.get_edited_preset().config.option<ConfigOptionString>("print_host");
-    if (host == nullptr || host->value.empty())
-        return Refusal{RefusalKind::Precondition, "no_print_host",
-                       L("This printer has no print host. Set one in the printer's connection settings.")};
-    wxGetApp().plater()->send_gcode_legacy();
-    return Done{};
 }
 
 }}} // namespace Slic3r::GUI::Ops

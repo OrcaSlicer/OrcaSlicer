@@ -605,6 +605,9 @@ public:
     mutable bool          m_print_enable{ true };
     bool get_enable_slice_status();
     bool get_enable_print_status();
+    // Whether the Print button would be enabled for `action`: get_enable_print_status()'s rule, which it asks for the
+    // button's selected action. The print commands ask it for the action they stand for.
+    bool print_action_enabled(PrintSelectType action);
     //BBS
     void update_side_button_style();
     void update_slice_print_status(SlicePrintEventType event, bool can_slice = true, bool can_print = true);

@@ -4,7 +4,7 @@ The design of this area's sweep tests. The rules every entry follows, the grades
 in [TESTS.md](../TESTS.md).
 
 ## `test_every_action`
-`test_every_action.py` · Python, 509 checks
+`test_every_action.py` · Python, 511 checks
 
 **Tests:** Runs all 129 Speed Dial actions of `tests/data/speed_dial_actions.json` through `action_run`, each from a state rebuilt by calls (empty project, two cubes, sliced plates, an assembled object, a recording, and so on), and answers the action's dialog or file picker as its row says. For each action it reads back the action's effect, then checks that the reply names the action, that the journal keeps an `action_run` step for it with the arguments its command journals, and that `action_search` maps it to the command in `tests/data/speed_dial_action_calls.json`.
 

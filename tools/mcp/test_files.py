@@ -1013,24 +1013,23 @@ class FilesTest:
 
         self.values_are(f"{s} 1", {"bbl_use_printhost": "0", "print_host": ""}, "printer")
         self.t.equal(f"{s} 1: no upload", self.c.call("app_state").get("uploads"), [])
-        self.t.refused(f"{s} 2: refused, as the X1 Carbon prints through the Bambu network",
-                       lambda: self.c.call("action_run", id=SEND), code="not_a_print_host_printer")
-        self.values_are(f"{s} 2", {"bbl_use_printhost": "0", "print_host": ""}, "printer")
-        after_send(2)
+        # On the X1 Carbon, which prints through the Bambu network, Send opens the dialog that sends to the printer's
+        # storage, which messages a printer: the scenario makes it a print host before its first send.
         self.run("settings_set", type="printer", values={"bbl_use_printhost": True, "host_type": "octoprint",
                                                          "print_host": "", "use_3mf": False})
+        self.t.refused(f"{s} 2: refused, an empty address being no print host, with no objects",
+                       lambda: self.c.call("action_run", id=SEND), code="no_print_host")
+        self.values_are(f"{s} 2", {"bbl_use_printhost": "1", "print_host": ""}, "printer")
+        after_send(2)
+        self.cube("box", 20, 128, 128)
+        self.sliced_ok(f"{s} 3", self.run("plate_slice"), 100)
+        self.flags_are(f"{s} 3", [True])
         self.t.refused(f"{s} 3: refused", lambda: self.c.call("action_run", id=SEND), code="no_print_host")
         self.values_are(f"{s} 3", {"bbl_use_printhost": "1", "print_host": ""}, "printer")
         after_send(3)
-        self.cube("box", 20, 128, 128)
-        self.sliced_ok(f"{s} 4", self.run("plate_slice"), 100)
-        self.flags_are(f"{s} 4", [True])
-        self.t.refused(f"{s} 4: refused", lambda: self.c.call("action_run", id=SEND), code="no_print_host")
-        self.values_are(f"{s} 4", {"bbl_use_printhost": "1", "print_host": ""}, "printer")
-        after_send(4)
         self.new_project()
-        self.values_are(f"{s} 5", {"bbl_use_printhost": "0", "print_host": ""}, "printer")
-        self.unsaved_is(f"{s} 5", [], "printer")
+        self.values_are(f"{s} 4", {"bbl_use_printhost": "0", "print_host": ""}, "printer")
+        self.unsaved_is(f"{s} 4", [], "printer")
 
     def filaments_scenario(self):
         s = "filament slots merged and mixed"

@@ -525,12 +525,15 @@ stops it. `test_export_running_job.py` exports while a call's job runs past
 its reply budget (left out, named in `left_out_running`), after it ends (an `await: false` step that
 replays) and while a dialog holds its call (kept); it takes about 100 s, or about 45 s with the reply budget
 capped at 10 s by `ORCA_MCP_REPLY_BUDGET_MS=10000` for the app and the test, as the sweep runs it.
-`test_send_gcode.py` starts an OctoPrint-compatible stub host and sends a sliced cube to it with
-`printer_send`'s Speed Dial action, `send_gcode`, the Send dialog answered with `widget_set_value` and `dialog_answer`: the
-action is refused for a Bambu network printer and one without a print host, an upload the stub accepts
-reads uploading at 99 until the stub answers and then completed in `app_state.uploads`, its exported
-replay uploads again, and one the stub refuses with HTTP 500 never reads completed and ends as an
-error whose dialog `dialog_answer` closes.
+`test_send_gcode.py` starts an OctoPrint-compatible stub host, makes the seeded printer a print-host printer first (on
+the Bambu network the print calls open dialogs that message a printer), and sends a sliced cube to the stub with
+`printer_send`'s Speed Dial action, `send_gcode`, the Send dialog answered with `widget_set_value` and `dialog_answer`.
+The sends and `printer_test_host` are refused with no print host address; the host test answers through the stub and
+fails on a port nothing listens on; `print_start` is refused before slicing, Print all and Send all are refused as the
+Print button offers neither, and once sliced `print_start` and `printer_send {plates: 0}` open the upload dialog, which
+the test cancels. An upload the stub accepts reads uploading at 99 until the stub answers and then completed in
+`app_state.uploads`, its exported replay uploads again, and one the stub refuses with HTTP 500 never reads completed
+and ends as an error whose dialog `dialog_answer` closes.
 
 `test_call_forms.py` and `test_person_forms.py` check a call with exactly an action's arguments, which may ask
 as a person's pick of the action does: `calibration_generate_test {test}` asks in the test's dialog and with

@@ -1950,9 +1950,9 @@ TEST_CASE("every example passes its command's schema", "[Mcp][CAD]")
     }
     // The 83 Design commands with a silent form, undo and redo, the six object and part commands of Parts 4a and 4b,
     // Part 4c's filament_add_mixed, Part 5a's printer_list_models, printer_install and printer_uninstall, Part 5b's
-    // filament_install and filament_uninstall, Part 5c's preferences_set, and Part 5d's plugin_list, plugin_enable,
-    // plugin_reload and plugin_uninstall.
-    CHECK(described == 102);
+    // filament_install and filament_uninstall, Part 5c's preferences_set, Part 5d's plugin_list, plugin_enable,
+    // plugin_reload and plugin_uninstall, the seven gizmo commands, and print_start and printer_test_host.
+    CHECK(described == 111);
 }
 
 TEST_CASE("an example's argument goes by a name its command takes", "[Mcp][CAD]")

@@ -101,11 +101,4 @@ struct ExportToolpathsArgs
 // Refuses: no_toolpaths, file_not_written.
 Outcome<Done> export_toolpaths_obj(const ExportToolpathsArgs& args);
 
-struct SendGcodeToHostArgs
-{};
-// Opens the Send G-code dialog for the printer's print host, as the Print button does for such a
-// printer; the upload follows what the person answers there.
-// Refuses: not_a_print_host_printer, no_print_host.
-Outcome<Done> send_gcode_to_host(const SendGcodeToHostArgs& args = {});
-
 }}} // namespace Slic3r::GUI::Ops

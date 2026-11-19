@@ -229,6 +229,15 @@ TEST_CASE("a call with other arguments than an action's is described by its argu
     CHECK(flags_of(describe(json{{"tool", "preset_import"}, {"args", {{"path", abs_path("a.json")}}}}.dump())) == Flags{"changes_presets"});
 }
 
+TEST_CASE("the print and send commands send to a printer and the host test sends nothing", "[Mcp]")
+{
+    CHECK(flags_of(describe(R"({"tool": "print_start"})")) == Flags{"sends_to_printer"});
+    CHECK(flags_of(describe(R"({"tool": "print_start", "args": {"plates": 1}})")) == Flags{"sends_to_printer"});
+    // printer_send with a plate is no action's call, and sends all the same.
+    CHECK(flags_of(describe(R"({"tool": "printer_send", "args": {"plates": 1}})")) == Flags{"sends_to_printer"});
+    CHECK(flags_of(describe(R"({"tool": "printer_test_host"})")).empty());
+}
+
 TEST_CASE("an action that collects a value is described with it, and a call without it is no action's call", "[Mcp]")
 {
     // Go to layer's percent reaches view_set as layer_percent, which the description shows with the action.
@@ -505,6 +514,9 @@ TEST_CASE("a step's what names what it acts on", "[Mcp]")
         {R"({"tool": "plate_slice"})", {{"kind", "plates"}, {"plates", "current"}}},
         {R"({"tool": "plate_slice", "args": {"plates": 2}})", {{"kind", "plates"}, {"plates", 2}}},
         {R"({"tool": "object_arrange"})", {{"kind", "plates"}, {"plates", "all"}}},
+        {R"({"tool": "print_start"})", {{"kind", "plates"}, {"plates", "current"}}},
+        {R"({"tool": "print_start", "args": {"plates": "all"}})", {{"kind", "plates"}, {"plates", "all"}}},
+        {R"({"tool": "printer_send", "args": {"plates": 1}})", {{"kind", "plates"}, {"plates", 1}}},
         {R"({"tool": "preset_select", "args": {"type": "filament", "name": "Generic PLA"}})", {{"kind", "preset"}, {"name", "Generic PLA"}}},
         {R"({"tool": "app_wait", "args": {"for": "idle"}})", {{"kind", "value"}, {"text", "idle"}}},
         {R"({"tool": "dialog_answer", "args": {"button": "no"}})", {{"kind", "value"}, {"text", "no"}}},

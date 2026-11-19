@@ -25,6 +25,7 @@
 #include "Operations/PlateOps.hpp"
 #include "Operations/PluginOps.hpp"
 #include "Operations/PresetOps.hpp"
+#include "Operations/PrinterOps.hpp"
 #include "Operations/ProjectOps.hpp"
 #include "Plater.hpp"
 #include "PluginsDialog.hpp"
@@ -947,14 +948,19 @@ AppActionRunResult MenuItems::sync_ams()
     return Mcp::quiet_refusal(*refusal);
 }
 
-// The Print button's send for a printer with a print host: the Send G-code dialog, then the upload queue. Where the
-// button would not send to a print host, it says why instead of doing nothing.
-AppActionRunResult MenuItems::send_gcode()
+// The Print button's Send for the selected printer: the dialog that sends to a Bambu printer's storage, or the Send
+// G-code dialog of a print host, then the upload queue. Where the button offers no such send, it says why instead of
+// doing nothing.
+AppActionRunResult MenuItems::send_gcode(const json& args)
 {
     if (wxGetApp().plater() == nullptr)
         return AppActionRunResult{};
-    if (const Ops::Outcome<Ops::Done> sent = Ops::send_gcode_to_host(); !sent)
-        return refused(sent.refusal());
+    Ops::OpenPrintDialogArgs op;
+    op.send = true;
+    if (const std::string err = Mcp::read_print_plates(args, op.plate, op.all); !err.empty())
+        return AppActionRunResult{AppActionRunResult::Level::Error, from_u8(err)};
+    if (const Ops::Outcome<Ops::Done> opened = Ops::open_print_dialog(op); !opened)
+        return refused(opened.refusal());
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 
@@ -1093,6 +1099,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
     Mcp::register_install_tools(families);
     Mcp::register_scene_tools(families);
     Mcp::register_gizmo_tools(families);
+    Mcp::register_printer_tools(families);
     Mcp::register_layer_tools(families);
     Mcp::register_view_tools(families);
     Mcp::register_plugin_tools(families);

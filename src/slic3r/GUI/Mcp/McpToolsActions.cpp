@@ -279,7 +279,8 @@ void register_action_tools(CommandCatalog& catalog)
                 reply.data["ran"] = id;
             return reply;
         });
-    // Its actions upload G-code to a print host (printer_send) and sync presets with the cloud account (preset_sync).
+    // Its actions send G-code to a printer or its print host (printer_send) and sync presets with the cloud account
+    // (preset_sync).
     run.open_world = true;
     catalog.add(run);
 }

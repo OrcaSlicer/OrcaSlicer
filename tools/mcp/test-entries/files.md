@@ -4,7 +4,7 @@ The design of this area's sweep tests. The rules every entry follows, the grades
 in [TESTS.md](../TESTS.md).
 
 ## `test_files`
-`test_files.py` · Python, 577 checks · in `sweep.json` as `{"path": "test_files.py", "timeout_s": 1200}`
+`test_files.py` · Python, 573 checks · in `sweep.json` as `{"path": "test_files.py", "timeout_s": 1200}`
 
 **Tests:** What the project's files do: a new project and the question New Project asks about unsaved changes; opening
 a project file and saving one under a name; importing models (STL, a project's `.3mf`, a ZIP archive, a STEP file and

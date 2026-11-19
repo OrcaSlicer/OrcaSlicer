@@ -2707,7 +2707,7 @@ TEST_CASE("an upload's row reaches 100 percent only once the host has answered",
     CHECK(percent(4096, 4096) == 99);
 }
 
-TEST_CASE("the send command is a Slice & Export action that takes no arguments", "[Mcp][SpeedDial]")
+TEST_CASE("the send command takes plates and its Slice & Export action takes no arguments", "[Mcp][SpeedDial]")
 {
     const NativeCommand* send = NativeCommands::find("printer_send");
     REQUIRE(send != nullptr);
@@ -2716,7 +2716,10 @@ TEST_CASE("the send command is a Slice & Export action that takes no arguments",
     CHECK(command == send);
     REQUIRE(action != nullptr);
     CHECK(action->at("group") == "Slice & Export");
-    CHECK(send->input_schema.at("properties").empty());
+    CHECK(action->at("args") == nlohmann::json::object());
+    const nlohmann::json& properties = send->input_schema.at("properties");
+    CHECK(properties.size() == 1);
+    CHECK(properties.contains("plates"));
     CHECK(send->completion == CommandCompletion::Immediate);
     CHECK(send->description.find("app_state.uploads") != std::string::npos);
 }

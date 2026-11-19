@@ -75,7 +75,8 @@ BANNED = {
     "clone_objects": ["clone_selection"],
     "reload_parts": ["reload_parts_from_disk", "reload_from_disk", "reload_all_from_disk"],
     "replace_part": ["replace_part_with_file", "replace_with_stl"],
-    "send_gcode_to_host": ["send_gcode_legacy"],
+    # The Print button's handlers run the print dialogs through it, as its Print and Send open them.
+    "open_print_dialog": ["send_gcode_legacy", "send_to_printer"],
     "sync_presets": ["restart_sync_user_preset", "start_sync_user_preset"],
     "add_filament_slot": ["add_filament"],
     "delete_filament_slot": ["delete_filament", "change_filament"],

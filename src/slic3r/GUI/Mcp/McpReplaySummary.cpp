@@ -134,7 +134,8 @@ void flag_effects(Builder& b, const std::string& key, const json& args)
     const bool preset_bundle = key == "window_open" && args.is_object() && args.value("window", std::string()) == "preset_bundle";
     if (one_of(key, {"preset_import", "preset_sync"}) || preset_bundle)
         b.flag(StepFlag::ChangesPresets);
-    if (key == "printer_send")
+    // Their dialogs print on a printer or send it a file; printer_test_host only asks the host whether it answers.
+    if (one_of(key, {"print_start", "printer_send"}))
         b.flag(StepFlag::SendsToPrinter);
 }
 
@@ -291,8 +292,8 @@ json describe_what(const std::string& tool, const json& args)
     };
     if (one_of(tool, {"preset_select", "preset_save", "preset_delete"}) && args.contains("name") && args["name"].is_string())
         return {{"kind", "preset"}, {"name", args["name"]}};
-    if (one_of(tool, {"plate_slice", "object_arrange"}))
-        return {{"kind", "plates"}, {"plates", args.contains("plates") ? args["plates"] : json(tool == "plate_slice" ? "current" : "all")}};
+    if (one_of(tool, {"plate_slice", "object_arrange", "print_start", "printer_send"}))
+        return {{"kind", "plates"}, {"plates", args.contains("plates") ? args["plates"] : json(tool == "object_arrange" ? "all" : "current")}};
     if (tool == "app_wait")
         return text("for");
     if (tool == "dialog_answer")

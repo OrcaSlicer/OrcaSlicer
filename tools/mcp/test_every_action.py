@@ -22,7 +22,9 @@ has neither: action_run adds ran only when the command ran, and a failed call is
 
 Three actions open a web page in the system's browser and one opens the configuration folder in the file manager; the
 test runs them once and leaves what they opened. Send G-code, Synchronize Filament List from AMS and Sync Presets are
-expected to be refused: the seeded printer prints through the Bambu network and nothing is signed in. Import, Import
+expected to be refused: nothing is signed in, and on the seeded printer, which prints through the Bambu network, Send
+G-code would open the dialog that sends to the printer's storage, which messages a printer, so its row makes the printer
+a print host with no address first, and discards that change after. Import, Import
 Configs and SVG open a file picker that dialog_auto_answer cannot give a file (a multi-select picker, and one whose
 caller reads GetPaths()): the rule cancels it, and the row checks that the picker was answered and nothing loaded. The
 dialogs whose choices are a person's (Export Preset Bundle, the Setup Wizard, the Network Test) are closed. Every file the
@@ -42,6 +44,7 @@ import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import checks  # noqa: E402
 import orca_mcp  # noqa: E402
 
 DATA = os.path.join(HERE, "..", "..", "tests", "data")
@@ -340,8 +343,9 @@ def external(why):
     return ("external", why)
 
 
-def refused(code, why):
-    return ("refused", code, why)
+def refused(code, why, nothing_opened=False):
+    """Refused with `code`; with `nothing_opened`, also before any dialog, with nothing uploaded."""
+    return ("refused", code, why, nothing_opened)
 
 
 def near(a, b, tolerance=1.0):
@@ -387,9 +391,10 @@ def call(tool, /, **args):
     return (tool, args)
 
 
-def row(key, state, expect, *, value=None, answers=(), pre=(), post=(), before=None, why=""):
+def row(key, state, expect, *, value=None, answers=(), pre=(), post=(), before=None, after=None, why=""):
+    """`after`, when given, reads the app once the row's post steps have run: (ok, detail)."""
     return key, {"state": state, "expect": expect, "value": value, "answers": tuple(answers), "pre": tuple(pre),
-                 "post": tuple(post), "before": before, "why": why}
+                 "post": tuple(post), "before": before, "after": after, "why": why}
 
 
 CUBE_OFF_PLATE = call("object_transform", object=1, position=[-150, BED_CENTRE, 10])
@@ -441,8 +446,15 @@ ROWS = dict([
     # From two sliced plates, the second current: the current plate's G-code alone, and both plates'.
     row("export_sliced_file", "sliced_plates", plates_in("plate.gcode.3mf", [2]), answers=[picker("plate.gcode.3mf")]),
     row("export_all_sliced_file", "sliced_plates", plates_in("all.gcode.3mf", [1, 2]), answers=[picker("all.gcode.3mf")]),
-    row("send_gcode", "sliced", refused("not_a_print_host_printer", "the seeded X1 Carbon prints through the Bambu network, "
-                                        "not a print host, and the test uploads to no printer")),
+    # On the seeded X1 Carbon, which prints through the Bambu network, the action opens the dialog that sends to the
+    # printer's storage, which messages a printer: the row makes it a print host with no address first, and its post
+    # step discards that, so later rows see the X1 Carbon as it was.
+    row("send_gcode", "sliced", refused("no_print_host", "the X1 Carbon, made a print host with no address, has no host to "
+                                        "upload to, and the test uploads to no printer", nothing_opened=True),
+        pre=[call("settings_set", type="printer", values={"bbl_use_printhost": True, "host_type": "octoprint", "print_host": ""})],
+        post=[call("settings_set", type="printer", reset_all=True)],
+        after=lambda r: (lambda v, u: (v == {"bbl_use_printhost": "0"} and u == [], (v, u)))(
+            checks.values(r.client, ["bbl_use_printhost"], "printer"), checks.unsaved(r.client, "printer"))),
     # ---- Commands ----
     row("go_to_layer", "sliced", plates(lambda r: (lambda v: (v.get("layer_count", 0) > 0 and
                                                               near((v.get("layers") or [0, 0])[1], v.get("layer_count", 0) / 2, 2), v))(
@@ -713,6 +725,10 @@ def main():
                     code = json.loads(str(e).rpartition("\n")[2] or "{}").get("code")
                     check(f"{name} is refused as {r['expect'][1]}", code == r["expect"][1], str(e))
                     check(f"{name}: and the journal keeps no step for it", journal_step(run, key) is None)
+                    if r["expect"][3]:
+                        state = run.state()
+                        check(f"{name}: refused before any dialog, with nothing uploaded",
+                              not state.get("dialogs") and state.get("uploads") == [], (state.get("dialogs"), state.get("uploads")))
                     shown_otherwise.append((key, "refused", r["expect"][2]))
                 else:
                     check(f"{name} runs", False, str(e))
@@ -761,6 +777,8 @@ def main():
                     run.wait(run.call(tool, **a))
                 except orca_mcp.McpError as e:
                     print(f"  after {key}: {tool} failed: {e}", flush=True)
+            if r["after"]:
+                check(f"{name}: after its post steps", *r["after"](run))
 
     empty(run)
     print("\nActions shown by a refusal or as handing over, and rows that read less than a change of their own:")

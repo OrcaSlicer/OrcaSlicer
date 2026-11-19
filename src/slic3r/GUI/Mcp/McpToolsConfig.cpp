@@ -3553,21 +3553,6 @@ void register_config_tools(CommandCatalog& catalog)
     // It reads the connected printer's AMS.
     sync_ams.open_world = true;
     catalog.add(std::move(sync_ams));
-
-    const std::string send =
-        "Open the Send G-code to printer host dialog for the current plate, as the Print button does for a printer with a print "
-        "host (OctoPrint, Moonraker, PrusaLink, Duet...). Set the file name with widget_set_value and press Upload or Upload and "
-        "Print with dialog_answer; the plate is sliced if needed, then uploaded in the background: app_state.uploads shows the "
-        "row's state, and a failed upload also opens an error dialog. A replay uploads again. Fails for a printer without a "
-        "print host, or one that prints through the Bambu network or printer agents.";
-    NativeCommand printer_send = reaching({"send_gcode_to_host"},
-                                          menu_command("printer_send", L("Send G-code to printer host"), send, object_schema({}),
-                                                      json::array({action("send_gcode", L("Send G-code to printer host"),
-                                                                          L("Slice & Export"), "printer", json::object(), send)}),
-                                                      [](const json&) { return MenuItems::send_gcode(); }));
-    // It uploads to the printer's print host.
-    printer_send.open_world = true;
-    catalog.add(std::move(printer_send));
 }
 
 }}} // namespace Slic3r::GUI::Mcp

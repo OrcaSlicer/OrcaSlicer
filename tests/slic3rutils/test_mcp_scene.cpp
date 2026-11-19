@@ -149,8 +149,9 @@ TEST_CASE("the commands that replace a dialog take the arguments the table gives
     const Names recording{"target", "fps",   "max_dim", "jpeg_quality", "max_seconds", "captions",  "pointer", "encode",
                           "encode_preset", "codec", "crf", "speed", "profile", "keep_raw_video_file", "save_path", "overwrite",
                           "silent"};
-    for (const char* key : {"object_add_svg", "preset_export"})
-        REQUIRE(names(key) == path);
+    REQUIRE(names("preset_export") == path);
+    // The SVG's file, and the object it joins as a part of a type, which the Add menu of that object would give it.
+    REQUIRE(names("object_add_svg") == Names{"path", "object", "object_id", "type"});
     const Names view = names("view_set");
     for (const char* name : {"tab", "layer_percent", "camera", "projection", "layout"}) {
         INFO(name);

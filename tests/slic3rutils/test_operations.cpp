@@ -1,10 +1,12 @@
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/Mcp/PythonScriptsDialog.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/Operations/ExportOps.hpp"
@@ -16,6 +18,7 @@
 #include "slic3r/GUI/Operations/PluginOps.hpp"
 #include "slic3r/GUI/Operations/PreferenceOps.hpp"
 #include "slic3r/GUI/Operations/PresetOps.hpp"
+#include "slic3r/GUI/Operations/PrinterOps.hpp"
 #include "slic3r/GUI/Operations/ProjectOps.hpp"
 #include "slic3r/GUI/Operations/RunStatus.hpp"
 #include "slic3r/GUI/PresetComboBoxes.hpp"
@@ -2043,7 +2046,7 @@ bool under_operations_rule(const Slic3r::GUI::NativeCommand& command)
 
 // Every function of GUI/Operations a catalog entry may name.
 const std::set<std::string> kOperations = {
-    "start_gcode_export", "export_sliced_3mf", "export_model_3mf",       "export_stl",      "send_gcode_to_host",
+    "start_gcode_export", "export_sliced_3mf", "export_model_3mf",       "export_stl",      "open_print_dialog",
     "import_models",      "open_project",      "new_project",            "save_project_as", "set_instance_count",
     "select_plate",       "set_plate_locked",  "start_arrange",          "start_slice",     "show_layer_range",
     "resolve_preset",     "select_preset",     "assign_filament_preset", "import_presets",  "delete_objects",
@@ -2055,7 +2058,7 @@ const std::set<std::string> kOperations = {
     "printer_models",     "install_printers",     "uninstall_printers",   "install_filaments", "uninstall_filaments",
     "set_preferences",    "set_plugin_enabled",   "uninstall_plugin",     "reload_plugin",    "start_plugin_refresh",
     "reorder_objects",    "sync_filaments_from_ams", "open_gizmo",           "cut_object",
-    "lay_on_face",        "set_brim_ears",
+    "lay_on_face",        "set_brim_ears",        "test_print_host",
 };
 
 // What an exception is, so that the reason reads the same for every entry of a kind.
@@ -2515,4 +2518,73 @@ TEST_CASE("brim ears asked for on the bed are stored in the object's coordinates
     const Outcome<std::vector<Slic3r::BrimPoint>> none = brim_points_from_bed(cube, 0, {}, 4.f);
     REQUIRE(none);
     CHECK(none.value().empty());
+}
+
+namespace {
+
+// What print_route() gives: the dialog and the action checked, as "print_dialog/ePrintPlate", or the refusal's code.
+std::string route_of(bool send, bool all, const std::vector<Slic3r::GUI::MainFrame::PrintSelectType>& offered, bool has_print_host)
+{
+    using Slic3r::GUI::MainFrame;
+    using Slic3r::GUI::Ops::PrintDialog;
+    const Slic3r::GUI::Ops::Outcome<Slic3r::GUI::Ops::PrintRoute> route = Slic3r::GUI::Ops::print_route(send, all, offered, has_print_host);
+    if (!route)
+        return route.refusal().code;
+    const PrintDialog dialog = route.value().dialog;
+    std::string       text   = dialog == PrintDialog::Print ? "print" : dialog == PrintDialog::Storage ? "storage" : "host_upload";
+    if (!route.value().action)
+        return text + "/none";
+    switch (*route.value().action) {
+    case MainFrame::ePrintPlate: return text + "/ePrintPlate";
+    case MainFrame::ePrintAll: return text + "/ePrintAll";
+    case MainFrame::eSendGcode: return text + "/eSendGcode";
+    case MainFrame::eSendToPrinter: return text + "/eSendToPrinter";
+    case MainFrame::eSendToPrinterAll: return text + "/eSendToPrinterAll";
+    default: return text + "/other";
+    }
+}
+
+} // namespace
+
+TEST_CASE("a print or send call takes the route of the Print button's action of that name", "[Operations][Printer]")
+{
+    using Slic3r::GUI::MainFrame;
+    using Offer = std::vector<MainFrame::PrintSelectType>;
+    // What MainFrame::available_print_actions() offers each kind of printer.
+    const Offer vendor{MainFrame::eSendGcode, MainFrame::eExportGcode};
+    const Offer bambu_host{MainFrame::ePrintPlate, MainFrame::eExportSlicedFile, MainFrame::eExportAllSlicedFile, MainFrame::eExportGcode};
+    const Offer simplyprint{MainFrame::ePrintPlate, MainFrame::ePrintAll, MainFrame::eExportSlicedFile, MainFrame::eExportAllSlicedFile,
+                            MainFrame::eExportGcode};
+    const Offer network{MainFrame::ePrintPlate,       MainFrame::ePrintAll,         MainFrame::eSendToPrinter,
+                        MainFrame::eSendToPrinterAll, MainFrame::eExportSlicedFile, MainFrame::eExportAllSlicedFile,
+                        MainFrame::eExportGcode};
+    // Print, Print all, Send and Send all, for each printer with a print host address.
+    const auto [offer, name, print, print_all, send, send_all] = GENERATE_COPY(table<Offer, std::string, std::string, std::string, std::string, std::string>({
+        {vendor, "another vendor's printer", "host_upload/eSendGcode", "all_plates_not_offered", "host_upload/none", "all_plates_not_offered"},
+        {bambu_host, "a Bambu printer through a print host", "host_upload/ePrintPlate", "all_plates_not_offered", "host_upload/none",
+         "all_plates_not_offered"},
+        {simplyprint, "a Bambu printer through SimplyPrint", "host_upload/ePrintPlate", "host_upload/ePrintAll", "host_upload/none",
+         "all_plates_not_offered"},
+        {network, "a printer on the Bambu network", "print/ePrintPlate", "print/ePrintAll", "storage/eSendToPrinter",
+         "storage/eSendToPrinterAll"},
+    }));
+    INFO(name);
+    CHECK(route_of(false, false, offer, true) == print);
+    CHECK(route_of(false, true, offer, true) == print_all);
+    CHECK(route_of(true, false, offer, true) == send);
+    CHECK(route_of(true, true, offer, true) == send_all);
+}
+
+TEST_CASE("a route through a print host needs its address, and the Bambu network's does not", "[Operations][Printer]")
+{
+    using Slic3r::GUI::MainFrame;
+    const std::vector<MainFrame::PrintSelectType> vendor{MainFrame::eSendGcode, MainFrame::eExportGcode};
+    const std::vector<MainFrame::PrintSelectType> network{MainFrame::ePrintPlate, MainFrame::ePrintAll, MainFrame::eSendToPrinter,
+                                                          MainFrame::eSendToPrinterAll};
+    CHECK(route_of(false, false, vendor, false) == "no_print_host");
+    CHECK(route_of(true, false, vendor, false) == "no_print_host");
+    // A call the button does not offer is refused for that first.
+    CHECK(route_of(true, true, vendor, false) == "all_plates_not_offered");
+    CHECK(route_of(false, false, network, false) == "print/ePrintPlate");
+    CHECK(route_of(true, true, network, false) == "storage/eSendToPrinterAll");
 }

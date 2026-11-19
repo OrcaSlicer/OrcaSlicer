@@ -92,7 +92,8 @@ AppActionRunResult take_screenshot();
 
 // ---- Filaments, printers and plugins ----
 AppActionRunResult sync_ams();
-AppActionRunResult send_gcode();
+// The Print button's Send for the plate `args` names ({"plates"?}, as printer_send takes it).
+AppActionRunResult send_gcode(const nlohmann::json& args);
 // With no arguments the plugin file a dialog asks for, else the file `args` names ({"path"}).
 AppActionRunResult install_local_plugin(const nlohmann::json& args);
 AppActionRunResult refresh_plugins();

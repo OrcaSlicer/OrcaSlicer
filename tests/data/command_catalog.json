@@ -3733,6 +3733,16 @@
       {
        "args": {
         "object": 0,
+        "target": "object",
+        "values": {
+         "brim_type": "painted"
+        }
+       },
+       "tool": "settings_set"
+      },
+      {
+       "args": {
+        "object": 0,
         "points": [
          {
           "position": [
@@ -3750,19 +3760,9 @@
         ]
        },
        "tool": "object_set_brim_ears"
-      },
-      {
-       "args": {
-        "object": 0,
-        "target": "object",
-        "values": {
-         "brim_type": "painted"
-        }
-       },
-       "tool": "settings_set"
       }
      ],
-     "title": "Two ears at the front corners of object 0"
+     "title": "Paint object 0's brim as two ears at its front corners"
     },
     {
      "calls": [
@@ -6133,38 +6133,6 @@
    "title": "Uninstall system filaments"
   },
   {
-   "actions": [
-    {
-     "args": {},
-     "description": "Open the Send G-code to printer host dialog for the current plate, as the Print button does for a printer with a print host (OctoPrint, Moonraker, PrusaLink, Duet...). Set the file name with widget_set_value and press Upload or Upload and Print with dialog_answer; the plate is sliced if needed, then uploaded in the background: app_state.uploads shows the row's state, and a failed upload also opens an error dialog. A replay uploads again. Fails for a printer without a print host, or one that prints through the Bambu network or printer agents.",
-     "group": "Slice & Export",
-     "icon": "printer",
-     "key": "send_gcode",
-     "title": "Send G-code to printer host"
-    }
-   ],
-   "completion": "immediate",
-   "description": "Open the Send G-code to printer host dialog for the current plate, as the Print button does for a printer with a print host (OctoPrint, Moonraker, PrusaLink, Duet...). Set the file name with widget_set_value and press Upload or Upload and Print with dialog_answer; the plate is sliced if needed, then uploaded in the background: app_state.uploads shows the row's state, and a failed upload also opens an error dialog. A replay uploads again. Fails for a printer without a print host, or one that prints through the Bambu network or printer agents.",
-   "destructive": false,
-   "group": "Printers and prints",
-   "guard": "mutate",
-   "has_own_action": false,
-   "idempotent": false,
-   "input_schema": {
-    "additionalProperties": false,
-    "properties": {},
-    "type": "object"
-   },
-   "key": "printer_send",
-   "listed": true,
-   "open_world": true,
-   "operations": [
-    "send_gcode_to_host"
-   ],
-   "read_only": false,
-   "title": "Send G-code to printer host"
-  },
-  {
    "completion": "immediate",
    "description": "Every printer model OrcaSlicer ships or has installed, of every vendor, as the Printer Selection dialog lists them: each with its vendor (the vendor's id, \"BBL\"), model, nozzles and installed_nozzles, the nozzles whose printer presets the printer selector offers. vendor keeps one vendor's models, and query those whose name holds it. The first call after the shipped profiles change reads every vendor, which takes a while and can reply with a job to wait for; later calls read the result kept in the configuration folder. printer_install and printer_uninstall change what is installed.",
    "destructive": false,
@@ -6417,6 +6385,147 @@
    ],
    "read_only": false,
    "title": "Uninstall printer models"
+  },
+  {
+   "completion": "immediate",
+   "description": "Open the dialog the Print button's Print plate opens for the selected printer, for the current plate or the plate plates names, or with plates \"all\" Print all's. For a printer on the Bambu network or with printer agents it is the Print dialog, which leaves the printer, bed levelling, flow calibration, timelapse, the AMS mapping and the button that prints to it; for a printer with a print host (OctoPrint, Moonraker, PrusaLink, Duet...) it is the host's Send G-code to printer host dialog, with Upload and Upload and Print. As the button does, it first applies the slicing result, and it is refused (not_sliced) where the button would be disabled, as for a plate not sliced: slice with plate_slice first. The call replies blocked_by_dialog while the dialog is open: read and set its fields with widget_list and widget_set_value, and press its buttons with dialog_answer. Nothing prints until its button is pressed. Refused: all_plates_not_offered for plates \"all\" where the button offers no Print all, no_print_host for a printer with no print host address.",
+   "destructive": false,
+   "examples": [
+    {
+     "calls": [
+      {
+       "args": {},
+       "tool": "print_start"
+      }
+     ],
+     "title": "Open the Print dialog for the current plate"
+    },
+    {
+     "calls": [
+      {
+       "args": {
+        "plates": 1
+       },
+       "tool": "plate_slice"
+      },
+      {
+       "args": {
+        "plates": 1
+       },
+       "tool": "print_start"
+      }
+     ],
+     "title": "Print the second plate after slicing it"
+    }
+   ],
+   "group": "Printers and prints",
+   "guard": "mutate",
+   "has_own_action": false,
+   "idempotent": false,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {
+     "plates": {
+      "description": "\"current\" (default), a plate index, which is selected first, or \"all\" for Print all, where the Print button offers it.",
+      "type": [
+       "string",
+       "integer"
+      ]
+     }
+    },
+    "type": "object"
+   },
+   "key": "print_start",
+   "listed": true,
+   "open_world": true,
+   "operations": [
+    "open_print_dialog"
+   ],
+   "read_only": false,
+   "title": "Print plate"
+  },
+  {
+   "actions": [
+    {
+     "args": {},
+     "description": "Open the dialog the Print button's Send opens for the selected printer, for the current plate or the plate plates names. For a printer on the Bambu network or with printer agents it is the dialog that sends the sliced plate to the printer's storage (with plates \"all\", Send all's), which leaves the printer, the file name, the storage and the button that sends to it, and is refused (not_sliced) for a plate not sliced. For a printer with a print host (OctoPrint, Moonraker, PrusaLink, Duet...) it is the Send G-code to printer host dialog: set the file name with widget_set_value and press Upload or Upload and Print with dialog_answer; the plate is sliced if needed, then uploaded in the background: app_state.uploads shows the row's state, and a failed upload also opens an error dialog. The call replies blocked_by_dialog while the dialog is open. A replay sends again. Refused: all_plates_not_offered for plates \"all\" where the button offers no Send all, no_print_host for a printer with no print host address.",
+     "group": "Slice & Export",
+     "icon": "printer",
+     "key": "send_gcode",
+     "title": "Send G-code to printer host"
+    }
+   ],
+   "completion": "immediate",
+   "description": "Open the dialog the Print button's Send opens for the selected printer, for the current plate or the plate plates names. For a printer on the Bambu network or with printer agents it is the dialog that sends the sliced plate to the printer's storage (with plates \"all\", Send all's), which leaves the printer, the file name, the storage and the button that sends to it, and is refused (not_sliced) for a plate not sliced. For a printer with a print host (OctoPrint, Moonraker, PrusaLink, Duet...) it is the Send G-code to printer host dialog: set the file name with widget_set_value and press Upload or Upload and Print with dialog_answer; the plate is sliced if needed, then uploaded in the background: app_state.uploads shows the row's state, and a failed upload also opens an error dialog. The call replies blocked_by_dialog while the dialog is open. A replay sends again. Refused: all_plates_not_offered for plates \"all\" where the button offers no Send all, no_print_host for a printer with no print host address.",
+   "destructive": false,
+   "group": "Printers and prints",
+   "guard": "mutate",
+   "has_own_action": false,
+   "idempotent": false,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {
+     "plates": {
+      "description": "\"current\" (default), a plate index, which is selected first, or \"all\" for Send all, where the Print button offers it.",
+      "type": [
+       "string",
+       "integer"
+      ]
+     }
+    },
+    "type": "object"
+   },
+   "key": "printer_send",
+   "listed": true,
+   "open_world": true,
+   "operations": [
+    "open_print_dialog"
+   ],
+   "read_only": false,
+   "title": "Send G-code to printer host"
+  },
+  {
+   "completion": "immediate",
+   "description": "Ask the selected printer's print host whether it answers, as the Test button of the printer's connection dialog does, with its connection settings as they stand. Reply: ok, whether the host answered, and message, the button's message in the app's language; branch on ok. A cloud host that wants a login is a failed test with the host's message: logging in stays in the printer's connection dialog. The window does not redraw while the host is asked. Refused: no_print_host for a printer with no print host address, host_cannot_be_tested for a kind of host that has no test.",
+   "destructive": false,
+   "examples": [
+    {
+     "calls": [
+      {
+       "args": {
+        "type": "printer",
+        "values": {
+         "host_type": "octoprint",
+         "print_host": "192.168.1.20"
+        }
+       },
+       "tool": "settings_set"
+      },
+      {
+       "args": {},
+       "tool": "printer_test_host"
+      }
+     ],
+     "title": "Check the print host after setting its address"
+    }
+   ],
+   "group": "Printers and prints",
+   "guard": "mutate",
+   "has_own_action": false,
+   "idempotent": false,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {},
+    "type": "object"
+   },
+   "key": "printer_test_host",
+   "listed": true,
+   "open_world": true,
+   "operations": [
+    "test_print_host"
+   ],
+   "read_only": false,
+   "title": "Test the print host"
   },
   {
    "completion": "immediate",

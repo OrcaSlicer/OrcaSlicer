@@ -83,6 +83,11 @@ void register_gizmo_tools(CommandCatalog& catalog);
 // A gizmo command's acting arguments: a call with any of them does the job and opens no gizmo; a call with none opens
 // it. Empty for a command that only opens, and for any other command.
 const std::vector<std::string>& gizmo_acting_args(const std::string& command);
+// print_start, printer_send and printer_test_host (McpToolsPrinter.cpp).
+void register_printer_tools(CommandCatalog& catalog);
+// The plates argument of print_start and printer_send, as project_export takes it: a plate's index into `plate`,
+// "all" as `all`, or "current" (also when left out) as neither. Returns what is wrong with it, else empty.
+std::string read_print_plates(const nlohmann::json& args, std::optional<int>& plate, bool& all);
 void register_view_tools(CommandCatalog& catalog);
 void register_plugin_tools(CommandCatalog& catalog);
 // The error of a plugin command refused by `refusal` (McpToolsPlugins.cpp), the plugin's row (plugin_list's) being

@@ -2634,19 +2634,26 @@ bool MainFrame::get_enable_slice_status()
 
 bool MainFrame::get_enable_print_status()
 {
+    const bool enable = print_action_enabled(PrintSelectType(m_print_select));
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": m_print_select %1%, enable= %2% ")%m_print_select %enable;
+    return enable;
+}
+
+bool MainFrame::print_action_enabled(PrintSelectType action)
+{
     bool enable = true;
 
     PartPlateList &part_plate_list = m_plater->get_partplate_list();
     PartPlate *current_plate = part_plate_list.get_curr_plate();
     bool is_all_plates = wxGetApp().plater()->get_preview_canvas3D()->is_all_plates_selected();
-    if (m_print_select == ePrintAll)
+    if (action == ePrintAll)
     {
         if (!part_plate_list.is_all_slice_results_ready_for_print())
         {
             enable = false;
         }
     }
-    else if (m_print_select == ePrintPlate)
+    else if (action == ePrintPlate)
     {
         if (!current_plate->is_slice_result_ready_for_print())
         {
@@ -2654,7 +2661,7 @@ bool MainFrame::get_enable_print_status()
         }
         enable = enable && !is_all_plates;
     }
-    else if (m_print_select == eExportGcode)
+    else if (action == eExportGcode)
     {
         if (!current_plate->is_slice_result_valid())
         {
@@ -2662,7 +2669,7 @@ bool MainFrame::get_enable_print_status()
         }
         enable = enable && !is_all_plates;
     }
-    else if (m_print_select == eSendGcode)
+    else if (action == eSendGcode)
     {
         if (!current_plate->is_slice_result_valid())
             enable = false;
@@ -2670,7 +2677,7 @@ bool MainFrame::get_enable_print_status()
             enable = false;
         enable = enable && !is_all_plates;
     }
-    else if (m_print_select == eUploadGcode)
+    else if (action == eUploadGcode)
     {
         if (!current_plate->is_slice_result_valid())
             enable = false;
@@ -2678,7 +2685,7 @@ bool MainFrame::get_enable_print_status()
             enable = false;
         enable = enable && !is_all_plates;
     }
-    else if (m_print_select == eExportSlicedFile)
+    else if (action == eExportSlicedFile)
     {
         if (!current_plate->is_slice_result_ready_for_export())
         {
@@ -2686,7 +2693,7 @@ bool MainFrame::get_enable_print_status()
         }
         enable = enable && !is_all_plates;
 	}
-	else if (m_print_select == eSendToPrinter)
+	else if (action == eSendToPrinter)
 	{
 		if (!current_plate->is_slice_result_ready_for_print())
 		{
@@ -2694,21 +2701,21 @@ bool MainFrame::get_enable_print_status()
 		}
         enable = enable && !is_all_plates;
 	}
-    else if (m_print_select == eSendToPrinterAll)
+    else if (action == eSendToPrinterAll)
     {
         if (!part_plate_list.is_all_slice_results_ready_for_print())
         {
             enable = false;
         }
     }
-    else if (m_print_select == eExportAllSlicedFile)
+    else if (action == eExportAllSlicedFile)
     {
         if (!part_plate_list.is_all_slice_result_ready_for_export())
         {
             enable = false;
         }
     }
-    else if (m_print_select == ePrintMultiMachine)
+    else if (action == ePrintMultiMachine)
     {
         if (!current_plate->is_slice_result_ready_for_print())
         {
@@ -2716,8 +2723,6 @@ bool MainFrame::get_enable_print_status()
         }
         enable = enable && !is_all_plates;
     }
-
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": m_print_select %1%, enable= %2% ")%m_print_select %enable;
 
     return enable;
 }
