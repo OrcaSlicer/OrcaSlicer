@@ -368,15 +368,12 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
     host_line.append_widget(print_host_logout);
     m_optgroup->append_line(host_line);
 
-    // Orca: the Device tab checkbox sits next to the Device UI it turns on and off. The line shows the
-    // Device UI label, so its field gets none of its own.
+    // Orca: the Device tab checkbox comes right before the Device UI it turns on and off.
+    m_optgroup->append_single_option_line("enable_device_tab");
+
     option = m_optgroup->get_option("print_host_webui");
     option.opt.width = Field::def_width_wider();
-    Line webui_line{from_u8(option.opt.label), from_u8(option.opt.tooltip)};
-    option.opt.label.clear();
-    webui_line.append_option(option);
-    webui_line.append_option(m_optgroup->get_option("enable_device_tab"));
-    m_optgroup->append_line(webui_line);
+    m_optgroup->append_single_option_line(option);
 
     {
         // For bbl printers, we build a fake option to control whether the original device tab should be used
@@ -621,6 +618,7 @@ void PhysicalPrinterDialog::update(bool printer_change)
 
         m_optgroup->enable_field("print_host");
         m_optgroup->show_field("print_host_webui");
+        m_optgroup->show_field("enable_device_tab");
         m_optgroup->hide_field("bbl_use_print_host_webui");
         m_optgroup->enable_field("printhost_cafile");
         m_optgroup->enable_field("printhost_ssl_ignore_revoke");
@@ -698,6 +696,7 @@ void PhysicalPrinterDialog::update(bool printer_change)
                 }
 
                 m_optgroup->hide_field("print_host_webui");
+                m_optgroup->hide_field("enable_device_tab");
                 m_optgroup->hide_field("printhost_apikey");
                 m_optgroup->disable_field("printhost_cafile");
                 m_optgroup->disable_field("printhost_ssl_ignore_revoke");
@@ -711,6 +710,7 @@ void PhysicalPrinterDialog::update(bool printer_change)
                     }
                 }
                 m_optgroup->hide_field("print_host_webui");
+                m_optgroup->hide_field("enable_device_tab");
                 m_optgroup->hide_field("printhost_apikey");
             } 
         }
@@ -732,6 +732,7 @@ void PhysicalPrinterDialog::update(bool printer_change)
                 m_optgroup->show_field("printhost_password");
                 m_optgroup->enable_field("print_host");
                 m_optgroup->show_field("print_host_webui");
+                m_optgroup->show_field("enable_device_tab");
                 if (m_printhost_cafile_browse_btn) {
                     m_printhost_cafile_browse_btn->Disable();
                 }
