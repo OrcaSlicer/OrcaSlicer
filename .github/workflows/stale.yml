@@ -10,6 +10,10 @@ permissions:
   issues: write
   pull-requests: write
 
+# Overlapping runs would overwrite each other's saved progress.
+concurrency:
+  group: stale
+
 jobs:
   stale:
     runs-on: ubuntu-latest
@@ -24,6 +28,9 @@ jobs:
           stale-issue-label: stale
           stale-pr-label: stale
           remove-stale-when-updated: true
+
+          # The last step mirrors the exempt and only-labels options below.
+          # Update its filters when they change.
 
           # Issues
           days-before-issue-stale: 90
@@ -51,8 +58,29 @@ jobs:
           stale-pr-message: |
             We asked for changes or more information on this PR, and there has been no activity for 90 days. It will be closed in 14 days.
 
-            To keep it open, leave a comment. If you push new commits, please also leave a short comment, because a push alone does not reset this. If you no longer have time for it, that is fine, just let us know.
+            To keep it open, leave a comment. If you push new commits, please also leave a short comment so we know it's ready for another look. If you no longer have time for it, that is fine, just let us know.
           close-pr-message: |
             This PR was closed because we did not hear back after the reminder. Thank you for the work you put into it.
 
             If you want to continue, push your changes and reopen it, or open a new PR.
+
+      # The stale bot checks exemptions before activity, so it never comes back
+      # to a stale item that became exempt. Remove the label from those here.
+      - name: Remove stale labels the stale bot will not revisit
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            gh issue list -R "$GITHUB_REPOSITORY" --label stale --state open --limit 5000 \
+              --json number,assignees,milestone \
+              --jq '.[] | select((.assignees | length > 0) or .milestone != null) | .number'
+            gh pr list -R "$GITHUB_REPOSITORY" --label stale --state open --limit 1000 \
+              --json number,isDraft,assignees,milestone,labels \
+              --jq '.[] | select(.isDraft or (.assignees | length > 0) or .milestone != null
+                     or ([.labels[].name] | index("wait for response") | not)) | .number'
+          } | while read -r n; do
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$n/labels/stale" --silent < /dev/null ||
+              echo "::warning::Could not remove the stale label from #$n"
+          done
