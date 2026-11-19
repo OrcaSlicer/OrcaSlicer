@@ -58,13 +58,6 @@ std::vector<unsigned char> image_to_rgba(const wxImage &image)
     return out;
 }
 
-// One decoded frame on its way to the GPU: the whole animation's area, already composited.
-struct DecodedFrame
-{
-    std::vector<unsigned char> rgba;
-    double                     delay; // seconds
-};
-
 // Every frame of a GIF, composited onto the animation's own canvas.
 //
 // A GIF frame is a sub-rectangle that is drawn over what came before it, and the one before says how
@@ -72,7 +65,7 @@ struct DecodedFrame
 // animation that only re-sends the pixels that changed - which is most of them - draws as a flicker of
 // disconnected patches. wxGIFDecoder hands over the raw palette indices, which is what makes replaying
 // it here straightforward: a transparent index means "keep what is underneath", nothing else does.
-bool decode_gif(const std::vector<unsigned char> &bytes, int &width, int &height, std::vector<DecodedFrame> &out)
+bool decode_gif(const std::vector<unsigned char> &bytes, int &width, int &height, std::vector<IllustrationFrame> &out)
 {
     wxMemoryInputStream stream(bytes.data(), bytes.size());
     wxGIFDecoder        decoder;
@@ -147,9 +140,11 @@ bool decode_gif(const std::vector<unsigned char> &bytes, int &width, int &height
 
 } // namespace
 
-bool AnimatedTexture::load_from_file(const std::string &path)
+bool decode_illustration(const std::string &path, int &width, int &height, std::vector<IllustrationFrame> &frames)
 {
-    reset();
+    frames.clear();
+    width  = 0;
+    height = 0;
 
     boost::system::error_code ec;
     if (!boost::filesystem::is_regular_file(path, ec))
@@ -159,31 +154,41 @@ bool AnimatedTexture::load_from_file(const std::string &path)
     if (bytes.empty())
         return false;
 
-    std::vector<DecodedFrame> frames;
-    int                       width = 0, height = 0;
-
     if (has_gif_signature(bytes)) {
         if (!decode_gif(bytes, width, height, frames)) {
-            BOOST_LOG_TRIVIAL(error) << "AnimatedTexture: cannot decode GIF " << path;
+            BOOST_LOG_TRIVIAL(error) << "decode_illustration: cannot decode GIF " << path;
+            frames.clear();
             return false;
         }
-    } else {
-        wxLogNull           no_log; // a format wxWidgets cannot read is handled here, not in a dialog
-        wxImage             image;
-        wxMemoryInputStream stream(bytes.data(), bytes.size());
-        if (!image.LoadFile(stream, wxBITMAP_TYPE_ANY) || !image.IsOk()) {
-            BOOST_LOG_TRIVIAL(error) << "AnimatedTexture: cannot decode image " << path;
-            return false;
-        }
-        width  = image.GetWidth();
-        height = image.GetHeight();
-        frames.push_back({ image_to_rgba(image), 0.0 });
+        return true;
     }
+
+    wxLogNull           no_log; // a format wxWidgets cannot read is handled here, not in a dialog
+    wxImage             image;
+    wxMemoryInputStream stream(bytes.data(), bytes.size());
+    if (!image.LoadFile(stream, wxBITMAP_TYPE_ANY) || !image.IsOk()) {
+        BOOST_LOG_TRIVIAL(error) << "decode_illustration: cannot decode image " << path;
+        return false;
+    }
+    width  = image.GetWidth();
+    height = image.GetHeight();
+    frames.push_back({ image_to_rgba(image), 0.0 });
+    return true;
+}
+
+bool AnimatedTexture::load_from_file(const std::string &path)
+{
+    reset();
+
+    std::vector<IllustrationFrame> frames;
+    int                            width = 0, height = 0;
+    if (!decode_illustration(path, width, height, frames))
+        return false;
 
     m_width  = width;
     m_height = height;
     m_frames.reserve(frames.size());
-    for (DecodedFrame &frame : frames) {
+    for (IllustrationFrame &frame : frames) {
         auto texture = std::make_unique<GLTexture>();
         // Mipmapped: a hint is drawn at whatever width the panel has room for, which is usually
         // smaller than the source, and an unfiltered downscale of a diagram is all aliasing.
