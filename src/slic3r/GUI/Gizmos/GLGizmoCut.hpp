@@ -118,6 +118,7 @@ class GLGizmoCut3D : public GLGizmoBase
     };
     std::map<int, VertexFeatures> m_vertex_features;
     std::optional<Vec3d> m_hovered_vertex;
+    std::optional<Vec3d> m_pressed_vertex;
 
     bool can_hover_vertex() const;
     std::optional<Vec3d> pick_vertex(const Vec2d& mouse_pos);

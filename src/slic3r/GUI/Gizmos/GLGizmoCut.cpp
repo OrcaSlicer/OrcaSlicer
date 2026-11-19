@@ -339,6 +339,14 @@ bool GLGizmoCut3D::on_mouse(const wxMouseEvent &mouse_event)
     Vec2i32 mouse_coord(mouse_event.GetX(), mouse_event.GetY());
     Vec2d mouse_pos = mouse_coord.cast<double>();
 
+    // Let the plane or canvas start its usual drag even if the press hits a vertex.
+    // Only a plain click may replace the plane flip on release.
+    if (mouse_event.LeftDown())
+        m_pressed_vertex = can_hover_vertex() && mouse_event.GetModifiers() == wxMOD_NONE ?
+                           pick_vertex(mouse_pos) : std::nullopt;
+    else if (mouse_event.Dragging() || mouse_event.Leaving() || mouse_event.GetModifiers() != wxMOD_NONE)
+        m_pressed_vertex.reset();
+
     if (mouse_event.ShiftDown() && mouse_event.LeftDown())
         return gizmo_event(SLAGizmoEventType::LeftDown, mouse_pos, mouse_event.ShiftDown(), mouse_event.AltDown(), mouse_event.CmdDown());
     if (mouse_event.CmdDown() && mouse_event.LeftDown())
@@ -363,7 +371,20 @@ bool GLGizmoCut3D::on_mouse(const wxMouseEvent &mouse_event)
             m_cut_plane_start_move_pos = pos_world;
     }
 
-    if (use_grabbers(mouse_event)) {
+    const auto clicked_vertex = mouse_event.LeftUp() ? std::exchange(m_pressed_vertex, std::nullopt) : std::nullopt;
+    const bool used_grabber = use_grabbers(mouse_event);
+    if (clicked_vertex && !m_parent.is_mouse_dragging()) {
+        const double delta = m_cut_normal.dot(*clicked_vertex - m_plane_center);
+        if (!is_approx(delta, 0.0)) {
+            shift_cut(delta);
+            reset_cut_by_contours();
+            check_and_update_connectors_state();
+            m_parent.request_extra_frame();
+        }
+        return true;
+    }
+
+    if (used_grabber) {
         if (m_hover_id >= m_connectors_group_id) {
             if (mouse_event.LeftDown() && !mouse_event.CmdDown() && !mouse_event.AltDown())
                 unselect_all_connectors();
@@ -1566,6 +1587,7 @@ void GLGizmoCut3D::on_set_state()
         }
         m_vertex_features.clear();
         m_hovered_vertex.reset();
+        m_pressed_vertex.reset();
         m_selected.clear();
         m_parent.set_use_color_clip_plane(false);
         //m_c->selection_info()->set_use_shift(false);
