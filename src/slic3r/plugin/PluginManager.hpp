@@ -177,7 +177,6 @@ public:
     // held, so a test can hold discovery at that point and observe what a concurrent caller sees.
     void set_discovery_gate_for_testing(std::function<void()> gate);
 
-
     std::vector<PluginDescriptor> get_plugin_descriptors(bool include_invalid = false) const;
     // Packages that materialize at least one capability of this type. A package's capability types
     // are only known once it has been loaded, so a never-loaded package never matches.
