@@ -9170,6 +9170,8 @@ std::string GCode::GCodeOutputStream::last_error() const
 
 void GCode::GCodeOutputStream::flush()
 {
+    // Cleared first, so a failure that sets no error code does not report an older one.
+    errno = 0;
     if (::fflush(this->f) != 0 && m_write_errno == 0)
         m_write_errno = errno;
 }
@@ -9188,6 +9190,7 @@ void GCode::GCodeOutputStream::write(const char *what)
         const char* gcode = what;
         // writes string to file
         const size_t len = ::strlen(gcode);
+        errno = 0;
         if (::fwrite(gcode, 1, len, this->f) != len && m_write_errno == 0)
             m_write_errno = errno;
         //FIXME don't allocate a string, maybe process a batch of lines?
