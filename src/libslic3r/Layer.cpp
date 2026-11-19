@@ -174,8 +174,14 @@ bool Layer::is_perimeter_compatible(const Print& print, const PrintRegion& a, co
 		&& config.small_perimeter_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id)) == other_config.small_perimeter_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id))
 		&& config.small_support_perimeter_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id)) == other_config.small_support_perimeter_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id))
         && config.gap_infill_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id)) == other_config.gap_infill_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id))
-        // Overhang walls print at the bridge speed.
+        // Overhang walls print at the bridge speed, and partly overhanging walls at the overhang speeds.
         && config.bridge_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id)) == other_config.bridge_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id))
+        && config.enable_overhang_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id)) == other_config.enable_overhang_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id))
+        && config.overhang_1_4_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id)) == other_config.overhang_1_4_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id))
+        && config.overhang_2_4_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id)) == other_config.overhang_2_4_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id))
+        && config.overhang_3_4_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id)) == other_config.overhang_3_4_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id))
+        && config.overhang_4_4_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id)) == other_config.overhang_4_4_speed.get_at(print.get_extruder_id(config.outer_wall_filament_id))
+        && config.slowdown_for_curled_perimeters.get_at(print.get_extruder_id(config.outer_wall_filament_id)) == other_config.slowdown_for_curled_perimeters.get_at(print.get_extruder_id(config.outer_wall_filament_id))
 		&& config.inner_wall_volumetric_flow.get_at(print.get_extruder_id(config.outer_wall_filament_id)) == other_config.inner_wall_volumetric_flow.get_at(print.get_extruder_id(config.outer_wall_filament_id))
 		&& config.outer_wall_volumetric_flow.get_at(print.get_extruder_id(config.outer_wall_filament_id)) == other_config.outer_wall_volumetric_flow.get_at(print.get_extruder_id(config.outer_wall_filament_id))
 		&& config.gap_infill_volumetric_flow.get_at(print.get_extruder_id(config.outer_wall_filament_id)) == other_config.gap_infill_volumetric_flow.get_at(print.get_extruder_id(config.outer_wall_filament_id))

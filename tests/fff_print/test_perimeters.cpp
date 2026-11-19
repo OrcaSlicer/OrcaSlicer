@@ -137,22 +137,32 @@ double max_difference(const std::vector<double> &a, const std::vector<double> &b
 // density of 0% leaves the top layer with walls only. The last section is the control - the same
 // expansion on the same model does change the slice once a top fill exists - without which the two
 // equality checks above it would hold for an unrelated reason.
-// Overhang walls print at the bridge speed, so regions that differ in it can't share their walls.
-TEST_CASE("Regions with a different bridge speed or flow get walls of their own", "[Perimeters]")
+// Overhang walls print at the bridge and overhang speeds, so regions that differ in them can't share their walls.
+TEST_CASE("Regions with different overhang wall speeds get walls of their own", "[Perimeters]")
 {
-    const bool flow = GENERATE(false, true);
-    CAPTURE(flow);
+    const std::string option = GENERATE(as<std::string>{}, "bridge_speed", "bridge_volumetric_flow", "enable_overhang_speed",
+                                        "overhang_2_4_speed", "slowdown_for_curled_perimeters");
+    CAPTURE(option);
     Print print;
     Model model;
     init_print({ cube(20) }, print, model);
     const PrintRegionConfig &config = print.objects().front()->printing_region(0).config();
     PrintRegionConfig changed = config;
-    if (flow)
-        for (FloatOrPercent &value : changed.bridge_volumetric_flow.values)
-            value.value += 10.;
-    else
+    if (option == "bridge_speed")
         for (double &value : changed.bridge_speed.values)
             value += 10.;
+    else if (option == "bridge_volumetric_flow")
+        for (FloatOrPercent &value : changed.bridge_volumetric_flow.values)
+            value.value += 10.;
+    else if (option == "enable_overhang_speed")
+        for (unsigned char &value : changed.enable_overhang_speed.values)
+            value = ! value;
+    else if (option == "overhang_2_4_speed")
+        for (FloatOrPercent &value : changed.overhang_2_4_speed.values)
+            value.value += 10.;
+    else
+        for (unsigned char &value : changed.slowdown_for_curled_perimeters.values)
+            value = ! value;
     CHECK(Layer::is_perimeter_compatible(print, PrintRegion(config), PrintRegion(config)));
     CHECK_FALSE(Layer::is_perimeter_compatible(print, PrintRegion(config), PrintRegion(changed)));
 }
