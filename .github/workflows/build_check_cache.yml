@@ -102,8 +102,12 @@ jobs:
           # pnglibconf.h (no PNG_PREFIX) was still used. Add
           # -DPNG_LIBCONF_HEADER_PREBUILT=OFF to force generation from the .dfa
           # so the PNG_PREFIX mapping is baked into the installed pnglibconf.h.
-          echo cache-key=${{ env.cache-os }}-cache-orcaslicer_deps-build-v5-${{ hashFiles('deps/**') }} >> ${{ env.output-cmd }}
-          echo cache-prefix=${{ env.cache-os }}-cache-orcaslicer_deps-build-v5- >> ${{ env.output-cmd }}
+          #
+          # -v6: PNG_PREFIX removed entirely (libpng prefix mechanism broken
+          # in 1.6.59). Build without prefix so libpng exports standard png_*
+          # names matching unprefixed calls in PNGReadWrite.cpp.
+          echo cache-key=${{ env.cache-os }}-cache-orcaslicer_deps-build-v6-${{ hashFiles('deps/**') }} >> ${{ env.output-cmd }}
+          echo cache-prefix=${{ env.cache-os }}-cache-orcaslicer_deps-build-v6- >> ${{ env.output-cmd }}
           # Relative to the workspace, which differs from the build's when this job runs on Linux.
           echo cache-path=deps/build${{ env.dep-folder-name }} >> ${{ env.output-cmd }}
             

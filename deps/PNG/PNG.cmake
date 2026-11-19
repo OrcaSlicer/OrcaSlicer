@@ -15,7 +15,11 @@ orcaslicer_add_cmake_project(PNG
             -DPNG_FRAMEWORK=OFF
             -DPNG_SHARED=OFF
             -DPNG_STATIC=ON
-            -DPNG_PREFIX=prusaslicer_
+            # PNG_PREFIX is removed: the libpng prefix mechanism is broken in
+            # 1.6.59 (prefixed symbols in lib, unprefixed refs from header).
+            # Building without a prefix makes libpng export standard png_* names
+            # which match the unprefixed calls in PNGReadWrite.cpp.
+            # -DPNG_PREFIX=prusaslicer_
             -DPNG_TESTS=OFF
             -DDISABLE_DEPENDENCY_TRACKING=OFF
 )
