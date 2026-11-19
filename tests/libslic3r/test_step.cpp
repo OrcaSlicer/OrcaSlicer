@@ -8,16 +8,9 @@
 #include <cmath>
 #include <functional>
 #include <iterator>
-#include <algorithm>
-#include <cstdio>
 #include <BRep_Builder.hxx>
-#include <BRep_Tool.hxx>
-#include <BRepMesh_IncrementalMesh.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
-#include <BRepTools.hxx>
-#include <Geom2d_Curve.hxx>
 #include <IFSelect_ReturnStatus.hxx>
-#include <Poly_Triangulation.hxx>
 #include <Standard_Handle.hxx>
 #include <STEPControl_Reader.hxx>
 #include <STEPCAFControl_Writer.hxx>
@@ -26,11 +19,7 @@
 #include <TDF_Label.hxx>
 #include <TDocStd_Document.hxx>
 #include <TopAbs_ShapeEnum.hxx>
-#include <TopExp_Explorer.hxx>
-#include <TopoDS.hxx>
 #include <TopoDS_Compound.hxx>
-#include <TopoDS_Edge.hxx>
-#include <TopoDS_Face.hxx>
 #include <TopLoc_Location.hxx>
 #include <XCAFApp_Application.hxx>
 #include <XCAFDoc_DocumentTool.hxx>
@@ -38,7 +27,6 @@
 #include <gp_Ax1.hxx>
 #include <gp_Dir.hxx>
 #include <gp_Pnt.hxx>
-#include <gp_Pnt2d.hxx>
 #include <gp_Trsf.hxx>
 #include <gp_Vec.hxx>
 
@@ -135,74 +123,6 @@ TEST_CASE("A cone with a slightly tilted seam imports as a closed mesh", "[Step]
     CHECK(its_num_open_edges(model.objects.front()->volumes.front()->mesh().its) == 0);
 }
 
-// TEMPORARY diagnostic: prints how OCCT meshes the fixture's cone face, to find out why ARM64 builds
-// get more mesh area than the face has. Remove once that is understood.
-static void dump_cone_band_mesh(const std::string &path)
-{
-    STEPControl_Reader reader;
-    if (reader.ReadFile(path.c_str()) != IFSelect_RetDone)
-        return;
-    reader.TransferRoots();
-    TopExp_Explorer face_it(reader.OneShape(), TopAbs_FACE);
-    if (!face_it.More())
-        return;
-    const TopoDS_Face face = TopoDS::Face(face_it.Current());
-    double u_min, u_max, v_min, v_max;
-    BRepTools::UVBounds(face, u_min, u_max, v_min, v_max);
-    std::printf("DIAG face or=%d uv=[%.17g,%.17g]x[%.17g,%.17g]\n", int(face.Orientation()), u_min, u_max, v_min, v_max);
-    for (TopExp_Explorer edge_it(face, TopAbs_EDGE); edge_it.More(); edge_it.Next()) {
-        const TopoDS_Edge edge = TopoDS::Edge(edge_it.Current());
-        double first, last;
-        const Handle(Geom2d_Curve) pcurve = BRep_Tool::CurveOnSurface(edge, face, first, last);
-        if (pcurve.IsNull())
-            continue;
-        const gp_Pnt2d p0 = pcurve->Value(first), p1 = pcurve->Value(last);
-        std::printf("DIAG edge or=%d seam=%d range=[%.17g,%.17g] (%.17g,%.17g)->(%.17g,%.17g) %s\n", int(edge.Orientation()),
-                    int(BRep_Tool::IsClosed(edge, face)), first, last, p0.X(), p0.Y(), p1.X(), p1.Y(), pcurve->DynamicType()->Name());
-    }
-
-    BRepMesh_IncrementalMesh mesher(face, 0.003, false, 0.5, true);
-    TopLoc_Location location;
-    const Handle(Poly_Triangulation) triangulation = BRep_Tool::Triangulation(face, location);
-    if (triangulation.IsNull() || !triangulation->HasUVNodes()) {
-        std::printf("DIAG status=%d no triangulation with UV nodes\n", int(mesher.GetStatusFlags()));
-        return;
-    }
-
-    // 3D area per tenth of the U range, and triangles folded over in UV.
-    constexpr int bins = 10;
-    double area_by_u[bins] = {};
-    double area_3d = 0., uv_positive = 0., uv_negative = 0.;
-    int    folded = 0;
-    for (int i = 1; i <= triangulation->NbTriangles(); ++i) {
-        int n[3];
-        triangulation->Triangle(i).Get(n[0], n[1], n[2]);
-        const gp_Pnt2d a = triangulation->UVNode(n[0]), b = triangulation->UVNode(n[1]), c = triangulation->UVNode(n[2]);
-        const double   uv = 0.5 * ((b.X() - a.X()) * (c.Y() - a.Y()) - (c.X() - a.X()) * (b.Y() - a.Y()));
-        const gp_Pnt   pa = triangulation->Node(n[0]), pb = triangulation->Node(n[1]), pc = triangulation->Node(n[2]);
-        const double   area = 0.5 * gp_Vec(pa, pb).Crossed(gp_Vec(pa, pc)).Magnitude();
-        area_3d += area;
-        const double u   = (a.X() + b.X() + c.X()) / 3.;
-        const int    bin = std::clamp(int((u - u_min) / (u_max - u_min) * bins), 0, bins - 1);
-        area_by_u[bin] += area;
-        (uv >= 0. ? uv_positive : uv_negative) += uv;
-        if (uv < 0.)
-            ++folded;
-    }
-    std::printf("DIAG status=%d nodes=%d triangles=%d area3d=%.6f uv+=%.9g uv-=%.9g negative=%d\n", int(mesher.GetStatusFlags()),
-                triangulation->NbNodes(), triangulation->NbTriangles(), area_3d, uv_positive, uv_negative, folded);
-    for (int bin = 0; bin < bins; ++bin)
-        std::printf("DIAG area u-bin %d: %.4f\n", bin, area_by_u[bin]);
-    // The whole triangulation, to plot it.
-    for (int i = 1; i <= triangulation->NbNodes(); ++i)
-        std::printf("DIAG N %.17g %.17g\n", triangulation->UVNode(i).X(), triangulation->UVNode(i).Y());
-    for (int i = 1; i <= triangulation->NbTriangles(); ++i) {
-        int n[3];
-        triangulation->Triangle(i).Get(n[0], n[1], n[2]);
-        std::printf("DIAG T %d %d %d\n", n[0], n[1], n[2]);
-    }
-}
-
 // The fixture is one band of a tilted chimney exported from Fusion: a full turn of a cone of 313.77 mm²,
 // whose B-spline boundary pcurves end up to 3e-5 past the seam. Meshed wrongly, it becomes a flat disc of
 // about 220 mm² over its top circle.
@@ -226,8 +146,6 @@ TEST_CASE("A cone band whose boundary ends past the seam meshes its whole surfac
                           .cast<double>()
                           .cross((its.vertices[face[2]] - its.vertices[face[0]]).cast<double>())
                           .norm();
-    if (std::abs(area - 313.77) > 0.01 * 313.77)
-        dump_cone_band_mesh(path);
     CHECK_THAT(area, Catch::Matchers::WithinRel(313.77, 0.01));
 }
 
