@@ -83,7 +83,7 @@ jobs:
   # the builds.
   check_build_script:
     name: Windows build script tests
-    runs-on: windows-2025
+    runs-on: windows-2022
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -107,7 +107,7 @@ jobs:
       matrix:
         include:
           - arch: x64
-            os: windows-2025
+            os: windows-2022
             compiler: clang
             preset: x64-clang
             flags: -l -x
@@ -212,7 +212,7 @@ jobs:
     if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests.yml
     with:
-      os: windows-2025
+      os: windows-2022
       artifact: ${{ github.sha }}-tests-windows-x64-x64-clang
   
   unit_tests_macos_arm64:
