@@ -7298,6 +7298,8 @@ struct Plater::priv
     int m_cur_slice_plate;
     //BBS: m_slice_all in .gcode.3mf file case, set true when slice all
     bool m_slice_all_only_has_gcode{ false };
+    // Orca: the flow rate test sets no calibration mode on the print, as that would change its G-code
+    bool m_flowrate_calib{ false };
 
     bool m_need_update{false};
     //BBS: add popup object table logic
@@ -9287,6 +9289,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     q->m_3mf_path = input_files.front().string();
     // Leave the previous calibration mode intact when preparation was cancelled.
     background_process.fff_print()->calib_mode() = CalibMode::Calib_None;
+    m_flowrate_calib = false;
 
     for (size_t i = 0; i < input_files.size(); ++i) {
         int project_filament_count = 1;
@@ -17780,7 +17783,10 @@ void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern, int
     // Refresh object after scaling
     const std::vector<size_t> object_idx(boost::counting_iterator<size_t>(0), boost::counting_iterator<size_t>(model().objects.size()));
     changed_objects(object_idx);
+    p->m_flowrate_calib = true;
 }
+
+bool Plater::is_flowrate_calib() const { return p->m_flowrate_calib; }
 
 
 // The belt provini tower (Calib_Params::test_model 1) is one embossed model per
