@@ -191,6 +191,13 @@ std::optional<Vec2d> emitted_xy_after_gcode(const std::string &gcode, const Vec2
     return coordinate_frame_known ? std::optional<Vec2d>(position) : std::nullopt;
 }
 
+// The lift for a retraction with no travel after it, as before a toolchange: a slope needs a travel, so it spirals.
+LiftType lift_type_in_place(ZHopType z_hop_type)
+{
+    return z_hop_type == ZHopType::zhtAuto || z_hop_type == ZHopType::zhtSpiral || z_hop_type == ZHopType::zhtSlope ?
+               LiftType::SpiralLift : LiftType::NormalLift;
+}
+
 } // namespace
 
     //! macro used to mark string used at localization,
@@ -1188,10 +1195,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         std::string toolchange_gcode_str;
 
-        ZHopType z_hope_type = ZHopType(gcodegen.config().z_hop_types.get_at(gcodegen.get_filament_config_index((int)gcodegen.writer().filament()->id())));
-        LiftType auto_lift_type = LiftType::NormalLift;
-        if (z_hope_type == ZHopType::zhtAuto || z_hope_type == ZHopType::zhtSpiral || z_hope_type == ZHopType::zhtSlope)
-            auto_lift_type = LiftType::SpiralLift;
+        const LiftType auto_lift_type = lift_type_in_place(
+            ZHopType(gcodegen.config().z_hop_types.get_at(gcodegen.get_filament_config_index((int)gcodegen.writer().filament()->id()))));
 
         // BBS: should be placed before toolchange parsing
         std::string toolchange_retract_str = gcodegen.retract(tcr.is_tool_change && !is_nozzle_change, false, auto_lift_type, true);
@@ -6740,10 +6745,7 @@ LayerResult GCode::process_layer(
     bool has_wipe_tower             = (layer_tools.has_wipe_tower && m_wipe_tower);
 
 
-    ZHopType z_hope_type = ZHopType(FILAMENT_CONFIG(z_hop_types));
-    LiftType auto_lift_type = LiftType::NormalLift;
-    if (z_hope_type == ZHopType::zhtAuto || z_hope_type == ZHopType::zhtSpiral || z_hope_type == ZHopType::zhtSlope)
-        auto_lift_type = LiftType::SpiralLift;
+    const LiftType auto_lift_type = lift_type_in_place(ZHopType(FILAMENT_CONFIG(z_hop_types)));
 
     // BBS: don't use lazy_raise when enable spiral vase
     gcode += this->change_layer(print_z);  // this will increase m_layer_index
@@ -11475,8 +11477,10 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     // Process the custom change_filament_gcode.
     std::string change_filament_gcode = m_config.change_filament_gcode.value;
 
-    // Move the lift gcode here which is in the change_filament_gcode originally
-    change_filament_gcode = this->retract(false, false, LiftType::SpiralLift, true) + change_filament_gcode;
+    // Move the lift gcode here which is in the change_filament_gcode originally. It follows the Z hop type.
+    const LiftType change_lift_type = m_writer.filament() != nullptr ? lift_type_in_place(ZHopType(FILAMENT_CONFIG(z_hop_types))) :
+                                                                       LiftType::NormalLift;
+    change_filament_gcode = this->retract(false, false, change_lift_type, true) + change_filament_gcode;
 
     std::string toolchange_gcode_parsed;
     //Orca: Ignore change_filament_gcode if is the first call for a tool change and manual_filament_change is enabled

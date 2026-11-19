@@ -1004,3 +1004,25 @@ TEST_CASE("Layer changes leave no fan speed marker in the G-code", "[GCode][Regr
     CHECK(gcode.find("_SET_FAN_SPEED_CHANGING_LAYER") == std::string::npos);
 }
 
+TEST_CASE("A filament change lifts the way the Z hop type says", "[GCode][Regression]")
+{
+    // Without a prime tower GCode::set_extruder() changes the filament, here between two objects printed one by one.
+    const std::string z_hop_type = GENERATE(as<std::string>{}, "Normal Lift", "Spiral Lift");
+    CAPTURE(z_hop_type);
+    DynamicPrintConfig config = Test::multifilament_config(2, {
+        { "z_hop_types",        z_hop_type },
+        { "z_hop",              0.4 },
+        { "gcode_comments",     1 },
+        // Around the objects, which are not arranged, so a spiral lift fits.
+        { "printable_area",     "-100x-100,100x-100,100x100,-100x100" },
+        { "enable_prime_tower", 0 },
+        { "print_sequence",     "by object" },
+        { "skirt_loops",        0 },
+        { "brim_type",          "no_brim" },
+    });
+    const std::string gcode = Test::slice_with_object_overrides({ Test::cube(20), Test::cube(20) }, config,
+        { {}, { { "outer_wall_filament_id", "2" }, { "inner_wall_filament_id", "2" } } });
+    // The G-code writer comments every spiral lift it writes.
+    const bool spiral = gcode.find("spiral lift Z") != std::string::npos;
+    CHECK(spiral == (z_hop_type == "Spiral Lift"));
+}
