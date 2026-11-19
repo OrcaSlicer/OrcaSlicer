@@ -234,7 +234,7 @@ private:
         panel->SetBackgroundColour(*wxWHITE);
         panel->SetSizer(new wxBoxSizer(wxVERTICAL));
         column->Add(panel, 1, wxEXPAND);
-        lists->Add(column, 1, wxEXPAND | wxRIGHT, FromDIP(16));
+        lists->Add(column, 0, wxEXPAND | wxRIGHT, FromDIP(16));
         return panel;
     }
 
@@ -244,16 +244,16 @@ private:
         auto* actions = new wxBoxSizer(wxVERTICAL);
         auto  add     = [this, actions](const wxString& text, void (ToolbarCustomizeDialog::*action)(), int gap_before) {
             auto* btn = new Button(this, text);
-            btn->SetStyle(ButtonStyle::Regular, ButtonType::Window);
+            btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
             // After the click: an action that adds or removes rows rebuilds them.
             btn->Bind(wxEVT_BUTTON, [this, action](wxCommandEvent&) { CallAfter([this, action]() { (this->*action)(); }); });
             actions->Add(btn, 0, wxEXPAND | wxTOP, gap_before);
             return btn;
         };
         m_rename_button = add(_L("Rename"), &ToolbarCustomizeDialog::rename_selected, 0);
-        m_move_up       = add(_L("Move up"), &ToolbarCustomizeDialog::move_selected_up, FromDIP(18));
-        m_move_down     = add(_L("Move down"), &ToolbarCustomizeDialog::move_selected_down, FromDIP(6));
-        m_group_button  = add(_L("Group selected"), &ToolbarCustomizeDialog::group_selected, FromDIP(18));
+        m_move_up       = add(_L_CONTEXT("Up", "Move a row"), &ToolbarCustomizeDialog::move_selected_up, FromDIP(18));
+        m_move_down     = add(_L_CONTEXT("Down", "Move a row"), &ToolbarCustomizeDialog::move_selected_down, FromDIP(6));
+        m_group_button  = add(_L_CONTEXT("Group", "Verb"), &ToolbarCustomizeDialog::group_selected, FromDIP(18));
         m_ungroup_button = add(_L("Ungroup"), &ToolbarCustomizeDialog::ungroup_selected, FromDIP(6));
         // Mouse only, like the row arrows: a focused Move button that gets disabled at the end of a list would hand
         // the focus on. Alt+Up and Alt+Down move rows from the keyboard.
@@ -263,7 +263,7 @@ private:
         m_move_up->SetToolTip(format_wxstr(_L("Move up (%1%)"), from_u8(move_up_key().display())));
         // TRN Tooltip of the Move down button in the Customize Toolbar dialog. %1% is a key chord such as "Alt+Arrow Down".
         m_move_down->SetToolTip(format_wxstr(_L("Move down (%1%)"), from_u8(move_down_key().display())));
-        // TRN Tooltip of the "Group selected" button. %1% and %2% are key names such as "Ctrl" and "Shift".
+        // TRN Tooltip of the "Group" button. %1% and %2% are key names such as "Ctrl" and "Shift".
         m_group_button->SetToolTip(format_wxstr(_L("%1%+click or %2%+click icons of one list to select several, then group them under one toolbar button."),
                                                 from_u8(KeyChord::modifier_name(wxMOD_CONTROL)), from_u8(KeyChord::modifier_name(wxMOD_SHIFT))));
         lists->Add(actions, 0, wxRIGHT, FromDIP(16));
@@ -382,14 +382,23 @@ private:
     // No gap between rows: a click there would land on the list, not a row.
     static wxSizerFlags row_flags() { return wxSizerFlags().Expand(); }
 
+    // The key a row is highlighted by: its own, or for a group's member, its group's, so a selected group shows
+    // with all its members.
+    std::string highlight_key(const ToolbarRow& row) const
+    {
+        return row.kind == ToolbarRowKind::Member ? row_key({ToolbarRowKind::Header, {}, row.group}) : row_key(row);
+    }
+
     // Restyles only the rows whose selection changed; rebuilding them all on each click flickers.
     void set_selection(std::vector<std::string> keys)
     {
         const std::vector<std::string> old = std::exchange(m_selection, std::move(keys));
-        for (const std::vector<std::string>* list : {&old, static_cast<const std::vector<std::string>*>(&m_selection)})
-            for (const std::string& key : *list)
-                if (m_rows.count(key) != 0)
-                    style_row(m_rows.at(key));
+        const auto changed = [&old, this](const std::string& key) {
+            return (std::find(old.begin(), old.end(), key) != old.end()) != is_selected(key);
+        };
+        for (const auto& [key, row] : m_rows)
+            if (changed(key) || (row.model.kind == ToolbarRowKind::Member && changed(highlight_key(row.model))))
+                style_row(row);
         update_arrows();
         update_group_buttons();
     }
@@ -431,7 +440,7 @@ private:
 
     void style_row(const Row& row)
     {
-        const bool     selected = is_selected(row_key(row.model));
+        const bool     selected = is_selected(row_key(row.model)) || is_selected(highlight_key(row.model));
         const wxColour bg       = StateColor::darkModeColorFor(wxColour(selected ? "#BFE1DE" : "#FFFFFF"));
         row.panel->SetBackgroundColour(bg);
         for (wxWindow* child : row.panel->GetChildren())

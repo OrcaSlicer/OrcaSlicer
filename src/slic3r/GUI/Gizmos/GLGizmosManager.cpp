@@ -1489,16 +1489,16 @@ void GLGizmosManager::render_group_list(int group, float left, float top) const
 
     imgui.set_next_window_pos(left, top, ImGuiCond_Always, 0.0f, 0.0f);
     // A fixed id: the group's name is user text and may repeat or contain "##".
+    // An accent border, as on the open group's dots.
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.0f * m_layout.scale);
+    ImGui::PushStyleColor(ImGuiCol_Border, ImGuiWrapper::COL_ORCA);
     imgui.begin(std::string("##gizmo_group_list"), ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize |
                                                      ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
     ImDrawList* draw      = ImGui::GetWindowDrawList();
-    ImVec4      name_text = ImGui::GetStyleColorVec4(ImGuiCol_Text);
-    name_text.w *= 0.6f;
     const auto tex = reinterpret_cast<ImTextureID>(static_cast<intptr_t>(tex_id));
     // The group's name heads the list.
-    ImGui::PushStyleColor(ImGuiCol_Text, name_text);
     ImGui::TextUnformatted(m_groups[static_cast<size_t>(group)].name.c_str());
-    ImGui::PopStyleColor();
     size_t shown = 0;
     for (const std::string& id : members) {
         const EType type = gizmo_type_of(id);
@@ -1526,6 +1526,8 @@ void GLGizmosManager::render_group_list(int group, float left, float top) const
     const ImVec2 sz  = ImGui::GetWindowSize();
     m_group_list_rect = Vec4f(pos.x, pos.y, pos.x + sz.x, pos.y + sz.y);
     imgui.end();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar(2);
     ImGuiWrapper::pop_toolbar_style();
 }
 
