@@ -1102,7 +1102,12 @@ TEST_CASE("Moving an object regenerates its supports only where they depend on t
     print.process();
     REQUIRE(print.objects().front()->is_step_done(posSupportMaterial));
 
+    // Tree supports follow the first instance only, so a copy beside it keeps them.
     ModelInstance &instance = *model.objects.front()->instances.front();
+    model.objects.front()->add_instance(instance)->set_offset(instance.get_offset() + Vec3d(60., 0., 0.));
+    print.apply(model, config);
+    CHECK(print.objects().front()->is_step_done(posSupportMaterial));
+
     instance.set_offset(instance.get_offset() + Vec3d(10., 0., 0.));
     print.apply(model, config);
     // Tree supports are clipped to the bed shape at the instance position, normal supports are not.
