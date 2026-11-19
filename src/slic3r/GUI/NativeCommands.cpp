@@ -534,26 +534,32 @@ namespace {
 // part to the selected object, or a new object when nothing is selected. A call that names an object selects it first,
 // as a click would, and adds a part of `type` to it (a part when left out); `type` alone adds to the selected object and
 // is refused with nothing selected or with parts of several objects selected, where the action would make a new object,
-// which has no part type.
+// which has no part type. The new part lands on one of the selected solid parts (find_closest() in EmbossJob.cpp), so
+// both select the object whole first: a selected negative part or modifier alone would leave none, and a new object.
 Ops::Outcome<ModelVolumeType> part_type(Plater& plater, const json& args)
 {
     const bool named = Mcp::names_targets(args);
     if (!named && !args.contains("type"))
         return ModelVolumeType::INVALID;
     const std::string type = args.value("type", std::string("part"));
+    Ops::Targets      object;
     if (named) {
-        const Ops::Outcome<Ops::Targets> object = Mcp::resolve_targets(plater.model(), nullptr, args, Mcp::kObjects, true);
-        if (!object)
-            return object.refusal();
-        // Adding the part is the call's undo step; selecting its object is not a step of its own.
-        Plater::SuppressSnapshots quiet(&plater);
-        Ops::select_targets(object.value());
+        const Ops::Outcome<Ops::Targets> resolved = Mcp::resolve_targets(plater.model(), nullptr, args, Mcp::kObjects, true);
+        if (!resolved)
+            return resolved.refusal();
+        object = resolved.value();
     } else {
         const Selection& selection = Ops::shown_prepare_canvas().get_selection();
         if (selection.is_empty())
             return Ops::nothing_selected();
         if (selection.get_object_idx() < 0)
             return Ops::one_object_only();
+        object.objects = {selection.get_object_idx()};
+    }
+    {
+        // Adding the part is the call's undo step; selecting its object is not a step of its own.
+        Plater::SuppressSnapshots quiet(&plater);
+        Ops::select_targets(object);
     }
     return type == "negative" ? ModelVolumeType::NEGATIVE_VOLUME :
            type == "modifier" ? ModelVolumeType::PARAMETER_MODIFIER :

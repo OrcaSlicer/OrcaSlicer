@@ -425,7 +425,7 @@ counts a brush stroke gives, the Measure distance, the reverted font and where a
 are checked by a tolerance or a property, as the app works them out.
 
 ## `test_gizmo_commands`
-`test_gizmo_commands.py` · Python, 461 checks · in `sweep.json` as `{"path": "test_gizmo_commands.py"}`
+`test_gizmo_commands.py` · Python, 465 checks · in `sweep.json` as `{"path": "test_gizmo_commands.py"}`
 
 **Tests:** The commands that open a gizmo on a named target, and the ones among them that do the gizmo's job from
 arguments with no gizmo: `object_paint`, `object_measure`, `object_simplify`, `part_boolean`, `object_cut`,
@@ -610,6 +610,7 @@ A 20 mm cube A at (100, 100) and a 20 mm cube B at (150, 100), B selected (`obje
 | 8 | saved and reopened | as after 4 | text parts keep `text`, SVG parts keep `svg` |
 | 9 | `object_select {objects: [0, 1]}`, then `object_add_text {type: "modifier"}` | as after 8 | refused `one_object_only`: `type` without `object` adds to the selected object, and two are selected; `scene()` two objects, B one part; `selection()` objects [0, 1]; no undo step |
 | 10 | `object_add_svg {type: "modifier", path: star.svg}`, the same selection | as after 8 | refused `one_object_only`; as in 9 |
+| 11 | `object_select {parts: [[0, 3]]}`, A's negative part alone, then `object_add_svg {type: "modifier", path: star.svg}` | as after 8 · modifier star.svg | `scene()` two objects: the SVG is A's. As a person does it: a part's menu offers no text or SVG, and a right click on A's row, whose menu offers them by type, selects A whole first; Add Modifier>Text there makes a modifier of A. So `type` alone selects the selected object whole first, as a call that names it does. (The action without `type`, the Speed Dial's, makes a new object here, since a text or SVG lands on a selected solid part, `find_closest()` in `EmbossJob.cpp`.) `gizmo()` SVG |
 
 **Not checked:**
 - What the opened gizmos then do: `test_gizmos` drives each one's panel.

@@ -639,6 +639,13 @@ class GizmoCommandsTest:
             self.t.equal(f"{s} {row}: the selection", self.selected()["objects"], [0, 1])
             self.t.equal(f"{s} {row}: the undo steps", undo_steps(self.c), [])
 
+        # type alone with A's negative part selected: A is selected whole first, as a right click on its row does.
+        self.run("object_select", parts=[[0, 3]])
+        self.run("object_add_svg", type="modifier", path=star)
+        self.idle()
+        state(f"{s} 11", after4 + [("modifier", "star.svg")], "SVG")
+        self.t.equal(f"{s} 11: no new object", len(self.listed()), 2)
+
     def run_all(self, only=()):
         self.run("action_run", id="orca_command:mode_expert:orca")
         self.t.equal("Expert mode", self.c.call("app_state")["mode"], "expert")
