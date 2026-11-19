@@ -1,6 +1,7 @@
 #include "AMSSetting.hpp"
 #include "GUI_App.hpp"
 #include "I18N.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include "libslic3r_version.h"
 #include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
@@ -65,6 +66,9 @@ void AMSSetting::create()
     wxBoxSizer *m_sizer_Insert_material  = new wxBoxSizer(wxHORIZONTAL);
     m_checkbox_Insert_material_auto_read = new ::CheckBox(m_panel_Insert_material);
     m_checkbox_Insert_material_auto_read->Bind(wxEVT_TOGGLEBUTTON, &AMSSetting::on_insert_material_read, this);
+    set_illustrated_tooltip(m_checkbox_Insert_material_auto_read,
+        _L("On: a Bambu Lab spool put into a slot has its RFID tag read automatically, which takes about 20 seconds. "
+           "Off: a new spool's slot stays blank until you set its filament."));
     m_sizer_Insert_material->Add(m_checkbox_Insert_material_auto_read, 0, wxALIGN_CENTER_VERTICAL);
 
     m_sizer_Insert_material->Add(0, 0, 0, wxLEFT, 12);
@@ -124,6 +128,9 @@ void AMSSetting::create()
     wxBoxSizer *m_sizer_starting = new wxBoxSizer(wxHORIZONTAL);
     m_checkbox_starting_auto_read = new ::CheckBox(m_panel_body);
     m_checkbox_starting_auto_read->Bind(wxEVT_TOGGLEBUTTON, &AMSSetting::on_starting_read, this);
+    set_illustrated_tooltip(m_checkbox_starting_auto_read,
+        _L("On: each time the printer starts, the AMS reads the spools in it again, which takes about a minute and turns the spools. "
+           "Off: it keeps the filament information recorded before the last shutdown, so spools swapped while it was off are not noticed."));
     m_sizer_starting->Add(m_checkbox_starting_auto_read, 0, wxALIGN_CENTER_VERTICAL);
     m_sizer_starting->Add(0, 0, 0, wxLEFT, 12);
     m_title_starting_auto_read = new wxStaticText(m_panel_body, wxID_ANY, _L("Update on startup"), wxDefaultPosition,wxDefaultSize, 0);
@@ -161,6 +168,8 @@ void AMSSetting::create()
     wxBoxSizer* m_sizer_remain = new wxBoxSizer(wxHORIZONTAL);
     m_checkbox_remain = new ::CheckBox(m_panel_body);
     m_checkbox_remain->Bind(wxEVT_TOGGLEBUTTON, &AMSSetting::on_remain, this);
+    set_illustrated_tooltip(m_checkbox_remain,
+        _L("The AMS estimates how much filament is left on each Bambu Lab spool. Spools without an RFID tag get no estimate."));
     m_sizer_remain->Add(m_checkbox_remain, 0, wxALIGN_CENTER_VERTICAL);
     m_sizer_remain->Add(0, 0, 0, wxLEFT, 12);
     m_title_remain = new wxStaticText(m_panel_body, wxID_ANY, _L("Update remaining capacity"), wxDefaultPosition, wxDefaultSize, 0);
@@ -189,6 +198,9 @@ void AMSSetting::create()
     wxBoxSizer* m_sizer_switch_filament = new wxBoxSizer(wxHORIZONTAL);
     m_checkbox_switch_filament = new ::CheckBox(m_panel_body);
     m_checkbox_switch_filament->Bind(wxEVT_TOGGLEBUTTON, &AMSSetting::on_switch_filament, this);
+    set_illustrated_tooltip(m_checkbox_switch_filament,
+        _L("When the spool in use runs out, the print continues from another slot with the same filament instead of stopping. "
+           "Auto Refill on the Device tab shows which slots back each other up."));
     m_sizer_switch_filament->Add(m_checkbox_switch_filament, 0, wxALIGN_CENTER_VERTICAL);
     m_sizer_switch_filament->Add(0, 0, 0, wxLEFT, 12);
     m_title_switch_filament = new wxStaticText(m_panel_body, wxID_ANY, _L("AMS filament backup"), wxDefaultPosition, wxDefaultSize, 0);
@@ -221,6 +233,9 @@ void AMSSetting::create()
     wxBoxSizer* m_sizer_air_print = new wxBoxSizer(wxHORIZONTAL);
     m_checkbox_air_print = new ::CheckBox(m_panel_body);
     m_checkbox_air_print->Bind(wxEVT_TOGGLEBUTTON, &AMSSetting::on_air_print_detect, this);
+    set_illustrated_tooltip(m_checkbox_air_print,
+        _L("The printer watches whether filament still comes out of the nozzle. On a clog or ground filament it halts the print at once "
+           "instead of printing on with nothing coming out."));
     m_sizer_air_print->Add(m_checkbox_air_print, 0, wxTOP, 1);
     m_sizer_air_print->Add(0, 0, 0, wxLEFT, 12);
     m_title_air_print = new wxStaticText(m_panel_body, wxID_ANY, _L("Air Printing Detection"), wxDefaultPosition, wxDefaultSize, 0);
@@ -619,6 +634,9 @@ void AMSSettingTypePanel::CreateGui()
     m_type_combobox = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(240, -1), 0, nullptr, wxCB_READONLY);
     m_type_combobox->SetMinSize(wxSize(240, -1));
     m_type_combobox->Bind(wxEVT_COMBOBOX, &AMSSettingTypePanel::OnAmsTypeChanged, this);
+    set_illustrated_tooltip(m_type_combobox,
+        _L("The AMS model the printer works with. Switching installs other AMS firmware, which takes about 30 seconds and needs the "
+           "printer idle with all filament unloaded."));
 
     m_switching_tips = new Label(this, ::Label::Body_14);
     m_switching_tips->SetBackgroundColour(*wxWHITE);

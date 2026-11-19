@@ -1,5 +1,6 @@
 #include "PlateSettingsDialog.hpp"
 #include "MsgDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include <climits>
 #include <wx/event.h>
@@ -27,10 +28,24 @@
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "libslic3r/ParameterUtils.hpp"
 #include <cstddef>
+#include "slic3r/GUI/DragCanvas.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 namespace Slic3r { namespace GUI {
 static constexpr int MIN_LAYER_VALUE = 2;
 static constexpr int MAX_LAYER_VALUE = INT_MAX - 1;
+
+// An editable ComboBox or TextInput is mostly covered by its text field, which is a window of its own.
+static void set_input_tooltip(TextInput* input, const wxString& text)
+{
+    set_illustrated_tooltip(input, text);
+    set_illustrated_tooltip(input->GetTextCtrl(), text);
+}
+
+static void set_drag_canvas_tooltip(DragCanvas* canvas)
+{
+    set_illustrated_tooltip(canvas, _L("Drag the filaments into the order they print in: left to right, row by row."));
+}
 
 wxDEFINE_EVENT(EVT_SET_BED_TYPE_CONFIRM, wxCommandEvent);
 wxDEFINE_EVENT(EVT_NEED_RESORT_LAYERS, wxCommandEvent);
@@ -218,12 +233,18 @@ OtherLayersSeqPanel::OtherLayersSeqPanel(wxWindow* parent)
     title_sizer->Add(other_layer_txt, 0, wxALIGN_CENTER | wxALIGN_LEFT, 0);
     title_sizer->AddStretchSpacer();
     title_sizer->Add(m_other_layer_print_seq_choice, 0, wxALIGN_CENTER | wxALIGN_RIGHT, 0);
+    set_illustrated_tooltip(m_other_layer_print_seq_choice,
+        _L("The order the filaments print in within each layer above the first. Auto lets the slicer order them to keep filament changes few. "
+           "Customize sets the order yourself, for one or more ranges of layers."),
+        {{"app_ui/filament_seq.gif", {}}});
 
     wxBoxSizer* buttons_sizer = new wxBoxSizer(wxHORIZONTAL);
     ScalableButton* add_layers_btn = new ScalableButton(this, wxID_ANY, m_bmp_add);
     add_layers_btn->SetBackgroundColour(GetBackgroundColour());
     ScalableButton* delete_layers_btn = new ScalableButton(this, wxID_ANY, m_bmp_delete);
     delete_layers_btn->SetBackgroundColour(GetBackgroundColour());
+    set_illustrated_tooltip(add_layers_btn, _L("Add a range of layers with a filament order of its own."));
+    set_illustrated_tooltip(delete_layers_btn, _L("Remove the last range of layers. The first range always stays."));
     buttons_sizer->Add(add_layers_btn, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER, FromDIP(5));
     buttons_sizer->Add(delete_layers_btn, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER, FromDIP(5));
     buttons_sizer->Show(false);
@@ -325,6 +346,9 @@ void OtherLayersSeqPanel::append_layer(const LayerSeqInfo* layer_info)
         order[i] = i + 1;
     }
     auto drag_canvas = new DragCanvas(m_layer_input_panel, extruder_colours, order);
+    set_drag_canvas_tooltip(drag_canvas);
+    set_input_tooltip(begin_layer_input, _L("The first layer of this range. Ranges start at layer 2, since the first layer has its own order above."));
+    set_input_tooltip(end_layer_input, _L("The last layer of this range, or End to go on to the top of the print."));
 
     if (layer_info) {
         begin_layer_input->set_layer_number(std::max(MIN_LAYER_VALUE, layer_info->begin_layer_number));
@@ -408,6 +432,7 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     m_ti_plate_name = new TextInput(this, wxString::FromDouble(0.0), "", "", wxDefaultPosition, wxSize(FromDIP(240),-1), wxTE_PROCESS_ENTER);
     top_sizer->Add(plate_name_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxTOP | wxBOTTOM, FromDIP(5));
     top_sizer->Add(m_ti_plate_name, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxTOP | wxBOTTOM, FromDIP(5));
+    set_input_tooltip(m_ti_plate_name, _L("A name for the plate, shown on the plate in the 3D view and in the object list."));
 
     m_bed_type_choice = new ComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(240),-1), 0, NULL, wxCB_READONLY );
     auto pm           = wxGetApp().plater()->get_curr_printer_model();
@@ -439,6 +464,9 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     m_bed_type_txt->SetFont(Label::Body_14);
     top_sizer->Add(m_bed_type_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxTOP | wxBOTTOM, FromDIP(5));
     top_sizer->Add(m_bed_type_choice, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxTOP | wxBOTTOM, FromDIP(5));
+    set_illustrated_tooltip(m_bed_type_choice,
+        _L("The build plate surface this plate is printed on. It selects the bed temperatures the filament settings give for that plate type. "
+           "Same as Global uses the plate type chosen in the sidebar."));
 
     // Print Sequence
     m_print_seq_choice = new ComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(240),-1), 0, NULL, wxCB_READONLY );
@@ -450,6 +478,10 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     m_print_seq_txt->SetFont(Label::Body_14);
     top_sizer->Add(m_print_seq_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxTOP | wxBOTTOM, FromDIP(5));
     top_sizer->Add(m_print_seq_choice, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxTOP | wxBOTTOM, FromDIP(5));
+    set_illustrated_tooltip(m_print_seq_choice,
+        _L("By layer prints one layer of every object before moving up. By object prints each object to the top before starting the next, "
+           "which needs room around the objects for the print head. Same as Global uses the process setting."),
+        {{"app_ui/print_seq_by_layer.gif", _L("By layer")}, {"app_ui/print_seq_by_object.gif", _L("By object")}});
 
     // Spiral mode
     m_spiral_mode_choice = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(240), -1), 0, NULL, wxCB_READONLY);
@@ -461,6 +493,10 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     spiral_mode_txt->SetFont(Label::Body_14);
     top_sizer->Add(spiral_mode_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxTOP | wxBOTTOM, FromDIP(5));
     top_sizer->Add(m_spiral_mode_choice, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxTOP | wxBOTTOM, FromDIP(5));
+    set_illustrated_tooltip(m_spiral_mode_choice,
+        _L("Prints the outer wall as one continuous spiral, which turns a solid model into a single-walled vase with a solid bottom and no seam. "
+           "Same as Global uses the process setting."),
+        {{"app_ui/spiral_vase_off.gif", _L("Off")}, {"app_ui/spiral_vase_on.gif", _L("On")}});
 
     // First layer filament sequence
     m_first_layer_print_seq_choice = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(240), -1), 0, NULL, wxCB_READONLY);
@@ -481,6 +517,10 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     first_layer_txt->SetFont(Label::Body_14);
     top_sizer->Add(first_layer_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxTOP | wxBOTTOM, FromDIP(5));
     top_sizer->Add(m_first_layer_print_seq_choice, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxTOP | wxBOTTOM, FromDIP(5));
+    set_illustrated_tooltip(m_first_layer_print_seq_choice,
+        _L("The order the filaments print in on the first layer. Auto lets the slicer order them to keep filament changes few. "
+           "Customize sets the order yourself."),
+        {{"app_ui/filament_seq.gif", {}}});
 
     const std::vector<std::string> extruder_colours = wxGetApp().plater()->get_extruder_colors_from_plater_config();
     std::vector<int> order(extruder_colours.size());
@@ -489,6 +529,7 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     }
     m_drag_canvas = new DragCanvas(this, extruder_colours, order);
     m_drag_canvas->Hide();
+    set_drag_canvas_tooltip(m_drag_canvas);
     top_sizer->Add(0, 0, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT, 0);
     top_sizer->Add(m_drag_canvas, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxBOTTOM, FromDIP(10));
 

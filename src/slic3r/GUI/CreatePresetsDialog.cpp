@@ -1,4 +1,5 @@
 #include "CreatePresetsDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 #include <algorithm>
 #include <any>
 #include <boost/algorithm/string/trim.hpp>
@@ -23,6 +24,7 @@
 #include <memory>
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include "slic3r/GUI/Widgets/RadioBox.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 #include <cstdio>
 #include <map>
 #include <nlohmann/json.hpp>
@@ -366,8 +368,7 @@ static wxBoxSizer* create_checkbox(wxWindow* parent, Preset* preset, wxString& p
     sizer->Add(checkbox, 0, 0, 0);
     preset_checkbox.push_back(std::make_pair(checkbox, preset));
     wxStaticText *preset_name_str = new wxStaticText(parent, wxID_ANY, preset_name);
-    wxToolTip *   toolTip         = new wxToolTip(preset_name);
-    preset_name_str->SetToolTip(toolTip);
+    set_illustrated_tooltip(preset_name_str, preset_name);
     sizer->Add(preset_name_str, 0, wxLEFT, 5);
     return sizer;
 }
@@ -856,6 +857,8 @@ wxBoxSizer *CreateFilamentPresetDialog::create_vendor_item()
     m_filament_vendor_combobox->SetLabel(_L("Select Vendor"));
     m_filament_vendor_combobox->SetLabelColor(DEFAULT_PROMPT_TEXT_COLOUR);
     m_filament_vendor_combobox->Set(choices);
+    set_illustrated_tooltip(m_filament_vendor_combobox, _L("The brand of the filament. The new preset is named after its vendor, type "
+                                                           "and serial."));
     m_filament_vendor_combobox->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent &e) {
         m_filament_vendor_combobox->SetLabelColor(*wxBLACK);
         e.Skip();
@@ -887,6 +890,9 @@ wxBoxSizer *CreateFilamentPresetDialog::create_vendor_item()
 
     wxStaticText *m_can_not_find_vendor_text = new wxStaticText(this, wxID_ANY, _L("Can't find vendor I want"), wxDefaultPosition, wxDefaultSize, 0);
     m_can_not_find_vendor_text->SetFont(::Label::Body_13);
+    const wxString custom_vendor_tip = _L("Type in a vendor that is not in the list.");
+    set_illustrated_tooltip(m_can_not_find_vendor_checkbox, custom_vendor_tip);
+    set_illustrated_tooltip(m_can_not_find_vendor_text, custom_vendor_tip);
 
     wxSize size = m_can_not_find_vendor_text->GetTextExtent(_L("Can't find vendor I want"));
     m_can_not_find_vendor_text->SetMinSize(wxSize(size.x + FromDIP(4), -1));
@@ -940,6 +946,8 @@ wxBoxSizer *CreateFilamentPresetDialog::create_type_item()
     m_filament_type_combobox->SetLabel(_L("Select Type"));
     m_filament_type_combobox->SetLabelColor(DEFAULT_PROMPT_TEXT_COLOUR);
     m_filament_type_combobox->Set(filament_type);
+    set_illustrated_tooltip(m_filament_type_combobox, _L("The material of the filament. It is part of the new preset's name, and the "
+                                                         "presets to start from are the ones of this material."));
     comboBoxSizer->Add(m_filament_type_combobox, 0, wxEXPAND | wxALL, 0);
     horizontal_sizer->Add(comboBoxSizer, 0, wxEXPAND | wxALL, FromDIP(5));
 
@@ -1013,6 +1021,8 @@ wxBoxSizer *CreateFilamentPresetDialog::create_filament_preset_item()
     m_filament_preset_combobox = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, FILAMENT_PRESET_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
     m_filament_preset_combobox->SetLabel(_L("Select Filament Preset"));
     m_filament_preset_combobox->SetLabelColor(DEFAULT_PROMPT_TEXT_COLOUR);
+    set_illustrated_tooltip(m_filament_preset_combobox, _L("The filament preset the new one copies its settings from. The printers it "
+                                                           "has a version for are listed below to choose from."));
 
 
     m_filament_preset_combobox->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent &e) {
@@ -1349,8 +1359,8 @@ wxBoxSizer *CreateFilamentPresetDialog::create_radio_item(wxString title, wxWind
     text->Bind(wxEVT_LEFT_DOWN, [this, &radiobox_list, btn_idx](wxMouseEvent &e) { select_curr_radiobox(radiobox_list, btn_idx); });
     horizontal_sizer->Add(text, 0, wxEXPAND | wxLEFT, 0);
 
-    radiobox->SetToolTip(tooltip);
-    text->SetToolTip(tooltip);
+    set_illustrated_tooltip(radiobox, tooltip);
+    set_illustrated_tooltip(text, tooltip);
     return horizontal_sizer;
 }
 
@@ -1776,8 +1786,12 @@ wxBoxSizer *CreatePrinterPresetDialog::create_type_item(wxWindow *parent)
 
     wxBoxSizer *radioBoxSizer = new wxBoxSizer(wxVERTICAL);
 
-    radioBoxSizer->Add(create_radio_item(m_create_type.create_printer, parent, wxEmptyString, m_create_type_btns), 0, wxEXPAND | wxALL, 0);
-    radioBoxSizer->Add(create_radio_item(m_create_type.create_nozzle, parent, wxEmptyString, m_create_type_btns), 0, wxEXPAND | wxTOP, FromDIP(10));
+    radioBoxSizer->Add(create_radio_item(m_create_type.create_printer, parent,
+                                         _L("Create a new printer model, under a vendor and model name of your own."),
+                                         m_create_type_btns), 0, wxEXPAND | wxALL, 0);
+    radioBoxSizer->Add(create_radio_item(m_create_type.create_nozzle, parent,
+                                         _L("Add another nozzle diameter to a printer that already exists."),
+                                         m_create_type_btns), 0, wxEXPAND | wxTOP, FromDIP(10));
     horizontal_sizer->Add(radioBoxSizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     return horizontal_sizer;
@@ -1798,6 +1812,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_printer_item(wxWindow *parent)
     m_select_vendor            = new ComboBox(parent, wxID_ANY, wxEmptyString, wxDefaultPosition, NAME_OPTION_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
     m_select_vendor->SetValue(_L("Select Vendor"));
     m_select_vendor->SetLabelColor(DEFAULT_PROMPT_TEXT_COLOUR);
+    set_illustrated_tooltip(m_select_vendor, _L("The vendor the new printer is listed under."));
     wxArrayString printer_vendor;
     for (const std::string &vendor : printer_vendors) {
         assert(printer_model_map.find(vendor) != printer_model_map.end());
@@ -1837,6 +1852,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_printer_item(wxWindow *parent)
     comboBoxSizer->Add(m_select_model, 0, wxEXPAND | wxLEFT, FromDIP(5));
     m_select_model->SetValue(_L("Select Model"));
     m_select_model->SetLabelColor(DEFAULT_PROMPT_TEXT_COLOUR);
+    set_illustrated_tooltip(m_select_model, _L("The model name the new printer is listed under."));
     m_select_model->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent e) {
         m_select_model->SetLabelColor(*wxBLACK);
         e.Skip();
@@ -1846,6 +1862,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_printer_item(wxWindow *parent)
     comboBoxSizer->Add(m_select_printer, 0, wxEXPAND | wxALL, 0);
     m_select_printer->SetValue(_L("Select Printer"));
     m_select_printer->SetLabelColor(DEFAULT_PROMPT_TEXT_COLOUR);
+    set_illustrated_tooltip(m_select_printer, _L("The existing printer to add the nozzle diameter to."));
     m_select_printer->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent e) {
         m_select_printer->SetLabelColor(*wxBLACK);
 
@@ -1948,6 +1965,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_nozzle_diameter_item(wxWindow *par
     }
     m_nozzle_diameter->Set(nozzle_diameters);
     m_nozzle_diameter->SetSelection(0);
+    set_illustrated_tooltip(m_nozzle_diameter, _L("Diameter of the nozzle the new presets are made for."));
     comboBoxSizer->Add(m_nozzle_diameter, 0, wxEXPAND | wxALL, 0);
 
     m_custom_nozzle_diameter_ctrl = new wxTextCtrl(parent, wxID_ANY, "", wxDefaultPosition, NAME_OPTION_COMBOBOX_SIZE);
@@ -2039,6 +2057,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_bed_size_item(wxWindow *parent)
     m_bed_size_x_input = new TextInput(parent, "200", _L("mm"), "inputbox_x", wxDefaultPosition, PRINTER_SPACE_SIZE, wxTE_PROCESS_ENTER);
     wxTextValidator validator(wxFILTER_DIGITS);
     m_bed_size_x_input->GetTextCtrl()->SetValidator(validator);
+    set_illustrated_tooltip(m_bed_size_x_input->GetTextCtrl(), _L("Size in X and Y of the rectangular plate."));
     length_input_sizer->Add(m_bed_size_x_input, 0, wxEXPAND | wxLEFT, FromDIP(5));
     horizontal_sizer->Add(length_input_sizer, 0, wxEXPAND | wxALL, FromDIP(5));
 
@@ -2048,6 +2067,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_bed_size_item(wxWindow *parent)
     wxBoxSizer *width_input_sizer      = new wxBoxSizer(wxVERTICAL);
     m_bed_size_y_input            = new TextInput(parent, "200", _L("mm"), "inputbox_y", wxDefaultPosition, PRINTER_SPACE_SIZE, wxTE_PROCESS_ENTER);
     m_bed_size_y_input->GetTextCtrl()->SetValidator(validator);
+    set_illustrated_tooltip(m_bed_size_y_input->GetTextCtrl(), _L("Size in X and Y of the rectangular plate."));
     width_input_sizer->Add(m_bed_size_y_input, 0, wxEXPAND | wxALL, 0);
     horizontal_sizer->Add(width_input_sizer, 0, wxEXPAND | wxALL, FromDIP(5));
 
@@ -2072,6 +2092,10 @@ wxBoxSizer *CreatePrinterPresetDialog::create_origin_item(wxWindow *parent)
     m_bed_origin_x_input           = new TextInput(parent, "0", _L("mm"), "inputbox_x", wxDefaultPosition, PRINTER_SPACE_SIZE, wxTE_PROCESS_ENTER);
     wxTextValidator validator(wxFILTER_DIGITS);
     m_bed_origin_x_input->GetTextCtrl()->SetValidator(validator);
+    // The text of the bed shape dialog's Origin (BedShapeDialog.cpp), so the two share their translations.
+    const wxString              origin_tip = _L("Distance of the 0,0 G-code coordinate from the front left corner of the rectangle.");
+    const std::vector<TipMedia> origin_media{{"settings/printer/bed_origin.png", {}}};
+    set_illustrated_tooltip(m_bed_origin_x_input->GetTextCtrl(), origin_tip, origin_media);
     length_input_sizer->Add(m_bed_origin_x_input, 0, wxEXPAND | wxLEFT, FromDIP(5)); // Align with other
     horizontal_sizer->Add(length_input_sizer, 0, wxEXPAND | wxALL, FromDIP(5));
 
@@ -2081,6 +2105,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_origin_item(wxWindow *parent)
     wxBoxSizer *width_input_sizer = new wxBoxSizer(wxVERTICAL);
     m_bed_origin_y_input          = new TextInput(parent, "0", _L("mm"), "inputbox_y", wxDefaultPosition, PRINTER_SPACE_SIZE, wxTE_PROCESS_ENTER);
     m_bed_origin_y_input->GetTextCtrl()->SetValidator(validator);
+    set_illustrated_tooltip(m_bed_origin_y_input->GetTextCtrl(), origin_tip, origin_media);
     width_input_sizer->Add(m_bed_origin_y_input, 0, wxEXPAND | wxALL, 0);
     horizontal_sizer->Add(width_input_sizer, 0, wxEXPAND | wxALL, FromDIP(5));
 
@@ -2101,6 +2126,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_hot_bed_stl_item(wxWindow *parent)
 
     m_button_bed_stl = new Button(parent, _L("Load..."));
     m_button_bed_stl->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+    set_illustrated_tooltip(m_button_bed_stl, _L("Choose an STL model to show as the bed in the 3D view."));
     m_button_bed_stl->Bind(wxEVT_BUTTON, ([this](wxCommandEvent& e) { load_model_stl(); }));
 
     hot_bed_stl_sizer->Add(m_button_bed_stl, 0, wxEXPAND | wxALL, 0);
@@ -2127,6 +2153,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_hot_bed_svg_item(wxWindow *parent)
 
     m_button_bed_svg = new Button(parent, _L("Load..."));
     m_button_bed_svg->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+    set_illustrated_tooltip(m_button_bed_svg, _L("Choose a PNG or SVG image to show on the bed in the 3D view."));
     m_button_bed_svg->Bind(wxEVT_BUTTON, ([this](wxCommandEvent &e) { load_texture(); }));
 
     hot_bed_stl_sizer->Add(m_button_bed_svg, 0, wxEXPAND | wxALL, 0);
@@ -2153,6 +2180,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_max_print_height_item(wxWindow *pa
     m_print_height_input          = new TextInput(parent, "200", _L("mm"), wxEmptyString, wxDefaultPosition, PRINTER_SPACE_SIZE, wxTE_PROCESS_ENTER); // Use same alignment with all other input boxes
     wxTextValidator validator(wxFILTER_DIGITS);
     m_print_height_input->GetTextCtrl()->SetValidator(validator);
+    set_illustrated_tooltip(m_print_height_input->GetTextCtrl(), _L("The tallest object the printer can print, measured from the bed."));
     hight_input_sizer->Add(m_print_height_input, 0, wxEXPAND | wxLEFT, FromDIP(5));
     horizontal_sizer->Add(hight_input_sizer, 0, wxEXPAND | wxALL, FromDIP(5));
 
@@ -2562,8 +2590,8 @@ wxBoxSizer *CreatePrinterPresetDialog::create_radio_item(wxString title, wxWindo
     });
     horizontal_sizer->Add(text, 0, wxEXPAND | wxLEFT, 0);
 
-    radiobox->SetToolTip(tooltip);
-    text->SetToolTip(tooltip);
+    set_illustrated_tooltip(radiobox, tooltip);
+    set_illustrated_tooltip(text, tooltip);
     return horizontal_sizer;
 
 }
@@ -2674,6 +2702,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_printer_preset_item(wxWindow *pare
     m_printer_vendor           = new ComboBox(parent, wxID_ANY, wxEmptyString, wxDefaultPosition, PRINTER_PRESET_VENDOR_SIZE, 0, nullptr, wxCB_READONLY);
     m_printer_vendor->SetValue(_L("Select Vendor"));
     m_printer_vendor->SetLabelColor(DEFAULT_PROMPT_TEXT_COLOUR);
+    set_illustrated_tooltip(m_printer_vendor, _L("Vendor of the printer whose presets the new ones start from."));
 
     VendorMap     vendors;
     wxArrayString exist_vendor_choice = get_exist_vendor_choices(vendors);
@@ -2687,6 +2716,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_printer_preset_item(wxWindow *pare
     m_printer_model = new ComboBox(parent, wxID_ANY, wxEmptyString, wxDefaultPosition, PRINTER_PRESET_MODEL_SIZE, 0, nullptr, wxCB_READONLY);
     m_printer_model->SetLabelColor(DEFAULT_PROMPT_TEXT_COLOUR);
     m_printer_model->SetValue(_L("Select Model"));
+    set_illustrated_tooltip(m_printer_model, _L("Printer model whose presets the new ones start from."));
 
     m_printer_model->Bind(wxEVT_COMBOBOX, &CreatePrinterPresetDialog::on_preset_model_value_change, this);
 
@@ -2711,8 +2741,12 @@ wxBoxSizer *CreatePrinterPresetDialog::create_presets_item(wxWindow *parent)
 
     wxBoxSizer *radioBoxSizer = new wxBoxSizer(wxVERTICAL);
 
-    radioBoxSizer->Add(create_radio_item(m_create_type.base_template, parent, wxEmptyString, m_create_presets_btns), 0, wxEXPAND | wxALL, 0);
-    radioBoxSizer->Add(create_radio_item(m_create_type.base_curr_printer, parent, wxEmptyString, m_create_presets_btns), 0, wxEXPAND | wxTOP, FromDIP(10));
+    radioBoxSizer->Add(create_radio_item(m_create_type.base_template, parent,
+                                         _L("Start from the presets of a printer in the vendor library."),
+                                         m_create_presets_btns), 0, wxEXPAND | wxALL, 0);
+    radioBoxSizer->Add(create_radio_item(m_create_type.base_curr_printer, parent,
+                                         _L("Start from the presets of the printer selected now."),
+                                         m_create_presets_btns), 0, wxEXPAND | wxTOP, FromDIP(10));
     horizontal_sizer->Add(radioBoxSizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     return horizontal_sizer;
@@ -3876,8 +3910,8 @@ wxBoxSizer *ExportConfigsDialog::create_radio_item(wxString title, wxWindow *par
         });
     horizontal_sizer->Add(text, 0, wxEXPAND | wxLEFT, 0);
 
-    radiobox->SetToolTip(tooltip);
-    text->SetToolTip(tooltip);
+    set_illustrated_tooltip(radiobox, tooltip);
+    set_illustrated_tooltip(text, tooltip);
     return horizontal_sizer;
 }
 
@@ -4806,8 +4840,7 @@ wxBoxSizer *EditFilamentPresetDialog::create_filament_basic_info()
         show_filament_serial = from_u8(m_filament_serial.substr(0, 20)) + "...";
     }
     wxStaticText *serial_text = new wxStaticText(this, wxID_ANY, show_filament_serial, wxDefaultPosition, wxDefaultSize);
-    wxToolTip *   toolTip     = new wxToolTip(full_filamnet_serial);
-    serial_text->SetToolTip(toolTip);
+    set_illustrated_tooltip(serial_text, full_filamnet_serial);
     serial_value_sizer->Add(serial_text, 0, wxEXPAND | wxALL, 0);
     serial_sizer->Add(serial_value_sizer, 0, wxEXPAND | wxLEFT | wxBOTTOM, FromDIP(10));
 

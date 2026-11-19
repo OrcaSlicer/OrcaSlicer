@@ -324,6 +324,7 @@ private:
     wxStaticBitmap* m_bitmap_static_use_time;
     wxStaticBitmap* m_bitmap_static_use_weight;
     ScalableButton* m_button_pause_resume;
+    std::string     m_pause_resume_type; // "pause" or "resume" while the button is enabled, which icon it shows
     ScalableButton* m_button_abort;
     Button*         m_button_partskip;
     Button*         m_button_market_scoring;

@@ -4,7 +4,7 @@
 #include "GLGizmoPainterBase.hpp"
 #include "libslic3r/TextureBake/TextureBakeDebug.hpp"
 #include "libslic3r/TextureDisplacement.hpp"
-#include "slic3r/GUI/AnimatedTexture.hpp"
+#include "slic3r/GUI/IllustratedTooltip.hpp"
 #include "slic3r/GUI/GLModel.hpp"
 #include "slic3r/GUI/GLTexture.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -1246,17 +1246,8 @@ private:
     bool                                       m_panel_icons_tried = false;
     void                                       ensure_panel_icons();
 
-    // One illustration under a tooltip's text: a still image or an animation (see AnimatedTexture),
-    // named by file within resources/images/texture_displacement, with a caption under it. Several of
-    // them in one tooltip are laid out side by side, which is how a setting is shown as a comparison -
-    // the same model at two values of it.
-    struct TipMedia
-    {
-        std::string file;
-        wxString    caption;
-    };
-
-    // Every tooltip the panel shows. Placed beside the panel rather than under the mouse: the panel is
+    // Every tooltip the panel shows, in place of GLGizmoBase's: its pictures are named by file within
+    // resources/images/texture_displacement, and it places itself against the texture picker as well. Placed beside the panel rather than under the mouse: the panel is
     // pinned to the right edge of the canvas, so a tooltip left to follow the mouse covers the control
     // it is explaining, and one carrying an illustration covers most of the panel with it.
     //
@@ -1265,30 +1256,14 @@ private:
     // tooltip it was before.
     void panel_tooltip(const std::string &text, const std::vector<TipMedia> &media = {});
     void panel_tooltip(const wxString &text, const std::vector<TipMedia> &media = {});
-    void render_tip_media(const std::vector<TipMedia> &media, float width);
 
     // Screen rectangle a tooltip places itself beside: the panel window, or - while the texture picker
     // is up and tooltips are coming from inside it - the picker popup, which already sits beside the
     // panel. Both are set from the window's own rectangle as it is drawn.
     ImVec2 m_tooltip_anchor_min{0.f, 0.f};
     ImVec2 m_tooltip_anchor_max{0.f, 0.f};
-    // Illustrations any tooltip has shown, decoded and uploaded once (see AnimatedTexture.hpp).
-    AnimatedTextureCache m_tip_media;
-    // Which tooltip's illustrations are on screen, and when they first appeared: an animation plays
-    // from its first frame each time its tooltip opens, rather than from wherever a free-running clock
-    // happened to be.
-    std::string m_tip_media_key;
-    double      m_tip_media_start  = 0.;
-    int         m_tip_media_frame  = -2; // the frame it was last drawn on, to spot the tooltip reopening
-    // How long the pointer has rested on the control a tooltip belongs to, and when one was last on
-    // screen, both on the real clock tip_now() keeps (see the .cpp for why ImGui's own will not do).
-    ImVec2 m_tip_item{-1.f, -1.f};
-    double m_tip_hover_since = 0.;
-    double m_tip_last_shown  = -1e9;
-    // The frame a tooltip was last drawn on, and how many it has been drawn on in a row: ImGui hides
-    // one on its first frame while it measures it, so it has to be kept on screen to be seen at all.
-    int m_tip_shown_frame = -2;
-    int m_tip_settled     = 0;
+    // The tooltips' timing and pictures (see IllustratedTooltip.hpp).
+    IllustratedTooltip m_tip{"texture_displacement"};
 };
 
 } // namespace Slic3r::GUI

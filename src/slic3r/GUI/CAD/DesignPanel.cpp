@@ -60,6 +60,7 @@
 #include <wx/button.h>
 #include <wx/spinbutt.h>
 #include <wx/stattext.h>
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 #include <wx/checkbox.h>
 #include <wx/checklst.h>
 #include <wx/spinctrl.h>
@@ -263,7 +264,7 @@ static ::Button* sidebar_icon_btn(wxWindow* parent, const char* icon, const wxSt
     b->SetCanFocus(false);
     b->SetIconSpacing(0);   // off macOS an empty label still reserves the icon-text gap
     b->SetBorderColor(StateColor());
-    b->SetToolTip(tip);
+    set_illustrated_tooltip(b, tip);
     style_sidebar_icon_btn(b);
     return b;
 }
@@ -305,6 +306,230 @@ static wxString bed_toggle_text(bool shown)
 static wxString sketch_plane_prompt()
 {
     return _L("Click a reference plane or a flat face to sketch on it — Esc cancels");
+}
+
+// The Result list of Extrude, Revolve and Sweep.
+static wxString design_result_tip()
+{
+    return _L("What the new shape does: becomes a body of its own, joins the body it touches, is cut out of it, "
+              "or keeps only where the two overlap.");
+}
+
+// The pictures of the Design tab's tooltips are in resources/images/design_tips/, drawn by
+// scripts/gizmo_tips/design.py (solids) and design_2d.py (sketch tools and constraints). A tool's
+// picture is named after its toolbar icon: design_arc3pt -> tool_arc3pt.gif.
+static std::vector<TipMedia> design_pic(const char* file, const wxString& caption = {})
+{
+    return {{std::string("design_tips/") + file, caption}};
+}
+
+// An option shown off and on, side by side.
+static std::vector<TipMedia> design_pics_off_on(const char* off, const char* on)
+{
+    return {{std::string("design_tips/") + off, _L("Off")}, {std::string("design_tips/") + on, _L("On")}};
+}
+
+// The picture of a toolbar tool, by its icon; none for an icon without one.
+static std::vector<TipMedia> design_tool_pic(const std::string& icon)
+{
+    static const std::map<std::string, const char*> files = {
+        {"design_select", "tool_select.gif"},       {"design_dimension", "tool_dimension.gif"},
+        {"design_line", "tool_line.gif"},           {"design_polyline", "tool_polyline.gif"},
+        {"design_rect", "tool_rect.gif"},           {"design_crect", "tool_crect.gif"},
+        {"design_rect_oblique", "tool_rect_oblique.gif"}, {"design_rect_rounded", "tool_rect_rounded.gif"},
+        {"design_circle", "tool_circle.gif"},       {"design_circle2pt", "tool_circle2pt.gif"},
+        {"design_circle3pt", "tool_circle3pt.gif"}, {"design_arc3pt", "tool_arc3pt.gif"},
+        {"design_tangentarc", "tool_tangentarc.gif"}, {"design_arc_center", "tool_arc_center.gif"},
+        {"design_slot", "tool_slot.gif"},           {"design_slot_arc", "tool_slot_arc.gif"},
+        {"design_ellipse", "tool_ellipse.gif"},     {"design_ellipse_arc", "tool_ellipse_arc.gif"},
+        {"design_bspline", "tool_bspline.gif"},     {"design_point", "tool_point.gif"},
+        {"design_polygon", "tool_polygon.gif"},     {"design_text", "tool_text.gif"},
+        {"design_svg", "tool_svg.gif"},             {"design_filletedge", "tool_filletedge.gif"},
+        {"design_chamfer", "tool_chamfer.gif"},     {"design_offset", "tool_offset.gif"},
+        {"design_mirror", "tool_mirror.gif"},       {"design_trim", "tool_trim.gif"},
+        {"design_extend", "tool_extend.gif"},       {"design_move", "tool_move.gif"},
+        {"design_rotate", "tool_rotate.gif"},       {"design_scale", "tool_scale.gif"},
+        {"design_array", "tool_array.gif"},         {"design_polararray", "tool_polararray.gif"},
+        {"design_constrain", "tool_constrain.png"}, {"design_pattern", "tool_pattern.gif"},
+        {"design_boolean", "tool_boolean.png"},     {"design_cut", "tool_cut.gif"},
+        {"design_c_horizontal", "tool_c_horizontal.png"}, {"design_c_vertical", "tool_c_vertical.png"},
+        {"design_c_parallel", "tool_c_parallel.png"}, {"design_c_perpendicular", "tool_c_perpendicular.png"},
+        {"design_c_coincident", "tool_c_coincident.png"}, {"design_c_equal", "tool_c_equal.png"},
+        {"design_c_equal_radius", "tool_c_equal_radius.png"}, {"design_c_collinear", "tool_c_collinear.png"},
+        {"design_c_concentric", "tool_c_concentric.png"}, {"design_c_tangent", "tool_c_tangent.png"},
+        {"design_c_midpoint", "tool_c_midpoint.png"}, {"design_c_symmetric", "tool_c_symmetric.png"},
+        {"design_c_sym_v", "tool_c_sym_v.png"},     {"design_c_sym_h", "tool_c_sym_h.png"},
+        {"design_c_angle", "tool_c_angle.png"},     {"design_c_radius", "tool_c_radius.png"},
+        {"design_c_diameter", "tool_c_diameter.png"}, {"design_c_fix", "tool_c_fix.png"},
+        {"design_c_dist_x", "tool_c_dist_x.png"},   {"design_c_dist_y", "tool_c_dist_y.png"},
+    };
+    const auto it = files.find(icon);
+    return it == files.end() ? std::vector<TipMedia>{} : design_pic(it->second);
+}
+
+// What a feature does and what to pick before it, with its picture: on the header of its card and on
+// its row of the Feature tree.
+struct DesignTip
+{
+    wxString              text;
+    std::vector<TipMedia> media;
+};
+
+static DesignTip feature_tip(CadFeatureType type)
+{
+    using T = CadFeatureType;
+    switch (type) {
+    case T::Sketch:
+        return {_L("A flat profile drawn on a plane, which the solid features are built from. Pick a flat face or a "
+                   "reference plane first, then draw on it with the sketch tools."),
+                design_pic("tool_new_sketch.gif")};
+    case T::Extrude:
+        return {_L("Grows a closed sketch profile into a solid, or pushes or pulls a picked face of a body. Select the "
+                   "sketch or the face first, then set how far it goes."),
+                design_pic("tool_extrude.gif")};
+    case T::Revolve:
+        return {_L("Spins a sketch profile around an axis into a round solid, such as a ring, a knob or a pulley. Select "
+                   "the sketch first, then choose the axis and the angle."),
+                design_pic("tool_revolve.gif")};
+    case T::Sweep:
+        return {_L("Moves a profile sketch along a path sketch, so the solid follows the path, such as a pipe or a "
+                   "handle. Select the profile first, then choose the path."),
+                design_pic("tool_sweep.gif")};
+    case T::Loft:
+        return {_L("Builds a solid through two or more profile sketches on different planes, blending from one shape to "
+                   "the next. Check the profiles in the order the solid passes through them."),
+                design_pic("tool_loft.gif")};
+    case T::Thicken:
+        return {_L("Offsets a picked face of a solid into a new thin body of the thickness set. Pick the face first."),
+                design_pic("tool_thicken.gif")};
+    case T::Rib:
+        return {_L("Grows a thin wall from an open sketch line and fuses it to a body, to stiffen a corner. Draw the line "
+                   "in a sketch first, from one face of the body to another."),
+                design_pic("tool_rib.gif")};
+    case T::Fillet:
+        return {_L("Rounds edges of a body to the radius set. Pick the edges in the view first; with none picked, the "
+                   "Edges choice decides which."),
+                design_pic("dressup_fillet.png")};
+    case T::Chamfer:
+        return {_L("Bevels edges of a body, cutting back by the distance set. Pick the edges in the view first; with none "
+                   "picked, the Edges choice decides which."),
+                design_pic("dressup_chamfer.png")};
+    case T::Draft:
+        return {_L("Tilts a picked side face by the angle set, pivoting about the base of the body, so the side tapers "
+                   "as a molded part needs. Pick the face first."),
+                design_pic("tool_draft.gif")};
+    case T::Shell:
+        return {_L("Hollows a solid out to the wall thickness set. Pick a face first to leave it open, like the top of a "
+                   "box; with none picked, the hollow is closed inside."),
+                design_pic("tool_shell.gif")};
+    case T::DeleteFace:
+        return {_L("Removes faces from a body and closes the solid over the gap, so a pocket, a boss or a rounded edge "
+                   "goes away. Pick each face and add it to the list."),
+                design_pic("tool_delete_face.gif")};
+    case T::Hole:
+        return {_L("Drills a round hole into a body. Pick a flat face first: the hole starts at its center, and Pos X and "
+                   "Pos Y move it from there."),
+                design_pic("tool_hole.gif")};
+    case T::Thread:
+        return {_L("Cuts a screw thread into a cylindrical face: inside a bore for a bolt to screw into, or on a rod. Pick "
+                   "the cylindrical face or a circular edge first; the size is read from it."),
+                design_pic("tool_thread.png")};
+    case T::Helix:
+        return {_L("A helical curve, the path of a spring or a coil. Use it as the path of a Sweep."),
+                design_pic("tool_helix.png")};
+    case T::Pattern:
+        return {_L("Repeats a body in a row or around a circle, as many times as Count says."), design_pic("tool_pattern.gif")};
+    case T::Boolean:
+        return {_L("Combines two bodies: joins them into one, cuts one out of the other, or keeps only where they overlap."),
+                design_pic("tool_boolean.png")};
+    case T::Cut:
+        return {_L("Splits a body in two with a plane."), design_pic("tool_cut.gif")};
+    case T::Transform:
+        return {_L("Moves and rotates a body by the values set. Keep original leaves the body where it was and moves a copy."),
+                design_pic("tool_move_body.gif")};
+    case T::Mirror:
+        return {_L("Reflects a body about a plane into a new body. Keep original leaves both."), design_pic("tool_mirror_body.gif")};
+    case T::Mate:
+        return {_L("Places one body against another by lining up a coordinate system on each: B moves onto A. The kind "
+                   "decides what the joint still lets move."),
+                design_pic("tool_mate.png")};
+    case T::Plane:
+        return {_L("A reference plane to sketch on, cut with or mirror about, placed against the faces, edges and planes "
+                   "you pick."),
+                design_pic("tool_plane.png")};
+    case T::Axis:
+        return {_L("A reference line placed against the points, faces, edges or planes you pick, for features that need "
+                   "an axis or a direction."),
+                design_pic("tool_axis.png")};
+    case T::CoordSys:
+        return {_L("A reference frame, an origin with three directions, at a point or on a face. A Mate lines up two of them."),
+                design_pic("tool_coordsys.png")};
+    case T::Project:
+        return {_L("Copies the edges of a body onto a plane as sketch entities, so a new sketch can follow an existing "
+                   "part. Pick a face first to project only its edges."),
+                design_pic("tool_project.png")};
+    case T::SurfaceExtrude:
+        return {_L("Extrudes a sketch into a sheet with no thickness and no end caps."), design_pic("tool_surface_extrude.png")};
+    case T::SurfaceRevolve:
+        return {_L("Revolves a sketch profile into a sheet with no thickness."), design_pic("tool_surface_revolve.png")};
+    case T::SurfaceLoft:
+        return {_L("Builds a sheet through two or more profile sketches, with no end caps."), design_pic("tool_surface_loft.png")};
+    case T::SurfaceFill:
+        return {_L("Fills the closed boundary of a sketch with a smooth sheet."), design_pic("tool_surface.png")};
+    case T::SurfaceOffset:
+        return {_L("Moves a copy of a sheet body out or in by the distance set."), design_pic("tool_surface_offset.png")};
+    case T::ThickenSurface:
+        return {_L("Turns a sheet body into a solid of the thickness set."), design_pic("tool_thicken_surface.png")};
+    case T::Import:
+        return {_L("A body imported from a STEP or mesh file. It is edited like any body made here."), design_pic("tool_step.png")};
+    }
+    return {};
+}
+
+// The tooltip of a card's header, on its icon and its title: what the tool of the card does.
+static void set_card_tip(wxStaticText* title, const wxString& text, const std::vector<TipMedia>& media = {})
+{
+    if (title == nullptr)
+        return;
+    set_illustrated_tooltip(title, text, media);
+    if (auto* icon = dynamic_cast<wxStaticBitmap*>(title->GetPrevSibling()))   // card_header() makes it just before
+        set_illustrated_tooltip(icon, text, media);
+}
+
+static void set_card_tip(wxStaticText* title, CadFeatureType type)
+{
+    const DesignTip tip = feature_tip(type);
+    set_card_tip(title, tip.text, tip.media);
+}
+
+// A choice whose values are shapes: its tooltip shows the picture of the value chosen, and the open list
+// the picture of the value under the pointer, beside the list. pictures[i] is item i's file in
+// design_tips/, or empty for none.
+static void set_choice_tip(ComboBox* combo, const wxString& text, const std::vector<std::string>& pictures)
+{
+    auto media = [combo, pictures](int i) {
+        std::vector<TipMedia> m;
+        if (i >= 0 && i < int(pictures.size()) && i < int(combo->GetCount()) && !pictures[size_t(i)].empty())
+            m.push_back({"design_tips/" + pictures[size_t(i)], combo->GetString(unsigned(i))});
+        return m;
+    };
+    set_illustrated_tooltip_deferred(combo, text, [combo, media] { return media(combo->GetSelection()); });
+    DropDown& drop = combo->GetDropDown();
+    drop.SetItemHoverHandler([&drop, media](int item, const wxRect& row) {
+        const std::vector<TipMedia> m = media(item);
+        hover_illustrated_tooltip(&drop, m.empty() ? wxRect() : row, wxString(), m);
+    });
+    combo->Bind(wxEVT_COMBOBOX, [combo](wxCommandEvent& e) {
+        refresh_illustrated_tooltip(combo);
+        e.Skip();
+    });
+}
+
+// The pictures of the Result choice of Extrude, Revolve, Sweep and Loft, in its order.
+static const std::vector<std::string>& result_pics()
+{
+    static const std::vector<std::string> pics = {"result_new.png", "result_join.png", "result_cut.png", "result_intersect.png"};
+    return pics;
 }
 
 // Prepare outlines every numeric field (rounded, #4A4A51 on dark). wxSpinCtrlDouble is a
@@ -457,7 +682,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // and set_gap_size(4)) -> 44 px pitch. Match it exactly.
         auto* b = new ScalableButton(m_toolbar, wxID_ANY, icon, "", FromDIP(wxSize(40, 40)),
                                      wxDefaultPosition, wxBU_EXACTFIT | wxBORDER_NONE, false, 34);
-        b->SetToolTip(tip);
+        set_illustrated_tooltip(b, tip, design_tool_pic(icon));
         b->SetBackgroundColour(dp_ribbon_bg());
         m_tool_btns.push_back(b);
         // Hover affordance, honouring the active-tool teal state.
@@ -493,6 +718,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // construction geometry (excluded from the wire).
     m_construction = new wxCheckBox(m_toolbar, wxID_ANY, _L("Construction"));
     m_construction->SetForegroundColour(dp_ctl_text());
+    set_illustrated_tooltip(m_construction, _L("While ticked, what you draw is construction geometry: dashed guides that help "
+                                               "place and constrain the shape but are not part of the profile. With "
+                                               "entities selected in Select mode, it converts them instead. Q does the same."),
+                            design_pic("tool_construction.png"));
     auto select_tool = [this](DesignSketchTool::Mode mode, const wxString& hint) {
         if (!m_viewport) return;
         // Sketch mode opens with its session (start_sketch_on_target); this covers a mode a
@@ -864,7 +1093,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         b_pattern->Bind(wxEVT_BUTTON, [act_pattern](wxCommandEvent&) { act_pattern(); });
         m_keys_feature[SHIFT('N')] = act_pattern;
         fadd("pattern", b_pattern);
-        m_body_gates.push_back({b_pattern, 1, b_pattern->GetToolTipText(),
+        m_body_gates.push_back({b_pattern, 1, _L_CONTEXT("Pattern", "Design"),
                                 _L("Pattern — needs a solid body to replicate")});
 
         // Surface: sheet-body tools (extrude / revolve / loft / fill / offset / thicken)
@@ -1043,7 +1272,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         b_boolean->Bind(wxEVT_BUTTON, [act_boolean](wxCommandEvent&) { act_boolean(); });
         m_keys_feature[SHIFT('B')] = act_boolean;
         fadd("boolean", b_boolean);
-        m_body_gates.push_back({b_boolean, 2, b_boolean->GetToolTipText(),
+        m_body_gates.push_back({b_boolean, 2, _L("Boolean (combine bodies)"),
                                 _L("Boolean — needs two solid bodies to combine")});
 
         auto* b_cut = icon_btn("design_cut", _L("Cut (split a body with a plane)"));
@@ -1060,7 +1289,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         b_cut->Bind(wxEVT_BUTTON, [act_cut](wxCommandEvent&) { act_cut(); });
         m_keys_feature[SHIFT('X')] = act_cut;
         fadd("cut", b_cut);
-        m_body_gates.push_back({b_cut, 1, b_cut->GetToolTipText(),
+        m_body_gates.push_back({b_cut, 1, _L("Cut (split a body with a plane)"),
                                 _L("Cut — needs a solid body to slice")});
 
         // Color — override the selected body's display colour (per-body, survives recompute).
@@ -1526,7 +1755,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // the next line would be construction geometry. A stateful toggle has to show its state.
         sadd_bar(m_construction);
         add_sep(m_tb_sketch);
-        auto* b_del = icon_btn("design_delete", _L("Delete selected"));
+        auto* b_del = icon_btn("design_delete", _L("Deletes the selected sketch entities."));
         b_del->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
             delete_sketch_selection(); });
         sadd_bar(b_del);   // keep-list: Delete selected stays on the bar
@@ -1546,26 +1775,52 @@ DesignPanel::DesignPanel(wxWindow* parent)
             b->Bind(wxEVT_BUTTON, [this, type](wxCommandEvent&) { apply_constraint(type); });
             cadd(b);
         };
-        cbtn("design_c_horizontal",    _L_CONTEXT("Horizontal", "Sketch Constraint"),    SketchConstraintType::Horizontal);
-        cbtn("design_c_vertical",      _L_CONTEXT("Vertical", "Sketch Constraint"),      SketchConstraintType::Vertical);
-        cbtn("design_c_parallel",      _L_CONTEXT("Parallel", "Sketch Constraint"),      SketchConstraintType::Parallel);
-        cbtn("design_c_perpendicular", _L_CONTEXT("Perpendicular", "Sketch Constraint"), SketchConstraintType::Perpendicular);
-        cbtn("design_c_coincident",    _L_CONTEXT("Coincident", "Sketch Constraint"),    SketchConstraintType::Coincident);
-        cbtn("design_c_equal",         _L_CONTEXT("Equal length", "Sketch Constraint"),  SketchConstraintType::EqualLength);
-        cbtn("design_c_equal_radius", _L_CONTEXT("Equal radius", "Sketch Constraint"), SketchConstraintType::EqualRadius);
-        cbtn("design_c_collinear",    _L_CONTEXT("Collinear", "Sketch Constraint"),    SketchConstraintType::Collinear);
-        cbtn("design_c_concentric",    _L_CONTEXT("Concentric", "Sketch Constraint"),    SketchConstraintType::Concentric);
-        cbtn("design_c_tangent",       _L_CONTEXT("Tangent", "Sketch Constraint"),       SketchConstraintType::Tangent);
-        cbtn("design_c_midpoint",      _L_CONTEXT("Midpoint", "Sketch Constraint"),      SketchConstraintType::Midpoint);
-        cbtn("design_c_symmetric",     _L_CONTEXT("Symmetric", "Sketch Constraint"),     SketchConstraintType::Symmetric);
-        cbtn("design_c_sym_v", _L_CONTEXT("Symmetric about the vertical axis", "Sketch Constraint"),   SketchConstraintType::SymmetricAboutY);
-        cbtn("design_c_sym_h", _L_CONTEXT("Symmetric about the horizontal axis", "Sketch Constraint"), SketchConstraintType::SymmetricAboutX);
-        cbtn("design_c_angle",         _L_CONTEXT("Angle", "Sketch Constraint"),         SketchConstraintType::Angle);
-        cbtn("design_c_radius",        _L_CONTEXT("Radius", "Sketch Constraint"),        SketchConstraintType::Radius);
-        cbtn("design_c_diameter",      _L_CONTEXT("Diameter", "Sketch Constraint"),      SketchConstraintType::Diameter);
-        cbtn("design_c_fix",           _L_CONTEXT("Fix point (anchor in place)", "Sketch Constraint"), SketchConstraintType::Fix);
-        cbtn("design_c_dist_x", _L_CONTEXT("Horizontal distance", "Sketch Constraint"), SketchConstraintType::DistanceX);
-        cbtn("design_c_dist_y", _L_CONTEXT("Vertical distance", "Sketch Constraint"),   SketchConstraintType::DistanceY);
+        // Icon-only, so each tooltip names the constraint, says what it does and what to select first.
+        cbtn("design_c_horizontal",    _L("Horizontal: makes the selected line level."), SketchConstraintType::Horizontal);
+        cbtn("design_c_vertical",      _L("Vertical: makes the selected line upright."), SketchConstraintType::Vertical);
+        cbtn("design_c_parallel",      _L("Parallel: makes two selected lines run in the same direction."),
+             SketchConstraintType::Parallel);
+        cbtn("design_c_perpendicular", _L("Perpendicular: puts two selected lines at a right angle."),
+             SketchConstraintType::Perpendicular);
+        cbtn("design_c_coincident",    _L("Coincident: joins two selected entities at a point, such as the end of one line "
+                                          "onto the end of another."),
+             SketchConstraintType::Coincident);
+        cbtn("design_c_equal",         _L("Equal length: gives two selected lines the same length."),
+             SketchConstraintType::EqualLength);
+        cbtn("design_c_equal_radius",  _L("Equal radius: gives two selected circles or arcs the same radius."),
+             SketchConstraintType::EqualRadius);
+        cbtn("design_c_collinear",     _L("Collinear: puts two selected lines on one straight line."),
+             SketchConstraintType::Collinear);
+        cbtn("design_c_concentric",    _L("Concentric: gives two selected circles or arcs the same center."),
+             SketchConstraintType::Concentric);
+        cbtn("design_c_tangent",       _L("Tangent: makes a line and a circle or arc, or two circles or arcs, touch "
+                                          "without crossing. Select the pair first."),
+             SketchConstraintType::Tangent);
+        cbtn("design_c_midpoint",      _L("Midpoint: puts a point in the middle of a line. Select the point and the line first."),
+             SketchConstraintType::Midpoint);
+        cbtn("design_c_symmetric",     _L("Symmetric: mirrors two points or two lines about an axis line. Select the two, "
+                                          "then the axis."),
+             SketchConstraintType::Symmetric);
+        cbtn("design_c_sym_v",         _L("Symmetric about the vertical axis: mirrors two selected points or lines about the "
+                                          "sketch's vertical axis."),
+             SketchConstraintType::SymmetricAboutY);
+        cbtn("design_c_sym_h",         _L("Symmetric about the horizontal axis: mirrors two selected points or lines about "
+                                          "the sketch's horizontal axis."),
+             SketchConstraintType::SymmetricAboutX);
+        cbtn("design_c_angle",         _L("Angle: sets the angle between two selected lines to the value you type."),
+             SketchConstraintType::Angle);
+        cbtn("design_c_radius",        _L("Radius: sets the radius of the selected circle or arc to the value you type."),
+             SketchConstraintType::Radius);
+        cbtn("design_c_diameter",      _L("Diameter: sets the diameter of the selected circle or arc to the value you type."),
+             SketchConstraintType::Diameter);
+        cbtn("design_c_fix",           _L("Fix: anchors the selected point where it is, so solving the sketch never moves it."),
+             SketchConstraintType::Fix);
+        cbtn("design_c_dist_x",        _L("Horizontal distance: sets how far apart two selected points or entities are "
+                                          "from side to side."),
+             SketchConstraintType::DistanceX);
+        cbtn("design_c_dist_y",        _L("Vertical distance: sets how far apart two selected points or entities are "
+                                          "from bottom to top."),
+             SketchConstraintType::DistanceY);
         // Trim/Extend are now standalone SKETCH scissors (Mode::Trim/Extend) in the sketch
         // toolbar, NOT Constrain buttons. The other edit ops (Mirror/Offset/Fillet/Chamfer/
         // Move/…) are first-class sketch tools too. Done constraining = the action-bar ✓.
@@ -1595,14 +1850,14 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // the same tone as a dark ribbon. Those ship a "_dark" twin, picked per theme here (and
         // again on a theme switch) the way GLToolbar picks it.
         auto doc_btn = [this](const char* icon, const wxString& tip, bool has_dark_twin = false,
-                              int cell_w = 40, int icon_px = 34) {
+                              int cell_w = 40, int icon_px = 34, const std::vector<TipMedia>& media = {}) {
             const std::string name(icon);
             auto themed = [name, has_dark_twin] { return has_dark_twin && dp_dark() ? name + "_dark" : name; };
             auto* b = new ScalableButton(m_toolbar, wxID_ANY, themed(), "", FromDIP(wxSize(cell_w, 40)),
                                          wxDefaultPosition, wxBU_EXACTFIT | wxBORDER_NONE, false, icon_px);
             if (has_dark_twin)
                 m_icon_refresh.push_back([b, themed] { b->SetBitmap_(themed()); });
-            b->SetToolTip(tip);
+            set_illustrated_tooltip(b, tip, media);
             b->SetBackgroundColour(dp_ribbon_bg());
             b->Bind(wxEVT_ENTER_WINDOW, [b](wxMouseEvent& e) {
                 if (b->IsEnabled()) { b->SetBackgroundColour(dp_ribbon_hover()); b->Refresh(); } e.Skip(); });
@@ -1617,40 +1872,45 @@ DesignPanel::DesignPanel(wxWindow* parent)
         b_new->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_new_design(); });
         add_doc(b_new);
         // Import STEP — a STEP comes in as a whole editable B-rep body, not a profile.
-        auto* b_step = doc_btn("design_step", _L("Import STEP (editable B-rep solid)"));
+        auto* b_step = doc_btn("design_step", _L("Import STEP (editable B-rep solid)"), false, 40, 34,
+                               design_pic("tool_step.png"));
         b_step->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_import_step(); });
         m_keys_feature[SHIFT('I')] = [this] { on_import_step(); };
         add_doc(b_step);
         // Import mesh — same destination as STEP (an editable B-rep body), but the geometry has
         // to be reconstructed from triangles first (GeometryEngine::mesh_to_brep).
-        auto* b_mesh = doc_btn("design_import_mesh", _L("Import mesh (STL/OBJ) as an editable B-rep solid"));
+        auto* b_mesh = doc_btn("design_import_mesh", _L("Import mesh (STL/OBJ) as an editable B-rep solid"), false, 40, 34,
+                               design_pic("tool_import_mesh.png"));
         b_mesh->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_import_mesh(); });
         m_keys_feature[SHIFT('M')] = [this] { on_import_mesh(); };
         add_doc(b_mesh);
-        auto* b_export = doc_btn("design_export", _L("Export STEP…"));
+        auto* b_export = doc_btn("design_export", _L("Saves the bodies as a STEP file, which other CAD programs open as "
+                                                     "solids rather than meshes."));
         b_export->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_export_step(); });
         add_doc(b_export);
 
         // Sketch leads the feature group. Momentary like the imports: start_sketch() may only ask
         // for a plane, or refuse, and a teal active-tool state would outlive either.
-        auto* b_sketch = doc_btn("design_new_sketch", _L("Create a new sketch"));
+        auto* b_sketch = doc_btn("design_new_sketch", feature_tip(CadFeatureType::Sketch).text, false, 40, 34,
+                                 feature_tip(CadFeatureType::Sketch).media);
         b_sketch->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { start_sketch(); });
         tb_slot["sketch"].push_back(b_sketch);
 
         // These act on bodies / the view, so they ride in the feature group, in the slots
         // the user assigned them (9, 11bis, 16).
         auto* b_place = doc_btn("toolbar_flatten", _L("Place on Face (F) — lay the picked face on the bed"),
-                                true);
+                                true, 40, 34, design_pic("tool_place_on_face.gif"));
         b_place->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { place_on_face(); });
         tb_slot["place"].push_back(b_place);
 
         auto* b_section = doc_btn("split_parts", _L("Section View — hide part of the model to see inside. "
                                                    "PageUp/PageDown move the plane; Delete removes it."),
-                                  true);
+                                  true, 40, 34, design_pic("tool_section.gif"));
         b_section->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { toggle_section_view(); });
         tb_slot["section"].push_back(b_section);
 
-        m_section_flip_btn = doc_btn("design_mirror", _L("Flip Section — show the opposite half"));
+        m_section_flip_btn = doc_btn("design_mirror", _L("Flip Section — show the opposite half"), false, 40, 34,
+                                     design_pic("tool_flip_section.png"));
         m_section_flip_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { flip_section_view(); });
         m_section_flip_btn->Enable(false);   // only usable while a section view is active
         tb_slot["flip"].push_back(m_section_flip_btn);
@@ -1661,7 +1921,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_tb_commit = new wxBoxSizer(wxHORIZONTAL);
         m_commit_btn = doc_btn("toolbar_add_plate", wxEmptyString);   // face and tip: set_commit_mode
         m_commit_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_commit(); });
-        auto* b_mode = doc_btn("drop_down", _L("Choose how Commit to Plate sends the bodies"), false, 16, 16);
+        auto* b_mode = doc_btn("drop_down", _L("Choose how Commit to Plate sends the bodies"), false, 16, 16,
+                               {{"design_tips/commit_assembly.png", _L("Commit to Plate")},
+                                {"design_tips/commit_bodies.png", _L("Commit to Plate (as bodies)")}});
         m_tb_commit->Add(m_commit_btn, 0, wxALIGN_CENTER_VERTICAL);
         m_tb_commit->Add(b_mode, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 
@@ -1695,6 +1957,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
             wxGetApp().app_config->set("design_commit_mode", bodies ? "bodies" : "assembly");
         });
         cp->drop.Bind(EVT_DISMISS, [cp](wxCommandEvent&) { cp->closed_ms = wxGetLocalTimeMillis(); });
+        cp->drop.SetItemHoverHandler([cp](int item, const wxRect& row) {
+            const char* pic = item == int(CommitMode::Assembly) ? "commit_assembly.png"
+                            : item == int(CommitMode::Bodies)   ? "commit_bodies.png" : nullptr;
+            hover_illustrated_tooltip(&cp->drop, pic ? row : wxRect(), pic ? cp->items[size_t(item)].tip : wxString(),
+                                      pic ? design_pic(pic) : std::vector<TipMedia>{});
+        });
         b_mode->Bind(wxEVT_BUTTON, [this, b_mode, cp](wxCommandEvent&) {
             // A click on ▾ while the list is open closes it, and that same click reaches this
             // button too (on MSW the list's deferred dismissal runs before the button's mouse-up):
@@ -1792,6 +2060,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_shape->SetSelection(0);
     form->Add(new wxStaticText(m_cards, wxID_ANY, _L("Shape")), 0, wxALIGN_CENTER_VERTICAL);
     form->Add(m_shape, 0, wxEXPAND);
+    set_choice_tip(m_shape, _L("The shape this sketch draws, sized by the fields below."),
+                   {"tool_rect.gif", "tool_circle.gif"});
 
     // NO plane row. A sketch takes its plane from what is picked in the VIEWPORT — a planar face
     // on a solid, or one of the reference-plane ghosts clicked in 3D — resolved by
@@ -1801,14 +2071,17 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_width = make_spin(m_cards, 20);
     form->Add(new wxStaticText(m_cards, wxID_ANY, _L("Width / X")), 0, wxALIGN_CENTER_VERTICAL);
     form->Add(spin_frame(m_width), 0, wxEXPAND);
+    set_illustrated_tooltip(spin_frame(m_width), _L("The width of the rectangle, along the X axis of its plane."));
 
     m_height = make_spin(m_cards, 20);
     form->Add(new wxStaticText(m_cards, wxID_ANY, _L("Height / Y")), 0, wxALIGN_CENTER_VERTICAL);
     form->Add(spin_frame(m_height), 0, wxEXPAND);
+    set_illustrated_tooltip(spin_frame(m_height), _L("The height of the rectangle, along the Y axis of its plane."));
 
     m_radius = make_spin(m_cards, 10);
     form->Add(new wxStaticText(m_cards, wxID_ANY, _L("Radius")), 0, wxALIGN_CENTER_VERTICAL);
     form->Add(spin_frame(m_radius), 0, wxEXPAND);
+    set_illustrated_tooltip(spin_frame(m_radius), _L("The radius of the circle."));
 
     m_box_sketch = new wxBoxSizer(wxVERTICAL);
     m_box_sketch->Add(card_header(m_cards, "design_sketch", _L("Sketch"), m_hdr_sketch), 0, wxLEFT | wxRIGHT | wxTOP, 12);
@@ -1822,12 +2095,15 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_move_dx = make_spin(m_cards, 0.0, -100000.0, 100000.0);
         mform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Distance X")), 0, wxALIGN_CENTER_VERTICAL);
         mform->Add(spin_frame(m_move_dx), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_move_dx), _L("How far the body moves along X."));
         m_move_dy = make_spin(m_cards, 0.0, -100000.0, 100000.0);
         mform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Distance Y")), 0, wxALIGN_CENTER_VERTICAL);
         mform->Add(spin_frame(m_move_dy), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_move_dy), _L("How far the body moves along Y."));
         m_move_dz = make_spin(m_cards, 0.0, -100000.0, 100000.0);
         mform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Distance Z")), 0, wxALIGN_CENTER_VERTICAL);
         mform->Add(spin_frame(m_move_dz), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_move_dz), _L("How far the body moves along Z."));
 
         m_move_axis = make_combo(m_cards);
         m_move_axis->Append(_L_CONTEXT("X", "Axis"));
@@ -1836,10 +2112,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_move_axis->SetSelection(2);
         mform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Rotation axis")), 0, wxALIGN_CENTER_VERTICAL);
         mform->Add(m_move_axis, 0, wxEXPAND);
+        set_illustrated_tooltip(m_move_axis, _L("The axis the body turns about."));
 
         m_move_angle = make_spin(m_cards, 0.0, -360.0, 360.0);
         mform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Angle (°)")), 0, wxALIGN_CENTER_VERTICAL);
         mform->Add(spin_frame(m_move_angle), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_move_angle), _L("How far the body turns about the rotation axis, in degrees."));
 
         for (wxSpinCtrlDouble* sp : { m_move_dx, m_move_dy, m_move_dz, m_move_angle })
             sp->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent& e) { apply_move_card(); e.Skip(); });
@@ -1878,6 +2156,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_distance = make_spin(m_cards, 10, -1000.0, 1000.0);
         eform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Extrude dist")), 0, wxALIGN_CENTER_VERTICAL);
         eform->Add(spin_frame(m_distance), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_distance), _L("How far the profile is extruded. A negative distance goes the other way."));
 
         // End condition (order MUST match ExtrudeEnd: Blind/Symmetric/TwoSided/ThroughAll/
         // UpToFace/UpToVertex). Up-to-face uses the currently click-selected solid face.
@@ -1888,14 +2167,22 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_extrude_end->SetSelection(0);
         eform->Add(new wxStaticText(m_cards, wxID_ANY, _L("End")), 0, wxALIGN_CENTER_VERTICAL);
         eform->Add(m_extrude_end, 0, wxEXPAND);
+        set_choice_tip(m_extrude_end, _L("Where the extrusion stops: at the distance given, half of it to each side, a "
+                                         "different distance to each side, through every body, or at the face or vertex picked."),
+                       {"end_blind.png", "end_symmetric.png", "end_two_sided.png", "end_through_all.png",
+                        "end_up_to_face.png", "end_up_to_vertex.png"});
 
         m_distance2 = make_spin(m_cards, 5, 0.0, 100000.0);   // second-side depth (Two-sided)
         eform->Add(new wxStaticText(m_cards, wxID_ANY, _L("2nd dist")), 0, wxALIGN_CENTER_VERTICAL);
         eform->Add(spin_frame(m_distance2), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_distance2), _L("How far the extrusion goes to the other side, for Two-sided."));
 
         m_taper = make_spin(m_cards, 0.0, -89.0, 89.0);       // draft angle (deg)
         eform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Taper (°)")), 0, wxALIGN_CENTER_VERTICAL);
         eform->Add(spin_frame(m_taper), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_taper), _L("Slopes the sides of the extrusion by this angle, as a draft, so its far end is "
+                                                         "larger or smaller than the sketch. 0 keeps them straight."),
+                                design_pic("taper.png"));
 
         m_mode = make_combo(m_cards);
         // Order is load-bearing: index maps to BooleanMode (New=0, Add=1, Cut=2, Intersect=3).
@@ -1907,10 +2194,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_mode->SetSelection(0);
         eform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Result")), 0, wxALIGN_CENTER_VERTICAL);
         eform->Add(m_mode, 0, wxEXPAND);
+        set_choice_tip(m_mode, design_result_tip(), result_pics());
 
         m_flip = new CheckBox(m_cards);
         eform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Flip direction")), 0, wxALIGN_CENTER_VERTICAL);
         eform->Add(m_flip, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
+        set_illustrated_tooltip(m_flip, _L("Extrudes to the other side of the sketch plane."));
 
         m_box_extrude->Add(eform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
@@ -1925,6 +2214,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_dressup_type->SetSelection(0);
     dform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Type")), 0, wxALIGN_CENTER_VERTICAL);
     dform->Add(m_dressup_type, 0, wxEXPAND);
+    set_choice_tip(m_dressup_type, _L("Fillet rounds the edges; Chamfer cuts them off flat."),
+                   {"dressup_fillet.png", "dressup_chamfer.png"});
 
     // The card can dress ONE picked edge or a whole face-group, and which one it will do is
     // decided by a viewport pick the card previously said nothing about — so a user who had not
@@ -1944,10 +2235,14 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_face_group->SetSelection(3);
     dform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Edges")), 0, wxALIGN_CENTER_VERTICAL);
     dform->Add(m_face_group, 0, wxEXPAND);
+    set_choice_tip(m_face_group, _L("The edges rounded or bevelled when no edge is picked in the view: those of the top or "
+                                    "bottom faces, the side edges, or all of them."),
+                   {"edges_top.png", "edges_bottom.png", "edges_lateral.png", "edges_all.png"});
 
     m_dressup_size = make_spin(m_cards, 2.0);
     dform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Size (r/dist)")), 0, wxALIGN_CENTER_VERTICAL);
     dform->Add(spin_frame(m_dressup_size), 0, wxEXPAND);
+    set_illustrated_tooltip(spin_frame(m_dressup_size), _L("The radius of a fillet, or the distance a chamfer cuts back from the edge."));
 
     m_box_dressup = new wxBoxSizer(wxVERTICAL);
     m_box_dressup->Add(card_header(m_cards, "design_dressup", _L("Fillet / Chamfer"), m_hdr_dressup), 0, wxLEFT | wxRIGHT | wxTOP, 12);
@@ -1976,27 +2271,37 @@ DesignPanel::DesignPanel(wxWindow* parent)
     });
     hform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Hole plane")), 0, wxALIGN_CENTER_VERTICAL);
     hform->Add(m_hole_plane, 0, wxEXPAND);
+    set_illustrated_tooltip(m_hole_plane, _L("The plane the hole is drilled from when no face is picked. A face picked in the "
+                                       "view takes its place."));
 
     m_hole_diameter = make_spin(m_cards, 6.0);
     hform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Diameter")), 0, wxALIGN_CENTER_VERTICAL);
     hform->Add(spin_frame(m_hole_diameter), 0, wxEXPAND);
+    set_illustrated_tooltip(spin_frame(m_hole_diameter), _L("The diameter of the hole."));
 
     m_hole_depth = make_spin(m_cards, 10.0);
     hform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Depth (blind)")), 0, wxALIGN_CENTER_VERTICAL);
     hform->Add(spin_frame(m_hole_depth), 0, wxEXPAND);
+    set_illustrated_tooltip(spin_frame(m_hole_depth), _L("How deep the hole goes, unless Through is on."));
 
     m_hole_x = make_spin(m_cards, 0.0, -1000.0, 1000.0);
     hform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Pos X")), 0, wxALIGN_CENTER_VERTICAL);
     hform->Add(spin_frame(m_hole_x), 0, wxEXPAND);
+    set_illustrated_tooltip(spin_frame(m_hole_x), _L("Moves the hole along X from the center of the picked face, or from the origin "
+                                              "of the plane when no face is picked."));
 
     m_hole_y = make_spin(m_cards, 0.0, -1000.0, 1000.0);
     hform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Pos Y")), 0, wxALIGN_CENTER_VERTICAL);
     hform->Add(spin_frame(m_hole_y), 0, wxEXPAND);
+    set_illustrated_tooltip(spin_frame(m_hole_y), _L("Moves the hole along Y from the center of the picked face, or from the origin "
+                                              "of the plane when no face is picked."));
 
     m_hole_through = new CheckBox(m_cards);
     m_hole_through->SetValue(true);
     hform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Through")), 0, wxALIGN_CENTER_VERTICAL);
     hform->Add(m_hole_through, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
+    set_illustrated_tooltip(m_hole_through, _L("Cuts the hole through the whole body, ignoring Depth."),
+                            design_pics_off_on("hole_blind.png", "hole_through.png"));
 
     m_hole_target_label = new wxStaticText(m_cards, wxID_ANY, _L("(none — uses Hole plane)"));
     hform->Add(new wxStaticText(m_cards, wxID_ANY, _L("On face")), 0, wxALIGN_CENTER_VERTICAL);
@@ -2018,6 +2323,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_thread_plane->SetSelection(0);
     tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Thread plane")), 0, wxALIGN_CENTER_VERTICAL);
     tform->Add(m_thread_plane, 0, wxEXPAND);
+    set_illustrated_tooltip(m_thread_plane, _L("The plane the thread stands on when no cylindrical face or circular edge is "
+                                         "picked."));
 
     // Standard designation picker — fills pitch/depth (and nominal radius) from the
     // ISO metric / Unified imperial tables. "Custom" leaves the manual spins alone.
@@ -2029,32 +2336,40 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_thread_std->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { apply_thread_standard(); });
     tform->Add(new wxStaticText(m_cards, wxID_ANY, _L_CONTEXT("Standard", "Thread standard")), 0, wxALIGN_CENTER_VERTICAL);
     tform->Add(m_thread_std, 0, wxEXPAND);
+    set_illustrated_tooltip(m_thread_std, _L("A standard thread size fills in the diameter, pitch and depth. Custom leaves them to you."));
 
     // Threads are specified by DIAMETER (M6 = Ø6); the value is derived from the picked cylindrical
     // surface / circular edge, so it's a readout users rarely type. Stored field holds the diameter.
     m_thread_radius = make_spin(m_cards, 10.0);
     tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Diameter")), 0, wxALIGN_CENTER_VERTICAL);
     tform->Add(spin_frame(m_thread_radius), 0, wxEXPAND);
+    set_illustrated_tooltip(spin_frame(m_thread_radius), _L("The diameter of the thread, read from the picked face or edge. A "
+                                                       "standard size sets it too."));
 
     m_thread_pitch = make_spin(m_cards, 2.0);
     tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Pitch")), 0, wxALIGN_CENTER_VERTICAL);
     tform->Add(spin_frame(m_thread_pitch), 0, wxEXPAND);
+    set_illustrated_tooltip(spin_frame(m_thread_pitch), _L("The distance from one turn of the thread to the next."));
 
     m_thread_height = make_spin(m_cards, 10.0);
     tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Length")), 0, wxALIGN_CENTER_VERTICAL);
     tform->Add(spin_frame(m_thread_height), 0, wxEXPAND);
+    set_illustrated_tooltip(spin_frame(m_thread_height), _L("How long the threaded part is, along its axis."));
 
     m_thread_depth = make_spin(m_cards, 1.0);
     tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Thread depth")), 0, wxALIGN_CENTER_VERTICAL);
     tform->Add(spin_frame(m_thread_depth), 0, wxEXPAND);
+    set_illustrated_tooltip(spin_frame(m_thread_depth), _L("How deep the groove of the thread is cut."));
 
     m_thread_x = make_spin(m_cards, 0.0, -1000.0, 1000.0);
     tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Pos X")), 0, wxALIGN_CENTER_VERTICAL);
     tform->Add(spin_frame(m_thread_x), 0, wxEXPAND);
+    set_illustrated_tooltip(spin_frame(m_thread_x), _L("Moves the thread along X on its plane. 0 keeps it on the axis of the picked face."));
 
     m_thread_y = make_spin(m_cards, 0.0, -1000.0, 1000.0);
     tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Pos Y")), 0, wxALIGN_CENTER_VERTICAL);
     tform->Add(spin_frame(m_thread_y), 0, wxEXPAND);
+    set_illustrated_tooltip(spin_frame(m_thread_y), _L("Moves the thread along Y on its plane. 0 keeps it on the axis of the picked face."));
 
     m_thread_internal = new CheckBox(m_cards);
     m_thread_internal->SetValue(false);
@@ -2067,6 +2382,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
     });
     tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Internal")), 0, wxALIGN_CENTER_VERTICAL);
     tform->Add(m_thread_internal, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
+    set_illustrated_tooltip(m_thread_internal, _L("A thread inside a hole, for a bolt to screw into, instead of one on the outside of a rod. "
+                                                "It changes the depth that goes with a standard size."),
+                            design_pics_off_on("thread_external.png", "thread_internal.png"));
 
     m_thread_target_label = new wxStaticText(m_cards, wxID_ANY, _L("(none — uses Thread plane)"));
     tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("On face")), 0, wxALIGN_CENTER_VERTICAL);
@@ -2090,6 +2408,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_revolve_angle = make_spin(m_cards, 360.0, 1.0, 360.0);
         rform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Angle (°)")), 0, wxALIGN_CENTER_VERTICAL);
         rform->Add(spin_frame(m_revolve_angle), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_revolve_angle), _L("How far the profile turns about the axis. 360 makes it go all the way round."));
 
         m_revolve_axis = make_combo(m_cards);
         m_revolve_axis->Append(_L("Plane X"));
@@ -2097,6 +2416,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_revolve_axis->SetSelection(0);
         rform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Axis")), 0, wxALIGN_CENTER_VERTICAL);
         rform->Add(m_revolve_axis, 0, wxEXPAND);
+        set_illustrated_tooltip(m_revolve_axis, _L("The axis the profile spins around: the X or Y axis of the sketch plane, or a line of "
+                                               "the sketch."));
 
         m_revolve_mode = make_combo(m_cards);
         m_revolve_mode->Append(_L("New body"));   // same four words as Extrude
@@ -2106,10 +2427,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_revolve_mode->SetSelection(0);
         rform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Result")), 0, wxALIGN_CENTER_VERTICAL);
         rform->Add(m_revolve_mode, 0, wxEXPAND);
+        set_choice_tip(m_revolve_mode, design_result_tip(), result_pics());
 
         m_revolve_flip = new CheckBox(m_cards);
         rform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Flip direction")), 0, wxALIGN_CENTER_VERTICAL);
         rform->Add(m_revolve_flip, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
+        set_illustrated_tooltip(m_revolve_flip, _L("Turns the profile the other way about the axis."));
 
         m_box_revolve->Add(rform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
@@ -2127,6 +2450,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_sweep_path = make_combo(m_cards);
         sform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Path")), 0, wxALIGN_CENTER_VERTICAL);
         sform->Add(m_sweep_path, 0, wxEXPAND);
+        set_illustrated_tooltip(m_sweep_path, _L("The sketch whose line the profile follows."));
 
         m_sweep_mode = make_combo(m_cards);
         m_sweep_mode->Append(_L("New body"));   // same four words as Extrude
@@ -2136,6 +2460,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_sweep_mode->SetSelection(0);
         sform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Result")), 0, wxALIGN_CENTER_VERTICAL);
         sform->Add(m_sweep_mode, 0, wxEXPAND);
+        set_choice_tip(m_sweep_mode, design_result_tip(), result_pics());
 
         m_box_sweep->Add(sform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
@@ -2154,14 +2479,18 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_pattern_type->SetSelection(0);
         pform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Type")), 0, wxALIGN_CENTER_VERTICAL);
         pform->Add(m_pattern_type, 0, wxEXPAND);
+        set_choice_tip(m_pattern_type, _L("Linear repeats the body in a row; Circular repeats it around the axis of the plane."),
+                       {"pattern_linear.png", "pattern_circular.png"});
 
         m_pattern_count = make_spin(m_cards, 3, 1, 999);
         pform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Count")), 0, wxALIGN_CENTER_VERTICAL);
         pform->Add(spin_frame(m_pattern_count), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_pattern_count), _L("How many there are in the end, the original included. The copies join the body."));
 
         m_pattern_spacing = make_spin(m_cards, 20.0, 0.01, 100000.0);
         pform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Spacing")), 0, wxALIGN_CENTER_VERTICAL);
         pform->Add(spin_frame(m_pattern_spacing), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_pattern_spacing), _L("The distance from one copy to the next, for a Linear pattern."));
 
         m_pattern_dir = make_combo(m_cards);
         m_pattern_dir->Append(_L("Plane X"));
@@ -2169,10 +2498,13 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_pattern_dir->SetSelection(0);
         pform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Direction")), 0, wxALIGN_CENTER_VERTICAL);
         pform->Add(m_pattern_dir, 0, wxEXPAND);
+        set_illustrated_tooltip(m_pattern_dir, _L("The direction a Linear pattern runs in, along the X or Y axis of the plane."));
 
         m_pattern_angle = make_spin(m_cards, 360.0, 1.0, 360.0);
         pform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Total angle (°)")), 0, wxALIGN_CENTER_VERTICAL);
         pform->Add(spin_frame(m_pattern_angle), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_pattern_angle), _L("The angle the copies of a Circular pattern are spread over. 360 spaces them evenly "
+                                                                 "around a full circle."));
 
         m_box_pattern->Add(pform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
@@ -2193,16 +2525,23 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_bool_op->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
         bform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Operation")), 0, wxALIGN_CENTER_VERTICAL);
         bform->Add(m_bool_op, 0, wxEXPAND);
+        set_choice_tip(m_bool_op, _L("Join merges the tool into the target, Subtract cuts it out of the target, and "
+                                     "Intersect keeps only where the two overlap."),
+                       {"result_join.png", "result_cut.png", "result_intersect.png"});
 
         m_bool_target = make_combo(m_cards);
         m_bool_target->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
         bform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Target (kept)")), 0, wxALIGN_CENTER_VERTICAL);
         bform->Add(m_bool_target, 0, wxEXPAND);
+        set_illustrated_tooltip(m_bool_target, _L("The body that is changed and kept."), design_pic("bool_target.png"));
 
         m_bool_tool = make_combo(m_cards);
         m_bool_tool->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
         bform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Tool")), 0, wxALIGN_CENTER_VERTICAL);
         bform->Add(m_bool_tool, 0, wxEXPAND);
+        set_illustrated_tooltip(m_bool_tool, _L("The body that is joined to the target, cut from it or intersected with it. It is "
+                                              "used up unless Keep tool body is on."),
+                                design_pic("bool_tool.png"));
 
         // Fuzzy tolerance (mm): the main use is a tool body cutting a destination — a small
         // tolerance lets near-coincident mating faces resolve into a clean cut instead of a
@@ -2211,6 +2550,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_bool_tol->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
         bform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Tolerance")), 0, wxALIGN_CENTER_VERTICAL);
         bform->Add(spin_frame(m_bool_tol), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_bool_tol), _L("Treats faces closer than this as touching, so bodies that almost meet combine "
+                                                          "cleanly instead of failing or leaving slivers. 0 is exact."));
 
         m_box_boolean->Add(bform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
 
@@ -2220,6 +2561,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         keeprow->Add(new wxStaticText(m_cards, wxID_ANY, _L("Keep tool body")), 0, wxALIGN_CENTER_VERTICAL);
         keeprow->AddStretchSpacer();
         keeprow->Add(m_bool_keep, 0, wxALIGN_CENTER_VERTICAL);
+        set_illustrated_tooltip(m_bool_keep, _L("Keeps the tool body as a body of its own after the operation."),
+                                design_pics_off_on("keep_tool_off.png", "keep_tool_on.png"));
         m_box_boolean->Add(keeprow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
     cards->Add(m_box_boolean, 0, wxEXPAND);
@@ -2235,16 +2578,19 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_cut_target->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
         cform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Body")), 0, wxALIGN_CENTER_VERTICAL);
         cform->Add(m_cut_target, 0, wxEXPAND);
+        set_illustrated_tooltip(m_cut_target, _L("The body to split."));
 
         m_cut_plane = make_combo(m_cards);
         m_cut_plane->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
         cform->Add(new wxStaticText(m_cards, wxID_ANY, _L_CONTEXT("Plane", "Design")), 0, wxALIGN_CENTER_VERTICAL);
         cform->Add(m_cut_plane, 0, wxEXPAND);
+        set_illustrated_tooltip(m_cut_plane, _L("The plane the body is split along."));
 
         m_cut_offset = make_spin(m_cards, 0.0, -10000.0, 10000.0);
         m_cut_offset->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
         cform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Offset")), 0, wxALIGN_CENTER_VERTICAL);
         cform->Add(spin_frame(m_cut_offset), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_cut_offset), _L("Moves the cutting plane along its normal by this distance."));
 
         m_box_cut->Add(cform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
         // The cut always leaves BOTH pieces as separate bodies (a non-destructive split);
@@ -2280,6 +2626,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_plane_type->SetSelection(0);
         m_box_plane->Add(new wxStaticText(m_cards, wxID_ANY, _L("Plane type")), 0, wxLEFT | wxRIGHT | wxTOP, 12);
         m_box_plane->Add(m_plane_type, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+        set_choice_tip(m_plane_type, _L("How the plane is placed: offset from a base, tilted about a line of it, midway "
+                                         "between two faces, against a curved face, through two edges, or on a face."),
+                       {"plane_offset.png", "plane_angle.png", "plane_midplane.png", "plane_tangent.png",
+                        "plane_two_edges.png", "plane_coincident.png"});
 
         auto* plform = two_col_form();
 
@@ -2288,14 +2638,17 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // TRN Plane tool: the reference plane (XY, XZ, YZ or a datum) the new plane is built from.
         plform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Base")), 0, wxALIGN_CENTER_VERTICAL);
         plform->Add(m_plane_base, 0, wxEXPAND);
+        set_illustrated_tooltip(m_plane_base, _L("The plane or flat face the new plane is placed from."));
 
         m_plane_offset = make_spin(m_cards, 20.0, -100000.0, 100000.0);
         plform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Offset")), 0, wxALIGN_CENTER_VERTICAL);
         plform->Add(spin_frame(m_plane_offset), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_plane_offset), _L("How far the plane is from its base."));
 
         m_plane_tilt = make_spin(m_cards, 0.0, -180.0, 180.0);
         plform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Angle (°)")), 0, wxALIGN_CENTER_VERTICAL);
         plform->Add(spin_frame(m_plane_tilt), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_plane_tilt), _L("How far the plane is tilted from its base, for Angle."));
 
         m_plane_tilt_axis = make_combo(m_cards);
         m_plane_tilt_axis->Append(_L("Base X"));
@@ -2303,6 +2656,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_plane_tilt_axis->SetSelection(0);
         plform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Tilt axis")), 0, wxALIGN_CENTER_VERTICAL);
         plform->Add(m_plane_tilt_axis, 0, wxEXPAND);
+        set_illustrated_tooltip(m_plane_tilt_axis, _L("The axis of the base the plane tilts about, for Angle."));
 
         // Contextual reference picks: arm a target, then click a solid face/edge in the canvas.
         auto pick_row = [&](const wxString& label, ::Button*& btn, wxStaticText*& lbl, PlanePick target) {
@@ -2310,6 +2664,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
             btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
             lbl = new wxStaticText(m_cards, wxID_ANY, _L("(none)"));
             btn->Bind(wxEVT_BUTTON, [this, target](wxCommandEvent&) { arm_plane_pick(target); });
+            set_illustrated_tooltip(btn, target == PlanePick::FaceA || target == PlanePick::FaceB
+                                         ? _L("Click, then pick a face in the view. Beside it is the face picked.")
+                                         : _L("Click, then pick an edge in the view. Beside it is the edge picked."));
             plform->Add(btn);
             plform->Add(lbl, 0, wxALIGN_CENTER_VERTICAL);
         };
@@ -2321,9 +2678,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_plane_usize = make_spin(m_cards, 60.0, 1.0, 100000.0);
         plform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Size U")), 0, wxALIGN_CENTER_VERTICAL);
         plform->Add(spin_frame(m_plane_usize), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_plane_usize), _L("How wide the plane is drawn in the view."));
         m_plane_vsize = make_spin(m_cards, 60.0, 1.0, 100000.0);
         plform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Size V")), 0, wxALIGN_CENTER_VERTICAL);
         plform->Add(spin_frame(m_plane_vsize), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_plane_vsize), _L("How tall the plane is drawn in the view."));
 
         m_box_plane->Add(plform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
@@ -2338,6 +2697,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_loft_list = new wxCheckListBox(m_cards, wxID_ANY, wxDefaultPosition, FromDIP(wxSize(-1, 120)));
     m_loft_list->Bind(wxEVT_CHECKLISTBOX, [this](wxCommandEvent&) { refresh_preview(); });
     m_box_loft->Add(m_loft_list, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+    set_illustrated_tooltip(m_loft_list, _L("The profile sketches the solid passes through. Check two or more, in the order "
+                                     "it reaches them."));
     {
         auto* lform = two_col_form();
 
@@ -2349,6 +2710,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_loft_mode->SetSelection(0);
         lform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Result")), 0, wxALIGN_CENTER_VERTICAL);
         lform->Add(m_loft_mode, 0, wxEXPAND);
+        set_choice_tip(m_loft_mode, design_result_tip(), result_pics());
 
         m_box_loft->Add(lform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
@@ -2358,6 +2720,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
         lrow->Add(new wxStaticText(m_cards, wxID_ANY, _L("Ruled (straight) sections")), 0, wxALIGN_CENTER_VERTICAL);
         lrow->AddStretchSpacer();
         lrow->Add(m_loft_ruled, 0, wxALIGN_CENTER_VERTICAL);
+        set_illustrated_tooltip(m_loft_ruled, _L("Joins each profile to the next with straight sections, instead of one smooth "
+                                          "blend through them all."),
+                                design_pics_off_on("loft_smooth.png", "loft_ruled.png"));
         m_box_loft->Add(lrow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
     cards->Add(m_box_loft, 0, wxEXPAND);
@@ -2373,6 +2738,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_surf_extrude_distance = make_spin(m_cards, 10);
         sform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Distance")), 0, wxALIGN_CENTER_VERTICAL);
         sform->Add(spin_frame(m_surf_extrude_distance), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_surf_extrude_distance), _L("How far the sketch is extruded."));
         m_box_surf_extrude->Add(sform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
     cards->Add(m_box_surf_extrude, 0, wxEXPAND);
@@ -2388,15 +2754,19 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_surf_revolve_angle = make_spin(m_cards, 360.0, 1.0, 360.0);
         rform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Angle (°)")), 0, wxALIGN_CENTER_VERTICAL);
         rform->Add(spin_frame(m_surf_revolve_angle), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_surf_revolve_angle), _L("How far the profile turns about the axis. 360 makes it go all the way round."));
         m_surf_revolve_axis = make_combo(m_cards);
         m_surf_revolve_axis->Append(_L("Plane X"));
         m_surf_revolve_axis->Append(_L("Plane Y"));
         m_surf_revolve_axis->SetSelection(0);
         rform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Axis")), 0, wxALIGN_CENTER_VERTICAL);
         rform->Add(m_surf_revolve_axis, 0, wxEXPAND);
+        set_illustrated_tooltip(m_surf_revolve_axis, _L("The axis the profile spins around: the X or Y axis of the sketch plane, or a line of "
+                                                   "the sketch."));
         m_surf_revolve_flip = new CheckBox(m_cards);
         rform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Flip direction")), 0, wxALIGN_CENTER_VERTICAL);
         rform->Add(m_surf_revolve_flip, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
+        set_illustrated_tooltip(m_surf_revolve_flip, _L("Turns the profile the other way about the axis."));
         m_box_surf_revolve->Add(rform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
     cards->Add(m_box_surf_revolve, 0, wxEXPAND);
@@ -2410,12 +2780,17 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_surf_loft_list = new wxCheckListBox(m_cards, wxID_ANY, wxDefaultPosition, FromDIP(wxSize(-1, 120)));
     m_surf_loft_list->Bind(wxEVT_CHECKLISTBOX, [this](wxCommandEvent&) { refresh_preview(); });
     m_box_surf_loft->Add(m_surf_loft_list, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+    set_illustrated_tooltip(m_surf_loft_list, _L("The profile sketches the solid passes through. Check two or more, in the order "
+                                          "it reaches them."));
     m_surf_loft_ruled = new CheckBox(m_cards);
     {
         auto* lrow = new wxBoxSizer(wxHORIZONTAL);
         lrow->Add(new wxStaticText(m_cards, wxID_ANY, _L("Ruled (straight) sections")), 0, wxALIGN_CENTER_VERTICAL);
         lrow->AddStretchSpacer();
         lrow->Add(m_surf_loft_ruled, 0, wxALIGN_CENTER_VERTICAL);
+        set_illustrated_tooltip(m_surf_loft_ruled, _L("Joins each profile to the next with straight sections, instead of one smooth "
+                                               "blend through them all."),
+                                design_pics_off_on("loft_smooth.png", "loft_ruled.png"));
         m_box_surf_loft->Add(lrow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
     cards->Add(m_box_surf_loft, 0, wxEXPAND);
@@ -2441,10 +2816,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_surf_offset_body->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
         oform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Sheet body")), 0, wxALIGN_CENTER_VERTICAL);
         oform->Add(m_surf_offset_body, 0, wxEXPAND);
+        set_illustrated_tooltip(m_surf_offset_body, _L("The sheet body to offset."));
         m_surf_offset_distance = make_spin(m_cards, 1.0, -100000.0, 100000.0);
         m_surf_offset_distance->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
         oform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Offset")), 0, wxALIGN_CENTER_VERTICAL);
         oform->Add(spin_frame(m_surf_offset_distance), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_surf_offset_distance), _L("How far to offset: positive outward, negative inward."));
         m_box_surf_offset->Add(oform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
         m_box_surf_offset->Add(new wxStaticText(m_cards, wxID_ANY,
                                   _L("Offsets a sheet body's shell. Positive = outward, negative = inward.")),
@@ -2462,14 +2839,17 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_surf_thicken_body->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
         tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Sheet body")), 0, wxALIGN_CENTER_VERTICAL);
         tform->Add(m_surf_thicken_body, 0, wxEXPAND);
+        set_illustrated_tooltip(m_surf_thicken_body, _L("The sheet body to thicken."));
         m_surf_thicken_thickness = make_spin(m_cards, 1.0, 0.01, 100000.0);
         m_surf_thicken_thickness->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
         tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Thickness")), 0, wxALIGN_CENTER_VERTICAL);
         tform->Add(spin_frame(m_surf_thicken_thickness), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_surf_thicken_thickness), _L("How thick the solid is."));
         m_surf_thicken_flip = new CheckBox(m_cards);
         m_surf_thicken_flip->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent&) { refresh_preview(); });
         tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Flip direction")), 0, wxALIGN_CENTER_VERTICAL);
         tform->Add(m_surf_thicken_flip, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
+        set_illustrated_tooltip(m_surf_thicken_flip, _L("Thickens to the other side of the sheet."));
         m_box_surf_thicken->Add(tform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
         m_box_surf_thicken->Add(new wxStaticText(m_cards, wxID_ANY,
                                   _L("Thickens a sheet body into a solid. Flip reverses the direction.")),
@@ -2482,6 +2862,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_shell_thickness = make_spin(m_cards, 2.0, 0.01, 100000.0);
     sform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Thickness")), 0, wxALIGN_CENTER_VERTICAL);
     sform->Add(spin_frame(m_shell_thickness), 0, wxEXPAND);
+    set_illustrated_tooltip(spin_frame(m_shell_thickness), _L("The thickness of the walls left around the hollow."));
     m_shell_face_label = new wxStaticText(m_cards, wxID_ANY, _L("(all faces — closed hollow)"));
     sform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Open face")), 0, wxALIGN_CENTER_VERTICAL);
     sform->Add(m_shell_face_label, 0, wxALIGN_CENTER_VERTICAL);
@@ -2500,6 +2881,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_draft_angle = make_spin(m_cards, 5.0, -89.0, 89.0);
     drform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Angle (°)")), 0, wxALIGN_CENTER_VERTICAL);
     drform->Add(spin_frame(m_draft_angle), 0, wxEXPAND);
+    set_illustrated_tooltip(spin_frame(m_draft_angle), _L("How far the face tilts. A negative angle tilts it the other way."));
     m_draft_face_label = new wxStaticText(m_cards, wxID_ANY, _L("(pick a side face)"));
     drform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Face")), 0, wxALIGN_CENTER_VERTICAL);
     drform->Add(m_draft_face_label, 0, wxALIGN_CENTER_VERTICAL);
@@ -2523,18 +2905,22 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_xf_body->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
         xform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Body")), 0, wxALIGN_CENTER_VERTICAL);
         xform->Add(m_xf_body, 0, wxEXPAND);
+        set_illustrated_tooltip(m_xf_body, _L("The body to move."));
         m_xf_dx = make_spin(m_cards, 0.0, -100000.0, 100000.0);
         m_xf_dx->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
         xform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Translate X")), 0, wxALIGN_CENTER_VERTICAL);
         xform->Add(spin_frame(m_xf_dx), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_xf_dx), _L("How far the body moves along X."));
         m_xf_dy = make_spin(m_cards, 0.0, -100000.0, 100000.0);
         m_xf_dy->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
         xform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Translate Y")), 0, wxALIGN_CENTER_VERTICAL);
         xform->Add(spin_frame(m_xf_dy), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_xf_dy), _L("How far the body moves along Y."));
         m_xf_dz = make_spin(m_cards, 0.0, -100000.0, 100000.0);
         m_xf_dz->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
         xform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Translate Z")), 0, wxALIGN_CENTER_VERTICAL);
         xform->Add(spin_frame(m_xf_dz), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_xf_dz), _L("How far the body moves along Z."));
         m_xf_axis = make_combo(m_cards);
         m_xf_axis->Append(_L_CONTEXT("X", "Axis"));
         m_xf_axis->Append(_L_CONTEXT("Y", "Axis"));
@@ -2543,22 +2929,27 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_xf_axis->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
         xform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Rotate axis")), 0, wxALIGN_CENTER_VERTICAL);
         xform->Add(m_xf_axis, 0, wxEXPAND);
+        set_illustrated_tooltip(m_xf_axis, _L("The axis the body turns about, through the pivot."));
         m_xf_angle = make_spin(m_cards, 0.0, -360.0, 360.0);
         m_xf_angle->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
         xform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Angle (°)")), 0, wxALIGN_CENTER_VERTICAL);
         xform->Add(spin_frame(m_xf_angle), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_xf_angle), _L("How far the body turns, in degrees."));
         m_xf_pivot_x = make_spin(m_cards, 0.0, -100000.0, 100000.0);
         m_xf_pivot_x->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
         xform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Pivot X")), 0, wxALIGN_CENTER_VERTICAL);
         xform->Add(spin_frame(m_xf_pivot_x), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_xf_pivot_x), _L("The point the body turns about."));
         m_xf_pivot_y = make_spin(m_cards, 0.0, -100000.0, 100000.0);
         m_xf_pivot_y->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
         xform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Pivot Y")), 0, wxALIGN_CENTER_VERTICAL);
         xform->Add(spin_frame(m_xf_pivot_y), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_xf_pivot_y), _L("The point the body turns about."));
         m_xf_pivot_z = make_spin(m_cards, 0.0, -100000.0, 100000.0);
         m_xf_pivot_z->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
         xform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Pivot Z")), 0, wxALIGN_CENTER_VERTICAL);
         xform->Add(spin_frame(m_xf_pivot_z), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_xf_pivot_z), _L("The point the body turns about."));
         m_box_transform->Add(xform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
         m_xf_copy = new CheckBox(m_cards);
         m_xf_copy->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent&) { refresh_preview(); });
@@ -2566,6 +2957,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         cpro->Add(new wxStaticText(m_cards, wxID_ANY, _L("Keep original (make a copy)")), 0, wxALIGN_CENTER_VERTICAL);
         cpro->AddStretchSpacer();
         cpro->Add(m_xf_copy, 0, wxALIGN_CENTER_VERTICAL);
+        set_illustrated_tooltip(m_xf_copy, _L("Leaves the body where it is and moves a copy of it."));
         m_box_transform->Add(cpro, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
         m_box_transform->Add(new wxStaticText(m_cards, wxID_ANY,
                                _L("Translate and/or rotate the selected body. Rotation is applied about the pivot, then translation follows.")),
@@ -2583,10 +2975,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_mirror_body->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
         mform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Body")), 0, wxALIGN_CENTER_VERTICAL);
         mform->Add(m_mirror_body, 0, wxEXPAND);
+        set_illustrated_tooltip(m_mirror_body, _L("The body to mirror."));
         m_mirror_plane = make_combo(m_cards);
         m_mirror_plane->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
         mform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Mirror plane")), 0, wxALIGN_CENTER_VERTICAL);
         mform->Add(m_mirror_plane, 0, wxEXPAND);
+        set_illustrated_tooltip(m_mirror_plane, _L("The plane the body is reflected about."));
         m_box_mirror->Add(mform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
         m_mirror_keep = new CheckBox(m_cards);
         m_mirror_keep->SetValue(true);
@@ -2595,6 +2989,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         mkrow->Add(new wxStaticText(m_cards, wxID_ANY, _L("Keep original")), 0, wxALIGN_CENTER_VERTICAL);
         mkrow->AddStretchSpacer();
         mkrow->Add(m_mirror_keep, 0, wxALIGN_CENTER_VERTICAL);
+        set_illustrated_tooltip(m_mirror_keep, _L("Keeps the original body as well as its mirror image."));
         m_box_mirror->Add(mkrow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
         m_box_mirror->Add(new wxStaticText(m_cards, wxID_ANY,
                             _L("Reflect the selected body about a plane. The mirror is always a new body; keeping the original gives you both.")),
@@ -2612,6 +3007,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_thicken_body->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
         tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Body")), 0, wxALIGN_CENTER_VERTICAL);
         tform->Add(m_thicken_body, 0, wxEXPAND);
+        set_illustrated_tooltip(m_thicken_body, _L("The body whose face is thickened."));
         m_thicken_face_label = new wxStaticText(m_cards, wxID_ANY, _L("(pick a solid face)"));
         tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Face")), 0, wxALIGN_CENTER_VERTICAL);
         tform->Add(m_thicken_face_label, 0, wxALIGN_CENTER_VERTICAL);
@@ -2619,6 +3015,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_thicken_thickness->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
         tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Thickness")), 0, wxALIGN_CENTER_VERTICAL);
         tform->Add(spin_frame(m_thicken_thickness), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_thicken_thickness), _L("How thick the new body is."));
         m_box_thicken->Add(tform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
         m_thicken_flip = new CheckBox(m_cards);
         m_thicken_flip->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent&) { refresh_preview(); });
@@ -2626,6 +3023,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         trow->Add(new wxStaticText(m_cards, wxID_ANY, _L("Flip direction")), 0, wxALIGN_CENTER_VERTICAL);
         trow->AddStretchSpacer();
         trow->Add(m_thicken_flip, 0, wxALIGN_CENTER_VERTICAL);
+        set_illustrated_tooltip(m_thicken_flip, _L("Thickens to the other side of the face."));
         m_box_thicken->Add(trow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
         m_box_thicken->Add(new wxStaticText(m_cards, wxID_ANY,
                               _L("Pick a solid face and offset it into a new thin body. Not for sheet bodies — use Thicken Surface for those.")),
@@ -2643,10 +3041,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_rib_body->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
         rform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Target body")), 0, wxALIGN_CENTER_VERTICAL);
         rform->Add(m_rib_body, 0, wxEXPAND);
+        set_illustrated_tooltip(m_rib_body, _L("The body the rib is joined to."));
         m_rib_sketch = make_combo(m_cards);
         m_rib_sketch->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
         rform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Sketch")), 0, wxALIGN_CENTER_VERTICAL);
         rform->Add(m_rib_sketch, 0, wxEXPAND);
+        set_illustrated_tooltip(m_rib_sketch, _L("The sketch with the open line the rib follows."));
         m_rib_entity = new wxSpinCtrl(m_cards, wxID_ANY, "", wxDefaultPosition, FromDIP(wxSize(90, -1)),
                                       wxSP_ARROW_KEYS | wxBORDER_SIMPLE);
         m_rib_entity->SetRange(0, 999);
@@ -2654,14 +3054,17 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_rib_entity->Bind(wxEVT_SPINCTRL, [this](wxSpinEvent&) { refresh_preview(); });
         rform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Entity index")), 0, wxALIGN_CENTER_VERTICAL);
         rform->Add(m_rib_entity, 0, wxEXPAND);
+        set_illustrated_tooltip(m_rib_entity, _L("Which line of the sketch the rib follows, by its place in the sketch: 0 is the first."));
         m_rib_thickness = make_spin(m_cards, 2.0, 0.01, 100000.0);
         m_rib_thickness->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
         rform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Thickness")), 0, wxALIGN_CENTER_VERTICAL);
         rform->Add(spin_frame(m_rib_thickness), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_rib_thickness), _L("How thick the rib wall is."));
         m_rib_depth = make_spin(m_cards, 10.0, 0.01, 100000.0);
         m_rib_depth->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
         rform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Depth")), 0, wxALIGN_CENTER_VERTICAL);
         rform->Add(spin_frame(m_rib_depth), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_rib_depth), _L("How far the rib wall reaches from the line."));
         m_box_rib->Add(rform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
         m_box_rib->Add(new wxStaticText(m_cards, wxID_ANY,
                           _L("Grow a thin wall from an open sketch Line entity, fused to the target body. Entity index is the position of the open Line in the sketch.")),
@@ -2679,6 +3082,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_proj_source_body->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
         pform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Source body")), 0, wxALIGN_CENTER_VERTICAL);
         pform->Add(m_proj_source_body, 0, wxEXPAND);
+        set_illustrated_tooltip(m_proj_source_body, _L("The body whose edges are projected."));
         m_proj_face_label = new wxStaticText(m_cards, wxID_ANY, _L("(all edges)"));
         pform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Face")), 0, wxALIGN_CENTER_VERTICAL);
         pform->Add(m_proj_face_label, 0, wxALIGN_CENTER_VERTICAL);
@@ -2687,6 +3091,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_proj_plane->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
         pform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Target plane")), 0, wxALIGN_CENTER_VERTICAL);
         pform->Add(m_proj_plane, 0, wxEXPAND);
+        set_illustrated_tooltip(m_proj_plane, _L("The plane the edges are projected onto."));
         m_box_project->Add(pform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
         m_box_project->Add(new wxStaticText(m_cards, wxID_ANY,
                               _L("Project the edges of a body onto a plane as sketch entities. Pick a face to project only its edges, or leave the face empty to project the whole body.")),
@@ -2704,6 +3109,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_del_face_body->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
         dform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Body")), 0, wxALIGN_CENTER_VERTICAL);
         dform->Add(m_del_face_body, 0, wxEXPAND);
+        set_illustrated_tooltip(m_del_face_body, _L("The body the faces are removed from."));
         m_del_face_add_btn = new ::Button(m_cards, _L("Add picked face"));
         m_del_face_add_btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
         m_del_face_add_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
@@ -2734,6 +3140,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         });
         dform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Faces to delete")), 0, wxALIGN_CENTER_VERTICAL);
         dform->Add(m_del_face_add_btn, 0, wxALIGN_CENTER_VERTICAL);
+        set_illustrated_tooltip(m_del_face_add_btn, _L("Adds the face picked in the view to the faces to remove."));
         m_del_face_list = new wxStaticText(m_cards, wxID_ANY, _L("(none)"));
         dform->Add(0, 0);
         dform->Add(m_del_face_list, 0, wxALIGN_CENTER_VERTICAL);
@@ -2755,18 +3162,22 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_helix_plane->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
         hform->Add(new wxStaticText(m_cards, wxID_ANY, _L_CONTEXT("Plane", "Design")), 0, wxALIGN_CENTER_VERTICAL);
         hform->Add(m_helix_plane, 0, wxEXPAND);
+        set_illustrated_tooltip(m_helix_plane, _L("The plane the helix stands on. Its axis is the normal of the plane."));
         m_helix_radius = make_spin(m_cards, 10.0, 0.01, 10000.0);
         m_helix_radius->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
         hform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Radius")), 0, wxALIGN_CENTER_VERTICAL);
         hform->Add(spin_frame(m_helix_radius), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_helix_radius), _L("The radius of the helix."));
         m_helix_pitch = make_spin(m_cards, 5.0, 0.01, 10000.0);
         m_helix_pitch->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
         hform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Pitch")), 0, wxALIGN_CENTER_VERTICAL);
         hform->Add(spin_frame(m_helix_pitch), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_helix_pitch), _L("How far the helix rises in one turn."));
         m_helix_height = make_spin(m_cards, 20.0, 0.01, 10000.0);
         m_helix_height->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
         hform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Height")), 0, wxALIGN_CENTER_VERTICAL);
         hform->Add(spin_frame(m_helix_height), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_helix_height), _L("The total height of the helix."));
         m_box_helix->Add(hform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
         m_helix_left_handed = new CheckBox(m_cards);
         m_helix_left_handed->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent&) { refresh_preview(); });
@@ -2774,12 +3185,14 @@ DesignPanel::DesignPanel(wxWindow* parent)
         hrow->Add(new wxStaticText(m_cards, wxID_ANY, _L("Left-handed")), 0, wxALIGN_CENTER_VERTICAL);
         hrow->AddStretchSpacer();
         hrow->Add(m_helix_left_handed, 0, wxALIGN_CENTER_VERTICAL);
+        set_illustrated_tooltip(m_helix_left_handed, _L("Winds the helix the other way, like a left-hand thread."));
         m_box_helix->Add(hrow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
         m_helix_taper = make_spin(m_cards, 0.0, -89.0, 89.0);
         m_helix_taper->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
         auto* tvalform = two_col_form();
         tvalform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Taper (°)")), 0, wxALIGN_CENTER_VERTICAL);
         tvalform->Add(spin_frame(m_helix_taper), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_helix_taper), _L("Widens or narrows the helix toward its top by this angle. 0 keeps it straight."));
         m_box_helix->Add(tvalform, 0, wxEXPAND | wxLEFT | wxRIGHT, 12);
         m_box_helix->Add(new wxStaticText(m_cards, wxID_ANY,
                             _L("A helical curve (spring path). Use as a sweep path to build springs, coils, or augers.")),
@@ -2799,6 +3212,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_axis_type->SetSelection(0);
         m_box_axis->Add(new wxStaticText(m_cards, wxID_ANY, _L("Axis type")), 0, wxLEFT | wxRIGHT | wxTOP, 12);
         m_box_axis->Add(m_axis_type, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+        set_choice_tip(m_axis_type, _L("How the axis is placed: through two points, along the normal of a face, on the center "
+                                        "line of a cylinder, where two planes meet, or along an edge."),
+                       {"axis_two_points.png", "axis_face_normal.png", "axis_cylinder.png", "axis_planes.png", "axis_edge.png"});
 
         auto* axform = two_col_form();
 
@@ -2807,6 +3223,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
             btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
             lbl = new wxStaticText(m_cards, wxID_ANY, _L("(none)"));
             btn->Bind(wxEVT_BUTTON, [this, target](wxCommandEvent&) { arm_axis_pick(target); });
+            set_illustrated_tooltip(btn, target == AxisPick::Face ? _L("Click, then pick a face in the view. Beside it is the face picked.")
+                                                    : _L("Click, then pick an edge in the view. Beside it is the edge picked."));
             axform->Add(btn);
             axform->Add(lbl, 0, wxALIGN_CENTER_VERTICAL);
         };
@@ -2817,10 +3235,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
         populate_plane_choices(m_axis_plane_a);
         axform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Plane A")), 0, wxALIGN_CENTER_VERTICAL);
         axform->Add(m_axis_plane_a, 0, wxEXPAND);
+        set_illustrated_tooltip(m_axis_plane_a, _L("One of the two planes whose meeting line is the axis."));
         m_axis_plane_b = make_combo(m_cards);
         populate_plane_choices(m_axis_plane_b);
         axform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Plane B")), 0, wxALIGN_CENTER_VERTICAL);
         axform->Add(m_axis_plane_b, 0, wxEXPAND);
+        set_illustrated_tooltip(m_axis_plane_b, _L("One of the two planes whose meeting line is the axis."));
 
         m_axis_p1x = make_spin(m_cards, 0.0, -100000.0, 100000.0);
         m_axis_p1y = make_spin(m_cards, 0.0, -100000.0, 100000.0);
@@ -2831,6 +3251,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         axform->Add(spin_frame(m_axis_p1y), 0, wxEXPAND);
         axform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Point 1 Z")), 0, wxALIGN_CENTER_VERTICAL);
         axform->Add(spin_frame(m_axis_p1z), 0, wxEXPAND);
+        for (wxSpinCtrlDouble* sp : { m_axis_p1x, m_axis_p1y, m_axis_p1z })
+            set_illustrated_tooltip(spin_frame(sp), _L("The first point the axis passes through, for Two points."));
 
         m_axis_p2x = make_spin(m_cards, 10.0, -100000.0, 100000.0);
         m_axis_p2y = make_spin(m_cards, 0.0, -100000.0, 100000.0);
@@ -2841,6 +3263,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         axform->Add(spin_frame(m_axis_p2y), 0, wxEXPAND);
         axform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Point 2 Z")), 0, wxALIGN_CENTER_VERTICAL);
         axform->Add(spin_frame(m_axis_p2z), 0, wxEXPAND);
+        for (wxSpinCtrlDouble* sp : { m_axis_p2x, m_axis_p2y, m_axis_p2z })
+            set_illustrated_tooltip(spin_frame(sp), _L("The second point the axis passes through, for Two points."));
 
         m_box_axis->Add(axform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
@@ -2857,6 +3281,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_coordsys_type->SetSelection(0);
         m_box_coordsys->Add(new wxStaticText(m_cards, wxID_ANY, _L("Type")), 0, wxLEFT | wxRIGHT | wxTOP, 12);
         m_box_coordsys->Add(m_coordsys_type, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+        set_illustrated_tooltip(m_coordsys_type, _L("Point (world) puts the frame at the coordinates below. Face + direction puts it "
+                                             "on a picked face, its X axis along a picked edge."));
 
         m_cs_body = make_combo(m_cards);
         m_cs_body->Append(_L("(all)"));
@@ -2866,6 +3292,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         });
         m_box_coordsys->Add(new wxStaticText(m_cards, wxID_ANY, _L("Body")), 0, wxLEFT | wxRIGHT | wxTOP, 12);
         m_box_coordsys->Add(m_cs_body, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+        set_illustrated_tooltip(m_cs_body, _L("The body to pick on. The others turn see-through and stop catching clicks, so a "
+                                       "face inside an assembly can be reached."));
         auto* body_hint = new wxStaticText(m_cards, wxID_ANY,
             _L("Restrict picking to one body — the others go see-through and stop catching clicks"));
         body_hint->SetForegroundColour(dp_sec_text());
@@ -2882,12 +3310,15 @@ DesignPanel::DesignPanel(wxWindow* parent)
         csform->Add(spin_frame(m_cs_y), 0, wxEXPAND);
         csform->Add(new wxStaticText(m_cards, wxID_ANY, _L_CONTEXT("Z", "Axis")), 0, wxALIGN_CENTER_VERTICAL);
         csform->Add(spin_frame(m_cs_z), 0, wxEXPAND);
+        for (wxSpinCtrlDouble* sp : { m_cs_x, m_cs_y, m_cs_z })
+            set_illustrated_tooltip(spin_frame(sp), _L("Where the origin of the frame is, for Point (world)."));
 
         auto cs_pick = [&](const wxString& label, ::Button*& btn, wxStaticText*& lbl, CoordSysPick target) {
             btn = new ::Button(m_cards, label);
             btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
             lbl = new wxStaticText(m_cards, wxID_ANY, _L("(none)"));
             btn->Bind(wxEVT_BUTTON, [this, target](wxCommandEvent&) { arm_coordsys_pick(target); });
+            set_illustrated_tooltip(btn, _L("Click, then pick the face the frame sits on. Beside it is the face picked."));
             csform->Add(btn);
             csform->Add(lbl, 0, wxALIGN_CENTER_VERTICAL);
         };
@@ -2898,6 +3329,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_cs_pick_edge->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
         m_cs_edge_lbl = new wxStaticText(m_cards, wxID_ANY, _L("(none)"));
         m_cs_pick_edge->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { arm_coordsys_pick(CoordSysPick::Edge); });
+        set_illustrated_tooltip(m_cs_pick_edge, _L("Click, then pick an edge in the view: the X axis of the frame runs along it. "
+                                            "Beside it is the edge picked."));
         csform->Add(m_cs_pick_edge);
         csform->Add(m_cs_edge_lbl, 0, wxALIGN_CENTER_VERTICAL);
         auto* edge_hint = new wxStaticText(m_cards, wxID_ANY,
@@ -2915,6 +3348,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         csform->Add(spin_frame(m_cs_hy), 0, wxEXPAND);
         csform->Add(new wxStaticText(m_cards, wxID_ANY, _L("X direction Z")), 0, wxALIGN_CENTER_VERTICAL);
         csform->Add(spin_frame(m_cs_hz), 0, wxEXPAND);
+        for (wxSpinCtrlDouble* sp : { m_cs_hx, m_cs_hy, m_cs_hz })
+            set_illustrated_tooltip(spin_frame(sp), _L("The direction the X axis of the frame points in, as a vector."));
 
         m_box_coordsys->Add(csform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
@@ -2936,31 +3371,39 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_mate_kind->SetSelection(0);
         mform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Kind")), 0, wxALIGN_CENTER_VERTICAL);
         mform->Add(m_mate_kind, 0, wxEXPAND);
+        set_choice_tip(m_mate_kind, _L("What the joint leaves free: nothing, a slide in the plane, a turn about the axis, a "
+                                        "slide along it, or a turn and a slide together."),
+                       {"mate_fastened.png", "mate_planar.png", "mate_revolute.png", "mate_slider.png", "mate_cylindrical.png"});
 
         // Populate the CoordSys pickers on open; show "A (fixed)" and "B (moves)" combos.
         m_mate_cs_a = make_combo(m_cards);
         mform->Add(new wxStaticText(m_cards, wxID_ANY, _L("A (fixed)")), 0, wxALIGN_CENTER_VERTICAL);
         mform->Add(m_mate_cs_a, 0, wxEXPAND);
+        set_illustrated_tooltip(m_mate_cs_a, _L("The coordinate system that stays where it is."));
 
         m_mate_cs_b = make_combo(m_cards);
         mform->Add(new wxStaticText(m_cards, wxID_ANY, _L("B (moves)")), 0, wxALIGN_CENTER_VERTICAL);
         mform->Add(m_mate_cs_b, 0, wxEXPAND);
+        set_illustrated_tooltip(m_mate_cs_b, _L("The coordinate system that moves onto A, taking its body with it."));
 
         m_offset_label = new wxStaticText(m_cards, wxID_ANY, _L("Offset"));
         m_mate_offset = make_spin(m_cards, 0.0, -100000.0, 100000.0);
         mform->Add(m_offset_label, 0, wxALIGN_CENTER_VERTICAL);
         mform->Add(spin_frame(m_mate_offset), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_mate_offset), _L("How far B sits from A along their shared Z axis."));
 
         m_angle_label = new wxStaticText(m_cards, wxID_ANY, _L("Angle \u00b0"));
         m_mate_angle = make_spin(m_cards, 0.0, -360.0, 360.0);
         mform->Add(m_angle_label, 0, wxALIGN_CENTER_VERTICAL);
         mform->Add(spin_frame(m_mate_angle), 0, wxEXPAND);
+        set_illustrated_tooltip(spin_frame(m_mate_angle), _L("How far B is turned about the shared Z axis."));
 
         m_mate_flip = new CheckBox(m_cards);
         auto* frow = new wxBoxSizer(wxHORIZONTAL);
         frow->Add(new wxStaticText(m_cards, wxID_ANY, _L("Flip (oppose z axes)")), 0, wxALIGN_CENTER_VERTICAL);
         frow->AddStretchSpacer();
         frow->Add(m_mate_flip, 0, wxALIGN_CENTER_VERTICAL);
+        set_illustrated_tooltip(m_mate_flip, _L("Points the Z axis of B against that of A, so the two faces meet face to face."));
         mform->Add(0, 0);
         mform->Add(frow, 0, wxEXPAND);
 
@@ -3013,6 +3456,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         wxStaticText* expr_hdr = nullptr;
         m_box_expr->Add(card_header(m_cards, "design_constrain", _L("Expression"), expr_hdr), 0,
                         wxLEFT | wxRIGHT | wxTOP, 12);
+        set_card_tip(expr_hdr, _L("Drives a field of the feature by an expression, so it follows the variables the "
+                                  "expression names."));
         m_box_expr->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
 
         auto* eform = two_col_form();
@@ -3028,6 +3473,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_expr_field->SetMinSize(wxSize(FromDIP(90), FromDIP(24)));
         eform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Field")), 0, wxALIGN_CENTER_VERTICAL);
         eform->Add(m_expr_field, 0, wxEXPAND);
+        set_illustrated_tooltip(m_expr_field, _L("The field of the feature that the expression drives."));
 
         m_expr_text = new wxTextCtrl(m_cards, wxID_ANY, "", wxDefaultPosition,
                                      wxSize(FromDIP(120), FromDIP(24)),
@@ -3035,6 +3481,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_expr_text->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) { on_set_expr(); });
         eform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Expr")), 0, wxALIGN_CENTER_VERTICAL);
         eform->Add(m_expr_text, 0, wxEXPAND);
+        set_illustrated_tooltip(m_expr_text, _L("A number, a variable name, or arithmetic with them. The field follows it whenever "
+                                         "a variable changes. Enter sets it."));
 
         m_box_expr->Add(eform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
 
@@ -3045,6 +3493,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_expr_clear_btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
         m_expr_set_btn->Bind(wxEVT_BUTTON,   [this](wxCommandEvent&) { on_set_expr(); });
         m_expr_clear_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_clear_expr(); });
+        set_illustrated_tooltip(m_expr_set_btn, _L("Binds the field to the expression."));
+        set_illustrated_tooltip(m_expr_clear_btn, _L("Removes the expression from the field. Its value stays as it is."));
         brow->Add(m_expr_set_btn,   0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
         brow->Add(m_expr_clear_btn, 0, wxALIGN_CENTER_VERTICAL);
         brow->AddStretchSpacer();
@@ -3073,6 +3523,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_value_input->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) { confirm_value(); });
         vrow->Add(new wxStaticText(m_cards, wxID_ANY, _L("Value")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
         vrow->Add(m_value_input, 0, wxALIGN_CENTER_VERTICAL);
+        set_illustrated_tooltip(m_value_input, _L("The value. Enter applies it."));
         m_box_value->Add(vrow, 0, wxLEFT | wxRIGHT | wxTOP, 12);
     }
     cards->Add(m_box_value, 0, wxEXPAND);
@@ -3146,6 +3597,55 @@ DesignPanel::DesignPanel(wxWindow* parent)
         if (auto* t = dynamic_cast<wxStaticText*>(w))
             t->Wrap(240);
 
+    // Each card's header says what its tool does, with the tool at work. The offer, which opens the
+    // tools, is a native menu and cannot show a picture, so the card is where the user first can.
+    set_card_tip(m_hdr_sketch, CadFeatureType::Sketch);
+    set_card_tip(m_hdr_move, _L("Moves and turns the selected body, by the gizmo in the view or by the values here. "
+                                "Confirm keeps the new placement; Esc puts the body back."),
+                 design_pic("tool_move_body.gif"));
+    set_card_tip(m_hdr_extrude, CadFeatureType::Extrude);
+    set_card_tip(m_hdr_dressup, _L("Rounds (fillet) or bevels (chamfer) edges of a body. Pick the edges in the view first; "
+                                   "with none picked, the Edges choice decides which."),
+                 design_pic("tool_dressup.gif"));
+    set_card_tip(m_hdr_hole, CadFeatureType::Hole);
+    set_card_tip(m_hdr_thread, CadFeatureType::Thread);
+    set_card_tip(m_hdr_revolve, CadFeatureType::Revolve);
+    set_card_tip(m_hdr_sweep, CadFeatureType::Sweep);
+    set_card_tip(m_hdr_pattern, CadFeatureType::Pattern);
+    set_card_tip(m_hdr_boolean, CadFeatureType::Boolean);
+    set_card_tip(m_hdr_cut, CadFeatureType::Cut);
+    set_card_tip(m_hdr_insert, _L("Places text or an SVG outline as a sketch profile, ready to extrude. Drag a corner to "
+                                  "size it and the center to move it, then Confirm."),
+                 {{"design_tips/tool_text.gif", _L("Text")}, {"design_tips/tool_svg.gif", _L("SVG")}});
+    set_card_tip(m_hdr_plane, CadFeatureType::Plane);
+    set_card_tip(m_hdr_loft, CadFeatureType::Loft);
+    set_card_tip(m_hdr_surf_extrude, CadFeatureType::SurfaceExtrude);
+    set_card_tip(m_hdr_surf_revolve, CadFeatureType::SurfaceRevolve);
+    set_card_tip(m_hdr_surf_loft, CadFeatureType::SurfaceLoft);
+    set_card_tip(m_hdr_surf_fill, CadFeatureType::SurfaceFill);
+    set_card_tip(m_hdr_surf_offset, CadFeatureType::SurfaceOffset);
+    set_card_tip(m_hdr_surf_thicken, CadFeatureType::ThickenSurface);
+    set_card_tip(m_hdr_shell, CadFeatureType::Shell);
+    set_card_tip(m_hdr_draft, CadFeatureType::Draft);
+    set_card_tip(m_hdr_transform, CadFeatureType::Transform);
+    set_card_tip(m_hdr_mirror, CadFeatureType::Mirror);
+    set_card_tip(m_hdr_thicken, CadFeatureType::Thicken);
+    set_card_tip(m_hdr_rib, CadFeatureType::Rib);
+    set_card_tip(m_hdr_project, CadFeatureType::Project);
+    set_card_tip(m_hdr_delete_face, CadFeatureType::DeleteFace);
+    set_card_tip(m_hdr_helix, CadFeatureType::Helix);
+    set_card_tip(m_hdr_axis, CadFeatureType::Axis);
+    set_card_tip(m_hdr_coordsys, CadFeatureType::CoordSys);
+    set_card_tip(m_hdr_mate, CadFeatureType::Mate);
+    set_card_tip(m_value_label, _L("Type the exact value of what is selected: a length, a radius or an angle. Enter "
+                                   "applies it."));
+    set_card_tip(m_hdr_sketch_session, _L("The sketch being drawn and the plane it is on. Right-click in the view, or "
+                                          "press Menu, for the drawing tools; Confirm finishes the sketch."),
+                 design_pic("tool_new_sketch.gif"));
+    set_card_tip(m_hdr_constraints, _L("The constraints that hold this sketch's shape. Click one to see what it ties "
+                                       "together; the button before it deletes it."),
+                 design_pic("tool_constrain.png"));
+
     // Feature tree card. Same idiom as Prepare's sections (icon + Head_14 title + rule) via the
     // shared card_header helper, instead of the bare micro-label this used to be. What acts on one
     // feature sits on that feature's row; the header keeps reordering and the interference check.
@@ -3157,6 +3657,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_hdr_tree_row = new wxBoxSizer(wxHORIZONTAL);
     m_hdr_tree_row->Add(card_header(m_tree_box, "design_sketch", _L("Feature tree"), m_hdr_tree), 0,
                         wxALIGN_CENTER_VERTICAL);
+    set_card_tip(m_hdr_tree, _L("The design's history, in the order it is built: each feature works on what the ones "
+                                "above it made, and a change rebuilds the ones below. Double-click a feature to edit it."));
     m_hdr_tree_row->AddStretchSpacer();
     tree_inner->Add(m_hdr_tree_row, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP,
               FromDIP(SidebarProps::ContentMargin()));
@@ -3303,9 +3805,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // selected, answering a feature row with an instruction about bodies. It lives where a
         // body lives: on each body's row in the Bodies list, and in the offer for a selected body.
         // Scaling imported artwork, which shared this button, moved to the row's own menu.
-        auto* up   = sidebar_icon_btn(m_tree_box, "design_moveup", _L("Move up"));
+        auto* up   = sidebar_icon_btn(m_tree_box, "design_moveup",
+                                     _L("Moves the selected feature one step earlier in the history. The features after it are rebuilt."));
         up->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_move_feature(-1); });
-        auto* down = sidebar_icon_btn(m_tree_box, "design_movedown", _L("Move down"));
+        auto* down = sidebar_icon_btn(m_tree_box, "design_movedown",
+                                     _L("Moves the selected feature one step later in the history. The features after it are rebuilt."));
         down->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_move_feature(+1); });
         m_btn_interfere = sidebar_icon_btn(m_tree_box, "color_palette", _L("Check interference — find overlapping bodies"));
         m_btn_interfere->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_check_interference(); });
@@ -3332,6 +3836,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_parts_hdr = new wxBoxSizer(wxHORIZONTAL);
     m_parts_hdr->Add(card_header(m_parts_box, "design_extrude", _L("Bodies"), m_parts_label), 0,
                      wxALIGN_CENTER_VERTICAL);
+    set_card_tip(m_parts_label, _L("The solids the features have made. Commit to Plate sends them to Prepare. Right-click "
+                                   "a body for what applies to it."));
     // The bodies card header carries the body actions that are not one row's own. Boolean is the
     // one body-body operation, gated through on_boolean_tool, and Colour recolours the selected
     // body, resolving it itself (on_set_body_color), so nothing here decides policy. Move,
@@ -3341,7 +3847,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // and a user working in the body list should not have to leave it to find this.
         auto* bbool = sidebar_icon_btn(m_parts_box, "design_boolean", _L("Boolean — join, subtract or intersect with another body"));
         bbool->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_boolean_tool(); });
-        auto* bcol  = sidebar_icon_btn(m_parts_box, "color_palette", _L("Color"));
+        auto* bcol  = sidebar_icon_btn(m_parts_box, "color_palette", _L("Sets the colour the selected body is shown in."));
         bcol->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_set_body_color(); });
         const int bgap = FromDIP(SidebarProps::ElementSpacing());
         m_parts_hdr->AddStretchSpacer(1);
@@ -3432,11 +3938,14 @@ DesignPanel::DesignPanel(wxWindow* parent)
         wxStaticText* var_hdr_title = nullptr;
         var_hdr->Add(card_header(m_var_box, "design_constrain", _L("Variables"), var_hdr_title), 0,
                      wxALIGN_CENTER_VERTICAL);
+        set_card_tip(var_hdr_title, _L("Named values that dimensions and fields can use by name, so changing one value "
+                                       "updates every place that uses it."));
         var_hdr->AddStretchSpacer();
         // Icon actions in the card header, as the Feature tree and Bodies cards have them.
-        m_btn_add_var  = sidebar_icon_btn(m_var_box, "add",           _L("Add variable"));
-        m_btn_edit_var = sidebar_icon_btn(m_var_box, "design_edit",   _L("Edit variable"));
-        m_btn_del_var  = sidebar_icon_btn(m_var_box, "design_delete", _L("Delete variable"));
+        m_btn_add_var  = sidebar_icon_btn(m_var_box, "add",
+                                          _L("Adds a named value. A dimension that uses its name follows it when it changes."));
+        m_btn_edit_var = sidebar_icon_btn(m_var_box, "design_edit",   _L("Changes the expression of the selected variable."));
+        m_btn_del_var  = sidebar_icon_btn(m_var_box, "design_delete", _L("Deletes the selected variable."));
         m_btn_add_var->Bind(wxEVT_BUTTON,  [this](wxCommandEvent&) { on_add_variable(); });
         m_btn_edit_var->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_edit_variable(); });
         m_btn_del_var->Bind(wxEVT_BUTTON,  [this](wxCommandEvent&) { on_remove_variable(); });
@@ -3454,6 +3963,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_var_list->SetBackgroundColour(dp_panel_bg());
         m_var_list->AppendColumn(_L("Name"),       wxLIST_FORMAT_LEFT, FromDIP(90));
         m_var_list->AppendColumn(_L("Expression"), wxLIST_FORMAT_LEFT, FromDIP(120));
+        set_illustrated_tooltip(m_var_list, _L("Each variable's name and the expression that gives its value. Select one to "
+                                               "edit or delete it."));
         var_inner->Add(m_var_list, 0, wxEXPAND | wxALL, FromDIP(SidebarProps::ContentMargin()));
     }
     root->Add(m_var_box, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 8);
@@ -7637,6 +8148,9 @@ void DesignPanel::refresh_tree()
         DesignRowList::Row row;
         row.icon  = tree_icon_for(f.type);
         row.label = wxString::FromUTF8(f.name);
+        const DesignTip tip = feature_tip(f.type);
+        row.tip   = tip.text;
+        row.media = tip.media;
         // Three states, in this order of precedence:
         //   disabled  -> dim. A SUPPRESSED mate is the user's answer to a conflict, so it must
         //                read as suppressed rather than keep shouting about the conflict.
@@ -7695,6 +8209,7 @@ void DesignPanel::refresh_parts()
         row.edit_text = bname;   // the name is the body's to edit, not its number
         // Hidden bodies are greyed and their eye is closed, so the state reads at a glance.
         row.colour  = vis ? dp_item_text() : dp_item_dim();
+        row.tip     = _L("A solid body. Right-click it for what applies to it; F2 renames it.");
         row.actions = {
             { RowZoom, "design_zoom", _L("Zoom to selection") },
             { RowMove, "design_move", _L("Move") },
@@ -8785,6 +9300,7 @@ void DesignPanel::rebuild_constraint_list()
         row.colour  = dp_item_text();
         row.actions = { { RowZoom, "design_zoom", _L("Zoom to selection") },
                         { RowDelete, "design_delete", _L("Delete constraint") } };
+        row.tip     = _L("Click to select the constraint and highlight the entities it ties together. Delete removes it.");
         rows.push_back(std::move(row));
     }
     m_constraint_list->set_rows(std::move(rows));
@@ -10302,8 +10818,9 @@ void DesignPanel::set_commit_mode(CommitMode mode)
     const bool bodies = mode == CommitMode::Bodies;
     if (m_commit_btn) {
         m_commit_btn->SetBitmap_(commit_icon(bodies));
-        m_commit_btn->SetToolTip(bodies ? _L("Commit to Plate (as bodies) — send each body to Prepare as its own object")
-                                        : _L("Commit to Plate — send the solid to Prepare"));
+        set_illustrated_tooltip(m_commit_btn, bodies ? _L("Commit to Plate (as bodies) — send each body to Prepare as its own object")
+                                                     : _L("Commit to Plate — send the solid to Prepare"),
+                                design_pic(bodies ? "commit_bodies.png" : "commit_assembly.png"));
     }
     if (m_commit_drop)
         m_commit_drop->SetSelection(int(mode));   // the check on the current row
@@ -10758,7 +11275,7 @@ void DesignPanel::update_body_gates()
         if (g.btn == nullptr) continue;
         const bool live = n >= g.min_bodies;
         g.btn->Enable(live);
-        g.btn->SetToolTip(live ? g.tip_live : g.tip_gated);
+        set_illustrated_tooltip(g.btn, live ? g.tip_live : g.tip_gated);
     }
 }
 
@@ -11362,15 +11879,18 @@ void DesignPanel::toggle_bed()
 void DesignPanel::refresh_pinned()
 {
     std::vector<DesignRowList::Row> rows;
-    auto add = [&rows](const char* icon, const wxString& label, bool shown, const wxString& tip) {
+    auto add = [&rows](const char* icon, const wxString& label, bool shown, const wxString& tip, const wxString& what) {
         DesignRowList::Action eye = eye_action(shown);
         eye.tip = tip;
         // A blank cell under the features' Delete, so the eye sits in the features' eye column.
-        rows.push_back({ icon, label, {}, shown ? dp_item_text() : dp_item_dim(), { eye, {} } });
+        rows.push_back({ icon, label, {}, shown ? dp_item_text() : dp_item_dim(), { eye, {} }, what, {} });
     };
     // In kOriginRow / kBedRow order.
-    add("design_plane", _L("Origin"), m_show_origin, origin_toggle_text(m_show_origin));
-    add("design_bed",   _L("Bed"),    m_show_bed,    bed_toggle_text(m_show_bed));
+    add("design_plane", _L("Origin"), m_show_origin, origin_toggle_text(m_show_origin),
+        _L("The XY, XZ and YZ reference planes through the origin, to sketch on. The eye shows or hides them; "
+           "Ctrl+Shift+O does the same."));
+    add("design_bed",   _L("Bed"),    m_show_bed,    bed_toggle_text(m_show_bed),
+        _L("The printer bed and its plate grid. The eye shows or hides them; Ctrl+Shift+B does the same."));
     m_pinned->set_rows(std::move(rows));
 }
 
@@ -12414,6 +12934,8 @@ public:
         };
         m_name = field(_L("Name"), name);
         m_expr = field(_L("Expression"), expr);
+        set_illustrated_tooltip(m_name, _L("The name a dimension or a field uses to refer to this value."));
+        set_illustrated_tooltip(m_expr, _L("A number, or arithmetic with the names of other variables."));
         m_name->Enable(name_editable);
 
         m_buttons = new DialogButtons(this, {"OK", "Cancel"});

@@ -61,6 +61,7 @@
 #include "Widgets/ScrolledWindow.hpp"
 #include "Widgets/PopupWindow.hpp"
 #include "Widgets/HyperLink.hpp" // ORCA
+#include "IllustratedTipPopup.hpp"
 #include "DeviceTab/uiAMSBestPositionPopup.hpp"  // AMS best-position popup
 #include "DeviceCore/DevFilaSwitch.h"            // Orca: DevFilaSwitch::SwitchPos for best-position helpers
 #include <optional>
@@ -230,6 +231,12 @@ private:
     ScalableButton     *m_printoption_tips{ nullptr };
     PrintOptionItem    *m_printoption_item{nullptr};
     wxString           m_full_title;
+    // The row's tooltip: what the option does and its pictures (set_about), the state message that also
+    // shows the question mark (update_tooltip), and the full title while it is shortened.
+    wxString              m_about;
+    std::vector<TipMedia> m_about_media;
+    wxString              m_tips;
+    bool                  m_title_shortened{false};
 
 public:
     PrintOption(wxWindow *parent, wxString title, wxString tips, std::vector<POItem> ops, std::string param = "");
@@ -247,6 +254,7 @@ public:
     bool        contain_opt(const std::string& opt_str) const;
     void        update_options(std::vector<POItem> ops, const wxString &tips);
     void        update_tooltip(const wxString &tips);
+    void        set_about(const wxString &about, const std::vector<TipMedia> &media = {});
     void        update_title_display();
     void        insert_extra_widget(wxWindow* widget);
 
@@ -259,6 +267,7 @@ private:
     void OnPaint(wxPaintEvent &event);
     void render(wxDC &dc);
     void doRender(wxDC &dc);
+    void apply_tooltip();
 };
 
 class ThumbnailPanel : public wxPanel

@@ -12,6 +12,7 @@
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "libslic3r/Preset.hpp"
 #include "I18N.hpp"
+#include "IllustratedTipPopup.hpp"
 #include <algorithm>
 #include <boost/log/trivial.hpp>
 #include <string>
@@ -226,7 +227,7 @@ void AMSMaterialsSetting::create()
     // Orca: link to the Orca Slicer pressure-advance wiki (region-agnostic).
     m_wiki_ctrl = new Button(this, "", "toolbar_wiki", 0, 15);
     auto wiki_url = "https://www.orcaslicer.com/wiki/pressure_advance_calib";
-    m_wiki_ctrl->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    set_illustrated_tooltip(m_wiki_ctrl, _L("Wiki Guide") + "\n" + wiki_url);
     m_wiki_ctrl->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     m_wiki_ctrl->SetCanFocus(false);
     m_wiki_ctrl->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
@@ -238,6 +239,7 @@ void AMSMaterialsSetting::create()
     m_button_reset = new Button(this, _L("Reset"));
     m_button_reset->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_button_reset->Bind(wxEVT_BUTTON, &AMSMaterialsSetting::on_select_reset, this);
+    set_illustrated_tooltip(m_button_reset, _L("Clears the filament information of this slot on the printer, so the slot shows as unset."));
 
     m_button_close = new Button(this, _L("Close"));
     m_button_close->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
@@ -335,6 +337,9 @@ void AMSMaterialsSetting::create_panel_normal(wxWindow* parent)
     m_star_empty  = ScalableBitmap(this, "score_star_outline", 16);
 
     m_sizer_filament->Add(m_comboBox_filament, 1, wxALIGN_CENTER, 0);
+    set_illustrated_tooltip(m_comboBox_filament,
+        _L("Filament preset for this slot. On Confirm its type and temperature range are sent to the printer, and the slot is "
+           "matched to the filaments of a print by it. Click a star in the list to keep a filament among the favorites at the top."));
 
     // make the style the same with disable m_input_k_val, FIXME
     m_readonly_filament = new TextInput(parent, wxEmptyString, "", "", wxDefaultPosition, AMS_MATERIALS_SETTING_COMBOX_WIDTH, wxTE_CENTRE | wxTE_PROCESS_ENTER);
@@ -364,6 +369,9 @@ void AMSMaterialsSetting::create_panel_normal(wxWindow* parent)
 
 
     m_clr_picker->Bind(wxEVT_LEFT_DOWN, &AMSMaterialsSetting::on_clr_picker, this);
+    set_illustrated_tooltip(m_clr_picker,
+        _L("Color of the filament in this slot, used to match the slot to the colors of a print. Click to change it; a spool read "
+           "from its RFID tag keeps the color of the tag."));
     m_sizer_colour->Add(m_clr_picker, 0, 0, 0);
     m_clr_name = new Label(parent, wxEmptyString);
     m_clr_name->SetForegroundColour(*wxBLACK);
@@ -376,6 +384,10 @@ void AMSMaterialsSetting::create_panel_normal(wxWindow* parent)
     m_title_temperature->SetFont(::Label::Body_13);
     m_title_temperature->SetForegroundColour(AMS_MATERIALS_SETTING_GREY800);
     m_title_temperature->Wrap(-1);
+    // The temperature fields are always disabled and get no mouse events, so the label explains them.
+    set_illustrated_tooltip(m_title_temperature,
+        _L("Nozzle temperature range of the selected filament, sent to the printer with the slot information. It comes from the "
+           "filament preset and cannot be edited here."));
     m_sizer_temperature->Add(m_title_temperature, 0, wxALIGN_CENTER, 0);
 
     m_sizer_temperature->Add(0, 0, 0, wxEXPAND, 0);
@@ -501,6 +513,9 @@ void AMSMaterialsSetting::create_panel_kn(wxWindow* parent)
 
     m_comboBox_cali_result = new ::ComboBox(parent, wxID_ANY, wxEmptyString, wxDefaultPosition, AMS_MATERIALS_SETTING_COMBOX_WIDTH, 0, nullptr, wxCB_READONLY);
     m_sizer_cali_resutl->Add(m_comboBox_cali_result, 1, wxALIGN_CENTER, 0);
+    set_illustrated_tooltip(m_comboBox_cali_result,
+        _L("Flow dynamics calibration used for this slot. Default uses no saved calibration; the other entries are "
+           "calibrations saved on the printer for this filament and nozzle."));
 
     auto kn_val_sizer = new wxFlexGridSizer(0, 2, 0, 0);
     kn_val_sizer->SetFlexibleDirection(wxBOTH);
@@ -521,6 +536,12 @@ void AMSMaterialsSetting::create_panel_kn(wxWindow* parent)
     m_input_k_val->SetMaxSize(wxSize(FromDIP(245), -1));
     m_input_k_val->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     kn_val_sizer->Add(m_input_k_val, 0, wxALL | wxEXPAND | wxALIGN_CENTER_VERTICAL, FromDIP(0));
+    // On the label too: the field is disabled when the value comes from a PA profile.
+    const wxString k_tip = _L("Pressure advance (flow dynamics) value: how much the printer makes up for the pressure in the nozzle "
+                              "when the speed changes, for even lines and sharp corners. It comes from the PA profile when one is "
+                              "listed; otherwise enter the value from your own calibration.");
+    set_illustrated_tooltip(m_k_param, k_tip);
+    set_illustrated_tooltip(m_input_k_val, k_tip);
 
     // n params input
     wxBoxSizer* n_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -2271,7 +2292,7 @@ void ColorPickerPopup::set_preset_colours(const std::vector<ColorItem>& preset_c
         cp->set_selected(false);
         cp->SetBackgroundColour(StateColor::darkModeColorFor(wxColour(238,238,238)));
         if (!item.name.empty()) {
-            cp->SetToolTip(item.name);
+            set_illustrated_tooltip(cp, item.name);
         }
 
         m_color_pickers.push_back(cp);

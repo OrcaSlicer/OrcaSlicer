@@ -8,6 +8,7 @@
 #include "GUI_Preview.hpp"
 #include "MainFrame.hpp"
 #include "format.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "Widgets/ProgressDialog.hpp"
 #include "ReleaseNote.hpp"
 #include "Widgets/RoundedRectangle.hpp"
@@ -339,6 +340,7 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
 
     m_comboBox_printer = new ::ComboBox(this, wxID_ANY, "", wxDefaultPosition, wxSize(FromDIP(250), -1), 0, nullptr, wxCB_READONLY);
     m_comboBox_printer->Bind(wxEVT_COMBOBOX, &SendToPrinterDialog::on_selection_changed, this);
+    set_illustrated_tooltip(m_comboBox_printer, _L("The printer to save the sliced file on. The file is only stored there, not printed: start it later from the printer."));
 
     m_sizer_printer->Add(m_comboBox_printer, 1, wxEXPAND | wxRIGHT, FromDIP(5));
 
@@ -580,6 +582,7 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     rename_edit_sizer_v->Fit(m_rename_edit_panel);
 
     m_rename_button->Bind(wxEVT_BUTTON, &SendToPrinterDialog::on_rename_click, this);
+    set_illustrated_tooltip(m_rename_button, _L("Renames the file saved on the printer."));
     m_rename_switch_panel->AddPage(m_rename_normal_panel, wxEmptyString, true);
     m_rename_switch_panel->AddPage(m_rename_edit_panel, wxEmptyString, false);
 
@@ -688,6 +691,7 @@ void SendToPrinterDialog::update_storage_list(const std::vector<std::string> &st
             storage_text->SetLabel(_L("External Storage"));
             radiobox->Disable();
             storage_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#CECECE")));
+            set_illustrated_tooltip(storage_text, _L("No storage card is inserted in the printer."));
         }
         else
         {

@@ -1,4 +1,5 @@
 #include "MixedFilamentDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -69,7 +70,7 @@ public:
     {
         SetBackgroundStyle(wxBG_STYLE_PAINT);
         SetCursor(wxCursor(wxCURSOR_HAND));
-        SetToolTip(_L("Click to edit ratio"));
+        set_illustrated_tooltip(this, _L("Click to edit ratio"));
         SetFont(::Label::Body_10);
 
         Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent& e) { m_hovered = true;  Refresh(); e.Skip(); });
@@ -861,6 +862,7 @@ wxBoxSizer* MixedFilamentDialog::create_ratio_slider()
     m_ratio_bar = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, FromDIP(27)));
     m_ratio_bar->SetMinSize(wxSize(-1, FromDIP(27)));
     m_ratio_bar->SetBackgroundStyle(wxBG_STYLE_PAINT);
+    set_illustrated_tooltip(m_ratio_bar, _L("Click or drag to set how much of each filament the mix uses."));
 
     m_ratio_bar->Bind(wxEVT_PAINT, [this](wxPaintEvent&) {
         wxBufferedPaintDC dc(m_ratio_bar);
@@ -932,6 +934,8 @@ wxBoxSizer* MixedFilamentDialog::create_triangle_picker()
     int panel_w = FromDIP(160);
     int panel_h = FromDIP(160);
     m_triangle_panel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(panel_w, panel_h));
+    set_illustrated_tooltip(m_triangle_panel, _L("Click or drag inside the triangle to set how much of each filament the mix uses: "
+                                                 "the closer to a corner, the more of that filament."));
     m_triangle_panel->SetMinSize(wxSize(panel_w, panel_h));
     m_triangle_panel->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     m_triangle_panel->SetBackgroundStyle(wxBG_STYLE_PAINT);
@@ -1073,10 +1077,17 @@ wxBoxSizer* MixedFilamentDialog::create_gradient_section()
     m_chk_gradient->SetValue(m_result.gradient_enabled);
     m_chk_gradient->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) { e.Skip(); on_gradient_toggled(); });
     m_gradient_sizer->Add(m_chk_gradient, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(2));
+    set_illustrated_tooltip(m_chk_gradient,
+                            _L("Blend from one filament to the other over the height of the print, instead of keeping one "
+                               "ratio throughout."),
+                            {{"settings/filament/mixed_gradient_off.png", _L("Off")},
+                             {"settings/filament/mixed_gradient_on.png", _L("On")}});
 
     m_combo_gradient_dir = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
                                         wxSize(FromDIP(152), FromDIP(24)), 0, nullptr, wxCB_READONLY);
     m_combo_gradient_dir->SetKeepDropArrow(true);
+    set_illustrated_tooltip(m_combo_gradient_dir, _L("Which filament the blend starts from at the bottom, and which it ends with "
+                                                     "at the top."));
     update_gradient_direction_items();
     m_combo_gradient_dir->SetSelection(m_result.gradient_direction);
     m_combo_gradient_dir->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { on_gradient_direction_changed(); });
@@ -1112,6 +1123,11 @@ wxBoxSizer* MixedFilamentDialog::create_gradient_section()
         [this](wxCommandEvent& e) { e.Skip(); on_per_part_gradient_toggled(); });
     m_per_part_gradient_sizer->Add(m_chk_per_part_gradient, 0,
         wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(2));
+    set_illustrated_tooltip(m_chk_per_part_gradient,
+                            _L("Run the blend over the height of each part on its own, instead of once over the height of "
+                               "the whole object."),
+                            {{"settings/filament/mixed_gradient_on.png", _L("Off")},
+                             {"settings/filament/mixed_gradient_per_part.png", _L("On")}});
 
     outer->Add(m_per_part_gradient_sizer, 0, wxEXPAND | wxTOP, FromDIP(2));
     m_per_part_gradient_sizer->ShowItems(m_result.gradient_enabled);
@@ -1205,7 +1221,7 @@ void MixedFilamentDialog::rebuild_recommendation_items()
                             item->Bind(wxEVT_LEFT_UP, [this, ca_1, cb_1, cc_1](wxMouseEvent&) {
                                 on_recommendation_clicked_triple(ca_1, cb_1, cc_1);
                             });
-                            item->SetToolTip(wxString::Format(wxT("%s + %s + %s"),
+                            set_illustrated_tooltip(item, wxString::Format(wxT("%s + %s + %s"),
                                 wxString::FromUTF8(m_physical_names[i0]),
                                 wxString::FromUTF8(m_physical_names[i1]),
                                 wxString::FromUTF8(m_physical_names[i2])));
@@ -1241,7 +1257,7 @@ void MixedFilamentDialog::rebuild_recommendation_items()
                     item->Bind(wxEVT_LEFT_UP, [this, comp_a, comp_b](wxMouseEvent&) {
                         on_recommendation_clicked(comp_a, comp_b);
                     });
-                    item->SetToolTip(wxString::Format(wxT("%s + %s"),
+                    set_illustrated_tooltip(item, wxString::Format(wxT("%s + %s"),
                         wxString::FromUTF8(m_physical_names[i]),
                         wxString::FromUTF8(m_physical_names[j])));
 
@@ -1816,7 +1832,7 @@ void MixedFilamentDialog::update_component_count_ui()
     if (m_btn_remove_material) {
         m_btn_remove_material->Show(is_three);
         m_btn_remove_material->Enable(is_three);
-        m_btn_remove_material->SetToolTip(is_three ? _L("Remove the third material") : wxString());
+        set_illustrated_tooltip(m_btn_remove_material, is_three ? _L("Remove the third material") : wxString());
     }
 
     resize_keeping_centre();

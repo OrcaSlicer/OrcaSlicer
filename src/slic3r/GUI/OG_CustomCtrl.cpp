@@ -16,6 +16,8 @@
 #include <wx/types.h>
 #include <cassert>
 #include "slic3r/GUI/Field.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
+#include "slic3r/GUI/SettingTips.hpp"
 #include <wx/dcclient.h>
 #include <wx/dc.h>
 #include <wx/colour.h>
@@ -376,6 +378,10 @@ void OG_CustomCtrl::OnMotion(wxMouseEvent& event)
     wxString tooltip;
     wxString availability;
     std::string markdowntip;
+    // What the tooltip explains: the label or icon under the pointer, and for the label of a single
+    // option, that option, whose pictures the label's tooltip shows as its field's does.
+    wxRect      tip_rect;
+    std::string tip_opt_key;
 
     // BBS: markdown tip
     CtrlLine* focusedLine = nullptr;
@@ -390,6 +396,9 @@ void OG_CustomCtrl::OnMotion(wxMouseEvent& event)
             if (!suppress_hyperlinks && !line.og_line.label_path.empty())
                 tooltip = OptionsGroup::get_url(line.og_line.label_path) + "\n\n";
             tooltip += line.og_line.label_tooltip;
+            tip_rect = line.rect_label;
+            if (line.og_line.get_options().size() == 1)
+                tip_opt_key = line.og_line.get_options().front().opt_id;
             if (m_option_state_registry) {
                 std::vector<wxString> reasons;
                 for (const Option& option : line.og_line.get_options()) {
@@ -418,6 +427,7 @@ void OG_CustomCtrl::OnMotion(wxMouseEvent& event)
         for (size_t opt_idx = 0; opt_idx < undo_icons_cnt; opt_idx++) {
             const std::string& opt_key = option_set[opt_idx].opt_id;
             if (is_point_in_rect(pos, line.rects_undo_icon[opt_idx])) {
+                tip_rect = line.rects_undo_icon[opt_idx];
                 if (line.og_line.has_undo_ui())
                     tooltip = *line.og_line.undo_tooltip();
                 else if (Field* field = opt_group->get_field(opt_key))
@@ -425,6 +435,7 @@ void OG_CustomCtrl::OnMotion(wxMouseEvent& event)
                 break;
             }
             if (is_point_in_rect(pos, line.rects_undo_to_sys_icon[opt_idx])) {
+                tip_rect = line.rects_undo_to_sys_icon[opt_idx];
                 if (line.og_line.has_undo_ui())
                     tooltip = *line.og_line.undo_to_sys_tooltip();
                 else if (Field* field = opt_group->get_field(opt_key))
@@ -432,6 +443,7 @@ void OG_CustomCtrl::OnMotion(wxMouseEvent& event)
                 break;
             }
             if (opt_idx < line.rects_edit_icon.size() && is_point_in_rect(pos, line.rects_edit_icon[opt_idx])) {
+                tip_rect = line.rects_edit_icon[opt_idx];
                 if (Field* field = opt_group->get_field(opt_key); field && field->has_edit_ui())
                     tooltip = *field->edit_tooltip();
                 break;
@@ -458,8 +470,17 @@ void OG_CustomCtrl::OnMotion(wxMouseEvent& event)
     }
     if (!availability.empty())
         tooltip = availability + "\n\n" + tooltip;
-    if (GetToolTipText() != tooltip)
-        this->SetToolTip(tooltip);
+    if (tooltip.empty() || tip_opt_key.empty()) {
+        hover_illustrated_tooltip(this, tooltip.empty() ? wxRect() : tip_rect, tooltip);
+    } else {
+        // The pictures are looked up when the tooltip opens, not on every move, and so is the field:
+        // fields are rebuilt while their labels stay.
+        hover_illustrated_tooltip_deferred(this, tip_rect, tooltip, [this, key = tip_opt_key]() {
+            if (Field* field = opt_group->get_field(key))
+                return field->tip_media()();
+            return setting_tip_media(key, std::string(), wxString());
+        });
+    }
     // BBS
 
     Refresh();

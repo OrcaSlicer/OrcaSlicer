@@ -4,6 +4,7 @@
 #include "../format.hpp"
 #include "../GUI_App.hpp"
 #include "../FilamentBitmapUtils.hpp"
+#include "../IllustratedTipPopup.hpp"
 #include "../Utils/WxFontUtils.hpp"
 
 #include "slic3r/GUI/DeviceTab/uiAmsHumidityPopup.h"
@@ -412,6 +413,8 @@ void AMSrefresh::create(wxWindow *parent, wxWindowID id, const wxPoint &pos, con
     SetSize(AMS_REFRESH_SIZE);
     SetMinSize(AMS_REFRESH_SIZE);
     SetMaxSize(AMS_REFRESH_SIZE);
+    set_illustrated_tooltip(this, _L("Reads the RFID tag of the spool in this slot again and updates its filament information. "
+                                     "Works with spools that carry such a tag."));
     Refresh();
 }
 
@@ -2593,6 +2596,7 @@ AMSPreview::AMSPreview(wxWindow* parent, wxWindowID id, AMSinfo amsinfo, AMSMode
     Bind(wxEVT_PAINT, &AMSPreview::paintEvent, this);
     Bind(wxEVT_ENTER_WINDOW, &AMSPreview::OnEnterWindow, this);
     Bind(wxEVT_LEAVE_WINDOW, &AMSPreview::OnLeaveWindow, this);
+    set_illustrated_tooltip(this, _L("Click to show this AMS and its slots."));
 }
 
 void AMSPreview::Open()
@@ -2929,6 +2933,11 @@ void AMSHumidity::UpdateInfo(AMSinfo amsinfo)
     {
         m_amsinfo = amsinfo;
         update_size();
+        if (m_amsinfo.ams_type == AMSModel::GENERIC_AMS)
+            set_illustrated_tooltip(this, _L("Humidity inside this AMS. Click for details and when to change the desiccant."));
+        else
+            set_illustrated_tooltip(this, _L("Humidity inside this AMS, and its drying state. Click for details and, where the printer "
+                                             "supports it, to start or stop drying."));
         Refresh();
     }
 }
@@ -3230,6 +3239,13 @@ void AmsItem::AddCan(Caninfo caninfo, int canindex, int maxcan, wxBoxSizer* size
         m_panel_lib->m_slot_id = caninfo.can_id;
         m_panel_lib->m_info.can_id = caninfo.can_id;
         m_panel_lib->m_can_index = canindex;
+        if (m_ams_model == AMSModel::EXT_AMS)
+            set_illustrated_tooltip(m_panel_lib, _L("The external spool, fed into the toolhead from outside the AMS. Click to select it for "
+                                                    "Load or Unload. Once it is selected, click the icon at its bottom to set its filament: "
+                                                    "type, color, temperature and flow dynamics."));
+        else
+            set_illustrated_tooltip(m_panel_lib, _L("Click to select this slot for Load or Unload. Once it is selected, click the icon at "
+                                                    "its bottom to view or change its filament: type, color, temperature and flow dynamics."));
     }
     catch (...)
     {
@@ -3306,6 +3322,8 @@ void AmsItem::AddLiteCan(Caninfo caninfo, int canindex, wxGridSizer* sizer)
     m_panel_lib->m_slot_id = caninfo.can_id;
     m_panel_lib->m_info.can_id = caninfo.can_id;
     m_panel_lib->m_can_index = canindex;
+    set_illustrated_tooltip(m_panel_lib, _L("Click to select this slot for Load or Unload. Once it is selected, click the icon at "
+                                            "its bottom to view or change its filament: type, color, temperature and flow dynamics."));
 
     //auto m_panel_road = new AMSRoad(amscan, wxID_ANY, caninfo, canindex, maxcan, wxDefaultPosition, AMS_CAN_ROAD_SIZE);
     if (caninfo.can_id == "0" || caninfo.can_id == "1") {

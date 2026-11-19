@@ -12,6 +12,7 @@
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 
 #include "Search.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "OG_CustomCtrl.hpp"
 
 #include "libslic3r/Config.hpp"
@@ -50,6 +51,7 @@
 #include "libslic3r/LifecycleEvents.hpp"
 #include "libslic3r/Point.hpp"
 #include "slic3r/GUI/SettingsIndex.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include <wx/app.h>
 #include <wx/bookctrl.h>
@@ -343,8 +345,8 @@ void Tab::create_preset_tab()
 
     //m_btn_compare_preset->SetToolTip(_L("Compare presets"));
     // TRN "Save current Settings"
-    m_btn_save_preset->SetToolTip(wxString::Format(_L("Save current %s"), m_title));
-    m_btn_delete_preset->SetToolTip(_(L("Delete this preset")));
+    set_illustrated_tooltip(m_btn_save_preset, wxString::Format(_L("Save current %s"), m_title));
+    set_illustrated_tooltip(m_btn_delete_preset, _L("Delete this preset"));
     m_btn_delete_preset->Hide();
 
     /*add_scaled_button(panel, &m_question_btn, "question");
@@ -369,7 +371,7 @@ void Tab::create_preset_tab()
     add_scaled_button(m_top_panel, &m_undo_btn,        m_bmp_white_bullet.name());
     //add_scaled_button(m_top_panel, &m_undo_to_sys_btn, m_bmp_white_bullet.name());
     add_scaled_button(m_top_panel, &m_btn_search,      "search");
-    m_btn_search->SetToolTip(_L("Search in preset"));
+    set_illustrated_tooltip(m_btn_search, _L("Search in preset"));
 
     //search input
     m_search_item = new StaticBox(m_top_panel);
@@ -389,6 +391,9 @@ void Tab::create_preset_tab()
     m_search_input->SetFont(wxGetApp().bold_font());
     m_search_input->SetIcon(*BitmapCache().load_svg("search", FromDIP(16), FromDIP(16)));
     m_search_input->GetTextCtrl()->SetHint(_L("Search in preset") + dots);
+    set_illustrated_tooltip(m_search_input->GetTextCtrl(),
+                            _L("Type part of a setting's name to list the matching settings of this preset. "
+                               "Pick one to go to it."));
     search_sizer->Add(new wxWindow(m_search_item, wxID_ANY, wxDefaultPosition, wxSize(0, 0)), 0, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(2));
     search_sizer->Add(m_search_input, 1, wxEXPAND | wxALL, FromDIP(2));
     //bbl for linux
@@ -482,7 +487,7 @@ void Tab::create_preset_tab()
 
     if (dynamic_cast<TabPrint*>(this) == nullptr) {
         m_mode_icon = new ScalableButton(m_top_panel, wxID_ANY, "advanced"); // ORCA
-        m_mode_icon->SetToolTip(_L("Cycle settings visibility"));
+        set_illustrated_tooltip(m_mode_icon, _L("Cycle settings visibility"));
         m_mode_icon->Bind(wxEVT_BUTTON, [this](wxCommandEvent e) {
             if (wxGetApp().get_mode() == comDevelop || m_mode_view == nullptr)
                 return; // prevent change on dev mode
@@ -561,10 +566,10 @@ void Tab::create_preset_tab()
     auto create_extruder_sync = [this, panel]() {
         m_extruder_sync_box = new wxPanel(panel, wxID_ANY);
         m_extruder_sync_box->SetBackgroundColour(panel->GetBackgroundColour());
-        m_extruder_sync_box->SetToolTip(_L("Synchronization of different extruder drives or nozzle volume types is not supported."));
+        set_illustrated_tooltip(m_extruder_sync_box, _L("Synchronization of different extruder drives or nozzle volume types is not supported."));
         m_extruder_sync = nullptr;
         add_scaled_button(m_extruder_sync_box, &m_extruder_sync, "extruder_sync");
-        m_extruder_sync->SetToolTip(_L("Synchronize the modification of parameters to the corresponding parameters of another extruder."));
+        set_illustrated_tooltip(m_extruder_sync, _L("Synchronize the modification of parameters to the corresponding parameters of another extruder."));
         m_extruder_sync->Bind(wxEVT_BUTTON, [this](auto &evt) {
             evt.Skip();
             sync_excluder();
@@ -596,7 +601,7 @@ void Tab::create_preset_tab()
 
         ScalableButton* icon = nullptr;
         add_scaled_button(panel, &icon, "multi_extruder");
-        icon->SetToolTip(_L("Parameters with this icon can be configured per nozzle."));
+        set_illustrated_tooltip(icon, _L("Parameters with this icon can be configured per nozzle."));
 
         m_variant_sizer  = new wxBoxSizer(wxHORIZONTAL);
         auto right_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -628,7 +633,7 @@ void Tab::create_preset_tab()
 
         ScalableButton* icon = nullptr;
         add_scaled_button(panel, &icon, "multi_extruder");
-        icon->SetToolTip(_L("Parameters with this icon can be configured per nozzle."));
+        set_illustrated_tooltip(icon, _L("Parameters with this icon can be configured per nozzle."));
         create_extruder_sync();
 
         wxBoxSizer *top_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -1519,7 +1524,7 @@ void Tab::update_undo_buttons()
     m_undo_btn->        SetBitmap_(m_presets->get_edited_preset().is_dirty ? m_bmp_value_revert: m_bmp_white_bullet);
     //m_undo_to_sys_btn-> SetBitmap_(m_is_nonsys_values   ? *m_bmp_non_system : m_bmp_value_lock);
 
-    m_undo_btn->SetToolTip(m_presets->get_edited_preset().is_dirty ? _L("Click to reset all settings to the last saved preset.") : m_ttg_white_bullet);
+    set_illustrated_tooltip(m_undo_btn, m_presets->get_edited_preset().is_dirty ? _L("Click to reset all settings to the last saved preset.") : m_ttg_white_bullet);
     //m_undo_to_sys_btn->SetToolTip(m_is_nonsys_values ? *m_ttg_non_system : m_ttg_value_lock);
 }
 
@@ -4539,6 +4544,8 @@ void TabFilament::add_filament_overrides_page()
                 evt.Skip();
             }, check_box->GetId());
 
+            set_illustrated_tooltip(check_box, _L("Tick to give this filament its own value of this setting. Unticked, the value of "
+                                                  "the printer profile is used, shown greyed out."));
             m_overrides_options[opt_key] = check_box;
             return check_box;
         };
@@ -4651,6 +4658,8 @@ void TabFilament::add_filament_overrides_page()
                 evt.Skip();
             }, check_box->GetId());
 
+            set_illustrated_tooltip(check_box, _L("Tick to give this filament its own value of this setting. Unticked, the value of "
+                                                  "the process profile is used, shown greyed out."));
             m_overrides_options[opt_key] = check_box;
             return check_box;
         };
@@ -5004,7 +5013,9 @@ void TabFilament::build()
         optgroup->append_single_option_line("full_fan_speed_layer", "material_cooling#full-fan-speed-at-layer");
 
         optgroup = page->new_optgroup(L("Part cooling fan"), L"param_cooling_part_fan");
-        line = { L("Min fan speed threshold"), L("The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time.") };
+        line = { L("Min fan speed threshold"), L("Layers that take less time than this get the part cooling fan, starting at the minimum fan speed and "
+                                                 "speeding up as the layers get shorter, up to the maximum fan speed. Longer layers get no fan, unless "
+                                                 "Keep fan always on is ticked.") };
         line.label_path = "material_cooling#material-part-cooling-fan";
         line.append_option(optgroup->get_option("fan_min_speed", 0));
         line.append_option(optgroup->get_option("fan_cooling_layer_time"));
@@ -5033,14 +5044,16 @@ void TabFilament::build()
 
         optgroup->append_single_option_line("activate_air_filtration", "material_cooling#activate-air-filtration");
 
-        line = {L("During print"), ""};
+        line = {L("During print"), L("Turn the exhaust fan on at the start of the print, at the speed beside it. With several filaments that "
+                                     "ask for it, the fastest of their speeds is used.")};
         line.append_option(optgroup->get_option("activate_air_filtration_during_print"));
         line.append_option(optgroup->get_option("during_print_exhaust_fan_speed"));
         line.label_path = "material_cooling#during-print";
         optgroup->append_line(line);
 
 
-        line = {L("Complete print"), ""};
+        line = {L("Complete print"), L("Run the exhaust fan at the speed beside it once the print has finished, to clear the fumes left in "
+                                       "the chamber.")};
         line.append_option(optgroup->get_option("activate_air_filtration_on_completion"));
         line.append_option(optgroup->get_option("complete_print_exhaust_fan_speed"));
         line.label_path = "material_cooling#complete-print";
@@ -5120,6 +5133,9 @@ void TabFilament::build()
             // ORCA modernize button style
             Button* btn = new Button(parent, _(L("Set")) + " " + dots);
             btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+            set_illustrated_tooltip(btn, _L("Edit the ramming: how fast the filament is pushed out over time just before it is unloaded, "
+                                            "and the width and spacing of the ramming lines on the wipe tower."),
+                                    {{"settings/filament/toolchange_unload.gif", {}}});
 
             auto sizer = new wxBoxSizer(wxHORIZONTAL);
             sizer->Add(btn);
@@ -5961,7 +5977,9 @@ PageShp TabPrinter::build_kinematics_page()
     optgroup->append_single_option_line("resonance_avoidance", "printer_motion_ability#resonance-avoidance");
     // Resonance‑avoidance speed inputs
     {
-        Line resonance_line = {L("Resonance Avoidance Speed"), L""};
+        Line resonance_line = {L("Resonance Avoidance Speed"),
+                               L("The speed range in which the printer resonates. With resonance avoidance on, an outer wall "
+                                 "speed inside it is moved to the nearer end of the range: down to Min or up to Max.")};
         resonance_line.label_path = "printer_motion_ability#resonance-avoidance";
         resonance_line.append_option(optgroup->get_option("min_resonance_avoidance_speed"));
         resonance_line.append_option(optgroup->get_option("max_resonance_avoidance_speed"));
@@ -6219,8 +6237,9 @@ if (is_marlin_flavor)
             auto line = Line{ placeholder_def.label, placeholder_def.tooltip };
             line.label_path = "printer_multimaterial_idex_iqex#pre-slice-warnings";
             line.append_option(Option{ placeholder_def, "imex_pre_slice_warnings" });
-            line.widget = [](wxWindow* parent) -> wxSizer* {
+            line.widget = [tooltip = placeholder_def.tooltip](wxWindow* parent) -> wxSizer* {
                 auto* cb = new ::CheckBox(parent);
+                set_illustrated_tooltip(cb, _(tooltip));
                 const bool enabled = wxGetApp().app_config->get("imex_pre_slice_warnings") != "false";
                 cb->SetValue(enabled);
                 cb->Bind(wxEVT_TOGGLEBUTTON, [cb](wxCommandEvent& e) {
@@ -6237,7 +6256,8 @@ if (is_marlin_flavor)
         {
             // In the configuration group rather than a group of its own: a full-width widget line
             // records no mode, so a group holding only this line would show in every mode.
-            auto line = Line{ L("Modes"), "" };
+            auto line = Line{ L("Modes"), L("The parallel print modes a plate can choose from: which tool heads print, the "
+                                             "role each one plays, and the G-code that sets the printer up for the mode.") };
             line.full_width = 1;
             line.widget = [this](wxWindow* parent) -> wxSizer* {
                 int n_cols = 0, n_rows = 0, layout = 0;
@@ -7447,6 +7467,27 @@ void Tab::load_current_preset()
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__<<boost::format(": exit");
 }
 
+// What a page of the Process settings holds, for the tooltip of its tab. Keyed by the untranslated title.
+static wxString print_page_tooltip(const wxString &title)
+{
+    if (title == "Quality")
+        return _L("Layer height, line widths, seams, ironing, walls and surfaces, bridges and overhangs: "
+                  "the settings that decide how the surface of the print looks.");
+    if (title == "Strength")
+        return _L("Walls, top and bottom shells and infill: how much material goes into the part and how strong it is.");
+    if (title == "Speed")
+        return _L("Print speed for each kind of line, overhang slowdown, travel speed, acceleration and jerk.");
+    if (title == "Support")
+        return _L("Supports and raft: where supports are placed, their style, the filament they use and how they separate "
+                  "from the part.");
+    if (title == "Multimaterial")
+        return _L("Prime tower, the filament used for each feature, ooze prevention and flushing, for prints with more than "
+                  "one filament.");
+    if (title == "Others")
+        return _L("Skirt, brim, special modes such as spiral vase, fuzzy skin, and G-code output and post-processing.");
+    return {};
+}
+
 //Regerenerate content of the page tree.
 void Tab::rebuild_page_tree()
 {
@@ -7474,6 +7515,8 @@ void Tab::rebuild_page_tree()
         } else {
             m_tabctrl->SetItemText(curr_item, translate_category(p->title(), m_type));
         }
+        if (m_type == Preset::TYPE_PRINT || m_type == Preset::TYPE_MODEL)
+            set_illustrated_tooltip(m_tabctrl->GetItemButton(curr_item), print_page_tooltip(p->title()));
         m_tabctrl->SetItemTextColour(curr_item, p->get_item_colour() == m_modified_label_clr ? p->get_item_colour() : StateColor(
                         std::make_pair(0x6B6B6C, (int) StateColor::NotChecked),
                         std::make_pair(p->get_item_colour(), (int) StateColor::Normal)));
@@ -8621,6 +8664,17 @@ wxSizer* Tab::compatible_widget_create(wxWindow* parent, PresetDependencies &dep
     btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
     deps.btn = btn;
 
+    const bool for_printers = deps.type == Preset::TYPE_PRINTER;
+    const wxString all_tip  = for_printers ?
+        _L("Ticked, this profile can be used with every printer that passes the condition below. Unticked, only with the printers "
+           "picked with Set...") :
+        _L("Ticked, this profile can be used with every process profile that passes the condition below. Unticked, only with the "
+           "process profiles picked with Set...");
+    set_illustrated_tooltip(deps.checkbox, all_tip);
+    set_illustrated_tooltip(btn, for_printers ?
+        _L("Pick the printer profiles this profile can be used with. Picking all of them is the same as ticking All.") :
+        _L("Pick the process profiles this profile can be used with. Picking all of them is the same as ticking All."));
+
     auto sizer = new wxBoxSizer(wxHORIZONTAL);
     sizer->Add((deps.checkbox), 0, wxALIGN_CENTER_VERTICAL);
     sizer->Add(new wxStaticText(parent, wxID_ANY, "  ")); // weirdly didnt apply AddSpacer or wxRIGHT border
@@ -8758,6 +8812,9 @@ wxSizer* TabPrinter::create_bed_shape_widget(wxWindow* parent)
     // ORCA modernize button style
     Button* btn = new Button(parent, _(L("Set")) + " " + dots);
     btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+    set_illustrated_tooltip(btn, _L("Set the shape and size of the bed and where its origin is, and choose a custom texture or "
+                                    "model to show it with in the 3D view."),
+                            {{"settings/printer/printable_area.png", {}}});
 
     auto sizer = new wxBoxSizer(wxHORIZONTAL);
     sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL);
@@ -9000,6 +9057,11 @@ void Tab::update_extruder_variants(int extruder_id, bool reload)
         if (m_extruder_switch_variants || (m_type == Preset::TYPE_PRINTER && extruder_nums >= 2)) {
             auto options = generate_extruder_options();
             m_extruder_switch->SetOptions(options);
+            // The options are new buttons each time, so each gets the tooltip again.
+            for (unsigned int i = 0; i < m_extruder_switch->GetCount(); ++i)
+                set_illustrated_tooltip(m_extruder_switch->GetButton(i),
+                                        _L("The extruder, and nozzle flow type, whose values are shown and edited here. Only the "
+                                           "settings that can differ per nozzle change with it."));
             int item_n = options.empty() ? 0 : options.size();
             if (m_type == Preset::TYPE_PRINTER){ // we are on printer settings dialog and larger padding can be used
                 int h_pad  = item_n > 8 ? 6 : (item_n > 6 ? 9 : (item_n > 5 ? 12 : (item_n > 4 ? 18 : (item_n > 3 ? 24 : (item_n > 2 ? 36 : 48)))));
@@ -9041,6 +9103,12 @@ void Tab::update_extruder_variants(int extruder_id, bool reload)
 
         if (!options.empty())
             m_variant_combo->SetSelection(selection < 0 || selection >= (int) options.size() ? 0 : selection);
+
+        // The buttons are made anew with the options, so each gets the tooltip here.
+        for (unsigned int i = 0; i < m_variant_combo->GetCount(); ++i)
+            if (Button *btn = m_variant_combo->GetButton(i))
+                set_illustrated_tooltip(btn, _L("Shows and edits this filament's values for this nozzle. Parameters with the nozzle "
+                                                "icon can differ from one nozzle to another."));
 
         m_variant_combo->Enable(options.size() > 1);
     }
@@ -9579,6 +9647,8 @@ void Tab::compatible_widget_reload(PresetDependencies &deps)
 
 void Tab::set_tooltips_text()
 {
+    // The strings left commented out stay empty on purpose: the icons they describe ("dot" and
+    // "unlock_normal") are blank, so a tooltip would pop up over empty space next to a field.
     // --- Tooltip text for reset buttons (for whole options group)
     // Text to be shown on the "Revert to system" aka "Lock to system" button next to each input field.
     //m_ttg_value_lock =		_(L("LOCKED LOCK icon indicates that the settings are the same as the system (or default) values "

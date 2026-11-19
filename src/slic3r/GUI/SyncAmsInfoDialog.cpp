@@ -1,4 +1,5 @@
 #include "SyncAmsInfoDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include <boost/log/trivial.hpp>
 #include "slic3r/GUI/GUI_Utils.hpp"
@@ -553,6 +554,7 @@ void SyncAmsInfoDialog::add_two_image_control()
         m_swipe_left_button->SetBitmap(m_swipe_left_bmp_normal.bmp());
     });
     m_swipe_left_button->Bind(wxEVT_BUTTON, &SyncAmsInfoDialog::to_previous_plate, this);
+    set_illustrated_tooltip(m_swipe_left_button, _L("Show the previous plate"));
     swipe_left__sizer->Add(m_swipe_left_button, 0, wxEXPAND);
     swipe_left__sizer->AddStretchSpacer();
     view_two_thumbnail_sizer->Add(swipe_left__sizer, 0, wxEXPAND);
@@ -593,6 +595,7 @@ void SyncAmsInfoDialog::add_two_image_control()
         m_swipe_right_button->SetBitmap(m_swipe_right_bmp_normal.bmp());
     });
     m_swipe_right_button->Bind(wxEVT_BUTTON, &SyncAmsInfoDialog::to_next_plate, this);
+    set_illustrated_tooltip(m_swipe_right_button, _L("Show the next plate"));
 
     swipe_right__sizer->Add(m_swipe_right_button, 0, wxEXPAND);
     swipe_right__sizer->AddStretchSpacer();
@@ -769,6 +772,13 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
         m_mode_combox_sizer = new wxBoxSizer(wxHORIZONTAL);
         m_colormap_btn      = new CapsuleButton(m_scrolledWindow, PageType::ptColorMap, _L("Mapping"), true);
         m_override_btn      = new CapsuleButton(m_scrolledWindow, PageType::ptOverride, _L("Overwriting"), false);
+        set_illustrated_tooltip(m_colormap_btn, _L("Each project filament takes the type and color of the printer filament it is mapped to. "
+                                                   "The list keeps its length, and you can change the mapping before synchronizing."),
+                                {{"device/sync_mapping.gif", {}}});
+        set_illustrated_tooltip(m_override_btn, _L("Replaces the project's filament list in order with the printer's filaments: filament 1 "
+                                                   "becomes the first slot, filament 2 the second, and so on. Printer filaments left over "
+                                                   "are added at the end."),
+                                {{"device/sync_overwrite.gif", {}}});
         m_mode_combox_sizer->AddSpacer(SyncAmsInfoDialogWidth / 2.0f - FromDIP(8) / 2.0f - m_colormap_btn->GetSize().GetX());
         m_mode_combox_sizer->Add(m_colormap_btn, 0, wxEXPAND | wxALL, FromDIP(2));
         m_mode_combox_sizer->AddSpacer(FromDIP(8));
@@ -778,7 +788,7 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
                                                         true, 14);
         m_reset_all_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) { reset_all_ams_info(); });
         m_reset_all_btn->SetBackgroundColour(*wxWHITE);
-        m_reset_all_btn->SetToolTip(_L("Reset all filament mapping"));
+        set_illustrated_tooltip(m_reset_all_btn, _L("Reset all filament mapping"));
 
         m_mode_combox_sizer->Add(m_reset_all_btn, 0, wxEXPAND | wxALL, FromDIP(2));
 

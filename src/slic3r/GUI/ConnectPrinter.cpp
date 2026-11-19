@@ -11,6 +11,7 @@
 #include <wx/gdicmn.h>
 #include <wx/sizer.h>
 #include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 #include <wx/event.h>
 #include <string>
 #include "slic3r/GUI/wxExtensions.hpp"
@@ -58,6 +59,8 @@ ConnectPrinterDialog::ConnectPrinterDialog(wxWindow *parent, wxWindowID id, cons
     m_textCtrl_code->GetTextCtrl()->SetMinSize(wxSize(-1, FromDIP(22)));
     m_textCtrl_code->SetBackgroundColour(*wxWHITE);
     m_textCtrl_code->GetTextCtrl()->SetForegroundColour(wxColour(107, 107, 107));
+    set_illustrated_tooltip(m_textCtrl_code->GetTextCtrl(),
+                            _L("The access code shown on the printer, which lets Orca Slicer connect to it over the local network."));
     sizer_connect->Add(m_textCtrl_code, 0, wxALL | wxALIGN_CENTER_VERTICAL, 0);
 
     sizer_connect->Add(FromDIP(20), 0);

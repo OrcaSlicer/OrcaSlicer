@@ -1,8 +1,10 @@
 #include "Plater.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "LazyPage.hpp"
 #include "../Utils/NetworkAgent.hpp"
 #include "IPrinterAgent.hpp"
 #include "CalibUtils.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "Flashforge.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r_version.h"
@@ -88,6 +90,7 @@
 #include "slic3r/GUI/CalibrationPanel.hpp"
 #include "slic3r/GUI/CalibrationWizard.hpp"
 #include "slic3r/GUI/Monitor.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 #include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PluginResolver.hpp>
@@ -660,6 +663,7 @@ public:
 
         m_hover_btn = new ScalableButton(this, wxID_ANY, "edit_12px", wxEmptyString, FromDIP(wxSize(12,12)), wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, false, 12);
         m_hover_btn->SetBackgroundColour(extruder_group_chip_bg());
+        set_illustrated_tooltip(m_hover_btn, _L("Set how many nozzles of each flow type are installed on this extruder."));
         m_hover_btn->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this](auto &evt) {
             if (m_enabled && m_hover_on_click)
                 m_hover_on_click();
@@ -1564,7 +1568,8 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
     // project should print with. Every other card reads the diameter out as text.
     auto combo_diameter = new ComboBox(this, wxID_ANY, wxString(""), wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_READONLY);
     this->combo_diameter = combo_diameter;
-    combo_diameter->SetToolTip(_L("Diameter"));
+    set_illustrated_tooltip(combo_diameter, _L("Diameter of the nozzle installed on this extruder. Choose the one fitted, "
+                                               "so the slice uses the matching printer settings."));
     combo_diameter->Show(index >= 0);
     use_nozzle_row_font(combo_diameter);
 
@@ -1585,6 +1590,7 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
         btn_edit = new ScalableButton(ams_panel, wxID_ANY, "edit");
         btn_edit->SetMinSize(ams_label->GetSize());
         btn_edit->SetBackgroundColour(extruder_group_chip_bg());
+        set_illustrated_tooltip(btn_edit, _L("Set how many AMS units are connected to this nozzle."));
         btn_edit->Hide();
         btn_edit->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this, index, combo_diameter](auto &evt) {
             PopupWindow *window = new AMSCountPopupWindow(this, index);
@@ -1636,6 +1642,7 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
 
     btn_up = new ScalableButton(ams_panel, wxID_ANY, "page_up", "", {FromDIP(14), FromDIP(14)}, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, false, 14);
     btn_up->SetBackgroundColour(*wxWHITE);
+    set_illustrated_tooltip(btn_up, _L("Show the previous AMS units."));
     btn_up->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this](auto &evt) {
         if (page_cur > 0)
             --page_cur;
@@ -1644,6 +1651,7 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
     btn_up->Hide();
     btn_down = new ScalableButton(ams_panel, wxID_ANY, "page_down", "", {FromDIP(14), FromDIP(14)}, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, false, 14);
     btn_down->SetBackgroundColour(*wxWHITE);
+    set_illustrated_tooltip(btn_down, _L("Show the next AMS units."));
     btn_down->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this](auto &evt) {
         if (page_cur + 1 < page_num)
             ++page_cur;
@@ -1711,7 +1719,8 @@ ExtruderGroup::NozzleRow ExtruderGroup::create_nozzle_row()
             plater->update_machine_sync_status();
         }
     });
-    combo_flow->SetToolTip(_L_CONTEXT("Flow", "Nozzle Flow"));
+    set_illustrated_tooltip(combo_flow, _L("Flow type of the nozzle installed here, such as Standard or High Flow. Choose "
+                                           "the one fitted: the settings that differ between nozzle flow types follow it."));
     row.flow = combo_flow;
     use_nozzle_row_font(combo_flow);
 
@@ -1751,7 +1760,7 @@ void ExtruderGroup::SetRowDiameters(const std::vector<double> &diameters)
         // Spelled like the calibration dialogs spell a nozzle diameter, "0.4 mm".
         const wxString text = from_u8(get_diameter_string(diameters[i]));
         rows[i].diameter_label->SetLabelText(text);
-        rows[i].diameter_label->SetToolTip(text + " mm");
+        set_illustrated_tooltip(rows[i].diameter_label, text + " mm");
     }
     update_row_widths();
     Layout();
@@ -2338,6 +2347,10 @@ void Sidebar::priv::update_extruder_separator_icon(bool show, bool ready)
         auto normal_bitmap = ScalableBitmap(m_panel_printer_content, "fila_switch", 10);
         auto error_bitmap  = ScalableBitmap(m_panel_printer_content, "fila_switch_error", 10);
         extruder_separator_icon->SetBitmap(ready ? normal_bitmap.bmp() : error_bitmap.bmp());
+        set_illustrated_tooltip(extruder_separator_icon,
+                                ready ? _L("Filament switcher ready: the AMS filaments can feed either extruder. Click for details.") :
+                                        _L("Filament switcher not calibrated, so it is not used. Calibrate it on the printer and "
+                                           "synchronize. Click for details."));
 
         extruder_separator_icon->Show();
         extruder_separator_icon->Raise();
@@ -2850,7 +2863,8 @@ Sidebar::Sidebar(Plater *parent)
 
         // ORCA use connect button on titlebar
         p->m_printer_connect = new ScalableButton(p->m_panel_printer_title, wxID_ANY, "monitor_signal_strong");
-        p->m_printer_connect->SetToolTip(_L("Connection"));
+        set_illustrated_tooltip(p->m_printer_connect, _L("Connect this printer to a print host, such as OctoPrint or Klipper, "
+                                                         "so sliced files can be sent to it."));
         p->m_printer_connect->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
             PhysicalPrinterDialog dlg(this->GetParent());
             dlg.ShowModal();
@@ -2858,12 +2872,14 @@ Sidebar::Sidebar(Plater *parent)
 
         // ORCA use sync button on titlebar
         p->m_printer_bbl_sync = new ScalableButton(p->m_panel_printer_title, wxID_ANY, "printer_sync_not");
-        p->m_printer_bbl_sync->SetToolTip(_L("Synchronize nozzle information and the number of AMS"));
+        set_illustrated_tooltip(p->m_printer_bbl_sync, _L("Synchronize nozzle information and the number of AMS"));
         p->m_printer_bbl_sync->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
             deal_btn_sync();
         });
 
         p->m_printer_setting = new ScalableButton(p->m_panel_printer_title, wxID_ANY, "settings");
+        set_illustrated_tooltip(p->m_printer_setting, _L("Choose printers from the vendor profiles to add to the printer list, "
+                                                         "or remove them from it."));
         p->m_printer_setting->Bind(wxEVT_BUTTON, [](wxCommandEvent &e) {
             // p->editing_filament = -1;
             // wxGetApp().params_dialog()->Popup();
@@ -2946,7 +2962,7 @@ Sidebar::Sidebar(Plater *parent)
         auto printer_preset_hovered = std::make_shared<std::unordered_set<wxWindow*>>();
 
         p->btn_edit_printer = new ScalableButton(p->panel_printer_preset, wxID_ANY, "edit");
-        p->btn_edit_printer->SetToolTip(_L("Click to edit preset"));
+        set_illustrated_tooltip(p->btn_edit_printer, _L("Click to edit preset"));
         p->btn_edit_printer->Hide(); // hide for first launch
         p->btn_edit_printer->Bind(wxEVT_BUTTON, [this, panel_color, printer_preset_hovered](wxCommandEvent){
             p->editing_filament = -1;
@@ -2966,6 +2982,7 @@ Sidebar::Sidebar(Plater *parent)
 
         ScalableBitmap bitmap_printer(p->panel_printer_preset, "printer_placeholder", PRINTER_THUMBNAIL_SIZE.GetHeight());
         p->image_printer = new wxStaticBitmap(p->panel_printer_preset, wxID_ANY, bitmap_printer.bmp(), wxDefaultPosition, FromDIP(PRINTER_THUMBNAIL_SIZE), 0);
+        set_illustrated_tooltip(p->image_printer, _L("The selected printer. Click to choose another one."));
         p->image_printer->Bind(wxEVT_LEFT_DOWN, [this](auto &evt) {
             p->combo_printer->wxEvtHandler::ProcessEvent(evt);
         });
@@ -3038,10 +3055,15 @@ Sidebar::Sidebar(Plater *parent)
         // TRN Sidebar label of the printer variant (nozzle) selector; picking one switches the printer preset.
         p->label_nozzle_title = new Label(p->panel_nozzle_dia, _L("Variant"), LB_PROPAGATE_MOUSE_EVENT);
         p->label_nozzle_title->SetFont(Label::Body_10);
+        const wxString variant_tip = _L("The printer variant, usually the nozzle diameter. Choosing another one switches to "
+                                        "that variant's printer profile.");
+        set_illustrated_tooltip(p->panel_nozzle_dia, variant_tip);
+        set_illustrated_tooltip(p->label_nozzle_title, variant_tip);
 
         p->combo_nozzle_dia = new ComboBox(p->panel_nozzle_dia, wxID_ANY, wxString(""), wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_READONLY);
         p->combo_nozzle_dia->SetBorderWidth(0);
         p->combo_nozzle_dia->GetDropDown().SetUseContentWidth(true);
+        set_illustrated_tooltip(p->combo_nozzle_dia, variant_tip);
         p->combo_nozzle_dia->SetMinSize(FromDIP(wxSize(PRINTER_PANEL_SIZE.GetWidth() - 4, 26))); // requires a static value in here
         p->combo_nozzle_dia->SetMaxSize(FromDIP(wxSize(PRINTER_PANEL_SIZE.GetWidth() - 4, 26))); // using -1 with wxEXPAND has issues
         p->combo_nozzle_dia->Bind(wxEVT_COMBOBOX, [this](auto &e) {
@@ -3122,6 +3144,13 @@ Sidebar::Sidebar(Plater *parent)
         p->combo_printer_bed = new ComboBox(p->panel_printer_bed, wxID_ANY, wxString(""), wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_READONLY);
         p->combo_printer_bed->SetBorderWidth(0);
         p->combo_printer_bed->GetDropDown().SetUseContentWidth(true);
+        {
+            // The bed picture beside it opens a large view of the plate on hover, so it gets no tooltip.
+            const wxString bed_tip = _L("The build plate on the bed. Each filament's bed temperature is set per plate type, "
+                                        "so this chooses which one the print uses.");
+            set_illustrated_tooltip(p->combo_printer_bed, bed_tip);
+            set_illustrated_tooltip(p->panel_printer_bed, bed_tip);
+        }
         p->combo_printer_bed->SetMinSize(FromDIP(wxSize(18,-1))); // ORCA show only arrow
         p->combo_printer_bed->SetMaxSize(FromDIP(wxSize(18,-1))); // ORCA show only arrow
         reset_bed_type_combox_choices(true);
@@ -3301,6 +3330,8 @@ Sidebar::Sidebar(Plater *parent)
     wxBoxSizer* bSizer39;
     bSizer39 = new wxBoxSizer( wxHORIZONTAL );
     p->m_filament_icon = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "filament");
+    set_illustrated_tooltip(p->m_filament_icon, _L("The filaments this project prints with, one per slot. Objects and parts are "
+                                                   "assigned to them in the object list."));
     p->m_staticText_filament_settings = new Label(p->m_panel_filament_title, _L("Project Filaments"), LB_PROPAGATE_MOUSE_EVENT);
     bSizer39->Add(p->m_filament_icon, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::TitlebarMargin()));
     bSizer39->Add(p->m_staticText_filament_settings, 0, wxALIGN_CENTER | wxLEFT | wxRIGHT, FromDIP(SidebarProps::ElementSpacing()));
@@ -3322,6 +3353,9 @@ Sidebar::Sidebar(Plater *parent)
 
     p->m_purge_mode_btn = new Button(p->m_panel_filament_title, _L("Purge mode"));
     p->m_purge_mode_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Compact);
+    set_illustrated_tooltip(p->m_purge_mode_btn, _L("Choose how thoroughly the nozzle is purged at a filament change: Standard purges "
+                                                    "fully for the cleanest colors, the other mode purges less and faster at the risk "
+                                                    "of slight color mixing."));
 
     p->m_purge_mode_btn->Bind(wxEVT_BUTTON, [](wxCommandEvent &e) {
         auto &preset_bundle         = *wxGetApp().preset_bundle;
@@ -3357,7 +3391,7 @@ Sidebar::Sidebar(Plater *parent)
     bSizer39->Hide(p->m_flushing_volume_btn); // ORCA Ensure button is hidden on launch while 1 filament exist
 
     ScalableButton* add_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "add_filament");
-    add_btn->SetToolTip(_L("Add one filament"));
+    set_illustrated_tooltip(add_btn, _L("Add one filament"));
     add_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e){
         add_filament();
         update_filaments_counter();
@@ -3367,7 +3401,7 @@ Sidebar::Sidebar(Plater *parent)
     // ORCA Moved add button after delete button to prevent add button position change when remove icon automatically hidden
 
     ScalableButton* del_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "delete_filament");
-    del_btn->SetToolTip(_L("Remove last filament"));
+    set_illustrated_tooltip(del_btn, _L("Remove last filament"));
     del_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
         delete_filament();
         update_filaments_counter();
@@ -3381,7 +3415,7 @@ Sidebar::Sidebar(Plater *parent)
 
     ams_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "ams_fila_sync", wxEmptyString, wxDefaultSize, wxDefaultPosition,
                                                  wxBU_EXACTFIT | wxNO_BORDER, false, 16); // ORCA match icon size with other icons as 16x16
-    ams_btn->SetToolTip(_L("Synchronize filament list from AMS"));
+    set_illustrated_tooltip(ams_btn, _L("Synchronize filament list from AMS"));
     ams_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
         sync_ams_list();
     });
@@ -3393,7 +3427,7 @@ Sidebar::Sidebar(Plater *parent)
     //bSizer39->Add(FromDIP(10), 0, 0, 0, 0 );
 
     ScalableButton* set_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "settings");
-    set_btn->SetToolTip(_L("Set filaments to use"));
+    set_illustrated_tooltip(set_btn, _L("Set filaments to use"));
     set_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
         p->editing_filament = -1;
         // wxGetApp().params_dialog()->Popup();
@@ -3462,6 +3496,10 @@ Sidebar::Sidebar(Plater *parent)
         btn_sizer->AddStretchSpacer();
         p->m_btn_add_mixed_filament->SetSizer(btn_sizer);
         p->m_btn_add_mixed_filament->SetCursor(wxCursor(wxCURSOR_HAND));
+        const wxString add_mixed_tip = _L("Add a mixed filament: a new filament slot that is printed by alternating two or three of "
+                                          "the project's filaments in a ratio you set, so the part shows a blend of their colors.");
+        for (wxWindow *w : std::initializer_list<wxWindow *>{p->m_btn_add_mixed_filament, icon_add, add_label})
+            set_illustrated_tooltip(w, add_mixed_tip);
         // Whole panel is the hit target, so forward clicks from the children too.
         auto on_click = [this](wxMouseEvent&) { add_mixed_filament(); };
         p->m_btn_add_mixed_filament->Bind(wxEVT_LEFT_UP, on_click);
@@ -3481,7 +3519,7 @@ Sidebar::Sidebar(Plater *parent)
         title_sizer->Add(p->m_text_mixed_title, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::TitlebarMargin()));
 
         p->m_btn_mixed_del = new ScalableButton(p->m_panel_mixed_title, wxID_ANY, "delete_filament");
-        p->m_btn_mixed_del->SetToolTip(_L("Remove last mixed filament"));
+        set_illustrated_tooltip(p->m_btn_mixed_del, _L("Remove last mixed filament"));
         p->m_btn_mixed_del->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
             auto* plater_ptr = dynamic_cast<Plater*>(GetParent());
             if (!plater_ptr) return;
@@ -3492,12 +3530,12 @@ Sidebar::Sidebar(Plater *parent)
         title_sizer->Add(p->m_btn_mixed_del, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
 
         p->m_btn_mixed_del_all = new ScalableButton(p->m_panel_mixed_title, wxID_ANY, "delete_all_filaments");
-        p->m_btn_mixed_del_all->SetToolTip(_L("Remove all mixed filaments"));
+        set_illustrated_tooltip(p->m_btn_mixed_del_all, _L("Remove all mixed filaments"));
         p->m_btn_mixed_del_all->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { remove_all_mixed_filaments(); });
         title_sizer->Add(p->m_btn_mixed_del_all, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
 
         p->m_btn_mixed_add = new ScalableButton(p->m_panel_mixed_title, wxID_ANY, "add_filament");
-        p->m_btn_mixed_add->SetToolTip(_L("Add mixed filament"));
+        set_illustrated_tooltip(p->m_btn_mixed_add, _L("Add mixed filament"));
         p->m_btn_mixed_add->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { add_mixed_filament(); });
         title_sizer->Add(p->m_btn_mixed_add, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
         title_sizer->AddSpacer(FromDIP(SidebarProps::TitlebarMargin()));
@@ -3748,7 +3786,7 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filame
     combo_and_btn_sizer->Add(del_btn, 0, wxALIGN_CENTER_VERTICAL, 5 * em / 10);
     */
     ScalableButton* edit_btn = new ScalableButton(p->m_panel_filament_content, wxID_ANY, "menu_filament");
-    edit_btn->SetToolTip(_L("Click to edit preset"));
+    set_illustrated_tooltip(edit_btn, _L("Click to edit preset"));
 
     PlaterPresetComboBox* combobox = (*combo);
     edit_btn->Bind(wxEVT_BUTTON, [this, edit_btn, combobox, filament_idx](wxCommandEvent) {
@@ -4172,7 +4210,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
                                                                    : wxString("-"); // Undefined
             }
             p->label_nozzle_type->SetLabel(nozzle_type);
-            p->label_nozzle_type->SetToolTip(nozzle_type == "-" ? "" : nozzle_type);
+            set_illustrated_tooltip(p->label_nozzle_type, nozzle_type == "-" ? wxString() : nozzle_type);
 
             p->image_printer_bed->SetBitmap(create_scaled_bitmap(image_path, this, PRINTER_THUMBNAIL_SIZE.GetHeight()));
         }
@@ -4737,7 +4775,7 @@ void Sidebar::update_mixed_filament_list()
                     int r = (ci < draw_ratios.size()) ? draw_ratios[ci] : 0;
                     tip += wxString::Format("%u (%d%%)", draw_ids[ci], r);
                 }
-                content_panel->SetToolTip(tip);
+                set_illustrated_tooltip(content_panel, tip);
             }
 
             // Repaint on resize so truncation updates
@@ -4754,7 +4792,7 @@ void Sidebar::update_mixed_filament_list()
 
             auto* menu_btn = new ScalableButton(p->m_panel_mixed_content, wxID_ANY,
                 is_broken ? "error" : "menu_filament");
-            menu_btn->SetToolTip(is_broken ? _L("Mixed filament has broken component references") : _L("Edit / Delete / Merge"));
+            set_illustrated_tooltip(menu_btn, is_broken ? _L("Mixed filament has broken component references") : _L("Edit / Delete / Merge"));
             menu_btn->Bind(wxEVT_BUTTON, [this, panel_idx, cfg_idx](wxCommandEvent&) {
                 wxMenu menu;
 
@@ -6525,7 +6563,7 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     auto badge_combox_filament = [sync_color_only](PlaterPresetComboBox *c) {
         auto tip     = sync_color_only ? _L("Only filament color information has been synchronized from printer.") :
                                          _L("Filament type and color information have been synchronized, but slot information is not included.");
-        c->SetToolTip(tip);
+        set_illustrated_tooltip(c, tip);
         c->set_sync_badge(true);
     };
     { // badge ams filament
@@ -6744,12 +6782,20 @@ wxButton* Sidebar::get_wiping_dialog_button()
 
 void Sidebar::set_flushing_volume_warning(const bool flushing_volume_modify)
 {
+    const wxString tip = _L("Set how much filament is purged when changing from one filament to another, for each pair. The volumes "
+                            "are calculated from the filament colors; more purge gives cleaner color changes and more waste.");
     if(flushing_volume_modify){
         p->m_flushing_volume_btn->SetStyle(ButtonStyle::Regular, ButtonType::Compact);
         p->m_flushing_volume_btn->SetBorderColor(wxColour("#FF6F00"));
+        // TRN Second paragraph of the "Flushing volumes" button's tooltip while the button has an orange border.
+        set_illustrated_tooltip(p->m_flushing_volume_btn, tip + "\n\n" + _L("The orange border means the volumes no longer match the "
+                                                                              "ones calculated from the colors: they were edited, or a "
+                                                                              "multiplier other than 1 is set."));
     }
-    else
+    else {
         p->m_flushing_volume_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Compact);
+        set_illustrated_tooltip(p->m_flushing_volume_btn, tip);
+    }
 }
 
 void Sidebar::enable_buttons(bool enable)
@@ -19156,7 +19202,7 @@ wxBoxSizer *ProjectDropDialog::create_remember_checkbox(wxString title, wxWindow
 
     auto checkbox = new ::CheckBox(parent);
     checkbox->SetValue(m_remember_choice);
-    checkbox->SetToolTip(tooltip);
+    set_illustrated_tooltip(checkbox, tooltip);
     m_sizer_checkbox->Add(checkbox, 0, wxALIGN_CENTER, 0);
     m_sizer_checkbox->Add(0, 0, 0, wxEXPAND | wxLEFT, 8);
 
@@ -19164,7 +19210,7 @@ wxBoxSizer *ProjectDropDialog::create_remember_checkbox(wxString title, wxWindow
     checkbox_title->SetForegroundColour(wxColour(144,144,144));
     checkbox_title->SetFont(::Label::Body_13);
     checkbox_title->Wrap(-1);
-    checkbox_title->SetToolTip(tooltip);
+    set_illustrated_tooltip(checkbox_title, tooltip);
     m_sizer_checkbox->Add(checkbox_title, 0, wxALIGN_CENTER | wxALL, 3);
 
     checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox](wxCommandEvent &e) {

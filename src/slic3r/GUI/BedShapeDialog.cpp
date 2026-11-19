@@ -1,4 +1,5 @@
 #include "BedShapeDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "GUI_App.hpp"
 #include "OptionsGroup.hpp"
 
@@ -13,6 +14,7 @@
 #include <wx/event.h>
 #include <wx/gdicmn.h>
 #include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 #include <wx/panel.h>
 #include <wx/bookctrl.h>
 #include "slic3r/GUI/2DBed.hpp"
@@ -227,6 +229,8 @@ void BedShapePanel::build_panel(const Pointfs& default_pt, const std::string& cu
     m_shape_combo->Append(BedShape::get_name(BedShape::PageType::Circle));
     m_shape_combo->Append(BedShape::get_name(BedShape::PageType::Custom));
     m_shape_combo->SetSelection(int(BedShape(default_pt).get_page_type()));
+    set_illustrated_tooltip(m_shape_combo, _L("Shape of the bed: a rectangle, a circle, or a custom outline taken from an STL "
+                                              "file."));
     m_shape_combo->GetDropDown().Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& evt) {
         if(m_shape_options_book->GetSelection() != evt.GetSelection()){
             m_shape_options_book->ChangeSelection(evt.GetSelection());
@@ -255,6 +259,8 @@ void BedShapePanel::build_panel(const Pointfs& default_pt, const std::string& cu
 	line.widget = [this](wxWindow* parent) {
         Button* shape_btn = new Button(parent, _L("Load shape from STL..."));
         shape_btn->SetStyle(ButtonStyle::Regular, ButtonType::Expanded);
+        set_illustrated_tooltip(shape_btn, _L("Use the outline of an STL model, seen from above, as the shape of the bed. The "
+                                              "model has to be a single piece."));
 
         wxSizer* shape_sizer = new wxBoxSizer(wxHORIZONTAL);
         shape_sizer->Add(shape_btn, 1, wxEXPAND);
@@ -338,6 +344,7 @@ wxPanel* BedShapePanel::init_texture_panel()
     line.widget = [this](wxWindow* parent) {
         Button* load_btn = new Button(parent, _L("Load..."));
         load_btn->SetStyle(ButtonStyle::Regular, ButtonType::Expanded);
+        set_illustrated_tooltip(load_btn, _L("Choose a PNG or SVG image to show on the bed in the 3D view."));
 
         wxSizer* load_sizer = new wxBoxSizer(wxHORIZONTAL);
         load_sizer->Add(load_btn, 1, wxEXPAND);
@@ -348,6 +355,7 @@ wxPanel* BedShapePanel::init_texture_panel()
 
         Button* remove_btn = new Button(parent, _L("Remove"));
         remove_btn->SetStyle(ButtonStyle::Regular, ButtonType::Expanded);
+        set_illustrated_tooltip(remove_btn, _L("Show the default bed texture again."));
 
         wxSizer* remove_sizer = new wxBoxSizer(wxHORIZONTAL);
         remove_sizer->Add(remove_btn, 1, wxEXPAND);
@@ -378,9 +386,7 @@ wxPanel* BedShapePanel::init_texture_panel()
                         tooltip_text += _(m_custom_texture);
                     }
 
-                    wxToolTip* tooltip = lbl->GetToolTip();
-                    if ((tooltip == nullptr) || (tooltip->GetTip() != tooltip_text))
-                        lbl->SetToolTip(tooltip_text);
+                    set_illustrated_tooltip(lbl, tooltip_text);
                 }
             }));
 
@@ -415,6 +421,7 @@ wxPanel* BedShapePanel::init_model_panel()
     line.widget = [this](wxWindow* parent) {
         Button* load_btn = new Button(parent, _L("Load..."));
         load_btn->SetStyle(ButtonStyle::Regular, ButtonType::Expanded);
+        set_illustrated_tooltip(load_btn, _L("Choose an STL model to show as the bed in the 3D view."));
 
         wxSizer* load_sizer = new wxBoxSizer(wxHORIZONTAL);
         load_sizer->Add(load_btn, 1, wxEXPAND);
@@ -425,6 +432,7 @@ wxPanel* BedShapePanel::init_model_panel()
 
         Button* remove_btn = new Button(parent, _L("Remove"));
         remove_btn->SetStyle(ButtonStyle::Regular, ButtonType::Expanded);
+        set_illustrated_tooltip(remove_btn, _L("Show the default bed model again."));
 
         wxSizer* remove_sizer = new wxBoxSizer(wxHORIZONTAL);
         remove_sizer->Add(remove_btn, 1, wxEXPAND);
@@ -456,9 +464,7 @@ wxPanel* BedShapePanel::init_model_panel()
                         tooltip_text += _(m_custom_model);
                     }
 
-                    wxToolTip* tooltip = lbl->GetToolTip();
-                    if ((tooltip == nullptr) || (tooltip->GetTip() != tooltip_text))
-                        lbl->SetToolTip(tooltip_text);
+                    set_illustrated_tooltip(lbl, tooltip_text);
                 }
             }));
 

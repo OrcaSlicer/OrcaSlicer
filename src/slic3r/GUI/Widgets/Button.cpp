@@ -19,6 +19,7 @@
 #include <wx/window.h>
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 #ifdef __APPLE__
 #include "libslic3r/MacUtils.hpp"
 #endif
@@ -56,6 +57,8 @@ public:
         *name = m_btn->GetLabel();
         if (name->empty())
             *name = m_btn->GetToolTipText();
+        if (name->empty())
+            *name = Slic3r::GUI::illustrated_tooltip_text(m_btn);
         return name->empty() ? wxACC_NOT_IMPLEMENTED : wxACC_OK;
     }
 
