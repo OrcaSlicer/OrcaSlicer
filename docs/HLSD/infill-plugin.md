@@ -1,209 +1,159 @@
-# Infill Plugins — High-Level Design
+# Infill Plugins
 
-## Purpose
+## Purpose and scope
 
-Infill plugins provide infill patterns for the four plugin-backed pattern settings — sparse,
-internal solid, top surface and bottom surface — while retaining OrcaSlicer's native fill lifecycle. A
-plugin returns open paths for one surface island; the host remains responsible for extrusion conversion,
-flow, gap fill, path ordering, and G-code generation.
+Infill plugins supply patterns for sparse, internal solid, top surface and bottom surface infill.
+For each surface island, a plugin produces open paths; OrcaSlicer retains the normal fill lifecycle,
+including extrusion conversion, flow, gap fill, path ordering and G-code generation. Support and
+ironing patterns remain built-in.
 
-## Capability identity and project references
+A capability identifies a provider and can advertise several patterns. Each pattern has a stable,
+nonlocalized ID, a display name and one or more supported surface purposes. The four selectors store
+the pattern ID, not the provider name. Existing built-in values remain unchanged.
 
-One infill capability is a provider identity and may advertise several selectable patterns. Each
-pattern has a stable, nonlocalized ID that is the value stored in a pattern setting, plus a
-presentation-only display name and the set of surface purposes it can fill (`orca.infill.PatternDescriptor`).
-A pattern is selectable only in the settings whose purpose it declares (`Sparse`, `InternalSolid`,
-`TopSurface`, `BottomSurface`); one descriptor may support several purposes. Pattern IDs are unique
-within the capability, across loaded capabilities, and against built-in pattern keys. A capability's
-name remains the provider identity used in the project manifest.
+## Python API
 
-Saving a preset or project records the currently resolved capability's full plugin reference, including
-local or cloud plugin identity, for plugin-backed pattern settings. The manifest supports plugin
-management and diagnostics; it does not bind a pattern ID to a particular provider for slicing.
-For saving, pattern IDs are resolved against loaded capability descriptors, including disabled
-capabilities, so a known plugin reference can be preserved even when its patterns are not registered.
-For slicing, `InfillFactory` is the authority for resolving a selected pattern ID. Slicing uses its currently
-registered provider, provided the pattern supports the selected surface purpose, and never falls back
-to a built-in pattern. If a different provider registers the same ID while the original provider is
-unavailable, that provider is used. Users are responsible for ensuring that the installed provider is
-the one they intend to use. Existing built-in setting values remain unchanged.
+A Python infill capability subclasses `orca.infill.InfillPluginCapabilityBase`, which derives from
+`orca.PythonPluginBase`. Its interface is:
 
-## Slicing path
+| Method | Contract |
+| --- | --- |
+| `get_name()` | Required. Returns the capability's provider name. |
+| `patterns()` | Optional. Returns a nonempty sequence of `orca.infill.PatternDescriptor` objects. The default is one sparse pattern whose ID and display name are the capability name. |
+| `generate(pattern_id, request)` | Required. Returns open paths for the supplied island. |
+| `no_sort(pattern_id)` | Optional, defaults to `False`. If true, preserves the returned path order through the G-code path planner. |
+| `aligned_to_origin(pattern_id)` | Optional, defaults to `False`. If true, the host shifts the island into a frame centered on the fill bounding box before calling `generate()`, then shifts the returned paths back. |
 
-Every pattern with a canonical config key is created through `InfillFactory` by that single string ID.
-InfillFactory registers built-in factories lazily from one explicit metadata switch that owns each
-built-in pattern's config key, display label and supported surfaces. Plugin factories are registered
-when an enabled infill capability loads and removed when it is disabled or unloaded. The registry entry
-carries the owning plugin and capability, so creation never needs a provider reference from its caller.
+`PatternDescriptor(id, display_name="", supported_surfaces=[SurfacePurpose.Sparse])` describes a
+selectable pattern. An empty display name defaults to the ID. `supported_surfaces` must not be empty;
+its values are `orca.infill.SurfacePurpose.Sparse`, `InternalSolid`, `TopSurface` and
+`BottomSurface`. A descriptor may support multiple purposes. IDs must be nonempty, must not contain
+`;`, and must be unique across all loaded infill capabilities and built-in pattern keys. This includes
+disabled but still loaded capabilities.
 
-Before any object is sliced, `Print::process()` collects the plugin IDs stored in all four pattern
-settings with the purpose each setting drives, resolves each through `InfillFactory` and validates the
-registry entry's supported surfaces, then pins every registry entry the job will use. Pinning is
-job-scoped rather than per object or per prepare/infill step, so an unload between two objects cannot
-tear down a provider that a later object still needs, and a throwing pipeline hook, cancellation or
-step invalidation cannot drop a pin while a fill worker may still create a Fill. A pinned entry cannot
-be replaced or reused by another provider: unloading the plugin retires it for new selections while the
-already-validated job may still try to create its Fill. An unavailable pattern or a purpose-mismatched
-provider fails the slice before any fill worker runs.
+The host resolves descriptors when the capability loads. It passes `pattern_id` positionally to each
+per-pattern callback. Callbacks are synchronous and run on slicing workers; they must not manipulate
+the GUI. Python callbacks acquire the GIL, while native providers must handle concurrent calls
+themselves.
 
-A pin is also a provider lifecycle lease: while a job holds one, the registry keeps the exact provider
-instance (and therefore its Python module) alive. An unload request therefore drains pinned infill
-providers without a deadline instead of force-unloading them, so the slicing worker never runs Python
-against a module that was torn down. A capability re-enabled while its entry is pinned revives that
-entry and keeps the pin. Pins are released when `Print::process()` returns, including on failure,
-cancellation and a throwing pipeline hook, and by `Print::clear()` once background processing has
-stopped. A per-object step invalidation deliberately does not release them: the worker may still be
-inside the fill phase.
+### Path contract
 
-Each use creates a fresh `Fill` adapter that holds the provider alive. The adapter delegates per-island
-path generation to the capability with the selected pattern ID. Python implementations execute through
-the audited GIL trampoline; native implementations must be thread-safe because separate surface
-generations can run concurrently. The adapter forwards supported fill semantics such as path sorting
-and origin alignment. The per-call surface purpose is carried explicitly from the setting that selected
-the pattern; a plugin never infers it from density, extrusion role or pattern ID.
+`generate()` returns a sequence of paths. An empty sequence means no infill. Each path has at least
+two points and can be an `(N, 2)` NumPy `int64` array, an `orca.host.Polygon` treated as an open
+path, or a sequence of `orca.host.Point` values. Coordinates are scaled integers, in the same
+working frame as `request.expolygon`. The host does not rescale or clip the returned paths; they
+must remain inside that expolygon.
 
-Surface grouping keeps a plugin pattern's purpose in the key so one ID selected for sparse, top,
-bottom and internal-solid surfaces is never generated as a single group. For a built-in pattern the
-purpose is not part of the key: the pattern key and extrusion role already imply it, and the group
-ordering (which decides which earlier group owns an overlap while trimming) stays exactly as before
-plugin support.
+The expolygon is already adjusted for overlap and solid spacing. When `aligned_to_origin()` is true,
+it is also already in the shifted working frame. Plugins should not apply the overlap again.
 
-The Python trampoline calls `generate(pattern_id, request)`, `no_sort(pattern_id)` and
-`aligned_to_origin(pattern_id)`. The pattern ID is always passed positionally, so a `*args` override
-receives the same arguments, and an override declared with a different arity receives Python's normal
-`TypeError` rather than a fallback call.
+### Request snapshot
 
-The request is a value snapshot in the host's scaled-coordinate convention. Plugin paths pass through
-the ordinary Fill conversion path, so the host applies flow and gap fill and emits the resulting G-code.
-The host does not clip returned plugin paths again; they must remain inside the supplied expolygon.
+`request` is an owned value snapshot, not a reference to the live print, and may be retained after
+the callback. It contains resolved fill parameters, not the entire `FillParams` or a print configuration
+pointer. Its fields are:
 
-## Request snapshot
+| Group | Fields |
+| --- | --- |
+| Island and context | `expolygon`, `layer_id`, `object_id`, `layer_index`, `region_id`, `region_ids`, `thickness_layers`, `z`, `spacing`, `overlap`, `angle`, `direction_angle`, `direction_origin`, `purpose` |
+| General fill | `density`, `multiline`, `anchor_length`, `anchor_length_max`, `resolution`, `layer_height`, `flow`, `flow_width`, `flow_height`, `extrusion_role`, `pattern`, `smooth_factor`, `no_extrusion_overlap`, `fill_order`, `horiz_move` |
+| Flags | `dont_adjust`, `monotonic`, `complete`, `use_arachne`, `dont_sort`, `can_reverse`, `using_internal_flow` |
+| Pattern-specific | `gyroid_optimized`, `adaptive_infill_mode`, `adaptive_infill_interior_density`, `adaptive_infill_gradient`, `lateral_lattice_angle_1`, `lateral_lattice_angle_2`, `infill_overhang_angle`, `symmetric_infill_y_axis`, `symmetric_y_axis`, `infill_complete_top`, `locked_zag`, `infill_lock_depth`, `skin_infill_depth`, `center_of_surface_pattern` |
+| Computed properties | `full_infill`, `dont_connect` |
 
-`generate(pattern_id, request)` receives an owned copy of the values the host resolved for that call.
-The request mirrors `FillParams` except its `PrintRegionConfig*`: it holds no pointer or reference into
-the live print and stays valid after `generate()` returns. Values a pattern does not use yet are still
-carried, so a plugin can rely on the same semantics as a built-in filler without reading print settings
-itself.
+`purpose` identifies the setting that selected the pattern. Do not infer it from density, extrusion
+role or pattern ID. `pattern` is a bound built-in `InfillPattern`, or `None` for plugin dispatch;
+the plugin ID is the separate `pattern_id` argument. Other enum-valued fields also use bound Python
+enum types, not raw integers.
 
-It carries the per-call context (`expolygon`, `layer_id`, `object_id`, `layer_index`, `region_id`,
-`region_ids`, `thickness_layers`, `z`, `spacing`, `overlap`, `angle`, `direction_angle`,
-`direction_origin`, `purpose`) and the resolved `FillParams` values: density,
-multiline, anchors, resolution, layer height, the resolved flow, extrusion role, smooth factor, pattern,
-and the pattern-specific fields (adaptive infill, lateral lattice, lateral honeycomb, locked-zag,
-symmetric infill, centered-surface grouping, gyroid optimization and 3D-honeycomb completion), plus the
-boolean flags (`dont_adjust`, `monotonic`, `complete`, `use_arachne`, `dont_sort`, `can_reverse`,
-`using_internal_flow`).
+`flow` is an `orca.infill.Flow` snapshot with `width`, `height`, `spacing`, `nozzle_diameter`,
+`bridge` and `mm3_per_mm`. `flow_width` and `flow_height` are compatibility shortcuts for the
+corresponding flow values. Plugin fill uses ordinary paths, not Arachne's variable-width paths.
 
-Identity fields are values, never pointers: `object_id` is `PrintObject::id().id` of the object owning
-the fill's layer (normally the same value as `ctx.object.id()`; a shared-layer alias reports the
-layer's owner), `layer_index` is zero-based in `PrintObject::layers()` (the object layers, which
-exclude raft and support layers), and `region_id`/`region_ids` are indices into `Layer::regions()`.
-`layer_id` stays the raw Fill layer id: `Layer::id()` (which is offset by the raft-layer count) in
-normal infill, and an already object-relative id while anchoring. A cache keyed by layer must
-therefore use `layer_index`. For a grouped surface, `region_id` is the first (representative) region whose
-settings the host used and whose `LayerRegion` receives the generated paths; `region_ids` lists every
-contributing region; the generated paths cover
-all of them and must not be attributed to `region_id` alone. Unavailable identities are `-1` and an
-empty `region_ids`.
+Coordinates in `expolygon`, `direction_origin`, `horiz_move`, `symmetric_y_axis`,
+`infill_lock_depth` and `skin_infill_depth` use scaled units. Use the live scaling factor or
+`orca.slicing.unscale()` to convert. Lengths and flow dimensions use millimetres;
+`flow.mm3_per_mm` uses mm³/mm. `angle` and `direction_angle` use radians, counterclockwise from +X;
+the lateral lattice and honeycomb overhang angles use degrees. Densities and `smooth_factor` are
+fractions from 0 to 1.
 
-`pattern` is the host built-in `InfillPattern`, or `None` for plugin dispatch because a plugin
-pattern ID has no `InfillPattern` value; `pattern_id` is the selected plugin pattern. `purpose` is
-the surface setting that selected the pattern for this call, never inferred from density, extrusion
-role or pattern ID. Enums cross the boundary as bound Python types (`InfillPattern`,
-`ExtrusionRole`, `AdaptiveInfillMode`,
-`AdaptiveInfillGradient`, `SurfaceFillOrder`, `CenterOfSurfacePattern`, `SurfacePurpose`), never as
-raw integers. The flow is copied as scalars: `width`, `height`, `spacing`, `nozzle_diameter`,
-`bridge` and `mm3_per_mm`.
+`object_id` identifies the object owning the fill's layer. `layer_index` is the zero-based index in
+that object's layers, excluding raft and support layers; use it rather than `layer_id` for layer
+caches. `layer_id` is the raw Fill layer ID, which includes the raft offset in normal infill but is
+already object-relative during anchoring. Cache entries must still be considered stale when the print
+changes.
 
-Units follow the Fill conventions: scaled integer coordinates for `expolygon`, `direction_origin`,
-`horiz_move`, `symmetric_y_axis`, `infill_lock_depth` and `skin_infill_depth`; millimetres for lengths
-and flow; radians for angles; degrees for the lateral-lattice angles and the lateral honeycomb overhang
-angle; fractions in `<0, 1>` for densities and the smooth factor.
+`region_id` is the index of the representative region whose settings and output are used.
+`region_ids` contains all contributing region indices. A grouped call covers all those regions, not
+just `region_id`. When identity is unavailable, the individual IDs are `-1` and `region_ids` is
+empty.
 
-## Failure and diagnostics
+## Selection and slicing
 
-Unavailable patterns and failures in any per-surface callback (`generate`, `no_sort`,
-`aligned_to_origin`) abort the slice as noncritical slicing errors rather than crash-style critical
-errors. Every callback reports through the same path: the user-facing message stays generic, while the
-failing callback and its exception are recorded in plugin diagnostics and logs, retained until plugin
-reload or explicit error clearing. The GUI checks selected plugin pattern IDs through `InfillFactory`
-during slicing validation and reports unavailable patterns through the plater's slicing-blocked
-notification, identifying the pattern ID. Preflight also rejects unavailable patterns, including in
-non-GUI paths. Cancellation remains a cancellation, not a plugin error.
+`InfillFactory` resolves canonical pattern IDs to built-in or plugin factories. Built-in metadata
+defines the key, display label and supported surfaces; enabled capabilities publish plugin patterns
+to the same registry. Plugin dispatch uses the pattern ID, with surface purpose carried separately
+in the fill context. Some internal-only built-in fills still use an enum-based creation path.
 
-## Lifecycle and UI
+Before processing fills, `Print::process()` resolves and validates plugin patterns needed by objects
+whose infill steps will run. It checks each selected purpose and pins the registry entries for the
+job. An unavailable pattern or unsupported purpose fails preflight before fill workers run. Plugin
+surface groups include purpose in their grouping key, so one ID used by different settings is not
+generated as a single group. Built-in grouping retains its existing behavior.
 
-Each of the four pattern selectors lists the built-in keys that setting has always offered plus every
-pattern of every enabled infill capability whose descriptor declares that selector's surface purpose,
-and stores the pattern ID as the setting value. Plugin rows carry the provider and pattern display
-labels; the stored value is always the pattern ID. A stored ID whose provider is unavailable remains
-the setting's value, so it round-trips instead of silently changing pattern. Load, unload, and
-enable-state changes refresh the selectors and missing-plugin notifications without resetting a running
-slice. In the GUI, a completed slice whose plugin provider was replaced or removed has its plugin fills
-invalidated, together with the G-code that used them, so cached plugin output cannot be exported against
-a different provider; the invalidation is deferred while a slice or export is running. The recorded
-provider identity describes the fills the print actually holds, so it is captured when the job runs to
-completion: a slice that throws or is cancelled leaves the previous record in place, and the next check
-invalidates those older fills if the provider behind their pattern has changed. A pinned provider stays
-alive until the slice releases it. GUI updates are marshalled to the main thread.
+Each use creates a fresh `Fill` adapter, which holds the provider alive and delegates island generation.
+Job pins also keep the exact provider instance alive. Disabling or unloading retires its entries for
+new selections, but a pinned job can continue to use them. Re-enabling the same pinned entry revives
+it without losing the pin. Pins are released when `Print::process()` exits, including on failure or
+cancellation, or by `Print::clear()` after background processing stops. Per-object invalidation does
+not release a running job's pins.
 
-Publishing (load and enable) and retracting (disable and unload) a capability's pattern IDs are
-serialized against each other. Each pass reads the capability's live enable state before touching the
-registry, so a pass that started against an older state can never republish an ID whose capability is
-now disabled or unloaded, and a package cannot commit while another provider still owns one of its IDs.
+Plugin factories use weak provider references; registry leases and active fills hold strong references.
+The plugin manager retains its provider while jobs and active calls drain, so a Python module is not
+torn down while slicing uses it. Unloading an infill provider waits without a deadline for those
+leases and calls; application exit is instead bounded by the GUI exit watchdog. Publishing and
+retracting patterns are serialized and check the capability's current enabled state.
 
-Before the GUI slicing worker enters `Print::process()`, it waits once, bounded, for packages the print
-manifest references that are still loading. This keeps a slice started from a load notification from
-missing a plugin whose load is already in flight. Outside the GUI path (CLI, or a caller that invokes
-`Print::process()` directly) no such wait exists; the infill preflight then reports the pattern as
-unavailable rather than waiting.
+## Persistence and user experience
 
-Plugin factories hold only a weak provider reference. The registry entry holds the published provider
-lease, an in-flight Fill owns a strong reference for as long as it exists, and dropping the final
-reference decrefs the Python object under the interpreter lease and GIL, so unload cannot free a
-provider that is still generating paths. The plugin manager keeps its own provider reference until
-every job lease has been released, so releasing a lease never performs that final decref.
+Selectors show their existing built-in choices and patterns from enabled capabilities that support
+the selector's purpose. Plugin rows show provider and pattern labels, but store the ID. A missing
+provider does not replace a stored ID: projects and presets retain it so users can restore the plugin.
 
-## Scope and constraints
+When the GUI saves a preset or project, it resolves known plugin patterns against loaded capability
+descriptors, including disabled capabilities, to preserve full plugin references in the manifest.
+Headless saves without a capability resolver leave the existing manifest untouched. The manifest
+supports plugin management and diagnostics; it does not bind an ID to a provider for slicing.
+`InfillFactory` selects the currently registered provider. Once an original provider is unloaded,
+another provider can register the same ID and will then be used. Users must ensure that the installed
+provider is the intended one.
 
-Sparse, internal solid, top surface and bottom surface patterns are plugin-backed and dispatched. The
-support and ironing pattern options stay built-in enums because their fill paths are not part of this
-integration. Plain fill creation is still ID-only: `Fill::new_from_type`, `InfillFactory` and the plugin
-adapter take a pattern ID, while the surface purpose travels as per-call host state next to the other
-Fill context. CLI/headless plugin loading is not part of this integration. Project and preset values
-must remain backward compatible, and plugin code must not manipulate the GUI from slicing workers.
+The four settings accept their offered built-in keys and other nonempty strings as possible plugin
+IDs. Empty values and built-in keys not offered by that setting are invalid. Unknown IDs must survive
+loading, because their plugin may be missing; slicing validation and preflight report them as
+unavailable instead of silently falling back. The GUI reports the pattern ID in its slicing-blocked
+notification.
 
-An older application that opens a project or preset containing a plugin pattern ID in any of the four
-settings reads it as an unknown enum value: the option is substituted with its built-in default and the
-unknown capability is dropped from the manifest, so it slices with that default rather than the plugin
-pattern. The plugin ID itself is preserved only by the newer application because the string setting
-stores it verbatim.
+Load, unload and enable-state changes refresh selectors and missing-plugin notifications on the GUI
+thread without resetting a running slice. When a provider changes or disappears, the GUI invalidates
+affected cached plugin fills and their G-code; it defers invalidation while slicing or export is
+running. The print records provider identities for generated plugin fills and uses them to detect
+changes.
 
-### Pattern value validation
+Before the GUI slicing worker calls `Print::process()`, it waits up to 10 seconds in total for
+manifest-referenced packages that are still loading. Direct callers, including CLI and calibration
+helpers, do not wait; preflight reports an unavailable pattern. CLI/headless plugin loading is outside
+this integration.
 
-The four pattern settings accept a built-in key or any other nonempty value as a plugin pattern ID.
-Load-time validation cannot reject an unknown ID: it may name a provider that is not installed on this
-computer, and failing the load would replace the missing-plugin guidance with an unreadable project.
-`validate()` therefore accepts an unknown value that is not one of the option's built-in keys, preset
-and project loading preserve it verbatim, and slicing validation and preflight refuse an unavailable
-pattern with its ID in the error after checking the factory. The CLI has no interactive installation
-step, so the preflight error is the report. A built-in key that the
-option does not offer (for example `gyroid` in `top_surface_pattern`) and an empty value are still
-rejected at validation, as on main.
+Python callback failures and standard exceptions from native callbacks abort the slice as noncritical
+slicing errors. The user-facing message is generic; the callback name and exception are retained in
+plugin diagnostics and logs until reload or explicit clearing. Cancellation remains cancellation.
 
-## Known limitations
+## Compatibility limits
 
-- The bounded pre-slice wait covers the GUI slicing worker only. A caller that invokes
-  `Print::process()` directly (CLI, calibration helpers) does not wait for a plugin that is still
-  loading; the infill preflight then reports the pattern as unavailable.
-- Unloading an infill plugin whose selected pattern is still pinned by a running slice waits for that
-  slice to finish or cancel rather than unloading its module. App exit is bounded by the GUI exit
-  watchdog, not by the unload itself.
-- A project saved by this version and opened by an older one loses plugin pattern IDs in the four
-  pattern settings (they fall back to each option's built-in default) and loses the plugin reference
-  from the manifest. Downgrade support is not attempted.
-- Pattern IDs carry no owner information. The factory cannot identify the original provider when it is
-  unavailable, and another provider of the same ID is accepted if registered. Missing-pattern guidance
-  cannot reliably name the original plugin or offer its installation or activation without additional
-  saved ownership information. An object, volume or layer-range override may also have no setting to
-  jump to.
+- Older OrcaSlicer versions treat plugin pattern IDs as unknown enum values, substitute each setting's
+  built-in default and drop the unknown capability from the manifest. Downgrade preservation is not
+  supported.
+- Pattern IDs do not encode ownership. If the original provider is missing, the factory cannot
+  identify it reliably or offer its installation or activation. A setting inside an object, volume or
+  layer-range override may also have no corresponding UI location to jump to.
