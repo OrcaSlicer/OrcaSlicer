@@ -10967,8 +10967,8 @@ std::string GCode::retract(bool toolchange, bool is_last_retraction, LiftType li
         (the extruder might be already retracted fully or partially). We call these
         methods even if we performed wipe, since this will ensure the entire retraction
         length is honored in case wipe path was too short.  */
-    // Hilbert curve surfaces skip the retraction, but not the rest of one a wipe has started.
-    if (wiped ||
+    // Hilbert curve surfaces skip the retraction of a travel, but not a toolchange's, nor the rest of one a wipe has started.
+    if (wiped || toolchange ||
         ((!this->on_first_layer()  || this->config().bottom_surface_pattern != InfillPattern::ipHilbertCurve) &&
 	     (role != erTopSolidInfill || this->config().top_surface_pattern    != InfillPattern::ipHilbertCurve)))
         gcode += toolchange ? m_writer.retract_for_toolchange() : m_writer.retract();
