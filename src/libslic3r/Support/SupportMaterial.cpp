@@ -12,7 +12,6 @@
 #include "libslic3r/Support/SupportLayer.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "SupportCommon.hpp"
-#include "TreeSupport3D.hpp"
 #include "BeltFloorContext.hpp"
 #include "Geometry.hpp"
 #include "Point.hpp"
@@ -1444,6 +1443,21 @@ static const double sharp_tail_xy_gap = 0.2f;
 static const double no_overlap_xy_gap = 0.2f;
 static const double sharp_tail_max_support_height = 16.f;
 
+// Grows overhangs by distance in 0.5 mm steps off the layer below. A piece a step reaches only across the layer below
+// touches nothing it grew from and is dropped, so the expansion never gets past a wall, however thin.
+static Polygons expand_overhangs_inside_walls(const Polygons &overhangs, float distance, const Polygons &lower)
+{
+    const float step  = scaled<float>(0.5);
+    ExPolygons  grown = union_ex(overhangs);
+    for (float done = 0.f; done < distance && ! grown.empty(); done += step) {
+        ExPolygons reached = diff_ex(expand(grown, std::min(step, distance - done), SUPPORT_SURFACES_OFFSET_PARAMETERS), lower);
+        reached.erase(std::remove_if(reached.begin(), reached.end(), [&grown](const ExPolygon &piece) { return ! overlaps(grown, piece); }),
+                      reached.end());
+        grown = std::move(reached);
+    }
+    return to_polygons(std::move(grown));
+}
+
 // Tuple: overhang_polygons, contact_polygons, enforcer_polygons, no_interface_offset
 // no_interface_offset: minimum of external perimeter widths
 static inline ExPolygons detect_overhangs(
@@ -1606,11 +1620,10 @@ static inline ExPolygons detect_overhangs(
             if (diff_polygons.empty() || offset(diff_polygons, -0.1 * fw).empty())
                 continue;
 
-            // Grow in steps against the layer below, so the expansion does not jump over a thin wall.
             if (xy_expansion > 0)
-                diff_polygons = TreeSupport3D::safe_offset_inc(diff_polygons, coord_t(xy_expansion), *effective_lower, scaled<coord_t>(0.5), 0, 1);
+                diff_polygons = expand_overhangs_inside_walls(diff_polygons, float(xy_expansion), *effective_lower);
             else if (xy_expansion < 0)
-                diff_polygons = expand(diff_polygons, xy_expansion, SUPPORT_SURFACES_OFFSET_PARAMETERS);
+                diff_polygons = shrink(diff_polygons, float(-xy_expansion), SUPPORT_SURFACES_OFFSET_PARAMETERS);
 
             polygons_append(overhang_polygons, diff_polygons);
         } // for each layer.region

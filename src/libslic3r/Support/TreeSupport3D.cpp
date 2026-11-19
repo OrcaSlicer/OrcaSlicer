@@ -835,7 +835,7 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
  * \param min_amount_offset[in] How many steps have to be done at least. As this uses round offset this increases the amount of vertices, which may be required if Polygons get very small. Required as arcTolerance is not exposed in offset, which should result with a similar result.
  * \return The resulting Polygons object.
  */
-[[nodiscard]] Polygons safe_offset_inc(const Polygons& me, coord_t distance, const Polygons& collision, coord_t safe_step_size, coord_t last_step_offset_without_check, size_t min_amount_offset)
+[[nodiscard]] static Polygons safe_offset_inc(const Polygons& me, coord_t distance, const Polygons& collision, coord_t safe_step_size, coord_t last_step_offset_without_check, size_t min_amount_offset)
 {
     bool do_final_difference = last_step_offset_without_check == 0;
     Polygons ret = safe_union(me); // ensure sane input

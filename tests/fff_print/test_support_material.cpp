@@ -128,11 +128,13 @@ static TriangleMesh support_capital()
 
 TEST_CASE("Normal support expansion does not reach across a thin wall", "[SupportMaterial][Regression]")
 {
-    // An open-bottomed 20 mm box with 1 mm walls: its lid overhangs inside the box only.
-    TriangleMesh box = make_cube(20, 1, 10);
-    TriangleMesh back = make_cube(20, 1, 10), left = make_cube(1, 20, 10), right = make_cube(1, 20, 10), lid = make_cube(20, 20, 1);
-    back.translate(0.f, 19.f, 0.f);
-    right.translate(19.f, 0.f, 0.f);
+    // An open-bottomed 20 mm box: its lid overhangs inside the box only. A 0.4 mm wall is thinner than a growth step.
+    const float wall = GENERATE(1.f, 0.4f);
+    CAPTURE(wall);
+    TriangleMesh box = make_cube(20, wall, 10);
+    TriangleMesh back = make_cube(20, wall, 10), left = make_cube(wall, 20, 10), right = make_cube(wall, 20, 10), lid = make_cube(20, 20, 1);
+    back.translate(0.f, 20.f - wall, 0.f);
+    right.translate(20.f - wall, 0.f, 0.f);
     lid.translate(0.f, 0.f, 9.f);
     for (const TriangleMesh *part : { &back, &left, &right, &lid })
         box.merge(*part);
