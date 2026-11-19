@@ -97,12 +97,14 @@ enum_bitmask<ModelObjectCutAttribute> cut_attributes(const CutObjectArgs& args, 
 // Why the instance cannot be cut along the plane, or none: has_connectors (connectors are placed in the Cut gizmo, which
 // cuts them), dowel_alone (a cut object left as one dowel connector, which the gizmo does not open on), and
 // plane_misses_object (no vertex of the instance's parts on one side of the plane, which a zero normal meets too). The
-// plane is in the model's coordinates, which are the 3D view's for an FFF printer. Pure.
-std::optional<Refusal> cut_refusal(const ModelObject& object, int instance, const Vec3d& point, const Vec3d& normal);
+// plane is in the 3D view's coordinates, where an SLA object stands `sla_shift_z` above its place in the model (0 for
+// an FFF printer), as cut_matrix() takes it. Pure.
+std::optional<Refusal> cut_refusal(const ModelObject& object, int instance, const Vec3d& point, const Vec3d& normal,
+                                   double sla_shift_z);
 
 // What GLGizmoCut3D::get_cut_matrix() gives for the plane: the translation to `point` from the instance's offset, less
-// the SLA elevation `sla_shift_z`, times the turn of +Z to `normal`; a normal facing straight down is the gizmo's
-// Flip, a half turn about X. Pure.
+// the SLA elevation `sla_shift_z`, times the shortest turn of +Z to `normal`; a normal facing straight down, which has
+// no shortest turn, is the gizmo's Flip, a half turn about X. Pure.
 Transform3d cut_matrix(const ModelObject& object, int instance, const Vec3d& point, const Vec3d& normal, double sla_shift_z);
 
 // Cuts the instance along the plane as Perform cut does: the refusals first, then the open gizmo closed, one undo step

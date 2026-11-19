@@ -32,6 +32,7 @@
 #include "RecordingDialog.hpp"
 #include "Preferences.hpp"
 #include "SceneBenchmark.hpp"
+#include "Selection.hpp"
 #include "format.hpp"
 #include "DeviceCore/DevManager.h"
 #include "Mcp/McpArguments.hpp"
@@ -532,7 +533,8 @@ namespace {
 // The part type object_add_text and object_add_svg pass where the action passes ModelVolumeType::INVALID, which adds a
 // part to the selected object, or a new object when nothing is selected. A call that names an object selects it first,
 // as a click would, and adds a part of `type` to it (a part when left out); `type` alone adds to the selected object and
-// is refused with nothing selected, since a new object has no part type.
+// is refused with nothing selected or with parts of several objects selected, where the action would make a new object,
+// which has no part type.
 Ops::Outcome<ModelVolumeType> part_type(Plater& plater, const json& args)
 {
     const bool named = Mcp::names_targets(args);
@@ -546,8 +548,13 @@ Ops::Outcome<ModelVolumeType> part_type(Plater& plater, const json& args)
         // Adding the part is the call's undo step; selecting its object is not a step of its own.
         Plater::SuppressSnapshots quiet(&plater);
         Ops::select_targets(object.value());
-    } else if (Ops::shown_prepare_canvas().get_selection().is_empty())
-        return Ops::nothing_selected();
+    } else {
+        const Selection& selection = Ops::shown_prepare_canvas().get_selection();
+        if (selection.is_empty())
+            return Ops::nothing_selected();
+        if (selection.get_object_idx() < 0)
+            return Ops::one_object_only();
+    }
     return type == "negative" ? ModelVolumeType::NEGATIVE_VOLUME :
            type == "modifier" ? ModelVolumeType::PARAMETER_MODIFIER :
                                 ModelVolumeType::MODEL_PART;

@@ -366,9 +366,18 @@ call replies `blocked_by_dialog`, `dialogs()` lists one dialog titled "Send G-co
   - `print_start` is refused `not_sliced`; nothing sent.
   - `print_start {plates: "all"}` and `printer_send {plates: "all"}` are each refused `all_plates_not_offered`: the
     Print button offers neither for a printer through a host other than SimplyPrint; nothing sent.
+  - `plate_add`, then `plate_select {plate: 1}`: plate 1, empty, is current. `print_start {plates: 0}` is refused
+    `not_sliced`; nothing sent; `plate_list` reads plate 1 current again, and the call's undo steps are four
+    `"select partplate!"`: a change of the current plate logs two (`Plater::select_plate()` one, and
+    `PartPlateList::select_plate()` another, as `test_files`' `SELECTED` has it), once as plate 0 is made current
+    for the Print button's check and once as the plate that was current is put back, as a refused export that names a
+    plate does. Then `plate_select {plate: 0}`.
 - Sliced (`plate_slice`, the plate's `outcome` `ok`):
   - `print_start` is cancelled.
   - `printer_send {plates: 0}` is cancelled.
+  - `plate_select {plate: 1}`, then `printer_send {plates: 0}` is cancelled; `plate_list` reads plate 0 current,
+    and the call's undo steps are the two `"select partplate!"` of one change of plate: the plate it named stays
+    current. Plate 0 stays current for the steps below.
 - Upload answered 200:
   - The row ends `completed` at progress 100 and was seen at (`uploading`, 99) during the stub's 3 s pause.
   - The row has `filename` `mcp_send_ok.gcode` and the stub's port in `host`.

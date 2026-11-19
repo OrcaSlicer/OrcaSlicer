@@ -33,12 +33,15 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import Checks, dialogs  # noqa: E402
+from checks import Checks, dialogs, plates, undo_steps  # noqa: E402
 
 MODEL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "resources", "handy_models", "OrcaCube_v2.drc")
 SEND = "orca_command:send_gcode:orca"
 UPLOAD_DIALOG = "Send G-code to printer host"
 PAUSE_S = 3.0
+# The undo steps a change of the current plate logs: Plater::select_plate() takes one, and PartPlateList::select_plate()
+# another when the plate changes (as test_files has it).
+SELECTED = ["select partplate!", "select partplate!"]
 
 
 class StubHost:
@@ -108,6 +111,11 @@ def closed_port():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("127.0.0.1", 0))
         return s.getsockname()[1]
+
+
+def current_plate(client):
+    """The index of the current plate, from plate_list."""
+    return next(i for i, p in enumerate(plates(client)) if p["current"])
 
 
 def uploads(client):
@@ -209,11 +217,27 @@ def main():
     nothing_sent("print_start {plates: \"all\"}", lambda: client.call("print_start", plates="all"), "all_plates_not_offered")
     nothing_sent("printer_send {plates: \"all\"}", lambda: client.call("printer_send", plates="all"), "all_plates_not_offered")
 
+    # A plate named in a refused call: selected for the Print button's check, then the plate that was current put back,
+    # as a refused export that names a plate does.
+    client.call("plate_add")
+    client.call("plate_select", plate=1)
+    undo_steps(client)
+    nothing_sent("print_start {plates: 0}, not sliced", lambda: client.call("print_start", plates=0), "not_sliced")
+    t.equal("print_start {plates: 0}: plate 1 is current again", current_plate(client), 1)
+    t.equal("print_start {plates: 0}: the undo steps, two changes of plate", undo_steps(client), SELECTED + SELECTED)
+    client.call("plate_select", plate=0)
+
     # ---- Sliced ----
     sliced = client.call("plate_slice")
     t.equal("the cube slices", sliced["plates"][0]["outcome"], "ok")
     cancelled("print_start", "print_start")
     cancelled("printer_send {plates: 0}", "printer_send", plates=0)
+    # The plate a call names stays selected; plate 0 stays current for the steps below.
+    client.call("plate_select", plate=1)
+    undo_steps(client)
+    cancelled("printer_send {plates: 0}, plate 1 current", "printer_send", plates=0)
+    t.equal("printer_send {plates: 0}: plate 0 is current", current_plate(client), 0)
+    t.equal("printer_send {plates: 0}: the undo steps, one change of plate", undo_steps(client), SELECTED)
 
     # ---- The host answers 200 after a pause ----
     client.call("replay_export", clear=True)

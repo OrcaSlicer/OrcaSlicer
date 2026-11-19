@@ -410,9 +410,38 @@ class GizmoCommandsTest:
         self.save_and_reopen("lay.3mf")
         self.turned(f"{s} 10: saved and reopened", [flat, {"rotation": [0, 0, 0]}])
 
+    def refused_lay_on_face(self):
+        s = "lay on face refused"
+        self.start(s)
+        self.cube([100, 100], name="A")
+        self.run("object_transform", object=0, rotate=[30, 0, 0], mode="absolute")
+        self.run("object_select", none=True)
+        tilted = {"offset": [100, 100, 13.66], "rotation": [30, 0, 0], "size": [20, 27.32, 27.32]}
+        self.turned(f"{s} 0", [tilted])
+
+        undo_steps(self.c)
+        self.t.refused(f"{s} 1: refused", lambda: self.c.call("object_lay_on_face", object=0, frame="world"),
+                       code="needs_normal")
+        self.turned(f"{s} 1", [tilted])
+        self.t.equal(f"{s} 1: no gizmo open", self.gizmo(), None)
+        self.t.equal(f"{s} 1: the undo steps", undo_steps(self.c), [])
+
+        self.run("object_lay_on_face", object=0)
+        undo_steps(self.c)
+        self.t.refused(f"{s} 2: refused", lambda: self.c.call("object_lay_on_face", object=0, normal=[0, 0, 0]),
+                       code="zero_normal")
+        self.turned(f"{s} 2", [tilted])
+        self.t.equal(f"{s} 2: refused before it closes the open gizmo", self.gizmo(), {"name": "Flatten", "canvas": "3d"})
+        self.t.equal(f"{s} 2: the undo steps", undo_steps(self.c), [])
+        self.run("object_select", none=True)
+        self.t.equal(f"{s} 3: no gizmo open", self.gizmo(), None)
+
     def brim_file(self, path):
-        """The saved project's Metadata/brim_ear_points.txt as {object_id: [(x, y, z, r), ...]}."""
+        """The saved project's Metadata/brim_ear_points.txt as {object_id: [(x, y, z, r), ...]}; {} when the project
+        has no ears and so no such file."""
         with zipfile.ZipFile(path) as z:
+            if "Metadata/brim_ear_points.txt" not in z.namelist():
+                return {}
             text = z.read("Metadata/brim_ear_points.txt").decode("utf-8")
         out = {}
         for line in text.splitlines():
@@ -524,6 +553,16 @@ class GizmoCommandsTest:
         self.t.equal(f"{s} 13: two ears", self.brim_ears(), 2)
         self.t.equal(f"{s} 13: no gizmo open", self.gizmo(), None)
 
+        self.run("object_set_brim_ears", object=0)
+        self.t.equal(f"{s} 14: Brim Ears open", self.gizmo(), {"name": "Brim Ears", "canvas": "3d"})
+        self.run("object_set_brim_ears", object=0, clear=True)
+        self.t.equal(f"{s} 14: no ears", self.brim_ears(), 0)
+        self.t.equal(f"{s} 14: Brim Ears was closed first", self.gizmo(), None)
+        path = os.path.join(self.folder, "cleared.3mf")
+        self.run("project_save", path=path, overwrite=True)
+        self.t.equal(f"{s} 14: the file holds no ears for A, the gizmo's two not written back",
+                     self.brim_file(path).get(1, []), [])
+
     def a_parts(self):
         """A's parts as (type, its text's text or its SVG's file name, else None). A text read back from a project file
         has an svg entry too, with no file, so its text comes first."""
@@ -589,12 +628,24 @@ class GizmoCommandsTest:
         self.save_and_reopen("parts.3mf")
         state(f"{s} 8: saved and reopened", after4)
 
+        # type without object adds to the selected object, and two are selected.
+        self.run("object_select", objects=[0, 1])
+        for row, tool, args in [(9, "object_add_text", {}), (10, "object_add_svg", {"path": star})]:
+            undo_steps(self.c)
+            self.t.refused(f"{s} {row}: refused", lambda: self.c.call(tool, type="modifier", **args), code="one_object_only")
+            self.idle()
+            state(f"{s} {row}", after4)
+            self.t.equal(f"{s} {row}: no new object", len(self.listed()), 2)
+            self.t.equal(f"{s} {row}: the selection", self.selected()["objects"], [0, 1])
+            self.t.equal(f"{s} {row}: the undo steps", undo_steps(self.c), [])
+
     def run_all(self, only=()):
         self.run("action_run", id="orca_command:mode_expert:orca")
         self.t.equal("Expert mode", self.c.call("app_state")["mode"], "expert")
         scenarios = [("opening a gizmo on a target", self.opening), ("openings refused", self.refused_openings),
                      ("cut from arguments", self.cut), ("cuts refused", self.refused_cuts),
-                     ("lay on face from a direction", self.lay_on_face), ("brim ears from positions", self.ears),
+                     ("lay on face from a direction", self.lay_on_face), ("lay on face refused", self.refused_lay_on_face),
+                     ("brim ears from positions", self.ears),
                      ("text and SVG as a part of a named object", self.text_and_svg)]
         for name, scenario in scenarios:
             if not only or name in only:

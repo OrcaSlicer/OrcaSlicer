@@ -425,7 +425,7 @@ counts a brush stroke gives, the Measure distance, the reverted font and where a
 are checked by a tolerance or a property, as the app works them out.
 
 ## `test_gizmo_commands`
-`test_gizmo_commands.py` · Python, 421 checks · in `sweep.json` as `{"path": "test_gizmo_commands.py"}`
+`test_gizmo_commands.py` · Python, 461 checks · in `sweep.json` as `{"path": "test_gizmo_commands.py"}`
 
 **Tests:** The commands that open a gizmo on a named target, and the ones among them that do the gizmo's job from
 arguments with no gizmo: `object_paint`, `object_measure`, `object_simplify`, `part_boolean`, `object_cut`,
@@ -553,6 +553,17 @@ Instances are written `i0`, `i1` with their offset and `rotation_deg`; angles to
 | 9 | `object_lay_on_face {object: 0, instance: 0, normal: [0, 0, -1]}` | i0 (100, 100, 10) rot [0, 0, 0] · i1 rot [0, 0, 0] | the other instance turns with it; both rest on the bed |
 | 10 | saved and reopened | as after 9 | |
 
+**Scenario: lay on face refused**
+
+A as at 0 of the scenario above, turned 30° about X, nothing selected. After every row A is as after 0 of that
+scenario and the step took no undo step.
+
+| # | Step | Refused | Also checked |
+|---|---|---|---|
+| 1 | `object_lay_on_face {object: 0, frame: "world"}` | `needs_normal`: `frame` acts only with `normal` | `gizmo()` none |
+| 2 | `object_lay_on_face {object: 0}`, then `object_lay_on_face {object: 0, normal: [0, 0, 0]}` | `zero_normal` | `gizmo()` Flatten: the call is refused before it closes the open gizmo |
+| 3 | `object_select {none: true}` | | `gizmo()` none |
+
 **Scenario: brim ears from positions**
 
 A 20 mm cube A at (100, 100), nothing selected. The process's `brim_type` is `auto_brim` and its
@@ -576,6 +587,7 @@ asked for at bed position (x, y) is stored at (x - 100, y - 100, -10.0001) in A'
 | 11 | `object_set_brim_ears {object: 0, points: [{position: [100, 90], radius: 150}]}` | as after 10 | refused `radius_out_of_range`; `gizmo()` Brim Ears: a refused call leaves the gizmo open; no undo step |
 | 12 | `object_set_brim_ears {object: 0, points: [{position: [100, 90]}], clear: true}` | as after 10 | refused, the words "points or clear, not both"; `gizmo()` Brim Ears |
 | 13 | `object_select {none: true}` | `brim_ears` 2 | `gizmo()` none |
+| 14 | `object_set_brim_ears {object: 0}`, then `object_set_brim_ears {object: 0, clear: true}` | `brim_ears` 0 | after the first, `gizmo()` Brim Ears; after the second, `gizmo()` none, and after `project_save` to a new file, `brim_file()` has no ears for `object_id` 1: the gizmo, closed first, did not write back the two ears it held |
 
 **Scenario: text and SVG as a part of a named object**
 
@@ -596,11 +608,17 @@ A 20 mm cube A at (100, 100) and a 20 mm cube B at (150, 100), B selected (`obje
 | 6 | `redo` | as after 4 | |
 | 7 | `dialog_auto_answer {rules: [{match: ".", button: "ok", path: <test folder>/star.svg}]}`, then `object_add_svg {object: 0, type: "modifier"}` | as after 4 | the rule's `uses` is 1: the file picker opened; nothing was added, since the picker reads `GetPaths()`, which an automatic answer leaves empty |
 | 8 | saved and reopened | as after 4 | text parts keep `text`, SVG parts keep `svg` |
+| 9 | `object_select {objects: [0, 1]}`, then `object_add_text {type: "modifier"}` | as after 8 | refused `one_object_only`: `type` without `object` adds to the selected object, and two are selected; `scene()` two objects, B one part; `selection()` objects [0, 1]; no undo step |
+| 10 | `object_add_svg {type: "modifier", path: star.svg}`, the same selection | as after 8 | refused `one_object_only`; as in 9 |
 
 **Not checked:**
 - What the opened gizmos then do: `test_gizmos` drives each one's panel.
 - Where on A the text and the SVG parts land, which follows the camera; that they are A's is checked by A's parts.
-- The upper piece's turn after a cut that places it on its cut face: its size and volume are checked.
+- The upper piece's turn after a cut that places it on its cut face: its size and volume are checked. The call turns
+  the cut plane from level by the shortest turn to its normal, which is the turn the Cut gizmo's plane takes when it
+  is tilted about one axis; a plane tilted in the gizmo about two axes in turn can differ from it by a turn about the
+  normal, which no argument of the call names. The unit cases of `cut_matrix()` check the turn, the straight-down
+  plane (the gizmo's Flip) and a plane just off straight down.
 - A cut object made of one dowel connector, which `object_cut` refuses as `dowel_alone`, and a cut object with
   connectors, refused as `has_connectors`: only the Cut gizmo's connectors make them, so the unit cases of
   `cut_refusal()` cover both.

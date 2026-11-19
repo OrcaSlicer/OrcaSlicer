@@ -35,6 +35,7 @@
 #include "libslic3r/libslic3r.h"
 
 #include <admesh/stl.h>
+#include <Eigen/Core>
 #include <Eigen/Geometry>
 
 #include <cassert>
@@ -327,13 +328,14 @@ enum_bitmask<ModelObjectCutAttribute> cut_attributes(const CutObjectArgs& args, 
            only_if(!has_cut_id, Attribute::InvalidateCutInfo) | only_if(keep_painting, Attribute::KeepPaint);
 }
 
-std::optional<Refusal> cut_refusal(const ModelObject& object, int instance, const Vec3d& point, const Vec3d& normal)
+std::optional<Refusal> cut_refusal(const ModelObject& object, int instance, const Vec3d& point, const Vec3d& normal,
+                                   double sla_shift_z)
 {
     if (!object.cut_connectors.empty())
         return refusal("has_connectors", L("The object has cut connectors, which only the Cut gizmo cuts: cut it there."));
     if (is_dowel_alone(object))
         return dowel_alone();
-    if (plane_misses(object, instance, point, normal))
+    if (plane_misses(object, instance, point - sla_shift_z * Vec3d::UnitZ(), normal))
         return refusal("plane_misses_object", L("The cut plane does not cross the object: all of it lies on one side of the plane."));
     return std::nullopt;
 }
@@ -343,11 +345,11 @@ Transform3d cut_matrix(const ModelObject& object, int instance, const Vec3d& poi
     Vec3d from_instance = point - object.instances[std::size_t(instance)]->get_offset();
     from_instance.z() -= sla_shift_z;
     const Vec3d unit = normal.normalized();
-    // The gizmo's plane starts level, facing +Z, and turns from there. A turn to straight down is the gizmo's Flip, which
-    // fixes the turn about the normal that Eigen would otherwise pick for opposite vectors; it decides how a piece laid on
-    // its cut face is turned on the bed.
+    // The gizmo's plane starts level, facing +Z, and turns from there by the shortest turn to the normal. Straight down
+    // has no shortest turn: Eigen picks any axis in the bed's plane for vectors this close to opposite, so that normal
+    // takes the gizmo's Flip, a half turn about X, which decides how a piece laid on its cut face is turned on the bed.
     Transform3d turn = Transform3d::Identity();
-    if (unit.z() < -1. + EPSILON)
+    if (unit.z() < -1. + Eigen::NumTraits<double>::dummy_precision())
         turn = Geometry::rotation_transform(PI * Vec3d::UnitX());
     else
         turn.linear() = Eigen::Quaterniond::FromTwoVectors(Vec3d::UnitZ(), unit).toRotationMatrix();
@@ -362,11 +364,6 @@ Outcome<Targets> cut_object(const CutObjectArgs& args)
     if (std::optional<Refusal> missing = no_such_instance(model, args.object, args.instance))
         return *missing;
     ModelObject* object = model.objects[std::size_t(args.object)];
-    if (std::optional<Refusal> refused = cut_refusal(*object, args.instance, args.point, args.normal))
-        return *refused;
-
-    // The open gizmo writes its own state to the model as it closes, so it closes before the object is read for the cut.
-    close_open_gizmo();
     // The plane is the 3D view's, which lifts an SLA object off the bed; the gizmo reads that lift from its selected
     // volume, the instance's first volume in the scene.
     double sla_shift_z = 0.;
@@ -375,7 +372,11 @@ Outcome<Targets> cut_object(const CutObjectArgs& args)
             sla_shift_z = volume->get_sla_shift_z();
             break;
         }
+    if (std::optional<Refusal> refused = cut_refusal(*object, args.instance, args.point, args.normal, sla_shift_z))
+        return *refused;
 
+    // The open gizmo writes its own state to the model as it closes, so it closes before the object is read for the cut.
+    close_open_gizmo();
     Plater::TakeSnapshot snapshot(&plater, _u8L("Cut by Plane"));
     const ModelObjectCutAttributes attributes = cut_attributes(args, wxGetApp().app_config->get_bool("keep_painting"),
                                                                !object->cut_id.id().invalid());

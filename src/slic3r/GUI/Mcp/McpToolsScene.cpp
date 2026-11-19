@@ -1700,7 +1700,8 @@ void register_object_menu_commands(CommandCatalog& catalog)
         json schema = object_schema(own);
         schema["properties"]["type"] = enum_prop({"part", "negative", "modifier"},
                                                  "The part's type, as the object's Add menu offers it. Default part. Without "
-                                                 "object, on the selected object.");
+                                                 "object, on the selected object: refused (nothing_selected, "
+                                                 "one_object_only) unless one object is selected.");
         return with_targets(std::move(schema), kObjects, true);
     };
     const std::string text = "Add a text: a part on the selected object, or a new object when nothing is selected. It is created "

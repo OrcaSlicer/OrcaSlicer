@@ -1858,7 +1858,7 @@
       "type": "integer"
      },
      "type": {
-      "description": "The part's type, as the object's Add menu offers it. Default part. Without object, on the selected object.",
+      "description": "The part's type, as the object's Add menu offers it. Default part. Without object, on the selected object: refused (nothing_selected, one_object_only) unless one object is selected.",
       "enum": [
        "part",
        "negative",
@@ -1912,7 +1912,7 @@
       "type": "string"
      },
      "type": {
-      "description": "The part's type, as the object's Add menu offers it. Default part. Without object, on the selected object.",
+      "description": "The part's type, as the object's Add menu offers it. Default part. Without object, on the selected object: refused (nothing_selected, one_object_only) unless one object is selected.",
       "enum": [
        "part",
        "negative",

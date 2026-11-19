@@ -2329,9 +2329,10 @@ Slic3r::ModelObject* placed_cube(Slic3r::Model& model)
 }
 
 // The code cut_refusal() gives, or "" for none.
-std::string cut_refusal_code(const Slic3r::ModelObject& object, const Slic3r::Vec3d& point, const Slic3r::Vec3d& normal)
+std::string cut_refusal_code(const Slic3r::ModelObject& object, const Slic3r::Vec3d& point, const Slic3r::Vec3d& normal,
+                             double sla_shift_z = 0.)
 {
-    const std::optional<Refusal> refusal = cut_refusal(object, 0, point, normal);
+    const std::optional<Refusal> refusal = cut_refusal(object, 0, point, normal, sla_shift_z);
     return refusal ? std::string(refusal->code) : std::string();
 }
 
@@ -2387,6 +2388,12 @@ TEST_CASE("a cut is refused where the plane misses the object or the object has 
     CHECK(cut_refusal_code(cube, {130., 100., 10.}, Slic3r::Vec3d::UnitX()) == "plane_misses_object");
     // A zero normal gives no plane.
     CHECK(cut_refusal_code(cube, {100., 100., 10.}, Slic3r::Vec3d::Zero()) == "plane_misses_object");
+    // An SLA object lifted 5 mm stands from 5 to 25 mm in the 3D view, where the plane is: 22 mm crosses it, 2 mm does
+    // not, the other way round from the cube on the bed.
+    CHECK(cut_refusal_code(cube, {100., 100., 22.}, up, 5.).empty());
+    CHECK(cut_refusal_code(cube, {100., 100., 2.}, up, 5.) == "plane_misses_object");
+    CHECK(cut_refusal_code(cube, {100., 100., 22.}, up) == "plane_misses_object");
+    CHECK(cut_refusal_code(cube, {100., 100., 2.}, up).empty());
 
     // Connectors are placed and cut in the Cut gizmo, whatever the plane.
     Slic3r::ModelObject& with_connectors = *placed_cube(model);
@@ -2400,7 +2407,7 @@ TEST_CASE("a cut is refused where the plane misses the object or the object has 
     CHECK(cut_refusal_code(dowel, {100., 100., 10.}, up) == "dowel_alone");
 
     // Each refusal is one whole sentence a person can read.
-    const std::optional<Refusal> misses = cut_refusal(cube, 0, {100., 100., 50.}, up);
+    const std::optional<Refusal> misses = cut_refusal(cube, 0, {100., 100., 50.}, up, 0.);
     REQUIRE(misses.has_value());
     CHECK_FALSE(misses->msgid.empty());
 }
@@ -2435,6 +2442,13 @@ TEST_CASE("a cut's matrix places the plane as the Cut gizmo places it", "[Operat
     same(down.linear() * Slic3r::Vec3d::UnitY(), -Slic3r::Vec3d::UnitY());
     same(down.linear() * Slic3r::Vec3d::UnitX(), Slic3r::Vec3d::UnitX());
     CHECK_THAT(down.linear().determinant(), WithinAbs(1., 1e-12));
+
+    // A plane just off straight down keeps its tilt, 0.57° here: only straight down itself is the Flip.
+    const Slic3r::Vec3d       near_down = Slic3r::Vec3d(0.01, 0., -1.).normalized();
+    const Slic3r::Transform3d tilted_down = cut_matrix(cube, 0, {100., 100., 10.}, near_down, 0.);
+    same(tilted_down.linear() * Slic3r::Vec3d::UnitZ(), near_down);
+    // A turn this close to a half turn is computed to about 1e-11.
+    CHECK_THAT(tilted_down.linear().determinant(), WithinAbs(1., 1e-9));
 }
 
 
