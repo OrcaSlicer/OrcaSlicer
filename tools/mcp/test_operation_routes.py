@@ -108,11 +108,19 @@ def main():
     check("and the arrangement moved a cube", offsets() != before, (before, offsets()))
     check("and the Prepare view is shown afterwards", state["selection"].get("canvas") == "3d", state["selection"])
     client.call("view_set", canvas="3d")
+    # Both cubes on one spot, so that only an arrangement that runs can set them apart.
+    for i in range(2):
+        client.call("object_transform", object=i, position=[128, 128, 10])
+    together = offsets()
+    check("the cubes are back on one spot", together == [[128, 128], [128, 128]], together)
     client.call("object_select", objects=[0])
     opened = client.call("widget_click", target={"gizmo": "Move"})
     code, reply = answer("object_arrange")
     state = client.call("app_state")
-    check("object_arrange arranges with the Move gizmo open", opened.get("active") is True and code is None, (opened, reply))
+    after = offsets()
+    apart = len(after) == 2 and (abs(after[0][0] - after[1][0]) >= 20 or abs(after[0][1] - after[1][1]) >= 20)
+    check("object_arrange arranges with the Move gizmo open", opened.get("active") is True and code is None and apart,
+          (opened, reply, after))
     check("and the gizmo stays open", state.get("gizmo") is not None, state.get("gizmo"))
     if state.get("gizmo") is not None:
         client.call("widget_click", target={"gizmo": "Move"})

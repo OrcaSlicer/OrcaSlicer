@@ -3514,8 +3514,14 @@ json UiInspector::imgui_input(UiTarget t, const json& value, bool submit)
         key(&field, "Return", "");
     }
     const std::string shown = imgui_record(field).value;
+    // A field can show the edit it took in its own terms (the Move panel's Object coordinates measure from the place
+    // the object moved to, an angle may read as an equal one) or bounded: what it shows is the reply, with the text
+    // typed beside it, and no error, which would have a caller make the edit again.
     if (!imgui_value_matches(shown, field_kind == "multiline" ? json(text) : value))
-        throw ToolFailure("\"" + t.imgui_label + "\" shows \"" + shown + "\" after typing \"" + text + "\"", {{"value", shown}});
+        return {{"value", shown},
+                {"typed", text},
+                {"note", "The field shows another value than the one typed: it shows the edit in its own terms or bounded it. Read the "
+                         "model back to see what changed."}};
     return {{"value", shown}};
 }
 

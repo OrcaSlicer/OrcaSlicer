@@ -13,6 +13,7 @@
 #include "slic3r/GUI/Plater.hpp"
 
 #include "libslic3r/Config.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/Model.hpp"
 
 #include <algorithm>
@@ -267,9 +268,16 @@ LayerTicks layer_ticks(std::optional<int> first, int last, int count)
 Outcome<int> layer_count()
 {
     GLCanvas3D* canvas = the_plater().get_preview_canvas3D();
-    IMSlider*   layers = canvas != nullptr ? canvas->get_gcode_viewer().get_layers_slider() : nullptr;
-    // The slider's range alone says nothing: it starts at 0..100 before a print gives it its layers.
-    if (layers == nullptr || layers->values_count() == 0)
+    if (canvas == nullptr)
+        return no_layers();
+    GCodeViewer&                viewer = canvas->get_gcode_viewer();
+    IMSlider*                   layers = viewer.get_layers_slider();
+    const GCodeProcessorResult* result = the_plater().get_partplate_list().get_curr_plate()->get_slice_result();
+    // The slider alone says nothing: its range starts at 0..100 before a print gives it layers, and the Preview
+    // hides it without clearing it for a plate that has none. Only a viewer that holds the current plate's
+    // toolpaths has the layers of that plate, the test app_state's preview makes too.
+    if (layers == nullptr || layers->values_count() == 0 || result == nullptr || !viewer.has_data() ||
+        viewer.last_result_id() != result->id)
         return no_layers();
     return layers->GetMaxValue() + 1;
 }

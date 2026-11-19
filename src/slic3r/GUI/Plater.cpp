@@ -18979,6 +18979,15 @@ wxString Plater::get_project_name()
     return p->get_project_name();
 }
 
+void Plater::name_untitled_project(const boost::filesystem::path& file)
+{
+    // The test add_file() makes: a new project's name is the translated "Untitled".
+    if (get_project_name() != _L("Untitled"))
+        return;
+    p->set_project_name(from_u8(file.stem().string()));
+    wxGetApp().mainframe->update_title();
+}
+
 void Plater::update_all_plate_thumbnails(bool force_update)
 {
     for (int i = 0; i < get_partplate_list().get_plate_count(); i++)

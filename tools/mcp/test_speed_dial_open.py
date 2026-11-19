@@ -8,13 +8,18 @@ no title bar on the dial.
 Each page is reached from Home by a click on its tab, as a person switches pages: Prepare first, while the
 plater still shows the 3D view it started with, then Design when the Design tab is on, and Preview. The page's
 3D view must then hold the keyboard focus, as a focused sidebar control keeps Space for itself, and Space sent
-to the focused window must open the dial. The view also takes the focus when the pointer enters it, so these
-checks prove the switch itself only where no pointer rests on the view: on a native Wayland display, or on a
-desktop with the pointer elsewhere. Where KWin answers on the display's D-Bus (the private one of a
+to the focused window must open the dial. The view also takes the focus when the pointer enters it, so before
+each tab click the test moves the system pointer to the primary display's top-left corner, (0, 0), and reads
+it back there: the seeded main window opens at the work area's top left, so that corner is its top bar or lies
+outside it, never in the 3D view below the tab bar. A pointer that does not read back at (0, 0) fails the
+page's focus check. On a native Wayland display, where an app can neither move the pointer nor read where it
+is, the focus checks are reported SKIP. Where KWin answers on the display's D-Bus (the private one of a
 `--headless` launch, else the caller's), the frame KWin reports for the dial must be the dial's own size: a
 title bar of KWin's makes the frame taller. Run it on a freshly launched app. Exits 0 when every check passes.
 """
 
+import ctypes
+import ctypes.util
 import os
 import re
 import subprocess
@@ -23,6 +28,69 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
+
+
+def park_pointer(display):
+    """Moves the system pointer to (0, 0), the primary display's top-left corner, and returns where the system then
+    reads it, as (x, y), or a string saying why it could not be moved or read."""
+    if os.name == "nt":
+        from ctypes import wintypes
+        user32 = ctypes.windll.user32
+        if not user32.SetCursorPos(0, 0):
+            return f"SetCursorPos failed ({ctypes.GetLastError()})"
+        point = wintypes.POINT()
+        if not user32.GetCursorPos(ctypes.byref(point)):
+            return f"GetCursorPos failed ({ctypes.GetLastError()})"
+        return (point.x, point.y)
+    if sys.platform == "darwin":
+        class CGPoint(ctypes.Structure):
+            _fields_ = [("x", ctypes.c_double), ("y", ctypes.c_double)]
+        graphics = ctypes.CDLL(ctypes.util.find_library("CoreGraphics")
+                               or "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")
+        foundation = ctypes.CDLL(ctypes.util.find_library("CoreFoundation"))
+        graphics.CGWarpMouseCursorPosition.argtypes = [CGPoint]
+        graphics.CGEventCreate.restype = ctypes.c_void_p
+        graphics.CGEventCreate.argtypes = [ctypes.c_void_p]
+        graphics.CGEventGetLocation.restype = CGPoint
+        graphics.CGEventGetLocation.argtypes = [ctypes.c_void_p]
+        foundation.CFRelease.argtypes = [ctypes.c_void_p]
+        if graphics.CGWarpMouseCursorPosition(CGPoint(0, 0)) != 0:
+            return "CGWarpMouseCursorPosition failed"
+        event = graphics.CGEventCreate(None)
+        if not event:
+            return "CGEventCreate failed"
+        location = graphics.CGEventGetLocation(event)
+        foundation.CFRelease(event)
+        return (round(location.x), round(location.y))
+    path = ctypes.util.find_library("X11")
+    if not path or not display:
+        return "libX11 or the X display is not found"
+    x = ctypes.CDLL(path)
+    x.XOpenDisplay.restype = ctypes.c_void_p
+    x.XOpenDisplay.argtypes = [ctypes.c_char_p]
+    x.XDefaultRootWindow.restype = ctypes.c_ulong
+    x.XDefaultRootWindow.argtypes = [ctypes.c_void_p]
+    x.XWarpPointer.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_int, ctypes.c_int,
+                               ctypes.c_uint, ctypes.c_uint, ctypes.c_int, ctypes.c_int]
+    x.XSync.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    ulong, cint, cuint = ctypes.POINTER(ctypes.c_ulong), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_uint)
+    x.XQueryPointer.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ulong, ulong, cint, cint, cint, cint, cuint]
+    x.XCloseDisplay.argtypes = [ctypes.c_void_p]
+    dpy = x.XOpenDisplay(display.encode())
+    if not dpy:
+        return f"the X display {display} does not open"
+    try:
+        root = x.XDefaultRootWindow(dpy)
+        x.XWarpPointer(dpy, 0, root, 0, 0, 0, 0, 0, 0)
+        x.XSync(dpy, 0)
+        root_ret, child = ctypes.c_ulong(), ctypes.c_ulong()
+        rx, ry, wx, wy, mask = ctypes.c_int(), ctypes.c_int(), ctypes.c_int(), ctypes.c_int(), ctypes.c_uint()
+        if not x.XQueryPointer(dpy, root, ctypes.byref(root_ret), ctypes.byref(child), ctypes.byref(rx), ctypes.byref(ry),
+                               ctypes.byref(wx), ctypes.byref(wy), ctypes.byref(mask)):
+            return "XQueryPointer found the pointer on another screen"
+        return (rx.value, ry.value)
+    finally:
+        x.XCloseDisplay(dpy)
 
 
 def kwin_frames(session):
@@ -58,9 +126,18 @@ def kwin_frames(session):
 def main():
     client, session = orca_mcp.session_client()
     checks = []
+    skipped = []
+    wayland = client.call("app_state").get("display_backend") == "wayland"
+    display = session.get("display") or os.environ.get("DISPLAY")
+    parked = []  # where the pointer read back after each move before a tab click of the current switch
 
     def check(name, ok, detail=""):
         checks.append((name, bool(ok), detail))
+
+    def park():
+        """Moves the pointer off the 3D view, to (0, 0), before a tab click, and keeps where it read back."""
+        if not wayland:
+            parked.append(park_pointer(display))
 
     def wait_for(predicate, timeout):
         deadline = time.time() + timeout
@@ -80,8 +157,11 @@ def main():
         tabs = tree()
         home = re.search(r"\[(w\d+)\] tab \[", tabs)
         page = re.search(rf'\[(w\d+)\] tab "{re.escape(label)}"', tabs)
+        parked.clear()
+        park()
         client.call("widget_click", target=home.group(1))
         wait_for(lambda: client.call("app_state")["tab"] == "home", 10)
+        park()
         client.call("widget_click", target=page.group(1))
         return wait_for(lambda: client.call("app_state")["tab"] == tab, 10)
 
@@ -99,7 +179,14 @@ def main():
     for label, tab in pages:
         check(f"{label}: the tab is shown", switch_to(label, tab))
         focused = [line.strip() for line in tree().splitlines() if "[focused]" in line]
-        check(f"{label}: its 3D view holds the keyboard focus", focused and "name=OrcaSceneCanvas" in focused[0], focused)
+        if wayland:
+            skipped.append((f"{label}: its 3D view holds the keyboard focus",
+                            "on a native Wayland display an app can neither move the pointer off the view nor read "
+                            "where it is"))
+        else:
+            check(f"{label}: its 3D view holds the keyboard focus",
+                  all(p == (0, 0) for p in parked) and focused and "name=OrcaSceneCanvas" in focused[0],
+                  f"the pointer read back at {parked} after each move to (0, 0); focused: {focused}")
         client.call("keyboard_press", keys="Space")
         opened = wait_for(dial, 10)
         check(f"{label}: Space opens the Speed Dial", opened)
@@ -124,7 +211,9 @@ def main():
     failed = [c for c in checks if not c[1]]
     for name, ok, detail in checks:
         print(f"{'ok  ' if ok else 'FAIL'}  {name}" + ("" if ok or not detail else f"\n      {detail}"))
-    print(f"{len(checks) - len(failed)} of {len(checks)} checks passed")
+    for name, why in skipped:
+        print(f"SKIP  {name}: {why}")
+    print(f"{len(checks) - len(failed)} of {len(checks)} checks passed" + (f", {len(skipped)} skipped" if skipped else ""))
     return 1 if failed else 0
 
 

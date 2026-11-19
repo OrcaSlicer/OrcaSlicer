@@ -854,15 +854,17 @@ void register_project_tools(CommandCatalog& catalog)
                 throw ToolFailure("per_object writes every object into the folder path names: plates and overwrite go with one file");
             if (format == "toolpaths_obj" && args.contains("plates"))
                 throw ToolFailure("toolpaths_obj writes the toolpaths the Preview shows: plates goes with the other formats");
+            const json plate = args.value("plates", json("current"));
+            const bool all   = plate.is_string() && plate.get<std::string>() == "all";
+            if (plate.is_string() && !all && plate.get<std::string>() != "current")
+                throw ToolFailure("plates is \"all\", \"current\" or a plate index");
+            if (all && format != "sliced_3mf")
+                throw ToolFailure("plates \"all\" applies to sliced_3mf only");
             std::string err;
             const auto  path = per_object ? resolve_output_dir(arg_string(args, "path"), err) :
                                             resolve_output_path(arg_string(args, "path"), arg_bool(args, "overwrite", false), err);
             if (!path)
                 throw ToolFailure(err);
-            const json plate = args.value("plates", json("current"));
-            const bool all   = plate.is_string() && plate.get<std::string>() == "all";
-            if (all && format != "sliced_3mf")
-                throw ToolFailure("plates \"all\" applies to sliced_3mf only");
             std::optional<Ops::ExportTicket> ticket;
             json                             written = json::object(); // what the reply adds for stl and drc
             ctx.run_ui([&]() -> json {
@@ -871,6 +873,16 @@ void register_project_tools(CommandCatalog& catalog)
                     ctx.begin_operation();
                 Plater& plater = ui_plater();
                 const std::optional<int> index = plate.is_number_integer() ? std::optional<int>(plate.get<int>()) : std::nullopt;
+                // The export's own refusals of the object indices given come before the target check, which
+                // refuses an index the project lacks without no_such_object's code.
+                std::vector<int> indices;
+                if (args.contains("object") && args.at("object").is_number_integer())
+                    indices.push_back(args.at("object").get<int>());
+                for (const json& entry : args.value("objects", json::array()))
+                    if (entry.is_number_integer())
+                        indices.push_back(entry.get<int>());
+                if (const std::optional<Ops::Refusal> refusal = Ops::export_objects_refusal(format, indices, per_object, plater.model()))
+                    throw refused(*refusal);
                 // The objects named, by index or id; none named: every object.
                 Targets named;
                 if (names_targets(args)) {

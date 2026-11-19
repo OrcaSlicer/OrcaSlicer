@@ -268,10 +268,10 @@ def crash_reports():
 
 
 class Ports:
-    """Hands out ports from FIRST_PORT up, passing over any something already listens on."""
+    """Hands out ports from `first` up, passing over any something already listens on."""
 
-    def __init__(self):
-        self.next = FIRST_PORT
+    def __init__(self, first=FIRST_PORT):
+        self.next = first
 
     def take(self):
         while True:
@@ -348,6 +348,8 @@ def parse_args(argv=None):
                     help="run each app on a private compositor instead of on the desktop (Linux)")
     ap.add_argument("--wayland", action="store_true",
                     help="run each app as a native Wayland client instead of as an X11 client (Linux)")
+    ap.add_argument("--first-port", type=int, default=FIRST_PORT, metavar="PORT",
+                    help="the first port an app serves on, for sweeps run side by side (default: %(default)s)")
     ap.add_argument("--list", action="store_true", help="print the order the tests would run in and exit")
     return ap.parse_args(argv)
 
@@ -386,7 +388,7 @@ def main(argv=None):
 
     crashes_before = crash_reports()
     cond = threading.Condition()
-    ports, results, held, pending, stopping = Ports(), [], set(), list(parallel), threading.Event()
+    ports, results, held, pending, stopping = Ports(a.first_port), [], set(), list(parallel), threading.Event()
 
     def run(name, port):
         ctx = RunContext(mcp_dir=MCP_DIR, binary=binary, run_dir=os.path.join(out, name), port=port,

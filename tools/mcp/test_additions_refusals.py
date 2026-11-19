@@ -240,14 +240,17 @@ def main():
     # ---- An order of objects names each of the plate's objects once ----
     client.call("project_new", discard_changes=True)
     client.call("view_set", tab="prepare")
-    for _ in range(2):
-        client.call("object_add_primitive", shape="cube", size=[20, 20, 20])
+    # Named apart, so that an order that changed shows in the names.
+    for name in ("first", "second"):
+        client.call("object_add_primitive", shape="cube", size=[20, 20, 20], name=name)
         client.call("object_select", none=True)
     names = lambda: [o["name"] for o in client.call("object_list")["plates"][0]["objects"]]
-    before = names()
+    check("two cubes, first and second", names() == ["first", "second"], names())
     refused("object_order with an order that leaves out an object of the plate is refused, naming it", "object_order",
             {"plate": 0, "order": [1]}, "leaves out objects of plate 0: 0", "order_misses_object")
-    check("and leaves the order as it was", names() == before, (before, names()))
+    check("and leaves the order as it was", names() == ["first", "second"], names())
+    client.call("object_order", plate=0, order=[1, 0])
+    check("a full order is taken", names() == ["second", "first"], names())
 
     failed = [c for c in checks if not c[1]]
     for name, ok, detail in checks:

@@ -204,7 +204,11 @@ def defaults_given_back(orca):
     installed = set(filaments(orca, include_incompatible=True))
     check("the reply names the default filaments the app gives the second printer again, and only those",
           given and given == now - in_slots and given <= installed, (removed, sorted(now)))
-    check("what the reply calls uninstalled is no longer installed", not set(removed.get("uninstalled", [])) & installed, removed)
+    # filament_uninstall lists under uninstalled only the presets left uninstalled: those asked that the app did not
+    # give back.
+    uninstalled = removed.get("uninstalled")
+    check("what the reply calls uninstalled is exactly what stays uninstalled",
+          uninstalled is not None and set(uninstalled) == fits - given and not set(uninstalled) & installed, removed)
     return velo, sorted(now)
 
 

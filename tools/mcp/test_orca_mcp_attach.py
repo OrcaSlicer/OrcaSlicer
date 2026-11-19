@@ -15,7 +15,8 @@ command's name, chaining the original, and returns the command's whole reply. se
 datadir's login in its own token file, opens its main window 1600 x 900 at the top left of the work area, and leaves
 a reused datadir's conf as it is. ORCA_MCP_CALL_LOG gets a line
 per call, and reply_budget_s() reads ORCA_MCP_REPLY_BUDGET_MS as the app does. Exits 0 when every check passes.
-The folders the checks make are removed when they end.
+The folders the checks make are removed when they end. The checks are asserts, so a Python that runs with its
+asserts off (-O, or PYTHONOPTIMIZE, which the sweep's runner passes on) fails the test before any of them.
 """
 
 import http.server
@@ -41,6 +42,17 @@ def scratch(prefix):
 
 def ok(name):
     print(f"ok - {name}")
+
+
+def asserts_live():
+    """Whether Python runs the asserts every other check is, printing the check's line: with them off every check
+    would pass without checking anything."""
+    if sys.flags.optimize > 0:
+        print(f"FAIL - the asserts are live: Python runs with its asserts off (optimize level {sys.flags.optimize}, "
+              "from -O or PYTHONOPTIMIZE)")
+        return False
+    ok("the asserts are live")
+    return True
 
 
 def same_path(a, b):
@@ -306,6 +318,8 @@ def check_seed_datadir():
 
 def main():
     global _ROOT
+    if not asserts_live():
+        return 1
     with tempfile.TemporaryDirectory(prefix="orca-attach-") as root:
         _ROOT = root
         check_seed_datadir()

@@ -134,10 +134,10 @@ Outcome<std::vector<int>> slice_plates(const SliceArgs& args);
 // Refuses: no_such_plate.
 Outcome<SliceTicket> start_slice(const SliceArgs& args);
 
-// How many layers the Preview has to show, for a caller that turns an argument of its own into a
-// layer. The slider keeps the last slice's layers until another slice replaces them, so a plate that
-// is empty or not sliced can still have layers to show.
-// Refuses: no_layers (the layer slider is absent or was given no layers, as before the first slice).
+// How many layers the Preview has to show of the current plate, for a caller that turns an argument of
+// its own into a layer.
+// Refuses: no_layers (the Preview does not hold the current plate's toolpaths: the plate is empty, not
+// sliced, or its slice failed).
 Outcome<int> layer_count();
 
 struct ShowLayerRangeArgs

@@ -4,9 +4,7 @@ The design of this area's sweep tests. The rules every entry follows, the grades
 in [TESTS.md](../TESTS.md).
 
 ## `test_slice_preview`
-`test_slice_preview.py` · Python · takes the place of `slice_stats.json`, `preview.json`, `layers.json` and
-`view_switches.json`, and of the slicing, Preview layer and plate index cases of the removed `ops_start_slice.json`,
-`ops_show_layer_range.json` and `ops_select_plate.json`
+`test_slice_preview.py` · Python, 758 checks · in `sweep.json` as `{"path": "test_slice_preview.py", "timeout_s": 1500}`
 
 **Tests:** Slicing and what a slice leaves: the plates `plate_slice` and the Slice and Preview and Slice All Plates
 actions slice, with no objects, with a plate that fails validation and with two plates; the statistics a slice
@@ -28,7 +26,8 @@ slices about thirty times, three of them a Benchy.
   `view_type`), or `preview` null.
 - `gcode(path)` (new) reads an exported G-code file. Its header: `total layer number`, `max_z_height`, `filament` (the
   slots the print uses) and the `total estimated time` of the `model printing time` line, in seconds. Its layers, one
-  per `; CHANGE_LAYER` block in order, each with `z` (`; Z_HEIGHT:`), `height` (`; LAYER_HEIGHT:`), its tool lines (a
+  per `; CHANGE_LAYER` block in order, each with `z` (`; Z_HEIGHT:`), `height` (the block's first `; LAYER_HEIGHT:`;
+  a bridge states its own thickness in another such line further down the layer), its tool lines (a
   whole line `T0` or `T1`), the line after each `; PAUSE_PRINTING` and after each `; CUSTOM_GCODE`, and for each
   feature type (`; FEATURE: Sparse infill`) the XY length in mm of its extruding `G1` moves. The X1C's start G-code,
   which loads the first filament with a tool line, comes before layer 1 and is not read; its end G-code, read as part
@@ -149,8 +148,10 @@ do not count (a slice of another plate, Slice All and `plate_select` each select
 
 **Scenario: the Preview's layers**
 
-A cube, `plate_slice`: `[0 ok]`, `"" 1 * S`, shown `1–100 (0.2–20.0)`. After each step `shown()` gives tab `preview`
-and the layers the row names; a reply of the Go to layer action is `view_set`'s, with `ran`.
+A cube, `plate_slice`: `[0 ok]`, `"" 1 * S`, then `view_set {layer_range: [1, 100]}`, which replies `[1, 100,
+100]`: shown `1–100 (0.2–20.0)`. A slice whose top layer is as high as the last one's keeps the span the slider
+showed (To settle), so the start sets it. After each step `shown()` gives tab `preview` and the layers the row names;
+a reply of the Go to layer action is `view_set`'s, with `ran`.
 
 | # | Step | Reply | Shown after |
 |---|---|---|---|
@@ -225,7 +226,7 @@ the row.
 | 9 | `... {action: "reset"}` | none | |
 | 10 | `... {action: "smooth", quality: 0.3}` | none | refused, "quality goes with action adaptive" |
 | 11 | `view_set {canvas: "assemble"}`, `... {action: "adaptive"}`, `view_set {canvas: "3d"}` | none | the adaptive call refused, "Leave the assemble view first" |
-| 12 | `object_set_height_ranges {object: 0, ranges: [{min_z: 0, max_z: 20}, {min_z: 20, max_z: 48}]}`, `layer_height` 0.12 on the first and 0.28 on the second | none | `object_list` ranges `[0, 20] {layer_height "0.12"}` and `[20, 48] {layer_height "0.28"}` |
+| 12 | `object_set_height_ranges {object: 0, ranges: [{min_z: 0, max_z: 20}, {min_z: 20, max_z: 48}]}`, `layer_height` 0.12 on the first and 0.28 on the second | none | `object_list` ranges `[0, 20] {layer_height "0.12", extruder "0"}` and `[20, 48] {layer_height "0.28", extruder "0"}` |
 | 13 | `... {action: "smooth"}` | `min_height` 0.12, `max_height` 0.28 | reply `warnings` holding "decides its layer heights": smooth starts from the ranges' heights |
 | 14 | `... {action: "adaptive", quality: 0}` | `min_height` 0.12 | the ranges stay: `[20, 48]` still `layer_height "0.28"` |
 | 15 | `project_save` to a new file, `project_new`, `project_open` of the file | `min_height` 0.12, more than 100 points | the profile is kept in the project file |
@@ -289,10 +290,11 @@ at the export's path. Those of plate 5 and -1 say "Plate 5 does not exist (the p
 **Scenario: view switches**
 
 A 30 mm sphere "ball" (`object_add_primitive {shape: "sphere", size: [30]}`), selected, and `view_set {camera:
-"iso"}`. `app_state.view` is written as the switches that are on; at the start, those of a fresh configuration
-folder: `gridlines`, `axes`, `navigator` and `gcode_window`, with `projection` `perspective`, `section.on` false,
-`sidebar_collapsed` and `legend_collapsed` false. C0 is `capture()` at the start. After every step `app_state.view` is
-compared with the row whole, and the reply gives the switch's value as the row does.
+"iso", orbit: [0, -25]}`, the iso direction lowered to 20° above the bed (To settle). `app_state.view` is written as
+the switches that are on; at the start, those of a fresh configuration folder: `gridlines`, `axes`, `navigator` and
+`gcode_window`, with `projection` `perspective`, `section.on` false, `sidebar_collapsed` and `legend_collapsed` false.
+C0 is `capture()` at the start. After every step `app_state.view` is compared with the row whole, and the reply gives
+the switch's value as the row does.
 
 | # | Step | View after | Also checked |
 |---|---|---|---|
@@ -321,9 +323,8 @@ compared with the row whole, and the reply gives the switch's value as the row d
 
 **Scenario: the app's account, network plug-in and configuration folder**
 
-The configuration folder is compared with the folder the app was launched on, on every platform. That takes the
-place of the replay's check that it is not a person's own folder, which it built as `APPDATA` (or `~`) plus
-`OrcaSlicer` and which could fail only on Windows.
+The configuration folder is compared with the folder the app was launched on, on every platform, rather than
+checked not to be a person's own folder (`APPDATA` or `~` plus `OrcaSlicer`), which could fail only on Windows.
 
 | # | Step | Checked |
 |---|---|---|
@@ -362,12 +363,28 @@ place of the replay's check that it is not a person's own folder, which it built
   only "more than 100" on 128 layers.
 - The top of the speed colour range with travel shown is 500, the X1C's `travel_speed` in mm/s; the colour ranges
   count travel only while the legend shows it. With travel hidden, every extrusion speed is lower.
+- A new slice keeps the layer slider's span when its top layer is as high as the last print's and the slider was off
+  its ends (`Preview::update_layers_slider()`, `main`'s code since 1555904bef), so after the statistics and tables
+  scenarios a cube's slice can show `1–5`. That is the app's own behaviour, not a bug: the layers scenario sets
+  `[1, 100]` after its slice instead of expecting it.
 - The exported toolpaths' vertices lie within half a layer of the layers shown; the bounds allow a whole layer.
+- The toolpaths an export writes right after a layer change (the layers, step 17). A bug in this branch's code, left
+  for a fix: `Ops::export_toolpaths_obj()` (`ExportOps.cpp`, not on `main`) writes the G-code viewer's visible range,
+  which takes the layer slider's values only when the canvas next draws (`GLCanvas3D::_apply_gcode_sliders()`, commit
+  39705d7bb9, not on `main`). `view_set {layer_range: [20, 25]}` followed at once by the export writes every layer
+  (z 0.1 to 20.1); after a canvas screenshot it writes 3.9 to 5.1. The fix: apply the pending slider values to the
+  viewer before the export (a public `GLCanvas3D::apply_gcode_sliders()` called from `Ops::export_toolpaths_obj()`).
+  The row expects the fixed behaviour.
 - A display switch turned back draws the 3D view as before it was changed, so the capture is byte-identical: every
   check that a capture is C0 or C1 (view switches, steps 2, 3, 4, 5, 7, 11 and 19). If a switch leaves a trace (the
   navigator's or another ImGui window's position), that check falls back to "differs from the capture taken with the
-  switch changed". The overhang highlight is visible from the iso view on the sphere's lower half, between its equator and about
-  55° below it.
+  switch changed".
+- The camera of the view switches. The overhang highlight colours a face whose normal points more than 31° below the
+  horizontal (`support_threshold_angle` 30, plus the one degree `GLVolumeCollection::get_selection_support_normal_z()`
+  adds, `main`'s code). From the iso view, 45° above the bed, the part of the sphere facing the camera reaches only 45°
+  below its equator, so the highlight is a band on the sphere's rim too thin to change a pixel: the capture with
+  overhangs on is byte-identical to C0. From 20° above the bed the band from 31° to 70° below the equator faces the
+  camera and shows, and every other switch shows too. The setup lowers the camera so.
 - The start of the view switches: `AppConfig`'s defaults for a configuration folder the harness seeds without these
   keys. The network plug-in's start: not installed on the sweep's fresh datadir, so neither loaded nor failed.
 - The sidebar's default width is 39 em (`AuiMgr::sidebar_pane_info()`), which depends on the display's scale or font,
@@ -421,85 +438,5 @@ place of the replay's check that it is not a person's own folder, which it built
 - The notifications in `plate_slice`'s reply: the validation error is checked through the plate's `error`.
 - What the 3D view looks like: captures are compared only with each other.
 
-## Replays this area replaces
-
-Each leaves the sweep, with its entry, in the commit that adds the tests above.
-
-### `slice_stats`
-`tests/slice_stats.json` · replay, 19 steps, 4 expects, 0 optional
-
-**Tests:** `plate_slice`'s statistics: layers, max Z, filament changes, total grams and each slot's model, support, flush and prime-tower grams, for one cube on filament 1 of two, then with a second cube put on filament 2 by the canvas's `2` key.
-
-**Decides by:** Fails when a call errors or one of its 25 matchers misses.
-- One colour: 128 layers; `max_z` in (25.5, 25.7); 0 filament changes; exactly two slot rows (slot 1, slot 2); slot 1 model > 0 with flush and tower 0; slot 2 g = 0.
-- Key: `keyboard_press` to `OrcaSceneCanvas` `/to` = `wxGLCanvas`.
-- Two colours: 128 layers; filament changes > 100; both slots' model, flush and tower grams > 0; slot 2 support = 0.
-
-**Not checked:**
-- The `2` key's effect is never read directly; it shows only through slot 2's model grams.
-- The two-colour figures are lower bounds (`gt 100` changes where every layer changes, `gt 0` grams); `filament_g` and slot 1's support are not read in the second slice.
-- The arrange step has no expect.
-
-**Strength:** Strong — the one-colour breakdown is exact, and the two-colour slice fails if flush, tower or slot 2's model goes missing.
-
-### `preview`
-`tests/preview.json` · replay, 52 steps, 21 expects, 0 optional
-
-**Tests:** `plate_slice_stats` and `app_state.preview` on a sliced 25.6 mm cube: the summary, feature and layer tables with paging, the object row, and the legend state as `view_set` changes rows, layer (by number and by height), view type and time mode; that nothing reports the selected plate's toolpaths while the Preview still holds another plate's; and the same reads on the cube's exported G-code opened for viewing.
-
-**Decides by:** Fails when a call errors or one of its 80 matchers misses.
-- Tables: 128 layers; layer 1 at z 0.2; layer 5 at z 1.0 with height 0.2; `next_offset` 5; the last page is layer 128 at z 25.6 with no `next_offset`; `include` filtering (`/features`, `/view` absent when not asked); `Outer wall` percent in (0, 100); times, grams and mm `gt 0`.
-- Legend and view: view type, range [1, 128], `Sparse infill`/`travel` visibility after each change, feature rows shown again after Line Type is picked; `layer_z` 1.0 gives layer 5, 1.05 gives layer 6 at z 1.2.
-- `app_state.preview`: plate, layers, z, layer count and view type follow `view_set`.
-- Plates: both slice `ok`; plate 0 shown reports plate 0; plate 1 selected in Prepare gives `/preview` null and `plate_slice_stats` `/view` null with the "has not loaded this plate's toolpaths" note; once shown, plate 1 with no note.
-- G-code view: 128 layers in `app_state` and the stats, with features and summary present.
-
-**Not checked:**
-- The G-code section's claim that its plate "is never marked sliced": no step reads `sliced`.
-- `time_mode` is set to `normal`, the mode already shown, so switching modes is never exercised.
-- Times, grams, travel and colour ranges are `gt 0`; only their presence is shown.
-- `legend.png` is saved and never compared.
-
-**Strength:** Strong — layer counts, heights, paging and legend state are compared exactly and read two ways.
-
-### `layers`
-`tests/layers.json` · replay, 112 steps, 128 expects, 14 optional
-
-**Tests:** Height range modifiers (`object_set_height_ranges`, `settings_set` target `height_range`), variable layer height profiles (`object_set_variable_layer_height` adaptive, smooth, reset), and a plate's layer G-codes (`plate_set_custom_gcode`), each with undo, refusals, a slice and a 3MF round trip.
-
-**Decides by:** Fails when a non-optional call errors or an expect misses.
-- Height ranges: the reply's ranges sorted with `max_z`/`min_z` 10, `layer_height` "0.2", `extruder` "0", `/height` 20 ± 0.01 and no `/warnings`; `settings_set` `/applied` and `/height_range` exact; `object_list` holds "40%" and "0.1" and no third range; the object's own `sparse_infill_density` stays null.
-- Undo: one undo reverts only the last range setting; the same ranges again keep their settings and add no undo step (the next undo reverts `layer_height` to "0.2").
-- Slices: `plate_slice` `/status` "done" and outcome "ok"; the Preview's `/layers/2` (layer count) is 149–151 with the ranges and exactly 100 after `[]` removes them.
-- Range refusals (optional overlap, 0.5 mm layer, filament 9, `enable_support`, empty range) are followed by `object_list` showing range 0 still ending at 10 at "0.2" with extruder "0", no `enable_support`, range 1 at "0.1", no range 2.
-- Variable layer height: adaptive `points` > 250, `min_height` < 0.2, `max_height` > 0.2, tab back to "prepare"; quality 0 gives > 380 points, 1 < 320; sliced layer count > 245; smooth `max_height` < 0.28, undo restores exactly 0.28; reset removes the profile and a second reset adds no undo step (undo brings the smoothed profile back); refusals leave no profile; over ranges smooth gives min 0.12, max 0.28 and a warning containing "decides its layer heights".
-- Layer G-codes: before a slice the optional call leaves tab "prepare" and nothing slicing; from Prepare the reply's plate, 100 layers, `changed`, and each code's type, layer, z and gcode are exact (pause at layer 26 z 5.2, custom at 51 z 10.2), with the "slice it again" note, and the app shows the Preview with the project dirty; the same code again gives `changed` false; remove plus add in one call; after five optional refusals a repeat call shows the list unchanged; a stale plate in Prepare leaves tab and slicing alone; a filament change at layer 76 z 15.2 filament 2; `clear` gives `[]`.
-- 3MF round trips: reopened ranges keep "40%", "0.1" and extruder "2"; the profile keeps min 0.12 and > 100 points; reopened and resliced layer G-codes keep "M104 S220" and filament 2.
-
-**Not checked:**
-- Refusals that would change nothing if accepted cannot be told from success: removing at layer 30 where nothing is, and the code for plate 1, which the follow-up (plate 0 only) does not read. No refusal's reason is asserted.
-- The range settings and layer G-codes never reach a checked slice result: 40 % infill, the extruder-2 range and the pause, custom and filament-change codes are only followed by an "ok" slice, not looked for in the G-code or Preview.
-- Adaptive profiles and their slices are checked with bounds (point counts, layer count > 245), not exact values.
-- The filament change's `color` is checked with `exists` only.
-
-**Strength:** Strong — each edit, undo, refusal and 3MF reopen is read back with exact values; only the adaptive algorithm's counts are bounds.
-
-### `view_switches`
-`tests/view_switches.json` · replay, 67 steps, 60 expects, 0 optional
-
-**Tests:** `view_set` outside the Design tab, each state read from its reply and from `app_state.view`: sidebar collapse and width, every Prepare display switch, projection and section view, and in the Preview the legend fold and the G-code window; a cube placed by numbers in the middle of plate 1; and `app_state`'s account, network plug-in and configuration folder.
-
-**Decides by:** Fails when a call errors, an inline `script_run` raises, or one of its 81 matchers misses.
-- Switches: `labels`, `overhangs`, `outline`, `wireframe`, `gridlines`, `axes` and `navigator` each true then false in the reply and `app_state`; three at once; projection orthographic (camera `ortho`) and back; `section/on`; `legend_collapsed`; `gcode_window`; a fold asked with a view type stays folded.
-- Sidebar width (script): start > 100; start + 150 is reported and read back; `default` returns to the start width.
-- Placement: after `plate_add` (origin and size > 0), the script's cube is the only object on plate 1 and not on plate 0; `plate_list` counts 1 and 1.
-- App info: signed in to neither cloud; `network_plugin` fields exist; the log lies under `config_folder`, which is not the personal folder.
-
-**Not checked:**
-- `personal` is built as `APPDATA` (or `~`) plus `OrcaSlicer`, the real folder only on Windows; on macOS and Linux the `personal: false` check cannot fail.
-- The `default` width is taken to be the start width, not a known default: it fails on a datadir that starts wider, and passes if the default itself changed.
-- The placement script's x/y are not compared with the object's offset; only the plate it lands on.
-- `network_plugin` fields are `exists` only.
-- That picking a view type alone unfolds the legend is not tested; only that a fold asked with it is kept.
-
-**Strength:** Strong — every switch is set both ways and read back from two sources.
+**Strength:** Strong — what the profile fixes (layers, heights, slots, codes, switches) is compared exactly and read
+back from the G-code or the 3MF; what the slicer works out (grams, times, adaptive profiles) is held to stated bounds.

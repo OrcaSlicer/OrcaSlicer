@@ -1232,10 +1232,15 @@ void placed_instance(int object, int instance, bool drop)
 {
     Plater&      plater = the_plater();
     ModelObject& owner  = *plater.model().objects[std::size_t(object)];
-    // The bounding box is cached: ensure_on_bed() must measure the new placement.
+    // The bounding box is cached: the drop must measure the new placement.
     owner.invalidate_bounding_box();
-    if (drop)
-        owner.ensure_on_bed();
+    // Only the instance placed comes to rest on the bed, by its own lowest point, as the canvas drops the instances a
+    // move or scale changed: the object's other instances keep their heights.
+    if (drop && owner.auto_drop) {
+        const double min_z = owner.get_instance_min_z(std::size_t(instance));
+        if (min_z != 0.0)
+            owner.translate_instance(std::size_t(instance), Vec3d(0.0, 0.0, -min_z));
+    }
     plater.get_partplate_list().notify_instance_update(object, instance);
     wxGetApp().obj_list()->update_plate_values_for_items();
     plater.changed_object(object);

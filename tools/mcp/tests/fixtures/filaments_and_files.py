@@ -1,15 +1,14 @@
-"""Files for the filaments_and_files replay, run with script_run:
+"""Files for test_additions_refusals.py, run with script_run:
 
-    {"tool": "script_run", "args": {"filename": "${replay_dir}/fixtures/filaments_and_files.py",
-                                    "code": "import filaments_and_files\nresult = filaments_and_files.export(args)",
-                                    "args": {"name": "first.stl", "format": "stl", "objects": [0]}}}
+    client.call("script_run", filename=".../fixtures/filaments_and_files.py",
+                code="import filaments_and_files\nresult = filaments_and_files.write_zip(args)",
+                args={"name": "cubes.zip", "cubes": {"a.stl": 10}})
 
 A script's own files are held to OrcaSlicer's configuration folder unless scripts run unrestricted, so the files go in
-<datadir>/mcp/filaments_and_files/, which every run of the sweep has to itself, and the functions that write or read a
-file call the command that takes its path themselves. Each returns what it did as a dict, which the step's result keeps.
+<datadir>/mcp/filaments_and_files/, which every run of the sweep has to itself. Each function returns what it did as a
+dict, which the run's result keeps.
 """
 import os
-import shutil
 import zipfile
 
 import orca
@@ -41,28 +40,6 @@ def cube_stl(size):
     return "\n".join(lines) + "\n"
 
 
-def export(args):
-    """project_export into the folder: of args["format"] as the file args["name"], or with args["per_object"] into the
-    subfolder args["name"], emptied first, of the objects args["objects"] when given. Returns the reply and the size of
-    each file written, by its name."""
-    path = os.path.join(folder(), args["name"])
-    request = {"format": args["format"], "path": path}
-    if args.get("per_object"):
-        shutil.rmtree(path, ignore_errors=True)
-        os.makedirs(path)
-        request["per_object"] = True
-    elif os.path.exists(path):
-        os.remove(path)
-    if "objects" in args:
-        request["objects"] = args["objects"]
-    reply = call("project_export", request)
-    if args.get("per_object"):
-        sizes = {name: os.path.getsize(os.path.join(path, name)) for name in sorted(os.listdir(path))}
-    else:
-        sizes = {args["name"]: os.path.getsize(path)}
-    return {"reply": reply, "sizes": sizes}
-
-
 def write_zip(args):
     """Writes the archive args["name"] of cubes, each entry of args["cubes"] ({entry: size in mm}) an STL, with a
     text file beside them that is no model. Returns its path."""
@@ -72,22 +49,3 @@ def write_zip(args):
             archive.writestr(entry, cube_stl(size))
         archive.writestr("readme.txt", "not a model\n")
     return {"path": path}
-
-
-def write_project_zip(args):
-    """Writes the project as it is as a 3MF and puts it alone into the archive args["name"] of the folder, as the entry
-    project.3mf. Returns the archive's path."""
-    three_mf = os.path.join(folder(), "project.3mf")
-    call("project_export", {"format": "3mf", "path": three_mf, "overwrite": True})
-    path = os.path.join(folder(), args["name"])
-    with zipfile.ZipFile(path, "w") as archive:
-        archive.write(three_mf, "project.3mf")
-    return {"path": path}
-
-
-def import_zip(args):
-    """project_import of the archive args["name"] of the folder, with args["entries"] when given; returns the reply."""
-    request = {"paths": [os.path.join(folder(), args["name"])]}
-    if "entries" in args:
-        request["entries"] = args["entries"]
-    return call("project_import", request)

@@ -144,10 +144,8 @@ def wait_for(predicate, timeout):
 
 
 def run(orca, datadir, scratch):
+    fields = {"key", "name", "version", "installed", "enabled", "status", "source", "capabilities", "error"}
     before = rows(orca)
-    check("plugin_list lists the plugins with their fields", isinstance(before, list) and all(
-        {"key", "name", "version", "installed", "enabled", "status", "source", "capabilities", "error"} <= set(r) for r in before),
-        before)
     check("no fixture plugin is installed yet", all(r["name"] not in (INSTALLED, SIDE_LOADED) for r in before), before)
 
     # --- plugin_install_local, and again with and without overwrite ---
@@ -157,6 +155,10 @@ def run(orca, datadir, scratch):
     check("plugin_install_local installs the fixture", installed.get("level") == "success", installed)
     row = row_named(orca, INSTALLED)
     check("plugin_list finds it, installed", row is not None and row["installed"] and row["source"] == "local", row)
+    # Read on the fixture's row, since a fresh folder lists no plugin before the install; the rows listed then, if any,
+    # are held to the same fields.
+    check("plugin_list lists the plugins with their fields", row is not None and fields <= set(row)
+          and isinstance(before, list) and all(fields <= set(r) for r in before), (row, before))
     if row is None:
         return
     key = row["key"]

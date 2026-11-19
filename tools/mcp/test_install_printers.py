@@ -12,8 +12,8 @@ nozzle of each model it shows ticked, so the test installs the X1 Carbon's other
 changes carried over (preset_changes transfer, a process change and the printer's own), which makes the set the dialog
 collects the set installed; it then ticks the Velo+, which printer_uninstall took out, clicking its block in the page as a
 person does, confirms, and reads every Velo+ nozzle installed and the X1 Carbon's kept. Last, with Generic ABS @System installed, it
-installs a model of a third vendor (the Voxelab Aquila X2) and reads the filaments its reload changed in the reply and in
-preset_list.
+installs a model of a third vendor (the Voxelab Aquila X2) and reads the filaments its reload installed in the reply and
+in preset_list, and that it swapped none.
 Run it as python tools/mcp/test_install_printers.py [--bin PATH] [--datadir PATH].
 """
 import contextlib
@@ -144,6 +144,7 @@ def first_run(orca, datadir):
     check("and nothing was installed", preset_of(orca, VELO["model"], "0.4") is None)
 
     before, _ = printers(orca)
+    filaments_before = installed_filaments(orca)
     installed = call(orca, "printer_install", models=[dict(VELO, nozzles=["0.4"])])
     print(f"printer_install: {installed}", flush=True)
     velo_preset = preset_of(orca, VELO["model"], "0.4")
@@ -155,12 +156,16 @@ def first_run(orca, datadir):
           preset_of(orca, VELO["model"], "0.2") is None and set(before) <= set(names), names)
     velo = model(orca, "Goofoo", VELO["model"])
     check("printer_list_models marks its 0.4 nozzle installed", velo is not None and velo["installed_nozzles"] == ["0.4"], velo)
-    # The reload installs a printer's default filaments where no installed one fits it: the reply names them, and the
-    # selectors offer them.
+    # The reload installs a printer's default filaments where no installed one fits it (load_installed_filaments()), and
+    # none of the X1 Carbon's filaments the folder holds fits the Velo+: the reply names the Velo+ model's
+    # default_materials, Goofoo ABS @System, which preset_list then lists installed, and the selectors offer them.
+    reported = installed.get("filaments_installed", [])
+    gained = installed_filaments(orca) - filaments_before
+    check("the reload installs the Velo+'s default filament",
+          reported != [] and set(reported) == gained and "Goofoo ABS @System" in reported
+          and "filaments_uninstalled" not in installed, (installed, sorted(gained)))
     offered = {item["name"] for item in orca.call("preset_list", type="filament", printer=velo_preset, limit=500)["items"]}
-    check("the filaments the reload installed are named and offered for it",
-          set(installed.get("filaments_installed", [])) <= offered and installed.get("filaments_uninstalled") is None,
-          (installed.get("filaments_installed"), sorted(offered)))
+    check("and offers them for it", reported != [] and set(reported) <= offered, (reported, sorted(offered)))
     return velo_preset
 
 
@@ -229,19 +234,19 @@ def second_run(orca, velo_preset):
           x1c_after == x1c_before and set(names_before) <= set(names_after), (x1c_before, x1c_after))
     check("and selects a printer the Confirm added", selected_after in velo_presets, selected_after)
 
-    # The filaments the reload of a printer install changes, with a @System filament installed, which the reload swaps for
-    # its vendor's own where a vendor's profile names one: the reply and preset_list agree.
+    # The filaments the reload of a third vendor's printer install changes, with a @System filament installed. A reload
+    # swaps a @System filament only for a vendor whose bundle lists default filaments of its own (its default_filaments,
+    # which PresetBundle::apply_vendor_config() reads); only an INI bundle fills that list and the shipped JSON profiles
+    # never do, so the install swaps none.
     orca.call("filament_install", names=["Generic ABS @System"])
     before = installed_filaments(orca)
     voxelab = call(orca, "printer_install", models=[{"vendor": "Voxelab", "model": "Voxelab Aquila X2"}])
     after = installed_filaments(orca)
     print(f"printer_install of another vendor's model: {voxelab}", flush=True)
-    check("printer_install's filaments_installed and filaments_uninstalled are what preset_list shows changed",
-          set(voxelab.get("filaments_installed", [])) == after - before
-          and set(voxelab.get("filaments_uninstalled", [])) == before - after, (voxelab, sorted(after ^ before)))
-    check("and Generic ABS @System is reported uninstalled exactly when preset_list no longer has it installed",
-          ("Generic ABS @System" in voxelab.get("filaments_uninstalled", [])) == ("Generic ABS @System" not in after),
-          (voxelab, "Generic ABS @System" in after))
+    check("printer_install's filaments_installed is what preset_list shows installed",
+          set(voxelab.get("filaments_installed", [])) == after - before, (voxelab, sorted(after - before)))
+    check("and swaps no filament", "filaments_uninstalled" not in voxelab and before <= after and "Generic ABS @System" in after,
+          (voxelab, sorted(before - after)))
 
 
 def installed_filaments(orca):

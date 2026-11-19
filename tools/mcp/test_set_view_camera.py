@@ -57,15 +57,18 @@ def main():
     check("prepare: camera_state has the zoom asked for", state.get("zoom") == 3, reply)
     check("prepare: and look_at", state.get("look_at") == [50, 60, 0], reply)
     check("prepare: camera_state looks straight down", state.get("elevation") == 90, reply)
+    # A capture of the 3D view itself, not a blank one marked approximate.
     try:
-        client.call("window_screenshot", target="canvas", include_image=False)
-        check("prepare: the 3D view captures", True)
+        shot = client.call("window_screenshot", target="canvas", include_image=False)
+        check("prepare: the 3D view captures", shot.get("source") == "canvas" and shot.get("width", 0) > 0 and
+              shot.get("height", 0) > 0 and "approximate" not in shot, shot)
     except orca_mcp.McpError as e:
         check("prepare: the 3D view captures", False, str(e))
     after = camera()
     check("prepare: app_state.camera keeps the zoom after a frame", after.get("zoom") == 3, after)
     check("prepare: and look_at", after.get("look_at") == [50, 60, 0], after)
-    check("prepare: camera_state has a projection type", after.get("type") in ("ortho", "perspective"), after)
+    # A fresh data folder's use_perspective_camera is on, and auto_perspective off.
+    check("prepare: camera_state has a projection type", after.get("type") == "perspective", after)
 
     # 2. Clicks: click_px_per_mm is the zoom over the canvas's scale, 1 at 100 % and 1.5 at 150 % scaling.
     px = after.get("click_px_per_mm")

@@ -54,10 +54,51 @@ using namespace std::chrono_literals;
 
 namespace {
 
-// Sends `request` to `web`'s agent and hands the outcome to `done` on the UI thread; a page without
-// the agent (or with another version) is sent it with the request once. UI thread only.
-void call_page(wxWebView* web, const json& request, std::function<void(PageReply)> done, bool install = false)
+void call_page(wxWebView* web, const json& request, std::function<void(PageReply)> done, bool install = false,
+               bool wait_for_page = true);
+
+// Holds a page request while its web view has no native view to run a script in, which WebView2 creates a moment
+// after the window opens, and sends it once the view is there: tried every 100 ms for up to 10 s, the time a page
+// gets to answer by default. UI thread only; it deletes itself.
+class PageWait : public wxTimer
 {
+public:
+    PageWait(wxWebView* web, json request, std::function<void(PageReply)> done, bool install)
+        : m_web(web), m_request(std::move(request)), m_done(std::move(done)), m_install(install)
+    {}
+
+    void Notify() override
+    {
+        wxWebView* web = m_web.get();
+        if (web != nullptr && web->GetNativeBackend() == nullptr && ++m_tries < 100)
+            return;
+        Stop();
+        if (web == nullptr)
+            m_done(PageReply{PageReply::State::Destroyed, json(), std::string()});
+        else
+            call_page(web, m_request, std::move(m_done), m_install, false);
+        // Not from inside the timer's own callback, which wx may still touch afterwards.
+        if (wxTheApp != nullptr)
+            wxTheApp->CallAfter([this] { delete this; });
+    }
+
+private:
+    wxWeakRef<wxWebView>           m_web;
+    json                           m_request;
+    std::function<void(PageReply)> m_done;
+    bool                           m_install;
+    int                            m_tries = 0;
+};
+
+// Sends `request` to `web`'s agent and hands the outcome to `done` on the UI thread; a page without
+// the agent (or with another version) is sent it with the request once, and a web view whose native view
+// is not made yet, once it is (PageWait). UI thread only.
+void call_page(wxWebView* web, const json& request, std::function<void(PageReply)> done, bool install, bool wait_for_page)
+{
+    if (wait_for_page && web->GetNativeBackend() == nullptr) {
+        (new PageWait(web, request, std::move(done), install))->Start(100);
+        return;
+    }
     wxWeakRef<wxWebView> weak = web;
     WebView::RunScriptAsync(web, from_u8(page_script(request, install)),
                             [weak, request, install, done = std::move(done)](bool ok, const std::string& text) {

@@ -5,9 +5,10 @@ So this test launches OrcaSlicer itself, twice, on a fresh data folder. The firs
 (OrcaSlicer.conf, app.window_layout) as it starts its empty project (Plater::priv::reset()), and the app writes
 OrcaSlicer.conf at its next idle moment; orca_mcp.py stop then ends it, on Windows by killing the process, which saves
 nothing more. The test marks the sidebar's entry of that layout floating, as the drag leaves it, and the second run
-starts with the sidebar floating. There view_set {sidebar_width} is refused and the width stays as it was. Floating is
-off on Wayland, where the saved floating state is dropped; there the test says so and checks nothing. Each run is
-stopped on every path out, and nothing but a run this test started is stopped.
+starts with the sidebar floating. There view_set {sidebar_width} is refused and the width stays as it was. A native
+Wayland app drops the saved floating state, so on Linux both runs start as X11 clients (GDK_BACKEND=x11, through
+XWayland on a Wayland desktop), as the sweep's own launches do by default, and the checks run on every platform. Each
+run is stopped on every path out, and nothing but a run this test started is stopped.
 Run it as python tools/mcp/test_sidebar_floating.py [--bin PATH] [--datadir PATH].
 """
 import contextlib
@@ -56,6 +57,8 @@ def launched(datadir, binary):
     port = free_port()
     session = os.path.join(datadir, "session.json")
     env = app_env(dict(os.environ, ORCA_MCP_SESSION=session, ORCA_MCP_TOKEN=TOKEN), datadir)
+    if sys.platform.startswith("linux"):
+        env["GDK_BACKEND"] = "x11"  # a native Wayland app drops the saved floating state
     if os.path.exists(session):
         os.remove(session)
     try:
@@ -102,7 +105,6 @@ def main():
     given = "--datadir" in extra
     root = os.path.abspath(extra[extra.index("--datadir") + 1]) if given else tempfile.mkdtemp(prefix="osf-")
     datadir = os.path.join(root, "floating")
-    wayland = sys.platform.startswith("linux") and os.environ.get("GDK_BACKEND") != "x11" and bool(os.environ.get("WAYLAND_DISPLAY"))
     try:
         with launched(datadir, binary) as orca:
             started = orca is not None
@@ -112,8 +114,6 @@ def main():
             with launched(datadir, binary) as orca:
                 if orca is None:
                     check("the app starts again", False)
-                elif wayland:
-                    print("Floating is off on Wayland: the sidebar starts docked, nothing to check.")
                 else:
                     width = orca.call("app_state")["view"]["sidebar_width"]
                     try:

@@ -3,29 +3,12 @@
 The design of this area's sweep tests. The rules every entry follows, the grades and the table of all tests are
 in [TESTS.md](../TESTS.md).
 
-Two tests take the place of the object replays. One entry would hold seventeen scenarios and some 190 steps, more
-than one review can check value by value against the code. They split where their checks do: `test_objects` measures
-where objects stand and how many there are (places in mm, instances, arrangements, the print's copies), and
-`test_object_structure` reads what objects are made of and how the list orders them (parts and their types, names,
-order, meshes and the files they come from). What each replaced replay checks goes to these tests as follows:
-
-| Replay | Where its checks go |
-|---|---|
-| `menu_items_objects.json` | instances and Set as Individual Objects: `test_objects`, the number of instances; rename, delete and the layer commands on the selection: `test_object_structure`, renaming and deleting |
-| `menu_items_placement.json` | `test_objects`: adding a shape; placing objects |
-| `menu_items_structure.json` | `test_object_structure`: splitting and assembling; ordering |
-| `objects_state.json` | Printable: `test_objects`, leaving instances out of the print; Auto Drop: `test_objects`, moving an instance; Fix Model: `test_object_structure`, repairing a mesh |
-| `objects_order.json` | `test_object_structure`: ordering |
-| `objects_files.json` | Clone: `test_objects`, cloning; Reload from disk, Replace 3D file and keep_painting: `test_object_structure`, files a part comes from, and painting kept through a mesh change |
-| `scene.json` | instance and part moves, the selection, Mirror, shapes, Arrange and Fill bed, instances: `test_objects`; `part_add`, Change Type, Rename, Assemble, Order By: `test_object_structure` |
-| `ops_set_instance_count.json` (removed) | `test_objects`, the number of instances |
-| `ops_start_arrange.json` (removed) | `test_objects`, arranging and filling the bed |
+Two tests, split where their checks do: `test_objects` measures where objects stand and how many there are (places in
+mm, instances, arrangements, the print's copies), and `test_object_structure` reads what objects are made of and how
+the list orders them (parts and their types, names, order, meshes and the files they come from).
 
 ## `test_objects`
-`test_objects.py` · Python · takes the place of `menu_items_placement.json`, and with `test_object_structure` of
-`menu_items_objects.json`, `objects_state.json`, `objects_files.json` and `scene.json`; covers what the removed
-`ops_set_instance_count.json` and `ops_start_arrange.json` recorded · in `sweep.json` as
-`{"path": "test_objects.py"}`
+`test_objects.py` · Python, 534 checks · in `sweep.json` as `{"path": "test_objects.py"}`
 
 **Tests:** Where objects stand and how many there are: adding a shape at a size, a place, a plate and a name; moving,
 turning and scaling an instance, moving it to another plate, and what Auto Drop does to a move; moving and scaling a
@@ -36,10 +19,8 @@ default printer, the Bambu Lab X1 Carbon 0.4: a bed 256 mm square and 250 mm hig
 18 × 28 mm at its front left corner (`bed_exclude_area`), and plates laid out 307.2 mm apart (the bed and a fifth of
 it), two to a row.
 
-**Files:** The test writes into a folder of its own, `W` (`tempfile.mkdtemp()`), the project it saves and the G-code
-files it exports. It does not use `tests/fixtures/objects_files.py`, which leaves with `objects_state.json` and
-`objects_files.json`; `tests/fixtures/ops_undo.py` stays for `test_menu_items_refusals.py`. Undo steps are counted by
-undoing them and reading the state back, not from the log.
+**Files:** The test writes into a folder of its own, `W` (a `tempfile.TemporaryDirectory()`, removed when the test
+ends), the project it saves and the G-code files it exports. Undo steps are counted by undoing them and reading the state back, not from the log.
 
 **Reads:** `plates()` as `test_plates` reads it. New readers in `checks.py`:
 - `scene()`: each object of `object_list` in index order, its entry whole (`name`, `id`, `filament`, `auto_drop`,
@@ -55,8 +36,8 @@ undoing them and reading the state back, not from the log.
   order they first print, each with the number of different `id`, `copy` pairs printed under it: its copies
   (`gcode_label_objects` is on in the X1C's process).
 - Geometry on `bbox`: an instance's square is its `bbox` in x and y; two squares are apart when they do not overlap;
-  a square is inside plate p when it lies within `rect(p)`; the gap between two squares is their distance along the
-  axis on which they are apart.
+  a square is inside plate p when it lies within `rect(p)`; the gap between two squares is the distance between
+  them: along the axis on which they are apart, corner to corner when they are apart on both.
 
 Every scenario starts with `project_new {discard_changes: true}` in the Prepare view and checks that `plates()` is
 `"" 0 *` and that there are no objects; a `project_new` within a scenario is followed by the same check.
@@ -136,7 +117,7 @@ every step the objects are base@0 · single@0, base at +(100, 100) (but in step 
 | 14 | `object_select {objects: [0]}` | as after 9 | the reply's `objects` `[0]` and `instances` `[[0, 0]]` and no `parts`: a whole instance lists none; `selection()` the same |
 | 15 | `object_mirror {parts: [[0, 1]], axis: "x"}` | `mirrored` true, at +(110, 100, 15) | the reply names part 1 of base; a part mirrors in its place; base's instance not mirrored. From here part 1's `rotation_deg` is not compared (see Not checked) |
 | 16 | `object_mirror {objects: [0], axis: "x"}` | at +(90, 100, 15) | base's instance `mirrored` true; an instance mirrors about the centre of the selection's box, here x 100, as part 1 lies within the cube's width: part 1 goes to the other side and part 0 stays at +(100, 100, 5); single not mirrored |
-| 17 | `object_mirror {objects: [0], axis: "y"}` | at +(90, 100, 15) | base's instance `mirrored` false: a mirror along X and one along Y make a half turn; the box's centre is y 100, so the places stay |
+| 17 | `object_mirror {objects: [0], axis: "y"}` | at +(90, 100, 15) | base's instance `mirrored` false and `rotation_deg` `[0, 0, 180]`: a mirror along X and one along Y make a half turn; the box's centre is y 100, so the places stay |
 | 18 | `object_select {none: true}`, then `object_mirror {axis: "x"}` | as after 17 | refused, `nothing_selected`; base's instance and single not mirrored, part 1 `mirrored` true |
 
 **Scenario: the number of instances**
@@ -169,7 +150,7 @@ every step but these: `"" 3 *` after 18 and 20, and `"" 5 *` after 21.
 | 19 | `undo` | a@0×4 · b@0×2 | Set as Individual Objects was one undo step |
 | 20 | `object_separate_instances {instances: [[0, 3]]}` | a@0×3 · b@0×2 · a@0 | the reply's `objects` names a at 2; object 2 at +(98.4, 98.4), where the instance stood |
 | 21 | `object_select {objects: [0]}`, then `object_separate_instances {}` | a@0 · b@0×2 · a@0 · a@0 · a@0 | the reply's `objects` names a at 0, 3 and 4; a at +(60, 60), object 3 at +(85.6, 85.6), object 4 at +(72.8, 72.8): each instance but the first becomes an object, the last instance first |
-| 22 | `project_new`, a 20 mm cube named cut, cut in two with a connector through the Cut gizmo (as `test_menu_items_refusals` cuts it), then `object_set_instances {object: 0, count: 2}` | cut_A@0 · cut_B@0, in either order | refused, `cut_object`; each half one instance; `plates()` `"" 2 *` |
+| 22 | `project_new`, a 20 mm cube named cut, cut in two with a connector through the Cut gizmo (as `test_menu_items_refusals` cuts it), then `object_set_instances {object: 0, count: 2}` | cut@0 · cut@0 | refused, `cut_object`; each half one instance; `plates()` `"" 2 *` |
 
 **Scenario: placing objects**
 
@@ -262,7 +243,7 @@ opening a project makes plate 0 current.
 
 | # | Step | Objects after | Also checked |
 |---|---|---|---|
-| 1 | `plate_add`; kept, a 20 mm cube at `plate: 0`, `position: corner(0) + (60, 60, 0)`; `object_set_instances {object: 0, count: 2}`; `object_transform {object: 0, instance: 0, rotate: [0, 0, 30], mode: "absolute"}`; `object_transform {object: 0, instance: 1, scale: 1.5}`; `object_mirror {instances: [[0, 1]], axis: "x"}`; `object_set_printable {instances: [[0, 1]], printable: false}` | kept@0×2 | instance 0 at +(60, 60), `rotation_deg` `[0, 0, 30]`; instance 1 at +(72.8, 72.8), `scale` `[1.5, 1.5, 1.5]`, `mirrored` true, `printable` false. From here instance 1's `rotation_deg` is not compared (see Not checked) |
+| 1 | `plate_add`; kept, a 20 mm cube at `plate: 0`, `position: corner(0) + (60, 60, 0)`; `object_set_instances {object: 0, count: 2}`; `object_transform {object: 0, instance: 0, rotate: [0, 0, 30], mode: "absolute"}`; `object_transform {object: 0, instance: 1, scale: 1.5}`; `object_select {instances: [[0, 1]]}`, then `object_mirror {axis: "x"}`; `object_set_printable {instances: [[0, 1]], printable: false}` | kept@0×2 | instance 0 at +(60, 60), `mirrored` true, turned 30 degrees: `bbox.size` `[27.32, 27.32, 20]` to 0.01; instance 1 at +(72.8, 72.8), `scale` `[1.5, 1.5, 1.5]`, `mirrored` true, `printable` false: Mirror of the selected instance mirrors the object's other instance with it. From here instance 0's `rotation_deg` is not compared (see Not checked) |
 | 2 | lifted, a 20 mm cube at `plate: 1`, `position: corner(1) + (60, 60, 0)`; `object_set_auto_drop {objects: [1], auto_drop: false}`; `object_transform {object: 1, translate: [0, 0, 15]}` | kept@0×2 · lifted@1 | lifted at +(60, 60), `auto_drop` false, `bbox.min` z 15 |
 | 3 | `project_save` to a new file in `W`, `project_new`, then `project_open` of the file | as after 2 | every value as after 2: the places, turns, scales, mirrors, printable flags and Auto Drop of the instances are kept in the project file |
 
@@ -284,8 +265,16 @@ opening a project makes plate 0 current.
 - An object lifted with Auto Drop off reopens where it was saved, 15 mm above the bed (what the project keeps,
   step 3): the project file stores `auto_drop`, and opening a project puts its objects on the bed through
   `ModelObject::ensure_on_bed()`, which leaves an object with Auto Drop off where it is.
-- The rotation Auto-Orient gives a cube on its edge (placing, step 14): x 90, the value `menu_items_placement.json`
-  passes with. That it lies on a face, z 20, holds whichever face it picks.
+- The rotation Auto-Orient gives a cube on its edge (placing, step 14): x 90. That it lies on a face, z 20, holds whichever face it picks.
+- Mirror of one instance (what the project keeps, step 1). `object_mirror` names objects and parts, and mirrors one
+  instance as Mirror does, on the selection. The app's Mirror mirrors the other instances of the selected instance's
+  object with it (`Selection::scale_and_translate()` synchronises the unselected instances, the app's own code), so
+  both of kept's instances are mirrored.
+- The names of a cut's halves (instances, step 22): a cut by a plane names both halves after the object
+  (`Cut::perform_with_plane()`, the app's own code); only a cut along a contour or with a groove adds `_A` and `_B`.
+- A scale that grows instance 1 (what the project keeps, step 1) leaves it resting on the bed: `object_transform`
+  drops the instance it moved by that instance's own lowest point, as the Scale gizmo drops what it scaled
+  (`GLCanvas3D::do_scale()`), not by instance 0's, which `ModelObject::ensure_on_bed()` measures.
 
 **Not checked:**
 - A person's pick of the Speed Dial actions of these commands (Center, Drop to Bed, Scale to Fit, Auto-Orient,
@@ -295,8 +284,7 @@ opening a project makes plate 0 current.
   reads their results whole, the Auto-Orient rotations among them. The Set Number of Instances action is run here only
   to show its dialog cancelled.
 - Auto-Arrange's reply, journal step and replay against its action, and `object_select {all: true}`:
-  `test_person_forms`. An arrange from the assemble view and with the Move gizmo open, which `ops_start_arrange.json`
-  recorded: `test_operation_routes`. What a lock does to Arrange and Auto-Orient: `test_plates`.
+  `test_person_forms`. An arrange from the assemble view and with the Move gizmo open: `test_operation_routes`. What a lock does to Arrange and Auto-Orient: `test_plates`.
 - The refusals `test_menu_items_refusals` checks with the state after them: Set as Individual Objects on an object of
   one instance, Add Primitive's pick with an object selected, `object_mirror` with no axis,
   `object_center` and `object_add_primitive` on a plate the project lacks, a pick of Mirror with two objects selected,
@@ -306,12 +294,14 @@ opening a project makes plate 0 current.
 - Fill bed with copies (`fill_with: "copies"`) and Fill bed refused for a cut object: no replaced replay exercised them.
 - The rotations Auto-Orient gives the objects it may turn without a fixed result (placing, steps 14 and 15): which
   face a cube resting on one already ends on is the job's choice; step 15 checks them against the reply. The rotation
-  of a mirrored instance or part (moving a part, from step 15; what the project keeps, instance 1): a mirror of a
-  turned shape can be written as another turn and a mirror, so only `mirrored` and the places are compared.
+  of a shape both turned and mirrored (moving a part, part 1 from step 15; what the project keeps, kept's instance 0):
+  a mirror of a turned shape can be written as another turn and a mirror, so only `mirrored` and the places are
+  compared, and kept's instance 0's turn by its box. A mirrored shape that is not turned reads `rotation_deg`
+  `[0, 0, 0]`, and is compared so (moving a part, step 16; what the project keeps, instance 1).
 - How the objects look: a greyed instance that is not printable, the selection's highlight. No screenshot is taken.
-- `app_state`'s `python` and `design_tab`, which `scene.json` read in passing: they are not object state.
+- `app_state`'s `python` and `design_tab`: they are not object state.
   `test_command_line` checks the unrestricted-scripts switch.
-- `scene.json`'s end-to-end run as one scenario. Each of its steps is checked in the scenario of its command: the size
+- An end-to-end run of all the commands on one scene. Each of its steps is checked in the scenario of its command: the size
   of an object of several parts (moving a part, step 2), the instances of an object of parts made objects (the number
   of instances, step 18), one plate arranged with options (arranging, step 13), Assemble and ordering by name across
   plates (`test_object_structure`, splitting and ordering), Fill bed on another plate (arranging, step 17); its
@@ -319,10 +309,14 @@ opening a project makes plate 0 current.
 - `object_list {screen: true}` and paging with `limit` and `offset`: no replaced replay used them, and they change how
   `object_list` reports the objects, not what the objects are.
 
+**Strength:** Strong — after every step it reads the plates and every instance back through `plate_list` and
+`object_list` and compares them whole with values written out here: names, plates, instance counts, places to
+0.001 mm, turns, scales, mirrors, printable flags and Auto Drop. It asserts each refusal by its code or its words,
+counts undo steps by undoing them, holds what the arranger and Scale to Fit work out to stated properties and
+tolerances, reads the copies a print leaves out in the G-code, and checks what the project keeps through the file.
+
 ## `test_object_structure`
-`test_object_structure.py` · Python · takes the place of `menu_items_structure.json` and `objects_order.json`, and
-with `test_objects` of `menu_items_objects.json`, `objects_state.json`, `objects_files.json` and `scene.json` · in
-`sweep.json` as `{"path": "test_object_structure.py"}`
+`test_object_structure.py` · Python, 506 checks · in `sweep.json` as `{"path": "test_object_structure.py"}`
 
 **Tests:** What objects are made of and how the list orders them: renaming and deleting objects, and the layer commands
 acting on the selected object; Split to Objects and to Parts, and Assemble; adding parts of every type, changing a
@@ -342,8 +336,10 @@ and 2.8 mm high, their centres 58 mm apart along x), `resources/handy_models/Orc
 exports go to `W` as well. It does not use `tests/fixtures/objects_files.py` or `tests/fixtures/ops_undo.py`: undo
 steps are counted by undoing them and reading the state back.
 
-**Reads:** `plates()`, and `scene()`, `gcode_prints(path)` and `corner(p)` as `test_objects` reads them. Also:
-- `names()`: the objects' names in index order; `types(o)`: object o's parts' `type`s in order.
+**Reads:** `plates()`, and `scene()`, `selection()`, `gcode_prints(path)` and `corner(p)` as `test_objects` reads
+them. Also:
+- `names()`: the objects' names in index order; `types(o)`: object o's parts' `type`s in order; both from one
+  `scene()`.
 - `notices()`: the texts of `app_state`'s `notifications`; `dialogs()`: the titles of its `dialogs`.
 
 Every scenario starts with `project_new {discard_changes: true}` in the Prepare view and checks that `plates()` is
@@ -404,8 +400,8 @@ to 9, `[scaled]` after 10, `[plain]` after 11 to 20 and `[base]` after 21 and 22
 | 5 | `part_add {object: 0, type: "part", shape: "cube", size: [10, 10, 20], position: corner(0) + (125, 100, 10)}` | part, part, negative, modifier | the reply's `part` 1: parts are listed by type; the new part named `Generic-Cube`, `filament` 1, `bbox.size` z 20 to 0.01; block's `bbox.size` z 20 |
 | 6 | `part_add {object: 0, type: "support_blocker", shape: "sphere", position: corner(0) + (110, 110, 10)}` | part, part, negative, modifier, support_blocker | the blocker at +(110, 110, 10) |
 | 7 | `part_add {object: 0, type: "precise_seam", shape: "cube", size: [2, 2, 2]}` | part, part, negative, modifier, support_blocker, precise_seam | the seam's `subtype` `center` |
-| 8 | `part_add` with `{type: "modifier", shape: "cube", path: OrcaCube_v2.drc}`, `{type: "modifier", shape: "cylinder", size: [1, 2, 3]}`, `{type: "part", path: star.svg}` and `{type: "modifier", path: heightmap.png}`, each on object 0 | as after 7 after each | refused, saying in turn to give shape or path, that a cylinder's size is `[diameter, height]`, that SVG parts come from `object_add_svg`, and that the file could not be loaded |
-| 9 | `object_set_instances {object: 0, count: 2}`, then `part_add {object: 0, type: "modifier", shape: "cube"}` | as after 7 | refused, saying object 0 has 2 instances |
+| 8 | `part_add` with `{type: "modifier", shape: "cube", path: OrcaCube_v2.drc}`, `{type: "modifier", shape: "cylinder", size: [1, 2, 3]}`, `{type: "part", path: star.svg}` and `{type: "modifier", path: heightmap.png}`, each on object 0 | as after 7 after each | refused, saying in turn `Give shape or path`, `A cylinder's size is [Diameter, Height]`, `SVG parts come from object_add_svg` and `The file could not be loaded` |
+| 9 | `object_set_instances {object: 0, count: 2}`, then `part_add {object: 0, type: "modifier", shape: "cube"}` | as after 7 | refused, saying `object 0 has 2 instances` |
 | 10 | `project_new`; scaled, a 20 mm cube, `object_transform {object: 0, scale: 1.5}`, then `part_add {object: 0, type: "modifier", shape: "cube"}` | part, modifier | the reply's `part` 1; the instance's `scale` `[1, 1, 1]` and part 0's `[1.5, 1.5, 1.5]`, and the object's `bbox.size` `[30, 30, 30]`: adding a shape folds the instance's scale into the parts |
 | 11 | `project_new`; plain, a 30 × 30 × 10 mm cube, then `part_add {object: 0, type: "modifier", shape: "cube", size: [10, 10, 10]}` | part, modifier | part 0 named plain, part 1 `Generic-Cube` |
 | 12 | `object_select {parts: [[0, 1]]}`, then `part_change_type {type: "negative"}` | part, negative | no target changes the selected part; the reply's `parts` `[{object: 0, part: 1, type: "negative"}]` |
@@ -440,7 +436,7 @@ works on the current plate.
 | 7 | `plate_add`, `plate_select {plate: 1}`, then `object_order {by: "size"}` | tall · mid · short | refused, `no_objects_to_order`: the current plate is empty |
 | 8 | `object_order {by: "size", all: "every"}` | tall · mid · short | refused by the schema, saying `all must be of type boolean` |
 | 9 | `object_order {by: "size", all: true}` | short · mid · tall | the reply's `descending` false and `order` short, mid, tall and no more: every plate's objects, by volume (4000, 8000, 12000 mm³) |
-| 10 | `object_order {by: "name", all: true}` | mid · short · tall | the reply's `descending` false and `order` mid, short, tall: with the current plate empty, `all` orders plate 0's objects, by name as `scene.json` ordered them |
+| 10 | `object_order {by: "name", all: true}` | mid · short · tall | the reply's `descending` false and `order` mid, short, tall: with the current plate empty, `all` orders plate 0's objects, by name |
 | 11 | `plate_set_settings {plate: 0, values: {print_sequence: "by object"}}` | mid · short · tall | `plate_list` gives plate 0 `print_sequence` `by object` |
 | 12 | `object_order {plate: 0, order: [2, 0, 1]}` | tall · mid · short | the reply's `order` tall, mid, short and no `descending` |
 | 13 | `object_order {plate: 0, order: [0, 1, 2]}` | tall · mid · short | the reply's `order` tall, mid, short: the order they have changes nothing |
@@ -516,25 +512,23 @@ after 5 and 6, as replacing an object's only part names the object after the new
 - That Assemble keeps the pieces where they stand (splitting, step 4), so the assembly's box is the two rings' box:
   `ObjectList::merge()` gives each part its object's instance placement times its own.
 - The open edges of `holed.stl` once imported (repairing, step 1): the loader's repair matches the edges it can and
-  leaves the hole, three edges. `objects_state.json` checked only more than 0.
-- Fix Model's notice through the menu (repairing, step 5) is the text `objects_state.json` passes with,
-  `has been repaired`.
+  leaves the hole, three edges.
+- Fix Model's notice through the menu (repairing, step 5) is matched by the words `has been repaired`.
 - The modifier's move on Replace 3D file (files, step 9). The new mesh is moved by the difference between the two
   meshes' centres in their files, (10, 10, 5) here, for an instance that is neither turned nor scaled. The cylinder's
   centre is (0, 0, 5) only to its facets, hence 0.05.
 - A reload that finds only missing files takes no undo step (files, step 6): `Ops::reload_parts()` reloads nothing,
-  so it takes no snapshot. The command's description says "One undo step" without that exception; this is MCP code
-  added on this branch, fixed when the test is written: in `src/slic3r/GUI/Mcp/McpToolsScene.cpp`,
-  `register_object_tools()`, `object_reload_from_disk`'s description says that a call that reloads nothing, its parts'
-  files all missing, takes no undo step, and so does the comment on `reload_parts()` in
-  `src/slic3r/GUI/Operations/ObjectOps.hpp`.
+  so it takes no snapshot. `object_reload_from_disk`'s description (`register_object_tools()` in
+  `src/slic3r/GUI/Mcp/McpToolsScene.cpp`) and the comment on `reload_parts()` in
+  `src/slic3r/GUI/Operations/ObjectOps.hpp` say so: one undo step, none when every part's file is missing.
 - An order the objects already have takes no undo step (ordering, steps 13 and 14): `Ops::reorder_objects()` takes its
   snapshot only when it moves an object, as `ObjectList::order_objects()`, the app's own code, takes one only when the
-  order changes. The command's description and the operations' comments say "one undo step" without that exception;
-  this is MCP code added on this branch, fixed when the test is written: in `src/slic3r/GUI/Mcp/McpToolsScene.cpp`,
-  `register_object_menu_commands()`, `object_order`'s description, and in `src/slic3r/GUI/Operations/ObjectOps.hpp`,
-  the comments on `order_objects()` and `reorder_objects()`, say that a call that leaves the order as it was takes no
-  undo step.
+  order changes. `object_order`'s description (`register_object_menu_commands()` in
+  `src/slic3r/GUI/Mcp/McpToolsScene.cpp`) and the comments on `order_objects()` and `reorder_objects()` in
+  `src/slic3r/GUI/Operations/ObjectOps.hpp` say so: one undo step, none when the order stays as it was.
+- The words of `part_add`'s refusals (parts, steps 8 and 9) carry no code, so they are matched by their text. A
+  shape's size names the fields of Add Primitive's size dialog (`primitive_size_names()`), so a cylinder's is
+  `[Diameter, Height]`.
 - The names of parts (parts, steps 11 and 21; what the project keeps, step 1): a part added as a shape is named
   `Generic-` and its shape (`ObjectList::load_generic_subobject()`), and naming an object of one part names its part
   too (`ObjectList::update_name_in_model()`), so the first part is named after the object while it has no other.
@@ -562,143 +556,11 @@ after 5 and 6, as replacing an object's only part names the object after the new
   stop, which a 12-triangle cube is not. Reload from disk with `all`: no replaced replay used it; it reloads every
   object but the cut ones through the same `Ops::reload_parts()`. A STEP file's mesh options on Replace 3D file:
   `test_files` (the files entry) checks them.
-- The order of objects of the same height, such as the two rings `menu_items_structure.json` ordered with its cubes:
+- The order of objects of the same height, such as two rings beside cubes:
   which of two equal objects comes first is the sort's. The ordering scenario's objects differ in height, size and
   name, so the whole order is read at every step.
 
-## Replays this area replaces
-
-Each leaves the sweep, with its entry, in the commit that adds the tests above.
-
-### `menu_items_objects`
-`tests/menu_items_objects.json` · replay, 31 steps, 36 expects, 0 optional
-
-**Tests:** The object commands made from menu items called by index and with no target on the selection: `object_rename`, `object_set_instances`, `object_separate_instances`, `object_delete` and the Delete Selected action, and `object_set_height_ranges` / `object_set_variable_layer_height` acting on the selected object.
-
-**Decides by:** Fails when a call errors or an expect misses.
-- Rename: the reply names object 1 "middle"; `object_list` has it on object 1 and not object 0.
-- Instances: the reply gives object 0 with 3 instances; separating instance [0, 2] replies new object 3 and `object_list` shows 4 objects, object 0 with two instances.
-- Delete: by index replies index 0 and `object_count` 3, leaving "middle" first; on the selection replies "middle" and count 2, and the list no longer starts with it; the `obj_delete` action replies count 1.
-- Selection targets: height ranges reply object 1 "layered" with `max_z` 5, and `object_list` shows the range on object 1 and none on object 0; variable layer height replies object 1 "layered".
-
-**Not checked:**
-- Variable layer height is checked only by `/layer_height_profile` existing in the reply; `object_list` is not read, so a profile also landing on object 0 passes.
-- The separated object's position or geometry is not read.
-
-**Strength:** Strong — every command's target and result are read back by index and name.
-
-### `menu_items_placement`
-`tests/menu_items_placement.json` · replay, 51 steps, 67 expects, 0 optional
-
-**Tests:** Placement commands by index: `object_add_primitive` on a plate and at a position in one undo step, `object_mirror`, `object_drop`, `object_center` (each on its own plate, then as a group on one plate), `object_scale_to_fit`, `object_auto_orient`, and the Center, Drop, Scale to Fit and Auto-Orient actions on the selection, on the X1C's 256 mm bed with three plates.
-
-**Decides by:** Fails when a call errors or an expect misses.
-- Add: replies `object`, `plate` 1 and name; the selection is [0]; the second cube's `offset` is 420/110 ± 0.01 on plate 1; the undo log shows exactly one "Add Primitive" snapshot (`ops_undo.taken()`, which reads the app log and asserts nothing); both names listed and the second on the bed.
-- Mirror and drop: only object 0 is mirrored; a two-part object lifted 15 mm without drop has `min/2` ≥ 10, `object_drop` replies `moved` true and puts it at 0 ± 0.001, a second drop replies `moved` false; the `obj_drop` action replies `moved` true and drops it.
-- Centre: by index replies plate 1 only and puts object 0 at 435.2/128 ± 0.1; objects 0 and 2 each go to their own plate's centre (reply groups exact, plate 2 at 128/−179.2 ± 0.1); a second call leaves them; all three on plate 1 replies [0, 1, 2], lists "third" on plate 1 and nothing outside; the Center action puts object 2 on plate 1's centre.
-- Scale to fit: replies object 0 and 2 with scale > 5; object 0's listed scale > 5.
-- Auto-orient: reply indices and object 2's `rotation_deg/0` 89.9–90.1, matched in `object_list`; the selection stays [1, 2]; the action with nothing selected replies rotations for objects 0–2 and no fourth.
-
-**Not checked:**
-- Scale to fit is checked as > 5, where the fitted factor follows from the bed; the action's scale is not read in `object_list`.
-- The Auto-Orient action's rotations are not read, only which objects it processed.
-- The group centring's resulting positions are not read, only plate membership and nothing outside.
-
-**Strength:** Strong — positions are read back to 0.1 mm against the bed's geometry; Scale to Fit and the Auto-Orient action are loosely checked.
-
-### `menu_items_structure`
-`tests/menu_items_structure.json` · replay, 28 steps, 45 expects, 0 optional
-
-**Tests:** The object structure commands by index: `object_split` into objects and into parts, `object_assemble`, `part_change_type`, `object_order` by height (ascending, repeated, descending), and the Split to Objects action on the selection, using a two-shell OBJ.
-
-**Decides by:** Fails when a call errors or an expect misses.
-- Split into objects: reply indices 0 and 1, `object_count` 2, each a single part.
-- Split into parts: reply parts 0 and 1 of object 2, `object_count` 3; the list shows two parts of type "part".
-- Assemble: reply object 1 "Assembly"; the list has 2 objects, both multi-part.
-- Change type: the reply moves the new modifier to part 1; the list shows part, then modifier.
-- Order: ascending puts the 10 mm cube at index 2 and the 30 mm at 3 (bbox ± 0.01); the same call again stays ascending; descending reverses it; the reply's `/descending` matches each time.
-- The action splits object 4 into 4 and 5, `object_count` 6.
-
-**Not checked:**
-- Order by height reads only the two cubes' slots; the two-shell objects' relative order is not read.
-- Split and assemble geometry (part sizes, positions) is not read.
-
-**Strength:** Strong — each command's reply and the resulting list are matched by index, type and name.
-
-### `objects_state`
-`tests/objects_state.json` · replay, 42 steps, 45 expects, 0 optional
-
-**Tests:** `object_set_printable` on one instance and on a whole object, `object_fix` on a cube missing a triangle (no dialog, no notice, one undo step), Fix Model through the object's menu ending in its notice, and `object_set_auto_drop` off letting a lifted object stay up.
-
-**Decides by:** Fails when a call errors, a fixture raises, or an expect misses.
-- Printable: the reply names only instance [0, 1]; `object_list` shows it false and its siblings and the other object true; undo restores it; naming object 0 sets all three of its instances and leaves object 1.
-- Fix by index: before, `open_edges` > 0 and `manifold` false; the reply is not a job, `changed` true, open edges before > 0 and after 0; then `open_edges` 0 and `manifold` true; `repair_notices()` finds no notice and no dialog; exactly one "Repairing model object" snapshot.
-- Fix by menu: the gesture replies `ran` "Modify>Fix Model"; `wait_repaired()` polls `object_list` and `app_state` for up to 30 s, then `open_edges` must be 0 and the first notice contain "has been repaired"; the undo log contains "Repairing model object".
-- Auto drop: with it on, a 15 mm lift leaves `min/2` < 0.01; the reply and list show `auto_drop` false on object 0 only; then a lift leaves it at 15–35 mm.
-- Fixtures `objects_files.py` and `ops_undo.py` assert nothing; `wait_repaired()` returns on timeout without raising, and the step's expects decide.
-
-**Not checked:**
-- The drop with Auto Drop on is `min/2` < 0.01 with no lower bound, so an object sunk below the bed passes.
-- The menu path's undo check is `contains`, so extra snapshots pass.
-
-**Strength:** Strong — each state change is read back per instance and object, with before-and-after mesh errors and a control for Auto Drop.
-
-### `objects_order`
-`tests/objects_order.json` · replay, 21 steps, 23 expects, 0 optional
-
-**Tests:** `object_order {order}` putting three objects on a by-object plate in the order [2, 0, 1], as dragging them in the object list does; the same order again changes nothing; one undo restores the order.
-
-**Decides by:** Fails when a call errors or an expect misses.
-- `plate_set_settings` applies `print_sequence` "by object", and `plate_list` reads it back.
-- The reply's `order` names and new indices are exact and there is no fourth; `object_list` lists third, first, second.
-- `[0, 1, 2]` replies the same order, and one undo then restores first, second, third (which also shows the no-op added no undo step).
-
-**Not checked:**
-- The plate is never sliced, so the header's claim that this is the print order is not checked.
-
-**Strength:** Strong — the order is read back by name from the reply, the list and after undo.
-
-### `objects_files`
-`tests/objects_files.json` · replay, 62 steps, 62 expects, 0 optional
-
-**Tests:** `object_clone` by index and on a selected instance, the Clone dialog through the object's right-click menu, `object_reload_from_disk` of an overwritten and of a deleted file, and `part_replace` keeping a part's type, filament and position, a modifier staying a modifier, and painted supports kept with the `keep_painting` preference.
-
-**Decides by:** Fails when a call errors, a fixture raises, or an expect misses.
-- Clone: replies the new indices 1–3, `copied` object 0, `object_count` 4, `arranged`; nothing listed outside. The right-click gesture replies `ran` "Clone", the dialog is answered, no dialog remains and `object_count()` gives 5. Cloning selected instance [2, 1] replies that instance and new object 5 with one instance, object 2 keeping two.
-- Reload: `mesh_volume` 8000, then exactly 27000 after the file is rewritten at 30 mm; the reply names part 0 and the path, with `missing` and `unmatched` empty; exactly one "Reload from disk" snapshot; after removal the reply lists the part under `missing`, `reloaded` is empty, no dialog opens and the volume stays 27000.
-- Replace: `replace_keeps()` (object_list read before and after) gives a new part id, type "part", filament 2 and `moved` < 0.01; the modifier replace gives volume 8000, type "modifier" and the same filament; exactly two "Replace with 3D file" snapshots.
-- keep_painting: enforcers > 0 before; the checkbox is clicked in the Preferences dialog and `preferences_get` reads true; after `part_replace` with the same box, enforcers > 0.
-- Fixture `objects_files.py` asserts nothing: it writes STL files, calls tools and returns dicts. A tool error raises `ToolError`; `remove()` returns `removed` false rather than raising. `ops_undo.py` reads the app log and asserts nothing.
-
-**Not checked:**
-- keep_painting has no control case: a replace with the preference off is never tried, so a `part_replace` that always keeps painting, or ignores the preference, passes.
-- The modifier's move by the file-origin difference, which the comment describes, is not matched (`moved` is returned but unchecked for part 1).
-- Arranged clones are checked only as not outside the plates.
-
-**Strength:** Partial — clone, reload and replace are checked exactly, but the keep_painting section cannot tell the preference's effect from the default.
-
-### `scene`
-`tests/scene.json` · replay, 208 steps, 203 expects, 23 optional
-
-**Tests:** `object_transform` on instances, parts and plates; what `object_list`, `object_select` and `app_state` report; shapes at a size; `object_arrange` and Fill bed; `part_add`; the object list's context-menu commands through `action_run` (Change Type, Rename, instances, Set as Individual Objects, Assemble, Order By); then all of them on one scene, sliced.
-
-**Decides by:** Fails when a non-optional call errors or an expect misses.
-- Instance and part transforms: after a scale the bbox `min/2` is 0 ± 0.001; `size` keeps proportions and sets exact sizes (± 0.01); a plate move replies `/plate` 1 and `object_list {plate: 1}` lists it; part translate, relative move, scale and size replies match to 0.01 (or 0.001), and one undo takes back one part move.
-- `object_list` fields: object and part `filament` 1, `auto_drop` true, `mirrored` flags, instance bbox, part position, part bbox and volume ranges.
-- Selection: `object_select` replies `/canvas`, `/objects`, `/instances`, `/parts` exactly, also for one instance of two; `app_state /selection/parts` and `/selection/instances` match.
-- Mirror: a mirrored part is mirrored and its instance not; the instance mirrored on Y then X reads unmirrored.
-- Shapes and arrange: `object_add_primitive` sizes ± 0.01, a wrong-count size adds nothing (`total` 2), a size adds the shape with an object selected; Fill bed replies `/added` > 0 on plate 1 with nothing off the plate, its instance listed then gone after one undo; arranging plate 0 replies `spacing` 10, `rotate` false, 2 plates, and plate 1 keeps "Cylinder" while plate 0 has two objects; Arrange and the `obj_arrange` action reply the saved spacing 10.
-- `part_add`: replies give part index, `part_count`, type, position, bbox (± 0.01), name "OrcaCube_v2.drc", filament 1, subtype "center"; undo removes and redo restores the negative part; parts are ordered by type (2 negative, 3 modifier, 6 parts); after four optional refusals and a two-instance refusal there is still no part 6; a shape folds the instance's 1.5 scale into the parts.
-- Structure commands: each Change Type read back, one undo each; the refused changes and the SVG part's refused change leave the types; renames "base" and "infill zone" kept over a refused "a/b"; 6 instances undone, 3 kept over refused 0 and "three"; instances to objects reply indices and `total` 4; Assemble replies object 2 "Assembly", `total` 3.
-- Order By: ascending then descending, reply `/descending` and bbox heights in list order; refusals leave the order; `object_order {all: true}` ascending.
-- End to end: block 50 wide and 18.75 tall on the bed, moved to plate 1, 6 instances arranged there with plate 0 empty, 6 objects each with "boss" and a negative part, mirror on object 5 only, Assemble as object 4 with the mirrored one at index 3, order by name with "Assembly" first, Fill bed adds > 0 on plate 1, plate 1 slices "ok".
-
-**Not checked:**
-- Refusals whose follow-up reads nothing they would change: the absolute rotation of a part (rotation never read), the part move on single-part object 1 (position never read), Arrange on a locked plate (positions never read), `fill_object 0` with `plates 0` (only plate 1's object is read), `plates 7` (only that there is no plate 2), Set as Individual Objects on a single instance.
-- The Speed Dial `obj_mirror_x` with nothing selected, which the header and README call "an error step", is optional, so it checks nothing in either direction.
-- Arrange options: `spacing` and `rotate` are checked only as echoes in the reply; no position or gap between objects is read.
-- Loose: Fill bed `/added` > 0; `app_state /python/scripts_unrestricted` and `/design_tab` only `ne null`; the SVG part's bbox and volume ranges (documented: its orientation varies).
-- Mirroring is checked by the `mirrored` flag only, not by geometry.
-- The end-to-end Fill bed result is not read in `object_list`; the slice is checked only by outcome; the screenshot is never compared.
-
-**Strength:** Partial — transforms, `part_add` and the structure commands are read back exactly, but about half of the refusals and the arrange options have no check that could fail.
+**Strength:** Strong — after every step it reads the objects back through `object_list` and compares their names, and
+their parts' types where a row writes them, whole with values written out here; it asserts each refusal by its code or
+its words, counts undo steps by undoing them, checks the print order in the G-code and what the project keeps through
+the file, and shows keep_painting's effect against the preference turned off.

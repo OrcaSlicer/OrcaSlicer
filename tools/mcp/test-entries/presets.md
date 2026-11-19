@@ -4,8 +4,7 @@ The design of this area's sweep tests. The rules every entry follows, the grades
 in [TESTS.md](../TESTS.md).
 
 ## `test_presets`
-`test_presets.py` · Python · takes the place of `presets.json`, `presets_and_plate_map.json` and `ops_select_preset.json`,
-and of the removed `ops_import_presets.json`
+`test_presets.py` · Python, 511 checks · in `sweep.json` as `{"path": "test_presets.py"}`
 
 **Tests:** The presets of the three types, through the tools a person's preset work maps to: selecting a preset by
 the name its selector shows, hidden ones included (`preset_select`); listing presets with filters (`preset_list`);
@@ -236,8 +235,8 @@ It starts by selecting "MCP Test PLA" in slot 1.
 | 1 | `preset_save {type: process, name: "MCP Project Process", inside_project: true}` | `X1C \| MCP Project Process \| MCP Test PLA` | reply `project` true, `user` false, `inherits` Std; `listed(process, query: "MCP Project Process")` is one item, `selected`, `project` true, `user` false |
 | 2 | `preset_save {type: process, name: "MCP Detached", detach: true}` | as after 1 | refused, "Detach is offered only in Developer mode"; `listed(process, query: "MCP Detached")` is empty |
 | 3 | the `toggle_developer_mode` action, the same save, the action again | `X1C \| MCP Detached \| MCP Test PLA` | reply `project` true and no `inherits` |
-| 4 | `object_add_primitive {shape: "cube"}`, `project_save` to a new file, `project_new {discard_changes: true}` | `X1C \| Std \| MCP Test PLA` | `listed(process, query: "MCP")` is empty: presets inside a project leave with it |
-| 5 | `project_open` of the file | `X1C \| MCP Detached \| MCP Test PLA` | `listed(process, query: "MCP")` is "MCP Detached" and "MCP Project Process", both `project` true and `user` false; "MCP Test PLA" is `selected` and not `modified` |
+| 4 | `object_add_primitive {shape: "cube", size: [20, 20, 20]}`, `project_save` to a new file, `inside.3mf`, `project_new {discard_changes: true}` | `X1C \| Std \| MCP Test PLA` | `listed(process, query: "MCP")` is empty: presets inside a project leave with it |
+| 5 | `project_open` of the file | `X1C \| MCP Detached(inside.3mf) \| MCP Test PLA` | `listed(process, query: "MCP")` is "MCP Detached(inside.3mf)", `user` true and no `project` field, and "MCP Project Process", `project` true and `user` false; "MCP Test PLA" is `selected` and not `modified` |
 
 **Scenario: deleting presets**
 
@@ -335,8 +334,16 @@ The test writes into a folder of its own. `costs()` reads `filament_cost` of "MC
   Transfer offered, since a process can always take a transfer (`Tab::can_transfer_changes_to()`).
 - After a project with project presets is replaced by a new one (inside the project, step 4), the process is expected
   to fall back to Std: `PresetBundle::reset_project_embedded_presets()` leaves no process selected and the
-  compatibility update picks the printer's default. After reopening it (step 5), the process the project was saved
-  with, "MCP Detached", is selected. The replay read neither.
+  compatibility update picks the printer's default. The replay read neither.
+- A detached preset inside the project does not come back as one (inside the project, step 5). Loading a project skips
+  each preset kept inside it that has no parent (`PresetCollection::load_project_embedded_presets()` in
+  `src/libslic3r/Preset.cpp`, which logs "can not find parent"), so "MCP Detached" is not loaded. The process the
+  project was saved with is then made from the project's own settings as an external preset named after the preset
+  and the file, "MCP Detached(inside.3mf)" (`PresetCollection::load_external_preset()`), which is selected and listed
+  as a user preset. That is the app's own code, as on `main` (commit 8c64808ae5), left as it is: a detached preset
+  that does not survive its project is a bug for a fix of its own. Step 5 expects what the app does today.
+- `object_add_primitive` with a shape alone asks for the size in the Primitive size dialog, as the shape's Speed Dial
+  action does, so step 4 gives the cube a size.
 - The process selected after deleting a selected preset with no parent (deleting, step 11) is the tab's next visible
   preset, which depends on the collection's order; the entry checks only that it is a system process.
 - The 0.6 nozzle's process and filament (nozzle diameter, step 1). The X1C 0.6 has never been used, so nothing is
@@ -362,7 +369,7 @@ The test writes into a folder of its own. `costs()` reads `filament_cost` of "MC
 - That `preset_export` with a path is held by a dialog titled Export Preset Bundle: checked in `test_person_forms`;
   here the dialog is driven to a written file and the file read.
 - `preferences_set` and the Preferences dialog tab by tab: checked in `test_preferences`; this test changes one control
-  in the dialog only, as `presets.json` did.
+  in the dialog only.
 - `preset_sync`: checked in `test_additions_refusals`.
 - The undo snapshots of preset selections and imports, which `ops_import_presets` recorded through `ops_undo.py`: no
   tool lists the undo history, and a preset's change is not in it (`settings_set`'s description).
@@ -377,13 +384,14 @@ The test writes into a folder of its own. `costs()` reads `filament_cost` of "MC
 - How the dialogs look: no screenshot is taken.
 
 **Fixtures:** the test uses `tests/fixtures/mcp_import_pla.json` and `heightmap.png`, and writes its other files.
-`tests/fixtures/presets_and_plate_map.py` has no other user and goes with `presets_and_plate_map.json`. Of
-`tests/fixtures/ops_presets.py`, `test_operation_routes.py` uses `preset_api` alone; `arrange_presets` goes with
-`ops_select_preset.json`, while `arrange_filaments`, `probe` and `drop_filament_edits` stay for the
-`ops_assign_filament_preset_*` replays until they leave.
+
+**Strength:** Strong — after every step it reads the selection back, each preset with its unsaved edits and their
+values, and compares it whole with values written out here; it asserts each refusal by its code or its words, each
+prompt by its title and buttons, and checks an exported preset through its file and the selected presets and an
+unsaved edit through the G-code.
 
 ## `test_calibration`
-`test_calibration.py` · Python · takes the place of `calibration.json`
+`test_calibration.py` · Python, 307 checks · in `sweep.json` as `{"path": "test_calibration.py"}`
 
 **Tests:** `calibration_generate_test` for every test and method of the Calibration menu: the project it makes, the
 parameters it uses, the presets and objects it changes, the warnings for values it rounds or the printer may not
@@ -437,17 +445,17 @@ true}` and leaves the selection `X1C | Std | PLA[nozzle_temperature 230,230, noz
 |---|---|---|
 | 1 | `{test: "max_volumetric", end: 15}` | `project` "Max volumetric speed test"; `params` `{start: 5, end: 15, step: 0.5}`; `names` `["SpeedTestStructure.drc"]`, 22 mm high to 0.01; `discarded.filament` is `{name: PLA, keys: [nozzle_temperature, nozzle_temperature_initial_layer]}`, and `nozzle_temperature` reads "220,220" again; sets filament `filament_max_volumetric_speed` "200,200" and `slow_down_layer_time` "0", which are the filament's whole `changes`, and process `spiral_mode` "1"; `result_keys` `{type: filament, keys: [filament_max_volumetric_speed]}`; a slice |
 | 2 | `{test: "pressure_advance", end: 0.06}` | `project` "Pressure Advance Test"; `params` `{method: tower, start: 0, end: 0.06, step: 0.002}`; `names` `["tower_with_seam.drc"]`; sets filament `slow_down_layer_time` "1", the filament's whole changes; `result_keys` `{type: filament, keys: [enable_pressure_advance, pressure_advance]}`; a slice, whose `M900 K<k>` values in the layers, repeats in a row dropped, are exactly 0, 0.002, 0.004 … 0.06, the 31 bands, each to 0.0001 |
-| 3 | `{test: "pressure_advance", method: "line", print_numbers: false}` | `params` `{method: line, start: 0, end: 0.1, step: 0.002, print_numbers: false}`; `names` `["pressure_advance_test.drc"]`; sets process `wipe_inward` "0" and `retract_after_outer_wall` "0", and no filament key: the filament's changes are empty |
-| 4 | `{test: "pressure_advance", method: "pattern", accelerations: [1000, 2000], speeds: [50, 100]}` | `params` `{method: pattern, start: 0, end: 0.08, step: 0.005, accelerations: [1000, 2000], speeds: [50, 100]}`; `names` `["pa_pattern_50_1000", "pa_pattern_100_1000", "pa_pattern_50_2000", "pa_pattern_100_2000"]`; sets filament `filament_retract_when_changing_layer` and `filament_wipe` 0 in every entry (the profile has nil), the filament's whole changes, and printer `wipe` and `retract_when_changing_layer` 0 in every entry; `result_keys` `{type: filament, keys: [enable_pressure_advance, pressure_advance, adaptive_pressure_advance, adaptive_pressure_advance_model]}`; a slice |
-| 5 | `{test: "pressure_advance", method: "pattern"}` | `params` `{method: pattern, start: 0, end: 0.08, step: 0.005, accelerations: [a], speeds: [s]}`, where `a` and `s` are the first entries of the process's `outer_wall_acceleration` and `outer_wall_speed` read after the call, both above 0: the pattern's defaults are the process's; `names` `["pa_pattern_<s>_<a>"]`, the two as whole numbers; sets as row 4 |
+| 3 | `{test: "pressure_advance", method: "line", print_numbers: false}` | `project` as row 2; `params` `{method: line, start: 0, end: 0.1, step: 0.002, print_numbers: false}`; `names` `["pressure_advance_test.drc"]`; sets process `wipe_inward` "0" and `retract_after_outer_wall` "0", and no filament key: the filament's changes are empty |
+| 4 | `{test: "pressure_advance", method: "pattern", accelerations: [1000, 2000], speeds: [50, 100]}` | `project` as row 2; `params` `{method: pattern, start: 0, end: 0.08, step: 0.005, accelerations: [1000, 2000], speeds: [50, 100]}`; `names` `["pa_pattern_50_1000", "pa_pattern_100_1000", "pa_pattern_50_2000", "pa_pattern_100_2000"]`; sets filament `filament_retract_when_changing_layer` and `filament_wipe` 0 in every entry (the profile has nil), the filament's whole changes, and printer `wipe` and `retract_when_changing_layer` 0 in every entry; `result_keys` `{type: filament, keys: [enable_pressure_advance, pressure_advance, adaptive_pressure_advance, adaptive_pressure_advance_model]}`; a slice |
+| 5 | `{test: "pressure_advance", method: "pattern"}` | `project` as row 2; `params` `{method: pattern, start: 0, end: 0.08, step: 0.005, accelerations: [a], speeds: [s]}`, where `a` and `s` are the first entries of the process's `outer_wall_acceleration` and `outer_wall_speed` read after the call, both above 0: the pattern's defaults are the process's; `names` `["pa_pattern_<s>_<a>"]`, the two as whole numbers; sets as row 4 |
 | 6 | `{test: "flow_ratio"}` | `project` "Orca YOLO Flow Calibration"; `params` `{method: yolo, top_surface_pattern: archimedeanchords}`; `names` "flowrate_0", "flowrate_0.01" to "flowrate_0.05", "flowrate_m0.01" to "flowrate_m0.05", the 11 of `Orca-LinearFlow.3mf` in its order; sets process `layer_height` "0.2", and no filament key (rows 6 to 9): the filament's changes are empty; `result_keys` `{type: filament, keys: [filament_flow_ratio]}`; each object's own `print_flow_ratio` is `(0.98 + m) / 0.98` to 0.0001, `m` being the number its name ends in ("m" for minus) and 0.98 the filament's flow ratio, and its own `top_surface_pattern` is "archimedeanchords"; a slice |
 | 7 | `{test: "flow_ratio", method: "yolo_perfectionist"}` | `project` "Orca YOLO Flow Calibration - Perfectionist version"; `params` `{method: yolo_perfectionist, top_surface_pattern: archimedeanchords}`; `names` the 16 of `Orca-LinearFlow_fine.3mf` in its order, "flowrate_0", "flowrate_0.005" to "flowrate_0.035" and "flowrate_m0.005" to "flowrate_m0.04"; flow ratios as in row 6 |
 | 8 | `{test: "flow_ratio", method: "pass1"}` | `project` "Flowrate Test - Pass1"; `params` `{method: pass1, top_surface_pattern: archimedeanchords}`; `names` "flowrate_0", "flowrate_10", "flowrate_15", "flowrate_20", "flowrate_5", "flowrate_m10", "flowrate_m15", "flowrate_m20", "flowrate_m5", as `flowrate-test-pass1.3mf` holds them; each object's own `print_flow_ratio` is `1 + m / 100` to 0.0001 |
 | 9 | `{test: "flow_ratio", method: "pass2", top_surface_pattern: "monotonic"}` | `project` "Flowrate Test - Pass2"; `params` `{method: pass2, top_surface_pattern: monotonic}`; `names` "flowrate_0", "flowrate_m1" to "flowrate_m9", as `flowrate-test-pass2.3mf` holds them; flow ratios as in row 8; each object's own `top_surface_pattern` is "monotonic" |
-| 10 | `{test: "retraction", end: 1}` | `project` "Retraction"; `params` `{start: 0, end: 1, step: 0.1}`; `names` `["retraction_tower.drc"]`, with its own `layer_height` "0.2"; sets printer `use_firmware_retraction` "0", and no filament key: the filament's changes are empty; `result_keys` `{type: filament, keys: [filament_retraction_length]}`; a slice. Its layers are cut into bands at each `; Calib_Retraction_tower: Z_HEIGHT: <z>, length:<L>` line: the bands' lengths `L`, repeats in a row dropped, are exactly 0, 0.1 … 1, and in each band every deretraction (a `G1` with `E` and `F` alone and `E` above 0) restores exactly that band's `L`, to 0.001, the band of 0 having none: the retraction the tower sets is the one the printer performs |
+| 10 | `{test: "retraction", end: 1}` | `project` "Retraction"; `params` `{start: 0, end: 1, step: 0.1}`; `names` `["retraction_tower.drc"]`, with its own `layer_height` "0.2"; sets printer `use_firmware_retraction` "0", and no filament key: the filament's changes are empty; `result_keys` `{type: filament, keys: [filament_retraction_length]}`; a slice. Its layers are cut into bands at each `; Calib_Retraction_tower: Z_HEIGHT: <z>, length:<L>` line: the bands' lengths `L`, repeats in a row dropped, are exactly 0, 0.1 … 1, and in each band every deretraction (a `G1` with `E` and `F` alone and `E` above 0) restores exactly that band's `L`, to 0.001, and each `L` above 0 has at least one; the bands of 0 restore 0.8 alone, the printer's `retraction_length`: the first layer's retraction, made at the layer change before the tower's first line. The retraction the tower sets is the one the printer performs |
 | 11 | `{test: "vfa"}` | `project` "VFA test"; `params` `{start: 40, end: 200, step: 10, auto_scale: true, auto_adjust: true}`; `names` `["vfa.drc"]`, with its own `layer_height` "0.2"; no `adjusted`; sets filament `slow_down_layer_time` "0", the filament's whole changes, and process `spiral_mode` "1", `wall_loops` "1", `top_shell_layers` "0", `bottom_shell_layers` "1", `sparse_infill_density` "0%" and `enable_overhang_speed` 0 in every entry; `result_keys` `{type: printer, keys: [resonance_avoidance, min_resonance_avoidance_speed, max_resonance_avoidance_speed]}`; a slice |
-| 12 | `{test: "vfa", end: 400, step: 20}` | `params` `{start: 40, end: 400, step: 20, auto_scale: true, auto_adjust: true}`; `adjusted.layer_height` is below 0.2, and the object's own `layer_height` reads that value: the tower prints thinner layers to stay within the filament's volumetric speed |
-| 13 | `{test: "vfa", end: 400, auto_adjust: false}` | `params` `{start: 40, end: 400, step: 10, auto_scale: true, auto_adjust: false}`; no `adjusted`; one warning, starting "the end speed (400 mm/s) exceeds the filament's maximum volumetric speed (21 mm³/s)" and ending "(auto_adjust and auto_scale lower the layer height to reach it)"; the object's own `layer_height` is "0.2", half the nozzle, as without the warning |
+| 12 | `{test: "vfa", end: 400, step: 20}` | `project`, `names`, sets and `result_keys` as row 11; `params` `{start: 40, end: 400, step: 20, auto_scale: true, auto_adjust: true}`; `adjusted.layer_height` is below 0.2, and the object's own `layer_height` reads that value: the tower prints thinner layers to stay within the filament's volumetric speed |
+| 13 | `{test: "vfa", end: 400, auto_adjust: false}` | `project`, `names`, sets and `result_keys` as row 11; `params` `{start: 40, end: 400, step: 10, auto_scale: true, auto_adjust: false}`; no `adjusted`; one warning, starting "the end speed (400 mm/s) exceeds the filament's maximum volumetric speed (21 mm³/s)" and ending "(auto_adjust and auto_scale lower the layer height to reach it)"; the object's own `layer_height` is "0.2", half the nozzle, as without the warning |
 | 14 | `{test: "input_shaping_freq", start: 20, end: 80}` | `project` "Input shaping Frequency test"; `params` `{start: 20, end: 80, start_y: 20, end_y: 80, damping: 0.15, shaper_type: "Default", test_model: "ringing_tower"}`; `names` `["ringing_tower.drc"]`; sets filament `slow_down_layer_time` "0", `slow_down_min_speed` "0", `slow_down_for_layer_cooling` "0", and `enable_pressure_advance` 1 and `pressure_advance` 0 in every entry (the test turns pressure advance on at 0 where the filament has it off, as the PLA does), the filament's whole changes; printer `machine_max_jerk_x` and `machine_max_jerk_y` "10" (the X1C's 9 raised to 10) and `input_shaping_emit` "0"; process `spiral_mode` "1", `wall_loops` "1", `top_shell_layers` "0", `bottom_shell_layers` "1", `sparse_infill_density` "0%", `enable_overhang_speed` 0 in every entry, `accel_to_decel_enable` "1", `accel_to_decel_factor` "100%", and `outer_wall_speed` in every entry the smaller of the printer's `machine_max_speed_x` and `machine_max_speed_y` first entries, `default_acceleration` and `outer_wall_acceleration` in every entry its `machine_max_acceleration_extruding` first entry, those three read from the printer; `result_keys` `{type: printer, keys: [input_shaping_emit, input_shaping_type, input_shaping_freq_x, input_shaping_freq_y, input_shaping_damp_x, input_shaping_damp_y]}` |
 | 15 | `{test: "input_shaping_damp", freq_x: 48, freq_y: 42, test_model: "fast_tower"}` | `project` "Input shaping Damping test"; `params` `{freq_x: 48, freq_y: 42, start: 0, end: 0.4, shaper_type: "Default", test_model: "fast_tower"}`; `names` `["fast_tower_test.drc"]`; sets as row 14 |
 | 16 | `{test: "cornering", test_model: "scv_v2", end: 25}` | `project` "Cornering test"; `params` `{start: 1, end: 25, test_model: "scv_v2"}`; `names` `["SCV-V2.drc"]`; `warnings` exactly "end 25 is above 20: high values may cause layer shifts"; sets printer `machine_max_jerk_x` and `machine_max_jerk_y` "25", `input_shaping_emit` "1" and `input_shaping_type` "Disable", and filament `slow_down_layer_time` "0", `slow_down_min_speed` "0", `slow_down_for_layer_cooling` "0", `filament_max_volumetric_speed` "200", and `enable_pressure_advance` 1 and `pressure_advance` 0 in every entry, the filament's whole changes; `result_keys` `{type: printer, keys: [machine_max_jerk_x, machine_max_jerk_y]}`; a slice |
@@ -477,13 +485,17 @@ true}` and leaves the selection `X1C | Std | PLA[nozzle_temperature 230,230, noz
   set from the layer's height (`start + floor(z - 0.4) * step`) on a tower cut at `1.4 + (end - start) / step` mm, so
   its last band is expected to be 1. A deretraction is expected to restore exactly the retracted length on the X1C,
   whose `retract_restart_extra` is 0, and nothing else in the layers to have that shape.
+- The first band of the retraction tower (other tests, row 10). The first layer change retracts by the printer's
+  `retraction_length`, 0.8, before `GCode.cpp` writes the tower's first `; Calib_Retraction_tower:` line and sets its
+  length, so the deretraction that ends that travel, `G1 E.8`, falls in the first band of length 0. That is the app's
+  own G-code code, as on `main` (the line's code is from commits `40928a5d22`, `8a6573db19` and `0da24cd38b`, all on
+  `main`), left as it is; the row expects the 0.8 there and no other deretraction in the bands of 0.
 - The objects' order in `names` for the flow ratio tests (other tests, rows 6 to 9) is expected to be the order the
-  shipped `resources/calib/filament_flow` model files hold them in; the replay matched only the first and the second.
+  shipped `resources/calib/filament_flow` model files hold them in.
 - The VFA warning's maximum volumetric speed (other tests, row 13) is the filament's first entry, 21 mm³/s, for the
   Direct Drive Standard extruder in use, and the VFA model's object is named after its file, "vfa.drc", as the others
   are.
-- Discarding on the test (keep and discard, step 3) leaves slot 2 on "MCP Calib PLA" without its edit; the replay read
-  only the reply.
+- Discarding on the test (keep and discard, step 3) leaves slot 2 on "MCP Calib PLA" without its edit.
 
 **Not checked:**
 - The speeds the max volumetric and VFA towers step per layer: the G-code gives a move's feed rate, which the reader
@@ -502,94 +514,7 @@ true}` and leaves the selection `X1C | Std | PLA[nozzle_temperature 230,230, noz
 
 **Fixtures:** none.
 
-## Replays this area replaces
-
-Each leaves the sweep, with its entry, in the commit that adds the tests above.
-
-### `presets`
-`tests/presets.json` · replay, 207 steps, 209 expects, 19 optional
-
-**Tests:** `preset_save` (user, inside the project, detached, the overwrite rule), dropping and reverting edits with `settings_set` (`reset_all`, `null`, `reset_to`), reading settings' meta, searches and comparisons with `settings_get`/`settings_list`, per-variant values, `changed` after the spiral vase dialog, the unsaved-changes prompt through `preset_select` and `project_new`, `preset_delete`, export through the Export Preset Bundle dialog and `preset_import`, Preferences against `preferences_get`, and selecting hidden presets.
-
-**Decides by:** Fails when a non-optional call errors or an expect misses.
-- Hidden presets: a not-installed filament is listed and selected by name; switching to the hidden A1 mini lands slot 1 on a filament matching `@BBL A1M$`.
-- Meta and search: `seam_slope_type` description contains "scarf joint", `where` "Quality > Seam", label "Contour"; `unknown_keys` and the `type_of` map exact; the printer search for "ooze during long travel" ranks `retraction_length` first at "Extruder > Retraction".
-- Saving: `preset_save` replies `saved`, `user`, `project`, `inherits`, `selected`, `filament_slots`; the saved preset is listed selected and unmodified, with `compatible_printers` naming the X1C 0.4; compare `:saved` total 0 and `:parent` total 2 with "22"; the overwrite rule is followed by a list showing "MCP Test PLA 2" still selected, and the overwrite save reads cost "23".
-- Reset and revert: `reverted` lists exact (`sparse_infill_density`, then `["wall_loops"]`, then empty); a bad value leaves "6"; `null` reverts to "2"; `reset_to: parent` gives "15.99" and back to "23".
-- Reading and comparing: `:saved` gives exactly the two edits with `left` "... (edited)" and `other` "15%"; named presets read "2" and "0.16" without being selected; compare against "0.16mm Optimal" exact; `fuzzy_skin` values and labels.
-- Per-variant values: variants and active entry exact; a scalar writes "250,350", an index write "250,300", the filament "215,220", compared entry by entry; reset gives "220,220".
-- Spiral vase: `changed` lists `spiral_mode` "1", `wall_loops` "1", `top_shell_layers` "0", density "0%".
-- Project preset: inside-project save is `project` true, `user` false; detach outside Developer mode leaves none, inside it saves without `inherits`; after a 3MF save, new project and reopen it is listed again and the filament is still selected and unmodified.
-- Prompts: the dialog title is "Transfer or discard changes"; the job and the `preset_changes` replies give `selected`, `modified/.../keys` and `discarded/.../keys` exactly, including the Simple-mode-hidden key discarded and the filament keeping its change; the filament-type transfer refusal leaves "MCP Test PLA" selected; `project_new` keeps or discards as asked.
-- Delete: a system preset survives a refused delete; deletes reply `deleted`, `selected`, `filaments`, `discarded`; refusals for unsaved changes, a base with a child and an unselected printer each leave the preset listed.
-- Export and import: the Info dialog reads "Export successful", the export job `level` is "success", imports reply exact messages ("Kept the existing presets: ...", "Imported presets: ..."), the JSON import inherits "Bambu PLA Basic @BBL X1C" with cost "24", and no "MCP " preset is left.
-- Preferences: refusals leave no dialog open; the checkbox reply `checked` and `preferences_get` value are false, then true.
-
-**Not checked:**
-- The printer transfer refusal: the follow-up (`printer_notes` still unsaved) also holds if the transfer to the same printer were accepted.
-- `settings_set` refusing the preference `auto_arrange`: the preference is not read before the dialog sets it to the same false.
-- Loose: the search without a type checks only a key ending in `retraction_length`, a type matching `filament|printer` and that a value exists; `settings_list` by `where` checks only that a value and description exist; the A1 mini's filament by pattern.
-- No refusal's reason is asserted; README defers them to `test_additions_refusals.py`, which I did not check for these cases.
-- `app_wait {for: job}` for the export dialog and the two Preferences jobs have no expect; a wait that times out still passes (the following reads catch most consequences).
-
-**Strength:** Strong — nearly every step's reply or read-back is matched to an exact preset name, key list or value; the gaps are two refusals the follow-ups cannot tell from success and a few pattern-matched searches.
-
-### `presets_and_plate_map`
-`tests/presets_and_plate_map.json` · replay, 21 steps, 29 expects, 0 optional
-
-**Tests:** `preset_list` filters (vendor, filament type, source, `include_uninstalled`, `printer`) and fields, `nozzle_diameter` selecting the matching nozzle preset, and a single-extruder plate's filament grouping read and refused.
-
-**Decides by:** Fails when a call errors, a fixture raises, or an expect misses.
-- `listed()` reads every page: Bambu Lab PLA filaments are found, none fails the vendor/type filter or lacks `vendor`/`filament_type`, none is Template; with lower-case filter values the first item reads "Bambu Lab"/"PLA".
-- Printers with `include_uninstalled` include the X1C 0.2 nozzle, every system printer has `vendor`, `printer_model` and `nozzle`, none is Template; the X1C 0.4 entry reads vendor "BBL", model, nozzle "0.4", selected.
-- `fitting()`: some filaments fit the 0.2 nozzle preset that the selected printer does not list, and none of them is marked incompatible.
-- `nozzle_diameter` 0.6 applies "0.6", selects the 0.6 nozzle preset with `printer_variant` "0.6"; 0.4 selects the 0.4 preset again.
-- A saved filament is listed by `source: user`, every listed item is user and not project, and `source: system` finds none by its name.
-- The plate's `filament_map_mode` is "Auto For Flush" with no offered modes and `filament_map` effective [1]; `refused()` shows `plate_set_settings` Manual raises with a message containing "this one has one".
-- Fixture `presets_and_plate_map.py` asserts nothing; it returns counts and name lists. `refused()` turns any exception into `refused: true` (broad except); the message match keeps an unrelated error from passing.
-
-**Not checked:**
-- `fitting()` returns `only_selected` (0.4-only filaments that should drop out) but it is not matched; the check only shows the two lists differ somewhere.
-- Lower-case filters are checked on the first item only; the Bambu PLA count is only > 0.
-
-**Strength:** Strong — the filter checks hold for every listed item, and the nozzle switch and plate map are exact.
-
-### `ops_select_preset`
-`tests/ops_select_preset.json` · replay, 250 steps, 89 expects, 78 optional
-
-**Tests:** Selecting a process (0.20mm Standard to 0.16mm Optimal) or printer preset (X1 Carbon to X1E) through `preset_select` and the plugin API's `process`/`printer` `begin_update(name)`: an ordinary selection, unsaved changes (each `preset_changes` value and none, the prompt answered each way), the preset already edited, a hidden printer, and the refusals (no such name, an alias, an incompatible preset, the slot form on the process editor).
-
-**Decides by:** Fails when a non-optional call errors, a fixture raises, or an expect misses. Every expect sits on setup.
-- Case setup (`arrange_presets`, 29 steps): no dialog open; printer and process tab names by regex, with ` (modified)` on the dirtied one. A prompt the previous case left open fails here.
-- Setup: one filament slot.
-- Implicit: non-optional `preset_select` calls must succeed without a prompt: the process selection with no changes, with `transfer` and `discard`; the hidden X1E selected twice; the printer with `discard`.
-
-**Not checked:**
-- No `probe()` after a call is asserted, so a `preset_select` that returns ok but leaves the old preset in the tab passes; the next `arrange_presets` resets the state either way.
-- The plugin API route cannot fail (`preset_api` catches exceptions), including the hidden X1 it should select. `test_operation_routes.py` checks a hidden printer through the plugin API.
-- Whether the prompt opens, and that the printer prompt offers no Transfer: `app_wait {for: dialog}` cannot fail, the answers are optional, and the printer `preset_changes: "transfer"` call is optional.
-- The refusals and their codes and texts.
-- The clean-case regex `^0.20mm Standard @BBL X1C` has no `$`, so it also matches a name with ` (modified)`.
-
-**Strength:** Smoke — the tool route must succeed without a prompt, but which preset each call leaves selected is never asserted.
-
-### `calibration`
-`tests/calibration.json` · replay, 58 steps, 39 expects, 8 optional
-
-**Tests:** `calibration_generate_test` for every test and method (temperature, max volumetric, pressure advance tower/line/pattern batch, the four flow-ratio passes, retraction, VFA with its auto-adjust, input shaping frequency and damping, cornering): the model it adds, the parameters used, the presets changed, rounding warnings, refusals that leave the project alone, and how `preset_changes` "keep" and "discard" treat modified presets, including the filament tab on another slot's preset.
-
-**Decides by:** Fails when a non-optional call errors or one of its 87 matchers misses.
-- Temperature: `/params` exactly `{start: 250, end: 230, auto_scale: true}` with two rounding warnings; one `temperature_tower.drc`; `result_keys` exact; `modified` lists `nozzle_temperature`.
-- Refusals: after three optional refused calls, `object_list` still holds one temperature tower and the filament preset is still modified.
-- Other tests: `/params` (whole object or field), `/names` and `/objects` exact; `presets_changed` `spiral_mode` = `"1"`; `result_keys`; warnings by substring; eight runs in all, the temperature one included, slice `ok`.
-- VFA fit: `/adjusted` absent at defaults; `/adjusted/layer_height` < 0.2 at end 400; absent with a warning when `auto_adjust` is false.
-- Presets: "keep" on slot 2's modified preset is refused (no objects after); "discard" switches the tab from "MCP Calib PLA" and discards `filament_cost`; "keep" keeps `slow_down_layer_time` 7, which `project_new` with "discard" drops back to `"4"`; the clean-up deletes the slot and the preset.
-
-**Not checked:**
-- The refused `temperature` call with `step` (an argument the test does not take): if accepted it would make the same single temperature tower with modified presets, so the read-back after it cannot tell.
-- VFA's object layer height is checked as `ne "0.2"`; an object with no `layer_height` of its own reads null and passes.
-- Slices check only `outcome: ok`; nothing reads whether the G-code steps temperature, speed, pressure advance or retraction per block.
-- Several preset changes are `exists` only (`nozzle_temperature`, `filament_max_volumetric_speed`), and `/presets_changed/filament/filament_slot` = 1 is a constant the reply always writes.
-- Pressure advance pattern defaults are `gt 0`, not the process's acceleration and speed.
-
-**Strength:** Strong — parameters, model names and preset outcomes are compared exactly; one refusal and the G-code's calibration steps are not checked.
+**Strength:** Strong — every test's parameters, project, objects and filament changes are compared exactly with values
+written out here and read back through other tools, each refusal by its code or words with the state after it, and
+three towers by the values their G-code steps through; the process and printer keys beyond each row's list, and the
+G-code of the other tests, are left out.

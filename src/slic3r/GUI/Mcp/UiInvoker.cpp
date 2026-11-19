@@ -99,7 +99,7 @@ nlohmann::json UiInvoker::run(GuardClass guard, const std::string& tool, const s
                 error = "The UI was recreated (language change) before the call ran; it was not run, so it is safe to retry";
             else if (guard == GuardClass::Mutate && g.modal) {
                 error   = "A modal dialog is open; answer it first (widget_list, dialog_answer)";
-                details = {{"dialogs", g.dialogs}};
+                details = {{"dialogs", shared->open_dialogs ? shared->open_dialogs() : g.dialogs}};
             } else if (guard == GuardClass::Mutate && !shared->running_tools.empty())
                 error = "Busy: " + shared->running_tools.front() + " is still running; only inspection and dialog tools can run now";
         }
@@ -170,6 +170,9 @@ std::optional<UiInvoker::Probe> UiInvoker::probe(std::chrono::milliseconds timeo
             p.running_tool = shared->running_tools.front();
         if (!shared->stopped && shared->guards_on_ui)
             p.guards = shared->guards_on_ui();
+        // A dialog the probe finds is reported, so it is described, as it is now.
+        if (p.guards.modal && shared->open_dialogs)
+            p.guards.dialogs = shared->open_dialogs();
         {
             std::lock_guard<std::mutex> lock(call->mutex);
             call->probe = std::move(p);
@@ -190,7 +193,8 @@ void UiInvoker::require_mutate() const
     if (m_shared->guards_on_ui) {
         const GuardState g = m_shared->guards_on_ui();
         if (g.modal)
-            throw ToolFailure("A modal dialog is open; answer it first (widget_list, dialog_answer)", {{"dialogs", g.dialogs}});
+            throw ToolFailure("A modal dialog is open; answer it first (widget_list, dialog_answer)",
+                              {{"dialogs", m_shared->open_dialogs ? m_shared->open_dialogs() : g.dialogs}});
     }
     if (m_shared->running_tools.size() > 1)
         throw ToolFailure("Busy: " + m_shared->running_tools.front() +

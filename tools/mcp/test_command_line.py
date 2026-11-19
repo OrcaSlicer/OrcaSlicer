@@ -27,11 +27,14 @@ child processes.
   folder that is neither the data folder, the resources folder nor the script's own, exits 0, and the conf's
   python_scripts_unrestricted is absent or false after exit; without the flag the same run exits 1.
 - cad_flag: --cad --mcp on a fresh data folder: tool_search {group: Design} finds commands and app_state has no
-  cad_note; after exit the conf's enable_cad_feature is absent or false. A second start without the flag on the same
-  folder finds no Design command.
+  cad_note; File > Quit ends it with exit code 0, and only then, since the app writes its conf as it exits, is the
+  conf's enable_cad_feature read: absent or false. A second start without the flag on the same folder finds no
+  Design command.
 - run_beside_open_window: with single_instance true in the conf and a first window serving on the same data folder,
-  --run r.json runs in a second process, exits 0 and writes its result.json, and the first window has loaded no
-  object; then, with that window closed, two --run r.json processes started together on that folder both exit 0.
+  --run r.json, a replay whose one step is app_state expecting mcp.serving false, runs in a second process, exits 0
+  and writes a result.json that says passed: a run that went into the serving first window would fail its expect,
+  and one that handed its command line over would exit -1. Then, with that window closed, two --run r.json processes
+  started together on that folder both exit 0 and write their result.json.
 - window_per_data_folder: with single_instance true in both confs and a first window serving on one data folder, a
   start on that folder with a model exits -1, having handed its command line over, and the first window loads the
   model (on Linux, which hands it over on the session bus a headless run may lack, only the exit code is checked);
@@ -69,6 +72,10 @@ MODEL = os.path.join(HERE, "..", "..", "resources", "handy_models", "OrcaCube_v2
 DROPPED = (McpError, OSError, http.client.HTTPException)
 
 REPLAY = {"orca_replay_version": "0.2.0", "name": "the app's state", "steps": [{"tool": "app_state"}]}
+# A --run without --mcp opens no endpoint, so this replay passes only in a process of its own, never in a window
+# that serves.
+OFF_SERVER_REPLAY = {"orca_replay_version": "0.2.0", "name": "the app's state without the server",
+                     "steps": [{"tool": "app_state", "expect": {"/mcp/serving": {"eq": False}}}]}
 SCREENSHOT_SCRIPT = """
 import orca
 orca.host.tools.call("window_screenshot", {"include_image": False})
@@ -111,6 +118,15 @@ def read_conf(datadir):
 
 def is_off(value):
     return value in (None, False, "false", "0")
+
+
+def result_passed(folder):
+    """The `passed` of the result.json in `folder`, or why it could not be read."""
+    try:
+        with open(os.path.join(folder, "result.json"), encoding="utf-8") as f:
+            return json.load(f).get("passed")
+    except (OSError, ValueError) as e:
+        return f"unreadable ({e})"
 
 
 class Work:
@@ -413,10 +429,15 @@ def cad_flag(binary):
             note = app.orca.call("app_state").get("cad_note")
             if note is not None:
                 problems.append(f"--cad --mcp: app_state has cad_note {note!r}")
-        app.quit()
-        value = read_conf(work.datadir).get("enable_cad_feature")
-        if not is_off(value):
-            problems.append(f"the conf's enable_cad_feature is {value!r} after exit")
+        # The app writes its conf as it exits, so the conf tells what the run kept only after a clean exit.
+        code = app.quit()
+        if code != 0:
+            problems.append(f"--cad --mcp: File > Quit ended with {'a kill' if code is None else f'exit code {code}'}, "
+                            "so the conf was not read")
+        else:
+            value = read_conf(work.datadir).get("enable_cad_feature")
+            if not is_off(value):
+                problems.append(f"the conf's enable_cad_feature is {value!r} after exit")
         app = work.start(binary, "--mcp", name="no-flag")
         if (why := app.serve(PORT)):
             problems.append(f"--mcp: {why}")
@@ -427,13 +448,14 @@ def cad_flag(binary):
             elif count != 0:
                 problems.append(f"--mcp without --cad: tool_search finds {count} Design commands")
         app.quit()
-    check("cad_flag", problems, f"{found} Design commands with --cad, none without, enable_cad_feature stayed off")
+    check("cad_flag", problems, f"{found} Design commands with --cad, none without, File > Quit exited 0 and "
+                                "enable_cad_feature stayed off")
 
 
 def run_beside_open_window(binary):
     problems = []
     with Work(single_instance=True) as work:
-        replay = work.file("r.json", json.dumps(REPLAY))
+        replay = work.file("r.json", json.dumps(OFF_SERVER_REPLAY))
         first = work.start(binary, "--mcp", "--mcp-port", str(PORT), name="first")
         if (why := first.serve(PORT)):
             return check("run_beside_open_window", [f"the first window: {why}"], "")
@@ -443,9 +465,8 @@ def run_beside_open_window(binary):
             problems.append(f"--run r.json beside the first window: exit code {code}")
         if not os.path.isfile(os.path.join(out, "result.json")):
             problems.append("--run r.json beside the first window: no result.json")
-        objects = first.orca.call("app_state").get("objects")
-        if objects != 0:
-            problems.append(f"the first window has {objects} objects")
+        elif (passed := result_passed(out)) is not True:
+            problems.append(f"--run r.json beside the first window: result.json's passed is {passed}")
         first.quit()
         both = [(os.path.join(work.root, f"together{i}"), work.start(binary, "--run", replay, "--outputdir",
                                                                       os.path.join(work.root, f"together{i}"),
@@ -457,7 +478,7 @@ def run_beside_open_window(binary):
             if not os.path.isfile(os.path.join(folder, "result.json")):
                 problems.append(f"run {i} of two started together: no result.json")
     check("run_beside_open_window", problems,
-          "the run beside an open window exited 0 there and loaded nothing into it; two together both exited 0")
+          "the run beside an open window exited 0 and passed in a process of its own; two together both exited 0")
 
 
 def short_path(path):

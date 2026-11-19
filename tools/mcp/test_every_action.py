@@ -13,9 +13,12 @@ dialogs, a text typed into it first, or a rule for a native file picker register
 output folder.
 
 For every action that ran, the reply's ran is the action's id, and the step replay_export writes for the call is an
-action_run of that id with the arguments of tests/data/speed_dial_action_calls.json (for Go to tab and Go to layer the
-value under the action's input token), the action naming the fixture's command in action_search. An action expected to
-be refused has neither: action_run adds ran only when the command ran, and a failed call is not exported.
+action_run of that id with the arguments its command journals: for Go to tab and Go to layer the value under the
+action's input token, and none for every other action, whose command journals nothing of its own (a step with the id
+alone replays the same, since the action supplies its fixed arguments). The calibration actions are among those: they
+open their test's dialog, and calibration_generate_test journals its arguments only when it runs the test itself. The
+action names the command of tests/data/speed_dial_action_calls.json in action_search. An action expected to be refused
+has neither: action_run adds ran only when the command ran, and a failed call is not exported.
 
 Three actions open a web page in the system's browser and one opens the configuration folder in the file manager; the
 test runs them once and leaves what they opened. Send G-code, Synchronize Filament List from AMS and Sync Presets are
@@ -605,7 +608,9 @@ ROWS = dict([
     row("open_youtube", "empty", external("it opens the YouTube channel in the system's browser")),
     # ---- Plugins ----
     row("open_plugins", "empty", window("Plugins"), post=[call("keyboard_press", keys="Escape", target={"label": "Plugins"})]),
-    row("refresh_plugins", "empty", ("plugin_list", lambda r: (SIDE_LOADED in r.plugin_names(), r.plugin_names())),
+    # The side-loaded plugin is listed only once the refresh has found it.
+    row("refresh_plugins", "empty", ("plugin_list", lambda r: (r.before is False and SIDE_LOADED in r.plugin_names(),
+                                                               (r.before, r.plugin_names()))),
         before=lambda r: side_load(r)),
     row("install_plugin", "empty", external("it opens the plugin hub in the system's browser")),
     row("install_local_plugin", "empty", ("plugin_list", lambda r: (LOCAL_PLUGIN in r.plugin_names(), r.plugin_names())),
@@ -736,9 +741,9 @@ def main():
             step = journal_step(run, key)
             spec = fixture.get(key, {})
             given = step.get("args", {}).get("args", {}) if step else None
-            wanted = ({spec["input"]: list(r["value"].values())[0]} if spec.get("input") else spec.get("args"))
-            check(f"{name}: the journal keeps its action_run with the fixture's arguments",
-                  step is not None and given in ({}, wanted) and (given == wanted or not spec.get("input")), step)
+            wanted = {spec["input"]: list(r["value"].values())[0]} if spec.get("input") else {}
+            check(f"{name}: the journal keeps its action_run with the arguments its command journals",
+                  step is not None and given == wanted, (step, wanted))
             check(f"{name}: its action names the fixture's command", commands.get(action_id(key)) == spec.get("command"),
                   (commands.get(action_id(key)), spec.get("command")))
             if r["why"]:

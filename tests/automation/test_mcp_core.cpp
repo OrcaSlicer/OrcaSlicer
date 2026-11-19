@@ -392,6 +392,28 @@ TEST_CASE("blocked_by_dialog is reported after the soft budget when the probe se
     CHECK(result->data["closed"] == true);
 }
 
+TEST_CASE("a dialog whose answer was queued as it opened does not hold the call", "[Mcp]")
+{
+    Harness h;
+    h.registry.add(tool("answered_modal", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui([&] {
+            // Past the 100 ms soft budget the first probe is queued behind this closure. The dialog then
+            // opens and queues its answer behind that probe, as an auto-answer rule queues its press.
+            std::this_thread::sleep_for(250ms);
+            std::atomic<bool> answered{false};
+            h.ui.post([&] { answered = true; });
+            h.modal_loop(answered, json::array({{{"title", "Orca Slicer info"}}}));
+            return json();
+        });
+        return ToolResult::ok({{"closed", true}});
+    }));
+    h.start();
+
+    const ToolResult r = h.call("answered_modal");
+    CHECK(r.data.value("status", "") != "blocked_by_dialog");
+    CHECK(r.data.value("closed", false) == true);
+}
+
 TEST_CASE("a call working in the topmost dialog is blocked only by another dialog on top", "[Mcp]")
 {
     Harness h;

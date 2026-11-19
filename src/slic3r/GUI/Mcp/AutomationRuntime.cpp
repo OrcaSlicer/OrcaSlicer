@@ -124,9 +124,11 @@ GuardState AutomationRuntime::guards_on_ui() const
     GuardState g;
     g.closing   = m_stopping || wxTheApp == nullptr || wxGetApp().is_closing();
     g.suspended = m_suspended;
+    // Whether a dialog is open is all a guard needs. Describing the dialogs reads every control of each, so it is left
+    // to the replies that name them (UiInvoker's open_dialogs()): made for every queued closure, it would keep the UI
+    // thread from the dialog's own events while many calls wait.
     if (m_modals) {
-        g.dialogs    = m_modals->snapshot();
-        g.modal      = !g.dialogs.empty();
+        g.modal      = m_modals->top() != nullptr;
         g.top_dialog = m_modals->serial(m_modals->top());
     }
     return g;

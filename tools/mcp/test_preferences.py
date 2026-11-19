@@ -289,13 +289,14 @@ def main():
         except McpError:
             return None
 
-    shown = wait_for(lambda: panel() not in (None, "none"), 20)
+    # The page shows the panel with jQuery's show(), which leaves its display "block" (home.js).
+    shown = wait_for(lambda: panel() == "block", 20)
     check("the Home page shows its login side panel", shown, panel())
     client.call("preferences_set", values={"hide_login_side_panel": True})
     hidden = wait_for(lambda: panel() == "none", 10)
     check("preferences_set hide_login_side_panel true hides it at once, without the dialog", hidden, panel())
     client.call("preferences_set", values={"hide_login_side_panel": False})
-    shown_again = wait_for(lambda: panel() not in (None, "none"), 10)
+    shown_again = wait_for(lambda: panel() == "block", 10)
     check("and false shows it again", shown_again, panel())
     client.call("view_set", tab="prepare")
 

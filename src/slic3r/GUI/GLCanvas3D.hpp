@@ -1138,6 +1138,9 @@ private:
 public:
     //BBS
     GCodeViewer& get_gcode_viewer() { return m_gcode_viewer; }
+    // Hands the layers and moves sliders' positions to the toolpaths, which otherwise take them when the canvas next
+    // draws. Returns whether either slider had moved.
+    bool apply_gcode_sliders();
     void init_gcode_viewer(ConfigOptionMode mode, Slic3r::PresetBundle* preset_bundle) { m_gcode_viewer.init(mode, preset_bundle); }
     void reset_gcode_toolpaths() { _set_shown_canvas_current(); m_gcode_viewer.reset(); }
     const GCodeViewer::SequentialView& get_gcode_sequential_view() const { return m_gcode_viewer.get_sequential_view(); }
@@ -1731,8 +1734,6 @@ private:
     // Realistic view: binds, or unbinds, the shadow map the toolpaths read on texture unit 4. False without a map.
     bool _bind_gcode_shadow_map(bool bind) const;
     void _render_gcode_overlay(int canvas_width, int canvas_height);
-    // Hands the layers and moves sliders' positions to the toolpaths. Returns whether either slider had moved.
-    bool _apply_gcode_sliders();
     // decides whether the preview draws its reduced set this frame and returns whether what the scene
     // pass draws changed; runs before the cached scene is consulted
     bool _update_preview_interaction();

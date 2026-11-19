@@ -52,8 +52,8 @@ struct ResolvedPreset
 // internal names. A hidden compatible preset the name stands for is shown in the selectors first, and
 // stays shown until the app restarts, whatever comes of the call after it.
 // Refuses: mixed_filament_slot, no_such_slot, ambiguous_preset_name, ambiguous_hidden_preset (with the
-//          candidates), preset_incompatible (with the incompatible presets of that name),
-//          preset_not_offered (with the closest names).
+//          candidates), preset_incompatible (with the incompatible presets of that name, when no
+//          compatible preset carries it), preset_not_offered (with the closest names).
 Outcome<ResolvedPreset> resolve_preset(const ResolvePresetArgs& args);
 
 struct SelectPresetArgs

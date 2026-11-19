@@ -13,7 +13,8 @@ added only when the run asks for it, and both flags are refused off Linux and to
 the test's own folder; a test's environment has its own session file and temporary folder. Two test files
 with one name are refused, a test whose run raises is recorded as an error, one that runs out of time is
 ended so that what it started ends too, --history takes a bare file name, and -j or --jobs takes a whole
-number from 1 up. Exits 0 when every check passes.
+number from 1 up. Exits 0 when every check passes. The checks are asserts, so a Python that runs with its
+asserts off (-O, or PYTHONOPTIMIZE, which the sweep's runner passes on) fails the test before any of them.
 """
 
 import contextlib
@@ -34,6 +35,17 @@ DEFAULTS = {"launch": "app", "cad": False, "setup": [], "args": [], "env": {}, "
 
 def ok(name):
     print(f"ok - {name}")
+
+
+def asserts_live():
+    """Whether Python runs the asserts every other check is, printing the check's line: with them off every check
+    would pass without checking anything."""
+    if sys.flags.optimize > 0:
+        print(f"FAIL - the asserts are live: Python runs with its asserts off (optimize level {sys.flags.optimize}, "
+              "from -O or PYTHONOPTIMIZE)")
+        return False
+    ok("the asserts are live")
+    return True
 
 
 def refused(raw):
@@ -260,6 +272,8 @@ def check_shipped_manifest():
 
 
 def main():
+    if not asserts_live():
+        return 1
     check_entry()
     check_manifest_problems()
     check_order()

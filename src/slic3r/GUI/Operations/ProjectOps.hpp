@@ -59,7 +59,8 @@ struct ImportModelsResult
 // are not loaded), as one "Import Objects: <files>" undo step. A .zip archive is taken apart as Import
 // ZIP Archive does (Plater::import_zip_archive()): the files `entries` names, or every model file it
 // holds, in place of its file list. The owner's import can open a dialog of its own (a STEP file's
-// mesh options).
+// mesh options). An untitled project is named after the first file that is not an archive, as File >
+// Import names it.
 // Refuses: unreadable_archive and what zip_entries_refusal() gives, before anything is imported;
 // nothing_loaded. The undo step stays in the history then, as after an import from the File menu
 // whose load fails.

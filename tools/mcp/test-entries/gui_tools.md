@@ -3,15 +3,14 @@
 The design of this area's sweep tests. The rules every entry follows, the grades and the table of all tests are
 in [TESTS.md](../TESTS.md).
 
-Three tests take the place of the six replays of this area. One entry for all six would hold eleven scenarios and
-over 130 steps (`test_plates` has 82), and would mix three launches the sweep judges differently:
+Three tests, since the sweep judges their launches differently:
 
-- `test_gui_tools` drives the app's own menus, rows, popups and web dialogs with the generic GUI tools
-  (`context_menus.json`, `rows.json`, `web_dialogs.json`). It runs on the sweep's default launch.
-- `test_recording` makes and encodes recordings (`recording.json`). What it can check depends on the machine's
+- `test_gui_tools` drives the app's own menus, rows, popups and web dialogs with the generic GUI tools.
+  It runs on the sweep's default launch.
+- `test_recording` makes and encodes recordings. What it can check depends on the machine's
   ffmpeg, and it says so in its output, so its verdict is kept apart from the others'.
 - `test_call_forms` checks the forms a call takes: the names and values agents send, and a call with exactly an
-  action's arguments doing what a person's pick does (`agent_forms.json`, `actions_ask.json`). `actions_ask` needs
+  action's arguments doing what a person's pick does. Part of that needs
   the Design tab, so this test launches with it (`"cad": true`), which the other two must not.
 
 Their `sweep.json` entries:
@@ -23,7 +22,7 @@ Their `sweep.json` entries:
 ```
 
 ## `test_gui_tools`
-`test_gui_tools.py` · Python · takes the place of `context_menus.json`, `rows.json` and `web_dialogs.json`
+`test_gui_tools.py` · Python, 196 checks · in `sweep.json` as `{"path": "test_gui_tools.py"}`
 
 **Tests:** The generic GUI tools on the app's own widgets, as an agent drives any of them: context menus and a
 button's menu listed and run by path without being shown, the Edit menu's items, the rows of the object list, of
@@ -86,7 +85,7 @@ Hell`, then `Add Models` and `Show Labels`.
 | 16 | `E` with `popup_item: "Add Primitive>Cylinder"` | as after 9, then `Cylinder: Cylinder part` | `app_state.objects` 2 |
 | 17 | `widget_click {target: {label: "Add one filament"}}` | as after 16 | `app_state.presets.filaments` has 2 entries |
 | 18 | `project_set_settings {values: {filament_colour: "#FF0000;#0000FF"}}` | as after 16 | `colours()` `#FF0000;#0000FF` |
-| 19 | `widget_click {target: {label: "Click to edit preset", index: 0}}` | as after 16 | items exactly `Edit`, `Merge with>F2`, `Decompose Color`, `Delete`, where F2 is the filament of slot 2 as the selector names it; `dialogs()` `[]`; `app_state.tab` `prepare` |
+| 19 | `widget_click` of filament 1's `Click to edit preset` button, by the ref of the first button of that name `widget_list {target: "main"}` lists with a position and a size | as after 16 | items exactly `Edit`, `Merge with>Bambu PLA Basic`, `Decompose Color`, `Delete`, `Bambu PLA Basic` being the filament of slot 2 as the selector names it; `dialogs()` `[]`; `app_state.tab` `prepare` |
 | 20 | the same with `popup_item: "Delete"` | as after 16 | reply `ran` `Delete`; `app_state.presets.filaments` has 1 entry and `colours()` is `#0000FF`: the slot whose button was clicked is the one deleted |
 | 21 | `object_select {all: true}`, then `C` | as after 16 | `selection()` objects `[0, 1]` after the select; the items hold `Assemble`, `Align/Distribute>Align left (-X)` and `Delete`, and not `Add Part>Cube`: the menu is the multi-selection's, not one object's |
 | 22 | `C` with `popup_item: "Delete"` | none | reply `ran` `Delete`: the multi-selection's Delete removes both objects; `app_state.objects` 0, `closed_menus` `[]`, `dialogs()` `[]` |
@@ -110,7 +109,7 @@ part`, printable, on plate 0.
 | 9 | `widget_click {target: {row: "Cube"}, button: "right"}` | `menu()`'s items hold `OBJECT`, `checked` exactly `[Printable, Auto Drop]`: the row's menu is the object's |
 | 10 | the same with `popup_item: "Add Modifier>Cylinder"` | reply `ran` `Add Modifier>Cylinder`; `objects()` `Cube: Cube part + Generic-Cylinder modifier` |
 | 11 | `widget_click {target: {row: "Cube>Generic-Cylinder"}}` | reply `selected` `["Plate 1>Cube>Generic-Cylinder"]`; `selection()` parts `[[0, 1]]` |
-| 12 | `widget_click {target: {row: "Cube>Cube"}, modifiers: ["ctrl"]}` | reply `selected` `["Plate 1>Cube>Cube", "Plate 1>Cube>Generic-Cylinder"]`; `selection()` parts `[[0, 0], [0, 1]]` |
+| 12 | `widget_click {target: {row: "Cube>Cube"}, modifiers: ["ctrl"]}` | reply `selected` `["Plate 1>Cube>Cube", "Plate 1>Cube>Generic-Cylinder"]`; `selection()` objects `[0]`, no parts: the two rows select every part of the cube, which the 3D view takes as the whole cube |
 | 13 | `widget_click {target: {row: "Cube>Generic-Cylinder"}}` | `selection()` parts `[[0, 1]]`: a right click keeps a selection it is in, so the part is clicked alone first |
 | 14 | the same with `button: "right", popup_item: "Change Type>Negative Part"` | reply `ran` `Change Type>Negative Part`; `objects()` `Cube: Cube part + Generic-Cylinder negative` |
 | 15 | `widget_click {target: {row: "Plate 1>Cube", column: "Printable"}}` | `objects()` as after 14, not printable |
@@ -183,9 +182,20 @@ Picker"}`; `WIZARD` is `within: "Setup Wizard"`.
 - The empty space's menu `DEFAULT` (menus, step 12), from `create_default_menu()` and `handy_models()` in
   `GUI_Factories.cpp`, with labels off on a new datadir. Writing it whole makes a new handy model a change to this
   entry.
-- `Click to edit preset` at index 0 is filament 1's button on every platform (menus, step 19): the printer's button of
-  that name is hidden until the pointer is over its panel. Its menu is `create_filament_action_menu()`'s, and its
-  `Delete` is enabled on the X1 Carbon, which shows the multi-material buttons.
+- Filament 1's `Click to edit preset` button (menus, step 19) is the first of that name with a position and a size in
+  `widget_list`. The printer's button of that name comes first in the listing but is hidden until the pointer is over
+  its panel, and on Windows and macOS `{label: "Click to edit preset", index: 0}` still names it, as the locator's
+  index counts it (its menu is `Edit preset` and `Add/Remove presets`); only on Linux is index 0 filament 1's. So the test names the button by the ref of the first one shown. Its menu is
+  `create_filament_action_menu()`'s, and its `Delete` is enabled on the X1 Carbon, which shows the multi-material
+  buttons.
+- A call that opens a dialog the start's rules answer (the Add Cube action's size dialog, Add Modifier's tip) is
+  followed to its end through that dialog, not judged by its first reply: under load the reply is at times
+  `blocked_by_dialog` for a dialog whose rule has queued its press but not yet made it. The test passes with or
+  without that; a reply that waits on a dialog no rule answers still fails the call after 60 s.
+- Two part rows that select every part of the object (rows, step 12) make the 3D view's selection the whole object:
+  `Selection::update_type()` switches to the instance mode when every part of the one instance is selected (on
+  `main` since 1555904beff), and `app_state.selection` lists `parts` only for a selection of parts. So `selection()`
+  reads objects `[0]` with no parts, while the reply's `selected` lists both rows.
 - A plate whose only object is not printable slices to `empty` (rows, step 16): `classify_plates()` gives `empty` to a
   plate without printable instances. If the slice is refused instead, the step asserts that refusal's code.
 - Compare presets (dialog rows, steps 2 to 4): the row value `0.2 | 0.12` (the cells after the label, joined) and the
@@ -235,8 +245,11 @@ Picker"}`; `WIZARD` is `within: "Setup Wizard"`.
   is checked.
 - How menus, rows and dialogs look: nothing is shown or captured.
 
+**Strength:** Strong — every menu item, row and page element it runs is checked by its effect on the project, the
+selection, the camera or the settings; only the spectrum drag's colour is checked as another valid colour.
+
 ## `test_recording`
-`test_recording.py` · Python · takes the place of `recording.json`
+`test_recording.py` · Python, 110 checks with an ffmpeg that has libx265 and libx264 · in `sweep.json` as `{"path": "test_recording.py"}`
 
 **Tests:** `recording_start`, `recording_stop` and `recording_encode`: a recording made while the GUI is driven, its
 report and its file; a recording a nested `replay_run` starts and never stops, which the replay's end closes;
@@ -262,8 +275,8 @@ something that is not a file, that `ORCA_FFMPEG` names it. An encode asked for a
 only when ffmpeg is missing; with ffmpeg but not the encoder, the start and stop succeed and the encode job ends
 with the encoder's error. A refusal or an error is checked like any other result, and the file checks the encode
 would have had are printed as `SKIP <check>: <why>`, never passed silently. The test's last line names what it could
-encode: `encodes checked: h265 yes, h264 no (ffmpeg has no libx264)`. The `Checks` module gains `skip(name, why)`
-for this; see **To settle**.
+encode: `encodes checked: h265 yes, h264 no (ffmpeg has no libx264)`. The test's checks gain `skip(name, why)` for
+this, in a subclass of `Checks` the test holds; see **To settle**.
 
 **Scenario: a recording while the GUI is driven**
 
@@ -276,9 +289,9 @@ for this; see **To settle**.
 | 3 | `mouse_gesture {action: "click", x: 300, y: 200}` | `app_state.selection` empty: a click on empty space deselects |
 | 4 | `mouse_gesture {action: "click", at: {object: 0, spot: "top"}}` | `app_state.selection` objects `[0]` |
 | 5 | `widget_set_value {target: {label: "Process"}, value: false}`, then `widget_set_value {target: {option: "layer_height"}, value: "0.16"}` | `settings_get` of the process gives `layer_height` `"0.16"` |
-| 6 | `keyboard_press {target: {option: "initial_layer_print_height"}, keys: "ctrl+a", text: "0.24"}`, then `keys: "Return"` | `initial_layer_print_height` `"0.24"` |
+| 6 | `keyboard_press {target: {option: "initial_layer_print_height"}, keys: "ctrl+a", text: "0.24"}`, then `keys: "Return"` | the first reply is exactly `{sent: "ctrl+a", to: "TextInput", typed: "0.24"}`; `initial_layer_print_height` stays `"0.2"`: typed keys reach ImGui fields and key handlers, not a native text field |
 | 7 | `action_run` Preferences, then `dialog_answer {dialog: {title: "Preferences"}, button: "close"}` | the first replied `blocked_by_dialog` with `Preferences`; its job ends without an error; `app_state.dialogs` `[]` |
-| 8 | `plate_slice`, then `project_export {path: OUT/session.gcode, overwrite: true}` | plate 0's outcome `ok`; the G-code's config block holds `; layer_height = 0.16` and `; initial_layer_print_height = 0.24`, and its first two distinct `; Z_HEIGHT:` values are 0.24 and 0.4: the values typed shaped the layers printed |
+| 8 | `plate_slice`, then `project_export {path: OUT/session.gcode, overwrite: true}` | plate 0's outcome `ok`; the G-code's config block holds `; layer_height = 0.16` and `; initial_layer_print_height = 0.2`, and its first two distinct `; Z_HEIGHT:` values are 0.2 and 0.36: the value set shaped the layers printed, and the keys typed did not |
 | 9 | `recording_stop {silent: true}` | reply `ended` `stopped`, `path` `OUT/session.mkv`, `frames` and `written` at least 5, `failed` 0, `seconds` above 1, `capture_ms` above 0, `width` and `height` `MAIN`, `size_bytes` the file's size; `recording()` none. `mkv()`: codec `V_MJPEG`, `MAIN`, default frame duration 100 ms, `written` blocks or one more (the last frame held to the end), duration within 0.1 s of `seconds` |
 | 10 | `recording_encode {save_path: OUT/session.mp4, overwrite: true, keep_raw_video_file: true}` | with libx265: reply `path` `OUT/session.mp4`, `source` `OUT/session.mkv`, `codec` `h265`, `encoder` `libx265`, `raw_video_file_deleted` false, `size_bytes` the file's size; `mp4()`: `hvc1`, duration within 0.3 s of step 9's `seconds`; `OUT/session.mkv` is still there. Without: refused as above; no `OUT/session.mp4`, and `OUT/session.mkv` is still there |
 
@@ -326,7 +339,13 @@ The default limit of an hour is step 1 of the first scenario (`max_seconds` 3600
   counts it, and `run_sweep.py` adds the count of a passing test's `SKIP` lines to its result line (`passed, 9
   skipped`), so a sweep on a machine without ffmpeg says so without reading the log. The other choice is an
   environment variable that turns the encode `SKIP`s into failures on a machine that must have ffmpeg. Either is a
-  change to the harness, not to the app.
+  change to the harness, not to the app. Until it is settled, `skip()` lives in the test's own subclass of `Checks`,
+  and a skipped check is not counted among the checks.
+- Typed keys leave a setting's field as it was (first scenario, step 6): `keyboard_press` sends key events to the
+  field's `TextInput`, which a native text control does not take as typing; its description says typing reaches
+  ImGui fields and key handlers and sends a widget's text field to `widget_set_value` (`McpToolsUi.cpp`, this
+  branch's d64e10f4dd). The step stays as the recording's typed caption, and step 8 shows that the first layer kept
+  its 0.2 mm while the layer height set by `widget_set_value` took effect.
 - A recording's first frame is the size `window_screenshot` captures of the same target (`MAIN`, `CANVAS`): both
   capture the window, or the 3D view, in physical pixels; the recorder then fits the capture with `video_size()`.
 - The file holds `written` blocks or one more (first scenario, step 9): closing the sink writes the last frame again
@@ -354,9 +373,12 @@ The default limit of an hour is step 1 of the first scenario (`max_seconds` 3600
 - `job_cancel` of an encode, a write error and the size limit: the sink's unit tests cover write errors.
 - A recording ending when a script ends or the server is turned off: only a replay's end is tested.
 
+**Strength:** Strong — each recording's report is checked against its file, and each encode against its MP4, where an
+ffmpeg with the encoder is present; frame counts and capture times have lower bounds, and the frames' pixels are left
+to the unit tests.
+
 ## `test_call_forms`
-`test_call_forms.py` · Python, launched with the Design tab (`"cad": true`) · takes the place of `agent_forms.json`
-and `actions_ask.json`
+`test_call_forms.py` · Python, 94 checks · in `sweep.json` as `{"path": "test_call_forms.py", "cad": true}`
 
 **Tests:** The forms a call takes. Names and value shapes agents send in place of the schema's (a lone path for
 `paths`, `object` and a string index for `objects`, `action` and an action's short name for `id`, a camera direction
@@ -394,11 +416,11 @@ current. `CUBE` is `resources/handy_models/OrcaCube_v2.drc`; `OUT` is the test's
 | 12 | `object_select {objects: [0]}`, then `widget_click {target: {gizmo: "Support Painting"}}` | `selection()` objects `[0]` after the select; reply `gizmo` `FdmSupports`, `active` true; `app_state.gizmo.name` `FdmSupports` |
 | 13 | `widget_click {target: {gizmo: "support painting"}}` | reply `active` false; `app_state.gizmo` null |
 | 14 | `object_arrange {plate: "0"}` | both objects on plate 0, their `bbox` footprints apart and inside plate 0's rectangle (`origin` and `size` from `plate_list`) |
-| 15 | `plate_slice {plate: "0"}` | reply `plates` `[{index: 0, outcome: ok}]`; `plate_list` gives plate 0 `sliced` true |
+| 15 | `plate_slice {plate: "0"}` | reply `plates` is one plate, its `index` 0 and `outcome` `ok`; `plate_list` gives plate 0 `sliced` true |
 | 16 | `view_set {tab: "preview", legend: {sparse_infill: false, Travel: false, "Prime tower": false, Pauses: false}}` | reply `legend` exactly `{"Sparse infill": false, "travel": false}`: rows this print lacks are left out, not refused; `legend()` gives `features["Sparse infill"]` false and `options["travel"]` false |
 | 17 | `view_set {legend: {"Sparse infill": true, travel: true}}` | `legend()` gives both true |
 | 18 | `view_set {tab: "prepare"}`, then `project_export {path: OUT/forms.gcode, overwrite: true}` | `app_state.tab` `prepare`; reply `export` `ok`; the file starts with `; HEADER_BLOCK_START`: the format came from the path |
-| 19 | `project_export {path: OUT/forms.stl, overwrite: true}` | reply `objects` `[0, 1]` and `bytes` the file's size; `stl()`: its triangle count is the sum of the two objects' parts' `triangles` from `object_list`, and its size 84 + 50 × that count |
+| 19 | `project_export {path: OUT/forms.stl, overwrite: true}` | reply `objects` lists objects 0 and 1, by their `index`, and `bytes` is the file's size; `stl()`: its triangle count is the sum of the two objects' parts' `triangles` from `object_list`, and its size 84 + 50 × that count |
 | 20 | `settings_list {type: "process", limit: 5}` | 5 items, each with a `value` and none with `meta` |
 | 21 | `settings_get {type: "process", keys: ["wall_loops"]}` | `items[0].meta.type` `int` |
 
@@ -440,8 +462,7 @@ is checked: `objects()` is one object, on plate 0, `bbox.size` `[20, 20, 20]` to
 - The Design tab's camera is its own (shown view, step 4): `test_set_view_camera` finds the Design zoom apart from
   the Prepare view's, so View: Top there leaves the Prepare view's elevation at 0.
 - A new project is named `Untitled` (dialog, start and step 2), the name the Plater gives a project without a file.
-- The temperature dialog's Cancel ends its job without an error (dialog, step 2), as the replay's wait on the job
-  passes today; the reply's fields are not fixed.
+- The temperature dialog's Cancel ends its job without an error (dialog, step 2); the reply's fields are not fixed.
 - Deselect All closes the open gizmo (shown view, step 6), as `object_select`'s description says of `none`, which the
   action's arguments are.
 - The 20 mm object slices to 100 layers at the X1 Carbon's 0.2 mm first and other layers, and Go to layer 50 % shows
@@ -460,124 +481,5 @@ is checked: `objects()` is one object, on plate 0, `bbox.size` `[20, 20, 20]` to
 - Deselect All while the Design tab or the assemble view is shown.
 - The G-code's content beyond its first line: names, step 18, checks only which format the path chose.
 
-## Replays this area replaces
-
-Each leaves the sweep, with its entry, in the commit that adds the tests above.
-
-### `context_menus`
-`tests/context_menus.json` · replay, 34 steps, 19 expects, 0 optional
-
-**Tests:** Context and button menus listed or run by path (`mouse_gesture`/`widget_click` with `popup_item`) without ever being shown: the object menu on a cube, the empty-bed menu, a preset edit button's menu, the multi-selection menu, and the Edit menu's Undo and Redo picked as `Edit>Undo`/`Edit>Redo`.
-
-**Decides by:** Fails when a call errors or one of its 22 matchers misses.
-- Object menu: the listing contains `Add Modifier>Cylinder` and checked contains `Printable`; running it gives `/ran` = the path and an `object_list` part 1 of type `modifier`; undo removes it and redo restores it, both through the action and the Edit menu items (`/clicked` = path).
-- Empty bed: the listing contains `Add Primitive>Cube`; running `Add Primitive>Cylinder` leaves `app_state /objects` = 2.
-- Button menu: `Click to edit preset` index 0 gives a non-empty `/popup_menu/items`; no dialog open, tab still `prepare`.
-- Multi-selection: the listing contains `Align/Distribute>Align left (-X)` and `Delete`; running `Delete` leaves 0 objects and `closed_menus` empty.
-
-**Not checked:**
-- The button menu is checked only as non-empty; which button's menu opened and what it lists are not.
-- Each listing is matched by one known item (`contains`); missing or wrong other items pass.
-- `widget_click {label: "Add one filament"}` has no expect (it matters only on Linux).
-
-**Strength:** Strong — every item run is checked by its effect on the model, and every listing by a known item.
-
-### `rows`
-`tests/rows.json` · replay, 54 steps, 28 expects, 0 optional
-
-**Tests:** Rows of lists, trees and tables as `widget_click` targets and popups as `widget_list` roots: object list plate, object and part rows (Ctrl-click, the Printable column, a double click), menus run from rows, Compare presets' data view rows, the object settings table, the print button's popup, and the plate-type drop-down list.
-
-**Decides by:** Fails when a call errors or one of its 30 matchers misses.
-- Plate rows: `/selected` = `["Plate 2"]` and `app_state` current plate 1, then back to 0.
-- Object and part rows: `/selected` exact for a click and a Ctrl-click; row menus list and run `Add Modifier>Cylinder` and `Change Type>Negative Part`, read back as part types in `object_list`.
-- Printable column: `printable` false, then true; the double click's `/selected` exact.
-- Compare presets: `/clicked` contains the `Quality>Layer height>Layer height` path.
-- Parameter table: the dialog opens, lists one `Generic-Cylinder` node, a `Wall loops` cell click returns `/column` = `Wall loops`, and `dialog_answer` closes it.
-- Print button popup: exactly one "Export plate sliced file" node in the popup, none after the pick, one on the main window.
-- Drop-down: ≥ 2 rows; picking `Textured PEI Plate` gives `/clicked` exact and one main-window node with that text; set back, one with "Smooth Cool Plate"; no dialog open, no unseen menu.
-
-**Not checked:**
-- Compare presets: the second preset (`widget_set_value` index 5) has no expect, neither preset's values are read, and Escape closing it is not checked (the final `/dialogs` check lists modal dialogs only; Compare presets is modeless).
-- The parameter table being read-only is not tested; only a cell click.
-- The double click's framing of the object is not checked.
-- The plate type is checked by counting widgets with its text, not by reading `curr_bed_type`.
-
-**Strength:** Partial — tree rows and their menus are checked by effect, but the Compare presets and table sections mostly check that the click resolved.
-
-### `web_dialogs`
-`tests/web_dialogs.json` · replay, 30 steps, 17 expects, 0 optional
-
-**Tests:** Orca's own web dialogs driven only through the generic GUI tools: the preset bundle dialog closed by its page's button; the colour picker behind a filament swatch's "+ More Colors" (hex field set, spectrum canvas dragged, colour returned to the native Select Filament dialog); and the setup wizard's first steps (a region, Next, a printer card).
-
-**Decides by:** Fails when a call errors or one of its 19 matchers misses.
-- Preset bundle: the dialog opens, its page lists > 2 nodes, `#close_btn` gives `/closed` = true, the job ends, no dialog left.
-- Colour picker: hex `FF0000` reads back `/value` = `FF0000FF` and is listed; the drag gives `/done` = `drag`, after which nothing reads `FF0000FF`; OK gives `/closed` = true with "Select Filament" on top; then no node reads `#26A69A`; Select Filament is cancelled and no dialog is left.
-- Wizard: `Europe` `/checked` = true; Next `/navigated` = true with URL containing `/guide/21/`; the printer card `/checked` = true; closed, no dialog left.
-
-**Not checked:**
-- The colour returned to Select Filament is never read; the only check is that `#26A69A` is absent, and no step shows that text was listed before (the preview label may show a colour name instead), so it may pass whatever comes back.
-- After the drag, `FF0000FF` being absent passes for any change of the hex field.
-- Closing the wizard is not checked to leave the region and printer choice unapplied, nor cancelling Select Filament to leave slot 1's colour unchanged.
-
-**Strength:** Partial — each control's own reply is checked, but the colour round trip's result is not.
-
-### `recording`
-`tests/recording.json` · replay, 42 steps, 28 expects, 11 optional
-
-**Tests:** `recording_start`, `recording_stop` and `recording_encode`: a recording made while the GUI is driven (clicks, a typed setting, the Preferences dialog, a slice), stopped and encoded to H.265; a recording a nested `replay_run` starts and never stops, which that replay's end closes, encoded to H.264; overlay defaults (`captions`, `pointer`); the one-hour default limit; and encoding asked for at start, run as a job on stop, deleting or keeping the `.mkv`.
-
-**Decides by:** Fails when a non-optional call errors or a non-optional step's matcher misses.
-- Start: `/width` ≥ 320, `/fps` = 10, `captions`/`pointer` as asked; `app_state /recording/path` ends in `session.mkv`.
-- Stop: `/ended` = `stopped`; `frames` and `written` ≥ 5; `seconds` > 1; `size_bytes` and `capture_ms` > 0; `app_state` then has no `/recording`.
-- Nested replay: `/passed` = true with no `unfinished_recording`; the next stop reports `/ended` = `run_ended` for `inner.mkv`; recording to that path again starts at once.
-- Overlays and limit: without flags both are false; each flag turns on only its own overlay; `/max_seconds` = 3600.
-
-**Not checked:**
-- Every encode step is optional (both `recording_encode` calls and all nine steps of the encode-on-stop section), so H.265/H.264 encoding, the encode job, and deleting or keeping the `.mkv` can fail without failing the test, with or without ffmpeg.
-- Captions and pointer are checked only as flags in the start reply; no frame is inspected.
-- The driven GUI steps (`mouse_gesture`, `widget_set_value` layer height 0.16, `keyboard_press` 0.24) have no expect, and the settings are never read back.
-- Frame counts, duration and size are lower bounds only.
-
-**Strength:** Partial — start, stop and the replay-owned recording are checked, but encoding is entirely optional.
-
-### `agent_forms`
-`tests/agent_forms.json` · replay, 27 steps, 17 expects, 0 optional
-
-**Tests:** The argument normaliser: names and value shapes agents send in place of the schema's (a lone path for `paths`, `object` with a string index, `action` for `id`, an action by its short name, `canvas` for a camera direction, `position`, `key`, `plate` as a string, legend rows in another case or with `_`, a gizmo by its toolbar title in any case, `app_wait` with no condition, `project_export` without `format`), and `settings_list` leaving meta out of a whole listing.
-
-**Decides by:** Fails when a call errors (the schemas are closed, so an alias that stopped working is an "unknown argument" error) or one of its 25 matchers misses.
-- Objects: both `project_import` forms `/added` = 1; after `object_select {object: "1"}` and `object_rename`, object 1 is named "renamed" and object 0 is not; `object_transform {position}` lands at offset 100 ± 0.01, 110 ± 0.01.
-- Actions and camera: `action_run {action: "view_top"}` `/ran` = `orca_command:view_top:orca`; `view_set {canvas: "front"}` `/camera` = `front`; `app_wait {}` `/satisfied` = true.
-- Gizmo: `{gizmo: "Support Painting"}` opens `FdmSupports` (reply `/gizmo`, `/active`, and `app_state /gizmo/name`); the lower-case title closes it (`/active` = false).
-- Slice and export: `plate_slice {plate: "0"}` outcome `ok`; the `.gcode` export without `format` `/export` = `ok`.
-- Legend: `/legend/Sparse infill` and `/legend/travel` = false after hiding them as `sparse_infill` and `Travel`.
-- Settings: `settings_list` `/items/0/value` exists and `/items/0/meta` does not; `settings_get` `/items/0/meta/type` exists.
-
-**Not checked:**
-- `object_select {object: "1"}`: the second import leaves object 1 selected already, so the rename check passes even if the select does nothing.
-- `keyboard_press {key: "Escape"}` and `object_arrange {plate: "0"}` are accepted but their effect is never read.
-- The `.stl` export has no expect; the format inferred from the path is not read from the reply or the file.
-- `/legend/Prime tower` `exists: false` cannot fail: the reply lists only rows this single-colour print has. `Pauses` is not read at all.
-- The second legend `view_set` (rows shown again) reads back `Sparse infill` only, not `travel`.
-
-**Strength:** Partial — most forms are proven by a read-back, but `key`, `plate` for arrange and the STL format are only accepted, not checked for effect.
-
-### `actions_ask`
-`tests/actions_ask.json` · replay, 33 steps, 19 expects, 0 optional
-
-**Tests:** That a call with exactly an action's arguments does what a person's pick does (run with the Design tab on): `calibration_generate_test {test}` opens the test's dialog while `silent` runs with defaults; View: Top turns the Design tab's camera; Deselect All clears the shown view's selection; Go to tab and Go to layer take their value through `action_run`; `plate_slice {preview: true}` and Slice and Preview slice and switch to the Preview.
-
-**Decides by:** Fails when a call errors or one of its 32 matchers misses.
-- Asking: the un-awaited `calibration_generate_test {test: temperature}` returns `/status` = `blocked_by_dialog`; `dialog_answer` must find "Temperature calibration"; the job must end without error.
-- Silent: `/test` = `temperature`; `object_list` `/total` ≥ 1.
-- Design camera: `view_set` front gives `/camera_state/elevation` in [-5, 5]; `view_top` `/ran` = full id with elevation ≥ 85, and `app_state` shows tab `design` and elevation ≥ 85.
-- Deselect All: `object_select` `/objects` = [0]; `deselect_all` `/empty` = true, `/canvas` = `3d`; `app_state /selection/empty` = true.
-- Go to: `/tab` = `preview` in the reply and `app_state`; after `go_to_layer {percent: 50}`, `plate_slice_stats` `/view/layer_count` in [90, 110] and `/view/layers/1` in [45, 56].
-- Slice actions: `/status` = `done`, outcome `ok`, and `app_state /tab` = `preview`, for both.
-
-**Not checked:**
-- Cancel in the temperature dialog: nothing checks that no test model was added or presets changed (the next step replaces the project anyway).
-- The silent run's model is checked as `/total ge 1` and a name that `exists`; the known single `temperature_tower.drc` is not compared.
-- `layer_count` 90–110 is looser than the known 100 layers of a 20 mm cube at 0.2 mm.
-
-**Strength:** Partial — each action's main effect is read back, but the Cancel path and the silent run's model are not.
+**Strength:** Strong — each form is shown by what the call did to the project, the view or the reply, not by the call
+going through.

@@ -29,7 +29,7 @@ struct GuardState
     bool           closing   = false; // the app is shutting down
     bool           suspended = false; // the main frame is being recreated (language change)
     bool           modal     = false; // a modal dialog or an ImGui modal popup is open
-    nlohmann::json dialogs   = nlohmann::json::array();
+    nlohmann::json dialogs   = nlohmann::json::array(); // the open dialogs where the guards describe them; replies read open_dialogs()
     std::uint64_t  top_dialog = 0;    // the topmost modal dialog's serial (ModalTracker::serial()), 0 for none
 };
 

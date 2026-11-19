@@ -5,7 +5,8 @@
     tools/mcp/test_webview_modal.py
 
 Scripts run in the web view of the topmost modal dialog, whichever dialog it is (the preset bundle
-dialog, by default and by locator, the export bundle dialog above it, the Flushing volumes dialog);
+dialog, by default and by locator, the export bundle dialog above it, the Flushing volumes dialog, each
+known by its page's URL or title);
 the Home tab's web view behind a modal is refused, so is the bundle dialog's own web view once the
 export bundle dialog is above it. A page that closes its dialog replies closed at once, not after the
 timeout. Without a modal, the Home tab's web view still takes scripts. Exits 0 when every check passes.
@@ -98,12 +99,19 @@ def main():
     client.call("view_set", tab="prepare")
     client.call("widget_click", target={"label": "Add one filament"})
     flush = client.call("widget_click", target={"label": "Flushing volumes"})
-    check("the Flushing volumes dialog opens", wait_dialogs(1), dialogs())
+    check("the Flushing volumes dialog opens",
+          wait_dialogs(1) and dialogs() == ["Flushing volumes for filament change"], dialogs())
+    # Its web view, too, shows about:blank until its first navigation starts.
+    for _ in range(50):
+        if "WipingDialog.html" in client.call_with_text("widget_list", target="dialog", query="webview")[1][0]:
+            break
+        time.sleep(0.1)
     try:
-        title = client.call("webview_run_javascript", code="typeof document.title")["result"]
+        reply = client.call("webview_run_javascript", code="typeof document.title")
     except orca_mcp.McpError as e:
-        title = str(e)
-    check("its page takes a script", title == "string", title)
+        reply = {"error": str(e)}
+    check("its page takes a script",
+          reply.get("result") == "string" and "web/flush/WipingDialog.html" in reply.get("url", ""), reply)
     client.call("dialog_answer", button="close")
     client.await_job(flush)
     check("no dialog is left at the end", wait_dialogs(0), dialogs())

@@ -125,6 +125,10 @@ Outcome<ImportModelsResult> import_models(const ImportModelsArgs& args)
         plater.import_zip_archive(archive.path, &archive.entries);
     if (plater.model().objects.size() == before)
         return Refusal{RefusalKind::Failed, "nothing_loaded", L("Nothing was imported.")};
+    // Named as File > Import names it, after the first model file; an archive alone names nothing, as Import ZIP
+    // Archive names nothing.
+    if (!files.empty())
+        plater.name_untitled_project(files.front());
     result.added = plater.model().objects.size() - before;
     return result;
 }

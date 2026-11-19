@@ -5,10 +5,12 @@
     tools/mcp/test_stdio_bridge.py [--bin build/src/Release/orca-slicer]
 
 The bridge finds the instance through the discovery file in the launch's datadir, so this also
-checks that file. A second bridge, given an empty datadir and a port nothing serves, must answer the
-handshake and list the same tools without starting OrcaSlicer. A third, on a fresh datadir, must
-start OrcaSlicer for its first tool call, serving on the bridge's port; the test stops that app.
-Exits 0 when every check passes.
+checks that file. Every line a bridge writes is kept, in order: each request gets exactly one reply
+line, a malformed line gets one error line with no id, and a notification gets none. A second
+bridge sends the instance a 2026-07-28 request as its only line, with no handshake. A third, given
+an empty datadir and a port nothing serves, must answer the handshake and list the same tools
+without starting OrcaSlicer. A fourth, on a fresh datadir, must start OrcaSlicer for its first tool
+call, serving on the bridge's port; the test stops that app. Exits 0 when every check passes.
 """
 
 import argparse
@@ -76,14 +78,32 @@ def stop_process(pid):
 
 
 def bridge(binary, datadir, lines, env, extra=()):
-    """Feeds `lines` to one bridge process and returns its replies by id."""
+    """Feeds `lines` to one bridge process and returns every line it wrote, in order, each parsed as one reply (a
+    line that is not JSON as {"line": its text})."""
     proc = subprocess.run([binary, "--mcp-stdio", "--datadir", datadir, *extra], input="\n".join(lines) + "\n",
                           capture_output=True, text=True, timeout=120, env=env)
-    replies = {}
+    replies = []
     for line in proc.stdout.splitlines():
-        msg = json.loads(line)
-        replies[msg.get("id")] = msg
+        try:
+            replies.append(json.loads(line))
+        except ValueError:
+            replies.append({"line": line})
     return replies
+
+
+def ids(replies):
+    return [r.get("id") for r in replies]
+
+
+def reply(replies, id):
+    """The first reply with this id, or {}."""
+    return next((r for r in replies if r.get("id") == id), {})
+
+
+def app_state_of(msg):
+    """The app_state a tools/call reply's text content holds, or {}."""
+    text = (msg.get("result", {}).get("content") or [{}])[0].get("text", "")
+    return json.loads(text) if text.startswith("{") else {}
 
 
 def main():
@@ -99,6 +119,12 @@ def main():
 
     legacy = "2025-06-18"
     modern = "2026-07-28"
+
+    def modern_app_state(id):
+        return json.dumps({"jsonrpc": "2.0", "id": id, "method": "tools/call",
+                           "params": {"name": "app_state", "arguments": {},
+                                      "_meta": {"io.modelcontextprotocol/protocolVersion": modern}}})
+
     replies = bridge(binary, session["datadir"], [
         json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize",
                     "params": {"protocolVersion": legacy, "capabilities": {}, "clientInfo": {"name": "test", "version": "1"}}}),
@@ -106,9 +132,7 @@ def main():
         json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/list"}),
         json.dumps({"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "app_state", "arguments": {}}}),
         "{not json",
-        json.dumps({"jsonrpc": "2.0", "id": 4, "method": "tools/call",
-                    "params": {"name": "app_state", "arguments": {},
-                               "_meta": {"io.modelcontextprotocol/protocolVersion": modern}}}),
+        modern_app_state(4),
         json.dumps({"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {"name": "no_such_tool", "arguments": {}}}),
     ], env)
 
@@ -119,17 +143,29 @@ def main():
         if not ok:
             failures.append(name)
 
-    init = replies.get(1, {}).get("result", {})
-    check("initialize negotiates the client's version", init.get("protocolVersion") == legacy, replies.get(1))
-    check("the notification gets no reply", set(replies) <= {1, 2, 3, 4, 5, None}, sorted(map(str, replies)))
-    names = [t["name"] for t in replies.get(2, {}).get("result", {}).get("tools", [])]
+    init = reply(replies, 1).get("result", {})
+    check("initialize negotiates the client's version", init.get("protocolVersion") == legacy, reply(replies, 1))
+    # One line per request and one for the malformed line, in order: a reply to the notification would be a
+    # seventh line, or a second with no id.
+    check("the notification gets no reply", ids(replies) == [1, 2, 3, None, 4, 5], ids(replies))
+    tools = reply(replies, 2).get("result", {}).get("tools", [])
+    names = [t["name"] for t in tools]
     check("tools/list lists app_state and widget_list", "app_state" in names and "widget_list" in names, names[:5])
-    state = json.loads(replies.get(3, {}).get("result", {}).get("content", [{}])[0].get("text", "{}"))
+    state = app_state_of(reply(replies, 3))
     check("app_state answers through the bridge", state.get("ready") is True, state)
-    check("malformed input is a parse error", replies.get(None, {}).get("error", {}).get("code") == -32700, replies.get(None))
-    modern_result = replies.get(4, {}).get("result", {})
-    check("a 2026-07-28 request is served without a handshake", modern_result.get("resultType") == "complete", replies.get(4))
-    check("an unknown tool is a JSON-RPC error", replies.get(5, {}).get("error", {}).get("code") == -32602, replies.get(5))
+    check("malformed input is a parse error", reply(replies, None).get("error", {}).get("code") == -32700,
+          reply(replies, None))
+    check("a 2026-07-28 request after a 2025-06-18 handshake is served",
+          reply(replies, 4).get("result", {}).get("resultType") == "complete", reply(replies, 4))
+    check("an unknown tool is a JSON-RPC error", reply(replies, 5).get("error", {}).get("code") == -32602,
+          reply(replies, 5))
+
+    # A 2026-07-28 request needs no handshake: a bridge of its own gets it as its only line.
+    alone = bridge(binary, session["datadir"], [modern_app_state(1)], env)
+    first = alone[0] if alone else {}
+    check("a 2026-07-28 request is served without a handshake",
+          ids(alone) == [1] and first.get("result", {}).get("resultType") == "complete" and
+          app_state_of(first).get("ready") is True, alone)
 
     # With no instance answering, everything but a tool call is answered from the bridge's own catalog.
     empty = tempfile.mkdtemp(prefix="orca-bridge-offline-")
@@ -145,16 +181,17 @@ def main():
             json.dumps({"jsonrpc": "2.0", "id": 6, "method": "ping"}),
         ], env, ["--mcp-port", str(free_port())])
         check("offline: initialize negotiates the client's version",
-              offline.get(1, {}).get("result", {}).get("protocolVersion") == legacy, offline.get(1))
-        check("offline: the notification gets no reply", set(offline) <= {1, 2, 3, 4, 6, None}, sorted(map(str, offline)))
-        check("offline: tools/list matches the running app's",
-              offline.get(2, {}).get("result", {}).get("tools") == replies.get(2, {}).get("result", {}).get("tools"),
-              len(offline.get(2, {}).get("result", {}).get("tools", [])))
-        check("offline: ping answers", offline.get(3, {}).get("result") == {}, offline.get(3))
-        check("offline: an unknown method is the server's error", offline.get(4, {}).get("error", {}).get("code") == -32601, offline.get(4))
+              reply(offline, 1).get("result", {}).get("protocolVersion") == legacy, reply(offline, 1))
+        check("offline: the notification gets no reply", ids(offline) == [1, 2, 3, 4, None, 6], ids(offline))
+        offline_tools = reply(offline, 2).get("result", {}).get("tools")
+        check("offline: tools/list matches the running app's", offline_tools == tools, len(offline_tools or []))
+        check("offline: ping answers", reply(offline, 3).get("result") == {}, reply(offline, 3))
+        check("offline: an unknown method is the server's error",
+              reply(offline, 4).get("error", {}).get("code") == -32601, reply(offline, 4))
         check("offline: a jsonrpc that is not a string is an invalid request",
-              offline.get(None, {}).get("error", {}).get("code") == -32600, offline.get(None))
-        check("offline: the bridge answers after a malformed message", offline.get(6, {}).get("result") == {}, offline.get(6))
+              reply(offline, None).get("error", {}).get("code") == -32600, reply(offline, None))
+        check("offline: the bridge answers after a malformed message", reply(offline, 6).get("result") == {},
+              reply(offline, 6))
         check("offline: OrcaSlicer was not started", os.listdir(empty) == [], os.listdir(empty))
     finally:
         shutil.rmtree(empty, ignore_errors=True)
@@ -173,11 +210,10 @@ def main():
                         "params": {"protocolVersion": legacy, "capabilities": {}, "clientInfo": {"name": "test", "version": "1"}}}),
             json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "app_state", "arguments": {}}}),
         ], launch_env, ["--mcp-port", str(port)])
-        text = launched.get(2, {}).get("result", {}).get("content", [{}])[0].get("text", "")
-        state = json.loads(text) if text.startswith("{") else {}
+        state = app_state_of(reply(launched, 2))
         # Not ready: a dialog the fresh datadir opens at startup may still be up.
         check("launch: a tool call is answered by the OrcaSlicer it started, on the bridge's port",
-              state.get("mcp", {}).get("port") == port, launched.get(2))
+              state.get("mcp", {}).get("port") == port, reply(launched, 2))
         discovery = read_discovery(fresh)
         check("launch: the fresh datadir's discovery file names the bridge's port", discovery.get("port") == port, discovery)
     finally:

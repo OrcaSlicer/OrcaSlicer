@@ -18,6 +18,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <set>
 #include <string>
 #include <system_error>
@@ -432,6 +433,8 @@ ToolResult McpCore::run(const NativeCommand& def, const nlohmann::json& args, co
         budget = std::min(budget, m_timing.reply_budget_cap);
     const auto deadline = start + budget;
     auto       next_probe = start + m_timing.soft_budget;
+    // The dialog the last probe found on top of the job, which a second probe must find there too.
+    std::optional<std::uint64_t> seen_on_top;
     for (;;) {
         const auto now  = std::chrono::steady_clock::now();
         const auto stop = std::min(deadline, next_probe);
@@ -452,8 +455,17 @@ ToolResult McpCore::run(const NativeCommand& def, const nlohmann::json& args, co
             // A dialog can close between the probe and here; a finished job wins.
             if (auto r = m_jobs.wait(job, std::chrono::milliseconds(0)))
                 return finish(std::move(*r));
+            // An auto-answer rule presses a wx dialog's button from a call queued as the dialog opens, which a
+            // probe queued before the dialog opened runs ahead of. A second probe, queued now, runs after that
+            // press, so a dialog holds the job only when the second probe still finds it on top.
+            if (seen_on_top != p->guards.top_dialog) {
+                seen_on_top = p->guards.top_dialog;
+                next_probe  = std::chrono::steady_clock::now();
+                continue;
+            }
             return finish(blocked(p->guards.dialogs, false));
         }
+        seen_on_top.reset();
         // An unanswered probe with a native dialog on top: that dialog holds the UI thread, so the
         // snapshot published for other threads is all there is to report.
         if (!p) {

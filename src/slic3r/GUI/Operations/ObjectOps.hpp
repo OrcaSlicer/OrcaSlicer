@@ -215,7 +215,8 @@ struct OrderObjectsArgs
     std::optional<bool> descending;  // none: descending when the order they have is ascending already, as Order By does
 };
 // Orders a plate's objects, or every plate's, as the plate menu's Order By does (ObjectList::order_objects()), which
-// sets the object list and print order, in one undo step. Returns whether they are in descending order.
+// sets the object list and print order, in one undo step, or none when the order stays as it was. Returns whether they
+// are in descending order.
 // Refuses: no_such_plate, no_objects_to_order, gizmo_open.
 Outcome<bool> order_objects(const OrderObjectsArgs& args);
 
@@ -225,8 +226,8 @@ struct ReorderObjectsArgs
     std::vector<int>   order; // the plate's objects, each once, in the order wanted
 };
 // Puts a plate's objects in `order`, which sets the object list and print order, as dragging each in the object list
-// onto the one in its place does (ObjectList::OnDrop(), the drops object_order_moves() gives), in one undo step. The
-// objects of other plates keep their order. Returns the plate's objects, by their indices afterwards, in that order.
+// onto the one in its place does (ObjectList::OnDrop(), the drops object_order_moves() gives), in one undo step, or none
+// when the order stays as it was. The objects of other plates keep their order. Returns the plate's objects, by their indices afterwards, in that order.
 // Refuses: no_such_plate, and what object_order_moves() refuses.
 Outcome<std::vector<int>> reorder_objects(const ReorderObjectsArgs& args);
 
@@ -470,7 +471,7 @@ struct ReloadedParts
 // Reloads the targets' parts from their files (reload_sources()), as Reload from disk does
 // (Plater::reload_parts_from_disk()), in one "Reload from disk" undo step: each keeps its settings, type, filament and
 // placement, and its painting with the keep_painting preference on. A part whose file is gone is listed as missing; no
-// dialog opens.
+// dialog opens. A call that reloads nothing, every part's file being missing, takes no undo step.
 // Refuses: gizmo_open (a gizmo is open), cut_object (a cut object named: a reload would replace a cut part with its whole
 // file), no_objects (all, with none that is not cut), no_source (none of the parts was loaded from a file).
 Outcome<ReloadedParts> reload_parts(const ReloadFromDiskArgs& args);
@@ -500,8 +501,8 @@ struct ReplacePartArgs
 // cancelled), several_parts (replacement_refusal()).
 Outcome<int> replace_part(const ReplacePartArgs& args);
 
-// Brings the app up to date with instance `instance` of object `object`, placed anew in the model: dropped onto the bed
-// with `drop`, its plate registered (slicing and the object list read the plate from the registry, which a move on the
+// Brings the app up to date with instance `instance` of object `object`, placed anew in the model: with `drop` and the
+// object's Auto Drop on, the instance alone set on the bed by its lowest point, its plate registered (slicing and the object list read the plate from the registry, which a move on the
 // canvas updates) and the object reloaded. UI thread.
 void placed_instance(int object, int instance, bool drop);
 

@@ -3268,7 +3268,7 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     const bool render_gcode = m_canvas_type == ECanvasType::CanvasPreview && m_render_preview;
     // Slider moves made since the last frame reach the toolpaths before they are drawn, so a frame drawn
     // right after a move, such as a screenshot, shows it.
-    if (render_gcode && _apply_gcode_sliders())
+    if (render_gcode && apply_gcode_sliders())
         scene_dirty = true;
 
     // Orca: found again by the regular picking pass, which is not run while dragging.
@@ -10912,11 +10912,11 @@ void GLCanvas3D::_render_gcode_overlay(int canvas_width, int canvas_height)
     send_layer_ticks_changes();
 
     // A slider dragged in this overlay moved after the scene was drawn; the next frame shows the move.
-    if (_apply_gcode_sliders())
+    if (apply_gcode_sliders())
         post_event(SimpleEvent(EVT_GLCANVAS_UPDATE));
 }
 
-bool GLCanvas3D::_apply_gcode_sliders()
+bool GLCanvas3D::apply_gcode_sliders()
 {
     IMSlider *layers_slider = m_gcode_viewer.get_layers_slider();
     IMSlider *moves_slider  = m_gcode_viewer.get_moves_slider();

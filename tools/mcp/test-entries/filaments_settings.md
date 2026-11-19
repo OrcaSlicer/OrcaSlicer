@@ -11,8 +11,7 @@ so the sweep can run them side by side; `test_filaments` also needs presets that
 app gives it.
 
 ## `test_filaments`
-`test_filaments.py` · Python · takes the place of `ops_assign_filament_preset_one_slot.json`,
-`ops_assign_filament_preset_multi_slot.json` and `multicolor.json`
+`test_filaments.py` · Python, 479 checks · in `sweep.json` as `{"path": "test_filaments.py", "timeout_s": 1500}`
 
 **Tests:** Assigning a filament preset to a filament slot through each route a person or a plugin has: a pick in the
 slot's selector in the sidebar, the selector's value set (`widget_set_value`), `preset_select`, and the plugin API's
@@ -183,9 +182,11 @@ on slot 2: the pick and the tool leave the tab on `B`, the api moves it to the p
 
 After the filament rows of each preference, one more case from the same start: `project_set_settings {values:
 {filament_colour: {index: 1, value: "#FFF8E7"}}}`, the colour picker's change. Under All and Color it leaves `B B B | B
-| 4,4,4 | cX | R2`; under None `B B B | B | 4,4,4 | cX | S3`. Where `R2` is expected, the three routes and the colour
-change give the same four entries under one preference, and Color gives what All gave for `X`: an assignment
-recalculates as a colour change does.
+| 4,4,4 | cX | R2`; under None `B B B | B | 4,4,4 | cX | S3`. Where `R2` is expected, the three routes of `X` give the
+same four entries under one preference, and Color gives what All gave for `X`: an assignment recalculates as a colour
+change does. The colour change gives the routes' entries 1 and 7, into slot 2, and lower entries 3 and 5, out of it:
+slot 2 still holds `B`, whose retraction at a cut the calculator takes off the flush out of the slot, where `X` has none
+(see To settle).
 
 **Scenario: three slots, unsaved changes in the preset the tab edits**
 
@@ -304,6 +305,13 @@ is `[B, M]`. `project()` is read after every step; a value it gives is written o
   lighter colour above those out of it. With the X1C's `nozzle_flush_dataset` 0, `FlushVolCalculator::calc_flush_vol_rgb()`
   takes the flush predictor's value where it has one and its colour formula otherwise; both make a dark-to-light change
   cost far more than the reverse.
+- The colour change and the assignment of `X` agree only on the volumes into slot 2. The calculator works out a change
+  from the minimum of the filament it leaves (`get_min_flush_volumes()` in `Plater.cpp`, the app's own code, given to
+  `FlushVolCalculator` by `Sidebar::auto_calc_flushing_volumes_internal()`): the nozzle volume, 107 mm³ on the X1C, less
+  the filament the printer retracts at a cut. `B` retracts 18 mm at a cut
+  (`filament_long_retractions_when_cut` 1), about 44 mm³, while `X` sets no such retraction, so with `B` still in slot 2
+  the colour change gives entries 3 and 5 lower (on this build 148 and 138 against 192 and 182). The rows check the
+  order, not the difference.
 - `Sup` is exact: 230 into a support filament and `max(<colour volume>, 700)` out of it
   (`Sidebar::auto_calc_flushing_volumes_internal()`); from `#222222` to `#111111` or `#333333` the colour volume plus the
   calculator's minimum (the X1C's 107 mm³ nozzle volume, less the cut retraction where it applies) stays far under 700.
@@ -316,10 +324,10 @@ is `[B, M]`. `project()` is read after every step; a value it gives is written o
   each tool change). Entry 1 at 400 or 200 times 0.7 (280 or 140 mm³) is above 107 either way, so a change from slot 1
   to slot 2 charges slot 1 107 mm³ in both slices and slot 2 the rest, and the changes from slot 2 to slot 1 are the
   same: slot 1's `flush_g` stays to 0.01 g while slot 2's falls. At 1.4 both entries grow and so do both slots' grams.
-- The preference is set with `preferences_set`, where the replays picked it in the Preferences dialog; the dialog's
+- The preference is set with `preferences_set`, not picked in the Preferences dialog; the dialog's
   choice control writes the same key (`PreferenceOps.cpp`), and `test_preferences` checks the dialog against
   `preferences_get`.
-- Run time: about 60 assignment cases and six slices; the entry may need a `timeout_s` above 900 in `sweep.json`.
+- Run time: about 60 assignment cases and six slices, about 11 minutes on Windows, so `sweep.json` gives it 1500 s.
 
 **Not checked:**
 - Adding and deleting slots, and the mixed filament's rules: `test_plates` (its filament slots scenario). Assigning a
@@ -334,7 +342,7 @@ is `[B, M]`. `project()` is read after every step; a value it gives is written o
 - `filament_colour_type` and `filament_multi_colour`, which `update_ams_color()` writes beside `filament_colour`: no
   MCP tool lists them, and for a preset that is not an AMS slot's they only mirror `filament_colour` (an empty type,
   the colour itself).
-- A text part made with the Text gizmo, which `multicolor.json` gave filament 2: the second part here is a cube from
+- A text part made with the Text gizmo: the second part here is a cube from
   `part_add`. Both are model parts, which `settings_set` gives a filament the same way; the gizmo is not this area's.
 - How the sidebar shows a slot: the colour swatch and the badge are not read, and no screenshot is taken.
 - A printer with several extruders, where the filament grouping applies: `test_printer_extruders`.
@@ -343,8 +351,13 @@ is `[B, M]`. `project()` is read after every step; a value it gives is written o
 
 **Fixtures:** none; the plugin API calls are the test's own code.
 
+**Strength:** Strong — after every case it compares the slots, the tab, the unsaved values, the colours and the
+flushing volumes whole with the state written out here, asserts the prompt, each reply and each refusal or raise
+exactly, checks the volumes the app works out by stated properties, and shows the filaments and the flush settings in
+the print and in the project file.
+
 ## `test_settings`
-`test_settings.py` · Python · takes the place of `settings_targets.json` and its fixture `tests/fixtures/settings_targets.py`
+`test_settings.py` · Python, 72 checks · in `sweep.json` as `{"path": "test_settings.py"}`
 
 **Tests:** The settings commands' targets. `settings_list` giving a type's settings whole, a saved preset's and a
 filament slot's, and the settings an object and a region take; then `settings_set` and `settings_get` on an object, a
@@ -451,90 +464,8 @@ layer of `layers()` 0.2 mm high to 0.001 mm, and the layers at z 3.0 and 15.0 mm
 - Which object list keys are object-only: the scenario checks the lists against the process and each other, and a few
   known keys.
 
-**Fixtures:** none; `tests/fixtures/settings_targets.py` leaves with the replay.
+**Fixtures:** none.
 
-## Replays this area replaces
-
-Each leaves the sweep, with its entry, in the commit that adds the tests above.
-
-### `ops_assign_filament_preset_one_slot`
-`tests/ops_assign_filament_preset_one_slot.json` · replay, 258 steps, 90 expects, 69 optional
-
-**Tests:** Assigning a filament preset to the only slot, where the assignment also switches the filament tab and its unsaved-changes prompt applies. Each route (sidebar, `preset_select`, plugin API `begin_update(1, name)`) for a PLA (Transfer offered) and a support filament of another type (no Transfer), without and with unsaved changes, with each `preset_changes` value and none, and the prompt answered each way. Then the plugin API forms that name no preset.
-
-**Decides by:** Fails when a non-optional call errors, a fixture raises, or an expect misses. Every expect sits on setup.
-- Case setup (`arrange_filaments`, 32 steps): no dialog open, `flush_volumes_matrix` eq `0`, and ` (modified)` on the filament tab in dirty cases.
-- Setup: one slot; `auto_calculate_flush` reads `all`.
-- Implicit: non-optional calls must succeed without a prompt: the clean sidebar picks, `preset_select` with no `preset_changes` on a clean tab, `transfer` and `discard` for the PLA, `discard` for the support filament. The `await: false` calls in the dirty cases must not be refused at once.
-
-**Not checked:**
-- No `probe()` after a call is asserted: whether the slot changed, the tab switched, the edits were transferred or dropped, or the colour settings were written.
-- Whether the prompt opens and offers Transfer for the PLA but not for the support filament: `app_wait {for: dialog}` cannot fail, and the answers are optional. `preset_changes: "transfer"` for the support filament is optional, so neither its refusal nor its acceptance is checked.
-- The plugin API route cannot fail (`preset_api` catches exceptions), including the `update`/`begin_update` forms without a name.
-- `undo_taken` is never asserted.
-
-**Strength:** Smoke — the tool and sidebar routes must succeed without a prompt, but nothing a call leaves is asserted.
-
-### `ops_assign_filament_preset_multi_slot`
-`tests/ops_assign_filament_preset_multi_slot.json` · replay, 303 steps, 110 expects, 32 optional
-
-**Tests:** Assigning a filament preset to slot 2 of three through the sidebar selector (row click, and once `widget_set_value`), `preset_select` and the plugin API's `filament.begin_update(2, name)`, under each Auto-flush preference (All, Color, None), for a PLA with a default colour, one without, and a support filament. Then the plugin API's other forms, unsaved changes in the filament the tab edits, the refusals (no such slot, no such name, an incompatible preset, a mixed-colour slot) and a hidden preset.
-
-**Decides by:** Fails when a non-optional call errors, a fixture raises, or an expect misses. Every expect sits on setup; none is on what a call under test left.
-- Case setup (`arrange_filaments`, 46 steps): no dialog open (`/result/dialogs` empty), `flush_volumes_matrix` equal to the sentinels `0,777,777,777,0,777,777,777,0`, and in the dirty cases a filament tab name ending ` (modified)`. Because no dialog may be open, a prompt the previous case left open fails the next case.
-- Preferences: `auto_calculate_flush` reads `all`, `color change`, `disabled` after each pick in the Preferences dialog.
-- Setup: three slots (`/presets/filaments/2` exists, `/3` does not). The Add Mixed Filament dialog opens (title eq), `filament_is_mixed` becomes `0,0,0,1` and goes back to `0,0,0`.
-- Implicit: the non-optional `preset_select` calls and sidebar row clicks must not be refused and must not open a prompt, since an awaited call held by a dialog times out after 120 s and fails. That includes the hidden `Bambu PETG Basic` through `preset_select`.
-
-**Not checked:**
-- The `probe()` after each call has no expect. The slot mapping, the edited filament preset, the three colour settings, the project's colours and the flushing volumes are only recorded, so whether the flush matrix is recalculated under All, Color or None (the reason for the three passes) is never asserted.
-- Every plugin API call goes through `ops_presets.preset_api`, which catches any exception and returns it as data. That route cannot fail any case, including the assignments that should succeed and the hidden `Bambu PETG HF`.
-- The refusals (slots 5 and 0, `No Such Filament`, `Bambu PLA Basic @BBL A1`, the mixed slot, `begin_update` without a slot) are optional `preset_select` steps or caught exceptions. Neither the refusal nor its code or text is asserted.
-- The unsaved-changes prompt: `app_wait {for: dialog}` returns `satisfied: false` on timeout without failing, and the Transfer/Discard/cancel `dialog_answer` steps and "second prompt" waits are optional. Whether a prompt opens, and which buttons it offers, is not checked.
-- `undo_taken` is never asserted.
-- `arrange_filaments` does not assert the slots it set (`/result/slots`).
-
-**Strength:** Smoke — the tool and sidebar routes must succeed without a prompt, but nothing a call leaves is asserted.
-
-### `multicolor`
-`tests/multicolor.json` · replay, 56 steps, 26 expects, 5 optional
-
-**Tests:** Filaments assigned to objects and parts through `settings_set`'s object and part targets, read back with `settings_get`'s effective value and source, with undo and redo; then the project's slot colours, flush multiplier, a flush-matrix entry, plate type and prime tower position through `project_set_settings`, refusals that should change nothing, and a slice.
-
-**Decides by:** Fails when a non-optional call errors or one of its 55 matchers misses.
-- Object filament: `/applied/extruder` = `"2"`; effective `"2"` with source `object` on object 1, `"1"` on object 0; undo gives `"1"`, redo `"2"`.
-- Parts: part 0 of a one-part object sets the object (`"1"`, with a `/note`); a text part takes `"2"` with source `part` and is listed under the object's `/items/0/parts/0` (part 1, `"2"`); `null` resets it to the object's `"1"`.
-- One undo step: after `extruder` and `wall_loops` in one call and an undo, `extruder` effective `"1"`, the part's `"2"` back, `wall_loops` value null with source `global`.
-- Project settings: meta (`read_only`, `offered`), `filament_colour` `^#FFFFFF;#000000`, `flush_multiplier` `"0.7"`, matrix `^0,400,` and bed type, all read back with `project_get_settings`; after four refused calls the colour, multiplier, matrix and `filament_is_mixed` still match.
-- Prime tower: x/y set to 150/180, then x to 40, undo back to 150/180.
-- Slice: `/status` = `done`, outcome `ok`.
-
-**Not checked:**
-- The refused `prime_volume_mode: "Saving"` and `wipe_tower_x: 300` calls are optional and never read back; if either were accepted the test still passes.
-- The refused colour `"white"` targets slot 0, which is already `#FFFFFF`; only the multiplier in the same call shows the call was refused.
-- The slice is checked only for `ok`; nothing shows the cylinder and the text part print with filament 2.
-- `Add one filament` is checked only by `/presets/filaments/1` existing, which a datadir with several slots satisfies without the click.
-- `/note` matchers are `exists`; `filaments.png` is saved and never compared.
-
-**Strength:** Partial — filament targets and project settings are read back exactly, but two refusals and the slice's use of filament 2 are unchecked.
-
-### `settings_targets`
-`tests/settings_targets.json` · replay, 39 steps, 83 expects, 0 optional
-
-**Tests:** `settings_list` returning a type whole, a saved preset's and a slot's values, and what an object and a region take; `settings_set`/`settings_get` on targets object, part and height range by index and from the selection, with `effective` and `source` in the slicer's precedence; ranges replaced keeping the one that stays.
-
-**Decides by:** Fails when a call errors, a fixture raises, or an expect misses.
-- Whole lists (`listing()`): process ≥ 300, printer and filament > 100 settings, items equal to total, no next page; with meta 100 a page and `limit` 50 pages without meta.
-- Values (`value_of()`): `layer_height` "0.2", "0.16" in the named saved preset, slot 2 "PETG", slot 1 "PLA".
-- `nested()`: the object list has > 200 keys, all process keys with the process's values; the region list > 100 keys, all object keys except `layer_height`, whose targets are exactly ["height_range"].
-- Per target: `settings_set` replies `applied` and name the object, part or range; `object_list` reads the range values "6" and "0.12"; `overrides()` lists each target's own overrides (4, 5, 6; the range also has `layer_height`, no `extruder`).
-- Precedence: the selected part reads "5" from source "part"; the modifier over a part that sets `sparse_infill_density` reads source "overlapped_part" with the part's "30%" and a note; the object reads effective "4" with the part's "5" and range's "6"; the range reads effective "6" from "height_range" and the density null from "global"; the selected object stands for the range target ("0.12").
-- Replacing ranges keeps the lower range's "6", gives the new upper range `max_z` 12 at "0.2" with no `wall_loops`; the plate slices "ok".
-- Fixture `settings_targets.py` asserts nothing; it returns totals, values and key lists computed from the tools' replies.
-
-**Not checked:**
-- The slice is checked only as "ok"; no printed result shows the object, part or range `wall_loops`.
-- `nested()` compares two `settings_list` views with each other, not with known values, so a fault shared by both passes.
-- Loose: list totals as lower bounds; the range's `layer_height` override and `object_effective` checked with `exists` where the values are known; `settings_get {target: part}` without keys checks only that an item has a key.
-
-**Strength:** Strong — target naming, values, effective values and sources are matched exactly for every target.
+**Strength:** Strong — it compares every target's settings whole after each step, asserts each value's effective value,
+source and note exactly, checks the lists whole and paged against each other and known values, and shows the targets'
+walls, infill and layer heights in the print against a control slice.

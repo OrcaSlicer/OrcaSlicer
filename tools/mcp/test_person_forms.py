@@ -14,7 +14,8 @@ and silent is refused. view_set's tab refusal is the operation's, with its code.
 
 Picks from the Speed Dial, opened with Space on the 3D view and searched by title as a person types: View: Top turns
 the camera, Deselect All on the Preview tab clears the Prepare selection without leaving the tab, and Go to layer takes
-its percentage from the second phase. None of them starts a job or shows a notice.
+its percentage from the second phase. None of them starts a job or shows a notice, while a pick of Slice and Preview,
+the last one, made the same way on the same project, does both.
 
 Auto-Arrange and Select All Objects, on a plate of three cubes: object_arrange {} and action_run of its action wait
 and reply as the command does (the settings in force, what was left off the plates); the journal keeps the call with
@@ -335,6 +336,17 @@ def main():
           state.get("selection", {}).get("canvas") == "3d" and state.get("selection", {}).get("objects") == [0, 1, 2],
           state.get("selection"))
     client.call("view_set", canvas="3d")
+
+    # The control for the absences above: a pick of Slice and Preview, opened and searched the same way on the same
+    # project, starts its slice as a job, listed under its command and announced as Started, then Finished.
+    since = last_job()
+    dial_pick("Slice and Preview")
+    state = settled()
+    jobs = [j for j in state.get("jobs", []) if int(j["id"][1:]) > since and j.get("tool") == "plate_slice"]
+    check("a pick that runs as a job is listed as one", jobs != [], state.get("jobs"))
+    notes = [n["text"] for n in state.get("notifications", []) if "Started" in n.get("text", "") or "Finished" in n.get("text", "")]
+    check("and shows its Started or Finished notice", notes != [], state.get("notifications"))
+    client.call("view_set", tab="prepare")
 
     client.call("project_new", discard_changes=True)
     failed = [c for c in checks if not c[1]]

@@ -4,8 +4,7 @@ The design of this area's sweep tests. The rules every entry follows, the grades
 in [TESTS.md](../TESTS.md).
 
 ## `test_files`
-`test_files.py` · Python · takes the place of `filaments_and_files.json`, `new_project_keeps_layer_gcode.json` and
-`ops_open_project.json` · in `sweep.json` as `{"path": "test_files.py", "timeout_s": 1200}`
+`test_files.py` · Python, 577 checks · in `sweep.json` as `{"path": "test_files.py", "timeout_s": 1200}`
 
 **Tests:** What the project's files do: a new project and the question New Project asks about unsaved changes; opening
 a project file and saving one under a name; importing models (STL, a project's `.3mf`, a ZIP archive, a STEP file and
@@ -21,10 +20,7 @@ imports, written with `zipfile` and an ASCII STL writer of its own, and every fi
 `tests/data/test_stl/ASCII/20mmbox-LF.stl` (a 20 mm box, 12 triangles), `tests/data/named_single_body.step` (a
 tetrahedron with 10 mm legs: 4 triangles, 166.667 mm³), `resources/handy_models/3DBenchy.drc`, and
 `tools/mcp/tests/fixtures/heightmap.png` and `mcp_import_pla.json` (a filament preset, `MCP Import PLA`). It does not
-use `tests/fixtures/filaments_and_files.py`. When the replay leaves, that fixture keeps what
-`test_additions_refusals.py` imports from it: `write_zip(args)` (`args` `name` and `cubes`, `{entry: size}`; returns
-`{path}`), with the `folder()` and `cube_stl()` it calls. Its `export`, `write_project_zip` and `import_zip` and the
-docstring's mention of the replay go with the replay.
+use `tests/fixtures/filaments_and_files.py`, which `test_additions_refusals.py` writes its archive with.
 
 **Reads:** `plates()` and `slots()` as `test_plates` reads them. New readers in `checks.py`:
 - `project()`: `app_state.project`, whose fields are `name`, `path` and `dirty`, as `{name, file, dirty}`: `file` is
@@ -49,7 +45,8 @@ docstring's mention of the replay go with the replay.
 - `sliced(path)`: the names of a `.gcode.3mf`'s G-code entries (`Metadata/plate_<n>.gcode`), sorted, and the `gcode()`
   of each.
 - `obj_facts(path)`: an OBJ's first line, its `mtllib` line, its numbers of `v` and `f` lines and its highest vertex z.
-- `reimport(path)`: `project_new {discard_changes: true}`, then `project_import {paths: [path]}`, then `meshes()`.
+- `reimport(path)`: `project_new {discard_changes: true}`, then `project_import {paths: [path]}`; it gives the
+  import's reply and then `meshes()`.
 - `answer_all(expected)`: answers the dialogs a call opens, each OK as it comes topmost, waiting with `app_wait {for:
   "dialog"}` (a wait that runs out fails) until it has answered one dialog for each `{title, message words}` in
   `expected`, in whatever order they come; it checks that no other dialog opened and that `dialogs()` is then empty.
@@ -242,10 +239,10 @@ step 2: `[true]`, from step 3: `[true, false]`), and `undo_steps()` is `[]` unle
 | 3 | `plate_add`, then `object_add_primitive {shape: "cube", size: [20, 20, 20], name: "b", plate: 1}`, `plate_slice {plates: 0}`, `plate_select {plate: 0}` | `"" 1 *` · `"" 1` | outcome `ok`, `layers` 100 |
 | 4 | `project_export {format: "sliced_3mf", path: W/half_current.gcode.3mf}` | as after 3 | `sliced()` `[Metadata/plate_1.gcode]` |
 | 5 | the same with `plates: "all"`, to `W/half_all.gcode.3mf` | as after 3 | `sliced()` `[Metadata/plate_1.gcode]`: plate 1, not sliced, adds none |
-| 6 | the same with `plates: 1`, to `W/half_1.gcode.3mf` | `"" 1` · `"" 1 *` | `sliced()` holds no G-code entry; the plate named is made current first, `undo_steps()` `["select partplate!"]` |
+| 6 | the same with `plates: 1`, to `W/half_1.gcode.3mf` | `"" 1` · `"" 1 *` | `sliced()` holds no G-code entry; the plate named is made current first, `undo_steps()` `["select partplate!", "select partplate!"]` |
 | 7 | the same with no `plates`, to `W/from_1.gcode.3mf` | as after 6 | `sliced()` holds no G-code entry |
 | 8 | the same with `plates: "all"`, to `W/all_from_1.gcode.3mf` | as after 6 | `sliced()` `[Metadata/plate_1.gcode]` |
-| 9 | the same with `plates: 0`, to `W/half_0.gcode.3mf` | `"" 1 *` · `"" 1` | `sliced()` `[Metadata/plate_1.gcode]`; `undo_steps()` `["select partplate!"]` |
+| 9 | the same with `plates: 0`, to `W/half_0.gcode.3mf` | `"" 1 *` · `"" 1` | `sliced()` `[Metadata/plate_1.gcode]`; `undo_steps()` `["select partplate!", "select partplate!"]` |
 | 10 | `project_export {format: "gcode", path: W/plate_1.gcode, plates: 1}` | `"" 1 *` · `"" 1` | refused, `plate_not_sliced`; no file; `undo_steps()` `[]`: a refused export leaves the current plate and the undo history as they were |
 
 **Scenario: a G-code export refused**
@@ -329,8 +326,8 @@ Objects are read with `meshes()` as their names and `filament`; `colours` is `fi
 **To settle in review:**
 - A refused export of a plate by index selects the plate first (sliced file, step 10). `Ops::start_gcode_export()`
   (`src/slic3r/GUI/Operations/ExportOps.cpp`) calls `plater.select_plate(*args.plate)` and only then
-  `Plater::export_gcode_to()`, which refuses an unsliced plate, so the refusal leaves plate 1 current and a "select
-  partplate!" undo step (`Plater::select_plate()` takes `take_plate_selection_snapshot()`). The fix, in
+  `Plater::export_gcode_to()`, which refuses an unsliced plate, so the refusal leaves plate 1 current and its "select
+  partplate!" undo steps (`Plater::select_plate()` takes `take_plate_selection_snapshot()`). The fix, in
   `ExportOps.cpp`: an export that names a plate refuses, on that plate and before it selects it, all it can know
   there. `start_gcode_export()` makes `export_gcode_to()`'s checks in its order on the named plate:
   `plater.is_export_gcode_scheduled()` (`export_already_running`), `plater.is_slicing_any()` (`slicing_in_progress`),
@@ -340,8 +337,13 @@ Objects are read with `meshes()` as their names and `filament`; `colours` is `fi
   fail only once the export runs on the selected plate (`export_not_started`; `sliced_file_not_written` for a
   configuration that fails validation, a post-processing script that fails on a printer outside the Bambu network, or a
   failed write; `file_not_written` of `export_model_3mf()` and `export_stl()`) selects the plate that was current back,
-  so the current plate is as it was, with the two selection steps left in the undo history. The step expects the fixed
+  so the current plate is as it was, with both selections' steps left in the undo history. The step expects the fixed
   behaviour: plate 0 current and no undo step.
+- Making another plate current logs two "select partplate!" undo steps (sliced file, steps 6 and 9):
+  `Plater::select_plate()` takes one, and `PartPlateList::select_plate()` takes another when the index changes
+  (`PartPlate.cpp`, "erase unnecessary snapshot"). This is the app's own code, left as it is: `main` takes both
+  snapshots (`take_snapshot("select partplate!")` in each function); this branch only routes them through
+  `take_plate_selection_snapshot()`. The steps expect the two.
 - An object index the project lacks (exporting meshes, step 8) is refused by the target check,
   `IndexCheck::object()` (`src/slic3r/GUI/Mcp/McpTargets.cpp`), with "object index 5 is out of range" and no code,
   before `Ops::export_objects_refusal()` runs, so the export's own refusal for it, `no_such_object`, never answers. The
@@ -423,63 +425,3 @@ Objects are read with `meshes()` as their names and `filament`; `colours` is `fi
 
 **Strength:** Strong — every export and save is read back from its file, and every refusal by its code or words with
 the state written out after it.
-
-## Replays this area replaces
-
-Each leaves the sweep, with its entry, in the commit that adds the tests above.
-
-### `filaments_and_files`
-`tests/filaments_and_files.json` · replay, 65 steps, 71 expects, 0 optional
-
-**Tests:** `filament_delete` merging slot 2 into slot 1, `filament_add_mixed` (and the same mix again), `project_export` of some objects and of each object as STL and DRC and of the Preview's toolpaths as OBJ, `project_import` of a ZIP's named entries, of all its models, and of a ZIP holding one project, and the STEP mesh-options dialog for `project_import`, `part_add` and `part_replace`.
-
-**Decides by:** Fails when a call errors, a fixture raises, or an expect misses.
-- Slots: `filament_add` replies slots 2 and 3; the object on slot 2 prints with slot 1 after the merge, whose reply gives `merged_into` 1 and 2 slots.
-- Mixed: the reply adds slot 3; `filament_is_mixed` is "0,0,1"; the same mix replies `added` false and no fourth slot appears.
-- Exports through `export()`, which reads each written file's size from disk: STL replies name the objects, `bytes` 684 for one cube and 1284 for two, and per-object exports write exactly two files of 684 bytes; DRC replies and files > 0 bytes; the toolpaths OBJ after a Preview slice > 0 bytes.
-- ZIP: named entries add 2 objects, named "large.stl" then "small.stl" with volumes 8000 and 1000; one "Import Objects: cubes.zip" snapshot; no dialog; all entries add 3 (the readme is skipped).
-- Project ZIP: adds 1 object from entry "project.3mf" after the two there, no dialog, the project path stays "", one "Import Objects: project.zip" snapshot.
-- STEP: each call runs with `await: false`, the dialog titled "STEP file import parameters" is answered, the job is waited for; then 1 object with one part, two parts after `part_add`, still two after `part_replace`.
-- Fixture `filaments_and_files.py` asserts nothing: it writes files and archives, calls tools and returns replies and on-disk sizes; a tool error raises `ToolError`.
-
-**Not checked:**
-- STL byte sizes depend only on triangle count: the per-object "big.stl" eq 684 passes whatever cube it holds, and no export is re-imported.
-- DRC exports and the toolpaths OBJ are checked only as non-empty.
-- STEP: the `app_wait {for: job}` steps have no expect, so a job still running after 30 s passes; `part_replace`'s effect is not checked (the follow-up also holds if it changed nothing); the `blocked_by_dialog` reply the header describes is not asserted.
-
-**Strength:** Partial — slots, STL sizes and ZIP imports are exact, but DRC and toolpath exports are only non-empty and the STEP replace is only run.
-
-### `new_project_keeps_layer_gcode`
-`tests/new_project_keeps_layer_gcode.json` · replay, 22 steps, 6 expects, 0 optional
-
-**Tests:** New Project's question about unsaved changes keeps the plate's layer G-code (a pause at layer 26) whatever the answer: Cancel leaves it on the project, and Save writes it to the project's file before the new project starts.
-
-**Decides by:** Fails when a call errors (including `dialog_answer` finding no dialog titled "- Save", or the action's job failing) or one of its 13 matchers misses.
-- Setup: one object, slice `done`/`ok`, `plate_set_custom_gcode` gives exactly one `pause`.
-- Cancel: `plate_list` still has 1 object and exactly one `pause`.
-- Save: the new project has 0 objects and `layer_gcode` = []; reopening `kept.3mf` gives 1 object and exactly one `pause`.
-
-**Not checked:**
-- Save: `kept.3mf` already holds the pause from the explicit `project_save` before the 5 mm move, so the reopen catches a Save that writes the file without the pause but not a Save that writes nothing; the move only Save would store is never read back.
-- Only each layer G-code's `type` is read, not its layer (26).
-
-**Strength:** Partial — Cancel is checked, but whether the dialog's Save wrote the file cannot be told from the earlier `project_save`.
-
-### `ops_open_project`
-`tests/ops_open_project.json` · replay, 54 steps, 18 expects, 7 optional
-
-**Tests:** `project_open` with a `.3mf` path: on a clean project; on one with unsaved project changes (a cylinder), refused and then opened with `discard_changes`; on an empty one with unsaved preset changes (`top_shell_layers` 7), refused and then opened with `discard_changes` after its presets dialog is answered Discard.
-
-**Decides by:** Fails when a non-optional call errors or an expect misses. The `project_open` calls are optional, but the state read after the refused and discarding cases is asserted.
-- Refused, dirty project: still dirty, no dialog, one object named `Cylinder`.
-- `discard_changes`: name `open_src`, not dirty, one object named `Cube`.
-- Refused, dirty presets: no dialog, no objects, `top_shell_layers` still `7`.
-- `discard_changes` with dirty presets: a dialog whose title matches `unsaved changes` is open; after Discard the name is `open_src`, no dialog, one `Cube`, `wall_loops` `5` and `top_shell_layers` not `7`.
-
-**Not checked:**
-- The clean open: its `project_open` is optional and nothing read after it (`app_state`, `object_list`, `settings_get`, recent projects) has an expect, so a clean open that fails passes.
-- The refusal's code (`unsaved_changes`) and text; only the state it leaves is checked.
-- The dirty flag after the preset-case open, the recent projects, the undo snapshots and the `compare: ":saved"` reads.
-- `top_shell_layers` is checked with `ne "7"` rather than the value the opened project gives.
-
-**Strength:** Partial — the refused and discarding cases' state is checked exactly; the clean open and the refusal codes are not.

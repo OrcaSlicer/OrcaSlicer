@@ -494,6 +494,9 @@ public:
     // BBS
     bool is_new_project_and_check_state() { return m_new_project_and_check_state; }
     wxString get_project_name();
+    // Names an untitled project after `file` without its extension and shows the name in the title, as File >
+    // Import does after its first model loads; the project keeps no file. A project with a name keeps it.
+    void name_untitled_project(const boost::filesystem::path& file);
     void update_all_plate_thumbnails(bool force_update = false);
     void update_plate_thumbnails(int plate_idx, bool force_update);
     void update_obj_preview_thumbnail(ModelObject *, int obj_idx, int vol_idx, std::vector<Slic3r::ColorRGBA> colors, int camera_view_angle_type);

@@ -4,6 +4,7 @@
 #include "PlateOps.hpp"
 #include "RunStatus.hpp"
 
+#include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -54,6 +55,48 @@ std::optional<Refusal> select_named_plate(const std::optional<int>& plate)
     return selected ? std::nullopt : std::optional<Refusal>(selected.refusal());
 }
 
+// An export that selected the plate it named and then failed makes the plate that was current before current
+// again, so that a failed export leaves the current plate as it was. Both selections stay in the undo history.
+template<class T> T select_back(const std::optional<int>& named, int previous, T failure)
+{
+    if (named && *named != previous)
+        wxGetApp().plater()->select_plate(previous);
+    return failure;
+}
+
+Refusal export_already_running() { return {RefusalKind::Busy, "export_already_running", L("Another export job is running.")}; }
+Refusal slicing_in_progress()
+{
+    return {RefusalKind::Busy, "slicing_in_progress", L("Slicing is in progress. Wait for it to finish and export again.")};
+}
+Refusal slice_has_errors()
+{
+    return {RefusalKind::Precondition, "slice_has_errors",
+            L("The plate's slice ended with an error. Fix what it reports and slice again before exporting.")};
+}
+Refusal plate_not_sliced() { return {RefusalKind::Precondition, "plate_not_sliced", L("The plate is not sliced. Slice it first.")}; }
+Refusal export_not_started() { return {RefusalKind::Failed, "export_not_started", L("The export did not start.")}; }
+Refusal sliced_file_not_written()
+{
+    return {RefusalKind::Precondition, "sliced_file_not_written",
+            L("The sliced file was not written. Slice first and check for slicing errors.")};
+}
+
+// What Plater::export_gcode_to() would refuse on `plate`, in its order, asked before the export selects the plate
+// so that a refused export changes nothing.
+std::optional<Refusal> gcode_export_refusal(Plater& plater, int plate)
+{
+    if (plater.is_export_gcode_scheduled())
+        return export_already_running();
+    if (plater.is_slicing_any())
+        return slicing_in_progress();
+    if (!plater.plate_validation_error(plate).empty())
+        return slice_has_errors();
+    if (!plater.get_partplate_list().get_plate(plate)->is_slice_result_valid())
+        return plate_not_sliced();
+    return std::nullopt;
+}
+
 } // namespace
 
 Outcome<ExportTicket> start_gcode_export(const ExportGcodeArgs& args)
@@ -63,9 +106,12 @@ Outcome<ExportTicket> start_gcode_export(const ExportGcodeArgs& args)
     PartPlateList& plates = plater.get_partplate_list();
     if (plater.model().objects.empty())
         return no_objects();
+    const int previous = plates.get_curr_plate_index();
     if (args.plate) {
         if (*args.plate < 0 || *args.plate >= plates.get_plate_count())
             return no_such_plate(*args.plate, plates.get_plate_count());
+        if (std::optional<Refusal> refusal = gcode_export_refusal(plater, *args.plate))
+            return *refusal;
         // The owner exports the current plate.
         plater.select_plate(*args.plate);
     }
@@ -74,23 +120,21 @@ Outcome<ExportTicket> start_gcode_export(const ExportGcodeArgs& args)
     ticket.seq_before = plater.export_seq();
     ticket.revision   = plater.project_revision();
     ticket.path       = args.path.string();
+    std::optional<Refusal> refusal;
     switch (plater.export_gcode_to(args.path)) {
     case Plater::ExportRefusal::None: break;
-    case Plater::ExportRefusal::NoObjects: return no_objects();
-    case Plater::ExportRefusal::AlreadyExporting:
-        return Refusal{RefusalKind::Busy, "export_already_running", L("Another export job is running.")};
-    case Plater::ExportRefusal::Slicing:
-        return Refusal{RefusalKind::Busy, "slicing_in_progress", L("Slicing is in progress. Wait for it to finish and export again.")};
-    case Plater::ExportRefusal::SliceHasErrors:
-        return Refusal{RefusalKind::Precondition, "slice_has_errors",
-                       L("The plate's slice ended with an error. Fix what it reports and slice again before exporting.")};
-    case Plater::ExportRefusal::NotSliced:
-        return Refusal{RefusalKind::Precondition, "plate_not_sliced", L("The plate is not sliced. Slice it first.")};
-    case Plater::ExportRefusal::NotStarted: return Refusal{RefusalKind::Failed, "export_not_started", L("The export did not start.")};
+    case Plater::ExportRefusal::NoObjects: refusal = no_objects(); break;
+    case Plater::ExportRefusal::AlreadyExporting: refusal = export_already_running(); break;
+    case Plater::ExportRefusal::Slicing: refusal = slicing_in_progress(); break;
+    case Plater::ExportRefusal::SliceHasErrors: refusal = slice_has_errors(); break;
+    case Plater::ExportRefusal::NotSliced: refusal = plate_not_sliced(); break;
+    case Plater::ExportRefusal::NotStarted: refusal = export_not_started(); break;
     }
     ticket.seq_after = plater.export_seq();
-    if (ticket.seq_after == ticket.seq_before)
-        return Refusal{RefusalKind::Failed, "export_not_started", L("The export did not start.")};
+    if (!refusal && ticket.seq_after == ticket.seq_before)
+        refusal = export_not_started();
+    if (refusal)
+        return select_back(args.plate, previous, Outcome<ExportTicket>(*refusal));
     return ticket;
 }
 
@@ -112,21 +156,28 @@ Outcome<Done> export_sliced_3mf(const ExportSlicedArgs& args)
     Plater& plater = *wxGetApp().plater();
     if (plater.model().objects.empty())
         return no_objects();
+    const int previous = plater.get_partplate_list().get_curr_plate_index();
+    // The named plate's slice error refuses before the plate is selected, as export_gcode_3mf() refuses it after.
+    if (args.plate && *args.plate >= 0 && *args.plate < plater.get_partplate_list().get_plate_count() &&
+        !plater.plate_validation_error(*args.plate).empty())
+        return sliced_file_not_written();
     if (std::optional<Refusal> refusal = select_named_plate(args.plate))
         return *refusal;
     if (!plater.export_gcode_3mf(args.all_plates, args.path))
-        return Refusal{RefusalKind::Precondition, "sliced_file_not_written",
-                       L("The sliced file was not written. Slice first and check for slicing errors.")};
-    return written(args.path);
+        return select_back(args.plate, previous, Outcome<Done>(sliced_file_not_written()));
+    const Outcome<Done> done = written(args.path);
+    return done ? done : select_back(args.plate, previous, done);
 }
 
 Outcome<Done> export_model_3mf(const ExportFileArgs& args)
 {
     assert(wxThread::IsMain());
+    const int previous = wxGetApp().plater()->get_partplate_list().get_curr_plate_index();
     if (std::optional<Refusal> refusal = select_named_plate(args.plate))
         return *refusal;
     wxGetApp().plater()->export_core_3mf(from_path(args.path));
-    return written(args.path);
+    const Outcome<Done> done = written(args.path);
+    return done ? done : select_back(args.plate, previous, done);
 }
 
 std::optional<Refusal> export_objects_refusal(const std::string& format, const std::vector<int>& objects, bool per_object,
@@ -153,17 +204,19 @@ Outcome<std::vector<boost::filesystem::path>> export_stl(const ExportStlArgs& ar
         return no_objects();
     if (std::optional<Refusal> refusal = export_objects_refusal(args.draco ? "drc" : "stl", args.objects, args.per_object, plater.model()))
         return *refusal;
+    const int previous = plater.get_partplate_list().get_curr_plate_index();
     if (std::optional<Refusal> refusal = select_named_plate(args.plate))
         return *refusal;
+    using Files = Outcome<std::vector<boost::filesystem::path>>;
     std::vector<boost::filesystem::path> files;
     for (const std::string& file :
          plater.export_stl(false, false, args.per_object, args.draco ? FT_DRC : FT_STL, from_path(args.path), args.objects)) {
         files.push_back(into_path(from_u8(file)));
         if (!written(files.back()))
-            return file_not_written();
+            return select_back(args.plate, previous, Files(file_not_written()));
     }
     if (files.empty())
-        return file_not_written();
+        return select_back(args.plate, previous, Files(file_not_written()));
     return files;
 }
 
@@ -182,6 +235,9 @@ Outcome<Done> export_toolpaths_obj(const ExportToolpathsArgs& args)
     assert(wxThread::IsMain());
     if (std::optional<Refusal> refusal = toolpaths_refusal())
         return *refusal;
+    // A layer range shown since the canvas last drew reaches the toolpaths only when it draws again: the file
+    // holds what the Preview shows.
+    wxGetApp().plater()->get_preview_canvas3D()->apply_gcode_sliders();
     wxGetApp().plater()->export_toolpaths_to_obj(from_path(args.path));
     return written(args.path);
 }

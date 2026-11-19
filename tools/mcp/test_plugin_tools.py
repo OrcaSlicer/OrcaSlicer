@@ -1,6 +1,6 @@
 """Checks a plugin's calls into the MCP tools and the operations it offers, in the running app.
 
-Launches OrcaSlicer on a fresh data folder with the Design tab on (in a build with CAD) and
+Launches OrcaSlicer on a fresh data folder with the Design tab on (--cad) and
 tests/plugins/mcp_tools_fixture side-loaded, and tests/plugins/mcp_tools_broken, whose load fails after declaring an
 operation: over MCP, then once without MCP, running a replay with --run, so the plugin's calls go to the
 runtime started without its endpoint. The first launch also checks that the plugin is sent the NewProject event when
@@ -83,6 +83,15 @@ def lines_of(path):
         return 0
 
 
+def canvas_height(orca):
+    """The height of the 3D view as widget_list gives it (its canvas "OrcaSceneCanvas" line), or None."""
+    _, texts = orca.call_with_text("widget_list", include_menus=False, include_imgui=False, include_web=False)
+    for line in "\n".join(texts).splitlines():
+        if 'canvas "OrcaSceneCanvas"' in line:
+            return int(line.rsplit("x", 1)[1])
+    return None
+
+
 def harness(env, *args):
     return subprocess.run([sys.executable, os.path.join(HERE, "orca_mcp.py"), *args], env=env, capture_output=True, text=True,
                           timeout=300)
@@ -125,7 +134,7 @@ def main():
         # --- Over MCP: the plugin's operation and its tool calls, beside a plugin whose load fails. ---
         plugin_dir = install(datadir)
         install_broken(datadir)
-        # The Design tab on, so that its commands are among tool_search's commands; a build without CAD has none.
+        # The Design tab on, so that its commands are among tool_search's commands.
         orca = launch(env, datadir, ["--cad", *extra])
         described = orca.call_raw("tool_search", {"tool": f"plugin.{PLUGIN}.measure"})
         check("tool_search describes the plugin's operation", not described.get("isError") and
@@ -142,6 +151,9 @@ def main():
         check("a plugin calls a tool from its Script worker", called == {"ok": True, "result": True}, called)
         threaded = run_plugin_script(orca, plugin_dir, "thread", CAPABILITIES[1])
         check("a thread its Script worker starts calls a tool too", threaded == {"ok": True, "result": True}, threaded)
+        # The agent's own dialog_auto_answer, which clears only the rules MCP clients set: the journal keeps this call,
+        # the control for the plugin's call of the same tool, which it must not keep.
+        orca.call("dialog_auto_answer", rules=[])
         rule = run_plugin_script(orca, plugin_dir, "rule", CAPABILITIES[2])
         check("an auto-answer rule a plugin sets is owned by the plugin", rule == {"ok": True, "result": "plugin"}, rule)
         exported = run_plugin_script(orca, plugin_dir, "export", CAPABILITIES[3])
@@ -178,29 +190,42 @@ def main():
         unknown = orca.call_raw("tool_search", {"group": "commandz"})
         check("a group no command has is refused, naming the groups there are",
               unknown.get("isError") and "Objects" in unknown["content"][0]["text"], unknown)
-        # It shows the Run Script panel; the second call hides it again.
+        # It shows the Run Script panel, which docks under the 3D view and so makes it shorter; the second call hides it
+        # again. The panel is kept from automation, so widget_list reads the 3D view instead.
+        orca.call("view_set", tab="prepare")
+        shown_before = canvas_height(orca)
         ran = orca.call_raw("tool_call", {"tool": "script_toggle_panel"})
-        check("tool_call runs a menu item's command", not ran.get("isError"), ran)
+        orca.call("app_wait", **{"for": "idle"})
+        shown_after = canvas_height(orca)
+        check("tool_call runs a menu item's command", not ran.get("isError") and shown_before is not None
+              and shown_after is not None and shown_after < shown_before, (ran, shown_before, shown_after))
         orca.call_raw("tool_call", {"tool": "script_toggle_panel"})
+        orca.call("app_wait", **{"for": "idle"})
+        hidden_after = canvas_height(orca)
+        check("and a second call hides it", shown_after is not None and hidden_after is not None and hidden_after > shown_after,
+              (shown_after, hidden_after))
         found = orca.call("tool_search", query="mesh normals")
         check("tool_search's search finds the Python API", found.get("python", {}).get("items", [{}])[0].get("name") ==
               "orca.host.TriangleMesh.face_normals", found)
+        design_tab = orca.call("app_state").get("design_tab")
+        check("the Design tab is on (launch --cad)", design_tab is True, design_tab)
         found = orca.call("tool_search", query="extrude")
-        if orca.call("app_state").get("design_tab"):
-            extrude = next((i for i in found["items"] if i["name"] == "extrude"), {})
-            check("tool_search's search finds a Design command among the commands, with its schema",
-                  extrude.get("group") == "Design" and extrude.get("listed") is False and "input_schema" in extrude, found)
-        else:
-            check("without the Design tab, tool_search's search finds no Design command",
-                  not any(i.get("group") == "Design" for i in found["items"]), found)
+        extrude = next((i for i in found["items"] if i["name"] == "extrude"), {})
+        check("tool_search's search finds a Design command among the commands, with its schema",
+              extrude.get("group") == "Design" and extrude.get("listed") is False and "input_schema" in extrude, found)
         check("and in no section of its own", "cad" not in found, found)
         found = orca.call("tool_search", query="?")
         check("a query with no words to search for matches nothing", found.get("total") == 0 and "names" not in found, found)
         journal = orca.call("replay_export")["replay"]["steps"]
-        check("a plugin's calls are not in the agent's journal", not any(s["tool"] == "dialog_auto_answer" for s in journal),
-              journal)
+        answers = [s for s in journal if s["tool"] == "dialog_auto_answer"]
+        check("a plugin's calls are not in the agent's journal",
+              len(answers) == 1 and answers[0].get("args", {}).get("rules") == [], answers)
+        broken_row = next((r for r in orca.call("plugin_list")["plugins"] if r["key"] == BROKEN), None)
+        check("the plugin whose load failed is listed with its error",
+              broken_row is not None and "this fixture's load fails here on purpose" in (broken_row.get("error") or ""), broken_row)
         broken = orca.call_raw("tool_search", {"tool": f"plugin.{BROKEN}.measure"})
-        check("a plugin whose load failed offers none of its operations", broken.get("isError"), broken)
+        check("and offers none of its operations", broken.get("isError") is True and
+              broken["content"][0]["text"].startswith(f"Unknown tool: plugin.{BROKEN}.measure"), broken)
         # A project started by project_new or by its Speed Dial action tells plugins, as File > New Project does.
         started = lambda: lines_of(os.path.join(plugin_dir, "new_projects.txt"))
         before = started()
@@ -209,7 +234,10 @@ def main():
         orca.call("action_run", id="orca_command:new_project:orca")
         check("and so does its action, new_project", wait_for(lambda: started() == before + 2, 10), started())
         held = run_plugin_script(orca, plugin_dir, "handle", CAPABILITIES[4])
-        check("the plugin opens a progress dialog and keeps its handle", held.get("ok") is True, held)
+        # The script gives create_progress_dialog this title.
+        titles = [w.get("title") for w in orca.call("window_list").get("items", [])]
+        check("the plugin opens a progress dialog and keeps its handle", held.get("ok") is True and "MCP tools fixture" in titles,
+              (held, titles))
         grab = orca.await_job(orca.call("script_run", code=GRAB_HANDLE))
         check("a script that finds a plugin's handle can use its methods", grab.get("result") is True, grab)
 

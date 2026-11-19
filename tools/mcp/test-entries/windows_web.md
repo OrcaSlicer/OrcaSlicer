@@ -424,8 +424,9 @@ into `{"error": ...}`, and the check that follows judges it.
     `page_buttons`.
   - A click queued behind a busy page is never run: the count of `ok` lines stays the same.
   - "and the panel's own page never saw that click": the dock panel's log, read from `widget_list`, is exactly
-    one ping (`label "ping"`, from the click "its page, whose CSP forbids eval, takes a click") before the refused
-    click and still exactly that after it. A log that is not found reads as no line, which fails.
+    two pings (`label "ping ping"`, from the click "its page, whose CSP forbids eval, takes a click" and the click
+    on Ping that ends the press held on the window's pad) before the refused click and still exactly that after
+    it. A log that is not found reads as no line, which fails.
 - Page changes and navigation:
   - `page.changed`, `added` and `partial` must match.
   - `navigated` URLs must end with `#bottom`, `#top`, `#evaluated` and `#orca-token=REDACTED&view=2`.

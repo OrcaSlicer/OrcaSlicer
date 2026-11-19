@@ -53,6 +53,7 @@ A refusal is an error a replay cannot expect, which is why this is a script. Exi
 
 import json
 import os
+import re
 import sys
 import time
 
@@ -116,6 +117,52 @@ def main():
             if rule.get("match") == match:
                 return rule.get("uses", 0)
         return None
+
+    def close_notice(words):
+        """Closes the notice whose text holds `words`, as a click on its close button does, so that a later pick that
+        shows the same text is seen to show it: the same text pushed again only moves the open notice to the end of the
+        list (NotificationManager::activate_existing()). Then checks that app_state.notifications holds no notice with
+        that text, waiting up to 5 s.
+
+        widget_list lists each notification as the ImGui window "!!Ntfctn<id>" with its lines as text nodes. Its close
+        glyph and the large invisible button over it, " ", have labels the listing cleans to nothing and no ## name, so
+        neither has a ref; the locator {imgui: "", window: ...} matches the window's unlabelled items in the order they
+        are recorded, and render_close_button() submits the invisible button last. A notice that has already faded (a
+        regular notice fades about 10 s after it shows) leaves nothing to close."""
+        _, texts = client.call_with_text("widget_list", include_menus=False, include_web=False)
+        lines, window = {}, None
+        for line in "\n".join(texts).splitlines():
+            header = re.match(r'\s*\[-\] imgui_window "(!!Ntfctn\d+)"', line)
+            text = re.match(r'\s*\[-\] text "(.*)" @', line)
+            if header:
+                window = header.group(1)
+                lines[window] = []
+            elif text and window is not None:
+                lines[window].append(text.group(1))
+            else:
+                window = None
+        clicked = []
+        for window in [w for w, held in lines.items() if words in " ".join(held)]:
+            locator = {"imgui": "", "window": window}
+            try:
+                client.call("widget_click", target=locator)
+                clicked.append((window, "the one unlabelled item"))
+            except orca_mcp.McpError as e:
+                count = re.match(r"(\d+) ImGui items match", str(e))
+                try:
+                    if count is None:
+                        raise e
+                    client.call("widget_click", target=dict(locator, index=int(count.group(1)) - 1))
+                    clicked.append((window, f"item {count.group(1)} of {count.group(1)}"))
+                except orca_mcp.McpError as failed:
+                    clicked.append((window, str(failed)))
+        deadline = time.monotonic() + 5
+        while any(words in text for text in notices(client.call("app_state"))):
+            if time.monotonic() > deadline:
+                check("the earlier notice is closed", False, (clicked, notices(client.call("app_state"))))
+                return
+            time.sleep(0.2)
+        check("the earlier notice is closed", True)
 
     client.call("app_wait", **{"for": "ready"})
     client.call("project_new", discard_changes=True, preset_changes="discard")
@@ -418,6 +465,8 @@ def main():
     client.call("project_new", discard_changes=True)
     cube("left", part="part")
     cube("right", part="part")
+    # Assemble with one object selected, above, showed the same text.
+    close_notice("Select two or more objects first")
     list_rows("left>left", "left>Generic-Cube")
     dial_pick("Assemble")
     state = settled()
@@ -454,6 +503,8 @@ def main():
     check("and splits nothing", total() == 1, total())
     client.call("project_new", discard_changes=True)
     cube("parts", part="part")
+    # Split to Objects on two instance rows, above, showed the same text.
+    close_notice("one object or part at a time")
     list_rows("parts>parts", "parts>Generic-Cube")
     dial_pick("Split to Parts")
     state = settled()

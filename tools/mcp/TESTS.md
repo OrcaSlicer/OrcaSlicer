@@ -112,13 +112,13 @@ until they leave the sweep.
 | Area | Python tests | Replays still in the sweep |
 |---|---|---|
 | [Plates](test-entries/plates.md) | [`test_plates`](test-entries/plates.md#test_plates) | — |
-| [Objects](test-entries/objects.md) | [`test_objects`](test-entries/objects.md#test_objects), [`test_object_structure`](test-entries/objects.md#test_object_structure) | [`menu_items_objects`](test-entries/objects.md#menu_items_objects), [`menu_items_placement`](test-entries/objects.md#menu_items_placement), [`menu_items_structure`](test-entries/objects.md#menu_items_structure), [`objects_state`](test-entries/objects.md#objects_state), [`objects_order`](test-entries/objects.md#objects_order), [`objects_files`](test-entries/objects.md#objects_files), [`scene`](test-entries/objects.md#scene) |
-| [Presets and calibration](test-entries/presets.md) | [`test_presets`](test-entries/presets.md#test_presets), [`test_calibration`](test-entries/presets.md#test_calibration) | [`presets`](test-entries/presets.md#presets), [`presets_and_plate_map`](test-entries/presets.md#presets_and_plate_map), [`ops_select_preset`](test-entries/presets.md#ops_select_preset), [`calibration`](test-entries/presets.md#calibration) |
-| [Filaments and settings](test-entries/filaments_settings.md) | [`test_filaments`](test-entries/filaments_settings.md#test_filaments), [`test_settings`](test-entries/filaments_settings.md#test_settings) | [`ops_assign_filament_preset_one_slot`](test-entries/filaments_settings.md#ops_assign_filament_preset_one_slot), [`ops_assign_filament_preset_multi_slot`](test-entries/filaments_settings.md#ops_assign_filament_preset_multi_slot), [`multicolor`](test-entries/filaments_settings.md#multicolor), [`settings_targets`](test-entries/filaments_settings.md#settings_targets) |
-| [Project files, imports and exports](test-entries/files.md) | [`test_files`](test-entries/files.md#test_files) | [`filaments_and_files`](test-entries/files.md#filaments_and_files), [`new_project_keeps_layer_gcode`](test-entries/files.md#new_project_keeps_layer_gcode), [`ops_open_project`](test-entries/files.md#ops_open_project) |
-| [Slicing, layers and the Preview](test-entries/slice_preview.md) | [`test_slice_preview`](test-entries/slice_preview.md#test_slice_preview) | [`slice_stats`](test-entries/slice_preview.md#slice_stats), [`preview`](test-entries/slice_preview.md#preview), [`layers`](test-entries/slice_preview.md#layers), [`view_switches`](test-entries/slice_preview.md#view_switches) |
-| [Gizmos and canvas input](test-entries/gizmos.md) | [`test_gizmos`](test-entries/gizmos.md#test_gizmos) | [`gizmos`](test-entries/gizmos.md#gizmos), [`dialogs_canvas_input`](test-entries/gizmos.md#dialogs_canvas_input) |
-| [GUI automation tools](test-entries/gui_tools.md) | [`test_gui_tools`](test-entries/gui_tools.md#test_gui_tools), [`test_recording`](test-entries/gui_tools.md#test_recording), [`test_call_forms`](test-entries/gui_tools.md#test_call_forms) | [`context_menus`](test-entries/gui_tools.md#context_menus), [`rows`](test-entries/gui_tools.md#rows), [`web_dialogs`](test-entries/gui_tools.md#web_dialogs), [`recording`](test-entries/gui_tools.md#recording), [`agent_forms`](test-entries/gui_tools.md#agent_forms), [`actions_ask`](test-entries/gui_tools.md#actions_ask) |
+| [Objects](test-entries/objects.md) | [`test_objects`](test-entries/objects.md#test_objects), [`test_object_structure`](test-entries/objects.md#test_object_structure) | — |
+| [Presets and calibration](test-entries/presets.md) | [`test_presets`](test-entries/presets.md#test_presets), [`test_calibration`](test-entries/presets.md#test_calibration) | — |
+| [Filaments and settings](test-entries/filaments_settings.md) | [`test_filaments`](test-entries/filaments_settings.md#test_filaments), [`test_settings`](test-entries/filaments_settings.md#test_settings) | — |
+| [Project files, imports and exports](test-entries/files.md) | [`test_files`](test-entries/files.md#test_files) | — |
+| [Slicing, layers and the Preview](test-entries/slice_preview.md) | [`test_slice_preview`](test-entries/slice_preview.md#test_slice_preview) | — |
+| [Gizmos and canvas input](test-entries/gizmos.md) | [`test_gizmos`](test-entries/gizmos.md#test_gizmos) | — |
+| [GUI automation tools](test-entries/gui_tools.md) | [`test_gui_tools`](test-entries/gui_tools.md#test_gui_tools), [`test_recording`](test-entries/gui_tools.md#test_recording), [`test_call_forms`](test-entries/gui_tools.md#test_call_forms) | — |
 | [Commands, preferences, installs and plugins](test-entries/commands.md) | [`test_every_action`](test-entries/commands.md#test_every_action), [`test_menu_items_refusals`](test-entries/commands.md#test_menu_items_refusals), [`test_additions_refusals`](test-entries/commands.md#test_additions_refusals), [`test_person_forms`](test-entries/commands.md#test_person_forms), [`test_preferences`](test-entries/commands.md#test_preferences), [`test_install_printers`](test-entries/commands.md#test_install_printers), [`test_install_filaments`](test-entries/commands.md#test_install_filaments), [`test_plugin_commands`](test-entries/commands.md#test_plugin_commands), [`test_plugin_tools`](test-entries/commands.md#test_plugin_tools), [`test_operation_routes`](test-entries/commands.md#test_operation_routes) | — |
 | [Windows, views, printers and web pages](test-entries/windows_web.md) | [`test_printer_extruders`](test-entries/windows_web.md#test_printer_extruders), [`test_project_open_settings`](test-entries/windows_web.md#test_project_open_settings), [`test_sidebar_floating`](test-entries/windows_web.md#test_sidebar_floating), [`test_set_window`](test-entries/windows_web.md#test_set_window), [`test_set_view_preview`](test-entries/windows_web.md#test_set_view_preview), [`test_set_view_camera`](test-entries/windows_web.md#test_set_view_camera), [`test_speed_dial_open`](test-entries/windows_web.md#test_speed_dial_open), [`test_send_gcode`](test-entries/windows_web.md#test_send_gcode), [`test_web_ui`](test-entries/windows_web.md#test_web_ui), [`test_webview_modal`](test-entries/windows_web.md#test_webview_modal) | — |
 | [Runtime, command line and harness](test-entries/runtime.md) | [`test_command_line`](test-entries/runtime.md#test_command_line), [`test_runtime_lifecycle`](test-entries/runtime.md#test_runtime_lifecycle), [`test_stdio_bridge`](test-entries/runtime.md#test_stdio_bridge), [`test_orca_mcp_attach`](test-entries/runtime.md#test_orca_mcp_attach), [`test_run_sweep`](test-entries/runtime.md#test_run_sweep), [`test_recovery_under_load`](test-entries/runtime.md#test_recovery_under_load), [`test_worker_admission`](test-entries/runtime.md#test_worker_admission), [`test_cancel_pending_slice`](test-entries/runtime.md#test_cancel_pending_slice), [`test_export_running_job`](test-entries/runtime.md#test_export_running_job), [`test_action_replay_hidden`](test-entries/runtime.md#test_action_replay_hidden), [`test_list_windows`](test-entries/runtime.md#test_list_windows), [`test_ref_locator_export`](test-entries/runtime.md#test_ref_locator_export) | [`smoke_test`](test-entries/runtime.md#smoke_test) |
@@ -126,41 +126,23 @@ until they leave the sweep.
 
 ## All tests
 
-The 78 tests `sweep.json` lists: 46 Strong, 27 Partial, 5 Smoke.
+The 60 tests `sweep.json` lists: 44 Strong, 14 Partial, 2 Smoke.
 
 | Test | Area | Kind | Strength |
 |---|---|---|---|
 | [`test_plates`](test-entries/plates.md#test_plates) | [Plates](test-entries/plates.md) | Python | Strong |
-| [`menu_items_objects`](test-entries/objects.md#menu_items_objects) | [Objects](test-entries/objects.md) | replay | Strong |
-| [`menu_items_placement`](test-entries/objects.md#menu_items_placement) | [Objects](test-entries/objects.md) | replay | Strong |
-| [`menu_items_structure`](test-entries/objects.md#menu_items_structure) | [Objects](test-entries/objects.md) | replay | Strong |
-| [`objects_state`](test-entries/objects.md#objects_state) | [Objects](test-entries/objects.md) | replay | Strong |
-| [`objects_order`](test-entries/objects.md#objects_order) | [Objects](test-entries/objects.md) | replay | Strong |
-| [`objects_files`](test-entries/objects.md#objects_files) | [Objects](test-entries/objects.md) | replay | Partial |
-| [`scene`](test-entries/objects.md#scene) | [Objects](test-entries/objects.md) | replay | Partial |
-| [`presets`](test-entries/presets.md#presets) | [Presets and calibration](test-entries/presets.md) | replay | Strong |
-| [`presets_and_plate_map`](test-entries/presets.md#presets_and_plate_map) | [Presets and calibration](test-entries/presets.md) | replay | Strong |
-| [`ops_select_preset`](test-entries/presets.md#ops_select_preset) | [Presets and calibration](test-entries/presets.md) | replay | Smoke |
-| [`calibration`](test-entries/presets.md#calibration) | [Presets and calibration](test-entries/presets.md) | replay | Strong |
-| [`ops_assign_filament_preset_one_slot`](test-entries/filaments_settings.md#ops_assign_filament_preset_one_slot) | [Filaments and settings](test-entries/filaments_settings.md) | replay | Smoke |
-| [`ops_assign_filament_preset_multi_slot`](test-entries/filaments_settings.md#ops_assign_filament_preset_multi_slot) | [Filaments and settings](test-entries/filaments_settings.md) | replay | Smoke |
-| [`multicolor`](test-entries/filaments_settings.md#multicolor) | [Filaments and settings](test-entries/filaments_settings.md) | replay | Partial |
-| [`settings_targets`](test-entries/filaments_settings.md#settings_targets) | [Filaments and settings](test-entries/filaments_settings.md) | replay | Strong |
-| [`filaments_and_files`](test-entries/files.md#filaments_and_files) | [Project files, imports and exports](test-entries/files.md) | replay | Partial |
-| [`new_project_keeps_layer_gcode`](test-entries/files.md#new_project_keeps_layer_gcode) | [Project files, imports and exports](test-entries/files.md) | replay | Partial |
-| [`ops_open_project`](test-entries/files.md#ops_open_project) | [Project files, imports and exports](test-entries/files.md) | replay | Partial |
-| [`slice_stats`](test-entries/slice_preview.md#slice_stats) | [Slicing, layers and the Preview](test-entries/slice_preview.md) | replay | Strong |
-| [`preview`](test-entries/slice_preview.md#preview) | [Slicing, layers and the Preview](test-entries/slice_preview.md) | replay | Strong |
-| [`layers`](test-entries/slice_preview.md#layers) | [Slicing, layers and the Preview](test-entries/slice_preview.md) | replay | Strong |
-| [`view_switches`](test-entries/slice_preview.md#view_switches) | [Slicing, layers and the Preview](test-entries/slice_preview.md) | replay | Strong |
-| [`gizmos`](test-entries/gizmos.md#gizmos) | [Gizmos and canvas input](test-entries/gizmos.md) | replay | Partial |
-| [`dialogs_canvas_input`](test-entries/gizmos.md#dialogs_canvas_input) | [Gizmos and canvas input](test-entries/gizmos.md) | replay | Partial |
-| [`context_menus`](test-entries/gui_tools.md#context_menus) | [GUI automation tools](test-entries/gui_tools.md) | replay | Strong |
-| [`rows`](test-entries/gui_tools.md#rows) | [GUI automation tools](test-entries/gui_tools.md) | replay | Partial |
-| [`web_dialogs`](test-entries/gui_tools.md#web_dialogs) | [GUI automation tools](test-entries/gui_tools.md) | replay | Partial |
-| [`recording`](test-entries/gui_tools.md#recording) | [GUI automation tools](test-entries/gui_tools.md) | replay | Partial |
-| [`agent_forms`](test-entries/gui_tools.md#agent_forms) | [GUI automation tools](test-entries/gui_tools.md) | replay | Partial |
-| [`actions_ask`](test-entries/gui_tools.md#actions_ask) | [GUI automation tools](test-entries/gui_tools.md) | replay | Partial |
+| [`test_objects`](test-entries/objects.md#test_objects) | [Objects](test-entries/objects.md) | Python | Strong |
+| [`test_object_structure`](test-entries/objects.md#test_object_structure) | [Objects](test-entries/objects.md) | Python | Strong |
+| [`test_presets`](test-entries/presets.md#test_presets) | [Presets and calibration](test-entries/presets.md) | Python | Strong |
+| [`test_calibration`](test-entries/presets.md#test_calibration) | [Presets and calibration](test-entries/presets.md) | Python | Strong |
+| [`test_filaments`](test-entries/filaments_settings.md#test_filaments) | [Filaments and settings](test-entries/filaments_settings.md) | Python | Strong |
+| [`test_settings`](test-entries/filaments_settings.md#test_settings) | [Filaments and settings](test-entries/filaments_settings.md) | Python | Strong |
+| [`test_files`](test-entries/files.md#test_files) | [Project files, imports and exports](test-entries/files.md) | Python | Strong |
+| [`test_slice_preview`](test-entries/slice_preview.md#test_slice_preview) | [Slicing, layers and the Preview](test-entries/slice_preview.md) | Python | Strong |
+| [`test_gizmos`](test-entries/gizmos.md#test_gizmos) | [Gizmos and canvas input](test-entries/gizmos.md) | Python | Strong |
+| [`test_gui_tools`](test-entries/gui_tools.md#test_gui_tools) | [GUI automation tools](test-entries/gui_tools.md) | Python | Strong |
+| [`test_recording`](test-entries/gui_tools.md#test_recording) | [GUI automation tools](test-entries/gui_tools.md) | Python | Strong |
+| [`test_call_forms`](test-entries/gui_tools.md#test_call_forms) | [GUI automation tools](test-entries/gui_tools.md) | Python | Strong |
 | [`test_every_action`](test-entries/commands.md#test_every_action) | [Commands, preferences, installs and plugins](test-entries/commands.md) | Python | Partial |
 | [`test_menu_items_refusals`](test-entries/commands.md#test_menu_items_refusals) | [Commands, preferences, installs and plugins](test-entries/commands.md) | Python | Strong |
 | [`test_additions_refusals`](test-entries/commands.md#test_additions_refusals) | [Commands, preferences, installs and plugins](test-entries/commands.md) | Python | Strong |
@@ -211,42 +193,25 @@ The 78 tests `sweep.json` lists: 46 Strong, 27 Partial, 5 Smoke.
 
 ## What the sweep does not catch
 
-These patterns run across many tests, and each lets a real regression pass. The entries in the area files name where
-each one applies.
+These patterns remain, and each lets a real regression pass. The entries in the area files name where each one
+applies.
 
-**The operations replays record and do not check.** In the four `ops_*` replays, the `expect`s sit on the setup,
-and the calls under test are `optional`, the ones that should succeed as well as the ones that should be refused.
-Their `result.json` is a record, but nothing compares it with an earlier run's. `test_operation_routes` asserts a
-handful of the states they record.
+**The Design tab's tests are not under the read-back rule.** The `cad_*` replays still in the sweep and the
+`test_cad_*.py` tests are as they were. In the replays a step marked `optional` accepts both outcomes, so a step that
+should be refused passes when it is accepted and one that should succeed passes when it is refused; a refusal is
+caught only when a later step reads the state it would have changed. A replay's `app_wait` that runs out of time
+replies `satisfied: false`, or a job still running, as a successful result, so it pauses the replay and checks
+nothing.
 
-**`optional` accepts both outcomes.** A step that should be refused passes when it is accepted, and one that
-should succeed passes when it is refused. A refusal is caught only when a later step happens to read the state it
-would have changed, and many refusals have no such step. The Design replays come closest, since a refused call that
-went through would usually shift a feature index or a count that the next step checks.
+**What the app works out is held to bounds.** Grams, times, adaptive layer profiles, arrangements, frame counts and
+capture times follow the slicer's or the machine's work, so their checks are bounds or properties, and a change that
+stays inside them passes.
 
-**A wait that runs out of time passes.** `app_wait` replies `satisfied: false`, or `status: "running"` for a job,
-as a successful result when its time runs out. Most `app_wait` steps have no `expect`, including the ones meant to
-show that a prompt opened, so they pause the replay for up to 30 s and check nothing.
+**Pictures are compared only with each other.** Screenshots and recordings are checked by their size, their source,
+or how they differ from another capture of the same run, never against a reference picture, so a view that draws
+something wrong passes.
 
-**Fixtures return data and assert nothing.** The `tests/fixtures/*.py` helpers fail their step only when they raise
-by accident. `ops_presets.preset_api` catches every exception and returns it as data, so no plugin API call in the
-preset replays can fail.
-
-**Replies are trusted instead of read back.** Several checks compare a tool's reply with the arguments it was
-given, such as a window's size and position, the legend rows, or a dialog's size. Others pass whenever the call
-returns, as `check(name, True)` after the call. Neither reads the state the call should have left.
-
-**Slices are checked by their outcome.** Tests that set per-object, per-range or per-layer settings check that the
-slice ended `ok`, and `layers` also checks the layer count. No test reads the G-code, so a setting that never
-reaches the print passes.
-
-**Screenshots and recordings are kept, not compared.** Nearly every GUI test saves pictures. Only
-`test_set_view_preview` (two captures byte for byte) and `test_cad_commands` ("the screenshots differ") compare any.
-
-**Absence is checked without a control.** Checks such as "no notice", "not in the journal", "the notification gets
-no reply", "the broken plugin offers nothing" and a colour's text being absent pass just as well when the thing they
-look for was renamed or never produced. No step first shows that it can be seen.
-
-**A few tests wait a fixed time instead of synchronising.** `test_cancel_pending_slice` (0.1 s),
-`test_recovery_under_load` (2 s and 1 s) and `test_cad_slow_build` on Windows (2 s) can pass on a slow machine
-without reaching the state they claim to test.
+**A few steps still trust a fixed time.** `test_cancel_pending_slice` cancels 0.1 s after asking for the slice and
+then checks that the cancel came before the slice started, so a slow machine fails it rather than passing it;
+`test_recovery_under_load` gives its 32 half-sent connections 1 s to open and trusts that they filled the server's
+connections.

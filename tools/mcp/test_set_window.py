@@ -13,9 +13,10 @@ state normal and a size both bring it back to normal; on Wayland those checks ar
 brings a minimized window back only by activating the app. A request that contradicts itself is
 refused before anything changes. The Plugins window is sized and moved by its ref, which fails, pointing to
 window_list, once the window has closed. Preferences, a modal dialog, is sized as "dialog" and moved by its
-{label} locator, and never minimized; on X11 the main window, minimized, restored and raised while it is
-open, stays under it in the X server's stacking order. A check that this window system or display can't run
-here is reported SKIP, with why, and doesn't fail the test: it exits 0 when no check fails.
+{label} locator, each read back from window_list, and never minimized; on X11 the main window, minimized,
+restored and raised while it is open, stays under it in the X server's stacking order. A check that this window
+system or display can't run here is reported SKIP, with why, and doesn't fail the test: it exits 0 when no check
+fails.
 """
 
 import ctypes
@@ -239,7 +240,9 @@ def main():
         size = placed.get("size") or [0, 0]
         check("Plugins: the reply has the size, or its minimum height with size adjusted",
               size == [900, 700] or (size[0] == 900 and size[1] > 700 and "size" in placed.get("adjusted", [])), placed)
-        check("Plugins: the reply has the position", wayland or placed.get("position") == [100, 100], placed)
+        # The reply's fields are window_list's entry, which has no place on Wayland, where none is given or known.
+        check("Plugins: the reply has the position",
+              "position" not in placed if wayland else placed.get("position") == [100, 100], placed)
         entry = find("Plugins") or {}
         got = (entry.get("width"), entry.get("height")) if wayland else (entry.get("x"), entry.get("y"), entry.get("width"), entry.get("height"))
         want = tuple(size) if wayland else tuple(placed.get("position", []) + size)
@@ -257,9 +260,16 @@ def main():
     modal = wait_for(lambda: find("Preferences"), 15)
     check("Preferences is open", modal, windows())
     if modal:
+        dialog_size = [0, 0]
         try:
             dialog = client.call("window_set", target="dialog", size=[1000, 760])
-            check("dialog: window_set sizes the topmost modal dialog", True)
+            # As for Plugins, a minimum height above 760 holds the size to it, and the reply lists size as adjusted.
+            dialog_size = dialog.get("size") or [0, 0]
+            entry = find("Preferences") or {}
+            check("dialog: window_set sizes the topmost modal dialog",
+                  (dialog_size == [1000, 760] or (dialog_size[0] == 1000 and dialog_size[1] > 760 and
+                                                  "size" in dialog.get("adjusted", [])))
+                  and [entry.get("width"), entry.get("height")] == dialog_size, f"{dialog} / {entry}")
             check("dialog: the reply's kind is dialog", dialog.get("kind") == "dialog", dialog)
         except orca_mcp.McpError as e:
             check("dialog: window_set sizes the topmost modal dialog", False, str(e))
@@ -267,7 +277,15 @@ def main():
         try:
             moved = client.call("window_set", target={"label": "Preferences"},
                                 **({"size": [1000, 760]} if wayland else {"position": [60, 60]}))
-            check("dialog: a {label} locator finds it", True)
+            entry = find("Preferences") or {}
+            if wayland:
+                check("dialog: a {label} locator finds it",
+                      [entry.get("width"), entry.get("height")] == moved.get("size"), f"{moved} / {entry}")
+            else:
+                check("dialog: a {label} locator finds it",
+                      moved.get("position") == [60, 60] and
+                      [entry.get("x"), entry.get("y"), entry.get("width"), entry.get("height")] == [60, 60] + dialog_size,
+                      f"{moved} / {entry}")
             check("dialog: the reply's title is Preferences", moved.get("title") == "Preferences", moved)
         except orca_mcp.McpError as e:
             check("dialog: a {label} locator finds it", False, str(e))

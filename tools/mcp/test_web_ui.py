@@ -350,7 +350,10 @@ def main():
     r = call("widget_click", target={"web": "Token link"})
     check("a navigated url shows a credential parameter's value as REDACTED", r.get("navigated") is True and
           r.get("url", "").endswith("#orca-token=REDACTED&view=2"), r)
-    check("and the snapshot shows no secret either", "fixture-secret" not in tree(target="dialog"), lambda: tree(target="dialog", query="webview"))
+    # The snapshot answers, and lists the link just clicked, so it is of the page whose URL holds the secret.
+    snapshot = tree(target="dialog")
+    check("and the snapshot shows no secret either", 'link "Token link"' in snapshot and "fixture-secret" not in snapshot,
+          lambda: snapshot or "widget_list gave no snapshot")
 
     name = ref_of(tree(target="dialog"), 'text "Name"')
     r = call("webview_run_javascript", code="el.value", target=name)
@@ -609,10 +612,11 @@ def main():
     check("its page, whose CSP forbids eval, takes a click", r.get("clicked") == "Ping", r)
     ping = ref_of(tree(query="Ping"), 'button "Ping"')
     check("and saw it", wait_for(lambda: 'label "ping"' in tree(query="ping"), 3), lambda: tree(query="ping"))
-    # Whether the port's script channel is held to the page's CSP varies (WebView2's is not).
+    # WebView2 does not hold the injected script to the page's policy; WKWebView and WebKitGTK do, and the
+    # script runs through eval, which the policy forbids.
     r = call("webview_run_javascript", code="1", target=ping)
     check("webview_run_javascript there runs, or names the page's Content-Security-Policy",
-          r.get("result") == 1 or "Content-Security-Policy" in r.get("error", ""), r)
+          r.get("result") == 1 if os.name == "nt" else "Content-Security-Policy" in r.get("error", ""), r)
     # A press left on the window's pad ends when a click lands on another page.
     window_log = {"web": "Card one", "within": "MCP web fixture window"}
     ups = page_log(window_log).count("pad up")
@@ -687,20 +691,24 @@ def main():
     call("dialog_auto_answer", rules=[])
     # A page that does not answer may hold another match, so a locator is refused until it does.
     def pings():
-        """The panel's ping log, which holds a ping by now: asked again while the panel's page has not answered,
-        as a listing with a query leaves such a page out."""
+        """The panel's ping log as its label, without the ref the snapshot renumbers: asked again while the panel's
+        page has not answered, as a listing with a query leaves such a page out. A log not found reads as ""."""
         end = time.time() + 15
         while True:
             line = next((line for line in tree(query="ping").splitlines() if 'label "ping' in line), "")
             if line or time.time() >= end:
-                return line.split("]", 1)[-1].split("@", 1)[0].strip()  # the label, without the ref the snapshot renumbers
+                return line.split("]", 1)[-1].split("@", 1)[0].strip()
             time.sleep(0.2)
+    # Two clicks on Ping so far: "its page, whose CSP forbids eval, takes a click" and the one that ends the
+    # press held on the window's pad.
+    two_pings = 'label "ping ping"'
     pinged = pings()
     # The panel's page has the call's 5 s to answer, and the window's stalls past them.
     stall("find", target=window_log)
     r = call("widget_click", target={"web": "Ping"}, timeout_s=5)
     check("a locator is refused while another candidate page does not answer", "may not be the only match" in r.get("error", ""), r)
-    check("and the panel's own page never saw that click", pings() == pinged, [pinged, pings()])
+    after = pings()
+    check("and the panel's own page never saw that click", pinged == two_pings and after == two_pings, [pinged, after])
     # So is one while another candidate page fails the search: it breaks what the agent reads until that
     # search has been answered.
     when_asked("find", target=window_log, after="window.getComputedStyle = styles;",

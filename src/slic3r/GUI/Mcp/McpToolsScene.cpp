@@ -1864,7 +1864,8 @@ void register_object_menu_commands(CommandCatalog& catalog)
                     "actions, it shows the Prepare view and, as Order By does, reverses the order the objects already have. "
                     "With order in place of by, the plate's objects go in the order given, as dragging them in the object list "
                     "puts them: order names each of the plate's objects once, by index, and anything else is refused; the "
-                    "other plates' objects keep their order. One undo step; object indices change. Reply: the new order (order: "
+                    "other plates' objects keep their order. One undo step, none when the order stays as it was; object indices "
+                    "change. Reply: the new order (order: "
                     "[{object, name, plate}]), and descending with by.",
                     object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Order this plate's objects. Default: the current plate."}}},
                                    {"by", enum_prop({"name", "filament", "height", "size"}, "What to order by.")},
@@ -2320,7 +2321,8 @@ void register_object_tools(CommandCatalog& catalog)
             "file. A part whose file is gone is not asked for: it is listed under missing. A part keeps its settings, type, "
             "filament and placement, and its painting when the keep_painting preference is on. Parts loaded from no file "
             "(primitives, the built-in models) are left out; cut objects are refused, since a reload would replace a cut part "
-            "with its whole file, and so is a call while a gizmo is open. One undo step. Reply: reloaded (parts), missing "
+            "with its whole file, and so is a call while a gizmo is open. One undo step, none when every part's file is "
+            "missing and nothing is reloaded. Reply: reloaded (parts), missing "
             "(with each part's path), unmatched (parts their file holds no part to take for) and unreadable (a file that "
             "could not be read, after which nothing more was loaded).",
             with_targets(object_schema({{"all", prop("boolean", "Reload every object but the cut ones. Default false: the targets.")}}),
@@ -2714,6 +2716,8 @@ void register_scene_tools(CommandCatalog& catalog)
                                                    "Preview and Slice All Plates actions.")}}),
         [](const json& args, ToolContext& ctx) {
             const json plates_arg = args.value("plates", json("current"));
+            if (plates_arg.is_string() && plates_arg != "all" && plates_arg != "current")
+                throw ToolFailure("plates is \"all\", \"current\" or a plate index");
             auto       ticket     = std::make_shared<SliceTicket>();
             // Held from before the wait below, so no call admitted meanwhile can change the project
             // under the slice, and a cancel meanwhile finds the operation.

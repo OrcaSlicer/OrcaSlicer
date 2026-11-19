@@ -33,7 +33,9 @@ struct ExportTicket
 };
 
 // Selects the plate when one is given, then starts writing its G-code in the background and returns
-// at once; gcode_export_state() says how the export stands.
+// at once; gcode_export_state() says how the export stands. An export that names a plate and is refused
+// leaves the current plate as it was: what can be told on the plate is refused before it is selected, and
+// a failure after that selects the plate that was current back. The exports below do the same.
 // Refuses: no_objects, no_such_plate, export_already_running, slicing_in_progress, slice_has_errors,
 //          plate_not_sliced, export_not_started.
 Outcome<ExportTicket> start_gcode_export(const ExportGcodeArgs& args);

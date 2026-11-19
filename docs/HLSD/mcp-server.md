@@ -301,7 +301,9 @@ tests that need a call to outlive its budget without waiting 45 s for it.
 **blocked_by_dialog.** A handler that opens a modal blocks in its nested loop, so every 1.5 s the
 request thread posts a probe closure, which runs inside a wx dialog's loop and returns the
 `ModalTracker` snapshot as JSON; no `wxDialog*` crosses threads. With a modal open, the reply is
-`{status: "blocked_by_dialog", job, dialogs}`. Its note says how to answer the topmost dialog:
+`{status: "blocked_by_dialog", job, dialogs}`, once a second probe, posted at once, finds the same dialog on top:
+an auto-answer rule presses a wx dialog's button from a closure queued as the dialog opens, which a probe posted
+before the dialog opened runs ahead of, and the second probe runs after it. Its note says how to answer the topmost dialog:
 `dialog_answer` for a wx dialog or a native message box whose buttons are listed, a person for any
 other dialog marked `native: true` (a picker, or any native dialog on macOS), which `dialog_answer`
 can't press.
@@ -3056,7 +3058,9 @@ shown, left out when none is shown.
 `ModalTracker`, a `wxModalDialogHook`, sees every `ShowModal()`, native dialogs included, and
 publishes the snapshot `[{title, message, class, native, buttons}]`, which other threads read. Read on
 the UI thread, as `app_state`, the `blocked_by_dialog` probe, the guards' refusals and the input tools'
-`dialogs` read it, the snapshot describes the open dialogs again first. So it shows a dialog as it is
+`dialogs` read it, the snapshot describes the open dialogs again first. The guards themselves only ask whether a
+dialog is open: describing one reads every control, and done for every closure the UI thread runs, it would keep
+a dialog's own events waiting while many calls queue. So it shows a dialog as it is
 now: text the dialog filled in once it showed (a printer's name, a list from a scan), a field typed in,
 a page switched. Should describing fail, the last description stands. Only a native dialog that holds
 the UI thread (macOS) leaves readers with the description published before it; its content does not
@@ -3261,7 +3265,9 @@ port, and a page may close its dialog, destroying the web view, at any time. `Pa
 on the UI thread and wait for them on the job thread, a destruction watcher ending the wait for a
 web view that goes. Job and request threads hold a web view as a `WebHandle`, a number only the UI
 thread maps back to it, never as a `wxWeakRef`: making or dropping one edits the window's list of
-refs, which the UI thread edits at the same time.
+refs, which the UI thread edits at the same time. A web view whose native view is not made yet, which WebView2
+makes a moment after its window opens, holds the call's request and sends it once the view is there, trying every
+100 ms for up to 10 s.
 
 What a page lists, after Playwright's accessibility snapshot: each element with a role as a kind
 (button, link, text, checkbox, radio, choice with its options, slider, spin, tab, heading, row,
@@ -4633,26 +4639,25 @@ the app on Linux on the XWayland of a private headless compositor (KWin, else mu
 tested yet), which gives it the GPU's OpenGL and a window manager, or, on a machine without a desktop,
 on a private Xvfb display (with `-noreset`, and the pointer parked in a corner so no tooltip lands in
 a screenshot); on macOS and Windows it opens the app on the desktop. It runs
-`tools/mcp/smoke_test.json`, which `--run` also runs headless. `tools/mcp/tests/gizmos.json`
-checks every gizmo through the GUI tools,
-`tools/mcp/tests/multicolor.json` object and part filaments and the project's settings, `tools/mcp/tests/presets.json` saving,
+`tools/mcp/smoke_test.json`, which `--run` also runs headless. `tools/mcp/test_gizmos.py`
+checks every gizmo through the GUI tools, with auto-answers that run a button's handler and canvas targets on
+negative parts and from below the bed, `tools/mcp/test_filaments.py` a filament preset assigned to a slot by every
+route, the Auto-flush preference, object and part filaments and the project's settings,
+`tools/mcp/test_presets.py` selecting presets by the names their selectors show, hidden ones included, saving,
 reading and comparing presets, explaining settings, per-variant entries, `changed`, reverting keys, answering the
-unsaved-changes prompts of a preset switch and a new project, deleting presets, exporting and importing
-presets with a path, and reading a preference changed in the Preferences dialog,
+unsaved-changes prompts of a preset switch and a new project, deleting presets, exporting and importing presets
+with a path, and reading a preference changed in the Preferences dialog,
 `tools/mcp/test_plates.py` plates added, duplicated, named, locked, selected and deleted, what a lock keeps
 Arrange and Auto-Orient from doing, a plate's settings, the filament slot commands and the plate icons and menu,
-`tools/mcp/tests/calibration.json` every calibration test and its preset answers,
-`tools/mcp/tests/dialogs_canvas_input.json` auto-answers that run a button's handler and canvas
-targets on negative parts and from below the bed, `tools/mcp/tests/slice_stats.json` the slice
-reply's statistics on one and two colours, `tools/mcp/tests/preview.json` `plate_slice_stats`,
-`app_state.preview` and `view_set`'s preview arguments, `tools/mcp/tests/context_menus.json` context
-and button menus listed and run without one ever showing, and the Edit menu's Undo and Redo picked by
-their paths, `tools/mcp/tests/rows.json` object list
-rows, checklist rows, the object settings table and the print button's popup,
-`tools/mcp/tests/recording.json` a recording with clicks, a dialog and a slice, stopped and encoded,
-and one a replay ends, `tools/mcp/test_webview_modal.py` JavaScript in modal dialogs' web views, the ones
-`webview_run_javascript` is refused in and a page that closes its dialog, `tools/mcp/tests/web_dialogs.json` the preset bundle dialog, the colour picker
-(hex field and spectrum) and the setup wizard's first steps through the GUI tools alone,
+`tools/mcp/test_calibration.py` every calibration test, its preset answers and its towers in the G-code,
+`tools/mcp/test_slice_preview.py` what a slice slices and reports on one and two colours, `plate_slice_stats`,
+`app_state.preview` and `view_set`'s preview arguments, `tools/mcp/test_gui_tools.py` context and button menus
+listed and run without one ever showing, the Edit menu's Undo and Redo picked by their paths, object list rows,
+checklist rows, the object settings table, the print button's popup, and the preset bundle dialog, the colour
+picker (hex field and spectrum) and the setup wizard's first steps through the GUI tools alone,
+`tools/mcp/test_recording.py` a recording with clicks, a dialog and a slice, stopped and encoded, and one a replay
+ends, `tools/mcp/test_webview_modal.py` JavaScript in modal dialogs' web views, the ones
+`webview_run_javascript` is refused in and a page that closes its dialog,
 `tools/mcp/test_web_ui.py` every page control kind, action, refusal, locator, timeout and close of
 the MCP web fixture plugin's dialog, window, dock panel and configuration UI (side-loaded with
 `--install DATADIR`), `tools/mcp/test_set_view_preview.py` the
@@ -4680,17 +4685,16 @@ instruments going off with the server,
 `tools/mcp/test_recovery_under_load.py` answering a dialog while stalled clients hold every
 connection. See `tools/mcp/README.md`.
 
-The commands that do a menu item's job by index, and the gaps they close, have their checks on the app. The
-replays `tools/mcp/tests/menu_items_objects.json`, `menu_items_structure.json` and `menu_items_placement.json`,
-and for the plates `tools/mcp/test_plates.py`, call the commands made from menu items by index and on the
-selection, and read each back; `objects_state.json` (printable, Fix Model, Auto Drop), `objects_files.json` (clone, reload, replace),
-`objects_order.json` (`object_order {order}`), `filaments_and_files.json` (slots merged and mixed, exports of
-some objects, a ZIP's entries), `settings_targets.json` (`settings_list` and the targets of the settings
-commands), `presets_and_plate_map.json` (`preset_list`'s filters, a plate's filament map, a nozzle variant),
-`view_switches.json` (`view_set`'s switches, the sidebar and the legend, a plate's origin and size) and
-`actions_ask.json` (a call with an action's arguments, the two actions that collect a value, and the actions
-whose menu item is the command's function). The Python tests check what a replay cannot, a refusal:
-`tools/mcp/test_menu_items_refusals.py` and `test_additions_refusals.py` each refusal's reason,
+The commands that do a menu item's job by index, and the gaps they close, have their checks on the app.
+`tools/mcp/test_objects.py` and `test_object_structure.py`, and for the plates `tools/mcp/test_plates.py`, call the
+commands made from menu items by index and on the selection, and read each back, printable, Fix Model, Auto Drop,
+clone, reload, replace and `object_order {order}` among them; `test_files.py` checks the project's files (slots
+merged and mixed, exports of some objects, a ZIP's entries), `test_settings.py` `settings_list` and the targets of
+the settings commands, `test_presets.py` `preset_list`'s filters, a plate's filament map and a nozzle variant,
+`test_slice_preview.py` `view_set`'s switches, the sidebar and the legend, and `test_call_forms.py` a call with an
+action's arguments and the forms agents write in place of the schema's. Others check the refusals and what
+needs a launch of its own: `tools/mcp/test_menu_items_refusals.py` and `test_additions_refusals.py` each refusal's
+reason,
 `test_person_forms.py` the person's forms and a pick that runs in place, `test_preferences.py` the
 preferences against the dialog, `test_install_printers.py` and `test_install_filaments.py` the installs, also
 after a restart, `test_plugin_commands.py` the plugin commands against the Plugins window,
@@ -4709,11 +4713,10 @@ sizes, the object structure commands' arguments, the height ranges `object_set_h
 overlaps, a range that keeps its settings) and the keys and layer heights a range's settings take, and
 `plate_set_custom_gcode`'s edits of a layer slider built in the test (by layer
 and height, in-place edits, refusals that leave the slider as it was, the type names). On the app,
-`tools/mcp/tests/scene.json` checks object structure and placement (transform on instances, plates and
-parts, what `object_list` reports of them, the selection `object_select` and `app_state` report, shapes at a
-size, arrange and Fill bed, `part_add`, the
-object structure commands, then all of them on one scene through to a slice);
-`tools/mcp/tests/layers.json` height range modifiers and variable layer height profiles (set, read
+`tools/mcp/test_objects.py` and `test_object_structure.py` check object placement and structure (transforms on
+instances, plates and parts, what `object_list` reports of them, the selection `object_select` and `app_state`
+report, shapes at a size, arrange and Fill bed, `part_add`, the object structure commands);
+`tools/mcp/test_slice_preview.py` height range modifiers and variable layer height profiles (set, read
 back, undone, sliced, refused, kept by a 3MF) and layer G-codes (placed by layer and height, edited in
 place, refused, sliced, kept by a 3MF); and `tools/mcp/test_worker_admission.py` admission while an
 arrange started three ways runs.

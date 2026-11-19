@@ -8,6 +8,12 @@ With Preferences open in a running job, 32 `app_wait` calls block on it (every b
 more connections sit idle or half-sent, which fills the server's 64 connections. A `dialog_answer`
 on a new connection must still close the dialog, and the waits must then return. Exits 0 when both
 the idle and the half-sent variants pass.
+
+The waits are seen holding every blocking slot before the holders open: app_wait and app_state are
+observation calls that each take one of the server's 32 blocking slots, and with none free an
+`app_state` replies `pending`. So does a wait that arrives while the test's own `app_state` holds
+a slot; such a wait is sent again. An idle holder reads its ping's reply before the next one opens,
+so the server has accepted it; the half-sent holders are given 1 s.
 """
 
 import json
@@ -19,6 +25,10 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
+
+# The reply an observation call gets when every blocking slot is taken.
+PENDING = {"status": "pending", "note": "Too many calls are waiting right now; try again shortly."}
+SLOTS_LIMIT_S = 10  # from the start of the 32 waits until app_state finds no slot free
 
 
 def post(port, token, body, timeout=120):
@@ -57,6 +67,30 @@ def holder(port, token, half_sent):
     return s
 
 
+def wait_for_close(port, token, results):
+    """One app_wait for the dialog to close. The test's own app_state, asked meanwhile, can hold the slot a wait
+    arrives for, so a wait replied `pending` is sent again, as the note asks, for up to SLOTS_LIMIT_S s."""
+    deadline = time.monotonic() + SLOTS_LIMIT_S
+    while True:
+        reply = call(port, token, "app_wait", {"for": "no_dialog", "timeout_s": 50})[0]
+        if {k: reply.get(k) for k in PENDING} != PENDING or time.monotonic() > deadline:
+            results.append(reply)
+            return
+        time.sleep(0.2)
+
+
+def every_slot_taken(port, token):
+    """Whether app_state, on a connection of its own every 0.2 s, replies that no blocking slot is free within
+    SLOTS_LIMIT_S s."""
+    deadline = time.monotonic() + SLOTS_LIMIT_S
+    while time.monotonic() < deadline:
+        state, _ = call(port, token, "app_state", {})
+        if {k: state.get(k) for k in PENDING} == PENDING:
+            return True
+        time.sleep(0.2)
+    return False
+
+
 def run(port, token, half_sent):
     job, _ = call(port, token, "action_run", {"id": "orca_command:open_preferences:orca"})
     if job.get("status") != "blocked_by_dialog":
@@ -64,10 +98,11 @@ def run(port, token, half_sent):
 
     waits, results = [], []
     for _ in range(32):
-        t = threading.Thread(target=lambda: results.append(call(port, token, "app_wait", {"for": "no_dialog", "timeout_s": 50})[0]))
+        t = threading.Thread(target=wait_for_close, args=(port, token, results))
         t.start()
         waits.append(t)
-    time.sleep(2)
+    # A variant whose waits never take every slot still answers the dialog, so that its waits end before the next.
+    taken = every_slot_taken(port, token)
     holders = [holder(port, token, half_sent) for _ in range(32)]
     time.sleep(1)
 
@@ -83,6 +118,8 @@ def run(port, token, half_sent):
         s.close()
     satisfied = sum(1 for r in results if r.get("satisfied"))
     print(f"  dialog answered in {time.time() - started:.1f} s; {satisfied}/32 waits saw it close")
+    if not taken:
+        return f"app_state found a blocking slot free for {SLOTS_LIMIT_S} s after the 32 waits started"
     return None if satisfied == 32 else f"only {satisfied} of 32 waits returned satisfied"
 
 
