@@ -316,7 +316,7 @@ private:
         if (key.empty() || m_rows.count(key) == 0)
             return;
         if (move_toolbar_row(m_working, m_rows.at(key).model, step))
-            sync_rows(m_rows.at(key).main);
+            sync_rows();
     }
 
     // Only a single selected row shows its arrows, so they plainly move that row; each arrow, and each Move
@@ -460,13 +460,9 @@ private:
         return default_group_name(m_working, [](int n) { return into_u8(format_wxstr(_L("Group %1%"), n)); });
     }
 
-    // The list the selection is in; the Gizmos list when nothing is selected.
-    bool selection_in_main() const { return !m_selection.empty() && m_rows.count(m_selection.front()) != 0 && m_rows.at(m_selection.front()).main; }
-
     void group_selected()
     {
-        const ListSelection sel  = list_selection();
-        const bool          main = selection_in_main();
+        const ListSelection sel = list_selection();
         if (sel.separator)
             return;
         if (sel.groups.empty() && sel.plain.size() >= 2) {
@@ -481,7 +477,7 @@ private:
                 return;
         } else
             return;
-        sync_rows(main);
+        sync_rows();
     }
 
     void rename_selected()
@@ -492,22 +488,46 @@ private:
         const int                        group = m_rows.at(key).model.group;
         const std::optional<std::string> name  = ask_group_name(m_working.groups[static_cast<size_t>(group)].name);
         if (name && rename_group(m_working, group, *name))
-            sync_rows(m_rows.at(key).main);
+            sync_rows();
     }
 
     void ungroup_selected()
     {
-        const ListSelection sel  = list_selection();
-        const bool          main = selection_in_main();
+        const ListSelection sel = list_selection();
         if (sel.groups.size() == 1 && ungroup_icons(m_working, *sel.groups.begin()))
-            sync_rows(main);
+            sync_rows();
+    }
+
+    // Brings both lists' rows in line with m_working. Both, even when only one list changed: the groups of both
+    // lists share one vector, so a group made or removed in one list renumbers the other list's groups.
+    void sync_rows()
+    {
+        const wxWindowUpdateLocker no_repaint(this);
+        const bool                 main_rebuilt  = sync_list(true);
+        const bool                 gizmo_rebuilt = sync_list(false);
+
+        std::vector<std::string> kept;
+        for (const std::string& key : m_selection)
+            if (m_rows.count(key) != 0)
+                kept.push_back(key);
+        update_header_boxes();
+        set_selection(std::move(kept));
+        // A rebuild destroys the box that had the keyboard focus, and with it Alt+Up/Down; give it to the
+        // selected row's box, or to the dialog.
+        if (main_rebuilt || gizmo_rebuilt) {
+            const std::string key = single_selection();
+            if (m_rows.count(key) != 0)
+                m_rows.at(key).check->SetFocus();
+            else
+                SetFocus();
+        }
     }
 
     // Brings one list's rows in line with m_working: in place when the same rows remain (a move, a rename, Reset
-    // without groups), rebuilt when rows come or go (a group made, ungrouped or dissolved).
-    void sync_rows(bool main)
+    // without groups), rebuilt when rows come or go (a group made, ungrouped or dissolved). Returns whether it
+    // rebuilt them.
+    bool sync_list(bool main)
     {
-        const wxWindowUpdateLocker    no_repaint(this);
         wxPanel*                      list_panel = panel(main);
         const std::vector<ToolbarRow> rows       = toolbar_rows(m_working, list(main));
         std::vector<std::string>     keys;
@@ -559,31 +579,14 @@ private:
             wxGetApp().UpdateDlgDarkUI(this);
             Thaw();
         }
-
-        std::vector<std::string> kept;
-        for (const std::string& key : m_selection)
-            if (m_rows.count(key) != 0)
-                kept.push_back(key);
-        update_header_boxes();
-        set_selection(std::move(kept));
-        // A rebuild destroys the box that had the keyboard focus, and with it Alt+Up/Down; give it to the
-        // selected row's box, or to the dialog.
-        if (rebuilt) {
-            const std::string key = single_selection();
-            if (m_rows.count(key) != 0)
-                m_rows.at(key).check->SetFocus();
-            else
-                SetFocus();
-        }
+        return rebuilt;
     }
 
     // Puts the existing rows in m_working's order and state. Rows built after the dialog is shown measure
     // 1px taller on GTK, so rebuilding them here would push the last row out of the dialog.
     void show_working_layout()
     {
-        const wxWindowUpdateLocker no_repaint(this);
-        sync_rows(true);
-        sync_rows(false);
+        sync_rows();
     }
 
     void rebuild_rows()
