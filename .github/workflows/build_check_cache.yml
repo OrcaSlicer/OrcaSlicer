@@ -69,6 +69,7 @@ jobs:
       - name: set outputs
         id: set_outputs
         # Compute cache-os and dep-folder-name inline to avoid shell substitution issues
+        shell: bash
         run: |
           # Compute cache-os
           if [[ "${{ runner.os }}" == "macOS" || "${{ inputs.os }}" == macos-* ]]; then
