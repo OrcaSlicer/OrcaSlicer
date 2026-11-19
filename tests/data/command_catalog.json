@@ -3239,6 +3239,225 @@
   },
   {
    "completion": "immediate",
+   "description": "Open a painting gizmo on an object's instance, the first unless instance is given: type supports opens Support Painting, seam Seam Painting, color Color Painting (two filaments or more) and fuzzy_skin Paint-on fuzzy skin. Painting is left to the gizmo: pick a tool and a brush in its panel and paint with mouse_gesture strokes on the model. With no target, it opens on the selection as it is. Read the gizmo's panel with widget_list {include_imgui: true}, set its fields with widget_set_value, press its buttons with widget_click, and click or drag on the model with mouse_gesture; object_select {none: true} closes it. The gizmo already open on the same target stays open. Reply: gizmo (its name, as app_state.gizmo gives it), active, and what is selected (objects, instances, parts).",
+   "destructive": false,
+   "examples": [
+    {
+     "calls": [
+      {
+       "args": {
+        "object": 0,
+        "type": "supports"
+       },
+       "tool": "object_paint"
+      }
+     ],
+     "title": "Paint support enforcers on object 0"
+    },
+    {
+     "calls": [
+      {
+       "args": {
+        "instance": 1,
+        "object": 1,
+        "type": "color"
+       },
+       "tool": "object_paint"
+      }
+     ],
+     "title": "Paint colors on the second instance of object 1"
+    }
+   ],
+   "group": "Objects",
+   "guard": "mutate",
+   "has_own_action": false,
+   "idempotent": false,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {
+     "instance": {
+      "description": "An instance of the object (object_list).",
+      "minimum": 0,
+      "type": "integer"
+     },
+     "object": {
+      "description": "Object index (object_list).",
+      "minimum": 0,
+      "type": "integer"
+     },
+     "object_id": {
+      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "minimum": 0,
+      "type": "integer"
+     },
+     "type": {
+      "description": "The painting gizmo to open.",
+      "enum": [
+       "supports",
+       "seam",
+       "color",
+       "fuzzy_skin"
+      ],
+      "type": "string"
+     }
+    },
+    "required": [
+     "type"
+    ],
+    "type": "object"
+   },
+   "key": "object_paint",
+   "listed": true,
+   "open_world": false,
+   "operations": [
+    "open_gizmo"
+   ],
+   "read_only": false,
+   "title": "Paint on an object"
+  },
+  {
+   "completion": "immediate",
+   "description": "Open the Measure gizmo on objects, else on the selection as it is (a part selected is measured as a part). Measuring is left to the gizmo: click two features of the model with mouse_gesture (Shift-click for a point) and read the results in its panel. Read the gizmo's panel with widget_list {include_imgui: true}, set its fields with widget_set_value, press its buttons with widget_click, and click or drag on the model with mouse_gesture; object_select {none: true} closes it. The gizmo already open on the same target stays open. Reply: gizmo (its name, as app_state.gizmo gives it), active, and what is selected (objects, instances, parts).",
+   "destructive": false,
+   "examples": [
+    {
+     "calls": [
+      {
+       "args": {
+        "objects": [
+         0,
+         1
+        ]
+       },
+       "tool": "object_measure"
+      }
+     ],
+     "title": "Measure between objects 0 and 1"
+    },
+    {
+     "calls": [
+      {
+       "args": {
+        "parts": [
+         [
+          0,
+          1
+         ]
+        ]
+       },
+       "tool": "object_select"
+      },
+      {
+       "args": {},
+       "tool": "object_measure"
+      }
+     ],
+     "title": "Measure the selected part"
+    }
+   ],
+   "group": "Objects",
+   "guard": "mutate",
+   "has_own_action": false,
+   "idempotent": false,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {
+     "object_ids": {
+      "description": "The ids object_list reports for objects, one per entry: refused when an index names another object now.",
+      "items": {
+       "type": "integer"
+      },
+      "type": "array"
+     },
+     "objects": {
+      "description": "Object indices.",
+      "items": {
+       "type": "integer"
+      },
+      "type": "array"
+     }
+    },
+    "type": "object"
+   },
+   "key": "object_measure",
+   "listed": true,
+   "open_world": false,
+   "operations": [
+    "open_gizmo"
+   ],
+   "read_only": false,
+   "title": "Measure"
+  },
+  {
+   "completion": "immediate",
+   "description": "Open the Simplify gizmo on a part: the part named, else the only part of the object named (an object of several parts needs part), else the selected part. The detail level or ratio and Apply are left to the gizmo. Read the gizmo's panel with widget_list {include_imgui: true}, set its fields with widget_set_value, press its buttons with widget_click, and click or drag on the model with mouse_gesture; object_select {none: true} closes it. The gizmo already open on the same target stays open. Reply: gizmo (its name, as app_state.gizmo gives it), active, and what is selected (objects, instances, parts).",
+   "destructive": false,
+   "examples": [
+    {
+     "calls": [
+      {
+       "args": {
+        "object": 0
+       },
+       "tool": "object_simplify"
+      }
+     ],
+     "title": "Simplify object 0, an object of one part"
+    },
+    {
+     "calls": [
+      {
+       "args": {
+        "object": 2,
+        "part": 1
+       },
+       "tool": "object_simplify"
+      }
+     ],
+     "title": "Simplify part 1 of object 2"
+    }
+   ],
+   "group": "Objects",
+   "guard": "mutate",
+   "has_own_action": false,
+   "idempotent": false,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {
+     "object": {
+      "description": "Object index (object_list).",
+      "minimum": 0,
+      "type": "integer"
+     },
+     "object_id": {
+      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "minimum": 0,
+      "type": "integer"
+     },
+     "part": {
+      "description": "A part of the object (object_list).",
+      "minimum": 0,
+      "type": "integer"
+     },
+     "part_id": {
+      "description": "The id object_list reports for this part: the call is refused when the index names another one now.",
+      "minimum": 0,
+      "type": "integer"
+     }
+    },
+    "type": "object"
+   },
+   "key": "object_simplify",
+   "listed": true,
+   "open_world": false,
+   "operations": [
+    "open_gizmo"
+   ],
+   "read_only": false,
+   "title": "Simplify Model"
+  },
+  {
+   "completion": "immediate",
    "description": "Replace an object's height range modifiers (Height Range Modifier in the object list): Z ranges in mm, each printed with its own layer_height, filament and process settings, which settings_get and settings_set read and write with the target height_range. A range given with the min_z and max_z of one the object has keeps its settings; a new one starts from the object's layer height and filament. Ranges may touch but not overlap; [] removes them all. The object is the one named, else the one selected in the Prepare view. One undo step; the object is selected. Reply: the object (objects, object), its height and its ranges as object_list shows them, with their settings, and warnings, such as a variable layer height profile deciding the layer heights instead.",
    "destructive": false,
    "group": "Objects",
@@ -3632,6 +3851,61 @@
    ],
    "read_only": false,
    "title": "Replace 3D file"
+  },
+  {
+   "completion": "immediate",
+   "description": "Open the Mesh Boolean gizmo on an object of two parts or more, its first instance. The operation (Union, Difference or Intersection), the two parts and Delete input are left to the gizmo: pick each part with a mouse_gesture click on a point of it the camera can see, then press the operation's button. Read the gizmo's panel with widget_list {include_imgui: true}, set its fields with widget_set_value, press its buttons with widget_click, and click or drag on the model with mouse_gesture; object_select {none: true} closes it. The gizmo already open on the same target stays open. Reply: gizmo (its name, as app_state.gizmo gives it), active, and what is selected (objects, instances, parts).",
+   "destructive": false,
+   "examples": [
+    {
+     "calls": [
+      {
+       "args": {
+        "object": 0
+       },
+       "tool": "part_boolean"
+      }
+     ],
+     "title": "Open Mesh Boolean on object 0"
+    },
+    {
+     "calls": [
+      {
+       "args": {},
+       "tool": "part_boolean"
+      }
+     ],
+     "title": "Open Mesh Boolean on the selected object"
+    }
+   ],
+   "group": "Parts",
+   "guard": "mutate",
+   "has_own_action": false,
+   "idempotent": false,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {
+     "object": {
+      "description": "Object index (object_list).",
+      "minimum": 0,
+      "type": "integer"
+     },
+     "object_id": {
+      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "minimum": 0,
+      "type": "integer"
+     }
+    },
+    "type": "object"
+   },
+   "key": "part_boolean",
+   "listed": true,
+   "open_world": false,
+   "operations": [
+    "open_gizmo"
+   ],
+   "read_only": false,
+   "title": "Mesh Boolean"
   },
   {
    "actions": [

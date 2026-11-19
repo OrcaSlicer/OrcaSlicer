@@ -425,7 +425,7 @@ counts a brush stroke gives, the Measure distance, the reverted font and where a
 are checked by a tolerance or a property, as the app works them out.
 
 ## `test_gizmo_commands`
-`test_gizmo_commands.py` · Python · in `sweep.json` as `{"path": "test_gizmo_commands.py"}`
+`test_gizmo_commands.py` · Python, 87 checks · in `sweep.json` as `{"path": "test_gizmo_commands.py"}`
 
 **Tests:** The commands that open a gizmo on a named target, and the ones among them that do the gizmo's job from
 arguments with no gizmo: `object_paint`, `object_measure`, `object_simplify`, `part_boolean`, `object_cut`,
@@ -471,7 +471,7 @@ after 0.
 | 6 | `object_select {none: true}` | | `gizmo()` none; `selection()` empty |
 | 7 | `part_boolean {object: 1}` | `gizmo` "MeshBoolean", `instances` [{object 1, instance 0, name "B"}] | `gizmo()` MeshBoolean; `selection()` objects [1] |
 | 8 | `object_simplify {object: 1, part: 1}` | `gizmo` "Simplify", `parts` [{object 1, part 1}] | `gizmo()` Simplify; `selection()` parts [[1, 1]] |
-| 9 | `object_simplify {object: 0}` | `gizmo` "Simplify", `parts` [{object 0, part 0}]: A's only part | `gizmo()` Simplify; `selection()` parts [[0, 0]] |
+| 9 | `object_simplify {object: 0}` | `gizmo` "Simplify", `parts` [{object 0, part 0}]: A's only part | `gizmo()` Simplify; `selection()` objects [0], instances [[0, 0]]: an object of one part shows no part row in the object list, which selects it whole when its part is selected |
 | 10 | `object_measure {objects: [0, 1]}` | `gizmo` "Measure", `objects` [{index 0, name "A"}, {index 1, name "B"}] | `gizmo()` Measure; `selection()` objects [0, 1] |
 | 11 | `object_select {none: true}`, `object_select {parts: [[1, 1]]}`, then `object_measure {}` | `gizmo` "Measure", `parts` [{object 1, part 1}] | `gizmo()` Measure; `selection()` parts [[1, 1]]: with no target it opens on the selection as it is, a part |
 | 12 | `object_select {none: true}` | | `gizmo()` none; `selection()` empty |
@@ -479,8 +479,10 @@ after 0.
 **Scenario: openings refused**
 
 One filament slot (`filament_delete` until refused); A and B as in the scenario above. Each step starts from the
-selection its row gives. After every row the model is as after 0, `gizmo()` is none, `undo_steps()` is empty, and
-`selection()` is the selection the step started from. Rows 1, 2 and 5 are refused by the gizmo's condition, which
+selection its row gives. After every row the model is as after 0, `gizmo()` is none, `undo_steps()` is empty but
+for row 5's, and `selection()` is the selection the step started from. A selection change records an undo step of its
+own ("Selection-Add Instance"), which a refused opening must not leave behind; row 5's step, "Leaving Paint-on
+supports", is the one the Support Painting gizmo records as it closes, as it does for any closing. Rows 1, 2 and 5 are refused by the gizmo's condition, which
 the call asks after it has selected the named target, so they check that it puts back the selection it found;
 row 3 is refused by the Simplify check, which comes before anything is selected; row 4 names no target.
 

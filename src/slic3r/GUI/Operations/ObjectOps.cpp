@@ -133,8 +133,8 @@ Refusal several_parts_loaded()
     return {RefusalKind::Precondition, "several_parts", L("Unable to replace with more than one volume")};
 }
 
-// Selects `targets` in the Prepare view and nothing else, as clicking them would: an object whole, an instance, a part
-// on instance 0; the object list shows it.
+} // namespace
+
 void select_targets(const Targets& targets)
 {
     GLCanvas3D& canvas = shown_prepare_canvas();
@@ -155,6 +155,8 @@ void select_targets(const Targets& targets)
     wxGetApp().obj_list()->update_selections();
     canvas.set_as_dirty();
 }
+
+namespace {
 
 // One instance, or the parts of one object, at a time: what Mirror takes of the targets, for an object every instance
 // of it, in the order named.

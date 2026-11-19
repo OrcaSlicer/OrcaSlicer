@@ -159,6 +159,7 @@ src/slic3r/GUI/Mcp/McpToolsApi.cpp
 src/slic3r/GUI/Mcp/McpToolsApp.cpp
 src/slic3r/GUI/Mcp/McpToolsCad.cpp
 src/slic3r/GUI/Mcp/McpToolsConfig.cpp
+src/slic3r/GUI/Mcp/McpToolsGizmos.cpp
 src/slic3r/GUI/Mcp/McpToolsInstall.cpp
 src/slic3r/GUI/Mcp/McpToolsLayers.cpp
 src/slic3r/GUI/Mcp/McpToolsPlugins.cpp
@@ -192,6 +193,7 @@ src/slic3r/GUI/ObjectDataViewModel.cpp
 src/slic3r/GUI/OpenGLManager.cpp
 src/slic3r/GUI/Operations/ExportOps.cpp
 src/slic3r/GUI/Operations/InstallOps.cpp
+src/slic3r/GUI/Operations/GizmoOps.cpp
 src/slic3r/GUI/Operations/ObjectOps.cpp
 src/slic3r/GUI/Operations/PlateOps.cpp
 src/slic3r/GUI/Operations/PluginOps.cpp

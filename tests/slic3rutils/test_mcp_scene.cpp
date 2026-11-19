@@ -1698,3 +1698,60 @@ TEST_CASE("layer G-codes are edited on the layer slider as its menus edit them",
     REQUIRE(codes.size() == 2);
     CHECK_THAT(codes[1].print_z, WithinAbs(1.4, 1e-9));
 }
+
+// The gizmo commands, each with the place its name gives it.
+const std::vector<std::pair<std::string, std::string>> kGizmoCommands{
+    {"object_paint", "Objects"}, {"object_measure", "Objects"}, {"object_simplify", "Objects"}, {"part_boolean", "Parts"}};
+
+TEST_CASE("the gizmo commands are listed under their places and take no silent", "[Mcp][Gizmos]")
+{
+    for (const auto& [key, place] : kGizmoCommands) {
+        INFO(key);
+        const NativeCommand* command = NativeCommands::find(key);
+        REQUIRE(command != nullptr);
+        CHECK(command->listed);
+        CHECK(command->group == place);
+        CHECK_FALSE(command->read_only);
+        // Whether a call opens or acts is read from its arguments, never from silent.
+        CHECK_FALSE(command->input_schema.at("properties").contains("silent"));
+        CHECK(std::find(command->operations.begin(), command->operations.end(), "open_gizmo") != command->operations.end());
+        // Each says how a client works the open gizmo, and shows two calls.
+        CHECK_THAT(command->description, ContainsSubstring("widget_list {include_imgui: true}"));
+        CHECK_THAT(command->description, ContainsSubstring("object_select {none: true}"));
+        REQUIRE(command->examples.is_array());
+        CHECK(command->examples.size() == 2);
+    }
+}
+
+TEST_CASE("object_paint's types name the four painting gizmos", "[Mcp][Gizmos]")
+{
+    const NativeCommand* paint = NativeCommands::find("object_paint");
+    REQUIRE(paint != nullptr);
+    const json& type = paint->input_schema.at("properties").at("type");
+    CHECK(type.at("enum") == json::array({"supports", "seam", "color", "fuzzy_skin"}));
+    // The type names the gizmo a call opens, so it is required.
+    CHECK(paint->input_schema.at("required") == json::array({"type"}));
+}
+
+TEST_CASE("a gizmo command's acting arguments are schema properties its description names", "[Mcp][Gizmos]")
+{
+    for (const auto& [key, place] : kGizmoCommands) {
+        INFO(key);
+        const NativeCommand* command = NativeCommands::find(key);
+        REQUIRE(command != nullptr);
+        const std::vector<std::string>& acting = Mcp::gizmo_acting_args(key);
+        if (acting.empty()) {
+            // A command that only opens says nothing of acting.
+            CHECK(command->description.find("Acts from arguments:") == std::string::npos);
+            continue;
+        }
+        std::string names;
+        for (const std::string& name : acting) {
+            CHECK(command->input_schema.at("properties").contains(name));
+            names += (names.empty() ? "" : ", ") + name;
+        }
+        CHECK_THAT(command->description, ContainsSubstring("Acts from arguments: " + names + "."));
+    }
+    // A command that is not a gizmo command has none.
+    CHECK(Mcp::gizmo_acting_args("object_list").empty());
+}

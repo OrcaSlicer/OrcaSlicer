@@ -143,11 +143,12 @@ std::string first_difference(const std::string& actual, const std::string& expec
 }
 
 // The design's command set outside the Design tab, heading by heading in the order tools/list gives them, Driving the
-// GUI last, after the Design tab's commands: the 118 commands of the catalog, its typed tools, the commands made from
+// GUI last, after the Design tab's commands: the 122 commands of the catalog, its typed tools, the commands made from
 // menu items, the seven Parts 4a to 4c add (Printable, Fix Model, Auto Drop, Clone, Reload from disk, Replace 3D file,
 // Add Mixed Filament), the three of Part 5a (the Printer Selection dialog's list, install and uninstall), the two of
 // Part 5b (the System Filaments dialog's install and uninstall), Part 5c's write of the Preferences dialog's preferences
-// and the four of Part 5d (the Plugins window's list, a switch, Delete or Unsubscribe, and Reload).
+// and the four of Part 5d (the Plugins window's list, a switch, Delete or Unsubscribe, and Reload), and the four gizmo
+// commands that only open their gizmo (Paint, Measure, Simplify, Mesh Boolean).
 // A part that adds a command adds it here.
 const std::vector<std::pair<std::string, std::set<std::string>>> kPlaces{
     {"Tools and actions", {"tool_search", "tool_call", "action_search", "action_run"}},
@@ -161,8 +162,8 @@ const std::vector<std::pair<std::string, std::set<std::string>>> kPlaces{
       "object_delete", "object_rename", "object_set_instances", "object_separate_instances", "object_split", "object_assemble",
       "object_order", "object_transform", "object_drop", "object_mirror", "object_center", "object_scale_to_fit", "object_arrange",
       "object_auto_orient", "object_set_variable_layer_height", "object_set_height_ranges", "object_set_printable", "object_fix",
-      "object_set_auto_drop", "object_clone", "object_reload_from_disk"}},
-    {"Parts", {"part_add", "part_change_type", "part_replace"}},
+      "object_set_auto_drop", "object_clone", "object_reload_from_disk", "object_paint", "object_measure", "object_simplify"}},
+    {"Parts", {"part_add", "part_change_type", "part_replace", "part_boolean"}},
     {"Plates",
      {"plate_list", "plate_get_settings", "plate_set_settings", "plate_add", "plate_delete", "plate_duplicate", "plate_rename",
       "plate_lock", "plate_select", "plate_slice", "plate_slice_stats", "plate_set_custom_gcode", "calibration_generate_test"}},
@@ -447,8 +448,8 @@ TEST_CASE("outside the Design tab the catalog has its commands and 129 actions",
         CHECK(c.action_group == section.at(c.key));
     }
     // The commands outside the Design tab: the typed tools, the commands made from menu items, the seven Parts 4a to 4c
-    // add, Part 5a's three, Part 5b's two, Part 5c's one and Part 5d's four.
-    CHECK(commands == 118);
+    // add, Part 5a's three, Part 5b's two, Part 5c's one, Part 5d's four and the four gizmo commands that only open.
+    CHECK(commands == 122);
     // The eight commands named as their menu items keep an action of their own; the other 121 actions are items.
     CHECK(own == std::set<std::string>{"plate_add", "plate_delete", "plate_duplicate", "plate_rename", "filament_add", "filament_delete",
                                        "undo", "redo"});
@@ -475,7 +476,7 @@ TEST_CASE("the commands outside the Design tab are the design's, under its headi
         commands += keys.size();
     }
     CHECK(by_heading.size() == kPlaces.size());
-    CHECK(commands == 118);
+    CHECK(commands == 122);
 
     // tool_search's group says which there are.
     const NativeCommand* search = NativeCommands::find("tool_search");
@@ -515,8 +516,9 @@ TEST_CASE("every command that runs from arguments is in the tool list, by place"
     }
     // The three menu items with no argument form, which tool_search finds and tool_call runs.
     CHECK(unlisted == std::set<std::string>{"window_save_screenshot", "script_toggle_panel", "settings_toggle_developer_mode"});
-    // Task 3's 98, the seven Parts 4a to 4c add, Part 5a's three, Part 5b's two, Part 5c's one and Part 5d's four.
-    CHECK(listed.size() == 115);
+    // Task 3's 98, the seven Parts 4a to 4c add, Part 5a's three, Part 5b's two, Part 5c's one, Part 5d's four and the
+    // four gizmo commands that only open.
+    CHECK(listed.size() == 119);
 
     // The search, the generic call and the app's state first; then each heading's commands together, in the
     // design's order, Driving the GUI last.

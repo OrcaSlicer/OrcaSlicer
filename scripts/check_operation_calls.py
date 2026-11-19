@@ -93,6 +93,8 @@ BANNED = {
     # The sync dialog's Synchronize now runs the sync through the operation, and a drop in the object list a drag.
     "sync_filaments_from_ams": ["sync_ams_list", "apply_ams_sync"],
     "reorder_objects": ["move_object"],
+    # The gizmo commands open their gizmo through it; a gizmo icon's click stays the GUI tools' (UiInspector.cpp).
+    "open_gizmo": ["open_gizmo"],
     "the undo snapshot of an operation": ["take_snapshot"],
 }
 

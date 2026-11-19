@@ -53,6 +53,10 @@ Refusal one_object_only();
 // select nothing.
 Refusal gizmo_keeps_selection();
 
+// Selects `targets` in the Prepare view, which it shows, and nothing else, as clicking them would: an object whole, an
+// instance, a part on instance 0; the object list shows it. UI thread.
+void select_targets(const Targets& targets);
+
 // ---- Delete ----
 
 // What deleting `targets` deletes, as the object list deletes a selection: an object every instance or every part

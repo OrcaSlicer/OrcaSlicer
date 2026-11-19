@@ -39,6 +39,7 @@
     "test_files": {"path": "test_files.py", "timeout_s": 1200},
     "test_slice_preview": {"path": "test_slice_preview.py", "timeout_s": 1500},
     "test_gizmos": {"path": "test_gizmos.py"},
+    "test_gizmo_commands": {"path": "test_gizmo_commands.py"},
     "test_gui_tools": {"path": "test_gui_tools.py"},
     "test_recording": {"path": "test_recording.py"},
     "test_call_forms": {"path": "test_call_forms.py", "cad": true},

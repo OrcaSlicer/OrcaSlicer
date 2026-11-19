@@ -77,6 +77,12 @@ void register_install_tools(CommandCatalog& catalog);
 // The Preferences dialog's preferences, read and written (McpToolsPreferences.cpp).
 void register_preference_tools(CommandCatalog& catalog);
 void register_scene_tools(CommandCatalog& catalog);
+// The commands that open a gizmo on a named target, and act from arguments where its gizmo has an entry point that asks
+// nothing (McpToolsGizmos.cpp).
+void register_gizmo_tools(CommandCatalog& catalog);
+// A gizmo command's acting arguments: a call with any of them does the job and opens no gizmo; a call with none opens
+// it. Empty for a command that only opens, and for any other command.
+const std::vector<std::string>& gizmo_acting_args(const std::string& command);
 void register_view_tools(CommandCatalog& catalog);
 void register_plugin_tools(CommandCatalog& catalog);
 // The error of a plugin command refused by `refusal` (McpToolsPlugins.cpp), the plugin's row (plugin_list's) being

@@ -117,7 +117,7 @@ until they leave the sweep.
 | [Filaments and settings](test-entries/filaments_settings.md) | [`test_filaments`](test-entries/filaments_settings.md#test_filaments), [`test_settings`](test-entries/filaments_settings.md#test_settings) | — |
 | [Project files, imports and exports](test-entries/files.md) | [`test_files`](test-entries/files.md#test_files) | — |
 | [Slicing, layers and the Preview](test-entries/slice_preview.md) | [`test_slice_preview`](test-entries/slice_preview.md#test_slice_preview) | — |
-| [Gizmos and canvas input](test-entries/gizmos.md) | [`test_gizmos`](test-entries/gizmos.md#test_gizmos) | — |
+| [Gizmos and canvas input](test-entries/gizmos.md) | [`test_gizmos`](test-entries/gizmos.md#test_gizmos), [`test_gizmo_commands`](test-entries/gizmos.md#test_gizmo_commands) | — |
 | [GUI automation tools](test-entries/gui_tools.md) | [`test_gui_tools`](test-entries/gui_tools.md#test_gui_tools), [`test_recording`](test-entries/gui_tools.md#test_recording), [`test_call_forms`](test-entries/gui_tools.md#test_call_forms) | — |
 | [Commands, preferences, installs and plugins](test-entries/commands.md) | [`test_every_action`](test-entries/commands.md#test_every_action), [`test_menu_items_refusals`](test-entries/commands.md#test_menu_items_refusals), [`test_additions_refusals`](test-entries/commands.md#test_additions_refusals), [`test_person_forms`](test-entries/commands.md#test_person_forms), [`test_preferences`](test-entries/commands.md#test_preferences), [`test_install_printers`](test-entries/commands.md#test_install_printers), [`test_install_filaments`](test-entries/commands.md#test_install_filaments), [`test_plugin_commands`](test-entries/commands.md#test_plugin_commands), [`test_plugin_tools`](test-entries/commands.md#test_plugin_tools), [`test_operation_routes`](test-entries/commands.md#test_operation_routes) | — |
 | [Windows, views, printers and web pages](test-entries/windows_web.md) | [`test_printer_extruders`](test-entries/windows_web.md#test_printer_extruders), [`test_project_open_settings`](test-entries/windows_web.md#test_project_open_settings), [`test_sidebar_floating`](test-entries/windows_web.md#test_sidebar_floating), [`test_set_window`](test-entries/windows_web.md#test_set_window), [`test_set_view_preview`](test-entries/windows_web.md#test_set_view_preview), [`test_set_view_camera`](test-entries/windows_web.md#test_set_view_camera), [`test_speed_dial_open`](test-entries/windows_web.md#test_speed_dial_open), [`test_send_gcode`](test-entries/windows_web.md#test_send_gcode), [`test_web_ui`](test-entries/windows_web.md#test_web_ui), [`test_webview_modal`](test-entries/windows_web.md#test_webview_modal) | — |
@@ -126,7 +126,7 @@ until they leave the sweep.
 
 ## All tests
 
-The 60 tests `sweep.json` lists: 44 Strong, 14 Partial, 2 Smoke.
+The 61 tests `sweep.json` lists: 45 Strong, 14 Partial, 2 Smoke.
 
 | Test | Area | Kind | Strength |
 |---|---|---|---|
@@ -140,6 +140,7 @@ The 60 tests `sweep.json` lists: 44 Strong, 14 Partial, 2 Smoke.
 | [`test_files`](test-entries/files.md#test_files) | [Project files, imports and exports](test-entries/files.md) | Python | Strong |
 | [`test_slice_preview`](test-entries/slice_preview.md#test_slice_preview) | [Slicing, layers and the Preview](test-entries/slice_preview.md) | Python | Strong |
 | [`test_gizmos`](test-entries/gizmos.md#test_gizmos) | [Gizmos and canvas input](test-entries/gizmos.md) | Python | Strong |
+| [`test_gizmo_commands`](test-entries/gizmos.md#test_gizmo_commands) | [Gizmos and canvas input](test-entries/gizmos.md) | Python | Strong |
 | [`test_gui_tools`](test-entries/gui_tools.md#test_gui_tools) | [GUI automation tools](test-entries/gui_tools.md) | Python | Strong |
 | [`test_recording`](test-entries/gui_tools.md#test_recording) | [GUI automation tools](test-entries/gui_tools.md) | Python | Strong |
 | [`test_call_forms`](test-entries/gui_tools.md#test_call_forms) | [GUI automation tools](test-entries/gui_tools.md) | Python | Strong |

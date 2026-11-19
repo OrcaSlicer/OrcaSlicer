@@ -150,6 +150,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/NativeCommands.hpp
     GUI/Operations/ExportOps.cpp
     GUI/Operations/ExportOps.hpp
+    GUI/Operations/GizmoOps.cpp
+    GUI/Operations/GizmoOps.hpp
     GUI/Operations/InstallOps.cpp
     GUI/Operations/InstallOps.hpp
     GUI/Operations/ObjectOps.cpp
@@ -195,6 +197,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/Mcp/McpToolsApp.cpp
     GUI/Mcp/McpToolsCommon.cpp
     GUI/Mcp/McpToolsConfig.cpp
+    GUI/Mcp/McpToolsGizmos.cpp
     GUI/Mcp/McpToolsInstall.cpp
     GUI/Mcp/McpToolsLayers.cpp
     GUI/Mcp/McpToolsPlugins.cpp

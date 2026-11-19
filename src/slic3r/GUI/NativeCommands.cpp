@@ -1054,6 +1054,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
     Mcp::register_preference_tools(families);
     Mcp::register_install_tools(families);
     Mcp::register_scene_tools(families);
+    Mcp::register_gizmo_tools(families);
     Mcp::register_layer_tools(families);
     Mcp::register_view_tools(families);
     Mcp::register_plugin_tools(families);

@@ -7,6 +7,7 @@
 #include "slic3r/GUI/Mcp/PythonScriptsDialog.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/Operations/ExportOps.hpp"
+#include "slic3r/GUI/Operations/GizmoOps.hpp"
 #include "slic3r/GUI/Operations/InstallOps.hpp"
 #include "slic3r/GUI/Operations/ObjectOps.hpp"
 #include "slic3r/GUI/Operations/Outcome.hpp"
@@ -2047,7 +2048,7 @@ const std::set<std::string> kOperations = {
     "add_filament_slot",  "delete_filament_slot", "add_mixed_filament",   "sync_presets",     "export_toolpaths_obj",
     "printer_models",     "install_printers",     "uninstall_printers",   "install_filaments", "uninstall_filaments",
     "set_preferences",    "set_plugin_enabled",   "uninstall_plugin",     "reload_plugin",    "start_plugin_refresh",
-    "reorder_objects",    "sync_filaments_from_ams",
+    "reorder_objects",    "sync_filaments_from_ams", "open_gizmo",
 };
 
 // What an exception is, so that the reason reads the same for every entry of a kind.
@@ -2236,4 +2237,68 @@ TEST_CASE("the field that names a tool's operations is in no listing", "[Operati
     REQUIRE_FALSE(tool->operations.empty());
     CHECK(tool->input_schema.dump().find("start_gcode_export") == std::string::npos);
     CHECK(tool->description.find("start_gcode_export") == std::string::npos);
+}
+
+// The ten gizmos a command opens, with the code of the selection's condition each gives when every fact is met.
+const std::vector<std::pair<Slic3r::GUI::GLGizmosManager::EType, std::string>> kGizmoSelections{
+    {Slic3r::GUI::GLGizmosManager::Cut, "needs_one_instance"},
+    {Slic3r::GUI::GLGizmosManager::Flatten, "needs_one_instance"},
+    {Slic3r::GUI::GLGizmosManager::BrimEars, "needs_one_instance"},
+    {Slic3r::GUI::GLGizmosManager::FdmSupports, "needs_one_instance"},
+    {Slic3r::GUI::GLGizmosManager::Seam, "needs_one_instance"},
+    {Slic3r::GUI::GLGizmosManager::FuzzySkin, "needs_one_instance"},
+    {Slic3r::GUI::GLGizmosManager::MmSegmentation, "needs_instance_or_part"},
+    {Slic3r::GUI::GLGizmosManager::MeshBoolean, "needs_two_parts"},
+    {Slic3r::GUI::GLGizmosManager::Simplify, "needs_one_part"},
+    {Slic3r::GUI::GLGizmosManager::Measure, "needs_selection"},
+};
+
+// The code gizmo_refusal() gives, or "" for none.
+std::string gizmo_refusal_code(Slic3r::GUI::GLGizmosManager::EType type, const Slic3r::GUI::Ops::GizmoFacts& facts, bool activable)
+{
+    const std::optional<Slic3r::GUI::Ops::Refusal> refusal = Slic3r::GUI::Ops::gizmo_refusal(type, facts, activable);
+    return refusal ? std::string(refusal->code) : std::string();
+}
+
+TEST_CASE("every gizmo a command opens says why it stays closed", "[Operations][Gizmos]")
+{
+    using Slic3r::GUI::GLGizmosManager;
+    using Slic3r::GUI::Ops::GizmoFacts;
+    const GizmoFacts met{true, 2, false, false};
+    for (const auto& [type, selection_code] : kGizmoSelections) {
+        INFO(int(type));
+        // Every fact met: the gizmo's own condition decides, and when it fails the selection is the reason.
+        CHECK(gizmo_refusal_code(type, met, true).empty());
+        CHECK(gizmo_refusal_code(type, met, false) == selection_code);
+        // Each refusal is one whole sentence a person can read.
+        const std::optional<Slic3r::GUI::Ops::Refusal> refusal = Slic3r::GUI::Ops::gizmo_refusal(type, met, false);
+        REQUIRE(refusal.has_value());
+        CHECK_FALSE(refusal->msgid.empty());
+    }
+
+    // A fact refuses whatever the gizmo's is_activable() says: Color Painting checks its printer and filaments in
+    // on_is_selectable(), which opening a gizmo does not ask.
+    const GizmoFacts not_fff{false, 2, false, false};
+    for (const bool activable : {true, false}) {
+        INFO(activable);
+        for (const GLGizmosManager::EType painter :
+             {GLGizmosManager::FdmSupports, GLGizmosManager::Seam, GLGizmosManager::FuzzySkin, GLGizmosManager::MmSegmentation})
+            CHECK(gizmo_refusal_code(painter, not_fff, activable) == "needs_fff_printer");
+        CHECK(gizmo_refusal_code(GLGizmosManager::MmSegmentation, GizmoFacts{true, 1, false, false}, activable) == "needs_two_filaments");
+        // The printer is checked before the filaments, as Color Painting's on_is_selectable() checks them.
+        CHECK(gizmo_refusal_code(GLGizmosManager::MmSegmentation, GizmoFacts{false, 1, false, false}, activable) == "needs_fff_printer");
+        CHECK(gizmo_refusal_code(GLGizmosManager::Cut, GizmoFacts{true, 2, true, false}, activable) == "layers_editing_on");
+        CHECK(gizmo_refusal_code(GLGizmosManager::Cut, GizmoFacts{true, 2, false, true}, activable) == "dowel_alone");
+        // A cut object of one dowel is refused before the selection or Variable layer height is read, as
+        // GLGizmoCut3D::on_is_activable() reads them.
+        CHECK(gizmo_refusal_code(GLGizmosManager::Cut, GizmoFacts{true, 2, true, true}, activable) == "dowel_alone");
+    }
+
+    // A fact a gizmo does not read leaves it to its own condition.
+    const GizmoFacts every_fact_fails{false, 1, true, true};
+    for (const GLGizmosManager::EType reads_none :
+         {GLGizmosManager::Flatten, GLGizmosManager::BrimEars, GLGizmosManager::MeshBoolean, GLGizmosManager::Simplify,
+          GLGizmosManager::Measure})
+        CHECK(gizmo_refusal_code(reads_none, every_fact_fails, true).empty());
+    CHECK(gizmo_refusal_code(GLGizmosManager::Cut, GizmoFacts{false, 1, false, false}, true).empty());
 }
