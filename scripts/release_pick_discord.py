@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """The release status post in Discord: one forum post whose starter message is edited in place on every
 applied run. It lists, per open release, the count for each status, the items Ready to pick with their
-titles, the numbers In progress and Proposed, and anything that needs attention. It never mentions
-anyone."""
+titles, the items In progress and Proposed (with titles while the post has room, numbers only once it
+does not), and anything that needs attention. It never mentions anyone."""
 
 import json
 import re
@@ -49,7 +49,12 @@ def _capped(lines, cap, project_url):
     return lines[:cap] + [f"…and {len(lines) - cap} more in the [project]({project_url})"]
 
 
-def _lines(items, notes, unmatched, project_url, repo):
+def _titled(listed, repo):
+    return [f"{_link(i.number, i.kind, repo)} {_escape(_shorten(i.title, _TITLE_LENGTH))}" for i in listed]
+
+
+def _lines(items, notes, unmatched, project_url, repo, compact=()):
+    """compact: the statuses among In progress and Proposed listed as numbers only, not one titled line each."""
     by_status = {status: sorted((i for i in items if i.status == status), key=lambda i: i.number)
                  for status in STATUSES}
     tally = [f"**{status}** {len(by_status[status])}" for status in reversed(STATUSES)]
@@ -60,11 +65,12 @@ def _lines(items, notes, unmatched, project_url, repo):
 
     ready = by_status["Ready to pick"]
     if ready:
-        rows = [f"{_link(i.number, i.kind, repo)} {_escape(_shorten(i.title, _TITLE_LENGTH))}" for i in ready]
-        lines += ["", f"**Ready to pick ({len(ready)})**"] + _capped(rows, _READY_CAP, project_url)
+        lines += ["", f"**Ready to pick ({len(ready)})**"] + _capped(_titled(ready, repo), _READY_CAP, project_url)
     for status in ("In progress", "Proposed"):
         listed = by_status[status]
-        if listed:
+        if listed and status not in compact:
+            lines += ["", f"**{status} ({len(listed)})**"] + _capped(_titled(listed, repo), _LIST_CAP, project_url)
+        elif listed:
             links = [_link(i.number, i.kind, repo) for i in listed[:_LIST_CAP]]
             text = " · ".join(links)
             if len(listed) > _LIST_CAP:
@@ -79,6 +85,12 @@ def _lines(items, notes, unmatched, project_url, repo):
     return lines
 
 
+def _too_big(texts):
+    """texts: [(embed title, description)]."""
+    return (sum(len(title) + len(text) for title, text in texts) > _MESSAGE_LIMIT
+            or any(len(text) > _DESCRIPTION_LIMIT for _, text in texts))
+
+
 def _fit(blocks, project_url):
     """Drops whole lines from the longest description until every description and the whole message fit,
     ending each shortened description with a pointer to the project."""
@@ -88,10 +100,7 @@ def _fit(blocks, project_url):
     def text(index):
         return "\n".join(blocks[index][1] + ([more] if cut[index] else []))
 
-    def size():
-        return sum(len(title) + len(text(i)) for i, (title, _) in enumerate(blocks))
-
-    while size() > _MESSAGE_LIMIT or any(len(text(i)) > _DESCRIPTION_LIMIT for i in range(len(blocks))):
+    while _too_big([(title, text(i)) for i, (title, _) in enumerate(blocks)]):
         index = max(range(len(blocks)), key=lambda i: len(text(i)))
         lines = blocks[index][1]
         if len(lines) <= 1:
@@ -123,13 +132,32 @@ def build_message(items, attention, unmatched, open_milestones, project_url, rep
     slots = _MAX_EMBEDS - (1 if None in keys else 0)
     order = versions[-slots:] + ([None] if None in keys else [])
 
-    blocks = []
-    for milestone in order:
-        members = releases.get(milestone, [])
-        name = _shorten(milestone, _NAME_LENGTH) if milestone else "No milestone"
-        count = f"{len(members)} item" + ("" if len(members) == 1 else "s")
-        blocks.append((f"{name} · {count}",
-                       _lines(members, notes.get(milestone, []), unmatched.get(milestone, []), project_url, repo)))
+    compact = {milestone: set() for milestone in order}
+
+    def render():
+        blocks = []
+        for milestone in order:
+            members = releases.get(milestone, [])
+            name = _shorten(milestone, _NAME_LENGTH) if milestone else "No milestone"
+            count = f"{len(members)} item" + ("" if len(members) == 1 else "s")
+            blocks.append((f"{name} · {count}", _lines(members, notes.get(milestone, []), unmatched.get(milestone, []),
+                                                      project_url, repo, compact[milestone])))
+        return blocks
+
+    # Titles while they fit: the largest titled section goes to numbers only until the message fits, taken
+    # from a description over its own limit first, so a release that fits keeps its titles.
+    blocks = render()
+    while _too_big([(title, "\n".join(lines)) for title, lines in blocks]):
+        over = [m for m, (_, lines) in zip(order, blocks) if len("\n".join(lines)) > _DESCRIPTION_LIMIT]
+        sections = [(len("\n".join(_titled(listed, repo))), index, milestone, status)
+                    for index, milestone in enumerate(over or order)
+                    for status in ("In progress", "Proposed") if status not in compact[milestone]
+                    for listed in [[i for i in releases.get(milestone, []) if i.status == status]] if listed]
+        if not sections:
+            break
+        _, _, milestone, status = max(sections)
+        compact[milestone].add(status)
+        blocks = render()
     if not blocks:
         blocks.append(("Release status", ["No release-pick items in open milestones."]))
 

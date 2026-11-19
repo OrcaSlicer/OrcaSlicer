@@ -44,13 +44,38 @@ class BuildMessageTest(unittest.TestCase):
                       message["embeds"][0]["description"])
         self.assertEqual(message["embeds"][0]["timestamp"], NOW)
 
-    def test_ready_to_pick_shows_titles_and_others_numbers_only(self):
+    def test_titles_are_shown_when_they_fit_and_picked_items_only_counted(self):
         text = build([item(1, "Picked"), item(2, "Ready to pick", title="Fix the *thing*"),
-                      item(3, "In progress", kind="Issue")])["embeds"][0]["description"]
+                      item(3, "In progress", kind="Issue"), item(4, "Proposed")])["embeds"][0]["description"]
         self.assertIn("[#2](https://github.com/o/r/pull/2) Fix the \\*thing\\*", text)
-        self.assertIn("[#3](https://github.com/o/r/issues/3)", text)
-        self.assertNotIn("Title 3", text)
+        self.assertIn("**In progress (1)**\n[#3](https://github.com/o/r/issues/3) Title 3", text)
+        self.assertIn("**Proposed (1)**\n[#4](https://github.com/o/r/pull/4) Title 4", text)
         self.assertNotIn("#1]", text)
+
+    def test_largest_section_drops_its_titles_first(self):
+        items = [item(n, "In progress", title="In progress title " * 5) for n in range(1000, 1030)]
+        items += [item(n, "Proposed", title="Proposed title") for n in range(2000, 2010)]
+        text = build(items)["embeds"][0]["description"]
+        self.assertNotIn("In progress title", text)
+        self.assertIn("[#1000](https://github.com/o/r/pull/1000) · [#1001]", text)
+        self.assertIn("[#2000](https://github.com/o/r/pull/2000) Proposed title", text)
+        self.assertNotIn("…more in the", text)
+
+    def test_release_that_fits_keeps_its_titles_when_another_is_too_long(self):
+        items = [item(n, "In progress", title="Long title " * 9) for n in range(1000, 1040)]
+        items.append(item(5, "Proposed", milestone="2.5.3", title="Small release"))
+        first, second = (e["description"] for e in build(items)["embeds"])
+        self.assertNotIn("Long title", first)
+        self.assertIn("[#5](https://github.com/o/r/pull/5) Small release", second)
+
+    def test_all_sections_drop_titles_before_lines_are_cut(self):
+        items = [item(n, "In progress", title="Long title " * 9) for n in range(1000, 1060)]
+        items += [item(n, "Proposed", title="Long title " * 9) for n in range(2000, 2060)]
+        message = build(items)
+        text = message["embeds"][0]["description"]
+        self.assertNotIn("Long title", text)
+        self.assertLessEqual(len(text), 4096)
+        self.assertLessEqual(total(message), 5800)
 
     def test_title_cannot_carry_its_own_link(self):
         text = build([item(2, "Ready to pick", title="[free](https://evil.example) <#123>")])["embeds"][0]["description"]
