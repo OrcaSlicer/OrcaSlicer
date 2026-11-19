@@ -297,6 +297,9 @@ GLGizmoCut3D::GLGizmoCut3D(GLCanvas3D& parent, const std::string& icon_filename,
 
 std::string GLGizmoCut3D::get_tooltip() const
 {
+    if (m_hovered_vertex && can_hover_vertex())
+        return _u8L("Click to move the cut plane through this vertex");
+
     std::string tooltip;
     if (m_hover_id == Z || (m_dragging && m_hover_id == CutPlane)) {
         double koef = m_imperial_units ? GizmoObjectManipulation::mm_to_in : 1.0;
@@ -1485,6 +1488,7 @@ bool GLGizmoCut3D::on_init()
     const wxString shift = GUI::shortkey_shift_prefix();
 
     m_shortcuts_cut = {
+        {_L("Left mouse button"),           _L("Move the cut plane through a highlighted vertex")},
         {_L("Drag"),                        _L("Move cut line")},
         {shift + _L("Drag"),                _L("Draw cut line")}
     };
