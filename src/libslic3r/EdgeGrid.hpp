@@ -201,8 +201,10 @@ public:
 		assert(iy >= 0 && size_t(iy) < m_rows);
 		assert(ixb >= 0 && size_t(ixb) < m_cols);
 		assert(iyb >= 0 && size_t(iyb) < m_rows);
-		// Account for the end points.
-		if (! visitor(iy, ix) || (ix == ixb && iy == iyb))
+		// Account for the end points. Only a debug build asserts that the first one is in the grid, so leave it out if it is
+		// not. The loop below stops at a cell outside the grid.
+		const bool first_in_grid = ix >= 0 && iy >= 0 && ix < coord_t(m_cols) && iy < coord_t(m_rows);
+		if ((first_in_grid && ! visitor(iy, ix)) || (ix == ixb && iy == iyb))
 			// Both ends fall into the same cell.
 			return;
 		// Raster the centeral part of the line.
