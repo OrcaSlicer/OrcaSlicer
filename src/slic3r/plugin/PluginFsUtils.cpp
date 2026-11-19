@@ -226,7 +226,7 @@ bool delete_plugin_root(const boost::filesystem::path& resolved_root, const std:
     for (;;) {
         ++attempts;
         ec.clear();
-        removed_count = fs::remove_all(resolved_root, ec);
+        removed_count = fs::remove_all(extended_path(resolved_root), ec);
         if (!ec)
             break;
 
@@ -253,6 +253,12 @@ bool delete_plugin_root(const boost::filesystem::path& resolved_root, const std:
         return false;
     }
 
+    if (removed_count == 0) {
+        BOOST_LOG_TRIVIAL(warning) << "Plugin deletion removed 0 files from " << resolved_root.string()
+                                   << "; the folder may already be absent or may not have been accessible.";
+        return true;
+    }
+
     if (attempts > 1) {
         // Recovered after one or more transient failures: keep the last failure for diagnosis.
         BOOST_LOG_TRIVIAL(info) << "Deleted plugin: " << plugin_id << " from " << resolved_root.string()
@@ -262,16 +268,12 @@ bool delete_plugin_root(const boost::filesystem::path& resolved_root, const std:
         return true;
     }
 
-    if (removed_count == 0) {
-        return true;
-    }
-
     BOOST_LOG_TRIVIAL(info) << "Deleted plugin: " << plugin_id << " from " << resolved_root.string();
     return true;
 #else
     // Non-Windows behavior is unchanged: one remove_all() call, no retries.
     boost::system::error_code ec;
-    const auto removed_count = fs::remove_all(resolved_root, ec);
+    const auto removed_count = fs::remove_all(extended_path(resolved_root), ec);
     if (ec) {
         // TRN %1% is a folder path, %2% the system error message.
         error = GUI::format(_u8L("Failed to delete plugin folder %1%: %2%"), resolved_root.string(), ec.message());
@@ -279,6 +281,8 @@ bool delete_plugin_root(const boost::filesystem::path& resolved_root, const std:
     }
 
     if (removed_count == 0) {
+        BOOST_LOG_TRIVIAL(warning) << "Plugin deletion removed 0 files from " << resolved_root.string()
+                                   << "; the folder may already be absent or may not have been accessible.";
         return true;
     }
 
@@ -2288,6 +2292,18 @@ std::string install_dir(const std::string& plugin_root, const std::string& entry
     if (!is_valid_entry_package(entry_package))
         return {};
     return (fs::path(plugin_root) / EXTRACTED_DIR_NAME / entry_package).string();
+}
+
+bool delete_install_cache(const boost::filesystem::path& plugin_root, std::string& error)
+{
+    boost::system::error_code ec;
+    fs::remove_all(extended_path(plugin_root / EXTRACTED_DIR_NAME), ec);
+    if (ec) {
+        // TRN %1% is the system error message.
+        error = GUI::format(_u8L("Failed to clear plugin cache: %1%"), ec.message());
+        return false;
+    }
+    return true;
 }
 
 bool is_installed(const PluginDescriptor& descriptor)

@@ -1754,10 +1754,9 @@ void PluginsDialog::reload_local_plugin(const std::string& plugin_key, bool clea
                 if (clear_cache) {
                     // __whl_extracted__ holds both dependency extractions and the uv-installed
                     // entry wheel. The stored wheel and plugin data are left untouched.
-                    boost::system::error_code ec;
-                    boost::filesystem::remove_all(plugin_root / plugin_wheel_install::EXTRACTED_DIR_NAME, ec);
-                    if (ec)
-                        return {false, GUI::format(_u8L("Failed to clear plugin cache: %1%"), ec.message())};
+                    std::string cache_error;
+                    if (!plugin_wheel_install::delete_install_cache(plugin_root, cache_error))
+                        return {false, cache_error};
                 }
 
                 manager.load_plugin(plugin_key, false);
