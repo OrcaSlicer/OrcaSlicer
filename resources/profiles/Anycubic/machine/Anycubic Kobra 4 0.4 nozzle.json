@@ -27,8 +27,6 @@
 	"printable_height": "260",
 	"thumbnails": "230x110/PNG",
 	"thumbnails_format": "PNG",
-	"thumbnails_internal": "512x512/PNG/top",
-	"thumbnails_internal_switch": "1",
 	"adaptive_bed_mesh_margin": "0",
 	"auxiliary_fan": "0",
 	"bbl_use_printhost": "0",
@@ -156,7 +154,6 @@
 	"parking_pos_retraction": "0",
 	"pellet_modded_printer": "0",
 	"preferred_orientation": "0",
-	"printer_flush_multiplier": "1",
 	"printer_notes": "",
 	"printer_structure": "i3",
 	"printhost_authorization_type": "key",
@@ -177,9 +174,6 @@
 	],
 	"retract_lift_enforce": [
 		"All Surfaces"
-	],
-	"retract_on_top_layer": [
-		"1"
 	],
 	"retract_restart_extra": [
 		"0"

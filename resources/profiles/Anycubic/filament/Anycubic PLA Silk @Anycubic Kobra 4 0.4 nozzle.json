@@ -87,50 +87,11 @@
 	"fan_cooling_layer_time": [
 		"100"
 	],
-	"fan_cooling_layer_time_BRASS": [
-		"100"
-	],
-	"fan_cooling_layer_time_HS": [
-		"100"
-	],
 	"fan_max_speed": [
 		"100"
 	],
-	"fan_max_speed_BRASS": [
-		"100"
-	],
-	"fan_max_speed_HS": [
-		"100"
-	],
 	"fan_min_speed": [
-		"80"
-	],
-	"fan_min_speed_BRASS": [
 		"60"
-	],
-	"fan_min_speed_HS": [
-		"60"
-	],
-	"fan_p2_after_x_layers": [
-		"0"
-	],
-	"fan_p2_before_x_layers": [
-		"0"
-	],
-	"fan_p2_speed_before_x_layers": [
-		"0"
-	],
-	"fan_p3_speed": [
-		"0"
-	],
-	"fan_p4_speed": [
-		"0"
-	],
-	"fan_speed_after_x_layers": [
-		"100"
-	],
-	"fan_speed_before_x_layers": [
-		"0"
 	],
 	"filament_adhesiveness_category": [
 		"100"
@@ -289,21 +250,9 @@
 		"-1"
 	],
 	"nozzle_temperature": [
-		"220"
-	],
-	"nozzle_temperature_BRASS": [
-		"230"
-	],
-	"nozzle_temperature_HS": [
 		"230"
 	],
 	"nozzle_temperature_initial_layer": [
-		"230"
-	],
-	"nozzle_temperature_initial_layer_BRASS": [
-		"230"
-	],
-	"nozzle_temperature_initial_layer_HS": [
 		"230"
 	],
 	"nozzle_temperature_range_high": [
@@ -334,12 +283,6 @@
 		"1"
 	],
 	"slow_down_layer_time": [
-		"10"
-	],
-	"slow_down_layer_time_BRASS": [
-		"10"
-	],
-	"slow_down_layer_time_HS": [
 		"10"
 	],
 	"slow_down_min_speed": [
