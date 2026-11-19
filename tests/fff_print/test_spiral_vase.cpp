@@ -3,6 +3,7 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <algorithm>
 #include <string>
@@ -72,6 +73,26 @@ TEST_CASE("Spiral vase keeps the selected coordinate and extrusion precision", "
         vase.process_layer("G1 Z0.24\nG1 X1 Y0 E0.001236\nG1 X1 Y2 E0.002468\n", true));
     REQUIRE(last.size() == 4);
     CHECK_THAT(last[2].precise_value(E), Catch::Matchers::WithinAbs(high_precision ? 0.000927 : 0.00093, 1e-9));
+}
+
+TEST_CASE("Spiral vase leaves the moves of custom G-code in relative positioning as they are", "[SpiralVase][Regression]")
+{
+    PrintConfig config;
+    config.use_relative_e_distances.value = true;
+    config.spiral_mode_smooth.value       = false;
+    config.resolution.value               = 0.001;
+
+    SpiralVase vase(config);
+    vase.process_layer("G1 X0 Y0 Z0.2\n", false);
+
+    // Layer change G-code that lifts the nozzle by 2 mm and lowers it again, in relative positioning.
+    vase.enable(true);
+    const std::string gcode = vase.process_layer("G1 Z0.22\nG91\nG1 Z2\nG1 Z-2\nG90\nG1 X1 Y0 E0.001234 F3600\nG1 X1 Y2 E0.002468\n", false);
+    CHECK_THAT(gcode, Catch::Matchers::ContainsSubstring("G91\nG1 Z2\nG1 Z-2\nG90\n"));
+    // The spiral still ramps Z up from 0.2: a third of the way along, Z is 0.2 + 0.02 / 3.
+    const std::vector<GCodeReader::GCodeLine> moves = extrusions(config, gcode);
+    REQUIRE(moves.size() == 2);
+    CHECK_THAT(moves.front().precise_value(Z), Catch::Matchers::WithinAbs(0.207, 1e-9));
 }
 
 TEST_CASE("Spiral vase mode warns about an object that overrides infill, walls or top shells", "[SpiralVase]")

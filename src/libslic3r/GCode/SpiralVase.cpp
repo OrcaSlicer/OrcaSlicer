@@ -79,7 +79,10 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
           at the beginning
         - each layer is composed by suitable geometry (i.e. a single complete loop)
         - loops were not clipped before calling this method  */
-    
+
+    // A layer starts with Orca's own moves, in absolute positioning, also where custom G-code left G91 through a macro.
+    m_reader.set_relative_xyz(false);
+
     // If we're not going to modify G-code, just feed it to the reader
     // in order to update positions.
     if (! m_enabled) {
@@ -103,7 +106,7 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
                     total_layer_length += line.dist_XY(reader);
                 } else if (line.has(Z)) {
                     layer_height += line.dist_Z(reader);
-                    if (!set_z) {
+                    if (!set_z && !reader.relative_xyz()) {
                         z = line.new_Z(reader);
                         set_z = true;
                     }
@@ -139,6 +142,11 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
     SpiralVase::SpiralPoint last_point = previous_layer != NULL && previous_layer->size() >0? previous_layer->at(previous_layer->size()-1): SpiralVase::SpiralPoint(0,0);
     m_reader.parse_buffer(gcode, [&new_gcode, &z, total_layer_length, layer_height, transition_in, &len, &current_layer, &previous_layer, &transition_gcode, transition_out, smooth_spiral, &max_xy_dist_for_smoothing, &last_point, starting_flowrate, finishing_flowrate, min_segment_length, xyz_digits, e_digits]
         (GCodeReader &reader, GCodeReader::GCodeLine line) {
+        // A move in relative positioning, from custom G-code, is left as it is: the spiral writes absolute coordinates.
+        if (line.cmd_is("G1") && reader.relative_xyz()) {
+            new_gcode += line.raw() + '\n';
+            return;
+        }
         if (line.cmd_is("G1")) {
             // Orca: Filter out retractions at layer change
             if (line.retracting(reader) || (line.extruding(reader) && line.dist_XY(reader) < min_segment_length)) return;
