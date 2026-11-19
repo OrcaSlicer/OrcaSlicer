@@ -6762,9 +6762,6 @@ LayerResult GCode::process_layer(
     if (!m_config.layer_change_gcode.value.empty())
         gcode += this->process_layer_change_gcode(print, print_z, most_used_extruder, has_wipe_tower);
 
-    //BBS: set layer time fan speed after layer change gcode
-    gcode += ";_SET_FAN_SPEED_CHANGING_LAYER\n";
-
     // Belt printers: ordinary-layer apron bands (a band whose print_z coincides with an
     // object/support layer, so it takes this path rather than the brim-only branch) are
     // NOT emitted here anymore.  They used to be laid down with whatever tool happened to
