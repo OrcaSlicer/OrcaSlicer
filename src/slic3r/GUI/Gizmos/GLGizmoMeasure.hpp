@@ -167,6 +167,7 @@ protected:
     Measure::MeasurementResult m_measurement_result;
     Measure::AssemblyAction    m_assembly_action;
     std::map<GLVolume*, std::shared_ptr<Measure::Measuring>> m_mesh_measure_map;
+    std::map<GLVolume*, Transform3d> m_mesh_measure_transform;
     std::shared_ptr<Measure::Measuring>                      m_curr_measuring{nullptr};
 
     //first feature

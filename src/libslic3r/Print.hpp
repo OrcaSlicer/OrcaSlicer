@@ -436,8 +436,8 @@ public:
     // Brim filament for this object's belt brim, returned in the 1-based domain of
     // PrintRegion::outer_wall_filament_id and the raw values pushed into
     // LayerTools::extruders in ToolOrdering::collect_extruders (ToolOrdering reindexes
-    // the whole list to 0-based afterwards).  Lowest positive outer_wall_filament_id
-    // over the printing regions, 1 if none is explicitly set.
+    // the whole list to 0-based afterwards).  brim_filament_id when set, else the lowest
+    // positive outer_wall_filament_id over the printing regions, 1 if none is explicitly set.
     unsigned int                 belt_brim_filament() const;
     const std::vector<ExtrusionEntityCollection>& belt_brim_by_layer()       const { return m_belt_brim_by_layer; }
     const std::vector<BeltBrimBand>&              belt_brim_prologue()       const { return m_belt_brim_prologue; }
