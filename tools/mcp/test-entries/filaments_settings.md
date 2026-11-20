@@ -55,12 +55,15 @@ given under Terms):
 
 **Leaves:** the Klipper printer selected, with `0.20mm Standard @MyKlipper` and the last scenario's slots `B` and `M`,
 which its closing `project_new {discard_changes: true, preset_changes: "discard"}` keeps while it drops the printer's
-`support_multi_bed_types` edit (as `M` is not installed, the app's next start puts `B` in slot 2); `X`, `M`, `S`, `A`,
-`G` and `H` not installed; Simple mode; Auto-flush on All, which every scenario after the Auto-flush scenario sets;
-and `filaments.3mf`, saved in the test's temporary folder and deleted with it, in the recent projects, with that
-folder as the last one opened. It saves no preset and installs nothing. It restores nothing in a `finally`: Simple
-mode is the mode a new data folder starts in, All is Auto-flush's default, and a test whose checks depend on either
-sets it, as this one does.
+`support_multi_bed_types` edit (as `M` is not installed, the app's next start puts `B` in slot 2); the slot colours
+`#FFFFFF;#000000` and the flush multiplier 1.4 of that scenario's step 15, which the printer keeps across the closing
+New Project and the app's next start, and of which the next test's `start()`, deleting slot 2, keeps slot 1's
+`#FFFFFF` and the 1.4; `X`, `M`, `S`, `A`, `G` and `H` not installed; Simple mode; Auto-flush on All, which every
+scenario after the Auto-flush scenario sets; and `filaments.3mf`, saved in the test's temporary folder and deleted
+with it, in the recent projects, with that folder as the last one opened. It saves no preset and installs nothing. It
+restores nothing in a `finally`: Simple mode is the mode a new data folder starts in, All is Auto-flush's default, and
+a test whose checks depend on either sets it, as this one does. The colours and the 1.4 are no defaults, and a test
+whose checks depend on a slot's purge sets them, as `test_slice_preview` does.
 
 A run again on the data folder a failed run left meets what that run left: its slots, presets and unsaved changes,
 which `start()` replaces and discards, and filaments it showed, which the app's start hides again. Its project file
