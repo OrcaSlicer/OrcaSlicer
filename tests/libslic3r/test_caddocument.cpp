@@ -3,6 +3,7 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <Standard_TypeDef.hxx>
 #include <algorithm>
 #include <TopAbs_ShapeEnum.hxx>
@@ -9138,6 +9139,82 @@ TEST_CASE("A new thread reads its radius as the nominal (major) radius", "[CadDo
     doc.features[t].thread_depth = 0.9 * P;
     CHECK_FALSE(doc.recompute());
     CHECK(doc.error.find("thread") != std::string::npos);
+}
+
+// Taps the bore of body 0 with the standard `designation` along the bore's whole length, as the Thread card and the
+// thread command do for a picked bore, and returns the volume the thread removes.
+static double tap_the_bore(CadDocument& doc, const char* designation)
+{
+    REQUIRE(doc.recompute());
+    const double                    before = doc.body_mass_properties(0).volume;
+    const std::vector<TopoDS_Face> faces  = GeometryEngine::faces_of(doc.bodies[0].shape);
+    int                             bore   = -1;
+    for (int i = 0; i < int(faces.size()); ++i)
+        if (GeometryEngine::cylinder_of_face(faces[i]).ok) bore = i;
+    REQUIRE(bore >= 0);
+    SketchPlane                  plane;
+    GeometryEngine::CylinderFace cyl;
+    REQUIRE(doc.thread_target(0, bore, -1, plane, cyl));
+    REQUIRE(cyl.internal);
+    const ThreadSpec* s = find_thread_standard(designation);
+    REQUIRE(s != nullptr);
+    doc.add_thread(0.5 * s->major_diameter_mm, s->pitch_mm, cyl.height, s->internal_depth_mm(), true, 0, 0, plane, "Thread");
+    const bool rebuilt = doc.recompute();
+    INFO(doc.error);
+    REQUIRE(rebuilt);
+    return before - doc.body_mass_properties(0).volume;
+}
+
+// The volume of the ring between a thread's minor and major diameters over `length`. A tapped thread's groove is a V
+// from the one out to the other, so it takes part of that ring, never all of it.
+static double thread_ring(const char* designation, double length)
+{
+    const ThreadSpec* s = find_thread_standard(designation);
+    return 0.25 * M_PI * (std::pow(s->major_diameter_mm, 2) - std::pow(s->minor_diameter_mm(), 2)) * length;
+}
+
+TEST_CASE("A bore takes the same thread wherever the part sits on the bed", "[CadDocument][thread]")
+{
+    using Catch::Matchers::WithinRel;
+    // The M5 hex standoff of the cad_features replay: 8 mm across flats, 15 long, bored with M5's tap drill, with the
+    // design's origin, which the Design tab puts at the bed's centre, at `origin`.
+    auto tapped_standoff = [](const Vec3d& origin) {
+        CadDocument doc;
+        doc.modeling_origin = origin;
+        SketchPlane xy      = SketchPlane::XY();
+        xy.origin += origin;
+        SketchProfile hex;
+        hex.points = {{4.618802, 0}, {2.309401, 4}, {-2.309401, 4}, {-4.618802, 0}, {-2.309401, -4}, {2.309401, -4}};
+        hex.closed = true;
+        doc.add_extrude(doc.add_sketch_profile(hex, xy, "Sketch"), 15.0, false, BooleanMode::New, "Extrude");
+        doc.add_hole(find_thread_standard("M5")->minor_diameter_mm(), 15.0, true, 0, 0, xy, "Hole");
+        return tap_the_bore(doc, "M5");
+    };
+    const double at_origin = tapped_standoff(Vec3d::Zero());
+    CHECK(at_origin > 0.1 * thread_ring("M5", 15.0));
+    CHECK(at_origin < 0.5 * thread_ring("M5", 15.0));
+    // Centres where OCCT, cutting a groove whose faces wind round several turns of the thread, loses part of the
+    // groove's intersection with the bore wall, and the cut removes nothing. (125, 125) is the middle of a 250 mm bed.
+    const Vec3d centre = GENERATE(Vec3d(125, 125, 0), Vec3d(118, 118, 0), Vec3d(122.5, 122.5, 0), Vec3d(130.5, 130.5, 0),
+                                  Vec3d(131.51, 119.07, 0));
+    CHECK_THAT(tapped_standoff(centre), WithinRel(at_origin, 1e-3));
+}
+
+TEST_CASE("A blind hole takes a thread along its whole depth", "[CadDocument][thread]")
+{
+    // M3's tap drill 8 deep into the top of a 20 x 20 x 10 block, drilled from the top face down.
+    CadDocument doc;
+    doc.add_extrude(doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Sketch"), 10.0, false,
+                    BooleanMode::New, "Block");
+    SketchPlane top;
+    top.origin = Vec3d(0, 0, 10);
+    top.normal = Vec3d(0, 0, -1);
+    top.x_axis = Vec3d(1, 0, 0);
+    top.y_axis = top.normal.cross(top.x_axis);
+    doc.add_hole(find_thread_standard("M3")->minor_diameter_mm(), 8.0, false, 0, 0, top, "Hole");
+    const double removed = tap_the_bore(doc, "M3");
+    CHECK(removed > 0.1 * thread_ring("M3", 8.0));
+    CHECK(removed < 0.5 * thread_ring("M3", 8.0));
 }
 
 TEST_CASE("CadDocument: a profile on a body face touches it, one in free space does not", "[CadDocument]")

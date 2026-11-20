@@ -21,10 +21,11 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
 
-# An M8 thread tapped 60 mm deep into a 30 mm square block: 48 turns, several seconds of OCCT pipe and
-# boolean work (about 8 s on an M2 Mac).
-BLOCK = {"width": 30, "height": 30, "distance": 60}
-THREAD = {"plane": "XY", "internal": True, "designation": "M8", "length": 60}
+# An M8 thread tapped 250 mm deep into a 30 mm square block: 200 turns, several seconds of OCCT pipe and
+# boolean work (about 5.5 s on a desktop PC running nothing else). The Windows probe starts 2 s in and
+# needs the build still running after it.
+BLOCK = {"width": 30, "height": 30, "distance": 250}
+THREAD = {"plane": "XY", "internal": True, "designation": "M8", "length": 250}
 
 
 def progress_dialog_ref(client):

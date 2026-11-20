@@ -38,7 +38,7 @@ The replay runs in a new project in the same instance.
 ## `test_cad_slow_build`
 `test_cad_slow_build.py` · Python, 7 checks (5 on Windows)
 
-**Tests:** That the app stays inspectable while a long Design rebuild runs off the UI thread behind the progress dialog. The rebuild is an M8 thread tapped 60 mm deep. While it runs, `app_state` and a main-window screenshot answer, the progress dialog is listed and can be captured, and another Design command is refused as busy. The thread then lands as one feature.
+**Tests:** That the app stays inspectable while a long Design rebuild runs off the UI thread behind the progress dialog. The rebuild is an M8 thread tapped 250 mm deep, 200 turns, which takes several seconds. While it runs, `app_state` and a main-window screenshot answer, the progress dialog is listed and can be captured, and another Design command is refused as busy. The thread then lands as one feature.
 
 **Decides by:** Exits 1 when a named check prints FAIL, or when an `app_state` or screenshot probe raises.
 - Result: "the thread call succeeds" (the awaited result has `ok` true) and "one thread feature and one body".
