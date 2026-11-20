@@ -252,7 +252,7 @@ A variant fails when `action_run` does not reply `blocked_by_dialog`, the waits 
 
 **Scenario: the Run Script panel out of reach**
 
-- Run Script panel shown: "the Run Script panel shows", within 10 s of the toggle, the 3D view's height in `widget_list` (its `canvas "OrcaSceneCanvas"` line) is less than before the toggle, as the panel docks under it. The test then gives its page 1 s.
+- Run Script panel shown: "the Run Script panel shows", within 10 s of the toggle, the 3D view's height in `widget_list` (its `name=OrcaSceneCanvas` line) is less than before the toggle, as the panel docks under it. The test then gives its page 1 s.
 - Run Script panel: the number of `webview` words in `widget_list` is unchanged, and untargeted `webview_run_javascript "1 + 1"` on Prepare gives the same outcome string as before the panel showed. `keyboard_press Escape`'s `to` contains "canvas", the screenshot returns a `path`, and `script_run` ends `finished`. The panel is then hidden again.
 - Replays: `smoke_test.json` and a nested inline `replay_run` both return `passed: true`. The smoke replay passes when every call returns no error and its matchers hold: `project_import` `/added` = 1; `settings_get wall_loops` `/items/0/value` = `"3"` after `settings_set`; `plate_slice` `/status` = `done` and `/plates/0/outcome` = `ok`; for the Preferences dialog its action opens, `app_wait {for: dialog}` `/satisfied` = true and `widget_list` of the dialog for "splash" `/nodes` ≥ 1, `dialog_answer` must find a dialog titled "Preferences", and the action's job must then end without an error.
 

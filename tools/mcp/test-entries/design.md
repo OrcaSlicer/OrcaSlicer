@@ -468,8 +468,10 @@ named after the rung, runs `recover()` and goes on to the next rung.
   (no modal or modeless dialog, no sketch).
 - Edit cards: `feature_edit refs` sets the Fillet's `refs.edges` to the id `body_describe {before}` gave, in one
   undo step, refuses stale ids with `-32010`, and undo restores it. The repick rungs click on the canvas through
-  the calibrated map and require the exact edge or face id (`plane_face`, `plane_face_body`), the Hole's plane
-  normal and origin to 1e-6 and `hole_x`/`hole_y` 0; clicks on a hidden body leave `selection` `none`.
+  the calibrated map, an edge 1 mm in on the top face it bounds, since seen from above the edge is the block's
+  outline and a click on the line, rounded to a whole pixel, can land just outside the block. They require the
+  exact edge or face id (`plane_face`, `plane_face_body`), the Hole's plane normal and origin to 1e-6 and
+  `hole_x`/`hole_y` 0; clicks on a hidden body leave `selection` `none`.
   surface_revolve_flip: the Flip toggle reads `checked` and the one SurfaceRevolve has `flip` true.
 - design_view: the `design` block of `view_set`'s reply (section `on`/`z`/`keep` exactly, `z` at the body's
   middle to 1e-6, each of four switches true then false); refusal texts; the section stays off after refused

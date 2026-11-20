@@ -246,7 +246,7 @@ def run_script_hidden(client, t):
     def canvas_height():
         """The 3D view's height, from its line in widget_list, or None when it is not listed."""
         _snap, texts = client.call_with_text("widget_list")
-        found = re.search(r'canvas "OrcaSceneCanvas"[^\n]*@-?\d+,-?\d+ \d+x(\d+)', "\n".join(texts))
+        found = re.search(r'canvas [^\n]*name=OrcaSceneCanvas[^\n]*@-?\d+,-?\d+ \d+x(\d+)', "\n".join(texts))
         return int(found.group(1)) if found else None
 
     def within(limit, condition):

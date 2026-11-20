@@ -381,7 +381,7 @@ the right of its centre.
 | 11 | `object_center {objects: [0, 3], plate: 0}` | `"" 2` · `"" 1 *` · `"" 1` | first@0 · second@1 · third@2 · fourth@0 | the reply's `plates` `[{plate: 0, objects: [0, 3]}]`; the two move as one group, its box to plate 0's centre: first at +(125, 157.5), fourth at +(125, 92.5) |
 | 12 | `object_select {objects: [2]}`, then `object_center {}` | `"" 2` · `"" 2 *` · `"" 0` | first@0 · second@1 · third@1 · fourth@0 | the selection goes to the centre of the current plate, plate 1, not its own: third at +(125, 125) on plate 1; the reply's `plates` `[{plate: 1, objects: [2]}]` |
 | 13 | `object_transform {object: 2, rotate: [45, 0, 0], mode: "absolute"}` | as after 12 | as after 12 | third's `rotation_deg` `[45, 0, 0]`, `bbox.size` z 28.28 to 0.01 |
-| 14 | `object_auto_orient {objects: [1, 2]}` | as after 12 | as after 12 | the reply's `objects` naming second and third, and `rotations` an entry for instance 0 of each; third lies on a face: `rotation_deg` x 90 to 0.1, `bbox.size` z 20 to 0.01, resting on the bed; first and fourth keep `rotation_deg` `[0, 0, 0]`: naming objects turns no other; `selection()` objects `[1, 2]`. The app turns second: its rotation is not fixed, and it rests on the bed |
+| 14 | `object_auto_orient {objects: [1, 2]}` | as after 12 | as after 12 | the reply's `objects` naming second and third, and `rotations` an entry for instance 0 of each; third lies on a face: `bbox.size` z 20 to 0.01, resting on the bed; first and fourth keep `rotation_deg` `[0, 0, 0]`: naming objects turns no other; `selection()` objects `[1, 2]`. The app turns second and third: their rotations are not fixed, as four faces of the tilted cube tie as the best to lie on and the platforms' sorts take different ones, and both rest on the bed |
 | 15 | `object_select {none: true}`, `object_transform {object: 0, rotate: [0, 45, 0], mode: "absolute"}`, then `object_auto_orient {}`, the Auto-Orient action's arguments | as after 12 | as after 12 | with nothing selected every object is oriented: the reply's `rotations` one entry for each of objects 0 to 3, and each entry's `rotation_deg` is that instance's in `scene()`; first lies on a face, `bbox.size` z 20 to 0.01; which turn second, third and fourth get is not fixed |
 | 16 | fit at plate 1 +(60, 200), then `object_scale_to_fit {objects: [4]}` | `"" 2` · `"" 3 *` · `"" 0` | as after 12 · fit@1 | the reply's `scales` `[{object: 4, instance: 0, scale: [s, s, s]}]`, and fit's `scale` the same, with s 12.488 to 0.001; fit's `bbox.size` `[249.75, 249.75, 249.75]` to 0.02, at +(125, 125) to 0.01, resting on the bed: it fills the bed, its centre on the bed's |
 | 17 | fit2 at plate 1 +(200, 60), `object_select {objects: [5]}`, then `object_scale_to_fit {}`, the Scale to Fit action's arguments | `"" 2` · `"" 4 *` · `"" 0` | as after 16 · fit2@1 | no target scales the selection: the reply's `scales` names object 5 with s, fit2's `scale` s and at +(125, 125) |
@@ -646,7 +646,6 @@ unscaled and not mirrored, and a plate's settings as in a plate's own settings.
   one it prints as a copy of its own (`; printing object <name> id:<n> copy <c>`, one per `PrintInstance`), so a's
   three instances would print as 3 copies with none left out; 2 copies of a, with b's 1, show the one left out without
   a slice of the three printable beside it.
-- The rotation Auto-Orient gives a cube on its edge (placing, step 14): x 90. That it lies on a face, z 20, holds whichever face it picks.
 - The names of a cut's halves (instances, step 22): a cut by a plane names both halves after the object
   (`Cut::perform_with_plane()`, the app's own code); only a cut along a contour or with a groove adds `_A` and `_B`.
 - The names a split gives (splitting, steps 2, 3 and 7). Split to Objects of an object of one part names the pieces
@@ -728,7 +727,9 @@ unscaled and not mirrored, and a plate's settings as in a plate's own settings.
 - A bed with an excluded area, where Scale to Fit fills the widest free part beside it and Arrange and Fill bed keep
   clear of it: the Klipper printer's bed has none.
 - The rotations Auto-Orient gives the objects it may turn without a fixed result (placing, steps 14 and 15): which
-  face a cube resting on one already ends on is the job's choice; step 15 checks them against the reply. The rotation
+  face a cube resting on one already ends on is the job's choice, and so is the face third, a cube tilted 45°, is laid
+  on, as four of its faces tie as the best and the platforms' sorts take different ones (+90° about x on Windows,
+  -90° on macOS); step 15 checks them against the reply. The rotation
   of a shape both turned and mirrored (moving a part, part 1 from step 15; what the project keeps, kept's instance 0):
   a mirror of a turned shape can be written as another turn and a mirror, so only `mirrored` and the places are
   compared, and kept's instance 0's turn by its box. A mirrored shape that is not turned reads `rotation_deg`

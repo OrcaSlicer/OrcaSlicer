@@ -1185,8 +1185,9 @@ class Places(Part):
                                                         for r in reply.get("rotations", [])], [(1, 0), (2, 0)])
         self.inst(1)["rot"] = self.inst(2)["rot"] = None
         sc = self.expect(f"{s} 14: naming objects turns no other", *rows)
+        # Four faces of the tilted cube tie as the best to lie on, and which one the app takes is not fixed, so the
+        # cube's height says it lies on a face and its turn is not checked.
         third = sc[2]["instances"][0]
-        self.t.near(f"{s} 14: third lies on a face, rotation_deg x", third["rotation_deg"][0], 90, 0.1)
         self.t.near(f"{s} 14: third lies on a face, bbox.size z", third["bbox"]["size"][2], 20, 0.01)
         self.t.equal(f"{s} 14: selection() objects", selection(self.c)["objects"], [1, 2])
         self.run("object_select", none=True)

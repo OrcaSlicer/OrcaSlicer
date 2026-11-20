@@ -1151,6 +1151,15 @@ def top_edge_before(fillet):
     return along_x, max(along_x["edges"], key=lambda e: e["p0"][1] + e["p0"][2])
 
 
+def on_top_edge(edge):
+    """Where a click picks the edge top_edge_before() gives: its middle, 1 mm in on the top face (toward -y). Seen
+    from above, the edge is the block's outline with no face past it, so a click on the line itself, rounded to a
+    whole pixel, can land just outside the block and pick nothing; 1 mm in is well within the edge's pick
+    tolerance."""
+    m = mid(edge)
+    return [m[0], m[1] - 1.0, m[2]]
+
+
 def rung_feature_edit_refs():
     fillet, rounded = fillet_shell_block()
     along_x, edge = top_edge_before(fillet)
@@ -1226,7 +1235,7 @@ def rung_edit_repick():
     frame = calibrate_on_face(0, top["faces"][0]["id"], top["generation"])
     _, edge = top_edge_before(fillet)
     edit_card_of(fillet)
-    gui.click_mm(*on_frame(frame, mid(edge)))
+    gui.click_mm(*on_frame(frame, on_top_edge(edge)))
     gui.press("Confirm")
     settled()
     edges = gui.cad("feature_describe", feature=fillet)["refs"]["edges"]
@@ -1244,7 +1253,7 @@ def rung_edit_repick_placed():
     move = [0, 30, 0]
     gui.cad("body_place", body=0, move=move)
     edit_card_of(fillet)
-    gui.click_mm(*on_frame(frame, [a + b for a, b in zip(mid(edge), move)]))
+    gui.click_mm(*on_frame(frame, [a + b for a, b in zip(on_top_edge(edge), move)]))
     gui.press("Confirm")
     settled()
     edges = gui.cad("feature_describe", feature=fillet)["refs"]["edges"]
@@ -1332,7 +1341,7 @@ def rung_edit_repick_hidden():
     # Named apart from the feature that made it, whose row has an eye of its own.
     gui.cad("body_set", body=1, name="Block B", visible=False)
     edit_card_of(fillet)
-    gui.click_mm(*on_frame(frame, mid(edge)))
+    gui.click_mm(*on_frame(frame, on_top_edge(edge)))
     gui.click_mm(*on_frame(frame, other["centroid"]))
     picked = selection()
     gui.check("edit_repick_hidden: a click on the hidden block picks nothing in the Fillet's card", picked == "none", picked)
@@ -1340,11 +1349,11 @@ def rung_edit_repick_hidden():
     gui.client.call("widget_click", target={"row": "Body 2 — Block B", "column": "Show"})
     gui.client.call("widget_click", target={"row": "Body 2 — Block B", "column": "Hide"})
     gui._follow_canvas()
-    gui.click_mm(*on_frame(frame, mid(edge)))
+    gui.click_mm(*on_frame(frame, on_top_edge(edge)))
     gui.click_mm(*on_frame(frame, other["centroid"]))
     picked = selection()
     gui.check("edit_repick_hidden: nor once it was shown and hidden again", picked == "none", picked)
-    gui.click_mm(*on_frame(frame, mid(edge)))
+    gui.click_mm(*on_frame(frame, on_top_edge(edge)))
     gui.press("Confirm")
     settled()
     edges = gui.cad("feature_describe", feature=fillet)["refs"]["edges"]

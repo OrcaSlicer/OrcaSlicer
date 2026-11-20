@@ -84,10 +84,10 @@ def lines_of(path):
 
 
 def canvas_height(orca):
-    """The height of the 3D view as widget_list gives it (its canvas "OrcaSceneCanvas" line), or None."""
+    """The height of the 3D view as widget_list gives it (its name=OrcaSceneCanvas line), or None."""
     _, texts = orca.call_with_text("widget_list", include_menus=False, include_imgui=False, include_web=False)
     for line in "\n".join(texts).splitlines():
-        if 'canvas "OrcaSceneCanvas"' in line:
+        if 'name=OrcaSceneCanvas' in line:
             return int(line.rsplit("x", 1)[1])
     return None
 
