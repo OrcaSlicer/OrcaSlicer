@@ -32,6 +32,8 @@
 #include <wx/msw/webview_edge.h>
 #elif defined(__WXMAC__)
 #include <wx/osx/webview_webkit.h>
+#elif defined(__linux__)
+#include <wx/gtk/webview_webkit.h>
 #endif
 #include <wx/uri.h>
 #include <wx/filename.h>
@@ -59,7 +61,7 @@ namespace fs = boost::filesystem;
 #include <gtk/gtk.h>
 #include <memory>
 #define WEBKIT_API
-struct WebKitWebView;
+typedef struct _WebKitWebView WebKitWebView; // as WebKitGTK and wx/gtk/webview_webkit.h declare it
 struct WebKitJavascriptResult;
 struct WebKitSettings;
 struct _JSCValue;
@@ -222,11 +224,13 @@ private:
     COREWEBVIEW2_PREFERRED_COLOR_SCHEME pendingColorScheme = COREWEBVIEW2_PREFERRED_COLOR_SCHEME_AUTO;
 };
 
-#elif defined __WXOSX__
+#elif defined __WXOSX__ || defined __linux__
 
+// wx's WebKit backend of this platform: WKWebView on macOS, WebKitGTK on Linux.
 class WebViewWebKit : public wxWebViewWebKit
 {
 public:
+#ifdef __WXOSX__
     WebViewWebKit()
         : wxWebViewWebKit(wxWebView::NewConfiguration(wxWebViewBackendWebKit))
     {
@@ -236,6 +240,30 @@ public:
     {
         RemoveScriptMessageHandler("wx");
     }
+#endif
+
+    // wx ends the registration by running its window.<name> bridge script through the synchronous
+    // RunScript(), which spins wxYield() until the page answers. That yield also deletes the windows
+    // waiting for destruction, so a window closed meanwhile (Escape the moment it opens) is freed
+    // inside the call, and the page's answer then reaches the freed view. Nothing reads the bridge
+    // script's result, so here it is sent without waiting.
+    bool AddScriptMessageHandler(const wxString& name) override
+    {
+        m_adding_handler = true;
+        const bool added = wxWebViewWebKit::AddScriptMessageHandler(name);
+        m_adding_handler = false;
+        return added;
+    }
+
+    bool RunScript(const wxString& javascript, wxString* output = nullptr) const override
+    {
+        if (!m_adding_handler)
+            return wxWebViewWebKit::RunScript(javascript, output);
+        return WebView::RunScript(const_cast<WebViewWebKit*>(this), javascript);
+    }
+
+private:
+    bool m_adding_handler = false;
 };
 
 #endif
@@ -342,7 +370,7 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
 
 #ifdef __WIN32__
     wxWebView* webView = new WebViewEdge;
-#elif defined(__WXOSX__)
+#elif defined(__WXOSX__) || defined(__linux__)
     wxWebView* webView = new WebViewWebKit;
 #else
     auto webView = wxWebView::New();
