@@ -200,14 +200,14 @@ Please refer to the wiki to ensure you're following the latest and most accurate
 git clone --recurse-submodules https://github.com/OrcaSlicer/OrcaSlicer.git
 cd OrcaSlicer
 
-# Build everything (clang-cl + Ninja, recommended)
-.\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64 -ClangCl -Ninja
+# Build everything (clang-cl + Ninja now default)
+.\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64
 
 # Clean build (removes slicer tree, keeps cached deps)
-.\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64 -ClangCl -Ninja -Clean
+.\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64 -Clean
 
 # With ccache for faster incremental builds
-.\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64 -ClangCl -Ninja -Cache ccache
+.\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64 -Cache ccache
 
 # Build dependencies only
 .\build_win.ps1 -Deps -Arch x64
@@ -215,19 +215,20 @@ cd OrcaSlicer
 
 ### Key Options
 
-| Option | Description |
-|--------|-------------|
-| `-Slicer` | Build OrcaSlicer |
-| `-Deps` | Build dependencies only |
-| `-Tests` | Build unit tests |
-| `-InstallSlicer` | Install into build tree |
-| `-Arch x64` | Target architecture (`x64` or `arm64`) |
-| `-Clean` | Remove slicer tree (keeps deps cache) |
-| `-ClangCl` | Use clang-cl compiler |
-| `-Ninja` | Use Ninja generator (faster) |
-| `-Cache ccache` | Enable ccache for incremental builds |
-| `-MaxJobs N` | Limit parallel jobs (default: auto) |
-| `-NoConfigure` | Skip CMake configure (incremental) |
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-Slicer` | Build OrcaSlicer | ✅ |
+| `-Deps` | Build dependencies only |  |
+| `-Tests` | Build unit tests | ✅ |
+| `-RunTests` | Run unit tests after build | ✅ |
+| `-InstallSlicer` | Install into build tree |  |
+| `-Arch x64` | Target architecture (`x64` or `arm64`) | `x64` |
+| `-Clean` | Remove slicer tree (keeps deps cache) |  |
+| `-ClangCl` | Use clang-cl compiler | ✅ |
+| `-Ninja` | Use Ninja generator (faster) | ✅ |
+| `-Cache ccache` | Enable ccache for incremental builds |  |
+| `-MaxJobs N` | Limit parallel jobs (default: auto) |  |
+| `-NoConfigure` | Skip CMake configure (incremental) |  |
 
 ### Presets
 
@@ -237,6 +238,9 @@ cd OrcaSlicer
 
 # With ccache for incremental builds
 .\build_win.ps1 -Preset x64-clang-cache
+```
+
+> **Note**: `-ClangCl` and `-Ninja` are now defaults. The presets still work and are recommended for clarity.
 ```
 
 ### Performance Tips
@@ -251,7 +255,7 @@ cd OrcaSlicer
 - name: Build OrcaSlicer
   shell: pwsh
   run: |
-    .\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64 -ClangCl -Ninja -Clean:${{ inputs.clean-build }}
+    .\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64 -Clean:${{ inputs.clean-build }}
 ```
 
 ### Troubleshooting
