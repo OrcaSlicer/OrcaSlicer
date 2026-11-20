@@ -14,7 +14,7 @@ class Plater;
 class FillBedJob : public Job
 {
     int     m_object_idx = -1;
-    // The instance the bed is filled with, the source of the copies.
+    // ORCA: Source instance of the copies.
     int     m_instance_idx = 0;
 
     using ArrangePolygon  = arrangement::ArrangePolygon;

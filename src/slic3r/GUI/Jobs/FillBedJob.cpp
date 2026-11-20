@@ -402,8 +402,7 @@ void FillBedJob::finalize(bool canceled, std::exception_ptr &eptr)
             // without asking once per copy, as the objects Fill bed with copies adds do.
             for (size_t i = inst_cnt; i < model_object->instances.size(); ++i)
                 plate_list.notify_instance_update(m_object_idx, int(i), true);
-            // The copies carry the pose their source has in the assembly view: they would all sit on it.
-            // The source is the instance the bed was filled with, not the last one of the object.
+            // ORCA: Place the copies in the assembly view, otherwise they all sit on their source.
             m_plater->model().set_assembly_pos_of_copies(model_object, size_t(m_instance_idx), inst_cnt);
             // Match the normal add-instance flow: update the scene before the
             // object tree starts referring to the newly created instances.

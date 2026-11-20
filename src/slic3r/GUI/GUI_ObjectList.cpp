@@ -7500,22 +7500,19 @@ ModelObject* ObjectList::object(const int obj_idx) const
 
 void ObjectList::apply_object_instance_transfrom_to_all_volumes(ModelObject *model_object, bool need_update_assemble_matrix)
 {
-    // The volumes take over the rotation, scale and mirror of the first instance (not its offset).
-    // Copied by value, the instances are rewritten below.
+    // ORCA: Rotation, scale and mirror of the first instance, without its offset.
     const Transform3d instance_matrix         = model_object->instances[0]->get_transformation().get_matrix_no_offset();
     const Transform3d instance_inverse_matrix = instance_matrix.inverse();
 
-    // apply the instance_transform(except offset) to the volumes
+    // ORCA: Apply this transform to the volumes.
     for (ModelVolume *volume : model_object->volumes) {
         const Transform3d new_matrix = instance_matrix * volume->get_matrix();
         volume->set_transformation(new_matrix);
     }
 
-    // Take the same transform out of every instance, so that none of them moves on the bed or in the assembly view.
-    // The volumes are shared: resetting the first instance only would shift and transform the other ones.
+    // ORCA: Remove it from every instance, so that none of them moves: the volumes are shared by all instances.
     for (ModelInstance *instance : model_object->instances) {
-        // An instance without an assembly transform yet (added as a copy) is left as it is: writing one here would mark it
-        // as initialized, it would then never be placed from its bed transform and would be saved on the assembly origin.
+        // ORCA: Skip instances without an assembly pose: setting one here would mark them as initialized.
         if (need_update_assemble_matrix && instance->is_assemble_initialized()) {
             const Transform3d new_assemble_transform = instance->get_assemble_transformation().get_matrix() * instance_inverse_matrix;
             instance->set_assemble_from_transform(new_assemble_transform);
@@ -7523,14 +7520,14 @@ void ObjectList::apply_object_instance_transfrom_to_all_volumes(ModelObject *mod
 
         const Vec3d offset     = instance->get_offset();
         Transform3d new_matrix = instance->get_transformation().get_matrix_no_offset() * instance_inverse_matrix;
-        // An instance sharing the rotation and scale of the first one (the usual case) is left with the exact identity.
+        // ORCA: Usual case, same rotation and scale as the first instance: exact identity instead of rounding noise.
         if (new_matrix.isApprox(Transform3d::Identity()))
             new_matrix.setIdentity();
         new_matrix.translation() = offset;
         instance->set_transformation(Geometry::Transformation(new_matrix));
     }
 
-    // The setters above do not invalidate the cached bounding boxes of the object.
+    // ORCA: The setters above do not invalidate the cached bounding boxes.
     model_object->invalidate_bounding_box();
     model_object->ensure_on_bed();
 

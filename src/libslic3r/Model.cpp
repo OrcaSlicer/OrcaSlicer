@@ -842,9 +842,8 @@ void Model::set_assembly_pos_of_copies(ModelObject *model_object, size_t source_
     if (source_idx >= first_copy || first_copy >= instances.size())
         return;
 
-    // An object made on the plate (a text for example) has no pose in the assembly view yet: it is placed there as
-    // a new object first. Its copies are lined up below: until then they stand on their source, so that they do
-    // not widen the box the object is placed by.
+    // ORCA: A source without an assembly pose (e.g. a text object) is placed as a new object first.
+    // Its copies sit on it meanwhile, so that they do not widen its bounding box.
     if (!instances[source_idx]->is_assemble_initialized()) {
         for (size_t i = first_copy; i < instances.size(); ++i)
             instances[i]->set_assemble_transformation(instances[source_idx]->get_transformation());
@@ -855,7 +854,7 @@ void Model::set_assembly_pos_of_copies(ModelObject *model_object, size_t source_
     Geometry::Transformation pose       = source.get_assemble_transformation();
     const BoundingBoxf3     &raw_box    = model_object->raw_mesh_bounding_box();
     const BoundingBoxf3      source_box = raw_box.transformed(pose.get_matrix());
-    // Everything that is in the assembly view, without the copies.
+    // ORCA: Bounding box of everything in the assembly view, except the copies.
     BoundingBoxf3 placed;
     for (const ModelObject *o : this->objects)
         if (o != model_object)
@@ -863,7 +862,7 @@ void Model::set_assembly_pos_of_copies(ModelObject *model_object, size_t source_
     for (size_t i = 0; i < first_copy; ++i)
         placed.merge(raw_box.transformed(instances[i]->get_assemble_transformation().get_matrix()));
 
-    // From the right edge of everything, the width of the source and 10 mm further for every copy.
+    // ORCA: Line the copies up to the right of that box, 10 mm apart.
     Vec3d offset = pose.get_offset() + (placed.max.x() - source_box.max.x()) * Vec3d::UnitX();
     for (size_t i = first_copy; i < instances.size(); ++i) {
         offset.x() += source_box.size().x() + 10.;
