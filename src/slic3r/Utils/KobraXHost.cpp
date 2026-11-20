@@ -4,16 +4,23 @@
 #include "KobraX.hpp"
 #include "KobraXPrinterAgent.hpp"
 #include "KobraXSession.hpp"
+#include "PrintHost.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
 
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <mutex>
+#include <string>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
+#include <wx/string.h>
 
 using json = nlohmann::json;
 

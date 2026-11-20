@@ -1,7 +1,14 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <boost/filesystem.hpp>
+#include <cstdint>
+#include <ios>
+#include <string>
+#include <vector>
+
 #include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem.hpp>
 #include <nlohmann/json.hpp>
 
 #include "slic3r/Utils/KobraX.hpp"

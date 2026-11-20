@@ -1,20 +1,30 @@
 #include "KobraXSession.hpp"
 
+#include "KobraX.hpp"
 #include "Http.hpp"
 #include "libslic3r/Utils.hpp"
 
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
+#include <cstdint>
 #include <cstdlib>
 #include <deque>
+#include <functional>
 #include <future>
+#include <ios>
 #include <list>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <random>
+#include <string>
 #include <thread>
+#include <utility>
+#include <vector>
 
+#include <boost/asio/buffer.hpp>
 #include <boost/asio/connect.hpp>
 #include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/io_context.hpp>
@@ -22,15 +32,25 @@
 #include <boost/asio/post.hpp>
 #include <boost/asio/ssl/context.hpp>
 #include <boost/asio/ssl/stream.hpp>
+#include <boost/asio/ssl/stream_base.hpp>
+#include <boost/asio/ssl/verify_mode.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/system/system_error.hpp>
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include <openssl/bio.h>
+#include <openssl/crypto.h>
+#include <openssl/evp.h>
+#include <openssl/obj_mac.h>
 #include <openssl/pem.h>
+#include <openssl/prov_ssl.h>
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
 

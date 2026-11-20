@@ -3,10 +3,15 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
+#include <functional>
 #include <map>
 #include <memory>
 #include <set>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include <openssl/evp.h>
 

@@ -3,9 +3,11 @@
 
 #include "IPrinterAgent.hpp"
 #include "KobraX.hpp"
+#include "bambu_networking.hpp"
 
 #include <atomic>
 #include <condition_variable>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <string>

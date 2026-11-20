@@ -1,19 +1,29 @@
 #include "KobraXPrinterAgent.hpp"
 
+#include "IPrinterAgent.hpp"
+#include "KobraX.hpp"
 #include "KobraXSession.hpp"
 #include "MoonrakerPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
+#include "bambu_networking.hpp"
 #include "slic3r/GUI/I18N.hpp"
 
 #include <algorithm>
 #include <cctype>
 #include <chrono>
+#include <cstdint>
 #include <cstring>
 #include <condition_variable>
+#include <memory>
+#include <mutex>
+#include <string>
 #include <thread>
+#include <utility>
+#include <vector>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
 #include <wx/app.h>
 
