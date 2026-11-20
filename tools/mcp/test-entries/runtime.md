@@ -90,7 +90,7 @@ in [TESTS.md](../TESTS.md).
 **Strength:** Strong — the functions it covers are checked by exact value and error text, and the test refuses to run with its asserts off. It covers the attach-and-call half of `orca_mcp.py` and the seeding of a data folder, not the rest of launch, stop or run-replay.
 
 ## `test_run_sweep`
-`test_run_sweep.py` · Python, 27 checks (assert-based)
+`test_run_sweep.py` · Python, 28 checks (assert-based)
 
 **Tests:** The building blocks of `run_sweep.py`, without the app (`launch: none`), and its whole run, `main()`, on
 two stand-in sweeps: one of small scripts that launch nothing, and one whose scripts run in a stand-in app that a
@@ -166,7 +166,7 @@ With no history the pool keeps the manifest's order, so `test_slow` and `test_lo
 | 2 | `main(["--list", ...])` | 0 | the pool lists `test_broken`, which has no time, then `test_slow`; the serial phase lists `test_load` with its mark and `test_quick` with its `why` |
 | 3 | `main(["--list", "--shuffle", "7", ...])`, twice, then `main(["--list", "--shuffle", ...])` | 0 | the first line is `shuffled with seed 7`, the next two are `test_broken` and `test_slow` in either order, then `test_load` and `test_quick`; the second run prints the same; without a seed the first line names the seed picked |
 | 4 | `main(["-j", "2", ...])`, a new `--out` | 1 | `test_load` runs once, in the serial phase, and passes. The folders of `test_slow`, `test_load` and `test_quick` are gone; `test_broken`'s folder is kept with its `test.log` and a copy of `broken.log`, and so is its job's data folder; the other jobs' data folders are gone. The history keeps `test_load`'s mark, since it passed alone |
-| 5 | `main(["--forget", "test_load", ...])`, then `main(["--forget", "test_nobody", ...])` | 0, then 2 | the history has no marks and its times are as after 4; nothing runs, and the `--out` given is not made; a test `sweep.json` does not list is refused |
+| 5 | `main(["--forget", "test_load", ...])`, then `main(["--forget", "test_nobody", ...])` | 0, then 2 | the history has no marks and its times are as after 4; nothing runs, and the `--out` given is not made; a test `sweep.json` does not list is refused. Then, with marks on `test_load` and `test_slow` written into the history, `main(["--forget", "all", ...])` twice: 0 both times; both marks go and the times stay, and the second says no test has a serial mark |
 | 6 | `main(["--list", ...])` | 0 | `test_load` is in the pool again, third, and no line names a serial mark |
 | 7 | `main(["-j", "2", ...])`, a new `--out` | 1 | `test_load`, after `test_broken` on its job and beside `test_slow`, fails, then passes alone: its records are `pool` 1 and `alone` 0, the folder of its failed run is kept with its `test.log` and that of its passing run is gone, and the history marks it serial again |
 

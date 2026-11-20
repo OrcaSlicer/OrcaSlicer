@@ -3,7 +3,7 @@
 another in one app on one data folder.
 
     tools/mcp/run_sweep.py [--bin PATH] [-j N] [--only NAME ...] [--skip NAME ...] [--out DIR] [--history FILE]
-                           [--keep] [--headless] [--wayland] [--shuffle [SEED]] [--list] [--forget NAME ...]
+                           [--keep] [--headless] [--wayland] [--shuffle [SEED]] [--list] [--forget NAME ... | all]
 
 The tests are the test_*.py files in tools/mcp; a replay, such as smoke_test.json, is not one. sweep.json lists each
 test with what it needs, and a test it does not list, or an entry whose file is not a test, stops the run before
@@ -25,7 +25,8 @@ The serial tests run after the rest, one at a time with nothing else running, on
 its own: those sweep.json marks exclusive, and those the history marks serial. A test that fails while others run
 runs again in that phase, alone, in a new app on the data folder it failed on, so that a failure that follows from
 what an earlier test left fails again and one that follows from the load passes. A test that passes alone counts as
-passed, and the history marks it serial, so later sweeps run it alone from the start; --forget NAME clears the mark.
+passed, and the history marks it serial, so later sweeps run it alone from the start; --forget NAME clears the mark,
+and --forget all every mark.
 
 A passing run's folder is deleted as soon as it passes. A failed run's folder is kept with a copy of the app's log
 from its job's data folder, also when the test then passes alone; the data folder of a job one of whose tests
@@ -77,6 +78,7 @@ GONE_TIMEOUT_S = 60  # how long the app's processes have to end after its stop b
 # must stay within MAX_PATH (260), or the copy stops and the app opens its Setup Wizard.
 MAX_OUT_WINDOWS = 80
 SERIAL_JOB = "serial"
+FORGET_ALL = "all"  # --forget's name for every test's serial mark
 NEW_SEED = object()  # --shuffle given without a seed: parse_args() picks one
 
 
@@ -518,8 +520,8 @@ def parse_args(argv=None):
     ap.add_argument("--keep", action="store_true",
                     help="keep every test's folder and every job's data folder, not only those of failed tests")
     ap.add_argument("--forget", nargs="+", metavar="NAME",
-                    help="clear these tests' serial marks in the history, so the next sweep runs them among the "
-                         "others, and exit")
+                    help="clear these tests' serial marks in the history, or every test's with 'all', so the next "
+                         "sweep runs them among the others, and exit")
     ap.add_argument("--headless", action="store_true",
                     help="run each app on a private compositor instead of on the desktop (Linux)")
     ap.add_argument("--wayland", action="store_true",
@@ -597,7 +599,8 @@ def main(argv=None, mcp_dir=MCP_DIR):
     problems = option_problems(a, sys.platform)
     manifest = load_manifest(os.path.join(mcp_dir, "sweep.json"))
     problems += manifest_problems(manifest, discover(mcp_dir), mcp_dir)
-    problems += [f"{n}: no such test" for n in (a.only or []) + a.skip + (a.forget or []) if n not in manifest]
+    forget = [n for n in a.forget or [] if n != FORGET_ALL]
+    problems += [f"{n}: no such test" for n in (a.only or []) + a.skip + forget if n not in manifest]
     if not (a.list or a.forget):  # neither launches anything, so neither needs a display
         problems += session_problems(a, os.environ, sys.platform)
     if problems:
@@ -605,7 +608,11 @@ def main(argv=None, mcp_dir=MCP_DIR):
         return 2
     history = read_history(a.history)
     if a.forget:
-        for n in a.forget:
+        if FORGET_ALL in a.forget:
+            forget = sorted(history["serial"])
+            if not forget:
+                print("no test has a serial mark")
+        for n in forget:
             print(f"{n}: serial mark cleared" if history["serial"].pop(n, None) else f"{n}: had no serial mark")
         write_history(a.history, history)
         return 0

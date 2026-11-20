@@ -482,6 +482,16 @@ def check_stand_in_sweep():
         assert code == 2, (code, printed)
         ok("--forget clears a serial mark and runs nothing, and refuses a test sweep.json does not list")
 
+        marks = {"test_load": "2026-01-01", "test_slow": "2026-01-02"}
+        run_sweep.write_history(history, {"times": times, "serial": marks})
+        code, printed = sweep(mcp_dir, "--forget", "all", *common)
+        h = run_sweep.read_history(history)
+        assert code == 0 and h == {"times": times, "serial": {}}, (code, printed, h)
+        assert "test_load: serial mark cleared" in printed and "test_slow: serial mark cleared" in printed, printed
+        code, printed = sweep(mcp_dir, "--forget", "all", *common)
+        assert code == 0 and "no test has a serial mark" in printed, (code, printed)
+        ok("--forget all clears every serial mark and keeps the times, and says when there is none")
+
         code, printed = sweep(mcp_dir, "--list", *common)
         assert code == 0 and [line.split()[0] for line in printed.splitlines()][:3] == \
             ["test_broken", "test_slow", "test_load"] and "serial since" not in printed, printed

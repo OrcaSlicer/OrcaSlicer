@@ -579,9 +579,10 @@ The serial tests run after the rest, one at a time with nothing else running, on
 its own: the ones `sweep.json` marks `exclusive`, and the ones the history marks serial. A test that fails while
 others run runs again in that phase, alone, in a new app on the datadir it failed on: one that passes then counts
 as passed, shows as `passed alone`, and is marked serial in the history, so later sweeps run it alone from the
-start, until `--forget NAME` clears the mark. A test that runs out of time is interrupted, as Ctrl-C would, so its
-own cleanup closes the apps it started (on Windows its process tree is ended), and a test the runner could not run
-is recorded as an error, so a run that leaves a test without a result never exits 0.
+start, until `--forget NAME` clears the mark (`--forget all` clears every mark). A test that runs out of time is
+interrupted, as Ctrl-C would, so its own cleanup closes the apps it started (on Windows its process tree is ended),
+and a test the runner could not run is recorded as an error, so a run that leaves a test without a result never
+exits 0.
 
 A passing run's folder is deleted as soon as it passes. A failed run's folder is kept, with a copy of the app's
 log from the job's datadir, also when the test then passes alone, so the log says why it failed beside the others;

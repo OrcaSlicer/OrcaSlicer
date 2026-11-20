@@ -201,7 +201,7 @@ The serial tests run after the rest, one at a time with nothing else running, on
 run again in that phase, alone, in a new app on the data folder it failed on, so that a failure that follows from
 what an earlier test left in the folder fails again, and one that follows from the load passes. A test that passes alone counts as
 passed, the summary lists it as `passed alone`, and the history marks it serial, so later sweeps run it alone from
-the start. The mark stays until `--forget NAME` clears it.
+the start. The mark stays until `--forget NAME` clears it, or `--forget all` clears every mark.
 
 A test passes when its process exits 0. A failed setup or launch, a run past its time limit (900 s unless the
 entry sets `timeout_s`), or an error running the test fails it, and so does a test left without a result. On macOS
