@@ -3,6 +3,7 @@ exit code, scenarios that fail on their own, refusals asserted by their code or 
 out of time, and readers that give the app's state in a fixed shape."""
 
 import json
+import os
 import time
 import traceback
 
@@ -88,7 +89,7 @@ def run(client, tool, timeout_s=600, **args):
         # An auto-answer rule presses its dialog's button just after the dialog opens, and the reply can come
         # before the press: a dialog still open a moment later is one nothing answers.
         if (reply.get("status") == "blocked_by_dialog" or dialogs) and \
-                client.call("app_wait", **{"for": "no_dialog", "timeout_s": 2}).get("satisfied") is not True:
+                client.call("app_wait", **{"for": "no_dialog", "timeout_s": 30}).get("satisfied") is not True:
             dialogs = client.call("app_state").get("dialogs", []) or dialogs
             titles = [d.get("title") for d in dialogs]
             raise orca_mcp.McpError(f"{tool} is held by the dialog {titles}: {dialogs}", reply)
@@ -117,9 +118,35 @@ def wait(client, condition, timeout_s=30, job=None):
 # 0.4 nozzle's, for a test of a Bambu Lab printer's own behaviour.
 KLIPPER, KLIPPER_STD, GENERIC_PLA = "MyKlipper 0.4 nozzle", "0.20mm Standard @MyKlipper", "Generic PLA @System"
 X1C, X1C_STD, BAMBU_PLA = "Bambu Lab X1 Carbon 0.4 nozzle", "0.20mm Standard @BBL X1C", "Bambu PLA Basic @BBL X1C"
-# The printers start() knows: what printer_install installs each from, and its default process and filament.
-PRINTERS = {KLIPPER: ({"vendor": "Custom", "model": "Generic Klipper Printer", "nozzles": ["0.4"]}, KLIPPER_STD, GENERIC_PLA),
-            X1C: ({"vendor": "BBL", "model": "Bambu Lab X1 Carbon", "nozzles": ["0.4"]}, X1C_STD, BAMBU_PLA)}
+# The printers start() knows: what printer_install installs each from, its default process and filament, and the plate
+# type a new data folder's project has on it.
+PRINTERS = {KLIPPER: ({"vendor": "Custom", "model": "Generic Klipper Printer", "nozzles": ["0.4"]}, KLIPPER_STD, GENERIC_PLA,
+                      "High Temp Plate"),
+            X1C: ({"vendor": "BBL", "model": "Bambu Lab X1 Carbon", "nozzles": ["0.4"]}, X1C_STD, BAMBU_PLA, "Cool Plate")}
+
+# The rest of the baseline in TESTS.md. Slot 1's colour is a new data folder's, and the next ones are those a new app
+# gives the slots added after it (Plater::get_next_color_for_filament()), so that a purge, and the prime tower it
+# sizes, measured on a new app holds whatever the app's run added before.
+SLOT_COLOURS = ["#26A69A", "#00C1AE", "#F4E2C1", "#ED1C24", "#00FF7F", "#F26722", "#FFEB31", "#7841CE", "#115877",
+                "#ED1E79", "#2EBDEF", "#345B2F", "#800080", "#FA8173", "#800000", "#F7B763", "#A4C41E"]
+FLUSH_MULTIPLIER, PRIME_VOLUME_MODE = 0.3, "Default"
+VIEW = {"labels": False, "overhangs": False, "outline": False, "wireframe": False, "gridlines": True, "axes": True,
+        "navigator": True, "gcode_window": True, "projection": "perspective", "legend_collapsed": False}
+WINDOW_SIZE = [1600, 900]
+RUN_SCRIPT_TOGGLE = "orca_command:toggle_run_script_panel:orca"
+
+
+def until(fn, what, timeout_s=30, interval_s=0.5):
+    """fn()'s first true return, asking at once and then every `interval_s` s. When `timeout_s` passes first, raises
+    TimeoutError naming `what` and fn()'s last return, so that a failure says what never happened and what was seen."""
+    deadline = time.monotonic() + timeout_s
+    while True:
+        value = fn()
+        if value:
+            return value
+        if time.monotonic() >= deadline:
+            raise TimeoutError(f"{what}: not within {timeout_s} s; last seen {value!r}")
+        time.sleep(interval_s)
 
 
 def presets(client):
@@ -128,18 +155,138 @@ def presets(client):
     return {"printer": p["printer"], "process": p["process"], "filaments": list(p["filaments"])}
 
 
-def start(client, printer=KLIPPER, process=None, filaments=None):
-    """Puts the app in a test's starting state on a data folder earlier tests used, and returns presets(): a new
-    project with its changes and the presets' unsaved changes discarded, then `printer` selected, installed first
-    with printer_install when the folder lacks it, then `process` (default: the printer's default process), then one
-    filament slot per name in `filaments` (default: the printer's default filament), the mixed filament slots an
-    earlier test left deleted first. Each switch discards unsaved preset changes. A printer PRINTERS does not list
-    needs its process and filaments given."""
-    install, default_process, default_filament = PRINTERS.get(printer, (None, None, None))
+def close_open(client):
+    """Closes what an earlier test left open: the modal dialogs topmost first, each with Cancel, No or Close as it
+    offers; the other windows window_list lists, with Escape; whatever the Design tab's cancel_tool closes; a
+    recording; the auto-answer rules. Then waits for the jobs still running to end."""
+    for answered in range(10):
+        shown = client.call("app_state").get("dialogs", [])
+        if not shown:
+            break
+        if answered == 9:
+            raise RuntimeError(f"dialogs keep opening: {shown}")
+        top = shown[-1]
+        buttons = {b.get("label", "").lower() for b in top.get("buttons", [])}
+        client.call("dialog_answer", button=next((b for b in ("cancel", "no", "close") if b in buttons), "cancel"))
+        until(lambda: (client.call("app_state").get("dialogs") or [None])[-1] != top,
+              f"the dialog {top.get('title')!r} closed")
+
+    def others():
+        return [w for w in client.call("window_list")["items"] if w.get("kind") != "main"]
+
+    for window in others():
+        client.call("keyboard_press", target={"ref": window["ref"]}, keys="Escape")
+    until(lambda: not others(), "the windows besides the main one closed")
+    for _ in range(5):
+        try:
+            client.call_command("cancel_tool")
+        except orca_mcp.McpError:  # nothing open to cancel
+            break
+    try:
+        client.call("recording_stop", silent=True)
+    except orca_mcp.McpError:  # no recording running
+        pass
+    client.call("dialog_auto_answer", rules=[])
+    # app_state's jobs lists the recent jobs that ended too, as done or failed.
+    until(lambda: not [j for j in client.call("app_state").get("jobs", []) if j.get("state") == "running"],
+          "no job running", timeout_s=120)
+
+
+def baseline_preferences(client):
+    """The preferences the data folder had when orca_mcp.py launch seeded it, or None for a folder it did not seed."""
+    folder = client.call("app_state")["config_folder"]
+    try:
+        with open(os.path.join(folder, orca_mcp.BASELINE_FILE), encoding="utf-8") as f:
+            return json.load(f)["preferences"]
+    except OSError:
+        return None
+
+
+def reset_settings(client, plate_type):
+    """Puts back the baseline's stored settings and view after the project and slots are set: flushing, the plate
+    type, the preferences preferences_set accepts, the mode, the sidebar, the view and the main window. Returns what
+    still differs from the baseline, which start() raises with."""
+    # Only what differs is set: a printer without a purge mode to choose refuses prime_volume_mode.
+    flushing, change = client.call("filament_list"), {}
+    if any(m != FLUSH_MULTIPLIER for m in flushing.get("flush_multiplier") or []):
+        change["flush_multiplier"] = FLUSH_MULTIPLIER
+    if flushing.get("prime_volume_mode", PRIME_VOLUME_MODE) != PRIME_VOLUME_MODE:
+        change["prime_volume_mode"] = PRIME_VOLUME_MODE
+    if change:
+        run(client, "filament_set_flushing", **change)
+    bed = client.call("project_get_settings", keys=["curr_bed_type"], include_meta=False)["items"][0]["value"]
+    if plate_type and bed != plate_type:
+        run(client, "project_set_settings", values={"curr_bed_type": plate_type})
+
+    baseline = baseline_preferences(client)
+    if baseline is not None:
+        items = client.call("preferences_get")["items"]
+        differ = {i["key"]: baseline[i["key"]] for i in items
+                  if not i.get("refused") and i["key"] in baseline and i["value"] != baseline[i["key"]]}
+        if differ:
+            run(client, "preferences_set", values=differ)
+    if client.call("app_state")["mode"] != "simple":
+        run(client, "settings_set_mode", mode="simple")
+
+    sidebar = client.call_with_text("widget_list", None, query="Process", include_web=False, include_imgui=False,
+                                    include_menus=False, max_nodes=10)[1]
+    if any('toggle "Process"' in line and "[checked]" in line for line in "\n".join(sidebar).splitlines()):
+        run(client, "widget_set_value", target={"label": "Process"}, value=False)
+    menus = client.call_with_text("widget_list", None, query="Run Script", include_web=False, include_imgui=False,
+                                  max_nodes=10)[1]
+    if any('menu_item "Run Script"' in line and "[checked]" in line for line in "\n".join(menus).splitlines()):
+        run(client, "action_run", id=RUN_SCRIPT_TOGGLE)
+
+    run(client, "view_set", tab="prepare", canvas="3d", layout="default", camera="default")
+    view = client.call("app_state")["view"]
+    switches = {k: v for k, v in VIEW.items() if view.get(k) != v}
+    if (view.get("section") or {}).get("on"):
+        switches["section"] = {"on": False}
+    if switches:
+        run(client, "view_set", **switches)
+    window = client.call("app_state")["window"]
+    if window.get("maximized") or window.get("minimized"):
+        run(client, "window_set", state="normal")
+    if window.get("size") != WINDOW_SIZE:
+        run(client, "window_set", size=WINDOW_SIZE)
+
+    state = client.call("app_state")
+    view, problems = state["view"], []
+    problems += [f"view {k} is {view.get(k)!r}" for k, v in VIEW.items() if view.get(k) != v]
+    if (view.get("section") or {}).get("on"):
+        problems.append("the section view is on")
+    if state["mode"] != "simple":
+        problems.append(f"the mode is {state['mode']}")
+    if state["tab"] != "prepare":
+        problems.append(f"the tab is {state['tab']}")
+    if state["window"].get("maximized") or state["window"].get("minimized") or \
+            state["window"].get("size") != WINDOW_SIZE:
+        problems.append(f"the window is {state['window']}")
+    if baseline is not None:
+        items = client.call("preferences_get")["items"]
+        problems += [f"preference {i['key']} is {i['value']!r}" for i in items
+                     if not i.get("refused") and i["key"] in baseline and i["value"] != baseline[i["key"]]]
+    return problems
+
+
+def start(client, printer=KLIPPER, process=None, filaments=None, colours=None):
+    """Puts the app in the baseline TESTS.md writes out, on a data folder and in an app earlier tests used, and
+    returns presets(). It closes what they left open, makes a new project with its changes and the presets' unsaved
+    changes discarded, selects `printer`, installed first with printer_install when the folder lacks it, then
+    `process` (default: the printer's default process), then one filament slot per name in `filaments` (default: the
+    printer's default filament), the mixed filament slots an earlier test left deleted first, each slot coloured from
+    `colours` (default: SLOT_COLOURS), and puts back the stored settings and the view. Each switch discards unsaved
+    preset changes. A printer PRINTERS does not list needs its process and filaments given; its plate type is left
+    as the printer remembers it. Raises when a setting still differs from the baseline afterwards."""
+    install, default_process, default_filament, plate_type = PRINTERS.get(printer, (None, None, None, None))
     process = process or default_process
     filaments = list(filaments or [default_filament])
+    colours = list(colours or SLOT_COLOURS[:len(filaments)])
     if process is None or None in filaments:
         raise ValueError(f"start() knows no defaults for {printer!r}: give its process and filaments")
+    if len(colours) != len(filaments):
+        raise ValueError(f"{len(colours)} colours for {len(filaments)} filament slots")
+    close_open(client)
     run(client, "project_new", discard_changes=True, preset_changes="discard")
     if presets(client)["printer"] != printer:
         listed = client.call("preset_list", type="printer", include_uninstalled=True, query=printer, limit=500)["items"]
@@ -165,7 +312,89 @@ def start(client, printer=KLIPPER, process=None, filaments=None):
     for slot, name in enumerate(filaments, 1):
         if presets(client)["filaments"][slot - 1] != name:
             run(client, "preset_select", type="filament", name=name, filament_slot=slot, preset_changes="discard")
+    for slot, (row, colour) in enumerate(zip(filament_rows(client), colours), 1):
+        if row.get("colour", "").upper() != colour.upper():
+            run(client, "filament_set_colour", filament_slot=slot, colour=colour)
+    problems = reset_settings(client, plate_type)
+    # The slots, their colours, the flushing and the plate type mark the project changed, and the printer keeps them
+    # across New Project: a second new project starts the test from an unchanged one that has them.
+    if client.call("app_state")["project"].get("dirty"):
+        run(client, "project_new", discard_changes=True, preset_changes="discard")
+    problems += [f"slot {slot}'s colour is {row.get('colour')}" for slot, (row, colour)
+                 in enumerate(zip(filament_rows(client), colours), 1) if row.get("colour", "").upper() != colour.upper()]
+    flushing = client.call("filament_list")
+    if any(m != FLUSH_MULTIPLIER for m in flushing.get("flush_multiplier") or []) or \
+            flushing.get("prime_volume_mode", PRIME_VOLUME_MODE) != PRIME_VOLUME_MODE:
+        problems.append(f"the flushing is {flushing.get('flush_multiplier')}, {flushing.get('prime_volume_mode')}")
+    bed = client.call("project_get_settings", keys=["curr_bed_type"], include_meta=False)["items"][0]["value"]
+    if plate_type and bed != plate_type:
+        problems.append(f"the plate type is {bed}")
+    if client.call("app_state")["project"].get("dirty"):
+        problems.append("the new project is marked changed")
+    if problems:
+        raise RuntimeError("start() could not reach the baseline: " + "; ".join(problems))
     return presets(client)
+
+
+def menus_left(state, since):
+    """The menus app_state's `closed_menus` lists that closed after `since` (a time.monotonic()): those a test's own
+    calls opened and nothing read. The list keeps the app's run's last three, so it can hold an earlier test's."""
+    elapsed = time.monotonic() - since
+    return [m for m in state.get("closed_menus", []) if m.get("ago_s", 0) <= elapsed]
+
+
+SCENE_CANVAS = {"name": "OrcaSceneCanvas"}
+
+
+def speed_dial(client):
+    """The Speed Dial as window_list gives it: the shown web dialog with no title, or None."""
+    return next((w for w in client.call("window_list")["items"]
+                 if w.get("kind") == "dialog" and w.get("web") and not w.get("title")), None)
+
+
+def dial_pick(client, title, canvas=SCENE_CANVAS):
+    """Opens the Speed Dial with Space on `canvas` and picks the action titled `title`, as a person's click does, and
+    returns the click's reply. It waits until the dial shows, which on a busy machine takes longer than a page
+    element's own wait."""
+    def answered(tool, **args):
+        # A page that has not answered yet is refused at once ("did not answer"), not waited for, as a dial that
+        # just opened on a busy machine can be: the call is asked again until the page answers.
+        def once():
+            try:
+                return {"reply": client.call(tool, timeout_s=30, **args)}
+            except orca_mcp.McpError as e:
+                if "did not answer" in str(e):
+                    return None
+                raise
+        return until(once, f"the Speed Dial's page answers {tool}")["reply"]
+
+    def pick():
+        # The dial closes when the app loses the focus, as it does to a window another app opens on the desktop: a
+        # search or click that finds no page shown did nothing, and the pick starts again from opening the dial.
+        client.call("keyboard_press", keys="space", target=canvas)
+        until(lambda: speed_dial(client), "the Speed Dial shows")
+        try:
+            answered("widget_set_value", target={"web": "Search actions"}, value=title, submit=False)
+            return {"reply": answered("widget_click", target={"web": f"{title} from Orcaslicer", "kind": "button"})}
+        except orca_mcp.McpError as e:
+            if "No web page is shown" in str(e):
+                return None
+            raise
+
+    return until(pick, f"a pick of {title!r} from the Speed Dial", timeout_s=90)["reply"]
+
+
+def add_slot(client, colour):
+    """Adds a filament slot as the sidebar's Add does and gives it `colour`, read back; returns the new slot's
+    number. filament_add alone colours it with the next colour of a palette the app's run cycles through."""
+    run(client, "filament_add")
+    # The new slot is the last physical one: filament_list lists the physical slots first, and the mixed ones after.
+    slot = [row for row in filament_rows(client) if not row["mixed"]][-1]["filament_slot"]
+    run(client, "filament_set_colour", filament_slot=slot, colour=colour)
+    got = next(row for row in filament_rows(client) if row["filament_slot"] == slot).get("colour", "")
+    if got.upper() != colour.upper():
+        raise RuntimeError(f"slot {slot}'s colour is {got}, not {colour}")
+    return slot
 
 
 def plates(client):

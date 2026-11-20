@@ -20,10 +20,11 @@ With no part named, every part runs, in the order of PARTS:
   example. An example fails when a call fails or its result has ok false, a non-empty error, or is the person's form
   (interactive); one with `needs` uses a file from outside the app and is skipped.
 
-Each part starts from the same state, whatever the part before it left: the open modal dialogs are cancelled, an
-open card, sketch, Text dialog or plane pick is cancelled with cancel_tool, and start() makes a new project on the
-Generic Klipper Printer. The replays, the exported session and the screenshots go to a temporary folder, which the
-run prints. Exits 1 when a check fails or a part breaks off.
+Each part starts from the same state, whatever the part before it left: start() puts the app in the baseline on the
+Generic Klipper Printer, closing what was left open, an open card, sketch, Text dialog or plane pick in the Design
+tab among it, and the Design view's switches are set as a new data folder has them. The replays, the exported
+session and the screenshots go to a temporary folder, which the run prints. Exits 1 when a check fails or a part
+breaks off.
 """
 
 import json
@@ -37,7 +38,8 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import Checks, start  # noqa: E402
+from cad_gui import reset_switches  # noqa: E402
+from checks import Checks, close_open, start, until  # noqa: E402
 from orca_mcp import McpError  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -49,37 +51,21 @@ REPLAY_TIMEOUT_S = 600
 HISTORY = ["undo", "redo"]
 
 # An M8 thread tapped 250 mm deep into a 30 mm square block: 200 turns, several seconds of OCCT pipe and
-# boolean work (about 5.5 s on a desktop PC running nothing else). The Windows probe starts 2 s in and
-# needs the build still running after it.
+# boolean work (about 5.5 s on a desktop PC running nothing else). The probes need the build still running
+# once it is seen running.
 BLOCK = {"width": 30, "height": 30, "distance": 250}
 THREAD = {"plane": "XY", "internal": True, "designation": "M8", "length": 250}
 
 
 # ---------------------------------------------------------------- between parts
 
-def close_open(client):
-    """Cancels the modal dialogs, topmost first, then whatever cancel_tool closes in the Design tab (a card, a
-    sketch, the Text dialog, a plane pick) until it is refused for having nothing open."""
-    for answered in range(6):
-        shown = client.call("app_state").get("dialogs", [])
-        if not shown:
-            break
-        if answered == 5:
-            raise RuntimeError(f"dialogs keep opening: {shown}")
-        buttons = {b.get("label", "").lower() for b in shown[-1].get("buttons", [])}
-        client.call("dialog_answer", button=next((b for b in ("cancel", "no", "close") if b in buttons), "cancel"))
-    for _ in range(5):
-        try:
-            client.call_command("cancel_tool")
-        except McpError:
-            return
-    raise RuntimeError("cancel_tool keeps finding something open")
-
-
 def reset(client):
-    """The state every part starts from: nothing open, and start()'s new project on the Generic Klipper Printer."""
-    close_open(client)
+    """The state every part starts from: start()'s baseline on the Generic Klipper Printer, which closes what the part
+    before left open, cancel_tool's leftovers in the Design tab among it, and the Design view's switches as a new
+    data folder has them, set on the Design tab before Prepare is shown again."""
     start(client)
+    reset_switches(client)
+    client.call("view_set", tab="prepare")
 
 
 # ---------------------------------------------------------------- the replays
@@ -207,6 +193,15 @@ def progress_dialog_ref(client):
     return None
 
 
+def refusal(client):
+    """The error another Design command, describe_design, is refused with, or None when it answers."""
+    try:
+        client.call("tool_call", tool="describe_design")
+        return None
+    except McpError as e:
+        return str(e)
+
+
 def part_slow_build(c, client, out):
     """The thread, sweep and loft commands rebuild as their cards do, off the UI thread behind the progress dialog
     (DesignPanel::recompute_guarded); the probes run while the thread builds."""
@@ -228,29 +223,32 @@ def part_slow_build(c, client, out):
     started = time.time()
     worker.start()
 
-    # On Windows the progress dialog is the system's task dialog, on a thread of its own: no wx window
-    # widget_list lists. There the probes start once the build has run for 2 s, past the dialog's delay.
+    # The probes run once the build is seen running: once widget_list lists its progress dialog, or on Windows, where
+    # the dialog is the system's task dialog on a thread of its own and no wx window widget_list lists, once another
+    # Design command is refused as busy. A build that ends first is seen as "ended", and the probes do not run.
     native_dialog = sys.platform == "win32"
-    probed, state_ms, window_shot, dialog_shot, busy = False, None, None, None, None
-    while worker.is_alive() and time.time() - started < 300:
-        time.sleep(0.5)
-        if not probed:
-            ref = None if native_dialog else progress_dialog_ref(client)
-            if ref is not None or (native_dialog and time.time() - started > 2):
-                probed = True
-                t0 = time.time()
-                client.call("app_state")
-                state_ms = (time.time() - t0) * 1000
-                window_shot = client.call("window_screenshot", target="main", include_image=False,
-                                          save_path=os.path.join(shots, "window.png"))
-                if ref is not None:
-                    dialog_shot = client.call("window_screenshot", target=ref, include_image=False,
-                                              save_path=os.path.join(shots, "progress.png"))
-                try:
-                    client.call("tool_call", tool="describe_design")
-                    busy = False
-                except McpError as e:
-                    busy = str(e)
+
+    def running():
+        if not worker.is_alive():
+            return "ended"
+        if native_dialog:
+            return "busy" if "Busy" in (refusal(client) or "") else None
+        return progress_dialog_ref(client)
+
+    seen = until(running, "the thread's rebuild running", timeout_s=300)
+    state_ms, window_shot, dialog_shot, busy = None, None, None, None
+    if seen != "ended":
+        ref = None if native_dialog else seen
+        t0 = time.time()
+        client.call("app_state")
+        state_ms = (time.time() - t0) * 1000
+        window_shot = client.call("window_screenshot", target="main", include_image=False,
+                                  save_path=os.path.join(shots, "window.png"))
+        if ref is not None:
+            dialog_shot = client.call("window_screenshot", target=ref, include_image=False,
+                                      save_path=os.path.join(shots, "progress.png"))
+        # Asked after the probes, so that its refusal says the build still ran while they were answered.
+        busy = refusal(client)
     worker.join(600)
     seconds = time.time() - started
     result = client.await_job(box.get("result")) if "result" in box else None
@@ -334,7 +332,8 @@ def part_examples(c, client, out):
                 print(f"skip {label}: needs {example['needs']}")
                 continue
             try:
-                # A fresh, empty design, whatever the example before left open.
+                # A fresh, empty design, whatever the example before left open: start()'s closing of what is open,
+                # cancel_tool's leftovers among it.
                 close_open(client)
                 client.call_command("new_design", discard_changes=True)
                 run_example(client, example)

@@ -45,7 +45,6 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import checks  # noqa: E402
 import orca_mcp  # noqa: E402
 from cad_gui import BADGE_PICK_PX, BADGE_STEP_PX, CANVAS, CadGui, until  # noqa: E402
 
@@ -146,21 +145,18 @@ def choose(offer, X, Y, verb):
 
 # ---------------------------------------------------------------- fixtures
 
-def keep_as_drawn(expect=None):
-    """Close the value fields the last gesture left open, keeping the geometry as drawn; returns how
-    many Esc presses that took.
+def keep_as_drawn():
+    """Close the value fields the last gesture left open, keeping the geometry as drawn.
 
     Esc means keep-as-drawn only while a field is open: with none open it drops the armed tool,
     and from Select it leaves the sketch. So Esc is pressed only on a field that is there. The
     fields come one after another (a rectangle queues Width, then Height, the next opened as the
-    previous one closes), and one that has not opened yet looks like one that never will, so with
-    `expect` None this stops only when no field has shown for a while. A caller that knows how
-    many fields its gesture opens passes that number as `expect`: those are waited for, and any
-    field still open after them is closed without waiting for another."""
-    for n in range(8):
-        waits = expect is None or n < expect
-        if (until(gui.value_field, timeout=0.7) if waits else gui.value_field()) is None:
-            return n
+    previous one closes), from work the gesture sets off, so whether one is open is read once the
+    app has run that work (CadGui.opened_field()), where one not open yet would look like one
+    that never opens."""
+    for _ in range(8):
+        if gui.opened_field() is None:
+            return
         key("Escape")
         until(lambda: gui.value_field() is None)
     raise AssertionError("value fields kept opening after 8 Esc presses")
@@ -227,7 +223,7 @@ def poly_click(pt):
     polyline opens a Length field after every segment, and the canvas takes no click while one is
     open."""
     gui.click_mm(*pt)
-    keep_as_drawn(expect=1)
+    keep_as_drawn()
 
 
 def draw_line_at(x0, y0, x1, y1, length):
@@ -240,7 +236,7 @@ def draw_line_at(x0, y0, x1, y1, length):
     gui.click_mm(x0, y0)
     gui.click_mm(x1, y1)
     gui.values(int(length), 0)
-    keep_as_drawn(expect=0)
+    keep_as_drawn()
     return ents("line")[-1]
 
 
@@ -312,7 +308,7 @@ def type_into_open_field(rung, value, what, measure, opened_by="by itself"):
         return None if f is None else f.prefill
 
     gui.text(str(value))
-    until(lambda: shown() == str(value), timeout=2.0)
+    until(lambda: shown() == str(value))
     typed = shown()
     gui.check(f"{rung}: {title} took the typed {value}, with no click into it", typed == str(value),
               f"it shows {typed!r}" + (", its prefill: the digits never reached it" if typed == prefill else ""))
@@ -336,7 +332,7 @@ def type_into_open_field(rung, value, what, measure, opened_by="by itself"):
         got[:] = measure(gui.sketch())
         return bool(got) and all(near(q, value) for q in got)
 
-    ok = until(carries, timeout=1.0)
+    ok = until(carries)
     was_prefill = False
     try:
         was_prefill = bool(got) and all(near(q, float(prefill), 1e-3) for q in got)
@@ -349,9 +345,10 @@ def type_into_open_field(rung, value, what, measure, opened_by="by itself"):
 
 def close_fields():
     """Esc on a value field still open after the ones typed into, which closes it and the fields
-    queued after it and keeps the rest of the shape as drawn. The next field opens a moment after
-    the last commit, so this waits a while for one before deciding none is open."""
-    if until(gui.value_field, timeout=1.0) is None:
+    queued after it and keeps the rest of the shape as drawn. The next field opens from work the
+    last commit sets off, so whether one is open is read once the app has run it
+    (CadGui.opened_field())."""
+    if gui.opened_field() is None:
         return
     key("Escape")
     if not until(lambda: gui.value_field() is None):
@@ -422,7 +419,7 @@ def rung_vocabulary():
         if name == "Sk2Ent":
             # sk_angdist accepts the pair and nothing else, so it is offered from this selection
             # alone.
-            keep_as_drawn(expect=0)
+            keep_as_drawn()
             key("Escape")
             # Each click lands where it takes its entity and nothing else (clear_pick): clear of
             # the line's Length label and the circle's radius label, and of the circle's radius
@@ -813,7 +810,7 @@ def rung_transforms():
         and apply the array with Return. The label is there only while the array is pending, so a
         field that does not open means typing the first value applied the array already."""
         gui.click_mm(*tf_count_label(piv, (cx, cy)))
-        opened = until(gui.value_field, timeout=2.0) is not None
+        opened = until(gui.value_field) is not None
         gui.check(f"transforms: the {kind} waits for its count once its {first} is typed", opened,
                   f"no field opened on the count label, and the sketch holds {len(ents('line'))} lines: "
                   f"the {first}'s Return applied the {kind} with its default count")
@@ -949,7 +946,7 @@ def rung_label():
     if top["type"] != "line" or not near(top["p0"][1], max(ys), 1e-9) or not near(top["p1"][1], max(ys), 1e-9):
         raise AssertionError(f"the rectangle's first edge is not its top: {es}")
     gui.click_mm(*inside(mid(top)))
-    if not until(lambda: gui.sketch()["selection"], timeout=2.0):
+    if not until(lambda: gui.sketch()["selection"]):
         raise AssertionError("the click on the top edge picked nothing")
 
     # The label's centre, read from the window it is drawn in; the badge under it, from the layout.
@@ -1026,7 +1023,7 @@ def rung_art():
     gui.check("art: OK in the Text dialog adds the text to the design", len(added) == len(before) + 1,
               f"features {added}, before the text {before}")
     gui.press("Cancel")  # the ribbon's Cancel, on the Insert step
-    until(lambda: feature_names() == before, timeout=2.0)
+    until(lambda: feature_names() == before)
     left = feature_names()
     gui.check("art: the ribbon's Cancel after OK leaves no text, read back through describe_design", left == before,
               f"features {left}, before the text {before}")
@@ -1136,11 +1133,8 @@ RUNGS = {"vocabulary": rung_vocabulary,
 
 def main():
     global gui
-    client = orca_mcp.session_client()[0]
-    # The start every test sets on a shared data folder, made before CadGui.start(), whose first check needs the
-    # Design tab not yet shown.
-    checks.start(client)
-    gui = CadGui(client)
+    # The baseline every test starts from on a shared app and data folder, then the Design tab's own start.
+    gui = CadGui(orca_mcp.session_client()[0])
     gui.start()
     return gui.run(RUNGS, sys.argv[1:])
 

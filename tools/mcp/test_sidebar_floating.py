@@ -3,12 +3,12 @@
 No command floats the sidebar; a person drags its caption off the dock, and the window layout saved keeps it floating.
 So this test launches OrcaSlicer itself, twice, on a fresh data folder. The first run writes its window layout
 (OrcaSlicer.conf, app.window_layout) as it starts its empty project (Plater::priv::reset()), and the app writes
-OrcaSlicer.conf at its next idle moment; orca_mcp.py stop then ends it, on Windows by killing the process, which saves
-nothing more. The test marks the sidebar's entry of that layout floating, as the drag leaves it, and the second run
-starts with the sidebar floating. There view_set {sidebar_width} is refused and the width stays as it was. A native
-Wayland app drops the saved floating state, so on Linux both runs start as X11 clients (GDK_BACKEND=x11, through
-XWayland on a Wayland desktop), as the sweep's own launches do by default, and the checks run on every platform. Each
-run is stopped on every path out, and nothing but a run this test started is stopped.
+OrcaSlicer.conf at its next idle moment; once the file holds the layout, orca_mcp.py stop ends the run, on Windows by
+killing the process, which saves nothing more. The test marks the sidebar's entry of that layout floating, as the drag
+leaves it, and the second run starts with the sidebar floating. There view_set {sidebar_width} is refused and the
+width stays as it was. A native Wayland app drops the saved floating state, so on Linux both runs start as X11 clients
+(GDK_BACKEND=x11, through XWayland on a Wayland desktop), as the sweep's own launches do by default, and the checks run
+on every platform. Each run is stopped on every path out, and nothing but a run this test started is stopped.
 Run it as python tools/mcp/test_sidebar_floating.py [--bin PATH] [--datadir PATH].
 """
 import contextlib
@@ -20,10 +20,10 @@ import socket
 import subprocess
 import sys
 import tempfile
-import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+from checks import until  # noqa: E402
 from orca_mcp import McpError, OrcaMcp, app_env  # noqa: E402
 
 TOKEN = "sidebar-floating-test-token"
@@ -73,16 +73,28 @@ def launched(datadir, binary):
     finally:
         if os.path.exists(session):
             harness(env, "stop")
-            time.sleep(2)
+
+
+def read_conf(datadir):
+    """OrcaSlicer.conf's JSON, without the checksum line after it."""
+    with open(os.path.join(datadir, "OrcaSlicer.conf"), encoding="utf-8") as f:
+        text = f.read()
+    return json.loads(text[: text.rfind("}") + 1])
+
+
+def layout_saved(datadir):
+    """Whether OrcaSlicer.conf holds a window layout with the sidebar's entry; False too while the app writes it."""
+    try:
+        layout = read_conf(datadir).get("app", {}).get("window_layout", "")
+    except (OSError, ValueError):
+        return False
+    return any(entry.startswith("name=sidebar;") for entry in layout.split("|"))
 
 
 def float_sidebar(datadir):
     """Marks the sidebar's entry of the saved window layout floating (wxAuiPaneInfo::optionFloating, state bit 0), with a
     place and size of its own window. Returns whether the layout had the entry."""
-    conf = os.path.join(datadir, "OrcaSlicer.conf")
-    with open(conf, encoding="utf-8") as f:
-        text = f.read()
-    config = json.loads(text[: text.rfind("}") + 1])  # the JSON, without the checksum line after it
+    config = read_conf(datadir)
     layout = config.get("app", {}).get("window_layout", "")
 
     def floating(entry):
@@ -94,7 +106,7 @@ def float_sidebar(datadir):
     entries = layout.split("|")
     found = any(entry.startswith("name=sidebar;") for entry in entries)
     config["app"]["window_layout"] = "|".join(floating(e) if e.startswith("name=sidebar;") else e for e in entries)
-    with open(conf, "w", encoding="utf-8") as f:
+    with open(os.path.join(datadir, "OrcaSlicer.conf"), "w", encoding="utf-8") as f:
         json.dump(config, f, indent=4)
     return found
 
@@ -108,6 +120,13 @@ def main():
     try:
         with launched(datadir, binary) as orca:
             started = orca is not None
+            # The stop writes nothing (on Windows it kills the app), so the run goes on until the app has written the
+            # layout at its next idle moment.
+            if started:
+                try:
+                    until(lambda: layout_saved(datadir), "OrcaSlicer.conf holds the window layout with the sidebar")
+                except TimeoutError as e:
+                    print(e, flush=True)
         check("the app starts", started)
         if started:
             check("the window layout the first run saved has the sidebar", float_sidebar(datadir))

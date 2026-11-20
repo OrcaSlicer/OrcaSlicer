@@ -11,9 +11,10 @@ selected by name through the plugin API, as preset_select selects one. It also c
 refuses or does in those states alone: a project saved under a .gcode.3mf name; an export of a project
 with no objects (a .3mf is written, an STL and a sliced file are refused); an arrangement from the
 assemble view and with a gizmo open. It starts from the Generic Klipper Printer with one filament slot,
-and the hidden printer is one of that printer's other nozzles where one is left to show. Run it on a
-freshly launched app: the Preview keeps the layers of the last slice, and a hidden preset stays shown
-until the app restarts. Exits 0 when every check passes.
+in a new project, which leaves the Preview no layers. The hidden printer is the first one still hidden,
+one of that printer's other nozzles where one is left to show: a hidden preset once shown stays shown
+until the app restarts, so in an app where an earlier run of this test showed one, it picks another.
+Exits 0 when every check passes.
 """
 
 import json
@@ -76,7 +77,6 @@ def main():
 
     presets = shared.start(client)
     check("starts from the Generic Klipper Printer", presets == START, presets)
-    client.call("view_set", tab="prepare")
 
     # ---- A project with no objects ----
     code, text = answer("project_save", path=path("project.gcode.3mf"))
@@ -102,7 +102,7 @@ def main():
     for _ in range(2):
         client.call("object_select", none=True)
         client.call("object_add_primitive", shape="cube", size=[20, 20, 20])
-    client.call("app_wait", **{"for": "idle"})
+    shared.wait(client, "idle")
     before = offsets()
     client.call("view_set", canvas="assemble")
     # object_arrange with no arguments, Auto-Arrange's, replies with what it left off the plates, as any call of it does.
@@ -131,8 +131,7 @@ def main():
 
     # ---- A mixed-colour filament slot, and a hidden printer ----
     client.call("project_new", discard_changes=True, preset_changes="discard")
-    while len(client.call("app_state")["presets"]["filaments"]) < 2:
-        client.call("action_run", id="orca_command:filament_add:orca")
+    shared.add_slot(client, shared.SLOT_COLOURS[1])
     slot_preset = client.call("app_state")["presets"]["filaments"][0]
     blocked = client.call("widget_click", target={"label": "Add Mixed Filament"})
     if blocked.get("status") == "blocked_by_dialog":
@@ -156,14 +155,12 @@ def main():
     check("a printer is still hidden (else restart the app)", bool(hidden), len(listed))
     if hidden:
         got = plugin_api(editor="printer", form="begin_update", name=hidden[0], commit=True)
-        client.call("app_wait", **{"for": "idle"})
+        shared.wait(client, "idle")
         selected = client.call("app_state")["presets"]["printer"]
         check("the plugin API shows a hidden printer and selects it", "raised" not in got and selected == hidden[0], (got, selected))
+        # The data folder remembers the printer selected, which a later start of the app selects before any test's
+        # start() runs, and the hidden printer is not installed there.
         client.call("preset_select", type="printer", name=shared.KLIPPER, preset_changes="discard")
-
-    while len(client.call("app_state")["presets"]["filaments"]) > 1:
-        client.call("action_run", id="orca_command:filament_delete:orca")
-    client.call("project_new", discard_changes=True, preset_changes="discard")
 
     failed = [c for c in checks if not c[1]]
     for name, ok, detail in checks:

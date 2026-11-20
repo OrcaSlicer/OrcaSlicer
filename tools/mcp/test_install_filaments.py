@@ -20,7 +20,6 @@ import socket
 import subprocess
 import sys
 import tempfile
-import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -79,8 +78,8 @@ def launched(datadir, binary):
         yield orca
     finally:
         if os.path.exists(session):
+            # stop returns once the app has exited, so that the next launch is the only app on the folder.
             harness(env, "stop")
-            time.sleep(2)
 
 
 def refusal(orca, tool, **args):

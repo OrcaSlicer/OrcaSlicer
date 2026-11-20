@@ -14,7 +14,6 @@ import socket
 import subprocess
 import sys
 import tempfile
-import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -95,7 +94,6 @@ def main():
         check("the preference is as it was", preference[0]["value"] == "load_geometry_only", preference)
     finally:
         harness(env, "stop")
-        time.sleep(2)
         if "--datadir" not in extra:
             shutil.rmtree(datadir, ignore_errors=True)
 

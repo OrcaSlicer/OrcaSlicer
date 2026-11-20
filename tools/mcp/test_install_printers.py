@@ -25,10 +25,10 @@ import socket
 import subprocess
 import sys
 import tempfile
-import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+from checks import until  # noqa: E402
 from orca_mcp import McpError, OrcaMcp, app_env  # noqa: E402
 
 TOKEN = "install-printers-test-token"
@@ -81,8 +81,8 @@ def launched(datadir, binary):
         yield orca
     finally:
         if os.path.exists(session):
+            # stop returns once the app has exited, so that the next launch is the only app on the folder.
             harness(env, "stop")
-            time.sleep(2)
 
 
 def call(orca, tool, **args):
@@ -308,15 +308,13 @@ def confirm_printer_selection(orca, tick):
 
     ticked, button = None, "#PreBtn"
     try:
-        deadline = time.time() + 40
-        while box_state() is None and time.time() < deadline:
-            time.sleep(0.5)
+        until(lambda: box_state() is not None, "the Printer Selection page lists the models", timeout_s=40)
         orca.call("widget_click", target={"css": block}, timeout_s=40)
         ticked = box_state()
         # A page that did not take the tick is left with its Cancel, so that nothing is confirmed.
         if ticked is True:
             button = "#AcceptBtn"
-    except McpError as e:
+    except (McpError, TimeoutError) as e:
         ticked = "the page could not be driven: " + str(e)
     orca.call("widget_click", target={"css": button}, timeout_s=40)
     if not orca.call("app_wait", **{"for": "no_dialog", "timeout_s": 50}).get("satisfied"):

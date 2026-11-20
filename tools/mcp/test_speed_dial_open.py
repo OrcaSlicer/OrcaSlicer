@@ -6,16 +6,16 @@ no title bar on the dial.
     tools/mcp/test_speed_dial_open.py
 
 Each page is reached from Home by a click on its tab, as a person switches pages: Prepare first, while the
-plater still shows the 3D view it started with, then Design when the Design tab is on, and Preview. The page's
+plater shows the 3D view start() leaves it on, then Design when the Design tab is on, and Preview. The page's
 3D view must then hold the keyboard focus, as a focused sidebar control keeps Space for itself, and Space sent
 to the focused window must open the dial. The view also takes the focus when the pointer enters it, so before
 each tab click the test moves the system pointer to the primary display's top-left corner, (0, 0), and reads
-it back there: the test first places the main window at the top left of the primary display's work area, so that
-corner is its top bar or lies outside it, never in the 3D view below the tab bar. A pointer that does not read back
-at (0, 0) fails the page's focus check. On a native Wayland display, where an app can neither move the pointer nor
-read where it is, the focus checks are reported SKIP. Where KWin answers on the display's D-Bus (the private one of
-a `--headless` launch, else the caller's), the frame KWin reports for the dial must be the dial's own size: a
-title bar of KWin's makes the frame taller. Exits 0 when every check passes.
+it back there: the test first places the main window, at start()'s 1600x900, at the top left of the primary
+display's work area, so that corner is its top bar or lies outside it, never in the 3D view below the tab bar. A
+pointer that does not read back at (0, 0) fails the page's focus check. On a native Wayland display, where an app
+can neither move the pointer nor read where it is, the focus checks are reported SKIP. Where KWin answers on the
+display's D-Bus (the private one of a `--headless` launch, else the caller's), the frame KWin reports for the dial
+must be the dial's own size: a title bar of KWin's makes the frame taller. Exits 0 when every check passes.
 """
 
 import ctypes
@@ -24,11 +24,10 @@ import os
 import re
 import subprocess
 import sys
-import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, start  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, start, until  # noqa: E402
 
 
 def park_pointer(display):
@@ -140,31 +139,36 @@ def main():
         if not wayland:
             parked.append(park_pointer(display))
 
-    def wait_for(predicate, timeout):
-        deadline = time.time() + timeout
-        while time.time() < deadline:
-            value = predicate()
-            if value:
-                return value
-            time.sleep(0.25)
-        return predicate()
+    def reached(fn, what):
+        """until()'s value, or None, printed with what was seen, when the 30 s pass first: the check after it fails
+        and the test goes on."""
+        try:
+            return until(fn, what)
+        except TimeoutError as e:
+            print(e, flush=True)
+            return None
+
+    def on_tab(tab):
+        return reached(lambda: client.call("app_state")["tab"] == tab, f"app_state's tab is {tab}")
 
     def tree():
         _, texts = client.call_with_text("widget_list", max_nodes=3000)
         return "\n".join(texts)
 
     def switch_to(label, tab):
-        """Clicks Home's tab (the first, with no label), then the tab `label`, and waits for app_state's tab."""
+        """Clicks Home's tab (the first, with no label), then, once app_state's tab is home, the tab `label`, and
+        returns whether app_state's tab became `tab`."""
         tabs = tree()
         home = re.search(r"\[(w\d+)\] tab \[", tabs)
         page = re.search(rf'\[(w\d+)\] tab "{re.escape(label)}"', tabs)
         parked.clear()
         park()
         client.call("widget_click", target=home.group(1))
-        wait_for(lambda: client.call("app_state")["tab"] == "home", 10)
+        if not on_tab("home"):
+            return False
         park()
         client.call("widget_click", target=page.group(1))
-        return wait_for(lambda: client.call("app_state")["tab"] == tab, 10)
+        return on_tab(tab)
 
     def dial():
         """The Speed Dial as window_list gives it: the shown web dialog with no title."""
@@ -175,9 +179,10 @@ def main():
     check("start: the Klipper printer with its default process and filament",
           started == {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]}, started)
     # The main window at the top left of the primary display's work area keeps (0, 0) off the 3D view; Wayland takes
-    # no position, and the size alone is given there.
-    primary = next(d for d in client.call("app_state")["displays"] if d.get("primary"))
-    client.call("window_set", size=[1600, 900], **({} if wayland else {"position": [primary["x"], primary["y"]]}))
+    # no position, and its window keeps start()'s size alone.
+    if not wayland:
+        primary = next(d for d in client.call("app_state")["displays"] if d.get("primary"))
+        client.call("window_set", position=[primary["x"], primary["y"]])
 
     pages = [("Prepare", "prepare")]
     if client.call("app_state").get("design_tab"):
@@ -197,7 +202,7 @@ def main():
                   all(p == (0, 0) for p in parked) and focused and "name=OrcaSceneCanvas" in focused[0],
                   f"the pointer read back at {parked} after each move to (0, 0); focused: {focused}")
         client.call("keyboard_press", keys="Space")
-        opened = wait_for(dial, 10)
+        opened = reached(dial, "the Speed Dial is listed")
         check(f"{label}: Space opens the Speed Dial", opened)
         if not opened:
             continue
@@ -215,7 +220,7 @@ def main():
                 check("KWin draws no title bar on the dial", frame[2] <= opened["height"] + 2,
                       f"KWin's frame {frame}, the dial {opened['width']}x{opened['height']}")
         client.call("keyboard_press", keys="Escape", target=opened["ref"])
-        check(f"{label}: Escape closes the Speed Dial", wait_for(lambda: dial() is None, 10))
+        check(f"{label}: Escape closes the Speed Dial", reached(lambda: dial() is None, "the Speed Dial is gone"))
 
     failed = [c for c in checks if not c[1]]
     for name, ok, detail in checks:

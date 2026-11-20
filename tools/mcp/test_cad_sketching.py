@@ -40,7 +40,6 @@ import tempfile
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import checks  # noqa: E402
 import orca_mcp  # noqa: E402
 from cad_gui import CANVAS, CadGui, until  # noqa: E402
 
@@ -680,11 +679,11 @@ def pick(rung, *points, of=""):
     click on empty space. The count then reaches one per click only when every click landed on a
     different entity."""
     gui.click_mm(*EMPTY)
-    until(lambda: gui.picked() == 0, timeout=1.0)
+    until(lambda: gui.picked() == 0)
     counts = []
     for n, p in enumerate(points, 1):
         gui.click_mm(*p)
-        until(lambda: gui.picked() == n, timeout=1.0)
+        until(lambda: gui.picked() == n)
         counts.append(gui.picked())
     what = {1: "the pick", 2: "both picks", 3: "all three picks"}[len(points)]
     return gui.check(f"{rung}: {what} landed on an entity{of}", counts == list(range(1, len(points) + 1)),
@@ -710,11 +709,28 @@ def leave():
     gui.new_design()
 
 
+# What the sketch solver holds a solved sketch to. libslvs stops when every equation's residual is within
+# System::CONVERGE_TOLERANCE, LENGTH_EPS / 1e2 = 1e-8 (libslvs system.cpp:20, LENGTH_EPS in solvespace.h:127), and
+# the Design tab keeps a solve's geometry only when it converged (SketchSolver.cpp:449, ok is SLVS_RESULT_OKAY, and
+# :486, nothing is written back otherwise). A Parallel's equation in the sketch's plane is the pseudo-scalar product of the
+# two lines' directions, in mm² (constrainteq.cpp, Type::PARALLEL: a.x * b.y - a.y * b.x), so the angle it leaves
+# shrinks with the lines' lengths; a Perpendicular's is their direction cosine, which bounds the angle itself.
+SOLVE_TOLERANCE = 1e-8
+
+
+def direction_cross(a, b):
+    """The pseudo-scalar product of two lines' directions, p0 to p1, in mm²: what a Parallel solves to zero."""
+    return ((a["p1"][0] - a["p0"][0]) * (b["p1"][1] - b["p0"][1])
+            - (a["p1"][1] - a["p0"][1]) * (b["p1"][0] - b["p0"][0]))
+
+
 def angle_between(a, b):
-    va = (a["p1"][0] - a["p0"][0], a["p1"][1] - a["p0"][1])
-    vb = (b["p1"][0] - b["p0"][0], b["p1"][1] - b["p0"][1])
-    c = (va[0] * vb[0] + va[1] * vb[1]) / (math.hypot(*va) * math.hypot(*vb))
-    return math.degrees(math.acos(max(-1.0, min(1.0, c))))
+    """The angle between two lines' directions, p0 to p1, in degrees from 0 to 180: atan2 of their cross and dot
+    products, which reads it to a double's precision at every angle. acos of the cosine would read nothing finer than
+    about 1e-6 deg near 0 and 180, where one rounding step of the cosine is 1.5e-8 rad."""
+    dot = ((a["p1"][0] - a["p0"][0]) * (b["p1"][0] - b["p0"][0])
+           + (a["p1"][1] - a["p0"][1]) * (b["p1"][1] - b["p0"][1]))
+    return math.degrees(math.atan2(abs(direction_cross(a, b)), dot))
 
 
 def parallel_gap(a, b):
@@ -929,8 +945,9 @@ def rel_perpendicular(o):
     pick("perpendicular", mid(a), mid(b))
     gui.press("Perpendicular")
     ang = angle_between(*now(gui.sketch(), a, b))
-    # 1e-6 deg (1.7e-8 rad): the live solve converges to its own tolerance from a 50 deg start. The
-    # reopened sketch is solved from scratch, and is held to exactly 90.
+    # 1e-6 deg: the solve stops once the direction cosine is within SOLVE_TOLERANCE, an angle of 1e-8
+    # rad (5.7e-7 deg), from a 50 deg start. The reopened sketch is solved again from geometry already
+    # that close, and Newton's step from there lands far inside the tolerance: it is held to exactly 90.
     gui.check("perpendicular: the lines are now at 90 deg", near(ang, 90.0, 1e-6), f"{ang:.9f} deg")
     d2, cons = yield
     ang = angle_between(*now(d2, a, b))
@@ -939,10 +956,13 @@ def rel_perpendicular(o):
 
 
 def parallel_holds(rung, d, a, b, after):
-    """Check that the lines a and b are parallel in `d`, and that neither collapsed to get there."""
+    """Check that the lines a and b are parallel in `d` as the solver holds a Parallel, the product of their
+    directions within SOLVE_TOLERANCE mm², and that neither collapsed to get there, which would meet it too."""
     A, B = now(d, a, b)
-    g = parallel_gap(A, B)
-    gui.check(f"{rung}: the lines are parallel{after}", near(g, 0.0, 1e-6), f"{g:.9f} deg from parallel")
+    c = direction_cross(A, B)
+    gui.check(f"{rung}: the lines are parallel{after}", abs(c) <= SOLVE_TOLERANCE,
+              f"|a x b| {abs(c):.3e} mm2 for lines of {A['length']:.3f} and {B['length']:.3f} mm, "
+              f"{parallel_gap(A, B):.3e} deg from parallel")
     gui.check(f"{rung}: neither line collapsed{after}", A["length"] > 1.0 and B["length"] > 1.0,
               f"lengths {A['length']:.6f}, {B['length']:.6f}")
 
@@ -1339,8 +1359,13 @@ def rel_equal_radius_button(o):
     def angle(a, b):
         pick("type_guards", rim(a), rim(b))
         gui.press("Angle")
-        # A field can open a moment after the press, so the canvas is watched for one for a second.
-        field = until(lambda: gui.value_field() or gui.sketch()["editing"], timeout=1.0)
+        # The press refuses two circles on the status line, where for two lines it opens its value field: once the
+        # status line says why, the press has run, and whether a field opened is read once.
+        why = "Angle applies between two lines"
+        said = until(lambda: any(w.kind == "text" and why in w.label for w in gui.widgets()))
+        gui.check(f"type_guards: Angle on two circles says \"{why}\"", said,
+                  [w.label for w in gui.widgets() if w.kind == "text"][:8])
+        field = gui.value_field() or gui.sketch()["editing"]
         gui.check("type_guards: Angle on two circles opened no value field", not field, f"field {field}")
         if gui.value_field() is not None:
             key("Escape")
@@ -1718,12 +1743,10 @@ RUNGS = {"rect": rung_rect, "circle": rung_circle, "line": rung_line, "arc": run
 
 def main():
     global gui
-    client = orca_mcp.session_client()[0]
-    # The start every test sets on a shared data folder, made before CadGui.start(), whose first check needs the
-    # Design tab not yet shown.
-    checks.start(client)
-    gui = CadGui(client)
-    gui.start()
+    # The Design tab's first showing, checked before anything builds the tab, which needs an app that has not: the
+    # sweep starts this test in a new app. Then the baseline every test starts from, and the Design tab's own start.
+    gui = CadGui(orca_mcp.session_client()[0])
+    gui.start(first_showing=True)
     return gui.run({**RUNGS, "selfcheck-recovery": selfcheck_recovery}, sys.argv[1:] or list(RUNGS))
 
 

@@ -44,7 +44,6 @@ import checks as shared  # noqa: E402
 import orca_mcp  # noqa: E402
 
 START = {"printer": shared.KLIPPER, "process": shared.KLIPPER_STD, "filaments": [shared.GENERIC_PLA]}
-CANVAS = {"name": "OrcaSceneCanvas"}
 FILES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests", "fixtures", "filaments_and_files.py")
 # A G-code file with no settings in it, which the app shows without its sidebar.
 GCODE = """G90
@@ -91,23 +90,16 @@ def main():
         """How many filament slots the project has: app_state names each slot's preset."""
         return len(client.call("app_state")["presets"]["filaments"])
 
-    def dial_pick(title):
-        """Opens the Speed Dial on the shown 3D view and picks the action titled `title`, as a person's click does."""
-        client.call("keyboard_press", keys="space", target=CANVAS)
-        client.call("widget_set_value", target={"web": "Search actions"}, value=title, submit=False)
-        return client.call("widget_click", target={"web": f"{title} from Orcaslicer", "kind": "button"})
-
     def picked(title):
         """The notices and dialogs once a pick of `title` has run."""
-        dial_pick(title)
-        client.call("app_wait", **{"for": "idle"})
+        shared.dial_pick(client, title)
+        shared.wait(client, "idle")
         state = client.call("app_state")
         return [n.get("text", "") for n in state.get("notifications", [])], state.get("dialogs", [])
 
-    client.call("app_wait", **{"for": "ready"})
+    shared.wait(client, "ready", 50)
     presets = shared.start(client)
     check("starts from the Generic Klipper Printer", presets == START, presets)
-    client.call("view_set", tab="prepare")
 
     # ---- Syncing presets needs an account ----
     refused("preset_sync while signed out is refused", "preset_sync", {}, "Sign in", "not_signed_in")
@@ -222,7 +214,7 @@ def main():
     refused("filament_delete of the only filament slot is refused", "filament_delete", {}, "only filament slot",
             "last_filament_slot")
     check("and deletes no slot", slots() == 1, slots())
-    client.call("filament_add")
+    shared.add_slot(client, shared.SLOT_COLOURS[1])
     mixed = client.call("filament_add_mixed", components=[1, 2], ratios=[50, 50])
     check("a mixed filament of slots 1 and 2 is slot 3", mixed.get("filament_slot") == 3, mixed)
     refused("filament_delete of slot 1 merged into the mixed filament that mixes it, answered no, is refused",
@@ -233,6 +225,7 @@ def main():
     check("and the two leave the three slots", slots() == 3, slots())
 
     # ---- No slot is added past the most a project holds ----
+    # filament_add is what this part tests, the sidebar's Add up to the limit; the slots' colours play no part.
     for _ in range(MOST_SLOTS - slots()):
         client.call("filament_add")
     check(f"{MOST_SLOTS} filament slots", slots() == MOST_SLOTS, slots())

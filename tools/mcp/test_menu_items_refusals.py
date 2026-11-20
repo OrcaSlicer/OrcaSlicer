@@ -55,14 +55,12 @@ import json
 import os
 import re
 import sys
-import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import checks as shared  # noqa: E402
 import orca_mcp  # noqa: E402
 
 START = {"printer": shared.KLIPPER, "process": shared.KLIPPER_STD, "filaments": [shared.GENERIC_PLA]}
-CANVAS = {"name": "OrcaSceneCanvas"}
 UNDO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests", "fixtures", "ops_undo.py")
 
 
@@ -100,14 +98,8 @@ def main():
     def gizmo():
         return (client.call("app_state").get("gizmo") or {}).get("name")
 
-    def dial_pick(title):
-        """Opens the Speed Dial on the shown 3D view and picks the action titled `title`, as a person's click does."""
-        client.call("keyboard_press", keys="space", target=CANVAS)
-        client.call("widget_set_value", target={"web": "Search actions"}, value=title, submit=False)
-        return client.call("widget_click", target={"web": f"{title} from Orcaslicer", "kind": "button"})
-
     def settled():
-        client.call("app_wait", **{"for": "idle"})
+        shared.wait(client, "idle")
         return client.call("app_state")
 
     def notices(state):
@@ -120,11 +112,20 @@ def main():
                 return rule.get("uses", 0)
         return None
 
+    def uses_after(match, before):
+        """The uses of the auto-answer rule `match` once they differ from `before`, waiting up to 30 s; `before` when
+        they never change. The object list posts its messages (show_error() opens them from CallAfter), so one can open
+        after the call or the pick has replied and the app has read idle."""
+        try:
+            return shared.until(lambda: rule_uses(match) != before and rule_uses(match), f"the rule {match!r} answers")
+        except TimeoutError:
+            return rule_uses(match)
+
     def close_notice(words):
         """Closes the notice whose text holds `words`, as a click on its close button does, so that a later pick that
         shows the same text is seen to show it: the same text pushed again only moves the open notice to the end of the
         list (NotificationManager::activate_existing()). Then checks that app_state.notifications holds no notice with
-        that text, waiting up to 5 s.
+        that text, waiting up to 30 s.
 
         widget_list lists each notification as the ImGui window "!!Ntfctn<id>" with its lines as text nodes. Its close
         glyph and the large invisible button over it, " ", have labels the listing cleans to nothing and no ## name, so
@@ -158,18 +159,16 @@ def main():
                     clicked.append((window, f"item {count.group(1)} of {count.group(1)}"))
                 except orca_mcp.McpError as failed:
                     clicked.append((window, str(failed)))
-        deadline = time.monotonic() + 5
-        while any(words in text for text in notices(client.call("app_state"))):
-            if time.monotonic() > deadline:
-                check("the earlier notice is closed", False, (clicked, notices(client.call("app_state"))))
-                return
-            time.sleep(0.2)
-        check("the earlier notice is closed", True)
+        try:
+            shared.until(lambda: not any(words in text for text in notices(client.call("app_state"))),
+                         f"no notice holds {words!r}")
+            check("the earlier notice is closed", True)
+        except TimeoutError:
+            check("the earlier notice is closed", False, (clicked, notices(client.call("app_state"))))
 
-    client.call("app_wait", **{"for": "ready"})
+    shared.wait(client, "ready", 50)
     presets = shared.start(client)
     check("starts from the Generic Klipper Printer", presets == START, presets)
-    client.call("view_set", tab="prepare")
     client.call("object_add_primitive", shape="cube", size=[20, 20, 20])
     client.call("object_select", none=True)
     client.call("object_add_primitive", shape="cube", size=[20, 20, 20])
@@ -231,7 +230,7 @@ def main():
             "wrong_selection")
     client.call("dialog_auto_answer", rules=[{"match": "Renaming", "button": "cancel"}])
     before = rule_uses("Renaming")
-    dial_pick("Rename")
+    shared.dial_pick(client, "Rename")
     state = settled()
     check("a pick of Rename with an instance selected says to select one object or part",
           any("Select one object or part first" in text for text in notices(state)), notices(state))
@@ -247,7 +246,7 @@ def main():
     client.call("object_set_instances", object=0, count=3)
     offsets = [i["offset"] for i in client.call("object_list")["plates"][0]["objects"][0]["instances"]]
     client.call("object_select", parts=[[0, 1]])
-    dial_pick("Set as Individual Objects")
+    shared.dial_pick(client, "Set as Individual Objects")
     settled()
     objects = client.call("object_list")["plates"][0]["objects"]
     check("a pick of Set as Individual Objects with a part selected makes one object", len(objects) == 2, len(objects))
@@ -264,10 +263,11 @@ def main():
     client.call("object_select", parts=[[0, 0]])
     client.call("dialog_auto_answer", rules=[{"match": "last solid part", "button": "ok"}])
     before = rule_uses("last solid part")
-    dial_pick("Delete Selected")
+    shared.dial_pick(client, "Delete Selected")
     state = settled()
-    check("a pick of Delete with the last solid part selected shows the object list's message",
-          rule_uses("last solid part") == before + 1, f"{before} -> {rule_uses('last solid part')}")
+    uses = uses_after("last solid part", before)
+    check("a pick of Delete with the last solid part selected shows the object list's message", uses == before + 1,
+          f"{before} -> {uses}")
     check("and no notice of its own", not any("solid part" in text for text in notices(state)), notices(state))
     check("and deletes nothing", len(client.call("object_list")["plates"][0]["objects"][0]["parts"]) == 2)
 
@@ -286,13 +286,8 @@ def main():
     reply = client.call("object_delete")
     if reply.get("status") in ("running", "blocked_by_dialog"):
         reply = client.await_job(reply)
-    # The object list posts its message (show_error() opens it from CallAfter), so the call can reply before it opens.
     settled()
-    uses = rule_uses("last solid part")
-    deadline = time.monotonic() + 10
-    while uses == before and time.monotonic() < deadline:
-        time.sleep(0.2)
-        uses = rule_uses("last solid part")
+    uses = uses_after("last solid part", before)
     check("object_delete {} on both solid parts shows the object list's message for the first", uses == before + 1, f"{before} -> {uses}")
     left = client.call("object_list")["plates"][0]["objects"][0]["parts"]
     check("and deletes the second alone", [p["id"] for p in left] == [parts[0]["id"], parts[2]["id"]], left)
@@ -314,7 +309,7 @@ def main():
     client.call("mouse_gesture", at={"object": 0, "spot": "top"}, check="point")
     client.call("widget_click", target={"imgui": "Confirm connectors"})
     client.call("widget_click", target={"imgui": "Perform cut"})
-    client.call("app_wait", **{"for": "idle"})
+    shared.wait(client, "idle")
     check("the cube is cut in two", total() == 2, total())
     refused("object_delete of a cut object by index is refused with the question Delete asks", "object_delete", {"objects": [0]},
             "part of a cut object", "cut_object")
@@ -332,10 +327,10 @@ def main():
     client.call("object_select", objects=[0])
     client.call("dialog_auto_answer", rules=[{"match": "which is a part of", "button": "cancel"}])
     before = rule_uses("which is a part of")
-    dial_pick("Delete Selected")
+    shared.dial_pick(client, "Delete Selected")
     state = settled()
-    check("a pick of Delete on a cut object asks the object list's question", rule_uses("which is a part of") == before + 1,
-          f"{before} -> {rule_uses('which is a part of')}")
+    uses = uses_after("which is a part of", before)
+    check("a pick of Delete on a cut object asks the object list's question", uses == before + 1, f"{before} -> {uses}")
     check("and, cancelled, shows no notice", not any("Nothing was deleted" in text for text in notices(state)), notices(state))
     check("and deletes nothing", total() == 2, total())
 
@@ -347,7 +342,7 @@ def main():
             "one piece", "one_shell")
     check("and splits nothing", total() == 1, total())
     client.call("object_select", objects=[0])
-    dial_pick("Split to Objects")
+    shared.dial_pick(client, "Split to Objects")
     state = settled()
     check("a pick of Split to Objects on it says it is one piece", any("one piece" in text for text in notices(state)), notices(state))
     check("and splits nothing", total() == 1, total())
@@ -373,22 +368,22 @@ def main():
     client.call("object_select", objects=[0])
     client.call("dialog_auto_answer", rules=[{"match": "Auto-Drop", "button": "no"}])
     before = rule_uses("Auto-Drop")
-    dial_pick("Split to Objects")
+    shared.dial_pick(client, "Split to Objects")
     settled()
-    check("a pick of Split to Objects asks the Auto-Drop question", rule_uses("Auto-Drop") == before + 1,
-          f"{before} -> {rule_uses('Auto-Drop')}")
+    uses = uses_after("Auto-Drop", before)
+    check("a pick of Split to Objects asks the Auto-Drop question", uses == before + 1, f"{before} -> {uses}")
     lowest = sorted(o["bbox"]["min"][2] for o in client.call("object_list")["plates"][0]["objects"])
     check("and, answered No, the pieces drop", len(lowest) == 2 and lowest[1] < 1, lowest)
     client.call("dialog_auto_answer", rules=[])
 
     # ---- Change Type and Assemble picked with a selection their menu items refused, in the items' words ----
     client.call("object_select", objects=[0])
-    dial_pick("Change Type to Modifier")
+    shared.dial_pick(client, "Change Type to Modifier")
     state = settled()
     check("a pick of Change Type with an object selected says to select a part", any("Select a part first" in text for text in notices(state)),
           notices(state))
     client.call("object_select", objects=[0])
-    dial_pick("Assemble")
+    shared.dial_pick(client, "Assemble")
     state = settled()
     check("a pick of Assemble with one object selected says to select two or more",
           any("Select two or more objects first" in text for text in notices(state)), notices(state))
@@ -401,19 +396,19 @@ def main():
             {"shape": "cube", "size": [10, 10, 10], "plate": 9}, "plate", "no_such_plate")
     check("and adds nothing", total() == 2, total())
     client.call("object_select", objects=[0, 1])
-    dial_pick("Mirror X")
+    shared.dial_pick(client, "Mirror X")
     state = settled()
     check("a pick of Mirror X with two objects selected says it takes one instance",
           any("one instance" in text for text in notices(state)), notices(state))
     mirrored = [o["instances"][0]["mirrored"] for o in client.call("object_list")["plates"][0]["objects"]]
     check("and mirrors nothing", mirrored == [False, False], mirrored)
     client.call("object_select", objects=[0])
-    dial_pick("Drop to Bed")
+    shared.dial_pick(client, "Drop to Bed")
     state = settled()
     check("a pick of Drop to Bed on an object on the bed says it already rests there",
           any("already rests on the bed" in text for text in notices(state)), notices(state))
     client.call("object_select", objects=[0])
-    dial_pick("Cube")
+    shared.dial_pick(client, "Cube")
     state = settled()
     check("a pick of Cube with an object selected says to deselect it, as Add Primitive does",
           any("Deselect all objects" in text for text in notices(state)), notices(state))
@@ -451,7 +446,7 @@ def main():
     cube("pair", instances=2)
     cube("other")
     list_rows("pair>Instances>Instance 1", "pair>Instances>Instance 2")
-    dial_pick("Assemble")
+    shared.dial_pick(client, "Assemble")
     settled()
     check("a pick of Assemble on the two instance rows of an object assembles the two", objects_named() == [("other", 1), ("Assembly", 2)],
           objects_named())
@@ -460,7 +455,7 @@ def main():
     cube("pair", instances=2)
     cube("other")
     list_rows("pair>Instances>Instance 1", "pair>Instances>Instance 2", "other")
-    dial_pick("Assemble")
+    shared.dial_pick(client, "Assemble")
     settled()
     check("and on those rows and another object's row, all three, none lost", objects_named() == [("Assembly", 3)], objects_named())
 
@@ -471,7 +466,7 @@ def main():
     # Assemble with one object selected, above, showed the same text.
     close_notice("Select two or more objects first")
     list_rows("left>left", "left>Generic-Cube")
-    dial_pick("Assemble")
+    shared.dial_pick(client, "Assemble")
     state = settled()
     check("a pick of Assemble on every part row of an object says to select two or more objects, as its menu item did",
           any("Select two or more objects first" in text for text in notices(state)), notices(state))
@@ -480,7 +475,7 @@ def main():
     client.call("project_new", discard_changes=True)
     cube("mixed", part="modifier")
     list_rows("mixed>mixed", "mixed>Generic-Cube")
-    dial_pick("Change Type to Part")
+    shared.dial_pick(client, "Change Type to Part")
     settled()
     check("a pick of Change Type to Part on an object's part and modifier rows makes the modifier a part",
           part_types(0) == ["part", "part"], part_types(0))
@@ -488,7 +483,7 @@ def main():
     client.call("project_new", discard_changes=True)
     cube("solid", part="part")
     list_rows("solid>solid", "solid>Generic-Cube")
-    dial_pick("Change Type to Negative Part")
+    shared.dial_pick(client, "Change Type to Negative Part")
     state = settled()
     check("a pick of Change Type to Negative Part on every solid part row says the last solid part keeps its type",
           any("last solid object part cannot be changed" in text for text in notices(state)), notices(state))
@@ -499,7 +494,7 @@ def main():
     cube("twice", instances=2, part="part")
     client.call("dialog_auto_answer", rules=[{"match": "Auto-Drop", "button": "no"}])
     list_rows("twice>Instances>Instance 1", "twice>Instances>Instance 2")
-    dial_pick("Split to Objects")
+    shared.dial_pick(client, "Split to Objects")
     state = settled()
     check("a pick of Split to Objects on two instance rows says it takes one",
           any("one object or part at a time" in text for text in notices(state)), notices(state))
@@ -509,7 +504,7 @@ def main():
     # Split to Objects on two instance rows, above, showed the same text.
     close_notice("one object or part at a time")
     list_rows("parts>parts", "parts>Generic-Cube")
-    dial_pick("Split to Parts")
+    shared.dial_pick(client, "Split to Parts")
     state = settled()
     check("a pick of Split to Parts on every part row of an object says it takes one",
           any("one object or part at a time" in text for text in notices(state)), notices(state))
@@ -569,7 +564,7 @@ def main():
     client.call("dialog_auto_answer", rules=[])
     client.call("project_new", discard_changes=True)
     client.call("object_add_primitive", shape="cube", size=[20, 20, 20], name="kept")
-    client.call("app_wait", **{"for": "idle"})
+    shared.wait(client, "idle")
 
     def plates():
         return client.call("plate_list").get("total")
@@ -579,7 +574,7 @@ def main():
         return client.call("script_run", filename=UNDO, code="import ops_undo\nresult = ops_undo.taken()")["result"]
 
     snapshots()
-    dial_pick("Duplicate Plate")
+    shared.dial_pick(client, "Duplicate Plate")
     settled()
     check("a pick of Duplicate Plate adds a plate", plates() == 2, plates())
     taken = snapshots()
@@ -593,10 +588,10 @@ def main():
             {"id": "orca_command:plate_rename:orca"}, "not renamed", "not_renamed")
     check("and its dialog was asked", rule_uses("Edit Plate Name") == before + 1, f"{before} -> {rule_uses('Edit Plate Name')}")
     before = rule_uses("Edit Plate Name")
-    dial_pick("Rename Plate")
+    shared.dial_pick(client, "Rename Plate")
     state = settled()
-    check("a pick of Rename Plate asks for the name", rule_uses("Edit Plate Name") == before + 1,
-          f"{before} -> {rule_uses('Edit Plate Name')}")
+    uses = uses_after("Edit Plate Name", before)
+    check("a pick of Rename Plate asks for the name", uses == before + 1, f"{before} -> {uses}")
     check("and, cancelled, shows no notice", not any("renamed" in text for text in notices(state)), notices(state))
     name = client.call("plate_list")["items"][0]["name"]
     check("and renames nothing", name == "", name)
@@ -628,8 +623,6 @@ def main():
     taken = snapshots()
     check("and takes no undo snapshot", taken.get("count") == 0, taken)
 
-    client.call("dialog_auto_answer", rules=[])
-    client.call("project_new", discard_changes=True)
     failed = [c for c in checks if not c[1]]
     for name, ok, detail in checks:
         print(("PASS " if ok else "FAIL ") + name + ("" if ok else f": {detail}"))

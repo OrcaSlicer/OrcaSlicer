@@ -9,7 +9,7 @@ found by label, and canvas positions come from a calibration that maps the open 
 English, which start() checks.
 
     gui = CadGui(orca_mcp.session_client()[0])
-    gui.start()
+    gui.start()   # checks.start()'s baseline, then the Design tab's own start
     sys.exit(gui.run({"rect": rung_rect}, sys.argv[1:]))
 """
 
@@ -21,6 +21,7 @@ import re
 import sys
 import time
 
+import checks
 import orca_mcp
 
 # Labels carry characters such as "—" and "·", and output piped to a file on Windows is encoded in
@@ -33,6 +34,12 @@ ATLAS = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.p
 # The 3D canvas by its window name, which every platform lists; only Windows gives it as its label too.
 CANVAS = {"name": "OrcaSceneCanvas"}
 NEW_DESIGN = "New Design — clear the feature tree"
+
+# The Design view's switches as a new data folder and a newly started app have them, under view_set's names: the
+# Origin row's planes hidden (design_show_origin, unset in a new folder), the bed shown (design_show_bed's default),
+# and the helper planes and axes of keys P and A hidden, as each app starts. The baseline leaves them to the Design
+# tests (TESTS.md), so reset_switches() sets them, with the section view off.
+SWITCHES = {"origin": False, "bed": True, "origin_planes": False, "world_axes": False}
 
 # reset_view()'s zoom, in click pixels per mm at the camera's target, about 1.6: close enough that a
 # 40 mm line is long beside the pixel-sized reach of its value label, and far enough that the region
@@ -79,14 +86,27 @@ ValueField = collections.namedtuple("ValueField", "title prefill ref focused")
 Offer = collections.namedtuple("Offer", "header items disabled checked")
 
 
-def until(fn, timeout=5.0, interval=0.05):
-    """Poll fn until it returns something true, or timeout seconds pass; returns its last value."""
+def until(fn, timeout=30.0, interval=0.05):
+    """Poll fn until it returns something true, or timeout seconds pass; returns its last value.
+
+    The Design tab's poller: every 0.05 s, since a click there takes effect within a frame or two. It never raises,
+    so that a caller can check what it saw or raise with it; the deadline only bounds a hang."""
     deadline = time.monotonic() + timeout
     while True:
         value = fn()
         if value or time.monotonic() >= deadline:
             return value
         time.sleep(interval)
+
+
+def reset_switches(client):
+    """Put the Design view's switches as SWITCHES gives them and its section view off, on the Design tab, which
+    view_set shows to take them; raises when its reply reads them otherwise."""
+    design = client.call("view_set", tab="design", section={"on": False}, **SWITCHES).get("design", {})
+    got = {k: design.get(k) for k in SWITCHES}
+    if got != SWITCHES or (design.get("section") or {}).get("on") is not False:
+        raise RuntimeError(f"view_set left the Design view's switches at {got}, section {design.get('section')}, "
+                           f"not at {SWITCHES} with the section off")
 
 
 def _same(a, b, tol=1e-12):
@@ -307,14 +327,15 @@ class CadGui:
         return 1 if self.failures else 0
 
     def recover(self):
-        """Back to an empty design with no sketch open, whatever a failed rung left behind.
+        """Back to an empty design with no sketch open and the view's switches as start() set them,
+        whatever a failed rung left behind.
 
         Dialogs go first, since the canvas takes no input while one is open, then the modeless
         dialogs a rung opened, such as the Design tab's Text dialog. A press a rung left held is
         released before reset_view(), whose N would otherwise act under it."""
         steps = [("cancel dialogs", self._cancel_dialogs),
                  ("cancel modeless dialogs", self._cancel_modeless),
-                 ("show the Design tab", lambda: self.client.call("view_set", tab="design")),
+                 ("show the Design tab and its switches", lambda: reset_switches(self.client)),
                  ("release the mouse", lambda: self.gesture(action="up", **self._canvas_centre())),
                  ("reset the view", self.reset_view),
                  ("Escape", lambda: self.keys("Escape", target=CANVAS)),
@@ -355,8 +376,10 @@ class CadGui:
             else:
                 page = next((w for w in own if w.kind == "webview"), None)
                 self.keys("Escape", target=page.ref if page is not None else shown[0]["ref"])
-            until(lambda: len(self.modeless()) < len(shown), timeout=2.0)
-        raise RuntimeError(f"modeless dialogs stay open: {self.modeless()}")
+            if not until(lambda: len(self.modeless()) < len(shown)):
+                raise RuntimeError(f"the dialog {shown[0]['title']!r} stays open after its "
+                                   f"{'Cancel' if cancel is not None else 'Escape'}: {self.modeless()}")
+        raise RuntimeError(f"modeless dialogs keep opening: {self.modeless()}")
 
     # ------------------------------------------------------------ reading
 
@@ -452,6 +475,29 @@ class CadGui:
         field = self.value_field()
         return field if field is not None and field.focused else None
 
+    def settle(self):
+        """Wait until the app has run what the last input set off, so that what is read next is what the input left.
+
+        The Design tab answers a click or a key in its handler and in work the handler, or the frame drawn after the
+        input, queues on the UI thread: the sketch a plane pick opens, the value field a drawn shape opens
+        (DesignSketchTool's draw-then-edit chain), the next field a Return opens. mouse_gesture and keyboard_press draw
+        a frame after each event they send, and the app answers each call on the UI thread after the work queued there
+        before it, so once app_wait {for: "idle"} answers, which also needs no dialog open and no job running, that
+        work has run."""
+        checks.wait(self.client, "idle", 30)
+
+    def opened_field(self):
+        """The value field the last input left open, or None when it left none, read once the app has run what the
+        input set off (settle()): widget_list draws the canvas before it lists it, so it lists a field that is open,
+        as an open sketch's editing says."""
+        self.settle()
+        field = self.value_field()
+        if field is None and (self._sketch_or_none() or {}).get("editing"):
+            field = until(self.value_field)
+            if field is None:
+                raise RuntimeError("sketch_describe says a value field is open, and widget_list lists none")
+        return field
+
     # ------------------------------------------------------------ input
 
     def keys(self, chord, target=None):
@@ -495,11 +541,17 @@ class CadGui:
 
     # ------------------------------------------------------------ session
 
-    def start(self):
-        """Check the UI is English, clear the auto-answer rules an earlier run left, check the Design
-        tab lays its canvas out on its first showing (in a fresh instance) as on a later one, make the
-        window wide enough for the sketch ribbon, show the Design tab in reset_view()'s view and start
-        an empty design."""
+    def start(self, first_showing=False):
+        """Put the app in the state every Design test starts from: check the UI is English, put the app
+        in the baseline (checks.start()), set the view's switches (reset_switches()), make the window
+        wide enough for the sketch ribbon, show the Design tab in reset_view()'s view and start an
+        empty design.
+
+        `first_showing` first checks that the Design tab lays out its canvas on its first showing as on
+        a later one, which only an app that has not built the tab yet can tell: the test that asks for
+        it runs in a newly started app. It comes before checks.start(), whose cancel_tool builds the
+        tab unshown, so that the tab is built by its first showing, as a person's first click on it
+        builds it."""
         if not self.client.call("app_state").get("design_tab"):
             print("the Design tab is off: launch the app with tools/mcp/orca_mcp.py launch --cad")
             sys.exit(2)
@@ -508,18 +560,18 @@ class CadGui:
                 and any(w.kind == "tab" and w.label == "Design" for w in ws)):
             print("the UI must be in English: set Preferences > General > Language to English and restart")
             sys.exit(2)
-        # A run killed before it cleared its auto-answer rules leaves them in force, and they would
-        # answer this run's dialogs and pickers; an empty list clears the rules a client set.
-        self.client.call("dialog_auto_answer", rules=[])
-        # A canvas laid out under a ribbon of the wrong height moves when the tab is shown again, and a
-        # click aimed through a map fitted before the move misses by that much.
-        self.client.call("view_set", tab="design")
-        first = self._canvas(self.widgets()).rect
-        self.client.call("view_set", tab="prepare")
-        self.client.call("view_set", tab="design")
-        again = self._canvas(self.widgets()).rect
-        self.check("the Design tab's first showing lays out its canvas as a later one does", first == again,
-                   f"{first}, then {again}")
+        if first_showing:
+            # A canvas laid out under a ribbon of the wrong height moves when the tab is shown again,
+            # and a click aimed through a map fitted before the move misses by that much.
+            self.client.call("view_set", tab="design")
+            first = self._canvas(self.widgets()).rect
+            self.client.call("view_set", tab="prepare")
+            self.client.call("view_set", tab="design")
+            again = self._canvas(self.widgets()).rect
+            self.check("the Design tab's first showing lays out its canvas as a later one does", first == again,
+                       f"{first}, then {again}")
+        checks.start(self.client)
+        reset_switches(self.client)
         # The ribbon shows its sketch buttons only while a sketch is open, so one is opened to see
         # where Cancel, the last of them, lands. It sits after a stretch spacer, so once the window
         # is wider than the ribbon it moves in from the canvas's right edge (the window's).
@@ -588,7 +640,9 @@ class CadGui:
         return (self._sketch_or_none() or {}).get("ok")
 
     def _open_sketch(self):
-        """Open a sketch on the XY reference plane, by the route enter_sketch() describes."""
+        """Open a sketch on the XY reference plane, by the route enter_sketch() describes. Each click's
+        outcome is read once the app has run what the click set off (settle()), so a click that
+        picked no plane is told from one whose sketch is still opening."""
         if self._sketch_or_none():
             raise RuntimeError("a sketch is already open")
         self.show_design()
@@ -597,7 +651,8 @@ class CadGui:
         step = 0.02 * min(w, h)
         for k in range(1, 16):
             self.gesture(x=round(w / 2 + k * step), y=round(h / 2 + k * step))
-            if until(self._sketch_ok, timeout=0.5):
+            self.settle()
+            if self._sketch_ok():
                 return
         raise RuntimeError("no sketch opened: no click along the XY plane's diagonal picked it")
 

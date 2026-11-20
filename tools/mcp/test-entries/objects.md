@@ -10,7 +10,7 @@ the list orders them (parts and their types, names, order, meshes and the files 
 saves and reopens one project that holds what each part keeps in the file.
 
 ## `test_objects`
-`test_objects.py` · Python, 1259 checks · in `sweep.json` as `{"path": "test_objects.py"}`
+`test_objects.py` · Python, 1258 checks · in `sweep.json` as `{"path": "test_objects.py"}`
 
 **Tests:** The plates of the Prepare view: adding, duplicating, naming, locking, selecting and deleting plates, and
 undoing that; what a lock keeps Arrange and Auto-Orient from doing; the settings a plate sets for itself; the filament
@@ -32,13 +32,14 @@ of it), two to a row, and by-object printing that lets objects lower than its ro
 several, which the Klipper printer does only with its `support_multi_bed_types` on, so a plate's own settings and what
 the project keeps turn that on first.
 
-**Starts from:** Every scenario starts with `start(client)` in the Prepare view and checks that `presets()` is
-`{printer: KLIPPER, process: KLIPPER_STD, filaments: [GENERIC_PLA]}` and that `plates()` is `"" 0 *`, and in every
-scenario after the plates' ones that there are no objects; a `project_new` within a scenario is followed by the same
-check of the plates and objects. A plate's own settings and what the project keeps turn on the printer's `support_multi_bed_types`
-with `settings_set {type: "printer", values: {support_multi_bed_types: "1"}}`, an unsaved printer edit that the next
-scenario's `start()` discards, and set the project's plate type themselves rather than rely on the one a new project
-starts with. The other stored settings a check depends on are set by the test before the step that reads them:
+**Starts from:** Every scenario starts with `start(client)`, which leaves the Prepare view, and checks that
+`presets()` is `{printer: KLIPPER, process: KLIPPER_STD, filaments: [GENERIC_PLA]}` and that `plates()` is `"" 0 *`,
+and in every scenario after the plates' ones that there are no objects; a `project_new` within a scenario is followed
+by the same check of the plates and objects. A plate's own settings and what the project keeps turn on the printer's
+`support_multi_bed_types` with `settings_set {type: "printer", values: {support_multi_bed_types: "1"}}`, an unsaved
+printer edit that the next scenario's `start()` discards, and set the project's plate type to Cool Plate themselves,
+the baseline's being High Temp Plate. The other stored settings a check depends on are set by the test before the
+step that reads them:
 - The arrange options. The Arrange options panel keeps the ones an arrange is given for every arrange after, one set
   for each print sequence: the by-layer ones here, which the Klipper process prints with. An earlier test may leave
   rotation on (`test_runtime_calls` does), and then the turn an arrange without options gives a cube is the
@@ -50,18 +51,15 @@ starts with. The other stored settings a check depends on are set by the test be
 - The keep_painting preference, which the painting scenario sets before each step whose result depends on it
   (painting, steps 2 and 4); no other step reloads or replaces a painted part.
 
-The Clone dialog's Auto arrange box starts from the `auto_arrange` preference, which `test_preferences` changes; the
-test does not set it, as cloning step 6 holds whether the dialog arranges or not. The auto-answer rule a plate's own
-settings sets lasts only while the app runs.
+The Clone dialog's Auto arrange box starts from the `auto_arrange` preference, at the new folder's value `start()`
+gives it; cloning step 6 holds whether the dialog arranges or not. A plate's own settings sets an auto-answer rule for
+the spiral mode question and removes it once step 12 has used it.
 
-**Leaves:** The Klipper printer selected, with one slot of `GENERIC_PLA` and no unsaved edit: the test's closing
-`project_new {discard_changes: true, preset_changes: "discard"}` drops the printer edit the reopened project brings
-back. As the app remembers it for that printer, the plate type High Temp Plate a new project starts with. The by-layer
-arrange options its last arrange with options stored: spacing 10 and rotation off. keep_painting on, as painting step 4
-sets it. `keeps.3mf` at the top of the recent projects, and the folder the file dialogs open in, both in `W`, which is
-removed when the test ends. On a data folder in Simple mode, Advanced mode: an undo in Simple mode to a step whose model
-has several instances or a part other than a model part switches the app to Advanced and keeps it
-(`Plater::priv::update_after_undo_redo()`, the app's own code), as the undo of the number of instances, step 4, does.
+**Leaves:** The project the last scenario reopened, `keeps.3mf`, on the Klipper printer with one slot of
+`GENERIC_PLA`, with the printer edit the project brings back, `support_multi_bed_types` on, unsaved: the next
+`start()` discards both. The by-layer arrange options its last arrange with options stored: spacing 10 and rotation
+off. keep_painting on, as painting step 4 sets it. `keeps.3mf` at the top of the recent projects, and the folder the
+file dialogs open in, both in `W`, which is removed when the test ends.
 
 **Files:** The test writes into a folder of its own, `W` (a `tempfile.TemporaryDirectory()`, removed when the test
 ends), with an ASCII STL writer of its own: `cube20.stl` (a 20 mm cube from the origin, 12 triangles), `cube30.stl`
@@ -205,9 +203,9 @@ other angles: it reports A's `[0, 90, 0]` as `[180, 90, 180]`.
 **Scenario: a plate's own settings**
 
 It starts with the printer's `support_multi_bed_types` on, two filament slots (`slots()` is `"0,0"`, the second added
-with the Add filament action), the project's plate type set to Cool Plate with `project_set_settings`, and steps 1 to
-3 of the by-index scenario: two plates with a cube each, plate 1 current. In the table, a plate whose settings are not
-named has the project's: `Cool Plate`, `by layer`, spiral off, both orders `null`, and no `overrides`. What the
+with `add_slot` in `SLOT_COLOURS[1]`), the project's plate type set to Cool Plate with `project_set_settings`, and steps
+1 to 3 of the by-index scenario: two plates with a cube each, plate 1 current. In the table, a plate whose settings are
+not named has the project's: `Cool Plate`, `by layer`, spiral off, both orders `null`, and no `overrides`. What the
 project file keeps of a plate's settings is checked in what the project keeps.
 
 | # | Step | Settings after | Also checked |
@@ -261,7 +259,7 @@ Each step is a `widget_click` on `{plate_icon, plate}` unless it says otherwise.
 | 9 | the same, picking `Lock` | `"" 0` · `"" 2 * L` | the reply's `ran` is `Lock` |
 | 10 | `lock` on plate 1 | `"" 0` · `"" 2 *` | |
 | 11 | `move_to_front` on plate 1 | `"" 2 *` · `"" 0` | both cubes on plate 0 |
-| 12 | `app_state` | as after 11 | no dialog open and no menu left open |
+| 12 | `app_state` | as after 11 | no dialog open, and no menu left open since the scenario's start (`menus_left()`: `closed_menus` keeps the app's run's last three, an earlier test's among them) |
 
 **Scenario: adding a shape**
 
@@ -544,10 +542,10 @@ throughout, object 1 at +(128, 128) from step 5.
 | # | Step | `open_edges` after | Also checked |
 |---|---|---|---|
 | 1 | `project_import {paths: [holed.stl]}`, then `object_transform {object: 0, position: corner(0) + (60, 60, 0)}` | 3 | `mesh_errors.manifold` false |
-| 2 | `object_fix {objects: [0]}` | 0 | the reply has no `status`: the call waited for the repair; its `objects` names object 0 and its `repairs` one entry, `object` 0, `changed` true, `mesh_errors_before.open_edges` 3, `mesh_errors_after.open_edges` 0, `painting_removed` false; `mesh_errors.manifold` true; `dialogs()` empty, and no notice holds any of the endings of Fix Model's notices (`has been repaired`, `have been repaired`, `needed no repair`, `Failed to repair`, `Repairing was canceled`) |
+| 2 | `object_fix {objects: [0]}` | 0 | the reply has no `status`: the call waited for the repair; its `objects` names object 0 and its `repairs` one entry, `object` 0, `changed` true, `mesh_errors_before.open_edges` 3, `mesh_errors_after.open_edges` 0, `painting_removed` false; `mesh_errors.manifold` true; once `app_wait {for: "idle"}` is met, `dialogs()` empty, and no notice holds any of the endings of Fix Model's notices (`has been repaired`, `have been repaired`, `needed no repair`, `Failed to repair`, `Repairing was canceled`) |
 | 3 | `undo` | 3 | the repair was one undo step |
 | 4 | `redo` | 0 | |
-| 5 | another import of `holed.stl`, `object_transform {object: 1, position: corner(0) + (128, 128, 0)}`, `view_set {camera: "iso"}`, `view_set {camera: "fit_objects"}`, `object_select {objects: [1]}`, `app_wait {for: "idle"}`, then a right click on object 1's top picking `Modify>Fix Model` | object 0: 0; object 1: 0 | the gesture's reply `ran` `Modify>Fix Model`; a wait of up to 30 s, which fails when it runs out, for object 1's open edges to be 0 and for a notice holding `has been repaired`: the person's path ends in its notice, which shows the reader of step 2 can see one |
+| 5 | another import of `holed.stl`, `object_transform {object: 1, position: corner(0) + (128, 128, 0)}`, `view_set {camera: "iso"}`, `view_set {camera: "fit_objects"}`, `object_select {objects: [1]}`, `app_wait {for: "idle"}`, then a right click on object 1's top picking `Modify>Fix Model` | object 0: 0; object 1: 0 | the gesture's reply `ran` `Modify>Fix Model`; `until()`, up to 30 s, which fails when it runs out, for object 1's open edges to be 0 and for a notice holding `has been repaired`: the person's path ends in its notice, which shows the reader of step 2 can see one |
 | 6 | `undo` | object 0: 0; object 1: 3 | the menu item's repair was one undo step |
 
 **Scenario: the files a part comes from**
@@ -563,7 +561,7 @@ throughout; it has one part after steps 1 to 6 and two after 7 to 11.
 | 4 | `redo` | part 0 `mesh_volume` 27000 | |
 | 5 | `reload.stl` deleted, then `object_reload_from_disk {objects: [0]}` | as after 4 | the reply's `missing` `[{object: 0, part: 0, path}]`, the path ending in `reload.stl`, and `reloaded` `[]`; `dialogs()` empty: no file dialog asks for it |
 | 6 | `undo` | part 0 `mesh_volume` 8000 | the call that reloaded nothing took no undo step, so undo takes back step 4's |
-| 7 | `project_new`; `filament_add`; `project_import` of `W/cube20.stl`, moved with `object_transform {object: 0, position: corner(0) + (100, 100, 0)}`; `part_add {object: 0, type: "modifier", shape: "cylinder", size: [10, 10], position: corner(0) + (100, 100, 10)}`; `settings_set {type: "process", target: "part", object: 0, part: 0, values: {extruder: 2}}` | part 0: part, `filament` 2, 12 `triangles`, at +(100, 100, 10); part 1: modifier, no `filament`, `mesh_volume` under 785.4, at +(100, 100, 10) | |
+| 7 | `project_new`; a second slot, added with `add_slot` in `SLOT_COLOURS[1]`; `project_import` of `W/cube20.stl`, moved with `object_transform {object: 0, position: corner(0) + (100, 100, 0)}`; `part_add {object: 0, type: "modifier", shape: "cylinder", size: [10, 10], position: corner(0) + (100, 100, 10)}`; `settings_set {type: "process", target: "part", object: 0, part: 0, values: {extruder: 2}}` | part 0: part, `filament` 2, 12 `triangles`, at +(100, 100, 10); part 1: modifier, no `filament`, `mesh_volume` under 785.4, at +(100, 100, 10) | |
 | 8 | `part_replace {object: 0, part: 0, path: W/top4.stl}` | part 0: part, `filament` 2, 14 `triangles`, `mesh_volume` 8000, at +(100, 100, 10); part 1 as after 7 | the reply's `parts` `[{object: 0, part: 0}]` named `top4.stl`, with a `part_id` other than the one part 0 had and the one `object_list` gives it: the part keeps its type, filament and place, its mesh the file's |
 | 9 | `part_replace {object: 0, part: 1, path: W/top4.stl}` | part 1: modifier, no `filament`, 14 `triangles`, `mesh_volume` 8000, at +(110, 110, 15) to 0.05 | the mesh keeps its place in its file: the cylinder's centre was at (0, 0, 5) in its own frame and the cube's is at (10, 10, 10) in `top4.stl`'s, so the modifier moves by (10, 10, 5) |
 | 10 | `undo` | part 1 as after 7 | |
@@ -606,6 +604,9 @@ unscaled and not mirrored, and a plate's settings as in a plate's own settings.
 | 5 | `project_save` to a new file in `W`, `project_new {discard_changes: true, preset_changes: "discard"}`, then `project_open` of the file | `"Left" 3 *` · `"" 1 L` | as after 3 | every value as after 4, the plates' settings among them, but the current plate: opening a project makes plate 0 current. After the `project_new`, one empty plate, no objects, and `unsaved("printer")` `[]`: the new project drops the printer's edit, so that the open does not ask about it ("Load project: unsaved changes"); after the open, `unsaved("printer")` `[support_multi_bed_types]`: the project brings it back |
 
 **Notes:**
+- An undo in Simple mode to a step whose model has several instances or a part other than a model part switches the
+  app to Advanced (`Plater::priv::update_after_undo_redo()`, the app's own code), as the undo of the number of
+  instances, step 4, does; the next scenario's `start()` puts Simple back.
 - Undoing a delete makes the plate that was current before the delete current again (a plate's life, step 7; by
   index, step 22): selecting a plate takes an undo snapshot of its own.
 - The plate commands refuse with codes from the operations layer (`last_plate`, `no_such_plate`), but most of
@@ -736,7 +737,6 @@ unscaled and not mirrored, and a plate's settings as in a plate's own settings.
   `[0, 0, 0]`, and is compared so (moving a part, step 16; what the project keeps, instance 1).
 - How the objects look: a greyed instance that is not printable, the selection's highlight. No screenshot is taken.
 - `app_state`'s `python` and `design_tab`: they are not object state.
-  `test_command_line` checks the unrestricted-scripts switch.
 - An end-to-end run of all the commands on one scene. Each of its steps is checked in the scenario of its command: the
   size of an object of several parts (moving a part, step 2), the instances of an object of parts made objects (the
   number of instances, step 18), one plate arranged with options (arranging, step 13), Assemble and ordering by name

@@ -41,7 +41,6 @@ START = {"printer": shared.KLIPPER, "process": shared.KLIPPER_STD, "filaments": 
 CUBE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "resources", "handy_models", "OrcaCube_v2.drc")
 # The prompts of the save and export pickers ("Save file as", "Save G-code file as:"), which have no title until shown.
 PICKER = "save"
-CANVAS = {"name": "OrcaSceneCanvas"}
 # Where the three cubes of the arrange and select checks stand on the bed, and where one goes off it: left of the bed,
 # where no plate is.
 CUBES_X = (60, 128, 196)
@@ -82,26 +81,24 @@ def main():
                     out.append(os.path.join(folder, name))
         return out
 
-    def dial_pick(title):
-        """Opens the Speed Dial on the shown 3D view and picks the action titled `title`, as a person's click does."""
-        client.call("keyboard_press", keys="space", target=CANVAS)
-        client.call("widget_set_value", target={"web": "Search actions"}, value=title, submit=False)
-        return client.call("widget_click", target={"web": f"{title} from Orcaslicer", "kind": "button"})
-
     def last_job():
         """The number of the newest job app_state lists; every call of this script is one."""
         return max([int(j["id"][1:]) for j in client.call("app_state").get("jobs", []) if j.get("id", "").startswith("j")] or [0])
 
     def settled():
-        client.call("app_wait", **{"for": "idle"})
+        shared.wait(client, "idle")
         return client.call("app_state")
+
+    def job_notices(state):
+        """The notices a person's pick that runs as a job shows: "Started: <title>", then "Finished: <title>"."""
+        return [n["text"] for n in state.get("notifications", []) if "Started" in n.get("text", "")
+                or "Finished" in n.get("text", "")]
 
     def ran_in_place(name, command, state, since):
         # A pick started as a job is listed under its command, beside the input calls that made the pick.
         jobs = [j for j in state.get("jobs", []) if int(j["id"][1:]) > since and j.get("tool") == command]
         check(f"{name} starts no {command} job", jobs == [], jobs)
-        notes = [n["text"] for n in state.get("notifications", []) if "Started" in n.get("text", "")
-                 or "Finished" in n.get("text", "")]
+        notes = job_notices(state)
         check(f"{name} shows no Started or Finished notice", notes == [], notes)
 
     def outside():
@@ -120,7 +117,7 @@ def main():
         except (ValueError, AttributeError):
             return None
 
-    client.call("app_wait", **{"for": "ready"})
+    shared.wait(client, "ready", 50)
     presets = shared.start(client)
     check("starts from the Generic Klipper Printer", presets == START, presets)
     client.call("project_import", paths=[os.path.abspath(CUBE)])
@@ -184,9 +181,16 @@ def main():
         check("with the refusal's code", "no_such_tab" in json.dumps(e.payload), e.payload)
 
     # ---- Picks from the Speed Dial run in place ----
+    # A pick an earlier test made in this app can have left its Started or Finished notice, which fades about 10 s
+    # after it shows (a regular notice); the picks here must show none of their own.
+    try:
+        shared.until(lambda: not job_notices(client.call("app_state")), "no Started or Finished notice shows")
+        check("before the picks, no Started or Finished notice shows", True)
+    except TimeoutError as e:
+        check("before the picks, no Started or Finished notice shows", False, str(e))
     client.call("view_set", tab="prepare", camera="front")
     since = last_job()
-    dial_pick("View: Top")
+    shared.dial_pick(client, "View: Top")
     state = settled()
     check("a pick of View: Top turns the camera", state.get("camera", {}).get("elevation", 0) >= 85, state.get("camera"))
     ran_in_place("View: Top", "view_set", state, since)
@@ -194,7 +198,7 @@ def main():
     client.call("object_select", objects=[0])
     client.call("view_set", tab="preview")
     since = last_job()
-    dial_pick("Deselect All")
+    shared.dial_pick(client, "Deselect All")
     state = settled()
     check("a pick of Deselect All on the Preview tab stays there", state.get("tab") == "preview", state.get("tab"))
     ran_in_place("Deselect All", "object_select", state, since)
@@ -205,7 +209,7 @@ def main():
     # Go to layer's second phase takes the percentage typed in the search field, and Enter runs it.
     client.call("view_set", tab="preview")
     since = last_job()
-    dial_pick("Go to layer (percent)")
+    shared.dial_pick(client, "Go to layer (percent)")
     client.call("widget_set_value", target={"web": "Search actions"}, value="50", submit=False)
     client.call("keyboard_press", keys="Enter", target={"web": "Search actions"})
     state = settled()
@@ -258,7 +262,7 @@ def main():
 
     cube_off_plate("a pick of Auto-Arrange")
     since = last_job()
-    dial_pick("Auto-Arrange")
+    shared.dial_pick(client, "Auto-Arrange")
     # The pick returns while the arrangement runs.
     state = settled()
     ran_in_place("Auto-Arrange", "object_arrange", state, since)
@@ -320,7 +324,7 @@ def main():
 
     client.call("object_select", none=True)
     since = last_job()
-    dial_pick("Select All Objects")
+    shared.dial_pick(client, "Select All Objects")
     state = settled()
     ran_in_place("Select All Objects", "object_select", state, since)
     check("a pick of Select All Objects selects the three cubes", state.get("selection", {}).get("objects") == [0, 1, 2],
@@ -332,7 +336,7 @@ def main():
     client.call("view_set", canvas="assemble")
     client.call("object_select", none=True)
     since = last_job()
-    dial_pick("Select All Objects")
+    shared.dial_pick(client, "Select All Objects")
     state = settled()
     ran_in_place("Select All Objects in the assemble view", "object_select", state, since)
     check("a pick of Select All Objects in the assemble view shows Prepare and selects the three there",
@@ -343,15 +347,12 @@ def main():
     # The control for the absences above: a pick of Slice and Preview, opened and searched the same way on the same
     # project, starts its slice as a job, listed under its command and announced as Started, then Finished.
     since = last_job()
-    dial_pick("Slice and Preview")
+    shared.dial_pick(client, "Slice and Preview")
     state = settled()
     jobs = [j for j in state.get("jobs", []) if int(j["id"][1:]) > since and j.get("tool") == "plate_slice"]
     check("a pick that runs as a job is listed as one", jobs != [], state.get("jobs"))
-    notes = [n["text"] for n in state.get("notifications", []) if "Started" in n.get("text", "") or "Finished" in n.get("text", "")]
-    check("and shows its Started or Finished notice", notes != [], state.get("notifications"))
-    client.call("view_set", tab="prepare")
+    check("and shows its Started or Finished notice", job_notices(state) != [], state.get("notifications"))
 
-    client.call("project_new", discard_changes=True)
     failed = [c for c in checks if not c[1]]
     for name, ok, detail in checks:
         print(("PASS " if ok else "FAIL ") + name + ("" if ok else f": {detail}"))

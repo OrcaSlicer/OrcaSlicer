@@ -13,19 +13,26 @@ answers (HTTP 401, a reply that is not JSON), also chaining the cause. call_comm
 stubbed call(), fails at once on a dialog, follows a running job, prefixes its errors with the
 command's name, chaining the original, and returns the command's whole reply. seed_datadir() keeps a fresh
 datadir's login in its own token file, opens its main window 1600 x 900 at the top left of the work area, seeds the
-default printer, the Generic Klipper Printer 0.4 nozzle, and leaves a reused datadir's conf as it is. ORCA_MCP_CALL_LOG gets a line
-per call, and reply_budget_s() reads ORCA_MCP_REPLY_BUDGET_MS as the app does. Exits 0 when every check passes.
+default printer, the Generic Klipper Printer 0.4 nozzle, and leaves a reused datadir's conf as it is, returning
+whether it seeded. launch(), with the binary, the display, the process and the calls stubbed out, records every
+preference preferences_get lists in mcp-baseline.json in a datadir it seeds, and nothing in one that had a conf.
+ORCA_MCP_CALL_LOG gets a line per call, and reply_budget_s() reads ORCA_MCP_REPLY_BUDGET_MS as the app does. Exits 0
+when every check passes.
 The folders the checks make are removed when they end. The checks are asserts, so a Python that runs with its
 asserts off (-O, or PYTHONOPTIMIZE, which the sweep's runner passes on) fails the test before any of them.
 """
 
+import argparse
+import contextlib
 import http.server
+import io
 import json
 import os
 import socket
 import sys
 import tempfile
 import threading
+import types
 from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -298,7 +305,7 @@ def read_conf(datadir):
 def check_seed_datadir():
     fresh = scratch("orca-seed-")
     with mock.patch.object(orca_mcp, "work_area_origin", return_value=(12, 34)):
-        orca_mcp.seed_datadir(fresh, orca_mcp.DEFAULT_PRINTER)
+        seeded = orca_mcp.seed_datadir(fresh, orca_mcp.DEFAULT_PRINTER)
     app = read_conf(fresh)["app"]
     assert app.get("use_encrypted_token_file") is True, app
     ok("seed_datadir() keeps a fresh datadir's login in its own token file, not the system's secret store")
@@ -316,10 +323,56 @@ def check_seed_datadir():
 
     reused = scratch("orca-seed-reused-")
     orca_mcp.write_conf(os.path.join(reused, "OrcaSlicer.conf"), {"app": {"use_encrypted_token_file": False}})
-    orca_mcp.seed_datadir(reused, orca_mcp.DEFAULT_PRINTER)
+    kept = orca_mcp.seed_datadir(reused, orca_mcp.DEFAULT_PRINTER)
     conf = read_conf(reused)
     assert conf == {"app": {"use_encrypted_token_file": False}}, conf
     ok("seed_datadir() leaves a reused datadir's conf as it is, its login where the conf keeps it")
+    assert seeded is True and kept is False, (seeded, kept)
+    ok("seed_datadir() returns True when it seeds a datadir and False when the datadir has a conf")
+
+
+def check_launch_baseline():
+    """launch() with the binary, the display, the app's process and its calls stubbed out, on a new datadir and on
+    one that has a conf."""
+    items = [{"key": "auto_slice_after_change", "value": False}, {"key": "language", "value": "en", "refused": True},
+             {"key": "default_page", "value": 1}]
+    calls = []
+
+    def call(self, tool, /, _timeout=None, **args):
+        calls.append(tool)
+        return {"app_state": {"dialogs": []}, "preferences_get": {"items": items}}[tool]
+
+    def launched(datadir):
+        """Runs launch() on `datadir` and returns where its baseline file would be."""
+        args = argparse.Namespace(datadir=datadir, filament=None, printer=None, vendor="BBL", bin=None, port=1,
+                                  cad=True, unrestricted_scripts=True, extra=[], timeout=1, print_config=False,
+                                  headless=None, xvfb=False, width=1600, height=1000)
+        session = os.path.join(scratch("orca-launch-session-"), "session.json")
+        with mock.patch.object(orca_mcp, "SESSION_FILE", session), \
+                mock.patch.object(orca_mcp, "find_binary", lambda explicit: "orca-slicer"), \
+                mock.patch.object(orca_mcp, "start_display", lambda args, datadir: (None, None, None)), \
+                mock.patch.object(orca_mcp.subprocess, "Popen", lambda *a, **k: types.SimpleNamespace(pid=4242)), \
+                mock.patch.object(orca_mcp, "wait_ready", lambda client, timeout: True), \
+                mock.patch.object(OrcaMcp, "call", call), contextlib.redirect_stdout(io.StringIO()):
+            orca_mcp.launch(args)
+        return os.path.join(datadir, orca_mcp.BASELINE_FILE)
+
+    baseline = launched(os.path.join(scratch("orca-launch-fresh-"), "datadir"))
+    with open(baseline, encoding="utf-8") as f:
+        recorded = json.load(f)
+    # Every preference, a refused one too: start() leaves out what preferences_get marks refused when it reads them.
+    want = {"preferences": {"auto_slice_after_change": False, "language": "en", "default_page": 1}}
+    assert recorded == want, recorded
+    assert calls.count("preferences_get") == 1, calls
+
+    calls.clear()
+    reused = scratch("orca-launch-reused-")
+    orca_mcp.write_conf(os.path.join(reused, "OrcaSlicer.conf"), {"app": {}})
+    baseline = launched(reused)
+    assert not os.path.exists(baseline), os.listdir(reused)
+    assert "preferences_get" not in calls, calls
+    ok("launch() records every preference preferences_get lists in mcp-baseline.json in a datadir it seeds, and "
+       "nothing in one that had a conf")
 
 
 def main():
@@ -329,6 +382,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix="orca-attach-") as root:
         _ROOT = root
         check_seed_datadir()
+        check_launch_baseline()
         check_default_datadir()
         check_symlinked_binary()
         check_from_datadir()

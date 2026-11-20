@@ -13,9 +13,9 @@ the print and what the project file keeps; last, the mixed filaments: adding and
 through its dialog, a mixed slot having no preset or colour of its own, and what deleting or merging a filament that
 a mix mixes does to the mix. After every step the test reads the state back through other tools and compares it with
 the state the entry writes out. Every scenario runs on the Generic Klipper Printer 0.4 from a start of its own
-(checks.start()), the project's own settings with the printer's plate types turned on, so it runs on a data folder
-earlier tests used; it uninstalls the filaments it shows by name first, so that the selectors start without them, and
-puts slot 1's colour back at its end. It exits 0 when every check passes.
+(checks.start()), the project's own settings with the printer's plate types turned on, so it runs on a data folder and
+in an app earlier tests used; it installs and then uninstalls the filaments it shows by name first, so that the
+selectors start without them. It exits 0 when every check passes.
 """
 
 import os
@@ -25,8 +25,8 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, filament_rows, presets, run,  # noqa: E402
-                    slot_colours, slots, start, wait)
+from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, SLOT_COLOURS, Checks, add_slot, filament_rows,  # noqa: E402
+                    presets, run, slot_colours, slots, start, wait)
 
 B = GENERIC_PLA
 X = "FilAr PLA Blanco Calido"
@@ -36,7 +36,7 @@ A = "Bambu Support for ABS @System"
 G = "Bambu PETG Basic @System"
 H = "Bambu PETG HF @System"
 LETTER = {B: "B", X: "X", M: "M", S: "S", A: "A", G: "G", H: "H"}
-# The filaments the test shows by name, which it uninstalls before its first scenario.
+# The filaments the test shows by name, which it installs and uninstalls before its first scenario.
 HIDDEN = [X, M, S, A, G, H]
 # The name each preset's selector shows, which a pick clicks.
 SHOWN = {B: "Generic PLA", X: "FilAr PLA Blanco Calido", M: "Generic PLA Matte", S: "Bambu Support For PLA",
@@ -144,8 +144,6 @@ class FilamentsTest:
         self.c = client
         self.t = Checks()
         self.folder = folder
-        # Slot 1's colour as the first mixed start finds it, which the test puts back at its end.
-        self.slot1_colour = None
 
     # ---- Reads ----
 
@@ -314,7 +312,7 @@ class FilamentsTest:
             if not self.c.call("app_state").get("dialogs"):
                 return
             self.c.call("dialog_answer", button="cancel")
-            wait(self.c, "no_dialog", 10)
+            wait(self.c, "no_dialog")
 
     def quiet(self, label, reply):
         """A call that opens nothing: its reply is not held by a dialog, and the wait for idle is met."""
@@ -331,7 +329,7 @@ class FilamentsTest:
         offers, the answer closes it and the wait for the call's job is met. Returns the job's result."""
         self.t.equal(f"{label}: the call replies blocked_by_dialog", reply.get("status"), "blocked_by_dialog")
         if reply.get("status") == "running":
-            wait(self.c, "dialog", 10)
+            wait(self.c, "dialog")
         dialogs = self.dialogs()
         buttons = dialogs[0]["buttons"] if dialogs else []
         ok = ([d["title"] for d in dialogs] == [PROMPT] and all(b in buttons for b in offers) and
@@ -396,20 +394,20 @@ class FilamentsTest:
     # ---- Arranging ----
 
     def start(self, name, filaments):
-        """The scenario's start(): a new project on the Klipper printer with one slot per preset of `filaments`, then
-        the Prepare view and Auto-flush All."""
+        """The scenario's start(): a new project on the Klipper printer with one slot per preset of `filaments`, and
+        the baseline's Auto-flush All, which the slot scenarios' volumes follow, read back."""
         self.t.equal(f"{name}: the start's presets", start(self.c, filaments=filaments),
                      {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": list(filaments)})
-        self.run("view_set", tab="prepare")
-        self.idle()
-        self.flush_preference(name, "All")
-        self.idle()
+        self.flush_reads(name, "All")
         self.t.equal(f"{name}: the start's slots", self.slots(), ",".join(["0"] * len(filaments)))
+
+    def flush_reads(self, label, which):
+        got = self.c.call("preferences_get", keys=["auto_calculate_flush"])["items"][0]["value"]
+        self.t.equal(f"{label}: Auto-flush reads {which}", got, FLUSH[which])
 
     def flush_preference(self, label, which):
         self.run("preferences_set", values={"auto_calculate_flush": FLUSH[which]})
-        got = self.c.call("preferences_get", keys=["auto_calculate_flush"])["items"][0]["value"]
-        self.t.equal(f"{label}: Auto-flush reads {which}", got, FLUSH[which])
+        self.flush_reads(label, which)
 
     def drop_edits(self):
         """Drops the tab's unsaved changes through a slot that holds the preset the tab edits."""
@@ -440,19 +438,15 @@ class FilamentsTest:
         self.state_is(f"{label}: the start", want)
 
     def mixed_start(self, label, colours=False):
-        """The mixed filaments' start: three physical slots of Generic PLA, slots 2 and 3 red and blue with
-        `colours`. The first one reads slot 1's colour, which the test puts back at its end."""
+        """The mixed filaments' start: three physical slots of Generic PLA, slots 2 and 3 added in the baseline's
+        colours, or red and blue with `colours`."""
         self.t.equal(f"{label}: the start's presets", start(self.c), MIXED_START)
-        if self.slot1_colour is None:
-            self.slot1_colour = self.row(1)["colour"]
-        for _ in range(2):
-            self.run("filament_add")
+        for colour in (RED, BLUE) if colours else SLOT_COLOURS[1:3]:
+            add_slot(self.c, colour)
         self.t.equal(f"{label}: three physical slots", self.slots(), "0,0,0")
         self.t.equal(f"{label}: of Generic PLA", [(r.get("preset"), r.get("type")) for r in self.rows()],
                      [(B, "PLA")] * 3)
         if colours:
-            self.run("filament_set_colour", filament_slot=2, colour=RED)
-            self.run("filament_set_colour", filament_slot=3, colour=BLUE)
             self.t.equal(f"{label}: slots 2 and 3 red and blue", [r["colour"] for r in self.rows()[1:]], [RED, BLUE])
 
     # ---- Scenarios ----
@@ -608,7 +602,7 @@ class FilamentsTest:
                  (9, "None", X, "cX", "S3", False), (10, "None", M, "c3", "S3", False),
                  (11, "None", S, "c3", "S3", False), (12, "None", None, "cX", "S3", False)]
 
-        self.flush_preference(f"{s} 1", "All")
+        # Row 1's All is the baseline's, read back by the scenario's start.
         routes = []
         for route in ("pick", "tool", "api"):
             label = f"{s} 1, All, X by {route}"
@@ -1260,16 +1254,17 @@ class FilamentsTest:
         self.mixed_is(f"{s} 8", *after6)
 
     def prepare(self):
-        """The stored settings the checks read beyond each scenario's start(): the filaments the test shows by name
-        not installed, which takes out any an earlier test installed (and the app's start hides any an earlier run
-        showed), and Simple mode, whose prompt lists slow_down_layer_time."""
+        """What the checks read beyond each scenario's start(): the filaments the test shows by name hidden from the
+        selectors, and the baseline's Simple mode, whose prompt lists slow_down_layer_time, read back. An uninstall
+        that changes something shows every filament as the installed set says, hiding one an earlier test showed for
+        the app's session, so the install first makes it change something whatever an earlier test left."""
         s = "the start"
         self.t.equal(f"{s}: the presets", start(self.c),
                      {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [B]})
+        self.run("filament_install", names=HIDDEN)
         reply = self.run("filament_uninstall", names=HIDDEN)
-        self.t.equal(f"{s}: the filaments shown by name are uninstalled or not installed",
-                     sorted(reply.get("uninstalled", []) + reply.get("not_installed", [])), sorted(HIDDEN))
-        self.run("action_run", id="orca_command:mode_simple:orca")
+        self.t.equal(f"{s}: the filaments shown by name, installed first, are uninstalled",
+                     (sorted(reply.get("uninstalled", [])), reply.get("not_installed")), (sorted(HIDDEN), None))
         self.t.equal("Simple mode", self.c.call("app_state").get("mode"), "simple")
 
     def run_all(self):
@@ -1287,10 +1282,6 @@ class FilamentsTest:
                                ("changing a mix", self.changing), ("a gradient", self.gradient),
                                ("deleting or merging", self.deleting)]:
             self.t.scenario(name, scenario)
-        if self.slot1_colour is not None:
-            self.run("filament_set_colour", filament_slot=1, colour=self.slot1_colour)
-            self.t.equal("slot 1's colour is put back", self.row(1)["colour"], self.slot1_colour)
-        self.run("project_new", discard_changes=True, preset_changes="discard")
         return self.t.exit_code()
 
 

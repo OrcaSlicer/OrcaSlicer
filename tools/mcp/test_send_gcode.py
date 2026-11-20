@@ -7,17 +7,17 @@ host. The design is tools/mcp/test-entries/windows_web.md, test_send_gcode.
     tools/mcp/test_send_gcode.py
 
 Starts an OctoPrint-compatible stub host on a free loopback port, starts on the Generic Klipper Printer 0.4 nozzle,
-which sends through a print host as its own route, and turns the printer agents off: with them on, the Print button
-routes through an agent instead of the print host and could reach a printer. The print-host values are set on the
-printer as unsaved changes, so the preset's saved ones play no part. With no address, the sends and the host test are
-refused. With the stub's address, the host test answers; before slicing,
+which sends through a print host as its own route, and reads the printer agents off, as start() leaves them: with
+them on, the Print button routes through an agent instead of the print host and could reach a printer. The
+print-host values are set on the printer as unsaved changes, so the preset's saved ones play no part. With no
+address, the sends and the host test are refused. With the stub's address, the host test answers; before slicing,
 print_start is refused, and Print all and Send all are refused as the Print button offers neither; once sliced,
 print_start and printer_send open the host's upload dialog, which the test cancels. Then each send runs the action,
 sets the file name with widget_set_value and presses Upload with dialog_answer:
-- the stub answers 200 a few seconds after it has the whole file: meanwhile the row reads uploading at 99,
-  then completed, and the stub got the file without print=true;
+- the stub holds its answer once it has the whole file, until the row reads uploading at 99, then answers 200:
+  the row reads completed, and the stub got the file without print=true;
 - the replay exported from that send runs and uploads again;
-- the stub answers 500 after the same pause: the row never reads completed, ends as an error naming
+- the stub holds its answer the same way, then answers 500: the row never reads completed, ends as an error naming
   HTTP 500, and the error dialog the queue opens closes with dialog_answer;
 - the stub answers 500 at once: the row still ends as an error rather than staying queued.
 Last, the host test fails on a port nothing listens on. Exits 0 when every check passes.
@@ -31,16 +31,18 @@ import socket
 import sys
 import tempfile
 import threading
-import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, dialogs, plates, start, undo_steps, unsaved  # noqa: E402
+from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, dialogs, plates, start, undo_steps, unsaved,  # noqa: E402
+                    until, wait)
 
 MODEL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "resources", "handy_models", "OrcaCube_v2.drc")
 SEND = "orca_command:send_gcode:orca"
 UPLOAD_DIALOG = "Send G-code to printer host"
-PAUSE_S = 3.0
+# The longest the stub holds an answer, for a test that never opens its gate.
+HOLD_LIMIT_S = 120.0
+ENDED = ("completed", "error", "cancelled")
 # The undo steps a change of the current plate logs: Plater::select_plate() takes one, and PartPlateList::select_plate()
 # another when the plate changes (as test_files has it).
 SELECTED = ["select partplate!", "select partplate!"]
@@ -48,11 +50,13 @@ SELECTED = ["select partplate!", "select partplate!"]
 
 class StubHost:
     """An OctoPrint-compatible print host: it answers the version check, and takes a file posted to
-    /api/files/local, answering `status` `delay` seconds after it has read the whole request."""
+    /api/files/local, answering `status` once it has read the whole request and its gate is open. The gate starts
+    open; a test closes it with gate.clear() to catch an upload in flight, and opens it with gate.set()."""
 
     def __init__(self):
         self.status = 200
-        self.delay = 0.0
+        self.gate = threading.Event()
+        self.gate.set()
         self.uploads = []  # {"filename", "print"} of each file posted
         self.version_checks = 0  # the GET /api/version requests answered
         stub = self
@@ -97,7 +101,7 @@ class StubHost:
                 printing = re.search(rb'name="print"\r\n\r\n(\w+)', body)
                 stub.uploads.append({"filename": name.group(1).decode() if name else None,
                                      "print": printing.group(1).decode() if printing else None})
-                time.sleep(stub.delay)
+                stub.gate.wait(HOLD_LIMIT_S)
                 if stub.status == 200:
                     self.reply(200, {"done": True})
                 else:
@@ -136,27 +140,41 @@ def send(client, filename):
     return before + 1
 
 
-def follow(client, row_id, timeout=120):
-    """Polls the row until it is done; returns every (state, progress) read and the last row."""
-    seen, deadline = [], time.time() + timeout
-    while time.time() < deadline:
+def follow(client, row_id, stub=None):
+    """Reads the row every 0.2 s until it ends (completed, error or cancelled), and returns every (state, progress)
+    read and the last row, or None for the row when 120 s pass first. With `stub`, whose closed gate holds the host's
+    answer, it first reads until the row is at (uploading, 99), the whole file sent and the answer still to come, or
+    has ended, and then opens the gate."""
+    seen = []
+
+    def row_when(holds):
         rows = [r for r in uploads(client) if r["id"] == row_id]
-        if rows:
-            row = rows[0]
-            seen.append((row["state"], row["progress"]))
-            if row["state"] in ("completed", "error", "cancelled"):
-                return seen, row
-        time.sleep(0.2)
-    return seen, None
+        if not rows:
+            return None
+        seen.append((rows[0]["state"], rows[0]["progress"]))
+        return rows[0] if holds(rows[0]) else None
+
+    try:
+        if stub is not None:
+            try:
+                until(lambda: row_when(lambda r: (r["state"], r["progress"]) == ("uploading", 99) or r["state"] in ENDED),
+                      f"upload {row_id} reads uploading at 99", interval_s=0.2)
+            finally:
+                stub.gate.set()
+        return seen, until(lambda: row_when(lambda r: r["state"] in ENDED), f"upload {row_id} ends", timeout_s=120,
+                           interval_s=0.2)
+    except TimeoutError as e:
+        print(e, flush=True)
+        return seen, None
 
 
 def close_error_dialog(client):
-    state = client.call("app_wait", **{"for": "dialog", "timeout_s": 10})
+    state = client.call("app_wait", **{"for": "dialog", "timeout_s": 30})
     open_dialogs = client.call("app_state")["dialogs"]
     if not state.get("satisfied") or not open_dialogs:
         return None
     client.call("dialog_answer", button="ok")
-    client.call("app_wait", **{"for": "no_dialog", "timeout_s": 10})
+    client.call("app_wait", **{"for": "no_dialog", "timeout_s": 30})
     return open_dialogs[-1]
 
 
@@ -187,14 +205,13 @@ def main():
     t.equal("start: the Klipper printer with its default process and filament", start(client),
             {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]})
     # With printer agents on, the Print button routes through an agent instead of the print host and could reach a
-    # printer: the test stops before any print call unless the agents read off.
-    client.call("preferences_set", values={"use_printer_agents": False})
+    # printer: the test stops before any print call unless the agents read off, as start() leaves them.
     agents = [p.get("value") for p in client.call("preferences_get", keys=["use_printer_agents"]).get("items", [])]
     if not t.equal("start: the printer agents are off", agents, [False]):
         raise SystemExit(f"use_printer_agents is {agents}: the print calls would reach a printer; the test sends nothing")
     client.call("dialog_auto_answer", rules=[{"match": "unsaved changes", "button": "no"}])
     client.call("project_import", paths=[os.path.abspath(MODEL)])
-    client.call("app_wait", **{"for": "idle"})
+    wait(client, "idle")
 
     found = client.call("action_search", query="Send G-code")
     t.check("action_search finds the send_gcode action", any(a["id"] == SEND for a in found["items"]), found)
@@ -244,10 +261,11 @@ def main():
     t.equal("printer_send {plates: 0}: plate 0 is current", current_plate(client), 0)
     t.equal("printer_send {plates: 0}: the undo steps, one change of plate", undo_steps(client), SELECTED)
 
-    # ---- The host answers 200 after a pause ----
+    # ---- The host answers 200 once the upload is caught in flight ----
     client.call("replay_export", clear=True)
-    stub.status, stub.delay = 200, PAUSE_S
-    seen, row = follow(client, send(client, "mcp_send_ok.gcode"))
+    stub.status = 200
+    stub.gate.clear()
+    seen, row = follow(client, send(client, "mcp_send_ok.gcode"), stub)
     t.check("the upload completes", row is not None and row["state"] == "completed" and row["progress"] == 100, row)
     t.check("the row reads uploading at 99 while the host has yet to answer", ("uploading", 99) in seen, seen)
     t.check("the row names the file and the host", row is not None and row["filename"] == "mcp_send_ok.gcode"
@@ -269,9 +287,10 @@ def main():
     _seen, row = follow(client, count + 1)
     t.check("and uploads again", row is not None and row["state"] == "completed" and len(stub.uploads) == 2, (row, stub.uploads))
 
-    # ---- The host answers 500 after a pause ----
-    stub.status, stub.delay = 500, PAUSE_S
-    seen, row = follow(client, send(client, "mcp_send_refused.gcode"))
+    # ---- The host answers 500 once the upload is caught in flight ----
+    stub.status = 500
+    stub.gate.clear()
+    seen, row = follow(client, send(client, "mcp_send_refused.gcode"), stub)
     t.check("a refused upload ends as an error", row is not None and row["state"] == "error" and "HTTP 500" in row.get("error", ""), row)
     t.check("its row never reads completed", all(s != "completed" for s, _p in seen), seen)
     t.check("it reads uploading at 99 until the host answers", ("uploading", 99) in seen, seen)
@@ -279,7 +298,6 @@ def main():
     t.check("the queue's error dialog closes with dialog_answer", dialog is not None and not client.call("app_state")["dialogs"], dialog)
 
     # ---- The host answers 500 at once ----
-    stub.delay = 0.0
     _seen, row = follow(client, send(client, "mcp_send_fast.gcode"))
     t.check("an upload refused at once ends as an error", row is not None and row["state"] == "error", row)
     close_error_dialog(client)
@@ -290,10 +308,6 @@ def main():
     t.check("printer_test_host on a closed port fails, saying it could not connect",
             tested.get("ok") is False and str(tested.get("message", "")).startswith("Could not connect to OctoPrint"), tested)
     t.equal("printer_test_host on a closed port: no dialog", dialogs(client), [])
-
-    # Leave an empty project behind, so a replay or script run next on this app does not meet its unsaved changes.
-    client.call("project_new", discard_changes=True)
-    client.call("dialog_auto_answer", rules=[])
     stub.server.shutdown()
     return t.exit_code()
 

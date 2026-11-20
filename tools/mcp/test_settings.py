@@ -10,8 +10,8 @@ from the selection, with each value's effective value and source; what those set
 ranges replaced, the range that stays keeping its settings. After every step of the targets scenario the test reads
 every target's settings back and compares them, whole, with the state the entry writes out. Each scenario sets its own
 start with checks.start(): a new project on the Generic Klipper Printer 0.4 with 0.20mm Standard @MyKlipper and one
-slot of Generic PLA @System, the presets a seeded data folder starts with, so it runs on a data folder earlier tests
-used. It exits 0 when every check passes.
+slot of Generic PLA @System, the presets a seeded data folder starts with, so it runs on a data folder and in an app
+earlier tests used. It exits 0 when every check passes.
 """
 
 import os
@@ -20,7 +20,8 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, presets, run, start, wait  # noqa: E402
+from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, SLOT_COLOURS, Checks, add_slot, presets, run,  # noqa: E402
+                    start, wait)
 
 B = GENERIC_PLA
 G = "Generic PETG @System"
@@ -119,8 +120,6 @@ class SettingsTest:
     def start(self, name):
         self.t.equal(f"{name}: the start's presets", start(self.c),
                      {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [B]})
-        self.run("view_set", tab="prepare")
-        wait(self.c, "idle")
         self.t.equal(f"{name}: the start has no object", self.c.call("object_list", limit=500)["total"], 0)
 
     def whole(self, label, listing):
@@ -182,7 +181,7 @@ class SettingsTest:
         self.has(f"{s} 6", fine, {"layer_height": "0.16"})
         self.t.equal(f"{s} 6: reading a preset does not select it", presets(self.c)["process"], KLIPPER_STD)
 
-        self.run("filament_add")
+        add_slot(self.c, SLOT_COLOURS[1])
         self.run("preset_select", type="filament", name="Generic PETG", filament_slot=2)
         wait(self.c, "idle")
         self.t.equal(f"{s} 7: the slots' presets", presets(self.c)["filaments"], [B, G])
@@ -350,7 +349,6 @@ class SettingsTest:
                                ("what an object and a region take", self.object_and_region),
                                ("targets and precedence", self.precedence)]:
             self.t.scenario(name, scenario)
-        self.run("project_new", discard_changes=True, preset_changes="discard")
         return self.t.exit_code()
 
 

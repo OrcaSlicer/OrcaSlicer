@@ -21,8 +21,8 @@ take, the layer height it lowers to reach a speed, and the refusals that leave t
 `preset_changes` "keep" and "discard", including the filament tab on another slot's modified preset; and, through the
 exported G-code, that the temperature, pressure advance and retraction towers change their value band by band. A
 calibration test is first a change to the presets this test reads (`presets_changed`), so the calibration tests are
-this test's scenarios, on its launch. It runs on the default printer, the Generic Klipper Printer 0.4, and switches
-to other printers of the Custom vendor: no step needs a Bambu Lab printer's own behaviour. The Klipper's presets
+this test's scenarios. It runs on the default printer, the Generic Klipper Printer 0.4, and switches to other
+printers of the Custom vendor: no step needs a Bambu Lab printer's own behaviour. The Klipper's presets
 have what the steps exercise: processes with an entry per extruder variant (three), a filament with an entry per
 variant it lists (six), other nozzles that share its process, and, in the ToolChanger's own Generic PLA, a filament
 that fits other printers than PLA does. Its scenarios run in the order written, and some count on what an earlier
@@ -30,47 +30,40 @@ one left: the switching rows on what the Klipper 0.8 was last used with, which t
 writes, and most scenarios after saving a filament on the presets it saves.
 
 **Starts from:** `start(client)`, which every scenario's start makes again and compares with `{printer: KLIPPER,
-process: KLIPPER_STD, filaments: [GENERIC_PLA]}`, which the rows write `Klipper | Std | PLA`. Then, once, before the
-first scenario:
-- `preferences_set {developer_mode: false, auto_arrange: true, remember_printer_config: true}` and the
-  `mode_simple` action. Each scenario's start checks Developer mode and the mode; the preference scenario reads
-  `auto_arrange`; the switching rows count on `remember_printer_config`; the prompt lists only the settings the mode
-  shows, and one scenario counts on a setting Simple mode hides. An earlier test may have left any of them changed.
-- `printer_uninstall` of the Generic Klipper Printer's 0.2, 0.6 and 0.8 nozzles and of the Generic Marlin Printer's
-  0.4 nozzle, with `preset_changes: "discard"`: the hidden presets scenario and the listing need them hidden, and an
-  earlier test may have installed them. Its reply is not checked: what it changes depends on the tests before. A
-  call that finds a preset not installed changes nothing and is not refused.
+process: KLIPPER_STD, filaments: [GENERIC_PLA]}`, which the rows write `Klipper | Std | PLA`. Of the baseline, the
+scenarios count on Developer mode off, Simple mode, and `auto_arrange` and `remember_printer_config` on: each
+scenario's start checks Developer mode and the mode; the preference scenario reads `auto_arrange`; the switching rows
+count on `remember_printer_config`; the prompt lists only the settings the mode shows, and one scenario counts on a
+setting Simple mode hides. Then, once, before the first scenario:
+- `printer_install` of the Generic Klipper Printer's 0.2, 0.6 and 0.8 nozzles and of the Generic Marlin Printer's
+  0.4 nozzle, `preset_select` of the Klipper, then `printer_uninstall` of the same four, each with `preset_changes:
+  "discard"`: the hidden presets scenario and the listing need them hidden, and an earlier test may have installed
+  or shown them. The uninstall reloads the presets, which hides them however they were shown (see **To settle**).
+  The replies are not checked: what the two calls change depends on the tests before.
 - `preset_delete` of each preset of a name this test saves that is listed, which a run of this test that failed on
   this folder left: the filaments "MCP Test PLA", "MCP Test PLA 2", "MCP Test PETG", "MCP Export PLA", "MCP Imported
   PLA", "MCP Print PLA" and "MCP Calib PLA" (which keep and discard step 1 saves without `overwrite`, and a run that
   failed before its step 6 leaves), the processes "MCP Delete Child" and then "MCP Delete Base", and the printer "MCP
   Test Printer", selected first since `preset_delete` takes only the selected printer. Then `start(client)` again.
 
-The hidden presets and nozzle diameter scenarios set `remember_printer_config` false after their start and true
-again in a `finally` (see **Leaves**). With it on, a printer switch selects again the process and filaments the
-printer was last used with, which the data folder keeps per printer and which the tests before this one may have
-written; with it off, the switch keeps the process and filament that fit the new printer, so those two scenarios do
+The hidden presets and nozzle diameter scenarios set `remember_printer_config` false after their start, and the next
+scenario's start sets it back. With it on, a printer switch selects again the process and filaments the printer was
+last used with, which the data folder keeps per printer and which the tests before this one may have written; with
+it off, the switch keeps the process and filament that fit the new printer, so those two scenarios do
 not depend on that. The switching rows run with it on and land on what the Klipper 0.8 was last used with, Std and
-PLA, which hidden presets step 2 wrote. The hidden presets are ones no other test selects: a preset the data folder's
-last selection holds is shown from the app's start, which no uninstall undoes, and the hidden presets scenario would
-then fail. A run of this test cut off by its time limit with one of them selected fails its rerun for that reason.
+PLA, which hidden presets step 2 wrote.
 
 **Leaves:** the user filament "MCP Print PLA", the one preset a passing run keeps: the others it saves, it deletes in
 the deleting, exporting and keep and discard scenarios. A run that fails between keep and discard steps 1 and 6 leaves
 "MCP Calib PLA", and the Klipper's memory with a second slot holding it; a later test's `start()` sets its own slots.
 The G-code files the calibration scenarios export are in the test's own folder. Developer mode off, `auto_arrange` and
-`remember_printer_config` on and Simple mode, as its start set them. The Generic Klipper Printer's 0.2, 0.6 and 0.8
-nozzles and the Generic Marlin Printer uninstalled. What each printer it selected was last used with: the Klipper's 0.4,
-0.6 and 0.8 nozzles Std and PLA, the Marlin 0.20mm Standard @MyMarlin and PLA, and an entry for "MCP Test Printer",
-which deleting the preset leaves. In the recent projects, `inside.3mf` in the test's own folder, which is gone once the
-test ends, so the Recent Projects menu does not list it. A new project with `Klipper | Std | PLA` in one slot. Of the
-preferences its scenarios change and change back, only `remember_printer_config` is turned back in a `finally`, after
-the two scenarios that turn it off: it decides what every later test's printer switches select, and no test sets it for
-itself. Developer mode, which the test turns on around three saves, and `auto_arrange`, which the preference scenario
-turns off and on again, are turned back by the steps alone, and a run that fails between the two leaves them changed.
-Neither needs more: a test that depends on the mode sets it, which turns Developer mode off (`GUI_App::set_mode()`), and
-`auto_arrange` decides only whether a clone is arranged, which `test_preferences` sets for itself and `test_objects`
-does not depend on.
+`remember_printer_config` on and Simple mode, as the baseline has them: keep and discard, the last scenario, starts
+with `start()`, which turns back what an earlier scenario left changed, such as `remember_printer_config`, which the
+hidden presets and nozzle diameter scenarios turn off. The Generic Klipper Printer's 0.2, 0.6 and 0.8 nozzles and the
+Generic Marlin Printer uninstalled. What each printer it selected was last used with: the Klipper's 0.4, 0.6 and 0.8
+nozzles Std and PLA, the Klipper's 0.2 nozzle what the start's install selected with it (0.08mm Extra Fine @MyKlipper
+and PLA in a run after `test_operation_routes`), the Marlin 0.20mm Standard @MyMarlin and PLA, and an entry for "MCP Test Printer", which deleting the preset leaves. In the recent projects, `inside.3mf` in the test's own folder, which is gone once the
+test ends, so the Recent Projects menu does not list it. A new project with `Klipper | Std | PLA` in one slot.
 
 **Terms:** printers `Klipper` (MyKlipper 0.4 nozzle), `Klipper 0.6` (MyKlipper 0.6 nozzle), `Klipper 0.8`
 (MyKlipper 0.8 nozzle), `Marlin` (MyMarlin 0.4 nozzle); processes `Std` (0.20mm Standard @MyKlipper), `Opt` (0.16mm
@@ -117,7 +110,7 @@ With `remember_printer_config` off (see **Starts from**).
 
 | # | Step | Selection after | Also checked |
 |---|---|---|---|
-| 1 | `preset_list {type: printer}` | `Klipper \| Std \| PLA` | the Klipper is listed with `selected: true`, and neither the Klipper 0.8 nor the Marlin is listed: the start uninstalled them, and nothing has shown them yet |
+| 1 | `preset_list {type: printer}` | `Klipper \| Std \| PLA` | the Klipper is listed with `selected: true`, and neither the Klipper 0.8 nor the Marlin is listed: the start's uninstall hid them, and nothing has shown them since |
 | 2 | `preset_select {type: printer, name: "MyKlipper 0.8 nozzle"}` | `Klipper 0.8 \| Std \| PLA` | reply `shown` Klipper 0.8; no dialog opened. Std lists the 0.8 nozzle among its printers and PLA fits every printer, so both stay |
 | 3 | `preset_select` of Klipper | `Klipper \| Std \| PLA` | |
 | 4 | `preset_select {type: printer, name: "MyMarlin 0.4 nozzle", preset_changes: "discard"}` | `Marlin \| 0.20mm Standard @MyMarlin \| PLA` | reply `shown` Marlin. Std does not fit the Marlin, so the process moves to the Marlin's preset of the same alias, 0.20mm Standard; PLA fits it and stays |
@@ -370,7 +363,7 @@ With `remember_printer_config` off (see **Starts from**).
 **Scenario: a preference changed in its dialog**
 
 Its last step turns `auto_arrange` on again, as the start set it; a run that fails before that step leaves it off
-(see **Leaves**).
+for the next scenario's start to set back (see **Leaves**).
 
 | # | Step | Checked |
 |---|---|---|
@@ -450,7 +443,7 @@ true}` and leaves the selection `Klipper | Std | PLA[nozzle_temperature 230×6, 
 
 | # | Step | Selection after | Also checked |
 |---|---|---|---|
-| 1 | `start(client)`, the Add filament action, `settings_set {type: filament, filament_slot: 2, values: {filament_cost: 21}}`, `preset_save {type: filament, name: "MCP Calib PLA", filament_slot: 2}`, `preset_select` of PLA in slot 1, then `settings_set {type: filament, filament_slot: 2, values: {filament_cost: 22}}` | `Klipper \| Std \| PLA, MCP Calib PLA[filament_cost 22]` | the action's message "Added filament slot 2."; `value(filament, filament_cost, preset: "MCP Calib PLA")` is "21", the saved cost |
+| 1 | `start(client)`, `add_slot` with `SLOT_COLOURS[1]`, `settings_set {type: filament, filament_slot: 2, values: {filament_cost: 21}}`, `preset_save {type: filament, name: "MCP Calib PLA", filament_slot: 2}`, `preset_select` of PLA in slot 1, then `settings_set {type: filament, filament_slot: 2, values: {filament_cost: 22}}` | `Klipper \| Std \| PLA, MCP Calib PLA[filament_cost 22]` | `add_slot` gives slot 2; `value(filament, filament_cost, preset: "MCP Calib PLA")` is "21", the saved cost |
 | 2 | `{test: "retraction", preset_changes: "keep"}` | as after 1 | refused, `The filament tab edits "MCP Calib PLA", which has unsaved changes, and the test prints with filament slot 1 ("Generic PLA @System")`; `object_list` lists no objects; the saved cost still "21" |
 | 3 | `{test: "retraction", preset_changes: "discard"}` | `Klipper \| Std \| PLA, MCP Calib PLA` | `presets_changed.filament.name` PLA and `tab_switched_from` "MCP Calib PLA"; `discarded.filament` is `{name: "MCP Calib PLA", keys: [filament_cost]}`; `names` `["retraction_tower.drc"]`; `value(filament, filament_cost, slot: 2)` is "21" |
 | 4 | `settings_set {type: filament, values: {slow_down_layer_time: 7}}`, then `{test: "retraction", preset_changes: "keep"}` | `Klipper \| Std \| PLA[slow_down_layer_time 7], MCP Calib PLA` | `modified.filament.keys` is `[slow_down_layer_time]`; no `discarded`: the test ran with the edit, and the retraction test changes no filament setting |
@@ -460,9 +453,15 @@ true}` and leaves the selection `Klipper | Std | PLA[nozzle_temperature 230×6, 
 **To settle in review:**
 - The hidden presets and how they are chosen (hidden presets; listing, step 4; nozzle, step 1). The Klipper's 0.6 and
   0.8 nozzles share its process and filament, so a switch to them changes the printer alone; the Marlin is another
-  model with processes of its own. The start uninstalls them, and the 0.2 nozzle, since `test_install_printers` or
-  another test may install them on the folder. A preset `preset_select` shows stays shown until the app restarts,
-  and the runner starts a new app for each test, so presets an earlier test showed are hidden again.
+  model with processes of its own. The test runs in an app earlier tests used, and one of them may have installed
+  these printers or shown one: `test_operation_routes` shows a Klipper nozzle that is not installed through the
+  plugin API. A preset `preset_select` shows stays shown, not installed, until the presets are reloaded
+  (`show_hidden_preset()` in `PresetOps.cpp`), and an uninstall that finds the printers not installed changes
+  nothing and reloads nothing. So the start installs them and uninstalls them again: the uninstall changes the
+  installed printers, and its reload (`apply_install_set()` in `InstallOps.cpp`, through
+  `PresetBundle::load_presets()`) shows each printer as the installed printers say, with the selected one, which is
+  why the Klipper is selected again before it; the install selects the first nozzle it adds. That also hides a
+  printer that the data folder's last selection showed when the app started.
 - The Marlin's process (hidden presets, step 4). Std does not fit the Marlin, and the compatibility update picks the
   Marlin's process with Std's alias, "0.20mm Standard" (`PreferedProfileMatch` in `PresetBundle.cpp`). With
   `remember_printer_config` on, the switch first selects what the Marlin was last used with, and on a folder where it
@@ -562,7 +561,9 @@ true}` and leaves the selection `Klipper | Std | PLA[nozzle_temperature 230×6, 
 - A hidden printer selected through the plugin API, and the mixed-colour slot's refusal through both routes: checked in
   `test_operation_routes`.
 - Installing and uninstalling printers and filaments: `test_install_printers` and `test_install_filaments`. Here the
-  start uninstalls a few without reading the replies.
+  start installs and uninstalls a few without reading the replies.
+- The Add filament action's message, which `test_objects` checks: keep and discard adds its second slot with
+  `add_slot`, so that the slot's colour does not depend on the slots the app's run added before.
 - That the Developer mode action turns the preference on and off, read through `preferences_get`: here a detached save
   is refused and then made around it, which shows it on, and each scenario's start reads it off.
 - That `preset_export` with a path is held by a dialog titled Export Preset Bundle: checked in `test_person_forms`;

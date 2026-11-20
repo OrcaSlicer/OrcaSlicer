@@ -12,8 +12,8 @@ An orbit after a direction ends at the elevation and azimuth it asks for and kee
 shares Prepare's camera; the Design tab has its own, which takes a look_at and zoom too and orbits.
 click_px_per_mm is the zoom over the canvas's scale. A fit on Prepare after the window was sized on the
 Home tab fits the new size. On the Home tab, where no 3D view draws, a zoom comes with a note that the
-queued fit will replace it. The test starts on the Klipper printer with the perspective projection, which is stored
-and which other tests switch. Exits 0 when every check passes.
+queued fit will replace it. The test starts from start() on the Klipper printer, which gives the perspective
+projection and the 1600x900 window. Exits 0 when every check passes.
 """
 
 import os
@@ -21,7 +21,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, start  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, start, wait  # noqa: E402
 
 MODEL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "resources", "handy_models", "OrcaCube_v2.drc")
 # The Design GUI tests' zoom where a canvas has one GL pixel per click pixel, cad_gui.RESET_ZOOM.
@@ -51,9 +51,7 @@ def main():
     started = start(client)
     check("start: the Klipper printer with its default process and filament",
           started == {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]}, started)
-    client.call("window_set", size=[1600, 900])
-    # The projection is stored (use_perspective_camera), and other tests switch it.
-    client.call("view_set", projection="perspective")
+    # The first scenario runs straight after a project_new of its own, while the fit it queues has yet to run.
     client.call("project_new", discard_changes=True)
 
     # 1. Prepare, straight after project_new: the fit it queued runs first, then look_at and zoom.
@@ -74,7 +72,7 @@ def main():
     after = camera()
     check("prepare: app_state.camera keeps the zoom after a frame", after.get("zoom") == 3, after)
     check("prepare: and look_at", after.get("look_at") == [50, 60, 0], after)
-    # The projection the start set; auto_perspective, which would change it with the view's direction, is off.
+    # The projection start() sets; auto_perspective, which would change it with the view's direction, is off.
     check("prepare: camera_state has a projection type", after.get("type") == "perspective", after)
 
     # 2. Clicks: click_px_per_mm is the zoom over the canvas's scale, 1 at 100 % and 1.5 at 150 % scaling.
@@ -100,7 +98,7 @@ def main():
     # 5. Preview shares Prepare's camera.
     client.call("dialog_auto_answer", rules=[{"match": "unsaved changes", "button": "no"}])
     client.call("project_import", paths=[os.path.abspath(MODEL)])
-    client.call("app_wait", **{"for": "idle"})
+    wait(client, "idle")
     sliced = client.await_job(client.call("plate_slice"))
     check("preview: the cube slices", sliced.get("plates", [{}])[0].get("outcome") == "ok", sliced)
     reply = view_set(tab="preview", look_at=[0, 0, 0], zoom=2)
@@ -157,7 +155,6 @@ def main():
     zoom = first.get("camera_state", {}).get("zoom")
     check("resized on home: a fit on prepare uses the new size",
           zoom is not None and close(second.get("camera_state", {}).get("zoom"), zoom, 1e-3), (first, second))
-    client.call("window_set", size=[1600, 900])
 
     # 10. On a tab with no 3D view, the fit project_new queues waits for the view to draw: app_state has no
     # camera, a zoom given then is applied with a note that the fit is still queued, and the fit replaces it
@@ -172,8 +169,6 @@ def main():
     client.call("window_screenshot", target="canvas", include_image=False)
     after = camera()
     check("home: the fit replaces the zoom once the view draws, as the note says", after.get("zoom") != 3, after)
-
-    client.call("dialog_auto_answer", rules=[])
 
     failed = [c for c in checks if not c[1]]
     for name, ok, detail in checks:

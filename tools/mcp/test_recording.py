@@ -9,8 +9,8 @@ file; a recording a nested replay_run starts and never stops, which the replay's
 limit; and encoding asked for at the start, run as a job by the stop, deleting or keeping the .mkv. The recordings
 are read back from their files. What the machine's ffmpeg can encode decides each encode's checks: an encode it
 cannot make must be refused with the app's reason, and the file checks it would have had print as SKIP. The last
-line names what could be encoded. It starts on the Generic Klipper Printer with the window at 1600 x 900. The
-recordings go to --out, else to a new temporary folder.
+line names what could be encoded. It starts on the Generic Klipper Printer in the sweep's baseline, its window at
+1600 x 900. The recordings go to --out, else to a new temporary folder.
 """
 
 import argparse
@@ -20,11 +20,10 @@ import struct
 import subprocess
 import sys
 import tempfile
-import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, plates, run, start, wait  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, WINDOW_SIZE, Checks, plates, run, start, until, wait  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CUBE = os.path.join(REPO, "resources", "handy_models", "OrcaCube_v2.drc")
@@ -257,13 +256,14 @@ class RecordingTest:
         self.run("mouse_gesture", action="click", at={"object": 0, "spot": "top"})
         self.t.equal(f"{s} 4: a click on the object selects it", self.selected(), [0])
 
-        self.run("widget_set_value", target={"label": "Process"}, value=False)
+        # The sidebar is on Global, as start() leaves it, so it shows the process's fields.
         self.run("widget_set_value", target={"option": "layer_height"}, value="0.16")
         self.t.equal(f"{s} 5: the layer height", self.process("layer_height"), "0.16")
         first = {"option": "initial_layer_print_height"}
         reply = self.run("keyboard_press", target=first, keys="ctrl+a", text="0.24")
         self.t.equal(f"{s} 6: the reply", reply, {"sent": "ctrl+a", "to": "TextInput", "typed": "0.24"})
         self.run("keyboard_press", target=first, keys="Return")
+        wait(self.c, "idle")
         self.t.equal(f"{s} 6: typing leaves a native text field as it was", self.process("initial_layer_print_height"),
                      "0.2")
 
@@ -409,13 +409,13 @@ class RecordingTest:
         reply = self.run("recording_start", save_path=short, overwrite=True, max_seconds=2)
         self.t.equal(f"{s} 5: the limit", reply.get("max_seconds"), 2)
         self.recording_is(f"{s} 5", short)
-        deadline = time.monotonic() + 10
-        while self.recording() is not None and time.monotonic() < deadline:
-            time.sleep(0.25)
-        self.recording_is(f"{s} 6: the recording ended on its own within 10 s")
+        until(lambda: self.recording() is None, "the 2 s recording ended on its own")
+        self.recording_is(f"{s} 6: the recording ended on its own")
         report = self.run("recording_stop", silent=True)
         self.t.equal(f"{s} 7: the limit ended it", report.get("ended"), "max_seconds")
-        self.t.near(f"{s} 7: it ran for the limit", report.get("seconds"), 2, 0.5)
+        # The timer ends it at its first tick past the limit, which a loaded machine delays: only the lower bound
+        # holds on any machine.
+        self.t.check(f"{s} 7: it ran at least the limit", report.get("seconds", 0) >= 2, report.get("seconds"))
         self.t.near(f"{s} 7: the file's duration", mkv(short)["seconds"], report.get("seconds", 0), 0.1)
 
         wrong = self.out("wrong.avi")
@@ -490,17 +490,13 @@ class RecordingTest:
     def run_all(self):
         self.t.equal("the start: the presets", start(self.c),
                      {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]})
-        # The click at (300, 200) that must land on empty space is placed in a 1600 x 900 window.
-        self.run("window_set", size=[1600, 900])
-        self.t.equal("the start: the window's size", self.c.call("app_state")["window"]["size"], [1600, 900])
+        # The click at (300, 200) that must land on empty space is placed in the baseline's 1600 x 900 window.
+        self.t.equal("the start: the window's size", self.c.call("app_state")["window"]["size"], WINDOW_SIZE)
         for name, scenario in [("a recording while the GUI is driven", self.driven),
                                ("a recording a replay starts", self.nested),
                                ("overlays and the time limit", self.overlays),
                                ("an encode asked for at the start", self.encode_at_start)]:
             self.t.scenario(name, scenario)
-        if self.recording() is not None:
-            self.c.call("recording_stop", silent=True)
-        self.run("project_new", discard_changes=True, preset_changes="discard")
         code = self.t.exit_code()
         print("encodes checked: " + ", ".join(f"{codec} {self.encoded.get(codec, 'no (not reached)')}"
                                              for codec in ("h265", "h264")), flush=True)

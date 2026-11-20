@@ -16,25 +16,25 @@ process (`wall_loops` 3, `top_shell_layers` 4, layers of 0.2 mm from the first, 
 PLA slot. Nothing it checks needs a Bambu Lab printer's own behaviour.
 
 **Starts from:** `start(client)`, whose `presets()` must be `{printer: "MyKlipper 0.4 nozzle", process: "0.20mm
-Standard @MyKlipper", filaments: ["Generic PLA @System"]}`. Then one `preferences_set` with the preferences the checks
-read, each at the app's default and read back with `preferences_get`: `project_load_behaviour` `ask_when_relevant` (an
-open loads the project's settings and asks nothing about them), `max_recent_count` 18 and `recent_models` false (the
-recent projects), `enable_step_mesh_setting` true (the STEP options dialog) and `auto_slice_after_change` false (no
-plate slices by itself). `drc_bits` is read, not set:
-"drc_bits is 0, lossless" checks it is the app's default 0, under which the DRC rows read their meshes back exactly.
-The Preferences dialog's field takes 8 to 30 only, so no tool sets 0 and no test changes it; a folder where a person
-chose a lossy depth fails that check by name, ahead of the rows. If the user filament presets list "MCP Files PLA", which only a failed
-run of this test can have left (importing models, step 10, is the regression that makes it), the test deletes it with
-`preset_delete` and checks it is no longer listed. `W` is new each run, so nothing a failed first run left in its own
-`W` reaches a rerun.
+Standard @MyKlipper", filaments: ["Generic PLA @System"]}`. It sets nothing beyond the baseline. It reads back with
+`preferences_get` the preferences its checks depend on, each at the baseline's value, a new folder's:
+`project_load_behaviour` `ask_when_relevant` (an open loads the project's settings and asks nothing about them),
+`max_recent_count` 18 and `recent_models` false (the recent projects), `enable_step_mesh_setting` true (the STEP options
+dialog) and `auto_slice_after_change` false (no plate slices by itself); and `drc_bits`, which "drc_bits is 0,
+lossless" checks is 0, under which the DRC rows read their meshes back exactly. The Preferences dialog's field takes 8
+to 30 only, so a baseline with a lossy depth fails that check by name, ahead of the rows. If the user filament presets
+list "MCP Files PLA", which only a failed run of this test can have left (importing models, step 10, is the regression
+that makes it), the test deletes it with `preset_delete` and checks it is no longer listed. `W` is new each run, so
+nothing a failed first run left in its own `W` reaches a rerun.
 
-**Leaves:** In the app's presets, the Klipper printer with the one slot of Generic PLA that `start()` set, its colour as
-the test before it left it. In the recent projects, at the top, the projects it saves or opens in `W`: `kept.3mf`,
-`open_src.3mf`, `clean.3mf`, `dirty.3mf`, `presets.3mf`, `empty.3mf`, `saved.3mf` and `import_src.3mf`, which name files
-that are gone once the test passes and `W` is deleted. The folders the app remembers, all set to `W`:
-`app.last_export_path`, where the G-code picker starts, and the `recent` section's `last_opened_folder` and
-`settings_folder`. The preferences it sets, at their defaults. No user preset: every preset edit is discarded by a new
-project, and the preset file it imports as a model loads none. It restores nothing in a `finally`.
+**Leaves:** In the app's presets, the Klipper printer with the one slot of Generic PLA that `start()` set, in the
+baseline's `#26A69A`. In the project, the last scenario's Benchy, unsaved, with its last `wall_loops` an unsaved edit
+of the process. In the recent projects, at the top, the projects it saves or opens in `W`: `kept.3mf`, `open_src.3mf`,
+`clean.3mf`, `dirty.3mf`, `presets.3mf`, `empty.3mf`, `saved.3mf` and `import_src.3mf`, which name files that are gone
+once the test passes and `W` is deleted. The folders the app remembers, all set to `W`: `app.last_export_path`, where
+the G-code picker starts, and the `recent` section's `last_opened_folder` and `settings_folder`. No user preset: every
+other preset edit is discarded by a new project, and the preset file it imports as a model loads none. It restores
+nothing in a `finally`.
 
 **Files:** The test writes into a folder of its own, `W` (`tempfile.mkdtemp()`): the STL cubes and ZIP archives it
 imports, written with `zipfile` and an ASCII STL writer of its own, and every file the app exports or saves. It reads
@@ -298,13 +298,15 @@ outlasts the reply budget is followed as a job.
 
 An attempt: `settings_set {values: {wall_loops: w}}` with a value neither the process (3) nor an earlier attempt has
 (4, then 5, 6, ...), so that the slice starts over from the walls; `app_wait {for: "idle"}`; the second client starts
-the action; the test waits up to 10 s until `app_state.slicing` is true or the second client's call has ended (a wait
-that runs out with neither fails), and on `slicing` exports at once to `W/during_<w>.gcode`. A Benchy's slice lasts seconds and the export follows within
-a few tens of milliseconds, but the slice can end in between, or before the test sees it. An attempt overlaps when the
-export is refused with "Busy: job": MCP's admission (`McpCore::admit()`) gives that refusal only while an operation is
-held, and the second client's slice is the only one. An attempt that does not overlap (the slice ended before the test
-saw it, or the export went through) is followed by the next one once the second client's call has ended; the check
-fails when three attempts in a row do not overlap. A refusal with other words fails at once.
+the action; the test reads `app_state.slicing` every 5 ms with `until()` until it is true or the second client's call
+has ended (30 s without either fails), and on `slicing` exports at once to `W/during_<w>.gcode`. The app decides when
+the slice starts and ends, and nothing lets the test hold it, so the overlap is a race the test retries: a Benchy's
+slice lasts seconds and the export follows within a few tens of milliseconds, but the slice can end in between, or
+before the test sees it. An attempt overlaps when the export is refused with "Busy: job": MCP's admission
+(`McpCore::admit()`) gives that refusal only while an operation is held, and the second client's slice is the only one.
+An attempt that does not overlap (the slice ended before the test saw it, or the export went through) is followed by
+the next one once the second client's call has ended; the check fails when three attempts in a row do not overlap. A
+refusal with other words fails at once.
 
 | # | Step | Objects after | Also checked |
 |---|---|---|---|
@@ -432,8 +434,8 @@ fails when three attempts in a row do not overlap. A refusal with other words fa
 - A remembered answer to the save questions (`save_project_choise`, `save_preset_choise` in the configuration), which
   would skip New Project's questions: no tool sets or clears one, and no test answers a question with Remember my
   choice.
-- The preferences Starts from leaves alone, such as the 3MF import's name options: a project's part names win over
-  them (`Plater::priv::load_files()`), so the 3MF files here do not read them.
+- The preferences Starts from does not read back, such as the 3MF import's name options: a project's part names win
+  over them (`Plater::priv::load_files()`), so the 3MF files here do not read them.
 
 **Strength:** Strong — every export and save is read back from its file, and every refusal by its code or words with
 the state written out after it.

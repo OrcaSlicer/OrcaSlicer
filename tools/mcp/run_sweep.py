@@ -1,29 +1,37 @@
 #!/usr/bin/env python3
 """Runs the MCP sweep: every Python test in tools/mcp, on several jobs at once, each job running its tests one after
-another on one data folder.
+another in one app on one data folder.
 
     tools/mcp/run_sweep.py [--bin PATH] [-j N] [--only NAME ...] [--skip NAME ...] [--out DIR] [--history FILE]
-                           [--keep] [--headless] [--wayland] [--list] [--forget NAME ...]
+                           [--keep] [--headless] [--wayland] [--shuffle [SEED]] [--list] [--forget NAME ...]
 
 The tests are the test_*.py files in tools/mcp; a replay, such as smoke_test.json, is not one. sweep.json lists each
 test with what it needs, and a test it does not list, or an entry whose file is not a test, stops the run before
 anything starts. -j N (or --jobs N) runs N jobs at once, as a build's -j runs N compile jobs; it defaults to half the
-cores, up to six. A job keeps one data folder for all its tests, as a person's OrcaSlicer keeps its own: the first
-launch seeds it, and each test after launches a fresh app on the folder as the tests before left it. Each test also
-has a folder of its own under --out for its session file ($ORCA_MCP_SESSION), temporary folder and empty working
-folder, and a port of its own. The longest tests (by their last passing time in --history) start first, and tests
-that hold the same lock never overlap.
+cores, up to six. A job keeps one data folder and one app for all its tests, as a person keeps the OrcaSlicer they
+opened that morning: the first launch seeds the folder, and the app, launched with --cad and --unrestricted-scripts,
+runs the job's tests one after another. Before each test the runner checks that the app answers, and launches it
+again on the folder when it does not; when sweep.json marks the test fresh; when the test has a setup step, which
+prepares the folder for the launch; and when the test's variables differ from those the app was launched with. A
+test that runs past its time limit has the app stopped, so that the next test gets a new one, and a job's app is
+stopped when the job has no tests left. A test marked own starts apps of its own on folders of its own and leaves
+the job's app as it is. The app's session file ($ORCA_MCP_SESSION) is in the job's folder; each test has a folder of
+its own under --out for its temporary folder and empty working folder. The longest tests (by their last passing time
+in --history) start first, and tests that hold the same lock never overlap. --shuffle SEED orders them at random
+from SEED instead and names the seed on the first line, so that an order that fails can be run again; --shuffle
+alone picks a seed.
 
-The serial tests run after the rest, one at a time with nothing else running, on a job of their own: those
-sweep.json marks exclusive, and those the history marks serial. A test that fails while others run runs again in
-that phase, alone, on the data folder it failed on, so that a failure that follows from what an earlier test left
-fails again and one that follows from the load passes. A test that passes alone counts as passed, and the history
-marks it serial, so later sweeps run it alone from the start; --forget NAME clears the mark.
+The serial tests run after the rest, one at a time with nothing else running, on a job of their own with an app of
+its own: those sweep.json marks exclusive, and those the history marks serial. A test that fails while others run
+runs again in that phase, alone, in a new app on the data folder it failed on, so that a failure that follows from
+what an earlier test left fails again and one that follows from the load passes. A test that passes alone counts as
+passed, and the history marks it serial, so later sweeps run it alone from the start; --forget NAME clears the mark.
 
 A passing run's folder is deleted as soon as it passes. A failed run's folder is kept with a copy of the app's log
 from its job's data folder, also when the test then passes alone; the data folder of a job one of whose tests
-failed is kept too, and the other data folders are deleted at the end. --keep keeps everything. results.jsonl records each run of each test with its job and the tests that ran before it
-on that job's data folder.
+failed is kept too, and the other data folders are deleted at the end. --keep keeps everything. results.jsonl
+records each run of each test with its job, the tests that ran before it on that job's data folder, and how long the
+launch took when the run launched the job's app.
 
 On Linux the runner opens each app on the desktop as an X11 client, where a window manager un-minimizes a window on
 request and reports its position, which a Wayland compositor does not; --wayland runs them as native Wayland clients
@@ -37,6 +45,7 @@ import copy
 import glob
 import json
 import os
+import random
 import shlex
 import shutil
 import signal
@@ -50,13 +59,17 @@ import traceback
 from dataclasses import dataclass
 
 MCP_DIR = os.path.dirname(os.path.abspath(__file__))
-DEFAULTS = {"launch": "app", "cad": False, "setup": [], "args": [], "env": {}, "exclusive": False, "locks": [],
-            "timeout_s": 900, "why": ""}
-LAUNCH_KINDS = ("app", "own", "none")
+DEFAULTS = {"launch": "app", "setup": [], "args": [], "env": {}, "exclusive": False, "locks": [], "timeout_s": 900,
+            "why": ""}
+# "app" runs in its job's app and "fresh" in a new one the runner launches before it; "own" starts apps of its own
+# and "none" needs no app.
+APP_KINDS = ("app", "fresh")
+LAUNCH_KINDS = (*APP_KINDS, "own", "none")
 FIRST_PORT = 14100  # clear of the fixed ports tests serve on themselves (13692-13694)
 SETUP_TIMEOUT_S = 300
 LAUNCH_TIMEOUT_S = 300
 STOP_TIMEOUT_S = 120
+ANSWER_TIMEOUT_S = 20  # how long the job's app has to answer the call that checks it before a test
 END_GRACE_S = 30  # how long a test that ran out of time has to close what it started
 GONE_TIMEOUT_S = 60  # how long the app's processes have to end after its stop before they are killed
 # The longest --out on Windows: a test that starts its own app makes its data folders under its temporary folder,
@@ -64,6 +77,7 @@ GONE_TIMEOUT_S = 60  # how long the app's processes have to end after its stop b
 # must stay within MAX_PATH (260), or the copy stops and the app opens its Setup Wizard.
 MAX_OUT_WINDOWS = 80
 SERIAL_JOB = "serial"
+NEW_SEED = object()  # --shuffle given without a seed: parse_args() picks one
 
 
 def entry(raw):
@@ -122,11 +136,17 @@ def serial_reason(name, manifest, history):
     return None
 
 
-def order(names, manifest, history):
-    """(pool, serial), each longest first by the history's times; a test without a time comes first, as it may be
-    long. The serial tests are those sweep.json marks exclusive and those the history marks serial."""
+def order(names, manifest, history, seed=None):
+    """(pool, serial), each longest first by the history's times, a test without a time first, as it may be long; or,
+    given a `seed`, each in the random order random.Random(seed) gives the names, which is the same order every time
+    for the same names and seed. The serial tests are those sweep.json marks exclusive and those the history marks
+    serial."""
     times = history["times"]
-    ranked = sorted(names, key=lambda n: (n in times, -times.get(n, 0.0)))
+    if seed is None:
+        ranked = sorted(names, key=lambda n: (n in times, -times.get(n, 0.0)))
+    else:
+        ranked = sorted(names)
+        random.Random(seed).shuffle(ranked)
     return ([n for n in ranked if not serial_reason(n, manifest, history)],
             [n for n in ranked if serial_reason(n, manifest, history)])
 
@@ -140,8 +160,8 @@ class RunContext:
     mcp_dir: str
     binary: str
     run_dir: str  # the test's own folder
-    job_dir: str  # its job's folder, which holds the data folder the job's tests share
-    port: int
+    job_dir: str  # its job's folder, which holds the data folder and the session file of the app the job's tests share
+    port: int  # the port the job's app serves on when this run launches it
     python: str
     platform: str
     headless: bool = False
@@ -153,11 +173,17 @@ class RunContext:
 
     @property
     def session(self):
-        return os.path.join(self.run_dir, "session.json")
+        """The job's app's session file, which its launch writes and the tests that run in it read."""
+        return os.path.join(self.job_dir, "session.json")
 
     @property
     def tmp(self):
         return os.path.join(self.run_dir, "tmp")
+
+    @property
+    def app_tmp(self):
+        """The temporary folder of the job's app, which outlives the test that launched it and that test's folder."""
+        return os.path.join(self.job_dir, "app-tmp")
 
     @property
     def cwd(self):
@@ -169,16 +195,18 @@ def _fill(args, ctx):
     return [a.replace("{bin}", ctx.binary).replace("{datadir}", ctx.datadir) for a in args]
 
 
-def launch_command(e, ctx):
-    if e["launch"] != "app":
-        return None
+def launch_command(ctx):
+    """The launch of the job's app. Every test that runs in it has the Design tab and Python scripts without the
+    permission checks, whichever test launched it."""
     cmd = [ctx.python, os.path.join(ctx.mcp_dir, "orca_mcp.py"), "launch", "--bin", ctx.binary, "--datadir",
-           ctx.datadir, "--port", str(ctx.port)]
-    if e["cad"]:
-        cmd.append("--cad")
+           ctx.datadir, "--port", str(ctx.port), "--cad", "--unrestricted-scripts"]
     if ctx.headless:
         cmd.append("--headless")
     return cmd
+
+
+def stop_command(ctx):
+    return [ctx.python, os.path.join(ctx.mcp_dir, "orca_mcp.py"), "stop"]
 
 
 def setup_command(e, ctx):
@@ -190,7 +218,10 @@ def test_command(e, ctx):
 
 
 def test_env(e, ctx, base):
-    return {**base, "ORCA_MCP_SESSION": ctx.session, "TMPDIR": ctx.tmp, "TMP": ctx.tmp, "TEMP": ctx.tmp, **e["env"]}
+    """The environment the test runs with. A test that runs in the job's app finds it through the job's session file;
+    any other has a session file of its own in its folder, so that an app it launches never takes the job's."""
+    session = ctx.session if e["launch"] in APP_KINDS else os.path.join(ctx.run_dir, "session.json")
+    return {**base, "ORCA_MCP_SESSION": session, "TMPDIR": ctx.tmp, "TMP": ctx.tmp, "TEMP": ctx.tmp, **e["env"]}
 
 
 def launch_env(ctx, env):
@@ -272,11 +303,59 @@ def keep_app_log(ctx, since):
             pass
 
 
-def run_test(name, e, ctx):
-    """Runs one test in `ctx.run_dir` on its job's data folder: its setup, a launch when it needs the app, the test,
-    then a stop of what it launched and a wait for the app's processes to end. Returns its record; `exit` is the
-    test's exit code, or "setup_failed", "launch_failed" or "timeout". A step that runs out of time is ended as
-    run_step() ends it. A test that fails keeps a copy of the app's log."""
+class JobApp:
+    """What the runner knows of a job's app: `env`, the entry's variables it was launched with, or None when the
+    runner left no app of its own running on the job's folder. Only the job's worker uses it, one test at a time."""
+
+    def __init__(self):
+        self.env = None
+
+
+def stepper(log, cwd, env):
+    """step(label, cmd, timeout, env=None), which notes `cmd` in `log` and runs it to its exit code in `cwd` with
+    run_step(), its output in `log`, with `env` unless the step names its own."""
+    def step(label, cmd, timeout, step_env=None):
+        log.write(f"--- {label}: {shlex.join(cmd)}\n")
+        log.flush()
+        return run_step(cmd, timeout, cwd=cwd, env=env if step_env is None else step_env, stdin=subprocess.DEVNULL,
+                        stdout=log, stderr=subprocess.STDOUT)
+    return step
+
+
+def app_answers(session):
+    """Whether the app the session file `session` names answers an MCP call; False when there is no session file."""
+    try:
+        with open(session, encoding="utf-8") as f:
+            s = json.load(f)
+        import orca_mcp
+        orca_mcp.OrcaMcp(s["port"], s["token"]).call("app_state", _timeout=ANSWER_TIMEOUT_S)
+        return True
+    except Exception:  # whatever way the call fails (no app, another one on the port, a hang), it did not answer
+        return False
+
+
+def stop_app(app, ctx, step, log):
+    """Stops the job's app with `orca_mcp.py stop` when its session file is there, which a launch writes before it
+    waits for the app, so a launch that failed is stopped too; then waits until no process names the data folder,
+    so that the next app is the only one on it."""
+    if os.path.exists(ctx.session):
+        try:
+            step("stop", stop_command(ctx), STOP_TIMEOUT_S, {**os.environ, "ORCA_MCP_SESSION": ctx.session})
+        except subprocess.TimeoutExpired:
+            log.write("--- stop timed out\n")
+    wait_gone(ctx.datadir, log)
+    app.env = None
+
+
+def run_test(name, e, ctx, app, new_app=False, stop_after=False):
+    """Runs one test in `ctx.run_dir` on its job's data folder: its setup, then the test. A test that runs in the
+    job's app (kind "app" or "fresh") first gets a working one: a new app when `new_app`, when it is marked fresh,
+    when its setup prepares the folder for the launch (the job's app is stopped before the setup), when its
+    variables differ from those the job's app was launched with, and when the job's app does not answer; otherwise
+    it runs in the app `app` records. Its app is stopped after it when it runs out of time, so that the next test
+    gets a new one, and when `stop_after`. Returns its record; `exit` is the test's exit code, or "setup_failed",
+    "launch_failed" or "timeout", and `launch_seconds` how long the launch took when the run launched the app. A step
+    that runs out of time is ended as run_step() ends it. A test that fails keeps a copy of the app's log."""
     shutil.rmtree(ctx.run_dir, ignore_errors=True)
     for d in (ctx.tmp, ctx.cwd):
         os.makedirs(d)
@@ -285,50 +364,52 @@ def run_test(name, e, ctx):
     rec = {"name": name, "seconds": 0.0, "launch_seconds": None, "exit": None, "log": os.path.join(ctx.run_dir, "test.log")}
     start, began = time.monotonic(), time.time()
     with open(rec["log"], "w", encoding="utf-8") as log:
-        def step(label, cmd, timeout, env=None):
-            log.write(f"--- {label}: {shlex.join(cmd)}\n")
-            log.flush()
-            return run_step(cmd, timeout, cwd=ctx.cwd, env=base_env if env is None else env, stdin=subprocess.DEVNULL,
-                            stdout=log, stderr=subprocess.STDOUT)
-
-        launch, failed = launch_command(e, ctx), "setup_failed"
+        step = stepper(log, ctx.cwd, base_env)
+        in_app, failed = e["launch"] in APP_KINDS, "setup_failed"
+        setup = setup_command(e, ctx)
+        renew = in_app and (new_app or e["launch"] == "fresh" or setup is not None or app.env != e["env"])
         try:
-            setup = setup_command(e, ctx)
+            if renew:
+                stop_app(app, ctx, step, log)
             if setup and step("setup", setup, SETUP_TIMEOUT_S) != 0:
                 rec["exit"] = failed
                 return rec
-            if launch:
+            if in_app and not renew and not app_answers(ctx.session):
+                log.write("--- the job's app does not answer\n")
+                stop_app(app, ctx, step, log)
+                renew = True
+            if renew:
                 failed, launched = "launch_failed", time.monotonic()
-                code = step("launch", launch, LAUNCH_TIMEOUT_S, launch_env(ctx, base_env))
+                os.makedirs(ctx.app_tmp, exist_ok=True)
+                tmp = {"TMPDIR": ctx.app_tmp, "TMP": ctx.app_tmp, "TEMP": ctx.app_tmp}
+                code = step("launch", launch_command(ctx), LAUNCH_TIMEOUT_S, launch_env(ctx, {**base_env, **tmp}))
                 rec["launch_seconds"] = round(time.monotonic() - launched, 1)
                 if code != 0:
+                    stop_app(app, ctx, step, log)
                     rec["exit"] = failed
                     return rec
+                app.env = copy.deepcopy(e["env"])
             failed = "timeout"
             rec["exit"] = step("test", test_command(e, ctx), e["timeout_s"])
         except subprocess.TimeoutExpired as timeout:
             log.write(f"--- timed out after {timeout.timeout} s\n")
             rec["exit"] = failed
+            if in_app:
+                stop_app(app, ctx, step, log)
         finally:
-            # launch writes the session file before it waits for the app, so a launch that failed is stopped too.
-            if launch and os.path.exists(ctx.session):
-                try:
-                    step("stop", [ctx.python, os.path.join(ctx.mcp_dir, "orca_mcp.py"), "stop"], STOP_TIMEOUT_S)
-                except subprocess.TimeoutExpired:
-                    log.write("--- stop timed out\n")
-            if launch:
-                wait_gone(ctx.datadir, log)
+            if in_app and stop_after and (app.env is not None or os.path.exists(ctx.session)):
+                stop_app(app, ctx, step, log)
             if rec["exit"] != 0:
                 keep_app_log(ctx, began)
             rec["seconds"] = round(time.monotonic() - start, 1)
     return rec
 
 
-def guarded_run_test(name, e, ctx):
+def guarded_run_test(name, e, ctx, app, new_app=False, stop_after=False):
     """run_test(), with a run that raises recorded as an error, its traceback kept in `error`, rather than lost
     with its worker."""
     try:
-        return run_test(name, e, ctx)
+        return run_test(name, e, ctx, app, new_app, stop_after)
     except Exception:  # whatever goes wrong running one test, the sweep records it and goes on
         return {"name": name, "seconds": 0.0, "launch_seconds": None, "exit": "error",
                 "log": os.path.join(ctx.run_dir, "test.log"), "error": traceback.format_exc()}
@@ -445,35 +526,48 @@ def parse_args(argv=None):
                     help="run each app as a native Wayland client instead of as an X11 client (Linux)")
     ap.add_argument("--first-port", type=int, default=FIRST_PORT, metavar="PORT",
                     help="the first port an app serves on, for sweeps run side by side (default: %(default)s)")
+    ap.add_argument("--shuffle", nargs="?", type=int, const=NEW_SEED, metavar="SEED",
+                    help="order the tests at random from SEED instead of longest first, and name the seed on the "
+                         "first line, so that the same order can be run again (default SEED: a new one)")
     ap.add_argument("--list", action="store_true", help="print the order the tests would run in and exit")
-    return ap.parse_args(argv)
+    a = ap.parse_args(argv)
+    if a.shuffle is NEW_SEED:
+        a.shuffle = random.randrange(1_000_000)
+    return a
 
 
 class Sweep:
-    """One sweep's runs: which job and data folder each runs on, what ran before it there, and their records."""
+    """One sweep's runs: which job, app and data folder each runs on, what ran before it there, and their records."""
 
     def __init__(self, a, manifest, mcp_dir, binary, out):
         self.a, self.manifest, self.mcp_dir, self.binary, self.out = a, manifest, mcp_dir, binary, out
         self.ports = Ports(a.first_port)
         self.results = []
         self.runs_on = {}  # job: the names of the runs on its data folder so far, in order
+        self.apps = {}  # job: its JobApp
         self.lock = threading.Lock()
 
     def job_dir(self, job):
         return os.path.join(self.out, f"job-{job}")
 
+    def context(self, job, run_dir, port):
+        return RunContext(mcp_dir=self.mcp_dir, binary=self.binary, run_dir=run_dir, job_dir=self.job_dir(job),
+                          port=port, python=sys.executable, platform=sys.platform, headless=self.a.headless,
+                          wayland=self.a.wayland)
+
     def run(self, name, job, phase):
-        """Runs `name` on `job`'s data folder in `phase` ("pool", "serial" or "alone") and returns its record. A
-        passing run's folder is deleted unless --keep."""
+        """Runs `name` on `job`'s data folder in `phase` ("pool", "serial" or "alone") and returns its record. A run
+        alone has a new app, stopped after it. A passing run's folder is deleted unless --keep."""
         run_dir = os.path.join(self.out, name + ("-alone" if phase == "alone" else ""))
         with self.lock:
             port = self.ports.take()
             after = list(self.runs_on.setdefault(job, []))
             self.runs_on[job].append(name)
-        ctx = RunContext(mcp_dir=self.mcp_dir, binary=self.binary, run_dir=run_dir, job_dir=self.job_dir(job),
-                         port=port, python=sys.executable, platform=sys.platform, headless=self.a.headless,
-                         wayland=self.a.wayland)
-        rec = {**guarded_run_test(name, self.manifest[name], ctx), "job": job, "phase": phase, "after": after}
+            app = self.apps.setdefault(job, JobApp())
+        alone = phase == "alone"
+        rec = {**guarded_run_test(name, self.manifest[name], self.context(job, run_dir, port), app, new_app=alone,
+                                  stop_after=alone),
+               "job": job, "phase": phase, "after": after}
         if rec["exit"] == 0:
             status = "passed alone" if phase == "alone" else "pass"
         else:
@@ -484,6 +578,17 @@ class Sweep:
         if rec["exit"] == 0 and not self.a.keep:
             shutil.rmtree(run_dir, ignore_errors=True)
         return rec
+
+    def end_job(self, job):
+        """Stops `job`'s app when its session file says one is running, and waits until its processes are gone;
+        what that prints goes to stop.log in the job's folder."""
+        ctx = self.context(job, self.job_dir(job), 0)
+        if not os.path.exists(ctx.session):
+            return
+        with self.lock:
+            app = self.apps.setdefault(job, JobApp())
+        with open(os.path.join(ctx.job_dir, "stop.log"), "a", encoding="utf-8") as log:
+            stop_app(app, ctx, stepper(log, ctx.job_dir, os.environ), log)
 
 
 def main(argv=None, mcp_dir=MCP_DIR):
@@ -504,8 +609,12 @@ def main(argv=None, mcp_dir=MCP_DIR):
             print(f"{n}: serial mark cleared" if history["serial"].pop(n, None) else f"{n}: had no serial mark")
         write_history(a.history, history)
         return 0
-    pool, serial = order([n for n in manifest if (not a.only or n in a.only) and n not in a.skip], manifest, history)
+    pool, serial = order([n for n in manifest if (not a.only or n in a.only) and n not in a.skip], manifest, history,
+                         a.shuffle)
+    shuffled = "" if a.shuffle is None else f"shuffled with seed {a.shuffle}"
     if a.list:
+        if shuffled:
+            print(shuffled)
         for n in pool:
             print(f"{n:45} {history['times'].get(n, 0):7.1f}s")
         for n in serial:
@@ -524,8 +633,8 @@ def main(argv=None, mcp_dir=MCP_DIR):
               f"app's profile files within MAX_PATH, so give an --out of at most {MAX_OUT_WINDOWS}", file=sys.stderr)
         return 2
     os.makedirs(out, exist_ok=True)
-    print(f"{len(pool) + len(serial)} tests on {a.jobs} jobs, {len(serial)} of them alone after the rest, into {out}",
-          flush=True)
+    print(f"{len(pool) + len(serial)} tests on {a.jobs} jobs, {len(serial)} of them alone after the rest, into {out}"
+          + (f", {shuffled}" if shuffled else ""), flush=True)
 
     crashes_before = crash_reports()
     sweep = Sweep(a, manifest, mcp_dir, binary, out)
@@ -533,26 +642,29 @@ def main(argv=None, mcp_dir=MCP_DIR):
     held, pending, again, stopping = set(), list(pool), [], threading.Event()
 
     def worker(job):
-        while not stopping.is_set():
-            with cond:
-                name = None
-                while pending and not stopping.is_set():
-                    name = pick_next(pending, manifest, held)
-                    if name:
-                        break
-                    cond.wait()
-                if not name:
-                    return
-                pending.remove(name)
-                held.update(manifest[name]["locks"])
-            try:
-                if sweep.run(name, job, "pool")["exit"] != 0:
-                    with cond:
-                        again.append((name, job))
-            finally:
+        try:
+            while not stopping.is_set():
                 with cond:
-                    held.difference_update(manifest[name]["locks"])
-                    cond.notify_all()
+                    name = None
+                    while pending and not stopping.is_set():
+                        name = pick_next(pending, manifest, held)
+                        if name:
+                            break
+                        cond.wait()
+                    if not name:
+                        return
+                    pending.remove(name)
+                    held.update(manifest[name]["locks"])
+                try:
+                    if sweep.run(name, job, "pool")["exit"] != 0:
+                        with cond:
+                            again.append((name, job))
+                finally:
+                    with cond:
+                        held.difference_update(manifest[name]["locks"])
+                        cond.notify_all()
+        finally:
+            sweep.end_job(job)
 
     started = time.monotonic()
     threads = [threading.Thread(target=worker, args=(job,)) for job in range(1, a.jobs + 1)]
@@ -562,16 +674,19 @@ def main(argv=None, mcp_dir=MCP_DIR):
         for t in threads:
             while t.is_alive():
                 t.join(0.5)
-        for name in serial:
-            if stopping.is_set():
-                break
-            sweep.run(name, SERIAL_JOB, "serial")
+        try:
+            for name in serial:
+                if stopping.is_set():
+                    break
+                sweep.run(name, SERIAL_JOB, "serial")
+        finally:
+            sweep.end_job(SERIAL_JOB)
         for name, job in sorted(again, key=lambda pair: pool.index(pair[0])):
             if stopping.is_set():
                 break
             sweep.run(name, job, "alone")
     except KeyboardInterrupt:
-        # The running tests get the interrupt too; their workers stop what they launched and take no more.
+        # The running tests get the interrupt too; their workers take no more and stop their jobs' apps.
         stopping.set()
         with cond:
             cond.notify_all()

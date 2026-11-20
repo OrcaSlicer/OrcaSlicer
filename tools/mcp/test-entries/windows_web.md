@@ -3,13 +3,15 @@
 The design of this area's sweep tests. The rules every entry follows, the grades and the table of all tests are
 in [TESTS.md](../TESTS.md).
 
-Two facts about the shared data folder decide several entries here, both measured on Windows:
+Two facts about the shared app and data folder decide several entries here, both measured on Windows:
 
-- **The main window's placement does not carry over.** The app writes `window_mainframe` only when its main window
-  closes, and the runner's stop ends the app without closing it, so every launch on a job's folder opens the window
-  where the seed put it: 1600×900 at the top left of the work area, trimmed to it. After `window_set` to 1300×820 at
-  [100, 50] and a stop, the conf still read `0; 0; 1600; 900; 0`. No test on a shared folder closes the main window.
-  Neither the Plugins window nor Preferences stores a size or a place.
+- **The main window's place carries over within an app's run, and no further.** `start()` gives the main window the
+  baseline's 1600×900, normal, and leaves it where the test before moved it, so a test that needs a place sets it.
+  The app writes `window_mainframe` only when its main window closes, and the runner's stop ends the app without
+  closing it, so a new launch on a job's folder opens the window where the seed put it: 1600×900 at the top left of
+  the work area, trimmed to it. After `window_set` to 1300×820 at [100, 50] and a stop, the conf still read `0; 0;
+  1600; 900; 0`. No test on a shared folder closes the main window. Neither the Plugins window nor Preferences stores
+  a size or a place.
 - **A capture without `save_path` stays in the folder.** `window_screenshot` with no `save_path` saves its PNG under
   `<datadir>/automation/out`, and a `replay_run` with no `out_dir` its `replay-<time>` folder there.
 
@@ -50,8 +52,9 @@ Orca printer agent an earlier test stored is selected at the start when it is th
 `printer_status` then reads it connected (measured with one machine of those `test_send_gcode` leaves). The Bambu
 printer agent selects only a Bambu Lab printer bound to the folder, and the folder has none: it is signed out
 (`use_encrypted_token_file`, and no test signs in), the Bambu network plugin is not installed, and no test binds a
-printer. Measured on the X1 Carbon with that Orca machine stored: `{"connected": false}`. The guard stays, since a
-person's own folder may hold a bound printer.
+printer. Measured on the X1 Carbon with that Orca machine stored, and in the app `test_send_gcode` had just run in,
+its two machines stored: `{"connected": false}`. The guard stays, since a person's own folder may hold a bound
+printer.
 
 The H2D part starts from `start()` on `Bambu Lab H2D 0.4 nozzle`, `0.20mm Standard @BBL H2D` and two slots of
 `Bambu PLA Basic @BBL H2D`, two filaments for two extruders; the ER20 part from `start()` on `Eryone ER20 0.4
@@ -167,14 +170,13 @@ are checked exactly, though only one setting is covered.
 **Leaves:** Nothing: the folder is deleted at the end unless `--datadir` names its root.
 
 **Decides by:** Exits 1 when a check prints FAIL or on an uncaught exception.
-- "the app starts" and "the window layout the first run saved has the sidebar": the first launch succeeds, and the `window_layout` in `OrcaSlicer.conf` has a `name=sidebar;` entry.
+- "the app starts" and "the window layout the first run saved has the sidebar": the first launch succeeds, and the `window_layout` in `OrcaSlicer.conf` has a `name=sidebar;` entry. The app writes the conf at its next idle moment and the stop writes nothing (on Windows it kills the app), so the first run is stopped once the conf on disk holds that entry, read with `until()` for up to 30 s; when it never does, the check fails.
 - "view_set of sidebar_width while the sidebar floats is refused": the call must raise, with "The sidebar floats in a window of its own" in the message.
 - "and the sidebar's width stays as it was": `app_state.view.sidebar_width` equals the value read before.
 
 **Not checked:**
 - A native Wayland app is not tested: its saved floating state is dropped, and nothing checks that it starts docked.
 - Nothing reads the state to confirm the sidebar really floats; only the refusal text suggests it. No docked control shows that `sidebar_width` is accepted when the sidebar isn't floating.
-- The first run is stopped right after it reports ready, but the app writes its layout "at its next idle moment". A layout not yet written fails the second check, so this can flake but can't pass falsely.
 
 **To settle in review:**
 - That an X11 client is what a sweep on a Wayland desktop should test here. A `--wayland` sweep means native Wayland launches; this test could instead check there that the sidebar starts docked and `view_set {sidebar_width}` is taken. The proposal keeps one behaviour, the floating one, on every platform.
@@ -196,20 +198,21 @@ are checked exactly, though only one setting is covered.
   minimizes; and it stays above the main window in the stacking order.
 - Action Replay, a window the tools reach: listed with a ref, and closed by Escape sent to that ref.
 
-**Starts from:** `start(client)` on the Generic Klipper Printer 0.4 nozzle, then the Prepare tab. No check reads a
-preset, and nothing here is a Bambu Lab printer's own. The window list is the one a launch starts with: the main
-window alone. Measured with `test_web_ui`'s fixture plugin left in the folder: no window or prompt opens at startup.
-The checks find Plugins, Preferences and Action Replay by title. The main window opens where the seed put it, which
-no earlier test can have changed (see the top of this file), but no check rests on that: each size, place and state
-is given by a call before it is read, and the contradiction is compared with the size read just before it. The
-Plugins window lists the plugins an earlier test left (`test_web_ui`'s fixture); its size and place are set by the
-call that reads them.
+**Starts from:** `start(client)` on the Generic Klipper Printer 0.4 nozzle, which leaves the Prepare tab and the
+main window 1600×900, normal. No check reads a preset, and nothing here is a Bambu Lab printer's own. The window list
+is the one `start()` leaves: the main window alone, as it closes every other window, such as the Plugins dialog and
+the fixture's window `test_web_ui` leaves open. The checks find Plugins, Preferences and Action Replay by title. The
+main window is where the test before left it (see the top of this file), but no check rests on its place: each size,
+place and state is given by a call before it is read, and the contradiction is compared with the size read just
+before it. The Plugins window lists the plugins an earlier test left (`test_web_ui`'s fixture); its size and place are
+set by the call that reads them.
 
 **Leaves:** Nothing the checks change reaches the data folder: the main window's placement is not written, and the
 Plugins window, Preferences and Action Replay store no size or place. Under `<datadir>/automation/out`: the
 captures of the Plugins window and of the main window, and, off Wayland, the canvas capture after the restore; on
-Wayland, a second capture of the main window instead. The project is `start()`'s, empty. The last call sizes the
-window to 1600×900 for whoever watches; no later test meets it, since each launches its own app.
+Wayland, a second capture of the main window instead. The project is `start()`'s, empty. The main window is left
+normal at 1500×950, the last call's size, where the calls before placed it: the next `start()` gives it the
+baseline's size and leaves its place.
 
 **Decides by:** Exits 1 when any check fails or on an uncaught exception. SKIPs never fail it.
 - Start: `start()` returns `{printer: KLIPPER, process: KLIPPER_STD, filaments: [GENERIC_PLA]}`.
@@ -227,14 +230,15 @@ window to 1600×900 for whoever watches; no later test meets it, since each laun
   - A `window_screenshot` of the main window (no image) must report a width and height equal to 1300×820 times the
     reply's `scale`. Only that pixel size is compared.
 - Minimize and restore, everywhere except Wayland:
-  - Minimize returns in under 5 s and replies `minimized`.
+  - Minimize replies `minimized` with no `note`. A wait for the 3D frame a minimized window never draws would run to
+    its 3 s and reply with a note that the 3D view did not draw; the call has 30 s before the test reads it as hung.
   - Restore replies `normal`, and a canvas `window_screenshot` reports a width > 0.
-  - Maximized, minimized, then `normal`: the reply says `normal` with no `note`, and `window_list` still reads
-    `normal` 1 s later.
+  - Maximized, minimized, then `normal`: the reply says `normal` with no `note`, and `window_list`, read every 0.1 s
+    through the second after the reply, reads `normal` each time.
   - Maximized, minimized, then a size: the reply says `normal` with that size.
 - Contradiction: `state: maximized` together with a size raises, and the size in `window_list` is unchanged.
 - Plugins window:
-  - It is listed within 15 s with a `ref`, `modal: false` and `web: true`.
+  - It is listed within 30 s with a `ref`, `modal: false` and `web: true`.
   - The reply's size is 900×700, or 900 by more than 700 with `size` listed in `adjusted`.
   - "Plugins: the reply has the position": off Wayland the reply's position is [100, 100]; on Wayland, where no
     position is given or known, the reply has no `position` (its fields are `window_list`'s entry, which has no
@@ -243,10 +247,10 @@ window to 1600×900 for whoever watches; no later test meets it, since each laun
   - A `window_screenshot` by its ref (no image) has a `path`, a width above 0, and a size other than that of a
     screenshot of `main` taken after it.
   - `widget_list` by its ref, without web pages, has `"Plugins"` on its first line and no `MainFrame`.
-  - `keyboard_press Escape` by its ref removes it from the list within 10 s, and its ref then raises naming
+  - `keyboard_press Escape` by its ref removes it from the list within 30 s, and its ref then raises naming
     `window_list`.
 - Preferences:
-  - It is listed within 15 s with `modal: true` and a `ref`, last in the list.
+  - It is listed within 30 s with `modal: true` and a `ref`, last in the list.
   - "dialog: window_set sizes the topmost modal dialog": `window_set {target: "dialog", size: [1000, 760]}` replies
     `kind` `dialog` and the size 1000×760, or 1000 by more than 760 with `size` in `adjusted`; `window_list`'s
     Preferences entry then has that width and height. Measured on Windows at 100 % scaling: Preferences opens at
@@ -260,8 +264,9 @@ window to 1600×900 for whoever watches; no later test meets it, since each laun
   - It closes through `dialog_answer`, and the list then leaves it out.
 - Stacking, on Linux X11 only, where libX11 opens the display: the main window is minimized, restored and raised.
   In the X server's stacking order its title must then sit below `Preferences`.
-- Action Replay: listed within 10 s of `action_run open_action_replay`, with no `hidden` key, a `ref`, `modal:
-  false` and `web: true`; `keyboard_press Escape` by its ref removes it from the list within 10 s.
+- Action Replay: listed within 30 s of `action_run open_action_replay`, with no `hidden` key, a `ref`, `modal:
+  false` and `web: true`; `keyboard_press Escape` by its ref removes it from the list within 30 s.
+- Each "within 30 s" is `until()` on `window_list`, which fails its check when the 30 s pass.
 - Read side:
   - Every window with a ref has a valid `state` and a boolean `resizable`.
   - `displays` is not empty and has exactly one `primary`.
@@ -286,15 +291,13 @@ window to 1600×900 for whoever watches; no later test meets it, since each laun
   self-referential, and `window_list` isn't read.
 - "restore: the 3D view captures" only requires a reported width > 0; no pixels are compared.
 - "a contradiction is refused" accepts any error text.
-- Timing:
-  - "and window_list still reads it normal a second later" relies on a fixed 1 s sleep, so a later re-zoom would
-    be missed.
-  - "minimize: returns within 5 s" is a timing bound.
+- "and window_list reads it normal throughout the second after" samples a fixed second: no signal tells when the
+  window manager is done with a window, and `app_wait {for: "idle"}` waits for jobs and dialogs, not for it. A
+  re-zoom later than that second is missed.
 - Displays are checked for key presence only; their values aren't compared with the OS.
 - The stacking check isn't gated by platform. On a Mac where `ctypes.util.find_library("X11")` succeeds and
   `DISPLAY` is set (XQuartz), it would read XQuartz's stacking order, which lists no Cocoa windows, and fail. I
   could not confirm whether any sweep machine hits this.
-- The last size, 1600×900, is not read back; nothing after the test depends on it.
 - That a placement survives a restart: the app stores the main window's only when the window closes, which no test
   on a shared folder does.
 
@@ -310,17 +313,17 @@ checked against `app_state.camera`. It covers four views: Prepare (including str
 fit), Preview, the Design tab's own camera, and the assemble view's first showing. It also covers zoom clamping,
 `click_px_per_mm`, a fit after a resize on the Home tab, and a zoom given on Home while a fit is queued.
 
-**Starts from:** `start(client)` on the Generic Klipper Printer 0.4 nozzle; no check reads a preset, and nothing here
-is a Bambu Lab printer's own. Then `window_set {size: [1600, 900]}` and `view_set {projection: "perspective"}`, before
-the `project_new` the first scenario starts after. The projection is stored (`use_perspective_camera`), and
-`test_slice_preview` switches it to orthographic and back, so one of its runs that fails in
-between leaves it orthographic. `auto_perspective`, which would change the projection with the view's direction, is no
-preference a tool writes; no test turns it on, and the app's default is off. The camera itself is not stored: each
-launch starts with a fit. The sweep launches the app with `--cad`, which holds for that run only.
+**Starts from:** `start(client)` on the Generic Klipper Printer 0.4 nozzle, which leaves the main window 1600×900 and
+the perspective projection; no check reads a preset, and nothing here is a Bambu Lab printer's own. Then a
+`project_new` of the test's own, which the first scenario starts straight after, while the fit it queues has yet to
+run. `auto_perspective`, which would change the projection with the view's direction, is no preference a tool writes;
+no test turns it on, and the app's default is off. The camera is the one the test before left, and each scenario
+sets the camera it reads. The sweep launches the app with `--cad`.
 
 **Leaves:** `use_perspective_camera` on; three canvas captures under `<datadir>/automation/out` (Prepare, assemble and
-Home; measured); an empty new project, from its last `project_new`. The window's size and the cameras are not
-stored.
+Home; measured); an empty new project, from its last `project_new`, on the Prepare tab. For the rest of the app's run,
+which the next `start()` resets: the main window at 1400×800, from the resize on Home, and the auto-answer rule for
+the unsaved changes question. The window's size and the cameras are not stored.
 
 **Decides by:** Exits 1 when a check prints FAIL or on an uncaught exception.
 - Start: `start()` returns `{printer: KLIPPER, process: KLIPPER_STD, filaments: [GENERIC_PLA]}`.
@@ -329,7 +332,7 @@ stored.
   - "prepare: the 3D view captures": `window_screenshot {target: "canvas"}` replies `source` `canvas`, a width and
     height above 0, and no `approximate` key (a 3D view that comes back blank is marked `approximate`).
   - After that capture forces a frame, `app_state.camera` still has zoom 3 and that `look_at`.
-  - "prepare: camera_state has a projection type": `type` is `perspective`, the projection the start set.
+  - "prepare: camera_state has a projection type": `type` is `perspective`, the projection `start()` sets.
 - `click_px_per_mm`: zoom divided by `click_px_per_mm` lies in [1, 3].
 - Clamping: `zoom=1000` gives 250, and `adjusted` == ["zoom"].
 - Orbit: `camera=front, orbit=[30, 20]` gives `elevation` 20 and `azimuth` -60. `look_at` equals the one before,
@@ -359,7 +362,7 @@ stored.
   checked for presence, not for its text.
 - `click_px_per_mm` is checked against a range, not the display's known scale. Both values come from one
   `app_state`.
-- An orthographic camera's `camera_state`, and `auto_perspective` turned on: the start sets perspective, and no tool
+- An orthographic camera's `camera_state`, and `auto_perspective` turned on: `start()` sets perspective, and no tool
   sets `auto_perspective`.
 
 **Strength:** Partial — Prepare, Preview, assemble and clamping values are exact, but the Design orbit, the resized
@@ -373,11 +376,11 @@ view (`OrcaSceneCanvas`) must hold the keyboard focus, Space sent with no target
 Escape must close it. Where KWin answers on D-Bus, it also checks that KWin draws no title bar on the dial. The
 test runs exclusive in the sweep.
 
-**Starts from:** `start(client)` on the Generic Klipper Printer 0.4 nozzle; no check reads a preset. Then
-`window_set` places the main window at the top left of the primary display's work area (its `x` and `y` in
-`app_state.displays`) at 1600×900, which the work area may trim; on Wayland, which takes no position, only the size
-is given. That placement keeps (0, 0) off the 3D view. A launch opens the window there anyway (see the top of this
-file), but the check does not rest on the seed. The sweep launches the app with `--cad`.
+**Starts from:** `start(client)` on the Generic Klipper Printer 0.4 nozzle, which leaves the Prepare tab's 3D view and
+the main window 1600×900, normal; no check reads a preset. Then `window_set` places the main window at the top left
+of the primary display's work area (its `x` and `y` in `app_state.displays`), which the work area may trim; on
+Wayland, which takes no position, the window keeps `start()`'s size alone. That placement keeps (0, 0) off the 3D
+view, wherever the test before left the window (see the top of this file). The sweep launches the app with `--cad`.
 
 **Leaves:** Nothing in the data folder beyond `start()`'s empty project: the dial is opened and closed without
 running an action, so its recent actions are as they were. The system pointer is left at (0, 0).
@@ -393,10 +396,12 @@ running an action, so its recent actions are as they were. The system pointer is
   and reads it with `GetCursorPos`, `CGEventGetLocation` and `XQueryPointer`. A pointer that does not read back at
   (0, 0) fails the page's focus check.
 - Per page:
-  - `app_state.tab` reaches the tab within 10 s.
+  - "the tab is shown": `app_state.tab` reads `home` within 30 s of the click on Home's tab, and then the page's tab
+    within 30 s of the click on it.
   - The first `[focused]` line in `widget_list` contains `name=OrcaSceneCanvas`.
-  - Within 10 s of Space, `window_list` shows a web dialog with no title.
-  - Within 10 s of Escape sent to the dial's ref, it is gone.
+  - Within 30 s of Space, `window_list` shows a web dialog with no title.
+  - Within 30 s of Escape sent to the dial's ref, it is gone.
+  - Each "within 30 s" is `until()`, which fails its check when the 30 s pass.
 - On a native Wayland display, where an app can neither move the pointer nor read where it is, each focus check
   prints SKIP with that reason instead of passing.
 - KWin, on the first page only: KWin's frame height for the app's window with no caption must be at most the dial's
@@ -404,8 +409,6 @@ running an action, so its recent actions are as they were. The system pointer is
 
 **Not checked:**
 - The focus checks are not made on a native Wayland display.
-- The wait for Home after the first click isn't checked. If that click did nothing, the page click is still judged
-  only by the final tab.
 - Any web dialog with no title counts as the dial, and its content isn't checked, so what it lists, which a plugin
   an earlier test left adds to, plays no part. Escape is sent to the dial's ref, so Escape through the keyboard focus
   isn't tested.
@@ -442,9 +445,9 @@ network, so nothing is switched first. It covers:
 - The exported replay of that send, which uploads again.
 - HTTP 500 replies, delayed and immediate, which must end as errors, with the queue's error dialog.
 
-**Starts from:** `start(client)` on the Klipper printer, then `preferences_set {use_printer_agents: false}`, read back
-with `preferences_get`: with printer agents on, the Print button routes through an agent instead of the print host
-and could reach a printer, so a value other than false stops the test before any print call. The print-host values
+**Starts from:** `start(client)` on the Klipper printer, which leaves `use_printer_agents` at a new folder's `false`,
+read with `preferences_get`: with printer agents on, the Print button routes through an agent instead of the print
+host and could reach a printer, so a value other than false stops the test before any print call. The print-host values
 (`host_type`, `print_host`, `use_3mf`) are set on the printer by the scenarios as unsaved changes, so the preset's
 saved ones play no part. The machines earlier runs stored (see **Leaves**) play none either: the route follows the
 preset's print host, not the machine the app selected.
@@ -458,8 +461,9 @@ preset's print host, not the machine the app selected.
   `{"connected": false}`; with one of them alone, the printer connected.
 - The upload queue dialog's size, place and column widths (`print_host_queue_dialog_*`).
 
-The project is an empty new one (the test ends with `project_new`), its auto-answer rules are cleared, and the
-printer's print-host changes are never saved.
+The project holds the imported cube on plate 0 and an empty plate 1, with the printer's print-host changes unsaved;
+the auto-answer rule for the unsaved changes question is in force for the rest of the app's run. The next `start()`
+discards the changes and clears the rule; the print-host changes are never saved.
 
 **Decides by:** Exits 1 when a check prints FAIL or on an uncaught exception. Every refusal is asserted by its code
 with `checks.py`'s `refused`, then `app_state.uploads` and `dialogs()` are read back. "Nothing sent" below means:
@@ -499,17 +503,20 @@ check below passes.
   - `plate_select {plate: 1}`, then `printer_send {plates: 0}` is cancelled; `plate_list` reads plate 0 current,
     and the call's undo steps are the two `"select partplate!"` of one change of plate: the plate it named stays
     current. Plate 0 stays current for the steps below.
+- The stub's gate: for the two sends caught in flight, the stub, once it has read the whole file, holds its answer
+  until the test opens its gate, which it does once the row reads (`uploading`, 99), read every 0.2 s for up to 30 s;
+  then the row is read every 0.2 s until it ends, for up to 120 s. A read that runs out fails the checks after it.
 - Upload answered 200:
-  - The row ends `completed` at progress 100 and was seen at (`uploading`, 99) during the stub's 3 s pause.
+  - The row ends `completed` at progress 100 and was seen at (`uploading`, 99) while the stub held its answer.
   - The row has `filename` `mcp_send_ok.gcode` and the stub's port in `host`.
   - The stub received exactly `{"filename": "mcp_send_ok.gcode", "print": "false"}`.
 - Replay:
   - The `replay_export` steps equal exactly `action_run, app_wait(dialog), widget_set_value, app_wait(dialog),
     dialog_answer, app_wait`.
   - `replay_run` passes, a new row completes, and the stub has 2 uploads.
-- 500 after a pause:
+- 500 once caught in flight:
   - The row ends `error` with "HTTP 500" in `error`, never read `completed`, and was seen at (`uploading`, 99).
-  - An error dialog appears, and after `dialog_answer ok`, `app_state.dialogs` is empty.
+  - An error dialog appears within 30 s, and after `dialog_answer ok`, `app_state.dialogs` is empty.
 - 500 at once: the row ends `error`.
 - A port nothing listens on (`print_host` set to it): `printer_test_host` replies `ok` false and a `message` starting
   "Could not connect to OctoPrint"; `dialogs()` is empty.
@@ -531,13 +538,12 @@ check below passes.
 - The host test's message in another language: the sweep runs the app in English.
 - Row ids are assumed to be `count + 1`. Different numbering makes `follow` time out, which fails rather than
   passes falsely.
-- The (`uploading`, 99) checks rely on polling every 0.2 s during a 3 s pause.
 
 **Strength:** Strong — row states, progress, the file name, the print flag and the exported steps are checked
 exactly against an independent stub, and each refusal by its code with the uploads and dialogs read back.
 
 ## `test_web_ui`
-`test_web_ui.py` · Python, 226 checks (1 conditional)
+`test_web_ui.py` · Python, 227 checks (1 conditional)
 
 **Tests:** The GUI tools on web pages, through the side-loaded `mcp_web_fixture` plugin, on the Generic Klipper
 Printer 0.4 nozzle; nothing here is a Bambu Lab printer's own. Before the launch, the sweep's setup step
@@ -561,7 +567,8 @@ job's data folder.
 **Starts from:** The fixture plugin installed and enabled by the setup step, which writes it afresh on every run: it
 copies the script over the one there and rewrites `.install_state.json` with the five capabilities on and no stored
 permission, so a run after a failed one, such as the rerun alone on the folder it failed on, starts from the same
-plugin. Then `start(client)` on the Klipper printer; no check reads a preset. The stored state the checks read is the
+plugin. A test with a setup step gets a new launch of its job's app after it, so the plugin loads at the launch. Then
+`start(client)` on the Klipper printer; no check reads a preset. The stored state the checks read is the
 plugin's own, written during the run. The configuration saved through the Plugins dialog is a speed drawn for the run,
 so a value an earlier run saved does not pass the check. The submitted JSON is looked for in this app's Python log,
 `<datadir>/log/python_*_<pid>.log` with the pid the session names, not in the newest log: the app makes its log only
@@ -579,8 +586,11 @@ when the plugin first writes to it, so until then the newest is an earlier run's
   defaults, speed 0 and enabled false.
 - The plugin's Python log in `<datadir>/log`, and its pages' WebView2 data in `<datadir>/webview2` on Windows, where
   `orca_mcp.py` puts the profile.
-- The project `start()` made. Its own dialogs are closed; the Plugins dialog is left open with the configuration
-  frame muted, which ends with the app.
+- The project `start()` made. Its own dialogs are closed. For the rest of the app's run, measured: the Plugins dialog
+  with the configuration frame muted and the fixture's modeless window are left open, and the next `start()` closes
+  both, which `window_list` lists. The dock panel is closed at the end of its part by its page's Close panel button
+  ("the dock panel's page closes the panel": its Ping button is no longer listed), since `start()` closes no dock
+  panel and one left open would narrow the 3D view of every test after it.
 
 **Decides by:** Exits 1 when any check prints FAIL or on an uncaught exception. `call()` turns most tool errors
 into `{"error": ...}`, and the check that follows judges it. Measured on the Klipper printer: every check passes, the
@@ -611,12 +621,20 @@ conditional one not run.
     two pings (`label "ping ping"`, from the click "its page, whose CSP forbids eval, takes a click" and the click
     on Ping that ends the press held on the window's pad) before the refused click and still exactly that after
     it. A log that is not found reads as no line, which fails.
-  - "the page answers again once its stall ends": after the stalled `dialog_answer`, a script with a 5 s
+  - "the page answers again once its stall ends": after the stalled `dialog_answer`, a script with a 30 s
     `timeout_s` replies `result` 1, so the close section starts on a page that is free.
+  - The calls whose deadline is what they test keep it: the `timeout_s` 1 of a locator that matches nothing, an up
+    whose target is not found, a down and an up the page answers too late, a slow handler and a click queued behind a
+    busy page. So do three that run to their deadline by design: the click refused beside the window's page, which stalls past whatever
+    deadline the call has (5 s, the panel's page's time to answer); the Mute click (2 s), whose frame stops answering;
+    and the Add note click (5 s), whose requests to the muted frame must be given up before the watch's 10 s for the
+    relay check to find the watch the last one waiting.
   - "a request with no deadline is given up after the tools' default": a watch a script asks the page's agent for
     itself, with no deadline, is relayed to the muted configuration frame. The "Add note" check runs while it
-    waits; then the page's `relaying` count, read again until it is 0 for up to 20 s, must read 0, and no sooner
+    waits; then the page's `relaying` count, read again until it is 0 for up to 30 s, must read 0, and no sooner
     than 10 s after the request.
+- Every wait for the page, the dialogs, the Python log or `config.json` is `until()`, asked every 0.2 s for up to
+  30 s, and one that runs out fails its check.
 - Page changes and navigation:
   - `page.changed`, `added` and `partial` must match.
   - `navigated` URLs must end with `#bottom`, `#top`, `#evaluated` and `#orca-token=REDACTED&view=2`.
@@ -631,7 +649,13 @@ conditional one not run.
   - The permission prompt's buttons are exactly ["Yes", "No"].
   - An auto-answer rule answers an already open prompt, with `uses` 1.
   - The submitted JSON shows up in this app's Python log.
-  - `dialog_answer` cancel returns in under 8 s.
+  - `dialog_answer` past its 3 s, judged by the reply, each call given 30 s before the test reads it as hung: a page
+    button that shows half a second late is refused with "page has no button", and is not pressed once it shows, as a
+    call that looked on would press it. Cancel on a page that is busy, and on one whose Cancel handler runs 10 s,
+    replies `closed` true with no `web`: the call ended the dialog itself. A reply with `web` says the page pressed
+    its button, which it does only once the call has waited on it: the busy page, free 2 s past the press's deadline,
+    then presses its Cancel (the test moves that request's deadline on and takes the button's handler off), and the
+    stalling handler replies once it ends; the dialog then stays open.
 - Persistence, tabs and the journal:
   - `orca_plugins/config.json` holds `{"speed": <random>, "enabled": true}`.
   - Go to tab shows `plugin.mcp_web_fixture.MCP web fixture page`, both in the reply and in `app_state.tab`.
@@ -647,12 +671,12 @@ conditional one not run.
   - "a wheel turn on a scroller scrolls it" accepts any scrollTop above 0.
   - "the Home page is listed too" is a heuristic: `homepage` appears and there are more than 20 `[d` refs.
 - The journal and the logs are not checked for the token.
-- "a request with no deadline is given up after the tools' default" accepts any time from 10 s to the 20 s the
+- "a request with no deadline is given up after the tools' default" accepts any time from 10 s to the 30 s the
   read waits, so a default anywhere in that span passes. Its lower bound shows the request was held only while
   "Add note"'s own requests are pruned before 10 s, about 6 s after the request when the click starts at once; a
   click delayed past that by load would let a request never held pass.
-- Timing: the `dialog_answer` checks use `elapsed < 8` bounds. "cancel ends a web dialog whose page is busy, after
-  the 3 s" has no lower bound.
+- How long `dialog_answer` looks for a page button: the button shown half a second past its 3 s shows the call had
+  stopped by then, and nothing shows it looked that long.
 - The `window_screenshot` of a page element is used only for its journal entry; the image is never looked at.
 - The auto-answer to the fixture dialog (Submit) is judged by the dialog closing and the rule's use count. Nothing
   checks that the plugin received the submit.

@@ -8,8 +8,8 @@ preset in a slot, the unsaved-changes prompt, the flushing volumes, the filament
 slot into another, the slot colours and the prime tower), and its mixed filaments (adding, changing and breaking one,
 and its dialogs). `test_settings` is about where a setting applies (a preset, an object, a part, a height range) and
 how the settings commands name those targets. They share no state: each sets the start it needs, so the sweep can
-run them side by side, or one after the other on one data folder. `test_filaments` also needs filament presets the
-selectors do not offer yet, which it makes so itself before its first scenario. The filament list's scenarios and
+run them side by side, or one after the other in one app on one data folder. `test_filaments` also needs filament
+presets the selectors do not offer yet, which it makes so itself before its first scenario. The filament list's scenarios and
 its mixed filaments' are one test, on one launch, because they share their printer and their start; `test_settings`
 reads no filament list and stays a test of its own.
 
@@ -18,7 +18,7 @@ Where the routes into a slot meet in one function, a route is checked once where
 that function by one route.
 
 ## `test_filaments`
-`test_filaments.py` · Python, 610 checks · in `sweep.json` as `{"path": "test_filaments.py", "timeout_s": 1500}`
+`test_filaments.py` · Python, 608 checks · in `sweep.json` as `{"path": "test_filaments.py", "timeout_s": 1500}`
 
 **Tests:** Assigning a filament preset to a filament slot through each route a person or a plugin has: a pick in the
 slot's selector in the sidebar, the selector's value set (`widget_set_value`), `preset_select`, and the plugin API's
@@ -46,55 +46,53 @@ type: "curr_bed_type: this printer has a single plate type"), so that scenario t
 the slice counts the purge as `tower_g` and leaves `flush_g` 0, so the flush settings are shown in the print through
 `tower_g`.
 
-**Starts from:** each scenario's own `start()`, and three stored settings its checks read (the presets' letters are
-given under Terms):
+**Starts from:** each scenario's own `start()`, and the filaments it shows by name hidden before its first scenario
+(the presets' letters are given under Terms):
 - `start(client, filaments=[B] * n)` for each scenario before the project's own settings, `n` being the slots it
   needs: a new project on `MyKlipper 0.4 nozzle` with `0.20mm Standard @MyKlipper` and `n` slots holding `B`.
   `presets()` is `{printer: "MyKlipper 0.4 nozzle", process: "0.20mm Standard @MyKlipper", filaments: [B, …]}`, one
-  `B` per slot.
+  `B` per slot. The baseline's Auto-flush All, which the slot scenarios' volumes follow, is read back with
+  `preferences_get` as `all`.
 - `start(client, filaments=[B, M])` for the project's own settings, then `settings_set {type: "printer", values:
   {support_multi_bed_types: true}}`, which `settings_get` reads as "1": an unsaved edit of the printer preset, which
   turns on its plate types and which the next `start()` discards. `presets()` is `{printer: "MyKlipper 0.4 nozzle",
   process: "0.20mm Standard @MyKlipper", filaments: [B, M]}`.
 - The mixed start, for each of the mixed filaments' scenarios: `start(client)`, whose `presets()` must be `{printer:
-  "MyKlipper 0.4 nozzle", process: "0.20mm Standard @MyKlipper", filaments: [B]}`, then `filament_add` twice:
-  `slots()` is `0,0,0`, and the three physical rows of `filament_list` have `preset` "Generic PLA @System" and `type`
-  "PLA". `start()` deletes the mixed filaments an earlier test, run or scenario left before it sets one slot, so no
-  scenario meets a mix it did not make. The first of these scenarios also reads slot 1's colour, which the test puts
-  back at its end (Leaves). A scenario that reads a mix's colour sets slots 2 and 3 to `#FF0000` and `#0000FF` with
-  `filament_set_colour`, and never slot 1.
-- The six filaments it shows by name are not installed: before its first scenario, after a `start(client)` of its own
-  (one slot of `B`, since a filament a slot holds cannot be uninstalled), `filament_uninstall {names: [X, M, S, A, G,
-  H]}`, whose reply lists each of the six under `uninstalled` or `not_installed`. An installed filament is the only one
-  the selectors offer at the app's start, which puts an installed filament in any slot whose filament is not installed
-  (on this build a slot left holding `X` or `M` opens holding `B`), so a filament an earlier test or an earlier run of
-  this one showed is hidden again, and the uninstall takes out one an earlier test installed. The hidden scenario's
-  step 1 checks that the four it picks are hidden, and the refusals scenario's row 10 that `G` and `H` are.
-- Simple mode, once, with the `mode_simple` action, and `app_state.mode` reads `simple`: the prompt lists the settings
-  the mode shows, and `slow_down_layer_time` is one of them.
-- Auto-flush All at the start of every scenario before the mixed filaments', with `preferences_set`, read back with
-  `preferences_get` as `all`, since a preference outlives the scenario that sets it. The mixed filaments' scenarios
-  read the flushing volumes only for the matrix's size, which no preference changes.
+  "MyKlipper 0.4 nozzle", process: "0.20mm Standard @MyKlipper", filaments: [B]}`, then `add_slot` twice, with
+  `#00C1AE` and `#F4E2C1`, the baseline's colours of slots 2 and 3, or with `#FF0000` and `#0000FF` in a scenario that
+  reads a mix's colour, which then checks that `filament_list` gives slots 2 and 3 those two: `slots()` is `0,0,0`, and
+  the three physical rows of `filament_list` have `preset` "Generic PLA @System" and `type` "PLA". `start()` deletes
+  the mixed filaments an earlier test, run or scenario left before it sets one slot, so no scenario meets a mix it did
+  not make. The mixed filaments' scenarios read the flushing volumes only for the matrix's size, which no preference
+  changes.
+- The six filaments it shows by name hidden from the selectors: before its first scenario, after a `start(client)` of
+  its own (one slot of `B`, since a filament a slot holds cannot be uninstalled), `filament_install {names: [X, M, S,
+  A, G, H]}`, then `filament_uninstall` of the same names, whose reply lists all six under `uninstalled` and has no
+  `not_installed`. An uninstall that changes something shows every filament as the installed set says
+  (`Ops::uninstall_filaments()`), so it hides one an earlier test showed by name for the app's session, which an
+  uninstall of filaments not installed would leave shown, and takes out one an earlier test installed; the install
+  makes it change something whatever was left. The hidden scenario's step 1 checks that the four it picks are hidden,
+  and the refusals scenario's row 10 that `G` and `H` are.
+- The baseline's Simple mode, read back once after that start as `app_state.mode` `simple`: the prompt lists the
+  settings the mode shows, and `slow_down_layer_time` is one of them.
 
-**Leaves:** the Klipper printer selected, with `0.20mm Standard @MyKlipper` and the slots the last scenario leaves:
-one physical slot and two broken mixed filaments, which the sidebar hides beside one physical filament and which the
-next test's `start()` replaces (it adds a slot, so that the mixes can be deleted, deletes them, and goes back to one
-slot). Slot 1's colour `#FFFFFF` and the flush multiplier 1.4, of the project scenario's step 15, which the printer
-keeps across New Project and the app's next start: the mixed starts keep slot 1 and the 1.4, the mixed scenarios set
-no colour on slot 1 (deleting slot 1 moves the next slot's colour into it), and the test puts slot 1's colour back at
-its end to the one the first mixed scenario found. `X`, `M`, `S`, `A`, `G` and `H` not installed; Simple mode;
-Auto-flush on All, which the project's own settings sets at its start and no later scenario changes; and
-`filaments.3mf`, `mixes.3mf` and `gradient.3mf`, saved in the test's temporary folder and deleted with it, at the top
-of the recent projects, with that folder as the last one opened. It saves no preset (the mixed slot's refused
-`preset_save` saves none) and installs nothing. It restores nothing in a `finally`: Simple mode is the mode a new data
-folder starts in, All is Auto-flush's default, and a test whose checks depend on either sets it, as this one does.
-The colour and the 1.4 are no defaults, and a test whose checks depend on a slot's purge sets them, as
-`test_slice_preview` does.
+**Leaves:** what the last scenario, deleting or merging, leaves on the baseline its `start()` set: the Klipper printer
+with `0.20mm Standard @MyKlipper`; one physical slot of `B` in `#00C1AE`, slot 2's colour of the mixed start, which
+the deletes moved into slot 1, and two broken mixed filaments, which the sidebar hides beside one physical filament and
+which the next test's `start()` replaces (it adds a slot, so that the mixes can be deleted, deletes them, and goes back
+to one slot); and its project, unsaved, with the cubes `on_one` and `on_mix`. What an earlier scenario sets beyond
+the baseline (the greys and the sentinel matrix, Auto-flush Color and None, the project scenario's colours,
+multiplier 1.4, plate type and printer edit) the next scenario's `start()` puts back. `X`, `M`, `S`, `A`, `G`
+and `H` not installed, each shown for the app's session since a scenario assigned it; and `filaments.3mf`,
+`mixes.3mf` and `gradient.3mf`, saved in the test's temporary folder and deleted with it, at the top of the recent
+projects, with that folder as the last one opened. It saves no preset (the mixed slot's refused `preset_save` saves
+none), and the filaments it installs it uninstalls again. It restores nothing in a `finally`: every setting it changes
+is one `start()` puts back.
 
 A run again on the data folder a failed run left meets what that run left: its slots, mixes, presets and unsaved
-changes, which `start()` replaces, deletes and discards, and filaments it showed, which the app's start hides again.
-Its project files go to a new temporary folder, and it saves no preset, so nothing a first run leaves stands in a
-second run's way.
+changes, which `start()` replaces, deletes and discards, and filaments it showed or installed, which its first start
+hides and uninstalls again. Its project files go to a new temporary folder, and it saves no preset, so nothing a
+first run leaves stands in a second run's way.
 
 **Terms:** filament presets of the Orca Filament Library, which fits every printer: `B` (Generic PLA @System, the
 Klipper printer's default filament), `X` (FilAr PLA Blanco Calido, a PLA whose preset has the default colour
@@ -167,8 +165,8 @@ no dialog is open: the dialog opens once. In the slot scenarios every other call
 words, and is always followed by the scenario's full read-back.
 
 Every scenario before the mixed filaments' starts with its `start()`, checks `presets()` against the start the
-scenario gives, goes to the Prepare view with `view_set`, sets Auto-flush to All and reads it back, and checks
-`slots()`. Each mixed filaments' scenario starts with the mixed start.
+scenario gives, reads Auto-flush back as All, and checks `slots()`. Each mixed filaments' scenario starts with the
+mixed start.
 
 Each case of the slot scenarios starts from `arrange(presets, dirty)`, whose result is checked as the row's start: it
 drops the tab's unsaved changes (`settings_set {type: "filament", filament_slot, reset_all: true}` on a slot holding the
@@ -247,8 +245,9 @@ or the api, run the code of the PLA scenario's rows 1 to 3, 10 and 13 with anoth
 
 **Scenario: three slots, what Auto-flush does to the flushing volumes**
 
-`slots()` is `0,0,0`. Every case starts from `arrange([B, B, B])`: `B B B | B | 4,4,4 | c3 | S3`. Each preference is set
-with `preferences_set` and read back with `preferences_get` before its rows, which follow it in the table.
+`slots()` is `0,0,0`. Every case starts from `arrange([B, B, B])`: `B B B | B | 4,4,4 | c3 | S3`. All is the baseline's,
+read back at the scenario's start; Color and None are each set with `preferences_set` and read back with
+`preferences_get` before their rows, which follow it in the table.
 
 The three routes into a slot meet in `Plater::priv::filament_preset_picked()`, where the preference is read and the
 volumes are recalculated: the pick enters through `Plater::priv::on_select_preset()`, the tool and the api through
@@ -406,6 +405,9 @@ folder.
 
 **Scenario: adding and reading**
 
+Step 5 is the sidebar's Add itself, `filament_add` alone, where the new physical slot goes among the mixes; no check
+reads the colour it gives, which depends on the slots the app's run added before.
+
 | # | Step | `slots()` | `mixes()` | Also checked |
 |---|---|---|---|---|
 | 1 | `filament_add_mixed {components: [2, 3], ratios: [50, 50]}` | `0,0,0,1` | `4 = 2,3 @ 50,50` | reply `{added: true, filament_slot: 4}`; row 4 has a `#RRGGBB` `colour`, no `preset` and no `type`; rows 1 to 3 keep their preset; `app_state.presets.filaments` has 4 entries, one per slot, the mixed slot's too; `flush_volumes_matrix` holds 16 entries, 4 x 4 over every slot |
@@ -433,8 +435,8 @@ From the mixed start, `filament_add_mixed {components: [2, 3], ratios: [50, 50]}
 
 **Scenario: changing a mix**
 
-From the mixed start, slots 2 and 3 set to `#FF0000` and `#0000FF`, `filament_add_mixed {components: [2, 3], ratios: [50,
-50]}`, and a 20 mm cube `on_mix` added with `object_add_primitive` and put on filament 4 with `settings_set {target:
+From the mixed start with slots 2 and 3 added in `#FF0000` and `#0000FF`, `filament_add_mixed {components: [2, 3],
+ratios: [50, 50]}`, and a 20 mm cube `on_mix` added with `object_add_primitive` and put on filament 4 with `settings_set {target:
 "object", object: 0, values: {extruder: 4}}`: `slots()` `0,0,0,1`, `mixes()` `4 = 2,3 @ 50,50`, `on("on_mix")` 4.
 After every step `on("on_mix")` is 4: an edit keeps the objects on the mix.
 
@@ -485,9 +487,6 @@ From the mixed start, `filament_add_mixed {components: [1, 2], ratios: [50, 50]}
 | 7 | `filament_delete {filament_slot: 1}` | as after 6 | as after 6 | refused, `last_filament_slot`: one physical slot stays, whatever mixes there are |
 | 8 | `filament_delete {filament_slot: 2}` | as after 6 | as after 6 | refused, `mixed_list_hidden`: with one physical filament the sidebar hides the mixed filament list and deletes nothing (`Sidebar::delete_filament()`) |
 
-At the end the test sets slot 1 back to the colour the first mixed scenario found, with `filament_set_colour`, and
-reads it back with `filament_list`.
-
 **To settle in review:**
 - A cancelled prompt with one slot (one slot with `X`, rows 6 and 11) leaves the colour of the preset not chosen. The
   pick and the tool write the new preset's default colour before the tab asks (`PlaterPresetComboBox::item_picked()` runs
@@ -527,7 +526,7 @@ reads it back with `filament_list`.
 - The preference is set with `preferences_set`, not picked in the Preferences dialog; the dialog's
   choice control writes the same key (`PreferenceOps.cpp`), and `test_preferences` checks the dialog against
   `preferences_get`.
-- Run time: about 70 assignment cases, seven slices and the mixed filaments' dialogs, about 4 minutes on Windows with
+- Run time: about 70 assignment cases, seven slices and the mixed filaments' dialogs, 4 to 5 minutes on Windows with
   other tests running beside it, so `sweep.json`'s 1500 s leaves room for a loaded pool.
 - What `plate_slice` does with an object on a broken mix (deleting or merging, row 4), measured: the call is not
   refused, and the slice ends in an error on the plate, with the notification "Mixed filament has invalid or
@@ -566,8 +565,8 @@ reads it back with `filament_list`.
   checks which way it moves, not by how much, and the objects scenario reads it only as 0 for slot 2 in the control.
 - Which other presets the selectors and `preset_list` offer: the user presets and installed filaments other tests leave
   change those lists, so every check picks its presets by name.
-- The uninstall that sets the start, beyond its reply naming each of the six and the hidden checks that follow it:
-  `filament_uninstall` is `test_install_filaments`'s.
+- The install and uninstall that set the start, beyond the uninstall's reply naming each of the six and the hidden
+  checks that follow it: `filament_install` and `filament_uninstall` are `test_install_filaments`'s.
 - The gradient curve, which is drawn and changed only by a drag: every gradient here is the straight line.
 - The dialogs' component selectors and ratio controls: the selectors are named, but each lists "Generic PLA" for every
   slot, and components and ratios have the silent form.
@@ -599,16 +598,17 @@ nothing it checks is a Bambu Lab printer's own.
 
 **Starts from:** every scenario's `start(client)`: a new project on `MyKlipper 0.4 nozzle` with `0.20mm Standard
 @MyKlipper` and one slot holding `B` (Generic PLA @System), the printer's default filament. `presets()` is `{printer:
-"MyKlipper 0.4 nozzle", process: "0.20mm Standard @MyKlipper", filaments: [B]}`; then the Prepare view with `view_set`,
-and `object_list` lists no object. No other stored setting reaches its checks: the settings commands read the presets
-and the project alike in every mode, and no preference changes what they give.
+"MyKlipper 0.4 nozzle", process: "0.20mm Standard @MyKlipper", filaments: [B]}`, and `object_list` lists no object.
+Nothing beyond the baseline reaches its checks: the settings commands read the presets and the project alike in every
+mode, and no preference changes what they give.
 
-**Leaves:** the Klipper printer selected with `0.20mm Standard @MyKlipper` and one slot of `B`; and `settings.3mf`, saved
-in the test's temporary folder and deleted with it, in the recent projects, with that folder as the last one opened. It
-saves no preset, installs nothing and sets no preference: `Generic PETG @System`, which the first scenario puts in slot
-2, is shown for that session only. The cooling slowdown the targets scenario turns off on the filament preset is an
-unsaved change, reset at step 12 and, where a failed step left it, dropped by the closing `project_new {discard_changes:
-true, preset_changes: "discard"}`; so it restores nothing in a `finally`.
+**Leaves:** what the targets scenario leaves on the baseline its `start()` set: the Klipper printer with `0.20mm
+Standard @MyKlipper` and one slot of `B`, and `settings.3mf` open as the project, with its cube, saved in the test's
+temporary folder and deleted with it, in the recent projects, with that folder as the last one opened. It saves no
+preset, installs nothing and sets no preference: `Generic PETG @System`, which the first scenario puts in slot 2, is
+shown for the app's session only. The cooling slowdown the targets scenario turns off on the filament preset is an
+unsaved change, reset at step 12 and, where a failed step left it, discarded by the next test's `start()`; so it
+restores nothing in a `finally`.
 
 Nothing it reads is a list another test adds to: the settings lists are the app's own, the objects a new project's and
 the presets those `start()` selects. A run again on the data folder a failed run left meets only what `start()`
@@ -641,7 +641,7 @@ replaces, and its project file goes to a new temporary folder.
 | 4 | `listed(process, include_meta: true)`, then with `offset` 100, 200 and on until a page has no `next_offset` | each page but the last holds 100 items and `next_offset` the next hundred; every item has `meta`; the pages' keys, in order, are step 1's |
 | 5 | `listed(process, limit: 50)` | 50 items, `next_offset` 50, none with `meta`; they are step 1's first 50 |
 | 6 | `listed(process, preset: "0.16mm Optimal @MyKlipper")` | `layer_height` "0.16"; `presets().process` is still 0.20mm Standard @MyKlipper: reading a preset does not select it |
-| 7 | `filament_add`, then `preset_select {type: "filament", name: "Generic PETG", filament_slot: 2}` | `presets().filaments` `[B, Generic PETG @System]`; `listed(filament, filament_slot: 2)` gives `filament_type` "PETG" and `slow_down_layer_time` "8", `listed(filament, filament_slot: 1)` "PLA" and "4" |
+| 7 | `add_slot` with `#00C1AE`, the baseline's colour of slot 2, then `preset_select {type: "filament", name: "Generic PETG", filament_slot: 2}` | `presets().filaments` `[B, Generic PETG @System]`; `listed(filament, filament_slot: 2)` gives `filament_type` "PETG" and `slow_down_layer_time` "8", `listed(filament, filament_slot: 1)` "PLA" and "4" |
 
 **Scenario: what an object and a region take**
 

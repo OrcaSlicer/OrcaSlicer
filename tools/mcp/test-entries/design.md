@@ -11,7 +11,8 @@ to the data folder. What the Design tab reads from the folder:
 - the selected printer's bed, which it draws, which sizes the plane squares a click picks to open a sketch, and
   whose centre is `modeling_origin`, the point the base planes pass through: (125, 125, 0) on the Generic Klipper
   Printer;
-- the Origin and Bed switches of its view (`design_show_origin`, `design_show_bed`), which `view_set` writes;
+- the Origin and Bed switches of its view (`design_show_origin`, `design_show_bed`), which `view_set` writes, and
+  which `cad_gui.reset_switches()` sets as a new folder has them, Origin off and Bed on, for every test here;
 - the Commit to Plate mode (`design_commit_mode`), which only a pick from the button's list writes, and no test
   makes one;
 - the Text dialog's last font and height (`cad_text_font`, `cad_text_height`), which the dialog's OK writes and a
@@ -19,15 +20,19 @@ to the data folder. What the Design tab reads from the folder:
 - the weld rule of a new sketch (`auto_close_sketch_loops`), which no test writes, and the sidebar's layout, which
   the app saves only when it closes.
 
+What the app keeps until it closes, beside the baseline `start()` puts back: the design itself, which each test and
+part clears with `new_design`; the view's helper planes and axes (keys P and A) and its section view, which
+`reset_switches()` turns off with the switches above; and the Design camera, which `CadGui.start()` sets
+(`reset_view()`) and the replays point themselves.
+
 So every Python test here starts with `start(client)` on the Generic Klipper Printer, and a replay whose checks
 follow the bed selects that printer in its first steps. The only check that writes out a value the bed fixes is
 `cad_sketch_to_solid`'s 125, the Klipper bed's centre, and that replay selects the Klipper printer itself; no other
-check changes with the printer. The window's size is not kept from one test to the next: the app stores its
-placement only when its main window closes, and the runner kills it. A project a test leaves unsaved stays in the
-app's auto-backup, in that test's own temporary folder, and the data folder's settings point to it
-(`last_backup_path`): while that folder exists, as it does after the test failed, the next launch on the data folder
-opens on a prompt to restore it, which `orca_mcp.py launch` answers No, so the test after it starts on an empty
-project.
+check changes with the printer. The main window is the baseline's 1600 x 900 at every start. A project a test leaves
+unsaved stays in the app's auto-backup, in that test's own temporary folder, and the data folder's settings point to
+it (`last_backup_path`): while that folder exists, as it does after the test failed, the next launch on the data
+folder opens on a prompt to restore it, which `orca_mcp.py launch` answers No, so the test after it starts on an
+empty project.
 
 ## `test_cad_replays`
 `test_cad_replays.py` · Python, 176 checks (178 off Windows)
@@ -45,18 +50,19 @@ project.
 The replay files are the test's input; the sweep runs none of them on its own. `test_cad_failed_job` stays a test of
 its own, since it runs with a reply budget of 4 s.
 
-**Starts from:** Each part starts from the same state, whatever the part before it left: the open modal dialogs are
-answered Cancel, No or Close, topmost first; `cancel_tool` closes what is open in the Design tab (a card, a sketch,
-the Text dialog, a plane pick) until it is refused; and `start(client)` makes a new project on the Generic Klipper
-Printer with `0.20mm Standard @MyKlipper` and `Generic PLA @System`. So a part that fails with a dialog or a sketch
+**Starts from:** Each part starts from the same state, whatever the part before it left: `start(client)`, the
+baseline on the Generic Klipper Printer with `0.20mm Standard @MyKlipper` and `Generic PLA @System`, which closes
+the open dialogs and what `cancel_tool` closes in the Design tab (a card, a sketch, the Text dialog, a plane pick);
+then `reset_switches()` on the Design tab, and Prepare shown again. So a part that fails with a dialog or a sketch
 open does not fail the next one. Each part then sets its own start, given with it below.
 
 **Leaves:** What examples, the last part, leaves: the project unsaved, holding the objects its two `commit_to_plate`
 examples sent to the plate. The recent projects name `design.3mf` (cad_doc) and `design_only.3mf` (cad_canvas), in
 the folder the run makes in its own temporary folder and prints, which also takes the replays' `result.json` and
-files, round_trip's exported session and its run, and slow_build's two screenshots. Nothing in the folder's settings:
-`sketch_text` reads the Text dialog's last font and height and writes neither, and the `dialog_auto_answer` rule
-cad_doc registers ends with the replay. A rerun on the same data folder starts each part over from `start()`.
+files, round_trip's exported session and its run, and slow_build's two screenshots. In the folder's settings only the
+Origin and Bed switches, as a new folder has them: `sketch_text` reads the Text dialog's last font and height and
+writes neither, and the `dialog_auto_answer` rule cad_doc registers ends with the replay. A rerun on the same data
+folder starts each part over from `start()` and `reset_switches()`.
 
 **Decides by:** Exits 1 when any check prints FAIL or a part breaks off: `Checks.scenario` records a raise, in the
 part or in the reset before it, as "<part>: runs to its end", and the next part still runs. A replay is one check,
@@ -251,14 +257,16 @@ running on the machine). While it runs, `app_state` and a main-window screenshot
 listed and can be captured, and another Design command is refused as busy. The thread then lands as one feature.
 
 Its start: its own `project_new` and `new_design`, and a 30 x 30 x 250 block. No check depends on the printer.
-"Captures it" needs the main window wider than the progress dialog, as the window the seed opens is, 1600 x 900, and
-as the replays before it leave it. The part breaks off when an `app_state` or screenshot probe raises.
+"Captures it" needs the main window wider than the progress dialog, as the baseline's 1600 x 900 is. The part breaks
+off when an `app_state` or screenshot probe raises, or when the build is seen neither running nor ended within 300 s.
 - Result: "the thread call succeeds" (the awaited result has `ok` true) and "one thread feature and one body".
-- During the build, one probe runs. It fires once `widget_list` shows a "Design" dialog whose class contains
-  "Progress"; on Windows it fires 2 s after the call starts.
+- During the build, one probe runs. It fires once the build is seen running: when `widget_list` shows a "Design"
+  dialog whose class contains "Progress", or on Windows, where no window `widget_list` lists is the dialog, when
+  `describe_design` is refused as busy. A build seen ending first fires none, which fails the three checks below.
   - "app_state answers during the build".
   - "a window screenshot succeeds during the build": width non-zero.
-  - "another Design command is refused during the build": the `describe_design` error contains "Busy".
+  - "another Design command is refused during the build": the `describe_design` error, asked after the two calls
+    above, contains "Busy".
 - Not on Windows:
   - "the progress dialog is listed while it builds".
   - "a screenshot of the progress dialog captures it": width non-zero and narrower than the main window.
@@ -268,7 +276,7 @@ as the replays before it leave it. The part breaks off when an `app_state` or sc
 That every example `tool_search {tool}` documents for the Design commands, and for `undo` and `redo`, still runs as
 written. Each example runs on a fresh empty design, with `from_call` arguments filled from earlier results.
 
-Its start: before each example, the modal dialogs and what `cancel_tool` closes are closed as between parts, and
+Its start: before each example, what `start()` closes is closed as between parts (`checks.close_open()`), and
 `new_design` discards the rest. Two examples send bodies to the plate with `commit_to_plate`, which places them on
 the Klipper printer's 250 x 250 bed; no check reads where. The `sketch_text` examples give no face, so they take the
 Text dialog's last one, and are checked only for running.
@@ -353,8 +361,9 @@ An example with `needs` prints `skip` and the part's closing line counts the exa
   - How long `app_state` or the screenshot takes. "Answers" only means the probe ran and returned. The time
     `app_state` took is printed only on failure. The Busy check that follows bounds it loosely, since the build must
     still be running after both calls.
-  - On Windows the two dialog checks are dropped without a skip line. The probe fires on a fixed 2 s delay, not on
-    any sign that the build is running; a build that finishes sooner fails the Busy check rather than passing.
+  - On Windows the two dialog checks are dropped without a skip line, and the probe fires on a busy refusal of
+    `describe_design`, so the Busy check repeats a refusal the probe waited for; asked after the probes, it still
+    says that the build ran while they were answered.
   - The two screenshots are saved but never compared; "captures it" only compares widths. The thread's geometry
     (designation, volume) is not read.
 - examples:
@@ -393,12 +402,12 @@ screenshots unchecked, slow_build has no time bound, and the examples only run.
 **Not checked:**
 - The coil's volume is compared only with the live session's, not with a known value.
 - The rest of the export (helix, sketch and sweep steps) is not inspected. Leaving out the `app_wait` made during the hole has no check of its own; a wrongly exported one would show only as a replay failure.
-- Timing drives the set-up: the coil is sized from a timed 12-turn build and grown up to 40 turns. A machine too fast or too loaded fails the "running" checks rather than passing them.
+- Timing drives the set-up: the coil is sized from a timed 12-turn build and grown up to 40 turns. A machine too fast or too loaded fails the "running" checks rather than passing them. The race is the app's, the hole's job outlasting its reply and the export after it, and the test holds no fixed wait for it: every set-up call's job is followed to its end, and the hole's is read once, at the export (`app_wait {for: "job"}` with `timeout_s` 0).
 
 **Strength:** Strong — the running-job bookkeeping, the failure text and the replayed result are each checked exactly.
 
 ## `test_cad_commands`
-`test_cad_commands.py` · Python, 312 checks
+`test_cad_commands.py` · Python, 311 checks
 
 **Tests:** What the Design commands' arguments do when the Design panel handles them in the running app:
 operation words, suppress and align conflicts; the open sketch's commands; re-editing a committed sketch with
@@ -408,38 +417,41 @@ menu items that act on a selection; `confirm_tool` and `cancel_tool` over cards,
 plane pick; `body_place`; the Boolean card; Speed Dial picks and their replay. One rung also checks that six
 drawing tools chosen from the right-click menu agree with `sketch_draw`.
 
-**Starts from:** `start(client)`, then `CadGui.start()`, as for `test_cad_sketching`. What follows the bed is read,
-not written out: `modeling_origin`, for the XY frame and the cameras that look at it, and where Commit to Plate
-places an object, which place compares only between two parts of one object. The rungs that read the Origin switch
-set it first: off for the plane refusals, on for the plane pick. confirm_refused_add presses Commit to Plate by its
-label in assembly mode, the mode the folder keeps while no one picks another from the button's list. A Speed Dial
-pick names its action with its source, OrcaSlicer, so an action of the same title that a plugin left in the folder
-adds is not taken. The dial closes when another window takes the focus, as it does for a person, and on a desktop
-the sweep's apps share, another test's app opening a dialog or starting takes it. A pick that finds the dial closed
-(`No web page is shown`) opens it again and picks again, three tries in all; a third that finds it closed fails the
-rung.
+**Starts from:** `CadGui.start()`: an English UI, then `start(client)`, the Design view's switches as a new data
+folder has them (`reset_switches()`), the window widened when the sketch ribbon overflows it, and an empty design in
+`reset_view()`'s camera. What follows the bed is read, not written out: `modeling_origin`, for the XY frame and the
+cameras that look at it, and where Commit to Plate places an object, which place compares only between two parts of
+one object. The rungs that read the Origin switch set it first: off for the plane refusals, on for the plane pick.
+confirm_refused_add presses Commit to Plate by its label in assembly mode, the mode the folder keeps while no one
+picks another from the button's list. A Speed Dial pick names its action with its source, OrcaSlicer, so an action
+of the same title that a plugin left in the folder adds is not taken. The dial closes when another window takes the
+focus, as it does for a person, and on a desktop the sweep's apps share, another test's app opening a dialog or
+starting takes it: `checks.dial_pick()` then opens the dial again and picks again, until the pick is taken or 90 s
+pass.
 
 **Leaves:**
 - its last project unsaved: the objects place commits to the plate go with the new project action_pick_replay
   replays into;
 - the Speed Dial's run counts of Polar array and Trim, which put them in its Recent list;
 - the Text dialog's last font and height, as text_dialog's OK stores the ones the dialog opened with;
-- the Origin and Bed switches as it found them: design_view, select and cancel_plane_pick put each back at the
-  rung's end, but not in a `finally`, so a rung that raises midway leaves the planes or the bed hidden. No check of
-  this area reads them unset: the plane picks set Origin first, and a sketch's plane is picked while Shift+S shows
-  the planes whatever the switch.
+- the Design view's switches as `CadGui.start()` set them: design_view, select and cancel_plane_pick put back each
+  one they change at the rung's end, and after a rung that raised midway `recover()` sets them again.
 
 The SVG, the exported replays and the screenshots go to its own temporary folder. A rerun on the same data folder
 meets only these: the run counts order the Speed Dial's list, and a pick finds its action by label in any order.
 
 **Decides by:** Exits 1 when any check prints FAIL or a rung raises. `cad_gui.run()` records a raise as a FAIL
 named after the rung, runs `recover()` and goes on to the next rung.
-- Harness (`cad_gui.py`), part of the verdict: `start()` adds the check "the Design tab's first showing lays out
-  its canvas as a later one does". Helpers raise, failing the rung, when `new_design` leaves features,
-  `reset_view` leaves the camera more than 1e-3 off the zoom and target it asked for, `calibrate` probes land
-  more than 0.5 px off their clicks or add constraints, `cancel`/`confirm` leave a sketch open, `value` finds no
-  field taking the keyboard, or a menu choice's `ran` is not the path asked for. The test's own `settled` (60 s),
-  `keep_as_drawn` (8 Esc presses) and `rename_selected` (no row editor) raise the same way.
+- Harness (`cad_gui.py`), part of the verdict: helpers raise, failing the rung, when `reset_switches` reads a switch
+  back otherwise, `new_design` leaves features, `reset_view` leaves the camera more than 1e-3 off the zoom and
+  target it asked for, no click along the XY plane's diagonal opens a sketch, `calibrate` probes land more than 0.5
+  px off their clicks or add constraints, `cancel`/`confirm` leave a sketch open, `value` finds no field taking the
+  keyboard, or a menu choice's `ran` is not the path asked for. The test's own `settled` (60 s), `keep_as_drawn` (8
+  Esc presses) and `rename_selected` (no row editor) raise the same way. Each wait polls its state every 0.05 s for
+  up to 30 s. The Speed Dial picks go through `checks.dial_pick()`, which waits up to 30 s for the dial to show
+  before it searches and clicks. Whether a click opened a sketch or a value field is read once, after `app_wait
+  {for: "idle"}` answers (`CadGui.settle()`, `opened_field()`), since the app answers it after the work the click
+  queued: `keep_as_drawn` presses Esc only on a field that is open then.
 - words: `operation` in the reply and in `feature_describe` equals the word given (`cut`, `join`); volumes from
   `body_mass_properties` are 3500, 5000 and 1000 mm³ to 1e-3; `feature_suppress` and `feature_describe` say
   suppressed and the bodies drop to 0; `align_conflicts` holds exactly the second align; `sketch_extend`,
@@ -528,7 +540,7 @@ oracle is the tools' own output, the selection drawing is checked only as "diffe
 only as panel flags, and Scale artwork never scales.
 
 ## `test_cad_sketching`
-`test_cad_sketching.py` · Python, 247 checks (241 and one `skip` on Linux)
+`test_cad_sketching.py` · Python, 248 checks (242 and one `skip` on Linux)
 
 **Tests:** Drawing in an open sketch the way a person does, with clicks on the canvas and exact values typed into
 the canvas's value field with no click into it: each keyed tool's primitive, a profile with two voids, the edit
@@ -538,15 +550,17 @@ opened again once and each relation read back from, selecting and deleting a con
 sketch and across its commit, save and open through the File menu, and drawing over a sketch of 1204 entities
 loaded while a tool is armed.
 
-**Starts from:** `start(client)`, first, since the check `CadGui.start()` makes needs the Design tab's first
-showing; then `CadGui.start()`: an English UI, the auto-answer rules cleared, the window widened when the sketch
-ribbon overflows it, and an empty design in `reset_view()`'s camera. Clicks go through a map measured on the open
-sketch, so neither the window's size nor the bed fixes a pixel; the bed sizes only the XY plane's square that
-opening a sketch walks out to. relations draws in a grid of 350 x 225 mm about the sketch's origin, which must lie
-in the middle 60% of the canvas each way, clear of its panels, and raises when it does not: at `reset_view()`'s
-zoom a canvas of about 940 x 600 click pixels, which the canvas of the window the seed opens holds (1142 x 742 when
-measured). roundtrip saves and opens `roundtrip.3mf` in a folder it makes in its own temporary folder, with a rule
-answering each file picker, so no folder the data folder remembers is used.
+**Starts from:** a newly started app (`"launch": "fresh"`), then `CadGui.start(first_showing=True)`: an English UI;
+the check of the Design tab's first showing, made before anything builds the tab, since the `cancel_tool` of
+`start(client)` would build it unshown and the check is of the tab a person's first click on it builds; then
+`start(client)`, the Design view's switches as a new data folder has them (`reset_switches()`), the window widened
+when the sketch ribbon overflows it, and an empty design in `reset_view()`'s camera. Clicks go through a map
+measured on the open sketch, so neither the window's size nor the bed fixes a pixel; the bed sizes only the XY
+plane's square that opening a sketch walks out to. relations draws in a grid of 350 x 225 mm about the sketch's
+origin, which must lie in the middle 60% of the canvas each way, clear of its panels, and raises when it does not:
+at `reset_view()`'s zoom a canvas of about 940 x 600 click pixels, which the canvas of the baseline's 1600 x 900
+window holds (1142 x 742 when measured). roundtrip saves and opens `roundtrip.3mf` in a folder it makes in its own
+temporary folder, with a rule answering each file picker, so no folder the data folder remembers is used.
 
 **Leaves:** its last project unsaved; on Windows and macOS, roundtrip's `roundtrip.3mf` in the recent projects and
 its folder as the last export folder (`last_export_path`), both pointing at a folder the rung deletes at its end. A
@@ -554,12 +568,15 @@ rerun on the same data folder saves under a new folder and reads neither.
 
 **Decides by:** Exits 1 when any check prints FAIL or a rung raises (`cad_gui.run()` records the raise as a FAIL
 named after the rung).
-- Harness (`cad_gui.py`), part of the verdict: the `start()` check; `calibrate` raises when probes land more than
-  0.5 px off; `value()` raises when no field opens or none takes the keyboard; `cancel`, `confirm` and `reopen`
-  raise when the sketch does not close or open. The test's own `escape_field`, `keep_as_drawn` and
-  `accept_shown_value` raise when a field does not open or close or a tool stays armed, and `pick()` adds one check
-  per set of picks ("<rung>: both picks landed on an entity"), read from the Constrain status line's "N picked",
-  which must count 1, 2 (3) after a click on empty space has dropped the picks the last button left.
+- Harness (`cad_gui.py`), part of the verdict: the `start()` check "the Design tab's first showing lays out its
+  canvas as a later one does"; `reset_switches` raises when it reads a switch back otherwise; opening a sketch
+  raises when no click along the XY plane's diagonal opens one, each click's outcome read once after `app_wait
+  {for: "idle"}` answers; `calibrate` raises when probes land more than 0.5 px off; `value()` raises when no field
+  opens or none takes the keyboard; `cancel`, `confirm` and `reopen` raise when the sketch does not close or open.
+  The test's own `escape_field`, `keep_as_drawn` and `accept_shown_value` raise when a field does not open or close
+  or a tool stays armed, and `pick()` adds one check per set of picks ("<rung>: both picks landed on an entity"),
+  read from the Constrain status line's "N picked", which must count 1, 2 (3) after a click on empty space has
+  dropped the picks the last button left. Each wait polls its state every 0.05 s for up to 30 s.
 - Tools: each shape is drawn away from every value typed into it, so a field the digits never reach commits the
   size as drawn and fails the read-back. Its fields open on 104.5 and 64.7 for the rectangle, 56.8 and 15.3° for
   the line, radius 49.8 and 106° for the arc, 50.4, 23.9 and 9.2° for the slot, side 34.9 for the polygon, 39.8 and
@@ -578,21 +595,32 @@ named after the rung).
   of 90, DoF down, solved.
 - relations: each button's shapes are drawn in a cell of their own, in a grid of 70 x 45 mm cells with the middle
   one empty, all before any button is pressed. Parallel is pressed in the open sketch on two lines picked with a
-  click and a Ctrl+click (the selection is exactly those two); the others in Constrain mode on the committed
-  sketch. Each relation checks first that its shapes start away from it, then that it holds once pressed, to 1e-6
-  unless given: equal length (1e-9), 90° (1e-6 deg), parallel twice (1e-6 deg), plumb, concentric with the radii
-  untouched, tangent, midpoint, symmetric about a drawn line and level, about x = 0 and y = 0 (1e-9) with the
-  other coordinate untouched, radius 10 with the centre unmoved, diameter 24 giving r 12, fix with the anchor
-  unmoved (1e-9) and a gap of 35 after it, vertical gap 30, horizontal gap accepted with no move under 5e-3 then
-  typed 20, equal radius by the Equal length and the Equal radius buttons (1e-9), collinear, coincident, with
-  guards that nothing collapsed. Horizontal on a lone point moves nothing (1e-9), and Angle on two circles opens no
-  field within 1 s. After Confirm and opening the sketch again from its row (its entities those Constrain mode
-  left, by type and order): every relation holds again as it did (perpendicular exactly 90° to 1e-9, the rectangle
-  a square to 1e-9); `sketch_list_constraints` holds exactly one constraint of the button's type on the relation's
-  entities, with the typed value for radius 10, diameter 24 and the gaps 35, 30 and 20; the point under Horizontal
-  carries only its Coincident and the circles under Angle only their Equal radius; and the sketch solves with 73
-  degrees of freedom, the sum of the cells' (`DOF`: what each cell's shapes have, less what the constraints
-  inferred while drawing and the buttons' take).
+  click and a Ctrl+click (the selection is exactly those two); the others in Constrain mode on the committed sketch.
+  Each relation checks first that its shapes start away from it, then that it holds once pressed, to 1e-6 unless
+  given: equal length (1e-9), 90° (1e-6 deg), parallel twice, plumb, concentric with the radii untouched,
+  tangent, midpoint, symmetric about a drawn line and level, about x = 0 and y = 0 (1e-9) with the other coordinate
+  untouched, radius 10 with the centre unmoved, diameter 24 giving r 12, fix with the anchor unmoved (1e-9) and a
+  gap of 35 after it, vertical gap 30, horizontal gap accepted with no move under 5e-3 then typed 20, equal radius
+  by the Equal length and the Equal radius buttons (1e-9), collinear, coincident, with guards that nothing
+  collapsed. Horizontal on a lone point moves nothing (1e-9). Angle on two circles says on the status line "Angle
+  applies between two lines", and once it has, no value field is open. After Confirm and opening the sketch again
+  from its row (its entities those Constrain mode left, by type and order): every relation holds again as it did
+  (perpendicular exactly 90° to 1e-9, the rectangle a square to 1e-9); `sketch_list_constraints` holds exactly one
+  constraint of the button's type on the relation's entities, with the typed value for radius 10, diameter 24 and
+  the gaps 35, 30 and 20; the point under Horizontal carries only its Coincident and the circles under Angle only
+  their Equal radius; and the sketch solves with 73 degrees of freedom, the sum of the cells' (`DOF`: what each
+  cell's shapes have, less what the constraints inferred while drawing and the buttons' take).
+  Angles are read as atan2 of the two directions' cross and dot products, which is exact at 0, 90 and 180°; acos of
+  the cosine reads nothing finer than about 1e-6° near 0 and 180°. The tolerances on the solved relations are what
+  the solver promises: libslvs stops when every equation is within its `CONVERGE_TOLERANCE`, `LENGTH_EPS / 1e2` =
+  1e-8 (libslvs `system.cpp:20`, `LENGTH_EPS` in `solvespace.h:127`, the SolveSpaceLib commit `deps/SLVS/SLVS.cmake`
+  fetches), and the Design tab keeps a solve's geometry only when it converged (`SketchSolver.cpp:449`, `:486`). A
+  Parallel's equation in the sketch's plane is the cross product of the two lines' directions in mm²
+  (`constrainteq.cpp`, `Type::PARALLEL`), so both parallel relations are held to |a × b| ≤ 1e-8 mm², which for their
+  lines of about 35 and 22 mm is an angle of about 7.5e-10°. A Perpendicular's is the direction cosine, so its bound
+  is an angle of 1e-8 rad, 5.7e-7°, whatever the lengths: the 90° Constrain mode leaves is held to 1e-6°, and the
+  reopened sketch's to 1e-9°, tighter than the bound, which it meets because it is solved again from geometry
+  already that close and Newton's step from there lands far inside the tolerance.
 - badge: a click selects the side's Horizontal (`selected_constraint`) and deletes nothing; a double-click keeps
   only it selected; Delete removes exactly that one.
 - undo, feature_undo: 3 → 2 → 1 entities with survivors moved under 1e-8; a feature deleted from its row comes back
@@ -614,15 +642,18 @@ named after the rung).
   is caught only where that cell's own checks see it. The degrees of freedom are summed over the sketch, so a
   constraint lost in one cell and one too many in another cancel there; the lost one's own read-back still fails.
 - scale: the bulk add and the gesture are timed but the times are only printed; no limit is checked.
-- "Angle on two circles opened no value field": a field that opens after 1 s passes.
 - roundtrip prints `skip` and passes on Linux.
+- In an app that has built the Design tab before, as when the test runs after another in one app outside the sweep,
+  the `start()` check compares two later showings.
+- The perpendicular after the round trip is held tighter than the solver promises; a solve that stops just inside
+  its tolerance there would fail it.
 
 **Strength:** Strong — typed values and constraint results are graded exactly against numbers the test chose, and
 every relation is read back from the reopened sketch as geometry and as its stored constraint; a few tools are
 loosely pinned.
 
 ## `test_cad_context_menu`
-`test_cad_context_menu.py` · Python, 132 checks (130 and one `skip` on Linux)
+`test_cad_context_menu.py` · Python, 131 checks (129 and one `skip` on Linux)
 
 **Tests:** The sketch's right-click offer: its header names what was clicked and it lists exactly the label paths
 the Design table gives for five selections, greying exactly the rows with nothing to offer; a right-click with a
@@ -633,9 +664,9 @@ dialog, and an SVG import through the file picker. Also that the value fields a 
 with no click into them: the rounded rectangle's width, height and corner radius, and a rectangle's width field
 opened again in Select by a click on its label, which lies over a constraint badge.
 
-**Starts from:** `start(client)`, then `CadGui.start()`, as for `test_cad_sketching`. The rounded rectangle's and
-the label rung's clicks lie in the region the map is measured on at the seeded window, and raise when one does
-not. art types its text and no height or face, so its letters take the Text dialog's last font and height: in a
+**Starts from:** `CadGui.start()`, as for `test_cad_commands`. The rounded rectangle's and the
+label rung's clicks lie in the region the map is measured on at the baseline's 1600 x 900 window, and raise when one
+does not. art types its text and no height or face, so its letters take the Text dialog's last font and height: in a
 new folder 10 mm and the face the dialog lists for the system's UI font. "two regions over 1 mm²" holds at those. No
 test in the sweep stores others: the dialog's OK stores the font and height it opened with unless they are changed
 in it, and none changes them. The SVG comes from the repository's fixture through a rule answering the picker.
@@ -645,11 +676,13 @@ again. The SVG picker remembers no folder.
 
 **Decides by:** Exits 1 when any check prints FAIL or a rung raises (`cad_gui.run()` records the raise as a FAIL
 named after the rung).
-- Harness, part of the verdict: the `cad_gui.py` raises listed for `test_cad_sketching`, plus the test's own:
+- Harness, part of the verdict: the `cad_gui.py` raises listed for `test_cad_commands`, plus the test's own:
   `choose()` raises when the verb's path is not an enabled item of the menu or the reply's `ran` differs, `arm()`
   raises when no offer opens and adds a check for each verb in `ARMS` ("<rung>: <verb> armed the <tool> tool"),
   `clear_sketch()` raises when entities remain, `ok_text()` when the Text dialog stays open, `inside()` when a
-  click falls outside the calibrated region and `close_fields()` when Esc leaves a value field open.
+  click falls outside the calibrated region and `close_fields()` when Esc leaves a value field open. Each wait
+  polls its state every 0.05 s for up to 30 s. `keep_as_drawn()` and `close_fields()` read whether a field is open
+  once, after `app_wait {for: "idle"}` answers (`CadGui.opened_field()`), and press Esc only on one that is.
 - Each typed field, five checks and a read-back: "<rung>: a value field opened by itself to take <v>" (or, for
   label, from the click on the label), "<title> took the keyboard with no click into it" (the field is marked
   focused), "<title> took the typed <v>" (its text is the digits), "the typed <v> is not <title>'s prefill", "Return

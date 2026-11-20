@@ -12,8 +12,8 @@ change, and view_set's refusals of the Preview's fields; height range modifiers,
 layer G-codes, each read in the exported G-code and kept by a 3MF; the commands that take a plate index; the display
 switches and the sidebar of view_set; and app_state's account, network plug-in and configuration folder. After every
 step the test reads the state back through another tool and compares it with the values the entry writes out. It runs
-on the default printer, the Generic Klipper Printer 0.4 nozzle, on a data folder earlier tests used: it sets the
-presets, the preference and the view its checks read before its first scenario. It exits 0 when every check passes.
+on the default printer, the Generic Klipper Printer 0.4 nozzle, in an app and on a data folder earlier tests used:
+start() puts them in the baseline before its first scenario. It exits 0 when every check passes.
 Naming scenarios (by the method names of SlicePreviewTest.SCENARIOS) runs those alone, each after the scenario it goes
 on from where SlicePreviewTest.AFTER names one, for work on one of them.
 """
@@ -24,11 +24,11 @@ import os
 import re
 import sys
 import tempfile
-import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, obj_facts, run, slot_colours, start, wait  # noqa: E402
+from checks import (FLUSH_MULTIPLIER, GENERIC_PLA, KLIPPER, KLIPPER_STD, SLOT_COLOURS, Checks, add_slot,  # noqa: E402
+                    filament_rows, obj_facts, run, slot_colours, start, until, wait)
 
 ROW = re.compile(r'^"(.*)" (\d+)( \*)?( L)?( S)?$')
 CUBE = {"shape": "cube", "size": [20, 20, 20]}
@@ -43,14 +43,6 @@ SELECT_PLATE = "select partplate!"
 PLATE_STRING = 'plates is "all", "current" or a plate index'
 # The Klipper process's travel speed, the top of the speed colour range while travel shows.
 TRAVEL_SPEED = 350
-# The purge of the two-colour slices, and so the depth of their prime tower, follows the slots' colours and the flush
-# multiplier, which the printer keeps as an earlier test or run left them: a seeded folder's slot colour and
-# multiplier.
-SLOT_COLOUR, FLUSH_MULTIPLIER = "#26A69A", 0.3
-# The view the view switches start from, the app's defaults, which Starts from sets after the default layout.
-VIEW = {"labels": False, "overhangs": False, "outline": False, "wireframe": False, "gridlines": True, "axes": True,
-        "navigator": True, "gcode_window": True, "projection": "perspective", "section": {"on": False},
-        "sidebar_collapsed": False, "legend_collapsed": False}
 
 
 def P(*rows):
@@ -297,15 +289,16 @@ class SlicePreviewTest:
         return [name for name in taken["taken"] if name != SELECT_PLATE]
 
     def slots(self, label, n):
-        """Deletes filament slots until it is refused, then adds them until the project has n."""
-        for _ in range(32):
-            try:
-                self.c.call("filament_delete")
-            except orca_mcp.McpError:
-                break
-        for _ in range(n - 1):
-            self.run("filament_add")
-        self.t.equal(f"{label}: {n} filament slots", len(self.c.call("app_state")["presets"]["filaments"]), n)
+        """Deletes filament slots from the last until one is left, then adds slots with add_slot until the project has
+        n, slot k coloured SLOT_COLOURS[k-1], the colour a new app gives it: the purge between two slots, and so the
+        prime tower's depth, follows their colours."""
+        for _ in range(len(filament_rows(self.c)) - 1):
+            self.run("filament_delete")
+        for slot in range(2, n + 1):
+            add_slot(self.c, SLOT_COLOURS[slot - 1])
+        self.t.equal(f"{label}: {n} filament slots, coloured as a new app colours them",
+                     [row.get("colour", "").upper() for row in filament_rows(self.c)],
+                     [colour.upper() for colour in SLOT_COLOURS[:n]])
 
     def rule_uses(self, match):
         for rule in self.c.call("app_state").get("auto_answer_rules", []):
@@ -805,11 +798,14 @@ class SlicePreviewTest:
         self.layers_shown(f"{s} 7: a height between two tops shows up to the upper one", 1, 6)
         self.reply_layers(f"{s} 8", self.run("view_set", layer_range=[60, 20]), [60, 60, 100], [12.0, 12.0])
         self.layers_shown(f"{s} 8: a range given backwards shows its first layer alone", 60, 60)
-        # L switches the layer slider's one-layer mode.
+        # L switches the layer slider's one-layer mode, which start() does not reset: the second press comes whatever
+        # step 9 meets.
         self.c.call("keyboard_press", keys="L")
-        self.reply_layers(f"{s} 9", self.run("view_set", layer_range=[2, 5]), [2, 5, 100], [0.4, 0.4])
-        self.layers_shown(f"{s} 9: one-layer mode shows the range's first layer", 2, 2)
-        self.c.call("keyboard_press", keys="L")
+        try:
+            self.reply_layers(f"{s} 9", self.run("view_set", layer_range=[2, 5]), [2, 5, 100], [0.4, 0.4])
+            self.layers_shown(f"{s} 9: one-layer mode shows the range's first layer", 2, 2)
+        finally:
+            self.c.call("keyboard_press", keys="L")
         self.layers_shown(f"{s} 10: leaving one-layer mode shows every layer", 1, 100, view_type="feature_type")
 
         refusals = [
@@ -1254,36 +1250,52 @@ class SlicePreviewTest:
         self.t.near(f"{s} 17: the cube's offset", got[0]["offset"][:2] if got else None, want, 0.001)
 
     def capture(self, label):
-        """The canvas's PNG bytes and width once two captures in a row are byte-identical."""
+        """The canvas's PNG bytes and width once two captures in a row, taken back to back, are byte-identical. A
+        capture whose reply has `approximate` or a `note` fails the check at once, and so do 30 s without two alike."""
         path = os.path.join(self.folder, "capture.png")
-        last = None
-        for _ in range(5):
+        got = {"data": None, "width": None, "flawed": None}
+
+        def settled():
             reply = self.c.call("window_screenshot", target="canvas", include_image=False, save_path=path, overwrite=True)
             if reply.get("approximate") or reply.get("note"):
-                self.t.check(f"{label}: the capture", False, reply)
-                return None, reply.get("width")
+                got["flawed"] = reply
+                return True
             with open(reply["path"], "rb") as f:
                 data = f.read()
-            if data == last:
-                return data, reply.get("width")
-            last = data
-        self.t.check(f"{label}: two captures in a row agree", False, "five tries")
-        return last, reply.get("width")
+            same = data == got["data"]
+            got.update(data=data, width=reply.get("width"))
+            return same
+
+        try:
+            until(settled, "two captures in a row agree", interval_s=0)
+        except TimeoutError as e:
+            self.t.check(f"{label}: two captures in a row agree", False, str(e))
+            return got["data"], got["width"]
+        if got["flawed"] is not None:
+            self.t.check(f"{label}: the capture", False, got["flawed"])
+            return None, got["flawed"].get("width")
+        return got["data"], got["width"]
 
     def conf(self, key, expected):
-        """The app section's value of `key` in the configuration file, read until it is `expected` or 5 s pass."""
+        """The app section's value of `key` in the configuration file, read until it is `expected`, since the app writes
+        the file at an idle moment; when 30 s pass first, the value read last, which the caller's check then shows."""
         path = os.path.join(self.session["datadir"], "OrcaSlicer.conf")
-        value, deadline = None, time.monotonic() + 5
-        while True:
+        seen = {}
+
+        def holds():
             try:
                 with open(path, encoding="utf-8") as f:
                     text = f.read()
-                value = json.loads(text[:text.rfind("}") + 1])["app"].get(key)
-            except (OSError, ValueError, KeyError):
+                seen["value"] = json.loads(text[:text.rfind("}") + 1])["app"].get(key)
+            except (OSError, ValueError, KeyError):  # read while the app writes it
                 pass
-            if value == expected or time.monotonic() > deadline:
-                return value
-            time.sleep(0.1)
+            return "value" in seen and seen["value"] == expected
+
+        try:
+            until(holds, f"{key} in OrcaSlicer.conf is {expected!r}", interval_s=0.1)
+        except TimeoutError:
+            pass
+        return seen.get("value")
 
     def view_switches(self):
         s = "view switches"
@@ -1429,43 +1441,24 @@ class SlicePreviewTest:
         self.t.equal(f"{s} 2: the log lies in the configuration folder's log folder", norm(os.path.dirname(log)),
                      norm(os.path.join(folder, "log")))
 
-    def default_view(self):
-        """The view the app's defaults give: the default layout, then every display switch and fold at its default."""
-        self.run("view_set", layout="default")
-        self.run("view_set", **VIEW)
-
     def starts_from(self):
         s = "the start"
         self.t.equal(f"{s}: the presets", start(self.c),
                      {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]})
-        self.run("filament_set_colour", filament_slot=1, colour=SLOT_COLOUR)
-        self.run("filament_set_flushing", flush_multiplier=FLUSH_MULTIPLIER)
+        # The purge of the two-colour slices, and so the depth of their prime tower, follows the slots' colours and the
+        # flush multiplier.
         listed = self.c.call("filament_list")
         self.t.equal(f"{s}: the slot's colour and the flush multiplier",
-                     (listed["filaments"][0]["colour"], listed["flush_multiplier"]), (SLOT_COLOUR, [FLUSH_MULTIPLIER]))
-        self.run("preferences_set", values={"auto_slice_after_change": False})
-        items = self.c.call("preferences_get", keys=["auto_slice_after_change"])["items"]
-        self.t.equal(f"{s}: no slice after a change", {i["key"]: i["value"] for i in items},
-                     {"auto_slice_after_change": False})
-        self.run("window_set", size=[1600, 900])
-        self.default_view()
-        view = self.c.call("app_state")["view"]
-        self.t.equal(f"{s}: the view", {k: view.get(k) for k in VIEW}, VIEW)
+                     (listed["filaments"][0]["colour"].upper(), listed["flush_multiplier"]),
+                     (SLOT_COLOURS[0].upper(), [FLUSH_MULTIPLIER]))
         self.run("dialog_auto_answer", rules=[{"match": SPIRAL, "button": "yes"}, {"match": SAVE, "button": "No"}])
 
     def run_all(self, only=()):
-        try:
-            self.t.scenario("the start", self.starts_from)
-            wanted = set(only) | {self.AFTER[name] for name in only if name in self.AFTER}
-            for name in self.SCENARIOS:
-                if not only or name in wanted:
-                    self.t.scenario(name, getattr(self, name))
-            self.c.call("dialog_auto_answer", rules=[])
-            self.run("project_new", discard_changes=True)
-        finally:
-            # A run that breaks off in the view switches can leave the sidebar folded or widened, a switch turned or
-            # the camera orthographic, which every later test's window would show.
-            self.default_view()
+        self.t.scenario("the start", self.starts_from)
+        wanted = set(only) | {self.AFTER[name] for name in only if name in self.AFTER}
+        for name in self.SCENARIOS:
+            if not only or name in wanted:
+                self.t.scenario(name, getattr(self, name))
         return self.t.exit_code()
 
 

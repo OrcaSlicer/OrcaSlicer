@@ -14,8 +14,8 @@ whole with the state the entry writes out. Then the Calibration menu's tests thr
 every test and method: the project each makes, the parameters it uses, the presets and objects it changes, its
 warnings and refusals, preset_changes "keep" and "discard", and, through the exported G-code, the values the
 temperature, pressure advance and retraction towers step through. It runs on the default printer, the Generic
-Klipper Printer 0.4, and switches to other printers of the Custom vendor, on a data folder earlier tests used; it
-exits 0 when every check passes.
+Klipper Printer 0.4, and switches to other printers of the Custom vendor, in an app and on a data folder earlier
+tests used; it exits 0 when every check passes.
 """
 
 import json
@@ -23,12 +23,12 @@ import os
 import re
 import sys
 import tempfile
-import time
 import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, refusal, run, start, wait  # noqa: E402
+from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, SLOT_COLOURS, Checks, add_slot, refusal, run,  # noqa: E402
+                    start, until, wait)
 
 FIXTURES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests", "fixtures")
 
@@ -55,13 +55,12 @@ OWN_FILAMENTS = ("MCP Test PLA", "MCP Test PLA 2", "MCP Test PETG", "MCP Export 
                  "MCP Print PLA", CALIB_PLA)
 OWN_PROCESSES = ("MCP Delete Child", "MCP Delete Base")
 OWN_PRINTER = "MCP Test Printer"
-# The presets the hidden presets scenario and the listing need hidden, which an earlier test may have installed.
+# The presets the hidden presets scenario and the listing need hidden, which an earlier test may have installed or
+# shown.
 HIDDEN_PRINTERS = [{"vendor": "Custom", "model": "Generic Klipper Printer", "nozzles": ["0.2", "0.6", "0.8"]},
                    {"vendor": "Custom", "model": "Generic Marlin Printer", "nozzles": ["0.4"]}]
 
-SIMPLE_MODE = "orca_command:mode_simple:orca"
 DEVELOPER_MODE = "orca_command:toggle_developer_mode:orca"
-FILAMENT_ADD = "orca_command:filament_add:orca"
 PROMPT = "Transfer or discard changes"
 SPIRAL = "Spiral mode only works"
 # A calibration test's call drops the project's and the presets' unsaved changes unless its step says otherwise.
@@ -417,33 +416,8 @@ class PresetsTest:
     def set(self, type, **args):
         return self.run("settings_set", type=type, **args)
 
-    def wait_dialog(self, title, timeout_s=30):
-        """The open dialogs whose title holds `title`, as dialog_answer's dialog.title matches one, once one is open;
-        a wait that runs out of time fails. app_wait's dialog condition cannot serve where another dialog is open
-        already."""
-        deadline = time.monotonic() + timeout_s
-        while True:
-            found = [d for d in self.c.call("app_state").get("dialogs", []) if title in d.get("title", "")]
-            if found:
-                return found
-            if time.monotonic() > deadline:
-                raise TimeoutError(f"no dialog titled {title!r} opened within {timeout_s} s")
-            time.sleep(0.2)
-
-    def close_left_dialogs(self):
-        """A dialog an earlier failure left open is closed, so that the next scenario can start; the failure has
-        been reported where it happened."""
-        for d in reversed(self.dialogs()):  # the topmost first
-            print(f"     (closing the dialog {d['title']!r} left open)", flush=True)
-            self.c.call("dialog_answer", dialog={"title": d["title"]}, button="cancel")
-
-    def to_start(self):
-        """checks.start(): Klipper, Std and PLA in one slot, every unsaved edit dropped. Gives what it returns."""
-        self.close_left_dialogs()
-        return start(self.c)
-
     def scenario_start(self, name):
-        self.t.equal(f"{name}: the start: the selection", self.to_start(), START)
+        self.t.equal(f"{name}: the start: the selection", start(self.c), START)
         state = self.c.call("app_state")
         self.t.equal(f"{name}: the start: one filament slot and no objects",
                      (len(state["presets"]["filaments"]), state["objects"]), (1, 0))
@@ -452,23 +426,16 @@ class PresetsTest:
 
     # ---- Scenarios ----
 
-    def without_remembered_presets(self, steps):
-        """Runs `steps` with remember_printer_config off, so that a printer switch keeps the process and filament
-        that fit the new printer, whatever the data folder remembers it was last used with. The preference decides
-        what every later test's printer switches select and no test sets it for itself, so it is turned on again
-        whatever happens."""
+    def without_remembered_presets(self):
+        """remember_printer_config off, so that a printer switch keeps the process and filament that fit the new
+        printer, whatever the data folder remembers it was last used with. The next scenario's start() turns it on
+        again, as the baseline has it."""
         self.c.call("preferences_set", values={"remember_printer_config": False})
-        try:
-            steps()
-        finally:
-            self.c.call("preferences_set", values={"remember_printer_config": True})
 
     def hidden(self):
         s = "hidden presets"
         self.scenario_start(s)
-        self.without_remembered_presets(lambda: self.hidden_steps(s))
-
-    def hidden_steps(self, s):
+        self.without_remembered_presets()
         printers = {i["name"]: i for i in self.listed("printer")}
         self.t.equal(f"{s} 1: the Klipper listed selected, the hidden printers not",
                      (printers.get(KLIPPER, {}).get("selected"), KLIPPER_08 in printers, MARLIN in printers),
@@ -790,7 +757,7 @@ class PresetsTest:
 
     def row_start(self, label):
         """A row's start, as a scenario's, checked on the selection alone."""
-        self.to_start()
+        start(self.c)
         self.selection_is(f"{label}: the start", "Klipper | Std | PLA")
 
     def edit(self, kind):
@@ -1178,7 +1145,10 @@ class PresetsTest:
         self.c.call("widget_click", target={"label": "Filament presets(.zip)", "within": within})
         self.c.call("widget_set_value", target={"name": "MCP Export PLA", "within": within}, value=True)
         ok = self.c.call("dialog_answer", dialog={"title": within}, button="ok")
-        info = [d.get("message") for d in self.wait_dialog("Info")]
+        # Read from app_state rather than with app_wait's dialog condition, which Export Preset Bundle, still open
+        # under it, already meets.
+        info = until(lambda: [d.get("message") for d in self.c.call("app_state").get("dialogs", [])
+                              if "Info" in d.get("title", "")], "the Info dialog open")
         self.t.equal(f"{s} 2: the Info dialog's message", info, ["Export successful"])
         self.c.call("dialog_answer", dialog={"title": "Info"}, button="ok")
         if isinstance(ok, dict) and ok.get("job"):
@@ -1247,9 +1217,7 @@ class PresetsTest:
     def nozzle(self):
         s = "a nozzle diameter"
         self.scenario_start(s)
-        self.without_remembered_presets(lambda: self.nozzle_steps(s))
-
-    def nozzle_steps(self, s):
+        self.without_remembered_presets()
         reply = self.set("printer", values={"nozzle_diameter": 0.6})
         self.t.equal(f"{s} 1: the reply's applied", reply.get("applied"), {"nozzle_diameter": "0.6"})
         self.t.equal(f"{s} 1: the nozzle and the variant",
@@ -1391,7 +1359,7 @@ class PresetsTest:
     def temperature(self):
         s = "temperature"
         t = self.t
-        t.equal(f"{s} 1: the start", self.to_start(), START)
+        t.equal(f"{s} 1: the start", start(self.c), START)
         t.equal(f"{s} 1: no objects", self.objects(), [])
 
         reply = self.run("calibration_generate_test", test="temperature", start=252, end=232)
@@ -1694,9 +1662,8 @@ class PresetsTest:
     def keep_and_discard(self):
         s = "keep and discard"
         t = self.t
-        t.equal(f"{s} 1: the start", self.to_start(), START)
-        reply = self.run("action_run", id=FILAMENT_ADD)
-        t.equal(f"{s} 1: the action's message", reply.get("message"), "Added filament slot 2.")
+        t.equal(f"{s} 1: the start", start(self.c), START)
+        t.equal(f"{s} 1: the slot added", add_slot(self.c, SLOT_COLOURS[1]), 2)
         self.set("filament", filament_slot=2, values={"filament_cost": 21})
         self.run("preset_save", type="filament", name=CALIB_PLA, filament_slot=2)
         self.select("filament", PLA, slot=1)
@@ -1751,13 +1718,17 @@ class PresetsTest:
                 (PLA in listed, (listed.get(PLA) or {}).get("modified"), CALIB_PLA in listed), (True, None, False))
 
     def setup(self):
-        """The stored state the scenarios count on, which an earlier test may have left changed: the preferences and
-        the mode their checks read, the hidden presets hidden, and no preset of the names this test saves."""
-        self.to_start()
-        self.c.call("preferences_set", values={"developer_mode": False, "auto_arrange": True,
-                                               "remember_printer_config": True})
-        self.run("action_run", id=SIMPLE_MODE)
-        # What this changes depends on the tests before, so its reply is shown but not checked.
+        """The state the scenarios count on beyond the baseline, which an earlier test may have left changed: the
+        hidden presets hidden, and no preset of the names this test saves."""
+        start(self.c)
+        # A printer that preset_select shows stays shown until the presets are reloaded, and uninstalling a printer
+        # that is not installed reloads nothing. Installing the printers first makes the uninstall a change, whose
+        # reload hides every printer that is neither installed nor selected, whatever showed it. The install selects
+        # a nozzle it adds, so the Klipper is selected again in between. What the two change depends on the tests
+        # before, so their replies are shown but not checked.
+        print("     (installed:", self.run("printer_install", models=HIDDEN_PRINTERS, preset_changes="discard"),
+              ")", flush=True)
+        self.select("printer", KLIPPER, preset_changes="discard")
         print("     (uninstalled:", self.run("printer_uninstall", models=HIDDEN_PRINTERS, preset_changes="discard"),
               ")", flush=True)
         for type, names in (("filament", OWN_FILAMENTS), ("process", OWN_PROCESSES)):
@@ -1785,9 +1756,6 @@ class PresetsTest:
                                ("the temperature tower, and what is refused", self.temperature),
                                ("the other tests", self.other_tests), ("keep and discard", self.keep_and_discard)]:
             self.t.scenario(name, scenario)
-        self.close_left_dialogs()
-        self.c.call("dialog_auto_answer", rules=[])
-        self.run("project_new", discard_changes=True, preset_changes="discard")
         return self.t.exit_code()
 
 

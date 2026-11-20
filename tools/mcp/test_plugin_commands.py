@@ -21,6 +21,7 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+from checks import speed_dial, until  # noqa: E402
 from orca_mcp import McpError, OrcaMcp, app_env  # noqa: E402
 
 TOKEN = "plugin-commands-test-token"
@@ -74,8 +75,8 @@ def launched(datadir, binary):
         yield orca
     finally:
         if os.path.exists(session):
+            # stop returns once the app has exited.
             harness(env, "stop")
-            time.sleep(2)
 
 
 def answered(orca, reply):
@@ -134,13 +135,12 @@ def window_rows(orca):
     return json.loads(result) if isinstance(result, str) else result
 
 
-def wait_for(predicate, timeout):
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        if predicate():
-            return True
-        time.sleep(0.5)
-    return predicate()
+def reached(fn, what, timeout_s=30):
+    """Whether fn() comes true within `timeout_s`, for a check to report rather than to stop the test."""
+    try:
+        return bool(until(fn, what, timeout_s))
+    except TimeoutError:
+        return False
 
 
 def run(orca, datadir, scratch):
@@ -216,7 +216,8 @@ def run(orca, datadir, scratch):
     check("its file is in the plugins folder", files() != [], folder)
     # On this machine the removal of a single-file plugin just loaded now and then fails with "The request is not
     # supported" from the file system (delete_plugin_root(), which the row's Delete runs too); the error then names how
-    # the plugin is left, and a second try, as a person's, removes it. Only that failure is tried again, once.
+    # the plugin is left, and a later try, as a person's, removes it. Only that failure is tried again, until a try
+    # removes it.
     removed, failed = {}, None
     try:
         removed = call(orca, "plugin_uninstall", plugin=key)
@@ -226,11 +227,19 @@ def run(orca, datadir, scratch):
         check("a removal that fails says how the plugin is left", "It is installed" in failed[0] and
               failed[1].get("code") == "not_uninstalled" and (failed[1].get("plugin") or {}).get("key") == key, failed)
         print("  plugin_uninstall failed to delete the plugin folder once; trying again", flush=True)
-        time.sleep(2)
+
+        def uninstalled():
+            try:
+                return call(orca, "plugin_uninstall", plugin=key)
+            except McpError as e:
+                if "Failed to delete plugin folder" in str(e):
+                    return None
+                raise
+
         try:
-            removed = call(orca, "plugin_uninstall", plugin=key)
-        except McpError as e:
-            check("plugin_uninstall removes it on the second try", False, str(e))
+            removed = until(uninstalled, "plugin_uninstall removes the plugin's folder", interval_s=1)
+        except (McpError, TimeoutError) as e:
+            check("plugin_uninstall removes it on a later try", False, str(e))
     elif failed is not None:
         check("plugin_uninstall fails only with the known folder deletion error", False, failed)
     check("plugin_uninstall removes it, which was on", removed.get("uninstalled") == key and removed.get("unsubscribed") is False and
@@ -258,16 +267,29 @@ def run(orca, datadir, scratch):
     def refreshed_notified():
         return any(n.get("text") == REFRESHED for n in orca.call("app_state").get("notifications", []))
 
+    def newest_job():
+        """The number of the newest job app_state lists."""
+        return max([int(j["id"][1:]) for j in orca.call("app_state").get("jobs", []) if j.get("id", "").startswith("j")] or [0])
+
     check("no refresh has been notified yet", not refreshed_notified(), orca.call("app_state").get("notifications"))
     orca.call("view_set", tab="prepare")
     logged = log_lines()
     orca.call("keyboard_press", keys="space", target={"name": "OrcaSceneCanvas"})
-    orca.call("widget_set_value", target={"web": "Search actions"}, value="Refresh Plugins", submit=False)
-    started = time.monotonic()
-    picked = orca.call("widget_click", target={"web": "Refresh Plugins from Orcaslicer", "kind": "button"})
-    check("a person's pick of Refresh Plugins returns at once", picked.get("status") not in ("running", "blocked_by_dialog") and
-          time.monotonic() - started < 10, picked)
-    check("and its refresh ends with its notification", wait_for(refreshed_notified, 60), orca.call("app_state").get("notifications"))
+    until(lambda: speed_dial(orca), "the Speed Dial shows")
+    orca.call("widget_set_value", target={"web": "Search actions"}, value="Refresh Plugins", submit=False, timeout_s=30)
+    since = newest_job()
+    clicked = time.monotonic()
+    picked = orca.call("widget_click", target={"web": "Refresh Plugins from Orcaslicer", "kind": "button"}, timeout_s=30)
+    took = time.monotonic() - clicked
+    # The pick runs the menu item's form in place (MenuItems::refresh_plugins()), which starts the refresh off the UI
+    # thread and returns, its end told by the notification; the call's form, plugin_refresh, would run as a job and
+    # wait for the refresh. So the pick starts no plugin_refresh job. The 30 s bound only catches a pick that hangs.
+    refresh_jobs = [j for j in orca.call("app_state").get("jobs", []) if int(j["id"][1:]) > since and j.get("tool") == "plugin_refresh"]
+    check("a person's pick of Refresh Plugins returns at once, starting the refresh in place, not as a job",
+          picked.get("status") not in ("running", "blocked_by_dialog") and refresh_jobs == [] and took < 30,
+          (picked.get("status"), refresh_jobs, took))
+    check("and its refresh ends with its notification", reached(refreshed_notified, "the refresh's notification shows", 60),
+          orca.call("app_state").get("notifications"))
     check("which came from a rescan of its own", rescans_since(logged) == 1, rescans_since(logged))
 
     # --- plugin_refresh finds a plugin side-loaded into the plugins folder, and replies once it has ---
@@ -306,7 +328,7 @@ def run(orca, datadir, scratch):
             shown = str(e)
         return isinstance(shown, list) and len(shown) == len(listed)
 
-    wait_for(read, 20)
+    reached(read, "the Plugins window lists as many plugins as plugin_list")
     check("the Plugins window lists the same plugins, each switch as plugin_list says",
           isinstance(shown, list) and {r["key"]: r["enabled"] for r in shown} == listed, (shown, listed))
 

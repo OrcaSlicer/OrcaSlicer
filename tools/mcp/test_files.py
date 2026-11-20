@@ -9,9 +9,9 @@ name; importing models (STL, a project's .3mf, ZIP archives, a STEP file, files 
 objects as STL and DRC, the model as a 3MF, the plate's G-code and the sliced file. Every file written is read back,
 by the test (a G-code's text, a sliced file's entries, a folder's file names and sizes) or by the app (an exported
 mesh imported into an empty project, a saved project opened again). It runs on the default
-printer, the Generic Klipper Printer 0.4 nozzle, on a data folder earlier tests used: it sets the presets and the
-preferences its checks read before its first scenario. It writes into a folder of its own, kept when a check fails,
-and exits 0 when every check passes.
+printer, the Generic Klipper Printer 0.4 nozzle, in an app and on a data folder earlier tests used: start() puts them in
+the baseline before its first scenario, and the test reads back the preferences its checks depend on. It writes into
+a folder of its own, kept when a check fails, and exits 0 when every check passes.
 """
 
 import json
@@ -28,7 +28,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
 from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, answer_all, dialogs, gcode, layer_gcode,  # noqa: E402
                     meshes, normal, plates, presets, project, recent, reimport, run, sliced, sliced_flags, start,
-                    undo_steps, unsaved, values, wait)
+                    undo_steps, unsaved, until, values, wait)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
@@ -37,8 +37,8 @@ STEP = os.path.join(REPO, "tests", "data", "named_single_body.step")
 BENCHY = os.path.join(REPO, "resources", "handy_models", "3DBenchy.drc")
 HEIGHTMAP = os.path.join(HERE, "tests", "fixtures", "heightmap.png")
 
-# The preferences the checks read, each at the app's default: an open that asks nothing about the project's settings,
-# the recent projects, the STEP options dialog and no slice by itself.
+# The preferences the checks depend on, each at the baseline's value, a new data folder's: an open that asks nothing
+# about the project's settings, the recent projects, the STEP options dialog and no slice by itself.
 PREFERENCES = {"project_load_behaviour": "ask_when_relevant", "max_recent_count": 18, "recent_models": False,
                "enable_step_mesh_setting": True, "auto_slice_after_change": False}
 # A filament preset file no other test writes, imported as a model.
@@ -215,11 +215,10 @@ class FilesTest:
         s = "the start"
         self.t.equal(f"{s}: the presets", start(self.c),
                      {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]})
-        self.run("preferences_set", values=PREFERENCES)
         items = self.c.call("preferences_get", keys=list(PREFERENCES))["items"]
         self.t.equal(f"{s}: the preferences", {i["key"]: i["value"] for i in items}, PREFERENCES)
-        # Lossless DRC, under which the DRC rows read their meshes back exactly. The Preferences dialog takes 8 to 30 only,
-        # so the test reads the app's default 0 rather than setting it.
+        # Lossless DRC, the baseline's 0, under which the DRC rows read their meshes back exactly. The Preferences
+        # dialog's field takes 8 to 30 only.
         drc = self.c.call("preferences_get", keys=["drc_bits"])["items"][0]["value"]
         self.t.equal(f"{s}: drc_bits is 0, lossless", drc, 0)
         if USER_PLA in self.user_filaments():
@@ -885,7 +884,9 @@ class FilesTest:
 
     def overlapping(self, label, action):
         """Attempts until an export overlaps the second client's slice: returns (walls, refusal, thread, box), or None
-        after three attempts in a row that do not overlap or a refusal with other words, failing the check."""
+        after three attempts in a row that do not overlap or a refusal with other words, failing the check. The app
+        decides when the slice starts and ends, so each attempt reads app_state.slicing every 5 ms and exports as soon
+        as it reads true; an attempt whose slice ended unseen is a miss."""
         misses = []
         while len(misses) < 3:
             walls = self.next_walls
@@ -893,19 +894,19 @@ class FilesTest:
             self.run("settings_set", values={"wall_loops": walls})
             wait(self.c, "idle")
             thread, box = self.slice_in_thread(action)
-            deadline, seen = time.monotonic() + 10, False
-            while time.monotonic() < deadline:
+
+            def slicing_or_ended():
                 if self.c.call("app_state").get("slicing"):
-                    seen = True
-                    break
-                if not thread.is_alive():
-                    break
-                time.sleep(0.005)
-            else:
+                    return "slicing"
+                return None if thread.is_alive() else "ended"
+
+            try:
+                seen = until(slicing_or_ended, "the slice shows or the second client's call ends", interval_s=0.005)
+            except TimeoutError as e:
                 thread.join()
-                self.t.check(f"{label}: the slice shows or its call ends within 10 s", False, walls)
+                self.t.check(f"{label}: the slice shows or its call ends", False, f"{walls}: {e}")
                 return None
-            if seen:
+            if seen == "slicing":
                 try:
                     reply = self.c.call("project_export", format="gcode", path=self.w(f"during_{walls}.gcode"))
                     misses.append(f"{walls}: the export went through: {reply}")
@@ -976,7 +977,6 @@ class FilesTest:
                                ("the G-code written", self.gcode_written_scenario),
                                ("an export while a slice runs", self.while_slicing_scenario)]:
             self.t.scenario(name, scenario)
-        self.new_project()
         return self.t.exit_code()
 
 

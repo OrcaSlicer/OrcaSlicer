@@ -9,9 +9,10 @@ window_list and app_state give.
 window_list is a page of windows, the main window first. The main window is sized twice, the second time from
 the normal state, and on Wayland a window screenshot is the size the reply gives. Where positions are known it is
 moved, then placed over its display's work area by position and size. It is maximized, given a size while
-maximized (which restores it first), minimized and restored, after which the 3D view still captures, and
-minimized while maximized, from which state normal and a size both bring it back to normal; on Wayland those
-checks are skipped, as a compositor brings a minimized window back only by activating the app. A request that
+maximized (which restores it first), minimized, which replies without waiting for a 3D frame, and restored, after
+which the 3D view still captures, and minimized while maximized, from which state normal and a size both bring it
+back to normal; on Wayland those checks are skipped, as a compositor brings a minimized window back only by
+activating the app. A request that
 contradicts itself is refused before anything changes. The Plugins window, which doesn't block the app and holds
 a web page, is sized and moved by its ref, which window_screenshot captures alone and widget_list reads alone;
 keyboard_press Escape sent to it closes it, after which its ref fails, pointing to window_list. Preferences, a
@@ -30,7 +31,10 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, start  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, start, until  # noqa: E402
+
+# How long a call may take before the test reads it as hung.
+HANG_S = 30
 
 
 class _XWindowAttributes(ctypes.Structure):
@@ -114,14 +118,14 @@ def main():
     def main_entry():
         return next((w for w in windows() if w.get("kind") == "main"), {})
 
-    def wait_for(predicate, timeout):
-        deadline = time.time() + timeout
-        while time.time() < deadline:
-            value = predicate()
-            if value:
-                return value
-            time.sleep(0.25)
-        return predicate()
+    def reached(fn, what):
+        """until()'s value, or None, printed with what was seen, when the 30 s pass first: the check after it fails
+        and the test goes on."""
+        try:
+            return until(fn, what)
+        except TimeoutError as e:
+            print(e, flush=True)
+            return None
 
     def refusal(**args):
         """The error message of a window_set call that fails, or None when it succeeds."""
@@ -134,11 +138,11 @@ def main():
     started = start(client)
     check("start: the Klipper printer with its default process and filament",
           started == {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]}, started)
-    client.call("view_set", tab="prepare")
     state = client.call("app_state")
     wayland = state.get("display_backend") == "wayland"
 
-    # 0. The list a launch starts with: a page of windows, the main window first.
+    # 0. The list at the start, which start() leaves with the main window alone: a page of windows, the main
+    # window first.
     listed = client.call("window_list")
     items = listed.get("items", [])
     check("window_list: the reply is a page of windows", listed.get("total") == len(items) and listed.get("offset") == 0, listed)
@@ -204,10 +208,13 @@ def main():
         skip("minimize and restore", why)
         skip("a window minimized while maximized", why)
     else:
-        began = time.time()
-        minimized = client.call("window_set", state="minimized")
-        took = time.time() - began
-        check("minimize: returns within 5 s", took < 5, f"{took:.1f} s: {minimized}")
+        # A wait for a 3D frame runs to its 3 s and then replies with a note that the 3D view did not draw.
+        try:
+            minimized = client.call("window_set", _timeout=HANG_S, state="minimized")
+        except OSError as e:  # the client's timeout
+            minimized = {"error": f"no reply within {HANG_S} s: {e}"}
+        check("minimize: replies without waiting for a 3D frame", "error" not in minimized and "note" not in minimized,
+              minimized)
         check("minimize: the reply says minimized", minimized.get("state") == "minimized", minimized)
         restored = client.call("window_set", state="normal")
         check("restore: the reply says normal", restored.get("state") == "normal", restored)
@@ -225,9 +232,13 @@ def main():
         check("maximized, minimized, then normal: the reply says normal", normal.get("state") == "normal", normal)
         check("without a note that the window manager kept the request waiting", "note" not in normal, normal)
         # On macOS the window comes back from the Dock zoomed and is un-zoomed once it is back, so it must not
-        # turn maximized again after the reply.
-        time.sleep(1)
-        check("and window_list still reads it normal a second later", main_entry().get("state") == "normal", main_entry())
+        # turn maximized again after the reply. Nothing tells when the window manager is done with a window, so
+        # window_list is read every 0.1 s through the second after the reply.
+        states, end = [], time.monotonic() + 1
+        while time.monotonic() < end:
+            states.append(main_entry().get("state"))
+            time.sleep(0.1)
+        check("and window_list reads it normal throughout the second after", set(states) == {"normal"}, states)
         client.call("window_set", state="maximized")
         client.call("window_set", state="minimized")
         sized = client.call("window_set", size=[1350, 880])
@@ -244,7 +255,7 @@ def main():
 
     # 7. A window that doesn't block, by its ref.
     client.call("action_run", id="orca_command:open_plugins:orca")
-    plugins = wait_for(lambda: find("Plugins"), 15) or {}
+    plugins = reached(lambda: find("Plugins"), "the Plugins window is listed") or {}
     check("the Plugins window is listed with a ref", plugins.get("ref"), plugins)
     check("Plugins: it is a window that doesn't block", plugins.get("modal") is False, plugins)
     check("Plugins: it holds a web page", plugins.get("web") is True, plugins)
@@ -275,7 +286,8 @@ def main():
         top = tree.splitlines()[0] if tree else ""
         check("Plugins: widget_list with its ref reads that window alone", '"Plugins"' in top and "MainFrame" not in tree, top)
         client.call("keyboard_press", keys="Escape", target=ref)
-        check("Plugins: keyboard_press Escape closes it", wait_for(lambda: find("Plugins") is None, 10), windows())
+        check("Plugins: keyboard_press Escape closes it",
+              reached(lambda: find("Plugins") is None, "the Plugins window is gone"), windows())
 
         # 8. A ref to a window that has closed.
         error = refusal(**{"target": ref, "raise": True})
@@ -284,7 +296,7 @@ def main():
 
     # 9. A modal dialog.
     prefs = client.call("action_run", id="orca_command:open_preferences:orca")
-    modal = wait_for(lambda: find("Preferences"), 15)
+    modal = reached(lambda: find("Preferences"), "Preferences is listed")
     listed = windows()
     check("Preferences is listed as modal, with a ref", modal and modal.get("modal") is True and modal.get("ref"), listed)
     check("the modal dialog comes last", listed and listed[-1].get("title") == "Preferences", listed)
@@ -345,13 +357,14 @@ def main():
 
     # 10. Action Replay is a window the tools reach: listed with a ref, and closed by a key sent to it.
     client.call("action_run", id="orca_command:open_action_replay:orca")
-    replay = wait_for(lambda: find("Action Replay"), 10)
+    replay = reached(lambda: find("Action Replay"), "Action Replay is listed")
     check("Action Replay is listed, not hidden", replay is not None and "hidden" not in replay, windows())
     check("Action Replay: with a ref, not modal, showing a web page",
           replay is not None and bool(replay.get("ref")) and replay.get("modal") is False and replay.get("web") is True, replay)
     if replay is not None and replay.get("ref"):
         client.call("keyboard_press", keys="Escape", target=replay["ref"])
-        check("Action Replay: keyboard_press Escape on its ref closes it", wait_for(lambda: find("Action Replay") is None, 10), windows())
+        check("Action Replay: keyboard_press Escape on its ref closes it",
+              reached(lambda: find("Action Replay") is None, "Action Replay is gone"), windows())
 
     # 11. The read side.
     listed = [w for w in windows() if w.get("ref")]
@@ -367,9 +380,6 @@ def main():
     # 12. The flat form window_list reports.
     flat = client.call("window_set", width=1500, height=950)
     check("flat form: width and height are read as size", flat.get("size") == [1500, 950], flat)
-
-    # 13. Clean-up: the size a fresh launch gives.
-    client.call("window_set", size=list(orca_mcp.WINDOW_SIZE))
 
     failed = [c for c in checks if not c[1]]
     for name, ok, detail in checks:

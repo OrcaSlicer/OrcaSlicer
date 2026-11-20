@@ -13,9 +13,9 @@ argument closes the open gizmo and does the job as the gizmo's own button would.
 back what the gizmo or the call leaves on the model (placements, painted facets, texture layers, text and SVG parts,
 brim ears, parts made or removed, positions in the assemble view), reads the undo before any redo, and reads what a
 person keeps again from a saved project. It also tests the canvas input those gizmos rely on, and auto-answer rules
-on the preset prompt. It starts on the Generic Klipper Printer, sets the window size, Expert mode and the
-preferences its checks depend on, and exits 0 when every check passes. Scenario names given on the command line run
-those scenarios alone.
+on the preset prompt. It starts from the baseline on the Generic Klipper Printer, reads back the window size and the
+preferences its checks depend on, sets Expert mode, and exits 0 when every check passes. Scenario names given on the
+command line run those scenarios alone.
 """
 
 import math
@@ -28,8 +28,8 @@ import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, run, selection, slots, start, undo_steps,  # noqa: E402
-                    wait)
+from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, SLOT_COLOURS, Checks, add_slot, run, selection,  # noqa: E402
+                    slots, start, undo_steps, wait)
 
 FIXTURES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests", "fixtures")
 STAR = os.path.join(FIXTURES, "star.svg")
@@ -128,14 +128,15 @@ class GizmosTest:
         return self.run("object_add_primitive", **args)
 
     def filament_slots(self, count):
-        """Deletes filament slots until a delete is refused (one is left), then adds `count` - 1."""
+        """Deletes filament slots until a delete is refused (one is left), then adds slots up to `count`, slot n
+        coloured SLOT_COLOURS[n - 1]."""
         for _ in range(32):
             try:
                 self.c.call("filament_delete")
             except orca_mcp.McpError:
                 break
-        for _ in range(count - 1):
-            self.run("filament_add")
+        for n in range(2, count + 1):
+            add_slot(self.c, SLOT_COLOURS[n - 1])
 
     def click(self, at, **args):
         """A left click at a point of the model, `at` being mouse_gesture's `at`."""
@@ -854,7 +855,7 @@ class GizmosTest:
         self.t.equal(f"{s} 1: the reply", reply.get("value"), "60.00%")
         triangles(f"{s} 1", 24648)
         self.close(f"{s} 2: at once, while it works", "Simplify")
-        self.idle(15)
+        self.idle()
         triangles(f"{s} 2: closing applies nothing", 24648)
         self.open(f"{s} 3", "Simplify")
         self.set({"imgui_name": "use_count"}, True)
@@ -1638,18 +1639,17 @@ class GizmosTest:
     def run_all(self, only=()):
         self.t.equal("the start: the presets", start(self.c),
                      {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]})
-        # Where the panels open, what covers a point of the model and the pixels the canvas input scenario presses at
-        # follow the window's size.
-        self.run("window_set", size=[1600, 900])
+        # The baseline's window size and preferences, read back since the checks depend on them: where the panels
+        # open, what covers a point of the model and the pixels the canvas input scenario presses at follow the
+        # window's size; the fields' texts are written in millimetres; and the canvas input scenario's pans need the
+        # default camera style with a middle-button drag that pans.
         self.t.equal("the start: the window's size", self.c.call("app_state")["window"]["size"], [1600, 900])
-        self.run("action_run", id="orca_command:mode_expert:orca")
-        self.t.equal("Expert mode", self.c.call("app_state")["mode"], "expert")
-        # Millimetres, in which the fields' texts are written, and the default camera style with a middle-button
-        # drag that pans, which the canvas input scenario's pans need.
         prefs = {"use_inches": "0", "camera_navigation_style": "0", "middle_mouse_drag_action": "1"}
-        self.c.call("preferences_set", values=prefs)
         got = self.c.call("preferences_get", keys=list(prefs))["items"]
         self.t.equal("the start: the preferences", {i["key"]: i["value"] for i in got}, prefs)
+        # Some panel items show only in Expert mode; the baseline's is Simple.
+        self.run("action_run", id="orca_command:mode_expert:orca")
+        self.t.equal("Expert mode", self.c.call("app_state")["mode"], "expert")
         scenarios = [("prompts a rule answers", self.prompts), ("Move, Rotate and Scale", self.move_rotate_scale),
                      ("aligning in the Move panel", self.align), ("lay on face", self.lay_on_face),
                      ("painting and texture layers", self.painting), ("text", self.text), ("SVG", self.svg),
@@ -1664,8 +1664,6 @@ class GizmosTest:
         for name, scenario in scenarios:
             if not only or name in only:
                 self.t.scenario(name, scenario)
-        self.c.call("dialog_auto_answer", rules=[])
-        self.run("project_new", discard_changes=True)
         return self.t.exit_code()
 
 

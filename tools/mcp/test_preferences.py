@@ -18,17 +18,15 @@ preferences_set writes it, without the dialog, and shows it again when it is wri
 mode are written on and off again: with no account signed in, turning sync on starts no sync, and stealth mode signs out
 of no account.
 
-It starts from the Generic Klipper Printer and first writes the preferences its checks start from, setting the two that
-its write puts back to the app's defaults away from them. At its end it puts back the frame rate cap and the auto backup
-it found, which every later test on the data folder meets. It writes only preferences whose effect stays inside the app
-it drives; it signs in to nothing and needs no network. Exits 0 when every check passes.
+It starts from the Generic Klipper Printer and the baseline's preferences, and first sets the two that its write puts
+back to the app's defaults away from them. It writes only preferences whose effect stays inside the app it drives; it
+signs in to nothing and needs no network. Exits 0 when every check passes.
 """
 
 import os
 import re
 import sys
 import tempfile
-import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import checks as shared  # noqa: E402
@@ -43,13 +41,11 @@ LOGIN_PANEL = "(function () { var e = document.getElementById('LeftBoard'); retu
 # What the backup timer logs when its period changes.
 TIMER_LINE = "set_interval exit, and new interval is:"
 START = {"printer": shared.KLIPPER, "process": shared.KLIPPER_STD, "filaments": [shared.GENERIC_PLA]}
-# The preferences the checks start from. The first two are away from the app's defaults, to which the test's write
-# puts them back; the others are those the checks write from.
-STARTING = {"auto_arrange": False, "auto_calculate_flush": "color change", "opengl_fps_cap": 0, "enable_multi_machine": False,
-            "backup_interval": 10, "hide_login_side_panel": False, "sync_user_preset": False, "stealth_mode": False}
-# The preferences put back at the end as the test found them: the frame rate cap of every view and recording, and the
-# auto backup, which decides whether a start after the runner's kill offers to restore an unsaved project.
-RESTORED = ["opengl_fps_cap", "backup_switch", "backup_interval"]
+# The preferences the checks start from: the two the test sets away from the app's defaults, to which its write puts
+# them back, and those the baseline gives, a new data folder's, which the checks write from.
+AWAY = {"auto_arrange": False, "auto_calculate_flush": "color change"}
+STARTING = {**AWAY, "opengl_fps_cap": 0, "enable_multi_machine": False, "backup_interval": 10, "hide_login_side_panel": False,
+            "sync_user_preset": False, "stealth_mode": False}
 
 results = []
 
@@ -74,11 +70,11 @@ def dialog_listing(client, tab, key=None):
     if key:
         args["key"] = key
     opened = client.call("window_open", **args)
-    client.call("app_wait", **{"for": "dialog"})
+    shared.wait(client, "dialog")
     _, texts = client.call_with_text("widget_list", target="dialog", max_nodes=2000)
     client.call("dialog_answer", dialog={"title": "Preferences"}, button="close")
     if isinstance(opened, dict) and opened.get("job"):
-        client.call("app_wait", **{"for": "job", "job": opened["job"], "timeout_s": 30})
+        shared.wait(client, "job", job=opened["job"])
     return "\n".join(texts)
 
 
@@ -108,13 +104,12 @@ def shown_value(item, control):
     return value
 
 
-def wait_for(predicate, timeout):
-    deadline = time.time() + timeout
-    while True:
-        value = predicate()
-        if value or time.time() > deadline:
-            return value
-        time.sleep(0.25)
+def reached(fn, what):
+    """Whether fn() comes true within shared.until()'s 30 s, for a check to report rather than to stop the test."""
+    try:
+        return bool(shared.until(fn, what))
+    except TimeoutError:
+        return False
 
 
 def log_lines(client):
@@ -131,14 +126,10 @@ def main():
     client, session = orca_mcp.session_client()
     presets = shared.start(client)
     check("starts from the Generic Klipper Printer", presets == START, presets)
-    found = {key: item["value"] for key, item in items_by_key(client, keys=RESTORED).items()}
-    try:
-        client.call("preferences_set", values=STARTING)
-        read = {key: item["value"] for key, item in items_by_key(client, keys=list(STARTING)).items()}
-        check("the preferences start as written", read == STARTING, read)
-        scenarios(client, session)
-    finally:
-        client.call("preferences_set", values=found)
+    client.call("preferences_set", values=AWAY)
+    read = {key: item["value"] for key, item in items_by_key(client, keys=list(STARTING)).items()}
+    check("the preferences start as written", read == STARTING, read)
+    scenarios(client, session)
     print(f"\n{sum(results)}/{len(results)} passed")
     return 0 if all(results) else 1
 
@@ -231,9 +222,10 @@ def scenarios(client, session):
         return int(line.rsplit(":", 1)[1].strip())
 
     def periods_set_by(values):
-        """The timer's periods the call `values` logged, in order."""
+        """The timer's periods the call `values` logged, in order, read once the app is idle."""
         before = timer_lines()
         client.call("preferences_set", values=values)
+        shared.wait(client, "idle")
         after = timer_lines()
         start = after.index(before[-1]) + 1 if before and before[-1] in after else 0
         return [timer(line) for line in after[start:]]
@@ -274,7 +266,7 @@ def scenarios(client, session):
     # the dialog's Browse button changes the folder an open dialog shows: answered with another folder, its row shows it.
     browsed = tempfile.mkdtemp(prefix="browsed_")
     opened = client.call("window_open", window="preferences", tab="files", key="download_path")
-    client.call("app_wait", **{"for": "dialog"})
+    shared.wait(client, "dialog")
     text = refusal(client, "preferences_set", values={"download_path": browsed})
     check("with the Preferences dialog open, preferences_set is refused before it writes",
           text is not None and "modal dialog is open" in text, text)
@@ -287,7 +279,7 @@ def scenarios(client, session):
         client.call("dialog_auto_answer", rules=[])
         client.call("dialog_answer", dialog={"title": "Preferences"}, button="close")
         if isinstance(opened, dict) and opened.get("job"):
-            client.call("app_wait", **{"for": "job", "job": opened["job"], "timeout_s": 30})
+            shared.wait(client, "job", job=opened["job"])
     check("the open dialog's row shows the folder its Browse button picked", f'label "{browsed}" (wxStaticText)' in listing,
           [line.strip() for line in listing.splitlines() if "wxStaticText" in line][:8])
     stored_path = items_by_key(client, keys=["download_path"])["download_path"]["value"]
@@ -306,13 +298,13 @@ def scenarios(client, session):
             return None
 
     # The page shows the panel with jQuery's show(), which leaves its display "block" (home.js).
-    shown = wait_for(lambda: panel() == "block", 20)
+    shown = reached(lambda: panel() == "block", "the login side panel shows")
     check("the Home page shows its login side panel", shown, panel())
     client.call("preferences_set", values={"hide_login_side_panel": True})
-    hidden = wait_for(lambda: panel() == "none", 10)
+    hidden = reached(lambda: panel() == "none", "the login side panel is hidden")
     check("preferences_set hide_login_side_panel true hides it at once, without the dialog", hidden, panel())
     client.call("preferences_set", values={"hide_login_side_panel": False})
-    shown_again = wait_for(lambda: panel() == "block", 10)
+    shown_again = reached(lambda: panel() == "block", "the login side panel shows again")
     check("and false shows it again", shown_again, panel())
     client.call("view_set", tab="prepare")
 
@@ -328,6 +320,8 @@ def scenarios(client, session):
                 reply = client.call("preferences_set", values={key: value})
             except McpError as e:
                 reply = {"error": str(e)}
+            # What the write started is read once the app is idle, and a sync it started would be logged by then.
+            shared.wait(client, "idle")
             logged = new_lines(before, log_lines(client))
             check(f"preferences_set {key} {value} writes it", [c["key"] for c in reply.get("changed", [])] == [key], reply)
             read = items_by_key(client, keys=[key])[key]["value"]

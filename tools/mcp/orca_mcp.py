@@ -332,7 +332,7 @@ def vendor_printer(vendor, model, nozzle, filament=None, profiles=PROFILES):
 
 
 def seed_datadir(datadir, printer):
-    """Seed a fresh datadir's OrcaSlicer.conf. A datadir that has one keeps it.
+    """Seed a fresh datadir's OrcaSlicer.conf, and return True; a datadir that has one keeps it, and gets False.
 
     A fresh datadir keeps the Orca Cloud login in its own token file (use_encrypted_token_file), not in the
     system's secret store, so the instance starts signed out and never reads the person's login: on macOS
@@ -342,7 +342,7 @@ def seed_datadir(datadir, printer):
     os.makedirs(datadir, exist_ok=True)
     conf = os.path.join(datadir, "OrcaSlicer.conf")
     if os.path.exists(conf):
-        return
+        return False
     x, y = work_area_origin()
     width, height = WINDOW_SIZE
     write_conf(conf, {"firstguide": {"finish": True},
@@ -351,6 +351,34 @@ def seed_datadir(datadir, printer):
                       "presets": {"machine": printer.preset},
                       "app": {"check_for_updates": False, "show_daily_tips": False, "use_encrypted_token_file": True,
                               "window_mainframe": f"{x}; {y}; {width}; {height}; 0"}})
+    return True
+
+
+# The preferences a datadir had when launch seeded it, which checks.start() resets every preference to: the file sits
+# in the datadir, and app_state's config_folder names it to a test whatever launched the app.
+BASELINE_FILE = "mcp-baseline.json"
+
+
+def record_baseline(client, datadir):
+    """Write BASELINE_FILE: every preference preferences_get lists, with the value the newly seeded datadir gives it.
+    The values are read from the app rather than written down, since their defaults differ between systems."""
+    items = client.call("preferences_get")["items"]
+    with open(os.path.join(datadir, BASELINE_FILE), "w", encoding="utf-8") as f:
+        json.dump({"preferences": {i["key"]: i["value"] for i in items}}, f, indent=1)
+
+
+def wait_pid_gone(pid, timeout):
+    """On Windows, True once the process `pid` has ended, or when there is none, within `timeout` s. (Elsewhere
+    stop_group() waits for the app's process group.)"""
+    import ctypes
+    kernel32 = ctypes.windll.kernel32
+    handle = kernel32.OpenProcess(0x00100000, False, pid)  # SYNCHRONIZE
+    if not handle:
+        return True
+    try:
+        return kernel32.WaitForSingleObject(handle, int(timeout * 1000)) == 0  # WAIT_OBJECT_0
+    finally:
+        kernel32.CloseHandle(handle)
 
 
 # The headless compositors --headless tries, in order, by the binary each needs.
@@ -578,7 +606,7 @@ def launch(args):
     if args.printer:
         model, _, nozzle = args.printer.partition("@")
         printer = vendor_printer(args.vendor, model, nozzle or "0.4", args.filament)
-    seed_datadir(datadir, printer)
+    seeded = seed_datadir(datadir, printer)
 
     env = dict(os.environ, ORCA_MCP_TOKEN=token)
     binary = find_binary(args.bin)
@@ -607,6 +635,8 @@ def launch(args):
         sys.exit(f"OrcaSlicer opened its Setup Wizard: the datadir's printer profiles are missing. On Windows a datadir "
                  f"path of more than about 150 characters keeps the app from copying them (this one has {len(datadir)}); "
                  f"see {log.name}")
+    if seeded:
+        record_baseline(client, datadir)
     url = f"http://127.0.0.1:{args.port}/mcp"
     print(json.dumps({**session, "url": url}, indent=2))
     if args.print_config:
@@ -623,16 +653,23 @@ def session_client():
     return OrcaMcp(s["port"], s["token"]), s
 
 
+STOP_TIMEOUT_S = 30  # how long the app has to end once stopped, before stop gives up (Windows) or kills it
+
+
 def stop(_args):
+    """Ends the session's app and returns once it has ended, so that the next launch on its datadir is the only app
+    there."""
     _, s = session_client()
-    if os.name == "nt":  # Windows has no process groups to signal
+    if os.name == "nt":  # Windows has no process groups to signal; SIGTERM is TerminateProcess
         try:
             os.kill(s["pid"], signal.SIGTERM)
         except OSError:  # already gone
             pass
+        if not wait_pid_gone(s["pid"], STOP_TIMEOUT_S):
+            print(f"OrcaSlicer (pid {s['pid']}) still runs {STOP_TIMEOUT_S} s after its stop", file=sys.stderr)
     else:
         # The app goes first and is given time to close before its display does.
-        stop_group(s["pid"], timeout=10, force=False)
+        stop_group(s["pid"], timeout=STOP_TIMEOUT_S)
         if s.get("display_server_pid"):
             stop_group(s["display_server_pid"])
     os.remove(SESSION_FILE)

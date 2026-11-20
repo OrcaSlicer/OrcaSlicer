@@ -159,6 +159,7 @@ PANEL = r"""
 <canvas id="dock" width="60" height="30" aria-label="Dock pad" onpointerup="document.getElementById('ups').textContent += 'dock up\n'"></canvas>
 <pre id="log"></pre>
 <pre id="ups"></pre>
+<button id="closepanel" onclick="window.wx.postMessage(JSON.stringify({channel: 'orca', kind: 'close', data: null}))">Close panel</button>
 """
 
 # A page among the main window's tabs, which the Go to tab action reaches by its id.
@@ -291,8 +292,13 @@ class FixturePanel(orca.script.ScriptPluginCapabilityBase):
 
     def execute(self):
         if self.panel is None:
-            self.panel = orca.host.ui.create_dock_panel(html=PANEL, title="MCP web fixture panel", width=260, height=200, dock="right")
+            self.panel = orca.host.ui.create_dock_panel(html=PANEL, title="MCP web fixture panel", width=260, height=200,
+                                                        on_close=self.closed, dock="right")
         return orca.ExecutionResult.success("opened")
+
+    def closed(self):
+        # The panel's Close panel button closes it, so the next run of the action opens a new one.
+        self.panel = None
 
 
 class FixturePage(orca.pages.PagesPluginCapabilityBase):

@@ -15,9 +15,9 @@ journals: the value under the action's input token for Go to tab, and none for t
 replays the same, since the action supplies its fixed arguments). A refused action has neither: action_run adds ran
 only when the command ran, and a failed call is not exported.
 
-It starts from the Generic Klipper Printer (checks.start()) and puts back at its end the mode it found. Take Screenshot
-saves in Start Recording's folder, which the test points at its output folder (a new temporary folder unless --out
-names one) through the Start Recording dialog before the actions run. Exits 0 when every check passes.
+It starts from the Generic Klipper Printer (checks.start()). Take Screenshot saves in Start Recording's folder, which
+the test points at its output folder (a new temporary folder unless --out names one) through the Start Recording dialog
+before the actions run. Exits 0 when every check passes.
 """
 
 import argparse
@@ -204,26 +204,21 @@ def main():
     checks.wait(client, "ready", 50)
     t = checks.Checks()
     t.equal("starts from the Generic Klipper Printer", checks.start(client), START)
-    # The mode decides which settings the sidebar and the settings tabs show every test after this one.
-    mode = client.call("app_state")["mode"]
-    try:
-        t.check("every action has a call in the fixture", len(keys) == ACTIONS and set(keys) <= set(fixture),
-                (len(keys), sorted(set(keys) - set(fixture))))
-        listed = listed_commands(client)
-        wrong = {k: (listed.get(action_id(k)), fixture.get(k)) for k in keys if listed.get(action_id(k)) != fixture.get(k)}
-        t.check("every action is listed with its command", len(keys) == ACTIONS and not wrong, wrong)
-        empty(client)
-        t.equal("Start Recording's folder is the output folder", use_capture_folder(client, out), os.path.normcase(out))
-        for r in ROWS:
-            t.scenario(r["key"], lambda r=r: run_row(client, t, out, r))
-            for _ in checks.dialogs(client):
-                try:
-                    client.call("dialog_answer", button="close")
-                except orca_mcp.McpError:
-                    pass
-        empty(client)
-    finally:
-        client.call("settings_set_mode", mode=mode)
+    t.check("every action has a call in the fixture", len(keys) == ACTIONS and set(keys) <= set(fixture),
+            (len(keys), sorted(set(keys) - set(fixture))))
+    listed = listed_commands(client)
+    wrong = {k: (listed.get(action_id(k)), fixture.get(k)) for k in keys if listed.get(action_id(k)) != fixture.get(k)}
+    t.check("every action is listed with its command", len(keys) == ACTIONS and not wrong, wrong)
+    empty(client)
+    t.equal("Start Recording's folder is the output folder", use_capture_folder(client, out), os.path.normcase(out))
+    for r in ROWS:
+        t.scenario(r["key"], lambda r=r: run_row(client, t, out, r))
+        for _ in checks.dialogs(client):
+            try:
+                client.call("dialog_answer", button="close")
+            except orca_mcp.McpError:
+                pass
+    empty(client)
     return t.exit_code()
 
 

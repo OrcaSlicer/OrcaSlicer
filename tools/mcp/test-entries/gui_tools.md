@@ -3,22 +3,21 @@
 The design of this area's sweep tests. The rules every entry follows, the grades and the table of all tests are
 in [TESTS.md](../TESTS.md).
 
-Three tests, since the sweep judges their launches differently:
+Three tests:
 
 - `test_gui_tools` drives the app's own menus, rows, popups and web dialogs with the generic GUI tools.
-  It runs on the sweep's default launch.
 - `test_recording` makes and encodes recordings. What it can check depends on the machine's
   ffmpeg, and it says so in its output, so its verdict is kept apart from the others'.
 - `test_call_forms` checks the forms a call takes: the names and values agents send, and a call with exactly an
-  action's arguments doing what a person's pick does. Part of that needs
-  the Design tab, so this test launches with it (`"cad": true`), which the other two must not.
+  action's arguments doing what a person's pick does. Part of that needs the Design tab, which every app the sweep
+  launches has.
 
-Their `sweep.json` entries:
+Each runs in its job's app after the tests before it. Their `sweep.json` entries:
 
 ```json
 "test_gui_tools": {"path": "test_gui_tools.py"},
 "test_recording": {"path": "test_recording.py"},
-"test_call_forms": {"path": "test_call_forms.py", "cad": true}
+"test_call_forms": {"path": "test_call_forms.py"}
 ```
 
 ## `test_gui_tools`
@@ -35,29 +34,29 @@ project, the selection, the camera or the settings; a menu's listing is checked 
 **Starts from:** `start(c)`, the Generic Klipper Printer, compared with `{printer: KLIPPER, process: KLIPPER_STD,
 filaments: [GENERIC_PLA]}`, on which every scenario runs. The web dialogs scenario starts with `start(c,
 filaments=["Bambu PLA Basic @System"])`, and the drop-down list with `start(c)` again and the printer's
-`support_multi_bed_types` turned on (see there). Before the first scenario the test sets, and reads back, the stored
-settings its checks depend on: the window at 1600 × 900 (`window_set {size: [1600, 900]}`, then
-`app_state.window.size`), since `E`'s pixel and the canvas captures follow the window's size; the 3D view's labels off
-(`view_set {labels: false}`, then `app_state.view.labels`), which the app keeps in the data folder (`show_labels`) and
-which the menus scenario turns on and off; and `preferences_set {values: {use_printer_agents: false}}`, then
-`preferences_get`, under which a printer without a print host gives the print button's popup its two items. Two
-scenarios set more of their start: the drop-down list sets the plate type, and the web dialogs scenario takes the wizard
-card's printer out (see each). The login region the web dialogs scenario reads is the one stored setting no tool can set
+`support_multi_bed_types` turned on (see there). Before the first scenario the test reads back the baseline's settings
+its checks depend on: the window at 1600 × 900 (`app_state.window.size`), since `E`'s pixel and the canvas captures
+follow the window's size; the 3D view's labels off (`app_state.view.labels`), which the menus scenario turns on and
+off; and `use_printer_agents` false (`preferences_get`), under which a printer without a print host gives the print
+button's popup its two items. Three scenarios set more of their start: the dialog's rows turn Compare presets'
+transfer checkbox off, the drop-down list sets the plate type, and the web dialogs scenario takes the wizard card's
+printer out (see each). The login region the web dialogs scenario reads is the one stored setting no tool can set
 (`preferences_set` refuses `region`, since changing it signs out of the cloud account); no test changes it, so the
 scenario checks it is `""`. A plugin an earlier test left adds web views of its own (`test_web_ui`'s fixture adds a
 page among the main window's tabs, whose web view is made only when shown), so the web dialogs scenario's script
 with no modal open reads the reply's URL to know it ran in the Home page. Measured with the fixture installed: the
 Home page answers, and `widget_list` lists its web view alone.
 
-**Leaves:** The Klipper printer selected and unmodified, since the closing `project_new {preset_changes: "discard"}`
-drops the drop-down list's `support_multi_bed_types`, with `0.20mm Standard @MyKlipper` and one `Generic PLA @System`
-slot, the drop-down list's `start()`, which deletes the second slot the web dialogs scenario added, slot 1 still
-coloured `#3366CC`, the colour the web dialogs scenario picked (a filament switch keeps the slot's colour). The
-plate type `High Temp Plate` stored for the printer, which the sidebar stores as the switch goes off. The Generic
-Marlin Printer not installed, when an earlier test had installed it. The window, the labels and `use_printer_agents`
-as it set them. The print button's mode, `Export G-code file`, which the app keeps only while Remember last print
-action is on. The recent projects and the last folder opened, naming the projects it saved in its own output
-folder. None of it changes how the app reads to the tests after it, so the test restores nothing.
+**Leaves:** The drop-down list's project and printer: the Klipper printer with `support_multi_bed_types` on as an
+unsaved edit, `0.20mm Standard @MyKlipper` and one `Generic PLA @System` slot; the project saved as
+`OUT/plate_type.3mf` and changed since, its plate type `Cool Plate`, which the app also stores for the printer. The
+next `start()` discards the edit and the project, and the sidebar then stores the printer's default plate type, `High
+Temp Plate`, again. The auto-answer rules for "Uniform scale" and "per-object setting mode". The Generic Marlin Printer
+not installed, when an earlier test had installed it. The print button's mode, `Export G-code file`, which the app
+keeps only while Remember last print action is on, and Compare presets' transfer checkbox on, which the app keeps
+until it closes. The recent projects and the last folder opened, naming the projects it saved in its own output
+folder. What the baseline lists the next `start()` resets, and no test reads the rest as it finds it, so the test
+restores nothing.
 
 **Reads:** `objects()` gives each object from `object_list` as its name, the plate it is on, its parts, each part as
 its name and `type` (`part`, `modifier`, `negative`, ...), and whether its first instance is printable. `selection()` gives
@@ -77,14 +76,14 @@ part + Generic-Cylinder modifier`. "As after N" means the state written out at s
 
 **Scenario: menus of the 3D view and of a button**
 
-It starts with one filament slot (`filament_delete` until it is refused `last_filament_slot`), the cube of the Add
-Cube action (`action_run`) and the iso view (`view_set {camera: "iso"}`). The start is checked: `objects()` is
-`Cube: Cube part`, printable; `app_state.presets.filaments` has 1 entry; `app_state.view.labels` is false. `C` is
-`mouse_gesture {action: "click", button: "right", at: {object: 0, point: [6, -6, 12.5]}}`, a point on the cube's
-top away from the diagonal its two top triangles share: the Add Cube action's cube is a tenth of the bed's longer
-side, 25 mm on the Klipper printer's 250 mm bed, unless a person saved a cube size of their own in its dialog
-(`primitive_size`), which no test does. `E` is the same right click at the canvas pixel (1000, 150), empty space
-above the bed.
+It starts with the one filament slot `start()` leaves, the cube of the Add Cube action (`action_run`) and the iso
+view (`view_set {camera: "iso"}`). The start is checked: `objects()` is `Cube: Cube part`, printable;
+`app_state.presets.filaments` has 1 entry; `app_state.view.labels` is false. `C` is `mouse_gesture {action: "click",
+button: "right", at: {object: 0, point: [6, -6, 12.5]}}`, a point on the cube's top away from the diagonal its two
+top triangles share: the Add Cube action's cube is a tenth of the bed's longer side, 25 mm on the Klipper printer's
+250 mm bed, unless a person saved a cube size of their own in its dialog (`primitive_size`), which no test does. `E` is the same right click at the canvas pixel (1000, 150), empty space
+above the bed. After each `C` and `E`, and after step 19's listing, the test waits for `app_wait {for: "idle"}`, so
+that a check that a listing changed nothing comes after anything the call set off.
 
 `OBJECT` is the set of menu items the object menu must list: `Add Part>Cube`, `Add Negative Part>Cylinder`, `Add
 Modifier>Cylinder`, `Add Support Blocker>Cube`, `Add Support Enforcer>Cube`, `Delete`, `Printable` and `Auto Drop`.
@@ -154,16 +153,20 @@ It starts with the Add Cube action's cube, the Objects switch on, and a cylinder
 menu as in the rows scenario. The start is checked: `objects()` is `Cube: Cube part + Generic-Cylinder modifier`,
 `app_state.presets.process` is `0.20mm Standard @MyKlipper`, and `windows()` holds no `Compare presets`. `SIDE` is
 the labels of the main window's side buttons, as `widget_list {target: "main", query: "SideButton", include_menus:
-false}` lists them: `Slice plate`, its unlabelled arrow, the print button, its unlabelled arrow.
+false}` lists them: `Slice plate`, its unlabelled arrow, the print button, its unlabelled arrow. `TRANSFER` is the
+locator `{label: "Transfer values from left to right", within: "Compare presets"}`, the window's transfer checkbox,
+which the window shows once its two presets differ and keeps while the app runs, as the app makes the window once
+and hides it on closing; each opening turns it off before reading the rows, so that they read as the window shows
+them without it.
 
 | # | Step | Checked after |
 |---|---|---|
 | 1 | `widget_click {target: {label: "Compare presets"}}` | `windows()` holds `Compare presets`; `dialogs()` `[]`, as it is modeless |
-| 2 | `widget_set_value {target: {class: "PresetComboBox", within: "Compare presets", index: 5}, value: "0.12mm Fine @MyKlipper"}` | `rows()` of the window hold the header row `"0.20mm Standard @MyKlipper" vs "0.12mm Fine @MyKlipper"` and, under it, `Quality>Layer height>Layer height` with the value `0.2 \| 0.12`: both presets' values |
+| 2 | `widget_set_value {target: {class: "PresetComboBox", within: "Compare presets", index: 5}, value: "0.12mm Fine @MyKlipper"}`, then `widget_set_value {target: TRANSFER, value: false}` | `rows()` of the window hold the header row `"0.20mm Standard @MyKlipper" vs "0.12mm Fine @MyKlipper"` and, under it, `Quality>Layer height>Layer height` with the value `0.2 \| 0.12`: both presets' values |
 | 3 | `widget_click {target: {row: "Quality>Layer height>Layer height", within: "Compare presets"}}` | reply `clicked` holds that path; `rows()` read the row as selected |
 | 4 | `keyboard_press {target: {class: "DiffPresetDialog"}, keys: "Escape"}` | `windows()` holds no `Compare presets`; `app_state.presets.process` is still `0.20mm Standard @MyKlipper` and `preset_list` marks no process preset modified: comparing changed nothing |
-| 5 | steps 1 to 3 again, then `widget_set_value {target: {label: "Transfer values from left to right", within: "Compare presets"}, value: true}`; then `widget_set_value {value: false}` on each option row `rows()` reads checked, and `widget_set_value {target: {row: "Quality>Layer height>Layer height", within: "Compare presets"}, value: true}` | after the checkbox, `rows()` read every option row checked, as each row's toggle starts on; at the end, the layer height row alone of the option rows reads checked, and the bottom shell layers row (3 against 5) reads unchecked |
-| 6 | once `widget_list` of the window lists the `Transfer` button enabled, waited up to 10 s, `widget_click {target: {label: "Transfer", within: "Compare presets"}}` | the wait is met; `windows()` holds no `Compare presets`; `app_state.presets.process` is `0.12mm Fine @MyKlipper` and `preset_list` marks it modified; `settings_get` of the process gives `layer_height` `"0.2"`, the left preset's value, and `bottom_shell_layers` `"5"`, the right preset's own: only the checked row was transferred |
+| 5 | steps 1 to 3 again, then `widget_set_value {target: TRANSFER, value: true}`; then `widget_set_value {value: false}` on each option row `rows()` reads checked, and `widget_set_value {target: {row: "Quality>Layer height>Layer height", within: "Compare presets"}, value: true}` | after the checkbox, `rows()` read every option row checked, as each row's toggle starts on; at the end, the layer height row alone of the option rows reads checked, and the bottom shell layers row (3 against 5) reads unchecked |
+| 6 | once `widget_list` of the window lists the `Transfer` button enabled, waited up to 30 s, `widget_click {target: {label: "Transfer", within: "Compare presets"}}` | the wait is met; `windows()` holds no `Compare presets`; `app_state.presets.process` is `0.12mm Fine @MyKlipper` and `preset_list` marks it modified; `settings_get` of the process gives `layer_height` `"0.2"`, the left preset's value, and `bottom_shell_layers` `"5"`, the right preset's own: only the checked row was transferred |
 | 7 | `object_select {objects: [0]}`, then `widget_click {target: {row: "Plate 1>Cube"}, button: "right", popup_item: "Edit in Parameter Table"}` | `selection()` objects `[0]`, no parts, after the select; the click replies `blocked_by_dialog`; `dialogs()` `["Object/Part Settings"]` |
 | 8 | `widget_list {target: "dialog"}` | the table's rows are `Cube` twice (the object, then its part) and `Generic-Cylinder` once |
 | 9 | `widget_click {target: {row: "Generic-Cylinder", within: "Object/Part Settings", column: "Wall loops"}}` | `selection()` parts `[[0, 1]]`: a cell's click selects its part, as the table tells the object list; the click's result has `column` `Wall loops`, read from its reply or, when it replies `blocked_by_dialog`, from its job once step 10 has closed the dialog |
@@ -179,10 +182,9 @@ It starts with `start(c, filaments=["Bambu PLA Basic @System"])`, compared with 
 KLIPPER_STD, filaments: ["Bambu PLA Basic @System"]}`: the Orca Filament Library's Bambu PLA Basic, which suits any
 printer. A filament whose name starts with `Bambu` opens Orca's own filament picker (`PresetComboBoxes.cpp`), which
 finds the library's filament id `OFoiVqVM` under Bambu's `GFA00` (`FilamentColorCodeQuery::GetFilaInfoMap`). Slot 1's
-colour is set with `filament_set_colour {filament_slot: 1, colour: "#26A69A"}`. When `preset_list {type:
-"printer"}` offers `MyMarlin 0.4 nozzle`, the Generic Marlin Printer whose wizard card step 25 ticks, the scenario
-takes it out first (`printer_uninstall {models: [{vendor: "Custom", model: "Generic Marlin Printer"}]}`), so that the
-card starts unticked; no test installs it. The start is checked: `app_state.presets.filaments` is `["Bambu PLA Basic
+colour is the `#26A69A` `start()` gives it. When `preset_list {type: "printer"}` offers `MyMarlin 0.4 nozzle`, the
+Generic Marlin Printer whose wizard card step 25 ticks, the scenario takes it out first (`printer_uninstall {models:
+[{vendor: "Custom", model: "Generic Marlin Printer"}]}`), so that the card starts unticked; no test installs it. The start is checked: `app_state.presets.filaments` is `["Bambu PLA Basic
 @System"]`, `colours()` is `#26A69A`, `preferences_get` gives `region` as `""`, the selected printer is `MyKlipper
 0.4 nozzle`, and `preset_list {type: "printer"}` offers no `MyMarlin 0.4 nozzle`. `HOME` is the ref of the first web
 view `widget_list {target: "main", query: "webview"}` lists on the Home tab; `BUNDLE_VIEW` is the locator `{class:
@@ -197,11 +199,11 @@ once it has a second filament, as its single extruder multi-material is on.
 | 3 | `webview_run_javascript {code: "1", target: HOME}` | refused with "modal dialog is open": a web view behind the modal takes no script |
 | 4 | `webview_run_javascript {code: "document.title"}` | `result` `Preset Bundle`: with no target, the topmost modal's page |
 | 5 | `webview_run_javascript {code: "!!document.getElementById('close_btn')", target: BUNDLE_VIEW}` | `result` true: the topmost modal's web view by locator |
-| 6 | `webview_run_javascript {code: "SendWXMessage(JSON.stringify({command: 'export_page'}))"}`, the message the page's Export sends | `dialogs()` `["Preset Bundle", "Export Preset Bundle"]` within 10 s; then the test waits up to 5 s for `widget_list {target: "dialog", query: "webview"}` to list the Export dialog's web view at `ExportPresetDialog`, as it shows `about:blank` until its first navigation starts |
+| 6 | `webview_run_javascript {code: "SendWXMessage(JSON.stringify({command: 'export_page'}))"}`, the message the page's Export sends | `dialogs()` `["Preset Bundle", "Export Preset Bundle"]` within 30 s; then the test waits up to 30 s for `widget_list {target: "dialog", query: "webview"}` to list the Export dialog's web view at `ExportPresetDialog`, as it shows `about:blank` until its first navigation starts |
 | 7 | `webview_run_javascript {code: "1", target: BUNDLE_VIEW}` | refused with "is under": a dialog under the topmost takes no script |
 | 8 | `webview_run_javascript {code: "1"}` | the reply's `url` holds `ExportPresetDialog`: with no target, the topmost of the two |
-| 9 | `dialog_answer {button: "close"}` | `dialogs()` `["Preset Bundle"]` within 10 s |
-| 10 | `widget_click {target: {css: "#close_btn", within: "Preset Bundle"}}` | reply `closed` true, in under 1 s: a page that closes its dialog is told at once, not after the call's 10 s; the step 2 job ends without an error; `dialogs()` `[]` |
+| 9 | `dialog_answer {button: "close"}` | `dialogs()` `["Preset Bundle"]` within 30 s |
+| 10 | `widget_click {target: {css: "#close_btn", within: "Preset Bundle"}}` | reply `closed` true with no `dialogs`, none being left under it: a page that closes its dialog is told by the close, where a click whose page does not answer is refused after the call's 10 s; the step 2 job ends without an error; `dialogs()` `[]` |
 | 11 | `view_set {tab: "prepare"}`, then `widget_click {target: {label: "1", class: "wxBitmapButton"}}`, slot 1's colour | `blocked_by_dialog`; `dialogs()` `["Select Filament"]`; the dialog lists `#26A69A`, the slot's colour |
 | 12 | `widget_click {target: {label: "+ More Colors", within: "Select Filament"}}` | `blocked_by_dialog`; `dialogs()` `["Select Filament", "Color Picker"]`, the picker on top |
 | 13 | `widget_set_value {target: HEX, value: "FF0000"}` | reply `value` `FF0000FF`; `HEX`'s field lists `FF0000FF` |
@@ -214,11 +216,11 @@ once it has a second filament, as its single extruder multi-material is on.
 | 20 | `action_run` Setup Wizard | `blocked_by_dialog`; `dialogs()` `["Setup Wizard"]`; its page lists `Europe` within 30 s |
 | 21 | `widget_click {target: {web: "Europe", WIZARD}}` | reply `checked` true; `widget_list` of the wizard lists `Europe` checked |
 | 22 | `widget_click` by the ref `widget_list {target: "dialog"}` gives the page's `Next` button | reply `navigated` true with a `url` holding `/guide/21/`, the printer page |
-| 23 | once `webview_run_javascript {code: "location.pathname"}` holds `/guide/21/`, waited up to 10 s, `widget_click` by the step 22 ref again | refused with "page changed": a ref from before the page navigated is stale |
+| 23 | once `webview_run_javascript {code: "location.pathname"}` holds `/guide/21/`, waited up to 30 s, `widget_click` by the step 22 ref again | refused with "page changed": a ref from before the page navigated is stale |
 | 24 | `webview_run_javascript {code: "location.reload(); 1"}` | reply `navigated` true: a reload at the same URL is told as a navigation |
 | 25 | once the page lists the card, waited up to 30 s, `widget_click {target: {web: "Nozzle 0.4 Marlin", kind: "button", WIZARD}}`, the Generic Marlin Printer's card | reply `checked` true; `widget_list` of the wizard lists that card checked |
 | 26 | `dialog_answer {dialog: {title: "Setup Wizard"}, button: "close"}` | reply `closed` true; the step 20 job ends; `dialogs()` `[]`; `region` still `""`, the selected printer still `MyKlipper 0.4 nozzle`, and `preset_list` still offers no `MyMarlin 0.4 nozzle`: closing the wizard keeps neither choice |
-| 27 | `widget_click {target: {label: "Add one filament"}}`, then `widget_click {target: {label: "Flushing volumes"}}` | `dialogs()` `["Flushing volumes for filament change"]` within 10 s; then the test waits up to 5 s for the dialog's web view to be listed at `WipingDialog.html`, as at step 6 |
+| 27 | `widget_click {target: {label: "Add one filament"}}`, then `widget_click {target: {label: "Flushing volumes"}}` | `dialogs()` `["Flushing volumes for filament change"]` within 30 s; then the test waits up to 30 s for the dialog's web view to be listed at `WipingDialog.html`, as at step 6 |
 | 28 | `webview_run_javascript {code: "typeof document.title"}` | `result` `string`, and the reply's `url` holds `web/flush/WipingDialog.html`, the page the dialog loads |
 | 29 | `dialog_answer {button: "close"}` | the step 27 click's job ends without an error; `dialogs()` `[]` |
 
@@ -228,10 +230,9 @@ The list is the plate type's, which the sidebar shows only for a Bambu Lab print
 `support_multi_bed_types` (`Sidebar::update_all_preset_comboboxes`); without it the Klipper printer has one plate
 type, its default `High Temp Plate`. The scenario runs last and starts with `start(c)`, compared with `{printer:
 KLIPPER, process: KLIPPER_STD, filaments: [GENERIC_PLA]}`; then `settings_set {type: "printer", values:
-{support_multi_bed_types: "1"}}`, an unsaved edit of the printer that the test's closing `project_new` discards, as
-the next `start()` would; the sidebar's Global/Objects switch on Global (`widget_set_value {target: {class:
-"SwitchButton", label: "Process"}, value: false}`), so that the sidebar shows one plate type list; and the plate type
-set with `project_set_settings {values: {curr_bed_type: "Cool Plate"}}`, since the plate type the switch finds is
+{support_multi_bed_types: "1"}}`, an unsaved edit of the printer that the next `start()` discards; the sidebar's
+Global/Objects switch on Global, as `start()` leaves it, so that the sidebar shows one plate type list; and the plate
+type set with `project_set_settings {values: {curr_bed_type: "Cool Plate"}}`, since the plate type the switch finds is
 stored state (see **To settle**). The start is checked: the project's `curr_bed_type` is `Cool Plate`.
 
 | # | Step | Checked after |
@@ -290,9 +291,9 @@ stored state (see **To settle**). The start is checked: the project's `curr_bed_
   `set_bed_type_accord_combox` runs too), and while the printer supports several plate types the sidebar takes the
   stored one when it shows the printer (`Sidebar::update_all_preset_comboboxes`). The Klipper printer's saved preset
   has `support_multi_bed_types` off, so the sidebar sets and stores its default, `High Temp Plate`, whenever it shows
-  the printer: at launch, and when `start()` or the test's closing `project_new` discards the switch. Turning the
-  switch on then finds `High Temp Plate`, also after a run killed between steps 2 and 4, whose `Textured PEI Plate`
-  the next launch overwrites (measured). The start still sets the plate type it needs rather than relying on that.
+  the printer: at launch, and when `start()` discards the switch. Turning the switch on then finds `High Temp Plate`,
+  also after a run killed between steps 2 and 4, whose `Textured PEI Plate` the next launch overwrites (measured).
+  The start still sets the plate type it needs rather than relying on that.
   `project_set_settings` sets the list as a pick does. In the Objects mode the sidebar can show the plate's own `Bed
   type` list too; on Global the list the locator names is the only one. With `support_multi_bed_types` on, the
   Klipper printer's list offers the six plate types step 1 reads, the ones `project_get_settings` gives as
@@ -301,8 +302,8 @@ stored state (see **To settle**). The start is checked: the project's `curr_bed_
   cell selection calls the object list's `select_items()`. The table lists an object's row and, for an object of
   more than one part, a row per part (`construct_object_configs()`). The table then builds the part's settings
   beside it, and when that outlasts the reply's time the click replies `blocked_by_dialog` and its job ends once the
-  dialog closes: measured in Expert mode, which another test leaves, on the app's first build of those settings, and
-  under load in Advanced mode. So the click's result is read at its end; the selection is read before the close.
+  dialog closes: measured in Expert mode on the app's first build of those settings, and under load in Advanced
+  mode. So the click's result is read at its end; the selection is read before the close.
 - A double click frames at once (rows, step 8): the camera's target is set to the selection's box centre in the
   click's own handling (`Camera::zoom_to_box()`).
 - The Select Filament dialog shows `#26A69A` as hex, not a colour name (web dialogs, step 11), as that colour has no
@@ -341,6 +342,8 @@ stored state (see **To settle**). The start is checked: the project's `curr_bed_
   passes.
 - `closed_menus` is checked empty with no control: a call fills it only when it opens a second menu, which the unit
   test "a menu opened while a call acts on the UI is listed, run by its path or closed unseen, never shown" covers.
+  Each `closed_menus` `[]` is of the menus closed since the scenario's start (`menus_left()`): the list keeps the
+  app's run's last three, and an earlier test in the same app can leave one there.
 - Editing a parameter table cell: `widget_set_value` sets no table cell, so the GUI tools cannot edit the table.
 - Compare presets' transfer to presets of other types, or of more than one value.
 - What the print button does in the mode picked: `test_files` exports the sliced file through `project_export`. The
@@ -352,12 +355,13 @@ stored state (see **To settle**). The start is checked: the project's `curr_bed_
 - The printers other tests installed: the printer list is read for the one printer the wizard's card names.
 - Closing a dialog from its page by a script (`webview_run_javascript` clicking `#close_btn`): it takes the branch
   step 10's click takes. Both tools follow their page call with `observe_page()` (`McpToolsUi.cpp`), which replies
-  `closed` once the dialog leaves the modal stack, so step 10 covers it, its 1 s bound included.
-- "and the reply says so within a second" (web dialogs, step 10) is a 1.0 s wall-clock bound, tight for a loaded
-  sweep; measured on Windows, the click replies in 0.1 to 0.15 s.
+  `closed` once the dialog leaves the modal stack, so step 10 covers it.
+- How soon the page's Close is told (web dialogs, step 10): the web view's destruction ends the click's wait for its
+  page (`PageCalls` in `WebPages.cpp`), and without that the click is refused after its 10 s, so the reply's `closed`
+  stands for the promptness and no time is measured; on Windows the click replies in 0.1 to 0.15 s.
 - The waits for the Export and Flushing volumes dialogs' web views to leave `about:blank` (steps 6 and 27), for the
-  printer page's URL (step 23) and for its card (step 25) have no check of their own; the checks after them cover
-  them.
+  printer page's URL (step 23) and for its card (step 25) have no check of their own: one that runs out its 30 s ends
+  the scenario with a failure naming what it waited for.
 - The filament step 27 adds: only that the Flushing volumes button opened its dialog.
 - A script with no target and no modal while a plugin's page is shown: the Home tab is the one shown.
 - The colour the spectrum drag picks: the page works it out from the canvas's layout, so only "another valid colour"
@@ -366,7 +370,7 @@ stored state (see **To settle**). The start is checked: the project's `curr_bed_
 
 **Strength:** Strong — every menu item, row and page element it runs is checked by its effect on the project, the
 selection, the camera or the settings, and every script by the page it ran in or the refusal's words; only the
-spectrum drag's colour is checked as another valid colour, and step 10's 1 s bound is the one timing check.
+spectrum drag's colour is checked as another valid colour.
 
 ## `test_recording`
 `test_recording.py` · Python, 112 checks with an ffmpeg that has libx265 and libx264 · in `sweep.json` as `{"path": "test_recording.py"}`
@@ -379,16 +383,17 @@ with the encoder it needs.
 
 **Starts from:** `start(c)`, the Generic Klipper Printer, compared with `{printer: KLIPPER, process: KLIPPER_STD,
 filaments: [GENERIC_PLA]}`: nothing it records is a Bambu Lab printer's own, and its G-code check reads this printer's
-layer marks. Then the window at 1600 × 900 (`window_set {size: [1600, 900]}`, then `app_state.window.size`), since the
-click at (300, 200) that must land on empty space is placed in it. The recordings' sizes are measured from captures of
-the same run, so they follow whatever size the window has. Recordings go to the test's output folder `OUT`, and
-ffmpeg is found from the environment, not the data folder: the app keeps no folder or encoder setting there that a
-check reads.
+layer marks. Then it reads back the baseline's window size, 1600 × 900 (`app_state.window.size`), since the click at
+(300, 200) that must land on empty space is placed in it; the sidebar is on Global, the baseline's, so it shows the
+process fields the first scenario sets. The recordings' sizes are measured from captures of the same run, so they
+follow whatever size the window has. Recordings go to the test's output folder `OUT`, and ffmpeg is found from the
+environment, not the data folder: the app keeps no folder or encoder setting there that a check reads.
 
-**Leaves:** Not the window, whose placement the app stores only when it closes itself, and the runner ends it. The
-Klipper printer with `0.20mm Standard @MyKlipper` unmodified, since the
-closing `project_new` discards the layer height it set. The last folder opened, the handy models' folder of the
-import. Nothing else in the data folder: its recordings, replay and G-code are in `OUT`.
+**Leaves:** The Klipper printer with `0.20mm Standard @MyKlipper` and, as an unsaved change, the layer height 0.16
+the first scenario set, which each scenario's `project_new` keeps and the next `start()` discards; the encode
+scenario's empty project; no recording running. Not the window, whose placement the app stores only when it closes
+itself, and the runner ends it. The last folder opened, the handy models' folder of the import. Nothing else in the
+data folder: its recordings, replay and G-code are in `OUT`.
 
 **Reads:** `recording()` gives `app_state.recording`, or none. `mkv(path)` reads a Matroska file the way the app
 writes it: its codec id, its video's pixel width and height, its default frame duration, its number of blocks
@@ -421,8 +426,8 @@ this, in a subclass of `Checks` the test holds; see **To settle**.
 | 2 | `project_import` of `OrcaCube_v2.drc` | reply `added` 1; `object_list` total 1; `app_state.selection` objects `[0]`, as an import selects what it adds |
 | 3 | `mouse_gesture {action: "click", x: 300, y: 200}` | `app_state.selection` empty: a click on empty space deselects |
 | 4 | `mouse_gesture {action: "click", at: {object: 0, spot: "top"}}` | `app_state.selection` objects `[0]` |
-| 5 | `widget_set_value {target: {label: "Process"}, value: false}`, then `widget_set_value {target: {option: "layer_height"}, value: "0.16"}` | `settings_get` of the process gives `layer_height` `"0.16"` |
-| 6 | `keyboard_press {target: {option: "initial_layer_print_height"}, keys: "ctrl+a", text: "0.24"}`, then `keys: "Return"` | the first reply is exactly `{sent: "ctrl+a", to: "TextInput", typed: "0.24"}`; `initial_layer_print_height` stays `"0.2"`: typed keys reach ImGui fields and key handlers, not a native text field |
+| 5 | `widget_set_value {target: {option: "layer_height"}, value: "0.16"}`, a field of the sidebar on Global | `settings_get` of the process gives `layer_height` `"0.16"` |
+| 6 | `keyboard_press {target: {option: "initial_layer_print_height"}, keys: "ctrl+a", text: "0.24"}`, then `keys: "Return"` | the first reply is exactly `{sent: "ctrl+a", to: "TextInput", typed: "0.24"}`; once `app_wait {for: "idle"}` holds, `initial_layer_print_height` is still `"0.2"`: typed keys reach ImGui fields and key handlers, not a native text field |
 | 7 | `action_run` Preferences, then `dialog_answer {dialog: {title: "Preferences"}, button: "close"}` | the first replied `blocked_by_dialog` with `Preferences`; its job ends without an error; `app_state.dialogs` `[]` |
 | 8 | `plate_slice`, then `project_export {path: OUT/session.gcode, overwrite: true}` | plate 0's outcome `ok`; the G-code's config block holds `; layer_height = 0.16` and `; initial_layer_print_height = 0.2`, and its first two distinct `;Z:` values are 0.2 and 0.36: the value set shaped the layers printed, and the keys typed did not |
 | 9 | `recording_stop {silent: true}` | reply `ended` `stopped`, `path` `OUT/session.mkv`, `frames` and `written` at least 5, `failed` 0, `seconds` above 1, `capture_ms` above 0, `width` and `height` `MAIN`, `size_bytes` the file's size; `recording()` none. `mkv()`: codec `V_MJPEG`, `MAIN`, default frame duration 100 ms, `written` blocks or one more (the last frame held to the end), duration within 0.1 s of `seconds` |
@@ -450,8 +455,8 @@ this, in a subclass of `Checks` the test holds; see **To settle**.
 | 3 | `recording_start {save_path: OUT/plain.mkv, overwrite: true, captions: true}` | reply `captions` true, `pointer` false; `recording()` has `OUT/plain.mkv` |
 | 4 | `recording_stop {silent: true}` | `ended` `stopped`; `recording()` none |
 | 5 | `recording_start {save_path: OUT/short.mkv, overwrite: true, max_seconds: 2}` | reply `max_seconds` 2; `recording()` has `OUT/short.mkv` |
-| 6 | wait up to 10 s for `recording()` to be none | the recording ended on its own; a wait that runs out fails |
-| 7 | `recording_stop {silent: true}` | reply `ended` `max_seconds`, `seconds` within 0.5 of 2; `mkv()`'s duration within 0.1 s of `seconds`: the limit is what ended it |
+| 6 | wait up to 30 s for `recording()` to be none | the recording ended on its own; a wait that runs out fails |
+| 7 | `recording_stop {silent: true}` | reply `ended` `max_seconds` and `seconds` at least 2: the limit is what ended it, once it was reached; `mkv()`'s duration within 0.1 s of `seconds` |
 | 8 | `recording_start {save_path: OUT/wrong.avi}` | refused, saying `save_path must end with .mkv`; `recording()` none; no `OUT/wrong.avi` |
 
 The default limit of an hour is step 1 of the first scenario (`max_seconds` 3600).
@@ -502,6 +507,9 @@ The default limit of an hour is step 1 of the first scenario (`max_seconds` 3600
   uncovered").
 - The exact number of frames and the capture time: they depend on the machine's speed, so `frames`, `written` and
   `capture_ms` have lower bounds, and the file is checked to agree with the report.
+- How soon after its limit a recording ends (overlays, step 7): the recorder's timer ends it at its first tick past
+  the limit, which a loaded machine delays, so `seconds` has a lower bound only and the wait for the end lasts up to
+  30 s; a recording that ran on past its limit but ended within those 30 s would pass.
 - The person's forms: the Start Recording dialog, which `test_speed_dial`'s setup drives to point its folder at its
   output folder, and the Stop Recording action, which no test runs as an action.
 - What `speed`, `profile` and `crf` do to the MP4: the ffmpeg command lines are unit-tested ("the ffmpeg command takes
@@ -514,7 +522,7 @@ ffmpeg with the encoder is present; frame counts and capture times have lower bo
 to the unit tests.
 
 ## `test_call_forms`
-`test_call_forms.py` · Python, 95 checks · in `sweep.json` as `{"path": "test_call_forms.py", "cad": true}`
+`test_call_forms.py` · Python, 95 checks · in `sweep.json` as `{"path": "test_call_forms.py"}`
 
 **Tests:** The forms a call takes. Names and value shapes agents send in place of the schema's (a lone path for
 `paths`, `object` and a string index for `objects`, `action` and an action's short name for `id`, a camera direction
@@ -530,9 +538,11 @@ filaments: [GENERIC_PLA]}`: no form it checks is a Bambu Lab printer's own. It s
 clicks the canvas at a pixel, reads a field's text or captures a picture, and the Preview's legend rows it reads are
 listed whatever view type the Preview last showed, which the app keeps in the data folder.
 
-**Leaves:** The Klipper printer with `0.20mm Standard @MyKlipper` and its filament unmodified, since the closing
-`project_new` discards what the silent calibration changed. The last folder opened, the handy models' folder of the
-imports. It saves no project; the G-code and STL it exports are in `OUT`.
+**Leaves:** The Klipper printer with `0.20mm Standard @MyKlipper` and its filament unmodified, since the shown-view
+scenario's opening `project_new` discards what the silent calibration changed. That scenario's project, its 20 mm cube
+sliced and shown in the Preview, and the auto-answer rule for the restore prompt, which the next `start()` replaces
+and clears. The last folder opened, the handy models' folder of the imports. It saves no project; the G-code and STL
+it exports are in `OUT`.
 
 **Reads:** `objects()` gives each object from `object_list` as its name, plate, first instance's `offset` and
 `bbox`. `selection()` gives `app_state.selection` as `{objects, parts}`, or empty. `camera()` gives
@@ -557,7 +567,7 @@ current. `CUBE` is `resources/handy_models/OrcaCube_v2.drc`; `OUT` is the test's
 | 8 | `object_transform {object: 0, position: [100, 110, 0]}`, the same for object 1 | both `offset`s x 100 and y 110 to 0.01 mm: the two objects overlap |
 | 9 | `object_select {objects: [0]}`, then `keyboard_press {key: "Escape", target: {name: "OrcaSceneCanvas"}}` | `selection()` objects `[0]` after the select, then empty: the key reached the 3D view as `keys` |
 | 10 | `action_run` Preferences | reply `blocked_by_dialog`; `app_state.dialogs` `["Preferences"]` |
-| 11 | a second client calls `app_wait {}`; this client waits (up to 10 s) until `replay_export`'s `left_out_running` is `[{tool: "app_wait"}]`, waits one second, reads `replay_export` and `app_state` again, then calls `dialog_answer {dialog: {title: "Preferences"}, button: "close"}` | a second after the wait was first seen unfinished, `left_out_running` is still `[{tool: "app_wait"}]` and `app_state.dialogs` still `["Preferences"]`: with no condition the wait does not return while a dialog is open. After the answer, the wait replies `satisfied` true with `waited_ms` at least 1000, `replay_export` has no `left_out_running`, and `app_state.dialogs` is `[]`. The two replies' order is not checked |
+| 11 | a second client calls `app_wait {}`; this client waits (up to 30 s) until `replay_export`'s `left_out_running` is `[{tool: "app_wait"}]`, waits one second, reads `replay_export` and `app_state` again, then calls `dialog_answer {dialog: {title: "Preferences"}, button: "close"}` | a second after the wait was first seen unfinished, `left_out_running` is still `[{tool: "app_wait"}]` and `app_state.dialogs` still `["Preferences"]`: with no condition the wait does not return while a dialog is open. After the answer, the wait replies `satisfied` true with `waited_ms` at least 1000, `replay_export` has no `left_out_running`, and `app_state.dialogs` is `[]`. The two replies' order is not checked |
 | 12 | `object_select {objects: [0]}`, then `widget_click {target: {gizmo: "Support Painting"}}` | `selection()` objects `[0]` after the select; reply `gizmo` `FdmSupports`, `active` true; `app_state.gizmo.name` `FdmSupports` |
 | 13 | `widget_click {target: {gizmo: "support painting"}}` | reply `active` false; `app_state.gizmo` null |
 | 14 | `object_arrange {plate: "0"}` | both objects on plate 0, their `bbox` footprints apart and inside plate 0's rectangle (`origin` and `size` from `plate_list`) |
@@ -601,7 +611,9 @@ is checked: `objects()` is one object, on plate 0, `bbox.size` `[20, 20, 20]` to
   another client goes through while it waits, as `test_web_ui`'s second client's calls do during a dialog's close.
   `app_wait` runs inline and makes no job, but it is journaled (`wait.journal`) from the moment `McpCore` admits it,
   so `replay_export` lists it under `left_out_running` until it replies (`Journal::to_replay()`); the Preferences
-  action's call, which replied `blocked_by_dialog`, is kept in the replay and is not listed there.
+  action's call, which replied `blocked_by_dialog`, is kept in the replay and is not listed there. The journal is the
+  app's, every client's calls in it, so the list is that one wait only while no call an earlier test made still runs:
+  `start()` closes the dialogs such a call could wait on and waits for the jobs to end.
 - An imported `.drc` keeps its extension in its object's name (names, step 1), as `temperature_tower.drc` does in
   the calibration replay.
 - The Design tab's camera is its own (shown view, step 4): `test_set_view_camera` finds the Design zoom apart from

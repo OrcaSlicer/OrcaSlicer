@@ -22,25 +22,22 @@ from below the bed; and that auto-answer rules run the Transfer and Discard butt
 
 **Starts from:** `start(c)`, the Generic Klipper Printer, compared with `{printer: KLIPPER, process: KLIPPER_STD,
 filaments: [GENERIC_PLA]}`: nothing the test drives is a Bambu Lab printer's own, and the brim ears' default radius
-follows this process's first-layer line width (brim ears from positions). Before its first scenario it sets the
-stored settings its checks depend on, and reads each back: the window at 1600 × 900 (`window_set {size: [1600,
-900]}`, then `app_state.window.size`), since where the panels open, what covers a point of the model and the pixels
-the canvas input scenario presses at follow the window's size, which another test may have left changed; Expert mode
-(the Expert action, then `app_state.mode` is `expert`), since some panel items show only there; and
-`preferences_set {values: {use_inches: "0", camera_navigation_style: "0", middle_mouse_drag_action: "1"}}`, then
-`preferences_get`: millimetres, in which the fields' texts are written, and the default camera style with a
-middle-button drag that pans, which the canvas input scenario's pans need. It leaves `keep_painting` as it finds it:
-no scenario simplifies, cuts or joins a painted part.
+follows this process's first-layer line width (brim ears from positions). It reads back the baseline's values its
+checks depend on: `app_state.window.size` is [1600, 900], since where the panels open, what covers a point of the
+model and the pixels the canvas input scenario presses at follow the window's size; and `preferences_get` gives
+`use_inches` "0", `camera_navigation_style` "0" and `middle_mouse_drag_action` "1": millimetres, in which the fields'
+texts are written, and the default camera style with a middle-button drag that pans, which the canvas input
+scenario's pans need. Beyond the baseline it sets Expert mode (the Expert action, then `app_state.mode` is
+`expert`), since some panel items show only there.
 
-**Leaves:** Expert mode and the preferences as it set them; not the window, whose placement the app stores only
-when it closes itself, and the runner ends it. The Klipper printer with `0.20mm Standard @MyKlipper` and one `Generic
-PLA @System` slot: openings refused takes back to one the two slots the painting and opening scenarios make. The
-imported height map in the data folder's texture library, `textures/displacement/heightmap.png` (or `heightmap
-(n).png`, see painting and texture layers), first in the app's recent textures. The Text tool's last style, `ITALIC`,
-which the app stores as the gizmo closes and a later Text opening starts with; the text commands pick no style and
-leave it so. The recent projects and the last folder opened, naming the projects it saved in its own folder. None of
-it changes the words or the units the app reads in, so the test restores nothing; Expert mode shows more settings,
-and a test whose checks read the settings pages sets the mode it needs.
+**Leaves:** Expert mode. The last scenario's project, unsaved: A with its text and SVG parts and B, the SVG gizmo
+open. The Klipper printer with `0.20mm Standard @MyKlipper` and one `Generic PLA @System` slot: openings refused
+takes back to one the two slots the painting and opening scenarios make. The imported height map in the data
+folder's texture library, `textures/displacement/heightmap.png` (or `heightmap (n).png`, see painting and texture
+layers), first in the app's recent textures. The Text tool's last style, `ITALIC`, which the app stores as the gizmo
+closes and a later Text opening starts with; the text commands pick no style and leave it so. The recent projects
+and the last folder opened, naming the projects it saved in its own folder. `start()` puts back the mode and the
+project, and nothing else it leaves changes the words or the units the app reads in, so the test restores nothing.
 
 **Reads:**
 - `scene()` gives each object of `object_list` as `{name, offset, rotation_deg, scale, bbox, brim_ears, overrides,
@@ -85,10 +82,11 @@ In the scenarios through the panels, every gizmo is opened and closed with `widg
 giving that name and canvas; each closing, by that second click or by the panel's Done, Close or Return button, is
 followed by `gizmo()` none. The rows below do not repeat this. A `widget_set_value` reply, the value as the field
 shows it, is checked too, never instead of the read-back. A step that starts a job in the background says "then
-idle": it is followed by `app_wait {for: "idle"}` before its read-back, and that wait must be met. Those are the Text
-icon that creates a text part, every edit in the Text panel, `object_add_svg`, `svg_change`, a texture stroke,
-Simplify's ratio and Apply, Mesh Boolean's Union, the cut and the variable layer height panel's Adaptive. Simplify's
-first ratio is the one such step without a wait, on purpose.
+idle": it is followed by `app_wait {for: "idle"}`, which also waits for a gizmo working in the background, before
+its read-back, and that wait must be met within 45 s. Those are the Text icon that creates a text part, every edit in
+the Text panel, `object_add_svg`, `svg_change`, a texture stroke, Simplify's ratio and Apply, Mesh Boolean's Union, the
+cut and the variable layer height panel's Adaptive. Simplify's first ratio is the one such step without a wait, on
+purpose.
 
 **Scenario: prompts a rule answers**
 
@@ -160,13 +158,14 @@ A 20 × 20 × 40 mm box P at (100, 100), standing, selected, the camera at `iso`
 
 **Scenario: painting and texture layers**
 
-A 20 mm cube at (100, 100) with two filament slots (`filament_delete` until refused, then `filament_add`) and
-support switched on for it (`settings_set {target: "object", object: 0, values: {enable_support: true}}`), so painted
-enforcers raise no warning that could cover the panel. It is selected, the camera at `iso` and fitted to it. Rows 1
-to 16 paint it with the painting gizmos, and rows 17 to 27 give the same part texture layers, so that one saved
-project, row 28, keeps both. Part 0's `painted` is written as `supports e/b` (enforcers/blockers), `seam e/b`, `fuzzy
-n` and `mmu {slot: n}`; `>0` is a count a brush stroke gives, which the app computes; `—` is an annotation `painted`
-does not list. A Fill click fills the face it lands on: the two triangles of a cube's face.
+A 20 mm cube at (100, 100) with two filament slots (`filament_delete` until refused, then `add_slot()` with
+`SLOT_COLOURS[1]`, `#00C1AE`) and support switched on for it (`settings_set {target: "object", object: 0, values:
+{enable_support: true}}`), so painted enforcers raise no warning that could cover the panel. It is selected, the
+camera at `iso` and fitted to it. Rows 1 to 16 paint it with the painting gizmos, and rows 17 to 27 give the same
+part texture layers, so that one saved project, row 28, keeps both. Part 0's `painted` is written as `supports e/b`
+(enforcers/blockers), `seam e/b`, `fuzzy n` and `mmu {slot: n}`; `>0` is a count a brush stroke gives, which the app
+computes; `—` is an annotation `painted` does not list. A Fill click fills the face it lands on: the two triangles of
+a cube's face.
 
 From row 17 the table gives `painted.texture`, its layers in order, each as `slot name painted`, with `?` for a name
 the scenario does not fix and `>0` for painted facets a stroke gives. A stroke is a drag from a spot through a
@@ -286,7 +285,7 @@ turned toward the part-cooling fan (`load_shape_object`), which leaves a sphere'
 |---|---|---|---|
 | 0 | start | 24648 | S size [20, 20, 20] to 0.01 |
 | 1 | Simplify opened, `use_count` set to true, `Decimate ratio` set to 60, with no wait | 24648 | reply `60.00%` |
-| 2 | at once Simplify closed, while it works out the result, then `app_wait {for: "idle", timeout_s: 15}` | 24648 | that wait is met: closing leaves nothing running and applies nothing |
+| 2 | at once Simplify closed, while it works out the result, then idle | 24648 | that wait is met: closing leaves nothing running and applies nothing |
 | 3 | Simplify opened, `use_count` true, `Decimate ratio` set to 90, then idle | 24648 | `panel()` shows `2465 triangles`, the count asked for (24648 × 10 %, rounded) |
 | 4 | Apply, then idle | 2464 | the even count at or below 2465: each edge collapse removes two triangles from the even 24648; Apply closes the gizmo (`gizmo()` none) |
 | 5 | `undo` | 24648 | |
@@ -369,7 +368,8 @@ frustum connector's unit mesh (`its_make_frustum` with 4 sectors, a top half the
 
 A 20 mm cube at (100, 100) with a negative part, `part_add {object: 0, type: "negative", shape: "cube", size: [6, 6,
 6], position: [100, 100, 20]}`, whose top stands 3 mm above the cube's. The camera at `iso` and fitted to it. A
-middle-button drag pans the camera, as the test's start sets the camera style and `middle_mouse_drag_action`.
+middle-button drag pans the camera, as the baseline's camera style and `middle_mouse_drag_action`, which the test's
+start reads back, make it.
 
 | # | Step | Reply and state after | Also checked |
 |---|---|---|---|
@@ -396,10 +396,10 @@ A reply is written as the fields the row fixes; a target in a reply is written b
 
 **Scenario: opening a gizmo on a target**
 
-Two filament slots (`filament_delete` until refused, then `filament_add`); a 20 mm cube A at (100, 100); a 20 mm
-cube B at (150, 100) with `part_add {object: 1, type: "part", shape: "cube", size: [10, 10, 10], position: [160,
-110, 20]}`; then `object_select {none: true}`. The model does not change in this scenario: after every row it is as
-after 0.
+Two filament slots (`filament_delete` until refused, then `add_slot()` with `SLOT_COLOURS[1]`); a 20 mm cube A at
+(100, 100); a 20 mm cube B at (150, 100) with `part_add {object: 1, type: "part", shape: "cube", size: [10, 10, 10],
+position: [160, 110, 20]}`; then `object_select {none: true}`. The model does not change in this scenario: after
+every row it is as after 0.
 
 | # | Step | Reply | Also checked |
 |---|---|---|---|
@@ -594,9 +594,9 @@ negative text and the SVG parts there stand for the text part, the negative text
 
 **Not checked:**
 - How gizmos draw: no screenshot is taken or compared.
-- Other window sizes: the test sets 1600×900. An ImGui panel or a notification over a model point or
-  an item is refused, which `tests/slic3rutils/test_mcp_results.cpp` checks without the app ("a click goes to the
-  frontmost ImGui window", "what covers a click is named"), with the surface check's cases in
+- Other window sizes: the test runs at the baseline's 1600 × 900. An ImGui panel or a notification over a model
+  point or an item is refused, which `tests/slic3rutils/test_mcp_results.cpp` checks without the app ("a click goes
+  to the frontmost ImGui window", "what covers a click is named"), with the surface check's cases in
   `tests/slic3rutils/test_mcp_ui.cpp`.
 - Grabbers dragged on the canvas: `mouse_gesture` sets them through the panel fields, as its description says.
 - The Move panel's other align and distribute buttons and its align-to-plate mode; Rotate's and Scale's other
@@ -621,6 +621,9 @@ negative text and the SVG parts there stand for the text part, the negative text
   and the connector's size and depth, and so the lower half's height, which its connector part raises above the cut.
 - Simplify by error, Mesh Boolean's difference and intersection and their Delete input option, and deleting or
   resizing brim ears in the gizmo.
+- That Simplify is still working out its result when row 2 of its scenario closes it: the app decides when the
+  calculation ends, and no tool reports it but `app_wait {for: "idle"}`, which waits for it to end. The row's checks
+  hold whether it has ended or not.
 - What a gizmo a command opens then does: the scenarios through the panels drive each one's panel. Where on A the
   text and the SVG parts a command adds land, which follows the camera; that they are A's is checked by A's parts.
 - The upper piece's turn after a cut that places it on its cut face: its size and volume are checked. The call turns

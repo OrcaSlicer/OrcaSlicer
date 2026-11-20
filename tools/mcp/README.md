@@ -167,19 +167,14 @@ file. The run leaves `result.json` and the screenshots in the `--outputdir` fold
 the single-instance preference says, and it is refused with an action or `--downward-check`, which start
 no GUI.
 
-`test_command_line.py [--bin PATH] [CHECK ...]` checks that command line, starting the built app as its own
-child on fresh data folders: `--run`'s exit codes and folders, its refusal beside an action or `--downward-check`
-before any GUI starts, that `--mcp-port` alone opens the server,
-that `--unrestricted-scripts` and `--cad` hold for the run without writing the configuration, and a run beside a
-window already open on the same data folder. It prints one line per check and takes about two to three minutes.
-
 `test_runtime_lifecycle.py [--bin PATH] [CHECK ...]` checks how the app's automation behaves while the app closes,
 and while its server is switched off and on during a call, starting the built app as its own child on fresh data
 folders. The app is closed with the File menu's Quit while a job runs, while a recording runs, and while a call no
 stop interrupts is still running, where the app keeps the runtime rather than free it under the call and logs that
 a call did not return; a `--run` with the endpoint never opened exits on its own; the server, switched off and
 on in Preferences during a call, serves on the port it had; and with the server switched off and nothing else
-driving the GUI, the log says the GUI instruments went off. It prints one line per check and takes about a minute:
+driving the GUI, the log says the GUI instruments went off. It prints one line per check and takes about a minute
+and a half:
 the run that outlives its reply budget runs with the budget capped at 4 s (`ORCA_MCP_REPLY_BUDGET_MS`).
 
 `test_plugin_tools.py` checks a plugin's calls into the tools in the running app: it side-loads
@@ -316,9 +311,8 @@ selected are what the G-code is sliced with. Then it makes every calibration tes
 and checks the project it makes, the parameters it uses, the presets and objects it changes, the warnings for values
 it rounds, and the refusals that leave the project and presets as they were; `preset_changes` "keep" and "discard";
 and, in the exported G-code, that the temperature, pressure advance and retraction towers change their value band by
-band. It needs a freshly launched app, since a hidden preset that
-`preset_select` shows stays shown until a restart, and runs on a data folder earlier tests used, as the sweep runs
-it.
+band. It runs in an app and on a data folder earlier tests used, as the sweep runs it: its start installs and
+uninstalls again the printers it needs hidden, which reloads the presets and hides a printer an earlier test showed.
 
 `test_operation_routes.py` drives an operation of the operations layer (`docs/HLSD/mcp-server.md`, "The operations
 layer") through the routes that reach it, and checks that a command, a Speed Dial action that runs it and the plugin
@@ -326,9 +320,7 @@ API's binding refuse the same states with the same code and words, and accept th
 same ones: a layer asked of a Preview with none (the Go to layer action and `view_set`), a mixed-colour
 filament slot, and a hidden printer selected through the plugin API. It also checks what a command refuses
 or does in those states alone: a project saved under a `.gcode.3mf` name, the exports of a project with no
-objects, and an arrangement from the assemble view and with a gizmo open. Run it on a freshly launched app,
-since a hidden preset that `preset_select` shows stays shown until a restart, and launch the app from a folder
-that holds no `.py` files, since the app's working directory is on Python's module path and a file there can
+objects, and an arrangement from the assemble view and with a gizmo open. Launch the app from a folder that holds no `.py` files, since the app's working directory is on Python's module path and a file there can
 shadow a standard module that `script_run` needs.
 
 The Design-tab replays drive the Design commands through `tool_call` and need an instance launched with
@@ -372,7 +364,7 @@ marked `optional` are calls that must be refused and change nothing.
   and names the project after its file.
 
 `test_cad_replays.py` runs on an instance launched with `--cad`, in parts, and before each part closes what the one
-before left open and calls `start()`: the six replays above, then `round_trip`, `slow_build` and `examples`, or the
+before left open, calls `start()` and sets the Design view's switches: the six replays above, then `round_trip`, `slow_build` and `examples`, or the
 parts named on its command line. `round_trip` makes calls as a client, so they are journaled, exports the session
 with `replay_export`, replays it into a new project and compares the body's mass properties and the features. The
 session has an empty sketch commit, a missed hole and a fillet the kernel refuses, which must fail and be left out, a
@@ -504,7 +496,7 @@ type's whole `settings_list` listing leaves meta out.
 
 `test_stdio_bridge.py [--bin PATH]` checks `orca-slicer --mcp-stdio` against the launched instance:
 the handshake, notifications, tool calls in both protocol eras, and errors. With no instance
-answering, it checks that the bridge answers the handshake and lists the launched instance's tools
+answering, it checks that the bridge answers the handshake and lists the tools of the app it would start
 without starting OrcaSlicer, and that a tool call then starts OrcaSlicer on the bridge's port (the
 test stops that app).
 `test_runtime_calls.py` checks how the runtime takes calls, in five parts on one app: `dialog_answer` still closes
@@ -515,10 +507,10 @@ items after the items' labels change, and the exported session replays; and a lo
 refuses changes, canvas keys and toolbar clicks, answers reads, and stops on `job_cancel`.
 `test_export_running_job.py` exports while a call's job runs past
 its reply budget (left out, named in `left_out_running`), after it ends (an `await: false` step that
-replays) and while a dialog holds its call (kept); it takes about 100 s, or about 45 s with the reply budget
-capped at 10 s by `ORCA_MCP_REPLY_BUDGET_MS=10000` for the app and the test, as the sweep runs it.
-`test_send_gcode.py` starts an OctoPrint-compatible stub host, makes the seeded printer a print-host printer first (on
-the Bambu network the print calls open dialogs that message a printer), and sends a sliced cube to the stub with
+replays) and while a dialog holds its call (kept); it takes about a minute, or about 40 s with the reply budget
+capped at 20 s by `ORCA_MCP_REPLY_BUDGET_MS=20000` for the app, as the sweep runs it.
+`test_send_gcode.py` starts an OctoPrint-compatible stub host, gives the Klipper printer `start()` selects an OctoPrint
+print host with the printer agents off, as the baseline leaves them, and sends a sliced cube to the stub with
 `printer_send`'s Speed Dial action, `send_gcode`, the Send dialog answered with `widget_set_value` and `dialog_answer`.
 The sends and `printer_test_host` are refused with no print host address; the host test answers through the stub and
 fails on a port nothing listens on; `print_start` is refused before slicing, Print all and Send all are refused as the
@@ -565,31 +557,39 @@ exits 0 when all of them pass and no OrcaSlicer crash report appeared (macOS). `
 what it needs, and a test file it does not list stops the run before anything starts, so a new test is never
 skipped by accident.
 
-A job keeps one datadir for all its tests, `job-<n>/datadir` under `--out` (by default a new
-`orca-sweep-<time>` folder in the temporary folder), as your own OrcaSlicer keeps one: the first launch seeds it,
-and each test after launches a fresh app on it as the tests before left it, so each test sets the start it
-needs (see `TESTS.md`, "Sharing a data folder"). Before the next launch the runner waits for the last app's
-processes, its WebView2 ones included, to end. Each test also runs in a folder of its own under `--out`, with its
-own port (from 14100 up, or from `--first-port`, so that two sweeps can run side by side), session file
-(`ORCA_MCP_SESSION`), temporary folder (`TMPDIR`, `TMP`, `TEMP`) and empty working folder, and leaves
-`test.log` there. The longest tests start first, by each one's last passing time in `--history`
-(`~/.cache/orca-mcp/sweep-times.json`), and tests that share a lock never run at the same time.
+A job keeps one datadir and one app for all its tests, `job-<n>/datadir` under `--out` (by default a new
+`orca-sweep-<time>` folder in the temporary folder), as you keep the OrcaSlicer you opened that morning: the first
+launch seeds the datadir, and the app, launched with `--cad` and `--unrestricted-scripts`, runs the job's tests one
+after another, each finding the app and the datadir as the tests before left them, so each test sets the start it
+needs (see `TESTS.md`, "Sharing an app and a data folder"). Before each test the runner checks that the app answers
+an MCP call, and launches it again on the datadir when it does not (after a crash, or a test that closed it); when
+`sweep.json` marks the test `fresh`; when the test has a `setup` step, which runs with no app on the datadir; and
+when the test's `env` differs from the one the app was launched with. A test that runs past its time limit has the
+app stopped, so the next test gets a new one, and a job's app is stopped when the job has no tests left. Before a
+launch the runner waits for the last app's processes, its WebView2 ones included, to end. The app's session file
+(`ORCA_MCP_SESSION`) is `job-<n>/session.json`, and each launch serves on a port of its own (from 14100 up, or from
+`--first-port`, so that two sweeps can run side by side). Each test also runs in a folder of its own under `--out`,
+with its own temporary folder (`TMPDIR`, `TMP`, `TEMP`) and empty working folder, and leaves `test.log` there. The
+longest tests start first, by each one's last passing time in `--history` (`~/.cache/orca-mcp/sweep-times.json`),
+and tests that share a lock never run at the same time. `--shuffle SEED` orders them at random from `SEED` instead
+and names the seed on the first line, so that an order that fails can be run again with the same seed; `--shuffle`
+alone picks a seed.
 
-The serial tests run after the rest, one at a time with nothing else running, on a job of their own: the ones
-`sweep.json` marks `exclusive`, and the ones the history marks serial. A test that fails while others run runs
-again in that phase, alone, on the datadir it failed on: one that passes then counts as passed, shows as `passed
-alone`, and is marked serial in the history, so later sweeps run it alone from the start, until
-`--forget NAME` clears the mark. A test that runs out of time is interrupted, as Ctrl-C would, so its own cleanup
-closes the apps it started (on Windows its process tree is ended), and a test the runner could not run is
-recorded as an error, so a run that leaves a test without a result never exits 0.
+The serial tests run after the rest, one at a time with nothing else running, on a job of their own with an app of
+its own: the ones `sweep.json` marks `exclusive`, and the ones the history marks serial. A test that fails while
+others run runs again in that phase, alone, in a new app on the datadir it failed on: one that passes then counts
+as passed, shows as `passed alone`, and is marked serial in the history, so later sweeps run it alone from the
+start, until `--forget NAME` clears the mark. A test that runs out of time is interrupted, as Ctrl-C would, so its
+own cleanup closes the apps it started (on Windows its process tree is ended), and a test the runner could not run
+is recorded as an error, so a run that leaves a test without a result never exits 0.
 
 A passing run's folder is deleted as soon as it passes. A failed run's folder is kept, with a copy of the app's
 log from the job's datadir, also when the test then passes alone, so the log says why it failed beside the others;
 the datadir of a job one of whose tests failed is kept too, the other datadirs are deleted at the end, and
 `--keep` keeps everything. `results.jsonl` in `--out` records every run with its job, its phase (`pool`, `serial` or
-`alone`) and the tests that ran before it on that job's datadir, so a failure can be traced to what they left.
-`--only` and `--skip` pick tests by name, and `--list` prints the order, the serial phase with why each test is
-in it, and exits.
+`alone`), the tests that ran before it on that job's datadir, so a failure can be traced to what they left, and
+`launch_seconds` when the run launched the job's app. `--only` and `--skip` pick tests by name, and `--list` prints
+the order, the serial phase with why each test is in it, and exits; with `--shuffle` it names the seed first.
 
 On Linux the runner opens each app on your desktop as an X11 client (`GDK_BACKEND=x11`), so a sweep
 leaves its windows on your screen while it runs, and a window manager un-minimizes a window on request
@@ -604,18 +604,21 @@ display, and `--wayland` needs a Wayland session; `--list` needs neither.
 An entry's keys:
 
 - `path`: the test, relative to `tools/mcp`.
-- `launch`: `app` (the default; the runner launches and stops the app), `own` (the test starts its own)
-  or `none` (no app).
-- `cad`: launch with the Design tab on.
-- `setup`: arguments for a run of the test's own file before the launch; `args`: the test's arguments.
-  Both fill in `{bin}` and `{datadir}`.
-- `env`: variables for the launch and the test.
+- `launch`: `app` (the default; the test runs in the job's app), `fresh` (the runner launches a new app for the
+  test, which the tests after it then run in), `own` (the test starts its own apps on datadirs of its own, and
+  the job's app is left as it is) or `none` (no app).
+- `setup`: arguments for a run of the test's own file before the test; for a test in the job's app it runs with
+  the app stopped, and a new app is launched after it. `args`: the test's arguments. Both fill in `{bin}` and
+  `{datadir}`.
+- `env`: variables for the test and, for a test in the job's app, for the launch: a test whose `env` differs from
+  the one the job's app was launched with gets a new app launched with it.
 - `exclusive`, `locks`, and `why`, which each of them needs: what the test shares with others. An exclusive test
   runs in the serial phase.
 - `timeout_s`: how long the test may run (900 by default).
 
-`test_run_sweep.py` checks the runner without the app, on a stand-in sweep of scripts that launch nothing, and
-that `sweep.json` lists every test there is.
+`test_run_sweep.py` checks the runner without the app, on a stand-in sweep of scripts that launch nothing and one
+of scripts that run in a stand-in app, which shows when the runner launches and stops a job's app, and that
+`sweep.json` lists every test there is.
 
 `TESTS.md` holds the rules the sweep's tests follow and the index of all of them, and `test-entries/` an entry for
 each test, by area: what it tests, how it decides pass or fail, and what it leaves unchecked. A new test starts as

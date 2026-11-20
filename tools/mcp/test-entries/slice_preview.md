@@ -4,7 +4,7 @@ The design of this area's sweep tests. The rules every entry follows, the grades
 in [TESTS.md](../TESTS.md).
 
 ## `test_slice_preview`
-`test_slice_preview.py` · Python, 834 checks · in `sweep.json` as `{"path": "test_slice_preview.py", "timeout_s": 1500}`
+`test_slice_preview.py` · Python, 832 checks · in `sweep.json` as `{"path": "test_slice_preview.py", "timeout_s": 1500}`
 
 **Tests:** Slicing and what a slice leaves: the plates `plate_slice` and the Slice and Preview and Slice All Plates
 actions slice, with no objects, with a plate that fails validation and with two plates; the statistics a slice reports,
@@ -22,30 +22,25 @@ Lab printer's own behaviour, and its G-code is read as a printer outside the Bam
 sets `timeout_s` 1500: it slices about thirty times, three of them a Benchy.
 
 **Starts from:** `start(client)`, whose `presets()` must be `{printer: "MyKlipper 0.4 nozzle", process: "0.20mm Standard
-@MyKlipper", filaments: ["Generic PLA @System"]}`. Then `filament_set_colour {filament_slot: 1, colour: "#26A69A"}`
-and `filament_set_flushing {flush_multiplier: 0.3}`, read back with `filament_list`: a seeded folder's slot colour and
-flush multiplier, since the purge between two slots, and so the depth of the two-colour slices' prime tower, follows
-both, and the printer keeps them as an earlier test or run left them (To settle); `preferences_set {values:
-{auto_slice_after_change: false}}`, read back with `preferences_get`, so that a plate is sliced only when a row slices
-it; `window_set {size: [1600, 900]}`; and the view as the view switches scenario starts from, the app's defaults:
-`view_set {layout: "default"}`, then `view_set {labels: false, overhangs: false, outline: false, wireframe: false,
-gridlines: true, axes: true, navigator: true, gcode_window: true, projection: "perspective", section: {on: false},
-sidebar_collapsed: false, legend_collapsed: false}`, read back from `app_state.view`. Display switches, the projection
-and the window layout are kept in the configuration, where an earlier test may have changed them. The two auto-answer
-rules last only as long as the app's run. Its files go into a temporary folder of its own, new each run.
+@MyKlipper", filaments: ["Generic PLA @System"]}`, and `filament_list` read back: slot 1 `#26A69A` and the flush
+multiplier 0.3, the baseline's, since the purge between two slots, and so the depth of the two-colour slices' prime
+tower, follows both (To settle). The baseline's `auto_slice_after_change` false has a plate sliced only when a row
+slices it, and its view (the default layout, the display switches, the projection, the folds) is the one the view
+switches scenario starts from. Beyond the baseline the test registers two auto-answer rules, below. Its files go into a
+temporary folder of its own, new each run.
 
 **Leaves:** In the app's presets, the Klipper printer with two Generic PLA slots (the layer G-codes scenario's
-`slots(2)`, the last change of the slots), slot 1 `#26A69A`, the flush multiplier 0.3 that Starts from sets (the G-code
+`slots(2)`, the last change of the slots), slot 1 `#26A69A` and slot 2 `#00C1AE`, the flush multiplier 0.3 (the G-code
 file opened for viewing was sliced with it and keeps it), and no user preset: its edits are an object's, a range's or a
-plate's, kept in its projects. In the recent projects, `ranges.3mf`, `profile.3mf` and `codes.3mf` of its temporary
-folder, which is deleted at its end with the canvas captures it saves there; the G-code file it opens for viewing does
-not join them (`Plater` adds no file it opens only for viewing). The folders the app remembers, `app.last_export_path`
-and the `recent` section's `last_opened_folder` and `settings_folder`, name that folder. The display switches,
-projection, sidebar and legend as Starts from sets them, which the view switches scenario turns back step by step; the
-sidebar at the default layout's width; the window at 1600 × 900; the Preview's last view type (`preview_last_view_type`)
-`feature_type`; and `auto_slice_after_change` false. In a `finally` it makes Starts from's two `view_set` calls again,
-since a run that breaks off in the view switches can leave the sidebar folded or widened, a switch turned or the camera
-orthographic, which every later test's window would show.
+plate's, kept in its projects. In the project, the app's account scenario's new, empty one. In the recent projects,
+`ranges.3mf`, `profile.3mf` and `codes.3mf` of its temporary folder, which is deleted at its end with the canvas
+captures it saves there; the G-code file it opens for viewing does not join them (`Plater` adds no file it opens only
+for viewing). The folders the app remembers, `app.last_export_path` and the `recent` section's `last_opened_folder` and
+`settings_folder`, name that folder. The display switches, projection, sidebar and legend as the baseline has them,
+which the view switches scenario turns back step by step, and the sidebar at the default layout's width; the Preview's
+last view type (`preview_last_view_type`) `feature_type`; and its two auto-answer rules, which the next `start()`
+clears. The layer slider's one-layer mode, which `start()` does not reset, is off: the legend row scenario turns it
+off again in a `finally` once its step 9 has turned it on.
 
 **Reads:**
 - `plates()` as in `test_objects`, with each plate's `sliced` from `plate_list` added. `objects()` as in `test_objects`,
@@ -66,23 +61,24 @@ orthographic, which every later test's window would show.
   "toolpaths_obj"}` wrote, and `obj_facts(path)` (in `checks.py`) its first line, its `mtllib` line, its numbers of `v`
   and `f` lines and its highest vertex z.
 - `capture()` (new) gives the PNG bytes and the width of `window_screenshot {target: "canvas", include_image: false}`
-  once two captures in a row are byte-identical; five tries without that fail the check, and so does a capture whose
-  reply has `approximate` or a `note`, such as a 3D view that came back blank.
+  once two captures in a row, taken back to back with `until()`, are byte-identical; 30 s without that fail the check,
+  and so does a capture whose reply has `approximate` or a `note`, such as a 3D view that came back blank.
 - `conf(key)` (new) gives the `app` section's value of `key` in `<datadir>/OrcaSlicer.conf`, the datadir the session
-  file names (the job's data folder), read until it holds the expected value or 5 s pass, since the app writes the
-  file at an idle moment.
+  file names (the job's data folder), read with `until()` every 0.1 s until it holds the expected value, since the app
+  writes the file at an idle moment; after 30 s it gives the value read last, which the row's check then fails on.
 - `snapshots()` gives the undo snapshots taken since its last call, from `tests/fixtures/ops_undo.py`.
-- `slots(n)` deletes filament slots with `filament_delete` until it is refused and adds them with `filament_add`
-  until the project has `n`; it checks `app_state.presets.filaments` has `n` entries. It makes no mixed slot, and
-  `start()` leaves none: it deletes the mixed slots an earlier test left, such as the two broken ones
-  `test_filaments` leaves.
+- `slots(n)` deletes filament slots with `filament_delete`, from the last, until one is left, then adds slots with
+  `add_slot()` until the project has `n`, slot k coloured `SLOT_COLOURS[k-1]`: slot 2 `#00C1AE`, the colour a new app
+  gives its first added slot. It checks that `filament_list` lists `n` slots in exactly those colours, slot 1 the
+  baseline's `#26A69A`. It makes no mixed slot, and `start()` leaves none: it deletes the mixed slots an earlier test
+  left, such as the two broken ones `test_filaments` leaves.
 
 At its start the test registers two auto-answer rules, `Spiral mode only works` → `yes` and `unsaved changes. Would you
-like to save` → `No`, besides what Starts from sets. Every scenario starts with `project_new {discard_changes: true}`
-and `view_set {tab: "prepare"}` and checks that `plates()` is `"" 0 *`, `shown()` has tab `prepare` and `preview` null,
-except two that go on from the plates and slice of the scenario before them: a plate the Preview has not shown, after
-the slicing by route, and the Preview's layers, after the tables. The scenarios run in the order below, and naming one
-of those two alone runs the one before it first.
+like to save` → `No`, besides the baseline. Every scenario starts with `project_new {discard_changes:
+true}` and `view_set {tab: "prepare"}` and checks that `plates()` is `"" 0 *`, `shown()` has tab `prepare` and
+`preview` null, except two that go on from the plates and slice of the scenario before them: a plate the Preview has
+not shown, after the slicing by route, and the Preview's layers, after the tables. The scenarios run in the order
+below, and naming one of those two alone runs the one before it first.
 The app applies a change of the model or of a plate's codes to the slicing state half a second after the call
 (`schedule_background_process()`), and only then marks a plate's slice out of date. So a step that moves an object,
 changes its ranges or settings, or edits layer G-codes, and whose row then reads `plates()` or refuses an export or
@@ -348,10 +344,10 @@ at the export's path. Those of plate 5 and -1 say "Plate 5 does not exist (the p
 
 A 30 mm sphere "ball" (`object_add_primitive {shape: "sphere", size: [30]}`), selected, and `view_set {camera:
 "iso", orbit: [0, -25]}`, the iso direction lowered to 20° above the bed (To settle). `app_state.view` is written as
-the switches that are on; at the start, those Starts from sets, the app's defaults: `gridlines`, `axes`, `navigator` and
-`gcode_window`, with `projection` `perspective`, `section.on` false, `sidebar_collapsed` and `legend_collapsed` false.
-C0 is `capture()` at the start. After every step `app_state.view` is compared with the row whole, and the reply gives
-the switch's value as the row does.
+the switches that are on; at the start, those the baseline sets, the app's defaults: `gridlines`, `axes`, `navigator`
+and `gcode_window`, with `projection` `perspective`, `section.on` false, `sidebar_collapsed` and `legend_collapsed`
+false. C0 is `capture()` at the start. After every step `app_state.view` is compared with the row whole, and the reply
+gives the switch's value as the row does.
 
 | # | Step | View after | Also checked |
 |---|---|---|---|
@@ -368,7 +364,7 @@ the switch's value as the row does.
 | 11 | `view_set {section: {on: false}}` | start | `capture()` is C0 |
 | 12 | `view_set {sidebar_collapsed: true}` | start, `sidebar_collapsed` true | `capture()` wider than C0 |
 | 13 | `view_set {sidebar_collapsed: false}` | start | `capture()` as wide as C0 |
-| 14 | `view_set {sidebar_width: W + 150}`, W being `app_state.view.sidebar_width` at the start (the default layout's, which Starts from sets), at least 390 | start, `sidebar_width` W + 150 | `capture()` narrower than C0 |
+| 14 | `view_set {sidebar_width: W + 150}`, W being `app_state.view.sidebar_width` at the start (the default layout's, which `start()` sets), at least 390 | start, `sidebar_width` W + 150 | `capture()` narrower than C0 |
 | 15 | `view_set {layout: "default"}` | start, `sidebar_width` D, at least 390 | `capture()` as wide as C0 |
 | 16 | `view_set {sidebar_width: W + 150}`, then `{sidebar_width: "default"}` | start, `sidebar_width` D | the default width is the one the default layout gives |
 | 17 | `plate_slice {preview: true}` | start | `[0 ok]` with `layers` 150 ± 1 (a 30 mm sphere); tab `preview`; C1 is `capture()` |
@@ -452,13 +448,13 @@ checked not to be a person's own folder (`APPDATA` or `~` plus `OrcaSlicer`), wh
   below its equator, so the highlight is a band on the sphere's rim too thin to change a pixel: the capture with
   overhangs on is byte-identical to C0. From 20° above the bed the band from 31° to 70° below the equator faces the
   camera and shows, and every other switch shows too. The setup lowers the camera so.
-- The start of the view switches: `AppConfig`'s defaults, which Starts from sets, since the switches, the projection
+- The start of the view switches: `AppConfig`'s defaults, which the baseline gives, since the switches, the projection
   and the window layout are kept in the configuration an earlier test on the data folder may have changed. The network
   plug-in's start: not installed, so neither loaded nor failed, on any of the sweep's data folders: no test installs
   it (`preferences_set` refuses `installed_networking`) and none signs in.
 - The sidebar's default width is 39 em (`AuiMgr::sidebar_pane_info()`), which depends on the display's scale or font,
-  so it is checked as at least 390 px and as the width Reset Window Layout gives; Starts from's default layout makes it
-  also the start width W.
+  so it is checked as at least 390 px and as the width Reset Window Layout gives; the baseline's default layout makes
+  it also the start width W.
 - A G-code file opened for viewing gives the same estimate as the slice it was exported from, and the file's header
   the slice's: the processor reads the file's moves as it read the slice's. Times are compared within 1 s, the
   header giving whole seconds.
@@ -474,19 +470,17 @@ checked not to be a person's own folder (`APPDATA` or `~` plus `OrcaSlicer`), wh
   behaviour, which a person meets and answers by moving the tower, not a bug: the step moves it to y 150, where it
   fits, through the project's `wipe_tower_y`, which the next new project resets. The two-colour statistics and the
   layer G-codes, on 0.2 mm layers, fit at the default place.
-- The slots' colours and the flush multiplier (Starts from). The app works out the purge from the slots' colours and
-  multiplies it by `flush_multiplier`, and the printer keeps both across New Project, a restart and `start()`. Left as
-  earlier runs left them, the statistics' two-colour cubes fail "Prime tower is partially outside the printable area,
-  and it cannot be printed." (measured, on a folder an earlier test had left with slot 1 `#FF0000`): red to the second
-  slot's colour is a 515 mm³ purge where `#26A69A` to `#00C1AE` is 89 (with slot 1 red the layer G-codes' step 14 fails
-  too); and `test_filaments` leaves slot 1 `#FFFFFF` and `flush_multiplier` 1.4, nearly five times the purge of 0.3
-  (read from that test, not measured here).
-  The two-colour checks ask only whether a slot purges into the tower (`tower_g` > 0, `flush_g` 0), not how much, so a
-  multiplier within the range that fits leaves them unchanged. A slot `filament_add`
-  adds takes the next colour of a palette the app's run cycles through (`Plater::get_next_color_for_filament()`), so
-  this test's own additions give the same colours on every run, and only slot 1's needs setting. Open for review:
-  whether `start()` should set the slots' colours and the flush multiplier instead, for every test that slices two slots
-  with a prime tower.
+- The slots' colours and the flush multiplier (Starts from, `slots()`). The app works out the purge from the slots'
+  colours and multiplies it by `flush_multiplier`, and the purge sizes the prime tower of the two-colour slices.
+  `start()` gives slot 1 the baseline's `#26A69A` and the multiplier 0.3, and `slots()` adds slot 2 with `add_slot()`
+  in `#00C1AE`, the colour a new app gives its first added slot, so the tower is the one measured on a new app whatever
+  ran before. `filament_add` alone would colour slot 2 with the next colour of a palette the app's run cycles through
+  (`Plater::get_next_color_for_filament()`), which depends on how many slots the run added before: in an app where
+  `test_filaments` had added slots, it gave a lighter colour, the purge grew and the statistics' tower ran off the bed.
+  Other slot colours fail so too, "Prime tower is partially outside the printable area, and it cannot be printed."
+  (measured with slot 1 `#FF0000`): red to `#00C1AE` is a 515 mm³ purge where `#26A69A` to `#00C1AE` is 89, and with
+  slot 1 red the layer G-codes' step 14 fails too. The two-colour checks ask only whether a slot purges into the tower
+  (`tower_g` > 0, `flush_g` 0), not how much, so a purge within the range that fits leaves them unchanged.
 - The G-code of a printer outside the Bambu network (`gcode()`): its tags are the compatible ones of
   `GCodeProcessor::Reserved_Tags_compatible` (`;LAYER_CHANGE`, `;Z:`, `;HEIGHT:`, `;TYPE:`, `;PAUSE_PRINT`,
   `;CUSTOM_GCODE`), its estimate is the `; estimated printing time (normal mode)` line written after the moves rather

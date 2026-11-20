@@ -264,10 +264,11 @@ def menu_path(verb):
 
 
 def keep_as_drawn():
-    """Close the value fields the last click opened, keeping what it drew. Esc is pressed only on a field that
-    shows, since with none open it drops the armed tool; a field queued behind another opens as that one closes."""
+    """Close the value fields the last click opened, keeping what it drew. Esc is pressed only on a field that is
+    open, since with none open it drops the armed tool; whether one is open is read once the app has run what the
+    click or the last Esc set off (CadGui.opened_field()), as a field queued behind another opens as that one closes."""
     for _ in range(8):
-        if until(gui.value_field, timeout=0.7) is None:
+        if gui.opened_field() is None:
             return
         gui.keys("Escape", target=CANVAS)
         until(lambda: gui.value_field() is None)
@@ -882,8 +883,7 @@ def rename_selected(old, name):
     """Call rename_selected {}, then type `name` into the row editor it opens on the row named `old`, as a person does,
     and commit it with Enter. The editor opens holding the row's name."""
     reply = gui.cad("rename_selected")
-    found = until(lambda: next((w for w in gui.widgets() if w.kind == "text" and w.rect and w.value == old), None),
-                  timeout=2.0)
+    found = until(lambda: next((w for w in gui.widgets() if w.kind == "text" and w.rect and w.value == old), None))
     if found is None:
         raise AssertionError(f"rename_selected opened no row editor on {old}: {reply}")
     gui.fill({"ref": found.ref}, name)
@@ -1835,20 +1835,6 @@ def rung_boolean_opens():
     gui.check("boolean_opens: it cut the post from the block", near(volume(0), 20 * 20 * 10 - 6 * 6 * 10, 1e-3), volume(0))
 
 
-def dial_pick(title):
-    """Opens the Speed Dial on the Design view and picks the action titled `title` from it, as a person's click does.
-    The dial closes when another window takes the focus, as another test's app opening a dialog or starting does on a
-    desktop the sweep's apps share, so a pick that finds it closed opens it again and picks again, three tries in all."""
-    for attempt in range(3):
-        gui.keys("space", target=CANVAS)
-        try:
-            gui.client.call("widget_set_value", target={"web": "Search actions"}, value=title, submit=False)
-            return gui.client.call("widget_click", target={"web": f"{title} from Orcaslicer", "kind": "button"})
-        except orca_mcp.McpError as e:
-            if attempt == 2 or "No web page is shown" not in str(e):
-                raise
-
-
 def line_selected():
     """An open sketch on XY holding one line, selected."""
     gui.new_design()
@@ -1861,11 +1847,11 @@ def rung_action_pick():
     # A pick from the Speed Dial runs the action picked: a folded item's action with the item's arguments, a merged
     # item's as its command's own action.
     line_selected()
-    dial_pick("Polar array")
+    checks.dial_pick(gui.client, "Polar array", canvas=CANVAS)
     gui.check("action_pick: the Polar array action arms the polar array tool", gui.sketch()["tool"] == "array_polar",
               gui.sketch()["tool"])
     gui.keys("Escape", target=CANVAS)
-    dial_pick("Trim")
+    checks.dial_pick(gui.client, "Trim", canvas=CANVAS)
     gui.check("action_pick: the Trim action arms the trim tool", gui.sketch()["tool"] == "trim", gui.sketch()["tool"])
     gui.cad("sketch_cancel")
 
@@ -1921,11 +1907,8 @@ RUNGS = {"words": rung_words, "shapes_match_tools": rung_shapes_match_tools, "sk
 
 def main():
     global gui
-    client = orca_mcp.session_client()[0]
-    # The start every test sets on a shared data folder, made before CadGui.start(), whose first check needs the
-    # Design tab not yet shown.
-    checks.start(client)
-    gui = CadGui(client)
+    # The baseline every test starts from on a shared app and data folder, then the Design tab's own start.
+    gui = CadGui(orca_mcp.session_client()[0])
     gui.start()
     return gui.run(RUNGS, sys.argv[1:] or list(RUNGS))
 

@@ -11,13 +11,14 @@ Run it as python tools/mcp/test_plugin_tools.py [--bin PATH].
 import json
 import os
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
-import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+from checks import until  # noqa: E402
 from orca_mcp import OrcaMcp, app_env, find_binary  # noqa: E402
 
 FIXTURE = os.path.join(HERE, "tests", "plugins", "mcp_tools_fixture")
@@ -32,7 +33,6 @@ handle = next(m.HANDLE for m in list(sys.modules.values()) if getattr(m, "HANDLE
 result = handle.update(5)
 """
 RULE = "MCP tools fixture never shown"  # the match of the auto-answer rule the fixture's "rule" script sets
-PORT = 13692
 TOKEN = "plugin-tools-test-token"
 results = []
 
@@ -65,13 +65,19 @@ def install_broken(datadir):
                    "capabilities": [{"MCP tools broken fixture": True}]}, f, indent=2)
 
 
-def wait_for(predicate, timeout):
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        if predicate():
-            return True
-        time.sleep(0.5)
-    return predicate()
+def free_port():
+    """A port nothing listens on now, so that this test runs beside the others of a sweep."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+def reached(fn, what, timeout_s=30):
+    """Whether fn() comes true within `timeout_s`, for a check to report rather than to stop the test."""
+    try:
+        return bool(until(fn, what, timeout_s))
+    except TimeoutError:
+        return False
 
 
 def lines_of(path):
@@ -103,24 +109,27 @@ def run_plugin_script(orca, plugin_dir, name, capability):
     if os.path.exists(out):
         os.remove(out)
     orca.call("action_run", id=f"plugin_script_action:{capability}:{PLUGIN}")
-    deadline = time.time() + 60
-    while time.time() < deadline:
-        if os.path.exists(out):
-            try:
-                with open(out, encoding="utf-8") as f:
-                    return json.load(f)
-            except ValueError:
-                pass  # still being written
-        time.sleep(0.5)
-    return {"ok": None, "error": "the script recorded nothing"}
+
+    def recorded():
+        try:
+            with open(out, encoding="utf-8") as f:
+                return json.load(f)
+        except (OSError, ValueError):  # not written yet, or still being written
+            return None
+
+    try:
+        return until(recorded, f"the {name} script records its outcome", timeout_s=60)
+    except TimeoutError:
+        return {"ok": None, "error": "the script recorded nothing"}
 
 
 def launch(env, datadir, extra):
-    r = harness(env, "launch", "--datadir", datadir, "--port", str(PORT), *extra)
+    port = free_port()
+    r = harness(env, "launch", "--datadir", datadir, "--port", str(port), *extra)
     if r.returncode != 0:
         print(r.stdout, r.stderr)
         raise SystemExit(1)
-    return OrcaMcp(port=PORT, token=TOKEN)
+    return OrcaMcp(port=port, token=TOKEN)
 
 
 def main():
@@ -193,17 +202,23 @@ def main():
         # It shows the Run Script panel, which docks under the 3D view and so makes it shorter; the second call hides it
         # again. The panel is kept from automation, so widget_list reads the 3D view instead.
         orca.call("view_set", tab="prepare")
-        shown_before = canvas_height(orca)
+        heights = [canvas_height(orca)]
+
+        def height_comes(holds):
+            """Whether the 3D view's height, read until it does, comes to pass `holds`; heights[-1] is the last read."""
+            def read():
+                heights.append(canvas_height(orca))
+                return heights[-1] is not None and holds(heights[-1])
+            return reached(read, "the 3D view's height changes")
+
+        shown_before = heights[-1]
         ran = orca.call_raw("tool_call", {"tool": "script_toggle_panel"})
-        orca.call("app_wait", **{"for": "idle"})
-        shown_after = canvas_height(orca)
-        check("tool_call runs a menu item's command", not ran.get("isError") and shown_before is not None
-              and shown_after is not None and shown_after < shown_before, (ran, shown_before, shown_after))
+        shorter = shown_before is not None and height_comes(lambda h: h < shown_before)
+        shown_after = heights[-1]
+        check("tool_call runs a menu item's command", not ran.get("isError") and shorter, (ran, shown_before, shown_after))
         orca.call_raw("tool_call", {"tool": "script_toggle_panel"})
-        orca.call("app_wait", **{"for": "idle"})
-        hidden_after = canvas_height(orca)
-        check("and a second call hides it", shown_after is not None and hidden_after is not None and hidden_after > shown_after,
-              (shown_after, hidden_after))
+        taller = shown_after is not None and height_comes(lambda h: h > shown_after)
+        check("and a second call hides it", taller, (shown_after, heights[-1]))
         found = orca.call("tool_search", query="mesh normals")
         check("tool_search's search finds the Python API", found.get("python", {}).get("items", [{}])[0].get("name") ==
               "orca.host.TriangleMesh.face_normals", found)
@@ -230,9 +245,11 @@ def main():
         started = lambda: lines_of(os.path.join(plugin_dir, "new_projects.txt"))
         before = started()
         orca.call("project_new", discard_changes=True)
-        check("project_new sends plugins the NewProject event", wait_for(lambda: started() == before + 1, 10), started())
+        check("project_new sends plugins the NewProject event",
+              reached(lambda: started() == before + 1, "the plugin records a NewProject event"), started())
         orca.call("action_run", id="orca_command:new_project:orca")
-        check("and so does its action, new_project", wait_for(lambda: started() == before + 2, 10), started())
+        check("and so does its action, new_project",
+              reached(lambda: started() == before + 2, "the plugin records a second NewProject event"), started())
         held = run_plugin_script(orca, plugin_dir, "handle", CAPABILITIES[4])
         # The script gives create_progress_dialog this title.
         titles = [w.get("title") for w in orca.call("window_list").get("items", [])]
@@ -249,10 +266,11 @@ def main():
                                                        "within": "Plugins"}})
         check("the Plugins dialog unticks the plugin", not untick.get("isError"), untick)
         withdrawn = lambda: orca.call_raw("tool_search", {"tool": f"plugin.{PLUGIN}.measure"}).get("isError")
-        check("an unloaded plugin's operation is withdrawn", wait_for(withdrawn, 15))
-        check("and the auto-answer rule it set ends with it", wait_for(lambda: RULE not in rules(), 15), rules())
+        check("an unloaded plugin's operation is withdrawn", reached(withdrawn, "the plugin's operation is withdrawn"))
+        check("and the auto-answer rule it set ends with it",
+              reached(lambda: RULE not in rules(), "the plugin's auto-answer rule ends"), rules())
+        # stop returns once the app has exited, so that the --run launch below is the only app on the folder.
         harness(env, "stop")
-        time.sleep(3)
 
         # --- Without MCP: a launch replay runs the plugin's script, whose calls reach the runtime without its endpoint. ---
         install(datadir)  # enabled again: unticking it saved it disabled
@@ -272,8 +290,8 @@ def main():
             offline = {"ok": None, "error": str(e)}
         check("with MCP off, a plugin's auto-answer rule is the plugin's", offline == {"ok": True, "result": "plugin"}, offline)
     finally:
-        harness(env, "stop")
-        time.sleep(2)
+        if os.path.exists(os.path.join(datadir, "session.json")):
+            harness(env, "stop")
         shutil.rmtree(datadir, ignore_errors=True)
 
     failed = [r for r in results if not r[1]]

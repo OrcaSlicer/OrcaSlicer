@@ -3,19 +3,23 @@
 
     python tools/mcp/test_run_sweep.py
 
-entry() fills a manifest entry's defaults and refuses an unknown key, an unknown launch kind, and `exclusive` or
-`locks` without a `why`. discover() finds the test_*.py files beside sweep.json and no replay. manifest_problems()
-names a test the manifest leaves out, an entry whose file is gone and one whose file is not a test, and the shipped
-sweep.json lists every test there is. order() splits the tests into the pool and the serial phase, each longest
-first with those without a time ahead. pick_next() passes over a test whose lock another holds. The commands launch
-on the job's data folder with --cad when asked and fill {bin} and {datadir}; on Linux the app is an X11 client
-unless --wayland asks for a native Wayland one, --headless is added only when the run asks for it, and both flags
-are refused off Linux and together. Two tests of one job share its data folder and nothing else. A test whose run
-raises is recorded as an error, one that runs out of time is ended so that what it started ends too, the history
-file reads its earlier form and takes a bare file name, and -j takes a whole number from 1 up. The stand-in sweep
-runs main() on four scripts that launch nothing, and checks each run's record, the folders it keeps, the serial mark
-it learns, --list and --forget. Exits 0 when every check passes. The checks are asserts, so a Python that runs with
-its asserts off (-O, or PYTHONOPTIMIZE, which the sweep's runner passes on) fails the test before any of them.
+entry() fills a manifest entry's defaults, takes the launch kind fresh, and refuses an unknown key (`cad` among them),
+an unknown launch kind, and `exclusive` or `locks` without a `why`. discover() finds the test_*.py files beside
+sweep.json and no replay. manifest_problems() names a test the manifest leaves out, an entry whose file is gone and
+one whose file is not a test, and the shipped sweep.json lists every test there is. order() splits the tests into the
+pool and the serial phase, each longest first with those without a time ahead, or in the order a --shuffle seed
+gives, the same for the same seed. pick_next() passes over a test whose lock another holds. The app launches on the
+job's data folder, always with --cad and --unrestricted-scripts, and the commands fill {bin} and {datadir}; on Linux
+the app is an X11 client unless --wayland asks for a native Wayland one, --headless is added only when the run asks
+for it, and both flags are refused off Linux and together. Two tests of one job share its data folder and its app's
+session file, and have their own temporary and working folders; a test that starts its own apps has a session file
+of its own. A test whose run raises is recorded as an error, one that runs out of time is ended so that what it
+started ends too, the history file reads its earlier form and takes a bare file name, -j takes a whole number from 1
+up, and --shuffle a seed or none. The stand-in sweep runs main() on four scripts that launch nothing, and checks each
+run's record, the folders it keeps, the serial mark it learns, --list and --forget. The stand-in app sweep runs
+main() on scripts that run in a stand-in app, an HTTP server a stand-in orca_mcp.py launches and stops, and checks
+when the runner launches and stops it. Exits 0 when every check passes. The checks are asserts, so a Python that runs
+with its asserts off (-O, or PYTHONOPTIMIZE, which the sweep's runner passes on) fails the test before any of them.
 """
 
 import contextlib
@@ -30,11 +34,11 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import run_sweep  # noqa: E402
-from run_sweep import RunContext, entry  # noqa: E402
+from run_sweep import JobApp, RunContext, entry  # noqa: E402
 
 MCP_DIR = os.path.dirname(os.path.abspath(__file__))
-DEFAULTS = {"launch": "app", "cad": False, "setup": [], "args": [], "env": {}, "exclusive": False, "locks": [],
-            "timeout_s": 900, "why": ""}
+DEFAULTS = {"launch": "app", "setup": [], "args": [], "env": {}, "exclusive": False, "locks": [], "timeout_s": 900,
+            "why": ""}
 
 
 def ok(name):
@@ -62,10 +66,13 @@ def refused(raw):
 
 def check_entry():
     assert entry({"path": "test_x.py"}) == {"path": "test_x.py", **DEFAULTS}, entry({"path": "test_x.py"})
+    for kind in ("app", "fresh", "own", "none"):
+        assert entry({"path": "x", "launch": kind})["launch"] == kind, kind
     for raw in ({"path": "x", "lanch": "app"}, {"path": "x", "launch": "maybe"}, {"path": "x", "exclusive": True},
-                {"path": "x", "locks": ["p"]}):
+                {"path": "x", "locks": ["p"]}, {"path": "x", "cad": True}, {"path": "x", "cad": False}):
         assert refused(raw), raw
-    ok("entry() fills the defaults and refuses an unknown key or launch kind, and exclusive or locks without why")
+    ok("entry() fills the defaults, takes the launch kinds app, fresh, own and none, and refuses an unknown key (cad "
+       "among them) or launch kind, and exclusive or locks without why")
 
 
 def check_manifest_problems():
@@ -93,6 +100,18 @@ def check_order():
     ok("order() runs untimed tests first, then the longest, and puts the exclusive and the serial-marked ones in the "
        "serial phase, longest first")
 
+    many = {f"t{i:02}": entry({"path": f"test_t{i:02}.py"}) for i in range(20)}
+    many["t00"] = entry({"path": "test_t00.py", "exclusive": True, "why": "reads the focus"})
+    names, none = list(many), {"times": {}, "serial": {}}
+    first = run_sweep.order(names, many, none, seed=123456)
+    assert run_sweep.order(list(reversed(names)), many, none, seed=123456) == first, first
+    assert first[1] == ["t00"] and sorted(first[0]) == names[1:], first
+    assert first[0] != names[1:], first
+    others = {tuple(run_sweep.order(names, many, none, seed=s)[0]) for s in range(1, 6)}
+    assert len(others) > 1, others
+    ok("order() with a seed shuffles the pool and keeps the serial phase apart, gives the same order for the same seed "
+       "whatever order the names come in, and another order for another seed")
+
 
 def check_pick_next():
     lock = {"locks": ["port-13694"], "why": "fixed port"}
@@ -114,18 +133,20 @@ def context(platform, headless=False, wayland=False, test="run", job="job-1"):
 
 
 def check_launch_commands():
-    cad = entry({"path": "test_cad_replays.py", "cad": True})
     ctx = context("linux")
     assert ctx.datadir == os.path.join(ROOT, "job-1", "datadir"), ctx.datadir
-    launch = run_sweep.launch_command(cad, ctx)
+    launch = run_sweep.launch_command(ctx)
     assert launch == ["python3", os.path.join(MCP_DIR, "orca_mcp.py"), "launch", "--bin", ctx.binary,
-                      "--datadir", ctx.datadir, "--port", "14101", "--cad"], launch
-    assert run_sweep.launch_command(cad, context("linux", wayland=True)) == launch
+                      "--datadir", ctx.datadir, "--port", "14101", "--cad", "--unrestricted-scripts"], launch
+    assert run_sweep.launch_command(context("linux", wayland=True)) == launch
     # A headless launch is an X11 client on the compositor it starts, which its own launch sets.
-    assert run_sweep.launch_command(cad, context("linux", headless=True)) == launch + ["--headless"]
-    assert "--headless" not in run_sweep.launch_command(cad, context("darwin"))
-    assert run_sweep.launch_command(entry({"path": "test_plugin_tools.py", "launch": "own"}), context("darwin")) is None
-    ok("the launch runs on the job's data folder, with --cad when asked and --headless only when the run asks for it")
+    assert run_sweep.launch_command(context("linux", headless=True)) == launch + ["--headless"]
+    for platform in ("darwin", "win32"):
+        mac_or_win = run_sweep.launch_command(context(platform))
+        assert mac_or_win[-2:] == ["--cad", "--unrestricted-scripts"] and "--headless" not in mac_or_win, mac_or_win
+    assert run_sweep.stop_command(ctx) == ["python3", os.path.join(MCP_DIR, "orca_mcp.py"), "stop"]
+    ok("the launch runs on the job's data folder, always with --cad and --unrestricted-scripts, and with --headless "
+       "only when the run asks for it")
 
 
 def check_launch_env():
@@ -156,21 +177,28 @@ def check_test_commands():
 
 def check_env():
     ctx = context("darwin")
-    env = run_sweep.test_env(entry({"path": "t.py", "env": {"ORCA_MCP_REPLY_BUDGET_MS": "2000"}}), ctx, {"PATH": "p"})
-    assert env["ORCA_MCP_SESSION"] == ctx.session == os.path.join(ctx.run_dir, "session.json"), env
-    assert env["TMPDIR"] == env["TMP"] == env["TEMP"] == ctx.tmp, env
-    assert env["ORCA_MCP_REPLY_BUDGET_MS"] == "2000" and env["PATH"] == "p", env
-    ok("a test runs with its own session file and temporary folder, and the entry's variables")
+    for kind in ("app", "fresh"):
+        env = run_sweep.test_env(entry({"path": "t.py", "launch": kind, "env": {"ORCA_MCP_REPLY_BUDGET_MS": "2000"}}),
+                                 ctx, {"PATH": "p"})
+        assert env["ORCA_MCP_SESSION"] == ctx.session == os.path.join(ctx.job_dir, "session.json"), (kind, env)
+        assert env["TMPDIR"] == env["TMP"] == env["TEMP"] == ctx.tmp, env
+        assert env["ORCA_MCP_REPLY_BUDGET_MS"] == "2000" and env["PATH"] == "p", env
+    for kind in ("own", "none"):
+        env = run_sweep.test_env(entry({"path": "t.py", "launch": kind}), ctx, {"PATH": "p"})
+        assert env["ORCA_MCP_SESSION"] == os.path.join(ctx.run_dir, "session.json"), (kind, env)
+    ok("a test in the job's app runs with the job's session file, one that starts its own apps with a session file of "
+       "its own, and each with its own temporary folder and the entry's variables")
 
 
 def check_shared_datadir():
     a, b = context("darwin", test="test_a"), context("darwin", test="test_b")
     assert a.datadir == b.datadir, (a.datadir, b.datadir)
-    for field in ("session", "tmp", "cwd"):
+    assert a.session == b.session, (a.session, b.session)
+    for field in ("tmp", "cwd"):
         ours, theirs = getattr(a, field), getattr(b, field)
         assert ours != theirs and ours.startswith(a.run_dir + os.sep) and theirs.startswith(b.run_dir + os.sep), field
-    ok("two tests of one job share its data folder and have their own session file, temporary folder and working "
-       "folder")
+    ok("two tests of one job share its data folder and its app's session file, and have their own temporary folder "
+       "and working folder")
 
 
 def check_discover():
@@ -190,7 +218,7 @@ def check_run_error():
         open(blocker, "w").close()
         ctx = RunContext(mcp_dir=MCP_DIR, binary="orca-slicer", run_dir=os.path.join(blocker, "run"),
                          job_dir=os.path.join(root, "job"), port=14101, python=sys.executable, platform=sys.platform)
-        rec = run_sweep.guarded_run_test("t", entry({"path": "t.py"}), ctx)
+        rec = run_sweep.guarded_run_test("t", entry({"path": "t.py"}), ctx, JobApp())
     assert rec["name"] == "t" and rec["exit"] == "error" and rec.get("error"), rec
     assert run_sweep.missing(["a", "t"], [{"name": "a"}]) == ["t"], run_sweep.missing(["a", "t"], [{"name": "a"}])
     ok("a test whose run raises is recorded as an error, and a test with no record is named")
@@ -276,6 +304,12 @@ def check_options():
         else:
             raise AssertionError(f"-j {bad} was taken")
     ok("-j N and --jobs N set how many jobs run at once, a whole number from 1 up")
+
+    assert run_sweep.parse_args([]).shuffle is None
+    assert run_sweep.parse_args(["--shuffle", "123456"]).shuffle == 123456
+    picked = run_sweep.parse_args(["--shuffle", "--list"])
+    assert type(picked.shuffle) is int and picked.list, picked
+    ok("--shuffle takes a seed, picks one when given none, and leaves the order alone when not given")
 
 
 def check_display_options():
@@ -410,6 +444,17 @@ def check_stand_in_sweep():
         assert "serial since" in printed.splitlines()[2] and "runs alone" in printed.splitlines()[3], printed
         ok("--list puts the serial-marked test in the serial phase with its mark, and the exclusive one with its why")
 
+        code, printed = sweep(mcp_dir, "--list", "--shuffle", "7", *common)
+        lines = printed.splitlines()
+        assert code == 0 and lines[0] == "shuffled with seed 7", (code, printed)
+        assert sorted(line.split()[0] for line in lines[1:3]) == ["test_broken", "test_slow"], printed
+        assert sorted(line.split()[0] for line in lines[3:]) == ["test_load", "test_quick"], printed
+        assert sweep(mcp_dir, "--list", "--shuffle", "7", *common) == (code, printed)
+        code, printed = sweep(mcp_dir, "--list", "--shuffle", *common)
+        assert code == 0 and printed.startswith("shuffled with seed "), (code, printed)
+        ok("--list --shuffle names the seed first, keeps the serial phase after the pool, and lists the same order for "
+           "the same seed; --shuffle alone names the seed it picked")
+
         out = os.path.join(root, "second")
         code, printed = sweep(mcp_dir, "-j", "2", "--out", out, *common)
         assert code == 1, (code, printed)
@@ -453,6 +498,181 @@ def check_stand_in_sweep():
     shutil.rmtree(ROOT, ignore_errors=True)
 
 
+# ---- The stand-in app sweep: scripts that run in a stand-in app, which a stand-in orca_mcp.py launches and stops ----
+
+# The stand-in app is an HTTP server that answers every MCP call with an empty result, with the data folder on its
+# command line, as the app's is, so that the runner's wait for the app's processes waits for it. Each launch and stop
+# is noted in apps.txt in the data folder: "launch <pid> <flags> budget=<ORCA_MCP_REPLY_BUDGET_MS>" and "stop <pid>".
+FAKE_ORCA_MCP = r'''
+import http.server, json, os, signal, subprocess, sys, time, urllib.request
+
+
+class Answer(http.server.BaseHTTPRequestHandler):
+    def do_POST(self):
+        body = json.loads(self.rfile.read(int(self.headers["Content-Length"])) or b"{}")
+        reply = json.dumps({"jsonrpc": "2.0", "id": body.get("id"),
+                            "result": {"content": [{"type": "text", "text": "{}"}]}}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(reply)))
+        self.end_headers()
+        self.wfile.write(reply)
+
+    def log_message(self, *args):
+        pass
+
+
+def note(datadir, line):
+    with open(os.path.join(datadir, "apps.txt"), "a") as f:
+        f.write(line + "\n")
+
+
+def answers(port):
+    try:
+        urllib.request.urlopen(urllib.request.Request(f"http://127.0.0.1:{port}/mcp", data=b"{}"), timeout=2)
+        return True
+    except OSError:
+        return False
+
+
+command, args = sys.argv[1], sys.argv[2:]
+if command == "serve":
+    http.server.HTTPServer(("127.0.0.1", int(args[0])), Answer).serve_forever()
+elif command == "launch":
+    datadir, port = args[args.index("--datadir") + 1], int(args[args.index("--port") + 1])
+    os.makedirs(datadir, exist_ok=True)
+    app = subprocess.Popen([sys.executable, os.path.abspath(__file__), "serve", str(port), datadir],
+                           stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    with open(os.environ["ORCA_MCP_SESSION"], "w") as f:
+        json.dump({"port": port, "token": "", "pid": app.pid, "datadir": datadir}, f)
+    flags = [a for a in args if a in ("--cad", "--unrestricted-scripts", "--headless")]
+    note(datadir, " ".join(["launch", str(app.pid), *flags,
+                            "budget=" + os.environ.get("ORCA_MCP_REPLY_BUDGET_MS", "-")]))
+    deadline = time.monotonic() + 30
+    while not answers(port):
+        if time.monotonic() > deadline:
+            sys.exit("the stand-in app did not answer")
+        time.sleep(0.1)
+elif command == "stop":
+    with open(os.environ["ORCA_MCP_SESSION"]) as f:
+        s = json.load(f)
+    try:
+        os.kill(s["pid"], signal.SIGTERM)
+    except OSError:
+        pass
+    note(s["datadir"], f"stop {s['pid']}")
+    os.remove(os.environ["ORCA_MCP_SESSION"])
+'''
+
+# Each script notes in visits.txt in its data folder "<name> <pid of the app its session file names, or -> <session
+# file>"; its setup run notes "<name>-setup ...". test_hang runs past its time limit, test_kill ends the app and waits
+# until it no longer answers, and test_fails fails.
+APP_STAND_IN = r'''
+import json, os, signal, sys, time, urllib.request
+name = os.path.splitext(os.path.basename(__file__))[0]
+setup = sys.argv[1] == "--setup"
+datadir, session = sys.argv[-1], os.environ["ORCA_MCP_SESSION"]
+app = None
+if os.path.exists(session):
+    with open(session) as f:
+        app = json.load(f)
+os.makedirs(datadir, exist_ok=True)
+with open(os.path.join(datadir, "visits.txt"), "a") as f:
+    f.write(f"{name}{'-setup' if setup else ''} {app['pid'] if app else '-'} {session}\n")
+if name == "test_hang" and not setup:
+    time.sleep(120)
+elif name == "test_kill":
+    os.kill(app["pid"], signal.SIGTERM)
+    deadline = time.monotonic() + 30
+    while time.monotonic() < deadline:
+        try:
+            urllib.request.urlopen(urllib.request.Request(f"http://127.0.0.1:{app['port']}/mcp", data=b"{}"), timeout=2)
+            time.sleep(0.1)
+        except OSError:
+            break
+sys.exit(1 if name == "test_fails" else 0)
+'''
+APP_STAND_INS = {
+    "test_first": {}, "test_own": {"launch": "own"}, "test_second": {}, "test_fresh": {"launch": "fresh"},
+    "test_hang": {"timeout_s": 3}, "test_after": {}, "test_kill": {}, "test_revived": {},
+    "test_budget": {"env": {"ORCA_MCP_REPLY_BUDGET_MS": "4000"}}, "test_setup": {"setup": ["--setup", "{datadir}"]},
+    "test_fails": {}, "test_serial": {"exclusive": True, "why": "runs alone"},
+}
+
+
+def lines(path):
+    with open(path) as f:
+        return [line.split(" ", 2) for line in f.read().splitlines()]
+
+
+def check_stand_in_app_sweep():
+    with tempfile.TemporaryDirectory(prefix="orca-sweep-check-") as root:
+        mcp_dir = os.path.join(root, "mcp")
+        os.makedirs(mcp_dir)
+        with open(os.path.join(mcp_dir, "orca_mcp.py"), "w") as f:
+            f.write(FAKE_ORCA_MCP)
+        tests = {}
+        for name, raw in APP_STAND_INS.items():
+            with open(os.path.join(mcp_dir, name + ".py"), "w") as f:
+                f.write(APP_STAND_IN)
+            tests[name] = {"path": name + ".py", "args": ["{datadir}"], **raw}
+        with open(os.path.join(mcp_dir, "sweep.json"), "w") as f:
+            json.dump({"tests": tests}, f)
+        out = os.path.join(root, "apps")
+        # The stand-in app copies no profiles, so the --out a sweep's long temporary folder gives is no trouble.
+        longest = run_sweep.MAX_OUT_WINDOWS
+        run_sweep.MAX_OUT_WINDOWS = len(out)
+        try:
+            code, printed = sweep(mcp_dir, "-j", "1", "--keep", "--bin", sys.executable, "--out", out,
+                                  "--history", os.path.join(root, "history.json"), "--first-port", "14390")
+        finally:
+            run_sweep.MAX_OUT_WINDOWS = longest
+        assert code == 1, (code, printed)
+        job, serial = os.path.join(out, "job-1"), os.path.join(out, f"job-{run_sweep.SERIAL_JOB}")
+
+        # A to F run the pool; G and H are the runs alone of test_hang and test_fails, which failed there.
+        apps = lines(os.path.join(job, "datadir", "apps.txt"))
+        launched = [a[1] for a in apps if a[0] == "launch"]
+        assert [a[0] for a in apps] == ["launch", "stop"] * 8, apps
+        assert [a[1] for a in apps if a[0] == "stop"] == launched and len(set(launched)) == 8, apps
+        A, B, C, D, E, F, G, H = launched
+        budgets = [a[2].split()[-1] for a in apps if a[0] == "launch"]
+        assert budgets == ["budget=-"] * 4 + ["budget=4000"] + ["budget=-"] * 3, apps
+        for a in apps:
+            if a[0] == "launch":
+                assert a[2].split()[:2] == ["--cad", "--unrestricted-scripts"], a
+        own_session = os.path.join(out, "test_own", "session.json")
+        session = os.path.join(job, "session.json")
+        assert lines(os.path.join(job, "datadir", "visits.txt")) == [
+            ["test_first", A, session], ["test_own", "-", own_session], ["test_second", A, session],
+            ["test_fresh", B, session], ["test_hang", B, session], ["test_after", C, session],
+            ["test_kill", C, session], ["test_revived", D, session], ["test_budget", E, session],
+            ["test_setup-setup", "-", session], ["test_setup", F, session], ["test_fails", F, session],
+            ["test_hang", G, session], ["test_fails", H, session]], lines(os.path.join(job, "datadir", "visits.txt"))
+
+        recs = {(r["name"], r["phase"]): r for r in records(out)}
+        launches = {key for key, r in recs.items() if r["launch_seconds"] is not None}
+        assert launches == {("test_first", "pool"), ("test_fresh", "pool"), ("test_after", "pool"),
+                            ("test_revived", "pool"), ("test_budget", "pool"), ("test_setup", "pool"),
+                            ("test_hang", "alone"), ("test_fails", "alone"), ("test_serial", "serial")}, launches
+        exits = {key: r["exit"] for key, r in recs.items() if r["exit"] != 0}
+        assert exits == {("test_hang", "pool"): "timeout", ("test_fails", "pool"): 1, ("test_hang", "alone"): "timeout",
+                         ("test_fails", "alone"): 1}, exits
+
+        serial_apps = lines(os.path.join(serial, "datadir", "apps.txt"))
+        assert [a[0] for a in serial_apps] == ["launch", "stop"] and serial_apps[0][1] == serial_apps[1][1], serial_apps
+        assert lines(os.path.join(serial, "datadir", "visits.txt")) == [
+            ["test_serial", serial_apps[0][1], os.path.join(serial, "session.json")]]
+        for d in (job, serial):
+            assert not os.path.exists(os.path.join(d, "session.json")), d
+        for pid in launched + [serial_apps[0][1]]:
+            assert not alive(int(pid)), pid
+        ok("each job's tests run in one app, launched with --cad and --unrestricted-scripts and named by the job's "
+           "session file; a new one comes for a test marked fresh, after a test that ran out of time, after one that "
+           "ended the app, for a test whose variables differ, and after a setup; a test that starts its own apps "
+           "leaves it alone; each job's app is stopped at its end, and a run alone has an app of its own")
+
+
 def main():
     if not asserts_live():
         return 1
@@ -472,6 +692,7 @@ def main():
     check_options()
     check_display_options()
     check_stand_in_sweep()
+    check_stand_in_app_sweep()
     # Last: it reads the folder as it is, so a sweep.json behind a file just added stops no check of the runner.
     check_shipped_manifest()
     return 0

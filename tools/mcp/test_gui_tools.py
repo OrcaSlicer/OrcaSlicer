@@ -9,8 +9,9 @@ Context menus and a button's menu listed and run by path without being shown, th
 the object list, of Compare presets and of the parameter table, the print button's popup, a drop-down list, and
 Orca's web dialogs, driven as an agent drives any widget, with the web view a script runs in while they are open.
 Every menu item, row and page element the test runs or clicks is checked by what it does to the project, the
-selection, the camera or the settings. It starts on the Generic Klipper Printer, sets the window size, the 3D view's
-labels and the preference its checks depend on, and exits 0 when every check passes. The pictures and project files it saves go to --out, else to a new temporary folder.
+selection, the camera or the settings. It starts on the Generic Klipper Printer in the sweep's baseline, reads back
+the window size, the 3D view's labels and the preference its checks depend on, and exits 0 when every check passes.
+The pictures and project files it saves go to --out, else to a new temporary folder.
 """
 
 import argparse
@@ -24,7 +25,8 @@ import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, plates, refusal, run, slot_colours, start, wait  # noqa: E402
+from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, WINDOW_SIZE, Checks, menus_left, plates, refusal,  # noqa: E402
+                    run, slot_colours, start, until, wait)
 
 ADD_CUBE = "orca_command:add_primitive_cube:orca"
 UNDO = "orca_command:undo:orca"
@@ -82,6 +84,16 @@ class GuiToolsTest:
 
     def idle(self):
         wait(self.c, "idle")
+
+    def holds(self, label, fn, what, detail=None):
+        """Checks that fn() comes true within checks.until()'s 30 s; a wait that runs out fails the check, with
+        detail() when given, and the scenario goes on."""
+        try:
+            until(fn, what)
+        except TimeoutError as e:
+            self.t.check(label, False, f"{e}" + (f"; {detail()}" if detail else ""))
+            return
+        self.t.check(label, True)
 
     def run_answered(self, tool, **args):
         """Calls `tool` and follows its job to the end through a dialog the start's rules answer, which can hold
@@ -217,6 +229,7 @@ class GuiToolsTest:
         return details
 
     def start(self, name):
+        self.began = time.monotonic()  # the scenario's own menus are those closed after this
         self.run("project_new", discard_changes=True, preset_changes="discard")
         self.run("view_set", tab="prepare")
         self.run("dialog_auto_answer", rules=[{"match": "Uniform scale", "button": "ok"},
@@ -225,15 +238,6 @@ class GuiToolsTest:
         self.dialogs_are(f"{name}: the start")
         self.t.equal(f"{name}: the start: the plates", plates(self.c),
                      [{"name": "", "current": True, "locked": False, "objects": 0}])
-
-    def to_one_slot(self):
-        """Deletes filament slots until the delete is refused, at the one slot a project keeps."""
-        for _ in range(32):
-            try:
-                self.c.call("filament_delete")
-            except orca_mcp.McpError:
-                break
-        self.idle()
 
     def add_cube(self):
         """The Add Cube action's cube, its size dialog answered by the "Uniform scale" rule."""
@@ -258,7 +262,6 @@ class GuiToolsTest:
     def menus(self):
         s = "menus"
         self.start(s)
-        self.to_one_slot()
         self.add_cube()
         self.run("view_set", camera="iso")
         cube, with_modifier = "Cube: Cube part", "Cube: Cube part + Generic-Cylinder modifier"
@@ -267,14 +270,20 @@ class GuiToolsTest:
         self.t.equal(f"{s}: the start: one filament slot", len(state["presets"]["filaments"]), 1)
         self.t.equal(f"{s}: the start: labels are off", state["view"]["labels"], False)
 
-        # A menu item's job is followed through a dialog the start's rules answer, as run_answered() does.
+        # A menu item's job is followed through a dialog the start's rules answer, as run_answered() does. A call
+        # that only lists its menu is followed by the app going idle, so that a check that it changed nothing comes
+        # after anything it set off.
         def C(**args):
-            return self.c.await_job(self.c.call("mouse_gesture", action="click", button="right", at=CUBE_POINT,
-                                                **args), timeout=60)
+            reply = self.c.await_job(self.c.call("mouse_gesture", action="click", button="right", at=CUBE_POINT,
+                                                 **args), timeout=60)
+            self.idle()
+            return reply
 
         def E(**args):
-            return self.c.await_job(self.c.call("mouse_gesture", action="click", button="right", **EMPTY, **args),
-                                    timeout=60)
+            reply = self.c.await_job(self.c.call("mouse_gesture", action="click", button="right", **EMPTY, **args),
+                                     timeout=60)
+            self.idle()
+            return reply
 
         m = self.menu(C())
         self.t.check(f"{s} 1: the object menu holds every item it must", set(OBJECT) <= set(m["items"]),
@@ -286,7 +295,6 @@ class GuiToolsTest:
         self.objects_are(f"{s} 1", O(cube))
 
         reply = C(popup_item="add modifier>cylinder")
-        self.idle()
         self.t.equal(f"{s} 2: the item run, named as the menu shows it", reply.get("ran"), "Add Modifier>Cylinder")
         self.objects_are(f"{s} 2", O(with_modifier))
         self.run("action_run", id=UNDO)
@@ -305,13 +313,11 @@ class GuiToolsTest:
         self.objects_are(f"{s} 6", O(with_modifier))
 
         reply = C(popup_item="Printable")
-        self.idle()
         self.t.equal(f"{s} 7: the reply's item", reply.get("ran"), "Printable")
         self.objects_are(f"{s} 7", O(with_modifier, printable=False))
         self.t.equal(f"{s} 8: the listing reads the check item's state", self.menu(C())["checked"], ["Auto Drop"])
         self.objects_are(f"{s} 8", O(with_modifier, printable=False))
         C(popup_item="Printable")
-        self.idle()
         self.objects_are(f"{s} 9", O(with_modifier))
 
         details = self.refused_with(f"{s} 10: a submenu is refused", lambda: C(popup_item="Add Modifier"),
@@ -330,7 +336,6 @@ class GuiToolsTest:
 
         labels_off = self.canvas_png("labels_off")
         E(popup_item="Show Labels")
-        self.idle()
         labels_on = self.canvas_png("labels_on")
         self.t.equal(f"{s} 13: labels are on", self.state()["view"]["labels"], True)
         self.t.check(f"{s} 13: the 3D view draws the cube's label", labels_on != labels_off, "the captures are the same")
@@ -338,14 +343,12 @@ class GuiToolsTest:
         self.t.equal(f"{s} 14: the checked items", self.menu(E())["checked"], ["Show Labels"])
         self.objects_are(f"{s} 14", O(with_modifier))
         E(popup_item="Show Labels")
-        self.idle()
         labels_off_again = self.canvas_png("labels_off_again")
         self.t.equal(f"{s} 15: labels are off", self.state()["view"]["labels"], False)
         self.t.check(f"{s} 15: the label is gone again", labels_off_again != labels_on, "the captures are the same")
         self.objects_are(f"{s} 15", O(with_modifier))
 
         E(popup_item="Add Primitive>Cylinder")
-        self.idle()
         both = (O(with_modifier), O("Cylinder: Cylinder part"))
         self.objects_are(f"{s} 16", *both)
         self.t.equal(f"{s} 16: app_state counts the objects", self.state()["objects"], 2)
@@ -360,6 +363,7 @@ class GuiToolsTest:
         self.objects_are(f"{s} 18", *both)
         button = self.filament_button()
         reply = self.c.call("widget_click", target=button)
+        self.idle()
         self.t.equal(f"{s} 19: filament 1's menu", self.menu(reply)["items"], FILAMENT_MENU)
         self.dialogs_are(f"{s} 19")
         self.t.equal(f"{s} 19: the tab", self.state()["tab"], "prepare")
@@ -380,12 +384,11 @@ class GuiToolsTest:
                      m["items"])
         self.objects_are(f"{s} 21", *both)
         reply = C(popup_item="Delete")
-        self.idle()
         self.t.equal(f"{s} 22: the reply's item", reply.get("ran"), "Delete")
         self.objects_are(f"{s} 22: the multi-selection's Delete removes both objects")
         state = self.state()
         self.t.equal(f"{s} 22: app_state counts no objects", state["objects"], 0)
-        self.t.equal(f"{s} 22: no menu left unseen", state["closed_menus"], [])
+        self.t.equal(f"{s} 22: no menu left unseen", menus_left(state, self.began), [])
         self.t.equal(f"{s} 22: no dialog", [d.get("title") for d in state["dialogs"]], [])
 
     def object_rows(self):
@@ -475,32 +478,28 @@ class GuiToolsTest:
         self.t.equal(f"{s} 19: the slice's outcome", [p.get("outcome") for p in reply.get("plates", [])], ["ok"])
         self.t.equal(f"{s} 19: plate 0 is sliced", self.c.call("plate_list")["items"][0]["sliced"], True)
         state = self.state()
-        self.t.equal(f"{s} 20: no dialog and no menu left unseen", (state["dialogs"], state["closed_menus"]), ([], []))
+        self.t.equal(f"{s} 20: no dialog and no menu left unseen", (state["dialogs"], menus_left(state, self.began)), ([], []))
 
     def compare_presets(self):
-        """Opens Compare presets, sets its right-hand process preset and clicks the layer height row."""
+        """Opens Compare presets, sets its right-hand process preset, turns the transfer checkbox off and clicks the
+        layer height row. The window shows the checkbox once the presets differ; the app makes the window once and
+        hides it on closing, so it keeps the checkbox as the test's last opening left it."""
         self.run("widget_click", target={"label": "Compare presets"})
         self.idle()
         opened = "Compare presets" in self.windows()
         self.run("widget_set_value", target={"class": "PresetComboBox", "within": "Compare presets", "index": 5},
                  value=FINE)
+        self.run("widget_set_value", target=TRANSFER, value=False)
         rows = self.rows("Compare presets")
         reply = self.run("widget_click", target={"row": LAYER_ROW, "within": "Compare presets"})
         return opened, rows, reply
 
-    def transfer_enabled(self, timeout_s):
-        """Whether Compare presets' Transfer button lists as enabled within `timeout_s`, listed again each quarter
-        second. The dialog sets the button's state as the app idles (wxEVT_UPDATE_UI), so a click right after the
-        row toggles can find it as it was before them."""
-        deadline = time.monotonic() + timeout_s
-        while True:
-            buttons = [line for line in self.listing(self.window_ref("Compare presets"), max_nodes=3000).splitlines()
-                       if '] button "Transfer" ' in line]
-            if buttons and "[disabled]" not in buttons[0]:
-                return True
-            if time.monotonic() > deadline:
-                return False
-            time.sleep(0.25)
+    def transfer_enabled(self):
+        """Whether Compare presets lists its Transfer button enabled. The dialog sets the button's state as the app
+        idles (wxEVT_UPDATE_UI), so a click right after the row toggles can find it as it was before them."""
+        buttons = [line for line in self.listing(self.window_ref("Compare presets"), max_nodes=3000).splitlines()
+                   if '] button "Transfer" ' in line]
+        return bool(buttons) and "[disabled]" not in buttons[0]
 
     def dialog_rows(self):
         s = "dialog rows"
@@ -532,8 +531,7 @@ class GuiToolsTest:
         self.t.equal(f"{s} 4: comparing changed no process preset", self.modified("process"), [])
 
         self.compare_presets()
-        transfer = {"label": "Transfer values from left to right", "within": "Compare presets"}
-        self.run("widget_set_value", target=transfer, value=True)
+        self.run("widget_set_value", target=TRANSFER, value=True)
         options = [r for r in self.rows("Compare presets") if r["value"] is not None]
         self.t.check(f"{s} 5: every option row starts checked", options and all(r["checked"] for r in options),
                      [(r["path"], r["checked"]) for r in options])
@@ -547,8 +545,8 @@ class GuiToolsTest:
         self.t.equal(f"{s} 5: the layer height row alone is checked", [p for p, c in options.items() if c], [LAYER_ROW])
         self.t.equal(f"{s} 5: the bottom shell layers row is unchecked", options.get(BOTTOM_ROW), False)
 
-        self.t.check(f"{s} 6: Transfer is enabled within 10 s", self.transfer_enabled(10),
-                     self.listing(self.window_ref("Compare presets"), max_nodes=3000))
+        self.holds(f"{s} 6: Transfer lists as enabled", self.transfer_enabled, "Compare presets' Transfer enabled",
+                   lambda: self.listing(self.window_ref("Compare presets"), max_nodes=3000))
         self.run("widget_click", target={"label": "Transfer", "within": "Compare presets"})
         self.idle()
         self.t.check(f"{s} 6: Transfer closes Compare presets", "Compare presets" not in self.windows(), self.windows())
@@ -596,7 +594,7 @@ class GuiToolsTest:
                      ["Slice plate", None, "Export G-code file", None])
         self.dialogs_are(f"{s} 13")
         state = self.state()
-        self.t.equal(f"{s} 14: no dialog and no menu left unseen", (state["dialogs"], state["closed_menus"]), ([], []))
+        self.t.equal(f"{s} 14: no dialog and no menu left unseen", (state["dialogs"], menus_left(state, self.began)), ([], []))
 
     def side(self):
         """The labels of the main window's side buttons, in the order widget_list lists them; None for a button
@@ -622,10 +620,10 @@ class GuiToolsTest:
         self.t.equal(f"{s}: the start: the presets", start(self.c),
                      {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]})
         self.start(s)
-        # The sidebar shows the plate type list only for a printer that supports several plate types; the switch is
-        # an unsaved edit of the printer, which the closing project_new and the next start() discard.
+        # The sidebar shows the plate type list only for a printer that supports several plate types, and on Global,
+        # as start() leaves it, one list. The switch is an unsaved edit of the printer, which the next start()
+        # discards.
         self.run("settings_set", type="printer", values={"support_multi_bed_types": "1"})
-        self.run("widget_set_value", target={"class": "SwitchButton", "label": "Process"}, value=False)
         # The switch finds the plate type the app stored for the printer, so the start sets the one it needs.
         self.run("project_set_settings", values={"curr_bed_type": "Cool Plate"})
         self.idle()
@@ -648,7 +646,7 @@ class GuiToolsTest:
         self.idle()
         self.t.equal(f"{s} 4: the project's plate type", self.bed_type(), "Cool Plate")
         state = self.state()
-        self.t.equal(f"{s} 5: no dialog and no menu left unseen", (state["dialogs"], state["closed_menus"]), ([], []))
+        self.t.equal(f"{s} 5: no dialog and no menu left unseen", (state["dialogs"], menus_left(state, self.began)), ([], []))
 
     def hex_field(self):
         """The hex digits the colour picker's hex field lists."""
@@ -702,7 +700,6 @@ class GuiToolsTest:
         # The wizard card step 25 ticks starts unticked only while its printer is not installed.
         if MARLIN in self.printers():
             self.run("printer_uninstall", models=[{"vendor": "Custom", "model": "Generic Marlin Printer"}])
-        self.run("filament_set_colour", filament_slot=1, colour="#26A69A")
         self.t.equal(f"{s}: the start: the filaments", self.filaments(), [PLA])
         self.t.equal(f"{s}: the start: the colour", self.colours(), "#26A69A")
         self.t.equal(f"{s}: the start: no region", self.region(), "")
@@ -731,22 +728,22 @@ class GuiToolsTest:
         self.t.equal(f"{s} 5: and by locator",
                      self.script("!!document.getElementById('close_btn')", target=BUNDLE_VIEW).get("result"), True)
         self.script("SendWXMessage(JSON.stringify({command: 'export_page'}))")
-        self.t.check(f"{s} 6: the export dialog opens above it",
-                     self.dialogs_become(["Preset Bundle", EXPORT], 10), self.dialogs())
+        self.holds(f"{s} 6: the export dialog opens above it", lambda: self.dialogs() == ["Preset Bundle", EXPORT],
+                   "the dialogs Preset Bundle and Export Preset Bundle", self.dialogs)
         # Its web view shows about:blank until its first navigation starts.
-        self.page_lists("ExportPresetDialog", 5, query="webview")
+        until(lambda: self.page_lists("ExportPresetDialog", query="webview"), "the Export dialog's web view loaded")
         self.t.refused(f"{s} 7: the dialog under the topmost is refused",
                        lambda: self.c.call("webview_run_javascript", code="1", target=BUNDLE_VIEW), words="is under")
         url = self.script("1").get("url", "")
         self.t.check(f"{s} 8: without a target, the topmost dialog's page is used", "ExportPresetDialog" in url, url)
         self.c.call("dialog_answer", button="close")
-        self.t.check(f"{s} 9: the export dialog closes", self.dialogs_become(["Preset Bundle"], 10), self.dialogs())
-        began = time.monotonic()
+        self.holds(f"{s} 9: the export dialog closes", lambda: self.dialogs() == ["Preset Bundle"],
+                   "the dialog Preset Bundle alone", self.dialogs)
+        # A page that closes its dialog never answers the click: the reply comes from the close, where a click whose
+        # page does not answer is refused after the call's 10 s.
         reply = self.c.call("widget_click", target={"css": "#close_btn", "within": "Preset Bundle"})
-        took = time.monotonic() - began
         self.t.equal(f"{s} 10: the page's Close closes the dialog", reply.get("closed"), True)
-        # A page that closes its dialog is told at once, not after the call's 10 s.
-        self.t.check(f"{s} 10: and the reply says so within a second", took < 1.0, f"{took:.2f} s")
+        self.t.check(f"{s} 10: and the reply lists no dialog left under it", "dialogs" not in reply, reply)
         self.job_ends(f"{s} 10: the step 2 action", job)
         self.dialogs_are(f"{s} 10")
 
@@ -797,7 +794,8 @@ class GuiToolsTest:
         job = self.c.call("action_run", id=SETUP_WIZARD)
         self.t.equal(f"{s} 20: the action waits on its dialog", job.get("status"), "blocked_by_dialog")
         self.dialogs_are(f"{s} 20", "Setup Wizard")
-        self.t.check(f"{s} 20: the page lists Europe within 30 s", self.page_lists('"Europe"', 30), "")
+        self.holds(f"{s} 20: the page lists Europe", lambda: self.page_lists('"Europe"'), "the wizard lists Europe",
+                   lambda: self.listing("dialog"))
         reply = self.c.call("widget_click", target={"web": "Europe", **WIZARD})
         self.t.equal(f"{s} 21: the reply's check", reply.get("checked"), True)
         self.t.check(f"{s} 21: the wizard lists Europe checked", self.web_checked("Europe"),
@@ -808,15 +806,14 @@ class GuiToolsTest:
                      reply.get("navigated") is True and "/guide/21/" in reply.get("url", ""), reply)
         # The reply comes once the web view's URL changes, which the old document can outlast for a while; the ref
         # is stale once the new one runs.
-        deadline = time.monotonic() + 10
-        while "/guide/21/" not in str(self.script("location.pathname").get("result")) and time.monotonic() < deadline:
-            time.sleep(0.2)
+        until(lambda: "/guide/21/" in str(self.script("location.pathname").get("result")),
+              "the wizard's page runs at /guide/21/")
         self.t.refused(f"{s} 23: the ref from the page before is stale",
                        lambda: self.c.call("widget_click", target=next_ref), words="page changed")
         reply = self.script("location.reload(); 1")
         self.t.equal(f"{s} 24: a reload at the same URL replies navigated", reply.get("navigated"), True)
         card = "Nozzle 0.4 Marlin"
-        self.page_lists(card, 30)
+        until(lambda: self.page_lists(card), f"the wizard lists {card}")
         reply = self.c.call("widget_click", target={"web": card, "kind": "button", **WIZARD})
         self.t.equal(f"{s} 25: the reply's check", reply.get("checked"), True)
         self.t.check(f"{s} 25: the wizard lists the card checked", self.web_checked(card),
@@ -834,9 +831,10 @@ class GuiToolsTest:
         # view is the app's plain wxWebView, not a WebViewHostDialog's as the bundle dialogs' are.
         self.run("widget_click", target={"label": "Add one filament"})
         flush = self.c.call("widget_click", target={"label": "Flushing volumes"})
-        self.t.check(f"{s} 27: the Flushing volumes dialog opens", self.dialogs_become([FLUSH], 10), self.dialogs())
+        self.holds(f"{s} 27: the Flushing volumes dialog opens", lambda: self.dialogs() == [FLUSH],
+                   "the dialog Flushing volumes", self.dialogs)
         # Its web view, too, shows about:blank until its first navigation starts.
-        self.page_lists("WipingDialog.html", 5, query="webview")
+        until(lambda: self.page_lists("WipingDialog.html", query="webview"), "the Flushing volumes web view loaded")
         reply = self.script("typeof document.title")
         self.t.check(f"{s} 28: its page takes a script",
                      reply.get("result") == "string" and "web/flush/WipingDialog.html" in reply.get("url", ""), reply)
@@ -848,25 +846,9 @@ class GuiToolsTest:
         """The names of the printer presets preset_list offers."""
         return [p["name"] for p in self.c.call("preset_list", type="printer", limit=500)["items"]]
 
-    def page_lists(self, text, timeout_s, query=None):
-        """Whether the topmost dialog's listing, with `query` when given, holds `text` within `timeout_s`, listed
-        again each half second."""
-        deadline = time.monotonic() + timeout_s
-        while True:
-            if text in self.listing("dialog", query):
-                return True
-            if time.monotonic() > deadline:
-                return False
-            time.sleep(0.5)
-
-    def dialogs_become(self, titles, timeout_s):
-        """Whether dialogs() is `titles` within `timeout_s`, read again every tenth of a second."""
-        deadline = time.monotonic() + timeout_s
-        while self.dialogs() != titles:
-            if time.monotonic() > deadline:
-                return False
-            time.sleep(0.1)
-        return True
+    def page_lists(self, text, query=None):
+        """Whether the topmost dialog's listing, with `query` when given, holds `text`."""
+        return text in self.listing("dialog", query)
 
     def web_checked(self, label):
         """Whether the topmost dialog's page lists an element whose label holds `label` as checked."""
@@ -878,14 +860,11 @@ class GuiToolsTest:
     def run_all(self, only=None):
         self.t.equal("the start: the presets", start(self.c),
                      {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]})
-        # E's pixel and the canvas captures follow the window's size.
-        self.run("window_set", size=[1600, 900])
-        self.t.equal("the start: the window's size", self.state()["window"]["size"], [1600, 900])
-        # The app keeps the labels in the data folder, and the menus scenario turns them on and off.
-        self.run("view_set", labels=False)
+        # The baseline's settings the checks depend on: E's pixel and the canvas captures follow the window's size;
+        # the menus scenario turns the labels on and off; and without printer agents, a printer without a print host
+        # gives the print button's popup its two items.
+        self.t.equal("the start: the window's size", self.state()["window"]["size"], WINDOW_SIZE)
         self.t.equal("the start: labels are off", self.state()["view"]["labels"], False)
-        # Without printer agents, a printer without a print host gives the print button's popup its two items.
-        self.c.call("preferences_set", values={"use_printer_agents": False})
         self.t.equal("the start: no printer agents",
                      self.c.call("preferences_get", keys=["use_printer_agents"])["items"][0]["value"], False)
         for name, scenario in [("menus", self.menus), ("object list rows", self.object_rows),
@@ -893,12 +872,11 @@ class GuiToolsTest:
                                ("a drop-down list", self.plate_type_list)]:
             if not only or name in only:
                 self.t.scenario(name, scenario)
-        self.c.call("dialog_auto_answer", rules=[])
-        self.run("project_new", discard_changes=True, preset_changes="discard")
         return self.t.exit_code()
 
 
 HEX = {"web": "Hex color", "within": "Color Picker"}
+TRANSFER = {"label": "Transfer values from left to right", "within": "Compare presets"}
 WIZARD = {"within": "Setup Wizard"}
 BUNDLE_VIEW = {"class": "webview", "within": "Preset Bundle"}
 EXPORT = "Export Preset Bundle"

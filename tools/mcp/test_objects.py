@@ -32,8 +32,9 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, apart, corner, gap, gcode_prints, inside,  # noqa: E402
-                    objects, plates, rect, run, scene, selection, slots, square, start, unsaved, wait)
+from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, SLOT_COLOURS, Checks, add_slot, apart, corner,  # noqa: E402
+                    gap, gcode_prints, inside, objects, plates, rect, run, scene, selection, slots, square, start,
+                    menus_left, unsaved, until, wait)
 
 CUBE = {"shape": "cube", "size": [20, 20, 20]}
 START = {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]}
@@ -209,7 +210,7 @@ class Plates(Part):
 
     def start(self, name):
         self.t.equal(f"{name}: the start: the presets", start(self.c), START)
-        self.run("view_set", tab="prepare")
+        self.began = time.monotonic()  # the scenario's own menus are those closed after this
         wait(self.c, "idle")
         self.plates_are(f"{name}: the start", '"" 0 *')
 
@@ -452,7 +453,7 @@ class Plates(Part):
         # A plate takes a plate type of its own only on a printer that offers several; an unsaved printer edit, which
         # the next start() discards.
         self.run("settings_set", type="printer", values={"support_multi_bed_types": "1"})
-        self.run("action_run", id=FILAMENT_ADD)
+        add_slot(self.c, SLOT_COLOURS[1])
         self.t.equal(f"{s}: two filament slots", slots(self.c), "0,0")
         self.run("project_set_settings", values={"curr_bed_type": "Cool Plate"})
         self.run("object_add_primitive", name="first", **CUBE)
@@ -632,7 +633,7 @@ class Plates(Part):
         self.t.equal(f"{s} 11: both cubes on plate 0", sorted(o["name"] for p, o in self.listing() if p == 0), ["A", "B"])
         state = self.c.call("app_state")
         self.t.equal(f"{s} 12: no dialog and no menu left open",
-                     (state.get("dialogs"), state.get("closed_menus")), ([], []))
+                     (state.get("dialogs"), menus_left(state, self.began)), ([], []))
 
     def scenarios(self):
         return [("a plate's life", self.life), ("by index", self.by_index), ("duplicating a plate", self.duplicating),
@@ -682,7 +683,6 @@ class Places(Part):
 
     def start(self, name):
         self.t.equal(f"{name}: the start: the presets", start(self.c), START)
-        self.run("view_set", tab="prepare")
         wait(self.c, "idle")
         self.want = []
         self.empty(f"{name}: the start")
@@ -1572,7 +1572,6 @@ class Structure(Part):
 
     def start(self, name):
         self.t.equal(f"{name}: the start: the presets", start(self.c), START)
-        self.run("view_set", tab="prepare")
         wait(self.c, "idle")
         self.empty(f"{name}: the start")
         self.c0 = corner(self.c, 0)
@@ -1946,6 +1945,8 @@ class Structure(Part):
                      [{"object": 0, "changed": True, "before": 3, "after": 0, "painting_removed": False}])
         objects_ = edges_are(f"{s} 2", 0)
         self.t.equal(f"{s} 2: manifold", objects_[0]["mesh_errors"]["manifold"], True)
+        # Read once the app is idle, so that a dialog or notice the repair posted after its reply would be seen.
+        wait(self.c, "idle")
         self.t.equal(f"{s} 2: no dialog", self.dialogs(), [])
         notices = self.notices()
         self.t.equal(f"{s} 2: no notice of Fix Model",
@@ -1965,16 +1966,18 @@ class Structure(Part):
                             popup_item="Modify>Fix Model")
         self.t.equal(f"{s} 5: the gesture's reply", reply.get("ran"), "Modify>Fix Model")
         # The menu item's command runs after the gesture's reply, and its notice comes once it has repaired.
-        deadline = time.monotonic() + 30
-        while True:
-            edges = [o["mesh_errors"]["open_edges"] for o in scene(self.c)]
-            notices = self.notices()
-            met = edges[1:] == [0] and any("has been repaired" in n for n in notices)
-            if met or time.monotonic() > deadline:
-                break
-            time.sleep(0.2)
-        self.t.check(f"{s} 5: within 30 s object 1 is repaired and a notice says it has been repaired", met,
-                     (edges, notices))
+        seen = {}
+
+        def repaired():
+            seen["open_edges"] = [o["mesh_errors"]["open_edges"] for o in scene(self.c)]
+            seen["notices"] = self.notices()
+            return seen["open_edges"][1:] == [0] and any("has been repaired" in n for n in seen["notices"])
+
+        try:
+            met = until(repaired, "object 1 repaired and a notice saying so")
+        except TimeoutError:
+            met = False
+        self.t.check(f"{s} 5: within 30 s object 1 is repaired and a notice says it has been repaired", met, seen)
         edges_are(f"{s} 5", 0, 0)
         self.undo()
         edges_are(f"{s} 6: the menu item's repair was one undo step", 0, 3)
@@ -2024,7 +2027,7 @@ class Structure(Part):
         volume_is(f"{s} 6: the call that reloaded nothing took no undo step", 8000)
 
         self.renew(f"{s} 7")
-        self.run("filament_add")
+        add_slot(self.c, SLOT_COLOURS[1])
         self.run("project_import", paths=[self.file("cube20.stl")])
         self.run("object_transform", object=0, position=self.at(100, 100, 0))
         self.run("part_add", object=0, type="modifier", shape="cylinder", size=[10, 10], position=self.at(100, 100, 10))
@@ -2141,9 +2144,6 @@ def run_all(client, folder, only=()):
     for name, scenario in scenarios:
         if not only or scenario.__name__ in only:
             checks.scenario(name, scenario)
-    client.call("dialog_auto_answer", rules=[])
-    # Drops the printer edit the project file brought back, as the next test's start() would.
-    run(client, "project_new", discard_changes=True, preset_changes="discard")
     return checks.exit_code()
 
 
