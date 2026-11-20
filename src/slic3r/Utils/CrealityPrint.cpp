@@ -18,6 +18,7 @@
 #include <unordered_set>
 #include <sstream>
 #include <exception>
+#include <thread>
 #include <boost/format.hpp>
 #include <boost/foreach.hpp>
 #include <boost/log/trivial.hpp>
@@ -157,21 +158,47 @@ bool CrealityPrint::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, 
 
     bool res = true;
     const auto safe_upload_filename = safe_filename(upload_filename.string());
-    // Only encode the URL path segment; keep the multipart filename and start-print path as the stored filename.
-    auto url = make_url("upload/" + Http::url_encode(safe_upload_filename));
+    const bool multi_color          = supports_multi_color_print();
+
+    // CFS-capable firmware rejects a "path" form field, but takes a folder in the URL with its slashes encoded.
+    std::string folder;
+    if (multi_color) {
+        if (!gcode_folder(upload_parent_path, folder)) {
+            error_fn(GUI::format_wxstr(_L("The folder \"%1%\" is not inside the printer's G-code folder."),
+                                       upload_parent_path.generic_string()));
+            return false;
+        }
+        wxString folder_msg;
+        if (!folder.empty() && !ensure_gcode_folder(folder, folder_msg)) {
+            error_fn(std::move(folder_msg));
+            return false;
+        }
+    }
+    const std::string stored_path = folder.empty() ? safe_upload_filename : folder + "/" + safe_upload_filename;
+
+    // Only encode the URL path segment; keep the multipart filename as the stored filename.
+    auto url = make_url("upload/" + Http::url_encode(stored_path));
 
     auto  http = Http::post(url); // std::move(url));
     set_auth(http);
-    if (!supports_multi_color_print())
+    if (!multi_color)
         http.form_add("path", upload_parent_path.string());
     http.form_add_file("file", upload_data.source_path.string(), safe_upload_filename)
 
         .on_complete([&](std::string body, unsigned status) {
             BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: File uploaded: HTTP %2%: %3%") % name % status % body;
 
+            // The upload server answers OK even when it could not store the file.
+            if (!folder.empty() && !gcode_file_listed(folder, safe_upload_filename)) {
+                BOOST_LOG_TRIVIAL(error) << boost::format("%1%: The printer does not list the uploaded %2%") % name % stored_path;
+                error_fn(GUI::format_wxstr(_L("The printer accepted the upload but does not list \"%1%\"."), stored_path));
+                res = false;
+                return;
+            }
+
             if (upload_data.post_action == PrintHostPostUploadAction::StartPrint) {
                 wxString errormsg;
-                if (!start_print(errormsg, safe_upload_filename, upload_data.extended_info)) {
+                if (!start_print(errormsg, stored_path, upload_data.extended_info)) {
                     error_fn(std::move(errormsg));
                     res = false;
                 }
@@ -217,6 +244,117 @@ std::string CrealityPrint::safe_filename(const std::string &filename) const
     std::replace(safe_filename.begin(), safe_filename.end(), ' ', '_');
 
     return safe_filename;
+}
+
+bool CrealityPrint::gcode_folder(const boost::filesystem::path& parent, std::string& folder) const
+{
+    folder.clear();
+    // generic_string() gives '/' separators on Windows too, which the URL needs.
+    std::vector<std::string> segments;
+    const std::string        generic = parent.generic_string();
+    boost::split(segments, generic, [](char c) { return c == '/'; });
+    for (const std::string& segment : segments) {
+        if (segment.empty() || segment == ".")
+            continue;
+        if (segment == "..")
+            return false;
+        // Folders get the same treatment as the filename.
+        folder += (folder.empty() ? "" : "/") + safe_filename(segment);
+    }
+    return true;
+}
+
+std::string CrealityPrint::moonraker_url(const std::string& path) const
+{
+    return "http://" + Http::get_host_from_url(m_host) + ":" + moonraker_settings.port + "/" + path;
+}
+
+bool CrealityPrint::ensure_gcode_folder(const std::string& folder, wxString& msg) const
+{
+    const char* name = get_name();
+    std::vector<std::string> segments;
+    boost::split(segments, folder, [](char c) { return c == '/'; });
+
+    // Moonraker creates one level per request, so walk the path from the root.
+    std::string level;
+    for (const std::string& segment : segments) {
+        level += (level.empty() ? "" : "/") + segment;
+        const std::string url = moonraker_url("server/files/directory?path=" + Http::url_encode("gcodes/" + level));
+
+        // No auth header: the printer's Moonraker trusts the LAN and rejects an empty bearer token.
+        bool        exists      = false;
+        unsigned    list_status = 0;
+        std::string list_error;
+        Http::get(url)
+            .timeout_connect(5)
+            .timeout_max(10)
+            .on_complete([&](std::string, unsigned) { exists = true; })
+            .on_error([&](std::string body, std::string error, unsigned status) {
+                list_status = status;
+                list_error  = error.empty() ? body : error;
+            })
+            .perform_sync();
+        if (exists)
+            continue;
+        // Moonraker answers 400 for a folder that does not exist.
+        if (list_status != 400) {
+            BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Could not check folder %2% at %3%: %4%, HTTP %5%") % name % level % url %
+                                            list_error % list_status;
+            msg = GUI::format_wxstr(_L("Could not check the folder \"%1%\" on the printer (Moonraker on port %2%): %3%"), level,
+                                    moonraker_settings.port, list_error);
+            return false;
+        }
+
+        bool        created = false;
+        std::string create_error;
+        Http::post(url)
+            .timeout_connect(5)
+            .timeout_max(10)
+            .on_complete([&](std::string, unsigned) { created = true; })
+            .on_error([&](std::string body, std::string error, unsigned status) {
+                // Another client may have created it meanwhile.
+                if (status == 400 && body.find("File exists") != std::string::npos)
+                    created = true;
+                else
+                    create_error = error.empty() ? body : error;
+            })
+            .perform_sync();
+        if (!created) {
+            BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Could not create folder %2%: %3%") % name % level % create_error;
+            msg = GUI::format_wxstr(_L("The folder \"%1%\" does not exist on the printer and could not be created: %2%"), level,
+                                    create_error);
+            return false;
+        }
+        BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Created folder %2%") % name % level;
+    }
+    return true;
+}
+
+bool CrealityPrint::gcode_file_listed(const std::string& folder, const std::string& filename) const
+{
+    const std::string url = moonraker_url("server/files/directory?path=" + Http::url_encode("gcodes/" + folder));
+    // Moonraker notices a new file shortly after it is written.
+    for (int attempt = 0; attempt < moonraker_settings.list_retries; ++attempt) {
+        if (attempt > 0)
+            std::this_thread::sleep_for(moonraker_settings.list_interval);
+        bool listed = false;
+        Http::get(url)
+            .timeout_connect(5)
+            .timeout_max(10)
+            .on_complete([&](std::string body, unsigned) {
+                const json listing = json::parse(body, nullptr, false);
+                if (!listing.is_object() || !listing.contains("result") || !listing["result"].contains("files"))
+                    return;
+                for (const json& file : listing["result"]["files"])
+                    if (file.is_object() && file.value("filename", "") == filename)
+                        listed = true;
+            })
+            .on_error([&](std::string, std::string, unsigned) {})
+            .perform_sync();
+        if (listed)
+            return true;
+    }
+    return false;
 }
 
 // Run every websocket call through run_until_done(), since expires_after() does not apply to synchronous Beast calls.

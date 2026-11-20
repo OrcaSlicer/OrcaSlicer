@@ -8,6 +8,7 @@
 #include <wx/string.h>
 #include <boost/optional.hpp>
 #include <boost/asio/ip/address.hpp>
+#include <boost/filesystem/path.hpp>
 
 #include "PrintHost.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -72,6 +73,15 @@ protected:
         std::chrono::milliseconds close{std::chrono::seconds(3)};       // Closing handshake
     } ws_settings;
 
+    // The upload server on port 80 neither creates folders nor reports a file it could not store, so an upload
+    // into a subfolder creates the folder and checks the stored file through the printer's Moonraker.
+    struct MoonrakerSettings
+    {
+        std::string port{"7125"};
+        int         list_retries{5};                                       // Listings of the folder before a missing file is an error
+        std::chrono::milliseconds list_interval{std::chrono::milliseconds(500)};
+    } moonraker_settings;
+
 private:
     std::string m_host;
     std::string m_port;
@@ -84,6 +94,14 @@ private:
     std::string make_url(const std::string& path) const;
     bool start_print(wxString& msg, const std::string& filename, const std::map<std::string, std::string>& extended_info) const;
     std::string safe_filename(const std::string& filename) const;
+    // Turns the upload's parent path into a folder under the gcodes root ("a/b", or empty for the root).
+    // Returns false for a path that leaves the root.
+    bool gcode_folder(const boost::filesystem::path& parent, std::string& folder) const;
+    std::string moonraker_url(const std::string& path) const;
+    // Creates each missing level of folder through Moonraker. On failure msg gets the reason.
+    bool ensure_gcode_folder(const std::string& folder, wxString& msg) const;
+    // Whether Moonraker lists filename in folder.
+    bool gcode_file_listed(const std::string& folder, const std::string& filename) const;
     void query_model() const;
     // Reads /info and caches the model. When msg is not null, it gets a translated error, or on Windows the resolved address.
     bool probe_info(wxString* msg) const;
