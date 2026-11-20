@@ -1836,10 +1836,17 @@ def rung_boolean_opens():
 
 
 def dial_pick(title):
-    """Opens the Speed Dial on the Design view and picks the action titled `title` from it, as a person's click does."""
-    gui.keys("space", target=CANVAS)
-    gui.client.call("widget_set_value", target={"web": "Search actions"}, value=title, submit=False)
-    return gui.client.call("widget_click", target={"web": f"{title} from Orcaslicer", "kind": "button"})
+    """Opens the Speed Dial on the Design view and picks the action titled `title` from it, as a person's click does.
+    The dial closes when another window takes the focus, as another test's app opening a dialog or starting does on a
+    desktop the sweep's apps share, so a pick that finds it closed opens it again and picks again, three tries in all."""
+    for attempt in range(3):
+        gui.keys("space", target=CANVAS)
+        try:
+            gui.client.call("widget_set_value", target={"web": "Search actions"}, value=title, submit=False)
+            return gui.client.call("widget_click", target={"web": f"{title} from Orcaslicer", "kind": "button"})
+        except orca_mcp.McpError as e:
+            if attempt == 2 or "No web page is shown" not in str(e):
+                raise
 
 
 def line_selected():

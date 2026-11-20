@@ -414,7 +414,10 @@ places an object, which place compares only between two parts of one object. The
 set it first: off for the plane refusals, on for the plane pick. confirm_refused_add presses Commit to Plate by its
 label in assembly mode, the mode the folder keeps while no one picks another from the button's list. A Speed Dial
 pick names its action with its source, OrcaSlicer, so an action of the same title that a plugin left in the folder
-adds is not taken.
+adds is not taken. The dial closes when another window takes the focus, as it does for a person, and on a desktop
+the sweep's apps share, another test's app opening a dialog or starting takes it. A pick that finds the dial closed
+(`No web page is shown`) opens it again and picks again, three tries in all; a third that finds it closed fails the
+rung.
 
 **Leaves:**
 - its last project unsaved: the objects place commits to the plate go with the new project action_pick_replay
