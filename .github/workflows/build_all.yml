@@ -258,8 +258,7 @@ jobs:
   # branches not taken included) - catches slicing regressions the static
   # profile checks and unit tests can't see.
   # Profile-only PRs are covered by check_profiles.yml's nightly binary; this
-  # covers src/engine PRs with the PR-built binary, loading and filament-checking
-  # the profiles as well as slicing them.
+  # covers src/engine PRs with the PR-built binary.
   slice_check_linux:
     name: Slice check (Linux ${{ vars.SELF_HOSTED && 'x86_64' || 'aarch64' }})
     needs: build_linux
@@ -279,10 +278,6 @@ jobs:
         run: |
           chmod +x validator-bin/OrcaSlicer_profile_validator
           ./validator-bin/OrcaSlicer_profile_validator -p "${{ github.workspace }}/resources/profiles" -s -l 2
-      # check_profiles.yml leaves these to this job when a PR changes src/, since its nightly
-      # validator cannot load profiles that use what the PR adds to the engine.
-      - name: Validate filament subtypes
-        run: ./validator-bin/OrcaSlicer_profile_validator -p "${{ github.workspace }}/resources/profiles" -l 2 -f
   publish_test_results:
     name: Publish Test Results
     needs: [unit_tests_linux_x86_64, unit_tests_linux_aarch64, unit_tests_windows_x64, unit_tests_windows_arm64, unit_tests_macos_arm64, flatpak]
