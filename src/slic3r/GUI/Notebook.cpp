@@ -11,9 +11,11 @@
 #include <wx/bookctrl.h>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <utility>
 #include <string>
 #include <algorithm>
+#include <vector>
 #include <wx/button.h>
 #include <wx/colour.h>
 #include <wx/dcclient.h>

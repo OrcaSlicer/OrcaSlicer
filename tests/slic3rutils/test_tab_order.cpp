@@ -4,6 +4,12 @@
 
 #include <slic3r/GUI/Notebook.hpp>
 #include <slic3r/plugin/host/PluginPages.hpp>
+#include <slic3r/plugin/PythonPluginInterface.hpp>
+
+#include <optional>
+#include <vector>
+
+#include <wx/string.h>
 
 using Order = std::vector<wxString>;
 
