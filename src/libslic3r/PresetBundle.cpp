@@ -5937,12 +5937,25 @@ DynamicPrintConfig PresetBundle::config_from_gcode(const std::string &path, Forw
             if (const ConfigOption *below = base.option(key); below != nullptr && static_cast<const ConfigOptionVectorBase *>(below)->size() > 0)
                 config.set_key_value(key, below->clone());
     Preset::normalize(config);
-    // The block holds flush_volumes_matrix already multiplied by the multiplier the slice used, so a
-    // multiplier of 1 keeps the purge volumes the file was sliced with. G-code from before 2.3.2 held the
-    // plain matrix and loses a multiplier other than 1.
-    for (const char *key : { "flush_multiplier", "flush_multiplier_fast" })
-        if (auto *multiplier = config.option<ConfigOptionFloats>(key))
-            std::fill(multiplier->values.begin(), multiplier->values.end(), 1.);
+    // The block holds flush_volumes_matrix already multiplied by the multiplier the slice used
+    // (GCode::append_full_config). Dividing that multiplier back out keeps the purge volumes the file was
+    // sliced with while the project keeps the file's own multiplier: these settings stay with the project and
+    // the printer after the preview, and every table the app recalculates later, as on a colour change, is
+    // scaled by that multiplier. prime_volume_mode is not in the block, so the multiplier divided out is the
+    // one this bundle's mode slices with. A nozzle with a multiplier of 0 purged nothing and keeps its empty
+    // block. G-code from before 2.3.2 held the plain table, which this enlarges, so it purges what the plain
+    // table does.
+    const bool   fast        = config.opt_enum<PrimeVolumeMode>("prime_volume_mode") == PrimeVolumeMode::pvmFast;
+    const auto  &multipliers = config.option<ConfigOptionFloats>(fast ? "flush_multiplier_fast" : "flush_multiplier")->values;
+    auto        &matrix      = config.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
+    const size_t filaments   = config.option<ConfigOptionStrings>("filament_colour")->size();
+    const size_t block       = filaments * filaments;
+    // The block is multiplied only when the matrix has one filaments x filaments block per nozzle.
+    if (block > 1 && block * multipliers.size() == matrix.size())
+        for (size_t nozzle = 0; nozzle < multipliers.size(); ++nozzle)
+            if (multipliers[nozzle] > 0.)
+                for (size_t i = nozzle * block; i < (nozzle + 1) * block; ++i)
+                    matrix[i] /= multipliers[nozzle];
     return config;
 }
 
