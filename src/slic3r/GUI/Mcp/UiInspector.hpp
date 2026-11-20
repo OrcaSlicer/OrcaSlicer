@@ -251,7 +251,8 @@ private:
     std::optional<HeldGesture> m_held;
 
     // A call's window for taking menus: a closure running, or one that ended before the next idle and
-    // at most kMenuWindowGrace ago.
+    // at most kMenuWindowGrace ago. A capture an input armed keeps taking its menu past that, until the
+    // call reads it.
     static constexpr std::chrono::seconds kMenuWindowGrace{1};
     struct MenuWindow
     {
@@ -264,6 +265,7 @@ private:
     {
         int              token = 0;
         std::string      path;
+        std::string      tool; // the call that armed it
         wxEventLoopBase* loop  = nullptr;
         bool             fired = false;
         int              closed = 0;

@@ -441,6 +441,27 @@ TEST_CASE("a call working in the topmost dialog is blocked only by another dialo
     REQUIRE(h.jobs.wait(blocked.data["job"], 3000ms).has_value());
 }
 
+TEST_CASE("a dialog its button ended does not hold the call while its modal loop returns", "[Mcp]")
+{
+    Harness h;
+    h.registry.add(tool("after_answer", GuardClass::Mutate, [&](const json&, ToolContext&) {
+        std::this_thread::sleep_for(400ms);
+        return ToolResult::ok({{"done", true}});
+    }));
+    h.start();
+    {
+        std::lock_guard<std::mutex> lock(h.guards_mutex);
+        h.guards.modal       = true;
+        h.guards.dialogs     = json::array({{{"title", "Spiral mode"}}});
+        h.guards.top_dialog  = 3;
+        h.guards.top_closing = true;
+    }
+    // Every probe past the soft budget finds the dialog on top, ended: the call runs to its result.
+    const ToolResult r = h.call("after_answer");
+    CHECK(r.data.value("status", "") != "blocked_by_dialog");
+    CHECK(r.data.value("done", false) == true);
+}
+
 TEST_CASE("blocked_by_dialog is reported from the snapshot when a native dialog holds the UI thread", "[Mcp]")
 {
     std::atomic<bool> release{false};

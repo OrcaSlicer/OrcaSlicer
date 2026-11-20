@@ -139,6 +139,9 @@ const json kPopupItemSchema = prop("string", "Run this item of the menu the inpu
 // input queued have run. A call that fails before reading it drops it.
 struct InputMenu
 {
+    // How long read() waits for the 3D view to run the input before it reads the capture anyway.
+    static constexpr std::chrono::seconds kInputRunLimit{60};
+
     AutomationRuntime&  runtime;
     ToolContext& ctx;
     std::string  item;
@@ -177,11 +180,15 @@ struct InputMenu
         marked = std::make_shared<bool>(false);
         queue->CallAfter([m = marked] { *m = true; });
     }
-    // Job thread: settles, then {popup_menu} or {ran} (with the dialogs a command it ran left open),
-    // or {} when no menu opened.
+    // Job thread: waits for the 3D view to have run the input, settles, then {popup_menu} or {ran}
+    // (with the dialogs a command it ran left open), or {} when no menu opened. The wait has no short
+    // limit: on a busy machine the view runs a click seconds after it was posted, and reading the
+    // capture before then would miss the menu, which then opens on screen as a person's.
     json read()
     {
-        for (int i = 0; marked && i < 100 && !ctx.observe_ui([this] { return json(*marked); }).get<bool>(); ++i)
+        const auto until = std::chrono::steady_clock::now() + kInputRunLimit;
+        while (marked && !ctx.cancelled() && std::chrono::steady_clock::now() < until &&
+               !ctx.observe_ui([this] { return json(*marked); }).get<bool>())
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         settle(ctx);
         const int t = std::exchange(token, 0);

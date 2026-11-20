@@ -451,13 +451,15 @@ ToolResult McpCore::run(const NativeCommand& def, const nlohmann::json& args, co
         if (m_ui.is_shutdown())
             return finish(ToolResult::error("OrcaSlicer is shutting down"));
         const std::uint64_t own = dialog_of(job);
-        if (p && p->guards.modal && (own == 0 || p->guards.top_dialog != own)) {
+        if (p && p->guards.modal && !p->guards.top_closing && (own == 0 || p->guards.top_dialog != own)) {
             // A dialog can close between the probe and here; a finished job wins.
             if (auto r = m_jobs.wait(job, std::chrono::milliseconds(0)))
                 return finish(std::move(*r));
             // An auto-answer rule presses a wx dialog's button from a call queued as the dialog opens, which a
             // probe queued before the dialog opened runs ahead of. A second probe, queued now, runs after that
-            // press, so a dialog holds the job only when the second probe still finds it on top.
+            // press, so a dialog holds the job only when the second probe still finds it on top and not
+            // closing: the press ends it, but it stays on top until its modal loop returns, which on a busy
+            // machine can come after the probe.
             if (seen_on_top != p->guards.top_dialog) {
                 seen_on_top = p->guards.top_dialog;
                 next_probe  = std::chrono::steady_clock::now();

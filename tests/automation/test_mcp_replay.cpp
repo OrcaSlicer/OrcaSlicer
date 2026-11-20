@@ -275,6 +275,22 @@ TEST_CASE("only_step runs one step and reports its own index", "[Mcp]")
     CHECK_THROWS_AS(run_replay(s, ctx, f.host(), 4), std::out_of_range);
 }
 
+TEST_CASE("a wait on an await false step that finished in its budget gives that step's result", "[Mcp]")
+{
+    FakeHost f;
+    f.tools["action_run"] = [](const json&) { return ToolResult::ok({{"opened", "Preferences"}}); };
+    f.tools["app_wait"]   = [](const json&) { return ToolResult::error("app_wait is not called"); };
+    const Replay s = parse_ok(R"({"orca_replay_version": "0.2.0", "steps": [
+        {"tool": "action_run", "await": false, "save_as": "prefs"},
+        {"tool": "app_wait", "args": {"for": "job", "job": "${jobs.prefs}"}, "expect": {"/opened": {"eq": "Preferences"}}},
+        {"tool": "app_wait", "args": {"job": "${jobs.prefs}"}}]})");
+    ReplayContext ctx;
+    const json    out = run_replay(s, ctx, f.host());
+    CHECK(out["passed"] == true);
+    REQUIRE(f.calls.size() == 1);
+    CHECK(f.calls[0].first == "action_run");
+}
+
 TEST_CASE("jobs saved by an earlier run resolve in a later single step", "[Mcp]")
 {
     FakeHost f;

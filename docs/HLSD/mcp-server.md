@@ -303,7 +303,9 @@ request thread posts a probe closure, which runs inside a wx dialog's loop and r
 `ModalTracker` snapshot as JSON; no `wxDialog*` crosses threads. With a modal open, the reply is
 `{status: "blocked_by_dialog", job, dialogs}`, once a second probe, posted at once, finds the same dialog on top:
 an auto-answer rule presses a wx dialog's button from a closure queued as the dialog opens, which a probe posted
-before the dialog opened runs ahead of, and the second probe runs after it. Its note says how to answer the topmost dialog:
+before the dialog opened runs ahead of, and the second probe runs after it. A wx dialog that press ended is
+hidden but stays on top until its modal loop returns, which on a busy machine can come after the second probe,
+so a hidden wx dialog on top holds no call. Its note says how to answer the topmost dialog:
 `dialog_answer` for a wx dialog or a native message box whose buttons are listed, a person for any
 other dialog marked `native: true` (a picker, or any native dialog on macOS), which `dialog_answer`
 can't press.
@@ -2814,7 +2816,10 @@ marker the Change Filament list appends to the slot in use (" (current)", transl
 the numbering and the matching, so a path recorded with another slot in use still names the same
 item. A path that names a submenu, a disabled item or nothing fails with the items to pick from, and
 so does a `popup_item` when the input opened no menu (a right click on empty space while objects are
-selected, in the Preview, or with a gizmo open). Paths are the UI language's text, as other locators
+selected, in the Preview, or with a gizmo open). An input to a 3D view is read once the view has run
+it (a call queued behind it has run), however long that takes on a busy machine, up to a minute, and
+until then the capture it armed takes the menu the input opens even past the call's menu window, so
+the menu is never shown as a person's while the call still waits for it. Paths are the UI language's text, as other locators
 are. With `x`/`y`, `widget_click` clicks that point of a custom-drawn widget (such as the Design tab's
 feature tree) as well as of a 3D canvas; a native control, which acts on what the system tells it
 rather than on wx mouse events, is refused.
@@ -3897,7 +3902,8 @@ text, so a value holding a quote or a backslash, such as a Windows path, breaks 
 up to `timeout_s` (default 120), before its `expect` is checked; a wait that times out with a dialog
 open names the topmost one, since a step can't answer a dialog it opened. `"await": false` returns the job
 at once and stores it under `save_as`, so later steps can answer a dialog it opened and then
-`app_wait` for it. `expect` maps JSON pointers into the result to matchers (`eq ne gt ge lt le contains
+`app_wait` for it; a call that finishes within its reply budget, which depends on how busy the machine is,
+leaves no job, and an `app_wait` on it gives the step's own result at once. `expect` maps JSON pointers into the result to matchers (`eq ne gt ge lt le contains
 regex exists empty`). A failed step or expectation stops the run unless the step is `optional`.
 Auto-answer rules registered by a replay end with it. `vars` passed to `replay_run` override the
 replay's. A step naming an unknown tool makes the replay invalid before anything runs; so does any
@@ -4500,7 +4506,11 @@ call's context, so building it needs neither wx nor a window. A command's regist
 way, never reading app state; a unit test builds the catalog without the app.
 
 A `tools/call` with nothing answering starts `orca-slicer --mcp` detached, with the bridge's
-`--datadir` and `--mcp-port`, and waits up to 60 s. If that process exits within seconds, a running
+`--datadir` and `--mcp-port`, and waits up to 60 s for its server, then up to 120 s more for
+`app_wait {for: "ready"}` before it forwards the call: the server answers before the main window is
+built, and a call that needs the UI thread is refused until then, which on a busy machine outlasts the
+call's wait for the UI queue. An app still not ready by then gets the call anyway, which says what
+holds it. If that process exits within seconds, a running
 instance without MCP took the launch over, and each tool call is answered with an error saying to
 turn the server on in Preferences. The bridge does not start the app again after a failed start, so
 a stuck or refused start never makes every call another launch and another wait, but each tool call

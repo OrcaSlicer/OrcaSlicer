@@ -25,6 +25,7 @@
 #include <boost/nowide/cstdlib.hpp>
 
 #include <wx/app.h>
+#include <wx/dialog.h>
 #include <wx/event.h>
 #include <wx/thread.h>
 #include <wx/timer.h>
@@ -128,8 +129,11 @@ GuardState AutomationRuntime::guards_on_ui() const
     // to the replies that name them (UiInvoker's open_dialogs()): made for every queued closure, it would keep the UI
     // thread from the dialog's own events while many calls wait.
     if (m_modals) {
-        g.modal      = m_modals->top() != nullptr;
-        g.top_dialog = m_modals->serial(m_modals->top());
+        wxDialog* const top = m_modals->top();
+        g.modal             = top != nullptr;
+        g.top_dialog        = m_modals->serial(top);
+        // EndModal() hides a wx dialog at once; a native message box is never shown as a wx window.
+        g.top_closing = top != nullptr && !is_native_dialog(top) && !top->IsShown();
     }
     return g;
 }

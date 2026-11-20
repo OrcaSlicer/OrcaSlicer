@@ -92,6 +92,22 @@ std::size_t step_saving(const Replay& replay, const std::string& name)
     return 0;
 }
 
+// The save_as name `step` waits for, when it is an app_wait for the job of an "await": false step whose call finished
+// without one (ReplayContext::finished); empty otherwise.
+std::string finished_wait(const ReplayStep& step, const ReplayContext& ctx)
+{
+    if (step.tool != "app_wait" || !step.args.is_object() || !step.args.contains("job") || !step.args["job"].is_string())
+        return {};
+    if (step.args.value("for", std::string("job")) != "job")
+        return {};
+    const std::string text = step.args["job"].get<std::string>();
+    const std::string head = "${jobs.";
+    if (text.size() <= head.size() + 1 || text.compare(0, head.size(), head) != 0 || text.back() != '}')
+        return {};
+    const std::string name = text.substr(head.size(), text.size() - head.size() - 1);
+    return ctx.finished.contains(name) && !ctx.jobs.contains(name) ? name : std::string();
+}
+
 void fail_placeholder(Substitution& sub, const std::string& key, const std::string& text, const Replay& replay)
 {
     sub.failed = key;
@@ -441,12 +457,16 @@ json run_replay(const Replay& replay, ReplayContext& ctx, const ReplayHost& host
         }
         if (host.step_started)
             host.step_started(i + 1);
-        const auto   start = std::chrono::steady_clock::now();
-        Substitution sub;
-        const json   args = substitute_args(step.tool, step.args, replay, ctx, sub);
-        ToolResult   result;
-        json         reason;
-        if (!sub.err.empty()) {
+        const auto        start    = std::chrono::steady_clock::now();
+        const std::string finished = finished_wait(step, ctx);
+        Substitution      sub;
+        const json        args = finished.empty() ? substitute_args(step.tool, step.args, replay, ctx, sub) : step.args;
+        ToolResult        result;
+        json              reason;
+        if (!finished.empty()) {
+            // Whether the call finished in its budget depends on the machine, so the wait passes either way.
+            result = ToolResult::ok(ctx.finished[finished]);
+        } else if (!sub.err.empty()) {
             result = ToolResult::error(sub.err);
             if (sub.failed.rfind("jobs.", 0) == 0) {
                 const std::string name  = sub.failed.substr(5);
@@ -481,7 +501,11 @@ json run_replay(const Replay& replay, ReplayContext& ctx, const ReplayHost& host
                 }
             } else {
                 ctx.jobs[step.save_as] = job;
+                ctx.finished.erase(step.save_as);
             }
+        } else if (!step.await && !result.is_error) {
+            ctx.finished[step.save_as] = result.data;
+            ctx.jobs.erase(step.save_as);
         }
 
         entry["args"] = args;

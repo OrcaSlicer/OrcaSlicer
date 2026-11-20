@@ -31,6 +31,9 @@ struct GuardState
     bool           modal     = false; // a modal dialog or an ImGui modal popup is open
     nlohmann::json dialogs   = nlohmann::json::array(); // the open dialogs where the guards describe them; replies read open_dialogs()
     std::uint64_t  top_dialog = 0;    // the topmost modal dialog's serial (ModalTracker::serial()), 0 for none
+    // The topmost dialog was ended by its button (an auto-answer rule's press) and its modal loop is returning: it is
+    // still on top until ShowModal() returns, but holds no call.
+    bool           top_closing = false;
 };
 
 // Runs closures on the UI thread for tool handlers, which run on other threads. A closure re-checks

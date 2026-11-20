@@ -358,6 +358,48 @@ std::map<std::string, std::string> bridge_headers(const json& message, const std
     return h;
 }
 
+namespace {
+
+// Whether a tools/call reply says app_wait's condition held: its structured content, or the JSON of its text.
+bool wait_satisfied(const json& reply)
+{
+    if (!reply.is_object() || !reply.contains("result") || !reply["result"].is_object())
+        return false;
+    const json& result = reply["result"];
+    if (result.value("isError", false))
+        return false;
+    if (result.contains("structuredContent") && result["structuredContent"].is_object())
+        return result["structuredContent"].value("satisfied", false);
+    for (const json& block : result.value("content", json::array()))
+        if (block.is_object() && block.value("type", "") == "text") {
+            const json data = json::parse(block.value("text", ""), nullptr, false);
+            return data.is_object() && data.value("satisfied", false);
+        }
+    return false;
+}
+
+// Waits until the app on `e` is ready, or `limit` passes. An app the bridge started serves its endpoint before its
+// main window is built, and a call that needs the UI thread is refused until then ("The UI thread is busy"), so the
+// first call is forwarded once app_wait says it is ready, as orca_mcp.py launch waits.
+void wait_ready(const Endpoint& e, const std::string& negotiated, std::chrono::seconds limit)
+{
+    const json        call{{"jsonrpc", "2.0"},
+                           {"id", "bridge-ready"},
+                           {"method", "tools/call"},
+                           {"params", {{"name", "app_wait"}, {"arguments", {{"for", "ready"}, {"timeout_s", 10}}}}}};
+    const std::string body  = call.dump();
+    const auto        until = std::chrono::steady_clock::now() + limit;
+    while (std::chrono::steady_clock::now() < until) {
+        const auto reply = post(e, body, bridge_headers(call, negotiated));
+        if (reply && reply->first == 200 && wait_satisfied(json::parse(reply->second, nullptr, false)))
+            return;
+        if (!reply || reply->first != 200)
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+}
+
+} // namespace
+
 int run_stdio_bridge(int argc, char** argv, const std::function<const CommandCatalog&()>& catalog)
 {
 #ifdef _WIN32
@@ -402,6 +444,7 @@ int run_stdio_bridge(int argc, char** argv, const std::function<const CommandCat
     // started only when the agent calls a tool.
     std::optional<Endpoint> endpoint = resolve();
     std::string             failure;
+    std::string             negotiated;
     const std::string       exe = self_executable(argv);
     // Finds the running instance or, when none answers, starts OrcaSlicer and waits for its server.
     // A start that failed is not tried again, so a stuck or refused start never makes every tool call
@@ -424,10 +467,12 @@ int run_stdio_bridge(int argc, char** argv, const std::function<const CommandCat
             }
         if (!endpoint && failure.empty())
             failure = "OrcaSlicer did not start its MCP server within 60 seconds.";
+        // An app still not ready after the wait gets the call anyway, which then says what holds it.
+        if (endpoint)
+            wait_ready(*endpoint, negotiated, std::chrono::seconds(120));
         return endpoint.has_value();
     };
 
-    std::string negotiated;
     std::string line;
     while (std::getline(boost::nowide::cin, line)) {
         if (!line.empty() && line.back() == '\r')

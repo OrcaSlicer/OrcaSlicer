@@ -20,7 +20,8 @@ struct ReplayStep
     nlohmann::json expect = nlohmann::json::object();
     bool           optional = false;
     // Wait for a step that returns a job before evaluating `expect`. False hands the job back at once
-    // (stored under save_as) so later steps can deal with a dialog it opened.
+    // (stored under save_as) so later steps can deal with a dialog it opened; a call that finished within its
+    // reply budget leaves no job, and an app_wait on it gives the step's result.
     bool           await     = true;
     std::string    save_as;
     int            timeout_s = 120;
@@ -38,6 +39,9 @@ struct ReplayContext
     boost::filesystem::path replay_dir;
     boost::filesystem::path out_dir;
     nlohmann::json          jobs = nlohmann::json::object(); // save_as name -> job id
+    // save_as name -> the result of an "await": false step whose call finished within its reply budget, which left no
+    // job: an app_wait on that job gives this result, as it gives a finished job's.
+    nlohmann::json          finished = nlohmann::json::object();
 };
 
 // The version of the replay format this build writes, the semver string a replay gives as "orca_replay_version".

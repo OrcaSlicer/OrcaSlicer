@@ -3246,6 +3246,9 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
     wxWindow* w = t.window.get();
     if (w == nullptr)
         throw ToolFailure("The element is gone; call widget_list again");
+    // A control's update-UI handlers set its state at idle (Compare presets' Transfer), so they run first, as the next
+    // idle would: a click right after the change that enables the control finds it enabled, as a person's would.
+    w->UpdateWindowUI();
     if (!w->IsEnabled())
         throw ToolFailure("The element is disabled");
     scroll_into_view(w);
@@ -3319,6 +3322,7 @@ json UiInspector::input(const UiTarget& t, const json& value, bool submit)
     if (t.kind != UiTarget::Kind::Window || t.window.get() == nullptr)
         throw ToolFailure("widget_set_value works on controls, list rows and ImGui fields");
     wxWindow* w = t.window.get();
+    w->UpdateWindowUI(); // its state as the next idle sets it, as for a click
     if (!w->IsEnabled())
         throw ToolFailure("The control is disabled");
     scroll_into_view(w);
@@ -3818,6 +3822,10 @@ int UiInspector::arm_menu(const std::string& path)
     c.token = ++m_menu_tokens;
     c.path  = path;
     c.loop  = wxEventLoopBase::GetActive();
+    const auto window = std::find_if(m_menu_windows.rbegin(), m_menu_windows.rend(),
+                                     [&c](const MenuWindow& w) { return w.loop == c.loop && w.running; });
+    if (window != m_menu_windows.rend())
+        c.tool = window->tool;
     m_menu_captures.push_back(std::move(c));
     return m_menu_tokens;
 }
@@ -3875,10 +3883,13 @@ bool UiInspector::on_menu(wxMenu& menu, wxWindow& owner)
     const auto             window = std::find_if(m_menu_windows.rbegin(), m_menu_windows.rend(), [&](const MenuWindow& w) {
         return w.loop == loop && (w.running || now - w.ended <= kMenuWindowGrace);
     });
-    if (window == m_menu_windows.rend())
+    const auto capture = std::find_if(m_menu_captures.rbegin(), m_menu_captures.rend(), [loop](const MenuCapture& c) { return c.loop == loop; });
+    // A capture still waiting for its input's menu takes it however late the input's events run: on a
+    // busy machine a click's handler can run well after the window closed.
+    const bool waiting = capture != m_menu_captures.rend() && !capture->fired;
+    if (window == m_menu_windows.rend() && !waiting)
         return false; // no call is acting in this loop: a person's menu
-    const std::string tool    = window->tool;
-    const auto        capture = std::find_if(m_menu_captures.rbegin(), m_menu_captures.rend(), [loop](const MenuCapture& c) { return c.loop == loop; });
+    const std::string tool = window != m_menu_windows.rend() ? window->tool : capture->tool;
 
     // What wxWindowBase::PopupMenu() does before it shows a menu: the menu's wxEVT_UPDATE_UI handlers,
     // which find them through the invoking window, set each item's state as a person would see it.

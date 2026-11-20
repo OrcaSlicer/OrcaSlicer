@@ -1100,6 +1100,23 @@ function fire(el, type, init) {
   return el.dispatchEvent(new Ctor(type, init));
 }
 
+// Ends an edit as a person leaving the field does. A page whose window is not in front gets no focus events, so
+// blur() fires nothing there; the field's blur and focusout are then sent by hand, so a page that commits on them
+// (a colour picker that writes its hex out in full) still sees the edit end.
+function leave(el) {
+  var left = false;
+  var seen = function () { left = true; };
+  el.addEventListener('blur', seen, true);
+  el.blur();
+  el.removeEventListener('blur', seen, true);
+  if (left)
+    return;
+  var view = viewOf(el);
+  var Ctor = view.FocusEvent || view.Event;
+  el.dispatchEvent(new Ctor('blur', {bubbles: false, composed: true}));
+  el.dispatchEvent(new Ctor('focusout', {bubbles: true, composed: true}));
+}
+
 function setNative(el, value) {
   var view = viewOf(el);
   var proto = el.localName === 'textarea' ? view.HTMLTextAreaElement.prototype :
@@ -1166,7 +1183,7 @@ function setValue(el, info, value, submit) {
     fire(target, 'input');
     fire(target, 'change');
     if (submit)
-      target.blur();
+      leave(target);
     return;
   }
   if (tag === 'input' || tag === 'textarea') {
@@ -1180,7 +1197,7 @@ function setValue(el, info, value, submit) {
     fire(target, 'input', {inputType: 'insertText', data: text});
     fire(target, 'change');
     if (submit)
-      target.blur();
+      leave(target);
     return;
   }
   if (target.isContentEditable) {
@@ -1201,7 +1218,7 @@ function setValue(el, info, value, submit) {
       fire(target, 'input', {inputType: 'insertText', data: t});
     }
     if (submit)
-      target.blur();
+      leave(target);
     return;
   }
   fail('refused', 'This ' + kind + ' is not a form control; click or drag it instead');
