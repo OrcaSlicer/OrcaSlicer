@@ -80,7 +80,7 @@ jobs:
       # Load cached deps: self-hosted uses local cache first, GitHub-hosted uses cloud
       - name: load cached deps (self-hosted local)
         id: cache_deps_local
-        if: ${{ false }}
+        if: ${{ false && !inputs.macos-combine-only }}
         uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/${{ inputs.cache-path }}
@@ -94,7 +94,7 @@ jobs:
 
       - name: load cached deps (GitHub-hosted cloud)
         id: cache_deps
-        if: ${{ !false }}
+        if: ${{ !inputs.macos-combine-only }}
         uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/${{ inputs.cache-path }}
