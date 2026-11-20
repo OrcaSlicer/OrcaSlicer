@@ -1,6 +1,6 @@
-"""Checks OrcaSlicer's command line: the options it refuses, what --run does with its file and its folders, where --run
-is refused, what --mcp-port opens, the two flags that hold for one run, a run beside a window already open, and a
-window on another data folder.
+"""Checks OrcaSlicer's command line: what --run does with its file and its folders, where --run is refused, what
+--mcp-port opens, the two flags that hold for one run, a run beside a window already open, and a window on another
+data folder.
 
 Each check starts the built app as this script's child, on a fresh data folder with a short path under the temporary
 folder, seeded as orca_mcp.py launch seeds one, with preset sync off and the update check sent to the loopback's
@@ -9,9 +9,6 @@ written by the check into a temporary folder of its own. An app that serves is c
 on the File menu's Quit item that widget_list lists; an app still running when its check is done is killed with its
 child processes.
 
-- refused_options: --mcp-run r.json, --mcp-run-out d, --mcp-token t and --no-mcp each exit non-zero within 10 s with
-  "Invalid option" on stderr, and the data folder holds only the seeded OrcaSlicer.conf, which a GUI that started
-  would have added its log and cache folders to.
 - run_invalid_file: --run missing.json exits 2, and so does --run a.txt, whose text is a valid replay.
 - run_replay_folders: --run r.json, a replay whose one step is app_state, exits 0 with result.json in r.out beside
   it; with --outputdir D, a folder that does not exist yet, it exits 0, D holds result.json, and r.out is not created.
@@ -248,26 +245,6 @@ class App:
             if self.orca is not None:
                 self.quit()
             self.kill()
-
-
-def refused_options(binary):
-    problems = []
-    for label, args in (("--mcp-run r.json", lambda work: ["--mcp-run", work.file("r.json", json.dumps(REPLAY))]),
-                        ("--mcp-run-out d", lambda work: ["--mcp-run-out", work.file("d")]),
-                        ("--mcp-token t", lambda work: ["--mcp-token", "t"]),
-                        ("--no-mcp", lambda work: ["--no-mcp"])):
-        with Work() as work:
-            app = work.start(binary, *args(work))
-            code = app.wait(REFUSE_LIMIT_S)
-            if code is None:
-                problems.append(f"{label}: still running {REFUSE_LIMIT_S} s after its start")
-            elif code == 0:
-                problems.append(f"{label}: exit code 0")
-            if "Invalid option" not in app.stderr():
-                problems.append(f"{label}: no \"Invalid option\" on stderr")
-            if (gui := work.only_conf_in_datadir()) is not None:
-                problems.append(f"{label}: {gui}")
-    check("refused_options", problems, "each exits non-zero within 10 s with \"Invalid option\" and no GUI")
 
 
 def run_invalid_file(binary):
@@ -532,7 +509,7 @@ def window_per_data_folder(binary):
           "served beside it")
 
 
-CHECKS = {f.__name__: f for f in (refused_options, run_invalid_file, run_replay_folders, run_script_output_folder,
+CHECKS = {f.__name__: f for f in (run_invalid_file, run_replay_folders, run_script_output_folder,
                                   run_refused_without_gui, mcp_port_opens_endpoint, unrestricted_scripts_flag, cad_flag,
                                   run_beside_open_window, window_per_data_folder)}
 

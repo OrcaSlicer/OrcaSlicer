@@ -4,16 +4,15 @@ The design of this area's sweep tests. The rules every entry follows, the grades
 in [TESTS.md](../TESTS.md).
 
 ## `test_command_line`
-`test_command_line.py` · Python, 10 checks
+`test_command_line.py` · Python, 9 checks
 
-**Tests:** OrcaSlicer's own command line. Each case starts the app as the test's child on a new data folder of its own (`launch: own`, `port-13694` lock, and the fixed port 13693 for a second window). It covers refused legacy options, `--run`'s exit codes and output folders for a replay and a script, `--run` refused beside a CLI action, `--mcp-port` opening the server, `--unrestricted-scripts` and `--cad` holding for one run only, `--run` beside a window already open, and single-instance hand-over per data folder.
+**Tests:** OrcaSlicer's own command line. Each case starts the app as the test's child on a new data folder of its own (`launch: own`, `port-13694` lock, and the fixed port 13693 for a second window). It covers `--run`'s exit codes and output folders for a replay and a script, `--run` refused beside a CLI action, `--mcp-port` opening the server, `--unrestricted-scripts` and `--cad` holding for one run only, `--run` beside a window already open, and single-instance hand-over per data folder.
 
 **Starts from:** Data folders of its own, a new one per case, never a job's shared folder: `seed_datadir()` with the default printer, the Generic Klipper Printer 0.4 nozzle, with preset sync off and the update check sent to a port nothing answers, then the case's own conf values. No check reads a preset, and nothing here is a Bambu Lab printer's own. Its first start copies the Custom vendor's and the Orca Filament Library's profiles only (a Klipper folder was ready about 8 s after the launch on Windows, measured), well inside the 120 s limits.
 
 **Leaves:** Nothing: each case's folder is deleted when the case ends, retried while WebView2's processes let go of its files.
 
 **Decides by:** Exits 1 when any check prints FAIL. Each check collects problems from exit codes, stderr text, files on disk and a few MCP reads.
-- `refused_options`: `--mcp-run`, `--mcp-run-out`, `--mcp-token` and `--no-mcp` each exit non-zero within 10 s, with "Invalid option" on stderr. The data folder holds only `OrcaSlicer.conf`.
 - `run_invalid_file`: the exit code is exactly 2 for a missing `.json` and for a `.txt`.
 - `run_replay_folders`, `run_script_output_folder`: each run exits 0. `result.json` is in `r.out`, or only in `--outputdir`. Exactly one `.png` lands in `--outputdir` or in `<datadir>/automation/out`, none in the other, and `<datadir>/mcp/out` does not exist.
 - `run_refused_without_gui`: the exit code is -2 or 254, stderr has "--run cannot be combined with <option>", and the data folder holds only the conf and `result.json`.
@@ -25,7 +24,7 @@ in [TESTS.md](../TESTS.md).
 
 **Not checked:**
 - Outside `cad_flag`, the exit code `App.quit()` returns is dropped, so a crash or hang on File > Quit fails no other check.
-- `refused_options` accepts any non-zero code, and `run_invalid_file` any cause of exit 2. `run_refused_without_gui` says the refusal's reason goes to `result.json` but never reads it. `run_replay_folders` checks that `result.json` exists, not what it says.
+- `run_invalid_file` accepts any cause of exit 2. `run_refused_without_gui` says the refusal's reason goes to `result.json` but never reads it. `run_replay_folders` checks that `result.json` exists, not what it says.
 - `unrestricted_scripts_flag` takes exit 1 without the flag as the refusal. Any other script failure also exits 1, but the same script passed with the flag.
 - `run_beside_open_window` reads nothing in the first window after the run; what shows the run stayed out of it is the run's own `result.json` and exit code.
 - On Linux, `window_per_data_folder` checks only the exit code, not that the first window loaded the model. The Windows-only spellings never run elsewhere, and the check stops at the first spelling that fails.

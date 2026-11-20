@@ -168,8 +168,8 @@ the single-instance preference says, and it is refused with an action or `--down
 no GUI.
 
 `test_command_line.py [--bin PATH] [CHECK ...]` checks that command line, starting the built app as its own
-child on fresh data folders: that the options it does not have are refused before any GUI starts, `--run`'s exit
-codes and folders, its refusal beside an action or `--downward-check`, that `--mcp-port` alone opens the server,
+child on fresh data folders: `--run`'s exit codes and folders, its refusal beside an action or `--downward-check`
+before any GUI starts, that `--mcp-port` alone opens the server,
 that `--unrestricted-scripts` and `--cad` hold for the run without writing the configuration, and a run beside a
 window already open on the same data folder. It prints one line per check and takes about two to three minutes.
 

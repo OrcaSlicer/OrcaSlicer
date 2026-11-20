@@ -4756,7 +4756,7 @@ and `app_state.camera`, and a fit after the window was sized while no 3D view sh
 `tools/mcp/test_send_gcode.py` `printer_send`, `print_start`, `printer_test_host` and `app_state.uploads` against
 a stub print host that answers 200 or 500, `tools/mcp/test_printers.py` `printer_status` and the job
 commands' refusals with no printer connected, and the extruders of a two-extruder printer it installs,
-`tools/mcp/test_command_line.py` the command line's options (the refused ones, `--run`'s exit codes, folders and
+`tools/mcp/test_command_line.py` the command line's options (`--run`'s exit codes, folders and
 refusals, `--mcp-port`, the two run flags, and a run beside a window already open),
 `tools/mcp/test_runtime_lifecycle.py` the app's exit with a job, a recording or a call no stop interrupts still
 running and with the endpoint never opened, the server switched off and on during a call, and the GUI
