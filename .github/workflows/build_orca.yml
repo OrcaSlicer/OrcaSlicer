@@ -267,15 +267,16 @@ jobs:
           ./build_release_macos.sh -s -n -x -j 3 -a ${{ inputs.arch }} -t 10.15 ${{ inputs.arch == 'arm64' && '-T' || '' }}
 
       - name: Pack unit tests mac
-        if: runner.os == 'macOS' && !inputs.macos-combine-only && inputs.arch == 'arm64'
+        if: runner.os == 'macOS' && !inputs.macos-combine-only && (inputs.arch == 'arm64' || inputs.arch == 'x86_64')
         working-directory: ${{ github.workspace }}
-        run: tar -cvf build_tests.tar build/arm64/tests
+        run: |
+            tar -cvf build_tests.tar build/${{ inputs.arch }}/tests
 
       - name: Upload Test Artifact mac
-        if: runner.os == 'macOS' && !inputs.macos-combine-only && inputs.arch == 'arm64'
+        if: runner.os == 'macOS' && !inputs.macos-combine-only && (inputs.arch == 'arm64' || inputs.arch == 'x86_64')
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ github.sha }}-tests-macos-arm64
+          name: ${{ github.sha }}-tests-macos-${{ inputs.arch }}
           overwrite: true
           path: build_tests.tar
           retention-days: 5
