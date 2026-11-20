@@ -271,7 +271,6 @@ class CadGui:
         self._H = None     # plane -> canvas pixel
         self._size = None  # (w, h) of the canvas _H maps onto
         self.gl_per_px = 1.0  # the canvas's GL pixels per click pixel, from reset_view()'s camera_state
-        self.full_calibrations = 0  # the maps calibrate() fitted from five probes, not reused
         self._maps = {}  # _view_key() -> (_H, safe) fitted on that view
 
     # ------------------------------------------------------------ results
@@ -718,7 +717,6 @@ class CadGui:
                 xs, ys = [e["p"][0] for e in new[:4]], [e["p"][1] for e in new[:4]]
                 self.safe = (min(xs), max(xs), min(ys), max(ys))
                 self._size = (w, h)
-                self.full_calibrations += 1
                 # A copy: _follow_canvas() replaces _H in Constrain mode, and the stored map stays the fitted one.
                 self._maps[key] = (list(self._H), self.safe)
                 return

@@ -41,25 +41,26 @@
     {"tool": "tool_call", "args": {"tool": "body_mass_properties", "args": {"body": 0}},
      "expect": {"/result/volume": {"gt": 600.0, "lt": 614.0}}},
 
-    // A spring: a helix of radius 10, pitch 5, six turns; a 1.5 mm wire drawn across its start on XZ.
+    // A spring: a helix of radius 10, pitch 5, six turns; a 1.5 mm wire drawn across its start on XZ, and a square
+    // wire, 2 x 2, beside it. Both wires are sketched before the first sweep, whose seconds of rebuild each commit
+    // after it would repeat.
     {"tool": "tool_call", "args": {"tool": "new_design", "args": {"discard_changes": true}}},
     {"tool": "tool_call", "args": {"tool": "helix", "args": {"radius": 10, "pitch": 5, "height": 30}},
      "expect": {"/result/helix_index": {"eq": 0}, "/result/tangent/1": {"ge": 0.9968, "le": 0.9969}, "/result/tangent/2": {"ge": 0.0793, "le": 0.0794}}},
     {"tool": "tool_call", "args": {"tool": "sketch_create", "args": {"plane": "XZ"}}},
     {"tool": "tool_call", "args": {"tool": "sketch_draw", "args": {"type": "circle_center", "center": [10, 0], "radius": 1.5}}},
     {"tool": "tool_call", "args": {"tool": "sketch_finish"}, "expect": {"/result/sketch_index": {"eq": 1}}},
+    {"tool": "tool_call", "args": {"tool": "sketch_create", "args": {"plane": "XZ"}}},
+    {"tool": "tool_call", "args": {"tool": "sketch_draw", "args": {"type": "rectangle_2_point", "p0": [9, -1], "p1": [11, 1]}}},
+    {"tool": "tool_call", "args": {"tool": "sketch_finish"}, "expect": {"/result/sketch_index": {"eq": 2}}},
     {"tool": "tool_call", "args": {"tool": "sweep", "args": {"sketch": 1, "path": 0}},
-     "expect": {"/result/sweep_index": {"eq": 2}, "/result/body": {"eq": 0}, "/result/operation": {"eq": "new_body"}}},
+     "expect": {"/result/sweep_index": {"eq": 3}, "/result/body": {"eq": 0}, "/result/operation": {"eq": "new_body"}}},
     // pi 1.5^2 x the helix's 378.19 mm x 0.99685, the XZ plane's tilt off the helix's normal plane.
     {"tool": "tool_call", "args": {"tool": "body_mass_properties", "args": {"body": 0}},
      "expect": {"/result/is_solid": {"eq": true}, "/result/volume": {"gt": 2638.0, "lt": 2691.0}}},
-    // A square wire beside it, 2 x 2.
-    {"tool": "tool_call", "args": {"tool": "sketch_create", "args": {"plane": "XZ"}}},
-    {"tool": "tool_call", "args": {"tool": "sketch_draw", "args": {"type": "rectangle_2_point", "p0": [9, -1], "p1": [11, 1]}}},
-    {"tool": "tool_call", "args": {"tool": "sketch_finish"}, "expect": {"/result/sketch_index": {"eq": 3}}},
     // A sweep is not a path.
-    {"tool": "tool_call", "args": {"tool": "sweep", "args": {"sketch": 3, "path": 2}}, "optional": true},
-    {"tool": "tool_call", "args": {"tool": "sweep", "args": {"sketch": 3, "path": 0}},
+    {"tool": "tool_call", "args": {"tool": "sweep", "args": {"sketch": 2, "path": 3}}, "optional": true},
+    {"tool": "tool_call", "args": {"tool": "sweep", "args": {"sketch": 2, "path": 0}},
      "expect": {"/result/sweep_index": {"eq": 4}, "/result/body": {"eq": 1}, "/result/bodies": {"eq": 2}}},
     {"tool": "tool_call", "args": {"tool": "body_mass_properties", "args": {"body": 1}},
      "expect": {"/result/is_solid": {"eq": true}, "/result/volume": {"gt": 1492.0, "lt": 1524.0}}},

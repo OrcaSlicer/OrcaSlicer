@@ -7,13 +7,15 @@ them.
 
 The plates the slicing calls and actions slice, an empty project and a plate that fails validation among them; the
 statistics a slice reports; the Preview's tables, legend and layers, on a plate it shows, on one it has not shown and
-on a G-code file opened for viewing; height range modifiers, variable layer heights and a plate's layer G-codes, each
-read in the exported G-code and kept by a 3MF; the commands that take a plate index; the display switches and the
-sidebar of view_set; and app_state's account, network plug-in and configuration folder. After every step the test
-reads the state back through another tool and compares it with the values the entry writes out. It runs on the
-default printer, the Generic Klipper Printer 0.4 nozzle, on a data folder earlier tests used: it sets the presets, the
-preference and the view its checks read before its first scenario. It exits 0 when every check passes. Naming
-scenarios (by the method names of SlicePreviewTest.SCENARIOS) runs those alone, for work on one of them.
+on a G-code file opened for viewing; a legend row clicked, canvas captures taken right after a layer or view type
+change, and view_set's refusals of the Preview's fields; height range modifiers, variable layer heights and a plate's
+layer G-codes, each read in the exported G-code and kept by a 3MF; the commands that take a plate index; the display
+switches and the sidebar of view_set; and app_state's account, network plug-in and configuration folder. After every
+step the test reads the state back through another tool and compares it with the values the entry writes out. It runs
+on the default printer, the Generic Klipper Printer 0.4 nozzle, on a data folder earlier tests used: it sets the
+presets, the preference and the view its checks read before its first scenario. It exits 0 when every check passes.
+Naming scenarios (by the method names of SlicePreviewTest.SCENARIOS) runs those alone, each after the scenario it goes
+on from where SlicePreviewTest.AFTER names one, for work on one of them.
 """
 
 import json
@@ -26,7 +28,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, run, slot_colours, start, wait  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, obj_facts, run, slot_colours, start, wait  # noqa: E402
 
 ROW = re.compile(r'^"(.*)" (\d+)( \*)?( L)?( S)?$')
 CUBE = {"shape": "cube", "size": [20, 20, 20]}
@@ -165,8 +167,11 @@ def toolpaths_z(path):
 
 
 class SlicePreviewTest:
-    SCENARIOS = ["nothing", "routes", "statistics", "tables", "not_shown", "layers", "height_ranges",
+    SCENARIOS = ["nothing", "routes", "not_shown", "statistics", "tables", "layers", "legend_click", "height_ranges",
                  "variable_height", "layer_gcode", "plate_index", "view_switches", "app_info"]
+    # The scenarios that go on from the plates and slice the one before them leaves, which runs first when one of them
+    # is named alone.
+    AFTER = {"not_shown": "routes", "layers": "tables"}
 
     def __init__(self, client, session, folder):
         self.c = client
@@ -174,6 +179,8 @@ class SlicePreviewTest:
         self.session = session
         self.folder = folder
         self.files = 0
+        # Plate 1's estimate in the slice the routes end with, which the plate the Preview has not shown goes on from.
+        self.time_1 = None
 
     # ---- Calls and reads ----
 
@@ -372,8 +379,13 @@ class SlicePreviewTest:
         self.plates_are(f"{s} 9", '"" 2 *')
         self.t.refused(f"{s} 10: the export is refused", lambda: self.c.call("project_export", format="gcode", path=path),
                        code="slice_has_errors")
+        sliced_file = self.path("gcode.3mf")
+        self.t.refused(f"{s} 10: the sliced file is refused",
+                       lambda: self.c.call("project_export", format="sliced_3mf", path=sliced_file),
+                       code="sliced_file_not_written")
         self.plates_are(f"{s} 10", '"" 2 *')
-        self.no_file(f"{s} 10", path)
+        self.no_file(f"{s} 10: the G-code", path)
+        self.no_file(f"{s} 10: the sliced file", sliced_file)
         for name, call in [("a layer", lambda: self.c.call("view_set", layer=10)),
                            ("a layer range", lambda: self.c.call("view_set", layer_range=[2, 5])),
                            ("a height", lambda: self.c.call("view_set", layer_z=5.0)),
@@ -410,10 +422,12 @@ class SlicePreviewTest:
         self.t.equal(f"{s} 3: the snapshots", self.snapshots(), ["Transform object"])
         self.run("plate_select", plate=0)
         path = self.path("gcode")
+        self.snapshots()
         self.t.refused(f"{s} 4: the export is refused", lambda: self.c.call("project_export", format="gcode", path=path),
                        code="plate_not_sliced")
         self.plates_are(f"{s} 4", '"" 1 *', '"" 1 S')
         self.no_file(f"{s} 4", path)
+        self.t.equal(f"{s} 4: a refused export takes no snapshot", self.snapshots(), [])
         self.t.refused(f"{s} 5: the statistics are refused", lambda: self.c.call("plate_slice_stats"),
                        words="Plate 0 has no up-to-date slice")
         self.plates_are(f"{s} 5", '"" 1 *', '"" 1 S')
@@ -427,7 +441,9 @@ class SlicePreviewTest:
         self.slice_is(f"{s} 7: the current plate alone", self.action(SLICE_AND_PREVIEW), [(1, "ok")])
         self.plates_are(f"{s} 7", '"" 1', '"" 1 * S')
         self.t.equal(f"{s} 7: the snapshots", self.snapshots(), ["Transform object", "Transform object"])
-        self.slice_is(f"{s} 8", self.action(SLICE_ALL), [(0, "ok"), (1, "ok")])
+        reply = self.action(SLICE_ALL)
+        self.slice_is(f"{s} 8", reply, [(0, "ok"), (1, "ok")])
+        self.time_1 = self.plate_of(reply, 1).get("time_s")
         self.plates_are(f"{s} 8", '"" 1 S', '"" 1 * S')
         g = self.export(f"{s} 9")
         self.t.equal(f"{s} 9: the G-code's layers", (g["header"].get("total layer number"), len(g["layers"])), (100, 100))
@@ -595,14 +611,8 @@ class SlicePreviewTest:
 
     def not_shown(self):
         s = "a plate the Preview has not shown"
-        self.start(s)
-        self.slots(s, 1)
-        self.cube(name="a")
-        self.run("plate_add")
-        self.cube(name="b", plate=1)
-        reply = self.run("plate_slice", plates="all")
-        self.slice_is(f"{s}: the start", reply, [(0, "ok"), (1, "ok")])
-        time_1 = self.plate_of(reply, 1).get("time_s")
+        # The routes' two plates, both sliced by Slice All Plates, plate 1 current.
+        time_1 = self.time_1
         self.plates_are(f"{s}: the start", '"" 1 S', '"" 1 * S')
         self.run("view_set", tab="prepare")
         self.run("plate_select", plate=0)
@@ -653,9 +663,7 @@ class SlicePreviewTest:
 
     def layers(self):
         s = "the Preview's layers"
-        self.start(s)
-        self.cube()
-        self.slice_is(f"{s}: the start", self.run("plate_slice"), [(0, "ok")])
+        # The tables' cube, whose slice the Preview shows.
         self.plates_are(f"{s}: the start", '"" 1 * S')
         self.reply_layers(f"{s}: the start", self.run("view_set", layer_range=[1, 100]), [1, 100, 100])
         self.layers_shown(f"{s}: the start", 1, 100)
@@ -702,9 +710,19 @@ class SlicePreviewTest:
         self.layers_shown(f"{s} 17", 20, 25)
         self.reply_layers(f"{s} 18", self.run("view_set", layer_range=[1, 100]), [1, 100, 100])
         path = self.path("obj")
-        self.run("project_export", format="toolpaths_obj", path=path, overwrite=True)
-        lo, hi = toolpaths_z(path)
-        self.t.check(f"{s} 18: the toolpaths span the print", lo is not None and lo <= 0.2 and hi >= 19.8, (lo, hi))
+        reply = self.run("project_export", format="toolpaths_obj", path=path, overwrite=True)
+        self.t.equal(f"{s} 18: the reply's bytes", reply.get("bytes"),
+                     os.path.getsize(path) if os.path.exists(path) else "no file")
+        mtl = os.path.splitext(os.path.basename(path))[0] + ".mtl"
+        self.t.check(f"{s} 18: the material library is written beside it",
+                     os.path.exists(os.path.join(self.folder, mtl)), mtl)
+        facts = obj_facts(path)
+        self.t.equal(f"{s} 18: the OBJ's first line and material library", (facts["first"], facts["mtllib"]),
+                     ("# G-Code Toolpaths", f"mtllib ./{mtl}"))
+        self.t.check(f"{s} 18: the OBJ has vertices and faces", facts["v"] > 0 and facts["f"] > 0, facts)
+        lo, _ = toolpaths_z(path)
+        self.t.check(f"{s} 18: the toolpaths start at the first layer", lo is not None and lo <= 0.2, lo)
+        self.t.near(f"{s} 18: the OBJ's highest vertex, the top layer plus half its height", facts["top"], 20.1, 0.01)
         self.layers_shown(f"{s} 18", 1, 100)
         self.run("view_set", tab="prepare")
         self.reply_layers(f"{s} 19", self.run("view_set", layer=40), [1, 40, 100])
@@ -720,6 +738,97 @@ class SlicePreviewTest:
         self.plates_are(f"{s} 21: after the refusals", '"" 0 *')
         self.preview_is(f"{s} 21", preview=None)
 
+    def legend(self):
+        return ((self.c.call("plate_slice_stats", include=["view"]).get("view") or {}).get("legend") or {}).get(
+            "features", {})
+
+    def legend_click(self):
+        s = "a legend row clicked"
+        self.start(s)
+        self.slots(s, 1)
+        self.t.refused(f"{s} 1: legend rows need a slice", lambda: self.c.call("view_set", legend={"travel": False}),
+                       words="slice first")
+        self.plates_are(f"{s} 1", '"" 0 *')
+        self.preview_is(f"{s} 1", preview=None)
+        self.cube()
+        reply = self.run("plate_slice")
+        self.slice_is(f"{s} 2", reply, [(0, "ok")])
+        self.t.check(f"{s} 2: the slice has no silent-mode estimate", "silent_time_s" not in self.plate_of(reply, 0),
+                     self.plate_of(reply, 0))
+        # The pick an earlier test or scenario left in the configuration is any view type, so the checked picks start
+        # from Line Type.
+        self.reply_layers(f"{s} 2", self.run("view_set", view_type="feature_type", layer_range=[1, 100]), [1, 100, 100])
+        self.t.equal(f"{s} 2: Line Type is kept", self.conf("preview_last_view_type", "feature_type"), "feature_type")
+        # The snapshot draws the legend first, since a window the desktop hides may not have drawn it since the slice.
+        self.c.call("widget_list", query="Sparse infill")
+        self.run("widget_click", target={"imgui_name": "Sparse infill"})
+        self.t.equal(f"{s} 3: a click on its row hides Sparse infill", self.legend().get("Sparse infill"), False)
+        self.run("view_set", view_type="speed")
+        self.t.equal(f"{s} 4: the pick is kept", self.conf("preview_last_view_type", "speed"), "speed")
+        self.t.equal(f"{s} 4: another view type keeps it hidden", self.legend().get("Sparse infill"), False)
+        self.layers_shown(f"{s} 4", 1, 100, view_type="speed")
+        self.run("view_set", view_type="feature_type")
+        self.t.equal(f"{s} 5: Line Type shows it again", self.legend().get("Sparse infill"), True)
+        self.t.equal(f"{s} 5: Line Type is kept", self.conf("preview_last_view_type", "feature_type"), "feature_type")
+
+        # Each change is captured twice. One replay runs the calls back to back, which seldom leaves the app an idle
+        # frame between a change and its first capture to draw the change before the capture does. The legend click
+        # left ImGui's highlight on its row until the pointer moves, which on a busy machine can come between two
+        # captures, so the pointer first moves to the empty space above the plate, as a person's does after a click.
+        self.run("mouse_gesture", action="move", x=430, y=80)
+        out_dir = os.path.join(self.folder, "captures")
+        os.makedirs(out_dir, exist_ok=True)
+        changes = [{"layer_range": [1, 40]}, {"view_type": "speed"}, {"layer_range": [64, 64]}, {"view_type": "height"},
+                   {"layer_range": [20, 100]}, {"view_type": "fan_speed"}, {"layer_range": [1, 100]},
+                   {"view_type": "feature_type"}]
+        steps = []
+        for i, change in enumerate(changes):
+            steps.append({"tool": "view_set", "args": change})
+            steps += [{"tool": "window_screenshot", "args": {"target": "canvas", "save_path": f"${{out_dir}}/{i}{shot}.png",
+                                                              "overwrite": True, "include_image": False}}
+                      for shot in "ab"]
+        ran = self.run("replay_run", replay={"orca_replay_version": "0.2.0", "name": "captures after view changes",
+                                             "steps": steps}, out_dir=out_dir)
+        if self.t.check(f"{s} 6: the capture replay passes", ran.get("passed") is True, ran):
+            def png(name):
+                with open(os.path.join(out_dir, name), "rb") as f:
+                    return f.read()
+            a = [png(f"{i}a.png") for i in range(len(changes))]
+            b = [png(f"{i}b.png") for i in range(len(changes))]
+            stale = [c for c, first, second in zip(changes, a, b) if first != second]
+            unchanged = [c for c, first, before in zip(changes[1:], a[1:], b) if first == before]
+            self.t.equal(f"{s} 6: a capture right after a change shows it settled", stale, [])
+            self.t.equal(f"{s} 6: every change shows in the capture", unchanged, [])
+        self.layers_shown(f"{s} 6", 1, 100, view_type="feature_type")
+
+        self.reply_layers(f"{s} 7", self.run("view_set", layer_z=1.05), [1, 6, 100], [0.2, 1.2])
+        self.layers_shown(f"{s} 7: a height between two tops shows up to the upper one", 1, 6)
+        self.reply_layers(f"{s} 8", self.run("view_set", layer_range=[60, 20]), [60, 60, 100], [12.0, 12.0])
+        self.layers_shown(f"{s} 8: a range given backwards shows its first layer alone", 60, 60)
+        # L switches the layer slider's one-layer mode.
+        self.c.call("keyboard_press", keys="L")
+        self.reply_layers(f"{s} 9", self.run("view_set", layer_range=[2, 5]), [2, 5, 100], [0.4, 0.4])
+        self.layers_shown(f"{s} 9: one-layer mode shows the range's first layer", 2, 2)
+        self.c.call("keyboard_press", keys="L")
+        self.layers_shown(f"{s} 10: leaving one-layer mode shows every layer", 1, 100, view_type="feature_type")
+
+        refusals = [
+            ("a height above the top layer", {"layer_z": 80}, ["above the top layer (20.0 mm)"]),
+            ("layer with layer_z", {"layer": 3, "layer_z": 1.0}, ["not both"]),
+            ("an unknown row, named with the print's rows", {"view_type": "speed", "legend": {"Infill": False}},
+             ["Sparse infill", "travel"]),
+            ("a value that is not true or false", {"legend": {"travel": "yes"}}, ["true (show) or false (hide)"]),
+            ("silent mode without its own estimate", {"time_mode": "silent"}, ["no separate silent-mode estimate"]),
+        ]
+        for name, args, words in refusals:
+            text = self.t.refused(f"{s} 11: {name} is refused", lambda: self.c.call("view_set", **args), words=words[0])
+            for more in words[1:]:
+                self.t.check(f"{s} 11: {name}: the refusal names {more}", text is not None and more in text, text)
+            self.layers_shown(f"{s} 11: after {name}", 1, 100, view_type="feature_type")
+            self.t.equal(f"{s} 11: after {name}: the legend", self.legend().get("Sparse infill"), True)
+        self.t.equal(f"{s} 12: normal mode is always offered", self.run("view_set", time_mode="normal").get("time_mode"),
+                     "normal")
+
     def ranges(self):
         objects = self.c.call("object_list", limit=500)["plates"][0]["objects"]
         return objects[0].get("layer_config_ranges") if objects else "no object"
@@ -729,10 +838,6 @@ class SlicePreviewTest:
         self.start(s)
         self.slots(s, 1)
         self.cube()
-        self.slice_is(f"{s}: the control", self.run("plate_slice"), [(0, "ok")])
-        control = self.export(f"{s}: the control")
-        L = control["layers"][29]["features"].get("Sparse infill", 0) if len(control["layers"]) >= 30 else 0
-        self.t.check(f"{s}: the control's layer 30 has sparse infill", L > 0, L)
         self.t.equal(f"{s}: the cube has no ranges", self.ranges(), None)
 
         def R(lo, hi, **values):
@@ -787,8 +892,8 @@ class SlicePreviewTest:
                      [(l["z"], l["height"]) for l in layers if l["z"] >= 10.2 - 1e-3 and abs(l["height"] - 0.1) >= 1e-3])
         self.t.equal(f"{s} 8: as many layers as the slice", len(layers), count)
         at6 = [l for l in layers if abs(l["z"] - 6.0) < 1e-3]
-        dense = at6[0]["features"].get("Sparse infill", 0) if at6 else 0
-        self.t.check(f"{s} 8: layer 30 has 40 % infill", layers[29:30] == at6[:1] and dense >= 1.8 * L, (dense, L))
+        # Compared with step 18's control, the same cube sliced without ranges.
+        dense = at6[0]["features"].get("Sparse infill", 0) if at6 and layers[29:30] == at6[:1] else 0
         ranges_are(f"{s} 8", after3)
         refusals = [
             (9, lambda: self.c.call("object_set_height_ranges", object=0,
@@ -833,8 +938,9 @@ class SlicePreviewTest:
         self.t.check(f"{s} 18: 100 layers of 0.2 mm", len(layers) == 100 and all(abs(l["height"] - 0.2) < 1e-3 for l in layers),
                      len(layers))
         self.t.equal(f"{s} 18: no tool line", [l["tools"] for l in layers if l["tools"]], [])
-        sparse = layers[29]["features"].get("Sparse infill", 0) if len(layers) >= 30 else 0
-        self.t.check(f"{s} 18: layer 30's infill is the control's", abs(sparse - L) <= 0.1 * L, (sparse, L))
+        L = layers[29]["features"].get("Sparse infill", 0) if len(layers) >= 30 else 0
+        self.t.check(f"{s} 18: the control's layer 30 has sparse infill", L > 0, L)
+        self.t.check(f"{s} 8: layer 30 has 40 % infill", L > 0 and dense >= 1.8 * L, (dense, L))
         ranges_are(f"{s} 18", None)
 
     def profile(self):
@@ -1075,6 +1181,13 @@ class SlicePreviewTest:
                            lambda: self.c.call("project_export", format="stl", path=path, plates=plate),
                            code="no_such_plate", words=missing(plate))
             unchanged(f"{s} 2: plate {plate}")
+        # A G-code export checks the plate itself, before the checks it makes on the plate named.
+        gcode_path = self.path("gcode")
+        self.t.refused(f"{s} 2: the G-code export of plate 5",
+                       lambda: self.c.call("project_export", format="gcode", path=gcode_path, plates=5),
+                       code="no_such_plate", words=missing(5))
+        unchanged(f"{s} 2: the G-code export")
+        self.no_file(f"{s} 2: the G-code export", gcode_path)
         for plate in (5, -1):
             self.t.refused(f"{s} 3: the arrange of plate {plate}", lambda: self.c.call("object_arrange", plates=plate),
                            words=missing(plate))
@@ -1217,7 +1330,6 @@ class SlicePreviewTest:
             reply = self.run("view_set", **{name: default})
             self.t.equal(f"{s} {step}: {name} {default}: the reply", reply.get(name), default)
             view_is(f"{s} {step}: {name} {default}", V())
-            capture_is(f"{s} {step}: {name} {default}", True)
             if key:
                 self.t.equal(f"{s} {step}: {name} {default}: kept", self.conf(key, default), default)
 
@@ -1344,8 +1456,9 @@ class SlicePreviewTest:
     def run_all(self, only=()):
         try:
             self.t.scenario("the start", self.starts_from)
+            wanted = set(only) | {self.AFTER[name] for name in only if name in self.AFTER}
             for name in self.SCENARIOS:
-                if not only or name in only:
+                if not only or name in wanted:
                     self.t.scenario(name, getattr(self, name))
             self.c.call("dialog_auto_answer", rules=[])
             self.run("project_new", discard_changes=True)

@@ -2268,22 +2268,21 @@ none is registered with the feature off, which call opens a tool and which runs,
 plane resolver, the rollbacks, and the tools through their public seams (`cad_sketch_extrude()`,
 `cad_sketch_call()`, `cad_body_describe()`, `cad_thread()` and the rest), which take a `CadDocument` or a
 bare `DesignSketchTool` and need no Design panel; `scripts/CAD/test_gen_offer_table.py` checks the
-generator's refusals. The replays run on an instance that `tools/mcp/orca_mcp.py launch --cad` starts:
-`tools/mcp/tests/cad_sketch_to_solid.json`, `cad_sketch_edit.json`, `cad_topology_targets.json`,
-`cad_features.json`, `cad_doc.json` and `cad_canvas.json` (the Design view as a canvas target, its
-key hook, and the dirty flag). `tools/mcp/test_cad_replay.py` records a session with
-failed calls and `generation`s, exports it and replays it to the same features and mass
-properties; `tools/mcp/test_cad_slow_build.py` checks the window during a guarded rebuild;
-`tools/mcp/test_cad_failed_job.py` exports a session whose call failed after its reply budget
-(a hole that misses a slow-to-rebuild coil), which leaves it out, and replays it.
-`tools/mcp/test_cad_examples.py` runs every example, `undo`'s and `redo`'s too, each on a fresh design,
-and fails an example when a call fails or its result has `ok` false, an error, or is the person's form.
+generator's refusals. `tools/mcp/test_cad_replays.py` runs on an instance that `tools/mcp/orca_mcp.py launch
+--cad` starts, in parts: the replays `tools/mcp/tests/cad_sketch_to_solid.json`, `cad_sketch_edit.json`,
+`cad_topology_targets.json`, `cad_features.json`, `cad_doc.json` and `cad_canvas.json` (the Design view as a canvas
+target, its key hook, and the dirty flag), each with `replay_run`; a session recorded with failed calls and
+`generation`s, exported and replayed to the same features and mass properties; the window during a guarded
+rebuild; and every example, `undo`'s and `redo`'s too, each on a fresh design, failing an example when a call fails
+or its result has `ok` false, an error, or is the person's form. `tools/mcp/test_cad_failed_job.py` exports a
+session whose call failed after its reply budget (a hole that misses a slow-to-rebuild coil), which leaves it out,
+and replays it.
 `tools/mcp/test_cad_commands.py` checks in the running app what the commands' arguments do where the Design
 panel's own functions answer: the words, `sketch_draw` against each shape's tool, `sketch_edit`, the
 gaps' argument forms, `feature_edit`'s `refs`, `select_geometry`, `confirm_tool` and `cancel_tool`,
 `body_place`, the Boolean card a call opens, and a folded item's action picked from the Speed Dial and
-replayed. `tools/mcp/test_cad_sketching.py`, `test_cad_context_menu.py`
-and `test_cad_click_edit.py` drive the Design tab through the GUI tools as a person does (canvas gestures,
+replayed. `tools/mcp/test_cad_sketching.py` and `test_cad_context_menu.py`
+drive the Design tab through the GUI tools as a person does (canvas gestures,
 typed values, the offer menu, file pickers answered by path rules) and read the result back with `read`
 Design commands.
 
@@ -4720,29 +4719,30 @@ on a private Xvfb display (with `-noreset`, and the pointer parked in a corner s
 a screenshot); on macOS and Windows it opens the app on the desktop. It runs
 `tools/mcp/smoke_test.json`, which `--run` also runs headless. `tools/mcp/test_gizmos.py`
 checks every gizmo through the GUI tools, with auto-answers that run a button's handler and canvas targets on
-negative parts and from below the bed, `tools/mcp/test_filaments.py` a filament preset assigned to a slot by every
-route, the Auto-flush preference, object and part filaments and the project's settings,
+negative parts and from below the bed, and the gizmo commands' openings, refusals and acting calls, read back
+through `object_list`, the undo log and the saved project, `tools/mcp/test_filaments.py` a filament preset assigned
+to a slot by every route, the Auto-flush preference, object and part filaments, a slot merged into another, the
+project's settings and mixed filaments,
 `tools/mcp/test_presets.py` selecting presets by the names their selectors show, hidden ones included, saving,
 reading and comparing presets, explaining settings, per-variant entries, `changed`, reverting keys, answering the
 unsaved-changes prompts of a preset switch and a new project, deleting presets, exporting and importing presets
-with a path, and reading a preference changed in the Preferences dialog,
-`tools/mcp/test_plates.py` plates added, duplicated, named, locked, selected and deleted, what a lock keeps
-Arrange and Auto-Orient from doing, a plate's settings, the filament slot commands and the plate icons and menu,
-`tools/mcp/test_calibration.py` every calibration test, its preset answers and its towers in the G-code,
-`tools/mcp/test_slice_preview.py` what a slice slices and reports on one and two colours, `plate_slice_stats`,
-`app_state.preview` and `view_set`'s preview arguments, `tools/mcp/test_gui_tools.py` context and button menus
+with a path, reading a preference changed in the Preferences dialog, and every calibration test, its preset
+answers and its towers in the G-code, `tools/mcp/test_objects.py` plates added, duplicated, named, locked, selected
+and deleted, what a lock keeps Arrange and Auto-Orient from doing, a plate's settings, the filament slot commands
+and the plate icons and menu, `tools/mcp/test_slice_preview.py` what a slice slices and reports on one and two
+colours, `plate_slice_stats`, `app_state.preview` and `view_set`'s preview arguments, the legend combo's semantics
+of `view_set {view_type}`, a canvas screenshot straight after a layer or view type change, and the preview refusals
+of `view_set`, `tools/mcp/test_gui_tools.py` context and button menus
 listed and run without one ever showing, the Edit menu's Undo and Redo picked by their paths, object list rows,
 checklist rows, the object settings table, the print button's popup, and the preset bundle dialog, the colour
-picker (hex field and spectrum) and the setup wizard's first steps through the GUI tools alone,
-`tools/mcp/test_recording.py` a recording with clicks, a dialog and a slice, stopped and encoded, and one a replay
-ends, `tools/mcp/test_webview_modal.py` JavaScript in modal dialogs' web views, the ones
-`webview_run_javascript` is refused in and a page that closes its dialog,
+picker (hex field and spectrum) and the setup wizard's first steps and navigation through the GUI tools alone,
+and JavaScript in modal dialogs' web views, the ones `webview_run_javascript` is refused in and a page that closes
+its dialog, `tools/mcp/test_recording.py` a recording with clicks, a dialog and a slice, stopped and encoded, and
+one a replay ends,
 `tools/mcp/test_web_ui.py` every page control kind, action, refusal, locator, timeout and close of
 the MCP web fixture plugin's dialog, window, dock panel and configuration UI (side-loaded with
-`--install DATADIR`), `tools/mcp/test_set_view_preview.py` the
-legend combo's semantics of `view_set {view_type}`, a canvas screenshot straight after a layer or
-view type change, and the preview refusals of `view_set`, `tools/mcp/test_set_window.py`
-`window_set` on the main window (sized twice, moved, placed over its display's work area, maximized and,
+`--install DATADIR`), `tools/mcp/test_set_window.py` `window_list` (the main window first, the Plugins window
+and Action Replay by their refs, Preferences as a modal dialog) and `window_set` on the main window (sized twice, moved, placed over its display's work area, maximized and,
 on X11, minimized and restored from both, with a window screenshot of the size on Wayland, and the checks
 a Wayland session can't run reported SKIP), on the Plugins window by its ref and on Preferences by its
 `{label}` locator (on X11 with the main window kept under it in the X server's stacking order),
@@ -4754,23 +4754,23 @@ an orbit that keeps `look_at`, the camera Preview shares and the Design tab's ow
 and `app_state.camera`, and a fit after the window was sized while no 3D view showed,
 `tools/mcp/test_export_running_job.py` an export during and after a job that outlived its reply,
 `tools/mcp/test_send_gcode.py` `printer_send`, `print_start`, `printer_test_host` and `app_state.uploads` against
-a stub print host that answers 200 or 500, `tools/mcp/test_printer_commands.py` `printer_status` and the job
-commands' refusals with no printer connected, `tools/mcp/test_gizmo_commands.py` the gizmo commands' openings,
-refusals and acting calls, read back through `object_list`, the undo log and the saved project,
+a stub print host that answers 200 or 500, `tools/mcp/test_printers.py` `printer_status` and the job
+commands' refusals with no printer connected, and the extruders of a two-extruder printer it installs,
 `tools/mcp/test_command_line.py` the command line's options (the refused ones, `--run`'s exit codes, folders and
 refusals, `--mcp-port`, the two run flags, and a run beside a window already open),
 `tools/mcp/test_runtime_lifecycle.py` the app's exit with a job, a recording or a call no stop interrupts still
 running and with the endpoint never opened, the server switched off and on during a call, and the GUI
 instruments going off with the server,
 `tools/mcp/test_stdio_bridge.py` the stdio bridge, and
-`tools/mcp/test_recovery_under_load.py` answering a dialog while stalled clients hold every
-connection. See `tools/mcp/README.md`.
+`tools/mcp/test_runtime_calls.py` answering a dialog while stalled clients hold every
+connection, a slice cancelled before it starts, the Run Script panel out of the GUI tools' reach, refs that outlive
+their items' labels, and the UI job worker's admission. See `tools/mcp/README.md`.
 
 The commands that do a menu item's job by index, and the gaps they close, have their checks on the app.
-`tools/mcp/test_objects.py` and `test_object_structure.py`, and for the plates `tools/mcp/test_plates.py`, call the
-commands made from menu items by index and on the selection, and read each back, printable, Fix Model, Auto Drop,
-clone, reload, replace and `object_order {order}` among them; `test_files.py` checks the project's files (slots
-merged and mixed, exports of some objects, a ZIP's entries), `test_settings.py` `settings_list` and the targets of
+`tools/mcp/test_objects.py` calls the commands made from menu items by index and on the selection, the plates'
+among them, and reads each back, printable, Fix Model, Auto Drop,
+clone, reload, replace and `object_order {order}` among them; `test_files.py` checks the project's files (exports
+of some objects, a ZIP's entries), `test_settings.py` `settings_list` and the targets of
 the settings commands, `test_presets.py` `preset_list`'s filters, a plate's filament map and a nozzle variant,
 `test_slice_preview.py` `view_set`'s switches, the sidebar and the legend, and `test_call_forms.py` a call with an
 action's arguments and the forms agents write in place of the schema's. Others check the refusals and what
@@ -4779,14 +4779,14 @@ reason,
 `test_person_forms.py` the person's forms and a pick that runs in place, `test_preferences.py` the
 preferences against the dialog, `test_install_printers.py` and `test_install_filaments.py` the installs, also
 after a restart, `test_plugin_commands.py` the plugin commands against the Plugins window,
-`test_printer_extruders.py` a printer of two extruders, `test_project_open_settings.py` a project opened
+`test_project_open_settings.py` a project opened
 with its settings whatever the load-behaviour preference says, and `test_sidebar_floating.py` a floating
 sidebar.
 
 What the tests may reach. The sweep runs on scratch datadirs, which are not cut off from the account they may be
 signed in to or from the network, so no sweep test opens a dialog that messages a printer: the print calls run on a
 printer made a print host, `test_send_gcode.py` stops before any of them where printer agents are on, and
-`test_printer_commands.py` calls a job command only after `printer_status` has said no printer is connected. No test
+`test_printers.py` calls a job command only after `printer_status` has said no printer is connected. No test
 sends a print job or reaches a physical printer: the Print and storage dialogs of a Bambu printer, a real printer's
 status and the job commands' refusals on it are left to a person with such a printer. The job commands, and what
 they publish, are unit cases against a printer agent double
@@ -4804,10 +4804,10 @@ sizes, the object structure commands' arguments, the height ranges `object_set_h
 overlaps, a range that keeps its settings) and the keys and layer heights a range's settings take, and
 `plate_set_custom_gcode`'s edits of a layer slider built in the test (by layer
 and height, in-place edits, refusals that leave the slider as it was, the type names). On the app,
-`tools/mcp/test_objects.py` and `test_object_structure.py` check object placement and structure (transforms on
+`tools/mcp/test_objects.py` checks object placement and structure (transforms on
 instances, plates and parts, what `object_list` reports of them, the selection `object_select` and `app_state`
 report, shapes at a size, arrange and Fill bed, `part_add`, the object structure commands);
 `tools/mcp/test_slice_preview.py` height range modifiers and variable layer height profiles (set, read
 back, undone, sliced, refused, kept by a 3MF) and layer G-codes (placed by layer and height, edited in
-place, refused, sliced, kept by a 3MF); and `tools/mcp/test_worker_admission.py` admission while an
+place, refused, sliced, kept by a 3MF); and `tools/mcp/test_runtime_calls.py` admission while an
 arrange started three ways runs.

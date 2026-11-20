@@ -5,11 +5,10 @@
     tools/mcp/test_files.py
 
 A new project and the question New Project asks about unsaved changes; opening a project file and saving one under a
-name; importing models (STL, a project's .3mf, ZIP archives, a STEP file, files that hold no model); exporting the
-objects as STL and DRC, the Preview's toolpaths as OBJ, the model as a 3MF, the plate's G-code and the sliced file;
-sending G-code with no print host; and the filament slots a merge and a mix leave in the project file. Every file
-written is read back, by the test (a G-code's text, a sliced file's entries, a folder's file names and sizes) or by
-the app (an exported mesh imported into an empty project, a saved project opened again). It runs on the default
+name; importing models (STL, a project's .3mf, ZIP archives, a STEP file, files that hold no model); and exporting the
+objects as STL and DRC, the model as a 3MF, the plate's G-code and the sliced file. Every file written is read back,
+by the test (a G-code's text, a sliced file's entries, a folder's file names and sizes) or by the app (an exported
+mesh imported into an empty project, a saved project opened again). It runs on the default
 printer, the Generic Klipper Printer 0.4 nozzle, on a data folder earlier tests used: it sets the presets and the
 preferences its checks read before its first scenario. It writes into a folder of its own, kept when a check fails,
 and exits 0 when every check passes.
@@ -28,8 +27,8 @@ import zipfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
 from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, answer_all, dialogs, gcode, layer_gcode,  # noqa: E402
-                    meshes, normal, obj_facts, plates, presets, project, recent, reimport, run, sliced, sliced_flags,
-                    slot_colours, slots, start, undo_steps, unsaved, values, wait)
+                    meshes, normal, plates, presets, project, recent, reimport, run, sliced, sliced_flags, start,
+                    undo_steps, unsaved, values, wait)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
@@ -39,9 +38,9 @@ BENCHY = os.path.join(REPO, "resources", "handy_models", "3DBenchy.drc")
 HEIGHTMAP = os.path.join(HERE, "tests", "fixtures", "heightmap.png")
 
 # The preferences the checks read, each at the app's default: an open that asks nothing about the project's settings,
-# the recent projects, the STEP options dialog, no slice by itself, and the print host's upload for Send.
+# the recent projects, the STEP options dialog and no slice by itself.
 PREFERENCES = {"project_load_behaviour": "ask_when_relevant", "max_recent_count": 18, "recent_models": False,
-               "enable_step_mesh_setting": True, "auto_slice_after_change": False, "use_printer_agents": False}
+               "enable_step_mesh_setting": True, "auto_slice_after_change": False}
 # A filament preset file no other test writes, imported as a model.
 USER_PLA = "MCP Files PLA"
 USER_PLA_FILE = {"name": USER_PLA, "filament_settings_id": [USER_PLA], "inherits": GENERIC_PLA, "from": "User",
@@ -52,8 +51,6 @@ LOAD_PROJECT_QUESTION = "Load project: unsaved changes"
 SAVE_QUESTION = "Orca Slicer - Save"
 STEP_DIALOG = "STEP file import parameters"
 NEW_PROJECT = "new_project"
-SEND = "send_gcode"
-SPIRAL = "Spiral mode only works"
 # The undo steps a change of the current plate logs: Plater::select_plate() takes one, and PartPlateList::select_plate()
 # another when the plate changes.
 SELECTED = ["select partplate!", "select partplate!"]
@@ -208,15 +205,6 @@ class FilesTest:
         self.t.equal(f"{label}: the reply's path", normal(reply.get("path", "")), normal(path))
         self.t.equal(f"{label}: the reply's bytes", reply.get("bytes"), os.path.getsize(path) if os.path.exists(path)
                      else "no file")
-
-    def colours(self):
-        return slot_colours(self.c)
-
-    def rule_uses(self, match):
-        for rule in self.c.call("app_state").get("auto_answer_rules", []):
-            if rule.get("match") == match:
-                return rule.get("uses", 0)
-        return None
 
     def user_filaments(self):
         return [p.get("name") for p in self.c.call("preset_list", type="filament", source="user", limit=500)["items"]]
@@ -724,8 +712,7 @@ class FilesTest:
         self.cube("small", 20, 100, 100)
         self.cube("big", 30, 160, 100)
         os.makedirs(self.w("each"))
-        os.makedirs(self.w("each_drc"))
-        both = [{"index": 0, "name": "small"}, {"index": 1, "name": "big"}]
+        both =[{"index": 0, "name": "small"}, {"index": 1, "name": "big"}]
         objs = lambda reply: [{"index": o.get("index"), "name": o.get("name")} for o in reply.get("objects", [])]
         files = lambda reply: [normal(f) for f in reply.get("files", [])]
 
@@ -754,34 +741,16 @@ class FilesTest:
         self.t.equal(f"{s} 5: the reply", objs(reply), both)
         self.saved(f"{s} 5", reply, "both.drc")
 
-        reply = self.exported(f"{s} 6", lambda: self.run("project_export", format="drc", path=self.w("each_drc"),
-                                                          per_object=True))
-        self.folder_is(f"{s} 6", "each_drc", {"big.drc": None, "small.drc": None})
-        self.t.equal(f"{s} 6: the reply", (objs(reply), files(reply)),
-                     (both, [normal(self.w("each_drc", "small.drc")), normal(self.w("each_drc", "big.drc"))]))
-
-        self.exported(f"{s} 7", lambda: self.t.refused(
-            f"{s} 7: refused", lambda: self.c.call("project_export", format="3mf", path=self.w("one.3mf"), objects=[0]),
+        self.exported(f"{s} 6", lambda: self.t.refused(
+            f"{s} 6: refused", lambda: self.c.call("project_export", format="3mf", path=self.w("one.3mf"), objects=[0]),
             code="objects_not_taken"))
-        self.no_file(f"{s} 7", "one.3mf")
-        self.exported(f"{s} 8", lambda: self.t.refused(
-            f"{s} 8: refused",
+        self.no_file(f"{s} 6", "one.3mf")
+        self.exported(f"{s} 7", lambda: self.t.refused(
+            f"{s} 7: refused",
             lambda: self.c.call("project_export", format="stl", path=self.w("five.stl"), objects=[5]),
             code="no_such_object", words="Object 5 does not exist (the project has objects 0..1)"))
-        self.no_file(f"{s} 8", "five.stl")
-
-        self.sliced_ok(f"{s} 9", self.run("plate_slice", preview=True), 150)
-        self.flags_are(f"{s} 9", [True])
-        reply = self.exported(f"{s} 9", lambda: self.run("project_export", format="toolpaths_obj",
-                                                          path=self.w("toolpaths.obj")))
-        self.saved(f"{s} 9", reply, "toolpaths.obj")
-        self.t.check(f"{s} 9: toolpaths.mtl is written", os.path.exists(self.w("toolpaths.mtl")))
-        facts = obj_facts(self.w("toolpaths.obj"))
-        self.t.equal(f"{s} 9: the OBJ's first line and material library", (facts["first"], facts["mtllib"]),
-                     ("# G-Code Toolpaths", "mtllib ./toolpaths.mtl"))
-        self.t.check(f"{s} 9: the OBJ has vertices and faces", facts["v"] > 0 and facts["f"] > 0, facts)
-        self.t.near(f"{s} 9: the OBJ's highest vertex, big's top layer plus half its height", facts["top"], 30.1, 0.01)
-        self.placed(f"{s} 10: the exports moved nothing", ("small", 100, 100), ("big", 160, 100))
+        self.no_file(f"{s} 7", "five.stl")
+        self.placed(f"{s} 8: the exports moved nothing", ("small", 100, 100), ("big", 160, 100))
 
         r = lambda path: reimport(self.c, path)[1]
         self.meshes_are(f"{s}: small.stl read back", ("small.stl", 12, 8000, [20, 20, 20]), got=r(self.w("small.stl")))
@@ -792,10 +761,6 @@ class FilesTest:
         self.meshes_are(f"{s}: each read back", ("small.stl", 12, 8000, [20, 20, 20]),
                         ("big.stl", 12, 27000, [30, 30, 30]))
         self.meshes_are(f"{s}: both.drc read back", ("both.drc", 24, 35000, [85, 30, 30]), got=r(self.w("both.drc")))
-        reimport(self.c, self.w("each_drc", "small.drc"))
-        self.run("project_import", paths=[self.w("each_drc", "big.drc")])
-        self.meshes_are(f"{s}: each_drc read back", ("small.drc", 12, 8000, [20, 20, 20]),
-                        ("big.drc", 12, 27000, [30, 30, 30]))
 
     def model_3mf_scenario(self):
         s = "exporting the model as a 3MF"
@@ -859,61 +824,19 @@ class FilesTest:
         self.t.equal(f"{s} 6: the G-code entries",
                      list(export(6, "half_1.gcode.3mf", two, SELECTED, plates=1)), [])
         self.plates_are(f"{s} 6: the plate named is made current", '"" 1', '"" 1 *')
-        self.t.equal(f"{s} 7: the G-code entries", list(export(7, "from_1.gcode.3mf", two)), [])
-        self.plates_are(f"{s} 7", '"" 1', '"" 1 *')
-        self.t.equal(f"{s} 8: the G-code entries", list(export(8, "all_from_1.gcode.3mf", two, plates="all")),
-                     [plate_1])
-        self.plates_are(f"{s} 8", '"" 1', '"" 1 *')
-        self.t.equal(f"{s} 9: the G-code entries",
-                     list(export(9, "half_0.gcode.3mf", two, SELECTED, plates=0)), [plate_1])
-        self.plates_are(f"{s} 9", '"" 1 *', '"" 1')
+        self.t.equal(f"{s} 7: the G-code entries",
+                     list(export(7, "half_0.gcode.3mf", two, SELECTED, plates=0)), [plate_1])
+        self.plates_are(f"{s} 7", '"" 1 *', '"" 1')
 
         undo_steps(self.c)
-        self.t.refused(f"{s} 10: refused", lambda: self.c.call("project_export", format="gcode",
-                                                               path=self.w("plate_1.gcode"), plates=1),
+        self.t.refused(f"{s} 8: refused", lambda: self.c.call("project_export", format="gcode",
+                                                              path=self.w("plate_1.gcode"), plates=1),
                        code="plate_not_sliced")
-        self.no_file(f"{s} 10", "plate_1.gcode")
-        self.plates_are(f"{s} 10: a refused export leaves the current plate", '"" 1 *', '"" 1')
-        self.steps_are(f"{s} 10: and the undo history", [])
-        self.project_is(f"{s} 10", "Untitled", None, "dirty")
-        self.flags_are(f"{s} 10", two)
-
-    def gcode_refused_scenario(self):
-        s = "a G-code export refused"
-        self.start(s)
-
-        def refused(step, name, code, state="dirty", **args):
-            undo_steps(self.c)
-            self.t.refused(f"{s} {step}: refused", lambda: self.c.call("project_export", path=self.w(name), **args),
-                           code=code)
-            self.no_file(f"{s} {step}", name)
-            self.project_is(f"{s} {step}", "Untitled", None, state)
-            self.steps_are(f"{s} {step}", [])
-
-        refused(1, "empty.gcode", "no_objects", state="clean", format="gcode")
-        self.plates_are(f"{s} 1", '"" 0 *')
-        self.cube("a", 20, 100, 128)
-        wait(self.c, "idle")
-        refused(2, "unsliced.gcode", "plate_not_sliced", format="gcode")
-        self.flags_are(f"{s} 2", [False])
-        self.plates_are(f"{s} 2", '"" 1 *')
-        refused(3, "three.gcode", "no_such_plate", format="gcode", plates=3)
-        self.plates_are(f"{s} 3", '"" 1 *')
-
-        self.cube("b", 20, 160, 128)
-        self.run("dialog_auto_answer", rules=[{"match": SPIRAL, "button": "yes"}])
-        self.run("plate_set_settings", plate=0, values={"spiral_mode": True})
-        reply = self.run("plate_slice")
-        self.t.equal(f"{s} 4: the spiral question was answered once", self.rule_uses(SPIRAL), 1)
-        self.t.equal(f"{s} 4: spiral vase mode prints one object",
-                     [p.get("outcome") for p in reply.get("plates", [])], ["error"])
-        self.flags_are(f"{s} 4", [False])
-        self.plates_are(f"{s} 4", '"" 2 *')
-        refused(5, "error.gcode", "slice_has_errors", format="gcode")
-        self.plates_are(f"{s} 5", '"" 2 *')
-        refused(6, "error.gcode.3mf", "sliced_file_not_written", format="sliced_3mf")
-        self.plates_are(f"{s} 6", '"" 2 *')
-        self.run("dialog_auto_answer", rules=[])
+        self.no_file(f"{s} 8", "plate_1.gcode")
+        self.plates_are(f"{s} 8: a refused export leaves the current plate", '"" 1 *', '"" 1')
+        self.steps_are(f"{s} 8: and the undo history", [])
+        self.project_is(f"{s} 8", "Untitled", None, "dirty")
+        self.flags_are(f"{s} 8", two)
 
     def gcode_written_scenario(self):
         s = "the G-code written"
@@ -1038,74 +961,6 @@ class FilesTest:
             self.steps_are(label, [])
             self.names_are(label, "3DBenchy.drc")
 
-    def sending_scenario(self):
-        s = "sending G-code without a print host"
-        self.start(s)
-        host = {"host_type": "octoprint", "print_host": ""}
-
-        def after_send(step):
-            self.t.equal(f"{s} {step}: no upload", self.c.call("app_state").get("uploads"), [])
-            self.no_dialog(f"{s} {step}")
-
-        self.values_are(f"{s} 1", host, "printer")
-        self.t.equal(f"{s} 1: no upload", self.c.call("app_state").get("uploads"), [])
-        self.t.refused(f"{s} 2: refused, an empty address being no print host, with no objects",
-                       lambda: self.c.call("action_run", id=SEND), code="no_print_host")
-        self.values_are(f"{s} 2", host, "printer")
-        after_send(2)
-        self.cube("box", 20, 128, 128)
-        self.sliced_ok(f"{s} 3", self.run("plate_slice"), 100)
-        self.flags_are(f"{s} 3", [True])
-        self.t.refused(f"{s} 3: refused", lambda: self.c.call("action_run", id=SEND), code="no_print_host")
-        self.values_are(f"{s} 3", host, "printer")
-        after_send(3)
-        self.values_are(f"{s} 4", host, "printer")
-        self.unsaved_is(f"{s} 4: the refused sends changed nothing in the printer preset", [], "printer")
-
-    def filaments_scenario(self):
-        s = "filament slots merged and mixed"
-        self.start(s)
-        filaments = lambda: [(m["name"], m["filament"]) for m in meshes(self.c)]
-        self.t.equal(f"{s} 1", slots(self.c), "0")
-        for step, slot in ((2, 2), (3, 3)):
-            reply = self.run("filament_add")
-            self.t.equal(f"{s} {step}: the reply", (reply.get("filament_slot"), reply.get("filament_slots")),
-                         (slot, slot))
-            self.t.equal(f"{s} {step}", slots(self.c), ",".join(["0"] * slot))
-        for slot, colour in enumerate(("#FF0000", "#00FF00", "#0000FF"), 1):
-            self.run("filament_set_colour", filament_slot=slot, colour=colour)
-        self.t.equal(f"{s} 4", slots(self.c), "0,0,0")
-        self.t.equal(f"{s} 4: the colours", self.colours(), "#FF0000;#00FF00;#0000FF")
-        self.cube("on_two", 20, 80, 128)
-        self.cube("on_three", 20, 176, 128)
-        self.run("settings_set", target="object", object=0, values={"extruder": 2})
-        self.run("settings_set", target="object", object=1, values={"extruder": 3})
-        self.t.equal(f"{s} 5", slots(self.c), "0,0,0")
-        self.t.equal(f"{s} 5: the objects' filaments", filaments(), [("on_two", 2), ("on_three", 3)])
-
-        reply = self.run("filament_delete", filament_slot=2, merge_into=1)
-        self.t.equal(f"{s} 6: the reply", {k: reply.get(k) for k in ("filament_slot", "merged_into", "filament_slots")},
-                     {"filament_slot": 2, "merged_into": 1, "filament_slots": 2})
-        self.t.equal(f"{s} 6", slots(self.c), "0,0")
-        self.t.equal(f"{s} 6: the slot after the deleted one moved down, with its objects", filaments(),
-                     [("on_two", 1), ("on_three", 2)])
-        self.t.equal(f"{s} 6: the colours", self.colours(), "#FF0000;#0000FF")
-
-        for step, added in ((7, True), (8, False)):
-            reply = self.run("filament_add_mixed", components=[1, 2], ratios=[50, 50])
-            self.t.equal(f"{s} {step}: the reply", (reply.get("filament_slot"), reply.get("added")), (3, added))
-            self.t.equal(f"{s} {step}", slots(self.c), "0,0,1")
-            self.t.equal(f"{s} {step}: the slots' presets",
-                         len(self.c.call("app_state")["presets"]["filaments"]), 3)
-            self.t.equal(f"{s} {step}: the objects' filaments", filaments(), [("on_two", 1), ("on_three", 2)])
-
-        self.run("project_save", path=self.w("filaments.3mf"))
-        self.run("project_new", discard_changes=True)
-        self.run("project_open", path=self.w("filaments.3mf"))
-        self.t.equal(f"{s} 9: the project file keeps the mix", slots(self.c), "0,0,1")
-        self.t.equal(f"{s} 9: the project file keeps the merge", filaments(), [("on_two", 1), ("on_three", 2)])
-        self.t.check(f"{s} 9: the colours", self.colours().startswith("#FF0000;#0000FF;"), self.colours())
-
     def run_all(self):
         for name, scenario in [("the start", self.starts_from),
                                ("a new project", self.new_project_scenario),
@@ -1118,13 +973,9 @@ class FilesTest:
                                ("exporting meshes", self.meshes_scenario),
                                ("exporting the model as a 3MF", self.model_3mf_scenario),
                                ("exporting the sliced file", self.sliced_scenario),
-                               ("a G-code export refused", self.gcode_refused_scenario),
                                ("the G-code written", self.gcode_written_scenario),
-                               ("an export while a slice runs", self.while_slicing_scenario),
-                               ("sending G-code without a print host", self.sending_scenario),
-                               ("filament slots merged and mixed", self.filaments_scenario)]:
+                               ("an export while a slice runs", self.while_slicing_scenario)]:
             self.t.scenario(name, scenario)
-        self.c.call("dialog_auto_answer", rules=[])
         self.new_project()
         return self.t.exit_code()
 

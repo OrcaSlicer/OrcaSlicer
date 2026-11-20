@@ -4,15 +4,16 @@ The design of this area's sweep tests. The rules every entry follows, the grades
 in [TESTS.md](../TESTS.md).
 
 ## `test_slice_preview`
-`test_slice_preview.py` · Python, 764 checks · in `sweep.json` as `{"path": "test_slice_preview.py", "timeout_s": 1500}`
+`test_slice_preview.py` · Python, 834 checks · in `sweep.json` as `{"path": "test_slice_preview.py", "timeout_s": 1500}`
 
 **Tests:** Slicing and what a slice leaves: the plates `plate_slice` and the Slice and Preview and Slice All Plates
-actions slice, with no objects, with a plate that fails validation and with two plates; the statistics a slice
-reports, for one colour and two; the Preview's tables, legend and layers as `plate_slice_stats`, `view_set`, the Go to
-layer action and `app_state` give them, on a plate the Preview shows and on one it has not shown, and on a G-code file
-opened for viewing; height range modifiers, variable layer heights and a plate's layer G-codes, each shown to reach
-the G-code and to be kept by a 3MF; every command that takes a plate index, given one the project lacks and one it
-has; the display switches, the sidebar, the legend fold and the G-code window of `view_set`, shown on the 3D view and
+actions slice, with no objects, with a plate that fails validation and with two plates; the statistics a slice reports,
+for one colour and two; the Preview's tables, legend and layers as `plate_slice_stats`, `view_set`, the Go to layer
+action and `app_state` give them, on a plate the Preview shows and on one it has not shown, and on a G-code file opened
+for viewing; a legend row clicked, canvas captures taken right after a layer or view type change, and `view_set`'s
+refusals of the Preview's fields; height range modifiers, variable layer heights and a plate's layer G-codes, each shown
+to reach the G-code and to be kept by a 3MF; every command that takes a plate index, given one the project lacks and one
+it has; the display switches, the sidebar, the legend fold and the G-code window of `view_set`, shown on the 3D view and
 kept in the app's configuration; and `app_state`'s account, network plug-in and configuration folder. It runs on the
 default printer, the Generic Klipper Printer 0.4 nozzle with 0.20mm Standard @MyKlipper and Generic PLA (0.2 mm layers,
 a first layer of 0.2 mm, 15 % crosshatch sparse infill, the prime tower on, `travel_speed` 350 mm/s,
@@ -35,18 +36,19 @@ rules last only as long as the app's run. Its files go into a temporary folder o
 
 **Leaves:** In the app's presets, the Klipper printer with two Generic PLA slots (the layer G-codes scenario's
 `slots(2)`, the last change of the slots), slot 1 `#26A69A`, the flush multiplier 0.3 that Starts from sets (the G-code
-file opened for viewing was sliced with it and keeps it), and no user preset: its edits are an object's, a range's or a plate's, kept in its projects. In the
-recent projects, `ranges.3mf`, `profile.3mf` and `codes.3mf` of its temporary folder, which is deleted at its end; the
-G-code file it opens for viewing does not join them (`Plater` adds no file it opens only for viewing). The folders the
-app remembers, `app.last_export_path` and the `recent` section's `last_opened_folder` and `settings_folder`, name that
-folder. The display switches, projection, sidebar and legend as Starts from sets them, which the view switches scenario
-turns back step by step; the sidebar at the default layout's width; the window at 1600 × 900; the Preview's last view
-type (`preview_last_view_type`) `feature_type`; and `auto_slice_after_change` false. In a `finally` it makes Starts
-from's two `view_set` calls again, since a run that breaks off in the view switches can leave the sidebar folded or
-widened, a switch turned or the camera orthographic, which every later test's window would show.
+file opened for viewing was sliced with it and keeps it), and no user preset: its edits are an object's, a range's or a
+plate's, kept in its projects. In the recent projects, `ranges.3mf`, `profile.3mf` and `codes.3mf` of its temporary
+folder, which is deleted at its end with the canvas captures it saves there; the G-code file it opens for viewing does
+not join them (`Plater` adds no file it opens only for viewing). The folders the app remembers, `app.last_export_path`
+and the `recent` section's `last_opened_folder` and `settings_folder`, name that folder. The display switches,
+projection, sidebar and legend as Starts from sets them, which the view switches scenario turns back step by step; the
+sidebar at the default layout's width; the window at 1600 × 900; the Preview's last view type (`preview_last_view_type`)
+`feature_type`; and `auto_slice_after_change` false. In a `finally` it makes Starts from's two `view_set` calls again,
+since a run that breaks off in the view switches can leave the sidebar folded or widened, a switch turned or the camera
+orthographic, which every later test's window would show.
 
 **Reads:**
-- `plates()` as in `test_plates`, with each plate's `sliced` from `plate_list` added. `objects()` as in `test_plates`,
+- `plates()` as in `test_objects`, with each plate's `sliced` from `plate_list` added. `objects()` as in `test_objects`,
   with each object's `filament` and the `offset` of its instance 0 (`object_list`'s `instances[0].offset`) added.
 - `shown()` gives `app_state`'s `tab`, `plates.current` and `preview` (`plate`, `layers`, `z`, `layer_count`,
   `view_type`), or `preview` null.
@@ -61,7 +63,8 @@ widened, a switch turned or the camera orthographic, which every later test's wi
   printer's layer change G-codes are not layer starts. The `T0` that selects the first filament comes before layer 1
   and is not read; the end G-code, `PRINT_END`, read as part of the last layer, holds no tool line.
 - `toolpaths_z(path)` (new) gives the lowest and highest vertex `z` of an OBJ that `project_export {format:
-  "toolpaths_obj"}` wrote.
+  "toolpaths_obj"}` wrote, and `obj_facts(path)` (in `checks.py`) its first line, its `mtllib` line, its numbers of `v`
+  and `f` lines and its highest vertex z.
 - `capture()` (new) gives the PNG bytes and the width of `window_screenshot {target: "canvas", include_image: false}`
   once two captures in a row are byte-identical; five tries without that fail the check, and so does a capture whose
   reply has `approximate` or a `note`, such as a 3D view that came back blank.
@@ -71,20 +74,22 @@ widened, a switch turned or the camera orthographic, which every later test's wi
 - `snapshots()` gives the undo snapshots taken since its last call, from `tests/fixtures/ops_undo.py`.
 - `slots(n)` deletes filament slots with `filament_delete` until it is refused and adds them with `filament_add`
   until the project has `n`; it checks `app_state.presets.filaments` has `n` entries. It makes no mixed slot, and
-  `start()` leaves none: it deletes the mixed slots an earlier test left, such as the one `test_files`' filament
-  scenario leaves.
+  `start()` leaves none: it deletes the mixed slots an earlier test left, such as the two broken ones
+  `test_filaments` leaves.
 
-At its start the test registers two auto-answer rules, `Spiral mode only works` → `yes` and `unsaved changes. Would
-you like to save` → `No`, besides what Starts from sets. Every scenario starts with `project_new
-{discard_changes: true}` and `view_set {tab: "prepare"}` and checks that `plates()` is `"" 0 *`, `shown()` has tab
-`prepare` and `preview` null. The scenarios run in the order below.
+At its start the test registers two auto-answer rules, `Spiral mode only works` → `yes` and `unsaved changes. Would you
+like to save` → `No`, besides what Starts from sets. Every scenario starts with `project_new {discard_changes: true}`
+and `view_set {tab: "prepare"}` and checks that `plates()` is `"" 0 *`, `shown()` has tab `prepare` and `preview` null,
+except two that go on from the plates and slice of the scenario before them: a plate the Preview has not shown, after
+the slicing by route, and the Preview's layers, after the tables. The scenarios run in the order below, and naming one
+of those two alone runs the one before it first.
 The app applies a change of the model or of a plate's codes to the slicing state half a second after the call
 (`schedule_background_process()`), and only then marks a plate's slice out of date. So a step that moves an object,
 changes its ranges or settings, or edits layer G-codes, and whose row then reads `plates()` or refuses an export or
-statistics for an out-of-date slice, calls `app_wait {for: "idle"}` first, which waits for that update; the wait must
-be met.
+statistics for an out-of-date slice, calls `app_wait {for: "idle"}` first, which waits for that update; the wait must be
+met.
 
-In the tables a plate is written as in `test_plates`, with `S` on a plate whose slice is up to date: `"" 1 * S` ·
+In the tables a plate is written as in `test_objects`, with `S` on a plate whose slice is up to date: `"" 1 * S` ·
 `"" 1` is a current sliced plate with one object, then an unsliced one. A slice's reply is written by its plates'
 index and outcome, `[0 ok, 1 empty]`; `status` is `done` in every reply. Shown layers `1–25 (0.2–5.0)` are
 `shown().preview.layers` `[1, 25]` and `z` `[0.2, 5.0]`; a `view_set` reply's `layers` `[first, last, count]` is written
@@ -108,17 +113,17 @@ its layer slider (the operations layer's fix under To settle).
 | 4 | the Slice All Plates action | `"" 0 *` | `[0 empty]` |
 | 5 | `plate_slice`, then `plate_slice {plates: "all"}` | `"" 0 *` | `[0 empty]` each |
 | 6 | `project_export {format: "gcode", path}` | `"" 0 *` | refused, `no_objects`; no file at the path |
-| 7 | two cubes at `position` [90, 90, 0] and [150, 90, 0], then `plate_set_settings {plate: 0, values: {spiral_mode: true}}`, which the spiral rule answers | `"" 2 *` | (set up for the next step, whose error shows the setting took; `test_plates` checks the setting and its question) |
+| 7 | two cubes at `position` [90, 90, 0] and [150, 90, 0], then `plate_set_settings {plate: 0, values: {spiral_mode: true}}`, which the spiral rule answers | `"" 2 *` | (set up for the next step, whose error shows the setting took; `test_objects` checks the setting and its question) |
 | 8 | `plate_slice` | `"" 2 *` | `[0 error]`, its `error` holding `Please select "By object" print sequence to print multiple objects in spiral vase mode.`; `app_state.slicing` false |
 | 9 | the Slice and Preview action, then the Slice All Plates action | `"" 2 *` | `[0 error]` each, with that text |
-| 10 | `project_export {format: "gcode", path}` | `"" 2 *` | refused, `slice_has_errors`; no file |
+| 10 | `project_export {format: "gcode", path}`, then `{format: "sliced_3mf", path}` to another path | `"" 2 *` | refused, `slice_has_errors`, then `sliced_file_not_written` (`Plater::export_gcode_3mf()` writes nothing for a plate whose slice failed); no file at either path |
 | 11 | `view_set {layer: 10}`, `{layer_range: [2, 5]}`, `{layer_z: 5.0}`, and the Go to layer action with `{percent: 50}` | `"" 2 *` | each refused, `no_layers`; tab `preview`, `preview` null |
 
 **Scenario: slicing by plate and by route**
 
-`snapshots()` is read just before steps 1, 3 and 7 to set its mark, and after them; the rows give what it lists. A
-move takes the snapshot `Transform object`. Selecting a plate takes `select partplate!` snapshots, which these rows
-do not count (a slice of another plate, Slice All and `plate_select` each select plates).
+`snapshots()` is read just before steps 1, 3 and 7 and the export of step 4 to set its mark, and after them; the rows
+give what it lists. A move takes the snapshot `Transform object`. Selecting a plate takes `select partplate!` snapshots,
+which these rows do not count (a slice of another plate, Slice All and `plate_select` each select plates).
 
 | # | Step | Plates after | Also checked |
 |---|---|---|---|
@@ -126,12 +131,28 @@ do not count (a slice of another plate, Slice All and `plate_select` each select
 | 1 | `plate_slice` | `"" 1 * S` · `"" 1` | `[0 ok]` with `layers` 100; tab `preview`; snapshots: none, so a slice of the current plate takes none |
 | 2 | `view_set {tab: "prepare"}`, `plate_slice {plates: 1}` | `"" 1 S` · `"" 1 * S` | `[1 ok]` with `layers` 100: the plate named is made current |
 | 3 | `object_transform {object: 0, translate: [5, 0, 0]}`, `app_wait {for: "idle"}` | `"" 1` · `"" 1 * S` | a move makes its own plate's slice out of date, and no other's; snapshots: `Transform object` alone |
-| 4 | `plate_select {plate: 0}`, then `project_export {format: "gcode", path}` | `"" 1 *` · `"" 1 S` | refused, `plate_not_sliced`; no file |
+| 4 | `plate_select {plate: 0}`, then `project_export {format: "gcode", path}` | `"" 1 *` · `"" 1 S` | refused, `plate_not_sliced`; no file; snapshots: none, so a refused export takes none |
 | 5 | `plate_slice_stats` | as after 4 | refused, "Plate 0 has no up-to-date slice" |
 | 6 | `plate_slice {plates: "all"}` | `"" 1 S` · `"" 1 * S` | `[0 ok, 1 ok]`, each with `layers` 100; Slice All selects each plate in turn and leaves the last one current |
 | 7 | `view_set {tab: "prepare"}`, `object_transform` of both cubes, `translate: [5, 0, 0]`, `app_wait {for: "idle"}`, then the Slice and Preview action | `"" 1` · `"" 1 * S` | `[1 ok]` with `layers` 100: the current plate alone; snapshots: `Transform object` twice and nothing else |
 | 8 | the Slice All Plates action | `"" 1 S` · `"" 1 * S` | `[0 ok, 1 ok]`, each with `layers` 100 |
 | 9 | `project_export {format: "gcode", path}` | as after 8 | written; `gcode()` gives `total layer number` 100 and 100 layers |
+
+**Scenario: a plate the Preview has not shown, and a G-code file opened for viewing**
+
+It goes on from the end of the slicing by route, without a new project: cubes a and b on plates 0 and 1, both sliced by
+step 8's Slice All Plates, `"" 1 S` · `"" 1 * S`.
+
+| # | Step | Plates after | Also checked |
+|---|---|---|---|
+| 1 | `view_set {tab: "prepare"}`, `plate_select {plate: 0}`, `view_set {tab: "preview"}`, `app_wait {for: "idle"}` | `"" 1 * S` · `"" 1 S` | the wait is met; `shown()`: `preview` `plate` 0, `layer_count` 100 |
+| 2 | `view_set {tab: "prepare"}`, `plate_select {plate: 1}` | `"" 1 S` · `"" 1 * S` | `shown()` `preview` null: the Preview still holds plate 0's toolpaths, which no read gives as plate 1's |
+| 3 | `plate_slice_stats` | as after 2 | `plate` 1, `summary.layers` 100, `view` null, `note` holding "has not loaded this plate's toolpaths" |
+| 4 | `plate_slice_stats {plate: 0}` | as after 2 | `plate` 0, `summary.layers` 100, `view` null, `note` holding "show plate 0 there" |
+| 5 | `view_set {tab: "preview"}`, `app_wait {for: "idle"}` | as after 2 | `shown()` `preview` `plate` 1; `plate_slice_stats {include: ["view"]}` gives `view.layer_count` 100 and no `note` |
+| 6 | `project_export {format: "gcode", path}` | as after 2 | `gcode()`: `total layer number` 100, the estimate within 1 s of plate 1's `time_s` in the reply of the routes' step 8 |
+| 7 | `project_open {path, discard_changes: true}` of that file, `app_wait {for: "idle"}` | `"" 0 *`, not sliced | the save rule's `uses` rises by 1; `shown()` `preview.layer_count` 100; `plate_slice_stats {include: ["features", "layers", "view"]}`: `summary.layers` 100, `summary.time_s` within 1 s of the file's `total estimated time`, `features.Outer wall.time_s` > 0, `layers.total` 100, `view.layer_count` 100. The plate shows the file's toolpaths without being sliced |
+| 8 | `project_new {discard_changes: true}` | `"" 0 *` | `shown()` `preview` null |
 
 **Scenario: slice statistics, one colour and two**
 
@@ -161,28 +182,11 @@ do not count (a slice of another plate, Slice All and `plate_select` each select
 | 6 | `view_set {layer: 5}` | `shown()`: tab `preview`, `preview` `plate` 0, `1–5 (0.2–1.0)`, `layer_count` 100, `view_type` `feature_type` |
 | 7 | `view_set {view_type: "fan_speed"}` | `shown()` `view_type` `fan_speed`, `1–5`; `plate_slice_stats {include: ["view"]}` gives `view_type` `fan_speed`, `layers` [1, 5] and no `features` |
 
-**Scenario: a plate the Preview has not shown, and a G-code file opened for viewing**
-
-`slots(1)`, cube "a", `plate_add`, cube "b" on plate 1, then `plate_slice {plates: "all"}`: `[0 ok, 1 ok]`, `"" 1 S` ·
-`"" 1 * S`.
-
-| # | Step | Plates after | Also checked |
-|---|---|---|---|
-| 1 | `view_set {tab: "prepare"}`, `plate_select {plate: 0}`, `view_set {tab: "preview"}`, `app_wait {for: "idle"}` | `"" 1 * S` · `"" 1 S` | the wait is met; `shown()`: `preview` `plate` 0, `layer_count` 100 |
-| 2 | `view_set {tab: "prepare"}`, `plate_select {plate: 1}` | `"" 1 S` · `"" 1 * S` | `shown()` `preview` null: the Preview still holds plate 0's toolpaths, which no read gives as plate 1's |
-| 3 | `plate_slice_stats` | as after 2 | `plate` 1, `summary.layers` 100, `view` null, `note` holding "has not loaded this plate's toolpaths" |
-| 4 | `plate_slice_stats {plate: 0}` | as after 2 | `plate` 0, `summary.layers` 100, `view` null, `note` holding "show plate 0 there" |
-| 5 | `view_set {tab: "preview"}`, `app_wait {for: "idle"}` | as after 2 | `shown()` `preview` `plate` 1; `plate_slice_stats {include: ["view"]}` gives `view.layer_count` 100 and no `note` |
-| 6 | `project_export {format: "gcode", path}` | as after 2 | `gcode()`: `total layer number` 100, the estimate within 1 s of plate 1's `time_s` in the slice's reply |
-| 7 | `project_open {path, discard_changes: true}` of that file, `app_wait {for: "idle"}` | `"" 0 *`, not sliced | the save rule's `uses` rises by 1; `shown()` `preview.layer_count` 100; `plate_slice_stats {include: ["features", "layers", "view"]}`: `summary.layers` 100, `summary.time_s` within 1 s of the file's `total estimated time`, `features.Outer wall.time_s` > 0, `layers.total` 100, `view.layer_count` 100. The plate shows the file's toolpaths without being sliced |
-| 8 | `project_new {discard_changes: true}` | `"" 0 *` | `shown()` `preview` null |
-
 **Scenario: the Preview's layers**
 
-A cube, `plate_slice`: `[0 ok]`, `"" 1 * S`, then `view_set {layer_range: [1, 100]}`, which replies `[1, 100,
-100]`: shown `1–100 (0.2–20.0)`. A slice whose top layer is as high as the last one's keeps the span the slider
-showed (To settle), so the start sets it. After each step `shown()` gives tab `preview` and the layers the row names;
-a reply of the Go to layer action is `view_set`'s, with `ran`.
+It goes on from the tables' cube and its slice, without a new project: `"" 1 * S`. Then `view_set {layer_range: [1,
+100]}`, which replies `[1, 100, 100]`: shown `1–100 (0.2–20.0)`, where the tables left `1–5`. After each step `shown()`
+gives tab `preview` and the layers the row names; a reply of the Go to layer action is `view_set`'s, with `ran`.
 
 | # | Step | Reply | Shown after |
 |---|---|---|---|
@@ -203,18 +207,40 @@ a reply of the Go to layer action is `view_set`'s, with `ran`.
 | 15 | `view_set {layer_range: [5]}` | refused, "layer_range must be [first, last]" | as after 14 |
 | 16 | `view_set {layer_z: 5.0}` | `[1, 25, 100]`, `z` [0.2, 5.0] | `1–25 (0.2–5.0)` |
 | 17 | `view_set {layer_range: [20, 25]}`, then `project_export {format: "toolpaths_obj", path}` | `[20, 25, 100]` | `toolpaths_z()` within [3.6, 5.2], its highest at least 4.8: the toolpaths written are the layers shown |
-| 18 | `view_set {layer_range: [1, 100]}`, then the same export to another path | `[1, 100, 100]` | `toolpaths_z()` from at most 0.2 to at least 19.8 |
+| 18 | `view_set {layer_range: [1, 100]}`, then the same export to another path | `[1, 100, 100]` | reply `bytes` the file's size; the `.mtl` of the file's name beside it; `obj_facts()`: first line `# G-Code Toolpaths`, `mtllib ./<name>.mtl`, more than 0 `v` and `f` lines, highest vertex z 20.1 ± 0.01, the top layer at 20 plus half its 0.2 mm height; `toolpaths_z()` from at most 0.2 |
 | 19 | `view_set {tab: "prepare"}`, then `view_set {layer: 40}` | `[1, 40, 100]` | `1–40 (0.2–8.0)`; tab `preview` |
 | 20 | `view_set {tab: "prepare"}`, then the Go to layer action, `{percent: 30}` | `[1, 31, 100]` | `1–31 (0.2–6.2)`; tab `preview` |
 | 21 | `project_new {discard_changes: true}`, then `view_set {layer: 10}` and the Go to layer action, `{percent: 50}` | each refused, `no_layers` | `plates()` `"" 0 *`, read after `project_new` and again after the refusals; tab `preview`, `preview` null: the slider's layers of the cube's slice no longer count once the Preview holds no toolpaths of the current plate |
 
+**Scenario: a legend row clicked, captures right after a change, and layers asked between tops or backwards**
+
+`slots(1)`. The configuration's `preview_last_view_type`, which `conf()` reads, holds whatever view type an earlier
+scenario or test picked last, so after the slice the scenario picks Line Type and checks that the configuration reads
+it before the picks it checks. `legend()` is `plate_slice_stats {include: ["view"]}`'s `view.legend.features`. After
+each step `shown()` gives tab `preview` and the layers the row names, written as in the layers. The legend's reply to
+`view_set {legend}` and its read-back are the tables' steps 3 and 4.
+
+| # | Step | Shown after | Also checked |
+|---|---|---|---|
+| 1 | `view_set {legend: {travel: false}}` | `preview` null | refused, "slice first"; `plates()` `"" 0 *` |
+| 2 | a cube, `plate_slice`, then `view_set {view_type: "feature_type", layer_range: [1, 100]}` | `1–100 (0.2–20.0)` | `[0 ok]`, its plate without `silent_time_s`: the Klipper printer has no silent mode; reply `[1, 100, 100]`; `conf("preview_last_view_type")` `feature_type` |
+| 3 | `widget_list {query: "Sparse infill"}`, which draws the legend, then `widget_click {target: {imgui_name: "Sparse infill"}}` | as after 2 | `legend()` `Sparse infill` false: a click on its row hides the feature type |
+| 4 | `view_set {view_type: "speed"}` | `1–100 (0.2–20.0)`, `view_type` `speed` | `conf("preview_last_view_type")` `speed`; `legend()` `Sparse infill` still false |
+| 5 | `view_set {view_type: "feature_type"}` | as after 2 | `legend()` `Sparse infill` true: picking Line Type shows every feature type; `conf("preview_last_view_type")` `feature_type` |
+| 6 | `mouse_gesture {action: "move", x: 430, y: 80}`, then one `replay_run` of eight changes, each a `view_set` followed by two canvas captures (`window_screenshot {target: "canvas", save_path}`): `layer_range` [1, 40], `view_type` `speed`, `layer_range` [64, 64], `view_type` `height`, `layer_range` [20, 100], `view_type` `fan_speed`, `layer_range` [1, 100], `view_type` `feature_type` | `1–100 (0.2–20.0)`, `view_type` `feature_type` | the replay passes; the two captures after each change are byte-identical, and from the second change on, the first capture after a change differs from the last one before it: each change shows, settled, in the capture taken right after it |
+| 7 | `view_set {layer_z: 1.05}` | `1–6 (0.2–1.2)` | reply `[1, 6, 100]`, `z` [0.2, 1.2]: a height between two layer tops shows up to the upper one |
+| 8 | `view_set {layer_range: [60, 20]}` | `60–60 (12.0–12.0)` | reply `[60, 60, 100]`, `z` [12.0, 12.0]: a range given backwards shows its first layer alone |
+| 9 | `keyboard_press {keys: "L"}`, which turns the layer slider's one-layer mode on, then `view_set {layer_range: [2, 5]}` | `2–2 (0.4–0.4)` | reply `[2, 5, 100]`, `z` [0.4, 0.4]: the reply gives the range asked for, and the slider shows its first layer alone |
+| 10 | `keyboard_press {keys: "L"}` | `1–100 (0.2–20.0)`, `view_type` `feature_type` | leaving one-layer mode shows every layer |
+| 11 | `view_set` with `{layer_z: 80}`, `{layer: 3, layer_z: 1.0}`, `{view_type: "speed", legend: {"Infill": false}}`, `{legend: {travel: "yes"}}` and `{time_mode: "silent"}` | as after 10, read after each | refused in turn with "above the top layer (20.0 mm)", "not both", the print's rows (the text names `Sparse infill` and `travel`), "true (show) or false (hide)" and "no separate silent-mode estimate"; `legend()` `Sparse infill` true after each |
+| 12 | `view_set {time_mode: "normal"}` | as after 10 | reply `time_mode` `normal`: normal mode is always offered |
+
 **Scenario: height range modifiers**
 
-`slots(1)` and a cube. A first slice, `[0 ok]` with `layers` 100, and its export give the control: `gcode()` layer
-30's `Sparse infill` length, L, greater than 0.
-`object_list` shows the cube with no `layer_config_ranges`. Ranges are written `[min_z, max_z] {values}`, with the
-values a range shows in `object_list`; after every step `object_list`'s `layer_config_ranges` is compared with the
-row whole.
+`slots(1)` and a cube. The control is step 18, the cube sliced once its ranges are gone: its `gcode()` layer 30's
+`Sparse infill` length, L, greater than 0, which step 8's comparison is made with. `object_list` shows the cube with no
+`layer_config_ranges`. Ranges are written `[min_z, max_z] {values}`, with the values a range shows in `object_list`;
+after every step `object_list`'s `layer_config_ranges` is compared with the row whole.
 
 | # | Step | Ranges after | Also checked |
 |---|---|---|---|
@@ -235,7 +261,7 @@ row whole.
 | 15 | `plate_slice`, `project_export {format: "gcode", path}` | as after 14 | `[0 ok]` with `layers` 150 ± 1, `filament_changes` 1 and slot 2's `model_g` > 0; `gcode()`: one tool line in all the layers, `T1`, in the first layer above 10 mm (z 10.1) |
 | 16 | `project_save` to a new file, `project_new`, `project_open` of the file | as after 14 | the ranges and their settings are kept in the project file |
 | 17 | `object_set_height_ranges {object: 0, ranges: []}` | none | reply `layer_config_ranges` [] |
-| 18 | `plate_slice`, `project_export {format: "gcode", path}` | none | `[0 ok]`, `layers` 100; `gcode()`: 100 layers of height 0.2, no tool line, layer 30's `Sparse infill` within 10 % of L |
+| 18 | `plate_slice`, `project_export {format: "gcode", path}` | none | `[0 ok]`, `layers` 100; `gcode()`: 100 layers of height 0.2, no tool line, layer 30's `Sparse infill` L greater than 0 |
 
 **Scenario: variable layer height**
 
@@ -301,7 +327,7 @@ at the export's path. Those of plate 5 and -1 say "Plate 5 does not exist (the p
 | # | Step | Plates after | Also checked |
 |---|---|---|---|
 | 1 | `plate_slice {plates: 5}`, then `{plates: -1}` | `"" 1` · `"" 0 *` · `"" 0` | each refused, `no_such_plate` |
-| 2 | `project_export {format: "stl", path, plates: 5}`, then `plates: -1` | as at the start | each refused, `no_such_plate` |
+| 2 | `project_export {format: "stl", path, plates: 5}`, then `plates: -1`, then `{format: "gcode", path, plates: 5}` to a G-code path | as at the start | each refused, `no_such_plate`: the STL export's through `select_plate()`, the G-code export's by `Ops::start_gcode_export()` itself, before the checks it makes on the plate named; no file at the G-code path either |
 | 3 | `object_arrange {plates: 5}`, then `{plates: -1}` | as at the start | each refused, by its words |
 | 4 | `plate_slice {plates: "abc"}`, `project_export {format: "stl", path, plates: "abc"}` and `object_arrange {plates: "abc"}` | as at the start | each refused, in the words `plates is "all", "current" or a plate index`: a string other than those two names no plate (the fix under To settle) |
 | 5 | `plate_get_settings {plate: 5, keys: ["curr_bed_type"]}` | as at the start | refused, by its words |
@@ -330,12 +356,12 @@ the switch's value as the row does.
 | # | Step | View after | Also checked |
 |---|---|---|---|
 | 1 | `view_set {labels: true}` | start + `labels` | `capture()` differs from C0; `conf("show_labels")` `true` |
-| 2 | `view_set {labels: false}` | start | `capture()` is C0, byte for byte; `conf("show_labels")` `false` |
+| 2 | `view_set {labels: false}` | start | `conf("show_labels")` `false` |
 | 3 | the same, on then off, for `overhangs` (`show_overhang`), `outline` (`show_outline`) and `wireframe` (not kept) | as 1 and 2 for each | |
 | 4 | `view_set {gridlines: false}`, then `{gridlines: true}` | start − `gridlines`, then start | as 1 and 2, the other way round: `conf("show_plate_gridlines")` `false`, then `true` |
 | 5 | the same for `axes` (`show_axes`) and `navigator` (`show_3d_navigator`) | as 4 for each | |
 | 6 | `view_set {gridlines: false, axes: false, navigator: false}` | start − all three | the reply gives all three false |
-| 7 | `view_set {gridlines: true, axes: true, navigator: true}` | start | `capture()` is C0 |
+| 7 | `view_set {gridlines: true, axes: true, navigator: true}` | start | `capture()` is C0, byte for byte: each switch of steps 1 to 6, turned back, draws the view as before |
 | 8 | `view_set {projection: "orthographic"}` | start, `projection` `orthographic` | `app_state.camera.type` `ortho`; `capture()` differs from C0 |
 | 9 | `view_set {projection: "perspective"}` | start | `app_state.camera.type` `perspective` |
 | 10 | `view_set {section: {on: true}}` | start, `section.on` true | tab `prepare`; `capture()` differs from C0 |
@@ -397,9 +423,18 @@ checked not to be a person's own folder (`APPDATA` or `~` plus `OrcaSlicer`), wh
   the process's 200 mm/s walls and infill, tops out near 180.
 - A new slice keeps the layer slider's span when its top layer is as high as the last print's and the slider was off
   its ends (`Preview::update_layers_slider()`, `main`'s code since 1555904bef), so after the statistics and tables
-  scenarios a cube's slice can show `1–5`. That is the app's own behaviour, not a bug: the layers scenario sets
-  `[1, 100]` after its slice instead of expecting it.
-- The exported toolpaths' vertices lie within half a layer of the layers shown; the bounds allow a whole layer.
+  scenarios a cube's slice can show `1–5`. That is the app's own behaviour, not a bug: the scenarios that read layers
+  set `[1, 100]` after their slice, or at the start, instead of expecting it.
+- The exported toolpaths' vertices lie within half a layer of the layers shown; the bounds allow a whole layer. The
+  OBJ's highest vertex (the layers, step 18): `ToolpathsObjExporter::cross_section()` centres each extrusion's cross
+  section on the path vertex, whose z is the layer's top (the half-height shift in `ViewerImpl` is for drawing only), so
+  the top layer at 20 reaches 20.1.
+- The captures right after a change (a legend row clicked, step 6). One replay makes the calls back to back, which
+  seldom leaves the app an idle frame between a change and its first capture, so a capture drawn before the change
+  shows as a difference between the change's two captures. The legend click leaves ImGui's highlight on its row until
+  the pointer moves, and on a busy machine that move can come between two captures (measured: the only difference
+  between a pair was the row's outline), so the pointer first moves to the empty space above the plate. Byte equality
+  needs pixel-identical frames, with no animation and no caret.
 - The toolpaths an export writes right after a layer change (the layers, step 17). A bug in this branch's code, left
   for a fix: `Ops::export_toolpaths_obj()` (`ExportOps.cpp`, not on `main`) writes the G-code viewer's visible range,
   which takes the layer slider's values only when the canvas next draws (`GLCanvas3D::_apply_gcode_sliders()`, commit
@@ -408,7 +443,7 @@ checked not to be a person's own folder (`APPDATA` or `~` plus `OrcaSlicer`), wh
   viewer before the export (a public `GLCanvas3D::apply_gcode_sliders()` called from `Ops::export_toolpaths_obj()`).
   The row expects the fixed behaviour.
 - A display switch turned back draws the 3D view as before it was changed, so the capture is byte-identical: every
-  check that a capture is C0 or C1 (view switches, steps 2, 3, 4, 5, 7, 11 and 19). If a switch leaves a trace (the
+  check that a capture is C0 or C1 (view switches, steps 7, 11 and 19). If a switch leaves a trace (the
   navigator's or another ImGui window's position), that check falls back to "differs from the capture taken with the
   switch changed".
 - The camera of the view switches. The overhang highlight colours a face whose normal points more than 31° below the
@@ -430,7 +465,8 @@ checked not to be a person's own folder (`APPDATA` or `~` plus `OrcaSlicer`), wh
 - `object_transform {plate}` moves an instance to another plate and leaves the current plate (plate index, step 17):
   `transform_instance()` selects no plate.
 - The layer 30 comparison of the height ranges: the Klipper process's crosshatch infill grows with its density, 40 %
-  measuring 2.2 times 15 % at layer 30; the check asks for 1.8 times.
+  measuring 2.2 times 15 % at layer 30; the check asks for 1.8 times. The control, step 18, has two slots and the
+  prime tower moved, but prints on slot 1 alone, with no tool change (its check), so its layer 30 is the cube's own.
 - The prime tower of the height ranges (step 14). A range on slot 2 makes a tower, whose depth is worked out for its
   thinnest layers with a tool change, here the range's 0.1 mm; on the Klipper printer's 250 mm bed the tower's default
   place, x 165 and y about 216 to 219 (`plate_list`'s `wipe_tower`), leaves too little room behind it, and the slice
@@ -441,10 +477,10 @@ checked not to be a person's own folder (`APPDATA` or `~` plus `OrcaSlicer`), wh
 - The slots' colours and the flush multiplier (Starts from). The app works out the purge from the slots' colours and
   multiplies it by `flush_multiplier`, and the printer keeps both across New Project, a restart and `start()`. Left as
   earlier runs left them, the statistics' two-colour cubes fail "Prime tower is partially outside the printable area,
-  and it cannot be printed." (measured, on folders `test_files` and this test had used): `test_files`' filament scenario
-  leaves slot 1 `#FF0000`, and red to the second slot's colour is a 515 mm³ purge where `#26A69A` to `#00C1AE` is 89
-  (with slot 1 red the layer G-codes' step 14 fails too); and `test_filaments`' last scenario, the project's own
-  settings, leaves `flush_multiplier` 1.4, nearly five times the purge of 0.3 (read from that test, not measured here).
+  and it cannot be printed." (measured, on a folder an earlier test had left with slot 1 `#FF0000`): red to the second
+  slot's colour is a 515 mm³ purge where `#26A69A` to `#00C1AE` is 89 (with slot 1 red the layer G-codes' step 14 fails
+  too); and `test_filaments` leaves slot 1 `#FFFFFF` and `flush_multiplier` 1.4, nearly five times the purge of 0.3
+  (read from that test, not measured here).
   The two-colour checks ask only whether a slot purges into the tower (`tower_g` > 0, `flush_g` 0), not how much, so a
   multiplier within the range that fits leaves them unchanged. A slot `filament_add`
   adds takes the next colour of a palette the app's run cycles through (`Plater::get_next_color_for_filament()`), so
@@ -472,31 +508,32 @@ checked not to be a person's own folder (`APPDATA` or `~` plus `OrcaSlicer`), wh
 - The sidebar's default width itself: it is 39 em, and an em is 10 px times the display's scale on Windows and macOS
   but a font's width on Linux, so the test checks it as at least 390 px and as what Reset Window Layout gives. A
   change of the 39 em passes.
-- A legend row hidden by a click and kept across view types until Line Type is picked, the view type written to the
-  configuration, captures after a layer or view type change, a height between two layer tops (`layer_z` 1.05), a
-  range given backwards, the one-layer mode, and `view_set`'s six refusals (legend before a slice, a height above the
-  top, `layer` with `layer_z`, an unknown row, a value that is not a boolean, silent mode): `test_set_view_preview`.
+- The captures after a change (a legend row clicked, step 6) show that the canvas drew the change and then held still,
+  not that it shows the right layers or legend; the first change is compared with no capture before it.
+- Which of the view switches' steps 1 to 6 left a trace when step 7's capture is not C0: a switch turned back is
+  compared with C0 once all of them are back, not one at a time.
 - `view_set {layer}` and the Go to layer action on a fresh app with no slice, in the same words, and the STL and
   sliced 3MF exports of an empty project: `test_operation_routes`. A refused layer leaving the legend's fold and the
   G-code window: `test_additions_refusals`.
-- The journal steps of the Slice and Preview, Slice All Plates and Go to layer actions, and `plate_goto`:
-  `test_every_action`.
+- The journal steps of the Slice and Preview, Slice All Plates and Go to layer actions, and `plate_goto`: no test
+  reads them; `test_speed_dial` checks the journal step of Go to tab, which collects a value as Go to layer does.
 - `plate_select`'s, `plate_rename`'s, `plate_lock`'s, `plate_duplicate`'s and `plate_delete`'s refusals of a plate
   the project lacks: `test_menu_items_refusals`. A rename making its plate current, and a plate's spiral mode
-  with its question: `test_plates`.
+  with its question: `test_objects`.
 - How many `select partplate!` snapshots a plate selection takes (two when the plate changes, one from the plater
   and one from the plate list): only snapshots the rows name are counted.
-- A cancelled slice: `test_cancel_pending_slice`. A superseded slice (another slice or an edit while it runs) needs a
+- A cancelled slice: `test_runtime_calls`. A superseded slice (another slice or an edit while it runs) needs a
   second caller timed against the slice, and is left out.
 - Silent mode: the print has no silent-mode estimate (`GCodeProcessor` enables only its normal-mode machine), so
-  `time_mode` cannot switch; `test_set_view_preview` checks its refusal.
+  `time_mode` cannot switch; a legend row clicked, step 11, checks its refusal.
 - The G-code window on screen: it shows only while the moves slider is off its end, which no tool sets. It is
   checked through `app_state` and the configuration.
 - The camera fields: `test_set_view_camera`. A sidebar floating in its own window: `test_sidebar_floating`.
 - A layer G-code of `type: "template"`: the Klipper printer's `template_custom_gcode` is empty. That the codes take no
   undo step: an `undo` after one would take back the step before it, the cube's.
 - The notifications in `plate_slice`'s reply: the validation error is checked through the plate's `error`.
-- What the 3D view looks like: captures are compared only with each other.
+- What the 3D view looks like: captures are compared only with each other. The Add Cube action and its size dialog:
+  the cubes are added with their size given, and `test_gui_tools` adds the action's cube.
 - A Bambu Lab printer's G-code (its `; CHANGE_LAYER` tags, the header's time line, the start G-code's filament load):
   the G-code is read as the Klipper printer writes it.
 - The recent projects, the folders the app remembers and the user presets: the test leaves entries there (Leaves) and

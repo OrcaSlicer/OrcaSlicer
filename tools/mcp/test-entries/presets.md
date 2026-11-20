@@ -4,7 +4,7 @@ The design of this area's sweep tests. The rules every entry follows, the grades
 in [TESTS.md](../TESTS.md).
 
 ## `test_presets`
-`test_presets.py` · Python, 511 checks · in `sweep.json` as `{"path": "test_presets.py"}`
+`test_presets.py` · Python, 772 checks · in `sweep.json` as `{"path": "test_presets.py", "timeout_s": 1500}`
 
 **Tests:** The presets of the three types, through the tools a person's preset work maps to: selecting a preset by
 the name its selector shows, hidden ones included (`preset_select`); listing presets with filters (`preset_list`);
@@ -14,14 +14,20 @@ project, answered ahead (`preset_changes`) or in the dialog; the same selections
 `orca.host.preset.process` and `.printer` `begin_update(name)`; a preset kept inside the project; exporting a
 filament with the Export Preset Bundle dialog and importing preset files (`preset_import`); a printer variant picked
 by its nozzle diameter and the filament grouping of a printer with one extruder; a preference changed in its
-dialog; and that the presets selected, a user preset and an unsaved edit are what the G-code is sliced with. It runs
-on the default printer, the Generic Klipper Printer 0.4, and switches to other printers of the Custom vendor: no step
-needs a Bambu Lab printer's own behaviour. The Klipper's presets have what the steps exercise: processes with an
-entry per extruder variant (three), a filament with an entry per variant it lists (six), other nozzles that share
-its process, and, in the ToolChanger's own Generic PLA, a filament that fits other printers than PLA does. Its
-scenarios run in the order written, and some count on what an earlier one left: the switching rows on what the
-Klipper 0.8 was last used with, which the hidden presets scenario's step 4 writes, and most scenarios after saving a
-filament on the presets it saves.
+dialog; and that the presets selected, a user preset and an unsaved edit are what the G-code is sliced with. Then
+the Calibration menu's tests through `calibration_generate_test`, every test and method: the project each makes, the
+parameters it uses, the presets and objects it changes, the warnings for values it rounds or the printer may not
+take, the layer height it lowers to reach a speed, and the refusals that leave the project and presets as they were;
+`preset_changes` "keep" and "discard", including the filament tab on another slot's modified preset; and, through the
+exported G-code, that the temperature, pressure advance and retraction towers change their value band by band. A
+calibration test is first a change to the presets this test reads (`presets_changed`), so the calibration tests are
+this test's scenarios, on its launch. It runs on the default printer, the Generic Klipper Printer 0.4, and switches
+to other printers of the Custom vendor: no step needs a Bambu Lab printer's own behaviour. The Klipper's presets
+have what the steps exercise: processes with an entry per extruder variant (three), a filament with an entry per
+variant it lists (six), other nozzles that share its process, and, in the ToolChanger's own Generic PLA, a filament
+that fits other printers than PLA does. Its scenarios run in the order written, and some count on what an earlier
+one left: the switching rows on what the Klipper 0.8 was last used with, which the hidden presets scenario's step 2
+writes, and most scenarios after saving a filament on the presets it saves.
 
 **Starts from:** `start(client)`, which every scenario's start makes again and compares with `{printer: KLIPPER,
 process: KLIPPER_STD, filaments: [GENERIC_PLA]}`, which the rows write `Klipper | Std | PLA`. Then, once, before the
@@ -31,41 +37,44 @@ first scenario:
   `auto_arrange`; the switching rows count on `remember_printer_config`; the prompt lists only the settings the mode
   shows, and one scenario counts on a setting Simple mode hides. An earlier test may have left any of them changed.
 - `printer_uninstall` of the Generic Klipper Printer's 0.2, 0.6 and 0.8 nozzles and of the Generic Marlin Printer's
-  0.4 nozzle, with `preset_changes: "discard"`, and `filament_uninstall` of HS: the hidden presets scenario and the
-  listing need them hidden, and an earlier test may have installed them. Their replies are not checked: what they
-  change depends on the tests before. A call that finds a preset not installed changes nothing and is not refused.
+  0.4 nozzle, with `preset_changes: "discard"`: the hidden presets scenario and the listing need them hidden, and an
+  earlier test may have installed them. Its reply is not checked: what it changes depends on the tests before. A
+  call that finds a preset not installed changes nothing and is not refused.
 - `preset_delete` of each preset of a name this test saves that is listed, which a run of this test that failed on
   this folder left: the filaments "MCP Test PLA", "MCP Test PLA 2", "MCP Test PETG", "MCP Export PLA", "MCP Imported
-  PLA" and "MCP Print PLA", the processes "MCP Delete Child" and then "MCP Delete Base", and the printer "MCP Test
-  Printer", selected first since `preset_delete` takes only the selected printer. Then `start(client)` again.
+  PLA", "MCP Print PLA" and "MCP Calib PLA" (which keep and discard step 1 saves without `overwrite`, and a run that
+  failed before its step 6 leaves), the processes "MCP Delete Child" and then "MCP Delete Base", and the printer "MCP
+  Test Printer", selected first since `preset_delete` takes only the selected printer. Then `start(client)` again.
 
 The hidden presets and nozzle diameter scenarios set `remember_printer_config` false after their start and true
 again in a `finally` (see **Leaves**). With it on, a printer switch selects again the process and filaments the
 printer was last used with, which the data folder keeps per printer and which the tests before this one may have
 written; with it off, the switch keeps the process and filament that fit the new printer, so those two scenarios do
 not depend on that. The switching rows run with it on and land on what the Klipper 0.8 was last used with, Std and
-PLA, which hidden presets step 4 wrote. The hidden presets are ones no other test selects: a preset the data folder's
+PLA, which hidden presets step 2 wrote. The hidden presets are ones no other test selects: a preset the data folder's
 last selection holds is shown from the app's start, which no uninstall undoes, and the hidden presets scenario would
 then fail. A run of this test cut off by its time limit with one of them selected fails its rerun for that reason.
 
 **Leaves:** the user filament "MCP Print PLA", the one preset a passing run keeps: the others it saves, it deletes in
-the deleting and exporting scenarios. Developer mode off, `auto_arrange` and `remember_printer_config` on and Simple
-mode, as its start set them. The Generic Klipper Printer's 0.2, 0.6 and 0.8 nozzles, the Generic Marlin Printer and
-HS uninstalled. What each printer it selected was last used with: the Klipper's 0.4, 0.6 and 0.8 nozzles Std and
-PLA, the Marlin 0.20mm Standard @MyMarlin and PLA, and an entry for "MCP Test Printer", which deleting the preset
-leaves. In the recent projects, `inside.3mf` in the test's own folder, which is gone once the test ends, so the
-Recent Projects menu does not list it. A new project with `Klipper | Std | PLA` in one slot. Of the preferences its
-scenarios change and change back, only `remember_printer_config` is turned back in a `finally`, after the two
-scenarios that turn it off: it decides what every later test's printer switches select, and no test sets it for
+the deleting, exporting and keep and discard scenarios. A run that fails between keep and discard steps 1 and 6 leaves
+"MCP Calib PLA", and the Klipper's memory with a second slot holding it; a later test's `start()` sets its own slots.
+The G-code files the calibration scenarios export are in the test's own folder. Developer mode off, `auto_arrange` and
+`remember_printer_config` on and Simple mode, as its start set them. The Generic Klipper Printer's 0.2, 0.6 and 0.8
+nozzles and the Generic Marlin Printer uninstalled. What each printer it selected was last used with: the Klipper's 0.4,
+0.6 and 0.8 nozzles Std and PLA, the Marlin 0.20mm Standard @MyMarlin and PLA, and an entry for "MCP Test Printer",
+which deleting the preset leaves. In the recent projects, `inside.3mf` in the test's own folder, which is gone once the
+test ends, so the Recent Projects menu does not list it. A new project with `Klipper | Std | PLA` in one slot. Of the
+preferences its scenarios change and change back, only `remember_printer_config` is turned back in a `finally`, after
+the two scenarios that turn it off: it decides what every later test's printer switches select, and no test sets it for
 itself. Developer mode, which the test turns on around three saves, and `auto_arrange`, which the preference scenario
 turns off and on again, are turned back by the steps alone, and a run that fails between the two leaves them changed.
-Neither needs more: a test that depends on the mode sets it, which turns Developer mode off (`GUI_App::set_mode()`),
-and `auto_arrange` decides only whether a clone is arranged, which `test_preferences` sets for itself and
-`test_objects` does not depend on.
+Neither needs more: a test that depends on the mode sets it, which turns Developer mode off (`GUI_App::set_mode()`), and
+`auto_arrange` decides only whether a clone is arranged, which `test_preferences` sets for itself and `test_objects`
+does not depend on.
 
 **Terms:** printers `Klipper` (MyKlipper 0.4 nozzle), `Klipper 0.6` (MyKlipper 0.6 nozzle), `Klipper 0.8`
 (MyKlipper 0.8 nozzle), `Marlin` (MyMarlin 0.4 nozzle); processes `Std` (0.20mm Standard @MyKlipper), `Opt` (0.16mm
-Optimal @MyKlipper); filaments `PLA` (Generic PLA @System), `HS` (Generic PLA High Speed @System). Presets the test
+Optimal @MyKlipper); filament `PLA` (Generic PLA @System). Presets the test
 makes are written by their full names ("MCP Test PLA"). A value written `v×n` is n entries, each v, joined by commas:
 `220×6` is "220,220,220,220,220,220".
 
@@ -98,9 +107,9 @@ with `dialog_answer`, and waits for the call's job with `wait`; a wait that runs
 matched by its code where the operations layer gives one, otherwise by its words, and is always followed by
 `selection()`.
 
-Every scenario starts with `start(client)` and checks that it returns the start above, that the project has one
-filament slot and no objects, that `app_state.mode` is `simple` and that `preferences_get` reads `developer_mode`
-false.
+Every scenario before the calibration scenarios starts with `start(client)` and checks that it returns the start
+above, that the project has one filament slot and no objects, that `app_state.mode` is `simple` and that
+`preferences_get` reads `developer_mode` false.
 
 **Scenario: hidden presets** (runs first)
 
@@ -108,13 +117,15 @@ With `remember_printer_config` off (see **Starts from**).
 
 | # | Step | Selection after | Also checked |
 |---|---|---|---|
-| 1 | `preset_list {type: printer}`; `preset_list {type: filament, query: "Generic PLA High Speed @System"}`, then the same with `include_uninstalled: true` | `Klipper \| Std \| PLA` | the Klipper is listed with `selected: true`, and neither the Klipper 0.8 nor the Marlin is listed: the start uninstalled them, and nothing has shown them yet. The filament query lists nothing, and with `include_uninstalled` it lists HS alone, with `installed: false` |
-| 2 | `preset_select {type: filament, name: "Generic PLA High Speed @System", filament_slot: 1}` | `Klipper \| Std \| HS` | reply `selected` and `shown` are both HS; `preset_list {type: filament, query: <HS>}` without `include_uninstalled` lists it with `selected: true` and no `installed` field |
-| 3 | `preset_select {type: filament, name: "Generic PLA", filament_slot: 1}`, the name the slot's selector shows | `Klipper \| Std \| PLA` | reply `selected` PLA, and no `shown` |
-| 4 | `preset_select {type: printer, name: "MyKlipper 0.8 nozzle"}` | `Klipper 0.8 \| Std \| PLA` | reply `shown` Klipper 0.8; no dialog opened. Std lists the 0.8 nozzle among its printers and PLA fits every printer, so both stay |
-| 5 | `preset_select` of Klipper | `Klipper \| Std \| PLA` | |
-| 6 | `preset_select {type: printer, name: "MyMarlin 0.4 nozzle", preset_changes: "discard"}` | `Marlin \| 0.20mm Standard @MyMarlin \| PLA` | reply `shown` Marlin. Std does not fit the Marlin, so the process moves to the Marlin's preset of the same alias, 0.20mm Standard; PLA fits it and stays |
-| 7 | `preset_select` of Klipper, then Std, then PLA in slot 1 | `Klipper \| Std \| PLA` | |
+| 1 | `preset_list {type: printer}` | `Klipper \| Std \| PLA` | the Klipper is listed with `selected: true`, and neither the Klipper 0.8 nor the Marlin is listed: the start uninstalled them, and nothing has shown them yet |
+| 2 | `preset_select {type: printer, name: "MyKlipper 0.8 nozzle"}` | `Klipper 0.8 \| Std \| PLA` | reply `shown` Klipper 0.8; no dialog opened. Std lists the 0.8 nozzle among its printers and PLA fits every printer, so both stay |
+| 3 | `preset_select` of Klipper | `Klipper \| Std \| PLA` | |
+| 4 | `preset_select {type: printer, name: "MyMarlin 0.4 nozzle", preset_changes: "discard"}` | `Marlin \| 0.20mm Standard @MyMarlin \| PLA` | reply `shown` Marlin. Std does not fit the Marlin, so the process moves to the Marlin's preset of the same alias, 0.20mm Standard; PLA fits it and stays |
+| 5 | `preset_select` of Klipper, then Std, then PLA in slot 1 | `Klipper \| Std \| PLA` | |
+
+A hidden filament shown by name, and the name a slot's selector shows, are `test_filaments`' (its hidden filaments
+scenario): `Ops::resolve_preset()` shows a hidden preset of any type through `show_hidden_preset()`, so the printers
+here stand for it.
 
 **Scenario: listing presets**
 
@@ -201,54 +212,61 @@ then makes the edit the row names: `process` is `settings_set {type: process, va
 given; "asks" means it is given no `preset_changes`, is held by a dialog, and the dialog is answered as the row says.
 A row whose selection after shows no edit also reads `wall_loops` "3", the saved value of Std and of Opt, so an edit
 that was dropped is seen to be gone. The rows run with `remember_printer_config` on, and a switch to the Klipper 0.8
-selects again what it was last used with: Std and PLA, from hidden presets step 4.
+selects again what it was last used with: Std and PLA, from hidden presets step 2.
 
 | # | Edit | Call | Selection after | Also checked |
 |---|---|---|---|---|
 | 1 | none | process Opt | `Klipper \| Opt \| PLA` | no dialog opened; the reply has no `discarded` and no `modified` |
 | 2 | process | process Opt, `preset_changes: "transfer"` | `Klipper \| Opt[wall_loops 5] \| PLA` | reply `modified` `{process: {name: Opt, keys: [wall_loops]}}`, no `discarded` |
-| 3 | process | process Opt, `"discard"` | `Klipper \| Opt \| PLA` | reply `discarded` `{process: {name: Std, keys: [wall_loops]}}`, no `modified` |
-| 4 | process | process Opt, asks, answered Transfer | `Klipper \| Opt[wall_loops 5] \| PLA` | one dialog held the call, titled "Transfer or discard changes", with the buttons Transfer, Discard and Save; the job's reply as in row 2 |
-| 5 | process | process Opt, asks, answered Discard | `Klipper \| Opt \| PLA` | the job's reply as in row 3 |
-| 6 | process | process Opt, asks, closed (`cancel`) | `Klipper \| Std[wall_loops 5] \| PLA` | the job ends refused, `selection_cancelled`, `Selecting "0.16mm Optimal @MyKlipper" was cancelled.` |
-| 7 | process | process Std, the one the tab edits; asks, closed | `Klipper \| Std[wall_loops 5] \| PLA` | a dialog of the same title and buttons held it; refused, `selection_cancelled` |
-| 8 | none | process "No Such Process" | `Klipper \| Std \| PLA` | refused, `preset_not_offered`, `The preset selector does not offer "No Such Process".` |
-| 9 | none | process "0.16mm Optimal", Opt's alias | `Klipper \| Std \| PLA` | refused, `preset_not_offered`, `The preset selector does not offer "0.16mm Optimal".`, its details' `similar` starting with Opt: a compatible preset carries the name, under another name in the selector |
-| 10 | none | process "0.20mm Standard @MyMarlin" | `Klipper \| Std \| PLA` | refused, `preset_incompatible`, `"0.20mm Standard @MyMarlin" is not compatible with the selected printer.` |
-| 11 | none | printer Klipper 0.8 | `Klipper 0.8 \| Std \| PLA` | no dialog opened |
-| 12 | printer | printer Klipper 0.8, `"transfer"` | `Klipper[printer_notes "MCP pin"] \| Std \| PLA` | refused, `transfer_not_offered`, "The unsaved changes cannot be transferred: a printer's changes stay with it." |
-| 13 | printer | printer Klipper 0.8, `"discard"` | `Klipper 0.8 \| Std \| PLA` | reply `discarded` `{printer: {name: Klipper, keys: [printer_notes]}}` |
-| 14 | printer | printer Klipper 0.8, asks, answered Discard | `Klipper 0.8 \| Std \| PLA` | the dialog's title as in row 4, its buttons Discard and Save, no Transfer |
-| 15 | printer | printer Klipper 0.8, asks, closed | `Klipper[printer_notes "MCP pin"] \| Std \| PLA` | refused, `selection_cancelled` |
-| 16 | process | printer Klipper 0.8, `"transfer"` | `Klipper 0.8 \| Std[wall_loops 5] \| PLA` | no dialog opened; reply `modified` `{process: {name: Std, keys: [wall_loops]}}`: the edit moved with the switch |
-| 17 | process | printer Klipper 0.8, `"discard"` | `Klipper 0.8 \| Std \| PLA` | reply `discarded` `{process: {name: Std, keys: [wall_loops]}}`: the Klipper 0.8's process is selected again from its saved values |
-| 18 | process | printer Klipper 0.8, asks, answered Transfer | `Klipper 0.8 \| Std[wall_loops 5] \| PLA` | one dialog held the call, with the buttons Transfer, Discard and Save |
-| 19 | process | printer Klipper 0.8, asks, closed | `Klipper 0.8 \| Std \| PLA` | the job's reply `selected` Klipper 0.8: closing the prompt does not stop this switch, and the edit is dropped as in row 17 |
-| 20 | none | printer "No Such Printer" | `Klipper \| Std \| PLA` | refused, `preset_not_offered` |
-| 21 | none | printer "Generic Klipper Printer", the model's name | `Klipper \| Std \| PLA` | refused, `preset_not_offered` |
+| 3 | process | process Opt, asks, answered Discard | `Klipper \| Opt \| PLA` | one dialog held the call, titled "Transfer or discard changes", with the buttons Transfer, Discard and Save; the job's reply `discarded` `{process: {name: Std, keys: [wall_loops]}}`, no `modified` |
+| 4 | process | process Opt, asks, closed (`cancel`) | `Klipper \| Std[wall_loops 5] \| PLA` | the job ends refused, `selection_cancelled`, `Selecting "0.16mm Optimal @MyKlipper" was cancelled.` |
+| 5 | process | process Std, the one the tab edits; asks, closed | `Klipper \| Std[wall_loops 5] \| PLA` | a dialog of the title and buttons of row 3 held it; refused, `selection_cancelled` |
+| 6 | none | process "No Such Process" | `Klipper \| Std \| PLA` | refused, `preset_not_offered`, `The preset selector does not offer "No Such Process".` |
+| 7 | none | process "0.16mm Optimal", Opt's alias | `Klipper \| Std \| PLA` | refused, `preset_not_offered`, `The preset selector does not offer "0.16mm Optimal".`, its details' `similar` starting with Opt: a compatible preset carries the name, under another name in the selector |
+| 8 | none | process "0.20mm Standard @MyMarlin" | `Klipper \| Std \| PLA` | refused, `preset_incompatible`, `"0.20mm Standard @MyMarlin" is not compatible with the selected printer.` |
+| 9 | printer | printer Klipper 0.8, `"transfer"` | `Klipper[printer_notes "MCP pin"] \| Std \| PLA` | refused, `transfer_not_offered`, "The unsaved changes cannot be transferred: a printer's changes stay with it." |
+| 10 | printer | printer Klipper 0.8, asks, answered Discard | `Klipper 0.8 \| Std \| PLA` | the dialog's title as in row 3, its buttons Discard and Save, no Transfer; the job's reply `discarded` `{printer: {name: Klipper, keys: [printer_notes]}}` |
+| 11 | printer | printer Klipper 0.8, asks, closed | `Klipper[printer_notes "MCP pin"] \| Std \| PLA` | refused, `selection_cancelled` |
+| 12 | process | printer Klipper 0.8, `"transfer"` | `Klipper 0.8 \| Std[wall_loops 5] \| PLA` | no dialog opened; reply `modified` `{process: {name: Std, keys: [wall_loops]}}`: the edit moved with the switch |
+| 13 | process | printer Klipper 0.8, `"discard"` | `Klipper 0.8 \| Std \| PLA` | reply `discarded` `{process: {name: Std, keys: [wall_loops]}}`: the Klipper 0.8's process is selected again from its saved values |
+| 14 | process | printer Klipper 0.8, asks, answered Transfer | `Klipper 0.8 \| Std[wall_loops 5] \| PLA` | one dialog held the call, with the buttons Transfer, Discard and Save |
+| 15 | process | printer Klipper 0.8, asks, closed | `Klipper 0.8 \| Std \| PLA` | the job's reply `selected` Klipper 0.8: closing the prompt does not stop this switch, and the edit is dropped as in row 13 |
+| 16 | none | printer "Generic Klipper Printer", the model's name | `Klipper \| Std \| PLA` | refused, `preset_not_offered` |
+
+Each row stands for a branch of the switch the tool and the plugin API share (`Ops::select_preset()`, its
+`AnswerScope` answering the tab's prompt): for the process, no edit, Transfer ahead, the prompt answered Discard, the
+prompt closed on another preset and on the one the tab edits, and the three refusals of a name; for the printer, its
+own edit (no Transfer offered, Discard, closed) and the process edit it carries (Transfer and Discard ahead, Transfer
+answered, closed). Discard ahead on the process tab, the prompt answered Transfer on it, a printer switch with no edit,
+Discard ahead of a printer edit and a printer name no preset carries reach the code of the rows kept: answering ahead
+is the same `AnswerScope` for every type (rows 2 and 13, and `test_filaments`' one slot with `X`, rows 7 and 8), the
+answered prompt's reply is built as it is ahead, a switch with no edit is the hidden presets' step 2, and row 6 is the
+name no preset carries.
 
 **Scenario: switching through the plugin API**
 
-The rows named, through `plugin("orca.host.preset.<process|printer>.begin_update(<name>).commit()")`, which returns
-the commit's `target_name` and `selection_changed`, or what it raised. A row starts and makes its edit as the row it
-names does, its selection after is that row's, and a refusal raises with the words of that row's refusal. The
-plugin API has no `preset_changes`, so every switch with an edit asks.
+Through `plugin("orca.host.preset.<process|printer>.begin_update(<name>).commit()")`, which returns the commit's
+`target_name` and `selection_changed`, or what it raised. A row that names a switching row starts and makes its edit
+as that row does, its selection after is that row's, and a refusal raises with the words of that row's refusal; rows 2
+and 7 give their own. The plugin API has no `preset_changes`, so every switch with an edit asks.
+
+The API's own code is the commit's fields and `throw_refusal()` (`PluginHostPresets.cpp`), which raises
+`SelectionCancelled`, a `RuntimeError`, for a cancel and `ValueError` for a name no preset fits; behind it the switch
+is the tool's `Ops::select_preset()`, with `Ask`. So the rows are one for each field and each raise: a switch of
+each type (1, 7), the prompt answered (2), a cancel (3), the preset the tab edits by name and with none (4, 5), a
+refusal of each code (6) and the slot forms (8). The switching rows' other branches reach that function as the tool's
+rows do.
 
 | # | As row | Checked |
 |---|---|---|
 | 1 | 1 | `target_name` Opt, `selection_changed` true |
-| 2 | 4 | the dialog's title and buttons as in row 4; `target_name` Opt |
-| 3 | 5 | `target_name` Opt |
-| 4 | 6 | raises `RuntimeError` (the plugin API's `SelectionCancelled` is a `std::runtime_error`) with the words of row 6 |
-| 5 | 7, given Std, the preset the tab edits | no dialog opens; `target_name` Std, `selection_changed` false; selection `Klipper \| Std[wall_loops 5] \| PLA` |
-| 6 | 7, with no name | as 5 |
-| 7 | 8, 9 and 10 | `ValueError` with each row's words |
-| 8 | 11 | `target_name` Klipper 0.8, `selection_changed` true |
-| 9 | 14 and 15 | as those rows; the closed one raises `RuntimeError` |
-| 10 | 18 | as row 18; `target_name` Klipper 0.8 |
-| 11 | 19 | as row 19; nothing raised, `target_name` Klipper 0.8 |
-| 12 | 20 and 21 | `ValueError` with each row's words |
-| 13 | none: `orca.host.preset.process.begin_update(1, <Opt>)`, then `orca.host.preset.process.update(1, "wall_loops", "4")` | `ValueError`, "The slot_number form of begin_update() is only available on orca.host.preset.filament", then `ValueError`, "The slot_number form of update() is only available on orca.host.preset.filament"; selection `Klipper \| Std \| PLA` after each |
+| 2 | process edit, Opt, answered Transfer: selection `Klipper \| Opt[wall_loops 5] \| PLA` | the dialog's title and buttons as in row 3; `target_name` Opt |
+| 3 | 4 | raises `RuntimeError` (the plugin API's `SelectionCancelled` is a `std::runtime_error`) with the words of row 4 |
+| 4 | 5, given Std, the preset the tab edits | no dialog opens; `target_name` Std, `selection_changed` false; selection `Klipper \| Std[wall_loops 5] \| PLA` |
+| 5 | 5, with no name | as 4 |
+| 6 | 7 and 8 | `ValueError` with each row's words |
+| 7 | no edit, printer Klipper 0.8: selection `Klipper 0.8 \| Std \| PLA` | no dialog opened; `target_name` Klipper 0.8, `selection_changed` true |
+| 8 | none: `orca.host.preset.process.begin_update(1, <Opt>)`, then `orca.host.preset.process.update(1, "wall_loops", "4")` | `ValueError`, "The slot_number form of begin_update() is only available on orca.host.preset.filament", then `ValueError`, "The slot_number form of update() is only available on orca.host.preset.filament"; selection `Klipper \| Std \| PLA` after each |
 
 **Scenario: what a switch carries**
 
@@ -260,8 +278,7 @@ It starts by selecting "MCP Test PLA" in slot 1 and setting `sparse_infill_densi
 | 2 | `settings_set {type: process, values: {seam_slope_type: "all"}}`, then `preset_select` of Std with `"transfer"` | `Klipper \| Std[sparse_infill_density 25%, wall_loops 4] \| MCP Test PLA` | reply `discarded` `{process: {name: Opt, keys: [seam_slope_type]}}`: Simple mode hides it, so the prompt does not list it and Transfer drops it, as in the GUI |
 | 3 | `settings_set {type: filament, values: {slow_down_layer_time: 7}}`, then `preset_select` of Opt with `"discard"` | `Klipper \| Opt \| MCP Test PLA[slow_down_layer_time 7]` | reply `discarded.process.keys` `[sparse_infill_density, wall_loops]`, no `modified.process`, and `modified.filament.keys` `[slow_down_layer_time]`: a filament that fits the new process keeps its edit whatever the answer |
 | 4 | `settings_set {type: filament, reset_all: true, values: {filament_type: "PETG"}}`, `preset_save {type: filament, name: "MCP Test PETG"}`, then `preset_select` of "MCP Test PLA" in slot 1 | `Klipper \| Opt \| MCP Test PLA` | `value(filament, filament_type, preset: "MCP Test PETG")` is "PETG" |
-| 5 | `settings_set` `slow_down_layer_time` 8, then `preset_select {type: filament, name: "MCP Test PETG", filament_slot: 1, preset_changes: "transfer"}` | `Klipper \| Opt \| MCP Test PLA[slow_down_layer_time 8]` | refused, `transfer_not_offered`, `The unsaved changes cannot be transferred: "MCP Test PETG" is a filament of another type.` |
-| 6 | the same with `"discard"` | `Klipper \| Opt \| MCP Test PETG` | reply `selected` "MCP Test PETG", `discarded` `{filament: {name: "MCP Test PLA", keys: [slow_down_layer_time]}}` |
+| 5 | `settings_set` `slow_down_layer_time` 8, then `preset_select {type: filament, name: "MCP Test PETG", filament_slot: 1, preset_changes: "discard"}` | `Klipper \| Opt \| MCP Test PETG` | reply `selected` "MCP Test PETG", `discarded` `{filament: {name: "MCP Test PLA", keys: [slow_down_layer_time]}}`. The refused Transfer to a filament of another type is `test_filaments`' (one slot with `A`, row 3) |
 
 **Scenario: a new project and unsaved presets**
 
@@ -310,8 +327,7 @@ It starts with "MCP Test PLA" in slot 1. The presets it deletes are those the sc
 
 The test writes into a folder of its own, and writes there the file it imports, `imported_pla.json`: the fixture
 `tests/fixtures/mcp_import_pla.json`, a user filament inheriting PLA with `filament_cost` 24, renamed "MCP Imported
-PLA" (`name` and `filament_settings_id`). The fixture's own name, "MCP Import PLA", is one `test_every_action` and
-`test_files` read, and `test_every_action` checks that it is not loaded.
+PLA" (`name` and `filament_settings_id`), so that the fixture's own name, "MCP Import PLA", is never loaded.
 `costs()` reads `filament_cost` of "MCP Export PLA" and "MCP Imported PLA" with `value(..., preset: name)`, "absent"
 for one not listed. The selection stays `Klipper | Std | PLA` except in step 5.
 
@@ -364,141 +380,20 @@ Its last step turns `auto_arrange` on again, as the start set it; a run that fai
 | 4 | `window_open {window: "preferences", tab: "behaviour", key: "auto_arrange"}`, `widget_set_value {target: {name: "auto_arrange", within: "Preferences"}, value: false}`, then Close | the call is held by a dialog titled Preferences; the control's reply `checked` false; the job ends; `auto_arrange` reads false |
 | 5 | the same with `tab: "general"` and `value: true` | the control is found although it is on another tab; `checked` true; `auto_arrange` reads true |
 
-**To settle in review:**
-- The hidden presets and how they are chosen (hidden presets; listing, step 4; nozzle, step 1). The Klipper's 0.6 and
-  0.8 nozzles share its process and filament, so a switch to them changes the printer alone; the Marlin is another
-  model with processes of its own. The start uninstalls them, and the 0.2 nozzle, since `test_install_printers` or
-  another test may install them on the folder; HS likewise. A preset `preset_select` shows stays shown until the app
-  restarts, and the runner starts a new app for each test, so presets an earlier test showed are hidden again.
-- The Marlin's process (hidden presets, step 6). Std does not fit the Marlin, and the compatibility update picks the
-  Marlin's process with Std's alias, "0.20mm Standard" (`PreferedProfileMatch` in `PresetBundle.cpp`). With
-  `remember_printer_config` on, the switch first selects what the Marlin was last used with, and on a folder where it
-  was never used it lands on the first of its processes, "0.08mm Extra Fine @MyMarlin", instead; the scenario turns
-  the preference off for that reason as well.
-- The filament a printer that is not the Klipper takes. PLA's `compatible_printers` is empty, so it fits every
-  printer of the vendor but the ToolChanger, which has a Generic PLA of its own (the library leaves its generic
-  filament out for a printer whose vendor has one of the same alias, `update_library_profile_excluded_from()` in
-  `Preset.cpp`). No scenario switches to the ToolChanger: it has five extruders, which would bring the filament slots
-  and extruder pages of a multi-extruder printer into this test.
-- The compatible printers of a saved filament (saving, step 2). `Tab::save_preset()` sets the printer selected as
-  `compatible_printers` when the preset saved has none, so that a filament made from a library one does not fit every
-  printer by accident.
-- An alias as a name (switching, row 9; plugin API, row 7). `"0.16mm Optimal"` is the alias of Opt and of the
-  ToolChanger's 0.16mm Optimal. The tab's selector lists Opt by its full name, so the name matches no row and no
-  hidden preset. The refusal is `preset_not_offered` with the `similar` names, since a compatible preset, Opt, carries
-  the name (`not_offered()` in `src/slic3r/GUI/Operations/PresetOps.cpp`); `similar_preset_names()` ranks Opt first
-  (both words matched, and compatible). Row 10's name, which no compatible preset carries, is `preset_incompatible`.
-  The plugin API raises `ValueError` for both codes.
-- Printer switches with an edited process (switching, rows 16 to 19). The preference `remember_printer_config`, on by
-  default, makes a printer switch select again the process and filaments last used with the new printer
-  (`PresetBundle::update_selections()`), which reloads the process from its saved values. Transfer keeps the edit
-  through the process tab's cache, which is applied after that; Discard and closing the prompt lose it. The Klipper
-  0.8 was last used with Std in hidden presets step 4 and rows 11, 13 and 14. Closing the prompt does not stop the
-  switch at all: `Tab::select_preset()` cancels only when the dependent preset does not fit the new printer. That is
-  the app's own code, as on `main`, left as it is: a prompt whose close does not cancel the switch is a bug for a fix
-  of its own. Row 19 and plugin row 11 expect what the app does today.
-- `preset_select` of the preset the tab edits, with unsaved changes (switching, row 7), asks the same question with
-  Transfer offered, since a process can always take a transfer (`Tab::can_transfer_changes_to()`).
-- After a project with project presets is replaced by a new one (inside the project, step 4), the process is expected
-  to fall back to Std: `PresetBundle::reset_project_embedded_presets()` leaves no process selected and the
-  compatibility update picks the printer's default. The replay read neither.
-- A detached preset inside the project does not come back as one (inside the project, step 5). Loading a project skips
-  each preset kept inside it that has no parent (`PresetCollection::load_project_embedded_presets()` in
-  `src/libslic3r/Preset.cpp`, which logs "can not find parent"), so "MCP Detached" is not loaded. The process the
-  project was saved with is then made from the project's own settings as an external preset named after the preset
-  and the file, "MCP Detached(inside.3mf)" (`PresetCollection::load_external_preset()`), which is selected and listed
-  as a user preset. That is the app's own code, as on `main` (commit 8c64808ae5), left as it is: a detached preset
-  that does not survive its project is a bug for a fix of its own. Step 5 expects what the app does today.
-- `object_add_primitive` with a shape alone asks for the size in the Primitive size dialog, as the shape's Speed Dial
-  action does, so step 4 gives the cube a size.
-- The process selected after deleting a selected preset with no parent (deleting, step 11) is the tab's next visible
-  preset, which follows the collection's order, and the user processes earlier tests left on the folder are in that
-  order: a run on a folder where one sorts after "MCP Delete Base" lands on it. The entry checks only that another
-  process is selected.
-- The 0.6 nozzle's process and filament (nozzle diameter, step 1). With `remember_printer_config` off, the switch keeps
-  Std and PLA, which fit the 0.6 nozzle, whatever the 0.6 nozzle was last used with on this folder; going back to 0.4
-  (step 2) keeps them too.
-- The edits that must differ from the saved values (deleting, step 7; print, step 1). Std and Opt hold `wall_loops`
-  3, so the child sets 2 and the print sets 4: an edit to 3 would leave no unsaved key and nothing to read in the
-  G-code.
-- The layer heights of the slice (print, step 2): the first layer is printed at the process's first layer height and
-  the top one may be thinner to end at the cube's top, so both are left out of the 0.16 steps.
-- How `gcode_config` writes a name (print, step 2): with quotes or without. The reader drops them, so the check holds
-  either way.
-
-**Not checked:**
-- User presets other tests left: every read of a list they join picks this test's own presets by name, and checks
-  the others no further.
-- That a hidden printer no shown filament fits shows its model's default filaments (`show_default_filaments()` in
-  `PresetOps.cpp`): every printer of the Custom vendor but the ToolChanger takes PLA (see **To settle**).
-  `test_install_filaments`, on a Bambu Lab data folder of its own, selects such a printer, the A1 mini.
-- Assigning filament presets to several slots, the sidebar's selector and the plugin API's filament editor: they belong
-  to `ops_assign_filament_preset_one_slot` and `_multi_slot`, which another area's test takes the place of.
-- A hidden printer selected through the plugin API, and the mixed-colour slot's refusal through both routes: checked in
-  `test_operation_routes`.
-- Installing and uninstalling printers and filaments: `test_install_printers` and `test_install_filaments`. Here the
-  start uninstalls a few without reading the replies.
-- That the Developer mode action turns the preference on and off: checked in `test_every_action`; here a detached save
-  is refused and then made around it.
-- That `preset_export` with a path is held by a dialog titled Export Preset Bundle: checked in `test_person_forms`;
-  here the dialog is driven to a written file and the file read.
-- `preferences_set` and the Preferences dialog tab by tab: checked in `test_preferences`; this test changes one control
-  in the dialog only, and sets the preferences it depends on with `preferences_set` without checking the reply.
-- `preset_sync`: checked in `test_additions_refusals`.
-- The undo snapshots of preset selections and imports, which `ops_import_presets` recorded through `ops_undo.py`: no
-  tool lists the undo history, and a preset's change is not in it (`settings_set`'s description).
-- The keys the spiral vase dialog changes besides the four named (reverting, step 16): which ones depend on the
-  process's values. The selection reads them all with their values, against the reply's `changed`.
-- The count of Generic PLA filaments (listing, step 1): it changes with the shipped profiles and with the user
-  filaments earlier tests left, so the list is checked item by item instead.
-- That no Template preset is listed, which `presets_and_plate_map` checked: `preset_list` leaves the Template vendor's
-  presets out before any filter, so no read through it can find one, and the check could not fail.
-- The wall count and filament cost of the slice beyond the G-code's settings block (print, step 2): counting walls
-  needs the toolpaths, and the cost is the app's sum over the filament used.
-- How the dialogs look: no screenshot is taken.
-
-**Fixtures:** the test uses `tests/fixtures/heightmap.png` and `tests/fixtures/mcp_import_pla.json`, from which it
-writes the preset file it imports, and writes its other files.
-
-**Strength:** Strong — after every step it reads the selection back, each preset with its unsaved edits and their
-values, and compares it whole with values written out here; it asserts each refusal by its code or its words, each
-prompt by its title and buttons, and checks an exported preset through its file and the selected presets and an
-unsaved edit through the G-code. The lists other tests add to are read for its own presets alone.
-
-## `test_calibration`
-`test_calibration.py` · Python, 325 checks · in `sweep.json` as `{"path": "test_calibration.py"}`
-
-**Tests:** `calibration_generate_test` for every test and method of the Calibration menu: the project it makes, the
-parameters it uses, the presets and objects it changes, the warnings for values it rounds or the printer may not
-take, the layer height it lowers to reach a speed, and the refusals that leave the project and presets as they were;
-`preset_changes` "keep" and "discard", including the filament tab on another slot's modified preset; and, through the
-exported G-code, that the temperature, pressure advance and retraction towers change their value band by band. It
-runs on the default printer, the Generic Klipper Printer 0.4: the Calibration menu's tests are the same for every
-printer, and a Klipper printer is one they write firmware commands for (`SET_PRESSURE_ADVANCE`, and the input
-shaping tests, which slice on it). Its extruder is a direct drive and its firmware has no junction deviation, so the
-pressure advance defaults are a direct drive's and cornering sweeps jerk.
-
-**Starts from:** `start(client)`, compared with `{printer: KLIPPER, process: KLIPPER_STD, filaments: [GENERIC_PLA]}`,
-which the rows write `Klipper | Std | PLA`. Before the first scenario it deletes the user filament "MCP Calib PLA"
-where it is listed: the name this test saves, which a run that failed on this folder before keep and discard step 6
-left, and which step 1's save, made without `overwrite`, would otherwise be refused. No other stored state decides a
-check, the mode included (the test passes in Simple mode and with Developer mode on alike): every call drops the
-unsaved changes first, and the checks read the presets the start selects.
-
-**Leaves:** a new project, its last call's `project_new`, with `Klipper | Std | PLA` in one slot, which is also what
-the Klipper was last used with; no preset, since keep and discard step 6 deletes "MCP Calib PLA" and its slot. A
-run that fails between keep and discard steps 1 and 6 leaves "MCP Calib PLA", and the Klipper's memory with a second
-slot holding it; a later test's `start()` sets its own slots. The G-code files it exports are in its own folder.
-
-**Reads:** `selection()` and `value()` as in `test_presets`, with `selection()` compared on the preset names and the
-filament's unsaved keys and values only: the process and printer keys a test changes depend on the values the shipped
-profiles already hold (see **Not checked**); the keys each test sets on purpose are read with `value()` instead.
-`objects()` gives each object as `{name, height}` from `object_list`, the height being `bbox.size` z. `own(object,
-key)` gives the object's own value of a process key from `settings_get {target: "object", object, keys: [key]}`.
-`gcode_layers(path)` gives the lines of an exported G-code file after its first `;LAYER_CHANGE` line, the line the
-Klipper's G-code writes at each layer change, cut into bands where the test says. A value written `v×n` is n entries,
-each v, joined by commas: PLA holds six entries of each per-variant key, one per extruder variant it lists, and Std
-three.
+The calibration scenarios follow. They test `calibration_generate_test` for every test and method of the Calibration
+menu, on the Klipper, whose extruder is a direct drive and whose firmware has no junction deviation, so the pressure
+advance defaults are a direct drive's and cornering sweeps jerk; a Klipper printer is one the tests write firmware
+commands for (`SET_PRESSURE_ADVANCE`, and the input shaping tests, which slice on it). The temperature tower and keep
+and discard start from `start(client)`, compared with `Klipper | Std | PLA`; the other tests start from a temperature
+tower at its defaults, a project of its own. No stored state decides a check, the mode included: every call drops the
+unsaved changes first, and the checks read the presets the start selects. In them `selection()` is compared on the
+preset names and the filament's unsaved keys and values only: the process and printer keys a test changes depend on the
+values the shipped profiles already hold (see **Not checked**); the keys each test sets on purpose are read with
+`value()` instead. `objects()` gives each object as `{name, height}` from `object_list`, the height being `bbox.size` z.
+`own(object, key)` gives the object's own value of a process key from `settings_get {target: "object", object, keys:
+[key]}`. `gcode_layers(path)` gives the lines of an exported G-code file after its first `;LAYER_CHANGE` line, the line
+the Klipper's G-code writes at each layer change, cut into bands where the test says. PLA holds six entries of each
+per-variant key, one per extruder variant it lists, and Std three.
 
 Each test's call is made with `discard_changes: true` and `preset_changes: "discard"` unless the step says otherwise.
 Its reply's `project`, `params` and `names` are checked whole against the values the row writes out; `project` is
@@ -538,7 +433,7 @@ true}` and leaves the selection `Klipper | Std | PLA[nozzle_temperature 230×6, 
 | 3 | `{test: "pressure_advance", method: "line", print_numbers: false}` | `project` as row 2; `params` `{method: line, start: 0, end: 0.1, step: 0.002, print_numbers: false}`; `names` `["pressure_advance_test.drc"]`; sets process `wipe_inward` "0" and `retract_after_outer_wall` "0", and no filament key: the filament's changes are empty |
 | 4 | `{test: "pressure_advance", method: "pattern", accelerations: [1000, 2000], speeds: [50, 100]}` | `project` as row 2; `params` `{method: pattern, start: 0, end: 0.08, step: 0.005, accelerations: [1000, 2000], speeds: [50, 100]}`; `names` `["pa_pattern_50_1000", "pa_pattern_100_1000", "pa_pattern_50_2000", "pa_pattern_100_2000"]`; sets filament `filament_retract_when_changing_layer` and `filament_wipe` 0 in every entry (the profile has nil), the filament's whole changes, and printer `wipe` and `retract_when_changing_layer` 0 in every entry; `result_keys` `{type: filament, keys: [enable_pressure_advance, pressure_advance, adaptive_pressure_advance, adaptive_pressure_advance_model]}`; a slice |
 | 5 | `{test: "pressure_advance", method: "pattern"}` | `project` as row 2; `params` `{method: pattern, start: 0, end: 0.08, step: 0.005, accelerations: [3000], speeds: [120]}`, the first entries of Std's `outer_wall_acceleration` and `outer_wall_speed`: the pattern's defaults are the process's; `names` `["pa_pattern_120_3000"]`; sets as row 4 |
-| 6 | `{test: "flow_ratio"}` | `project` "Orca YOLO Flow Calibration"; `params` `{method: yolo, top_surface_pattern: archimedeanchords}`; `names` "flowrate_0", "flowrate_0.01" to "flowrate_0.05", "flowrate_m0.01" to "flowrate_m0.05", the 11 of `Orca-LinearFlow.3mf` in its order; sets process `layer_height` "0.2", and no filament key (rows 6 to 9): the filament's changes are empty; `result_keys` `{type: filament, keys: [filament_flow_ratio]}`; each object's own `print_flow_ratio` is `(0.98 + m) / 0.98` to 0.0001, `m` being the number its name ends in ("m" for minus) and 0.98 the filament's flow ratio, and its own `top_surface_pattern` is "archimedeanchords"; a slice |
+| 6 | `{test: "flow_ratio"}` | `project` "Orca YOLO Flow Calibration"; `params` `{method: yolo, top_surface_pattern: archimedeanchords}`; `names` "flowrate_0", "flowrate_0.01" to "flowrate_0.05", "flowrate_m0.01" to "flowrate_m0.05", the 11 of `Orca-LinearFlow.3mf` in its order; sets process `layer_height` "0.2", and no filament key (rows 6 to 9): the filament's changes are empty; `result_keys` `{type: filament, keys: [filament_flow_ratio]}`; each object's own `print_flow_ratio` is `(0.98 + m) / 0.98` to 0.0001, `m` being the number its name ends in ("m" for minus) and 0.98 the filament's flow ratio, and its own `top_surface_pattern` is "archimedeanchords"; no slice (see **Not checked**) |
 | 7 | `{test: "flow_ratio", method: "yolo_perfectionist"}` | `project` "Orca YOLO Flow Calibration - Perfectionist version"; `params` `{method: yolo_perfectionist, top_surface_pattern: archimedeanchords}`; `names` the 16 of `Orca-LinearFlow_fine.3mf` in its order, "flowrate_0", "flowrate_0.005" to "flowrate_0.035" and "flowrate_m0.005" to "flowrate_m0.04"; flow ratios as in row 6 |
 | 8 | `{test: "flow_ratio", method: "pass1"}` | `project` "Flowrate Test - Pass1"; `params` `{method: pass1, top_surface_pattern: archimedeanchords}`; `names` "flowrate_0", "flowrate_10", "flowrate_15", "flowrate_20", "flowrate_5", "flowrate_m10", "flowrate_m15", "flowrate_m20", "flowrate_m5", as `flowrate-test-pass1.3mf` holds them; each object's own `print_flow_ratio` is `1 + m / 100` to 0.0001 |
 | 9 | `{test: "flow_ratio", method: "pass2", top_surface_pattern: "monotonic"}` | `project` "Flowrate Test - Pass2"; `params` `{method: pass2, top_surface_pattern: monotonic}`; `names` "flowrate_0", "flowrate_m1" to "flowrate_m9", as `flowrate-test-pass2.3mf` holds them; flow ratios as in row 8; each object's own `top_surface_pattern` is "monotonic" |
@@ -563,6 +458,66 @@ true}` and leaves the selection `Klipper | Std | PLA[nozzle_temperature 230×6, 
 | 6 | `filament_delete {filament_slot: 2}`, then `preset_delete` of "MCP Calib PLA" | `Klipper \| Std \| PLA` | `level` "success"; `deleted` "MCP Calib PLA"; `preset_list {type: filament}` lists PLA, not `modified`, and no "MCP Calib PLA" |
 
 **To settle in review:**
+- The hidden presets and how they are chosen (hidden presets; listing, step 4; nozzle, step 1). The Klipper's 0.6 and
+  0.8 nozzles share its process and filament, so a switch to them changes the printer alone; the Marlin is another
+  model with processes of its own. The start uninstalls them, and the 0.2 nozzle, since `test_install_printers` or
+  another test may install them on the folder. A preset `preset_select` shows stays shown until the app restarts,
+  and the runner starts a new app for each test, so presets an earlier test showed are hidden again.
+- The Marlin's process (hidden presets, step 4). Std does not fit the Marlin, and the compatibility update picks the
+  Marlin's process with Std's alias, "0.20mm Standard" (`PreferedProfileMatch` in `PresetBundle.cpp`). With
+  `remember_printer_config` on, the switch first selects what the Marlin was last used with, and on a folder where it
+  was never used it lands on the first of its processes, "0.08mm Extra Fine @MyMarlin", instead; the scenario turns
+  the preference off for that reason as well.
+- The filament a printer that is not the Klipper takes. PLA's `compatible_printers` is empty, so it fits every
+  printer of the vendor but the ToolChanger, which has a Generic PLA of its own (the library leaves its generic
+  filament out for a printer whose vendor has one of the same alias, `update_library_profile_excluded_from()` in
+  `Preset.cpp`). No scenario switches to the ToolChanger: it has five extruders, which would bring the filament slots
+  and extruder pages of a multi-extruder printer into this test.
+- The compatible printers of a saved filament (saving, step 2). `Tab::save_preset()` sets the printer selected as
+  `compatible_printers` when the preset saved has none, so that a filament made from a library one does not fit every
+  printer by accident.
+- An alias as a name (switching, row 7; plugin API, row 6). `"0.16mm Optimal"` is the alias of Opt and of the
+  ToolChanger's 0.16mm Optimal. The tab's selector lists Opt by its full name, so the name matches no row and no
+  hidden preset. The refusal is `preset_not_offered` with the `similar` names, since a compatible preset, Opt, carries
+  the name (`not_offered()` in `src/slic3r/GUI/Operations/PresetOps.cpp`); `similar_preset_names()` ranks Opt first
+  (both words matched, and compatible). Row 8's name, which no compatible preset carries, is `preset_incompatible`.
+  The plugin API raises `ValueError` for both codes.
+- Printer switches with an edited process (switching, rows 12 to 15). The preference `remember_printer_config`, on by
+  default, makes a printer switch select again the process and filaments last used with the new printer
+  (`PresetBundle::update_selections()`), which reloads the process from its saved values. Transfer keeps the edit
+  through the process tab's cache, which is applied after that; Discard and closing the prompt lose it. The Klipper
+  0.8 was last used with Std in hidden presets step 2 and row 10. Closing the prompt does not stop the switch at
+  all: `Tab::select_preset()` cancels only when the dependent preset does not fit the new printer. That is the app's
+  own code, as on `main`, left as it is: a prompt whose close does not cancel the switch is a bug for a fix of its
+  own. Row 15 expects what the app does today.
+- `preset_select` of the preset the tab edits, with unsaved changes (switching, row 5), asks the same question with
+  Transfer offered, since a process can always take a transfer (`Tab::can_transfer_changes_to()`).
+- After a project with project presets is replaced by a new one (inside the project, step 4), the process is expected
+  to fall back to Std: `PresetBundle::reset_project_embedded_presets()` leaves no process selected and the
+  compatibility update picks the printer's default. The replay read neither.
+- A detached preset inside the project does not come back as one (inside the project, step 5). Loading a project skips
+  each preset kept inside it that has no parent (`PresetCollection::load_project_embedded_presets()` in
+  `src/libslic3r/Preset.cpp`, which logs "can not find parent"), so "MCP Detached" is not loaded. The process the
+  project was saved with is then made from the project's own settings as an external preset named after the preset
+  and the file, "MCP Detached(inside.3mf)" (`PresetCollection::load_external_preset()`), which is selected and listed
+  as a user preset. That is the app's own code, as on `main` (commit 8c64808ae5), left as it is: a detached preset
+  that does not survive its project is a bug for a fix of its own. Step 5 expects what the app does today.
+- `object_add_primitive` with a shape alone asks for the size in the Primitive size dialog, as the shape's Speed Dial
+  action does, so step 4 gives the cube a size.
+- The process selected after deleting a selected preset with no parent (deleting, step 11) is the tab's next visible
+  preset, which follows the collection's order, and the user processes earlier tests left on the folder are in that
+  order: a run on a folder where one sorts after "MCP Delete Base" lands on it. The entry checks only that another
+  process is selected.
+- The 0.6 nozzle's process and filament (nozzle diameter, step 1). With `remember_printer_config` off, the switch keeps
+  Std and PLA, which fit the 0.6 nozzle, whatever the 0.6 nozzle was last used with on this folder; going back to 0.4
+  (step 2) keeps them too.
+- The edits that must differ from the saved values (deleting, step 7; print, step 1). Std and Opt hold `wall_loops`
+  3, so the child sets 2 and the print sets 4: an edit to 3 would leave no unsaved key and nothing to read in the
+  G-code.
+- The layer heights of the slice (print, step 2): the first layer is printed at the process's first layer height and
+  the top one may be thinner to end at the cube's top, so both are left out of the 0.16 steps.
+- How `gcode_config` writes a name (print, step 2): with quotes or without. The reader drops them, so the check holds
+  either way.
 - The towers' heights (temperature, step 2; other tests, row 1). `Plater::calib_temp()` keeps the blocks from
   `(500 - end) / 5 + 1` down to `(500 - start) / 5` blocks of 10 mm and drops what is left on the bed, so 252 and 232,
   rounded to 250 and 230, leave five blocks, 50 mm. The max volumetric structure is cut at `(end - start + 1) / step`
@@ -597,6 +552,35 @@ true}` and leaves the selection `Klipper | Std | PLA[nozzle_temperature 230×6, 
 - Discarding on the test (keep and discard, step 3) leaves slot 2 on "MCP Calib PLA" without its edit.
 
 **Not checked:**
+- User presets other tests left: every read of a list they join picks this test's own presets by name, and checks
+  the others no further.
+- That a hidden printer no shown filament fits shows its model's default filaments (`show_default_filaments()` in
+  `PresetOps.cpp`): every printer of the Custom vendor but the ToolChanger takes PLA (see **To settle**).
+  `test_install_filaments`, on a Bambu Lab data folder of its own, selects such a printer, the A1 mini.
+- Assigning filament presets to several slots, the sidebar's selector and the plugin API's filament editor: they belong
+  to `ops_assign_filament_preset_one_slot` and `_multi_slot`, which another area's test takes the place of.
+- A hidden printer selected through the plugin API, and the mixed-colour slot's refusal through both routes: checked in
+  `test_operation_routes`.
+- Installing and uninstalling printers and filaments: `test_install_printers` and `test_install_filaments`. Here the
+  start uninstalls a few without reading the replies.
+- That the Developer mode action turns the preference on and off, read through `preferences_get`: here a detached save
+  is refused and then made around it, which shows it on, and each scenario's start reads it off.
+- That `preset_export` with a path is held by a dialog titled Export Preset Bundle: checked in `test_person_forms`;
+  here the dialog is driven to a written file and the file read.
+- `preferences_set` and the Preferences dialog tab by tab: checked in `test_preferences`; this test changes one control
+  in the dialog only, and sets the preferences it depends on with `preferences_set` without checking the reply.
+- `preset_sync`: checked in `test_additions_refusals`.
+- The undo snapshots of preset selections and imports, which `ops_import_presets` recorded through `ops_undo.py`: no
+  tool lists the undo history, and a preset's change is not in it (`settings_set`'s description).
+- The keys the spiral vase dialog changes besides the four named (reverting, step 16): which ones depend on the
+  process's values. The selection reads them all with their values, against the reply's `changed`.
+- The count of Generic PLA filaments (listing, step 1): it changes with the shipped profiles and with the user
+  filaments earlier tests left, so the list is checked item by item instead.
+- That no Template preset is listed, which `presets_and_plate_map` checked: `preset_list` leaves the Template vendor's
+  presets out before any filter, so no read through it can find one, and the check could not fail.
+- The wall count and filament cost of the slice beyond the G-code's settings block (print, step 2): counting walls
+  needs the toolpaths, and the cost is the app's sum over the filament used.
+- How the dialogs look: no screenshot is taken.
 - The speeds the max volumetric and VFA towers step per layer: the G-code gives a move's feed rate, which the reader
   would have to tell from the brim's and travel moves by feature; the parameters and the presets they set are checked.
 - The G-code of the input shaping tests beyond the slice's outcome: their shaper commands, band by band, would need a
@@ -610,13 +594,20 @@ true}` and leaves the selection `Klipper | Std | PLA[nozzle_temperature 230×6, 
 - `presets_changed.filament.filament_slot`, which the reply always writes as 1; the filament's name is checked instead.
 - The other filaments `preset_list` lists after keep and discard step 6: the filaments earlier tests installed or
   saved; the step reads PLA and "MCP Calib PLA" by name.
-- The Calibration menu's dialogs, `calibration_generate_test {test}` alone, which opens them, and `silent: true`:
-  checked by the `actions_ask` replay (and the test that takes its place), and the menu's actions by
-  `test_every_action`'s `calib_*` rows.
+- A slice of the flow ratio tests (other tests, rows 6 to 9): `GCode.cpp` steps no value per layer for them (its
+  per-layer calibration branches are the towers', the pressure advance tests', input shaping's and cornering's), so a
+  slice would show only that objects with their own flow ratio slice, which is the slicer's and no calibration code.
+- The Calibration menu's dialogs: `calibration_generate_test {test}` alone opens them, which `test_call_forms` does for
+  the temperature test, with `silent: true` too, and `test_speed_dial` answers the retraction test's through its
+  action; the other seven are opened by no test.
 
-**Fixtures:** none.
+**Fixtures:** the test uses `tests/fixtures/heightmap.png` and `tests/fixtures/mcp_import_pla.json`, from which it
+writes the preset file it imports, and writes its other files.
 
-**Strength:** Strong — every test's parameters, project, objects and filament changes are compared exactly with values
-written out here and read back through other tools, each refusal by its code or words with the state after it, and
-three towers by the values their G-code steps through; the process and printer keys beyond each row's list, and the
-G-code of the other tests, are left out.
+**Strength:** Strong — after every step it reads the selection back, each preset with its unsaved edits and their
+values, and compares it whole with values written out here; it asserts each refusal by its code or its words, each
+prompt by its title and buttons, and checks an exported preset through its file and the selected presets and an
+unsaved edit through the G-code. Every calibration test's parameters, project, objects and filament changes are
+compared exactly, and three towers by the values their G-code steps through; the process and printer keys beyond each
+calibration row's list, and the G-code of the other calibration tests, are left out. The lists other tests add to are
+read for its own presets alone.

@@ -564,13 +564,12 @@ catalog holds: one per command entry and none for a folded or a greyed item, a s
 block and a block for every silent form, the folded items' actions, which call opens a tool and which runs, their
 schemas and summaries, and examples that call only real commands with arguments their schemas take;
 `scripts/CAD/test_gen_offer_table.py` checks the generator's refusals. On a live application launched with `tools/mcp/orca_mcp.py launch --cad`, the replays
-`tools/mcp/tests/cad_*.json` drive the commands through `tool_call`, the live tests `tools/mcp/test_cad_replay.py`,
-`test_cad_slow_build.py` and `test_cad_failed_job.py` cover journaling and replay, the app staying
-live through a long rebuild, and a call whose job fails after its reply,
-`tools/mcp/test_cad_examples.py` runs every command's examples, each on a fresh design, and
+`tools/mcp/tests/cad_*.json` drive the commands through `tool_call`, `tools/mcp/test_cad_replays.py` runs them and
+covers journaling and replay, the app staying live through a long rebuild and every command's examples, each on a
+fresh design, `test_cad_failed_job.py` a call whose job fails after its reply, and
 `tools/mcp/test_cad_commands.py` checks what the commands' arguments do where the panel's own functions
 answer. The GUI
-tests `tools/mcp/test_cad_sketching.py`, `test_cad_context_menu.py` and `test_cad_click_edit.py`
+tests `tools/mcp/test_cad_sketching.py` and `test_cad_context_menu.py`
 drive the tab as a person does, through the server's UI tools: they draw on the canvas with
 clicks and typed values, run the offer's verbs from a right click and type into the value fields with
 no click into them, and grade what the reading commands and `widget_list` report back. They

@@ -7,10 +7,10 @@ tools/mcp/test-entries/gui_tools.md designs them.
 
 Context menus and a button's menu listed and run by path without being shown, the Edit menu's items, the rows of
 the object list, of Compare presets and of the parameter table, the print button's popup, a drop-down list, and
-Orca's web dialogs, driven as an agent drives any widget. Every menu item, row and page element the test runs or
-clicks is checked by what it does to the project, the selection, the camera or the settings. It starts on the
-Generic Klipper Printer, sets the window size, the 3D view's labels and the preference its checks depend on, and exits
-0 when every check passes. The pictures and project files it saves go to --out, else to a new temporary folder.
+Orca's web dialogs, driven as an agent drives any widget, with the web view a script runs in while they are open.
+Every menu item, row and page element the test runs or clicks is checked by what it does to the project, the
+selection, the camera or the settings. It starts on the Generic Klipper Printer, sets the window size, the 3D view's
+labels and the preference its checks depend on, and exits 0 when every check passes. The pictures and project files it saves go to --out, else to a new temporary folder.
 """
 
 import argparse
@@ -659,7 +659,7 @@ class GuiToolsTest:
         return None
 
     def pick_colour(self, label):
-        """Steps 3, 4, 7 and 8 of the web dialogs: opens the filament picker of slot 1's colour, then its colour
+        """Steps 11, 12, 15 and 16 of the web dialogs: opens the filament picker of slot 1's colour, then its colour
         picker, sets the hex field to 3366CC and presses OK; returns the filament picker's job."""
         swatch = self.c.call("widget_click", target={"label": "1", "class": "wxBitmapButton"})
         more = self.c.call("widget_click", target={"label": "+ More Colors", "within": "Select Filament"})
@@ -671,12 +671,35 @@ class GuiToolsTest:
         self.job_ends(f"{label}: the More Colors click", more)
         return swatch
 
+    def script(self, code, **args):
+        """webview_run_javascript's reply, or {"error": its refusal's text}."""
+        try:
+            return self.c.call("webview_run_javascript", code=code, **args)
+        except orca_mcp.McpError as e:
+            return {"error": refusal(e)[0]}
+
+    def web_view_ref(self, target):
+        """The ref of the first web view widget_list lists under `target`, or None."""
+        for line in self.listing(target, "webview").splitlines():
+            m = re.search(r'\[(w\d+)\] webview', line)
+            if m:
+                return m.group(1)
+        return None
+
+    def ref_of(self, needle):
+        """The ref of the first element of the topmost dialog's page whose line holds `needle`, or None."""
+        for line in self.listing("dialog").splitlines():
+            m = re.search(r'\[(d\d+)\]', line) if needle in line else None
+            if m:
+                return m.group(1)
+        return None
+
     def web_dialogs(self):
         s = "web dialogs"
         self.t.equal(f"{s}: the start: the presets", start(self.c, filaments=[PLA]),
                      {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [PLA]})
         self.start(s)
-        # The wizard card step 15 ticks starts unticked only while its printer is not installed.
+        # The wizard card step 25 ticks starts unticked only while its printer is not installed.
         if MARLIN in self.printers():
             self.run("printer_uninstall", models=[{"vendor": "Custom", "model": "Generic Marlin Printer"}])
         self.run("filament_set_colour", filament_slot=1, colour="#26A69A")
@@ -686,96 +709,164 @@ class GuiToolsTest:
         self.t.equal(f"{s}: the start: the printer", self.state()["presets"]["printer"], KLIPPER)
         self.t.check(f"{s}: the start: no Generic Marlin Printer", MARLIN not in self.printers(), self.printers())
 
+        # A plugin an earlier test left may add web views of its own, so the reply's URL tells the page the script
+        # ran in.
+        self.run("view_set", tab="home")
+        home = self.web_view_ref("main")
+        self.t.check(f"{s} 1: the Home tab shows a web view", home is not None, self.listing("main", "webview"))
+        reply = self.script("1 + 1")
+        self.t.check(f"{s} 1: without a modal, the Home page takes a script",
+                     reply.get("result") == 2 and "web/homepage/index.html" in reply.get("url", ""), reply)
+
         job = self.c.call("action_run", id=PRESET_BUNDLE)
-        self.t.equal(f"{s} 1: the action waits on its dialog", job.get("status"), "blocked_by_dialog")
-        self.dialogs_are(f"{s} 1", "Preset Bundle")
+        self.t.equal(f"{s} 2: the action waits on its dialog", job.get("status"), "blocked_by_dialog")
+        self.dialogs_are(f"{s} 2", "Preset Bundle")
         page = self.listing("dialog")
         for name in ("name=#refresh_btn", "name=#close_btn", 'label "Version"', 'label "Update"'):
-            self.t.check(f"{s} 1: the page lists {name}", name in page, page)
+            self.t.check(f"{s} 2: the page lists {name}", name in page, page)
+        self.t.refused(f"{s} 3: a web view behind the modal is refused",
+                       lambda: self.c.call("webview_run_javascript", code="1", target=home), words="modal dialog is open")
+        self.t.equal(f"{s} 4: without a target, the bundle dialog's page takes a script",
+                     self.script("document.title").get("result"), "Preset Bundle")
+        self.t.equal(f"{s} 5: and by locator",
+                     self.script("!!document.getElementById('close_btn')", target=BUNDLE_VIEW).get("result"), True)
+        self.script("SendWXMessage(JSON.stringify({command: 'export_page'}))")
+        self.t.check(f"{s} 6: the export dialog opens above it",
+                     self.dialogs_become(["Preset Bundle", EXPORT], 10), self.dialogs())
+        # Its web view shows about:blank until its first navigation starts.
+        self.page_lists("ExportPresetDialog", 5, query="webview")
+        self.t.refused(f"{s} 7: the dialog under the topmost is refused",
+                       lambda: self.c.call("webview_run_javascript", code="1", target=BUNDLE_VIEW), words="is under")
+        url = self.script("1").get("url", "")
+        self.t.check(f"{s} 8: without a target, the topmost dialog's page is used", "ExportPresetDialog" in url, url)
+        self.c.call("dialog_answer", button="close")
+        self.t.check(f"{s} 9: the export dialog closes", self.dialogs_become(["Preset Bundle"], 10), self.dialogs())
+        began = time.monotonic()
         reply = self.c.call("widget_click", target={"css": "#close_btn", "within": "Preset Bundle"})
-        self.t.equal(f"{s} 2: the page's Close closes the dialog", reply.get("closed"), True)
-        self.job_ends(f"{s} 2: the step 1 action", job)
-        self.dialogs_are(f"{s} 2")
+        took = time.monotonic() - began
+        self.t.equal(f"{s} 10: the page's Close closes the dialog", reply.get("closed"), True)
+        # A page that closes its dialog is told at once, not after the call's 10 s.
+        self.t.check(f"{s} 10: and the reply says so within a second", took < 1.0, f"{took:.2f} s")
+        self.job_ends(f"{s} 10: the step 2 action", job)
+        self.dialogs_are(f"{s} 10")
 
+        self.run("view_set", tab="prepare")
         swatch = self.c.call("widget_click", target={"label": "1", "class": "wxBitmapButton"})
-        self.t.equal(f"{s} 3: the swatch waits on its dialog", swatch.get("status"), "blocked_by_dialog")
-        self.dialogs_are(f"{s} 3", "Select Filament")
-        self.t.check(f"{s} 3: the dialog lists the slot's colour", "#26A69A" in self.listing("dialog"),
+        self.t.equal(f"{s} 11: the swatch waits on its dialog", swatch.get("status"), "blocked_by_dialog")
+        self.dialogs_are(f"{s} 11", "Select Filament")
+        self.t.check(f"{s} 11: the dialog lists the slot's colour", "#26A69A" in self.listing("dialog"),
                      self.listing("dialog"))
         more = self.c.call("widget_click", target={"label": "+ More Colors", "within": "Select Filament"})
-        self.t.equal(f"{s} 4: More Colors waits on its dialog", more.get("status"), "blocked_by_dialog")
-        self.dialogs_are(f"{s} 4: the picker on top", "Select Filament", "Color Picker")
+        self.t.equal(f"{s} 12: More Colors waits on its dialog", more.get("status"), "blocked_by_dialog")
+        self.dialogs_are(f"{s} 12: the picker on top", "Select Filament", "Color Picker")
         reply = self.c.call("widget_set_value", target=HEX, value="FF0000")
-        self.t.equal(f"{s} 5: the reply's value", reply.get("value"), "FF0000FF")
-        self.t.equal(f"{s} 5: the hex field", self.hex_field(), "FF0000FF")
+        self.t.equal(f"{s} 13: the reply's value", reply.get("value"), "FF0000FF")
+        self.t.equal(f"{s} 13: the hex field", self.hex_field(), "FF0000FF")
         reply = self.c.call("mouse_gesture", target={"css": "#spectrum", "within": "Color Picker"}, action="drag",
                             x=20, y=20, to=[200, 100], steps=6)
-        self.t.equal(f"{s} 6: the reply's gesture", reply.get("done"), "drag")
+        self.t.equal(f"{s} 14: the reply's gesture", reply.get("done"), "drag")
         picked = self.hex_field()
-        self.t.check(f"{s} 6: the drag picked another colour",
+        self.t.check(f"{s} 14: the drag picked another colour",
                      bool(picked and re.fullmatch(r"[0-9A-Fa-f]{8}", picked) and picked.upper() != "FF0000FF"), picked)
         reply = self.c.call("widget_set_value", target=HEX, value="3366CC")
-        self.t.equal(f"{s} 7: the reply's value", reply.get("value"), "3366CCFF")
-        self.t.equal(f"{s} 7: the hex field", self.hex_field(), "3366CCFF")
+        self.t.equal(f"{s} 15: the reply's value", reply.get("value"), "3366CCFF")
+        self.t.equal(f"{s} 15: the hex field", self.hex_field(), "3366CCFF")
         reply = self.c.call("widget_click", target={"web": "OK", "within": "Color Picker"})
-        self.t.equal(f"{s} 8: the picker closes", reply.get("closed"), True)
-        self.t.equal(f"{s} 8: the dialog under it", [d.get("title") for d in reply.get("dialogs", [])],
+        self.t.equal(f"{s} 16: the picker closes", reply.get("closed"), True)
+        self.t.equal(f"{s} 16: the dialog under it", [d.get("title") for d in reply.get("dialogs", [])],
                      ["Select Filament"])
-        self.job_ends(f"{s} 8: the step 4 click", more)
+        self.job_ends(f"{s} 16: the step 12 click", more)
         page = self.listing("dialog")
-        self.t.check(f"{s} 8: the dialog lists the picked colour and not the old one",
+        self.t.check(f"{s} 16: the dialog lists the picked colour and not the old one",
                      "#3366CC" in page and "#26A69A" not in page, page)
         self.c.call("dialog_answer", dialog={"title": "Select Filament"}, button="cancel")
-        self.job_ends(f"{s} 9: the step 3 click", swatch)
-        self.dialogs_are(f"{s} 9")
-        self.t.equal(f"{s} 9: a cancelled pick changes nothing", self.colours(), "#26A69A")
+        self.job_ends(f"{s} 17: the step 11 click", swatch)
+        self.dialogs_are(f"{s} 17")
+        self.t.equal(f"{s} 17: a cancelled pick changes nothing", self.colours(), "#26A69A")
 
-        swatch = self.pick_colour(f"{s} 10")
+        swatch = self.pick_colour(f"{s} 18")
         self.c.call("dialog_answer", dialog={"title": "Select Filament"}, button="ok")
-        self.job_ends(f"{s} 10: the swatch's click", swatch)
-        self.dialogs_are(f"{s} 10")
-        self.t.equal(f"{s} 10: the colour the picker returned is slot 1's", self.colours(), "#3366CC")
+        self.job_ends(f"{s} 18: the swatch's click", swatch)
+        self.dialogs_are(f"{s} 18")
+        self.t.equal(f"{s} 18: the colour the picker returned is slot 1's", self.colours(), "#3366CC")
         path = os.path.join(self.folder, "colour.3mf")
         self.run("project_save", path=path, overwrite=True)
-        self.t.equal(f"{s} 11: the project file keeps the colour", self.project_file(path).get("filament_colour"),
+        self.t.equal(f"{s} 19: the project file keeps the colour", self.project_file(path).get("filament_colour"),
                      ["#3366CC"])
 
         job = self.c.call("action_run", id=SETUP_WIZARD)
-        self.t.equal(f"{s} 12: the action waits on its dialog", job.get("status"), "blocked_by_dialog")
-        self.dialogs_are(f"{s} 12", "Setup Wizard")
-        self.t.check(f"{s} 12: the page lists Europe within 30 s", self.page_lists('"Europe"', 30), "")
+        self.t.equal(f"{s} 20: the action waits on its dialog", job.get("status"), "blocked_by_dialog")
+        self.dialogs_are(f"{s} 20", "Setup Wizard")
+        self.t.check(f"{s} 20: the page lists Europe within 30 s", self.page_lists('"Europe"', 30), "")
         reply = self.c.call("widget_click", target={"web": "Europe", **WIZARD})
-        self.t.equal(f"{s} 13: the reply's check", reply.get("checked"), True)
-        self.t.check(f"{s} 13: the wizard lists Europe checked", self.web_checked("Europe"),
+        self.t.equal(f"{s} 21: the reply's check", reply.get("checked"), True)
+        self.t.check(f"{s} 21: the wizard lists Europe checked", self.web_checked("Europe"),
                      self.listing("dialog", "Europe"))
-        self.c.call("widget_click", target={"web": "Next", **WIZARD})
+        next_ref = self.ref_of('button "Next"')
+        reply = self.c.call("widget_click", target=next_ref)
+        self.t.check(f"{s} 22: Next navigates to the printer page",
+                     reply.get("navigated") is True and "/guide/21/" in reply.get("url", ""), reply)
+        # The reply comes once the web view's URL changes, which the old document can outlast for a while; the ref
+        # is stale once the new one runs.
+        deadline = time.monotonic() + 10
+        while "/guide/21/" not in str(self.script("location.pathname").get("result")) and time.monotonic() < deadline:
+            time.sleep(0.2)
+        self.t.refused(f"{s} 23: the ref from the page before is stale",
+                       lambda: self.c.call("widget_click", target=next_ref), words="page changed")
+        reply = self.script("location.reload(); 1")
+        self.t.equal(f"{s} 24: a reload at the same URL replies navigated", reply.get("navigated"), True)
         card = "Nozzle 0.4 Marlin"
+        self.page_lists(card, 30)
         reply = self.c.call("widget_click", target={"web": card, "kind": "button", **WIZARD})
-        self.t.equal(f"{s} 15: the reply's check", reply.get("checked"), True)
-        self.t.check(f"{s} 15: the wizard lists the card checked", self.web_checked(card),
+        self.t.equal(f"{s} 25: the reply's check", reply.get("checked"), True)
+        self.t.check(f"{s} 25: the wizard lists the card checked", self.web_checked(card),
                      self.listing("dialog", card))
         reply = self.c.call("dialog_answer", dialog={"title": "Setup Wizard"}, button="close")
-        self.t.equal(f"{s} 16: the reply says the wizard closed", reply.get("closed"), True)
-        self.job_ends(f"{s} 16: the step 12 action", job)
-        self.dialogs_are(f"{s} 16")
-        self.t.equal(f"{s} 16: closing the wizard keeps no region", self.region(), "")
-        self.t.equal(f"{s} 16: closing the wizard keeps the printer", self.state()["presets"]["printer"], KLIPPER)
-        self.t.check(f"{s} 16: closing the wizard installs no printer", MARLIN not in self.printers(),
+        self.t.equal(f"{s} 26: the reply says the wizard closed", reply.get("closed"), True)
+        self.job_ends(f"{s} 26: the step 20 action", job)
+        self.dialogs_are(f"{s} 26")
+        self.t.equal(f"{s} 26: closing the wizard keeps no region", self.region(), "")
+        self.t.equal(f"{s} 26: closing the wizard keeps the printer", self.state()["presets"]["printer"], KLIPPER)
+        self.t.check(f"{s} 26: closing the wizard installs no printer", MARLIN not in self.printers(),
                      self.printers())
+
+        # The Klipper printer's sidebar offers Flushing volumes once a second filament is added. Its dialog's web
+        # view is the app's plain wxWebView, not a WebViewHostDialog's as the bundle dialogs' are.
+        self.run("widget_click", target={"label": "Add one filament"})
+        flush = self.c.call("widget_click", target={"label": "Flushing volumes"})
+        self.t.check(f"{s} 27: the Flushing volumes dialog opens", self.dialogs_become([FLUSH], 10), self.dialogs())
+        # Its web view, too, shows about:blank until its first navigation starts.
+        self.page_lists("WipingDialog.html", 5, query="webview")
+        reply = self.script("typeof document.title")
+        self.t.check(f"{s} 28: its page takes a script",
+                     reply.get("result") == "string" and "web/flush/WipingDialog.html" in reply.get("url", ""), reply)
+        self.c.call("dialog_answer", button="close")
+        self.job_ends(f"{s} 29: the step 27 click", flush)
+        self.dialogs_are(f"{s} 29")
 
     def printers(self):
         """The names of the printer presets preset_list offers."""
         return [p["name"] for p in self.c.call("preset_list", type="printer", limit=500)["items"]]
 
-    def page_lists(self, text, timeout_s):
-        """Whether the topmost dialog's page lists `text` within `timeout_s`, listed again each half second."""
+    def page_lists(self, text, timeout_s, query=None):
+        """Whether the topmost dialog's listing, with `query` when given, holds `text` within `timeout_s`, listed
+        again each half second."""
         deadline = time.monotonic() + timeout_s
         while True:
-            if text in self.listing("dialog"):
+            if text in self.listing("dialog", query):
                 return True
             if time.monotonic() > deadline:
                 return False
             time.sleep(0.5)
+
+    def dialogs_become(self, titles, timeout_s):
+        """Whether dialogs() is `titles` within `timeout_s`, read again every tenth of a second."""
+        deadline = time.monotonic() + timeout_s
+        while self.dialogs() != titles:
+            if time.monotonic() > deadline:
+                return False
+            time.sleep(0.1)
+        return True
 
     def web_checked(self, label):
         """Whether the topmost dialog's page lists an element whose label holds `label` as checked."""
@@ -809,6 +900,9 @@ class GuiToolsTest:
 
 HEX = {"web": "Hex color", "within": "Color Picker"}
 WIZARD = {"within": "Setup Wizard"}
+BUNDLE_VIEW = {"class": "webview", "within": "Preset Bundle"}
+EXPORT = "Export Preset Bundle"
+FLUSH = "Flushing volumes for filament change"
 
 
 def main():

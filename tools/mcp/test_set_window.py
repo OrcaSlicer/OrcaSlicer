@@ -1,22 +1,25 @@
 #!/usr/bin/env python3
-"""Checks window_set: the size, position and state of the main window, a window that doesn't block, and a
-modal dialog, with the read side that window_list and app_state give.
+"""Checks window_list and window_set: every open window, with a ref the GUI tools take, and the size, position
+and state of the main window, a window that doesn't block, and a modal dialog, with the read side that
+window_list and app_state give.
 
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_set_window.py
 
-The main window is sized twice, the second time from the normal state, and on Wayland a window screenshot
-is the size the reply gives. Where positions are known it is moved, then placed over its display's work area
-by position and size. It is maximized, given a size while maximized (which restores it first),
-minimized and restored, after which the 3D view still captures, and minimized while maximized, from which
-state normal and a size both bring it back to normal; on Wayland those checks are skipped, as a compositor
-brings a minimized window back only by activating the app. A request that contradicts itself is
-refused before anything changes. The Plugins window is sized and moved by its ref, which fails, pointing to
-window_list, once the window has closed. Preferences, a modal dialog, is sized as "dialog" and moved by its
-{label} locator, each read back from window_list, and never minimized; on X11 the main window, minimized,
-restored and raised while it is open, stays under it in the X server's stacking order. A check that this window
-system or display can't run here is reported SKIP, with why, and doesn't fail the test: it exits 0 when no check
-fails.
+window_list is a page of windows, the main window first. The main window is sized twice, the second time from
+the normal state, and on Wayland a window screenshot is the size the reply gives. Where positions are known it is
+moved, then placed over its display's work area by position and size. It is maximized, given a size while
+maximized (which restores it first), minimized and restored, after which the 3D view still captures, and
+minimized while maximized, from which state normal and a size both bring it back to normal; on Wayland those
+checks are skipped, as a compositor brings a minimized window back only by activating the app. A request that
+contradicts itself is refused before anything changes. The Plugins window, which doesn't block the app and holds
+a web page, is sized and moved by its ref, which window_screenshot captures alone and widget_list reads alone;
+keyboard_press Escape sent to it closes it, after which its ref fails, pointing to window_list. Preferences, a
+modal dialog listed last, is sized as "dialog" and moved by its {label} locator, each read back from
+window_list, and never minimized; on X11 the main window, minimized, restored and raised while it is open, stays
+under it in the X server's stacking order. Action Replay, a window the tools reach, is listed with a ref and
+closed by Escape sent to it. A check that this window system or display can't run here is reported SKIP, with
+why, and doesn't fail the test: it exits 0 when no check fails.
 """
 
 import ctypes
@@ -135,6 +138,15 @@ def main():
     state = client.call("app_state")
     wayland = state.get("display_backend") == "wayland"
 
+    # 0. The list a launch starts with: a page of windows, the main window first.
+    listed = client.call("window_list")
+    items = listed.get("items", [])
+    check("window_list: the reply is a page of windows", listed.get("total") == len(items) and listed.get("offset") == 0, listed)
+    first = items[0] if items else {}
+    check("window_list: the main window comes first, with a ref", first.get("kind") == "main" and first.get("ref"), items)
+    check("window_list: the main window is not modal", first.get("modal") is False, first)
+    check("window_list: the main window has a size", first.get("width", 0) > 0 and first.get("height", 0) > 0, first)
+
     # 1. Size.
     sized = client.call("window_set", size=[1400, 900])
     check("size: the reply has the size asked for", sized.get("size") == [1400, 900], sized)
@@ -234,6 +246,8 @@ def main():
     client.call("action_run", id="orca_command:open_plugins:orca")
     plugins = wait_for(lambda: find("Plugins"), 15) or {}
     check("the Plugins window is listed with a ref", plugins.get("ref"), plugins)
+    check("Plugins: it is a window that doesn't block", plugins.get("modal") is False, plugins)
+    check("Plugins: it holds a web page", plugins.get("web") is True, plugins)
     ref = plugins.get("ref")
     if ref:
         # Wayland takes no position.
@@ -250,6 +264,16 @@ def main():
         got = (entry.get("width"), entry.get("height")) if wayland else (entry.get("x"), entry.get("y"), entry.get("width"), entry.get("height"))
         want = tuple(size) if wayland else tuple(placed.get("position", []) + size)
         check("Plugins: window_list reports the place and size the reply gives", got == want, f"{entry} / {placed}")
+        # The other tools that take a window's ref.
+        shot = client.call("window_screenshot", target=ref, include_image=False)
+        whole = client.call("window_screenshot", target="main", include_image=False)
+        check("Plugins: a screenshot of its ref captures it", shot.get("path") and shot.get("width", 0) > 0, shot)
+        check("Plugins: and not the main window", (shot.get("width"), shot.get("height")) != (whole.get("width"), whole.get("height")),
+              f"{shot} / {whole}")
+        _snap, texts = client.call_with_text("widget_list", target=ref, include_web=False)
+        tree = texts[0] if texts else ""
+        top = tree.splitlines()[0] if tree else ""
+        check("Plugins: widget_list with its ref reads that window alone", '"Plugins"' in top and "MainFrame" not in tree, top)
         client.call("keyboard_press", keys="Escape", target=ref)
         check("Plugins: keyboard_press Escape closes it", wait_for(lambda: find("Plugins") is None, 10), windows())
 
@@ -261,7 +285,9 @@ def main():
     # 9. A modal dialog.
     prefs = client.call("action_run", id="orca_command:open_preferences:orca")
     modal = wait_for(lambda: find("Preferences"), 15)
-    check("Preferences is open", modal, windows())
+    listed = windows()
+    check("Preferences is listed as modal, with a ref", modal and modal.get("modal") is True and modal.get("ref"), listed)
+    check("the modal dialog comes last", listed and listed[-1].get("title") == "Preferences", listed)
     if modal:
         dialog_size = [0, 0]
         try:
@@ -317,7 +343,17 @@ def main():
         client.await_job(prefs)
         check("Preferences closes", find("Preferences") is None, windows())
 
-    # 10. The read side.
+    # 10. Action Replay is a window the tools reach: listed with a ref, and closed by a key sent to it.
+    client.call("action_run", id="orca_command:open_action_replay:orca")
+    replay = wait_for(lambda: find("Action Replay"), 10)
+    check("Action Replay is listed, not hidden", replay is not None and "hidden" not in replay, windows())
+    check("Action Replay: with a ref, not modal, showing a web page",
+          replay is not None and bool(replay.get("ref")) and replay.get("modal") is False and replay.get("web") is True, replay)
+    if replay is not None and replay.get("ref"):
+        client.call("keyboard_press", keys="Escape", target=replay["ref"])
+        check("Action Replay: keyboard_press Escape on its ref closes it", wait_for(lambda: find("Action Replay") is None, 10), windows())
+
+    # 11. The read side.
     listed = [w for w in windows() if w.get("ref")]
     check("window_list: each window with a ref has state and resizable",
           listed and all(w.get("state") in ("normal", "maximized", "minimized") and isinstance(w.get("resizable"), bool) for w in listed),
@@ -328,11 +364,11 @@ def main():
     check("app_state: each display has its work area and scale",
           all(all(k in d for k in ("index", "x", "y", "width", "height", "scale")) for d in displays), displays)
 
-    # 11. The flat form window_list reports.
+    # 12. The flat form window_list reports.
     flat = client.call("window_set", width=1500, height=950)
     check("flat form: width and height are read as size", flat.get("size") == [1500, 950], flat)
 
-    # 12. Clean-up: the size a fresh launch gives.
+    # 13. Clean-up: the size a fresh launch gives.
     client.call("window_set", size=list(orca_mcp.WINDOW_SIZE))
 
     failed = [c for c in checks if not c[1]]

@@ -10,13 +10,17 @@ preset switch and of a new project, answered ahead or in the dialog, through the
 a preset kept inside the project; exporting and importing preset files; a printer variant picked by its nozzle
 diameter; a preference changed in its dialog; and that the presets selected and an unsaved edit are what the G-code
 is sliced with. After every step it reads the selection back, each preset with its unsaved edits, and compares it
-whole with the state the entry writes out. It runs on the default printer, the Generic Klipper Printer 0.4, and
-switches to other printers of the Custom vendor, on a data folder earlier tests used; it exits 0 when every check
-passes.
+whole with the state the entry writes out. Then the Calibration menu's tests through calibration_generate_test,
+every test and method: the project each makes, the parameters it uses, the presets and objects it changes, its
+warnings and refusals, preset_changes "keep" and "discard", and, through the exported G-code, the values the
+temperature, pressure advance and retraction towers step through. It runs on the default printer, the Generic
+Klipper Printer 0.4, and switches to other printers of the Custom vendor, on a data folder earlier tests used; it
+exits 0 when every check passes.
 """
 
 import json
 import os
+import re
 import sys
 import tempfile
 import time
@@ -34,20 +38,21 @@ MARLIN = "MyMarlin 0.4 nozzle"
 STD = KLIPPER_STD
 OPT = "0.16mm Optimal @MyKlipper"
 PLA = GENERIC_PLA
-HS = "Generic PLA High Speed @System"
 # A printer of the Custom vendor that PLA does not fit, and the Generic PLA of its own that takes PLA's place.
 TOOLCHANGER = "MyToolChanger 0.4 nozzle"
 TOOLCHANGER_PLA = "Generic PLA @MyToolChanger"
 # The entry's terms for the presets it names often.
 TERMS = {"Klipper": KLIPPER, "Klipper 0.6": KLIPPER_06, "Klipper 0.8": KLIPPER_08, "Marlin": MARLIN,
-         "Std": STD, "Opt": OPT, "PLA": PLA, "HS": HS}
+         "Std": STD, "Opt": OPT, "PLA": PLA}
 SHORT = {name: term for term, name in TERMS.items()}
 START = {"printer": KLIPPER, "process": STD, "filaments": [PLA]}
 
+# The user filament keep and discard saves in slot 2.
+CALIB_PLA = "MCP Calib PLA"
 # The presets this test saves, which a run that failed on the data folder may have left: a process child before its
 # base, since a preset others inherit from cannot be deleted.
 OWN_FILAMENTS = ("MCP Test PLA", "MCP Test PLA 2", "MCP Test PETG", "MCP Export PLA", "MCP Imported PLA",
-                 "MCP Print PLA")
+                 "MCP Print PLA", CALIB_PLA)
 OWN_PROCESSES = ("MCP Delete Child", "MCP Delete Base")
 OWN_PRINTER = "MCP Test Printer"
 # The presets the hidden presets scenario and the listing need hidden, which an earlier test may have installed.
@@ -56,13 +61,40 @@ HIDDEN_PRINTERS = [{"vendor": "Custom", "model": "Generic Klipper Printer", "noz
 
 SIMPLE_MODE = "orca_command:mode_simple:orca"
 DEVELOPER_MODE = "orca_command:toggle_developer_mode:orca"
+FILAMENT_ADD = "orca_command:filament_add:orca"
 PROMPT = "Transfer or discard changes"
 SPIRAL = "Spiral mode only works"
+# A calibration test's call drops the project's and the presets' unsaved changes unless its step says otherwise.
+DISCARD = {"discard_changes": True, "preset_changes": "discard"}
+TEMPERATURE_KEYS = ["nozzle_temperature", "nozzle_temperature_initial_layer"]
 
 
 def times(value, n):
     """The entry's `v×n`: n entries, each v, joined by commas."""
     return ",".join([str(value)] * n)
+
+
+def same_number(a, b):
+    try:
+        return float(a) == float(b)
+    except ValueError:
+        return a == b
+
+
+class Every:
+    """The entry's "every entry": a value with one entry per extruder or variant, each entry `value`, whatever their
+    number. Every("0") equals "0,0"."""
+
+    def __init__(self, value):
+        self.value = str(value)
+
+    def __eq__(self, other):
+        if not isinstance(other, str) or not other:
+            return False
+        return all(same_number(entry, self.value) for entry in other.split(","))
+
+    def __repr__(self):
+        return f"every entry {self.value}"
 
 
 # ---- The selection, written as the entry writes it ----
@@ -149,6 +181,28 @@ def selection(client):
                           enumerate(presets["filaments"], 1)]}
 
 
+def named_selection(client):
+    """selection() as the calibration scenarios compare it: the printer and the process by name, and each slot's
+    filament with its unsaved edits. The process and printer keys a calibration test changes depend on the values
+    the shipped profiles already hold, so they are read one by one with value() instead."""
+    presets = client.call("app_state")["presets"]
+    return {"printer": presets["printer"], "process": presets["process"],
+            "filaments": [(name, unsaved(client, "filament", slot)) for slot, name in
+                          enumerate(presets["filaments"], 1)]}
+
+
+def named(text):
+    """A selection the entry writes, as named_selection() gives it: the printer's and the process's edits dropped."""
+    sel = parse_selection(text)
+    return {"printer": sel["printer"][0], "process": sel["process"][0], "filaments": sel["filaments"]}
+
+
+def pla(edits):
+    """The selection `Klipper | Std | PLA`, as named_selection() gives it, with PLA's unsaved keys and values
+    `edits`."""
+    return {"printer": KLIPPER, "process": STD, "filaments": [(PLA, dict(edits))]}
+
+
 def listed(client, type, **filters):
     """Every item preset_list gives for the filters, page after page, each whole."""
     items = []
@@ -207,43 +261,58 @@ def gcode_heights(path):
         return [float(line.split(":", 1)[1]) for line in f if line.startswith(";Z:")]
 
 
+def gcode_layers(path):
+    """The lines of an exported G-code file after its first `;LAYER_CHANGE` line, the line the Klipper's G-code
+    writes at each layer change."""
+    with open(path, encoding="utf-8", errors="replace") as f:
+        lines = f.read().splitlines()
+    first = next(i for i, line in enumerate(lines) if line.startswith(";LAYER_CHANGE"))
+    return lines[first + 1:]
+
+
+def in_a_row(values):
+    """`values` with repeats in a row dropped."""
+    return [v for i, v in enumerate(values) if i == 0 or v != values[i - 1]]
+
+
+def flow_offset(name):
+    """The number a flow ratio object's name ends in, "m" for minus: flowrate_m0.01 is -0.01."""
+    m = re.fullmatch(r"flowrate_(m?)([0-9.]+)", name)
+    assert m, name
+    return -float(m.group(2)) if m.group(1) else float(m.group(2))
+
+
 # ---- The switching rows: edit, type, name, how, selection after ----
 # `how` is preset_changes ("transfer", "discard"), the prompt's answer when the call asks ("Transfer", "Discard",
 # "cancel"), or None for a call with no edit to ask about.
 ROWS = {
     1: (None, "process", OPT, None, "Klipper | Opt | PLA"),
     2: ("process", "process", OPT, "transfer", "Klipper | Opt[wall_loops 5] | PLA"),
-    3: ("process", "process", OPT, "discard", "Klipper | Opt | PLA"),
-    4: ("process", "process", OPT, "Transfer", "Klipper | Opt[wall_loops 5] | PLA"),
-    5: ("process", "process", OPT, "Discard", "Klipper | Opt | PLA"),
-    6: ("process", "process", OPT, "cancel", "Klipper | Std[wall_loops 5] | PLA"),
-    7: ("process", "process", STD, "cancel", "Klipper | Std[wall_loops 5] | PLA"),
-    8: (None, "process", "No Such Process", None, "Klipper | Std | PLA"),
-    9: (None, "process", "0.16mm Optimal", None, "Klipper | Std | PLA"),
-    10: (None, "process", "0.20mm Standard @MyMarlin", None, "Klipper | Std | PLA"),
-    11: (None, "printer", KLIPPER_08, None, "Klipper 0.8 | Std | PLA"),
-    12: ("printer", "printer", KLIPPER_08, "transfer", 'Klipper[printer_notes "MCP pin"] | Std | PLA'),
-    13: ("printer", "printer", KLIPPER_08, "discard", "Klipper 0.8 | Std | PLA"),
-    14: ("printer", "printer", KLIPPER_08, "Discard", "Klipper 0.8 | Std | PLA"),
-    15: ("printer", "printer", KLIPPER_08, "cancel", 'Klipper[printer_notes "MCP pin"] | Std | PLA'),
-    16: ("process", "printer", KLIPPER_08, "transfer", "Klipper 0.8 | Std[wall_loops 5] | PLA"),
-    17: ("process", "printer", KLIPPER_08, "discard", "Klipper 0.8 | Std | PLA"),
-    18: ("process", "printer", KLIPPER_08, "Transfer", "Klipper 0.8 | Std[wall_loops 5] | PLA"),
-    19: ("process", "printer", KLIPPER_08, "cancel", "Klipper 0.8 | Std | PLA"),
-    20: (None, "printer", "No Such Printer", None, "Klipper | Std | PLA"),
-    21: (None, "printer", "Generic Klipper Printer", None, "Klipper | Std | PLA"),
+    3: ("process", "process", OPT, "Discard", "Klipper | Opt | PLA"),
+    4: ("process", "process", OPT, "cancel", "Klipper | Std[wall_loops 5] | PLA"),
+    5: ("process", "process", STD, "cancel", "Klipper | Std[wall_loops 5] | PLA"),
+    6: (None, "process", "No Such Process", None, "Klipper | Std | PLA"),
+    7: (None, "process", "0.16mm Optimal", None, "Klipper | Std | PLA"),
+    8: (None, "process", "0.20mm Standard @MyMarlin", None, "Klipper | Std | PLA"),
+    9: ("printer", "printer", KLIPPER_08, "transfer", 'Klipper[printer_notes "MCP pin"] | Std | PLA'),
+    10: ("printer", "printer", KLIPPER_08, "Discard", "Klipper 0.8 | Std | PLA"),
+    11: ("printer", "printer", KLIPPER_08, "cancel", 'Klipper[printer_notes "MCP pin"] | Std | PLA'),
+    12: ("process", "printer", KLIPPER_08, "transfer", "Klipper 0.8 | Std[wall_loops 5] | PLA"),
+    13: ("process", "printer", KLIPPER_08, "discard", "Klipper 0.8 | Std | PLA"),
+    14: ("process", "printer", KLIPPER_08, "Transfer", "Klipper 0.8 | Std[wall_loops 5] | PLA"),
+    15: ("process", "printer", KLIPPER_08, "cancel", "Klipper 0.8 | Std | PLA"),
+    16: (None, "printer", "Generic Klipper Printer", None, "Klipper | Std | PLA"),
 }
 # The rows refused, by code and words (None where the entry gives the code alone).
 REFUSALS = {
-    6: ("selection_cancelled", f'Selecting "{OPT}" was cancelled.'),
-    7: ("selection_cancelled", None),
-    8: ("preset_not_offered", 'The preset selector does not offer "No Such Process".'),
-    9: ("preset_not_offered", 'The preset selector does not offer "0.16mm Optimal".'),
-    10: ("preset_incompatible", '"0.20mm Standard @MyMarlin" is not compatible with the selected printer.'),
-    12: ("transfer_not_offered", "The unsaved changes cannot be transferred: a printer's changes stay with it."),
-    15: ("selection_cancelled", None),
-    20: ("preset_not_offered", None),
-    21: ("preset_not_offered", None),
+    4: ("selection_cancelled", f'Selecting "{OPT}" was cancelled.'),
+    5: ("selection_cancelled", None),
+    6: ("preset_not_offered", 'The preset selector does not offer "No Such Process".'),
+    7: ("preset_not_offered", 'The preset selector does not offer "0.16mm Optimal".'),
+    8: ("preset_incompatible", '"0.20mm Standard @MyMarlin" is not compatible with the selected printer.'),
+    9: ("transfer_not_offered", "The unsaved changes cannot be transferred: a printer's changes stay with it."),
+    11: ("selection_cancelled", None),
+    16: ("preset_not_offered", None),
 }
 
 
@@ -287,18 +356,18 @@ class PresetsTest:
         return self.t.check(f"{label}: the selection", ok, f"got {selection_text(got)}, expected {text}")
 
     def refused(self, label, call, code=None, words=None):
-        """Checks.refused, giving the refusal's details ({} without any) as well."""
+        """Checks.refused, giving the refusal's text and its details ({} without any)."""
         caught = {}
 
         def wrapped():
             try:
                 return call()
             except orca_mcp.McpError as e:
-                caught["details"] = refusal(e)[1]
+                caught["text"], caught["details"] = refusal(e)
                 raise
 
         self.t.refused(label, wrapped, code=code, words=words)
-        return caught.get("details", {})
+        return caught.get("text", ""), caught.get("details", {})
 
     def ask(self, label, tool, answer, **args):
         """Makes a call the unsaved-changes prompt holds, reads the dialogs that hold it and answers with `answer`.
@@ -404,34 +473,20 @@ class PresetsTest:
         self.t.equal(f"{s} 1: the Klipper listed selected, the hidden printers not",
                      (printers.get(KLIPPER, {}).get("selected"), KLIPPER_08 in printers, MARLIN in printers),
                      (True, False, False))
-        self.t.equal(f"{s} 1: the hidden filament is not listed", self.names("filament", query=HS), [])
-        items = self.listed("filament", query=HS, include_uninstalled=True)
-        self.t.equal(f"{s} 1: with include_uninstalled it is listed, not installed",
-                     [(i["name"], i.get("installed")) for i in items], [(HS, False)])
         self.selection_is(f"{s} 1", "Klipper | Std | PLA")
-        reply = self.select("filament", HS, slot=1)
-        self.t.equal(f"{s} 2: the reply's selected and shown", (reply.get("selected"), reply.get("shown")), (HS, HS))
-        items = self.listed("filament", query=HS)
-        self.t.equal(f"{s} 2: it is listed, selected, with no installed field",
-                     [(i["name"], i.get("selected"), "installed" in i) for i in items], [(HS, True, False)])
-        self.selection_is(f"{s} 2", "Klipper | Std | HS")
-        reply = self.select("filament", "Generic PLA", slot=1)
-        self.t.equal(f"{s} 3: the reply's selected, and no shown", (reply.get("selected"), "shown" in reply),
-                     (PLA, False))
-        self.selection_is(f"{s} 3", "Klipper | Std | PLA")
         reply = self.select("printer", KLIPPER_08)
-        self.t.equal(f"{s} 4: the reply's shown", reply.get("shown"), KLIPPER_08)
-        self.t.equal(f"{s} 4: no dialog opened", self.dialogs(), [])
-        self.selection_is(f"{s} 4", "Klipper 0.8 | Std | PLA")
+        self.t.equal(f"{s} 2: the reply's shown", reply.get("shown"), KLIPPER_08)
+        self.t.equal(f"{s} 2: no dialog opened", self.dialogs(), [])
+        self.selection_is(f"{s} 2", "Klipper 0.8 | Std | PLA")
         self.select("printer", KLIPPER)
-        self.selection_is(f"{s} 5", "Klipper | Std | PLA")
+        self.selection_is(f"{s} 3", "Klipper | Std | PLA")
         reply = self.select("printer", MARLIN, preset_changes="discard")
-        self.t.equal(f"{s} 6: the reply's shown", reply.get("shown"), MARLIN)
-        self.selection_is(f"{s} 6", "Marlin | 0.20mm Standard @MyMarlin | PLA")
+        self.t.equal(f"{s} 4: the reply's shown", reply.get("shown"), MARLIN)
+        self.selection_is(f"{s} 4", "Marlin | 0.20mm Standard @MyMarlin | PLA")
         self.select("printer", KLIPPER, preset_changes="discard")
         self.select("process", STD, preset_changes="discard")
         self.select("filament", PLA, slot=1)
-        self.selection_is(f"{s} 7", "Klipper | Std | PLA")
+        self.selection_is(f"{s} 5", "Klipper | Std | PLA")
 
     def listing(self):
         s = "listing presets"
@@ -759,14 +814,15 @@ class PresetsTest:
             if how:
                 args["preset_changes"] = how
             if code:
-                details = self.refused(f"{label}: refused", lambda: self.c.call("preset_select", **args), code, words)
+                _, details = self.refused(f"{label}: refused", lambda: self.c.call("preset_select", **args), code,
+                                          words)
             else:
                 reply = self.run("preset_select", **args)
             shown = self.dialogs()
         else:
             finish, shown = self.ask(label, "preset_select", how, **args)
             if code:
-                details = self.refused(f"{label}: refused", finish, code, words)
+                _, details = self.refused(f"{label}: refused", finish, code, words)
             else:
                 reply = finish()
         self.selection_is(label, after)
@@ -789,48 +845,37 @@ class PresetsTest:
         self.t.equal(f"{s} 1: no discarded and no modified", parts(reply), (None, None))
         reply, _, _ = self.row(2)
         self.t.equal(f"{s} 2: the reply", parts(reply), (None, opt_edit))
-        reply, _, _ = self.row(3)
-        self.t.equal(f"{s} 3: the reply", parts(reply), (std_edit, None))
-        reply, shown, _ = self.row(4)
-        self.t.equal(f"{s} 4: the dialog that held it", shown, prompt)
-        self.t.equal(f"{s} 4: the job's reply", parts(reply), (None, opt_edit))
-        reply, _, _ = self.row(5)
-        self.t.equal(f"{s} 5: the job's reply", parts(reply), (std_edit, None))
+        reply, shown, _ = self.row(3)
+        self.t.equal(f"{s} 3: the dialog that held it", shown, prompt)
+        self.t.equal(f"{s} 3: the job's reply", parts(reply), (std_edit, None))
+        self.row(4)
+        _, shown, _ = self.row(5)
+        self.t.equal(f"{s} 5: the dialog that held it", shown, prompt)
         self.row(6)
-        _, shown, _ = self.row(7)
-        self.t.equal(f"{s} 7: the dialog that held it", shown, prompt)
+        _, _, details = self.row(7)
+        self.t.equal(f"{s} 7: the similar names start with Opt", (details.get("similar") or [None])[0], OPT)
         self.row(8)
-        _, _, details = self.row(9)
-        self.t.equal(f"{s} 9: the similar names start with Opt", (details.get("similar") or [None])[0], OPT)
-        self.row(10)
-        _, shown, _ = self.row(11)
-        self.t.equal(f"{s} 11: no dialog opened", shown, [])
-        self.row(12)
-        reply, _, _ = self.row(13)
-        self.t.equal(f"{s} 13: the reply's discarded", reply.get("discarded"),
+        self.row(9)
+        reply, shown, _ = self.row(10)
+        self.t.equal(f"{s} 10: the dialog that held it", shown, [{"title": PROMPT, "buttons": ["Discard", "Save"]}])
+        self.t.equal(f"{s} 10: the job's reply's discarded", reply.get("discarded"),
                      {"printer": {"name": KLIPPER, "keys": ["printer_notes"]}})
+        self.row(11)
+        reply, shown, _ = self.row(12)
+        self.t.equal(f"{s} 12: no dialog opened", shown, [])
+        self.t.equal(f"{s} 12: the edit moved with the switch", reply.get("modified"), std_edit)
+        reply, _, _ = self.row(13)
+        self.t.equal(f"{s} 13: the reply's discarded", reply.get("discarded"), std_edit)
         _, shown, _ = self.row(14)
-        self.t.equal(f"{s} 14: the dialog that held it", shown, [{"title": PROMPT, "buttons": ["Discard", "Save"]}])
-        self.row(15)
-        reply, shown, _ = self.row(16)
-        self.t.equal(f"{s} 16: no dialog opened", shown, [])
-        self.t.equal(f"{s} 16: the edit moved with the switch", reply.get("modified"), std_edit)
-        reply, _, _ = self.row(17)
-        self.t.equal(f"{s} 17: the reply's discarded", reply.get("discarded"), std_edit)
-        _, shown, _ = self.row(18)
-        self.t.equal(f"{s} 18: the dialog that held it", [d["buttons"] for d in shown], [["Transfer", "Discard", "Save"]])
-        reply, _, _ = self.row(19)
-        self.t.equal(f"{s} 19: closing the prompt does not stop the switch", reply.get("selected"), KLIPPER_08)
-        self.row(20)
-        self.row(21)
+        self.t.equal(f"{s} 14: the dialog that held it", [d["buttons"] for d in shown], [["Transfer", "Discard", "Save"]])
+        reply, _, _ = self.row(15)
+        self.t.equal(f"{s} 15: closing the prompt does not stop the switch", reply.get("selected"), KLIPPER_08)
+        self.row(16)
 
-    def api_row(self, label, n, name="row", answer="row"):
-        """Plugin API row: as switching row n, through begin_update(name).commit(). The call asks where the row
-        has an edit, and is answered as the row is, unless `answer` says otherwise (None: no dialog opens). Gives
-        what the script returns and the dialogs that held it."""
-        edit, type, row_name, how, after = ROWS[n]
-        name = row_name if name == "row" else name
-        answer = (how if how not in ("transfer", "discard") else None) if answer == "row" else answer
+    def api_row(self, label, edit, type, name, answer):
+        """A plugin API row: its start and `edit` as a switching row's, then begin_update(name).commit() of `type`,
+        the prompt answered with `answer` (None: no dialog opens). Gives what the script returns and the dialogs
+        that held it."""
         self.row_start(label)
         self.edit(edit)
         if answer is None:
@@ -841,8 +886,12 @@ class PresetsTest:
             reply = finish()
         return self.script_result(reply), shown
 
-    def api_after(self, label, n, text=None):
-        after = text or ROWS[n][4]
+    def api_as_row(self, label, n):
+        """A plugin API row that is switching row n through begin_update(name).commit(), answered as that row is."""
+        edit, type, name, how, _ = ROWS[n]
+        return self.api_row(label, edit, type, name, how if how not in ("transfer", "discard") else None)
+
+    def api_after(self, label, after):
         self.selection_is(label, after)
         if "[" not in after:
             self.t.equal(f"{label}: the wall loops", self.value("process", "wall_loops"), "3")
@@ -860,59 +909,38 @@ class PresetsTest:
             self.t.check(f"{label}: raises {type}", r.get("type") == type and (words is None or words in
                                                                               r.get("message", "")), result)
 
-        result, _ = self.api_row(f"{s} 1", 1)
+        result, _ = self.api_as_row(f"{s} 1", 1)
         self.t.equal(f"{s} 1: the commit", commit(result), (OPT, True, None))
-        self.api_after(f"{s} 1", 1)
-        result, shown = self.api_row(f"{s} 2", 4)
+        self.api_after(f"{s} 1", ROWS[1][4])
+        result, shown = self.api_row(f"{s} 2", "process", "process", OPT, "Transfer")
         self.t.equal(f"{s} 2: the dialog that held it", shown, prompt)
         self.t.equal(f"{s} 2: the commit's target", commit(result)[::2], (OPT, None))
-        self.api_after(f"{s} 2", 4)
-        result, _ = self.api_row(f"{s} 3", 5)
-        self.t.equal(f"{s} 3: the commit's target", commit(result)[::2], (OPT, None))
-        self.api_after(f"{s} 3", 5)
-        result, _ = self.api_row(f"{s} 4", 6)
-        raised(f"{s} 4", result, "RuntimeError", REFUSALS[6][1])
-        self.api_after(f"{s} 4", 6)
-        for step, name in ((5, STD), (6, None)):
-            result, shown = self.api_row(f"{s} {step}", 7, name=name, answer=None)
+        self.api_after(f"{s} 2", "Klipper | Opt[wall_loops 5] | PLA")
+        result, _ = self.api_as_row(f"{s} 3", 4)
+        raised(f"{s} 3", result, "RuntimeError", REFUSALS[4][1])
+        self.api_after(f"{s} 3", ROWS[4][4])
+        for step, name in ((4, STD), (5, None)):
+            result, shown = self.api_row(f"{s} {step}", "process", "process", name, None)
             self.t.equal(f"{s} {step}: no dialog opens", shown, [])
             self.t.equal(f"{s} {step}: the commit", commit(result), (STD, False, None))
-            self.api_after(f"{s} {step}", 7, "Klipper | Std[wall_loops 5] | PLA")
-        for n in (8, 9, 10):
-            result, _ = self.api_row(f"{s} 7 (row {n})", n)
-            raised(f"{s} 7 (row {n})", result, "ValueError", REFUSALS[n][1])
-            self.api_after(f"{s} 7 (row {n})", n)
-        result, _ = self.api_row(f"{s} 8", 11)
-        self.t.equal(f"{s} 8: the commit", commit(result), (KLIPPER_08, True, None))
-        self.api_after(f"{s} 8", 11)
-        result, shown = self.api_row(f"{s} 9 (row 14)", 14)
-        self.t.equal(f"{s} 9 (row 14): the dialog that held it", shown,
-                     [{"title": PROMPT, "buttons": ["Discard", "Save"]}])
-        self.t.equal(f"{s} 9 (row 14): the commit's target", commit(result)[::2], (KLIPPER_08, None))
-        self.api_after(f"{s} 9 (row 14)", 14)
-        result, _ = self.api_row(f"{s} 9 (row 15)", 15)
-        raised(f"{s} 9 (row 15)", result, "RuntimeError", None)
-        self.api_after(f"{s} 9 (row 15)", 15)
-        result, shown = self.api_row(f"{s} 10", 18)
-        self.t.equal(f"{s} 10: the dialog that held it", [d["buttons"] for d in shown], [["Transfer", "Discard", "Save"]])
-        self.t.equal(f"{s} 10: the commit's target", commit(result)[::2], (KLIPPER_08, None))
-        self.api_after(f"{s} 10", 18)
-        result, _ = self.api_row(f"{s} 11", 19)
-        self.t.equal(f"{s} 11: nothing raised", commit(result)[::2], (KLIPPER_08, None))
-        self.api_after(f"{s} 11", 19)
-        for n in (20, 21):
-            result, _ = self.api_row(f"{s} 12 (row {n})", n)
-            raised(f"{s} 12 (row {n})", result, "ValueError", None)
-            self.api_after(f"{s} 12 (row {n})", n)
-        self.row_start(f"{s} 13")
+            self.api_after(f"{s} {step}", "Klipper | Std[wall_loops 5] | PLA")
+        for n in (7, 8):
+            result, _ = self.api_as_row(f"{s} 6 (row {n})", n)
+            raised(f"{s} 6 (row {n})", result, "ValueError", REFUSALS[n][1])
+            self.api_after(f"{s} 6 (row {n})", ROWS[n][4])
+        result, shown = self.api_row(f"{s} 7", None, "printer", KLIPPER_08, None)
+        self.t.equal(f"{s} 7: no dialog opened", shown, [])
+        self.t.equal(f"{s} 7: the commit", commit(result), (KLIPPER_08, True, None))
+        self.api_after(f"{s} 7", "Klipper 0.8 | Std | PLA")
+        self.row_start(f"{s} 8")
         result = self.plugin(f"orca.host.preset.process.begin_update(1, {json.dumps(OPT)})\nresult = 'returned'")
-        raised(f"{s} 13: begin_update with a slot", result, "ValueError",
+        raised(f"{s} 8: begin_update with a slot", result, "ValueError",
                "The slot_number form of begin_update() is only available on orca.host.preset.filament")
-        self.selection_is(f"{s} 13: begin_update", "Klipper | Std | PLA")
+        self.selection_is(f"{s} 8: begin_update", "Klipper | Std | PLA")
         result = self.plugin("orca.host.preset.process.update(1, 'wall_loops', '4')\nresult = 'returned'")
-        raised(f"{s} 13: update with a slot", result, "ValueError",
+        raised(f"{s} 8: update with a slot", result, "ValueError",
                "The slot_number form of update() is only available on orca.host.preset.filament")
-        self.selection_is(f"{s} 13: update", "Klipper | Std | PLA")
+        self.selection_is(f"{s} 8: update", "Klipper | Std | PLA")
 
     def carries(self):
         s = "what a switch carries"
@@ -944,16 +972,10 @@ class PresetsTest:
                      "PETG")
         self.selection_is(f"{s} 4", "Klipper | Opt | MCP Test PLA")
         self.set("filament", values={"slow_down_layer_time": 8})
-        self.t.refused(f"{s} 5: no transfer to a filament of another type",
-                       lambda: self.c.call("preset_select", type="filament", name="MCP Test PETG", filament_slot=1,
-                                           preset_changes="transfer"),
-                       code="transfer_not_offered",
-                       words='The unsaved changes cannot be transferred: "MCP Test PETG" is a filament of another type.')
-        self.selection_is(f"{s} 5", "Klipper | Opt | MCP Test PLA[slow_down_layer_time 8]")
         reply = self.select("filament", "MCP Test PETG", slot=1, preset_changes="discard")
-        self.t.equal(f"{s} 6: the reply", (reply.get("selected"), reply.get("discarded")),
+        self.t.equal(f"{s} 5: the reply", (reply.get("selected"), reply.get("discarded")),
                      ("MCP Test PETG", {"filament": {"name": "MCP Test PLA", "keys": ["slow_down_layer_time"]}}))
-        self.selection_is(f"{s} 6", "Klipper | Opt | MCP Test PETG")
+        self.selection_is(f"{s} 5", "Klipper | Opt | MCP Test PETG")
 
     def new_project(self):
         s = "a new project"
@@ -1126,7 +1148,7 @@ class PresetsTest:
         folder = os.path.join(self.folder, "export")
         os.makedirs(folder, exist_ok=True)
         zip_path = os.path.join(folder, "Filament presets.zip")
-        # The import fixture renamed: its own name, "MCP Import PLA", is one test_every_action and test_files read.
+        # The import fixture renamed, so that its own name, "MCP Import PLA", is never loaded.
         with open(os.path.join(FIXTURES, "mcp_import_pla.json"), encoding="utf-8") as f:
             preset = json.load(f)
         preset.update(name="MCP Imported PLA", filament_settings_id=["MCP Imported PLA"])
@@ -1308,6 +1330,426 @@ class PresetsTest:
                 wait(self.c, "job", job=opened["job"])
             self.t.equal(f"{s} {n}: auto_arrange", self.preference("auto_arrange"), setting)
 
+    # -- The Calibration menu's tests --
+
+    def objects(self):
+        """Each object as {name, height}, the height being its bbox's size in z."""
+        listing = self.c.call("object_list", limit=500)
+        return [{"name": o["name"], "height": o["bbox"]["size"][2]} for p in listing["plates"] for o in p["objects"]]
+
+    def own(self, obj, key):
+        """The object's own value of a process key."""
+        return self.c.call("settings_get", target="object", object=obj, keys=[key])["items"][0]["value"]
+
+    def project_name(self):
+        return self.c.call("app_state")["project"]["name"]
+
+    def named_selection_is(self, label, want):
+        self.t.equal(f"{label}: the selection", named_selection(self.c), want)
+
+    def slice(self, label, export=None):
+        """plate_slice and a check that it ended ok; with `export`, the G-code written to that new file in the test's
+        folder, whose path it returns."""
+        reply = self.run("plate_slice")
+        self.t.equal(f"{label}: the slice", [p.get("outcome") for p in reply.get("plates", [])], ["ok"])
+        if export is None:
+            return None
+        path = os.path.join(self.folder, export)
+        self.run("project_export", format="gcode", path=path)
+        return path
+
+    def generate(self, label, args, params, project=None, names=None, heights=None, changes=None, sets=None,
+                 result_keys=None):
+        """Makes the test with `args`, discarding the project's and the presets' changes, and checks what the row
+        fixes: the reply's params whole; project, read back from app_state; names, read back from object_list, with
+        their heights to 0.01 where given; the filament's changes whole in the reply and in the selection; each key
+        `sets` lists, read with value(); and result_keys."""
+        t = self.t
+        reply = self.run("calibration_generate_test", **DISCARD, **args)
+        if params is not None:
+            t.equal(f"{label}: params", reply.get("params"), params)
+        if project is not None:
+            t.equal(f"{label}: the reply's project", reply.get("project"), project)
+            t.equal(f"{label}: the project's name", self.project_name(), project)
+        if names is not None:
+            t.equal(f"{label}: the reply's names", reply.get("names"), names)
+            objects = self.objects()
+            t.equal(f"{label}: the objects", [o["name"] for o in objects], names)
+            if heights is not None:
+                t.near(f"{label}: the objects' heights", [o["height"] for o in objects], heights, 0.01)
+        if changes is not None:
+            filament = reply.get("presets_changed", {}).get("filament", {})
+            t.equal(f"{label}: the filament's changes", {k: filament.get(k) for k in ("name", "changes")},
+                    {"name": PLA, "changes": changes})
+            self.named_selection_is(label, pla(changes))
+        for (type_, key), want in (sets or {}).items():
+            t.equal(f"{label}: sets {type_} {key}", self.value(type_, key), want)
+        if result_keys is not None:
+            t.equal(f"{label}: result_keys", reply.get("result_keys"), result_keys)
+        return reply
+
+    def temperature(self):
+        s = "temperature"
+        t = self.t
+        t.equal(f"{s} 1: the start", self.to_start(), START)
+        t.equal(f"{s} 1: no objects", self.objects(), [])
+
+        reply = self.run("calibration_generate_test", test="temperature", start=252, end=232)
+        t.equal(f"{s} 2: the reply's project", reply.get("project"), "Nozzle temperature test")
+        t.equal(f"{s} 2: params", reply.get("params"), {"start": 250, "end": 230, "auto_scale": True})
+        t.equal(f"{s} 2: warnings", reply.get("warnings"),
+                ["start 252 °C rounded down to 250 °C, the tower's 5 °C blocks",
+                 "end 232 °C rounded down to 230 °C, the tower's 5 °C blocks"])
+        t.equal(f"{s} 2: the reply's names", reply.get("names"), ["temperature_tower.drc"])
+        filament = reply.get("presets_changed", {}).get("filament", {})
+        t.equal(f"{s} 2: the filament's changes", {k: filament.get(k) for k in ("name", "changes")},
+                {"name": PLA, "changes": {"nozzle_temperature": times(250, 6),
+                                          "nozzle_temperature_initial_layer": times(250, 6)}})
+        t.equal(f"{s} 2: result_keys", reply.get("result_keys"), {"type": "filament", "keys": TEMPERATURE_KEYS})
+        t.equal(f"{s} 2: modified", reply.get("modified", {}).get("filament", {}).get("keys"), TEMPERATURE_KEYS)
+        t.equal(f"{s} 2: the project is dirty", self.c.call("app_state")["project"]["dirty"], True)
+        after2 = named(f"Klipper | Std | PLA[nozzle_temperature {times(250, 6)}, "
+                       f"nozzle_temperature_initial_layer {times(250, 6)}]")
+
+        def as_after_2(label):
+            t.equal(f"{label}: the project's name", self.project_name(), "Nozzle temperature test")
+            objects = self.objects()
+            t.equal(f"{label}: the objects", [o["name"] for o in objects], ["temperature_tower.drc"])
+            t.near(f"{label}: the tower's height, five 10 mm blocks", [o["height"] for o in objects], [50], 0.01)
+            t.equal(f"{label}: the tower's own layer height", self.own(0, "layer_height"), "0.2")
+            self.named_selection_is(label, after2)
+
+        as_after_2(f"{s} 2")
+
+        path = self.slice(f"{s} 3", "temperature.gcode")
+        temps = [float(m.group(1)) for line in gcode_layers(path)
+                 if (m := re.match(r"M104 S([0-9.]+)", line))]
+        t.equal(f"{s} 3: the tower's temperatures, block by block", in_a_row([v for v in temps if v != 0]),
+                [250, 245, 240, 235, 230])
+
+        text, details = self.refused(f"{s} 4: refused while the presets are modified",
+                                     lambda: self.c.call("calibration_generate_test", test="max_volumetric",
+                                                         discard_changes=True),
+                                     words="Presets are modified")
+        t.check(f"{s} 4: the refusal names preset_changes", "preset_changes" in text, text)
+        t.equal(f"{s} 4: the refusal's modified keys", details.get("modified", {}).get("filament", {}).get("keys"),
+                TEMPERATURE_KEYS)
+        as_after_2(f"{s} 4")
+
+        _, details = self.refused(f"{s} 5: an argument the test does not take is refused",
+                                  lambda: self.c.call("calibration_generate_test", test="temperature", step=5,
+                                                      **DISCARD),
+                                  words="step does not apply to temperature")
+        t.equal(f"{s} 5: the arguments it takes", details.get("takes"), ["start", "end", "auto_scale", "test_model"])
+        as_after_2(f"{s} 5")
+
+        self.refused(f"{s} 6: a step past the range is refused",
+                     lambda: self.c.call("calibration_generate_test", test="pressure_advance", start=0.01, end=0.05,
+                                         step=0.051, **DISCARD),
+                     words="pressure_advance needs start >= 0, step >= 0.001 and end >= start + step; "
+                           "got start 0.01, end 0.05, step 0.051")
+        as_after_2(f"{s} 6")
+
+        self.refused(f"{s} 7: refused without discard_changes",
+                     lambda: self.c.call("calibration_generate_test", test="retraction", preset_changes="discard"),
+                     code="unsaved_changes")
+        as_after_2(f"{s} 7")
+
+    def other_tests(self):
+        s = "other tests"
+        t = self.t
+        self.generate(f"{s}: the start", {"test": "temperature"}, {"start": 230, "end": 190, "auto_scale": True},
+                      changes={"nozzle_temperature": times(230, 6), "nozzle_temperature_initial_layer": times(230, 6)})
+
+        label = f"{s} 1"
+        reply = self.generate(label, {"test": "max_volumetric", "end": 15}, {"start": 5, "end": 15, "step": 0.5},
+                              project="Max volumetric speed test", names=["SpeedTestStructure.drc"], heights=[22],
+                              changes={"filament_max_volumetric_speed": times(200, 6), "slow_down_layer_time": "0"},
+                              sets={("filament", "filament_max_volumetric_speed"): times(200, 6),
+                                    ("filament", "slow_down_layer_time"): "0", ("process", "spiral_mode"): "1"},
+                              result_keys={"type": "filament", "keys": ["filament_max_volumetric_speed"]})
+        t.equal(f"{label}: discarded", reply.get("discarded", {}).get("filament"), {"name": PLA, "keys": TEMPERATURE_KEYS})
+        t.equal(f"{label}: the temperature is the preset's again", self.value("filament", "nozzle_temperature"),
+                times(220, 6))
+        self.slice(label)
+
+        label = f"{s} 2"
+        self.generate(label, {"test": "pressure_advance", "end": 0.06},
+                      {"method": "tower", "start": 0, "end": 0.06, "step": 0.002}, project="Pressure Advance Test",
+                      names=["tower_with_seam.drc"], changes={"slow_down_layer_time": "1"},
+                      sets={("filament", "slow_down_layer_time"): "1"},
+                      result_keys={"type": "filament", "keys": ["enable_pressure_advance", "pressure_advance"]})
+        path = self.slice(label, "pressure_advance.gcode")
+        # A Klipper printer's pressure advance command.
+        ks = [float(m.group(1)) for line in gcode_layers(path)
+              if (m := re.match(r"SET_PRESSURE_ADVANCE ADVANCE=([0-9.]+)", line))]
+        t.near(f"{label}: the tower's pressure advance, band by band", in_a_row(ks),
+               [round(0.002 * i, 6) for i in range(31)], 0.0001)
+
+        self.generate(f"{s} 3", {"test": "pressure_advance", "method": "line", "print_numbers": False},
+                      {"method": "line", "start": 0, "end": 0.1, "step": 0.002, "print_numbers": False},
+                      project="Pressure Advance Test", names=["pressure_advance_test.drc"], changes={},
+                      sets={("process", "wipe_inward"): "0", ("process", "retract_after_outer_wall"): "0"})
+
+        pattern_changes = {"filament_retract_when_changing_layer": Every("0"), "filament_wipe": Every("0")}
+        pattern_sets = {("filament", "filament_retract_when_changing_layer"): Every("0"),
+                        ("filament", "filament_wipe"): Every("0"), ("printer", "wipe"): Every("0"),
+                        ("printer", "retract_when_changing_layer"): Every("0")}
+        label = f"{s} 4"
+        self.generate(label, {"test": "pressure_advance", "method": "pattern", "accelerations": [1000, 2000],
+                              "speeds": [50, 100]},
+                      {"method": "pattern", "start": 0, "end": 0.08, "step": 0.005, "accelerations": [1000, 2000],
+                       "speeds": [50, 100]},
+                      project="Pressure Advance Test",
+                      names=["pa_pattern_50_1000", "pa_pattern_100_1000", "pa_pattern_50_2000", "pa_pattern_100_2000"],
+                      changes=pattern_changes, sets=pattern_sets,
+                      result_keys={"type": "filament", "keys": ["enable_pressure_advance", "pressure_advance",
+                                                                "adaptive_pressure_advance",
+                                                                "adaptive_pressure_advance_model"]})
+        self.slice(label)
+
+        # The pattern's defaults are the first entries of Std's outer_wall_acceleration and outer_wall_speed.
+        self.generate(f"{s} 5", {"test": "pressure_advance", "method": "pattern"},
+                      {"method": "pattern", "start": 0, "end": 0.08, "step": 0.005, "accelerations": [3000],
+                       "speeds": [120]},
+                      project="Pressure Advance Test", names=["pa_pattern_120_3000"], changes=pattern_changes,
+                      sets=pattern_sets)
+
+        label = f"{s} 6"
+        self.generate(label, {"test": "flow_ratio"}, {"method": "yolo", "top_surface_pattern": "archimedeanchords"},
+                      project="Orca YOLO Flow Calibration",
+                      names=["flowrate_0", "flowrate_0.01", "flowrate_0.02", "flowrate_0.03", "flowrate_0.04",
+                             "flowrate_0.05", "flowrate_m0.01", "flowrate_m0.02", "flowrate_m0.03", "flowrate_m0.04",
+                             "flowrate_m0.05"],
+                      changes={}, sets={("process", "layer_height"): "0.2"},
+                      result_keys={"type": "filament", "keys": ["filament_flow_ratio"]})
+        self.flow_ratios(label, lambda m: (0.98 + m) / 0.98, "archimedeanchords")
+
+        label = f"{s} 7"
+        self.generate(label, {"test": "flow_ratio", "method": "yolo_perfectionist"},
+                      {"method": "yolo_perfectionist", "top_surface_pattern": "archimedeanchords"},
+                      project="Orca YOLO Flow Calibration - Perfectionist version",
+                      names=["flowrate_0", "flowrate_0.005", "flowrate_0.01", "flowrate_0.015", "flowrate_0.02",
+                             "flowrate_0.025", "flowrate_0.03", "flowrate_0.035", "flowrate_m0.005", "flowrate_m0.01",
+                             "flowrate_m0.015", "flowrate_m0.02", "flowrate_m0.025", "flowrate_m0.03", "flowrate_m0.035",
+                             "flowrate_m0.04"],
+                      changes={})
+        self.flow_ratios(label, lambda m: (0.98 + m) / 0.98)
+
+        label = f"{s} 8"
+        self.generate(label, {"test": "flow_ratio", "method": "pass1"},
+                      {"method": "pass1", "top_surface_pattern": "archimedeanchords"}, project="Flowrate Test - Pass1",
+                      names=["flowrate_0", "flowrate_10", "flowrate_15", "flowrate_20", "flowrate_5", "flowrate_m10",
+                             "flowrate_m15", "flowrate_m20", "flowrate_m5"],
+                      changes={})
+        self.flow_ratios(label, lambda m: 1 + m / 100)
+
+        label = f"{s} 9"
+        self.generate(label, {"test": "flow_ratio", "method": "pass2", "top_surface_pattern": "monotonic"},
+                      {"method": "pass2", "top_surface_pattern": "monotonic"}, project="Flowrate Test - Pass2",
+                      names=["flowrate_0"] + [f"flowrate_m{i}" for i in range(1, 10)],
+                      changes={})
+        self.flow_ratios(label, lambda m: 1 + m / 100, "monotonic")
+
+        label = f"{s} 10"
+        self.generate(label, {"test": "retraction", "end": 1}, {"start": 0, "end": 1, "step": 0.1}, project="Retraction",
+                      names=["retraction_tower.drc"], changes={}, sets={("printer", "use_firmware_retraction"): "0"},
+                      result_keys={"type": "filament", "keys": ["filament_retraction_length"]})
+        t.equal(f"{label}: the tower's own layer height", self.own(0, "layer_height"), "0.2")
+        path = self.slice(label, "retraction.gcode")
+        self.retraction_bands(label, path)
+
+        # One row for each way the VFA tower fits its end speed to the filament's volumetric speed (12 mm³/s on the
+        # extruder variant in use), which allows the outer wall about 168 mm/s at 0.2 mm.
+        vfa = {"project": "VFA test", "names": ["vfa.drc"], "changes": {"slow_down_layer_time": "0"},
+               "sets": {("filament", "slow_down_layer_time"): "0", ("process", "spiral_mode"): "1",
+                        ("process", "wall_loops"): "1", ("process", "top_shell_layers"): "0",
+                        ("process", "bottom_shell_layers"): "1", ("process", "sparse_infill_density"): "0%",
+                        ("process", "enable_overhang_speed"): Every("0")},
+               "result_keys": {"type": "printer", "keys": ["resonance_avoidance", "min_resonance_avoidance_speed",
+                                                           "max_resonance_avoidance_speed"]}}
+        label = f"{s} 11"
+        reply = self.generate(label, {"test": "vfa", "end": 160},
+                              {"start": 40, "end": 160, "step": 10, "auto_scale": True, "auto_adjust": True}, **vfa)
+        t.equal(f"{label}: no adjusted", reply.get("adjusted"), None)
+        t.equal(f"{label}: the tower's own layer height", self.own(0, "layer_height"), "0.2")
+
+        label = f"{s} 12"
+        reply = self.generate(label, {"test": "vfa"},
+                              {"start": 40, "end": 200, "step": 10, "auto_scale": True, "auto_adjust": True}, **vfa)
+        t.equal(f"{label}: adjusted", reply.get("adjusted"),
+                {"layer_height": 0.16,
+                 "reason": "the end speed (200 mm/s) exceeds the filament's maximum volumetric speed (12 mm³/s) at the "
+                           "default layer height (0.2 mm); the layer height of a profile of this printer reaches it"})
+        t.equal(f"{label}: the tower's own layer height", self.own(0, "layer_height"), "0.16")
+        self.slice(label)
+
+        label = f"{s} 13"
+        reply = self.generate(label, {"test": "vfa", "end": 400, "step": 20},
+                              {"start": 40, "end": 380, "step": 20, "auto_scale": True, "auto_adjust": True}, **vfa)
+        t.equal(f"{label}: adjusted", reply.get("adjusted"),
+                {"end": 380, "layer_height": 0.08,
+                 "reason": "the end speed (400 mm/s) exceeds the filament's maximum volumetric speed (12 mm³/s) even at "
+                           "the smallest layer height of this printer's profiles; the end speed was lowered to what it "
+                           "reaches"})
+        t.equal(f"{label}: the tower's own layer height", self.own(0, "layer_height"), "0.08")
+
+        label = f"{s} 14"
+        reply = self.generate(label, {"test": "vfa", "end": 400, "auto_adjust": False},
+                              {"start": 40, "end": 400, "step": 10, "auto_scale": True, "auto_adjust": False}, **vfa)
+        t.equal(f"{label}: no adjusted", reply.get("adjusted"), None)
+        t.equal(f"{label}: warnings", reply.get("warnings"),
+                ["the end speed (400 mm/s) exceeds the filament's maximum volumetric speed (12 mm³/s), which limits "
+                 "the outer wall to about 168 mm/s: the blocks above print at that speed (auto_adjust and auto_scale "
+                 "lower the layer height to reach it)"])
+        t.equal(f"{label}: the tower's own layer height, half the nozzle", self.own(0, "layer_height"), "0.2")
+
+        # The outer wall speed is the smaller of the Klipper's machine_max_speed_x and _y, and the accelerations its
+        # machine_max_acceleration_extruding; the jerk is raised to at least 5, below the Klipper's own 9.
+        shaping = {"changes": {"slow_down_layer_time": "0", "slow_down_min_speed": "0", "slow_down_for_layer_cooling": "0",
+                               "enable_pressure_advance": Every("1"), "pressure_advance": Every("0")},
+                   "sets": {("filament", "slow_down_layer_time"): "0", ("filament", "slow_down_min_speed"): "0",
+                            ("filament", "slow_down_for_layer_cooling"): "0",
+                            ("filament", "enable_pressure_advance"): Every("1"),
+                            ("filament", "pressure_advance"): Every("0"),
+                            ("printer", "machine_max_jerk_x"): "9", ("printer", "machine_max_jerk_y"): "9",
+                            ("printer", "input_shaping_emit"): "0",
+                            ("process", "spiral_mode"): "1", ("process", "wall_loops"): "1",
+                            ("process", "top_shell_layers"): "0", ("process", "bottom_shell_layers"): "1",
+                            ("process", "sparse_infill_density"): "0%", ("process", "enable_overhang_speed"): Every("0"),
+                            ("process", "accel_to_decel_enable"): "1", ("process", "accel_to_decel_factor"): "100%",
+                            ("process", "outer_wall_speed"): Every(500),
+                            ("process", "default_acceleration"): Every(20000),
+                            ("process", "outer_wall_acceleration"): Every(20000)}}
+        label = f"{s} 15"
+        self.generate(label, {"test": "input_shaping_freq", "start": 20, "end": 80},
+                      {"start": 20, "end": 80, "start_y": 20, "end_y": 80, "damping": 0.15, "shaper_type": "Default",
+                       "test_model": "ringing_tower"},
+                      project="Input shaping Frequency test", names=["ringing_tower.drc"],
+                      result_keys={"type": "printer", "keys": ["input_shaping_emit", "input_shaping_type",
+                                                               "input_shaping_freq_x", "input_shaping_freq_y",
+                                                               "input_shaping_damp_x", "input_shaping_damp_y"]},
+                      **shaping)
+        self.slice(label)
+
+        label = f"{s} 16"
+        self.generate(label, {"test": "input_shaping_damp", "freq_x": 48, "freq_y": 42, "test_model": "fast_tower"},
+                      {"freq_x": 48, "freq_y": 42, "start": 0, "end": 0.4, "shaper_type": "Default",
+                       "test_model": "fast_tower"},
+                      project="Input shaping Damping test", names=["fast_tower_test.drc"], **shaping)
+        self.slice(label)
+
+        label = f"{s} 17"
+        reply = self.generate(
+            label, {"test": "cornering", "test_model": "scv_v2", "end": 25}, {"start": 1, "end": 25, "test_model": "scv_v2"},
+            project="Cornering test", names=["SCV-V2.drc"],
+            changes={"slow_down_layer_time": "0", "slow_down_min_speed": "0", "slow_down_for_layer_cooling": "0",
+                     "filament_max_volumetric_speed": "200", "enable_pressure_advance": Every("1"),
+                     "pressure_advance": Every("0")},
+            sets={("printer", "machine_max_jerk_x"): "25", ("printer", "machine_max_jerk_y"): "25",
+                  ("printer", "input_shaping_emit"): "1", ("printer", "input_shaping_type"): "Disable",
+                  ("filament", "slow_down_layer_time"): "0", ("filament", "slow_down_min_speed"): "0",
+                  ("filament", "slow_down_for_layer_cooling"): "0", ("filament", "filament_max_volumetric_speed"): "200",
+                  ("filament", "enable_pressure_advance"): Every("1"), ("filament", "pressure_advance"): Every("0")},
+            result_keys={"type": "printer", "keys": ["machine_max_jerk_x", "machine_max_jerk_y"]})
+        t.equal(f"{label}: warnings", reply.get("warnings"), ["end 25 is above 20: high values may cause layer shifts"])
+        self.slice(label)
+
+    def flow_ratios(self, label, ratio, pattern=None):
+        """Each object's own print_flow_ratio, `ratio` of the number its name ends in, and with `pattern` its own
+        top_surface_pattern."""
+        objects = self.objects()
+        got = [float(self.own(i, "print_flow_ratio")) for i in range(len(objects))]
+        self.t.near(f"{label}: each object's own flow ratio", got, [ratio(flow_offset(o["name"])) for o in objects],
+                    0.0001)
+        if pattern is not None:
+            self.t.equal(f"{label}: each object's own top surface pattern",
+                         [self.own(i, "top_surface_pattern") for i in range(len(objects))], [pattern] * len(objects))
+
+    def retraction_bands(self, label, path):
+        """The layers cut into bands at each `; Calib_Retraction_tower: ...` line: the bands' lengths in a row, and the
+        lengths each length's bands restore."""
+        bands = []
+        for line in gcode_layers(path):
+            m = re.match(r"; Calib_Retraction_tower: Z_HEIGHT: [0-9.]+, length:([0-9.]+)", line)
+            if m:
+                bands.append((float(m.group(1)), []))
+                continue
+            words = line.split(";")[0].split()
+            if bands and len(words) == 3 and words[0] == "G1" and sorted(w[0] for w in words[1:]) == ["E", "F"]:
+                e = float(next(w for w in words[1:] if w[0] == "E")[1:])
+                if e > 0:
+                    bands[-1][1].append(e)
+        lengths = [round(0.1 * i, 6) for i in range(11)]
+        self.t.near(f"{label}: the tower's retraction lengths, band by band", in_a_row([b[0] for b in bands]), lengths,
+                    1e-9)
+        restored = {}
+        for length, deretractions in bands:
+            restored.setdefault(round(length, 3), set()).update(round(e, 3) for e in deretractions)
+        want = {length: {length} for length in lengths}
+        want[0.0] = {0.8}  # the first layer's retraction, made before the tower's first line
+        self.t.equal(f"{label}: the lengths each band's deretractions restore",
+                     {k: sorted(v) for k, v in restored.items()}, {k: sorted(v) for k, v in want.items()})
+
+    def keep_and_discard(self):
+        s = "keep and discard"
+        t = self.t
+        t.equal(f"{s} 1: the start", self.to_start(), START)
+        reply = self.run("action_run", id=FILAMENT_ADD)
+        t.equal(f"{s} 1: the action's message", reply.get("message"), "Added filament slot 2.")
+        self.set("filament", filament_slot=2, values={"filament_cost": 21})
+        self.run("preset_save", type="filament", name=CALIB_PLA, filament_slot=2)
+        self.select("filament", PLA, slot=1)
+        self.set("filament", filament_slot=2, values={"filament_cost": 22})
+        after1 = named("Klipper | Std | PLA, MCP Calib PLA[filament_cost 22]")
+        self.named_selection_is(f"{s} 1", after1)
+        saved_cost = lambda: self.value("filament", "filament_cost", preset=CALIB_PLA)  # noqa: E731
+        t.equal(f"{s} 1: the saved cost", saved_cost(), "21")
+
+        self.refused(f"{s} 2: keep is refused while the tab edits another slot's modified preset",
+                     lambda: self.c.call("calibration_generate_test", test="retraction", discard_changes=True,
+                                         preset_changes="keep"),
+                     words='The filament tab edits "MCP Calib PLA", which has unsaved changes, and the test prints '
+                           f'with filament slot 1 ("{PLA}")')
+        self.named_selection_is(f"{s} 2", after1)
+        t.equal(f"{s} 2: no objects", self.objects(), [])
+        t.equal(f"{s} 2: the saved cost", saved_cost(), "21")
+
+        reply = self.run("calibration_generate_test", test="retraction", **DISCARD)
+        filament = reply.get("presets_changed", {}).get("filament", {})
+        t.equal(f"{s} 3: the filament tab switched to slot 1",
+                {k: filament.get(k) for k in ("name", "tab_switched_from")},
+                {"name": PLA, "tab_switched_from": CALIB_PLA})
+        t.equal(f"{s} 3: discarded", reply.get("discarded", {}).get("filament"),
+                {"name": CALIB_PLA, "keys": ["filament_cost"]})
+        t.equal(f"{s} 3: the reply's names", reply.get("names"), ["retraction_tower.drc"])
+        t.equal(f"{s} 3: the objects", [o["name"] for o in self.objects()], ["retraction_tower.drc"])
+        self.named_selection_is(f"{s} 3", named("Klipper | Std | PLA, MCP Calib PLA"))
+        t.equal(f"{s} 3: slot 2's cost", self.value("filament", "filament_cost", slot=2), "21")
+
+        self.set("filament", values={"slow_down_layer_time": 7})
+        reply = self.run("calibration_generate_test", test="retraction", discard_changes=True, preset_changes="keep")
+        t.equal(f"{s} 4: modified", reply.get("modified", {}).get("filament", {}).get("keys"), ["slow_down_layer_time"])
+        t.equal(f"{s} 4: nothing discarded", reply.get("discarded"), None)
+        self.named_selection_is(f"{s} 4", named("Klipper | Std | PLA[slow_down_layer_time 7], MCP Calib PLA"))
+
+        reply = self.run("project_new", **DISCARD)
+        t.check(f"{s} 5: discarded holds slow_down_layer_time",
+                "slow_down_layer_time" in reply.get("discarded", {}).get("filament", {}).get("keys", []), reply)
+        t.equal(f"{s} 5: nothing modified", reply.get("modified"), None)
+        self.named_selection_is(f"{s} 5", named("Klipper | Std | PLA, MCP Calib PLA"))
+        t.equal(f"{s} 5: slow_down_layer_time", self.value("filament", "slow_down_layer_time"), "4")
+
+        reply = self.run("filament_delete", filament_slot=2)
+        t.equal(f"{s} 6: the slot's delete", reply.get("level"), "success")
+        reply = self.run("preset_delete", type="filament", name=CALIB_PLA)
+        t.equal(f"{s} 6: the preset's delete", reply.get("deleted"), CALIB_PLA)
+        self.named_selection_is(f"{s} 6", named("Klipper | Std | PLA"))
+        # Read by name: the filaments listed besides hold those earlier tests installed or saved.
+        listed = {i["name"]: i for i in self.listed("filament")}
+        t.equal(f"{s} 6: PLA listed not modified, MCP Calib PLA not listed",
+                (PLA in listed, (listed.get(PLA) or {}).get("modified"), CALIB_PLA in listed), (True, None, False))
+
     def setup(self):
         """The stored state the scenarios count on, which an earlier test may have left changed: the preferences and
         the mode their checks read, the hidden presets hidden, and no preset of the names this test saves."""
@@ -1315,9 +1757,9 @@ class PresetsTest:
         self.c.call("preferences_set", values={"developer_mode": False, "auto_arrange": True,
                                                "remember_printer_config": True})
         self.run("action_run", id=SIMPLE_MODE)
-        # What these change depends on the tests before, so their replies are shown but not checked.
+        # What this changes depends on the tests before, so its reply is shown but not checked.
         print("     (uninstalled:", self.run("printer_uninstall", models=HIDDEN_PRINTERS, preset_changes="discard"),
-              self.run("filament_uninstall", names=[HS]), ")", flush=True)
+              ")", flush=True)
         for type, names in (("filament", OWN_FILAMENTS), ("process", OWN_PROCESSES)):
             for name in names:
                 if name in self.names(type, query=name):
@@ -1339,7 +1781,9 @@ class PresetsTest:
                                ("a process kept inside the project", self.inside_project),
                                ("deleting presets", self.deleting), ("exporting and importing presets", self.exporting),
                                ("a nozzle diameter", self.nozzle), ("what the print is sliced with", self.print),
-                               ("a preference changed in its dialog", self.preference_dialog)]:
+                               ("a preference changed in its dialog", self.preference_dialog),
+                               ("the temperature tower, and what is refused", self.temperature),
+                               ("the other tests", self.other_tests), ("keep and discard", self.keep_and_discard)]:
             self.t.scenario(name, scenario)
         self.close_left_dialogs()
         self.c.call("dialog_auto_answer", rules=[])

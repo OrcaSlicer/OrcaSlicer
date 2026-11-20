@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""The filament slots and what the project does with them, as the test_filaments entry of
-tools/mcp/test-entries/filaments_settings.md designs them.
+"""The filament list, as the test_filaments entry of tools/mcp/test-entries/filaments_settings.md designs it.
 
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_filaments.py
@@ -8,22 +7,26 @@ tools/mcp/test-entries/filaments_settings.md designs them.
 Assigning a filament preset to a slot by each route a person or a plugin has (a pick in the slot's selector, the
 selector's value set, preset_select and the plugin API), with one slot, where the filament tab switches and its
 unsaved-changes prompt applies, and with three, where the Auto-flush preference decides what happens to the flushing
-volumes; then the filaments of objects and parts, the slot colours and flushing (filament_set_colour,
-filament_set_flushing) and the project's own settings (project_set_settings), with what reaches the print and what the
-project file keeps. After every step the test reads the state back through other tools and compares it with the
-state the entry writes out. Every scenario runs on the Generic Klipper Printer 0.4 from a start of its own
-(checks.start()), the last with the printer's plate types turned on, so it runs on a data folder earlier tests used;
-it uninstalls the filaments it shows by name first, so that the selectors start without them. It exits 0 when every
-check passes.
+volumes; then the filaments of objects and parts, one slot merged into another, the slot colours and flushing
+(filament_set_colour, filament_set_flushing) and the project's own settings (project_set_settings), with what reaches
+the print and what the project file keeps; last, the mixed filaments: adding and changing one, from its arguments and
+through its dialog, a mixed slot having no preset or colour of its own, and what deleting or merging a filament that
+a mix mixes does to the mix. After every step the test reads the state back through other tools and compares it with
+the state the entry writes out. Every scenario runs on the Generic Klipper Printer 0.4 from a start of its own
+(checks.start()), the project's own settings with the printer's plate types turned on, so it runs on a data folder
+earlier tests used; it uninstalls the filaments it shows by name first, so that the selectors start without them, and
+puts slot 1's colour back at its end. It exits 0 when every check passes.
 """
 
 import os
+import re
 import sys
 import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, presets, run, slot_colours, slots, start, wait  # noqa: E402
+from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, filament_rows, presets, run,  # noqa: E402
+                    slot_colours, slots, start, wait)
 
 B = GENERIC_PLA
 X = "FilAr PLA Blanco Calido"
@@ -48,6 +51,12 @@ MATRICES = {"0,777,777,777,0,777,777,777,0": "S3", "0,230,777,700,0,700,777,230,
 CUBE = {"shape": "cube", "size": [20, 20, 10], "name": "cube", "position": [100, 100, 0]}
 CYLINDER = {"shape": "cylinder", "size": [20, 10], "name": "cylinder", "position": [160, 100, 0]}
 PART_NOTE = 'A part\'s value (source "part", or in parts) applies only inside that part\'s volume.'
+# The mixed filaments' scenarios: their start, the colours of slots 2 and 3 where a mix's colour is read, and the
+# titles of a mix's dialogs.
+MIXED_START = {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [B]}
+RED, BLUE = "#FF0000", "#0000FF"
+HEX = re.compile(r"^#[0-9A-F]{6}$")
+EDIT, ADD = "Edit Mixed Filament", "Add Mixed Filament"
 
 # The plugin API call a row makes, run with script_run: `body` sets `result`, and an exception the API raises is
 # returned as {raised: {type, message}}.
@@ -135,6 +144,8 @@ class FilamentsTest:
         self.c = client
         self.t = Checks()
         self.folder = folder
+        # Slot 1's colour as the first mixed start finds it, which the test puts back at its end.
+        self.slot1_colour = None
 
     # ---- Reads ----
 
@@ -153,8 +164,10 @@ class FilamentsTest:
         """filament_list's flush_volumes_matrix, written as the project stores it: `0,777,777,0`."""
         return ",".join(g(x) for x in self.c.call("filament_list")["flush_volumes_matrix"])
 
-    def dialogs(self):
-        return [{"title": d.get("title"), "buttons": [b.get("label") for b in d.get("buttons", [])]}
+    def dialogs(self, message=False):
+        """The open dialogs as {title, buttons}, with their message too where `message` asks for it."""
+        return [dict({"title": d.get("title"), "buttons": [b.get("label") for b in d.get("buttons", [])]},
+                     **({"message": d.get("message", "")} if message else {}))
                 for d in self.c.call("app_state").get("dialogs", [])]
 
     def state(self):
@@ -231,6 +244,43 @@ class FilamentsTest:
         return ({f["slot"]: (f["model_g"], f["flush_g"], f["tower_g"]) for f in summary["filaments"]},
                 summary["filament_changes"])
 
+    def rows(self):
+        return filament_rows(self.c)
+
+    def row(self, slot):
+        return self.rows()[slot - 1]
+
+    def mixes(self):
+        """The mixed rows as the entry writes them: `4 = 2,3 @ 50,50, bottom 3 top 2, per part`, joined by `·`. A
+        gradient whose curve is not linear is written with it, which no row expects."""
+        out = []
+        for row in self.rows():
+            if not row["mixed"]:
+                continue
+            text = f"{row['filament_slot']} = {','.join(map(str, row['components']))} @ {','.join(map(str, row['ratios']))}"
+            gradient = row.get("gradient")
+            if gradient:
+                text += f", bottom {gradient['bottom']} top {gradient['top']}"
+                if gradient.get("per_part"):
+                    text += ", per part"
+                if gradient.get("curve") != "linear":
+                    text += f", curve {gradient.get('curve')}"
+            if row.get("broken"):
+                text += ", broken"
+            out.append(text)
+        return " · ".join(out)
+
+    def mixed_is(self, label, want_slots, want_mixes):
+        self.t.equal(f"{label}: the slots", self.slots(), want_slots)
+        self.t.equal(f"{label}: the mixes", self.mixes(), want_mixes)
+
+    def on(self, name):
+        """The filament of the object named `name`, from object_list."""
+        listing = self.c.call("object_list", limit=500)
+        found = [o for p in listing["plates"] for o in p["objects"] if o["name"] == name]
+        found += [o for o in listing.get("outside", []) if o["name"] == name]
+        return found[0]["filament"] if len(found) == 1 else found
+
     # ---- Calls ----
 
     def run(self, tool, **args):
@@ -306,6 +356,43 @@ class FilamentsTest:
         """The reply's selected, shown, discarded and modified, each as `want` gives it (None: absent)."""
         self.t.equal(f"{label}: the reply", {k: reply.get(k) for k in want}, want)
 
+    def held(self, label, reply, title):
+        """A call the dialog titled `title` holds: the reply waits on it, and it is the one dialog open, with OK and
+        Cancel. Returns the open dialogs with their message."""
+        self.t.equal(f"{label}: the call waits on a dialog", reply.get("status"), "blocked_by_dialog")
+        shown = self.dialogs(message=True)
+        self.t.equal(f"{label}: the dialog", [d["title"] for d in shown], [title])
+        self.t.check(f"{label}: with OK and Cancel", bool(shown) and {"OK", "Cancel"} <= set(shown[0]["buttons"]), shown)
+        return shown
+
+    def finish(self, label, reply):
+        """The job of a call a dialog held, once the dialog is answered, and no dialog left open."""
+        result = self.c.await_job(reply, timeout=60)
+        self.t.equal(f"{label}: no dialog is left open", self.dialogs(), [])
+        return result
+
+    def set_in_dialog(self, title, **values):
+        for name, value in values.items():
+            self.c.call("widget_set_value", target={"name": name, "within": title}, value=value)
+
+    def click(self, title, label):
+        self.c.call("widget_click", target={"label": label, "within": title})
+
+    def cube(self, name, x, y=100):
+        self.run("object_add_primitive", shape="cube", size=[20, 20, 20], name=name, position=[x, y, 0])
+
+    def save_delete_open(self, label, name, slot, want_slots):
+        """Adds a cube, saves the project to `name`, deletes mixed filament `slot`, and opens the file again. The cube is
+        there so that the open shows no warning, which the app gives for a project file that holds no object."""
+        self.cube("kept", 100)
+        path = os.path.join(self.folder, name)
+        self.run("project_save", path=path, overwrite=True)
+        self.run("filament_delete", filament_slot=slot)
+        self.t.equal(f"{label}: after the delete", self.slots(), want_slots)
+        self.run("project_open", path=path, discard_changes=True)
+        self.idle()
+        self.t.equal(f"{label}: the cube is back", self.on("kept"), 1)
+
     # ---- Arranging ----
 
     def start(self, name, filaments):
@@ -351,6 +438,22 @@ class FilamentsTest:
             self.run("settings_set", type="filament", filament_slot=1, values={"slow_down_layer_time": 9})
         self.idle()
         self.state_is(f"{label}: the start", want)
+
+    def mixed_start(self, label, colours=False):
+        """The mixed filaments' start: three physical slots of Generic PLA, slots 2 and 3 red and blue with
+        `colours`. The first one reads slot 1's colour, which the test puts back at its end."""
+        self.t.equal(f"{label}: the start's presets", start(self.c), MIXED_START)
+        if self.slot1_colour is None:
+            self.slot1_colour = self.row(1)["colour"]
+        for _ in range(2):
+            self.run("filament_add")
+        self.t.equal(f"{label}: three physical slots", self.slots(), "0,0,0")
+        self.t.equal(f"{label}: of Generic PLA", [(r.get("preset"), r.get("type")) for r in self.rows()],
+                     [(B, "PLA")] * 3)
+        if colours:
+            self.run("filament_set_colour", filament_slot=2, colour=RED)
+            self.run("filament_set_colour", filament_slot=3, colour=BLUE)
+            self.t.equal(f"{label}: slots 2 and 3 red and blue", [r["colour"] for r in self.rows()[1:]], [RED, BLUE])
 
     # ---- Scenarios ----
 
@@ -437,51 +540,39 @@ class FilamentsTest:
             self.state_is(label, want)
 
     def one_slot_support(self):
+        """What the filament's type changes, every row from unsaved changes: the prompt without Transfer, the refused
+        Transfer ahead, Discard ahead and the cancel by each route. The clean assignments and Discard answered by the
+        tool or the api run the PLA scenario's code with another preset."""
         s = "one slot, A"
         self.start(s, [B])
-        clean, dirty = "B | B | 4 | #111111 | 0", "B | B* | 9 | #111111 | 0"
+        dirty = "B | B* | 9 | #111111 | 0"
         after1 = "A | A | 12 | #111111 | 0"
         no_transfer = {"offers": ("Discard", "Save"), "lacks": ("Transfer",)}
-        discarded = {"discarded": {"filament": {"name": B, "keys": ["slow_down_layer_time"]}}}
 
-        def case(row, is_dirty):
+        def case(row):
             label = f"{s} {row}"
-            self.arrange(label, [B], is_dirty, dirty if is_dirty else clean)
+            self.arrange(label, [B], True, dirty)
             return label
 
-        label = case(1, False)
-        self.quiet(label, self.pick(1, A))
-        self.state_is(label, after1)
-        label = case(2, False)
-        self.tool_reply(label, self.quiet(label, self.tool(1, A)), selected=A)
-        self.state_is(label, after1)
-        label = case(3, False)
-        result = self.script_result(self.quiet(label, self.api(commit_form(1, A))))
-        self.t.equal(f"{label}: the commit", result, commit(A))
-        self.state_is(label, after1)
-        for row, answer, want in [(4, "Discard", after1), (5, "cancel", dirty)]:
-            label = case(row, True)
+        for row, answer, want in [(1, "Discard", after1), (2, "cancel", dirty)]:
+            label = case(row)
             self.prompt(label, self.pick(1, A), answer, **no_transfer)
             self.state_is(label, want)
-        label = case(6, True)
+        label = case(3)
         self.t.refused(f"{label}: refused", lambda: self.tool(1, A, "transfer"), code="transfer_not_offered")
         self.state_is(label, dirty)
-        label = case(7, True)
-        self.tool_reply(label, self.quiet(label, self.tool(1, A, "discard")), **discarded)
+        label = case(4)
+        self.tool_reply(label, self.quiet(label, self.tool(1, A, "discard")), selected=A,
+                        discarded={"filament": {"name": B, "keys": ["slow_down_layer_time"]}})
         self.state_is(label, after1)
-        label = case(8, True)
-        self.tool_reply(f"{label}: the job's result", self.prompt(label, self.tool(1, A), "Discard", **no_transfer),
-                        **discarded)
-        self.state_is(label, after1)
-        label = case(9, True)
+        label = case(5)
         result = self.prompt(label, self.tool(1, A), "cancel", **no_transfer)
         self.tool_reply(f"{label}: the job's result", result, selected=B)
         self.state_is(label, dirty)
-        for row, answer, want, result in [(10, "Discard", after1, commit(A)), (11, "cancel", dirty, canceled(A, 1))]:
-            label = case(row, True)
-            got = self.script_result(self.prompt(label, self.api(commit_form(1, A)), answer, **no_transfer))
-            self.t.equal(f"{label}: the commit", got, result)
-            self.state_is(label, want)
+        label = case(6)
+        got = self.script_result(self.prompt(label, self.api(commit_form(1, A)), "cancel", **no_transfer))
+        self.t.equal(f"{label}: the commit", got, canceled(A, 1))
+        self.state_is(label, dirty)
 
     def one_slot_forms(self):
         s = "one slot, no preset named"
@@ -504,52 +595,65 @@ class FilamentsTest:
             self.state_is(label, want)
 
     def auto_flush(self):
+        """The three routes meet in Plater::priv::filament_preset_picked(), where the preference is read: row 1 runs
+        each route into it, and every other row one branch behind it, by the tool or the colour picker's change."""
         s = "Auto-flush"
         self.start(s, [B] * 3)
         start = "B B B | B | 4,4,4 | c3 | S3"
-        table = {"All": {X: ("cX", "R2"), M: ("c3", "R2"), S: ("c3", "Sup")},
-                 "Color": {X: ("cX", "R2"), M: ("c3", "S3"), S: ("c3", "S3")},
-                 "None": {X: ("cX", "S3"), M: ("c3", "S3"), S: ("c3", "S3")}}
-        colour_change = {"All": "R2", "Color": "R2", "None": "S3"}
-        x_entries = {}
-        for which, rows in table.items():
-            self.flush_preference(s, which)
-            routes = []
-            for preset, (colours, matrix) in rows.items():
-                edits = "4,8,4" if preset == S else "4,4,4"
-                for route in ("pick", "tool", "api"):
-                    label = f"{s} {which}, {LETTER[preset]} by {route}"
-                    self.arrange(label, [B, B, B], False, start)
-                    if route == "pick":
-                        self.quiet(label, self.pick(2, preset))
-                    elif route == "tool":
-                        self.quiet(label, self.tool(2, preset))
-                    else:
-                        got = self.script_result(self.quiet(label, self.api(commit_form(2, preset))))
-                        self.t.equal(f"{label}: the commit", got, commit(preset, shared=[2]))
-                    tab = LETTER[preset] if route == "api" else "B"
-                    state = self.state_is(label, f"B {LETTER[preset]} B | {tab} | {edits} | {colours} | {matrix}")
-                    if preset == X and matrix == "R2" and is_r2(state["matrix"]):
-                        routes.append(four(state["matrix"]))
-                        if which == "All":
-                            m = numbers(state["matrix"])
-                            self.t.check(f"{label}: the volumes into X above those out of it",
-                                         min(m[1], m[7]) > max(m[3], m[5]), state["matrix"])
-            label = f"{s} {which}, the colour picker's change"
+        # (row, preference, the preset the tool puts in slot 2 or None for the colour picker's change, colours,
+        # matrix, whether its four entries are row 1's)
+        table = [(2, "All", M, "c3", "R2", False), (3, "All", S, "c3", "Sup", False),
+                 (4, "All", None, "cX", "R2", True), (5, "Color", X, "cX", "R2", True), (6, "Color", M, "c3", "S3", False),
+                 (7, "Color", S, "c3", "S3", False), (8, "Color", None, "cX", "R2", True),
+                 (9, "None", X, "cX", "S3", False), (10, "None", M, "c3", "S3", False),
+                 (11, "None", S, "c3", "S3", False), (12, "None", None, "cX", "S3", False)]
+
+        self.flush_preference(f"{s} 1", "All")
+        routes = []
+        for route in ("pick", "tool", "api"):
+            label = f"{s} 1, All, X by {route}"
             self.arrange(label, [B, B, B], False, start)
-            self.run("filament_set_colour", filament_slot=2, colour="#FFF8E7")
-            self.idle()
-            state = self.state_is(label, f"B B B | B | 4,4,4 | cX | {colour_change[which]}")
-            if colour_change[which] == "R2":
-                self.t.check(f"{s} {which}: the three routes of X give the same four entries",
-                             len(routes) == 3 and all(e == routes[0] for e in routes), routes)
-                # The Klipper printer's minimum flush is 0 whichever preset a slot holds, so B left in slot 2 gives
-                # what X gives.
-                changed = four(state["matrix"]) if is_r2(state["matrix"]) else None
-                self.t.check(f"{s} {which}: the colour change gives the routes' four entries",
-                             bool(routes) and changed == routes[0], (changed, routes))
-                x_entries[which] = routes[0] if routes else None
-        self.t.equal(f"{s}: Color gives what All gave for X", x_entries.get("Color"), x_entries.get("All"))
+            if route == "pick":
+                self.quiet(label, self.pick(2, X))
+            elif route == "tool":
+                self.quiet(label, self.tool(2, X))
+            else:
+                got = self.script_result(self.quiet(label, self.api(commit_form(2, X))))
+                self.t.equal(f"{label}: the commit", got, commit(X, shared=[2]))
+            tab = "X" if route == "api" else "B"
+            matrix = self.state_is(label, f"B X B | {tab} | 4,4,4 | cX | R2")["matrix"]
+            # Entries 1 and 7 go into X, entries 3 and 5 out of it.
+            entries = four(matrix) if is_r2(matrix) else None
+            self.t.check(f"{label}: the volumes into X above those out of it",
+                         entries is not None and min(entries[0], entries[3]) > max(entries[1], entries[2]), matrix)
+            routes.append(entries)
+        self.t.check(f"{s} 1: the three routes give the same four entries",
+                     routes[0] is not None and all(e == routes[0] for e in routes), routes)
+        row1 = routes[0]
+
+        which = "All"
+        for row, preference, preset, colours, matrix, same in table:
+            if preference != which:
+                which = preference
+                self.flush_preference(f"{s} {row}", which)
+            what = "the colour picker's change" if preset is None else f"{LETTER[preset]} by tool"
+            label = f"{s} {row}, {which}, {what}"
+            self.arrange(label, [B, B, B], False, start)
+            if preset is None:
+                self.run("filament_set_colour", filament_slot=2, colour="#FFF8E7")
+                self.idle()
+                want = f"B B B | B | 4,4,4 | {colours} | {matrix}"
+            else:
+                self.quiet(label, self.tool(2, preset))
+                edits = "4,8,4" if preset == S else "4,4,4"
+                want = f"B {LETTER[preset]} B | B | {edits} | {colours} | {matrix}"
+            got = self.state_is(label, want)["matrix"]
+            if same:
+                # The Klipper printer's minimum flush is 0 whichever preset a slot holds, so B left in slot 2 by the
+                # colour change gives what X gives.
+                entries = four(got) if is_r2(got) else None
+                self.t.check(f"{label}: the four entries are row 1's", row1 is not None and entries == row1,
+                             (entries, row1))
 
     def three_slots_dirty(self):
         s = "three slots, unsaved changes"
@@ -774,6 +878,29 @@ class FilamentsTest:
                      grams[2][0] > step6[2][0] and grams[1][0] > 0 and changes > 0, (grams, changes, step6))
         self.t.equal(f"{s} 11", self.filaments(), "cube 1 (1, 2) · cylinder 2")
 
+    def merged(self):
+        s = "one slot merged into another"
+        self.start(s, [B] * 3)
+        for slot, colour in enumerate(("#FF0000", "#00FF00", "#0000FF"), 1):
+            self.run("filament_set_colour", filament_slot=slot, colour=colour)
+        self.cube("on_two", 80, 128)
+        self.cube("on_three", 176, 128)
+        self.run("settings_set", target="object", object=0, values={"extruder": 2})
+        self.run("settings_set", target="object", object=1, values={"extruder": 3})
+        self.idle()
+        self.t.equal(f"{s}: the start's filaments", self.filaments(), "on_two 2 · on_three 3")
+        self.t.equal(f"{s}: the start's colours", slot_colours(self.c), "#FF0000;#00FF00;#0000FF")
+
+        reply = self.run("filament_delete", filament_slot=2, merge_into=1)
+        self.idle()
+        self.t.equal(f"{s} 1: the reply", {k: reply.get(k) for k in ("filament_slot", "merged_into", "filament_slots")},
+                     {"filament_slot": 2, "merged_into": 1, "filament_slots": 2})
+        self.t.equal(f"{s} 1", self.slots(), "0,0")
+        self.t.equal(f"{s} 1: the slot after the deleted one moved down, with its objects", self.filaments(),
+                     "on_two 1 · on_three 2")
+        self.t.equal(f"{s} 1: and its colour", slot_colours(self.c), "#FF0000;#0000FF")
+        self.t.equal(f"{s} 1: the presets", presets(self.c)["filaments"], [B, B])
+
     def save_and_reopen(self, name):
         path = os.path.join(self.folder, name)
         self.run("project_save", path=path, overwrite=True)
@@ -899,6 +1026,239 @@ class FilamentsTest:
         self.t.equal(f"{label}: the slots", self.slots(), "0,0")
         self.t.equal(f"{label}: the printer's plate types", self.multi_bed_types(), "1")
 
+    @staticmethod
+    def red_blue(colour):
+        return int(colour[1:3], 16), int(colour[5:7], 16)
+
+    def adding(self):
+        s = "adding and reading"
+        self.mixed_start(s)
+        reply = self.run("filament_add_mixed", components=[2, 3], ratios=[50, 50])
+        self.t.equal(f"{s} 1: the reply", reply, {"added": True, "filament_slot": 4})
+        self.mixed_is(f"{s} 1", "0,0,0,1", "4 = 2,3 @ 50,50")
+        row = self.row(4)
+        self.t.check(f"{s} 1: the mix has a colour and no preset or type of its own",
+                     bool(HEX.match(row.get("colour", ""))) and "preset" not in row and "type" not in row, row)
+        self.t.equal(f"{s} 1: the physical slots keep their preset", [r.get("preset") for r in self.rows()[:3]], [B] * 3)
+        self.t.equal(f"{s} 1: a preset entry per slot, the mixed slot's too",
+                     len(self.c.call("app_state")["presets"]["filaments"]), 4)
+        self.t.equal(f"{s} 1: the matrix is 4 x 4", len(self.c.call("filament_list")["flush_volumes_matrix"]), 16)
+
+        reply = self.run("filament_add_mixed", components=[2, 3], ratios=[50, 50])
+        self.t.equal(f"{s} 2: a mix the project has is not added again", reply, {"added": False, "filament_slot": 4})
+        self.mixed_is(f"{s} 2", "0,0,0,1", "4 = 2,3 @ 50,50")
+
+        reply = self.run("filament_add_mixed", components=[1, 2, 3], ratios=[20, 30, 50])
+        self.t.equal(f"{s} 3: the reply", reply, {"added": True, "filament_slot": 5})
+        after3 = ("0,0,0,1,1", "4 = 2,3 @ 50,50 · 5 = 1,2,3 @ 20,30,50")
+        self.mixed_is(f"{s} 3", *after3)
+
+        self.t.refused(f"{s} 4: components without ratios are refused",
+                       lambda: self.c.call("filament_add_mixed", components=[2, 3]), code="components_and_ratios")
+        self.mixed_is(f"{s} 4", *after3)
+
+        reply = self.run("filament_add")
+        self.t.equal(f"{s} 5: a physical slot goes before the mixes", reply.get("filament_slot"), 4)
+        after5 = ("0,0,0,0,1,1", "5 = 2,3 @ 50,50 · 6 = 1,2,3 @ 20,30,50")
+        self.mixed_is(f"{s} 5", *after5)
+
+        self.save_delete_open(f"{s} 6", "mixes.3mf", 6, "0,0,0,0,1")
+        self.mixed_is(f"{s} 6: the project file keeps its mixes", *after5)
+
+    def no_preset(self):
+        s = "a mixed slot has no preset or colour of its own"
+        self.mixed_start(s)
+        self.run("filament_add_mixed", components=[2, 3], ratios=[50, 50])
+        unchanged = ("0,0,0,1", "4 = 2,3 @ 50,50")
+        self.mixed_is(f"{s}: the start", *unchanged)
+        code = "mixed_filament_slot"
+
+        self.t.refused(f"{s} 1: settings_get", lambda: self.c.call(
+            "settings_get", type="filament", filament_slot=4, keys=["filament_cost"]), code=code)
+        self.mixed_is(f"{s} 1", *unchanged)
+        self.t.refused(f"{s} 2: settings_set", lambda: self.c.call(
+            "settings_set", type="filament", filament_slot=4, values={"filament_cost": 99}), code=code)
+        saved = self.c.call("settings_get", type="filament", filament_slot=2, compare=":saved")
+        self.t.equal(f"{s} 2: the preset slots 1 to 3 hold has no unsaved change", saved.get("items"), [])
+        self.mixed_is(f"{s} 2", *unchanged)
+        self.t.refused(f"{s} 3: settings_list", lambda: self.c.call(
+            "settings_list", type="filament", filament_slot=4), code=code)
+        self.mixed_is(f"{s} 3", *unchanged)
+        self.t.refused(f"{s} 4: preset_save", lambda: self.c.call(
+            "preset_save", type="filament", filament_slot=4, name="MCP Mixed Slot"), code=code)
+        users = [p.get("name") for p in self.c.call("preset_list", type="filament", source="user", limit=500)["items"]]
+        self.t.check(f"{s} 4: no preset was saved", "MCP Mixed Slot" not in users, users)
+        self.mixed_is(f"{s} 4", *unchanged)
+
+        items = self.c.call("preset_list", type="filament", query="Generic PLA", limit=500)["items"]
+        used = [i.get("filament_slots") for i in items if i.get("name") == B]
+        self.t.equal(f"{s} 5: the mixed slot does not use its first component's preset", used, [[1, 2, 3]])
+        self.mixed_is(f"{s} 5", *unchanged)
+
+        self.t.refused(f"{s} 6: another colour", lambda: self.c.call(
+            "filament_set_colour", filament_slot=4, colour="#00FF00"), words="Slot 4 is a mixed filament")
+        own = self.row(4)["colour"]
+        self.t.check(f"{s} 6: the mix's colour is not set", own != "#00FF00", own)
+        self.mixed_is(f"{s} 6", *unchanged)
+        reply = self.run("filament_set_colour", filament_slot=4, colour=own.lower())
+        self.t.equal(f"{s} 7: its own colour, in any case, changes nothing", reply.get("changed"), False)
+        self.mixed_is(f"{s} 7", *unchanged)
+
+        self.t.refused(f"{s} 8: a mixed filament's flushing volume", lambda: self.c.call(
+            "filament_set_flushing", flush_volumes_matrix={"index": 3, "value": 50}),
+            words="belongs to a mixed filament, which is never flushed")
+        entry = self.c.call("filament_list")["flush_volumes_matrix"][3]
+        self.t.check(f"{s} 8: entry 3 is not set", entry != 50, entry)
+        self.mixed_is(f"{s} 8", *unchanged)
+
+    def changing(self):
+        s = "changing a mix"
+        self.mixed_start(s, colours=True)
+        self.run("filament_add_mixed", components=[2, 3], ratios=[50, 50])
+        self.cube("on_mix", 100)
+        self.run("settings_set", target="object", object=0, values={"extruder": 4})
+        self.mixed_is(f"{s}: the start", "0,0,0,1", "4 = 2,3 @ 50,50")
+        self.t.equal(f"{s}: the start: the cube on the mix", self.on("on_mix"), 4)
+
+        def edit(**args):
+            return self.run("filament_edit_mixed", filament_slot=4, **args)
+
+        reply = edit(components=[2, 3], ratios=[70, 30])
+        self.t.equal(f"{s} 1: the reply", reply, {"filament_slot": 4, "changed": True})
+        self.mixed_is(f"{s} 1", "0,0,0,1", "4 = 2,3 @ 70,30")
+        red, blue = self.red_blue(self.row(4)["colour"])
+        self.t.check(f"{s} 1: the blend has more red than blue", red > blue, self.row(4)["colour"])
+        self.t.equal(f"{s} 1: the cube stays on the mix", self.on("on_mix"), 4)
+
+        reply = edit(components=[2, 3], ratios=[70, 30])
+        self.t.equal(f"{s} 2: the same mix changes nothing", reply.get("changed"), False)
+        self.mixed_is(f"{s} 2", "0,0,0,1", "4 = 2,3 @ 70,30")
+
+        edit(components=[2, 3], ratios=[30, 70])
+        self.mixed_is(f"{s} 3", "0,0,0,1", "4 = 2,3 @ 30,70")
+        red, blue = self.red_blue(self.row(4)["colour"])
+        self.t.check(f"{s} 3: the blend has more blue than red", blue > red, self.row(4)["colour"])
+        self.t.equal(f"{s} 3: the cube stays on the mix", self.on("on_mix"), 4)
+
+        edit(components=[1, 2, 3], ratios=[20, 30, 50])
+        after4 = ("0,0,0,1", "4 = 1,2,3 @ 20,30,50")
+        self.mixed_is(f"{s} 4: the slot keeps its number", *after4)
+        self.t.equal(f"{s} 4: the cube stays on the mix", self.on("on_mix"), 4)
+
+        for step, args, code in [
+                (5, {"filament_slot": 2, "components": [2, 3], "ratios": [50, 50]}, "not_mixed_filament"),
+                (6, {"filament_slot": 9, "components": [1, 2, 3], "ratios": [20, 30, 50]}, "no_such_slot"),
+                (7, {"filament_slot": 4, "components": [2, 3]}, "components_and_ratios"),
+                (8, {"filament_slot": 4, "components": [2, 2], "ratios": [50, 50]}, "duplicate_component")]:
+            self.t.refused(f"{s} {step}: refused", lambda: self.c.call("filament_edit_mixed", **args), code=code)
+            self.mixed_is(f"{s} {step}", *after4)
+            self.t.equal(f"{s} {step}: the cube stays on the mix", self.on("on_mix"), 4)
+
+    def gradient(self):
+        s = "a gradient, through the dialogs"
+        self.mixed_start(s)
+        self.run("filament_add_mixed", components=[2, 3], ratios=[50, 50])
+        self.mixed_is(f"{s}: the start", "0,0,0,1", "4 = 2,3 @ 50,50")
+
+        reply = self.c.call("filament_edit_mixed", filament_slot=4)
+        self.held(f"{s} 1", reply, EDIT)
+        self.mixed_is(f"{s} 1", "0,0,0,1", "4 = 2,3 @ 50,50")
+
+        self.set_in_dialog(EDIT, gradient=True, gradient_direction=1, per_part_gradient=True)
+        self.click(EDIT, "OK")
+        self.t.equal(f"{s} 2: the job's reply", self.finish(f"{s} 2", reply), {"filament_slot": 4, "changed": True})
+        self.mixed_is(f"{s} 2", "0,0,0,1", "4 = 2,3 @ 50,50, bottom 3 top 2, per part")
+
+        self.run("filament_edit_mixed", filament_slot=4, components=[3, 2], ratios=[50, 50])
+        self.mixed_is(f"{s} 3: a gradient stays for two", "0,0,0,1", "4 = 3,2 @ 50,50, bottom 2 top 3, per part")
+
+        self.run("filament_edit_mixed", filament_slot=4, components=[1, 2, 3], ratios=[20, 30, 50])
+        after4 = ("0,0,0,1", "4 = 1,2,3 @ 20,30,50")
+        self.mixed_is(f"{s} 4: a gradient goes for three", *after4)
+
+        reply = self.c.call("filament_edit_mixed", filament_slot=4)
+        self.held(f"{s} 5", reply, EDIT)
+        self.click(EDIT, "Cancel")
+        self.t.equal(f"{s} 5: the job's reply", self.finish(f"{s} 5", reply), {"filament_slot": 4, "changed": False})
+        self.mixed_is(f"{s} 5", *after4)
+
+        reply = self.c.call("filament_add_mixed")
+        self.held(f"{s} 6", reply, ADD)
+        self.mixed_is(f"{s} 6", *after4)
+        self.set_in_dialog(ADD, gradient=True)
+        self.click(ADD, "OK")
+        self.t.equal(f"{s} 7: the job's reply", self.finish(f"{s} 7", reply), {"added": True, "filament_slot": 5})
+        after7 = ("0,0,0,1,1", "4 = 1,2,3 @ 20,30,50 · 5 = 1,2 @ 50,50, bottom 1 top 2")
+        self.mixed_is(f"{s} 7", *after7)
+
+        reply = self.c.call("filament_add_mixed")
+        self.held(f"{s} 8", reply, ADD)
+        self.click(ADD, "Cancel")
+        self.t.equal(f"{s} 8: the job's reply", self.finish(f"{s} 8", reply), {"added": False})
+        self.mixed_is(f"{s} 8", *after7)
+
+        self.save_delete_open(f"{s} 9", "gradient.3mf", 5, "0,0,0,1")
+        self.mixed_is(f"{s} 9: the project file keeps the gradient", *after7)
+
+    def deleting(self):
+        s = "deleting or merging a filament that a mix mixes"
+        self.mixed_start(s)
+        self.run("filament_add_mixed", components=[1, 2], ratios=[50, 50])
+        self.run("filament_add_mixed", components=[2, 3], ratios=[50, 50])
+        self.cube("on_one", 70)
+        self.cube("on_mix", 130)
+        self.run("settings_set", target="object", object=1, values={"extruder": 4})
+        start_state = ("0,0,0,1,1", "4 = 1,2 @ 50,50 · 5 = 2,3 @ 50,50")
+        self.mixed_is(f"{s}: the start", *start_state)
+        self.t.equal(f"{s}: the start: the cubes' filaments", (self.on("on_one"), self.on("on_mix")), (1, 4))
+
+        reply = self.c.call("filament_delete", filament_slot=1, merge_into=4)
+        shown = self.held(f"{s} 1", reply, "Warning")
+        self.t.check(f"{s} 1: the question says the mix uses the filament",
+                     bool(shown) and "uses this physical filament" in shown[0]["message"], shown)
+        self.c.call("dialog_answer", button="Cancel")
+        self.t.refused(f"{s} 1: the job", lambda: self.c.await_job(reply, timeout=60), code="merge_cancelled")
+        self.t.equal(f"{s} 1: no dialog is left open", self.dialogs(), [])
+        self.mixed_is(f"{s} 1", *start_state)
+        self.t.equal(f"{s} 1: the cube stays on filament 1", self.on("on_one"), 1)
+
+        self.t.refused(f"{s} 2: the merge answered no ahead", lambda: self.c.call(
+            "filament_delete", filament_slot=1, merge_into=4, break_mix=False), code="mixed_uses_slot")
+        self.t.equal(f"{s} 2: no dialog opened", self.dialogs(), [])
+        self.mixed_is(f"{s} 2", *start_state)
+
+        reply = self.run("filament_delete", filament_slot=1, merge_into=4, break_mix=True)
+        self.t.equal(f"{s} 3: the reply", {k: reply.get(k) for k in ("filament_slot", "merged_into", "broken_mixed")},
+                     {"filament_slot": 1, "merged_into": 3, "broken_mixed": [3]})
+        self.t.equal(f"{s} 3: no dialog opened", self.dialogs(), [])
+        after3 = ("0,0,1,1", "3 = 0,1 @ 50,50, broken · 4 = 1,2 @ 50,50")
+        self.mixed_is(f"{s} 3", *after3)
+        self.t.equal(f"{s} 3: the cubes are on the mix", (self.on("on_one"), self.on("on_mix")), (3, 3))
+
+        reply = self.c.call("plate_slice")
+        self.t.equal(f"{s} 4: the slice of an object on a broken mix ends in an error",
+                     [(p.get("index"), p.get("outcome"), p.get("error")) for p in reply.get("plates", [])],
+                     [(0, "error", "A mixed filament has a deleted or mismatched component")])
+        self.mixed_is(f"{s} 4", *after3)
+
+        reply = self.run("filament_edit_mixed", filament_slot=3, components=[1, 2], ratios=[50, 50])
+        self.t.equal(f"{s} 5: an edit repairs it", reply.get("changed"), True)
+        self.mixed_is(f"{s} 5", "0,0,1,1", "3 = 1,2 @ 50,50 · 4 = 1,2 @ 50,50")
+
+        reply = self.run("filament_delete", filament_slot=2)
+        self.t.equal(f"{s} 6: the reply names the broken mixes", reply.get("broken_mixed"), [2, 3])
+        self.t.equal(f"{s} 6: no dialog opened", self.dialogs(), [])
+        after6 = ("0,1,1", "2 = 1,0 @ 50,50, broken · 3 = 1,0 @ 50,50, broken")
+        self.mixed_is(f"{s} 6", *after6)
+
+        self.t.refused(f"{s} 7: the last physical slot", lambda: self.c.call("filament_delete", filament_slot=1),
+                       code="last_filament_slot")
+        self.mixed_is(f"{s} 7", *after6)
+
+        self.t.refused(f"{s} 8: a mix beside one physical slot", lambda: self.c.call("filament_delete", filament_slot=2),
+                       code="mixed_list_hidden")
+        self.mixed_is(f"{s} 8", *after6)
+
     def prepare(self):
         """The stored settings the checks read beyond each scenario's start(): the filaments the test shows by name
         not installed, which takes out any an earlier test installed (and the app's start hides any an earlier run
@@ -921,8 +1281,15 @@ class FilamentsTest:
                                ("three slots, other forms", self.three_slots_forms),
                                ("three slots, refusals", self.refusals),
                                ("filaments of objects and parts", self.objects_and_parts),
-                               ("the project's own settings", self.project_settings)]:
+                               ("one slot merged into another", self.merged),
+                               ("the project's own settings", self.project_settings),
+                               ("adding and reading", self.adding), ("no preset of its own", self.no_preset),
+                               ("changing a mix", self.changing), ("a gradient", self.gradient),
+                               ("deleting or merging", self.deleting)]:
             self.t.scenario(name, scenario)
+        if self.slot1_colour is not None:
+            self.run("filament_set_colour", filament_slot=1, colour=self.slot1_colour)
+            self.t.equal("slot 1's colour is put back", self.row(1)["colour"], self.slot1_colour)
         self.run("project_new", discard_changes=True, preset_changes="discard")
         return self.t.exit_code()
 

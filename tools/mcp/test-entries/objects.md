@@ -1,76 +1,267 @@
-# Objects
+# Plates and objects
 
-The design of this area's sweep tests. The rules every entry follows, the grades and the table of all tests are
+The design of this area's sweep test. The rules every entry follows, the grades and the table of all tests are
 in [TESTS.md](../TESTS.md).
 
-Two tests, split where their checks do: `test_objects` measures where objects stand and how many there are (places in
-mm, instances, arrangements, the print's copies), and `test_object_structure` reads what objects are made of and how
-the list orders them (parts and their types, names, order, meshes and the files they come from).
+One test, in three parts that run one after another in one app, each scenario from a `start()` of its own: the plates
+(adding, naming, locking, duplicating and deleting them, and the settings a plate sets for itself), where objects stand
+and how many there are (places in mm, instances, arrangements, the print's copies), and what objects are made of and how
+the list orders them (parts and their types, names, order, meshes and the files they come from). A closing scenario
+saves and reopens one project that holds what each part keeps in the file.
 
 ## `test_objects`
-`test_objects.py` · Python, 544 checks · in `sweep.json` as `{"path": "test_objects.py"}`
+`test_objects.py` · Python, 1259 checks · in `sweep.json` as `{"path": "test_objects.py"}`
 
-**Tests:** Where objects stand and how many there are: adding a shape at a size, a place, a plate and a name; moving,
-turning and scaling an instance, moving it to another plate, and what Auto Drop does to a move; moving and scaling a
-part; what the selection says; Mirror, Drop to Bed, Center, Scale to Fit and Auto-Orient; the number of instances and
-Set as Individual Objects; Arrange and Fill bed; Clone; and leaving instances out of the print. Each command is called
-by index and, where its menu item acts on the selection, with no target on the selection. It runs on the Generic
-Klipper Printer 0.4 nozzle: a bed 250 mm square and 250 mm high with no excluded area (`bed_exclude_area`), and
-plates laid out 300 mm apart (the bed and a fifth of it), two to a row.
+**Tests:** The plates of the Prepare view: adding, duplicating, naming, locking, selecting and deleting plates, and
+undoing that; what a lock keeps Arrange and Auto-Orient from doing; the settings a plate sets for itself; the filament
+slots its filament orders count on; and the plate icons and plate menu, which do the same jobs from a click. Where
+objects stand and how many there are: adding a shape at a size, a place, a plate and a name; moving, turning and
+scaling an instance, moving it to another plate, and what Auto Drop does to a move; moving and scaling a part; what the
+selection says; Mirror, Drop to Bed, Center, Scale to Fit and Auto-Orient; the number of instances and Set as
+Individual Objects; Arrange and Fill bed; Clone; and leaving instances out of the print. What objects are made of and
+how the list orders them: renaming and deleting objects, and the layer commands acting on the selected object; Split to
+Objects and to Parts, and Assemble; adding parts of every type, changing a part's type and renaming a part; ordering a
+plate's objects by a property or in a given order, and the print order that sets; Fix Model by index and through the
+object's menu; Reload from disk and Replace 3D file; and the keep_painting preference, shown against its control. Last,
+what the project file keeps of the plates and objects. Each object command is called by index and, where its menu item
+acts on the selection, with no target on the selection. It runs on the Generic Klipper Printer 0.4 nozzle: a bed 250
+mm square and 250 mm high with no excluded area (`bed_exclude_area`), plates laid out 300 mm apart (the bed and a fifth
+of it), two to a row, and by-object printing that lets objects lower than its rod (36 mm,
+`extruder_clearance_height_to_rod`) print in the object list's order when they stand more than its clearance radius
+(65 mm, `extruder_clearance_radius`) apart. A plate takes a plate type of its own only on a printer that offers
+several, which the Klipper printer does only with its `support_multi_bed_types` on, so a plate's own settings and what
+the project keeps turn that on first.
 
 **Starts from:** Every scenario starts with `start(client)` in the Prepare view and checks that `presets()` is
-`{printer: KLIPPER, process: KLIPPER_STD, filaments: [GENERIC_PLA]}`, that `plates()` is `"" 0 *` and that there are
-no objects; a `project_new` within a scenario is followed by the same check of the plates and objects. Before its
-first scenario the test stores the arrange options its arrangements are checked under, the ones a new data folder has:
-spacing 0 (automatic) and rotation off, with `object_arrange {spacing: 0, rotate: false}` of a 20 mm cube after a
-`start()`, in a project the first scenario's `start()` discards, and checks that the reply's `settings` give `spacing`
-0 and `rotate` false. The Arrange options panel keeps them for every arrange after, one set for each print sequence:
-these are the by-layer ones, which the Klipper process prints with. An earlier test may leave rotation on
-(`test_worker_admission` does), and then the turn an arrange gives a cube is the arranger's choice, while the tables
-fix it at `[0, 0, 0]` after an arrange without options (arranging, step 4; cloning, steps 3 and 6). The Clone dialog's
-Auto arrange box starts from the `auto_arrange` preference, which `test_preferences` changes; the test does not set
-it, as cloning step 6 holds whether the dialog arranges or not.
+`{printer: KLIPPER, process: KLIPPER_STD, filaments: [GENERIC_PLA]}` and that `plates()` is `"" 0 *`, and in every
+scenario after the plates' ones that there are no objects; a `project_new` within a scenario is followed by the same
+check of the plates and objects. A plate's own settings and what the project keeps turn on the printer's `support_multi_bed_types`
+with `settings_set {type: "printer", values: {support_multi_bed_types: "1"}}`, an unsaved printer edit that the next
+scenario's `start()` discards, and set the project's plate type themselves rather than rely on the one a new project
+starts with. The other stored settings a check depends on are set by the test before the step that reads them:
+- The arrange options. The Arrange options panel keeps the ones an arrange is given for every arrange after, one set
+  for each print sequence: the by-layer ones here, which the Klipper process prints with. An earlier test may leave
+  rotation on (`test_runtime_calls` does), and then the turn an arrange without options gives a cube is the
+  arranger's choice. Arranging step 4 gives the options a new data folder has, spacing 0 (automatic) and rotation off,
+  and step 7 arranges with none. Cloning, which arranges without options and fixes the cubes' turn at `[0, 0, 0]`
+  (steps 3 and 6), runs after arranging, under the options arranging leaves: spacing 10 and rotation off. The plates'
+  arranges (what a lock does, step 8; plate icons, step 7) are checked by what holds under any options: the squares
+  apart and inside their plate.
+- The keep_painting preference, which the painting scenario sets before each step whose result depends on it
+  (painting, steps 2 and 4); no other step reloads or replaces a painted part.
 
-**Leaves:** The by-layer arrange options its last arrange with options stored: spacing 10 and rotation off. The
-Klipper printer selected, with one slot of `GENERIC_PLA`. `kept.3mf` at the top of the recent projects, and the folder
-the file dialogs open in, both in `W`, which is removed when the test ends. On a data folder in Simple mode, Advanced
-mode: an undo in Simple mode to a step whose model has several instances or a part other than a model part switches
-the app to Advanced and keeps it (`Plater::priv::update_after_undo_redo()`, the app's own code), as the undo of the
-number of instances, step 4, does.
+The Clone dialog's Auto arrange box starts from the `auto_arrange` preference, which `test_preferences` changes; the
+test does not set it, as cloning step 6 holds whether the dialog arranges or not. The auto-answer rule a plate's own
+settings sets lasts only while the app runs.
+
+**Leaves:** The Klipper printer selected, with one slot of `GENERIC_PLA` and no unsaved edit: the test's closing
+`project_new {discard_changes: true, preset_changes: "discard"}` drops the printer edit the reopened project brings
+back. As the app remembers it for that printer, the plate type High Temp Plate a new project starts with. The by-layer
+arrange options its last arrange with options stored: spacing 10 and rotation off. keep_painting on, as painting step 4
+sets it. `keeps.3mf` at the top of the recent projects, and the folder the file dialogs open in, both in `W`, which is
+removed when the test ends. On a data folder in Simple mode, Advanced mode: an undo in Simple mode to a step whose model
+has several instances or a part other than a model part switches the app to Advanced and keeps it
+(`Plater::priv::update_after_undo_redo()`, the app's own code), as the undo of the number of instances, step 4, does.
 
 **Files:** The test writes into a folder of its own, `W` (a `tempfile.TemporaryDirectory()`, removed when the test
-ends), the project it saves and the G-code files it exports. Undo steps are counted by undoing them and reading the state back, not from the log.
+ends), with an ASCII STL writer of its own: `cube20.stl` (a 20 mm cube from the origin, 12 triangles), `cube30.stl`
+(the same at 30 mm), `holed.stl` (`cube20.stl` less one triangle, which leaves three open edges) and `top4.stl` (a 20 mm
+cube from the origin whose top is four triangles about its centre, 14 triangles). It reads
+`tests/data/two_hollow_squares.obj` (two square rings 10.67 mm wide and 2.8 mm high, their centres 58 mm apart along
+x), `resources/handy_models/OrcaCube_v2.drc` and `tools/mcp/tests/fixtures/star.svg`,
+`tools/mcp/tests/fixtures/heightmap.png`. The project it saves and the G-code files it exports go to `W` as well. It
+does not use `tests/fixtures/objects_files.py` or `tests/fixtures/ops_undo.py`: undo steps are counted by undoing them
+and reading the state back, not from the log.
 
-**Reads:** `plates()` as `test_plates` reads it. New readers in `checks.py`:
+**Reads:** Readers in `checks.py`:
+- `plates()` gives each plate as `{name, current, locked, objects}` from `plate_list`. `objects()` gives each object as
+  `{name, plate}` from `object_list`, and the objects outside the plates by name. `slots()` gives the filament slots as
+  the `mixed` of each `filament_list` row, one digit per slot (`"0,0,1"`: three slots, the third a mixed filament).
 - `scene()`: each object of `object_list` in index order, its entry whole (`name`, `id`, `filament`, `auto_drop`,
   `bbox`, `mesh_errors`, `parts`, and `layer_config_ranges` and `layer_height_profile` when it has them), with its
   `instances` gathered from every plate and from `outside`, each given its `plate` (−1 outside). A part is its entry
   whole: `name`, `id`, `type`, `subtype`, `filament`, `position`, `rotation_deg`, `scale`, `mirrored`, `triangles`,
-  `mesh_volume`, `scaled_volume`, `bbox`, `painted`, `svg`. It sits beside `test_plates`' `objects()`, which gives only
-  each object's name and plate.
+  `mesh_volume`, `scaled_volume`, `bbox`, `painted`, `svg`.
 - `selection()`: `app_state`'s `selection` as `{objects, instances, parts}`, `parts` absent when whole instances are
   selected.
 - `corner(p)`: plate p's `origin` from `plate_list`, and `rect(p)`: its `origin` and `size`.
 - `gcode_prints(path)`: the `; printing object <name> id:<n> copy <c>` comments of a G-code file, as the names in the
   order they first print, each with the number of different `id`, `copy` pairs printed under it: its copies
   (`gcode_label_objects` is on in `0.20mm Standard @MyKlipper`, as the app's default has it).
+- `unsaved(type)`: the keys in which the preset being edited differs from the stored one, from `settings_get {compare:
+  ":saved"}`.
 - Geometry on `bbox`: an instance's square is its `bbox` in x and y; two squares are apart when they do not overlap;
   a square is inside plate p when it lies within `rect(p)`; the gap between two squares is the distance between
   them: along the axis on which they are apart, corner to corner when they are apart on both.
 
-In the tables `plates()` is written as in `test_plates`; a table without a plates column says in its introduction what
-`plates()` is after every step, and one without an objects column says what its objects are. The objects are listed in index order between `·`, each as
-its name, `@` and the plate its instances stand on, and `×n` when it has n instances: `a@0×3` · `b@0` is object 0
-named a with three instances on plate 0, then object 1 named b with one. An object the tables call by a name of its
-own (first, block, a, kept and so on) is added with `name` set to it; Cube, a shape's own name, is added without one.
-After every step the names, plates and
-instance counts of `scene()` are compared with the row whole. A place is written `+(x, y)`: an instance's `offset`
-x and y measured from the corner of the plate it stands on, checked to 0.001 mm (a part's place is its `position`,
-written the same way with its z). An instance keeps the place the table last gave it until a row gives it another, or
-says that the app places it, after which the row says what that place must hold. Unless a row says otherwise, an
-instance has `rotation_deg` `[0, 0, 0]`, `scale` `[1, 1, 1]`, `mirrored` false and `printable` true and rests on the
-bed (`bbox.min` z 0 to 0.001), and its object has `auto_drop` true; what a row changes holds until a later row changes
-it again. After every step these values and every place the table fixes are compared for every instance.
+Readers of the test's own: a plate's settings, from `plate_list`, as `{curr_bed_type, print_sequence, spiral_mode,
+first_layer_print_sequence, other_layers_print_sequence, overrides}`; `names()`: the objects' names in index order, and
+`types(o)`: object o's parts' `type`s in order, both from one `scene()`; `notices()`: the texts of `app_state`'s
+`notifications`, and `dialogs()`: the titles of its `dialogs`.
+
+In every table a plate is written as its name and its number of objects, with `*` on the current plate and `L` on a
+locked one, and the plates are listed in order between `·`: `"" 1 *` · `"Copy" 1 L` is an unnamed current plate with
+one object, then a locked plate named Copy with one object. A table without a plates column says in its introduction
+what `plates()` is after every step. Each part compares the objects in its own way:
+- The plates' scenarios (a plate's life to plate icons) compare `plates()` with the row whole after every step, and
+  the objects with `objects()` where a row names them.
+- The objects' places (adding a shape to leaving instances out of the print, and what the project keeps): the objects
+  are listed in index order between `·`, each as its name, `@` and the plate its instances stand on, and `×n` when it
+  has n instances: `a@0×3` · `b@0` is object 0 named a with three instances on plate 0, then object 1 named b with
+  one. An object the tables call by a name of its own (first, block, a, kept and so on) is added with `name` set to it;
+  Cube, a shape's own name, is added without one. After every step the names, plates and instance counts of `scene()`
+  are compared with the row whole; a table without an objects column says in its introduction what its objects are. A
+  place is written `+(x, y)`: an instance's `offset` x and y measured from the corner of the plate it stands on,
+  checked to 0.001 mm (a part's place is its `position`, written the same way with its z). An instance keeps the place
+  the table last gave it until a row gives it another, or says that the app places it, after which the row says what
+  that place must hold. Unless a row says otherwise, an instance has `rotation_deg` `[0, 0, 0]`, `scale` `[1, 1, 1]`,
+  `mirrored` false and `printable` true and rests on the bed (`bbox.min` z 0 to 0.001), and its object has `auto_drop`
+  true; what a row changes holds until a later row changes it again. After every step these values and every place the
+  table fixes are compared for every instance.
+- The objects' structure (renaming and deleting to painting kept through a mesh change): places are written as in the
+  objects' places, from plate 0's corner. An object the tables call by a name of its own is added with `name` set to it;
+  Cube is a shape's own name, and an imported object is named after its file. The objects are written by their names in
+  index order, and an object's parts by their types, after `:` (`Assembly: part, modifier`). After every step `names()`
+  is compared with its row whole, and the parts of every object the row writes them for; a table without an objects
+  column says in its introduction what the names are after every step. `plates()` is `"" n *` after every step, n the
+  number of objects, but where the ordering scenario says otherwise.
+
+**Scenario: a plate's life**
+
+| # | Step | Plates after | Also checked |
+|---|---|---|---|
+| 1 | `plate_delete` | `"" 0 *` | refused, `last_plate` |
+| 2 | `plate_add` | `"" 0` · `"" 0 *` | the new plate is made current |
+| 3 | `plate_add` | `"" 0` · `"" 0` · `"" 0 *` | |
+| 4 | `plate_rename {plate: 1, name: "Left"}` | `"" 0` · `"Left" 0 *` · `"" 0` | naming a plate makes it current |
+| 5 | `plate_lock {plate: 2, locked: true}` | `"" 0` · `"Left" 0 *` · `"" 0 L` | |
+| 6 | `plate_delete {plate: 0}` | `"Left" 0 *` · `"" 0 L` | the plates after it move down; the current plate stays current |
+| 7 | `undo` | `"" 0` · `"Left" 0 *` · `"" 0 L` | the delete is one undo step |
+| 8 | `redo` | `"Left" 0 *` · `"" 0 L` | |
+
+**Scenario: by index, and on the current plate**
+
+| # | Step | Plates after | Objects after |
+|---|---|---|---|
+| 1 | `object_add_primitive {shape: "cube", size: [20, 20, 20], name: "first"}` | `"" 1 *` | first on 0 |
+| 2 | `plate_add` | `"" 1` · `"" 0 *` | |
+| 3 | the same with `name: "second", plate: 1` | `"" 1` · `"" 1 *` | first on 0, second on 1 |
+| 4 | `plate_select {plate: 0}` | `"" 1 *` · `"" 1` | |
+| 5 | `plate_duplicate {plate: 1}` | `"" 1 *` · `"" 1` · `"" 1` | and second on 2: the new plate comes last, and plate 0 stays current |
+| 6 | `plate_duplicate` | `"" 1 *` · `"" 1` · `"" 1` · `"" 1` | and first on 3 |
+| 7 | `plate_rename {plate: 2, name: "Copy"}` | `"" 1` · `"" 1` · `"Copy" 1 *` · `"" 1` | |
+| 8 | `plate_select {plate: 1}`, then `plate_rename {name: "Second"}` | `"" 1` · `"Second" 1 *` · `"Copy" 1` · `"" 1` | |
+| 9 | `plate_rename {name: "Second"}` | as after 8 | |
+| 10 | `undo` | `"" 1` · `"" 1 *` · `"Copy" 1` · `"" 1` | the unchanged name took no undo step, so undo takes back step 8's |
+| 11 | `redo` | as after 8 | |
+| 12 | `plate_lock {plate: 3, locked: true}` | `"" 1` · `"Second" 1 *` · `"Copy" 1` · `"" 1 L` | reply `changed: true` |
+| 13 | `plate_lock {plate: 3}` | as after 8 | without `locked` it toggles |
+| 14 | `plate_lock` | `"" 1` · `"Second" 1 * L` · `"Copy" 1` · `"" 1` | the current plate |
+| 15 | `plate_lock {locked: true}` | as after 14 | reply `changed: false` |
+| 16 | `undo` | as after 8 | the unchanged lock took no undo step, so undo takes back step 14's |
+| 17 | `redo`, then `plate_lock {locked: false}` | as after 8 | |
+| 18 | `plate_select {plate: 2}` | `"" 1` · `"Second" 1` · `"Copy" 1 *` · `"" 1` | |
+| 19 | `plate_select` | as after 18 | without a plate the current plate stays |
+| 20 | `plate_delete {plate: 1}` | `"" 1` · `"Copy" 1 *` · `"" 1` | first on 0, second on 1, first on 2; outside: second |
+| 21 | `plate_delete` | `"" 1 *` · `"" 1` | first on 0, first on 1; outside: second, second. Deleting the current plate makes the plate before it current |
+| 22 | `undo` | as after 20 | as after 20 |
+
+**Scenario: duplicating a plate**
+
+A copy must be the same objects at the same places on the new plate. A place is given as an offset from the plate's
+front left corner (`origin` from `plate_list`), and objects are read from `object_list` as their name, plate,
+`offset`, `rotation_deg`, `scale`, `bbox` and the `triangles` and `mesh_volume` of their part. Positions the app
+works out from a plate's corner are checked to 0.001 mm.
+
+| # | Step | Plates after | Also checked |
+|---|---|---|---|
+| 1 | `object_add_primitive {shape: "cube", size: [20, 20, 20], name: "cube", position: corner + (40, 60)}`, then `object_transform {object: 0, rotate: [0, 0, 30], mode: "absolute"}` | `"" 1 *` | cube on plate 0, `offset` x and y at corner + (40, 60), resting on the bed (`bbox.min` z 0), `rotation_deg` `[0, 0, 30]`, `bbox.size` `[27.32, 27.32, 20]` to 0.01; its part has 12 triangles and `mesh_volume` 8000 |
+| 2 | `object_add_primitive {shape: "cylinder", size: [20, 30], name: "cylinder", position: corner + (120, 80)}` | `"" 2 *` | cylinder on plate 0 at corner + (120, 80), resting on the bed, `bbox.size` `[20, 20, 30]` to 0.1, `mesh_volume` within 1 % of 9425 |
+| 3 | `plate_duplicate {plate: 0}` | `"" 2 *` · `"" 2` | the reply's `new_plate` is 1. Plate 1 holds a cube and a cylinder, named so, at plate 1's corner + (40, 60) and + (120, 80), resting on the bed, each with its source's `rotation_deg`, `scale`, `bbox.size`, `triangles` and `mesh_volume`. The sources are as after 2; there are 4 objects, none outside the plates |
+| 4 | `object_transform` of the cube's copy, `translate: [10, 0, 0]` | as after 3 | the copy is 10 mm further along x and the source cube has not moved: a copy is an object of its own, not another instance of its source |
+| 5 | `undo`, twice | `"" 2 *` | the duplicate is one undo step: 2 objects, as after 2 |
+
+**Scenario: what a lock does**
+
+A lock keeps Arrange and Auto-Orient off a plate, and nothing else: the plate's objects can still be moved by hand.
+Two cubes of 20 × 20 × 10 mm are turned onto their side with `object_transform {rotate: [0, 90, 0], mode:
+"absolute"}`, so that each stands 20 mm tall (`bbox.size` `[10, 20, 20]`) and Auto-Orient would lay it flat. A is
+added on plate 0 and B on plate 1, each with `position` 30 mm in from its plate's front left corner (the plate's
+`origin` from `plate_list`). Objects are read from `object_list` as their plate, `offset`, `rotation_deg` and
+`bbox.size`. A turn is compared as the rotation its `rotation_deg` composes, since `object_list` can name one turn by
+other angles: it reports A's `[0, 90, 0]` as `[180, 90, 180]`.
+
+| # | Step | Plates after | Also checked |
+|---|---|---|---|
+| 1 | A and B added and turned, then `plate_lock {plate: 0, locked: true}` | `"" 1 L` · `"" 1 *` | A at its corner, standing |
+| 2 | `object_arrange` | `"" 1 L` · `"" 1 *` | A's `offset` and `rotation_deg` as after 1; B on plate 1; the reply lists plate 0 among the plates it skipped |
+| 3 | `object_arrange {plates: 0}` | as after 2 | refused with `Plate 0 is locked; unlock it first (plate_lock {"plate": 0, "locked": false})`; A as after 1 |
+| 4 | `object_auto_orient {plates: [0]}` | as after 2 | refused, `plate_locked`; A still standing, `rotation_deg` `[0, 90, 0]` |
+| 5 | `object_auto_orient {objects: [0, 1]}` | as after 2 | B lies flat (`bbox.size` z 10) and A still stands; the reply names B alone |
+| 6 | `object_transform {object: 0, translate: [5, 0, 0]}` | as after 2 | A is 5 mm further along x: a lock does not stop a move by hand |
+| 7 | `plate_lock {plate: 0, locked: false}`, then `object_auto_orient {objects: [0]}` | `"" 1` · `"" 1 *` | A lies flat: the call that left it standing turns it once the plate is unlocked |
+| 8 | `object_arrange` | `"" 2` · `"" 0 *` | A and B both on plate 0, their squares apart and inside the plate; plate 1, empty now, is kept |
+
+**Scenario: a plate's own settings**
+
+It starts with the printer's `support_multi_bed_types` on, two filament slots (`slots()` is `"0,0"`, the second added
+with the Add filament action), the project's plate type set to Cool Plate with `project_set_settings`, and steps 1 to
+3 of the by-index scenario: two plates with a cube each, plate 1 current. In the table, a plate whose settings are not
+named has the project's: `Cool Plate`, `by layer`, spiral off, both orders `null`, and no `overrides`. What the
+project file keeps of a plate's settings is checked in what the project keeps.
+
+| # | Step | Settings after | Also checked |
+|---|---|---|---|
+| 1 | `plate_set_settings {plate: 1, values: {curr_bed_type: "Textured PEI Plate", print_sequence: "by object"}}` | plate 1: `Textured PEI Plate`, `by object`, overrides `[curr_bed_type, print_sequence]` | `plate_get_settings {plate: 1}` gives the same two values, `meta.offered` of `curr_bed_type` is `Cool Plate`, `Engineering Plate`, `High Temp Plate`, `Textured PEI Plate`, `Textured Cool Plate` and `Supertack Plate`, every plate type, and `spiral_mode` is `null` with effective `false` |
+| 2 | `undo` | both plates the project's | |
+| 3 | `redo` | as after 1 | |
+| 4 | `plate_set_settings {plate: 1, values: {print_sequence: null}}` | plate 1: `Textured PEI Plate`, overrides `[curr_bed_type]` | the reply's effective `print_sequence` is `by layer` |
+| 5 | `plate_set_settings {plate: 1, values: {curr_bed_type: "Glass Plate", print_sequence: "by object"}}` | as after 4 | refused, saying this printer does not offer `curr_bed_type "Glass Plate"`, a name that none of the plate types has; the print sequence, which was valid, is not set either |
+| 6 | `plate_set_settings {plate: 0, values: {first_layer_print_sequence: [1, 1]}}` | as after 4 | refused, saying a filament order lists every slot 1..2 once |
+| 7 | `plate_set_settings {plate: 0, values: {other_layers_print_sequence: [{from: 2, order: [1, 2]}, {from: 5, to: 9, order: [2, 1]}]}}` | as after 4 | refused, saying the layer ranges overlap |
+| 8 | `plate_set_settings {plate: 0, values: {skirt_start_angle: 90}}` | as after 4 | refused as a setting a plate does not take |
+| 9 | `plate_lock {plate: 2, locked: true}` | as after 4, and `plates()` as before | refused, `no_such_plate` |
+| 10 | `plate_set_settings {plate: 0, values: {first_layer_print_sequence: [2, 1], other_layers_print_sequence: [{from: 10, order: [1, 2]}, {from: 2, to: 9, order: [2, 1]}]}}` | plate 0: first `[2, 1]`, others `[{from: 2, to: 9, order: [2, 1]}, {from: 10, order: [1, 2]}]`, overrides `[first_layer_print_sequence, other_layers_print_sequence]` | the ranges come back sorted, and the open-ended one has no `to`; plate 0 is made current, as the Plate Settings dialog works on the current plate |
+| 11 | `plate_set_settings {values: {first_layer_print_sequence: null, other_layers_print_sequence: null}}` | as after 4 | with no plate it sets the current plate, plate 0 |
+| 12 | `plate_set_settings {plate: 0, values: {spiral_mode: true}}` | plate 0: spiral on, overrides `[spiral_mode]` | the spiral mode question was asked once, answered by an auto-answer rule whose use count goes from 0 to 1 |
+| 13 | `plate_set_settings {plate: 0, values: {spiral_mode: null}}` | as after 4 | |
+| 14 | `plate_slice {plates: 1}` | as after 4 | outcome `ok`; `plate_list` gives plate 1 `sliced: true` with no `layer_gcode`, and plate 0 `sliced: false` |
+
+**Scenario: filament slots**
+
+| # | Step | `slots()` after | Also checked |
+|---|---|---|---|
+| 1 | `filament_delete` | `"0"` | refused, `last_filament_slot`: the one slot `start()` leaves is the last |
+| 2 | the Add filament action (`action_run`) | `"0,0"` | message `Added filament slot 2.` |
+| 3 | the same | `"0,0,0"` | message `Added filament slot 3.` |
+| 4 | `filament_delete {filament_slot: 4}` | `"0,0,0"` | refused, `no_such_slot` |
+| 5 | `filament_delete {filament_slot: 2}` | `"0,0"` | message `Deleted filament slot 2.` |
+| 6 | a click on Add Mixed Filament, answered OK | `"0,0,1"` | the dialog that opens is titled Add Mixed Filament |
+| 7 | `plate_set_settings {plate: 0, values: {first_layer_print_sequence: [2, 1]}}` | `"0,0,1"` | refused, saying it cannot be set while the project has mixed filaments; plate 0's order stays `null` |
+| 8 | the Add filament action | `"0,0,0,1"` | message `Added filament slot 3.`: a new slot goes ahead of the mixed one |
+| 9 | the Delete filament action | `"0,0,1"` | message `Deleted filament slot 3.`: the action deletes the last physical slot, not the mixed one after it |
+| 10 | a click on Remove last mixed filament | `"0,0"` | |
+
+**Scenario: plate icons and the plate menu**
+
+Each step is a `widget_click` on `{plate_icon, plate}` unless it says otherwise. The cubes are 20 mm and added with
+`object_add_primitive` at a `position`; "on plate 1" means a cube's 20 mm square lies inside plate 1's rectangle
+(`origin` and `size` from `plate_list`).
+
+| # | Step | Plates after | Also checked |
+|---|---|---|---|
+| 1 | `widget_list {query: "plate_icon"}` | `"" 0 *` | plate 0 shows exactly the icons `plate`, `delete`, `orient`, `arrange`, `lock`, `settings`, `name` and `move_to_front`: the app draws the delete and move-to-front icons on every plate, a lone plate too |
+| 2 | `lock` on plate 0 | `"" 0 * L` | |
+| 3 | `lock` on plate 0 | `"" 0 *` | |
+| 4 | `settings` on plate 0, answered Cancel | `"" 0 *` | the dialog is titled Plate Settings; plate 0's settings are the project's afterwards |
+| 5 | the Add Plate button of the 3D view's toolbar (`gltoolbar: "addplate"`) | `"" 0` · `"" 0 *` | |
+| 6 | two cubes at plate 1's middle | `"" 0` · `"" 2 *` | both on plate 1 at the same `x` and `y` |
+| 7 | `arrange` on plate 1 | `"" 0` · `"" 2 *` | the reply has `started` and `done`; the wait for idle is met; both cubes on plate 1 and their squares apart |
+| 8 | a right click on `plate` of plate 1 | as after 7 | the menu lists `Edit Plate Name`, `Lock` and `Delete Plate` |
+| 9 | the same, picking `Lock` | `"" 0` · `"" 2 * L` | the reply's `ran` is `Lock` |
+| 10 | `lock` on plate 1 | `"" 0` · `"" 2 *` | |
+| 11 | `move_to_front` on plate 1 | `"" 2 *` · `"" 0` | both cubes on plate 0 |
+| 12 | `app_state` | as after 11 | no dialog open and no menu left open |
 
 **Scenario: adding a shape**
 
@@ -207,10 +398,10 @@ plates and instance counts in any order.
 | 1 | `object_arrange {}` | `"" 0 *` | none | refused, `no_objects_to_arrange` |
 | 2 | `object_arrange {plates: 0}` | `"" 0 *` | none | refused, `no_objects_to_arrange` |
 | 3 | A and B both at `corner(0) + (128, 128, 0)` | `"" 2 *` | A@0 · B@0 | A and B at +(128, 128): one on the other |
-| 4 | `view_set {tab: "preview"}`, then `object_arrange {}` | as after 3 | A@0 · B@0 | the reply's `off_plate` `[]` and `plates` 1; `app_state` `tab` `prepare`: an arrange shows the Prepare view; A's and B's squares apart and inside plate 0 |
+| 4 | `view_set {tab: "preview"}`, then `object_arrange {spacing: 0, rotate: false}` | as after 3 | A@0 · B@0 | the reply's `settings` `spacing` 0 and `rotate` false, `off_plate` `[]` and `plates` 1; `app_state` `tab` `prepare`: an arrange shows the Prepare view; A's and B's squares apart and inside plate 0 |
 | 5 | `undo` | as after 3 | as after 3 | A and B at +(128, 128): the arrange was one undo step |
 | 6 | `object_arrange {plates: 0, spacing: 30, rotate: false, align_y: false}` | as after 3 | as after 3 | the reply's `settings` `spacing` 30, `rotate` false, `align_y` false, and `off_plate` `[]`; the gap between A's and B's squares at least 29.9; both inside plate 0, `rotation_deg` `[0, 0, 0]` |
-| 7 | A and B back to `corner(0) + (128, 128, 0)` with `object_transform {position}`, then `object_arrange {}` | as after 3 | as after 3 | the reply's `settings` `spacing` 30: the arrange options panel kept it; the gap at least 29.9 |
+| 7 | A and B back to `corner(0) + (128, 128, 0)` with `object_transform {position}`, then `object_arrange {}` | as after 3 | as after 3 | the reply's `settings` `spacing` 30: an arrange without options takes the ones the arrange options panel kept; the gap at least 29.9 |
 | 8 | `object_arrange {plates: 0, spacing: 10}` | as after 3 | as after 3 | the reply's `settings` `spacing` 10; the gap at least 9.9 and under 29.9: the spacing decides how far apart they go |
 | 9 | `plate_add`, then `object_arrange {plates: 1}` | `"" 2` · `"" 0 *` | as after 3 | refused, saying that plate 1 has no objects to arrange |
 | 10 | A to `corner(0) + (60, 60, 0)` and B to `+ (180, 180, 0)` with `object_transform`, C at `plate: 1`, `position: corner(1) + (128, 128, 0)` | `"" 2` · `"" 1 *` | A@0 · B@0 · C@1 | A at +(60, 60), B at +(180, 180), C at +(128, 128) |
@@ -246,137 +437,11 @@ After every step the objects are a@0×3 · b@0 at those places, and `plates()` i
 
 | # | Step | `printable` after | Also checked |
 |---|---|---|---|
-| 1 | a and b, then a slice | a true, true, true; b true | `gcode_prints()` prints a in 3 copies and b in 1 |
+| 1 | a and b | a true, true, true; b true | |
 | 2 | `object_set_printable {instances: [[0, 1]], printable: false}` | a true, false, true; b true | the reply's `instances` `[{object: 0, instance: 1, printable: false}]` and no `objects` |
 | 3 | a slice | as after 2 | `gcode_prints()` prints a in 2 copies and b in 1: an instance that is not printable is left out of the G-code |
 | 4 | `undo` | as after 1 | Printable was one undo step |
 | 5 | `object_set_printable {objects: [0], printable: false}` | a false, false, false; b true | the reply's `instances` instances 0, 1 and 2 of a, each `printable` false, and `objects` naming a: an object sets every instance of its own and no other's |
-
-**Scenario: what the project keeps**
-
-`plates()` is `"" 1 *` · `"" 0` after step 1, `"" 1` · `"" 1 *` after step 2, and `"" 1 *` · `"" 1` after step 3:
-opening a project makes plate 0 current.
-
-| # | Step | Objects after | Also checked |
-|---|---|---|---|
-| 1 | `plate_add`; kept, a 20 mm cube at `plate: 0`, `position: corner(0) + (60, 60, 0)`; `object_set_instances {object: 0, count: 2}`; `object_transform {object: 0, instance: 0, rotate: [0, 0, 30], mode: "absolute"}`; `object_transform {object: 0, instance: 1, scale: 1.5}`; `object_select {instances: [[0, 1]]}`, then `object_mirror {axis: "x"}`; `object_set_printable {instances: [[0, 1]], printable: false}` | kept@0×2 | instance 0 at +(60, 60), `mirrored` true, turned 30 degrees: `bbox.size` `[27.32, 27.32, 20]` to 0.01; instance 1 at +(72.5, 72.5), `scale` `[1.5, 1.5, 1.5]`, `mirrored` true, `printable` false: Mirror of the selected instance mirrors the object's other instance with it. From here instance 0's `rotation_deg` is not compared (see Not checked) |
-| 2 | lifted, a 20 mm cube at `plate: 1`, `position: corner(1) + (60, 60, 0)`; `object_set_auto_drop {objects: [1], auto_drop: false}`; `object_transform {object: 1, translate: [0, 0, 15]}` | kept@0×2 · lifted@1 | lifted at +(60, 60), `auto_drop` false, `bbox.min` z 15 |
-| 3 | `project_save` to a new file in `W`, `project_new`, then `project_open` of the file | as after 2 | every value as after 2: the places, turns, scales, mirrors, printable flags and Auto Drop of the instances are kept in the project file |
-
-**To settle in review:**
-- Scale to Fit (placing, steps 16 and 17). The fit is into the plate's free print volumes, the bed less its excluded
-  area. The Klipper printer's bed has none, so its one volume is the whole bed, 250 mm wide, 250 mm deep and 250 mm
-  high. The selection's box, grown by 0.01 mm on every side (20.02 mm), scales by the least of 250 / 20.02 on each
-  axis, so s = 12.488, and its centre goes to the volume's centre, +(125, 125). The replay checked only s > 5.
-- The spacing's effect (arranging, step 8). With spacing d each item is grown by d / 2, so two cubes end at least d
-  apart; that they end less than 29.9 mm apart at spacing 10 rests on the arranger packing them as close as that lets
-  it. Without that bound the step shows only that the spacing was taken.
-- The plate an arrange of one plate or a Fill bed leaves current (arranging, steps 14 and 17): `Ops::start_arrange()`
-  selects the plate it arranges, and `FillBedJob` the plate of the object it fills.
-- The refusals of a count by the schema (instances, step 9) carry no code, so they are matched by their words; 1001
-  passes the schema, which sets no maximum, and is refused by the operation as `bad_instance_count`. A count written
-  as text, `" 2 "`, is read as the number by the argument reader.
-- The order of the objects Set as Individual Objects makes of a whole object (instances, step 21): it takes the
-  instances from the last down, so the new objects hold the last instance first.
-- An object lifted with Auto Drop off reopens where it was saved, 15 mm above the bed (what the project keeps,
-  step 3): the project file stores `auto_drop`, and opening a project puts its objects on the bed through
-  `ModelObject::ensure_on_bed()`, which leaves an object with Auto Drop off where it is.
-- The rotation Auto-Orient gives a cube on its edge (placing, step 14): x 90. That it lies on a face, z 20, holds whichever face it picks.
-- Mirror of one instance (what the project keeps, step 1). `object_mirror` names objects and parts, and mirrors one
-  instance as Mirror does, on the selection. The app's Mirror mirrors the other instances of the selected instance's
-  object with it (`Selection::scale_and_translate()` synchronises the unselected instances, the app's own code), so
-  both of kept's instances are mirrored.
-- The names of a cut's halves (instances, step 22): a cut by a plane names both halves after the object
-  (`Cut::perform_with_plane()`, the app's own code); only a cut along a contour or with a groove adds `_A` and `_B`.
-- A scale that grows instance 1 (what the project keeps, step 1) leaves it resting on the bed: `object_transform`
-  drops the instance it moved by that instance's own lowest point, as the Scale gizmo drops what it scaled
-  (`GLCanvas3D::do_scale()`), not by instance 0's, which `ModelObject::ensure_on_bed()` measures.
-
-**Not checked:**
-- A person's pick of the Speed Dial actions of these commands (Center, Drop to Bed, Scale to Fit, Auto-Orient,
-  Mirror, the instance actions, Set as Individual Objects, Auto-Arrange) and Add Primitive's shape actions with their
-  size dialog: `test_every_action` checks each action's effect. This test calls the commands with no target on the
-  selection, which for Center, Drop to Bed, Scale to Fit and Auto-Orient are the actions' own arguments (`{}`), and
-  reads their results whole, the Auto-Orient rotations among them. The Set Number of Instances action is run here only
-  to show its dialog cancelled.
-- Auto-Arrange's reply, journal step and replay against its action, and `object_select {all: true}`:
-  `test_person_forms`. An arrange from the assemble view and with the Move gizmo open: `test_operation_routes`. What a lock does to Arrange and Auto-Orient: `test_plates`.
-- The refusals `test_menu_items_refusals` checks with the state after them: Set as Individual Objects on an object of
-  one instance, Add Primitive's pick with an object selected, `object_mirror` with no axis,
-  `object_center` and `object_add_primitive` on a plate the project lacks, a pick of Mirror with two objects selected,
-  a pick of Drop to Bed on an object on the bed, and Auto-Orient of an empty plate or of objects that are not printable.
-- What `rotate: true` does to an arrangement: which turn the arranger picks is its own. Only that `rotate: false` turns
-  nothing is checked.
-- Fill bed with copies (`fill_with: "copies"`) and Fill bed refused for a cut object: no replaced replay exercised them.
-- A bed with an excluded area, where Scale to Fit fills the widest free part beside it and Arrange and Fill bed keep
-  clear of it: the Klipper printer's bed has none.
-- The rotations Auto-Orient gives the objects it may turn without a fixed result (placing, steps 14 and 15): which
-  face a cube resting on one already ends on is the job's choice; step 15 checks them against the reply. The rotation
-  of a shape both turned and mirrored (moving a part, part 1 from step 15; what the project keeps, kept's instance 0):
-  a mirror of a turned shape can be written as another turn and a mirror, so only `mirrored` and the places are
-  compared, and kept's instance 0's turn by its box. A mirrored shape that is not turned reads `rotation_deg`
-  `[0, 0, 0]`, and is compared so (moving a part, step 16; what the project keeps, instance 1).
-- How the objects look: a greyed instance that is not printable, the selection's highlight. No screenshot is taken.
-- `app_state`'s `python` and `design_tab`: they are not object state.
-  `test_command_line` checks the unrestricted-scripts switch.
-- An end-to-end run of all the commands on one scene. Each of its steps is checked in the scenario of its command: the size
-  of an object of several parts (moving a part, step 2), the instances of an object of parts made objects (the number
-  of instances, step 18), one plate arranged with options (arranging, step 13), Assemble and ordering by name across
-  plates (`test_object_structure`, splitting and ordering), Fill bed on another plate (arranging, step 17); its
-  closing slice is replaced by the G-code checks of leaving instances out of the print.
-- `object_list {screen: true}` and paging with `limit` and `offset`: no replaced replay used them, and they change how
-  `object_list` reports the objects, not what the objects are.
-
-**Strength:** Strong — after every step it reads the plates and every instance back through `plate_list` and
-`object_list` and compares them whole with values written out here: names, plates, instance counts, places to
-0.001 mm, turns, scales, mirrors, printable flags and Auto Drop. It asserts each refusal by its code or its words,
-counts undo steps by undoing them, holds what the arranger and Scale to Fit work out to stated properties and
-tolerances, reads the copies a print leaves out in the G-code, and checks what the project keeps through the file.
-
-## `test_object_structure`
-`test_object_structure.py` · Python, 509 checks · in `sweep.json` as `{"path": "test_object_structure.py"}`
-
-**Tests:** What objects are made of and how the list orders them: renaming and deleting objects, and the layer commands
-acting on the selected object; Split to Objects and to Parts, and Assemble; adding parts of every type, changing a
-part's type and renaming a part; ordering a plate's objects by a property or in a given order, and the print order that
-sets; Fix Model by index and through the object's menu; Reload from disk and Replace 3D file; and the keep_painting
-preference, shown against its control. Each command is called by index and, where its menu item acts on the selection,
-with no target on the selection. It runs on the Generic Klipper Printer 0.4 nozzle, whose by-object printing lets
-objects lower than its rod (36 mm, `extruder_clearance_height_to_rod`) print in the object list's order when they
-stand more than its clearance radius (65 mm, `extruder_clearance_radius`) apart.
-
-**Starts from:** Every scenario starts with `start(client)` in the Prepare view and checks that `presets()` is
-`{printer: KLIPPER, process: KLIPPER_STD, filaments: [GENERIC_PLA]}`, that `plates()` is `"" 0 *` and that there
-are no objects; a `project_new` within a scenario is followed by the same check of the plates and objects. The one
-stored setting a check depends on, the keep_painting preference, is set by the painting scenario before each step
-whose result depends on it (painting, steps 2 and 4); no other step reloads or replaces a painted part.
-
-**Leaves:** keep_painting on, as painting step 4 sets it. The Klipper printer selected, with one slot of
-`GENERIC_PLA`. `keeps.3mf` at the top of the recent projects, and the folder the file dialogs open in, both in `W`,
-which is removed when the test ends. On a data folder in Simple mode, Advanced mode, as `test_objects` leaves it: the
-undo of parts, step 14, goes back to a step with a negative part.
-
-**Files:** The test writes into a folder of its own, `W` (a `tempfile.TemporaryDirectory()`), with an ASCII STL writer
-of its own: `cube20.stl` (a 20 mm cube from the origin, 12 triangles), `cube30.stl` (the same at 30 mm), `holed.stl`
-(`cube20.stl` less one triangle, which leaves three open edges) and `top4.stl` (a 20 mm cube from the origin whose top
-is four triangles about its centre, 14 triangles). It reads `tests/data/two_hollow_squares.obj` (two square rings
-10.67 mm wide and 2.8 mm high, their centres 58 mm apart along x), `resources/handy_models/OrcaCube_v2.drc` and
-`tools/mcp/tests/fixtures/star.svg`, `tools/mcp/tests/fixtures/heightmap.png`. The project it saves and the G-code it
-exports go to `W` as well. It does not use `tests/fixtures/objects_files.py` or `tests/fixtures/ops_undo.py`: undo
-steps are counted by undoing them and reading the state back.
-
-**Reads:** `plates()`, and `scene()`, `selection()`, `gcode_prints(path)` and `corner(p)` as `test_objects` reads
-them. Also:
-- `names()`: the objects' names in index order; `types(o)`: object o's parts' `type`s in order; both from one
-  `scene()`.
-- `notices()`: the texts of `app_state`'s `notifications`; `dialogs()`: the titles of its `dialogs`.
-
-Places are written as in `test_objects`, from plate 0's corner. An object the tables call by a name of its own is
-added with `name` set to it; Cube is a shape's own name, and an imported object is named after its file. In the
-tables the objects are written by their names in index order, and an object's parts by their types, after `:`
-(`Assembly: part, modifier`). After every step `names()` is compared with its row whole, and the parts of every object
-the row writes them for; a table without an objects column says in its introduction what the names are after every
-step. `plates()` is `"" n *` after every step, n the number of objects, but where the ordering scenario says otherwise.
 
 **Scenario: renaming and deleting**
 
@@ -524,12 +589,66 @@ as step 4 sets it. The object has one part throughout; `names()` is `[painted.st
 
 **Scenario: what the project keeps**
 
-| # | Step | Objects after | Also checked |
-|---|---|---|---|
-| 1 | base, a 30 × 30 × 10 mm cube at `corner(0) + (60, 60, 0)`; `part_add {object: 0, type: "negative", shape: "cylinder", size: [6, 3], position: corner(0) + (60, 60, 1.5)}`; `part_add {object: 0, type: "modifier", shape: "cube", size: [10, 10, 10], position: corner(0) + (60, 60, 5)}`; `part_add {object: 0, type: "precise_seam", shape: "cube", size: [2, 2, 2], position: corner(0) + (75, 60, 5)}`; `object_rename {object: 0, part: 2, name: "infill zone"}`; `part_change_type {parts: [[0, 3]], type: "precise_seam", subtype: "left"}`; other, a 20 mm cube at `+ (180, 180, 0)`; `object_order {plate: 0, order: [1, 0]}` | other: part · base: part, negative, modifier, precise_seam | base's parts named `base`, `Generic-Cylinder`, `infill zone`, `Generic-Cube`, at +(60, 60, 5), +(60, 60, 1.5), +(60, 60, 5), +(75, 60, 5); the seam's `subtype` `left` |
-| 2 | `project_save` to a new file in `W`, `project_new`, then `project_open` of the file | as after 1 | every value as after 1: names, part types, the seam's subtype, the parts' places and the order are kept in the project file |
+One project holds what each part keeps in the file, and one save and reopen checks all of it: the plates' names and
+locks, a plate's own plate type and the printer edit that lets it have one; the instances' places, turns, scales,
+mirrors, printable flags and Auto Drop; and the parts' names, types and places, a seam's subtype and the objects'
+order. kept and lifted are 20 mm cubes, base a 30 × 30 × 10 mm cube and other a 20 mm cube, each added with
+`object_add_primitive` at the `plate`, `position` and `name` the row gives. The objects are written and compared as in
+the objects' places. other's and base's parts are compared by their names, types and places +(x, y, z), each unturned,
+unscaled and not mirrored, and a plate's settings as in a plate's own settings.
+
+| # | Step | Plates after | Objects after | Also checked |
+|---|---|---|---|---|
+| 1 | `plate_add`; kept at `plate: 0`, `position: corner(0) + (60, 60, 0)`; `object_set_instances {object: 0, count: 2}`; `object_transform {object: 0, instance: 0, rotate: [0, 0, 30], mode: "absolute"}`; `object_transform {object: 0, instance: 1, scale: 1.5}`; `object_select {instances: [[0, 1]]}`, then `object_mirror {axis: "x"}`; `object_set_printable {instances: [[0, 1]], printable: false}` | `"" 1 *` · `"" 0` | kept@0×2 | instance 0 at +(60, 60), `mirrored` true, turned 30 degrees: `bbox.size` `[27.32, 27.32, 20]` to 0.01; instance 1 at +(72.5, 72.5), `scale` `[1.5, 1.5, 1.5]`, `mirrored` true, `printable` false: Mirror of the selected instance mirrors the object's other instance with it. From here instance 0's `rotation_deg` is not compared (see Not checked) |
+| 2 | lifted at `plate: 1`, `position: corner(1) + (60, 60, 0)`; `object_set_auto_drop {objects: [1], auto_drop: false}`; `object_transform {object: 1, translate: [0, 0, 15]}` | `"" 1` · `"" 1 *` | kept@0×2 · lifted@1 | lifted at +(60, 60), `auto_drop` false, `bbox.min` z 15 |
+| 3 | base at `plate: 0`, `position: corner(0) + (180, 60, 0)`; `part_add {object: 2, type: "negative", shape: "cylinder", size: [6, 3], position: corner(0) + (180, 60, 1.5)}`; `part_add {object: 2, type: "modifier", shape: "cube", size: [10, 10, 10], position: corner(0) + (180, 60, 5)}`; `part_add {object: 2, type: "precise_seam", shape: "cube", size: [2, 2, 2], position: corner(0) + (195, 60, 5)}`; `object_rename {object: 2, part: 2, name: "infill zone"}`; `part_change_type {parts: [[2, 3]], type: "precise_seam", subtype: "left"}`; other at `plate: 0`, `position: corner(0) + (180, 180, 0)`; `object_order {plate: 0, order: [0, 3, 2]}` | `"" 3 *` · `"" 1` | kept@0×2 · lifted@1 · other@0 · base@0 | base at +(180, 60), other at +(180, 180); other's part named other, of type part, at +(180, 180, 10); base's parts named `base`, `Generic-Cylinder`, `infill zone` and `Generic-Cube`, of the types part, negative, modifier and precise_seam, at +(180, 60, 5), +(180, 60, 1.5), +(180, 60, 5) and +(195, 60, 5); the seam's `subtype` `left`. lifted, on plate 1, keeps its place in the list |
+| 4 | `settings_set {type: "printer", values: {support_multi_bed_types: "1"}}`, `project_set_settings {values: {curr_bed_type: "Cool Plate"}}`, `plate_rename {plate: 0, name: "Left"}`, `plate_set_settings {plate: 1, values: {curr_bed_type: "Textured PEI Plate"}}`, then `plate_lock {plate: 1, locked: true}` | `"Left" 3` · `"" 1 * L` | as after 3 | every value as after 3; plate 0's settings the project's, plate 1's `Textured PEI Plate`, overrides `[curr_bed_type]` |
+| 5 | `project_save` to a new file in `W`, `project_new {discard_changes: true, preset_changes: "discard"}`, then `project_open` of the file | `"Left" 3 *` · `"" 1 L` | as after 3 | every value as after 4, the plates' settings among them, but the current plate: opening a project makes plate 0 current. After the `project_new`, one empty plate, no objects, and `unsaved("printer")` `[]`: the new project drops the printer's edit, so that the open does not ask about it ("Load project: unsaved changes"); after the open, `unsaved("printer")` `[support_multi_bed_types]`: the project brings it back |
+
+**Notes:**
+- Undoing a delete makes the plate that was current before the delete current again (a plate's life, step 7; by
+  index, step 22): selecting a plate takes an undo snapshot of its own.
+- The plate commands refuse with codes from the operations layer (`last_plate`, `no_such_plate`), but most of
+  `plate_set_settings`'s refusals carry no code, so steps 5 to 8 of the settings scenario match their words.
+- Arranging only a locked plate is refused by `object_arrange` with words and no code, while Auto-Orient refuses a
+  locked plate with `plate_locked` (lock, steps 3 and 4).
+- What a duplicate leaves out: the new plate gets the objects, but not the source plate's name, lock or own settings
+  (a copy of a named plate is unnamed).
+- An arrange packs the objects onto the first unlocked plates, keeps every plate, and leaves the current plate as it
+  was (lock, step 8).
+- An object with instances on two plates, which no step uses. A duplicate copies each object that has an instance on
+  the source plate, with all of its instances, and moves the copy by the distance between the two plates, so the copy
+  of an instance that stood on another plate lands beside that plate or on a third one. This is the app's own plate
+  code (`PartPlateList::duplicate_plate()`), a bug for a fix of its own.
 
 **To settle in review:**
+- Scale to Fit (placing, steps 16 and 17). The fit is into the plate's free print volumes, the bed less its excluded
+  area. The Klipper printer's bed has none, so its one volume is the whole bed, 250 mm wide, 250 mm deep and 250 mm
+  high. The selection's box, grown by 0.01 mm on every side (20.02 mm), scales by the least of 250 / 20.02 on each
+  axis, so s = 12.488, and its centre goes to the volume's centre, +(125, 125). The replay checked only s > 5.
+- The spacing's effect (arranging, step 8). With spacing d each item is grown by d / 2, so two cubes end at least d
+  apart; that they end less than 29.9 mm apart at spacing 10 rests on the arranger packing them as close as that lets
+  it. Without that bound the step shows only that the spacing was taken.
+- The arrange options an arrange stores (arranging, steps 4 and 7; cloning, steps 3 and 6). An arrange given
+  `spacing`, `rotate` or `multi_material` stores the panel's options (`start_arrange()` in
+  `src/slic3r/GUI/Mcp/McpToolsScene.cpp` calls `GLCanvas3D::store_arrange_settings()`), and every arrange after takes
+  them, Clone's among them (`Ops::clone_objects()` arranges with `Plater::arrange()`), so step 4's options are the
+  ones cloning arranges with until arranging's later steps change the spacing.
+- The plate an arrange of one plate or a Fill bed leaves current (arranging, steps 14 and 17): `Ops::start_arrange()`
+  selects the plate it arranges, and `FillBedJob` the plate of the object it fills.
+- The refusals of a count by the schema (instances, step 9) carry no code, so they are matched by their words; 1001
+  passes the schema, which sets no maximum, and is refused by the operation as `bad_instance_count`. A count written
+  as text, `" 2 "`, is read as the number by the argument reader.
+- The order of the objects Set as Individual Objects makes of a whole object (instances, step 21): it takes the
+  instances from the last down, so the new objects hold the last instance first.
+- The copies a print leaves out (leaving instances out of the print, step 3). The print takes an object's printable
+  instances alone (`print_objects_from_model_object()` in `src/libslic3r/PrintApply.cpp`), and the G-code labels each
+  one it prints as a copy of its own (`; printing object <name> id:<n> copy <c>`, one per `PrintInstance`), so a's
+  three instances would print as 3 copies with none left out; 2 copies of a, with b's 1, show the one left out without
+  a slice of the three printable beside it.
+- The rotation Auto-Orient gives a cube on its edge (placing, step 14): x 90. That it lies on a face, z 20, holds whichever face it picks.
+- The names of a cut's halves (instances, step 22): a cut by a plane names both halves after the object
+  (`Cut::perform_with_plane()`, the app's own code); only a cut along a contour or with a groove adds `_A` and `_B`.
 - The names a split gives (splitting, steps 2, 3 and 7). Split to Objects of an object of one part names the pieces
   after the object with `_1` and `_2` in the order it adds them (`ModelObject::split()`); Split to Parts names the
   parts after the part the same way (`ModelVolume::split()`); Split to Objects of an object of several parts names each
@@ -556,18 +675,74 @@ as step 4 sets it. The object has one part throughout; `names()` is `[painted.st
 - The words of `part_add`'s refusals (parts, steps 8 and 9) carry no code, so they are matched by their text. A
   shape's size names the fields of Add Primitive's size dialog (`primitive_size_names()`), so a cylinder's is
   `[Diameter, Height]`.
-- The names of parts (parts, steps 11 and 21; what the project keeps, step 1): a part added as a shape is named
+- The names of parts (parts, steps 11 and 21; what the project keeps, step 3): a part added as a shape is named
   `Generic-` and its shape (`ObjectList::load_generic_subobject()`), and naming an object of one part names its part
   too (`ObjectList::update_name_in_model()`), so the first part is named after the object while it has no other.
+- Mirror of one instance (what the project keeps, step 1). `object_mirror` names objects and parts, and mirrors one
+  instance as Mirror does, on the selection. The app's Mirror mirrors the other instances of the selected instance's
+  object with it (`Selection::scale_and_translate()` synchronises the unselected instances, the app's own code), so
+  both of kept's instances are mirrored.
+- A scale that grows instance 1 (what the project keeps, step 1) leaves it resting on the bed: `object_transform`
+  drops the instance it moved by that instance's own lowest point, as the Scale gizmo drops what it scaled
+  (`GLCanvas3D::do_scale()`), not by instance 0's, which `ModelObject::ensure_on_bed()` measures.
+- The order of plate 0's objects with an object on plate 1 among them (what the project keeps, step 3):
+  `object_order` moves a plate's objects among the places in the list they hold (`object_order_moves()` in
+  `src/slic3r/GUI/GUI_ObjectList.cpp`), so lifted stays object 1 while other and base change places.
+- An object lifted with Auto Drop off reopens where it was saved, 15 mm above the bed (what the project keeps,
+  step 5): the project file stores `auto_drop`, and opening a project puts its objects on the bed through
+  `ModelObject::ensure_on_bed()`, which leaves an object with Auto Drop off where it is.
 
 **Not checked:**
-- The refusals `test_menu_items_refusals` checks with the state after them: Delete of an object's last solid part and
-  of a cut object, Split of a mesh of one shell and a split that would ask the Auto-Drop question, the picks of Split,
-  Assemble and Change Type on rows they refuse, Rename with two objects or an instance selected.
-  `test_additions_refusals` checks an `object_order` that leaves an object out.
-- The Speed Dial actions of these commands (Delete, Delete All, Split to Objects and to Parts, Assemble, the Change Type
-  actions, Rename, the four Order By actions): `test_every_action` checks each action's effect. This test checks the
-  commands' forms with no target on the selection, and the Order By action's arguments as a call.
+- The refusals of a plate index the project lacks for each plate command, and Rename Plate's name dialog: they are
+  checked in `test_menu_items_refusals`.
+- A mixed slot deleted with `filament_delete`: `test_filaments`' mixed filaments delete one and read the slots and the
+  mixes back.
+- How the plates and icons look: no screenshot is taken.
+- `curr_bed_type` on a printer that offers one plate type, such as the Klipper printer with `support_multi_bed_types`
+  off, where `plate_set_settings` and `project_set_settings` refuse it, saying the printer has a single plate type:
+  no scenario sets it there.
+- The plate's `wipe_tower` position and `origin` and `size` themselves, beyond containing the arranged cubes.
+- What the project file keeps of a plate's print sequence, spiral mode and filament orders: what the project keeps
+  saves a plate with its own plate type alone, which the file stores with them in the plate's settings.
+- A person's pick of the Speed Dial actions of these commands (Center, Drop to Bed, Scale to Fit, Auto-Orient,
+  Mirror, the instance actions, Set as Individual Objects, Auto-Arrange; Delete, Delete All, Split to Objects and to
+  Parts, Assemble, the Change Type actions, Rename, the four Order By actions) and Add Primitive's shape actions with
+  their size dialog: no test runs them as actions; `test_speed_dial` runs a few actions that stand for how every
+  action runs, and the catalog's unit test (`tests/slic3rutils/test_command_catalog.cpp`) checks each action's command
+  and arguments. This test calls the commands with no target on the selection, which for Center, Drop to Bed, Scale to
+  Fit and Auto-Orient are the actions' own arguments (`{}`), and reads their results whole, the Auto-Orient rotations
+  among them, and the Order By action's arguments as a call. The Set Number of Instances action is run here only to
+  show its dialog cancelled.
+- Auto-Arrange's reply, journal step and replay against its action, and `object_select {all: true}`:
+  `test_person_forms`. An arrange from the assemble view and with the Move gizmo open: `test_operation_routes`.
+- The refusals `test_menu_items_refusals` checks with the state after them: Set as Individual Objects on an object of
+  one instance, Add Primitive's pick with an object selected, `object_mirror` with no axis, `object_center` and
+  `object_add_primitive` on a plate the project lacks, a pick of Mirror with two objects selected, a pick of Drop to
+  Bed on an object on the bed, Auto-Orient of an empty plate or of objects that are not printable, Delete of an
+  object's last solid part and of a cut object, Split of a mesh of one shell and a split that would ask the Auto-Drop
+  question, the picks of Split, Assemble and Change Type on rows they refuse, Rename with two objects or an instance
+  selected. `test_additions_refusals` checks an `object_order` that leaves an object out.
+- What `rotate: true` does to an arrangement: which turn the arranger picks is its own. Only that `rotate: false` turns
+  nothing is checked.
+- Fill bed with copies (`fill_with: "copies"`) and Fill bed refused for a cut object: no replaced replay exercised them.
+- A bed with an excluded area, where Scale to Fit fills the widest free part beside it and Arrange and Fill bed keep
+  clear of it: the Klipper printer's bed has none.
+- The rotations Auto-Orient gives the objects it may turn without a fixed result (placing, steps 14 and 15): which
+  face a cube resting on one already ends on is the job's choice; step 15 checks them against the reply. The rotation
+  of a shape both turned and mirrored (moving a part, part 1 from step 15; what the project keeps, kept's instance 0):
+  a mirror of a turned shape can be written as another turn and a mirror, so only `mirrored` and the places are
+  compared, and kept's instance 0's turn by its box. A mirrored shape that is not turned reads `rotation_deg`
+  `[0, 0, 0]`, and is compared so (moving a part, step 16; what the project keeps, instance 1).
+- How the objects look: a greyed instance that is not printable, the selection's highlight. No screenshot is taken.
+- `app_state`'s `python` and `design_tab`: they are not object state.
+  `test_command_line` checks the unrestricted-scripts switch.
+- An end-to-end run of all the commands on one scene. Each of its steps is checked in the scenario of its command: the
+  size of an object of several parts (moving a part, step 2), the instances of an object of parts made objects (the
+  number of instances, step 18), one plate arranged with options (arranging, step 13), Assemble and ordering by name
+  across plates (splitting and assembling; ordering), Fill bed on another plate (arranging, step 17); its closing slice
+  is replaced by the G-code checks of leaving instances out of the print.
+- `object_list {screen: true}` and paging with `limit` and `offset`: no replaced replay used them, and they change how
+  `object_list` reports the objects, not what the objects are.
 - Deleting instances, parts, a plate's objects (`plate`) and every object (`all`): no replaced replay deleted them but
   by index and on the selection; the parts are deleted in `test_menu_items_refusals`.
 - The layer heights a height range or an adaptive profile gives: the layers entry checks them. Here only which object
@@ -587,7 +762,11 @@ as step 4 sets it. The object has one part throughout; `names()` is `[painted.st
   which of two equal objects comes first is the sort's. The ordering scenario's objects differ in height, size and
   name, so the whole order is read at every step.
 
-**Strength:** Strong — after every step it reads the objects back through `object_list` and compares their names, and
-their parts' types where a row writes them, whole with values written out here; it asserts each refusal by its code or
-its words, counts undo steps by undoing them, checks the print order in the G-code and what the project keeps through
-the file, and shows keep_painting's effect against the preference turned off.
+**Strength:** Strong — after every step it reads the plates back through `plate_list` and the objects and every
+instance through `object_list`, and compares them whole with values written out here: the plates' names, locks and
+current plate; the objects' names, plates and instance counts, places to 0.001 mm, turns, scales, mirrors, printable
+flags and Auto Drop; and their parts' types where a row writes them. It asserts each refusal by its code or its words,
+counts undo steps by undoing them, checks a lock, a duplicate and a plate's settings by their effect, holds what the
+arranger and Scale to Fit work out to stated properties and tolerances, reads the copies a print leaves out and the
+print order in the G-code, checks what the project keeps through the file, and shows keep_painting's effect against
+the preference turned off.

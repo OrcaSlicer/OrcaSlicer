@@ -4,18 +4,18 @@
     python tools/mcp/test_run_sweep.py
 
 entry() fills a manifest entry's defaults and refuses an unknown key, an unknown launch kind, and `exclusive` or
-`locks` without a `why`. manifest_problems() names a test the manifest leaves out and an entry whose file is gone,
-and the shipped sweep.json lists every test there is. order() splits the tests into the pool and the serial phase,
-each longest first with those without a time ahead. pick_next() passes over a test whose lock another holds. The
-commands launch on the job's data folder with --cad when asked and fill {bin} and {datadir}; on Linux the app is an
-X11 client unless --wayland asks for a native Wayland one, --headless is added only when the run asks for it, and
-both flags are refused off Linux and together. Two tests of one job share its data folder and nothing else. Two
-test files with one name are refused, a test whose run raises is recorded as an error, one that runs out of time is
-ended so that what it started ends too, the history file reads its earlier form and takes a bare file name, and -j
-takes a whole number from 1 up. The stand-in sweep runs main() on four scripts that launch nothing, and checks each
-run's record, the folders it keeps, the serial mark it learns, --list and --forget. Exits 0 when every check passes.
-The checks are asserts, so a Python that runs with its asserts off (-O, or PYTHONOPTIMIZE, which the sweep's runner
-passes on) fails the test before any of them.
+`locks` without a `why`. discover() finds the test_*.py files beside sweep.json and no replay. manifest_problems()
+names a test the manifest leaves out, an entry whose file is gone and one whose file is not a test, and the shipped
+sweep.json lists every test there is. order() splits the tests into the pool and the serial phase, each longest
+first with those without a time ahead. pick_next() passes over a test whose lock another holds. The commands launch
+on the job's data folder with --cad when asked and fill {bin} and {datadir}; on Linux the app is an X11 client
+unless --wayland asks for a native Wayland one, --headless is added only when the run asks for it, and both flags
+are refused off Linux and together. Two tests of one job share its data folder and nothing else. A test whose run
+raises is recorded as an error, one that runs out of time is ended so that what it started ends too, the history
+file reads its earlier form and takes a bare file name, and -j takes a whole number from 1 up. The stand-in sweep
+runs main() on four scripts that launch nothing, and checks each run's record, the folders it keeps, the serial mark
+it learns, --list and --forget. Exits 0 when every check passes. The checks are asserts, so a Python that runs with
+its asserts off (-O, or PYTHONOPTIMIZE, which the sweep's runner passes on) fails the test before any of them.
 """
 
 import contextlib
@@ -61,7 +61,7 @@ def refused(raw):
 
 
 def check_entry():
-    assert entry({"path": "x.json"}) == {"path": "x.json", **DEFAULTS}, entry({"path": "x.json"})
+    assert entry({"path": "test_x.py"}) == {"path": "test_x.py", **DEFAULTS}, entry({"path": "test_x.py"})
     for raw in ({"path": "x", "lanch": "app"}, {"path": "x", "launch": "maybe"}, {"path": "x", "exclusive": True},
                 {"path": "x", "locks": ["p"]}):
         assert refused(raw), raw
@@ -70,20 +70,23 @@ def check_entry():
 
 def check_manifest_problems():
     with tempfile.TemporaryDirectory(prefix="orca-sweep-check-") as mcp_dir:
-        open(os.path.join(mcp_dir, "smoke_test.json"), "w").close()
-        manifest = {"smoke_test": entry({"path": "smoke_test.json"}),
-                    "gone": entry({"path": os.path.join("tests", "gone.json")})}
-        problems = run_sweep.manifest_problems(manifest, {"smoke_test": "smoke_test.json",
-                                                          "a": os.path.join("tests", "a.json")}, mcp_dir)
-    assert len(problems) == 2, problems
-    assert any(p.startswith("a:") and "not in sweep.json" in p for p in problems), problems
+        for path in ("test_listed.py", "smoke_test.json"):
+            open(os.path.join(mcp_dir, path), "w").close()
+        manifest = {"test_listed": entry({"path": "test_listed.py"}), "gone": entry({"path": "test_gone.py"}),
+                    "smoke_test": entry({"path": "smoke_test.json"})}
+        problems = run_sweep.manifest_problems(manifest, {"test_listed": "test_listed.py", "test_a": "test_a.py"},
+                                               mcp_dir)
+    assert len(problems) == 3, problems
+    assert any(p.startswith("test_a:") and "not in sweep.json" in p for p in problems), problems
     assert any(p.startswith("gone:") and "no such file" in p for p in problems), problems
-    ok("manifest_problems() names a test sweep.json leaves out and an entry whose file is gone")
+    assert any(p.startswith("smoke_test:") and "not a test" in p for p in problems), problems
+    ok("manifest_problems() names a test sweep.json leaves out, an entry whose file is gone and one whose file is not "
+       "a test")
 
 
 def check_order():
-    manifest = {n: entry({"path": n + ".json"}) for n in "abce"}
-    manifest["d"] = entry({"path": "d.json", "exclusive": True, "why": "reads the focus"})
+    manifest = {n: entry({"path": f"test_{n}.py"}) for n in "abce"}
+    manifest["d"] = entry({"path": "test_d.py", "exclusive": True, "why": "reads the focus"})
     history = {"times": {"a": 10.0, "b": 20.0, "d": 5.0, "e": 30.0}, "serial": {"e": "2026-11-20"}}
     got = run_sweep.order(["a", "b", "c", "d", "e"], manifest, history)
     assert got == (["c", "b", "a"], ["e", "d"]), got
@@ -111,7 +114,7 @@ def context(platform, headless=False, wayland=False, test="run", job="job-1"):
 
 
 def check_launch_commands():
-    cad = entry({"path": os.path.join("tests", "cad_doc.json"), "cad": True})
+    cad = entry({"path": "test_cad_replays.py", "cad": True})
     ctx = context("linux")
     assert ctx.datadir == os.path.join(ROOT, "job-1", "datadir"), ctx.datadir
     launch = run_sweep.launch_command(cad, ctx)
@@ -138,9 +141,8 @@ def check_launch_env():
 
 def check_test_commands():
     mac = context("darwin")
-    replay = entry({"path": os.path.join("tests", "cad_doc.json"), "cad": True})
-    assert run_sweep.test_command(replay, mac) == ["python3", os.path.join(MCP_DIR, "orca_mcp.py"), "run-replay",
-                                                   os.path.join(MCP_DIR, "tests", "cad_doc.json"), "--out", mac.out_dir]
+    objects = entry({"path": "test_objects.py"})
+    assert run_sweep.test_command(objects, mac) == ["python3", os.path.join(MCP_DIR, "test_objects.py")]
     bridge = entry({"path": "test_stdio_bridge.py", "args": ["--bin", "{bin}"]})
     assert run_sweep.test_command(bridge, mac) == ["python3", os.path.join(MCP_DIR, "test_stdio_bridge.py"),
                                                    "--bin", mac.binary]
@@ -148,7 +150,8 @@ def check_test_commands():
     web = entry({"path": "test_web_ui.py", "setup": ["--install", "{datadir}"]})
     assert run_sweep.setup_command(web, mac) == ["python3", os.path.join(MCP_DIR, "test_web_ui.py"),
                                                  "--install", os.path.join(ROOT, "job-1", "datadir")]
-    ok("a replay runs into the test's own folder, and the commands fill {bin} and {datadir}, the job's data folder")
+    ok("a test runs its script with the entry's arguments, and the commands fill {bin} and {datadir}, the job's data "
+       "folder")
 
 
 def check_env():
@@ -163,25 +166,22 @@ def check_env():
 def check_shared_datadir():
     a, b = context("darwin", test="test_a"), context("darwin", test="test_b")
     assert a.datadir == b.datadir, (a.datadir, b.datadir)
-    for field in ("session", "tmp", "cwd", "out_dir"):
+    for field in ("session", "tmp", "cwd"):
         ours, theirs = getattr(a, field), getattr(b, field)
         assert ours != theirs and ours.startswith(a.run_dir + os.sep) and theirs.startswith(b.run_dir + os.sep), field
-    ok("two tests of one job share its data folder and have their own session file, temporary, working and output "
-       "folders")
+    ok("two tests of one job share its data folder and have their own session file, temporary folder and working "
+       "folder")
 
 
-def check_discover_duplicates():
+def check_discover():
     with tempfile.TemporaryDirectory(prefix="orca-sweep-check-") as mcp_dir:
         os.makedirs(os.path.join(mcp_dir, "tests"))
-        for path in ("test_x.py", os.path.join("tests", "test_x.json")):
+        for path in ("test_b.py", "test_a.py", "smoke_test.json", "checks.py", "test_notes.md",
+                     os.path.join("tests", "cad_doc.json"), os.path.join("tests", "test_nested.py")):
             open(os.path.join(mcp_dir, path), "w").close()
-        try:
-            run_sweep.discover(mcp_dir)
-        except ValueError as e:
-            assert "test_x" in str(e), e
-        else:
-            raise AssertionError("two tests named test_x were taken as one")
-    ok("discover() refuses two test files with one name, which would run as one")
+        found = run_sweep.discover(mcp_dir)
+    assert found == {"test_a": "test_a.py", "test_b": "test_b.py"}, found
+    ok("discover() finds the test_*.py files beside sweep.json, and no replay")
 
 
 def check_run_error():
@@ -304,7 +304,7 @@ def check_shipped_manifest():
     manifest = run_sweep.load_manifest(os.path.join(MCP_DIR, "sweep.json"))
     problems = run_sweep.manifest_problems(manifest, run_sweep.discover(MCP_DIR), MCP_DIR)
     assert problems == [], problems
-    ok("sweep.json lists every test, and only tests that exist")
+    ok("sweep.json lists every test, and nothing that is not a test file")
 
 
 # ---- The stand-in sweep: four scripts that launch nothing, each given its job's data folder ----
@@ -457,6 +457,7 @@ def main():
     if not asserts_live():
         return 1
     check_entry()
+    check_discover()
     check_manifest_problems()
     check_order()
     check_pick_next()
@@ -465,14 +466,14 @@ def main():
     check_test_commands()
     check_env()
     check_shared_datadir()
-    check_discover_duplicates()
     check_run_error()
     check_timeout_ends_children()
     check_history_file()
     check_options()
     check_display_options()
-    check_shipped_manifest()
     check_stand_in_sweep()
+    # Last: it reads the folder as it is, so a sweep.json behind a file just added stops no check of the runner.
+    check_shipped_manifest()
     return 0
 
 

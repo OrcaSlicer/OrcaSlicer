@@ -22,14 +22,15 @@ Their `sweep.json` entries:
 ```
 
 ## `test_gui_tools`
-`test_gui_tools.py` · Python, 213 checks · in `sweep.json` as `{"path": "test_gui_tools.py"}`
+`test_gui_tools.py` · Python, 230 checks · in `sweep.json` as `{"path": "test_gui_tools.py"}`
 
 **Tests:** The generic GUI tools on the app's own widgets, as an agent drives any of them: context menus and a
 button's menu listed and run by path without being shown, the Edit menu's items, the rows of the object list, of
 Compare presets and of the parameter table, the print button's popup, a drop-down list, and Orca's web dialogs (the
-preset bundle dialog, the colour picker over the filament picker, the setup wizard). Every menu item, row and page
-element the test runs or clicks is checked by what it does to the project, the selection, the camera or the
-settings; a menu's listing is checked by the items it holds.
+preset bundle dialog with the Export dialog above it, the colour picker over the filament picker, the setup wizard
+and its pages' navigation, the Flushing volumes dialog), with the web view `webview_run_javascript` runs in while
+they are open. Every menu item, row and page element the test runs or clicks is checked by what it does to the
+project, the selection, the camera or the settings; a menu's listing is checked by the items it holds.
 
 **Starts from:** `start(c)`, the Generic Klipper Printer, compared with `{printer: KLIPPER, process: KLIPPER_STD,
 filaments: [GENERIC_PLA]}`, on which every scenario runs. The web dialogs scenario starts with `start(c,
@@ -43,17 +44,20 @@ which the menus scenario turns on and off; and `preferences_set {values: {use_pr
 scenarios set more of their start: the drop-down list sets the plate type, and the web dialogs scenario takes the wizard
 card's printer out (see each). The login region the web dialogs scenario reads is the one stored setting no tool can set
 (`preferences_set` refuses `region`, since changing it signs out of the cloud account); no test changes it, so the
-scenario checks it is `""`.
+scenario checks it is `""`. A plugin an earlier test left adds web views of its own (`test_web_ui`'s fixture adds a
+page among the main window's tabs, whose web view is made only when shown), so the web dialogs scenario's script
+with no modal open reads the reply's URL to know it ran in the Home page. Measured with the fixture installed: the
+Home page answers, and `widget_list` lists its web view alone.
 
 **Leaves:** The Klipper printer selected and unmodified, since the closing `project_new {preset_changes: "discard"}`
 drops the drop-down list's `support_multi_bed_types`, with `0.20mm Standard @MyKlipper` and one `Generic PLA @System`
-slot, the drop-down list's `start()`, still coloured `#3366CC`, the colour the web dialogs scenario picked (a
-filament switch keeps the slot's colour). The plate type `High Temp Plate` stored for the printer, which the sidebar
-stores as the switch goes off. The Generic Marlin Printer not installed, when an earlier test had installed it. The
-window, the labels and `use_printer_agents` as it set them. The print button's mode, `Export G-code file`, which the
-app keeps only while Remember last print action is on. The recent projects and the last folder opened, naming the
-projects it saved in its own output folder. None of it changes how the app reads to the tests after it, so the test
-restores nothing.
+slot, the drop-down list's `start()`, which deletes the second slot the web dialogs scenario added, slot 1 still
+coloured `#3366CC`, the colour the web dialogs scenario picked (a filament switch keeps the slot's colour). The
+plate type `High Temp Plate` stored for the printer, which the sidebar stores as the switch goes off. The Generic
+Marlin Printer not installed, when an earlier test had installed it. The window, the labels and `use_printer_agents`
+as it set them. The print button's mode, `Export G-code file`, which the app keeps only while Remember last print
+action is on. The recent projects and the last folder opened, naming the projects it saved in its own output
+folder. None of it changes how the app reads to the tests after it, so the test restores nothing.
 
 **Reads:** `objects()` gives each object from `object_list` as its name, the plate it is on, its parts, each part as
 its name and `type` (`part`, `modifier`, `negative`, ...), and whether its first instance is printable. `selection()` gives
@@ -176,31 +180,47 @@ KLIPPER_STD, filaments: ["Bambu PLA Basic @System"]}`: the Orca Filament Library
 printer. A filament whose name starts with `Bambu` opens Orca's own filament picker (`PresetComboBoxes.cpp`), which
 finds the library's filament id `OFoiVqVM` under Bambu's `GFA00` (`FilamentColorCodeQuery::GetFilaInfoMap`). Slot 1's
 colour is set with `filament_set_colour {filament_slot: 1, colour: "#26A69A"}`. When `preset_list {type:
-"printer"}` offers `MyMarlin 0.4 nozzle`, the Generic Marlin Printer whose wizard card step 15 ticks, the scenario
+"printer"}` offers `MyMarlin 0.4 nozzle`, the Generic Marlin Printer whose wizard card step 25 ticks, the scenario
 takes it out first (`printer_uninstall {models: [{vendor: "Custom", model: "Generic Marlin Printer"}]}`), so that the
 card starts unticked; no test installs it. The start is checked: `app_state.presets.filaments` is `["Bambu PLA Basic
 @System"]`, `colours()` is `#26A69A`, `preferences_get` gives `region` as `""`, the selected printer is `MyKlipper
-0.4 nozzle`, and `preset_list {type: "printer"}` offers no `MyMarlin 0.4 nozzle`. `HEX` is the locator `{web: "Hex
-color", within: "Color Picker"}`; `WIZARD` is `within: "Setup Wizard"`.
+0.4 nozzle`, and `preset_list {type: "printer"}` offers no `MyMarlin 0.4 nozzle`. `HOME` is the ref of the first web
+view `widget_list {target: "main", query: "webview"}` lists on the Home tab; `BUNDLE_VIEW` is the locator `{class:
+"webview", within: "Preset Bundle"}`, the bundle dialog's web view; `HEX` is the locator `{web: "Hex color", within:
+"Color Picker"}`; `WIZARD` is `within: "Setup Wizard"`. The Klipper printer offers Flushing volumes in its sidebar
+once it has a second filament, as its single extruder multi-material is on.
 
 | # | Step | Checked after |
 |---|---|---|
-| 1 | `action_run` Preset Bundle | `blocked_by_dialog`; `dialogs()` `["Preset Bundle"]`; its page lists the elements named `#refresh_btn` and `#close_btn` and the text `Version` and `Update` of its top list's header |
-| 2 | `widget_click {target: {css: "#close_btn", within: "Preset Bundle"}}` | reply `closed` true; the step 1 job ends without an error; `dialogs()` `[]` |
-| 3 | `widget_click {target: {label: "1", class: "wxBitmapButton"}}`, slot 1's colour | `blocked_by_dialog`; `dialogs()` `["Select Filament"]`; the dialog lists `#26A69A`, the slot's colour |
-| 4 | `widget_click {target: {label: "+ More Colors", within: "Select Filament"}}` | `blocked_by_dialog`; `dialogs()` `["Select Filament", "Color Picker"]`, the picker on top |
-| 5 | `widget_set_value {target: HEX, value: "FF0000"}` | reply `value` `FF0000FF`; `HEX`'s field lists `FF0000FF` |
-| 6 | `mouse_gesture {target: {css: "#spectrum", within: "Color Picker"}, action: "drag", x: 20, y: 20, to: [200, 100], steps: 6}` | reply `done` `drag`; `HEX`'s field lists eight hex digits other than `FF0000FF`: the drag picked another colour |
-| 7 | `widget_set_value {target: HEX, value: "3366CC"}` | reply `value` `3366CCFF`; `HEX`'s field lists `3366CCFF` |
-| 8 | `widget_click {target: {web: "OK", within: "Color Picker"}}` | reply `closed` true and `dialogs` `["Select Filament"]`; the step 4 job ends without an error; the dialog lists `#3366CC` and no `#26A69A` |
-| 9 | `dialog_answer {dialog: {title: "Select Filament"}, button: "cancel"}` | the step 3 job ends without an error; `dialogs()` `[]`; `colours()` `#26A69A`: a cancelled pick changes nothing |
-| 10 | steps 3, 4, 7 and 8 again, then `dialog_answer {dialog: {title: "Select Filament"}, button: "ok"}` | `dialogs()` `[]`; `colours()` `#3366CC`: the colour the picker returned is slot 1's |
-| 11 | `project_save {path: OUT/colour.3mf}` | `project_file()` of it gives `filament_colour` `["#3366CC"]` |
-| 12 | `action_run` Setup Wizard | `blocked_by_dialog`; `dialogs()` `["Setup Wizard"]`; its page lists `Europe` within 30 s |
-| 13 | `widget_click {target: {web: "Europe", WIZARD}}` | reply `checked` true; `widget_list` of the wizard lists `Europe` checked |
-| 14 | `widget_click {target: {web: "Next", WIZARD}}` | setup only, to reach the printer page; what Next does is `test_web_ui`'s check, and step 15 finds the printer page's card |
-| 15 | `widget_click {target: {web: "Nozzle 0.4 Marlin", kind: "button", WIZARD}}`, the Generic Marlin Printer's card | reply `checked` true; `widget_list` of the wizard lists that card checked |
-| 16 | `dialog_answer {dialog: {title: "Setup Wizard"}, button: "close"}` | reply `closed` true; the step 12 job ends; `dialogs()` `[]`; `region` still `""`, the selected printer still `MyKlipper 0.4 nozzle`, and `preset_list` still offers no `MyMarlin 0.4 nozzle`: closing the wizard keeps neither choice |
+| 1 | `view_set {tab: "home"}`, then `webview_run_javascript {code: "1 + 1"}` | `widget_list {target: "main", query: "webview"}` lists a web view, `HOME`; the script replies `result` 2 with a `url` holding `web/homepage/index.html`: with no modal open and no target, it runs in the one web view shown |
+| 2 | `action_run` Preset Bundle | `blocked_by_dialog`; `dialogs()` `["Preset Bundle"]`; its page lists the elements named `#refresh_btn` and `#close_btn` and the text `Version` and `Update` of its top list's header |
+| 3 | `webview_run_javascript {code: "1", target: HOME}` | refused with "modal dialog is open": a web view behind the modal takes no script |
+| 4 | `webview_run_javascript {code: "document.title"}` | `result` `Preset Bundle`: with no target, the topmost modal's page |
+| 5 | `webview_run_javascript {code: "!!document.getElementById('close_btn')", target: BUNDLE_VIEW}` | `result` true: the topmost modal's web view by locator |
+| 6 | `webview_run_javascript {code: "SendWXMessage(JSON.stringify({command: 'export_page'}))"}`, the message the page's Export sends | `dialogs()` `["Preset Bundle", "Export Preset Bundle"]` within 10 s; then the test waits up to 5 s for `widget_list {target: "dialog", query: "webview"}` to list the Export dialog's web view at `ExportPresetDialog`, as it shows `about:blank` until its first navigation starts |
+| 7 | `webview_run_javascript {code: "1", target: BUNDLE_VIEW}` | refused with "is under": a dialog under the topmost takes no script |
+| 8 | `webview_run_javascript {code: "1"}` | the reply's `url` holds `ExportPresetDialog`: with no target, the topmost of the two |
+| 9 | `dialog_answer {button: "close"}` | `dialogs()` `["Preset Bundle"]` within 10 s |
+| 10 | `widget_click {target: {css: "#close_btn", within: "Preset Bundle"}}` | reply `closed` true, in under 1 s: a page that closes its dialog is told at once, not after the call's 10 s; the step 2 job ends without an error; `dialogs()` `[]` |
+| 11 | `view_set {tab: "prepare"}`, then `widget_click {target: {label: "1", class: "wxBitmapButton"}}`, slot 1's colour | `blocked_by_dialog`; `dialogs()` `["Select Filament"]`; the dialog lists `#26A69A`, the slot's colour |
+| 12 | `widget_click {target: {label: "+ More Colors", within: "Select Filament"}}` | `blocked_by_dialog`; `dialogs()` `["Select Filament", "Color Picker"]`, the picker on top |
+| 13 | `widget_set_value {target: HEX, value: "FF0000"}` | reply `value` `FF0000FF`; `HEX`'s field lists `FF0000FF` |
+| 14 | `mouse_gesture {target: {css: "#spectrum", within: "Color Picker"}, action: "drag", x: 20, y: 20, to: [200, 100], steps: 6}` | reply `done` `drag`; `HEX`'s field lists eight hex digits other than `FF0000FF`: the drag picked another colour |
+| 15 | `widget_set_value {target: HEX, value: "3366CC"}` | reply `value` `3366CCFF`; `HEX`'s field lists `3366CCFF` |
+| 16 | `widget_click {target: {web: "OK", within: "Color Picker"}}` | reply `closed` true and `dialogs` `["Select Filament"]`; the step 12 job ends without an error; the dialog lists `#3366CC` and no `#26A69A` |
+| 17 | `dialog_answer {dialog: {title: "Select Filament"}, button: "cancel"}` | the step 11 job ends without an error; `dialogs()` `[]`; `colours()` `#26A69A`: a cancelled pick changes nothing |
+| 18 | steps 11 (its click), 12, 15 and 16 again, then `dialog_answer {dialog: {title: "Select Filament"}, button: "ok"}` | `dialogs()` `[]`; `colours()` `#3366CC`: the colour the picker returned is slot 1's |
+| 19 | `project_save {path: OUT/colour.3mf}` | `project_file()` of it gives `filament_colour` `["#3366CC"]` |
+| 20 | `action_run` Setup Wizard | `blocked_by_dialog`; `dialogs()` `["Setup Wizard"]`; its page lists `Europe` within 30 s |
+| 21 | `widget_click {target: {web: "Europe", WIZARD}}` | reply `checked` true; `widget_list` of the wizard lists `Europe` checked |
+| 22 | `widget_click` by the ref `widget_list {target: "dialog"}` gives the page's `Next` button | reply `navigated` true with a `url` holding `/guide/21/`, the printer page |
+| 23 | once `webview_run_javascript {code: "location.pathname"}` holds `/guide/21/`, waited up to 10 s, `widget_click` by the step 22 ref again | refused with "page changed": a ref from before the page navigated is stale |
+| 24 | `webview_run_javascript {code: "location.reload(); 1"}` | reply `navigated` true: a reload at the same URL is told as a navigation |
+| 25 | once the page lists the card, waited up to 30 s, `widget_click {target: {web: "Nozzle 0.4 Marlin", kind: "button", WIZARD}}`, the Generic Marlin Printer's card | reply `checked` true; `widget_list` of the wizard lists that card checked |
+| 26 | `dialog_answer {dialog: {title: "Setup Wizard"}, button: "close"}` | reply `closed` true; the step 20 job ends; `dialogs()` `[]`; `region` still `""`, the selected printer still `MyKlipper 0.4 nozzle`, and `preset_list` still offers no `MyMarlin 0.4 nozzle`: closing the wizard keeps neither choice |
+| 27 | `widget_click {target: {label: "Add one filament"}}`, then `widget_click {target: {label: "Flushing volumes"}}` | `dialogs()` `["Flushing volumes for filament change"]` within 10 s; then the test waits up to 5 s for the dialog's web view to be listed at `WipingDialog.html`, as at step 6 |
+| 28 | `webview_run_javascript {code: "typeof document.title"}` | `result` `string`, and the reply's `url` holds `web/flush/WipingDialog.html`, the page the dialog loads |
+| 29 | `dialog_answer {button: "close"}` | the step 27 click's job ends without an error; `dialogs()` `[]` |
 
 **Scenario: a drop-down list**
 
@@ -285,17 +305,26 @@ stored state (see **To settle**). The start is checked: the project's `curr_bed_
   under load in Advanced mode. So the click's result is read at its end; the selection is read before the close.
 - A double click frames at once (rows, step 8): the camera's target is set to the selection's box centre in the
   click's own handling (`Camera::zoom_to_box()`).
-- The Select Filament dialog shows `#26A69A` as hex, not a colour name (web dialogs, step 3), as that colour has no
-  Bambu colour code; and its OK stores the picked colour as `#3366CC`, in capitals (step 10).
-- The login region reads `""` (web dialogs, start and step 16): a new data folder stores none, no tool can set it,
+- The Select Filament dialog shows `#26A69A` as hex, not a colour name (web dialogs, step 11), as that colour has no
+  Bambu colour code; and its OK stores the picked colour as `#3366CC`, in capitals (step 18).
+- The login region reads `""` (web dialogs, start and step 26): a new data folder stores none, no tool can set it,
   and no test finishes the wizard, which is what stores one.
-- The wizard card `Nozzle 0.4 Marlin` (web dialogs, step 15) is the Generic Marlin Printer's: the printer page names a
+- The wizard card `Nozzle 0.4 Marlin` (web dialogs, step 25) is the Generic Marlin Printer's: the printer page names a
   Custom printer by the second word of its model and lists its nozzles (`CreatePrinterBlock` in
   `web/guide/21/common.js`); the Klipper printer's card, installed, reads `Nozzle 0.4 · 0.2 · 0.6 · 0.8 Klipper` and
   starts checked.
-- The preset bundle page (web dialogs, step 1), from `PresetBundleDialog/index.html`: the Refresh button and the
+- The preset bundle page (web dialogs, step 2), from `PresetBundleDialog/index.html`: the Refresh button and the
   Close element by their ids, and the top list's column headings as text; its auto-update switch is commented out of
   the page, and its bundle lists, which hold what the data folder holds, are not read.
+- The web view a script runs in (web dialogs, steps 1 to 9 and 28): `webview_run_javascript` without a target takes
+  the topmost modal's web view, else the only one shown (`default_webview()` in `McpToolsUi.cpp`), and refuses a web
+  view in a dialog under the topmost, or behind a modal, before it runs (`guard_page()`); no dialog is named there.
+  The Flushing volumes dialog (steps 27 to 29) runs that same code as step 4; it stays as the one web dialog here
+  whose web view the app makes with `wxWebView::New` (`WipingDialog`), where the bundle dialogs' come from
+  `WebViewHostDialog`'s `WebView::CreateWebView`.
+- The Export dialog's title, `Export Preset Bundle` (web dialogs, step 6), is the one
+  `ExportPresetBundleDialog::create_webview()` sets; the Flushing volumes dialog's is `Flushing volumes for filament
+  change` (`WipingDialog`).
 - Two labels' captures differ (menus, steps 13 and 15): the object's label is drawn into the 3D view, which the
   canvas capture holds, so turning it on or off changes the picture's bytes.
 
@@ -306,27 +335,38 @@ stored state (see **To settle**). The start is checked: the project's `curr_bed_
 - The object menu and the multi-selection menu whole: they hold items that depend on the object, the selection and
   the slots (Edit Text, cut info, Change Filament, Flush Options, Fix Model), so only the sets named are fixed.
 - The menu items only listed, not run (the other add submenus, `Auto Drop`, the handy models, `Add Models`): the
-  commands behind them are other tests' (`test_every_action` runs the add-primitive and handy-model actions).
+  commands behind them are other tests' (`test_speed_dial` runs one handy model's action, and `object_add_primitive`
+  is run throughout the objects tests).
 - What the labels show: the canvas captures are compared with each other only, so a label drawn wrong but drawn
   passes.
 - `closed_menus` is checked empty with no control: a call fills it only when it opens a second menu, which the unit
   test "a menu opened while a call acts on the UI is listed, run by its path or closed unseen, never shown" covers.
 - Editing a parameter table cell: `widget_set_value` sets no table cell, so the GUI tools cannot edit the table.
 - Compare presets' transfer to presets of other types, or of more than one value.
-- What the print button does in the mode picked: `test_every_action` exports the sliced file through its action. The
+- What the print button does in the mode picked: `test_files` exports the sliced file through `project_export`. The
   popup of a Bambu Lab printer (Print plate, Send, Export plate sliced file and the rest): only the Klipper printer's
   two items are checked.
 - The plate type lists of other printers: only the Klipper printer's, with `support_multi_bed_types` on, is read.
-- The wizard's Next and its navigation: `test_web_ui` checks them. Finishing the wizard, which installs printers and
-  filaments: the install tests own installs.
+- Finishing the wizard, which installs printers and filaments: the install tests own installs. What the reloaded
+  printer page holds beyond the card step 25 ticks.
 - The printers other tests installed: the printer list is read for the one printer the wizard's card names.
-- Closing the preset bundle dialog from its page by a script: `test_webview_modal`.
+- Closing a dialog from its page by a script (`webview_run_javascript` clicking `#close_btn`): it takes the branch
+  step 10's click takes. Both tools follow their page call with `observe_page()` (`McpToolsUi.cpp`), which replies
+  `closed` once the dialog leaves the modal stack, so step 10 covers it, its 1 s bound included.
+- "and the reply says so within a second" (web dialogs, step 10) is a 1.0 s wall-clock bound, tight for a loaded
+  sweep; measured on Windows, the click replies in 0.1 to 0.15 s.
+- The waits for the Export and Flushing volumes dialogs' web views to leave `about:blank` (steps 6 and 27), for the
+  printer page's URL (step 23) and for its card (step 25) have no check of their own; the checks after them cover
+  them.
+- The filament step 27 adds: only that the Flushing volumes button opened its dialog.
+- A script with no target and no modal while a plugin's page is shown: the Home tab is the one shown.
 - The colour the spectrum drag picks: the page works it out from the canvas's layout, so only "another valid colour"
   is checked.
 - How menus, rows and dialogs look: nothing is shown or captured.
 
 **Strength:** Strong — every menu item, row and page element it runs is checked by its effect on the project, the
-selection, the camera or the settings; only the spectrum drag's colour is checked as another valid colour.
+selection, the camera or the settings, and every script by the page it ran in or the refusal's words; only the
+spectrum drag's colour is checked as another valid colour, and step 10's 1 s bound is the one timing check.
 
 ## `test_recording`
 `test_recording.py` · Python, 112 checks with an ffmpeg that has libx265 and libx264 · in `sweep.json` as `{"path": "test_recording.py"}`
@@ -462,7 +502,8 @@ The default limit of an hour is step 1 of the first scenario (`max_seconds` 3600
   uncovered").
 - The exact number of frames and the capture time: they depend on the machine's speed, so `frames`, `written` and
   `capture_ms` have lower bounds, and the file is checked to agree with the report.
-- The person's forms (the Start Recording dialog, the Stop Recording action): `test_every_action` runs both.
+- The person's forms: the Start Recording dialog, which `test_speed_dial`'s setup drives to point its folder at its
+  output folder, and the Stop Recording action, which no test runs as an action.
 - What `speed`, `profile` and `crf` do to the MP4: the ffmpeg command lines are unit-tested ("the ffmpeg command takes
   the speed and profile, and main10 encodes 10 bits").
 - `job_cancel` of an encode, a write error and the size limit: the sink's unit tests cover write errors.
@@ -577,13 +618,14 @@ is checked: `objects()` is one object, on plate 0, `bbox.size` `[20, 20, 20]` to
 **Not checked:**
 - The normaliser's rules on their own (aliases, value forms, enum moves, the window pairs): unit tests in
   `tests/automation/test_mcp_protocol.cpp`. This test shows only that the forms work on the real schemas.
-- Go to tab through `action_run`, the Slice and Preview action, and Deselect All's clearing of the selection alone:
-  `test_every_action` checks each one's effect. Speed Dial picks of View: Top, Deselect All and Go to layer:
-  `test_person_forms`.
-- The silent calibration's parameters and preset changes, and the dialog's OK: the calibration tests and
-  `test_every_action`'s `calib_temp`.
+- Go to tab through `action_run`: `test_speed_dial` checks its effect and its journal step. The Slice and Preview
+  action's effect, and Deselect All's clearing of the selection alone, are read by no test through the actions;
+  `test_slice_preview` reads its slices made through `plate_slice`. Speed Dial picks of View: Top, Deselect All and
+  Go to layer: `test_person_forms`.
+- The silent calibration's parameters and preset changes: `test_presets`' calibration scenarios. A calibration
+  dialog's OK: `test_speed_dial`'s `calib_retraction`.
 - That a legend row a print lacks is never shown: no print here has a prime tower or a pause, so the reply's lack of
-  `Prime tower` and `Pauses` has no control. An unknown row's refusal is `test_set_view_preview`'s.
+  `Prime tower` and `Pauses` has no control. An unknown row's refusal is `test_slice_preview`'s (a legend row clicked, step 11).
 - Deselect All while the Design tab or the assemble view is shown.
 - The G-code's content beyond its first line: names, step 18, checks only which format the path chose.
 

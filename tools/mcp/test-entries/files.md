@@ -4,42 +4,37 @@ The design of this area's sweep tests. The rules every entry follows, the grades
 in [TESTS.md](../TESTS.md).
 
 ## `test_files`
-`test_files.py` · Python, 579 checks · in `sweep.json` as `{"path": "test_files.py", "timeout_s": 1200}`
+`test_files.py` · Python, 472 checks · in `sweep.json` as `{"path": "test_files.py", "timeout_s": 1200}`
 
 **Tests:** What the project's files do: a new project and the question New Project asks about unsaved changes; opening
 a project file and saving one under a name; importing models (STL, a project's `.3mf`, a ZIP archive, a STEP file and
-files that hold no model); exporting the objects as STL, DRC and the Preview's toolpaths as OBJ, the model as a 3MF,
-the plate's G-code and the sliced file; sending G-code to a printer with no print host; and the filament slots that a
-merge and a mix leave in the project file. Every written file is read back: the test opens it itself (a G-code's text,
-a sliced file's entries, a folder's file names and sizes), or the app reads it (an exported mesh imported into an empty
-project, a saved project opened again). It runs on the default printer, the Generic Klipper Printer 0.4, with its
-0.20mm Standard @MyKlipper process (`wall_loops` 3, `top_shell_layers` 4, layers of 0.2 mm from the first,
-`exclude_object` on) and one Generic PLA slot. Nothing it checks needs a Bambu Lab printer's own behaviour: the Send it
-checks is the print host's upload, which the Klipper printer uses.
+files that hold no model); and exporting the objects as STL and DRC, the model as a 3MF, the plate's G-code and the
+sliced file. Every written file is read back: the test opens it itself (a G-code's text, a sliced file's entries, a
+folder's file names and sizes), or the app reads it (an exported mesh imported into an empty project, a saved project
+opened again). It runs on the default printer, the Generic Klipper Printer 0.4, with its 0.20mm Standard @MyKlipper
+process (`wall_loops` 3, `top_shell_layers` 4, layers of 0.2 mm from the first, `exclude_object` on) and one Generic
+PLA slot. Nothing it checks needs a Bambu Lab printer's own behaviour.
 
 **Starts from:** `start(client)`, whose `presets()` must be `{printer: "MyKlipper 0.4 nozzle", process: "0.20mm
 Standard @MyKlipper", filaments: ["Generic PLA @System"]}`. Then one `preferences_set` with the preferences the checks
 read, each at the app's default and read back with `preferences_get`: `project_load_behaviour` `ask_when_relevant` (an
 open loads the project's settings and asks nothing about them), `max_recent_count` 18 and `recent_models` false (the
-recent projects), `enable_step_mesh_setting` true (the STEP options dialog), `auto_slice_after_change` false (no plate
-slices by itself) and `use_printer_agents` false (Send is the print host's upload). `drc_bits` is read, not set:
+recent projects), `enable_step_mesh_setting` true (the STEP options dialog) and `auto_slice_after_change` false (no
+plate slices by itself). `drc_bits` is read, not set:
 "drc_bits is 0, lossless" checks it is the app's default 0, under which the DRC rows read their meshes back exactly.
 The Preferences dialog's field takes 8 to 30 only, so no tool sets 0 and no test changes it; a folder where a person
 chose a lossy depth fails that check by name, ahead of the rows. If the user filament presets list "MCP Files PLA", which only a failed
 run of this test can have left (importing models, step 10, is the regression that makes it), the test deletes it with
-`preset_delete` and checks it is no longer listed. The auto-answer rules last only as long as the app's run, and `W`
-is new each run, so nothing a failed first run left in its own `W` reaches a rerun.
+`preset_delete` and checks it is no longer listed. `W` is new each run, so nothing a failed first run left in its own
+`W` reaches a rerun.
 
-**Leaves:** In the app's presets, the Klipper printer with three filament slots, slot 1 `#FF0000` and slot 2 `#0000FF`,
-the third a mixed filament of slots 1 and 2 (the filament scenario, its last): the slots and their colours outlast New
-Project and a restart, and come back when the printer is selected again, until the next test's `start()` deletes the
-mixed slot and slot 2; slot 1 keeps its colour. In the recent projects, at the top, the projects it saves or opens in
-`W`: `kept.3mf`, `open_src.3mf`, `clean.3mf`, `dirty.3mf`, `presets.3mf`, `empty.3mf`, `saved.3mf`, `import_src.3mf`
-and `filaments.3mf`, which name files that are gone once the test passes and `W` is deleted. The folders the app
-remembers, all set to `W`: `app.last_export_path`, where the G-code picker starts, and the `recent` section's
-`last_opened_folder` and `settings_folder`. The preferences it sets, at their defaults. No user preset: every preset
-edit is discarded by a new project, and the preset file it imports as a model loads none. It restores nothing in a
-`finally`.
+**Leaves:** In the app's presets, the Klipper printer with the one slot of Generic PLA that `start()` set, its colour as
+the test before it left it. In the recent projects, at the top, the projects it saves or opens in `W`: `kept.3mf`,
+`open_src.3mf`, `clean.3mf`, `dirty.3mf`, `presets.3mf`, `empty.3mf`, `saved.3mf` and `import_src.3mf`, which name files
+that are gone once the test passes and `W` is deleted. The folders the app remembers, all set to `W`:
+`app.last_export_path`, where the G-code picker starts, and the `recent` section's `last_opened_folder` and
+`settings_folder`. The preferences it sets, at their defaults. No user preset: every preset edit is discarded by a new
+project, and the preset file it imports as a model loads none. It restores nothing in a `finally`.
 
 **Files:** The test writes into a folder of its own, `W` (`tempfile.mkdtemp()`): the STL cubes and ZIP archives it
 imports, written with `zipfile` and an ASCII STL writer of its own, and every file the app exports or saves. It reads
@@ -50,11 +45,11 @@ path the recent-projects check looks for is this run's alone. It writes a filame
 `W/mcp_files_pla.json`: `{name: "MCP Files PLA", filament_settings_id: ["MCP Files PLA"], inherits: "Generic PLA
 @System", from: "User", filament_cost: ["24"], version: "2.8.0.16"}`, a preset the Klipper printer takes
 (`preset_import` of the file imports it, measured). The name is no other test's:
-`tools/mcp/tests/fixtures/mcp_import_pla.json` ("MCP Import PLA", inheriting "Generic PLA @System") stays
-`test_every_action`'s, and `test_presets` writes "MCP Imported PLA". It does not use
+`tools/mcp/tests/fixtures/mcp_import_pla.json` ("MCP Import PLA", inheriting "Generic PLA @System") is the fixture
+`test_presets` writes "MCP Imported PLA" from. It does not use
 `tests/fixtures/filaments_and_files.py`, which `test_additions_refusals.py` writes its archive with.
 
-**Reads:** `plates()` and `slots()` as `test_plates` reads them. New readers in `checks.py`:
+**Reads:** `plates()` and `slots()` as `test_objects` reads them. New readers in `checks.py`:
 - `project()`: `app_state.project`, whose fields are `name`, `path` and `dirty`, as `{name, file, dirty}`: `file` is
   `path` normalised (`os.path.normcase` of `os.path.abspath`), or none where `path` is `""`.
 - `meshes()`: each object from `object_list` as `{name, offset, size, filament, parts}`: its first instance's `offset`
@@ -80,7 +75,6 @@ path the recent-projects check looks for is this run's alone. It writes a filame
   `; CONFIG_BLOCK_END` as `{key: value}`, a block the Klipper printer's G-code writes after its moves.
 - `sliced(path)`: the names of a `.gcode.3mf`'s G-code entries (`Metadata/plate_<n>.gcode`), sorted, and the `gcode()`
   of each.
-- `obj_facts(path)`: an OBJ's first line, its `mtllib` line, its numbers of `v` and `f` lines and its highest vertex z.
 - `reimport(path)`: `project_new {discard_changes: true}`, then `project_import {paths: [path]}`; it gives the
   import's reply and then `meshes()`.
 - `answer_all(expected)`: answers the dialogs a call opens, each OK as it comes topmost, waiting with `app_wait {for:
@@ -90,8 +84,8 @@ path the recent-projects check looks for is this run's alone. It writes a filame
 **Start of a scenario:** `project_new {discard_changes: true, preset_changes: "discard"}`, then `view_set {tab:
 "prepare"}` (the new-project and open scenarios show `"home"` instead), then `app_wait {for: "idle"}`, which must be
 satisfied. The start is checked: `project()` is `Untitled · none · clean`, `meshes()` is empty, `plates()` is
-`"" 0 *`, and `dialogs()` is empty. Presets, preferences, recent projects, auto-answer rules and the filament slots
-persist from one scenario to the next, so the filament scenario comes last; `start()` is made once, before the first.
+`"" 0 *`, and `dialogs()` is empty. Presets, preferences and recent projects persist from one scenario to the next;
+`start()` is made once, before the first.
 
 **Notation:** A project is written `name · file · clean` or `dirty` (`project()`), `none` for no file, and a file in
 `W` by its name. Objects are listed by name, in `object_list`'s order, between brackets: `[small, big]`. A mesh is
@@ -229,8 +223,8 @@ parameters`; the test answers it OK and follows the call's job to its end, and `
 
 It starts with cube `small` 20 at (100, 100) and cube `big` 30 at (160, 100): together they span 90 to 175 in x, 85 to
 115 in y and 0 to 30 in z. A binary STL is 84 bytes and 50 a triangle: 684 bytes for a cube, 1284 for two. The test
-creates the folders `W/each` and `W/each_drc` before it exports into them. Each export's `undo_steps()` is `[]`, and
-`project()` stays `Untitled · none · dirty`.
+creates the folder `W/each` before it exports into it. Each export's `undo_steps()` is `[]`, and `project()` stays
+`Untitled · none · dirty`.
 
 | # | Step | Written | Also checked |
 |---|---|---|---|
@@ -239,11 +233,9 @@ creates the folders `W/each` and `W/each_drc` before it exports into them. Each 
 | 3 | `project_export {format: "stl", path: W/each, per_object: true}` | `each` holds exactly `big.stl` and `small.stl`, 684 bytes each | reply `objects` as in 2, `files` `[W/each/small.stl, W/each/big.stl]`, no `bytes` |
 | 4 | the same again | `each` holds exactly `big(1).stl`, `big.stl`, `small(1).stl`, `small.stl`, 684 bytes each | reply `files` `[W/each/small(1).stl, W/each/big(1).stl]`: a name the folder has gets a number |
 | 5 | `project_export {format: "drc", path: W/both.drc}` | `both.drc` | reply `objects` as in 2, `bytes` the file's size |
-| 6 | `project_export {format: "drc", path: W/each_drc, per_object: true}` | `each_drc` holds exactly `big.drc` and `small.drc` | reply `objects` as in 2, `files` `[W/each_drc/small.drc, W/each_drc/big.drc]` |
-| 7 | `project_export {format: "3mf", path: W/one.3mf, objects: [0]}` | nothing | refused, `objects_not_taken` |
-| 8 | `project_export {format: "stl", path: W/five.stl, objects: [5]}` | nothing | refused, `no_such_object`, with the words "Object 5 does not exist (the project has objects 0..1)" |
-| 9 | `plate_slice {preview: true}`, then `project_export {format: "toolpaths_obj", path: W/toolpaths.obj}` | `toolpaths.obj` and `toolpaths.mtl` | outcome `ok`, `layers` 150; `sliced_flags()` `[true]`; reply `bytes` the file's size; `obj_facts()`: first line `# G-Code Toolpaths`, `mtllib ./toolpaths.mtl`, more than 0 `v` and `f` lines, highest vertex z 30.1 ± 0.01: `big`'s top layer at 30 plus half its 0.2 mm height |
-| 10 | `meshes()` | | `[small, big]` at (100, 100) and (160, 100): the exports moved nothing |
+| 6 | `project_export {format: "3mf", path: W/one.3mf, objects: [0]}` | nothing | refused, `objects_not_taken` |
+| 7 | `project_export {format: "stl", path: W/five.stl, objects: [5]}` | nothing | refused, `no_such_object`, with the words "Object 5 does not exist (the project has objects 0..1)" |
+| 8 | `meshes()` | | `[small, big]` at (100, 100) and (160, 100): the exports moved nothing |
 
 Each file is then read back with `reimport()`; the files of a folder are imported one call each:
 
@@ -253,7 +245,6 @@ Each file is then read back with `reimport()`; the files of a folder are importe
 | `both.stl` | `both.stl 24/35000 [85, 30, 30]`: both cubes as placed, in one object |
 | `each/small.stl`, then `each/big.stl` | `small.stl 12/8000 [20, 20, 20]`, `big.stl 12/27000 [30, 30, 30]` |
 | `both.drc` | `both.drc 24/35000 [85, 30, 30]` |
-| `each_drc/small.drc`, then `each_drc/big.drc` | `small.drc 12/8000 [20, 20, 20]`, `big.drc 12/27000 [30, 30, 30]` |
 
 **Scenario: exporting the model as a 3MF**
 
@@ -270,7 +261,7 @@ The scenario first turns on the printer's `use_3mf` ("Use 3MF instead of G-code"
 (`MainFrame::available_print_actions`), and reads it back as `"1"`; it stays an unsaved edit of the printer, which the
 next scenario's new project discards. After each export, `project()` is `Untitled · none · dirty`, `sliced_flags()` is
 as the row's plates say (step 1: `[false]`, step 2: `[true]`, from step 3: `[true, false]`), and `undo_steps()` is `[]`
-unless the row names a step. Steps 1, 6, 7 and 8 export while the plate written is not sliced, and each writes its
+unless the row names a step. Steps 1 and 6 export while the plate written is not sliced, and each writes its
 file: an export given a path works out no file name, so the Klipper process's `filename_format`, which an unsliced
 plate's placeholder statistics cannot fill (`{filament_type[initial_tool]}`), is not read
 (`Plater::export_gcode_3mf()` builds the file dialog's default name only when no path is given).
@@ -283,23 +274,8 @@ plate's placeholder statistics cannot fill (`{filament_type[initial_tool]}`), is
 | 4 | `project_export {format: "sliced_3mf", path: W/half_current.gcode.3mf}` | as after 3 | `sliced()` `[Metadata/plate_1.gcode]` |
 | 5 | the same with `plates: "all"`, to `W/half_all.gcode.3mf` | as after 3 | `sliced()` `[Metadata/plate_1.gcode]`: plate 1, not sliced, adds none |
 | 6 | the same with `plates: 1`, to `W/half_1.gcode.3mf` | `"" 1` · `"" 1 *` | `sliced()` holds no G-code entry; the plate named is made current first, `undo_steps()` `["select partplate!", "select partplate!"]` |
-| 7 | the same with no `plates`, to `W/from_1.gcode.3mf` | as after 6 | `sliced()` holds no G-code entry |
-| 8 | the same with `plates: "all"`, to `W/all_from_1.gcode.3mf` | as after 6 | `sliced()` `[Metadata/plate_1.gcode]` |
-| 9 | the same with `plates: 0`, to `W/half_0.gcode.3mf` | `"" 1 *` · `"" 1` | `sliced()` `[Metadata/plate_1.gcode]`; `undo_steps()` `["select partplate!", "select partplate!"]` |
-| 10 | `project_export {format: "gcode", path: W/plate_1.gcode, plates: 1}` | `"" 1 *` · `"" 1` | refused, `plate_not_sliced`; no file; `undo_steps()` `[]`: a refused export leaves the current plate and the undo history as they were |
-
-**Scenario: a G-code export refused**
-
-After each export, `project()` is `Untitled · none · dirty` (or `clean` before step 2) and `undo_steps()` is `[]`.
-
-| # | Step | Plates after | Also checked |
-|---|---|---|---|
-| 1 | `project_export {format: "gcode", path: W/empty.gcode}` | `"" 0 *` | refused, `no_objects`; no file |
-| 2 | cube `a` 20 at (100, 128), `app_wait {for: "idle"}`; `project_export {format: "gcode", path: W/unsliced.gcode}` | `"" 1 *` | refused, `plate_not_sliced`; no file; `sliced_flags()` `[false]` |
-| 3 | `project_export {format: "gcode", path: W/three.gcode, plates: 3}` | `"" 1 *` | refused, `no_such_plate`; no file |
-| 4 | cube `b` 20 at (160, 128); `dialog_auto_answer {rules: [{match: "Spiral mode only works", button: "yes"}]}`; `plate_set_settings {plate: 0, values: {spiral_mode: true}}`; `plate_slice` | `"" 2 *` | the rule's `uses` 1; outcome `error`: spiral vase mode prints one object; `sliced_flags()` `[false]` |
-| 5 | `project_export {format: "gcode", path: W/error.gcode}` | `"" 2 *` | refused, `slice_has_errors`; no file |
-| 6 | `project_export {format: "sliced_3mf", path: W/error.gcode.3mf}` | `"" 2 *` | refused, `sliced_file_not_written`; no file |
+| 7 | the same with `plates: 0`, to `W/half_0.gcode.3mf` | `"" 1 *` · `"" 1` | `sliced()` `[Metadata/plate_1.gcode]`; `undo_steps()` `["select partplate!", "select partplate!"]` |
+| 8 | `project_export {format: "gcode", path: W/plate_1.gcode, plates: 1}` | `"" 1 *` · `"" 1` | refused, `plate_not_sliced`; no file; `undo_steps()` `[]`: a refused export leaves the current plate and the undo history as they were |
 
 **Scenario: the G-code written**
 
@@ -337,40 +313,8 @@ fails when three attempts in a row do not overlap. A refusal with other words fa
 | 3 | the second client's call ends; `app_wait {for: "idle"}`; `project_export {format: "gcode", path: W/after_preview.gcode}` | as after 1 | that call's result `status` `done`, outcome `ok`, `layers` N; `sliced_flags()` `[true]`; the export's `export` `ok`; `gcode()` `layers` N and `config.wall_loops` the last attempt's `w`; `app_state.tab` `preview`; `project()` `3DBenchy · none · dirty`; `undo_steps()` `[]`, its mark set after the second client's call has ended |
 | 4 | 2 and 3 again with `action_run {id: "slice_all"}`, the attempts going on with the next unused `w`, and the file `after_all.gcode` | as after 1 | the same checks, N being this result's `layers` |
 
-**Scenario: sending G-code without a print host**
-
-Send is `action_run {id: "send_gcode"}`. After each send, `app_state.uploads` is `[]` and `dialogs()` is empty. The
-Klipper printer is no Bambu Lab printer, and with `use_printer_agents` off (the start) its Print button offers Send
-G-code to printer host, whose upload needs the printer's print host address (`Ops::print_route()`); the Klipper
-profile has none, so no send can reach a printer.
-
-| # | Step | Printer after (`host_type`, `print_host`) | Also checked |
-|---|---|---|---|
-| 1 | (the start) `values([host_type, print_host], "printer")` | `octoprint`, `""` | `app_state.uploads` `[]` |
-| 2 | Send, with no objects | `octoprint`, `""` | refused, `no_print_host`: an empty address is no print host, whether or not the project has objects |
-| 3 | cube `box` 20 at (128, 128), `plate_slice`; Send | `octoprint`, `""` | outcome `ok`, `layers` 100, `sliced_flags()` `[true]`; refused, `no_print_host` |
-| 4 | `unsaved("printer")` | `octoprint`, `""` | `[]`: the refused sends changed nothing in the printer preset |
-
-**Scenario: filament slots merged and mixed**
-
-Objects are read with `meshes()` as their names and `filament`; `colours` is each `filament_list` row's `colour`,
-joined by `;`. It starts from the one slot `start()` left, which no scenario before it changes. The mixed slot
-it makes stays in the data folder (Leaves), until the next test's `start()`, or this test's own on a rerun, deletes it.
-
-| # | Step | `slots()` after | Also checked |
-|---|---|---|---|
-| 1 | (the start) | `"0"` | |
-| 2 | `filament_add` | `"0,0"` | reply `filament_slot` 2, `filament_slots` 2 |
-| 3 | `filament_add` | `"0,0,0"` | reply `filament_slot` 3, `filament_slots` 3 |
-| 4 | `filament_set_colour {filament_slot: n, colour: c}` for slots 1, 2 and 3 with `#FF0000`, `#00FF00` and `#0000FF` | `"0,0,0"` | `colours` `#FF0000;#00FF00;#0000FF` |
-| 5 | cubes `on_two` 20 at (80, 128) and `on_three` 20 at (176, 128); `settings_set {target: "object", object: 0, values: {extruder: 2}}` and the same for object 1 with 3 | `"0,0,0"` | `on_two` filament 2, `on_three` filament 3 |
-| 6 | `filament_delete {filament_slot: 2, merge_into: 1}` | `"0,0"` | reply `{filament_slot: 2, merged_into: 1, filament_slots: 2}`; `on_two` filament 1, `on_three` filament 2; `colours` `#FF0000;#0000FF`: the slot after the deleted one moved down, with its objects |
-| 7 | `filament_add_mixed {components: [1, 2], ratios: [50, 50]}` | `"0,0,1"` | reply `{filament_slot: 3, added: true}`; `app_state.presets.filaments` has 3 entries; `on_two` 1, `on_three` 2 |
-| 8 | the same again | `"0,0,1"` | reply `{filament_slot: 3, added: false}`; still 3 entries |
-| 9 | `project_save {path: W/filaments.3mf}`, `project_new {discard_changes: true}`, `project_open {path: W/filaments.3mf}` | `"0,0,1"` | `[on_two, on_three]`, `on_two` filament 1, `on_three` filament 2; `colours` starts with `#FF0000;#0000FF;`: the merge and the mix are kept in the project file |
-
 **To settle in review:**
-- A refused export of a plate by index selects the plate first (sliced file, step 10). `Ops::start_gcode_export()`
+- A refused export of a plate by index selects the plate first (sliced file, step 8). `Ops::start_gcode_export()`
   (`src/slic3r/GUI/Operations/ExportOps.cpp`) calls `plater.select_plate(*args.plate)` and only then
   `Plater::export_gcode_to()`, which refuses an unsliced plate, so the refusal leaves plate 1 current and its "select
   partplate!" undo steps (`Plater::select_plate()` takes `take_plate_selection_snapshot()`). The fix, in
@@ -385,12 +329,12 @@ it makes stays in the data folder (Leaves), until the next test's `start()`, or 
   failed write; `file_not_written` of `export_model_3mf()` and `export_stl()`) selects the plate that was current back,
   so the current plate is as it was, with both selections' steps left in the undo history. The step expects the fixed
   behaviour: plate 0 current and no undo step.
-- Making another plate current logs two "select partplate!" undo steps (sliced file, steps 6 and 9):
+- Making another plate current logs two "select partplate!" undo steps (sliced file, steps 6 and 7):
   `Plater::select_plate()` takes one, and `PartPlateList::select_plate()` takes another when the index changes
   (`PartPlate.cpp`, "erase unnecessary snapshot"). This is the app's own code, left as it is: `main` takes both
   snapshots (`take_snapshot("select partplate!")` in each function); this branch only routes them through
   `take_plate_selection_snapshot()`. The steps expect the two.
-- An object index the project lacks (exporting meshes, step 8) is refused by the target check,
+- An object index the project lacks (exporting meshes, step 7) is refused by the target check,
   `IndexCheck::object()` (`src/slic3r/GUI/Mcp/McpTargets.cpp`), with "object index 5 is out of range" and no code,
   before `Ops::export_objects_refusal()` runs, so the export's own refusal for it, `no_such_object`, never answers. The
   fix: `project_export`'s handler (`src/slic3r/GUI/Mcp/McpToolsProject.cpp`) runs `Ops::export_objects_refusal()` on
@@ -438,33 +382,44 @@ it makes stays in the data folder (Leaves), until the next test's `start()`, or 
 - A DRC file is read back exactly (exporting meshes): with `drc_bits` at its default 0, which Starts from checks,
   Draco stores the vertices without quantising them. If the reimport differs, the DRC rows take `mesh_volume` within 0.1 % and the size
   to 0.01 mm.
-- The OBJ's highest vertex (exporting meshes, step 9): `ToolpathsObjExporter::cross_section()` centres each
-  extrusion's cross section on the path vertex, whose z is the layer's top (the half-height shift in `ViewerImpl` is for
-  drawing only), so the top layer at 30 reaches 30.1.
 
 **Not checked:**
 - The exports and the save of a project with no objects (`3mf` written, `stl` and `sliced_3mf` refused `no_objects`,
   and a `.gcode.3mf` name refused): `test_operation_routes`.
 - A file per object and the toolpaths of a project or Preview with none, a ZIP entry the archive lacks, and the filament
   slot refusals (the only slot, a mix that uses the slot, a mixed slot, too many slots): `test_additions_refusals`.
-- The menu items' routes with their file dialogs: the files the Export, Save and Import actions write or read, the
-  sliced file of two sliced plates, Import ZIP Archive, Load Project, New Project on a project with two cubes answered
-  No, and File > Import's picker are `test_every_action`'s; which actions open a picker is `test_person_forms`'.
-- The Bambu-network refusal with a cube not sliced and the no-host refusal with a cube not sliced, and an upload to a
-  print host with its errors: `test_send_gcode`. The Bambu-network refusal on a sliced plate: `test_every_action`. The
-  control for "nothing uploaded" is `test_send_gcode`'s upload, which shows in `app_state.uploads`.
+- The menu items' routes with their file dialogs: the Export, Save, Import and Load Project actions, which run this
+  test's commands through a file picker, are run by no test as actions; which actions open a picker is
+  `test_person_forms`', and an action's command and arguments the catalog's unit test checks
+  (`tests/slic3rutils/test_command_catalog.cpp`).
+- Sending G-code: `test_send_gcode`, whose "No address" has the Send action of a printer with no print host refused
+  `no_print_host`, nothing uploaded and the printer preset unchanged, and which uploads to a print host and reads its
+  errors. A Send with no objects or with the plate sliced meets the same refusal: `Ops::print_route()` refuses a printer
+  with no host before it reads the project or the slice (`PrinterOps.cpp`). A Send on the Bambu network, refused or
+  not: no test, as `test_send_gcode`'s entry says.
+- What `test_slice_preview` checks on the same code paths. The G-code export refused for a project with no objects, a
+  plate not sliced and a slice with errors, and the sliced file of a slice with errors refused
+  `sliced_file_not_written`: its nothing to slice, steps 6 and 10, and slicing by route, step 4. A G-code export of a
+  plate the project lacks, which `Ops::start_gcode_export()` refuses `no_such_plate` itself where the other formats'
+  `select_named_plate()` does: its plate index, step 2. The Preview's toolpaths as OBJ (`Ops::export_toolpaths_obj()`,
+  the one route of `toolpaths_obj`), read with `obj_facts()`: its layers, steps 17 and 18.
+- Exports that run the code of one kept here. A per-object DRC export runs exporting meshes' step 3 loop, which writes
+  each object with the format's writer, and step 5's DRC writer (`Plater::export_stl()`). The sliced file of all plates
+  with plate 1 current is the sliced file's step 5, since `Plater::export_gcode_3mf()` writes every plate whatever plate
+  is current, and the current plate's sliced file while that plate is not sliced is its step 1.
 - Opening a project under the Preferences' load behaviour: `test_project_open_settings`. A plate's names, locks and own
-  settings through the project file: `test_plates`.
+  settings through the project file: `test_objects` (what the project keeps).
 - Two exports that overlap: a cube's G-code is written in well under a second, so no client can reliably send a second
   export while the first runs; MCP's refusal of a change during an operation is shown here for a slice and by
-  `test_worker_admission` for an arrange.
+  `test_runtime_calls` for an arrange.
 - What `undo` does once a new or opened project has cleared the history: the scenarios check the steps that clear it,
   and an undo with nothing to take back is the Undo command's, not the files'.
 - The NewProject and ProjectOpened plugin events: they need a plugin that reports them.
 - A G-code file opened with `project_open`: `test_additions_refusals` opens one; the exported G-code here is read as
   text.
-- What a mixed filament prints (its components layer by layer) and the colour of its slot: the scenario checks the slot
-  the project keeps, not the print. The STEP dialog answered Cancel, and its options' effect on the mesh.
+- The filament slots in the project file: merging a slot into another and the mixed filaments a project keeps are
+  `test_filaments`', which saves and reopens both. The STEP dialog answered Cancel, and its options' effect on the
+  mesh.
 - Inside the files, beyond what the readers take: a 3MF's thumbnails and metadata, the `.mtl`'s materials, and the
   G-code's moves beyond its layer count, label ids and configuration block.
 - `overwrite` on an export: it is the same path check as `project_save`'s (`resolve_output_path()`), which the saving

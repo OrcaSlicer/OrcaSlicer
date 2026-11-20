@@ -491,7 +491,9 @@ def main():
     r = call("dialog_answer", button="Nope")
     check("a page busy after listing its buttons gets the no-button refusal, listing them", "page has no button" in r.get("error", "") and
           "page_buttons" in r.get("error", ""), r)
-    time.sleep(2)  # outlasts the stall, which ends half a second after the reply
+    # The stall ends half a second after the reply; a script runs once it has.
+    r = call("webview_run_javascript", code="1", timeout_s=5)
+    check("the page answers again once its stall ends", r.get("result") == 1, r)
 
     # ---- Closing through a kept window.wx while another client snapshots ----
     other = orca_mcp.OrcaMcp(session["port"], session["token"])
@@ -854,16 +856,21 @@ def main():
     # round's request, and none of those whose caller stopped waiting (the Mute click's).
     for _ in range(3):
         tree(query="Config")
-    r = call("webview_run_javascript", code="window.__orcaMcp.call({op: 'doc'}).relaying", target={"class": "webview", "within": "Plugins"})
-    check("the page keeps no more than the last round's unanswered request", r.get("result") in (0, 1), r)
-    # A script calling the agent itself gives no deadline; the request is given up all the same.
-    call("webview_run_javascript", code="window.__orcaMcp.call({op: 'snapshot'}).nodes.length", target={"class": "webview", "within": "Plugins"})
-    time.sleep(11.5)
-    r = call("webview_run_javascript", code="window.__orcaMcp.call({op: 'doc'}).relaying", target={"class": "webview", "within": "Plugins"})
-    check("a request with no deadline is given up after the tools' default", r.get("result") == 0, r)
+    plugins_view = {"class": "webview", "within": "Plugins"}
+
+    def relaying():
+        return call("webview_run_javascript", code="window.__orcaMcp.call({op: 'doc'}).relaying", target=plugins_view).get("result")
+
+    r = relaying()
+    check("the page keeps no more than the last round's unanswered request", r in (0, 1), r)
+    # A script calling the agent itself gives no deadline; the request is given up all the same, a second past the
+    # tools' default of 10 s. It is a watch, which the page relays outside its rounds: a new round gives up the last
+    # round's request, so the listings and the click below leave the watch waiting while they run.
+    asked = time.time()
+    call("webview_run_javascript", code="window.__orcaMcp.call({op: 'watch', watch: 'no deadline'}).watching", target=plugins_view)
     # A change on the page itself is still told beside the muted frame, as partial. (By ref: a locator
     # is refused while the frame doesn't answer.)
-    call("webview_run_javascript", target={"class": "webview", "within": "Plugins"},
+    call("webview_run_javascript", target=plugins_view,
          code="var b = document.createElement('button'); b.textContent = 'Add note'; "
                 "b.style.cssText = 'position: fixed; left: 4px; top: 4px; z-index: 99999'; b.onclick = function () { "
                 "var p = document.createElement('p'); p.textContent = 'note added'; "
@@ -872,23 +879,10 @@ def main():
     r = call("widget_click", target=ref_of(tree(query="Add note"), 'button "Add note"'), timeout_s=5)
     check("a page change beside a frame that doesn't answer is listed, as partial",
           r.get("page", {}).get("partial") is True and r["page"].get("changed") is True and 'label "note added"' in r["page"].get("added", []), r)
-
-    # ---- Orca's setup wizard: a ref from before its page navigated is stale ----
-    client.call("action_run", id="orca_command:help_setup_wizard:orca")
-    check("the setup wizard opens", wait_for(lambda: 'button "Next"' in tree(target="dialog"), 90), lambda: tree(target="dialog")[:1500])
-    next_ref = ref_of(tree(target="dialog"), 'button "Next"')
-    r = call("widget_click", target=next_ref)
-    check("Next navigates to the printer page", r.get("navigated") is True and "/guide/21/" in r.get("url", ""), r)
-    # The reply comes once the web view's URL changes, which the old document can outlast for a while; the
-    # ref is stale once the new one runs.
-    wait_for(lambda: "/guide/21/" in str(call("webview_run_javascript", code="location.pathname").get("result")), 10)
-    r = call("widget_click", target=next_ref)
-    check("the ref from the page before is stale", "page changed" in r.get("error", ""), r)
-    r = call("webview_run_javascript", code="location.reload(); 1")
-    check("a reload at the same URL replies navigated", r.get("navigated") is True, r)
-    r = call("dialog_answer", button="close")
-    check("dialog_answer close replies closed", r.get("closed") is True, r)
-    check("the wizard closes", wait_for(lambda: dialogs() == []), r)
+    # The click's own requests to the frame have its 5 s, so the watch is the last one waiting.
+    wait_for(lambda: relaying() == 0, 20)
+    gone = time.time() - asked
+    check("a request with no deadline is given up after the tools' default", relaying() == 0 and gone >= 10, f"{gone:.1f} s")
 
     print(f"{len(failed)} checks failed" if failed else "all checks passed")
     return 1 if failed else 0

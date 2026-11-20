@@ -1,36 +1,110 @@
 #!/usr/bin/env python3
-"""Where objects stand and how many there are, as the test_objects entry of tools/mcp/test-entries/objects.md designs
-them.
+"""Plates and objects, as the test_objects entry of tools/mcp/test-entries/objects.md designs them.
 
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_objects.py [scenario ...]
 
-Adding a shape at a size, a place, a plate and a name; moving, turning and scaling an instance, moving it to another
-plate, and Auto Drop; moving and scaling a part, the selection and Mirror; the number of instances and Set as
-Individual Objects; Drop to Bed, Center, Scale to Fit and Auto-Orient; Arrange and Fill bed; Clone; leaving instances
-out of the print; and what the project file keeps. After every step the test reads the plates with plate_list and every
-object and instance with object_list, and compares them with the state the entry writes out: the objects' names,
-plates and instance counts, and each instance's place, turn, scale, mirror, printable flag, height above the bed and
-Auto Drop. It runs on the Generic Klipper Printer 0.4 nozzle, and exits 0 when every check passes. Scenarios named
-on the command line (by their method names, such as arranging) run alone.
+Three parts run one after another in one app. The plates of the Prepare view: adding, duplicating, naming, locking,
+selecting and deleting plates and undoing that; what a lock keeps Arrange and Auto-Orient from doing; a plate's own
+settings; the filament slots its filament orders count on; and the plate icons and plate menu. Where objects stand
+and how many there are: adding a shape at a size, a place, a plate and a name; moving, turning and scaling an
+instance, moving it to another plate, and Auto Drop; moving and scaling a part, the selection and Mirror; the number
+of instances and Set as Individual Objects; Drop to Bed, Center, Scale to Fit and Auto-Orient; Arrange and Fill bed;
+Clone; and leaving instances out of the print. What objects are made of and how the list orders them: renaming and
+deleting, the layer commands, Split and Assemble, the parts and their types, ordering and the print order, Fix Model,
+Reload from disk and Replace 3D file, and the keep_painting preference. Last, what the project file keeps of all
+three, through one save and reopen.
+
+After every step the test reads the plates back with plate_list and the objects with object_list, and compares them
+with the state the entry writes out. It runs on the Generic Klipper Printer 0.4 nozzle, and exits 0 when every check
+passes. Scenarios named on the command line (by their method names, such as arranging) run alone; cloning arranges
+with the options arranging stores, so it runs after it.
 """
 
 import copy
 import math
 import os
+import re
+import shutil
 import sys
 import tempfile
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
 from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, apart, corner, gap, gcode_prints, inside,  # noqa: E402
-                    plates, rect, run, scene, selection, square, start, wait)
-from test_plates import P, turn  # noqa: E402
+                    objects, plates, rect, run, scene, selection, slots, square, start, unsaved, wait)
 
 CUBE = {"shape": "cube", "size": [20, 20, 20]}
 START = {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]}
 # How far along x and y an instance a call adds goes from the object's last one: 0.05 of the bed's 250 mm.
 STEP = 12.5
+FILAMENT_ADD = "orca_command:filament_add:orca"
+FILAMENT_DELETE = "orca_command:filament_delete:orca"
+# The plate types the Klipper printer offers with support_multi_bed_types on.
+PLATE_TYPES = ["Cool Plate", "Engineering Plate", "High Temp Plate", "Textured PEI Plate", "Textured Cool Plate",
+               "Supertack Plate"]
+# A plate's settings as plate_list gives them.
+PLATE_KEYS = ["curr_bed_type", "print_sequence", "spiral_mode", "first_layer_print_sequence",
+              "other_layers_print_sequence", "overrides"]
+
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+FIXTURES = os.path.join(REPO, "tools", "mcp", "tests", "fixtures")
+# The system's own form of the path, as the loader names the object after its last separator.
+RINGS = os.path.normpath(os.path.join(REPO, "tests", "data", "two_hollow_squares.obj"))
+DRC = os.path.join(REPO, "resources", "handy_models", "OrcaCube_v2.drc")
+STAR = os.path.join(FIXTURES, "star.svg")
+HEIGHTMAP = os.path.join(FIXTURES, "heightmap.png")
+RING = [10.67, 10.67, 2.8]
+RINGS_SIZE = [68.67, 10.67, 2.8]
+# The endings of Fix Model's notices (the object list's fix_through_cgal()).
+REPAIR_ENDINGS = ("has been repaired", "have been repaired", "needed no repair", "Failed to repair",
+                  "Repairing was canceled")
+
+# A cube of side 1 from the origin: its corners and its twelve triangles, each turned outward; the last is the one
+# holed.stl lacks, and the two top ones (4, 5, 6) and (4, 6, 7) are the ones top4.stl splits into four.
+CORNERS = [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0), (0, 0, 1), (1, 0, 1), (1, 1, 1), (0, 1, 1)]
+TRIANGLES = [(0, 2, 1), (0, 3, 2), (4, 5, 6), (4, 6, 7), (0, 1, 5), (0, 5, 4),
+             (1, 2, 6), (1, 6, 5), (2, 3, 7), (2, 7, 6), (3, 0, 4), (3, 4, 7)]
+
+ROW = re.compile(r'^"(.*)" (\d+)( \*)?( L)?$')
+
+
+def P(*rows):
+    """Plates written as the entry writes them: '"Copy" 1 * L' is a plate named Copy with one object, current and
+    locked."""
+    out = []
+    for row in rows:
+        m = ROW.match(row)
+        assert m, row
+        out.append({"name": m.group(1), "current": bool(m.group(3)), "locked": bool(m.group(4)),
+                    "objects": int(m.group(2))})
+    return out
+
+
+def S(**own):
+    """A plate's settings as the entry writes them: the project's (Cool Plate, by layer, spiral off, both orders
+    Auto, no overrides) but for those given."""
+    out = {"curr_bed_type": "Cool Plate", "print_sequence": "by layer", "spiral_mode": False,
+           "first_layer_print_sequence": None, "other_layers_print_sequence": None, "overrides": []}
+    out.update(own)
+    return out
+
+
+def plate_settings(client):
+    """Each plate's settings from plate_list, PLATE_KEYS of each, in plate order."""
+    return [{k: item.get(k) for k in PLATE_KEYS} for item in client.call("plate_list", limit=500)["items"]]
+
+
+def turn(degrees):
+    """The rotation matrix, flattened, of rotation_deg [x, y, z] as the app composes it (z, then y, then x), so that
+    two sets of angles that name one turn compare equal: [180, 90, 180] is [0, 90, 0]."""
+    a, b, c = (math.radians(d) for d in degrees)
+    rx = [[1, 0, 0], [0, math.cos(a), -math.sin(a)], [0, math.sin(a), math.cos(a)]]
+    ry = [[math.cos(b), 0, math.sin(b)], [0, 1, 0], [-math.sin(b), 0, math.cos(b)]]
+    rz = [[math.cos(c), -math.sin(c), 0], [math.sin(c), math.cos(c), 0], [0, 0, 1]]
+    mul = lambda p, q: [[sum(p[i][k] * q[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
+    return [v for row in mul(rz, mul(ry, rx)) for v in row]
 
 
 def close(got, want, tolerance):
@@ -59,20 +133,522 @@ def named(reply, key="objects"):
     return [(o.get("index"), o.get("name")) for o in reply.get(key, [])]
 
 
-class ObjectsTest:
-    def __init__(self, client, folder):
-        self.c = client
-        self.t = Checks()
-        self.folder = folder
-        self.want = []
+def cube_triangles(size, holed=False, top4=False):
+    """The triangles of a cube of `size` mm from the origin: without the last one when `holed`, with its top as four
+    triangles about the top's centre when `top4`."""
+    points = [tuple(c * size for c in corner_) for corner_ in CORNERS]
+    triangles = [tuple(points[i] for i in t) for t in TRIANGLES]
+    if holed:
+        triangles = triangles[:-1]
+    if top4:
+        centre = (size / 2, size / 2, size)
+        triangles = [t for i, t in enumerate(triangles) if i not in (2, 3)]
+        triangles += [(points[a], points[b], centre) for a, b in ((4, 5), (5, 6), (6, 7), (7, 4))]
+    return triangles
 
-    # ---- Calls ----
+
+def write_stl(path, triangles):
+    """An ASCII STL of the triangles."""
+    lines = ["solid cube"]
+    for triangle in triangles:
+        lines += ["  facet normal 0 0 0", "    outer loop"]
+        lines += ["      vertex %g %g %g" % vertex for vertex in triangle]
+        lines += ["    endloop", "  endfacet"]
+    lines.append("endsolid cube")
+    with open(path, "w") as f:
+        f.write("\n".join(lines) + "\n")
+
+
+def centre(box):
+    return [(lo + hi) / 2 for lo, hi in zip(box["min"], box["max"])]
+
+
+def names(objects_):
+    """The objects' names in index order, from scene()."""
+    return [o["name"] for o in objects_]
+
+
+def types(obj):
+    """An object's parts' types in order, from its entry in scene()."""
+    return [p["type"] for p in obj["parts"]]
+
+
+def names_of(reply_items):
+    """The `index` and `name` of each object a reply names."""
+    return [{"index": o.get("index"), "name": o.get("name")} for o in reply_items or []]
+
+
+class Part:
+    """What the three parts share: the client, the checks they print, the test's folder W and the calls they make."""
+
+    def __init__(self, client, checks, folder):
+        self.c = client
+        self.t = checks
+        self.W = folder
 
     def run(self, tool, **args):
         return run(self.c, tool, **args)
 
     def undo(self):
         self.run("undo", history="project")
+
+    def redo(self):
+        self.run("redo", history="project")
+
+    def plates_are(self, label, *rows):
+        self.t.equal(f"{label}: the plates", plates(self.c), P(*rows))
+
+
+class Plates(Part):
+    """The plates: after every step plates() is compared whole with the row."""
+
+    # ---- Calls and reads ----
+
+    def objects_are(self, label, on, outside=()):
+        self.t.equal(f"{label}: the objects", objects(self.c), (sorted(on), sorted(outside)))
+
+    def start(self, name):
+        self.t.equal(f"{name}: the start: the presets", start(self.c), START)
+        self.run("view_set", tab="prepare")
+        wait(self.c, "idle")
+        self.plates_are(f"{name}: the start", '"" 0 *')
+
+    def listing(self):
+        """Each object of object_list with the plate it is listed on, as (plate, object)."""
+        listing = self.c.call("object_list", limit=500)
+        return [(p["index"], o) for p in listing["plates"] for o in p["objects"]]
+
+    def find(self, name, plate):
+        found = [o for p, o in self.listing() if p == plate and o["name"] == name]
+        assert len(found) == 1, f"{len(found)} objects named {name} on plate {plate}"
+        return found[0]
+
+    def rule_uses(self, match):
+        for rule in self.c.call("app_state").get("auto_answer_rules", []):
+            if rule.get("match") == match:
+                return rule.get("uses", 0)
+        return None
+
+    # ---- Checks on objects ----
+
+    def at(self, label, obj, corner_, dx, dy):
+        """The object's instance 0 at the plate's corner + (dx, dy), resting on the bed."""
+        inst = obj["instances"][0]
+        self.t.near(f"{label}: {obj['name']} at its plate's corner + ({dx}, {dy})", inst["offset"][:2],
+                    [corner_[0] + dx, corner_[1] + dy], 0.001)
+        self.t.near(f"{label}: {obj['name']} rests on the bed", inst["bbox"]["min"][2], 0, 0.001)
+
+    def squares_apart_on(self, label, plate, names_):
+        """The objects named lie inside the plate's rectangle and their squares do not overlap."""
+        r = rect(self.c, plate)
+        squares = []
+        for name in names_:
+            sq = square(self.find(name, plate)["instances"][0])
+            squares.append(sq)
+            self.t.check(f"{label}: {name} lies inside plate {plate}", inside(sq, r), (sq, r))
+        self.t.check(f"{label}: {' and '.join(names_)} do not overlap", apart(*squares), squares)
+
+    # ---- Scenarios ----
+
+    def life(self):
+        s = "a plate's life"
+        self.start(s)
+        self.t.refused(f"{s} 1: plate_delete of the only plate is refused", lambda: self.c.call("plate_delete"),
+                       code="last_plate")
+        self.plates_are(f"{s} 1", '"" 0 *')
+        self.run("plate_add")
+        self.plates_are(f"{s} 2", '"" 0', '"" 0 *')
+        self.run("plate_add")
+        self.plates_are(f"{s} 3", '"" 0', '"" 0', '"" 0 *')
+        self.run("plate_rename", plate=1, name="Left")
+        self.plates_are(f"{s} 4", '"" 0', '"Left" 0 *', '"" 0')
+        self.run("plate_lock", plate=2, locked=True)
+        after5 = ('"" 0', '"Left" 0 *', '"" 0 L')
+        self.plates_are(f"{s} 5", *after5)
+        self.run("plate_delete", plate=0)
+        after6 = ('"Left" 0 *', '"" 0 L')
+        self.plates_are(f"{s} 6", *after6)
+        self.undo()
+        self.plates_are(f"{s} 7", *after5)
+        self.redo()
+        self.plates_are(f"{s} 8", *after6)
+
+    def by_index(self):
+        s = "by index"
+        self.start(s)
+        self.run("object_add_primitive", name="first", **CUBE)
+        self.plates_are(f"{s} 1", '"" 1 *')
+        self.objects_are(f"{s} 1", [(0, "first")])
+        self.run("plate_add")
+        self.plates_are(f"{s} 2", '"" 1', '"" 0 *')
+        self.run("object_add_primitive", name="second", plate=1, **CUBE)
+        self.plates_are(f"{s} 3", '"" 1', '"" 1 *')
+        self.objects_are(f"{s} 3", [(0, "first"), (1, "second")])
+        self.run("plate_select", plate=0)
+        self.plates_are(f"{s} 4", '"" 1 *', '"" 1')
+        self.run("plate_duplicate", plate=1)
+        self.plates_are(f"{s} 5", '"" 1 *', '"" 1', '"" 1')
+        self.objects_are(f"{s} 5", [(0, "first"), (1, "second"), (2, "second")])
+        self.run("plate_duplicate")
+        self.plates_are(f"{s} 6", '"" 1 *', '"" 1', '"" 1', '"" 1')
+        self.objects_are(f"{s} 6", [(0, "first"), (1, "second"), (2, "second"), (3, "first")])
+        self.run("plate_rename", plate=2, name="Copy")
+        self.plates_are(f"{s} 7", '"" 1', '"" 1', '"Copy" 1 *', '"" 1')
+        self.run("plate_select", plate=1)
+        self.run("plate_rename", name="Second")
+        after8 = ('"" 1', '"Second" 1 *', '"Copy" 1', '"" 1')
+        self.plates_are(f"{s} 8", *after8)
+        self.run("plate_rename", name="Second")
+        self.plates_are(f"{s} 9", *after8)
+        self.undo()
+        self.plates_are(f"{s} 10: the unchanged name took no undo step", '"" 1', '"" 1 *', '"Copy" 1', '"" 1')
+        self.redo()
+        self.plates_are(f"{s} 11", *after8)
+        reply = self.run("plate_lock", plate=3, locked=True)
+        self.t.equal(f"{s} 12: the reply says the lock changed", reply.get("changed"), True)
+        self.plates_are(f"{s} 12", '"" 1', '"Second" 1 *', '"Copy" 1', '"" 1 L')
+        self.run("plate_lock", plate=3)
+        self.plates_are(f"{s} 13: without locked the lock toggles", *after8)
+        self.run("plate_lock")
+        after14 = ('"" 1', '"Second" 1 * L', '"Copy" 1', '"" 1')
+        self.plates_are(f"{s} 14: the current plate", *after14)
+        reply = self.run("plate_lock", locked=True)
+        self.t.equal(f"{s} 15: the reply says the lock did not change", reply.get("changed"), False)
+        self.plates_are(f"{s} 15", *after14)
+        self.undo()
+        self.plates_are(f"{s} 16: the unchanged lock took no undo step", *after8)
+        self.redo()
+        self.run("plate_lock", locked=False)
+        self.plates_are(f"{s} 17", *after8)
+        self.run("plate_select", plate=2)
+        after18 = ('"" 1', '"Second" 1', '"Copy" 1 *', '"" 1')
+        self.plates_are(f"{s} 18", *after18)
+        self.run("plate_select")
+        self.plates_are(f"{s} 19: without a plate the current plate stays", *after18)
+        self.run("plate_delete", plate=1)
+        after20 = ('"" 1', '"Copy" 1 *', '"" 1')
+        self.plates_are(f"{s} 20", *after20)
+        self.objects_are(f"{s} 20", [(0, "first"), (1, "second"), (2, "first")], ["second"])
+        self.run("plate_delete")
+        self.plates_are(f"{s} 21: deleting the current plate makes the plate before it current", '"" 1 *', '"" 1')
+        self.objects_are(f"{s} 21", [(0, "first"), (1, "first")], ["second", "second"])
+        self.undo()
+        self.plates_are(f"{s} 22", *after20)
+        self.objects_are(f"{s} 22", [(0, "first"), (1, "second"), (2, "first")], ["second"])
+
+    def duplicating(self):
+        s = "duplicating a plate"
+        self.start(s)
+        c0 = corner(self.c, 0)
+        self.run("object_add_primitive", name="cube", position=[c0[0] + 40, c0[1] + 60, 0], **CUBE)
+        self.run("object_transform", object=0, rotate=[0, 0, 30], mode="absolute")
+        self.plates_are(f"{s} 1", '"" 1 *')
+        cube = self.find("cube", 0)
+        self.at(f"{s} 1", cube, c0, 40, 60)
+        self.t.near(f"{s} 1: the cube is turned 30 degrees", cube["instances"][0]["rotation_deg"], [0, 0, 30], 0.001)
+        self.t.near(f"{s} 1: the turned cube's size", cube["instances"][0]["bbox"]["size"],
+                    [20 * (math.cos(math.radians(30)) + math.sin(math.radians(30)))] * 2 + [20], 0.01)
+        self.t.equal(f"{s} 1: the cube's triangles", cube["parts"][0]["triangles"], 12)
+        self.t.near(f"{s} 1: the cube's mesh volume", cube["parts"][0]["mesh_volume"], 8000, 0.001)
+        self.run("object_add_primitive", shape="cylinder", size=[20, 30], name="cylinder",
+                 position=[c0[0] + 120, c0[1] + 80, 0])
+        self.plates_are(f"{s} 2", '"" 2 *')
+        cylinder = self.find("cylinder", 0)
+        self.at(f"{s} 2", cylinder, c0, 120, 80)
+        self.t.near(f"{s} 2: the cylinder's size", cylinder["instances"][0]["bbox"]["size"], [20, 20, 30], 0.1)
+        self.t.near(f"{s} 2: the cylinder's mesh volume", cylinder["parts"][0]["mesh_volume"],
+                    math.pi * 10 ** 2 * 30, math.pi * 10 ** 2 * 30 * 0.01)
+        places = {"cube": (40, 60), "cylinder": (120, 80)}
+
+        def sources(label):
+            for name, (dx, dy) in places.items():
+                self.at(label, self.find(name, 0), c0, dx, dy)
+
+        reply = self.run("plate_duplicate", plate=0)
+        self.t.equal(f"{s} 3: the reply's new plate", reply.get("new_plate"), 1)
+        self.plates_are(f"{s} 3", '"" 2 *', '"" 2')
+        c1 = corner(self.c, 1)
+        for name, (dx, dy) in places.items():
+            source, copy_ = self.find(name, 0), self.find(name, 1)
+            self.at(f"{s} 3: the copy", copy_, c1, dx, dy)
+            si, ci = source["instances"][0], copy_["instances"][0]
+            self.t.near(f"{s} 3: the {name}'s copy is turned as it", ci["rotation_deg"], si["rotation_deg"], 0.001)
+            self.t.near(f"{s} 3: the {name}'s copy is scaled as it", ci["scale"], si["scale"], 0.001)
+            self.t.near(f"{s} 3: the {name}'s copy has its size", ci["bbox"]["size"], si["bbox"]["size"], 0.001)
+            self.t.equal(f"{s} 3: the {name}'s copy has its mesh",
+                         [(p["triangles"], p["mesh_volume"]) for p in copy_["parts"]],
+                         [(p["triangles"], p["mesh_volume"]) for p in source["parts"]])
+        sources(f"{s} 3: the source")
+        self.objects_are(f"{s} 3", [(0, "cube"), (0, "cylinder"), (1, "cube"), (1, "cylinder")])
+        copy_ = self.find("cube", 1)
+        self.run("object_transform", object=copy_["index"], translate=[10, 0, 0])
+        self.t.near(f"{s} 4: the cube's copy moved 10 mm along x", self.find("cube", 1)["instances"][0]["offset"][:2],
+                    [c1[0] + 50, c1[1] + 60], 0.001)
+        self.plates_are(f"{s} 4", '"" 2 *', '"" 2')
+        sources(f"{s} 4: the source, which a copy's move leaves")
+        self.undo()
+        self.undo()
+        self.plates_are(f"{s} 5: the duplicate is one undo step", '"" 2 *')
+        self.objects_are(f"{s} 5", [(0, "cube"), (0, "cylinder")])
+        sources(f"{s} 5")
+
+    def lock(self):
+        s = "what a lock does"
+        self.start(s)
+        side = {"shape": "cube", "size": [20, 20, 10]}
+        c0 = corner(self.c, 0)
+        self.run("object_add_primitive", name="A", position=[c0[0] + 30, c0[1] + 30, 0], **side)
+        self.run("object_transform", object=0, rotate=[0, 90, 0], mode="absolute")
+        self.run("plate_add")
+        c1 = corner(self.c, 1)
+        self.run("object_add_primitive", name="B", plate=1, position=[c1[0] + 30, c1[1] + 30, 0], **side)
+        self.run("object_transform", object=1, rotate=[0, 90, 0], mode="absolute")
+        self.run("plate_lock", plate=0, locked=True)
+        self.plates_are(f"{s} 1", '"" 1 L', '"" 1 *')
+
+        def a_stands(label, dx=30):
+            a = self.find("A", 0)["instances"][0]
+            self.t.near(f"{label}: A stands where it was put", a["offset"][:2], [c0[0] + dx, c0[1] + 30], 0.001)
+            self.t.near(f"{label}: A is turned on its side", turn(a["rotation_deg"]), turn([0, 90, 0]), 1e-6)
+            self.t.near(f"{label}: A stands 20 mm tall", a["bbox"]["size"], [10, 20, 20], 0.01)
+
+        a_stands(f"{s} 1")
+        reply = self.run("object_arrange")
+        self.t.check(f"{s} 2: the arrange skipped the locked plate 0",
+                     {"plate": 0, "reason": "locked"} in reply.get("skipped_plates", []), reply)
+        self.plates_are(f"{s} 2", '"" 1 L', '"" 1 *')
+        a_stands(f"{s} 2")
+        self.t.equal(f"{s} 2: B stays on plate 1", [p for p, o in self.listing() if o["name"] == "B"], [1])
+        self.t.refused(f"{s} 3: arranging the locked plate is refused",
+                       lambda: self.c.call("object_arrange", plates=0),
+                       words='Plate 0 is locked; unlock it first (plate_lock {"plate": 0, "locked": false})')
+        self.plates_are(f"{s} 3", '"" 1 L', '"" 1 *')
+        a_stands(f"{s} 3")
+        self.t.refused(f"{s} 4: Auto-Orient of the locked plate is refused",
+                       lambda: self.c.call("object_auto_orient", plates=[0]), code="plate_locked")
+        self.plates_are(f"{s} 4", '"" 1 L', '"" 1 *')
+        a_stands(f"{s} 4")
+        reply = self.run("object_auto_orient", objects=[0, 1])
+        self.t.equal(f"{s} 5: the reply names B alone", [o.get("index") for o in reply.get("objects", [])], [1])
+        self.t.near(f"{s} 5: B lies flat", self.find("B", 1)["instances"][0]["bbox"]["size"][2], 10, 0.01)
+        self.plates_are(f"{s} 5", '"" 1 L', '"" 1 *')
+        a_stands(f"{s} 5")
+        self.run("object_transform", object=0, translate=[5, 0, 0])
+        self.plates_are(f"{s} 6", '"" 1 L', '"" 1 *')
+        a_stands(f"{s} 6: a lock does not stop a move by hand", dx=35)
+        self.run("plate_lock", plate=0, locked=False)
+        self.run("object_auto_orient", objects=[0])
+        self.plates_are(f"{s} 7", '"" 1', '"" 1 *')
+        self.t.near(f"{s} 7: A lies flat once its plate is unlocked", self.find("A", 0)["instances"][0]["bbox"]["size"][2],
+                    10, 0.01)
+        self.run("object_arrange")
+        wait(self.c, "idle")
+        self.plates_are(f"{s} 8: plate 1, empty now, is kept", '"" 2', '"" 0 *')
+        self.squares_apart_on(f"{s} 8", 0, ["A", "B"])
+
+    def own_settings(self):
+        s = "a plate's own settings"
+        self.start(s)
+        # A plate takes a plate type of its own only on a printer that offers several; an unsaved printer edit, which
+        # the next start() discards.
+        self.run("settings_set", type="printer", values={"support_multi_bed_types": "1"})
+        self.run("action_run", id=FILAMENT_ADD)
+        self.t.equal(f"{s}: two filament slots", slots(self.c), "0,0")
+        self.run("project_set_settings", values={"curr_bed_type": "Cool Plate"})
+        self.run("object_add_primitive", name="first", **CUBE)
+        self.run("plate_add")
+        self.run("object_add_primitive", name="second", plate=1, **CUBE)
+        self.plates_are(f"{s}: the start", '"" 1', '"" 1 *')
+
+        def settings_are(label, p0, p1):
+            self.t.equal(f"{label}: the plates' settings", plate_settings(self.c), [p0, p1])
+
+        settings_are(f"{s}: the start", S(), S())
+        after1 = S(curr_bed_type="Textured PEI Plate", print_sequence="by object",
+                   overrides=["curr_bed_type", "print_sequence"])
+        self.run("plate_set_settings", plate=1, values={"curr_bed_type": "Textured PEI Plate", "print_sequence": "by object"})
+        settings_are(f"{s} 1", S(), after1)
+        got = {i["key"]: i for i in self.c.call("plate_get_settings", plate=1,
+                                                keys=["curr_bed_type", "print_sequence", "spiral_mode"])["items"]}
+        self.t.equal(f"{s} 1: plate_get_settings gives the plate type", got["curr_bed_type"]["value"],
+                     "Textured PEI Plate")
+        self.t.equal(f"{s} 1: plate_get_settings gives the print sequence", got["print_sequence"]["value"], "by object")
+        self.t.equal(f"{s} 1: the plate types offered", got["curr_bed_type"]["meta"].get("offered"), PLATE_TYPES)
+        self.t.equal(f"{s} 1: spiral mode is the project's", (got["spiral_mode"]["value"],
+                                                               got["spiral_mode"]["effective"]), (None, False))
+        self.undo()
+        settings_are(f"{s} 2", S(), S())
+        self.redo()
+        settings_are(f"{s} 3", S(), after1)
+        reply = self.run("plate_set_settings", plate=1, values={"print_sequence": None})
+        self.t.equal(f"{s} 4: the reply's effective print sequence", reply.get("effective", {}).get("print_sequence"),
+                     "by layer")
+        after4 = S(curr_bed_type="Textured PEI Plate", overrides=["curr_bed_type"])
+        settings_are(f"{s} 4", S(), after4)
+        refusals = [
+            (5, {"plate": 1, "values": {"curr_bed_type": "Glass Plate", "print_sequence": "by object"}},
+             'does not offer curr_bed_type "Glass Plate"'),
+            (6, {"plate": 0, "values": {"first_layer_print_sequence": [1, 1]}},
+             "A filament order lists every filament slot 1..2 once"),
+            (7, {"plate": 0, "values": {"other_layers_print_sequence": [{"from": 2, "order": [1, 2]},
+                                                                         {"from": 5, "to": 9, "order": [2, 1]}]}},
+             "Layer ranges overlap"),
+            (8, {"plate": 0, "values": {"skirt_start_angle": 90}}, '"skirt_start_angle" is a process setting'),
+        ]
+        for step, args, words in refusals:
+            self.t.refused(f"{s} {step}: refused", lambda: self.c.call("plate_set_settings", **args), words=words)
+            settings_are(f"{s} {step}", S(), after4)
+        self.t.refused(f"{s} 9: a lock of a plate the project lacks is refused",
+                       lambda: self.c.call("plate_lock", plate=2, locked=True), code="no_such_plate")
+        settings_are(f"{s} 9", S(), after4)
+        self.plates_are(f"{s} 9", '"" 1', '"" 1 *')
+        self.run("plate_set_settings", plate=0, values={
+            "first_layer_print_sequence": [2, 1],
+            "other_layers_print_sequence": [{"from": 10, "order": [1, 2]}, {"from": 2, "to": 9, "order": [2, 1]}]})
+        settings_are(f"{s} 10: the ranges come back sorted", S(
+            first_layer_print_sequence=[2, 1],
+            other_layers_print_sequence=[{"from": 2, "to": 9, "order": [2, 1]}, {"from": 10, "order": [1, 2]}],
+            overrides=["first_layer_print_sequence", "other_layers_print_sequence"]), after4)
+        self.plates_are(f"{s} 10: the plate set is made current", '"" 1 *', '"" 1')
+        self.run("plate_set_settings", values={"first_layer_print_sequence": None, "other_layers_print_sequence": None})
+        settings_are(f"{s} 11: with no plate it sets the current plate", S(), after4)
+        spiral = "Spiral mode only works"
+        self.run("dialog_auto_answer", rules=[{"match": spiral, "button": "yes"}])
+        self.t.equal(f"{s} 12: the spiral rule has answered nothing yet", self.rule_uses(spiral), 0)
+        self.run("plate_set_settings", plate=0, values={"spiral_mode": True})
+        settings_are(f"{s} 12", S(spiral_mode=True, overrides=["spiral_mode"]), after4)
+        self.t.equal(f"{s} 12: the spiral mode question was asked once", self.rule_uses(spiral), 1)
+        self.run("dialog_auto_answer", rules=[])
+        self.run("plate_set_settings", plate=0, values={"spiral_mode": None})
+        settings_are(f"{s} 13", S(), after4)
+        reply = self.run("plate_slice", plates=1)
+        self.t.equal(f"{s} 14: the slice of plate 1", [p.get("outcome") for p in reply.get("plates", [])], ["ok"])
+        items = self.c.call("plate_list", limit=500)["items"]
+        self.t.equal(f"{s} 14: plate 1 is sliced and plate 0 is not", [i["sliced"] for i in items], [False, True])
+        self.t.equal(f"{s} 14: plate 1 has no layer G-code", items[1]["layer_gcode"], [])
+        settings_are(f"{s} 14", S(), after4)
+
+    def filament_slots(self):
+        s = "filament slots"
+        self.start(s)
+        self.t.refused(f"{s} 1: deleting the only slot is refused", lambda: self.c.call("filament_delete"),
+                       code="last_filament_slot")
+        self.t.equal(f"{s} 1", slots(self.c), "0")
+        steps = [(2, FILAMENT_ADD, "Added filament slot 2.", "0,0"), (3, FILAMENT_ADD, "Added filament slot 3.", "0,0,0")]
+        for step, action, message, want in steps:
+            reply = self.run("action_run", id=action)
+            self.t.equal(f"{s} {step}: the message", reply.get("message"), message)
+            self.t.equal(f"{s} {step}", slots(self.c), want)
+        self.t.refused(f"{s} 4: deleting slot 4 of 3 is refused",
+                       lambda: self.c.call("filament_delete", filament_slot=4), code="no_such_slot")
+        self.t.equal(f"{s} 4", slots(self.c), "0,0,0")
+        reply = self.run("filament_delete", filament_slot=2)
+        self.t.equal(f"{s} 5: the message", reply.get("message"), "Deleted filament slot 2.")
+        self.t.equal(f"{s} 5", slots(self.c), "0,0")
+        job = self.c.call("widget_click", target={"label": "Add Mixed Filament"})
+        wait(self.c, "dialog")
+        dialogs = self.c.call("app_state").get("dialogs", [])
+        self.t.equal(f"{s} 6: the dialog that opens", [d.get("title") for d in dialogs], ["Add Mixed Filament"])
+        self.run("dialog_answer", button="OK")
+        self.c.await_job(job)
+        wait(self.c, "idle")
+        self.t.equal(f"{s} 6", slots(self.c), "0,0,1")
+        self.t.refused(f"{s} 7: a filament order is refused while the project has mixed filaments",
+                       lambda: self.c.call("plate_set_settings", plate=0,
+                                           values={"first_layer_print_sequence": [2, 1]}),
+                       words="cannot be set while the project has mixed filaments")
+        self.t.equal(f"{s} 7: plate 0's order stays Auto",
+                     self.c.call("plate_list")["items"][0]["first_layer_print_sequence"], None)
+        self.t.equal(f"{s} 7", slots(self.c), "0,0,1")
+        reply = self.run("action_run", id=FILAMENT_ADD)
+        self.t.equal(f"{s} 8: the message", reply.get("message"), "Added filament slot 3.")
+        self.t.equal(f"{s} 8: a new slot goes ahead of the mixed one", slots(self.c), "0,0,0,1")
+        reply = self.run("action_run", id=FILAMENT_DELETE)
+        self.t.equal(f"{s} 9: the message", reply.get("message"), "Deleted filament slot 3.")
+        self.t.equal(f"{s} 9", slots(self.c), "0,0,1")
+        self.run("widget_click", target={"label": "Remove last mixed filament"})
+        wait(self.c, "idle")
+        self.t.equal(f"{s} 10", slots(self.c), "0,0")
+
+    def icons(self):
+        s = "plate icons"
+        self.start(s)
+        _, texts = self.c.call_with_text("widget_list", target="main", query="plate_icon")
+        listing = "\n".join(texts)
+        shown = set()
+        for line in listing.splitlines():
+            if "plate_icon" in line and re.search(r"\bplate 0\b", line):
+                m = re.search(r"plate_icon[^\"]*\"([^\"]*)\"", line)
+                if m:
+                    shown.add("plate" if "name=plate" in line else m.group(1))
+        self.t.equal(f"{s} 1: the icons plate 0 shows", shown,
+                     {"plate", "delete", "orient", "arrange", "lock", "settings", "name", "move_to_front"})
+        if self.t.failed and self.t.failed[-1].startswith(f"{s} 1"):
+            print(listing)
+        self.plates_are(f"{s} 1", '"" 0 *')
+        icon = lambda name, plate, **args: self.c.call("widget_click", target={"plate_icon": name, "plate": plate},
+                                                       **args)
+        icon("lock", 0)
+        self.plates_are(f"{s} 2", '"" 0 * L')
+        icon("lock", 0)
+        self.plates_are(f"{s} 3", '"" 0 *')
+        reply = icon("settings", 0)
+        titles = [d.get("title") for d in reply.get("dialogs", [])]
+        self.t.equal(f"{s} 4: the dialog that opens", titles, ["Plate Settings"])
+        self.run("dialog_answer", dialog={"title": "Plate Settings"}, button="cancel")
+        wait(self.c, "idle")
+        self.plates_are(f"{s} 4", '"" 0 *')
+        self.t.equal(f"{s} 4: plate 0 keeps the project's settings",
+                     self.c.call("plate_list")["items"][0]["overrides"], [])
+        self.run("widget_click", target={"gltoolbar": "addplate"})
+        wait(self.c, "idle")
+        self.plates_are(f"{s} 5", '"" 0', '"" 0 *')
+        x0, y0, x1, y1 = rect(self.c, 1)
+        middle = [(x0 + x1) / 2, (y0 + y1) / 2, 0]
+        for name in ("A", "B"):
+            self.run("object_add_primitive", name=name, plate=1, position=middle, **CUBE)
+        self.plates_are(f"{s} 6", '"" 0', '"" 2 *')
+        for name in ("A", "B"):
+            self.t.near(f"{s} 6: {name} at plate 1's middle", self.find(name, 1)["instances"][0]["offset"][:2],
+                        middle[:2], 0.001)
+        reply = icon("arrange", 1)
+        self.t.equal(f"{s} 7: the reply follows the arrange", (reply.get("started"), reply.get("done")), (True, True))
+        wait(self.c, "idle")
+        self.plates_are(f"{s} 7", '"" 0', '"" 2 *')
+        self.squares_apart_on(f"{s} 7", 1, ["A", "B"])
+        reply = icon("plate", 1, button="right")
+        items = reply.get("popup_menu", {}).get("items", [])
+        for item in ("Edit Plate Name", "Lock", "Delete Plate"):
+            self.t.check(f"{s} 8: the plate menu lists {item}", item in items, items)
+        self.plates_are(f"{s} 8", '"" 0', '"" 2 *')
+        reply = icon("plate", 1, button="right", popup_item="Lock")
+        self.t.equal(f"{s} 9: the reply's item", reply.get("ran"), "Lock")
+        self.plates_are(f"{s} 9", '"" 0', '"" 2 * L')
+        icon("lock", 1)
+        self.plates_are(f"{s} 10", '"" 0', '"" 2 *')
+        icon("move_to_front", 1)
+        wait(self.c, "idle")
+        self.plates_are(f"{s} 11", '"" 2 *', '"" 0')
+        self.t.equal(f"{s} 11: both cubes on plate 0", sorted(o["name"] for p, o in self.listing() if p == 0), ["A", "B"])
+        state = self.c.call("app_state")
+        self.t.equal(f"{s} 12: no dialog and no menu left open",
+                     (state.get("dialogs"), state.get("closed_menus")), ([], []))
+
+    def scenarios(self):
+        return [("a plate's life", self.life), ("by index", self.by_index), ("duplicating a plate", self.duplicating),
+                ("what a lock does", self.lock), ("a plate's own settings", self.own_settings),
+                ("filament slots", self.filament_slots), ("plate icons", self.icons)]
+
+
+class Places(Part):
+    """Where objects stand and how many there are: after every step the plates, and every object's name, plate and
+    instance count, and every instance against self.want."""
+
+    def __init__(self, client, checks, folder):
+        super().__init__(client, checks, folder)
+        self.want = []
+
+    # ---- Calls ----
 
     def redo_to(self, state):
         """Redoes the last step undone; the objects are then expected as `state`."""
@@ -120,13 +696,13 @@ class ObjectsTest:
 
     def empty(self, label):
         """What project_new leaves: one empty plate, current, and no objects."""
-        self.t.equal(f"{label}: the plates", plates(self.c), P('"" 0 *'))
+        self.plates_are(label, '"" 0 *')
         self.t.equal(f"{label}: no objects", scene(self.c), [])
 
     def expect(self, label, plates_row, objects_row, any_order=False):
         """Compares plates() with plates_row, the objects' names, plates and instance counts with objects_row, and
         every instance with what self.want holds for it; gives scene() for the step's own checks."""
-        self.t.equal(f"{label}: the plates", plates(self.c), P(*plates_row.split(" · ")))
+        self.plates_are(label, *plates_row.split(" · "))
         sc = scene(self.c)
         got, want = [row_of(o) for o in sc], objects_row.split(" · ") if objects_row else []
         if any_order:
@@ -183,6 +759,29 @@ class ObjectsTest:
 
     def size(self, label, inst, want, tolerance=0.01):
         self.t.near(f"{label}: bbox.size", inst["bbox"]["size"], want, tolerance)
+
+    def parts_are(self, label, sc, obj, wants):
+        """Each part of object `obj` as `wants` gives it: name, type, place +(x, y, z) from its instance's plate's
+        corner, scale, mirror and, where not None, turn."""
+        cx, cy = corner(self.c, sc[obj]["instances"][0]["plate"])
+        problems = []
+        parts = sc[obj]["parts"]
+        if len(parts) != len(wants):
+            problems.append(f"{len(parts)} parts, the test expects {len(wants)}")
+        for part, w in zip(parts, wants):
+            where = f"part {part['index']}"
+            at = [part["position"][0] - cx, part["position"][1] - cy, part["position"][2]]
+            if (part["name"], part["type"]) != (w["name"], w["type"]):
+                problems.append(f"{where}: {part['name']!r} of type {part['type']}")
+            if not close(at, w["at"], 0.001):
+                problems.append(f"{where}: at +({at[0]:.3f}, {at[1]:.3f}, {at[2]:.3f}), expected +{tuple(w['at'])}")
+            if not close(part["scale"], w["scale"], 0.001):
+                problems.append(f"{where}: scale {part['scale']}, expected {w['scale']}")
+            if w["rot"] is not None and not close(turn(part["rotation_deg"]), turn(w["rot"]), 1e-6):
+                problems.append(f"{where}: rotation_deg {part['rotation_deg']}, expected {w['rot']}")
+            if part["mirrored"] != w["mirrored"]:
+                problems.append(f"{where}: mirrored {part['mirrored']}")
+        self.t.check(f"{label}: the parts of {sc[obj]['name']}", not problems, "; ".join(problems))
 
     # ---- Scenarios ----
 
@@ -280,29 +879,6 @@ class ObjectsTest:
         self.undo()
         self.want = after13
         self.expect(f"{s} 16: the move was one undo step", *rows)
-
-    def parts_are(self, label, sc, obj, wants):
-        """Each part of object `obj` as `wants` gives it: name, type, place +(x, y, z) from its instance's plate's
-        corner, scale, mirror and, where not None, turn."""
-        cx, cy = corner(self.c, sc[obj]["instances"][0]["plate"])
-        problems = []
-        parts = sc[obj]["parts"]
-        if len(parts) != len(wants):
-            problems.append(f"{len(parts)} parts, the test expects {len(wants)}")
-        for part, w in zip(parts, wants):
-            where = f"part {part['index']}"
-            at = [part["position"][0] - cx, part["position"][1] - cy, part["position"][2]]
-            if (part["name"], part["type"]) != (w["name"], w["type"]):
-                problems.append(f"{where}: {part['name']!r} of type {part['type']}")
-            if not close(at, w["at"], 0.001):
-                problems.append(f"{where}: at +({at[0]:.3f}, {at[1]:.3f}, {at[2]:.3f}), expected +{tuple(w['at'])}")
-            if not close(part["scale"], w["scale"], 0.001):
-                problems.append(f"{where}: scale {part['scale']}, expected {w['scale']}")
-            if w["rot"] is not None and not close(turn(part["rotation_deg"]), turn(w["rot"]), 1e-6):
-                problems.append(f"{where}: rotation_deg {part['rotation_deg']}, expected {w['rot']}")
-            if part["mirrored"] != w["mirrored"]:
-                problems.append(f"{where}: mirrored {part['mirrored']}")
-        self.t.check(f"{label}: the parts of {sc[obj]['name']}", not problems, "; ".join(problems))
 
     def moving_a_part(self):
         s = "moving a part"
@@ -679,9 +1255,10 @@ class ObjectsTest:
             return sc
 
         self.run("view_set", tab="preview")
-        reply = self.run("object_arrange")
-        self.t.equal(f"{s} 4: the reply's off_plate and plates", (reply.get("off_plate"), reply.get("plates")),
-                     ([], 1))
+        reply = self.run("object_arrange", spacing=0, rotate=False)
+        settings = reply.get("settings", {})
+        self.t.equal(f"{s} 4: the reply's settings, off_plate and plates", (settings.get("spacing"),
+                     settings.get("rotate"), reply.get("off_plate"), reply.get("plates")), (0, False, [], 1))
         self.t.equal(f"{s} 4: an arrange shows the Prepare view", self.c.call("app_state").get("tab"), "prepare")
         for w in self.want:
             w["inst"][0]["at"] = None
@@ -842,24 +1419,19 @@ class ObjectsTest:
         self.add("b", I(0, (180, 60)))
         after1 = self.saved()
         rows = '"" 2 *', "a@0×3 · b@0"
-
-        def sliced(label, step, a_copies):
-            reply = self.run("plate_slice", plates=0)
-            self.t.equal(f"{label}: the slice", [p.get("outcome") for p in reply.get("plates", [])], ["ok"])
-            path = os.path.join(self.folder, f"printable-{step}.gcode")
-            self.run("project_export", format="gcode", path=path, overwrite=True)
-            self.t.equal(f"{label}: the G-code prints a in {a_copies} copies and b in 1", sorted(gcode_prints(path)),
-                         [("a", a_copies), ("b", 1)])
-
         self.expect(f"{s} 1", *rows)
-        sliced(f"{s} 1", 1, 3)
         reply = self.run("object_set_printable", instances=[[0, 1]], printable=False)
         self.t.equal(f"{s} 2: the reply", ([(i.get("object"), i.get("instance"), i.get("printable"))
                                             for i in reply.get("instances", [])], "objects" in reply),
                      ([(0, 1, False)], False))
         self.inst(0, 1)["printable"] = False
         self.expect(f"{s} 2", *rows)
-        sliced(f"{s} 3: an instance that is not printable is left out of the G-code", 3, 2)
+        reply = self.run("plate_slice", plates=0)
+        self.t.equal(f"{s} 3: the slice", [p.get("outcome") for p in reply.get("plates", [])], ["ok"])
+        path = os.path.join(self.W, "printable.gcode")
+        self.run("project_export", format="gcode", path=path, overwrite=True)
+        self.t.equal(f"{s} 3: an instance that is not printable is left out of the G-code: a in 2 copies and b in 1",
+                     sorted(gcode_prints(path)), [("a", 2), ("b", 1)])
         self.expect(f"{s} 3", *rows)
         self.undo()
         self.want = after1
@@ -896,47 +1468,688 @@ class ObjectsTest:
         self.run("object_set_auto_drop", objects=[1], auto_drop=False)
         self.run("object_transform", object=1, translate=[0, 0, 15])
         self.add("lifted", I(1, (60, 60), z=15), auto_drop=False)
-        rows = "kept@0×2 · lifted@1"
-        turned(f"{s} 2", self.expect(f"{s} 2", '"" 1 · "" 1 *', rows))
-        path = os.path.join(self.folder, "kept.3mf")
+        turned(f"{s} 2", self.expect(f"{s} 2", '"" 1 · "" 1 *', "kept@0×2 · lifted@1"))
+
+        self.run("object_add_primitive", plate=0, shape="cube", size=[30, 30, 10], name="base",
+                 position=self.corner(0, 180, 60))
+        self.run("part_add", object=2, type="negative", shape="cylinder", size=[6, 3],
+                 position=self.corner(0, 180, 60, 1.5))
+        self.run("part_add", object=2, type="modifier", shape="cube", size=[10, 10, 10],
+                 position=self.corner(0, 180, 60, 5))
+        self.run("part_add", object=2, type="precise_seam", shape="cube", size=[2, 2, 2],
+                 position=self.corner(0, 195, 60, 5))
+        self.run("object_rename", object=2, part=2, name="infill zone")
+        self.run("part_change_type", parts=[[2, 3]], type="precise_seam", subtype="left")
+        self.run("object_add_primitive", plate=0, name="other", position=self.corner(0, 180, 180), **CUBE)
+        self.run("object_order", plate=0, order=[0, 3, 2])
+        self.add("other", I(0, (180, 180)))
+        self.add("base", I(0, (180, 60)))
+        rows = "kept@0×2 · lifted@1 · other@0 · base@0"
+
+        def part(name, type_, at):
+            return {"name": name, "type": type_, "at": at, "scale": [1, 1, 1], "rot": [0, 0, 0], "mirrored": False}
+
+        def state(label, plates_row):
+            sc = self.expect(label, plates_row, rows)
+            turned(label, sc)
+            self.parts_are(label, sc, 2, [part("other", "part", (180, 180, 10))])
+            self.parts_are(label, sc, 3, [part("base", "part", (180, 60, 5)),
+                                          part("Generic-Cylinder", "negative", (180, 60, 1.5)),
+                                          part("infill zone", "modifier", (180, 60, 5)),
+                                          part("Generic-Cube", "precise_seam", (195, 60, 5))])
+            self.t.equal(f"{label}: the seam's subtype", sc[3]["parts"][3].get("subtype"), "left")
+
+        state(f"{s} 3", '"" 3 * · "" 1')
+        # A plate takes a plate type of its own only on a printer that offers several; an unsaved printer edit,
+        # which the project file keeps.
+        self.run("settings_set", type="printer", values={"support_multi_bed_types": "1"})
+        self.run("project_set_settings", values={"curr_bed_type": "Cool Plate"})
+        self.run("plate_rename", plate=0, name="Left")
+        self.run("plate_set_settings", plate=1, values={"curr_bed_type": "Textured PEI Plate"})
+        self.run("plate_lock", plate=1, locked=True)
+        own = [S(), S(curr_bed_type="Textured PEI Plate", overrides=["curr_bed_type"])]
+        state(f"{s} 4", '"Left" 3 · "" 1 * L')
+        self.t.equal(f"{s} 4: the plates' settings", plate_settings(self.c), own)
+
+        path = os.path.join(self.W, "keeps.3mf")
         self.run("project_save", path=path, overwrite=True)
-        self.run("project_new", discard_changes=True)
-        self.empty(f"{s} 3: after project_new")
+        # The new project drops the printer's edit, so that the open asks nothing about it.
+        self.run("project_new", discard_changes=True, preset_changes="discard")
+        self.empty(f"{s} 5: after project_new")
+        self.t.equal(f"{s} 5: after project_new the printer has no unsaved edit", unsaved(self.c, "printer"), [])
         self.run("project_open", path=path)
         wait(self.c, "idle")
-        turned(f"{s} 3", self.expect(f"{s} 3: the project file keeps them; opening it makes plate 0 current",
-                                     '"" 1 * · "" 1', rows))
+        state(f"{s} 5: the project file keeps them; opening it makes plate 0 current", '"Left" 3 * · "" 1 L')
+        self.t.equal(f"{s} 5: the project file keeps a plate's own settings", plate_settings(self.c), own)
+        self.t.equal(f"{s} 5: the project brings back the printer's support_multi_bed_types",
+                     unsaved(self.c, "printer"), ["support_multi_bed_types"])
 
-    def arrange_options(self):
-        """Stores the arrange options the arrangements are checked under, spacing 0 (automatic) and rotation off, as a
-        new data folder has them: the Arrange options panel keeps them for every arrange after, by the print
-        sequence, here the Klipper process's by layer. An earlier test may leave rotation on, which lets an arrange
-        turn a cube."""
-        start(self.c)
-        self.run("object_add_primitive", **CUBE)
-        reply = self.run("object_arrange", spacing=0, rotate=False)
-        settings = reply.get("settings", {})
-        self.t.equal("the arrange options: the reply's spacing and rotate", (settings.get("spacing"),
-                     settings.get("rotate")), (0, False))
+    def scenarios(self):
+        return [("adding a shape", self.adding), ("moving an instance", self.moving),
+                ("moving a part", self.moving_a_part), ("the number of instances", self.instances),
+                ("placing objects", self.placing), ("arranging and filling the bed", self.arranging),
+                ("cloning", self.cloning), ("leaving instances out of the print", self.printable)]
 
-    def run_all(self, only=()):
-        self.t.scenario("the arrange options", self.arrange_options)
-        scenarios = [("adding a shape", self.adding), ("moving an instance", self.moving),
-                     ("moving a part", self.moving_a_part), ("the number of instances", self.instances),
-                     ("placing objects", self.placing), ("arranging and filling the bed", self.arranging),
-                     ("cloning", self.cloning), ("leaving instances out of the print", self.printable),
-                     ("what the project keeps", self.kept)]
-        for name, scenario in scenarios:
-            if not only or scenario.__name__ in only:
-                self.t.scenario(name, scenario)
+
+class Structure(Part):
+    """What objects are made of and how the list orders them: after every step the objects' names in index order,
+    and the parts' types where a row writes them."""
+
+    def __init__(self, client, checks, folder):
+        super().__init__(client, checks, folder)
+        for name, triangles in (("cube20.stl", cube_triangles(20)), ("cube30.stl", cube_triangles(30)),
+                                ("holed.stl", cube_triangles(20, holed=True)),
+                                ("top4.stl", cube_triangles(20, top4=True))):
+            write_stl(self.file(name), triangles)
+
+    # ---- Calls and reads ----
+
+    def file(self, name):
+        return os.path.join(self.W, name)
+
+    def notices(self):
+        return [n.get("text", "") for n in self.c.call("app_state").get("notifications", [])]
+
+    def dialogs(self):
+        return [d.get("title") for d in self.c.call("app_state").get("dialogs", [])]
+
+    def gizmo(self):
+        return self.c.call("app_state").get("gizmo")
+
+    def objects_are(self, label, *rows, plate_rows=None):
+        """The objects' names in index order compared with the rows whole, and the parts' types of every object a row
+        writes them for ("Assembly: part, modifier"); then the plates, '"" n *' unless `plate_rows` gives them.
+        Returns scene()."""
+        objects_ = scene(self.c)
+        self.t.equal(f"{label}: the objects", names(objects_), [row.split(": ")[0] for row in rows])
+        for i, row in enumerate(rows):
+            if ": " in row:
+                got = types(objects_[i]) if i < len(objects_) else None
+                self.t.equal(f"{label}: object {i}'s parts", got, row.split(": ", 1)[1].split(", "))
+        self.plates_are(label, *(plate_rows or [f'"" {len(rows)} *']))
+        return objects_
+
+    def start(self, name):
+        self.t.equal(f"{name}: the start: the presets", start(self.c), START)
+        self.run("view_set", tab="prepare")
+        wait(self.c, "idle")
+        self.empty(f"{name}: the start")
+        self.c0 = corner(self.c, 0)
+
+    def renew(self, name):
+        """A project_new within a scenario, and the check of the empty project it leaves."""
         self.run("project_new", discard_changes=True)
-        return self.t.exit_code()
+        wait(self.c, "idle")
+        self.empty(f"{name}: the start")
+        self.c0 = corner(self.c, 0)
+
+    def empty(self, label):
+        self.plates_are(label, '"" 0 *')
+        self.t.equal(f"{label}: no objects", scene(self.c), [])
+
+    def at(self, x, y, z=None):
+        """A place given from plate 0's corner, in the app's coordinates."""
+        return [self.c0[0] + x, self.c0[1] + y] + ([] if z is None else [z])
+
+    def placed(self, label, obj, x, y):
+        """The object's instance 0 at +(x, y) from plate 0's corner."""
+        self.t.near(f"{label}: {obj['name']} at +({x}, {y})", obj["instances"][0]["offset"][:2], self.at(x, y), 0.001)
+
+    def part_placed(self, label, obj, part, x, y, z, tolerance=0.001):
+        self.t.near(f"{label}: part {part} of {obj['name']} at +({x}, {y}, {z})", obj["parts"][part]["position"],
+                    self.at(x, y, z), tolerance)
+
+    def rings(self, label, boxes):
+        """Two boxes, each a ring's, standing side by side: their centres 58 mm apart along x and level along y."""
+        for i, box in enumerate(boxes):
+            self.t.near(f"{label}: ring {i + 1}'s box", box["size"], RING, 0.01)
+        a, b = sorted((centre(box) for box in boxes), key=lambda c: c[0])
+        self.t.near(f"{label}: the rings side by side", [b[0] - a[0], b[1] - a[1]], [58, 0], 0.01)
+
+    # ---- Scenarios ----
+
+    def renaming(self):
+        s = "renaming and deleting"
+        self.start(s)
+        for x in (40, 100, 160):
+            self.run("object_add_primitive", position=self.at(x, 60, 0), **CUBE)
+            self.run("object_select", none=True)
+        objects_ = self.objects_are(f"{s} 1", "Cube", "Cube", "Cube")
+        for obj, x in zip(objects_, (40, 100, 160)):
+            self.placed(f"{s} 1", obj, x, 60)
+        reply = self.run("object_rename", object=1, name="middle")
+        self.t.equal(f"{s} 2: the reply", names_of(reply.get("objects")), [{"index": 1, "name": "middle"}])
+        self.objects_are(f"{s} 2", "Cube", "middle", "Cube")
+        reply = self.run("object_delete", objects=[0])
+        self.t.equal(f"{s} 3: the reply's objects", names_of(reply.get("objects")), [{"index": 0, "name": "Cube"}])
+        self.t.equal(f"{s} 3: the reply's object_count", reply.get("object_count"), 2)
+        objects_ = self.objects_are(f"{s} 3", "middle", "Cube")
+        self.placed(f"{s} 3", objects_[0], 100, 60)
+        self.placed(f"{s} 3", objects_[1], 160, 60)
+        self.undo()
+        self.objects_are(f"{s} 4: the delete was one undo step", "Cube", "middle", "Cube")
+        self.redo()
+        self.objects_are(f"{s} 5", "middle", "Cube")
+        self.run("object_select", objects=[0])
+        reply = self.run("object_delete")
+        self.t.equal(f"{s} 6: the reply's objects", names_of(reply.get("objects")), [{"index": 0, "name": "middle"}])
+        self.t.equal(f"{s} 6: the reply's object_count", reply.get("object_count"), 1)
+        objects_ = self.objects_are(f"{s} 6", "Cube")
+        self.placed(f"{s} 6", objects_[0], 160, 60)
+        self.t.refused(f"{s} 7: a name with a slash is refused", lambda: self.c.call("object_rename", object=0,
+                                                                                       name="a/b"), code="invalid_name")
+        self.t.refused(f"{s} 7: an empty name is refused", lambda: self.c.call("object_rename", object=0, name=""),
+                       code="empty_name")
+        self.objects_are(f"{s} 7", "Cube")
+        self.run("object_add_primitive", name="layered", position=self.at(60, 160, 0), **CUBE)
+        self.run("object_select", objects=[1])
+        reply = self.run("object_set_height_ranges", ranges=[{"min_z": 0, "max_z": 5}])
+        self.t.equal(f"{s} 8: the reply's object", reply.get("object"), 1)
+        self.t.equal(f"{s} 8: the reply's objects", names_of(reply.get("objects")), [{"index": 1, "name": "layered"}])
+        self.t.equal(f"{s} 8: the reply's range", [{k: r.get(k) for k in ("min_z", "max_z")}
+                                                  for r in reply.get("layer_config_ranges", [])],
+                     [{"min_z": 0, "max_z": 5}])
+        objects_ = self.objects_are(f"{s} 8", "Cube", "layered")
+        self.t.equal(f"{s} 8: layered has the range", [{k: r.get(k) for k in ("min_z", "max_z")}
+                                                      for r in objects_[1].get("layer_config_ranges", [])],
+                     [{"min_z": 0, "max_z": 5}])
+        self.t.check(f"{s} 8: Cube has no range", "layer_config_ranges" not in objects_[0], objects_[0])
+        reply = self.run("object_set_variable_layer_height", action="adaptive")
+        self.t.equal(f"{s} 9: the reply's object", reply.get("object"), 1)
+        self.t.equal(f"{s} 9: the reply's objects", names_of(reply.get("objects")),
+                     [{"index": 1, "name": "layered"}])
+        self.t.check(f"{s} 9: the reply has a layer_height_profile", "layer_height_profile" in reply, reply)
+        objects_ = self.objects_are(f"{s} 9", "Cube", "layered")
+        points = (objects_[1].get("layer_height_profile") or {}).get("points")
+        self.t.check(f"{s} 9: layered has a profile with points", isinstance(points, int) and points > 0,
+                     objects_[1].get("layer_height_profile"))
+        self.t.check(f"{s} 9: Cube has no profile", "layer_height_profile" not in objects_[0], objects_[0])
+
+    def splitting(self):
+        s = "splitting and assembling"
+        self.start(s)
+        name = "two_hollow_squares.obj"
+        reply = self.run("project_import", paths=[RINGS])
+        self.t.equal(f"{s} 1: the import's added", reply.get("added"), 1)
+        objects_ = self.objects_are(f"{s} 1", f"{name}: part")
+        self.t.near(f"{s} 1: its box", objects_[0]["bbox"]["size"], RINGS_SIZE, 0.01)
+        reply = self.run("object_split", object=0, into="objects")
+        self.t.equal(f"{s} 2: the reply's objects", [o.get("index") for o in reply.get("objects", [])], [0, 1])
+        self.t.equal(f"{s} 2: the reply's object_count", reply.get("object_count"), 2)
+        objects_ = self.objects_are(f"{s} 2", f"{name}_1: part", f"{name}_2: part")
+        self.rings(f"{s} 2", [o["bbox"] for o in objects_])
+        self.t.equal(f"{s} 2: the pieces are selected", selection(self.c)["objects"], [0, 1])
+        self.t.equal(f"{s} 3: the import's added", self.run("project_import", paths=[RINGS]).get("added"), 1)
+        reply = self.run("object_split", object=2, into="parts")
+        self.t.equal(f"{s} 3: the reply's parts", [{k: p.get(k) for k in ("object", "part")}
+                                                  for p in reply.get("parts", [])],
+                     [{"object": 2, "part": 0}, {"object": 2, "part": 1}])
+        self.t.equal(f"{s} 3: the reply's object_count", reply.get("object_count"), 3)
+        objects_ = self.objects_are(f"{s} 3", f"{name}_1: part", f"{name}_2: part", f"{name}: part, part")
+        self.t.equal(f"{s} 3: the parts' names", [p["name"] for p in objects_[2]["parts"]], [f"{name}_1", f"{name}_2"])
+        self.rings(f"{s} 3: the parts", [p["bbox"] for p in objects_[2]["parts"]])
+        after4 = (f"{name}: part, part", "Assembly: part, part")
+        reply = self.run("object_assemble", objects=[0, 1])
+        self.t.equal(f"{s} 4: the reply's object and name", (reply.get("object"), reply.get("name")), (1, "Assembly"))
+        objects_ = self.objects_are(f"{s} 4", *after4)
+        self.t.near(f"{s} 4: the pieces keep their places: Assembly's box", objects_[1]["bbox"]["size"], RINGS_SIZE,
+                    0.01)
+        reply = self.run("part_change_type", parts=[[1, 0]], type="modifier")
+        self.t.equal(f"{s} 5: the reply's parts", [{k: p.get(k) for k in ("object", "part", "type")}
+                                                  for p in reply.get("parts", [])],
+                     [{"object": 1, "part": 1, "type": "modifier"}])
+        objects_ = self.objects_are(f"{s} 5", f"{name}: part, part", "Assembly: part, modifier")
+        self.t.near(f"{s} 5: a modifier is left out of Assembly's box", objects_[1]["bbox"]["size"], RING, 0.01)
+        self.undo()
+        objects_ = self.objects_are(f"{s} 6: the change was one undo step", *after4)
+        self.t.near(f"{s} 6: Assembly's box", objects_[1]["bbox"]["size"][0], RINGS_SIZE[0], 0.01)
+        self.run("object_select", objects=[0])
+        reply = self.run("object_split", into="objects")
+        self.t.equal(f"{s} 7: the reply's objects", [o.get("index") for o in reply.get("objects", [])], [1, 2])
+        self.t.equal(f"{s} 7: the reply's object_count", reply.get("object_count"), 3)
+        objects_ = self.objects_are(f"{s} 7: no target splits the selected object, each piece named after its part",
+                                    "Assembly: part, part", f"{name}_1: part", f"{name}_2: part")
+        self.rings(f"{s} 7", [o["bbox"] for o in objects_[1:]])
+        self.run("object_select", objects=[1, 2])
+        reply = self.run("object_assemble")
+        self.t.equal(f"{s} 8: the reply's object and name", (reply.get("object"), reply.get("name")), (1, "Assembly"))
+        self.objects_are(f"{s} 8: no target assembles the selected objects", "Assembly: part, part",
+                         "Assembly: part, part")
+
+    def parts(self):
+        s = "parts"
+        self.start(s)
+        self.run("object_add_primitive", shape="cube", size=[40, 40, 10], name="block", position=self.at(100, 100, 0))
+        reply = self.run("part_add", object=0, type="negative", shape="cylinder", size=[6.2, 3.2],
+                         position=self.at(100, 100, 1.6))
+        self.t.equal(f"{s} 1: the reply's part and part_count", (reply.get("part"), reply.get("part_count")), (1, 2))
+        block = self.objects_are(f"{s} 1", "block: part, negative")[0]
+        negative = block["parts"][1]
+        self.part_placed(f"{s} 1", block, 1, 100, 100, 1.6)
+        self.t.near(f"{s} 1: the negative part's bottom", negative["bbox"]["min"][2], 0, 0.01)
+        self.t.near(f"{s} 1: the negative part's height", negative["bbox"]["size"][2], 3.2, 0.01)
+        self.t.check(f"{s} 1: the negative part's width is 6.1 to 6.21", 6.1 <= negative["bbox"]["size"][0] <= 6.21,
+                     negative["bbox"])
+        self.t.near(f"{s} 1: a negative part is left out of block's box", block["bbox"]["size"][2], 10, 0.001)
+        self.undo()
+        self.objects_are(f"{s} 2: adding a part is one undo step", "block: part")
+        self.redo()
+        self.objects_are(f"{s} 3", "block: part, negative")
+        reply = self.run("part_add", object=0, type="modifier", path=DRC)
+        self.t.equal(f"{s} 4: the reply's part and part_count", (reply.get("part"), reply.get("part_count")), (2, 3))
+        block = self.objects_are(f"{s} 4", "block: part, negative, modifier")[0]
+        self.t.equal(f"{s} 4: the modifier's name", block["parts"][2]["name"], "OrcaCube_v2.drc")
+        reply = self.run("part_add", object=0, type="part", shape="cube", size=[10, 10, 20],
+                         position=self.at(125, 100, 10))
+        self.t.equal(f"{s} 5: parts are listed by type: the reply's part", reply.get("part"), 1)
+        block = self.objects_are(f"{s} 5", "block: part, part, negative, modifier")[0]
+        cube = block["parts"][1]
+        self.t.equal(f"{s} 5: the new part's name and filament", (cube["name"], cube.get("filament")),
+                     ("Generic-Cube", 1))
+        self.t.near(f"{s} 5: the new part's height", cube["bbox"]["size"][2], 20, 0.01)
+        self.t.near(f"{s} 5: block's height", block["bbox"]["size"][2], 20, 0.001)
+        self.run("part_add", object=0, type="support_blocker", shape="sphere", position=self.at(110, 110, 10))
+        block = self.objects_are(f"{s} 6", "block: part, part, negative, modifier, support_blocker")[0]
+        self.part_placed(f"{s} 6: the blocker", block, 4, 110, 110, 10)
+        after7 = "block: part, part, negative, modifier, support_blocker, precise_seam"
+        self.run("part_add", object=0, type="precise_seam", shape="cube", size=[2, 2, 2])
+        block = self.objects_are(f"{s} 7", after7)[0]
+        self.t.equal(f"{s} 7: the seam's subtype", block["parts"][5].get("subtype"), "center")
+        refusals = [("a shape and a path", {"type": "modifier", "shape": "cube", "path": DRC}, "Give shape or path"),
+                    ("a cylinder of three sizes", {"type": "modifier", "shape": "cylinder", "size": [1, 2, 3]},
+                     "A cylinder's size is [Diameter, Height]"),
+                    ("an SVG file", {"type": "part", "path": STAR}, "SVG parts come from object_add_svg"),
+                    ("an image", {"type": "modifier", "path": HEIGHTMAP}, "The file could not be loaded")]
+        for case, args, words in refusals:
+            self.t.refused(f"{s} 8: {case} is refused", lambda: self.c.call("part_add", object=0, **args), words=words)
+            self.objects_are(f"{s} 8: after {case}", after7)
+        self.run("object_set_instances", object=0, count=2)
+        self.t.refused(f"{s} 9: a part on an object of two instances is refused",
+                       lambda: self.c.call("part_add", object=0, type="modifier", shape="cube"),
+                       words="object 0 has 2 instances")
+        self.objects_are(f"{s} 9", after7)
+
+        self.renew(f"{s} 10")
+        self.run("object_add_primitive", name="scaled", **CUBE)
+        self.run("object_transform", object=0, scale=1.5)
+        reply = self.run("part_add", object=0, type="modifier", shape="cube")
+        self.t.equal(f"{s} 10: the reply's part", reply.get("part"), 1)
+        scaled = self.objects_are(f"{s} 10", "scaled: part, modifier")[0]
+        self.t.near(f"{s} 10: adding a shape folds the instance's scale into the parts: the instance's scale",
+                    scaled["instances"][0]["scale"], [1, 1, 1], 0.001)
+        self.t.near(f"{s} 10: part 0's scale", scaled["parts"][0]["scale"], [1.5, 1.5, 1.5], 0.001)
+        self.t.near(f"{s} 10: the object's size", scaled["bbox"]["size"], [30, 30, 30], 0.001)
+
+        self.renew(f"{s} 11")
+        self.run("object_add_primitive", shape="cube", size=[30, 30, 10], name="plain")
+        self.run("part_add", object=0, type="modifier", shape="cube", size=[10, 10, 10])
+        plain = self.objects_are(f"{s} 11", "plain: part, modifier")[0]
+        self.t.equal(f"{s} 11: the parts' names", [p["name"] for p in plain["parts"]], ["plain", "Generic-Cube"])
+        self.run("object_select", parts=[[0, 1]])
+        reply = self.run("part_change_type", type="negative")
+        self.t.equal(f"{s} 12: no target changes the selected part: the reply's parts",
+                     [{k: p.get(k) for k in ("object", "part", "type")} for p in reply.get("parts", [])],
+                     [{"object": 0, "part": 1, "type": "negative"}])
+        self.objects_are(f"{s} 12", "plain: part, negative")
+        self.run("part_change_type", parts=[[0, 1]], type="support_blocker")
+        self.objects_are(f"{s} 13", "plain: part, support_blocker")
+        self.undo()
+        self.objects_are(f"{s} 14: each change is one undo step", "plain: part, negative")
+        self.run("part_change_type", parts=[[0, 1]], type="precise_seam")
+        plain = self.objects_are(f"{s} 15", "plain: part, precise_seam")[0]
+        self.t.equal(f"{s} 15: the seam's subtype", plain["parts"][1].get("subtype"), "center")
+        self.run("part_change_type", parts=[[0, 1]], type="part")
+        self.objects_are(f"{s} 16: a seam made a part again is listed after the first part", "plain: part, part")
+        self.run("part_change_type", parts=[[0, 1]], type="modifier")
+        self.objects_are(f"{s} 16", "plain: part, modifier")
+        self.t.refused(f"{s} 17: the last solid part's type is refused",
+                       lambda: self.c.call("part_change_type", parts=[[0, 0]], type="modifier"),
+                       code="last_solid_part")
+        self.objects_are(f"{s} 17", "plain: part, modifier")
+        self.run("object_select", objects=[0])
+        self.t.refused(f"{s} 18: an object's row is not a part",
+                       lambda: self.c.call("part_change_type", type="part"), code="wrong_selection")
+        self.objects_are(f"{s} 18", "plain: part, modifier")
+        self.run("object_select", objects=[0])
+        self.run("object_add_svg", path=STAR)
+        wait(self.c, "idle")
+        self.run("object_select", none=True)
+        plain = self.objects_are(f"{s} 19", "plain: part, part, modifier")[0]
+        svg_path = (plain["parts"][1].get("svg") or {}).get("path", "")
+        self.t.check(f"{s} 19: part 1's svg.path ends in star.svg", svg_path.endswith("star.svg"), svg_path)
+        self.t.equal(f"{s} 19: no gizmo open afterwards", self.gizmo(), None)
+        self.t.refused(f"{s} 20: an SVG part cannot be a support enforcer",
+                       lambda: self.c.call("part_change_type", parts=[[0, 1]], type="support_enforcer"),
+                       code="text_part")
+        self.objects_are(f"{s} 20", "plain: part, part, modifier")
+        self.run("object_select", objects=[0])
+        self.run("object_rename", name="base")
+        self.run("object_select", parts=[[0, 2]])
+        self.run("object_rename", name="infill zone")
+        base = self.objects_are(f"{s} 21: no target renames the selected object, then the selected part",
+                                "base: part, part, modifier")[0]
+        self.t.equal(f"{s} 21: part 0 keeps its name, part 2 is renamed",
+                     (base["parts"][0]["name"], base["parts"][2]["name"]), ("plain", "infill zone"))
+        self.t.refused(f"{s} 22: a name with a slash is refused", lambda: self.c.call("object_rename", name="a/b"),
+                       code="invalid_name")
+        base = self.objects_are(f"{s} 22", "base: part, part, modifier")[0]
+        self.t.equal(f"{s} 22: part 2's name", base["parts"][2]["name"], "infill zone")
+
+    def ordering(self):
+        s = "ordering"
+        self.start(s)
+        places = {"tall": 30, "short": 128, "mid": 226}
+        for name, height in (("tall", 30), ("short", 10), ("mid", 20)):
+            self.run("object_add_primitive", shape="cube", size=[20, 20, height], name=name,
+                     position=self.at(places[name], 60, 0))
+            self.run("object_select", none=True)
+        one = ['"" 3 *']
+        two = ['"" 3', '"" 0 *']
+        first = ['"" 3 *', '"" 0']
+
+        def state(label, order, plate_rows):
+            objects_ = self.objects_are(label, *order, plate_rows=plate_rows)
+            for obj in objects_:
+                if obj["name"] in places:
+                    self.placed(label, obj, places[obj["name"]], 60)
+            return objects_
+
+        def order_is(label, reply, order, descending=None):
+            self.t.equal(f"{label}: the reply's order", reply.get("order"),
+                         [{"name": n, "object": i, "plate": 0} for i, n in enumerate(order)])
+            if descending is None:
+                self.t.check(f"{label}: the reply has no descending", "descending" not in reply, reply)
+            else:
+                self.t.equal(f"{label}: the reply's descending", reply.get("descending"), descending)
+
+        objects_ = state(f"{s} 1", ["tall", "short", "mid"], one)
+        self.t.near(f"{s} 1: the heights", [o["bbox"]["size"][2] for o in objects_], [30, 10, 20], 0.001)
+        ascending = ["short", "mid", "tall"]
+        reply = self.run("object_order", by="height", plate=0)
+        order_is(f"{s} 2", reply, ascending, False)
+        state(f"{s} 2", ascending, one)
+        reply = self.run("object_order", by="height", plate=0)
+        order_is(f"{s} 3: a call that gives plate sorts ascending", reply, ascending, False)
+        state(f"{s} 3", ascending, one)
+        reply = self.run("object_order", by="height", descending=True)
+        order_is(f"{s} 4", reply, ["tall", "mid", "short"], True)
+        state(f"{s} 4", ["tall", "mid", "short"], one)
+        reply = self.run("object_order", by="height")
+        order_is(f"{s} 5: from a descending order it sorts ascending", reply, ascending, False)
+        state(f"{s} 5", ascending, one)
+        reply = self.run("object_order", by="height")
+        order_is(f"{s} 6: an order they already have is reversed", reply, ["tall", "mid", "short"], True)
+        state(f"{s} 6", ["tall", "mid", "short"], one)
+        self.run("plate_add")
+        self.run("plate_select", plate=1)
+        self.t.refused(f"{s} 7: the current plate is empty", lambda: self.c.call("object_order", by="size"),
+                       code="no_objects_to_order")
+        state(f"{s} 7", ["tall", "mid", "short"], two)
+        self.t.refused(f"{s} 8: all must be a boolean", lambda: self.c.call("object_order", by="size", all="every"),
+                       words="all must be of type boolean")
+        state(f"{s} 8", ["tall", "mid", "short"], two)
+        reply = self.run("object_order", by="size", all=True)
+        order_is(f"{s} 9: every plate's objects, by volume", reply, ascending, False)
+        state(f"{s} 9", ascending, two)
+        reply = self.run("object_order", by="name", all=True)
+        order_is(f"{s} 10: by name", reply, ["mid", "short", "tall"], False)
+        state(f"{s} 10", ["mid", "short", "tall"], two)
+        self.run("plate_set_settings", plate=0, values={"print_sequence": "by object"})
+        state(f"{s} 11: plate_set_settings makes the plate it sets current", ["mid", "short", "tall"], first)
+        self.t.equal(f"{s} 11: plate 0's print_sequence",
+                     self.c.call("plate_list", limit=500)["items"][0]["print_sequence"], "by object")
+        given = ["tall", "mid", "short"]
+        reply = self.run("object_order", plate=0, order=[2, 0, 1])
+        order_is(f"{s} 12", reply, given)
+        state(f"{s} 12", given, first)
+        reply = self.run("object_order", plate=0, order=[0, 1, 2])
+        self.t.equal(f"{s} 13: the order they have changes nothing: the reply's order", reply.get("order"),
+                     [{"name": n, "object": i, "plate": 0} for i, n in enumerate(given)])
+        state(f"{s} 13", given, first)
+        self.undo()
+        state(f"{s} 14: step 12 was one undo step and step 13 took none", ["mid", "short", "tall"], first)
+        self.redo()
+        state(f"{s} 15", given, first)
+        reply = self.run("plate_slice", plates=0)
+        self.t.equal(f"{s} 16: the slice's outcome", [p.get("outcome") for p in reply.get("plates", [])], ["ok"])
+        path = self.file("order.gcode")
+        self.run("project_export", format="gcode", plates=0, path=path)
+        self.t.equal(f"{s} 16: the list's order is the print order", [name for name, _ in gcode_prints(path)], given)
+        state(f"{s} 16", given, first)
+
+    def repairing(self):
+        s = "repairing a mesh"
+        self.start(s)
+        holed = self.file("holed.stl")
+
+        def edges_are(label, *edges):
+            objects_ = self.objects_are(label, *["holed.stl"] * len(edges))
+            self.t.equal(f"{label}: open_edges", [o["mesh_errors"]["open_edges"] for o in objects_], list(edges))
+            self.placed(label, objects_[0], 60, 60)
+            if len(objects_) > 1:
+                self.placed(label, objects_[1], 128, 128)
+            return objects_
+
+        self.run("project_import", paths=[holed])
+        self.run("object_transform", object=0, position=self.at(60, 60, 0))
+        objects_ = edges_are(f"{s} 1", 3)
+        self.t.equal(f"{s} 1: manifold", objects_[0]["mesh_errors"]["manifold"], False)
+        reply = self.c.call("object_fix", objects=[0])
+        self.t.check(f"{s} 2: the reply has no status: the call waited for the repair", "status" not in reply, reply)
+        self.t.equal(f"{s} 2: the reply's objects", [o.get("index") for o in reply.get("objects", [])], [0])
+        repairs = [{"object": r.get("object"), "changed": r.get("changed"),
+                    "before": (r.get("mesh_errors_before") or {}).get("open_edges"),
+                    "after": (r.get("mesh_errors_after") or {}).get("open_edges"),
+                    "painting_removed": r.get("painting_removed")} for r in reply.get("repairs", [])]
+        self.t.equal(f"{s} 2: the reply's repairs", repairs,
+                     [{"object": 0, "changed": True, "before": 3, "after": 0, "painting_removed": False}])
+        objects_ = edges_are(f"{s} 2", 0)
+        self.t.equal(f"{s} 2: manifold", objects_[0]["mesh_errors"]["manifold"], True)
+        self.t.equal(f"{s} 2: no dialog", self.dialogs(), [])
+        notices = self.notices()
+        self.t.equal(f"{s} 2: no notice of Fix Model",
+                     [n for n in notices if any(ending in n for ending in REPAIR_ENDINGS)], [])
+        self.undo()
+        edges_are(f"{s} 3: the repair was one undo step", 3)
+        self.redo()
+        edges_are(f"{s} 4", 0)
+        self.run("project_import", paths=[holed])
+        self.run("object_transform", object=1, position=self.at(128, 128, 0))
+        self.run("view_set", camera="iso")
+        self.run("view_set", camera="fit_objects")
+        self.run("object_select", objects=[1])
+        # The 3D view draws the moved object before the click, so that it finds the object under the pointer.
+        wait(self.c, "idle")
+        reply = self.c.call("mouse_gesture", action="click", button="right", at={"object": 1, "spot": "top"},
+                            popup_item="Modify>Fix Model")
+        self.t.equal(f"{s} 5: the gesture's reply", reply.get("ran"), "Modify>Fix Model")
+        # The menu item's command runs after the gesture's reply, and its notice comes once it has repaired.
+        deadline = time.monotonic() + 30
+        while True:
+            edges = [o["mesh_errors"]["open_edges"] for o in scene(self.c)]
+            notices = self.notices()
+            met = edges[1:] == [0] and any("has been repaired" in n for n in notices)
+            if met or time.monotonic() > deadline:
+                break
+            time.sleep(0.2)
+        self.t.check(f"{s} 5: within 30 s object 1 is repaired and a notice says it has been repaired", met,
+                     (edges, notices))
+        edges_are(f"{s} 5", 0, 0)
+        self.undo()
+        edges_are(f"{s} 6: the menu item's repair was one undo step", 0, 3)
+
+    def files(self):
+        s = "the files a part comes from"
+        self.start(s)
+        reload = self.file("reload.stl")
+        shutil.copyfile(self.file("cube20.stl"), reload)
+        self.run("project_import", paths=[reload])
+        self.run("object_transform", object=0, position=self.at(100, 100, 0))
+
+        def volume_is(label, volume):
+            obj = self.objects_are(label, "reload.stl: part")[0]
+            self.t.near(f"{label}: part 0's mesh_volume", obj["parts"][0]["mesh_volume"], volume, 0.001)
+            self.placed(label, obj, 100, 100)
+            return obj
+
+        volume_is(f"{s} 1", 8000)
+        shutil.copyfile(self.file("cube30.stl"), reload)
+        reply = self.run("object_reload_from_disk", objects=[0])
+        reloaded = reply.get("reloaded", [])
+        self.t.equal(f"{s} 2: the reply's reloaded", [{k: r.get(k) for k in ("object", "part")} for r in reloaded],
+                     [{"object": 0, "part": 0}])
+        self.t.check(f"{s} 2: the reloaded path ends in reload.stl",
+                     all(r.get("path", "").endswith("reload.stl") for r in reloaded), reloaded)
+        self.t.equal(f"{s} 2: the reply's missing and unmatched", (reply.get("missing"), reply.get("unmatched")),
+                     ([], []))
+        self.t.check(f"{s} 2: the reply has no unreadable", "unreadable" not in reply, reply)
+        obj = volume_is(f"{s} 2", 27000)
+        self.t.near(f"{s} 2: the object rests on the bed", obj["instances"][0]["bbox"]["min"][2], 0, 0.001)
+        self.undo()
+        volume_is(f"{s} 3: the reload was one undo step", 8000)
+        self.redo()
+        volume_is(f"{s} 4", 27000)
+        os.remove(reload)
+        reply = self.run("object_reload_from_disk", objects=[0])
+        missing = reply.get("missing", [])
+        self.t.equal(f"{s} 5: the reply's missing", [{k: r.get(k) for k in ("object", "part")} for r in missing],
+                     [{"object": 0, "part": 0}])
+        self.t.check(f"{s} 5: the missing path ends in reload.stl",
+                     all(r.get("path", "").endswith("reload.stl") for r in missing), missing)
+        self.t.equal(f"{s} 5: the reply's reloaded", reply.get("reloaded"), [])
+        self.t.equal(f"{s} 5: no file dialog asks for it", self.dialogs(), [])
+        volume_is(f"{s} 5", 27000)
+        self.undo()
+        volume_is(f"{s} 6: the call that reloaded nothing took no undo step", 8000)
+
+        self.renew(f"{s} 7")
+        self.run("filament_add")
+        self.run("project_import", paths=[self.file("cube20.stl")])
+        self.run("object_transform", object=0, position=self.at(100, 100, 0))
+        self.run("part_add", object=0, type="modifier", shape="cylinder", size=[10, 10], position=self.at(100, 100, 10))
+        self.run("settings_set", type="process", target="part", object=0, part=0, values={"extruder": 2})
+
+        def parts_are(label):
+            obj = self.objects_are(label, "cube20.stl: part, modifier")[0]
+            self.placed(label, obj, 100, 100)
+            return obj
+
+        def part0_is(label, obj, triangles):
+            part = obj["parts"][0]
+            self.t.equal(f"{label}: part 0's filament and triangles", (part.get("filament"), part["triangles"]),
+                         (2, triangles))
+            self.t.near(f"{label}: part 0's mesh_volume", part["mesh_volume"], 8000, 0.001)
+            self.part_placed(label, obj, 0, 100, 100, 10)
+
+        def part1_is_cylinder(label, obj):
+            part = obj["parts"][1]
+            self.t.check(f"{label}: part 1 has no filament", "filament" not in part, part)
+            self.t.check(f"{label}: part 1's mesh_volume under 785.4", part["mesh_volume"] < 785.4,
+                         part["mesh_volume"])
+            self.part_placed(label, obj, 1, 100, 100, 10)
+
+        obj = parts_are(f"{s} 7")
+        part0_is(f"{s} 7", obj, 12)
+        part1_is_cylinder(f"{s} 7", obj)
+        old_id = obj["parts"][0]["id"]
+        reply = self.run("part_replace", object=0, part=0, path=self.file("top4.stl"))
+        obj = parts_are(f"{s} 8")
+        replaced = reply.get("parts", [])
+        self.t.equal(f"{s} 8: the reply's parts", [{k: p.get(k) for k in ("object", "part", "name")} for p in replaced],
+                     [{"object": 0, "part": 0, "name": "top4.stl"}])
+        new_id = replaced[0].get("part_id") if replaced else None
+        self.t.check(f"{s} 8: the reply's part_id is new and the one object_list gives",
+                     new_id != old_id and new_id == obj["parts"][0]["id"], (old_id, new_id, obj["parts"][0]["id"]))
+        part0_is(f"{s} 8: the part keeps its type, filament and place", obj, 14)
+        part1_is_cylinder(f"{s} 8", obj)
+        self.run("part_replace", object=0, part=1, path=self.file("top4.stl"))
+        obj = parts_are(f"{s} 9")
+        part = obj["parts"][1]
+        self.t.check(f"{s} 9: part 1 has no filament", "filament" not in part, part)
+        self.t.equal(f"{s} 9: part 1's triangles", part["triangles"], 14)
+        self.t.near(f"{s} 9: part 1's mesh_volume", part["mesh_volume"], 8000, 0.001)
+        self.part_placed(f"{s} 9: the mesh keeps its place in its file", obj, 1, 110, 110, 15, 0.05)
+        self.undo()
+        part1_is_cylinder(f"{s} 10", parts_are(f"{s} 10"))
+        self.undo()
+        obj = parts_are(f"{s} 11: each replace was one undo step")
+        self.t.equal(f"{s} 11: part 0's triangles", obj["parts"][0]["triangles"], 12)
+
+    def painting(self):
+        s = "painting kept through a mesh change"
+        self.start(s)
+        painted = self.file("painted.stl")
+        shutil.copyfile(self.file("cube20.stl"), painted)
+        self.run("project_import", paths=[painted])
+        self.run("view_set", camera="front")
+        self.run("view_set", camera="fit_objects")
+        self.run("object_select", objects=[0])
+        wait(self.c, "idle")
+        reply = self.c.call("widget_click", target={"gizmo": "FdmSupports"})
+        self.t.equal(f"{s} 1: the Paint-on supports gizmo opens", reply.get("active"), True)
+        self.c.call("widget_click", target={"imgui_name": "Fill"})
+        self.c.call("mouse_gesture", at={"object": 0, "spot": "front"})
+        self.c.call("widget_click", target={"imgui": "Done"})
+        wait(self.c, "idle")
+
+        def enforcers(label, name, more=True):
+            part = self.objects_are(label, f"{name}: part")[0]["parts"][0]
+            count = ((part.get("painted") or {}).get("supports") or {}).get("enforcers")
+            if more:
+                self.t.check(f"{label}: part 0 has painted enforcers", isinstance(count, int) and count > 0,
+                             part.get("painted"))
+            else:
+                self.t.check(f"{label}: part 0 has no painting", "painted" not in part, part.get("painted"))
+            return part
+
+        def preference(label, value):
+            items = self.c.call("preferences_get", keys=["keep_painting"])["items"]
+            self.t.equal(f"{label}: keep_painting", [i.get("value") for i in items], [value])
+
+        enforcers(f"{s} 1", "painted.stl")
+        self.t.equal(f"{s} 1: no gizmo open afterwards", self.gizmo(), None)
+        self.run("preferences_set", values={"keep_painting": False})
+        reply = self.run("object_reload_from_disk", objects=[0])
+        self.t.equal(f"{s} 2: the reply's reloaded", [{k: r.get(k) for k in ("object", "part")}
+                                                     for r in reply.get("reloaded", [])], [{"object": 0, "part": 0}])
+        enforcers(f"{s} 2: with the preference off a reload drops the painting", "painted.stl", more=False)
+        preference(f"{s} 2", False)
+        self.undo()
+        enforcers(f"{s} 3", "painted.stl")
+        self.run("preferences_set", values={"keep_painting": True})
+        self.run("object_reload_from_disk", objects=[0])
+        enforcers(f"{s} 4: with it on the same call keeps the painting", "painted.stl")
+        preference(f"{s} 4", True)
+        self.run("part_replace", object=0, part=0, path=self.file("top4.stl"))
+        part = enforcers(f"{s} 5: the painting is carried onto a mesh of other triangles", "top4.stl")
+        self.t.equal(f"{s} 5: part 0's triangles", part["triangles"], 14)
+
+    def scenarios(self):
+        return [("renaming and deleting", self.renaming), ("splitting and assembling", self.splitting),
+                ("parts", self.parts), ("ordering", self.ordering), ("repairing a mesh", self.repairing),
+                ("the files a part comes from", self.files),
+                ("painting kept through a mesh change", self.painting)]
+
+
+def run_all(client, folder, only=()):
+    checks = Checks()
+    places = Places(client, checks, folder)
+    parts = [Plates(client, checks, folder), places, Structure(client, checks, folder)]
+    scenarios = [item for part in parts for item in part.scenarios()]
+    scenarios.append(("what the project keeps", places.kept))
+    for name, scenario in scenarios:
+        if not only or scenario.__name__ in only:
+            checks.scenario(name, scenario)
+    client.call("dialog_auto_answer", rules=[])
+    # Drops the printer edit the project file brought back, as the next test's start() would.
+    run(client, "project_new", discard_changes=True, preset_changes="discard")
+    return checks.exit_code()
 
 
 def main():
     client, _ = orca_mcp.session_client()
-    with tempfile.TemporaryDirectory(prefix="orca-objects-") as folder:
-        return ObjectsTest(client, folder).run_all(sys.argv[1:])
+    with tempfile.TemporaryDirectory(prefix="orca-objects-", ignore_cleanup_errors=True) as folder:
+        return run_all(client, folder, sys.argv[1:])
 
 
 if __name__ == "__main__":

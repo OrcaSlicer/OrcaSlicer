@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
-"""Runs the MCP sweep: every replay and Python test under tools/mcp, on several jobs at once, each job running its
-tests one after another on one data folder.
+"""Runs the MCP sweep: every Python test in tools/mcp, on several jobs at once, each job running its tests one after
+another on one data folder.
 
     tools/mcp/run_sweep.py [--bin PATH] [-j N] [--only NAME ...] [--skip NAME ...] [--out DIR] [--history FILE]
                            [--keep] [--headless] [--wayland] [--list] [--forget NAME ...]
 
-The tests are smoke_test.json, tests/*.json and test_*.py; sweep.json lists each with what it needs, and a test it
-does not list stops the run before anything starts. -j N (or --jobs N) runs N jobs at once, as a build's -j runs N
-compile jobs; it defaults to half the cores, up to six. A job keeps one data folder for all its tests, as a
-person's OrcaSlicer keeps its own: the first launch seeds it, and each test after launches a fresh app on the folder
-as the tests before left it. Each test also has a folder of its own under --out for its session file
-($ORCA_MCP_SESSION), temporary folder, empty working folder and output, and a port of its own. The longest tests
-(by their last passing time in --history) start first, and tests that hold the same lock never overlap.
+The tests are the test_*.py files in tools/mcp; a replay, such as smoke_test.json, is not one. sweep.json lists each
+test with what it needs, and a test it does not list, or an entry whose file is not a test, stops the run before
+anything starts. -j N (or --jobs N) runs N jobs at once, as a build's -j runs N compile jobs; it defaults to half the
+cores, up to six. A job keeps one data folder for all its tests, as a person's OrcaSlicer keeps its own: the first
+launch seeds it, and each test after launches a fresh app on the folder as the tests before left it. Each test also
+has a folder of its own under --out for its session file ($ORCA_MCP_SESSION), temporary folder and empty working
+folder, and a port of its own. The longest tests (by their last passing time in --history) start first, and tests
+that hold the same lock never overlap.
 
 The serial tests run after the rest, one at a time with nothing else running, on a job of their own: those
 sweep.json marks exclusive, and those the history marks serial. A test that fails while others run runs again in
@@ -94,22 +95,21 @@ def load_manifest(path):
 
 
 def discover(mcp_dir):
-    """Every test under `mcp_dir`, by name (its file's stem), with its path relative to `mcp_dir`."""
-    found = {"smoke_test": "smoke_test.json"} if os.path.isfile(os.path.join(mcp_dir, "smoke_test.json")) else {}
-    for pattern in (os.path.join("tests", "*.json"), "test_*.py"):
-        for path in sorted(glob.glob(os.path.join(mcp_dir, pattern))):
-            name, rel = os.path.splitext(os.path.basename(path))[0], os.path.relpath(path, mcp_dir)
-            # A test is known by its name alone, so a second file of one name would never run.
-            if name in found:
-                raise ValueError(f"{found[name]} and {rel} are both the test {name}")
-            found[name] = rel
-    return found
+    """Every test in `mcp_dir`, the test_*.py files, by name (its file's stem), with its path relative to `mcp_dir`."""
+    return {os.path.splitext(os.path.basename(path))[0]: os.path.relpath(path, mcp_dir)
+            for path in sorted(glob.glob(os.path.join(mcp_dir, "test_*.py")))}
 
 
 def manifest_problems(manifest, discovered, mcp_dir):
+    """What keeps the manifest from listing exactly the tests `discovered`: a test it leaves out, an entry whose file
+    is missing, and one whose file is not a test, which the runner could not run."""
+    tests = {os.path.normcase(os.path.normpath(path)) for path in discovered.values()}
     problems = [f"{name}: not in sweep.json" for name in discovered if name not in manifest]
-    problems += [f"{name}: no such file {e['path']}" for name, e in manifest.items()
-                 if not os.path.isfile(os.path.join(mcp_dir, e["path"]))]
+    for name, e in manifest.items():
+        if not os.path.isfile(os.path.join(mcp_dir, e["path"])):
+            problems.append(f"{name}: no such file {e['path']}")
+        elif os.path.normcase(os.path.normpath(e["path"])) not in tests:
+            problems.append(f"{name}: {e['path']} is not a test; the tests are the test_*.py files")
     return problems
 
 
@@ -152,10 +152,6 @@ class RunContext:
         return os.path.join(self.job_dir, "datadir")
 
     @property
-    def out_dir(self):
-        return os.path.join(self.run_dir, "out")
-
-    @property
     def session(self):
         return os.path.join(self.run_dir, "session.json")
 
@@ -190,10 +186,7 @@ def setup_command(e, ctx):
 
 
 def test_command(e, ctx):
-    path = os.path.join(ctx.mcp_dir, e["path"])
-    if path.endswith(".json"):
-        return [ctx.python, os.path.join(ctx.mcp_dir, "orca_mcp.py"), "run-replay", path, "--out", ctx.out_dir]
-    return [ctx.python, path, *_fill(e["args"], ctx)]
+    return [ctx.python, os.path.join(ctx.mcp_dir, e["path"]), *_fill(e["args"], ctx)]
 
 
 def test_env(e, ctx, base):
@@ -285,7 +278,7 @@ def run_test(name, e, ctx):
     test's exit code, or "setup_failed", "launch_failed" or "timeout". A step that runs out of time is ended as
     run_step() ends it. A test that fails keeps a copy of the app's log."""
     shutil.rmtree(ctx.run_dir, ignore_errors=True)
-    for d in (ctx.out_dir, ctx.tmp, ctx.cwd):
+    for d in (ctx.tmp, ctx.cwd):
         os.makedirs(d)
     os.makedirs(ctx.datadir, exist_ok=True)
     base_env = test_env(e, ctx, os.environ)
@@ -498,10 +491,7 @@ def main(argv=None, mcp_dir=MCP_DIR):
 
     problems = option_problems(a, sys.platform)
     manifest = load_manifest(os.path.join(mcp_dir, "sweep.json"))
-    try:
-        problems += manifest_problems(manifest, discover(mcp_dir), mcp_dir)
-    except ValueError as e:
-        problems.append(str(e))
+    problems += manifest_problems(manifest, discover(mcp_dir), mcp_dir)
     problems += [f"{n}: no such test" for n in (a.only or []) + a.skip + (a.forget or []) if n not in manifest]
     if not (a.list or a.forget):  # neither launches anything, so neither needs a display
         problems += session_problems(a, os.environ, sys.platform)

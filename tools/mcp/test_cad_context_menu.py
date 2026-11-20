@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Checks that the Design tab's right-click offer adapts to what was clicked and lists exactly the
-verbs the offer table says apply.
+verbs the offer table says apply, that each verb it alone reaches draws what it should, and that
+the value fields a drawing opens take what is typed into them with no click.
 
     tools/mcp/orca_mcp.py launch --cad
     tools/mcp/test_cad_context_menu.py [rung ...]
@@ -23,7 +24,12 @@ point and opens nothing. author draws a 120 x 80 rectangle with the corner
 rectangle chosen from the menu, and no_shortcut one with the centre rectangle, which has no key,
 and checks it is centred on its click. curves draws each keyless creation verb (polyline, oblique
 and rounded rectangle, 2- and 3-point circle, centre and tangent arc, arc slot, elliptical arc,
-polygons of 3, 4, 5, 8 and 12 sides, inscribed and circumscribed) and grades the construction.
+polygons of 3, 4, 5, 8 and 12 sides, inscribed and circumscribed) and grades the construction; the
+rounded rectangle's width, height and corner radius are typed into its three value fields as they
+open, each checked to have opened by itself, taken the keyboard and the digits, differed from the
+size drawn and committed on Return, and graded on the geometry it set. label draws a rectangle as
+wide as puts its width label over one of its constraint badges, keeps it as drawn, picks it in
+Select and clicks the label's centre, which opens the field again, and types 71.
 transforms moves a line 25, rotates it 30 degrees, scales it 3 times and arrays it at a pitch of 20
 four times and at 360 degrees six times, each through its gizmo's value labels. art types "LT"
 into the Text dialog twice, cancelling the first text on the Insert step, which must leave no text,
@@ -41,7 +47,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import checks  # noqa: E402
 import orca_mcp  # noqa: E402
-from cad_gui import CANVAS, CadGui, until  # noqa: E402
+from cad_gui import BADGE_PICK_PX, BADGE_STEP_PX, CANVAS, CadGui, until  # noqa: E402
 
 gui = None  # the CadGui main() starts
 
@@ -176,6 +182,15 @@ def clear_sketch():
         raise AssertionError(f"the sketch still holds {left} entities")
 
 
+def inside(p):
+    """`p` (mm), checked to lie in the region the calibration probes covered, where a click is known
+    to reach the plane."""
+    x0, x1, y0, y1 = gui.safe
+    if not (x0 <= p[0] <= x1 and y0 <= p[1] <= y1):
+        raise RuntimeError(f"{p} mm lies outside the calibrated region {gui.safe}: widen the window")
+    return p
+
+
 # Which tool each creation verb arms. A verb run from the wrong item arms a neighbouring tool and
 # then draws something plausible with it; checking the armed tool fails that where it happens.
 ARMS = {"sk_polyline": "polyline", "sk_rect": "rect_corner", "sk_rect_center": "rect_center",
@@ -239,6 +254,108 @@ def safe_box():
     """The calibrated region (x0, x1, y0, y1) and its centre."""
     x0, x1, y0, y1 = gui.safe
     return x0, x1, y0, y1, (x0 + x1) / 2.0, (y0 + y1) / 2.0
+
+
+# ---------------------------------------------------------------- typing into a value field
+# Drawing a shape opens a value field on the canvas, filled with the size as drawn and holding the
+# keyboard, so a person types the size they want and presses Return. A field that is shown but does
+# not get the keyboard commits its prefill on Return, and only the geometry read back afterwards
+# tells it from one that works, so the shape is drawn away from every value typed into it.
+
+def extent(d, axis):
+    """How far the shape's lines reach along x (0) or y (1): a rectangle's width or height, the
+    straight sides of a rounded one included, since they span its whole box."""
+    vs = [p[axis] for e in d["entities"] if e["type"] == "line" for p in (e["p0"], e["p1"])]
+    return [max(vs) - min(vs)] if vs else []
+
+
+def width(d):
+    return extent(d, 0)
+
+
+def height(d):
+    return extent(d, 1)
+
+
+def arc_radii(d):
+    return [e["radius"] for e in d["entities"] if e["type"] == "arc"]
+
+
+def differs(prefill, value):
+    try:
+        return not near(float(prefill), value)
+    except ValueError:
+        return prefill != str(value)
+
+
+def type_into_open_field(rung, value, what, measure, opened_by="by itself"):
+    """Type `value` into the value field that opens, with no click into it, press Return, and check
+    the field took it; returns whether a field opened.
+
+    No click and no target for the keys: the field opens holding the keyboard, as a person sees it.
+    widget_list reads the field as an ImGui input whose value is its text, the prefill until
+    something is typed and then the digits that landed. Return commits the text the field holds,
+    so a field the digits never reached commits its prefill, which the geometry then shows. `what`
+    names the quantity `measure` reads off sketch_describe, the one the field sets."""
+    field = until(gui.value_field)
+    if not gui.check(f"{rung}: a value field opened {opened_by} to take {value}", field is not None,
+                     f"none opened to type {value} into"):
+        return False
+    title, prefill = field.title, field.prefill
+    # Typed before the field takes the keyboard, a frame after it shows, the digits would be lost.
+    if not gui.check(f"{rung}: {title} took the keyboard with no click into it, to take {value}",
+                     until(gui.typing_field) is not None, "it never showed focused"):
+        return False
+
+    def shown():
+        f = gui.value_field()
+        return None if f is None else f.prefill
+
+    gui.text(str(value))
+    until(lambda: shown() == str(value), timeout=2.0)
+    typed = shown()
+    gui.check(f"{rung}: {title} took the typed {value}, with no click into it", typed == str(value),
+              f"it shows {typed!r}" + (", its prefill: the digits never reached it" if typed == prefill else ""))
+    gui.check(f"{rung}: the typed {value} is not {title}'s prefill", differs(prefill, value), f"prefill {prefill!r}")
+
+    # A commit closes the field and opens the next one queued, with its own prefill. A value the
+    # field refuses leaves it open on the same text, its title replaced by the reason.
+    def moved_on():
+        f = gui.value_field()
+        return f is None or f.prefill != typed
+
+    gui.keys("Return")
+    committed = until(moved_on)
+    left = gui.value_field()
+    gui.check(f"{rung}: Return committed {title}'s {value}: the field closed or the next one opened", committed,
+              f"the field is still open, titled {left.title!r} on {left.prefill!r}" if left else "")
+
+    got = []
+
+    def carries():
+        got[:] = measure(gui.sketch())
+        return bool(got) and all(near(q, value) for q in got)
+
+    ok = until(carries, timeout=1.0)
+    was_prefill = False
+    try:
+        was_prefill = bool(got) and all(near(q, float(prefill), 1e-3) for q in got)
+    except ValueError:
+        pass
+    gui.check(f"{rung}: {what} is the typed {value}", ok,
+              f"{what} reads {[round(q, 6) for q in got]}" + (", the prefill Return committed" if was_prefill else ""))
+    return True
+
+
+def close_fields():
+    """Esc on a value field still open after the ones typed into, which closes it and the fields
+    queued after it and keeps the rest of the shape as drawn. The next field opens a moment after
+    the last commit, so this waits a while for one before deciding none is open."""
+    if until(gui.value_field, timeout=1.0) is None:
+        return
+    key("Escape")
+    if not until(lambda: gui.value_field() is None):
+        raise AssertionError("Esc left the value field open")
 
 
 # ---------------------------------------------------------------- rungs
@@ -453,11 +570,18 @@ def rung_curves():
                   f"first edge at {math.degrees(math.atan2(d0[1], d0[0])):.3f} deg")
 
     # Rounded rectangle: four lines and four arcs of one radius; the third click sets the radius.
+    # Its three value fields, Width, Height and then the corner Radius, are each typed into as they
+    # open. The clicks draw it 90 x 48 with corners of 15, away from every typed value and under
+    # half of each typed side, which the Width and Height fields require of the radius.
     clear_sketch()
     arm("curves", "sk_rect_rounded", *free)
-    gui.click_mm(cx - W * 0.20, cy - H * 0.15)
-    gui.click_mm(cx + W * 0.20, cy + H * 0.15)
-    gui.click_mm(cx + W * 0.20 - W * 0.04, cy + H * 0.15)
+    for p in ((-51, 27), (39, -21), (30, -9)):
+        gui.click_mm(*inside(p))
+    for value, what, measure in ((63, "its width", width), (41, "its height", height),
+                                 (7, "every corner's radius", arc_radii)):
+        if not type_into_open_field("curves", value, what, measure):
+            break
+    close_fields()
     ls, ar = ents("line"), ents("arc")
     gui.check("curves: sk_rect_rounded drew 4 lines and 4 arcs", len(ls) == 4 and len(ar) == 4,
               f"{len(ls)} lines, {len(ar)} arcs")
@@ -467,15 +591,10 @@ def rung_curves():
         lp = loops()
         gui.check("curves: the rounded rectangle is one closed loop", len(lp) == 1, f"{len(lp)} closed loop(s)")
         if len(lp) == 1:
-            # The four straight sides span the whole outer box (the top one runs from x_min + r
-            # to x_max - r at y_max), so their extent is the rectangle's, and rounding takes off
-            # the four corner squares less their quarter discs: r^2 (4 - pi).
-            xs = [p for e in ls for p in (e["p0"][0], e["p1"][0])]
-            ys = [p for e in ls for p in (e["p0"][1], e["p1"][1])]
-            w, h, r = max(xs) - min(xs), max(ys) - min(ys), rr[0]
-            want = w * h - r * r * (4 - math.pi)
-            gui.check("curves: its area is W*H - r^2 (4 - pi)", near(abs(lp[0]["area"]), want, 1e-6),
-                      f"area {abs(lp[0]['area']):.9f}, expected {want:.9f}")
+            # Rounding takes off the four corner squares less their quarter discs: r^2 (4 - pi).
+            want = 63.0 * 41.0 - 7.0 * 7.0 * (4 - math.pi)
+            gui.check("curves: its area is the typed 63 x 41 less r^2 (4 - pi) for the typed r 7",
+                      near(abs(lp[0]["area"]), want, 1e-6), f"area {abs(lp[0]['area']):.9f}, expected {want:.9f}")
 
     # Two-point circle: the two clicks are the ends of a diameter.
     clear_sketch()
@@ -775,6 +894,86 @@ def rung_transforms():
     leave()
 
 
+# ---------------------------------------------------------------- a label opens the field again
+
+def width_label(edge, th):
+    """Where a rectangle's width label sits for its first edge `edge`: off the edge's left side by
+    18% of its length (at least 8 mm), then by 0.7 label heights and 1.5 mm, the place
+    DesignSketchTool::draw_dim_quote gives a live Length quote on side +1. `th` is the label height
+    in millimetres."""
+    (ax, ay), (bx, by) = edge["p0"], edge["p1"]
+    L = math.hypot(bx - ax, by - ay)
+    nx, ny = -(by - ay) / L, (bx - ax) / L
+    off = max(L * 0.18, 8.0) + th * 0.7 + 1.5
+    return ((ax + bx) / 2.0 + nx * off, (ay + by) / 2.0 + ny * off)
+
+
+# The height of a value label, DesignSketchTool's 15 px, in the canvas's GL pixels as its badges are.
+LABEL_PX = 15.0
+
+
+def width_on_badge(mm_per_gl_px, k):
+    """The width at which a rectangle's width label is centred on its top edge's badge `k`: the label
+    sits max(0.18 L, 8) + 1.5 mm and 0.7 label heights off the edge (width_label), and the badge
+    BADGE_STEP_PX * (k + 1) over the edge's middle (CadGui.badge), both pixel lengths in GL pixels."""
+    return ((BADGE_STEP_PX * (k + 1) - 0.7 * LABEL_PX) * mm_per_gl_px - 1.5) / 0.18
+
+
+def rung_label():
+    """A drawn rectangle's width label, clicked at its centre in Select, opens the field again, and a
+    value typed there sets the width. The rectangle is as wide as puts that centre on the top edge's
+    third constraint badge, its Horizontal, which the label hides: what a person sees there and aims
+    at is the label, so the label takes the click. Taking the label promotes the width to a driving
+    dimension, so the click adds exactly one constraint; had the hidden badge taken it, it would
+    have selected the Horizontal and opened no field. The rectangle is kept as drawn (Esc on its
+    fields), so it is where its clicks put it, and Esc then drops the tool to Select. A shape's
+    labels show while it is picked, so a click on its top edge picks it first."""
+    gui.enter_sketch("r")
+    w = width_on_badge(gui.mm_per_px(0, 30) / gui.gl_per_px, 2)
+    gui.click_mm(*inside((-w / 2.0, 30)))
+    gui.click_mm(*inside((w / 2.0, -30)))
+    if until(gui.value_field) is None:
+        raise AssertionError("the rectangle opened no value field")
+    key("Escape")
+    if not until(lambda: gui.value_field() is None):
+        raise AssertionError("Esc left the rectangle's value field open")
+    key("Escape")
+    if not until(lambda: gui.sketch()["tool"] == "select"):
+        raise AssertionError(f"Esc left the tool {gui.sketch()['tool']} armed")
+
+    # The corner rectangle's first edge runs from its first corner along x, so with the first click
+    # at the top left it is the top edge, and its width label sits above it.
+    es = gui.sketch()["entities"]
+    top = es[0]
+    ys = [p[1] for e in es for p in (e["p0"], e["p1"])]
+    if top["type"] != "line" or not near(top["p0"][1], max(ys), 1e-9) or not near(top["p1"][1], max(ys), 1e-9):
+        raise AssertionError(f"the rectangle's first edge is not its top: {es}")
+    gui.click_mm(*inside(mid(top)))
+    if not until(lambda: gui.sketch()["selection"], timeout=2.0):
+        raise AssertionError("the click on the top edge picked nothing")
+
+    # The label's centre, read from the window it is drawn in; the badge under it, from the layout.
+    mm_per_gl_px = gui.mm_per_px(*mid(top)) / gui.gl_per_px
+    want = gui.px(*width_label(top, LABEL_PX * mm_per_gl_px))
+    x, y, rw, rh = min(gui.overlays(), key=lambda r: math.dist((r[0] + r[2] / 2.0, r[1] + r[3] / 2.0), want))
+    centre = (x + rw / 2.0, y + rh / 2.0)
+    if math.dist(centre, gui.px(*gui.badge(top, 2))) > gui.budget(BADGE_PICK_PX):
+        raise AssertionError(f"the width label's centre {centre} is off the top edge's third badge "
+                             f"{gui.px(*gui.badge(top, 2))}: the badge or label layout moved, and this rung "
+                             f"no longer clicks a label drawn over a badge")
+    before = gui.sketch()["constraints"]
+    gui.gesture(x=round(centre[0]), y=round(centre[1]))
+    after = gui.sketch()
+    gui.check("label: the click at the label's centre took the label: one driving dimension added",
+              after["constraints"] == before + 1,
+              f"{before} constraints before the click, {after['constraints']} after"
+              + (", the badge under the label selected" if after["selected_constraint"] is not None else ""))
+    if type_into_open_field("label", 71, "the top edge's length", lambda d: [d["entities"][0]["length"]],
+                            opened_by="from the click at the centre of the top edge's width label"):
+        close_fields()
+    gui.cancel()
+
+
 # The SVG the art rung imports: a filled 40 x 20 path, 2:1 whatever unit the importer takes a user
 # unit for. Filled, not stroked: a stroked path imports as its stroke's outline, two loops each
 # inflated by half the pen, whose proportions are the pen's.
@@ -931,7 +1130,7 @@ def rung_coverage():
 
 RUNGS = {"vocabulary": rung_vocabulary,
          "author": rung_author, "no_shortcut": rung_no_shortcut,
-         "curves": rung_curves, "transforms": rung_transforms,
+         "curves": rung_curves, "label": rung_label, "transforms": rung_transforms,
          "art": rung_art, "coverage": rung_coverage}
 
 

@@ -35,8 +35,8 @@ every 20th sheet by default (`--step`); `--scale` grades the largest drawings in
 round trip within `--budget` seconds.
 
 The Design tab's GUI tests, which draw on the canvas with the mouse and keyboard as a person
-does, are MCP harness tests in `tools/mcp/` (`test_cad_sketching.py`,
-`test_cad_context_menu.py` and `test_cad_click_edit.py`); `tools/mcp/README.md` says what
+does, are MCP harness tests in `tools/mcp/` (`test_cad_sketching.py` and
+`test_cad_context_menu.py`); `tools/mcp/README.md` says what
 they check and how to run them.
 
 ## Generated sources

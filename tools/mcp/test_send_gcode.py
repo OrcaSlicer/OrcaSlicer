@@ -35,7 +35,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, dialogs, plates, start, undo_steps  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, dialogs, plates, start, undo_steps, unsaved  # noqa: E402
 
 MODEL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "resources", "handy_models", "OrcaCube_v2.drc")
 SEND = "orca_command:send_gcode:orca"
@@ -206,6 +206,9 @@ def main():
     nothing_sent("printer_send {plates: 0}, with no address", lambda: client.call("printer_send", plates=0), "no_print_host")
     t.refused("printer_test_host, with no address: refused", lambda: client.call("printer_test_host"), code="no_print_host")
     t.equal("printer_test_host, with no address: no dialog", dialogs(client), [])
+    # The values set are the Klipper printer's own, so the preset differs from its stored self only by what a refused
+    # call would have changed.
+    t.equal("the refused calls changed nothing in the printer preset", unsaved(client, "printer"), [])
 
     # ---- The stub's address, the cube not sliced ----
     client.call("settings_set", type="printer", values={"print_host": f"127.0.0.1:{stub.port}"})

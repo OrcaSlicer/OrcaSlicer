@@ -182,7 +182,7 @@ def objects(client):
     return on, sorted(o["name"] for o in listing.get("outside", []))
 
 
-# ---- Objects: the readers of test-entries/objects.md, shared by test_objects and test_object_structure ----
+# ---- Plates and objects: the readers of test-entries/objects.md, for test_objects ----
 
 import math  # noqa: E402
 import re  # noqa: E402
@@ -264,7 +264,7 @@ def gap(a, b):
     return math.hypot(dx, dy)
 
 
-# ---- Project files: the readers of test-entries/files.md, for test_files ----
+# ---- Project files: the readers of test-entries/files.md, for test_files and test_slice_preview ----
 
 import io  # noqa: E402
 import os  # noqa: E402
@@ -444,7 +444,7 @@ def filament_rows(client):
 
 def slots(client):
     """The filament slots as the mixed flag of each filament_list row, one digit per slot ("0,0,1": three slots, the
-    third a mixed filament), as test_plates reads them."""
+    third a mixed filament), as test_objects reads them."""
     return ",".join("1" if row["mixed"] else "0" for row in filament_rows(client))
 
 

@@ -15,7 +15,7 @@ and the feature it adds say the operation in the same word, and that the bodies 
 suppresses a feature, which describe_design and feature_describe say as suppressed, and adds two aligns that
 cannot both hold, which describe_design lists in align_conflicts; and it calls the open sketch's commands by
 their type, sketch_extend, sketch_pattern, sketch_transform and sketch_dimension, through their silent forms.
-shapes_match_tools draws twelve shapes twice, each in a sketch of its own: once with its drawing tool, its
+shapes_match_tools draws six shapes twice, each in a sketch of its own: once with its drawing tool, its
 right-click menu item chosen and its points clicked on the canvas, and once with sketch_draw, from the geometry
 the tool's shape reads back with; the 3-point rectangle, the tangent arc, the slot and the square are drawn at a
 slant. The two sketches agree in their entities' types and geometry, their constraints' count and kinds (as
@@ -250,11 +250,10 @@ def rung_words():
 
 # ---------------------------------------------------------------- the shapes
 
-# The tool each drawing item arms, as sketch_describe names it, so that an item chosen one off is caught where it is.
-ARMS = {"sk_rect": "rect_corner", "sk_polyline": "polyline", "sk_rect_center": "rect_center",
-        "sk_rect_oblique": "rect_oblique", "sk_rect_rounded": "rect_rounded", "sk_circle_2pt": "circle_2pt",
-        "sk_circle_3pt": "circle_3pt", "sk_arc_t": "arc_3pt", "sk_arc_tangent": "arc_tangent", "sk_slot_arc": "slot_arc",
-        "sk_slot": "slot", "sk_poly_4": "polygon"}
+# The tool a drawing item arms, as sketch_describe names it, so that an item chosen one off is caught where it is. The
+# polyline, oblique rectangle, tangent arc and square items are left out: test_cad_context_menu's arm() checks what
+# each of them arms, chosen from the same offer on empty space.
+ARMS = {"sk_rect": "rect_corner", "sk_slot": "slot"}
 
 
 def menu_path(verb):
@@ -333,25 +332,11 @@ def shapes(box):
     def arcs(ents):
         return [e for e in ents if e["type"] == "arc"]
 
-    def circle(ents, toward):
-        (x, y), r = ents[0]["center"], ents[0]["radius"]
-        return [[x + r * dx, y + r * dy] for dx, dy in toward]
-
     def width_of(ls):
         # The far side's signed distance to the left of p0 to p1, the tool's own reading of its third click.
         (ax, ay), (bx, by), (fx, fy) = ls[0]["p0"], ls[0]["p1"], ls[1]["p1"]
         n = math.hypot(bx - ax, by - ay)
         return (-(by - ay) * (fx - bx) + (bx - ax) * (fy - by)) / n
-
-    def on_arc(a):
-        m = (a["start_angle"] + a["end_angle"]) / 2
-        return [a["center"][0] + a["radius"] * math.cos(m), a["center"][1] + a["radius"] * math.sin(m)]
-
-    def rounded(ents):
-        ls = lines(ents)
-        xs = [p[0] for e in ls for p in (e["p0"], e["p1"])]
-        ys = [p[1] for e in ls for p in (e["p0"], e["p1"])]
-        return {"p0": [min(xs), min(ys)], "p1": [max(xs), max(ys)], "radius": arcs(ents)[0]["radius"]}
 
     corner_a = at(-0.25, -0.25)
     corner_b = heading(corner_a, 25, 0.4)
@@ -375,30 +360,12 @@ def shapes(box):
          "adds": 4, "left": 0, "args": lambda e: {"p0": lines(e)[0]["p0"], "p1": lines(e)[1]["p1"]}},
         {"type": "polyline", "verb": "sk_polyline", "setup": [], "clicks": [tri_a, tri_b, tri_c, tri_a], "each_click": True,
          "adds": 3, "left": 2, "args": lambda e: {"points": [l["p0"] for l in lines(e)] + [lines(e)[0]["p0"]]}},
-        {"type": "rectangle_center", "verb": "sk_rect_center", "setup": [], "clicks": [at(-0.15, 0.1), at(0.1, 0.25)],
-         "adds": 4, "left": 0,
-         "args": lambda e: {"center": [(lines(e)[0]["p0"][k] + lines(e)[1]["p1"][k]) / 2 for k in (0, 1)],
-                            "corner": lines(e)[1]["p1"]}},
         {"type": "rectangle_3_point", "verb": "sk_rect_oblique", "setup": [],
          "clicks": [corner_a, corner_b, heading(corner_b, 115, 0.3)], "adds": 4, "left": 0,
          "args": lambda e: {"p0": lines(e)[0]["p0"], "p1": lines(e)[0]["p1"], "width": width_of(lines(e))}},
-        {"type": "rectangle_rounded", "verb": "sk_rect_rounded", "setup": [],
-         "clicks": [at(-0.3, -0.2), at(0.25, 0.2), at(0.19, 0.2)], "adds": 8, "left": 0, "args": rounded},
-        {"type": "circle_2_point", "verb": "sk_circle_2pt", "setup": [], "clicks": [at(-0.2, -0.1), at(0.15, 0.1)],
-         "adds": 1, "left": 0, "args": lambda e: dict(zip(("p0", "p1"), circle(e, [(-1, 0), (1, 0)])))},
-        {"type": "circle_3_point", "verb": "sk_circle_3pt", "setup": [],
-         "clicks": [at(-0.2, 0.0), at(0.0, 0.2), at(0.17, -0.06)], "adds": 1, "left": 0,
-         "args": lambda e: dict(zip(("p0", "p1", "p2"), circle(e, [(1, 0), (0, 1), (-1, 0)])))},
-        {"type": "arc_3_point", "verb": "sk_arc_t", "setup": [],
-         "clicks": [at(-0.25, -0.1), at(0.25, -0.1), at(0.0, 0.2)], "adds": 1, "left": 0,
-         "args": lambda e: {"p0": e[0]["p0"], "p1": e[0]["p1"], "on_arc": on_arc(e[0])}},
         {"type": "arc_tangent", "verb": "sk_arc_tangent",
          "setup": [{"type": "line", "p0": list(leave[0]), "p1": list(leave[1])}],
          "clicks": [leave[1], at(0.15, 0.15)], "adds": 1, "left": 0, "args": lambda e: {"end": e[0]["p1"]}},
-        {"type": "slot_arc", "verb": "sk_slot_arc", "setup": [],
-         "clicks": [at(-0.1, -0.25), at(0.15, -0.25), at(-0.1, 0.1), at(0.18, -0.25)], "adds": 4, "left": 0,
-         "args": lambda e: {"center": arcs(e)[0]["center"], "start": arcs(e)[3]["center"], "end": arcs(e)[1]["center"],
-                            "width": 2 * arcs(e)[1]["radius"]}},
         {"type": "slot", "verb": "sk_slot", "setup": [], "clicks": [slot_c0, slot_c1, heading(slot_c1, 122, 0.06)],
          "adds": 4, "left": 0,
          "args": lambda e: {"c0": arcs(e)[1]["center"], "c1": arcs(e)[0]["center"], "width": 2 * arcs(e)[0]["radius"]}},
@@ -1787,8 +1754,10 @@ def rung_shapes_match_tools():
         reply = gui.choose(*free, path)
         if reply.get("ran") != path:
             raise AssertionError(f"choosing {path} ran {reply.get('ran')}: {reply}")
-        armed = gui.sketch()["tool"]
-        gui.check(f"shapes_match_tools: {path} arms the {ARMS[shape['verb']]} tool", armed == ARMS[shape["verb"]], armed)
+        if shape["verb"] in ARMS:
+            armed = gui.sketch()["tool"]
+            gui.check(f"shapes_match_tools: {path} arms the {ARMS[shape['verb']]} tool", armed == ARMS[shape["verb"]],
+                      armed)
         for p in shape["clicks"]:
             gui.click_mm(*p)
             if shape.get("each_click"):

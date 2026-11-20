@@ -4,20 +4,26 @@ The design of this area's sweep tests. The rules every entry follows, the grades
 in [TESTS.md](../TESTS.md).
 
 ## `test_gizmos`
-`test_gizmos.py` · Python, 624 checks · in `sweep.json` as `{"path": "test_gizmos.py"}`
+`test_gizmos.py` · Python, 1035 checks · in `sweep.json` as `{"path": "test_gizmos.py"}`
 
-**Tests:** The Prepare view's gizmos driven as a person drives them, through the generic GUI tools: gizmo icons,
-fields, combos, buttons and links in their panels, and clicks and strokes at points of the model. Each gizmo's work
-is read back from the model it leaves (placements, painted facets, texture layers, text and SVG parts, brim ears,
-parts made or removed, positions in the assemble view), its undo is read before any redo, and what a person keeps
-is read again from a saved and reopened project. It also tests the canvas input those gizmos rely on: a press held
-across gestures and released by a gesture that fails, a toolbar item that a selection has just enabled, model points
-on a negative part and seen from below the bed; and that auto-answer rules run the Transfer and Discard buttons of
-the preset prompt.
+**Tests:** The Prepare view's gizmos, driven two ways. As a person drives them, through the generic GUI tools: gizmo
+icons, fields, combos, buttons and links in their panels, and clicks and strokes at points of the model. And through
+the commands that open a gizmo on a named target, and the ones among them that do the gizmo's job from arguments with
+no gizmo: `object_paint`, `object_measure`, `object_simplify`, `part_boolean`, `object_cut`, `object_lay_on_face`,
+`object_set_brim_ears`, and `object` and `type` of `object_add_text` and `object_add_svg`. A call that names only its
+target opens the gizmo on it, and the same call again leaves it open; a call with an acting argument closes the open
+gizmo first and leaves the model as the gizmo's own button would; each refusal is asserted by its code, with the
+model read back as it was. Each gizmo's or call's work is read back from the model it leaves (placements, painted
+facets, texture layers, text and SVG parts, brim ears, parts made or removed, positions in the assemble view), its
+undo is read before any redo, and what a person keeps is read again from a saved project, once for each thing the
+project file stores. It also tests the canvas input those gizmos rely on: a press held across gestures and released
+by a gesture that fails, a toolbar item that a selection has just enabled, model points on a negative part and seen
+from below the bed; and that auto-answer rules run the Transfer and Discard buttons of the preset prompt.
 
 **Starts from:** `start(c)`, the Generic Klipper Printer, compared with `{printer: KLIPPER, process: KLIPPER_STD,
-filaments: [GENERIC_PLA]}`: nothing the test drives is a Bambu Lab printer's own. Before its first scenario it sets
-the stored settings its checks depend on, and reads each back: the window at 1600 × 900 (`window_set {size: [1600,
+filaments: [GENERIC_PLA]}`: nothing the test drives is a Bambu Lab printer's own, and the brim ears' default radius
+follows this process's first-layer line width (brim ears from positions). Before its first scenario it sets the
+stored settings its checks depend on, and reads each back: the window at 1600 × 900 (`window_set {size: [1600,
 900]}`, then `app_state.window.size`), since where the panels open, what covers a point of the model and the pixels
 the canvas input scenario presses at follow the window's size, which another test may have left changed; Expert mode
 (the Expert action, then `app_state.mode` is `expert`), since some panel items show only there; and
@@ -27,18 +33,24 @@ middle-button drag that pans, which the canvas input scenario's pans need. It le
 no scenario simplifies, cuts or joins a painted part.
 
 **Leaves:** Expert mode and the preferences as it set them; not the window, whose placement the app stores only
-when it closes itself, and the runner ends it. The Klipper printer with `0.20mm Standard
-@MyKlipper` and two `Generic PLA @System` slots, the painting scenario's. The imported height map in the data folder's
-texture library, `textures/displacement/heightmap.png` (or `heightmap (n).png`, see texture layers), first in the app's
-recent textures. The Text tool's last style, `ITALIC`, which the app stores as the gizmo closes and a later Text
-opening starts with. The recent projects and the last folder opened, naming the projects it saved in its own folder.
-None of it changes the words or the units the app reads in, so the test restores nothing; Expert mode shows more
-settings, and a test whose checks read the settings pages sets the mode it needs.
+when it closes itself, and the runner ends it. The Klipper printer with `0.20mm Standard @MyKlipper` and one `Generic
+PLA @System` slot: openings refused takes back to one the two slots the painting and opening scenarios make. The
+imported height map in the data folder's texture library, `textures/displacement/heightmap.png` (or `heightmap
+(n).png`, see painting and texture layers), first in the app's recent textures. The Text tool's last style, `ITALIC`,
+which the app stores as the gizmo closes and a later Text opening starts with; the text commands pick no style and
+leave it so. The recent projects and the last folder opened, naming the projects it saved in its own folder. None of
+it changes the words or the units the app reads in, so the test restores nothing; Expert mode shows more settings,
+and a test whose checks read the settings pages sets the mode it needs.
 
 **Reads:**
 - `scene()` gives each object of `object_list` as `{name, offset, rotation_deg, scale, bbox, brim_ears, overrides,
   layer_height_profile, parts}`, the first four of its instance 0, and each part as `{name, type, triangles,
   mesh_volume, bbox, painted, text, svg}`.
+- `objects()` gives each object as `{name, offset, parts}`, its instance 0's offset and its number of parts;
+  `shapes()` each object as `{name, offset, min, max, size, parts}`, its instance 0's offset and `bbox` and its parts
+  as `(type, mesh_volume)`; `instances()` object 0's instances, each as `{offset, rotation_deg, min, size}`; and
+  `a_parts()` object 0's parts as their `type` and, for a text, its `text.text`, for an SVG, its `svg.path` as the
+  file's name.
 - `gizmo()` gives `app_state.gizmo` as `{name, canvas}`, or none.
 - `panel()` gives the open gizmo's ImGui panel as `widget_list` lists it: its texts in order, and its named items
   with the value each shows (a field's text, a combo's choice), an item without a name by its label. The panel is
@@ -47,30 +59,36 @@ settings, and a test whose checks read the settings pages sets the mode it needs
 - `assembly()` gives each object's position in the assemble view, `assemble_offset()` of its instance 0, from a
   `script_run` that reads `orca.host.model()`. No other tool reports it: `object_list` gives the Prepare placement.
 - `setting(object, key)` gives `settings_get {target: object}`'s `{value, effective, source}` for one key.
-- `selection()` gives `app_state.selection.objects`; `rules()` gives `app_state.auto_answer_rules` with their `uses`.
+- `selection()` gives `app_state.selection.objects`; `selected()` gives `selection()` from `checks.py` (`{objects,
+  instances, parts}`), only its `parts` for a selection of parts; `rules()` gives `app_state.auto_answer_rules` with
+  their `uses`.
 - `toolbar(name)` gives a 3D view toolbar item's `{enabled, pressed}` from `widget_list`.
-- `slots()` is the reader `test_plates` defines (the `mixed` of each `filament_list` row, one digit per slot).
+- `slots()` is the reader `test_objects` uses (the `mixed` of each `filament_list` row, one digit per slot), and
+  `undo_steps()` is `checks.py`'s.
+- `brim_file(path)` gives the saved project's `Metadata/brim_ear_points.txt` as `{object_id: [(x, y, z, r), …]}`. The
+  file numbers the model's objects from 1 (`_add_brim_ear_points_file_to_archive` in `bbs_3mf.cpp`), so object 0 is
+  `object_id` 1, and it holds each ear's position in the object's coordinates and its radius, as stored.
 
 Every scenario starts with `project_new {discard_changes: true}` in the Prepare view and checks that `scene()` is
 empty and `gizmo()` is none. Objects are then added with `object_add_primitive {shape, size,
 position, name}` resting on the bed, so a 20 mm cube placed at `[100, 100, 0]` has its offset at (100, 100, 10).
-Row 0 of each table reads `scene()` (and whatever else the scenario's opening sets up) and checks the start written
-there, before any gizmo acts.
+Row 0 of each table reads the model (and whatever else the scenario's opening sets up) and checks the start written
+there, before any gizmo or call acts.
 
 Notation. An object is written as its name and its offset, `A (90, 100, 10)`, with `rot [x, y, z]` for
 `rotation_deg`, `scale s` for a scale of s on all three axes and `size [x, y, z]` for `bbox.size` where a row gives
 them; `·` separates objects. Offsets and sizes are checked to 0.001 mm and angles to 0.01°, unless a row gives
 another tolerance. `undo` and `redo` are the tools, on the project's history.
 
-Every gizmo is opened and closed with `widget_click {target: {gizmo: name}}` (with `canvas: "assemble"` in the
-assemble view). Each opening replies `active: true` and is followed by `gizmo()` giving that name and canvas; each
-closing, by that second click or by the panel's Done, Close or Return button, is followed by `gizmo()` none. The rows
-below do not repeat this. A `widget_set_value` reply, the value as the field shows it, is checked too, never instead
-of the read-back. A step that starts a job in the background says "then idle": it is followed by `app_wait {for:
-"idle"}` before its read-back, and that wait must be met. Those are the Text icon that creates a text part, every
-edit in the Text panel, `object_add_svg`, `svg_change`, a texture stroke, Simplify's ratio and Apply, Mesh Boolean's
-Union, the cut and the variable layer height panel's Adaptive. Simplify's first ratio is the one such step without a
-wait, on purpose.
+In the scenarios through the panels, every gizmo is opened and closed with `widget_click {target: {gizmo: name}}`
+(with `canvas: "assemble"` in the assemble view). Each opening replies `active: true` and is followed by `gizmo()`
+giving that name and canvas; each closing, by that second click or by the panel's Done, Close or Return button, is
+followed by `gizmo()` none. The rows below do not repeat this. A `widget_set_value` reply, the value as the field
+shows it, is checked too, never instead of the read-back. A step that starts a job in the background says "then
+idle": it is followed by `app_wait {for: "idle"}` before its read-back, and that wait must be met. Those are the Text
+icon that creates a text part, every edit in the Text panel, `object_add_svg`, `svg_change`, a texture stroke,
+Simplify's ratio and Apply, Mesh Boolean's Union, the cut and the variable layer height panel's Adaptive. Simplify's
+first ratio is the one such step without a wait, on purpose.
 
 **Scenario: prompts a rule answers**
 
@@ -140,14 +158,29 @@ A 20 × 20 × 40 mm box P at (100, 100), standing, selected, the camera at `iso`
 | 4 | `redo` | as after 2 | |
 | 5 | Flatten closed | as after 2 | |
 
-**Scenario: painting**
+**Scenario: painting and texture layers**
 
 A 20 mm cube at (100, 100) with two filament slots (`filament_delete` until refused, then `filament_add`) and
 support switched on for it (`settings_set {target: "object", object: 0, values: {enable_support: true}}`), so painted
-enforcers raise no warning that could cover the panel. It is selected, the camera at `iso` and fitted to it. Part
-0's `painted` is written as `supports e/b` (enforcers/blockers), `seam e/b`, `fuzzy n` and `mmu {slot: n}`; `>0` is
-a count a brush stroke gives, which the app computes; `—` is an annotation `painted` does not list. A Fill click
-fills the face it lands on: the two triangles of a cube's face.
+enforcers raise no warning that could cover the panel. It is selected, the camera at `iso` and fitted to it. Rows 1
+to 16 paint it with the painting gizmos, and rows 17 to 27 give the same part texture layers, so that one saved
+project, row 28, keeps both. Part 0's `painted` is written as `supports e/b` (enforcers/blockers), `seam e/b`, `fuzzy
+n` and `mmu {slot: n}`; `>0` is a count a brush stroke gives, which the app computes; `—` is an annotation `painted`
+does not list. A Fill click fills the face it lands on: the two triangles of a cube's face.
+
+From row 17 the table gives `painted.texture`, its layers in order, each as `slot name painted`, with `?` for a name
+the scenario does not fix and `>0` for painted facets a stroke gives. A stroke is a drag from a spot through a
+waypoint to a point of the cube's part frame. The panel names each closed layer's row by its place in the list,
+"Layer 1" for the first; the open layer's card has no such row.
+
+`H` is the name the imported height map takes, the stem of the file the import writes into the data folder's texture
+library: `heightmap`, or `heightmap (n)` with n from 2 when the library already holds `heightmap.png`, which an
+earlier run of this test or `test_runtime_calls`' import leaves there (`write_user_texture` in
+`TextureLibrary.cpp` never overwrites a texture). A layer is `H` when its name is one of those and its `path` is
+`<app_state.config_folder>/textures/displacement/<its name>.png`. The name is checked as that property rather than
+as one name, since which copies the library holds differs with the tests that ran before and with a rerun on the same
+folder; importing a copy of the fixture under a name of the test's own would not make it exact, as a rerun meets its
+own first copy.
 
 | # | Step | Painted after | Also checked |
 |---|---|---|---|
@@ -167,41 +200,19 @@ fills the face it lands on: the two triangles of a cube's face.
 | 13 | `redo`, then Done | as after 11 | |
 | 14 | Color Painting opened, `{imgui_name: "extruder_color_2"}` clicked, Fill, a click at `{spot: "front"}` | as after 11, mmu {2: 2} | |
 | 15 | `undo` | as after 11 | |
-| 16 | `redo`, then Done | as after 14 | |
-| 17 | `project_save` to a new file, `project_new`, `project_open` of the file | as after 14 | `slots()` "0,0"; the object's `enable_support` "1" and `fuzzy_skin` `none`: painting and the settings it needs are kept in the project file |
-
-**Scenario: texture layers**
-
-A 20 mm cube at (100, 100), selected, the camera at `iso` and fitted to it. Part 0's `painted.texture` is written as
-its layers in order, each as `slot name painted`, with `?` for a name the scenario does not fix and `>0` for painted
-facets a stroke gives. A stroke is a drag from a spot through a waypoint to a point of the cube's part frame. The
-panel names each closed layer's row by its place in the list, "Layer 1" for the first; the open layer's card has no
-such row.
-
-`H` is the name the imported height map takes, the stem of the file the import writes into the data folder's texture
-library: `heightmap`, or `heightmap (n)` with n from 2 when the library already holds `heightmap.png`, which an
-earlier run of this test or `test_ref_locator_export`'s import leaves there (`write_user_texture` in
-`TextureLibrary.cpp` never overwrites a texture). A layer is `H` when its name is one of those and its `path` is
-`<app_state.config_folder>/textures/displacement/<its name>.png`. The name is checked as that property rather than
-as one name, since which copies the library holds differs with the tests that ran before and with a rerun on the same
-folder; importing a copy of the fixture under a name of the test's own would not make it exact, as a rerun meets its
-own first copy.
-
-| # | Step | Layers after | Also checked |
-|---|---|---|---|
-| 0 | start | no `painted` | the cube (100, 100, 10) size [20, 20, 20] |
-| 1 | Texture Displacement opened | `0 ? 0` | the gizmo gives a part without layers one layer in slot 0 |
-| 2 | `gizmo_pick_file {action: "texture_import", path: heightmap.png}` | `0 H 0` | `depth_mm` 0.4 (the default) |
-| 3 | `widget_click {target: {imgui_name: "add_layer"}}` | `0 H 0` · `1 ? 0` | |
-| 4 | a stroke from `{spot: "top"}` through `[6, 0, 10]` to `[6, 6, 10]`, then idle | `0 H 0` · `1 ? >0` | the new layer, slot 1, is the active one, and a stroke paints only the active layer |
-| 5 | `widget_click {target: {imgui_name: "Layer 1"}}`, the first layer's row | as after 4 | `panel()` lists the item `midlevel`: the card now open shows all its settings |
-| 6 | a stroke from `{spot: "front"}` through `[6, -10, 0]` to `[6, -10, 6]`, then idle | `0 H >0` · `1 ? >0` | the paint went to slot 0: the click made the first layer the active one |
-| 7 | `widget_click {target: {imgui_name: "more"}}` | as after 6 | `panel()` no longer lists `midlevel`: the link folded the open card's settings |
-| 8 | `widget_click {target: {imgui_name: "Remove", index: 1}}`, the second layer's | `0 H >0` | slot 1 and its paint are gone |
-| 9 | `undo` | `0 H >0` · `1 ? >0` | |
-| 10 | `redo` | as after 8 | |
-| 11 | `widget_click {target: {imgui_name: "close"}}` | as after 8 | the Close button closes the gizmo and leaves the layers |
-| 12 | `project_save` to a new file, `project_new`, `project_open` of the file | `0 H >0` | `depth_mm` 0.4 |
+| 16 | `redo`, then Done | as after 14 | no texture layer |
+| 17 | Texture Displacement opened | layers `0 ? 0` | the gizmo gives a part without layers one layer in slot 0, though the part has other painting |
+| 18 | `gizmo_pick_file {action: "texture_import", path: heightmap.png}` | `0 H 0` | `depth_mm` 0.4 (the default) |
+| 19 | `widget_click {target: {imgui_name: "add_layer"}}` | `0 H 0` · `1 ? 0` | |
+| 20 | a stroke from `{spot: "top"}` through `[6, 0, 10]` to `[6, 6, 10]`, then idle | `0 H 0` · `1 ? >0` | the new layer, slot 1, is the active one, and a stroke paints only the active layer |
+| 21 | `widget_click {target: {imgui_name: "Layer 1"}}`, the first layer's row | as after 20 | `panel()` lists the item `midlevel`: the card now open shows all its settings |
+| 22 | a stroke from `{spot: "front"}` through `[6, -10, 0]` to `[6, -10, 6]`, then idle | `0 H >0` · `1 ? >0` | the paint went to slot 0: the click made the first layer the active one |
+| 23 | `widget_click {target: {imgui_name: "more"}}` | as after 22 | `panel()` no longer lists `midlevel`: the link folded the open card's settings |
+| 24 | `widget_click {target: {imgui_name: "Remove", index: 1}}`, the second layer's | `0 H >0` | slot 1 and its paint are gone |
+| 25 | `undo` | `0 H >0` · `1 ? >0` | |
+| 26 | `redo` | as after 24 | |
+| 27 | `widget_click {target: {imgui_name: "close"}}` | as after 24 | the Close button closes the gizmo and leaves the layers; the other painting is as after 14 |
+| 28 | `project_save` to a new file, `project_new`, `project_open` of the file | `0 H >0`, the other painting as after 14 | `depth_mm` 0.4; `slots()` "0,0"; the object's `enable_support` "1" and `fuzzy_skin` `none`: the painting, the texture layers and the settings the painting needs are kept in the project file |
 
 **Scenario: text**
 
@@ -298,11 +309,15 @@ the camera at `iso` and fitted to it.
 **Scenario: brim ears**
 
 A 20 mm cube at (100, 100), selected, the camera at `iso` and fitted to it. The process's `brim_type` is `auto_brim`,
-the setting's default, which no Custom process changes.
+the setting's default, which no Custom process changes. What the project keeps of ears and of the brim type is
+checked once, in brim ears from positions (rows 6 and 7), which reads the ears in the saved file: the gizmo as it
+closes (`GLGizmoBrimEars::update_model_object`) and `object_set_brim_ears` (`set_brim_ears` in `GizmoOps.cpp`) both
+leave the ears in the object's `brim_points`, which the project file writes through
+`_add_brim_ear_points_file_to_archive` (`bbs_3mf.cpp`), and both leave the brim type in the object's settings.
 
 | # | Step | After | Also checked |
 |---|---|---|---|
-| 0 | start | `brim_ears` 0; `setting(0, "brim_type")` value null, effective `auto_brim` | the cube (100, 100, 10) |
+| 0 | start | `brim_ears` 0; `setting(0, "brim_type")` value null, effective `auto_brim` from `global` | the cube (100, 100, 10) |
 | 1 | Brim Ears opened | as after 0 | `panel()` shows the warning that the brim type is not set to "painted" |
 | 2 | `widget_click {target: {imgui_name: "Set brim type to painted"}}` | `brim_ears` 0; `brim_type` `painted` from `object` | the warning is no longer shown |
 | 3 | `{imgui: "Auto-generate"}` clicked | `brim_ears` 4 | one ear at each corner of the square first layer |
@@ -311,7 +326,6 @@ the setting's default, which no Custom process changes.
 | 6 | a click at `{object: 0, point: [0, -10, -9.5]}`, on the front face 0.5 mm above the bed | `brim_ears` 5 | |
 | 7 | `undo` | `brim_ears` 4 | |
 | 8 | `redo`, then Done | `brim_ears` 5 | |
-| 9 | `project_save` to a new file, `project_new`, `project_open` of the file | `brim_ears` 5, `brim_type` `painted` | |
 
 **Scenario: assembly in the assemble view**
 
@@ -374,6 +388,166 @@ middle-button drag pans the camera, as the test's start sets the camera style an
 | 12 | the camera at `bottom` and fitted, `object_select {none: true}`, `mouse_gesture {at: {object: 0, spot: "bottom"}}` | not refused | `selection()` is [0]: from below the bed hides nothing |
 | 13 | `object_select {none: true}`, `mouse_gesture {action: "move", at: {object: 0, part: 1, spot: "top"}}` | refused, its words "is in front of the point" | `selection()` still empty, the cube and its parts as after 0 and its profile as after 9, and the camera did not move during the step (`app_state.camera` reads as it did after `object_select`): the check runs for a negative part, and from below the cube hides its top |
 
+The scenarios from here on call the commands. No step clicks the canvas, reads a panel's text or captures a
+picture, so where on an object a text or an SVG part lands, which follows the camera and the window, is not checked.
+A reply is written as the fields the row fixes; a target in a reply is written by its `index` (or `object`,
+`instance`, `part`) and `name`, and its `object_id` or `part_id` is not checked. Before each step that acts,
+`undo_steps()` sets its mark, and the step lists the undo steps it takes; a refused step takes none.
+
+**Scenario: opening a gizmo on a target**
+
+Two filament slots (`filament_delete` until refused, then `filament_add`); a 20 mm cube A at (100, 100); a 20 mm
+cube B at (150, 100) with `part_add {object: 1, type: "part", shape: "cube", size: [10, 10, 10], position: [160,
+110, 20]}`; then `object_select {none: true}`. The model does not change in this scenario: after every row it is as
+after 0.
+
+| # | Step | Reply | Also checked |
+|---|---|---|---|
+| 0 | start | | A (100, 100, 10), one part · B (150, 100, 10), two parts; `slots()` "0,0"; `selected()` empty; `gizmo()` none |
+| 1 | `object_paint {object: 0, type: "supports"}` | `gizmo` "FdmSupports", `active` true, `instances` [{object 0, instance 0, name "A"}] | `gizmo()` FdmSupports on `3d`; `selected()` objects [0], instances [[0, 0]] |
+| 2 | the same call again | as after 1 | `gizmo()` FdmSupports: a second call does not close it |
+| 3 | `object_paint {object: 0, type: "seam"}` | `gizmo` "Seam" | `gizmo()` Seam: the open gizmo was closed and Seam opened |
+| 4 | `object_paint {object: 0, type: "color"}` | `gizmo` "Color Painting" | `gizmo()` Color Painting |
+| 5 | `object_paint {object: 0, type: "fuzzy_skin"}` | `gizmo` "Fuzzy Skin Painting" | `gizmo()` Fuzzy Skin Painting |
+| 6 | `object_select {none: true}` | | `gizmo()` none; `selected()` empty |
+| 7 | `part_boolean {object: 1}` | `gizmo` "MeshBoolean", `instances` [{object 1, instance 0, name "B"}] | `gizmo()` MeshBoolean; `selected()` objects [1] |
+| 8 | `object_simplify {object: 1, part: 1}` | `gizmo` "Simplify", `parts` [{object 1, part 1}] | `gizmo()` Simplify; `selected()` parts [[1, 1]] |
+| 9 | `object_simplify {object: 0}` | `gizmo` "Simplify", `parts` [{object 0, part 0}]: A's only part | `gizmo()` Simplify; `selected()` objects [0], instances [[0, 0]]: an object of one part shows no part row in the object list, which selects it whole when its part is selected |
+| 10 | `object_measure {objects: [0, 1]}` | `gizmo` "Measure", `objects` [{index 0, name "A"}, {index 1, name "B"}] | `gizmo()` Measure; `selected()` objects [0, 1] |
+| 11 | `object_select {none: true}`, `object_select {parts: [[1, 1]]}`, then `object_measure {}` | `gizmo` "Measure", `parts` [{object 1, part 1}] | `gizmo()` Measure; `selected()` parts [[1, 1]]: with no target it opens on the selection as it is, a part |
+| 12 | `object_select {none: true}` | | `gizmo()` none; `selected()` empty |
+
+**Scenario: openings refused**
+
+One filament slot (`filament_delete` until refused); A and B as in the scenario above. Each step starts from the
+selection its row gives. After every row the model is as after 0, `gizmo()` is none, `undo_steps()` is empty but for
+row 5's, and `selected()` is the selection the step started from. A selection change records an undo step of its own
+("Selection-Add Instance"), which a refused opening must not leave behind; row 5's step, "Leaving Paint-on supports",
+is the one the Support Painting gizmo records as it closes, as it does for any closing. Rows 1, 2 and 5 are refused
+by the gizmo's condition, which the call asks after it has selected the named target, so they check that it puts back
+the selection it found; row 3 is refused by the Simplify check, which comes before anything is selected; row 4 names
+no target.
+
+| # | Selection before | Step | Refused |
+|---|---|---|---|
+| 0 | | start | `selected()` empty; `slots()` "0" |
+| 1 | `object_select {objects: [1]}`: objects [1] | `part_boolean {object: 0}` | `needs_two_parts` |
+| 2 | `object_select {none: true}`: empty | `object_paint {object: 0, type: "color"}` | `needs_two_filaments` |
+| 3 | `object_select {parts: [[1, 1]]}`: parts [[1, 1]] | `object_simplify {object: 1}` | `needs_one_part`: B has two parts and none is named |
+| 4 | `object_select {none: true}`: empty | `object_measure {}` | `needs_selection` |
+| 5 | `object_paint {object: 1, type: "supports"}`: objects [1], `gizmo()` FdmSupports | `part_boolean {object: 0}` | `needs_two_parts`; the FdmSupports gizmo it closed to ask stays closed |
+
+**Scenario: cut from arguments**
+
+A 20 mm cube A at (100, 100), nothing selected. A cut object leaves the list and its pieces are added at its end,
+upper first (`Plater::apply_cut_object_to_model`), each named as the object was. A piece is written as its name, its
+`bbox` size and its part's `mesh_volume` (to 1 mm³); every piece rests on the bed (`bbox.min` z 0). Rows 12 to 18 are
+refused, on the whole cube row 11's undo leaves: after each, A is as after 0, `gizmo()` is none and the step took no
+undo step; a refusal without a code is checked by its words. What the project keeps of cut pieces is checked once, in
+cut with a connector (row 6): a call and the gizmo's Perform cut both cut with `Cut::perform_with_plane` and add the
+pieces with `Plater::apply_cut_object_to_model`, and the project file writes the pieces as objects and their cut
+information through `_add_cut_information_file_to_archive` (`bbs_3mf.cpp`), with the connectors only the gizmo adds.
+
+| # | Step | Objects after | Also checked |
+|---|---|---|---|
+| 0 | start | A (100, 100, 10) size [20, 20, 20], one part 8000 | |
+| 1 | `object_cut {object: 0}` | as after 0 | reply `gizmo` "Cut", `active` true; `gizmo()` Cut; undo steps ["Entering Cut gizmo"], the step the Cut gizmo records as it opens, as for a click on its icon |
+| 2 | `object_cut {object: 0, z: 10}` | A [20, 20, 10] 4000 · A [20, 20, 10] 4000, both `bbox` x and y 90–110 | `gizmo()` none: the open Cut gizmo was closed first; reply `pieces` [{index 0, name "A", open_edges 0}, {index 1, name "A", open_edges 0}]; undo steps ["Leaving Cut gizmo", "Cut by Plane"]: the gizmo's own step as it closes, then the cut's |
+| 3 | `undo` | as after 0 | |
+| 4 | `redo` | as after 2 | |
+| 5 | `undo` | as after 0 | |
+| 6 | `object_cut {object: 0, plane: {point: [100, 100, 10], normal: [1, 0, 1]}}` | A, the upper piece: 4000, size z 14.14 to 0.01 · A, the lower piece: [20, 20, 20] 4000, `bbox` x 90–110 | the plane x + z = 110 halves the cube into two prisms; the upper one lies on its cut face, 10√2 mm below its far edge; the lower one stays as cut; reply `pieces` with 2 entries, `open_edges` 0 |
+| 7 | `undo` | as after 0 | |
+| 8 | `object_cut {object: 0, z: 10, keep: "upper"}` | A [20, 20, 10] 4000 | reply `pieces` [{index 0, name "A", open_edges 0}] |
+| 9 | `undo` | as after 0 | |
+| 10 | `object_cut {object: 0, z: 10, to_parts: true}` | A [20, 20, 20], two parts of type part, 4000 each, `bbox` x and y 90–110, z 0–20 | reply `object` {index 0, name "A"} and `parts` with 2 entries |
+| 11 | `undo` | as after 0 | |
+| 12 | `object_cut {object: 0, z: 50}` | as after 0 | refused `plane_misses_object` |
+| 13 | `object_cut {object: 0, keep: "upper"}` | as after 0 | refused `needs_plane` |
+| 14 | `object_cut {object: 0, z: 10, plane: {point: [100, 100, 10], normal: [0, 0, 1]}}` | as after 0 | refused, the words "z or plane, not both" |
+| 15 | `object_cut {object: 0, plane: {point: [100, 100, 10], normal: [0, 0, 0]}}` | as after 0 | refused, the words "normal is zero" |
+| 16 | `object_cut {object: 0, z: 10, keep: "upper", lower: "flip"}` | as after 0 | refused, the words "the lower piece is not kept" |
+| 17 | `object_cut {object: 0, z: 10, keep: "upper", to_parts: true}` | as after 0 | refused, the words "to_parts keeps both pieces" |
+| 18 | `object_cut {object: 0, z: 10, to_parts: true, upper: "flip"}` | as after 0 | refused, the words "to_parts places no piece" |
+
+**Scenario: lay on face from a direction**
+
+A 20 mm cube A at (100, 100), then `object_transform {object: 0, rotate: [30, 0, 0], mode: "absolute"}`, which drops
+it back onto the bed, then `object_select {none: true}`. Turned 30° about X, A's own -Z face points along (0, 0.5,
+-0.866) in the 3D view. Instances are written `i0`, `i1` with their offset and `rotation_deg`; angles to 0.01°. Rows
+8 to 10 are refused calls on the turned cube row 7's undo leaves; after rows 8 and 9 A is as after 0 and the step
+took no undo step. What the project keeps of the turns is `test_objects`' (objects.md, what the project keeps, step
+3): a lay on face turns the instances as a rotation does (`Selection::flattening_rotate`, then
+`GLCanvas3D::do_rotate`, in `lay_on_face` of `GizmoOps.cpp`), and the project file writes each instance's transform
+whichever tool set it.
+
+| # | Step | A after | Also checked |
+|---|---|---|---|
+| 0 | start | i0 (100, 100, 13.66) rot [30, 0, 0], size [20, 27.32, 27.32] to 0.01 | `bbox.min` z 0 |
+| 1 | `object_lay_on_face {object: 0}` | as after 0 | reply `gizmo` "Flatten"; `gizmo()` Flatten |
+| 2 | `object_lay_on_face {object: 0, normal: [0, 0, -1]}` | i0 (100, 100, 10) rot [0, 0, 0], size [20, 20, 20] | `gizmo()` none: Flatten was closed first; reply `object` 0, `instance` 0, `rotation` [0, 0, 0]; undo steps ["Gizmo-Place on Face"] |
+| 3 | `undo` | as after 0 | |
+| 4 | `redo` | as after 2 | |
+| 5 | `undo` | as after 0 | |
+| 6 | `object_lay_on_face {object: 0, normal: [0, 0.5, -0.866], frame: "world"}` | as after 2 | the world direction of A's -Z face gives the same turn |
+| 7 | `undo` | as after 0 | |
+| 8 | `object_lay_on_face {object: 0, frame: "world"}` | as after 0 | refused `needs_normal`: `frame` acts only with `normal`; `gizmo()` none |
+| 9 | `object_lay_on_face {object: 0}`, then `object_lay_on_face {object: 0, normal: [0, 0, 0]}` | as after 0 | refused `zero_normal`; `gizmo()` Flatten: the call is refused before it closes the open gizmo |
+| 10 | `object_select {none: true}` | | `gizmo()` none |
+| 11 | `object_set_instances {object: 0, count: 2}` | i0 as after 0 · i1 rot [30, 0, 0] | the new instance copies i0's turn; i1's offset is the app's |
+| 12 | `object_lay_on_face {object: 0, instance: 0, normal: [0, 0, -1]}` | i0 (100, 100, 10) rot [0, 0, 0] · i1 rot [0, 0, 0] | the other instance turns with it; both rest on the bed |
+
+**Scenario: brim ears from positions**
+
+A 20 mm cube A at (100, 100), nothing selected. The process's `brim_type` is `auto_brim`, the setting's default, and
+its `initial_layer_line_width` is `120%` of the 0.4 mm nozzle (the Custom vendor's `fdm_process_common`), 0.48 mm, so
+an ear's default radius is 3.84 mm, eight first-layer line widths (`GLGizmoBrimEars::get_brim_default_radius`). An
+ear asked for at bed position (x, y) is stored at (x - 100, y - 100, -10.0001) in A's coordinates: the bed point at z
+-0.0001 through the inverse of A's placement. Ears are written as `(x, y, z) r`, to 0.001.
+
+| # | Step | After | Also checked |
+|---|---|---|---|
+| 0 | start | `brim_ears` 0; `setting(0, "brim_type")` value null, effective `auto_brim` from `global` | `settings_get` of the process's `initial_layer_line_width` "120%" |
+| 1 | `object_set_brim_ears {object: 0}` | as after 0 | reply `gizmo` "Brim Ears"; `gizmo()` Brim Ears |
+| 2 | `object_set_brim_ears {object: 0, points: [{position: [90, 90], radius: 3}, {position: [110, 90]}]}` | `brim_ears` 2 | `gizmo()` none; reply `ears` [(-10, -10, -10.0001) 3, (10, -10, -10.0001) 3.84], `brim_type` `auto_brim`, `takes_effect` false; undo steps ["Brim ears edit", "Leaving Brim Ears", "Set brim ears"]: the two steps the Brim Ears gizmo records as it closes, then the call's |
+| 3 | `undo` | `brim_ears` 0 | |
+| 4 | `redo` | `brim_ears` 2 | |
+| 5 | `settings_set {target: "object", object: 0, values: {brim_type: "painted"}}`, then step 2's call again | `brim_ears` 2; `brim_type` `painted` from `object` | reply `ears` as in 2, `brim_type` `painted`, `takes_effect` true |
+| 6 | `project_save` to a new file | as after 5 | `brim_file()` {1: [(-10, -10, -10.0001) 3, (10, -10, -10.0001) 3.84]} |
+| 7 | `project_new {discard_changes: true}`, `project_open` of the file | `brim_ears` 2; `brim_type` `painted` | |
+| 8 | `object_set_brim_ears {object: 0, clear: true}` | `brim_ears` 0 | reply `ears` [] |
+| 9 | `object_set_brim_ears {object: 0}`, then `object_set_brim_ears {object: 0, points: [{position: [100, 90], radius: 5}]}` | `brim_ears` 1 | after the first, `gizmo()` Brim Ears; after the second, `gizmo()` none, and after `project_save` to a new file, `brim_file()` {1: [(0, -10, -10.0001) 5]}: the call's ear, not what the gizmo held |
+| 10 | `object_set_brim_ears {object: 0, points: [{position: [90, 90], radius: 3}, {position: [110, 90], radius: 3}]}`, then `object_set_brim_ears {object: 0}` | `brim_ears` 2 | `gizmo()` Brim Ears; the opening keeps the two ears the call set with the gizmo closed, though the gizmo was last open on A holding none (D9: `reload_on_next_opening()`) |
+| 11 | `object_set_brim_ears {object: 0, points: [{position: [100, 90], radius: 150}]}` | as after 10 | refused `radius_out_of_range`; `gizmo()` Brim Ears: a refused call leaves the gizmo open; no undo step |
+| 12 | `object_set_brim_ears {object: 0, points: [{position: [100, 90]}], clear: true}` | as after 10 | refused, the words "points or clear, not both"; `gizmo()` Brim Ears |
+| 13 | `object_select {none: true}` | `brim_ears` 2 | `gizmo()` none |
+| 14 | `object_set_brim_ears {object: 0}`, then `object_set_brim_ears {object: 0, clear: true}` | `brim_ears` 0 | after the first, `gizmo()` Brim Ears; after the second, `gizmo()` none, and after `project_save` to a new file, `brim_file()` has no ears for `object_id` 1: the gizmo, closed first, did not write back the two ears it held |
+
+**Scenario: text and SVG as a part of a named object**
+
+A 20 mm cube A at (100, 100) and a 20 mm cube B at (150, 100), B selected (`object_select {objects: [1]}`).
+`star.svg` is a copy of `tools/mcp/tests/fixtures/star.svg`, the SVG scenario's file, in the test's folder. Each step
+that adds a part is followed by `app_wait {for: "idle"}`. A's parts are written as `a_parts()` gives them. An object
+keeps its parts first, then its negative parts, then its modifiers (`ModelObject::sort_volumes`), so a part added
+after a negative part comes before it. What the project keeps of text and SVG parts is checked in text (row 13) and
+SVG (row 7): the project file writes a part's text and its SVG with the part whatever its type
+(`TextConfigurationSerialization::to_xml` and the emboss shape's `to_xml`, per volume, in `bbs_3mf.cpp`), so the
+negative text and the SVG parts there stand for the text part, the negative text and the SVG part and modifier here.
+
+| # | Step | A's parts after | Also checked |
+|---|---|---|---|
+| 0 | start | part | B one part; `selected()` objects [1], instances [[1, 0]] |
+| 1 | `object_add_text {object: 0}` | part · part "Embossed text" | `gizmo()` Text; B one part |
+| 2 | `object_select {none: true}`, then `object_add_text {object: 0, type: "negative"}` | as after 1 · negative "Embossed text" | `gizmo()` Text |
+| 3 | `object_select {objects: [1]}`, then `object_add_svg {object: 0, path: star.svg}` | part · part "Embossed text" · part star.svg · negative "Embossed text" | `gizmo()` SVG; B one part |
+| 4 | `object_select {none: true}`, then `object_add_svg {object: 0, type: "modifier", path: star.svg}` | as after 3 · modifier star.svg | `gizmo()` SVG |
+| 5 | `object_select {none: true}`, `undo` | as after 3 | adding the part is one undo step |
+| 6 | `redo` | as after 4 | |
+| 7 | `dialog_auto_answer {rules: [{match: ".", button: "ok", path: <test folder>/star.svg}]}`, then `object_add_svg {object: 0, type: "modifier"}` | as after 4 | the rule's `uses` is 1: the file picker opened; nothing was added, since the picker reads `GetPaths()`, which an automatic answer leaves empty |
+| 8 | `object_select {objects: [0, 1]}`, then `object_add_text {type: "modifier"}` | as after 4 | refused `one_object_only`: `type` without `object` adds to the selected object, and two are selected; two objects, B one part; `selected()` objects [0, 1]; no undo step |
+| 9 | `object_add_svg {type: "modifier", path: star.svg}`, the same selection | as after 4 | refused `one_object_only`; as in 8 |
+| 10 | `object_select {parts: [[0, 3]]}`, A's negative part alone, then `object_add_svg {type: "modifier", path: star.svg}` | as after 4 · modifier star.svg | two objects: the SVG is A's. As a person does it: a part's menu offers no text or SVG, and a right click on A's row, whose menu offers them by type, selects A whole first; Add Modifier>Text there makes a modifier of A. So `type` alone selects the selected object whole first, as a call that names it does. (The action without `type`, the Speed Dial's, makes a new object here, since a text or SVG lands on a selected solid part, `find_closest()` in `EmbossJob.cpp`.) `gizmo()` SVG |
+
 **To settle in review:**
 - Mesh Boolean moves its result (step 2 of its scenario): a bug in the app's own code, which is on `main`, left as
   it is and a bug for a fix of its own. `GLGizmoMeshBoolean::generate_new_volume` builds the union in the object's
@@ -401,8 +575,8 @@ middle-button drag pans the camera, as the test's start sets the camera style an
 - The SVG's file after reopening (SVG, step 7): the project keeps the SVG itself (`path_in_3mf`) and names the local
   file by its name alone, `star.svg`, since `to_xml` in `bbs_3mf.cpp` writes `filename()` unless full paths are
   exported: the app's own code, on `main`.
-- `settings_get` gives a value as the config writes it, so a switch reads "1" or "0" (painting, steps 0 and 17), as
-  `wall_loops` reads "2".
+- `settings_get` gives a value as the config writes it, so a switch reads "1" or "0" (painting and texture layers,
+  steps 0 and 28), as `wall_loops` reads "2".
 - The style combo's marker (text, steps 3 to 7): right after the pick the style reads unmodified, since a text
   created on the top under the `top` camera has no angle or surface distance of its own (`calc_up` and
   `calc_distance` give none for 0), and those are part of the comparison.
@@ -432,7 +606,9 @@ middle-button drag pans the camera, as the test's start sets the camera style an
 - The Painted Modifier gizmo: neither replay drives it.
 - Texture Displacement's bake, its tile, rotation and midlevel values, the texture library popup, and the name of
   the texture a new layer starts with (the library's first, which depends on the installed textures). Which `n` the
-  height map's copy takes.
+  height map's copy takes. Texture layers on a part with no other painting: the scenario gives them to the part the
+  painting gizmos painted, whose painting the project file writes apart from the layers (`add_texture_displacement`
+  in `bbs_3mf.cpp`), and rows 27 and 28 check that painting stays as it was.
 - Text: the font a style names, which depends on the system's fonts (the style combo's marker shows it is the
   style's own); the style a new text starts with, the one the Text tool last closed with; the size, boldness, line
   gap and alignment fields, the surface option, saving or renaming a style and the prompt when a modified style is
@@ -444,221 +620,9 @@ middle-button drag pans the camera, as the test's start sets the camera style an
 - Cut: dowel and snap connectors, cutting by groove or contour, flipping or placing the halves, keeping one half,
   and the connector's size and depth, and so the lower half's height, which its connector part raises above the cut.
 - Simplify by error, Mesh Boolean's difference and intersection and their Delete input option, and deleting or
-  resizing brim ears.
-- What the painting, fuzzy skin, brim ears and connectors do to a slice: the test checks what the gizmos leave on the
-  model and in the project file; turning it into toolpaths is the slicer's.
-- What other tests assert: Select All with Move open, and refused with Lay on face open, in
-  `test_menu_items_refusals`; Measure in the assemble view and Select All refused there in `test_person_forms`;
-  arranging with Move open and from the assemble view in `test_operation_routes`; refs to the Text font button and a
-  texture layer row surviving their renames in `test_ref_locator_export`; the Text action opening its gizmo on a new
-  object in `test_every_action`.
-
-**Strength:** Strong — after every step it reads the model back through another tool and compares it with values
-written out here, reads every undo before its redo, and checks what a person keeps through the project file; the
-counts a brush stroke gives, the Measure distance, the reverted font and where a text or SVG part lands on the top
-are checked by a tolerance or a property, as the app works them out.
-
-## `test_gizmo_commands`
-`test_gizmo_commands.py` · Python, 466 checks · in `sweep.json` as `{"path": "test_gizmo_commands.py"}`
-
-**Tests:** The commands that open a gizmo on a named target, and the ones among them that do the gizmo's job from
-arguments with no gizmo: `object_paint`, `object_measure`, `object_simplify`, `part_boolean`, `object_cut`,
-`object_lay_on_face`, `object_set_brim_ears`, and `object` and `type` of `object_add_text` and `object_add_svg`. A
-call that names only its target opens the gizmo on it, and the same call again leaves it open; a call with an acting
-argument closes the open gizmo first and leaves the model as the gizmo's own button would. Each call's work is read
-back from the model through `object_list`, `app_state` and the saved project, its undo is read before its redo, and
-each refusal is asserted by its code with the model read back as it was.
-
-**Starts from:** `start(c)`, the Generic Klipper Printer, compared with `{printer: KLIPPER, process: KLIPPER_STD,
-filaments: [GENERIC_PLA]}`: no call it makes is a Bambu Lab printer's own, and the brim ears' default radius follows
-this process's first-layer line width (brim ears from positions). Then Expert mode, as `test_gizmos` sets it. It sets
-no window size and no preference: no step clicks the canvas, reads a panel's text or captures a picture, and where on
-A a text or an SVG part lands, which follows the camera and the window, is not checked.
-
-**Leaves:** Expert mode. The Klipper printer with `0.20mm Standard @MyKlipper` and one `Generic PLA @System` slot (the
-refused openings take back to one the two slots the first scenario makes). The Text tool's last style, which it
-stores as the gizmo closes and leaves as it found it, since no step picks a style. The recent projects and the last
-folder opened, naming the projects it saved in its own folder.
-
-**Reads:** `scene()`, `gizmo()` and `setting(object, key)` as `test_gizmos` gives them, except that `scene()` keeps
-every instance's `offset`, `rotation_deg` and `bbox`; `selection()` from `checks.py` (`{objects, instances,
-parts}`, `parts` only for a selection of parts); `slots()` and `undo_steps()` from `checks.py`; and `brim_file(path)`,
-the saved project's `Metadata/brim_ear_points.txt` as `{object_id: [(x, y, z, r), …]}`. The file numbers the
-model's objects from 1 (`_add_brim_ear_points_file_to_archive` in `bbs_3mf.cpp`), so object 0 is `object_id` 1, and
-it holds each ear's position in the object's coordinates and its radius, as stored.
-
-Every scenario starts with `project_new {discard_changes: true}` in the Prepare view and checks that `scene()` is
-empty and `gizmo()` is none. Objects are added with `object_add_primitive {shape, size, position, name}` resting on
-the bed, so a 20 mm cube placed at `[100, 100, 0]` has its offset at (100, 100, 10). Notation, tolerances and
-`undo`/`redo` are as in `test_gizmos`. A reply is written as the fields the row fixes; a target in a reply is written
-by its `index` (or `object`, `instance`, `part`) and `name`, and its `object_id` or `part_id` is not checked. Before
-each step that acts, `undo_steps()` sets its mark, and the step lists the undo steps it takes; a refused step takes
-none. "Saved and reopened" is `project_save` to a new file in the test's folder, `project_new {discard_changes:
-true}`, then `project_open` of the file.
-
-**Scenario: opening a gizmo on a target**
-
-Two filament slots (`filament_delete` until refused, then `filament_add`); a 20 mm cube A at (100, 100); a 20 mm
-cube B at (150, 100) with `part_add {object: 1, type: "part", shape: "cube", size: [10, 10, 10], position: [160,
-110, 20]}`; then `object_select {none: true}`. The model does not change in this scenario: after every row it is as
-after 0.
-
-| # | Step | Reply | Also checked |
-|---|---|---|---|
-| 0 | start | | A (100, 100, 10), one part · B (150, 100, 10), two parts; `slots()` "0,0"; `selection()` empty; `gizmo()` none |
-| 1 | `object_paint {object: 0, type: "supports"}` | `gizmo` "FdmSupports", `active` true, `instances` [{object 0, instance 0, name "A"}] | `gizmo()` FdmSupports on `3d`; `selection()` objects [0], instances [[0, 0]] |
-| 2 | the same call again | as after 1 | `gizmo()` FdmSupports: a second call does not close it |
-| 3 | `object_paint {object: 0, type: "seam"}` | `gizmo` "Seam" | `gizmo()` Seam: the open gizmo was closed and Seam opened |
-| 4 | `object_paint {object: 0, type: "color"}` | `gizmo` "Color Painting" | `gizmo()` Color Painting |
-| 5 | `object_paint {object: 0, type: "fuzzy_skin"}` | `gizmo` "Fuzzy Skin Painting" | `gizmo()` Fuzzy Skin Painting |
-| 6 | `object_select {none: true}` | | `gizmo()` none; `selection()` empty |
-| 7 | `part_boolean {object: 1}` | `gizmo` "MeshBoolean", `instances` [{object 1, instance 0, name "B"}] | `gizmo()` MeshBoolean; `selection()` objects [1] |
-| 8 | `object_simplify {object: 1, part: 1}` | `gizmo` "Simplify", `parts` [{object 1, part 1}] | `gizmo()` Simplify; `selection()` parts [[1, 1]] |
-| 9 | `object_simplify {object: 0}` | `gizmo` "Simplify", `parts` [{object 0, part 0}]: A's only part | `gizmo()` Simplify; `selection()` objects [0], instances [[0, 0]]: an object of one part shows no part row in the object list, which selects it whole when its part is selected |
-| 10 | `object_measure {objects: [0, 1]}` | `gizmo` "Measure", `objects` [{index 0, name "A"}, {index 1, name "B"}] | `gizmo()` Measure; `selection()` objects [0, 1] |
-| 11 | `object_select {none: true}`, `object_select {parts: [[1, 1]]}`, then `object_measure {}` | `gizmo` "Measure", `parts` [{object 1, part 1}] | `gizmo()` Measure; `selection()` parts [[1, 1]]: with no target it opens on the selection as it is, a part |
-| 12 | `object_select {none: true}` | | `gizmo()` none; `selection()` empty |
-
-**Scenario: openings refused**
-
-One filament slot (`filament_delete` until refused); A and B as in the scenario above. Each step starts from the
-selection its row gives. After every row the model is as after 0, `gizmo()` is none, `undo_steps()` is empty but
-for row 5's, and `selection()` is the selection the step started from. A selection change records an undo step of its
-own ("Selection-Add Instance"), which a refused opening must not leave behind; row 5's step, "Leaving Paint-on
-supports", is the one the Support Painting gizmo records as it closes, as it does for any closing. Rows 1, 2 and 5 are refused by the gizmo's condition, which
-the call asks after it has selected the named target, so they check that it puts back the selection it found;
-row 3 is refused by the Simplify check, which comes before anything is selected; row 4 names no target.
-
-| # | Selection before | Step | Refused |
-|---|---|---|---|
-| 0 | | start | `selection()` empty; `slots()` "0" |
-| 1 | `object_select {objects: [1]}`: objects [1] | `part_boolean {object: 0}` | `needs_two_parts` |
-| 2 | `object_select {none: true}`: empty | `object_paint {object: 0, type: "color"}` | `needs_two_filaments` |
-| 3 | `object_select {parts: [[1, 1]]}`: parts [[1, 1]] | `object_simplify {object: 1}` | `needs_one_part`: B has two parts and none is named |
-| 4 | `object_select {none: true}`: empty | `object_measure {}` | `needs_selection` |
-| 5 | `object_paint {object: 1, type: "supports"}`: objects [1], `gizmo()` FdmSupports | `part_boolean {object: 0}` | `needs_two_parts`; the FdmSupports gizmo it closed to ask stays closed |
-
-**Scenario: cut from arguments**
-
-A 20 mm cube A at (100, 100), nothing selected. A cut object leaves the list and its pieces are added at its end,
-upper first (`Plater::apply_cut_object_to_model`), each named as the object was. A piece is written as its name, its
-`bbox` size and its part's `mesh_volume` (to 1 mm³); every piece rests on the bed (`bbox.min` z 0).
-
-| # | Step | Objects after | Also checked |
-|---|---|---|---|
-| 0 | start | A (100, 100, 10) size [20, 20, 20], one part 8000 | |
-| 1 | `object_cut {object: 0}` | as after 0 | reply `gizmo` "Cut", `active` true; `gizmo()` Cut; undo steps ["Entering Cut gizmo"], the step the Cut gizmo records as it opens, as for a click on its icon |
-| 2 | `object_cut {object: 0, z: 10}` | A [20, 20, 10] 4000 · A [20, 20, 10] 4000, both `bbox` x and y 90–110 | `gizmo()` none: the open Cut gizmo was closed first; reply `pieces` [{index 0, name "A", open_edges 0}, {index 1, name "A", open_edges 0}]; undo steps ["Leaving Cut gizmo", "Cut by Plane"]: the gizmo's own step as it closes, then the cut's |
-| 3 | `undo` | as after 0 | |
-| 4 | `redo` | as after 2 | |
-| 5 | `undo` | as after 0 | |
-| 6 | `object_cut {object: 0, plane: {point: [100, 100, 10], normal: [1, 0, 1]}}` | A, the upper piece: 4000, size z 14.14 to 0.01 · A, the lower piece: [20, 20, 20] 4000, `bbox` x 90–110 | the plane x + z = 110 halves the cube into two prisms; the upper one lies on its cut face, 10√2 mm below its far edge; the lower one stays as cut; reply `pieces` with 2 entries, `open_edges` 0 |
-| 7 | `undo` | as after 0 | |
-| 8 | `object_cut {object: 0, z: 10, keep: "upper"}` | A [20, 20, 10] 4000 | reply `pieces` [{index 0, name "A", open_edges 0}] |
-| 9 | `undo` | as after 0 | |
-| 10 | `object_cut {object: 0, z: 10, to_parts: true}` | A [20, 20, 20], two parts of type part, 4000 each, `bbox` x and y 90–110, z 0–20 | reply `object` {index 0, name "A"} and `parts` with 2 entries |
-| 11 | `undo` | as after 0 | |
-| 12 | `object_cut {object: 0, z: 10}` | as after 2 | |
-| 13 | saved and reopened | as after 2 | |
-
-**Scenario: cuts refused**
-
-A as above. After every row the model is as after 0 of the scenario above, `gizmo()` is none and `undo_steps()` is
-empty. A refusal without a code is checked by its words.
-
-| # | Step | Refused |
-|---|---|---|
-| 1 | `object_cut {object: 0, z: 50}` | `plane_misses_object` |
-| 2 | `object_cut {object: 0, keep: "upper"}` | `needs_plane` |
-| 3 | `object_cut {object: 0, z: 10, plane: {point: [100, 100, 10], normal: [0, 0, 1]}}` | the words "z or plane, not both" |
-| 4 | `object_cut {object: 0, plane: {point: [100, 100, 10], normal: [0, 0, 0]}}` | the words "normal is zero" |
-| 5 | `object_cut {object: 0, z: 10, keep: "upper", lower: "flip"}` | the words "the lower piece is not kept" |
-| 6 | `object_cut {object: 0, z: 10, keep: "upper", to_parts: true}` | the words "to_parts keeps both pieces" |
-| 7 | `object_cut {object: 0, z: 10, to_parts: true, upper: "flip"}` | the words "to_parts places no piece" |
-
-**Scenario: lay on face from a direction**
-
-A 20 mm cube A at (100, 100), then `object_transform {object: 0, rotate: [30, 0, 0], mode: "absolute"}`, which
-drops it back onto the bed. Turned 30° about X, A's own -Z face points along (0, 0.5, -0.866) in the 3D view.
-Instances are written `i0`, `i1` with their offset and `rotation_deg`; angles to 0.01°.
-
-| # | Step | A after | Also checked |
-|---|---|---|---|
-| 0 | start | i0 (100, 100, 13.66) rot [30, 0, 0], size [20, 27.32, 27.32] to 0.01 | `bbox.min` z 0 |
-| 1 | `object_lay_on_face {object: 0}` | as after 0 | reply `gizmo` "Flatten"; `gizmo()` Flatten |
-| 2 | `object_lay_on_face {object: 0, normal: [0, 0, -1]}` | i0 (100, 100, 10) rot [0, 0, 0], size [20, 20, 20] | `gizmo()` none: Flatten was closed first; reply `object` 0, `instance` 0, `rotation` [0, 0, 0]; undo steps ["Gizmo-Place on Face"] |
-| 3 | `undo` | as after 0 | |
-| 4 | `redo` | as after 2 | |
-| 5 | `undo` | as after 0 | |
-| 6 | `object_lay_on_face {object: 0, normal: [0, 0.5, -0.866], frame: "world"}` | as after 2 | the world direction of A's -Z face gives the same turn |
-| 7 | `undo` | as after 0 | |
-| 8 | `object_set_instances {object: 0, count: 2}` | i0 as after 0 · i1 rot [30, 0, 0] | the new instance copies i0's turn; i1's offset is the app's |
-| 9 | `object_lay_on_face {object: 0, instance: 0, normal: [0, 0, -1]}` | i0 (100, 100, 10) rot [0, 0, 0] · i1 rot [0, 0, 0] | the other instance turns with it; both rest on the bed |
-| 10 | saved and reopened | as after 9 | |
-
-**Scenario: lay on face refused**
-
-A as at 0 of the scenario above, turned 30° about X, nothing selected. After every row A is as after 0 of that
-scenario and the step took no undo step.
-
-| # | Step | Refused | Also checked |
-|---|---|---|---|
-| 1 | `object_lay_on_face {object: 0, frame: "world"}` | `needs_normal`: `frame` acts only with `normal` | `gizmo()` none |
-| 2 | `object_lay_on_face {object: 0}`, then `object_lay_on_face {object: 0, normal: [0, 0, 0]}` | `zero_normal` | `gizmo()` Flatten: the call is refused before it closes the open gizmo |
-| 3 | `object_select {none: true}` | | `gizmo()` none |
-
-**Scenario: brim ears from positions**
-
-A 20 mm cube A at (100, 100), nothing selected. The process's `brim_type` is `auto_brim`, the setting's default, and
-its `initial_layer_line_width` is `120%` of the 0.4 mm nozzle (the Custom vendor's `fdm_process_common`), 0.48 mm, so
-an ear's default radius is 3.84 mm, eight first-layer line widths (`GLGizmoBrimEars::get_brim_default_radius`). An
-ear asked for at bed position (x, y) is stored at (x - 100, y - 100, -10.0001) in A's coordinates: the bed point at z
--0.0001 through the inverse of A's placement. Ears are written as `(x, y, z) r`, to 0.001.
-
-| # | Step | After | Also checked |
-|---|---|---|---|
-| 0 | start | `brim_ears` 0; `setting(0, "brim_type")` value null, effective `auto_brim` | `settings_get` of the process's `initial_layer_line_width` "120%" |
-| 1 | `object_set_brim_ears {object: 0}` | as after 0 | reply `gizmo` "Brim Ears"; `gizmo()` Brim Ears |
-| 2 | `object_set_brim_ears {object: 0, points: [{position: [90, 90], radius: 3}, {position: [110, 90]}]}` | `brim_ears` 2 | `gizmo()` none; reply `ears` [(-10, -10, -10.0001) 3, (10, -10, -10.0001) 3.84], `brim_type` `auto_brim`, `takes_effect` false; undo steps ["Brim ears edit", "Leaving Brim Ears", "Set brim ears"]: the two steps the Brim Ears gizmo records as it closes, then the call's |
-| 3 | `undo` | `brim_ears` 0 | |
-| 4 | `redo` | `brim_ears` 2 | |
-| 5 | `settings_set {target: "object", object: 0, values: {brim_type: "painted"}}`, then step 2's call again | `brim_ears` 2; `brim_type` `painted` from `object` | reply `ears` as in 2, `brim_type` `painted`, `takes_effect` true |
-| 6 | `project_save` to a new file | as after 5 | `brim_file()` {1: [(-10, -10, -10.0001) 3, (10, -10, -10.0001) 3.84]} |
-| 7 | `project_new {discard_changes: true}`, `project_open` of the file | `brim_ears` 2; `brim_type` `painted` | |
-| 8 | `object_set_brim_ears {object: 0, clear: true}` | `brim_ears` 0 | reply `ears` [] |
-| 9 | `object_set_brim_ears {object: 0}`, then `object_set_brim_ears {object: 0, points: [{position: [100, 90], radius: 5}]}` | `brim_ears` 1 | after the first, `gizmo()` Brim Ears; after the second, `gizmo()` none, and after `project_save` to a new file, `brim_file()` {1: [(0, -10, -10.0001) 5]}: the call's ear, not what the gizmo held |
-| 10 | `object_set_brim_ears {object: 0, points: [{position: [90, 90], radius: 3}, {position: [110, 90], radius: 3}]}`, then `object_set_brim_ears {object: 0}` | `brim_ears` 2 | `gizmo()` Brim Ears; the opening keeps the two ears the call set with the gizmo closed, though the gizmo was last open on A holding none (D9: `reload_on_next_opening()`) |
-| 11 | `object_set_brim_ears {object: 0, points: [{position: [100, 90], radius: 150}]}` | as after 10 | refused `radius_out_of_range`; `gizmo()` Brim Ears: a refused call leaves the gizmo open; no undo step |
-| 12 | `object_set_brim_ears {object: 0, points: [{position: [100, 90]}], clear: true}` | as after 10 | refused, the words "points or clear, not both"; `gizmo()` Brim Ears |
-| 13 | `object_select {none: true}` | `brim_ears` 2 | `gizmo()` none |
-| 14 | `object_set_brim_ears {object: 0}`, then `object_set_brim_ears {object: 0, clear: true}` | `brim_ears` 0 | after the first, `gizmo()` Brim Ears; after the second, `gizmo()` none, and after `project_save` to a new file, `brim_file()` has no ears for `object_id` 1: the gizmo, closed first, did not write back the two ears it held |
-
-**Scenario: text and SVG as a part of a named object**
-
-A 20 mm cube A at (100, 100) and a 20 mm cube B at (150, 100), B selected (`object_select {objects: [1]}`).
-`star.svg` is `tools/mcp/tests/fixtures/star.svg`, as in `test_gizmos`. Each step that adds a part is followed by
-`app_wait {for: "idle"}`. A's parts are written as their `type` and, for a text, its `text.text`, for an SVG, its
-`svg.path` as the file's name. An object keeps its parts first, then its negative parts, then its modifiers
-(`ModelObject::sort_volumes`), so a part added after a negative part comes before it.
-
-| # | Step | A's parts after | Also checked |
-|---|---|---|---|
-| 0 | start | part | B one part; `selection()` objects [1] |
-| 1 | `object_add_text {object: 0}` | part · part "Embossed text" | `gizmo()` Text; B one part |
-| 2 | `object_select {none: true}`, then `object_add_text {object: 0, type: "negative"}` | as after 1 · negative "Embossed text" | `gizmo()` Text |
-| 3 | `object_select {objects: [1]}`, then `object_add_svg {object: 0, path: star.svg}` | part · part "Embossed text" · part star.svg · negative "Embossed text" | `gizmo()` SVG; B one part |
-| 4 | `object_select {none: true}`, then `object_add_svg {object: 0, type: "modifier", path: star.svg}` | as after 3 · modifier star.svg | `gizmo()` SVG |
-| 5 | `object_select {none: true}`, `undo` | as after 3 | adding the part is one undo step |
-| 6 | `redo` | as after 4 | |
-| 7 | `dialog_auto_answer {rules: [{match: ".", button: "ok", path: <test folder>/star.svg}]}`, then `object_add_svg {object: 0, type: "modifier"}` | as after 4 | the rule's `uses` is 1: the file picker opened; nothing was added, since the picker reads `GetPaths()`, which an automatic answer leaves empty |
-| 8 | saved and reopened | as after 4 | text parts keep `text`, SVG parts keep `svg` |
-| 9 | `object_select {objects: [0, 1]}`, then `object_add_text {type: "modifier"}` | as after 8 | refused `one_object_only`: `type` without `object` adds to the selected object, and two are selected; `scene()` two objects, B one part; `selection()` objects [0, 1]; no undo step |
-| 10 | `object_add_svg {type: "modifier", path: star.svg}`, the same selection | as after 8 | refused `one_object_only`; as in 9 |
-| 11 | `object_select {parts: [[0, 3]]}`, A's negative part alone, then `object_add_svg {type: "modifier", path: star.svg}` | as after 8 · modifier star.svg | `scene()` two objects: the SVG is A's. As a person does it: a part's menu offers no text or SVG, and a right click on A's row, whose menu offers them by type, selects A whole first; Add Modifier>Text there makes a modifier of A. So `type` alone selects the selected object whole first, as a call that names it does. (The action without `type`, the Speed Dial's, makes a new object here, since a text or SVG lands on a selected solid part, `find_closest()` in `EmbossJob.cpp`.) `gizmo()` SVG |
-
-**Not checked:**
-- What the opened gizmos then do: `test_gizmos` drives each one's panel.
-- Where on A the text and the SVG parts land, which follows the camera; that they are A's is checked by A's parts.
+  resizing brim ears in the gizmo.
+- What a gizmo a command opens then does: the scenarios through the panels drive each one's panel. Where on A the
+  text and the SVG parts a command adds land, which follows the camera; that they are A's is checked by A's parts.
 - The upper piece's turn after a cut that places it on its cut face: its size and volume are checked. The call turns
   the cut plane from level by the shortest turn to its normal, which is the turn the Cut gizmo's plane takes when it
   is tilted about one axis; a plane tilted in the gizmo about two axes in turn can differ from it by a turn about the
@@ -669,19 +633,30 @@ A 20 mm cube A at (100, 100) and a 20 mm cube B at (150, 100), B selected (`obje
   `cut_refusal()` cover both.
 - Variable layer height editing, under which the Cut gizmo does not open (`layers_editing_on`), and a printer that is
   not FFF (`needs_fff_printer`): unit cases of `gizmo_refusal()`.
-- How the ears are drawn, and what they do to a slice.
-- The default radius from a first-layer line width given in millimetres, as the Bambu Lab processes give it: the
-  Klipper process gives it as a percentage of the nozzle, which the radius is checked from.
-- The ears an undo brings back. With the Brim Ears gizmo closed, an undo restores an object's ears, but the gizmo keeps
-  the ears it held and brings them back on its next opening. A person's own edit does the same (an ear clicked on,
-  the gizmo closed, the ear undone, the gizmo opened: the ear is back), so it is the gizmo's behaviour, which the
+- The default brim ear radius from a first-layer line width given in millimetres, as the Bambu Lab processes give it:
+  the Klipper process gives it as a percentage of the nozzle, which the radius is checked from.
+- The ears an undo brings back. With the Brim Ears gizmo closed, an undo restores an object's ears, but the gizmo
+  keeps the ears it held and brings them back on its next opening. A person's own edit does the same (an ear clicked
+  on, the gizmo closed, the ear undone, the gizmo opened: the ear is back), so it is the gizmo's behaviour, which the
   command leaves as it is (D9).
 - That no ear is selected once the gizmo opens after a call: a check needs an ear selected first, by a click on its
   grabber at the bed under the object's edge, and the panel shows no state of it (`has_selected_points()` reads the
-  ears, not the flag a click reads). `reload_on_next_opening()` clears it with the gizmo's own `select_point(NoPoints)`.
+  ears, not the flag a click reads). `reload_on_next_opening()` clears it with the gizmo's own
+  `select_point(NoPoints)`.
 - `object_id` and `part_id` in replies.
+- What the painting, fuzzy skin, brim ears and connectors do to a slice: the test checks what the gizmos leave on the
+  model and in the project file; turning it into toolpaths is the slicer's.
+- What other tests assert: Select All with Move open, and refused with Lay on face open, in
+  `test_menu_items_refusals`; Measure in the assemble view and Select All refused there in `test_person_forms`;
+  arranging with Move open and from the assemble view in `test_operation_routes`; refs to the Text font button and a
+  texture layer row surviving their renames in `test_runtime_calls`. The Text action is run by no test as an
+  action; its command, `object_add_text`, is called in text and SVG as a part of a named object. Turned instances
+  kept through the project file in `test_objects` (what the project keeps, step 5), which stands for the turns a lay
+  on face leaves.
 
-**Strength:** Strong — every opening is read back from `app_state`, every acting call's model from `object_list`
-and its undo before its redo, the brim ears through the saved file, and each refusal by its code or words with the
-model, the gizmo and the undo log read again; the volumes and the tilted piece's height are checked to stated
-tolerances, as the app computes them.
+**Strength:** Strong — after every step it reads the model back through another tool and compares it with values
+written out here, reads every undo before its redo, asserts each refusal by its code or words with the model, the
+gizmo and the undo log read again, and checks what a person keeps through the project file, the brim ears in the
+saved file itself; the counts a brush stroke gives, the Measure distance, the reverted font, where a text or SVG part
+lands on the top, the cut pieces' volumes and the tilted piece's height are checked by a tolerance or a property, as
+the app works them out.
