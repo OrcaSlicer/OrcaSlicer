@@ -4559,6 +4559,8 @@ void remap_model_filament_slots(Model &model, const std::map<int, int> &slot_rel
 
     for (ModelObject *object : model.objects) {
         remap_extruder_config(object->config);
+        for (auto &[range, config] : object->layer_config_ranges)
+            remap_extruder_config(config);
         for (ModelVolume *volume : object->volumes) {
             remap_extruder_config(volume->config);
             volume->mmu_segmentation_facets.remap_states(*volume, paint_state_map);

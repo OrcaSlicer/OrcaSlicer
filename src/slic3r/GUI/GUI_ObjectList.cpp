@@ -787,6 +787,19 @@ void ObjectList::update_filament_values_for_items(const size_t filaments_count)
             if (object->config.has(key) && object->config.opt_int(key) > filaments_count)
                 object->config.erase(key);
 
+        if (const auto layer_root = m_objects_model->GetLayerRootItem(item)) {
+            wxDataViewItemArray layer_items;
+            m_objects_model->GetChildren(layer_root, layer_items);
+            for (const auto &layer_item : layer_items) {
+                const auto range = object->layer_config_ranges.find(m_objects_model->GetLayerRangeByItem(layer_item));
+                if (range == object->layer_config_ranges.end() || !range->second.has("extruder"))
+                    continue;
+                const int slot = range->second.extruder();
+                if (slot != m_objects_model->GetExtruderNumber(layer_item))
+                    m_objects_model->SetExtruder(slot == 0 ? _L("default") : wxString::Format("%d", slot), layer_item);
+            }
+        }
+
         if (object->volumes.size() > 1) {
             for (size_t id = 0; id < object->volumes.size(); id++) {
                 item = m_objects_model->GetItemByVolumeId(i, id);
