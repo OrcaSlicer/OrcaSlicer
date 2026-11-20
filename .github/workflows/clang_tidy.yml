@@ -27,7 +27,7 @@ env:
   REPO: ${{ github.repository }}
   WORKFLOW: build_all.yml
   BASE_REF: ${{ github.base_ref }}
-  JOB: build_linux (${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }})
+  JOB: build_linux (x64, ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }}, clang, x64-clang, -l -x)
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
