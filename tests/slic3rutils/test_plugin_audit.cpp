@@ -5090,6 +5090,76 @@ TEST_CASE("An implicit writable root matches a target spelled with the other 8.3
 #endif
 }
 
+TEST_CASE("An extended-length spelling names the same location as its plain form", "[audit][Regression]")
+{
+#ifndef _WIN32
+    SKIP("The extended-length path prefix exists only on Windows");
+#else
+    ScopedTemporaryDir temp{"orca-plugin-audit-extended-paths"};
+    const fs::path     root    = temp.path() / "root";
+    const fs::path     outside = temp.path() / "outside";
+    fs::create_directories(root / "sub");
+    fs::create_directories(outside);
+
+    // A plugin's __file__ is spelled the way its sys.path entry was, and a cache past MAX_PATH can
+    // only be canonicalized in the extended-length form, while allowed roots are registered plainly.
+    // The same location has to compare equal in both spellings, and the boundary has to stay put.
+    const fs::path extended_root    = extended_path(root);
+    const fs::path extended_outside = extended_path(outside);
+    REQUIRE(extended_root != root);
+    REQUIRE(extended_outside != outside);
+
+    PluginAuditManager& mgr = PluginAuditManager::instance();
+
+    SECTION("a plain root contains extended-spelled targets")
+    {
+        ScopedPluginAuditContext ctx("test_plugin", "");
+        mgr.add_scoped_allowed_root(root);
+
+        CHECK(is_inside_allowed_root(extended_path(root / "sub" / "file.txt"), root));
+        CHECK(is_inside_allowed_root(root, extended_root));
+        CHECK(mgr.delete_target_inside_writable_allowed_root(extended_path(root / "sub").string()));
+        // A target that does not exist yet is still inside: only the existing prefix is compared.
+        CHECK(mgr.delete_target_inside_writable_allowed_root(extended_path(root / "not-created-yet").string()));
+
+        // Outside stays outside in the extended spelling too, including a name that only shares the
+        // root's prefix.
+        CHECK_FALSE(is_inside_allowed_root(extended_outside / "file.txt", root));
+        CHECK_FALSE(mgr.delete_target_inside_writable_allowed_root(extended_outside.string()));
+        CHECK_FALSE(is_inside_allowed_root(extended_path(fs::path(root.string() + "_sibling") / "file.txt"), root));
+    }
+
+    SECTION("an extended-spelled root contains plain targets")
+    {
+        ScopedPluginAuditContext ctx("test_plugin", "");
+        mgr.add_scoped_allowed_root(extended_root);
+
+        CHECK(is_inside_allowed_root(root / "sub" / "file.txt", extended_root));
+        CHECK(is_inside_allowed_root(extended_root, root));
+        CHECK(mgr.delete_target_inside_writable_allowed_root((root / "sub").string()));
+
+        CHECK_FALSE(is_inside_allowed_root(outside / "file.txt", extended_root));
+        CHECK_FALSE(is_inside_allowed_root(fs::path(root.string() + "_sibling"), extended_root));
+    }
+
+    SECTION("device paths that are not drive-letter aliases stay outside")
+    {
+        ScopedPluginAuditContext ctx("test_plugin", "");
+        mgr.add_scoped_allowed_root(root);
+
+        // "\\?\C:\..." is the only device-namespace alias of a lettered path that the comparison
+        // rewrites. A volume GUID, a named pipe, the "\\.\" device namespace and the NT "\??\"
+        // prefix name other objects, so stripping the prefix would invent a path inside the root;
+        // they must stay unmatched, as must an extended UNC spelling of some other share.
+        CHECK_FALSE(is_inside_allowed_root(fs::path(L"\\\\?\\Volume{00000000-0000-0000-0000-000000000000}\\file.txt"), root));
+        CHECK_FALSE(is_inside_allowed_root(fs::path(L"\\\\?\\PIPE\\orca-audit"), root));
+        CHECK_FALSE(is_inside_allowed_root(fs::path(L"\\\\.\\pipe\\orca-audit"), root));
+        CHECK_FALSE(is_inside_allowed_root(fs::path(L"\\??\\C:\\Windows\\win.ini"), root));
+        CHECK_FALSE(is_inside_allowed_root(fs::path(L"\\\\?\\UNC\\orca-audit-host\\share\\file.txt"), root));
+    }
+#endif
+}
+
 TEST_CASE("An asynchronous recursive delete approval is single-use and bound to its plugin and target", "[audit][Python]")
 {
     AuditHarness harness;
