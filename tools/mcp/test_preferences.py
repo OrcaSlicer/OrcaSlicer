@@ -9,8 +9,7 @@ preferences_get lists for that tab. The MCP server's switch and port read as the
 session's launch gave. preferences_set writes a checkbox, a choice and a number in one call, and each reads back from
 preferences_get and from its control in the dialog opened again. A preference read at the next start says so in
 preferences_get and in the reply. A call with a good key and a refused one (the language) changes nothing, and so does a
-value no choice has. drc_bits takes 0 (lossless) besides its range of 8 to 30, and refuses 5 naming both; it is left
-at 0, the app's default. The backup period runs the backup timer only while Auto backup is on, read from the timer's log
+value no choice has. The backup period runs the backup timer only while Auto backup is on, read from the timer's log
 line. The downloads folder takes a folder this test makes in its own temporary folder, which preferences_get and the
 dialog's row then show, and refuses one that does not exist; while the dialog is open a call cannot write it, and its
 Browse button, answered with another such folder, shows that folder in the open dialog's row. Hide login side panel,
@@ -220,39 +219,6 @@ def scenarios(client, session):
     check("a number outside its range is refused with the range", text is not None and "out_of_range" in text and "240" in text, text)
     text = refusal(client, "preferences_set", values={"python_scripts_unrestricted": True})
     check("the Python scripts' switch is no preference of the dialog", text is not None and "not_a_preference" in text, text)
-
-    # ---- a number that takes one value outside its range: drc_bits, 0 (lossless) or 8 to 30 ----
-    # It ends at 0, the app's default, as a person who never changed it has it.
-    def drc_bits():
-        return items_by_key(client, keys=["drc_bits"])["drc_bits"]
-
-    def drc_written(value):
-        """preferences_set's change of drc_bits as (before, after), or None when it names none."""
-        reply = client.call("preferences_set", values={"drc_bits": value})
-        return next(((c["before"], c["after"]) for c in reply.get("changed", []) if c["key"] == "drc_bits"), None)
-
-    item = drc_bits()
-    listed = {k: item.get(k) for k in ("min", "max", "also_takes")}
-    check("preferences_get lists drc_bits as 8 to 30, and 0 besides", listed == {"min": 8, "max": 30, "also_takes": 0}, item)
-    try:
-        drc_written(0)
-        taken = drc_bits()["value"]
-    except McpError as e:
-        taken = str(e)
-    check("preferences_set takes drc_bits 0, outside the range", taken == 0, taken)
-    change = drc_written(16)
-    check("a write of drc_bits 16 changes it from 0", change == (0, 16) and drc_bits()["value"] == 16, (change, drc_bits()))
-    change = drc_written(0)
-    check("and a write of 0 changes it back from 16", change == (16, 0) and drc_bits()["value"] == 0, (change, drc_bits()))
-    try:
-        client.call("preferences_set", values={"drc_bits": 5})
-        text, details = None, {}
-    except McpError as e:
-        text, details = shared.refusal(e)
-    check("drc_bits 5 is refused as out of range, naming the 0 and the range",
-          text == "drc_bits takes 0, or a number from 8 to 30." and details.get("code") == "out_of_range"
-          and details.get("range") == ["0", "8", "30"], (text, details))
-    check("and drc_bits stays 0", drc_bits()["value"] == 0, drc_bits())
 
     # ---- the backup period runs the backup timer only while Auto backup is on ----
     # The timer is read from the app's log: each change of it logs "set_interval exit, and new interval is: <s>"

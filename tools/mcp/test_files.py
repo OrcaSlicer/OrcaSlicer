@@ -39,11 +39,9 @@ BENCHY = os.path.join(REPO, "resources", "handy_models", "3DBenchy.drc")
 HEIGHTMAP = os.path.join(HERE, "tests", "fixtures", "heightmap.png")
 
 # The preferences the checks read, each at the app's default: an open that asks nothing about the project's settings,
-# the recent projects, the STEP options dialog, no slice by itself, the print host's upload for Send, and lossless
-# DRC.
+# the recent projects, the STEP options dialog, no slice by itself, and the print host's upload for Send.
 PREFERENCES = {"project_load_behaviour": "ask_when_relevant", "max_recent_count": 18, "recent_models": False,
-               "enable_step_mesh_setting": True, "auto_slice_after_change": False, "use_printer_agents": False,
-               "drc_bits": 0}
+               "enable_step_mesh_setting": True, "auto_slice_after_change": False, "use_printer_agents": False}
 # A filament preset file no other test writes, imported as a model.
 USER_PLA = "MCP Files PLA"
 USER_PLA_FILE = {"name": USER_PLA, "filament_settings_id": [USER_PLA], "inherits": GENERIC_PLA, "from": "User",
@@ -232,6 +230,10 @@ class FilesTest:
         self.run("preferences_set", values=PREFERENCES)
         items = self.c.call("preferences_get", keys=list(PREFERENCES))["items"]
         self.t.equal(f"{s}: the preferences", {i["key"]: i["value"] for i in items}, PREFERENCES)
+        # Lossless DRC, under which the DRC rows read their meshes back exactly. The Preferences dialog takes 8 to 30 only,
+        # so the test reads the app's default 0 rather than setting it.
+        drc = self.c.call("preferences_get", keys=["drc_bits"])["items"][0]["value"]
+        self.t.equal(f"{s}: drc_bits is 0, lossless", drc, 0)
         if USER_PLA in self.user_filaments():
             self.run("preset_delete", type="filament", name=USER_PLA)
         self.t.check(f"{s}: no {USER_PLA} preset", USER_PLA not in self.user_filaments(), self.user_filaments())
