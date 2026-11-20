@@ -1181,13 +1181,19 @@ struct Scenario
 {
     std::string            name;
     std::vector<ExPolygon> shapes;
+    std::vector<int>       kinds; // per item, which add() call it came from: equal kinds are interchangeable copies
 };
 
-void add(Scenario &s, int n, const ExPolygon &shape) { s.shapes.insert(s.shapes.end(), n, shape); }
+void add(Scenario &s, int n, const ExPolygon &shape)
+{
+    const int kind = s.kinds.empty() ? 0 : s.kinds.back() + 1;
+    s.shapes.insert(s.shapes.end(), n, shape);
+    s.kinds.insert(s.kinds.end(), n, kind);
+}
 
 Scenario scenario(const std::string &name)
 {
-    Scenario s{name, {}};
+    Scenario s{name, {}, {}};
     const ExPolygon L = shape_L(60, 15), C = shape_C(50, 40, 10), cyl = shape_disc(12), disc = shape_disc(15);
     if (name == "cyl30") add(s, 30, cyl);
     else if (name == "cap-cyl") add(s, 110, cyl);
@@ -1206,15 +1212,18 @@ const std::vector<std::string> ALL_SCENARIOS = {"cyl30", "cap-cyl", "L16", "cap-
 
 struct Run
 {
-    ArrangePolygons items;
-    double          seconds = 0.;
+    ArrangePolygons  items;
+    std::vector<int> kinds; // Scenario::kinds of the items
+    double           seconds = 0.;
 };
 
 Run run_arrange(const std::string &name, bool rotations)
 {
-    Run r;
-    for (const ExPolygon &e : scenario(name).shapes)
+    Run            r;
+    const Scenario s = scenario(name);
+    for (const ExPolygon &e : s.shapes)
         r.items.emplace_back(make_item(e));
+    r.kinds = s.kinds;
     ArrangeParams p   = quiet_params();
     p.allow_rotations = rotations;
     const auto t0     = std::chrono::steady_clock::now();
@@ -1253,13 +1262,23 @@ int on_bed0(const ArrangePolygons &items)
 
 std::string golden_path() { return std::string(TEST_DATA_DIR) + "/arrange_fast_golden.txt"; }
 
-std::string layout_dump(const std::string &name, bool rot, const ArrangePolygons &items)
+// One line per item, naming its kind rather than its index, in sorted order: the nester orders
+// equal items with std::sort, so which copy of a shape takes which place differs between
+// standard libraries.
+std::string layout_dump(const std::string &name, bool rot, const Run &r)
 {
-    std::ostringstream os;
-    for (size_t i = 0; i < items.size(); ++i)
-        os << name << ' ' << int(rot) << ' ' << i << ' ' << items[i].bed_idx << ' ' << items[i].translation.x() << ' '
-           << items[i].translation.y() << ' ' << std::llround(items[i].rotation * 1e9) << '\n';
-    return os.str();
+    std::vector<std::string> lines;
+    for (size_t i = 0; i < r.items.size(); ++i) {
+        const ArrangePolygon &ap = r.items[i];
+        std::ostringstream    os;
+        os << name << ' ' << int(rot) << ' ' << r.kinds[i] << ' ' << ap.bed_idx << ' ' << ap.translation.x() << ' '
+           << ap.translation.y() << ' ' << std::llround(ap.rotation * 1e9) << '\n';
+        lines.push_back(os.str());
+    }
+    std::sort(lines.begin(), lines.end());
+    std::string out;
+    for (const std::string &l : lines) out += l;
+    return out;
 }
 
 std::vector<std::string> lines_of(const std::string &s, const std::string &prefix)
@@ -1290,7 +1309,7 @@ TEST_CASE("Arrange gives the recorded layouts", "[Arrange][Golden]")
         for (bool rot : {false, true}) {
             const Run r = run_arrange(name, rot);
             require_valid_layout(r.items);
-            all += layout_dump(name, rot, r.items);
+            all += layout_dump(name, rot, r);
         }
 
     if (std::getenv("ORCA_WRITE_ARRANGE_GOLDEN") != nullptr) {
