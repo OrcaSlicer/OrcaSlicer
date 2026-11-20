@@ -126,8 +126,12 @@ DesignRowList::DesignRowList(wxWindow* parent, int max_visible, bool selectable,
 #endif
         e.Skip();
     });
+    // The editor sits on a row position a new client size may have moved. A size event that changes
+    // nothing leaves it open: wxGTK sends one to every parent of a window whose font is set, as the
+    // editor's is when it opens, and closing then would end the rename as soon as it starts.
     Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
-        end_rename(true);   // the editor sits on a row position the new size may have moved
+        if (GetClientSize() != m_edit_client_size)
+            end_rename(true);
         e.Skip();
     });
     measure_row();
@@ -230,6 +234,7 @@ void DesignRowList::open_editor(int row)
     const int h = std::max(rc.height, m_editor->GetBestSize().y);
     const int y = std::clamp(rc.y + (rc.height - h) / 2, 0, std::max(0, GetClientSize().y - h));
     m_editor->SetSize(rc.x - FromDIP(2), y, rc.width + FromDIP(2), h);
+    m_edit_client_size = GetClientSize();
     m_edit_row = row;
     m_editor->Show();
     m_editor->SetFocus();

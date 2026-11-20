@@ -123,6 +123,7 @@ private:
     Hit                                   m_pressed;           // action cell under the last left press
     wxTextCtrl*                           m_editor{nullptr};   // created on the first rename, then reused
     int                                   m_edit_row{wxNOT_FOUND};
+    wxSize                                m_edit_client_size;  // the client size the editor was placed in
 };
 
 }} // namespace Slic3r::GUI
