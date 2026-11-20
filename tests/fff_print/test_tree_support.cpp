@@ -4890,6 +4890,73 @@ TEST_CASE("Organic warnings detect beads hanging beside a rooted body", "[TreeSu
     CHECK(upper.support_fills.entities.size() == paths);
 }
 
+TEST_CASE("Organic warnings hold each bead of a layer by the reach of its own width", "[TreeSupport][Organic][Material][Regression]")
+{
+    // Over a bead 0.4 mm wide, a bead 0.2 mm wide on it and a bead 0.8 mm wide whose axis lies 0.3 mm beyond the edge
+    // of what it stands on, within half its width of it, joined to the narrow one by a link 0.4 mm wide: one island
+    // standing on the bead below, each bead within the reach of its own width, which the checks of a layer find once
+    // for each width and share. With its axis 0.45 mm beyond that edge, the wide bead hangs.
+    const bool wide_far = GENERATE(false, true);
+    CAPTURE(wide_far);
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{make_cube(1., 1., .1)}, print, model, organic_warning_settings(), nullptr,
+        false);
+    print.process();
+    PrintObject &object = *print.get_object(0);
+    require_organic_warning_gap(object);
+    object.clear_support_layers();
+    const auto point = [&](double x, double y) -> Point { return Point::new_scale(x, y) - object.center_offset(); };
+    const auto add = [&](SupportLayer &layer, const Polyline &axis, const float width) {
+        const Flow flow(width, .2f, .2f);
+        extrusion_entities_append_paths(layer.support_fills.entities, Polylines{axis}, erSupportMaterial,
+            flow.mm3_per_mm(), flow.width(), flow.height());
+    };
+    add(*object.add_support_layer(0, 0, .2, .2), Polyline({point(0., 0.), point(4., 0.)}), .4f);
+    SupportLayer &upper = *object.add_support_layer(1, 1, .2, .4);
+    add(upper, Polyline({point(0., 0.), point(4., 0.)}), .2f);
+    // The bead below ends 0.2 mm from its axis, and what it holds 0.21 mm. The link leaves the reach of its own width
+    // for less than it is wide.
+    const double wide_y = .21 + (wide_far ? .45 : .3);
+    add(upper, Polyline({point(0., wide_y), point(4., wide_y)}), .8f);
+    add(upper, Polyline({point(4., 0.), point(4., wide_y)}), .4f);
+    CHECK(floating_support_islands(object, 0.).empty() == ! wide_far);
+}
+
+TEST_CASE("Organic dots split where their width changes stand on what lies under any of their paths", "[TreeSupport][Organic][Material][Regression]")
+{
+    // A dot 0.2 mm long printed in two paths along a line, 0.3 mm wide from 0 to 0.05 mm and 0.4 mm wide on to 0.2 mm,
+    // beside the end of a bead below 0.4 mm wide, its island resting on that bead. With the bead from 0.14 mm on, the
+    // second path of the dot lies over it and the dot stays; with the bead from 0.3 mm, no path does and it is dropped.
+    const double start = GENERATE(.14, .3);
+    CAPTURE(start);
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{make_cube(1., 1., .1)}, print, model, organic_warning_settings(), nullptr,
+        false);
+    print.process();
+    PrintObject &object = *print.get_object(0);
+    object.clear_support_layers();
+    const auto point = [&](double x, double y) -> Point { return Point::new_scale(x, y) - object.center_offset(); };
+    const Flow flow(.4f, .2f, .2f);
+    extrusion_entities_append_paths(object.add_support_layer(0, 0, .2, .2)->support_fills.entities,
+        Polylines{Polyline({point(start + .2, 0.), point(3., 0.)})}, erSupportMaterial, flow.mm3_per_mm(), flow.width(),
+        flow.height());
+    const auto path = [&](double x0, double x1, float width) {
+        ExtrusionPath dot(erSupportMaterial, Flow(width, .2f, .2f).mm3_per_mm(), width, .2f);
+        for (const Point &at : {point(x0, 0.), point(x1, 0.)})
+            dot.polyline.points.emplace_back(double(at.x()), double(at.y()), 0.);
+        return dot;
+    };
+    SupportLayer &upper = *object.add_support_layer(1, 1, .2, .4);
+    auto *dot = new ExtrusionMultiPath();
+    dot->paths.push_back(path(0., .05, .3f));
+    dot->paths.push_back(path(.05, .2, .4f));
+    upper.support_fills.entities.push_back(dot);
+    remove_floating_support_crumbs(object, scale_(1.) * scale_(flow.width()));
+    CHECK(upper.support_fills.entities.empty() == (start > .2));
+}
+
 TEST_CASE("Organic warnings judge a bead printed in several paths as a whole", "[TreeSupport][Organic][Material][Regression]")
 {
     // 0: a long end hanging in the air, each of its paths shorter than the bead is wide. 1 and 2: a bridge of 0.5 mm, within
@@ -4902,10 +4969,16 @@ TEST_CASE("Organic warnings judge a bead printed in several paths as a whole", "
     // itself wide. 10: the same across a bridge of 0.78 mm, too long for the narrow path. 11: a wide path hanging 0.66 mm,
     // less than it is wide, with a narrow end of 0.01 mm, too short to change that. 12 and 13: a free end 0.6 mm wide
     // whose tip lies 0.55 and 0.61 mm from the start of the bead, 0.4 mm wide: the round caps 0.05 and 0.11 mm apart,
-    // and what the end spans would pass for a bridge across the seam of a closed bead.
-    const int shape = GENERATE(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13);
+    // and the end with the seam, about 2.3 mm across, would pass for a bridge of a closed bead, as a bottom interface
+    // 2.5 mm apart, only a setting here, lets a straight run hang as far as a line across it, 2.9 to 3.1 mm for these
+    // widths. 14: the same with the tip 0.45 mm from the start, where the bead below holds it: a bridge of about 2 mm,
+    // which hangs unless the span is that wide.
+    const int shape = GENERATE(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14);
     CAPTURE(shape);
-    const auto settings = organic_warning_settings();
+    auto settings = organic_warning_settings();
+    if (shape >= 12)
+        settings.set_deserialize_strict({{"support_interface_bottom_layers", 1},
+            {"support_bottom_interface_spacing", 2.5}});
     Model model;
     Print print;
     init_print(std::vector<TriangleMesh>{make_cube(1., 1., .1)}, print, model, settings, nullptr, false);
@@ -4948,7 +5021,7 @@ TEST_CASE("Organic warnings judge a bead printed in several paths as a whole", "
         add(lower, Polyline({point(0., 0.), point(0., 3.), point(3., 3.), point(3., 0.)}));
         auto *multi = new ExtrusionMultiPath();
         multi->paths.push_back(bead({Vec2d(0., 0.), Vec2d(0., 3.), Vec2d(3., 3.), Vec2d(3., 0.)}));
-        multi->paths.push_back(bead({Vec2d(3., 0.), Vec2d(shape == 12 ? .55 : .61, 0.)}, .6f));
+        multi->paths.push_back(bead({Vec2d(3., 0.), Vec2d(shape == 12 ? .55 : shape == 13 ? .61 : .45, 0.)}, .6f));
         upper.support_fills.entities.push_back(multi);
     } else if (shape == 10) {
         add(lower, Polyline({point(0., 0.), point(1., 0.)}));
@@ -4984,7 +5057,8 @@ TEST_CASE("Organic warnings judge a bead printed in several paths as a whole", "
         loop->paths.push_back(bead({Vec2d(2.2, 0.), Vec2d(4., 0.), Vec2d(4., 1.), Vec2d(0., 1.), Vec2d(0., 0.)}));
         upper.support_fills.entities.push_back(loop);
     }
-    CHECK(floating_support_islands(object, scale_(1.) * scale_(flow.width())).empty() == (shape == 1 || shape == 2 || shape == 11));
+    const bool held = shape == 1 || shape == 2 || shape == 11 || shape == 14;
+    CHECK(floating_support_islands(object, scale_(1.) * scale_(flow.width())).empty() == held);
 }
 
 // Paths of a bead given by their points in mm and their widths.
@@ -6066,8 +6140,8 @@ TEST_CASE("The bodies and trees of a hollow Organic base do not depend on the ba
 {
     // The base pattern spacing sets how far apart a filled base lays its lines. A hollow base lays none: a roof line spans
     // the gap of the base between the bodies it lies on, whatever the spacing, which main ignored there as well, and so does
-    // the check of what stands on nothing. A filled base still lays its lines that far apart. A roof printed as base, with
-    // no interface layers, and a raft take the spacing as on main. A cap over a stem, as a roof wider than the trees under it.
+    // the check of what stands on nothing. A filled base still lays its lines that far apart. A raft takes the spacing
+    // as on main. A cap over a stem, as a roof wider than the trees under it.
     const std::string base = GENERATE("default", "hollow", "rectilinear");
     CAPTURE(base);
     TriangleMesh mesh = make_cube(3., 3., 8.5), cap = make_cube(12., 12., 1.5);
@@ -6098,6 +6172,53 @@ TEST_CASE("The bodies and trees of a hollow Organic base do not depend on the ba
             CHECK(other.floating == reference.floating);
         }
     }
+}
+
+TEST_CASE("The tips of a hollow Organic base keep one pattern whatever the base pattern spacing", "[TreeSupport][Organic][Regression]")
+{
+    // Under an overhang no roof covers, the tips of the trees lie along lines of a pattern a branch distance apart. A
+    // filled base takes the pattern of its own lines, which a spacing of nearly nothing makes Rectilinear; a hollow
+    // base lays none and does not read the spacing, so it keeps the pattern of any wider one. Walls around the trees
+    // make it Rectilinear either way.
+    const std::string base = GENERATE("default", "hollow", "rectilinear");
+    const int         walls = GENERATE(0, 1);
+    CAPTURE(base, walls);
+    const auto pattern = [&](const double spacing) {
+        DynamicPrintConfig settings = DynamicPrintConfig::full_print_config();
+        settings.set_deserialize_strict({{"enable_support", 1}, {"support_type", "tree(auto)"},
+            {"support_style", "organic"}, {"support_base_pattern", base}, {"support_base_pattern_spacing", spacing},
+            {"tree_support_wall_count", walls}});
+        Model model;
+        Print print;
+        init_print(std::vector<TriangleMesh>{make_cube(1., 1., 1.)}, print, model, settings, nullptr, false);
+        return SupportParameters(*print.get_object(0)).organic_tip_fill_pattern;
+    };
+    const InfillPattern dense = pattern(0.), sparse = pattern(2.5);
+    CHECK(sparse == (walls > 0 ? ipRectilinear : ipSupportBase));
+    const bool kept = base != "rectilinear" || walls > 0;
+    CHECK((dense == sparse) == kept);
+}
+
+TEST_CASE("The trees of a hollow Organic base with no roofs do not depend on the base pattern spacing", "[TreeSupport][Organic][Regression]")
+{
+    // With no top interface layers no roof covers an overhang: all the tips lie along lines of the pattern a hollow
+    // base keeps, see the test above, whatever the spacing. A cap over a stem.
+    TriangleMesh mesh = make_cube(3., 3., 8.5), cap = make_cube(12., 12., 1.5);
+    mesh.translate(4.5f, 4.5f, 0.f);
+    cap.translate(0.f, 0.f, 8.f);
+    mesh.merge(cap);
+    const auto slice_at = [&mesh](const double spacing) {
+        Slic3r::Print print;
+        slice_with_tree_support(mesh, print, "organic", 30, 1, 0,
+            {{"support_base_pattern", "default"}, {"support_base_pattern_spacing", spacing},
+             {"support_interface_top_layers", 0}, {"tree_support_wall_count", 0}});
+        return support_points(print);
+    };
+    const Points reference = slice_at(2.5);
+    REQUIRE(reference.size() > 100);
+    const Points dense = slice_at(0.);
+    REQUIRE(dense.size() == reference.size());
+    CHECK(first_difference(reference, dense) == reference.size());
 }
 
 TEST_CASE("The gap of a hollow Organic base grows with the layer height from one support line to three", "[TreeSupport][Organic]")
@@ -6365,6 +6486,34 @@ TEST_CASE("Organic first layers hold a narrow bead beside a foot printed apart o
         [&narrowest](const ExtrusionPath &path) { narrowest = std::min(narrowest, path.width); });
     REQUIRE(narrowest < .2f);
     CHECK(floating_support_islands(object, scaled<double>(1.) * params.support_material_flow.scaled_width()).empty());
+}
+
+TEST_CASE("Organic solid parts closed on themselves print as loops of paths", "[TreeSupport][Organic][Regression]")
+{
+    // A ring 0.28 mm across, which Arachne prints as one bead going round as wide as the ring: its ends meet, and the
+    // solid part prints as a loop. The checks of the support toolpaths take each loop for one of non-empty paths.
+    auto settings = organic_tdd::config("default");
+    // Arachne prints a bead down to 85 % of the nozzle wide and leaves out features narrower than a quarter of it.
+    settings.set_deserialize_strict({{"min_bead_width", "85%"}, {"min_feature_size", "25%"}});
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{make_cube(1., 1., 1.)}, print, model, settings, nullptr, false);
+    const PrintObject &object = *print.get_object(0);
+    Polygon outer = make_circle_num_segments(scale_(2.), 128), inner = make_circle_num_segments(scale_(1.72), 128);
+    inner.reverse();
+    ExtrusionEntityCollection fills;
+    organic_extrude_solid_fill(fills.entities, Polygons{outer, inner}, Flow(.4f, .2f, .4f), print.config(),
+        object.config());
+    size_t loops = 0;
+    for (const ExtrusionEntity *entity : fills.entities)
+        if (const auto *loop = dynamic_cast<const ExtrusionLoop *>(entity)) {
+            ++ loops;
+            REQUIRE_FALSE(loop->paths.empty());
+            for (const ExtrusionPath &path : loop->paths)
+                CHECK(path.polyline.size() >= 2);
+            CHECK(loop->paths.front().first_point() == loop->paths.back().last_point());
+        }
+    CHECK(loops >= 1);
 }
 
 TEST_CASE("Organic solid first layers fill across inner tree feet without ring boundaries", "[TreeSupport][Organic][Material][Regression]")

@@ -3979,7 +3979,7 @@ void TabPrintModel::toggle_options()
     bool spacing_used = false;
     if (m_object_configs.size() > 1 && m_active_page != nullptr && has_key("support_base_pattern_spacing")) {
         static const t_config_option_keys keys{ "enable_support", "support_type", "support_style", "support_base_pattern",
-            "raft_layers", "support_interface_top_layers" };
+            "raft_layers" };
         const auto *belt = m_preset_bundle ?
             m_preset_bundle->printers.get_edited_preset().config.option<ConfigOptionBool>("belt_printer") : nullptr;
         for (const auto &object : m_object_configs) {

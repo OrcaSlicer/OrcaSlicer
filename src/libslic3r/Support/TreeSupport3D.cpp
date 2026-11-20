@@ -754,7 +754,7 @@ Polylines ensure_maximum_distance_polyline(const Polylines &input, double distan
     const Flow &flow = roof ? support_params.support_material_interface_flow : support_params.support_material_flow;
     const InfillPattern pattern = base_interface ?
         (support_params.top_interface_density > 0.95 || support_params.with_sheath ? ipRectilinear : ipSupportBase) :
-        roof ? support_params.contact_fill_pattern : support_params.base_fill_pattern;
+        roof ? support_params.contact_fill_pattern : support_params.organic_tip_fill_pattern;
     std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
     FillParams             fill_params;
 
