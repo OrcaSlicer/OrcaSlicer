@@ -5935,12 +5935,12 @@ void Sidebar::change_filament(size_t from_id, size_t to_id)
     // Merging a physical filament into a mixed one that lists it as a component would delete
     // the very filament the mix depends on, leaving it broken. Warn before doing so.
     if (merge_removes_component(from_id, to_id)) {
-        int ret = wxMessageBox(
+        MessageDialog dlg(this,
             _L("The target mixed filament uses this physical filament as a component. "
                "Merging will remove this physical filament and may invalidate the mixed filament. Continue?"),
             _L("Warning"),
             wxOK | wxCANCEL | wxICON_WARNING);
-        if (ret != wxOK)
+        if (dlg.ShowModal() != wxID_OK)
             return;
     }
 
