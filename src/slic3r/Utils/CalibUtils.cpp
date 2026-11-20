@@ -1141,6 +1141,7 @@ bool CalibUtils::calib_generic_PA(const CalibInfo &calib_info, wxString &error_m
 
     DynamicPrintConfig print_config    = calib_info.print_prest->config;
     print_config.set_key_value("wipe_inward", new ConfigOptionBool(false));
+    print_config.set_key_value("retract_after_outer_wall", new ConfigOptionBool(false));
     DynamicPrintConfig filament_config = calib_info.filament_prest->config;
     DynamicPrintConfig printer_config  = calib_info.printer_prest->config;
 
@@ -1403,6 +1404,7 @@ void CalibUtils::calib_retraction(const CalibInfo &calib_info, wxString &error_m
 
     DynamicPrintConfig print_config    = calib_info.print_prest->config;
     print_config.set_key_value("wipe_inward", new ConfigOptionBool(false));
+    print_config.set_key_value("retract_after_outer_wall", new ConfigOptionBool(false));
     DynamicPrintConfig filament_config = calib_info.filament_prest->config;
     DynamicPrintConfig printer_config  = calib_info.printer_prest->config;
 

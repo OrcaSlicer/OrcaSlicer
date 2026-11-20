@@ -828,6 +828,11 @@ protected:
     bool                                m_enable_extrusion_role_markers;
     // Keeps track of the last extrusion role passed to the processor
     ExtrusionRole                       m_last_processor_extrusion_role;
+    // Orca: the last extruded wall is an outer wall with retract_after_outer_wall on,
+    // so the next travel ignores the retraction threshold
+    bool                                m_retract_after_last_path { false };
+    // Orca: the next extruded path starts an outer wall on an overhang; tag it for the preview.
+    bool                                m_outer_overhang_tag_pending{false};
     // How many times will change_layer() be called?
     // change_layer() will update the progress bar.
     unsigned int                        m_layer_count;
@@ -982,6 +987,14 @@ protected:
     ExtrusionPaths belt_cut_at_band_edges(const ExtrusionPath &path, std::vector<std::vector<double>> &uncut_line_lengths) const;
     // _extrude() of a path that stays in one band above the belt (see belt_cut_at_band_edges()).
     std::string _extrude_piece(const ExtrusionPath &path, const std::string &path_description, double speed);
+    // First point of the path in the slicing frame, for the per-point first-layer test.
+    Vec3d path_slicing_point(const ExtrusionPath &path) const;
+    // Flow in mm³ per mm the path is extruded with, after the flow ratios (the first layer's when `on_first_layer`).
+    double extrusion_mm3_per_mm(const ExtrusionPath &path, bool on_first_layer) const;
+    // Feed rate of a feature: its linear `speed`, or with volumetric speeds its flow divided by `mm3_per_mm`.
+    double feature_speed(double speed, const ConfigOptionFloatsOrPercentsNullable &volumetric_flow, double mm3_per_mm) const;
+    // Max flow in mm³/s of a path with this role, 0 for no limit.
+    double volumetric_speed_limit(ExtrusionRole role) const;
     bool _needSAFC(const ExtrusionPath &path);
     void print_machine_envelope(GCodeOutputStream& file, Print& print);
     void _print_first_layer_bed_temperature(GCodeOutputStream &file, Print &print, const std::string &gcode, unsigned int first_printing_extruder_id, bool wait);
