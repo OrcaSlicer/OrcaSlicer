@@ -5,6 +5,7 @@
 // service header stays free of the manager.
 #include "PluginManager.hpp"
 
+#include "PluginBrowserProfile.hpp"
 #include "PluginConfig.hpp"
 #include "PluginFsUtils.hpp"
 #include "PythonInterpreter.hpp"
@@ -261,6 +262,19 @@ bool load(const PluginDescriptor&                          descriptor,
     static std::mutex           load_serializer;
     std::lock_guard<std::mutex> load_lock(load_serializer);
 
+    // Hold the package lease across selected-identity verification, Python import and on_load.
+    // Install/delete/keep-local take the same lease non-blocking, so the package cannot be swapped
+    // under the module while it is being selected/imported.
+    PluginPackageLease package_lease;
+    if (!descriptor.plugin_root.empty()) {
+        std::string lease_error;
+        package_lease = acquire_plugin_package_lease(descriptor.plugin_key, lease_error);
+        if (!package_lease) {
+            error = GUI::format(_u8L("Cannot load the plugin while its package is being updated: %1%"), lease_error);
+            return false;
+        }
+    }
+
     // A sidecar whose contents do not parse (cut short by a crash, or broken by a hand edit) would
     // make every writer refuse it, so a plugin that declares permissions could never load and no
     // grant or capability choice could be saved. Set it aside before any plugin code runs, so this
@@ -270,7 +284,12 @@ bool load(const PluginDescriptor&                          descriptor,
     // Anything else at the sidecar path (a link, a directory, a file that cannot be opened or read
     // in full) is left alone, so its writers keep refusing.
     if (!descriptor.plugin_root.empty()) {
-        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        std::unique_lock<PluginInstallStateMutex> state_lock;
+        std::string                               lock_error;
+        if (!try_lock_plugin_install_state(state_lock, lock_error)) {
+            error = GUI::format(_u8L("Cannot inspect the plugin install state: %1%"), lock_error);
+            return false;
+        }
         const boost::filesystem::path plugin_root(descriptor.plugin_root);
         PluginInstallState            unused_state;
         bool                          malformed = false;
@@ -284,6 +303,31 @@ bool load(const PluginDescriptor&                          descriptor,
             else
                 BOOST_LOG_TRIVIAL(warning) << "[plugin_loader::load] Install state of " << descriptor.plugin_key
                                            << " could not be parsed; moved it to " << backup << " and starting fresh";
+        }
+    }
+
+    // Persist a random installation browser-profile id and bind this load instance to it before
+    // any plugin code runs. A failed load unbinds it so callbacks from an abandoned attempt cannot
+    // run against a later replacement.
+    struct ProfileBinding
+    {
+        explicit ProfileBinding(const std::string& plugin_key) : key(plugin_key) {}
+        ~ProfileBinding()
+        {
+            if (active)
+                end_plugin_browser_profile(key);
+        }
+        std::string key;
+        bool        active{false};
+    } profile_binding(descriptor.plugin_key);
+    if (!descriptor.plugin_root.empty()) {
+        try {
+            (void) begin_plugin_browser_profile(descriptor.plugin_key, descriptor.plugin_root,
+                                                descriptor.installation_revision);
+            profile_binding.active = true;
+        } catch (const std::exception& ex) {
+            error = GUI::format(_u8L("Failed to prepare the plugin browser profile: %1%"), ex.what());
+            return false;
         }
     }
 
@@ -345,7 +389,12 @@ bool load(const PluginDescriptor&                          descriptor,
     PluginInstallState install_state;
     bool have_install_state = false;
     {
-        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        std::unique_lock<PluginInstallStateMutex> state_lock;
+        std::string                               lock_error;
+        if (!try_lock_plugin_install_state(state_lock, lock_error)) {
+            error = GUI::format(_u8L("Cannot read the plugin install state: %1%"), lock_error);
+            return false;
+        }
         have_install_state = !descriptor.plugin_root.empty() &&
                              read_install_state(boost::filesystem::path(descriptor.plugin_root), install_state);
     }
@@ -499,6 +548,9 @@ bool load(const PluginDescriptor&                          descriptor,
     }
 
     out = std::move(plugin);
+
+    // The load owns the binding from here on; PluginManager::unload_plugin ends it.
+    profile_binding.active = false;
 
     BOOST_LOG_TRIVIAL(info) << "[plugin_loader::load] SUCCESS plugin=" << descriptor.plugin_key
                             << " thread=" << std::this_thread::get_id();
@@ -661,28 +713,57 @@ bool install_plugin(const boost::filesystem::path& filepath, const std::string& 
     return install_plugin(filepath, cloud_user_id, descriptor, error);
 }
 
+std::string local_plugin_package_key(const boost::filesystem::path& filepath)
+{
+    return make_local_plugin_key(canonical_or_absolute(filepath).filename().stem().string());
+}
+
 bool install_plugin(const boost::filesystem::path& filepath,
                     const std::string&             cloud_user_id,
                     PluginDescriptor&              plugin_descriptor,
                     std::string&                   error,
                     bool*                          install_target_intact,
-                    const PluginInstallState*      preserved_state)
+                    const PluginInstallState*      preserved_state,
+                    std::shared_ptr<void>          package_lease)
 {
     namespace fs = boost::filesystem;
 
     if (install_target_intact != nullptr)
         *install_target_intact = true;
 
+    auto fail = [&error](const std::string& message) {
+        error = GUI::format(_u8L("Plugin installation failed: %1%"), message);
+        return false;
+    };
+
+    // Package lease first, then the sidecar lock. The loader uses the same order, so a package
+    // cannot be replaced or deleted between its identity check and Python import. A caller that
+    // unloaded the old package first passes its lease in, so the lease failure cannot happen
+    // after the unload.
+    if (!package_lease) {
+        const std::string lease_key = !plugin_descriptor.cloud_uuid().empty()
+                                          ? plugin_descriptor.cloud_uuid()
+                                          : local_plugin_package_key(filepath);
+        std::string lease_error;
+        package_lease = acquire_plugin_package_lease(lease_key, lease_error);
+        if (!package_lease)
+            return fail(_u8L("Cannot install the plugin while its package is being loaded or updated: ") + lease_error);
+    }
+
+    // Serialize the package and sidecar mutation with other processes. The sidecar writes below
+    // take the same lock again and are reentrant on this thread.
+    std::unique_lock<PluginInstallStateMutex> install_lock;
+    std::string                               install_lock_error;
+    if (!try_lock_plugin_install_state(install_lock, install_lock_error)) {
+        return fail(_u8L("Cannot install the plugin because its install-state lock is unavailable: ") +
+                    install_lock_error);
+    }
+
     const std::string cloud_uuid       = plugin_descriptor.cloud_uuid();
     const bool        is_cloud_install = !cloud_uuid.empty();
 
     fs::path backup_dir;
     bool     backup_created = false;
-
-    auto fail = [&error](const std::string& message) {
-        error = GUI::format(_u8L("Plugin installation failed: %1%"), message);
-        return false;
-    };
 
     boost::system::error_code ec;
     const fs::path            source_path = canonical_or_absolute(filepath);
@@ -796,9 +877,11 @@ bool install_plugin(const boost::filesystem::path& filepath,
     plugin_descriptor.clear_error();
 
     // Write install state sidecar before removing the backup. The write takes the shared
-    // install-state mutex so it cannot interleave with an in-process read-modify-write writer.
+    // install-state lock so it cannot interleave with a reader or writer in any process.
+    std::string previous_profile_id;
+    std::string installed_profile_id;
     {
-        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        std::lock_guard<PluginInstallStateMutex> state_lock(install_state_mutex());
 
         // Seed the metadata of the package being installed. An update supplies the previous
         // activation and capability choices; permissions are always reset because the new
@@ -809,6 +892,38 @@ bool install_plugin(const boost::filesystem::path& filepath,
             state.enabled      = preserved_state->enabled;
             state.capabilities = preserved_state->capabilities;
         }
+
+        // Installation browser-profile id. A same-target cloud update of the same UUID keeps it,
+        // so an installed plugin stays signed in across updates and restarts. A local install or
+        // reinstallation gets a fresh id, and the previous profile is removed after the commit.
+        PluginInstallState previous_state;
+        const bool         had_previous_state = backup_created && read_install_state(backup_dir, previous_state);
+        std::string        profile_id;
+        if (had_previous_state && !previous_state.browser_profile_id.empty() &&
+            !is_uuid(previous_state.browser_profile_id))
+            BOOST_LOG_TRIVIAL(warning) << "Ignoring an invalid browser profile id in " << backup_dir.string()
+                                       << "; the replacement starts with a fresh profile";
+        if (is_cloud_install && had_previous_state && previous_state.cloud_uuid == cloud_uuid &&
+            is_uuid(previous_state.browser_profile_id))
+            profile_id = previous_state.browser_profile_id;
+        try {
+            if (profile_id.empty())
+                profile_id = make_plugin_browser_profile_id();
+            state.installation_revision = make_plugin_installation_revision();
+        } catch (const std::exception& ex) {
+            // The backup is already in place; do not let a throwing UUID generator escape without
+            // restoring the package this call replaced.
+            restore_backup();
+            return fail(GUI::format(_u8L("Cannot create a plugin installation identity: %1%"), ex.what()));
+        } catch (...) {
+            restore_backup();
+            return fail(_u8L("Cannot create a plugin installation identity."));
+        }
+        state.browser_profile_id              = profile_id;
+        plugin_descriptor.installation_revision = state.installation_revision;
+        installed_profile_id                  = profile_id;
+        if (had_previous_state && is_uuid(previous_state.browser_profile_id))
+            previous_profile_id = previous_state.browser_profile_id;
 
         if (!write_install_state(final_dir, state)) {
             // Roll back: remove new files and restore backup.
@@ -827,6 +942,17 @@ bool install_plugin(const boost::filesystem::path& filepath,
         fs::remove_all(backup_dir, remove_ec);
         if (remove_ec)
             BOOST_LOG_TRIVIAL(warning) << "Failed to remove plugin backup " << backup_dir.string() << ": " << remove_ec.message();
+    }
+
+    // A replacement with a fresh id must not leave the old installation's profile behind. A
+    // same-id cloud update does not reach here. Best effort: a live lease warns and skips.
+    if (!previous_profile_id.empty() && previous_profile_id != installed_profile_id) {
+        warn_plugin_browser_profile_reset(plugin_descriptor.plugin_key);
+        delete_plugin_browser_profile(plugin_descriptor.plugin_key, previous_profile_id);
+    } else if (backup_created && previous_profile_id.empty()) {
+        // The replaced package had no usable identity (legacy/missing sidecar), so this install
+        // starts a fresh profile. Report the reset rather than dropping the old session silently.
+        warn_plugin_browser_profile_reset(plugin_descriptor.plugin_key);
     }
 
     BOOST_LOG_TRIVIAL(info) << "Installed plugin " << plugin_descriptor.name << " to " << final_dir.string();

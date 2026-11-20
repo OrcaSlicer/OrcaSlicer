@@ -2,6 +2,7 @@
 
 #include <slic3r/GUI/LazyPage.hpp>
 #include <slic3r/GUI/WebPanel.hpp>
+#include <slic3r/plugin/PluginBrowserProfile.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <slic3r/plugin/pluginTypes/pages/PagesPluginCapability.hpp>
 
@@ -26,7 +27,8 @@ namespace Slic3r {
 class PluginPage : public GUI::WebPanel
 {
 public:
-    PluginPage(wxWindow* parent, std::shared_ptr<PagesPluginCapability> capability);
+    PluginPage(wxWindow* parent, std::shared_ptr<PagesPluginCapability> capability,
+               PluginBrowserProfileIdentityRef identity, const wxString& profile, BrowserProfileLease lease);
     ~PluginPage() override;
 
     PluginPage() = delete;
@@ -41,8 +43,10 @@ protected:
 private:
     void on_new_window(wxWebViewEvent& event);
 
-    std::shared_ptr<PagesPluginCapability> m_cap;
+    std::shared_ptr<PagesPluginCapability>   m_cap;
     std::shared_ptr<std::atomic<PluginPage*>> m_lifetime;
+    BrowserProfileLease                     m_lease;
+    PluginBrowserProfileIdentityRef         m_identity;
 };
 
 class PluginPages

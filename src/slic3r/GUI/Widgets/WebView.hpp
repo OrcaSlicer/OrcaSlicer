@@ -20,6 +20,10 @@ public:
     // with the same `profile` share one store, and therefore one live session. Used for
     // plugin-supplied (untrusted) content.
     static wxWebView *CreateWebView(wxWindow *parent, wxString const &url, wxString const &profile = wxEmptyString);
+
+    // Drops the cached configuration/environment for an isolated profile. Call on the GUI thread
+    // after every view of it has been destroyed. Needed before deleting the profile directory.
+    static void ReleaseProfile(const wxString& profile);
 #if wxUSE_WEBVIEW_EDGE
     static bool CheckWebViewRuntime();
     static bool DownloadAndInstallWebViewRuntime();

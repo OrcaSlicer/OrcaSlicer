@@ -107,14 +107,19 @@ void WKWebView_setTransparentBackground(void * web)
 // default store. Views share a session only through a common store, and
 // +nonPersistentDataStore makes a new one on every call, so one store is kept per profile for the
 // process lifetime. Used to isolate plugin web views.
-void WKWebViewConfiguration_setSharedNonPersistentDataStore(void * configuration, const wxString & profile)
+static NSMutableDictionary<NSString *, WKWebsiteDataStore *> * sharedNonPersistentStores()
 {
     static NSMutableDictionary<NSString *, WKWebsiteDataStore *> * stores = nil;
     if (stores == nil)
         stores = [[NSMutableDictionary alloc] init];
+    return stores;
+}
 
+void WKWebViewConfiguration_setSharedNonPersistentDataStore(void * configuration, const wxString & profile)
+{
     wxCFStringRef key_ref(profile);
     NSString * key = key_ref.AsNSString();
+    NSMutableDictionary<NSString *, WKWebsiteDataStore *> * stores = sharedNonPersistentStores();
     WKWebsiteDataStore * store = [stores objectForKey:key];
     if (store == nil) {
         store = [WKWebsiteDataStore nonPersistentDataStore];
@@ -124,6 +129,15 @@ void WKWebViewConfiguration_setSharedNonPersistentDataStore(void * configuration
     WKWebViewConfiguration * config = (WKWebViewConfiguration*)configuration;
     if (config)
         config.websiteDataStore = store;
+}
+
+// Drops the profile's in-memory store once every view using it has been destroyed. Without this,
+// a deleted/reinstalled plugin's old cookie/session store would stay alive for the process
+// lifetime because the profile id is never reused.
+void WKWebViewConfiguration_releaseSharedNonPersistentDataStore(const wxString & profile)
+{
+    wxCFStringRef key_ref(profile);
+    [sharedNonPersistentStores() removeObjectForKey:key_ref.AsNSString()];
 }
 
 // Force a WKWebView to re-lay-out and repaint. Needed for chrome-less popups: the window is

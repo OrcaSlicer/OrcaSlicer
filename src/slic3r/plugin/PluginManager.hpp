@@ -179,6 +179,11 @@ public:
     // Packages that materialize at least one capability of this type. A package's capability types
     // are only known once it has been loaded, so a never-loaded package never matches.
     bool try_get_plugin_descriptor(const std::string& plugin_key, PluginDescriptor& out) const;
+
+    // Records the installation revision the loader just wrote for a package root. Used so a
+    // later reload compares against the same installation instead of accepting a replacement.
+    void set_plugin_installation_revision(const std::string& plugin_key, const std::string& plugin_root,
+                                          const std::string& revision);
     // Same, but only for packages that are loadable (i.e. not an invalid package).
     bool try_get_valid_plugin_descriptor(const std::string& plugin_key, PluginDescriptor& out) const;
     // Packages that were present in the previous discovery pass but were not found on disk in the
@@ -213,7 +218,7 @@ public:
 
     // Reads the sidecar under install_state_mutex(), so the result is not interleaved with a
     // permission write. Returns false when the plugin is unknown or has no readable sidecar.
-    // Must not be called while already holding install_state_mutex(); the lock is not recursive.
+    // The lock is reentrant per thread, but new code should still avoid nesting it.
     bool get_install_state(const std::string& plugin_key, PluginInstallState& install_state);
 
     // Applies a granular edit to the plugin's latest sidecar contents in one locked read-modify-
@@ -369,7 +374,9 @@ private:
     // read or written is left untouched.
     void mark_plugin_install_state_disabled(const std::string& plugin_key);
     // Revoke permissions after a package replacement so the new package must request them again.
-    void revoke_plugin_permissions(const std::string& plugin_key);
+    // Returns false when the sidecar could not be updated, so an install must fail closed instead
+    // of letting new code inherit the replaced package's grants.
+    bool revoke_plugin_permissions(const std::string& plugin_key);
 
     // Keep the cloud install directory in step with the signed-in agent, as every cloud install
     // must land in _subscribed/<user_id>/.
@@ -394,7 +401,8 @@ private:
                              std::string&                   error,
                              bool*                          install_target_intact,
                              const PluginInstallState*      preserved_state      = nullptr,
-                             bool                           mark_error_on_failure = true);
+                             bool                           mark_error_on_failure = true,
+                             std::shared_ptr<void>          package_lease        = {});
 
     // Installs an already downloaded cloud package and updates the in-memory descriptor. The
     // caller owns the package file: it is removed here on both success and failure. cloud_user_id,
@@ -409,7 +417,8 @@ private:
                                       const std::string* cloud_user_id,
                                       std::string& error,
                                       CloudUpdateFailure* failure = nullptr,
-                                      const PluginInstallState* preserved_state = nullptr);
+                                      const PluginInstallState* preserved_state = nullptr,
+                                      std::shared_ptr<void> package_lease = {});
     // Puts back the sidecar (permissions, capability choices and enabled flag) that the unload
     // step overwrote when a replacement failed and the previous package is still in place.
     void restore_plugin_state_after_failed_update(const PluginDescriptor& previous,

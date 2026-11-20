@@ -4,6 +4,7 @@
 #include <pybind11/gil.h>
 #include <pybind11/cast.h>
 #include "slic3r/plugin/PluginAuditManager.hpp"
+#include "slic3r/plugin/PluginBrowserProfile.hpp"
 #include "slic3r/plugin/PythonInterpreter.hpp" // PythonGILState
 #include "slic3r/plugin/PluginJsonPy.hpp"
 
@@ -93,12 +94,20 @@ CallablePtr make_holder(py::object obj)
 // The handler runs later, from a wx event with no plugin call on the stack, so it restores the
 // plugin's audit context captured at registration. Without that scope, audit events raised by
 // the callback would be unattributed and allowed, like host code.
-GUI::WebDialog::MessageHandler make_message_adapter(py::object on_message, std::string plugin_key)
+bool browser_profile_callback_allowed(const PluginBrowserProfileIdentityRef& identity)
+{
+    return plugin_browser_profile_is_current(identity);
+}
+
+GUI::WebDialog::MessageHandler make_message_adapter(py::object on_message, std::string plugin_key,
+                                                   PluginBrowserProfileIdentityRef identity)
 {
     CallablePtr holder = make_holder(std::move(on_message));
     if (!holder)
         return nullptr;
-    return [holder, plugin_key = std::move(plugin_key)](const json& data) {
+    return [holder, plugin_key = std::move(plugin_key), identity = std::move(identity)](const json& data) {
+        if (!browser_profile_callback_allowed(identity))
+            return;
         PythonGILState gil;
         if (!gil)
             return;
@@ -112,12 +121,15 @@ GUI::WebDialog::MessageHandler make_message_adapter(py::object on_message, std::
     };
 }
 
-GUI::WebDialog::SubmitHandler make_submit_adapter(py::object on_submit, std::string plugin_key)
+GUI::WebDialog::SubmitHandler make_submit_adapter(py::object on_submit, std::string plugin_key,
+                                                 PluginBrowserProfileIdentityRef identity)
 {
     CallablePtr holder = make_holder(std::move(on_submit));
     if (!holder)
         return nullptr;
-    return [holder, plugin_key = std::move(plugin_key)](const json& data) {
+    return [holder, plugin_key = std::move(plugin_key), identity = std::move(identity)](const json& data) {
+        if (!browser_profile_callback_allowed(identity))
+            return;
         PythonGILState gil;
         if (!gil)
             return;
@@ -133,11 +145,14 @@ GUI::WebDialog::SubmitHandler make_submit_adapter(py::object on_submit, std::str
 
 // The plugin's on_close: fired only on a user/JS-initiated close (not forced teardown), while the
 // window is alive. Empty if the plugin passed None.
-std::function<void()> make_close_adapter(const CallablePtr& holder, std::string plugin_key)
+std::function<void()> make_close_adapter(const CallablePtr& holder, std::string plugin_key,
+                                         const PluginBrowserProfileIdentityRef& identity)
 {
     if (!holder)
         return nullptr;
-    return [holder, plugin_key = std::move(plugin_key)]() {
+    return [holder, plugin_key = std::move(plugin_key), identity]() {
+        if (!browser_profile_callback_allowed(identity))
+            return;
         PythonGILState gil;
         if (!gil)
             return;
@@ -162,6 +177,32 @@ std::string plugin_identity_for_ui(const char* api_name)
     return plugin_key;
 }
 
+struct UiProfile
+{
+    std::string                        plugin_key;
+    std::string                        profile_id;
+    PluginBrowserProfileIdentityRef    identity;
+    BrowserProfileLease                lease;
+};
+
+// Use the identity bound to this load instance, never a freshly read sidecar: a replacement
+// installed by another process must not hand its profile/session to an old loaded plugin.
+UiProfile ui_profile_for(const char* api_name)
+{
+    UiProfile ui;
+    ui.plugin_key = plugin_identity_for_ui(api_name);
+    ui.identity   = current_plugin_browser_profile_identity(ui.plugin_key);
+    if (!ui.identity)
+        throw std::runtime_error("The plugin is not loaded; its browser profile is unavailable");
+    ui.profile_id = ui.identity->profile_id;
+    ui.lease      = acquire_plugin_browser_profile_lease(ui.identity);
+    if (!ui.lease) {
+        warn_plugin_browser_profile_in_use(ui.plugin_key);
+        throw std::runtime_error("The plugin browser profile is in use by another OrcaSlicer instance");
+    }
+    return ui;
+}
+
 // --------------------------------------------------------------------------
 // Registry of live plugin UI resources. Keyed by an opaque id; tracks the
 // owning plugin so all of a plugin's UI can be torn down on unload.
@@ -180,17 +221,20 @@ public:
         std::lock_guard<std::mutex> lk(m_mtx);
         return m_next_id++;
     }
-    void bind(int id, wxWindow* window, const std::string& plugin_key)
+    void bind(int id, wxWindow* window, const std::string& plugin_key, BrowserProfileLease lease = {})
     {
         std::lock_guard<std::mutex> lk(m_mtx);
         m_resources[id] = window;
         m_owners[id]    = plugin_key;
+        if (lease)
+            m_leases[id] = std::move(lease);
     }
     void remove(int id)
     {
         std::lock_guard<std::mutex> lk(m_mtx);
         m_resources.erase(id);
         m_owners.erase(id);
+        m_leases.erase(id);
     }
 
     template<typename T>
@@ -216,6 +260,10 @@ public:
                 auto rit = m_resources.find(it->first);
                 if (rit != m_resources.end()) {
                     out.push_back(rit->second);
+                    // A pending (windowless) creation is abandoned now, so its lease must go.
+                    // A live window keeps its lease until the destructor's remove().
+                    if (rit->second == nullptr)
+                        m_leases.erase(it->first);
                     m_resources.erase(rit);
                 }
                 it = m_owners.erase(it);
@@ -250,8 +298,9 @@ public:
 
 private:
     std::mutex                           m_mtx;
-    std::unordered_map<int, wxWindow*>   m_resources;
-    std::unordered_map<int, std::string> m_owners;
+    std::unordered_map<int, wxWindow*>        m_resources;
+    std::unordered_map<int, std::string>      m_owners;
+    std::unordered_map<int, BrowserProfileLease> m_leases;
     std::unordered_map<std::string, std::vector<std::weak_ptr<GilSafeCallable>>> m_callbacks;
     int                                  m_next_id{1};
 };
@@ -398,12 +447,14 @@ py::object ui_create_window(const std::string& html, const std::string& title, i
     if (wxTheApp == nullptr)
         throw std::runtime_error("OrcaSlicer application is not initialized");
 
-    const std::string plugin_key = plugin_identity_for_ui("orca.host.ui.create_window");
+    UiProfile         ui         = ui_profile_for("orca.host.ui.create_window");
+    const std::string plugin_key = ui.plugin_key;
+    const std::string profile_id = ui.profile_id;
     const int         w          = width > 0 ? width : 820;
     const int         h          = height > 0 ? height : 600;
 
-    auto        msg_adapter    = make_message_adapter(std::move(on_message), plugin_key);
-    auto        submit_adapter = make_submit_adapter(std::move(on_submit), plugin_key);
+    auto        msg_adapter    = make_message_adapter(std::move(on_message), plugin_key, ui.identity);
+    auto        submit_adapter = make_submit_adapter(std::move(on_submit), plugin_key, ui.identity);
     CallablePtr close_holder   = make_holder(std::move(on_close));
 
     // The whole wxWindow/webview creation is deferred to a clean main-loop iteration.
@@ -424,9 +475,9 @@ py::object ui_create_window(const std::string& html, const std::string& title, i
     // FIFO-ordered after the creation below, and a plugin teardown claims the pending
     // id (take_for_plugin), which the creation detects and skips — no orphan window.
     const int new_id = UiRegistry::instance().reserve_id();
-    UiRegistry::instance().bind(new_id, nullptr, plugin_key);
+    UiRegistry::instance().bind(new_id, nullptr, plugin_key, ui.lease);
 
-    GUI::wxGetApp().CallAfter([new_id, plugin_key, html, title, w, h,
+    GUI::wxGetApp().CallAfter([new_id, plugin_key, profile_id, identity = ui.identity, lease = ui.lease, html, title, w, h,
                                msg_adapter = std::move(msg_adapter),
                                submit_adapter = std::move(submit_adapter),
                                close_holder = std::move(close_holder), modal]() mutable {
@@ -434,15 +485,15 @@ py::object ui_create_window(const std::string& html, const std::string& title, i
         if (!UiRegistry::instance().is_open(new_id))
             return;
 
-        GUI::WebDialog::CloseHandler on_close = make_close_adapter(close_holder, plugin_key);
+        GUI::WebDialog::CloseHandler on_close = make_close_adapter(close_holder, plugin_key, identity);
         // Registry cleanup: GIL-free, runs from the dialog destructor on every path.
         auto on_destroyed = [new_id]() { UiRegistry::instance().remove(new_id); };
 
         auto* dlg = new GUI::WebDialog(ui_parent(), wxString::FromUTF8(title), html,
                                        wxSize(w, h), std::move(msg_adapter), std::move(submit_adapter),
                                        std::move(on_close), std::move(on_destroyed), PLUGIN_WX_STYLE,
-                                       wxString::FromUTF8(plugin_key));
-        UiRegistry::instance().bind(new_id, dlg, plugin_key);
+                                       wxString::FromUTF8(profile_id));
+        UiRegistry::instance().bind(new_id, dlg, plugin_key, lease);
         if (modal) {
             dlg->ShowModal();
             // Plugin teardown may already have removed and destroyed this dialog
@@ -515,18 +566,20 @@ py::object ui_create_dock_panel(const std::string& html, const std::string& titl
     if (wxTheApp == nullptr)
         throw std::runtime_error("OrcaSlicer application is not initialized");
 
-    const std::string plugin_key = plugin_identity_for_ui("orca.host.ui.create_dock_panel");
+    UiProfile         ui         = ui_profile_for("orca.host.ui.create_dock_panel");
+    const std::string plugin_key = ui.plugin_key;
+    const std::string profile_id = ui.profile_id;
     const int         w          = width > 0 ? width : 320;
     const int         h          = height > 0 ? height : 480;
 
-    auto        msg_adapter  = make_message_adapter(std::move(on_message), plugin_key);
+    auto        msg_adapter  = make_message_adapter(std::move(on_message), plugin_key, ui.identity);
     CallablePtr close_holder = make_holder(std::move(on_close));
 
     // Deferred and pre-bound for the same reasons as create_window().
     const int new_id = UiRegistry::instance().reserve_id();
-    UiRegistry::instance().bind(new_id, nullptr, plugin_key);
+    UiRegistry::instance().bind(new_id, nullptr, plugin_key, ui.lease);
 
-    run_when_plater_shown([new_id, plugin_key, html, title, dock, w, h,
+    run_when_plater_shown([new_id, plugin_key, profile_id, identity = ui.identity, lease = ui.lease, html, title, dock, w, h,
                            msg_adapter = std::move(msg_adapter),
                            close_holder = std::move(close_holder)](GUI::Plater* plater) mutable {
         if (!UiRegistry::instance().is_open(new_id))
@@ -538,9 +591,10 @@ py::object ui_create_dock_panel(const std::string& html, const std::string& titl
         }
 
         auto  on_destroyed = [new_id]() { UiRegistry::instance().remove(new_id); };
-        auto* panel = new GUI::DockPanel(plater, html, std::move(msg_adapter), make_close_adapter(close_holder, plugin_key),
-                                         std::move(on_destroyed), wxString::FromUTF8(plugin_key));
-        UiRegistry::instance().bind(new_id, panel, plugin_key);
+        auto* panel = new GUI::DockPanel(plater, html, std::move(msg_adapter),
+                                         make_close_adapter(close_holder, plugin_key, identity),
+                                         std::move(on_destroyed), wxString::FromUTF8(profile_id));
+        UiRegistry::instance().bind(new_id, panel, plugin_key, lease);
         plater->add_dock_pane(panel, GUI::plugin_pane_name(plugin_key, title), wxString::FromUTF8(title), dock,
                               wxSize(w, h), [panel]() { panel->fire_close(); });
     });
@@ -661,6 +715,7 @@ void plater_notification(GUI::NotificationManager::NotificationLevel notificatio
 {
     const std::string plugin_key = PluginAuditManager::instance().current_plugin();
     CallablePtr        holder    = make_holder(std::move(on_click));
+    PluginBrowserProfileIdentityRef identity;
     if (holder) {
         // The click runs later, from a wx event with no plugin call on the stack. Without an
         // identity there is no audit context to restore, so refuse the callback rather than run
@@ -668,13 +723,18 @@ void plater_notification(GUI::NotificationManager::NotificationLevel notificatio
         // keeps its previous behavior.
         if (plugin_key.empty())
             throw std::runtime_error("orca.host.ui.push_notification on_click must be called from a plugin callback");
+        identity = current_plugin_browser_profile_identity(plugin_key);
+        if (!identity)
+            throw std::runtime_error("The plugin is not loaded; its browser profile is unavailable");
         UiRegistry::instance().bind_callback(holder, plugin_key);
     }
 
     std::function<bool(wxEvtHandler*)> callback;
     if (holder) {
-        callback = [holder, plugin_key](wxEvtHandler*) -> bool {
+        callback = [holder, plugin_key, identity](wxEvtHandler*) -> bool {
             if (!holder->active.load(std::memory_order_acquire))
+                return false;
+            if (!browser_profile_callback_allowed(identity))
                 return false;
 
             PythonGILState gil;

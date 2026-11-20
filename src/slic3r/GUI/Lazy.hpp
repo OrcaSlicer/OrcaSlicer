@@ -114,6 +114,15 @@ public:
     bool pending() const override { return !built() && !m_failed; }
     int  prebuild_order() const override { return m_order; }
 
+    // A null factory result marks the object failed. LazyPage lets the next explicit show retry
+    // a transient failure (for example a plugin profile lease held by another instance).
+    bool failed() const { return m_failed; }
+    void reset_failed()
+    {
+        if (!built())
+            m_failed = false;
+    }
+
     // The factory is the first unit, then one StagedBuild step each. A unit that pumps the
     // event loop cannot re-enter; a nested call does nothing.
     bool build_step() override

@@ -58,6 +58,7 @@ struct PluginDescriptor
     std::string version;                                // Selected plugin version
     std::string latest_version;                         // Authoritative latest available cloud version.
     std::string installed_version;                       // Locally installed package version. Preserved across cloud merges, which overwrite `version` with the latest cloud version. Empty when not installed.
+    std::string installation_revision;                   // Sidecar revision of the selected installed package; compare-and-delete token.
     std::vector<std::string> display_types;             // Display-only "compatibility" labels (cloud: raw service labels; local: from real capabilities). Never used for dispatch.
     std::string plugin_root;                            // Installed plugin directory, even when entry_path is invalid or ambiguous.
     std::string entry_path;                             // Full path to the installed plugin entry file
