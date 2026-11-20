@@ -75,9 +75,6 @@ modules:
   # Config-opts mirror deps/wxWidgets/wxWidgets.cmake with FLATPAK=ON, DEP_WX_GTK3=ON
   - name: wxWidgets
     buildsystem: cmake-ninja
-    build-options:
-      env:
-        CMAKE_POLICY_VERSION_MINIMUM: "3.5"
     config-opts:
       - -DCMAKE_BUILD_TYPE=Release
       - -DwxBUILD_PRECOMP=ON
@@ -118,9 +115,9 @@ modules:
       # Use git instead of archive: wxWidgets 3.3 relies on multiple git
       # submodules (PCRE2, etc.) that are not included in GitHub tarballs.
       - type: git
-        url: https://github.com/OrcaSlicer/Orca-deps-wxWidgets.git
-        branch: v3.3.2
-        commit: b44c39c100975a0ac0e46f937aa3f3eae5e18631
+        url: https://github.com/wxWidgets/wxWidgets.git
+        branch: v3.3.4
+        commit: 6a42a4b999b127cf28a8b5fe686da6b8ca93a9b8
 
   # OrcaSlicer C++ dependencies (built offline with pre-downloaded archives)
   - name: orca_deps
@@ -271,10 +268,10 @@ modules:
         sha256: 27b72ba2d5ff3d0a9814ad40d4cb88f8dc89a35491c0866d952473f8f9416b77
         dest: external-packages/Draco
 
-      # Assimp 5.4.3
+      # Assimp 6.0.6
       - type: file
-        url: https://github.com/assimp/assimp/archive/refs/tags/v5.4.3.tar.gz
-        sha256: 66dfbaee288f2bc43172440a55d0235dfc7bf885dda6435c038e8000e79582cb
+        url: https://github.com/assimp/assimp/archive/refs/tags/v6.0.6.zip
+        sha256: 951667a2d0f2068456a34ef017645d82e0f3d0eabc36440384fbe3054f665407
         dest: external-packages/Assimp
 
       # OpenSSL 3.5.9 (pinned so every platform ships the same OpenSSL; the
