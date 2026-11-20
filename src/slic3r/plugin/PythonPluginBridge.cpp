@@ -663,8 +663,8 @@ void bind_python_api(pybind11::module_& m)
 
 Each bucket takes the target strings the plugin expects the corresponding audit event to
 report: filesystem paths for fs_read and fs_readwrite, URLs for network_http, socket addresses
-for network_socket, and commands for process. threading=True requests permission to start
-threads. Targets already granted to the plugin are not asked for again.
+for network_socket, and executables or command names for process. threading=True requests
+permission to start threads. Targets already granted to the plugin are not asked for again.
 
 fs_create and fs_delete take folders rather than files. A literal folder entry grants creating
 or deleting entries directly inside that folder, not inside its subfolders. An entry ending in
