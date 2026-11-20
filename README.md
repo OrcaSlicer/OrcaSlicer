@@ -247,11 +247,11 @@ cd OrcaSlicer
 
 1. **Defaults are already fast** — `-ClangCl -Ninja` now enabled by default (~30-40% faster than MSVC+MSBuild)
 
-   | Config | Relative Time |
-   |--------|---------------|
-   | MSVC + MSBuild | 100% (baseline) |
-   | **clang-cl + Ninja (default)** | **~60-70%** |
-   | + ccache (incremental) | **~10-20%** |
+   | Config | Time on GitHub Runner | Relative |
+   |--------|----------------------|----------|
+   | MSVC + MSBuild | ~110 min | 100% (baseline) |
+   | **clang-cl + Ninja (default)** | **~70 min** | **~65%** |
+   | + ccache (incremental) | **~15 min** | **~15%** |
 
 2. **Add `-Cache ccache`** (or `-Preset x64-clang-cache`) — Speeds up incremental builds
 4. **Use `-Clean` only when needed** — Keeps dependency cache, only removes slicer tree
