@@ -20348,18 +20348,21 @@ bool Plater::export_gcode_3mf(bool export_all, const boost::filesystem::path& gi
     if (p->process_completed_with_error == p->partplate_list.get_curr_plate_index())
         return false;
 
-    //calc default_output_file, get default output file from background process
+    fs::path output_path = given_output_path;
     fs::path default_output_file;
     AppConfig& appconfig = *wxGetApp().app_config;
-    std::string start_dir;
     try {
         // Update the background processing, so that the placeholder parser will get the correct values for the ouput file template.
         // Also if there is something wrong with the current configuration, a pop-up dialog will be shown and the export will not be performed.
         unsigned int state = this->p->update_restart_background_process(false, false);
         if (state & priv::UPDATE_BACKGROUND_PROCESS_INVALID)
             return false;
-        default_output_file = this->p->background_process.output_filepath_for_project(
-            into_path(this->p->get_project_filename(".3mf")));
+        // The file dialog's suggested name fills in the output file name template, which can index the slice's own
+        // results (filament_type[initial_tool]) and so fails on a plate not sliced yet: a caller that names the file
+        // never needs it.
+        if (output_path.empty())
+            default_output_file = this->p->background_process.output_filepath_for_project(
+                into_path(this->p->get_project_filename(".3mf")));
     }
     catch (const Slic3r::PlaceholderParserError& ex) {
         // Show the error with monospaced font.
@@ -20370,14 +20373,10 @@ bool Plater::export_gcode_3mf(bool export_all, const boost::filesystem::path& gi
         show_error(this, ex.what(), false);
         return false;
     }
-    default_output_file.replace_extension(".gcode.3mf");
-    default_output_file = fs::path(Slic3r::fold_utf8_to_ascii(default_output_file.string()));
-
-    //Get a last save path
-    start_dir = appconfig.get_last_output_dir(default_output_file.parent_path().string(), false);
-
-    fs::path output_path = given_output_path;
     if (output_path.empty()) {
+        default_output_file.replace_extension(".gcode.3mf");
+        default_output_file = fs::path(Slic3r::fold_utf8_to_ascii(default_output_file.string()));
+        const std::string start_dir = appconfig.get_last_output_dir(default_output_file.parent_path().string(), false);
         std::string ext = default_output_file.extension().string();
         wxFileDialog dlg(this, _L("Save Sliced file as:"),
             start_dir,

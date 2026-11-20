@@ -15,6 +15,7 @@
 #include "slic3r/GUI/Tab.hpp"
 
 #include "libslic3r/Config.hpp"
+#include "libslic3r/FilamentMixer.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/ProjectTask.hpp"
@@ -419,6 +420,22 @@ Refusal too_many_filaments() { return {RefusalKind::Precondition, "too_many_fila
 
 Refusal last_filament_slot() { return {RefusalKind::Precondition, "last_filament_slot", L("The only filament slot cannot be deleted.")}; }
 
+// The 1-based slot of a mixed filament that mixes the physical slot `slot`, or 0 when none does.
+int mix_using(const PresetBundle& bundle, int slot)
+{
+    const auto* components = bundle.project_config.option<ConfigOptionStrings>("filament_mixed_components");
+    if (components == nullptr)
+        return 0;
+    for (std::size_t i = 0; i < components->values.size() && i < bundle.filament_presets.size(); ++i) {
+        if (!bundle.is_mixed_filament(i))
+            continue;
+        const std::vector<unsigned int> mixed = parse_mixed_components(components->values[i]);
+        if (std::find(mixed.begin(), mixed.end(), unsigned(slot)) != mixed.end())
+            return int(i) + 1;
+    }
+    return 0;
+}
+
 } // namespace
 
 Outcome<int> add_filament_slot()
@@ -464,22 +481,33 @@ Outcome<DeletedFilament> delete_filament_slot(const DeleteFilamentArgs& args)
     const PresetBundle& bundle   = *wxGetApp().preset_bundle;
     const int           slots    = int(bundle.filament_presets.size());
     const int           physical = int(bundle.num_physical_filaments());
-    // One physical slot stays, whatever mixed slots there are.
-    if (physical < 2)
-        return last_filament_slot();
-    const int slot = args.filament_slot.value_or(physical);
+    const int           slot     = args.filament_slot.value_or(physical);
     if (std::optional<Refusal> refusal = filament_delete_refusal(slots, slot, args.merge_into))
         return *refusal;
-    if (bundle.is_mixed_filament(std::size_t(slot) - 1))
+    // A mixed filament goes as the mixed filament list deletes it, which merges nothing; one physical slot stays,
+    // whatever mixed slots there are.
+    const bool mixed = bundle.is_mixed_filament(std::size_t(slot) - 1);
+    if (mixed && args.merge_into)
         return Refusal{RefusalKind::Precondition, "mixed_filament_slot",
                        // TRN %1% is a filament slot number.
-                       L("Filament slot %1% is a mixed filament; delete it from the mixed filament list."), {std::to_string(slot)}};
+                       L("Filament slot %1% is a mixed filament, which can be deleted but not merged."), {std::to_string(slot)}};
+    if (!mixed && physical < 2)
+        return last_filament_slot();
     Sidebar& sidebar = plater.sidebar();
-    if (args.merge_into) {
-        if (sidebar.merge_removes_component(std::size_t(slot) - 1, std::size_t(*args.merge_into) - 1))
+    if (args.merge_into && sidebar.merge_removes_component(std::size_t(slot) - 1, std::size_t(*args.merge_into) - 1))
+        return Refusal{RefusalKind::Precondition, "mixed_uses_slot",
+                       L("The target mixed filament uses this physical filament as a component. "
+                         "Merging will remove this physical filament and may invalidate the mixed filament. Continue?")};
+    // The sidebar deletes a physical filament a mix uses and leaves the mix naming a slot that is gone, which nothing
+    // can repair; the operation refuses it, so a caller deletes the mix first.
+    if (!mixed) {
+        if (const int mix = mix_using(bundle, slot))
             return Refusal{RefusalKind::Precondition, "mixed_uses_slot",
-                           L("The target mixed filament uses this physical filament as a component. "
-                             "Merging will remove this physical filament and may invalidate the mixed filament. Continue?")};
+                           // TRN %1% is a filament slot number, %2% the slot of the mixed filament that mixes it.
+                           L("Filament slot %1% is mixed in the mixed filament of slot %2%; delete that mixed filament first."),
+                           {std::to_string(slot), std::to_string(mix)}};
+    }
+    if (args.merge_into) {
         sidebar.change_filament(std::size_t(slot) - 1, std::size_t(*args.merge_into) - 1);
     } else {
         sidebar.delete_filament(std::size_t(slot) - 1);

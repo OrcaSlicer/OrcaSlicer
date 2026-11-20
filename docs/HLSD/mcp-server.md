@@ -2474,8 +2474,9 @@ and an automated call replies `isError`. `filament_add` and `filament_delete` ar
 buttons and a slot's Delete and Merge with menu items (`Ops::add_filament_slot()`,
 `Ops::delete_filament_slot()`):
 they run where the buttons show, for printers that take several filaments through one extruder, and refuse
-elsewhere, at the slot limit, for the only physical slot and for a mixed filament, which is deleted from the
-mixed filament list. A new slot goes after the physical slots, so mixed filaments move up by one with the
+elsewhere, at the slot limit, and for the only physical slot. `filament_delete` deletes a mixed filament as the
+mixed filament list does, and refuses to merge one, and to delete a physical slot a mixed filament mixes: the
+sidebar would leave the mix naming a slot that is gone, which nothing can repair. A new slot goes after the physical slots, so mixed filaments move up by one with the
 objects on them. `filament_delete` takes a 1-based `filament_slot`, the last physical one without it, and
 `merge_into`, the slot its objects go to in place of the first. `preset_sync` refuses while no account is
 signed in, and `filament_sync_ams` with no printer, no AMS or no filament.

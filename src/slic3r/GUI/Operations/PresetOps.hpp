@@ -132,11 +132,12 @@ struct DeletedFilament
     std::optional<int> merged_into;       // the slot its objects went to, by its number afterwards
 };
 // Deletes a filament slot as its Delete menu item does, or, with merge_into, as its Merge with item does
-// (Sidebar::change_filament()): the objects on it go to that slot. Not in the undo history, as neither item is.
+// (Sidebar::change_filament()): the objects on it go to that slot. A mixed filament is deleted as the mixed filament
+// list deletes it. Not in the undo history, as none of them is.
 // Refuses: filaments_unavailable, one_filament_per_extruder, the only physical slot (last_filament_slot), what
-//          filament_delete_refusal() gives, a mixed filament (mixed_filament_slot, which the mixed filament list
-//          deletes), a merge into a mixed filament that mixes the slot (mixed_uses_slot, with the question Merge with
-//          asks there), and a delete the sidebar did not make (not_deleted).
+//          filament_delete_refusal() gives, a merge of a mixed filament (mixed_filament_slot), a physical slot a mixed
+//          filament mixes (mixed_uses_slot; for a merge into that mix, with the question Merge with asks there), and a
+//          delete the sidebar did not make (not_deleted).
 Outcome<DeletedFilament> delete_filament_slot(const DeleteFilamentArgs& args);
 
 // What keeps a mixed filament of `components` (1-based filament slots) in `ratios` (percentages, one per component)

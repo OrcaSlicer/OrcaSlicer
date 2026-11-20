@@ -3480,8 +3480,9 @@ void register_config_tools(CommandCatalog& catalog)
         own_action(menu_command("filament_delete", L("Delete Filament Slot"),
                                "Delete a filament slot, as its Delete menu item does, the objects on it taking the first filament; "
                                "with merge_into, as its Merge with item does, the objects on it taking that slot. The slots after "
-                               "it move down by one. The only physical slot and a mixed filament (project_get_settings "
-                               "filament_is_mixed) are refused, and so is a merge into a mixed filament that mixes the slot. " +
+                               "it move down by one. A mixed filament (project_get_settings filament_is_mixed) is deleted as "
+                               "the mixed filament list deletes it, and not merged. Refused: the only physical slot, and a "
+                               "slot a mixed filament mixes, which the mix needs (delete the mix first). " +
                                    slot_buttons + " Not in the undo history. Reply: filament_slot (the slot deleted), merged_into "
                                                   "(the slot its objects went to, as numbered afterwards) and filament_slots.",
                                object_schema({{"filament_slot", {{"type", "integer"},
