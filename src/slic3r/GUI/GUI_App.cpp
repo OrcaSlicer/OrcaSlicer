@@ -4500,12 +4500,16 @@ void GUI_App::select_machine(const std::string& agent_id)
     // Check if already exists by dev_id
     MachineObject* existing = m_device_manager->get_local_machine(dev_id);
 
-    // If not found by dev_id, search by full_addr
+    // If not found by dev_id, look for this agent's entry saved under another dev_id for the same
+    // address, and select it by that dev_id. Another agent's entry with that address is a different
+    // printer on the same host (e.g. 127.0.0.1:7125 for "127.0.0.1"); matching it would leave the
+    // address with no entry of its own, so the selection below finds nothing.
     if (!existing) {
         auto local_machines = m_device_manager->get_local_machinelist();
         for (auto& [id, machine] : local_machines) {
-            if (machine && machine->get_dev_ip() == dev_id) {
+            if (machine && machine->printer_agent_id == agent_id && machine->get_dev_ip() == dev_id) {
                 existing = machine;
+                dev_id   = id;
                 break;
             }
         }
