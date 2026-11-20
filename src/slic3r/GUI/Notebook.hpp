@@ -490,17 +490,28 @@ protected:
             page->SetSize(GetPageRect());
     }
 
+    virtual int DoSetSelection(size_t n, int flags = 0) override
+    {
+        m_target_page = GetPage(n);
+        const int ret = wxBookCtrlBase::DoSetSelection(n, flags);
+        m_target_page = nullptr;
+        return ret;
+    }
+
     virtual void DoShowPage(wxWindow * page, bool show) override
     {
         if (show)
             page->ShowWithEffect(m_showEffect, m_showTimeout);
-        else
+        // Tabs may share one page window (Prepare/Preview -> m_plater). Hiding it just to re-show it
+        // unmaps and remaps its GL canvases, which triggers a mutter subsurface bug on Wayland.
+        else if (page != m_target_page)
             page->HideWithEffect(m_hideEffect, m_hideTimeout);
     }
 
 private:
     void Init();
 
+    wxWindow* m_target_page{nullptr}; // page being selected; DoShowPage must not hide it
     std::vector<wxString> m_pageNames; // index-parallel to wxBookCtrlBase::m_pages
 
     wxShowEffect m_showEffect,
