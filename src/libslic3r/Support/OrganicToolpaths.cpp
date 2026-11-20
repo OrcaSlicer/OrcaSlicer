@@ -42,6 +42,7 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -1395,7 +1396,7 @@ static Polygons support_below(const PrintObject &object, const std::vector<Polyg
 static const float footing_reach = float(scaled<double>(0.01));
 
 // The material support_below() of layer i grown by footing_reach. Model footing, when permitted, is added by
-// floating_islands().
+// floating_islands() and LayerFooting.
 static Polygons support_footing(const PrintObject &object, const std::vector<Polygons> &covered, const size_t i)
 {
     return offset(support_below(object, covered, i), footing_reach);
@@ -1425,10 +1426,11 @@ public:
         m_narrowest = std::min(m_narrowest, width);
         m_axes.emplace_back(std::move(axis));
     }
-    void clip(const Polygons &footing)
+    // reach(width) is where the axis of a bead width wide stands, see bead_reach().
+    template<typename Reach> void clip(const Reach &reach)
     {
         if (! m_axes.empty())
-            for (const Polyline &piece : diff_pl(m_axes, bead_reach(footing, double(m_narrowest))))
+            for (const Polyline &piece : diff_pl(m_axes, reach(m_narrowest)))
                 m_boxes.emplace_back(get_extents(piece).inflated(SCALED_EPSILON));
     }
     bool near(const Polyline &axis) const
@@ -1468,6 +1470,67 @@ static Polygons model_footing(const PrintObject &object, const size_t i, ModelFo
         append(material, model_material(object, *model_layer, bottom - gap - EPSILON, bottom + EPSILON, model, ordering));
     return union_(material);
 }
+
+// The footing of support layer i, see support_footing(), alone or with the model footing within reach below added, and
+// where a bead of each width stands on it, see bead_reach(). What lies below a layer does not change while the layer is
+// cleaned, so its checks share them, each found once and only once asked for: grown again for each check, the footing
+// of the whole layer took most of their time.
+class LayerFooting {
+public:
+    LayerFooting(const PrintObject &object, const std::vector<Polygons> &covered, const size_t i,
+        ModelFootprints &model, const ToolOrdering *ordering) :
+        m_object(object), m_covered(covered), m_i(i), m_model_prints(model), m_ordering(ordering)
+    {}
+    const Polygons &polygons(const bool with_model) { return footing(with_model).polygons; }
+    const Polygons &reach(const bool with_model, const coord_t width)
+    {
+        Footing &f = footing(with_model);
+        auto [it, inserted] = f.reach.try_emplace(width);
+        if (inserted)
+            it->second = bead_reach(f.polygons, double(width));
+        return it->second;
+    }
+    // The polygons of the footing that may share area with what lies within box: those whose boxes overlap it, with the
+    // contour of each hole among them.
+    Polygons near(const bool with_model, const BoundingBox &box)
+    {
+        Footing &f = footing(with_model);
+        if (f.near.polygons.empty())
+            f.near.append(f.polygons);
+        return f.near.around({ box });
+    }
+
+private:
+    struct Footing {
+        Polygons                    polygons;
+        std::map<coord_t, Polygons> reach;
+        NearPolygons                near;
+    };
+    Footing &footing(const bool with_model)
+    {
+        if (! m_support) {
+            m_support.emplace();
+            m_support->polygons = support_footing(m_object, m_covered, m_i);
+        }
+        if (! with_model)
+            return *m_support;
+        if (! m_with_model) {
+            m_with_model.emplace();
+            m_with_model->polygons = m_support->polygons;
+            append(m_with_model->polygons,
+                offset(model_footing(m_object, m_i, m_model_prints, m_ordering), footing_reach));
+        }
+        return *m_with_model;
+    }
+
+    const PrintObject           &m_object;
+    const std::vector<Polygons> &m_covered;
+    const size_t                 m_i;
+    ModelFootprints             &m_model_prints;
+    const ToolOrdering          *m_ordering;
+    std::optional<Footing>       m_support;
+    std::optional<Footing>       m_with_model;
+};
 
 // The islands standing on neither support below nor permitted model material within model_footing_gap(). The first
 // layer stands on the bed.
@@ -1642,32 +1705,27 @@ Polygons organic_footing_near_box(const Polygons &footing, const BoundingBox &bo
 // The number of runs of the beads of layer i outside its floating islands that hang, see hanging_parts(), over the
 // material below: the support below and, where the support may stand on it, the model. Sideways contact joins such a run
 // to a rooted XY island but puts nothing below it, so the island check does not see it.
-static size_t hanging_runs(const PrintObject &object, const std::vector<Polygons> &covered, const size_t i,
-    const ExPolygons &floating, ModelFootprints &model, const ToolOrdering *ordering, const coord_t base_span)
+static size_t hanging_runs(const PrintObject &object, const size_t i, const ExPolygons &floating, LayerFooting &footing,
+    const coord_t base_span)
 {
     const SupportLayer &layer  = *object.support_layers()[i];
     const auto         &config = object.config();
     // The raft prints lines of its own, spaced as it is set to.
     if (layer.print_z - layer.height < EPSILON || i < object.slicing_parameters().raft_layers() || !hollow_organic(config))
         return 0;
-    Polygons                    footing     = support_footing(object, covered, i);
-    bool                        model_added = config.support_on_build_plate_only;
-    std::map<coord_t, Polygons> reach_by_width;
-    size_t                      runs = 0;
-    const auto reach = [&](const coord_t width) -> const Polygons & {
-        auto [it, inserted] = reach_by_width.try_emplace(width);
-        if (inserted)
-            it->second = bead_reach(footing, double(width));
-        return it->second;
-    };
+    bool       model_added = config.support_on_build_plate_only;
+    bool       with_model  = false;
+    size_t     runs        = 0;
+    const auto reach = [&](const coord_t width) -> const Polygons & { return footing.reach(with_model, width); };
     // The reach near a path of a bead of several widths, grown from the footing within a box around the path only: Arachne
     // prints the paths of such a bead each as wide as it fits, and growing the footing of the whole layer for each width
     // took most of the time of these checks. The box leaves out only footing farther from the path than around, more than
     // the reach extends from the path and the caps of the ends of a seam from it.
-    const auto reach_near = [&footing](const coord_t width, const Polyline &path, const coord_t around) {
+    const auto reach_near = [&footing, &with_model](const coord_t width, const Polyline &path, const coord_t around) {
         BoundingBox box = get_extents(path);
         box.offset(double(around) + scaled<double>(.1));
-        return bead_reach(organic_footing_near_box(footing, box, bead_reach_offset(double(width))), double(width));
+        return bead_reach(organic_footing_near_box(footing.polygons(with_model), box, bead_reach_offset(double(width))),
+            double(width));
     };
     const auto max_span = [&](const double width) { return free_span(config, base_span, width); };
     AxesOutsideReach outside;
@@ -1675,7 +1733,7 @@ static size_t hanging_runs(const PrintObject &object, const std::vector<Polygons
         if (flat_support(config, path))
             outside.add(path.as_polyline(), coord_t(scale_(path.width)));
     });
-    outside.clip(footing);
+    outside.clip(reach);
     // The ends of the paths of a bead, split where its width changes, are not ends of the bead: judge it as a whole.
     const auto count_runs = [&](const std::vector<BeadPiece> &pieces) {
         Polyline axis;
@@ -1696,9 +1754,7 @@ static size_t hanging_runs(const PrintObject &object, const std::vector<Polygons
         size_t found = hanging();
         // Most beads stand on support. Construct the model footing only once one needs it.
         if (found != 0 && ! model_added) {
-            append(footing, offset(model_footing(object, i, model, ordering), footing_reach));
-            reach_by_width.clear();
-            model_added = true;
+            model_added = with_model = true;
             found       = hanging();
         }
         runs += found;
@@ -1720,14 +1776,14 @@ static size_t hanging_runs(const PrintObject &object, const std::vector<Polygons
 }
 
 // Appends the print Z of layer i for each of its floating islands at least min_area large and each of its hanging runs
-// outside all of its floating islands. base_span is organic_base_span() of the object, the same on all of its layers.
-static void append_floating_heights(std::vector<coordf_t> &heights, const PrintObject &object,
-    const std::vector<Polygons> &covered, const size_t i, const ExPolygons &floating, ModelFootprints &model,
-    const coord_t base_span, const ToolOrdering *ordering = nullptr, const double min_area = 0.)
+// outside all of its floating islands, standing on footing. base_span is organic_base_span() of the object, the same on
+// all of its layers.
+static void append_floating_heights(std::vector<coordf_t> &heights, const PrintObject &object, const size_t i,
+    const ExPolygons &floating, LayerFooting &footing, const coord_t base_span, const double min_area = 0.)
 {
     const size_t large = std::count_if(floating.begin(), floating.end(),
         [min_area](const ExPolygon &island) { return island.area() >= min_area; });
-    heights.insert(heights.end(), large + hanging_runs(object, covered, i, floating, model, ordering, base_span),
+    heights.insert(heights.end(), large + hanging_runs(object, i, floating, footing, base_span),
         object.support_layers()[i]->print_z);
 }
 
@@ -1762,8 +1818,9 @@ std::vector<coordf_t> floating_support_islands(const PrintObject &object, const 
     const coord_t               base_span = organic_base_span(object);
     for (size_t i = 0; i < covered.size(); ++ i) {
         throw_if_canceled(object);
-        append_floating_heights(floating, object, covered, i, floating_islands(object, covered, i, model), model, base_span,
-            nullptr, min_area);
+        LayerFooting footing(object, covered, i, model, nullptr);
+        append_floating_heights(floating, object, i, floating_islands(object, covered, i, model), footing, base_span,
+            min_area);
     }
     return floating;
 }
@@ -1780,8 +1837,9 @@ std::vector<coordf_t> floating_support_islands(const PrintObject &object, const 
     const coord_t base_span = organic_base_span(object);
     for (size_t i = 0; i < covered.size(); ++i) {
         throw_if_canceled(object);
-        append_floating_heights(floating, object, covered, i, floating_islands(object, covered, i, model, &ordering), model,
-            base_span, &ordering, min_area);
+        LayerFooting footing(object, covered, i, model, &ordering);
+        append_floating_heights(floating, object, i, floating_islands(object, covered, i, model, &ordering), footing,
+            base_span, min_area);
     }
     return floating;
 }
@@ -1927,8 +1985,9 @@ void OrganicScarfFooting::update_warnings()
             model.emitted = &footprints;
             for (size_t i = 0; i < covered.size(); ++i) {
                 throw_if_canceled(*object);
-                append_floating_heights(heights, *object, covered, i, floating_islands(*object, covered, i, model), model, base_span,
-                    nullptr, sliver);
+                LayerFooting footing(*object, covered, i, model, nullptr);
+                append_floating_heights(heights, *object, i, floating_islands(*object, covered, i, model), footing,
+                    base_span, sliver);
             }
         }
         organic_update_support_warning(*material.object, std::move(heights));
@@ -2210,6 +2269,8 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
         throw_if_canceled(object);
         const SupportLayer &layer = *object.support_layers()[i];
         ExtrusionEntityCollection &fills = object.support_layers()[i]->support_fills;
+        // The passes below change this layer only, not what it stands on.
+        LayerFooting footing(object, covered, i, model, nullptr);
         // The islands of the last pass, which drops none of them: those at least max_area large left on nothing.
         ExPolygons kept;
         bool changed;
@@ -2234,9 +2295,17 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
             // hanging_parts() leaves runs that short out. Arachne lays such dots where a solid part runs out, over the slit
             // between the loops of the layer below. An interface is a contact, kept as a tongue's load is.
             if (hollow_organic(config) && layer.bottom_z() >= EPSILON) {
-                Polygons footing;
-                bool     support_added = false;
-                bool     model_added   = config.support_on_build_plate_only;
+                bool       model_added = config.support_on_build_plate_only;
+                bool       with_model  = false;
+                // Only the footing near the axes, which gives a dot the answer the footing of the whole layer does.
+                const auto stands      = [&](const Polylines &axes) {
+                    // Point by point: get_extents() leaves out the box of a path along an axis, which has no area.
+                    BoundingBox box;
+                    for (const Polyline &axis : axes)
+                        for (const Point &point : axis.points)
+                            box.merge(point);
+                    return ! intersection_pl(axes, footing.near(with_model, box.inflated(SCALED_EPSILON))).empty();
+                };
                 const size_t dots = remove_extrusions_if(fills, [&](const ExtrusionEntity &entity) {
                     Polylines axes;
                     double    length = 0.;
@@ -2250,17 +2319,12 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
                     });
                     if (! flat || axes.empty() || length > width)
                         return false;
-                    if (! support_added) {
-                        footing       = support_footing(object, covered, i);
-                        support_added = true;
-                    }
-                    if (! intersection_pl(axes, footing).empty())
+                    if (stands(axes))
                         return false;
                     if (model_added)
                         return true;
-                    append(footing, offset(model_footing(object, i, model, nullptr), footing_reach));
-                    model_added = true;
-                    return intersection_pl(axes, footing).empty();
+                    model_added = with_model = true;
+                    return ! stands(axes);
                 });
                 if (dots != 0) {
                     removed += dots;
@@ -2268,9 +2332,11 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
                 }
             }
             if (trim_walls && layer.bottom_z() >= EPSILON) {
-                Polygons footing = support_footing(object, covered, i);
-                Polygons tongues;
-                std::map<coord_t, Polygons> reach_by_width;
+                bool       with_model = false;
+                const auto reach      = [&](const coord_t width) -> const Polygons & {
+                    return footing.reach(with_model, width);
+                };
+                Polygons   tongues;
                 // Where the support may stand on the model, a tongue over it stands on it: the model footing joins the support
                 // below once a tongue is found without it.
                 const auto find_tongues = [&]() {
@@ -2283,7 +2349,7 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
                         if (may_hang(path))
                             outside.add(path.as_polyline(), scale_(path.width));
                     });
-                    outside.clip(footing);
+                    outside.clip(reach);
                     for_each_extrusion_path(fills, [&](const ExtrusionPath &path) {
                         if (! may_hang(path))
                             return;
@@ -2291,10 +2357,7 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
                         if (! outside.near(axis))
                             return;
                         const coord_t width = scale_(path.width);
-                        auto [it, inserted] = reach_by_width.try_emplace(width);
-                        if (inserted)
-                            it->second = bead_reach(footing, double(width));
-                        for (const Polyline &part : hanging_parts(axis, double(width), it->second,
+                        for (const Polyline &part : hanging_parts(axis, double(width), reach(width),
                                  free_span(config, base_span, double(width))))
                             for (const ExPolygon &tongue : union_ex(organic_bead(part, double(width))))
                                 if (config.support_on_build_plate_only ? unused_appendage(i, tongue) : carries_nothing(i, tongue))
@@ -2303,8 +2366,7 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
                 };
                 find_tongues();
                 if (! tongues.empty() && ! config.support_on_build_plate_only) {
-                    append(footing, offset(model_footing(object, i, model, nullptr), footing_reach));
-                    reach_by_width.clear();
+                    with_model = true;
                     tongues.clear();
                     find_tongues();
                 }
@@ -2318,7 +2380,7 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
                         });
                     if (!interfaces.empty())
                         legal = diff(legal, union_(interfaces));
-                    const size_t trimmed = trim_unsupported_base(fills, union_(tongues), footing,
+                    const size_t trimmed = trim_unsupported_base(fills, union_(tongues), footing.polygons(with_model),
                         layer.support_islands.empty() ? nullptr : &legal, config, base_span);
                     removed += trimmed;
                     changed = changed || trimmed != 0;
@@ -2332,7 +2394,7 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
         } while (changed);
         // The layers above leave this one as it is now.
         if (floating != nullptr)
-            append_floating_heights(*floating, object, covered, i, kept, model, base_span);
+            append_floating_heights(*floating, object, i, kept, footing, base_span);
     }
     return removed;
 }

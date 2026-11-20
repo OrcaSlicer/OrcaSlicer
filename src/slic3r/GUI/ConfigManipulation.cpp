@@ -774,8 +774,7 @@ bool ConfigManipulation::base_pattern_spacing_used(const DynamicPrintConfig &con
     // tree support type to Default, and Default to Organic.
     const bool organic      = is_tree(config.opt_enum<SupportType>("support_type")) && style != smsTreeSlim &&
         style != smsTreeStrong && style != smsTreeHybrid;
-    const bool hollow       = have_support && organic && (base == smpDefault || base == smpNone) && !have_raft &&
-        config.opt_int("support_interface_top_layers") > 0;
+    const bool hollow       = have_support && organic && (base == smpDefault || base == smpNone) && !have_raft;
     return (have_support || have_raft) && !hollow;
 }
 

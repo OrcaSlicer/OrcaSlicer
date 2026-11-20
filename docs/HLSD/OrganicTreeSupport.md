@@ -349,7 +349,10 @@ holds a roof at more points. With layers about half a line high, a gap of three
 lines leaves the underside of a roof as clean as a gap of one, without bodies
 full of tiny trees; at fine layers a line bridges next to nothing, and one line,
 the narrowest gap the trees keep, tears least. The factor of seven is fitted to
-these two cases, see organic_base_span(). The lines run in the directions
+these two cases, see organic_base_span(). Nor does the spacing set where the
+tips of a hollow base lie under an overhang no roof covers: along lines a branch
+distance apart of Support Base, or of Rectilinear with walls around the trees.
+The lines of a roof run in the directions
 the interface pattern gives them: one with Rectilinear and the default, two with
 Rectilinear Interlaced, which turns them from layer to layer, and with Grid. Their
 positions are not known before the paths, so the lines are taken a quarter of a
@@ -620,8 +623,8 @@ After the paths are generated, an island of the support smaller than a bead a
 millimetre long that stands on nothing, on neither the support below nor the
 model within the bottom Z distance as the trees round it to whole layers, or the
 0.1 mm a bead sags across, is dropped: a crumb left where a wall is cut short.
-So is a dot of the base, a path no longer than it is wide, whose axis lies over
-neither:
+So is a dot of the base, a bead in one path or several no longer than it is
+wide, none of whose axes lies over either:
 touching what is below only by its edge, it hangs, though a bead beside it keeps
 it in a rooted island and the bead-scale test below leaves runs that short out.
 Arachne lays such dots where a solid part runs out, over the slit between the
@@ -667,7 +670,7 @@ hang over the model too, and carry neither support of the layer above nor model
 within the top Z distance. Its retained bearings are connected by
 a straight line, or by the shorter legal route along the footing boundary.
 Both bearings must touch printed material below; each free span is limited to
-the gap of the base. A connection lying on the edge of what the material
+what the warning lets a straight bead bridge, see above. A connection lying on the edge of what the material
 below holds touches it, and the warning and the search for excursions take it
 as standing there: by rounding, it would otherwise hang off that edge. The new bead stays inside the support region and away
 from interface beads. A closed wall stays closed, including when the cut

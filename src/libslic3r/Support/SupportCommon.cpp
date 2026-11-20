@@ -2357,6 +2357,9 @@ void generate_support_toolpaths(
                     assert(! path->empty());
                 else if (const ExtrusionMultiPath *multipath = dynamic_cast<const ExtrusionMultiPath*>(ee))
                     assert(! multipath->empty());
+                // Organic prints a solid part closed on itself as a loop, see organic_extrude_solid_fill().
+                else if (const ExtrusionLoop *loop = dynamic_cast<const ExtrusionLoop*>(ee))
+                    assert(! loop->paths.empty());
                 else if (const ExtrusionEntityCollection *eecol = dynamic_cast<const ExtrusionEntityCollection*>(ee)) {
                     assert(! eecol->empty());
                     return verify_nonempty(eecol);

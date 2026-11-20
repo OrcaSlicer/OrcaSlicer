@@ -109,8 +109,8 @@ public:
     void    layer_height_limits(double& min_layer_height, double& max_layer_height) const;
     void    set_is_BBL_Printer(bool is_bbl_printer) { is_BBL_Printer = is_bbl_printer; };
     // Whether a support of this configuration prints lines of the base pattern, whose spacing it then uses: a support at all,
-    // but not an Organic one with a hollow base, which prints them only on a raft and on a roof printed as base, with no
-    // top interface layers.
+    // but not an Organic one with a hollow base, which prints them only on a raft. With no top interface layers it
+    // prints no roof, and its tips keep one pattern, see SupportParameters::organic_tip_fill_pattern.
     static bool base_pattern_spacing_used(const DynamicPrintConfig &config, bool is_belt_printer);
     // Keeps the base pattern spacing editable where the configuration toggled is merged from several objects and one of them
     // prints lines of its base pattern, which that configuration may not show.
