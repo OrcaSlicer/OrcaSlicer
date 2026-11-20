@@ -4,25 +4,31 @@
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_set_view_preview.py
 
-Picking a view type is the legend combo's pick: a feature type hidden by a click on its legend row
-shows again when Line Type is picked, and the pick is written to the app config for the "Last used"
-preview default. A canvas screenshot taken straight after a layer change shows the new layers, not
-the previous ones under the new slider position, and one after a view type change shows the legend
-laid out for it. A range given backwards shows its first layer alone, and in the slider's one-layer
-mode the reply still echoes the range asked for while the one layer shown is its first. The refusals:
-legend rows before a slice, a height above the top layer, layer with
-layer_z, an unknown legend row (named with the rows the print has), a value that is not true or
-false, and a silent-mode estimate the print does not have; a refused call changes nothing. Exits 0
-when every check passes.
+The cube is 25 mm on the Generic Klipper Printer 0.4 nozzle, whose 0.20mm Standard @MyKlipper slices it into 125
+layers of 0.2 mm and whose printer has no silent mode. Picking a view type is the legend combo's pick: a feature type
+hidden by a click on its legend row shows again when Line Type is picked, and the pick is written to the app config
+for the "Last used" preview default, which an earlier test may have left at any view type, so the test picks Line Type
+and waits for the config to read it before the pick it checks. A canvas screenshot taken straight after a layer
+change shows the new layers, not the previous ones under the new slider position, and one after a view type change
+shows the legend laid out for it. A range given backwards shows its first layer alone, and in the slider's one-layer
+mode the reply still echoes the range asked for while the one layer shown is its first. The refusals: legend rows
+before a slice, a height above the top layer, layer with layer_z, an unknown legend row (named with the rows the
+print has), a value that is not true or false, and the silent-mode estimate the print does not have; a refused call
+changes nothing. Exits 0 when every check passes.
 """
 
 import json
 import os
 import sys
+import tempfile
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, start  # noqa: E402
+
+# The cube's layers on the Klipper printer's 0.20mm Standard: 25 mm in layers of 0.2 mm.
+LAYERS = 125
 
 
 def main():
@@ -59,13 +65,18 @@ def main():
             time.sleep(0.1)
         return value
 
-    client.call("dialog_auto_answer", rules=[{"match": "Uniform scale", "button": "ok"}])
-    client.call("project_new", discard_changes=True)
+    started = start(client)
+    check("start: the Klipper printer with its default process and filament",
+          started == {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]}, started)
     check("legend rows need a slice", "slice first" in refusal(legend={"travel": False}))
-    client.call("action_run", id="orca_command:add_primitive_cube:orca")
+    # A size given, the cube is the same on every data folder: the Add Cube action's size is stored state.
+    client.call("object_add_primitive", shape="cube", size=[25, 25, 25])
     client.call("app_wait", **{"for": "idle"})
     sliced = client.await_job(client.call("plate_slice"))["plates"][0]
-    client.call("view_set", view_type="feature_type", layer_range=[1, 128])
+    # The pick an earlier test left in the config is any view type, so the checked picks start from Line Type.
+    client.call("view_set", view_type="feature_type", layer_range=[1, LAYERS])
+    check("start: the config reads Line Type after its pick", last_view_type("feature_type") == "feature_type",
+          last_view_type("feature_type"))
 
     # A click on the legend row and plate_slice_stats's legend are one state. The snapshot draws the legend
     # first, since a window the desktop hides may not have drawn it since the slice.
@@ -81,10 +92,13 @@ def main():
 
     # Each change is captured twice. One replay runs the calls back to back, which seldom leaves the app
     # an idle frame between a change and its first capture to draw the change before the capture does.
-    # The last view type is the one picked above.
-    out_dir = os.path.join(session["datadir"], "set_view_captures")
+    # The last view type is the one picked above. The legend click left ImGui's highlight on its row until the
+    # pointer moves, which on a busy machine can come between two captures, so the pointer first moves to the
+    # empty space above the plate, as a person's does after a click.
+    client.call("mouse_gesture", action="move", x=430, y=80)
+    out_dir = tempfile.mkdtemp(prefix="set_view_captures-")
     changes = [{"layer_range": [1, 40]}, {"view_type": "speed"}, {"layer_range": [64, 64]}, {"view_type": "height"},
-               {"layer_range": [20, 100]}, {"view_type": "fan_speed"}, {"layer_range": [1, 128]}, {"view_type": "feature_type"}]
+               {"layer_range": [20, 100]}, {"view_type": "fan_speed"}, {"layer_range": [1, LAYERS]}, {"view_type": "feature_type"}]
     steps = []
     for i, change in enumerate(changes):
         steps.append({"tool": "view_set", "args": change})
@@ -106,35 +120,35 @@ def main():
         check("every change shows in the capture", not unchanged, f"unchanged after {unchanged}")
 
     reply = client.call("view_set", legend={"Sparse infill": False, "travel": True}, layer_z=1.05)
-    check("layer_z between two tops shows up to the upper one", reply.get("layers") == [1, 6, 128] and reply.get("z") == [0.2, 1.2], reply)
+    check("layer_z between two tops shows up to the upper one", reply.get("layers") == [1, 6, LAYERS] and reply.get("z") == [0.2, 1.2], reply)
     check("the legend reply gives each row's state", reply.get("legend") == {"Sparse infill": False, "travel": True}, reply)
 
     reply = client.call("view_set", layer_range=[60, 20])
-    check("a range given backwards shows its first layer alone", reply.get("layers") == [60, 60, 128] and reply.get("z") == [12.0, 12.0],
+    check("a range given backwards shows its first layer alone", reply.get("layers") == [60, 60, LAYERS] and reply.get("z") == [12.0, 12.0],
           reply)
     # L switches the layer slider's one-layer mode.
     client.call("keyboard_press", keys="L")
     reply = client.call("view_set", layer_range=[2, 5])
     shown = client.call("app_state")["preview"]
     check("in one-layer mode the reply echoes the range and the slider shows its first layer",
-          reply.get("layers") == [2, 5, 128] and reply.get("z") == [0.4, 0.4] and shown.get("layers") == [2, 2], (reply, shown))
+          reply.get("layers") == [2, 5, LAYERS] and reply.get("z") == [0.4, 0.4] and shown.get("layers") == [2, 2], (reply, shown))
     client.call("keyboard_press", keys="L")
     shown = client.call("app_state")["preview"]
-    check("leaving one-layer mode shows every layer again", shown.get("layers") == [1, 128], shown)
+    check("leaving one-layer mode shows every layer again", shown.get("layers") == [1, LAYERS], shown)
 
     message = refusal(layer_z=80)
-    check("a height above the top layer is refused", "above the top layer (25.6 mm)" in message, message)
+    check("a height above the top layer is refused", "above the top layer (25.0 mm)" in message, message)
     check("layer with layer_z is refused", "not both" in refusal(layer=3, layer_z=1.0))
     message = refusal(view_type="speed", legend={"Infill": False})
     check("an unknown row is refused with the print's rows", "Sparse infill" in message and "travel" in message, message)
     check("a refused call leaves the view type", client.call("app_state")["preview"]["view_type"] == "feature_type")
     check("a value that is not true or false is refused", "true (show) or false (hide)" in refusal(legend={"travel": "yes"}))
-    if "silent_time_s" not in sliced:
-        message = refusal(time_mode="silent")
-        check("silent mode without its own estimate is refused", "no separate silent-mode estimate" in message, message)
+    # The Klipper printer has no silent mode, so its slice has no silent-mode estimate.
+    check("the slice has no silent-mode estimate", "silent_time_s" not in sliced, sliced)
+    message = refusal(time_mode="silent")
+    check("silent mode without its own estimate is refused", "no separate silent-mode estimate" in message, message)
     check("normal mode is always offered", client.call("view_set", time_mode="normal").get("time_mode") == "normal")
 
-    client.call("dialog_auto_answer", rules=[])
     client.call("project_new", discard_changes=True)
     failures = 0
     for name, ok, detail in checks:

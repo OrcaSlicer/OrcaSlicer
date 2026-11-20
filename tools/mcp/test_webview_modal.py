@@ -9,7 +9,9 @@ dialog, by default and by locator, the export bundle dialog above it, the Flushi
 known by its page's URL or title);
 the Home tab's web view behind a modal is refused, so is the bundle dialog's own web view once the
 export bundle dialog is above it. A page that closes its dialog replies closed at once, not after the
-timeout. Without a modal, the Home tab's web view still takes scripts. Exits 0 when every check passes.
+timeout. Without a modal, the Home tab's web view still takes scripts, known by its page's URL, since a plugin an
+earlier test left may add web views of its own. The test starts on the Generic Klipper Printer 0.4 nozzle, whose
+sidebar offers Flushing volumes once a second filament is added. Exits 0 when every check passes.
 """
 
 import os
@@ -18,6 +20,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, start  # noqa: E402
 
 
 def main():
@@ -51,17 +54,20 @@ def main():
                 return line.split("[", 1)[1].split("]", 1)[0]
         return None
 
-    client.call("project_new", discard_changes=True)
+    started = start(client)
+    check("start: the Klipper printer with its default process and filament",
+          started == {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]}, started)
 
     # ---- The Home tab's web view, without and with a modal open ----
     client.call("view_set", tab="home")
     home = home_webview()
     check("the Home tab shows a web view", home is not None)
     try:
-        value = client.call("webview_run_javascript", code="1 + 1")["result"]
+        reply = client.call("webview_run_javascript", code="1 + 1")
     except orca_mcp.McpError as e:
-        value = str(e)
-    check("without a modal, the only web view takes a script", value == 2, value)
+        reply = {"error": str(e)}
+    check("without a modal, the Home page takes a script",
+          reply.get("result") == 2 and "web/homepage/index.html" in reply.get("url", ""), reply)
     bundle = client.call("action_run", id="orca_command:preset_bundle:orca")
     check("the bundle dialog opens", wait_dialogs(1), dialogs())
     message = refusal(code="1", target=home)
@@ -87,9 +93,9 @@ def main():
     check("the export dialog closes", wait_dialogs(1), dialogs())
 
     # ---- A page that closes its dialog replies at once ----
-    start = time.time()
+    began = time.time()
     reply = client.call("webview_run_javascript", code="document.getElementById('close_btn').click()")
-    elapsed = time.time() - start
+    elapsed = time.time() - began
     check("closing the dialog from its page replies closed", reply.get("closed") is True, reply)
     check("and does so within a second", elapsed < 1.0, f"{elapsed:.2f} s")
     client.await_job(bundle)

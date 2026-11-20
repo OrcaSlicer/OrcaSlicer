@@ -156,12 +156,13 @@ def seed(datadir):
 
 class Instance:
     """A private OrcaSlicer on a fresh data folder, started as this script's child, its working folder that data folder,
-    which holds no .py file to shadow a module script_run needs. On leaving, an app still running is closed as a person
-    closes it when the server on PORT is its own, then killed if it outlives its exit watchdog, and the folder is
-    removed. `env` adds variables to the app's environment."""
+    which holds no .py file to shadow a module script_run needs. The folder's name is short, so that the first start's
+    profile copy stays within Windows' 260-character paths under a deep temporary folder. On leaving, an app still
+    running is closed as a person closes it when the server on PORT is its own, then killed if it outlives its exit
+    watchdog, and the folder is removed. `env` adds variables to the app's environment."""
 
     def __init__(self, binary, *args, serve=True, env=None):
-        self.datadir = tempfile.mkdtemp(prefix="orca-lifecycle-")
+        self.datadir = tempfile.mkdtemp(prefix="olc-")
         seed(self.datadir)
         child_env = app_env(dict(os.environ, ORCA_MCP_TOKEN=TOKEN, **(env or {})), self.datadir)
         cmd = [binary, "--datadir", self.datadir, *(["--mcp", "--mcp-port", str(PORT)] if serve else []), *args]

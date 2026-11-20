@@ -10,10 +10,10 @@ operation of GUI/Operations, so each pair here gets one answer: a layer asked of
 selected by name through the plugin API, as preset_select selects one. It also checks what a command
 refuses or does in those states alone: a project saved under a .gcode.3mf name; an export of a project
 with no objects (a .3mf is written, an STL and a sliced file are refused); an arrangement from the
-assemble view and with a gizmo open. The last two pairs need the Bambu Lab X1 Carbon among
-the printers, which the harness's datadir has. Run it on a freshly launched app: the Preview keeps the
-layers of the last slice, and a hidden preset stays shown until the app restarts. Exits 0 when every
-check passes.
+assemble view and with a gizmo open. It starts from the Generic Klipper Printer with one filament slot,
+and the hidden printer is one of that printer's other nozzles where one is left to show. Run it on a
+freshly launched app: the Preview keeps the layers of the last slice, and a hidden preset stays shown
+until the app restarts. Exits 0 when every check passes.
 """
 
 import json
@@ -23,10 +23,13 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import checks as shared  # noqa: E402
 import orca_mcp  # noqa: E402
 
 FIXTURE = os.path.join(HERE, "tests", "fixtures", "ops_presets.py")
-PRINTER = "Bambu Lab X1 Carbon 0.4 nozzle"
+START = {"printer": shared.KLIPPER, "process": shared.KLIPPER_STD, "filaments": [shared.GENERIC_PLA]}
+# The middle of the Generic Klipper Printer's 250 mm bed.
+BED_CENTRE = 125
 
 
 def refusal(error):
@@ -71,7 +74,8 @@ def main():
     def offsets():
         return [o["instances"][0]["offset"][:2] for o in client.call("object_list")["plates"][0]["objects"]]
 
-    client.call("project_new", discard_changes=True, preset_changes="discard")
+    presets = shared.start(client)
+    check("starts from the Generic Klipper Printer", presets == START, presets)
     client.call("view_set", tab="prepare")
 
     # ---- A project with no objects ----
@@ -110,9 +114,9 @@ def main():
     client.call("view_set", canvas="3d")
     # Both cubes on one spot, so that only an arrangement that runs can set them apart.
     for i in range(2):
-        client.call("object_transform", object=i, position=[128, 128, 10])
+        client.call("object_transform", object=i, position=[BED_CENTRE, BED_CENTRE, 10])
     together = offsets()
-    check("the cubes are back on one spot", together == [[128, 128], [128, 128]], together)
+    check("the cubes are back on one spot", together == [[BED_CENTRE, BED_CENTRE]] * 2, together)
     client.call("object_select", objects=[0])
     opened = client.call("widget_click", target={"gizmo": "Move"})
     code, reply = answer("object_arrange")
@@ -127,7 +131,6 @@ def main():
 
     # ---- A mixed-colour filament slot, and a hidden printer ----
     client.call("project_new", discard_changes=True, preset_changes="discard")
-    client.call("preset_select", type="printer", name=PRINTER, preset_changes="discard")
     while len(client.call("app_state")["presets"]["filaments"]) < 2:
         client.call("action_run", id="orca_command:filament_add:orca")
     slot_preset = client.call("app_state")["presets"]["filaments"][0]
@@ -148,15 +151,15 @@ def main():
 
     listed = client.call("preset_list", type="printer", include_uninstalled=True, limit=500)["items"]
     hidden = [p["name"] for p in listed if p.get("installed") is False and p.get("compatible", True) is not False]
-    # A printer of the same family first: its process and filament suit the one selected.
-    hidden.sort(key=lambda name: not name.startswith("Bambu Lab X1"))
+    # Another nozzle of the selected printer first: its process and filament suit the one selected.
+    hidden.sort(key=lambda name: not name.startswith("MyKlipper"))
     check("a printer is still hidden (else restart the app)", bool(hidden), len(listed))
     if hidden:
         got = plugin_api(editor="printer", form="begin_update", name=hidden[0], commit=True)
         client.call("app_wait", **{"for": "idle"})
         selected = client.call("app_state")["presets"]["printer"]
         check("the plugin API shows a hidden printer and selects it", "raised" not in got and selected == hidden[0], (got, selected))
-        client.call("preset_select", type="printer", name=PRINTER, preset_changes="discard")
+        client.call("preset_select", type="printer", name=shared.KLIPPER, preset_changes="discard")
 
     while len(client.call("app_state")["presets"]["filaments"]) > 1:
         client.call("action_run", id="orca_command:filament_delete:orca")

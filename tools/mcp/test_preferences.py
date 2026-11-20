@@ -9,7 +9,8 @@ preferences_get lists for that tab. The MCP server's switch and port read as the
 session's launch gave. preferences_set writes a checkbox, a choice and a number in one call, and each reads back from
 preferences_get and from its control in the dialog opened again. A preference read at the next start says so in
 preferences_get and in the reply. A call with a good key and a refused one (the language) changes nothing, and so does a
-value no choice has. The backup period runs the backup timer only while Auto backup is on, read from the timer's log
+value no choice has. drc_bits takes 0 (lossless) besides its range of 8 to 30, and refuses 5 naming both; it is left
+at 0, the app's default. The backup period runs the backup timer only while Auto backup is on, read from the timer's log
 line. The downloads folder takes a folder this test makes in its own temporary folder, which preferences_get and the
 dialog's row then show, and refuses one that does not exist; while the dialog is open a call cannot write it, and its
 Browse button, answered with another such folder, shows that folder in the open dialog's row. Hide login side panel,
@@ -18,8 +19,10 @@ preferences_set writes it, without the dialog, and shows it again when it is wri
 mode are written on and off again: with no account signed in, turning sync on starts no sync, and stealth mode signs out
 of no account.
 
-It writes only preferences whose effect stays inside the app it drives; it signs in to nothing and needs no network.
-Exits 0 when every check passes.
+It starts from the Generic Klipper Printer and first writes the preferences its checks start from, setting the two that
+its write puts back to the app's defaults away from them. At its end it puts back the frame rate cap and the auto backup
+it found, which every later test on the data folder meets. It writes only preferences whose effect stays inside the app
+it drives; it signs in to nothing and needs no network. Exits 0 when every check passes.
 """
 
 import os
@@ -29,6 +32,7 @@ import tempfile
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import checks as shared  # noqa: E402
 import orca_mcp  # noqa: E402
 from orca_mcp import McpError  # noqa: E402
 
@@ -39,6 +43,14 @@ CONTROL = re.compile(r'^\s*\[w\d+\] (\w+)(?: "(?P<label>[^"]*)")?(?: = "(?P<valu
 LOGIN_PANEL = "(function () { var e = document.getElementById('LeftBoard'); return e ? getComputedStyle(e).display : 'missing'; })()"
 # What the backup timer logs when its period changes.
 TIMER_LINE = "set_interval exit, and new interval is:"
+START = {"printer": shared.KLIPPER, "process": shared.KLIPPER_STD, "filaments": [shared.GENERIC_PLA]}
+# The preferences the checks start from. The first two are away from the app's defaults, to which the test's write
+# puts them back; the others are those the checks write from.
+STARTING = {"auto_arrange": False, "auto_calculate_flush": "color change", "opengl_fps_cap": 0, "enable_multi_machine": False,
+            "backup_interval": 10, "hide_login_side_panel": False, "sync_user_preset": False, "stealth_mode": False}
+# The preferences put back at the end as the test found them: the frame rate cap of every view and recording, and the
+# auto backup, which decides whether a start after the runner's kill offers to restore an unsaved project.
+RESTORED = ["opengl_fps_cap", "backup_switch", "backup_interval"]
 
 results = []
 
@@ -97,10 +109,6 @@ def shown_value(item, control):
     return value
 
 
-def other_choice(item):
-    return next(c["value"] for c in item["choices"] if c["value"] != item["value"])
-
-
 def wait_for(predicate, timeout):
     deadline = time.time() + timeout
     while True:
@@ -122,7 +130,21 @@ def new_lines(before, after):
 
 def main():
     client, session = orca_mcp.session_client()
+    presets = shared.start(client)
+    check("starts from the Generic Klipper Printer", presets == START, presets)
+    found = {key: item["value"] for key, item in items_by_key(client, keys=RESTORED).items()}
+    try:
+        client.call("preferences_set", values=STARTING)
+        read = {key: item["value"] for key, item in items_by_key(client, keys=list(STARTING)).items()}
+        check("the preferences start as written", read == STARTING, read)
+        scenarios(client, session)
+    finally:
+        client.call("preferences_set", values=found)
+    print(f"\n{sum(results)}/{len(results)} passed")
+    return 0 if all(results) else 1
 
+
+def scenarios(client, session):
     # ---- the dialog's controls named after keys are the keys preferences_get lists, tab by tab ----
     every = client.call("preferences_get")
     check("preferences_get with no argument lists the dialog's preferences of every tab",
@@ -152,14 +174,12 @@ def main():
           (server["mcp_port"], controls.get("mcp_port"), session["port"]))
 
     # ---- a checkbox, a choice and a number written in one call, read back ----
-    before = items_by_key(client, keys=["auto_arrange", "auto_calculate_flush", "opengl_fps_cap"])
-    values = {"auto_arrange": not before["auto_arrange"]["value"],
-              "auto_calculate_flush": other_choice(before["auto_calculate_flush"]),
-              "opengl_fps_cap": 45 if before["opengl_fps_cap"]["value"] != 45 else 30}
+    before = {"auto_arrange": False, "auto_calculate_flush": "color change", "opengl_fps_cap": 0}
+    values = {"auto_arrange": True, "auto_calculate_flush": "all", "opengl_fps_cap": 45}
     reply = client.call("preferences_set", values=values)
     changed = {c["key"]: c for c in reply.get("changed", [])}
     check("preferences_set replies each key with its value before and after",
-          set(changed) == set(values) and all(changed[k]["before"] == before[k]["value"] and changed[k]["after"] == values[k]
+          set(changed) == set(values) and all(changed[k]["before"] == before[k] and changed[k]["after"] == values[k]
                                               for k in values), reply)
     after = items_by_key(client, keys=list(values))
     check("preferences_get reads the three values written", all(after[k]["value"] == values[k] for k in values),
@@ -178,31 +198,61 @@ def main():
     check("preferences_get marks a preference read at the next start, and not another",
           multi["enable_multi_machine"].get("restart_needed") is True and "restart_needed" not in multi["auto_arrange"], multi)
     try:
-        reply = client.call("preferences_set", values={"enable_multi_machine": not multi["enable_multi_machine"]["value"],
-                                                       "auto_arrange": not values["auto_arrange"]})
+        reply = client.call("preferences_set", values={"enable_multi_machine": True, "auto_arrange": False})
     except McpError as e:
         reply = {"error": str(e)}
     changed = {c["key"]: c for c in reply.get("changed", [])}
     check("preferences_set's reply marks it too, and not the other key",
           changed.get("enable_multi_machine", {}).get("restart_needed") is True
           and "restart_needed" not in changed.get("auto_arrange", {"restart_needed": None}), reply)
-    client.call("preferences_set", values={"enable_multi_machine": multi["enable_multi_machine"]["value"],
-                                           "auto_arrange": values["auto_arrange"]})
+    client.call("preferences_set", values={"enable_multi_machine": False, "auto_arrange": True})
 
     # ---- a refused key refuses the whole call ----
-    flipped = not values["auto_arrange"]
-    text = refusal(client, "preferences_set", values={"auto_arrange": flipped, "language": "de"})
+    text = refusal(client, "preferences_set", values={"auto_arrange": False, "language": "de"})
     check("a call with a good key and the language is refused, naming the language",
           text is not None and "language" in text and "preference_refused" in text, text)
-    check("and the good key is unchanged", items_by_key(client, keys=["auto_arrange"])["auto_arrange"]["value"] == values["auto_arrange"])
-    text = refusal(client, "preferences_set", values={"auto_arrange": flipped, "auto_calculate_flush": "sometimes"})
+    check("and the good key is unchanged", items_by_key(client, keys=["auto_arrange"])["auto_arrange"]["value"] is True)
+    text = refusal(client, "preferences_set", values={"auto_arrange": False, "auto_calculate_flush": "sometimes"})
     check("a value no choice has is refused with the choice's values",
           text is not None and "no_such_choice" in text and "color change" in text, text)
-    check("and nothing is written", items_by_key(client, keys=["auto_arrange"])["auto_arrange"]["value"] == values["auto_arrange"])
+    check("and nothing is written", items_by_key(client, keys=["auto_arrange"])["auto_arrange"]["value"] is True)
     text = refusal(client, "preferences_set", values={"opengl_fps_cap": 1000})
     check("a number outside its range is refused with the range", text is not None and "out_of_range" in text and "240" in text, text)
     text = refusal(client, "preferences_set", values={"python_scripts_unrestricted": True})
     check("the Python scripts' switch is no preference of the dialog", text is not None and "not_a_preference" in text, text)
+
+    # ---- a number that takes one value outside its range: drc_bits, 0 (lossless) or 8 to 30 ----
+    # It ends at 0, the app's default, as a person who never changed it has it.
+    def drc_bits():
+        return items_by_key(client, keys=["drc_bits"])["drc_bits"]
+
+    def drc_written(value):
+        """preferences_set's change of drc_bits as (before, after), or None when it names none."""
+        reply = client.call("preferences_set", values={"drc_bits": value})
+        return next(((c["before"], c["after"]) for c in reply.get("changed", []) if c["key"] == "drc_bits"), None)
+
+    item = drc_bits()
+    listed = {k: item.get(k) for k in ("min", "max", "also_takes")}
+    check("preferences_get lists drc_bits as 8 to 30, and 0 besides", listed == {"min": 8, "max": 30, "also_takes": 0}, item)
+    try:
+        drc_written(0)
+        taken = drc_bits()["value"]
+    except McpError as e:
+        taken = str(e)
+    check("preferences_set takes drc_bits 0, outside the range", taken == 0, taken)
+    change = drc_written(16)
+    check("a write of drc_bits 16 changes it from 0", change == (0, 16) and drc_bits()["value"] == 16, (change, drc_bits()))
+    change = drc_written(0)
+    check("and a write of 0 changes it back from 16", change == (16, 0) and drc_bits()["value"] == 0, (change, drc_bits()))
+    try:
+        client.call("preferences_set", values={"drc_bits": 5})
+        text, details = None, {}
+    except McpError as e:
+        text, details = shared.refusal(e)
+    check("drc_bits 5 is refused as out of range, naming the 0 and the range",
+          text == "drc_bits takes 0, or a number from 8 to 30." and details.get("code") == "out_of_range"
+          and details.get("range") == ["0", "8", "30"], (text, details))
+    check("and drc_bits stays 0", drc_bits()["value"] == 0, drc_bits())
 
     # ---- the backup period runs the backup timer only while Auto backup is on ----
     # The timer is read from the app's log: each change of it logs "set_interval exit, and new interval is: <s>"
@@ -222,8 +272,8 @@ def main():
         start = after.index(before[-1]) + 1 if before and before[-1] in after else 0
         return [timer(line) for line in after[start:]]
 
-    stored = items_by_key(client, keys=["backup_interval"])["backup_interval"]["value"]
-    off, on, both = [p for p in (30, 31, 37, 41) if p != stored][:3]
+    # Each period differs from the 10 the test starts from and from the one before it, so that each write changes it.
+    off, on, both = 30, 31, 37
     client.call("preferences_set", values={"backup_switch": True})
     client.call("preferences_set", values={"backup_switch": False})
     logged = periods_set_by({"backup_interval": off})
@@ -306,8 +356,7 @@ def main():
     # log shows that turning sync on started no sync ("start_sync_service...") and that stealth mode ran its effect. Sync
     # goes first, while stealth mode is off, as the dialog leaves its checkbox enabled only then.
     for key, effect in (("sync_user_preset", None), ("stealth_mode", "logout: on_stealth_mode_enter")):
-        start = items_by_key(client, keys=[key])[key]["value"]
-        for value in (not start, start):
+        for value in (True, False):
             before = log_lines(client)
             try:
                 reply = client.call("preferences_set", values={key: value})
@@ -323,9 +372,6 @@ def main():
                   [line for line in logged if "sync" in line][:5])
             if effect and value:
                 check(f"and {key} on runs its control's effect", any(effect in line for line in logged), logged[-10:])
-
-    print(f"\n{sum(results)}/{len(results)} passed")
-    return 0 if all(results) else 1
 
 
 if __name__ == "__main__":

@@ -24,7 +24,10 @@ import threading
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import checks  # noqa: E402
 import orca_mcp  # noqa: E402
+
+START = {"printer": checks.KLIPPER, "process": checks.KLIPPER_STD, "filaments": [checks.GENERIC_PLA]}
 
 # The reply an observation call gets when every blocking slot is taken.
 PENDING = {"status": "pending", "note": "Too many calls are waiting right now; try again shortly."}
@@ -124,9 +127,12 @@ def run(port, token, half_sent):
 
 
 def main():
-    _, session = orca_mcp.session_client()
+    client, session = orca_mcp.session_client()
     port, token = session["port"], session["token"]
-    failures = 0
+    presets = checks.start(client)
+    ok = presets == START
+    print(("ok   " if ok else "FAIL ") + "the start is the Klipper printer with one Generic PLA slot" + ("" if ok else f": {presets}"))
+    failures = 0 if ok else 1
     for half_sent in (False, True):
         name = "half-sent requests" if half_sent else "idle connections"
         error = run(port, token, half_sent)

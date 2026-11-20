@@ -1,16 +1,29 @@
 #!/usr/bin/env python3
-"""Runs the MCP sweep: every replay and Python test under tools/mcp, each on a freshly launched OrcaSlicer, several
-at a time.
+"""Runs the MCP sweep: every replay and Python test under tools/mcp, on several jobs at once, each job running its
+tests one after another on one data folder.
 
     tools/mcp/run_sweep.py [--bin PATH] [-j N] [--only NAME ...] [--skip NAME ...] [--out DIR] [--history FILE]
-                           [--headless] [--wayland] [--list]
+                           [--keep] [--headless] [--wayland] [--list] [--forget NAME ...]
 
 The tests are smoke_test.json, tests/*.json and test_*.py; sweep.json lists each with what it needs, and a test it
-does not list stops the run before anything starts. -j N (or --jobs N) runs N tests at once, as a build's -j runs N
-compile jobs; it defaults to half the cores, up to six. Each test runs in a folder of its own under --out, with its
-own datadir, port, session file ($ORCA_MCP_SESSION), temporary folder and empty working folder, so instances running
-side by side share nothing. The longest tests (by their last passing time in --history) start first. Tests that hold
-the same lock never overlap, and exclusive tests run after the rest, one at a time with nothing else running.
+does not list stops the run before anything starts. -j N (or --jobs N) runs N jobs at once, as a build's -j runs N
+compile jobs; it defaults to half the cores, up to six. A job keeps one data folder for all its tests, as a
+person's OrcaSlicer keeps its own: the first launch seeds it, and each test after launches a fresh app on the folder
+as the tests before left it. Each test also has a folder of its own under --out for its session file
+($ORCA_MCP_SESSION), temporary folder, empty working folder and output, and a port of its own. The longest tests
+(by their last passing time in --history) start first, and tests that hold the same lock never overlap.
+
+The serial tests run after the rest, one at a time with nothing else running, on a job of their own: those
+sweep.json marks exclusive, and those the history marks serial. A test that fails while others run runs again in
+that phase, alone, on the data folder it failed on, so that a failure that follows from what an earlier test left
+fails again and one that follows from the load passes. A test that passes alone counts as passed, and the history
+marks it serial, so later sweeps run it alone from the start; --forget NAME clears the mark.
+
+A passing run's folder is deleted as soon as it passes. A failed run's folder is kept with a copy of the app's log
+from its job's data folder, also when the test then passes alone; the data folder of a job one of whose tests
+failed is kept too, and the other data folders are deleted at the end. --keep keeps everything. results.jsonl records each run of each test with its job and the tests that ran before it
+on that job's data folder.
+
 On Linux the runner opens each app on the desktop as an X11 client, where a window manager un-minimizes a window on
 request and reports its position, which a Wayland compositor does not; --wayland runs them as native Wayland clients
 instead, as a Wayland session runs the app, and --headless runs them on a private compositor instead of on the
@@ -44,6 +57,12 @@ SETUP_TIMEOUT_S = 300
 LAUNCH_TIMEOUT_S = 300
 STOP_TIMEOUT_S = 120
 END_GRACE_S = 30  # how long a test that ran out of time has to close what it started
+GONE_TIMEOUT_S = 60  # how long the app's processes have to end after its stop before they are killed
+# The longest --out on Windows: a test that starts its own app makes its data folders under its temporary folder,
+# <out>/<test>-alone/tmp, and the app copies profile files up to about 105 characters below a data folder, which
+# must stay within MAX_PATH (260), or the copy stops and the app opens its Setup Wizard.
+MAX_OUT_WINDOWS = 80
+SERIAL_JOB = "serial"
 
 
 def entry(raw):
@@ -76,7 +95,7 @@ def load_manifest(path):
 
 def discover(mcp_dir):
     """Every test under `mcp_dir`, by name (its file's stem), with its path relative to `mcp_dir`."""
-    found = {"smoke_test": "smoke_test.json"}
+    found = {"smoke_test": "smoke_test.json"} if os.path.isfile(os.path.join(mcp_dir, "smoke_test.json")) else {}
     for pattern in (os.path.join("tests", "*.json"), "test_*.py"):
         for path in sorted(glob.glob(os.path.join(mcp_dir, pattern))):
             name, rel = os.path.splitext(os.path.basename(path))[0], os.path.relpath(path, mcp_dir)
@@ -94,10 +113,22 @@ def manifest_problems(manifest, discovered, mcp_dir):
     return problems
 
 
+def serial_reason(name, manifest, history):
+    """Why `name` runs in the serial phase, or None when it runs among the others."""
+    if manifest[name]["exclusive"]:
+        return f"exclusive: {manifest[name]['why']}"
+    if name in history["serial"]:
+        return f"serial since {history['serial'][name]}: it passed only alone"
+    return None
+
+
 def order(names, manifest, history):
-    """(parallel, exclusive), each longest first by `history`; a test without a time comes first, as it may be long."""
-    ranked = sorted(names, key=lambda n: (n in history, -history.get(n, 0.0)))
-    return ([n for n in ranked if not manifest[n]["exclusive"]], [n for n in ranked if manifest[n]["exclusive"]])
+    """(pool, serial), each longest first by the history's times; a test without a time comes first, as it may be
+    long. The serial tests are those sweep.json marks exclusive and those the history marks serial."""
+    times = history["times"]
+    ranked = sorted(names, key=lambda n: (n in times, -times.get(n, 0.0)))
+    return ([n for n in ranked if not serial_reason(n, manifest, history)],
+            [n for n in ranked if serial_reason(n, manifest, history)])
 
 
 def pick_next(pending, manifest, held):
@@ -108,7 +139,8 @@ def pick_next(pending, manifest, held):
 class RunContext:
     mcp_dir: str
     binary: str
-    run_dir: str
+    run_dir: str  # the test's own folder
+    job_dir: str  # its job's folder, which holds the data folder the job's tests share
     port: int
     python: str
     platform: str
@@ -117,7 +149,7 @@ class RunContext:
 
     @property
     def datadir(self):
-        return os.path.join(self.run_dir, "datadir")
+        return os.path.join(self.job_dir, "datadir")
 
     @property
     def out_dir(self):
@@ -198,16 +230,67 @@ def run_step(cmd, timeout, **popen):
         raise
 
 
+def app_processes(datadir):
+    """The ids of the processes whose command line names `datadir`: an app launched on it, and the WebView2
+    processes it started, whose profile orca_mcp.py puts in it."""
+    if os.name == "nt":
+        script = ("Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -and "
+                  "$_.CommandLine.IndexOf($env:SWEEP_DATADIR, [StringComparison]::OrdinalIgnoreCase) -ge 0 } | "
+                  "ForEach-Object { $_.ProcessId }")
+        out = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", script], capture_output=True,
+                             text=True, env={**os.environ, "SWEEP_DATADIR": datadir}, timeout=60).stdout
+        pids = out.split()
+    else:
+        out = subprocess.run(["ps", "-eo", "pid=,args="], capture_output=True, text=True, timeout=60).stdout
+        pids = [line.split(None, 1)[0] for line in out.splitlines() if datadir in line]
+    return [int(p) for p in pids if p.isdigit() and int(p) != os.getpid()]
+
+
+def wait_gone(datadir, log, timeout=GONE_TIMEOUT_S):
+    """Waits until no process names `datadir`, so that the next test's app is the only one on the folder; what is
+    left after `timeout` s is killed. Notes in `log` what it waited for."""
+    started = time.monotonic()
+    left = app_processes(datadir)
+    while left and time.monotonic() - started < timeout:
+        time.sleep(1)
+        left = app_processes(datadir)
+    if left:
+        log.write(f"--- killing what is left on the data folder after {timeout} s: {left}\n")
+        for pid in left:
+            if os.name == "nt":
+                subprocess.run(["taskkill", "/F", "/PID", str(pid)], capture_output=True)
+            else:
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                except OSError:
+                    pass
+    elif time.monotonic() - started >= 1:
+        log.write(f"--- waited {time.monotonic() - started:.1f} s for the app's processes to end\n")
+
+
+def keep_app_log(ctx, since):
+    """Copies into the test's folder the app logs in its job's data folder written since `since` (a time.time()),
+    which the next tests on the folder would bury among their own."""
+    for path in glob.glob(os.path.join(ctx.datadir, "log", "*")):
+        try:
+            if os.path.isfile(path) and os.path.getmtime(path) >= since - 1:
+                shutil.copy2(path, ctx.run_dir)
+        except OSError:
+            pass
+
+
 def run_test(name, e, ctx):
-    """Runs one test in `ctx.run_dir`: its setup, a launch when it needs the app, the test, then a stop of what it
-    launched. Returns its record; `exit` is the test's exit code, or "setup_failed", "launch_failed" or "timeout".
-    A step that runs out of time is ended as run_step() ends it."""
+    """Runs one test in `ctx.run_dir` on its job's data folder: its setup, a launch when it needs the app, the test,
+    then a stop of what it launched and a wait for the app's processes to end. Returns its record; `exit` is the
+    test's exit code, or "setup_failed", "launch_failed" or "timeout". A step that runs out of time is ended as
+    run_step() ends it. A test that fails keeps a copy of the app's log."""
     shutil.rmtree(ctx.run_dir, ignore_errors=True)
-    for d in (ctx.datadir, ctx.out_dir, ctx.tmp, ctx.cwd):
+    for d in (ctx.out_dir, ctx.tmp, ctx.cwd):
         os.makedirs(d)
+    os.makedirs(ctx.datadir, exist_ok=True)
     base_env = test_env(e, ctx, os.environ)
     rec = {"name": name, "seconds": 0.0, "launch_seconds": None, "exit": None, "log": os.path.join(ctx.run_dir, "test.log")}
-    start = time.monotonic()
+    start, began = time.monotonic(), time.time()
     with open(rec["log"], "w", encoding="utf-8") as log:
         def step(label, cmd, timeout, env=None):
             log.write(f"--- {label}: {shlex.join(cmd)}\n")
@@ -240,6 +323,10 @@ def run_test(name, e, ctx):
                     step("stop", [ctx.python, os.path.join(ctx.mcp_dir, "orca_mcp.py"), "stop"], STOP_TIMEOUT_S)
                 except subprocess.TimeoutExpired:
                     log.write("--- stop timed out\n")
+            if launch:
+                wait_gone(ctx.datadir, log)
+            if rec["exit"] != 0:
+                keep_app_log(ctx, began)
             rec["seconds"] = round(time.monotonic() - start, 1)
     return rec
 
@@ -285,21 +372,29 @@ class Ports:
 
 
 def read_history(path):
+    """The history file as {times, serial}: each test's last passing time in seconds, and the date each test the
+    sweep runs alone was marked serial. The earlier form, a flat map of times, reads as times with no marks; a file
+    that is missing or is not JSON reads as neither."""
     try:
         with open(path, encoding="utf-8") as f:
-            return {k: float(v) for k, v in json.load(f).items()}
-    except (OSError, ValueError, AttributeError):
-        return {}
+            raw = json.load(f)
+        if "times" not in raw and "serial" not in raw:
+            raw = {"times": raw}
+        return {"times": {k: float(v) for k, v in raw.get("times", {}).items()},
+                "serial": {k: str(v) for k, v in raw.get("serial", {}).items()}}
+    except (OSError, ValueError, AttributeError, TypeError):
+        return {"times": {}, "serial": {}}
 
 
 def write_history(path, history):
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(dict(sorted(history.items())), f, indent=1)
+        json.dump({"times": dict(sorted(history["times"].items())), "serial": dict(sorted(history["serial"].items()))},
+                  f, indent=1)
 
 
 def jobs_count(value):
-    """-j's value: a whole number of tests to run at once, from 1 up."""
+    """-j's value: a whole number of jobs to run at once, from 1 up."""
     try:
         n = int(value)
     except ValueError:
@@ -337,13 +432,20 @@ def parse_args(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--bin", help="orca-slicer binary (default: the one orca_mcp.py launch finds)")
     ap.add_argument("-j", "--jobs", type=jobs_count, default=min(6, max(1, (os.cpu_count() or 2) // 2)),
-                    metavar="N", help="tests to run at once, as a build's -j (default: %(default)s, half the cores "
+                    metavar="N", help="jobs to run at once, as a build's -j (default: %(default)s, half the cores "
                                       "up to six)")
     ap.add_argument("--only", nargs="+", metavar="NAME", help="run only these tests")
     ap.add_argument("--skip", nargs="+", metavar="NAME", default=[], help="leave these tests out")
-    ap.add_argument("--out", help="folder for each test's run (default: a new orca-sweep-<time> one in the temporary folder)")
+    ap.add_argument("--out", help="folder for the jobs' data folders and each test's run (default: a new "
+                                  "orca-sweep-<time> one in the temporary folder)")
     ap.add_argument("--history", default=os.path.expanduser(os.path.join("~", ".cache", "orca-mcp", "sweep-times.json")),
-                    help="each test's last passing time, which orders the next run (default: %(default)s)")
+                    help="each test's last passing time, which orders the next run, and the tests it runs alone "
+                         "(default: %(default)s)")
+    ap.add_argument("--keep", action="store_true",
+                    help="keep every test's folder and every job's data folder, not only those of failed tests")
+    ap.add_argument("--forget", nargs="+", metavar="NAME",
+                    help="clear these tests' serial marks in the history, so the next sweep runs them among the "
+                         "others, and exit")
     ap.add_argument("--headless", action="store_true",
                     help="run each app on a private compositor instead of on the desktop (Linux)")
     ap.add_argument("--wayland", action="store_true",
@@ -354,52 +456,93 @@ def parse_args(argv=None):
     return ap.parse_args(argv)
 
 
-def main(argv=None):
+class Sweep:
+    """One sweep's runs: which job and data folder each runs on, what ran before it there, and their records."""
+
+    def __init__(self, a, manifest, mcp_dir, binary, out):
+        self.a, self.manifest, self.mcp_dir, self.binary, self.out = a, manifest, mcp_dir, binary, out
+        self.ports = Ports(a.first_port)
+        self.results = []
+        self.runs_on = {}  # job: the names of the runs on its data folder so far, in order
+        self.lock = threading.Lock()
+
+    def job_dir(self, job):
+        return os.path.join(self.out, f"job-{job}")
+
+    def run(self, name, job, phase):
+        """Runs `name` on `job`'s data folder in `phase` ("pool", "serial" or "alone") and returns its record. A
+        passing run's folder is deleted unless --keep."""
+        run_dir = os.path.join(self.out, name + ("-alone" if phase == "alone" else ""))
+        with self.lock:
+            port = self.ports.take()
+            after = list(self.runs_on.setdefault(job, []))
+            self.runs_on[job].append(name)
+        ctx = RunContext(mcp_dir=self.mcp_dir, binary=self.binary, run_dir=run_dir, job_dir=self.job_dir(job),
+                         port=port, python=sys.executable, platform=sys.platform, headless=self.a.headless,
+                         wayland=self.a.wayland)
+        rec = {**guarded_run_test(name, self.manifest[name], ctx), "job": job, "phase": phase, "after": after}
+        if rec["exit"] == 0:
+            status = "passed alone" if phase == "alone" else "pass"
+        else:
+            status = f"FAIL ({rec['exit']})" + (", again alone" if phase == "pool" else "")
+        with self.lock:
+            self.results.append(rec)
+            print(f"{name:45} {status:28} {rec['seconds']:7.1f}s  job {job}", flush=True)
+        if rec["exit"] == 0 and not self.a.keep:
+            shutil.rmtree(run_dir, ignore_errors=True)
+        return rec
+
+
+def main(argv=None, mcp_dir=MCP_DIR):
     a = parse_args(argv)
 
     problems = option_problems(a, sys.platform)
-    manifest = load_manifest(os.path.join(MCP_DIR, "sweep.json"))
+    manifest = load_manifest(os.path.join(mcp_dir, "sweep.json"))
     try:
-        problems += manifest_problems(manifest, discover(MCP_DIR), MCP_DIR)
+        problems += manifest_problems(manifest, discover(mcp_dir), mcp_dir)
     except ValueError as e:
         problems.append(str(e))
-    problems += [f"{n}: no such test" for n in (a.only or []) + a.skip if n not in manifest]
-    if not a.list:  # a listing launches nothing, so it needs no display
+    problems += [f"{n}: no such test" for n in (a.only or []) + a.skip + (a.forget or []) if n not in manifest]
+    if not (a.list or a.forget):  # neither launches anything, so neither needs a display
         problems += session_problems(a, os.environ, sys.platform)
     if problems:
         print("\n".join(problems), file=sys.stderr)
         return 2
     history = read_history(a.history)
-    parallel, exclusive = order([n for n in manifest if (not a.only or n in a.only) and n not in a.skip],
-                                manifest, history)
+    if a.forget:
+        for n in a.forget:
+            print(f"{n}: serial mark cleared" if history["serial"].pop(n, None) else f"{n}: had no serial mark")
+        write_history(a.history, history)
+        return 0
+    pool, serial = order([n for n in manifest if (not a.only or n in a.only) and n not in a.skip], manifest, history)
     if a.list:
-        for n in parallel:
-            print(f"{n:45} {history.get(n, 0):7.1f}s")
-        for n in exclusive:
-            print(f"{n:45} {history.get(n, 0):7.1f}s  exclusive: {manifest[n]['why']}")
+        for n in pool:
+            print(f"{n:45} {history['times'].get(n, 0):7.1f}s")
+        for n in serial:
+            print(f"{n:45} {history['times'].get(n, 0):7.1f}s  {serial_reason(n, manifest, history)}")
         return 0
 
     sys.path.insert(0, MCP_DIR)
     import orca_mcp
-    binary = orca_mcp.find_binary(a.bin)
+    # Tests that neither launch an app nor name one run without a build.
+    needs_app = any(manifest[n]["launch"] != "none" or "{bin}" in " ".join(manifest[n]["args"] + manifest[n]["setup"])
+                    for n in pool + serial)
+    binary = orca_mcp.find_binary(a.bin) if needs_app else (a.bin or "")
     out = os.path.abspath(a.out or os.path.join(tempfile.gettempdir(), "orca-sweep-" + time.strftime("%Y%m%d-%H%M%S")))
+    if os.name == "nt" and needs_app and len(out) > MAX_OUT_WINDOWS:
+        print(f"{out} is {len(out)} characters long; on Windows the data folders under --out must leave room for the "
+              f"app's profile files within MAX_PATH, so give an --out of at most {MAX_OUT_WINDOWS}", file=sys.stderr)
+        return 2
     os.makedirs(out, exist_ok=True)
-    print(f"{len(parallel) + len(exclusive)} tests, {a.jobs} at a time, into {out}", flush=True)
+    print(f"{len(pool) + len(serial)} tests on {a.jobs} jobs, {len(serial)} of them alone after the rest, into {out}",
+          flush=True)
 
     crashes_before = crash_reports()
+    sweep = Sweep(a, manifest, mcp_dir, binary, out)
     cond = threading.Condition()
-    ports, results, held, pending, stopping = Ports(a.first_port), [], set(), list(parallel), threading.Event()
+    held, pending, again, stopping = set(), list(pool), [], threading.Event()
 
-    def run(name, port):
-        ctx = RunContext(mcp_dir=MCP_DIR, binary=binary, run_dir=os.path.join(out, name), port=port,
-                         python=sys.executable, platform=sys.platform, headless=a.headless, wayland=a.wayland)
-        rec = guarded_run_test(name, manifest[name], ctx)
-        with cond:
-            results.append(rec)
-            status = "pass" if rec["exit"] == 0 else f"FAIL ({rec['exit']})"
-            print(f"{name:45} {status:20} {rec['seconds']:7.1f}s", flush=True)
-
-    def worker():
+    def worker(job):
         while not stopping.is_set():
             with cond:
                 name = None
@@ -412,26 +555,31 @@ def main(argv=None):
                     return
                 pending.remove(name)
                 held.update(manifest[name]["locks"])
-                port = ports.take()
             try:
-                run(name, port)
+                if sweep.run(name, job, "pool")["exit"] != 0:
+                    with cond:
+                        again.append((name, job))
             finally:
                 with cond:
                     held.difference_update(manifest[name]["locks"])
                     cond.notify_all()
 
     started = time.monotonic()
-    threads = [threading.Thread(target=worker) for _ in range(a.jobs)]
+    threads = [threading.Thread(target=worker, args=(job,)) for job in range(1, a.jobs + 1)]
     try:
         for t in threads:
             t.start()
         for t in threads:
             while t.is_alive():
                 t.join(0.5)
-        for name in exclusive:
+        for name in serial:
             if stopping.is_set():
                 break
-            run(name, ports.take())
+            sweep.run(name, SERIAL_JOB, "serial")
+        for name, job in sorted(again, key=lambda pair: pool.index(pair[0])):
+            if stopping.is_set():
+                break
+            sweep.run(name, job, "alone")
     except KeyboardInterrupt:
         # The running tests get the interrupt too; their workers stop what they launched and take no more.
         stopping.set()
@@ -442,24 +590,38 @@ def main(argv=None):
         print("interrupted", file=sys.stderr)
     wall = time.monotonic() - started
 
+    results = sweep.results
     with open(os.path.join(out, "results.jsonl"), "w", encoding="utf-8") as f:
         for rec in results:
             f.write(json.dumps(rec) + "\n")
-    history.update({r["name"]: r["seconds"] for r in results if r["exit"] == 0})
+    last = {r["name"]: r for r in results}  # each test's verdict is its last run's
+    passed = [n for n, r in last.items() if r["exit"] == 0]
+    alone = [n for n in passed if last[n]["phase"] == "alone"]
+    failed = [r for r in last.values() if r["exit"] != 0]
+    history["times"].update({n: last[n]["seconds"] for n in passed})
+    history["serial"].update({n: time.strftime("%Y-%m-%d") for n in alone})
     write_history(a.history, history)
 
-    failed = [r for r in results if r["exit"] != 0]
-    unrecorded = [] if stopping.is_set() else missing(parallel + exclusive, results)
+    if not a.keep:
+        # A test that passed alone keeps the folder of its run beside the others, which says why it failed there.
+        kept = {r["job"] for r in results if r["name"] in {f["name"] for f in failed}}
+        for job in sweep.runs_on:
+            if job not in kept:
+                shutil.rmtree(sweep.job_dir(job), ignore_errors=True)
+
+    unrecorded = [] if stopping.is_set() else missing(pool + serial, results)
     crashes = sorted(crash_reports() - crashes_before)
     for r in failed:
         print(f"FAIL {r['name']} ({r['exit']}): {r['log']}")
         if r.get("error"):
             print(r["error"].rstrip())
+    for n in alone:
+        print(f"{n}: passed alone, so later sweeps run it alone (--forget {n} to undo)")
     for n in unrecorded:
         print(f"FAIL {n}: never recorded")
     for c in crashes:
         print(f"crash report: {c}")
-    print(f"{len(results) - len(failed)} passed, {len(failed)} failed; wall {wall / 60:.1f} min, "
+    print(f"{len(passed)} passed ({len(alone)} alone), {len(failed)} failed; wall {wall / 60:.1f} min, "
           f"tests {sum(r['seconds'] for r in results) / 60:.1f} min")
     return 0 if not failed and not unrecorded and not crashes and not stopping.is_set() else 1
 

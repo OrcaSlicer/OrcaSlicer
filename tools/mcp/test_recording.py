@@ -9,7 +9,8 @@ file; a recording a nested replay_run starts and never stops, which the replay's
 limit; and encoding asked for at the start, run as a job by the stop, deleting or keeping the .mkv. The recordings
 are read back from their files. What the machine's ffmpeg can encode decides each encode's checks: an encode it
 cannot make must be refused with the app's reason, and the file checks it would have had print as SKIP. The last
-line names what could be encoded. The recordings go to --out, else to a new temporary folder.
+line names what could be encoded. It starts on the Generic Klipper Printer with the window at 1600 x 900. The
+recordings go to --out, else to a new temporary folder.
 """
 
 import argparse
@@ -23,7 +24,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import Checks, plates, run, wait  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, plates, run, start, wait  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CUBE = os.path.join(REPO, "resources", "handy_models", "OrcaCube_v2.drc")
@@ -286,9 +287,10 @@ class RecordingTest:
             lines = f.read().splitlines()
         for line in ("; layer_height = 0.16", "; initial_layer_print_height = 0.2"):
             self.t.check(f"{s} 8: the G-code's config holds {line!r}", line in lines, "")
+        # The app marks each layer with ;Z:<z>; the printer's own layer-change G-code writes ;<z> without Z:.
         heights = []
         for line in lines:
-            if line.startswith("; Z_HEIGHT:"):
+            if line.startswith(";Z:"):
                 z = float(line.split(":", 1)[1])
                 if z not in heights:
                     heights.append(z)
@@ -486,7 +488,11 @@ class RecordingTest:
         self.encode_job(f"{s} 6", report, kept_mp4, kept, keep=True)
 
     def run_all(self):
+        self.t.equal("the start: the presets", start(self.c),
+                     {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]})
+        # The click at (300, 200) that must land on empty space is placed in a 1600 x 900 window.
         self.run("window_set", size=[1600, 900])
+        self.t.equal("the start: the window's size", self.c.call("app_state")["window"]["size"], [1600, 900])
         for name, scenario in [("a recording while the GUI is driven", self.driven),
                                ("a recording a replay starts", self.nested),
                                ("overlays and the time limit", self.overlays),

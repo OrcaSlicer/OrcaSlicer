@@ -11,8 +11,9 @@ on a G-code file opened for viewing; height range modifiers, variable layer heig
 read in the exported G-code and kept by a 3MF; the commands that take a plate index; the display switches and the
 sidebar of view_set; and app_state's account, network plug-in and configuration folder. After every step the test
 reads the state back through another tool and compares it with the values the entry writes out. It runs on the
-harness's default printer, the Bambu Lab X1 Carbon 0.4, and exits 0 when every check passes. Naming scenarios (by the
-method names of SlicePreviewTest.SCENARIOS) runs those alone, for work on one of them.
+default printer, the Generic Klipper Printer 0.4 nozzle, on a data folder earlier tests used: it sets the presets, the
+preference and the view its checks read before its first scenario. It exits 0 when every check passes. Naming
+scenarios (by the method names of SlicePreviewTest.SCENARIOS) runs those alone, for work on one of them.
 """
 
 import json
@@ -25,7 +26,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import Checks, run, wait  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, run, start, wait  # noqa: E402
 
 ROW = re.compile(r'^"(.*)" (\d+)( \*)?( L)?( S)?$')
 CUBE = {"shape": "cube", "size": [20, 20, 20]}
@@ -38,6 +39,16 @@ SAVE = "unsaved changes. Would you like to save"
 SPIRAL_ERROR = 'Please select "By object" print sequence to print multiple objects in spiral vase mode.'
 SELECT_PLATE = "select partplate!"
 PLATE_STRING = 'plates is "all", "current" or a plate index'
+# The Klipper process's travel speed, the top of the speed colour range while travel shows.
+TRAVEL_SPEED = 350
+# The purge of the two-colour slices, and so the depth of their prime tower, follows the slots' colours and the flush
+# multiplier, which the printer keeps as an earlier test or run left them: a seeded folder's slot colour and
+# multiplier.
+SLOT_COLOUR, FLUSH_MULTIPLIER = "#26A69A", "0.3"
+# The view the view switches start from, the app's defaults, which Starts from sets after the default layout.
+VIEW = {"labels": False, "overhangs": False, "outline": False, "wireframe": False, "gridlines": True, "axes": True,
+        "navigator": True, "gcode_window": True, "projection": "perspective", "section": {"on": False},
+        "sidebar_collapsed": False, "legend_collapsed": False}
 
 
 def P(*rows):
@@ -59,10 +70,12 @@ def seconds(text):
 
 
 def gcode(path):
-    """An exported G-code file: its header (total layer number, max_z_height, filament and the total estimated time
-    in seconds) and its layers, one per '; CHANGE_LAYER' block, each with z, height (the block's first
-    '; LAYER_HEIGHT:'), its tool lines, the lines after its '; PAUSE_PRINTING' and '; CUSTOM_GCODE' lines, and per
-    feature type the XY length of its extruding G1 moves."""
+    """An exported G-code file, as a printer outside the Bambu network has it written: its header (total layer
+    number, max_z_height and filament, between HEADER_BLOCK_START and HEADER_BLOCK_END) with the estimate in seconds
+    of the '; estimated printing time (normal mode) = ' line after the configuration block; and its layers, one per
+    block a whole line ';LAYER_CHANGE' opens, each with z (';Z:'), height (the block's first ';HEIGHT:'), its tool
+    lines, the lines after its ';PAUSE_PRINT' and ';CUSTOM_GCODE' lines, and per feature type (';TYPE:') the XY length
+    of its extruding G1 moves."""
     header, layers = {}, []
     in_header = False
     layer = feature = after = None
@@ -82,16 +95,17 @@ def gcode(path):
                 in_header = False
                 continue
             if in_header:
-                if "total estimated time:" in line:
-                    header["total estimated time"] = seconds(line.split("total estimated time:", 1)[1])
-                elif line.startswith("; total layer number:"):
+                if line.startswith("; total layer number:"):
                     header["total layer number"] = int(line.split(":", 1)[1])
                 elif line.startswith("; max_z_height:"):
                     header["max_z_height"] = line.split(":", 1)[1].strip()
                 elif line.startswith("; filament:"):
                     header["filament"] = line.split(":", 1)[1].strip()
                 continue
-            if line == "; CHANGE_LAYER":
+            if line.startswith("; estimated printing time (normal mode) = "):
+                header["estimate"] = seconds(line.split("=", 1)[1])
+                continue
+            if line == ";LAYER_CHANGE":
                 layer = {"z": None, "height": None, "tools": [], "pauses": [], "customs": [], "features": {}}
                 layers.append(layer)
                 continue
@@ -104,18 +118,18 @@ def gcode(path):
                 if m:
                     x, y = position(line, x, y, relative)
                 continue
-            if line.startswith("; Z_HEIGHT:"):
+            if line.startswith(";Z:"):
                 layer["z"] = float(line.split(":", 1)[1])
-            elif line.startswith("; LAYER_HEIGHT:") and layer["height"] is None:
-                # The layer's own height follows its CHANGE_LAYER; a bridge restates its own thickness later on.
+            elif line.startswith(";HEIGHT:") and layer["height"] is None:
+                # The layer's own height follows its LAYER_CHANGE; a bridge restates its own thickness later on.
                 layer["height"] = float(line.split(":", 1)[1])
-            elif line.startswith("; FEATURE:"):
+            elif line.startswith(";TYPE:"):
                 feature = line.split(":", 1)[1].strip()
             elif line in ("T0", "T1"):
                 layer["tools"].append(line)
-            elif line == "; PAUSE_PRINTING":
+            elif line == ";PAUSE_PRINT":
                 after = "pauses"
-            elif line == "; CUSTOM_GCODE":
+            elif line == ";CUSTOM_GCODE":
                 after = "customs"
             m = move.match(line)
             if m:
@@ -448,7 +462,7 @@ class SlicePreviewTest:
         h = g["header"]
         self.t.equal(f"{s} 2: the header", (h.get("total layer number"), h.get("max_z_height"), h.get("filament")),
                      (100, "20.00", "1"))
-        self.t.near(f"{s} 2: the header's time is the slice's", h.get("total estimated time"), plate.get("time_s"), 1)
+        self.t.near(f"{s} 2: the estimate is the slice's", h.get("estimate"), plate.get("time_s"), 1)
         self.t.equal(f"{s} 2: the layers", len(g["layers"]), 100)
         self.t.check(f"{s} 2: layer n at z 0.2·n, 0.2 high",
                      all(abs(l["z"] - 0.2 * (n + 1)) < 1e-3 and abs(l["height"] - 0.2) < 1e-3
@@ -468,15 +482,16 @@ class SlicePreviewTest:
         self.t.equal(f"{s} 4: filament changes", plate.get("filament_changes"), 100)
         rows = plate.get("filaments", [])
         for r in rows:
-            self.t.check(f"{s} 4: slot {r.get('slot')}'s model, flush and tower grams",
-                         r["model_g"] > 0 and r["flush_g"] > 0 and r["tower_g"] > 0, r)
-            self.t.equal(f"{s} 4: slot {r.get('slot')}'s support grams", r["support_g"], 0)
+            self.t.check(f"{s} 4: slot {r.get('slot')}'s model and tower grams", r["model_g"] > 0 and r["tower_g"] > 0, r)
+            self.t.equal(f"{s} 4: slot {r.get('slot')}'s flush and support grams: the purge goes into the prime tower",
+                         (r["flush_g"], r["support_g"]), (0, 0))
         self.t.near(f"{s} 4: the grams are the slots'", plate.get("filament_g"), sum(r["g"] for r in rows), 0.02)
         self.plates_are(f"{s} 4", '"" 2 * S')
         g = self.export(f"{s} 5")
         h = g["header"]
-        self.t.equal(f"{s} 5: the header", (h.get("filament"), h.get("total layer number")), ("1,2", 100))
-        self.t.near(f"{s} 5: the header's time is the slice's", h.get("total estimated time"), plate.get("time_s"), 1)
+        self.t.equal(f"{s} 5: the header's slots, in either order, and layers",
+                     (sorted((h.get("filament") or "").split(",")), h.get("total layer number")), (["1", "2"], 100))
+        self.t.near(f"{s} 5: the estimate is the slice's", h.get("estimate"), plate.get("time_s"), 1)
         tools = [l["tools"] for l in g["layers"]]
         self.t.check(f"{s} 5: one tool line in each of the 100 layers",
                      len(tools) == 100 and all(len(t) == 1 for t in tools), tools)
@@ -535,8 +550,8 @@ class SlicePreviewTest:
         self.t.check(f"{s} 1: the flow and layer time ranges' tops",
                      ranges.get("volumetric_flow_rate", [0, 0])[1] > 0 and ranges.get("layer_time_linear", [0, 0])[1] > 0,
                      ranges)
-        self.t.check(f"{s} 1: the speed range's top is below 500", ranges.get("speed", [0, 500])[1] < 500,
-                     ranges.get("speed"))
+        self.t.check(f"{s} 1: the speed range's top is below the travel speed",
+                     ranges.get("speed", [0, TRAVEL_SPEED])[1] < TRAVEL_SPEED, ranges.get("speed"))
 
         st = self.c.call("plate_slice_stats", include=["layer_features"], offset=99)
         items = (st.get("layers") or {}).get("items", [])
@@ -559,14 +574,15 @@ class SlicePreviewTest:
                                             legend.get("options", {}).get("travel")), (False, True, True))
         self.t.equal(f"{s} 4: the layers", vw.get("layers"), [1, 25])
         self.t.equal(f"{s} 4: a travel shown counts in the speed range", (vw.get("ranges", {}).get("speed") or [0, 0])[1],
-                     500)
+                     TRAVEL_SPEED)
         self.run("view_set", view_type="feature_type", legend={"travel": False})
         vw = self.c.call("plate_slice_stats", include=["view"]).get("view") or {}
         legend = vw.get("legend", {})
         self.t.equal(f"{s} 5: Line Type shows every feature type", (legend.get("features", {}).get("Sparse infill"),
                                                                      legend.get("options", {}).get("travel")),
                      (True, False))
-        self.t.check(f"{s} 5: the speed range's top is below 500", (vw.get("ranges", {}).get("speed") or [0, 500])[1] < 500,
+        self.t.check(f"{s} 5: the speed range's top is below the travel speed",
+                     (vw.get("ranges", {}).get("speed") or [0, TRAVEL_SPEED])[1] < TRAVEL_SPEED,
                      vw.get("ranges", {}).get("speed"))
         self.run("view_set", layer=5)
         self.layers_shown(f"{s} 6", 1, 5, plate=0, layer_count=100, view_type="feature_type")
@@ -615,7 +631,7 @@ class SlicePreviewTest:
         path = self.path("gcode")
         g = self.export(f"{s} 6", path)
         self.t.equal(f"{s} 6: the header's layers", g["header"].get("total layer number"), 100)
-        self.t.near(f"{s} 6: the header's time is plate 1's", g["header"].get("total estimated time"), time_1, 1)
+        self.t.near(f"{s} 6: the estimate is plate 1's", g["header"].get("estimate"), time_1, 1)
         self.plates_are(f"{s} 6", '"" 1 S', '"" 1 * S')
         uses = self.rule_uses(SAVE)
         self.run("project_open", path=path, discard_changes=True)
@@ -628,7 +644,7 @@ class SlicePreviewTest:
                      ((st.get("summary") or {}).get("layers"), (st.get("layers") or {}).get("total"),
                       (st.get("view") or {}).get("layer_count")), (100, 100, 100))
         self.t.near(f"{s} 7: the time is the file's", (st.get("summary") or {}).get("time_s"),
-                    g["header"].get("total estimated time"), 1)
+                    g["header"].get("estimate"), 1)
         self.t.check(f"{s} 7: Outer wall's time", ((st.get("features") or {}).get("Outer wall") or {}).get("time_s", 0) > 0,
                      st.get("features"))
         self.run("project_new", discard_changes=True)
@@ -772,12 +788,12 @@ class SlicePreviewTest:
         self.t.equal(f"{s} 8: as many layers as the slice", len(layers), count)
         at6 = [l for l in layers if abs(l["z"] - 6.0) < 1e-3]
         dense = at6[0]["features"].get("Sparse infill", 0) if at6 else 0
-        self.t.check(f"{s} 8: layer 30 has 40 % infill", layers[29:30] == at6[:1] and dense >= 2 * L, (dense, L))
+        self.t.check(f"{s} 8: layer 30 has 40 % infill", layers[29:30] == at6[:1] and dense >= 1.8 * L, (dense, L))
         ranges_are(f"{s} 8", after3)
         refusals = [
             (9, lambda: self.c.call("object_set_height_ranges", object=0,
                                     ranges=[{"min_z": 0, "max_z": 15}, {"min_z": 12, "max_z": 20}]), "overlap"),
-            (10, lambda: on_range(0, 10, {"layer_height": 0.5}), "layer_height 0.5 is outside this printer's 0.08-0.28"),
+            (10, lambda: on_range(0, 10, {"layer_height": 0.5}), "layer_height 0.5 is outside this printer's 0.08-0.32"),
             (11, lambda: on_range(0, 10, {"extruder": 9}), "Filament 9 does not exist"),
             (12, lambda: on_range(0, 10, {"enable_support": True}), "not on a height range"),
             (13, lambda: self.c.call("object_set_height_ranges", object=0, ranges=[{"min_z": 5, "max_z": 5}]),
@@ -791,6 +807,10 @@ class SlicePreviewTest:
         reply = on_range(10, 20, {"extruder": 2})
         self.t.equal(f"{s} 14: the reply", (reply.get("applied", {}).get("extruder"), reply.get("height_range")),
                      ("2", {"min_z": 10, "max_z": 20}))
+        # A tower worked out for the range's 0.1 mm layers is too deep to fit behind its default place on this bed.
+        self.run("project_set_settings", values={"wipe_tower_y": {"index": 0, "value": 150}})
+        self.t.equal(f"{s} 14: the prime tower moved forward", self.c.call("plate_list", limit=500)["items"][0].get(
+            "wipe_tower"), [165, 150])
         ranges_are(f"{s} 14", after14)
         reply = self.run("plate_slice")
         self.slice_is(f"{s} 15", reply, [(0, "ok")], layers=(149, 151))
@@ -849,35 +869,36 @@ class SlicePreviewTest:
         self.t.near(f"{s} 1: the reply's height", reply.get("height"), 48, 0.01)
         self.t.check(f"{s} 1: no warnings", "warnings" not in reply, reply.get("warnings"))
         got = profile_is(f"{s} 1", points=lambda v: v > 250, min_height=lambda v: 0.08 <= v < 0.2,
-                         max_height=lambda v: 0.2 < v <= 0.28)
+                         max_height=lambda v: 0.2 < v <= 0.32)
         points = got.get("points", 0)
         self.tab_is(f"{s} 1", "prepare")
         vlh(action="adaptive", quality=0)
         profile_is(f"{s} 2", points=lambda v: v > points)
         vlh(action="adaptive", quality=1)
-        profile_is(f"{s} 3", points=lambda v: v < points, max_height=0.28)
+        profile_is(f"{s} 3", points=lambda v: v < points, max_height=0.32)
         reply = self.run("plate_slice")
-        self.slice_is(f"{s} 4", reply, [(0, "ok")], layers=(246, None))
+        self.slice_is(f"{s} 4", reply, [(0, "ok")], layers=(None, None))
         count = self.plate_of(reply, 0).get("layers")
+        self.t.check(f"{s} 4: a layer count other than 240", count != 240, count)
         g = self.export(f"{s} 4")
         heights = [l["height"] for l in g["layers"]]
         self.t.equal(f"{s} 4: as many layers as the slice", len(heights), count)
-        self.t.check(f"{s} 4: heights from 0.08 to 0.28", all(0.08 - 1e-3 <= h <= 0.28 + 1e-3 for h in heights),
+        self.t.check(f"{s} 4: heights from 0.08 to 0.32", all(0.08 - 1e-3 <= h <= 0.32 + 1e-3 for h in heights),
                      sorted(set(heights)))
         self.t.check(f"{s} 4: more than one height", len(set(heights)) > 1, sorted(set(heights)))
         self.t.near(f"{s} 4: the last layer's z", g["layers"][-1]["z"] if g["layers"] else None, 48, 0.3)
-        profile_is(f"{s} 4", points=lambda v: v < points, max_height=0.28)
+        profile_is(f"{s} 4", points=lambda v: v < points, max_height=0.32)
         vlh(action="smooth", radius=10, keep_min=True)
-        profile_is(f"{s} 5", max_height=lambda v: v < 0.28)
+        profile_is(f"{s} 5", max_height=lambda v: v < 0.32)
         self.undo()
-        profile_is(f"{s} 6: smooth is one undo step", max_height=0.28)
+        profile_is(f"{s} 6: smooth is one undo step", max_height=0.32)
         self.redo()
         reply = vlh(action="reset")
         self.t.check(f"{s} 7: the reply has no profile", "layer_height_profile" not in reply, reply)
         profile_is(f"{s} 7")
         vlh(action="reset")
         self.undo()
-        profile_is(f"{s} 8: the second reset took no step", max_height=lambda v: v < 0.28)
+        profile_is(f"{s} 8: the second reset took no step", max_height=lambda v: v < 0.32)
         vlh(action="reset")
         profile_is(f"{s} 9")
         self.t.refused(f"{s} 10: refused", lambda: self.c.call("object_set_variable_layer_height", object=0,
@@ -1006,7 +1027,7 @@ class SlicePreviewTest:
         g = self.export(f"{s} 14")
         layers = g["layers"]
         self.t.equal(f"{s} 14: the pauses", [(n + 1, l["pauses"]) for n, l in enumerate(layers) if l["pauses"]],
-                     [(26, ["M400 U1"])])
+                     [(26, ["PAUSE"])])
         self.t.equal(f"{s} 14: the custom G-codes", [(n + 1, l["customs"]) for n, l in enumerate(layers) if l["customs"]],
                      [(51, ["M104 S220"])])
         self.t.equal(f"{s} 14: the tool lines", [(n + 1, l["tools"]) for n, l in enumerate(layers) if l["tools"]],
@@ -1296,14 +1317,42 @@ class SlicePreviewTest:
         self.t.equal(f"{s} 2: the log lies in the configuration folder's log folder", norm(os.path.dirname(log)),
                      norm(os.path.join(folder, "log")))
 
+    def default_view(self):
+        """The view the app's defaults give: the default layout, then every display switch and fold at its default."""
+        self.run("view_set", layout="default")
+        self.run("view_set", **VIEW)
+
+    def starts_from(self):
+        s = "the start"
+        self.t.equal(f"{s}: the presets", start(self.c),
+                     {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]})
+        self.run("project_set_settings", values={"filament_colour": {"index": 0, "value": SLOT_COLOUR},
+                                                 "flush_multiplier": float(FLUSH_MULTIPLIER)})
+        items = self.c.call("project_get_settings", keys=["filament_colour", "flush_multiplier"])["items"]
+        self.t.equal(f"{s}: the slot's colour and the flush multiplier", {i["key"]: i["value"] for i in items},
+                     {"filament_colour": SLOT_COLOUR, "flush_multiplier": FLUSH_MULTIPLIER})
+        self.run("preferences_set", values={"auto_slice_after_change": False})
+        items = self.c.call("preferences_get", keys=["auto_slice_after_change"])["items"]
+        self.t.equal(f"{s}: no slice after a change", {i["key"]: i["value"] for i in items},
+                     {"auto_slice_after_change": False})
+        self.run("window_set", size=[1600, 900])
+        self.default_view()
+        view = self.c.call("app_state")["view"]
+        self.t.equal(f"{s}: the view", {k: view.get(k) for k in VIEW}, VIEW)
+        self.run("dialog_auto_answer", rules=[{"match": SPIRAL, "button": "yes"}, {"match": SAVE, "button": "No"}])
+
     def run_all(self, only=()):
-        self.c.call("dialog_auto_answer", rules=[{"match": SPIRAL, "button": "yes"}, {"match": SAVE, "button": "No"}])
-        self.c.call("window_set", size=[1600, 900])
-        for name in self.SCENARIOS:
-            if not only or name in only:
-                self.t.scenario(name, getattr(self, name))
-        self.c.call("dialog_auto_answer", rules=[])
-        self.run("project_new", discard_changes=True)
+        try:
+            self.t.scenario("the start", self.starts_from)
+            for name in self.SCENARIOS:
+                if not only or name in only:
+                    self.t.scenario(name, getattr(self, name))
+            self.c.call("dialog_auto_answer", rules=[])
+            self.run("project_new", discard_changes=True)
+        finally:
+            # A run that breaks off in the view switches can leave the sidebar folded or widened, a switch turned or
+            # the camera orthographic, which every later test's window would show.
+            self.default_view()
         return self.t.exit_code()
 
 

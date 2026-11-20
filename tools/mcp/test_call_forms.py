@@ -7,9 +7,9 @@
 Names and value shapes agents send in place of the schema's, each shown by what the call did; settings_list leaving
 meta out of a whole listing; and a call with exactly an action's arguments doing what a person's pick does: a test's
 dialog asked or silent, View: Top turning the camera of the view shown, Deselect All closing the open gizmo too, Go to
-layer through action_run, and plate_slice {preview: true}. It needs the Design tab (launch with --cad), runs on the
-harness's default printer, the Bambu Lab X1 Carbon 0.4, and exits 0 when every check passes. The files it exports
-go to --out, else to a new temporary folder.
+layer through action_run, and plate_slice {preview: true}. It needs the Design tab (launch with --cad), starts on
+the Generic Klipper Printer, and exits 0 when every check passes. The files it exports go to --out, else to a new
+temporary folder.
 """
 
 import argparse
@@ -22,7 +22,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import Checks, plates, run, wait  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, plates, run, start, wait  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CUBE = os.path.join(REPO, "resources", "handy_models", "OrcaCube_v2.drc")
@@ -314,6 +314,8 @@ class CallFormsTest:
         self.t.equal(f"{s} 8: the range shown", view.get("layers"), [1, 51])
 
     def run_all(self):
+        self.t.equal("the start: the presets", start(self.c),
+                     {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]})
         for name, scenario in [("names and values agents send", self.agent_names),
                                ("a test's dialog, asked or silent", self.test_dialog),
                                ("the shown view", self.shown_view)]:

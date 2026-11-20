@@ -22,15 +22,38 @@ Their `sweep.json` entries:
 ```
 
 ## `test_gui_tools`
-`test_gui_tools.py` · Python, 196 checks · in `sweep.json` as `{"path": "test_gui_tools.py"}`
+`test_gui_tools.py` · Python, 213 checks · in `sweep.json` as `{"path": "test_gui_tools.py"}`
 
 **Tests:** The generic GUI tools on the app's own widgets, as an agent drives any of them: context menus and a
 button's menu listed and run by path without being shown, the Edit menu's items, the rows of the object list, of
 Compare presets and of the parameter table, the print button's popup, a drop-down list, and Orca's web dialogs (the
 preset bundle dialog, the colour picker over the filament picker, the setup wizard). Every menu item, row and page
 element the test runs or clicks is checked by what it does to the project, the selection, the camera or the
-settings; a menu's listing is checked by the items it holds. It runs on the harness's default printer, the Bambu
-Lab X1 Carbon 0.4, in a 1600 × 900 window (`window_set`).
+settings; a menu's listing is checked by the items it holds.
+
+**Starts from:** `start(c)`, the Generic Klipper Printer, compared with `{printer: KLIPPER, process: KLIPPER_STD,
+filaments: [GENERIC_PLA]}`, on which every scenario runs. The web dialogs scenario starts with `start(c,
+filaments=["Bambu PLA Basic @System"])`, and the drop-down list with `start(c)` again and the printer's
+`support_multi_bed_types` turned on (see there). Before the first scenario the test sets, and reads back, the stored
+settings its checks depend on: the window at 1600 × 900 (`window_set {size: [1600, 900]}`, then
+`app_state.window.size`), since `E`'s pixel and the canvas captures follow the window's size; the 3D view's labels off
+(`view_set {labels: false}`, then `app_state.view.labels`), which the app keeps in the data folder (`show_labels`) and
+which the menus scenario turns on and off; and `preferences_set {values: {use_printer_agents: false}}`, then
+`preferences_get`, under which a printer without a print host gives the print button's popup its two items. Two
+scenarios set more of their start: the drop-down list sets the plate type, and the web dialogs scenario takes the wizard
+card's printer out (see each). The login region the web dialogs scenario reads is the one stored setting no tool can set
+(`preferences_set` refuses `region`, since changing it signs out of the cloud account); no test changes it, so the
+scenario checks it is `""`.
+
+**Leaves:** The Klipper printer selected and unmodified, since the closing `project_new {preset_changes: "discard"}`
+drops the drop-down list's `support_multi_bed_types`, with `0.20mm Standard @MyKlipper` and one `Generic PLA @System`
+slot, the drop-down list's `start()`, still coloured `#3366CC`, the colour the web dialogs scenario picked (a
+filament switch keeps the slot's colour). The plate type `High Temp Plate` stored for the printer, which the sidebar
+stores as the switch goes off. The Generic Marlin Printer not installed, when an earlier test had installed it. The
+window, the labels and `use_printer_agents` as it set them. The print button's mode, `Export G-code file`, which the
+app keeps only while Remember last print action is on. The recent projects and the last folder opened, naming the
+projects it saved in its own output folder. None of it changes how the app reads to the tests after it, so the test
+restores nothing.
 
 **Reads:** `objects()` gives each object from `object_list` as its name, the plate it is on, its parts, each part as
 its name and `type` (`part`, `modifier`, `negative`, ...), and whether its first instance is printable. `selection()` gives
@@ -53,9 +76,11 @@ part + Generic-Cylinder modifier`. "As after N" means the state written out at s
 It starts with one filament slot (`filament_delete` until it is refused `last_filament_slot`), the cube of the Add
 Cube action (`action_run`) and the iso view (`view_set {camera: "iso"}`). The start is checked: `objects()` is
 `Cube: Cube part`, printable; `app_state.presets.filaments` has 1 entry; `app_state.view.labels` is false. `C` is
-`mouse_gesture {action: "click", button: "right", at: {object: 0, point: [6, -6, 12.8]}}`, a point on the cube's
-top away from the diagonal its two top triangles share; `E` is the same right click at the canvas pixel (1000,
-150), empty space above the bed.
+`mouse_gesture {action: "click", button: "right", at: {object: 0, point: [6, -6, 12.5]}}`, a point on the cube's
+top away from the diagonal its two top triangles share: the Add Cube action's cube is a tenth of the bed's longer
+side, 25 mm on the Klipper printer's 250 mm bed, unless a person saved a cube size of their own in its dialog
+(`primitive_size`), which no test does. `E` is the same right click at the canvas pixel (1000, 150), empty space
+above the bed.
 
 `OBJECT` is the set of menu items the object menu must list: `Add Part>Cube`, `Add Negative Part>Cylinder`, `Add
 Modifier>Cylinder`, `Add Support Blocker>Cube`, `Add Support Enforcer>Cube`, `Delete`, `Printable` and `Auto Drop`.
@@ -85,7 +110,7 @@ Hell`, then `Add Models` and `Show Labels`.
 | 16 | `E` with `popup_item: "Add Primitive>Cylinder"` | as after 9, then `Cylinder: Cylinder part` | `app_state.objects` 2 |
 | 17 | `widget_click {target: {label: "Add one filament"}}` | as after 16 | `app_state.presets.filaments` has 2 entries |
 | 18 | `project_set_settings {values: {filament_colour: "#FF0000;#0000FF"}}` | as after 16 | `colours()` `#FF0000;#0000FF` |
-| 19 | `widget_click` of filament 1's `Click to edit preset` button, by the ref of the first button of that name `widget_list {target: "main"}` lists with a position and a size | as after 16 | items exactly `Edit`, `Merge with>Bambu PLA Basic`, `Decompose Color`, `Delete`, `Bambu PLA Basic` being the filament of slot 2 as the selector names it; `dialogs()` `[]`; `app_state.tab` `prepare` |
+| 19 | `widget_click` of filament 1's `Click to edit preset` button, by the ref of the first button of that name `widget_list {target: "main"}` lists with a position and a size | as after 16 | items exactly `Edit`, `Merge with>Generic PLA`, `Decompose Color`, `Delete`, `Generic PLA` being the filament of slot 2 as the selector names it (Add one filament copies the last slot's, `PresetBundle::set_num_filaments`); `dialogs()` `[]`; `app_state.tab` `prepare` |
 | 20 | the same with `popup_item: "Delete"` | as after 16 | reply `ran` `Delete`; `app_state.presets.filaments` has 1 entry and `colours()` is `#0000FF`: the slot whose button was clicked is the one deleted |
 | 21 | `object_select {all: true}`, then `C` | as after 16 | `selection()` objects `[0, 1]` after the select; the items hold `Assemble`, `Align/Distribute>Align left (-X)` and `Delete`, and not `Add Part>Cube`: the menu is the multi-selection's, not one object's |
 | 22 | `C` with `popup_item: "Delete"` | none | reply `ran` `Delete`: the multi-selection's Delete removes both objects; `app_state.objects` 0, `closed_menus` `[]`, `dialogs()` `[]` |
@@ -119,41 +144,44 @@ part`, printable, on plate 0.
 | 19 | `plate_slice` | plate 0's outcome `ok`; `plate_list` gives it `sliced` true |
 | 20 | `app_state` | `dialogs` `[]`, `closed_menus` `[]` |
 
-**Scenario: a dialog's rows, a table, a popup and a drop-down list**
+**Scenario: a dialog's rows, a table and a popup**
 
 It starts with the Add Cube action's cube, the Objects switch on, and a cylinder modifier added from the cube row's
 menu as in the rows scenario. The start is checked: `objects()` is `Cube: Cube part + Generic-Cylinder modifier`,
-`app_state.presets.process` is `0.20mm Standard @BBL X1C`, the project's `curr_bed_type` is `Cool Plate`, and
-`windows()` holds no `Compare presets`.
+`app_state.presets.process` is `0.20mm Standard @MyKlipper`, and `windows()` holds no `Compare presets`. `SIDE` is
+the labels of the main window's side buttons, as `widget_list {target: "main", query: "SideButton", include_menus:
+false}` lists them: `Slice plate`, its unlabelled arrow, the print button, its unlabelled arrow.
 
 | # | Step | Checked after |
 |---|---|---|
 | 1 | `widget_click {target: {label: "Compare presets"}}` | `windows()` holds `Compare presets`; `dialogs()` `[]`, as it is modeless |
-| 2 | `widget_set_value {target: {class: "PresetComboBox", within: "Compare presets", index: 5}, value: "0.12mm Fine @BBL X1C"}` | `rows()` of the window hold the header row `"0.20mm Standard @BBL X1C" vs "0.12mm Fine @BBL X1C"` and, under it, `Quality>Layer height>Layer height` with the value `0.2 \| 0.12`: both presets' values |
+| 2 | `widget_set_value {target: {class: "PresetComboBox", within: "Compare presets", index: 5}, value: "0.12mm Fine @MyKlipper"}` | `rows()` of the window hold the header row `"0.20mm Standard @MyKlipper" vs "0.12mm Fine @MyKlipper"` and, under it, `Quality>Layer height>Layer height` with the value `0.2 \| 0.12`: both presets' values |
 | 3 | `widget_click {target: {row: "Quality>Layer height>Layer height", within: "Compare presets"}}` | reply `clicked` holds that path; `rows()` read the row as selected |
-| 4 | `keyboard_press {target: {class: "DiffPresetDialog"}, keys: "Escape"}` | `windows()` holds no `Compare presets`; `app_state.presets.process` is still `0.20mm Standard @BBL X1C` and `preset_list` marks no process preset modified: comparing changed nothing |
+| 4 | `keyboard_press {target: {class: "DiffPresetDialog"}, keys: "Escape"}` | `windows()` holds no `Compare presets`; `app_state.presets.process` is still `0.20mm Standard @MyKlipper` and `preset_list` marks no process preset modified: comparing changed nothing |
 | 5 | steps 1 to 3 again, then `widget_set_value {target: {label: "Transfer values from left to right", within: "Compare presets"}, value: true}`; then `widget_set_value {value: false}` on each option row `rows()` reads checked, and `widget_set_value {target: {row: "Quality>Layer height>Layer height", within: "Compare presets"}, value: true}` | after the checkbox, `rows()` read every option row checked, as each row's toggle starts on; at the end, the layer height row alone of the option rows reads checked, and the bottom shell layers row (3 against 5) reads unchecked |
-| 6 | `widget_click {target: {label: "Transfer", within: "Compare presets"}}` | `windows()` holds no `Compare presets`; `app_state.presets.process` is `0.12mm Fine @BBL X1C` and `preset_list` marks it modified; `settings_get` of the process gives `layer_height` `"0.2"`, the left preset's value, and `bottom_shell_layers` `"5"`, the right preset's own: only the checked row was transferred |
+| 6 | once `widget_list` of the window lists the `Transfer` button enabled, waited up to 10 s, `widget_click {target: {label: "Transfer", within: "Compare presets"}}` | the wait is met; `windows()` holds no `Compare presets`; `app_state.presets.process` is `0.12mm Fine @MyKlipper` and `preset_list` marks it modified; `settings_get` of the process gives `layer_height` `"0.2"`, the left preset's value, and `bottom_shell_layers` `"5"`, the right preset's own: only the checked row was transferred |
 | 7 | `object_select {objects: [0]}`, then `widget_click {target: {row: "Plate 1>Cube"}, button: "right", popup_item: "Edit in Parameter Table"}` | `selection()` objects `[0]`, no parts, after the select; the click replies `blocked_by_dialog`; `dialogs()` `["Object/Part Settings"]` |
 | 8 | `widget_list {target: "dialog"}` | the table's rows are `Cube` twice (the object, then its part) and `Generic-Cylinder` once |
-| 9 | `widget_click {target: {row: "Generic-Cylinder", within: "Object/Part Settings", column: "Wall loops"}}` | reply `column` `Wall loops`; `selection()` parts `[[0, 1]]`: a cell's click selects its part, as the table tells the object list |
+| 9 | `widget_click {target: {row: "Generic-Cylinder", within: "Object/Part Settings", column: "Wall loops"}}` | `selection()` parts `[[0, 1]]`: a cell's click selects its part, as the table tells the object list; the click's result has `column` `Wall loops`, read from its reply or, when it replies `blocked_by_dialog`, from its job once step 10 has closed the dialog |
 | 10 | `dialog_answer {dialog: {title: "Object/Part Settings"}, button: "close"}` | reply `closed` true; the step 7 job ends without an error; `dialogs()` `[]` |
-| 11 | `widget_click {target: {class: "SideButton", index: 3}}` | `widget_list {target: "popup", query: "Export plate sliced file"}` lists exactly 1 node |
-| 12 | `widget_click {target: {class: "SideButton", label: "Export plate sliced file"}}` | `widget_list {target: "popup"}` lists no node; `widget_list {target: "main", query: "Export plate sliced file", include_menus: false}` lists exactly 1: the print button shows the mode picked; `dialogs()` `[]` |
-| 13 | `widget_click {target: {class: "ComboBox", label: "Smooth Cool Plate"}}` | the popup's rows are exactly, in order, `Smooth Cool Plate`, `Engineering Plate`, `Smooth High Temp Plate`, `Textured PEI Plate`, `Textured Cool Plate`, `Cool Plate (SuperTack)` |
-| 14 | `widget_click {target: {row: "Textured PEI Plate"}}` | reply `clicked` `Textured PEI Plate`; the project's `curr_bed_type` `Textured PEI Plate`, and `plate_list` gives plate 0 that type |
-| 15 | `project_save {path: OUT/plate_type.3mf}` | `project_file()` of it gives `curr_bed_type` `Textured PEI Plate`: the pick is kept in the project file |
-| 16 | `widget_set_value {target: {class: "ComboBox", label: "Textured PEI Plate"}, value: "Smooth Cool Plate"}` | `curr_bed_type` `Cool Plate` |
-| 17 | `app_state` | `dialogs` `[]`, `closed_menus` `[]` |
+| 11 | `widget_click {target: {class: "SideButton", index: 3}}`, the print button's arrow | `widget_list {target: "popup"}` lists the popup and exactly its buttons `Print` and `Export G-code file`, in order |
+| 12 | `widget_click {target: {class: "SideButton", label: "Print"}}` | reply `clicked` `Print`; `widget_list {target: "popup"}` lists no node; `SIDE` is `Slice plate`, none, `Print`, none: the print button shows the mode picked; `dialogs()` `[]` |
+| 13 | step 11 again, then `widget_click {target: {class: "SideButton", label: "Export G-code file"}}` | the popup as at 11, then no popup node; `SIDE` is `Slice plate`, none, `Export G-code file`, none: each pick changes the button from the other's label, whichever it showed at the start; `dialogs()` `[]` |
+| 14 | `app_state` | `dialogs` `[]`, `closed_menus` `[]` |
 
 **Scenario: Orca's own web dialogs**
 
-It starts with one filament slot holding `Bambu PLA Basic @BBL X1C` (`filament_delete` until it is refused, then
-`preset_select` if the slot holds another), and slot 1's colour set with `project_set_settings {values:
-{filament_colour: "#26A69A"}}`. The start is checked: `app_state.presets.filaments` is `["Bambu PLA Basic @BBL
-X1C"]`, `colours()` is `#26A69A`, `preferences_get` gives `region` as `""`, and `preset_list {type: "printer"}`
-offers exactly `Bambu Lab X1 Carbon 0.4 nozzle`, selected. `HEX` is the locator `{web: "Hex color", within: "Color
-Picker"}`; `WIZARD` is `within: "Setup Wizard"`.
+It starts with `start(c, filaments=["Bambu PLA Basic @System"])`, compared with `{printer: KLIPPER, process:
+KLIPPER_STD, filaments: ["Bambu PLA Basic @System"]}`: the Orca Filament Library's Bambu PLA Basic, which suits any
+printer. A filament whose name starts with `Bambu` opens Orca's own filament picker (`PresetComboBoxes.cpp`), which
+finds the library's filament id `OFoiVqVM` under Bambu's `GFA00` (`FilamentColorCodeQuery::GetFilaInfoMap`). Slot 1's
+colour is set with `project_set_settings {values: {filament_colour: "#26A69A"}}`. When `preset_list {type:
+"printer"}` offers `MyMarlin 0.4 nozzle`, the Generic Marlin Printer whose wizard card step 15 ticks, the scenario
+takes it out first (`printer_uninstall {models: [{vendor: "Custom", model: "Generic Marlin Printer"}]}`), so that the
+card starts unticked; no test installs it. The start is checked: `app_state.presets.filaments` is `["Bambu PLA Basic
+@System"]`, `colours()` is `#26A69A`, `preferences_get` gives `region` as `""`, the selected printer is `MyKlipper
+0.4 nozzle`, and `preset_list {type: "printer"}` offers no `MyMarlin 0.4 nozzle`. `HEX` is the locator `{web: "Hex
+color", within: "Color Picker"}`; `WIZARD` is `within: "Setup Wizard"`.
 
 | # | Step | Checked after |
 |---|---|---|
@@ -171,8 +199,28 @@ Picker"}`; `WIZARD` is `within: "Setup Wizard"`.
 | 12 | `action_run` Setup Wizard | `blocked_by_dialog`; `dialogs()` `["Setup Wizard"]`; its page lists `Europe` within 30 s |
 | 13 | `widget_click {target: {web: "Europe", WIZARD}}` | reply `checked` true; `widget_list` of the wizard lists `Europe` checked |
 | 14 | `widget_click {target: {web: "Next", WIZARD}}` | setup only, to reach the printer page; what Next does is `test_web_ui`'s check, and step 15 finds the printer page's card |
-| 15 | `widget_click {target: {web: "Nozzle 0.4 Marlin", kind: "button", WIZARD}}` | reply `checked` true; `widget_list` of the wizard lists that card checked |
-| 16 | `dialog_answer {dialog: {title: "Setup Wizard"}, button: "close"}` | reply `closed` true; the step 12 job ends; `dialogs()` `[]`; `region` still `""` and the printers as at the start: closing the wizard keeps neither choice |
+| 15 | `widget_click {target: {web: "Nozzle 0.4 Marlin", kind: "button", WIZARD}}`, the Generic Marlin Printer's card | reply `checked` true; `widget_list` of the wizard lists that card checked |
+| 16 | `dialog_answer {dialog: {title: "Setup Wizard"}, button: "close"}` | reply `closed` true; the step 12 job ends; `dialogs()` `[]`; `region` still `""`, the selected printer still `MyKlipper 0.4 nozzle`, and `preset_list` still offers no `MyMarlin 0.4 nozzle`: closing the wizard keeps neither choice |
+
+**Scenario: a drop-down list**
+
+The list is the plate type's, which the sidebar shows only for a Bambu Lab printer or one with
+`support_multi_bed_types` (`Sidebar::update_all_preset_comboboxes`); without it the Klipper printer has one plate
+type, its default `High Temp Plate`. The scenario runs last and starts with `start(c)`, compared with `{printer:
+KLIPPER, process: KLIPPER_STD, filaments: [GENERIC_PLA]}`; then `settings_set {type: "printer", values:
+{support_multi_bed_types: "1"}}`, an unsaved edit of the printer that the test's closing `project_new` discards, as
+the next `start()` would; the sidebar's Global/Objects switch on Global (`widget_set_value {target: {class:
+"SwitchButton", label: "Process"}, value: false}`), so that the sidebar shows one plate type list; and the plate type
+set with `project_set_settings {values: {curr_bed_type: "Cool Plate"}}`, since the plate type the switch finds is
+stored state (see **To settle**). The start is checked: the project's `curr_bed_type` is `Cool Plate`.
+
+| # | Step | Checked after |
+|---|---|---|
+| 1 | `widget_click {target: {class: "ComboBox", label: "Smooth Cool Plate"}}` | the popup's rows are exactly, in order, `Smooth Cool Plate`, `Engineering Plate`, `Smooth High Temp Plate`, `Textured PEI Plate`, `Textured Cool Plate`, `Cool Plate (SuperTack)` |
+| 2 | `widget_click {target: {row: "Textured PEI Plate"}}` | reply `clicked` `Textured PEI Plate`; the project's `curr_bed_type` `Textured PEI Plate`, and `plate_list` gives plate 0 that type |
+| 3 | `project_save {path: OUT/plate_type.3mf}` | `project_file()` of it gives `curr_bed_type` `Textured PEI Plate`: the pick is kept in the project file |
+| 4 | `widget_set_value {target: {class: "ComboBox", label: "Textured PEI Plate"}, value: "Smooth Cool Plate"}` | `curr_bed_type` `Cool Plate` |
+| 5 | `app_state` | `dialogs` `[]`, `closed_menus` `[]` |
 
 **To settle in review:**
 - The object menu's `checked` for a new cube (menus, step 1; rows, step 9): `Printable` and `Auto Drop`, as an
@@ -180,14 +228,16 @@ Picker"}`; `WIZARD` is `within: "Setup Wizard"`.
   when the plate holds two filaments. The object menu (`create_extra_object_menu()`) has no `Assemble`, which the
   multi-selection menu adds while only objects are selected (`can_merge_to_multipart_object()`).
 - The empty space's menu `DEFAULT` (menus, step 12), from `create_default_menu()` and `handy_models()` in
-  `GUI_Factories.cpp`, with labels off on a new datadir. Writing it whole makes a new handy model a change to this
-  entry.
+  `GUI_Factories.cpp`, with labels off, as the start sets them. Writing it whole makes a new handy model a change to
+  this entry.
 - Filament 1's `Click to edit preset` button (menus, step 19) is the first of that name with a position and a size in
   `widget_list`. The printer's button of that name comes first in the listing but is hidden until the pointer is over
   its panel, and on Windows and macOS `{label: "Click to edit preset", index: 0}` still names it, as the locator's
   index counts it (its menu is `Edit preset` and `Add/Remove presets`); only on Linux is index 0 filament 1's. So the test names the button by the ref of the first one shown. Its menu is
-  `create_filament_action_menu()`'s, and its `Delete` is enabled on the X1 Carbon, which shows the multi-material
-  buttons.
+  `create_filament_action_menu()`'s. The Klipper printer is a single-extruder multi-material printer
+  (`single_extruder_multi_material` 1 in `fdm_klipper_common`), so the button opens that menu, and its `Merge with`
+  and `Delete` items are there, as on a Bambu Lab printer (`Sidebar::should_show_SEMM_buttons`); `Merge with` names
+  the other slot by its preset's alias, the name before ` @`.
 - A call that opens a dialog the start's rules answer (the Add Cube action's size dialog, Add Modifier's tip) is
   followed to its end through that dialog, not judged by its first reply: under load the reply is at times
   `blocked_by_dialog` for a dialog whose rule has queued its press but not yet made it. The test passes with or
@@ -202,24 +252,50 @@ Picker"}`; `WIZARD` is `within: "Setup Wizard"`.
   header row's label. Index 5 is the process preset's right-hand combo, the printer's and filament's coming first and
   the SLA material's being hidden. Escape closes the window: a wx dialog's Escape presses its `wxID_CANCEL` button,
   which `DiffPresetDialog` has (its `DialogButtons` Cancel), and that button's handler hides the dialog.
-- Compare presets' Transfer (dialog rows, steps 5 and 6): the checkbox "Transfer values from left to right" shows
-  the rows' toggle column and the Transfer button, which is enabled while a row is selected and the process preset
-  has no unsaved changes; Transfer hides the dialog and the process tab's `transfer_options()` selects the right-hand
-  preset and gives it the toggled rows' left-hand values (`MainFrame::make_diff_dialog()`, `Tab.cpp`). A row's toggle
-  starts on (`ModelNode::m_toggle`) and is set as a row's checkbox, which `widget_set_value` takes. The two presets'
-  values come from the profiles: `layer_height` 0.2 against 0.12, `bottom_shell_layers` 3 (`fdm_process_common`)
-  against 5 (`fdm_process_single_0.12`).
+- Compare presets' Transfer (dialog rows, steps 5 and 6): the checkbox "Transfer values from left to right" shows the
+  rows' toggle column and the Transfer button, which is enabled while a row is selected and the process preset has no
+  unsaved changes, a state the dialog sets as the app idles (`wxEVT_UPDATE_UI`), so a click right after the row toggles
+  can find the button still disabled, and the step waits for it; Transfer hides the dialog and the process tab's
+  `transfer_options()` selects the right-hand preset and gives it the toggled rows' left-hand values
+  (`MainFrame::make_diff_dialog()`, `Tab.cpp`). A row's toggle starts on (`ModelNode::m_toggle`) and is set as a row's
+  checkbox, which `widget_set_value` takes. The two presets' values come from the Custom vendor's profiles:
+  `layer_height` 0.2 against 0.12, `bottom_shell_layers` 3 (`fdm_process_common`) against 5 (`0.12mm Fine @MyKlipper`).
+- The print button's popup (dialog rows, steps 11 to 13): a printer of another vendor than Bambu Lab, with
+  `use_printer_agents` off, offers `Print` and `Export G-code file`, and `Export plate sliced file` only when the
+  printer takes a G-code 3MF (`use_3mf`), which the Klipper printer does not (`MainFrame::available_print_actions`).
+  The test picks `Print` and then `Export G-code file`, so that each pick changes the label the other left, whatever
+  the button showed first; picking `Print` sends nothing, and the button is disabled until a slice.
+- The plate type is kept per printer (drop-down list, start): every pick, and every plate type the sidebar sets,
+  is stored in the app config under the printer (`Plater::priv::on_select_bed_type`, which
+  `set_bed_type_accord_combox` runs too), and while the printer supports several plate types the sidebar takes the
+  stored one when it shows the printer (`Sidebar::update_all_preset_comboboxes`). The Klipper printer's saved preset
+  has `support_multi_bed_types` off, so the sidebar sets and stores its default, `High Temp Plate`, whenever it shows
+  the printer: at launch, and when `start()` or the test's closing `project_new` discards the switch. Turning the
+  switch on then finds `High Temp Plate`, also after a run killed between steps 2 and 4, whose `Textured PEI Plate`
+  the next launch overwrites (measured). The start still sets the plate type it needs rather than relying on that.
+  `project_set_settings` sets the list as a pick does. In the Objects mode the sidebar can show the plate's own `Bed
+  type` list too; on Global the list the locator names is the only one. With `support_multi_bed_types` on, the
+  Klipper printer's list offers the six plate types step 1 reads, the ones `project_get_settings` gives as
+  `curr_bed_type`'s `offered`.
 - A cell's click in the parameter table selects its part in the object list (dialog rows, step 9), as the table's
   cell selection calls the object list's `select_items()`. The table lists an object's row and, for an object of
-  more than one part, a row per part (`construct_object_configs()`).
+  more than one part, a row per part (`construct_object_configs()`). The table then builds the part's settings
+  beside it, and when that outlasts the reply's time the click replies `blocked_by_dialog` and its job ends once the
+  dialog closes: measured in Expert mode, which another test leaves, on the app's first build of those settings, and
+  under load in Advanced mode. So the click's result is read at its end; the selection is read before the close.
 - A double click frames at once (rows, step 8): the camera's target is set to the selection's box centre in the
   click's own handling (`Camera::zoom_to_box()`).
 - The Select Filament dialog shows `#26A69A` as hex, not a colour name (web dialogs, step 3), as that colour has no
   Bambu colour code; and its OK stores the picked colour as `#3366CC`, in capitals (step 10).
-- A new datadir stores no login region, so `preferences_get` reads `region` as `""` (web dialogs, start and step 16).
+- The login region reads `""` (web dialogs, start and step 16): a new data folder stores none, no tool can set it,
+  and no test finishes the wizard, which is what stores one.
+- The wizard card `Nozzle 0.4 Marlin` (web dialogs, step 15) is the Generic Marlin Printer's: the printer page names a
+  Custom printer by the second word of its model and lists its nozzles (`CreatePrinterBlock` in
+  `web/guide/21/common.js`); the Klipper printer's card, installed, reads `Nozzle 0.4 · 0.2 · 0.6 · 0.8 Klipper` and
+  starts checked.
 - The preset bundle page (web dialogs, step 1), from `PresetBundleDialog/index.html`: the Refresh button and the
   Close element by their ids, and the top list's column headings as text; its auto-update switch is commented out of
-  the page, and its bundle lists are empty on a new datadir.
+  the page, and its bundle lists, which hold what the data folder holds, are not read.
 - Two labels' captures differ (menus, steps 13 and 15): the object's label is drawn into the 3D view, which the
   canvas capture holds, so turning it on or off changes the picture's bytes.
 
@@ -237,9 +313,13 @@ Picker"}`; `WIZARD` is `within: "Setup Wizard"`.
   test "a menu opened while a call acts on the UI is listed, run by its path or closed unseen, never shown" covers.
 - Editing a parameter table cell: `widget_set_value` sets no table cell, so the GUI tools cannot edit the table.
 - Compare presets' transfer to presets of other types, or of more than one value.
-- What the print button does in the mode picked: `test_every_action` exports the sliced file through its action.
+- What the print button does in the mode picked: `test_every_action` exports the sliced file through its action. The
+  popup of a Bambu Lab printer (Print plate, Send, Export plate sliced file and the rest): only the Klipper printer's
+  two items are checked.
+- The plate type lists of other printers: only the Klipper printer's, with `support_multi_bed_types` on, is read.
 - The wizard's Next and its navigation: `test_web_ui` checks them. Finishing the wizard, which installs printers and
   filaments: the install tests own installs.
+- The printers other tests installed: the printer list is read for the one printer the wizard's card names.
 - Closing the preset bundle dialog from its page by a script: `test_webview_modal`.
 - The colour the spectrum drag picks: the page works it out from the canvas's layout, so only "another valid colour"
   is checked.
@@ -249,13 +329,26 @@ Picker"}`; `WIZARD` is `within: "Setup Wizard"`.
 selection, the camera or the settings; only the spectrum drag's colour is checked as another valid colour.
 
 ## `test_recording`
-`test_recording.py` · Python, 110 checks with an ffmpeg that has libx265 and libx264 · in `sweep.json` as `{"path": "test_recording.py"}`
+`test_recording.py` · Python, 112 checks with an ffmpeg that has libx265 and libx264 · in `sweep.json` as `{"path": "test_recording.py"}`
 
 **Tests:** `recording_start`, `recording_stop` and `recording_encode`: a recording made while the GUI is driven, its
 report and its file; a recording a nested `replay_run` starts and never stops, which the replay's end closes;
 overlays and the time limit; and encoding asked for at the start, run as a job by the stop, deleting or keeping the
 `.mkv`. The recordings are read back from their files, and every encode is checked when the machine has an ffmpeg
 with the encoder it needs.
+
+**Starts from:** `start(c)`, the Generic Klipper Printer, compared with `{printer: KLIPPER, process: KLIPPER_STD,
+filaments: [GENERIC_PLA]}`: nothing it records is a Bambu Lab printer's own, and its G-code check reads this printer's
+layer marks. Then the window at 1600 × 900 (`window_set {size: [1600, 900]}`, then `app_state.window.size`), since the
+click at (300, 200) that must land on empty space is placed in it. The recordings' sizes are measured from captures of
+the same run, so they follow whatever size the window has. Recordings go to the test's output folder `OUT`, and
+ffmpeg is found from the environment, not the data folder: the app keeps no folder or encoder setting there that a
+check reads.
+
+**Leaves:** Not the window, whose placement the app stores only when it closes itself, and the runner ends it. The
+Klipper printer with `0.20mm Standard @MyKlipper` unmodified, since the
+closing `project_new` discards the layer height it set. The last folder opened, the handy models' folder of the
+import. Nothing else in the data folder: its recordings, replay and G-code are in `OUT`.
 
 **Reads:** `recording()` gives `app_state.recording`, or none. `mkv(path)` reads a Matroska file the way the app
 writes it: its codec id, its video's pixel width and height, its default frame duration, its number of blocks
@@ -291,7 +384,7 @@ this, in a subclass of `Checks` the test holds; see **To settle**.
 | 5 | `widget_set_value {target: {label: "Process"}, value: false}`, then `widget_set_value {target: {option: "layer_height"}, value: "0.16"}` | `settings_get` of the process gives `layer_height` `"0.16"` |
 | 6 | `keyboard_press {target: {option: "initial_layer_print_height"}, keys: "ctrl+a", text: "0.24"}`, then `keys: "Return"` | the first reply is exactly `{sent: "ctrl+a", to: "TextInput", typed: "0.24"}`; `initial_layer_print_height` stays `"0.2"`: typed keys reach ImGui fields and key handlers, not a native text field |
 | 7 | `action_run` Preferences, then `dialog_answer {dialog: {title: "Preferences"}, button: "close"}` | the first replied `blocked_by_dialog` with `Preferences`; its job ends without an error; `app_state.dialogs` `[]` |
-| 8 | `plate_slice`, then `project_export {path: OUT/session.gcode, overwrite: true}` | plate 0's outcome `ok`; the G-code's config block holds `; layer_height = 0.16` and `; initial_layer_print_height = 0.2`, and its first two distinct `; Z_HEIGHT:` values are 0.2 and 0.36: the value set shaped the layers printed, and the keys typed did not |
+| 8 | `plate_slice`, then `project_export {path: OUT/session.gcode, overwrite: true}` | plate 0's outcome `ok`; the G-code's config block holds `; layer_height = 0.16` and `; initial_layer_print_height = 0.2`, and its first two distinct `;Z:` values are 0.2 and 0.36: the value set shaped the layers printed, and the keys typed did not |
 | 9 | `recording_stop {silent: true}` | reply `ended` `stopped`, `path` `OUT/session.mkv`, `frames` and `written` at least 5, `failed` 0, `seconds` above 1, `capture_ms` above 0, `width` and `height` `MAIN`, `size_bytes` the file's size; `recording()` none. `mkv()`: codec `V_MJPEG`, `MAIN`, default frame duration 100 ms, `written` blocks or one more (the last frame held to the end), duration within 0.1 s of `seconds` |
 | 10 | `recording_encode {save_path: OUT/session.mp4, overwrite: true, keep_raw_video_file: true}` | with libx265: reply `path` `OUT/session.mp4`, `source` `OUT/session.mkv`, `codec` `h265`, `encoder` `libx265`, `raw_video_file_deleted` false, `size_bytes` the file's size; `mp4()`: `hvc1`, duration within 0.3 s of step 9's `seconds`; `OUT/session.mkv` is still there. Without: refused as above; no `OUT/session.mp4`, and `OUT/session.mkv` is still there |
 
@@ -357,8 +450,10 @@ The default limit of an hour is step 1 of the first scenario (`max_seconds` 3600
   that ended first comes back as its result or error, and the test takes either.
 - The `seconds` an encode reports and the MP4's duration: within 0.3 s of the recording's, as the encode keeps the
   frames' timing; the tolerance is a proposal.
-- The G-code of the X1 Carbon holds the config block and marks each layer with `; Z_HEIGHT: <z>` (first scenario,
-  step 8): both are written for Bambu Lab printers (`GCode.cpp`).
+- The Klipper printer's G-code holds the config block after the moves and marks each layer with `;Z:<z>` (first
+  scenario, step 8); `GCode.cpp` writes the block before the moves and `; Z_HEIGHT: <z>` for a Bambu Lab printer
+  only. Its own layer-change G-code writes the height as `;<z>` without `Z:`, so the `;Z:` lines are the app's marks
+  alone. `0.20mm Standard @MyKlipper`'s first layer is 0.2 mm (`fdm_process_common` of the Custom vendor).
 
 **Not checked:**
 - The frames' pixels: the captions and the pointer are drawn into MJPEG frames that the sweep's Python cannot decode
@@ -378,7 +473,7 @@ ffmpeg with the encoder is present; frame counts and capture times have lower bo
 to the unit tests.
 
 ## `test_call_forms`
-`test_call_forms.py` · Python, 94 checks · in `sweep.json` as `{"path": "test_call_forms.py", "cad": true}`
+`test_call_forms.py` · Python, 95 checks · in `sweep.json` as `{"path": "test_call_forms.py", "cad": true}`
 
 **Tests:** The forms a call takes. Names and value shapes agents send in place of the schema's (a lone path for
 `paths`, `object` and a string index for `objects`, `action` and an action's short name for `id`, a camera direction
@@ -388,6 +483,15 @@ the call did; `settings_list` leaving meta out of a whole listing. And a call wi
 doing what a person's pick does: `calibration_generate_test {test}` asking in the test's dialog where `silent` asks
 nothing, View: Top turning the camera of the view shown, Deselect All closing the open gizmo too, Go to layer
 through `action_run`, and `plate_slice {preview: true}`.
+
+**Starts from:** `start(c)`, the Generic Klipper Printer, compared with `{printer: KLIPPER, process: KLIPPER_STD,
+filaments: [GENERIC_PLA]}`: no form it checks is a Bambu Lab printer's own. It sets no other stored setting: no step
+clicks the canvas at a pixel, reads a field's text or captures a picture, and the Preview's legend rows it reads are
+listed whatever view type the Preview last showed, which the app keeps in the data folder.
+
+**Leaves:** The Klipper printer with `0.20mm Standard @MyKlipper` and its filament unmodified, since the closing
+`project_new` discards what the silent calibration changed. The last folder opened, the handy models' folder of the
+imports. It saves no project; the G-code and STL it exports are in `OUT`.
 
 **Reads:** `objects()` gives each object from `object_list` as its name, plate, first instance's `offset` and
 `bbox`. `selection()` gives `app_state.selection` as `{objects, parts}`, or empty. `camera()` gives
@@ -465,8 +569,10 @@ is checked: `objects()` is one object, on plate 0, `bbox.size` `[20, 20, 20]` to
 - The temperature dialog's Cancel ends its job without an error (dialog, step 2); the reply's fields are not fixed.
 - Deselect All closes the open gizmo (shown view, step 6), as `object_select`'s description says of `none`, which the
   action's arguments are.
-- The 20 mm object slices to 100 layers at the X1 Carbon's 0.2 mm first and other layers, and Go to layer 50 % shows
-  layers 1 to 51 (shown view, step 8): `show_layer_percent()` takes the top to `lround(0.5 × 99) + 1`.
+- The 20 mm object slices to 100 layers at `0.20mm Standard @MyKlipper`'s 0.2 mm first and other layers, and Go to
+  layer 50 % shows layers 1 to 51 (shown view, step 8): `show_layer_percent()` takes the top to `lround(0.5 × 99) + 1`.
+- The exported G-code's first line is `; HEADER_BLOCK_START` (names, step 18): the Klipper printer has no file start
+  G-code and no BTT thumbnail, either of which would come first (`GCode.cpp`).
 
 **Not checked:**
 - The normaliser's rules on their own (aliases, value forms, enum moves, the window pairs): unit tests in

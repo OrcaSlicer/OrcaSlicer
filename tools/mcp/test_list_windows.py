@@ -16,7 +16,10 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import checks as shared  # noqa: E402
 import orca_mcp  # noqa: E402
+
+START = {"printer": shared.KLIPPER, "process": shared.KLIPPER_STD, "filaments": [shared.GENERIC_PLA]}
 
 
 def main():
@@ -41,7 +44,8 @@ def main():
             time.sleep(0.25)
         return predicate()
 
-    client.call("project_new", discard_changes=True)
+    presets = shared.start(client)
+    check("the start is the Klipper printer with one Generic PLA slot", presets == START, presets)
     client.call("view_set", tab="prepare")
 
     listed = client.call("window_list")

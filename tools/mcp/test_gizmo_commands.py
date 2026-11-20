@@ -9,8 +9,8 @@ A call that names only its target opens the gizmo on it, and the same call again
 leaves the model, the gizmo and the selection as it found them. A call with an acting argument (object_cut's plane)
 closes the open gizmo and does the job as the gizmo's own button would, one undo step. After every step the test reads
 the state back through another tool (object_list, app_state, the undo log, the saved project) and compares it with the
-values the entry writes out. It runs on the harness's default printer, the Bambu Lab X1 Carbon 0.4, and exits 0 when
-every check passes. Scenario names given on the command line run those scenarios alone.
+values the entry writes out. It starts on the Generic Klipper Printer in Expert mode, and exits 0 when every check
+passes. Scenario names given on the command line run those scenarios alone.
 """
 
 import os
@@ -21,7 +21,8 @@ import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import Checks, run, selection, slots, undo_steps, wait  # noqa: E402
+from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, run, selection, slots, start, undo_steps,  # noqa: E402
+                    wait)
 
 STAR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests", "fixtures", "star.svg")
 
@@ -474,11 +475,12 @@ class GizmoCommandsTest:
         self.start(s)
         self.cube([100, 100], name="A")
         self.run("object_select", none=True)
-        two = [(-10, -10, -10.0001, 3), (10, -10, -10.0001, 4)]
+        # An ear without a radius takes eight first-layer line widths: 120 % of the 0.4 mm nozzle, 0.48 mm.
+        two = [(-10, -10, -10.0001, 3), (10, -10, -10.0001, 3.84)]
         self.t.equal(f"{s} 0: no ears", self.brim_ears(), 0)
         self.t.equal(f"{s} 0: the object's brim type", self.setting(0, "brim_type"), {"value": None, "effective": "auto_brim"})
         line = self.c.call("settings_get", type="process", keys=["initial_layer_line_width"])["items"][0]["value"]
-        self.t.equal(f"{s} 0: the first layer's line width", line, "0.5")
+        self.t.equal(f"{s} 0: the first layer's line width", line, "120%")
 
         reply = self.run("object_set_brim_ears", object=0)
         self.t.equal(f"{s} 1: the reply", (reply.get("gizmo"), reply.get("active")), ("Brim Ears", True))
@@ -647,6 +649,8 @@ class GizmoCommandsTest:
         self.t.equal(f"{s} 11: no new object", len(self.listed()), 2)
 
     def run_all(self, only=()):
+        self.t.equal("the start: the presets", start(self.c),
+                     {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]})
         self.run("action_run", id="orca_command:mode_expert:orca")
         self.t.equal("Expert mode", self.c.call("app_state")["mode"], "expert")
         scenarios = [("opening a gizmo on a target", self.opening), ("openings refused", self.refused_openings),

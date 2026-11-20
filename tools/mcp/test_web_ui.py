@@ -17,7 +17,9 @@ stale refs; closed:true from a page that closes its dialog through a reference t
 before, with another client's snapshots running meanwhile, and from orca.submit; dialog_answer by a
 page button and its refusal of apply; an auto-answer rule registered before the dialog opens; the web
 budget with the Home page and a modeless page window open; the plugin's page among the main window's tabs,
-which the Go to tab action shows by its id; webview_run_javascript's el. Exits 0 when every check passes.
+which the Go to tab action shows by its id; webview_run_javascript's el. It starts on the Generic Klipper Printer 0.4
+nozzle, and the stored state its checks read is the plugin's own, written during the run. Exits 0 when every check
+passes.
 """
 
 import glob
@@ -26,11 +28,13 @@ import os
 import re
 import shutil
 import sys
+import tempfile
 import threading
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, start  # noqa: E402
 
 FIXTURE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests", "plugins", "mcp_web_fixture")
 DIALOG = "plugin_script_action:MCP web fixture dialog:mcp_web_fixture"
@@ -44,7 +48,9 @@ CAPABILITIES = ["MCP web fixture dialog", "MCP web fixture window", "MCP web fix
 
 
 def install(datadir):
-    """Copies the fixture plugin into DATADIR's orca_plugins, enabled, as a person's side-load would."""
+    """Copies the fixture plugin into DATADIR's orca_plugins, enabled, as a person's side-load would. It writes the
+    plugin afresh, its install state with every capability on and no stored permission, so that a run on a folder an
+    earlier run left starts from the same plugin."""
     dest = os.path.join(datadir, "orca_plugins", "mcp_web_fixture")
     os.makedirs(dest, exist_ok=True)
     shutil.copy(os.path.join(FIXTURE, "mcp_web_fixture.py"), dest)
@@ -139,19 +145,24 @@ def main():
             time.sleep(0.2)
 
     def python_log():
-        """The newest plugin stderr log, where the fixture writes what its dialog submitted."""
-        logs = glob.glob(os.path.join(session["datadir"], "log", "python_*.log"))
-        if not logs:
-            return ""
-        with open(max(logs, key=os.path.getmtime), encoding="utf-8", errors="replace") as f:
-            return f.read()
+        """This app's plugin stderr log, where the fixture writes what its dialog submitted. The app makes it when the
+        plugin first writes to it, so until then the newest log is an earlier app's, which holds the same line."""
+        text = ""
+        for log in glob.glob(os.path.join(session["datadir"], "log", f"python_*_{session['pid']}.log")):
+            with open(log, encoding="utf-8", errors="replace") as f:
+                text += f.read()
+        return text
 
     def open_fixture():
         client.call("action_run", id=DIALOG)
         return wait_for(lambda: dialogs() == ["MCP web fixture"]) and wait_for(lambda: 'heading "Fixture"' in tree(target="dialog"))
 
-    client.call("project_new", discard_changes=True)
+    started = start(client)
+    check("start: the Klipper printer with its default process and filament",
+          started == {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]}, started)
     call("dialog_auto_answer", rules=[])
+    # The replays write their output here rather than into the data folder.
+    out = tempfile.mkdtemp(prefix="web_ui-")
 
     # ---- What a page is listed as ----
     check("the fixture dialog opens", open_fixture(), lambda: dialogs())
@@ -451,9 +462,9 @@ def main():
     when_asked("press", after="setTimeout(function () { var b = document.createElement('button'); b.textContent = 'Shown late'; "
                               "b.onclick = function () { log('shown late clicked'); }; document.body.appendChild(b); }, "
                               "req.expires + 500 - Date.now());")
-    start = time.time()
+    began = time.time()
     r = call("dialog_answer", button="Shown late")
-    elapsed = time.time() - start
+    elapsed = time.time() - began
     # Its last ask has expired by the time the button shows; 8 s leaves a loaded machine room past the 3 s.
     check("dialog_answer stops looking for a page button after 3 s", "page has no button" in r.get("error", "") and elapsed < 8,
           [r, round(elapsed, 2)])
@@ -573,16 +584,16 @@ def main():
     # loaded machine room past the 3 s, shows the call did not wait on either.
     check("the fixture dialog opens to be cancelled", open_fixture(), lambda: dialogs())
     stall("press", past=7)
-    start = time.time()
+    began = time.time()
     r = call("dialog_answer", button="cancel")
-    elapsed = time.time() - start
+    elapsed = time.time() - began
     check("cancel ends a web dialog whose page is busy, after the 3 s", r.get("closed") is True and elapsed < 8, [r, round(elapsed, 2)])
     check("the busy dialog is gone", wait_for(lambda: dialogs() == [], 8), lambda: dialogs())
     # The page's own Cancel, whose handler outlasts the 3 s: still running when cancel ends the dialog.
     check("the fixture dialog opens for its stalling Cancel", open_fixture(), lambda: dialogs())
-    start = time.time()
+    began = time.time()
     r = call("dialog_answer", button="cancel")
-    elapsed = time.time() - start
+    elapsed = time.time() - began
     check("cancel ends the dialog natively while the page's Cancel handler still runs", r.get("closed") is True and elapsed < 8,
           [r, round(elapsed, 2)])
     check("the stalled dialog is gone", wait_for(lambda: dialogs() == [], 8), lambda: dialogs())
@@ -671,7 +682,7 @@ def main():
     # A replay's press on a page ends with the replay, as a widget's does.
     pressing = {"orca_replay_version": "0.2.0", "name": "press", "steps": [
         {"tool": "mouse_gesture", "args": {"target": {"web": "Pad", "within": "MCP web fixture window"}, "action": "down", "x": 5, "y": 5}}]}
-    res = client.await_job(client.call("replay_run", replay=pressing, out_dir=os.path.join(session["datadir"], "press_replay")))
+    res = client.await_job(client.call("replay_run", replay=pressing, out_dir=os.path.join(out, "press_replay")))
     check("a replay's press on a page ends with the replay",
           res.get("passed") is True and wait_for(lambda: page_log(window_log).count("pad up") == ups + 7, 3), lambda: [res, page_log(window_log)])
     # Even when the page is busy as the replay ends: the release, which has no deadline, waits for the page,
@@ -679,7 +690,7 @@ def main():
     pressing["steps"].append({"tool": "webview_run_javascript", "args": {
         "target": {"web": "Card one", "within": "MCP web fixture window"},
         "code": hook_code("release", before="var t = Date.now(); while (Date.now() - t < 3000) {}")}})
-    res = client.await_job(client.call("replay_run", replay=pressing, out_dir=os.path.join(session["datadir"], "press_busy_replay")))
+    res = client.await_job(client.call("replay_run", replay=pressing, out_dir=os.path.join(out, "press_busy_replay")))
     check("a replay's press ends with the replay while its page is busy",
           res.get("passed") is True and wait_for(lambda: page_log(window_log).count("pad up") == ups + 8, 8), lambda: [res, page_log(window_log)])
     # An auto-answer rule's press is a click too, so a press held on a page ends first.

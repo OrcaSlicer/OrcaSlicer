@@ -10,8 +10,10 @@ selector's value set, preset_select and the plugin API), with one slot, where th
 unsaved-changes prompt applies, and with three, where the Auto-flush preference decides what happens to the flushing
 volumes; then the filaments of objects and parts, and the project's own settings with what reaches the print and what
 the project file keeps. After every step the test reads the state back through other tools and compares it with the
-state the entry writes out. It needs a fresh app and data folder, whose selectors have not shown the presets it
-picks, on the harness's default printer, the Bambu Lab X1 Carbon 0.4, and exits 0 when every check passes.
+state the entry writes out. Every scenario runs on the Generic Klipper Printer 0.4 from a start of its own
+(checks.start()), the last with the printer's plate types turned on, so it runs on a data folder earlier tests used;
+it uninstalls the filaments it shows by name first, so that the selectors start without them. It exits 0 when every
+check passes.
 """
 
 import os
@@ -20,18 +22,20 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import Checks, run, wait  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, presets, run, start, wait  # noqa: E402
 
-B = "Bambu PLA Basic @BBL X1C"
+B = GENERIC_PLA
 X = "FilAr PLA Blanco Calido"
-M = "Bambu PLA Matte @BBL X1C"
-S = "Bambu Support For PLA @BBL X1C"
-A = "Bambu Support for ABS @BBL X1C"
-G = "Bambu PETG Basic @BBL X1C"
-H = "Bambu PETG HF @BBL X1C"
+M = "Generic PLA Matte @System"
+S = "Bambu Support For PLA @System"
+A = "Bambu Support for ABS @System"
+G = "Bambu PETG Basic @System"
+H = "Bambu PETG HF @System"
 LETTER = {B: "B", X: "X", M: "M", S: "S", A: "A", G: "G", H: "H"}
+# The filaments the test shows by name, which it uninstalls before its first scenario.
+HIDDEN = [X, M, S, A, G, H]
 # The name each preset's selector shows, which a pick clicks.
-SHOWN = {B: "Bambu PLA Basic", X: "FilAr PLA Blanco Calido", M: "Bambu PLA Matte", S: "Bambu Support For PLA",
+SHOWN = {B: "Generic PLA", X: "FilAr PLA Blanco Calido", M: "Generic PLA Matte", S: "Bambu Support For PLA",
          A: "Bambu Support for ABS", G: "Bambu PETG Basic", H: "Bambu PETG HF"}
 GREYS = ["#111111", "#222222", "#333333"]
 SENTINEL = 777
@@ -133,6 +137,10 @@ class FilamentsTest:
 
     # ---- Reads ----
 
+    def multi_bed_types(self):
+        return self.c.call("settings_get", type="printer", keys=["support_multi_bed_types"],
+                           include_meta=False)["items"][0]["value"]
+
     def project_values(self, *keys):
         items = self.c.call("project_get_settings", keys=list(keys), include_meta=False)["items"]
         return {i["key"]: i["value"] for i in items}
@@ -213,9 +221,10 @@ class FilamentsTest:
         return got
 
     def grams(self):
-        """Each slot's model_g and flush_g, and the plate's filament_changes, from plate_slice_stats."""
+        """Each slot's model_g, flush_g and tower_g, and the plate's filament_changes, from plate_slice_stats."""
         summary = self.c.call("plate_slice_stats", plate=0)["summary"]
-        return {f["slot"]: (f["model_g"], f["flush_g"]) for f in summary["filaments"]}, summary["filament_changes"]
+        return ({f["slot"]: (f["model_g"], f["flush_g"], f["tower_g"]) for f in summary["filaments"]},
+                summary["filament_changes"])
 
     # ---- Calls ----
 
@@ -294,21 +303,16 @@ class FilamentsTest:
 
     # ---- Arranging ----
 
-    def start(self, name, count):
-        """A new project in the Prepare view, Auto-flush All, and `count` filament slots."""
-        self.run("project_new", discard_changes=True, preset_changes="discard")
+    def start(self, name, filaments):
+        """The scenario's start(): a new project on the Klipper printer with one slot per preset of `filaments`, then
+        the Prepare view and Auto-flush All."""
+        self.t.equal(f"{name}: the start's presets", start(self.c, filaments=filaments),
+                     {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": list(filaments)})
         self.run("view_set", tab="prepare")
         self.idle()
         self.flush_preference(name, "All")
-        for _ in range(32):
-            try:
-                self.c.call("filament_delete")
-            except orca_mcp.McpError:
-                break
-        for _ in range(count - 1):
-            self.run("filament_add")
         self.idle()
-        self.t.equal(f"{name}: the start's slots", self.slots(), ",".join(["0"] * count))
+        self.t.equal(f"{name}: the start's slots", self.slots(), ",".join(["0"] * len(filaments)))
 
     def flush_preference(self, label, which):
         self.run("preferences_set", values={"auto_calculate_flush": FLUSH[which]})
@@ -346,9 +350,9 @@ class FilamentsTest:
 
     def hidden(self):
         s = "hidden filaments"
-        self.start(s, 1)
+        self.start(s, [B])
         self.arrange(s, [B], False, "B | B | 4 | #111111 | 0")
-        queries = {X: "FilAr PLA Blanco Calido", M: "Bambu PLA Matte", S: "Bambu Support For PLA",
+        queries = {X: "FilAr PLA Blanco Calido", M: "Generic PLA Matte", S: "Bambu Support For PLA",
                    A: "Bambu Support for ABS"}
 
         def found(query, **args):
@@ -365,7 +369,7 @@ class FilamentsTest:
             reply = self.quiet(f"{s} {step}", self.tool(1, queries[preset]))
             self.tool_reply(f"{s} {step}", reply, selected=preset, shown=preset)
             self.state_is(f"{s} {step}", want)
-        reply = self.quiet(f"{s} 6", self.tool(1, "Bambu PLA Basic"))
+        reply = self.quiet(f"{s} 6", self.tool(1, "Generic PLA"))
         self.tool_reply(f"{s} 6", reply, selected=B, shown=None)
         self.state_is(f"{s} 6", "B | B | 4 | #FFF8E7 | 0")
         shown = {LETTER[p]: found(q).get(p, {"absent": True}).get("installed", "no field") for p, q in queries.items()}
@@ -375,7 +379,7 @@ class FilamentsTest:
 
     def one_slot_pla(self):
         s = "one slot, X"
-        self.start(s, 1)
+        self.start(s, [B])
         clean, dirty = "B | B | 4 | #111111 | 0", "B | B* | 9 | #111111 | 0"
         after1, after4 = "X | X | 4 | #FFF8E7 | 0", "X | X* | 9 | #FFF8E7 | 0"
         after6 = "B | B* | 9 | #FFF8E7 | 0"
@@ -428,7 +432,7 @@ class FilamentsTest:
 
     def one_slot_support(self):
         s = "one slot, A"
-        self.start(s, 1)
+        self.start(s, [B])
         clean, dirty = "B | B | 4 | #111111 | 0", "B | B* | 9 | #111111 | 0"
         after1 = "A | A | 12 | #111111 | 0"
         no_transfer = {"offers": ("Discard", "Save"), "lacks": ("Transfer",)}
@@ -475,7 +479,7 @@ class FilamentsTest:
 
     def one_slot_forms(self):
         s = "one slot, no preset named"
-        self.start(s, 1)
+        self.start(s, [B])
         clean, dirty = "B | B | 4 | #111111 | 0", "B | B* | 9 | #111111 | 0"
         after2 = "B | B* | 8 | #111111 | 0"
         rows = [(1, False, commit_form(1), clean, commit(B, selection=False, assignment=False)),
@@ -484,7 +488,7 @@ class FilamentsTest:
                 (4, True, commit_form(1), dirty, commit(B, selection=False, assignment=False, dirty=True)),
                 (5, True, update_form(1, "slow_down_layer_time", "8"), after2, "returned"),
                 (6, True, update_form("slow_down_layer_time", "8"), after2, "returned"),
-                (7, True, commit_form(1, "Bambu PLA Basic"), dirty,
+                (7, True, commit_form(1, "Generic PLA"), dirty,
                  commit(B, selection=False, assignment=False, dirty=True))]
         for row, is_dirty, body, want, result in rows:
             label = f"{s} {row}"
@@ -495,7 +499,7 @@ class FilamentsTest:
 
     def auto_flush(self):
         s = "Auto-flush"
-        self.start(s, 3)
+        self.start(s, [B] * 3)
         start = "B B B | B | 4,4,4 | c3 | S3"
         table = {"All": {X: ("cX", "R2"), M: ("c3", "R2"), S: ("c3", "Sup")},
                  "Color": {X: ("cX", "R2"), M: ("c3", "S3"), S: ("c3", "S3")},
@@ -533,18 +537,17 @@ class FilamentsTest:
             if colour_change[which] == "R2":
                 self.t.check(f"{s} {which}: the three routes of X give the same four entries",
                              len(routes) == 3 and all(e == routes[0] for e in routes), routes)
-                # Slot 2 keeps B, whose cut retraction the calculator takes off the flush out of the slot.
+                # The Klipper printer's minimum flush is 0 whichever preset a slot holds, so B left in slot 2 gives
+                # what X gives.
                 changed = four(state["matrix"]) if is_r2(state["matrix"]) else None
-                self.t.check(f"{s} {which}: the colour change gives the routes' entries into slot 2, and lower ones out "
-                             f"of it", bool(routes) and changed is not None and
-                             (changed[0], changed[3]) == (routes[0][0], routes[0][3]) and
-                             changed[1] < routes[0][1] and changed[2] < routes[0][2], (changed, routes))
+                self.t.check(f"{s} {which}: the colour change gives the routes' four entries",
+                             bool(routes) and changed == routes[0], (changed, routes))
                 x_entries[which] = routes[0] if routes else None
         self.t.equal(f"{s}: Color gives what All gave for X", x_entries.get("Color"), x_entries.get("All"))
 
     def three_slots_dirty(self):
         s = "three slots, unsaved changes"
-        self.start(s, 3)
+        self.start(s, [B] * 3)
         start, start_m = "B B B | B* | 9,9,9 | c3 | S3", "B M B | B* | 9,4,9 | c3 | S3"
         after1 = "B X B | B* | 9,4,9 | cX | R2"
         kept = {"selected": X, "modified": {"filament": {"name": B, "keys": ["slow_down_layer_time"]}},
@@ -577,7 +580,7 @@ class FilamentsTest:
 
     def three_slots_forms(self):
         s = "three slots, other forms"
-        self.start(s, 3)
+        self.start(s, [B] * 3)
         start, start_m = "B B B | B | 4,4,4 | c3 | S3", "B M B | B | 4,4,4 | c3 | S3"
         label = f"{s} 1"
         self.arrange(label, [B, B, B], False, start)
@@ -590,7 +593,7 @@ class FilamentsTest:
         self.t.equal(f"{label}: the transaction", got, {"target_name": X, "selection_changed": True, "slot_number": 2})
         self.state_is(label, "B X B | X | 4,4,4 | cX | R2")
         after5 = "B M B | M* | 4,8,4 | c3 | S3"
-        rows = [(3, commit_form(2, "Bambu PLA Matte"), "B M B | M | 4,4,4 | c3 | S3",
+        rows = [(3, commit_form(2, "Generic PLA Matte"), "B M B | M | 4,4,4 | c3 | S3",
                  commit(M, assignment=False, shared=[2])),
                 (4, commit_form(2), "B M B | M | 4,4,4 | c3 | S3", commit(M, assignment=False, shared=[2])),
                 (5, set_commit_form(2, "slow_down_layer_time", "8"), after5,
@@ -606,12 +609,12 @@ class FilamentsTest:
 
     def refusals(self):
         s = "three slots, refusals"
-        self.start(s, 3)
+        self.start(s, [B] * 3)
         start = "B B B | B | 4,4,4 | c3 | S3"
         out_of_range = ("Filament slot %d is out of range; slot numbers are 1-based and this printer has 3 filament "
                         "slot(s)")
         not_offered = 'The selector of filament slot 2 does not offer "No Such Filament".'
-        incompatible = '"Bambu PLA Basic @BBL A1" is not compatible with the selected printer.'
+        incompatible = '"Generic PLA @MyToolChanger" is not compatible with the selected printer.'
 
         def case(row):
             label = f"{s} {row}"
@@ -638,11 +641,11 @@ class FilamentsTest:
         self.state_is(label, start)
         api_raises(6, commit_form(2, "No Such Filament"), raised("ValueError", not_offered))
         label = case(7)
-        text = self.t.refused(f"{label}: refused", lambda: self.tool(2, "Bambu PLA Basic @BBL A1"),
+        text = self.t.refused(f"{label}: refused", lambda: self.tool(2, "Generic PLA @MyToolChanger"),
                               code="preset_incompatible", words=incompatible)
         self.t.check(f"{label}: the refusal starts with its reason", (text or "").startswith(incompatible), text)
         self.state_is(label, start)
-        api_raises(8, commit_form(2, "Bambu PLA Basic @BBL A1"), raised("ValueError", incompatible))
+        api_raises(8, commit_form(2, "Generic PLA @MyToolChanger"), raised("ValueError", incompatible))
         label = case(9)
         got = self.script_result(self.quiet(label, self.api(begin_form("FilAr PLA Blanco Calido"))))
         self.t.check(f"{label}: raised ValueError",
@@ -687,10 +690,7 @@ class FilamentsTest:
 
     def objects_and_parts(self):
         s = "filaments of objects and parts"
-        self.start(s, 2)
-        for slot in (1, 2):
-            self.run("preset_select", type="filament", name=B, filament_slot=slot, preset_changes="discard")
-        self.t.equal(f"{s}: the start's presets", self.c.call("app_state")["presets"]["filaments"], [B, B])
+        self.start(s, [B, B])
         self.add_objects()
         self.t.equal(f"{s}: the start's filaments", self.filaments(), "cube 1 (1, 1) · cylinder 1")
         one = {"value": "1", "effective": "1", "source": "object"}
@@ -701,7 +701,7 @@ class FilamentsTest:
         grams, changes = self.slice_ok(f"{s}: the control")
         control = grams
         self.t.check(f"{s}: the control prints with slot 1 alone",
-                     grams[1][0] > 0 and grams[2] == (0, 0) and changes == 0, (grams, changes))
+                     grams[1][0] > 0 and grams[2] == (0, 0, 0) and changes == 0, (grams, changes))
 
         reply = self.run("settings_set", target="object", object=1, values={"extruder": 2})
         self.t.equal(f"{s} 1: the reply", (reply.get("applied", {}).get("extruder"),
@@ -761,7 +761,7 @@ class FilamentsTest:
         self.t.equal(f"{s} 10", self.filaments(), "cube 1 (1, 2) · cylinder 2")
         self.t.equal(f"{s} 10: the cube", self.item("extruder", "object", object=0)[0], cube_part_two)
         self.t.equal(f"{s} 10: the cube's walls", self.item("wall_loops", "object", object=0)[0],
-                     {"value": None, "effective": "2", "source": "global"})
+                     {"value": None, "effective": "3", "source": "global"})
 
         grams, changes = self.slice_ok(f"{s} 11")
         self.t.check(f"{s} 11: both slots print, the cylinder with slot 2 too",
@@ -771,15 +771,19 @@ class FilamentsTest:
     def save_and_reopen(self, name):
         path = os.path.join(self.folder, name)
         self.run("project_save", path=path, overwrite=True)
-        self.run("project_new", discard_changes=True)
+        # The new project drops the printer's unsaved edit, which project_open would otherwise ask about; the file
+        # brings it back with the printer settings it keeps.
+        self.run("project_new", discard_changes=True, preset_changes="discard")
         self.run("project_open", path=path)
         self.idle()
 
     def project_settings(self):
         s = "the project's own settings"
-        self.start(s, 2)
-        self.run("preset_select", type="filament", name=B, filament_slot=1, preset_changes="discard")
-        self.run("preset_select", type="filament", name=M, filament_slot=2, preset_changes="discard")
+        self.start(s, [B, M])
+        # The plate type selector shows for a printer with several plate types: an unsaved edit of the printer
+        # preset, which the next start() discards.
+        self.run("settings_set", type="printer", values={"support_multi_bed_types": True})
+        self.t.equal(f"{s}: the printer has several plate types", self.multi_bed_types(), "1")
         self.add_objects()
         self.run("settings_set", target="part", object=0, part=1, values={"extruder": 2})
         self.run("settings_set", target="object", object=1, values={"extruder": 2})
@@ -789,7 +793,7 @@ class FilamentsTest:
             "wipe_tower_y": {"index": 0, "value": 150}})
         self.idle()
         self.t.equal(f"{s}: the start's filaments", self.filaments(), "cube 1 (1, 2) · cylinder 2")
-        self.t.equal(f"{s}: the start's presets", self.c.call("app_state")["presets"]["filaments"], [B, M])
+        self.t.equal(f"{s}: the start's filament presets", presets(self.c)["filaments"], [B, M])
         self.project_is(f"{s}: the start", "#111111;#222222", "1", "0,777,777,0", "Cool Plate", "60,150")
 
         items = {i["key"]: i for i in self.c.call("project_get_settings", keys=[
@@ -855,38 +859,52 @@ class FilamentsTest:
         self.t.equal(f"{s} 10: the purge mode", self.project_values("prime_volume_mode")["prime_volume_mode"],
                      "Default")
 
+        # The Klipper printer purges a filament change into the prime tower, so the purges are in tower_g.
         grams13, changes13 = self.slice_ok(f"{s} 13")
-        self.t.check(f"{s} 13: each slot prints and flushes, with filament changes",
-                     all(grams13[slot][0] > 0 and grams13[slot][1] > 0 for slot in (1, 2)) and changes13 > 0,
-                     (grams13, changes13))
+        self.t.check(f"{s} 13: each slot prints and purges into the tower, nothing flushed outside it, with filament "
+                     f"changes", all(grams13[slot][0] > 0 and grams13[slot][1] == 0 and grams13[slot][2] > 0
+                                     for slot in (1, 2)) and changes13 > 0, (grams13, changes13))
         self.project_is(f"{s} 13", *after)
 
         self.run("project_set_settings", values={"flush_volumes_matrix": {"index": 1, "value": 200}})
         grams14, changes14 = self.slice_ok(f"{s} 14")
         self.project_is(f"{s} 14", "#FFFFFF;#000000", "0.7", "0,200,300,0", pei, "150,180")
-        self.t.check(f"{s} 14: slot 2 flushes less", grams14[2][1] < grams13[2][1], (grams14, grams13))
-        self.t.check(f"{s} 14: slot 1's flush and the changes as after 13",
-                     abs(grams14[1][1] - grams13[1][1]) <= 0.01 and changes14 == changes13,
-                     (grams14, changes14, grams13, changes13))
+        self.t.check(f"{s} 14: slot 2 purges less into the tower", grams14[2][2] < grams13[2][2], (grams14, grams13))
+        self.t.check(f"{s} 14: the objects print as after 13, with as many filament changes",
+                     all(abs(grams14[slot][0] - grams13[slot][0]) <= 0.01 for slot in (1, 2)) and
+                     changes14 == changes13, (grams14, changes14, grams13, changes13))
 
         self.run("project_set_settings", values={"flush_multiplier": 1.4})
         grams15, _ = self.slice_ok(f"{s} 15")
         after15 = ("#FFFFFF;#000000", "1.4", "0,200,300,0", pei, "150,180")
         self.project_is(f"{s} 15", *after15)
-        self.t.check(f"{s} 15: each slot flushes more", all(grams15[slot][1] > grams14[slot][1] for slot in (1, 2)),
-                     (grams15, grams14))
+        self.t.check(f"{s} 15: each slot purges more into the tower",
+                     all(grams15[slot][2] > grams14[slot][2] for slot in (1, 2)), (grams15, grams14))
 
         self.save_and_reopen("filaments.3mf")
         label = f"{s} 16: the project file keeps them"
         self.project_is(label, *after15)
         self.t.equal(f"{label}: the filaments", self.filaments(), "cube 1 (1, 2) · cylinder 2")
-        self.t.equal(f"{label}: the presets", self.c.call("app_state")["presets"]["filaments"], [B, M])
+        self.t.equal(f"{label}: the presets", presets(self.c)["filaments"], [B, M])
         self.t.equal(f"{label}: the slots", self.slots(), "0,0")
+        self.t.equal(f"{label}: the printer's plate types", self.multi_bed_types(), "1")
 
-    def run_all(self):
+    def prepare(self):
+        """The stored settings the checks read beyond each scenario's start(): the filaments the test shows by name
+        not installed, which takes out any an earlier test installed (and the app's start hides any an earlier run
+        showed), and Simple mode, whose prompt lists slow_down_layer_time."""
+        s = "the start"
+        self.t.equal(f"{s}: the presets", start(self.c),
+                     {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [B]})
+        reply = self.run("filament_uninstall", names=HIDDEN)
+        self.t.equal(f"{s}: the filaments shown by name are uninstalled or not installed",
+                     sorted(reply.get("uninstalled", []) + reply.get("not_installed", [])), sorted(HIDDEN))
         self.run("action_run", id="orca_command:mode_simple:orca")
         self.t.equal("Simple mode", self.c.call("app_state").get("mode"), "simple")
-        for name, scenario in [("hidden filaments", self.hidden), ("one slot, X", self.one_slot_pla),
+
+    def run_all(self):
+        for name, scenario in [("the start", self.prepare),
+                               ("hidden filaments", self.hidden), ("one slot, X", self.one_slot_pla),
                                ("one slot, A", self.one_slot_support),
                                ("one slot, no preset named", self.one_slot_forms),
                                ("Auto-flush", self.auto_flush), ("three slots, unsaved changes", self.three_slots_dirty),
@@ -895,7 +913,6 @@ class FilamentsTest:
                                ("filaments of objects and parts", self.objects_and_parts),
                                ("the project's own settings", self.project_settings)]:
             self.t.scenario(name, scenario)
-        self.c.call("preferences_set", values={"auto_calculate_flush": "all"})
         self.run("project_new", discard_changes=True, preset_changes="discard")
         return self.t.exit_code()
 

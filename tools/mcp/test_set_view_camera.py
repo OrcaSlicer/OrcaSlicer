@@ -12,7 +12,8 @@ An orbit after a direction ends at the elevation and azimuth it asks for and kee
 shares Prepare's camera; the Design tab has its own, which takes a look_at and zoom too and orbits.
 click_px_per_mm is the zoom over the canvas's scale. A fit on Prepare after the window was sized on the
 Home tab fits the new size. On the Home tab, where no 3D view draws, a zoom comes with a note that the
-queued fit will replace it. Exits 0 when every check passes.
+queued fit will replace it. The test starts on the Klipper printer with the perspective projection, which is stored
+and which other tests switch. Exits 0 when every check passes.
 """
 
 import os
@@ -20,6 +21,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, start  # noqa: E402
 
 MODEL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "resources", "handy_models", "OrcaCube_v2.drc")
 # The Design GUI tests' zoom where a canvas has one GL pixel per click pixel, cad_gui.RESET_ZOOM.
@@ -46,7 +48,12 @@ def main():
     def close(a, b, tolerance):
         return isinstance(a, (int, float)) and abs(a - b) <= tolerance
 
+    started = start(client)
+    check("start: the Klipper printer with its default process and filament",
+          started == {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]}, started)
     client.call("window_set", size=[1600, 900])
+    # The projection is stored (use_perspective_camera), and other tests switch it.
+    client.call("view_set", projection="perspective")
     client.call("project_new", discard_changes=True)
 
     # 1. Prepare, straight after project_new: the fit it queued runs first, then look_at and zoom.
@@ -67,7 +74,7 @@ def main():
     after = camera()
     check("prepare: app_state.camera keeps the zoom after a frame", after.get("zoom") == 3, after)
     check("prepare: and look_at", after.get("look_at") == [50, 60, 0], after)
-    # A fresh data folder's use_perspective_camera is on, and auto_perspective off.
+    # The projection the start set; auto_perspective, which would change it with the view's direction, is off.
     check("prepare: camera_state has a projection type", after.get("type") == "perspective", after)
 
     # 2. Clicks: click_px_per_mm is the zoom over the canvas's scale, 1 at 100 % and 1.5 at 150 % scaling.

@@ -3,15 +3,36 @@
 The design of this area's sweep tests. The rules every entry follows, the grades and the table of all tests are
 in [TESTS.md](../TESTS.md).
 
+Two facts about the shared data folder decide several entries here, both measured on Windows:
+
+- **The main window's placement does not carry over.** The app writes `window_mainframe` only when its main window
+  closes, and the runner's stop ends the app without closing it, so every launch on a job's folder opens the window
+  where the seed put it: 1600×900 at the top left of the work area, trimmed to it. After `window_set` to 1300×820 at
+  [100, 50] and a stop, the conf still read `0; 0; 1600; 900; 0`. No test on a shared folder closes the main window.
+  Neither the Plugins window nor Preferences stores a size or a place.
+- **A capture without `save_path` stays in the folder.** `window_screenshot` with no `save_path` saves its PNG under
+  `<datadir>/automation/out`, and a `replay_run` with no `out_dir` its `replay-<time>` folder there.
+
 ## `test_printer_extruders`
 `test_printer_extruders.py` · Python, 29 checks
 
-**Tests:** The test launches its own instances on fresh datadirs, with printers the sweep doesn't seed. On the Bambu
-Lab H2D (two extruders) it checks four things. `settings_set` validates a whole call before any variant switch or
-flow-type pick. A variant switch asks about unsaved printer changes unless `reset_all` is given. A plate's
+**Tests:** The test launches its own instances on new data folders, with printers no other test of the sweep uses. On
+the Bambu Lab H2D (two extruders) it checks four things. `settings_set` validates a whole call before any variant
+switch or flow-type pick. A variant switch asks about unsaved printer changes unless `reset_all` is given. A plate's
 `filament_map_mode` and `filament_map` round-trip through `plate_set_settings` and `plate_get_settings`. The second
 extruder's `nozzle_volume_type` can be set. On the A1 mini, a flow type that its 0.2 nozzle preset doesn't offer is
-refused. On the Eryone ER20, `extruders_count` 2 gives two extruders.
+refused. On the Eryone ER20, `extruders_count` 2 gives two extruders. The Bambu Lab printers are the subject, not a
+default: their extruders, nozzle variants and nozzle cards are what the checks read.
+
+**Starts from:** Two data folders of its own, each new, under a temporary root: `h2d`, seeded by `orca_mcp.py launch
+--vendor BBL --printer "Bambu Lab H2D@0.4" --filament "Bambu PLA Basic @BBL H2D"`, and `er20`, seeded `--vendor
+Eryone --printer "Eryone ER20@0.4" --filament "Generic PLA @System"`. The printers are named, so the launch's default
+printer plays no part. The H2D's checks start from `project_new` and `filament_add`, two filaments for two extruders;
+the A1 mini is selected in the H2D's folder by `preset_select`, discarding changes. Each folder is new, so no other
+test's preferences, plugins or presets reach it.
+
+**Leaves:** Nothing: the root and both folders are deleted at the end, also when a check fails, unless `--datadir`
+names the root. A job's shared data folder is never touched.
 
 **Decides by:** Exits 1 when any check prints FAIL, or on an uncaught exception (an unexpected tool error). A
 failed launch adds a FAIL "the app starts with the ...".
@@ -52,34 +73,49 @@ failed launch adds a FAIL "the app starts with the ...".
 leave the state as it was.
 
 ## `test_project_open_settings`
-`test_project_open_settings.py` · Python, 6 checks
+`test_project_open_settings.py` · Python, 7 checks
 
-**Tests:** The test seeds its own datadir with the preference `project_load_behaviour` = `load_geometry_only` and
-launches its own instance. It checks that opening a saved project still loads the process settings saved with it
-(`layer_height` 0.28), and that the preference stays as it was.
+**Tests:** The test launches its own instance on a new data folder whose Preferences say to load a project's
+geometry only (`project_load_behaviour` = `load_geometry_only`). It checks that opening a saved project still loads
+the process settings saved with it (`layer_height` 0.28), and that the preference stays as it was. It runs on the
+default printer, the Generic Klipper Printer 0.4 nozzle: nothing in it is a Bambu Lab printer's own.
+
+**Starts from:** A new data folder of its own, seeded by `seed_datadir()` with the default printer (`MyKlipper 0.4
+nozzle`, `0.20mm Standard @MyKlipper`, `Generic PLA @System`), with `project_load_behaviour` written into the seeded
+conf before the launch, as Preferences > Load behavior writes it. The test reads both back before its first step:
+`app_state.presets` and `preferences_get`. No other test's state reaches the folder.
+
+**Leaves:** Nothing: the folder, with the saved `layer_height.3mf` in it, is deleted at the end unless `--datadir`
+names it.
 
 **Decides by:** Exits 1 when a check prints FAIL, when its own launch fails, or on an uncaught exception.
+- Start: `app_state.presets` is `{printer: "MyKlipper 0.4 nozzle", process: "0.20mm Standard @MyKlipper", filaments:
+  ["Generic PLA @System"]}`.
 - Preference: `preferences_get` reads `project_load_behaviour` = `load_geometry_only`, both before and after the
   open.
 - Layer height: the process `layer_height` from `settings_get` is checked three times. It is 0.28 after
-  `settings_set`, not 0.28 after `project_new` drops the presets' changes, and 0.28 again after `project_open`.
+  `settings_set`, 0.2 after `project_new` drops the presets' changes (the layer height of `0.20mm Standard
+  @MyKlipper`), and 0.28 again after `project_open`.
 - Open: the `names` in `project_open`'s reply has exactly one entry.
 
 **Not checked:**
-- "a new project prints with the preset's layer height" checks only `!= 0.28`, not the preset's known value.
 - Only `layer_height` is checked. No other process, filament or printer setting saved in the project is read, and
   nothing checks whether the process preset shows as modified after the open.
 - The object's name isn't checked. Nor is whether the open asked anything: a job envelope would fail only because
   its `names` is missing.
 - `project_save`'s reply isn't checked; the later open implies the file was written.
 
-**Strength:** Strong — the round-tripped layer height and the unchanged preference are checked exactly, though
-only one setting is covered.
+**Strength:** Strong — the round-tripped layer height, the preset's own layer height and the unchanged preference
+are checked exactly, though only one setting is covered.
 
 ## `test_sidebar_floating`
 `test_sidebar_floating.py` · Python, 4 checks
 
-**Tests:** While the sidebar floats in its own window, `view_set {sidebar_width}` is refused and the width stays unchanged. The test launches its own instance twice on one fresh datadir. The first run saves `app.window_layout`. The test then marks the sidebar's AUI entry in that layout as floating, so the second run starts with it floating. On Linux both runs start as X11 clients (`GDK_BACKEND=x11`, through XWayland on a Wayland desktop), as the runner's own launches do by default, since a native Wayland app drops the saved floating state.
+**Tests:** While the sidebar floats in its own window, `view_set {sidebar_width}` is refused and the width stays unchanged. The test launches its own instance twice on one new data folder. The first run saves `app.window_layout`. The test then marks the sidebar's AUI entry in that layout as floating, so the second run starts with it floating. On Linux both runs start as X11 clients (`GDK_BACKEND=x11`, through XWayland on a Wayland desktop), as the runner's own launches do by default, since a native Wayland app drops the saved floating state.
+
+**Starts from:** A new data folder of its own, seeded by `orca_mcp.py launch` with the default printer, the Generic Klipper Printer 0.4 nozzle; no check reads a preset. The second run starts from the conf the first run wrote, with the sidebar's entry of `window_layout` marked floating by the test. A shared folder's window layout, with a sidebar another test collapsed or sized, never reaches it.
+
+**Leaves:** Nothing: the folder is deleted at the end unless `--datadir` names its root.
 
 **Decides by:** Exits 1 when a check prints FAIL or on an uncaught exception.
 - "the app starts" and "the window layout the first run saved has the sidebar": the first launch succeeds, and the `window_layout` in `OrcaSlicer.conf` has a `name=sidebar;` entry.
@@ -97,8 +133,8 @@ only one setting is covered.
 **Strength:** Strong — the refusal text and the unchanged width are checked exactly on every platform.
 
 ## `test_set_window`
-`test_set_window.py` · Python, 40 checks on Windows and macOS (1 SKIP), 41 on Linux X11 including `--headless`,
-31 on Linux Wayland (4 SKIP)
+`test_set_window.py` · Python, 41 checks on Windows and macOS (1 SKIP), 42 on Linux X11 including `--headless`,
+32 on Linux Wayland (4 SKIP)
 
 **Tests:** `window_set` on three kinds of window, plus the read side in `window_list` and `app_state.displays`:
 - The main window: size, position, maximize, minimize and restore, a size given while maximized or after a
@@ -107,7 +143,20 @@ only one setting is covered.
 - The modal Preferences dialog: by `target: "dialog"` and by a `{label}` locator; it never minimizes; and it stays
   above the main window in the stacking order.
 
+**Starts from:** `start(client)` on the Generic Klipper Printer 0.4 nozzle, then the Prepare tab. No check reads a
+preset, and nothing here is a Bambu Lab printer's own. The main window opens where the seed put it, which no earlier
+test can have changed (see the top of this file), but no check rests on that: each size, place and state is given by
+a call before it is read, and the contradiction is compared with the size read just before it. The Plugins window
+lists the plugins an earlier test left (`test_web_ui`'s fixture); its size and place are set by the call that reads
+them.
+
+**Leaves:** Nothing the checks change reaches the data folder: the main window's placement is not written, and the
+Plugins window and Preferences store no size or place. Off Wayland, the canvas capture after the restore is saved
+under `<datadir>/automation/out`; on Wayland, the capture of the main window. The project is `start()`'s, empty. The
+last call sizes the window to 1600×900 for whoever watches; no later test meets it, since each launches its own app.
+
 **Decides by:** Exits 1 when any check fails or on an uncaught exception. SKIPs never fail it.
+- Start: `start()` returns `{printer: KLIPPER, process: KLIPPER_STD, filaments: [GENERIC_PLA]}`.
 - Main-window size:
   - Size 1400×900, then 1300×820: the reply's `size` and `state` and `window_list`'s width and height equal it.
   - A size of 1300×850 given while maximized replies `normal` with that size.
@@ -138,7 +187,9 @@ only one setting is covered.
   - It is listed.
   - "dialog: window_set sizes the topmost modal dialog": `window_set {target: "dialog", size: [1000, 760]}` replies
     `kind` `dialog` and the size 1000×760, or 1000 by more than 760 with `size` in `adjusted`; `window_list`'s
-    Preferences entry then has that width and height.
+    Preferences entry then has that width and height. Measured on Windows at 100 % scaling: Preferences opens at
+    640×640 with a minimum height of 640, and takes 1000×760 as asked (1000×600 is held to 1000×640 with `size` in
+    `adjusted`); the allowance for a held minimum matters only where a platform's Preferences needs more than 760.
   - "dialog: a {label} locator finds it": the `{label: "Preferences"}` call replies `title` `Preferences`. Off
     Wayland it is given the position [60, 60], and the reply's `position` and `window_list`'s Preferences `x` and `y`
     are 60 and 60, with the size from the call before. On Wayland it is given the size 1000×760 again, and
@@ -156,7 +207,7 @@ only one setting is covered.
 - SKIP paths by platform:
   - Windows and macOS run everything except the stacking check, which is a SKIP because `x11_stacking` finds no
     libX11 or display.
-  - Linux X11 runs all 41.
+  - Linux X11 runs all 42.
   - Linux Wayland (`--wayland`) skips position, both minimize sections (9 checks) and stacking.
 - Maximize is checked only by the reply's `state`; neither `window_list` nor the size is read. The minimize and
   work-area checks also trust the reply alone.
@@ -172,19 +223,17 @@ only one setting is covered.
 - The stacking check isn't gated by platform. On a Mac where `ctypes.util.find_library("X11")` succeeds and
   `DISPLAY` is set (XQuartz), it would read XQuartz's stacking order, which lists no Cocoa windows, and fail. I
   could not confirm whether any sweep machine hits this.
-- The final restore to `WINDOW_SIZE` is unchecked.
-
-**To settle in review:**
-- That Preferences takes 1000×760: if its minimum height is above 760, the reply holds its minimum with `size` in
-  `adjusted`, which the check accepts as it does for Plugins.
+- The last size, 1600×900, is not read back; nothing after the test depends on it.
+- That a placement survives a restart: the app stores the main window's only when the window closes, which no test
+  on a shared folder does.
 
 **Strength:** Partial — main-window and dialog sizes and places are read back from `window_list`, but maximize,
 minimize and the work-area fill trust the reply, and Wayland skips about a quarter of the test.
 
 ## `test_set_view_preview`
-`test_set_view_preview.py` · Python, 21 checks (1 conditional)
+`test_set_view_preview.py` · Python, 24 checks
 
-**Tests:** `view_set` on the Preview of a sliced cube:
+**Tests:** `view_set` on the Preview of a sliced 25 mm cube on the Generic Klipper Printer 0.4 nozzle:
 - A legend row hidden by a click stays hidden across view types, until Line Type is picked.
 - The view type picked is written to `preview_last_view_type`.
 - Canvas captures taken right after a layer or view-type change show the new state.
@@ -192,29 +241,47 @@ minimize and the work-area fill trust the reply, and Wayland skips about a quart
 - Six refusals: legend rows before a slice, a height above the top layer, `layer` with `layer_z`, an unknown row,
   a value that isn't a boolean, and silent mode when the print has no silent estimate.
 
+**Starts from:** `start(client)` on the Klipper printer. The layer numbers below follow from it: `0.20mm Standard
+@MyKlipper` prints 0.2 mm layers from a 0.2 mm first layer, so the 25 mm cube slices into 125 layers, and the printer
+has no silent mode, so the slice has no silent-mode estimate. Nothing here is a Bambu Lab printer's own. The cube is
+added by `object_add_primitive {shape: "cube", size: [25, 25, 25]}`, not by the Add Cube action, whose size is stored
+state: a tenth of the bed's longer side or the size a person saved for cubes (`primitive_size`), asked in a dialog
+unless `enable_primitive_size_dialog` is off. The conf's `preview_last_view_type` holds whatever an earlier test picked
+last (`test_slice_preview` and `test_every_action` pick view types too), so after the slice the test picks Line Type
+and waits until the conf reads `feature_type` before the pick it checks.
+
+**Leaves:** `preview_last_view_type` `feature_type` in the conf, and an empty new project: the test ends with
+`project_new`. The legend's shown and hidden rows are not stored. The 16 captures go to a temporary folder of the
+test's own, not the data folder.
+
 **Decides by:** Exits 1 when a check prints FAIL or on an uncaught exception.
+- Start: `start()` returns `{printer: KLIPPER, process: KLIPPER_STD, filaments: [GENERIC_PLA]}`, and after the Line
+  Type pick that follows the slice, the conf reads `feature_type` within 5 s.
 - Legend state: `plate_slice_stats.view.legend.features["Sparse infill"]` must be `False` after a `widget_click` on
   its row, still `False` after `view_type=speed`, and `True` after `feature_type`.
 - Config: `app.preview_last_view_type` in `OrcaSlicer.conf` must become `speed`, then `feature_type`. The file is
   polled for up to 5 s.
-- Captures: an inner `replay_run` makes 8 changes and saves two canvas captures to PNG after each one. The replay
-  must pass. Then two byte comparisons decide:
+- Captures: the pointer first moves to the empty space above the plate (`mouse_gesture {action: "move", x: 430, y:
+  80}`), since the legend click leaves ImGui's highlight on its row until the pointer moves, and on a busy machine
+  that move can arrive between two captures (measured: the only difference between a pair was the row's outline).
+  Then an inner `replay_run` makes 8 changes (layer ranges up to [1, 125]) and saves two canvas captures to PNG
+  after each one. The replay must pass. Then two byte comparisons decide:
   - "Settled": the two captures after each change must be byte-identical.
   - "Every change shows": from the second change on, the first capture after a change must differ byte-wise from
     the last capture before it.
-- Layers:
-  - `layer_z=1.05` replies `layers` [1, 6, 128] and `z` [0.2, 1.2].
-  - The backwards range [60, 20] replies [60, 60, 128] and `z` [12.0, 12.0].
-  - In one-layer mode (`L`), [2, 5] replies [2, 5, 128] and `z` [0.4, 0.4], and `app_state.preview.layers` is
+- Layers, as measured on the Klipper printer:
+  - `layer_z=1.05` replies `layers` [1, 6, 125] and `z` [0.2, 1.2].
+  - The backwards range [60, 20] replies [60, 60, 125] and `z` [12.0, 12.0].
+  - In one-layer mode (`L`), [2, 5] replies [2, 5, 125] and `z` [0.4, 0.4], and `app_state.preview.layers` is
     [2, 2].
-  - Leaving one-layer mode reads [1, 128].
+  - Leaving one-layer mode reads [1, 125].
 - Refusals, matched by message substring:
   - "slice first"
-  - "above the top layer (25.6 mm)"
+  - "above the top layer (25.0 mm)"
   - "not both"
   - the print's rows "Sparse infill" and "travel"
   - "true (show) or false (hide)"
-  - "no separate silent-mode estimate"
+  - "no separate silent-mode estimate": the slice's reply has no `silent_time_s`, and `time_mode=silent` is refused.
 - After the refusals, `view_type` is still `feature_type` after the unknown-row one, and `time_mode=normal` echoes
   `normal`.
 
@@ -226,31 +293,43 @@ minimize and the work-area fill trust the reply, and Wayland skips about a quart
     this.
 - "the legend reply gives each row's state" reads only the reply. `travel` shown and `Sparse infill` hidden are
   not read back from `plate_slice_stats`.
-- "silent mode without its own estimate is refused" runs only when the slice has no `silent_time_s`. Otherwise it
-  is dropped without a SKIP line.
 - After the refusals, only `view_type` is checked as unchanged; layers and legend aren't, although the docstring
   says a refused call changes nothing.
 - The cube's slice outcome is not checked. The exact layer values that follow would catch a failed slice.
+- A silent-mode estimate shown: the Klipper printer has none. The Add Cube action and its size dialog: the cube is
+  added with its size given, and `test_gui_tools` adds the action's cube.
 
-**Strength:** Strong — legend, layer and z values are exact, the config write is read from disk, and the captures
-are compared with each other.
+**Strength:** Strong — legend, layer and z values are exact, the config write is read from disk from a known start,
+and the captures are compared with each other.
 
 ## `test_set_view_camera`
-`test_set_view_camera.py` · Python, 35 checks
+`test_set_view_camera.py` · Python, 36 checks
 
 **Tests:** `view_set`'s camera fields (`look_at`, `zoom`, `camera`, `orbit`) and the `camera_state` it returns,
 checked against `app_state.camera`. It covers four views: Prepare (including straight after `project_new`'s queued
 fit), Preview, the Design tab's own camera, and the assemble view's first showing. It also covers zoom clamping,
 `click_px_per_mm`, a fit after a resize on the Home tab, and a zoom given on Home while a fit is queued.
 
+**Starts from:** `start(client)` on the Generic Klipper Printer 0.4 nozzle; no check reads a preset, and nothing here
+is a Bambu Lab printer's own. Then `window_set {size: [1600, 900]}` and `view_set {projection: "perspective"}`, before
+the `project_new` the first scenario starts after. The projection is stored (`use_perspective_camera`), and
+`test_slice_preview` and `test_every_action` switch it to orthographic and back, so one of their runs that fails in
+between leaves it orthographic. `auto_perspective`, which would change the projection with the view's direction, is no
+preference a tool writes; no test turns it on, and the app's default is off. The camera itself is not stored: each
+launch starts with a fit. The sweep launches the app with `--cad`, which holds for that run only.
+
+**Leaves:** `use_perspective_camera` on; three canvas captures under `<datadir>/automation/out` (Prepare, assemble and
+Home; measured); an empty new project, from its last `project_new`. The window's size and the cameras are not
+stored.
+
 **Decides by:** Exits 1 when a check prints FAIL or on an uncaught exception.
+- Start: `start()` returns `{printer: KLIPPER, process: KLIPPER_STD, filaments: [GENERIC_PLA]}`.
 - Prepare after `project_new`:
   - The reply echoes `camera` `top`, and `camera_state` has zoom 3, `look_at` [50, 60, 0] and `elevation` 90.
   - "prepare: the 3D view captures": `window_screenshot {target: "canvas"}` replies `source` `canvas`, a width and
     height above 0, and no `approximate` key (a 3D view that comes back blank is marked `approximate`).
   - After that capture forces a frame, `app_state.camera` still has zoom 3 and that `look_at`.
-  - "prepare: camera_state has a projection type": `type` is `perspective`, as the fresh data folder's
-    `use_perspective_camera` (on by default, with `auto_perspective` off) gives it.
+  - "prepare: camera_state has a projection type": `type` is `perspective`, the projection the start set.
 - `click_px_per_mm`: zoom divided by `click_px_per_mm` lies in [1, 3].
 - Clamping: `zoom=1000` gives 250, and `adjusted` == ["zoom"].
 - Orbit: `camera=front, orbit=[30, 20]` gives `elevation` 20 and `azimuth` -60. `look_at` equals the one before,
@@ -280,27 +359,39 @@ fit), Preview, the Design tab's own camera, and the assemble view's first showin
   checked for presence, not for its text.
 - `click_px_per_mm` is checked against a range, not the display's known scale. Both values come from one
   `app_state`.
+- An orthographic camera's `camera_state`, and `auto_perspective` turned on: the start sets perspective, and no tool
+  sets `auto_perspective`.
 
 **Strength:** Partial — Prepare, Preview, assemble and clamping values are exact, but the Design orbit, the resized
 fit and the Home fit are checked loosely or only against each other.
 
 ## `test_speed_dial_open`
-`test_speed_dial_open.py` · Python, 12 checks (plus 1 where KWin answers; the 3 focus checks SKIP where the pointer cannot be moved)
+`test_speed_dial_open.py` · Python, 13 checks (plus 1 where KWin answers; the 3 focus checks SKIP where the pointer cannot be moved)
 
 **Tests:** The app goes from Home to Prepare, Design and Preview by tab clicks. After each switch, the page's 3D
 view (`OrcaSceneCanvas`) must hold the keyboard focus, Space sent with no target must open the Speed Dial, and
 Escape must close it. Where KWin answers on D-Bus, it also checks that KWin draws no title bar on the dial. The
 test runs exclusive in the sweep.
 
+**Starts from:** `start(client)` on the Generic Klipper Printer 0.4 nozzle; no check reads a preset. Then
+`window_set` places the main window at the top left of the primary display's work area (its `x` and `y` in
+`app_state.displays`) at 1600×900, which the work area may trim; on Wayland, which takes no position, only the size
+is given. That placement keeps (0, 0) off the 3D view. A launch opens the window there anyway (see the top of this
+file), but the check does not rest on the seed. The sweep launches the app with `--cad`.
+
+**Leaves:** Nothing in the data folder beyond `start()`'s empty project: the dial is opened and closed without
+running an action, so its recent actions are as they were. The system pointer is left at (0, 0).
+
 **Decides by:** Exits 1 when a check prints FAIL or on an uncaught exception, such as a tab missing from
 `widget_list`.
+- Start: `start()` returns `{printer: KLIPPER, process: KLIPPER_STD, filaments: [GENERIC_PLA]}`.
 - The pointer off the view: the 3D view also takes the focus when the pointer enters it, so before each tab click
   the test moves the system pointer to the primary display's top-left corner, (0, 0), and reads the pointer's
-  position back from the system: (0, 0). The seeded main window opens at the work area's top left
-  (`seed_datadir()`), so that corner is its top bar or lies outside it, never in the 3D view below the tab bar. It moves the
-  pointer with `SetCursorPos` on Windows, `CGWarpMouseCursorPosition` on macOS and `XWarpPointer` on X11, each
-  through `ctypes`, and reads it with `GetCursorPos`, `CGEventGetLocation` and `XQueryPointer`. A pointer that does
-  not read back at (0, 0) fails the page's focus check.
+  position back from the system: (0, 0). The start placed the main window at the work area's top left, so that
+  corner is its top bar or lies outside it, never in the 3D view below the tab bar. It moves the pointer with
+  `SetCursorPos` on Windows, `CGWarpMouseCursorPosition` on macOS and `XWarpPointer` on X11, each through `ctypes`,
+  and reads it with `GetCursorPos`, `CGEventGetLocation` and `XQueryPointer`. A pointer that does not read back at
+  (0, 0) fails the page's focus check.
 - Per page:
   - `app_state.tab` reaches the tab within 10 s.
   - The first `[focused]` line in `widget_list` contains `name=OrcaSceneCanvas`.
@@ -315,8 +406,9 @@ test runs exclusive in the sweep.
 - The focus checks are not made on a native Wayland display.
 - The wait for Home after the first click isn't checked. If that click did nothing, the page click is still judged
   only by the final tab.
-- Any web dialog with no title counts as the dial, and its content isn't checked. Escape is sent to the dial's
-  ref, so Escape through the keyboard focus isn't tested.
+- Any web dialog with no title counts as the dial, and its content isn't checked, so what it lists, which a plugin
+  an earlier test left adds to, plays no part. Escape is sent to the dial's ref, so Escape through the keyboard focus
+  isn't tested.
 - The KWin title-bar check prints "skip", which isn't a counted check, in two cases:
   - No KWin answers: Windows, macOS and GNOME.
   - KWin's window runner doesn't list the dial. Per the code comment this covers X11 clients, so it includes the
@@ -326,22 +418,23 @@ test runs exclusive in the sweep.
 **To settle in review:**
 - Moving the user's pointer during a sweep on a desktop: the test is exclusive in the sweep, so nothing else runs
   meanwhile, but a person using the machine sees the pointer jump.
-- That (0, 0) lies outside the 3D view on every sweep machine: the seeded `window_mainframe` puts the window at the
-  work area's top left, and the 3D view is below the tab bar in any case; with a monitor at negative coordinates,
-  (0, 0) is still the primary's corner.
+- That (0, 0) lies outside the 3D view on every sweep machine: the start puts the window at the work area's top
+  left, and the 3D view is below the tab bar in any case; with a monitor at negative coordinates, (0, 0) is still
+  the primary's corner.
 
 **Strength:** Partial — opening and closing the dial are checked on every page, and the focus check is made with the
 pointer off the view, but the KWin check almost never runs and native Wayland skips the focus checks.
 
 ## `test_send_gcode`
-`test_send_gcode.py` · Python
+`test_send_gcode.py` · Python, 48 checks
 
-**Tests:** Printing and sending through a print host, run against an OctoPrint stub host inside the test process:
-the `send_gcode` Speed Dial action (`orca_command:send_gcode:orca`), `printer_send` with `plates`, `print_start`,
-and `printer_test_host`. The test makes the seeded X1 Carbon a print-host printer (`bbl_use_printhost` true) before
-any of these calls, since on the Bambu network they would open dialogs that message a printer. It covers:
-- Refusals for a printer with no print host, a plate not sliced, and all plates where the Print button offers no
-  such action.
+**Tests:** Printing and sending through a print host, run against an OctoPrint stub host inside the test process,
+on the Generic Klipper Printer 0.4 nozzle: the `send_gcode` Speed Dial action (`orca_command:send_gcode:orca`),
+`printer_send` with `plates`, `print_start`, and `printer_test_host`. A printer of the Custom vendor sends through a
+print host as its own route: its Print button offers Send G-code and the exports, and no call reaches the Bambu
+network, so nothing is switched first. It covers:
+- Refusals for a printer with no print host, a plate not sliced, and all plates, which the Print button offers no
+  action on.
 - `print_start` and `printer_send` opening the host's upload dialog, which the test cancels: nothing is uploaded.
 - The host test, answered by the stub, refused with no address, and failing on a port nothing listens on.
 - An upload through the action's dialog, with the file name set by `widget_set_value` and Upload pressed by
@@ -349,14 +442,36 @@ any of these calls, since on the Bambu network they would open dialogs that mess
 - The exported replay of that send, which uploads again.
 - HTTP 500 replies, delayed and immediate, which must end as errors, with the queue's error dialog.
 
+**Starts from:** `start(client)` on the Klipper printer, then `preferences_set {use_printer_agents: false}`, read back
+with `preferences_get`: with printer agents on, the Print button routes through an agent instead of the print host
+and could reach a printer, so a value other than false stops the test before any print call. The print-host values
+(`host_type`, `print_host`, `use_3mf`) are set on the printer by the scenarios as unsaved changes, so the preset's
+saved ones play no part. The machines earlier runs stored (see **Leaves**) play none either: the route follows the
+preset's print host, not the machine the app selected.
+
+**Leaves:** In the conf, measured:
+- Two machines of the Orca printer agent in `local_machines`, the stub's `127.0.0.1:<port>` and the closed port's,
+  with `last_selected_machine` naming the closed port's. Setting a Klipper printer's `print_host` makes the app add
+  and select a machine for that address, as the connection settings do for a person, and it keeps them; while the app
+  runs, `printer_status` reads that address connected. A later launch with a Klipper printer whose `print_host` is
+  empty selects a stored machine only when it is the agent's only one: with these two, the next launch read
+  `{"connected": false}`; with one of them alone, the printer connected.
+- The upload queue dialog's size, place and column widths (`print_host_queue_dialog_*`).
+
+The project is an empty new one (the test ends with `project_new`), its auto-answer rules are cleared, and the
+printer's print-host changes are never saved.
+
 **Decides by:** Exits 1 when a check prints FAIL or on an uncaught exception. Every refusal is asserted by its code
 with `checks.py`'s `refused`, then `app_state.uploads` and `dialogs()` are read back. "Nothing sent" below means:
 `app_state.uploads` is as before the call, the stub got no file, and `dialogs()` is empty. "Cancelled" means: the
 call replies `blocked_by_dialog`, `dialogs()` lists one dialog titled "Send G-code to printer host",
-`dialog_answer {button: "Cancel"}` closes it, and then nothing was sent.
+`dialog_answer {button: "Cancel"}` closes it, and then nothing was sent. Measured on the Klipper printer: every
+check below passes.
+- Start: `start()` returns `{printer: KLIPPER, process: KLIPPER_STD, filaments: [GENERIC_PLA]}`, and
+  `use_printer_agents` reads `false`.
 - Discovery: `action_search "Send G-code"` lists the action's id.
-- No address. `settings_set {type: "printer", values: {bbl_use_printhost: true, host_type: "octoprint", print_host:
-  "", use_3mf: false}}`, with the imported cube not sliced (plain G-code, so the dialog proposes a `.gcode` name):
+- No address. `settings_set {type: "printer", values: {host_type: "octoprint", print_host: "", use_3mf: false}}`,
+  with the imported cube not sliced (plain G-code, so the dialog proposes a `.gcode` name):
   - The action is refused `no_print_host`; nothing sent.
   - `printer_send {plates: 0}` is refused `no_print_host`; nothing sent.
   - `printer_test_host` is refused `no_print_host`; `dialogs()` is empty.
@@ -365,7 +480,8 @@ call replies `blocked_by_dialog`, `dialogs()` lists one dialog titled "Send G-co
     answered one more version check (`GET /api/version`); `dialogs()` is empty.
   - `print_start` is refused `not_sliced`; nothing sent.
   - `print_start {plates: "all"}` and `printer_send {plates: "all"}` are each refused `all_plates_not_offered`: the
-    Print button offers neither for a printer through a host other than SimplyPrint; nothing sent.
+    Print button of a printer not of Bambu Lab offers Send G-code and the exports, none of them on all plates;
+    nothing sent.
   - `plate_add`, then `plate_select {plate: 1}`: plate 1, empty, is current. `print_start {plates: 0}` is refused
     `not_sliced`; nothing sent; `plate_list` reads plate 1 current again, and the call's undo steps are four
     `"select partplate!"`: a change of the current plate logs two (`Plater::select_plate()` one, and
@@ -373,7 +489,7 @@ call replies `blocked_by_dialog`, `dialogs()` lists one dialog titled "Send G-co
     for the Print button's check and once as the plate that was current is put back, as a refused export that names a
     plate does. Then `plate_select {plate: 0}`.
 - Sliced (`plate_slice`, the plate's `outcome` `ok`):
-  - `print_start` is cancelled.
+  - `print_start` is cancelled: the Print button's action is Send G-code, the host's upload.
   - `printer_send {plates: 0}` is cancelled.
   - `plate_select {plate: 1}`, then `printer_send {plates: 0}` is cancelled; `plate_list` reads plate 0 current,
     and the call's undo steps are the two `"select partplate!"` of one change of plate: the plate it named stays
@@ -399,9 +515,14 @@ call replies `blocked_by_dialog`, `dialogs()` lists one dialog titled "Send G-co
 - The replayed upload's file name.
 - The error dialog's text: only that some dialog opened and closed. For the immediate 500, neither the
   "HTTP 500" text nor the dialog is checked; `close_error_dialog`'s result is ignored.
+- A Bambu Lab printer made a print host (`bbl_use_printhost`), whose Print button takes Print plate to the host's
+  upload by a route of its own; the Klipper printer takes the route of other vendors' printers.
 - The Print and storage dialogs of a printer on the Bambu network, and `printer_send`'s `not_sliced` there: no
   test opens them, since they message a physical printer. They are the maintainer's to check on a printer of his.
-- A SimplyPrint host's Print all, and a cloud host's login: the stub is an OctoPrint host.
+- A SimplyPrint host's Print all, which only a Bambu Lab printer made a print host offers, and a cloud host's login:
+  the stub is an OctoPrint host.
+- `printer_status` once a print host is set, which reads the host's address connected: `test_printer_commands`
+  covers `printer_status`.
 - The host test's message in another language: the sweep runs the app in English.
 - Row ids are assumed to be `count + 1`. Different numbering makes `follow` time out, which fails rather than
   passes falsely.
@@ -411,14 +532,27 @@ call replies `blocked_by_dialog`, `dialogs()` lists one dialog titled "Send G-co
 exactly against an independent stub, and each refusal by its code with the uploads and dialogs read back.
 
 ## `test_printer_commands`
-`test_printer_commands.py` · Python · in `sweep.json` as `{"path": "test_printer_commands.py"}`
+`test_printer_commands.py` · Python, 11 checks · in `sweep.json` as `{"path": "test_printer_commands.py"}`
 
-**Tests:** `printer_status`, `print_pause`, `print_resume` and `print_stop` with no printer connected, on a scratch
-datadir. A scratch datadir is not cut off from the account it may be signed in to, so the test reads
-`printer_status` first and goes on only when it says no printer is connected; it never calls a job command while
-one is.
+**Tests:** `printer_status`, `print_pause`, `print_resume` and `print_stop` with no printer connected, on the Bambu
+Lab X1 Carbon 0.4 nozzle. The test reads `printer_status` first and goes on only when it says no printer is
+connected; it never calls a job command while one is.
+
+**Starts from:** `start(client, printer=X1C)`, which installs the X1 Carbon on the first test of a job that needs it.
+The X1 Carbon is chosen for what the folder may keep, not for a behaviour of its own: on the Klipper printer, a
+machine of the Orca printer agent an earlier test stored is selected at the start when it is the agent's only one,
+and `printer_status` then reads it connected (measured with one machine of those `test_send_gcode` leaves). The Bambu
+printer agent selects only a Bambu Lab printer bound to the folder, and the folder has none: it is signed out
+(`use_encrypted_token_file`, and no test signs in), the Bambu network plugin is not installed, and no test binds a
+printer. Measured on the X1 Carbon with that Orca machine stored: `{"connected": false}`. The guard stays, since a
+person's own folder may hold a bound printer.
+
+**Leaves:** The X1 Carbon installed (the BBL vendor's profiles and its presets in the printer list) and selected,
+with its presets remembered in the conf; the next test's `start()` selects its own printer. An empty project.
+Nothing is sent, and no printer is bound.
 
 **Decides by:** Exits 1 when a check prints FAIL or on an uncaught exception.
+- Start: `start()` returns `{printer: X1C, process: X1C_STD, filaments: [BAMBU_PLA]}`.
 - The guard: `printer_status` replies exactly `{"connected": false}`. Otherwise the check "no printer is
   connected" fails with the printer's `name` and `model` from the reply, and the test ends there, having called
   nothing else.
@@ -431,16 +565,19 @@ one is.
   allows it only at the printer, and the status fields are unit cases against the printer agent double
   (`tests/slic3rutils/test_device_manager_integration.cpp`). No test reaches a physical printer: a real printer's
   status and refusals, and a print paused, resumed and stopped, are the maintainer's to check.
+- The machine a Klipper printer's print host makes, which `printer_status` reads as connected: a job command there
+  would go to the host.
 
 **Strength:** Partial — the refusals and the status with no printer are checked exactly, but nothing reaches a
 printer.
 
 ## `test_web_ui`
-`test_web_ui.py` · Python, 230 checks (1 conditional)
+`test_web_ui.py` · Python, 231 checks (1 conditional)
 
-**Tests:** The GUI tools on web pages, through the side-loaded `mcp_web_fixture` plugin. Before the launch, the
-sweep's setup step copies `mcp_web_fixture.py` and an enabled `.install_state.json` into the datadir's
-`orca_plugins`.
+**Tests:** The GUI tools on web pages, through the side-loaded `mcp_web_fixture` plugin, on the Generic Klipper
+Printer 0.4 nozzle; nothing here is a Bambu Lab printer's own. Before the launch, the sweep's setup step
+(`--install {datadir}`) copies `mcp_web_fixture.py` and an enabled `.install_state.json` into `orca_plugins` of the
+job's data folder.
 - What the plugin provides:
   - One page with every kind of control, opened as a modal dialog and as a modeless window.
   - A dock panel whose CSP forbids eval.
@@ -457,8 +594,34 @@ sweep's setup step copies `mcp_web_fixture.py` and an enabled `.install_state.js
   - The web snapshot budget.
   - The setup wizard's navigation.
 
+**Starts from:** The fixture plugin installed and enabled by the setup step, which writes it afresh on every run: it
+copies the script over the one there and rewrites `.install_state.json` with the five capabilities on and no stored
+permission, so a run after a failed one, such as the rerun alone on the folder it failed on, starts from the same
+plugin. Then `start(client)` on the Klipper printer; no check reads a preset. The stored state the checks read is the
+plugin's own, written during the run. The configuration saved through the Plugins dialog is a speed drawn for the run,
+so a value an earlier run saved does not pass the check. The submitted JSON is looked for in this app's Python log,
+`<datadir>/log/python_*_<pid>.log` with the pid the session names, not in the newest log: the app makes its log only
+when the plugin first writes to it, so until then the newest is an earlier run's, which holds the same line.
+
+**Leaves:** Measured after a run, and at the next launch on the folder:
+- The fixture plugin, installed and enabled, with the threading permission it was refused stored in its
+  `.install_state.json`. Every later launch on the job has the main-window tab "MCP web fixture page" after Project,
+  and five more actions in the Speed Dial and `action_search` (the page and the four scripts). Nothing opens at
+  startup and nothing asks: `window_list` lists the main window alone, and an untargeted `webview_run_javascript` on
+  Home still reaches the Home page, as the plugin's page makes its web view only when shown. The test does not remove
+  the plugin: a plugin a person installs stays, and the tests after it check what they own, as TESTS.md's rule says
+  of the menu items a plugin adds.
+- `orca_plugins/config.json` with the fixture dialog capability's entry; after the run it held the capability's
+  defaults, speed 0 and enabled false.
+- The plugin's Python log in `<datadir>/log`, and its pages' WebView2 data in `<datadir>/webview2` on Windows, where
+  `orca_mcp.py` puts the profile.
+- The project `start()` made. Its own pages, the Plugins dialog and the setup wizard are closed, and the wizard
+  installs nothing.
+
 **Decides by:** Exits 1 when any check prints FAIL or on an uncaught exception. `call()` turns most tool errors
-into `{"error": ...}`, and the check that follows judges it.
+into `{"error": ...}`, and the check that follows judges it. Measured on the Klipper printer: every check passes, the
+conditional one not run.
+- Start: `start()` returns `{printer: KLIPPER, process: KLIPPER_STD, filaments: [GENERIC_PLA]}`.
 - Snapshot:
   - 19 needles must be listed, e.g. `spin "Count" = "3"` and `[options: Red | Green | Blue]`.
   - The table cell is named `1 / 2` with value "91".
@@ -497,7 +660,7 @@ into `{"error": ...}`, and the check that follows judges it.
   - During a close, 15 `widget_list` calls from a second client must all answer.
   - The permission prompt's buttons are exactly ["Yes", "No"].
   - An auto-answer rule answers an already open prompt, with `uses` 1.
-  - The submitted JSON shows up in the plugin's python log.
+  - The submitted JSON shows up in this app's Python log.
   - `dialog_answer` cancel returns in under 8 s.
 - Persistence, tabs and the journal:
   - `orca_plugins/config.json` holds `{"speed": <random>, "enabled": true}`.
@@ -523,6 +686,8 @@ into `{"error": ...}`, and the check that follows judges it.
 - The `window_screenshot` of a page element is used only for its journal entry; the image is never looked at.
 - The auto-answer to the fixture dialog (Submit) is judged by the dialog closing and the rule's use count. Nothing
   checks that the plugin received the submit.
+- The speed is drawn from 89 values by the clock, so a saved configuration an earlier run left matches it once in 89
+  runs; after a run the file held the defaults, which no draw gives.
 
 **To settle in review:**
 - The dock panel's outcome on macOS and Linux. The code's comment says only that WebView2 is not held to the page's
@@ -534,17 +699,32 @@ into `{"error": ...}`, and the check that follows judges it.
 with exact counts of press releases.
 
 ## `test_webview_modal`
-`test_webview_modal.py` · Python, 16 checks
+`test_webview_modal.py` · Python, 17 checks
 
-**Tests:** Which web view `webview_run_javascript` runs in while modal dialogs are open:
+**Tests:** Which web view `webview_run_javascript` runs in while modal dialogs are open, on the Generic Klipper
+Printer 0.4 nozzle, whose sidebar offers Flushing volumes once a second filament is added (its single extruder
+multi-material is on):
 - With no target or by locator, it runs in the topmost modal's page: Preset Bundle, the Export bundle dialog above
   it, and Flushing volumes.
 - It refuses the Home tab's web view behind a modal, and the bundle dialog's web view under the export dialog.
 - A page that closes its own dialog replies `closed` at once.
 - With no modal open, the Home web view takes scripts.
 
-**Decides by:** Exits 1 when a check prints FAIL or on an uncaught exception.
-- No modal: Home has a `webview` in `widget_list`, and `1 + 1` with no target returns 2.
+**Starts from:** `start(client)` on the Klipper printer with its one filament; the Flushing volumes button needs the
+second filament the test adds. No other stored state is read. A plugin an earlier test left adds web views of its
+own (`test_web_ui`'s fixture adds a page among the main window's tabs, whose web view is made only when shown), so
+the check with no modal reads the reply's URL to know the script ran in the Home page. Measured with the fixture
+installed: the Home page answers, and `widget_list` lists its web view alone.
+
+**Leaves:** Two filament slots, both `Generic PLA @System`, remembered for the Klipper printer in the conf
+(`orca_presets`) with their flushing volumes; the next `start()` sets one slot again. A project with no object. The
+dialogs are closed without a change.
+
+**Decides by:** Exits 1 when a check prints FAIL or on an uncaught exception. Measured on the Klipper printer: every
+check passes.
+- Start: `start()` returns `{printer: KLIPPER, process: KLIPPER_STD, filaments: [GENERIC_PLA]}`.
+- No modal: Home has a `webview` in `widget_list`, and `1 + 1` with no target returns 2 with a `url` holding
+  `web/homepage/index.html`.
 - Preset Bundle:
   - One dialog opens.
   - The Home web view by ref is refused with "modal dialog is open".
@@ -566,12 +746,11 @@ with exact counts of press releases.
   - After `dialog_answer close`, no dialog is left.
 
 **Not checked:**
-- "without a modal, the only web view takes a script" doesn't check which web view ran it; neither `url` nor title
-  is read.
 - "and does so within a second" is a 1.0 s wall-clock bound, tight for a loaded parallel sweep.
 - The waits for the export and flushing dialogs' web views to leave `about:blank` have no check of their own; the
   URL checks after them cover them.
 - The added filament isn't checked; only that the Flushing volumes button opened its dialog.
+- A script with no target and no modal while a plugin's page is shown: the Home tab is the one shown.
 
-**Strength:** Partial — targeting and refusals for Preset Bundle, Export and Flushing volumes are checked by title,
-URL and message, but the no-modal case is not tied to the Home page.
+**Strength:** Strong — targeting and refusals for the Home page, Preset Bundle, Export and Flushing volumes are
+checked by title, URL and message; the 1.0 s bound is the one loose point.

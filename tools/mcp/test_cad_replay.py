@@ -23,6 +23,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import checks  # noqa: E402
 import orca_mcp  # noqa: E402
 
 
@@ -73,6 +74,7 @@ def same(a, b, rel=1e-6):
 
 def main():
     client, _ = orca_mcp.session_client()
+    checks.start(client)
     live = record(client)
     out_dir = tempfile.mkdtemp(prefix="orca-mcp-cad-replay-")
     path = os.path.join(out_dir, "session.json")
@@ -91,7 +93,7 @@ def main():
     kinds = lambda s: [f["type"] for f in s["features"]]  # noqa: E731 (names count on across projects)
 
     origin = live["scene"]["modeling_origin"]
-    checks = [
+    results = [
         ("a sketch on XY and the plate are centred on modeling_origin",
          live["frame"]["origin"] == origin and all(same(a, b) for a, b in zip(live["mass"]["center_of_mass"][:2], origin[:2])),
          (live["frame"]["origin"], live["mass"]["center_of_mass"], origin)),
@@ -121,7 +123,7 @@ def main():
     ]
     print(f"volume {live['mass']['volume']:.3f} mm3; replay and its run in {out_dir}")
     failures = 0
-    for name, ok, detail in checks:
+    for name, ok, detail in results:
         print(("ok   " if ok else "FAIL ") + name + ("" if ok else f": {detail}"))
         failures += not ok
     return 1 if failures else 0

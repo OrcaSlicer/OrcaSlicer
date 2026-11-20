@@ -28,6 +28,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import checks  # noqa: E402
 import orca_mcp  # noqa: E402
 from cad_gui import BADGE_PICK_PX, BADGE_STEP_PX, CANVAS, CadGui, until  # noqa: E402
 
@@ -321,7 +322,11 @@ RUNGS = {**{name: tool_rung(name) for name in TOOLS}, "rounded_rect": rung_round
 
 def main():
     global gui
-    gui = CadGui(orca_mcp.session_client()[0])
+    client = orca_mcp.session_client()[0]
+    # The start every test sets on a shared data folder, made before CadGui.start(), whose first check needs the
+    # Design tab not yet shown.
+    checks.start(client)
+    gui = CadGui(client)
     gui.start()
     return gui.run(RUNGS, sys.argv[1:])
 

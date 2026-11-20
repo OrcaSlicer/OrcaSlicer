@@ -9,9 +9,9 @@ test is written or changed.
 
 A test is a Python script, `test_<area>.py`, designed here first:
 
-1. Write or change the test's entry in its area's file: what it tests, its scenarios with the state expected after
-   each step, and what it leaves out on purpose and why. A test that fits no area starts a file of its own and a row
-   in the table of areas.
+1. Write or change the test's entry in its area's file: what it tests, the state it starts from and what it leaves
+   in the data folder, its scenarios with the state expected after each step, and what it leaves out on purpose and
+   why. A test that fits no area starts a file of its own and a row in the table of areas.
 2. Have the entry reviewed and agreed before any test code is written.
 3. Write the test to match the entry and add it to `sweep.json`. When the test changes later, change its entry in
    the same commit.
@@ -24,7 +24,10 @@ that adds the Python test covering what they cover. No replay is added to the sw
 
 A test decides by comparing the app's state with values its entry writes down before the test runs:
 
-- **Check the start.** Read and check the state a scenario starts from, so that each step is measured from a known
+- **Set the start, then check it.** The data folder a test runs on was used by the tests before it (see [Sharing a
+  data folder](#sharing-a-data-folder)), so a test sets the state its scenarios start from through tools rather
+  than trusting the seed: `start()` selects its printer, process and filaments, and the test sets any other stored
+  state its checks depend on. Then it reads that state and checks it, so that each step is measured from a known
   state: after `project_new`, `plate_list` lists one plate, current, with the name `""`.
 - **Read each step back through another tool.** After a call, read the state it should leave with a tool other
   than the one that acted: `plate_list` after `plate_rename`. The call's own reply may be checked as well, never
@@ -48,6 +51,36 @@ An entry is ready for review when every step has its expected state, and every v
 checks appears under **Not checked** with the reason. An entry is written before its test exists; the table of all
 tests lists the ones the sweep runs.
 
+### Sharing a data folder
+
+The sweep runs the tests of one job on one data folder, one after another, and resets nothing between them, as a
+person's OrcaSlicer opens each day on the folder the day before left. The folder keeps what each test leaves: user
+presets, preferences, recent projects, installed printers, plugins, scripts and each printer's remembered
+presets, filament slots and plate type. The window's placement is not among them: the app stores it only when it
+closes itself, and the runner ends it. Which tests
+ran before a test changes from sweep to sweep, since the runner orders them by time. Three rules keep a verdict
+independent of that order:
+
+- **Set what the checks depend on.** An entry's **Starts from** names the `start()` the test makes and every other
+  stored setting it sets before its first scenario, such as a preference its checks read. A test that needs a
+  printer the seed lacks installs it there; the folder keeps it for the tests after.
+- **Check what the test owns.** Where a check reads a list that other tests add to, such as the user presets, the
+  recent projects, the plugins or the menu items a plugin adds, it compares the items this test made or the app
+  ships, picked from the read by name, and the items an earlier test left are outside it. What a test saves under a
+  name gets a name no other test uses. A whole-list check stays whole where nothing another test leaves can reach
+  the list, as with the plates and objects of a new project.
+- **Leave what a person would keep.** A test does not take back what it made: what it leaves is what the next test
+  meets, as a person's next session would. An entry's **Leaves** lists it. A test restores at its end, in a
+  `finally`, only a setting that would change how the app reads to every test after it, such as the language or
+  the units, and its entry says so.
+
+**The default printer.** A data folder `orca_mcp.py launch` seeds has one printer, the Generic Klipper Printer of
+the Custom vendor with its 0.4 nozzle: `MyKlipper 0.4 nozzle`, `0.20mm Standard @MyKlipper` and `Generic PLA
+@System`. The app then installs only the two vendors it always needs, Custom and the Orca Filament Library, so a
+new folder's first start copies about 1,500 profile files instead of 4,000. A test that exercises a Bambu Lab
+printer's own behaviour, such as Send over the Bambu network, starts on the Bambu Lab X1 Carbon 0.4 nozzle, which
+`start()` installs on the first test of a job that needs it.
+
 ### The shared check module
 
 `checks.py` holds what the tests use to apply the rule, so that it is applied in one place:
@@ -60,19 +93,47 @@ tests lists the ones the sweep runs.
 - `run(client, tool, **args)` makes a call and follows its job to the end, and fails at once, naming the dialog,
   when a dialog the test does not answer holds the call.
 - `wait(client, condition, timeout_s)` fails when the wait runs out of time.
+- `start(client, printer=KLIPPER, process=None, filaments=None)` puts the app in a test's starting state: a new
+  project with its changes discarded, then `printer` selected, installed first with `printer_install` when the data
+  folder lacks it, then `process` (default: the printer's default process), then one filament slot per name in
+  `filaments` (default: the printer's default filament), with any mixed filament slot an earlier test left removed
+  first, each switch discarding unsaved preset changes. It returns
+  `presets()`, which the test compares with the start its entry writes out. `KLIPPER`, `KLIPPER_STD` and
+  `GENERIC_PLA` name the default printer's three presets; `X1C`, `X1C_STD` and `BAMBU_PLA` the Bambu Lab X1 Carbon
+  0.4 nozzle's.
 - Readers give the state a scenario checks in a fixed shape, such as `plates()`: a list of `{name, current, locked,
-  objects}`, one per plate.
+  objects}`, one per plate, and `presets()`: `{printer, process, filaments}`, the selected presets' names with one
+  filament per slot.
 
 ## How the sweep decides
 
-**The runner.** `run_sweep.py` runs each entry of `sweep.json` in a folder of its own on a freshly launched
-app, and a test passes when its process exits 0. A failed setup or launch, a run past its time limit (900 s
-unless the entry sets `timeout_s`), or an error running the test fails it, and so does a test left without a
-result. On macOS a new OrcaSlicer crash report fails the run. When a test ends, the runner's `stop` kills the app
-it launched (`TerminateProcess` on Windows, `SIGTERM` elsewhere) and ignores how it exited, so a crash while the
-app closes fails nothing on Windows or Linux; only the tests that close the app themselves see it. Tests that start
-their own app (`"launch": "own"`) start it with their own environment, so on Linux they follow neither the X11
-default nor `--headless`. No CI job runs the sweep: it runs when someone runs it.
+**The runner.** `run_sweep.py` runs the entries of `sweep.json` on `-j` jobs at once. Each job has one data folder
+for all its tests: the first launch on it seeds it with the default printer, and each later test on the job
+launches a fresh app on the folder as the tests before it left it. Each test has a folder of its own for its
+session file, temporary files, working folder and output. The longest tests, by their last passing time in the
+history file, start first, and tests that hold the same lock never overlap.
+
+The serial tests run after the rest, one at a time with nothing else running, on a job of their own: those
+`sweep.json` marks `exclusive`, and those the history marks serial. A test that fails while other tests run is
+run again in that phase, alone, on the data folder it failed on, so that a failure that follows from what an
+earlier test left fails again, and one that follows from the load passes. A test that passes alone counts as
+passed, the summary lists it as `passed alone`, and the history marks it serial, so later sweeps run it alone from
+the start. The mark stays until `--forget NAME` clears it.
+
+A test passes when its process exits 0. A failed setup or launch, a run past its time limit (900 s unless the
+entry sets `timeout_s`), or an error running the test fails it, and so does a test left without a result. On macOS
+a new OrcaSlicer crash report fails the run. When a test ends, the runner's `stop` kills the app it launched
+(`TerminateProcess` on Windows, `SIGTERM` elsewhere) and ignores how it exited, so a crash while the app closes
+fails nothing on Windows or Linux; only the tests that close the app themselves see it. The next test on the job
+waits until the app's processes, its WebView2 ones included, are gone, so that two apps never hold one folder.
+
+A passing run's folder is deleted as soon as it passes. A failed run's folder is kept with a copy of the app's
+log from the job's data folder, also when the test then passes alone, and so is the data folder of a job one of
+whose tests failed; the other data folders are deleted at the end, and `--keep` keeps everything. `results.jsonl` records each run of each test with
+its job and the tests that ran before it on that job's data folder, so that a failure can be traced to what they
+left. Tests that start their own app (`"launch": "own"`) start it on data folders of their own, with their own
+environment, so on Linux they follow neither the X11 default nor `--headless`. No CI job runs the sweep: it runs
+when someone runs it.
 
 **Replays.** A `.json` test runs with `orca_mcp.py run-replay`, which exits 0 when the replay passed. A step is ok
 when its call returns no error, when a `script_run` step's script finished (so a fixture fails its step by
@@ -126,7 +187,7 @@ until they leave the sweep.
 
 ## All tests
 
-The 62 tests `sweep.json` lists: 45 Strong, 15 Partial, 2 Smoke.
+The 62 tests `sweep.json` lists: 46 Strong, 14 Partial, 2 Smoke.
 
 | Test | Area | Kind | Strength |
 |---|---|---|---|
@@ -164,7 +225,7 @@ The 62 tests `sweep.json` lists: 45 Strong, 15 Partial, 2 Smoke.
 | [`test_send_gcode`](test-entries/windows_web.md#test_send_gcode) | [Windows, views, printers and web pages](test-entries/windows_web.md) | Python | Strong |
 | [`test_printer_commands`](test-entries/windows_web.md#test_printer_commands) | [Windows, views, printers and web pages](test-entries/windows_web.md) | Python | Partial |
 | [`test_web_ui`](test-entries/windows_web.md#test_web_ui) | [Windows, views, printers and web pages](test-entries/windows_web.md) | Python | Strong |
-| [`test_webview_modal`](test-entries/windows_web.md#test_webview_modal) | [Windows, views, printers and web pages](test-entries/windows_web.md) | Python | Partial |
+| [`test_webview_modal`](test-entries/windows_web.md#test_webview_modal) | [Windows, views, printers and web pages](test-entries/windows_web.md) | Python | Strong |
 | [`test_command_line`](test-entries/runtime.md#test_command_line) | [Runtime, command line and harness](test-entries/runtime.md) | Python | Strong |
 | [`test_runtime_lifecycle`](test-entries/runtime.md#test_runtime_lifecycle) | [Runtime, command line and harness](test-entries/runtime.md) | Python | Strong |
 | [`test_stdio_bridge`](test-entries/runtime.md#test_stdio_bridge) | [Runtime, command line and harness](test-entries/runtime.md) | Python | Partial |

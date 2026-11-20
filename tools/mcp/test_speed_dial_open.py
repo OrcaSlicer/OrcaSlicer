@@ -10,12 +10,12 @@ plater still shows the 3D view it started with, then Design when the Design tab 
 3D view must then hold the keyboard focus, as a focused sidebar control keeps Space for itself, and Space sent
 to the focused window must open the dial. The view also takes the focus when the pointer enters it, so before
 each tab click the test moves the system pointer to the primary display's top-left corner, (0, 0), and reads
-it back there: the seeded main window opens at the work area's top left, so that corner is its top bar or lies
-outside it, never in the 3D view below the tab bar. A pointer that does not read back at (0, 0) fails the
-page's focus check. On a native Wayland display, where an app can neither move the pointer nor read where it
-is, the focus checks are reported SKIP. Where KWin answers on the display's D-Bus (the private one of a
-`--headless` launch, else the caller's), the frame KWin reports for the dial must be the dial's own size: a
-title bar of KWin's makes the frame taller. Run it on a freshly launched app. Exits 0 when every check passes.
+it back there: the test first places the main window at the top left of the primary display's work area, so that
+corner is its top bar or lies outside it, never in the 3D view below the tab bar. A pointer that does not read back
+at (0, 0) fails the page's focus check. On a native Wayland display, where an app can neither move the pointer nor
+read where it is, the focus checks are reported SKIP. Where KWin answers on the display's D-Bus (the private one of
+a `--headless` launch, else the caller's), the frame KWin reports for the dial must be the dial's own size: a
+title bar of KWin's makes the frame taller. Exits 0 when every check passes.
 """
 
 import ctypes
@@ -28,6 +28,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, start  # noqa: E402
 
 
 def park_pointer(display):
@@ -169,6 +170,14 @@ def main():
         """The Speed Dial as window_list gives it: the shown web dialog with no title."""
         return next((w for w in client.call("window_list")["items"]
                      if w.get("kind") == "dialog" and w.get("web") and not w.get("title")), None)
+
+    started = start(client)
+    check("start: the Klipper printer with its default process and filament",
+          started == {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]}, started)
+    # The main window at the top left of the primary display's work area keeps (0, 0) off the 3D view; Wayland takes
+    # no position, and the size alone is given there.
+    primary = next(d for d in client.call("app_state")["displays"] if d.get("primary"))
+    client.call("window_set", size=[1600, 900], **({} if wayland else {"position": [primary["x"], primary["y"]]}))
 
     pages = [("Prepare", "prepare")]
     if client.call("app_state").get("design_tab"):

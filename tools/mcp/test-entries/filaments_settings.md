@@ -6,12 +6,12 @@ in [TESTS.md](../TESTS.md).
 Two tests, not one. `test_filaments` is about what a filament slot holds and what the project does with it (the
 preset in a slot, the unsaved-changes prompt, the flushing volumes, the filaments of objects and parts, the project's
 colours and prime tower); `test_settings` is about where a setting applies (a preset, an object, a part, a height
-range) and how the settings commands name those targets. They share no state, and each runs on a fresh app of its own,
-so the sweep can run them side by side; `test_filaments` also needs presets that nothing has shown yet, which a fresh
-app gives it.
+range) and how the settings commands name those targets. They share no state: each sets the start it needs, so the
+sweep can run them side by side, or one after the other on one data folder. `test_filaments` also needs filament
+presets the selectors do not offer yet, which it makes so itself before its first scenario.
 
 ## `test_filaments`
-`test_filaments.py` · Python, 479 checks · in `sweep.json` as `{"path": "test_filaments.py", "timeout_s": 1500}`
+`test_filaments.py` · Python, 492 checks · in `sweep.json` as `{"path": "test_filaments.py", "timeout_s": 1500}`
 
 **Tests:** Assigning a filament preset to a filament slot through each route a person or a plugin has: a pick in the
 slot's selector in the sidebar, the selector's value set (`widget_set_value`), `preset_select`, and the plugin API's
@@ -21,18 +21,61 @@ three slots, what the Auto-flush preference (`auto_calculate_flush`: All, Color,
 a slot's preset or colour changes, the unsaved changes of the preset the tab edits, the plugin API's other forms, the
 refusals and the hidden presets shown by name. Then multicolour printing: the filament of an object and of a part
 through `settings_set`, and the project's own settings through `project_set_settings` (slot colours, flushing volumes
-and multiplier, plate type, prime tower), with what reaches the print and what the project file keeps. It runs on the
-harness's default printer, the Bambu Lab X1 Carbon 0.4, on the sweep's fresh app and data folder.
+and multiplier, plate type, prime tower), with what reaches the print and what the project file keeps.
 
-**Terms:** filament presets `B` (Bambu PLA Basic @BBL X1C), `X` (FilAr PLA Blanco Calido, a PLA whose preset has the
-default colour `#FFF8E7`), `M` (Bambu PLA Matte @BBL X1C, a PLA with no default colour), `S` (Bambu Support For PLA @BBL
-X1C, a support filament of type PLA), `A` (Bambu Support for ABS @BBL X1C, a support filament of type ABS), `G` (Bambu
-PETG Basic @BBL X1C) and `H` (Bambu PETG HF @BBL X1C). Only `X` has a default colour. Their `slow_down_layer_time`, from
-the profiles: `B`, `X` and `M` 4, `S` 8, `A` 12, `G` 12, `H` 10. Every route resolves a name against the slot's selector,
-which takes the name it shows ("FilAr PLA Blanco Calido", "Bambu Support for ABS") or the internal name; a row that
-gives a letter passes the internal name, and a row that quotes a name passes it as quoted. The prompt is the dialog
-titled "Transfer or discard changes". Auto-flush is the preference `auto_calculate_flush`: All (`all`), Color (`color
-change`), None (`disabled`).
+Every scenario runs on the Generic Klipper Printer 0.4. Nothing they check is a Bambu Lab printer's own: their
+filaments come from the Orca Filament Library, which fits every printer, and the colours, the flushing volumes, the
+prompt and the plugin API work the same on any printer with one extruder and several filaments. The last scenario sets
+the plate type, whose selector the sidebar shows only for a Bambu Lab printer or one with `support_multi_bed_types`,
+which no Custom printer sets (without it the Klipper printer refuses the plate type: "curr_bed_type: this printer has a
+single plate type"), so that scenario turns the printer's `support_multi_bed_types` on for itself. The Klipper printer
+purges each filament change into the prime tower, where the slice counts the purge as `tower_g` and leaves `flush_g`
+0, so the flush settings are shown in the print through `tower_g`.
+
+**Starts from:** each scenario's own `start()`, and three stored settings its checks read (the presets' letters are
+given under Terms):
+- `start(client, filaments=[B] * n)` for each scenario but the last, `n` being the slots it needs: a new project on
+  `MyKlipper 0.4 nozzle` with `0.20mm Standard @MyKlipper` and `n` slots holding `B`. `presets()` is `{printer:
+  "MyKlipper 0.4 nozzle", process: "0.20mm Standard @MyKlipper", filaments: [B, …]}`, one `B` per slot.
+- `start(client, filaments=[B, M])` for the last scenario, then `settings_set {type: "printer", values:
+  {support_multi_bed_types: true}}`, which `settings_get` reads as "1": an unsaved edit of the printer preset, which
+  turns on its plate types and which the next `start()` discards. `presets()` is `{printer: "MyKlipper 0.4 nozzle",
+  process: "0.20mm Standard @MyKlipper", filaments: [B, M]}`.
+- The six filaments it shows by name are not installed: before its first scenario, after a `start(client)` of its own
+  (one slot of `B`, since a filament a slot holds cannot be uninstalled), `filament_uninstall {names: [X, M, S, A, G,
+  H]}`, whose reply lists each of the six under `uninstalled` or `not_installed`. An installed filament is the only one
+  the selectors offer at the app's start, which puts an installed filament in any slot whose filament is not installed
+  (on this build a slot left holding `X` or `M` opens holding `B`), so a filament an earlier test or an earlier run of
+  this one showed is hidden again, and the uninstall takes out one an earlier test installed. The hidden scenario's
+  step 1 checks that the four it picks are hidden, and the refusals scenario's row 10 that `G` and `H` are.
+- Simple mode, once, with the `mode_simple` action, and `app_state.mode` reads `simple`: the prompt lists the settings
+  the mode shows, and `slow_down_layer_time` is one of them.
+- Auto-flush All at the start of every scenario, with `preferences_set`, read back with `preferences_get` as `all`,
+  since a preference outlives the scenario that sets it.
+
+**Leaves:** the Klipper printer selected, with `0.20mm Standard @MyKlipper` and the last scenario's slots `B` and `M`,
+which its closing `project_new {discard_changes: true, preset_changes: "discard"}` keeps while it drops the printer's
+`support_multi_bed_types` edit (as `M` is not installed, the app's next start puts `B` in slot 2); `X`, `M`, `S`, `A`,
+`G` and `H` not installed; Simple mode; Auto-flush on All, which every scenario after the Auto-flush scenario sets;
+and `filaments.3mf`, saved in the test's temporary folder and deleted with it, in the recent projects, with that
+folder as the last one opened. It saves no preset and installs nothing. It restores nothing in a `finally`: Simple
+mode is the mode a new data folder starts in, All is Auto-flush's default, and a test whose checks depend on either
+sets it, as this one does.
+
+A run again on the data folder a failed run left meets what that run left: its slots, presets and unsaved changes,
+which `start()` replaces and discards, and filaments it showed, which the app's start hides again. Its project file
+goes to a new temporary folder, and it saves no preset, so nothing a first run leaves stands in a second run's way.
+
+**Terms:** filament presets of the Orca Filament Library, which fits every printer: `B` (Generic PLA @System, the
+Klipper printer's default filament), `X` (FilAr PLA Blanco Calido, a PLA whose preset has the default colour
+`#FFF8E7`), `M` (Generic PLA Matte @System, a PLA with no default colour), `S` (Bambu Support For PLA @System, a support
+filament of type PLA), `A` (Bambu Support for ABS @System, a support filament of type ABS), `G` (Bambu PETG Basic
+@System) and `H` (Bambu PETG HF @System). Only `X` has a default colour. Their `slow_down_layer_time`, from the
+profiles: `B`, `X` and `M` 4, `S` 8, `A` 12, `G` 12, `H` 10. Every route resolves a name against the slot's selector,
+which takes the name it shows ("FilAr PLA Blanco Calido", "Generic PLA Matte", "Bambu Support for ABS") or the
+internal name; a row that gives a letter passes the internal name, and a row that quotes a name passes it as quoted.
+The prompt is the dialog titled "Transfer or discard changes". Auto-flush is the preference `auto_calculate_flush`:
+All (`all`), Color (`color change`), None (`disabled`).
 
 The routes, for slot `n` and preset `P`:
 - pick: `widget_click {target: {class: "PlaterPresetComboBox", index: n}}` (index 0 is the printer's selector), then
@@ -71,8 +114,13 @@ The routes, for slot `n` and preset `P`:
   `project_get_settings`, `filament_colour`, `flush_multiplier`, `flush_volumes_matrix`, `curr_bed_type`, and plate 0's
   `wipe_tower_x` and `wipe_tower_y`; and `plate_list`'s plate 0 `curr_bed_type` and `wipe_tower`, which must agree with
   them.
-- `grams()` gives, for each slot, `model_g` and `flush_g`, and the plate's `filament_changes`, from the `summary` of
-  `plate_slice_stats {plate: 0}` read after the slice.
+- `grams()` gives, for each slot, `model_g`, `flush_g` and `tower_g`, and the plate's `filament_changes`, from the
+  `summary` of `plate_slice_stats {plate: 0}` read after the slice.
+
+The data folder holds what other tests leave beside these presets: user filament presets, such as `test_presets`' and
+`test_calibration`'s "MCP …" presets, and the filaments other tests install, which the selectors and `preset_list` list
+too. No check reads those lists whole: the tab is the item `preset_list` marks `selected`, the hidden checks look each
+preset up by its name, and every route names the preset it assigns.
 
 A call that the prompt holds replies `blocked_by_dialog`. The test then checks `dialogs()`, answers with
 `dialog_answer` (a label, or `cancel`, which closes the prompt), waits for the call's job with `app_wait {for: "job"}`
@@ -80,11 +128,8 @@ and checks that the wait was met and no dialog is open: the prompt opens once. E
 `app_wait {for: "idle"}`, which must be met. A refusal is matched by its code where the operations layer gives one,
 otherwise by its words, and is always followed by the scenario's full read-back.
 
-The test turns on Simple mode once, with the `mode_simple` action, and checks `app_state.mode` is `simple`: the prompt
-lists the settings the mode shows, and `slow_down_layer_time` is one of them. Every scenario starts with `project_new
-{discard_changes: true, preset_changes: "discard"}` in the Prepare view; sets Auto-flush to All with `preferences_set`
-and checks `preferences_get` reads `all`, since a preference outlives the scenario that sets it; sets the number of slots
-with `filament_delete` until it is refused and `filament_add`; and checks `slots()`.
+Every scenario starts with its `start()`, checks `presets()` against the start the scenario gives, goes to the Prepare
+view with `view_set`, sets Auto-flush to All and reads it back, and checks `slots()`.
 
 Each case of the slot scenarios starts from `arrange(presets, dirty)`, whose result is checked as the row's start: it
 drops the tab's unsaved changes (`settings_set {type: "filament", filament_slot, reset_all: true}` on a slot holding the
@@ -96,17 +141,17 @@ it then sets `slow_down_layer_time` 9 on slot 1's preset with `settings_set {typ
 
 **Scenario: hidden filaments, shown by name** (runs first)
 
-One slot, from `arrange([B])`: `B | B | 4 | #111111 | 0`. `X`, `M`, `S` and `A` are hidden on a fresh data folder; a
-pick needs them in the selectors.
+One slot, from `arrange([B])`: `B | B | 4 | #111111 | 0`. `X`, `M`, `S` and `A` are hidden, as the start leaves them;
+a pick needs them in the selectors, so the later scenarios' picks rely on this one's showing them.
 
 | # | Step | State after | Also checked |
 |---|---|---|---|
-| 1 | `preset_list {type: "filament", query: P}` for each of "FilAr PLA Blanco Calido", "Bambu PLA Matte", "Bambu Support For PLA" and "Bambu Support for ABS", then the same with `include_uninstalled: true` | `B \| B \| 4 \| #111111 \| 0` | the first lists none of them; the second's items include `X`, `M`, `S` and `A`, each with `installed: false` |
+| 1 | `preset_list {type: "filament", query: P}` for each of "FilAr PLA Blanco Calido", "Generic PLA Matte", "Bambu Support For PLA" and "Bambu Support for ABS", then the same with `include_uninstalled: true` | `B \| B \| 4 \| #111111 \| 0` | the first lists none of them; the second's items include `X`, `M`, `S` and `A`, each with `installed: false` |
 | 2 | tool "FilAr PLA Blanco Calido" | `X \| X \| 4 \| #FFF8E7 \| 0` | reply `selected` and `shown` `X` |
-| 3 | tool "Bambu PLA Matte" | `M \| M \| 4 \| #FFF8E7 \| 0` | reply `selected` and `shown` `M`; the colour stays, as `M` has no default colour |
+| 3 | tool "Generic PLA Matte" | `M \| M \| 4 \| #FFF8E7 \| 0` | reply `selected` and `shown` `M`; the colour stays, as `M` has no default colour |
 | 4 | tool "Bambu Support For PLA" | `S \| S \| 8 \| #FFF8E7 \| 0` | reply `selected` and `shown` `S` |
 | 5 | tool "Bambu Support for ABS" | `A \| A \| 12 \| #FFF8E7 \| 0` | reply `selected` and `shown` `A` |
-| 6 | tool "Bambu PLA Basic" | `B \| B \| 4 \| #FFF8E7 \| 0` | reply `selected` `B` and no `shown` |
+| 6 | tool "Generic PLA" | `B \| B \| 4 \| #FFF8E7 \| 0` | reply `selected` `B` and no `shown` |
 | 7 | `preset_list {type: "filament", query: P}` for each of the four | as after 6 | each lists its preset, with no `installed` field: a preset a call showed stays shown |
 
 **Scenario: one slot, a PLA with a default colour**
@@ -148,7 +193,7 @@ so the colour stays `#111111` on every row.
 | 8 | dirty | tool `A`, answered Discard | as 1 | the prompt as in 4; the job's result as 7's reply |
 | 9 | dirty | tool `A`, answered cancel | as 5 | the prompt as in 4; the job's result `selected` `B`, not refused |
 | 10 | dirty | api `A`, answered Discard | as 1 | the prompt as in 4; commit as in 3 |
-| 11 | dirty | api `A`, answered cancel | as 5 | raised `RuntimeError` "Switching the edited filament preset to "Bambu Support for ABS @BBL X1C" for filament slot 1 was canceled; neither the slot assignment nor any setting was changed" |
+| 11 | dirty | api `A`, answered cancel | as 5 | raised `RuntimeError` "Switching the edited filament preset to "Bambu Support for ABS @System" for filament slot 1 was canceled; neither the slot assignment nor any setting was changed" |
 
 **Scenario: one slot, the plugin API's forms that name no preset**
 
@@ -160,7 +205,7 @@ so the colour stays `#111111` on every row.
 | 4 | dirty | `begin_update(1).commit()` | `B \| B* \| 9 \| #111111 \| 0` | no dialog opened; commit as in 1 but `dirty: true` |
 | 5 | dirty | `update(1, "slow_down_layer_time", "8")` | as 2 | no dialog opened |
 | 6 | dirty | `update("slow_down_layer_time", "8")` | as 2 | |
-| 7 | dirty | `begin_update(1, "Bambu PLA Basic").commit()`, the preset slot 1 holds | as 4 | no dialog opened; commit as in 4: nothing switched, nothing assigned |
+| 7 | dirty | `begin_update(1, "Generic PLA").commit()`, the preset slot 1 holds | as 4 | no dialog opened; commit as in 4: nothing switched, nothing assigned |
 
 **Scenario: three slots, what Auto-flush does to the flushing volumes**
 
@@ -182,11 +227,10 @@ on slot 2: the pick and the tool leave the tab on `B`, the api moves it to the p
 
 After the filament rows of each preference, one more case from the same start: `project_set_settings {values:
 {filament_colour: {index: 1, value: "#FFF8E7"}}}`, the colour picker's change. Under All and Color it leaves `B B B | B
-| 4,4,4 | cX | R2`; under None `B B B | B | 4,4,4 | cX | S3`. Where `R2` is expected, the three routes of `X` give the
-same four entries under one preference, and Color gives what All gave for `X`: an assignment recalculates as a colour
-change does. The colour change gives the routes' entries 1 and 7, into slot 2, and lower entries 3 and 5, out of it:
-slot 2 still holds `B`, whose retraction at a cut the calculator takes off the flush out of the slot, where `X` has none
-(see To settle).
+| 4,4,4 | cX | R2`; under None `B B B | B | 4,4,4 | cX | S3`. Where `R2` is expected, the three routes of `X` and the
+colour change give the same four entries under one preference, and Color gives what All gave for `X`: an assignment
+recalculates as a colour change does, and on the Klipper printer the preset a slot holds does not change what the
+calculator starts from (see To settle).
 
 **Scenario: three slots, unsaved changes in the preset the tab edits**
 
@@ -202,7 +246,7 @@ tab edits. Rows 8 and 9 start from `arrange([B, M, B], dirty)`: `B M B | B* | 9,
 | 5 | api `X`, answered Transfer | `B X B \| X* \| 4,9,4 \| cX \| R2` | the call replies `blocked_by_dialog`, the prompt's buttons including Transfer and Discard; commit `{target_name: X, selection_changed: true, slot_assignment_changed: true, shared_slots: [2], keys: [], dirty: true}` |
 | 6 | api `X`, answered Discard | `B X B \| X \| 4,4,4 \| cX \| R2` | the prompt as in 5; commit as in 5 but `dirty: false` |
 | 7 | api `X`, answered cancel | `B B B \| B* \| 9,9,9 \| c3 \| S3` | the prompt as in 5; raised `RuntimeError` "Switching the edited filament preset to "FilAr PLA Blanco Calido" for filament slot 2 was canceled; neither the slot assignment nor any setting was changed" |
-| 8 | api `begin_update(2).commit()`, answered cancel | `B M B \| B* \| 9,4,9 \| c3 \| S3` | the prompt as in 5; raised `RuntimeError` "Switching the edited filament preset to "Bambu PLA Matte @BBL X1C" for filament slot 2 was canceled; neither the slot assignment nor any setting was changed" |
+| 8 | api `begin_update(2).commit()`, answered cancel | `B M B \| B* \| 9,4,9 \| c3 \| S3` | the prompt as in 5; raised `RuntimeError` "Switching the edited filament preset to "Generic PLA Matte @System" for filament slot 2 was canceled; neither the slot assignment nor any setting was changed" |
 | 9 | api `update(2, "slow_down_layer_time", "8")`, answered cancel | as 8 | the prompt as in 5; the same `RuntimeError` |
 
 **Scenario: three slots, the selector's value and the plugin API's other forms**
@@ -213,7 +257,7 @@ No unsaved changes. Each row starts from `arrange` with the presets it names.
 |---|---|---|---|---|
 | 1 | `B B B` | `widget_set_value {target: {class: "PlaterPresetComboBox", index: 2}, value: "FilAr PLA Blanco Calido"}` | `B X B \| B \| 4,4,4 \| cX \| R2` | as a pick of the row |
 | 2 | `B B B` | api `begin_update(2, X)`, not committed | `B X B \| X \| 4,4,4 \| cX \| R2` | the transaction `{target_name: X, selection_changed: true, slot_number: 2}`: the slot is assigned as the transaction is made |
-| 3 | `B M B` | api `begin_update(2, "Bambu PLA Matte").commit()` | `B M B \| M \| 4,4,4 \| c3 \| S3` | commit `{target_name: M, selection_changed: true, slot_assignment_changed: false, shared_slots: [2], keys: [], dirty: false}`: the tab switches and nothing is assigned or recalculated |
+| 3 | `B M B` | api `begin_update(2, "Generic PLA Matte").commit()` | `B M B \| M \| 4,4,4 \| c3 \| S3` | commit `{target_name: M, selection_changed: true, slot_assignment_changed: false, shared_slots: [2], keys: [], dirty: false}`: the tab switches and nothing is assigned or recalculated |
 | 4 | `B M B` | api `begin_update(2).commit()` | as 3 | commit as in 3 |
 | 5 | `B M B` | api `t = begin_update(2); t.set("slow_down_layer_time", "8"); t.commit()` | `B M B \| M* \| 4,8,4 \| c3 \| S3` | commit `{target_name: M, selection_changed: true, slot_assignment_changed: false, shared_slots: [2], keys: [slow_down_layer_time], dirty: true}` |
 | 6 | `B M B` | api `update(2, "slow_down_layer_time", "8")` | as 5 | nothing raised |
@@ -231,8 +275,8 @@ Every row starts from `arrange([B, B, B])`, and every refused row leaves `B B B 
 | 4 | api `update(5, "slow_down_layer_time", "8")` | raised `IndexError`, as in 2 |
 | 5 | tool, slot 2, "No Such Filament" | refused, `preset_not_offered`, starting "The selector of filament slot 2 does not offer "No Such Filament"." |
 | 6 | api `begin_update(2, "No Such Filament").commit()` | raised `ValueError` "The selector of filament slot 2 does not offer "No Such Filament"." |
-| 7 | tool, slot 2, "Bambu PLA Basic @BBL A1" | refused, `preset_incompatible`, starting ""Bambu PLA Basic @BBL A1" is not compatible with the selected printer." |
-| 8 | api `begin_update(2, "Bambu PLA Basic @BBL A1").commit()` | raised `ValueError` ""Bambu PLA Basic @BBL A1" is not compatible with the selected printer." |
+| 7 | tool, slot 2, "Generic PLA @MyToolChanger" | refused, `preset_incompatible`, starting ""Generic PLA @MyToolChanger" is not compatible with the selected printer.": a filament of the Custom vendor, which every data folder installs, for its MyToolChanger printers alone |
+| 8 | api `begin_update(2, "Generic PLA @MyToolChanger").commit()` | raised `ValueError` ""Generic PLA @MyToolChanger" is not compatible with the selected printer." |
 | 9 | api `begin_update("FilAr PLA Blanco Calido")`, with no slot | raised `ValueError` starting "begin_update on the filament editor takes (slot_number, preset_name="")" |
 | 10 | `preset_list {type: "filament", query: "Bambu PETG"}`, then with `include_uninstalled: true` | the first lists neither `G` nor `H`; the second lists both with `installed: false`; `state()` as at the start |
 | 11 | tool, slot 2, "Bambu PETG Basic" | `state()` is `B G B \| B \| 4,12,4 \| c3 \| R2`; reply `selected` and `shown` `G`; `preset_list {type: "filament", query: "Bambu PETG Basic"}` lists `G` |
@@ -247,7 +291,9 @@ mm at (160, 100) are added with `object_add_primitive`, then a cube part of 5 mm
 filament 1 (`ObjectList::load_mesh_object()`); `item(object 0, extruder)` is `{value: "1", effective: "1", source:
 "object", parts: [{part: 1, value: "1"}]}`, as a part added to it is given its object's filament
 (`ObjectList::load_generic_subobject()`); and a first slice, the control, gives outcome `ok` and `grams()` slot 1
-`model_g` above 0, slot 2 `model_g` 0 and `flush_g` 0, and `filament_changes` 0.
+`model_g` above 0, slot 2 `model_g`, `flush_g` and `tower_g` 0, and `filament_changes` 0. The Klipper printer purges a
+filament change into the prime tower, so the purges of the slices below are in `tower_g`, which no row here checks
+(the project scenario does), and `flush_g` stays 0.
 
 | # | Step | `filaments()` after | Also checked |
 |---|---|---|---|
@@ -260,21 +306,23 @@ filament 1 (`ObjectList::load_mesh_object()`); `item(object 0, extruder)` is `{v
 | 7 | `settings_set {target: "part", object: 0, part: 1, values: {extruder: null}}` | `cube 1 (1, 1) · cylinder 1` | reply `applied.extruder` "1"; `item(part 0/1, extruder)` `{value: "1", effective: "1", source: "part"}`: a part's Default writes its object's filament into the part (`ObjectList::set_extruder_for_items()`) |
 | 8 | `settings_set {target: "part", object: 0, part: 1, values: {extruder: 2}}`, then `settings_set {target: "object", object: 1, values: {extruder: 2}}` | `cube 1 (1, 2) · cylinder 2` | `item(part 0/1, extruder)` as after 5; `item(object 1, extruder)` as after 1 |
 | 9 | `settings_set {target: "object", object: 0, values: {extruder: 2, wall_loops: 5}}` | `cube 2 (2, 2) · cylinder 2` | reply `applied` `{extruder: "2", wall_loops: "5"}`; `item(object 0, extruder)` `{value: "2", effective: "2", source: "object"}` with no `parts`: the object's filament clears its parts'; `item(object 0, wall_loops)` `{value: "5", effective: "5", source: "object"}` |
-| 10 | `undo` | `cube 1 (1, 2) · cylinder 2` | `item(object 0, extruder)` as after 5; `item(object 0, wall_loops)` `{value: null, effective: "2", source: "global"}`: the call was one undo step |
+| 10 | `undo` | `cube 1 (1, 2) · cylinder 2` | `item(object 0, extruder)` as after 5; `item(object 0, wall_loops)` `{value: null, effective: "3", source: "global"}`, the `wall_loops` of `0.20mm Standard @MyKlipper`: the call was one undo step |
 | 11 | `plate_slice` | as after 10 | outcome `ok`; `grams()` slot 2 `model_g` above step 6's: the cylinder prints with filament 2 too; slot 1 `model_g` above 0; `filament_changes` above 0 |
 
 **Scenario: the project's own settings, the print and the file**
 
-`slots()` is `0,0`, slot 1 `B` and slot 2 `M`, set with `preset_select`. The cube, its part and the cylinder of the
-scenario before are added the same way, and the part and the cylinder given filament 2 with `settings_set`:
-`filaments()` is `cube 1 (1, 2) · cylinder 2`. Then, with `project_set_settings`, the colours `#111111;#222222`, the
-matrix `0,777,777,0`, the multiplier 1, the plate type "Cool Plate" and plate 0's prime tower at (60, 150). The start is
-checked: `project()` is `#111111;#222222 | 1 | 0,777,777,0 | Cool Plate | 60,150`, and `app_state` `presets.filaments`
-is `[B, M]`. `project()` is read after every step; a value it gives is written out in full in the table.
+From `start(client, filaments=[B, M])` and the printer's plate types turned on (see Starts from): `presets()` is
+`{printer: "MyKlipper 0.4 nozzle", process: "0.20mm Standard @MyKlipper", filaments: [B, M]}`, `support_multi_bed_types`
+reads "1" and `slots()` is `0,0`. The cube, its part and the cylinder of the scenario before are added the same way,
+and the part and the cylinder given filament 2 with `settings_set`: `filaments()` is `cube 1 (1, 2) · cylinder 2`.
+Then, with `project_set_settings`, the colours `#111111;#222222`, the matrix `0,777,777,0`, the multiplier 1, the
+plate type "Cool Plate" and plate 0's prime tower at (60, 150). The start is checked: `project()` is
+`#111111;#222222 | 1 | 0,777,777,0 | Cool Plate | 60,150`, and `presets().filaments` is `[B, M]`. `project()` is read
+after every step; a value it gives is written out in full in the table.
 
 | # | Step | `project()` after | Also checked |
 |---|---|---|---|
-| 1 | `project_get_settings {keys: [filament_is_mixed, curr_bed_type, prime_volume_mode]}` | `#111111;#222222 \| 1 \| 0,777,777,0 \| Cool Plate \| 60,150` | `filament_is_mixed` "0,0" with `meta.read_only` true; `curr_bed_type`'s `meta.offered` holds "Cool Plate" and "Textured PEI Plate"; `prime_volume_mode` "Default" with `meta.offered` empty: the X1C has no purge mode to choose |
+| 1 | `project_get_settings {keys: [filament_is_mixed, curr_bed_type, prime_volume_mode]}` | `#111111;#222222 \| 1 \| 0,777,777,0 \| Cool Plate \| 60,150` | `filament_is_mixed` "0,0" with `meta.read_only` true; `curr_bed_type`'s `meta.offered` holds "Cool Plate" and "Textured PEI Plate"; `prime_volume_mode` "Default" with `meta.offered` empty: the Klipper printer has no purge mode to choose |
 | 2 | `project_set_settings {values: {filament_colour: {index: 0, value: "#ffffff"}}}` | `#FFFFFF;#222222 \| 1 \| 0,<a>,<b>,0 \| Cool Plate \| 60,150` | reply `applied.filament_colour` "#FFFFFF;#222222": stored in upper case. `<a>` and `<b>` are worked out by the app, neither 777, and `<b>` (into white) greater than `<a>` (out of it) |
 | 3 | `flush_volumes_matrix: [0, 777, 777, 0]`, then one call with `filament_colour: {index: 1, value: "#000000"}`, `flush_multiplier: 0.7`, `flush_volumes_matrix: {index: 1, value: 400}` and `curr_bed_type: "Textured PEI Plate"` | `#FFFFFF;#000000 \| 0.7 \| 0,400,<c>,0 \| Textured PEI Plate \| 60,150` | `<c>` neither 777 nor 400: the colour went first, its recalculation replaced entry 2, and the entry given replaced entry 1 |
 | 4 | `flush_volumes_matrix: [0, 400, 300, 0]` | `#FFFFFF;#000000 \| 0.7 \| 0,400,300,0 \| Textured PEI Plate \| 60,150` | |
@@ -286,10 +334,10 @@ is `[B, M]`. `project()` is read after every step; a value it gives is written o
 | 10 | `prime_volume_mode: "Saving"` | as after 7 | refused, "prime_volume_mode: this printer has no purge mode to choose"; `prime_volume_mode` reads "Default" |
 | 11 | `flush_volumes_matrix: {index: 0, value: 10}` | as after 7 | refused, "flush_volumes_matrix[0] (nozzle 1, from slot 1 to slot 1) must be 0: no flush from a filament to itself" |
 | 12 | `wipe_tower_x: {index: 0, value: 300}` | as after 7 | refused, "The prime tower of plate 0 would be off the plate" |
-| 13 | `plate_slice` | as after 7 | outcome `ok`; `grams()` each slot's `model_g` and `flush_g` above 0, and `filament_changes` above 0 |
-| 14 | `flush_volumes_matrix: {index: 1, value: 200}`, then `plate_slice` | `#FFFFFF;#000000 \| 0.7 \| 0,200,300,0 \| Textured PEI Plate \| 150,180` | `grams()`: slot 2's `flush_g` lower than after 13; slot 1's `flush_g` and `filament_changes` as after 13, `flush_g` to 0.01 g |
-| 15 | `flush_multiplier: 1.4`, then `plate_slice` | `#FFFFFF;#000000 \| 1.4 \| 0,200,300,0 \| Textured PEI Plate \| 150,180` | `grams()`: each slot's `flush_g` higher than after 14 |
-| 16 | `project_save` to a new file, `project_new`, `project_open` of the file | as after 15 | `filaments()` `cube 1 (1, 2) · cylinder 2`; `app_state` `presets.filaments` `[B, M]`; `slots()` `0,0`: the project file keeps them |
+| 13 | `plate_slice` | as after 7 | outcome `ok`; `grams()` each slot's `model_g` and `tower_g` above 0 and `flush_g` 0, and `filament_changes` above 0 |
+| 14 | `flush_volumes_matrix: {index: 1, value: 200}`, then `plate_slice` | `#FFFFFF;#000000 \| 0.7 \| 0,200,300,0 \| Textured PEI Plate \| 150,180` | `grams()`: slot 2's `tower_g` lower than after 13; each slot's `model_g`, to 0.01 g, and `filament_changes` as after 13 |
+| 15 | `flush_multiplier: 1.4`, then `plate_slice` | `#FFFFFF;#000000 \| 1.4 \| 0,200,300,0 \| Textured PEI Plate \| 150,180` | `grams()`: each slot's `tower_g` higher than after 14 |
+| 16 | `project_save` to a new file, `project_new {discard_changes: true, preset_changes: "discard"}`, `project_open` of the file | as after 15 | `filaments()` `cube 1 (1, 2) · cylinder 2`; `presets().filaments` `[B, M]`; `slots()` `0,0`; `support_multi_bed_types` "1": the project file keeps them, and the printer's settings with the plate type. The new project drops the printer's edit first, which `project_open` would otherwise ask about in a "Load project: unsaved changes" dialog |
 
 **To settle in review:**
 - A cancelled prompt with one slot (one slot, rows 6 and 11) leaves the colour of the preset not chosen. The pick and
@@ -302,32 +350,36 @@ is `[B, M]`. `project()` is read after every step; a value it gives is written o
   `#111111`.
 - `R2` is checked by properties, since the app works out the volumes from the colours: each recalculated entry other
   than the sentinel and above 0, the four equal across routes and to a colour change, and for `X` the volumes into the
-  lighter colour above those out of it. With the X1C's `nozzle_flush_dataset` 0, `FlushVolCalculator::calc_flush_vol_rgb()`
-  takes the flush predictor's value where it has one and its colour formula otherwise; both make a dark-to-light change
-  cost far more than the reverse.
-- The colour change and the assignment of `X` agree only on the volumes into slot 2. The calculator works out a change
-  from the minimum of the filament it leaves (`get_min_flush_volumes()` in `Plater.cpp`, the app's own code, given to
-  `FlushVolCalculator` by `Sidebar::auto_calc_flushing_volumes_internal()`): the nozzle volume, 107 mm³ on the X1C, less
-  the filament the printer retracts at a cut. `B` retracts 18 mm at a cut
-  (`filament_long_retractions_when_cut` 1), about 44 mm³, while `X` sets no such retraction, so with `B` still in slot 2
-  the colour change gives entries 3 and 5 lower (on this build 148 and 138 against 192 and 182). The rows check the
-  order, not the difference.
+  lighter colour above those out of it. With the Klipper printer's `nozzle_flush_dataset` 0,
+  `FlushVolCalculator::calc_flush_vol_rgb()` takes the flush predictor's value where it has one and its colour formula,
+  at least 60, otherwise; both make a dark-to-light change cost far more than the reverse (on this build `X`'s four
+  entries are 534, 85, 75 and 479).
+- The colour change and the assignment of `X` give the same four entries. The calculator works out a change from the
+  minimum of the filament it leaves (`get_min_flush_volumes()` in `Plater.cpp`, given to `FlushVolCalculator` by
+  `Sidebar::auto_calc_flushing_volumes_internal()`): the nozzle volume less the filament the printer retracts at a cut.
+  The Klipper printer sets neither (`nozzle_volume` 0, `enable_long_retraction_when_cut` 0), so the minimum is 0 for
+  every slot, whichever preset it holds, and the colour change, with `B` still in slot 2, gives what the assignment of
+  `X` gives. On a Bambu Lab printer `B`'s cut retraction would lower the colour change's entries out of slot 2.
 - `Sup` is exact: 230 into a support filament and `max(<colour volume>, 700)` out of it
-  (`Sidebar::auto_calc_flushing_volumes_internal()`); from `#222222` to `#111111` or `#333333` the colour volume plus the
-  calculator's minimum (the X1C's 107 mm³ nozzle volume, less the cut retraction where it applies) stays far under 700.
+  (`Sidebar::auto_calc_flushing_volumes_internal()`); from `#222222` to `#111111` or `#333333` the colour volume, with the
+  Klipper printer's minimum of 0, stays far under 700.
 - The prompt's buttons are checked as "including" Transfer, Discard and Save (the dialog also lays out other labelled
   controls), and "not including" Transfer for `A`.
-- The flush grams in the print (project, rows 13 to 15). The purge of a filament change is `flush_volumes_matrix[from][to]`
-  times `flush_multiplier` (`GCode.cpp`, at least `g_min_purge_volume`, 100 mm³; the X1C's `grab_length` is 0), extruded
-  between `; FLUSH_START` and `; FLUSH_END`. The processor charges the first nozzle volume of each purge, 107 mm³ on the
-  X1C, to the outgoing filament and the rest to the incoming one (`GCodeProcessor.cpp`, the remaining volume reset at
-  each tool change). Entry 1 at 400 or 200 times 0.7 (280 or 140 mm³) is above 107 either way, so a change from slot 1
-  to slot 2 charges slot 1 107 mm³ in both slices and slot 2 the rest, and the changes from slot 2 to slot 1 are the
-  same: slot 1's `flush_g` stays to 0.01 g while slot 2's falls. At 1.4 both entries grow and so do both slots' grams.
+- The purges in the print (project, rows 13 to 15). The Klipper printer has `single_extruder_multi_material` and
+  `purge_in_prime_tower` on, so the purge of a filament change is `flush_volumes_matrix[from][to]` times
+  `flush_multiplier`, which the incoming filament extrudes into the prime tower (`Print::_make_wipe_tower()`,
+  `WipeTower2`): the slice counts it in that slot's `tower_g` and leaves `flush_g` 0. `tower_g` also holds the tower's
+  walls and sparse layers, which whichever filament is loaded prints and whose share moves with the purges, so the rows
+  check which way a slot's `tower_g` moves, and only where its own purges change. Entry 1 at 200 instead of 400 halves
+  the purge into slot 2 at each of the 25 changes from slot 1 (280 to 140 mm³ at 0.7): on this build slot 2's
+  `tower_g` falls from 16.41 to 11.22 g, while slot 1's, whose purges stay, moves from 14.21 to 14.95 g and is not
+  checked; the objects print as before (`model_g` 2.21 and 1.88 g, 50 filament changes in each slice). At 1.4 every
+  purge doubles, and both slots' `tower_g` rise (to 22.20 and 15.29 g).
 - The preference is set with `preferences_set`, not picked in the Preferences dialog; the dialog's
   choice control writes the same key (`PreferenceOps.cpp`), and `test_preferences` checks the dialog against
   `preferences_get`.
-- Run time: about 60 assignment cases and six slices, about 11 minutes on Windows, so `sweep.json` gives it 1500 s.
+- Run time: about 60 assignment cases and six slices, 10 to 14 minutes on Windows beside other apps, so `sweep.json`
+  gives it 1500 s.
 
 **Not checked:**
 - Adding and deleting slots, and the mixed filament's rules: `test_plates` (its filament slots scenario). Assigning a
@@ -346,8 +398,15 @@ is `[B, M]`. `project()` is read after every step; a value it gives is written o
   `part_add`. Both are model parts, which `settings_set` gives a filament the same way; the gizmo is not this area's.
 - How the sidebar shows a slot: the colour swatch and the badge are not read, and no screenshot is taken.
 - A printer with several extruders, where the filament grouping applies: `test_printer_extruders`.
-- The exact list of plate types the X1C offers: the step checks two of them.
+- The exact list of plate types the Klipper printer offers with `support_multi_bed_types` on (all six on this build):
+  the step checks two of them.
 - Which layers print with filament 2: the slice's grams per slot show that filament 2 prints, not where.
+- How much of a slot's `tower_g` is purge: the tower's walls and sparse layers are in it too, so the project scenario
+  checks which way it moves, not by how much, and the objects scenario reads it only as 0 for slot 2 in the control.
+- Which other presets the selectors and `preset_list` offer: the user presets and installed filaments other tests leave
+  change those lists, so every check picks its presets by name.
+- The uninstall that sets the start, beyond its reply naming each of the six and the hidden checks that follow it:
+  `filament_uninstall` is `test_install_filaments`'s.
 
 **Fixtures:** none; the plugin API calls are the test's own code.
 
@@ -363,9 +422,26 @@ the print and in the project file.
 filament slot's, and the settings an object and a region take; then `settings_set` and `settings_get` on an object, a
 part, a modifier and a height range, named by index and taken from the selection, with each value's `effective` and
 `source` in the order the slicer applies them; what the targets' settings do in the print; and the height ranges
-replaced, the range that stays keeping its settings. It runs on the harness's default printer, the Bambu Lab X1 Carbon
-0.4, with the process 0.20mm Standard @BBL X1C (`layer_height` 0.2, `wall_loops` 2, `sparse_infill_density` 15%,
-`top_shell_layers` 5).
+replaced, the range that stays keeping its settings. It runs on the Generic Klipper Printer 0.4 with the process
+0.20mm Standard @MyKlipper (`layer_height` 0.2, `wall_loops` 3, `sparse_infill_density` 15%, `top_shell_layers` 4):
+nothing it checks is a Bambu Lab printer's own.
+
+**Starts from:** every scenario's `start(client)`: a new project on `MyKlipper 0.4 nozzle` with `0.20mm Standard
+@MyKlipper` and one slot holding `B` (Generic PLA @System), the printer's default filament. `presets()` is `{printer:
+"MyKlipper 0.4 nozzle", process: "0.20mm Standard @MyKlipper", filaments: [B]}`; then the Prepare view with `view_set`,
+and `object_list` lists no object. No other stored setting reaches its checks: the settings commands read the presets
+and the project alike in every mode, and no preference changes what they give.
+
+**Leaves:** the Klipper printer selected with `0.20mm Standard @MyKlipper` and one slot of `B`; and `settings.3mf`, saved
+in the test's temporary folder and deleted with it, in the recent projects, with that folder as the last one opened. It
+saves no preset, installs nothing and sets no preference: `Generic PETG @System`, which the first scenario puts in slot
+2, is shown for that session only. The cooling slowdown the targets scenario turns off on the filament preset is an
+unsaved change, reset at step 12 and, where a failed step left it, dropped by the closing `project_new {discard_changes:
+true, preset_changes: "discard"}`; so it restores nothing in a `finally`.
+
+Nothing it reads is a list another test adds to: the settings lists are the app's own, the objects a new project's and
+the presets those `start()` selects. A run again on the data folder a failed run left meets only what `start()`
+replaces, and its project file goes to a new temporary folder.
 
 **Reads:**
 - `listed(type, **args)` gives `settings_list`'s reply: `total`, `next_offset` where given, and the items as `{key:
@@ -384,28 +460,23 @@ replaced, the range that stays keeping its settings. It runs on the harness's de
 - `layers()` gives `plate_slice_stats {include: ["layer_features"], limit: 1000}`'s layers as `{z, height, inner,
   sparse}`, `inner` and `sparse` being the layer's "Inner wall" and "Sparse infill" seconds.
 
-Every scenario starts with `project_new {discard_changes: true, preset_changes: "discard"}` in the Prepare view, deletes
-filament slots with `filament_delete` until it is refused, puts `B` (Bambu PLA Basic @BBL X1C) in slot 1 with
-`preset_select`, and checks that `app_state.presets` is the X1C, 0.20mm Standard @BBL X1C and `[B]`, and that
-`object_list` lists no object: a new project keeps the slots of the project before it.
-
 **Scenario: a type's settings, whole**
 
 | # | Step | Checked |
 |---|---|---|
-| 1 | `listed(process)` | `total` at least 300, as many items as `total`, no `next_offset` and no item with `meta`; the items include `layer_height` "0.2", `wall_loops` "2", `sparse_infill_density` "15%" and `top_shell_layers` "5" |
+| 1 | `listed(process)` | `total` at least 300, as many items as `total`, no `next_offset` and no item with `meta`; the items include `layer_height` "0.2", `wall_loops` "3", `sparse_infill_density` "15%" and `top_shell_layers` "4" |
 | 2 | `listed(printer)` | `total` above 100, whole as in 1; `nozzle_diameter` "0.4", `printable_height` "250" |
 | 3 | `listed(filament)` | `total` above 100, whole as in 1; `filament_type` "PLA", `slow_down_layer_time` "4" |
 | 4 | `listed(process, include_meta: true)`, then with `offset` 100, 200 and on until a page has no `next_offset` | each page but the last holds 100 items and `next_offset` the next hundred; every item has `meta`; the pages' keys, in order, are step 1's |
 | 5 | `listed(process, limit: 50)` | 50 items, `next_offset` 50, none with `meta`; they are step 1's first 50 |
-| 6 | `listed(process, preset: "0.16mm High Quality @BBL X1C")` | `layer_height` "0.16"; `app_state.presets.process` is still 0.20mm Standard @BBL X1C: reading a preset does not select it |
-| 7 | `filament_add`, then `preset_select {type: "filament", name: "Bambu PETG Basic", filament_slot: 2}` | `app_state.presets.filaments` `[B, Bambu PETG Basic @BBL X1C]`; `listed(filament, filament_slot: 2)` gives `filament_type` "PETG" and `slow_down_layer_time` "12", `listed(filament, filament_slot: 1)` "PLA" and "4" |
+| 6 | `listed(process, preset: "0.16mm Optimal @MyKlipper")` | `layer_height` "0.16"; `presets().process` is still 0.20mm Standard @MyKlipper: reading a preset does not select it |
+| 7 | `filament_add`, then `preset_select {type: "filament", name: "Generic PETG", filament_slot: 2}` | `presets().filaments` `[B, Generic PETG @System]`; `listed(filament, filament_slot: 2)` gives `filament_type` "PETG" and `slow_down_layer_time` "8", `listed(filament, filament_slot: 1)` "PLA" and "4" |
 
 **Scenario: what an object and a region take**
 
 | # | Step | Checked |
 |---|---|---|
-| 1 | `listed(object)` and `listed(region)` | the object list holds more than 200 settings and the region list more than 100; every key of the object list is a process setting with the value `listed(process)` gives it; every key of the region list but `layer_height` is in the object list; both give `wall_loops` "2" and `sparse_infill_density` "15%"; the region list's `layer_height` is "0.2" with `targets` `["height_range"]`, and no other item of either list has `targets` |
+| 1 | `listed(object)` and `listed(region)` | the object list holds more than 200 settings and the region list more than 100; every key of the object list is a process setting with the value `listed(process)` gives it; every key of the region list but `layer_height` is in the object list; both give `wall_loops` "3" and `sparse_infill_density` "15%"; the region list's `layer_height` is "0.2" with `targets` `["height_range"]`, and no other item of either list has `targets` |
 
 **Scenario: targets and precedence**
 
@@ -433,17 +504,18 @@ layer of `layers()` 0.2 mm high to 0.001 mm, and the layers at z 3.0 and 15.0 mm
 | 9 | `item(object 0, wall_loops)` | as after 7 | `{value: "4", effective: "4", source: "object", parts: [{part: 1, value: "5"}], height_ranges: [{min_z: 0, max_z: 5, value: "6"}]}`; `note` "A part's value (source "part", or in parts) applies only inside that part's volume. A height range's value (source "height_range", or in height_ranges) applies only between its min_z and max_z." |
 | 10 | `settings_get {target: "height_range", object: 0, min_z: 0, max_z: 5, keys: ["wall_loops", "sparse_infill_density"], include_meta: false}` | as after 7 | `wall_loops` `{value: "6", effective: "6", source: "height_range", parts: [{part: 1, value: "5"}]}`; `sparse_infill_density` `{value: null, effective: "15%", source: "global", parts: [{part: 0, value: "30%"}]}`; `note` as in 9 |
 | 11 | `object_select {objects: [0]}`, then `settings_get {target: "height_range", min_z: 5, max_z: 10, keys: ["layer_height"], include_meta: false}` | as after 7 | the reply names `objects[0].index` 0 and `height_range` `{min_z: 5, max_z: 10}`; the item `{value: "0.12", effective: "0.12", source: "height_range"}`, and `note` "A height range's value (source "height_range", or in height_ranges) applies only between its min_z and max_z.": the selected object stands for the range's object |
-| 12 | `plate_slice`, then `layers()` | as after 7 | outcome `ok`; every layer whose z is from 5.3 to 9.7 mm is 0.12 mm high, and every layer from 10.5 to 19.5 mm 0.2 mm, to 0.001 mm; the layer at z 3.0 mm has more `inner` than the layer nearest z 15 mm (six walls in the range, four on the object), and that one more than the control's layer at 15.0 mm (two walls); the layer nearest z 15 mm has more `sparse` than the control's at 15.0 mm (part 0's infill at 30%, not 15%). Then `settings_set {type: "filament", reset_all: true}`, and `slow_down_for_layer_cooling` reads "1" again, so that step 14's new project asks about no unsaved preset |
+| 12 | `plate_slice`, then `layers()` | as after 7 | outcome `ok`; every layer whose z is from 5.3 to 9.7 mm is 0.12 mm high, and every layer from 10.5 to 19.5 mm 0.2 mm, to 0.001 mm; the layer at z 3.0 mm has more `inner` than the layer nearest z 15 mm (six walls in the range, four on the object), and that one more than the control's layer at 15.0 mm (three walls); the layer nearest z 15 mm has more `sparse` than the control's at 15.0 mm (part 0's infill at 30%, not 15%). Then `settings_set {type: "filament", reset_all: true}`, and `slow_down_for_layer_cooling` reads "1" again, so that step 14's new project asks about no unsaved preset |
 | 13 | `object_set_height_ranges {object: 0, ranges: [{min_z: 0, max_z: 5}, {min_z: 5, max_z: 12}]}` | `{extruder: 1, wall_loops: 4} · {sparse_infill_density: 30%} · {wall_loops: 5} · 0–5 {extruder: 0, layer_height: 0.2, wall_loops: 6}, 5–12 {extruder: 0, layer_height: 0.2}` | the range that stays keeps its settings; the new one takes the object's layer height and the Default filament |
 | 14 | `project_save` to a new file, `project_new`, `project_open` of the file | as after 13 | `object_list` part types `[part, modifier]` and `overrides` `["extruder", "wall_loops"]`: the project file keeps every target's settings |
 
 **To settle in review:**
 - The walls and the infill in the print (step 12) are checked as order, not amount. A wall loop more adds about a
-  loop's printing time, so six walls print longer than four and four longer than two, with the cube's 20 mm
-  cross-section the same at 3 and 15 mm, and the modifier (7.5 to 12.5 mm) and the top and bottom shells away from both
-  layers; the control slice shows the two layers print alike without the targets' settings. The sparse infill's time
-  follows its area times its density: at 15 mm the two more walls take about a fifth of the infill area and the density
-  doubles, so the infill prints about 1.6 times as long. Both comparisons hold only with the cooling slowdown off:
+  loop's printing time, so six walls print longer than four and four longer than three (on this build 2.77 s, 1.73 s
+  and 1.17 s of inner wall), with the cube's 20 mm cross-section the same at 3 and 15 mm, and the modifier (7.5 to
+  12.5 mm) and the top and bottom shells away from both layers; the control slice shows the two layers print alike
+  without the targets' settings. The sparse infill's time follows its area times its density: at 15 mm the wall more takes
+  about a tenth of the infill area and the density doubles, so the infill prints well over the control's (1.65 times on
+  this build). Both comparisons hold only with the cooling slowdown off:
   `CoolingBuffer` otherwise stretches a layer shorter than `slow_down_layer_time` (4 s for `B`) across its features, so a
   feature's seconds would depend on the rest of the layer.
 - The layer heights (step 12) are checked away from the range boundaries: where a range starts or ends, the slicer may

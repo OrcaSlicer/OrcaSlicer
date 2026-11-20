@@ -32,6 +32,10 @@ sys.path.insert(0, HERE)
 from orca_mcp import McpError, OrcaMcp, app_env  # noqa: E402
 
 TOKEN = "install-printers-test-token"
+# The printer the fresh folder is seeded with, in place of the harness's default Generic Klipper Printer: every
+# filament its folder holds names Bambu Lab printers alone, so none fits the Velo+, whose install then installs its
+# default filament, where the Generic @System filaments the default printer comes with fit every printer.
+SEED = ["--vendor", "BBL", "--printer", "Bambu Lab X1 Carbon@0.4", "--filament", "Bambu PLA Basic @BBL X1C"]
 X1C = "Bambu Lab X1 Carbon"
 VELO = {"vendor": "Goofoo", "model": "Goofoo Velo+"}
 results = []
@@ -67,7 +71,7 @@ def launched(datadir, binary):
     if os.path.exists(session):
         os.remove(session)
     try:
-        started = harness(env, "launch", "--datadir", datadir, "--port", str(port), *binary)
+        started = harness(env, "launch", "--datadir", datadir, "--port", str(port), *SEED, *binary)
         if started.returncode != 0:
             print(started.stdout, started.stderr)
             yield None

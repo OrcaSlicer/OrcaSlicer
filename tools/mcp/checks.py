@@ -85,7 +85,11 @@ def run(client, tool, timeout_s=600, **args):
     deadline = time.monotonic() + timeout_s
     while isinstance(reply, dict) and "job" in reply and reply.get("status") in ("running", "blocked_by_dialog"):
         dialogs = reply.get("dialogs") or client.call("app_state").get("dialogs", [])
-        if reply.get("status") == "blocked_by_dialog" or dialogs:
+        # An auto-answer rule presses its dialog's button just after the dialog opens, and the reply can come
+        # before the press: a dialog still open a moment later is one nothing answers.
+        if (reply.get("status") == "blocked_by_dialog" or dialogs) and \
+                client.call("app_wait", **{"for": "no_dialog", "timeout_s": 2}).get("satisfied") is not True:
+            dialogs = client.call("app_state").get("dialogs", []) or dialogs
             titles = [d.get("title") for d in dialogs]
             raise orca_mcp.McpError(f"{tool} is held by the dialog {titles}: {dialogs}", reply)
         if time.monotonic() > deadline:
@@ -107,6 +111,59 @@ def wait(client, condition, timeout_s=30, job=None):
     elif reply.get("satisfied") is not True:
         raise TimeoutError(f"app_wait {condition} did not hold within {timeout_s} s")
     return reply
+
+
+# The default printer's presets, which a data folder orca_mcp.py launch seeds selects, and the Bambu Lab X1 Carbon
+# 0.4 nozzle's, for a test of a Bambu Lab printer's own behaviour.
+KLIPPER, KLIPPER_STD, GENERIC_PLA = "MyKlipper 0.4 nozzle", "0.20mm Standard @MyKlipper", "Generic PLA @System"
+X1C, X1C_STD, BAMBU_PLA = "Bambu Lab X1 Carbon 0.4 nozzle", "0.20mm Standard @BBL X1C", "Bambu PLA Basic @BBL X1C"
+# The printers start() knows: what printer_install installs each from, and its default process and filament.
+PRINTERS = {KLIPPER: ({"vendor": "Custom", "model": "Generic Klipper Printer", "nozzles": ["0.4"]}, KLIPPER_STD, GENERIC_PLA),
+            X1C: ({"vendor": "BBL", "model": "Bambu Lab X1 Carbon", "nozzles": ["0.4"]}, X1C_STD, BAMBU_PLA)}
+
+
+def presets(client):
+    """The selected presets as {printer, process, filaments}, the filaments one per slot."""
+    p = client.call("app_state")["presets"]
+    return {"printer": p["printer"], "process": p["process"], "filaments": list(p["filaments"])}
+
+
+def start(client, printer=KLIPPER, process=None, filaments=None):
+    """Puts the app in a test's starting state on a data folder earlier tests used, and returns presets(): a new
+    project with its changes and the presets' unsaved changes discarded, then `printer` selected, installed first
+    with printer_install when the folder lacks it, then `process` (default: the printer's default process), then one
+    filament slot per name in `filaments` (default: the printer's default filament), the mixed filament slots an
+    earlier test left deleted first. Each switch discards unsaved preset changes. A printer PRINTERS does not list
+    needs its process and filaments given."""
+    install, default_process, default_filament = PRINTERS.get(printer, (None, None, None))
+    process = process or default_process
+    filaments = list(filaments or [default_filament])
+    if process is None or None in filaments:
+        raise ValueError(f"start() knows no defaults for {printer!r}: give its process and filaments")
+    run(client, "project_new", discard_changes=True, preset_changes="discard")
+    if presets(client)["printer"] != printer:
+        listed = client.call("preset_list", type="printer", include_uninstalled=True, query=printer, limit=500)["items"]
+        if install and not any(i["name"] == printer and i.get("installed", True) for i in listed):
+            run(client, "printer_install", models=[install], preset_changes="discard")
+        if presets(client)["printer"] != printer:
+            run(client, "preset_select", type="printer", name=printer, preset_changes="discard")
+    if presets(client)["process"] != process:
+        run(client, "preset_select", type="process", name=process, preset_changes="discard")
+
+    def slots():
+        return client.call("project_get_settings", keys=["filament_is_mixed"])["items"][0]["value"].split(",")
+
+    # Last to first, so the numbers of the mixed slots still to go hold.
+    for slot in reversed([n for n, mixed in enumerate(slots(), 1) if mixed == "1"]):
+        run(client, "filament_delete", filament_slot=slot)
+    while len(slots()) > len(filaments):
+        run(client, "filament_delete")
+    while len(slots()) < len(filaments):
+        run(client, "filament_add")
+    for slot, name in enumerate(filaments, 1):
+        if presets(client)["filaments"][slot - 1] != name:
+            run(client, "preset_select", type="filament", name=name, filament_slot=slot, preset_changes="discard")
+    return presets(client)
 
 
 def plates(client):
@@ -290,16 +347,17 @@ def layer_gcode(client):
 
 
 def gcode_facts(lines):
-    """What G-code text holds: `layers`, the number on its `; total layer number: N` line; `labels`, how many ids its
-    `; model label id:` line lists; and `config`, the `; key = value` lines of its configuration block as
-    {key: value}. A line the text lacks gives None."""
-    layers, labels, config, block = None, None, {}, False
+    """What G-code text holds: `layers`, the number on its `; total layer number: N` line; `labels`, how many
+    `EXCLUDE_OBJECT_DEFINE` lines it has, one per object instance a Klipper printer's G-code names (0 when it has
+    none); and `config`, the `; key = value` lines of its configuration block as {key: value}. A line the text lacks
+    gives None."""
+    layers, labels, config, block = None, 0, {}, False
     for line in lines:
         line = line.rstrip("\r\n")
         if layers is None and line.startswith("; total layer number:"):
             layers = int(line.split(":", 1)[1])
-        elif labels is None and line.startswith("; model label id:"):
-            labels = len([i for i in line.split(":", 1)[1].split(",") if i.strip()])
+        elif line.startswith("EXCLUDE_OBJECT_DEFINE"):
+            labels += 1
         elif line == "; CONFIG_BLOCK_START":
             block = True
         elif line == "; CONFIG_BLOCK_END":

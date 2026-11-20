@@ -10,8 +10,8 @@ for values it rounds or the printer may not take, and the refusals that leave th
 preset_changes "keep" and "discard", including the filament tab on another slot's modified preset; and, through the
 exported G-code, that the temperature, pressure advance and retraction towers change their value band by band. After
 each call the test reads the project, the objects and the presets back with other tools and compares them with the
-values the entry writes out. It runs on the harness's default printer, the Bambu Lab X1 Carbon 0.4, and exits 0 when
-every check passes.
+values the entry writes out. It runs on the default printer, the Generic Klipper Printer 0.4, on a data folder earlier
+tests used, and exits 0 when every check passes.
 """
 
 import os
@@ -21,12 +21,13 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import Checks, refusal, run  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, refusal, run, start  # noqa: E402
 
-X1C = "Bambu Lab X1 Carbon 0.4 nozzle"
-STD = "0.20mm Standard @BBL X1C"
-PLA = "Bambu PLA Basic @BBL X1C"
-SHORT = {"X1C": X1C, "Std": STD, "PLA": PLA}
+STD, PLA = KLIPPER_STD, GENERIC_PLA
+SHORT = {"Klipper": KLIPPER, "Std": STD, "PLA": PLA}
+START = {"printer": KLIPPER, "process": STD, "filaments": [PLA]}
+# The user filament keep and discard saves, which a run that failed before its step 6 leaves.
+CALIB_PLA = "MCP Calib PLA"
 DISCARD = {"discard_changes": True, "preset_changes": "discard"}
 FILAMENT_ADD = "orca_command:filament_add:orca"
 TEMPERATURE_KEYS = ["nozzle_temperature", "nozzle_temperature_initial_layer"]
@@ -47,16 +48,16 @@ class Every:
         return f"every entry {self.value}"
 
 
+def times(value, n):
+    """The entry's `v×n`: n entries, each v, joined by commas. PLA holds six entries of each per-variant key."""
+    return ",".join([str(value)] * n)
+
+
 def same_number(a, b):
     try:
         return float(a) == float(b)
     except ValueError:
         return a == b
-
-
-def whole(number):
-    """A number as the pattern's object names write it: 200, not 200.0."""
-    return str(int(number)) if float(number) == int(number) else str(number)
 
 
 def split_top(text):
@@ -72,9 +73,9 @@ def split_top(text):
 
 
 def S(text):
-    """A selection as the entry writes it: 'X1C | Std | PLA, MCP Calib PLA[filament_cost 22]' is the X1C, Std, and
-    two filament slots, the second's preset with filament_cost edited to 22. Only the filaments' edits are kept: the
-    test compares the printer and the process by name."""
+    """A selection as the entry writes it: 'Klipper | Std | PLA, MCP Calib PLA[filament_cost 22]' is the Klipper,
+    Std, and two filament slots, the second's preset with filament_cost edited to 22. Only the filaments' edits are
+    kept: the test compares the printer and the process by name."""
     printer, process, filaments = text.split(" | ")
 
     def preset(s):
@@ -91,15 +92,16 @@ def S(text):
 
 
 def pla(edits):
-    """The selection `X1C | Std | PLA` with PLA's unsaved keys and values `edits`."""
-    return {"printer": X1C, "process": STD, "filaments": [{"name": PLA, "edits": dict(edits)}]}
+    """The selection `Klipper | Std | PLA` with PLA's unsaved keys and values `edits`."""
+    return {"printer": KLIPPER, "process": STD, "filaments": [{"name": PLA, "edits": dict(edits)}]}
 
 
 def gcode_layers(path):
-    """The lines of an exported G-code file after its first `; Z_HEIGHT:` line."""
+    """The lines of an exported G-code file after its first `;LAYER_CHANGE` line, the line the Klipper's G-code
+    writes at each layer change."""
     with open(path, encoding="utf-8", errors="replace") as f:
         lines = f.read().splitlines()
-    first = next(i for i, line in enumerate(lines) if line.startswith("; Z_HEIGHT:"))
+    first = next(i for i, line in enumerate(lines) if line.startswith(";LAYER_CHANGE"))
     return lines[first + 1:]
 
 
@@ -154,6 +156,15 @@ class CalibrationTest:
 
     def own(self, obj, key):
         return self.c.call("settings_get", target="object", object=obj, keys=[key])["items"][0]["value"]
+
+    def listed(self, **filters):
+        """Every filament preset_list gives for the filters, page after page."""
+        items = []
+        while True:
+            page = self.c.call("preset_list", type="filament", limit=500, offset=len(items), **filters)
+            items += page["items"]
+            if not page["items"] or len(items) >= page["total"]:
+                return items
 
     def project_name(self):
         return self.c.call("app_state")["project"]["name"]
@@ -221,8 +232,7 @@ class CalibrationTest:
     def temperature(self):
         s = "temperature"
         t = self.t
-        self.run("project_new", **DISCARD)
-        self.selection_is(f"{s} 1", S("X1C | Std | PLA"))
+        t.equal(f"{s} 1: the start", start(self.c), START)
         t.equal(f"{s} 1: no objects", self.objects(), [])
 
         reply = self.run("calibration_generate_test", test="temperature", start=252, end=232)
@@ -234,11 +244,13 @@ class CalibrationTest:
         t.equal(f"{s} 2: the reply's names", reply.get("names"), ["temperature_tower.drc"])
         filament = reply.get("presets_changed", {}).get("filament", {})
         t.equal(f"{s} 2: the filament's changes", {k: filament.get(k) for k in ("name", "changes")},
-                {"name": PLA, "changes": {"nozzle_temperature": "250,250", "nozzle_temperature_initial_layer": "250,250"}})
+                {"name": PLA, "changes": {"nozzle_temperature": times(250, 6),
+                                          "nozzle_temperature_initial_layer": times(250, 6)}})
         t.equal(f"{s} 2: result_keys", reply.get("result_keys"), {"type": "filament", "keys": TEMPERATURE_KEYS})
         t.equal(f"{s} 2: modified", reply.get("modified", {}).get("filament", {}).get("keys"), TEMPERATURE_KEYS)
         t.equal(f"{s} 2: the project is dirty", self.c.call("app_state")["project"]["dirty"], True)
-        after2 = S("X1C | Std | PLA[nozzle_temperature 250,250, nozzle_temperature_initial_layer 250,250]")
+        after2 = S(f"Klipper | Std | PLA[nozzle_temperature {times(250, 6)}, "
+                   f"nozzle_temperature_initial_layer {times(250, 6)}]")
 
         def as_after_2(label):
             t.equal(f"{label}: the project's name", self.project_name(), "Nozzle temperature test")
@@ -288,17 +300,18 @@ class CalibrationTest:
         s = "other tests"
         t = self.t
         self.generate(f"{s}: the start", {"test": "temperature"}, {"start": 230, "end": 190, "auto_scale": True},
-                      changes={"nozzle_temperature": "230,230", "nozzle_temperature_initial_layer": "230,230"})
+                      changes={"nozzle_temperature": times(230, 6), "nozzle_temperature_initial_layer": times(230, 6)})
 
         label = f"{s} 1"
         reply = self.generate(label, {"test": "max_volumetric", "end": 15}, {"start": 5, "end": 15, "step": 0.5},
                               project="Max volumetric speed test", names=["SpeedTestStructure.drc"], heights=[22],
-                              changes={"filament_max_volumetric_speed": "200,200", "slow_down_layer_time": "0"},
-                              sets={("filament", "filament_max_volumetric_speed"): "200,200",
+                              changes={"filament_max_volumetric_speed": times(200, 6), "slow_down_layer_time": "0"},
+                              sets={("filament", "filament_max_volumetric_speed"): times(200, 6),
                                     ("filament", "slow_down_layer_time"): "0", ("process", "spiral_mode"): "1"},
                               result_keys={"type": "filament", "keys": ["filament_max_volumetric_speed"]})
         t.equal(f"{label}: discarded", reply.get("discarded", {}).get("filament"), {"name": PLA, "keys": TEMPERATURE_KEYS})
-        t.equal(f"{label}: the temperature is the preset's again", self.value("filament", "nozzle_temperature"), "220,220")
+        t.equal(f"{label}: the temperature is the preset's again", self.value("filament", "nozzle_temperature"),
+                times(220, 6))
         self.slice(label)
 
         label = f"{s} 2"
@@ -308,7 +321,9 @@ class CalibrationTest:
                       sets={("filament", "slow_down_layer_time"): "1"},
                       result_keys={"type": "filament", "keys": ["enable_pressure_advance", "pressure_advance"]})
         path = self.slice(label, "pressure_advance.gcode")
-        ks = [float(m.group(1)) for line in gcode_layers(path) if (m := re.match(r"M900 K([0-9.]+)", line))]
+        # A Klipper printer's pressure advance command.
+        ks = [float(m.group(1)) for line in gcode_layers(path)
+              if (m := re.match(r"SET_PRESSURE_ADVANCE ADVANCE=([0-9.]+)", line))]
         t.near(f"{label}: the tower's pressure advance, band by band", in_a_row(ks),
                [round(0.002 * i, 6) for i in range(31)], 0.0001)
 
@@ -334,17 +349,12 @@ class CalibrationTest:
                                                                 "adaptive_pressure_advance_model"]})
         self.slice(label)
 
-        label = f"{s} 5"
-        reply = self.generate(label, {"test": "pressure_advance", "method": "pattern"}, None,
-                              project="Pressure Advance Test", changes=pattern_changes, sets=pattern_sets)
-        a = float(self.value("process", "outer_wall_acceleration").split(",")[0])
-        v = float(self.value("process", "outer_wall_speed").split(",")[0])
-        t.check(f"{label}: the process's outer wall acceleration and speed are above 0", a > 0 and v > 0, (a, v))
-        t.equal(f"{label}: params, the pattern's defaults the process's", reply.get("params"),
-                {"method": "pattern", "start": 0, "end": 0.08, "step": 0.005, "accelerations": [a], "speeds": [v]})
-        names = [f"pa_pattern_{whole(v)}_{whole(a)}"]
-        t.equal(f"{label}: the reply's names", reply.get("names"), names)
-        t.equal(f"{label}: the objects", [o["name"] for o in self.objects()], names)
+        # The pattern's defaults are the first entries of Std's outer_wall_acceleration and outer_wall_speed.
+        self.generate(f"{s} 5", {"test": "pressure_advance", "method": "pattern"},
+                      {"method": "pattern", "start": 0, "end": 0.08, "step": 0.005, "accelerations": [3000],
+                       "speeds": [120]},
+                      project="Pressure Advance Test", names=["pa_pattern_120_3000"], changes=pattern_changes,
+                      sets=pattern_sets)
 
         label = f"{s} 6"
         reply = self.generate(label, {"test": "flow_ratio"}, {"method": "yolo", "top_surface_pattern": "archimedeanchords"},
@@ -391,6 +401,8 @@ class CalibrationTest:
         path = self.slice(label, "retraction.gcode")
         self.retraction_bands(label, path)
 
+        # One row for each way the VFA tower fits its end speed to the filament's volumetric speed (12 mm³/s on the
+        # extruder variant in use), which allows the outer wall about 168 mm/s at 0.2 mm.
         vfa = {"project": "VFA test", "names": ["vfa.drc"], "changes": {"slow_down_layer_time": "0"},
                "sets": {("filament", "slow_down_layer_time"): "0", ("process", "spiral_mode"): "1",
                         ("process", "wall_loops"): "1", ("process", "top_shell_layers"): "0",
@@ -399,54 +411,59 @@ class CalibrationTest:
                "result_keys": {"type": "printer", "keys": ["resonance_avoidance", "min_resonance_avoidance_speed",
                                                            "max_resonance_avoidance_speed"]}}
         label = f"{s} 11"
-        reply = self.generate(label, {"test": "vfa"},
-                              {"start": 40, "end": 200, "step": 10, "auto_scale": True, "auto_adjust": True}, **vfa)
-        t.equal(f"{label}: the tower's own layer height", self.own(0, "layer_height"), "0.2")
+        reply = self.generate(label, {"test": "vfa", "end": 160},
+                              {"start": 40, "end": 160, "step": 10, "auto_scale": True, "auto_adjust": True}, **vfa)
         t.equal(f"{label}: no adjusted", reply.get("adjusted"), None)
-        self.slice(label)
+        t.equal(f"{label}: the tower's own layer height", self.own(0, "layer_height"), "0.2")
 
         label = f"{s} 12"
-        reply = self.generate(label, {"test": "vfa", "end": 400, "step": 20},
-                              {"start": 40, "end": 400, "step": 20, "auto_scale": True, "auto_adjust": True}, **vfa)
-        lowered = reply.get("adjusted", {}).get("layer_height")
-        t.check(f"{label}: the layer height is lowered below 0.2", isinstance(lowered, (int, float)) and lowered < 0.2,
-                reply.get("adjusted"))
-        own = self.own(0, "layer_height")
-        t.check(f"{label}: the tower's own layer height is the lowered one",
-                own is not None and lowered is not None and abs(float(own) - lowered) < 1e-6, (own, lowered))
+        reply = self.generate(label, {"test": "vfa"},
+                              {"start": 40, "end": 200, "step": 10, "auto_scale": True, "auto_adjust": True}, **vfa)
+        t.equal(f"{label}: adjusted", reply.get("adjusted"),
+                {"layer_height": 0.16,
+                 "reason": "the end speed (200 mm/s) exceeds the filament's maximum volumetric speed (12 mm³/s) at the "
+                           "default layer height (0.2 mm); the layer height of a profile of this printer reaches it"})
+        t.equal(f"{label}: the tower's own layer height", self.own(0, "layer_height"), "0.16")
+        self.slice(label)
 
         label = f"{s} 13"
+        reply = self.generate(label, {"test": "vfa", "end": 400, "step": 20},
+                              {"start": 40, "end": 380, "step": 20, "auto_scale": True, "auto_adjust": True}, **vfa)
+        t.equal(f"{label}: adjusted", reply.get("adjusted"),
+                {"end": 380, "layer_height": 0.08,
+                 "reason": "the end speed (400 mm/s) exceeds the filament's maximum volumetric speed (12 mm³/s) even at "
+                           "the smallest layer height of this printer's profiles; the end speed was lowered to what it "
+                           "reaches"})
+        t.equal(f"{label}: the tower's own layer height", self.own(0, "layer_height"), "0.08")
+
+        label = f"{s} 14"
         reply = self.generate(label, {"test": "vfa", "end": 400, "auto_adjust": False},
                               {"start": 40, "end": 400, "step": 10, "auto_scale": True, "auto_adjust": False}, **vfa)
         t.equal(f"{label}: no adjusted", reply.get("adjusted"), None)
-        warnings = reply.get("warnings") or []
-        t.check(f"{label}: one warning, on the filament's maximum volumetric speed",
-                len(warnings) == 1
-                and warnings[0].startswith("the end speed (400 mm/s) exceeds the filament's maximum volumetric speed "
-                                           "(21 mm³/s)")
-                and warnings[0].endswith("(auto_adjust and auto_scale lower the layer height to reach it)"), warnings)
+        t.equal(f"{label}: warnings", reply.get("warnings"),
+                ["the end speed (400 mm/s) exceeds the filament's maximum volumetric speed (12 mm³/s), which limits "
+                 "the outer wall to about 168 mm/s: the blocks above print at that speed (auto_adjust and auto_scale "
+                 "lower the layer height to reach it)"])
         t.equal(f"{label}: the tower's own layer height, half the nozzle", self.own(0, "layer_height"), "0.2")
 
-        label = f"{s} 14"
-        printer = {k: self.value("printer", k).split(",")[0]
-                   for k in ("machine_max_speed_x", "machine_max_speed_y", "machine_max_acceleration_extruding")}
-        speed = whole(min(float(printer["machine_max_speed_x"]), float(printer["machine_max_speed_y"])))
-        accel = printer["machine_max_acceleration_extruding"]
+        # The outer wall speed is the smaller of the Klipper's machine_max_speed_x and _y, and the accelerations its
+        # machine_max_acceleration_extruding; the jerk is raised to at least 5, below the Klipper's own 9.
         shaping = {"changes": {"slow_down_layer_time": "0", "slow_down_min_speed": "0", "slow_down_for_layer_cooling": "0",
                                "enable_pressure_advance": Every("1"), "pressure_advance": Every("0")},
                    "sets": {("filament", "slow_down_layer_time"): "0", ("filament", "slow_down_min_speed"): "0",
                             ("filament", "slow_down_for_layer_cooling"): "0",
                             ("filament", "enable_pressure_advance"): Every("1"),
                             ("filament", "pressure_advance"): Every("0"),
-                            ("printer", "machine_max_jerk_x"): "10", ("printer", "machine_max_jerk_y"): "10",
+                            ("printer", "machine_max_jerk_x"): "9", ("printer", "machine_max_jerk_y"): "9",
                             ("printer", "input_shaping_emit"): "0",
                             ("process", "spiral_mode"): "1", ("process", "wall_loops"): "1",
                             ("process", "top_shell_layers"): "0", ("process", "bottom_shell_layers"): "1",
                             ("process", "sparse_infill_density"): "0%", ("process", "enable_overhang_speed"): Every("0"),
                             ("process", "accel_to_decel_enable"): "1", ("process", "accel_to_decel_factor"): "100%",
-                            ("process", "outer_wall_speed"): Every(speed),
-                            ("process", "default_acceleration"): Every(accel),
-                            ("process", "outer_wall_acceleration"): Every(accel)}}
+                            ("process", "outer_wall_speed"): Every(500),
+                            ("process", "default_acceleration"): Every(20000),
+                            ("process", "outer_wall_acceleration"): Every(20000)}}
+        label = f"{s} 15"
         self.generate(label, {"test": "input_shaping_freq", "start": 20, "end": 80},
                       {"start": 20, "end": 80, "start_y": 20, "end_y": 80, "damping": 0.15, "shaper_type": "Default",
                        "test_model": "ringing_tower"},
@@ -455,13 +472,16 @@ class CalibrationTest:
                                                                "input_shaping_freq_x", "input_shaping_freq_y",
                                                                "input_shaping_damp_x", "input_shaping_damp_y"]},
                       **shaping)
+        self.slice(label)
 
-        self.generate(f"{s} 15", {"test": "input_shaping_damp", "freq_x": 48, "freq_y": 42, "test_model": "fast_tower"},
+        label = f"{s} 16"
+        self.generate(label, {"test": "input_shaping_damp", "freq_x": 48, "freq_y": 42, "test_model": "fast_tower"},
                       {"freq_x": 48, "freq_y": 42, "start": 0, "end": 0.4, "shaper_type": "Default",
                        "test_model": "fast_tower"},
                       project="Input shaping Damping test", names=["fast_tower_test.drc"], **shaping)
+        self.slice(label)
 
-        label = f"{s} 16"
+        label = f"{s} 17"
         reply = self.generate(
             label, {"test": "cornering", "test_model": "scv_v2", "end": 25}, {"start": 1, "end": 25, "test_model": "scv_v2"},
             project="Cornering test", names=["SCV-V2.drc"],
@@ -516,23 +536,23 @@ class CalibrationTest:
     def keep_and_discard(self):
         s = "keep and discard"
         t = self.t
-        self.run("project_new", **DISCARD)
+        start(self.c)
         reply = self.run("action_run", id=FILAMENT_ADD)
         t.equal(f"{s} 1: the action's message", reply.get("message"), "Added filament slot 2.")
         self.run("settings_set", type="filament", filament_slot=2, values={"filament_cost": 21})
-        self.run("preset_save", type="filament", name="MCP Calib PLA", filament_slot=2)
+        self.run("preset_save", type="filament", name=CALIB_PLA, filament_slot=2)
         self.run("preset_select", type="filament", name=PLA, filament_slot=1)
         self.run("settings_set", type="filament", filament_slot=2, values={"filament_cost": 22})
-        after1 = S("X1C | Std | PLA, MCP Calib PLA[filament_cost 22]")
+        after1 = S("Klipper | Std | PLA, MCP Calib PLA[filament_cost 22]")
         self.selection_is(f"{s} 1", after1)
-        saved_cost = lambda: self.value("filament", "filament_cost", preset="MCP Calib PLA")  # noqa: E731
+        saved_cost = lambda: self.value("filament", "filament_cost", preset=CALIB_PLA)  # noqa: E731
         t.equal(f"{s} 1: the saved cost", saved_cost(), "21")
 
         self.refused(f"{s} 2: keep is refused while the tab edits another slot's modified preset",
                      lambda: self.c.call("calibration_generate_test", test="retraction", discard_changes=True,
                                          preset_changes="keep"),
                      words='The filament tab edits "MCP Calib PLA", which has unsaved changes, and the test prints '
-                           'with filament slot 1 ("Bambu PLA Basic @BBL X1C")')
+                           f'with filament slot 1 ("{PLA}")')
         self.selection_is(f"{s} 2", after1)
         t.equal(f"{s} 2: no objects", self.objects(), [])
         t.equal(f"{s} 2: the saved cost", saved_cost(), "21")
@@ -546,31 +566,42 @@ class CalibrationTest:
                 {"name": "MCP Calib PLA", "keys": ["filament_cost"]})
         t.equal(f"{s} 3: the reply's names", reply.get("names"), ["retraction_tower.drc"])
         t.equal(f"{s} 3: the objects", [o["name"] for o in self.objects()], ["retraction_tower.drc"])
-        self.selection_is(f"{s} 3", S("X1C | Std | PLA, MCP Calib PLA"))
+        self.selection_is(f"{s} 3", S("Klipper | Std | PLA, MCP Calib PLA"))
         t.equal(f"{s} 3: slot 2's cost", self.value("filament", "filament_cost", slot=2), "21")
 
         self.run("settings_set", type="filament", values={"slow_down_layer_time": 7})
         reply = self.run("calibration_generate_test", test="retraction", discard_changes=True, preset_changes="keep")
         t.equal(f"{s} 4: modified", reply.get("modified", {}).get("filament", {}).get("keys"), ["slow_down_layer_time"])
         t.equal(f"{s} 4: nothing discarded", reply.get("discarded"), None)
-        self.selection_is(f"{s} 4", S("X1C | Std | PLA[slow_down_layer_time 7], MCP Calib PLA"))
+        self.selection_is(f"{s} 4", S("Klipper | Std | PLA[slow_down_layer_time 7], MCP Calib PLA"))
 
         reply = self.run("project_new", **DISCARD)
         t.check(f"{s} 5: discarded holds slow_down_layer_time",
                 "slow_down_layer_time" in reply.get("discarded", {}).get("filament", {}).get("keys", []), reply)
         t.equal(f"{s} 5: nothing modified", reply.get("modified"), None)
-        self.selection_is(f"{s} 5", S("X1C | Std | PLA, MCP Calib PLA"))
+        self.selection_is(f"{s} 5", S("Klipper | Std | PLA, MCP Calib PLA"))
         t.equal(f"{s} 5: slow_down_layer_time", self.value("filament", "slow_down_layer_time"), "4")
 
         reply = self.run("filament_delete", filament_slot=2)
         t.equal(f"{s} 6: the slot's delete", reply.get("level"), "success")
-        reply = self.run("preset_delete", type="filament", name="MCP Calib PLA")
-        t.equal(f"{s} 6: the preset's delete", reply.get("deleted"), "MCP Calib PLA")
-        self.selection_is(f"{s} 6", S("X1C | Std | PLA"))
-        listed = self.c.call("preset_list", type="filament", limit=500)["items"]
-        t.equal(f"{s} 6: the filaments listed", [(i["name"], i.get("modified")) for i in listed], [(PLA, None)])
+        reply = self.run("preset_delete", type="filament", name=CALIB_PLA)
+        t.equal(f"{s} 6: the preset's delete", reply.get("deleted"), CALIB_PLA)
+        self.selection_is(f"{s} 6", S("Klipper | Std | PLA"))
+        # Read by name: the filaments listed besides hold those earlier tests installed or saved.
+        listed = {i["name"]: i for i in self.listed()}
+        t.equal(f"{s} 6: PLA listed not modified, MCP Calib PLA not listed",
+                (PLA in listed, (listed.get(PLA) or {}).get("modified"), CALIB_PLA in listed), (True, None, False))
+
+    def setup(self):
+        """The start, and no "MCP Calib PLA" on the folder: a run that failed before keep and discard step 6 leaves
+        it, and step 1's save, made without overwrite, would be refused."""
+        start(self.c)
+        if CALIB_PLA in [i["name"] for i in self.listed(query=CALIB_PLA)]:
+            print(f"     (deleting the filament {CALIB_PLA!r} left on the folder)", flush=True)
+            self.run("preset_delete", type="filament", name=CALIB_PLA)
 
     def run_all(self):
+        self.t.scenario("the start", self.setup)
         for name, scenario in [("the temperature tower, and what is refused", self.temperature),
                                ("the other tests", self.other_tests), ("keep and discard", self.keep_and_discard)]:
             self.t.scenario(name, scenario)

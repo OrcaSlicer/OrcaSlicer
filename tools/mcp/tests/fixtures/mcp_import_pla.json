@@ -6,7 +6,7 @@
 		"MCP Import PLA"
 	],
 	"from": "User",
-	"inherits": "Bambu PLA Basic @BBL X1C",
+	"inherits": "Generic PLA @System",
 	"name": "MCP Import PLA",
 	"version": "2.8.0.16"
 }

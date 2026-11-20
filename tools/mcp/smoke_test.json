@@ -10,11 +10,16 @@
   "vars": {"model": "${replay_dir}/../../resources/handy_models/3DBenchy.drc"},
   "steps": [
     {"tool": "app_wait", "args": {"for": "ready"}},
-    // Startup may ask to restore a project an earlier run left unsaved, and project_new asks about
+    // Started by orca-slicer --run, the app may ask at startup to restore a project an earlier app on the
+    // data folder left unsaved (orca_mcp.py launch answers that prompt itself), and project_new asks about
     // unsaved changes. The rules end with the replay, so they never answer a prompt after the run.
     {"tool": "dialog_auto_answer", "args": {"rules": [{"match": "unsaved changes", "button": "no"},
                                                      {"match": "restore", "button": "no"}]}},
     {"tool": "project_new", "args": {"silent": true}},
+    // The slice runs on the default printer's presets, whichever the last run on the data folder left selected.
+    {"tool": "preset_select", "args": {"type": "printer", "name": "MyKlipper 0.4 nozzle", "preset_changes": "discard"}},
+    {"tool": "preset_select", "args": {"type": "process", "name": "0.20mm Standard @MyKlipper", "preset_changes": "discard"}},
+    {"tool": "preset_select", "args": {"type": "filament", "name": "Generic PLA @System", "filament_slot": 1, "preset_changes": "discard"}},
     {"tool": "project_import", "args": {"paths": ["${vars.model}"]}, "expect": {"/added": {"eq": 1}}},
     {"tool": "settings_set", "args": {"type": "process", "values": {"wall_loops": 3}}},
     {"tool": "settings_get", "args": {"type": "process", "keys": ["wall_loops"]}, "expect": {"/items/0/value": {"eq": "3"}}},

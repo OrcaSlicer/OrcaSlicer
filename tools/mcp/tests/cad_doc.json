@@ -14,6 +14,8 @@
   "name": "cad document",
   "steps": [
     {"tool": "app_wait", "args": {"for": "ready"}},
+    // The Generic Klipper Printer, whose plate the bodies are sent to and whose project is saved and reopened.
+    {"tool": "preset_select", "args": {"type": "printer", "name": "MyKlipper 0.4 nozzle", "preset_changes": "discard"}},
     {"tool": "project_new", "args": {"discard_changes": true}},
     {"tool": "window_set", "args": {"size": [1600, 900]}},
     {"tool": "tool_call", "args": {"tool": "new_design"}, "expect": {"/result/ok": {"eq": true}, "/result/cleared/features": {"eq": 0}}},

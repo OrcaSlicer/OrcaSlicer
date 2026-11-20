@@ -17,8 +17,10 @@ Python. It uses only the standard library. `docs/HLSD/mcp-server.md` covers the 
 | `stop` | Stop the app and its private display, and remove the session |
 
 `launch` creates a fresh temporary datadir unless you pass `--datadir`. It seeds the datadir with
-an `OrcaSlicer.conf` that has a finished setup wizard and one printer and filament (Bambu Lab X1
-Carbon 0.4 by default), with update checks and daily tips turned off, and with the Orca Cloud login kept
+an `OrcaSlicer.conf` that has a finished setup wizard and one printer and filament (by default the
+Custom vendor's Generic Klipper Printer 0.4 nozzle with Generic PLA, so a first start copies no other vendor's
+profiles; `--vendor V --printer "<model>@<nozzle>"` seeds another, its preset named as the vendor's profiles name
+it, with `--filament` or the model's first default filament), with update checks and daily tips turned off, and with the Orca Cloud login kept
 in a token file in the datadir (`use_encrypted_token_file`) instead of the system's secret store, so the
 instance starts signed out and never reads your login: on macOS that read would stop a newly built app at
 a keychain prompt. A seeded datadir's main window opens 1600×900 at the top left of the screen's work area
@@ -32,7 +34,9 @@ launch without them has the settings the datadir holds. The token comes from
 `ORCA_MCP_TOKEN` or is generated, and it reaches the app through the environment, not the command
 line. On Linux, `launch` also sets `SSL_CERT_FILE`, so a fresh datadir doesn't prompt for a CA
 bundle, and if that prompt does come up anyway, as when the file it names is gone, `launch` answers it
-with Yes, as it waits for the app to be ready: an unattended launch has no person to answer it. On
+with Yes, as it waits for the app to be ready: an unattended launch has no person to answer it. It answers No
+to the prompt to restore unsaved items, which opens when the last app on the datadir was ended with a project
+unsaved, so a launch always starts on an empty project. On
 Windows, it gives the instance its own WebView2 profile in the datadir, apart from the one
 your own OrcaSlicer uses, and finds `build-clang\src\Release\orca-slicer.exe` as well; run the
 commands as `python tools/mcp/orca_mcp.py …`. On macOS, it finds the app bundle's binary under
@@ -138,7 +142,8 @@ changed, regenerate the reference first: run `slic3rutils_tests "[Reference]"` w
 
 ## Smoke test
 
-`smoke_test.json` is an end-to-end replay that exercises the main paths against a fresh datadir:
+`smoke_test.json` is an end-to-end replay that exercises the main paths, on a fresh datadir or one earlier tests
+used, since it selects its own presets:
 
 - an auto-answered startup or unsaved-changes prompt;
 - loading, a setting change, slicing and a G-code export;
@@ -299,8 +304,9 @@ overwriting, reverting and deleting presets; the unsaved-changes prompt of a pre
 answered ahead with `preset_changes` or in the dialog; the same selections through the plugin API; a preset kept
 inside the project; the Export Preset Bundle dialog and `preset_import` (with `tests/fixtures/mcp_import_pla.json`);
 a printer variant picked by its nozzle; a preference changed in the Preferences dialog; and that the presets
-selected are what the G-code is sliced with. It needs a freshly launched app on a fresh data folder: a hidden preset
-that `preset_select` shows stays shown until a restart.
+selected are what the G-code is sliced with. It needs a freshly launched app, since a hidden preset that
+`preset_select` shows stays shown until a restart, and runs on a data folder earlier tests used, as the sweep runs
+it.
 
 `test_plates.py` checks the plates of the Prepare view: plates added, duplicated, named, locked, selected and
 deleted by index and on the current plate, with undo; what a lock keeps Arrange and Auto-Orient from doing; a
@@ -573,22 +579,37 @@ system's browser and file manager, so the sweep runs it on its own.
 
 ## The sweep
 
-`run_sweep.py` runs every test above, `smoke_test.json`, `tests/*.json` and `test_*.py`, each on a
-freshly launched app, several at a time: `-j N` (or `--jobs N`) runs N at once, as a build's `-j` does,
-and defaults to half the cores, up to six. It exits 0 when all of them pass and no OrcaSlicer crash
-report appeared (macOS). `sweep.json` lists each test
-with what it needs, and a test file it does not list stops the run before anything starts, so a new
-test is never skipped by accident. Each test runs in a folder of its own under `--out` (by default a
-new `orca-sweep-<time>` folder in the temporary folder), with its own datadir, port (from 14100 up, or from
-`--first-port`, so that two sweeps can run side by side),
-session file (`ORCA_MCP_SESSION`), temporary folder (`TMPDIR`, `TMP`, `TEMP`) and empty working
-folder, and leaves `test.log` there and `results.jsonl` beside them. The longest tests start first,
-by each one's last passing time in `--history` (`~/.cache/orca-mcp/sweep-times.json`). Tests that
-share a lock never run at the same time, and exclusive tests run after the rest, one at a time with
-nothing else running. A test that runs out of time is interrupted, as Ctrl-C would, so its own cleanup
+`run_sweep.py` runs every test above, `smoke_test.json`, `tests/*.json` and `test_*.py`, on several jobs at
+once: `-j N` (or `--jobs N`) runs N jobs, as a build's `-j` does, and defaults to half the cores, up to six. It
+exits 0 when all of them pass and no OrcaSlicer crash report appeared (macOS). `sweep.json` lists each test with
+what it needs, and a test file it does not list stops the run before anything starts, so a new test is never
+skipped by accident.
+
+A job keeps one datadir for all its tests, `job-<n>/datadir` under `--out` (by default a new
+`orca-sweep-<time>` folder in the temporary folder), as your own OrcaSlicer keeps one: the first launch seeds it,
+and each test after launches a fresh app on it as the tests before left it, so each test sets the start it
+needs (see `TESTS.md`, "Sharing a data folder"). Before the next launch the runner waits for the last app's
+processes, its WebView2 ones included, to end. Each test also runs in a folder of its own under `--out`, with its
+own port (from 14100 up, or from `--first-port`, so that two sweeps can run side by side), session file
+(`ORCA_MCP_SESSION`), temporary folder (`TMPDIR`, `TMP`, `TEMP`) and empty working folder, and leaves
+`test.log` there. The longest tests start first, by each one's last passing time in `--history`
+(`~/.cache/orca-mcp/sweep-times.json`), and tests that share a lock never run at the same time.
+
+The serial tests run after the rest, one at a time with nothing else running, on a job of their own: the ones
+`sweep.json` marks `exclusive`, and the ones the history marks serial. A test that fails while others run runs
+again in that phase, alone, on the datadir it failed on: one that passes then counts as passed, shows as `passed
+alone`, and is marked serial in the history, so later sweeps run it alone from the start, until
+`--forget NAME` clears the mark. A test that runs out of time is interrupted, as Ctrl-C would, so its own cleanup
 closes the apps it started (on Windows its process tree is ended), and a test the runner could not run is
-recorded as an error, so a run that leaves a test without a result never exits 0. `--only` and `--skip`
-pick tests by name, and `--list` prints the order and exits.
+recorded as an error, so a run that leaves a test without a result never exits 0.
+
+A passing run's folder is deleted as soon as it passes. A failed run's folder is kept, with a copy of the app's
+log from the job's datadir, also when the test then passes alone, so the log says why it failed beside the others;
+the datadir of a job one of whose tests failed is kept too, the other datadirs are deleted at the end, and
+`--keep` keeps everything. `results.jsonl` in `--out` records every run with its job, its phase (`pool`, `serial` or
+`alone`) and the tests that ran before it on that job's datadir, so a failure can be traced to what they left.
+`--only` and `--skip` pick tests by name, and `--list` prints the order, the serial phase with why each test is
+in it, and exits.
 
 On Linux the runner opens each app on your desktop as an X11 client (`GDK_BACKEND=x11`), so a sweep
 leaves its windows on your screen while it runs, and a window manager un-minimizes a window on request
@@ -609,10 +630,12 @@ An entry's keys:
 - `setup`: arguments for a run of the test's own file before the launch; `args`: the test's arguments.
   Both fill in `{bin}` and `{datadir}`.
 - `env`: variables for the launch and the test.
-- `exclusive`, `locks`, and `why`, which each of them needs: what the test shares with others.
+- `exclusive`, `locks`, and `why`, which each of them needs: what the test shares with others. An exclusive test
+  runs in the serial phase.
 - `timeout_s`: how long the test may run (900 by default).
 
-`test_run_sweep.py` checks the runner without the app, and that `sweep.json` lists every test there is.
+`test_run_sweep.py` checks the runner without the app, on a stand-in sweep of scripts that launch nothing, and
+that `sweep.json` lists every test there is.
 
 `TESTS.md` holds the rules the sweep's tests follow and the index of all of them, and `test-entries/` an entry for
 each test, by area: what it tests, how it decides pass or fail, and what it leaves unchecked. A new test starts as

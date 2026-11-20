@@ -22,10 +22,12 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import checks as shared  # noqa: E402
 import orca_mcp  # noqa: E402
 
 FONT = "HarmonyOS Sans SC"  # bundled with OrcaSlicer, so every system lists it
 HEIGHTMAP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests", "fixtures", "heightmap.png")
+START = {"printer": shared.KLIPPER, "process": shared.KLIPPER_STD, "filaments": [shared.GENERIC_PLA]}
 
 
 def snapshot_ref(client, pattern):
@@ -49,12 +51,14 @@ def main():
     client.call("dialog_auto_answer", rules=[{"match": "Uniform scale", "button": "ok"},
                                              {"match": "unsaved changes", "button": "no"},
                                              {"match": "text volume is empty", "button": "ok"}])
+    # The exported session starts with the start's own calls, so its replay starts from the same new project.
     client.call("replay_export", clear=True)
-    client.call("project_new", discard_changes=True)
+    checks = []
+    presets = shared.start(client)
+    checks.append(("the start is the Klipper printer with one Generic PLA slot", presets == START, presets))
     client.call("view_set", tab="prepare")
     client.call("action_run", id="orca_command:add_primitive_cube:orca")
     client.call("app_wait", **{"for": "idle"})
-    checks = []
 
     # One ref to the font button, used for two picks.
     client.call("object_select", objects=[0])

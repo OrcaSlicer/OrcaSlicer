@@ -19,10 +19,12 @@ import threading
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import checks as shared  # noqa: E402
 import orca_mcp  # noqa: E402
 from checks import refusal  # noqa: E402
 
 MODEL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "resources", "handy_models", "3DBenchy.drc")
+START = {"printer": shared.KLIPPER, "process": shared.KLIPPER_STD, "filaments": [shared.GENERIC_PLA]}
 
 
 def main():
@@ -40,7 +42,8 @@ def main():
         return client.call("plate_list")["items"][0]["sliced"]
 
     client.call("dialog_auto_answer", rules=[{"match": "unsaved changes", "button": "no"}])
-    client.call("project_new", discard_changes=True)
+    presets = shared.start(client)
+    check("the start is the Klipper printer with one Generic PLA slot", presets == START, presets)
     client.call("project_import", paths=[os.path.abspath(MODEL)])
     client.call("view_set", tab="prepare")
     client.call("app_wait", **{"for": "idle"})

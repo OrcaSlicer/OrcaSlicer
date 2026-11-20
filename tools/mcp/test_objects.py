@@ -11,8 +11,8 @@ Individual Objects; Drop to Bed, Center, Scale to Fit and Auto-Orient; Arrange a
 out of the print; and what the project file keeps. After every step the test reads the plates with plate_list and every
 object and instance with object_list, and compares them with the state the entry writes out: the objects' names,
 plates and instance counts, and each instance's place, turn, scale, mirror, printable flag, height above the bed and
-Auto Drop. It runs on the harness's default printer, the Bambu Lab X1 Carbon 0.4, and exits 0 when every check passes.
-Scenarios named on the command line (by their method names, such as arranging) run alone.
+Auto Drop. It runs on the Generic Klipper Printer 0.4 nozzle, and exits 0 when every check passes. Scenarios named
+on the command line (by their method names, such as arranging) run alone.
 """
 
 import copy
@@ -23,11 +23,14 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import (Checks, apart, corner, gap, gcode_prints, inside, plates, rect, run, scene, selection,  # noqa: E402
-                    square, wait)
+from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, apart, corner, gap, gcode_prints, inside,  # noqa: E402
+                    plates, rect, run, scene, selection, square, start, wait)
 from test_plates import P, turn  # noqa: E402
 
 CUBE = {"shape": "cube", "size": [20, 20, 20]}
+START = {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]}
+# How far along x and y an instance a call adds goes from the object's last one: 0.05 of the bed's 250 mm.
+STEP = 12.5
 
 
 def close(got, want, tolerance):
@@ -102,8 +105,15 @@ class ObjectsTest:
     # ---- Reading the state back ----
 
     def start(self, name):
-        self.run("project_new", discard_changes=True)
+        self.t.equal(f"{name}: the start: the presets", start(self.c), START)
         self.run("view_set", tab="prepare")
+        wait(self.c, "idle")
+        self.want = []
+        self.empty(f"{name}: the start")
+
+    def renew(self, name):
+        """A project_new within a scenario, and the check of the empty project it leaves."""
+        self.run("project_new", discard_changes=True)
         wait(self.c, "idle")
         self.want = []
         self.empty(f"{name}: the start")
@@ -401,8 +411,8 @@ class ObjectsTest:
         self.run("part_add", object=1, type="modifier", shape="cube", size=[5, 5, 5])
 
         def a(n):
-            """a's n instances: each one a call adds goes 12.8 mm further along x and y than the one before."""
-            return [I(0, (60 + 12.8 * k, 60 + 12.8 * k)) for k in range(n)]
+            """a's n instances: each one a call adds goes STEP further along x and y than the one before."""
+            return [I(0, (60 + STEP * k, 60 + STEP * k)) for k in range(n)]
 
         self.add("a", *a(1))
         self.add("b", I(0, (180, 60)))
@@ -459,7 +469,7 @@ class ObjectsTest:
         self.expect(f"{s} 13: the selected instance stands for its object", '"" 2 *', "a@0×4 · b@0")
         self.run("object_select", parts=[[1, 1]])
         self.run("object_set_instances", count=2)
-        self.want[1]["inst"] = [I(0, (180, 60)), I(0, (192.8, 72.8))]
+        self.want[1]["inst"] = [I(0, (180, 60)), I(0, (180 + STEP, 60 + STEP))]
         self.expect(f"{s} 14: the selected part stands for its object", '"" 2 *', "a@0×4 · b@0×2")
         self.run("object_set_printable", instances=[[1, 0]], printable=False)
         self.inst(1, 0)["printable"] = False
@@ -481,12 +491,12 @@ class ObjectsTest:
         self.t.equal(f"{s} 17: the job's result after Cancel", (done.get("object"), done.get("instances")), (1, 1))
         self.expect(f"{s} 17", '"" 2 *', "a@0×4 · b@0")
         self.run("object_set_instances", object=1, count=2)
-        self.want[1]["inst"] = [I(0, (180, 60)), I(0, (192.8, 72.8))]
+        self.want[1]["inst"] = [I(0, (180, 60)), I(0, (180 + STEP, 60 + STEP))]
         after_count = self.saved()
         reply = self.run("object_separate_instances", object=1)
         self.t.equal(f"{s} 18: the reply's objects", named(reply), [(1, "b"), (2, "b")])
         self.want[1]["inst"] = [I(0, (180, 60))]
-        self.add("b", I(0, (192.8, 72.8)))
+        self.add("b", I(0, (180 + STEP, 60 + STEP)))
         sc = self.expect(f"{s} 18", '"" 3 *', "a@0×4 · b@0 · b@0")
         self.t.equal(f"{s} 18: each instance's object keeps the parts", [[p["type"] for p in o["parts"]] for o in sc],
                      [["part"], ["part", "modifier"], ["part", "modifier"]])
@@ -496,17 +506,17 @@ class ObjectsTest:
         reply = self.run("object_separate_instances", instances=[[0, 3]])
         self.t.equal(f"{s} 20: the reply's objects", named(reply), [(2, "a")])
         self.want[0]["inst"] = a(3)
-        self.add("a", I(0, (98.4, 98.4)))
+        self.add("a", I(0, (60 + 3 * STEP, 60 + 3 * STEP)))
         self.expect(f"{s} 20: where the instance stood", '"" 3 *', "a@0×3 · b@0×2 · a@0")
         self.run("object_select", objects=[0])
         reply = self.run("object_separate_instances")
         self.t.equal(f"{s} 21: the reply's objects", named(reply), [(0, "a"), (3, "a"), (4, "a")])
         self.want[0]["inst"] = a(1)
-        self.add("a", I(0, (85.6, 85.6)))
-        self.add("a", I(0, (72.8, 72.8)))
+        self.add("a", I(0, (60 + 2 * STEP, 60 + 2 * STEP)))
+        self.add("a", I(0, (60 + STEP, 60 + STEP)))
         self.expect(f"{s} 21: each instance but the first becomes an object, the last instance first", '"" 5 *',
                     "a@0 · b@0×2 · a@0 · a@0 · a@0")
-        self.start(f"{s} 22")
+        self.renew(f"{s} 22")
         self.run("view_set", camera="top")
         self.run("object_add_primitive", name="cut", **CUBE)
         self.run("object_select", objects=[0])
@@ -572,21 +582,21 @@ class ObjectsTest:
             reply = self.run("object_center", objects=[0, 2])
             self.t.equal(f"{s} {step}: the reply's plates", reply.get("plates"),
                          [{"plate": 1, "objects": [0]}, {"plate": 2, "objects": [2]}])
-            self.inst(0)["at"] = self.inst(2)["at"] = (128, 128)
+            self.inst(0)["at"] = self.inst(2)["at"] = (125, 125)
             self.expect(f"{s} {step}: each goes to the centre of its own plate", *rows)
-        self.run("object_add_primitive", plate=1, name="fourth", position=self.corner(1, 128, 60), **CUBE)
-        self.add("fourth", I(1, (128, 60)))
+        self.run("object_add_primitive", plate=1, name="fourth", position=self.corner(1, 125, 60), **CUBE)
+        self.add("fourth", I(1, (125, 60)))
         self.expect(f"{s} 10", '"" 0 · "" 3 * · "" 1', "first@1 · second@1 · third@2 · fourth@1")
         reply = self.run("object_center", objects=[0, 3], plate=0)
         self.t.equal(f"{s} 11: the reply's plates", reply.get("plates"), [{"plate": 0, "objects": [0, 3]}])
-        self.inst(0).update(plate=0, at=(128, 162))
-        self.inst(3).update(plate=0, at=(128, 94))
+        self.inst(0).update(plate=0, at=(125, 157.5))
+        self.inst(3).update(plate=0, at=(125, 92.5))
         self.expect(f"{s} 11: the two move as one group", '"" 2 · "" 1 * · "" 1',
                     "first@0 · second@1 · third@2 · fourth@0")
         self.run("object_select", objects=[2])
         reply = self.run("object_center")
         self.t.equal(f"{s} 12: the reply's plates", reply.get("plates"), [{"plate": 1, "objects": [2]}])
-        self.inst(2).update(plate=1, at=(128, 128))
+        self.inst(2).update(plate=1, at=(125, 125))
         rows = '"" 2 · "" 2 * · "" 0', "first@0 · second@1 · third@1 · fourth@0"
         self.expect(f"{s} 12: the selection goes to the centre of the current plate", *rows)
         self.run("object_transform", object=2, rotate=[45, 0, 0], mode="absolute")
@@ -616,7 +626,9 @@ class ObjectsTest:
                      all(close(turn(rotations[(o["index"], 0)]), turn(o["instances"][0]["rotation_deg"]), 1e-6)
                          for o in sc if (o["index"], 0) in rotations), rotations)
         self.t.near(f"{s} 15: first lies on a face, bbox.size z", sc[0]["instances"][0]["bbox"]["size"][2], 20, 0.01)
-        s_fit = 11.888
+        # The bed has no excluded area, so the one free volume is the whole bed, 250 mm each way: the box, grown by
+        # 0.01 mm on every side, scales by 250 / 20.02, and its centre goes to the bed's.
+        s_fit = 12.488
         for step, name, index, plates_row in [(16, "fit", 4, '"" 2 · "" 3 * · "" 0'),
                                               (17, "fit2", 5, '"" 2 · "" 4 * · "" 0')]:
             at = (60, 200) if name == "fit" else (200, 60)
@@ -636,9 +648,9 @@ class ObjectsTest:
             sc = self.expect(f"{s} {step}", *rows)
             fit = sc[index]["instances"][0]
             cx, cy = corner(self.c, 1)
-            self.t.near(f"{s} {step}: {name} fills the widest free part of the bed, at",
-                        [fit["offset"][0] - cx, fit["offset"][1] - cy], [137, 128], 0.01)
-            self.size(f"{s} {step}: {name}'s", fit, [237.76] * 3, 0.02)
+            self.t.near(f"{s} {step}: {name} fills the bed, its centre on the bed's, at",
+                        [fit["offset"][0] - cx, fit["offset"][1] - cy], [125, 125], 0.01)
+            self.size(f"{s} {step}: {name}'s", fit, [249.75] * 3, 0.02)
 
     def arranging(self):
         s = "arranging and filling the bed"
@@ -826,7 +838,7 @@ class ObjectsTest:
         self.run("object_set_instances", object=0, count=3)
         self.run("object_select", none=True)
         self.run("object_add_primitive", shape="cube", size=[15, 15, 15], name="b", position=self.corner(0, 180, 60))
-        self.add("a", I(0, (60, 60)), I(0, (72.8, 72.8)), I(0, (85.6, 85.6)))
+        self.add("a", I(0, (60, 60)), I(0, (60 + STEP, 60 + STEP)), I(0, (60 + 2 * STEP, 60 + 2 * STEP)))
         self.add("b", I(0, (180, 60)))
         after1 = self.saved()
         rows = '"" 2 *', "a@0×3 · b@0"
@@ -872,7 +884,7 @@ class ObjectsTest:
         self.run("object_mirror", axis="x")
         self.run("object_set_printable", instances=[[0, 1]], printable=False)
         self.add("kept", I(0, (60, 60), rot=None, mirrored=True),
-                 I(0, (72.8, 72.8), scale=[1.5] * 3, mirrored=True, printable=False))
+                 I(0, (60 + STEP, 60 + STEP), scale=[1.5] * 3, mirrored=True, printable=False))
 
         def turned(label, sc):
             self.size(f"{label}: kept's instance 0, turned 30 degrees,", sc[0]["instances"][0],
@@ -895,7 +907,20 @@ class ObjectsTest:
         turned(f"{s} 3", self.expect(f"{s} 3: the project file keeps them; opening it makes plate 0 current",
                                      '"" 1 * · "" 1', rows))
 
+    def arrange_options(self):
+        """Stores the arrange options the arrangements are checked under, spacing 0 (automatic) and rotation off, as a
+        new data folder has them: the Arrange options panel keeps them for every arrange after, by the print
+        sequence, here the Klipper process's by layer. An earlier test may leave rotation on, which lets an arrange
+        turn a cube."""
+        start(self.c)
+        self.run("object_add_primitive", **CUBE)
+        reply = self.run("object_arrange", spacing=0, rotate=False)
+        settings = reply.get("settings", {})
+        self.t.equal("the arrange options: the reply's spacing and rotate", (settings.get("spacing"),
+                     settings.get("rotate")), (0, False))
+
     def run_all(self, only=()):
+        self.t.scenario("the arrange options", self.arrange_options)
         scenarios = [("adding a shape", self.adding), ("moving an instance", self.moving),
                      ("moving a part", self.moving_a_part), ("the number of instances", self.instances),
                      ("placing objects", self.placing), ("arranging and filling the bed", self.arranging),

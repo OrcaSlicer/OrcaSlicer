@@ -26,6 +26,7 @@ import tempfile
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import checks  # noqa: E402
 import orca_mcp  # noqa: E402
 
 # The coil's build time to aim for. The missed hole takes about as long as the build, so this is past the
@@ -39,12 +40,13 @@ def cad(client, tool, **args):
 
 
 def coil(client, turns):
-    """A new design holding one coil: a 1.2 mm wire swept along a helix of radius 10 and pitch 3."""
-    cad(client, "new_design", discard_changes=True)
-    cad(client, "helix", radius=10, pitch=3, height=3 * turns)
-    cad(client, "sketch_create", plane="XZ")
-    cad(client, "sketch_draw", type="circle_center", center=[10, 0], radius=1.2)
-    cad(client, "sketch_finish")
+    """A new design holding one coil: a 1.2 mm wire swept along a helix of radius 10 and pitch 3. Each call's job is
+    followed to its end, since under the sweep's 4 s budget one may reply running on a loaded machine."""
+    client.await_job(cad(client, "new_design", discard_changes=True))
+    client.await_job(cad(client, "helix", radius=10, pitch=3, height=3 * turns))
+    client.await_job(cad(client, "sketch_create", plane="XZ"))
+    client.await_job(cad(client, "sketch_draw", type="circle_center", center=[10, 0], radius=1.2))
+    client.await_job(cad(client, "sketch_finish"))
     start = time.time()
     client.await_job(cad(client, "sweep", sketch=1, path=0))
     return time.time() - start
@@ -54,16 +56,20 @@ def main():
     client, _ = orca_mcp.session_client()
     out_dir = tempfile.mkdtemp(prefix="orca-mcp-cad-failed-job-")
     path = os.path.join(out_dir, "session.json")
-    checks = []
+    results = []
 
     def check(name, ok, detail=""):
-        checks.append((name, bool(ok), detail))
+        results.append((name, bool(ok), detail))
 
     # ---- The session to export ----
     # Its first coil, of 12 turns, times the build; the session is made again only when the coil it
     # sizes has more turns. The hole must reply running and still run at the export after its reply.
     # One that fails inside the budget, or whose job has ended by the export, is made again with a
     # bigger coil.
+    checks.start(client)
+    # An app's first Design command builds the Design tab, which can outlast a 4 s budget. Built before the session
+    # is recorded, it adds no job to the export, which a replay into the built tab would wait for in vain.
+    client.await_job(cad(client, "new_design", discard_changes=True))
     client.call("replay_export", clear=True)
     client.call("project_new", discard_changes=True)
     built = 12
@@ -154,10 +160,10 @@ def main():
     check("the same coil", math.isclose(mass["volume"], live_mass["volume"], rel_tol=1e-6), (mass["volume"], live_mass["volume"]))
 
     print(f"replay and its run in {out_dir}")
-    failed = [c for c in checks if not c[1]]
-    for name, ok, detail in checks:
+    failed = [c for c in results if not c[1]]
+    for name, ok, detail in results:
         print(("PASS " if ok else "FAIL ") + name + ("" if ok or detail == "" else f": {detail}"))
-    print(f"{len(checks) - len(failed)}/{len(checks)} checks passed")
+    print(f"{len(results) - len(failed)}/{len(results)} checks passed")
     return 1 if failed else 0
 
 

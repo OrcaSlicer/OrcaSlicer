@@ -12,8 +12,8 @@ mcp/server.json, or whose server.json is not JSON or names no port, naming the f
 answers (HTTP 401, a reply that is not JSON), also chaining the cause. call_command(), against a
 stubbed call(), fails at once on a dialog, follows a running job, prefixes its errors with the
 command's name, chaining the original, and returns the command's whole reply. seed_datadir() keeps a fresh
-datadir's login in its own token file, opens its main window 1600 x 900 at the top left of the work area, and leaves
-a reused datadir's conf as it is. ORCA_MCP_CALL_LOG gets a line
+datadir's login in its own token file, opens its main window 1600 x 900 at the top left of the work area, seeds the
+default printer, the Generic Klipper Printer 0.4 nozzle, and leaves a reused datadir's conf as it is. ORCA_MCP_CALL_LOG gets a line
 per call, and reply_budget_s() reads ORCA_MCP_REPLY_BUDGET_MS as the app does. Exits 0 when every check passes.
 The folders the checks make are removed when they end. The checks are asserts, so a Python that runs with its
 asserts off (-O, or PYTHONOPTIMIZE, which the sweep's runner passes on) fails the test before any of them.
@@ -307,6 +307,12 @@ def check_seed_datadir():
     x, y = orca_mcp.work_area_origin()
     assert isinstance(x, int) and isinstance(y, int) and x >= 0 and y >= 0, (x, y)
     ok("seed_datadir() opens a fresh datadir's main window 1600 x 900 at the top left of the work area")
+    conf = read_conf(fresh)
+    assert conf["models"] == [{"model": "Generic Klipper Printer", "nozzle_diameter": "0.4", "vendor": "Custom"}], conf
+    assert conf["filaments"] == ["Generic PLA @System"], conf
+    # The printer preset's own name, which is not the model's.
+    assert conf["presets"] == {"machine": "MyKlipper 0.4 nozzle"}, conf
+    ok("seed_datadir() seeds the default printer")
 
     reused = scratch("orca-seed-reused-")
     orca_mcp.write_conf(os.path.join(reused, "OrcaSlicer.conf"), {"app": {"use_encrypted_token_file": False}})

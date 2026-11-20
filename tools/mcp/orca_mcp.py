@@ -27,6 +27,7 @@ With ``$ORCA_MCP_CALL_LOG`` set to a file, every tool call appends one JSON line
 
 import argparse
 import base64
+import collections
 import json
 import os
 import platform
@@ -44,8 +45,13 @@ DEFAULT_PORT = 13619
 SESSION_FILE = os.environ.get("ORCA_MCP_SESSION", os.path.expanduser("~/.cache/orca-mcp/session.json"))
 PROTOCOL = "2025-11-25"
 
-# A finished setup with one printer, so a fresh datadir opens straight into the main window.
-DEFAULT_PRINTER = ("BBL", "Bambu Lab X1 Carbon", "0.4", "Bambu PLA Basic @BBL X1C")
+# A printer `launch` seeds a fresh datadir with: its vendor, its model and nozzle as the setup wizard picks them, the
+# filament the one slot starts with, and the printer preset selected.
+Printer = collections.namedtuple("Printer", "vendor model nozzle filament preset")
+# A finished setup with one printer, so a fresh datadir opens straight into the main window. The app installs the
+# Custom vendor and the Orca Filament Library on every datadir, so a first start copies no other vendor's profiles.
+DEFAULT_PRINTER = Printer("Custom", "Generic Klipper Printer", "0.4", "Generic PLA @System", "MyKlipper 0.4 nozzle")
+PROFILES = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir, "resources", "profiles")
 # A fresh datadir's main window: at the top left of the screen's work area, small enough for a 1920 x 1080
 # screen to show all of it, so instances started side by side stay on screen and a view or screenshot taken in
 # one has the same size in another.
@@ -298,6 +304,33 @@ def work_area_origin():
         return 0, 0
 
 
+def vendor_printer(vendor, model, nozzle, filament=None, profiles=PROFILES):
+    """The Printer of `vendor`'s `model` with `nozzle`, read from the vendor's profiles under `profiles`: its printer
+    preset is the one the vendor's index lists for that model and nozzle, and its filament is `filament`, or the first
+    of the model's default filaments. Exits naming what the profiles lack."""
+    def read(sub_path):
+        with open(os.path.join(profiles, vendor, sub_path), encoding="utf-8") as f:
+            return json.load(f)
+
+    try:
+        with open(os.path.join(profiles, vendor + ".json"), encoding="utf-8") as f:
+            index = json.load(f)
+    except (OSError, ValueError) as e:
+        sys.exit(f"no profiles for the vendor {vendor!r}: {e}")
+    found = [m for m in index.get("machine_model_list", []) if m["name"] == model]
+    if not found:
+        sys.exit(f"{vendor} has no printer model {model!r}")
+    defaults = [f for f in read(found[0]["sub_path"]).get("default_materials", "").split(";") if f]
+    for item in index.get("machine_list", []):
+        preset = read(item["sub_path"])
+        diameter = preset.get("printer_variant") or (preset.get("nozzle_diameter") or [None])[0]
+        if preset.get("instantiation") == "true" and preset.get("printer_model") == model and diameter == nozzle:
+            if not (filament or defaults):
+                sys.exit(f"{model} names no default filament; pass --filament")
+            return Printer(vendor, model, nozzle, filament or defaults[0], preset["name"])
+    sys.exit(f"{vendor} has no printer preset of {model!r} with a {nozzle} nozzle")
+
+
 def seed_datadir(datadir, printer):
     """Seed a fresh datadir's OrcaSlicer.conf. A datadir that has one keeps it.
 
@@ -306,7 +339,6 @@ def seed_datadir(datadir, printer):
     that read stops a newly built app at a keychain prompt that only a person can answer. Its main window
     opens WINDOW_SIZE at the top left of the work area: the app trims a saved window to the work area, so one
     placed over the macOS menu bar would open that much shorter."""
-    vendor, model, nozzle, filament = printer
     os.makedirs(datadir, exist_ok=True)
     conf = os.path.join(datadir, "OrcaSlicer.conf")
     if os.path.exists(conf):
@@ -314,9 +346,9 @@ def seed_datadir(datadir, printer):
     x, y = work_area_origin()
     width, height = WINDOW_SIZE
     write_conf(conf, {"firstguide": {"finish": True},
-                      "models": [{"model": model, "nozzle_diameter": nozzle, "vendor": vendor}],
-                      "filaments": [filament],
-                      "presets": {"machine": f"{model} {nozzle} nozzle"},
+                      "models": [{"model": printer.model, "nozzle_diameter": printer.nozzle, "vendor": printer.vendor}],
+                      "filaments": [printer.filament],
+                      "presets": {"machine": printer.preset},
                       "app": {"check_for_updates": False, "show_daily_tips": False, "use_encrypted_token_file": True,
                               "window_mainframe": f"{x}; {y}; {width}; {height}; 0"}})
 
@@ -495,48 +527,57 @@ def app_env(env, datadir, display_env=None):
     return env
 
 
-def answer_certificate_prompt(client):
-    """Presses Yes on the dialog that asks a person to accept the system certificate store, when it is
-    open, and leaves every other dialog to whoever drives the app. The app opens that one before its
-    window when it has to find a CA bundle itself, and the endpoint serves by then, so a launch nobody
-    watches answers it here. True when it pressed the button."""
+# The prompts a launch nobody watches answers, by words of their message: the button it presses, and what it reports.
+# The app asks to accept the system certificate store before its window when it has to find a CA bundle itself, and
+# to restore unsaved items when the last app on the datadir was ended with a project unsaved, as a test's app is; a
+# restore would open that project in place of the empty one a launch starts with.
+STARTUP_PROMPTS = (("system certificate", "yes", "answered the prompt to use the system SSL certificate"),
+                   ("Previously unsaved items", "no", "answered No to restoring the unsaved items an earlier app left"))
+
+
+def answer_startup_prompts(client):
+    """Answers each of STARTUP_PROMPTS that is open, and leaves every other dialog to whoever drives the app.
+    True when it pressed a button."""
     try:
         dialogs = client.call("app_state").get("dialogs") or []
     except (McpError, OSError):
         return False
+    answered = False
     for dialog in dialogs:
-        if "system certificate" in (dialog.get("message") or ""):
-            try:
-                client.call("dialog_answer", dialog={"title": dialog.get("title", "")}, button="yes")
-            except (McpError, OSError):
-                return False
-            return True
-    return False
+        for words, button, report in STARTUP_PROMPTS:
+            if words in (dialog.get("message") or ""):
+                try:
+                    client.call("dialog_answer", dialog={"title": dialog.get("title", "")}, button=button)
+                except (McpError, OSError):
+                    return answered
+                print(report, file=sys.stderr)
+                answered = True
+    return answered
 
 
 def wait_ready(client, timeout):
-    """True once the app is ready, answering the certificate prompt meanwhile: the app opens that dialog
-    before its window, so waiting for ready alone would time out with the dialog still up."""
+    """True once the app is ready with no startup prompt open, answering the prompts meanwhile: the certificate
+    prompt opens before the window, so waiting for ready alone would time out with it still up, and the restore
+    prompt is open when the app reports ready."""
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
-            if client.call("app_wait", **{"for": "ready", "timeout_s": 2}).get("satisfied"):
-                return True
+            ready = client.call("app_wait", **{"for": "ready", "timeout_s": 2}).get("satisfied")
         except (McpError, OSError):
             time.sleep(0.5)
             continue
-        if answer_certificate_prompt(client):
-            print("answered the prompt to use the system SSL certificate", file=sys.stderr)
+        if not answer_startup_prompts(client) and ready:
+            return True
     return False
 
 
 def launch(args):
     token = os.environ.get("ORCA_MCP_TOKEN") or base64.b16encode(os.urandom(32)).decode().lower()
     datadir = os.path.abspath(args.datadir or tempfile.mkdtemp(prefix="orca-mcp-"))
-    printer = DEFAULT_PRINTER
+    printer = DEFAULT_PRINTER._replace(filament=args.filament or DEFAULT_PRINTER.filament)
     if args.printer:
         model, _, nozzle = args.printer.partition("@")
-        printer = (args.vendor, model, nozzle or "0.4", args.filament or DEFAULT_PRINTER[3])
+        printer = vendor_printer(args.vendor, model, nozzle or "0.4", args.filament)
     seed_datadir(datadir, printer)
 
     env = dict(os.environ, ORCA_MCP_TOKEN=token)
@@ -560,6 +601,12 @@ def launch(args):
     client = OrcaMcp(args.port, token)
     if not wait_ready(client, args.timeout):
         sys.exit(f"OrcaSlicer did not become ready in {args.timeout} s; see {log.name}")
+    # A seeded datadir has a finished setup, so the Setup Wizard opens on it only when the printer's profiles are
+    # missing: the app could not copy them, as on Windows below a path too long for them (MAX_PATH).
+    if any(d.get("class", "").endswith("GuideFrame") for d in client.call("app_state").get("dialogs") or []):
+        sys.exit(f"OrcaSlicer opened its Setup Wizard: the datadir's printer profiles are missing. On Windows a datadir "
+                 f"path of more than about 150 characters keeps the app from copying them (this one has {len(datadir)}); "
+                 f"see {log.name}")
     url = f"http://127.0.0.1:{args.port}/mcp"
     print(json.dumps({**session, "url": url}, indent=2))
     if args.print_config:
@@ -607,9 +654,11 @@ def main():
                          help="run on a private Xvfb display (Linux), for a machine without a desktop")
     p.add_argument("--width", type=int, default=1600)
     p.add_argument("--height", type=int, default=1000)
-    p.add_argument("--printer", help="\"<model>@<nozzle>\" for a fresh datadir, e.g. \"Bambu Lab X1 Carbon@0.4\"")
-    p.add_argument("--vendor", default="BBL")
-    p.add_argument("--filament")
+    p.add_argument("--printer", help="\"<model>@<nozzle>\" of --vendor for a fresh datadir, e.g. \"Bambu Lab X1 Carbon@0.4\" "
+                                     "(default: the Custom vendor's \"Generic Klipper Printer@0.4\")")
+    p.add_argument("--vendor", default="BBL", help="the vendor of --printer, as its profiles name it (default: %(default)s)")
+    p.add_argument("--filament", help="the filament a fresh datadir's slot starts with (default: Generic PLA @System, or "
+                                      "the first default filament of --printer's model)")
     p.add_argument("--cad", action="store_true",
                    help="start the app with --cad: the Design (CAD) tab on for this run, for its commands (tool_search group Design)")
     p.add_argument("--unrestricted-scripts", action="store_true",

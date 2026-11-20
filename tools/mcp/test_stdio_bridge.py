@@ -25,7 +25,10 @@ import tempfile
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import checks  # noqa: E402
 import orca_mcp  # noqa: E402
+
+START = {"printer": checks.KLIPPER, "process": checks.KLIPPER_STD, "filaments": [checks.GENERIC_PLA]}
 
 
 def free_port():
@@ -111,8 +114,18 @@ def main():
     parser.add_argument("--bin", help="orca-slicer binary (default: the one launch found)")
     args = parser.parse_args()
 
-    _, session = orca_mcp.session_client()
+    client, session = orca_mcp.session_client()
     binary = orca_mcp.find_binary(args.bin)
+    failures = []
+
+    def check(name, ok, detail=""):
+        print(("ok   " if ok else "FAIL ") + name + ("" if ok else f": {detail}"))
+        if not ok:
+            failures.append(name)
+
+    presets = checks.start(client)
+    check("the start is the Klipper printer with one Generic PLA slot", presets == START, presets)
+
     # The bridge must find the token on its own, in the discovery file.
     env = {k: v for k, v in os.environ.items() if k != "ORCA_MCP_TOKEN"}
     env.setdefault("DISPLAY", session.get("display") or "")
@@ -135,13 +148,6 @@ def main():
         modern_app_state(4),
         json.dumps({"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {"name": "no_such_tool", "arguments": {}}}),
     ], env)
-
-    failures = []
-
-    def check(name, ok, detail=""):
-        print(("ok   " if ok else "FAIL ") + name + ("" if ok else f": {detail}"))
-        if not ok:
-            failures.append(name)
 
     init = reply(replies, 1).get("result", {})
     check("initialize negotiates the client's version", init.get("protocolVersion") == legacy, reply(replies, 1))
@@ -168,7 +174,7 @@ def main():
           app_state_of(first).get("ready") is True, alone)
 
     # With no instance answering, everything but a tool call is answered from the bridge's own catalog.
-    empty = tempfile.mkdtemp(prefix="orca-bridge-offline-")
+    empty = tempfile.mkdtemp(prefix="obo-")
     try:
         offline = bridge(binary, empty, [
             json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize",
@@ -196,8 +202,10 @@ def main():
     finally:
         shutil.rmtree(empty, ignore_errors=True)
 
-    # With nothing answering, a tool call starts OrcaSlicer, which serves on the bridge's port.
-    fresh = tempfile.mkdtemp(prefix="orca-bridge-launch-")
+    # With nothing answering, a tool call starts OrcaSlicer, which serves on the bridge's port. The folder's name is
+    # short, so that the first start's profile copy stays within Windows' 260-character paths under a deep
+    # temporary folder.
+    fresh = tempfile.mkdtemp(prefix="obl-")
     port = free_port()
     orca_mcp.seed_datadir(fresh, orca_mcp.DEFAULT_PRINTER)
     # The app the bridge starts gets what an instance from launch gets: the session's private display

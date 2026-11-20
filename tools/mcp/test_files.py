@@ -9,11 +9,13 @@ name; importing models (STL, a project's .3mf, ZIP archives, a STEP file, files 
 objects as STL and DRC, the Preview's toolpaths as OBJ, the model as a 3MF, the plate's G-code and the sliced file;
 sending G-code with no print host; and the filament slots a merge and a mix leave in the project file. Every file
 written is read back, by the test (a G-code's text, a sliced file's entries, a folder's file names and sizes) or by
-the app (an exported mesh imported into an empty project, a saved project opened again). It runs on the harness's
-default printer, the Bambu Lab X1 Carbon 0.4, writes into a folder of its own, kept when a check fails, and exits 0
-when every check passes.
+the app (an exported mesh imported into an empty project, a saved project opened again). It runs on the default
+printer, the Generic Klipper Printer 0.4 nozzle, on a data folder earlier tests used: it sets the presets and the
+preferences its checks read before its first scenario. It writes into a folder of its own, kept when a check fails,
+and exits 0 when every check passes.
 """
 
+import json
 import os
 import re
 import shutil
@@ -25,8 +27,9 @@ import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import (Checks, answer_all, dialogs, gcode, layer_gcode, meshes, normal, obj_facts, plates,  # noqa: E402
-                    project, recent, reimport, run, sliced, sliced_flags, slots, undo_steps, unsaved, values, wait)
+from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, answer_all, dialogs, gcode, layer_gcode,  # noqa: E402
+                    meshes, normal, obj_facts, plates, presets, project, recent, reimport, run, sliced, sliced_flags,
+                    slots, start, undo_steps, unsaved, values, wait)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
@@ -34,9 +37,17 @@ BOX_STL = os.path.join(REPO, "tests", "data", "test_stl", "ASCII", "20mmbox-LF.s
 STEP = os.path.join(REPO, "tests", "data", "named_single_body.step")
 BENCHY = os.path.join(REPO, "resources", "handy_models", "3DBenchy.drc")
 HEIGHTMAP = os.path.join(HERE, "tests", "fixtures", "heightmap.png")
-PLA_JSON = os.path.join(HERE, "tests", "fixtures", "mcp_import_pla.json")
 
-PROCESS = "0.20mm Standard @BBL X1C"
+# The preferences the checks read, each at the app's default: an open that asks nothing about the project's settings,
+# the recent projects, the STEP options dialog, no slice by itself, the print host's upload for Send, and lossless
+# DRC.
+PREFERENCES = {"project_load_behaviour": "ask_when_relevant", "max_recent_count": 18, "recent_models": False,
+               "enable_step_mesh_setting": True, "auto_slice_after_change": False, "use_printer_agents": False,
+               "drc_bits": 0}
+# A filament preset file no other test writes, imported as a model.
+USER_PLA = "MCP Files PLA"
+USER_PLA_FILE = {"name": USER_PLA, "filament_settings_id": [USER_PLA], "inherits": GENERIC_PLA, "from": "User",
+                 "filament_cost": ["24"], "version": "2.8.0.16"}
 NO_GEOMETRY = "The file does not contain any geometry data."
 NEW_PROJECT_QUESTION = "Creating a new project: unsaved changes"
 LOAD_PROJECT_QUESTION = "Load project: unsaved changes"
@@ -84,7 +95,8 @@ class FilesTest:
         self.t = Checks()
         self.folder = folder
         self.tag = os.path.basename(folder)
-        self.next_walls = 3
+        # wall_loops values neither the process (3) nor an earlier attempt has.
+        self.next_walls = 4
 
     # ---- Calls ----
 
@@ -208,7 +220,24 @@ class FilesTest:
                 return rule.get("uses", 0)
         return None
 
+    def user_filaments(self):
+        return [p.get("name") for p in self.c.call("preset_list", type="filament", source="user", limit=500)["items"]]
+
     # ---- Scenarios ----
+
+    def starts_from(self):
+        s = "the start"
+        self.t.equal(f"{s}: the presets", start(self.c),
+                     {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]})
+        self.run("preferences_set", values=PREFERENCES)
+        items = self.c.call("preferences_get", keys=list(PREFERENCES))["items"]
+        self.t.equal(f"{s}: the preferences", {i["key"]: i["value"] for i in items}, PREFERENCES)
+        if USER_PLA in self.user_filaments():
+            self.run("preset_delete", type="filament", name=USER_PLA)
+        self.t.check(f"{s}: no {USER_PLA} preset", USER_PLA not in self.user_filaments(), self.user_filaments())
+        shutil.copyfile(BOX_STL, self.w("20mmbox-LF.stl"))
+        with open(self.w("mcp_files_pla.json"), "w", encoding="utf-8") as f:
+            json.dump(USER_PLA_FILE, f, indent=4)
 
     def new_project_scenario(self):
         s = "a new project"
@@ -261,7 +290,7 @@ class FilesTest:
         self.run("dialog_answer", dialog={"title": NEW_PROJECT_QUESTION}, button="Discard")
         self.follow(reply, "action_run")
         self.project_is(f"{s} 7", "Untitled", None, "clean")
-        self.values_are(f"{s} 7", {"top_shell_layers": "5"})
+        self.values_are(f"{s} 7", {"top_shell_layers": "4"})
         self.unsaved_is(f"{s} 7", [])
         self.no_dialog(f"{s} 7")
         self.tab_is(f"{s} 7", "prepare")
@@ -280,9 +309,9 @@ class FilesTest:
         self.run("view_set", tab="home")
         reply = self.run("project_new", discard_changes=True, preset_changes="discard")
         self.t.equal(f"{s} 9: the reply's presets", (reply.get("discarded"), reply.get("modified")),
-                     ({"process": {"name": PROCESS, "keys": ["top_shell_layers"]}}, None))
+                     ({"process": {"name": KLIPPER_STD, "keys": ["top_shell_layers"]}}, None))
         self.project_is(f"{s} 9", "Untitled", None, "clean")
-        self.values_are(f"{s} 9", {"top_shell_layers": "5"})
+        self.values_are(f"{s} 9", {"top_shell_layers": "4"})
         self.unsaved_is(f"{s} 9", [])
         self.tab_is(f"{s} 9", "home")
 
@@ -296,7 +325,7 @@ class FilesTest:
         self.run("view_set", tab="home")
         reply = self.run("project_new", discard_changes=True)
         self.t.equal(f"{s} 11: the reply's presets", (reply.get("modified"), reply.get("discarded")),
-                     ({"process": {"name": PROCESS, "keys": ["top_shell_layers"]}}, None))
+                     ({"process": {"name": KLIPPER_STD, "keys": ["top_shell_layers"]}}, None))
         self.project_is(f"{s} 11", "Untitled", None, "clean")
         self.values_are(f"{s} 11: the presets' changes carry over by default", {"top_shell_layers": "7"})
         self.unsaved_is(f"{s} 11", ["top_shell_layers"])
@@ -359,7 +388,7 @@ class FilesTest:
         self.t.equal(f"{label}: the reply", {k: reply.get(k) for k in ("opened", "objects", "names", "plates")},
                      {"opened": "project", "objects": 1, "names": ["source"], "plates": 1})
         self.placed(label, ("source", 100, 100))
-        self.values_are(label, {"wall_loops": "5", "top_shell_layers": "5"})
+        self.values_are(label, {"wall_loops": "5", "top_shell_layers": "4"})
         self.unsaved_is(label, ["wall_loops"])
         self.tab_is(label, "prepare")
         self.no_dialog(label)
@@ -491,9 +520,10 @@ class FilesTest:
     def importing_scenario(self):
         s = "importing models"
         box = ("20mmbox-LF.stl", 12, 8000, [20, 20, 20])
+        box_stl = self.w("20mmbox-LF.stl")
         self.start(s)
         undo_steps(self.c)
-        reply = self.run("project_import", paths=[BOX_STL])
+        reply = self.run("project_import", paths=[box_stl])
         self.meshes_are(f"{s} 1", box)
         self.t.equal(f"{s} 1: the reply",
                      {k: reply.get(k) for k in ("opened", "added", "objects", "names", "plates")},
@@ -501,14 +531,14 @@ class FilesTest:
         self.project_is(f"{s} 1: an untitled project takes the first file's name", "20mmbox-LF", None, "dirty")
         self.steps_are(f"{s} 1", ["Import Objects: 20mmbox-LF.stl"])
         self.unsaved_is(f"{s} 1", [])
-        self.t.check(f"{s} 1: recent projects lack the STL", normal(BOX_STL) not in recent(self.c))
+        self.recent_has(f"{s} 1", "20mmbox-LF.stl", held=False)
         self.run("undo", history="project")
         self.names_are(f"{s} 2: the import is one undo step")
 
         self.new_project()
         self.cylinder("cyl")
         self.run("settings_set", values={"top_shell_layers": 7})
-        reply = self.run("project_import", paths=[BOX_STL])
+        reply = self.run("project_import", paths=[box_stl])
         self.names_are(f"{s} 3", "cyl", "20mmbox-LF.stl")
         self.meshes_are(f"{s} 3: the box", box, got=meshes(self.c)[1:])
         self.t.equal(f"{s} 3: the reply's added", reply.get("added"), 1)
@@ -528,7 +558,7 @@ class FilesTest:
         self.cylinder("cyl")
         self.run("settings_set", values={"top_shell_layers": 7})
         self.names_are(f"{s} 5", "cyl")
-        self.values_are(f"{s} 5", {"wall_loops": "2", "top_shell_layers": "7"})
+        self.values_are(f"{s} 5", {"wall_loops": "3", "top_shell_layers": "7"})
         undo_steps(self.c)
         reply = self.c.call("project_import", paths=[self.w("import_src.3mf")])
         self.t.check(f"{s} 6: the reply is not held by a dialog", reply.get("status") != "blocked_by_dialog", reply)
@@ -538,7 +568,7 @@ class FilesTest:
         self.meshes_are(f"{s} 6: the source", ("source", 12, 8000, [20, 20, 20]), got=meshes(self.c)[1:])
         self.no_dialog(f"{s} 6")
         self.values_are(f"{s} 6: a project's .3mf adds none of its settings",
-                        {"wall_loops": "2", "top_shell_layers": "7"})
+                        {"wall_loops": "3", "top_shell_layers": "7"})
         self.unsaved_is(f"{s} 6", ["top_shell_layers"])
         self.unsaved_is(f"{s} 6", [], "filament")
         self.unsaved_is(f"{s} 6", [], "printer")
@@ -546,7 +576,7 @@ class FilesTest:
         self.steps_are(f"{s} 6", ["Import Objects: import_src.3mf"])
         self.run("undo", history="project")
         self.names_are(f"{s} 7", "cyl")
-        self.values_are(f"{s} 7", {"wall_loops": "2", "top_shell_layers": "7"})
+        self.values_are(f"{s} 7", {"wall_loops": "3", "top_shell_layers": "7"})
         self.unsaved_is(f"{s} 7", ["top_shell_layers"])
 
         self.new_project()
@@ -557,7 +587,7 @@ class FilesTest:
         self.names_are(f"{s} 8", "box")
         self.steps_are(f"{s} 8", [])
 
-        for step, path in ((9, HEIGHTMAP), (10, PLA_JSON)):
+        for step, path in ((9, HEIGHTMAP), (10, self.w("mcp_files_pla.json"))):
             undo_steps(self.c)
             reply = self.c.call("project_import", paths=[path])
             self.t.equal(f"{s} {step}: the reply", reply.get("status"), "blocked_by_dialog")
@@ -568,9 +598,9 @@ class FilesTest:
             self.names_are(f"{s} {step}", "box")
             self.steps_are(f"{s} {step}", [f"Import Objects: {os.path.basename(path)}"])
             self.project_is(f"{s} {step}: an import that adds nothing names nothing", "Untitled", None, "dirty")
-        users = self.c.call("preset_list", type="filament", source="user", limit=500)["items"]
-        self.t.check(f"{s} 10: a preset file loads no preset", "MCP Import PLA" not in [p.get("name") for p in users],
-                     [p.get("name") for p in users])
+        self.t.check(f"{s} 10: a preset file loads no preset", USER_PLA not in self.user_filaments(),
+                     self.user_filaments())
+        self.t.equal(f"{s} 10: the slots' presets", presets(self.c)["filaments"], [GENERIC_PLA])
 
     def zip_scenario(self):
         s = "ZIP archives"
@@ -787,6 +817,10 @@ class FilesTest:
         s = "exporting the sliced file"
         self.start(s)
         plate_1 = "Metadata/plate_1.gcode"
+        # A printer outside Bambu Lab is offered Export plate sliced file with "Use 3MF instead of G-code" on; the
+        # edit stays unsaved, and the next scenario's new project discards it.
+        self.run("settings_set", type="printer", values={"use_3mf": True})
+        self.values_are(f"{s}: use_3mf", {"use_3mf": "1"}, "printer")
 
         def export(step, name, flags, steps=(), **args):
             undo_steps(self.c)
@@ -1005,39 +1039,30 @@ class FilesTest:
     def sending_scenario(self):
         s = "sending G-code without a print host"
         self.start(s)
-        host = ["bbl_use_printhost", "print_host"]
+        host = {"host_type": "octoprint", "print_host": ""}
 
         def after_send(step):
             self.t.equal(f"{s} {step}: no upload", self.c.call("app_state").get("uploads"), [])
             self.no_dialog(f"{s} {step}")
 
-        self.values_are(f"{s} 1", {"bbl_use_printhost": "0", "print_host": ""}, "printer")
+        self.values_are(f"{s} 1", host, "printer")
         self.t.equal(f"{s} 1: no upload", self.c.call("app_state").get("uploads"), [])
-        # On the X1 Carbon, which prints through the Bambu network, Send opens the dialog that sends to the printer's
-        # storage, which messages a printer: the scenario makes it a print host before its first send.
-        self.run("settings_set", type="printer", values={"bbl_use_printhost": True, "host_type": "octoprint",
-                                                         "print_host": "", "use_3mf": False})
         self.t.refused(f"{s} 2: refused, an empty address being no print host, with no objects",
                        lambda: self.c.call("action_run", id=SEND), code="no_print_host")
-        self.values_are(f"{s} 2", {"bbl_use_printhost": "1", "print_host": ""}, "printer")
+        self.values_are(f"{s} 2", host, "printer")
         after_send(2)
         self.cube("box", 20, 128, 128)
         self.sliced_ok(f"{s} 3", self.run("plate_slice"), 100)
         self.flags_are(f"{s} 3", [True])
         self.t.refused(f"{s} 3: refused", lambda: self.c.call("action_run", id=SEND), code="no_print_host")
-        self.values_are(f"{s} 3", {"bbl_use_printhost": "1", "print_host": ""}, "printer")
+        self.values_are(f"{s} 3", host, "printer")
         after_send(3)
-        self.new_project()
-        self.values_are(f"{s} 4", {"bbl_use_printhost": "0", "print_host": ""}, "printer")
-        self.unsaved_is(f"{s} 4", [], "printer")
+        self.values_are(f"{s} 4", host, "printer")
+        self.unsaved_is(f"{s} 4: the refused sends changed nothing in the printer preset", [], "printer")
 
     def filaments_scenario(self):
         s = "filament slots merged and mixed"
         self.start(s)
-        for _ in range(32):
-            if "," not in slots(self.c):
-                break
-            self.run("filament_delete")
         filaments = lambda: [(m["name"], m["filament"]) for m in meshes(self.c)]
         self.t.equal(f"{s} 1", slots(self.c), "0")
         for step, slot in ((2, 2), (3, 3)):
@@ -1080,7 +1105,8 @@ class FilesTest:
         self.t.check(f"{s} 9: the colours", self.colours().startswith("#FF0000;#0000FF;"), self.colours())
 
     def run_all(self):
-        for name, scenario in [("a new project", self.new_project_scenario),
+        for name, scenario in [("the start", self.starts_from),
+                               ("a new project", self.new_project_scenario),
                                ("the question keeps the layer G-code", self.layer_gcode_scenario),
                                ("opening a project", self.opening_scenario),
                                ("saving a project under a name", self.saving_scenario),

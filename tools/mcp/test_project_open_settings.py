@@ -1,9 +1,10 @@
 """Checks that opening a project loads the settings it was saved with, whatever the load-behaviour preference says.
 
-Launches OrcaSlicer on a fresh data folder whose Preferences say to load the geometry of a project only
-(project_load_behaviour load_geometry_only, which a person picks under Load behavior), imports a cube, sets the
-process's layer_height to 0.28, saves the project, starts a new one that drops the presets' changes, and opens the
-saved file as a project: the process then has the project's layer_height again, and the preference is unchanged.
+Launches OrcaSlicer on a fresh data folder, seeded with the default printer, whose Preferences say to load the
+geometry of a project only (project_load_behaviour load_geometry_only, which a person picks under Load behavior),
+imports a cube, sets the process's layer_height to 0.28, saves the project, starts a new one that drops the presets'
+changes, which gives back the 0.2 of 0.20mm Standard @MyKlipper, and opens the saved file as a project: the process
+then has the project's layer_height again, and the preference is unchanged.
 Run it as python tools/mcp/test_project_open_settings.py [--bin PATH] [--datadir PATH].
 """
 import json
@@ -17,11 +18,14 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, presets  # noqa: E402
 from orca_mcp import DEFAULT_PRINTER, OrcaMcp, app_env, seed_datadir, write_conf  # noqa: E402
 
 CUBE = os.path.join(os.path.dirname(os.path.dirname(HERE)), "tests", "data", "20mm_cube.obj")
 TOKEN = "project-open-settings-test-token"
 LAYER_HEIGHT = 0.28
+# The layer height of the seeded process, 0.20mm Standard @MyKlipper.
+PRESET_LAYER_HEIGHT = 0.2
 results = []
 
 
@@ -68,6 +72,9 @@ def main():
             return 1
         orca = OrcaMcp(port=port, token=TOKEN)
 
+        selected = presets(orca)
+        check("the app starts on the default printer",
+              selected == {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]}, selected)
         preference = orca.call("preferences_get", keys=["project_load_behaviour"])["items"]
         check("the app loads a project's geometry only", len(preference) == 1 and preference[0]["key"] == "project_load_behaviour"
               and preference[0]["value"] == "load_geometry_only", preference)
@@ -77,7 +84,8 @@ def main():
         project = os.path.join(datadir, "layer_height.3mf")
         orca.call("project_save", path=project, overwrite=True)
         orca.call("project_new", discard_changes=True, preset_changes="discard")
-        check("a new project prints with the preset's layer height", layer_height(orca) != LAYER_HEIGHT, layer_height(orca))
+        check("a new project prints with the preset's layer height", layer_height(orca) == PRESET_LAYER_HEIGHT,
+              layer_height(orca))
 
         opened = orca.call("project_open", path=project, discard_changes=True)
         check("the project opens with its object", len(opened.get("names", [])) == 1, opened)

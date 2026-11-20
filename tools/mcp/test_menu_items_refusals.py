@@ -58,8 +58,10 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import checks as shared  # noqa: E402
 import orca_mcp  # noqa: E402
 
+START = {"printer": shared.KLIPPER, "process": shared.KLIPPER_STD, "filaments": [shared.GENERIC_PLA]}
 CANVAS = {"name": "OrcaSceneCanvas"}
 UNDO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests", "fixtures", "ops_undo.py")
 
@@ -165,7 +167,8 @@ def main():
         check("the earlier notice is closed", True)
 
     client.call("app_wait", **{"for": "ready"})
-    client.call("project_new", discard_changes=True, preset_changes="discard")
+    presets = shared.start(client)
+    check("starts from the Generic Klipper Printer", presets == START, presets)
     client.call("view_set", tab="prepare")
     client.call("object_add_primitive", shape="cube", size=[20, 20, 20])
     client.call("object_select", none=True)

@@ -10,13 +10,15 @@
   "name": "cad sketch to solid",
   "steps": [
     {"tool": "app_wait", "args": {"for": "ready"}},
+    // The Generic Klipper Printer, whose 250 x 250 bed puts modeling_origin at (125, 125, 0).
+    {"tool": "preset_select", "args": {"type": "printer", "name": "MyKlipper 0.4 nozzle", "preset_changes": "discard"}},
     {"tool": "project_new", "args": {"discard_changes": true}},
     {"tool": "window_set", "args": {"size": [1600, 900]}},
     {"tool": "tool_call", "args": {"tool": "new_design", "args": {"discard_changes": true}}},
 
     // An L-bracket profile on XZ, which passes through modeling_origin, not the bed corner: 40 x 30, 4 thick.
     {"tool": "tool_call", "args": {"tool": "sketch_create", "args": {"plane": "XZ"}},
-     "expect": {"/result/plane": {"eq": "XZ"}, "/result/frame/normal/1": {"eq": 1.0}, "/result/frame/origin/0": {"gt": 1.0}}},
+     "expect": {"/result/plane": {"eq": "XZ"}, "/result/frame/normal/1": {"eq": 1.0}, "/result/frame/origin/0": {"eq": 125.0}}},
     // Committing it empty fails and leaves it open: the next step reads the open sketch.
     {"tool": "tool_call", "args": {"tool": "sketch_finish"}, "optional": true},
     {"tool": "tool_call", "args": {"tool": "sketch_describe"}, "expect": {"/result/entities": {"empty": true}}},
@@ -45,7 +47,7 @@
     {"tool": "tool_call", "args": {"tool": "body_mass_properties", "args": {"body": 0}},
      "expect": {"/result/volume": {"gt": 5316.6, "lt": 5320.6}}},
     {"tool": "tool_call", "args": {"tool": "describe_design"},
-     "expect": {"/result/bodies/0/bbox/min/0": {"gt": 1.0}, "/result/bodies/0/bbox/min/2": {"ge": -0.001, "le": 0.001},
+     "expect": {"/result/bodies/0/bbox/min/0": {"ge": 124.999, "le": 125.001}, "/result/bodies/0/bbox/min/2": {"ge": -0.001, "le": 0.001},
                 "/result/bodies/0/bbox/max/2": {"ge": 29.999, "le": 30.001}}},
 
     // A shelf-pin jig: a 160 x 60 plate with five 5.2 mm holes on 32 mm centres, in one sketch.

@@ -5,13 +5,13 @@
     tools/mcp/test_export_running_job.py
 
 A replay_run whose one step waits 3 s past the reply budget replies with its running job once the budget is spent:
-45 s, or the cap ORCA_MCP_REPLY_BUDGET_MS sets when the app and this script have it (the sweep sets 10 s, as a
+45 s, or the cap ORCA_MCP_REPLY_BUDGET_MS sets when the app and this script have it (the sweep sets 20 s, as a
 shorter cap can end the call opening Preferences before a slow or busy machine has opened it). An export
 while it runs leaves it out and names it in left_out_running; an export after it succeeded has it as
 an await:false step that the later app_wait refers to, and that replay runs. A call blocked on a
 dialog stays in the replay while the dialog is open, since the steps after it answer the dialog.
 A job that fails after its reply is dropped; no tool fails that late on demand, so the unit tests
-in test_mcp_results.cpp cover it. Takes about two minutes with the full budget, 45 s with a 10 s one. Exits 0 when
+in test_mcp_results.cpp cover it. Takes about two minutes with the full budget, a minute with a 20 s one. Exits 0 when
 every check passes.
 """
 
@@ -22,7 +22,10 @@ import tempfile
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import checks as shared  # noqa: E402
 import orca_mcp  # noqa: E402
+
+START = {"printer": shared.KLIPPER, "process": shared.KLIPPER_STD, "filaments": [shared.GENERIC_PLA]}
 
 
 def main():
@@ -36,6 +39,9 @@ def main():
     def tools(replay):
         return [s["tool"] for s in replay["steps"]]
 
+    presets = shared.start(client)
+    check("the start is the Klipper printer with one Generic PLA slot", presets == START, presets)
+    # The exports below read the journal from here on, without the start's own calls.
     client.call("replay_export", clear=True)
 
     # ---- A job past the reply budget, exported while it runs and after it ends ----

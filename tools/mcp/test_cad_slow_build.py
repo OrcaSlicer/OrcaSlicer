@@ -19,6 +19,7 @@ import threading
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import checks  # noqa: E402
 import orca_mcp  # noqa: E402
 
 # An M8 thread tapped 60 mm deep into a 30 mm square block: 48 turns, several seconds of OCCT pipe and
@@ -40,6 +41,7 @@ def progress_dialog_ref(client):
 def main():
     client, _ = orca_mcp.session_client()
     out = tempfile.mkdtemp(prefix="orca-mcp-slow-")
+    checks.start(client)
     client.call("project_new", discard_changes=True)
     client.call("tool_call", tool="new_design", args={"discard_changes": True})
     client.call("tool_call", tool="extrude", args=BLOCK)
@@ -87,7 +89,7 @@ def main():
 
     print(f"build took {seconds:.1f} s; screenshots in {out}")
     failures = 0
-    checks = [
+    results = [
         ("the thread call succeeds", result is not None and result.get("result", {}).get("ok") is True, box),
         ("app_state answers during the build", state_ms is not None, state_ms),
         ("a window screenshot succeeds during the build", bool(window_shot and window_shot.get("width")), window_shot),
@@ -95,12 +97,12 @@ def main():
         ("one thread feature and one body", len(threads) == 1 and len(scene["bodies"]) == 1, scene["features"]),
     ]
     if not native_dialog:
-        checks[1:1] = [
+        results[1:1] = [
             ("the progress dialog is listed while it builds", dialog_shot is not None, "no window \"Design\" in widget_list"),
             ("a screenshot of the progress dialog captures it",
              bool(dialog_shot and dialog_shot.get("width")) and dialog_shot.get("width") < (window_shot or {}).get("width", 0), dialog_shot),
         ]
-    for name, ok, detail in checks:
+    for name, ok, detail in results:
         print(("ok   " if ok else "FAIL ") + name + ("" if ok else f": {detail}"))
         failures += not ok
     return 1 if failures else 0

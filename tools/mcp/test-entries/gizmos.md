@@ -4,7 +4,7 @@ The design of this area's sweep tests. The rules every entry follows, the grades
 in [TESTS.md](../TESTS.md).
 
 ## `test_gizmos`
-`test_gizmos.py` · Python, 622 checks · in `sweep.json` as `{"path": "test_gizmos.py"}`
+`test_gizmos.py` · Python, 624 checks · in `sweep.json` as `{"path": "test_gizmos.py"}`
 
 **Tests:** The Prepare view's gizmos driven as a person drives them, through the generic GUI tools: gizmo icons,
 fields, combos, buttons and links in their panels, and clicks and strokes at points of the model. Each gizmo's work
@@ -13,7 +13,27 @@ parts made or removed, positions in the assemble view), its undo is read before 
 is read again from a saved and reopened project. It also tests the canvas input those gizmos rely on: a press held
 across gestures and released by a gesture that fails, a toolbar item that a selection has just enabled, model points
 on a negative part and seen from below the bed; and that auto-answer rules run the Transfer and Discard buttons of
-the preset prompt. It runs on the harness's default printer, the Bambu Lab X1 Carbon 0.4.
+the preset prompt.
+
+**Starts from:** `start(c)`, the Generic Klipper Printer, compared with `{printer: KLIPPER, process: KLIPPER_STD,
+filaments: [GENERIC_PLA]}`: nothing the test drives is a Bambu Lab printer's own. Before its first scenario it sets
+the stored settings its checks depend on, and reads each back: the window at 1600 × 900 (`window_set {size: [1600,
+900]}`, then `app_state.window.size`), since where the panels open, what covers a point of the model and the pixels
+the canvas input scenario presses at follow the window's size, which another test may have left changed; Expert mode
+(the Expert action, then `app_state.mode` is `expert`), since some panel items show only there; and
+`preferences_set {values: {use_inches: "0", camera_navigation_style: "0", middle_mouse_drag_action: "1"}}`, then
+`preferences_get`: millimetres, in which the fields' texts are written, and the default camera style with a
+middle-button drag that pans, which the canvas input scenario's pans need. It leaves `keep_painting` as it finds it:
+no scenario simplifies, cuts or joins a painted part.
+
+**Leaves:** Expert mode and the preferences as it set them; not the window, whose placement the app stores only
+when it closes itself, and the runner ends it. The Klipper printer with `0.20mm Standard
+@MyKlipper` and two `Generic PLA @System` slots, the painting scenario's. The imported height map in the data folder's
+texture library, `textures/displacement/heightmap.png` (or `heightmap (n).png`, see texture layers), first in the app's
+recent textures. The Text tool's last style, `ITALIC`, which the app stores as the gizmo closes and a later Text
+opening starts with. The recent projects and the last folder opened, naming the projects it saved in its own folder.
+None of it changes the words or the units the app reads in, so the test restores nothing; Expert mode shows more
+settings, and a test whose checks read the settings pages sets the mode it needs.
 
 **Reads:**
 - `scene()` gives each object of `object_list` as `{name, offset, rotation_deg, scale, bbox, brim_ears, overrides,
@@ -31,9 +51,8 @@ the preset prompt. It runs on the harness's default printer, the Bambu Lab X1 Ca
 - `toolbar(name)` gives a 3D view toolbar item's `{enabled, pressed}` from `widget_list`.
 - `slots()` is the reader `test_plates` defines (`filament_is_mixed`, one digit per slot).
 
-The test switches to Expert mode first (the Expert action, then `app_state.mode` is `expert`), since some panel
-items show only there. Every scenario starts with `project_new {discard_changes: true}` in the Prepare view and checks
-that `scene()` is empty and `gizmo()` is none. Objects are then added with `object_add_primitive {shape, size,
+Every scenario starts with `project_new {discard_changes: true}` in the Prepare view and checks that `scene()` is
+empty and `gizmo()` is none. Objects are then added with `object_add_primitive {shape, size,
 position, name}` resting on the bed, so a 20 mm cube placed at `[100, 100, 0]` has its offset at (100, 100, 10).
 Row 0 of each table reads `scene()` (and whatever else the scenario's opening sets up) and checks the start written
 there, before any gizmo acts.
@@ -57,17 +76,18 @@ wait, on purpose.
 
 The preset prompt that asks to transfer or discard unsaved changes is answered by an auto-answer rule naming the
 button. `wall_loops` is read with `settings_get {type: "process"}` and the selected process preset from
-`app_state`. Both presets inherit `wall_loops` "2" from `fdm_process_common`. A rule presses its button once the
-prompt's modal loop runs (`ModalTracker::Enter`), so a switch the prompt holds may first reply `blocked_by_dialog`;
-the test follows its job to the end with `app_wait {for: "job"}` and checks the job's reply.
+`app_state`. Both presets, `0.20mm Standard @MyKlipper` and `0.16mm Optimal @MyKlipper`, inherit `wall_loops` "3"
+from the Custom vendor's `fdm_process_common`. A rule presses its button once the prompt's modal loop runs
+(`ModalTracker::Enter`), so a switch the prompt holds may first reply `blocked_by_dialog`; the test follows its job to
+the end with `app_wait {for: "job"}` and checks the job's reply.
 
 | # | Step | Process after | Also checked |
 |---|---|---|---|
-| 0 | start | the process preset `app_state` names | `rules()` lists no rule |
-| 1 | `dialog_auto_answer {rules: [{match: "Transfer or discard", button: "Transfer"}]}`, then `preset_select {type: "process", name: "0.20mm Standard @BBL X1C"}` | 0.20mm Standard, `wall_loops` "2" | `rules()`: the rule, `uses` 0 |
+| 0 | start | 0.20mm Standard, `wall_loops` "3" | `rules()` lists no rule |
+| 1 | `dialog_auto_answer {rules: [{match: "Transfer or discard", button: "Transfer"}]}`, then `preset_select {type: "process", name: "0.20mm Standard @MyKlipper"}` | 0.20mm Standard, "3" | `rules()`: the rule, `uses` 0 |
 | 2 | `settings_set {type: "process", values: {wall_loops: 5}}` | 0.20mm Standard, "5" | |
-| 3 | `preset_select` of "0.16mm High Quality @BBL X1C" | 0.16mm High Quality, "5" | the reply's `selected`; the rule's `uses` is 1: the prompt was asked once and Transfer moved the edit (the preset's own value is "2") |
-| 4 | the rules replaced by `[{match: "Transfer or discard", button: "Discard"}]`, then `preset_select` of "0.20mm Standard @BBL X1C" | 0.20mm Standard, "2" (the edit was dropped, not moved back) | the reply's `selected`; the new rule's `uses` goes from 0 to 1; `app_state.project.dirty` is false |
+| 3 | `preset_select` of "0.16mm Optimal @MyKlipper" | 0.16mm Optimal, "5" | the reply's `selected`; the rule's `uses` is 1: the prompt was asked once and Transfer moved the edit (the preset's own value is "3") |
+| 4 | the rules replaced by `[{match: "Transfer or discard", button: "Discard"}]`, then `preset_select` of "0.20mm Standard @MyKlipper" | 0.20mm Standard, "3" (the edit was dropped, not moved back) | the reply's `selected`; the new rule's `uses` goes from 0 to 1; `app_state.project.dirty` is false |
 
 **Scenario: Move, Rotate and Scale**
 
@@ -158,21 +178,30 @@ facets a stroke gives. A stroke is a drag from a spot through a waypoint to a po
 panel names each closed layer's row by its place in the list, "Layer 1" for the first; the open layer's card has no
 such row.
 
+`H` is the name the imported height map takes, the stem of the file the import writes into the data folder's texture
+library: `heightmap`, or `heightmap (n)` with n from 2 when the library already holds `heightmap.png`, which an
+earlier run of this test or `test_ref_locator_export`'s import leaves there (`write_user_texture` in
+`TextureLibrary.cpp` never overwrites a texture). A layer is `H` when its name is one of those and its `path` is
+`<app_state.config_folder>/textures/displacement/<its name>.png`. The name is checked as that property rather than
+as one name, since which copies the library holds differs with the tests that ran before and with a rerun on the same
+folder; importing a copy of the fixture under a name of the test's own would not make it exact, as a rerun meets its
+own first copy.
+
 | # | Step | Layers after | Also checked |
 |---|---|---|---|
 | 0 | start | no `painted` | the cube (100, 100, 10) size [20, 20, 20] |
 | 1 | Texture Displacement opened | `0 ? 0` | the gizmo gives a part without layers one layer in slot 0 |
-| 2 | `gizmo_pick_file {action: "texture_import", path: heightmap.png}` | `0 heightmap 0` | `depth_mm` 0.4 (the default); `path` ends in `heightmap.png` and lies in `app_state.config_folder` |
-| 3 | `widget_click {target: {imgui_name: "add_layer"}}` | `0 heightmap 0` · `1 ? 0` | |
-| 4 | a stroke from `{spot: "top"}` through `[6, 0, 10]` to `[6, 6, 10]`, then idle | `0 heightmap 0` · `1 ? >0` | the new layer, slot 1, is the active one, and a stroke paints only the active layer |
+| 2 | `gizmo_pick_file {action: "texture_import", path: heightmap.png}` | `0 H 0` | `depth_mm` 0.4 (the default) |
+| 3 | `widget_click {target: {imgui_name: "add_layer"}}` | `0 H 0` · `1 ? 0` | |
+| 4 | a stroke from `{spot: "top"}` through `[6, 0, 10]` to `[6, 6, 10]`, then idle | `0 H 0` · `1 ? >0` | the new layer, slot 1, is the active one, and a stroke paints only the active layer |
 | 5 | `widget_click {target: {imgui_name: "Layer 1"}}`, the first layer's row | as after 4 | `panel()` lists the item `midlevel`: the card now open shows all its settings |
-| 6 | a stroke from `{spot: "front"}` through `[6, -10, 0]` to `[6, -10, 6]`, then idle | `0 heightmap >0` · `1 ? >0` | the paint went to slot 0: the click made the first layer the active one |
+| 6 | a stroke from `{spot: "front"}` through `[6, -10, 0]` to `[6, -10, 6]`, then idle | `0 H >0` · `1 ? >0` | the paint went to slot 0: the click made the first layer the active one |
 | 7 | `widget_click {target: {imgui_name: "more"}}` | as after 6 | `panel()` no longer lists `midlevel`: the link folded the open card's settings |
-| 8 | `widget_click {target: {imgui_name: "Remove", index: 1}}`, the second layer's | `0 heightmap >0` | slot 1 and its paint are gone |
-| 9 | `undo` | `0 heightmap >0` · `1 ? >0` | |
+| 8 | `widget_click {target: {imgui_name: "Remove", index: 1}}`, the second layer's | `0 H >0` | slot 1 and its paint are gone |
+| 9 | `undo` | `0 H >0` · `1 ? >0` | |
 | 10 | `redo` | as after 8 | |
 | 11 | `widget_click {target: {imgui_name: "close"}}` | as after 8 | the Close button closes the gizmo and leaves the layers |
-| 12 | `project_save` to a new file, `project_new`, `project_open` of the file | `0 heightmap >0` | `depth_mm` 0.4 |
+| 12 | `project_save` to a new file, `project_new`, `project_open` of the file | `0 H >0` | `depth_mm` 0.4 |
 
 **Scenario: text**
 
@@ -183,7 +212,9 @@ a–b`, to 0.01 mm. A text is embossed from 0.015 mm under the surface it stands
 combo shows the style's name, followed by the app's modified marker `*` (`Preset::suffix_modified()`, which
 `GUI_App::load_language` sets to `"* "`) while the style's font or depth differ from the style as stored
 (`draw_style_list` in `GLGizmoEmboss.cpp`). "Shows `ITALIC`" means exactly that text; "shows `ITALIC*`" means the text
-starts with it.
+starts with it. A new text takes the style the Text tool last closed with, which the app keeps in the data folder
+(`StyleManager::store_styles_to_app_config`), so row 1 does not fix the style; the stored styles share the 1 mm depth,
+so its z range does not depend on it, and row 3 picks the style the rows after it read.
 
 | # | Step | Text after | Also checked |
 |---|---|---|---|
@@ -266,7 +297,8 @@ the camera at `iso` and fitted to it.
 
 **Scenario: brim ears**
 
-A 20 mm cube at (100, 100), selected, the camera at `iso` and fitted to it. The process's `brim_type` is `auto_brim`.
+A 20 mm cube at (100, 100), selected, the camera at `iso` and fitted to it. The process's `brim_type` is `auto_brim`,
+the setting's default, which no Custom process changes.
 
 | # | Step | After | Also checked |
 |---|---|---|---|
@@ -323,7 +355,7 @@ frustum connector's unit mesh (`its_make_frustum` with 4 sectors, a top half the
 
 A 20 mm cube at (100, 100) with a negative part, `part_add {object: 0, type: "negative", shape: "cube", size: [6, 6,
 6], position: [100, 100, 20]}`, whose top stands 3 mm above the cube's. The camera at `iso` and fitted to it. A
-middle-button drag pans the camera on a new datadir (`middle_mouse_drag_action` defaults to Pan).
+middle-button drag pans the camera, as the test's start sets the camera style and `middle_mouse_drag_action`.
 
 | # | Step | Reply and state after | Also checked |
 |---|---|---|---|
@@ -388,7 +420,7 @@ middle-button drag pans the camera on a new datadir (`middle_mouse_drag_action` 
 
 **Not checked:**
 - How gizmos draw: no screenshot is taken or compared.
-- Other window sizes. The sweep runs the test at 1600×900. An ImGui panel or a notification over a model point or
+- Other window sizes: the test sets 1600×900. An ImGui panel or a notification over a model point or
   an item is refused, which `tests/slic3rutils/test_mcp_results.cpp` checks without the app ("a click goes to the
   frontmost ImGui window", "what covers a click is named"), with the surface check's cases in
   `tests/slic3rutils/test_mcp_ui.cpp`.
@@ -399,10 +431,12 @@ middle-button drag pans the camera on a new datadir (`middle_mouse_drag_action` 
   the smart fill angle, and where a brush's facets lie: a brush's counts are checked as above 0.
 - The Painted Modifier gizmo: neither replay drives it.
 - Texture Displacement's bake, its tile, rotation and midlevel values, the texture library popup, and the name of
-  the texture a new layer starts with (the library's first, which depends on the installed textures).
+  the texture a new layer starts with (the library's first, which depends on the installed textures). Which `n` the
+  height map's copy takes.
 - Text: the font a style names, which depends on the system's fonts (the style combo's marker shows it is the
-  style's own); the size, boldness, line gap and alignment fields, the surface option, saving or renaming a style
-  and the prompt when a modified style is changed, a text as a modifier, and the font after reopening.
+  style's own); the style a new text starts with, the one the Text tool last closed with; the size, boldness, line
+  gap and alignment fields, the surface option, saving or renaming a style and the prompt when a modified style is
+  changed, a text as a modifier, and the font after reopening.
 - SVG: its size, depth and mirror fields, "Forget the file path" and reload from disk.
 - Measure: edges, circles and points as features, the XYZ distance fields that move objects, and inches.
 - Assembly: point-and-point mode, Flip by Face 2, rotation around the faces' centre and the Parallel button for faces
@@ -425,7 +459,7 @@ counts a brush stroke gives, the Measure distance, the reverted font and where a
 are checked by a tolerance or a property, as the app works them out.
 
 ## `test_gizmo_commands`
-`test_gizmo_commands.py` · Python, 465 checks · in `sweep.json` as `{"path": "test_gizmo_commands.py"}`
+`test_gizmo_commands.py` · Python, 466 checks · in `sweep.json` as `{"path": "test_gizmo_commands.py"}`
 
 **Tests:** The commands that open a gizmo on a named target, and the ones among them that do the gizmo's job from
 arguments with no gizmo: `object_paint`, `object_measure`, `object_simplify`, `part_boolean`, `object_cut`,
@@ -433,8 +467,18 @@ arguments with no gizmo: `object_paint`, `object_measure`, `object_simplify`, `p
 call that names only its target opens the gizmo on it, and the same call again leaves it open; a call with an acting
 argument closes the open gizmo first and leaves the model as the gizmo's own button would. Each call's work is read
 back from the model through `object_list`, `app_state` and the saved project, its undo is read before its redo, and
-each refusal is asserted by its code with the model read back as it was. It runs on the harness's default printer,
-the Bambu Lab X1 Carbon 0.4.
+each refusal is asserted by its code with the model read back as it was.
+
+**Starts from:** `start(c)`, the Generic Klipper Printer, compared with `{printer: KLIPPER, process: KLIPPER_STD,
+filaments: [GENERIC_PLA]}`: no call it makes is a Bambu Lab printer's own, and the brim ears' default radius follows
+this process's first-layer line width (brim ears from positions). Then Expert mode, as `test_gizmos` sets it. It sets
+no window size and no preference: no step clicks the canvas, reads a panel's text or captures a picture, and where on
+A a text or an SVG part lands, which follows the camera and the window, is not checked.
+
+**Leaves:** Expert mode. The Klipper printer with `0.20mm Standard @MyKlipper` and one `Generic PLA @System` slot (the
+refused openings take back to one the two slots the first scenario makes). The Text tool's last style, which it
+stores as the gizmo closes and leaves as it found it, since no step picks a style. The recent projects and the last
+folder opened, naming the projects it saved in its own folder.
 
 **Reads:** `scene()`, `gizmo()` and `setting(object, key)` as `test_gizmos` gives them, except that `scene()` keeps
 every instance's `offset`, `rotation_deg` and `bbox`; `selection()` from `checks.py` (`{objects, instances,
@@ -443,15 +487,14 @@ the saved project's `Metadata/brim_ear_points.txt` as `{object_id: [(x, y, z, r)
 model's objects from 1 (`_add_brim_ear_points_file_to_archive` in `bbs_3mf.cpp`), so object 0 is `object_id` 1, and
 it holds each ear's position in the object's coordinates and its radius, as stored.
 
-The test switches to Expert mode first, as `test_gizmos` does. Every scenario starts with `project_new
-{discard_changes: true}` in the Prepare view and checks that `scene()` is empty and `gizmo()` is none. Objects are
-added with `object_add_primitive {shape, size, position, name}` resting on the bed, so a 20 mm cube placed at `[100,
-100, 0]` has its offset at (100, 100, 10). Notation, tolerances and `undo`/`redo` are as in `test_gizmos`. A reply
-is written as the fields the row fixes; a target in a reply is written by its `index` (or `object`, `instance`,
-`part`) and `name`, and its `object_id` or `part_id` is not checked. Before each step that acts, `undo_steps()` sets
-its mark, and the step lists the undo steps it takes; a refused step takes none. "Saved and reopened" is
-`project_save` to a new file in the test's folder, `project_new {discard_changes: true}`, then `project_open` of the
-file.
+Every scenario starts with `project_new {discard_changes: true}` in the Prepare view and checks that `scene()` is
+empty and `gizmo()` is none. Objects are added with `object_add_primitive {shape, size, position, name}` resting on
+the bed, so a 20 mm cube placed at `[100, 100, 0]` has its offset at (100, 100, 10). Notation, tolerances and
+`undo`/`redo` are as in `test_gizmos`. A reply is written as the fields the row fixes; a target in a reply is written
+by its `index` (or `object`, `instance`, `part`) and `name`, and its `object_id` or `part_id` is not checked. Before
+each step that acts, `undo_steps()` sets its mark, and the step lists the undo steps it takes; a refused step takes
+none. "Saved and reopened" is `project_save` to a new file in the test's folder, `project_new {discard_changes:
+true}`, then `project_open` of the file.
 
 **Scenario: opening a gizmo on a target**
 
@@ -566,20 +609,21 @@ scenario and the step took no undo step.
 
 **Scenario: brim ears from positions**
 
-A 20 mm cube A at (100, 100), nothing selected. The process's `brim_type` is `auto_brim` and its
-`initial_layer_line_width` is 0.5 mm, so an ear's default radius is 4 mm (eight first-layer line widths). An ear
-asked for at bed position (x, y) is stored at (x - 100, y - 100, -10.0001) in A's coordinates: the bed point at z
+A 20 mm cube A at (100, 100), nothing selected. The process's `brim_type` is `auto_brim`, the setting's default, and
+its `initial_layer_line_width` is `120%` of the 0.4 mm nozzle (the Custom vendor's `fdm_process_common`), 0.48 mm, so
+an ear's default radius is 3.84 mm, eight first-layer line widths (`GLGizmoBrimEars::get_brim_default_radius`). An
+ear asked for at bed position (x, y) is stored at (x - 100, y - 100, -10.0001) in A's coordinates: the bed point at z
 -0.0001 through the inverse of A's placement. Ears are written as `(x, y, z) r`, to 0.001.
 
 | # | Step | After | Also checked |
 |---|---|---|---|
-| 0 | start | `brim_ears` 0; `setting(0, "brim_type")` value null, effective `auto_brim` | `settings_get` of the process's `initial_layer_line_width` "0.5" |
+| 0 | start | `brim_ears` 0; `setting(0, "brim_type")` value null, effective `auto_brim` | `settings_get` of the process's `initial_layer_line_width` "120%" |
 | 1 | `object_set_brim_ears {object: 0}` | as after 0 | reply `gizmo` "Brim Ears"; `gizmo()` Brim Ears |
-| 2 | `object_set_brim_ears {object: 0, points: [{position: [90, 90], radius: 3}, {position: [110, 90]}]}` | `brim_ears` 2 | `gizmo()` none; reply `ears` [(-10, -10, -10.0001) 3, (10, -10, -10.0001) 4], `brim_type` `auto_brim`, `takes_effect` false; undo steps ["Brim ears edit", "Leaving Brim Ears", "Set brim ears"]: the two steps the Brim Ears gizmo records as it closes, then the call's |
+| 2 | `object_set_brim_ears {object: 0, points: [{position: [90, 90], radius: 3}, {position: [110, 90]}]}` | `brim_ears` 2 | `gizmo()` none; reply `ears` [(-10, -10, -10.0001) 3, (10, -10, -10.0001) 3.84], `brim_type` `auto_brim`, `takes_effect` false; undo steps ["Brim ears edit", "Leaving Brim Ears", "Set brim ears"]: the two steps the Brim Ears gizmo records as it closes, then the call's |
 | 3 | `undo` | `brim_ears` 0 | |
 | 4 | `redo` | `brim_ears` 2 | |
 | 5 | `settings_set {target: "object", object: 0, values: {brim_type: "painted"}}`, then step 2's call again | `brim_ears` 2; `brim_type` `painted` from `object` | reply `ears` as in 2, `brim_type` `painted`, `takes_effect` true |
-| 6 | `project_save` to a new file | as after 5 | `brim_file()` {1: [(-10, -10, -10.0001) 3, (10, -10, -10.0001) 4]} |
+| 6 | `project_save` to a new file | as after 5 | `brim_file()` {1: [(-10, -10, -10.0001) 3, (10, -10, -10.0001) 3.84]} |
 | 7 | `project_new {discard_changes: true}`, `project_open` of the file | `brim_ears` 2; `brim_type` `painted` | |
 | 8 | `object_set_brim_ears {object: 0, clear: true}` | `brim_ears` 0 | reply `ears` [] |
 | 9 | `object_set_brim_ears {object: 0}`, then `object_set_brim_ears {object: 0, points: [{position: [100, 90], radius: 5}]}` | `brim_ears` 1 | after the first, `gizmo()` Brim Ears; after the second, `gizmo()` none, and after `project_save` to a new file, `brim_file()` {1: [(0, -10, -10.0001) 5]}: the call's ear, not what the gizmo held |
@@ -626,6 +670,8 @@ A 20 mm cube A at (100, 100) and a 20 mm cube B at (150, 100), B selected (`obje
 - Variable layer height editing, under which the Cut gizmo does not open (`layers_editing_on`), and a printer that is
   not FFF (`needs_fff_printer`): unit cases of `gizmo_refusal()`.
 - How the ears are drawn, and what they do to a slice.
+- The default radius from a first-layer line width given in millimetres, as the Bambu Lab processes give it: the
+  Klipper process gives it as a percentage of the nozzle, which the radius is checked from.
 - The ears an undo brings back. With the Brim Ears gizmo closed, an undo restores an object's ears, but the gizmo keeps
   the ears it held and brings them back on its next opening. A person's own edit does the same (an ear clicked on,
   the gizmo closed, the ear undone, the gizmo opened: the ear is back), so it is the gizmo's behaviour, which the

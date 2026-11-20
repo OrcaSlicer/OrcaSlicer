@@ -34,8 +34,10 @@ import tempfile
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import checks as shared  # noqa: E402
 import orca_mcp  # noqa: E402
 
+START = {"printer": shared.KLIPPER, "process": shared.KLIPPER_STD, "filaments": [shared.GENERIC_PLA]}
 CUBE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "resources", "handy_models", "OrcaCube_v2.drc")
 # The prompts of the save and export pickers ("Save file as", "Save G-code file as:"), which have no title until shown.
 PICKER = "save"
@@ -119,7 +121,8 @@ def main():
             return None
 
     client.call("app_wait", **{"for": "ready"})
-    client.call("project_new", discard_changes=True, preset_changes="discard")
+    presets = shared.start(client)
+    check("starts from the Generic Klipper Printer", presets == START, presets)
     client.call("project_import", paths=[os.path.abspath(CUBE)])
     client.call("object_transform", object=0, size=[20, 20, 20])
     sliced = client.call("plate_slice")

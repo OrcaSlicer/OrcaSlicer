@@ -18,9 +18,11 @@ import tempfile
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import checks as shared  # noqa: E402
 import orca_mcp  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+START = {"printer": shared.KLIPPER, "process": shared.KLIPPER_STD, "filaments": [shared.GENERIC_PLA]}
 SHOW_LIMIT_S = 10  # from the action that opens a window until it is seen up
 
 
@@ -56,7 +58,8 @@ def main():
             time.sleep(0.2)
         return True
 
-    client.call("project_new", discard_changes=True)
+    presets = shared.start(client)
+    check("the start is the Klipper printer with one Generic PLA slot", presets == START, presets)
 
     # The Run Script panel, docked under the 3D view of Prepare.
     client.call("view_set", tab="prepare")

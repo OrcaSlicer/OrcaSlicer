@@ -17,6 +17,7 @@ import threading
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import checks  # noqa: E402
 import orca_mcp  # noqa: E402
 
 # object_arrange goes first: the rotation it saves, as the panel's checkbox does, makes the
@@ -26,6 +27,7 @@ STARTERS = {
     "action_run": ("action_run", {"id": "orca_command:obj_arrange:orca"}),
     "widget_click": ("widget_click", {"target": {"imgui": "Arrange", "window": "Arrange options"}}),
 }
+START = {"printer": checks.KLIPPER, "process": checks.KLIPPER_STD, "filaments": [checks.GENERIC_PLA]}
 
 
 def client():
@@ -51,7 +53,8 @@ def main():
             failures.append(name)
 
     c.call("app_wait", **{"for": "ready", "timeout_s": 50})
-    c.call("project_new", discard_changes=True)
+    presets = checks.start(c)
+    check("the start is the Klipper printer with one Generic PLA slot", presets == START, presets)
     c.call("view_set", tab="prepare")
     for size in [[6, 6, 6], [4, 9, 5], [7, 3, 5]]:
         c.call("object_select", none=True)

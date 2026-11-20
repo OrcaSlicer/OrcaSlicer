@@ -3,6 +3,32 @@
 The design of this area's sweep tests. The rules every entry follows, the grades and the table of all tests are
 in [TESTS.md](../TESTS.md).
 
+## The Design tab on a shared data folder
+
+Every test here runs on an app launched with `--cad`, which turns the Design tab on for that run and writes nothing
+to the data folder. What the Design tab reads from the folder:
+
+- the selected printer's bed, which it draws, which sizes the plane squares a click picks to open a sketch, and
+  whose centre is `modeling_origin`, the point the base planes pass through: (125, 125, 0) on the Generic Klipper
+  Printer;
+- the Origin and Bed switches of its view (`design_show_origin`, `design_show_bed`), which `view_set` writes;
+- the Commit to Plate mode (`design_commit_mode`), which only a pick from the button's list writes, and no test
+  makes one;
+- the Text dialog's last font and height (`cad_text_font`, `cad_text_height`), which the dialog's OK writes and a
+  text given no face or height takes;
+- the weld rule of a new sketch (`auto_close_sketch_loops`), which no test writes, and the sidebar's layout, which
+  the app saves only when it closes.
+
+So every Python test here starts with `start(client)` on the Generic Klipper Printer, and a replay whose checks
+follow the bed selects that printer in its first steps. The only check that writes out a value the bed fixes is
+`cad_sketch_to_solid`'s 125, the Klipper bed's centre, and that replay selects the Klipper printer itself; no other
+check changes with the printer. The window's size is not kept from one test to the next: the app stores its
+placement only when its main window closes, and the runner kills it. A project a test leaves unsaved stays in the
+app's auto-backup, in that test's own temporary folder, and the data folder's settings point to it
+(`last_backup_path`): while that folder exists, as it does after the test failed, the next launch on the data folder
+opens on a prompt to restore it, which `orca_mcp.py launch` answers No, so the test after it starts on an empty
+project.
+
 ## `test_cad_replay`
 `test_cad_replay.py` · Python, 15 checks
 
@@ -12,6 +38,10 @@ in [TESTS.md](../TESTS.md).
 - face and edge ids passed with a `generation`, which the export must drop.
 
 The replay runs in a new project in the same instance.
+
+**Starts from:** `start(client)`: the Generic Klipper Printer with `0.20mm Standard @MyKlipper` and `Generic PLA @System`, in a new project, then its own `project_new` and `new_design`. No check depends on the printer: the checks compare with `modeling_origin` as `describe_design` reads it, and the missed hole's x 500 is in the sketch plane's frame, off the plate on any bed.
+
+**Leaves:** its last project unsaved, and nothing in the folder's settings. The exported replay and its run go to the test's own temporary folder, so a rerun on the same data folder starts over from `start()`.
 
 **Decides by:** Exits 1 when any named check prints FAIL. It also exits non-zero when any recording call other than the three expected refusals errors, or when the thread job fails (`await_job`'s `app_wait` raises).
 - Live session:
@@ -28,6 +58,7 @@ The replay runs in a new project in the same instance.
 
 **Not checked:**
 - The replayed part is compared with the live session, not with known values; the volume is only printed. A modelling regression that changes both alike passes.
+- `modeling_origin` itself: the frame and the centre of mass are compared with it as read, not with (125, 125, 0), where the Klipper printer's bed puts it.
 - The missed hole's and the refused fillet's error texts. The fillet's edge id comes from the `body_describe` read before the first fillet changed the body, and is passed without a `generation`, so the refusal may concern a different edge than the comment means.
 - The exported replay carries no `expect`, so nothing checks that the replayed shell again replies `ok` false; only the end state is compared.
 - Feature names and parameters: only feature types are compared.
@@ -39,6 +70,10 @@ The replay runs in a new project in the same instance.
 `test_cad_slow_build.py` · Python, 7 checks (5 on Windows)
 
 **Tests:** That the app stays inspectable while a long Design rebuild runs off the UI thread behind the progress dialog. The rebuild is an M8 thread tapped 60 mm deep. While it runs, `app_state` and a main-window screenshot answer, the progress dialog is listed and can be captured, and another Design command is refused as busy. The thread then lands as one feature.
+
+**Starts from:** `start(client)`, then its own `project_new` and `new_design`. No check depends on the printer. "Captures it" needs the main window wider than the progress dialog, as the window the seed opens is, 1600 x 900.
+
+**Leaves:** its project unsaved, and nothing in the folder's settings; the two screenshots go to its own temporary folder.
 
 **Decides by:** Exits 1 when a named check prints FAIL, or when an `app_state` or screenshot probe raises.
 - Result: "the thread call succeeds" (the awaited result has `ok` true) and "one thread feature and one body".
@@ -63,6 +98,10 @@ The replay runs in a new project in the same instance.
 
 **Tests:** That a Design call whose job fails after its reply is left out of `replay_export`. A hole that misses a slow-rebuilding coil replies with a running job. An export made while it runs names it in `left_out_running`. The hole then fails, and the export after it keeps a later rename and leaves the hole out. That export replays to the same features and coil. The sweep runs it with a 4 s reply budget (`ORCA_MCP_REPLY_BUDGET_MS=4000`).
 
+**Starts from:** `start(client)`, then a `new_design` it waits for before it records anything: an app's first Design command builds the Design tab, which outlasts the 4 s budget on a loaded machine, and a build journaled as a job would leave the export waiting at replay for a job the built tab never starts. Each session it records starts with its own `project_new` and `new_design`, and it waits for each set-up call's job before the next. No check depends on the printer: the hole's x 500 is in the plane's frame.
+
+**Leaves:** its project unsaved, and nothing in the folder's settings; the export and the replay's run go to its own temporary folder.
+
 **Decides by:** Exits 1 when any check prints FAIL. It also exits non-zero when a set-up call errors, or when the hole fails inside the budget with an error other than "removed no material" (or does so at 40 turns).
 - Running job:
   - "the missed hole replies with its running job": `status` running.
@@ -85,6 +124,10 @@ The replay runs in a new project in the same instance.
 `test_cad_examples.py` · Python, one check per documented example (152 in `scripts/CAD/tool_atlas.json`, 6 of them skipped, plus any `undo`/`redo` examples)
 
 **Tests:** That every example `tool_search {tool}` documents for the Design commands, and for `undo` and `redo`, still runs as written. Each example runs on a fresh empty design, with `from_call` arguments filled from earlier results.
+
+**Starts from:** `start(client)`; before each example an open sketch is cancelled and `new_design` discards the rest. Two examples send bodies to the plate with `commit_to_plate`, which places them on the Klipper printer's 250 x 250 bed; no check reads where. The `sketch_text` examples give no face, so they take the Text dialog's last one, and are checked only for running.
+
+**Leaves:** the project unsaved, holding the objects the two `commit_to_plate` examples sent to the plate. Nothing in the folder's settings: `sketch_text` reads the Text dialog's last font and height and writes neither.
 
 **Decides by:** Exits 1 when any example prints FAIL. An example fails when:
 - a call raises: a tool error, a failed job (`call_command` awaits running jobs), or a first reply blocked by a dialog;
@@ -111,6 +154,10 @@ The output is one line per example ("ok   <command>: <title>" or "FAIL ...") and
 - a rectangle's width label, clicked in Select to open its field again.
 
 All input goes through the UI tools; the Design commands only read back.
+
+**Starts from:** `start(client)`, first, since the check `CadGui.start()` makes needs the Design tab's first showing; then `CadGui.start()`: an English UI, the auto-answer rules cleared, the window widened when the sketch ribbon overflows it, and an empty design in `reset_view()`'s camera. Clicks go through a map measured on the open sketch, so neither the window's size nor the bed fixes a pixel; the bed sizes only the XY plane's square that opening a sketch walks out to.
+
+**Leaves:** its design unsaved, and nothing in the folder's settings; a window it widened is not kept.
 
 **Decides by:** Exits 1 when any `gui.check` prints FAIL. A rung that raises, in the test or in a `cad_gui.py` helper, is recorded as a failed check named after the rung, and the run goes on after `recover()`.
 - Per typed field:
@@ -151,6 +198,27 @@ operation words, suppress and align conflicts; the open sketch's commands; re-ed
 menu items that act on a selection; `confirm_tool` and `cancel_tool` over cards, sketches, the Text dialog and a
 plane pick; `body_place`; the Boolean card; Speed Dial picks and their replay. One rung also checks that each
 drawing tool chosen from the right-click menu agrees with `sketch_draw`.
+
+**Starts from:** `start(client)`, then `CadGui.start()`, as for `test_cad_click_edit`. What follows the bed is read,
+not written out: `modeling_origin`, for the XY frame and the cameras that look at it, and where Commit to Plate
+places an object, which place compares only between two parts of one object. The rungs that read the Origin switch
+set it first: off for the plane refusals, on for the plane pick. confirm_refused_add presses Commit to Plate by its
+label in assembly mode, the mode the folder keeps while no one picks another from the button's list. A Speed Dial
+pick names its action with its source, OrcaSlicer, so an action of the same title that a plugin left in the folder
+adds is not taken.
+
+**Leaves:**
+- its last project unsaved: the objects place commits to the plate go with the new project action_pick_replay
+  replays into;
+- the Speed Dial's run counts of Polar array and Trim, which put them in its Recent list;
+- the Text dialog's last font and height, as text_dialog's OK stores the ones the dialog opened with;
+- the Origin and Bed switches as it found them: design_view, select and cancel_plane_pick put each back at the
+  rung's end, but not in a `finally`, so a rung that raises midway leaves the planes or the bed hidden. No check of
+  this area reads them unset: the plane picks set Origin first, and a sketch's plane is picked while Shift+S shows
+  the planes whatever the switch.
+
+The SVG, the exported replays and the screenshots go to its own temporary folder. A rerun on the same data folder
+meets only these: the run counts order the Speed Dial's list, and a pick finds its action by label in any order.
 
 **Decides by:** Exits 1 when any check prints FAIL or a rung raises. `cad_gui.run()` records a raise as a FAIL
 named after the rung, runs `recover()` and goes on to the next rung.
@@ -245,6 +313,14 @@ each constraint button in Constrain mode (and one in the open sketch), selecting
 badge, undo inside a sketch and across its commit, save and open through the File menu, and drawing over a sketch
 of 1204 entities loaded while a tool is armed.
 
+**Starts from:** `start(client)`, then `CadGui.start()`, as for `test_cad_click_edit`. roundtrip saves and opens
+`roundtrip.3mf` in a folder it makes in its own temporary folder, with a rule answering each file picker, so no
+folder the data folder remembers is used.
+
+**Leaves:** its last project unsaved; on Windows and macOS, roundtrip's `roundtrip.3mf` in the recent projects and
+its folder as the last export folder (`last_export_path`), both pointing at a folder the rung deletes at its end. A
+rerun on the same data folder saves under a new folder and reads neither.
+
 **Decides by:** Exits 1 when any check prints FAIL or a rung raises (`cad_gui.run()` records the raise as a FAIL
 named after the rung).
 - Harness (`cad_gui.py`), part of the verdict: the `start()` check; `calibrate` raises when probes land more than
@@ -313,6 +389,15 @@ and its result graded: the rectangles, polyline, circles, arcs, arc slot, ellipt
 circumscribed, move, rotate, scale, array and polar array through their gizmo labels, Text through the Text
 dialog, and an SVG import through the file picker.
 
+**Starts from:** `start(client)`, then `CadGui.start()`, as for `test_cad_click_edit`. art types its text and no
+height or face, so its letters take the Text dialog's last font and height: in a new folder 10 mm and the face the
+dialog lists for the system's UI font. "two regions over 1 mm²" holds at those. No test in the sweep stores others:
+the dialog's OK stores the font and height it opened with unless they are changed in it, and none changes them. The
+SVG comes from the repository's fixture through a rule answering the picker.
+
+**Leaves:** its design unsaved, and the Text dialog's last font and height as it found them, which art's OK stores
+again. The SVG picker remembers no folder.
+
 **Decides by:** Exits 1 when any check prints FAIL or a rung raises (`cad_gui.run()` records the raise as a FAIL
 named after the rung).
 - Harness, part of the verdict: the `cad_gui.py` raises listed for `test_cad_sketching`, plus the test's own:
@@ -362,19 +447,23 @@ loose.
 These replays have no Python test in their place yet, and stay in the sweep until one is designed here.
 
 ### `cad_sketch_to_solid`
-`tests/cad_sketch_to_solid.json` · replay, 37 steps, 59 expects, 1 optional
+`tests/cad_sketch_to_solid.json` · replay, 38 steps, 59 expects, 1 optional
 
 **Tests:** Sketch to solid through the Design commands. A sketch on a base plane passes through `modeling_origin`. An empty `sketch_finish` is refused and leaves the sketch open. A fillet is made inside the sketch. Then come extrudes (whole sketch as a new body, one loop alone, and a sketch on a body face joined onto that body) and a revolve about the sketch's only construction line.
 
+**Starts from:** the Generic Klipper Printer, which its first step after `app_wait` selects (`preset_select {type: "printer", name: "MyKlipper 0.4 nozzle", preset_changes: "discard"}`), since its checks of where the XZ sketch and the bracket lie follow the bed; then its own `project_new`, `window_set` 1600 x 900 and `new_design`. On that bed the XZ sketch's frame origin and the bracket's lowest corner are both at (125, 125, 0).
+
+**Leaves:** its project unsaved, and nothing in the folder's settings.
+
 **Decides by:** Fails when a non-optional call errors or an expect misses.
-- Sketch frames: the XZ sketch reports `plane` XZ with normal +Y. The sketch on face 10 has frame origin z 8 ± 1e-3, x axis world −Y and y axis world +X (exact).
+- Sketch frames: the XZ sketch reports `plane` XZ with normal +Y and frame origin x 125 (exact), the Klipper bed's centre. The sketch on face 10 has frame origin z 8 ± 1e-3, x axis world −Y and y axis world +X (exact).
 - Sketch contents: 6 entities after drawing and 7 after `sketch_fillet`. The fillet is entity 6 with `released_constraints` 1 and `solve_ok`. Committed, it is an `arc` of radius 3 ± 1e-4. Loop areas: 265.93–265.94 and 9600 ± 0.01. The plate is loop 5. Each commit's `sketch_index`/`features` is checked.
 - Empty commit: the next `sketch_describe` (no `sketch` argument, so it errors when no sketch is open) must list no entities. The next commit must be `sketch_index` 0.
-- Solids: the `extrude` and `revolve` replies (`extrude_index`, `operation` new_body/join, `body`, `bodies`, `loop`, `end` blind, `axis_entity` 4). `body_mass_properties` volumes are within 0.03 mm³ for the jig, lip and single loop, 0.16 for the ring and ±2 for the bracket. `body_describe` gives 11 faces with known kinds, and the bboxes run z 0–30, then 18 after the lip.
+- Solids: the `extrude` and `revolve` replies (`extrude_index`, `operation` new_body/join, `body`, `bodies`, `loop`, `end` blind, `axis_entity` 4). `body_mass_properties` volumes are within 0.03 mm³ for the jig, lip and single loop, 0.16 for the ring and ±2 for the bracket. `body_describe` gives 11 faces with known kinds, and the bboxes run z 0–30, then 18 after the lip. The bracket's lowest x is 125 ± 1e-3.
 
 **Not checked:**
 - The optional empty `sketch_finish`: its refusal text. The refusal and "stays open" are covered only because the next step errors without an open sketch and the next commit must be index 0.
-- "Passes through `modeling_origin`": only `frame/origin/0 gt 1.0` and `bbox/min/0 gt 1.0`, not equality with `describe_design`'s `modeling_origin` (left loose because it depends on the bed).
+- "Passes through `modeling_origin`": only the x of the XZ frame's origin and of the bracket's lowest corner is read, as 125, not their y (125 on this bed) or the frame origin's z, nor `describe_design`'s `modeling_origin` itself.
 - The holes on 32 mm centres and where the lip sits in its plane: only total volume and z extent.
 - `closed_loops/0/entities/6 exists` and `holes/4 exists` only say the arrays are long enough, not what they hold, though the exact values are known.
 - The bracket's volume band (±2 mm³) is about 20 times looser than its loop-area check implies.
@@ -385,6 +474,10 @@ These replays have no Python test in their place yet, and stay in the sweep unti
 `tests/cad_sketch_edit.json` · replay, 39 steps, 54 expects, 3 optional
 
 **Tests:** The sketch's own tools through the Design commands: polygon, slot, ellipse, spline, trim, extend, chamfer, fillet, linear and circular patterns, rotate and move. It also adds constraints and dimensions from entity picks and from named points (`origin`): a radius that over-constrains is rolled back and a constraint is deleted. Each result is read back from `sketch_describe` and `sketch_list_constraints` and from the extruded solid's volume.
+
+**Starts from:** its own `project_new`, `window_set` 1600 x 900 and `new_design`. Every value it reads is in a sketch's own coordinates or a volume, so it runs on whichever printer the folder has selected.
+
+**Leaves:** its project unsaved, and nothing in the folder's settings.
 
 **Decides by:** Fails when a non-optional call errors or an expect misses.
 - Hex standoff: `sketch_draw`'s shape bookkeeping (`count` 6, `first` 6, 7 entities). The first edge lies at x 4 ± 1e-4. The hexagon loop has area 55.4256–55.4257 and holds the bore as hole 0. Volume 630.0–630.1.
@@ -406,6 +499,10 @@ These replays have no Python test in their place yet, and stay in the sweep unti
 `tests/cad_topology_targets.json` · replay, 33 steps, 69 expects, 1 optional
 
 **Tests:** Reading a body's topology and building on what it finds. It covers `body_describe` filters (convexity, face kinds, direction, extreme, adjacency, paging), a fillet on an inside edge found that way, and M4 countersinks seated on a face on a pilot hole's axis (`at` a cylindrical face). It also covers `measure` between faces and axes, datum planes (midplane, offset) with a sketch on one, and a face push/pull that joins its own body.
+
+**Starts from:** its own `project_new`, `window_set` 1600 x 900 and `new_design`. It reads positions in a plane's frame, heights and distances, none of which follows the bed's size, so it runs on whichever printer the folder has selected.
+
+**Leaves:** its project unsaved, and nothing in the folder's settings.
 
 **Decides by:** Fails when a non-optional call errors or an expect misses.
 - Topology reads, all ± 1e-4 or tighter:
@@ -443,6 +540,10 @@ These replays have no Python test in their place yet, and stay in the sweep unti
 - A square-to-circle loft up to a datum plane.
 - A split by that datum, then a split by XY flipped that keeps one side.
 
+**Starts from:** its own `project_new`, `window_set` 1600 x 900 and `new_design`. It reads positions in a plane's frame, heights and volumes, none of which follows the bed's size, so it runs on whichever printer the folder has selected.
+
+**Leaves:** its project unsaved, and nothing in the folder's settings.
+
 **Decides by:** Fails when a non-optional call errors or an expect misses.
 - Thread on the bore: `thread_index` 3, `designation` M5, `internal`, `pitch` 0.8 ± 1e-4, `length` 15 ± 1e-4, one body. The body is solid at 600–614 mm³. Feature 3 is a Thread, with `undo_depth` 3.
 - Thread on XY: after `undo` there are 3 features. The thread is at x = y = 0 on body 0, as M5, and the volume is again 600–614.
@@ -462,13 +563,17 @@ These replays have no Python test in their place yet, and stay in the sweep unti
 **Strength:** Partial — the loft and splits are checked closely, but the thread and sweep solids only within 2 % volume bands.
 
 ### `cad_doc`
-`tests/cad_doc.json` · replay, 82 steps, 139 expects, 0 optional
+`tests/cad_doc.json` · replay, 83 steps, 139 expects, 0 optional
 
 **Tests:**
 - Reading and editing a Design feature as its card does: a variable bound to an extrude's `distance` and then removed, and `feature_edit` under its own argument names and the aliases agents use (`index`, `params`, `values`).
 - Handing the design to the plate: Commit to Plate; a recommit that replaces the first object and is undone in one Prepare step; and the bodies and assembly modes.
 - A STEP export read back into a new design.
 - The Design history and tree: undo/redo, suppress, move and delete, body name, visibility and colour, and a save and reopen.
+
+**Starts from:** the Generic Klipper Printer, which its first step after `app_wait` selects (`preset_select {type: "printer", name: "MyKlipper 0.4 nozzle", preset_changes: "discard"}`), since it sends bodies to that printer's plate and its project carries the printer; then its own `project_new`, `window_set` 1600 x 900 and `new_design`. The objects `object_list` reads land on plate 0 of the 250 x 250 bed. The rule for the "Load project: unsaved changes" prompt it sets before the reopen holds only for the replay's session.
+
+**Leaves:** `design.3mf` in the recent projects, pointing at its output folder, and the reopened project with no unsaved changes. `design.3mf` and `design.step` are written to its output folder, not the data folder.
 
 **Decides by:** Fails when a non-optional call errors or an expect misses.
 - Discovery: `tool_search` lists `feature_describe` as Design read-only and `feature_edit` as Design writable.
@@ -509,6 +614,10 @@ These replays have no Python test in their place yet, and stay in the sweep unti
 - A click that picks the block, and a right click that lists the pick's verbs.
 - Keys reaching the Design panel's key hook: Shift+E opens the Extrude card, and Escape with no target closes it.
 - The project's modified flag after a change made only in the Design tab, and reopening a design-only project with `discard_changes`.
+
+**Starts from:** its own `project_new`, `new_design` and `window_set` 1600 x 900, the size its clicks at (30, 30) and at the canvas's centre are aimed in. The Design view's `default` camera is its iso view fitted to the block, whatever the bed, and the project it saves carries the printer it reopens with, so it runs on whichever printer the folder has selected.
+
+**Leaves:** `design_only.3mf` in the recent projects, pointing at its output folder, and the reopened project with no unsaved changes. The project and the three screenshots are written to its output folder.
 
 **Decides by:** Fails when a non-optional call errors or an expect misses.
 - View: `view_set` echoes tab `design` with camera `iso`, then `default`, then `fit_selection`. After an extrude, `app_state` reports tab `design`, `gizmo` null and the project dirty.

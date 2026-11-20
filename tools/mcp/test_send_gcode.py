@@ -6,9 +6,11 @@ host. The design is tools/mcp/test-entries/windows_web.md, test_send_gcode.
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_send_gcode.py
 
-Starts an OctoPrint-compatible stub host on a free loopback port and makes the seeded printer a print-host printer
-(bbl_use_printhost) before any call: on the Bambu network these calls would open dialogs that message a printer. With
-no address, the sends and the host test are refused. With the stub's address, the host test answers; before slicing,
+Starts an OctoPrint-compatible stub host on a free loopback port, starts on the Generic Klipper Printer 0.4 nozzle,
+which sends through a print host as its own route, and turns the printer agents off: with them on, the Print button
+routes through an agent instead of the print host and could reach a printer. The print-host values are set on the
+printer as unsaved changes, so the preset's saved ones play no part. With no address, the sends and the host test are
+refused. With the stub's address, the host test answers; before slicing,
 print_start is refused, and Print all and Send all are refused as the Print button offers neither; once sliced,
 print_start and printer_send open the host's upload dialog, which the test cancels. Then each send runs the action,
 sets the file name with widget_set_value and presses Upload with dialog_answer:
@@ -33,7 +35,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import Checks, dialogs, plates, undo_steps  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, dialogs, plates, start, undo_steps  # noqa: E402
 
 MODEL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "resources", "handy_models", "OrcaCube_v2.drc")
 SEND = "orca_command:send_gcode:orca"
@@ -182,24 +184,24 @@ def main():
             client.await_job(blocked)
         t.equal(f"{name}: cancelled, nothing sent", (uploads(client), len(stub.uploads), dialogs(client)), (rows, files, []))
 
+    t.equal("start: the Klipper printer with its default process and filament", start(client),
+            {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]})
+    # With printer agents on, the Print button routes through an agent instead of the print host and could reach a
+    # printer: the test stops before any print call unless the agents read off.
+    client.call("preferences_set", values={"use_printer_agents": False})
+    agents = [p.get("value") for p in client.call("preferences_get", keys=["use_printer_agents"]).get("items", [])]
+    if not t.equal("start: the printer agents are off", agents, [False]):
+        raise SystemExit(f"use_printer_agents is {agents}: the print calls would reach a printer; the test sends nothing")
     client.call("dialog_auto_answer", rules=[{"match": "unsaved changes", "button": "no"}])
-    client.call("project_new", discard_changes=True)
     client.call("project_import", paths=[os.path.abspath(MODEL)])
     client.call("app_wait", **{"for": "idle"})
 
     found = client.call("action_search", query="Send G-code")
     t.check("action_search finds the send_gcode action", any(a["id"] == SEND for a in found["items"]), found)
 
-    # The Print and storage dialogs of a printer on the Bambu network, or with printer agents on, message a printer:
-    # the test stops before any print call where the agents are on.
-    agents = [p.get("value") for p in client.call("preferences_get", keys=["use_printer_agents"]).get("items", [])]
-    if agents != [False]:
-        raise SystemExit(f"use_printer_agents is {agents}: the print calls would reach a printer; the test sends nothing")
-
     # ---- No address ----
     # Plain G-code, so the dialog proposes a .gcode name (a .gcode.3mf would make it confirm the suffix).
-    client.call("settings_set", type="printer", values={"bbl_use_printhost": True, "host_type": "octoprint", "print_host": "",
-                                                        "use_3mf": False})
+    client.call("settings_set", type="printer", values={"host_type": "octoprint", "print_host": "", "use_3mf": False})
     nothing_sent("the action, with no address", lambda: client.call("action_run", id=SEND), "no_print_host")
     nothing_sent("printer_send {plates: 0}, with no address", lambda: client.call("printer_send", plates=0), "no_print_host")
     t.refused("printer_test_host, with no address: refused", lambda: client.call("printer_test_host"), code="no_print_host")

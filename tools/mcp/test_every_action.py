@@ -20,22 +20,23 @@ open their test's dialog, and calibration_generate_test journals its arguments o
 action names the command of tests/data/speed_dial_action_calls.json in action_search. An action expected to be refused
 has neither: action_run adds ran only when the command ran, and a failed call is not exported.
 
-Three actions open a web page in the system's browser and one opens the configuration folder in the file manager; the
-test runs them once and leaves what they opened. Send G-code, Synchronize Filament List from AMS and Sync Presets are
-expected to be refused: nothing is signed in, and on the seeded printer, which prints through the Bambu network, Send
-G-code would open the dialog that sends to the printer's storage, which messages a printer, so its row makes the printer
-a print host with no address first, and discards that change after. Import, Import
-Configs and SVG open a file picker that dialog_auto_answer cannot give a file (a multi-select picker, and one whose
-caller reads GetPaths()): the rule cancels it, and the row checks that the picker was answered and nothing loaded. The
-dialogs whose choices are a person's (Export Preset Bundle, the Setup Wizard, the Network Test) are closed. Every file the
-test writes is in its output folder (a new temporary folder unless --out names one) or in the app's configuration
-folder; Start Recording's folder, where Take Screenshot saves too, is set to the output folder through the Start
-Recording dialog before the actions run. Exits 0 when every check passes.
+It starts from the Generic Klipper Printer (checks.start()) and puts back at its end the mode it found. Three actions
+open a web page in the system's browser and one opens the configuration folder in the file manager; the test runs them
+once and leaves what they opened. Send G-code, Synchronize Filament List from AMS and Sync Presets are expected to be
+refused: nothing is signed in, no printer is connected, and the Generic Klipper Printer has no print host to send to.
+Install Local Plugin and Refresh Plugins work on copies of the fixture plugins named with the run's start time, which
+no earlier run has loaded. Import, Import Configs and SVG open a file picker that dialog_auto_answer cannot give a file
+(a multi-select picker, and one whose caller reads GetPaths()): the rule cancels it, and the row checks that the picker
+was answered and nothing loaded. The dialogs whose choices are a person's (Export Preset Bundle, the Setup Wizard, the
+Network Test) are closed. Every file the test writes is in its output folder (a new temporary folder unless --out names
+one) or in the app's configuration folder; Start Recording's folder, where Take Screenshot saves too, is set to the
+output folder through the Start Recording dialog before the actions run. Exits 0 when every check passes.
 """
 
 import argparse
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -51,10 +52,15 @@ DATA = os.path.join(HERE, "..", "..", "tests", "data")
 FIXTURES = os.path.join(HERE, "tests", "fixtures")
 PLUGINS = os.path.join(HERE, "tests", "plugins")
 PREFIX, SUFFIX = "orca_command:", ":orca"
-BED_CENTRE = 128.0  # the seeded Bambu Lab X1 Carbon's 256 mm bed
+BED_CENTRE = 125.0  # the middle of the Generic Klipper Printer's 250 mm bed
 CANVAS = {"name": "OrcaSceneCanvas"}
+START = {"printer": checks.KLIPPER, "process": checks.KLIPPER_STD, "filaments": [checks.GENERIC_PLA]}
 IMPORTED_PRESET = "MCP Import PLA"  # the filament fixtures/mcp_import_pla.json holds
-LOCAL_PLUGIN, SIDE_LOADED = "MCP Tools Fixture", "MCP Web Fixture"  # the fixture plugins' names, from their manifests
+# The plugin rows' copies of the fixture plugins: their files and the names their manifests give, made of the run's
+# start time, so that no plugin an earlier run or test left has them, and a refresh or an install has one to find.
+STAMP = time.strftime("%Y%m%d%H%M%S")
+LOCAL_PLUGIN_FILE, LOCAL_PLUGIN = f"every_action_install_{STAMP}", f"MCP Every Action Install {STAMP}"
+SIDE_LOADED_FILE, SIDE_LOADED = f"every_action_side_load_{STAMP}", f"MCP Every Action Side-load {STAMP}"
 
 
 def action_id(key):
@@ -138,9 +144,17 @@ def box(x0, size):
                    for f in faces)
 
 
+def plugin_copy(fixture, name, dest):
+    """Writes `dest`, a copy of the fixture plugin `fixture` whose manifest names it `name`."""
+    with open(os.path.join(PLUGINS, fixture, fixture + ".py"), encoding="utf-8") as f:
+        text = f.read()
+    with open(dest, "w", encoding="utf-8") as f:
+        f.write(re.sub(r'^# name = ".*"$', f'# name = "{name}"', text, count=1, flags=re.M))
+
+
 def write_inputs(out):
     """The files the import, open and install actions pick: an STL of one mesh with two shells, a ZIP holding it, the
-    fixture preset, SVG and plugin."""
+    fixture preset and SVG, and the copy of a fixture plugin Install Local Plugin installs."""
     stl = os.path.join(out, "two_shells.stl")
     with open(stl, "w") as f:
         f.write("solid two_shells\n" + box(0, 10) + box(20, 10) + "endsolid two_shells\n")
@@ -148,7 +162,7 @@ def write_inputs(out):
         z.write(stl, "two_shells.stl")
     shutil.copy(os.path.join(FIXTURES, "mcp_import_pla.json"), out)
     shutil.copy(os.path.join(FIXTURES, "star.svg"), out)
-    shutil.copy(os.path.join(PLUGINS, "mcp_tools_fixture", "mcp_tools_fixture.py"), out)
+    plugin_copy("mcp_tools_fixture", LOCAL_PLUGIN, os.path.join(out, LOCAL_PLUGIN_FILE + ".py"))
     for folder in ("stl_multi", "drc_multi"):
         os.makedirs(os.path.join(out, folder), exist_ok=True)
 
@@ -391,10 +405,9 @@ def call(tool, /, **args):
     return (tool, args)
 
 
-def row(key, state, expect, *, value=None, answers=(), pre=(), post=(), before=None, after=None, why=""):
-    """`after`, when given, reads the app once the row's post steps have run: (ok, detail)."""
+def row(key, state, expect, *, value=None, answers=(), pre=(), post=(), before=None, why=""):
     return key, {"state": state, "expect": expect, "value": value, "answers": tuple(answers), "pre": tuple(pre),
-                 "post": tuple(post), "before": before, "after": after, "why": why}
+                 "post": tuple(post), "before": before, "why": why}
 
 
 CUBE_OFF_PLATE = call("object_transform", object=1, position=[-150, BED_CENTRE, 10])
@@ -416,8 +429,6 @@ HANDY = {"orca_cube": ["OrcaCube_v2.drc", "OrcaPlug_v2.drc"],
          "orca_tolerance_test": ["OrcaToleranceTest.drc"], "3dbenchy": ["3DBenchy.drc"], "cali_cat": ["calicat.drc"],
          "autodesk_fdm_test": ["ksr_fdmtest_v4.drc"], "voron_cube": ["Voron_Design_Cube_v7.drc"],
          "stanford_bunny": ["Stanford_Bunny.drc"], "orca_string_hell": ["Orca_stringhell.drc"]}
-# The question a handy model asks once it is loaded, which the test answers so that no setting changes.
-HANDY_ASKS = {"orca_string_hell": [("button", "Suggestion", "no")]}
 CALIBRATIONS = {"temperature": ("Temperature calibration", "Nozzle temperature test"),
                 "max_volumetric": ("Max volumetric speed test", "Max volumetric speed test"),
                 "pressure_advance": ("PA Calibration", "Pressure Advance Test"),
@@ -425,8 +436,7 @@ CALIBRATIONS = {"temperature": ("Temperature calibration", "Nozzle temperature t
                 "retraction": ("Retraction", "Retraction"),
                 "cornering": ("Cornering test", "Cornering test"),
                 "input_shaping_freq": ("Input shaping Frequency test", "Input shaping Frequency test"),
-                "input_shaping_damp": ("Input shaping Damp test", "Input shaping Damping test"),
-                "vfa": ("VFA test", "VFA test")}
+                "input_shaping_damp": ("Input shaping Damp test", "Input shaping Damping test")}
 
 
 def dialog_action(key, title, why=""):
@@ -446,15 +456,9 @@ ROWS = dict([
     # From two sliced plates, the second current: the current plate's G-code alone, and both plates'.
     row("export_sliced_file", "sliced_plates", plates_in("plate.gcode.3mf", [2]), answers=[picker("plate.gcode.3mf")]),
     row("export_all_sliced_file", "sliced_plates", plates_in("all.gcode.3mf", [1, 2]), answers=[picker("all.gcode.3mf")]),
-    # On the seeded X1 Carbon, which prints through the Bambu network, the action opens the dialog that sends to the
-    # printer's storage, which messages a printer: the row makes it a print host with no address first, and its post
-    # step discards that, so later rows see the X1 Carbon as it was.
-    row("send_gcode", "sliced", refused("no_print_host", "the X1 Carbon, made a print host with no address, has no host to "
-                                        "upload to, and the test uploads to no printer", nothing_opened=True),
-        pre=[call("settings_set", type="printer", values={"bbl_use_printhost": True, "host_type": "octoprint", "print_host": ""})],
-        post=[call("settings_set", type="printer", reset_all=True)],
-        after=lambda r: (lambda v, u: (v == {"bbl_use_printhost": "0"} and u == [], (v, u)))(
-            checks.values(r.client, ["bbl_use_printhost"], "printer"), checks.unsaved(r.client, "printer"))),
+    # The Generic Klipper Printer sends G-code through a print host, and its preset names none.
+    row("send_gcode", "sliced", refused("no_print_host", "the Generic Klipper Printer has no print host to upload to, and "
+                                        "the test uploads to no printer", nothing_opened=True)),
     # ---- Commands ----
     row("go_to_layer", "sliced", plates(lambda r: (lambda v: (v.get("layer_count", 0) > 0 and
                                                               near((v.get("layers") or [0, 0])[1], v.get("layer_count", 0) / 2, 2), v))(
@@ -488,6 +492,12 @@ ROWS = dict([
     *[row("calib_" + test, "empty", app_state(lambda r, name=name: (r.state()["project"]["name"] == name and len(r.objects()) > 0,
                                                                    (r.state()["project"], r.names()))),
           answers=[button(title, "ok")]) for test, (title, name) in CALIBRATIONS.items()],
+    # Generic PLA @System's maximum volumetric speed keeps the default end speed out of reach at 0.20 mm, so the
+    # dialog's OK lowers the tower's layer height to 0.16 mm and says so in an information of the same title.
+    row("calib_vfa", "empty", app_state(lambda r: (lambda layer: (
+        r.state()["project"]["name"] == "VFA test" and len(r.objects()) > 0 and layer == ("0.16", "object"),
+        (r.state()["project"], r.names(), layer)))(vfa_layer_height(r))),
+        answers=[button("VFA test", "ok"), button("VFA test", "ok")]),
     # ---- View ----
     row("view_top", "two_cubes", camera(elevation=90), pre=[call("view_set", camera="front")]),
     row("view_bottom", "two_cubes", camera(elevation=-90), pre=[call("view_set", camera="front")]),
@@ -562,7 +572,10 @@ ROWS = dict([
         post=[call("keyboard_press", keys="Escape", target=CANVAS)]),
     row("add_primitive_svg", "empty", picked(lambda r: r.objects() == []), answers=[picker("star.svg")],
         why=PATHLESS + " (the SVG gizmo reads the picker's GetPaths(), which a path answer leaves empty)"),
-    *[row("add_handy_" + model, "empty", objects(lambda r, n=names: (r.names() == n, r.names())), answers=HANDY_ASKS.get(model, ()))
+    # Orca String Hell asks its Suggestion question only of a process with only_one_wall_top on, which
+    # 0.20mm Standard @MyKlipper leaves off, so no dialog is left open.
+    *[row("add_handy_" + model, "empty", objects(lambda r, n=names: (r.names() == n and r.state()["dialogs"] == [],
+                                                                    (r.names(), r.state()["dialogs"]))))
       for model, names in HANDY.items()],
     # ---- Plate ----
     row("plate_add", "two_cubes", plates(lambda r: ([p["objects"] for p in r.plates()] == [2, 0], [p["objects"] for p in r.plates()]))),
@@ -620,13 +633,14 @@ ROWS = dict([
     row("open_youtube", "empty", external("it opens the YouTube channel in the system's browser")),
     # ---- Plugins ----
     row("open_plugins", "empty", window("Plugins"), post=[call("keyboard_press", keys="Escape", target={"label": "Plugins"})]),
-    # The side-loaded plugin is listed only once the refresh has found it.
+    # The side-loaded copy is listed only once the refresh has found it.
     row("refresh_plugins", "empty", ("plugin_list", lambda r: (r.before is False and SIDE_LOADED in r.plugin_names(),
                                                                (r.before, r.plugin_names()))),
         before=lambda r: side_load(r)),
     row("install_plugin", "empty", external("it opens the plugin hub in the system's browser")),
-    row("install_local_plugin", "empty", ("plugin_list", lambda r: (LOCAL_PLUGIN in r.plugin_names(), r.plugin_names())),
-        answers=[picker("mcp_tools_fixture.py")]),
+    row("install_local_plugin", "empty", ("plugin_list", lambda r: (r.before is False and LOCAL_PLUGIN in r.plugin_names(),
+                                                                    (r.before, r.plugin_names()))),
+        before=lambda r: LOCAL_PLUGIN in r.plugin_names(), answers=[picker(LOCAL_PLUGIN_FILE + ".py")]),
     # ---- Commands ----
     row("new_project", "two_cubes", objects(lambda r: (r.objects() == [], r.names())), answers=[button("Save", "no")]),
     row("save_project", "two_cubes", written("saved.3mf"), answers=[picker("saved.3mf")]),
@@ -639,11 +653,26 @@ ROWS = dict([
 
 
 def side_load(run):
-    """Copies the web fixture plugin into the plugins folder, where only a refresh finds it."""
-    dest = os.path.join(run.datadir, "orca_plugins", "mcp_web_fixture")
+    """Writes the copy of the web fixture plugin into the plugins folder, where only a refresh finds it, and returns
+    whether plugin_list lists it already."""
+    dest = os.path.join(run.datadir, "orca_plugins", SIDE_LOADED_FILE)
     os.makedirs(dest, exist_ok=True)
-    shutil.copy(os.path.join(PLUGINS, "mcp_web_fixture", "mcp_web_fixture.py"), dest)
+    plugin_copy("mcp_web_fixture", SIDE_LOADED, os.path.join(dest, SIDE_LOADED_FILE + ".py"))
     return SIDE_LOADED in run.plugin_names()
+
+
+def vfa_layer_height(run):
+    """The VFA tower's own layer_height and where it is set, as settings_get gives them for object 0."""
+    items = run.call("settings_get", target="object", object=0, keys=["layer_height"]).get("items", [])
+    return (items[0].get("value"), items[0].get("source")) if items else None
+
+
+def drop_imported_preset(run):
+    """Deletes the filament preset of the import_configs row's fixture where an earlier run left it, since that row
+    reads that the preset is not loaded."""
+    listed = run.call("preset_list", type="filament", query=IMPORTED_PRESET).get("items", [])
+    if any(i.get("name") == IMPORTED_PRESET for i in listed):
+        run.call("preset_delete", type="filament", name=IMPORTED_PRESET)
 
 
 def use_capture_folder(run):
@@ -680,12 +709,31 @@ def main():
     client, session = orca_mcp.session_client()
     client.call("app_wait", **{"for": "ready"})
     run = Run(client, out, session["datadir"])
-    checks, shown_otherwise = [], []
+    results, shown_otherwise = [], []
 
     def check(name, ok, detail=""):
-        checks.append((name, bool(ok), detail))
+        results.append((name, bool(ok), detail))
         print(("PASS " if ok else "FAIL ") + name + ("" if ok else f": {str(detail)[:600]}"), flush=True)
 
+    presets = checks.start(client)
+    check("starts from the Generic Klipper Printer", presets == START, presets)
+    # The mode decides which settings the sidebar and the settings tabs show every test after this one.
+    mode = run.state()["mode"]
+    try:
+        run_rows(run, args, actions, fixture, check, shown_otherwise)
+    finally:
+        client.call("settings_set_mode", mode=mode)
+    print("\nActions shown by a refusal or as handing over, and rows that read less than a change of their own:")
+    for key, kind, why in shown_otherwise:
+        print(f"  {key}: {kind}: {why}")
+    failed = [c for c in results if not c[1]]
+    print(f"{len(results) - len(failed)}/{len(results)} checks passed")
+    return 1 if failed else 0
+
+
+def run_rows(run, args, actions, fixture, check, shown_otherwise):
+    """The setup checks, then every action's row."""
+    client = run.client
     keys = [a["key"] for a in actions]
     check("every action has a row", set(keys) <= set(ROWS), sorted(set(keys) - set(ROWS)))
     check("every row is an action", set(ROWS) <= set(keys), sorted(set(ROWS) - set(keys)))
@@ -697,6 +745,7 @@ def main():
         offset = page.get("next_offset")
         if not offset:
             break
+    drop_imported_preset(run)
     empty(run)
     check("Start Recording's folder is the output folder", *use_capture_folder(run))
 
@@ -777,16 +826,8 @@ def main():
                     run.wait(run.call(tool, **a))
                 except orca_mcp.McpError as e:
                     print(f"  after {key}: {tool} failed: {e}", flush=True)
-            if r["after"]:
-                check(f"{name}: after its post steps", *r["after"](run))
 
     empty(run)
-    print("\nActions shown by a refusal or as handing over, and rows that read less than a change of their own:")
-    for key, kind, why in shown_otherwise:
-        print(f"  {key}: {kind}: {why}")
-    failed = [c for c in checks if not c[1]]
-    print(f"{len(checks) - len(failed)}/{len(checks)} checks passed")
-    return 1 if failed else 0
 
 
 if __name__ == "__main__":

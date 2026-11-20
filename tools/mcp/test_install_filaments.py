@@ -28,6 +28,10 @@ from orca_mcp import McpError, OrcaMcp, app_env  # noqa: E402
 
 TOKEN = "install-filaments-test-token"
 SLOT_ONE = "Bambu PLA Basic @BBL X1C"
+# The printer the fresh folder is seeded with, in place of the harness's default Generic Klipper Printer: the scenarios
+# rest on Bambu Lab filaments that fit Bambu Lab printers alone, where the default printer's Generic @System filaments
+# fit every printer.
+SEED = ["--vendor", "BBL", "--printer", "Bambu Lab X1 Carbon@0.4", "--filament", SLOT_ONE]
 # A printer of the seeded printer's bundle that the folder does not install and that SLOT_ONE does not fit, and a
 # filament that fits only the seeded printer's family, so that installing it gives the A1 mini nothing that fits.
 SHOWN_PRINTER = "Bambu Lab A1 mini 0.4 nozzle"
@@ -65,7 +69,7 @@ def launched(datadir, binary):
     if os.path.exists(session):
         os.remove(session)
     try:
-        started = harness(env, "launch", "--datadir", datadir, "--port", str(port), *binary)
+        started = harness(env, "launch", "--datadir", datadir, "--port", str(port), *SEED, *binary)
         if started.returncode != 0:
             print(started.stdout, started.stderr)
             yield None

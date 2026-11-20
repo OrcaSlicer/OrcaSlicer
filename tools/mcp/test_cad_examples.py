@@ -19,6 +19,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import checks  # noqa: E402
 import orca_mcp  # noqa: E402
 from orca_mcp import McpError  # noqa: E402
 
@@ -84,6 +85,7 @@ def main():
     args = ap.parse_args()
 
     client, _ = orca_mcp.session_client()
+    checks.start(client)
     names = client.call("tool_search", group="Design")["names"] + HISTORY
     unknown = [t for t in args.tool if t not in names]
     if unknown:

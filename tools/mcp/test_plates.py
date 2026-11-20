@@ -7,8 +7,9 @@
 Adding, duplicating, naming, locking, selecting and deleting plates and undoing that; what a lock keeps Arrange
 and Auto-Orient from doing; a plate's own settings; the filament slots its filament orders count on; and the plate
 icons and plate menu. After every step the test reads the plates back with plate_list and compares them, whole,
-with the state the entry writes out. It runs on the harness's default printer, the Bambu Lab X1 Carbon 0.4, and
-exits 0 when every check passes.
+with the state the entry writes out. It runs on the Generic Klipper Printer 0.4 nozzle, whose
+support_multi_bed_types the settings scenario turns on so that a plate can take a plate type of its own, and exits
+0 when every check passes.
 """
 
 import math
@@ -19,12 +20,16 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import Checks, objects, plates, run, wait  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, objects, plates, run, start, wait  # noqa: E402
 
 ROW = re.compile(r'^"(.*)" (\d+)( \*)?( L)?$')
 CUBE = {"shape": "cube", "size": [20, 20, 20]}
 FILAMENT_ADD = "orca_command:filament_add:orca"
 FILAMENT_DELETE = "orca_command:filament_delete:orca"
+START = {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]}
+# The plate types the Klipper printer offers with support_multi_bed_types on.
+PLATE_TYPES = ["Cool Plate", "Engineering Plate", "High Temp Plate", "Textured PEI Plate", "Textured Cool Plate",
+               "Supertack Plate"]
 
 
 def P(*rows):
@@ -74,7 +79,7 @@ class PlatesTest:
         self.t.equal(f"{label}: the objects", objects(self.c), (sorted(on), sorted(outside)))
 
     def start(self, name):
-        self.run("project_new", discard_changes=True)
+        self.t.equal(f"{name}: the start: the presets", start(self.c), START)
         self.run("view_set", tab="prepare")
         wait(self.c, "idle")
         self.plates_are(f"{name}: the start", '"" 0 *')
@@ -97,12 +102,13 @@ class PlatesTest:
         (x, y), (w, d) = item["origin"], item["size"]
         return x, y, x + w, y + d
 
-    def save_and_reopen(self, label, name, empty=False):
-        """Saves the project to a new file, starts a new one and opens the file. A project with no objects opens
-        after the app's warning that the file holds no geometry, which is answered OK."""
+    def save_and_reopen(self, label, name, empty=False, preset_changes="keep"):
+        """Saves the project to a new file, starts a new one, keeping or discarding the presets' unsaved changes as
+        `preset_changes` says, and opens the file. A project with no objects opens after the app's warning that the
+        file holds no geometry, which is answered OK."""
         path = os.path.join(self.folder, name)
         self.run("project_save", path=path, overwrite=True)
-        self.run("project_new", discard_changes=True)
+        self.run("project_new", discard_changes=True, preset_changes=preset_changes)
         if not empty:
             self.run("project_open", path=path)
         else:
@@ -350,7 +356,9 @@ class PlatesTest:
     def own_settings(self):
         s = "a plate's own settings"
         self.start(s)
-        self.to_one_slot()
+        # A plate takes a plate type of its own only on a printer that offers several; an unsaved printer edit, which
+        # the next start() discards.
+        self.run("settings_set", type="printer", values={"support_multi_bed_types": "1"})
         self.run("action_run", id=FILAMENT_ADD)
         self.t.equal(f"{s}: two filament slots", self.slots(), "0,0")
         self.run("project_set_settings", values={"curr_bed_type": "Cool Plate"})
@@ -381,8 +389,7 @@ class PlatesTest:
         self.t.equal(f"{s} 1: plate_get_settings gives the plate type", got["curr_bed_type"]["value"],
                      "Textured PEI Plate")
         self.t.equal(f"{s} 1: plate_get_settings gives the print sequence", got["print_sequence"]["value"], "by object")
-        self.t.check(f"{s} 1: the plate types offered include Cool Plate",
-                     "Cool Plate" in got["curr_bed_type"]["meta"]["offered"], got["curr_bed_type"]["meta"])
+        self.t.equal(f"{s} 1: the plate types offered", got["curr_bed_type"]["meta"].get("offered"), PLATE_TYPES)
         self.t.equal(f"{s} 1: spiral mode is the project's", (got["spiral_mode"]["value"],
                                                                got["spiral_mode"]["effective"]), (None, False))
         self.undo()
@@ -436,25 +443,16 @@ class PlatesTest:
         self.t.equal(f"{s} 14: plate 1 is sliced and plate 0 is not", [i["sliced"] for i in items], [False, True])
         self.t.equal(f"{s} 14: plate 1 has no layer G-code", items[1]["layer_gcode"], [])
         settings_are(f"{s} 14", S(), after4)
-        self.save_and_reopen(f"{s} 15", "settings.3mf")
+        # The new project drops the printer's edit, so that the open asks nothing about it; the project brings it back.
+        self.save_and_reopen(f"{s} 15", "settings.3mf", preset_changes="discard")
         settings_are(f"{s} 15: the project file keeps a plate's own settings", S(), after4)
-
-    def to_one_slot(self):
-        """Deletes filament slots until the delete is refused, at the one slot a project keeps."""
-        for _ in range(32):
-            try:
-                self.c.call("filament_delete")
-            except orca_mcp.McpError:
-                break
-        return self.slots()
+        edited = [i["key"] for i in self.c.call("settings_get", type="printer", compare=":saved", limit=50)["items"]]
+        self.t.equal(f"{s} 15: the project brings back the printer's support_multi_bed_types", edited,
+                     ["support_multi_bed_types"])
 
     def filament_slots(self):
         s = "filament slots"
         self.start(s)
-        for _ in range(32):
-            if self.slots() == "0":
-                break
-            self.run("filament_delete")
         self.t.refused(f"{s} 1: deleting the only slot is refused", lambda: self.c.call("filament_delete"),
                        code="last_filament_slot")
         self.t.equal(f"{s} 1", self.slots(), "0")
@@ -469,33 +467,38 @@ class PlatesTest:
         reply = self.run("filament_delete", filament_slot=2)
         self.t.equal(f"{s} 5: the message", reply.get("message"), "Deleted filament slot 2.")
         self.t.equal(f"{s} 5", self.slots(), "0,0")
-        job = self.c.call("widget_click", target={"label": "Add Mixed Filament"})
-        wait(self.c, "dialog")
-        dialogs = self.c.call("app_state").get("dialogs", [])
-        self.t.equal(f"{s} 6: the dialog that opens", [d.get("title") for d in dialogs], ["Add Mixed Filament"])
-        self.run("dialog_answer", button="OK")
-        self.c.await_job(job)
-        wait(self.c, "idle")
-        self.t.equal(f"{s} 6", self.slots(), "0,0,1")
-        self.t.refused(f"{s} 7: deleting the mixed slot is refused",
-                       lambda: self.c.call("filament_delete", filament_slot=3), code="mixed_filament_slot")
-        self.t.equal(f"{s} 7", self.slots(), "0,0,1")
-        self.t.refused(f"{s} 8: a filament order is refused while the project has mixed filaments",
+
+        def add_mixed(step):
+            job = self.c.call("widget_click", target={"label": "Add Mixed Filament"})
+            wait(self.c, "dialog")
+            dialogs = self.c.call("app_state").get("dialogs", [])
+            self.t.equal(f"{s} {step}: the dialog that opens", [d.get("title") for d in dialogs], ["Add Mixed Filament"])
+            self.run("dialog_answer", button="OK")
+            self.c.await_job(job)
+            wait(self.c, "idle")
+            self.t.equal(f"{s} {step}", self.slots(), "0,0,1")
+
+        add_mixed(6)
+        reply = self.run("filament_delete", filament_slot=3)
+        self.t.equal(f"{s} 7: the message", reply.get("message"), "Deleted filament slot 3.")
+        self.t.equal(f"{s} 7: a mixed slot is deleted", self.slots(), "0,0")
+        add_mixed(8)
+        self.t.refused(f"{s} 9: a filament order is refused while the project has mixed filaments",
                        lambda: self.c.call("plate_set_settings", plate=0,
                                            values={"first_layer_print_sequence": [2, 1]}),
                        words="cannot be set while the project has mixed filaments")
-        self.t.equal(f"{s} 8: plate 0's order stays Auto",
+        self.t.equal(f"{s} 9: plate 0's order stays Auto",
                      self.c.call("plate_list")["items"][0]["first_layer_print_sequence"], None)
-        self.t.equal(f"{s} 8", self.slots(), "0,0,1")
+        self.t.equal(f"{s} 9", self.slots(), "0,0,1")
         reply = self.run("action_run", id=FILAMENT_ADD)
-        self.t.equal(f"{s} 9: the message", reply.get("message"), "Added filament slot 3.")
-        self.t.equal(f"{s} 9: a new slot goes ahead of the mixed one", self.slots(), "0,0,0,1")
+        self.t.equal(f"{s} 10: the message", reply.get("message"), "Added filament slot 3.")
+        self.t.equal(f"{s} 10: a new slot goes ahead of the mixed one", self.slots(), "0,0,0,1")
         reply = self.run("action_run", id=FILAMENT_DELETE)
-        self.t.equal(f"{s} 10: the message", reply.get("message"), "Deleted filament slot 3.")
-        self.t.equal(f"{s} 10", self.slots(), "0,0,1")
+        self.t.equal(f"{s} 11: the message", reply.get("message"), "Deleted filament slot 3.")
+        self.t.equal(f"{s} 11", self.slots(), "0,0,1")
         self.run("widget_click", target={"label": "Remove last mixed filament"})
         wait(self.c, "idle")
-        self.t.equal(f"{s} 11", self.slots(), "0,0")
+        self.t.equal(f"{s} 12", self.slots(), "0,0")
 
     def icons(self):
         s = "plate icons"

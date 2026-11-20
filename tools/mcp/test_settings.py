@@ -8,8 +8,10 @@ settings_list giving a type's settings whole, a saved preset's and a filament sl
 region take; settings_set and settings_get on an object, a part, a modifier and a height range, named by index and taken
 from the selection, with each value's effective value and source; what those settings do in the print; and the height
 ranges replaced, the range that stays keeping its settings. After every step of the targets scenario the test reads
-every target's settings back and compares them, whole, with the state the entry writes out. It runs on the harness's
-default printer, the Bambu Lab X1 Carbon 0.4, and exits 0 when every check passes.
+every target's settings back and compares them, whole, with the state the entry writes out. Each scenario sets its own
+start with checks.start(): a new project on the Generic Klipper Printer 0.4 with 0.20mm Standard @MyKlipper and one
+slot of Generic PLA @System, the presets a seeded data folder starts with, so it runs on a data folder earlier tests
+used. It exits 0 when every check passes.
 """
 
 import os
@@ -18,12 +20,10 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import Checks, run, wait  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, presets, run, start, wait  # noqa: E402
 
-PRINTER = "Bambu Lab X1 Carbon 0.4 nozzle"
-PROCESS = "0.20mm Standard @BBL X1C"
-B = "Bambu PLA Basic @BBL X1C"
-G = "Bambu PETG Basic @BBL X1C"
+B = GENERIC_PLA
+G = "Generic PETG @System"
 PART_NOTE = 'A part\'s value (source "part", or in parts) applies only inside that part\'s volume.'
 RANGE_NOTE = ('A height range\'s value (source "height_range", or in height_ranges) applies only between its min_z and '
               'max_z.')
@@ -117,19 +117,10 @@ class SettingsTest:
         return run(self.c, tool, **args)
 
     def start(self, name):
-        self.run("project_new", discard_changes=True, preset_changes="discard")
+        self.t.equal(f"{name}: the start's presets", start(self.c),
+                     {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [B]})
         self.run("view_set", tab="prepare")
         wait(self.c, "idle")
-        for _ in range(32):
-            try:
-                self.c.call("filament_delete")
-            except orca_mcp.McpError:
-                break
-        self.run("preset_select", type="filament", name=B, filament_slot=1)
-        wait(self.c, "idle")
-        presets = self.c.call("app_state")["presets"]
-        self.t.equal(f"{name}: the start's presets", (presets["printer"], presets["process"], presets["filaments"]),
-                     (PRINTER, PROCESS, [B]))
         self.t.equal(f"{name}: the start has no object", self.c.call("object_list", limit=500)["total"], 0)
 
     def whole(self, label, listing):
@@ -150,8 +141,8 @@ class SettingsTest:
         process = self.listed("process")
         self.t.check(f"{s} 1: at least 300 process settings", process["total"] >= 300, process["total"])
         self.whole(f"{s} 1", process)
-        self.has(f"{s} 1", process, {"layer_height": "0.2", "wall_loops": "2", "sparse_infill_density": "15%",
-                                     "top_shell_layers": "5"})
+        self.has(f"{s} 1", process, {"layer_height": "0.2", "wall_loops": "3", "sparse_infill_density": "15%",
+                                     "top_shell_layers": "4"})
         keys = [i["key"] for i in process["items"]]
 
         printer = self.listed("printer")
@@ -187,17 +178,16 @@ class SettingsTest:
         self.t.check(f"{s} 5: step 1's first 50", [i["key"] for i in page["items"]] == keys[:50],
                      [i["key"] for i in page["items"]][:5])
 
-        fine = self.listed("process", preset="0.16mm High Quality @BBL X1C")
+        fine = self.listed("process", preset="0.16mm Optimal @MyKlipper")
         self.has(f"{s} 6", fine, {"layer_height": "0.16"})
-        self.t.equal(f"{s} 6: reading a preset does not select it", self.c.call("app_state")["presets"]["process"],
-                     PROCESS)
+        self.t.equal(f"{s} 6: reading a preset does not select it", presets(self.c)["process"], KLIPPER_STD)
 
         self.run("filament_add")
-        self.run("preset_select", type="filament", name="Bambu PETG Basic", filament_slot=2)
+        self.run("preset_select", type="filament", name="Generic PETG", filament_slot=2)
         wait(self.c, "idle")
-        self.t.equal(f"{s} 7: the slots' presets", self.c.call("app_state")["presets"]["filaments"], [B, G])
+        self.t.equal(f"{s} 7: the slots' presets", presets(self.c)["filaments"], [B, G])
         self.has(f"{s} 7: slot 2", self.listed("filament", filament_slot=2),
-                 {"filament_type": "PETG", "slow_down_layer_time": "12"})
+                 {"filament_type": "PETG", "slow_down_layer_time": "8"})
         self.has(f"{s} 7: slot 1", self.listed("filament", filament_slot=1),
                  {"filament_type": "PLA", "slow_down_layer_time": "4"})
 
@@ -216,7 +206,7 @@ class SettingsTest:
                      [k for k in r if k != "layer_height" and k not in o], [])
         self.t.equal(f"{s} 1: both lists' walls and infill",
                      [(v.get("wall_loops"), v.get("sparse_infill_density")) for v in (o, r)],
-                     [("2", "15%"), ("2", "15%")])
+                     [("3", "15%"), ("3", "15%")])
         layer = [(i["value"], i["targets"]) for i in regions["items"] if i["key"] == "layer_height"]
         self.t.equal(f"{s} 1: the region list's layer_height is a height range's", layer, [("0.2", ["height_range"])])
         others = [("object", i["key"]) for i in objects["items"] if i["targets"] is not None] + [
@@ -331,7 +321,7 @@ class SettingsTest:
             self.t.check(f"{s} 12: {name} are {g(height)} mm high",
                          bool(window) and all(abs(h - height) <= 0.001 for _, h in window), window)
         low, high = self.nearest(layers, 3.0), self.nearest(layers, 15.0)
-        self.t.check(f"{s} 12: six walls in the range, four on the object, two in the control",
+        self.t.check(f"{s} 12: six walls in the range, four on the object, three in the control",
                      abs(low["z"] - 3.0) < 0.001 and low["inner"] > high["inner"] > at15["inner"], (low, high, at15))
         self.t.check(f"{s} 12: part 0's infill at 30% prints longer than the control's 15%",
                      high["sparse"] > at15["sparse"], (high, at15))

@@ -10,8 +10,7 @@ and Assemble; adding parts of every type, changing a part's type and renaming a 
 the print order that sets; Fix Model by index and through the object's menu; Reload from disk and Replace 3D file;
 and the keep_painting preference, shown against its control. After every step the test reads the objects back with
 object_list and compares their names, and the parts' types where the entry writes them, with the state the entry
-writes out. It runs on the harness's default printer, the Bambu Lab X1 Carbon 0.4, and exits 0 when every check
-passes.
+writes out. It runs on the Generic Klipper Printer 0.4 nozzle, and exits 0 when every check passes.
 """
 
 import os
@@ -23,7 +22,8 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import Checks, corner, gcode_prints, plates, run, scene, selection, wait  # noqa: E402
+from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, corner, gcode_prints, plates, run, scene,  # noqa: E402
+                    selection, start, wait)
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 FIXTURES = os.path.join(REPO, "tools", "mcp", "tests", "fixtures")
@@ -35,6 +35,7 @@ HEIGHTMAP = os.path.join(FIXTURES, "heightmap.png")
 
 ROW = re.compile(r'^"(.*)" (\d+)( \*)?$')
 CUBE = {"shape": "cube", "size": [20, 20, 20]}
+START = {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]}
 RING = [10.67, 10.67, 2.8]
 RINGS_SIZE = [68.67, 10.67, 2.8]
 # The endings of Fix Model's notices (the object list's fix_through_cgal()).
@@ -153,8 +154,15 @@ class ObjectStructureTest:
         return objects
 
     def start(self, name):
-        self.run("project_new", discard_changes=True)
+        self.t.equal(f"{name}: the start: the presets", start(self.c), START)
         self.run("view_set", tab="prepare")
+        wait(self.c, "idle")
+        self.empty(f"{name}: the start")
+        self.c0 = corner(self.c, 0)
+
+    def renew(self, name):
+        """A project_new within a scenario, and the check of the empty project it leaves."""
+        self.run("project_new", discard_changes=True)
         wait(self.c, "idle")
         self.empty(f"{name}: the start")
         self.c0 = corner(self.c, 0)
@@ -345,7 +353,7 @@ class ObjectStructureTest:
                        words="object 0 has 2 instances")
         self.objects_are(f"{s} 9", after7)
 
-        self.start(f"{s} 10")
+        self.renew(f"{s} 10")
         self.run("object_add_primitive", name="scaled", **CUBE)
         self.run("object_transform", object=0, scale=1.5)
         reply = self.run("part_add", object=0, type="modifier", shape="cube")
@@ -356,7 +364,7 @@ class ObjectStructureTest:
         self.t.near(f"{s} 10: part 0's scale", scaled["parts"][0]["scale"], [1.5, 1.5, 1.5], 0.001)
         self.t.near(f"{s} 10: the object's size", scaled["bbox"]["size"], [30, 30, 30], 0.001)
 
-        self.start(f"{s} 11")
+        self.renew(f"{s} 11")
         self.run("object_add_primitive", shape="cube", size=[30, 30, 10], name="plain")
         self.run("part_add", object=0, type="modifier", shape="cube", size=[10, 10, 10])
         plain = self.objects_are(f"{s} 11", "plain: part, modifier")[0]
@@ -598,7 +606,7 @@ class ObjectStructureTest:
         self.undo()
         volume_is(f"{s} 6: the call that reloaded nothing took no undo step", 8000)
 
-        self.start(f"{s} 7")
+        self.renew(f"{s} 7")
         self.run("filament_add")
         self.run("project_import", paths=[self.file("cube20.stl")])
         self.run("object_transform", object=0, position=self.at(100, 100, 0))
@@ -699,9 +707,6 @@ class ObjectStructureTest:
         self.run("part_replace", object=0, part=0, path=self.file("top4.stl"))
         part = enforcers(f"{s} 5: the painting is carried onto a mesh of other triangles", "top4.stl")
         self.t.equal(f"{s} 5: part 0's triangles", part["triangles"], 14)
-        self.run("preferences_set", values={"keep_painting": False})
-        enforcers(f"{s} 6", "top4.stl")
-        preference(f"{s} 6: the preference as the test found it", False)
 
     def keeps(self):
         s = "what the project keeps"
@@ -739,11 +744,7 @@ class ObjectStructureTest:
                                ("painting kept through a mesh change", self.painting),
                                ("what the project keeps", self.keeps)]:
             self.t.scenario(name, scenario)
-        try:  # the preference as the test found it, should the painting scenario have broken off
-            self.c.call("preferences_set", values={"keep_painting": False})
-            self.run("project_new", discard_changes=True)
-        except orca_mcp.McpError as e:
-            print(f"cleaning up: {e}", flush=True)
+        self.run("project_new", discard_changes=True)
         return self.t.exit_code()
 
 

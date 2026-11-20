@@ -10,8 +10,9 @@ and links of its panel, and clicks and strokes at points of the model. After eve
 the gizmo leaves on the model (placements, painted facets, texture layers, text and SVG parts, brim ears, parts
 made or removed, positions in the assemble view), reads the undo before any redo, and reads what a person keeps
 again from a saved and reopened project. It also tests the canvas input those gizmos rely on, and auto-answer
-rules on the preset prompt. It runs on the harness's default printer, the Bambu Lab X1 Carbon 0.4, and exits 0
-when every check passes. Scenario names given on the command line run those scenarios alone.
+rules on the preset prompt. It starts on the Generic Klipper Printer, sets the window size, Expert mode and the
+preferences its checks depend on, and exits 0 when every check passes. Scenario names given on the command line run
+those scenarios alone.
 """
 
 import math
@@ -22,13 +23,13 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import Checks, run, wait  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, run, start, wait  # noqa: E402
 
 FIXTURES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests", "fixtures")
 STAR = os.path.join(FIXTURES, "star.svg")
 HEIGHTMAP = os.path.join(FIXTURES, "heightmap.png")
-STANDARD = "0.20mm Standard @BBL X1C"
-FINE = "0.16mm High Quality @BBL X1C"
+STANDARD = KLIPPER_STD
+FINE = "0.16mm Optimal @MyKlipper"
 FUZZY_WARNING = "Warning: Fuzzy skin is disabled, painted fuzzy skin will not take effect!"
 BRIM_WARNING = 'Warning: The brim type is not set to "painted", the brim ears will not take effect!'
 
@@ -63,9 +64,14 @@ class Anything:
 POS, ANY = Positive(), Anything()
 
 
+# The imported height map's name: the stem of the file the import writes into the data folder's texture library,
+# heightmap or, when the library already holds heightmap.png, heightmap (n) with n from 2.
+HEIGHTMAP_NAME = re.compile(r"heightmap(?: \((?:[2-9]|[1-9]\d+)\))?")
+
+
 def layers(*rows):
-    """Texture layers written as the entry writes them: "0 heightmap >0" is the layer in slot 0, named heightmap,
-    with painted facets; "?" is a name the scenario does not fix."""
+    """Texture layers written as the entry writes them: "0 H >0" is the layer in slot 0, the imported height map, with
+    painted facets; "?" is a name the scenario does not fix."""
     out = []
     for row in rows:
         slot, name, painted = row.split()
@@ -270,13 +276,12 @@ class GizmosTest:
     def prompts(self):
         s = "prompts a rule answers"
         self.start(s)
-        name, _ = self.process()
-        self.t.check(f"{s} 0: app_state names a process preset", bool(name), name)
+        self.t.equal(f"{s} 0: the process", self.process(), (STANDARD, "3"))
         self.t.equal(f"{s} 0: no rule", self.rules(), [])
         transfer = {"match": "Transfer or discard", "button": "Transfer"}
         self.run("dialog_auto_answer", rules=[transfer])
         self.run("preset_select", type="process", name=STANDARD)
-        self.t.equal(f"{s} 1: the process", self.process(), (STANDARD, "2"))
+        self.t.equal(f"{s} 1: the process", self.process(), (STANDARD, "3"))
         self.t.equal(f"{s} 1: the rule has answered nothing", self.rules(), [{**transfer, "uses": 0}])
         self.run("settings_set", type="process", values={"wall_loops": 5})
         self.t.equal(f"{s} 2: the process", self.process(), (STANDARD, "5"))
@@ -289,7 +294,7 @@ class GizmosTest:
         self.t.equal(f"{s} 4: the new rule has answered nothing", self.rules(), [{**discard, "uses": 0}])
         reply = self.answered("preset_select", type="process", name=STANDARD)
         self.t.equal(f"{s} 4: the reply's selected", reply.get("selected"), STANDARD)
-        self.t.equal(f"{s} 4: Discard dropped the edit", self.process(), (STANDARD, "2"))
+        self.t.equal(f"{s} 4: Discard dropped the edit", self.process(), (STANDARD, "3"))
         self.t.equal(f"{s} 4: the prompt was asked once", self.rules(), [{**discard, "uses": 1}])
         self.t.equal(f"{s} 4: the project is not dirty", self.c.call("app_state")["project"]["dirty"], False)
         self.run("dialog_auto_answer", rules=[])
@@ -497,10 +502,18 @@ class GizmosTest:
 
     def texture(self, label, want, depth=None):
         """Part 0's texture layers as {slot, name, painted}, compared with `want`, None for no painting; with
-        `depth`, every layer's depth_mm too."""
+        `depth`, every layer's depth_mm too. A layer is named "H" when it is the imported height map: its name is one
+        HEIGHTMAP_NAME matches and its path is that name's file in the data folder's texture library."""
         objs = self.scene()
         painted = objs[0]["parts"][0]["painted"] if objs else "no object"
-        got = None if painted is None else [{"slot": l["slot"], "name": l["name"], "painted": l.get("painted")}
+        library = os.path.join(self.c.call("app_state")["config_folder"], "textures", "displacement")
+
+        def name(layer):
+            path = os.path.join(library, layer["name"] + ".png")
+            same = os.path.normcase(os.path.abspath(layer.get("path") or "")) == os.path.normcase(path)
+            return "H" if HEIGHTMAP_NAME.fullmatch(layer["name"]) and same else layer["name"]
+
+        got = None if painted is None else [{"slot": l["slot"], "name": name(l), "painted": l.get("painted")}
                                             for l in painted.get("texture", [])]
         self.t.equal(f"{label}: the texture layers", got, want)
         if depth is not None and painted:
@@ -518,40 +531,34 @@ class GizmosTest:
         self.open(f"{s} 1", "Texture Displacement")
         self.texture(f"{s} 1: one layer in slot 0", layers("0 ? 0"))
         self.run("gizmo_pick_file", action="texture_import", path=HEIGHTMAP)
-        painted = self.texture(f"{s} 2", layers("0 heightmap 0"), depth=0.4)
-        if painted:
-            path = painted["texture"][0]["path"]
-            folder = self.c.call("app_state")["config_folder"]
-            self.t.check(f"{s} 2: the texture lies in the config folder as heightmap.png",
-                         path.endswith("heightmap.png") and os.path.normcase(os.path.abspath(path)).startswith(
-                             os.path.normcase(os.path.abspath(folder)) + os.sep), (path, folder))
+        self.texture(f"{s} 2", layers("0 H 0"), depth=0.4)
         self.press({"imgui_name": "add_layer"})
-        self.texture(f"{s} 3", layers("0 heightmap 0", "1 ? 0"))
+        self.texture(f"{s} 3", layers("0 H 0", "1 ? 0"))
         self.c.call("mouse_gesture", action="drag", at={"object": 0, "spot": "top"},
                     waypoints=[{"object": 0, "point": [6, 0, 10]}], to={"object": 0, "point": [6, 6, 10]})
         self.idle()
-        self.texture(f"{s} 4: the stroke paints the active layer, slot 1", layers("0 heightmap 0", "1 ? >0"))
+        self.texture(f"{s} 4: the stroke paints the active layer, slot 1", layers("0 H 0", "1 ? >0"))
         self.press({"imgui_name": "Layer 1"})
-        self.texture(f"{s} 5", layers("0 heightmap 0", "1 ? >0"))
+        self.texture(f"{s} 5", layers("0 H 0", "1 ? >0"))
         self.t.check(f"{s} 5: the open card shows midlevel", "midlevel" in self.panel()["items"], self.panel()["items"])
         self.c.call("mouse_gesture", action="drag", at={"object": 0, "spot": "front"},
                     waypoints=[{"object": 0, "point": [6, -10, 0]}], to={"object": 0, "point": [6, -10, 6]})
         self.idle()
-        self.texture(f"{s} 6: the stroke paints slot 0", layers("0 heightmap >0", "1 ? >0"))
+        self.texture(f"{s} 6: the stroke paints slot 0", layers("0 H >0", "1 ? >0"))
         self.press({"imgui_name": "more"})
-        self.texture(f"{s} 7", layers("0 heightmap >0", "1 ? >0"))
+        self.texture(f"{s} 7", layers("0 H >0", "1 ? >0"))
         self.t.check(f"{s} 7: the link folded the settings", "midlevel" not in self.panel()["items"],
                      self.panel()["items"])
         self.press({"imgui_name": "Remove", "index": 1})
-        self.texture(f"{s} 8: slot 1 is gone", layers("0 heightmap >0"))
+        self.texture(f"{s} 8: slot 1 is gone", layers("0 H >0"))
         self.undo()
-        self.texture(f"{s} 9", layers("0 heightmap >0", "1 ? >0"))
+        self.texture(f"{s} 9", layers("0 H >0", "1 ? >0"))
         self.redo()
-        self.texture(f"{s} 10", layers("0 heightmap >0"))
+        self.texture(f"{s} 10", layers("0 H >0"))
         self.close_by(f"{s} 11", "close")
-        self.texture(f"{s} 11", layers("0 heightmap >0"))
+        self.texture(f"{s} 11", layers("0 H >0"))
         self.save_and_reopen("texture.3mf")
-        self.texture(f"{s} 12: the project file keeps the layer", layers("0 heightmap >0"), depth=0.4)
+        self.texture(f"{s} 12: the project file keeps the layer", layers("0 H >0"), depth=0.4)
 
     def text_part(self, label, kind, text, style, z):
         """Part 1, the text: its type, text.text, text.style and bbox z range to 0.01 mm."""
@@ -1091,8 +1098,20 @@ class GizmosTest:
         self.t.equal(f"{s} 13: the camera did not move", cam(), before)
 
     def run_all(self, only=()):
+        self.t.equal("the start: the presets", start(self.c),
+                     {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]})
+        # Where the panels open, what covers a point of the model and the pixels the canvas input scenario presses at
+        # follow the window's size.
+        self.run("window_set", size=[1600, 900])
+        self.t.equal("the start: the window's size", self.c.call("app_state")["window"]["size"], [1600, 900])
         self.run("action_run", id="orca_command:mode_expert:orca")
         self.t.equal("Expert mode", self.c.call("app_state")["mode"], "expert")
+        # Millimetres, in which the fields' texts are written, and the default camera style with a middle-button
+        # drag that pans, which the canvas input scenario's pans need.
+        prefs = {"use_inches": "0", "camera_navigation_style": "0", "middle_mouse_drag_action": "1"}
+        self.c.call("preferences_set", values=prefs)
+        got = self.c.call("preferences_get", keys=list(prefs))["items"]
+        self.t.equal("the start: the preferences", {i["key"]: i["value"] for i in got}, prefs)
         scenarios = [("prompts a rule answers", self.prompts), ("Move, Rotate and Scale", self.move_rotate_scale),
                      ("aligning in the Move panel", self.align), ("lay on face", self.lay_on_face),
                      ("painting", self.painting), ("texture layers", self.texture_layers), ("text", self.text),

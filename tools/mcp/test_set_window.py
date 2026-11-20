@@ -27,6 +27,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, start  # noqa: E402
 
 
 class _XWindowAttributes(ctypes.Structure):
@@ -127,7 +128,9 @@ def main():
             return str(e)
         return None
 
-    client.call("project_new", discard_changes=True)
+    started = start(client)
+    check("start: the Klipper printer with its default process and filament",
+          started == {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]}, started)
     client.call("view_set", tab="prepare")
     state = client.call("app_state")
     wayland = state.get("display_backend") == "wayland"
@@ -189,9 +192,9 @@ def main():
         skip("minimize and restore", why)
         skip("a window minimized while maximized", why)
     else:
-        start = time.time()
+        began = time.time()
         minimized = client.call("window_set", state="minimized")
-        took = time.time() - start
+        took = time.time() - began
         check("minimize: returns within 5 s", took < 5, f"{took:.1f} s: {minimized}")
         check("minimize: the reply says minimized", minimized.get("state") == "minimized", minimized)
         restored = client.call("window_set", state="normal")
