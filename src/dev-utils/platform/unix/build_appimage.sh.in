@@ -27,6 +27,7 @@ Icon=@SLIC3R_APP_KEY@
 Type=Application
 Categories=Utility;
 MimeType=model/stl;application/vnd.ms-3mfdocument;application/prs.wavefront-obj;application/x-amf;
+StartupWMClass=@SLIC3R_APP_CMD@
 EOF
 
 mkdir -p usr/share/applications
