@@ -246,8 +246,15 @@ cd OrcaSlicer
 ### Performance Tips
 
 1. **Defaults are already fast** — `-ClangCl -Ninja` now enabled by default (~30-40% faster than MSVC+MSBuild)
+
+   | Config | Relative Time |
+   |--------|---------------|
+   | MSVC + MSBuild | 100% (baseline) |
+   | **clang-cl + Ninja (default)** | **~60-70%** |
+   | + ccache (incremental) | **~10-20%** |
+
 2. **Add `-Cache ccache`** (or `-Preset x64-clang-cache`) — Speeds up incremental builds
-3. **Use `-Clean` only when needed** — Keeps dependency cache, only removes slicer tree
+4. **Use `-Clean` only when needed** — Keeps dependency cache, only removes slicer tree
 
 ### CI/CD Integration
 
@@ -257,6 +264,13 @@ cd OrcaSlicer
   run: |
     .\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64 -Clean:${{ inputs.clean-build }}
 ```
+
+**Flag breakdown:**
+- `-Slicer` — Build OrcaSlicer (default: on)
+- `-Tests` — Build unit tests (default: on)
+- `-InstallSlicer` — Install into `build/OrcaSlicer` tree
+- `-Arch x64` — Target x64 (or `arm64`)
+- `-Clean:${{ inputs.clean-build }}` — Clean build if `true`
 
 ### Troubleshooting
 
