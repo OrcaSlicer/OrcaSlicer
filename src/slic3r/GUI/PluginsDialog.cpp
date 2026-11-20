@@ -762,8 +762,8 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"permissions_filesystem_placeholder", _u8L("/path/to/directory/*")},
 #endif
         {"permissions_network_access_guidance", _u8L("Enter a full http:// or https:// URL; only its scheme and host are saved, so the grant covers every port, path, and query on that host. A network socket grant also accepts a bare host name or IP address, with or without a port, and covers every port on that host. Other schemes are not accepted. Grants in either list are checked for HTTP and socket access.")},
-        {"permissions_process_help", _u8L("Enter the exact value recorded by the audit. It may be a Python representation of the command.")},
-        {"permissions_process_placeholder", _u8L("Exact audited value")},
+        {"permissions_process_help", _u8L("Executable grants cover all arguments. CommandLine: entries cover only the exact command line.")},
+        {"permissions_process_placeholder", _u8L("Executable or command name")},
         {"permissions_threading_help_short", _u8L("Allow this plugin to create threads.")},
         {"permissions_events_help", _u8L("Enter a category and event separated by a colon, such as Socket:socket.__new__.")},
         {"permissions_events_placeholder", _u8L("Socket:socket.__new__")},
@@ -1735,29 +1735,28 @@ void PluginsDialog::reload_local_plugin(const std::string& plugin_key, bool clea
             [plugin_key, was_loaded, clear_cache]() -> std::pair<bool, std::string> {
                 PluginManager& manager = PluginManager::instance();
 
-                boost::filesystem::path cache_dir;
+                boost::filesystem::path plugin_root;
                 if (clear_cache) {
                     PluginDescriptor descriptor;
                     if (!manager.try_get_plugin_descriptor(plugin_key, descriptor))
                         return {false, _u8L("Plugin not found.")};
 
-                    boost::filesystem::path resolved_root;
-                    std::string                  resolve_error;
+                    std::string resolve_error;
                     if (!resolve_allowed_plugin_root(descriptor, {get_orca_plugins_dir()},
                                                      _u8L("Refusing to clear a plugin cache outside the local plugin directory."),
-                                                     resolved_root, resolve_error))
+                                                     plugin_root, resolve_error))
                         return {false, resolve_error};
-                    cache_dir = resolved_root / "__whl_extracted__";
                 }
 
                 if (!manager.unload_plugin(plugin_key))
                     return {false, _u8L("Failed to unload plugin.")};
 
                 if (clear_cache) {
-                    boost::system::error_code ec;
-                    boost::filesystem::remove_all(cache_dir, ec);
-                    if (ec)
-                        return {false, GUI::format(_u8L("Failed to clear plugin cache: %1%"), ec.message())};
+                    // __whl_extracted__ holds both dependency extractions and the uv-installed
+                    // entry wheel. The stored wheel and plugin data are left untouched.
+                    std::string cache_error;
+                    if (!plugin_wheel_install::delete_install_cache(plugin_root, cache_error))
+                        return {false, cache_error};
                 }
 
                 manager.load_plugin(plugin_key, false);

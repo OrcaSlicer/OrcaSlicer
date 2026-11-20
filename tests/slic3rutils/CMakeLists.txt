@@ -15,6 +15,7 @@ add_executable(${_TEST_NAME}_tests
     test_network_discovery.cpp
     test_filament_bitmap_utils.cpp
     test_colour_picker_field.cpp
+    test_field_number_text.cpp
     test_filament_color_picker.cpp
     test_ams_materials_setting.cpp
     test_gcode_preview_colors.cpp
@@ -46,6 +47,7 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_install.cpp
     test_plugin_update.cpp
     test_plugin_lifecycle.cpp
+    test_plugin_wheel_install.cpp
     test_plugin_resource_texture.cpp
     test_plugin_printer_agent.cpp
     test_post_processor.cpp

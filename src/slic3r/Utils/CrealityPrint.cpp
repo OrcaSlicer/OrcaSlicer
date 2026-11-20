@@ -315,12 +315,15 @@ static std::string ws_await_reply(net::io_context&                             i
     return {};
 }
 
-// Sends the CFS slot query and returns the reply, or nothing once a status reports no CFS connected, which also sets *no_cfs.
+// Sends the CFS slot query and returns the reply, or nothing when none arrives in time.
 // The query gets slots_reply, or the later of slots_reply and cfs_reply once a status reports a CFS connected, since such a printer does answer.
+// A status reporting no CFS connected cuts the wait to no_cfs_reply from then, and sets *no_cfs if no reply follows: a SPARKX i7
+// reports no CFS connected for its CFS Lite and still sends the slots.
 static std::string ws_query_slots(net::io_context&                      ioc,
                                   websocket::stream<beast::tcp_stream>& ws,
                                   std::chrono::milliseconds             slots_reply,
                                   std::chrono::milliseconds             cfs_reply,
+                                  std::chrono::milliseconds             no_cfs_reply,
                                   bool*                                 no_cfs)
 {
     const auto sent     = std::chrono::steady_clock::now();
@@ -328,24 +331,28 @@ static std::string ws_query_slots(net::io_context&                      ioc,
     beast::get_lowest_layer(ws).expires_at(deadline);
     ws_send(ioc, ws, json{{"method", "get"}, {"params", {{"boxsInfo", 1}}}});
 
-    bool              reports_no_cfs = false;
-    const std::string reply          = ws_await_reply(ioc, ws, deadline, "boxsInfo", [&](const std::string& msg) {
+    bool              reported_no_cfs = false;
+    const std::string reply           = ws_await_reply(ioc, ws, deadline, "boxsInfo", [&](const std::string& msg) {
         const int cfs_connect = reported_cfs_connect(msg);
-        if (cfs_connect == 0) {
-            reports_no_cfs = true;
-            return false;
+        if (cfs_connect == 0 && !reported_no_cfs) {
+            reported_no_cfs = true;
+            deadline        = std::min(deadline, std::chrono::steady_clock::now() + no_cfs_reply);
+            beast::get_lowest_layer(ws).expires_at(deadline);
         }
         if (cfs_connect == 1) {
-            deadline = sent + std::max(slots_reply, cfs_reply);
+            reported_no_cfs = false;
+            deadline        = sent + std::max(slots_reply, cfs_reply);
             beast::get_lowest_layer(ws).expires_at(deadline);
         }
         return true;
     });
-    if (reports_no_cfs) {
+    if (!reply.empty())
+        return reply;
+    if (reported_no_cfs) {
         BOOST_LOG_TRIVIAL(info) << "CrealityPrint: The printer reports no CFS connected";
         if (no_cfs)
             *no_cfs = true;
-    } else if (reply.empty())
+    } else
         BOOST_LOG_TRIVIAL(warning) << "CrealityPrint: Timed out waiting for a 'boxsInfo' response";
     return reply;
 }
@@ -525,7 +532,7 @@ std::string CrealityPrint::query_boxes_info(bool* no_cfs) const
         websocket::stream<beast::tcp_stream> ws{ioc};
         ws_connect(ioc, ws, m_host, ws_settings.port, ws_settings.connect);
 
-        std::string result = ws_query_slots(ioc, ws, ws_settings.slots_reply, ws_settings.reply, no_cfs);
+        std::string result = ws_query_slots(ioc, ws, ws_settings.slots_reply, ws_settings.reply, ws_settings.no_cfs_reply, no_cfs);
 
         ws_close(ioc, ws, ws_settings.close);
         return result;
