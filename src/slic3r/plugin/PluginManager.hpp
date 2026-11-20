@@ -117,6 +117,8 @@ struct ScriptCompletion
 enum class PluginPermissionCategory {
     FsRead,
     FsReadWrite,
+    FsCreate,
+    FsDelete,
     NetworkHttp,
     NetworkSocket,
     Process,

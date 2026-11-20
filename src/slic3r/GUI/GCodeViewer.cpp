@@ -3,6 +3,7 @@
 
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/calib.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Model.hpp"
@@ -204,6 +205,22 @@ static const std::vector<std::pair<std::string, libvgcode::EViewType>>& view_typ
         { "pressure_advance",             libvgcode::EViewType::PressureAdvance },
     };
     return map;
+}
+
+// ORCA: the view type showing the value a calibration varies, when the preview has one.
+static std::optional<libvgcode::EViewType> calibration_view_type(CalibMode mode)
+{
+    switch (mode) {
+    case CalibMode::Calib_PA_Line:
+    case CalibMode::Calib_PA_Pattern:
+    case CalibMode::Calib_PA_Tower:        return libvgcode::EViewType::PressureAdvance;
+    case CalibMode::Calib_Temp_Tower:      return libvgcode::EViewType::Temperature;
+    case CalibMode::Calib_Flow_Rate:
+    case CalibMode::Calib_Vol_speed_Tower: return libvgcode::EViewType::VolumetricFlowRate;
+    case CalibMode::Calib_VFA_Tower:       return libvgcode::EViewType::Speed;
+    case CalibMode::Calib_Cornering:       return libvgcode::EViewType::Jerk;
+    default:                               return std::nullopt;
+    }
 }
 
 // Find an index of a value in a sorted vector, which is in <z-eps, z+eps>.
@@ -1286,14 +1303,19 @@ void GCodeViewer::select_view_type(libvgcode::EViewType type)
 // ORCA: Pick the view type the preview opens with, following the "preview_default_view_type" preference:
 // a fixed view type, the one the user picked last ("last"), or the automatic choice ("auto", the default)
 // which shows Filament for multi material prints and Line Type for single material ones.
+// A calibration's view, when given, takes precedence over the preference.
 // The default is only (re)applied when it actually changes, so a view type picked by hand survives a reslice.
-void GCodeViewer::apply_default_view_type()
+void GCodeViewer::apply_default_view_type(std::optional<libvgcode::EViewType> calibration_view)
 {
     const std::string preference = wxGetApp().app_config->get("preview_default_view_type");
 
     std::string key = preference;
     libvgcode::EViewType type = libvgcode::EViewType::FeatureType;
-    if (preference == "last") {
+    if (calibration_view) {
+        type = *calibration_view;
+        key  = "calibration_" + view_type_to_config_name(type);
+    }
+    else if (preference == "last") {
         if (!view_type_from_config_name(wxGetApp().app_config->get("preview_last_view_type"), type))
             type = libvgcode::EViewType::FeatureType;
     }
@@ -1765,7 +1787,8 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     // load_toolpaths(gcode_result, build_volume, exclude_bounding_box);
     
     // ORCA: Apply the default view type now that we know how many tools the G-code actually uses.
-    apply_default_view_type();
+    const bool flowrate_calib = print.calib_mode() == CalibMode::Calib_None && wxGetApp().plater()->is_flowrate_calib();
+    apply_default_view_type(calibration_view_type(flowrate_calib ? CalibMode::Calib_Flow_Rate : print.calib_mode()));
 
     // BBS: data for rendering color arrangement recommendation
     m_nozzle_nums = print.config().option<ConfigOptionFloats>("nozzle_diameter")->values.size();
@@ -3801,6 +3824,7 @@ void GCodeViewer::init_solid_model_caps(const std::array<float, 2>& z_range, std
         init_quad(cap, on_plane, reach * u, reach * v);
         cap.count_plane = m_clipping_plane;
         cap.quad_z_range = { z_bottom, z_top };
+        cap.color_index = 2;
     }
 }
 
@@ -3945,17 +3969,18 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     }
 }
 
-// The solid stands in for the toolpaths, so it takes their colours in the view that colours them
-// by something other than the filament: each body the outer wall's, each cap the infill's of the
-// layer it is cut under, sparse if the layer has any, else solid, and the tower its own role's,
-// each from the toolpaths within the body's own footprint, so that objects printed at different
-// grades keep their own. The views that colour by filament leave every body its own colour. The
-// bodies are sampled over the layers the solid stands for and each cap in its own layer, each
-// colour that of the vertex the viewer picks to represent the role there, so a view that grades
-// the toolpaths, by speed or fan, shows the solid in the grade most of that role was printed at.
-// The bodies are sampled once, as the drag begins, and held while a slider drag moves the span:
-// sampled again at every step, the grade would flip with the layers the sample happens to fall
-// on. Each cap follows its own layer.
+// The solid stands in for the toolpaths, so it takes their colours in the view that colours them by
+// something other than the filament: each body the outer wall's, each layer cap the infill's of the
+// layer it is cut under, sparse if the layer has any, else solid, the section view's cap the
+// infill's over all the layers, and the tower its own role's, each from the toolpaths within the
+// body's own footprint, so that objects printed at different grades keep their own. The views that
+// colour by filament leave every body its own colour. The bodies and the section view's cap are
+// sampled over the layers the solid stands for and each layer cap in its own layer, each colour
+// that of the vertex the viewer picks to represent the role there, so a view that grades the
+// toolpaths, by speed or fan, shows the solid in the grade most of that role was printed at. The
+// bodies are sampled once, as the drag begins, and held while a slider drag moves the span: sampled
+// again at every step, the grade would flip with the layers the sample happens to fall on. The
+// section view's cap is held with them; each layer cap follows its own layer.
 void GCodeViewer::update_solid_model_colors(const libvgcode::Interval& whole_layers)
 {
     SolidModelColors& colors = m_solid_model_colors;
@@ -3996,8 +4021,13 @@ void GCodeViewer::update_solid_model_colors(const libvgcode::Interval& whole_lay
         const libvgcode::XYBox box{ { static_cast<float>(footprint.min.x()) - margin, static_cast<float>(footprint.min.y()) - margin },
                                     { static_cast<float>(footprint.max.x()) + margin, static_cast<float>(footprint.max.y()) + margin } };
         SolidModelColors::Body& body = colors.bodies[n];
-        if (!held)
+        if (!held) {
             body.body = sample(whole_layers, tower ? tower_role : walls, box);
+            // the section view's cut may cross any of the layers, so it is sampled over all of them, as the body is
+            body.caps[2] = tower ? std::nullopt : sample(whole_layers, infill, box);
+            if (!body.caps[2].has_value())
+                body.caps[2] = body.body;
+        }
         for (size_t k = 0; k < 2; ++k) {
             body.caps[k] = tower ? std::nullopt : sample({ whole_layers[k], whole_layers[k] }, infill, box);
             if (!body.caps[k].has_value())

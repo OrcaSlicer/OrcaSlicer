@@ -144,11 +144,12 @@ A consequence of running Script on a non-main thread: the audit permission promp
 the main thread. `request_permission` in `src/slic3r/plugin/PluginAuditManager.cpp` queues the dialog
 for the GUI thread and denies the current event. For permissions with persistent grants, accepting
 the prompt saves a grant for a later attempt, so a Script sees a denial on the first attempt and can
-succeed on a later one. Create and delete have no persistent grant: an asynchronous denial instead
-shows an informational dialog, without offering an approval and without promising a retry. This
-matches the behavior for the plugin-load worker and the slicing worker.
+succeed on a later one. Create and delete approvals save the target's parent folder in the same way.
+Recursive-delete consent is instead a one-time approval for the next matching attempt within one
+minute, bound to the plugin and canonical target. It is never saved. The plugin-load worker and the
+slicing worker follow the same behavior.
 
-`AuditPromptQueue` serializes runtime prompts, informational denials and load-time declared-permission
+`AuditPromptQueue` serializes runtime prompts, recursive-delete consent and load-time declared-permission
 prompts. Only one is shown at a time, including during a modal dialog's nested event loop. A load
 worker waits for its declared-permission answer; shutdown or plugin unload cancels pending requests
 and active requests whose accepted answers have not started committing, releasing waiting workers
