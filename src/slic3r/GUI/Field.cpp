@@ -688,12 +688,7 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                     for (char& ch : ustr) { 
                         if (static_cast<unsigned char>(ch) > 127) { // has any unicode symbol
                             std::wstring wstr(str.ToStdWstring());
-                            //std::wstring const in_keyboard_layout[]{L"Ф", L"ф", L"И", L"и", L"С", L"с", L"В", L"в", L"У", L"у", L"А", L"а", L"П", L"п",
-                            //                                        L"Р", L"р", L"Ш", L"ш", L"О", L"о", L"Л", L"л", L"Д", L"д", L"Ь", L"ь", L"Т", L"т",
-                            //                                        L"Щ", L"щ", L"З", L"з", L"Й", L"й", L"К", L"к", L"Ы", L"ы", L"Е", L"е", L"Г", L"г",
-                            //                                        L"М", L"м", L"Ц", L"ц", L"Ч", L"ч", L"Н", L"н", L"Я", L"я", L"Ё", L"ё", L"Х", L"х",
-                            //                                        L"Ъ", L"ъ", L"Ж", L"ж", L"Э", L"э", L"Б", L"б", L"Ю", L"ю", L"№"};
-                            
+
                             // Orca: AI generated table
                             // It works best with Cyrillic, Greek, and Armenian layouts.
                             // For other world-wide layouts that do not support capitals letters, there may be limitations in the definition.
@@ -718,15 +713,15 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                                 L"КΡՐㄲすრרฑईق", L"кρրㄱพ", // R r
                                 L"ЫІΣՍㄴとსדฆس", L"ыіσսดห", // S s
                                 L"ЕΤՏㅆかאธऊف", L"еτտㅅะ", // T t
-                                L"ГΘՒㅕなუו๊ऊع", L"гθւี", // U u
+                                L"ГΘՒㅕなუו๊ع", L"гθւี", // U u
                                 L"МΩՎㅍひვהฮر", L"мωվอ", // V v
                                 L"ЦΣԾㅉてწص", L"цςծㅈไ", // W w
-                                L"ЧΧԽㅌさხס)طء", L"чχխป", // X x
+                                L"ЧΧԽㅌさხסطء", L"чχխป", // X x
                                 L"НΥՅㅛんყטํغ", L"нυյั", // Y y
                                 L"ЯΖՁㅋつზזظئ", L"яζձผ", // Z z
                                 L"ЁҐّろ՜×", L"ёґ÷ذ", // ~ `
-                                L"Х<ほฐढ", L"хบडج", // { [
-                                L"ЪЇ>へฅञ", L"ъїลणدچ", // } ]
+                                L"Хほฐढ", L"хบडج", // { [
+                                L"ЪЇへฅञ", L"ъїลणدچ", // } ]
                                 L"Жれซछ", L"жวचکك", // : ;
                                 L"ЭЄけठط", L"эєงटگ", // " ' 
                                 L"Бねฒषو", L"бม", // < ,
@@ -787,7 +782,7 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                 std::string const a_zone    = u8"[A]?[+\\-_]?[\\d.]+(?:[:]?[\\d.]+)?[%]?";
                 std::string const d_zone    = u8"[Dd][+\\-]?[\\d.]+(?:[:][\\d.]*|[%])?";
                 std::string const xy_zone   = u8"(?:[X][_]?[Y]?|[x][_]?[y]?|[Yy])[+\\-_]?[\\d.]+(?:[:]?[\\d.]+)?(?:[&@%\'\"c]?[m]{0,2})?";
-                std::string const z_zone    = u8"[BbTt]|[\\^~\\\\/NnZz$LlUuQq#JjCOo|]+(?:[+\\-]?[\\d.]*(?:[:]?[\\d.]+)(?:[@&%#\'\"]|cm?|mm?)?|B[#-]?|T[#-_]?)?";
+                std::string const z_zone    = u8"[BT]|[\\^~\\\\/NnZz$LlUuQq#JjCOo|]+(?:[+\\-]?[\\d.]*(?:[:]?[\\d.]+)(?:[@&%#\'\"]|cm?|mm?)?|B[#-]?|T[#-_]?)?";
                 std::string const r_zone    = u8"\\*?\\d*";
                 std::string const rz_zone   = u8"(?:(?:" + z_zone + u8")[;]?(?:" + r_zone + u8")?|(?:" + r_zone + u8")[;]?(?:" + z_zone + u8")|" + r_zone + u8")?!?";
                 std::string const ps_sparse = u8"[BT][!]?|[#][\\d.]+[!]?|(?:(?:" + a_zone + u8"|" + d_zone + u8"|" + xy_zone + u8")+[;]?)+" + rz_zone;

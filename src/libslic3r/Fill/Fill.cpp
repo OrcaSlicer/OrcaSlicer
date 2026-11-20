@@ -111,6 +111,9 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
     // Convert the id to an index. Layer::id() counts the raft layers, object->layers() does not.
     const size_t first_object_layer_id = object->get_layer(0)->id();
     layer_id                           = layer_id > first_object_layer_id ? layer_id - first_object_layer_id : 0;
+
+    // Built once: layers and objects are filled in parallel, and building a std::regex writes to a cache of the
+    // shared locale, which is a data race.
     static const std::string search_string   = "\\/^~NnZz$LlUuQq#JjCOo|";
     static const std::string coord_string    = "XxYy";
     static const std::string density_string  = "Dd";
@@ -118,12 +121,10 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
     static const std::string replace12       = "$1$2"; 
     static const std::regex  del("[\\s,]+");
     static const std::regex  hex("(^|\\D)0+([xX])");
-    static const std::regex  metalang_sign("[+\\-%AXYxyDd_*BbTt@&\'\"cm\\" + search_string + "]");
+    static const std::regex  metalang_sign("[+\\-%AXYxyDd_*BT@&\'\"cm\\" + search_string + "]");
     static const std::regex  semicolon(";");
 
     std::string template_string2 = std::regex_replace(template_string, semicolon, std::string()); // remove the easy-reading separators
-    // Built once: layers and objects are filled in parallel, and building a std::regex writes to a cache of the
-    // shared locale, which is a data race.
     if (regex_search(template_string2, metalang_sign)) { // template metalanguage of rotating infill
         // Check for the "0X" character combination, which may be interpreted incorrectly by the strtod() function.
         // Replace it with "X". The cases like "10X" not replaced.
@@ -432,15 +433,9 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
                                 repeats = object->print()->default_region_config().bottom_shell_layers.value;
                                 cyclic_repeats = true;
                                 cs++;
-                            } else if (cs[0] == 'b') {
-                                divider_steps = object->print()->default_region_config().bottom_shell_layers.value;
-                                cs++;
                             } else if (cs[0] == 'T') {
                                 repeats = object->print()->default_region_config().top_shell_layers.value;
                                 cyclic_repeats = true;
-                                cs++;
-                            } else if (cs[0] == 't') {
-                                divider_steps = object->print()->default_region_config().top_shell_layers.value;
                                 cs++;
                             } else {
                                 fill_form = search_string.find(cs[0]);
@@ -2099,11 +2094,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
         // Without the sparse extrusion role, the filler uses each surface's bounds
         // instead of the object's bounds, so bridge anchors shift away from printed infill.
         params.extrusion_role            = surface_fill.params.extrusion_role;
-        
-        // Attention! The Hilbert curve pattern in this mode will not match to the pattern defined by the rotating infill templates.
-        // "Sparse plane-path anchors match the printed infill" test will generate an error on the Hilbert Curve
         params.pattern_mode              = surface_fill.params.pattern_mode; 
-
         for (ExPolygon &expoly : surface_fill.expolygons) {
             // Orca: Match the per-body box and octree of make_fills() before generating physical anchors.
             const int body = infill_body(*this, surface_fill, expoly);

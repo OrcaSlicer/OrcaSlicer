@@ -1000,7 +1000,7 @@ void LayerRegion::prepare_fill_surfaces()
     }
 
     if (!spiral_mode && fabs(this->region().config().sparse_infill_density.value - 100.) < EPSILON &&
-        this->region().config().sparse_infill_rotate_template.value.empty()) {
+        this->region().config().sparse_infill_rotate_template.value.find_first_of("Dd") == std::string::npos) {
         // Turn all internal sparse infill into solid infill, if sparse_infill_density is 100%
         for (Surface &surface : this->fill_surfaces.surfaces)
             if (surface.surface_type == stInternal)
