@@ -90,7 +90,7 @@ bool KobraXHost::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Err
 
     KobraX::Session::Options options{m_host, m_http_port, KobraX::MQTT_PORT, {}};
     std::string              error;
-    if (!KobraX::find_client_identity(KobraX::identity_folder(), options.identity, error))
+    if (!KobraX::find_client_identity(KobraX::identity_folder(), KobraX::bundled_identity_folder(), options.identity, error))
         return fail(error);
     std::mutex    mutex;
     KobraX::State state;

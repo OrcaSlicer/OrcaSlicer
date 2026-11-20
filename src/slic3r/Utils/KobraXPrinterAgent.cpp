@@ -150,7 +150,7 @@ void KobraXPrinterAgent::run(std::shared_ptr<Connection> c)
         std::string             error;
         KobraX::Session::Options options{c->host, c->http_port, KobraX::MQTT_PORT, {}};
         std::shared_ptr<KobraX::Session> session;
-        if (KobraX::find_client_identity(KobraX::identity_folder(), options.identity, error)) {
+        if (KobraX::find_client_identity(KobraX::identity_folder(), KobraX::bundled_identity_folder(), options.identity, error)) {
             session = std::make_shared<KobraX::Session>(
                 options,
                 [self](const std::string& suffix, const json& payload) {

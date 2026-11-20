@@ -21,10 +21,15 @@ struct ClientIdentity
 
 // <data dir>/anycubic, where the user may place the identity
 std::string identity_folder();
-// Looks for the identity, first as anycubic_slicer.pem and anycubic_slicer_key.pem in `folder`, then inside
-// an installed Anycubic Slicer Next. Nothing is copied or written. False, with what was searched, when none
-// is found.
-bool find_client_identity(const std::string& folder, ClientIdentity& identity, std::string& error);
+// <resources>/cert/anycubic, the copy of the identity OrcaSlicer ships
+std::string bundled_identity_folder();
+// Looks for the identity as anycubic_slicer.pem and anycubic_slicer_key.pem in `user_folder`, then inside an
+// installed Anycubic Slicer Next, then as the same two files in `bundled_folder`, so a user copy always wins.
+// Nothing is copied or written. False, with what was searched, when none is found.
+bool find_client_identity(const std::string& user_folder,
+                          const std::string& bundled_folder,
+                          ClientIdentity&    identity,
+                          std::string&       error);
 // Scans one file (a PEM file or the slicer library carrying the PEM blocks) for the certificate and its key
 bool read_client_identity(const std::string& path, ClientIdentity& identity);
 

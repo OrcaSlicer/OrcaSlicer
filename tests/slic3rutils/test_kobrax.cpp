@@ -333,3 +333,42 @@ TEST_CASE("The client identity is found among other PEM blocks", "[KobraX]")
     CHECK_FALSE(KobraX::read_client_identity(path.string(), identity));
     fs::remove(path);
 }
+
+TEST_CASE("A user copy of the client identity wins over the bundled one", "[KobraX]")
+{
+    namespace fs = boost::filesystem;
+    const fs::path bundled = fs::path(PROFILES_DIR).parent_path() / "cert" / "anycubic";
+    const fs::path user    = fs::temp_directory_path() / fs::unique_path("kobrax-user-%%%%-%%%%");
+    fs::create_directories(user);
+    {
+        fs::ofstream(user / "anycubic_slicer.pem", std::ios::binary) << TEST_CERT << "\n";
+        fs::ofstream(user / "anycubic_slicer_key.pem", std::ios::binary) << TEST_KEY << "\n";
+    }
+    KobraX::ClientIdentity identity;
+    std::string            error;
+    CHECK(KobraX::find_client_identity(user.string(), bundled.string(), identity, error));
+    CHECK(identity.cert_pem == TEST_CERT);
+    CHECK(identity.key_pem == TEST_KEY);
+    fs::remove_all(user);
+}
+
+TEST_CASE("The bundled client identity is a matching CN=AnycubicSlicer pair", "[KobraX]")
+{
+    namespace fs = boost::filesystem;
+    const fs::path bundled = fs::path(PROFILES_DIR).parent_path() / "cert" / "anycubic";
+    const fs::path both    = fs::temp_directory_path() / fs::unique_path("kobrax-bundled-%%%%-%%%%.pem");
+    {
+        fs::ofstream out(both, std::ios::binary);
+        out << fs::ifstream(bundled / "anycubic_slicer.pem", std::ios::binary).rdbuf() << "\n"
+            << fs::ifstream(bundled / "anycubic_slicer_key.pem", std::ios::binary).rdbuf() << "\n";
+    }
+    // read_client_identity checks the CN and that the key is the certificate's
+    KobraX::ClientIdentity identity;
+    CHECK(KobraX::read_client_identity(both.string(), identity));
+    fs::remove(both);
+
+    // With no user copy the search still ends with an identity: an installed Anycubic Slicer Next's or the bundled one
+    std::string error;
+    CHECK(KobraX::find_client_identity("", bundled.string(), identity, error));
+    CHECK(error.empty());
+}

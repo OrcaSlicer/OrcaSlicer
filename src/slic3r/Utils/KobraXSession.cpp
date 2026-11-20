@@ -173,6 +173,14 @@ std::vector<fs::path> slicer_locations()
     return out;
 }
 
+// anycubic_slicer.pem and anycubic_slicer_key.pem in `folder`
+bool read_identity_folder(const std::string& folder, ClientIdentity& identity)
+{
+    std::string cert, key;
+    return !folder.empty() && read_file(fs::path(folder) / CERT_FILE, cert) && read_file(fs::path(folder) / KEY_FILE, key) &&
+           identity_from_text(cert + "\n" + key, identity);
+}
+
 bool http_json(Http http, json& answer, std::string& error)
 {
     bool ok = false;
@@ -196,24 +204,30 @@ bool http_json(Http http, json& answer, std::string& error)
 
 std::string identity_folder() { return (fs::path(data_dir()) / "anycubic").string(); }
 
+std::string bundled_identity_folder() { return (fs::path(resources_dir()) / "cert" / "anycubic").string(); }
+
 bool read_client_identity(const std::string& path, ClientIdentity& identity)
 {
     std::string data;
     return read_file(path, data) && identity_from_text(data, identity);
 }
 
-bool find_client_identity(const std::string& folder, ClientIdentity& identity, std::string& error)
+bool find_client_identity(const std::string& user_folder,
+                          const std::string& bundled_folder,
+                          ClientIdentity&    identity,
+                          std::string&       error)
 {
-    std::string cert, key;
-    if (!folder.empty() && read_file(fs::path(folder) / CERT_FILE, cert) && read_file(fs::path(folder) / KEY_FILE, key) &&
-        identity_from_text(cert + "\n" + key, identity))
+    if (read_identity_folder(user_folder, identity))
         return true;
-    std::string searched = (fs::path(folder) / CERT_FILE).string();
+    std::string searched = (fs::path(user_folder) / CERT_FILE).string();
     for (const fs::path& path : slicer_locations()) {
         if (read_client_identity(path.string(), identity))
             return true;
         searched += ", " + path.string();
     }
+    if (read_identity_folder(bundled_folder, identity))
+        return true;
+    searched += ", " + (fs::path(bundled_folder) / CERT_FILE).string();
     error = "no Anycubic Slicer client certificate found (looked in " + searched + ")";
     return false;
 }
