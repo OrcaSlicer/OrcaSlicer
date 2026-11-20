@@ -1645,6 +1645,9 @@ void ModelObject::delete_volume(size_t idx)
         for (ModelInstance* inst : this->instances)
         {
             inst->set_transformation(Geometry::Transformation(inst->get_transformation().get_matrix() * v_t));
+            // ORCA: Same for the pose in the assembly view, otherwise the object turns or moves there.
+            if (inst->is_assemble_initialized())
+                inst->set_assemble_from_transform(inst->get_assemble_transformation().get_matrix() * v_t);
         }
         Geometry::Transformation t;
         v->set_transformation(t);
