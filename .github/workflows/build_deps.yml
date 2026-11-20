@@ -199,7 +199,7 @@ jobs:
 
             # Install clang-cl component when compiler is clang (needed for deps build)
             # windows-2022 has clang-cl pre-installed in VS 2022 Enterprise; winget is not available.
-            if ("${{ inputs.compiler }}" -eq "clang" && !vars.SELF_HOSTED) {
+            if ("${{ inputs.compiler }}" -eq "clang" -and -not "${{ vars.SELF_HOSTED }}") {
               $clangClPath = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin\clang-cl.exe"
               if (Test-Path $clangClPath) {
                 Write-Host "clang-cl found at $clangClPath"
