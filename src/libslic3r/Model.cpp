@@ -842,13 +842,14 @@ void Model::set_assembly_pos_of_copies(ModelObject *model_object, size_t source_
     if (source_idx >= first_copy || first_copy >= instances.size())
         return;
 
-    // An object made on the plate (a text for example) has no pose in the assembly view yet. Its instances start
-    // from their poses on the plate, as they do when the project is loaded. Left without one, the source and its
-    // copies would all be drawn on the origin of the assembly view and saved without a pose.
-    if (!instances[source_idx]->is_assemble_initialized())
-        for (size_t i = 0; i < first_copy; ++i)
-            if (!instances[i]->is_assemble_initialized())
-                instances[i]->set_assemble_transformation(instances[i]->get_transformation());
+    // An object made on the plate (a text for example) has no pose in the assembly view yet: it is placed there as
+    // a new object first. Its copies are lined up below: until then they stand on their source, so that they do
+    // not widen the box the object is placed by.
+    if (!instances[source_idx]->is_assemble_initialized()) {
+        for (size_t i = first_copy; i < instances.size(); ++i)
+            instances[i]->set_assemble_transformation(instances[source_idx]->get_transformation());
+        this->set_assembly_pos(model_object);
+    }
 
     const ModelInstance     &source     = *instances[source_idx];
     Geometry::Transformation pose       = source.get_assemble_transformation();
