@@ -264,7 +264,7 @@ jobs:
         env:
           ORCA_TESTS_BUILD_ONLY: ${{ (inputs.arch == 'arm64' || inputs.arch == 'x86_64') && '1' || '' }}
         run: |
-          ./build_release_macos.sh -s -n -x -j 3 -a ${{ inputs.arch }} -t 10.15 ${{ inputs.arch == 'arm64' && '-T' || '' }}
+          ./build_release_macos.sh -s -n -x -j 3 -T -a ${{ inputs.arch }} -t 10.15
 
       - name: Pack unit tests mac
         if: runner.os == 'macOS' && !inputs.macos-combine-only && (inputs.arch == 'arm64' || inputs.arch == 'x86_64')
