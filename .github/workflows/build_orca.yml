@@ -260,9 +260,9 @@ jobs:
       - name: Build slicer mac
         if: runner.os == 'macOS' && !inputs.macos-combine-only
         working-directory: ${{ github.workspace }}
-        # arm64 only: build the tests here; the unit_tests_macos job runs them.
+        # arm64 and x86_64: build the tests here; the unit_tests_macos job runs them.
         env:
-          ORCA_TESTS_BUILD_ONLY: ${{ inputs.arch == 'arm64' && '1' || '' }}
+          ORCA_TESTS_BUILD_ONLY: ${{ (inputs.arch == 'arm64' || inputs.arch == 'x86_64') && '1' || '' }}
         run: |
           ./build_release_macos.sh -s -n -x -j 3 -a ${{ inputs.arch }} -t 10.15 ${{ inputs.arch == 'arm64' && '-T' || '' }}
 
