@@ -112,7 +112,7 @@ jobs:
     name: Flatpak
     needs: select
     # Skipped on self-hosted runners, as in build_all.yml.
-    if: ${{ needs.select.outputs.flatpak == 'true' }}
+    if: ${{ needs.select.outputs.flatpak == 'true' && !vars.SELF_HOSTED }}
     concurrency:
       group: build-optional-flatpak-${{ github.event.pull_request.number }}
       cancel-in-progress: true
@@ -124,7 +124,7 @@ jobs:
   # macOS line like any other.
   build_macos_arch:
     needs: select
-    if: ${{ needs.select.outputs.macos-x86_64 == 'true' }}
+    if: ${{ needs.select.outputs.macos-x86_64 == 'true' && !vars.SELF_HOSTED }}
     strategy:
       matrix:
         arch:
@@ -134,7 +134,7 @@ jobs:
       cancel-in-progress: true
     uses: ./.github/workflows/build_check_cache.yml
     with:
-      os: macos-15
+      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
       arch: ${{ matrix.arch }}
     secrets: inherit
 
@@ -144,7 +144,7 @@ jobs:
   build_windows_arm64:
     name: Build Windows arm64
     needs: select
-    if: ${{ needs.select.outputs.windows-arm64 == 'true' }}
+    if: ${{ needs.select.outputs.windows-arm64 == 'true' && !vars.SELF_HOSTED }}
     concurrency:
       group: build-optional-windows-arm64-${{ github.event.pull_request.number }}
       cancel-in-progress: true
@@ -177,7 +177,7 @@ jobs:
   build_windows_msvc:
     name: Build Windows x64 MSVC
     needs: select
-    if: ${{ needs.select.outputs.windows-msvc == 'true' }}
+    if: ${{ needs.select.outputs.windows-msvc == 'true' && !vars.SELF_HOSTED }}
     concurrency:
       group: build-optional-windows-msvc-${{ github.event.pull_request.number }}
       cancel-in-progress: true
