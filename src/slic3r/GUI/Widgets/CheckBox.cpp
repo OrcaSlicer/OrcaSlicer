@@ -94,6 +94,13 @@ void CheckBox::update()
 
 CheckBox::State CheckBox::GetNormalState() const { return State_Normal; }
 
+bool CheckBox::MSWCommand(WXUINT param, WXWORD id)
+{
+    // Owner-drawn, so a double click sends BN_DBLCLK besides the click wxAnyButton makes of it,
+    // and wxToggleButton toggles on both. Ignore it so a double click toggles twice, not three times.
+    return param == BN_DBLCLK || wxBitmapToggleButton::MSWCommand(param, id);
+}
+
 #endif
 
 

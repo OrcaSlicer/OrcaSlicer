@@ -1894,7 +1894,7 @@ void Filler::_fill_surface_single(
         all_polylines.reserve(lines.size());
         std::transform(lines.begin(), lines.end(), std::back_inserter(all_polylines), [](const Line& l) { return Polyline{ l.a, l.b }; });
 
-        if (params.multiline > 1) {
+        if (params.non_crossing()) {
             const double d1    = scale_(this->spacing) * params.multiline;
             BoundingBox  cover = get_extents(expolygon);
             cover.offset(coord_t(4. * d1));
@@ -1903,17 +1903,27 @@ void Filler::_fill_surface_single(
             // Line ends overlap the walls they stop on by half a line, so that they bond.
             if (Polylines paths = multiline_paths(lines, d1, 0.5 * scale_(this->spacing), sweep, cover); !paths.empty())
                 all_polylines = std::move(paths);
+            multiline_fill(all_polylines, params, spacing);
+        } else if (params.multiline > 1) {
+            // Crossing walls are parallel copies of their line, spacing apart, like those of the other crossing patterns.
+            all_polylines.clear();
+            all_polylines.reserve(lines.size() * params.multiline);
+            for (const Line &line : lines) {
+                const Vec2d normal = perp(line.vector().cast<double>().normalized());
+                for (int i = 0; i < params.multiline; ++ i) {
+                    const Point shift(Vec2d(normal * ((i - 0.5 * (params.multiline - 1)) * scale_(this->spacing))));
+                    all_polylines.emplace_back(Polyline{ line.a + shift, line.b + shift });
+                }
+            }
         }
-
-        // Apply multiline offset if needed
-        multiline_fill(all_polylines, params, spacing);
 
         // Crop all polylines
         all_polylines = intersection_pl(std::move(all_polylines), expolygon);
+        join_cut_outlines(all_polylines, params);
 #endif
     }
 
-    if (params.multiline == 1) {
+    if (params.multiline == 1 && !params.non_crossing()) {
         // After intersection_pl some polylines with only one line are split into more lines
         for (Polyline& polyline : all_polylines) {
             // FIXME assert that all the points are collinear and in between the start and end point.
@@ -1943,7 +1953,7 @@ void Filler::_fill_surface_single(
 
         chain_or_connect_infill(std::move(all_polylines_with_hooks), expolygon, polylines_out, this->spacing, params);
     } else { 
-        // if multiline  is > 1 infill is ready to connect
+        // Multiline walls and non-crossing paths are ready to connect.
         chain_or_connect_infill(std::move(all_polylines), expolygon, polylines_out, this->spacing, params);
     }
 

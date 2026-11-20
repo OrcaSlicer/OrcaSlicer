@@ -62,6 +62,14 @@ public:
     // Bundled uv executable path, or empty when uv is not bundled/found.
     static std::string bundled_uv_path();
 
+    // Run the bundled uv with `args` (everything after the executable), capturing its stderr.
+    // Blocks the calling thread until the child exits or `timeout` elapses.
+    //
+    // `error` is set to an actionable message on failure: a missing bundled uv, a failed wait, a
+    // timeout, a non-zero exit status, or the exception thrown while spawning the child. Arguments
+    // are passed as an array; nothing is routed through a shell.
+    static bool run_uv(const std::vector<std::string>& args, std::chrono::seconds timeout, std::string& error);
+
     // Python ABI tag for the bundled interpreter, e.g. "cp312".
     static std::string python_abi_tag();
 
@@ -72,6 +80,7 @@ public:
 
     // Runs the threading atexit hooks, which end idle worker threads, then waits for Python's
     // non-daemon threads to end, up to timeout in all, and returns how many are still running.
+    // A hook thread still running, this call's or one an earlier call gave up on, counts as one.
     // The caller must hold the GIL. Public so tests can reach it: shutdown() itself can
     // only run once per process.
     static int join_non_daemon_threads(std::chrono::milliseconds timeout);
@@ -85,11 +94,6 @@ public:
                                     std::string&       error,
                                     std::vector<std::string>* plugin_paths = nullptr,
                                     std::vector<std::string>* plugin_modules = nullptr);
-    PyObject* load_module_from_whl(const std::string& whl_path,
-                                   const std::string& pkg_name,
-                                   std::string&       error,
-                                   std::vector<std::string>* plugin_paths = nullptr,
-                                   std::vector<std::string>* plugin_modules = nullptr);
     PyObject* load_module_from_directory(const std::string& dir_path,
                                          const std::string& pkg_name,
                                          std::string&       error,

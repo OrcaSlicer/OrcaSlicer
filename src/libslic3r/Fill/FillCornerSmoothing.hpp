@@ -20,13 +20,16 @@ inline double sanitize_smooth_factor(double smooth_factor)
     return std::isfinite(smooth_factor) ? std::clamp(smooth_factor, 0., 1.) : 0.;
 }
 
+// Orca: The tolerance of rounded corners for a G-code resolution, both in mm: the resolution, down to 5 microns.
+double corner_smoothing_tolerance(double resolution);
+
 // Orca: How the corners of an infill path are rounded. The tolerance is in the units of the points the smoother is fed.
 struct CornerSmoothing
 {
     // Fraction of the shorter adjoining leg a curve may reach along it, relative to half of that leg.
     double            factor { 0. };
-    // The G-code resolution: a rounded corner keeps within it of its curve, and its vertices stand out of the
-    // path by at least it, so that simplifying the path to it keeps them.
+    // corner_smoothing_tolerance() of the G-code resolution: a rounded corner keeps within it of its curve, and its
+    // vertices stand out of the path by at least it, so that simplifying the path to the resolution keeps them.
     double            tolerance { 0. };
 };
 

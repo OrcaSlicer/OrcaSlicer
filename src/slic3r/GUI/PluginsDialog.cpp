@@ -4,12 +4,14 @@
 #include "GUI_App.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "I18N.hpp"
+#include "MsgDialog.hpp"
 #include "OrcaCloudServiceAgent.hpp"
 #include "slic3r/plugin/PluginConfig.hpp"
 #include "slic3r/plugin/PluginFsUtils.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 
 #include <cctype>
+#include <cstddef>
 #include <exception>
 #include <atomic>
 #include <boost/filesystem/operations.hpp>
@@ -18,6 +20,7 @@
 
 #include <slic3r/GUI/NotificationManager.hpp>
 #include <slic3r/GUI/Plater.hpp>
+#include "slic3r/GUI/PluginPermissionValidation.hpp"
 #include "slic3r/GUI/PluginSource.hpp"
 #include "slic3r/GUI/PluginStatus.hpp"
 #include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
@@ -29,16 +32,17 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/system/error_code.hpp>
 
 #include <algorithm>
 #include <memory>
 #include <mutex>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include <wx/busycursor.h>
+#include <wx/chartype.h>
 #include <wx/dialog.h>
 #include <wx/event.h>
 #include <wx/filedlg.h>
@@ -57,6 +61,22 @@ const wxString kDeletePluginTitle            = _L("Delete Plugin");
 const wxString kUnsubscribeTitle             = _L("Unsubscribe");
 const wxString kOverwritePluginTitle         = _L("Overwrite Plugin");
 std::string s_selected_plugin_install_action = "explore";
+
+// The permission validator has already checked the path and its final wildcard. Compare both
+// its spelling and its resolved location, since a symlink can also point to a filesystem root.
+bool is_root_tree_permission(const std::string& permission)
+{
+    if (permission.empty() || permission.back() != '*')
+        return false;
+
+    const std::string folder = permission.substr(0, permission.size() - 1);
+    if (is_filesystem_root(boost::filesystem::path(folder)))
+        return true;
+
+    boost::system::error_code ec;
+    const boost::filesystem::path resolved = boost::filesystem::weakly_canonical(boost::filesystem::path(folder), ec);
+    return !ec && is_filesystem_root(resolved);
+}
 
 struct PluginContextAction
 {
@@ -128,6 +148,11 @@ struct PluginDialogItem
     // Runtime capabilities in registration order, or descriptor-only type rows when unloaded.
     std::vector<PluginCapabilityView> capabilities;
 
+    // Grants stored in the plugin's install sidecar. False when the sidecar is missing or unreadable
+    // (e.g. an uninstalled cloud plugin), so the payload reports null instead of empty permissions.
+    PluginPermissions permissions;
+    bool has_permissions = false;
+
     PluginAvailableActions available_actions;
 };
 
@@ -158,6 +183,22 @@ PluginDescriptor as_cloud_only_descriptor(PluginDescriptor descriptor)
 
 std::string to_string(PluginUpdateStatus status);
 nlohmann::json build_context_actions_payload(const PluginAvailableActions& available_actions);
+
+nlohmann::json build_permissions_payload(const PluginPermissions& permissions)
+{
+    nlohmann::json payload;
+    payload["fs_read"]        = permissions.fs_read;
+    payload["fs_readwrite"]   = permissions.fs_readwrite;
+    payload["fs_create"]      = permissions.fs_create;
+    payload["fs_delete"]      = permissions.fs_delete;
+    payload["network_http"]   = permissions.network_http;
+    payload["network_socket"] = permissions.network_socket;
+    payload["process"]        = permissions.process;
+    payload["threading"]      = permissions.threading;
+    payload["events"]         = permissions.events;
+    payload["full_access"]    = permissions.full_access;
+    return payload;
+}
 
 nlohmann::json build_plugin_payload_item(const PluginDialogItem& dialog_item)
 {
@@ -223,6 +264,12 @@ nlohmann::json build_plugin_payload_item(const PluginDialogItem& dialog_item)
     payload_item["orphaned"]              = dialog_item.orphaned;
     payload_item["installed_version"]     = dialog_item.installed_version;
     payload_item["latest_version"]        = dialog_item.latest_version;
+    // Null when the sidecar could not be read: an uninstalled/unreadable plugin has unknown grants,
+    // not no grants.
+    if (dialog_item.has_permissions)
+        payload_item["permissions"] = build_permissions_payload(dialog_item.permissions);
+    else
+        payload_item["permissions"] = nullptr;
     return payload_item;
 }
 
@@ -344,6 +391,12 @@ PluginDialogItem build_plugin_dialog_item(const PluginDescriptor& descriptor)
     item.unauthorized          = descriptor.is_unauthorized();
     item.is_loaded             = manager.is_plugin_loaded(descriptor.plugin_key);
     item.loading               = manager.is_plugin_load_in_progress(descriptor.plugin_key);
+
+    PluginInstallState install_state;
+    item.has_permissions = manager.get_install_state(descriptor.plugin_key, install_state);
+    if (item.has_permissions)
+        item.permissions = std::move(install_state.permissions);
+
     item.has_script_capability = false;
     for (const auto& capability : capabilities) {
         item.capabilities.push_back({capability->identity(), capability->is_enabled(), true, false, capability->config_ui_available()});
@@ -411,6 +464,34 @@ bool take_plugin_operation_result(const std::shared_ptr<PluginOperationState>& s
     error = std::move(state->error);
     return state->succeeded;
 }
+
+// A full-access or permission-save request carries an opaque correlation token that the webview
+// ties to its pending operation. Bound the shape so a malformed or oversized value cannot be
+// echoed back: non-empty, at most 128 bytes, printable ASCII only.
+bool is_valid_bridge_request_id(const std::string& request_id)
+{
+    constexpr size_t kMaxRequestIdLength = 128;
+    if (request_id.empty() || request_id.size() > kMaxRequestIdLength)
+        return false;
+    return std::all_of(request_id.begin(), request_id.end(), [](unsigned char c) {
+        return c >= 0x21 && c <= 0x7e;
+    });
+}
+
+// Reports every permission mutation outcome, including rejection and cancelled confirmation.
+void send_permissions_result(WebViewHostDialog& dialog,
+                             const std::string& plugin_key,
+                             const std::string& request_id,
+                             bool success)
+{
+    nlohmann::json payload;
+    payload["command"]    = "plugin_permissions_result";
+    payload["plugin_key"] = plugin_key;
+    payload["request_id"] = request_id;
+    payload["success"]    = success;
+    dialog.call_web_handler(payload);
+}
+
 } // namespace
 
 // ── Dialog-independent plugin actions (also used by the speed dial) ───────────────────────────
@@ -585,7 +666,9 @@ bool install_local_plugin_package(const boost::filesystem::path& package_file, w
 
 PluginsDialog::PluginsDialog(wxWindow* parent, wxWindowID id, const wxString&, const wxPoint& pos, const wxSize& size, long style)
     : WebViewHostDialog(parent, id, _L("Plugins"), pos, size, style)
-{ create_webview("web/dialog/PluginsDialog/index.html", _L("Plugins"), wxSize(900, 820), wxSize(760, 715)); }
+{
+    create_webview("web/dialog/PluginsDialog/index.html", _L("Plugins"), wxSize(900, 820), wxSize(760, 715));
+}
 
 nlohmann::json PluginsDialog::localized_strings() const
 {
@@ -651,6 +734,71 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"open_in_browser", _u8L("Open this plugin in your browser")},
         {"capability_count", _u8L("Capabilities: %s")},
         {"capabilities", _u8L_CONTEXT("Capabilities", "Plugin")},
+        {"permissions_tab", _u8L("Permissions")},
+        {"permissions_unavailable", _u8L("Permissions are unavailable.")},
+        {"permissions_fs_read", _u8L("File system read")},
+        {"permissions_fs_readwrite", _u8L("File system read and write")},
+        {"permissions_network_http", _u8L("HTTP network")},
+        {"permissions_network_socket", _u8L("Network sockets")},
+        // TRN Operating system processes a plugin may start, not print process presets.
+        {"permissions_process", _u8L_CONTEXT("Processes", "Permission category")},
+        {"permissions_threading", _u8L("Threading")},
+        {"permissions_events", _u8L_CONTEXT("Events", "Permission category")},
+        {"permissions_filesystem_help", _u8L("Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. A read/write grant can create files through open(), but does not cover create or delete events such as os.mkdir and os.remove.")},
+        {"permissions_create", _u8L_CONTEXT("Create", "Permission access")},
+        {"permissions_delete", _u8L_CONTEXT("Delete", "Permission access")},
+        {"permissions_create_name", _u8L("File system: Create")},
+        {"permissions_delete_name", _u8L("File system: Delete")},
+        {"permissions_folder_modes_help", _u8L("Choose none, selected folders, or all folders. Enter an absolute folder path to allow operations directly inside it, or add /* to include all nested folders. No other wildcard is accepted. Delete access allows deleting files and folders inside the granted scope; deleting the granted folder itself requires access to its parent. Some folders are allowed automatically, while protected paths remain blocked. Other operations may require approval. A background operation needing approval is denied first; after approval, a retry may succeed.")},
+        {"permissions_mode_none", _u8L_CONTEXT("None", "Permission access")},
+        {"permissions_mode_partial", _u8L("Selected folders")},
+        {"permissions_mode_full", _u8L("All folders")},
+        {"permissions_folder_placeholder", _u8L("Absolute folder path")},
+        {"permissions_folder_empty", _u8L("Add a folder to save selected-folder access. No selected folders are saved until you add one.")},
+        {"permissions_folder_invalid_wildcard", _u8L("The wildcard is ignored when combined with folder paths. Remove it or choose all folders.")},
+#ifdef _WIN32
+        {"permissions_filesystem_placeholder", _u8L("C:\\path\\to\\directory\\*")},
+#else
+        {"permissions_filesystem_placeholder", _u8L("/path/to/directory/*")},
+#endif
+        {"permissions_network_access_guidance", _u8L("Enter a full http:// or https:// URL; only its scheme and host are saved, so the grant covers every port, path, and query on that host. A network socket grant also accepts a bare host name or IP address, with or without a port, and covers every port on that host. Other schemes are not accepted. Grants in either list are checked for HTTP and socket access.")},
+        {"permissions_process_help", _u8L("Executable grants cover all arguments. CommandLine: entries cover only the exact command line.")},
+        {"permissions_process_placeholder", _u8L("Executable or command name")},
+        {"permissions_threading_help_short", _u8L("Allow this plugin to create threads.")},
+        {"permissions_events_help", _u8L("Enter a category and event separated by a colon, such as Socket:socket.__new__.")},
+        {"permissions_events_placeholder", _u8L("Socket:socket.__new__")},
+        {"permissions_full_access_label", _u8L("Full access")},
+        {"permissions_group_filesystem", _u8L("File system")},
+        {"permissions_network_access_title", _u8L("Network access")},
+        {"permissions_group_execution", _u8L("Execution")},
+        {"permissions_group_events", _u8L("Audit events")},
+        {"permissions_files_folders", _u8L("Files and folders")},
+        {"permissions_access_read", _u8L_CONTEXT("Read", "Permission access")},
+        {"permissions_access_readwrite", _u8L_CONTEXT("Read and write", "Permission access")},
+        {"permissions_read_unavailable", _u8L("Read permissions are unavailable.")},
+        {"permissions_readwrite_unavailable", _u8L("Read and write permissions are unavailable.")},
+        {"permissions_filesystem_read_name", _u8L("File system: Read")},
+        {"permissions_filesystem_readwrite_name", _u8L("File system: Read and write")},
+        {"permissions_full_access_help", _u8L("Full access bypasses permission checks. The plugin can read and write most files you can access; modifying startup or application files can let code run outside these checks. Direct Python access to OrcaSlicer's configuration, secret, certificate and install-state paths stays blocked, but subprocesses are not restricted.")},
+        {"permissions_full_access_editor_disabled", _u8L("Permission list editing is disabled while full access is on.")},
+        {"permissions_full_access_unavailable", _u8L("Full access status is unavailable.")},
+        {"permissions_values_empty", _u8L("No values added.")},
+        {"permissions_apply", _u8L_CONTEXT("Apply", "Permission value")},
+        {"permissions_apply_value_label", _u8L("Apply value for %s")},
+        {"permissions_install_to_edit", _u8L("Install this plugin to edit its permissions.")},
+        {"permissions_add_value_label", _u8L("New value for %s")},
+        {"permissions_edit_value_label", _u8L("Edit value for %s")},
+        {"permissions_add", _u8L_CONTEXT("Add", "Permission value")},
+        {"permissions_add_label", _u8L("Add value to %s")},
+        // TRN %s is the original permission value that was removed outside this dialog.
+        {"permissions_edit_no_longer_granted", _u8L("The original value is no longer granted: %s. Add the edited value or discard it.")},
+        // TRN %s is the original permission value before the user's unsaved edit.
+        {"permissions_edit_original", _u8L("Unsaved edit of: %s")},
+        {"permissions_discard", _u8L("Discard")},
+        // TRN %s is the original permission value whose unsaved edit will be discarded.
+        {"permissions_discard_edit_label", _u8L("Discard edit of %s")},
+        {"permissions_remove", _u8L_CONTEXT("Remove", "Permission value")},
+        {"permissions_remove_label", _u8L("Remove %s")},
         {"run_named", _u8L("Run \"%s\"")},
         {"enable_named", _u8L("Enable %s")},
         {"not_available", _u8L("N/A")},
@@ -691,6 +839,12 @@ void PluginsDialog::update_plugin_dialog_ui()
     // cloud-plugin state callback. Do not fetch here or the callback can re-enter.
     send_plugins();
     resolve_pending_activation();
+}
+
+void PluginsDialog::refresh_permissions_if_visible()
+{
+    if (IsShown() && !IsBeingDeleted())
+        send_plugins();
 }
 
 void PluginsDialog::resolve_pending_activation()
@@ -774,6 +928,8 @@ void PluginsDialog::handle_web_command(const nlohmann::json& payload)
         // `config` is a JSON string from the default editor's textarea, or an already-structured
         // value from a capability's custom UI. Both land here; save_capability_config sorts it out.
         save_capability_config(id, payload.contains("config") ? payload.at("config") : nlohmann::json::object());
+    } else if (command == "mutate_plugin_permission") {
+        mutate_plugin_permission(payload);
     } else if (command == "set_plugin_install_action") {
         const std::string action = payload.value("action", "");
         if (action == "explore" || action == "install-local")
@@ -862,6 +1018,209 @@ void PluginsDialog::refresh_plugins()
     BOOST_LOG_TRIVIAL(info) << "Refreshing plugins from Plugins dialog";
 
     refresh_plugin_metadata_async(_L("Refreshing"), _L("Refreshing plugins data"), kFetchCloudMeta);
+}
+
+bool PluginsDialog::prompt_enable_full_access(const std::string& plugin_key)
+{
+    const wxString plugin_name = plugin_display_name(plugin_key);
+    MessageDialog dialog(
+        this,
+        wxString::Format(
+            _L("Enable full access for \"%s\"?\n\n"
+               "Full access turns off permission auditing for this plugin: its file system, network, "
+               "process, thread and event permissions are no longer checked. The plugin can read and "
+               "write most files your user account can access, including startup scripts, SSH keys "
+               "and a writable OrcaSlicer installation. Modifying startup or application files can "
+               "let code run outside these checks. Direct Python access to OrcaSlicer's "
+               "configuration, secret, certificate and install-state paths stays blocked, but "
+               "subprocesses are not restricted. Full access is not a sandbox.\n\n"
+               "Only enable this for a plugin you trust."),
+            plugin_name),
+        _L("Full access"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
+    // MsgDialog builds its own buttons in a fixed order and always gives Yes the initial focus;
+    // wxNO_DEFAULT does not change that. Focus No explicitly so Enter cannot grant full access.
+    dialog.SetButtonLabel(wxID_NO, _L("No"), /*set_focus=*/true);
+
+    const int rc = dialog.ShowModal();
+    restore_z_order();
+    return rc == wxID_YES;
+}
+
+void PluginsDialog::mutate_plugin_permission(const nlohmann::json& payload)
+{
+    const auto string_field = [&payload](const char* key) -> std::string {
+        return payload.contains(key) && payload.at(key).is_string() ? payload.at(key).get<std::string>() : std::string{};
+    };
+    const std::string plugin_key = string_field("plugin_key");
+    const std::string request_id = string_field("request_id");
+    const std::string operation  = string_field("operation");
+    const std::string category   = string_field("category");
+    const auto finish = [&](bool success) {
+        send_plugins();
+        send_permissions_result(*this, plugin_key, is_valid_bridge_request_id(request_id) ? request_id : std::string{}, success);
+    };
+    const auto invalid = [&]() {
+        show_status(_L("Invalid permission save request."), "error");
+        finish(false);
+    };
+    if (plugin_key.empty() || !is_valid_bridge_request_id(request_id)) {
+        invalid();
+        return;
+    }
+
+    PluginInstallState stored;
+    if (!PluginManager::instance().get_install_state(plugin_key, stored)) {
+        show_status(_L("Install this plugin to edit its permissions."), "warn");
+        finish(false);
+        return;
+    }
+
+    PluginPermissionMutation mutation;
+    const wxString plugin_name = plugin_display_name(plugin_key);
+    PluginPermissionCategory bucket = PluginPermissionCategory::FsRead;
+    const std::vector<std::string>* entries = nullptr;
+    if (category == "fs_read") {
+        bucket = PluginPermissionCategory::FsRead; entries = &stored.permissions.fs_read;
+    } else if (category == "fs_readwrite") {
+        bucket = PluginPermissionCategory::FsReadWrite; entries = &stored.permissions.fs_readwrite;
+    } else if (category == "fs_create") {
+        bucket = PluginPermissionCategory::FsCreate; entries = &stored.permissions.fs_create;
+    } else if (category == "fs_delete") {
+        bucket = PluginPermissionCategory::FsDelete; entries = &stored.permissions.fs_delete;
+    } else if (category == "network_http") {
+        bucket = PluginPermissionCategory::NetworkHttp; entries = &stored.permissions.network_http;
+    } else if (category == "network_socket") {
+        bucket = PluginPermissionCategory::NetworkSocket; entries = &stored.permissions.network_socket;
+    } else if (category == "process") {
+        bucket = PluginPermissionCategory::Process; entries = &stored.permissions.process;
+    } else if (category == "events") {
+        bucket = PluginPermissionCategory::Events; entries = &stored.permissions.events;
+    }
+
+    if (category == "full_access" || category == "threading") {
+        if (operation != "set" || !payload.contains("value") || !payload.at("value").is_boolean()) {
+            invalid();
+            return;
+        }
+        const bool enabled = payload.at("value").get<bool>();
+        if (category == "full_access") {
+            if (enabled && !prompt_enable_full_access(plugin_key)) {
+                finish(false);
+                return;
+            }
+            mutation.full_access = enabled;
+        } else {
+            mutation.threading = enabled;
+        }
+    } else if ((category == "fs_create" || category == "fs_delete") && operation == "set_mode") {
+        const std::string mode = string_field("value");
+        if (mode != "none" && mode != "partial" && mode != "full") {
+            invalid();
+            return;
+        }
+        if (mode == "full" && !(entries->size() == 1 && entries->front() == "*")) {
+            const wxString message = category == "fs_delete" ?
+                wxString::Format(_L("Allow \"%s\" to delete entries in all folders?\n\n"
+                                    "This includes deleting existing files and folders accessible to your account. "
+                                    "Protected paths remain blocked. Only allow this for a plugin you trust."), plugin_name) :
+                wxString::Format(_L("Allow \"%s\" to create entries in all folders?\n\n"
+                                    "This includes creating files and folders accessible to your account. "
+                                    "Protected paths remain blocked. Only allow this for a plugin you trust."), plugin_name);
+            MessageDialog dialog(this, message, _L("All folders"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
+            dialog.SetButtonLabel(wxID_NO, _L("No"), /*set_focus=*/true);
+            const int result = dialog.ShowModal();
+            restore_z_order();
+            if (result != wxID_YES) {
+                finish(false);
+                return;
+            }
+            // A permission prompt may have saved another grant while this dialog was open.
+            if (!PluginManager::instance().get_install_state(plugin_key, stored)) {
+                show_status(_L("Failed to save permissions."), "error");
+                finish(false);
+                return;
+            }
+        }
+        for (const std::string& entry : *entries)
+            mutation.remove.push_back({bucket, entry});
+        if (mode == "full")
+            mutation.add.push_back({bucket, "*"});
+    } else {
+        if (!entries || (operation != "add" && operation != "remove" && operation != "replace") ||
+            (operation != "add" && (!payload.contains("old_value") || !payload.at("old_value").is_string())) ||
+            (operation != "remove" && (!payload.contains("value") || !payload.at("value").is_string()))) {
+            invalid();
+            return;
+        }
+        if (operation != "add") {
+            const std::string old_value = string_field("old_value");
+            if (std::find(entries->begin(), entries->end(), old_value) == entries->end()) {
+                invalid();
+                return;
+            }
+            mutation.remove.push_back({bucket, old_value});
+            // A mixed list does not grant full access, but removing its last folder would turn
+            // the remaining wildcard into a full grant. Remove the wildcard as well.
+            if (operation == "remove" && (category == "fs_create" || category == "fs_delete") &&
+                entries->size() == 2 && old_value != "*" &&
+                std::find(entries->begin(), entries->end(), "*") != entries->end())
+                mutation.remove.push_back({bucket, "*"});
+        }
+        if (operation != "remove") {
+            const std::string raw = string_field("value");
+            const std::string value = trim_permission_target(raw);
+            std::string normalized = value;
+            wxString reason;
+            bool valid = !value.empty() && value.find('\0') == std::string::npos;
+            if (valid && (category == "fs_read" || category == "fs_readwrite"))
+                valid = normalize_filesystem_permission(value, normalized, reason);
+            else if (valid && (category == "fs_create" || category == "fs_delete")) {
+                valid = normalize_filesystem_permission(value, normalized, reason);
+                if (entries->size() == 1 && entries->front() == "*")
+                    valid = false;
+            } else if (valid && category == "network_http")
+                valid = normalize_network_permission(value, normalized, reason);
+            else if (valid && category == "network_socket")
+                valid = normalize_socket_permission(value, normalized, reason);
+            if (!valid) {
+                if (!reason.empty())
+                    show_status(format_wxstr(_L("Cannot save \"%1%\": %2%"), from_u8(raw), reason), "error");
+                else
+                    show_status(_L("Invalid permission save request."), "error");
+                finish(false);
+                return;
+            }
+            if ((category == "fs_create" || category == "fs_delete") && is_root_tree_permission(normalized)) {
+                // TRN %1% is the plugin name; %2% is the folder tree path being granted.
+                const wxString message = category == "fs_delete" ?
+                    format_wxstr(_L("Allow \"%1%\" to delete entries throughout \"%2%\"?\n\n"
+                                    "This covers the entire filesystem, drive, or network share named by this path, "
+                                    "including existing files and folders in nested folders. Protected paths remain blocked. "
+                                    "Only allow this for a plugin you trust."), plugin_name, from_u8(normalized)) :
+                    format_wxstr(_L("Allow \"%1%\" to create entries throughout \"%2%\"?\n\n"
+                                    "This covers the entire filesystem, drive, or network share named by this path, "
+                                    "including nested folders. Protected paths remain blocked. "
+                                    "Only allow this for a plugin you trust."), plugin_name, from_u8(normalized));
+                MessageDialog dialog(this, message, _L("All folders"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
+                dialog.SetButtonLabel(wxID_NO, _L("No"), /*set_focus=*/true);
+                const int result = dialog.ShowModal();
+                restore_z_order();
+                if (result != wxID_YES) {
+                    finish(false);
+                    return;
+                }
+            }
+            mutation.add.push_back({bucket, normalized});
+        }
+    }
+
+    if (!PluginManager::instance().mutate_plugin_permissions(plugin_key, mutation)) {
+        show_status(_L("Failed to save permissions."), "error");
+        finish(false);
+        return;
+    }
+    finish(true);
+    show_status(wxString::Format(_L("Permissions saved for \"%s\"."), plugin_name), "success");
 }
 
 void PluginsDialog::toggle_plugin(const std::string& plugin_key, bool enabled)
@@ -1234,8 +1593,9 @@ void PluginsDialog::update_plugin(const std::string& plugin_key)
     PluginDescriptor descriptor;
     const wxString name = get_descriptor(plugin_key, descriptor) ? from_u8(descriptor.name) : from_u8(plugin_key);
 
-    // update_cloud_plugin unloads the old plugin, deletes its local package and reinstalls the latest
-    // version; all of that is off-main-thread work, so run it on the worker behind a progress dialog.
+    // update_cloud_plugin unloads the old plugin, deletes its local package, reinstalls the latest
+    // version and reloads a package that was active; all of that is off-main-thread work, so run it
+    // on the worker behind a progress dialog.
     std::string error;
     bool updated = false;
     try {
@@ -1254,7 +1614,8 @@ void PluginsDialog::update_plugin(const std::string& plugin_key)
         return;
     }
 
-    // update_cloud_plugin already updated the in-memory descriptor, so a UI refresh is enough here.
+    // update_cloud_plugin already updated the in-memory descriptor and restored the loaded state,
+    // so a UI refresh is enough here.
     send_plugins();
     show_status(wxString::Format(_L("Updated \"%s\"."), name), "success");
 }
@@ -1374,29 +1735,28 @@ void PluginsDialog::reload_local_plugin(const std::string& plugin_key, bool clea
             [plugin_key, was_loaded, clear_cache]() -> std::pair<bool, std::string> {
                 PluginManager& manager = PluginManager::instance();
 
-                boost::filesystem::path cache_dir;
+                boost::filesystem::path plugin_root;
                 if (clear_cache) {
                     PluginDescriptor descriptor;
                     if (!manager.try_get_plugin_descriptor(plugin_key, descriptor))
                         return {false, _u8L("Plugin not found.")};
 
-                    boost::filesystem::path resolved_root;
-                    std::string                  resolve_error;
+                    std::string resolve_error;
                     if (!resolve_allowed_plugin_root(descriptor, {get_orca_plugins_dir()},
                                                      _u8L("Refusing to clear a plugin cache outside the local plugin directory."),
-                                                     resolved_root, resolve_error))
+                                                     plugin_root, resolve_error))
                         return {false, resolve_error};
-                    cache_dir = resolved_root / "__whl_extracted__";
                 }
 
                 if (!manager.unload_plugin(plugin_key))
                     return {false, _u8L("Failed to unload plugin.")};
 
                 if (clear_cache) {
-                    boost::system::error_code ec;
-                    boost::filesystem::remove_all(cache_dir, ec);
-                    if (ec)
-                        return {false, GUI::format(_u8L("Failed to clear plugin cache: %1%"), ec.message())};
+                    // __whl_extracted__ holds both dependency extractions and the uv-installed
+                    // entry wheel. The stored wheel and plugin data are left untouched.
+                    std::string cache_error;
+                    if (!plugin_wheel_install::delete_install_cache(plugin_root, cache_error))
+                        return {false, cache_error};
                 }
 
                 manager.load_plugin(plugin_key, false);

@@ -6,13 +6,14 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <cstddef>
 #include <cstdlib>
 #include <memory>
 #include <exception>
 #include <pytypedefs.h>
-#include "PluginFsUtils.hpp"
 #include <pybind11/pybind11.h>
 
 #include <pybind11/embed.h>
@@ -22,12 +23,15 @@
 #include <boost/dll/runtime_symbol_info.hpp>
 #include <boost/nowide/convert.hpp>
 #include <boost/system/error_code.hpp>
+#include <slic3r/Utils/BoostProcessCompat.hpp>
 #include <cstring>
 #include <ctime>
 #include <iomanip>
 #include <mutex>
 #include <shared_mutex>
 #include <sstream>
+#include <system_error>
+#include <thread>
 #include <utility>
 #include <string>
 #include <vector>
@@ -188,6 +192,91 @@ std::string executable_name(const char* base)
 #else
     return base;
 #endif
+}
+
+// The plain Win32 APIs refuse paths at MAX_PATH (260) unless long paths are enabled;
+// extended_path() is what reaches past it. Off Windows there is no such limit.
+bool fits_plain_windows_path(const boost::filesystem::path& path)
+{
+#ifdef _WIN32
+    constexpr std::size_t kLegacyWindowsPathLimit = 260;
+    return path.wstring().size() < kLegacyWindowsPathLimit;
+#else
+    (void) path;
+    return true;
+#endif
+}
+
+// True when `directory` can be listed through its plain spelling and every entry file the finder
+// would probe for `stem` also fits there: "<stem>.py" or a compiled "<stem>.<tag>.pyd"/".so".
+// A namespace package has none of them, so being able to list the directory is all its import
+// needs.
+bool plain_path_reaches_entry_files(const boost::filesystem::path& directory, const std::string& stem)
+{
+    namespace fs = boost::filesystem;
+
+    const std::string leaf = stem + ".";
+    boost::system::error_code ec;
+    fs::directory_iterator it(directory, ec);
+    const fs::directory_iterator end;
+    for (; !ec && it != end; it.increment(ec)) {
+        const fs::path&   candidate = it->path();
+        const std::string filename  = candidate.filename().string();
+        if (filename.compare(0, leaf.size(), leaf) != 0)
+            continue;
+
+        const std::string ext = candidate.extension().string();
+        if (ext != ".py" && ext != ".pyd" && ext != ".so" && ext != ".dll")
+            continue;
+        if (!fits_plain_windows_path(candidate))
+            return false;
+    }
+
+    // An unreadable directory cannot be probed; the extended-length form may still reach it.
+    return !ec;
+}
+
+// True when the plain spelling of the sys.path entry `dir` reaches everything the import of
+// `pkg_name` needs. A directory below the legacy Windows MAX_PATH can still hold package files
+// above it, and the finder then silently treats the package as a namespace package: an
+// unreachable __init__.py reads exactly like a missing one. The probes here therefore check the
+// entry files themselves, so a namespace package and a compiled-only package keep the plain
+// spelling, while any entry file past the limit gets the extended-length form, which imports it
+// just as well.
+bool module_entry_reachable(const boost::filesystem::path& dir, const std::string& pkg_name)
+{
+    namespace fs = boost::filesystem;
+
+    fs::path    relative;
+    std::string component;
+    for (const char ch : pkg_name) {
+        if (ch == '.') {
+            relative /= component;
+            component.clear();
+        } else {
+            component += ch;
+        }
+    }
+    if (component.empty())
+        return false;
+    relative /= component;
+
+    const fs::path entry = dir / relative;
+
+    boost::system::error_code ec;
+    if (fs::is_directory(entry, ec))
+        return plain_path_reaches_entry_files(entry, "__init__");
+
+    // Boost reports a missing path through ec too (ENOENT, or on Windows ERROR_FILE_NOT_FOUND /
+    // ERROR_PATH_NOT_FOUND), so the code alone cannot tell the single-module layout from a path
+    // past MAX_PATH. The length can: a fitting absent entry is a module that lives next to it,
+    // while one that does not fit cannot be probed plainly and takes the extended-length form.
+    if (!fits_plain_windows_path(entry))
+        return false;
+
+    // A single module: <pkg>.py or a compiled <pkg>.<tag>.pyd/.so next to the package path.
+    const fs::path parent = relative.parent_path().empty() ? dir : dir / relative.parent_path();
+    return plain_path_reaches_entry_files(parent, relative.filename().string());
 }
 
 bool add_sys_path_entry(const boost::filesystem::path& path, std::string& error, bool* inserted = nullptr)
@@ -480,6 +569,105 @@ std::string PythonInterpreter::bundled_uv_path()
     return {};
 }
 
+bool PythonInterpreter::run_uv(const std::vector<std::string>& args, std::chrono::seconds timeout, std::string& error)
+{
+    error.clear();
+
+    const std::string uv_path = bundled_uv_path();
+    if (uv_path.empty()) {
+        error = "Bundled uv executable not found. Python package installation is unavailable.";
+        return false;
+    }
+
+    try {
+        namespace process = boost::process;
+
+        process::ipstream std_err;
+#ifdef _WIN32
+        // boost::process' narrow overload spawns through CreateProcessA, which interprets the
+        // executable and arguments in the active ANSI codepage. The uv path and every argument
+        // here are UTF-8 (boost::nowide::nowide_filesystem makes path::string() UTF-8), so hand
+        // Boost UTF-16 strings and let it spawn through CreateProcessW instead.
+        const std::wstring        uv_path_wide = boost::nowide::widen(uv_path);
+        std::vector<std::wstring> args_wide;
+        args_wide.reserve(args.size());
+        for (const std::string& arg : args)
+            args_wide.emplace_back(boost::nowide::widen(arg));
+#endif
+        process::child child(
+#ifdef _WIN32
+            uv_path_wide, process::args(args_wide),
+#else
+            uv_path, process::args(args),
+#endif
+#ifdef _WIN32
+            // uv.exe (and the python.exe it spawns) are console-subsystem programs.
+            // OrcaSlicer is a GUI app with no console of its own, so without this flag
+            // Windows allocates a fresh console window for the child that flashes on
+            // screen during startup plugin loading. Matches ProcessRunner/MediaPlayCtrl.
+            process::windows::create_no_window,
+#endif
+            process::std_err > std_err);
+
+        std::string err_output;
+        std::thread stderr_reader([&std_err, &err_output]() {
+            std::string line;
+            while (std::getline(std_err, line)) {
+                err_output += line + '\n';
+            }
+        });
+
+        // NOTE: we poll child.running() instead of calling child.wait_for().
+        // On macOS (which lacks sigtimedwait) boost.process v1 implements the
+        // timed waits with a sigwait()-based fallback that deadlocks inside a
+        // multi-threaded process: SIGCHLD is delivered to an arbitrary thread
+        // and consumed by an async handler, so the worker thread's sigwait()
+        // never returns and the timeout never fires — the plugin load hangs
+        // forever (the "Loading" status never clears). child.running() uses
+        // waitpid(WNOHANG), which behaves correctly on every platform.
+        // (boost.process v2, in Boost >= 1.86, implements timed waits via Asio
+        // and is unaffected — revisit this when the bundled Boost is upgraded.)
+        const auto deadline = std::chrono::steady_clock::now() + timeout;
+
+        std::error_code run_ec;
+        while (child.running(run_ec)) {
+            if (run_ec) {
+                stderr_reader.join();
+                error = "Failed to query uv process status: " + run_ec.message();
+                BOOST_LOG_TRIVIAL(error) << error;
+                return false;
+            }
+            if (std::chrono::steady_clock::now() >= deadline) {
+                std::error_code term_ec;
+                child.terminate(term_ec);
+                child.wait(term_ec);
+                stderr_reader.join();
+                error = "uv pip install timed out after " + std::to_string(timeout.count()) + "s";
+                BOOST_LOG_TRIVIAL(error) << error;
+                return false;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        stderr_reader.join();
+
+        const int exit_code = child.exit_code();
+        if (exit_code != 0) {
+            if (!err_output.empty())
+                error = "uv pip install failed (exit code " + std::to_string(exit_code) + "): " + err_output;
+            else
+                error = "uv pip install failed with exit code " + std::to_string(exit_code);
+            BOOST_LOG_TRIVIAL(error) << error;
+            return false;
+        }
+
+        return true;
+    } catch (const std::exception& ex) {
+        error = std::string("Failed to run uv: ") + ex.what();
+        BOOST_LOG_TRIVIAL(error) << error;
+        return false;
+    }
+}
+
 bool PythonInterpreter::initialize()
 {
     std::unique_lock<std::shared_timed_mutex> runtime_lock(m_runtime_mutex);
@@ -764,6 +952,18 @@ int PythonInterpreter::join_non_daemon_threads(std::chrono::milliseconds timeout
                 .count();
         };
 
+        // A hook thread an earlier call gave up on may still be running the hooks. Py_Finalize must
+        // not start under it: stopped there, it unwinds through the lambda below and releases
+        // Python objects without the GIL. It is waited for and counted like this call's own.
+        constexpr const char *hook_thread_name = "orca-threading-atexit";
+        for (const pybind11::handle thread : threading.attr("enumerate")()) {
+            if (thread.attr("name").cast<std::string>() != hook_thread_name)
+                continue;
+            thread.attr("join")(seconds_left());
+            if (thread.attr("is_alive")().cast<bool>())
+                return 1;
+        }
+
         // An idle concurrent.futures worker only ends once the hooks registered with
         // threading._register_atexit() tell it to, which Py_Finalize does before it joins the
         // threads. They run first here, on a daemon thread: a hook joins its workers without a
@@ -775,7 +975,7 @@ int PythonInterpreter::join_non_daemon_threads(std::chrono::milliseconds timeout
                                                  for (pybind11::ssize_t i = calls.size(); i-- > 0;)
                                                      calls[i]();
                                              }),
-                                             pybind11::arg("name") = "orca-threading-atexit", pybind11::arg("daemon") = true);
+                                             pybind11::arg("name") = hook_thread_name, pybind11::arg("daemon") = true);
             hooks.attr("start")();
             hooks.attr("join")(seconds_left());
         }
@@ -1158,9 +1358,19 @@ PyObject* PythonInterpreter::load_module_from_directory(const std::string& dir_p
     }
 
     namespace fs = boost::filesystem;
-    fs::path dir(dir_path);
+    // A wheel cache below the data directory can pass the legacy Windows MAX_PATH, in the
+    // directory itself or in the package files below it, where boost::filesystem and the
+    // interpreter's finder cannot reach either. The plain spelling is what the plugin then sees as
+    // __file__ and sys.path, and what the host compares against the plain plugin root, so it is
+    // kept while the entry module is reachable through it; otherwise the extended-length form is
+    // used for the probe and for sys.path, and the recorded entry matches what is on it.
+    // extended_path() is the identity off Windows.
+    fs::path io_dir(dir_path);
+    if (!io_dir.empty() && !module_entry_reachable(io_dir, pkg_name))
+        io_dir = extended_path(io_dir);
 
-    if (!fs::exists(dir) || !fs::is_directory(dir)) {
+    boost::system::error_code ec;
+    if (!fs::is_directory(io_dir, ec) || ec) {
         error = "Directory does not exist: " + dir_path;
         return nullptr;
     }
@@ -1171,7 +1381,7 @@ PyObject* PythonInterpreter::load_module_from_directory(const std::string& dir_p
         return nullptr;
     }
 
-    const std::string directory = dir.string();
+    const std::string directory = io_dir.string();
     if (!add_plugin_sys_path_locked(directory, error))
         return nullptr;
     if (plugin_paths)
@@ -1192,36 +1402,6 @@ PyObject* PythonInterpreter::load_module_from_directory(const std::string& dir_p
     }
 
     return module;
-}
-
-PyObject* PythonInterpreter::load_module_from_whl(const std::string& file_path,
-                                                  const std::string& pkg_name,
-                                                  std::string&       error,
-                                                  std::vector<std::string>* plugin_paths,
-                                                  std::vector<std::string>* plugin_modules)
-{
-    if (!m_initialized.load(std::memory_order_acquire)) {
-        error = "Python interpreter not initialized";
-        return nullptr;
-    }
-
-    namespace fs = boost::filesystem;
-
-    fs::path whl_path(file_path);
-
-    if (!fs::exists(whl_path)) {
-        error = "File does not exist: " + file_path;
-        return nullptr;
-    }
-
-    fs::path extract_dir = whl_path.parent_path() / "__whl_extracted__" / pkg_name;
-
-    if (!fs::exists(extract_dir)) {
-        if (!extract_zip_to_directory(whl_path, extract_dir, error))
-            return nullptr;
-    }
-
-    return load_module_from_directory(extract_dir.string(), pkg_name, error, plugin_paths, plugin_modules);
 }
 
 } // namespace Slic3r
