@@ -4,6 +4,7 @@
 #include "MoonrakerPrinterAgent.hpp"
 
 #include <string>
+#include <vector>
 
 namespace Slic3r {
 
