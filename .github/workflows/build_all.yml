@@ -1,4 +1,4 @@
-﻿name: Build all
+name: Build all
 
 on:
   push:
@@ -83,7 +83,7 @@ jobs:
   # the builds.
   check_build_script:
     name: Windows build script tests
-    runs-on: windows-2022
+    runs-on: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-2022' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -107,7 +107,7 @@ jobs:
       matrix:
         include:
           - arch: x64
-            os: windows-2022
+            os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-2022' }}
             compiler: clang
             preset: x64-clang
             flags: -l -x
@@ -161,18 +161,11 @@ jobs:
   build_linux:
     strategy:
       fail-fast: false
+      # SELF_HOSTED skips arm64: the local Linux server is x86_64 only.
       matrix:
-        include:
-          - arch: x64
-            os: ubuntu-24.04
-            compiler: clang
-            preset: x64-clang
-            flags: -l -x
-          - arch: aarch64
-            os: ubuntu-24.04-arm
-            compiler: clang
-            preset: aarch64-clang
-            flags: -l -x
+        include: ${{ fromJSON(vars.SELF_HOSTED
+          && '[{"arch":"x64","os":"orca-lnx-server","compiler":"clang","preset":"x64-clang","flags":"-l -x"}]'
+          || '[{"arch":"x64","os":"ubuntu-24.04","compiler":"clang","preset":"x64-clang","flags":"-l -x"},{"arch":"aarch64","os":"ubuntu-24.04-arm","compiler":"clang","preset":"aarch64-clang","flags":"-l -x"}]') }}
     needs: check_build_script
     if: ${{ !cancelled() && needs.check_build_script.result == 'success' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
@@ -193,13 +186,13 @@ jobs:
     if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests.yml
     with:
-      os: ubuntu-24.04
+      os: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }}
       artifact: ${{ github.sha }}-tests-linux-x86_64
   
   unit_tests_linux_aarch64:
     name: Linux aarch64
     needs: build_linux
-    if: ${{ !cancelled() && success() }}
+    if: ${{ !cancelled() && success() && !vars.SELF_HOSTED }}
     uses: ./.github/workflows/unit_tests.yml
     with:
       os: ubuntu-24.04-arm
@@ -211,7 +204,7 @@ jobs:
     if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests.yml
     with:
-      os: windows-2022
+      os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-2022' }}
       artifact: ${{ github.sha }}-tests-windows-x64-x64-clang
   
   unit_tests_macos_arm64:
@@ -227,10 +220,10 @@ jobs:
   unit_tests_macos_x86_64:
     name: macOS x86_64
     needs: build_macos_arch
-    if: ${{ !cancelled() && success() }}
+    if: ${{ !cancelled() && success() && !vars.SELF_HOSTED }}
     uses: ./.github/workflows/unit_tests.yml
     with:
-      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}-intel
+      os: macos-15-intel
       artifact: ${{ github.sha }}-tests-macos-x86_64
       test-dir: build/x86_64/tests
 
@@ -242,7 +235,7 @@ jobs:
   # Profile-only PRs are covered by check_profiles.yml's nightly binary; this
   # covers src/engine PRs with the PR-built binary.
   slice_check_linux:
-    name: Slice check (Linux aarch64)
+    name: Slice check (Linux ${{ vars.SELF_HOSTED && 'x86_64' || 'aarch64' }})
     needs: build_linux
     if: ${{ !cancelled() && success() }}
     # Follows whichever Linux leg built the validator.

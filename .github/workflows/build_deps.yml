@@ -80,26 +80,26 @@ jobs:
 
       # Load cached deps: self-hosted uses local cache first, GitHub-hosted uses cloud
       - name: load cached deps (self-hosted local)
-        if: false
+        if: ${{ vars.SELF_HOSTED }}
         uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/${{ inputs.cache-path }}
           key: ${{ inputs.cache-key }}
           restore-keys: |
-            ${{ inputs.cache-prefix }}${github.base_ref}-
-            ${{ inputs.cache-prefix }}main-
+            ${{ inputs.cache-prefix }}${{ github.base_ref }}_
+            ${{ inputs.cache-prefix }}main_
             ${{ inputs.cache-prefix }}
           enableCrossOsArchive: true
 
       - name: load cached deps (GitHub-hosted cloud)
-        if: true
+        if: ${{ !vars.SELF_HOSTED }}
         uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/${{ inputs.cache-path }}
           key: ${{ inputs.cache-key }}
           restore-keys: |
-            ${{ inputs.cache-prefix }}${github.base_ref}-
-            ${{ inputs.cache-prefix }}main-
+            ${{ inputs.cache-prefix }}${{ github.base_ref }}_
+            ${{ inputs.cache-prefix }}main_
             ${{ inputs.cache-prefix }}
 
       - uses: lukka/get-cmake@latest
@@ -188,8 +188,11 @@ jobs:
             Remove-Item $spZip -Force
             Add-Content -LiteralPath $env:GITHUB_PATH -Value (Join-Path $spDest 'perl\bin')
             Add-Content -LiteralPath $env:GITHUB_PATH -Value (Join-Path $spDest 'c\bin')
-            # NASM for OpenSSL SIMD (warning only if missing, but nice to have)
-            choco install nasm -y 2>$null | Out-Null
+            # NASM for OpenSSL SIMD (warning only if missing, but nice to have).
+            # Chocolatey is unavailable on the self-hosted runner.
+            if (-not "${{ vars.SELF_HOSTED }}") {
+              choco install nasm -y 2>$null | Out-Null
+            }
             # Prepend Strawberry Perl to PATH for THIS step so build_win.ps1 finds
             # it before Git for Windows' cygwin perl (which shadows it).
             $env:PATH = (Join-Path $spDest 'perl\bin') + ';' + (Join-Path $spDest 'c\bin') + ';' + $env:PATH
@@ -228,10 +231,10 @@ jobs:
         shell: powershell
 
       - name: Build on Mac ${{ inputs.arch }}
-        if: runner.os == 'macOS' && !vars.SELF_HOSTED
+        if: runner.os == 'macOS'
         working-directory: ${{ github.workspace }}
         run: |
-            if true; then
+            if [ -z "${{ vars.SELF_HOSTED }}" ]; then
               brew install automake texinfo libtool pkgconf yasm nasm
             fi
             ./build_release_macos.sh -dx ${{ !vars.SELF_HOSTED && '-j 3' || '' }} -a ${{ inputs.arch }} -t 10.15
