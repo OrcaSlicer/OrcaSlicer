@@ -4,7 +4,7 @@ The design of this area's sweep tests. The rules every entry follows, the grades
 in [TESTS.md](../TESTS.md).
 
 ## `test_plates`
-`test_plates.py` · Python, 221 checks · in `sweep.json` as `{"path": "test_plates.py"}`
+`test_plates.py` · Python, 222 checks · in `sweep.json` as `{"path": "test_plates.py"}`
 
 **Tests:** The plates of the Prepare view: adding, duplicating, naming, locking, selecting and deleting plates, and
 undoing that; what a lock keeps Arrange and Auto-Orient from doing; the settings a plate sets for itself; the
@@ -28,8 +28,8 @@ temporary folder, which is removed when the test ends.
 
 **Reads:** `plates()` gives each plate as `{name, current, locked, objects}` from `plate_list`. `objects()` gives
 each object as `{name, plate}` from `object_list`, and the objects outside the plates by name. `slots()` gives the
-filament slots as `filament_is_mixed` from `project_get_settings`, one digit per slot (`"0,0,1"`: three slots, the
-third a mixed filament).
+filament slots as the `mixed` of each `filament_list` row, one digit per slot (`"0,0,1"`: three slots, the third a
+mixed filament).
 
 In the tables a plate is written as its name and its number of objects, with `*` on the current plate and `L` on a
 locked one, and the plates are listed in order between `·`: `"" 1 *` · `"Copy" 1 L` is an unnamed current plate with
@@ -48,7 +48,7 @@ whole.
 | 6 | `plate_delete {plate: 0}` | `"Left" 0 *` · `"" 0 L` | the plates after it move down; the current plate stays current |
 | 7 | `undo` | `"" 0` · `"Left" 0 *` · `"" 0 L` | the delete is one undo step |
 | 8 | `redo` | `"Left" 0 *` · `"" 0 L` | |
-| 9 | `project_save` to a new file, `project_new`, `project_open` of the file | `"Left" 0 *` · `"" 0 L` | names and locks are kept in the project file; the open first shows the app's warning "The file does not contain any geometry data.", answered OK |
+| 9 | `object_add_primitive {name: "kept", plate: 0}`, a 20 mm cube, then `project_save` to a new file, `project_new`, `project_open` of the file | `"Left" 1 *` · `"" 0 L`, after the add and after the open | names and locks are kept in the project file, and `objects()` gives the cube on plate 0; the cube is there so that the open shows no warning, which the app gives for a project file that holds no object |
 
 **Scenario: by index, and on the current plate**
 

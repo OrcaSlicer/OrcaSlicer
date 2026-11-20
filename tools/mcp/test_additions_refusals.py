@@ -22,9 +22,9 @@ row's note in widget_list says "has settings", as the icon that resets them show
 a null leaves the range none, and the list's selection stays as it was. With a G-code file of no settings open, the
 sidebar is off, and view_set of it is refused.
 
-filament_delete of the only filament slot is refused. With a mixed filament of slots 1 and 2, filament_delete of slot 1
-is refused, the mixed filament mixing it; a merge of slot 1 into the mixed filament is refused with the question Merge
-with asks; and a merge of the mixed slot is refused, a mixed filament being deleted but not merged. filament_add once
+filament_delete of the only filament slot is refused. With a mixed filament of slots 1 and 2, a merge of slot 1 into
+the mixed filament is refused where break_mix answers Merge with's question no ahead; and a merge of the mixed slot is
+refused, a mixed filament being deleted but not merged. filament_add once
 the project holds as many filament slots as it can is refused, and a pick of Add Filament Slot then says so, as its menu
 item did. The mixed filament is left, as a person would keep it.
 
@@ -217,7 +217,7 @@ def main():
     client.call("project_new", discard_changes=True)
     client.call("view_set", tab="prepare")
 
-    # ---- Filament slots: the only one is not deleted, nor a slot a mixed filament mixes, and a mixed one is not merged ----
+    # ---- Filament slots: the only one is not deleted, a merge answered no is not made, and a mixed one is not merged ----
     check("the project has one filament slot", slots() == 1, slots())
     refused("filament_delete of the only filament slot is refused", "filament_delete", {}, "only filament slot",
             "last_filament_slot")
@@ -225,13 +225,12 @@ def main():
     client.call("filament_add")
     mixed = client.call("filament_add_mixed", components=[1, 2], ratios=[50, 50])
     check("a mixed filament of slots 1 and 2 is slot 3", mixed.get("filament_slot") == 3, mixed)
-    refused("filament_delete of slot 1, which the mixed filament mixes, is refused", "filament_delete", {"filament_slot": 1},
-            "Filament slot 1 is mixed in the mixed filament of slot 3", "mixed_uses_slot")
-    refused("filament_delete of slot 1 merged into the mixed filament that mixes it is refused", "filament_delete",
-            {"filament_slot": 1, "merge_into": 3}, "uses this physical filament", "mixed_uses_slot")
+    refused("filament_delete of slot 1 merged into the mixed filament that mixes it, answered no, is refused",
+            "filament_delete", {"filament_slot": 1, "merge_into": 3, "break_mix": False},
+            "removes a filament that mixed filament mixes", "mixed_uses_slot")
     refused("filament_delete of the mixed filament merged into slot 1 is refused", "filament_delete",
             {"filament_slot": 3, "merge_into": 1}, "can be deleted but not merged", "mixed_filament_slot")
-    check("and the three leave the three slots", slots() == 3, slots())
+    check("and the two leave the three slots", slots() == 3, slots())
 
     # ---- No slot is added past the most a project holds ----
     for _ in range(MOST_SLOTS - slots()):

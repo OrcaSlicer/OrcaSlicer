@@ -3,15 +3,16 @@
 The design of this area's sweep tests. The rules every entry follows, the grades and the table of all tests are
 in [TESTS.md](../TESTS.md).
 
-Two tests, not one. `test_filaments` is about what a filament slot holds and what the project does with it (the
-preset in a slot, the unsaved-changes prompt, the flushing volumes, the filaments of objects and parts, the project's
-colours and prime tower); `test_settings` is about where a setting applies (a preset, an object, a part, a height
-range) and how the settings commands name those targets. They share no state: each sets the start it needs, so the
+Three tests. `test_filaments` is about what a filament slot holds and what the project does with it (the preset in a
+slot, the unsaved-changes prompt, the flushing volumes, the filaments of objects and parts, the slot colours and the
+prime tower); `test_mixed_filaments` is about the mixed filaments of the filament list (adding, changing and breaking
+one, and its dialogs); `test_settings` is about where a setting applies (a preset, an object, a part, a height range)
+and how the settings commands name those targets. They share no state: each sets the start it needs, so the
 sweep can run them side by side, or one after the other on one data folder. `test_filaments` also needs filament
 presets the selectors do not offer yet, which it makes so itself before its first scenario.
 
 ## `test_filaments`
-`test_filaments.py` · Python, 492 checks · in `sweep.json` as `{"path": "test_filaments.py", "timeout_s": 1500}`
+`test_filaments.py` · Python, 495 checks · in `sweep.json` as `{"path": "test_filaments.py", "timeout_s": 1500}`
 
 **Tests:** Assigning a filament preset to a filament slot through each route a person or a plugin has: a pick in the
 slot's selector in the sidebar, the selector's value set (`widget_set_value`), `preset_select`, and the plugin API's
@@ -20,8 +21,9 @@ slot's selector in the sidebar, the selector's value set (`widget_set_value`), `
 three slots, what the Auto-flush preference (`auto_calculate_flush`: All, Color, None) does to the flushing volumes when
 a slot's preset or colour changes, the unsaved changes of the preset the tab edits, the plugin API's other forms, the
 refusals and the hidden presets shown by name. Then multicolour printing: the filament of an object and of a part
-through `settings_set`, and the project's own settings through `project_set_settings` (slot colours, flushing volumes
-and multiplier, plate type, prime tower), with what reaches the print and what the project file keeps.
+through `settings_set`, the filament list's slot colours, flushing volumes and multiplier through `filament_set_colour`
+and `filament_set_flushing`, and the project's plate type and prime tower through `project_set_settings`, with what
+reaches the print and what the project file keeps.
 
 Every scenario runs on the Generic Klipper Printer 0.4. Nothing they check is a Bambu Lab printer's own: their
 filaments come from the Orca Filament Library, which fits every printer, and the colours, the flushing volumes, the
@@ -87,7 +89,7 @@ The routes, for slot `n` and preset `P`:
 - api: `plugin("orca.host.preset.filament.begin_update(n, P).commit()")`; other forms as the rows give them.
 
 **Reads:**
-- `slots()` as in `test_plates`: `filament_is_mixed` from `project_get_settings`, one digit per slot.
+- `slots()` as in `test_plates`: the `mixed` of each `filament_list` row, one digit per slot.
 - `state()` gives five fields, written `presets | tab | edits | colours | matrix`:
   - presets: each slot's preset, from `app_state` `presets.filaments`: `B X B`.
   - tab: the filament preset `preset_list {type: "filament", limit: 500}` marks `selected`, with `*` when it is also
@@ -95,9 +97,9 @@ The routes, for slot `n` and preset `P`:
   - edits: each slot's `slow_down_layer_time`, from `settings_get {type: "filament", filament_slot: n, keys:
     ["slow_down_layer_time"], include_meta: false}`, which reads the tab's unsaved value for a slot whose preset the tab
     edits: `9,4,9`.
-  - colours: `filament_colour` from `project_get_settings`. `c3` is `#111111;#222222;#333333` and `cX` is
+  - colours: each `filament_list` row's `colour`, joined by `;`. `c3` is `#111111;#222222;#333333` and `cX` is
     `#111111;#FFF8E7;#333333`.
-  - matrix: `flush_volumes_matrix` from `project_get_settings`, entries counted from 0 in the order it lists them (row
+  - matrix: `flush_volumes_matrix` from `filament_list`, entries counted from 0 in the order it lists them (row
     = from, column = to). `S3` is the sentinel `0,777,777,777,0,777,777,777,0`. `R2` is slot 2's row and column worked
     out by the app: entries 1, 3, 5 and 7 each above 0 and other than 777, entries 2 and 6 777 and the diagonal 0.
     `Sup` is `0,230,777,700,0,700,777,230,0`: a support filament in slot 2, 230 into it (`g_flush_volume_to_support`)
@@ -113,10 +115,10 @@ The routes, for slot `n` and preset `P`:
   · cylinder 2`: the cube on filament 1, its part 0 on 1 and its part 1 on 2, the cylinder on 2.
 - `item(target, key)` gives one item of `settings_get {target, object, part, keys: [key], include_meta: false}` as
   `{value, effective, source, parts}` and the reply's `note`; a field the reply leaves out is absent.
-- `project()` gives the project's own settings, written `colours | multiplier | matrix | plate type | tower`: from
-  `project_get_settings`, `filament_colour`, `flush_multiplier`, `flush_volumes_matrix`, `curr_bed_type`, and plate 0's
-  `wipe_tower_x` and `wipe_tower_y`; and `plate_list`'s plate 0 `curr_bed_type` and `wipe_tower`, which must agree with
-  them.
+- `project()` gives the filament list's and the project's own settings, written `colours | multiplier | matrix | plate
+  type | tower`: from `filament_list`, the rows' `colour` joined by `;`, `flush_multiplier` and `flush_volumes_matrix`;
+  from `project_get_settings`, `curr_bed_type` and plate 0's `wipe_tower_x` and `wipe_tower_y`; and `plate_list`'s plate
+  0 `curr_bed_type` and `wipe_tower`, which must agree with them.
 - `grams()` gives, for each slot, `model_g`, `flush_g` and `tower_g`, and the plate's `filament_changes`, from the
   `summary` of `plate_slice_stats {plate: 0}` read after the slice.
 
@@ -138,8 +140,8 @@ Each case of the slot scenarios starts from `arrange(presets, dirty)`, whose res
 drops the tab's unsaved changes (`settings_set {type: "filament", filament_slot, reset_all: true}` on a slot holding the
 preset the tab edits), puts `presets` in the slots with `preset_select {preset_changes: "discard"}`, switches the tab to
 slot 1's preset with `settings_set {type: "filament", filament_slot: 1, reset_all: true}`, and sets the colours to
-`#111111`, `#222222`, `#333333` (as many as there are slots) and the matrix to the sentinels with one
-`project_set_settings` call, the colours first and the whole matrix replacing whatever they recalculated. With `dirty`
+`#111111`, `#222222`, `#333333` (as many as there are slots) with `filament_set_colour`, slot by slot, then the matrix
+to the sentinels with `filament_set_flushing`, the whole matrix replacing whatever the colours recalculated. With `dirty`
 it then sets `slow_down_layer_time` 9 on slot 1's preset with `settings_set {type: "filament", filament_slot: 1}`.
 
 **Scenario: hidden filaments, shown by name** (runs first)
@@ -228,8 +230,8 @@ on slot 2: the pick and the tool leave the tab on `B`, the api moves it to the p
 | None | `M` | `B M B \| B \| 4,4,4 \| c3 \| S3` | `M` | |
 | None | `S` | `B S B \| B \| 4,8,4 \| c3 \| S3` | `S` | |
 
-After the filament rows of each preference, one more case from the same start: `project_set_settings {values:
-{filament_colour: {index: 1, value: "#FFF8E7"}}}`, the colour picker's change. Under All and Color it leaves `B B B | B
+After the filament rows of each preference, one more case from the same start: `filament_set_colour {filament_slot:
+2, colour: "#FFF8E7"}`, the colour picker's change. Under All and Color it leaves `B B B | B
 | 4,4,4 | cX | R2`; under None `B B B | B | 4,4,4 | cX | S3`. Where `R2` is expected, the three routes of `X` and the
 colour change give the same four entries under one preference, and Color gives what All gave for `X`: an assignment
 recalculates as a colour change does, and on the Klipper printer the preset a slot holds does not change what the
@@ -312,34 +314,35 @@ filament change into the prime tower, so the purges of the slices below are in `
 | 10 | `undo` | `cube 1 (1, 2) · cylinder 2` | `item(object 0, extruder)` as after 5; `item(object 0, wall_loops)` `{value: null, effective: "3", source: "global"}`, the `wall_loops` of `0.20mm Standard @MyKlipper`: the call was one undo step |
 | 11 | `plate_slice` | as after 10 | outcome `ok`; `grams()` slot 2 `model_g` above step 6's: the cylinder prints with filament 2 too; slot 1 `model_g` above 0; `filament_changes` above 0 |
 
-**Scenario: the project's own settings, the print and the file**
+**Scenario: the slot colours, the flushing and the project's own settings, the print and the file**
 
 From `start(client, filaments=[B, M])` and the printer's plate types turned on (see Starts from): `presets()` is
 `{printer: "MyKlipper 0.4 nozzle", process: "0.20mm Standard @MyKlipper", filaments: [B, M]}`, `support_multi_bed_types`
 reads "1" and `slots()` is `0,0`. The cube, its part and the cylinder of the scenario before are added the same way,
 and the part and the cylinder given filament 2 with `settings_set`: `filaments()` is `cube 1 (1, 2) · cylinder 2`.
-Then, with `project_set_settings`, the colours `#111111;#222222`, the matrix `0,777,777,0`, the multiplier 1, the
-plate type "Cool Plate" and plate 0's prime tower at (60, 150). The start is checked: `project()` is
+Then the colours `#111111;#222222` with `filament_set_colour`, the matrix `0,777,777,0` and the multiplier 1 with
+`filament_set_flushing`, and the plate type "Cool Plate" and plate 0's prime tower at (60, 150) with
+`project_set_settings`. The start is checked: `project()` is
 `#111111;#222222 | 1 | 0,777,777,0 | Cool Plate | 60,150`, and `presets().filaments` is `[B, M]`. `project()` is read
 after every step; a value it gives is written out in full in the table.
 
 | # | Step | `project()` after | Also checked |
 |---|---|---|---|
-| 1 | `project_get_settings {keys: [filament_is_mixed, curr_bed_type, prime_volume_mode]}` | `#111111;#222222 \| 1 \| 0,777,777,0 \| Cool Plate \| 60,150` | `filament_is_mixed` "0,0" with `meta.read_only` true; `curr_bed_type`'s `meta.offered` holds "Cool Plate" and "Textured PEI Plate"; `prime_volume_mode` "Default" with `meta.offered` empty: the Klipper printer has no purge mode to choose |
-| 2 | `project_set_settings {values: {filament_colour: {index: 0, value: "#ffffff"}}}` | `#FFFFFF;#222222 \| 1 \| 0,<a>,<b>,0 \| Cool Plate \| 60,150` | reply `applied.filament_colour` "#FFFFFF;#222222": stored in upper case. `<a>` and `<b>` are worked out by the app, neither 777, and `<b>` (into white) greater than `<a>` (out of it) |
-| 3 | `flush_volumes_matrix: [0, 777, 777, 0]`, then one call with `filament_colour: {index: 1, value: "#000000"}`, `flush_multiplier: 0.7`, `flush_volumes_matrix: {index: 1, value: 400}` and `curr_bed_type: "Textured PEI Plate"` | `#FFFFFF;#000000 \| 0.7 \| 0,400,<c>,0 \| Textured PEI Plate \| 60,150` | `<c>` neither 777 nor 400: the colour went first, its recalculation replaced entry 2, and the entry given replaced entry 1 |
-| 4 | `flush_volumes_matrix: [0, 400, 300, 0]` | `#FFFFFF;#000000 \| 0.7 \| 0,400,300,0 \| Textured PEI Plate \| 60,150` | |
-| 5 | `wipe_tower_x: {index: 0, value: 150}` and `wipe_tower_y: {index: 0, value: 180}` in one call | `#FFFFFF;#000000 \| 0.7 \| 0,400,300,0 \| Textured PEI Plate \| 150,180` | reply has no `note`: the tower fits there |
+| 1 | `filament_list`, then `project_get_settings {keys: [curr_bed_type]}` | `#111111;#222222 \| 1 \| 0,777,777,0 \| Cool Plate \| 60,150` | both rows `mixed` false; `prime_volume_mode` "Default" and no `prime_volume_modes`: the Klipper printer has no purge mode to choose; `curr_bed_type`'s `meta.offered` holds "Cool Plate" and "Textured PEI Plate" |
+| 2 | `filament_set_colour {filament_slot: 1, colour: "#ffffff"}` | `#FFFFFF;#222222 \| 1 \| 0,<a>,<b>,0 \| Cool Plate \| 60,150` | reply `{filament_slot: 1, colour: "#FFFFFF", changed: true}`: stored in upper case. `<a>` and `<b>` are worked out by the app, neither 777, and `<b>` (into white) greater than `<a>` (out of it) |
+| 3 | `filament_set_flushing {flush_volumes_matrix: [0, 777, 777, 0]}`, `filament_set_colour {filament_slot: 2, colour: "#000000"}`, `filament_set_flushing {flush_multiplier: 0.7, flush_volumes_matrix: {index: 1, value: 400}}` and `project_set_settings {values: {curr_bed_type: "Textured PEI Plate"}}` | `#FFFFFF;#000000 \| 0.7 \| 0,400,<c>,0 \| Textured PEI Plate \| 60,150` | `<c>` neither 777 nor 400: the colour's recalculation replaced entry 2, and the entry given after it replaced entry 1 |
+| 4 | `filament_set_flushing {flush_volumes_matrix: [0, 400, 300, 0]}` | `#FFFFFF;#000000 \| 0.7 \| 0,400,300,0 \| Textured PEI Plate \| 60,150` | reply `applied` holds `flush_volumes_matrix` |
+| 5 | `project_set_settings` with `wipe_tower_x: {index: 0, value: 150}` and `wipe_tower_y: {index: 0, value: 180}` in one call | `#FFFFFF;#000000 \| 0.7 \| 0,400,300,0 \| Textured PEI Plate \| 150,180` | reply has no `note`: the tower fits there |
 | 6 | `wipe_tower_x: {index: 0, value: 40}` | `#FFFFFF;#000000 \| 0.7 \| 0,400,300,0 \| Textured PEI Plate \| 40,180` | |
 | 7 | `undo` | `#FFFFFF;#000000 \| 0.7 \| 0,400,300,0 \| Textured PEI Plate \| 150,180` | the move was one undo step of its own |
-| 8 | `filament_is_mixed: "1"` | as after 7 | refused, "filament_is_mixed is read-only: mixed filaments are made in the sidebar's mixed filament list"; `slots()` `0,0` |
-| 9 | `filament_colour: {index: 1, value: "white"}` with `flush_multiplier: 0.5` in one call | as after 7 | refused, "Slot 2's colour "white" is not #RRGGBB"; the multiplier in the same call is not set either |
-| 10 | `prime_volume_mode: "Saving"` | as after 7 | refused, "prime_volume_mode: this printer has no purge mode to choose"; `prime_volume_mode` reads "Default" |
-| 11 | `flush_volumes_matrix: {index: 0, value: 10}` | as after 7 | refused, "flush_volumes_matrix[0] (nozzle 1, from slot 1 to slot 1) must be 0: no flush from a filament to itself" |
-| 12 | `wipe_tower_x: {index: 0, value: 300}` | as after 7 | refused, "The prime tower of plate 0 would be off the plate" |
+| 8 | `project_set_settings {values: {flush_multiplier: 0.5}}`, then `project_get_settings {keys: [filament_colour]}` | as after 7 | refused, saying "flush_multiplier" "belongs to the filament list" and naming `filament_set_flushing`; the read gives no item, `unknown_keys` `[filament_colour]` and `type_of` `{filament_colour: "filament_list"}` |
+| 9 | `filament_set_flushing {flush_multiplier: 0.5, flush_volumes_matrix: {index: 0, value: 10}}` | as after 7 | refused, "flush_volumes_matrix[0] (nozzle 1, from slot 1 to slot 1) must be 0: no flush from a filament to itself"; the multiplier in the same call is not set either |
+| 10 | `filament_set_flushing {prime_volume_mode: "Saving"}` | as after 7 | refused, "prime_volume_mode: this printer has no purge mode to choose"; `prime_volume_mode` reads "Default" |
+| 11 | `filament_set_colour {filament_slot: 2, colour: "white"}` | as after 7 | refused, "Slot 2's colour "white" is not #RRGGBB" |
+| 12 | `project_set_settings {values: {wipe_tower_x: {index: 0, value: 300}}}` | as after 7 | refused, "The prime tower of plate 0 would be off the plate" |
 | 13 | `plate_slice` | as after 7 | outcome `ok`; `grams()` each slot's `model_g` and `tower_g` above 0 and `flush_g` 0, and `filament_changes` above 0 |
-| 14 | `flush_volumes_matrix: {index: 1, value: 200}`, then `plate_slice` | `#FFFFFF;#000000 \| 0.7 \| 0,200,300,0 \| Textured PEI Plate \| 150,180` | `grams()`: slot 2's `tower_g` lower than after 13; each slot's `model_g`, to 0.01 g, and `filament_changes` as after 13 |
-| 15 | `flush_multiplier: 1.4`, then `plate_slice` | `#FFFFFF;#000000 \| 1.4 \| 0,200,300,0 \| Textured PEI Plate \| 150,180` | `grams()`: each slot's `tower_g` higher than after 14 |
+| 14 | `filament_set_flushing {flush_volumes_matrix: {index: 1, value: 200}}`, then `plate_slice` | `#FFFFFF;#000000 \| 0.7 \| 0,200,300,0 \| Textured PEI Plate \| 150,180` | `grams()`: slot 2's `tower_g` lower than after 13; each slot's `model_g`, to 0.01 g, and `filament_changes` as after 13 |
+| 15 | `filament_set_flushing {flush_multiplier: 1.4}`, then `plate_slice` | `#FFFFFF;#000000 \| 1.4 \| 0,200,300,0 \| Textured PEI Plate \| 150,180` | `grams()`: each slot's `tower_g` higher than after 14 |
 | 16 | `project_save` to a new file, `project_new {discard_changes: true, preset_changes: "discard"}`, `project_open` of the file | as after 15 | `filaments()` `cube 1 (1, 2) · cylinder 2`; `presets().filaments` `[B, M]`; `slots()` `0,0`; `support_multi_bed_types` "1": the project file keeps them, and the printer's settings with the plate type. The new project drops the printer's edit first, which `project_open` would otherwise ask about in a "Load project: unsaved changes" dialog |
 
 **To settle in review:**
@@ -385,9 +388,9 @@ after every step; a value it gives is written out in full in the table.
   gives it 1500 s.
 
 **Not checked:**
-- Adding and deleting slots, and the mixed filament's rules: `test_plates` (its filament slots scenario). Assigning a
-  preset to a mixed slot, by the tool and the plugin API: `test_operation_routes`, which checks the code and the
-  words; the state that refusal leaves is not read there either.
+- Adding and deleting slots: `test_plates` (its filament slots scenario). The mixed filaments, adding, changing and
+  breaking one, and a mixed slot having no preset: `test_mixed_filaments`. Assigning a preset to a mixed slot by the
+  plugin API: `test_operation_routes`, which checks the code and the words.
 - The prompt's Save button: saving the edits as a new preset is `test_presets`'s.
 - Whether an assignment takes an undo step: a preset change is not in the project's undo history (as `settings_set`
   says of a preset's), and the snapshots can be read only from the app's log.
@@ -417,6 +420,154 @@ after every step; a value it gives is written out in full in the table.
 flushing volumes whole with the state written out here, asserts the prompt, each reply and each refusal or raise
 exactly, checks the volumes the app works out by stated properties, and shows the filaments and the flush settings in
 the print and in the project file.
+
+## `test_mixed_filaments`
+`test_mixed_filaments.py` · Python, 182 checks · in `sweep.json` as `{"path": "test_mixed_filaments.py"}`
+
+**Tests:** The mixed filaments of the filament list against the sidebar's mixed filament list: reading them with
+`filament_list`; adding one with `filament_add_mixed` and changing one with `filament_edit_mixed`, each from its
+arguments and through its dialog, where the gradient is set; a mixed slot having no preset or colour of its own (the
+preset and settings tools refuse it); and what deleting or merging a filament that a mix mixes does to the mix, as the
+sidebar does it: broken, and repaired by an edit. It runs on the Generic Klipper Printer 0.4, whose one extruder takes
+several filaments; nothing it checks is a Bambu Lab printer's own.
+
+**Starts from:** Each scenario starts with `start(client)`, whose `presets()` must be `{printer: "MyKlipper 0.4
+nozzle", process: "0.20mm Standard @MyKlipper", filaments: ["Generic PLA @System"]}`, then `filament_add` twice:
+`slots()` is `0,0,0`, and the three physical rows of `filament_list` have `preset` "Generic PLA @System" and `type`
+"PLA". `start()` deletes the mixed filaments an earlier test or run left before it sets one slot, so no scenario meets a
+mix it did not make. The first scenario also reads slot 1's colour, which the test puts back at its end (Leaves). A
+scenario that reads a mix's colour sets slots 2 and 3 to `#FF0000` and `#0000FF` with `filament_set_colour`, and never
+slot 1.
+
+**Leaves:** In the app's presets, the Klipper printer with the slots the last scenario leaves (one physical slot and two
+broken mixed filaments, which the sidebar hides beside one physical filament), which the next test's `start()` replaces:
+it adds a slot, so that the mixes can be deleted, deletes them, and goes back to one slot; slot 1 keeps its colour,
+which this test has put back to the one it found. Two project files in its temporary folder, deleted with it,
+at the top of the recent projects. No preset: its refused `preset_save` saves none.
+
+**Reads:**
+- `slots()` as in `test_plates`: the `mixed` of each `filament_list` row, one digit per slot (`0,0,0,1`).
+- `mixes()` gives `filament_list`'s mixed rows, each written `slot = components @ ratios`, then `, bottom b top t` and
+  `, per part` for a gradient, and `, broken` for a broken mix, the rows joined by `·`: `4 = 2,3 @ 50,50` is slot 4
+  mixing slots 2 and 3 half and half; `4 = 2,3 @ 50,50, bottom 3 top 2, per part` the same with a gradient from slot 3
+  at the bottom to slot 2 at the top, each part on its own; `3 = 0,1 @ 50,50, broken` a mix whose first component was
+  deleted. A gradient whose `curve` is not `linear` fails every row: no step draws one.
+- `on(name)` gives the filament of the object named so, from `object_list`.
+- `dialogs()` gives the open dialogs from `app_state.dialogs` as `{title, buttons}`.
+
+After every step `slots()` and `mixes()` are compared with the row whole. A call held by a dialog replies
+`blocked_by_dialog`; the test checks `dialogs()`, answers as the row says, waits for the call's job with `app_wait {for:
+"job"}` and checks that the wait was met and `dialogs()` is empty. A refusal is matched by its code.
+
+**Scenario: adding and reading**
+
+| # | Step | `slots()` | `mixes()` | Also checked |
+|---|---|---|---|---|
+| 1 | `filament_add_mixed {components: [2, 3], ratios: [50, 50]}` | `0,0,0,1` | `4 = 2,3 @ 50,50` | reply `{added: true, filament_slot: 4}`; row 4 has a `#RRGGBB` `colour`, no `preset` and no `type`; rows 1 to 3 keep their preset; `flush_volumes_matrix` holds 16 entries, 4 x 4 over every slot |
+| 2 | the same call | `0,0,0,1` | as after 1 | reply `{added: false, filament_slot: 4}`: a mix the project has is not added again |
+| 3 | `filament_add_mixed {components: [1, 2, 3], ratios: [20, 30, 50]}` | `0,0,0,1,1` | `4 = 2,3 @ 50,50 · 5 = 1,2,3 @ 20,30,50` | reply `{added: true, filament_slot: 5}` |
+| 4 | `filament_add_mixed {components: [2, 3]}` | as after 3 | as after 3 | refused, `components_and_ratios` |
+| 5 | `filament_add` | `0,0,0,0,1,1` | `5 = 2,3 @ 50,50 · 6 = 1,2,3 @ 20,30,50` | reply `filament_slot` 4: a physical slot goes before the mixes, which move up with their components as they were |
+| 6 | a 20 mm cube `kept` added, `project_save` to `W/mixes.3mf`, `filament_delete {filament_slot: 6}`, then `project_open` of the file with `discard_changes` | as after 5 | as after 5 | after the delete `slots()` is `0,0,0,0,1`; the open brings slot 6 back: the project file keeps its mixes; `on("kept")` 1. The cube is there so that the open shows no warning, which the app gives for a project file that holds no object |
+
+**Scenario: a mixed slot has no preset or colour of its own**
+
+From the start, `filament_add_mixed {components: [2, 3], ratios: [50, 50]}`: `slots()` `0,0,0,1`, `mixes()`
+`4 = 2,3 @ 50,50`. Every step leaves both as they were.
+
+| # | Step | Also checked |
+|---|---|---|
+| 1 | `settings_get {type: "filament", filament_slot: 4, keys: ["filament_cost"]}` | refused, `mixed_filament_slot` |
+| 2 | `settings_set {type: "filament", filament_slot: 4, values: {filament_cost: 99}}` | refused, `mixed_filament_slot`; `settings_get {type: "filament", filament_slot: 2, compare: ":saved"}` lists nothing: the preset slots 1 to 3 hold has no unsaved change |
+| 3 | `settings_list {type: "filament", filament_slot: 4}` | refused, `mixed_filament_slot` |
+| 4 | `preset_save {type: "filament", filament_slot: 4, name: "MCP Mixed Slot"}` | refused, `mixed_filament_slot`; `preset_list {type: "filament", source: "user"}` names no "MCP Mixed Slot" |
+| 5 | `preset_list {type: "filament", query: "Generic PLA"}` | the "Generic PLA @System" item's `filament_slots` `[1, 2, 3]`: the mixed slot does not use it |
+| 6 | `filament_set_colour {filament_slot: 4, colour: "#00FF00"}` | refused, saying "Slot 4 is a mixed filament"; row 4's colour is not `#00FF00` |
+| 7 | `filament_set_colour {filament_slot: 4, colour: c}`, `c` row 4's colour in lower case | reply `changed` false: its own colour is taken, in any case |
+| 8 | `filament_set_flushing {flush_volumes_matrix: {index: 3, value: 50}}`, entry 3 being from slot 1 to slot 4 | refused, saying it "belongs to a mixed filament, which is never flushed"; entry 3 is not 50 |
+
+**Scenario: changing a mix**
+
+From the start, slots 2 and 3 set to `#FF0000` and `#0000FF`, `filament_add_mixed {components: [2, 3], ratios: [50,
+50]}`, and a 20 mm cube `on_mix` added with `object_add_primitive` and put on filament 4 with `settings_set {target:
+"object", object: 0, values: {extruder: 4}}`: `slots()` `0,0,0,1`, `mixes()` `4 = 2,3 @ 50,50`, `on("on_mix")` 4.
+After every step `on("on_mix")` is 4: an edit keeps the objects on the mix.
+
+| # | Step | `slots()` | `mixes()` | Also checked |
+|---|---|---|---|---|
+| 1 | `filament_edit_mixed {filament_slot: 4, components: [2, 3], ratios: [70, 30]}` | `0,0,0,1` | `4 = 2,3 @ 70,30` | reply `{filament_slot: 4, changed: true}`; row 4's colour has more red than blue: the blend follows the ratios |
+| 2 | the same call | `0,0,0,1` | as after 1 | reply `changed` false |
+| 3 | `... {ratios: [30, 70]}` with the same components | `0,0,0,1` | `4 = 2,3 @ 30,70` | row 4's colour has more blue than red |
+| 4 | `... {components: [1, 2, 3], ratios: [20, 30, 50]}` | `0,0,0,1` | `4 = 1,2,3 @ 20,30,50` | the slot keeps its number |
+| 5 | `filament_edit_mixed {filament_slot: 2, components: [2, 3], ratios: [50, 50]}` | as after 4 | as after 4 | refused, `not_mixed_filament` |
+| 6 | `... {filament_slot: 9, ...}` with the same mix | as after 4 | as after 4 | refused, `no_such_slot` |
+| 7 | `filament_edit_mixed {filament_slot: 4, components: [2, 3]}` | as after 4 | as after 4 | refused, `components_and_ratios` |
+| 8 | `filament_edit_mixed {filament_slot: 4, components: [2, 2], ratios: [50, 50]}` | as after 4 | as after 4 | refused, `duplicate_component` |
+
+**Scenario: a gradient, through the dialogs**
+
+From the start, `filament_add_mixed {components: [2, 3], ratios: [50, 50]}`: `slots()` `0,0,0,1`, `mixes()`
+`4 = 2,3 @ 50,50`. The dialogs' controls are named by the app (`filament_1` to `filament_3`, `gradient`,
+`gradient_direction`, `per_part_gradient`) and set with `widget_set_value {target: {name, within: <the dialog's
+title>}}`; OK and Cancel are clicked with `widget_click {target: {label, within}}`.
+
+| # | Step | `slots()` | `mixes()` | Also checked |
+|---|---|---|---|---|
+| 1 | `filament_edit_mixed {filament_slot: 4}` | `0,0,0,1` | as at the start | `blocked_by_dialog`; `dialogs()` one, titled Edit Mixed Filament, with OK and Cancel |
+| 2 | in it, `gradient` true, `gradient_direction` 1, `per_part_gradient` true, then OK | `0,0,0,1` | `4 = 2,3 @ 50,50, bottom 3 top 2, per part` | the job's reply `{filament_slot: 4, changed: true}`; `gradient_direction`'s item 1 puts the second filament at the bottom |
+| 3 | `filament_edit_mixed {filament_slot: 4, components: [3, 2], ratios: [50, 50]}` | `0,0,0,1` | `4 = 3,2 @ 50,50, bottom 2 top 3, per part` | a gradient stays for a mix of two, its direction with it |
+| 4 | `... {components: [1, 2, 3], ratios: [20, 30, 50]}` | `0,0,0,1` | `4 = 1,2,3 @ 20,30,50` | a gradient goes for three |
+| 5 | `filament_edit_mixed {filament_slot: 4}`, then Cancel | `0,0,0,1` | as after 4 | the job's reply `changed` false |
+| 6 | `filament_add_mixed {}` | `0,0,0,1` | as after 4 | `blocked_by_dialog`; `dialogs()` one, titled Add Mixed Filament |
+| 7 | in it, `gradient` true, then OK | `0,0,0,1,1` | `4 = 1,2,3 @ 20,30,50 · 5 = 1,2 @ 50,50, bottom 1 top 2` | the job's reply `{added: true, filament_slot: 5}`: the dialog starts from filaments 1 and 2 half and half, and item 0 of the direction, the first filament at the bottom |
+| 8 | `filament_add_mixed {}`, then Cancel | `0,0,0,1,1` | as after 7 | the job's reply `{added: false}` |
+| 9 | as row 6 of the first scenario, with `W/gradient.3mf` and `filament_delete {filament_slot: 5}` | as after 7 | as after 7 | after the delete `slots()` is `0,0,0,1`; the open brings the gradient back: the project file keeps it; `on("kept")` 1 |
+
+**Scenario: deleting or merging a filament that a mix mixes**
+
+From the start, `filament_add_mixed {components: [1, 2], ratios: [50, 50]}` and `{components: [2, 3], ratios: [50,
+50]}`, and two 20 mm cubes, `on_one` on filament 1 and `on_mix` on filament 4: `slots()` `0,0,0,1,1`, `mixes()`
+`4 = 1,2 @ 50,50 · 5 = 2,3 @ 50,50`.
+
+| # | Step | `slots()` | `mixes()` | Also checked |
+|---|---|---|---|---|
+| 1 | `filament_delete {filament_slot: 1, merge_into: 4}`, then `dialog_answer {button: "Cancel"}` | `0,0,0,1,1` | as at the start | `blocked_by_dialog`; `dialogs()` one, titled Warning, with OK and Cancel, its message holding "uses this physical filament"; the job refused, `merge_cancelled`; `on("on_one")` 1 |
+| 2 | `filament_delete {filament_slot: 1, merge_into: 4, break_mix: false}` | as at the start | as at the start | refused, `mixed_uses_slot`, with no dialog |
+| 3 | `filament_delete {filament_slot: 1, merge_into: 4, break_mix: true}` | `0,0,1,1` | `3 = 0,1 @ 50,50, broken · 4 = 1,2 @ 50,50` | reply `{filament_slot: 1, merged_into: 3, broken_mixed: [3]}`, with no dialog; `on("on_one")` and `on("on_mix")` 3: the objects went into the mix, which lost the filament merged into it |
+| 4 | `plate_slice` | as after 3 | as after 3 | plate 0's `outcome` `error`, its `error` "A mixed filament has a deleted or mismatched component": an object prints with a broken mix |
+| 5 | `filament_edit_mixed {filament_slot: 3, components: [1, 2], ratios: [50, 50]}` | `0,0,1,1` | `3 = 1,2 @ 50,50 · 4 = 1,2 @ 50,50` | reply `changed` true: an edit repairs a broken mix |
+| 6 | `filament_delete {filament_slot: 2}` | `0,1,1` | `2 = 1,0 @ 50,50, broken · 3 = 1,0 @ 50,50, broken` | reply `broken_mixed` `[2, 3]`, with no dialog: the sidebar deletes a filament a mix mixes without asking |
+| 7 | `filament_delete {filament_slot: 1}` | as after 6 | as after 6 | refused, `last_filament_slot`: one physical slot stays, whatever mixes there are |
+| 8 | `filament_delete {filament_slot: 2}` | as after 6 | as after 6 | refused, `mixed_list_hidden`: with one physical filament the sidebar hides the mixed filament list and deletes nothing (`Sidebar::delete_filament()`) |
+
+At the end the test sets slot 1 back to the colour the first scenario found, with `filament_set_colour`, and reads it
+back with `filament_list`.
+
+**To settle in review:**
+- What `plate_slice` does with an object on a broken mix (row 4), measured: the call is not refused, and the slice
+  ends in an error on the plate, with the notification "Mixed filament has invalid or mismatched components. Please
+  re-edit affected entries.", which the row does not read.
+- The Add Mixed Filament dialog's start (row 7 of the gradient scenario): filaments 1 and 2 half and half, measured on
+  this build; the dialog may start from its first recommendation instead on another set of filaments.
+- A mix left beside one physical filament (row 8) is hidden in the sidebar and cannot be deleted there, which the tool
+  follows; a person who deleted down to one filament has no way to see such a mix until they add a slot. That looks
+  like a gap in the sidebar, open for the maintainer.
+- Colours are compared by their channels, not their values: the blend is the app's (`blend_mixed_color()`), and only
+  which way it moves with the ratios is the tool's behaviour.
+
+**Not checked:**
+- The gradient curve, which is drawn and changed only by a drag: every gradient here is the straight line.
+- The dialogs' component selectors and ratio controls: the selectors are named, but each lists "Generic PLA" for every
+  slot, and components and ratios have the silent form.
+- What a mixed filament prints, its components layer by layer: no slice of a mix is read.
+- A mix's colour beyond the channel comparison, and whether a component's colour change re-blends it.
+- How the sidebar draws a broken mix: its row is not read on screen.
+- The undo history: none of these is in it, as in the GUI, and nothing reads it here.
+- The mixed filament list's Remove last and Remove all buttons: `test_plates` clicks Remove last mixed filament; Remove
+  all asks first, and `filament_delete` deletes a mix one at a time.
+
+**Strength:** Strong — every step's slots and mixes are compared whole, refusals by their codes, and the file is read
+back once through a reopen.
 
 ## `test_settings`
 `test_settings.py` · Python, 72 checks · in `sweep.json` as `{"path": "test_settings.py"}`

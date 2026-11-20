@@ -353,8 +353,8 @@ profile has none, so no send can reach a printer.
 
 **Scenario: filament slots merged and mixed**
 
-Objects are read with `meshes()` as their names and `filament`; `colours` is `filament_colour` from
-`project_get_settings`. It starts from the one slot `start()` left, which no scenario before it changes. The mixed slot
+Objects are read with `meshes()` as their names and `filament`; `colours` is each `filament_list` row's `colour`,
+joined by `;`. It starts from the one slot `start()` left, which no scenario before it changes. The mixed slot
 it makes stays in the data folder (Leaves), until the next test's `start()`, or this test's own on a rerun, deletes it.
 
 | # | Step | `slots()` after | Also checked |
@@ -362,7 +362,7 @@ it makes stays in the data folder (Leaves), until the next test's `start()`, or 
 | 1 | (the start) | `"0"` | |
 | 2 | `filament_add` | `"0,0"` | reply `filament_slot` 2, `filament_slots` 2 |
 | 3 | `filament_add` | `"0,0,0"` | reply `filament_slot` 3, `filament_slots` 3 |
-| 4 | `project_set_settings {values: {filament_colour: {index: i, value: c}}}` for slot index 0, 1 and 2 with `#FF0000`, `#00FF00` and `#0000FF` | `"0,0,0"` | `colours` `#FF0000;#00FF00;#0000FF` |
+| 4 | `filament_set_colour {filament_slot: n, colour: c}` for slots 1, 2 and 3 with `#FF0000`, `#00FF00` and `#0000FF` | `"0,0,0"` | `colours` `#FF0000;#00FF00;#0000FF` |
 | 5 | cubes `on_two` 20 at (80, 128) and `on_three` 20 at (176, 128); `settings_set {target: "object", object: 0, values: {extruder: 2}}` and the same for object 1 with 3 | `"0,0,0"` | `on_two` filament 2, `on_three` filament 3 |
 | 6 | `filament_delete {filament_slot: 2, merge_into: 1}` | `"0,0"` | reply `{filament_slot: 2, merged_into: 1, filament_slots: 2}`; `on_two` filament 1, `on_three` filament 2; `colours` `#FF0000;#0000FF`: the slot after the deleted one moved down, with its objects |
 | 7 | `filament_add_mixed {components: [1, 2], ratios: [50, 50]}` | `"0,0,1"` | reply `{filament_slot: 3, added: true}`; `app_state.presets.filaments` has 3 entries; `on_two` 1, `on_three` 2 |

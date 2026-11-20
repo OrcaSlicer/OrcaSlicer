@@ -138,7 +138,7 @@ def main():
     if blocked.get("status") == "blocked_by_dialog":
         client.call("dialog_answer", button="OK")
         client.await_job(blocked)
-    flags = client.call("project_get_settings", keys=["filament_is_mixed"])["items"][0]["value"].split(",")
+    flags = shared.slots(client).split(",")
     check("a mixed filament was added", "1" in flags, flags)
     if "1" in flags:
         slot = flags.index("1") + 1

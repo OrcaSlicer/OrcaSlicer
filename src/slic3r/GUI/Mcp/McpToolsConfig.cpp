@@ -24,6 +24,7 @@
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/IMSlider.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/MixedFilamentDialog.hpp"
 #include "slic3r/GUI/NativeCommandMenuItems.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/ObjectDataViewModel.hpp"
@@ -45,6 +46,7 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/FilamentMixer.hpp"
 #include "libslic3r/FlushVolCalc.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/LocalesUtils.hpp"
@@ -210,22 +212,54 @@ struct ConfigTarget
     std::vector<std::string>  options; // the keys these settings have
 };
 
-// The project's settings: the project's own settings (PresetBundle::project_config) that a person sets in the
-// sidebar, on the canvas or in their dialogs, and the filament slot facts they depend on, which are set
-// elsewhere and listed for reading only.
+// The project's settings: the project's own settings (PresetBundle::project_config) that a person sets for its plates,
+// with the plate type selector and a prime tower's drag, and the filament grouping, which the Filament grouping dialog
+// sets for each plate and which is listed for reading only. The same config holds the filament list's state, its
+// colours, mixed filaments and flushing, which filament_list reads instead (filament_list_hint()).
 bool project_key_read_only(const std::string& key)
 {
-    return key == "filament_is_mixed" || key == "filament_map_mode" || key == "filament_map";
+    return key == "filament_map_mode" || key == "filament_map";
 }
 
 std::vector<std::string> project_options()
 {
-    std::vector<std::string> keys{"curr_bed_type",    "filament_colour",   "filament_is_mixed", "flush_volumes_matrix",
-                                  "flush_multiplier", "prime_volume_mode", "wipe_tower_x",      "wipe_tower_y"};
+    std::vector<std::string> keys{"curr_bed_type", "wipe_tower_x", "wipe_tower_y"};
     // The filament grouping of a printer with several extruders.
     if (wxGetApp().preset_bundle->get_printer_extruder_count() > 1)
         keys.insert(keys.end(), {"filament_map_mode", "filament_map"});
     return keys;
+}
+
+// The flushing that the filament list's Flushing volumes and Purge mode buttons set: filament_list reads it and
+// filament_set_flushing writes it, with the code project_set_settings runs for its own keys (set_project_values()).
+const std::vector<std::string>& flushing_options()
+{
+    static const std::vector<std::string> keys{"flush_multiplier", "flush_volumes_matrix", "prime_volume_mode"};
+    return keys;
+}
+
+// Where a key of the filament list's state is read and set, for a call that names it among the project's settings;
+// empty for any other key.
+std::string filament_list_hint(const std::string& key)
+{
+    if (key == "filament_colour")
+        return "filament_list reads the slot colours and filament_set_colour sets one";
+    if (key == "filament_is_mixed")
+        return "filament_list reads which slots are mixed filaments";
+    const std::vector<std::string>& flushing = flushing_options();
+    if (std::find(flushing.begin(), flushing.end(), key) != flushing.end())
+        return "filament_list reads it and filament_set_flushing sets it";
+    return {};
+}
+
+// Per filament slot, in config order, whether it is a mixed filament. UI thread.
+std::vector<unsigned char> mixed_slots()
+{
+    const PresetBundle&        bundle = *wxGetApp().preset_bundle;
+    std::vector<unsigned char> mixed;
+    for (std::size_t i = 0; i < bundle.project_config.option<ConfigOptionStrings>("filament_colour")->size(); ++i)
+        mixed.push_back(bundle.is_mixed_filament(i));
+    return mixed;
 }
 
 // The types settings_get looks through when keys or a query come without one: the process, filament and printer
@@ -246,6 +280,8 @@ std::string type_of_key(const std::string& key)
         return "printer";
     if (!print_config_def.has(key))
         return {};
+    if (!filament_list_hint(key).empty())
+        return "filament_list";
     const std::vector<std::string> project = project_options();
     return std::find(project.begin(), project.end(), key) != project.end() ? "project" : "";
 }
@@ -270,21 +306,24 @@ void add_unknown_keys(json& out, const json& unknown)
 // process). UI thread.
 ToolFailure unknown_setting(const std::string& key, const std::string& where, json details)
 {
+    if (const std::string hint = filament_list_hint(key); !hint.empty())
+        return ToolFailure("\"" + key + "\" belongs to the filament list: " + hint);
     if (const std::string other = type_of_key(key); !other.empty() && other != where)
         return ToolFailure(other == "project" ? "\"" + key + "\" is one of the project's own settings: project_set_settings changes it" :
                                                 "\"" + key + "\" is a " + other + " setting: settings_set takes it with type \"" + other + "\"");
     return ToolFailure("Unknown setting \"" + key + "\" for the " + where + " settings", std::move(details));
 }
 
-// The project's settings: project_config's, with the wipe tower position one entry per plate and a
-// mixed flag per slot, since a project can store fewer of either. UI thread.
+// The project's settings and the filament list's flushing: project_config's, with the wipe tower position one entry
+// per plate, since a project can store fewer. UI thread.
 DynamicPrintConfig project_settings()
 {
     const PresetBundle& bundle = *wxGetApp().preset_bundle;
     DynamicPrintConfig  out;
-    for (const std::string& key : project_options())
-        if (const ConfigOption* opt = bundle.project_config.option(key))
-            out.set_key_value(key, opt->clone());
+    for (const std::vector<std::string>& keys : {project_options(), flushing_options()})
+        for (const std::string& key : keys)
+            if (const ConfigOption* opt = bundle.project_config.option(key))
+                out.set_key_value(key, opt->clone());
     const int plates = ui_plater().get_partplate_list().get_plate_count();
     for (const char* key : {"wipe_tower_x", "wipe_tower_y"}) {
         // What the canvas reads for each plate (get_at() takes the first entry for a plate without one).
@@ -294,10 +333,6 @@ DynamicPrintConfig project_settings()
             per_plate.push_back(position->get_at(std::size_t(i)));
         position->values = std::move(per_plate);
     }
-    std::vector<unsigned char> mixed;
-    for (std::size_t i = 0; i < bundle.project_config.option<ConfigOptionStrings>("filament_colour")->size(); ++i)
-        mixed.push_back(bundle.is_mixed_filament(i));
-    out.set_key_value("filament_is_mixed", new ConfigOptionBools(std::move(mixed)));
     return out;
 }
 
@@ -327,23 +362,19 @@ std::vector<std::string> project_offered(const std::string& key)
     return out;
 }
 
-// project_set_settings. Every key is written by the code its control runs: the plate type selector, a colour
-// button's picker, the Flushing volumes and Purge mode dialogs' OK, a wipe tower drag. Everything is checked before
-// anything changes. Colours go first, in a closure of their own, so the flushing volumes their change recalculates
-// ("Auto flush after changing") are in place before a matrix given in the same call replaces them.
-ToolResult set_project_settings(const json& args, ToolContext& ctx)
+// project_set_settings, with the project's keys, and filament_set_flushing, with the filament list's flushing
+// (`flushing`). Every key is written by the code its control runs: the plate type selector, the Flushing volumes and
+// Purge mode dialogs' OK, a wipe tower drag. Everything is checked before anything changes.
+ToolResult set_project_values(const json& values_in, ToolContext& ctx, bool flushing)
 {
-    const json values_in = args.value("values", json::object());
-    if (values_in.empty())
-        throw ToolFailure("values must be a non-empty object {key: value}");
     DynamicPrintConfig before;
-    DynamicPrintConfig values; // checked, in the form project_get_settings reads them
+    DynamicPrintConfig values; // checked, in the form project_settings() reads them
     // The matrix to write, given whole or as one entry of `basis`'s matrix.
     const auto checked_matrix = [&](const DynamicPrintConfig& basis) {
         const char* const  key = "flush_volumes_matrix";
         DynamicPrintConfig given;
         given.set_deserialize_strict(key, preset_setting_value(key, values_in[key], basis, {}, {}));
-        const std::vector<unsigned char>& mixed = before.option<ConfigOptionBools>("filament_is_mixed")->values;
+        const std::vector<unsigned char> mixed = mixed_slots();
         return check_flush_matrix(given.option<ConfigOptionFloats>(key)->values, mixed.size(),
                                   (values.has("flush_multiplier") ? values : before).option<ConfigOptionFloats>("flush_multiplier")->values,
                                   basis.option<ConfigOptionFloats>(key)->values, mixed);
@@ -351,13 +382,11 @@ ToolResult set_project_settings(const json& args, ToolContext& ctx)
     ctx.run_ui([&]() -> json {
         ui_plater();
         before                                 = project_settings();
-        const std::vector<std::string> options = project_options();
+        const std::vector<std::string> options = flushing ? flushing_options() : project_options();
         for (auto it = values_in.begin(); it != values_in.end(); ++it) {
             const std::string& key = it.key();
             if (std::find(options.begin(), options.end(), key) == options.end())
-                throw unknown_setting(key, "project", {{"keys", options}});
-            if (key == "filament_is_mixed")
-                throw ToolFailure("filament_is_mixed is read-only: mixed filaments are made in the sidebar's mixed filament list");
+                throw unknown_setting(key, flushing ? "filament list" : "project", {{"keys", options}});
             if (project_key_read_only(key))
                 throw ToolFailure(key + " is read-only here: the Filament grouping dialog sets it for each plate, and every plate keeps "
                                         "its own grouping");
@@ -380,11 +409,6 @@ ToolResult set_project_settings(const json& args, ToolContext& ctx)
             if (std::find(offered.begin(), offered.end(), values.opt_serialize(key)) == offered.end())
                 throw ToolFailure("This printer does not offer " + std::string(key) + " \"" + values.opt_serialize(key) + "\"",
                                   {{"offered", offered}});
-        }
-        const std::vector<unsigned char>& mixed = before.option<ConfigOptionBools>("filament_is_mixed")->values;
-        if (values.has("filament_colour")) {
-            auto* colours   = values.option<ConfigOptionStrings>("filament_colour");
-            colours->values = check_filament_colours(colours->values, before.option<ConfigOptionStrings>("filament_colour")->values, mixed);
         }
         if (values.has("flush_multiplier")) {
             auto*             multipliers = values.option<ConfigOptionFloats>("flush_multiplier");
@@ -409,38 +433,16 @@ ToolResult set_project_settings(const json& args, ToolContext& ctx)
                                       to_config_string(json(extent)) + " mm from the plate's origin");
             }
         }
-        // A colour button's picker, then its EVT_FILAMENT_COLOR_CHANGED, slot by slot.
-        if (values.has("filament_colour")) {
-            const std::vector<std::string>& colours = values.option<ConfigOptionStrings>("filament_colour")->values;
-            const std::vector<std::string>& current = before.option<ConfigOptionStrings>("filament_colour")->values;
-            for (std::size_t i = 0; i < colours.size(); ++i) {
-                if (colours[i] == current[i])
-                    continue;
-                auto& combos = ui_plater().sidebar().combos_filament();
-                auto  combo  = std::find_if(combos.begin(), combos.end(),
-                                            [i](PlaterPresetComboBox* c) { return c != nullptr && c->get_filament_idx() == int(i); });
-                if (combo == combos.end())
-                    throw ToolFailure("Filament slot " + std::to_string(i + 1) + " has no colour button");
-                (*combo)->sync_colour_config({colours[i]}, false);
-                wxCommandEvent* evt = new wxCommandEvent(EVT_FILAMENT_COLOR_CHANGED);
-                evt->SetInt(int(i));
-                wxQueueEvent(&ui_plater(), evt);
-            }
-        }
         return json();
     });
-    settle(ctx);
     json reply = ctx.run_ui([&]() -> json {
         Plater&       plater = ui_plater();
         PresetBundle& bundle = *wxGetApp().preset_bundle;
         if (values.has("curr_bed_type"))
             plater.sidebar().set_bed_type_accord_combox(values.opt_enum<BedType>("curr_bed_type"));
-        // One entry given: the others are as the colour change may just have recalculated them.
-        if (values_in.contains("flush_volumes_matrix") && values_in["flush_volumes_matrix"].is_object())
-            values.option<ConfigOptionFloats>("flush_volumes_matrix")->values = checked_matrix(project_settings());
         bool update = false;
         if (values.has("flush_volumes_matrix") || values.has("flush_multiplier")) {
-            // Without a matrix, the one the colour change may just have recalculated.
+            // Without a matrix, the stored one, which the new multiplier scales.
             const DynamicPrintConfig& source = values.has("flush_volumes_matrix") ? values : bundle.project_config;
             const DynamicPrintConfig& multipliers = values.has("flush_multiplier") ? values : bundle.project_config;
             apply_flushing_volumes(source.option<ConfigOptionFloats>("flush_volumes_matrix")->values,
@@ -489,6 +491,111 @@ ToolResult set_project_settings(const json& args, ToolContext& ctx)
     });
     settle(ctx);
     return ToolResult::ok(reply);
+}
+
+ToolResult set_project_settings(const json& args, ToolContext& ctx)
+{
+    const json values_in = args.value("values", json::object());
+    if (values_in.empty())
+        throw ToolFailure("values must be a non-empty object {key: value}");
+    return set_project_values(values_in, ctx, false);
+}
+
+// What a slot's colour button does with the colour its picker gives: the slot's colour, then its
+// EVT_FILAMENT_COLOR_CHANGED, which recalculates the flushing volumes where Auto flush after changing is on. UI thread.
+void apply_slot_colour(std::size_t slot, const std::string& colour)
+{
+    auto& combos = ui_plater().sidebar().combos_filament();
+    auto  combo  = std::find_if(combos.begin(), combos.end(),
+                                [slot](PlaterPresetComboBox* c) { return c != nullptr && c->get_filament_idx() == int(slot); });
+    if (combo == combos.end())
+        throw ToolFailure("Filament slot " + std::to_string(slot + 1) + " has no colour button");
+    (*combo)->sync_colour_config({colour}, false);
+    wxCommandEvent* evt = new wxCommandEvent(EVT_FILAMENT_COLOR_CHANGED);
+    evt->SetInt(int(slot));
+    wxQueueEvent(&ui_plater(), evt);
+}
+
+// filament_set_colour: one slot's colour, checked as check_filament_colours() checks a colour list. The reply reads it
+// back once the change has settled.
+ToolResult set_filament_colour(const json& args, ToolContext& ctx)
+{
+    const int         slot   = arg_int(args, "filament_slot", 1);
+    const std::string colour = arg_string(args, "colour");
+    bool              changed = false;
+    ctx.run_ui([&]() -> json {
+        ui_plater();
+        const std::vector<std::string>& current =
+            wxGetApp().preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour")->values;
+        if (slot < 1 || std::size_t(slot) > current.size())
+            throw ToolFailure("filament_slot must be 1.." + std::to_string(current.size()));
+        std::vector<std::string> colours = current;
+        colours[std::size_t(slot) - 1]   = colour;
+        colours                          = check_filament_colours(colours, current, mixed_slots());
+        changed                          = colours[std::size_t(slot) - 1] != current[std::size_t(slot) - 1];
+        if (changed)
+            apply_slot_colour(std::size_t(slot) - 1, colours[std::size_t(slot) - 1]);
+        return json();
+    });
+    settle(ctx);
+    return ToolResult::ok(ctx.run_ui([&]() -> json {
+        const std::vector<std::string>& colours =
+            wxGetApp().preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour")->values;
+        return {{"filament_slot", slot}, {"colour", colours[std::size_t(slot) - 1]}, {"changed", changed}};
+    }));
+}
+
+// filament_list: the filament list as the sidebar shows it, a row per slot in config order (the physical filaments,
+// then the mixed ones), with the flushing its Flushing volumes and Purge mode buttons set. UI thread.
+json filament_list()
+{
+    Sidebar&                        sidebar    = ui_plater().sidebar();
+    PresetBundle&                   bundle     = *wxGetApp().preset_bundle;
+    const std::vector<std::string>& colours    = bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values;
+    const auto*                     components = bundle.project_config.option<ConfigOptionStrings>("filament_mixed_components");
+    const std::vector<std::size_t>  broken     = sidebar.broken_mixed_filaments();
+    json                            rows       = json::array();
+    for (std::size_t i = 0; i < colours.size(); ++i) {
+        const bool mixed = bundle.is_mixed_filament(i);
+        json       row{{"filament_slot", i + 1}, {"mixed", mixed}, {"colour", colours[i]}};
+        if (!mixed) {
+            const std::string name   = i < bundle.filament_presets.size() ? bundle.filament_presets[i] : std::string();
+            Preset*           preset = bundle.filaments.find_preset(name);
+            std::string       display;
+            row["preset"] = name;
+            row["type"]   = preset != nullptr ? preset->config.get_filament_type(display) : std::string();
+            rows.push_back(std::move(row));
+            continue;
+        }
+        // The components as stored, a deleted one as 0; the ratios and the gradient as the Edit Mixed Filament dialog
+        // reads them.
+        json parts = json::array();
+        if (components != nullptr && i < components->size())
+            for (const unsigned int component : parse_mixed_components(components->values[i]))
+                parts.push_back(component);
+        const MixedFilamentResult mix = sidebar.mixed_filament_result(i);
+        row["components"]             = std::move(parts);
+        row["ratios"]                 = mix.ratios;
+        row["gradient"]               = nullptr;
+        if (mix.gradient_enabled && mix.components.size() == 2) {
+            // Direction 0 starts with the first component's share high: it leads at the bottom (filament_mixed_gradient_range).
+            const bool first_at_bottom = mix.gradient_direction == 0;
+            row["gradient"]            = {{"bottom", first_at_bottom ? mix.components[0] : mix.components[1]},
+                                          {"top", first_at_bottom ? mix.components[1] : mix.components[0]},
+                                          {"per_part", mix.per_part_gradient},
+                                          {"curve", mix.gradient_curve.empty() ? "linear" : "custom"}};
+        }
+        row["broken"] = std::find(broken.begin(), broken.end(), i) != broken.end();
+        rows.push_back(std::move(row));
+    }
+    const DynamicPrintConfig settings = project_settings();
+    json                     out{{"filaments", std::move(rows)},
+                                 {"flush_multiplier", settings.option<ConfigOptionFloats>("flush_multiplier")->values},
+                                 {"flush_volumes_matrix", settings.option<ConfigOptionFloats>("flush_volumes_matrix")->values},
+                                 {"prime_volume_mode", settings.opt_serialize("prime_volume_mode")}};
+    if (std::vector<std::string> offered = project_offered("prime_volume_mode"); !offered.empty())
+        out["prime_volume_modes"] = std::move(offered);
+    return out;
 }
 
 bool is_plate_setting(const std::string& key)
@@ -707,8 +814,8 @@ ToolResult set_plate_settings(const json& args, ToolContext& ctx)
                 // The dialog greys the custom orders out while a slot is a mixed filament, which prints a different
                 // physical filament from layer to layer.
                 if (!value.is_null() && wxGetApp().preset_bundle->num_mixed_filaments() > 0)
-                    throw ToolFailure(key + " cannot be set while the project has mixed filaments (see filament_is_mixed of "
-                                            "project_get_settings); null sets Auto");
+                    throw ToolFailure(key + " cannot be set while the project has mixed filaments (filament_list's mixed rows); "
+                                            "null sets Auto");
                 if (key == "first_layer_print_sequence")
                     first_layer = value.is_null() ? std::vector<int>() : filament_order(value, slots);
                 else
@@ -1001,12 +1108,16 @@ AppActionRunResult filament_delete_command(const json& args)
         op.filament_slot = arg_int(args, "filament_slot", 1);
     if (args.contains("merge_into"))
         op.merge_into = arg_int(args, "merge_into", 1);
+    if (args.contains("break_mix"))
+        op.break_mix = arg_bool(args, "break_mix", false);
     const Ops::Outcome<Ops::DeletedFilament> deleted = Ops::delete_filament_slot(op);
     if (!deleted)
         return filament_refused(deleted.refusal());
     json reply{{"filament_slot", deleted.value().filament_slot}};
     if (deleted.value().merged_into)
         reply["merged_into"] = *deleted.value().merged_into;
+    if (!deleted.value().broken_mixed.empty())
+        reply["broken_mixed"] = deleted.value().broken_mixed;
     // TRN %1% is a filament slot number.
     return filament_reply(format_wxstr(_L("Deleted filament slot %1%."), deleted.value().filament_slot), std::move(reply));
 }
@@ -1124,6 +1235,10 @@ ConfigTarget resolve_target(const json& args, bool for_write)
         const int slot = arg_int(args, "filament_slot", 1);
         if (slot < 1 || slot > int(bundle.filament_presets.size()))
             throw ToolFailure("filament_slot must be 1.." + std::to_string(bundle.filament_presets.size()));
+        // A mixed filament's slot names its first component's preset, which belongs to that component's slot: a mixed
+        // slot has no filament tab of its own.
+        if (const std::optional<Ops::Refusal> refusal = Ops::mixed_slot_refusal(slot))
+            throw refused(*refusal);
         const std::string& name = bundle.filament_presets[size_t(slot - 1)];
         if (for_write)
             edit_filament_slot(slot);
@@ -1470,13 +1585,15 @@ json change_keys(const json& changes)
     return keys;
 }
 
-// The 1-based filament slots that use the preset `name`.
+// The 1-based filament slots that use the preset `name`: the physical ones, since a mixed filament's slot names its
+// first component's preset without using it.
 json filament_slots(const std::string& name)
 {
-    const std::vector<std::string>& presets = wxGetApp().preset_bundle->filament_presets;
+    const PresetBundle&             bundle  = *wxGetApp().preset_bundle;
+    const std::vector<std::string>& presets = bundle.filament_presets;
     json                            slots   = json::array();
     for (std::size_t s = 0; s < presets.size(); ++s)
-        if (presets[s] == name)
+        if (presets[s] == name && !bundle.is_mixed_filament(s))
             slots.push_back(int(s + 1));
     return slots;
 }
@@ -2531,15 +2648,10 @@ json read_target(const json& args, const ConfigTarget& t, bool listing)
         if (const auto place = places.find(key); place != places.end())
             item["meta"]["where"] = place->second;
         if (t.project) {
-            if (key == "curr_bed_type" || key == "prime_volume_mode")
+            if (key == "curr_bed_type")
                 item["meta"]["offered"] = project_offered(key);
             if (project_key_read_only(key))
                 item["meta"]["read_only"] = true;
-            if (key == "flush_volumes_matrix")
-                item["meta"]["description"] = "Purge volume in cubic millimeters for each change from one filament (row) to another "
-                                              "(column), stored before flush_multiplier: the Flushing volumes dialog shows "
-                                              "and edits each entry multiplied by its nozzle's flush_multiplier, and the "
-                                              "G-code purges that product.";
         } else if (t.object == nullptr) {
             if (json v = variant_entries(key, *t.config, extruders.first, extruders.second); !v.is_null())
                 item["meta"].update(v);
@@ -3270,13 +3382,12 @@ void register_config_tools(CommandCatalog& catalog)
 
     catalog.add(inspect_tool(
         "project_get_settings", L("Read the project's settings"),
-        "Read the settings the project stores outside any preset: the plate type (curr_bed_type), slot colours "
-        "(filament_colour), flushing volumes (flush_volumes_matrix, flush_multiplier), purge mode (prime_volume_mode), "
-        "prime tower position per plate (wipe_tower_x, wipe_tower_y), mixed slots (filament_is_mixed) and, with several "
-        "extruders, the filament grouping (filament_map_mode, filament_map); all of them, or those named in keys. Each item "
-        "has its value and meta; meta.offered lists the choices this printer has, and meta.read_only marks what is set "
-        "elsewhere.",
-        object_schema({{"keys", array_prop({{"type", "string"}}, "Setting keys, e.g. [\"filament_colour\"].")},
+        "Read the project's own settings for its plates: the plate type (curr_bed_type), the prime tower position per plate "
+        "(wipe_tower_x, wipe_tower_y) and, with several extruders, the filament grouping (filament_map_mode, filament_map); "
+        "all of them, or those named in keys. The filament list's colours, mixed filaments and flushing are filament_list's. "
+        "Each item has its value and meta; meta.offered lists the choices this printer has, and meta.read_only marks what is "
+        "set elsewhere.",
+        object_schema({{"keys", array_prop({{"type", "string"}}, "Setting keys, e.g. [\"curr_bed_type\"].")},
                        {"include_meta", prop("boolean", "Include labels, types and ranges. Default true.")}}),
         [](const json& args, ToolContext& ctx) {
             return ToolResult::ok(ctx.run_ui([&] {
@@ -3287,12 +3398,11 @@ void register_config_tools(CommandCatalog& catalog)
 
     catalog.add(mutate_tool(
         "project_set_settings", L("Change the project's settings"),
-        "Change the project's own settings as the sidebar's controls write them: curr_bed_type, filament_colour (#RRGGBB "
-        "per slot), flush_multiplier, flush_volumes_matrix, prime_volume_mode, and wipe_tower_x/y (mm from the plate's "
-        "origin, one per plate). flush_volumes_matrix is per nozzle, slots x slots from row to column, in config order over "
-        "every slot, before the multiplier; a mixed slot's entries must be given as they are, and a colour change can "
-        "recalculate it, so set it last. Values are checked before anything changes; a prime tower move is one undo step. "
-        "Reply: applied, changed, and a note when the app moved a prime tower that did not fit.",
+        "Change the project's own settings as their controls write them: curr_bed_type, as the plate type selector, and "
+        "wipe_tower_x/y (mm from the plate's origin, one per plate), as a prime tower's drag. The filament list's colours "
+        "and flushing are set with filament_set_colour and filament_set_flushing. Values are checked before anything "
+        "changes; a prime tower move is one undo step. Reply: applied, changed, and a note when the app moved a prime tower "
+        "that did not fit.",
         object_schema({{"values", {{"type", "object"}, {"description", "{key: value}, or {key: {index, value}} for one entry"}}}},
                       {"values"}),
         [](const json& args, ToolContext& ctx) { return set_project_settings(args, ctx); }));
@@ -3465,11 +3575,31 @@ void register_config_tools(CommandCatalog& catalog)
     // The + and - buttons above the filament list and a slot's Delete menu item, each named as the button or menu item is, in the Speed
     // Dial's section Filament.
     const std::string slot_buttons = "Refused for a printer that has one filament per extruder, which shows no + and - buttons.";
+    catalog.add(inspect_tool(
+        "filament_list", L("List the filaments"),
+        "Read the filament list as the sidebar shows it. filaments has a row per slot in config order, the physical "
+        "filaments first, then the mixed ones: filament_slot (1-based), mixed, colour (#RRGGBB) and, for a physical "
+        "filament, preset and type; for a mixed filament, components (the physical slots it mixes, 1-based, 0 for one "
+        "deleted), ratios (whole percentages, as filament_add_mixed takes them), gradient (null, or {bottom, top: the "
+        "components that lead at the bottom and at the top, per_part, curve: linear or custom}) and broken (a component "
+        "deleted or of another filament type: the sidebar marks it, slicing an object on it is refused, and "
+        "filament_edit_mixed repairs it). Then the flushing the list's Flushing volumes and Purge mode buttons set: "
+        "flush_multiplier (one per nozzle), flush_volumes_matrix (per nozzle, slots x slots from row to column in config "
+        "order over every slot, before the multiplier: the dialog shows each entry multiplied by its nozzle's multiplier, "
+        "and the G-code purges that product) and prime_volume_mode, with prime_volume_modes where the printer offers a "
+        "choice. The printer keeps all of it across new projects and restarts; a saved project keeps its own.",
+        object_schema({}),
+        [](const json&, ToolContext& ctx) {
+            return ToolResult::ok(ctx.run_ui([] {
+                ui_plater();
+                return filament_list();
+            }));
+        }));
     catalog.add(reaching({"add_filament_slot"},
                          own_action(menu_command("filament_add", L("Add Filament Slot"),
                                                 "Add a filament slot, as the + button above the filament list does. It takes the next "
-                                                "colour and the last slot's preset (change them with preset_select filament_slot and "
-                                                "project_set_settings filament_colour). It goes after the physical slots: mixed "
+                                                "colour and the last slot's preset (change them with filament_set_colour and "
+                                                "preset_select filament_slot). It goes after the physical slots: mixed "
                                                 "filaments move up by one, and objects on them follow. " +
                                                     slot_buttons + " Reply: filament_slot (the new slot) and filament_slots (how many the "
                                                                    "project has).",
@@ -3480,11 +3610,17 @@ void register_config_tools(CommandCatalog& catalog)
         own_action(menu_command("filament_delete", L("Delete Filament Slot"),
                                "Delete a filament slot, as its Delete menu item does, the objects on it taking the first filament; "
                                "with merge_into, as its Merge with item does, the objects on it taking that slot. The slots after "
-                               "it move down by one. A mixed filament (project_get_settings filament_is_mixed) is deleted as "
-                               "the mixed filament list deletes it, and not merged. Refused: the only physical slot, and a "
-                               "slot a mixed filament mixes, which the mix needs (delete the mix first). " +
+                               "it move down by one. A mixed filament (filament_list's mixed rows) is deleted as the mixed "
+                               "filament list deletes it, and not merged. A physical filament that a mixed filament mixes is "
+                               "deleted as the sidebar deletes it: the mix is broken (broken_mixed) until filament_edit_mixed "
+                               "names its filaments again. A merge into a mixed filament that mixes the slot asks first, as Merge "
+                               "with does, and replies blocked_by_dialog, unless break_mix answers: true merges, false refuses "
+                               "(mixed_uses_slot). Refused: the only physical slot, and a mixed filament while one physical "
+                               "slot is left, where the sidebar hides the mixed filaments (filament_add first). " +
                                    slot_buttons + " Not in the undo history. Reply: filament_slot (the slot deleted), merged_into "
-                                                  "(the slot its objects went to, as numbered afterwards) and filament_slots.",
+                                                  "(the slot its objects went to, as numbered afterwards), filament_slots, and "
+                                                  "broken_mixed (the mixed filaments broken afterwards, as numbered then) where "
+                                                  "there are any.",
                                object_schema({{"filament_slot", {{"type", "integer"},
                                                                  {"minimum", 1},
                                                                  {"description", "The 1-based filament slot. Default: the last "
@@ -3492,10 +3628,33 @@ void register_config_tools(CommandCatalog& catalog)
                                               {"merge_into", {{"type", "integer"},
                                                               {"minimum", 1},
                                                               {"description", "The 1-based slot the objects on it go to, as Merge "
-                                                                              "with does. Default: they take the first filament."}}}}),
+                                                                              "with does. Default: they take the first filament."}}},
+                                              {"break_mix", prop("boolean", "The answer to Merge with's question about a merge into "
+                                                                            "a mixed filament that mixes the slot: true merges, "
+                                                                            "false merges nothing. Default: the question opens.")}}),
                                json(), filament_delete_command),
                    L("Filament"), "delete_filament")));
 
+    // The Add and Edit Mixed Filament dialogs' controls, for an agent that drives a dialog to set a gradient.
+    const std::string mixed_dialog =
+        "replies blocked_by_dialog. Its controls are named filament_1 to filament_3 (the components), gradient, "
+        "gradient_direction (item 0 puts the first filament at the bottom, item 1 the second) and per_part_gradient, for "
+        "widget_set_value with within the dialog's title; the gradient shows for a mix of two filaments only, and its curve "
+        "is drawn, changed only by dragging it (mouse_gesture). Its OK makes what it shows; Cancel changes nothing.";
+    const auto mix_props = [](const char* components) {
+        return std::vector<Property>{
+            {"components", array_prop({{"type", "integer"}, {"minimum", 1}}, components)},
+            {"ratios", array_prop({{"type", "integer"}, {"exclusiveMinimum", 0}},
+                                  "Each component's share in percent, in the order of components, adding up to 100.")}};
+    };
+    const auto mix_args = [](const json& args, std::vector<int>& components, std::vector<double>& ratios) {
+        for (const json& component : args.value("components", json::array()))
+            components.push_back(component.get<int>());
+        for (const json& ratio : args.value("ratios", json::array()))
+            ratios.push_back(ratio.get<double>());
+    };
+    const std::vector<Property> add_props = mix_props("The physical filament slots to mix, 1-based, two or more, each once, of "
+                                                      "filaments of one type. Omitted with ratios: the dialog opens.");
     NativeCommand mixed = reaching(
         {"add_mixed_filament"},
         mutate_tool(
@@ -3503,28 +3662,23 @@ void register_config_tools(CommandCatalog& catalog)
             "Add a mixed filament: a slot that prints its physical filaments in turn, layer by layer, in the ratios given, as "
             "the Add Mixed Filament dialog's OK does with no gradient. components are two or more of the physical slots "
             "(1-based), each named once, whose filaments are of one type; ratios a whole percentage for each, adding up to "
-            "100. It goes after every other slot. A mix the "
-            "project has already is not added again: the reply names its slot. Not in the undo history. Reply: "
-            "filament_slot (1-based) and added (false for a mix the project had).",
-            object_schema({{"components", array_prop({{"type", "integer"}, {"minimum", 1}},
-                                                     "The physical filament slots to mix, 1-based, two or more, each once, of "
-                                                     "filaments of one type.")},
-                           {"ratios", array_prop({{"type", "integer"}, {"exclusiveMinimum", 0}},
-                                                 "Each component's share in percent, in the order of components, adding up to "
-                                                 "100.")}},
-                          {"components", "ratios"}),
-            [](const json& args, ToolContext& ctx) {
+            "100. It goes after every other slot. A mix the project has already is not added again: the reply names its "
+            "slot. With neither components nor ratios it opens the Add Mixed Filament dialog, as the sidebar's button does, "
+            "and " + mixed_dialog + " Not in the undo history. Reply: filament_slot (1-based, where one was added or "
+            "found) and added (false for a mix the project had, or a dialog cancelled).",
+            object_schema({add_props[0], add_props[1]}),
+            [mix_args](const json& args, ToolContext& ctx) {
                 Ops::AddMixedFilamentArgs op;
-                for (const json& component : args.at("components"))
-                    op.components.push_back(component.get<int>());
-                for (const json& ratio : args.at("ratios"))
-                    op.ratios.push_back(ratio.get<double>());
+                mix_args(args, op.components, op.ratios);
                 json reply = ctx.run_ui([&] {
                     ui_plater();
                     const Ops::Outcome<Ops::MixedFilament> mixed = Ops::add_mixed_filament(op);
                     if (!mixed)
                         throw refused(mixed.refusal());
-                    return json{{"filament_slot", mixed.value().filament_slot}, {"added", mixed.value().added}};
+                    json out{{"added", mixed.value().added}};
+                    if (mixed.value().filament_slot > 0)
+                        out["filament_slot"] = mixed.value().filament_slot;
+                    return out;
                 });
                 settle(ctx);
                 return ToolResult::ok(reply);
@@ -3535,6 +3689,73 @@ void register_config_tools(CommandCatalog& catalog)
         {"title": "Mix three filaments, the third the most", "calls": [
             {"tool": "filament_add_mixed", "args": {"components": [1, 2, 3], "ratios": [25, 25, 50]}}]}])json");
     catalog.add(std::move(mixed));
+
+    const std::vector<Property> edit_props = mix_props("The physical filament slots it mixes from now on, as filament_add_mixed "
+                                                       "takes them. Omitted with ratios: the dialog opens.");
+    NativeCommand edit_mixed = reaching(
+        {"edit_mixed_filament"},
+        mutate_tool(
+            "filament_edit_mixed", L("Edit Mixed Filament"),
+            "Change a mixed filament (filament_list's mixed rows) as the Edit Mixed Filament dialog's OK does: components "
+            "and ratios as filament_add_mixed takes them. The slot keeps its number and the objects on it, and its colour "
+            "becomes the blend; a gradient stays for a mix of two filaments and goes for more, as the dialog shows none for "
+            "them. An edit that names its filaments again repairs a broken mix. With filament_slot alone it opens the Edit "
+            "Mixed Filament dialog on the mix, as a click on its swatch does, and " + mixed_dialog +
+            " Not in the undo history. Reply: filament_slot and changed.",
+            object_schema({{"filament_slot", {{"type", "integer"}, {"minimum", 1}, {"description", "The mixed filament's 1-based slot."}}},
+                           edit_props[0], edit_props[1]},
+                          {"filament_slot"}),
+            [mix_args](const json& args, ToolContext& ctx) {
+                Ops::EditMixedFilamentArgs op;
+                op.filament_slot = arg_int(args, "filament_slot", 1);
+                mix_args(args, op.components, op.ratios);
+                json reply = ctx.run_ui([&] {
+                    ui_plater();
+                    const Ops::Outcome<Ops::EditedMixedFilament> edited = Ops::edit_mixed_filament(op);
+                    if (!edited)
+                        throw refused(edited.refusal());
+                    return json{{"filament_slot", edited.value().filament_slot}, {"changed", edited.value().changed}};
+                });
+                settle(ctx);
+                return ToolResult::ok(reply);
+            }));
+    edit_mixed.examples = json::parse(R"json([
+        {"title": "Make the mixed filament in slot 3 mostly its first filament", "calls": [
+            {"tool": "filament_edit_mixed", "args": {"filament_slot": 3, "components": [1, 2], "ratios": [75, 25]}}]}])json");
+    catalog.add(std::move(edit_mixed));
+
+    catalog.add(mutate_tool(
+        "filament_set_colour", L("Set a filament's colour"),
+        "Set a physical filament slot's colour, as its colour button's picker does: colour is #RRGGBB. Where Auto flush "
+        "after changing is on, the flushing volumes are recalculated, so set flush_volumes_matrix (filament_set_flushing) "
+        "after the colours. A mixed filament's colour is its components' blend and is not set. Reply: filament_slot, "
+        "colour (as stored, upper case) and changed.",
+        object_schema({{"filament_slot", {{"type", "integer"}, {"minimum", 1}, {"description", "The 1-based filament slot."}}},
+                       {"colour", prop("string", "#RRGGBB.")}},
+                      {"filament_slot", "colour"}),
+        [](const json& args, ToolContext& ctx) { return set_filament_colour(args, ctx); }));
+
+    catalog.add(mutate_tool(
+        "filament_set_flushing", L("Set the flushing"),
+        "Change the flushing the filament list's Flushing volumes and Purge mode buttons set, as their dialogs' OK does, "
+        "any of: flush_multiplier (one per nozzle, or one value for all, within the Flushing volumes dialog's range), "
+        "flush_volumes_matrix (per nozzle, slots x slots from row to column in config order over every slot, before the "
+        "multiplier; whole, or one entry as {index, value}; a mixed filament's entries, which are never flushed, must be "
+        "given as they are) and prime_volume_mode (one of filament_list's prime_volume_modes). A colour change "
+        "(filament_set_colour) can recalculate the matrix, so set it after the colours. Values are checked before "
+        "anything changes. Reply: applied and changed.",
+        object_schema({{"flush_multiplier", {{"type", {"number", "array"}}, {"description", "One value, or one per nozzle."}}},
+                       {"flush_volumes_matrix", {{"type", {"array", "object"}}, {"description", "The whole matrix, or {index, value}."}}},
+                       {"prime_volume_mode", prop("string", "The purge mode, e.g. \"Default\".")}}),
+        [](const json& args, ToolContext& ctx) {
+            json values = json::object();
+            for (const char* key : {"flush_multiplier", "flush_volumes_matrix", "prime_volume_mode"})
+                if (args.contains(key))
+                    values[key] = args[key];
+            if (values.empty())
+                throw ToolFailure("Give flush_multiplier, flush_volumes_matrix or prime_volume_mode");
+            return set_project_values(values, ctx, true);
+        }));
 
     const std::string ams = "Synchronize the filament list from the connected printer's AMS.";
     NativeCommand     sync_ams = reaching(

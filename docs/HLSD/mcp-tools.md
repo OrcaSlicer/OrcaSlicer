@@ -131,8 +131,8 @@ them and `tool_call` runs them.
 | `project_new` | Start a new, empty project | `discard_changes`; `preset_changes`: keep, discard |
 | `project_save` | Save the project to its file, or as a .3mf at a path, which becomes its file | `path`, `overwrite`; `save_as` |
 | `project_export` | Write a plate's G-code, a sliced 3MF, a 3MF, the objects as STL or Draco, or the shown toolpaths as OBJ | `format`: gcode, sliced_3mf, 3mf, stl, drc, toolpaths_obj; `path`, `overwrite`; `plates`; `per_object`, `objects` |
-| `project_get_settings` | The settings the project keeps outside any preset: the plate type, slot colours, flushing volumes, purge mode, prime tower positions, mixed slots and filament grouping | `keys`, `include_meta` |
-| `project_set_settings` | Change those settings as the sidebar's controls write them | `values` |
+| `project_get_settings` | The project's own settings for its plates: the plate type, prime tower positions and filament grouping | `keys`, `include_meta` |
+| `project_set_settings` | Change those settings as their controls write them | `values` |
 
 ### Objects
 
@@ -221,9 +221,13 @@ them and `tool_call` runs them.
 
 | Command | What it does | Variants and main arguments |
 |---|---|---|
+| `filament_list` | The filament list as the sidebar shows it: each slot's colour and preset, or a mixed filament's filaments, ratios, gradient and whether it is broken; the flushing volumes, multiplier and purge mode |  |
 | `filament_add` | Add a filament slot, as the + button above the filament list does |  |
-| `filament_delete` | Delete a slot, or merge it into another, as its Delete and Merge with items do | `filament_slot`, `merge_into` |
+| `filament_delete` | Delete a slot, or merge it into another, as its Delete and Merge with items do | `filament_slot`, `merge_into`, `break_mix` |
 | `filament_add_mixed` | Add a mixed filament, which prints physical slots in turn, layer by layer, in given ratios | `components`, `ratios` |
+| `filament_edit_mixed` | Change a mixed filament's filaments and ratios, as the Edit Mixed Filament dialog's OK does | `filament_slot`, `components`, `ratios` |
+| `filament_set_colour` | Set a physical slot's colour, as its colour button does | `filament_slot`, `colour` |
+| `filament_set_flushing` | Change the flushing volumes, multiplier and purge mode, as their dialogs' OK does | `flush_multiplier`, `flush_volumes_matrix`, `prime_volume_mode` |
 | `filament_sync_ams` | Synchronize the filament list from the connected printer's AMS | `mode`: map, overwrite |
 | `filament_install` | Install system filaments, as the System Filaments dialog's Confirm does | `names`; or `vendor` and `filament_type` |
 | `filament_uninstall` | Uninstall system filaments | `names` |
@@ -439,6 +443,9 @@ and opens nothing.** A command's own action is `{}`.
 | `preset_import {}` | a file dialog | `path` |
 | `plugin_install_local {}` | a file dialog, and whether to replace an installed plugin | `path`, with `overwrite` |
 | `filament_sync_ams {}` | the sync dialog | `mode` |
+| `filament_add_mixed {}` | the Add Mixed Filament dialog, where a gradient is set | `components` and `ratios` |
+| `filament_edit_mixed {filament_slot}` | the Edit Mixed Filament dialog on that mix, where a gradient is set | `components` and `ratios` |
+| `filament_delete {filament_slot, merge_into}` into a mixed filament that mixes the slot | Merge with's question | `break_mix` |
 | `recording_start {}` | the Start Recording dialog | any argument, or `silent: true` |
 | `window_open {window}`, `app_open_web_page {page}` | nothing: opening is the job | the same call |
 
@@ -625,7 +632,7 @@ Access labels, which `tools/list` sends as MCP's annotations (mcp-server.md, Too
 set as it is):
 
 - **read_only**, 21 commands: `tool_search`, `action_search`, `app_state`, `app_wait`, `app_log`,
-  `preferences_get`, `project_get_settings`, `object_list`, `plate_get_settings`, `plate_list`,
+  `preferences_get`, `project_get_settings`, `filament_list`, `object_list`, `plate_get_settings`, `plate_list`,
   `plate_slice_stats`, `preset_list`, `settings_list`, `settings_get`, `printer_list_models`, `printer_status`,
   `plugin_list`, `window_list`, `window_screenshot`, `script_search_api` and `widget_list`. These are idempotent too, and so
   is `dialog_auto_answer`.
@@ -648,7 +655,8 @@ set as it is):
 - **Undo.** A command that changes the objects, their parts or the plates is one undo step; `object_clone`
   with `arrange` is two, the copies and then the arrangement, and `project_set_settings` takes one for a prime
   tower move. A gizmo that records undo steps of its own as it opens or closes, as Cut, Brim Ears and the painting
-  gizmos do, adds them around a gizmo command's call. Not in the undo history: `filament_delete`, `filament_add_mixed`, `filament_sync_ams`,
+  gizmos do, adds them around a gizmo command's call. Not in the undo history: `filament_delete`, `filament_add_mixed`,
+  `filament_edit_mixed`, `filament_set_colour`, `filament_set_flushing`, `filament_sync_ams`,
   `filament_install`, `filament_uninstall`, `printer_install`, `printer_uninstall`, a preset's change by
   `settings_set`, `preferences_set`, and `plate_set_custom_gcode`, as in the layer slider.
 - **Unsaved changes.** `project_open`, `project_new` and `calibration_generate_test` refuse while the project
@@ -657,7 +665,7 @@ set as it is):
   preset or a printer is selected (`preset_select`, `printer_install`, `printer_uninstall`); `preset_select`
   without it opens the Transfer-or-discard prompt.
 - **Settings values** are strings in OrcaSlicer's format (`"15%"`, `"0.2"`, `"1,2"`) or JSON numbers,
-  booleans and arrays. `settings_set`, `preferences_set`, `project_set_settings` and `plate_set_settings`
+  booleans and arrays. `settings_set`, `preferences_set`, `project_set_settings`, `filament_set_flushing` and `plate_set_settings`
   check every value first and write them together, so nothing changes when one is refused.
 - **What is shown.** A command that acts on the 3D selection shows the Prepare view first; `plate_slice`
   shows the Preview, as the Slice button does; `plate_set_custom_gcode` selects its plate and shows the
@@ -698,6 +706,9 @@ set as it is):
 | Export Preset Bundle | `preset_export` |
 | Mode: Simple, Advanced, Expert | `settings_set_mode {mode}` |
 | the filament list's + and -, Merge with | `filament_add`, `filament_delete`, `{merge_into}` |
+| a slot's colour button | `filament_set_colour` |
+| Flushing volumes, Purge mode | `filament_set_flushing` |
+| Add Mixed Filament, a mixed filament's swatch (Edit Mixed Filament) | `filament_add_mixed`, `filament_edit_mixed` |
 | System Filaments dialog | `filament_install`, `filament_uninstall` |
 | Printer Selection dialog | `printer_install`, `printer_uninstall` |
 | Send G-code to printer host, the Print button's Send and Send all | `printer_send`, `{plates: "all"}` |

@@ -4374,7 +4374,6 @@ void Sidebar::update_mixed_filament_list()
     auto mixed_indices = plater->mixed_filament_config_indices();
     size_t num_physical = p->combos_filament.size();
 
-    auto* is_mixed_opt    = project_config.option<ConfigOptionBools>("filament_is_mixed");
     auto* components_opt  = project_config.option<ConfigOptionStrings>("filament_mixed_components");
     auto* ratios_opt      = project_config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios");
     auto* colours_opt     = project_config.option<ConfigOptionStrings>("filament_colour");
@@ -4384,34 +4383,8 @@ void Sidebar::update_mixed_filament_list()
     bool can_mix = (num_physical >= 2);
     bool has_mixed = can_mix && !mixed_indices.empty();
 
-    // Check integrity of mixed filament component references
-    std::vector<size_t> broken_slots;
-    if (is_mixed_opt && components_opt)
-        broken_slots = check_mixed_filament_integrity(is_mixed_opt->values, components_opt->values, num_physical);
-    std::set<size_t> broken_set(broken_slots.begin(), broken_slots.end());
-
-    // Type consistency check
-    if (is_mixed_opt && components_opt) {
-        std::vector<std::string> physical_types;
-        auto& preset_bundle = *wxGetApp().preset_bundle;
-        for (size_t i = 0; i < num_physical; ++i) {
-            std::string ft;
-            if (i < preset_bundle.filament_presets.size()) {
-                auto* preset = preset_bundle.filaments.find_preset(preset_bundle.filament_presets[i]);
-                if (preset) {
-                    std::string display_type;
-                    ft = preset->config.get_filament_type(display_type);
-                }
-            }
-            if (ft.empty()) ft = "PLA";
-            physical_types.push_back(ft);
-        }
-        auto type_mismatch_slots = check_mixed_filament_type_consistency(
-            is_mixed_opt->values, components_opt->values, physical_types);
-        for (size_t s : type_mismatch_slots)
-            broken_set.insert(s);
-        broken_slots.insert(broken_slots.end(), type_mismatch_slots.begin(), type_mismatch_slots.end());
-    }
+    const std::vector<size_t> broken_slots = broken_mixed_filaments();
+    std::set<size_t>          broken_set(broken_slots.begin(), broken_slots.end());
 
     bool at_limit = (wxGetApp().preset_bundle->filament_presets.size() >= size_t(EnforcerBlockerType::ExtruderMax));
     p->m_btn_add_mixed_filament->Show(can_mix && !has_mixed && !at_limit);
@@ -4900,41 +4873,46 @@ bool Sidebar::has_broken_mixed_filament() const
     return has_broken_mixed_filament(plater->get_partplate_list().get_curr_plate());
 }
 
+std::vector<size_t> Sidebar::broken_mixed_filaments() const
+{
+    auto& preset_bundle = *wxGetApp().preset_bundle;
+    auto* is_mixed_opt  = preset_bundle.project_config.option<ConfigOptionBools>("filament_is_mixed");
+    auto* comp_strs_opt = preset_bundle.project_config.option<ConfigOptionStrings>("filament_mixed_components");
+    if (!is_mixed_opt || !comp_strs_opt)
+        return {};
+
+    const size_t        num_physical = p->combos_filament.size();
+    std::vector<size_t> broken       = check_mixed_filament_integrity(is_mixed_opt->values, comp_strs_opt->values, num_physical);
+
+    // A mix of filaments of different types, which the Add Mixed Filament dialog does not take.
+    std::vector<std::string> physical_types;
+    for (size_t i = 0; i < num_physical; ++i) {
+        std::string ft;
+        if (i < preset_bundle.filament_presets.size()) {
+            auto* preset = preset_bundle.filaments.find_preset(preset_bundle.filament_presets[i]);
+            if (preset) {
+                std::string display_type;
+                ft = preset->config.get_filament_type(display_type);
+            }
+        }
+        if (ft.empty()) ft = "PLA";
+        physical_types.push_back(ft);
+    }
+    const std::vector<size_t> type_mismatch_slots = check_mixed_filament_type_consistency(is_mixed_opt->values, comp_strs_opt->values,
+                                                                                          physical_types);
+    broken.insert(broken.end(), type_mismatch_slots.begin(), type_mismatch_slots.end());
+    std::sort(broken.begin(), broken.end());
+    broken.erase(std::unique(broken.begin(), broken.end()), broken.end());
+    return broken;
+}
+
 bool Sidebar::has_broken_mixed_filament(const PartPlate* plate) const
 {
     if (!plate) return false;
     auto* plater = dynamic_cast<Plater*>(GetParent());
     if (!plater) return false;
 
-    auto& project_config = wxGetApp().preset_bundle->project_config;
-    auto* is_mixed_opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
-    auto* comp_strs_opt = project_config.option<ConfigOptionStrings>("filament_mixed_components");
-    if (!is_mixed_opt || !comp_strs_opt) return false;
-
-    size_t num_physical = p->combos_filament.size();
-    auto broken_slots = check_mixed_filament_integrity(is_mixed_opt->values, comp_strs_opt->values, num_physical);
-
-    // Type consistency check
-    {
-        std::vector<std::string> physical_types;
-        auto& preset_bundle = *wxGetApp().preset_bundle;
-        for (size_t i = 0; i < num_physical; ++i) {
-            std::string ft;
-            if (i < preset_bundle.filament_presets.size()) {
-                auto* preset = preset_bundle.filaments.find_preset(preset_bundle.filament_presets[i]);
-                if (preset) {
-                    std::string display_type;
-                    ft = preset->config.get_filament_type(display_type);
-                }
-            }
-            if (ft.empty()) ft = "PLA";
-            physical_types.push_back(ft);
-        }
-        auto type_mismatch_slots = check_mixed_filament_type_consistency(
-            is_mixed_opt->values, comp_strs_opt->values, physical_types);
-        broken_slots.insert(broken_slots.end(), type_mismatch_slots.begin(), type_mismatch_slots.end());
-    }
-
+    const std::vector<size_t> broken_slots = broken_mixed_filaments();
     if (broken_slots.empty()) return false;
 
     std::set<size_t> broken_1based;
@@ -5223,6 +5201,13 @@ void Sidebar::edit_mixed_filament(size_t panel_idx)
     std::vector<std::string> color_strs, names, types;
     collect_physical_filament_info(color_strs, names, types);
 
+    MixedFilamentDialog dlg(this, mixed_filament_result(cfg_idx), color_strs, names, types);
+    if (dlg.ShowModal() == wxID_OK)
+        apply_mixed_filament_edit(cfg_idx, dlg.get_result());
+}
+
+MixedFilamentResult Sidebar::mixed_filament_result(size_t cfg_idx) const
+{
     auto& project_config = wxGetApp().preset_bundle->project_config;
     MixedFilamentResult existing;
     auto* components_opt = project_config.option<ConfigOptionStrings>("filament_mixed_components");
@@ -5283,90 +5268,97 @@ void Sidebar::edit_mixed_filament(size_t panel_idx)
     auto* per_part_opt = project_config.option<ConfigOptionBools>("filament_mixed_gradient_per_part");
     if (existing.gradient_enabled && per_part_opt && cfg_idx < per_part_opt->values.size())
         existing.per_part_gradient = per_part_opt->values[cfg_idx];
+    return existing;
+}
 
-    MixedFilamentDialog dlg(this, existing, color_strs, names, types);
-    if (dlg.ShowModal() == wxID_OK) {
-        auto result = dlg.get_result();
-        if (result.components.size() < 2 || result.ratios.size() < 2) return;
+void Sidebar::apply_mixed_filament_edit(size_t cfg_idx, const MixedFilamentResult& result)
+{
+    if (result.components.size() < 2 || result.ratios.size() < 2) return;
 
-        // Serialize components
-        std::string comp_str;
-        for (size_t i = 0; i < result.components.size(); ++i) {
-            if (i > 0) comp_str += ",";
-            comp_str += std::to_string(result.components[i]);
-        }
-        components_opt->values[cfg_idx] = comp_str;
+    std::vector<std::string> color_strs, names, types;
+    collect_physical_filament_info(color_strs, names, types);
 
-        // Serialize ratios
-        int ratio_sum = 0;
-        for (int r : result.ratios) ratio_sum += r;
-        if (ratio_sum <= 0) ratio_sum = 100;
+    auto& project_config = wxGetApp().preset_bundle->project_config;
+    auto* components_opt = project_config.option<ConfigOptionStrings>("filament_mixed_components");
+    auto* ratios_opt = project_config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios");
 
-        std::string ratio_str;
-        {
-            CNumericLocalesSetter c_locale_setter;
-            for (size_t i = 0; i < result.ratios.size(); ++i) {
-                if (i > 0) ratio_str += ",";
-                char buf[32];
-                std::snprintf(buf, sizeof(buf), "%.4f", (float)result.ratios[i] / ratio_sum);
-                ratio_str += buf;
-            }
-        }
-        ratios_opt->values[cfg_idx] = ratio_str;
-
-        // Gradient settings — ensure keys exist in dynamic config
-        if (!project_config.option("filament_mixed_gradient"))
-            project_config.set_key_value("filament_mixed_gradient", new ConfigOptionBools({false}));
-        if (!project_config.option("filament_mixed_gradient_range"))
-            project_config.set_key_value("filament_mixed_gradient_range", new ConfigOptionStrings({""}) );
-        if (!project_config.option("filament_mixed_gradient_curve"))
-            project_config.set_key_value("filament_mixed_gradient_curve", new ConfigOptionStrings({""}) );
-        if (!project_config.option("filament_mixed_gradient_per_part"))
-            project_config.set_key_value("filament_mixed_gradient_per_part", new ConfigOptionBools({false}));
-
-        {
-            auto* grad_opt = project_config.option<ConfigOptionBools>("filament_mixed_gradient");
-            while (grad_opt->values.size() <= cfg_idx) grad_opt->values.push_back(false);
-            grad_opt->values[cfg_idx] = result.gradient_enabled;
-        }
-        {
-            auto* grad_range_opt = project_config.option<ConfigOptionStrings>("filament_mixed_gradient_range");
-            while (grad_range_opt->values.size() <= cfg_idx) grad_range_opt->values.push_back("");
-            if (result.gradient_enabled && result.components.size() == 2) {
-                const char* fmt = (result.gradient_direction == 0) ? "0.9000,0.1000" : "0.1000,0.9000";
-                grad_range_opt->values[cfg_idx] = fmt;
-            } else {
-                grad_range_opt->values[cfg_idx] = "";
-            }
-        }
-        {
-            auto* grad_curve_opt = project_config.option<ConfigOptionStrings>("filament_mixed_gradient_curve");
-            while (grad_curve_opt->values.size() <= cfg_idx) grad_curve_opt->values.push_back("");
-            grad_curve_opt->values[cfg_idx] = serialize_mixed_gradient_curve_if_custom(result);
-        }
-        {
-            auto* per_part_opt = project_config.option<ConfigOptionBools>("filament_mixed_gradient_per_part");
-            while (per_part_opt->values.size() <= cfg_idx) per_part_opt->values.push_back(false);
-            per_part_opt->values[cfg_idx] = result.gradient_enabled && result.per_part_gradient;
-        }
-
-        // Compute blended color
-        std::string blended = blend_mixed_color(result.components, result.ratios, color_strs);
-        auto* colours_opt = project_config.option<ConfigOptionStrings>("filament_colour");
-        if (colours_opt && cfg_idx < colours_opt->values.size())
-            colours_opt->values[cfg_idx] = blended;
-
-        auto* multi_colour_opt = project_config.option<ConfigOptionStrings>("filament_multi_colour");
-        if (multi_colour_opt && cfg_idx < multi_colour_opt->values.size())
-            multi_colour_opt->values[cfg_idx] = blended;
-
-        // The edited slot keeps its index, so nothing else refreshes the per-feature filament
-        // lists - and its blended colour and type are what they show for it.
-        update_mixed_filament_list();
-        update_dynamic_filament_list();
-        wxGetApp().plater()->update_project_dirty_from_presets();
-        wxPostEvent(this, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, this));
+    // Serialize components
+    std::string comp_str;
+    for (size_t i = 0; i < result.components.size(); ++i) {
+        if (i > 0) comp_str += ",";
+        comp_str += std::to_string(result.components[i]);
     }
+    components_opt->values[cfg_idx] = comp_str;
+
+    // Serialize ratios
+    int ratio_sum = 0;
+    for (int r : result.ratios) ratio_sum += r;
+    if (ratio_sum <= 0) ratio_sum = 100;
+
+    std::string ratio_str;
+    {
+        CNumericLocalesSetter c_locale_setter;
+        for (size_t i = 0; i < result.ratios.size(); ++i) {
+            if (i > 0) ratio_str += ",";
+            char buf[32];
+            std::snprintf(buf, sizeof(buf), "%.4f", (float)result.ratios[i] / ratio_sum);
+            ratio_str += buf;
+        }
+    }
+    ratios_opt->values[cfg_idx] = ratio_str;
+
+    // Gradient settings — ensure keys exist in dynamic config
+    if (!project_config.option("filament_mixed_gradient"))
+        project_config.set_key_value("filament_mixed_gradient", new ConfigOptionBools({false}));
+    if (!project_config.option("filament_mixed_gradient_range"))
+        project_config.set_key_value("filament_mixed_gradient_range", new ConfigOptionStrings({""}) );
+    if (!project_config.option("filament_mixed_gradient_curve"))
+        project_config.set_key_value("filament_mixed_gradient_curve", new ConfigOptionStrings({""}) );
+    if (!project_config.option("filament_mixed_gradient_per_part"))
+        project_config.set_key_value("filament_mixed_gradient_per_part", new ConfigOptionBools({false}));
+
+    {
+        auto* grad_opt = project_config.option<ConfigOptionBools>("filament_mixed_gradient");
+        while (grad_opt->values.size() <= cfg_idx) grad_opt->values.push_back(false);
+        grad_opt->values[cfg_idx] = result.gradient_enabled;
+    }
+    {
+        auto* grad_range_opt = project_config.option<ConfigOptionStrings>("filament_mixed_gradient_range");
+        while (grad_range_opt->values.size() <= cfg_idx) grad_range_opt->values.push_back("");
+        if (result.gradient_enabled && result.components.size() == 2) {
+            const char* fmt = (result.gradient_direction == 0) ? "0.9000,0.1000" : "0.1000,0.9000";
+            grad_range_opt->values[cfg_idx] = fmt;
+        } else {
+            grad_range_opt->values[cfg_idx] = "";
+        }
+    }
+    {
+        auto* grad_curve_opt = project_config.option<ConfigOptionStrings>("filament_mixed_gradient_curve");
+        while (grad_curve_opt->values.size() <= cfg_idx) grad_curve_opt->values.push_back("");
+        grad_curve_opt->values[cfg_idx] = serialize_mixed_gradient_curve_if_custom(result);
+    }
+    {
+        auto* per_part_opt = project_config.option<ConfigOptionBools>("filament_mixed_gradient_per_part");
+        while (per_part_opt->values.size() <= cfg_idx) per_part_opt->values.push_back(false);
+        per_part_opt->values[cfg_idx] = result.gradient_enabled && result.per_part_gradient;
+    }
+
+    // Compute blended color
+    std::string blended = blend_mixed_color(result.components, result.ratios, color_strs);
+    auto* colours_opt = project_config.option<ConfigOptionStrings>("filament_colour");
+    if (colours_opt && cfg_idx < colours_opt->values.size())
+        colours_opt->values[cfg_idx] = blended;
+
+    auto* multi_colour_opt = project_config.option<ConfigOptionStrings>("filament_multi_colour");
+    if (multi_colour_opt && cfg_idx < multi_colour_opt->values.size())
+        multi_colour_opt->values[cfg_idx] = blended;
+
+    // The edited slot keeps its index, so nothing else refreshes the per-feature filament
+    // lists - and its blended colour and type are what they show for it.
+    update_mixed_filament_list();
+    update_dynamic_filament_list();
+    wxGetApp().plater()->update_project_dirty_from_presets();
+    wxPostEvent(this, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, this));
 }
 
 void Sidebar::remove_all_mixed_filaments()

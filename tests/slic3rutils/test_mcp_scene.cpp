@@ -193,8 +193,10 @@ TEST_CASE("the commands that replace a dialog take the arguments the table gives
     REQUIRE(names("plate_duplicate") == Names{"plate"});
     REQUIRE(names("plate_rename") == Names{"plate", "name", "silent"});
     REQUIRE(names("plate_lock") == Names{"plate", "locked"});
-    REQUIRE(names("filament_delete") == Names{"filament_slot", "merge_into"});
+    REQUIRE(names("filament_delete") == Names{"filament_slot", "merge_into", "break_mix"});
     REQUIRE(names("filament_add_mixed") == Names{"components", "ratios"});
+    REQUIRE(names("filament_edit_mixed") == Names{"filament_slot", "components", "ratios"});
+    REQUIRE(names("filament_set_colour") == Names{"filament_slot", "colour"});
     REQUIRE(names("recording_start") == recording);
     // The object arrange fills a plate with is named as an object, not as a count.
     CHECK(names("object_arrange").count("fill_object") == 1);

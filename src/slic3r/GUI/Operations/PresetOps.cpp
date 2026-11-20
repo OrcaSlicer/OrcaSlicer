@@ -6,6 +6,7 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/MixedFilamentDialog.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/DeviceCore/DevManager.h"
 #include "slic3r/GUI/DeviceManager.hpp"
@@ -15,7 +16,6 @@
 #include "slic3r/GUI/Tab.hpp"
 
 #include "libslic3r/Config.hpp"
-#include "libslic3r/FilamentMixer.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/ProjectTask.hpp"
@@ -420,20 +420,39 @@ Refusal too_many_filaments() { return {RefusalKind::Precondition, "too_many_fila
 
 Refusal last_filament_slot() { return {RefusalKind::Precondition, "last_filament_slot", L("The only filament slot cannot be deleted.")}; }
 
-// The 1-based slot of a mixed filament that mixes the physical slot `slot`, or 0 when none does.
-int mix_using(const PresetBundle& bundle, int slot)
+Refusal components_and_ratios()
 {
-    const auto* components = bundle.project_config.option<ConfigOptionStrings>("filament_mixed_components");
-    if (components == nullptr)
-        return 0;
-    for (std::size_t i = 0; i < components->values.size() && i < bundle.filament_presets.size(); ++i) {
-        if (!bundle.is_mixed_filament(i))
-            continue;
-        const std::vector<unsigned int> mixed = parse_mixed_components(components->values[i]);
-        if (std::find(mixed.begin(), mixed.end(), unsigned(slot)) != mixed.end())
-            return int(i) + 1;
+    return {RefusalKind::Precondition, "components_and_ratios",
+            L("Give the filaments and their ratios together, or neither for the dialog.")};
+}
+
+// The filament types of the filaments a mix can mix, the physical ones, a selector each, as the sidebar reads them
+// for its mixed filament list (slot 1 first; a preset with no type counts as PLA).
+std::vector<std::string> physical_filament_types(Sidebar& sidebar, PresetBundle& presets)
+{
+    std::vector<std::string> types;
+    for (std::size_t slot = 0; slot < sidebar.combos_filament().size(); ++slot) {
+        Preset* preset = slot < presets.filament_presets.size() ? presets.filaments.find_preset(presets.filament_presets[slot]) :
+                                                                  nullptr;
+        std::string display;
+        std::string type = preset != nullptr ? preset->config.get_filament_type(display) : std::string();
+        types.push_back(type.empty() ? "PLA" : type);
     }
-    return 0;
+    return types;
+}
+
+// What a mixed filament is, as the project stores it: its components, ratios, gradient and colour, to tell whether an
+// edit changed it.
+std::vector<std::string> mixed_definition(const PresetBundle& bundle, std::size_t index)
+{
+    std::vector<std::string> out;
+    for (const char* key : {"filament_mixed_components", "filament_mixed_sublayer_ratios", "filament_mixed_gradient",
+                            "filament_mixed_gradient_range", "filament_mixed_gradient_curve", "filament_mixed_gradient_per_part",
+                            "filament_colour"}) {
+        const auto* vec = dynamic_cast<const ConfigOptionVectorBase*>(bundle.project_config.option(key));
+        out.push_back(vec != nullptr && index < vec->size() ? vec->vserialize()[index] : std::string());
+    }
+    return out;
 }
 
 } // namespace
@@ -493,33 +512,40 @@ Outcome<DeletedFilament> delete_filament_slot(const DeleteFilamentArgs& args)
                        L("Filament slot %1% is a mixed filament, which can be deleted but not merged."), {std::to_string(slot)}};
     if (!mixed && physical < 2)
         return last_filament_slot();
+    // With one physical filament the sidebar hides the mixed filament list and deletes nothing
+    // (Sidebar::delete_filament()), so a mix left then stays until a slot is added.
+    if (mixed && physical < 2)
+        return Refusal{RefusalKind::Precondition, "mixed_list_hidden",
+                       L("With one physical filament the mixed filaments are hidden and cannot be deleted; add a filament slot first.")};
     Sidebar& sidebar = plater.sidebar();
-    if (args.merge_into && sidebar.merge_removes_component(std::size_t(slot) - 1, std::size_t(*args.merge_into) - 1))
+    // Merge with asks before it merges a filament into a mixed filament that mixes it, which leaves the mix broken.
+    const bool breaks_mix = args.merge_into &&
+                            sidebar.merge_removes_component(std::size_t(slot) - 1, std::size_t(*args.merge_into) - 1);
+    if (breaks_mix && args.break_mix == std::optional<bool>(false))
         return Refusal{RefusalKind::Precondition, "mixed_uses_slot",
-                       L("The target mixed filament uses this physical filament as a component. "
-                         "Merging will remove this physical filament and may invalidate the mixed filament. Continue?")};
-    // The sidebar deletes a physical filament a mix uses and leaves the mix naming a slot that is gone, which nothing
-    // can repair; the operation refuses it, so a caller deletes the mix first.
-    if (!mixed) {
-        if (const int mix = mix_using(bundle, slot))
-            return Refusal{RefusalKind::Precondition, "mixed_uses_slot",
-                           // TRN %1% is a filament slot number, %2% the slot of the mixed filament that mixes it.
-                           L("Filament slot %1% is mixed in the mixed filament of slot %2%; delete that mixed filament first."),
-                           {std::to_string(slot), std::to_string(mix)}};
-    }
-    if (args.merge_into) {
+                       // TRN %1% is a filament slot number, %2% the slot of the mixed filament that mixes it.
+                       L("Merging filament slot %1% into the mixed filament of slot %2% removes a filament that mixed filament mixes."),
+                       {std::to_string(slot), std::to_string(*args.merge_into)}};
+    if (breaks_mix && args.break_mix.value_or(false))
+        sidebar.delete_filament(std::size_t(slot) - 1, *args.merge_into - 1); // what Merge with does after its question's OK
+    else if (args.merge_into)
         sidebar.change_filament(std::size_t(slot) - 1, std::size_t(*args.merge_into) - 1);
-    } else {
+    else
         sidebar.delete_filament(std::size_t(slot) - 1);
-    }
     sidebar.update_filaments_counter();
-    if (int(bundle.filament_presets.size()) == slots)
+    if (int(bundle.filament_presets.size()) == slots) {
+        if (breaks_mix && !args.break_mix)
+            // TRN %1% is a filament slot number.
+            return Refusal{RefusalKind::Failed, "merge_cancelled", L("Merging filament slot %1% was cancelled."), {std::to_string(slot)}};
         return Refusal{RefusalKind::Failed, "not_deleted", L("The filament slot was not deleted.")};
+    }
     DeletedFilament deleted;
     deleted.filament_slot = slot;
     // The slots after the deleted one move down by one.
     if (args.merge_into)
         deleted.merged_into = *args.merge_into > slot ? *args.merge_into - 1 : *args.merge_into;
+    for (const std::size_t broken : sidebar.broken_mixed_filaments())
+        deleted.broken_mixed.push_back(int(broken) + 1);
     return deleted;
 }
 
@@ -562,34 +588,84 @@ Outcome<MixedFilament> add_mixed_filament(const AddMixedFilamentArgs& args)
     Plater& plater = *wxGetApp().plater();
     if (std::optional<Refusal> refusal = filament_list_refusal(plater))
         return *refusal;
-    Sidebar& sidebar = plater.sidebar();
-    // The filaments that mix are the physical ones, a selector each, each of the type the sidebar reads for them.
-    PresetBundle&            presets = *wxGetApp().preset_bundle;
-    std::vector<std::string> types;
-    for (std::size_t slot = 0; slot < sidebar.combos_filament().size(); ++slot) {
-        Preset* preset = slot < presets.filament_presets.size() ? presets.filaments.find_preset(presets.filament_presets[slot]) :
-                                                                  nullptr;
-        std::string display;
-        std::string type = preset != nullptr ? preset->config.get_filament_type(display) : std::string();
-        types.push_back(type.empty() ? "PLA" : type);
+    if (args.components.empty() != args.ratios.empty())
+        return components_and_ratios();
+    Sidebar&          sidebar = plater.sidebar();
+    PresetBundle&     presets = *wxGetApp().preset_bundle;
+    const std::size_t before  = presets.filament_presets.size();
+    if (args.components.empty()) {
+        // The sidebar offers Add Mixed Filament from two physical filaments on, and up to the last slot.
+        if (sidebar.combos_filament().size() < 2)
+            return Refusal{RefusalKind::Precondition, "too_few_components", L("A mixed filament mixes two filaments or more.")};
+        if (before >= std::size_t(EnforcerBlockerType::ExtruderMax))
+            return too_many_filaments();
+        sidebar.add_mixed_filament();
+        MixedFilament mixed;
+        mixed.added         = presets.filament_presets.size() > before;
+        mixed.filament_slot = mixed.added ? int(before) + 1 : 0;
+        return mixed;
     }
-    if (std::optional<Refusal> refusal = mixed_filament_refusal(types, args.components, args.ratios))
+    if (std::optional<Refusal> refusal = mixed_filament_refusal(physical_filament_types(sidebar, presets), args.components, args.ratios))
         return *refusal;
     const std::vector<unsigned int> components(args.components.begin(), args.components.end());
     std::vector<int>                ratios;
     for (double ratio : args.ratios)
         ratios.push_back(int(std::lround(ratio)));
-    const PresetBundle& bundle = *wxGetApp().preset_bundle;
-    const std::size_t   before = bundle.filament_presets.size();
-    const int           index  = sidebar.ensure_mixed_filament(components, ratios);
+    const int index = sidebar.ensure_mixed_filament(components, ratios);
     if (index < 0 && before >= std::size_t(EnforcerBlockerType::ExtruderMax))
         return too_many_filaments();
     if (index < 0)
         return Refusal{RefusalKind::Failed, "not_mixed", L("No mixed filament was added.")};
     MixedFilament mixed;
     mixed.filament_slot = index + 1;
-    mixed.added         = bundle.filament_presets.size() > before;
+    mixed.added         = presets.filament_presets.size() > before;
     return mixed;
+}
+
+Outcome<EditedMixedFilament> edit_mixed_filament(const EditMixedFilamentArgs& args)
+{
+    assert(wxThread::IsMain());
+    Plater& plater = *wxGetApp().plater();
+    if (std::optional<Refusal> refusal = filament_list_refusal(plater))
+        return *refusal;
+    PresetBundle&     presets = *wxGetApp().preset_bundle;
+    const std::size_t slots   = presets.filament_presets.size();
+    if (args.filament_slot < 1 || std::size_t(args.filament_slot) > slots)
+        return no_such_slot(args.filament_slot, slots);
+    const std::size_t index = std::size_t(args.filament_slot) - 1;
+    if (!presets.is_mixed_filament(index))
+        // TRN %1% is a filament slot number.
+        return Refusal{RefusalKind::Precondition, "not_mixed_filament", L("Filament slot %1% is not a mixed filament."),
+                       {std::to_string(args.filament_slot)}};
+    if (args.components.empty() != args.ratios.empty())
+        return components_and_ratios();
+    Sidebar&                       sidebar = plater.sidebar();
+    const std::vector<std::string> before  = mixed_definition(presets, index);
+    if (args.components.empty()) {
+        // The mixed filament list's rows, one per mix in slot order; a click on a row's swatch edits it.
+        const std::vector<std::size_t> rows = plater.mixed_filament_config_indices();
+        sidebar.edit_mixed_filament(std::size_t(std::find(rows.begin(), rows.end(), index) - rows.begin()));
+    } else {
+        if (std::optional<Refusal> refusal = mixed_filament_refusal(physical_filament_types(sidebar, presets), args.components,
+                                                                    args.ratios))
+            return *refusal;
+        MixedFilamentResult result = sidebar.mixed_filament_result(index);
+        result.components.assign(args.components.begin(), args.components.end());
+        result.ratios.clear();
+        for (double ratio : args.ratios)
+            result.ratios.push_back(int(std::lround(ratio)));
+        // The dialog shows a gradient for a mix of two filaments only, and turns it off for more.
+        if (result.components.size() != 2) {
+            result.gradient_enabled  = false;
+            result.per_part_gradient = false;
+            result.gradient_curve.clear();
+        }
+        sidebar.apply_mixed_filament_edit(index, result);
+    }
+    EditedMixedFilament edited;
+    edited.filament_slot = args.filament_slot;
+    edited.changed       = mixed_definition(presets, index) != before;
+    return edited;
 }
 
 // ---- Syncing the filament list from the AMS ----

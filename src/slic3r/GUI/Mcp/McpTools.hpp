@@ -422,17 +422,17 @@ nlohmann::json unsaved_changes_outcome(const nlohmann::json& before);
 nlohmann::json check_preset_deletable(const PresetCollection& presets, const std::string& name, bool delete_attached,
                                       const PresetCollection& prints, const PresetCollection& filaments);
 
-// project_set_settings' filament_colour to write: one colour per slot of `current`, each #RRGGBB (stored in
+// The slot colours filament_set_colour writes: one colour per slot of `current`, each #RRGGBB (stored in
 // upper case, as the colour pickers store it) or the slot's current colour in any case. `mixed` flags the
 // mixed slots, whose colour comes from their components and cannot change. Throws ToolFailure otherwise.
 std::vector<std::string> check_filament_colours(std::vector<std::string> colours, const std::vector<std::string>& current,
                                                 const std::vector<unsigned char>& mixed);
 
-// project_set_settings' flush_multiplier to write: one per nozzle, or one value for all, each within the
+// filament_set_flushing's flush_multiplier to write: one per nozzle, or one value for all, each within the
 // Flushing volumes dialog's 0..3. Throws ToolFailure otherwise.
 std::vector<double> check_flush_multipliers(std::vector<double> multipliers, std::size_t nozzles);
 
-// project_set_settings' flush_volumes_matrix to write: per nozzle, `slots` x `slots` volumes (row = from,
+// filament_set_flushing's flush_volumes_matrix to write: per nozzle, `slots` x `slots` volumes (row = from,
 // column = to) in config order over every slot, as project_config and the G-code header hold it, limited
 // as the Flushing volumes dialog limits them (g_max_flush_volume / the nozzle's multiplier). Throws
 // ToolFailure for another length, a negative volume, a non-zero diagonal, or a changed entry of a mixed

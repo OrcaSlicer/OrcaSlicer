@@ -97,7 +97,8 @@ printer's own behaviour, such as Send over the Bambu network, starts on the Bamb
   project with its changes discarded, then `printer` selected, installed first with `printer_install` when the data
   folder lacks it, then `process` (default: the printer's default process), then one filament slot per name in
   `filaments` (default: the printer's default filament), with any mixed filament slot an earlier test left removed
-  first, each switch discarding unsaved preset changes. It returns
+  first (after adding a slot where one physical slot is left, beside which the sidebar deletes no mix), each switch
+  discarding unsaved preset changes. It returns
   `presets()`, which the test compares with the start its entry writes out. `KLIPPER`, `KLIPPER_STD` and
   `GENERIC_PLA` name the default printer's three presets; `X1C`, `X1C_STD` and `BAMBU_PLA` the Bambu Lab X1 Carbon
   0.4 nozzle's.
@@ -175,7 +176,7 @@ until they leave the sweep.
 | [Plates](test-entries/plates.md) | [`test_plates`](test-entries/plates.md#test_plates) | — |
 | [Objects](test-entries/objects.md) | [`test_objects`](test-entries/objects.md#test_objects), [`test_object_structure`](test-entries/objects.md#test_object_structure) | — |
 | [Presets and calibration](test-entries/presets.md) | [`test_presets`](test-entries/presets.md#test_presets), [`test_calibration`](test-entries/presets.md#test_calibration) | — |
-| [Filaments and settings](test-entries/filaments_settings.md) | [`test_filaments`](test-entries/filaments_settings.md#test_filaments), [`test_settings`](test-entries/filaments_settings.md#test_settings) | — |
+| [Filaments and settings](test-entries/filaments_settings.md) | [`test_filaments`](test-entries/filaments_settings.md#test_filaments), [`test_mixed_filaments`](test-entries/filaments_settings.md#test_mixed_filaments), [`test_settings`](test-entries/filaments_settings.md#test_settings) | — |
 | [Project files, imports and exports](test-entries/files.md) | [`test_files`](test-entries/files.md#test_files) | — |
 | [Slicing, layers and the Preview](test-entries/slice_preview.md) | [`test_slice_preview`](test-entries/slice_preview.md#test_slice_preview) | — |
 | [Gizmos and canvas input](test-entries/gizmos.md) | [`test_gizmos`](test-entries/gizmos.md#test_gizmos), [`test_gizmo_commands`](test-entries/gizmos.md#test_gizmo_commands) | — |
@@ -197,6 +198,7 @@ The 62 tests `sweep.json` lists: 46 Strong, 14 Partial, 2 Smoke.
 | [`test_presets`](test-entries/presets.md#test_presets) | [Presets and calibration](test-entries/presets.md) | Python | Strong |
 | [`test_calibration`](test-entries/presets.md#test_calibration) | [Presets and calibration](test-entries/presets.md) | Python | Strong |
 | [`test_filaments`](test-entries/filaments_settings.md#test_filaments) | [Filaments and settings](test-entries/filaments_settings.md) | Python | Strong |
+| [`test_mixed_filaments`](test-entries/filaments_settings.md#test_mixed_filaments) | [Filaments and settings](test-entries/filaments_settings.md) | Python | Strong |
 | [`test_settings`](test-entries/filaments_settings.md#test_settings) | [Filaments and settings](test-entries/filaments_settings.md) | Python | Strong |
 | [`test_files`](test-entries/files.md#test_files) | [Project files, imports and exports](test-entries/files.md) | Python | Strong |
 | [`test_slice_preview`](test-entries/slice_preview.md#test_slice_preview) | [Slicing, layers and the Preview](test-entries/slice_preview.md) | Python | Strong |

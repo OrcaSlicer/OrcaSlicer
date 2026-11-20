@@ -26,7 +26,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, run, start, wait  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, run, slot_colours, start, wait  # noqa: E402
 
 ROW = re.compile(r'^"(.*)" (\d+)( \*)?( L)?( S)?$')
 CUBE = {"shape": "cube", "size": [20, 20, 20]}
@@ -44,7 +44,7 @@ TRAVEL_SPEED = 350
 # The purge of the two-colour slices, and so the depth of their prime tower, follows the slots' colours and the flush
 # multiplier, which the printer keeps as an earlier test or run left them: a seeded folder's slot colour and
 # multiplier.
-SLOT_COLOUR, FLUSH_MULTIPLIER = "#26A69A", "0.3"
+SLOT_COLOUR, FLUSH_MULTIPLIER = "#26A69A", 0.3
 # The view the view switches start from, the app's defaults, which Starts from sets after the default layout.
 VIEW = {"labels": False, "overhangs": False, "outline": False, "wireframe": False, "gridlines": True, "axes": True,
         "navigator": True, "gcode_window": True, "projection": "perspective", "section": {"on": False},
@@ -1015,7 +1015,7 @@ class SlicePreviewTest:
         after12 = [C(26, "pause", 5.2), C(51, "custom", 10.2, "M104 S220"), C(76, "change_filament", 15.2, filament=2)]
         reply = lg(add=[{"layer": 26, "type": "pause"}, {"layer": 76, "type": "change_filament", "filament": 2}])
         got = self.codes(f"{s} 12", after12, reply=reply)
-        colours = self.c.call("project_get_settings", keys=["filament_colour"])["items"][0]["value"].split(";")
+        colours = slot_colours(self.c).split(";")
         change = [c for c in got if c.get("type") == "change_filament"]
         self.t.equal(f"{s} 12: the filament change's colour is slot 2's", change[0].get("color") if change else None,
                      colours[1] if len(colours) > 1 else colours)
@@ -1326,11 +1326,11 @@ class SlicePreviewTest:
         s = "the start"
         self.t.equal(f"{s}: the presets", start(self.c),
                      {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]})
-        self.run("project_set_settings", values={"filament_colour": {"index": 0, "value": SLOT_COLOUR},
-                                                 "flush_multiplier": float(FLUSH_MULTIPLIER)})
-        items = self.c.call("project_get_settings", keys=["filament_colour", "flush_multiplier"])["items"]
-        self.t.equal(f"{s}: the slot's colour and the flush multiplier", {i["key"]: i["value"] for i in items},
-                     {"filament_colour": SLOT_COLOUR, "flush_multiplier": FLUSH_MULTIPLIER})
+        self.run("filament_set_colour", filament_slot=1, colour=SLOT_COLOUR)
+        self.run("filament_set_flushing", flush_multiplier=FLUSH_MULTIPLIER)
+        listed = self.c.call("filament_list")
+        self.t.equal(f"{s}: the slot's colour and the flush multiplier",
+                     (listed["filaments"][0]["colour"], listed["flush_multiplier"]), (SLOT_COLOUR, [FLUSH_MULTIPLIER]))
         self.run("preferences_set", values={"auto_slice_after_change": False})
         items = self.c.call("preferences_get", keys=["auto_slice_after_change"])["items"]
         self.t.equal(f"{s}: no slice after a change", {i["key"]: i["value"] for i in items},

@@ -103,6 +103,7 @@ namespace UndoRedo {
 namespace GUI {
 enum class LoadType : unsigned char;
 class SyncAmsInfoDialog;
+struct MixedFilamentResult;
 class MainFrame;
 class ConfigOptionsGroup;
 class ObjectSettings;
@@ -350,6 +351,11 @@ public:
     // interleaving from its own paint mask to the slicer, where it happens per layer.
     int ensure_mixed_filament(const std::vector<unsigned int> &components, const std::vector<int> &ratios);
     void edit_mixed_filament(size_t idx);
+    // The mixed filament in filament slot `cfg_idx` (0-based) as the Edit Mixed Filament dialog opens with it.
+    MixedFilamentResult mixed_filament_result(size_t cfg_idx) const;
+    // What the Edit Mixed Filament dialog's OK does with `result` for filament slot `cfg_idx` (0-based): the slot keeps its
+    // number and the objects on it, and its colour becomes the components' blend.
+    void apply_mixed_filament_edit(size_t cfg_idx, const MixedFilamentResult& result);
     void delete_mixed_filament_at(size_t idx);
     // Drops every mixed filament at once, after confirming. The texture displacement gizmo can create
     // one slot per colour in its palette, so clearing them one at a time is tedious.
@@ -357,6 +363,9 @@ public:
     void decompose_filament_color(int filament_idx);
     void recalc_filament_scroll_sizes();
     void update_mixed_filament_list();
+    // The mixed filaments the sidebar marks broken, as 0-based filament indices: a component deleted or past the physical
+    // filaments, fewer than two components, or components of different filament types.
+    std::vector<size_t> broken_mixed_filaments() const;
     bool has_broken_mixed_filament() const;
     bool has_broken_mixed_filament(const PartPlate* plate) const;
     void collect_physical_filament_info(std::vector<std::string>& color_strs,

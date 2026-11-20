@@ -408,7 +408,8 @@ TEST_CASE("preset_export takes the folder of its dialog and has no silent form",
     CHECK_THAT(argument_error(*export_, silent), Catch::Matchers::ContainsSubstring("silent"));
 }
 
-TEST_CASE("the filament commands take the filaments they mix, and the slot a deleted one merges into", "[Mcp]")
+TEST_CASE("the filament commands take the filaments they mix or open their dialog without them, and the slot a deleted one merges into",
+          "[Mcp]")
 {
     using Catch::Matchers::ContainsSubstring;
     const NativeCommand* mixed = NativeCommands::find("filament_add_mixed");
@@ -416,7 +417,10 @@ TEST_CASE("the filament commands take the filaments they mix, and the slot a del
     CHECK(mixed->listed);
     CHECK_FALSE(mixed->has_own_action);
     CHECK(mixed->actions.is_null());
-    CHECK(mixed->input_schema["required"] == json::array({"components", "ratios"}));
+    // Without components and ratios it opens the Add Mixed Filament dialog; the operation refuses one without the other.
+    CHECK_FALSE(mixed->input_schema.contains("required"));
+    json dialog = json::object();
+    CHECK(argument_error(*mixed, dialog).empty());
     json half{{"components", json::array({1, 2})}, {"ratios", json::array({50, 50})}};
     CHECK(argument_error(*mixed, half).empty());
     json thirds{{"components", json::array({1, 2, 3})}, {"ratios", json::array({33, 33, 34})}};
@@ -428,8 +432,17 @@ TEST_CASE("the filament commands take the filaments they mix, and the slot a del
     CHECK_THAT(argument_error(*mixed, slot_zero), ContainsSubstring("components"));
     json no_share{{"components", json::array({1, 2})}, {"ratios", json::array({0, 100})}};
     CHECK_THAT(argument_error(*mixed, no_share), ContainsSubstring("ratios"));
-    json no_ratios{{"components", json::array({1, 2})}};
-    CHECK_THAT(argument_error(*mixed, no_ratios), ContainsSubstring("ratios"));
+
+    // Edit Mixed Filament names the mix, and takes what Add Mixed Filament takes, or nothing more for its dialog.
+    const NativeCommand* edit = NativeCommands::find("filament_edit_mixed");
+    REQUIRE(edit != nullptr);
+    CHECK(edit->input_schema["required"] == json::array({"filament_slot"}));
+    json edit_dialog{{"filament_slot", 3}};
+    CHECK(argument_error(*edit, edit_dialog).empty());
+    json edited{{"filament_slot", 3}, {"components", json::array({1, 2})}, {"ratios", json::array({70, 30})}};
+    CHECK(argument_error(*edit, edited).empty());
+    json no_slot{{"components", json::array({1, 2})}, {"ratios", json::array({70, 30})}};
+    CHECK_THAT(argument_error(*edit, no_slot), ContainsSubstring("filament_slot"));
 
     // Delete Filament Slot keeps an action of its own, which deletes the last physical slot, and takes the slot to merge into.
     const NativeCommand* remove = NativeCommands::find("filament_delete");
@@ -440,6 +453,9 @@ TEST_CASE("the filament commands take the filaments they mix, and the slot a del
     CHECK(argument_error(*remove, merge).empty());
     json merge_zero{{"filament_slot", 2}, {"merge_into", 0}};
     CHECK_THAT(argument_error(*remove, merge_zero), ContainsSubstring("merge_into"));
+    // break_mix answers Merge with's question ahead, for a merge into a mixed filament that mixes the slot.
+    json break_mix{{"filament_slot", 1}, {"merge_into", 3}, {"break_mix", true}};
+    CHECK(argument_error(*remove, break_mix).empty());
 }
 
 TEST_CASE("project_export writes six formats, and project_import takes the entries of a ZIP archive", "[Mcp]")
@@ -650,14 +666,14 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
         CHECK(first_sentence(command->description) == r.first_sentence);
     }
 
-    // Outside the Design group 128 commands are listed: every one that runs from its arguments, all but the three menu
+    // Outside the Design group 132 commands are listed: every one that runs from its arguments, all but the three menu
     // items that take none (Task 3's 98, the seven Parts 4a to 4c add, Part 5a's three, Part 5b's two, Part 5c's one,
-    // Part 5d's four, the seven gizmo commands and the six printing commands).
+    // Part 5d's four, the seven gizmo commands, the six printing commands and the filament list's four).
     std::size_t listed = 0;
     for (const NativeCommand& c : catalog.commands())
         if (c.listed && c.group != Slic3r::GUI::kDesignGroup)
             ++listed;
-    CHECK(listed == 128);
+    CHECK(listed == 132);
 }
 
 TEST_CASE("opening a project and importing models are two commands", "[Mcp]")

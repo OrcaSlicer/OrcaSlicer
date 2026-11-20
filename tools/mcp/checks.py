@@ -150,15 +150,17 @@ def start(client, printer=KLIPPER, process=None, filaments=None):
     if presets(client)["process"] != process:
         run(client, "preset_select", type="process", name=process, preset_changes="discard")
 
-    def slots():
-        return client.call("project_get_settings", keys=["filament_is_mixed"])["items"][0]["value"].split(",")
-
+    # With one physical filament the sidebar hides the mixed filaments and deletes none, so a mix an earlier test left
+    # beside one physical slot goes once a slot is added.
+    rows = filament_rows(client)
+    if any(row["mixed"] for row in rows) and sum(not row["mixed"] for row in rows) < 2:
+        run(client, "filament_add")
     # Last to first, so the numbers of the mixed slots still to go hold.
-    for slot in reversed([n for n, mixed in enumerate(slots(), 1) if mixed == "1"]):
+    for slot in reversed([row["filament_slot"] for row in filament_rows(client) if row["mixed"]]):
         run(client, "filament_delete", filament_slot=slot)
-    while len(slots()) > len(filaments):
+    while len(filament_rows(client)) > len(filaments):
         run(client, "filament_delete")
-    while len(slots()) < len(filaments):
+    while len(filament_rows(client)) < len(filaments):
         run(client, "filament_add")
     for slot, name in enumerate(filaments, 1):
         if presets(client)["filaments"][slot - 1] != name:
@@ -435,7 +437,17 @@ def answer_all(client, checks, label, expected, timeout_s=30):
     checks.equal(f"{label}: no dialog is left open", dialogs(client), [])
 
 
+def filament_rows(client):
+    """filament_list's rows, one per filament slot in config order, the physical ones first."""
+    return client.call("filament_list")["filaments"]
+
+
 def slots(client):
-    """The filament slots as filament_is_mixed from project_get_settings, one digit per slot ("0,0,1": three slots,
-    the third a mixed filament), as test_plates reads them."""
-    return client.call("project_get_settings", keys=["filament_is_mixed"])["items"][0]["value"]
+    """The filament slots as the mixed flag of each filament_list row, one digit per slot ("0,0,1": three slots, the
+    third a mixed filament), as test_plates reads them."""
+    return ",".join("1" if row["mixed"] else "0" for row in filament_rows(client))
+
+
+def slot_colours(client):
+    """Each filament slot's colour from filament_list, joined by ";" as the project stores them."""
+    return ";".join(row["colour"] for row in filament_rows(client))

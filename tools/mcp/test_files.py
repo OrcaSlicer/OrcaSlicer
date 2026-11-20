@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
 from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, answer_all, dialogs, gcode, layer_gcode,  # noqa: E402
                     meshes, normal, obj_facts, plates, presets, project, recent, reimport, run, sliced, sliced_flags,
-                    slots, start, undo_steps, unsaved, values, wait)
+                    slot_colours, slots, start, undo_steps, unsaved, values, wait)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
@@ -210,7 +210,7 @@ class FilesTest:
                      else "no file")
 
     def colours(self):
-        return self.c.call("project_get_settings", keys=["filament_colour"])["items"][0]["value"]
+        return slot_colours(self.c)
 
     def rule_uses(self, match):
         for rule in self.c.call("app_state").get("auto_answer_rules", []):
@@ -1072,8 +1072,8 @@ class FilesTest:
             self.t.equal(f"{s} {step}: the reply", (reply.get("filament_slot"), reply.get("filament_slots")),
                          (slot, slot))
             self.t.equal(f"{s} {step}", slots(self.c), ",".join(["0"] * slot))
-        for i, colour in enumerate(("#FF0000", "#00FF00", "#0000FF")):
-            self.run("project_set_settings", values={"filament_colour": {"index": i, "value": colour}})
+        for slot, colour in enumerate(("#FF0000", "#00FF00", "#0000FF"), 1):
+            self.run("filament_set_colour", filament_slot=slot, colour=colour)
         self.t.equal(f"{s} 4", slots(self.c), "0,0,0")
         self.t.equal(f"{s} 4: the colours", self.colours(), "#FF0000;#00FF00;#0000FF")
         self.cube("on_two", 20, 80, 128)

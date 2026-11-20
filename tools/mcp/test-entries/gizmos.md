@@ -49,7 +49,7 @@ settings, and a test whose checks read the settings pages sets the mode it needs
 - `setting(object, key)` gives `settings_get {target: object}`'s `{value, effective, source}` for one key.
 - `selection()` gives `app_state.selection.objects`; `rules()` gives `app_state.auto_answer_rules` with their `uses`.
 - `toolbar(name)` gives a 3D view toolbar item's `{enabled, pressed}` from `widget_list`.
-- `slots()` is the reader `test_plates` defines (`filament_is_mixed`, one digit per slot).
+- `slots()` is the reader `test_plates` defines (the `mixed` of each `filament_list` row, one digit per slot).
 
 Every scenario starts with `project_new {discard_changes: true}` in the Prepare view and checks that `scene()` is
 empty and `gizmo()` is none. Objects are then added with `object_add_primitive {shape, size,

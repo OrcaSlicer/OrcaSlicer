@@ -8,8 +8,9 @@ tools/mcp/test-entries/filaments_settings.md designs them.
 Assigning a filament preset to a slot by each route a person or a plugin has (a pick in the slot's selector, the
 selector's value set, preset_select and the plugin API), with one slot, where the filament tab switches and its
 unsaved-changes prompt applies, and with three, where the Auto-flush preference decides what happens to the flushing
-volumes; then the filaments of objects and parts, and the project's own settings with what reaches the print and what
-the project file keeps. After every step the test reads the state back through other tools and compares it with the
+volumes; then the filaments of objects and parts, the slot colours and flushing (filament_set_colour,
+filament_set_flushing) and the project's own settings (project_set_settings), with what reaches the print and what the
+project file keeps. After every step the test reads the state back through other tools and compares it with the
 state the entry writes out. Every scenario runs on the Generic Klipper Printer 0.4 from a start of its own
 (checks.start()), the last with the printer's plate types turned on, so it runs on a data folder earlier tests used;
 it uninstalls the filaments it shows by name first, so that the selectors start without them. It exits 0 when every
@@ -22,7 +23,7 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, presets, run, start, wait  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, presets, run, slot_colours, slots, start, wait  # noqa: E402
 
 B = GENERIC_PLA
 X = "FilAr PLA Blanco Calido"
@@ -146,7 +147,11 @@ class FilamentsTest:
         return {i["key"]: i["value"] for i in items}
 
     def slots(self):
-        return self.project_values("filament_is_mixed")["filament_is_mixed"]
+        return slots(self.c)
+
+    def matrix(self):
+        """filament_list's flush_volumes_matrix, written as the project stores it: `0,777,777,0`."""
+        return ",".join(g(x) for x in self.c.call("filament_list")["flush_volumes_matrix"])
 
     def dialogs(self):
         return [{"title": d.get("title"), "buttons": [b.get("label") for b in d.get("buttons", [])]}
@@ -161,9 +166,8 @@ class FilamentsTest:
                if i.get("selected")]
         edits = [self.c.call("settings_get", type="filament", filament_slot=n, keys=["slow_down_layer_time"],
                              include_meta=False)["items"][0]["value"] for n in range(1, len(presets) + 1)]
-        project = self.project_values("filament_colour", "flush_volumes_matrix")
-        return {"presets": presets, "tab": tab, "edits": edits, "colours": project["filament_colour"],
-                "matrix": project["flush_volumes_matrix"], "dialogs": [d.get("title") for d in app.get("dialogs", [])]}
+        return {"presets": presets, "tab": tab, "edits": edits, "colours": slot_colours(self.c), "matrix": self.matrix(),
+                "dialogs": [d.get("title") for d in app.get("dialogs", [])]}
 
     @staticmethod
     def text(state):
@@ -195,14 +199,15 @@ class FilamentsTest:
         return {k: item[k] for k in ("value", "effective", "source", "parts") if k in item}, reply.get("note")
 
     def project(self):
-        """The project's own settings, `colours | multiplier | matrix | plate type | tower`, with plate_list's plate 0
-        added where it disagrees with project_get_settings."""
-        v = self.project_values("filament_colour", "flush_multiplier", "flush_volumes_matrix", "curr_bed_type",
-                                "wipe_tower_x", "wipe_tower_y")
+        """The filament list's and the project's own settings, `colours | multiplier | matrix | plate type | tower`,
+        with plate_list's plate 0 added where it disagrees with project_get_settings."""
+        listed = self.c.call("filament_list")
+        v = self.project_values("curr_bed_type", "wipe_tower_x", "wipe_tower_y")
         tower = f"{g(v['wipe_tower_x'].split(',')[0])},{g(v['wipe_tower_y'].split(',')[0])}"
         plate = self.c.call("plate_list", limit=500)["items"][0]
-        out = {"colours": v["filament_colour"], "multiplier": g(v["flush_multiplier"]),
-               "matrix": ",".join(g(x) for x in v["flush_volumes_matrix"].split(",")),
+        out = {"colours": ";".join(row["colour"] for row in listed["filaments"]),
+               "multiplier": ",".join(g(x) for x in listed["flush_multiplier"]),
+               "matrix": ",".join(g(x) for x in listed["flush_volumes_matrix"]),
                "bed": v["curr_bed_type"], "tower": tower}
         plate_tower = ",".join(g(x) for x in plate.get("wipe_tower") or [])
         if (plate.get("curr_bed_type"), plate_tower) != (out["bed"], tower):
@@ -338,9 +343,10 @@ class FilamentsTest:
             self.run("preset_select", type="filament", name=name, filament_slot=slot, preset_changes="discard")
         self.run("settings_set", type="filament", filament_slot=1, reset_all=True)
         n = len(presets)
-        self.run("project_set_settings", values={
-            "filament_colour": GREYS[:n],
-            "flush_volumes_matrix": [0 if i == j else SENTINEL for i in range(n) for j in range(n)]})
+        for slot, colour in enumerate(GREYS[:n], 1):
+            self.run("filament_set_colour", filament_slot=slot, colour=colour)
+        # After the colours, whose change recalculates the matrix.
+        self.run("filament_set_flushing", flush_volumes_matrix=[0 if i == j else SENTINEL for i in range(n) for j in range(n)])
         if dirty:
             self.run("settings_set", type="filament", filament_slot=1, values={"slow_down_layer_time": 9})
         self.idle()
@@ -531,7 +537,7 @@ class FilamentsTest:
                                          min(m[1], m[7]) > max(m[3], m[5]), state["matrix"])
             label = f"{s} {which}, the colour picker's change"
             self.arrange(label, [B, B, B], False, start)
-            self.run("project_set_settings", values={"filament_colour": {"index": 1, "value": "#FFF8E7"}})
+            self.run("filament_set_colour", filament_slot=2, colour="#FFF8E7")
             self.idle()
             state = self.state_is(label, f"B B B | B | 4,4,4 | cX | {colour_change[which]}")
             if colour_change[which] == "R2":
@@ -778,7 +784,7 @@ class FilamentsTest:
         self.idle()
 
     def project_settings(self):
-        s = "the project's own settings"
+        s = "the slot colours, the flushing and the project's own settings"
         self.start(s, [B, M])
         # The plate type selector shows for a printer with several plate types: an unsaved edit of the printer
         # preset, which the next start() discards.
@@ -787,30 +793,28 @@ class FilamentsTest:
         self.add_objects()
         self.run("settings_set", target="part", object=0, part=1, values={"extruder": 2})
         self.run("settings_set", target="object", object=1, values={"extruder": 2})
-        self.run("project_set_settings", values={
-            "filament_colour": ["#111111", "#222222"], "flush_volumes_matrix": [0, 777, 777, 0], "flush_multiplier": 1,
-            "curr_bed_type": "Cool Plate", "wipe_tower_x": {"index": 0, "value": 60},
-            "wipe_tower_y": {"index": 0, "value": 150}})
+        self.run("filament_set_colour", filament_slot=1, colour="#111111")
+        self.run("filament_set_colour", filament_slot=2, colour="#222222")
+        self.run("filament_set_flushing", flush_volumes_matrix=[0, 777, 777, 0], flush_multiplier=1)
+        self.run("project_set_settings", values={"curr_bed_type": "Cool Plate", "wipe_tower_x": {"index": 0, "value": 60},
+                                                 "wipe_tower_y": {"index": 0, "value": 150}})
         self.idle()
         self.t.equal(f"{s}: the start's filaments", self.filaments(), "cube 1 (1, 2) · cylinder 2")
         self.t.equal(f"{s}: the start's filament presets", presets(self.c)["filaments"], [B, M])
         self.project_is(f"{s}: the start", "#111111;#222222", "1", "0,777,777,0", "Cool Plate", "60,150")
 
-        items = {i["key"]: i for i in self.c.call("project_get_settings", keys=[
-            "filament_is_mixed", "curr_bed_type", "prime_volume_mode"])["items"]}
-        self.t.equal(f"{s} 1: the mixed slots, read-only",
-                     (items["filament_is_mixed"]["value"], items["filament_is_mixed"]["meta"].get("read_only")),
-                     ("0,0", True))
+        listed = self.c.call("filament_list")
+        self.t.equal(f"{s} 1: no mixed slot", [row["mixed"] for row in listed["filaments"]], [False, False])
+        self.t.equal(f"{s} 1: no purge mode to choose", (listed.get("prime_volume_mode"), "prime_volume_modes" in listed),
+                     ("Default", False))
+        items = {i["key"]: i for i in self.c.call("project_get_settings", keys=["curr_bed_type"])["items"]}
         offered = items["curr_bed_type"]["meta"].get("offered", [])
         self.t.check(f"{s} 1: the plate types offered include Cool Plate and Textured PEI Plate",
                      "Cool Plate" in offered and "Textured PEI Plate" in offered, offered)
-        self.t.equal(f"{s} 1: no purge mode to choose", (items["prime_volume_mode"]["value"],
-                                                          items["prime_volume_mode"]["meta"].get("offered")),
-                     ("Default", []))
         self.project_is(f"{s} 1", "#111111;#222222", "1", "0,777,777,0", "Cool Plate", "60,150")
 
-        reply = self.run("project_set_settings", values={"filament_colour": {"index": 0, "value": "#ffffff"}})
-        self.t.equal(f"{s} 2: the reply", reply.get("applied", {}).get("filament_colour"), "#FFFFFF;#222222")
+        reply = self.run("filament_set_colour", filament_slot=1, colour="#ffffff")
+        self.t.equal(f"{s} 2: the reply", reply, {"filament_slot": 1, "colour": "#FFFFFF", "changed": True})
 
         def into_white(matrix):
             m = numbers(matrix)
@@ -818,10 +822,10 @@ class FilamentsTest:
 
         self.project_is(f"{s} 2", "#FFFFFF;#222222", "1", "0,<a>,<b>,0", "Cool Plate", "60,150", into_white)
 
-        self.run("project_set_settings", values={"flush_volumes_matrix": [0, 777, 777, 0]})
-        self.run("project_set_settings", values={
-            "filament_colour": {"index": 1, "value": "#000000"}, "flush_multiplier": 0.7,
-            "flush_volumes_matrix": {"index": 1, "value": 400}, "curr_bed_type": "Textured PEI Plate"})
+        self.run("filament_set_flushing", flush_volumes_matrix=[0, 777, 777, 0])
+        self.run("filament_set_colour", filament_slot=2, colour="#000000")
+        self.run("filament_set_flushing", flush_multiplier=0.7, flush_volumes_matrix={"index": 1, "value": 400})
+        self.run("project_set_settings", values={"curr_bed_type": "Textured PEI Plate"})
 
         def c_worked_out(matrix):
             m = numbers(matrix)
@@ -829,7 +833,8 @@ class FilamentsTest:
 
         pei = "Textured PEI Plate"
         self.project_is(f"{s} 3", "#FFFFFF;#000000", "0.7", "0,400,<c>,0", pei, "60,150", c_worked_out)
-        self.run("project_set_settings", values={"flush_volumes_matrix": [0, 400, 300, 0]})
+        reply = self.run("filament_set_flushing", flush_volumes_matrix=[0, 400, 300, 0])
+        self.t.check(f"{s} 4: the reply applied the matrix", "flush_volumes_matrix" in reply.get("applied", {}), reply)
         self.project_is(f"{s} 4", "#FFFFFF;#000000", "0.7", "0,400,300,0", pei, "60,150")
         reply = self.run("project_set_settings", values={"wipe_tower_x": {"index": 0, "value": 150},
                                                          "wipe_tower_y": {"index": 0, "value": 180}})
@@ -842,22 +847,27 @@ class FilamentsTest:
         self.project_is(f"{s} 7: the move was one undo step", *after)
 
         refusals = [
-            (8, {"filament_is_mixed": "1"},
-             "filament_is_mixed is read-only: mixed filaments are made in the sidebar's mixed filament list"),
-            (9, {"filament_colour": {"index": 1, "value": "white"}, "flush_multiplier": 0.5},
-             'Slot 2\'s colour "white" is not #RRGGBB'),
-            (10, {"prime_volume_mode": "Saving"}, "prime_volume_mode: this printer has no purge mode to choose"),
-            (11, {"flush_volumes_matrix": {"index": 0, "value": 10}},
+            (8, "project_set_settings", {"values": {"flush_multiplier": 0.5}}, "belongs to the filament list"),
+            (9, "filament_set_flushing", {"flush_multiplier": 0.5, "flush_volumes_matrix": {"index": 0, "value": 10}},
              "flush_volumes_matrix[0] (nozzle 1, from slot 1 to slot 1) must be 0: no flush from a filament to itself"),
-            (12, {"wipe_tower_x": {"index": 0, "value": 300}}, "The prime tower of plate 0 would be off the plate"),
+            (10, "filament_set_flushing", {"prime_volume_mode": "Saving"},
+             "prime_volume_mode: this printer has no purge mode to choose"),
+            (11, "filament_set_colour", {"filament_slot": 2, "colour": "white"}, 'Slot 2\'s colour "white" is not #RRGGBB'),
+            (12, "project_set_settings", {"values": {"wipe_tower_x": {"index": 0, "value": 300}}},
+             "The prime tower of plate 0 would be off the plate"),
         ]
-        for step, values, words in refusals:
-            self.t.refused(f"{s} {step}: refused", lambda: self.c.call("project_set_settings", values=values),
-                           words=words)
+        for step, tool, args, words in refusals:
+            self.t.refused(f"{s} {step}: refused", lambda: self.c.call(tool, **args), words=words)
             self.project_is(f"{s} {step}", *after)
+        self.t.refused(f"{s} 8: the refusal names filament_set_flushing",
+                       lambda: self.c.call("project_set_settings", values={"flush_multiplier": 0.5}),
+                       words="filament_set_flushing")
+        read = self.c.call("project_get_settings", keys=["filament_colour"])
+        self.t.equal(f"{s} 8: project_get_settings points filament_colour to filament_list",
+                     (read.get("items"), read.get("unknown_keys"), read.get("type_of")),
+                     ([], ["filament_colour"], {"filament_colour": "filament_list"}))
         self.t.equal(f"{s} 8: the slots", self.slots(), "0,0")
-        self.t.equal(f"{s} 10: the purge mode", self.project_values("prime_volume_mode")["prime_volume_mode"],
-                     "Default")
+        self.t.equal(f"{s} 10: the purge mode", self.c.call("filament_list").get("prime_volume_mode"), "Default")
 
         # The Klipper printer purges a filament change into the prime tower, so the purges are in tower_g.
         grams13, changes13 = self.slice_ok(f"{s} 13")
@@ -866,7 +876,7 @@ class FilamentsTest:
                                      for slot in (1, 2)) and changes13 > 0, (grams13, changes13))
         self.project_is(f"{s} 13", *after)
 
-        self.run("project_set_settings", values={"flush_volumes_matrix": {"index": 1, "value": 200}})
+        self.run("filament_set_flushing", flush_volumes_matrix={"index": 1, "value": 200})
         grams14, changes14 = self.slice_ok(f"{s} 14")
         self.project_is(f"{s} 14", "#FFFFFF;#000000", "0.7", "0,200,300,0", pei, "150,180")
         self.t.check(f"{s} 14: slot 2 purges less into the tower", grams14[2][2] < grams13[2][2], (grams14, grams13))
@@ -874,7 +884,7 @@ class FilamentsTest:
                      all(abs(grams14[slot][0] - grams13[slot][0]) <= 0.01 for slot in (1, 2)) and
                      changes14 == changes13, (grams14, changes14, grams13, changes13))
 
-        self.run("project_set_settings", values={"flush_multiplier": 1.4})
+        self.run("filament_set_flushing", flush_multiplier=1.4)
         grams15, _ = self.slice_ok(f"{s} 15")
         after15 = ("#FFFFFF;#000000", "1.4", "0,200,300,0", pei, "150,180")
         self.project_is(f"{s} 15", *after15)

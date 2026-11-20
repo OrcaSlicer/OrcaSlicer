@@ -1231,7 +1231,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Read the settings the project stores outside any preset: the plate type (curr_bed_type), slot colours (filament_colour), flushing volumes (flush_volumes_matrix, flush_multiplier), purge mode (prime_volume_mode), prime tower position per plate (wipe_tower_x, wipe_tower_y), mixed slots (filament_is_mixed) and, with several extruders, the filament grouping (filament_map_mode, filament_map); all of them, or those named in keys. Each item has its value and meta; meta.offered lists the choices this printer has, and meta.read_only marks what is set elsewhere.",
+   "description": "Read the project's own settings for its plates: the plate type (curr_bed_type), the prime tower position per plate (wipe_tower_x, wipe_tower_y) and, with several extruders, the filament grouping (filament_map_mode, filament_map); all of them, or those named in keys. The filament list's colours, mixed filaments and flushing are filament_list's. Each item has its value and meta; meta.offered lists the choices this printer has, and meta.read_only marks what is set elsewhere.",
    "destructive": false,
    "group": "The project",
    "guard": "inspect",
@@ -1245,7 +1245,7 @@
       "type": "boolean"
      },
      "keys": {
-      "description": "Setting keys, e.g. [\"filament_colour\"].",
+      "description": "Setting keys, e.g. [\"curr_bed_type\"].",
       "items": {
        "type": "string"
       },
@@ -1263,7 +1263,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Change the project's own settings as the sidebar's controls write them: curr_bed_type, filament_colour (#RRGGBB per slot), flush_multiplier, flush_volumes_matrix, prime_volume_mode, and wipe_tower_x/y (mm from the plate's origin, one per plate). flush_volumes_matrix is per nozzle, slots x slots from row to column, in config order over every slot, before the multiplier; a mixed slot's entries must be given as they are, and a colour change can recalculate it, so set it last. Values are checked before anything changes; a prime tower move is one undo step. Reply: applied, changed, and a note when the app moved a prime tower that did not fit.",
+   "description": "Change the project's own settings as their controls write them: curr_bed_type, as the plate type selector, and wipe_tower_x/y (mm from the plate's origin, one per plate), as a prime tower's drag. The filament list's colours and flushing are set with filament_set_colour and filament_set_flushing. Values are checked before anything changes; a prime tower move is one undo step. Reply: applied, changed, and a note when the app moved a prime tower that did not fit.",
    "destructive": false,
    "group": "The project",
    "guard": "mutate",
@@ -5827,9 +5827,29 @@
    "title": "Toggle Developer Mode"
   },
   {
+   "completion": "immediate",
+   "description": "Read the filament list as the sidebar shows it. filaments has a row per slot in config order, the physical filaments first, then the mixed ones: filament_slot (1-based), mixed, colour (#RRGGBB) and, for a physical filament, preset and type; for a mixed filament, components (the physical slots it mixes, 1-based, 0 for one deleted), ratios (whole percentages, as filament_add_mixed takes them), gradient (null, or {bottom, top: the components that lead at the bottom and at the top, per_part, curve: linear or custom}) and broken (a component deleted or of another filament type: the sidebar marks it, slicing an object on it is refused, and filament_edit_mixed repairs it). Then the flushing the list's Flushing volumes and Purge mode buttons set: flush_multiplier (one per nozzle), flush_volumes_matrix (per nozzle, slots x slots from row to column in config order over every slot, before the multiplier: the dialog shows each entry multiplied by its nozzle's multiplier, and the G-code purges that product) and prime_volume_mode, with prime_volume_modes where the printer offers a choice. The printer keeps all of it across new projects and restarts; a saved project keeps its own.",
+   "destructive": false,
+   "group": "Filaments",
+   "guard": "inspect",
+   "has_own_action": false,
+   "idempotent": true,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {},
+    "type": "object"
+   },
+   "key": "filament_list",
+   "listed": true,
+   "open_world": false,
+   "operations": [],
+   "read_only": true,
+   "title": "List the filaments"
+  },
+  {
    "action_group": "Filament",
    "completion": "immediate",
-   "description": "Add a filament slot, as the + button above the filament list does. It takes the next colour and the last slot's preset (change them with preset_select filament_slot and project_set_settings filament_colour). It goes after the physical slots: mixed filaments move up by one, and objects on them follow. Refused for a printer that has one filament per extruder, which shows no + and - buttons. Reply: filament_slot (the new slot) and filament_slots (how many the project has).",
+   "description": "Add a filament slot, as the + button above the filament list does. It takes the next colour and the last slot's preset (change them with filament_set_colour and preset_select filament_slot). It goes after the physical slots: mixed filaments move up by one, and objects on them follow. Refused for a printer that has one filament per extruder, which shows no + and - buttons. Reply: filament_slot (the new slot) and filament_slots (how many the project has).",
    "destructive": false,
    "group": "Filaments",
    "guard": "mutate",
@@ -5853,7 +5873,7 @@
   {
    "action_group": "Filament",
    "completion": "immediate",
-   "description": "Delete a filament slot, as its Delete menu item does, the objects on it taking the first filament; with merge_into, as its Merge with item does, the objects on it taking that slot. The slots after it move down by one. A mixed filament (project_get_settings filament_is_mixed) is deleted as the mixed filament list deletes it, and not merged. Refused: the only physical slot, and a slot a mixed filament mixes, which the mix needs (delete the mix first). Refused for a printer that has one filament per extruder, which shows no + and - buttons. Not in the undo history. Reply: filament_slot (the slot deleted), merged_into (the slot its objects went to, as numbered afterwards) and filament_slots.",
+   "description": "Delete a filament slot, as its Delete menu item does, the objects on it taking the first filament; with merge_into, as its Merge with item does, the objects on it taking that slot. The slots after it move down by one. A mixed filament (filament_list's mixed rows) is deleted as the mixed filament list deletes it, and not merged. A physical filament that a mixed filament mixes is deleted as the sidebar deletes it: the mix is broken (broken_mixed) until filament_edit_mixed names its filaments again. A merge into a mixed filament that mixes the slot asks first, as Merge with does, and replies blocked_by_dialog, unless break_mix answers: true merges, false refuses (mixed_uses_slot). Refused: the only physical slot, and a mixed filament while one physical slot is left, where the sidebar hides the mixed filaments (filament_add first). Refused for a printer that has one filament per extruder, which shows no + and - buttons. Not in the undo history. Reply: filament_slot (the slot deleted), merged_into (the slot its objects went to, as numbered afterwards), filament_slots, and broken_mixed (the mixed filaments broken afterwards, as numbered then) where there are any.",
    "destructive": false,
    "group": "Filaments",
    "guard": "mutate",
@@ -5863,6 +5883,10 @@
    "input_schema": {
     "additionalProperties": false,
     "properties": {
+     "break_mix": {
+      "description": "The answer to Merge with's question about a merge into a mixed filament that mixes the slot: true merges, false merges nothing. Default: the question opens.",
+      "type": "boolean"
+     },
      "filament_slot": {
       "description": "The 1-based filament slot. Default: the last physical slot, as the - button.",
       "minimum": 1,
@@ -5887,7 +5911,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Add a mixed filament: a slot that prints its physical filaments in turn, layer by layer, in the ratios given, as the Add Mixed Filament dialog's OK does with no gradient. components are two or more of the physical slots (1-based), each named once, whose filaments are of one type; ratios a whole percentage for each, adding up to 100. It goes after every other slot. A mix the project has already is not added again: the reply names its slot. Not in the undo history. Reply: filament_slot (1-based) and added (false for a mix the project had).",
+   "description": "Add a mixed filament: a slot that prints its physical filaments in turn, layer by layer, in the ratios given, as the Add Mixed Filament dialog's OK does with no gradient. components are two or more of the physical slots (1-based), each named once, whose filaments are of one type; ratios a whole percentage for each, adding up to 100. It goes after every other slot. A mix the project has already is not added again: the reply names its slot. With neither components nor ratios it opens the Add Mixed Filament dialog, as the sidebar's button does, and replies blocked_by_dialog. Its controls are named filament_1 to filament_3 (the components), gradient, gradient_direction (item 0 puts the first filament at the bottom, item 1 the second) and per_part_gradient, for widget_set_value with within the dialog's title; the gradient shows for a mix of two filaments only, and its curve is drawn, changed only by dragging it (mouse_gesture). Its OK makes what it shows; Cancel changes nothing. Not in the undo history. Reply: filament_slot (1-based, where one was added or found) and added (false for a mix the project had, or a dialog cancelled).",
    "destructive": false,
    "examples": [
     {
@@ -5937,7 +5961,7 @@
     "additionalProperties": false,
     "properties": {
      "components": {
-      "description": "The physical filament slots to mix, 1-based, two or more, each once, of filaments of one type.",
+      "description": "The physical filament slots to mix, 1-based, two or more, each once, of filaments of one type. Omitted with ratios: the dialog opens.",
       "items": {
        "minimum": 1,
        "type": "integer"
@@ -5953,10 +5977,6 @@
       "type": "array"
      }
     },
-    "required": [
-     "components",
-     "ratios"
-    ],
     "type": "object"
    },
    "key": "filament_add_mixed",
@@ -5967,6 +5987,147 @@
    ],
    "read_only": false,
    "title": "Add Mixed Filament"
+  },
+  {
+   "completion": "immediate",
+   "description": "Change a mixed filament (filament_list's mixed rows) as the Edit Mixed Filament dialog's OK does: components and ratios as filament_add_mixed takes them. The slot keeps its number and the objects on it, and its colour becomes the blend; a gradient stays for a mix of two filaments and goes for more, as the dialog shows none for them. An edit that names its filaments again repairs a broken mix. With filament_slot alone it opens the Edit Mixed Filament dialog on the mix, as a click on its swatch does, and replies blocked_by_dialog. Its controls are named filament_1 to filament_3 (the components), gradient, gradient_direction (item 0 puts the first filament at the bottom, item 1 the second) and per_part_gradient, for widget_set_value with within the dialog's title; the gradient shows for a mix of two filaments only, and its curve is drawn, changed only by dragging it (mouse_gesture). Its OK makes what it shows; Cancel changes nothing. Not in the undo history. Reply: filament_slot and changed.",
+   "destructive": false,
+   "examples": [
+    {
+     "calls": [
+      {
+       "args": {
+        "components": [
+         1,
+         2
+        ],
+        "filament_slot": 3,
+        "ratios": [
+         75,
+         25
+        ]
+       },
+       "tool": "filament_edit_mixed"
+      }
+     ],
+     "title": "Make the mixed filament in slot 3 mostly its first filament"
+    }
+   ],
+   "group": "Filaments",
+   "guard": "mutate",
+   "has_own_action": false,
+   "idempotent": false,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {
+     "components": {
+      "description": "The physical filament slots it mixes from now on, as filament_add_mixed takes them. Omitted with ratios: the dialog opens.",
+      "items": {
+       "minimum": 1,
+       "type": "integer"
+      },
+      "type": "array"
+     },
+     "filament_slot": {
+      "description": "The mixed filament's 1-based slot.",
+      "minimum": 1,
+      "type": "integer"
+     },
+     "ratios": {
+      "description": "Each component's share in percent, in the order of components, adding up to 100.",
+      "items": {
+       "exclusiveMinimum": 0,
+       "type": "integer"
+      },
+      "type": "array"
+     }
+    },
+    "required": [
+     "filament_slot"
+    ],
+    "type": "object"
+   },
+   "key": "filament_edit_mixed",
+   "listed": true,
+   "open_world": false,
+   "operations": [
+    "edit_mixed_filament"
+   ],
+   "read_only": false,
+   "title": "Edit Mixed Filament"
+  },
+  {
+   "completion": "immediate",
+   "description": "Set a physical filament slot's colour, as its colour button's picker does: colour is #RRGGBB. Where Auto flush after changing is on, the flushing volumes are recalculated, so set flush_volumes_matrix (filament_set_flushing) after the colours. A mixed filament's colour is its components' blend and is not set. Reply: filament_slot, colour (as stored, upper case) and changed.",
+   "destructive": false,
+   "group": "Filaments",
+   "guard": "mutate",
+   "has_own_action": false,
+   "idempotent": false,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {
+     "colour": {
+      "description": "#RRGGBB.",
+      "type": "string"
+     },
+     "filament_slot": {
+      "description": "The 1-based filament slot.",
+      "minimum": 1,
+      "type": "integer"
+     }
+    },
+    "required": [
+     "filament_slot",
+     "colour"
+    ],
+    "type": "object"
+   },
+   "key": "filament_set_colour",
+   "listed": true,
+   "open_world": false,
+   "operations": [],
+   "read_only": false,
+   "title": "Set a filament's colour"
+  },
+  {
+   "completion": "immediate",
+   "description": "Change the flushing the filament list's Flushing volumes and Purge mode buttons set, as their dialogs' OK does, any of: flush_multiplier (one per nozzle, or one value for all, within the Flushing volumes dialog's range), flush_volumes_matrix (per nozzle, slots x slots from row to column in config order over every slot, before the multiplier; whole, or one entry as {index, value}; a mixed filament's entries, which are never flushed, must be given as they are) and prime_volume_mode (one of filament_list's prime_volume_modes). A colour change (filament_set_colour) can recalculate the matrix, so set it after the colours. Values are checked before anything changes. Reply: applied and changed.",
+   "destructive": false,
+   "group": "Filaments",
+   "guard": "mutate",
+   "has_own_action": false,
+   "idempotent": false,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {
+     "flush_multiplier": {
+      "description": "One value, or one per nozzle.",
+      "type": [
+       "number",
+       "array"
+      ]
+     },
+     "flush_volumes_matrix": {
+      "description": "The whole matrix, or {index, value}.",
+      "type": [
+       "array",
+       "object"
+      ]
+     },
+     "prime_volume_mode": {
+      "description": "The purge mode, e.g. \"Default\".",
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "key": "filament_set_flushing",
+   "listed": true,
+   "open_world": false,
+   "operations": [],
+   "read_only": false,
+   "title": "Set the flushing"
   },
   {
    "actions": [

@@ -24,7 +24,7 @@ import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, plates, refusal, run, start, wait  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, plates, refusal, run, slot_colours, start, wait  # noqa: E402
 
 ADD_CUBE = "orca_command:add_primitive_cube:orca"
 UNDO = "orca_command:undo:orca"
@@ -167,7 +167,7 @@ class GuiToolsTest:
         return "\n".join(texts)
 
     def colours(self):
-        return self.c.call("project_get_settings", keys=["filament_colour"])["items"][0]["value"]
+        return slot_colours(self.c)
 
     def bed_type(self):
         return self.c.call("project_get_settings", keys=["curr_bed_type"])["items"][0]["value"]
@@ -354,7 +354,8 @@ class GuiToolsTest:
         self.idle()
         self.t.equal(f"{s} 17: two filament slots", len(self.filaments()), 2)
         self.objects_are(f"{s} 17", *both)
-        self.run("project_set_settings", values={"filament_colour": "#FF0000;#0000FF"})
+        self.run("filament_set_colour", filament_slot=1, colour="#FF0000")
+        self.run("filament_set_colour", filament_slot=2, colour="#0000FF")
         self.t.equal(f"{s} 18: the colours", self.colours(), "#FF0000;#0000FF")
         self.objects_are(f"{s} 18", *both)
         button = self.filament_button()
@@ -678,7 +679,7 @@ class GuiToolsTest:
         # The wizard card step 15 ticks starts unticked only while its printer is not installed.
         if MARLIN in self.printers():
             self.run("printer_uninstall", models=[{"vendor": "Custom", "model": "Generic Marlin Printer"}])
-        self.run("project_set_settings", values={"filament_colour": "#26A69A"})
+        self.run("filament_set_colour", filament_slot=1, colour="#26A69A")
         self.t.equal(f"{s}: the start: the filaments", self.filaments(), [PLA])
         self.t.equal(f"{s}: the start: the colour", self.colours(), "#26A69A")
         self.t.equal(f"{s}: the start: no region", self.region(), "")

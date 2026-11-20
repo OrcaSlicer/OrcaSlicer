@@ -35,6 +35,7 @@
     "test_presets": {"path": "test_presets.py", "timeout_s": 1500},
     "test_calibration": {"path": "test_calibration.py"},
     "test_filaments": {"path": "test_filaments.py", "timeout_s": 1500},
+    "test_mixed_filaments": {"path": "test_mixed_filaments.py"},
     "test_settings": {"path": "test_settings.py"},
     "test_files": {"path": "test_files.py", "timeout_s": 1200},
     "test_slice_preview": {"path": "test_slice_preview.py", "timeout_s": 1500},

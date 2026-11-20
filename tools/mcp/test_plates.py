@@ -20,7 +20,7 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, objects, plates, run, start, wait  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, objects, plates, run, slots, start, wait  # noqa: E402
 
 ROW = re.compile(r'^"(.*)" (\d+)( \*)?( L)?$')
 CUBE = {"shape": "cube", "size": [20, 20, 20]}
@@ -102,27 +102,18 @@ class PlatesTest:
         (x, y), (w, d) = item["origin"], item["size"]
         return x, y, x + w, y + d
 
-    def save_and_reopen(self, label, name, empty=False, preset_changes="keep"):
+    def save_and_reopen(self, name, preset_changes="keep"):
         """Saves the project to a new file, starts a new one, keeping or discarding the presets' unsaved changes as
-        `preset_changes` says, and opens the file. A project with no objects opens after the app's warning that the
-        file holds no geometry, which is answered OK."""
+        `preset_changes` says, and opens the file. The project holds an object, as a project file that holds none
+        opens after the app's warning that it holds no geometry."""
         path = os.path.join(self.folder, name)
         self.run("project_save", path=path, overwrite=True)
         self.run("project_new", discard_changes=True, preset_changes=preset_changes)
-        if not empty:
-            self.run("project_open", path=path)
-        else:
-            job = self.c.call("project_open", path=path)
-            wait(self.c, "dialog")
-            messages = [d.get("message") for d in self.c.call("app_state").get("dialogs", [])]
-            self.t.equal(f"{label}: the open warns that the file holds no geometry", messages,
-                         ["The file does not contain any geometry data."])
-            self.run("dialog_answer", button="OK")
-            self.c.await_job(job)
+        self.run("project_open", path=path)
         wait(self.c, "idle")
 
     def slots(self):
-        return self.c.call("project_get_settings", keys=["filament_is_mixed"])["items"][0]["value"]
+        return slots(self.c)
 
     def rule_uses(self, match):
         for rule in self.c.call("app_state").get("auto_answer_rules", []):
@@ -177,8 +168,12 @@ class PlatesTest:
         self.plates_are(f"{s} 7", *after5)
         self.redo()
         self.plates_are(f"{s} 8", *after6)
-        self.save_and_reopen(f"{s} 9", "life.3mf", empty=True)
-        self.plates_are(f"{s} 9: the project file keeps the names and locks", *after6)
+        self.run("object_add_primitive", name="kept", plate=0, **CUBE)
+        after9 = ('"Left" 1 *', '"" 0 L')
+        self.plates_are(f"{s} 9: the cube on plate 0", *after9)
+        self.save_and_reopen("life.3mf")
+        self.plates_are(f"{s} 9: the project file keeps the names and locks", *after9)
+        self.objects_are(f"{s} 9: and the cube on plate 0", [(0, "kept")])
 
     def by_index(self):
         s = "by index"
@@ -444,7 +439,7 @@ class PlatesTest:
         self.t.equal(f"{s} 14: plate 1 has no layer G-code", items[1]["layer_gcode"], [])
         settings_are(f"{s} 14", S(), after4)
         # The new project drops the printer's edit, so that the open asks nothing about it; the project brings it back.
-        self.save_and_reopen(f"{s} 15", "settings.3mf", preset_changes="discard")
+        self.save_and_reopen("settings.3mf", preset_changes="discard")
         settings_are(f"{s} 15: the project file keeps a plate's own settings", S(), after4)
         edited = [i["key"] for i in self.c.call("settings_get", type="printer", compare=":saved", limit=50)["items"]]
         self.t.equal(f"{s} 15: the project brings back the printer's support_multi_bed_types", edited,

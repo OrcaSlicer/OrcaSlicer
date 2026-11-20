@@ -2055,7 +2055,8 @@ const std::set<std::string> kOperations = {
     "order_objects",      "mirror_objects",     "center_objects",        "scale_to_fit",     "drop_objects",
     "orient_objects",     "add_primitive",      "delete_plate",          "duplicate_plate",  "rename_plate",
     "set_objects_printable", "set_objects_auto_drop", "fix_objects", "clone_objects", "reload_parts", "replace_part",
-    "add_filament_slot",  "delete_filament_slot", "add_mixed_filament",   "sync_presets",     "export_toolpaths_obj",
+    "add_filament_slot",  "delete_filament_slot", "add_mixed_filament",   "edit_mixed_filament", "sync_presets",
+    "export_toolpaths_obj",
     "printer_models",     "install_printers",     "uninstall_printers",   "install_filaments", "uninstall_filaments",
     "set_preferences",    "set_plugin_enabled",   "uninstall_plugin",     "reload_plugin",    "start_plugin_refresh",
     "reorder_objects",    "sync_filaments_from_ams", "open_gizmo",           "cut_object",
@@ -2104,6 +2105,8 @@ const std::map<std::string, const char*> kExceptions = {
     {"settings_set", kOneEntryPoint},
     {"plate_set_settings", kOneEntryPoint},
     {"project_set_settings", kOneEntryPoint},
+    {"filament_set_colour", kOneEntryPoint},
+    {"filament_set_flushing", kOneEntryPoint},
     // The commands made from menu items, which run their items' functions.
     {"object_add_handy_model", kMenuItemAdds},
     {"object_add_text", kMenuItemAdds},

@@ -295,8 +295,9 @@ the caption, the pointer and the dialog.
 sidebar's selector, its value set with `widget_set_value`, `preset_select` and the plugin API. On one slot it answers
 the filament tab's unsaved-changes prompt every way; on three it checks what the Auto-flush preference does to the
 flushing volumes when a slot's preset or colour changes. Then it assigns filaments to objects and parts with
-`settings_set` and sets the project's slot colours, flushing volumes, plate type and prime tower with
-`project_set_settings`, and checks what reaches the print and what the project file keeps.
+`settings_set`, sets the slot colours and flushing volumes with `filament_set_colour` and `filament_set_flushing` and
+the plate type and prime tower with `project_set_settings`, and checks what reaches the print and what the project file
+keeps.
 
 `test_presets.py` checks the presets of the three types: selecting one by the name its selector shows, hidden ones
 included; `preset_list`'s filters; what a setting is and where it lives (`settings_get`, `settings_list`); saving,

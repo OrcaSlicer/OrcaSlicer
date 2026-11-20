@@ -23,7 +23,7 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, run, start, wait  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, run, slots, start, wait  # noqa: E402
 
 FIXTURES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests", "fixtures")
 STAR = os.path.join(FIXTURES, "star.svg")
@@ -235,7 +235,7 @@ class GizmosTest:
         return None
 
     def slots(self):
-        return self.c.call("project_get_settings", keys=["filament_is_mixed"])["items"][0]["value"]
+        return slots(self.c)
 
     def process(self):
         """(the selected process preset, its wall_loops)."""

@@ -21,8 +21,8 @@ Lab printer's own behaviour, and its G-code is read as a printer outside the Bam
 sets `timeout_s` 1500: it slices about thirty times, three of them a Benchy.
 
 **Starts from:** `start(client)`, whose `presets()` must be `{printer: "MyKlipper 0.4 nozzle", process: "0.20mm Standard
-@MyKlipper", filaments: ["Generic PLA @System"]}`. Then `project_set_settings {values: {filament_colour: {index: 0,
-value: "#26A69A"}, flush_multiplier: 0.3}}`, read back with `project_get_settings`: a seeded folder's slot colour and
+@MyKlipper", filaments: ["Generic PLA @System"]}`. Then `filament_set_colour {filament_slot: 1, colour: "#26A69A"}`
+and `filament_set_flushing {flush_multiplier: 0.3}`, read back with `filament_list`: a seeded folder's slot colour and
 flush multiplier, since the purge between two slots, and so the depth of the two-colour slices' prime tower, follows
 both, and the printer keeps them as an earlier test or run left them (To settle); `preferences_set {values:
 {auto_slice_after_change: false}}`, read back with `preferences_get`, so that a plate is sliced only when a row slices

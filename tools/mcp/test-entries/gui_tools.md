@@ -60,8 +60,8 @@ its name and `type` (`part`, `modifier`, `negative`, ...), and whether its first
 `app_state.selection` as `{objects, parts}`, or empty. `menu(reply)` gives a reply's `popup_menu` as `{items,
 checked, disabled}`, an absent list read as `[]`. `rows(target)` parses `widget_list`'s tree into rows, each with
 its label path, its value, and whether it is selected or checked. `dialogs()` gives the titles of
-`app_state.dialogs`, `windows()` the titles `window_list` lists, `colours()` the project's `filament_colour` from
-`project_get_settings`, `project_file(path)` the JSON of a saved project's `Metadata/project_settings.config`, and
+`app_state.dialogs`, `windows()` the titles `window_list` lists, `colours()` each `filament_list` row's `colour`,
+joined by `;`, `project_file(path)` the JSON of a saved project's `Metadata/project_settings.config`, and
 `canvas_png(name)` the file `window_screenshot {target: "canvas", include_image: false, save_path: OUT/<name>.png}`
 writes. `OUT` is the test's output folder: the folder `--out` names, else a new temporary folder. Every scenario
 starts with `project_new {discard_changes: true, preset_changes: "discard"}` in the Prepare view and the
@@ -109,7 +109,7 @@ Hell`, then `Add Models` and `Show Labels`.
 | 15 | `E` with `popup_item: "Show Labels"`, then `canvas_png("labels_off_again")` | as after 9 | `app_state.view.labels` false; `labels_off_again.png` differs from `labels_on.png`: the label is gone again |
 | 16 | `E` with `popup_item: "Add Primitive>Cylinder"` | as after 9, then `Cylinder: Cylinder part` | `app_state.objects` 2 |
 | 17 | `widget_click {target: {label: "Add one filament"}}` | as after 16 | `app_state.presets.filaments` has 2 entries |
-| 18 | `project_set_settings {values: {filament_colour: "#FF0000;#0000FF"}}` | as after 16 | `colours()` `#FF0000;#0000FF` |
+| 18 | `filament_set_colour {filament_slot: 1, colour: "#FF0000"}` and `{filament_slot: 2, colour: "#0000FF"}` | as after 16 | `colours()` `#FF0000;#0000FF` |
 | 19 | `widget_click` of filament 1's `Click to edit preset` button, by the ref of the first button of that name `widget_list {target: "main"}` lists with a position and a size | as after 16 | items exactly `Edit`, `Merge with>Generic PLA`, `Decompose Color`, `Delete`, `Generic PLA` being the filament of slot 2 as the selector names it (Add one filament copies the last slot's, `PresetBundle::set_num_filaments`); `dialogs()` `[]`; `app_state.tab` `prepare` |
 | 20 | the same with `popup_item: "Delete"` | as after 16 | reply `ran` `Delete`; `app_state.presets.filaments` has 1 entry and `colours()` is `#0000FF`: the slot whose button was clicked is the one deleted |
 | 21 | `object_select {all: true}`, then `C` | as after 16 | `selection()` objects `[0, 1]` after the select; the items hold `Assemble`, `Align/Distribute>Align left (-X)` and `Delete`, and not `Add Part>Cube`: the menu is the multi-selection's, not one object's |
@@ -175,7 +175,7 @@ It starts with `start(c, filaments=["Bambu PLA Basic @System"])`, compared with 
 KLIPPER_STD, filaments: ["Bambu PLA Basic @System"]}`: the Orca Filament Library's Bambu PLA Basic, which suits any
 printer. A filament whose name starts with `Bambu` opens Orca's own filament picker (`PresetComboBoxes.cpp`), which
 finds the library's filament id `OFoiVqVM` under Bambu's `GFA00` (`FilamentColorCodeQuery::GetFilaInfoMap`). Slot 1's
-colour is set with `project_set_settings {values: {filament_colour: "#26A69A"}}`. When `preset_list {type:
+colour is set with `filament_set_colour {filament_slot: 1, colour: "#26A69A"}`. When `preset_list {type:
 "printer"}` offers `MyMarlin 0.4 nozzle`, the Generic Marlin Printer whose wizard card step 15 ticks, the scenario
 takes it out first (`printer_uninstall {models: [{vendor: "Custom", model: "Generic Marlin Printer"}]}`), so that the
 card starts unticked; no test installs it. The start is checked: `app_state.presets.filaments` is `["Bambu PLA Basic

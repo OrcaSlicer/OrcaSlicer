@@ -106,7 +106,7 @@ std::vector<std::string> similar_preset_names(const PresetCollection& presets, c
 // Refuses: not_signed_in.
 Outcome<Done> sync_presets();
 
-// ---- Filament slots: the + and - buttons above the filament list, a slot's Delete and Merge with, Add Mixed Filament ----
+// ---- Filament slots: the + and - buttons above the filament list, a slot's Delete and Merge with, the mixed filament list ----
 
 // Adds a physical filament slot after the physical ones, as the + button does: it takes the next colour and the last
 // slot's preset, and the mixed filaments, with the objects on them, move up by one. Returns the new slot's number
@@ -123,21 +123,28 @@ std::optional<Refusal> filament_delete_refusal(int slots, int slot, std::optiona
 
 struct DeleteFilamentArgs
 {
-    std::optional<int> filament_slot; // 1-based; none: the last physical slot, as the - button
-    std::optional<int> merge_into;    // 1-based; none: the objects on the slot take the first filament, as its Delete does
+    std::optional<int>  filament_slot; // 1-based; none: the last physical slot, as the - button
+    std::optional<int>  merge_into;    // 1-based; none: the objects on the slot take the first filament, as its Delete does
+    // The answer to the question Merge with asks before it merges a physical filament into a mixed filament that mixes
+    // it: true merges, false merges nothing; none asks it.
+    std::optional<bool> break_mix;
 };
 struct DeletedFilament
 {
     int                filament_slot = 0; // the slot deleted, by its number before the delete
     std::optional<int> merged_into;       // the slot its objects went to, by its number afterwards
+    std::vector<int>   broken_mixed;      // the mixed filaments the sidebar marks broken afterwards, 1-based, as numbered then
 };
 // Deletes a filament slot as its Delete menu item does, or, with merge_into, as its Merge with item does
 // (Sidebar::change_filament()): the objects on it go to that slot. A mixed filament is deleted as the mixed filament
-// list deletes it. Not in the undo history, as none of them is.
-// Refuses: filaments_unavailable, one_filament_per_extruder, the only physical slot (last_filament_slot), what
-//          filament_delete_refusal() gives, a merge of a mixed filament (mixed_filament_slot), a physical slot a mixed
-//          filament mixes (mixed_uses_slot; for a merge into that mix, with the question Merge with asks there), and a
-//          delete the sidebar did not make (not_deleted).
+// list deletes it. A physical filament a mixed filament mixes is deleted as the sidebar deletes it, without a question:
+// the mix keeps a component that is gone and is broken until it is edited (edit_mixed_filament()). Not in the undo
+// history, as none of them is.
+// Refuses: filaments_unavailable, one_filament_per_extruder, the only physical slot (last_filament_slot), a mixed
+//          filament while one physical filament is left, whose list the sidebar then hides (mixed_list_hidden), what
+//          filament_delete_refusal() gives, a merge of a mixed filament (mixed_filament_slot), a merge into a mixed
+//          filament that mixes the slot answered no ahead (mixed_uses_slot, break_mix false) or at its question
+//          (merge_cancelled), and a delete the sidebar did not make (not_deleted).
 Outcome<DeletedFilament> delete_filament_slot(const DeleteFilamentArgs& args);
 
 // What keeps a mixed filament of `components` (1-based filament slots) in `ratios` (percentages, one per component)
@@ -151,19 +158,43 @@ std::optional<Refusal> mixed_filament_refusal(const std::vector<std::string>& ty
 
 struct AddMixedFilamentArgs
 {
-    std::vector<int>    components; // 1-based physical filament slots
+    std::vector<int>    components; // 1-based physical filament slots; none, with no ratios: the dialog
     std::vector<double> ratios;     // whole percentages, one per component, as the dialog sets them
 };
 struct MixedFilament
 {
-    int  filament_slot = 0;     // 1-based
-    bool added         = false; // false: the project mixes these filaments in these ratios already, in that slot
+    int  filament_slot = 0;     // 1-based; 0 when the dialog added none
+    bool added         = false; // false: the project mixes these filaments in these ratios already, in that slot, or
+                                // the dialog was cancelled
 };
 // Adds a mixed filament as the Add Mixed Filament dialog's OK does for these filaments and ratios with no gradient
-// (Sidebar::ensure_mixed_filament()), in a slot after every other; a mix the project has already is that slot.
-// Refuses: filaments_unavailable, what mixed_filament_refusal() gives, too_many_filaments, and not_mixed where the
-//          sidebar made none.
+// (Sidebar::ensure_mixed_filament()), in a slot after every other; a mix the project has already is that slot. With
+// neither components nor ratios, opens that dialog as the sidebar's Add Mixed Filament button does, and the mix is what
+// its OK makes, gradient included.
+// Refuses: filaments_unavailable, components_and_ratios (one given without the other), what mixed_filament_refusal()
+//          gives, too_few_components (for the dialog, fewer than two physical filaments, where the sidebar offers no
+//          mix), too_many_filaments, and not_mixed where the sidebar made none.
 Outcome<MixedFilament> add_mixed_filament(const AddMixedFilamentArgs& args);
+
+struct EditMixedFilamentArgs
+{
+    int                 filament_slot = 0; // 1-based, a mixed filament
+    std::vector<int>    components;        // 1-based physical filament slots; none, with no ratios: the dialog
+    std::vector<double> ratios;            // whole percentages, one per component
+};
+struct EditedMixedFilament
+{
+    int  filament_slot = 0; // 1-based, as before the edit
+    bool changed       = false;
+};
+// Changes a mixed filament as the Edit Mixed Filament dialog's OK does for these filaments and ratios
+// (Sidebar::apply_mixed_filament_edit()): the slot keeps its number and the objects on it, its colour becomes the
+// blend, and a gradient stays for a mix of two filaments and goes for more, which the dialog shows no gradient for.
+// With neither components nor ratios, opens that dialog on the mix as a click on its swatch does, and the mix is what
+// its OK makes. A mix the sidebar marks broken is repaired by an edit that names its filaments again.
+// Refuses: filaments_unavailable, no_such_slot, not_mixed_filament (a physical slot), components_and_ratios, and what
+//          mixed_filament_refusal() gives.
+Outcome<EditedMixedFilament> edit_mixed_filament(const EditMixedFilamentArgs& args);
 
 // ---- Syncing the filament list from the AMS: Synchronize Filament List from AMS and its dialog ----
 

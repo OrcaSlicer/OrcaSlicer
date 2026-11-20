@@ -551,7 +551,7 @@ nothing from it, and `plugin/` includes nothing from `GUI/Mcp`.
 | `PresetOps` | `resolve_preset`, `select_preset` | `preset_select`, the plugin API's `begin_update(preset_name)` |
 | | `assign_filament_preset` | `preset_select`, the plugin API's `begin_update(slot_number, preset_name)` (the sidebar's selector calls the same owner effect, `Sidebar::select_filament_preset()`) |
 | | `import_presets`, `sync_presets` | `preset_import`, `preset_sync` |
-| | `add_filament_slot`, `delete_filament_slot`, `add_mixed_filament` | `filament_add`, `filament_delete`, `filament_add_mixed` |
+| | `add_filament_slot`, `delete_filament_slot`, `add_mixed_filament`, `edit_mixed_filament` | `filament_add`, `filament_delete`, `filament_add_mixed`, `filament_edit_mixed` |
 | | `sync_filaments_from_ams` | `filament_sync_ams`; the AMS sync dialog applies its choice through the same `apply_ams_sync()` |
 | `InstallOps` | `printer_models`, `install_printers`, `uninstall_printers` | `printer_list_models`, `printer_install`, `printer_uninstall` |
 | | `install_filaments`, `uninstall_filaments` | `filament_install`, `filament_uninstall` |
@@ -1282,57 +1282,33 @@ so replays create it first with `preset_save`.
 
 ### Project settings
 
-`project_get_settings` and `project_set_settings` read and write the settings of the project itself,
-which it stores outside any preset (`PresetBundle::project_config`), as a plate's are stored on the plate:
-they are not print settings a preset or an object holds, so they have commands of their own beside the
-settings commands. They are what a person sets in the sidebar, on the canvas or in their dialogs:
-`curr_bed_type`, `filament_colour`, `flush_volumes_matrix`, `flush_multiplier`, `prime_volume_mode`
-and `wipe_tower_x`/`wipe_tower_y`, plus the read-only `filament_is_mixed` and, on a printer with
-several extruders, the read-only `filament_map_mode` and `filament_map`; `project_get_settings` with no
-`keys` returns them all, each with its value and meta (`meta.offered`, the choices this printer has, and
-`meta.read_only`). A generic config write would skip what each control does after setting its value, so
-`project_set_settings` writes every key through that control's own code. Everything is checked before
-anything changes, `null` is refused (project values always exist), and `{"index": i, "value": v}` sets
-one slot's colour, one matrix cell or one plate's tower position.
+`project_get_settings` and `project_set_settings` read and write the project's own settings for its
+plates, which it stores outside any preset (`PresetBundle::project_config`), as a plate's are stored on
+the plate: they are not print settings a preset or an object holds, so they have commands of their own
+beside the settings commands. They are `curr_bed_type` and `wipe_tower_x`/`wipe_tower_y` and, on a
+printer with several extruders, the read-only `filament_map_mode` and `filament_map`;
+`project_get_settings` with no `keys` returns them all, each with its value and meta (`meta.offered`,
+the choices this printer has, and `meta.read_only`). A generic config write would skip what each
+control does after setting its value, so `project_set_settings` writes every key through that
+control's own code. Everything is checked before anything changes, `null` is refused (project values
+always exist), and `{"index": i, "value": v}` sets one plate's tower position.
 
 - `curr_bed_type` goes through the plate type selector (`Sidebar::set_bed_type_accord_combox()`, whose
   handler updates the project, the printer's remembered plate type and the plates on the global type).
   Only the types the selector lists are taken (`meta.offered`), and none while the selector is hidden
   for the printer.
-- `filament_colour` is one `#RRGGBB` per slot in config order. Each changed slot goes through its
-  colour button's code: `PlaterPresetComboBox::sync_colour_config()` and the queued
-  `EVT_FILAMENT_COLOR_CHANGED`, which recalculates that slot's flushing volumes when the "Auto flush
-  after changing" preference is on.
-- `flush_volumes_matrix` and `flush_multiplier` go through `apply_flushing_volumes()`, the Flushing
-  volumes dialog's OK split from the dialog, then the button's scene reload and update. The matrix is
-  N x N per nozzle (row = from slot, column = to slot) in config order over every slot, as
-  `project_config` and the G-code header hold it, not over the physical slots the dialog shows. The
-  values are before the multiplier: the header prints the matrix multiplied by it, and the dialog
-  shows and edits each entry multiplied by it, so its meta's `description` (the option has no tooltip)
-  says so, since agents otherwise type the dialog's value as the stored one. Volumes are limited
-  to `g_max_flush_volume` / multiplier as the dialog limits them; negative volumes and a non-zero
-  diagonal are refused. A multiplier is one per nozzle (one value sets all) within the dialog's 0..3.
-- `prime_volume_mode` is what the Purge mode dialog's OK writes, followed by the update it does. It is
-  offered only while the Purge mode button shows (printers with several nozzles per extruder or fast
-  purge), with the dialog's choices.
 - `wipe_tower_x`/`wipe_tower_y` are one position per plate, in mm from the plate's origin, as a tower
   drag stores them: one undo step ("Move object", which takes the old positions along), then an
   update. A position off the plate is refused; one where the tower does not fit is re-placed by the
   scene reload, as after a drag, with its notification, and the reply's `note` says so.
 
-Colours are applied in a first UI closure and the rest in a second after a settle, so a matrix given
-in the same call is written after the recalculation the colour change triggered, and a matrix cell
-given by index is set in the matrix that recalculation left. The recalculation also runs when a slot
-is added and, depending on the preference, when a slot's preset changes, so a matrix is best set
-last; a replay matches only on a datadir with the same preference.
-
-A mixed filament is a virtual slot made of physical ones (the sidebar's mixed filament list); its
-colour comes from its components and it is never flushed. `filament_is_mixed` tells which slots they
-are, and their colours and matrix rows and columns are refused unless left as they are, as the
-dialog keeps them. The filament grouping is set per plate in the Filament grouping dialog, and every
-plate carries its own mode from the start, so a project-wide `filament_map_mode` or `filament_map`
-would not change a slice: both are listed for reading only, and a plate's are written with
-`plate_set_settings`. Nothing here except the tower position enters the undo stack, as in the GUI.
+The filament grouping is set per plate in the Filament grouping dialog, and every plate carries its
+own mode from the start, so a project-wide `filament_map_mode` or `filament_map` would not change a
+slice: both are listed for reading only, and a plate's are written with `plate_set_settings`. The same
+`project_config` holds the filament list's state, its slot colours, mixed filaments and flushing, which
+belongs to the filament commands (The filament list, below): a call that names one of those keys here
+is refused, naming the command that reads or sets it. Nothing here except the tower position enters the
+undo stack, as in the GUI.
 
 ### Plate settings
 
@@ -1531,15 +1507,82 @@ to say than their descriptions:
   Delete would ask about (part of a cut object, an object's last solid part) with the question as its reason,
   and its Speed Dial action leaves those to the object list, which asks.
 
-### Filament slots and the AMS
+### The filament list
 
-`filament_add`, `filament_delete` and `filament_add_mixed` change the project's filament slots as the
-sidebar's filament list does (`Ops::add_filament_slot()`, `Ops::delete_filament_slot()`,
-`Ops::add_mixed_filament()`, see Commands that replace a dialog). `filament_add_mixed` adds what the Add
-Mixed Filament dialog's OK adds with no gradient (`Sidebar::ensure_mixed_filament()`): `components`, two or
-more physical slots of one filament type, each named once, and `ratios`, whole percentages adding up to 100;
-a mix the project has already is not added again, and the reply names its slot. None of the three is in the
-undo history, as in the GUI.
+The sidebar's filament section holds the filament slots, the mixed filament list under them, and the
+Flushing volumes and Purge mode buttons in its title bar. Their state is stored in `project_config`
+beside the project's settings, but the app keeps it with the printer: `PresetBundle::export_selections()`
+writes the slot colours, the mixed filaments and the flushing into the app configuration under the
+printer, so they outlast a new project and a restart and come back when the printer is selected again,
+and a saved project keeps a copy of its own (`s_project_options`). So the filament list has commands of
+its own, in the Filaments group, rather than the project's.
+
+`filament_list` reads it as the sidebar shows it: a row per slot in config order, the physical filaments
+first and then the mixed ones (`filament_slot`, `mixed`, `colour`; a physical row's `preset` and `type`;
+a mixed row's `components`, `ratios`, `gradient` and `broken`), then `flush_multiplier`,
+`flush_volumes_matrix` and `prime_volume_mode`, with `prime_volume_modes` where the printer offers a
+choice. A mixed row's components are as stored, a deleted one as 0; its ratios, in whole percentages as
+the commands take them, and its gradient are as the Edit Mixed Filament dialog reads them
+(`Sidebar::mixed_filament_result()`). The slicer reads `filament_mixed_gradient_range` as the first
+component's share at the bottom and at the top, so a gradient is given as the components that lead
+`bottom` and `top`, with `per_part` and whether its `curve` is the default straight line or a custom one.
+`broken` is what the sidebar marks (`Sidebar::broken_mixed_filaments()`): a component deleted or past the
+physical filaments, fewer than two, or components of different filament types; slicing an object on a
+broken mix is refused.
+
+A mixed slot's `filament_presets` entry is a copy of its first component's preset name
+(`create_mixed_filament_from_result()`), which no reader takes for the slot's preset: a mixed slot has no
+selector and no filament tab, so `filament_list` gives its row no preset, `preset_list`'s `filament_slots`
+leaves mixed slots out, and `preset_select`, `settings_get`, `settings_set`, `settings_list` and
+`preset_save` refuse a mixed slot (`mixed_filament_slot`), as the plugin API's preset editing does.
+
+`filament_add`, `filament_delete`, `filament_add_mixed` and `filament_edit_mixed` change the slots as the
+list does (`Ops::add_filament_slot()`, `Ops::delete_filament_slot()`, `Ops::add_mixed_filament()`,
+`Ops::edit_mixed_filament()`, see Commands that replace a dialog). None of them is in the undo history, as
+in the GUI.
+
+- `filament_add_mixed` adds what the Add Mixed Filament dialog's OK adds with no gradient
+  (`Sidebar::ensure_mixed_filament()`): `components`, two or more physical slots of one filament type,
+  each named once, and `ratios`, whole percentages adding up to 100; a mix the project has already is not
+  added again, and the reply names its slot.
+- `filament_edit_mixed` changes a mix as the Edit Mixed Filament dialog's OK does
+  (`Sidebar::apply_mixed_filament_edit()`, the OK split from the dialog): the slot keeps its number and the
+  objects on it, its colour becomes the blend, and a gradient stays for a mix of two filaments and goes for
+  more, which the dialog shows none for. An edit that names its filaments again repairs a broken mix.
+- Without `components` and `ratios`, `filament_add_mixed` opens the Add Mixed Filament dialog, as the
+  sidebar's button does, and `filament_edit_mixed` with only `filament_slot` opens the Edit Mixed Filament
+  dialog on that mix, as a click on its swatch does; both reply `blocked_by_dialog`. This is how an agent
+  sets a gradient, which has no argument: the dialog names its controls for `widget_set_value`
+  (`filament_1` to `filament_3`, `gradient`, `gradient_direction`, whose item 0 puts the first filament at
+  the bottom, and `per_part_gradient`), and its OK makes what it shows. The gradient curve is drawn, so
+  only a drag changes it.
+- `filament_delete` deletes a physical filament that a mixed filament mixes as the sidebar does, without a
+  question: `remap_mixed_components_on_delete()` leaves a 0 in the mix's components, the mix is broken, and
+  the reply's `broken_mixed` names the broken mixes until an edit repairs them. A merge into a mixed
+  filament that mixes the slot asks first, as Merge with does (`Sidebar::change_filament()`), so the call
+  replies `blocked_by_dialog`, unless `break_mix` answers ahead: true merges, false refuses
+  (`mixed_uses_slot`). With one physical filament left the sidebar hides the mixed filament list and deletes
+  nothing (`Sidebar::delete_filament()`), so a mix is refused then (`mixed_list_hidden`) until a slot is added.
+- `filament_set_colour` sets one physical slot's `#RRGGBB` through its colour button's code:
+  `PlaterPresetComboBox::sync_colour_config()` and the queued `EVT_FILAMENT_COLOR_CHANGED`, which
+  recalculates that slot's flushing volumes when the "Auto flush after changing" preference is on. A mixed
+  filament's colour is its components' blend and is refused unless left as it is. The recalculation also
+  runs when a slot is added and, depending on the preference, when a slot's preset changes, so a matrix is
+  best set after the colours; a replay matches only on a datadir with the same preference.
+- `filament_set_flushing` writes what the Flushing volumes and Purge mode dialogs' OK write, through the
+  code `project_set_settings` runs for its keys. `flush_volumes_matrix` and `flush_multiplier` go through
+  `apply_flushing_volumes()`, the Flushing volumes dialog's OK split from the dialog, then the button's scene
+  reload and update. The matrix is N x N per nozzle (row = from slot, column = to slot) in config order
+  over every slot, as `project_config` and the G-code header hold it, not over the physical slots the
+  dialog shows. The values are before the multiplier: the header prints the matrix multiplied by it, and
+  the dialog shows and edits each entry multiplied by it, which `filament_list`'s description says, since
+  agents otherwise type the dialog's value as the stored one. Volumes are limited to `g_max_flush_volume` /
+  multiplier as the dialog limits them; negative volumes and a non-zero diagonal are refused, and a mixed
+  filament's rows and columns, which are never flushed, are refused unless left as they are, as the dialog
+  keeps them. A multiplier is one per nozzle (one value sets all) within the dialog's 0..3.
+  `prime_volume_mode` is what the Purge mode dialog's OK writes, followed by the update it does, offered
+  only while the Purge mode button shows (printers with several nozzles per extruder or fast purge), with
+  the dialog's choices.
 
 `filament_sync_ams` takes the filament list from the AMS of the printer selected on the Device tab. As its
 Speed Dial action, with no arguments, it opens the sync dialog where the project has objects. With `mode` it
@@ -2477,9 +2520,9 @@ buttons and a slot's Delete and Merge with menu items (`Ops::add_filament_slot()
 `Ops::delete_filament_slot()`):
 they run where the buttons show, for printers that take several filaments through one extruder, and refuse
 elsewhere, at the slot limit, and for the only physical slot. `filament_delete` deletes a mixed filament as the
-mixed filament list does, and refuses to merge one, and to delete a physical slot a mixed filament mixes: the
-sidebar would leave the mix naming a slot that is gone, which nothing can repair. A new slot goes after the physical slots, so mixed filaments move up by one with the
-objects on them. `filament_delete` takes a 1-based `filament_slot`, the last physical one without it, and
+mixed filament list does and refuses to merge one, which the list offers no Merge with for; a physical slot a
+mixed filament mixes is deleted as the sidebar deletes it, leaving the mix broken (The filament list). A new
+slot goes after the physical slots, so mixed filaments move up by one with the objects on them. `filament_delete` takes a 1-based `filament_slot`, the last physical one without it, and
 `merge_into`, the slot its objects go to in place of the first. `preset_sync` refuses while no account is
 signed in, and `filament_sync_ams` with no printer, no AMS or no filament.
 
