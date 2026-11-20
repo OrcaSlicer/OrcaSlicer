@@ -4517,8 +4517,14 @@ void GUI_App::select_machine(const std::string& agent_id)
 
     // If machine doesn't exist, create it first. The Orca agent never connects, so an entry saved
     // under it holds no binding; re-insert it for the active agent, whose machine list can't see
-    // it otherwise. Entries bound by any other agent stay with that agent.
-    if (!existing || (existing->printer_agent_id == ORCA_PRINTER_AGENT_ID && agent_id != ORCA_PRINTER_AGENT_ID)) {
+    // it otherwise. An entry this function made from another agent's preset for the same print
+    // host (a LAN entry whose dev_id is its address) holds only that preset's settings; re-insert
+    // it too. Bambu printers and entries bound from the Device tab stay with their agent.
+    const bool from_other_preset = existing && existing->printer_agent_id != agent_id &&
+                                   existing->printer_agent_id != BBL_PRINTER_AGENT_ID && existing->is_lan_mode_printer() &&
+                                   existing->get_dev_id() == existing->get_dev_ip();
+    if (!existing || (existing->printer_agent_id == ORCA_PRINTER_AGENT_ID && agent_id != ORCA_PRINTER_AGENT_ID) ||
+        from_other_preset) {
         BBLocalMachine machine;
         machine.dev_id = dev_id;
         // We use dev_id as dev_ip to store the address (host:port)
