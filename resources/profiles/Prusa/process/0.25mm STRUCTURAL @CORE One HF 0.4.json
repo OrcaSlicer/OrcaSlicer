@@ -5,7 +5,7 @@
 	"from": "system",
 	"setting_id": "zBWdXWEuyUFu88Pg",
 	"instantiation": "true",
-	"overhang_3_4_speed": "45",
+	"overhang_2_4_speed": "45",
 	"travel_speed": "350",
 	"travel_acceleration": "7000",
 	"default_acceleration": "3000",

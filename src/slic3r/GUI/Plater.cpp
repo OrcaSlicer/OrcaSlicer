@@ -1429,7 +1429,7 @@ static bool has_junction_deviation(const DynamicPrintConfig* printer_config)
 }
 
 static DynamicFilamentList dynamic_filament_list;                // every slot, mixed included (per-feature *_filament_id keys)
-static DynamicFilamentList dynamic_physical_filament_list(true); // physical slots only (support_*, wipe_tower_filament)
+static DynamicFilamentList dynamic_physical_filament_list(true); // physical slots only (support_*, brim_filament_id, wipe_tower_filament)
 
 class AMSCountPopupWindow : public PopupWindow
 {
@@ -2795,6 +2795,7 @@ Sidebar::Sidebar(Plater *parent)
     Choice::register_dynamic_list("internal_solid_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("top_surface_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("bottom_surface_filament_id", &dynamic_filament_list);
+    Choice::register_dynamic_list("brim_filament_id", &dynamic_physical_filament_list);
     Choice::register_dynamic_list("wipe_tower_filament", &dynamic_physical_filament_list);
 
     p->scrolled = new wxPanel(this);
@@ -7297,6 +7298,8 @@ struct Plater::priv
     int m_cur_slice_plate;
     //BBS: m_slice_all in .gcode.3mf file case, set true when slice all
     bool m_slice_all_only_has_gcode{ false };
+    // Orca: the flow rate test sets no calibration mode on the print, as that would change its G-code
+    bool m_flowrate_calib{ false };
 
     bool m_need_update{false};
     //BBS: add popup object table logic
@@ -7905,7 +7908,7 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         "extruder_clearance_radius",
         "extruder_clearance_height_to_lid", "extruder_clearance_height_to_rod",
 		"nozzle_height", "skirt_type", "skirt_loops", "skirt_speed","min_skirt_length", "skirt_distance", "skirt_start_angle",
-        "brim_width", "brim_object_gap", "brim_flow_ratio", "brim_use_efc_outline", "combine_brims", "brim_type", "nozzle_diameter", "single_extruder_multi_material", "preferred_orientation",
+        "brim_width", "brim_object_gap", "brim_flow_ratio", "brim_use_efc_outline", "combine_brims", "brim_type", "brim_filament_id", "nozzle_diameter", "single_extruder_multi_material", "preferred_orientation",
         "enable_prime_tower", "wipe_tower_x", "wipe_tower_y", "prime_tower_width", "prime_tower_brim_width", "prime_tower_skip_points", "prime_tower_enable_framework",
         "prime_tower_infill_gap", "prime_volume",
         "extruder_colour", "filament_colour", "filament_type", "filament_is_support", "material_colour", "printable_height", "extruder_printable_height", "printer_model", "printer_technology",
@@ -9286,6 +9289,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     q->m_3mf_path = input_files.front().string();
     // Leave the previous calibration mode intact when preparation was cancelled.
     background_process.fff_print()->calib_mode() = CalibMode::Calib_None;
+    m_flowrate_calib = false;
 
     for (size_t i = 0; i < input_files.size(); ++i) {
         int project_filament_count = 1;
@@ -17779,7 +17783,10 @@ void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern, int
     // Refresh object after scaling
     const std::vector<size_t> object_idx(boost::counting_iterator<size_t>(0), boost::counting_iterator<size_t>(model().objects.size()));
     changed_objects(object_idx);
+    p->m_flowrate_calib = true;
 }
+
+bool Plater::is_flowrate_calib() const { return p->m_flowrate_calib; }
 
 
 // The belt provini tower (Calib_Params::test_model 1) is one embossed model per
@@ -18144,6 +18151,7 @@ void Plater::calib_max_vol_speed(const Calib_Params& params)
     obj_cfg.set_key_value("precise_z_height", new ConfigOptionBool(false));
     print_config->set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
     print_config->set_key_value("spiral_mode", new ConfigOptionBool(true));
+    print_config->set_key_value("spiral_starting_flow_ratio", new ConfigOptionFloat(1));
     print_config->set_key_value("max_volumetric_extrusion_rate_slope", new ConfigOptionFloat(0));
     print_config->set_key_value("enable_wrapping_detection", new ConfigOptionBool(false));
 
@@ -21976,8 +21984,8 @@ void Plater::on_filaments_delete(size_t num_filaments, size_t filament_id, int r
     // update_objects_list_filament_column() that clips extruders above total count.
     sidebar().obj_list()->update_objects_list_filament_column_when_delete_filament(filament_id, num_filaments, replace_filament_id);
 
-    // update global support filament
-    static const char *keys[] = {"support_filament", "support_interface_filament"};
+    // update global support and brim filament
+    static const char *keys[] = {"support_filament", "support_interface_filament", "brim_filament_id"};
     for (auto key : keys)
         if (p->config->has(key)) {
             if(p->config->opt_int(key) == filament_id + 1)
@@ -22172,6 +22180,7 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
                  opt_key == "outer_wall_filament_id" || opt_key == "inner_wall_filament_id" ||
                  opt_key == "sparse_infill_filament_id" || opt_key == "internal_solid_filament_id" ||
                  opt_key == "top_surface_filament_id" || opt_key == "bottom_surface_filament_id" ||
+                 opt_key == "brim_filament_id" ||
                  opt_key == "enable_support" || opt_key == "raft_layers" || opt_key == "wall_loops" ||
                  opt_key == "sparse_infill_density" || opt_key == "top_shell_layers" ||
                  opt_key == "bottom_shell_layers" || opt_key == "brim_type" || opt_key == "brim_width") {

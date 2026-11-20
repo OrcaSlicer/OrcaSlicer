@@ -1631,35 +1631,98 @@ TEST_CASE("Cross hatch infill rounds its transition layers with the smooth facto
     REQUIRE(smooth.length < sharp.length);
 }
 
-TEST_CASE("Trapezoidal infill rounds its corners only with more than one line", "[Fill]")
+TEST_CASE("Trapezoidal infill rounds its corners only with the non-crossing strategy", "[Fill]")
 {
     const std::string pattern = GENERATE("grid", "quartercubic");
-    CAPTURE(pattern);
-    auto shape_for = [&pattern](int multiline, const std::string &smooth_factor) {
+    // The default strategy is non-crossing with more than one line per infill wall and crossing with one.
+    const auto [multiline, strategy, non_crossing] = GENERATE(table<int, std::string, bool>({ { 2, "default", true },
+                                                                                              { 1, "default", false },
+                                                                                              { 1, "non_crossing", true },
+                                                                                              { 2, "crossing", false } }));
+    CAPTURE(pattern, multiline, strategy);
+    auto shape_for = [&pattern, multiline = multiline, strategy = strategy](const std::string &smooth_factor) {
         Print print;
         Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
                                             {{"sparse_infill_pattern", pattern},
                                              {"sparse_infill_density", "20%"},
                                              {"fill_multiline", multiline},
+                                             {"sparse_infill_strategy", strategy},
                                              {"sparse_infill_smooth_factor", smooth_factor},
                                              {"layer_height", 0.2}});
         return sparse_infill_shape(print);
     };
 
-    const SparseInfillShape sharp  = shape_for(2, "0%");
-    const SparseInfillShape smooth = shape_for(2, "100%");
-
+    const SparseInfillShape sharp  = shape_for("0%");
+    const SparseInfillShape smooth = shape_for("100%");
     REQUIRE(sharp.point_count > 0);
-    REQUIRE(smooth.point_count > sharp.point_count);
-    REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
-    REQUIRE(smooth.length < sharp.length);
+    if (non_crossing) {
+        CHECK(smooth.point_count > sharp.point_count);
+        CHECK(smooth.sharp_turns < sharp.sharp_turns);
+        CHECK(smooth.length < sharp.length);
+    } else {
+        // Crossing lines are straight, with no corner of their own.
+        CHECK(smooth.sequence == sharp.sequence);
+    }
+}
 
-    // A single line per infill wall is the plain crossing lines, which have no corner of their own.
-    const SparseInfillShape single_sharp  = shape_for(1, "0%");
-    const SparseInfillShape single_smooth = shape_for(1, "100%");
-    REQUIRE(single_sharp.point_count > 0);
-    REQUIRE(single_smooth.point_count == single_sharp.point_count);
-    REQUIRE(single_smooth.length == single_sharp.length);
+TEST_CASE("Sparse infill strategy makes the lines cross or turn back where they meet", "[Fill]")
+{
+    const std::string pattern   = GENERATE("grid", "triangles", "tri-hexagon", "cubic", "quartercubic", "adaptivecubic", "supportcubic");
+    const int         multiline = GENERATE(1, 2);
+    const std::string strategy  = GENERATE("default", "crossing", "non_crossing");
+    CAPTURE(pattern, multiline, strategy);
+
+    Print print;
+    Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
+                                        {{"sparse_infill_pattern", pattern},
+                                         {"sparse_infill_density", "20%"},
+                                         {"fill_multiline", multiline},
+                                         {"sparse_infill_strategy", strategy},
+                                         // The bare pattern, without connections along the boundary.
+                                         {"infill_anchor", 0},
+                                         {"infill_anchor_max", 0},
+                                         {"layer_height", 0.3}});
+
+    size_t layers = 0, crossing_layers = 0;
+    for (const Layer *layer : print.objects().front()->layers()) {
+        Polylines printed;
+        for (const LayerRegion *region : layer->regions())
+            for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+                if (entity->role() == erInternalInfill)
+                    entity->collect_polylines(printed);
+        if (printed.empty())
+            continue;
+        ++layers;
+        if (!get_intersections(to_lines(printed)).empty())
+            ++crossing_layers;
+    }
+    REQUIRE(layers > 0);
+    if (strategy == "crossing" || (strategy == "default" && multiline == 1))
+        CHECK(crossing_layers > 0);
+    else
+        CHECK(crossing_layers == 0);
+}
+
+TEST_CASE("Sparse infill strategy leaves the patterns without one unchanged", "[Fill]")
+{
+    const std::string pattern   = GENERATE("gyroid", "honeycomb");
+    const int         multiline = GENERATE(1, 2);
+    CAPTURE(pattern, multiline);
+    auto shape_for = [&pattern, multiline](const std::string &strategy) {
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
+                                            {{"sparse_infill_pattern", pattern},
+                                             {"sparse_infill_density", "20%"},
+                                             {"fill_multiline", multiline},
+                                             {"sparse_infill_strategy", strategy},
+                                             {"layer_height", 0.3}});
+        return sparse_infill_shape(print);
+    };
+
+    const SparseInfillShape reference = shape_for("default");
+    REQUIRE(reference.point_count > 0);
+    CHECK(shape_for("crossing").sequence == reference.sequence);
+    CHECK(shape_for("non_crossing").sequence == reference.sequence);
 }
 
 TEST_CASE("Multiline infill of an object matches the infill of a larger object with the same center", "[Fill]")

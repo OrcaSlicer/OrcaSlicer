@@ -11,6 +11,7 @@
 #include <boost/system/error_code.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/nowide/cstdio.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <ios>
@@ -80,6 +81,39 @@ boost::filesystem::path resolve_plugin_root_from_descriptor(const PluginDescript
     if (!descriptor.entry_path.empty())
         return fs::path(descriptor.entry_path).parent_path();
     return {};
+}
+
+bool is_filesystem_root(const boost::filesystem::path& root)
+{
+    if (!root.is_absolute())
+        return false;
+
+#ifdef _WIN32
+    const auto is_separator = [](char c) { return c == '/' || c == '\\'; };
+    const std::string path = root.string();
+
+    std::vector<std::string> components;
+    for (size_t start = 0; start < path.size();) {
+        while (start < path.size() && is_separator(path[start]))
+            ++start;
+        size_t end = start;
+        while (end < path.size() && !is_separator(path[end]))
+            ++end;
+        if (end > start && path.compare(start, end - start, ".") != 0)
+            components.emplace_back(path.substr(start, end - start));
+        start = end;
+    }
+
+    if (path.size() >= 2 && is_separator(path[0]) && is_separator(path[1])) {
+        if (components.size() == 4 && components[0] == "?" &&
+            boost::algorithm::iequals(components[1], std::string("UNC")))
+            return true; // \\?\UNC\server\share
+        return components.size() == 2; // \\server\share or an extended drive root \\?\C:
+    }
+    return components.size() == 1 && components[0].size() == 2 && components[0][1] == ':';
+#else
+    return root == root.root_path();
+#endif
 }
 
 bool is_plugin_root_allowed(const boost::filesystem::path& candidate_root, const std::vector<std::string>& allowed_dirs)
@@ -935,6 +969,8 @@ InstallStateReadStatus read_install_state_status(const boost::filesystem::path& 
             };
             read_string_list("fs_read", parsed.permissions.fs_read);
             read_string_list("fs_readwrite", parsed.permissions.fs_readwrite);
+            read_string_list("fs_create", parsed.permissions.fs_create);
+            read_string_list("fs_delete", parsed.permissions.fs_delete);
             read_string_list("network_http", parsed.permissions.network_http);
             read_string_list("network_socket", parsed.permissions.network_socket);
             read_string_list("process", parsed.permissions.process);
@@ -1108,6 +1144,8 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
     json["permissions"] = {
         {"fs_read", state.permissions.fs_read},
         {"fs_readwrite", state.permissions.fs_readwrite},
+        {"fs_create", state.permissions.fs_create},
+        {"fs_delete", state.permissions.fs_delete},
         {"network_http", state.permissions.network_http},
         {"network_socket", state.permissions.network_socket},
         {"process", state.permissions.process},
