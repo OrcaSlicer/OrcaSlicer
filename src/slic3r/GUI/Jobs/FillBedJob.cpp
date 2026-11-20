@@ -56,6 +56,7 @@ void FillBedJob::prepare()
     //select current plate at first
     int sel_id = m_plater->get_selection().get_instance_idx();
     sel_id = std::max(sel_id, 0);
+    m_instance_idx = sel_id;
 
     int sel_ret = plate_list.select_plate_by_obj(m_object_idx, sel_id);
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(":select plate obj_id %1%, ins_id %2%, ret %3%}") % m_object_idx % sel_id % sel_ret;
@@ -402,7 +403,8 @@ void FillBedJob::finalize(bool canceled, std::exception_ptr &eptr)
             for (size_t i = inst_cnt; i < model_object->instances.size(); ++i)
                 plate_list.notify_instance_update(m_object_idx, int(i), true);
             // The copies carry the pose their source has in the assembly view: they would all sit on it.
-            m_plater->model().set_assembly_pos_of_copies(model_object, inst_cnt);
+            // The source is the instance the bed was filled with, not the last one of the object.
+            m_plater->model().set_assembly_pos_of_copies(model_object, size_t(m_instance_idx), inst_cnt);
             // Match the normal add-instance flow: update the scene before the
             // object tree starts referring to the newly created instances.
             m_plater->update();

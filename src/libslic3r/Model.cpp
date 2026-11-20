@@ -836,14 +836,21 @@ void Model::set_assembly_pos(ModelObject *model_object, const std::vector<const 
         instance->set_assemble_offset(instance->get_assemble_offset() + shift);
 }
 
-void Model::set_assembly_pos_of_copies(ModelObject *model_object, size_t first_copy)
+void Model::set_assembly_pos_of_copies(ModelObject *model_object, size_t source_idx, size_t first_copy)
 {
     ModelInstancePtrs &instances = model_object->instances;
-    // A source without a pose yet is placed later together with its copies, from their poses on the plate.
-    if (first_copy == 0 || first_copy >= instances.size() || !instances[first_copy - 1]->is_assemble_initialized())
+    if (source_idx >= first_copy || first_copy >= instances.size())
         return;
 
-    const ModelInstance     &source     = *instances[first_copy - 1];
+    // An object made on the plate (a text for example) has no pose in the assembly view yet. Its instances start
+    // from their poses on the plate, as they do when the project is loaded. Left without one, the source and its
+    // copies would all be drawn on the origin of the assembly view and saved without a pose.
+    if (!instances[source_idx]->is_assemble_initialized())
+        for (size_t i = 0; i < first_copy; ++i)
+            if (!instances[i]->is_assemble_initialized())
+                instances[i]->set_assemble_transformation(instances[i]->get_transformation());
+
+    const ModelInstance     &source     = *instances[source_idx];
     Geometry::Transformation pose       = source.get_assemble_transformation();
     const BoundingBoxf3     &raw_box    = model_object->raw_mesh_bounding_box();
     const BoundingBoxf3      source_box = raw_box.transformed(pose.get_matrix());

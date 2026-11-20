@@ -1883,9 +1883,10 @@ public:
     // overlap the others there. Keeps its height and the layout of its instances. Instances that have no
     // assembly pose yet start from their pose on the plate.
     void          set_assembly_pos(ModelObject *model_object, const std::vector<const ModelObject*> &ignore = {});
-    // Places the instances of model_object from first_copy on, copies added to it, in the assembly view: in the pose
-    // of the instance before them, in a row 10 mm to the right of everything that is there.
-    void          set_assembly_pos_of_copies(ModelObject *model_object, size_t first_copy);
+    // Places the instances of model_object from first_copy on, copies of its instance source_idx, in the assembly
+    // view: in the pose of their source, in a row 10 mm to the right of everything that is there. A source that has
+    // no assembly pose yet starts from its pose on the plate.
+    void          set_assembly_pos_of_copies(ModelObject *model_object, size_t source_idx, size_t first_copy);
     // Returns approximate axis aligned bounding box of this model.
     BoundingBoxf3 bounding_box_approx() const;
     // Returns exact axis aligned bounding box of this model.
