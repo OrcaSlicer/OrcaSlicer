@@ -11,6 +11,7 @@
 #include <boost/system/error_code.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/nowide/cstdio.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <ios>
@@ -82,6 +83,39 @@ boost::filesystem::path resolve_plugin_root_from_descriptor(const PluginDescript
     return {};
 }
 
+bool is_filesystem_root(const boost::filesystem::path& root)
+{
+    if (!root.is_absolute())
+        return false;
+
+#ifdef _WIN32
+    const auto is_separator = [](char c) { return c == '/' || c == '\\'; };
+    const std::string path = root.string();
+
+    std::vector<std::string> components;
+    for (size_t start = 0; start < path.size();) {
+        while (start < path.size() && is_separator(path[start]))
+            ++start;
+        size_t end = start;
+        while (end < path.size() && !is_separator(path[end]))
+            ++end;
+        if (end > start && path.compare(start, end - start, ".") != 0)
+            components.emplace_back(path.substr(start, end - start));
+        start = end;
+    }
+
+    if (path.size() >= 2 && is_separator(path[0]) && is_separator(path[1])) {
+        if (components.size() == 4 && components[0] == "?" &&
+            boost::algorithm::iequals(components[1], std::string("UNC")))
+            return true; // \\?\UNC\server\share
+        return components.size() == 2; // \\server\share or an extended drive root \\?\C:
+    }
+    return components.size() == 1 && components[0].size() == 2 && components[0][1] == ':';
+#else
+    return root == root.root_path();
+#endif
+}
+
 bool is_plugin_root_allowed(const boost::filesystem::path& candidate_root, const std::vector<std::string>& allowed_dirs)
 {
     boost::system::error_code ec;
@@ -140,6 +174,75 @@ bool delete_plugin_root(const boost::filesystem::path& resolved_root, const std:
 {
     namespace fs = boost::filesystem;
 
+#ifdef _WIN32
+    // Windows can report a deletion that is already under way as a transient error: a just-removed
+    // child can stay visible for a moment (ERROR_DIR_NOT_EMPTY, 145), a scanner or shell preview can
+    // still hold a handle (ERROR_SHARING_VIOLATION, 32), and Boost 1.84's child-open path maps
+    // STATUS_SHARING_VIOLATION to ERROR_NOT_SUPPORTED (50). Retry only those three codes, and keep
+    // each reported as returned: 50 and 145 are different failures and are never relabeled.
+    constexpr unsigned                  max_attempts = 5;
+    constexpr std::chrono::milliseconds retry_delays[max_attempts - 1] = {
+        std::chrono::milliseconds(100), std::chrono::milliseconds(250),
+        std::chrono::milliseconds(500), std::chrono::milliseconds(1000)};
+
+    const auto is_transient_delete_error = [](const boost::system::error_code& err) {
+        return err.category() == boost::system::system_category() &&
+               (err.value() == ERROR_DIR_NOT_EMPTY || err.value() == ERROR_SHARING_VIOLATION ||
+                err.value() == ERROR_NOT_SUPPORTED);
+    };
+
+    boost::system::error_code ec;
+    boost::system::error_code last_retry_error;
+    std::uintmax_t            removed_count = 0;
+    unsigned                  attempts      = 0;
+
+    for (;;) {
+        ++attempts;
+        ec.clear();
+        removed_count = fs::remove_all(resolved_root, ec);
+        if (!ec)
+            break;
+
+        if (attempts < max_attempts && is_transient_delete_error(ec)) {
+            const std::chrono::milliseconds delay = retry_delays[attempts - 1];
+            BOOST_LOG_TRIVIAL(warning) << "Failed to delete plugin folder " << resolved_root.string()
+                                       << " transiently: attempt=" << attempts << "/" << max_attempts
+                                       << " error_value=" << ec.value() << " error_category=" << ec.category().name()
+                                       << " message=" << ec.message() << " delay_ms=" << delay.count();
+            last_retry_error = ec;
+            ::Sleep(static_cast<DWORD>(delay.count()));
+            continue;
+        }
+
+        break;
+    }
+
+    if (ec) {
+        // TRN %1% is a folder path, %2% the system error message.
+        error = GUI::format(_u8L("Failed to delete plugin folder %1%: %2%"), resolved_root.string(), ec.message());
+        BOOST_LOG_TRIVIAL(error) << "Failed to delete plugin folder " << resolved_root.string()
+                                 << " after attempts=" << attempts << " error_value=" << ec.value()
+                                 << " error_category=" << ec.category().name() << " message=" << ec.message();
+        return false;
+    }
+
+    if (attempts > 1) {
+        // Recovered after one or more transient failures: keep the last failure for diagnosis.
+        BOOST_LOG_TRIVIAL(info) << "Deleted plugin: " << plugin_id << " from " << resolved_root.string()
+                                << " after attempts=" << attempts << " last_error_value=" << last_retry_error.value()
+                                << " last_error_category=" << last_retry_error.category().name()
+                                << " last_error_message=" << last_retry_error.message();
+        return true;
+    }
+
+    if (removed_count == 0) {
+        return true;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "Deleted plugin: " << plugin_id << " from " << resolved_root.string();
+    return true;
+#else
+    // Non-Windows behavior is unchanged: one remove_all() call, no retries.
     boost::system::error_code ec;
     const auto removed_count = fs::remove_all(resolved_root, ec);
     if (ec) {
@@ -154,6 +257,7 @@ bool delete_plugin_root(const boost::filesystem::path& resolved_root, const std:
 
     BOOST_LOG_TRIVIAL(info) << "Deleted plugin: " << plugin_id << " from " << resolved_root.string();
     return true;
+#endif
 }
 
 
@@ -865,6 +969,8 @@ InstallStateReadStatus read_install_state_status(const boost::filesystem::path& 
             };
             read_string_list("fs_read", parsed.permissions.fs_read);
             read_string_list("fs_readwrite", parsed.permissions.fs_readwrite);
+            read_string_list("fs_create", parsed.permissions.fs_create);
+            read_string_list("fs_delete", parsed.permissions.fs_delete);
             read_string_list("network_http", parsed.permissions.network_http);
             read_string_list("network_socket", parsed.permissions.network_socket);
             read_string_list("process", parsed.permissions.process);
@@ -1038,6 +1144,8 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
     json["permissions"] = {
         {"fs_read", state.permissions.fs_read},
         {"fs_readwrite", state.permissions.fs_readwrite},
+        {"fs_create", state.permissions.fs_create},
+        {"fs_delete", state.permissions.fs_delete},
         {"network_http", state.permissions.network_http},
         {"network_socket", state.permissions.network_socket},
         {"process", state.permissions.process},

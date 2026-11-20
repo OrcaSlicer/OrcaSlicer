@@ -533,8 +533,8 @@ public:
     }
     // ORCA: select a view type in the preview combo box and apply it
     void select_view_type(libvgcode::EViewType type);
-    // ORCA: apply the "preview_default_view_type" preference, see the definition for the supported values
-    void apply_default_view_type();
+    // ORCA: apply the "preview_default_view_type" preference, or the view of the calibration being previewed
+    void apply_default_view_type(std::optional<libvgcode::EViewType> calibration_view = std::nullopt);
 
     // ORCA: stable, locale independent name of a view type, as stored in the application config
     static std::string view_type_to_config_name(libvgcode::EViewType type);

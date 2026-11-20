@@ -23,8 +23,24 @@ struct PluginPermissions
     // component. Reads and writes stay separate buckets: a wildcard in one never grants the other.
     std::vector<std::string> fs_read;
     std::vector<std::string> fs_readwrite;
+    // Create and delete grants name folders rather than individual targets: a literal folder
+    // entry grants creating or deleting entries directly inside that folder, not inside its
+    // subfolders. An entry ending in "/*" is a tree grant that also covers every folder below
+    // that root, at any depth. Empty means no grant. A sole "*" grants the operation anywhere;
+    // any other entry must be an absolute folder or tree path, and a relative or unreadable
+    // entry never matches. A "*" beside other entries is treated as an ordinary (non-matching)
+    // entry, so full access is never implied by accident; permission declarations reject such a
+    // mixed list together with every other wildcard. Runtime prompts store the canonical parent
+    // folder of the approved target (an exact grant, not a tree grant); a runtime parent folder
+    // whose own name contains "*" is refused instead of stored, because the sidecar would read
+    // it as a broader tree grant. A tree grant at a filesystem, drive, or network share root
+    // covers that whole filesystem, drive, or network share.
+    std::vector<std::string> fs_create;
+    std::vector<std::string> fs_delete;
     std::vector<std::string> network_http;
     std::vector<std::string> network_socket;
+    // Executables or command names. Arguments are ignored, so one entry covers every call of
+    // the tool.
     std::vector<std::string> process;
     // Thread creation is a yes/no grant. Newer sidecars store a boolean; older ones stored an
     // array (empty when denied, nonempty when granted), and nonempty strings are accepted by the
@@ -59,6 +75,13 @@ std::string get_cloud_plugin_dir(const std::string& user_id);
 std::string get_orca_plugins_dir();
 
 boost::filesystem::path resolve_plugin_root_from_descriptor(const PluginDescriptor& descriptor);
+
+// True when `root` is a filesystem root: POSIX "/", a Windows drive root such as "C:\", or a
+// UNC/network share root such as "\\server\share\" (including the extended-length forms
+// "\\?\C:\" and "\\?\UNC\server\share\"). A tree grant rooted here covers the whole filesystem,
+// volume, or network share, not one folder, so the permission prompt must say so instead of
+// presenting it as an ordinary nested folder.
+bool is_filesystem_root(const boost::filesystem::path& root);
 
 bool is_plugin_root_allowed(const boost::filesystem::path& candidate_root,
                             const std::vector<std::string>& allowed_dirs);
