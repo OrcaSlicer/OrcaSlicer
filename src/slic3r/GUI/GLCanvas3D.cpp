@@ -5166,6 +5166,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
     else if (evt.LeftDown() || evt.RightDown() || evt.MiddleDown()) {
         // Orca: Retain the click position even if the first motion event crosses a surface edge.
         m_mouse.set_start_position_2D_as_invalid();
+        m_mouse.position = pos.cast<double>();
         m_mouse.drag.start_position_2D = pos;
 
         //BBS: add orient deactivate logic
@@ -5362,7 +5363,10 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             m_dirty = true;
         }
     }
-    else if (evt.Dragging() || is_camera_rotate(evt, button_mappings) || is_camera_pan(evt, button_mappings)) {
+    else if ((evt.Dragging() || is_camera_rotate(evt, button_mappings) || is_camera_pan(evt, button_mappings)) &&
+             (m_mouse.dragging || m_layers_editing.state == LayersEditing::Editing ||
+              m_mouse.drag.start_position_2D == Point(INT_MAX, INT_MAX) ||
+              (pos - m_mouse.drag.start_position_2D).cast<double>().norm() >= 1.0)) {
         m_mouse.dragging = true;
 
         if (m_layers_editing.state != LayersEditing::Unknown && layer_editing_object_idx != -1) {
