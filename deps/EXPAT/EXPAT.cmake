@@ -2,10 +2,18 @@
 # the parser must not come from a distro or SDK copy that may predate it.
 # XML_DTD and XML_GE are passed explicitly: 2.4.0 gated the guard behind XML_DTD
 # and 2.6.0 behind XML_GE, so neither may be left to the default.
+set(_expat_c_flags_line "")
+if (MSVC)
+    # UTF-8 quotes in random_rand_s.c comments can swallow a preprocessor line
+    # when MSVC reads the source using the system's legacy code page.
+    set(_expat_c_flags_line "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS} /utf-8")
+endif ()
+
 orcaslicer_add_cmake_project(EXPAT
     URL https://github.com/libexpat/libexpat/releases/download/R_2_10_0/expat-2.10.0.tar.gz
     URL_HASH SHA256=5466a341f9c692ef7a958a6881311be597f8e1ce345984cf78414f54793dea4c
     CMAKE_ARGS
+        "${_expat_c_flags_line}"
         -DBUILD_SHARED_LIBS=OFF
         -DEXPAT_SHARED_LIBS=OFF
         -DEXPAT_DTD=ON
