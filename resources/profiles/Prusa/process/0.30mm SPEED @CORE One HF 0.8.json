@@ -5,7 +5,7 @@
 	"from": "system",
 	"setting_id": "wV3jMl7YWJ8dwdE8",
 	"instantiation": "true",
-	"overhang_3_4_speed": "45",
+	"overhang_2_4_speed": "45",
 	"top_surface_acceleration": "2000",
 	"travel_speed": "350",
 	"travel_acceleration": "7000",

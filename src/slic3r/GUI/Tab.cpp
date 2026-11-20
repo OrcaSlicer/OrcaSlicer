@@ -3207,6 +3207,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("sparse_infill_density", "strength_settings_infill#sparse-infill-density");
         optgroup->append_single_option_line("fill_multiline", "strength_settings_infill#fill-multiline");
         optgroup->append_single_option_line("sparse_infill_pattern", "strength_settings_infill#sparse-infill-pattern");
+        optgroup->append_single_option_line("sparse_infill_strategy", "strength_settings_infill#strategy");
         optgroup->append_single_option_line("adaptive_infill_mode", "strength_settings_patterns#adaptive-density");
         optgroup->append_single_option_line("adaptive_infill_interior_density", "strength_settings_patterns#interior-density");
         optgroup->append_single_option_line("adaptive_infill_gradient", "strength_settings_patterns#adaptive-gradient");
@@ -3252,23 +3253,36 @@ void TabPrint::build()
         optgroup->append_single_option_line("ensure_vertical_shell_thickness", "strength_settings_advanced#ensure-vertical-shell-thickness");
 
     page = add_options_page(L("Speed"), "custom-gcode_speed"); // ORCA: icon only visible on placeholders
+        // Orca: each speed below is followed by its volumetric alternative; ConfigManipulation shows one of the two.
+        optgroup = page->new_optgroup(L("Speed definition"), L"param_volumetric_speed", 15);
+        optgroup->append_single_option_line("enable_volumetric_speeds", "speed_settings_other_layers_speed#volumetric-speeds");
         optgroup = page->new_optgroup(L("First layer speed"), L"param_speed_first", 15);
         optgroup->append_single_option_line("initial_layer_speed", "speed_settings_initial_layer_speed#initial-layer", 0);
+        optgroup->append_single_option_line("initial_layer_volumetric_flow", "speed_settings_initial_layer_speed#initial-layer", 0);
         optgroup->append_single_option_line("initial_layer_infill_speed", "speed_settings_initial_layer_speed#initial-layer-infill", 0);
+        optgroup->append_single_option_line("initial_layer_infill_volumetric_flow", "speed_settings_initial_layer_speed#initial-layer-infill", 0);
         optgroup->append_single_option_line("initial_layer_travel_speed", "speed_settings_initial_layer_speed#initial-layer-travel-speed", 0);
         optgroup->append_single_option_line("slow_down_layers", "speed_settings_initial_layer_speed#number-of-slow-layers");
         optgroup = page->new_optgroup(L("Other layers speed"), L"param_speed", 15);
         optgroup->append_single_option_line("outer_wall_speed", "speed_settings_other_layers_speed#outer-wall", 0);
+        optgroup->append_single_option_line("outer_wall_volumetric_flow", "speed_settings_other_layers_speed#outer-wall", 0);
         optgroup->append_single_option_line("inner_wall_speed", "speed_settings_other_layers_speed#inner-wall", 0);
+        optgroup->append_single_option_line("inner_wall_volumetric_flow", "speed_settings_other_layers_speed#inner-wall", 0);
         optgroup->append_single_option_line("small_perimeter_speed", "speed_settings_other_layers_speed#small-perimeters", 0);
         optgroup->append_single_option_line("small_perimeter_threshold", "speed_settings_other_layers_speed#small-perimeters-threshold", 0);
         optgroup->append_single_option_line("sparse_infill_speed", "speed_settings_other_layers_speed#sparse-infill", 0);
+        optgroup->append_single_option_line("sparse_infill_volumetric_flow", "speed_settings_other_layers_speed#sparse-infill", 0);
         optgroup->append_single_option_line("internal_solid_infill_speed", "speed_settings_other_layers_speed#internal-solid-infill", 0);
+        optgroup->append_single_option_line("internal_solid_infill_volumetric_flow", "speed_settings_other_layers_speed#internal-solid-infill", 0);
         optgroup->append_single_option_line("top_surface_speed", "speed_settings_other_layers_speed#top-surface", 0);
+        optgroup->append_single_option_line("top_surface_volumetric_flow", "speed_settings_other_layers_speed#top-surface", 0);
         optgroup->append_single_option_line("gap_infill_speed", "speed_settings_other_layers_speed#gap-infill", 0);
+        optgroup->append_single_option_line("gap_infill_volumetric_flow", "speed_settings_other_layers_speed#gap-infill", 0);
         optgroup->append_single_option_line("ironing_speed", "speed_settings_other_layers_speed#ironing-speed");
         optgroup->append_single_option_line("support_speed", "speed_settings_other_layers_speed#support", 0);
+        optgroup->append_single_option_line("support_volumetric_flow", "speed_settings_other_layers_speed#support", 0);
         optgroup->append_single_option_line("support_interface_speed", "speed_settings_other_layers_speed#support-interface", 0);
+        optgroup->append_single_option_line("support_interface_volumetric_flow", "speed_settings_other_layers_speed#support-interface", 0);
         optgroup->append_single_option_line("small_support_perimeter_speed", "speed_settings_other_layers_speed#small-tree-support-perimeters", 0);
         optgroup->append_single_option_line("small_support_perimeter_threshold", "speed_settings_other_layers_speed#small-tree-support-perimeters-threshold", 0);
         optgroup = page->new_optgroup(L("Overhang speed"), L"param_overhang_speed", 15);
@@ -3284,8 +3298,14 @@ void TabPrint::build()
         optgroup->append_line(line);
         optgroup->append_separator();
         line = { L("Bridge"), L("Set speed for external and internal bridges") };
+        line.label_path = "speed_settings_overhang_speed#bridge-speed";
         line.append_option(optgroup->get_option("bridge_speed", 0));
         line.append_option(optgroup->get_option("internal_bridge_speed", 0));
+        optgroup->append_line(line);
+        line = { L("Bridge"), L("Set volumetric speed for external and internal bridges") };
+        line.label_path = "speed_settings_overhang_speed#bridge-speed";
+        line.append_option(optgroup->get_option("bridge_volumetric_flow", 0));
+        line.append_option(optgroup->get_option("internal_bridge_volumetric_flow", 0));
         optgroup->append_line(line);
 
         optgroup = page->new_optgroup(L("Travel speed"), L"param_travel_speed", 15);
@@ -3424,6 +3444,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("internal_solid_filament_id", "multimaterial_settings_filament_for_features#internal-solid-infill");
         optgroup->append_single_option_line("top_surface_filament_id", "multimaterial_settings_filament_for_features#top-surface");
         optgroup->append_single_option_line("bottom_surface_filament_id", "multimaterial_settings_filament_for_features#bottom-surface");
+        optgroup->append_single_option_line("brim_filament_id", "multimaterial_settings_filament_for_features#brim");
         optgroup->append_single_option_line("wipe_tower_filament", "multimaterial_settings_filament_for_features#wipe-tower");
 
         optgroup = page->new_optgroup(L("Ooze prevention"), L"param_ooze_prevention");
@@ -4959,6 +4980,7 @@ void TabFilament::build()
         optgroup = page->new_optgroup(L("Volumetric speed limitation"), L"param_volumetric_speed");
         optgroup->append_single_option_line("filament_adaptive_volumetric_speed", "material_volumetric_speed_limitation#adaptive-volumetric-speed", 0);
         optgroup->append_single_option_line("filament_max_volumetric_speed", "material_volumetric_speed_limitation#max-volumetric-speed", 0);
+        optgroup->append_single_option_line("filament_max_external_volumetric_speed", "material_volumetric_speed_limitation#max-external-volumetric-speed", 0);
 
         //line = { "", "" };
         //line.full_width = 1;
@@ -5075,6 +5097,11 @@ void TabFilament::build()
         optgroup->append_single_option_line("filament_tower_ironing_area", "material_multimaterial#multimaterial-wipe-tower-parameters");
         optgroup->append_single_option_line("filament_tower_interface_purge_volume", "material_multimaterial#multimaterial-wipe-tower-parameters");
         optgroup->append_single_option_line("filament_tower_interface_print_temp", "material_multimaterial#multimaterial-wipe-tower-parameters");
+
+        // Orca: the Type 1 prime tower takes its prime volume from each filament, not from the process.
+        optgroup = page->new_optgroup(L("Prime volume"), "param_tower");
+        optgroup->append_single_option_line("filament_prime_volume", "material_multimaterial#multimaterial-wipe-tower-parameters");
+        optgroup->append_single_option_line("filament_prime_volume_nc", "material_multimaterial#multimaterial-wipe-tower-parameters");
 
         optgroup = page->new_optgroup(L("Multi Filament"));
         // optgroup->append_single_option_line("filament_flush_temp", "", 0);
@@ -5312,6 +5339,18 @@ void TabFilament::toggle_options()
         // Orca: hide specific settings for BBL printers
         const wxString bambu_printer_reason = _L("This setting is unavailable for Bambu Lab printers.");
         toggle_option("filament_minimal_purge_on_wipe_tower", !is_BBL_printer, 256 + variant_index, bambu_printer_reason);
+
+        // Orca: only the Type 1 prime tower reads these. Bambu Lab printers always use the Type 1 tower. The tower
+        // takes the hotend change volume only when two filaments share an extruder but not a nozzle, so only on a
+        // printer whose extruder holds several nozzles, as has_multiple_nozzle tells in TabPrinter::on_preset_loaded().
+        const bool  type1_tower        = is_BBL_printer || printer_cfg.opt_enum<WipeTowerType>("wipe_tower_type") == WipeTowerType::Type1;
+        const auto *max_nozzle_counts  = printer_cfg.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
+        const bool  has_multiple_nozzle = max_nozzle_counts != nullptr &&
+            std::any_of(max_nozzle_counts->values.begin(), max_nozzle_counts->values.end(),
+                        [](int v) { return v > 1 && v != ConfigOptionIntsNullable::nil_value(); });
+        toggle_line("filament_prime_volume", type1_tower, -1, _L("Select wipe tower Type 1 in the printer settings to use this setting."));
+        toggle_line("filament_prime_volume_nc", type1_tower && has_multiple_nozzle, -1,
+                    _L("Select wipe tower Type 1 on a printer whose extruder holds more than one nozzle to use this setting."));
         for (auto el : {"filament_loading_speed_start", "filament_loading_speed",
                         "filament_unloading_speed_start", "filament_unloading_speed", "filament_toolchange_delay", "filament_cooling_moves",
                         "filament_cooling_initial_speed", "filament_cooling_final_speed"})
@@ -8591,13 +8630,8 @@ static void toggle_compatible_condition(Tab& tab, const std::string& key, bool e
 // Return a callback to create a Tab widget to mark the preferences as compatible / incompatible to the current printer.
 wxSizer* Tab::compatible_widget_create(wxWindow* parent, PresetDependencies &deps)
 {
-    deps.checkbox = new ::CheckBox(parent, wxID_ANY);
+    deps.checkbox = new LabeledCheckBox(parent, _L("All"));
     wxGetApp().UpdateDarkUI(deps.checkbox, false, true);
-
-    deps.checkbox_title = new wxStaticText(parent, wxID_ANY, _L("All"));
-    deps.checkbox_title->SetFont(Label::Body_14);
-    deps.checkbox_title->SetForegroundColour(wxColour("#363636"));
-    wxGetApp().UpdateDarkUI(deps.checkbox_title, false, true);
 
     // ORCA modernize button style
     Button* btn = new Button(parent, _(L("Set")) + " " + dots);
@@ -8606,11 +8640,11 @@ wxSizer* Tab::compatible_widget_create(wxWindow* parent, PresetDependencies &dep
 
     auto sizer = new wxBoxSizer(wxHORIZONTAL);
     sizer->Add((deps.checkbox), 0, wxALIGN_CENTER_VERTICAL);
-    sizer->Add((deps.checkbox_title), 0, wxALIGN_CENTER_VERTICAL);
     sizer->Add(new wxStaticText(parent, wxID_ANY, "  ")); // weirdly didnt apply AddSpacer or wxRIGHT border
     sizer->Add((deps.btn), 0, wxALIGN_CENTER_VERTICAL);
 
-    auto on_toggle = [this, &deps](const bool &state){
+    deps.checkbox->Bind(wxEVT_CHECKBOX, ([this, &deps](wxCommandEvent& e) {
+        bool state = e.IsChecked();
         deps.checkbox->SetValue(state);
         deps.btn->Enable(!state);
         // All printers have been made compatible with this preset.
@@ -8618,21 +8652,6 @@ wxSizer* Tab::compatible_widget_create(wxWindow* parent, PresetDependencies &dep
             this->load_key_value(deps.key_list, std::vector<std::string> {});
         toggle_compatible_condition(*this, deps.key_condition, state);
         this->update_changed_ui();
-    };
-
-    deps.checkbox_title->Bind(wxEVT_LEFT_DOWN,([&deps, on_toggle](wxMouseEvent& e) {
-        if (e.GetEventType() == wxEVT_LEFT_DCLICK) return;
-        on_toggle(!deps.checkbox->GetValue());
-        e.Skip();
-    }));
-
-    deps.checkbox_title->Bind(wxEVT_LEFT_DCLICK,([&deps, on_toggle](wxMouseEvent& e) {
-        on_toggle(!deps.checkbox->GetValue());
-        e.Skip();
-    }));
-
-    deps.checkbox->Bind(wxEVT_TOGGLEBUTTON, ([on_toggle](wxCommandEvent& e) {
-        on_toggle(e.IsChecked());
         e.Skip();
     }), deps.checkbox->GetId());
 

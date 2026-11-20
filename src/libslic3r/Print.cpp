@@ -308,6 +308,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "nozzle_height",
         "extruder_colour",
         "filament_flow_ratio",
+        "filament_max_external_volumetric_speed",
         "reduce_fan_stop_start_freq",
         "dont_slow_down_outer_wall",
         "fan_cooling_layer_time",
@@ -579,6 +580,9 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "travel_speed"
             || opt_key == "travel_speed_z"
             || opt_key == "initial_layer_speed"
+            || opt_key == "enable_volumetric_speeds"
+            || opt_key == "initial_layer_volumetric_flow"
+            || opt_key == "initial_layer_infill_volumetric_flow"
             || opt_key == "initial_layer_travel_speed"
             || opt_key == "initial_layer_travel_acceleration"
             || opt_key == "initial_layer_travel_jerk"
@@ -774,6 +778,10 @@ std::vector<unsigned int> Print::extruders(bool conside_custom_gcode) const
 {
     std::vector<unsigned int> extruders = this->object_extruders();
     append(extruders, this->support_material_extruders());
+    for (const PrintObject *object : m_objects)
+        if (object->config().brim_filament_id.value > 0 &&
+            ((object->has_brim() && !m_config.belt_printer.value) || object->has_belt_brim()))
+            extruders.push_back(object->config().brim_filament_id.value - 1);
 
     if (conside_custom_gcode)
         this->append_tool_change_extruders(extruders);
@@ -1956,6 +1964,8 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
                 if (print_object->config().support_interface_filament >= 1 && (unsigned int)print_object->config().support_interface_filament < num_extruders + 1)
                     obj_used_extruder_ids.insert((unsigned int) print_object->config().support_interface_filament - 1);
             }
+            if (print_object->has_brim() && print_object->config().brim_filament_id.value > 0)
+                obj_used_extruder_ids.insert(print_object->config().brim_filament_id.value - 1);
             std::vector<std::string> filament_types;
             std::vector<int> nozzle_temperatures;
             std::vector<int> nozzle_temperature_range_lows;
@@ -2536,6 +2546,22 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         }
     }
 
+    for (const PrintObject *object : m_objects)
+        for (const PrintRegion &region : object->all_regions()) {
+            const PrintRegionConfig &cfg = region.config();
+            if (cfg.sparse_infill_strategy.value == InfillStrategy::Crossing && cfg.fill_multiline.value > 3 &&
+                has_infill_strategy(cfg.sparse_infill_pattern.value) && cfg.sparse_infill_density.value > 0. &&
+                cfg.sparse_infill_density.value < 100.) {
+                // TRN %1% is the object name.
+                warn(Slic3r::format(_u8L("The sparse infill of the object %1% uses the Crossing strategy with more than 3 lines. "
+                                         "Its walls overlap over a large area at every crossing, which can over-extrude there "
+                                         "and make the nozzle scrape the infill. Use the Non-crossing strategy or fewer lines."),
+                                    object->model_object()->name),
+                     "sparse_infill_strategy", object);
+                break;
+            }
+        }
+
     // Cache of layer height profiles for checking:
     // 1) Whether all layers are synchronized if printing with wipe tower and / or unsynchronized supports.
     // 2) Whether layer height is constant for Organic supports.
@@ -2621,6 +2647,12 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 if (! check_object_layers_fixed(print_object.slicing_parameters(), layers))
                     return {_u8L("Variable layer height is not supported with Organic supports.") };
         }
+
+    // The brim filament is a physical tool. The GUI hides mixed slots from the option; this guards loaded projects and the CLI.
+    for (const PrintObject *object : m_objects)
+        if (const int brim_filament = object->config().brim_filament_id.value; brim_filament > 0 &&
+            size_t(brim_filament - 1) < m_config.filament_is_mixed.values.size() && m_config.filament_is_mixed.values[brim_filament - 1])
+            return { L("The brim filament cannot be a mixed filament."), object, "brim_filament_id" };
 
     if ((this->has_wipe_tower() || this->has_belt_purge_tower()) && ! m_objects.empty()) {
         // Orca: wipe_tower_filament (issue #10971) is inserted into the tool order after
@@ -3213,11 +3245,12 @@ Flow Print::brim_flow() const
        extruders and take the one with, say, the smallest index.
        The same logic should be applied to the code that selects the extruder during G-code
        generation as well. */
+    const int brim_filament = m_objects.front()->config().brim_filament_id.value;
     return Flow::new_from_config_width(
         frPerimeter,
         // Flow::new_from_config_width takes care of the percent to value substitution
 		width,
-        (float)nozzle_diameter_for_filament(m_config, m_print_regions.front()->config().outer_wall_filament_id, this->is_BBL_printer()),
+        (float)nozzle_diameter_for_filament(m_config, brim_filament > 0 ? brim_filament : m_print_regions.front()->config().outer_wall_filament_id.value, this->is_BBL_printer()),
 		(float)this->skirt_first_layer_height());
 }
 
@@ -3377,8 +3410,11 @@ BoundingBox PrintObject::get_first_layer_bbox(float& a, float& layer_height, std
 std::map<ObjectID, unsigned int> getObjectExtruderMap(const Print& print) {
     std::map<ObjectID, unsigned int> objectExtruderMap;
     for (const PrintObject* object : print.objects()) {
+        if (object->config().brim_filament_id.value > 0) {
+            objectExtruderMap.insert(std::make_pair(object->id(), (unsigned int)object->config().brim_filament_id.value));
+        }
         // BBS
-        if (object->object_first_layer_wall_extruders.empty()){
+        else if (object->object_first_layer_wall_extruders.empty()){
             unsigned int objectFirstLayerFirstExtruder = print.config().filament_diameter.size();
             auto firstLayerRegions = object->layers().front()->regions();
             if (!firstLayerRegions.empty()) {
@@ -4473,6 +4509,11 @@ void Print::_make_skirt()
             auto compatible_brim_nozzles =
                 [this, &brim_filament, &brim_exclusion_regions, has_nozzle_specific_brim_exclusions]
                 (const ObjectInstanceID& first, const ObjectInstanceID& second) {
+                    // A brim with a chosen filament is only combined with brims chosen the same.
+                    const int first_chosen  = get_object(first.object_id)->config().brim_filament_id.value;
+                    const int second_chosen = get_object(second.object_id)->config().brim_filament_id.value;
+                    if (first_chosen > 0 || second_chosen > 0)
+                        return first_chosen == second_chosen;
                     if (!has_nozzle_specific_brim_exclusions)
                         return true;
                     const std::optional<unsigned int> first_filament = brim_filament(first);
